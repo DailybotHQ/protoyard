@@ -204,10 +204,10 @@ Each control is a real named button. Toggles report `aria-pressed`, and the help
 
 | Key | Button | What it does |
 | --- | --- | --- |
-| `B` or `.` | Black out the screen | A black screen over everything. The screen itself is a button: a click, `B` or `Esc` brings the slide back, and never advances the deck. |
+| `B` or `.` | Black out the screen | A black screen over everything. The screen itself is a button: a click, `B` or `Esc` brings the slide back, and never advances the deck. For `BLACKOUT_HINT_MS` (2 s) it shows "Screen blacked out — press B or click to return". |
 | `F` | Full screen | Puts the deck root in browser full screen, with the chrome row replaced by a fading overlay (leave, previous, counter, next) that shows on pointer move or touch. Where the Fullscreen API is missing or refused, it fills the window with CSS instead (`data-fullscreen-mode="window"`) and the tooltip says so. `F` or `Esc` (after any open overlay) leaves, and focus returns to the deck. |
-| `L` | Laser pointer | A red dot that follows the pointer (and replaces the cursor) until `L` or `Esc`. While it is on, clicks do not advance. |
-| — | Copy slide reference | Copies `<title> · <slide-id> · #/<id>/<step>`: the slide title (else the deck title) and the deep link to the exact step. Uses the Clipboard API with an `execCommand` fallback, and announces "Slide reference copied" or "Could not copy the slide reference". |
+| `L` | Laser pointer | A red dot that follows the pointer (and replaces the cursor) until `L` or `Esc`. It appears at once at the last pointer position (else the stage center), with a "Laser on" chip; a touch tap moves it and it stays when the finger lifts. While it is on, clicks do not advance. |
+| — | Copy slide reference | Copies `<title> · <slide-id> · #/<id>/<step>`: the slide title (else its layout's `title` prop, else the deck title) and the deep link to the exact step. Uses the Clipboard API with an `execCommand` fallback. Inside DeckApp the result shows in `ChromeToast` ("Reference to slide 3 copied" or "Could not copy the slide reference"; one polite region plus a visible twin, 2.5 s, paused under the pointer, never stacked) via the toolbar's `oncopied`; a standalone toolbar announces "Slide reference copied" in its own live region. |
 | `?` | Keyboard shortcuts | A dialog generated from `DECK_KEY_BINDINGS` (the input guard's own table), so it can never drift from the keys. It focuses Close, and `Esc` or `?` closes it. |
 | — | Previous / next | Move one step or slide, matching the arrow and page keys. |
 | — | Choose a slide | Opens the numbered slide list; selecting a title jumps to it and returns focus to the counter. |

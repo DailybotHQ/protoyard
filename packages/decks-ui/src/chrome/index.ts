@@ -4,6 +4,7 @@
  * help dialog and laser render only while open.
  */
 export { default as BlackoutScreen } from './BlackoutScreen.svelte';
+export { default as ChromeToast, TOAST_DURATION_MS, type ToastTone } from './ChromeToast.svelte';
 export { default as ChromeTooltip } from './ChromeTooltip.svelte';
 export { copyText } from './clipboard.ts';
 export { default as DeckToolbar } from './DeckToolbar.svelte';

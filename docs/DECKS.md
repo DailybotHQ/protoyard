@@ -312,16 +312,28 @@ by default; embed it with `fit="container"` to fill a sized parent instead.
   sets both back to 00:00. The per-slide timer restarts on every slide change
   (a paused one stays paused, and pausing never resets it).
 - **B** or **.** blacks out the screen (a click, B or Escape brings the slide
-  back; arrows do nothing meanwhile). **L** turns the mouse pointer into a
-  laser dot, and clicks stop advancing while it is on. On touch screens the
-  dot only shows under a finger.
-- The **copy slide reference** button copies the slide title, its id and the
-  deep link to the exact step. Where the clipboard is blocked it says "Could
-  not copy the slide reference" instead of claiming success.
-- `?print=1` (add `&notes=1` for speaker notes) or the browser's print command
-  lays out every visible slide on its own page at the canvas size, with all
-  steps shown and no deck chrome. A printed PDF has one page per slide, sized
-  to the deck aspect (1280 x 720 CSS px for 16:9).
+  back; arrows do nothing meanwhile). For two seconds it says "Screen blacked
+  out — press B or click to return", then goes fully black.
+- **L** turns the pointer into a laser dot, and clicks stop advancing while
+  it is on. The dot appears at once, where the pointer last was over the deck
+  (else in the middle of the stage), and a "Laser on" chip shows in the
+  corner. On touch screens the dot moves to each tap and stays there when the
+  finger lifts.
+- The **copy slide reference** button copies the slide title (the slide's
+  `title`, else its layout's title), its id and the deep link to the exact
+  step. A toast shows "Reference to slide 3 copied" for 2.5 seconds (longer
+  while the pointer is on it), and the same text goes to one polite live
+  region. Where the clipboard is blocked the toast says "Could not copy the
+  slide reference" instead of claiming success. A new message replaces the
+  old one.
+- The **Print** button, Ctrl/Cmd+P, `?print=1` (add `&notes=1` for speaker
+  notes) and the browser's print command all lay out every visible slide on
+  its own page at the canvas size, with all steps shown and no deck chrome:
+  the button enters that layout before it opens the dialog. A printed PDF has
+  one page per slide, sized to the deck aspect (1280 x 720 CSS px for 16:9).
+  `PrintButton` from `@protoyard/decks-ui/print` takes an `onprint` callback
+  for a host with its own print layout; without it, it calls
+  `window.print()`.
 
 The keys reach the deck while it has focus. When a click or tap would leave
 focus nowhere (the blackout screen removes itself after a click, a tap lands

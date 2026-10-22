@@ -13,10 +13,11 @@ import {
 } from '@protoyard/decks';
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
 import type { Component } from 'svelte';
-import { onMount } from 'svelte';
+import { onMount, tick } from 'svelte';
 import DeckCanvas from '../canvas/DeckCanvas.svelte';
 import {
   BlackoutScreen,
+  ChromeToast,
   createDeckFullscreen,
   type DeckFullscreen,
   type DeckFullscreenMode,
@@ -138,6 +139,11 @@ type PresenterHostProps = {
 let PresenterHostComp = $state.raw<Component<PresenterHostProps> | null>(null);
 let presenterLoadError = $state(false);
 
+/** The deck's one feedback toast (copy results). */
+let toast = $state<ReturnType<typeof ChromeToast> | undefined>();
+/** The last pointer position over the deck (client pixels): the laser starts there. */
+let lastPointer = $state.raw<{ x: number; y: number } | null>(null);
+
 // Pointer tracking for swipe decisions.
 let pointerDown: { x: number; y: number; t: number; id: number } | null = null;
 
@@ -258,9 +264,10 @@ function runAction(action: string): void {
       break;
     case 'print':
       // Enter print layout then open the browser dialog (also Ctrl/Cmd+P).
+      // The print layout is in the DOM before the dialog captures the page.
       printing = true;
       if (typeof window !== 'undefined' && typeof window.print === 'function') {
-        queueMicrotask(() => window.print());
+        void tick().then(() => window.print());
       }
       break;
     default:
@@ -324,6 +331,7 @@ function onClick(event: MouseEvent): void {
 }
 
 function onPointerDown(event: PointerEvent): void {
+  lastPointer = { x: event.clientX, y: event.clientY };
   if (event.pointerType === 'mouse' && event.button !== 0) return;
   pointerDown = { x: event.clientX, y: event.clientY, t: event.timeStamp, id: event.pointerId };
 }
@@ -391,15 +399,28 @@ function layoutPropsFor(slide: DeckSlide): { layout: string; props: unknown } {
   };
 }
 
+/** A slide's visible name: its title, else its layout's `title` prop. */
+function slideTitle(slide: DeckSlide | undefined): string | null {
+  if (!slide) return null;
+  if (slide.title) return slide.title;
+  const props = 'props' in slide ? (slide.props as Record<string, unknown>) : null;
+  return typeof props?.title === 'string' && props.title.trim() !== '' ? props.title : null;
+}
+
 /** `<title> · <slide-id> · #/<id>/<step>` for the current slide and step. */
 function currentReference(): string {
   const id = location?.slideId ?? deck.slides[0]?.id ?? '';
   const slide = deck.slides.find((candidate) => candidate.id === id);
   return slideReference({
-    title: slide?.title ?? deck.outline?.title ?? null,
+    title: slideTitle(slide) ?? deck.outline?.title ?? null,
     slideId: id,
     step: location?.step ?? 0,
   });
+}
+
+function onCopied(ok: boolean): void {
+  if (ok) toast?.show(`Reference to slide ${visibleOrdinal + 1} copied`);
+  else toast?.show('Could not copy the slide reference', 'error');
 }
 
 function onTool(action: DeckToolAction): void {
@@ -477,6 +498,11 @@ onMount(() => {
   });
   fullscreenControl = fullscreenController;
   fullscreenPreferred = fullscreenController.preferred;
+  const onPointerMove = (event: PointerEvent) => {
+    lastPointer = { x: event.clientX, y: event.clientY };
+  };
+  const pointerRoot = rootEl;
+  pointerRoot?.addEventListener('pointermove', onPointerMove, { passive: true });
   const onBeforePrint = () => {
     printing = true;
   };
@@ -492,6 +518,7 @@ onMount(() => {
   window.addEventListener('popstate', onPopState);
   if (syncHash) window.addEventListener('hashchange', onHashChange);
   return () => {
+    pointerRoot?.removeEventListener('pointermove', onPointerMove);
     fullscreenController.destroy();
     fullscreenControl = null;
     window.removeEventListener('beforeprint', onBeforePrint);
@@ -631,6 +658,7 @@ onMount(() => {
             environment={controlEnvironment}
             onaction={onTool}
             onjump={jumpToSlide}
+            oncopied={onCopied}
           />
         </div>
       </div>
@@ -647,7 +675,7 @@ onMount(() => {
     {/if}
 
     {#if inputState.laser}
-      <LaserPointer container={rootEl} />
+      <LaserPointer container={rootEl} start={lastPointer} />
     {/if}
 
     {#if inputState.blackout}
@@ -693,6 +721,8 @@ onMount(() => {
     {#if inputState.help}
       <KeyboardHelp id={helpId} onclose={() => runAction('help')} />
     {/if}
+
+    <ChromeToast bind:this={toast} />
 
     <div class="sr-only" aria-live="polite" aria-atomic="true" data-py-deck-live>
       {announce}
