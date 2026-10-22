@@ -57,6 +57,7 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Testing | [TESTING_GUIDE](docs/TESTING_GUIDE.md) | Full and scoped commands, source→test map, blind spots, posture |
 | Commands | [DEVELOPMENT_COMMANDS](docs/DEVELOPMENT_COMMANDS.md) | Every script and CLI command |
 | Security | [SECURITY](docs/SECURITY.md) | Threat model, trust boundaries, rules |
+| Accessibility | [ACCESSIBILITY](docs/ACCESSIBILITY.md) | WCAG 2.1 A/AA checks: content-kind axe in light and dark, phone and desktop, what is asserted, fixes, honest limits |
 | Performance | [PERFORMANCE](docs/PERFORMANCE.md) | Measured index and bundle numbers, budgets |
 | Onboarding | [AI_AGENT_ONBOARDING](docs/AI_AGENT_ONBOARDING.md) | First-session checklist |
 | Collaboration | [AI_AGENT_COLLAB](docs/AI_AGENT_COLLAB.md) | Path ownership, lockfile, commits in a shared checkout, handoffs |

@@ -98,7 +98,7 @@ if (!Number.isInteger(REVIEW_PORT) || REVIEW_PORT < 1024 || REVIEW_PORT > 65535)
 
 // Specs that open the built player; naming one on the command line turns the player
 // servers on (and tells its workers through the environment they inherit).
-const PLAYER_SPECS = ['marketplace'];
+const PLAYER_SPECS = ['marketplace', 'content-kinds-a11y'];
 if (process.argv.some((arg) => PLAYER_SPECS.some((spec) => arg.includes(spec)))) {
   process.env.PROTOYARD_E2E_PLAYER = '1';
 }
