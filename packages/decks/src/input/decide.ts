@@ -108,6 +108,8 @@ export interface DeckInputState {
   fullscreen?: boolean;
   /** True when the debug panel is available (dev builds, `?debug=1`): only then does D act. */
   debugAvailable?: boolean;
+  /** True while the debug panel is open: Esc closes it first. */
+  debug?: boolean;
 }
 
 const EDITABLE_TAGS = new Set(['input', 'textarea', 'select']);
@@ -201,6 +203,7 @@ for (const item of DECK_CONTROLS) {
  * checks it), so Esc always has a way out.
  */
 const ESCAPE_ORDER: readonly [DeckInputAction, (state: DeckInputState) => boolean][] = [
+  ['debug', (state) => state.debug === true],
   ['help', (state) => state.help === true],
   ['overview', (state) => state.overview === 'open'],
   ['blackout', (state) => state.blackout === true],

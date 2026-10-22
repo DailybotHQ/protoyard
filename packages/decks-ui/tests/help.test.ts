@@ -243,9 +243,9 @@ describe('inside DeckApp', () => {
     // A click on the hint never advances the deck.
     expect(hint()?.hasAttribute('data-py-deck-chrome')).toBe(true);
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Keyboard shortcuts' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Controls and shortcuts' }));
     const dialog = await screen.findByRole('dialog', { name: 'Controls and shortcuts' });
-    expect(within(dialog).getByText('Copy slide reference')).toBeTruthy();
+    expect(within(dialog).getByText('Copy link to this slide')).toBeTruthy();
     first.unmount();
 
     render(DeckApp, { props: { deck: deck(), namespace: 'help-test' } });

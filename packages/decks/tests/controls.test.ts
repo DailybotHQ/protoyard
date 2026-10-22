@@ -28,7 +28,8 @@ import {
 
 /** The deck state under which a control's key acts (its overlay on, debug available…). */
 function stateFor(action: DeckInputAction, spec: DeckControlKey): DeckInputState {
-  if (action === 'debug') return { debugAvailable: true };
+  if (action === 'debug')
+    return spec.closes ? { debugAvailable: true, debug: true } : { debugAvailable: true };
   if (action === 'fullscreen-exit') return { fullscreen: true };
   if (!spec.closes) return {};
   const on: Partial<Record<DeckInputAction, DeckInputState>> = {
@@ -159,6 +160,7 @@ describe('availability', () => {
     expect(DECK_KEY_BINDINGS.map((binding) => binding.action)).not.toContain('debug');
     expect(deckKeyBindings(env({ debug: true })).find((b) => b.action === 'debug')?.keys).toEqual([
       'D',
+      'Esc',
     ]);
     // A control without keys (copy-link) is a button only.
     expect(DECK_KEY_BINDINGS.map((binding) => binding.action)).not.toContain('copy-link');
@@ -180,7 +182,14 @@ describe('new keys', () => {
     expect(decideDeckInput(esc, { fullscreen: true, blackout: true })).toBe('blackout');
     expect(decideDeckInput(esc, { fullscreen: true, laser: true })).toBe('laser');
     expect(decideDeckInput({ ...esc, repeat: true }, { fullscreen: true })).toBeNull();
-    expect(DECK_ESCAPE_ORDER).toEqual(['help', 'overview', 'blackout', 'laser', 'fullscreen-exit']);
+    expect(DECK_ESCAPE_ORDER).toEqual([
+      'debug',
+      'help',
+      'overview',
+      'blackout',
+      'laser',
+      'fullscreen-exit',
+    ]);
   });
 
   it('has an Esc entry for every control that Esc closes, and nothing else', () => {
@@ -199,6 +208,9 @@ describe('new keys', () => {
     expect(decideDeckInput({ ...d, repeat: true }, { debugAvailable: true })).toBeNull();
     expect(decideDeckInput({ ...d, ctrlKey: true }, { debugAvailable: true })).toBeNull();
     expect(decideDeckInput(d, { debugAvailable: true, help: true })).toBeNull();
+    // Esc closes the open panel before anything else.
+    const esc = { ...d, key: 'Escape' };
+    expect(decideDeckInput(esc, { debugAvailable: true, debug: true, help: true })).toBe('debug');
     expect(decideDeckInput(d, { debugAvailable: true, blackout: true })).toBeNull();
     expect(
       decideDeckInput({ ...d, path: [{ tag: 'input' }] }, { debugAvailable: true })

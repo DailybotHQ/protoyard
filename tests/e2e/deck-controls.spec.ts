@@ -203,7 +203,7 @@ test.describe('deck chrome controls', () => {
       await expect.poll(() => visiblyShown(page, /copied/)).toBe(true);
     });
 
-    test('the copied reference names the slide, not its id twice', async ({ page }) => {
+    test('Copy link copies a plain link to this slide (T-agent-debug-panel)', async ({ page }) => {
       await openDeck(page);
       await page.evaluate(() => {
         const w = window as typeof window & { __copied?: string };
@@ -221,8 +221,7 @@ test.describe('deck chrome controls', () => {
         page.evaluate(() => (window as typeof window & { __copied?: string }).__copied ?? '');
       await expect.poll(read).not.toBe('');
       const copied = await read();
-      expect(copied.endsWith('#/cover/0')).toBe(true);
-      expect(copied.startsWith('cover · cover')).toBe(false);
+      expect(copied).toBe(`${deckUrl}#/cover/0`);
     });
 
     test('the laser shows where it is as soon as it is turned on', async ({ page }) => {
@@ -263,6 +262,59 @@ test.describe('deck chrome controls', () => {
       await clickTool(page, 'blackout');
       await page.locator('[data-py-deck-blackout]').click();
       await expect(page.locator('[data-py-deck-blackout]')).toHaveCount(0);
+    });
+  });
+
+  test.describe('debug for agents (T-agent-debug-panel)', () => {
+    /** JavaScript files the page has loaded so far. */
+    const scripts = (page: Page) =>
+      page.evaluate(() =>
+        performance
+          .getEntriesByType('resource')
+          .map((entry) => entry.name)
+          .filter((name) => name.endsWith('.js'))
+      );
+
+    test('is off in a production build without ?debug=1', async ({ page }) => {
+      await openDeck(page);
+      await expect(tool(page, 'debug')).toHaveCount(0);
+      await root(page).focus();
+      await page.keyboard.press('d');
+      await expect(page.locator('[data-py-deck-debug]')).toHaveCount(0);
+    });
+
+    test('opens with D under ?debug=1, loads its chunk only then, and copies a reference to the slide', async ({
+      page,
+    }) => {
+      await page.goto(`${deckUrl}?debug=1#/cover/0`);
+      await expect(root(page)).toHaveAttribute('data-slide-id', 'cover');
+      await page.evaluate(() => {
+        const w = window as typeof window & { __copied?: string };
+        Object.defineProperty(navigator, 'clipboard', {
+          configurable: true,
+          value: {
+            writeText: async (text: string) => {
+              w.__copied = text;
+            },
+          },
+        });
+      });
+      expect((await scripts(page)).some((name) => name.includes('DeckDebugPanel'))).toBe(false);
+      await root(page).focus();
+      await page.keyboard.press('d');
+      const panel = page.locator('[data-py-deck-debug]');
+      await expect(panel).toBeVisible();
+      expect((await scripts(page)).some((name) => name.includes('DeckDebugPanel'))).toBe(true);
+      await expect(panel.locator('[data-py-deck-debug-slide]')).toHaveText('cover');
+      await panel.locator('[data-py-deck-debug-action="reference"]').click();
+      const read = () =>
+        page.evaluate(() => (window as typeof window & { __copied?: string }).__copied ?? '');
+      await expect.poll(read).toContain('id=cover');
+      expect(await read()).toMatch(/^\[slide-ref\] /);
+      // A click in the panel never advances the deck; Escape closes it.
+      await expect(root(page)).toHaveAttribute('data-slide-id', 'cover');
+      await page.keyboard.press('Escape');
+      await expect(panel).toHaveCount(0);
     });
   });
 

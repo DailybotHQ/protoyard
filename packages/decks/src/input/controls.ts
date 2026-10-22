@@ -256,9 +256,8 @@ export const DECK_CONTROLS: readonly DeckControl[] = Object.freeze([
   control({
     action: 'copy-link',
     group: 'share',
-    label: 'Copy slide reference',
-    description:
-      "Copies this slide's title, id and #/slide/step address, to paste into notes or a chat.",
+    label: 'Copy link to this slide',
+    description: 'Copies a link that opens the deck at this slide and step.',
     keys: [],
     toggle: false,
     icon: 'link',
@@ -280,8 +279,8 @@ export const DECK_CONTROLS: readonly DeckControl[] = Object.freeze([
   control({
     action: 'help',
     group: 'help',
-    label: 'Keyboard shortcuts',
-    description: 'Lists every keyboard shortcut for this deck.',
+    label: 'Controls and shortcuts',
+    description: 'Lists every control in this deck, with its keys.',
     keys: [{ key: '?', label: '?', shift: 'allowed' }, ESC],
     toggle: true,
     icon: 'keyboard',
@@ -292,7 +291,7 @@ export const DECK_CONTROLS: readonly DeckControl[] = Object.freeze([
     group: 'debug',
     label: 'Debug for agents',
     description: "Shows this slide's source, its checks and a reference to paste into an AI agent.",
-    keys: [{ key: 'd', label: 'D' }],
+    keys: [{ key: 'd', label: 'D' }, ESC],
     toggle: true,
     icon: 'bug',
     requires: ['debug'],

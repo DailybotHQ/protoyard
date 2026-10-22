@@ -261,7 +261,7 @@ On screen:
   fills the page's own window instead of failing silently. The button's
   tooltip and the overlay say so, and the root carries
   `data-fullscreen-mode="window"` (`native` for browser full screen).
-- Press **?** (or the Keyboard shortcuts button) for **Controls and
+- Press **?** (or the Controls and shortcuts button) for **Controls and
   shortcuts**: every control this deck offers, grouped as in the toolbar
   (move around, view, present, share and print, help), each with its icon,
   label, one-sentence description and keys, or "Button only". It is built
@@ -331,13 +331,24 @@ by default; embed it with `fit="container"` to fill a sized parent instead.
   (else in the middle of the stage), and a "Laser on" chip shows in the
   corner. On touch screens the dot moves to each tap and stays there when the
   finger lifts.
-- The **copy slide reference** button copies the slide title (the slide's
-  `title`, else its layout's title), its id and the deep link to the exact
-  step. A toast shows "Reference to slide 3 copied" for 2.5 seconds (longer
-  while the pointer is on it), and the same text goes to one polite live
-  region. Where the clipboard is blocked the toast says "Could not copy the
-  slide reference" instead of claiming success. A new message replaces the
-  old one.
+- The **Copy link to this slide** button copies a plain link: the page URL
+  with the `#/<slide-id>/<step>` deep link. A toast shows "Link to slide 3
+  copied" for 2.5 seconds (longer while the pointer is on it), and the same
+  text goes to one polite live region. Where the clipboard is blocked the
+  toast says "Could not copy the link" instead of claiming success. A new
+  message replaces the old one.
+- **Debug for agents** (the bug button, or **D**) opens a side sheet for
+  pointing a coding agent at this exact slide: its id, position, step,
+  layout, JSON pointer, blocks, visible text and lint findings (with buttons
+  to jump to other slides that have findings). It copies the one-line agent
+  reference (`[slide-ref] …`, which `protoyard deck inspect --ref` resolves),
+  a Markdown agent prompt, or the slide JSON, downloads the deck JSON, and
+  can outline each block with its JSON pointer on the stage. **Escape**
+  closes it first. It is on in dev builds and with `?debug=1` on the page
+  URL; a host can pass `debug="on"` or `debug="off"` to DeckApp. Exports,
+  artifacts and the hosted player are off unless the URL asks. It never uses
+  the network, is never printed, and loads on its own chunk only when it
+  opens.
 - The **Print** button, Ctrl/Cmd+P, `?print=1` (add `&notes=1` for speaker
   notes) and the browser's print command all lay out every visible slide on
   its own page at the canvas size, with all steps shown and no deck chrome:

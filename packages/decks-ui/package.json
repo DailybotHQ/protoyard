@@ -41,6 +41,11 @@
       "svelte": "./src/print/index.ts",
       "default": "./src/print/index.ts"
     },
+    "./debug": {
+      "types": "./src/debug/index.ts",
+      "svelte": "./src/debug/index.ts",
+      "default": "./src/debug/index.ts"
+    },
     "./styles.css": "./src/styles.css",
     "./player.css": "./src/player.css"
   },
@@ -103,6 +108,11 @@
         "types": "./dist/print/index.d.ts",
         "svelte": "./dist/print/index.js",
         "default": "./dist/print/index.js"
+      },
+      "./debug": {
+        "types": "./dist/debug/index.d.ts",
+        "svelte": "./dist/debug/index.js",
+        "default": "./dist/debug/index.js"
       },
       "./styles.css": {
         "types": "./dist/styles.css.d.ts",
