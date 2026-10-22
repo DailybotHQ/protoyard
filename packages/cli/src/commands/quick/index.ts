@@ -9,6 +9,7 @@ import {
   DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS,
   deriveVariants,
   encodeBlueprintShare,
+  isAppBriefResult,
   loadUntrustedBlueprint,
   ShareLinkTooLargeError,
   VARIANT_MAX_COUNT,
@@ -277,10 +278,21 @@ export const quickCommand: Handler = async (
       });
     }
     const name = opt(options, 'name');
-    let result: ReturnType<typeof blueprintFromBrief>;
     try {
-      result = blueprintFromBrief(brief, name ? { name } : {});
+      const synthesized = blueprintFromBrief(brief, name ? { name } : {});
+      if (!isAppBriefResult(synthesized)) {
+        throw new CliError(
+          'validation',
+          `This brief looks like a ${synthesized.kind}; quick still expects an app blueprint.`,
+          {
+            hint: `Rephrase toward an app, or pass kind "app" when the CLI supports --kind. Detector: ${synthesized.kindDetection.reason}`,
+          }
+        );
+      }
+      blueprint = synthesized.blueprint;
+      rationale = synthesized.rationale;
     } catch (error) {
+      if (error instanceof CliError) throw error;
       // The synthesizer validates its own output; report a miss as data, never a crash.
       const issues = (error as { issues?: { path?: (string | number)[]; message?: string }[] })
         .issues;
@@ -300,8 +312,6 @@ export const quickCommand: Handler = async (
         ...(Array.isArray(issues) ? { data: { issues } } : {}),
       });
     }
-    blueprint = result.blueprint;
-    rationale = result.rationale;
   }
 
   const slug = opt(options, 'slug') ?? slugFromName(blueprint.name);

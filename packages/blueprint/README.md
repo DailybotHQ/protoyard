@@ -573,16 +573,26 @@ const committed = await services.ticket.importCsv(text, {
 
 ## Brief to blueprint
 
-`blueprintFromBrief(brief, { archetype?, name? })` turns a short product brief into a valid
-blueprint, offline and deterministically (same brief, same JSON; no network or model):
+`blueprintFromBrief(brief, { archetype?, name?, kind? })` turns a short product brief into a
+valid blueprint (or content draft), offline and deterministically (same brief, same JSON; no
+network or model). Kind dispatch runs first (ADR-036):
+
+1. An explicit `kind` (`app` | `deck` | `page` | `doc`) overrides every cue; unknown kinds throw a
+   stable `RangeError`.
+2. Strong deck / page / doc cues route to kind-specific synthesizers **before** app archetype
+   scoring (generic title/agenda/close or section scaffolding — richer outlines land later).
+3. App briefs keep the historical result fields and byte-compatible JSON.
 
 ```ts
-import { blueprintFromBrief } from '@protoyard/blueprint';
+import { blueprintFromBrief, isAppBriefResult } from '@protoyard/blueprint';
 
-const { blueprint, json, archetype, layout, rationale } = blueprintFromBrief(
+const result = blueprintFromBrief(
   'A dog grooming salon that books appointments, tracks groomers and invoices with amount and due date.'
 );
-// archetype 'booking'; entities appointment, client, groomer, invoice; rationale explains each choice
+if (isAppBriefResult(result)) {
+  // archetype 'booking'; entities appointment, client, groomer, invoice
+  const { blueprint, json, archetype, layout, rationale, kindDetection } = result;
+}
 ```
 
 - **Archetype:** keyword scoring over `ARCHETYPES` (help desk, CRM, booking, logistics,
@@ -637,8 +647,11 @@ can show as is.
 - An explicit `kind` overrides every cue (`confidence: 'explicit'`). An unknown explicit kind
   throws a `RangeError`.
 
-The detector is not exported from the package root yet. The brief-dispatch work wires it into
-`blueprintFromBrief` and `src/brief/index.ts`.
+`detectBriefKind` and the content synthesizers (`synthesizeDeckFromBrief`,
+`synthesizePageFromBrief`, `synthesizeDocFromBrief`) are exported from `@protoyard/blueprint`.
+`blueprintFromBrief` returns `AppBriefResult | ContentBriefResult`; narrow with
+`isAppBriefResult` / `isContentBriefResult`. Content drafts carry `kind`, `outline`, `json` and
+`rationale` (no app `entities` / `roles`); engine body schemas validate them once wired.
 
 ## Workflow state models
 
