@@ -15,6 +15,7 @@ import { doctorCommand } from './commands/doctor.ts';
 import { exportCommand } from './commands/export.ts';
 import { generateCommand } from './commands/generate.ts';
 import { indexCommand } from './commands/index-cmd.ts';
+import { kitSyncCommand } from './commands/kit.ts';
 import { listCommand } from './commands/list.ts';
 import { mcpCommand } from './commands/mcp.ts';
 import { newCommand } from './commands/new.ts';
@@ -469,6 +470,17 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--force', 'overwrite src/theme.ts')
     .option('--dry-run', 'show the generated file without writing')
     .action(def('theme import', themeImportCommand));
+
+  const kit = program
+    .command('kit')
+    .description('sync a design kit into an isolated prototype copy');
+  kit
+    .command('sync')
+    .description('copy a kit component tree into a prototype and record hashes')
+    .argument('<kit>', 'kit prototype or template slug')
+    .argument('<prototype>', 'destination prototype slug')
+    .option('--check', 'fail when the source, copied files or manifest have drifted')
+    .action(def('kit sync', kitSyncCommand));
 
   const snapshot = program
     .command('snapshot')
