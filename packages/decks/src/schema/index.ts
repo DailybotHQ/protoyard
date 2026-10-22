@@ -31,7 +31,8 @@ export const DECK_LIMITS = Object.freeze({
 });
 
 const SlugSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
-const LayoutIdSchema = z.string().regex(/^(?!free$)[a-z0-9][a-z0-9-]{0,63}$/);
+/** Catalog layout ids: `free` and `custom` are slide kinds of their own. */
+const LayoutIdSchema = z.string().regex(/^(?!(?:free|custom)$)[a-z0-9][a-z0-9-]{0,63}$/);
 const LayoutPropKeySchema = z
   .string()
   .max(64)
@@ -130,7 +131,32 @@ export const FreeSlideSchema = z.strictObject({
 });
 export type FreeSlide = Omit<z.infer<typeof FreeSlideSchema>, 'blocks'> & { blocks: Block[] };
 
-export const DeckSlideSchema = z.union([CatalogSlideSchema, FreeSlideSchema]);
+/** The id a generated deck registers its own slide component under (`src/custom-slides.ts`). */
+export const CustomSlideComponentIdSchema = SlugSchema;
+
+/**
+ * A slide rendered by a component the generated prototype owns (level 2),
+ * registered under `props.component`. `data` is bounded JSON, capped like
+ * catalog props, and is all the component receives besides its own slide and
+ * step. The player (level 1) has no owned code and shows a labelled
+ * placeholder. Reveal steps come from the slide's `steps` labels.
+ */
+export const CustomSlideSchema = z.strictObject({
+  ...SlideBaseShape,
+  layout: z.literal('custom'),
+  props: z.strictObject({
+    component: CustomSlideComponentIdSchema,
+    data: LayoutPropsSchema.optional(),
+  }),
+});
+export type CustomSlide = z.infer<typeof CustomSlideSchema>;
+
+export const DeckSlideSchema = z.union([CatalogSlideSchema, FreeSlideSchema, CustomSlideSchema]);
+
+/** True for a `layout: "custom"` slide. */
+export function isCustomSlide(slide: { layout: string }): slide is CustomSlide {
+  return slide.layout === 'custom';
+}
 export type DeckSlide = z.infer<typeof DeckSlideSchema>;
 
 export const DeckSectionSchema = z.strictObject({
@@ -242,7 +268,10 @@ export const DeckSchema = z
     }
     const slidePaths = new Map<string, number>();
     deck.slides.forEach((slide, index) => {
-      if ('props' in slide) {
+      if (isCustomSlide(slide)) {
+        // The owned component reads its data as given; links and media follow the deck policies.
+        checkPropUrls(slide.props.data ?? {}, ['slides', index, 'props', 'data'], ctx);
+      } else if ('props' in slide) {
         validateStepMarkers(slide.props, ['slides', index, 'props'], ctx);
         const props = stripStepMarkers(slide.props);
         checkPropUrls(props, ['slides', index, 'props'], ctx);

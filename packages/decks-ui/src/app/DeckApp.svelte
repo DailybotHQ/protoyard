@@ -13,7 +13,7 @@ import {
   slideStepCount,
 } from '@protoyard/decks';
 import type { AgentReferenceSource } from '@protoyard/decks/agent';
-import type { Deck, DeckSlide } from '@protoyard/decks/schema';
+import { type Deck, type DeckSlide, isCustomSlide } from '@protoyard/decks/schema';
 import type { Component } from 'svelte';
 import { onMount, tick } from 'svelte';
 import DeckCanvas from '../canvas/DeckCanvas.svelte';
@@ -31,6 +31,8 @@ import {
   LaserPointer,
 } from '../chrome/index.ts';
 import { type DeckDebugSetting, deckDebugAvailable, isDevBuild } from '../debug/availability.ts';
+import CustomSlideHost from '../layouts/CustomSlideHost.svelte';
+import type { CustomSlideRegistry } from '../layouts/custom-slides.ts';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
 import SlideStepHost from '../layouts/SlideStepHost.svelte';
 import { DeckPrint, parseDeckPrintFlags } from '../print/index.ts';
@@ -59,6 +61,7 @@ let {
   fit = 'viewport',
   debug = 'auto',
   debugSource = null,
+  customSlides,
 }: {
   /** Validated deck document. */
   deck: Deck;
@@ -85,6 +88,12 @@ let {
   debug?: DeckDebugSetting;
   /** Where the deck came from, for the agent reference (a blueprint path, a prototype slug). */
   debugSource?: AgentReferenceSource | null;
+  /**
+   * A generated deck's own slide components (`src/custom-slides.ts`), for
+   * `layout: "custom"` slides. Without it (the player) they show a labelled
+   * placeholder.
+   */
+  customSlides?: CustomSlideRegistry;
 } = $props();
 
 const debugAvailable = $derived(
@@ -610,7 +619,16 @@ onMount(() => {
               number={numberOf(slide.id)}
             >
               <SlideStepHost {slide} step={stepOf(slide)}>
-                <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+                {#if isCustomSlide(slide)}
+                  <CustomSlideHost
+                    {slide}
+                    step={stepOf(slide)}
+                    stepCount={slideStepCount(slide)}
+                    registry={customSlides}
+                  />
+                {:else}
+                  <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+                {/if}
               </SlideStepHost>
             </DeckSlideFrame>
           </div>

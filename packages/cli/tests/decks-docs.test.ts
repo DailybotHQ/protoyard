@@ -113,7 +113,8 @@ describe('docs/DECKS.md', () => {
     for (const topic of [
       // Step reveals and the last step shipped in T-deck-fragments; what remains is listed.
       'Steps inside a chart do not hide',
-      'custom slide components',
+      // Custom slides shipped in T-custom-slides; what remains is their level-1 placeholder.
+      'custom slides run only at level 2',
       'media backgrounds',
       'Heuristics are report-only',
     ]) {

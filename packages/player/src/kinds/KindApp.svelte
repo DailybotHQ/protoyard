@@ -2,6 +2,7 @@
 import { setBlockHost } from '@protoyard/blocks-ui';
 import { getRuntime } from '@protoyard/renderer-svelte';
 import { ErrorState, LoadingState } from '@protoyard/ui';
+import { deckDebugSource } from './debug-source.ts';
 import { createDeferredStateHost } from './deferred-host.ts';
 import { kindApp } from './state.ts';
 
@@ -59,7 +60,11 @@ const what = blueprint.kind === 'deck' ? 'deck' : blueprint.kind === 'page' ? 'p
   <LoadingState label={`Loading the ${what}`} class="py-16" />
 {:then module}
   {#if blueprint.kind === 'deck' && 'DeckApp' in module}
-    <module.DeckApp deck={studio?.preview ?? blueprint.deck} {namespace} />
+    <module.DeckApp
+      deck={studio?.preview ?? blueprint.deck}
+      {namespace}
+      debugSource={deckDebugSource(location.search, namespace)}
+    />
   {:else if blueprint.kind === 'page' && 'PageApp' in module}
     <module.PageApp page={blueprint.page} {runtime} />
   {:else if blueprint.kind === 'doc' && 'DocApp' in module}

@@ -156,7 +156,8 @@ export function slideSteps(slide: DeckSlide): SlideSteps {
   const raw: Raw[] = [];
   // `layout: string` on catalog slides overlaps `'free'`, so narrow on the body key.
   if ('blocks' in slide) fromBlocks(slide.blocks as Block[], raw);
-  else fromProps(slide.props, ['props'], 0, raw);
+  // A custom slide's data belongs to its component: its steps are the `steps` labels alone.
+  else if (slide.layout !== 'custom') fromProps(slide.props, ['props'], 0, raw);
 
   const distinct = [...new Set(raw.map((r) => r.authored).filter((n) => n > 0))].sort(
     (a, b) => a - b

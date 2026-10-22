@@ -66,6 +66,13 @@ export const DECK_QUALITY_RULES = Object.freeze([
     description: "A catalog slide's props break its layout's schema or size limits.",
   },
   {
+    id: 'custom-slide',
+    severity: 'warning',
+    check: 'static',
+    description:
+      'A custom slide runs a component only a generated deck has; the player shows a placeholder there.',
+  },
+  {
     id: 'image-alt',
     severity: 'error',
     check: 'static',

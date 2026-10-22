@@ -1,11 +1,19 @@
-import type { DeckSlide } from '@protoyard/decks/schema';
-import type { Component } from 'svelte';
-
-/** Components owned by this generated prototype can be catalogued here by stable slide id. */
-export type CustomSlideComponent = Component<{ slide: DeckSlide }>;
+import type { CustomSlideRegistry } from '@protoyard/decks-ui/app';
 
 /**
- * The shared DeckApp currently renders the data-only layout catalog. Keep this
- * typed registry as the template's extension point for future owned slide hosts.
+ * This deck's own slide components, for `layout: "custom"` slides:
+ *
+ *   { "id": "pricing", "layout": "custom",
+ *     "props": { "component": "pricing-configurator", "data": { "seats": 25 } } }
+ *
+ * Register each component id with a lazy import, so its code loads only when
+ * the slide shows:
+ *
+ *   'pricing-configurator': () => import('./slides/PricingConfigurator.svelte'),
+ *
+ * A component receives `{ slide, step, stepCount, data }` (`CustomSlideProps`),
+ * never the whole deck or the runtime's services unless you pass them. The
+ * player has no owned code and shows a labelled placeholder for these slides.
+ * This file is yours: `protoyard generate` never rewrites it.
  */
-export const customSlides: Readonly<Record<string, CustomSlideComponent>> = Object.freeze({});
+export const customSlides: CustomSlideRegistry = Object.freeze({});

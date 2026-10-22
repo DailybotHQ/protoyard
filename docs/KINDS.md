@@ -87,6 +87,11 @@ A **deck** is a bounded slide presentation of [blocks](BLOCKS.md).
 - **Navigation:** hash `#/<slide-id>/<step>`; keyboard, overview, presenter and
   print paths are documented in [Decks](DECKS.md).
 - **Catalog:** `blueprints/decks/`.
+- **Custom slides (level 2 only):** a `layout: "custom"` slide renders a
+  component the generated deck registers in its own `src/custom-slides.ts`
+  (loaded lazily, given `{ slide, step, stepCount, data }`). The player has
+  no owned code and shows a labelled placeholder; see
+  [Decks: Custom slides](DECKS.md#custom-slides).
 - **Honest limits:** speaker notes and overlays are simulation chrome; there is
   no live multiplayer presenter backend.
 

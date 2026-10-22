@@ -328,7 +328,10 @@ export function lintDeckStructure(input: unknown): DeckLintResult {
 
   deck.slides.forEach((slide, index) => {
     const layoutPath = ['slides', index, 'layout'];
-    if (!Object.hasOwn(DECK_LAYOUT_BY_ID, slide.layout)) {
+    // A custom slide renders an owned component (checked by the schema and checkDeckStatic).
+    if (slide.layout === 'custom') {
+      // Nothing to check against the catalog.
+    } else if (!Object.hasOwn(DECK_LAYOUT_BY_ID, slide.layout)) {
       diagnostics.push(
         diagnostic(
           'unknown-layout',

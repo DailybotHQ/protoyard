@@ -140,6 +140,13 @@ async function activate(control: DeckControl): Promise<void> {
   onaction(action);
 }
 
+/** A catalog slide's `title` prop (a custom slide's props are its component and data). */
+function propsTitle(slide: DeckSlide): string | null {
+  if (!('props' in slide)) return null;
+  const title = (slide.props as Record<string, unknown>).title;
+  return typeof title === 'string' ? title : null;
+}
+
 function selectSlide(slideId: string): void {
   jumpOpen = false;
   onjump(slideId);
@@ -234,7 +241,7 @@ $effect(() => () => {
               class="block min-h-11 w-full rounded px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
               onclick={() => selectSlide(slide.id)}
             >
-              <span class="mr-2 text-muted-foreground">{index + 1}.</span>{slide.title ?? ('props' in slide && typeof slide.props.title === 'string' ? slide.props.title : slide.id)}
+              <span class="mr-2 text-muted-foreground">{index + 1}.</span>{slide.title ?? (propsTitle(slide) ?? slide.id)}
             </button>
           {/each}
         </div>

@@ -68,6 +68,8 @@ export function deckStudioOptions() {
  */
 export function compatibleLayouts(slide: DeckSlide): string[] {
   if (!('props' in slide)) return ['free'];
+  // A custom slide's props are a component id and its data, not catalog content.
+  if (slide.layout === 'custom') return ['custom'];
   return DECK_LAYOUTS.filter((layout) => layout.id !== 'free')
     .map((layout) => layout.id)
     .filter((id) => safeParseDeck({ style: {}, slides: [{ ...slide, layout: id }] }).success);
@@ -116,7 +118,14 @@ export function deckEditsToPatch(source: Deck, edits: DeckStudioEdits): DeckPatc
     const slideOps: DeckPatchOperation[] = [];
     for (const key of DECK_STUDIO_SLIDE_KEYS) {
       const value = slideEdit[key];
-      if (key === 'layout' && (value === null || slide.layout === 'free' || value === 'free'))
+      if (
+        key === 'layout' &&
+        (value === null ||
+          slide.layout === 'free' ||
+          value === 'free' ||
+          slide.layout === 'custom' ||
+          value === 'custom')
+      )
         continue;
       setOrRemove(
         slideOps,

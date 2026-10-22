@@ -203,8 +203,16 @@ export function checkDeckStatic(deck: Deck): DeckQualityReport {
     const base: (string | number)[] = ['slides', index];
     const id = slide.id;
 
-    // Structure: layout and props.
-    if (slide.layout !== 'free') {
+    // Structure: layout and props. A custom slide's props are its component id and data.
+    if (slide.layout === 'custom') {
+      const component = 'props' in slide ? (slide.props as { component?: unknown }).component : '';
+      add(
+        'custom-slide',
+        id,
+        [...base, 'props', 'component'],
+        `Slide "${id}" renders the custom component "${String(component)}": it runs in the generated deck; the player shows a placeholder.`
+      );
+    } else if (slide.layout !== 'free') {
       if (!getDeckLayout(slide.layout)) {
         add('unknown-layout', id, [...base, 'layout'], `Unknown layout "${slide.layout}".`);
       } else if ('props' in slide) {
@@ -218,7 +226,7 @@ export function checkDeckStatic(deck: Deck): DeckQualityReport {
     }
 
     // Assets: images in layout props (image blocks enforce alt and size in their schema).
-    if ('props' in slide) {
+    if ('props' in slide && slide.layout !== 'custom') {
       walkProps(slide.props, [...base, 'props'], (record, path, key) => {
         if (key !== 'image' || typeof record.src !== 'string') return;
         if (typeof record.alt !== 'string' || record.alt.trim() === '') {

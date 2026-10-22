@@ -144,6 +144,25 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
     expect(report.ok).toBe(false);
   });
 
+  it('custom-slide (warning): runs only in a generated deck, and its data is never read as props', () => {
+    const deck = rawDeck([
+      {
+        id: 'pricing',
+        layout: 'custom',
+        props: { component: 'pricing-configurator', data: { seats: 10, plan: { step: 'x' } } },
+        notes: 'Walk through the configurator: change the seats and watch the total.',
+      },
+    ]);
+    const report = checkDeckStatic(deck);
+    expect(only(report.issues, 'custom-slide')).toMatchObject([
+      { severity: 'warning', slideId: 'pricing', jsonPath: '$.slides[0].props.component' },
+    ]);
+    // Not an unknown catalog layout, and its data is the component's own.
+    expect(only(report.issues, 'unknown-layout')).toEqual([]);
+    expect(only(report.issues, 'layout-props')).toEqual([]);
+    expect(report.ok).toBe(true);
+  });
+
   it('layout-props (error): missing fields and over-limit arrays', () => {
     schemaRejectsAt(
       [slide('stat', 'big-stat', { label: 'no number' })],
@@ -376,6 +395,7 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
     const covered = new Set<DeckQualityRuleId>([
       'unknown-layout',
       'layout-props',
+      'custom-slide',
       'image-alt',
       'image-size',
       'step-order',
