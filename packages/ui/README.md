@@ -47,6 +47,7 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 | Group | Components |
 | --- | --- |
 | Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone` |
+| Form utilities | `TagEmailInput`, `EmojiPicker`, `PasswordStrengthMeter`, `TextCounter` (+ email and password-score helpers) |
 | Scheduling | `TimeZoneSelect`, `WeekdayPicker`, `TimeInput`, `DatePicker`, `DateRangePicker`, `Calendar` (+ pure date, time, weekday and zone helpers) |
 | Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone`, `ImageInput` |
 | Overlays | `Dialog`, `AlertDialog`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip` |
@@ -79,6 +80,10 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `FileDropzone` | `accept`, `maxSize`, `maxFiles`, `multiple`, `bind:files` (`DropzoneFile[]` with real `File`s), `bind:rejects`, drag-and-drop + keyboard file input, image previews via `URL.createObjectURL` (revoked on remove/destroy), per-file `Progress`, inline limit errors. Never reads file contents as HTML. |
 | `ImageInput` | Labeled local image picker (`label`, `hint`, `accept`, `multiple`, `required`, `onFilesSelected`). Raster previews only via object URLs (`image/jpeg|png|gif|webp|avif`); SVG/HTML never become markup. Every object URL is revoked on replace, clear and unmount. Persistence and upload stay in the caller service. |
 | `FormField` | `label`, `description`, `error`, `required`, `hideLabel`, `id`; `children({ id, describedBy, invalid, required, props })` |
+| `TagEmailInput` | `bind:value` (`string[]`), Enter/Space/comma/semicolon commit, paste split, Backspace removes last; format-only email check (`ignoreValidation` for free tags) |
+| `EmojiPicker` | `bind:value` (one emoji), searchable grouped grid, arrow keys + Home/End, Enter picks, Escape closes |
+| `PasswordStrengthMeter` | `value` (display-only score 0–5), never stores or sends the password; optional `onScore` / `onFeedback` |
+| `TextCounter` | `bind:value`, `maxlength`, countdown while focused once `showAfter` chars remain; `tag="input"\|"textarea"` |
 | `Checkbox` | `bind:checked`, `bind:indeterminate`, `label`, `description` |
 | `RadioGroup` / `RadioGroupItem` | `items: { value, label, description?, disabled? }[]`, `bind:value` (Bits props pass through) |
 | `Switch` | `bind:checked`, `label`, `description` |
@@ -277,6 +282,21 @@ Only the exact current page gets `aria-current="page"`. Its parents are
 tinted (`data-trail`), and in a collapsed or one-level list the visible
 parent carries the mark. `Sidebar` shows one level, so `sidebar` and `rail`
 mark the parent of a current child page.
+
+## Form utilities
+
+Tag, emoji, password-strength and character-count controls
+(`src/components/form/utilities/`). Theme tokens only; no Dailybot branding.
+
+| Component | Behavior |
+| --- | --- |
+| `TagEmailInput` | Invite-style tags. Commit with Enter, Space, comma or semicolon; paste splits on the same separators; Backspace on an empty draft removes the last tag. Email checks are format-only (`local@domain`) via `isEmailAddress` — not deliverability. Use `ignoreValidation` for free-form tags. |
+| `EmojiPicker` | One emoji from a built-in grouped catalog (`EMOJI_GROUPS`). Search filters by name; the grid is keyboard-roving (arrows, Home/End, Enter). |
+| `PasswordStrengthMeter` | Five-segment `role="meter"` under a password field. Rates the string in memory with `passwordScore` (length, case, digit, symbol, tiny fictional common list). **Simulation only:** it never stores, hashes or transmits the value. Pair with `Input type="password"`. |
+| `TextCounter` | Input or textarea with `maxlength` and a remaining-character countdown shown while focused once `showAfter` (default 20) characters remain. |
+
+- **Honesty.** Password strength is UX feedback for prototypes, not security. Email validation is shape-only.
+- **FormField.** Pass `id`, `aria-describedby` and `aria-invalid` from `control.props` onto these controls the same way as other inputs.
 
 ## Scheduling inputs
 

@@ -109,6 +109,8 @@ export type {
 } from './components/filter-bar/types.ts';
 // Scheduling inputs: timezone, weekdays, time, date and date range
 export * from './components/form/scheduling/index.ts';
+// Form utilities: tags/email, emoji, password strength, character counter
+export * from './components/form/utilities/index.ts';
 export { default as FormField } from './components/form-field/FormField.svelte';
 export type { FormFieldControl } from './components/form-field/form-field.ts';
 export { default as Header } from './components/header/Header.svelte';
