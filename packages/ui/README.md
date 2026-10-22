@@ -42,6 +42,25 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 <Toaster />
 ```
 
+## Class names (`cn`)
+
+`cn(...inputs)` (re-exported from `@protoyard/ui`) is `clsx` plus an extended
+`tailwind-merge`. It knows Protoyard utilities from `@protoyard/themes/base.css`
+so a consumer class reliably overrides a component default:
+
+| Group | Examples that merge correctly |
+| --- | --- |
+| Shadows | `shadow-soft`, `shadow-float`, `shadow-none`, `shadow-md` |
+| Heights | `min-h-touch`, `min-h-app`, `h-app`, `max-h-app` |
+| Surfaces | `bg-surface`, `bg-elevated`, `bg-muted`, … |
+| Text | `text-muted-foreground`, `text-sm` / `text-lg`, … |
+| Safe area | `pt-safe`, `px-safe`, … |
+
+```ts
+import { cn } from '@protoyard/ui';
+cn('shadow-soft', 'shadow-none'); // → "shadow-none"
+```
+
 ## Components
 
 | Group | Components |
