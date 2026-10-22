@@ -236,6 +236,34 @@ use `<img>` and `<video>`.
 The deck schema's `style.background` and `slide.background` hold a preset id today. Media specs are
 validated by `DeckBackgroundSchema`, and accepting them in a slide is a schema change still to make.
 
+## Presenter protocol (pure)
+
+`@protoyard/decks/presenter` (also re-exported from `@protoyard/decks`) is the
+popup / split-view sync protocol. Messages are **untrusted**: zod-validated
+`{ type, slideId, step }` only (`hello` | `sync` | `request`). Never eval.
+
+```ts
+import {
+  createMemoryPresenterTransport,
+  createPresenterLink,
+  parsePresenterMessage,
+  presenterChannelName,
+} from '@protoyard/decks';
+
+const transport = createMemoryPresenterTransport('my-deck'); // or createBroadcastPresenterTransport
+const link = createPresenterLink({
+  transport,
+  initial: { slideId: 'intro', step: 0 },
+  onRemote: (pos) => navigator.goTo(pos.slideId, pos.step),
+});
+link.publish({ slideId: 'body', step: 0 });
+parsePresenterMessage({ type: 'sync', slideId: 'x', step: 0, extra: 1 }); // null
+```
+
+Channel names are `protoyard.deck.presenter.v1:<namespace>`. The UI lives in
+`@protoyard/decks-ui/presenter` (lazy): try `window.open`, fall back to an
+in-page split when the popup is blocked or BroadcastChannel is missing.
+
 ## Input (pure)
 
 `decideDeckInput(event, state)` turns a key press, a click or a swipe into one action or `null`. The

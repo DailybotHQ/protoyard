@@ -7,7 +7,8 @@ renders the same at both levels. The presenting surfaces each have their own
 lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
 
 > **Status:** the virtual canvas, catalog layout renderer and `DeckApp` are
-> available. Presenter, print and studio surfaces remain later PLAN_005 tasks.
+> available. The presenter view (popup + in-page fallback) is available on
+> `@protoyard/decks-ui/presenter`. Print and studio remain later PLAN_005 tasks.
 
 ## Subpaths
 
@@ -16,7 +17,7 @@ lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
 | `@protoyard/decks-ui` | `fitDeckCanvas(container, canvas)` → `{ scale, offsetX, offsetY }`: letterboxed scale-to-fit, and scale 0 until the container has a size | available |
 | `@protoyard/decks-ui/layouts` | `DeckLayoutRenderer` and `loadLayoutRenderer(layoutId)`: validated catalog rendering through lazy text, media, data and diagram families | available |
 | `@protoyard/decks-ui/app` | `DeckApp` — canvas, layouts, hash navigation, guarded input, step chrome, aria-live | available |
-| `@protoyard/decks-ui/presenter` | Presenter window over `BroadcastChannel`, with an in-page fallback | reserved (T-decks-presenter) |
+| `@protoyard/decks-ui/presenter` | Presenter window over `BroadcastChannel`, with an in-page split fallback | available |
 | `@protoyard/decks-ui/print` | Print and PDF, one slide per page | reserved (T-decks-print) |
 | `@protoyard/decks-ui/studio` | Deck Studio, a lazy DevTools tab that exports RFC 6902 patches | reserved (T-decks-studio) |
 | `@protoyard/decks-ui/styles.css` | Tailwind `@source` for the package | available |
@@ -64,7 +65,8 @@ import type { Deck } from '@protoyard/decks';
 - guarded keyboard, click and swipe via `decideDeckInput` / `inputPathFrom`
 - progress bar and slide-number chrome (`data-py-deck-chrome`)
 - `aria-live` announcements (`Slide n of N`) and `aria-roledescription="slide"`
-- blackout, overview and help overlays (presenter/print stay later surfaces)
+- blackout, overview and help overlays; **S** / **P** opens the presenter
+  (popup when allowed, otherwise an in-page split with notes, timers and next slide)
 
 Root attribute: `data-py-deck-app`. Set `syncHash={false}` to own the hash yourself.
 ## Untrusted content

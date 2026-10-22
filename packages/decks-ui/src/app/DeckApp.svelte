@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { PresenterPosition } from '@protoyard/decks';
 import {
   createDeckNavigator,
   type DeckInputState,
@@ -12,6 +13,7 @@ import type { Deck, DeckSlide } from '@protoyard/decks/schema';
 import { onMount } from 'svelte';
 import DeckCanvas from '../canvas/DeckCanvas.svelte';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
+import { PresenterHost } from '../presenter/index.ts';
 
 /**
  * The one deck component both the player deck entry and generated deck
@@ -24,6 +26,7 @@ let {
   class: className = '',
   syncHash = true,
   autofocus = true,
+  namespace = 'deck',
 }: {
   /** Validated deck document. */
   deck: Deck;
@@ -32,6 +35,8 @@ let {
   syncHash?: boolean;
   /** Focus the deck root on mount so keyboard navigation works immediately. */
   autofocus?: boolean;
+  /** Channel namespace for the presenter BroadcastChannel. */
+  namespace?: string;
 } = $props();
 
 let rootEl = $state<HTMLDivElement | undefined>();
@@ -45,6 +50,7 @@ let inputState = $state<DeckInputState>({
 });
 /** Stable navigator for the current deck; rebuilt only when the deck changes. */
 let nav = $state.raw<DeckNavigator | null>(null);
+let presenterOpen = $state(false);
 
 // Pointer tracking for swipe decisions.
 let pointerDown: { x: number; y: number; t: number; id: number } | null = null;
@@ -150,8 +156,10 @@ function runAction(action: string): void {
       }
       break;
     case 'presenter':
+      presenterOpen = !presenterOpen;
+      break;
     case 'print':
-      // Handled by dedicated surfaces in later tasks; ignore here.
+      // Handled by the print surface (T-decks-print).
       break;
     default:
       break;
@@ -262,6 +270,15 @@ function goOverview(slideId: string): void {
   inputState = { ...inputState, overview: 'closed' };
 }
 
+function onPresenterPosition(position: PresenterPosition): void {
+  if (!nav) return;
+  applyLocation(nav.goTo(position.slideId, position.step));
+}
+
+function onPresenterNavigate(action: 'next' | 'prev' | 'first' | 'last'): void {
+  runAction(action);
+}
+
 onMount(() => {
   if (autofocus) rootEl?.focus({ preventScroll: true });
   if (syncHash && typeof window !== 'undefined') {
@@ -281,6 +298,7 @@ onMount(() => {
   data-slide-id={location?.slideId ?? ''}
   data-slide-step={activeStep}
   data-blackout={inputState.blackout ? 'true' : undefined}
+  data-presenter={presenterOpen ? 'true' : undefined}
   role="application"
   aria-label={deck.outline?.title ?? 'Presentation'}
   tabindex="0"
@@ -292,29 +310,38 @@ onMount(() => {
     pointerDown = null;
   }}
 >
-  <div class="min-h-0 flex-1">
-    <DeckCanvas
-      slides={deck.slides}
-      activeIndex={activeIndex}
-      aspect={deck.style?.aspect ?? '16:9'}
-      label={deck.outline?.title ?? 'Presentation'}
-    >
-      {#snippet children(slide: DeckSlide, _index: number)}
-        {@const layout = layoutPropsFor(slide)}
-        <div
-          class="deck-app__slide size-full"
-          data-py-deck-slide={slide.id}
-          data-step={location?.slideId === slide.id ? activeStep : 0}
-          data-step-count={location?.slideId === slide.id ? activeStepCount : 1}
-          style={location?.slideId === slide.id
-            ? `--py-deck-step:${activeStep};--py-deck-step-count:${activeStepCount}`
-            : undefined}
-        >
-          <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
-        </div>
-      {/snippet}
-    </DeckCanvas>
-  </div>
+  <PresenterHost
+    {deck}
+    {namespace}
+    slideId={location?.slideId ?? deck.slides[0]?.id ?? 'intro'}
+    step={activeStep}
+    bind:open={presenterOpen}
+    onPosition={onPresenterPosition}
+    onNavigate={onPresenterNavigate}
+  >
+    <div class="min-h-0 flex-1">
+      <DeckCanvas
+        slides={deck.slides}
+        activeIndex={activeIndex}
+        aspect={deck.style?.aspect ?? '16:9'}
+        label={deck.outline?.title ?? 'Presentation'}
+      >
+        {#snippet children(slide: DeckSlide, _index: number)}
+          {@const layout = layoutPropsFor(slide)}
+          <div
+            class="deck-app__slide size-full"
+            data-py-deck-slide={slide.id}
+            data-step={location?.slideId === slide.id ? activeStep : 0}
+            data-step-count={location?.slideId === slide.id ? activeStepCount : 1}
+            style={location?.slideId === slide.id
+              ? `--py-deck-step:${activeStep};--py-deck-step-count:${activeStepCount}`
+              : undefined}
+          >
+            <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+          </div>
+        {/snippet}
+      </DeckCanvas>
+    </div>
 
   <!-- Chrome: progress + slide number (guarded from advancing the deck). -->
   <div
@@ -394,6 +421,7 @@ onMount(() => {
           <li><kbd>←</kbd> — previous step or slide</li>
           <li><kbd>Home</kbd> / <kbd>End</kbd> — first / last slide</li>
           <li><kbd>O</kbd> — overview · <kbd>B</kbd> — blackout · <kbd>?</kbd> — help</li>
+          <li><kbd>S</kbd> / <kbd>P</kbd> — presenter view (popup or in-page split)</li>
           <li><kbd>Esc</kbd> — close overlay</li>
         </ul>
       </div>
@@ -403,6 +431,7 @@ onMount(() => {
   <div class="sr-only" aria-live="polite" aria-atomic="true" data-py-deck-live>
     {announce}
   </div>
+  </PresenterHost>
 </div>
 
 <style>

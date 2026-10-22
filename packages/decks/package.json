@@ -11,7 +11,8 @@
     "./layouts": "./src/layouts/index.ts",
     "./style": "./src/style/index.ts",
     "./quality": "./src/quality/index.ts",
-    "./text": "./src/text/index.ts"
+    "./text": "./src/text/index.ts",
+    "./presenter": "./src/presenter/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

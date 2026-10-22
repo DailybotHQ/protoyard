@@ -1,6 +1,7 @@
 /**
- * `@protoyard/decks-ui/presenter` — the presenter view: a window synced over
- * BroadcastChannel, with an in-page split fallback when popups are blocked.
- * Filled by T-decks-presenter; reserved now so the lazy subpath exists.
+ * `@protoyard/decks-ui/presenter` — presenter window over BroadcastChannel,
+ * with an in-page split fallback when popups are blocked (ADR-038).
  */
-export {};
+export { type OpenPresenterOptions, openPresenter, type PresenterOpenResult } from './open.ts';
+export { default as PresenterHost } from './PresenterHost.svelte';
+export { default as PresenterView } from './PresenterView.svelte';
