@@ -53,7 +53,7 @@ work through the prototype’s services.
 
 | Package | Role | Entry |
 | --- | --- | --- |
-| `@protoyard/ai` | Engine: conversations, packs, agents, tools, suggestion/approval loop, safe markdown, scenario fixtures, voice session | `.` · `./approvals` · `./packs` · `./scenarios` · `./voice` · `./chart` · `./markdown` |
+| `@protoyard/ai` | Engine: conversations, packs, agents, tools, suggestion/approval loop, safe markdown, scenario fixtures, voice session | `.` · `./approvals` · `./packs` · `./scenarios` · `./voice` · `./chart` · `./markdown` · `./messages` |
 | `@protoyard/ai-ui` | Svelte 5 UI: workspace, composer, virtualized list, rich answers, canvas, voice panel, widget, suggestion approvals | `.` · `./approvals` · `./voice` · `./widget` · `./styles.css` |
 
 Lazy subpaths (`ai/scenarios`, `ai/voice`, `ai-ui/voice`, `ai-ui/widget`) keep
@@ -209,6 +209,35 @@ components and text nodes — **never `{@html}`**. Hostile URLs are stripped
 (`safeHref` / `safeImageSrc`). Input is bounded (`MARKDOWN_MAX_LENGTH`). See
 the package README for the supported subset (headings, lists, tables, code
 fences, citations, attachments).
+
+### Chat message blocks (`@protoyard/ai/messages`)
+
+`parseChatMessage(input)` validates a versioned chat message AST
+(`format: "protoyard.message@1"`): `text` (plain, or the safe markdown
+subset), `buttons` (an `action` or an http(s)/mailto `url`, with an optional
+confirmation), `select`, `form` (text, textarea, number, date, checkbox,
+select, multiselect), `table` and `link_preview`, plus local attachments.
+This is the message protocol between a simulated agent and a chat UI; it is
+not the same as an assistant answer (safe markdown above).
+
+- **Bounded.** `MESSAGE_LIMITS` caps the bytes (64 KB), nesting, block count
+  and every list and string (buttons, options, fields, table rows and cells,
+  labels, attachments) before and during parsing.
+- **Safe links.** Buttons and previews accept absolute http(s) without
+  credentials (buttons also accept `mailto:`). Everything else (`javascript:`,
+  `data:`, `file:`, `//host`, control or bidi characters) is rejected.
+  Attachments are local only: a relative path without `..`, `attachment:<id>`,
+  or a small inline PNG/JPEG/GIF/WebP image. A preview's image follows the
+  attachment rules, so a message never loads remote media.
+- **No markup.** Any string with an HTML tag, comment, doctype or processing
+  instruction rejects the message. `a < b` is fine.
+- **Forward compatible.** A block whose `type` this version does not know
+  becomes a plain text block with the sender's `fallback` (or a neutral notice),
+  listed in `degraded`. A known block that is invalid rejects the message with
+  path-addressed issues (`jsonPath`). A newer `protoyard.message@N` is reported
+  as `unsupported-version`.
+- `messagePlainText(message)` gives a text rendering for notifications,
+  previews and transcripts.
 
 ### Simulated voice (lazy)
 

@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./approvals": "./src/approvals/index.ts",
     "./attention": "./src/attention/index.ts",
+    "./messages": "./src/messages/index.ts",
     "./markdown": "./src/markdown.ts",
     "./packs": "./src/packs.ts",
     "./scenarios": "./src/scenarios.ts",
@@ -76,6 +77,11 @@
         "types": "./dist/attention/index.d.ts",
         "import": "./dist/attention/index.js",
         "default": "./dist/attention/index.js"
+      },
+      "./messages": {
+        "types": "./dist/messages/index.d.ts",
+        "import": "./dist/messages/index.js",
+        "default": "./dist/messages/index.js"
       }
     },
     "types": "./dist/index.d.ts"
