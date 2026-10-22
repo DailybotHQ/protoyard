@@ -82,8 +82,11 @@ protoyard quick export gym --single-file
   compare page and its `REVIEW.md`.
 - **One file:** `quick export <slug> --single-file` writes one HTML file
   (player and blueprint inlined) that opens from `file://` with no server, no
-  network and no service worker. `--target artifact` packs it as a Claude
-  artifact page and never publishes ([Publishing](PUBLISHING.md)).
+  network and no service worker. It embeds only the chunks its player page
+  can reach: a deck, page or doc starts from `deck.html`, `page.html` or
+  `doc.html` and carries no CRUD shell, Faker or app kits. `--target artifact`
+  packs it as a Claude artifact page and never publishes
+  ([Publishing](PUBLISHING.md)).
 
 ### 5. Iterate and undo
 
@@ -191,6 +194,7 @@ builds (numbers move with the load):
 | Second exploration (shared player reused) | 987 ms |
 | Player initial JS | 178.8 KB gzip in 27 files |
 | `quick export --single-file` over the 40 catalog blueprints | 3.25 MB (about 1.05 MB gzip), refused over 4 MiB |
+| `quick export --single-file`, catalog deck, page and doc (2026-10-22) | 1.61 MB each, refused over 2 MiB |
 | `quick shot` PNG, quick blueprints | 38–97 KB each (150 KB budget) |
 
 
