@@ -84,6 +84,37 @@ to apps get a hint naming the keys that kind accepts. Problems with `kind` itsel
 `$["kind"]`: `invalid-kind` (not a string) and `unknown-kind` (needs a newer Protoyard) return
 `kind: null`, and `kind-unavailable` names a known kind whose engine this build does not ship yet.
 
+### Page and doc bodies
+
+This build ships the `page` and `doc` bodies. The deck body is not wired yet.
+
+**`kind: "page"` is a single-scroll page.** It is `{ kind: "page", page: { id, title, sections, nav?, forms? } }`.
+The body is `@protoyard/pages`' `PageDocumentSchema` plus `kinds/page.ts`, which checks:
+
+- section ids and anchors are unique, and nav links and `forms[].formId` resolve (from the pages schema);
+- block ids, headings included, are unique across **all** sections, because one page is one DOM and
+  one form-response store;
+- a block id is never also a section id or anchor;
+- `forms[].sectionId`, when set, is the section that holds that form, containers included;
+- every `#fragment` link in a block (`cta` actions, `cards` items) points at a section anchor or a
+  block id on the page.
+
+**`kind: "doc"` is a continuous block flow.** It is `{ kind: "doc", doc: { id, title, blocks, toc?, print? } }`.
+The body is `DocDocumentSchema` (block ids, and so heading ids, are unique) plus `kinds/doc.ts`, which
+checks:
+
+- a `toc` lists at least one heading from level 2 to `toc.depth` (3 by default). A heading without
+  `level` counts as level 2.
+- every `#fragment` link points at a block id in the doc.
+
+Fixtures: `tests/fixtures/kinds/landing.page.json` and `tests/fixtures/kinds/quarterly-report.doc.json`
+(`pnpm vitest run packages/blueprint/tests/kinds/page-doc.test.ts`).
+
+**Bundle cost.** The package entry now imports `@protoyard/pages` and `@protoyard/blocks` statically.
+Measured on 2026-10-22, the player's initial JS goes from 188,442 B to 202,253 B gzip (+13.8 KB),
+inside its 250 KB budget. A generated app prototype is unchanged: cadence-studio-demo measured
+169,383 B before and 169,387 B after.
+
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
 optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
 

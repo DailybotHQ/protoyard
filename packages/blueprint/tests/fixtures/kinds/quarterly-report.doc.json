@@ -1,0 +1,40 @@
+{
+  "formatVersion": 1,
+  "kind": "doc",
+  "name": "Quarterly report",
+  "description": "A one-page report for a fictional company, with a table of contents and print options.",
+  "tags": ["report"],
+  "doc": {
+    "id": "q3-report",
+    "title": "Q3 report: Example Co.",
+    "description": "Results and next steps. All figures are fictional.",
+    "toc": { "depth": 3, "sticky": true },
+    "print": { "pageBreaks": "heading", "hideChrome": true },
+    "blocks": [
+      { "type": "heading", "id": "title", "level": 1, "text": "Q3 report" },
+      {
+        "type": "text",
+        "markdown": "A short summary of the quarter for the **Example Co.** team."
+      },
+      {
+        "type": "cta",
+        "actions": [
+          { "label": "Jump to results", "href": "#results" },
+          { "label": "Next steps", "href": "#next-steps" }
+        ]
+      },
+      { "type": "heading", "id": "results", "level": 2, "text": "Results" },
+      {
+        "type": "stat",
+        "items": [
+          { "value": "42", "label": "New customers" },
+          { "value": "96%", "label": "Uptime" }
+        ]
+      },
+      { "type": "heading", "id": "results-detail", "level": 3, "text": "Where growth came from" },
+      { "type": "list", "items": [{ "text": "Referrals" }, { "text": "The new onboarding" }] },
+      { "type": "heading", "id": "next-steps", "level": 2, "text": "Next steps" },
+      { "type": "callout", "body": "Planning starts next week." }
+    ]
+  }
+}

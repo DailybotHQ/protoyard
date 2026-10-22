@@ -18,10 +18,11 @@ describe('@protoyard/blueprint package', () => {
     expect(computed.evaluateComputedExpression).toBeTypeOf('function');
     expect(workflows.checkWorkflowTransition).toBeTypeOf('function');
     // Only framework-agnostic engine packages (never ui, renderer or Svelte) plus zod (ADR-002);
-    // @protoyard/blocks is the content-kind block engine (ADR-037), used by the kind services.
+    // @protoyard/blocks and @protoyard/pages are the content-kind engines (ADR-037, ADR-039).
     const allowed = [
       '@protoyard/blocks',
       '@protoyard/core',
+      '@protoyard/pages',
       '@protoyard/scenarios',
       '@protoyard/themes',
       'zod',
