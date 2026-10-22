@@ -57,6 +57,8 @@ export const FEATURE_AREAS: readonly FeatureArea[] = [
     guides: [
       { slug: 'generator', label: 'Generator guide' },
       { slug: 'decks', label: 'Decks guide' },
+      { slug: 'pages', label: 'Pages and documents guide' },
+      { slug: 'kinds', label: 'Blueprint kinds guide' },
       { slug: 'brief_to_prototype', label: 'Brief to prototype guide' },
       { slug: 'specs', label: 'Specs guide' },
       { slug: 'quickstart', label: 'Quickstart' },
@@ -161,6 +163,7 @@ export const FEATURE_AREAS: readonly FeatureArea[] = [
 /** Guides /features/ links outside the areas (its honest-boundaries section). */
 export const EXTRA_GUIDES: readonly { slug: string; label: string }[] = [
   { slug: 'security', label: 'Security guide' },
+  { slug: 'accessibility', label: 'Accessibility guide' },
 ];
 
 export interface MeasuredNumber {

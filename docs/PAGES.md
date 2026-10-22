@@ -102,7 +102,7 @@ applies this layout in decks, pages and docs.
 
 ## Public forms are local simulations
 
-The shared [`form` block](BLOCKS.md#form) defines fields. Pages and docs host
+The shared [`form` block](BLOCKS.md#form--form) defines fields. Pages and docs host
 that block through `FormBlock` and the `@protoyard/pages` services. A successful
 submission is validated against the registered form, then stored in this
 browser's IndexedDB `formResponses` feature table through the runtime service

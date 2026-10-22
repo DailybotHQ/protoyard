@@ -16,14 +16,15 @@ Content lives in `blueprint.json` (kind doc body).
 
 - [docs/SPEC.md](docs/SPEC.md) — problem, users, boundaries
 - [docs/DATA_MODEL.md](docs/DATA_MODEL.md) — kind stores
-- [docs/FLOWS.md](docs/FLOWS.md) — read and print
-- [docs/SCREENS.md](docs/SCREENS.md) — continuous doc + TOC
+- [docs/FLOWS.md](docs/FLOWS.md) — read, TOC, optional feedback form, print
+- [docs/SCREENS.md](docs/SCREENS.md) — continuous document + TOC
 - [docs/PERMISSIONS.md](docs/PERMISSIONS.md) — kind roles
 
 ## Rules for this template
 
 - Do not add entity CRUD tables; use kind stores.
 - Prefer editing `blueprint.json` headings and blocks for the report body.
+- Forms use `@protoyard/pages` `createFormServices` (never write Dexie from the UI).
 - Keep numbers fictional.
 
 ## Quick commands
