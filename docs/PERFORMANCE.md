@@ -1045,6 +1045,30 @@ and deck schema are absent from the initial graph, by module and by literal
 messages unique to each. It also caps the app path's initial JS at 125 KB, the
 measurement plus about 7 %.
 
+**Per-kind player pages (measured 2026-10-22).** The player build adds
+`deck.html`, `page.html` and `doc.html` beside `index.html`
+(T-kinds-player-entries). `budget.test.ts` measures each page as the only
+entry of the Vite manifest:
+
+| Page | Initial JS (gzip -9) | Initial CSS | All CSS it can load |
+| --- | ---: | ---: | ---: |
+| `index.html` (any blueprint) | 120.5 KB (123,350 B) | 20.1 KB | 28.5 KB |
+| `deck.html` | 121.7 KB | 18.1 KB | 26.4 KB |
+| `page.html` | 121.7 KB | 18.3 KB | 26.6 KB |
+| `doc.html` | 121.7 KB | 18.3 KB | 26.6 KB |
+
+- `index.html` grew 425 B, from 122,925 B on `dev`. The player loop
+  (`run`, `start`, `resolve`) is now three chunks shared by the four pages,
+  and the gain is chunk overhead.
+- A kind page adds 1.2 KB of entry glue: the kind check and the mismatch
+  screen. It drops the crud, views, charts and analytics styles, so its CSS
+  is 2 KB smaller.
+- The kind boot and its renderer load after the source resolves, as from
+  `index.html`.
+- The test proves that the app boot, the CRUD shell, Faker, the world worker
+  and the app kits are absent from every kind page's initial graph, and caps
+  each page at 125 KB of initial JS and the 30 KB CSS budget.
+
 **Deck UI entry (measured 2026-10-21).**
 `packages/decks-ui/tests/bundle-size.test.ts` makes a production Vite build of a
 minimal Svelte host that imports `@protoyard/decks-ui/app` and its stylesheet,

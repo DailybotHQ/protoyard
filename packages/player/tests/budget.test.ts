@@ -46,6 +46,30 @@ export function initialKeys(manifest: ViteManifest): Set<string> {
   return keys;
 }
 
+/** The manifest as one HTML page sees it: that page is the only entry. */
+export function asEntry(manifest: ViteManifest, page: string): ViteManifest {
+  return Object.fromEntries(
+    Object.entries(manifest).map(([key, chunk]) => [key, { ...chunk, isEntry: key === page }])
+  );
+}
+
+/** Every stylesheet a page can ever load: its chunks, static and dynamic, transitively. */
+export function reachableCss(manifest: ViteManifest, page: string): string[] {
+  const seen = new Set<string>();
+  const css = new Set<string>();
+  const queue = [page];
+  while (queue.length > 0) {
+    const key = queue.pop() as string;
+    const chunk = manifest[key];
+    if (seen.has(key) || !chunk) continue;
+    seen.add(key);
+    if (/\.css$/.test(chunk.file)) css.add(chunk.file);
+    for (const file of chunk.css ?? []) css.add(file);
+    queue.push(...(chunk.imports ?? []), ...(chunk.dynamicImports ?? []));
+  }
+  return [...css].sort();
+}
+
 /** Relative module imports in an emitted chunk (static, dynamic, template literal). */
 export function chunkImports(code: string): string[] {
   return [...code.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)['"`]\.\/([^'"`]+\.js)['"`]/g)].map(
@@ -106,7 +130,9 @@ const built = existsSync(MANIFEST);
 describe.skipIf(!built)(
   'player bundle budget (after pnpm --filter @protoyard/player build)',
   () => {
-    const manifest = built ? (JSON.parse(readFileSync(MANIFEST, 'utf8')) as ViteManifest) : {};
+    const full = built ? (JSON.parse(readFileSync(MANIFEST, 'utf8')) as ViteManifest) : {};
+    // The app path is index.html; deck.html, page.html and doc.html are measured below.
+    const manifest = asEntry(full, 'index.html');
     const classes = classifyChunks(manifest);
     const initial = initialKeys(manifest);
     const budgets = parseBudgetConfig(
@@ -131,8 +157,9 @@ describe.skipIf(!built)(
       expect(initialKb, `initial CSS ${initialKb.toFixed(1)} KB gzip`).toBeLessThanOrEqual(
         budget.cssGzipKb
       );
-      // The CLI budget counts every stylesheet; the player stays inside that too.
-      const allKb = sum([...classes.initialCss, ...classes.lazyCss]) / KB;
+      // The CLI budget counts every stylesheet; the player stays inside that too
+      // (every stylesheet index.html can load; the kind pages have their own).
+      const allKb = sum(reachableCss(manifest, 'index.html')) / KB;
       expect(allKb, `all CSS ${allKb.toFixed(1)} KB gzip`).toBeLessThanOrEqual(budget.cssGzipKb);
     });
 
@@ -172,7 +199,9 @@ describe.skipIf(!built)(
       // synthesizer and deck lint rode in through the blueprint barrel; 116.2 KB
       // after sources/start.ts imported only `parseBlueprint`; 120.0 KB with
       // routing by kind (the kind-aware loader and the router) once Dexie and
-      // Rolldown's runtime got their own chunks (vite.config.ts). See
+      // Rolldown's runtime got their own chunks (vite.config.ts); 120.5 KB once
+      // the per-kind pages share the player loop with index.html (run, start
+      // and resolve became shared chunks, +0.4 KB of chunk overhead). See
       // docs/PERFORMANCE.md. The cap leaves about 4 %: growth must say why here.
       expect(sum(classes.initialJs) / KB).toBeLessThanOrEqual(125);
     });
@@ -208,3 +237,48 @@ describe.skipIf(!built)(
     });
   }
 );
+
+describe.skipIf(!built)('the per-kind player pages (deck.html, page.html, doc.html)', () => {
+  const full = built ? (JSON.parse(readFileSync(MANIFEST, 'utf8')) as ViteManifest) : {};
+  const budgets = parseBudgetConfig(
+    JSON.parse(readFileSync(join(REPO, 'protoyard.budgets.json'), 'utf8'))
+  );
+  const budget = { ...budgets.defaults, ...(budgets.overrides.player ?? {}) };
+  const measured: Record<string, Record<string, number>> = {};
+
+  it.each(['deck', 'page', 'doc'])('%s.html stays inside the player budgets', (name) => {
+    const page = `${name}.html`;
+    expect(full[page]?.isEntry, `${page} is a build entry`).toBe(true);
+    const classes = classifyChunks(asEntry(full, page));
+    const js = sum(classes.initialJs) / KB;
+    const css = sum(classes.initialCss) / KB;
+    const allCss = sum(reachableCss(full, page)) / KB;
+    measured[name] = { initialJsKb: js, initialCssKb: css, allCssKb: allCss };
+    // Measured 2026-10-22 (gzip -9): 121.7 KB initial JS (the shared source
+    // resolver and player loop plus 1.2 KB of kind entry glue), 18.1 KB (deck)
+    // and 18.3 KB (page, doc) initial CSS, 26.4 to 26.6 KB of CSS in all. The
+    // kind boot and renderers stay lazy. Same 125 KB cap as index.html.
+    expect(js, `${page} initial JS ${js.toFixed(1)} KB gzip`).toBeLessThanOrEqual(125);
+    expect(css, `${page} initial CSS ${css.toFixed(1)} KB gzip`).toBeLessThanOrEqual(
+      budget.cssGzipKb
+    );
+    expect(allCss, `${page} all CSS ${allCss.toFixed(1)} KB gzip`).toBeLessThanOrEqual(
+      budget.cssGzipKb
+    );
+    // Never the app boot, the CRUD shell, Faker or the app kits up front.
+    for (const [label, pattern] of [
+      ...LAZY_MODULES,
+      ['app boot', /\/player\/src\/boot\.ts$/] as const,
+    ]) {
+      const initial = initialKeys(asEntry(full, page));
+      expect(
+        [...initial].filter((key) => pattern.test(key)),
+        `${page}: ${label}`
+      ).toEqual([]);
+    }
+  });
+
+  it('reports the measurements', () => {
+    console.info(`[player kind pages] ${JSON.stringify(measured)}`);
+  });
+});

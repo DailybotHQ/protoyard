@@ -11,6 +11,25 @@ import type { Deck } from '@protoyard/decks/schema';
 
 type SlideEdit = NonNullable<DeckStudioEdits['slides']>[string];
 type HashTarget = Pick<Window, 'addEventListener' | 'removeEventListener' | 'location'>;
+type DeckPatch = ReturnType<typeof applyDeckEdits>['patch'];
+
+export interface DeckStudioOptions {
+  /**
+   * JSON Pointer of the deck inside the file the patch is for: `/deck` for a
+   * deck blueprint (`{ "kind": "deck", "deck": { … } }`). Default: the patch
+   * targets the deck document itself.
+   */
+  pointer?: '' | `/${string}`;
+}
+
+/** Re-roots every operation of a deck patch under `pointer`. */
+export function prefixDeckPatch(
+  patch: DeckPatch,
+  pointer: DeckStudioOptions['pointer'] = ''
+): DeckPatch {
+  if (!pointer) return patch;
+  return patch.map((op) => ({ ...op, path: `${pointer}${op.path}` }));
+}
 
 /**
  * Deck Studio state: the source deck, the edits made so far, and everything
@@ -18,7 +37,7 @@ type HashTarget = Pick<Window, 'addEventListener' | 'removeEventListener' | 'loc
  * 6902 `patch` that turns the source JSON into that preview, and any schema
  * `issues`. Edits stay in memory: nothing is written to tables or files.
  */
-export function createDeckStudio(sourceDeck: Deck) {
+export function createDeckStudio(sourceDeck: Deck, studioOptions: DeckStudioOptions = {}) {
   const source = structuredClone(sourceDeck);
   const options = deckStudioOptions();
   let edits = $state<DeckStudioEdits>({ style: {}, slides: {} });
@@ -26,7 +45,8 @@ export function createDeckStudio(sourceDeck: Deck) {
 
   const result = $derived(applyDeckEdits(source, edits));
   const preview = $derived(result.ok ? result.deck : source);
-  const patchJson = $derived(JSON.stringify(result.patch, null, 2));
+  const patch = $derived(prefixDeckPatch(result.patch, studioOptions.pointer));
+  const patchJson = $derived(JSON.stringify(patch, null, 2));
   const slide = $derived(preview.slides.find((item) => item.id === slideId));
   const layoutChoices = $derived(slide ? compatibleLayouts(slide) : []);
 
@@ -48,8 +68,9 @@ export function createDeckStudio(sourceDeck: Deck) {
     get preview() {
       return preview;
     },
+    /** The RFC 6902 patch for the source file (rooted at `pointer`). */
     get patch() {
-      return result.patch;
+      return patch;
     },
     get patchJson() {
       return patchJson;

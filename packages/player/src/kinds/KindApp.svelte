@@ -14,7 +14,7 @@ import { kindApp } from './state.ts';
  * db.transaction) and `mountEmbed` for embed-app blocks. Each renderer loads
  * as its own chunk.
  */
-const { blueprint, namespace, mountEmbed } = kindApp();
+const { blueprint, namespace, mountEmbed, studio } = kindApp();
 const runtime = getRuntime();
 
 const stateHost = createDeferredStateHost(
@@ -43,7 +43,7 @@ const what = blueprint.kind === 'deck' ? 'deck' : blueprint.kind === 'page' ? 'p
   <LoadingState label={`Loading the ${what}`} class="py-16" />
 {:then module}
   {#if blueprint.kind === 'deck' && 'DeckApp' in module}
-    <module.DeckApp deck={blueprint.deck} {namespace} />
+    <module.DeckApp deck={studio?.preview ?? blueprint.deck} {namespace} />
   {:else if blueprint.kind === 'page' && 'PageApp' in module}
     <module.PageApp page={blueprint.page} {runtime} />
   {:else if blueprint.kind === 'doc' && 'DocApp' in module}

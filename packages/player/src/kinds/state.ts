@@ -1,5 +1,6 @@
 import type { MountEmbed } from '@protoyard/blocks-ui';
 import type { DeckBlueprint, DocBlueprint, PageBlueprint } from '@protoyard/blueprint';
+import type { DeckStudio } from '@protoyard/decks-ui/studio';
 
 /** A content-kind blueprint the player renders (deck, page or doc). */
 export type KindDocument = DeckBlueprint | PageBlueprint | DocBlueprint;
@@ -10,6 +11,8 @@ export interface KindAppState {
   namespace: string;
   /** Starts an embedded app block (framed player, app kind only). */
   mountEmbed: MountEmbed;
+  /** Deck Studio, only for a deck with DevTools on: the deck renders its live preview. */
+  studio?: DeckStudio;
 }
 
 /**
