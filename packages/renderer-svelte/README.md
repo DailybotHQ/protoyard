@@ -50,7 +50,9 @@ no app control, never on the badge. The badge re-places itself on
 (`trackFixedRightEdge`). It is the number of layout-viewport pixels hidden past
 the visible right edge, which is `0px` unless phone emulation or pinch zoom makes
 the visual viewport narrower. Fixed chrome adds it to its `right` offset: the
-unplaced review toolbar, the DevTools launcher and the `Toaster` do.
+unplaced review toolbar, the DevTools launcher, the `Toaster` and `UndoToaster`
+(phone layout) and the demo badge's right corners do. The badge also picks its
+corner inside the visible viewport (`badgeContainer`), not the layout one.
 
 `mountPrototype` also accepts `devtoolsTabs?: readonly DevtoolsTab[]` for
 prototype-owned panels such as Deck Studio. These lazy tabs are combined with

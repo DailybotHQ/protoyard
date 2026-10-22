@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CONTROL_COST, type Rect } from '../src/shell/badge-placement.ts';
 import {
+  badgeContainer,
   FIXED_RIGHT_EDGE_VAR,
   FLOATING_EVENT,
   FLOATING_INSET,
@@ -473,5 +474,42 @@ describe('the visible right edge for fixed chrome', () => {
     Object.assign(vv, { offsetLeft: 0, width: 100 });
     vv.dispatchEvent(new Event('resize'));
     expect(root.style.getPropertyValue(FIXED_RIGHT_EDGE_VAR)).toBe('');
+  });
+});
+
+describe('demo badge containing block', () => {
+  const win = (
+    innerWidth: number,
+    vv: { width: number; height: number; offsetLeft: number; offsetTop: number } | null
+  ) => ({ innerWidth, innerHeight: 800, visualViewport: vv }) as unknown as Window;
+
+  it('uses the visible viewport full-bleed, with fixed coordinates from the layout origin', () => {
+    expect(
+      badgeContainer(null, win(980, { width: 390, height: 700, offsetLeft: 0, offsetTop: 0 }))
+    ).toEqual({
+      container: { left: 0, top: 0, width: 390, height: 700 },
+      origin: { left: 0, top: 0 },
+    });
+    // Panned: the area moves, the containing block does not.
+    expect(
+      badgeContainer(null, win(980, { width: 390, height: 700, offsetLeft: 200, offsetTop: 40 }))
+    ).toEqual({
+      container: { left: 200, top: 40, width: 390, height: 700 },
+      origin: { left: 0, top: 0 },
+    });
+    expect(badgeContainer(null, win(1200, null)).container).toEqual({
+      left: 0,
+      top: 0,
+      width: 1200,
+      height: 800,
+    });
+  });
+
+  it('uses #app as both area and origin under a viewport preset', () => {
+    const app = { left: 100, top: 20, width: 390, height: 844 };
+    expect(badgeContainer(app, win(1440, null))).toEqual({
+      container: app,
+      origin: { left: 100, top: 20 },
+    });
   });
 });

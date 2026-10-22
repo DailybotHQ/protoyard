@@ -7,7 +7,7 @@ import {
   placeCompact,
   type Rect,
 } from './badge-placement.ts';
-import { FLOATING_EVENT } from './floating.ts';
+import { badgeContainer, FLOATING_EVENT } from './floating.ts';
 
 let { name }: { name: string } = $props();
 
@@ -28,14 +28,18 @@ let badge: HTMLElement | undefined = $state();
 /** Full badge size, measured while it is shown (the dot cannot measure it). */
 let fullSize = { width: 0, height: 0 };
 
-/** The badge's containing block: #app under a viewport preset (it has a transform), else the window. */
-function containerRect(): Rect {
+/**
+ * Where the badge may sit: #app under a viewport preset (it has a transform,
+ * so it is the containing block), else the visible viewport, so a phone or
+ * mobile emulation never places it past the visible right edge.
+ */
+function containingBlock(): ReturnType<typeof badgeContainer> {
   const app = badge?.closest<HTMLElement>('#app');
   if (app && getComputedStyle(app).transform !== 'none') {
     const r = app.getBoundingClientRect();
-    return { left: r.left, top: r.top, width: r.width, height: r.height };
+    return badgeContainer({ left: r.left, top: r.top, width: r.width, height: r.height });
   }
-  return { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+  return badgeContainer(null);
 }
 
 function place(): void {
@@ -48,7 +52,7 @@ function place(): void {
   }
   if (!compact) fullSize = { width: badge.offsetWidth, height: badge.offsetHeight };
   if (!fullSize.width || typeof document.elementFromPoint !== 'function') return;
-  const container = containerRect();
+  const { container, origin } = containingBlock();
   const hit = (x: number, y: number) => {
     const el = document.elementFromPoint(x, y);
     // The badge never counts as its own obstacle (the dot is clickable).
@@ -62,8 +66,8 @@ function place(): void {
   }
   const spot = placeCompact(container, hit);
   compact = {
-    left: spot.left - container.left,
-    top: spot.top - container.top,
+    left: spot.left - origin.left,
+    top: spot.top - origin.top,
     right: spot.left - container.left > container.width / 2,
     bottom: spot.top - container.top > container.height / 2,
   };
@@ -150,7 +154,8 @@ onMount(() => {
   class={[
     'pointer-events-none fixed z-30 select-none whitespace-nowrap rounded-full border border-border bg-elevated px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-soft',
     corner.startsWith('top') ? 'top-3' : 'bottom-3 pb-safe',
-    corner.endsWith('left') ? 'left-3' : 'right-3',
+    // `--py-fixed-right-edge` (set by the renderer) keeps the right corners on the visible width.
+    corner.endsWith('left') ? 'left-3' : 'right-[calc(0.75rem+var(--py-fixed-right-edge,0px))]',
   ]}
   title="{name} is an interactive prototype. Data is simulated and stored only in this browser."
 >

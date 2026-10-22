@@ -59,15 +59,17 @@ function handleKeydown(event: KeyboardEvent): void {
     {...{ [UNDO_TOASTER_ATTR]: '' }}
     style={`z-index:${zIndex}`}
     class={cn(
-      'pointer-events-none fixed inset-x-0 bottom-0 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))]',
+      // Phones center the stack; `--py-fixed-right-edge` (set by the renderer) keeps it on the visible width.
+      'pointer-events-none fixed inset-x-0 bottom-0 flex justify-center pl-4 pr-[calc(1rem+var(--py-fixed-right-edge,0px))] pb-[max(1rem,env(safe-area-inset-bottom))]',
       'sm:inset-x-auto sm:left-0 sm:justify-start sm:p-6',
       className
     )}
   >
     {#if undoToast.items.length > 0}
+      <!-- Only the toasts take pointer events, so taps in the gaps reach the page. -->
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions (Escape is delegated from the focused Undo or Dismiss button inside a toast.) -->
       <ol
-        class="pointer-events-auto flex w-full max-w-sm flex-col gap-2"
+        class="pointer-events-none flex w-full max-w-sm flex-col gap-2"
         onmouseenter={undoToast.pause}
         onmouseleave={undoToast.resume}
         onfocusin={undoToast.pause}
@@ -79,7 +81,7 @@ function handleKeydown(event: KeyboardEvent): void {
           <li
             data-undo-id={item.id}
             data-status={item.status}
-            class="relative overflow-hidden rounded-lg border border-border bg-elevated text-foreground shadow-float ui-anim-toast"
+            class="pointer-events-auto relative overflow-hidden rounded-lg border border-border bg-elevated text-foreground shadow-float ui-anim-toast"
           >
             <div class="flex items-center gap-2 p-3 pr-2">
               <div class="grid min-w-0 flex-1 gap-0.5">

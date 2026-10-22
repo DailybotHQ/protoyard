@@ -106,6 +106,20 @@ export function visiblePlacementContainer(
   };
 }
 
+/**
+ * Where the demo badge may sit, and the origin of its containing block. Under
+ * a viewport preset `#app` has a transform, so it is the containing block and
+ * the area. Full-bleed, the area is the *visible* viewport (as for floating
+ * chrome) while fixed coordinates stay relative to the layout viewport at 0,0.
+ */
+export function badgeContainer(
+  app: Rect | null,
+  win: Pick<Window, 'innerWidth' | 'innerHeight' | 'visualViewport'> = window
+): { container: Rect; origin: { left: number; top: number } } {
+  if (app) return { container: app, origin: { left: app.left, top: app.top } };
+  return { container: visiblePlacementContainer(win), origin: { left: 0, top: 0 } };
+}
+
 /** Custom property on `<html>`: layout-viewport px hidden to the right of the visual viewport. */
 export const FIXED_RIGHT_EDGE_VAR = '--py-fixed-right-edge';
 
