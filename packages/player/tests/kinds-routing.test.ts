@@ -98,6 +98,8 @@ describe('startPlayer with a content kind', () => {
       events: { addEventListener: () => {}, removeEventListener: () => {} },
       embedded: readFileSync(join(FIXTURES, 'intro.deck.json'), 'utf8'),
       session: null,
+      // index.html's boot strategy (main.ts): route every kind.
+      boot: bootByKind,
       // Vitest's mocker can hand the real module to the first of two concurrent
       // dynamic imports (prefetch + boot); without the prefetch the boot is the
       // one import, so the routed module is what this test observes.
@@ -141,6 +143,7 @@ describe('runPlayer swaps across kinds', () => {
     await runPlayer({
       window: { parent: null, location: { origin: 'http://127.0.0.1:4180' } } as unknown as Window,
       target,
+      boot: bootByKind,
       start: start as never,
       detectQuickServe: async () => ({ protocol: 1 as const, events: '/__protoyard/events' }),
       loadLiveReload: async () => live as unknown as typeof import('../src/live-reload.ts'),
