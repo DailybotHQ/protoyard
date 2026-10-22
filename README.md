@@ -81,7 +81,7 @@ open DevTools. Load a scenario, switch to the viewer persona, go offline, save
 a snapshot. Then build your own:
 
 ```bash
-pnpm protoyard new my-idea --template dashboard   # any of the 27 templates
+pnpm protoyard new my-idea --template dashboard   # any of the 31 templates
 pnpm protoyard dev my-idea                        # only that app, with HMR
 pnpm protoyard validate my-idea --build           # contract, scenarios, types, production build
 pnpm protoyard export my-idea                     # → artifacts/my-idea/my-idea.zip (+ sha256)
@@ -92,9 +92,11 @@ The full walkthrough is in [docs/QUICKSTART.md](docs/QUICKSTART.md).
 
 ## Two levels of prototype
 
-A product idea can live at two levels. Both render a blueprint
-(`blueprint.json`, data only) through the same app model, so moving from one
-to the other keeps the product's entities, screens and scenarios.
+A product idea can live at two levels. Both render the same blueprint
+(`blueprint.json`, data only), whether it is an app, a slide deck, a landing
+page or a document, through the same kind definition, so moving from one to
+the other keeps the content (for an app: its entities, screens and
+scenarios).
 
 | | Level 1: explore instantly | Level 2: a full prototype |
 | --- | --- | --- |
@@ -102,7 +104,7 @@ to the other keeps the product's entities, screens and scenarios.
 | **Start from** | A brief or a blueprint: `pnpm protoyard quick "<brief>" --variants 3` | A blueprint (`pnpm protoyard generate <slug> --blueprint <file>`) or a template (`pnpm protoyard new <slug> --template <name>`) |
 | **Good for** | Comparing variants side by side, a first click-through, review comments, validation tasks with time and steps recorded | Custom screens and logic, validation, export and publishing |
 | **Lives in** | A disposable folder in `.protoyard/quick/<slug>/`, served locally with `quick serve` | The repository, versioned like any other app |
-| **Guide** | [Quick explorations](docs/QUICK.md) · [Player](docs/PLAYER.md) | [Generator](docs/GENERATOR.md) · [Brief to prototype](docs/BRIEF_TO_PROTOTYPE.md) |
+| **Guide** | [Quick explorations](docs/QUICK.md) · [Player](docs/PLAYER.md) · [Kinds](docs/KINDS.md) | [Generator](docs/GENERATOR.md) · [Brief to prototype](docs/BRIEF_TO_PROTOTYPE.md) · [Decks](docs/DECKS.md) · [Pages](docs/PAGES.md) · [Blocks](docs/BLOCKS.md) |
 
 Moving between the levels:
 
@@ -171,7 +173,7 @@ Every capability below runs in the browser, with fictional data.
 
 ## The showcase
 
-15 prototypes live in `prototypes/`, all with fictional data. Each has its
+16 prototypes live in `prototypes/`, all with fictional data. Each has its
 own README, `AGENTS.md` and `docs/` spec.
 
 | | Prototype | Demonstrates |
@@ -191,6 +193,7 @@ own README, `AGENTS.md` and `docs/` spec.
 | <img src="prototypes/harbor-dispatch-demo/public/thumbnail.png" alt="Harborlight Dispatch" width="240"> | **Harborlight Dispatch** · `harbor-dispatch-demo` | Generated from a blueprint: logistics board, map, timeline, calendar and dashboard |
 | <img src="prototypes/cadence-studio-demo/public/thumbnail.png" alt="Cadence Studio" width="240"> | **Cadence Studio** · `cadence-studio-demo` | Generated from a blueprint: studio bookings on a weekly calendar |
 | <img src="prototypes/pulse-revenue-demo/public/thumbnail.png" alt="Pulse Revenue" width="240"> | **Pulse Revenue** · `pulse-revenue-demo` | Generated from a blueprint: revenue dashboard, explorer and lifecycle board |
+| (slide deck) | **Protoyard: create anything** · `create-anything-deck` | Generated from a deck blueprint: every layout family, live charts, interactive blocks and an embedded app |
 
 All of them run live at **[protoyard.app](https://protoyard.app)**.
 `pnpm build:showcase` builds that site: the gallery, the marketplace and a
@@ -200,7 +203,7 @@ Pages workflow can host it ([Publishing](docs/PUBLISHING.md#the-showcase-gallery
 
 ### Templates and blueprints
 
-**27 templates** in `templates/`. Each is a working app with a database,
+**31 templates** in `templates/`. Each is a working app with a database,
 roles, scenarios, tests and a spec, and runs as a live demo with
 `pnpm protoyard dev <template>`:
 
@@ -214,9 +217,10 @@ roles, scenarios, tests and a spec, and runs as a live demo with
 | `analytics`, `fintech-dashboard`, `iot-monitoring` | Product analytics, personal finance, device monitoring on an offline map |
 | `project-management`, `booking-calendar`, `logistics-map`, `clinic` | Sprints, bookings, routes with simulated ETAs, a clinic front desk |
 | `docs-wiki`, `social-feed`, `course-lms` | A wiki with safe Markdown, a social feed, courses with quizzes |
+| `deck`, `page`, `doc`, `design-kit` | A slide deck, a landing page and a document (content kinds), and a design system kit |
 
 <details>
-<summary><strong>See all 27 templates</strong></summary>
+<summary><strong>See all 31 templates</strong></summary>
 <br>
 <table>
 <tr><td align="center"><img src="templates/admin-console/public/thumbnail.png" alt="admin-console template" width="260"><br><code>admin-console</code></td><td align="center"><img src="templates/agent-console/public/thumbnail.png" alt="agent-console template" width="260"><br><code>agent-console</code></td><td align="center"><img src="templates/ai-assistant/public/thumbnail.png" alt="ai-assistant template" width="260"><br><code>ai-assistant</code></td></tr>
@@ -228,12 +232,15 @@ roles, scenarios, tests and a spec, and runs as a live demo with
 <tr><td align="center"><img src="templates/logistics-map/public/thumbnail.png" alt="logistics-map template" width="260"><br><code>logistics-map</code></td><td align="center"><img src="templates/marketplace/public/thumbnail.png" alt="marketplace template" width="260"><br><code>marketplace</code></td><td align="center"><img src="templates/mobile-app/public/thumbnail.png" alt="mobile-app template" width="260"><br><code>mobile-app</code></td></tr>
 <tr><td align="center"><img src="templates/onboarding/public/thumbnail.png" alt="onboarding template" width="260"><br><code>onboarding</code></td><td align="center"><img src="templates/plugin-panel/public/thumbnail.png" alt="plugin-panel template" width="260"><br><code>plugin-panel</code></td><td align="center"><img src="templates/project-management/public/thumbnail.png" alt="project-management template" width="260"><br><code>project-management</code></td></tr>
 <tr><td align="center"><img src="templates/social-feed/public/thumbnail.png" alt="social-feed template" width="260"><br><code>social-feed</code></td><td align="center"><img src="templates/task-manager/public/thumbnail.png" alt="task-manager template" width="260"><br><code>task-manager</code></td><td align="center"><img src="templates/team-chat/public/thumbnail.png" alt="team-chat template" width="260"><br><code>team-chat</code></td></tr>
+<tr><td align="center"><img src="templates/page/public/thumbnail.png" alt="page template" width="260"><br><code>page</code></td><td align="center"><img src="templates/doc/public/thumbnail.png" alt="doc template" width="260"><br><code>doc</code></td><td align="center"><img src="templates/design-kit/public/thumbnail.png" alt="design-kit template" width="260"><br><code>design-kit</code></td></tr>
+<tr><td align="center"><code>deck</code> (no thumbnail yet)</td><td></td><td></td></tr>
 </table>
 </details>
 
 **40 product blueprints** in [`blueprints/`](blueprints/README.md), from CRM
 and inventory to veterinary clinics and utility outages, each one command away
-from a working prototype. The gallery's Marketplace (`/marketplace/`) lists
+from a working prototype, plus deck, page and doc examples in `decks/`,
+`pages/` and `docs/`. The gallery's Marketplace (`/marketplace/`) lists
 every prototype, template and blueprint.
 
 ```bash

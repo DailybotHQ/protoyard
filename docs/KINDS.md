@@ -15,7 +15,9 @@ This is **not** the registry `ProjectKind` (prototype, template, blueprint) in
 `@protoyard/core`. That names where a project lives; `BlueprintKind` names what
 the blueprint **renders as**.
 
-The constants live in `@protoyard/blueprint/kinds`:
+The constants live in `@protoyard/blueprint` (the `/kinds` subpath holds the
+content-kind runtime: `defineKindRuntime`, `createKindServices` and the
+personas):
 
 ```ts
 import {
@@ -23,8 +25,8 @@ import {
   CONTENT_KINDS,   // ['deck', 'page', 'doc']
   DEFAULT_BLUEPRINT_KIND, // 'app'
   detectBlueprintKind,
-  parseAnyBlueprint,
-} from '@protoyard/blueprint/kinds';
+  parseAnyBlueprint, // async: loads the kind's body schema on demand
+} from '@protoyard/blueprint';
 ```
 
 `formatVersion` stays **1**. An unknown `kind` fails with a friendly “needs a
@@ -137,7 +139,7 @@ pnpm protoyard generate northwind-report --blueprint blueprints/docs/northwind-q
 | Step | Command / API | Notes |
 | --- | --- | --- |
 | List catalog blueprints | `pnpm protoyard list --kind blueprint` | Includes app and content examples under `blueprints/` |
-| Brief → draft | `pnpm protoyard blueprint new <file> --from-brief …` | Offline synthesizer; kind detection cues pick app/deck/page/doc when clear ([Brief to prototype](BRIEF_TO_PROTOTYPE.md)) |
+| Brief → draft | `pnpm protoyard blueprint new <file> --from-brief …` | App blueprints only: a deck, page or doc brief is detected and refused (exit 4). Use `quick` (it detects the kind, or pass `--kind`) for content kinds ([Brief to prototype](BRIEF_TO_PROTOTYPE.md)) |
 | Validate | `pnpm protoyard blueprint validate <file>` | Exit 4 lists path-specific issues; content kinds use body schemas from decks/pages engines |
 | Authoring diagnostics | `validateBlueprintForAuthoring(input)` from `@protoyard/blueprint` | JSON path + hint; same package as the CLI |
 | Generate | `pnpm protoyard generate <slug> --blueprint <file>` | Picks `templates/deck`, `templates/page` or `templates/doc` from kind; apps use `crud-app` unless remixed |
@@ -145,15 +147,14 @@ pnpm protoyard generate northwind-report --blueprint blueprints/docs/northwind-q
 | Play without generate | Player / `/play/` | Paste or load JSON; kind routes before the app shell ([Player](PLAYER.md)) |
 
 ```bash
-# Kind-aware brief (stdin)
-echo "A one-page quarterly report with charts for a fictional analytics product" \
-  | pnpm protoyard blueprint new tmp/q3.blueprint.json --from-brief - --dry-run
+# Kind-aware brief: quick detects deck, page or doc (or pass --kind)
+pnpm protoyard quick "A one-page quarterly report with charts for a fictional analytics product"
 
-# Validate any kind
-pnpm protoyard blueprint validate tmp/q3.blueprint.json
+# Validate any kind (quick writes .protoyard/quick/<slug>/blueprint.json)
+pnpm protoyard blueprint validate .protoyard/quick/<slug>/blueprint.json
 
 # Plan a generated prototype
-pnpm protoyard generate q3-report --blueprint tmp/q3.blueprint.json --dry-run
+pnpm protoyard generate q3-report --blueprint .protoyard/quick/<slug>/blueprint.json --dry-run
 ```
 
 Shared content primitives for deck/page/doc are documented in
@@ -243,7 +244,7 @@ paths:
 ```bash
 pnpm protoyard list --kind blueprint
 pnpm protoyard blueprint validate <file>
-pnpm protoyard blueprint new <file> --from-brief <brief> [--generate <slug>] [--dry-run]
+pnpm protoyard blueprint new <file> --from-brief <brief> [--generate <slug>] [--dry-run]   # app briefs only
 pnpm protoyard generate <slug> --blueprint <file> [--dry-run]
 pnpm protoyard quick "<brief>"
 pnpm --filter @protoyard/player dev

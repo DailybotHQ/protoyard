@@ -202,8 +202,9 @@ player and `protoyard quick`.
   `formatVersion`, `name`, `description`, `catalog`, `tags`, `icon`, `category` and `brand`,
   plus one body key named after the kind (`"deck": { … }`, `"page": { … }` or `"doc": { … }`).
   App-only keys (`entities`, `roles`, `screens`, `layout`, `archetype`, `notifications`,
-  `history`, `validation`) are rejected on them. Body schemas live in
-  `@protoyard/blueprint` (deck) and `@protoyard/pages` (page and doc); the untrusted loader
+  `history`, `validation`) are rejected on them. Body schemas come from
+  `@protoyard/decks` (deck) and `@protoyard/pages` (page and doc), wrapped with cross-block
+  checks in `@protoyard/blueprint/kinds`; the untrusted loader
   enforces per-kind size and depth limits.
 - A kind this version does not know fails on `kind` with a "needs a newer Protoyard" message.
   `formatVersion` stays `1`.

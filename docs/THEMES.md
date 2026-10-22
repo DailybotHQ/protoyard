@@ -703,6 +703,20 @@ of their initial chunk.
 
 Without `brand`, the template's default theme is kept.
 
+Decks, pages and docs accept the same `brand`, but `generate` writes no theme
+module for them: `defineKindRuntime` resolves the library or brand theme at
+runtime.
+
+### Design kits
+
+`templates/design-kit` is a starting point for a product design system
+(foundations, a searchable component catalog, prop tables and local review
+notes). Import its palette from design tokens with `theme import`, then copy a
+kit's component tree into another prototype with
+`pnpm protoyard kit sync <kit> <prototype>`. It records SHA-256 hashes of the
+copied files, and `--check` fails when the source, the copies or the manifest
+drift.
+
 ## Theme Studio
 
 DevTools → Look has a **Theme Studio** section
@@ -751,7 +765,9 @@ Every command also takes `--json`.
 
 | Command | Options | Writes files |
 | --- | --- | --- |
-| `theme list` | — | no |
+| `theme list` | `--collection <collection>`, `--search <query>` (library names, ids, tags, moods and descriptions; built-in presets are not searched) | no |
+| `theme show <theme-id>` | — (light and dark swatches and contrast checks) | no |
+| `theme use <slug> <theme-id>` | `--dry-run` | `prototypes/<slug>/protoyard.json` (`defaultTheme`) |
 | `theme export [id]` | `--from <file>` (instead of an id), `--format css\|tailwind\|tokens` (default `css`) | no |
 | `theme create <slug>` | `--seed <hex>` with `--id <id>` (required), `--name`, `--secondary <hex>`; or `--from <file>`; `--force`, `--dry-run` | `prototypes/<slug>/src/theme.ts` |
 | `theme import <tokens.json> --name <id>` | imports flat or DTCG tokens and returns the theme, AA report, CSS variables and Tailwind tokens as JSON | no |

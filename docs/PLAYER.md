@@ -43,8 +43,10 @@ generate a content-kind prototype from its blueprint (see
   **Open in player**. The gallery builds a `/play/#bp=…` link from validated
   blueprint data; entries without a blueprint file or links over the share
   limit do not show the action. The configured site base is preserved.
-- `/play/` runs app, deck, page, and doc blueprints. It accepts pasted JSON up
-  to 256 KB, local JSON files in the player, and share links. Its frame uses
+- `/play/` runs app, deck, page, and doc blueprints from local JSON files in
+  the player and from share links. Pasted JSON (up to 256 KB) and the
+  playground's **Copy share link** accept app blueprints only today: they
+  validate with the app-only `loadUntrustedBlueprint`. Its frame uses
   the player's exact-origin `protoyard-player/1` bridge. Share fragments stay
   in the browser URL and are not sent to the server; simulated data stays in
   IndexedDB on this browser's origin.
@@ -87,7 +89,8 @@ same thing instead of "invalid link". `supportsShareLinks()` checks support
 before trying.
 
 Share links contain the blueprint itself. The player refuses links longer
-than 16 KB and decoded input larger than 256 KB. Pasted text is capped at 256
+than 16 KB and decoded input larger than 256 KB for an app or 1 MiB for a
+deck, page or doc. Pasted text is capped at 256
 KB before JSON parsing. The `/play/` landing page is indexable, but a visit
 with a share fragment is marked `noindex`.
 
@@ -98,13 +101,14 @@ compression engines may produce different lengths.
 
 | Example | Encoded payload characters |
 | --- | ---: |
-| `decks/cedar-training.json` | 1,666 |
+| `decks/cedar-training.json` | 1,813 |
 | `decks/example.json` | 844 |
-| `decks/harbor-ops-pitch.json` | 1,782 |
-| `decks/lumen-launch.json` | 1,512 |
-| `decks/northwind-qbr.json` | 1,500 |
-| `pages/tidewater-roasters-landing.json` | 1,638 |
-| `docs/northwind-quarterly-report.json` | 1,368 |
+| `decks/harbor-ops-pitch.json` | 1,913 |
+| `decks/lumen-launch.json` | 1,630 |
+| `decks/northwind-qbr.json` | 1,636 |
+| `decks/protoyard-create-anything.json` | 7,089 |
+| `pages/tidewater-roasters-landing.json` | 1,801 |
+| `docs/northwind-quarterly-report.json` | 1,500 |
 
 When a blueprint exceeds the link cap, `protoyard quick` opens its local
 `blueprint.json` file and prints that path plus a
@@ -192,9 +196,10 @@ boundary.
 
 ## Worlds: worker generation and cache
 
-The player generates worlds in a module Web Worker. The worker graph is 200 KB
-gzip, with Faker's English locale only, and
-`packages/player/tests/worker-bundle.test.ts` budgets it at 250 KB.
+The player generates worlds in a module Web Worker. The worker graph is about
+196 KB gzip (measured 2026-10-22), with Faker's English locale only.
+`worker-bundle.test.ts` and `budget.test.ts` share one 220 KB cap,
+`WORKER_GRAPH_GZIP_KB` in `packages/player/tests/player-budgets.ts`.
 
 Page and doc runtimes come from `@protoyard/blueprint/kinds` (`defineKindRuntime`, or `definePrototypeFromPage` / `definePrototypeFromDoc` wrappers). See [`@protoyard/blueprint/kinds`](../packages/blueprint/README.md) and [`@protoyard/pages`](../packages/pages/README.md).
 
@@ -313,11 +318,12 @@ calibrated product SLOs; the gate columns are the repository budgets.
 | --- | --- | --- |
 | Universal player initial JS (gzip), historical app path | 178.1 KB | 250 KB (`packages/player/tests/budget.test.ts`) |
 | Initial CSS (gzip), historical app path | 18.1 KB | 30 KB (same test) |
-| World-generation worker graph (gzip) | 200.2 KB | 220 KB shared cap (`player-budgets.ts`) |
-| `index.html` initial JS / CSS (gzip -9, 2026-10-22) | 123 349 B / 20 627 B | 250 KB / 30 KB |
-| `deck.html` initial JS / CSS (gzip -9, 2026-10-22) | 124 643 B / 18 516 B | **150 KB** / 30 KB |
-| `page.html` initial JS / CSS (gzip -9, 2026-10-22) | 124 644 B / 18 688 B | **150 KB** / 30 KB |
-| `doc.html` initial JS / CSS (gzip -9, 2026-10-22) | 124 642 B / 18 688 B | **150 KB** / 30 KB |
+| World-generation worker graph (gzip) | 195.7 KB | 220 KB shared cap (`player-budgets.ts`) |
+| `index.html` initial JS / CSS (gzip -9, 2026-10-22, current `dev`) | 125,175 B / 23,138 B | 250 KB / 30 KB |
+| `deck.html` initial JS / CSS (gzip -9, 2026-10-22, current `dev`) | 125,298 B / 20,330 B | **150 KB** / 30 KB |
+| `page.html` initial JS / CSS (gzip -9, 2026-10-22, current `dev`) | 125,298 B / 19,543 B | **150 KB** / 30 KB |
+| `doc.html` initial JS / CSS (gzip -9, 2026-10-22, current `dev`) | 125,296 B / 19,543 B | **150 KB** / 30 KB |
+| All CSS reachable from `index.html` (gzip -9, current `dev`) | 33.7 KB | 30 KB: **failing** (`budget.test.ts`, open) |
 | First visit through `#bp=`, catalog blueprints (median) | 190–232 ms | report only |
 | Repeat visit (stored world) | 76–107 ms | report only |
 | Scenario switch that generates | 55–74 ms | report only |
@@ -440,8 +446,9 @@ carry over. Measured sizes are in
 **Limits.**
 - The picker's bundled demo is an app, so on a kind page it leads to that
   link.
-- Nothing links to the kind pages yet: the gallery, `/play/` and share links
-  still open `index.html`, which runs every kind.
+- Only `protoyard quick` (its launchers and `--single-file` exports) opens the
+  kind pages. The gallery, `/play/` and share links still open `index.html`,
+  which runs every kind.
 
 ### Deck Studio in the player
 
