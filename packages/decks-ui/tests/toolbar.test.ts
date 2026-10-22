@@ -31,6 +31,40 @@ function renderToolbar(overrides: Record<string, unknown> = {}) {
   return { onaction, onjump };
 }
 
+/**
+ * Layout for happy-dom: the toolbar's full width, and the chrome row's content
+ * width reported through ResizeObserver (as a browser does on observe).
+ */
+function stubWidths(widths: { toolbar: number; row: number }): () => void {
+  const scroll = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollWidth');
+  Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
+    configurable: true,
+    get(this: HTMLElement) {
+      return this.matches('[data-py-deck-toolbar]') ? widths.toolbar : 0;
+    },
+  });
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      callback: ResizeObserverCallback;
+      constructor(callback: ResizeObserverCallback) {
+        this.callback = callback;
+      }
+      observe(target: Element) {
+        this.callback(
+          [{ target, contentRect: { width: widths.row } } as ResizeObserverEntry],
+          this as unknown as ResizeObserver
+        );
+      }
+      disconnect() {}
+    }
+  );
+  return () => {
+    if (scroll) Object.defineProperty(HTMLElement.prototype, 'scrollWidth', scroll);
+    vi.unstubAllGlobals();
+  };
+}
+
 describe('DeckToolbar', () => {
   it('renders registry controls in display groups with icons and stable names', () => {
     renderToolbar();
@@ -149,17 +183,23 @@ describe('DeckToolbar', () => {
     ).toBe('false');
   });
 
-  it('filters unavailable controls and folds secondary controls into More on narrow screens', async () => {
-    const matchMedia = vi.spyOn(window, 'matchMedia').mockReturnValue({
-      matches: true,
-      media: '(max-width: 639px)',
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    } as unknown as MediaQueryList);
+  it('shows every tool, icon-only, when the full toolbar fits', () => {
+    const restore = stubWidths({ toolbar: 700, row: 1280 });
+    try {
+      renderToolbar();
+      expect(document.querySelector('[data-py-deck-more]')).toBeNull();
+      const help = screen.getByRole('button', { name: 'Controls and shortcuts' });
+      // The name and tooltip carry the label; the button shows its icon only.
+      expect(help.textContent?.trim()).toBe('');
+      expect(help.querySelector('svg')).not.toBeNull();
+    } finally {
+      restore();
+    }
+  });
+
+  it('filters unavailable controls and folds secondary controls into More when they do not fit', async () => {
+    // happy-dom has no layout: a 900 px toolbar in a 400 px row does not fit.
+    const restore = stubWidths({ toolbar: 900, row: 400 });
     renderToolbar({
       environment: {
         fullscreen: false,
@@ -196,7 +236,6 @@ describe('DeckToolbar', () => {
     await fireEvent.click(presenter);
     await waitFor(() => expect(menu.open).toBe(false));
     expect(document.activeElement).toBe(menu.querySelector('summary'));
-    expect(matchMedia).toHaveBeenCalledWith('(max-width: 639px)');
-    matchMedia.mockRestore();
+    restore();
   });
 });

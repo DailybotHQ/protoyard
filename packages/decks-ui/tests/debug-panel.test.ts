@@ -157,6 +157,26 @@ describe('the panel', () => {
     expect(screen.getByRole('dialog', { name: 'Controls and shortcuts' })).toBeTruthy();
   });
 
+  it('leaves the panel alone while the presenter hides it', async () => {
+    const { app } = mount('on');
+    await fireEvent.keyDown(app, { key: 'd' });
+    await waitFor(() => expect(panel()).not.toBeNull());
+    await fireEvent.keyDown(app, { key: 'p' });
+    await waitFor(() => expect(panel()).toBeNull());
+    expect(app.getAttribute('data-presenter')).toBe('true');
+    // Esc reaches nothing visible here: the hidden panel stays open.
+    await fireEvent.keyDown(app, { key: 'Escape' });
+    await fireEvent.keyDown(app, { key: 'p' });
+    expect(app.getAttribute('data-presenter')).not.toBe('true');
+    await waitFor(() => expect(panel()).not.toBeNull());
+    // Nor does D.
+    await fireEvent.keyDown(app, { key: 'p' });
+    await waitFor(() => expect(panel()).toBeNull());
+    await fireEvent.keyDown(app, { key: 'd' });
+    await fireEvent.keyDown(app, { key: 'p' });
+    await waitFor(() => expect(panel()).not.toBeNull());
+  });
+
   it('lists the slide checks and jumps to other slides with findings', async () => {
     const { app } = mount('on');
     await fireEvent.keyDown(app, { key: 'd' });

@@ -166,6 +166,18 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
     expect(report.ok).toBe(true);
   });
 
+  it('unknown-background (warning): an unknown slide background from an older deck still opens', () => {
+    const report = checkDeckStatic(
+      deck([
+        slide('a', 'big-stat', STAT, { background: 'gradient-rainbow' }),
+        slide('b', 'big-stat', STAT, { background: 'solid-surface' }),
+      ])
+    );
+    expect(only(report.issues, 'unknown-background')).toMatchObject([
+      { severity: 'warning', slideId: 'a', jsonPath: '$.slides[0].background' },
+    ]);
+  });
+
   it('layout-props (error): missing fields and over-limit arrays', () => {
     schemaRejectsAt(
       [slide('stat', 'big-stat', { label: 'no number' })],
@@ -418,6 +430,7 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
       'unknown-layout',
       'layout-props',
       'custom-slide',
+      'unknown-background',
       'image-alt',
       'image-size',
       'step-order',

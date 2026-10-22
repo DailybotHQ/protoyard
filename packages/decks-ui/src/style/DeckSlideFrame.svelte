@@ -16,8 +16,8 @@ let {
   number,
   children,
 }: {
-  /** `slide.background` (a preset id). */
-  background?: DeckBackground | undefined;
+  /** A preset id, a media spec, or an unknown slug from an older deck (renders the default). */
+  background?: DeckBackground | string | undefined;
   /** Canvas media: load the active and next slide, keep all other instances unloaded. */
   mediaPreload?: 'auto' | 'none';
   /** 1-based position among visible slides; shown when the deck asks for slide numbers. */

@@ -1596,8 +1596,10 @@ exploration with `interactive: { sort: true, filter: true }`; setting
 Sorting uses a stable, locale-aware comparison; filtering searches
 the formatted cell text, and the controls do not change blueprint data. Sort,
 filter and row selection live only for the mounted slide view and reset when
-the view reloads. An interactive table carries `data-py-deck-interactive`, so
-its controls and rows do not trigger deck navigation.
+the view reloads. An interactive table (any `interactive` option) carries
+`data-py-deck-interactive`, so a click on its controls and rows does not
+advance the deck. A plain table does not: on a slide, a click on it advances
+like a click on text.
 
 Chart blocks show the charts-ui hover details and keyboard point navigation.
 Multi-series charts expose the chart legend as a keyboard and pointer series
