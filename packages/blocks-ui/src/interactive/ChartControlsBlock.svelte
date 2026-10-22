@@ -162,6 +162,7 @@ function setSeriesVisible(index: number, checked: boolean) {
         <mod.LineChart
           title={spec.title ?? 'Chart'}
           {series}
+          xKind="category"
           height={height}
           area={spec.kind === 'area'}
         />

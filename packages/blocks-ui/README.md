@@ -237,6 +237,8 @@ See [PLAYER.md](../../docs/PLAYER.md#embedded-apps-in-decks-and-pages).
 - **Chart:** the AI chart spec (`ChartSpecSchema` from `@protoyard/ai/chart`)
   is checked again at render time, and an invalid spec shows a note with the
   reason instead of a chart.
+  - Its string labels are category positions, so line and area adapters select
+    a categorical x-axis instead of parsing those labels as dates.
   - A valid chart shows its data table at once, then the chart when
     `@protoyard/charts-ui/cartesian` (line, area, bar) or `/part-whole`
     (donut, pie, funnel) arrives.

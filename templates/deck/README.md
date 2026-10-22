@@ -15,6 +15,9 @@ pnpm protoyard dev my-deck
 - `src/custom-slides.ts` provides a typed registry for prototype-owned Svelte slide hosts. The current shared DeckApp supports the data-only layout catalog; custom component rendering needs a future shared renderer contract.
 - `src/main.ts` creates the content-kind runtime with `defineKindRuntime` and mounts the app.
 
+The starter `src/app.css` imports the Tailwind source registrations for the
+blocks, chart and views kits used by deck slides.
+
 ## Deck Studio
 
 When the build includes DevTools, a **Deck** tab is added. The template creates Studio state only when DevTools are enabled and `?devtools=0` is absent. Changes are in-memory previews; use **Copy patch** or **Download patch** to save them.
