@@ -65,6 +65,13 @@ The gallery consumes `protoyard.registry` v1 (`format`, `version`, `generatedAt`
   real path must stay inside the real prototype folder. Otherwise the card falls back to the icon.
   Untrusted registries are filtered: entries with a slug that fails `SLUG_PATTERN`, an unknown kind
   or a `..` path are dropped.
+- **Blueprint catalog records:** source kind (`blueprint`) stays separate from the blueprint's
+  content kind (`app`, `deck`, `page` or `doc`). The gallery resolves only workspace-relative
+  `blueprints/**/*.json` sources, rejects symlinks and files over 256 KB, and checks the JSON
+  discriminator and catalog metadata before publishing a record. Missing kind means `app`; unknown
+  or mismatched content-kind metadata is omitted and listed in the registry's `invalid`
+  diagnostics; static builds also warn with the source path and reason. The body remains data and is
+  handed to the player for its own validation; it is never executed by the gallery build.
 - **`embedded: { url }`** (added only by `protoyard showcase`): the prototype's static build ships
   inside the site at `<base><url>`.
 - **`reviewCounts: { open, resolved, pulledAt }`** (optional): derived at build time from a validated
