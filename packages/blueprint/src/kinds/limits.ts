@@ -8,7 +8,8 @@ import type { ContentKind } from './kind.ts';
  * block or deck engines here would put them there for every app.
  *
  * The multiline allowlist is a fixed set of schema field names (the block
- * engine's markdown fields, list item text, code, speaker notes). It is never
+ * engine's markdown fields, list item text, code blocks, deck layout code,
+ * speaker notes). It is never
  * read from the data: a document can only use the fields the schemas define.
  */
 
@@ -58,10 +59,12 @@ const MULTILINE_FIELDS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * The text context of `key` inside `record` (its parent object), given the
- * parent's own context. Speaker notes and the block markdown fields keep
- * newlines, a `code` block's `code` keeps tabs too, list item text is
- * markdown, and every other string (titles, labels, ids) stays one line.
+ * The text context of `key` inside `record` (its parent object). Speaker
+ * notes and the block markdown fields keep newlines. Code keeps tabs too: a
+ * `code` block's `code`, and a deck layout's code object (`{ lang, source }`,
+ * the `code-with-callout` layout's `props.code`). List item text is markdown,
+ * and every other string (titles, labels, ids, a big stat's `source` caption)
+ * stays one line.
  */
 export function textContextFor(
   key: string,
@@ -69,6 +72,7 @@ export function textContextFor(
   inListItems: boolean
 ): TextContext {
   if (key === 'code' && record.type === 'code') return 'code';
+  if (key === 'source' && typeof record.lang === 'string') return 'code';
   if (key === 'notes' && typeof record.id === 'string') return 'multiline';
   if (MULTILINE_FIELDS.has(key)) return 'multiline';
   if (inListItems && key === 'text') return 'multiline';
