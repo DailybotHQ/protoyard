@@ -47,11 +47,19 @@ const FormResponseValuesSchema = z
     }
   });
 
+/**
+ * Canonical form response row (lead contract for page/doc/kind runtimes).
+ * `personaId` is set when a simulated session is active.
+ */
 const FormResponseRowSchema = z.strictObject({
   id: BlockIdSchema,
   formId: BlockIdSchema,
   createdAt: z.string().datetime({ offset: true }),
   values: FormResponseValuesSchema,
+  /** Active simulated persona when the row was submitted (optional). */
+  personaId: z.string().min(1).max(80).optional(),
+  /** Document namespace when the kind runtime scopes multi-doc storage. */
+  documentId: z.string().min(1).max(120).optional(),
 });
 
 function rejectUnsafeValueKeys(input: unknown, ctx: z.RefinementCtx): unknown {
@@ -82,7 +90,9 @@ export type FormResponse = z.infer<typeof FormResponseSchema>;
 
 /** Ordinary, non-reserved IndexedDB feature-table name and Dexie indexes. */
 export const FORM_RESPONSES_TABLE = 'formResponses' as const;
-export const FORM_RESPONSES_STORE_STRING = 'id, formId, createdAt, [formId+createdAt]' as const;
+/** Indexes shared by kind runtime and page/doc feature tables. */
+export const FORM_RESPONSES_STORE_STRING =
+  'id, formId, createdAt, personaId, documentId, [formId+createdAt]' as const;
 
 /** Feature-style descriptors consumed by the page/doc runtime definition. */
 export const PAGE_FEATURE_TABLES = Object.freeze({

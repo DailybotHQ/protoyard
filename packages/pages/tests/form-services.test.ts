@@ -78,7 +78,7 @@ function harness(granted: readonly string[] = ['form:submit', 'form:read', 'form
         if (name !== FORM_RESPONSES_TABLE) throw new Error(`Unknown table: ${name}`);
         return table;
       },
-      async transaction<T>(mode: 'r' | 'rw', _table: MemoryTable, callback: () => Promise<T>) {
+      async transaction<T>(mode: 'r' | 'rw', _tables: unknown, callback: () => Promise<T>) {
         transactionModes.push(mode);
         return callback();
       },
@@ -87,6 +87,7 @@ function harness(granted: readonly string[] = ['form:submit', 'form:read', 'form
       assert: vi.fn((capability: string) => {
         if (!grants.has(capability)) throw new Error(`Permission denied: ${capability}`);
       }),
+      principal: vi.fn(() => ({ persona: { id: 'audience' } })),
     },
     environment: {
       run: vi.fn(async <T>(operation: string, callback: () => T | Promise<T>) => {

@@ -786,7 +786,8 @@ export const BLUEPRINT_BASE_SHAPE = {
   brand: BlueprintBrandSchema.optional(),
 };
 
-const BlueprintShape = z.strictObject({
+/** @internal Shared app input shape used by the generated kind-union schema. */
+export const BlueprintShape = z.strictObject({
   ...BLUEPRINT_BASE_SHAPE,
   /**
    * The blueprint kind (ADR-036). A missing kind means an app; an explicit
@@ -1447,15 +1448,4 @@ export function parseBlueprint(input: unknown): Blueprint {
 
 export function safeParseBlueprint(input: unknown) {
   return BlueprintSchema.safeParse(input);
-}
-
-/** JSON Schema (draft 2020-12) for editors; refinements above are not expressible in it. */
-export function blueprintJsonSchema(): Record<string, unknown> {
-  const schema = z.toJSONSchema(BlueprintShape, { io: 'input', target: 'draft-2020-12' });
-  return {
-    $schema: schema.$schema,
-    $id: BLUEPRINT_SCHEMA_URL,
-    title: 'Protoyard blueprint',
-    ...schema,
-  };
 }

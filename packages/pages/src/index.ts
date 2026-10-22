@@ -19,6 +19,7 @@ export {
   PAGE_FEATURE_TABLES,
 } from './form-response.ts';
 export {
+  type CreateFormServicesOptions,
   createFormServices,
   FORM_CAPABILITIES,
   type FormServices,
@@ -36,13 +37,6 @@ export {
   type PageLimits,
   UNTRUSTED_PAGE_DOC_HINT,
 } from './limits.ts';
-export {
-  definePrototypeFromDoc,
-  definePrototypeFromPage,
-  PAGES_DEFAULT_SCENARIO,
-  PAGES_GENERATOR_VERSION,
-  type RuntimeDefinitionOptions,
-} from './runtime-definition.ts';
 export {
   type DocDocument,
   DocDocumentSchema,

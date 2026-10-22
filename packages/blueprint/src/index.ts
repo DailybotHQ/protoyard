@@ -309,7 +309,6 @@ export {
   type BlueprintScreenNav,
   BUCKET_UNITS,
   blueprintIssues,
-  blueprintJsonSchema,
   CHART_KINDS,
   DashboardWidgetSchema,
   type DateWindow,
@@ -343,6 +342,7 @@ export {
   safeParseBlueprint,
   screenPath,
 } from './schema.ts';
+export { blueprintJsonSchema } from './schema-json.ts';
 export {
   BULK_CHUNK,
   createEntityServices,

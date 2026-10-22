@@ -67,6 +67,12 @@ import type { Deck } from '@protoyard/decks';
 - blackout, overview and help overlays (presenter/print stay later surfaces)
 
 Root attribute: `data-py-deck-app`. Set `syncHash={false}` to own the hash yourself.
+## Untrusted content
+
+Deck strings (titles, props, notes) render as text. decks-ui has no `{@html}`, `innerHTML`,
+`insertAdjacentHTML`, `document.write`, `eval` or `new Function`. Load decks from outside with
+`loadUntrustedDeck` from `@protoyard/decks`. `tests/hostile-render.test.ts` renders script-, image-
+and iframe-shaped strings and checks that no element, event handler or request comes out of them.
 
 ## Install in a workspace prototype
 

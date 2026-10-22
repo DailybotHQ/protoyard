@@ -14,6 +14,15 @@ import {
 
 const deck = (input: unknown): Deck => DeckSchema.parse(input);
 
+/**
+ * A deck the schema refuses (a `javascript:` link in props): the twin must
+ * still stay inert for decks that skipped validation, so this one is raw.
+ */
+const unvalidatedDeck = (input: unknown): Deck => {
+  expect(DeckSchema.safeParse(input).success).toBe(false);
+  return input as Deck;
+};
+
 /** A small fictional deck that touches every kind of text the twin emits. */
 const FIXTURE = deck({
   style: { theme: 'violet', motion: 'full' },
@@ -238,7 +247,7 @@ describe('hostile strings stay inert text', () => {
   // text; layout props and notes are where they can still arrive.
   const printable = hostile.filter((text) => ![RLO, LRI, NUL, ZWSP].some((c) => text.includes(c)));
 
-  const attack = deck({
+  const attack = unvalidatedDeck({
     style: {},
     outline: { title: hostile[0], sections: [{ id: 'a', title: hostile[3], slideIds: ['one'] }] },
     slides: [

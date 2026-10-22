@@ -121,7 +121,7 @@ resolve them later.
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
 optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
 
-## Deck lint
+## Deck structural lint
 
 `lintDeckStructure(input)` checks an untrusted **deck body** (the object under
 `blueprint.deck`, or a bare deck document) without rendering it or mutating the
@@ -147,11 +147,12 @@ outline references, fragment ordering and `#/slide-id[/step]` links without
 rendering or changing it. `lintDeckContent(deck)` adds image alt requirements,
 chart descriptions, CTA labels, word density and speaker-note guidance. Both
 return `{ valid, diagnostics }` with stable codes, severity, path segments and
-JSONPath. Missing accessible content is an error; short chart descriptions,
-dense copy and missing or brief optional presenter notes are warnings. Density
-is an estimate: rendered text must still meet the 24 px body and 18 px label
-minimums on the 1280×720 canvas. Final contrast, text size and fit need rendered
-visual QA.
+JSONPath. Layout capacity violations are errors. Three repeated visible layouts
+in a row produce a warning when the catalog offers alternatives. Missing
+accessible content is an error; short chart descriptions, dense copy and
+missing or brief optional presenter notes are warnings. Density is an estimate:
+rendered text must still meet the 24 px body and 18 px label minimums on the
+1280×720 canvas. Final contrast, text size and fit need rendered visual QA.
 
 ```ts
 import { lintDeckContent } from '@protoyard/blueprint';
@@ -323,7 +324,7 @@ finds it through that export, from this repository or an installed package, and 
 relative `$schema`. A test fails when the file is out of date. Regenerate it with:
 
 ```bash
-pnpm exec tsx -e "import { blueprintJsonSchema } from './packages/blueprint/src/schema.ts'; import { writeFileSync } from 'node:fs'; writeFileSync('packages/blueprint/schema/blueprint.schema.json', JSON.stringify(blueprintJsonSchema(), null, 2) + '\n');" && npx biome format --write packages/blueprint/schema
+pnpm exec tsx -e "import { blueprintJsonSchema } from './packages/blueprint/src/index.ts'; import { writeFileSync } from 'node:fs'; void blueprintJsonSchema().then(schema => writeFileSync('packages/blueprint/schema/blueprint.schema.json', JSON.stringify(schema, null, 2) + '\n'));" && npx biome format --write packages/blueprint/schema
 ```
 
 **Size:** measured with esbuild (minified, zod and `@protoyard/core` external) and gzip -9:

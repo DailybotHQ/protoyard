@@ -10,7 +10,8 @@ import {
   restoreBlockState,
   stateKey,
 } from '@protoyard/blocks/interactive';
-import type { PrototypeRuntime } from '@protoyard/core';
+import { type PrototypeRuntime, ValidationError } from '@protoyard/core';
+import { createFormServices, type FormResponse as PageFormResponse } from '@protoyard/pages';
 import { z } from 'zod';
 import { type AnyContentBlueprint, KIND_CAPABILITIES } from './runtime.ts';
 
@@ -61,15 +62,11 @@ export function findDocumentBlock(doc: AnyContentBlueprint, blockId: string): Bl
   return null;
 }
 
-/** One stored form submission. */
-export interface FormResponse {
-  id: string;
-  documentId: string;
-  formId: string;
-  personaId: string;
-  submittedAt: string;
-  values: Record<string, string | number | boolean | string[]>;
-}
+/**
+ * One stored form submission — canonical `@protoyard/pages` FormResponse.
+ * `createdAt` is the submission time; `personaId` / `documentId` when present.
+ */
+export type FormResponse = PageFormResponse;
 
 /** A form block's fields as a strict zod schema for one submission. */
 export function formResponseSchema(form: FormBlock): z.ZodType<FormResponse['values']> {
@@ -149,6 +146,32 @@ export interface KindServices {
   };
   /** Stops following scenario loads. */
   destroy(): void;
+}
+
+function collectFormBlocks(doc: AnyContentBlueprint): FormBlock[] {
+  const forms: FormBlock[] = [];
+  const seen = new Set<string>();
+  const stack: unknown[] = [(doc as unknown as Record<string, unknown>)[doc.kind]];
+  let n = 0;
+  while (stack.length > 0 && n < MAX_WALK_NODES) {
+    const node = stack.pop();
+    n += 1;
+    if (Array.isArray(node)) {
+      for (const item of node) stack.push(item);
+      continue;
+    }
+    if (node === null || typeof node !== 'object') continue;
+    const record = node as Record<string, unknown>;
+    if (record.type === 'form') {
+      const parsed = FormBlockSchema.safeParse(record);
+      if (parsed.success && parsed.data.id && !seen.has(parsed.data.id)) {
+        seen.add(parsed.data.id);
+        forms.push(parsed.data);
+      }
+    }
+    for (const key of Object.keys(record)) stack.push(record[key]);
+  }
+  return forms;
 }
 
 /** The kind services for a runtime defined by `defineKindRuntime(doc, …)`. */
@@ -248,61 +271,37 @@ export async function createKindServices(
     refresh,
   };
 
+  const formBlocks = collectFormBlocks(doc);
+  const pageForms = createFormServices(runtime, formBlocks, { documentId });
   const responses: KindServices['responses'] = {
     async submit(formId, values) {
-      const block = findDocumentBlock(doc, formId);
-      const form = block?.type === 'form' ? FormBlockSchema.safeParse(block) : null;
-      if (!form?.success) {
-        throw new FormResponseError(formId, `No form "${formId}" in this document.`);
-      }
-      session.assert(KIND_CAPABILITIES.respond, form.data);
-      const parsed = formResponseSchema(form.data).safeParse(values);
-      if (!parsed.success) {
-        const issues: Record<string, string> = {};
-        for (const issue of parsed.error.issues) {
-          const field = String(issue.path[0] ?? '');
-          issues[field] ??= issue.message;
+      // createFormServices asserts form:submit (KIND_CAPABILITIES.respond).
+      try {
+        return await pageForms.submit(formId, values);
+      } catch (error: unknown) {
+        if (error instanceof FormResponseError) throw error;
+        if (error instanceof ValidationError) {
+          throw new FormResponseError(formId, error.message || 'Check the highlighted fields.', {
+            ...error.issues,
+          });
         }
-        throw new FormResponseError(formId, 'Check the highlighted fields.', issues);
+        const message = error instanceof Error ? error.message : 'Form submission failed.';
+        if (/No form|Permission denied/i.test(message)) {
+          throw new FormResponseError(formId, message);
+        }
+        throw error;
       }
-      const personaId = actingPersona();
-      return environment.run('responses.submit', () =>
-        db.transaction('rw', ['formResponses'], async () => {
-          const submittedAt = runtime.clock.now().toISOString();
-          const count = (await db.table('formResponses').toArray()).length;
-          const response: FormResponse = {
-            id: `resp_${String(count + 1).padStart(6, '0')}`,
-            documentId,
-            formId,
-            personaId,
-            submittedAt,
-            values: parsed.data,
-          };
-          await db.table('formResponses').put({ ...response });
-          return response;
-        })
-      );
     },
     async list(formId) {
-      const principal = session.principal();
-      const all = session.can(KIND_CAPABILITIES.readResponses);
-      const rows = (await db.table('formResponses').toArray()) as unknown as FormResponse[];
-      return rows
-        .filter(
-          (row) =>
-            row.documentId === documentId &&
-            (formId === undefined || row.formId === formId) &&
-            (all || row.personaId === principal?.persona.id)
-        )
-        .sort((a, b) =>
-          a.submittedAt < b.submittedAt
-            ? -1
-            : a.submittedAt > b.submittedAt
-              ? 1
-              : a.id < b.id
-                ? -1
-                : 1
-        );
+      if (formId !== undefined) return pageForms.list(formId);
+      const rows: FormResponse[] = [];
+      for (const form of formBlocks) {
+        if (!form.id) continue;
+        rows.push(...(await pageForms.list(form.id)));
+      }
+      return rows.sort((a, b) =>
+        a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id.localeCompare(b.id)
+      );
     },
   };
 
