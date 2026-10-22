@@ -223,10 +223,28 @@ function mutate(
       if (rng.chance(0.5)) {
         (block as Record<string, Json>).extra = deep;
       } else {
-        // Nest real containers: columns inside columns past the container depth.
+        // Nest real containers (columns hold arrays of blocks; tabs panels and
+        // reveal hold `blocks`). Depths 2–6 straddle the container limit, so some
+        // nested documents stay valid and reach the renderer.
         let nested: Json = clone(block);
-        for (let i = 0; i < rng.int(4, 40); i += 1) {
-          nested = { type: 'columns', columns: [{ blocks: [nested] }, { blocks: [] }] } as Json;
+        const depth = rng.int(2, 6);
+        for (let i = 0; i < depth; i += 1) {
+          const shape = rng.pick(['columns', 'tabs', 'reveal'] as const);
+          nested = (
+            shape === 'columns'
+              ? { type: 'columns', columns: [[nested], []] }
+              : shape === 'tabs'
+                ? {
+                    type: 'tabs',
+                    id: `tabs-${i}`,
+                    label: 'Tabs',
+                    panels: [
+                      { id: 'a', label: 'A', blocks: [nested] },
+                      { id: 'b', label: 'B', blocks: [] },
+                    ],
+                  }
+                : { type: 'reveal', id: `reveal-${i}`, label: 'Show', blocks: [nested] }
+          ) as Json;
         }
         blocks[index] = nested;
       }
@@ -275,9 +293,9 @@ function mutate(
         { toString: 'x' },
         { prototype: { polluted: true } },
       ] as Json[]);
-      // A JSON text keeps `__proto__` as an own key, as a hostile file would.
+      // A placeholder key; both forms turn it into a real own key (see below).
       target[`@@${key}@@`] = payload;
-      return { text: true };
+      return { text: rng.chance(0.6) };
     }
     case 'unknown-type': {
       (block as Record<string, Json>).type = rng.pick(UNKNOWN_TYPES);
@@ -324,32 +342,35 @@ export function hostileDocuments(count = 2_000, seed = 'blocks-security-fuzz'): 
       : [rng.pick(SINGLE_ATTACKS)];
     let text = rng.chance(0.25);
     for (const attack of attacks) if (mutate(rng, blocks, attack).text) text = true;
+    // NaN and Infinity exist only as values: in JSON text they would be rejected
+    // as broken JSON before the schema ever saw them.
+    if (attacks.includes('non-finite')) text = false;
     const json = JSON.stringify(blocks, (_key, value) =>
       typeof value === 'number' && !Number.isFinite(value) ? `@@${String(value)}@@` : value
     );
     let input: unknown;
     if (text) {
-      // Text form: the placeholders become real prototype keys and bare NaN/Infinity tokens.
-      input = json
-        .replace(/"@@(__proto__|constructor|prototype)@@"/g, '"$1"')
-        .replace(/"@@(NaN|Infinity|-Infinity)@@"/g, '$1');
+      // Text form: the placeholders become real prototype keys, as in a hostile file.
+      input = json.replace(/"@@(__proto__|constructor|prototype)@@"/g, '"$1"');
     } else {
-      input = JSON.parse(json, (key, value) => {
+      // Value form: real non-finite numbers, and prototype keys as own properties
+      // at the mutated place (what JSON.parse of a hostile file produces).
+      input = JSON.parse(json, function (this: Record<string, unknown>, key, value) {
         if (value === '@@NaN@@') return Number.NaN;
         if (value === '@@Infinity@@') return Number.POSITIVE_INFINITY;
         if (value === '@@-Infinity@@') return Number.NEGATIVE_INFINITY;
-        return key.startsWith('@@') ? undefined : value;
+        const match = /^@@(__proto__|constructor|prototype)@@$/.exec(key);
+        if (match) {
+          Object.defineProperty(this, match[1] as string, {
+            value,
+            enumerable: true,
+            configurable: true,
+            writable: true,
+          });
+          return undefined;
+        }
+        return value;
       });
-      // Value form: define prototype keys as own properties, as JSON.parse would.
-      if (attacks.includes('prototype-key')) {
-        const first = (input as Record<string, unknown>[])[0] as Record<string, unknown>;
-        Object.defineProperty(first, rng.pick(PROTO_KEYS), {
-          value: { polluted: true },
-          enumerable: true,
-          configurable: true,
-          writable: true,
-        });
-      }
     }
     return { id: `${seed}#${index}`, attacks: combo ? ['combo', ...attacks] : attacks, input };
   });

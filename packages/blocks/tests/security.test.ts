@@ -188,6 +188,62 @@ describe('AC-blocks-fuzz: the untrusted parser rejects or neutralizes every host
     ).toEqual([]);
   });
 
+  it('reaches both sides of the nesting limits with real columns, tabs and reveal', () => {
+    const nesting = results.filter(
+      ({ doc }) => doc.attacks.length === 1 && doc.attacks[0] === 'deep-nesting'
+    );
+    // Each container adds 3–4 JSON levels, so the JSON depth guard (12) usually
+    // trips before the container rule (3); either one is a nesting refusal.
+    const refusedForDepth = nesting.filter(
+      ({ result }) =>
+        !result.success &&
+        result.issues.some(
+          (issue) => issue.code === 'too-deep' || /nest at most/.test(issue.message)
+        )
+    );
+    expect(refusedForDepth.length).toBeGreaterThan(50);
+    // Shallow nesting stays valid and reaches the renderer.
+    expect(nesting.filter(({ result }) => result.success).length).toBeGreaterThan(0);
+  });
+
+  it('rejects NaN and Infinity in the schema, not only as broken JSON', () => {
+    const nonFinite = results.filter(
+      ({ doc }) => doc.attacks.includes('non-finite') && typeof doc.input !== 'string'
+    );
+    expect(nonFinite.length).toBeGreaterThan(100);
+    for (const { doc, result } of nonFinite) {
+      if (result.success) {
+        // Only inside an embed-app's opaque `app` (see inertViolations), never in a block.
+        expect(
+          result.blocks.some((block) => block.type === 'embed-app'),
+          doc.id
+        ).toBe(true);
+        expect(inertViolations(result.blocks), doc.id).toEqual([]);
+      } else {
+        expect(
+          result.issues.some((issue) => issue.code === 'invalid-json'),
+          doc.id
+        ).toBe(false);
+      }
+    }
+  });
+
+  it('turns prototype keys into real own keys in both value and text form', () => {
+    const proto = DOCUMENTS.filter((doc) => doc.attacks.includes('prototype-key'));
+    expect(
+      proto.some(
+        (doc) =>
+          typeof doc.input === 'string' && /"(__proto__|constructor|prototype)"/.test(doc.input)
+      )
+    ).toBe(true);
+    const ownKey = (value: unknown): boolean => {
+      if (!value || typeof value !== 'object') return false;
+      if (Object.getOwnPropertyNames(value).some((key) => PROTO_KEYS.has(key))) return true;
+      return Object.values(value).some(ownKey);
+    };
+    expect(proto.some((doc) => typeof doc.input !== 'string' && ownKey(doc.input))).toBe(true);
+  });
+
   it('exercises both outcomes, so the renderer fuzz has accepted documents to draw', () => {
     const accepted = results.filter(({ result }) => result.success).length;
     expect(accepted).toBeGreaterThan(100);

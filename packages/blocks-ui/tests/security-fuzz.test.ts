@@ -1,11 +1,12 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { safeHref } from '@protoyard/ai/markdown';
-import { BLOCK_FAMILIES, parseUntrustedBlocks } from '@protoyard/blocks';
+import { BLOCK_FAMILIES, BLOCK_TYPES, parseUntrustedBlocks } from '@protoyard/blocks';
 import { createMemoryBlockStateHost } from '@protoyard/blocks/interactive';
 import { cleanup, render, waitFor } from '@testing-library/svelte';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { hostileDocuments } from '../../blocks/tests/support/hostile.ts';
+import { BIDI, hostileDocuments } from '../../blocks/tests/support/hostile.ts';
+import { loadGrammar } from '../src/code/grammars.ts';
 import { loadBlockFamily } from '../src/registry.ts';
 import FuzzHarness from './fixtures/FuzzHarness.svelte';
 
@@ -83,7 +84,47 @@ function domViolations(root: Element): string[] {
       }
     }
   }
+  for (const link of root.querySelectorAll('a[target="_blank"]')) {
+    if (!/\bnoopener\b/.test(link.getAttribute('rel') ?? '')) {
+      problems.push(`${where(link)}: target=_blank without rel=noopener`);
+    }
+  }
   return problems;
+}
+
+// biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point.
+const CONTROL_TEXT = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/;
+const BIDI_TEXT = new RegExp(
+  `[${Object.values(BIDI).join('')}\\u202b\\u202d\\u2067\\u200e\\u061c]`
+);
+
+/** Control or bidi characters in rendered text or attributes (sanitized documents only). */
+function textViolations(section: Element): string[] {
+  const problems: string[] = [];
+  const walker = section.ownerDocument.createTreeWalker(section, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.textContent ?? '';
+    if (BIDI_TEXT.test(text)) problems.push('bidi character in text');
+    if (CONTROL_TEXT.test(text)) problems.push('control character in text');
+  }
+  for (const el of section.querySelectorAll('*')) {
+    for (const attr of el.attributes) {
+      if (BIDI_TEXT.test(attr.value)) problems.push(`bidi character in ${attr.name}`);
+    }
+  }
+  return problems;
+}
+
+/** Resolves once the DOM stops changing: lazy chart, map, grammar and nested chunks have rendered. */
+async function settled(container: Element): Promise<void> {
+  let last = '';
+  let stable = 0;
+  for (let i = 0; i < 400 && stable < 4; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    const snapshot = `${container.querySelectorAll('*').length}:${container.textContent?.length}`;
+    stable = snapshot === last ? stable + 1 : 0;
+    last = snapshot;
+  }
 }
 
 function renderable(doc: (typeof DOCUMENTS)[number]): {
@@ -114,8 +155,16 @@ const network = {
 };
 
 beforeAll(async () => {
-  // Warm every family chunk once, so the first batch measures rendering, not cold imports.
-  await Promise.all(BLOCK_FAMILIES.map((family) => loadBlockFamily(family)));
+  // Warm every lazy chunk once (families, chart and map kits, grammars), so the
+  // DOM is inspected after those chunks render rather than while they load.
+  await Promise.all([
+    ...BLOCK_FAMILIES.map((family) => loadBlockFamily(family)),
+    import('@protoyard/charts-ui/cartesian'),
+    import('@protoyard/charts-ui/compact'),
+    import('@protoyard/charts-ui/part-whole'),
+    import('@protoyard/views-ui/map'),
+    ...['ts', 'js', 'json', 'bash', 'python', 'html', 'css', 'sql', 'yaml'].map(loadGrammar),
+  ]);
   vi.stubGlobal('fetch', network.fetch);
   vi.spyOn(XMLHttpRequest.prototype, 'open').mockImplementation(network.xhr);
   // happy-dom may not implement sendBeacon; spy only where it exists.
@@ -138,6 +187,16 @@ describe('AC-blocks-fuzz: 2,000 hostile documents render inert', () => {
     expect(docs.filter((doc) => !doc.accepted).length).toBeGreaterThan(500);
   });
 
+  it('draws every block type from accepted hostile documents', () => {
+    const seen = new Map<string, number>();
+    for (const doc of docs.filter((entry) => entry.accepted)) {
+      for (const type of new Set(doc.blocks.map((block) => (block as { type: string }).type))) {
+        seen.set(type, (seen.get(type) ?? 0) + 1);
+      }
+    }
+    for (const type of BLOCK_TYPES) expect(seen.get(type) ?? 0, type).toBeGreaterThanOrEqual(5);
+  });
+
   for (let start = 0; start < docs.length; start += BATCH) {
     const batch = docs.slice(start, start + BATCH);
     it(`documents ${start}–${start + batch.length - 1}: no script, no dangerous URL, no remote media`, {
@@ -155,7 +214,24 @@ describe('AC-blocks-fuzz: 2,000 hostile documents render inert', () => {
           interval: 50,
         }
       );
+      await settled(container);
       expect(domViolations(container)).toEqual([]);
+      for (const doc of batch.filter((entry) => entry.accepted)) {
+        const section = container.querySelector(`[data-fuzz-doc="${doc.id}"]`) as Element;
+        expect(textViolations(section), doc.id).toEqual([]);
+        // The lazy parts really rendered: a chart's charts-ui frame (happy-dom has no
+        // layout, so the SVG plot itself may be empty) and a map's surface.
+        const types = new Set(doc.blocks.map((block) => (block as { type?: string }).type));
+        if (types.has('chart')) {
+          expect(section.querySelector('[data-py-chart]'), `${doc.id} chart`).not.toBeNull();
+        }
+        if (types.has('map')) {
+          expect(
+            section.querySelector('[data-py-block="map"] svg, [data-py-block="map"] [role="img"]'),
+            `${doc.id} map`
+          ).not.toBeNull();
+        }
+      }
       // Rejected raw documents never show their content: each block is a fallback or a valid render.
       for (const doc of batch.filter((entry) => !entry.accepted)) {
         const section = container.querySelector(`[data-fuzz-doc="${doc.id}"]`);
