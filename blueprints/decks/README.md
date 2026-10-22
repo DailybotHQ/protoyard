@@ -6,6 +6,7 @@ entities, roles or screens. Back to the [catalog index](../README.md#choose-an-e
 
 | Example | Use case | Highlights |
 | --- | --- | --- |
+| [Example deck](./example.json) | Visual QA fixture | Minimal three-slide harness for `scripts/sweep-deck.ts` |
 | [Harbor Ops pitch](./harbor-ops-pitch.json) | Pitch | Process steps, comparison table, bar chart |
 | [Northwind QBR](./northwind-qbr.json) | Quarterly review | Big stat, funnel chart, comparison, free poll |
 | [Lumen launch](./lumen-launch.json) | Product launch | Process, three cards, free quiz |

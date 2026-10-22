@@ -75,6 +75,8 @@ All commands run from the repository root. Labels: **full** runs everything;
 | CI performance job (local mirror) | `pnpm protoyard build --all && pnpm protoyard budget --all --skip-build && pnpm bench:index --runs 3 --check` | full |
 | Visual QA sweep (contact sheet, see below) | `pnpm visual:sweep --only crm-demo,mobile-banking-demo` | scoped |
 | Visual sweep logic (matrix, flags, PNG decode, contact sheet) | `pnpm vitest run tests/scripts/visual-sweep.test.ts` | scoped |
+| Deck visual QA sweep (unit) | `pnpm vitest run tests/scripts/deck-sweep.test.ts` | scoped |
+| Deck visual QA sweep (browser fixture) | `pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json` | scoped |
 | Thumbnails stay deterministic | `pnpm exec tsx scripts/generate-thumbnails.ts crm-demo --check` | scoped |
 
 `protoyard spec <slug> --check` (or `spec --all --check`) is the drift check
@@ -349,6 +351,20 @@ the E2E checks; it is not a gate.
 pnpm visual:sweep --only crm-demo,mobile-banking-demo   # build, capture, write the sheet
 pnpm visual:sweep --skip-build --out tmp/visual-sweep-after --compare tmp/visual-sweep
 open tmp/visual-sweep/index.html
+```
+
+#### Deck fixture sweep
+
+`scripts/sweep-deck.ts` visits every slide and step of a **kind:deck** blueprint
+in a private Vite harness (`DeckApp`). It checks overflow, text minima, images,
+fragment order, navigation and browser noise, then writes `tmp/deck-sweep/`
+(`sweep.json`, contact sheet, shots). Deterministic errors fail the process;
+font/contrast heuristics are warnings until calibrated. See [DECKS.md](DECKS.md).
+
+```bash
+pnpm vitest run tests/scripts/deck-sweep.test.ts
+pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json
+open tmp/deck-sweep/index.html
 ```
 
 | Dimension | Values |
