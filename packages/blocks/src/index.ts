@@ -132,6 +132,7 @@ export {
   BlockStepSchema,
   BlockToneSchema,
   IconNameSchema,
+  isUnsafeTextCharacter,
   LinkHrefSchema,
 } from './schema/primitives.ts';
 export {

@@ -13,10 +13,9 @@ data" badge.
 
 ## How it boots
 
-`src/boot.ts` provides the internal workspace boot path
-`bootPlayer({ blueprint, target })` used by the player app and generated
-level-two templates. It is not a packed package subpath because its Svelte app
-dependencies are shipped together in the prebuilt player assets:
+`@protoyard/player/boot` provides `bootPlayer({ blueprint, target })`, used by
+the player app and generated level-two templates. This packed subpath lets a
+generated app load a validated embedded app into the player runtime:
 
 1. `blueprintIdentity(blueprint)` gives the content namespace `bp-<26 base32>`.
    Each blueprint stores its data in its own IndexedDB databases

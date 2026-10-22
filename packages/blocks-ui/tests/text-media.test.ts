@@ -25,6 +25,13 @@ describe('text block family', () => {
     expect(screen.getByText('safe emphasis').tagName).toBe('STRONG');
   });
 
+  it('does not send a referrer when rendering a local markdown image', () => {
+    const { container } = render(TextFamilyRenderer, {
+      props: { block: { type: 'text', markdown: '![Cover](assets/cover.webp)' } },
+    });
+    expect(container.querySelector('img')?.getAttribute('referrerpolicy')).toBe('no-referrer');
+  });
+
   it('renders accessible heading, list, quote, callout and divider variants', () => {
     const { container, rerender } = render(TextFamilyRenderer, {
       props: {

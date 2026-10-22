@@ -193,11 +193,12 @@ function expected(kind: Kind, json: Record<string, unknown>): string[] {
   const value = json as any;
   if (kind === 'deck') return value.deck.slides.map((s: { id: string }) => s.id);
   if (kind === 'page') return value.page.sections.map((s: { id: string }) => s.id);
+  const blocks = value.doc.blocks as { type: string; text?: string; level?: number }[];
+  const titleBlock = blocks[0]?.type === 'heading' && blocks[0].level === 1;
+  const bodyBlocks = titleBlock ? blocks.slice(1) : blocks;
   return [
-    value.doc.title ?? value.name,
-    ...value.doc.blocks
-      .filter((b: { type: string }) => b.type === 'heading')
-      .map((b: { text: string }) => b.text),
+    value.doc.title || (titleBlock ? blocks[0]?.text : undefined) || value.name,
+    ...bodyBlocks.filter((block) => block.type === 'heading').map((block) => block.text ?? ''),
   ];
 }
 

@@ -1,6 +1,8 @@
 # Flows
 
-- Load default scenario (presenter / audience / viewer personas).
-- Read the doc content from blueprint.json.
-- Page template: submit waitlist form → formResponses via kind services.
-- Doc template: scroll TOC anchors; print via pages-ui print CSS.
+- Load the default scenario (presenter / audience / viewer personas).
+- Read the document body from `blueprint.json` (headings, charts, tables, lists).
+- Scroll the continuous flow; use “On this page” TOC anchors for deep links.
+- Optional: submit the reader feedback form → `formResponses` through kind
+  form services (`form:submit` → zod → `environment.run` → `db.transaction`).
+- Print via `@protoyard/pages-ui` print CSS (continuous flow, not slide-per-page).

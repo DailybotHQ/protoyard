@@ -57,6 +57,7 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Testing | [TESTING_GUIDE](docs/TESTING_GUIDE.md) | Full and scoped commands, source→test map, blind spots, posture |
 | Commands | [DEVELOPMENT_COMMANDS](docs/DEVELOPMENT_COMMANDS.md) | Every script and CLI command |
 | Security | [SECURITY](docs/SECURITY.md) | Threat model, trust boundaries, rules |
+| Accessibility | [ACCESSIBILITY](docs/ACCESSIBILITY.md) | WCAG 2.1 A/AA checks: content-kind axe in light and dark, phone and desktop, what is asserted, fixes, honest limits |
 | Performance | [PERFORMANCE](docs/PERFORMANCE.md) | Measured index and bundle numbers, budgets |
 | Onboarding | [AI_AGENT_ONBOARDING](docs/AI_AGENT_ONBOARDING.md) | First-session checklist |
 | Collaboration | [AI_AGENT_COLLAB](docs/AI_AGENT_COLLAB.md) | Path ownership, lockfile, commits in a shared checkout, handoffs |
@@ -125,9 +126,10 @@ protoyard/
 ├── skills/protoyard/      the distributable agent skill: SKILL.md router, sub-skills, setup.sh   (docs/SKILL.md)
 ├── tests/                 support/ (runtime + generator harness), e2e/ (Playwright + axe), setup/
 ├── scripts/               bench-index.ts, bench-cold-start.ts, bench-charts.ts, bench-grid.ts, bench-idea.ts,
-│                          bench-player.ts, bench-integrations.ts, visual-sweep.ts (+ lib/), generate-thumbnails.ts,
+│                          bench-player.ts, bench-integrations.ts, bench-blocks.ts, bench-brief-kinds.ts,
+│                          visual-sweep.ts (+ lib/), sweep-deck.ts, blocks-reference.ts, generate-thumbnails.ts,
 │                          import-avatars.ts, {build,check,verify,version}-packages.ts, skill and integration checks,
-│                          check-public-hygiene.sh, changelog-section.sh
+│                          check-public-hygiene.sh, check-public-docs.ts, changelog-section.sh
 ├── docs/                  the guides above
 ├── .agents/               skills, agents, commands (.claude and .cursor symlink here)
 ├── .review/extension.md   repo rules for the AI Diff Reviewer local review
@@ -182,7 +184,8 @@ Nothing requires Docker or CI-only tooling.
    `templates`, `player`, `blocks`, `blocks-ui`, `decks`, `decks-ui`, `pages`,
    `pages-ui`, `flows`, `flows-ui`, `gamification`, `gamification-ui`,
    `<prototype-slug>`,
-   `docs`, `ci`, `deps`, `dwp`. **Stage exact paths**, never `git add -A`.
+   `docs`, `ci`, `deps`, `dwp`, `e2e`, `scripts`. Integration merges use
+   `merge(<branch or task>): …`. **Stage exact paths**, never `git add -A`.
 3. **Validation follows the touched surface.** Pick gates from the
    source→test map in [TESTING_GUIDE](docs/TESTING_GUIDE.md). Core or root
    config changes run the full `pnpm check`. When unsure, run the full suite.

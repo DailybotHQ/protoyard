@@ -3,7 +3,7 @@ import { MESSAGE_LIMITS } from './limits.ts';
 
 /**
  * URL rules for chat messages. Links a person can follow (buttons, link
- * previews) are absolute http(s) or mailto only. Attachments are local: a
+ * previews) are absolute https or mailto only. Attachments are local: a
  * relative path inside the prototype, an `attachment:<id>` reference, or a
  * small inline raster image. Nothing a message carries makes the browser load
  * a remote resource on its own.
@@ -23,23 +23,23 @@ function clean(url: string): boolean {
   );
 }
 
-/** A link a person may open in a new tab: absolute `http(s)` without credentials, or `mailto:`. */
+/** A link a person may open in a new tab: absolute `https` without credentials, or `mailto:`. */
 export function isSafeLinkUrl(url: unknown): url is string {
   if (typeof url !== 'string' || !clean(url)) return false;
   if (safeHref(url) !== url) return false;
   if (/^mailto:/i.test(url)) return /^mailto:[^\s<>"]+@[^\s<>"]+$/i.test(url);
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+    if (parsed.protocol !== 'https:') return false;
     return !parsed.username && !parsed.password && parsed.hostname.length > 0;
   } catch {
     return false;
   }
 }
 
-/** A page a link preview describes: absolute `http(s)` only (never `mailto:`). */
+/** A page a link preview describes: absolute `https` only (never `mailto:`). */
 export function isSafePreviewUrl(url: unknown): url is string {
-  return isSafeLinkUrl(url) && /^https?:/i.test(url);
+  return isSafeLinkUrl(url) && /^https:/i.test(url);
 }
 
 const ATTACHMENT_REF = /^attachment:[A-Za-z0-9_-]{1,64}$/;

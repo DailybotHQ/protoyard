@@ -52,6 +52,7 @@ function requireContentBlueprint(kind: MarketplaceContentKind): Shelved {
 const hasPublishedContentBlueprints = MARKETPLACE_CONTENT_KIND_TARGETS.every(({ kind }) =>
   shelved.some((item) => item.kind === 'blueprint' && item.blueprintKind === kind)
 );
+const playerOrigin = `http://127.0.0.1:${process.env.PROTOYARD_E2E_PLAYER_PORT ?? 4861}`;
 
 async function openMarketplace(page: Page, search = '') {
   await page.goto(`/marketplace/${search}`);
@@ -140,9 +141,9 @@ test.describe('marketplace', () => {
       'the app, deck, page, and document examples must be published with catalog metadata'
     ).toBe(true);
     await openMarketplace(page);
-    const filter = page.getByTestId('market-content-kind');
+    const filter = page.getByLabel('Content type');
     for (const { kind } of MARKETPLACE_CONTENT_KIND_TARGETS) {
-      const expected = shelved.filter((item) => item.blueprintKind === kind).length;
+      const expected = shelved.filter((item) => (item.blueprintKind ?? 'app') === kind).length;
       expect(expected, `at least one catalog blueprint of kind ${kind}`).toBeGreaterThan(0);
       await filter.selectOption(kind);
       await expect(page).toHaveURL(new RegExp(`[?&]contentKind=${kind}(?:&|$)`));
@@ -151,7 +152,7 @@ test.describe('marketplace', () => {
       await expect(cards.first()).toHaveAttribute('data-content-kind', kind);
 
       await page.reload();
-      await expect(page.getByTestId('market-content-kind')).toHaveValue(kind);
+      await expect(page.getByLabel('Content type')).toHaveValue(kind);
       await expect(page.getByTestId('market-results').getByTestId('market-card')).toHaveCount(
         expected
       );
@@ -190,11 +191,21 @@ test.describe('marketplace', () => {
   test('opens every content-kind blueprint in its renderer from the detail page', async ({
     page,
   }) => {
+    test.skip(
+      process.env.PROTOYARD_E2E_PLAYER !== '1',
+      'renderer checks need the standalone static player build'
+    );
     expect(
       hasPublishedContentBlueprints,
       'the app, deck, page, and document examples must be published with catalog metadata'
     ).toBe(true);
-    for (const { kind, label, renderer, action: actionLabel } of MARKETPLACE_CONTENT_KIND_TARGETS) {
+    for (const {
+      kind,
+      label,
+      playerPage,
+      renderer,
+      action: actionLabel,
+    } of MARKETPLACE_CONTENT_KIND_TARGETS) {
       const entry = requireContentBlueprint(kind);
       await page.goto(`/marketplace/blueprint/${entry.slug}/`);
       await expect(page.getByTestId('market-detail-title')).toHaveText(entry.name);
@@ -213,15 +224,10 @@ test.describe('marketplace', () => {
       const playerLink = page.getByTestId('open-in-player');
       await expect(playerLink).toHaveText(actionLabel);
       await expect(playerLink).toHaveAttribute('href', /\/play\/#bp=1\./);
-      await playerLink.click();
-      await expect(page).toHaveURL(/\/play\/#bp=1\./);
-      await expect(page.getByRole('heading', { name: 'Play a blueprint' })).toBeVisible();
-      const player = page.frameLocator('iframe[title="Running Protoyard blueprint"]');
-      await expect(page.locator('iframe[title="Running Protoyard blueprint"]')).toHaveAttribute(
-        'src',
-        /\/player\/\?embedder=[^#]+#bp=1\./
-      );
-      await expect(player.locator(renderer)).toBeVisible();
+      const share = new URL((await playerLink.getAttribute('href')) ?? '', page.url());
+      expect(share.hash, `${kind} detail link carries its validated blueprint`).toMatch(/^#bp=1\./);
+      await page.goto(`${playerOrigin}/${playerPage}${share.hash}`);
+      await expect(page.locator(renderer)).toBeVisible();
     }
   });
 

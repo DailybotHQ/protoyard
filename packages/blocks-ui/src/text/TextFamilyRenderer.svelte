@@ -13,7 +13,7 @@ const alignClass = (align: 'start' | 'center' | undefined) =>
 {#if block.type === 'heading'}
   <header class={`space-y-2 ${alignClass(block.align)}`}>
     {#if block.eyebrow}<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{block.eyebrow}</p>{/if}
-    <svelte:element this={`h${block.level ?? 2}`} class="text-2xl font-semibold tracking-tight text-foreground">{block.text}</svelte:element>
+    <svelte:element this={`h${block.level ?? 2}`} class="text-2xl font-semibold tracking-tight text-foreground" data-py-block-heading>{block.text}</svelte:element>
     {#if block.subtitle}<p class="text-base text-muted-foreground">{block.subtitle}</p>{/if}
   </header>
 {:else if block.type === 'text'}

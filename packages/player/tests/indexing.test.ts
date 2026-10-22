@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { productionBuildEnv } from './support/build-env.ts';
 
 /**
  * The standalone player (`/player/`, and every `/player/#bp=` share link) is an
@@ -24,6 +25,7 @@ beforeAll(() => {
     cwd: PLAYER,
     stdio: 'pipe',
     timeout: 240_000,
+    env: productionBuildEnv(),
   });
   html = readFileSync(join(outDir, 'index.html'), 'utf8');
 }, 300_000);

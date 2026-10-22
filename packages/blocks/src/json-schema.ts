@@ -57,7 +57,7 @@ const PROPERTY_DESCRIPTIONS: Record<string, string> = {
   highlight: 'Optional row or text range receiving a visual highlight.',
   highlightRow: 'Zero-based table row index to highlight.',
   highlights: 'Line ranges highlighted at each presentation step.',
-  href: 'Safe navigation target: http(s), mailto, an anchor or a relative path.',
+  href: 'Safe navigation target: https or mailto only.',
   icon: 'Icon name from the package allow-list.',
   id: 'Stable lowercase identifier used to target this item and preserve viewer state.',
   ifFalse: 'Expression result when the condition is false.',

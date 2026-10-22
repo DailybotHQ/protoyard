@@ -30,7 +30,7 @@ function sourceFor(id: string) {
         </a>
       {:else if node.type === 'image'}
         {#if node.src}
-          <img class="my-2 max-h-80 max-w-full rounded-lg border border-border object-contain" src={node.src} alt={node.alt} loading="lazy" />
+          <img class="my-2 max-h-80 max-w-full rounded-lg border border-border object-contain" src={node.src} alt={node.alt} loading="lazy" referrerpolicy="no-referrer" />
         {:else}
           <span class="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">Image: {node.alt}</span>
         {/if}

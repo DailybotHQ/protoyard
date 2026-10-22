@@ -25,9 +25,13 @@ const formServices = getFormServices();
     this={`h${typed.level ?? 2}`}
     data-py-mock-doc-heading={typed.id ?? ''}
     data-py-mock-block-host
+    data-py-block-heading
   >
     {typed.text}
   </svelte:element>
+{:else if typed?.type === 'callout'}
+  <!-- Like blocks-ui: a callout title is a heading element, but not a heading block. -->
+  <div data-py-mock-block-host data-type="callout"><h3>{typed.title ?? 'Callout'}</h3></div>
 {:else if typed?.type === 'form' && formServices}
   <FormBlock form={typed} services={formServices} />
 {:else if typed?.type === 'form'}

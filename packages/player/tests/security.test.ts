@@ -22,6 +22,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { allowedByRules, DEFAULT_ALLOWLIST, frameAncestorSources } from '../src/embed/origins.ts';
 import demo from '../src/fixtures/demo.blueprint.json';
 import { inlineScripts, insertCspMeta, PLAYER_FRAME_ANCESTORS } from '../vite.config.ts';
+import { productionBuildEnv } from './support/build-env.ts';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const DIST = join(ROOT, 'packages/player/dist/app');
@@ -106,6 +107,7 @@ beforeAll(() => {
     const run = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
       cwd: ROOT,
       encoding: 'utf8',
+      env: productionBuildEnv(),
     });
     if (run.status !== 0) throw new Error(`player build failed:\n${run.stderr}${run.stdout}`);
   }

@@ -148,14 +148,16 @@ loader uses the defaults below.
 | `quickReadyMs` | `null` | `protoyard quick` brief → ready folder → `protoyard:ready`, no build (see [Quick exploration](#quick-exploration-brief-to-ready-measured-2026-10-20)) |
 
 An optional `kinds` key holds the per-kind player entry budgets (ADR-040). When a
-kind is missing, the loader uses the provisional defaults below; measured numbers
-replace them once the deck, page and doc entries exist.
+kind is missing, the loader (`DEFAULT_KIND_BUDGETS` in
+`packages/cli/src/lib/budgets.ts`) uses the defaults below. `protoyard budget`
+checks prototypes against the app budgets and does not read `kinds`; the
+player's kind tests do.
 
-| `kinds.<deck\|page\|doc>` field | Provisional default | Meaning |
+| `kinds.<deck\|page\|doc>` field | Loader default (configured value) | Meaning |
 | --- | ---: | --- |
 | `initialJsGzipKb` | 150 KB | Initial JavaScript of the kind's minimal player entry, gzip |
 | `cssGzipKb` | 30 KB | CSS of the kind's player entry, gzip |
-| `singleFileKb` | 2,048 KB (deck, page, doc) | Raw size of the kind's single-file export. Calibrated on 2026-10-22 from measured files of 1,606,842 B (deck), 1,607,557 B (page) and 1,606,788 B (doc). The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
+| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,048 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (2 MiB per kind) in `packages/cli/src/lib/quick/single-file.ts`. Calibrated on 2026-10-22 from measured files of 1,606,842 B (deck), 1,607,557 B (page) and 1,606,788 B (doc). The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
 
 These budgets are **enforced**:
 
@@ -372,7 +374,7 @@ the integrated main result.
 pnpm exec tsx scripts/bench-idea.ts --runs 3 --check
 ```
 
-## Brief synthesis by kind (measured 2026-10-21)
+## Brief synthesis by kind (measured 2026-10-22)
 
 Method: `pnpm exec tsx scripts/bench-brief-kinds.ts --runs 3` runs eight
 fictional briefs, two each for app, deck, page and doc, through
@@ -390,30 +392,36 @@ Results and machine details go to `tmp/bench-brief-kinds-<timestamp>.json`
 (format `protoyard.bench-brief-kinds`, version 1). The benchmark is
 **report-only**: there are no budgets yet.
 
-Apple M1 Max, macOS 27.0, Node 26.11.1, two consecutive runs agreeing within
-noise:
+Sample `tmp/bench-brief-kinds-2026-10-22T06-34-38-318Z.json` on Apple M1 Max
+(10 cores, 64 GB), darwin 27.0.0 (arm64), Node 26.11.1. Kind medians are the
+`byKind.*.medianSynthesisMs` values from that file (milliseconds, three outer
+runs × 50 iterations):
 
 | Kind | Median synthesis | Largest output | Detected | Validates |
 | --- | ---: | ---: | --- | --- |
-| app | 0.31 ms | 3,469 B | 2 of 2 | 2 of 2 |
-| deck | 0.05 ms | 747 B | 2 of 2 | 0 of 2: the deck body schema is not wired yet |
-| page | 0.06 ms | 2,184 B | 2 of 2 | 0 of 2: the drafts lack `page.id` |
-| doc | 0.12 ms | 1,879 B | 1 of 2 | 0 of 1: the draft lacks `doc.id` |
+| app | 0.38 ms | 3,469 B | 2 of 2 | 2 of 2 |
+| deck | 0.13 ms | 3,851 B | 2 of 2 | 2 of 2 |
+| page | 0.07 ms | 2,105 B | 2 of 2 | 2 of 2 |
+| doc | 0.07 ms | 1,605 B | 2 of 2 | 2 of 2 |
 
-- **Cost:** synthesis is far below a millisecond for every kind, so it never
-  matters next to install, build or the player boot. Loading the brief modules
-  for the first time (`moduleLoadMs`, tsx transpiling on first import) was
-  about 1.4 s in this measurement.
-- **Layout catalog:** the brief synthesizer's import graph (13 modules) imports
-  only `@protoyard/core`, `@protoyard/scenarios` and zod, with no
-  `@protoyard/decks` and no layout catalog. The player's initial chunks do not
-  contain the layout catalog either. Authoring data does not inflate runtime
-  entries.
-- **Findings for the authoring lane** (recorded, not fixed here):
-  - "Write a one-page report on…" is detected as an app.
-  - Synthesized page and doc drafts fail their now-wired body schemas on a
-    missing body `id`.
-  - Decks validate only once the deck body schema ships.
+Per-brief medians from the same file: app-field-service 0.41 ms, app-clinic
+0.34 ms, deck-pitch 0.12 ms, deck-qbr 0.13 ms, page-landing 0.08 ms, page-event
+0.06 ms, doc-report 0.06 ms, doc-proposal 0.07 ms. Every brief matched its
+expected kind and `validates: true`.
+
+- **Cost:** synthesis stays far below a millisecond for every kind, so it never
+  matters next to install, build or the player boot. First-time module load
+  (`moduleLoadMs`, tsx transpiling on first import) was **2,939.7 ms** in this
+  measurement.
+- **Layout catalog:** the synthesizer import graph in this sample is 16 modules
+  and includes `@protoyard/decks/layouts` (with `@protoyard/core`,
+  `@protoyard/scenarios` and zod). That is authoring-time only. The player's
+  initial-chunk check was not run in this sample (`inPlayerInitialChunks:
+  null`); separate player budget tests keep layout catalog data out of the
+  first screen.
+- **Detection:** all eight briefs were detected as the expected kind
+  (including the one-page report brief as `doc`). No open authoring findings
+  remain from the earlier 2026-10-21 sample that showed unwired body schemas.
 
 ## Data grid at 100,000 rows
 
@@ -1053,8 +1061,8 @@ renderer (`DeckApp`, `PageApp`, `DocApp`) loads on demand after that.
 
 `budget.test.ts` now proves the content-kind body schemas, deck layout catalog
 and deck schema are absent from the initial graph, by module and by literal
-messages unique to each. It also caps the app path's initial JS at 125 KB, the
-measurement plus about 7 %.
+messages unique to each. It also caps the app path's initial JS at 125 KB
+(measured 122.2 KB on current `dev`, 2026-10-22: about 2 % headroom).
 
 **Per-kind player pages (measured 2026-10-22).** The player build adds
 `deck.html`, `page.html` and `doc.html` beside `index.html`
@@ -1138,19 +1146,36 @@ pass the kind boot from `sources/kind-boot.ts`, which names only
   `WORKER_GRAPH_GZIP_KB = 220` from `packages/player/tests/player-budgets.ts`.
   The measured worker graph is 200,371 B (195.7 KB, 4 files).
 
+**Current `dev` (measured 2026-10-22, after the level-2 embed boot and the
+landing and doc designs).** A fresh player build:
+
+| Page | Initial JS | Initial CSS | All CSS it can load |
+| --- | ---: | ---: | ---: |
+| `index.html` | 125,178 B | 23,138 B | 34,500 B |
+| `deck.html` | 125,299 B | 20,330 B | 28,554 B |
+| `page.html` | 125,299 B | 19,543 B | 27,767 B |
+| `doc.html` | 125,298 B | 19,543 B | 27,767 B |
+
+JS stays under the 125 KB regression cap (about 2 % headroom) and the 150 KB
+kind budget. **Open:** all CSS reachable from `index.html` is 33.7 KB gzip,
+over the 30 KB player CSS budget, so `budget.test.ts` "keeps initial CSS
+inside the CSS budget" fails on current `dev`. `index.html`'s own stylesheet
+grew from 20.1 KB to 23.1 KB. Either the stylesheet shrinks or the budget is
+raised with a recorded reason.
+
 **Deck UI entry (measured 2026-10-21).**
 `packages/decks-ui/tests/bundle-size.test.ts` makes a production Vite build of a
 minimal Svelte host that imports `@protoyard/decks-ui/app` and its stylesheet,
 then measures the entry's static imports and all emitted CSS with gzip level 9.
-The initial graph measured **75,176 B JS gzip** and all emitted CSS measured
-**1,003 B gzip**, under the task ceilings of 120 KB JS and 20 KB CSS. The paired hygiene test checks the built
+The initial graph measured **80,887 B JS gzip** and all emitted CSS measured
+**2,882 B gzip** (2026-10-22), under the ceilings of 120 KB JS and 20 KB CSS. The paired hygiene test checks the built
 static graph for CRUD, Faker, the player and worker, syntax highlighting, and
 chart-family code. Layout families load on demand. Presenter and studio remain
 separate package subpaths and do not enter the app graph; the overview DOM is
-mounted only while the overview is open. At this revision DeckApp has no static
-print import. If Ctrl+P integration adds one, the same test gates its cost and
-the print module should be preloaded while idle if it exceeds the deck-entry
-budget.
+mounted only while the overview is open. DeckApp imports the print module
+statically (`DeckPrint`, `PrintButton`), so its cost is inside this
+measurement. `packages/decks-ui/tests/budget.test.ts` also keeps the deck style
+kit lazy (120 KB entry cap, 20 KB kit chunk).
 
 **Blueprint content-kind schemas.** Page, document and deck body schemas load
 through dynamic imports keyed by blueprint kind. An app blueprint therefore
@@ -1160,9 +1185,10 @@ same-tree player build, initial JS measured **207,046 B gzip before** and
 The earlier page/doc integration recorded 188,442 B before and 202,253 B
 after; the current pre-change tree includes additional merged work, so the two
 measurements are not directly comparable. The budget test now caps initial JS
-at 196,000 B gzip and asserts each content-kind schema is a dynamic entry.
+at 196,000 B gzip and asserts that no content-kind body schema, deck schema or
+layout catalog is in the initial graph (by module and by literal).
 
-## Page and doc host budgets (measured 2026-10-21)
+## Page and doc host budgets (measured 2026-10-22)
 
 `packages/pages-ui/tests/budget.test.ts` builds each kind host separately with
 Vite in production mode. The fixture imports the page or doc subpath and the
@@ -1176,15 +1202,16 @@ host graph. The same test checks emitted module ids to keep
 
 | Entry | Initial JS gzip | Budget | CSS gzip | Budget | Result |
 | --- | ---: | ---: | ---: | ---: | --- |
-| `PageApp` | **91,588 B** | 122,880 B | **1,164 B** | 20,480 B | Pass |
-| `DocApp` | **92,553 B** | 122,880 B | **1,690 B** | 20,480 B | Pass |
+| `PageApp` | **97,548 B** | 122,880 B | **1,353 B** | 20,480 B | Pass |
+| `DocApp` | **91,955 B** | 122,880 B | **2,572 B** | 20,480 B | Pass |
 
 **Landing page design (T-page-section-design, measured 2026-10-22).** The
 `PageApp` entry grew from **91,599 B** to **97,551 B** of initial JS (+5.8 KB,
 CSS 1,164 → 1,353 B). The new hero, section header, stat row, pricing, steps
 and pull-quote patterns are what added it. `FormBlock` loads lazily: imported
 statically, it took the entry to 131,494 B, over the 122,880 B budget.
-`DocApp` is unchanged at 92,595 B.
+`DocApp` was unchanged at 92,595 B then; after the doc design work it
+measures 91,955 B JS and 2,572 B CSS (2026-10-22).
 
 These are host-only package measurements, not the complete player entry. The
 player's separate per-kind budget remains 150 KB initial JS and 30 KB CSS.
@@ -1731,7 +1758,8 @@ shell-relative method, the four families above were set to measured + 7 % (the s
 views kit) rather than left red. They remain targets to reduce: Lucide icons resolved per family
 instead of a shared icon map, Bits UI Tabs in the interactive family, and the markdown renderer in
 the text family are the largest contributors. Every family stays a separate lazy chunk, and a whole
-deck entry (DeckApp with chrome) measured 76,440 B gzip against its 150 KB budget.
+deck entry (DeckApp with chrome) measured 80,887 B gzip against its 120 KB ceiling
+(`packages/decks-ui/tests/bundle-size.test.ts`).
 
 The map ceiling is 4 KB, matching the small map family entry; the task
 contract did not list a separate map value. The interactive marker test also

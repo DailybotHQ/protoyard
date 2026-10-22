@@ -168,9 +168,9 @@ const doc = parseMarkdown(message.text);
 - **Prototype assets:** `![alt](./assets/chart.png)` (relative paths only) and
   `![alt](attachment:<id>)` / `[label](attachment:<id>)` for files the prototype stores.
   Remote and `data:` images render as their alt text.
-- **Safety:** raw HTML stays literal text. `safeHref` allows only http(s), mailto and
-  relative or `#` targets after stripping the control characters and whitespace browsers
-  ignore; `javascript:`, `data:`, `vbscript:`, `file:` and protocol-relative `//host` are
+- **Safety:** raw HTML stays literal text. `safeHref` allows only https and mailto targets
+  after stripping the control characters and whitespace browsers ignore; `http:`, relative,
+  `#`, `javascript:`, `data:`, `vbscript:`, `file:` and protocol-relative `//host` are
   dropped and the link renders as its label. Fuzz tests feed hostile fragments and check
   that no unsafe URL or executable element comes out.
 - **Bounds:** input is cut at `MARKDOWN_MAX_LENGTH` (100,000 characters), nesting deeper
@@ -283,7 +283,7 @@ else for (const issue of result.issues) console.log(issue.jsonPath, issue.messag
 | `select` | `action`, `placeholder`, `label?`, 1–100 unique `options`, `multiple?`, `initial?` (must be options; one when single) |
 | `form` | `action`, `title`, 1–20 fields with unique `key` and `kind` text · textarea · number · date · checkbox · select · multiselect; `initial` must fit the kind |
 | `table` | `title?`, 1–12 columns with unique `key`, ≤100 rows of string · number · boolean · null cells (500 chars) keyed by declared columns |
-| `link_preview` | http(s) `url` (never fetched), `title?`, `description?`, `siteName?`, `image?` (local only) |
+| `link_preview` | https `url` (never fetched), `title?`, `description?`, `siteName?`, `image?` (local only) |
 
 Every block may carry a plain-text `fallback`. An unknown block `type` turns
 into a `text` block (`replaces` names the original type when it is safe text)

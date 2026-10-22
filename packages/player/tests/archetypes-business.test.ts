@@ -23,6 +23,7 @@ import {
 } from '../src/archetypes/business/index.ts';
 import { type BootedPlayer, bootPlayer } from '../src/boot.ts';
 import demo from '../src/fixtures/demo.blueprint.json';
+import { productionBuildEnv } from './support/build-env.ts';
 
 configure({ asyncUtilTimeout: 20_000 });
 
@@ -211,6 +212,7 @@ describe('laziness in the built player', () => {
       const run = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
         cwd: ROOT,
         encoding: 'utf8',
+        env: productionBuildEnv(),
       });
       if (run.status !== 0) throw new Error(`player build failed:\n${run.stderr}${run.stdout}`);
     }

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { PermissionDeniedError } from '@protoyard/core';
 import { createPrototypeRuntime } from '@protoyard/runtime';
 import {
@@ -87,5 +89,16 @@ describe('design-kit template', () => {
         ).save({ entryId: 'button', status: 'todo', note: '' })
       ).rejects.toBeInstanceOf(PermissionDeniedError);
     });
+  });
+});
+
+describe('review save control wiring', () => {
+  it('uses @protoyard/ui Button with a returned save promise (no manual saving flag)', () => {
+    const source = readFileSync(join(import.meta.dirname, '../src/App.svelte'), 'utf8');
+    expect(source).toMatch(/import\s*\{\s*Button\s*\}\s*from\s*['"]@protoyard\/ui['"]/);
+    expect(source).toMatch(/onclick=\{\(\)\s*=>\s*saveReview\(\)\}/);
+    expect(source).not.toMatch(/let saving = \$state/);
+    expect(source).not.toMatch(/disabled=\{saving\}/);
+    expect(source).toMatch(/function saveReview\(\):\s*Promise/);
   });
 });

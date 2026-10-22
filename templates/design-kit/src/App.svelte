@@ -1,5 +1,6 @@
 <script lang="ts">
 import { getRuntime, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
+import { Button } from '@protoyard/ui';
 import type { Component } from 'svelte';
 import { ENTRIES, GROUPS } from './catalog/entries.ts';
 import { demoLoader, demoProps } from './catalog/registry.ts';
@@ -22,7 +23,6 @@ let Demo = $state<Component | undefined>();
 let loadingDemo = $state(false);
 let status = $state<ReviewEntry['status']>('todo');
 let note = $state('');
-let saving = $state(false);
 let error = $state('');
 let copied = $state(false);
 let copying = $state(false);
@@ -62,17 +62,15 @@ async function selectEntry(id: string) {
   }
 }
 
-async function saveReview() {
-  saving = true;
+/** Returns the save promise so `@protoyard/ui` Button can drive pending state. */
+function saveReview(): Promise<unknown> {
   error = '';
-  try {
-    await reviewService().save({ entryId: selectedId, status, note });
-  } catch (cause) {
-    error = cause instanceof Error ? cause.message : 'Review could not be saved.';
-    throw cause;
-  } finally {
-    saving = false;
-  }
+  return reviewService()
+    .save({ entryId: selectedId, status, note })
+    .catch((cause: unknown) => {
+      error = cause instanceof Error ? cause.message : 'Review could not be saved.';
+      throw cause;
+    });
 }
 
 async function copySnippet() {
@@ -185,7 +183,7 @@ function contrastInk(hex: string) {
                 <div class="preview-grid"><article class="preview-frame desktop-frame"><div class="frame-toolbar"><span class="traffic"><i></i><i></i><i></i></span><small>Desktop · 1280 px</small><span>↗</span></div><div class="demo-canvas">{#if loadingDemo}<span class="loading">Loading preview…</span>{:else if Demo}<Demo />{/if}</div></article><article class="preview-frame phone-frame"><div class="frame-toolbar"><span class="phone-notch"></span><small>Phone · 390 px</small></div><div class="demo-canvas">{#if loadingDemo}<span class="loading">Loading…</span>{:else if Demo}<Demo />{/if}</div></article></div>
               </section>
               <section class="props-section"><div class="section-head"><div><strong>Props</strong><small>Read from this demo's source annotations</small></div><span class="generated-tag">GENERATED</span></div>{#if props.length}<div class="props-table" role="table" aria-label={`${selected.name} properties`}><div class="props-row props-header" role="row"><span role="columnheader">Name</span><span role="columnheader">Type</span><span role="columnheader">Description</span></div>{#each props as prop}<div class="props-row" role="row"><code>{prop.name}</code><code>{prop.type}</code><span>{prop.description}</span></div>{/each}</div>{:else}<p class="hint">Add @prop annotations to the component source to document its API.</p>{/if}</section>
-              <section class="review-section"><div class="section-head"><div><strong>Review notes</strong><small>Saved for {principal.current?.persona.name ?? 'this persona'} in this browser</small></div><span class="saved-at">{review ? `Updated ${new Date(review.updatedAt).toLocaleDateString()}` : 'Not reviewed yet'}</span></div><div class="review-fields"><label>Status<select bind:value={status}><option value="todo">To do</option><option value="in-progress">In progress</option><option value="approved">Approved</option></select></label><label class="note-field">Notes<textarea bind:value={note} maxlength="500" placeholder="Add a decision, question or follow-up…"></textarea><small>{note.length}/500</small></label><button class="primary save-button" onclick={saveReview} disabled={saving}>{saving ? 'Saving…' : 'Save review'}</button>{#if error}<p class="error" role="alert">{error}</p>{/if}</div></section>
+              <section class="review-section"><div class="section-head"><div><strong>Review notes</strong><small>Saved for {principal.current?.persona.name ?? 'this persona'} in this browser</small></div><span class="saved-at">{review ? `Updated ${new Date(review.updatedAt).toLocaleDateString()}` : 'Not reviewed yet'}</span></div><div class="review-fields"><label>Status<select bind:value={status}><option value="todo">To do</option><option value="in-progress">In progress</option><option value="approved">Approved</option></select></label><label class="note-field">Notes<textarea bind:value={note} maxlength="500" placeholder="Add a decision, question or follow-up…"></textarea><small>{note.length}/500</small></label><Button class="primary save-button" loadingLabel="Saving review" onclick={() => saveReview()}>Save review</Button>{#if error}<p class="error" role="alert">{error}</p>{/if}</div></section>
             {/if}
           </div>
         </div>
