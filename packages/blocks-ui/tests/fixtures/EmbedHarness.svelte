@@ -1,7 +1,7 @@
 <script lang="ts">
 import { untrack } from 'svelte';
 import BlockRenderer from '../../src/BlockRenderer.svelte';
-import { setBlockHost, type MountEmbed } from '../../src/host.ts';
+import { type MountEmbed, setBlockHost } from '../../src/host.ts';
 
 interface Props {
   blocks: readonly unknown[];
