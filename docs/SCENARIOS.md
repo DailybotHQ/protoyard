@@ -572,6 +572,52 @@ const stopClockTicks = onClockTick((now) => expireDueItems(now));
 onDestroy(stopClockTicks);
 ```
 
+#### A scripted counterpart in a chat
+
+`scriptedCounterpart({ scripts, seed? })` from `@protoyard/scenarios` makes the
+other person in a simulated chat answer on the simulated clock, from fixed
+lines, the same way on every replay. It is pure: it reads a conversation's
+messages, and your clock pass writes the replies through your own service.
+
+- **Delay.** The delay before a reply is fixed by the answered message's id
+  and the seed. It is 2-45 simulated seconds by default (`minDelaySeconds` and
+  `maxDelaySeconds` change it), so advancing the clock one minute delivers
+  every pending reply.
+- **What gets answered.** A reply answers the conversation's latest message
+  when the person wrote it. The line is the conversation's script line after
+  the counterpart lines already in the thread, and the script is chosen by
+  conversation id. When the script runs out, the state is `done` and the
+  counterpart stays silent.
+- **States.** `state(messages, now)` returns:
+  - `idle`: no messages, or the counterpart spoke last;
+  - `waiting`;
+  - `typing`: the last `typingSeconds` before the reply, 4 by default, for a
+    typing indicator;
+  - `due`: with a reply to store;
+  - `done`.
+- **Writing replies.** `dueReplies(messages, now)` lists every due reply across
+  conversations, in time order. Each reply has a stable id
+  (`<message id>~reply`) and its due time, strictly after the answered message
+  rather than "now". A pass that skips ids it already stored is idempotent.
+
+```ts
+import { scriptedCounterpart } from '@protoyard/scenarios';
+
+const counterpart = scriptedCounterpart({
+  scripts: [['Hi! Thanks for writing.', 'Let me check and get back to you.']],
+  seed: scenario.seed,
+});
+onClockTick(async (now) => {
+  const messages = await chatService.recentMessages(); // { id, conversationId, author, sentAt }
+  for (const reply of counterpart.dueReplies(messages, now)) await chatService.storeReply(reply);
+});
+// Typing indicator for an open thread:
+const typing = counterpart.state(threadMessages, runtime.clock.now()).status === 'typing';
+```
+
+Keep the scripts fictional and honest. A counterpart line says what the
+person will do or ask, never an outcome that the simulation cannot keep.
+
 The CRM demo learned this the hard way. Its first timeline filtered deals by
 their *current* stage and decided the target stage when generating the event.
 After advancing one day, some deals had moved, so day 2 picked from a
