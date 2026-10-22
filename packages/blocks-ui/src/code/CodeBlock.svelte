@@ -98,7 +98,9 @@ async function copy(): Promise<void> {
     </div>
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -- long lines scroll; keyboard users must reach them (WCAG 2.1.1). -->
     <!-- Each line ends with a real newline (except the last), so the code's text equals the source; line numbers are CSS content, never text. -->
+    <!-- A focusable scroll region needs a role for its name: aria-labelledby is prohibited on a bare pre. -->
     <pre
+      role="region"
       tabindex="0"
       aria-labelledby={labelId}
       class="overflow-x-auto py-3 font-mono text-[13px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"><code class="block min-w-max">{#each lines as line, index (index)}{@const number = index + 1}{@const on = highlighted.has(number)}<svelte:element this={on ? 'mark' : 'span'} class={['block border-l-2 pr-4 pl-3', block.lineNumbers && 'before:inline-block before:w-8 before:pr-3 before:text-right before:text-muted-foreground before:content-[attr(data-line)] before:select-none', on ? 'border-primary bg-muted text-inherit' : 'border-transparent']} data-line={number} data-highlighted={on || undefined}>{#each line as token, t (t)}<span class={CODE_TOKEN_STYLES[token.kind].className}>{token.text}</span>{/each}{index < lines.length - 1 ? '\n' : ''}</svelte:element>{/each}</code></pre>

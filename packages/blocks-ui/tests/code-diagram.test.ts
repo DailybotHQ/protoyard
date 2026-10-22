@@ -161,6 +161,8 @@ describe('code block', () => {
     );
     const pre = container.querySelector('pre') as HTMLElement;
     expect(pre.getAttribute('tabindex')).toBe('0');
+    // aria-labelledby is prohibited on a bare <pre> (axe aria-prohibited-attr); the scroll region carries a role.
+    expect(pre.getAttribute('role')).toBe('region');
     expect(document.getElementById(pre.getAttribute('aria-labelledby') ?? '')?.textContent).toBe(
       'hello.ts'
     );
