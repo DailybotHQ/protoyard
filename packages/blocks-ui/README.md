@@ -34,6 +34,23 @@ components.
 | `./embed` | embed-app, mounted through the host's `mountEmbed` | T-blocks-ui-embed-app |
 | `./styles.css` | Registers the kit's markup with Tailwind (`@source`) | this scaffold |
 
+## Icons
+
+`src/lib/icons.ts` exports `BLOCK_ICON_COMPONENTS`, which maps every
+`BLOCK_ICONS` id from `@protoyard/blocks` to a Lucide component imported by
+name. `map` is imported as `MapIcon` so it never shadows the global `Map`.
+There are no dynamic icon lookups and no namespace import, and only block
+family chunks import the module, so icons never reach an entry.
+
+`tests/icons.test.ts` checks that:
+- every id resolves to the real Lucide export;
+- the map has no extra keys;
+- the blueprint's `SCREEN_NAV_ICONS` are included;
+- the imports stay named.
+
+Measured in a Vite build: all 96 icons add about 8.5 KB gzip over a single
+icon, roughly 90 B each.
+
 ## Styles
 
 Import the stylesheet after Tailwind, the themes and `@protoyard/ui`:

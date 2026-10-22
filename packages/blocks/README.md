@@ -48,6 +48,7 @@ if (!result.success) {
 | `forEachBlock`, `containerDepth` | Depth-first walk with paths; columns nesting depth |
 | `BLOCK_CONTENT_LIMITS` | Per-block caps (below) |
 | `classifyMediaSource`, `ImageSourceSchema`, `VideoSourceSchema`, `AvatarIdSchema`, `MEDIA_DATA_URI_MAX_BYTES` | The media source policy |
+| `BLOCK_ICONS`, `BlockIcon`, `isBlockIcon` | The icon allow-list |
 | `LinkHrefSchema`, `IconNameSchema`, `BlockIdSchema`, `BlockStepSchema`, `BLOCK_REVEALS`, `BlockToneSchema` | Shared field schemas |
 | `ChartSpecSchema`, `parseChartSpec`, `ChartSpec` | Re-exported from `@protoyard/ai/chart`, unchanged |
 | `BLOCK_TONES`, `isBlockTone`, `BLOCK_FAMILIES`, `isBlockFamily` | The tone and render-family vocabulary |
@@ -104,8 +105,11 @@ fragments), `reveal` (`fade`, `fade-up`, `grow`, `highlight`, `strike`) and
   `..` segments are always rejected. `classifyMediaSource` returns the kind and
   decoded bytes so hosts can apply per-level rules and the 512 KB per-document
   cap.
-- **Icons** are kebab-case Lucide names for now. T-blocks-icons narrows them to
-  the `BLOCK_ICONS` allow-list.
+- **Icons** come from `BLOCK_ICONS`: 96 kebab-case Lucide names, a superset
+  of the blueprint's screen navigation icons, used by the icon block and the
+  icons on list items, callouts, steps, timeline events, cards and CTAs. Any
+  other name fails validation (`isBlockIcon`, `IconNameSchema`).
+  `@protoyard/blocks-ui` maps each name to a statically imported component.
 
 ## Subpaths
 
