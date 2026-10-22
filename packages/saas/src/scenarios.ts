@@ -173,7 +173,7 @@ export function generateSaasWorld(
   const memberships = team.memberships.map((m) => ({ ...m }));
   const primary = organizations.find((o) => o.id === team.organization.id) as Organization;
   const orgCreatedMs = Date.parse(primary.createdAt);
-  /** A past instant between `fromMs` and now, from the forked rng only. */
+  /** A past instant between `fromMs` and now, from the child (seeded) rng only. */
   const pastBetween = (fromMs: number) =>
     iso(fromMs + Math.floor(rng.next() * Math.max(0, nowMs - fromMs)));
 

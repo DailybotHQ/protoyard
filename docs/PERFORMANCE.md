@@ -372,7 +372,7 @@ the integrated main result.
 pnpm exec tsx scripts/bench-idea.ts --runs 3 --check
 ```
 
-## Brief synthesis by kind (measured 2026-10-21)
+## Brief synthesis by kind (measured 2026-10-22)
 
 Method: `pnpm exec tsx scripts/bench-brief-kinds.ts --runs 3` runs eight
 fictional briefs, two each for app, deck, page and doc, through
@@ -390,30 +390,36 @@ Results and machine details go to `tmp/bench-brief-kinds-<timestamp>.json`
 (format `protoyard.bench-brief-kinds`, version 1). The benchmark is
 **report-only**: there are no budgets yet.
 
-Apple M1 Max, macOS 27.0, Node 26.11.1, two consecutive runs agreeing within
-noise:
+Sample `tmp/bench-brief-kinds-2026-10-22T06-34-38-318Z.json` on Apple M1 Max
+(10 cores, 64 GB), darwin 27.0.0 (arm64), Node 26.11.1. Kind medians are the
+`byKind.*.medianSynthesisMs` values from that file (milliseconds, three outer
+runs × 50 iterations):
 
 | Kind | Median synthesis | Largest output | Detected | Validates |
 | --- | ---: | ---: | --- | --- |
-| app | 0.31 ms | 3,469 B | 2 of 2 | 2 of 2 |
-| deck | 0.05 ms | 747 B | 2 of 2 | 0 of 2: the deck body schema is not wired yet |
-| page | 0.06 ms | 2,184 B | 2 of 2 | 0 of 2: the drafts lack `page.id` |
-| doc | 0.12 ms | 1,879 B | 1 of 2 | 0 of 1: the draft lacks `doc.id` |
+| app | 0.38 ms | 3,469 B | 2 of 2 | 2 of 2 |
+| deck | 0.13 ms | 3,851 B | 2 of 2 | 2 of 2 |
+| page | 0.07 ms | 2,105 B | 2 of 2 | 2 of 2 |
+| doc | 0.07 ms | 1,605 B | 2 of 2 | 2 of 2 |
 
-- **Cost:** synthesis is far below a millisecond for every kind, so it never
-  matters next to install, build or the player boot. Loading the brief modules
-  for the first time (`moduleLoadMs`, tsx transpiling on first import) was
-  about 1.4 s in this measurement.
-- **Layout catalog:** the brief synthesizer's import graph (13 modules) imports
-  only `@protoyard/core`, `@protoyard/scenarios` and zod, with no
-  `@protoyard/decks` and no layout catalog. The player's initial chunks do not
-  contain the layout catalog either. Authoring data does not inflate runtime
-  entries.
-- **Findings for the authoring lane** (recorded, not fixed here):
-  - "Write a one-page report on…" is detected as an app.
-  - Synthesized page and doc drafts fail their now-wired body schemas on a
-    missing body `id`.
-  - Decks validate only once the deck body schema ships.
+Per-brief medians from the same file: app-field-service 0.41 ms, app-clinic
+0.34 ms, deck-pitch 0.12 ms, deck-qbr 0.13 ms, page-landing 0.08 ms, page-event
+0.06 ms, doc-report 0.06 ms, doc-proposal 0.07 ms. Every brief matched its
+expected kind and `validates: true`.
+
+- **Cost:** synthesis stays far below a millisecond for every kind, so it never
+  matters next to install, build or the player boot. First-time module load
+  (`moduleLoadMs`, tsx transpiling on first import) was **2,939.7 ms** in this
+  measurement.
+- **Layout catalog:** the synthesizer import graph in this sample is 16 modules
+  and includes `@protoyard/decks/layouts` (with `@protoyard/core`,
+  `@protoyard/scenarios` and zod). That is authoring-time only. The player's
+  initial-chunk check was not run in this sample (`inPlayerInitialChunks:
+  null`); separate player budget tests keep layout catalog data out of the
+  first screen.
+- **Detection:** all eight briefs were detected as the expected kind
+  (including the one-page report brief as `doc`). No open authoring findings
+  remain from the earlier 2026-10-21 sample that showed unwired body schemas.
 
 ## Data grid at 100,000 rows
 
