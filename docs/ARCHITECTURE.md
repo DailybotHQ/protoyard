@@ -206,7 +206,10 @@ last 200 requests. See [packages/http/README.md](../packages/http/README.md).
 - **Discovery is metadata-only.** `protoyard index` reads `protoyard.json`
   files one level deep and validates them with zod, without executing
   anything. It caches by path, mtime and size, and writes
-  `.protoyard/registry.json`.
+  `.protoyard/registry.json`. Both files are written only when their bytes
+  change, through a temp file and a rename. An unchanged registry keeps its
+  previous `generatedAt`, so a repeated `index` leaves the file and its mtime
+  alone and does not reload the gallery dev server.
 - **The gallery imports that registry, never prototype code.** Search and
   filtering run client-side over compact entries.
 - **Every command targets one slug** (`dev`, `validate`, `build`, `export`,

@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import type { Blueprint } from '@protoyard/blueprint';
 import {
@@ -110,6 +110,8 @@ export interface IndexResult {
   /** How many manifests were parsed vs served from cache. */
   parsed: number;
   cached: number;
+  /** False when the registry on disk already had this content (or `write: false`). */
+  registryWritten: boolean;
   durationMs: number;
 }
 
@@ -227,12 +229,53 @@ async function readCache(path: string): Promise<IndexCache> {
   return { version: CACHE_VERSION, records: {} };
 }
 
+let tempCounter = 0;
+
+function serializeJson(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
 /** Writes via a temp file + rename so a reader never sees half a registry. */
 export async function writeJsonAtomic(path: string, value: unknown): Promise<void> {
+  await writeTextAtomic(path, serializeJson(value));
+}
+
+async function writeTextAtomic(path: string, text: string): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
-  const temp = `${path}.${process.pid}.tmp`;
-  await writeFile(temp, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
-  await rename(temp, path);
+  // Unique per call, so two writes in one process never share a temp file.
+  tempCounter += 1;
+  const temp = `${path}.${process.pid}.${tempCounter}.tmp`;
+  try {
+    await writeFile(temp, text, 'utf8');
+    await rename(temp, path);
+  } catch (error) {
+    await rm(temp, { force: true });
+    throw error;
+  }
+}
+
+/**
+ * Writes atomically only when the serialized bytes differ from the file on
+ * disk. Returns false (and leaves the file, and its mtime, untouched) when
+ * they match, so file watchers such as the gallery dev server do not reload.
+ */
+export async function writeJsonIfChanged(path: string, value: unknown): Promise<boolean> {
+  const text = serializeJson(value);
+  try {
+    if ((await readFile(path, 'utf8')) === text) return false;
+  } catch {
+    // Missing or unreadable: write it.
+  }
+  await writeTextAtomic(path, text);
+  return true;
+}
+
+/** True when two registries list the same entries, invalid manifests and stats (`generatedAt` ignored). */
+export function sameRegistryContent(a: Registry, b: Registry): boolean {
+  return (
+    JSON.stringify({ e: a.entries, i: a.invalid, s: a.stats }) ===
+    JSON.stringify({ e: b.entries, i: b.invalid, s: b.stats })
+  );
 }
 
 export async function buildIndex(
@@ -339,11 +382,24 @@ export async function buildIndex(
     },
   };
 
+  let registryWritten = false;
   if (options.write ?? true) {
-    await writeJsonAtomic(paths.registry, registry);
-    await writeJsonAtomic(paths.indexCache, nextCache);
+    // Unchanged content keeps the previous timestamp, so the file stays byte-identical.
+    const previous = await readRegistry(paths);
+    if (previous && sameRegistryContent(previous, registry)) {
+      registry.generatedAt = previous.generatedAt;
+    }
+    registryWritten = await writeJsonIfChanged(paths.registry, registry);
+    // Records land in completion order; sort them so an unchanged cache serializes identically.
+    const records = Object.entries(nextCache.records).sort(([a], [b]) =>
+      a < b ? -1 : a > b ? 1 : 0
+    );
+    await writeJsonIfChanged(paths.indexCache, {
+      ...nextCache,
+      records: Object.fromEntries(records),
+    });
   }
-  return { registry, parsed, cached, durationMs: performance.now() - started };
+  return { registry, parsed, cached, registryWritten, durationMs: performance.now() - started };
 }
 
 const KIND_ORDER: Record<FolderKind, number> = {
