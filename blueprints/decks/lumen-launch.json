@@ -25,7 +25,7 @@
         "props": {
           "title": "Lumen Notes",
           "subtitle": "Launch readiness (simulated)",
-          "meta": "Example Co \u00b7 Internal dry run"
+          "meta": "Example Co · Internal dry run"
         }
       },
       {
@@ -128,7 +128,7 @@
                 "choices": [
                   {
                     "id": "a",
-                    "label": "Nothing durable \u2014 browser state only"
+                    "label": "Nothing durable — browser state only"
                   },
                   {
                     "id": "b",
@@ -175,5 +175,13 @@
         }
       ]
     }
+  },
+  "catalog": {
+    "category": "marketing",
+    "productType": "Launch deck",
+    "platforms": ["web"],
+    "features": ["deck", "process", "cards", "quiz"],
+    "highlights": ["Launch path", "Three pillars", "Readiness quiz"],
+    "difficulty": "beginner"
   }
 }

@@ -28,7 +28,7 @@
         "props": {
           "title": "Harbor Ops",
           "subtitle": "A simulated console for field crews",
-          "meta": "Fictional pitch \u00b7 Example Co \u00b7 2026"
+          "meta": "Fictional pitch · Example Co · 2026"
         },
         "notes": "Open with the product name. Stress that every figure is a placeholder."
       },
@@ -44,7 +44,7 @@
           },
           "right": {
             "heading": "What we want",
-            "body": "One shared board of jobs, statuses, and ETAs \u2014 still a prototype, still simulated."
+            "body": "One shared board of jobs, statuses, and ETAs — still a prototype, still simulated."
           }
         },
         "notes": "Keep claims qualitative. Do not invent market stats."
@@ -161,5 +161,13 @@
         }
       ]
     }
+  },
+  "catalog": {
+    "category": "operations",
+    "productType": "Pitch deck",
+    "platforms": ["web"],
+    "features": ["deck", "process", "comparison", "charts"],
+    "highlights": ["Process steps", "Comparison table", "Bar chart"],
+    "difficulty": "beginner"
   }
 }

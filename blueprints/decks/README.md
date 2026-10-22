@@ -86,9 +86,9 @@ pnpm protoyard validate my-deck --build
 
 ## Listing
 
-`protoyard index` scans this folder, but an example is listed (in the registry,
-`protoyard list` and the gallery) only when it has a `catalog` block. The
-flagship, `protoyard-create-anything.json`, has one and is listed. The other
-examples have none yet, so `protoyard index` reports each of them as invalid
-('catalog blueprints need a "catalog" block') and they are not listed. Adding a `catalog`
-block (category, product type, features…) is what lists an example.
+`protoyard index` scans this folder, and an example is listed (in the registry,
+`protoyard list` and the gallery) when it has a `catalog` block (category,
+product type, features…). Every deck here has one except `example.json`, the
+minimal visual-QA fixture. `protoyard index` reports that file as invalid
+('catalog blueprints need a "catalog" block') on purpose, so it stays out of the
+gallery.

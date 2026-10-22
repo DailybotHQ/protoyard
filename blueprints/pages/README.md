@@ -72,8 +72,7 @@ pnpm protoyard validate my-page --build
 
 ## Listing
 
-`protoyard index` scans this folder, but an example is listed (in the registry,
-`protoyard list` and the gallery) only when it has a `catalog` block. These
-examples have none yet, so `protoyard index` reports each one as invalid ('catalog
-blueprints need a "catalog" block') and none is listed. Adding a `catalog`
-block (category, product type, features…) is what lists an example.
+`protoyard index` scans this folder, and an example is listed (in the registry,
+`protoyard list` and the gallery) when it has a `catalog` block (category,
+product type, features…). The landing page example has one, so it is listed and
+the marketplace offers it with player and generate actions.
