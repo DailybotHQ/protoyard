@@ -265,6 +265,17 @@ function containsDeckControl(block: Block): boolean {
   return false;
 }
 
+/**
+ * The validated props of a catalog layout, or null when they fail the layout's
+ * schema (the same check `composeLayout` runs). Designed compositions render
+ * from these; plain strings become text nodes, never HTML.
+ */
+export function layoutProps<T = Record<string, unknown>>(id: string, props: unknown): T | null {
+  if (!Object.hasOwn(LAYOUT_FAMILIES, id)) return null;
+  const parsed = parseLayoutProps(id, props);
+  return parsed.success ? (parsed.data as T) : null;
+}
+
 /** Per-block attributes keep controls inside these blocks from advancing a deck. */
 export function deckInputGuardAttributes(block: Block): Record<string, string> {
   return containsDeckControl(block) ? { [DECK_INTERACTIVE_ATTRIBUTE]: '' } : {};
