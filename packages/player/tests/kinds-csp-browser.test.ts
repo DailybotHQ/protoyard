@@ -9,7 +9,6 @@
  * do not collide. Reuses the static-file server + CSP header pattern from
  * security.test.ts.
  */
-import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -17,6 +16,7 @@ import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type AnyBlueprint, encodeBlueprintShare, parseAnyBlueprint } from '@protoyard/blueprint';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { ensurePlayerBuild } from './support/serve-dist.ts';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const DIST = join(ROOT, 'packages/player/dist/app');
@@ -54,26 +54,6 @@ const KIND_PAGES = [
   },
 ] as const;
 
-/** Production build env: Vitest's NODE_ENV=test would pull Svelte's dev runtime. */
-function productionBuildEnv(): NodeJS.ProcessEnv {
-  return Object.fromEntries(
-    Object.entries(process.env).filter(([key]) => key !== 'NODE_ENV' && !key.startsWith('VITEST'))
-  ) as NodeJS.ProcessEnv;
-}
-
-function ensurePlayerBuild(): void {
-  const missing = KIND_PAGES.some((row) => !existsSync(join(DIST, row.page)));
-  if (!missing && existsSync(join(DIST, '_headers'))) return;
-  const run = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
-    cwd: ROOT,
-    encoding: 'utf8',
-    env: productionBuildEnv(),
-  });
-  if (run.status !== 0) {
-    throw new Error(`player build failed:\n${run.stderr}${run.stdout}`);
-  }
-}
-
 async function loadFixture(name: string): Promise<AnyBlueprint> {
   const raw = JSON.parse(readFileSync(join(FIXTURES, name), 'utf8')) as unknown;
   return parseAnyBlueprint(raw);
@@ -84,7 +64,7 @@ describe('kind player pages under CSP in Chromium', () => {
   let server: Server | undefined;
 
   beforeAll(() => {
-    ensurePlayerBuild();
+    ensurePlayerBuild(ROOT);
     headers = readFileSync(join(DIST, '_headers'), 'utf8');
   }, 600_000);
 

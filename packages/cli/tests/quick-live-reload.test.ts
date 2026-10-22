@@ -1,10 +1,10 @@
 // @vitest-environment node
-import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { request as httpRequest, type IncomingMessage } from 'node:http';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { ensurePlayerBuild } from '../../player/tests/support/serve-dist.ts';
 import { setQuickPlayerLocator } from '../src/commands/quick/index.ts';
 import { setQuickServeOpener, setQuickServeStop } from '../src/commands/quick/serve.ts';
 import { findFreePort } from '../src/lib/ports.ts';
@@ -382,14 +382,8 @@ describe('quick serve live reload', () => {
 
 describe('the real player under quick serve', () => {
   const playerDir = join(REPO, 'packages/player/dist/app');
-  const ensureBuild = () => {
-    if (existsSync(join(playerDir, 'index.html'))) return;
-    const built = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
-      cwd: REPO,
-      encoding: 'utf8',
-    });
-    if (built.status !== 0) throw new Error(`player build failed:\n${built.stderr}${built.stdout}`);
-  };
+  // The player's shared helper: one locked production build across test files.
+  const ensureBuild = () => ensurePlayerBuild(REPO);
 
   it('posts a review comment into review/comments.json and follows an iterate in place', async () => {
     ensureBuild();

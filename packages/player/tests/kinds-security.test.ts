@@ -1,5 +1,4 @@
-import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   type AnyBlueprint,
@@ -16,7 +15,7 @@ import demo from '../src/fixtures/demo.blueprint.json';
 import { createMountEmbed } from '../src/kinds/mount-embed.ts';
 import { startPlayer } from '../src/sources/start.ts';
 import { PLAYER_HTML_ENTRIES } from '../vite.config.ts';
-import { productionBuildEnv } from './support/build-env.ts';
+import { ensurePlayerBuild } from './support/serve-dist.ts';
 
 /**
  * The kind threat model at the player (docs/SECURITY.md "Kinds"):
@@ -397,16 +396,7 @@ function cspOf(policy: string): Map<string, string[]> {
 describe('built kind pages: CSP no looser than index.html', () => {
   const pages: Record<string, string> = {};
   beforeAll(() => {
-    if (!PLAYER_HTML_ENTRIES.every((name) => existsSync(join(DIST, `${name}.html`)))) {
-      // A production build: Vitest's NODE_ENV=test would bundle Svelte's dev
-      // build and leave a larger dist behind for budget.test.ts.
-      const run = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
-        cwd: ROOT,
-        encoding: 'utf8',
-        env: productionBuildEnv(),
-      });
-      if (run.status !== 0) throw new Error(`player build failed:\n${run.stderr}${run.stdout}`);
-    }
+    ensurePlayerBuild(ROOT);
     for (const name of PLAYER_HTML_ENTRIES) {
       pages[name] = readFileSync(join(DIST, `${name}.html`), 'utf8');
     }

@@ -1,7 +1,9 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
 import { extname, join, normalize } from 'node:path';
 import { productionBuildEnv } from './build-env.ts';
 
@@ -26,24 +28,57 @@ const MIME: Record<string, string> = {
 /** Every page a complete player build has, plus its `_headers`. */
 const PLAYER_PAGES = ['index', 'deck', 'page', 'doc'] as const;
 
+/** A lock older than this is from a crashed run and is taken over. */
+const STALE_LOCK_MS = 10 * 60_000;
+
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
 /**
  * The one way tests get a built player: rebuild unless every kind page and
  * `_headers` exist (an older dist without the kind pages is stale), and build
  * for production. Vitest sets NODE_ENV=test, which would bundle Svelte's dev
- * runtime and leave a larger dist behind for the budget suites.
+ * runtime and leave a larger dist behind for the budget suites. Test files run
+ * in parallel processes, so one lock per checkout serializes the build: the
+ * others wait for it and reuse its dist instead of reading a half-written one.
  */
 export function ensurePlayerBuild(root: string): string {
   const dist = join(root, 'packages/player/dist/app');
-  const complete =
+  const lock = join(
+    tmpdir(),
+    `protoyard-player-build-${createHash('sha256').update(root).digest('hex').slice(0, 12)}.lock`
+  );
+  const complete = () =>
     PLAYER_PAGES.every((name) => existsSync(join(dist, `${name}.html`))) &&
     existsSync(join(dist, '_headers'));
-  if (!complete) {
-    const run = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
-      cwd: root,
-      encoding: 'utf8',
-      env: productionBuildEnv(),
-    });
-    if (run.status !== 0) throw new Error(`player build failed:\n${run.stderr}${run.stdout}`);
+  if (complete() && !existsSync(lock)) return dist;
+  for (;;) {
+    try {
+      mkdirSync(lock);
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+      try {
+        if (Date.now() - statSync(lock).mtimeMs > STALE_LOCK_MS)
+          rmSync(lock, { recursive: true, force: true });
+      } catch {
+        // Released between the two calls.
+      }
+      sleepSync(250);
+    }
+  }
+  try {
+    if (!complete()) {
+      const run = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
+        cwd: root,
+        encoding: 'utf8',
+        env: productionBuildEnv(),
+      });
+      if (run.status !== 0) throw new Error(`player build failed:\n${run.stderr}${run.stdout}`);
+    }
+  } finally {
+    rmSync(lock, { recursive: true, force: true });
   }
   return dist;
 }
