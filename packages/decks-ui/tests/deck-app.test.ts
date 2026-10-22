@@ -198,6 +198,9 @@ describe('DeckApp', () => {
     await waitFor(() =>
       expect(view.container.querySelector('[data-py-deck-overview]')).toBeTruthy()
     );
+    await waitFor(() =>
+      expect(view.container.querySelector('[data-py-deck-overview-item="body"]')).toBeTruthy()
+    );
     const item = view.container.querySelector(
       '[data-py-deck-overview-item="body"]'
     ) as HTMLButtonElement;

@@ -15,7 +15,7 @@ lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
 | --- | --- | --- |
 | `@protoyard/decks-ui` | `fitDeckCanvas(container, canvas)` → `{ scale, offsetX, offsetY }`: letterboxed scale-to-fit, and scale 0 until the container has a size | available |
 | `@protoyard/decks-ui/layouts` | `DeckLayoutRenderer` and `loadLayoutRenderer(layoutId)`: validated catalog rendering through lazy text, media, data and diagram families | available |
-| `@protoyard/decks-ui/app` | `DeckApp` — canvas, layouts, hash navigation, guarded input, step chrome, aria-live | available |
+| `@protoyard/decks-ui/app` | `DeckApp` — canvas, layouts, hash navigation, guarded input, step chrome, aria-live, lazy overview (O) | available |
 | `@protoyard/decks-ui/presenter` | Presenter window over `BroadcastChannel`, with an in-page fallback | reserved (T-decks-presenter) |
 | `@protoyard/decks-ui/print` | Print and PDF, one slide per page | reserved (T-decks-print) |
 | `@protoyard/decks-ui/studio` | Deck Studio, a lazy DevTools tab that exports RFC 6902 patches | reserved (T-decks-studio) |
@@ -66,6 +66,15 @@ import type { Deck } from '@protoyard/decks';
 - `aria-live` announcements (`Slide n of N`) and `aria-roledescription="slide"`
 - blackout, overview and help overlays (presenter/print stay later surfaces)
 
+### Overview grid (O)
+
+Press **O** to open a lazily loaded overview (`src/overview/`). Thumbnails use
+the same `DeckLayoutRenderer` with the final step visible so fragments are not
+hidden. The grid is windowed (only nearby thumbs mount) for large decks. Arrow
+keys move the selection, **Enter** / click opens that slide **once**, **Esc**
+closes without changing the slide. The input guard already ignores click-to-advance
+while the overview is open or closing, so a thumbnail never double-advances.
+
 Root attribute: `data-py-deck-app`. Set `syncHash={false}` to own the hash yourself.
 ## Untrusted content
 
@@ -88,5 +97,6 @@ import the styles after Tailwind and the theme/UI styles:
 ```bash
 pnpm vitest run packages/decks-ui
 pnpm vitest run packages/decks-ui/tests/deck-app.test.ts
+pnpm vitest run packages/decks-ui/tests/overview.test.ts
 pnpm --filter @protoyard/decks-ui typecheck
 ```

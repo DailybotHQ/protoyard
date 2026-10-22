@@ -258,7 +258,12 @@ function layoutPropsFor(slide: DeckSlide): { layout: string; props: unknown } {
 
 function goOverview(slideId: string): void {
   if (!nav) return;
+  // Close first so a bubbling click cannot double-advance while open/closing.
+  inputState = { ...inputState, overview: 'closed' };
   applyLocation(nav.goTo(slideId, 0));
+}
+
+function closeOverview(): void {
   inputState = { ...inputState, overview: 'closed' };
 }
 
@@ -353,31 +358,34 @@ onMount(() => {
   {/if}
 
   {#if inputState.overview === 'open'}
-    <div
-      class="absolute inset-0 z-30 overflow-auto bg-background/95 p-4 backdrop-blur"
-      data-py-deck-overview
-      role="dialog"
-      aria-label="Slide overview"
-    >
-      <ul class="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-        {#each visible as slide, index (slide.id)}
-          <li>
-            <button
-              type="button"
-              class="flex w-full flex-col gap-1 rounded-lg border border-border bg-card p-3 text-left text-sm hover:border-primary focus-visible:ring-2 focus-visible:ring-ring"
-              data-py-deck-overview-item={slide.id}
-              onclick={(event) => {
-                event.stopPropagation();
-                goOverview(slide.id);
-              }}
-            >
-              <span class="text-xs text-muted-foreground">{index + 1}</span>
-              <span class="font-medium text-foreground">{slide.title ?? slide.id}</span>
-            </button>
-          </li>
-        {/each}
-      </ul>
-    </div>
+    {#await import('../overview/index.ts')}
+      <div
+        class="absolute inset-0 z-30 grid place-items-center bg-background/95 backdrop-blur"
+        data-py-deck-overview
+        data-py-deck-overview-loading
+        role="status"
+        aria-label="Loading slide overview"
+      >
+        <span class="text-sm text-muted-foreground">Loading overview…</span>
+      </div>
+    {:then mod}
+      {@const Overview = mod.DeckOverview}
+      <Overview
+        slides={visible}
+        activeSlideId={location?.slideId ?? ''}
+        aspect={deck.style?.aspect ?? '16:9'}
+        onSelect={goOverview}
+        onClose={closeOverview}
+      />
+    {:catch}
+      <div
+        class="absolute inset-0 z-30 grid place-items-center bg-background/95 p-6 backdrop-blur"
+        data-py-deck-overview
+        role="alert"
+      >
+        <p class="text-sm text-destructive">The overview could not be loaded.</p>
+      </div>
+    {/await}
   {/if}
 
   {#if inputState.help}
