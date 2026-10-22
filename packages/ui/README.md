@@ -47,6 +47,7 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 | Group | Components |
 | --- | --- |
 | Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone` |
+| Scheduling | `TimeZoneSelect`, `WeekdayPicker`, `TimeInput`, `DatePicker`, `DateRangePicker`, `Calendar` (+ pure date, time, weekday and zone helpers) |
 | Overlays | `Dialog`, `AlertDialog`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip` |
 | Disclosure | `Tabs`, `Accordion` |
 | Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
@@ -268,6 +269,35 @@ Only the exact current page gets `aria-current="page"`. Its parents are
 tinted (`data-trail`), and in a collapsed or one-level list the visible
 parent carries the mark. `Sidebar` shows one level, so `sidebar` and `rail`
 mark the parent of a current child page.
+
+## Scheduling inputs
+
+Typed, keyboard-first controls for schedules (`src/components/form/scheduling/`). Every
+value is plain JSON with no `Date` objects, so it validates with zod and persists as is:
+
+| Component | Value | Behavior |
+| --- | --- | --- |
+| `TimeZoneSelect` | IANA zone (`'America/Bogota'`) | A searchable `Combobox` labelled `(GMT-05:00) America/Bogota`, sorted west to east. A search matches any part of the label or the zone name, and `_` matches a space. Offsets are those in force at `referenceDate`, so pass the scenario clock. `zones` narrows the list. |
+| `WeekdayPicker` | `IsoWeekday[]` (1 = Monday … 7 = Sunday, sorted) | Toggle buttons (`aria-pressed`) in one labelled group with a single tab stop. Arrows and Home/End move between days; Space or Enter toggles one. `weekStartsOn`, `locale`, `labelStyle`, and `name` (one hidden input per day). For a single day, use `Select` with `weekdayOptions()`. |
+| `TimeInput` | `'HH:mm'` (24-hour) or `null` | Native hour and minute selects, plus AM/PM in `format={12}`. `intervalMinutes` must divide 60, otherwise it falls back to 15. A minute that is off the step stays available as an option. The value is emitted only once both hour and minute are set. |
+| `DatePicker` | `'YYYY-MM-DD'` or `null` | A text field plus a `Calendar` popover; Alt+ArrowDown also opens it. Typed text is checked on change. An impossible date (`2026-02-30`), a date outside `min`/`max`, or one that `isDateDisabled` rejects shows an inline message linked through `aria-describedby`, calls `onInvalid(issue, text)`, and leaves the value unchanged. Clearing the field sets `null`. |
+| `DateRangePicker` | `{ start, end }` of `'YYYY-MM-DD' \| null` | Start and end fields plus a calendar that picks the range in two clicks; reversed ends are swapped. The value changes only to an empty range or to a complete, valid one. `maxDays`, `min`, `max` and `required` are enforced through `validateDateRange()`. |
+| `Calendar` | — | An ARIA grid with a single tab stop. Arrows move a day or a week, Home/End go to the start or end of the week, PageUp/PageDown change the month (with Shift, the year), and Enter or Space picks. Unavailable dates stay focusable with `aria-disabled`; today is marked `aria-current="date"`. The grid always shows six weeks, so its height never jumps. |
+
+- **Deterministic dates.** Pass `today` (`isoDateFromInstant(runtime.clock.now(), zone)`) and
+  `referenceDate` from the scenario clock. All arithmetic (`addDays`, `addMonths`, `monthGrid`, …)
+  runs on UTC midnights, so the host time zone and DST never move a date. The calendar falls
+  back to the real clock only when it is given no date at all.
+- **FormField.** Spread `control.props` onto any of them. The label targets the first segment
+  (the hour, or the start date), and `aria-required` is treated like `required`.
+- **Helpers:** `parseIsoDate`, `checkDateText`, `validateDateRange`, `parseTimeOfDay`,
+  `timeOfDayLabel`, `minuteSteps`, `normalizeWeekdays`, `describeWeekdays`, `timeZoneOptions`,
+  `timeZoneOffsetMinutes` and `isValidTimeZone`. They are pure functions, so a service can reuse
+  them (for example in a zod `refine`) to check the same values before it writes.
+- **Limits.** Typed dates accept only `YYYY-MM-DD`; there is no locale-specific parsing. Zone names
+  come from the browser's `Intl.supportedValuesOf('timeZone')`, with a fixed fallback list of
+  23 zones. Pickers do not convert between zones: a `TimeInput` value is wall-clock time that
+  you pair with a `TimeZoneSelect` value.
 
 ## Toasts
 
