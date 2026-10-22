@@ -8,6 +8,7 @@ import {
   formatDeckDesignFindings,
   planDeckDesign,
 } from '../../scripts/lib/deck-design.ts';
+import { expectAccessible } from './support/a11y.ts';
 
 /**
  * Deck design gate: the flagship deck (blueprints/decks/protoyard-create-anything.json)
@@ -355,3 +356,45 @@ for (const level of Object.keys(LEVELS) as Level[]) {
     });
   });
 }
+
+/*
+ * The generated prototype's own custom slide (Final Review area B, finding 2).
+ * It exists only at level 2: prototypes/create-anything-deck/blueprint.json
+ * adds it, and the player shows a placeholder card instead. The component runs
+ * inside the real deck: plan choice, yearly billing, the breakdown step, axe.
+ */
+test.describe('flagship deck at level 2 (prototype): the custom configurator slide', () => {
+  test('runs the owned component inside the deck', async ({ page }, testInfo) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await open(page, 'prototype');
+    const slide = await goTo(page, 'configurator');
+    const configurator = slide.locator('[data-pricing-configurator]');
+    await expect(configurator, 'the custom component mounts (not a placeholder card)').toBeVisible({
+      timeout: 15_000,
+    });
+    const total = configurator.locator('[data-pricing-total]');
+    const breakdown = configurator.locator('[data-pricing-breakdown]');
+    await expect(total).toHaveText('$375');
+    // The breakdown waits for the slide's first step.
+    await expect(breakdown).toHaveCount(0);
+
+    await configurator.getByRole('radio', { name: /Starter/ }).check();
+    await expect(total).toHaveText('$200');
+    await configurator.getByRole('checkbox', { name: /Pay yearly/ }).check();
+    await expect(total).toHaveText('$160');
+    // Clicks inside the component never advance the deck.
+    await expect(deckRoot(page)).toHaveAttribute('data-slide-id', 'configurator');
+    await expect(deckRoot(page)).toHaveAttribute('data-slide-step', '0');
+
+    await deckRoot(page).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(deckRoot(page)).toHaveAttribute('data-slide-step', '1');
+    await expect(breakdown).toHaveText('25 seats × $8, minus $40 for paying yearly');
+
+    await expectAccessible(page, testInfo, {
+      label: `configurator (level 2, ${testInfo.project.name})`,
+    });
+    expect(errors, 'page errors').toEqual([]);
+  });
+});

@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, type Page, test } from '@playwright/test';
+import { slidePositionCount } from '../../packages/decks/src/navigation/steps.ts';
+import { type DeckSlide, safeParseDeck } from '../../packages/decks/src/schema/index.ts';
 import { expectAccessible } from './support/a11y.ts';
 
 /*
@@ -17,9 +19,15 @@ import { expectAccessible } from './support/a11y.ts';
 const deckPort = Number(process.env.PROTOYARD_E2E_DECK_PORT ?? 4891);
 const deckUrl = `http://127.0.0.1:${deckPort}/`;
 const FILE = join(process.cwd(), 'blueprints/decks/everything.json');
-const SLIDES = (
-  JSON.parse(readFileSync(FILE, 'utf8')) as { deck: { slides: { id: string }[] } }
-).deck.slides.map((slide) => slide.id);
+const PARSED = safeParseDeck((JSON.parse(readFileSync(FILE, 'utf8')) as { deck: unknown }).deck);
+if (!PARSED.success || !PARSED.deck) throw new Error(`${FILE} is not a valid deck`);
+const DECK_SLIDES = PARSED.deck.slides as DeckSlide[];
+const SLIDES = DECK_SLIDES.map((slide) => slide.id);
+/**
+ * The last step each slide declares, from the engine DeckApp navigates with
+ * (`slidePositionCount` over the parsed deck): positions run 0 … last.
+ */
+const LAST_STEP = new Map(DECK_SLIDES.map((slide) => [slide.id, slidePositionCount(slide) - 1]));
 
 const root = (page: Page) => page.locator('[data-py-deck-app]');
 
@@ -68,7 +76,9 @@ test.describe('the everything deck', () => {
           const label = `${id} (${colorScheme}, ${testInfo.project.name})`;
           await expectAccessible(page, testInfo, { label: `${label} step 0` });
 
-          // Walk the slide's steps with the keyboard until the deck moves on.
+          // Walk the slide's steps with the keyboard, one per press, until the
+          // deck moves on, and require every declared step to be reached.
+          const last = LAST_STEP.get(id) ?? 0;
           await root(page).focus();
           let step = 0;
           for (let guard = 0; guard < 40; guard++) {
@@ -76,9 +86,11 @@ test.describe('the everything deck', () => {
             const next = await root(page).getAttribute('data-slide-step');
             const at = await root(page).getAttribute('data-slide-id');
             if (at !== id || Number(next) <= step) break;
+            expect(Number(next), `${label}: one step per press`).toBe(step + 1);
             step = Number(next);
             await settled(page, id);
           }
+          expect(step, `${label}: steps reached vs. declared (slidePositionCount)`).toBe(last);
           if (step > 0) {
             await page.goto(`${deckUrl}?deck=everything&mode=${colorScheme}#/${id}/${step}`);
             await expect(root(page)).toHaveAttribute('data-slide-step', String(step));

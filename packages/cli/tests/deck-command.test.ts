@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -291,6 +291,21 @@ describe('deck inspect', () => {
         '[slide-ref] id=open source=blueprint:decks/linked.json'
       );
       expect(linked.code).toBe(4);
+
+      // So is a pasted prototype whose blueprint.json is a symlink out of it
+      // (Final Review area B, finding 6).
+      mkdirSync(join(ws.root, 'prototypes', 'escaped-deck'), { recursive: true });
+      symlinkSync(
+        join(outside, 'deck.json'),
+        join(ws.root, 'prototypes', 'escaped-deck', 'blueprint.json')
+      );
+      const escaped = await deckJson(
+        'inspect',
+        '--ref',
+        '[slide-ref] id=open source=prototype:escaped-deck'
+      );
+      expect(escaped.code).toBe(4);
+      expect(escaped.stdout + escaped.stderr).not.toContain('"slide"');
 
       // A file that is not JSON is named, never quoted.
       ws.write('decks/notes.json', 'SECRET_TOKEN=do-not-print');

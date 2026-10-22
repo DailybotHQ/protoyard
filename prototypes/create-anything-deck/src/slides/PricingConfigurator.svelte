@@ -22,17 +22,24 @@ const FALLBACK_PLANS: readonly Plan[] = [
   { id: 'scale', name: 'Scale', centsPerSeat: 2_400 },
 ];
 
+/** Valid plans from the slide data, each id once (the lists below are keyed by id). */
 function readPlans(value: unknown): readonly Plan[] {
   if (!Array.isArray(value)) return FALLBACK_PLANS;
+  const seen = new Set<string>();
   const plans = value.flatMap((item) => {
     if (item === null || typeof item !== 'object') return [];
     const { id, name, centsPerSeat } = item as Record<string, unknown>;
-    return typeof id === 'string' &&
-      typeof name === 'string' &&
-      Number.isInteger(centsPerSeat) &&
-      (centsPerSeat as number) >= 0
-      ? [{ id, name, centsPerSeat: centsPerSeat as number }]
-      : [];
+    if (
+      typeof id !== 'string' ||
+      typeof name !== 'string' ||
+      !Number.isInteger(centsPerSeat) ||
+      (centsPerSeat as number) < 0 ||
+      seen.has(id)
+    ) {
+      return [];
+    }
+    seen.add(id);
+    return [{ id, name, centsPerSeat: centsPerSeat as number }];
   });
   return plans.length > 0 ? plans.slice(0, 4) : FALLBACK_PLANS;
 }
@@ -48,17 +55,19 @@ const annualDiscountPercent = $derived(readInt(data.annualDiscountPercent, 20, 0
 let planId = $state('');
 let seats = $state(25);
 let annual = $state(false);
+/** The seats every figure uses: the chosen count, kept within 1 … maxSeats. */
+const seatCount = $derived(Math.min(maxSeats, Math.max(1, Math.trunc(seats) || 1)));
 
 const plan = $derived(plans.find((candidate) => candidate.id === planId) ?? plans[1] ?? plans[0]);
 
 /** Monthly total in cents for `p` at the current seats and billing. */
 function monthlyCents(p: Plan): number {
-  const base = p.centsPerSeat * seats;
+  const base = p.centsPerSeat * seatCount;
   return annual ? Math.round((base * (100 - annualDiscountPercent)) / 100) : base;
 }
 
 const totalCents = $derived(plan ? monthlyCents(plan) : 0);
-const savingsCents = $derived(plan && annual ? plan.centsPerSeat * seats - totalCents : 0);
+const savingsCents = $derived(plan && annual ? plan.centsPerSeat * seatCount - totalCents : 0);
 const money = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
@@ -101,14 +110,14 @@ const uid = $props.id();
     </fieldset>
 
     <label class="flex flex-col gap-3 text-2xl">
-      <span class="font-semibold text-muted-foreground">Seats: <span class="text-foreground tabular-nums">{seats}</span></span>
+      <span class="font-semibold text-muted-foreground">Seats: <span class="text-foreground tabular-nums">{seatCount}</span></span>
       <input
         type="range"
         min="1"
         max={maxSeats}
-        bind:value={seats}
+        bind:value={() => seatCount, (value) => (seats = value)}
         class="h-8 w-full"
-        aria-valuetext={`${seats} seats`}
+        aria-valuetext={`${seatCount} seats`}
       />
     </label>
 
@@ -122,7 +131,7 @@ const uid = $props.id();
       <p class="text-3xl leading-none font-bold tabular-nums" data-pricing-total>{usd(totalCents)}</p>
       {#if showBreakdown}
         <p class="mt-2.5 text-2xl text-muted-foreground" data-pricing-breakdown>
-          {seats} seats × {usd(plan?.centsPerSeat ?? 0)}{annual ? `, minus ${usd(savingsCents)} for paying yearly` : ''}
+          {seatCount} seats × {usd(plan?.centsPerSeat ?? 0)}{annual ? `, minus ${usd(savingsCents)} for paying yearly` : ''}
         </p>
       {/if}
     </div>
@@ -133,7 +142,7 @@ const uid = $props.id();
       viewBox="0 0 600 420"
       class="w-full flex-1"
       role="img"
-      aria-label={`Monthly total for ${seats} seats: ${bars.map((bar) => `${bar.plan.name} ${usd(bar.cents)}`).join(', ')}.`}
+      aria-label={`Monthly total for ${seatCount} seats: ${bars.map((bar) => `${bar.plan.name} ${usd(bar.cents)}`).join(', ')}.`}
     >
       {#each bars as bar, index (bar.plan.id)}
         {@const width = 600 / bars.length}
@@ -153,6 +162,6 @@ const uid = $props.id();
         <text x={index * width + width / 2} y={370 - height} text-anchor="middle" class="fill-foreground text-xl font-semibold">{usd(bar.cents)}</text>
       {/each}
     </svg>
-    <figcaption class="text-xl text-muted-foreground">Monthly total by plan at {seats} seats. Fictional prices.</figcaption>
+    <figcaption class="text-xl text-muted-foreground">Monthly total by plan at {seatCount} seats. Fictional prices.</figcaption>
   </figure>
 </div>
