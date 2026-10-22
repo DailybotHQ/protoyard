@@ -107,7 +107,13 @@ const PLAYER_PORT = Number(process.env.PROTOYARD_E2E_PLAYER_PORT ?? 4861);
 const PLAYER_EMBEDDER_PORT = Number(process.env.PROTOYARD_E2E_PLAYER_EMBEDDER_PORT ?? 4862);
 const PLAYER_OUT = resolve('tmp/e2e-player');
 // Specs that drive the built catalog deck; naming one on the command line starts its server.
-const DECK_SERVER_SPECS = ['deck-navigation', 'deck-presenter', 'deck-design', 'interaction-sweep'];
+const DECK_SERVER_SPECS = [
+  'deck-navigation',
+  'deck-presenter',
+  'deck-design',
+  'deck-fragments',
+  'interaction-sweep',
+];
 // Opt-in: the built catalog deck for tests/e2e/deck-navigation.spec.ts.
 const deckE2e =
   process.env.PROTOYARD_E2E_DECK === '1' ||
