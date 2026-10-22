@@ -154,10 +154,12 @@ expect(headingId('  Café  Overview! ')).toBe('cafe-overview');
 ```
 
 
-## Fixtures
+## Development fixtures
 
-Internal JSON under `packages/pages/fixtures/` for unit tests, KINDS smoke and
-visual QA. Fictional **example.com** data only.
+Internal JSON under `packages/pages/fixtures/` supports unit tests, KINDS
+smoke and visual QA. The `@protoyard/pages/fixtures` export is available only
+from the workspace source; fixtures are not part of the published package.
+Fictional **example.com** data only.
 
 | File | Contents |
 | --- | --- |

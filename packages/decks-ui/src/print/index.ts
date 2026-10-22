@@ -5,8 +5,6 @@
  * Enter with `?print=1` (add `&notes=1` for speaker notes), the print button,
  * or Ctrl/Cmd+P (DeckApp swaps to this layout on `beforeprint`).
  */
-import './print.css';
-
 export { default as DeckPrint } from './DeckPrint.svelte';
 export {
   type DeckPrintFlags,

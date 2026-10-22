@@ -1,4 +1,6 @@
 <script lang="ts">
+import './print.css';
+
 import { Button, type ButtonSize, type ButtonVariant } from '@protoyard/ui';
 
 /**

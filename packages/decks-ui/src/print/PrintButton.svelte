@@ -1,4 +1,6 @@
 <script lang="ts">
+import './print.css';
+
 /**
  * Opens the browser print dialog. Marked `data-py-print-button` so the print
  * stylesheet hides the control on paper.

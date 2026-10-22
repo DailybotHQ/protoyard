@@ -8,6 +8,9 @@ import { describe, expect, it } from 'vitest';
 import { readPackageGraph, selectPackageNames } from '../../../scripts/lib/package-graph.ts';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
+const DEV_ONLY_EXPORTS: Record<string, string[]> = {
+  '@protoyard/pages': ['./fixtures'],
+};
 
 /**
  * The packages a build group selects, read from the existing dist. This file
@@ -95,10 +98,18 @@ describe.skipIf(!HAS_DIST)('packed engine manifests (after pnpm build:packages)'
         expect(configured?.exports, source.name).toEqual(
           expect.objectContaining(
             Object.fromEntries(
-              Object.keys(source.exports ?? {}).map((key) => [key, expect.anything()])
+              Object.keys(source.exports ?? {})
+                .filter((key) => !DEV_ONLY_EXPORTS[source.name]?.includes(key))
+                .map((key) => [key, expect.anything()])
             )
           )
         );
+        for (const key of DEV_ONLY_EXPORTS[source.name] ?? []) {
+          expect(
+            configured?.exports,
+            `${source.name} excludes development-only ${key}`
+          ).not.toHaveProperty(key);
+        }
         for (const [key, exportValue] of Object.entries(configured?.exports ?? {})) {
           for (const target of targets(exportValue)) {
             expect(target, `${source.name} ${key}`).toMatch(/^\.\/(?:dist|assets|types)\//);
