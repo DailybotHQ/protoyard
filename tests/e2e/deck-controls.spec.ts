@@ -2,11 +2,11 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
 
 /*
- * Deck chrome controls (PLAN_006 T-audit-controls). One reproduction per defect
- * recorded in the plan's analysis_results/CONTROLS_AUDIT.md. Each test asserts
- * the behavior a first-time viewer needs; while the defect stands it is marked
- * `test.fail()`, and the fixing task (named in each title) removes the marker.
- * The passing tests guard what already works.
+ * Deck chrome controls (PLAN_006). Started as one reproduction per defect in the
+ * plan's analysis_results/CONTROLS_AUDIT.md; every defect is now fixed, so each
+ * test asserts the behavior a first-time viewer needs: full screen, print,
+ * visible feedback, Debug for agents, understandable controls, accessibility on
+ * desktop and phone, and toolbar geometry (every tool on screen, hit-testable).
  *
  * Opt-in: PROTOYARD_E2E_DECK=1 starts the built catalog deck server (the same
  * fixture as deck-navigation.spec.ts).
@@ -658,5 +658,139 @@ test.describe('deck chrome controls', () => {
       );
       expect(animated).toEqual([]);
     });
+  });
+
+  test.describe('toolbar geometry (Final Review A)', () => {
+    test('on a phone, the More menu opens on screen and a tap reaches every item', async ({
+      page,
+    }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile', 'Touch is checked on the phone.');
+      await openDeck(page);
+      const summary = page.locator('[data-py-deck-more] summary');
+      const tapCenter = async (target: Locator) => {
+        const box = await target.boundingBox();
+        expect(box, 'the target has a box').not.toBeNull();
+        if (box) await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      };
+      await tapCenter(summary);
+      const menu = page.locator('[data-py-deck-more-menu]');
+      await expect(menu).toBeVisible();
+
+      const viewport = page.viewportSize() ?? { width: 0, height: 0 };
+      const box = await menu.boundingBox();
+      expect(box).not.toBeNull();
+      if (box) {
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.y).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+        expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+      }
+
+      // Record which tool each tap lands on, without running it (no print dialog,
+      // no full screen), so the menu stays open for the next tap.
+      await page.evaluate(() => {
+        const w = window as typeof window & { __taps?: string[] };
+        w.__taps = [];
+        window.addEventListener(
+          'click',
+          (event) => {
+            const tool = (event.target as Element).closest('[data-py-deck-more-menu] button');
+            if (!tool) return;
+            w.__taps?.push(tool.getAttribute('data-py-deck-tool') ?? '');
+            event.stopImmediatePropagation();
+            event.preventDefault();
+          },
+          true
+        );
+      });
+      const tools = await menu
+        .locator('button[data-py-deck-tool]')
+        .evaluateAll((buttons) =>
+          buttons.map((button) => button.getAttribute('data-py-deck-tool'))
+        );
+      expect(tools.length).toBeGreaterThan(4);
+      for (const id of tools) {
+        const item = menu.locator(`[data-py-deck-tool="${id}"]`);
+        // The item is what a finger at its centre touches, and the page never scrolls.
+        expect(
+          await item.evaluate((element) => {
+            const rect = element.getBoundingClientRect();
+            const hit = document.elementFromPoint(
+              rect.x + rect.width / 2,
+              rect.y + rect.height / 2
+            );
+            return hit !== null && element.contains(hit);
+          }),
+          `${id} is hit-testable`
+        ).toBe(true);
+        await tapCenter(item);
+      }
+      expect(
+        await page.evaluate(() => (window as typeof window & { __taps?: string[] }).__taps)
+      ).toEqual(tools);
+      expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    });
+
+    for (const [width, height] of [
+      [1280, 800],
+      [1024, 700],
+      [760, 700],
+    ] as const) {
+      test(`at ${width} px every tool is on screen, never in a scrolled strip`, async ({
+        page,
+      }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Desktop widths.');
+        await page.setViewportSize({ width, height });
+        await openDeck(page);
+        const geometry = await page.evaluate(() => {
+          const root = document.querySelector('[data-py-deck-chrome-root]') as HTMLElement;
+          const box = root.getBoundingClientRect();
+          const outside = [
+            ...root.querySelectorAll<HTMLElement>(
+              '[data-py-deck-tool], [data-py-deck-more] summary'
+            ),
+          ]
+            // Shown tools only: a closed More menu's items are not rendered.
+            .filter((element) => element.checkVisibility())
+            .filter((element) => {
+              const rect = element.getBoundingClientRect();
+              const hit = document.elementFromPoint(
+                rect.x + rect.width / 2,
+                rect.y + rect.height / 2
+              );
+              return (
+                rect.left < box.left ||
+                rect.right > box.right ||
+                rect.top < box.top ||
+                rect.bottom > box.bottom ||
+                hit === null ||
+                !element.contains(hit)
+              );
+            })
+            .map((element) => element.getAttribute('data-py-deck-tool') ?? 'more');
+          const scrolled = [...root.querySelectorAll<HTMLElement>('*')]
+            .filter(
+              (element) => element.clientWidth > 1 && element.scrollWidth > element.clientWidth + 1
+            )
+            .filter((element) => getComputedStyle(element).overflowX !== 'visible')
+            .map((element) => element.className);
+          return {
+            outside,
+            scrolled,
+            more: root.querySelector('[data-py-deck-more]') !== null,
+          };
+        });
+        expect(geometry.outside, 'tools outside the chrome or covered').toEqual([]);
+        expect(geometry.scrolled, 'scrolled chrome strips').toEqual([]);
+        // Wide screens show every tool; a narrow window folds the rest into More.
+        expect(geometry.more).toBe(width < 900);
+        if (geometry.more) {
+          await page.locator('[data-py-deck-more] summary').click();
+          await expect(page.locator('[data-py-deck-more-menu]')).toBeInViewport({ ratio: 1 });
+        } else {
+          await expect(tool(page, 'help')).toBeInViewport({ ratio: 1 });
+        }
+      });
+    }
   });
 });

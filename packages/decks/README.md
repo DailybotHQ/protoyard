@@ -39,7 +39,8 @@ A deck is `{ style, slides, outline? }`, and every object is strict, so unknown 
   `data` is bounded like catalog props (and its links and media follow the deck policies), steps
   come from the `steps` labels only, and `checkDeckStatic` reports a `custom-slide` warning.
   `free` and `custom` are never catalog layout ids.
-- **Shared slide fields:** `title`, `background` (a preset id), `transition`, `steps` (labels),
+- **Shared slide fields:** `title`, `background` (a preset id or a validated image/video spec; an
+  unknown slug from an older deck still parses, renders `solid-color` and warns), `transition`, `steps` (labels),
   `notes` and `hidden`.
 - **Slide ids** are unique lowercase slugs.
 - **An outline** groups existing slide ids into sections.
@@ -292,8 +293,10 @@ control or bidirectional characters are refused. This matches the artifact CSP, 
 media at level 1. There are no iframe backgrounds. Media sources are never written into CSS: renderers
 use `<img>` and `<video>`.
 
-The deck schema's `style.background` and `slide.background` hold a preset id today. Media specs are
-validated by `DeckBackgroundSchema`, and accepting them in a slide is a schema change still to make.
+`slide.background` takes a preset id or a media spec (validated by `DeckBackgroundSchema`). Any other
+slug still parses, so decks saved before media backgrounds keep opening: the slide renders
+`solid-color` and `checkDeckStatic` reports `unknown-background`. `style.background`, the deck-wide
+default, still takes only a preset id.
 
 ## Presenter protocol (pure)
 
@@ -518,6 +521,7 @@ them, so no rule is declared twice.
   | `image-size` | error | An image in props with no width and height |
   | `step-order` | error | A fragment that reveals before content above it, in reading order (columns included) |
   | `empty-steps` | warning | More step labels than fragments |
+  | `unknown-background` | warning | A slide `background` that is neither a preset id nor a media spec: it still parses (older decks keep opening) and renders `solid-color` |
   | `custom-slide` | warning | A `layout: "custom"` slide: it runs only in a generated deck; the player shows a placeholder |
   | `step-unrevealed` | warning | A step marker where the layout reveals nothing (inside a chart series, say): see `DECK_LAYOUT_STEPPABLE` |
   | `notes-missing` | warning | Notes absent or under 40 characters |
@@ -634,9 +638,8 @@ Deck data is untrusted, so nothing from it can become Markdown structure:
 - **No remote media at level 1.** Background and layout media must be relative paths inside the
   deck, bounded `data:` URIs or library avatars (`checkDeckMediaSrc`). This matches the player and
   artifact CSP. There are no iframe backgrounds.
-- **Media backgrounds need a schema change.** `style.background` and `slide.background` accept a
-  preset id. Image and video background specs validate with `DeckBackgroundSchema`, but a slide
-  cannot carry one yet.
+- **Media backgrounds are per slide.** `slide.background` takes an image or video spec;
+  `style.background` (the deck-wide default) takes only a preset id.
 - **Presenter needs a same-origin peer.** The protocol is ready (`@protoyard/decks/presenter`); the UI
   is lazy in `@protoyard/decks-ui/presenter` (popup over `BroadcastChannel`, in-page split when blocked).
   Cross-origin and multi-tab beyond one presenter peer are out of scope at level 1.

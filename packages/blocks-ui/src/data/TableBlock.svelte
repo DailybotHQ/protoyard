@@ -12,9 +12,13 @@ let { block }: { block: TableBlockData } = $props();
 
 const allRows = $derived(block.rows.map((row, index) => ({ row, index })));
 const explorable = $derived(block.interactive?.sort === true || block.interactive?.filter === true);
+/** Only an interactive table (sort, filter or row highlight) keeps a click from advancing a deck. */
+const deckInteractive = $derived(
+  block.interactive === undefined ? {} : { [DECK_INTERACTIVE_ATTRIBUTE]: '' }
+);
 </script>
 
-<div data-py-block="table" {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}>
+<div data-py-block="table" {...deckInteractive}>
   {#if explorable}
     {#await import('./InteractiveTable.svelte')}
       <TableView {block} rows={allRows} />

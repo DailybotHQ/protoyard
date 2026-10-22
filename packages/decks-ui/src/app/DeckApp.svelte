@@ -195,7 +195,6 @@ $effect(() => {
   announceSlide(loc, deck.slides.length, next.visibleSlides());
 });
 
-const activeIndex = $derived(location?.slideIndex ?? 0);
 const activeStep = $derived(location?.step ?? 0);
 const activeStepCount = $derived(location?.stepCount ?? 1);
 const visible = $derived(location && nav ? nav.visibleSlides() : []);
@@ -205,13 +204,20 @@ const visibleOrdinal = $derived.by(() => {
   const at = visible.findIndex((slide) => slide.id === id);
   return at >= 0 ? at : 0;
 });
+/**
+ * What the canvas mounts and counts: the visible slides, so the slide after the
+ * current one (and its media preload) is the one navigation goes to next, never
+ * a hidden slide in between. All slides until the first location exists.
+ */
+const canvasSlides = $derived(visible.length > 0 ? visible : deck.slides);
 const progress = $derived(visible.length === 0 ? 0 : ((visibleOrdinal + 1) / visible.length) * 100);
 
 /** Slides whose code an idle moment loads ahead: the two past the mounted neighbour. */
 const ahead = $derived(visible.slice(visibleOrdinal + 2, visibleOrdinal + 4));
 $effect(() => {
   const slides = ahead;
-  if (slides.length === 0 || showPrint || typeof window === 'undefined') return;
+  // Effects run only in a browser.
+  if (slides.length === 0 || showPrint) return;
   const run = () => {
     // The prefetch module is lazy too: it adds nothing to the deck entry.
     void import('./prefetch.ts')
@@ -342,7 +348,9 @@ function eventPath(event: Event): ReturnType<typeof inputPathFrom> {
 
 /** The guard's view of the deck: overlays plus whether it is full screen. */
 function guardState(): DeckInputState {
-  return { ...inputState, fullscreen, debugAvailable, debug: debugOpen };
+  // The presenter hides the debug panel: neither Esc nor D may act on a panel nobody sees.
+  const debugShown = debugAvailable && !presenterOpen;
+  return { ...inputState, fullscreen, debugAvailable: debugShown, debug: debugOpen && debugShown };
 }
 
 function onKeyDown(event: KeyboardEvent): void {
@@ -621,8 +629,8 @@ onMount(() => {
     <div class="relative flex min-h-0 flex-1 flex-col" data-py-deck-surface>
     <div class="relative min-h-0 flex-1" data-py-deck-stage-area>
       <DeckCanvas
-        slides={deck.slides}
-        activeIndex={activeIndex}
+        slides={canvasSlides}
+        activeIndex={visibleOrdinal}
         aspect={deck.style?.aspect ?? '16:9'}
         label={deck.outline?.title ?? 'Presentation'}
       >
@@ -639,7 +647,7 @@ onMount(() => {
           >
             <DeckSlideFrame
               background={slide.background}
-              mediaPreload={_index === activeIndex || _index === activeIndex + 1 ? 'auto' : 'none'}
+              mediaPreload={_index === visibleOrdinal || _index === visibleOrdinal + 1 ? 'auto' : 'none'}
               number={numberOf(slide.id)}
             >
               <SlideStepHost {slide} step={stepOf(slide)}>
@@ -701,7 +709,7 @@ onMount(() => {
         >
           {slideLabel}
         </p>
-        <div class="pointer-events-auto ml-auto flex min-w-0 items-center gap-1 overflow-x-auto" data-py-deck-chrome>
+        <div class="pointer-events-auto ml-auto flex min-w-0 items-center gap-1" data-py-deck-chrome>
           <DeckToolbar
             blackout={inputState.blackout === true}
             laser={inputState.laser === true}

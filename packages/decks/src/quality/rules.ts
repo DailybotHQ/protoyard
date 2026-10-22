@@ -66,6 +66,13 @@ export const DECK_QUALITY_RULES = Object.freeze([
     description: "A catalog slide's props break its layout's schema or size limits.",
   },
   {
+    id: 'unknown-background',
+    severity: 'warning',
+    check: 'static',
+    description:
+      'A slide background names no preset; the slide renders the default solid color instead.',
+  },
+  {
     id: 'custom-slide',
     severity: 'warning',
     check: 'static',

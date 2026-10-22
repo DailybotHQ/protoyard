@@ -58,7 +58,6 @@ let {
 
 let compact = $state(false);
 let jumpOpen = $state(false);
-let jumpButton = $state<HTMLButtonElement>();
 let copyStatus = $state<'idle' | 'copied' | 'failed'>('idle');
 let copyTimer: ReturnType<typeof setTimeout> | undefined;
 const tooltip = createDeckTooltip({ suppressed: () => blackout || laser });
@@ -148,28 +147,29 @@ function selectSlide(slideId: string): void {
 
 function closeSlideList(): void {
   jumpOpen = false;
-  queueMicrotask(() => jumpButton?.focus());
+  queueMicrotask(() =>
+    toolbarRoot?.querySelector<HTMLElement>('[data-py-deck-tool="jump"]')?.focus()
+  );
 }
 
-function attachJump(node: HTMLElement): () => void {
-  jumpButton = node as HTMLButtonElement;
-  return () => {
-    if (jumpButton === node) jumpButton = undefined;
-  };
+/**
+ * Every tool shows only when the full toolbar fits the chrome row; otherwise the
+ * secondary tools fold into More. Measured, never a breakpoint: what fits
+ * depends on which controls the environment offers. The full width is read
+ * only while the full toolbar shows, so the choice cannot flip back and forth.
+ */
+let fullWidth = 0;
+let toolbarRoot: HTMLElement | undefined;
+function fitToolbar(node: HTMLElement): () => void {
+  toolbarRoot = node;
+  // The chrome row's content box (padding excluded) is the room the toolbar has.
+  const observer = new ResizeObserver(([entry]) => {
+    if (!compact) fullWidth = node.scrollWidth;
+    compact = fullWidth > (entry?.contentRect.width ?? fullWidth);
+  });
+  observer.observe(node.closest('[data-py-deck-chrome-root]') ?? node);
+  return () => observer.disconnect();
 }
-
-function attachControl(control: DeckControl): (node: HTMLElement) => undefined | (() => void) {
-  return control.action === 'jump' ? attachJump : () => undefined;
-}
-
-$effect(() => {
-  if (typeof window === 'undefined') return;
-  const query = window.matchMedia('(max-width: 639px)');
-  const update = () => (compact = query.matches);
-  update();
-  query.addEventListener('change', update);
-  return () => query.removeEventListener('change', update);
-});
 
 $effect(() => {
   if (blackout || laser) tooltip.hide();
@@ -197,7 +197,6 @@ $effect(() => () => {
     data-py-deck-tool={stableId(control)}
     data-py-print-button={control.action === 'print' ? true : undefined}
     {@attach tooltip.anchor(() => tooltipFor(control))}
-    {@attach attachControl(control)}
     onkeydown={(event) => {
       if (isJump && (event.key === 'Enter' || event.key === ' ')) {
         event.preventDefault();
@@ -217,12 +216,13 @@ $effect(() => () => {
       <svg aria-hidden="true" viewBox="0 0 24 24" class="size-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         {#each DECK_ICON_PATHS[control.icon] as path (path)}<path d={path}></path>{/each}
       </svg>
-      <span class={mobile ? '' : 'hidden sm:inline'}>{control.label}</span>
+      <!-- In the toolbar a tool is its icon; its tooltip and accessible name say what it does. -->
+      {#if mobile}<span>{control.label}</span>{/if}
     {/if}
   </button>
 {/snippet}
 
-<div class="pointer-events-auto relative flex shrink-0 items-center gap-1" role="toolbar" aria-label="Deck controls" data-py-deck-toolbar>
+<div {@attach fitToolbar} class="pointer-events-auto relative flex shrink-0 items-center gap-1" role="toolbar" aria-label="Deck controls" data-py-deck-toolbar>
   <div class="flex items-center gap-1" role="group" aria-label="Navigate" data-py-deck-control-group="navigate">
     {#each navControls as control (control.action)}
       {#if !compact || (control.action !== 'first' && control.action !== 'last')}
@@ -248,7 +248,7 @@ $effect(() => () => {
       {/if}
     {/each}
   {:else}
-    <!-- Phones only: the More menu loads on its own chunk. -->
+    <!-- When the full toolbar does not fit: the More menu loads on its own chunk. -->
     {#await import('./MoreMenu.svelte') then menu}
       <menu.default controls={mobileSecondaryControls}>
       {#snippet children(control)}{@render controlButton(control, true)}{/snippet}

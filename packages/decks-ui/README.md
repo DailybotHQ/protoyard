@@ -195,9 +195,12 @@ while the overview is open or closing, so a thumbnail never double-advances.
 
 The chrome toolbar renders `DECK_CONTROLS` in Navigate, View, Present, Share, Help and Debug
 groups (`src/chrome/`). Registry capabilities filter controls before rendering. Inline SVG icons
-come from `src/chrome/icons.ts`; no icon dependency is added to the player. On narrow screens,
-secondary tools move into the native **More** disclosure. Buttons have 44 px minimum targets,
-visible labels on wide screens and a visible “On” state as well as `aria-pressed` for toggles.
+come from `src/chrome/icons.ts`; no icon dependency is added to the player. In the toolbar a
+tool is its icon: its accessible name and tooltip (label, description, shortcut) say what it does.
+Every tool shows when the full toolbar fits the chrome row, measured with a `ResizeObserver`, not
+a breakpoint. When it does not fit (a phone, a narrow window), the secondary tools fold into the
+native **More** disclosure, whose menu opens above it, fixed inside the viewport, with labels.
+Buttons have 44 px minimum targets; toggles show their state with a ring and `aria-pressed`.
 The slide counter opens a listbox of slide titles and returns focus to the counter after selection.
 
 Each control is a real named button. Toggles report `aria-pressed`, and the help button reports
@@ -340,7 +343,7 @@ All gzip level 9 (Node 26.11.1, Vite 8.3.4):
 
 | What | Measured | Gate | Where |
 | --- | --- | --- | --- |
-| `@protoyard/decks-ui/app` initial JS | 92,464 B (2026-10-22, after moving help, the overlay, the hint, the More menu, the slide list and the custom-slide host to lazy chunks; 95,837 B before; the probe build groups Rolldown's runtime and Dexie into their own chunks, as the player does) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
+| `@protoyard/decks-ui/app` initial JS | 92,429 B (2026-10-22; 92,464 B after moving help, the overlay, the hint, the More menu, the slide list and the custom-slide host to lazy chunks; 95,837 B before; the probe build groups Rolldown's runtime and Dexie into their own chunks, as the player does) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
 | Deck style kit (lazy chunk: style resolution, library catalog, palette engine, backgrounds) | about 20 KB (2026-10-22) | not in the initial graph | `tests/budget.test.ts` |
 | All CSS emitted with it | 3,284 B (2026-10-22) | ≤ 20 KB | `tests/bundle-size.test.ts` |
 | Deck Studio panel (lazy chunk) | 3,141 B (2026-10-22) | — | measured with a Vite probe build |

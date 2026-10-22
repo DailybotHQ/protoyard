@@ -211,6 +211,44 @@ describe('DeckMediaBackground', () => {
       'auto'
     );
   });
+
+  it('preloads the next visible slide, skipping a hidden slide in between', async () => {
+    vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+    vi.stubGlobal('IntersectionObserver', IntersectionObserverMock);
+    vi.stubGlobal('matchMedia', () => ({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    const video = (src: string) => ({ kind: 'video' as const, src, poster: 'media/slide.webp' });
+    const deck = {
+      style: {},
+      slides: [
+        { id: 'intro', layout: 'free' as const, blocks: [] },
+        {
+          id: 'backstage',
+          layout: 'free' as const,
+          blocks: [],
+          hidden: true,
+          background: video('media/hidden.mp4'),
+        },
+        { id: 'demo', layout: 'free' as const, blocks: [], background: video('media/demo.mp4') },
+      ],
+    };
+    const { container } = render(DeckApp, { props: { deck, syncHash: false, autofocus: false } });
+    // The canvas mounts what navigation reaches next: never the hidden slide.
+    await waitFor(() => expect(container.querySelectorAll('video')).toHaveLength(1));
+    expect(
+      [...container.querySelectorAll<HTMLElement>('[data-py-deck-slide]')].map(
+        (slide) => slide.dataset.pyDeckSlide
+      )
+    ).toEqual(['intro', 'demo']);
+    const next = container.querySelector('video');
+    expect(next?.getAttribute('src')).toBe('media/demo.mp4');
+    expect(next?.getAttribute('preload')).toBe('auto');
+  });
 });
 
 import { readFileSync } from 'node:fs';

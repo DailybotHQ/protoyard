@@ -110,7 +110,12 @@ const LayoutPropsSchema = z
 const SlideBaseShape = {
   id: SlugSchema,
   title: z.string().max(DECK_LIMITS.slideTitle).optional(),
-  background: DeckBackgroundSchema.optional(),
+  /**
+   * A preset id or a validated media spec. Any other slug still parses, as it
+   * did before media backgrounds: the slide renders `solid-color` and
+   * `checkDeckStatic` warns (`unknown-background`), so an older deck still opens.
+   */
+  background: z.union([DeckBackgroundSchema, SlugSchema]).optional(),
   transition: TransitionSchema.optional(),
   steps: z.array(z.string().max(DECK_LIMITS.stepLabel)).max(DECK_LIMITS.steps).optional(),
   notes: z.string().max(DECK_LIMITS.slideNotes).optional(),

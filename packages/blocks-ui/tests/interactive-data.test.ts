@@ -108,6 +108,28 @@ describe('interactive tables', () => {
     expect(container.querySelector('[data-py-deck-interactive]')).toBe(root);
   });
 
+  it('lets a click on a plain table advance the deck; only interactive tables keep it', () => {
+    const plain = TableBlockSchema.parse({
+      type: 'table',
+      caption: 'Plans',
+      columns: [{ label: 'Plan' }],
+      rows: [['Team']],
+    });
+    const { container, unmount } = render(TableBlock, { block: plain });
+    expect(container.querySelector('[data-py-block="table"]')).not.toBeNull();
+    expect(container.querySelector('[data-py-deck-interactive]')).toBeNull();
+    unmount();
+
+    const highlighted = TableBlockSchema.parse({
+      ...plain,
+      interactive: { rowHighlight: true },
+    });
+    render(TableBlock, { block: highlighted });
+    expect(
+      document.querySelector('[data-py-block="table"]')?.hasAttribute('data-py-deck-interactive')
+    ).toBe(true);
+  });
+
   it('keeps sort and filter state local to the mounted slide view', async () => {
     const { unmount } = render(TableBlock, { block: interactiveTable() });
     await fireEvent.click(await screen.findByRole('button', { name: 'Sort by Project' }));

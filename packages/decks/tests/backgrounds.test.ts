@@ -16,6 +16,8 @@ import {
   type ResolvedDeckBackground,
   resolveDeckBackground,
 } from '../src/index.ts';
+import { checkDeckStatic } from '../src/quality/index.ts';
+import { safeParseDeck } from '../src/schema/index.ts';
 
 const MEDIA_SPECS: DeckBackground[] = [
   { kind: 'image', src: 'assets/cover.webp' },
@@ -253,5 +255,54 @@ describe('DeckBackgroundSchema', () => {
     for (const value of bad) {
       expect(DeckBackgroundSchema.safeParse(value).success, JSON.stringify(value)).toBe(false);
     }
+  });
+});
+
+describe('slide backgrounds from older decks', () => {
+  // Before media backgrounds, `slide.background` took any slug and an unknown one
+  // rendered solid-color with a warning. Such decks (share links, Deck Studio
+  // storage, user blueprints) must still open.
+  const oldDeck = {
+    style: {},
+    slides: [
+      {
+        id: 'intro',
+        layout: 'title-hero',
+        background: 'gradient-rainbow',
+        props: { title: 'Fictional launch' },
+      },
+      { id: 'known', layout: 'title-hero', background: 'solid-color', props: { title: 'Next' } },
+    ],
+  };
+
+  it('parses, renders the default and warns in lint', () => {
+    const parsed = safeParseDeck(oldDeck);
+    expect(parsed.success).toBe(true);
+    const deck = parsed.deck as NonNullable<typeof parsed.deck>;
+    expect(deck.slides[0]?.background).toBe('gradient-rainbow');
+
+    const resolved = resolveDeckBackground(deck.slides[0]?.background, BUILTIN_THEMES[0]!.light);
+    expect(resolved.preset).toBe('solid-color');
+    expect(resolved.warning).toMatch(/Unknown background "gradient-rainbow"/);
+
+    const unknown = checkDeckStatic(deck).issues.filter(
+      (issue) => issue.rule === 'unknown-background'
+    );
+    expect(unknown).toEqual([
+      expect.objectContaining({
+        severity: 'warning',
+        slideId: 'intro',
+        jsonPath: '$.slides[0].background',
+      }),
+    ]);
+  });
+
+  it('still refuses a background that is not a slug', () => {
+    expect(
+      safeParseDeck({
+        ...oldDeck,
+        slides: [{ ...oldDeck.slides[0], background: 'url(https://example.com/x.png)' }],
+      }).success
+    ).toBe(false);
   });
 });

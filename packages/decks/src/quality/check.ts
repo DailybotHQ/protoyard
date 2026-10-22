@@ -1,4 +1,5 @@
 import { type Block, blockText, countWords, forEachBlock } from '@protoyard/blocks';
+import { DECK_BACKGROUND_PRESETS, DEFAULT_DECK_BACKGROUND } from '../backgrounds/schema.ts';
 import { getDeckLayout, parseLayoutProps } from '../layouts/catalog.ts';
 import { stripStepMarkers } from '../layouts/props.ts';
 import { stepMarkersOutsideLayout } from '../layouts/steppable.ts';
@@ -203,6 +204,18 @@ export function checkDeckStatic(deck: Deck): DeckQualityReport {
   deck.slides.forEach((slide, index) => {
     const base: (string | number)[] = ['slides', index];
     const id = slide.id;
+
+    if (
+      typeof slide.background === 'string' &&
+      !Object.hasOwn(DECK_BACKGROUND_PRESETS, slide.background)
+    ) {
+      add(
+        'unknown-background',
+        id,
+        [...base, 'background'],
+        `Unknown background "${slide.background}"; the slide renders ${DEFAULT_DECK_BACKGROUND}. Use a preset id or a media spec.`
+      );
+    }
 
     // Structure: layout and props. A custom slide's props are its component id and data.
     if (slide.layout === 'custom') {

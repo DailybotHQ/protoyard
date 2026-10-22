@@ -45,7 +45,7 @@ export class DeckStyleState {
 
   /** The surface of a slide (its own background, else the deck background), cached per background. */
   surface(
-    background: DeckBackground | undefined,
+    background: DeckBackground | string | undefined,
     deckBackground: string | undefined
   ): SlideSurface | null {
     const kit = this.#kit;
