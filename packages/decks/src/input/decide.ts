@@ -8,7 +8,11 @@
  * Ported from the developer's Reveal deck (RevealDeck.svelte, guarded click
  * advance) including its fix: a click that closes the overview (or lands
  * while it is closing) never also advances.
+ *
+ * Which key does what comes from the control registry (`controls.ts`,
+ * `DECK_CONTROLS`): the key maps below are derived from it, never typed twice.
  */
+import { DECK_CONTROLS } from './controls.ts';
 
 export const DECK_INPUT_ACTIONS = [
   'next',
@@ -22,6 +26,9 @@ export const DECK_INPUT_ACTIONS = [
   'laser',
   'help',
   'print',
+  'fullscreen-exit',
+  'copy-link',
+  'debug',
 ] as const;
 export type DeckInputAction = (typeof DECK_INPUT_ACTIONS)[number];
 
@@ -96,6 +103,10 @@ export interface DeckInputState {
   blackout?: boolean;
   laser?: boolean;
   help?: boolean;
+  /** True while the deck is in full screen: Esc leaves it once nothing else is open. */
+  fullscreen?: boolean;
+  /** True when the debug panel is available (dev builds, `?debug=1`): only then does D act. */
+  debugAvailable?: boolean;
 }
 
 const EDITABLE_TAGS = new Set(['input', 'textarea', 'select']);
@@ -158,50 +169,46 @@ const anyModifier = (event: Modifiers) =>
   event.altKey === true ||
   event.shiftKey === true;
 
-/** Keys that move through the deck. */
-const NAVIGATION_KEYS: Readonly<Record<string, DeckInputAction>> = {
-  ArrowRight: 'next',
-  ArrowDown: 'next',
-  PageDown: 'next',
-  ' ': 'next',
-  ArrowLeft: 'prev',
-  ArrowUp: 'prev',
-  PageUp: 'prev',
-  Home: 'first',
-  End: 'last',
-};
+/** Keys that move through the deck (the navigate controls), without and with Shift. */
+const NAVIGATION_KEYS: Readonly<Record<string, DeckInputAction>> = {};
+const SHIFTED_NAVIGATION_KEYS: Readonly<Record<string, DeckInputAction>> = {};
+/** Single-character toggles (case-insensitive), and those that also accept Shift (`?`). */
+const TOGGLE_KEYS: Readonly<Record<string, DeckInputAction>> = {};
+const SHIFT_ALLOWED_TOGGLES = new Set<string>();
+/** Ctrl or ⌘ shortcuts (print). */
+const MODIFIER_KEYS: Readonly<Record<string, DeckInputAction>> = {};
 
-/** Single-letter toggles (case-insensitive). */
-const TOGGLE_KEYS: Readonly<Record<string, DeckInputAction>> = {
-  o: 'overview',
-  s: 'presenter',
-  p: 'presenter',
-  f: 'fullscreen',
-  b: 'blackout',
-  '.': 'blackout',
-  l: 'laser',
-  '?': 'help',
-};
+for (const item of DECK_CONTROLS) {
+  for (const spec of item.keys) {
+    if (spec.closes) continue;
+    const key = spec.key.length === 1 ? spec.key.toLowerCase() : spec.key;
+    if (spec.modifier) {
+      (MODIFIER_KEYS as Record<string, DeckInputAction>)[key] = item.action;
+    } else if (item.group === 'navigate') {
+      const table = spec.shift === 'required' ? SHIFTED_NAVIGATION_KEYS : NAVIGATION_KEYS;
+      (table as Record<string, DeckInputAction>)[spec.key] = item.action;
+    } else {
+      (TOGGLE_KEYS as Record<string, DeckInputAction>)[key] = item.action;
+      if (spec.shift === 'allowed') SHIFT_ALLOWED_TOGGLES.add(key);
+    }
+  }
+}
 
-/** For a help overlay: every binding, in display order. */
-export const DECK_KEY_BINDINGS: readonly {
-  keys: readonly string[];
-  action: DeckInputAction;
-  label: string;
-}[] = [
-  { keys: ['→', '↓', 'Page Down', 'Space'], action: 'next', label: 'Next step or slide' },
-  { keys: ['←', '↑', 'Page Up', 'Shift + Space'], action: 'prev', label: 'Previous step or slide' },
-  { keys: ['Home'], action: 'first', label: 'First slide' },
-  { keys: ['End'], action: 'last', label: 'Last slide' },
-  { keys: ['O'], action: 'overview', label: 'Overview of all slides' },
-  { keys: ['S', 'P'], action: 'presenter', label: 'Presenter view' },
-  { keys: ['F'], action: 'fullscreen', label: 'Full screen' },
-  { keys: ['B', '.'], action: 'blackout', label: 'Black out the screen' },
-  { keys: ['L'], action: 'laser', label: 'Laser pointer' },
-  { keys: ['?'], action: 'help', label: 'Keyboard shortcuts' },
-  { keys: ['Ctrl + P', '⌘ + P'], action: 'print', label: 'Print, one slide per page' },
-  { keys: ['Esc'], action: 'overview', label: 'Close the overview, help, blackout or laser' },
+/**
+ * What Esc closes, innermost first: the first one that is on wins. Every
+ * control with a `closes` key in the registry is here (the controls test
+ * checks it), so Esc always has a way out.
+ */
+const ESCAPE_ORDER: readonly [DeckInputAction, (state: DeckInputState) => boolean][] = [
+  ['help', (state) => state.help === true],
+  ['overview', (state) => state.overview === 'open'],
+  ['blackout', (state) => state.blackout === true],
+  ['laser', (state) => state.laser === true],
+  ['fullscreen-exit', (state) => state.fullscreen === true],
 ];
+
+/** The actions Esc can reach, innermost first (for tests and docs). */
+export const DECK_ESCAPE_ORDER: readonly DeckInputAction[] = ESCAPE_ORDER.map(([action]) => action);
 
 function decideKey(
   event: Extract<DeckInputEvent, { kind: 'key' }>,
@@ -214,23 +221,22 @@ function decideKey(
   const lower = key.length === 1 ? key.toLowerCase() : key;
 
   // Print is the one browser shortcut a deck takes over (print mode lays out one slide per page).
-  if ((event.ctrlKey || event.metaKey) && !event.altKey && lower === 'p') {
-    return event.repeat ? null : 'print';
+  const shortcut = MODIFIER_KEYS[lower];
+  if ((event.ctrlKey || event.metaKey) && !event.altKey && shortcut) {
+    return event.repeat ? null : shortcut;
   }
   if (event.ctrlKey || event.metaKey || event.altKey) return null;
 
   if (key === 'Escape') {
     if (event.repeat) return null;
-    if (state.help) return 'help';
-    if (state.overview === 'open') return 'overview';
-    if (state.blackout) return 'blackout';
-    if (state.laser) return 'laser';
-    return null;
+    return ESCAPE_ORDER.find(([, isOn]) => isOn(state))?.[0] ?? null;
   }
 
-  const toggle = TOGGLE_KEYS[lower];
+  const found = TOGGLE_KEYS[lower];
+  // Debug acts only where the panel is available; elsewhere D is an ordinary key.
+  const toggle = found === 'debug' && state.debugAvailable !== true ? undefined : found;
   // `?` needs Shift on most layouts; letters with Shift are someone typing.
-  if (toggle && (lower === '?' || !event.shiftKey)) {
+  if (toggle && (SHIFT_ALLOWED_TOGGLES.has(lower) || !event.shiftKey)) {
     if (event.repeat) return null;
     if (state.overview === 'closing') return null;
     if (state.help) return toggle === 'help' ? 'help' : null;
@@ -239,17 +245,17 @@ function decideKey(
     return toggle;
   }
 
-  const nav = NAVIGATION_KEYS[key];
-  if (!nav) return null;
+  const plain = NAVIGATION_KEYS[key];
+  const shifted = SHIFTED_NAVIGATION_KEYS[key];
+  if (!plain && !shifted) return null;
   // The overview grid, help and a blacked-out screen own the arrows; a closing overview takes nothing.
   if (state.overview === 'open' || state.overview === 'closing' || state.help || state.blackout) {
     return null;
   }
   // A focused control (a slider, a tab list) uses arrows and Space itself.
   if (isGuardedTarget(path)) return null;
-  if (key === ' ' && event.shiftKey) return 'prev';
-  if (event.shiftKey) return null;
-  return nav;
+  if (event.shiftKey) return shifted ?? null;
+  return plain ?? null;
 }
 
 function decideClick(
