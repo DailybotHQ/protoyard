@@ -1,15 +1,19 @@
 import { lstat, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
+  type AnyBlueprint,
   type Blueprint,
   BrandThemeError,
+  blueprintKind,
   diffBlueprints,
+  isAppBlueprint,
   latestSchemaVersion,
   MigrationError,
+  safeParseAnyBlueprint,
   safeParseBlueprint,
 } from '@protoyard/blueprint';
 import { CliError } from '../output.ts';
-import { type EmittedFile, emitPrototype } from './emit.ts';
+import { type EmittedFile, emitContentKindPrototype, emitPrototype } from './emit.ts';
 import { formatJson } from './format.ts';
 import { checkHeader } from './header.ts';
 
@@ -199,6 +203,110 @@ export interface RegenerationPlan {
   /** Serializable upgrade steps of the appended version (empty when storage did not change). */
   ops: readonly unknown[];
   files: FilePlan[];
+}
+
+export interface ContentKindRegenerationPlan {
+  blueprint: Exclude<AnyBlueprint, Blueprint>;
+  blueprintText: string;
+  fromVersion: number;
+  toVersion: number;
+  /** Content kinds have no entity schema migrations. */
+  ops: readonly unknown[];
+  files: FilePlan[];
+}
+
+async function parseContentOrThrow(raw: unknown, label: string) {
+  const parsed = await safeParseAnyBlueprint(raw);
+  if (parsed.success && !isAppBlueprint(parsed.data)) return parsed.data;
+  const issue = parsed.success ? undefined : parsed.error.issues[0];
+  throw new CliError(
+    'validation',
+    `${label} is invalid: ${issue ? `${issue.path.map(String).join('.') || '(root)'} — ${issue.message}` : 'expected a deck, page or doc blueprint'}`
+  );
+}
+
+/** Plans regeneration for content kinds without deriving entity migrations. */
+export async function planContentKindRegeneration(input: {
+  dest: string;
+  slug: string;
+  inputRaw: Record<string, unknown>;
+  manifestSchemaVersion: number;
+}): Promise<ContentKindRegenerationPlan> {
+  const { dest, slug, inputRaw, manifestSchemaVersion } = input;
+  const onDiskText = await readText(join(dest, 'blueprint.json'));
+  if (onDiskText === null) {
+    throw new CliError(
+      'conflict',
+      `prototypes/${slug} has no blueprint.json, so it was not generated.`
+    );
+  }
+  let onDiskRaw: Record<string, unknown>;
+  try {
+    onDiskRaw = JSON.parse(onDiskText) as Record<string, unknown>;
+  } catch (error) {
+    throw new CliError(
+      'validation',
+      `prototypes/${slug}/blueprint.json is not valid JSON: ${(error as Error).message}`
+    );
+  }
+  const onDiskBlueprint = await parseContentOrThrow(onDiskRaw, `prototypes/${slug}/blueprint.json`);
+  const blueprint = await parseContentOrThrow(inputRaw, 'The blueprint');
+  if (blueprintKind(blueprint) !== blueprintKind(onDiskBlueprint)) {
+    throw new CliError(
+      'validation',
+      `Cannot regenerate a ${blueprintKind(onDiskBlueprint)} prototype from a ${blueprintKind(blueprint)} blueprint.`,
+      { hint: 'Use the kind declared by this prototype template.' }
+    );
+  }
+
+  const snapshot = (await readSnapshot(dest)) ?? {
+    schemaVersion: manifestSchemaVersion,
+    blueprint: withoutHistory(onDiskRaw),
+  };
+  const snapshotBlueprint = await parseContentOrThrow(snapshot.blueprint, SNAPSHOT_PATH);
+  if (blueprintKind(snapshotBlueprint) !== blueprintKind(blueprint)) {
+    throw new CliError('validation', `${SNAPSHOT_PATH} has a different content kind.`);
+  }
+  if (manifestSchemaVersion !== 1 || snapshot.schemaVersion !== 1) {
+    throw new CliError(
+      'validation',
+      `Content-kind prototypes use storage schema v1; found manifest v${manifestSchemaVersion} and snapshot v${snapshot.schemaVersion}.`
+    );
+  }
+
+  const blueprintText = formatJson(withoutHistory(inputRaw));
+  const emitted = emitContentKindPrototype(blueprint, blueprintText);
+  const files = await planGeneratedFiles(dest, emitted);
+  const nextSnapshot: Snapshot = {
+    schemaVersion: 1,
+    blueprint: withoutHistory(inputRaw),
+    codegenFormat: CODEGEN_FORMAT_VERSION,
+  };
+  for (const [path, content] of [
+    ['blueprint.json', blueprintText],
+    [SNAPSHOT_PATH, snapshotText(nextSnapshot)],
+  ] as const) {
+    const current = await readText(join(dest, path));
+    files.push(
+      current !== null && sameJsonText(current, content)
+        ? { path, status: 'unchanged' }
+        : { path, status: current === null ? 'created' : 'changed', content }
+    );
+  }
+  for (const path of [
+    'src/App.svelte',
+    ...(blueprint.kind === 'deck' ? ['src/custom-slides.ts'] : []),
+  ]) {
+    if ((await readText(join(dest, path))) !== null) files.push({ path, status: 'skipped' });
+  }
+  return {
+    blueprint,
+    blueprintText,
+    fromVersion: 1,
+    toVersion: 1,
+    ops: [],
+    files,
+  };
 }
 
 /**
