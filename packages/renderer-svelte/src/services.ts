@@ -1,6 +1,7 @@
 import { PermissionDeniedError, SimulatedServiceError } from '@protoyard/core';
 import { toast } from '@protoyard/ui';
 import { mountedRuntime } from './context.ts';
+import { type ChromeMessages, chromeMessages, formatMessage } from './messages.ts';
 
 /**
  * Consistent feedback for domain services. Wrap UI-triggered mutations:
@@ -23,7 +24,7 @@ export type ServiceResult<T> = { ok: true; value: T } | { ok: false; error: unkn
 export interface RunServiceOptions {
   /** Toast shown on success. */
   success?: string | { title: string; description?: string };
-  /** Title for unexpected errors (default "Something went wrong"). */
+  /** Title for unexpected errors (default: `messages.service.unexpectedTitle`). */
   errorTitle?: string;
   /** Skip toasts for validation errors (default true). */
   silentValidation?: boolean;
@@ -41,23 +42,30 @@ export function isValidationError(
   );
 }
 
-const SIMULATED_TITLES: Record<SimulatedServiceError['code'], string> = {
-  offline: 'You are offline',
-  timeout: 'Request timed out',
-  'server-error': 'Server error',
-  'permission-denied': 'Request rejected',
-  'rate-limited': 'Slow down',
-};
+const SIMULATED_TITLE_KEYS: Record<SimulatedServiceError['code'], keyof ChromeMessages['service']> =
+  {
+    offline: 'offline',
+    timeout: 'timeout',
+    'server-error': 'serverError',
+    'permission-denied': 'permissionDenied',
+    'rate-limited': 'rateLimited',
+  };
 
-/** Maps an error to a toast. Returns false for errors meant for inline display. */
+/**
+ * Maps an error to a toast. Returns false for errors meant for inline display.
+ * Titles come from `mountPrototype({ messages: { service } })` (English by default).
+ */
 export function reportServiceError(error: unknown, options: RunServiceOptions = {}): boolean {
+  const messages = chromeMessages().service;
   // Name check too: a duplicated core copy would break `instanceof`.
   if (
     error instanceof PermissionDeniedError ||
     (error instanceof Error && error.name === 'PermissionDeniedError')
   ) {
-    toast.error('Not allowed', {
-      description: `Your role can't do this (${(error as PermissionDeniedError).capability}). Switch persona in DevTools to try another role.`,
+    toast.error(messages.notAllowedTitle, {
+      description: formatMessage(messages.notAllowedDescription, {
+        capability: (error as PermissionDeniedError).capability,
+      }),
     });
     return true;
   }
@@ -65,12 +73,12 @@ export function reportServiceError(error: unknown, options: RunServiceOptions = 
     error instanceof SimulatedServiceError ||
     (error instanceof Error && error.name === 'SimulatedServiceError')
   ) {
-    const code = (error as SimulatedServiceError).code;
-    toast.error(SIMULATED_TITLES[code] ?? 'Request failed', { description: error.message });
+    const key = SIMULATED_TITLE_KEYS[(error as SimulatedServiceError).code];
+    toast.error(key ? messages[key] : messages.failedTitle, { description: error.message });
     return true;
   }
   if (isValidationError(error) && options.silentValidation !== false) return false;
-  toast.error(options.errorTitle ?? 'Something went wrong', {
+  toast.error(options.errorTitle ?? messages.unexpectedTitle, {
     description: error instanceof Error ? error.message : String(error),
   });
   return true;
