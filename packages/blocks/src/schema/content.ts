@@ -1,5 +1,6 @@
 import { ChartSpecSchema } from '@protoyard/ai/chart';
 import { z } from 'zod';
+import { parseLineSpec } from '../code/highlight.ts';
 import { AvatarIdSchema, ImageSourceSchema, VideoSourceSchema } from './media.ts';
 import {
   BlockToneSchema,
@@ -286,22 +287,11 @@ export const CODE_LANGUAGES = [
   'html',
   'css',
   'sql',
+  'yaml',
   'text',
 ] as const;
 
-const LINE_SPEC = /^\d{1,4}(?:-\d{1,4})?(?:,\d{1,4}(?:-\d{1,4})?)*$/;
-
-/** Parses a highlight step like `1-2,4` into 1-based line ranges. */
-export function parseLineSpec(spec: string): [number, number][] | null {
-  if (!LINE_SPEC.test(spec)) return null;
-  const ranges: [number, number][] = [];
-  for (const part of spec.split(',')) {
-    const [a, b = a] = part.split('-').map(Number) as [number, number?];
-    if (a < 1 || (b as number) < a) return null;
-    ranges.push([a, b as number]);
-  }
-  return ranges;
-}
+export { parseLineSpec };
 
 export const CodeBlockSchema = z
   .strictObject({
