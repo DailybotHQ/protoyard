@@ -111,6 +111,27 @@ export { default as Label } from './components/label/Label.svelte';
 export { default as LoadingState } from './components/loading-state/LoadingState.svelte';
 export { default as MobileAppShell } from './components/mobile-app-shell/MobileAppShell.svelte';
 export { default as MobileHeader } from './components/mobile-header/MobileHeader.svelte';
+export { default as Drawer } from './components/overlay/Drawer.svelte';
+export {
+  DEFAULT_DRAWER_SIZE,
+  DRAWER_PLACEMENTS,
+  type DrawerPlacement,
+  resolveDrawerSize,
+} from './components/overlay/drawer.ts';
+export {
+  OVERLAY_Z_BASE,
+  type OverlayEntry,
+  OverlayStack,
+  overlayStack,
+  type PushOverlayOptions,
+  type RestoreFocusOptions,
+} from './components/overlay/overlay-stack.ts';
+export {
+  type OverlayLayer,
+  type OverlayLayerOptions,
+  useOverlayLayer,
+  useOverlayTopZIndex,
+} from './components/overlay/use-overlay-layer.svelte.ts';
 export { default as Pagination } from './components/pagination/Pagination.svelte';
 export { getPageTokens, type PageToken } from './components/pagination/pages.ts';
 export { default as Popover } from './components/popover/Popover.svelte';
@@ -154,6 +175,20 @@ export {
   type ToastStore,
   toast,
 } from './components/toast/toast.svelte.ts';
+export { default as UndoToaster } from './components/toast/UndoToaster.svelte';
+export {
+  DEFAULT_UNDO_DURATION,
+  MAX_UNDO_DURATION,
+  MAX_UNDO_TOASTS,
+  MIN_UNDO_DURATION,
+  type UndoAnnouncement,
+  type UndoSettleReason,
+  type UndoToastItem,
+  type UndoToastOptions,
+  type UndoToastStatus,
+  type UndoToastStore,
+  undoToast,
+} from './components/toast/undo.svelte.ts';
 export { default as Tooltip } from './components/tooltip/Tooltip.svelte';
 export { default as TypingIndicator } from './components/typing-indicator/TypingIndicator.svelte';
 export type { PickerUser } from './components/user-picker/types.ts';
