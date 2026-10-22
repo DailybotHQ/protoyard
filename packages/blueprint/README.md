@@ -580,7 +580,9 @@ network or model). Kind dispatch runs first (ADR-036):
 1. An explicit `kind` (`app` | `deck` | `page` | `doc`) overrides every cue; unknown kinds throw a
    stable `RangeError`.
 2. Strong deck / page / doc cues route to kind-specific synthesizers **before** app archetype
-   scoring (generic title/agenda/close or section scaffolding — richer outlines land later).
+   scoring. Decks use title/agenda/close scaffolding; pages use landing/pricing/waitlist/generic
+   section outlines; docs use report/handbook/one-pager/proposal/generic outlines (bounded
+   block vocabulary, stable section ids, explicit interactive omissions).
 3. App briefs keep the historical result fields and byte-compatible JSON.
 
 ```ts
@@ -649,6 +651,10 @@ can show as is.
 
 `detectBriefKind` and the content synthesizers (`synthesizeDeckFromBrief`,
 `synthesizePageFromBrief`, `synthesizeDocFromBrief`) are exported from `@protoyard/blueprint`.
+Page/doc section templates live in `buildPageOutline` / `buildDocOutline`
+(`packages/blueprint/src/brief/page-doc-outlines.ts`): ordered sections with draft blocks
+(heading, text, list, cta, …) and rationale lines for omitted interactive features (forms,
+payments, auth). No app entities or roles.
 `blueprintFromBrief` returns `AppBriefResult | ContentBriefResult`; narrow with
 `isAppBriefResult` / `isContentBriefResult`. Content drafts carry `kind`, `outline`, `json` and
 `rationale` (no app `entities` / `roles`); engine body schemas validate them once wired.
