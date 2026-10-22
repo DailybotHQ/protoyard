@@ -52,6 +52,7 @@ exists and that its links and anchors resolve ([Testing guide](TESTING_GUIDE.md)
 | [Architecture](ARCHITECTURE.md) | Packages, the prototype contract, runtime lifecycle, isolation, scale |
 | [Decisions](DECISIONS.md) | ADRs and trade-offs |
 | [Security](SECURITY.md) | Threat model and trust boundaries |
+| [Accessibility](ACCESSIBILITY.md) | WCAG 2.1 A/AA checks for decks, pages and docs: axe in light and dark, phone and desktop, what is asserted, fixes and honest limits |
 | [Performance](PERFORMANCE.md) | Measured numbers and budgets |
 
 ## Integrate it
@@ -109,14 +110,26 @@ Package and app references live next to the code: each `packages/*/README.md`,
 | [review](../packages/review/README.md) | Review comments engine: anchors, adapter contract, local, http and artifact adapters, server handler |
 | [review-ui](../packages/review-ui/README.md) | Lazy review overlay, pins, threads, panel and toolbar |
 | [avatars](../packages/avatars/README.md) | 175 fictional portraits as WebP with a verified manifest (data only) |
-| [player](../packages/player/README.md) | The prebuilt static app that runs any blueprint at runtime, with no build and no install |
+| [blocks](../packages/blocks/README.md) | Content block engine: schemas, limits, untrusted-input guard, closed formula AST, text helpers (no Svelte) |
+| [blocks-ui](../packages/blocks-ui/README.md) | Svelte block renderers, one lazy subpath per family |
+| [decks](../packages/decks/README.md) | Slide deck engine: schema, 21-layout catalog, navigation, steps, style, quality checks (no Svelte) |
+| [decks-ui](../packages/decks-ui/README.md) | `DeckApp`, presenter, overview, print and Deck Studio, each on its own lazy chunk |
+| [pages](../packages/pages/README.md) | Page and doc engine: schemas, limits, TOC helpers, form-response services (no Svelte) |
+| [pages-ui](../packages/pages-ui/README.md) | `PageApp` and `DocApp` hosts, forms and responses UI, print CSS |
+| [flows](../packages/flows/README.md) | Workflow engine: serializable flows, triggers, steps, data-only conditions, simulated runs (no Svelte) |
+| [flows-ui](../packages/flows-ui/README.md) | Svelte workflow editor and simulated run panels |
+| [gamification](../packages/gamification/README.md) | Points ledger, levels, badges, missions and streaks (no Svelte) |
+| [gamification-ui](../packages/gamification-ui/README.md) | Level, points and streak chips, badges and mission panels |
+| [player](../packages/player/README.md) | The prebuilt static player for app, deck, page and doc blueprints, with per-kind entries, no build and no install |
 | [templates](../packages/templates/README.md) | `@protoyard/templates`: every starter template packed for npm, `listTemplates()` and `templateDir()` |
 | [protoyard](../packages/protoyard/README.md) | The unscoped `protoyard` package: a bin that runs `@protoyard/cli` at the same version |
 | [create-protoyard](../packages/create-protoyard/README.md) | The workspace scaffolder behind `npm create protoyard` (once published) |
 
 Product blueprints for `protoyard generate` live in
-[blueprints/](../blueprints/README.md): 40 catalog entries
-(`pnpm protoyard list --kind blueprint`). `helpdesk-demo` (Beacon Help Desk)
+[blueprints/](../blueprints/README.md): 40 app blueprints plus deck, page and
+doc examples in `decks/`, `pages/` and `docs/` (`pnpm protoyard list --kind
+blueprint` lists all 47). `create-anything-deck` is generated from the
+flagship deck blueprint. `helpdesk-demo` (Beacon Help Desk)
 is the first `protoyard generate` flagship: `blueprint.json` → CRUD + SLA
 dashboard + ticket workspace ([README](../prototypes/helpdesk-demo/README.md)).
 Three more are generated from blueprints with rich screens:

@@ -270,6 +270,17 @@ describe('the schema alone holds the same line for value inputs', () => {
       .filter((entry) => entry.problems.length > 0);
     expect(JSON.stringify(failures.slice(0, 5), null, 1)).toBe('[]');
   });
+
+  it.each(['\u061c', '\u200e', '\u200f', '\ufeff'])(
+    'rejects bidi mark %j in direct block schema input and strips it on untrusted input',
+    (mark) => {
+      const input = [{ type: 'heading', text: `A${mark}B`, level: 2 }];
+      expect(safeParseBlocks(input).success).toBe(false);
+      const loaded = parseUntrustedBlocks(input);
+      expect(loaded.success).toBe(true);
+      if (loaded.success) expect(loaded.blocks[0]).toMatchObject({ text: 'AB' });
+    }
+  );
 });
 
 describe('URL tricks in every URL-bearing field', () => {
@@ -300,6 +311,17 @@ describe('URL tricks in every URL-bearing field', () => {
     );
     expect(parseUntrustedBlocks(ctaWith('https://example.com/docs')).success).toBe(true);
     expect(parseUntrustedBlocks(ctaWith('mailto:team@example.com')).success).toBe(true);
-    expect(parseUntrustedBlocks(ctaWith('#/pricing')).success).toBe(true);
+  });
+
+  it.each(['http://example.com/docs', '#/pricing', 'guide/start.html'])(
+    'rejects non-approved link target %j',
+    (href) => {
+      expect(parseUntrustedBlocks(ctaWith(href)).success).toBe(false);
+    }
+  );
+
+  it('allows only HTTPS and mailto links', () => {
+    expect(parseUntrustedBlocks(ctaWith('https://example.com/docs')).success).toBe(true);
+    expect(parseUntrustedBlocks(ctaWith('mailto:team@example.com')).success).toBe(true);
   });
 });

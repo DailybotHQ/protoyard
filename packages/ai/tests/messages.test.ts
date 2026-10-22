@@ -224,6 +224,7 @@ describe('unsafe links', () => {
     'https://user:pass@example.com/',
     'https://exa\u202emple.com',
     'relative/path',
+    'http://example.com',
     'mailto:',
   ];
 
@@ -235,9 +236,9 @@ describe('unsafe links', () => {
     expect(issues(message_([{ type: 'link_preview', url }])).length).toBeGreaterThan(0);
   });
 
-  it('accepts http(s) links, and mailto only on buttons', () => {
+  it('accepts https links and mailto only on buttons', () => {
     expect(isSafeLinkUrl('https://example.com/a?b=c#d')).toBe(true);
-    expect(isSafeLinkUrl('http://example.com')).toBe(true);
+    expect(isSafeLinkUrl('http://example.com')).toBe(false);
     expect(isSafeLinkUrl('mailto:team@example.com')).toBe(true);
     ok(
       message_([{ type: 'buttons', buttons: [{ label: 'Mail', url: 'mailto:team@example.com' }] }])

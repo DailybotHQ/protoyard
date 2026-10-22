@@ -134,7 +134,9 @@ export {
   BlockStepSchema,
   BlockToneSchema,
   IconNameSchema,
+  isUnsafeTextCharacter,
   LinkHrefSchema,
+  normalizeLineSeparators,
 } from './schema/primitives.ts';
 export {
   BLOCK_FAMILIES,

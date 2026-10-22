@@ -1,3 +1,15 @@
+// @vitest-environment node
+/**
+ * Player hardening:
+ *  1. the sources that turn untrusted blueprints into UI (player, crud,
+ *     blueprint) never use {@html}, eval, new Function, HTML string sinks or a
+ *     dynamic import of a computed specifier;
+ *  2. the built index.html opens <head> with the charset, then a strict CSP meta tag, with
+ *     every inline script hashed and no unsafe-eval, and `_headers` repeats it
+ *     with frame-ancestors;
+ *  3. in Chromium, the built player opens a share link under that CSP with no
+ *     policy violation.
+ */
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';

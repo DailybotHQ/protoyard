@@ -776,8 +776,8 @@ needs a single hardened surface.
   - Both are imported, not moved.
 - **No styles in data:** colors are **tones** (neutral, accent, info, success, warning, danger)
   mapped to theme tokens. Blocks never accept CSS, hex values or style strings.
-- **Media at level 1:** avatar ids and raster data URIs (png, jpeg, webp, gif; at most 192 KB
-  each and 512 KB per document). There is no SVG, no remote `https` and no iframe. Relative
+- **Media at level 1:** avatar ids, raster data URIs (png, jpeg, webp, gif) and video data URIs
+  (mp4, webm), at most 192 KB each and 512 KB per document. There is no SVG, no remote `https` and no iframe. Relative
   assets are level 2 only.
 - **Interactive state:** pure reducers plus a `BlockStateHost` contract (`read`, `dispatch`) that
   the kind runtime implements as a service (`environment.run` → `db.transaction`). blocks-ui
@@ -804,7 +804,7 @@ single-file artifacts and render identically at level 2.
 **Decision.**
 - **Packages:** `@protoyard/decks` (engine) and `@protoyard/decks-ui`, with no Reveal.js.
 - **Slides:** a slide is `{ layout: <catalog id>, props }` or `{ layout: "free", blocks }`.
-  - `@protoyard/decks` owns the layout catalog: the 19 layouts and 8 backgrounds ported from the
+  - `@protoyard/decks` owns the layout catalog: the 19 layouts and 8 backgrounds (13 presets today) ported from the
     developer's site, plus `chart` and `free`.
   - Each entry has a props schema, limits, use-when and don't-use-when text, and pacing types.
   - Authoring tools consume the catalog; they do not copy it.
@@ -854,15 +854,24 @@ worker. Single-file exports inline every chunk (about 3.2 MB). Kit archetypes re
 player, which splits level 1 from level 2.
 
 **Decision.**
-- **Routing:** the player routes by kind in `run.ts`, before the app boot chunk loads.
+- **Routing:** the player routes by kind before the app boot chunk loads. `index.html` injects
+  `bootByKind` (`sources/boot-any.ts`) into the shared loop (`run.ts`); `deck.html`, `page.html`
+  and `doc.html` inject only the kind boot (`sources/kind-boot.ts`), so their reachable graph
+  never names the app boot, the CRUD shell, the world worker or the app generator.
 - **Entries:** one Vite build with several HTML inputs. `index.html` stays universal, and
   `deck.html`, `page.html` and `doc.html` are minimal entries.
 - **Single-file pruning:** exports embed only the chunks reachable from the chosen entry.
 - **Budgets:** the provisional limits are 150 KB initial JS gzip and 30 KB CSS for kind entries,
   and 1.5 MiB for a deck single file. Measured numbers replace them in `protoyard.budgets.json`.
+  *Outcome (2026-10-22):* the kind JS and CSS budgets stayed at 150 KB and 30 KB. The 1.5 MiB
+  single file was not met (about 1.61 MB, because DevTools, Deck Studio and the theme tools
+  stay); the enforced cap is 2 MiB per kind (`QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` in
+  `packages/cli/src/lib/quick/single-file.ts`), and `kinds.*.singleFileKb` is recorded but not
+  read by any gate. The player worker graph cap is one constant, `WORKER_GRAPH_GZIP_KB = 220`
+  (`packages/player/tests/player-budgets.ts`).
 - **Runtime:** non-app kinds mount a minimal runtime, `defineKindRuntime`: one database version
-  with interactive-state and form-response stores, a default scenario, and presenter and audience
-  personas. Themes, DevTools, snapshots and review keep working.
+  with interactive-state and form-response stores, a default scenario, and presenter, audience
+  and viewer personas. Themes, DevTools, snapshots and review keep working.
 - **Level 2:**
   - `generate` picks `templates/deck`, `templates/page` or `templates/doc` by kind; an explicit
     template must declare the same `blueprintKind`.
@@ -882,7 +891,9 @@ product-agnostic.
 
 **Decision.**
 - **Generic only:** capabilities are rewritten generically, never copied with names, copy,
-  tokens, assets or domain terms. A checkpoint scan refuses fork product names in upstream source.
+  tokens, assets or domain terms. This is a review rule, checked at each plan checkpoint and in
+  the final review; `pnpm hygiene` covers private emails, personal paths and secrets, not
+  product names.
 - **Where things land:**
 
   | Capability | Package |
@@ -916,7 +927,8 @@ the previous screen.
 - **Adaptive presentation:** `renderer-svelte` owns an adaptive presentation store. The view is
   resolved from `?view=`, then the phone frame, then a saved preference, then width, and
   `runtime.overrides` `{shell, viewport}` keeps the frame and layout in agreement. `ui` adds a
-  thin toggle and a `ResponsiveOverlay` that switches on container width.
+  thin toggle and an `AdaptiveOverlay` (sheet, dialog or side panel, resolved by
+  `resolveAdaptiveOverlayPresentation` with a 768 px breakpoint).
 - **Modal routes:** routes may declare `overlay: true` and a desktop layout hint. The router
   draws them over the last full-screen route, and closing returns to it.
 - **Floating chrome** (the demo badge, DevTools launcher, review toolbar and toasts) stays inside

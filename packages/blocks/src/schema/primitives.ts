@@ -88,26 +88,46 @@ export const blockBase = {
   tone: BlockToneSchema.optional(),
 };
 
-// C0 controls (except the whitespace each kind allows: line breaks in markdown,
-// tabs and line breaks in code), DEL, C1 controls, the bidi marks, embeddings,
-// overrides and isolates used in "Trojan Source" spoofing (U+061C, U+200E,
-// U+200F, U+202A–U+202E, U+2066–U+2069), the BOM, the invisible zero-width
-// space and word joiner (U+200B, U+2060), and the Unicode line and paragraph
-// separators (U+2028, U+2029). ZWJ/ZWNJ (U+200C, U+200D) stay: emoji and some
-// scripts need them. The untrusted loaders strip or convert all of these first.
-const SINGLE_LINE_UNSAFE =
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point.
-  /[\u0000-\u001f\u007f-\u009f\u061c\u200b\u200e\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]/;
-const MULTI_LINE_UNSAFE =
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point.
-  /[\u0000-\u0009\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200b\u200e\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]/;
-const CODE_UNSAFE =
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point.
-  /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200b\u200e\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]/;
+// C0/C1 controls, bidi marks/embeddings/overrides/isolates ("Trojan Source"),
+// BOMs, the invisible zero-width space and word joiner (U+200B, U+2060) and
+// the Unicode line and paragraph separators (U+2028, U+2029). ZWJ/ZWNJ
+// (U+200C, U+200D) stay: emoji and some scripts need them. This shared
+// predicate also drives the untrusted-input sanitizers.
+const UNSAFE_TEXT_CODE_POINT_RANGES = [
+  [0x00, 0x1f],
+  [0x7f, 0x9f],
+  [0x061c, 0x061c],
+  [0x200b, 0x200b],
+  [0x200e, 0x200f],
+  [0x2028, 0x2029],
+  [0x202a, 0x202e],
+  [0x2060, 0x2060],
+  [0x2066, 0x2069],
+  [0xfeff, 0xfeff],
+] as const;
 
-/** True when `value` holds a character that one-line plain text never allows. */
-export function hasUnsafeSingleLineCharacters(value: string): boolean {
-  return SINGLE_LINE_UNSAFE.test(value);
+/**
+ * Turns U+2028/U+2029 into a line break (multiline text) or a space, so the
+ * untrusted loaders keep the word boundary before the schema refuses them.
+ */
+export function normalizeLineSeparators(value: string, keepNewlines: boolean): string {
+  return value.replace(/[\u2028\u2029]/g, keepNewlines ? '\n' : ' ');
+}
+
+export function isUnsafeTextCharacter(
+  character: string,
+  allowNewlines = false,
+  allowTabs = false
+): boolean {
+  const code = character.codePointAt(0) ?? 0;
+  if (code === 0x0a && allowNewlines) return false;
+  if (code === 0x0d && allowNewlines) return false;
+  if (code === 0x09 && allowTabs) return false;
+  return UNSAFE_TEXT_CODE_POINT_RANGES.some(([start, end]) => code >= start && code <= end);
+}
+
+function hasUnsafeText(value: string, allowNewlines = false, allowTabs = false): boolean {
+  return [...value].some((character) => isUnsafeTextCharacter(character, allowNewlines, allowTabs));
 }
 
 /** One line of plain text: no line breaks, control or bidi override characters. */
@@ -117,7 +137,7 @@ export function plainText(max: number) {
     .trim()
     .min(1)
     .max(max)
-    .refine((value) => !SINGLE_LINE_UNSAFE.test(value), {
+    .refine((value) => !hasUnsafeText(value), {
       message: 'Remove line breaks and control or bidi override characters',
     });
 }
@@ -132,7 +152,7 @@ export function markdownText(max: number) {
     .trim()
     .min(1)
     .max(max)
-    .refine((value) => !MULTI_LINE_UNSAFE.test(value), {
+    .refine((value) => !hasUnsafeText(value, true), {
       message: 'Remove control or bidi override characters',
     });
 }
@@ -143,22 +163,21 @@ export function codeText(max: number) {
     .string()
     .min(1)
     .max(max)
-    .refine((value) => !CODE_UNSAFE.test(value), {
+    .refine((value) => !hasUnsafeText(value, true, true), {
       message: 'Remove control or bidi override characters',
     });
 }
 
 /**
- * A link target: http(s), mailto, an in-document `#anchor` or a relative path.
- * `javascript:`, `data:`, `vbscript:`, protocol-relative `//host` and any
- * value `safeHref` would have to rewrite are rejected.
+ * A link target: HTTPS or mailto only. Every other scheme, relative path and
+ * value `safeHref` would have to rewrite is rejected.
  */
 export const LinkHrefSchema = z
   .string()
   .min(1)
   .max(BLOCK_CONTENT_LIMITS.href)
   .refine((value) => safeHref(value) === value, {
-    message: 'Use an http(s), mailto, #anchor or relative link',
+    message: 'Use an https: or mailto: link',
   });
 
 /**

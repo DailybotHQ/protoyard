@@ -1,3 +1,8 @@
+import {
+  classifyMediaSource,
+  isUnsafeTextCharacter,
+  normalizeLineSeparators,
+} from '@protoyard/blocks';
 import { type AnyBlueprint, safeParseAnyBlueprint } from './kinds/envelope.ts';
 import { detectBlueprintKind } from './kinds/kind.ts';
 import {
@@ -56,35 +61,16 @@ export type UntrustedBlueprintResult =
   | { success: false; blueprint: null; issues: UntrustedBlueprintIssue[] };
 
 /**
- * Removes C0/C1 controls, bidi overrides and BOMs. `multiline` text keeps
+ * Removes C0/C1 controls, bidi overrides, BOMs and invisible characters, and
+ * turns U+2028/U+2029 into line breaks or spaces. `multiline` text keeps
  * `\n` (after normalizing `\r\n`), and `code` keeps `\t` as well.
  */
 function stripControlAndBidi(value: string, context: TextContext = 'plain'): string {
   const keepNewlines = context !== 'plain';
-  // Unicode line/paragraph separators become a real line break where one is
-  // allowed, and a space in one-line fields.
-  const separators = keepNewlines ? '\n' : ' ';
-  const normalized = (keepNewlines ? value.replace(/\r\n?/g, '\n') : value).replace(
-    /[\u2028\u2029]/g,
-    separators
-  );
-  return [...normalized]
+  const lines = normalizeLineSeparators(value, keepNewlines);
+  return [...(keepNewlines ? lines.replace(/\r\n?/g, '\n') : lines)]
     .filter((char) => {
-      const code = char.codePointAt(0) ?? 0;
-      if (code === 0x0a && keepNewlines) return true;
-      if (code === 0x09 && context === 'code') return true;
-      return !(
-        code <= 0x1f ||
-        (code >= 0x7f && code <= 0x9f) ||
-        code === 0x061c ||
-        code === 0x200b ||
-        code === 0x200e ||
-        code === 0x200f ||
-        (code >= 0x202a && code <= 0x202e) ||
-        code === 0x2060 ||
-        (code >= 0x2066 && code <= 0x2069) ||
-        code === 0xfeff
-      );
+      return !isUnsafeTextCharacter(char, keepNewlines, context === 'code');
     })
     .join('');
 }
@@ -481,6 +467,41 @@ const failed = (...issues: UntrustedBlueprintIssue[]): UntrustedDocumentResult =
   issues,
 });
 
+function relativeMediaIssue(
+  value: unknown,
+  path: (string | number)[] = []
+): UntrustedBlueprintIssue | null {
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index += 1) {
+      const found = relativeMediaIssue(value[index], [...path, index]);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof value !== 'object' || value === null) return null;
+  for (const [key, child] of Object.entries(value)) {
+    const childPath = [...path, key];
+    if ((key === 'src' || key === 'poster' || key === 'image') && typeof child === 'string') {
+      const kinds =
+        key === 'image' || key === 'poster' ? (['image'] as const) : (['image', 'video'] as const);
+      for (const kind of kinds) {
+        const result = classifyMediaSource(child, kind);
+        if (result.ok && result.kind === 'relative') {
+          return {
+            code: 'invalid-blueprint',
+            path: childPath,
+            message: 'Level-1 documents cannot load relative media paths.',
+            fix: 'Use an avatar id or an allowed raster data URI; relative assets require a level-2 prototype.',
+          };
+        }
+      }
+    }
+    const nested = relativeMediaIssue(child, childPath);
+    if (nested) return nested;
+  }
+  return null;
+}
+
 function capsOf(limits: Partial<UntrustedDocumentLimits>): UntrustedDocumentLimits {
   return Object.fromEntries(
     Object.entries(DEFAULT_UNTRUSTED_DOCUMENT_LIMITS).map(([key, defaultValue]) => {
@@ -501,6 +522,8 @@ function capsOf(limits: Partial<UntrustedDocumentLimits>): UntrustedDocumentLimi
  * contract and limits. Content kinds (deck, page, doc):
  *
  * - size and depth are checked before parsing (`maxBytes`, `maxDepth`);
+ * - relative block media is refused at level 1 (generated level-2 schemas
+ *   continue to accept deck-local paths);
  * - strings lose C0/C1 controls and bidi overrides, except `\n` in the
  *   schema-declared multiline fields (markdown, speaker notes, quotes, list
  *   items) and `\t` in code; `\r\n` becomes `\n`;
@@ -563,6 +586,8 @@ export async function loadUntrustedDocument(
     }
     const safe = sanitizeJson(parsed, caps.maxDepth, true);
     if (!safe.ok) return failed(safe.issue);
+    const disallowedMedia = relativeMediaIssue(safe.value);
+    if (disallowedMedia) return failed(disallowedMedia);
     const serialized = JSON.stringify(safe.value);
     if (serialized === undefined || utf8Length(serialized) > caps.maxBytes) {
       return failed(

@@ -333,7 +333,7 @@ export function duplicateBlockIdIssues(
       if (options.crossListOnly && first.list === index) return;
       issues.push({
         path: [...full, 'id'],
-        message: `Duplicate block id "${id}" (first used at ${first.at}); block ids must be unique across the document`,
+        message: `Duplicate block id "${id}" (first used at ${first.at}); give every block in the document its own id`,
       });
     });
   });

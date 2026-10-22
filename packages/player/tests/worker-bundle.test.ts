@@ -9,6 +9,7 @@ import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import config from '../vite.config.ts';
 import { WORKER_GRAPH_GZIP_KB } from './player-budgets.ts';
+import { productionBuildEnv } from './support/build-env.ts';
 
 /**
  * The world-generation worker loads Faker and the blueprint generator. Built
@@ -34,6 +35,7 @@ beforeAll(() => {
     cwd: PLAYER,
     stdio: 'pipe',
     timeout: 240_000,
+    env: productionBuildEnv(),
   });
 }, 300_000);
 

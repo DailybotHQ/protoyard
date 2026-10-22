@@ -176,12 +176,14 @@ describe('AssistantWorkspace', () => {
 describe('RichAnswer', () => {
   it('renders markdown as safe elements and leaves executable markup as text', () => {
     const { container } = render(RichAnswer, {
-      content: '# Plan\n\n**Ready** <script>alert(1)</script> [unsafe](javascript:alert(1))',
+      content:
+        '# Plan\n\n**Ready** <script>alert(1)</script> [unsafe](javascript:alert(1)) ![Cover](assets/cover.webp)',
     });
     expect(screen.getByRole('heading', { name: 'Plan' })).toBeTruthy();
     expect(container.querySelector('script')).toBeNull();
     expect(container.textContent).toContain('<script>alert(1)</script>');
     expect(container.querySelector('a[href^="javascript:"]')).toBeNull();
+    expect(container.querySelector('img')?.getAttribute('referrerpolicy')).toBe('no-referrer');
     expect(container.querySelector('strong')?.textContent).toBe('Ready');
   });
 });

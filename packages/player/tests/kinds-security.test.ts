@@ -16,6 +16,7 @@ import demo from '../src/fixtures/demo.blueprint.json';
 import { createMountEmbed } from '../src/kinds/mount-embed.ts';
 import { startPlayer } from '../src/sources/start.ts';
 import { PLAYER_HTML_ENTRIES } from '../vite.config.ts';
+import { productionBuildEnv } from './support/build-env.ts';
 
 /**
  * The kind threat model at the player (docs/SECURITY.md "Kinds"):
@@ -155,7 +156,6 @@ describe('kind renderers never turn data into code or HTML', () => {
     ['new Function()', /new\s+Function\s*\(/],
     ['innerHTML/outerHTML assignment', /\.(?:inner|outer)HTML\s*=/],
     ['insertAdjacentHTML', /insertAdjacentHTML\s*\(/],
-    // Any document's write(): a popup or frame document is still an HTML string sink.
     ['document.write', /\.write(?:ln)?\s*\(/],
     ['srcdoc', /\bsrcdoc\b/],
     ['dynamic import of a computed specifier', /(?<![.\w])import\(\s*(?!['"`]|\))/],
@@ -369,7 +369,7 @@ describe('mountEmbed frames only a valid app from this origin', () => {
     const target = document.body.appendChild(document.createElement('div'));
     const mount = createMountEmbed({ connect: connect as never, playerUrl: sameOrigin });
     const hostile = structuredClone(demo) as Json;
-    hostile.name = `Demo\u202E app`;
+    hostile.name = `Demo\u202e app`;
     const unmount = await mount(target, hostile);
     const frame = target.querySelector('iframe');
     expect(frame?.getAttribute('src')).toBe(sameOrigin().href);
@@ -398,15 +398,10 @@ describe('built kind pages: CSP no looser than index.html', () => {
     if (!PLAYER_HTML_ENTRIES.every((name) => existsSync(join(DIST, `${name}.html`)))) {
       // A production build: Vitest's NODE_ENV=test would bundle Svelte's dev
       // build and leave a larger dist behind for budget.test.ts.
-      const env = Object.fromEntries(
-        Object.entries(process.env).filter(
-          ([key]) => key !== 'NODE_ENV' && !key.startsWith('VITEST')
-        )
-      );
       const run = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
         cwd: ROOT,
         encoding: 'utf8',
-        env,
+        env: productionBuildEnv(),
       });
       if (run.status !== 0) throw new Error(`player build failed:\n${run.stderr}${run.stdout}`);
     }

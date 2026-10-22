@@ -14,20 +14,37 @@ export const CHART_MAX_POINTS = 366;
 export const CHART_MAX_SERIES = 8;
 
 const PART_WHOLE = new Set(['donut', 'pie', 'funnel']);
-// One-line chart text: no control, bidi, zero-width or separator characters
-// (the same set block plain text refuses), so labels cannot spoof or hide text.
-const UNSAFE_TEXT =
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point.
-  /[\u0000-\u001f\u007f-\u009f\u061c\u200b\u200e\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]/;
+// Same set block plain text refuses: controls, bidi, zero-width and separators.
+const UNSAFE_LABEL_CODE_POINT_RANGES = [
+  [0x00, 0x1f],
+  [0x7f, 0x9f],
+  [0x061c, 0x061c],
+  [0x200b, 0x200b],
+  [0x200e, 0x200f],
+  [0x2028, 0x2029],
+  [0x202a, 0x202e],
+  [0x2060, 0x2060],
+  [0x2066, 0x2069],
+  [0xfeff, 0xfeff],
+] as const;
 const text = (max: number) =>
   z
     .string()
     .trim()
     .min(1)
     .max(max)
-    .refine((value) => !UNSAFE_TEXT.test(value), {
-      message: 'Remove line breaks and control, bidi or invisible characters',
-    });
+    .refine(
+      (value) =>
+        ![...value].some((character) => {
+          const code = character.codePointAt(0) ?? 0;
+          return UNSAFE_LABEL_CODE_POINT_RANGES.some(
+            ([start, end]) => code >= start && code <= end
+          );
+        }),
+      {
+        message: 'Remove control or bidirectional characters',
+      }
+    );
 
 export const ChartSpecSchema = z
   .strictObject({

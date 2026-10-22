@@ -3,8 +3,10 @@ import type { HeadingBlock } from '@protoyard/blocks';
 import { forEachBlock } from '@protoyard/blocks';
 import { getBlockHost, setBlockHost } from '@protoyard/blocks-ui';
 import { allocateHeadingId, buildDocToc, type DocDocument } from '@protoyard/pages';
+import { LoadingState } from '@protoyard/ui';
 import { onMount, untrack } from 'svelte';
 import { BlockHost } from '../block-host/index.ts';
+import { getFormServices } from '../form/context.ts';
 
 /**
  * A focused reading layout for a continuous report. It uses one disclosure
@@ -31,6 +33,9 @@ setBlockHost({
   density: 'comfortable',
   documentId: parentHost.documentId ?? untrack(() => doc.id),
 });
+
+// Set by DocApp from the kind runtime; without it a form keeps the block preview.
+const formServices = getFormServices();
 
 const titleBlock = $derived(
   doc.blocks[0]?.type === 'heading' && doc.blocks[0].level === 1
@@ -72,13 +77,20 @@ onMount(() => {
   return () => media.removeEventListener('change', syncDisclosure);
 });
 
+/**
+ * Only heading blocks carry TOC ids (`data-py-block-heading`, set by
+ * blocks-ui): headings inside other blocks (a callout's title, markdown) are
+ * not TOC entries, and counting them would shift every id after them.
+ */
+const HEADING_BLOCKS = '[data-py-block-heading]';
+
 $effect(() => {
   const root = flowRoot;
   const blocks = bodyBlocks;
   if (!root) return;
 
   const syncActiveHeading = (): void => {
-    const headings = Array.from(root.querySelectorAll<HTMLElement>('h2, h3, h4'));
+    const headings = Array.from(root.querySelectorAll<HTMLElement>(HEADING_BLOCKS));
     const activationLine = window.innerHeight * 0.3;
     let candidate = headings[0]?.id ?? '';
     for (const heading of headings) {
@@ -92,7 +104,7 @@ $effect(() => {
 
   const applyIds = (): void => {
     const expected = expectedHeadings(blocks);
-    const nodes = Array.from(root.querySelectorAll<HTMLElement>('h2, h3, h4'));
+    const nodes = Array.from(root.querySelectorAll<HTMLElement>(HEADING_BLOCKS));
     const count = Math.min(expected.length, nodes.length);
     for (let i = 0; i < count; i += 1) {
       const node = nodes[i];
@@ -183,7 +195,19 @@ function onTocClick(id: string): void {
       <div bind:this={flowRoot} class="doc-reading__flow" data-py-doc-flow>
         {#each bodyBlocks as block, index (block.id ?? `${block.type}-${index}`)}
           <div class="doc-reading__block" data-py-doc-block={block.type} data-block-index={index}>
-            <BlockHost {block} />
+            {#if block.type === 'form' && formServices}
+              <div class="mx-auto w-full max-w-xl" data-py-doc-block-form>
+                {#await import('../form/FormBlock.svelte')}
+                  <LoadingState label="Loading the form" class="py-8" />
+                {:then { default: FormBlock }}
+                  <FormBlock form={block} services={formServices} />
+                {:catch}
+                  <BlockHost {block} />
+                {/await}
+              </div>
+            {:else}
+              <BlockHost {block} />
+            {/if}
           </div>
         {/each}
       </div>

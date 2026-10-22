@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { extname, join, normalize } from 'node:path';
+import { productionBuildEnv } from './build-env.ts';
 
 /**
  * Serves the built player (packages/player/dist/app) on 127.0.0.1 with the CSP
@@ -37,13 +38,10 @@ export function ensurePlayerBuild(root: string): string {
     PLAYER_PAGES.every((name) => existsSync(join(dist, `${name}.html`))) &&
     existsSync(join(dist, '_headers'));
   if (!complete) {
-    const env = Object.fromEntries(
-      Object.entries(process.env).filter(([key]) => key !== 'NODE_ENV' && !key.startsWith('VITEST'))
-    );
     const run = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
       cwd: root,
       encoding: 'utf8',
-      env,
+      env: productionBuildEnv(),
     });
     if (run.status !== 0) throw new Error(`player build failed:\n${run.stderr}${run.stdout}`);
   }

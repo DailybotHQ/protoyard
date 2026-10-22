@@ -307,6 +307,24 @@ describe('packArtifact', () => {
   });
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 
+  it('refuses top-level awaited dynamic imports that deadlock single-chunk artifacts', async () => {
+    write('assets/index-abc.js', 'const boot = await import("./chunk-def.js");');
+    const result = await pack();
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues).toContainEqual({
+      path: 'assets/index-abc.js',
+      reason:
+        'uses top-level await on a dynamic import; single-chunk Artifact bundles cannot resolve lazy chunks',
+    });
+    expect(
+      checkTextAsset(
+        'assets/lazy.js',
+        'async function load() { return await import("./chunk.js"); } const click = async () => await import("./view.js");'
+      )
+    ).toEqual([]);
+  });
+
   it('escapes U+FFFD in bundled JS and CSS so the Artifact accepts them', async () => {
     write('assets/chunk-def.js', 'export const nul = `�`;');
     write('assets/index-ghi.css', '.a::after{content:"�"}');

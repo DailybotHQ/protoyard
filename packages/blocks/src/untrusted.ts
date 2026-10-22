@@ -1,6 +1,7 @@
 import { BLOCK_LIMITS, type BlockLimits } from './limits.ts';
 import { type Block, type BlockParseResult, safeParseBlocks, toJsonPath } from './schema/index.ts';
 import { base64DecodedBytes } from './schema/media.ts';
+import { isUnsafeTextCharacter, normalizeLineSeparators } from './schema/primitives.ts';
 
 export type UntrustedBlockIssue = {
   code:
@@ -24,28 +25,9 @@ export type UntrustedBlocksResult =
 type CloneResult = { ok: true; value: unknown } | { ok: false; issue: UntrustedBlockIssue };
 
 function stripUnsafe(value: string, allowNewlines: boolean, allowTabs: boolean): string {
-  // Unicode line/paragraph separators become a real line break where one is
-  // allowed, and a space in one-line fields.
-  const normalized = value
-    .replace(/\r\n/g, '\n')
-    .replace(/[\u2028\u2029]/g, allowNewlines ? '\n' : ' ');
-  return [...normalized]
+  return [...normalizeLineSeparators(value.replace(/\r\n/g, '\n'), allowNewlines)]
     .filter((character) => {
-      const code = character.codePointAt(0) ?? 0;
-      if (code === 0x0a && allowNewlines) return true;
-      if (code === 0x09 && allowTabs) return true;
-      return !(
-        code <= 0x1f ||
-        (code >= 0x7f && code <= 0x9f) ||
-        code === 0x061c ||
-        code === 0x200b ||
-        code === 0x200e ||
-        code === 0x200f ||
-        (code >= 0x202a && code <= 0x202e) ||
-        code === 0x2060 ||
-        (code >= 0x2066 && code <= 0x2069) ||
-        code === 0xfeff
-      );
+      return !isUnsafeTextCharacter(character, allowNewlines, allowTabs);
     })
     .join('');
 }
