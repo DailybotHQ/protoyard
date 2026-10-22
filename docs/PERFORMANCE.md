@@ -361,6 +361,49 @@ the integrated main result.
 pnpm exec tsx scripts/bench-idea.ts --runs 3 --check
 ```
 
+## Brief synthesis by kind (measured 2026-10-21)
+
+Method: `pnpm exec tsx scripts/bench-brief-kinds.ts --runs 3` runs eight
+fictional briefs, two each for app, deck, page and doc, through
+`blueprintFromBrief` without a forced kind. That exercises kind detection plus
+the app archetype path or a content synthesizer. Each run is the median of 50
+calls after one warm-up call, and the table gives the median across runs. It
+also records:
+
+- the output size (blueprint JSON, raw and gzip);
+- whether the output validates through `safeParseAnyBlueprint`;
+- whether the deck layout catalog is in the synthesizer's import graph or in
+  the built player's initial chunks.
+
+Results and machine details go to `tmp/bench-brief-kinds-<timestamp>.json`
+(format `protoyard.bench-brief-kinds`, version 1). The benchmark is
+**report-only**: there are no budgets yet.
+
+Apple M1 Max, macOS 27.0, Node 26.11.1, two consecutive runs agreeing within
+noise:
+
+| Kind | Median synthesis | Largest output | Detected | Validates |
+| --- | ---: | ---: | --- | --- |
+| app | 0.31 ms | 3,469 B | 2 of 2 | 2 of 2 |
+| deck | 0.05 ms | 747 B | 2 of 2 | 0 of 2: the deck body schema is not wired yet |
+| page | 0.06 ms | 2,184 B | 2 of 2 | 0 of 2: the drafts lack `page.id` |
+| doc | 0.12 ms | 1,879 B | 1 of 2 | 0 of 1: the draft lacks `doc.id` |
+
+- **Cost:** synthesis is far below a millisecond for every kind, so it never
+  matters next to install, build or the player boot. Loading the brief modules
+  for the first time (`moduleLoadMs`, tsx transpiling on first import) was
+  about 1.4 s in this measurement.
+- **Layout catalog:** the brief synthesizer's import graph (13 modules) imports
+  only `@protoyard/core`, `@protoyard/scenarios` and zod, with no
+  `@protoyard/decks` and no layout catalog. The player's initial chunks do not
+  contain the layout catalog either. Authoring data does not inflate runtime
+  entries.
+- **Findings for the authoring lane** (recorded, not fixed here):
+  - "Write a one-page report on…" is detected as an app.
+  - Synthesized page and doc drafts fail their now-wired body schemas on a
+    missing body `id`.
+  - Decks validate only once the deck body schema ships.
+
 ## Data grid at 100,000 rows
 
 Method: `pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3`
