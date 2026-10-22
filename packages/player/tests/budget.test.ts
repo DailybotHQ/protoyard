@@ -169,11 +169,11 @@ describe.skipIf(!built)(
       expect(allKb, `all CSS ${allKb.toFixed(1)} KB gzip`).toBeLessThanOrEqual(budget.cssGzipKb);
     });
 
-    it('keeps deck and page utility sheets out of initial CSS and on the kind boot path', () => {
+    it('keeps the shared kind utility sheet out of initial CSS and on the kind boot path', () => {
       const bootFile = manifest['src/boot-kind.ts']?.file;
       expect(bootFile, 'the shared kind boot').toBeDefined();
       const bootCode = readFileSync(join(DIST, bootFile ?? ''), 'utf8');
-      for (const key of ['src/kinds/deck.css', 'src/kinds/page.css']) {
+      for (const key of ['src/kinds/content.css']) {
         const style = manifest[key]?.file;
         expect(style, `${key} is a built stylesheet`).toMatch(/\.css$/);
         if (!style) continue;

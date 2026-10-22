@@ -1,9 +1,0 @@
-@import "tailwindcss/utilities.css";
-
-/* This player mount uses deck renderers, not every export in decks-ui. */
-@source "../../../decks-ui/src/app";
-@source "../../../decks-ui/src/canvas";
-@source "../../../decks-ui/src/layouts";
-@source "../../../decks-ui/src/overview";
-@source "../../../decks-ui/src/presenter";
-@source "../../../decks-ui/src/studio";

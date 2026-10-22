@@ -33,16 +33,16 @@ let attempt = $state(0);
 const view = $derived.by(() => {
   void attempt;
   if (blueprint.kind === 'deck') {
-    return Promise.all([import('./deck.css'), import('@protoyard/decks-ui/app')]).then(
+    return Promise.all([import('./content.css'), import('@protoyard/decks-ui/app')]).then(
       ([, module]) => module
     );
   }
   if (blueprint.kind === 'page') {
-    return Promise.all([import('./page.css'), import('@protoyard/pages-ui/page')]).then(
+    return Promise.all([import('./content.css'), import('@protoyard/pages-ui/page')]).then(
       ([, module]) => module
     );
   }
-  return Promise.all([import('./page.css'), import('@protoyard/pages-ui/doc')]).then(
+  return Promise.all([import('./content.css'), import('@protoyard/pages-ui/doc')]).then(
     ([, module]) => module
   );
 });

@@ -1,13 +1,28 @@
 @import "@protoyard/renderer-svelte/app.css";
 @import "@protoyard/crud/styles.css";
-@import "@protoyard/views-ui/styles.css";
-@import "@protoyard/charts-ui/styles.css";
-@import "@protoyard/analytics-ui/styles.css";
-/* The shared block renderer is used by apps and content kinds. */
+@import "./charts.css";
+@import "./views.css";
+@import "./analytics.css";
 @import "@protoyard/blocks-ui/styles.css";
 
-/* Let Tailwind see the player's own markup; each kit stylesheet above registers its own. */
+/* Tailwind emits shared utilities once for every player renderer. */
 @source "./";
+/* These UI families are not mounted by the prebuilt player; keep their styles out of its shared layer. */
+@source not "../../ui/src/components/carousel";
+@source not "../../ui/src/components/chat";
+@source not "../../ui/src/components/user-picker";
+@source not "../../ui/src/components/image-input";
+@source not "../../ui/src/components/kanban";
+@source not "../../ui/src/components/typing-indicator";
+@source not "../../ui/src/components/stat-card";
+@source not "../../ui/src/components/StarRating.svelte";
+@source not "../../ui/src/components/card-grid";
+@source not "../../ui/src/components/accordion";
+@source not "../../ui/src/components/toast/UndoToaster.svelte";
+@source not "../../ui/src/components/NumberStepper.svelte";
+@source not "../../ui/src/components/ChipGroup.svelte";
+@source not "../../ui/src/components/actors";
+@source not "../../ui/src/components/form/utilities/TagEmailInput.svelte";
 
 html,
 body,
