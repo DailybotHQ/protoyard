@@ -2,22 +2,13 @@
 
 Framework-agnostic **page** and **doc** engine for Protoyard blueprints
 (`kind: "page"` and `kind: "doc"`, [ADR-036](../../docs/DECISIONS.md) and
-[ADR-039](../../docs/DECISIONS.md)). No Svelte. Document schemas, limits, a TOC
-builder and form-response contracts land in later PLAN_005 tasks. Svelte hosts
-(`PageApp`, `DocApp`, form UI, print CSS) live in
+[ADR-039](../../docs/DECISIONS.md)). No Svelte. Svelte hosts live in
 [`@protoyard/pages-ui`](../pages-ui/README.md).
 
-## Status
+KINDS owns the blueprint `kind` discriminator and envelope. This package
+validates the **payload bodies** after that parse.
 
-Scaffold only. The public surface today is the package identity:
-
-| Export | Contents |
-| --- | --- |
-| `@protoyard/pages` | `PAGES_PACKAGE`, `PAGES_PACKAGE_VERSION`, `PagesPackageIdentitySchema` |
-
-`sideEffects: false`. The package is in the `engine` build group.
-
-## Install in a workspace prototype
+## Install
 
 ```json
 {
@@ -27,17 +18,39 @@ Scaffold only. The public surface today is the package identity:
 }
 ```
 
+## Document schemas
+
+| Export | Role |
+| --- | --- |
+| `PageDocumentSchema` | Landing/marketing: meta, `sections[]` of blocks, optional `nav` and `forms` |
+| `DocDocumentSchema` | Continuous flow: meta, `blocks[]`, optional `toc` and `print` |
+| `PAGE_DOCUMENT_LIMITS` | Document caps (sections ≤ 32, blocks/section ≤ 24, doc blocks ≤ 200, …) |
+| `safeParsePageDocument` / `safeParseDocDocument` | Never-throw helpers |
+
 ```ts
-import { PAGES_PACKAGE_VERSION } from '@protoyard/pages';
+import { PageDocumentSchema, DocDocumentSchema } from '@protoyard/pages';
+
+const page = PageDocumentSchema.parse({
+  id: 'landing',
+  title: 'Example landing',
+  sections: [{ id: 'hero', role: 'hero', blocks: [{ type: 'text', markdown: 'Hello' }] }],
+});
 ```
 
-## Coming next (PLAN_005)
+Shared meta: `id`, `title`, optional `description` and `style` (theme preset id).
+Section `blocks` and doc `blocks` use `@protoyard/blocks` `BlockSchema`. Form
+*block* schema stays in blocks; `page.forms` only lists form block ids for the
+responses UI.
 
-- Page and doc document zod schemas (body owned here; union in `@protoyard/blueprint`)
-- Authoring and untrusted caps
-- Pure TOC builder from heading and section ids
-- `formResponses` feature-table schema and services (form *block* schema stays in `@protoyard/blocks`)
-- Minimal `definePrototypeFromPage` / `definePrototypeFromDoc` runtimes
+Unknown keys fail. Over-limit arrays fail. Section ids, anchors, nav fragments
+and form refs are cross-checked.
+
+## Coming next
+
+- `PAGE_LIMITS` / `DOC_LIMITS` for the untrusted loader
+- Pure TOC builder
+- `formResponses` services and minimal runtimes
+- `PageApp` / `DocApp` in `@protoyard/pages-ui`
 
 ## Development
 
