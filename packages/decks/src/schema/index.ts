@@ -7,6 +7,7 @@ import {
 } from '@protoyard/blocks';
 import { z } from 'zod';
 import { checkDeckMediaSrc } from '../backgrounds/media.ts';
+import { DeckBackgroundSchema } from '../backgrounds/schema.ts';
 import { DECK_ASPECTS } from '../canvas.ts';
 import { parseLayoutProps } from '../layouts/catalog.ts';
 import { stripStepMarkers } from '../layouts/props.ts';
@@ -108,7 +109,7 @@ const LayoutPropsSchema = z
 const SlideBaseShape = {
   id: SlugSchema,
   title: z.string().max(DECK_LIMITS.slideTitle).optional(),
-  background: SlugSchema.optional(),
+  background: DeckBackgroundSchema.optional(),
   transition: TransitionSchema.optional(),
   steps: z.array(z.string().max(DECK_LIMITS.stepLabel)).max(DECK_LIMITS.steps).optional(),
   notes: z.string().max(DECK_LIMITS.slideNotes).optional(),

@@ -1,5 +1,7 @@
 <script lang="ts">
+import type { DeckBackground } from '@protoyard/decks';
 import type { Snippet } from 'svelte';
+import DeckMediaBackground from '../canvas/DeckMediaBackground.svelte';
 import { getDeckStyleContext } from './deck-style.svelte.ts';
 
 /**
@@ -10,11 +12,14 @@ import { getDeckStyleContext } from './deck-style.svelte.ts';
  */
 let {
   background,
+  mediaPreload = 'none',
   number,
   children,
 }: {
   /** `slide.background` (a preset id). */
-  background?: string | undefined;
+  background?: DeckBackground | undefined;
+  /** Canvas media: load the active and next slide, keep all other instances unloaded. */
+  mediaPreload?: 'auto' | 'none';
   /** 1-based position among visible slides; shown when the deck asks for slide numbers. */
   number?: number;
   children: Snippet;
@@ -35,7 +40,12 @@ const showFooter = $derived(Boolean(look && (look.footer || look.logo || showNum
   data-py-deck-inverse={surface?.inverse ? 'true' : undefined}
   style={surface?.style}
 >
+  {#if surface?.media}
+    <DeckMediaBackground media={surface.media} overlay={surface.overlay} preload={mediaPreload} />
+  {/if}
+  <div class="relative z-[1] size-full">
   {@render children()}
+  </div>
   {#if showFooter && look}
     <!-- Bottom-left, so the deck's own chrome (progress, toolbar) never covers the number. -->
     <div

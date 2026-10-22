@@ -1,5 +1,5 @@
 import { BUILTIN_THEMES, FONT_CATALOG, THEME_LIBRARY_META } from '@protoyard/themes';
-import { DECK_BACKGROUND_PRESET_IDS } from '../backgrounds/resolve.ts';
+import { DECK_BACKGROUND_PRESET_IDS } from '../backgrounds/schema.ts';
 import { DECK_ASPECTS } from '../canvas.ts';
 import { DECK_LAYOUTS } from '../layouts/catalog.ts';
 import { type Deck, type DeckSlide, type DeckStyle, safeParseDeck } from '../schema/index.ts';

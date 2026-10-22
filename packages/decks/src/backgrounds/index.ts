@@ -17,6 +17,10 @@ export {
   type DeckMediaKind,
 } from './media.ts';
 export {
+  type ResolvedDeckBackground,
+  resolveDeckBackground,
+} from './resolve.ts';
+export {
   DECK_BACKGROUND_PRESET_IDS,
   DECK_BACKGROUND_PRESETS,
   DECK_GRADIENT_IDS,
@@ -33,6 +37,4 @@ export {
   type DeckGradient,
   type DeckPattern,
   type DeckSolidToken,
-  type ResolvedDeckBackground,
-  resolveDeckBackground,
-} from './resolve.ts';
+} from './schema.ts';
