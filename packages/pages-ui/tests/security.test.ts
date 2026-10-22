@@ -112,7 +112,8 @@ describe('safeHref / safeImageSrc (page/doc URL policy)', () => {
     expect(safeHref('https://example.com/docs')).toBe('https://example.com/docs');
     expect(safeHref('mailto:team@example.com')).toBe('mailto:team@example.com');
     expect(safeHref('#section')).toBe('#section');
-    expect(safeHref('./path')).toBe('./path');
+    // Relative paths are refused; same-document fragments are allowed.
+    expect(safeHref('./path')).toBeNull();
   });
 
   it('allows only relative image sources through safeImageSrc', () => {

@@ -178,13 +178,14 @@ describe('media and links in catalog props', () => {
   });
 
   it('accepts safe links', () => {
-    for (const href of [
-      'https://example.com/signup',
-      'mailto:team@example.com',
-      '#next',
-      'next/page',
-    ]) {
+    for (const href of ['https://example.com/signup', 'mailto:team@example.com', '#next']) {
       expect(loadUntrustedDeck(deckOf(ctaSlide(href))).success, href).toBe(true);
+    }
+  });
+
+  it('refuses relative and http links', () => {
+    for (const href of ['next/page', '/next', 'http://example.com/signup']) {
+      expect(loadUntrustedDeck(deckOf(ctaSlide(href))).success, href).toBe(false);
     }
   });
 

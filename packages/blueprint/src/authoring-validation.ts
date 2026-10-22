@@ -210,6 +210,7 @@ export function diagnosticCode(
   }
   if (
     lower.includes('http(s), mailto') ||
+    lower.includes('https: or mailto:') ||
     lower.includes('no svg or remote') ||
     lower.includes('no remote urls') ||
     lower.includes('relative image path') ||
@@ -291,7 +292,7 @@ export function blockOrAssetHint(code: string, message: string): string {
     return 'Remove alt when decorative is true, or drop decorative and keep a meaningful alt.';
   }
   if (code === 'unsupported-url-scheme') {
-    return 'Use only allowed sources: avatar:av-001…175, a bounded data: URI, a relative asset path, or http(s)/mailto/#anchor links. Remote media and javascript: URLs are refused; nothing is fetched during validation.';
+    return 'Use only allowed sources: avatar:av-001…175, a bounded data: URI, a relative asset path, or https:, mailto: and #section links. Remote media, http: links, relative links and javascript: URLs are refused; nothing is fetched during validation.';
   }
   if (code === 'invalid-chart-spec') {
     return 'Fix the chart spec: every series needs one value per label; part-whole charts need one series of non-negative numbers; keep kind, title and labels within the schema bounds.';

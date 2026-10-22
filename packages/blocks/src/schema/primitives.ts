@@ -155,15 +155,16 @@ export function codeText(max: number) {
 }
 
 /**
- * A link target: HTTPS or mailto only. Every other scheme, relative path and
- * value `safeHref` would have to rewrite is rejected.
+ * A link target: HTTPS, mailto or a same-document fragment (`#section`). Every
+ * other scheme, relative path and value `safeHref` would have to rewrite is
+ * rejected.
  */
 export const LinkHrefSchema = z
   .string()
   .min(1)
   .max(BLOCK_CONTENT_LIMITS.href)
   .refine((value) => safeHref(value) === value, {
-    message: 'Use an https: or mailto: link',
+    message: 'Use an https: or mailto: link, or a #section on this page',
   });
 
 /**

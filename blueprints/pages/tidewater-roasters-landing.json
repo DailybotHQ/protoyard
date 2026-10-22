@@ -28,11 +28,11 @@
             "actions": [
               {
                 "label": "Join the waitlist",
-                "href": "https://example.com/waitlist"
+                "href": "#waitlist"
               },
               {
                 "label": "See the plans",
-                "href": "https://example.com/plans"
+                "href": "#plans"
               }
             ]
           }
@@ -219,7 +219,7 @@
             "actions": [
               {
                 "label": "Back to top",
-                "href": "https://example.com/top"
+                "href": "#top"
               }
             ]
           }

@@ -316,8 +316,16 @@ describe('URL fields accept only safe schemes', () => {
   });
 
   it.each(LINK_FIELDS)('%s rejects http and relative links', async (_, build) => {
-    for (const href of ['http://example.com/docs', 'guide/start.html', '#/pricing']) {
+    for (const href of ['http://example.com/docs', 'guide/start.html', '/pricing']) {
       expectRefused(await loadUntrustedDocument(build(href)), 'invalid-blueprint');
+    }
+  });
+
+  it.each(LINK_FIELDS)('%s accepts the same-document fragment scheme', async (_, build) => {
+    // The scheme is allowed; a doc may still refuse a fragment whose target block does not exist.
+    const result = await loadUntrustedDocument(build('#pricing'));
+    if (!result.success) {
+      for (const issue of result.issues) expect(issue.message).toMatch(/does not match a block id/);
     }
   });
 
