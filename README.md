@@ -64,6 +64,12 @@ pnpm protoyard quick "A climbing gym books classes and tracks members" --slug gy
 pnpm protoyard quick serve gym --open             # three playable variants side by side
 ```
 
+Or ask for a slide deck (the same player runs decks, landing pages and documents):
+
+```bash
+pnpm protoyard quick "A 10-slide pitch for a fictional bike-sharing startup" --kind deck
+```
+
 Or open the gallery of full prototypes:
 
 ```bash
@@ -314,7 +320,7 @@ date (one Apple M1 Max, often under load; numbers move with the machine):
 | What | Measured |
 | --- | --- |
 | Brief → playable exploration (`quick` CLI + player ready, no build) | 1,527 ms median |
-| Player initial JS | 178.8 KB gzip |
+| Player initial JS (app entry; deck, page and doc entries about 121.5 KB each) | 121.4 KB gzip |
 | Player first visit from a share link (`crm` blueprint) | 190 ms to ready |
 | Built prototype, first screen in a fresh browser (`crm-demo`) | 115 ms median |
 | Cold metadata index of 1,000 manifests | 40.6 ms median |

@@ -20,10 +20,14 @@ exists and that its links and anchors resolve ([Testing guide](TESTING_GUIDE.md)
 | [Quickstart](QUICKSTART.md) | Clone, open the gallery, create and export a prototype |
 | [Agent guide](AGENT_GUIDE.md) | The build loop and copy-paste prompts for coding agents |
 | [Quick explorations](QUICK.md) | `protoyard quick`: disposable local explorations on the prebuilt player, variants and `compare.html`, loopback serving, and the scope of `quick report` and `quick feedback` |
-| [Player](PLAYER.md) | The no-install blueprint player (level 1): entry points, share links, the hosted `/play/` page, storage identity, worker-generated and cached worlds, parity with generated prototypes, browser limits |
+| [Player](PLAYER.md) | The no-install player for app, deck, page and doc blueprints (level 1): per-kind entries, share links, the hosted `/play/` page, storage identity, worker-generated and cached worlds, parity with generated prototypes, browser limits |
 | [Packages](PACKAGES.md) | The npm package families and their exports, release status (not on npm yet), versions and packed output |
 | [Database](DATABASE.md) | Schemas, migrations, services, reactive queries, storage caveats |
-| [Generator](GENERATOR.md) | Blueprints to prototypes: format, screens and layouts, `protoyard generate`, regeneration, migrations and drift checks |
+| [Kinds](KINDS.md) | App, deck, page and doc blueprints: the two levels, authoring, packages, catalog and limits |
+| [Decks](DECKS.md) | Slide decks: deck JSON, the 21 layouts, steps, presenter, print, style and Deck Studio, lint, sharing and limits |
+| [Pages](PAGES.md) | Landing pages and documents: hosts, sections, forms and responses, reading layout and print |
+| [Blocks](BLOCKS.md) | Shared content blocks for decks, pages and docs: schemas, limits, lazy families, interactive state, embedded apps |
+| [Generator](GENERATOR.md) | Blueprints to app, deck, page and doc prototypes: format, screens and layouts, `protoyard generate`, regeneration, migrations and drift checks |
 | [Brief to prototype](BRIEF_TO_PROTOTYPE.md) | Prose brief → offline blueprint → review → generate → validate → export |
 | [Scenarios](SCENARIOS.md) | Scenario axes, generators, personas and permissions, time, environment, snapshots |
 | [Themes](THEMES.md) | Style model, palette engine, the 64-theme library, Theme Studio, the `theme` CLI, brand blocks |
