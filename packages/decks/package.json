@@ -9,12 +9,14 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
     "./layouts": "./src/layouts/index.ts",
-    "./style": "./src/style/index.ts"
+    "./style": "./src/style/index.ts",
+    "./text": "./src/text/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@protoyard/ai": "workspace:*",
     "@protoyard/blocks": "workspace:*",
     "zod": "^4.6.7",
     "@protoyard/themes": "workspace:*"
@@ -53,6 +55,11 @@
         "types": "./dist/style/index.d.ts",
         "import": "./dist/style/index.js",
         "default": "./dist/style/index.js"
+      },
+      "./text": {
+        "types": "./dist/text/index.d.ts",
+        "import": "./dist/text/index.js",
+        "default": "./dist/text/index.js"
       }
     },
     "types": "./dist/index.d.ts"
