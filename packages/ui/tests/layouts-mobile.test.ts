@@ -71,6 +71,7 @@ describe('MobileTabsLayout', () => {
     expect(within(tabs).getAllByRole('link')).toHaveLength(3);
     expect(link(tabs, /Calls/).getAttribute('aria-current')).toBe('page');
     expect(link(tabs, /Chats/).textContent).toContain('3');
+    expect(link(tabs, /3.*Chats/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /More/ })).toBeNull();
     // The header names the current page; the screen goes in the scroll region.
     expect(screen.getByRole('banner').textContent).toContain('Calls');
@@ -129,11 +130,41 @@ describe('MobileTabsLayout', () => {
     render(MobileTabsLayout, { props: { mountScreen, nav: small } });
     const bar = document.querySelector('[data-py-tab-bar]') as HTMLElement;
     expect(bar.className).toContain('pb-safe');
+    expect(bar.className).toContain('px-safe');
     expect(bar.className).not.toContain('fixed');
     const main = screen.getByRole('main');
     // The bar follows <main>, so a composer at the bottom of the screen stays above it.
     expect(main.compareDocumentPosition(bar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByRole('banner').className).toContain('pt-safe');
+  });
+
+  it('places the first action in the safe-area tab bar and keeps its promise pending', async () => {
+    let finish: (() => void) | undefined;
+    const onSelect = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        })
+    );
+    render(MobileTabsLayout, {
+      props: {
+        mountScreen,
+        nav: {
+          ...small,
+          actions: [
+            { id: 'new', label: 'New chat', icon: 'plus', onSelect },
+            { id: 'search', label: 'Search', icon: 'search', onSelect: vi.fn() },
+          ],
+        },
+      },
+    });
+    const primary = screen.getByRole('button', { name: 'New chat' });
+    expect(document.querySelector('[data-py-tab-bar]')?.contains(primary)).toBe(true);
+    expect(screen.getByRole('button', { name: 'Search' })).toBeTruthy();
+    await fireEvent.click(primary);
+    await waitFor(() => expect(primary.getAttribute('aria-busy')).toBe('true'));
+    finish?.();
+    await waitFor(() => expect(primary.getAttribute('aria-busy')).not.toBe('true'));
   });
 
   it('renders no tab bar without a nav model, and the skip link focuses the screen', async () => {
