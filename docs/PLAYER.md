@@ -319,11 +319,11 @@ calibrated product SLOs; the gate columns are the repository budgets.
 | Universal player initial JS (gzip), historical app path | 178.1 KB | 250 KB (`packages/player/tests/budget.test.ts`) |
 | Initial CSS (gzip), historical app path | 18.1 KB | 30 KB (same test) |
 | World-generation worker graph (gzip) | 195.7 KB | 220 KB shared cap (`player-budgets.ts`) |
-| `index.html` initial JS / CSS (gzip -9, 2026-10-22, current `dev`) | 125,175 B / 23,138 B | 250 KB / 30 KB |
-| `deck.html` initial JS / CSS (gzip -9, 2026-10-22, current `dev`) | 125,298 B / 20,330 B | **150 KB** / 30 KB |
-| `page.html` initial JS / CSS (gzip -9, 2026-10-22, current `dev`) | 125,298 B / 19,543 B | **150 KB** / 30 KB |
-| `doc.html` initial JS / CSS (gzip -9, 2026-10-22, current `dev`) | 125,296 B / 19,543 B | **150 KB** / 30 KB |
-| All CSS reachable from `index.html` (gzip -9, current `dev`) | 33.7 KB | 30 KB: **failing** (`budget.test.ts`, open) |
+| `index.html` initial JS / CSS (gzip -9, `dev` 266fb823) | 126,142 B / 18,423 B | 250 KB / 30 KB |
+| `deck.html` initial JS / CSS (gzip -9, `dev` 266fb823) | 126,266 B / 20,357 B | **150 KB** / 30 KB |
+| `page.html` initial JS / CSS (gzip -9, `dev` 266fb823) | 126,267 B / 19,560 B | **150 KB** / 30 KB |
+| `doc.html` initial JS / CSS (gzip -9, `dev` 266fb823) | 126,265 B / 19,560 B | **150 KB** / 30 KB |
+| All CSS reachable from `index.html` (gzip -9, `dev` 266fb823) | 29.37 KiB | 30 KB (`budget.test.ts`, passes) |
 | First visit through `#bp=`, catalog blueprints (median) | 190–232 ms | report only |
 | Repeat visit (stored world) | 76–107 ms | report only |
 | Scenario switch that generates | 55–74 ms | report only |
