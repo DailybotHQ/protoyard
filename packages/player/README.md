@@ -338,9 +338,23 @@ the worker's. Load timings are in [PLAYER](../../docs/PLAYER.md#measured-size-an
 
 ## Published package
 
-`@protoyard/player` publishes the typed `@protoyard/player/embed` protocol
-client and server helpers from `dist/embed/`. The static player app is built
-separately with `pnpm --filter @protoyard/player build` into `dist/app/`, for
+`@protoyard/player` publishes two entries, each in its own folder:
+
+- `@protoyard/player/embed`: the typed protocol client and server helpers,
+  from `dist/embed/`.
+- `@protoyard/player/boot`: `bootPlayer`, from `dist/boot/`, with exactly the
+  modules and compiled components it imports.
+
+`pnpm build:packages` compiles `src/` with `svelte-package` and then runs
+`build:package`. That script (`scripts/package-dist.ts`) keeps only the
+import closure of those two entries and their declarations, and deletes the
+rest, so no other source (the app entry, fixtures, kind pages) is published.
+It also points the world-generation worker URL at the emitted `.js`, and
+fails the build if an entry imports a file the compile did not emit. Then
+`build:package` runs the Vite app build below.
+
+The static player app is built separately with
+`pnpm --filter @protoyard/player build` into `dist/app/`, for
 hosted deployments and for `protoyard quick`; that Vite output is not the
 package entry point. The two builds never delete each other's output:
 `pnpm build:packages` cleans `dist/` but keeps `dist/app/`

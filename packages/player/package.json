@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:package": "node scripts/package-dist.ts && vite build",
     "preview": "vite preview",
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
@@ -55,9 +56,9 @@
         "default": "./dist/embed/index.js"
       },
       "./boot": {
-        "types": "./dist/boot.d.ts",
-        "import": "./dist/boot.js",
-        "default": "./dist/boot.js"
+        "types": "./dist/boot/boot.d.ts",
+        "import": "./dist/boot/boot.js",
+        "default": "./dist/boot/boot.js"
       }
     }
   },
@@ -86,14 +87,14 @@
       "keep": [
         "app"
       ],
-      "postBuild": "build"
+      "postBuild": "build:package"
     },
     "pack": {
       "required": [
         "dist/app/index.html",
         "dist/app/protoyard-player-assets.json",
         "dist/embed/index.js",
-        "dist/boot.js"
+        "dist/boot/boot.js"
       ]
     }
   }
