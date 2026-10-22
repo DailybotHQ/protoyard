@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { expect, type Frame, type FrameLocator, type Page, test } from '@playwright/test';
-import { type AnyBlueprint, encodeBlueprintShare } from '@protoyard/blueprint';
+import { type AnyBlueprint, encodeBlueprintShare } from '../../packages/blueprint/src/index.ts';
 import { expectAccessible } from './support/a11y.ts';
 import { readShowcaseKindBlueprint, SHOWCASE_KIND_TARGETS } from './targets.ts';
 
