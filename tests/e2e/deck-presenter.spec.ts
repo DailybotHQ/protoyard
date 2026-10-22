@@ -35,6 +35,10 @@ async function blockPopups(page: Page): Promise<void> {
 }
 
 test.describe('presenter view', () => {
+  test.skip(
+    process.env.PROTOYARD_E2E_DECK !== '1',
+    'Opt-in: PROTOYARD_E2E_DECK=1 (or name a deck spec) starts the built deck server.'
+  );
   test('opens a popup that follows the deck, and syncs both ways over BroadcastChannel', async ({
     page,
     context,
@@ -215,6 +219,10 @@ test.describe('presenter view', () => {
 });
 
 test.describe('presenting tools', () => {
+  test.skip(
+    process.env.PROTOYARD_E2E_DECK !== '1',
+    'Opt-in: PROTOYARD_E2E_DECK=1 (or name a deck spec) starts the built deck server.'
+  );
   test('blackout hides the slide and returns to it without advancing', async ({ page }) => {
     await page.goto(`${deckUrl}#/divider/0`);
     await page.keyboard.press('b');
@@ -264,6 +272,10 @@ test.describe('presenting tools', () => {
 });
 
 test.describe('print', () => {
+  test.skip(
+    process.env.PROTOYARD_E2E_DECK !== '1',
+    'Opt-in: PROTOYARD_E2E_DECK=1 (or name a deck spec) starts the built deck server.'
+  );
   test('?print=1 lays out one page per slide with no app chrome, and notes on request', async ({
     page,
   }) => {

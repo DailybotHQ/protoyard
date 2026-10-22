@@ -14,6 +14,10 @@ async function expectLocation(
 }
 
 test.describe('deck navigation on a built catalog deck', () => {
+  test.skip(
+    process.env.PROTOYARD_E2E_DECK !== '1',
+    'Opt-in: PROTOYARD_E2E_DECK=1 (or name a deck spec) starts the built deck server.'
+  );
   test('opens stable slide and step links and moves with arrows and space', async ({ page }) => {
     await page.goto(`${deckUrl}#/path/1`);
     await expectLocation(page, 'path', 1);

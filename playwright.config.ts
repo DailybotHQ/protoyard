@@ -119,6 +119,8 @@ const deckE2e =
   process.env.PROTOYARD_E2E_DECK === '1' ||
   // Asking for the deck spec by path starts its server too.
   process.argv.some((arg) => DECK_SERVER_SPECS.some((spec) => arg.includes(spec)));
+// Workers inherit the flag, so deck specs run only when their server starts and skip otherwise.
+if (deckE2e) process.env.PROTOYARD_E2E_DECK = '1';
 const DECK_PORT = Number(process.env.PROTOYARD_E2E_DECK_PORT ?? 4891);
 // The deck design gate also opens the generated flagship prototype (level 2).
 const deckDesignE2e = process.argv.some((arg) => arg.includes('deck-design'));

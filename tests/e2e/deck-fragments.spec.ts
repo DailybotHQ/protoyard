@@ -28,6 +28,10 @@ async function highlighted(scope: Locator): Promise<string[]> {
 }
 
 test.describe('deck fragments on the flagship deck', () => {
+  test.skip(
+    process.env.PROTOYARD_E2E_DECK !== '1',
+    'Opt-in: PROTOYARD_E2E_DECK=1 (or name a deck spec) starts the built deck server.'
+  );
   test('stepped blocks reveal in order, keep their space, and hide again going back', async ({
     page,
   }) => {
@@ -154,6 +158,10 @@ test.describe('deck fragments on the flagship deck', () => {
 });
 
 test.describe('free layout text never overlaps', () => {
+  test.skip(
+    process.env.PROTOYARD_E2E_DECK !== '1',
+    'Opt-in: PROTOYARD_E2E_DECK=1 (or name a deck spec) starts the built deck server.'
+  );
   test('the quiz slide title, subtitle and blocks keep separate boxes', async ({ page }) => {
     await page.goto(`${deckUrl}#/quiz/0`);
     const quiz = slide(page, 'quiz');
