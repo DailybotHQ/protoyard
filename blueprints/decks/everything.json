@@ -1,0 +1,1575 @@
+{
+  "formatVersion": 1,
+  "name": "Everything deck",
+  "description": "The reference deck: every catalog layout, every block type and every chart family, with steps on every prop kind, a media background, an explorable table and chart, a poll, a calculator and an embedded app. Fictional Orbit Lane data.",
+  "tags": ["deck", "reference", "catalog", "qa"],
+  "icon": "book",
+  "category": "demos",
+  "catalog": {
+    "category": "design",
+    "productType": "Presentation deck",
+    "platforms": ["web"],
+    "features": ["deck", "charts", "poll", "calculator", "embed-app", "presenter"],
+    "highlights": [
+      "Every layout and block",
+      "Every chart family",
+      "Steps on every prop kind",
+      "The deck to copy from"
+    ],
+    "difficulty": "beginner"
+  },
+  "kind": "deck",
+  "deck": {
+    "style": {
+      "theme": "aurora-analytics",
+      "fontPair": "geometric",
+      "aspect": "16:9",
+      "density": "comfortable",
+      "radius": "large",
+      "motion": "full",
+      "transition": "fade",
+      "background": "solid-surface",
+      "footer": "Orbit Lane · everything deck · fictional figures",
+      "slideNumbers": true,
+      "progress": "bottom"
+    },
+    "slides": [
+      {
+        "id": "cover",
+        "title": "Everything deck",
+        "layout": "title-hero",
+        "props": {
+          "title": "Everything a deck can do",
+          "subtitle": "Every layout, block family and chart family in one reference deck",
+          "meta": "Orbit Lane · fictional figures · reference deck"
+        },
+        "notes": "This deck is the reference to copy from: every catalog layout, every block type and every chart family, with fictional Orbit Lane data."
+      },
+      {
+        "id": "divider-layouts",
+        "title": "Layouts",
+        "layout": "section-divider",
+        "props": {
+          "eyebrow": "Part 1",
+          "title": "The 21 catalog layouts"
+        },
+        "background": {
+          "kind": "image",
+          "src": "data:image/png;base64,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",
+          "alt": "",
+          "tone": "dark",
+          "overlay": 0.35
+        },
+        "notes": "A section divider over a local media background: a base64 PNG with a dark scrim so the title keeps its contrast."
+      },
+      {
+        "id": "text-blocks",
+        "title": "Text blocks",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Text blocks",
+            "level": 2,
+            "eyebrow": "heading, text, list"
+          },
+          {
+            "type": "text",
+            "markdown": "Orbit Lane ships **weekly**. Every release is _small_ and reviewed."
+          },
+          {
+            "type": "list",
+            "style": "check",
+            "items": [
+              {
+                "text": "Ship the deck engine",
+                "done": true,
+                "icon": "check"
+              },
+              {
+                "text": "Measure budgets",
+                "done": false
+              }
+            ],
+            "step": 1,
+            "reveal": "fade-up"
+          }
+        ],
+        "notes": "Heading, text and a list; the list is a stepped block (`step` on the block itself) and fades up on the first step."
+      },
+      {
+        "id": "split",
+        "title": "Two-column split",
+        "layout": "two-column-split",
+        "props": {
+          "title": "Two sides of the launch",
+          "left": {
+            "heading": "Before",
+            "body": "Orbit Lane shipped one release a quarter.",
+            "step": 1
+          },
+          "right": {
+            "heading": "After",
+            "body": "Weekly releases, each one reviewed.",
+            "step": 2,
+            "fragment": "fade-up"
+          }
+        },
+        "steps": ["Show the before column", "Reveal the after column"],
+        "notes": "Both columns are stepped props (`left`, then `right`): press next twice to build the before and after comparison."
+      },
+      {
+        "id": "quote-blocks",
+        "title": "Quote, callout, divider",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Quote, callout, divider",
+            "level": 2
+          },
+          {
+            "type": "quote",
+            "quote": "One idea per slide.",
+            "cite": "Ada Rivera",
+            "role": "Designer",
+            "avatar": "av-007"
+          },
+          {
+            "type": "divider",
+            "label": "Then",
+            "variant": "line"
+          },
+          {
+            "type": "callout",
+            "title": "Heads up",
+            "body": "All numbers are **fictional**.",
+            "icon": "info",
+            "tone": "warning",
+            "step": 1
+          }
+        ],
+        "notes": "A quote block, a labelled divider and a callout that arrives on the first step."
+      },
+      {
+        "id": "cards",
+        "title": "Three column cards",
+        "layout": "three-column-cards",
+        "props": {
+          "title": "Three principles",
+          "cards": [
+            {
+              "icon": "zap",
+              "heading": "Speed",
+              "body": "Ship the smallest valuable thing first."
+            },
+            {
+              "icon": "compass",
+              "heading": "Clarity",
+              "body": "One sentence should explain it.",
+              "step": 1
+            },
+            {
+              "icon": "users",
+              "heading": "Trust",
+              "body": "Make the next step obvious.",
+              "step": 2
+            }
+          ]
+        },
+        "notes": "Cards two and three reveal one per step through `cards.*` markers; the first card is on screen from the start."
+      },
+      {
+        "id": "media-blocks",
+        "title": "Media blocks",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Media blocks",
+            "level": 2
+          },
+          {
+            "type": "columns",
+            "widths": "equal",
+            "align": "start",
+            "columns": [
+              [
+                {
+                  "type": "image",
+                  "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAIAAADkharWAAABGUlEQVR42o3OiTJCYRQA4PMOpokkSZJEkiRJElddJWTf931fsu/7vi/DjLf7zzn3LbzC/z3BB0lFJGKiOS5iSdHUjo2dGOnBcD+GhjA4ioEJ9E+jb468i+RZIfc6QVwVakJEW4WSwoYurO/FugGsHcaaMayexKoZrJyniiUqX6WyDSpNE6gtItomlA6MdGO4D0ODGBzBwDj6p9A3i94F8iyTe41cm1SyRcW7BDINV5qc2+TYI/shgUzDuUOOfbIfke2UQaZRdECFx1RwxvmXDDIN2wlbz9lyxeZbBpmG9YIt12y+Y9Mjg0wj74Zz7znnibNfGWQapgc2PrPhjTM/GWQaxhc2vLP+i3U/Gsg0sj5Y/826Xy3jT/sHPgQnc+TBg/0AAAAASUVORK5CYII=",
+                  "alt": "A blue gradient standing in for a chart",
+                  "width": 640,
+                  "height": 480,
+                  "caption": "Figure 1",
+                  "credit": "Fictional studio",
+                  "fit": "cover"
+                }
+              ],
+              [
+                {
+                  "type": "video",
+                  "src": "data:video/mp4;base64,AAAAIGZ0eXBpc29t",
+                  "label": "Product walkthrough",
+                  "width": 1280,
+                  "height": 720,
+                  "autoplay": true,
+                  "muted": true,
+                  "loop": true,
+                  "poster": "avatar:av-012"
+                }
+              ]
+            ]
+          }
+        ],
+        "notes": "Image and video blocks side by side in a columns block; both sources are local data URIs, never remote."
+      },
+      {
+        "id": "img-left",
+        "title": "image-left",
+        "layout": "image-left",
+        "props": {
+          "title": "Layout: image-left",
+          "image": {
+            "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAIAAADkharWAAABGUlEQVR42o3OiTJCYRQA4PMOpokkSZJEkiRJElddJWTf931fsu/7vi/DjLf7zzn3LbzC/z3BB0lFJGKiOS5iSdHUjo2dGOnBcD+GhjA4ioEJ9E+jb468i+RZIfc6QVwVakJEW4WSwoYurO/FugGsHcaaMayexKoZrJyniiUqX6WyDSpNE6gtItomlA6MdGO4D0ODGBzBwDj6p9A3i94F8iyTe41cm1SyRcW7BDINV5qc2+TYI/shgUzDuUOOfbIfke2UQaZRdECFx1RwxvmXDDIN2wlbz9lyxeZbBpmG9YIt12y+Y9Mjg0wj74Zz7znnibNfGWQapgc2PrPhjTM/GWQaxhc2vLP+i3U/Gsg0sj5Y/826Xy3jT/sHPgQnc+TBg/0AAAAASUVORK5CYII=",
+            "alt": "A blue gradient standing in for a diagram",
+            "width": 640,
+            "height": 480,
+            "step": 1
+          },
+          "heading": "The release train",
+          "body": "Each car is one reviewed change."
+        },
+        "notes": "The image pane on the left reveals on the first step through an `image` marker."
+      },
+      {
+        "id": "people-stat",
+        "title": "People and stats",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "People and stats",
+            "level": 2
+          },
+          {
+            "type": "people",
+            "title": "Team",
+            "layout": "grid",
+            "people": [
+              {
+                "name": "Ada Rivera",
+                "role": "Design",
+                "avatar": "av-001"
+              },
+              {
+                "name": "Marco Diaz",
+                "role": "Engineering",
+                "bio": "Builds the engine."
+              }
+            ]
+          },
+          {
+            "type": "stat",
+            "items": [
+              {
+                "value": "87%",
+                "label": "Teams kept the habit",
+                "delta": "+12 pts",
+                "deltaTone": "success"
+              },
+              {
+                "value": "$1.2M",
+                "label": "ARR",
+                "trend": [10, 12, 15, 14, 19]
+              }
+            ],
+            "source": "Fictional cohort, n = 412",
+            "step": 1
+          }
+        ],
+        "notes": "A people grid and a stat row; the stats arrive on the first step."
+      },
+      {
+        "id": "img-right",
+        "title": "image-right",
+        "layout": "image-right",
+        "props": {
+          "title": "Layout: image-right",
+          "image": {
+            "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAIAAADkharWAAABGUlEQVR42o3OiTJCYRQA4PMOpokkSZJEkiRJElddJWTf931fsu/7vi/DjLf7zzn3LbzC/z3BB0lFJGKiOS5iSdHUjo2dGOnBcD+GhjA4ioEJ9E+jb468i+RZIfc6QVwVakJEW4WSwoYurO/FugGsHcaaMayexKoZrJyniiUqX6WyDSpNE6gtItomlA6MdGO4D0ODGBzBwDj6p9A3i94F8iyTe41cm1SyRcW7BDINV5qc2+TYI/shgUzDuUOOfbIfke2UQaZRdECFx1RwxvmXDDIN2wlbz9lyxeZbBpmG9YIt12y+Y9Mjg0wj74Zz7znnibNfGWQapgc2PrPhjTM/GWQaxhc2vLP+i3U/Gsg0sj5Y/826Xy3jT/sHPgQnc+TBg/0AAAAASUVORK5CYII=",
+            "alt": "A blue gradient standing in for a diagram",
+            "width": 640,
+            "height": 480
+          },
+          "heading": "Lead with the idea",
+          "body": "Then anchor it with the picture."
+        },
+        "notes": "Same layout, mirrored: the text leads and the image on the right stays put."
+      },
+      {
+        "id": "table",
+        "title": "Interactive table",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Sort and filter the plans",
+            "level": 2
+          },
+          {
+            "type": "table",
+            "caption": "Plans, fictional prices",
+            "currency": "USD",
+            "interactive": {
+              "sort": true,
+              "filter": true,
+              "rowHighlight": true
+            },
+            "columns": [
+              {
+                "label": "Plan"
+              },
+              {
+                "label": "Price",
+                "format": "cents",
+                "align": "end"
+              },
+              {
+                "label": "Seats",
+                "format": "number",
+                "align": "end"
+              }
+            ],
+            "rows": [
+              ["Starter", 900, 5],
+              ["Team", 2900, 25],
+              ["Scale", 7900, 100],
+              ["Enterprise", 19900, 500]
+            ],
+            "highlightRow": 1
+          }
+        ],
+        "notes": "An explorable table: viewers sort by a column, filter rows and highlight one. Clicks inside it never advance the deck."
+      },
+      {
+        "id": "img-center",
+        "title": "image-centered",
+        "layout": "image-centered",
+        "props": {
+          "title": "Layout: image-centered",
+          "image": {
+            "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAIAAADkharWAAABGUlEQVR42o3OiTJCYRQA4PMOpokkSZJEkiRJElddJWTf931fsu/7vi/DjLf7zzn3LbzC/z3BB0lFJGKiOS5iSdHUjo2dGOnBcD+GhjA4ioEJ9E+jb468i+RZIfc6QVwVakJEW4WSwoYurO/FugGsHcaaMayexKoZrJyniiUqX6WyDSpNE6gtItomlA6MdGO4D0ODGBzBwDj6p9A3i94F8iyTe41cm1SyRcW7BDINV5qc2+TYI/shgUzDuUOOfbIfke2UQaZRdECFx1RwxvmXDDIN2wlbz9lyxeZbBpmG9YIt12y+Y9Mjg0wj74Zz7znnibNfGWQapgc2PrPhjTM/GWQaxhc2vLP+i3U/Gsg0sj5Y/826Xy3jT/sHPgQnc+TBg/0AAAAASUVORK5CYII=",
+            "alt": "A blue gradient standing in for a diagram",
+            "width": 640,
+            "height": 480
+          },
+          "caption": "Release cadence, fictional"
+        },
+        "notes": "A centered image with a caption; the picture is a locally generated PNG, never a remote URL."
+      },
+      {
+        "id": "charts-trend",
+        "title": "Line and area charts",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Line and area charts",
+            "level": 2
+          },
+          {
+            "type": "columns",
+            "widths": "equal",
+            "align": "start",
+            "columns": [
+              [
+                {
+                  "type": "chart",
+                  "spec": {
+                    "kind": "line",
+                    "title": "Weekly releases",
+                    "description": "Weekly releases: a fictional series for the line chart family.",
+                    "labels": ["W1", "W2", "W3", "W4"],
+                    "series": [
+                      {
+                        "label": "Releases",
+                        "values": [1, 2, 2, 3]
+                      }
+                    ]
+                  },
+                  "height": "sm"
+                }
+              ],
+              [
+                {
+                  "type": "chart",
+                  "spec": {
+                    "kind": "area",
+                    "title": "Reviewed changes",
+                    "description": "Reviewed changes: a fictional series for the area chart family.",
+                    "labels": ["W1", "W2", "W3", "W4"],
+                    "series": [
+                      {
+                        "label": "Changes",
+                        "values": [12, 18, 21, 30]
+                      }
+                    ]
+                  },
+                  "height": "sm"
+                }
+              ]
+            ]
+          }
+        ],
+        "notes": "The line and area chart families, side by side. Every chart has a description that says its takeaway."
+      },
+      {
+        "id": "img-bleed",
+        "title": "image-full-bleed",
+        "layout": "image-full-bleed",
+        "props": {
+          "image": {
+            "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAIAAADkharWAAABGUlEQVR42o3OiTJCYRQA4PMOpokkSZJEkiRJElddJWTf931fsu/7vi/DjLf7zzn3LbzC/z3BB0lFJGKiOS5iSdHUjo2dGOnBcD+GhjA4ioEJ9E+jb468i+RZIfc6QVwVakJEW4WSwoYurO/FugGsHcaaMayexKoZrJyniiUqX6WyDSpNE6gtItomlA6MdGO4D0ODGBzBwDj6p9A3i94F8iyTe41cm1SyRcW7BDINV5qc2+TYI/shgUzDuUOOfbIfke2UQaZRdECFx1RwxvmXDDIN2wlbz9lyxeZbBpmG9YIt12y+Y9Mjg0wj74Zz7znnibNfGWQapgc2PrPhjTM/GWQaxhc2vLP+i3U/Gsg0sj5Y/826Xy3jT/sHPgQnc+TBg/0AAAAASUVORK5CYII=",
+            "alt": "A blue gradient standing in for a diagram",
+            "width": 640,
+            "height": 480
+          },
+          "caption": "Full bleed with a dark overlay",
+          "credit": "Orbit Lane studio",
+          "overlay": "dark"
+        },
+        "notes": "Full-bleed media fills the slide; the caption sits on the dark overlay for contrast."
+      },
+      {
+        "id": "charts-parts",
+        "title": "Donut and pie charts",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Donut and pie charts",
+            "level": 2
+          },
+          {
+            "type": "columns",
+            "widths": "equal",
+            "align": "start",
+            "columns": [
+              [
+                {
+                  "type": "chart",
+                  "spec": {
+                    "kind": "donut",
+                    "title": "Release types",
+                    "description": "Release types: a fictional series for the donut chart family.",
+                    "labels": ["Feature", "Fix", "Chore"],
+                    "series": [
+                      {
+                        "label": "Share",
+                        "values": [45, 35, 20]
+                      }
+                    ]
+                  },
+                  "height": "sm"
+                }
+              ],
+              [
+                {
+                  "type": "chart",
+                  "spec": {
+                    "kind": "pie",
+                    "title": "Review time",
+                    "description": "Review time: a fictional series for the pie chart family.",
+                    "labels": ["Under 1h", "1 to 4h", "Longer"],
+                    "series": [
+                      {
+                        "label": "Share",
+                        "values": [60, 30, 10]
+                      }
+                    ]
+                  },
+                  "height": "sm"
+                }
+              ]
+            ]
+          }
+        ],
+        "notes": "Part-to-whole families: a donut and a pie chart, each with three fictional slices."
+      },
+      {
+        "id": "quote",
+        "title": "Quote",
+        "layout": "quote",
+        "props": {
+          "quote": "Ship small, review everything, and keep the deck honest.",
+          "cite": "Rio Example, Orbit Lane",
+          "step": 1,
+          "fragment": "fade-up"
+        },
+        "steps": ["Show the quote"],
+        "notes": "A marker on the props object itself (path ``) hides the whole quote until the first step; the background stays."
+      },
+      {
+        "id": "charts-funnel",
+        "title": "Funnel and explorable chart",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Funnel and explorable chart",
+            "level": 2
+          },
+          {
+            "type": "columns",
+            "widths": "equal",
+            "align": "start",
+            "columns": [
+              [
+                {
+                  "type": "chart",
+                  "spec": {
+                    "kind": "funnel",
+                    "title": "Release funnel",
+                    "description": "Release funnel: a fictional series for the funnel chart family.",
+                    "labels": ["Opened", "Reviewed", "Merged", "Shipped"],
+                    "series": [
+                      {
+                        "label": "Changes",
+                        "values": [120, 96, 88, 84]
+                      }
+                    ]
+                  },
+                  "height": "sm"
+                }
+              ],
+              [
+                {
+                  "type": "chart-controls",
+                  "id": "release-explorer",
+                  "spec": {
+                    "kind": "bar",
+                    "title": "Releases by team",
+                    "description": "Platform ships the most releases; switch the chart kind or hide a team.",
+                    "labels": ["Q1", "Q2", "Q3", "Q4"],
+                    "series": [
+                      {
+                        "label": "Platform",
+                        "values": [2, 4, 5, 7]
+                      },
+                      {
+                        "label": "Web",
+                        "values": [1, 2, 4, 6]
+                      }
+                    ]
+                  },
+                  "kinds": ["bar", "line", "area"],
+                  "seriesToggle": true,
+                  "range": true,
+                  "height": "sm"
+                }
+              ]
+            ]
+          }
+        ],
+        "notes": "The funnel family, and an explorable chart: viewers switch its kind, hide a series and narrow the range."
+      },
+      {
+        "id": "code",
+        "title": "Code with callout",
+        "layout": "code-with-callout",
+        "props": {
+          "title": "Release check",
+          "code": {
+            "lang": "ts",
+            "source": "const ready = checks.every((check) => check.ok);\nif (ready) publish('weekly');",
+            "highlights": ["1", "2"],
+            "step": 1
+          },
+          "heading": "What happens",
+          "bullets": ["Every check must pass", "Then the weekly publish runs"]
+        },
+        "notes": "The code pane carries a `code` step marker; its highlights move per line as you step through."
+      },
+      {
+        "id": "code-blocks",
+        "title": "Code and terminal",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Code and terminal",
+            "level": 2
+          },
+          {
+            "type": "columns",
+            "widths": "equal",
+            "align": "start",
+            "columns": [
+              [
+                {
+                  "type": "code",
+                  "lang": "ts",
+                  "filename": "hello.ts",
+                  "code": "const greet = (name: string) => `Hello, ${name}`;\nconsole.log(greet('deck'));",
+                  "highlights": ["1", "2"],
+                  "lineNumbers": true
+                }
+              ],
+              [
+                {
+                  "type": "terminal",
+                  "id": "quick-start",
+                  "lines": [
+                    {
+                      "kind": "comment",
+                      "text": "# create a deck from a brief (fictional example)"
+                    },
+                    {
+                      "kind": "prompt",
+                      "text": "pnpm protoyard quick \"a deck about our launch\""
+                    },
+                    {
+                      "kind": "output",
+                      "text": "ready: .protoyard/quick/launch-deck"
+                    }
+                  ]
+                }
+              ]
+            ]
+          }
+        ],
+        "notes": "A code block with line numbers and highlights, and a terminal transcript of a fictional command."
+      },
+      {
+        "id": "structure-a",
+        "title": "Timeline and steps blocks",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Timeline and steps blocks",
+            "level": 2
+          },
+          {
+            "type": "timeline",
+            "orientation": "horizontal",
+            "events": [
+              {
+                "time": "2024",
+                "title": "Prototype"
+              },
+              {
+                "time": "2026",
+                "title": "Launch",
+                "tone": "accent",
+                "icon": "rocket"
+              }
+            ]
+          },
+          {
+            "type": "steps",
+            "numbered": true,
+            "items": [
+              {
+                "title": "Brief",
+                "body": "Describe the topic."
+              },
+              {
+                "title": "Generate"
+              },
+              {
+                "title": "Present",
+                "icon": "presentation"
+              }
+            ],
+            "step": 1
+          }
+        ],
+        "notes": "The timeline and steps blocks; the steps block arrives on the first step."
+      },
+      {
+        "id": "compare",
+        "title": "Comparison table",
+        "layout": "comparison-table",
+        "props": {
+          "title": "Quarterly or weekly",
+          "columns": ["Quarterly", "Weekly"],
+          "rows": [
+            {
+              "label": "Change size",
+              "values": ["Large", "Small"]
+            },
+            {
+              "label": "Rollback",
+              "values": [false, true],
+              "step": 1
+            },
+            {
+              "label": "Best for",
+              "values": ["Rare launches", "Steady teams"],
+              "step": 2
+            }
+          ]
+        },
+        "notes": "Rows two and three reveal through `rows.*` markers, so the comparison builds one argument at a time."
+      },
+      {
+        "id": "structure-b",
+        "title": "Comparison and cards blocks",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Comparison and cards blocks",
+            "level": 2
+          },
+          {
+            "type": "comparison",
+            "columns": [
+              {
+                "label": "Option A",
+                "highlight": true
+              },
+              {
+                "label": "Option B"
+              }
+            ],
+            "rows": [
+              {
+                "label": "Setup time",
+                "values": ["5 min", "1 day"]
+              },
+              {
+                "label": "Self-host",
+                "values": [true, false]
+              }
+            ]
+          },
+          {
+            "type": "cards",
+            "columns": 3,
+            "items": [
+              {
+                "title": "Fast",
+                "icon": "zap",
+                "body": "Minutes from JSON."
+              },
+              {
+                "title": "Safe",
+                "href": "https://example.com/docs",
+                "image": "avatar:av-020",
+                "imageAlt": "A face"
+              },
+              {
+                "title": "Local",
+                "href": "https://example.com/local",
+                "tone": "success"
+              }
+            ]
+          }
+        ],
+        "notes": "A comparison block with a highlighted column, and three cards with icons, links and an avatar image."
+      },
+      {
+        "id": "process",
+        "title": "Process steps",
+        "layout": "process-steps",
+        "props": {
+          "title": "How a release ships",
+          "steps": [
+            {
+              "title": "Branch",
+              "body": "One change per branch."
+            },
+            {
+              "title": "Review",
+              "body": "A teammate reads the diff.",
+              "step": 1
+            },
+            {
+              "title": "Check",
+              "body": "Lint, types and tests.",
+              "step": 2
+            },
+            {
+              "title": "Ship",
+              "body": "Publish the weekly build.",
+              "step": 3
+            }
+          ]
+        },
+        "notes": "Each process step after the first is a `steps.*` marker; walk the audience through branch, review, check and ship."
+      },
+      {
+        "id": "structure-c",
+        "title": "Icon, call to action and columns",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Icon, call to action and columns",
+            "level": 2
+          },
+          {
+            "type": "columns",
+            "widths": "equal",
+            "align": "center",
+            "columns": [
+              [
+                {
+                  "type": "icon",
+                  "icon": "rocket",
+                  "label": "Launch",
+                  "size": "xl"
+                }
+              ],
+              [
+                {
+                  "type": "columns",
+                  "widths": "wide-start",
+                  "align": "start",
+                  "columns": [
+                    [
+                      {
+                        "type": "text",
+                        "markdown": "Left column"
+                      }
+                    ],
+                    [
+                      {
+                        "type": "icon",
+                        "icon": "check",
+                        "decorative": true
+                      }
+                    ]
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "type": "cta",
+            "title": "Try it",
+            "body": "Start from a blueprint.",
+            "actions": [
+              {
+                "label": "Read the docs",
+                "href": "https://example.com/docs",
+                "variant": "primary"
+              },
+              {
+                "label": "Email us",
+                "href": "mailto:team@example.com",
+                "variant": "link"
+              }
+            ],
+            "footnote": "Fictional company."
+          }
+        ],
+        "notes": "An icon, a nested columns block and a call-to-action block with two actions."
+      },
+      {
+        "id": "timeline",
+        "title": "Timeline",
+        "layout": "timeline",
+        "props": {
+          "title": "Orbit Lane, fictional history",
+          "events": [
+            {
+              "time": "2023",
+              "text": "First prototype"
+            },
+            {
+              "time": "2024",
+              "text": "Quarterly releases"
+            },
+            {
+              "time": "2025",
+              "text": "Monthly releases",
+              "step": 1
+            },
+            {
+              "time": "2026",
+              "text": "Weekly releases",
+              "step": 2,
+              "fragment": "fade-up"
+            }
+          ]
+        },
+        "notes": "Timeline events reveal through `events.*` markers; the last one fades up to close the story."
+      },
+      {
+        "id": "structure-d",
+        "title": "Tabs and reveal",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Tabs and reveal",
+            "level": 2
+          },
+          {
+            "type": "tabs",
+            "id": "plans",
+            "label": "Plans",
+            "defaultPanel": "team",
+            "panels": [
+              {
+                "id": "solo",
+                "label": "Solo",
+                "blocks": [
+                  {
+                    "type": "text",
+                    "markdown": "For one person."
+                  }
+                ]
+              },
+              {
+                "id": "team",
+                "label": "Team",
+                "icon": "users",
+                "blocks": [
+                  {
+                    "type": "divider"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "reveal",
+            "id": "answer",
+            "label": "Show the answer",
+            "openLabel": "Hide the answer",
+            "blocks": [
+              {
+                "type": "text",
+                "markdown": "**42**"
+              }
+            ]
+          }
+        ],
+        "notes": "Tabs switch panels and the reveal hides an answer until asked; both keep their own keys and clicks."
+      },
+      {
+        "id": "team",
+        "title": "Team avatars",
+        "layout": "team-avatars",
+        "props": {
+          "title": "The release crew",
+          "people": [
+            {
+              "name": "Rio Example",
+              "role": "Release lead",
+              "avatar": "av-031"
+            },
+            {
+              "name": "Sam Example",
+              "role": "Quality",
+              "avatar": "av-044",
+              "step": 1
+            },
+            {
+              "name": "Noa Example",
+              "role": "Platform",
+              "avatar": "av-058",
+              "step": 1
+            }
+          ]
+        },
+        "notes": "People use library avatars (fictional portraits). Two of them arrive together on the first step through `people.*` markers."
+      },
+      {
+        "id": "divider-blocks",
+        "title": "Blocks",
+        "layout": "section-divider",
+        "props": {
+          "eyebrow": "Your turn",
+          "title": "Try it yourself"
+        },
+        "background": {
+          "kind": "gradient",
+          "gradient": "dusk"
+        },
+        "notes": "A divider on a gradient background preset. Next come the interactive blocks: vote, answer, calculate and start an app."
+      },
+      {
+        "id": "poll-quiz",
+        "title": "Poll and quiz",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Poll and quiz",
+            "level": 2
+          },
+          {
+            "type": "columns",
+            "widths": "equal",
+            "align": "start",
+            "columns": [
+              [
+                {
+                  "type": "poll",
+                  "id": "favorite",
+                  "question": "Which feature do you use most?",
+                  "options": [
+                    {
+                      "id": "decks",
+                      "label": "Decks"
+                    },
+                    {
+                      "id": "pages",
+                      "label": "Pages"
+                    },
+                    {
+                      "id": "apps",
+                      "label": "Apps"
+                    }
+                  ],
+                  "maxChoices": 2,
+                  "results": "after-vote"
+                }
+              ],
+              [
+                {
+                  "type": "quiz",
+                  "id": "check",
+                  "title": "Quick check",
+                  "feedback": "immediate",
+                  "passScore": 0.5,
+                  "shuffle": true,
+                  "questions": [
+                    {
+                      "id": "q1",
+                      "prompt": "What does a tone replace?",
+                      "choices": [
+                        {
+                          "id": "css",
+                          "label": "CSS colors"
+                        },
+                        {
+                          "id": "fonts",
+                          "label": "Fonts"
+                        }
+                      ],
+                      "answers": ["css"],
+                      "explanation": "Blocks never accept CSS."
+                    }
+                  ]
+                }
+              ]
+            ]
+          }
+        ],
+        "notes": "A poll and a quiz. Votes and answers stay in this browser; nothing is sent anywhere."
+      },
+      {
+        "id": "video-center",
+        "title": "video-centered",
+        "layout": "video-centered",
+        "props": {
+          "title": "Layout: video-centered",
+          "video": {
+            "src": "data:video/mp4;base64,AAAAIGZ0eXBpc29t",
+            "label": "Release walkthrough",
+            "width": 960,
+            "height": 540,
+            "muted": true,
+            "step": 1
+          },
+          "caption": "A muted product walkthrough"
+        },
+        "notes": "A centered video stays muted; the video pane reveals through a `video` marker."
+      },
+      {
+        "id": "calculator",
+        "title": "Calculator and counter",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Calculator and counter",
+            "level": 2
+          },
+          {
+            "type": "columns",
+            "widths": "wide-start",
+            "align": "start",
+            "columns": [
+              [
+                {
+                  "type": "calculator",
+                  "id": "pricing",
+                  "title": "What would it cost?",
+                  "currency": "USD",
+                  "inputs": [
+                    {
+                      "name": "seats",
+                      "label": "Seats",
+                      "control": "slider",
+                      "min": 1,
+                      "max": 200,
+                      "step": 1,
+                      "default": 10
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "id": "monthly",
+                      "label": "Per month",
+                      "unit": "cents",
+                      "formula": {
+                        "op": "mul",
+                        "left": {
+                          "op": "var",
+                          "name": "seats"
+                        },
+                        "right": {
+                          "op": "num",
+                          "value": 1200
+                        }
+                      }
+                    }
+                  ]
+                }
+              ],
+              [
+                {
+                  "type": "counter",
+                  "id": "claps",
+                  "label": "Claps",
+                  "start": 0,
+                  "step": 1,
+                  "min": 0,
+                  "max": 100,
+                  "unit": "claps"
+                }
+              ]
+            ]
+          }
+        ],
+        "notes": "A what-if calculator with a slider and a counter; both recompute live, in integer cents where money is involved."
+      },
+      {
+        "id": "video-left",
+        "title": "video-left",
+        "layout": "video-left",
+        "props": {
+          "title": "Layout: video-left",
+          "video": {
+            "src": "data:video/mp4;base64,AAAAIGZ0eXBpc29t",
+            "label": "Release walkthrough",
+            "width": 960,
+            "height": 540,
+            "muted": true
+          },
+          "heading": "Watch the release",
+          "body": "A short muted clip of the weekly build."
+        },
+        "notes": "Video on the left with text beside it; the clip only preloads when the slide comes near."
+      },
+      {
+        "id": "form",
+        "title": "Form",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Form",
+            "level": 2
+          },
+          {
+            "type": "form",
+            "id": "signup",
+            "title": "Join the beta",
+            "submitLabel": "Request access",
+            "successMessage": "Thanks — we will email you.",
+            "fields": [
+              {
+                "name": "email",
+                "label": "Work email",
+                "type": "email",
+                "required": true
+              },
+              {
+                "name": "role",
+                "label": "Role",
+                "type": "enum",
+                "options": [
+                  {
+                    "value": "eng",
+                    "label": "Engineering"
+                  },
+                  {
+                    "value": "design",
+                    "label": "Design"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "notes": "A form block; responses are simulated and stored locally, never emailed."
+      },
+      {
+        "id": "video-right",
+        "title": "video-right",
+        "layout": "video-right",
+        "props": {
+          "title": "Layout: video-right",
+          "video": {
+            "src": "data:video/mp4;base64,AAAAIGZ0eXBpc29t",
+            "label": "Release walkthrough",
+            "width": 960,
+            "height": 540,
+            "muted": true
+          },
+          "heading": "Say it first",
+          "body": "Then let the clip show the detail."
+        },
+        "notes": "Video on the right; same muted clip, mirrored layout for variety."
+      },
+      {
+        "id": "map",
+        "title": "Map",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Map",
+            "level": 2
+          },
+          {
+            "type": "map",
+            "id": "stores",
+            "label": "Stores on the simulated map",
+            "basemap": "port-meridian",
+            "points": [
+              {
+                "id": "north",
+                "label": "North pier",
+                "lng": -18.6,
+                "lat": -30.8,
+                "tone": "accent"
+              },
+              {
+                "id": "market",
+                "label": "Market",
+                "lng": -18.4,
+                "lat": -31.1,
+                "icon": "shopping-cart"
+              }
+            ],
+            "route": ["north", "market"]
+          }
+        ],
+        "notes": "A map on the simulated Port Meridian basemap: fictional places, no tile server."
+      },
+      {
+        "id": "chart",
+        "title": "Chart layout",
+        "layout": "chart",
+        "props": {
+          "title": "Releases per quarter",
+          "spec": {
+            "kind": "bar",
+            "title": "Releases per quarter, fictional",
+            "description": "Releases grew from 3 to 13 a quarter as the team moved to weekly shipping.",
+            "labels": ["Q1", "Q2", "Q3", "Q4"],
+            "series": [
+              {
+                "label": "Releases",
+                "values": [3, 6, 9, 13]
+              }
+            ],
+            "step": 1
+          },
+          "height": "md",
+          "showTable": true
+        },
+        "notes": "The chart layout with its data table; the whole `spec` is a stepped prop. Markers inside a series would not hide, so there are none."
+      },
+      {
+        "id": "embed",
+        "title": "Embedded app",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Embedded app",
+            "level": 2
+          },
+          {
+            "type": "embed-app",
+            "id": "try-it",
+            "title": "Try the tracker",
+            "height": "md",
+            "startLabel": "Open demo",
+            "app": {
+              "formatVersion": 1,
+              "name": "Mini tracker",
+              "entities": [
+                {
+                  "name": "task",
+                  "plural": "tasks",
+                  "titleField": "title",
+                  "fields": [
+                    {
+                      "name": "title",
+                      "kind": "text",
+                      "required": true
+                    }
+                  ]
+                }
+              ],
+              "roles": [
+                {
+                  "name": "member",
+                  "permissions": {
+                    "*": ["*"]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "notes": "An embedded app: a tiny tracker blueprint that starts inside the slide when the viewer presses Open demo."
+      },
+      {
+        "id": "flow",
+        "title": "Flow diagram",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Flow diagram",
+            "level": 2
+          },
+          {
+            "type": "flow",
+            "id": "build-loop",
+            "loopBack": true,
+            "nodes": [
+              {
+                "id": "brief",
+                "label": "Brief"
+              },
+              {
+                "id": "blueprint",
+                "label": "Blueprint",
+                "tone": "accent"
+              },
+              {
+                "id": "prototype",
+                "label": "Prototype"
+              },
+              {
+                "id": "feedback",
+                "label": "Feedback",
+                "tone": "success"
+              }
+            ]
+          }
+        ],
+        "notes": "A flow diagram with a loop back: brief, blueprint, prototype and feedback."
+      },
+      {
+        "id": "stat",
+        "title": "Big stat",
+        "layout": "big-stat",
+        "props": {
+          "number": "52",
+          "label": "weekly releases in a fictional year",
+          "context": "Orbit Lane, 2026",
+          "source": "Simulated release log"
+        },
+        "notes": "One number, said out loud: fifty-two releases. Pause and let it land before moving on."
+      },
+      {
+        "id": "tree",
+        "title": "Tree diagram",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Tree diagram",
+            "level": 2
+          },
+          {
+            "type": "tree",
+            "id": "repo-tree",
+            "style": "file-tree",
+            "nodes": [
+              {
+                "id": "root",
+                "parentId": null,
+                "label": "example-app"
+              },
+              {
+                "id": "src",
+                "parentId": "root",
+                "label": "src"
+              },
+              {
+                "id": "app",
+                "parentId": "src",
+                "label": "App.svelte",
+                "tone": "accent"
+              },
+              {
+                "id": "tests",
+                "parentId": "root",
+                "label": "tests"
+              }
+            ]
+          }
+        ],
+        "notes": "A file tree of a fictional prototype; the accent node marks the app entry."
+      },
+      {
+        "id": "board",
+        "title": "Board",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Board",
+            "level": 2
+          },
+          {
+            "type": "board",
+            "id": "launch-board",
+            "columns": [
+              {
+                "id": "todo",
+                "title": "To do",
+                "cards": [
+                  {
+                    "id": "copy",
+                    "title": "Write launch copy"
+                  }
+                ]
+              },
+              {
+                "id": "doing",
+                "title": "Doing",
+                "cards": [
+                  {
+                    "id": "demo",
+                    "title": "Record the demo",
+                    "tone": "info"
+                  }
+                ]
+              },
+              {
+                "id": "done",
+                "title": "Done",
+                "cards": [
+                  {
+                    "id": "deck",
+                    "title": "Ship the deck",
+                    "tone": "success"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "notes": "A board with three columns and cards; drag is not needed to read it."
+      },
+      {
+        "id": "closing",
+        "title": "Closing call to action",
+        "layout": "closing-cta",
+        "props": {
+          "title": "Copy what you need",
+          "text": "Every slide here is a recipe: open it with deck inspect.",
+          "cta": {
+            "label": "Read the deck guide",
+            "href": "https://example.com/decks",
+            "step": 1
+          },
+          "footnote": "Orbit Lane is a fictional company."
+        },
+        "notes": "The call to action button arrives on the first step through a `cta` marker; end the layout tour here."
+      }
+    ],
+    "outline": {
+      "title": "Everything a deck can do",
+      "sections": [
+        {
+          "id": "s-1",
+          "title": "Text and layout basics",
+          "slideIds": [
+            "cover",
+            "divider-layouts",
+            "text-blocks",
+            "split",
+            "quote-blocks",
+            "cards",
+            "media-blocks"
+          ]
+        },
+        {
+          "id": "s-2",
+          "title": "Media and people",
+          "slideIds": [
+            "img-left",
+            "people-stat",
+            "img-right",
+            "table",
+            "img-center",
+            "charts-trend",
+            "img-bleed"
+          ]
+        },
+        {
+          "id": "s-3",
+          "title": "Data and charts",
+          "slideIds": [
+            "charts-parts",
+            "quote",
+            "charts-funnel",
+            "code",
+            "code-blocks",
+            "structure-a",
+            "compare"
+          ]
+        },
+        {
+          "id": "s-4",
+          "title": "Code and structure",
+          "slideIds": [
+            "structure-b",
+            "process",
+            "structure-c",
+            "timeline",
+            "structure-d",
+            "team",
+            "divider-blocks"
+          ]
+        },
+        {
+          "id": "s-5",
+          "title": "Interaction",
+          "slideIds": [
+            "poll-quiz",
+            "video-center",
+            "calculator",
+            "video-left",
+            "form",
+            "video-right",
+            "map"
+          ]
+        },
+        {
+          "id": "s-6",
+          "title": "Diagrams and the close",
+          "slideIds": ["chart", "embed", "flow", "stat", "tree", "board", "closing"]
+        }
+      ]
+    }
+  }
+}

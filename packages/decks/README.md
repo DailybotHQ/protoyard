@@ -518,6 +518,7 @@ them, so no rule is declared twice.
   | `image-size` | error | An image in props with no width and height |
   | `step-order` | error | A fragment that reveals before content above it, in reading order (columns included) |
   | `empty-steps` | warning | More step labels than fragments |
+  | `custom-slide` | warning | A `layout: "custom"` slide: it runs only in a generated deck; the player shows a placeholder |
   | `step-unrevealed` | warning | A step marker where the layout reveals nothing (inside a chart series, say): see `DECK_LAYOUT_STEPPABLE` |
   | `notes-missing` | warning | Notes absent or under 40 characters |
   | `notes-duplicate` | warning | The same notes as an earlier slide, ignoring case and punctuation |

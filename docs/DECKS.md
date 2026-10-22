@@ -44,7 +44,10 @@ pnpm protoyard dev rehearsal
   `generate <slug> --blueprint .protoyard/quick/<exploration>/blueprint.json`.
 - The catalog decks live in [`blueprints/decks/`](../blueprints/decks/README.md):
   `example`, `cedar-training`, `harbor-ops-pitch`, `lumen-launch`,
-  `northwind-qbr` and `protoyard-create-anything`.
+  `northwind-qbr` and `protoyard-create-anything`. `everything` is the
+  reference deck to copy from: every layout, block type and chart family on
+  42 slides (`pnpm protoyard deck inspect blueprints/decks/everything.json
+  --slide <id>` prints any slide's JSON).
 - A generated deck prototype changes through its data. Edit
   `prototypes/<slug>/blueprint.json`, run the same `generate` command again,
   then `validate`. Never edit `src/generated/**`; see

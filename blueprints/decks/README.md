@@ -12,6 +12,7 @@ entities, roles or screens. Back to the [catalog index](../README.md#choose-an-e
 | [Lumen launch](./lumen-launch.json) | Product launch | Process, three cards, free quiz |
 | [Cedar training](./cedar-training.json) | Internal training | Timeline, free counter + poll, code callout |
 | [Protoyard: create anything](./protoyard-create-anything.json) | Flagship | 25 slides: every layout family, flow, terminal, stats, charts with a data table, an explorable chart, poll, calculator, quiz and an embedded app; generated as `prototypes/create-anything-deck` |
+| [Everything deck](./everything.json) | Reference | 42 slides: every catalog layout, every block type and every chart family, with steps on every prop kind, a media background, an explorable table and chart, a poll, a calculator and an embedded app. The deck to copy from (`protoyard deck inspect blueprints/decks/everything.json --slide <id>`); `packages/decks/tests/everything-deck.test.ts` keeps it complete |
 
 ## Shape
 

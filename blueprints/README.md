@@ -25,7 +25,7 @@ catalog, so an agent can pick a starting point without mixing apps and content.
 | Kind | Catalog | Examples | Start from it when |
 | --- | --- | --- | --- |
 | `app` | [Marketplace catalog](#catalog) (`blueprints/*.json`) and [quick examples](./quick/README.md) (`blueprints/quick/`) | 40 + 4 | The idea is a product with data: entities, roles, screens and scenarios |
-| `deck` | [Deck examples](./decks/README.md) (`blueprints/decks/`) | 6 | The idea is a presentation: a pitch, review, launch or training (plus the flagship deck and a minimal visual-QA deck) |
+| `deck` | [Deck examples](./decks/README.md) (`blueprints/decks/`) | 7 | The idea is a presentation: a pitch, review, launch or training (plus the flagship deck, the everything reference deck and a minimal visual-QA deck) |
 | `page` | [Page examples](./pages/README.md) (`blueprints/pages/`) | 1 | The idea is a single scrolling marketing or waitlist page |
 | `doc` | [Doc examples](./docs/README.md) (`blueprints/docs/`) | 1 | The idea is a report, one-pager or data story to read and print |
 

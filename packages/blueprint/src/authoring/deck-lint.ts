@@ -1,4 +1,5 @@
 import { forEachBlock } from '@protoyard/blocks';
+import { checkDeckMediaSrc } from '@protoyard/decks';
 import { DECK_LAYOUT_BY_ID, parseLayoutProps, stripStepMarkers } from '@protoyard/decks/layouts';
 import { checkDeckStatic } from '@protoyard/decks/quality';
 import { type Deck, type DeckSlide, safeParseDeck } from '@protoyard/decks/schema';
@@ -551,6 +552,12 @@ function ownDataValue(record: object, key: string): unknown {
 function assetUrlProblem(value: unknown, kind: AssetKind): string | null {
   if (typeof value !== 'string' || value.length === 0)
     return 'Asset reference needs a URL or local path.';
+  // Bounded base64 media is part of the deck media policy (DECKS.md, Limits): the
+  // schema's own check decides, so lint and schema never disagree.
+  if (/^data:/i.test(value)) {
+    const check = checkDeckMediaSrc(value, kind);
+    return check.ok ? null : check.reason;
+  }
   if (value.length > MAX_ASSET_URL_LENGTH)
     return 'Asset references must be at most 2,048 characters.';
   if (value !== value.trim()) return 'Asset references cannot start or end with whitespace.';
