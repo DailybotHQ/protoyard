@@ -26,6 +26,12 @@ const tabs = MINIMAL_EXAMPLES.tabs as TabsBlock;
 
 describe('interactive family through BlockStateHost', () => {
   it('votes through a spy host, shows pending, and announces results', async () => {
+    // Keep this behavior test independent of the cold lazy chunk transform. The
+    // renderer's lazy boundary is covered separately; under the combined package
+    // suite, compiling this family can outlast the DOM assertion's wait window.
+    const { loadBlockFamily } = await import('../src/registry.ts');
+    expect(await loadBlockFamily('interactive')).toBeTypeOf('function');
+
     const memory = createMemoryBlockStateHost();
     const dispatch = vi.fn(
       (key: string, block: Parameters<BlockStateHost['dispatch']>[1], action: unknown) =>
