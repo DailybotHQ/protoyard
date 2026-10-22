@@ -79,6 +79,7 @@
       "svelte": "./src/scenarios/index.ts",
       "default": "./src/scenarios/index.ts"
     },
+    "./player.css": "./src/player.css",
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
@@ -101,7 +102,9 @@
   },
   "protoyard": {
     "build": {
-      "assets": []
+      "assets": [
+        "src/player.css"
+      ]
     }
   },
   "files": [
@@ -182,6 +185,11 @@
         "types": "./dist/scenarios/index.d.ts",
         "svelte": "./dist/scenarios/index.js",
         "default": "./dist/scenarios/index.js"
+      },
+      "./player.css": {
+        "types": "./dist/player.css.d.ts",
+        "svelte": "./dist/player.css",
+        "default": "./dist/player.css"
       },
       "./styles.css": {
         "types": "./dist/styles.css.d.ts",

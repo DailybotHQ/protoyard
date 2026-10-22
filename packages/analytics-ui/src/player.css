@@ -1,0 +1,5 @@
+/* Player-used analytics families; keep this scan next to the package sources. */
+@source "./date-range";
+@source "./filters";
+@source "./grid";
+@source "./kpi";

@@ -3,6 +3,16 @@
 @import "@protoyard/decks-ui/styles.css";
 @import "@protoyard/pages-ui/styles.css";
 
+/* Block utilities shared with apps are emitted here for the lazy content path. */
+.grid-cols-\[repeat\(auto-fit\,minmax\(min\(100\%\,11rem\)\,1fr\)\)\] {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+}
+
+.leading-6 {
+  --tw-leading: calc(calc(0.25rem * var(--py-density)) * 6);
+  line-height: calc(calc(0.25rem * var(--py-density)) * 6);
+}
+
 /* Keep the toolbar geometry stable when its Tailwind utilities are loaded lazily. */
 [data-py-deck-toolbar] {
   column-gap: 4.5px;
