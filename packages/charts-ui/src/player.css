@@ -1,0 +1,6 @@
+/* Player-used chart families; keep this scan next to the package sources. */
+@source "./cartesian";
+@source "./compact/Sparkline.svelte";
+@source "./frame";
+@source "./interaction";
+@source "./part-whole";

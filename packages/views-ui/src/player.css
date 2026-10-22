@@ -1,0 +1,6 @@
+/* Player-used view families; keep this scan next to the package sources. */
+@source "./board";
+@source "./calendar";
+@source "./map";
+@source "./states";
+@source "./timeline";

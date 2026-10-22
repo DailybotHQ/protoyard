@@ -44,6 +44,7 @@
       "svelte": "./src/drill/index.ts",
       "default": "./src/drill/index.ts"
     },
+    "./player.css": "./src/player.css",
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
@@ -64,7 +65,9 @@
   },
   "protoyard": {
     "build": {
-      "assets": []
+      "assets": [
+        "src/player.css"
+      ]
     }
   },
   "files": [
@@ -110,6 +113,11 @@
         "types": "./dist/drill/index.d.ts",
         "svelte": "./dist/drill/index.js",
         "default": "./dist/drill/index.js"
+      },
+      "./player.css": {
+        "types": "./dist/player.css.d.ts",
+        "svelte": "./dist/player.css",
+        "default": "./dist/player.css"
       },
       "./styles.css": {
         "types": "./dist/styles.css.d.ts",
