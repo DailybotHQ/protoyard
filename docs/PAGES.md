@@ -88,9 +88,17 @@ later pages version.
 
 `DocHost` uses `buildDocToc` from `@protoyard/pages`. It derives stable ids from
 heading blocks, keeps authored block ids when unique, and disambiguates repeated
-slugs. Levels 2–4 may appear in the on-page TOC; the left navigation lists
-level-2 headings. A requested TOC must have at least one heading within its
+slugs. Levels 2–4 may appear in the on-page TOC. The document uses one title
+header: if its first block is an `h1`, that block supplies the eyebrow and
+subtitle and is not rendered again. One TOC disclosure collapses on phones and
+becomes a sticky outline rail on wide screens; its active link follows the
+visible section. The article uses a 72-character measure and the TOC is hidden
+when printing. A requested TOC must have at least one heading within its
 configured depth.
+
+Vertical timeline blocks use a dedicated marker column beside the event labels
+so dates and titles remain readable at narrow widths. The shared renderer
+applies this layout in decks, pages and docs.
 
 ## Public forms are local simulations
 

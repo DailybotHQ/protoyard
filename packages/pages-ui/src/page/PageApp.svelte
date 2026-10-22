@@ -4,6 +4,7 @@ import { forEachBlock } from '@protoyard/blocks';
 import type { PrototypeRuntime } from '@protoyard/core';
 import { createFormServices, type FormServices, type PageDocument } from '@protoyard/pages';
 import { ErrorState, LoadingState } from '@protoyard/ui';
+import { untrack } from 'svelte';
 import { setFormServices } from '../form/context.ts';
 import PageHost from './PageHost.svelte';
 
@@ -56,9 +57,9 @@ const services = $derived.by((): FormServices | null => {
   });
 });
 
-$effect(() => {
-  setFormServices(services);
-});
+// Context can only be set while the component initializes (Svelte 5); a page
+// and its runtime are fixed for the life of this component, so read them once.
+setFormServices(untrack(() => services));
 
 const errorMessage = $derived(
   error instanceof Error ? error.message : typeof error === 'string' ? error : null

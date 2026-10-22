@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -87,11 +87,19 @@ describe('the doctor interface', () => {
     const cliDeps = JSON.parse(
       readFileSync(join(REPO, 'packages', 'cli', 'package.json'), 'utf8')
     ).dependencies;
+    const contentKind = (kind: 'deck' | 'page' | 'doc') =>
+      commands.has('quick') &&
+      Boolean(blueprintExports['./kinds']) &&
+      Boolean(blueprintExports['./schema.json']) &&
+      existsSync(join(REPO, 'templates', kind));
     const implemented: Record<(typeof CAPABILITY_IDS)[number], boolean> = {
       quick: commands.has('quick'),
       generate: commands.has('generate'),
       'blueprint-schema':
         commands.has('blueprint validate') && Boolean(blueprintExports['./schema.json']),
+      'kind-deck': contentKind('deck'),
+      'kind-page': contentKind('page'),
+      'kind-doc': contentKind('doc'),
       player: Boolean(cliDeps['@protoyard/player']) && commands.has('quick'),
       mcp: commands.has('mcp'),
       import: commands.has('blueprint import') || commands.has('import'),

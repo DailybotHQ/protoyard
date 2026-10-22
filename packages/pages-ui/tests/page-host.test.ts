@@ -91,11 +91,13 @@ describe('PageHost', () => {
     expect(featureLink).toBeTruthy();
     expect(featureLink?.getAttribute('href')).toBe('#features');
 
-    // BlockHost mock renders once per block
+    // The page draws the hero title and lead itself; other blocks go through BlockHost.
+    expect(view.getByRole('heading', { level: 1, name: 'Welcome aboard' })).toBeTruthy();
+    expect(view.getByText('Hero body copy.')).toBeTruthy();
     await waitFor(() => {
       expect(
         view.container.querySelectorAll('[data-py-mock-block-host]').length
-      ).toBeGreaterThanOrEqual(5);
+      ).toBeGreaterThanOrEqual(3);
     });
   });
 

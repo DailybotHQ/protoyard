@@ -4,6 +4,7 @@ import { forEachBlock } from '@protoyard/blocks';
 import type { PrototypeRuntime } from '@protoyard/core';
 import { createFormServices, type DocDocument, type FormServices } from '@protoyard/pages';
 import { ErrorState, LoadingState } from '@protoyard/ui';
+import { untrack } from 'svelte';
 import { setFormServices } from '../form/context.ts';
 import DocHost from './DocHost.svelte';
 
@@ -52,9 +53,9 @@ const services = $derived.by((): FormServices | null => {
   });
 });
 
-$effect(() => {
-  setFormServices(services);
-});
+// Svelte context must be provided during initialization, before DocHost's
+// descendant blocks render and look up their form services.
+setFormServices(untrack(() => services));
 
 const errorMessage = $derived(
   error instanceof Error ? error.message : typeof error === 'string' ? error : null

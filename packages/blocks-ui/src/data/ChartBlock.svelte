@@ -1,6 +1,12 @@
 <script lang="ts">
 import { type ChartBlock, ChartSpecSchema } from '@protoyard/blocks';
-import { chartItems, chartSeries, chartValueFormatter, isCartesianChart } from './format.ts';
+import {
+  chartItems,
+  chartSeries,
+  chartValueFormatter,
+  chartXKind,
+  isCartesianChart,
+} from './format.ts';
 
 /**
  * A chart block on `@protoyard/charts-ui`. The spec is the AI chart spec
@@ -73,7 +79,7 @@ const load = (kind: string) =>
         {#if 'BarChart' in kit && spec.kind === 'bar'}
           <kit.BarChart title={spec.title} description={spec.description} series={chartSeries(spec)} {...units} {height} />
         {:else if 'LineChart' in kit && (spec.kind === 'line' || spec.kind === 'area')}
-          <kit.LineChart title={spec.title} description={spec.description} series={chartSeries(spec)} {...units} xKind="category" area={spec.kind === 'area'} {height} />
+          <kit.LineChart title={spec.title} description={spec.description} series={chartSeries(spec)} xKind={chartXKind(spec)} {...units} area={spec.kind === 'area'} {height} />
         {:else if 'FunnelChart' in kit && spec.kind === 'funnel'}
           <kit.FunnelChart title={spec.title} description={spec.description} steps={chartItems(spec).map((d) => ({ id: d.id, label: d.label, count: d.value }))} unit={units.unit} {height} />
         {:else if 'PieChart' in kit && spec.kind === 'pie'}

@@ -5,6 +5,8 @@
  * blocks-ui family chunks.
  */
 import type { Block } from '@protoyard/blocks';
+import { getFormServices } from '../../src/form/context.ts';
+import FormBlock from '../../src/form/FormBlock.svelte';
 
 let {
   block,
@@ -15,6 +17,7 @@ let {
 const typed = $derived(
   block && typeof block === 'object' && 'type' in block ? (block as Block) : null
 );
+const formServices = getFormServices();
 </script>
 
 {#if typed?.type === 'heading'}
@@ -25,6 +28,10 @@ const typed = $derived(
   >
     {typed.text}
   </svelte:element>
+{:else if typed?.type === 'form' && formServices}
+  <FormBlock form={typed} services={formServices} />
+{:else if typed?.type === 'form'}
+  <div data-py-form-disabled>Form service unavailable</div>
 {:else if typed}
   <div data-py-mock-block-host data-type={typed.type}>{typed.type}</div>
 {:else}

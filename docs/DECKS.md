@@ -173,6 +173,20 @@ The generated table in the
 layout's pacing and limits. It is kept in sync with the code by
 `packages/decks/tests/readme-sync.test.ts`.
 
+## Slide design
+
+Each of the 21 catalog layouts has its own composition on the stage: display
+titles on covers, dividers and closing slides, a dominant big-stat number, pull
+quotes, real two- and three-column grids, numbered process steps with
+connectors, timelines on an axis, room-sized comparison tables, team cards with
+avatars, media that crops and captions, and a chart whose data table stays
+behind its toggle (printed on paper). The type scale follows the stage width,
+so 16:9, 4:3, 9:16 and 1:1 stages all read well, and it never drops below the
+deck minimums of 24 px body and 18 px labels. Long text clamps, or the content
+zooms down to a floor; nothing overflows the stage. Layouts use theme tokens
+only, so themes and dark mode apply. The per-layout table and the scale are in
+[the decks-ui guide](../packages/decks-ui/README.md#slide-design).
+
 ## Steps and step links
 
 A slide starts at step 0. Each "next" advances one step, then moves to the

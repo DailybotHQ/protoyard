@@ -60,6 +60,8 @@ describe('PresenterView', () => {
     expect(document.querySelector('[data-py-presenter-position]')?.textContent).toMatch(/1 \/ 3/);
     expect(document.querySelector('[data-py-presenter-elapsed]')).toBeTruthy();
     expect(document.querySelector('[data-py-presenter-slide-time]')).toBeTruthy();
+    expect(document.querySelector('[data-py-presenter-timer-pause]')).toBeTruthy();
+    expect(document.querySelector('[data-py-presenter-timer-reset]')).toBeTruthy();
   });
 });
 

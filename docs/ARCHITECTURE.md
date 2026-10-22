@@ -182,16 +182,22 @@ A blueprint with `kind: "deck" | "page" | "doc"` (ADR-036) has no entities, but 
 still runs on the same runtime, so themes, shells, DevTools, snapshots and the
 persona switcher keep working. `defineKindRuntime(doc, { namespace })` from
 `@protoyard/blueprint/kinds` builds its `PrototypeDefinition`. The player and
-generated kind prototypes share it, so both levels behave the same.
+generated kind prototypes (and the `templates/deck`, `templates/page`,
+`templates/doc` starters) share it, so both levels behave the same
+([Player → Content kinds](PLAYER.md#content-kinds-deck-page-and-doc),
+[Generator → Generated decks, pages and docs](GENERATOR.md#generated-decks-pages-and-docs)).
 
 ```text
 defineKindRuntime(doc)
-  ├─ database   one version: blockStates (key = stateKey(documentId, blockId)), formResponses
+  ├─ database   one version: blockStates (key = stateKey(documentId, blockId)),
+  │             formResponses (same row contract as @protoyard/pages FormResponse)
   ├─ scenarios  `default` only
   ├─ world      generateWorld(scenario): one organization + presenter, audience, viewer personas
   │             (fixed data; no generation context, no Faker, no blueprint generator)
-  ├─ policy     presenter: blocks:interact, responses:create, responses:read
-  │             audience:  blocks:interact, responses:create      viewer: none (simulated)
+  ├─ policy     (simulated, not security — FORM_CAPABILITIES from @protoyard/pages)
+  │             presenter: blocks:interact, form:submit, form:read, form:admin
+  │             audience:  blocks:interact, form:submit, form:read
+  │             viewer:    form:submit, form:read
   └─ theme      the brand's built theme, or its library theme id, as for apps
 ```
 
@@ -211,14 +217,18 @@ path:
 
 `read` returns the stored raw state from a cache that reloads after scenario
 loads, and blocks-ui restores it with `readBlockState`. Form submissions go
-through `responses.submit(formId, values)` the same way:
+through `responses.submit` / `responses.list`, which delegate to
+`createFormServices` from `@protoyard/pages` (lead form contract: `id`,
+`formId`, `createdAt`, `values`, optional `personaId`):
 
 1. The form is resolved from the document.
-2. `session.assert('responses:create')`.
+2. `session.assert('form:submit')` on submit, `form:read` on list/export,
+   `form:admin` on clear.
 3. The values are validated against the form's own fields.
-4. `environment.run` → `db.transaction` writes them.
+4. `environment.run` → `db.transaction` writes or reads them.
 
-Presenters list every response; everyone else lists only their own.
+Any persona with `form:read` (presenter, audience and viewer) can list every
+response for a form. Only the presenter may clear them (`form:admin`).
 
 ## Optional mock HTTP layer
 

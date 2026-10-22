@@ -40,6 +40,14 @@ let {
 let mode = $state<'closed' | 'popup' | 'split'>('closed');
 let link = $state.raw<PresenterLink | null>(null);
 let popupRef = $state.raw<Window | null>(null);
+/** Why the in-page split is used instead of a popup (when mode is split). */
+let fallbackReason = $state<'popup-blocked' | 'no-broadcast' | 'no-window' | null>(null);
+
+const FALLBACK_COPY: Record<'popup-blocked' | 'no-broadcast' | 'no-window', string> = {
+  'popup-blocked': 'The presenter popup was blocked, so this split view is open instead.',
+  'no-broadcast': 'BroadcastChannel is unavailable, so this split view is open instead.',
+  'no-window': 'No window is available, so this split view is open instead.',
+};
 
 const activeSlide = $derived(deck.slides.find((s) => s.id === slideId));
 const stepCount = $derived(activeSlide ? slideStepCount(activeSlide) : 1);
@@ -56,6 +64,7 @@ function teardown(): void {
   }
   popupRef = null;
   mode = 'closed';
+  fallbackReason = null;
 }
 
 function start(): void {
@@ -67,6 +76,7 @@ function start(): void {
     onRemote: (pos) => onPosition?.(pos),
   });
   if (result.mode === 'fallback') {
+    fallbackReason = result.reason;
     const transport = createBroadcastPresenterTransport(namespace);
     if (transport) {
       link = createPresenterLink({
@@ -80,6 +90,7 @@ function start(): void {
     open = true;
     return;
   }
+  fallbackReason = null;
   link = result.link;
   popupRef = result.window;
   mode = 'popup';
@@ -137,6 +148,16 @@ onDestroy(() => teardown());
       {#if children}{@render children()}{/if}
     </div>
     <aside class="min-h-0 overflow-auto">
+      {#if fallbackReason}
+        <p
+          class="border-b border-border bg-muted/50 px-4 py-2 text-sm text-muted-foreground"
+          role="status"
+          data-py-presenter-fallback-reason
+          data-reason={fallbackReason}
+        >
+          {FALLBACK_COPY[fallbackReason]}
+        </p>
+      {/if}
       <PresenterView {deck} {slideId} {step} {stepCount} {onNavigate} />
       <div class="border-t border-border p-3">
         <button
