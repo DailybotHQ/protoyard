@@ -4,6 +4,7 @@
  * help dialog and laser render only while open.
  */
 export { default as BlackoutScreen } from './BlackoutScreen.svelte';
+export { default as ChromeTooltip } from './ChromeTooltip.svelte';
 export { copyText } from './clipboard.ts';
 export { default as DeckToolbar } from './DeckToolbar.svelte';
 export {
@@ -15,4 +16,18 @@ export {
 export { default as KeyboardHelp } from './KeyboardHelp.svelte';
 export { default as LaserPointer } from './LaserPointer.svelte';
 export { cleanReferenceText, type SlideReferenceInput, slideReference } from './reference.ts';
+export {
+  controlTooltip,
+  createDeckTooltip,
+  createTooltipController,
+  type DeckTooltip,
+  type DeckTooltipView,
+  placeTooltip,
+  shortcutText,
+  TOOLTIP_HOVER_DELAY_MS,
+  TOOLTIP_LINGER_MS,
+  TOOLTIP_LONG_PRESS_MS,
+  type TooltipContent,
+  type TooltipController,
+} from './tooltip.ts';
 export type { DeckToolAction } from './types.ts';

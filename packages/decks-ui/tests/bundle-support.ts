@@ -13,7 +13,14 @@ export type DeckBuild = { chunks: Rollup.OutputChunk[]; assets: Rollup.OutputAss
 export const gzip = (code: string | Uint8Array) => gzipSync(code, { level: 9 }).byteLength;
 export const posix = (id: string) => id.replaceAll('\\', '/');
 
-export async function buildDeckEntry(): Promise<{ dir: string; output: DeckBuild }> {
+/** The default entry: DeckApp with an empty deck and the deck styles. */
+export const DECK_ENTRY_MAIN =
+  "import { mount } from 'svelte';\nimport { DeckApp } from '@protoyard/decks-ui/app';\nimport '@protoyard/decks-ui/styles.css';\n\nmount(DeckApp, { target: document.getElementById('app')!, props: { deck: { id: 'fixture', title: 'Fixture', slides: [] } } });\n";
+
+/** Builds an entry (by default the deck app's) in production mode. */
+export async function buildDeckEntry(
+  main: string = DECK_ENTRY_MAIN
+): Promise<{ dir: string; output: DeckBuild }> {
   const dir = await mkdtemp(join(tmpdir(), 'protoyard-decks-bundle-'));
   try {
     await mkdir(join(dir, 'node_modules/@protoyard'), { recursive: true });
@@ -22,10 +29,7 @@ export async function buildDeckEntry(): Promise<{ dir: string; output: DeckBuild
       join(dir, 'index.html'),
       '<!doctype html><html><head><meta charset="UTF-8"></head><body><div id="app"></div><script type="module" src="/main.ts"></script></body></html>'
     );
-    await writeFile(
-      join(dir, 'main.ts'),
-      "import { mount } from 'svelte';\nimport { DeckApp } from '@protoyard/decks-ui/app';\nimport '@protoyard/decks-ui/styles.css';\n\nmount(DeckApp, { target: document.getElementById('app')!, props: { deck: { id: 'fixture', title: 'Fixture', slides: [] } } });\n"
-    );
+    await writeFile(join(dir, 'main.ts'), main);
     const previousEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
     let output: DeckBuild;
