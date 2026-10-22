@@ -73,7 +73,7 @@ const load = (kind: string) =>
         {#if 'BarChart' in kit && spec.kind === 'bar'}
           <kit.BarChart title={spec.title} description={spec.description} series={chartSeries(spec)} {...units} {height} />
         {:else if 'LineChart' in kit && (spec.kind === 'line' || spec.kind === 'area')}
-          <kit.LineChart title={spec.title} description={spec.description} series={chartSeries(spec)} {...units} area={spec.kind === 'area'} {height} />
+          <kit.LineChart title={spec.title} description={spec.description} series={chartSeries(spec)} {...units} xKind="category" area={spec.kind === 'area'} {height} />
         {:else if 'FunnelChart' in kit && spec.kind === 'funnel'}
           <kit.FunnelChart title={spec.title} description={spec.description} steps={chartItems(spec).map((d) => ({ id: d.id, label: d.label, count: d.value }))} unit={units.unit} {height} />
         {:else if 'PieChart' in kit && spec.kind === 'pie'}
