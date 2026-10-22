@@ -14,6 +14,9 @@ export function setOverlayPortalTarget(el: Element | null): void {
 }
 
 export function getOverlayPortalTarget(): Element | null {
+  if (portalTarget && !portalTarget.isConnected) {
+    setOverlayPortalTarget(null);
+  }
   return portalTarget;
 }
 
