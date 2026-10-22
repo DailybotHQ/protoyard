@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { checkHeader } from '../src/lib/codegen/header.ts';
+import { checkBlueprintDrift } from '../src/lib/codegen/regenerate.ts';
 import { biomeFormatCheck, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 vi.setConfig({ testTimeout: 30_000 });
@@ -159,6 +160,41 @@ describe('protoyard generate content kinds', () => {
         generated: true,
         intact: true,
       });
+    }
+  );
+
+  it.each(Object.keys(FIXTURES) as ContentKind[])(
+    'reports a generated %s prototype fresh, then drift after blueprint.json changes',
+    async (kind) => {
+      const slug = `${kind}-drift`;
+      const created = await generate(slug, '--blueprint', writeFixture(kind), '--no-install');
+      expect(created.code).toBe(0);
+      const dir = join(ws.root, 'prototypes', slug);
+      // validate's blueprint check: content kinds parse as their kind, not as an app.
+      const fresh = await checkBlueprintDrift(dir, slug, 1);
+      expect(fresh.problems).toEqual([]);
+      expect(fresh.ok).toBe(true);
+      expect(fresh.summary).toContain(`${kind} blueprint, schema v1`);
+
+      const edited = JSON.parse(read(`prototypes/${slug}/blueprint.json`)) as Record<
+        string,
+        unknown
+      >;
+      writeFileSync(
+        join(dir, 'blueprint.json'),
+        `${JSON.stringify({ ...edited, name: 'Edited without regenerating' }, null, 2)}\n`
+      );
+      const drifted = await checkBlueprintDrift(dir, slug, 1);
+      expect(drifted.ok).toBe(false);
+      expect(drifted.problems.join('\n')).toMatch(/changed since the last generation/);
+
+      writeFileSync(join(dir, 'blueprint.json'), `${JSON.stringify(edited, null, 2)}\n`);
+      writeFileSync(
+        join(dir, 'src/prototype.ts'),
+        `${read(`prototypes/${slug}/src/prototype.ts`)}// hand edit\n`
+      );
+      const handEdited = await checkBlueprintDrift(dir, slug, 1);
+      expect(handEdited.problems.join('\n')).toMatch(/src\/prototype\.ts was edited by hand/);
     }
   );
 });
