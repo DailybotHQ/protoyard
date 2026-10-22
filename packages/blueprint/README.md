@@ -607,6 +607,31 @@ const { blueprint, json, archetype, layout, rationale } = blueprintFromBrief(
 
 It is a heuristic starting point: read the `rationale`, then refine `blueprint.json`.
 
+### Kind detection
+
+`detectBriefKind(brief, { kind? })` in `src/brief/kind-detection.ts` decides whether a brief asks
+for an `app`, a `deck`, a `page` or a `doc` (ADR-036). It runs before archetype scoring. It is
+deterministic and offline, and it matches whole words, longest phrase first. It returns
+`{ kind, confidence, ambiguous, reason, cues, suggestion }`. `reason` is one sentence a CLI or UI
+can show as is.
+
+- **Strong cues** switch the kind: `slides`, `slide deck`, `pitch deck`, `keynote`,
+  `presentation` (deck); `landing page`, `marketing site`, `pricing page`, `microsite` (page);
+  `a report`, `quarterly report`, `one-pager`, `whitepaper`, `handbook`, `design doc` (doc). The
+  full lists are `KIND_CUES`.
+- **Weak cues** (`talk`, `website`, a bare `report`, which is often a verb) only fill
+  `suggestion`. The kind stays `app`.
+- **App fallback.** The kind stays `app`, with `confidence: 'fallback'` and a reason, in four
+  cases: there is no cue; a cue names a tool that makes the content (`slide deck builder`,
+  `report generator`); an app noun from `APP_CUES` (`app`, `dashboard`, `platform`, `wiki`…)
+  comes before the first strong cue; or two content kinds both have strong cues. The last two
+  cases set `ambiguous: true`.
+- An explicit `kind` overrides every cue (`confidence: 'explicit'`). An unknown explicit kind
+  throws a `RangeError`.
+
+The detector is not exported from the package root yet. The brief-dispatch work wires it into
+`blueprintFromBrief` and `src/brief/index.ts`.
+
 ## Workflow state models
 
 `@protoyard/blueprint/workflows` validates a workflow separately from the formatVersion 1
