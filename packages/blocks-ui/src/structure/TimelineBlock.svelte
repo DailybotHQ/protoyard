@@ -21,16 +21,22 @@ const vertical = $derived(block.orientation !== 'horizontal' || host.canvasMode 
   {/if}
   <ol
     class={vertical
-      ? 'relative grid gap-6 border-l-2 border-border pl-6'
+      ? 'grid gap-6 border-l-2 border-border'
       : 'grid gap-4 sm:grid-flow-col sm:auto-cols-fr sm:gap-3'}
   >
     {#each block.events as event, index (index)}
-      <li class={vertical ? 'relative grid gap-1' : 'grid gap-2 rounded-lg border border-border bg-surface p-3'}>
+      <li
+        class={vertical
+          ? '-ml-[11px] grid grid-cols-[20px_minmax(0,1fr)] gap-x-3 gap-y-1'
+          : 'grid gap-2 rounded-lg border border-border bg-surface p-3'}
+        data-py-timeline-event
+      >
         {#if vertical}
           <span
-            class="absolute top-0 -left-[1.4rem] grid size-5 place-items-center rounded-full border-2 border-background {toneIcon(
+            class="col-start-1 row-span-3 mt-0.5 grid size-5 place-items-center rounded-full border-2 border-background {toneIcon(
               event.tone
             )}"
+            data-py-timeline-marker
             aria-hidden="true"
           >
             {#if event.icon}
@@ -44,9 +50,18 @@ const vertical = $derived(block.orientation !== 'horizontal' || host.canvasMode 
             <BlockIcon name={event.icon} class="size-4" />
           </span>
         {/if}
-        <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{event.time}</p>
-        <p class="font-medium text-foreground">{event.title}</p>
-        {#if event.body}<SafeBody text={event.body} />{/if}
+        <p
+          class="text-xs font-semibold tracking-wide text-muted-foreground uppercase {vertical
+            ? 'col-start-2'
+            : ''}"
+          data-py-timeline-time
+        >
+          {event.time}
+        </p>
+        <p class={vertical ? 'col-start-2 font-medium text-foreground' : 'font-medium text-foreground'}>
+          {event.title}
+        </p>
+        {#if event.body}<div class={vertical ? 'col-start-2' : ''}><SafeBody text={event.body} /></div>{/if}
       </li>
     {/each}
   </ol>
