@@ -121,21 +121,24 @@ resolve them later.
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
 optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
 
-## Deck structural lint
+## Deck lint
 
-`lintDeckStructure(deck)` checks an untrusted deck body without rendering it or
-changing the input. It returns `{ valid, diagnostics }`; each error has a stable
-code, severity, path segments and JSONPath. It validates against the shared
-`@protoyard/decks/schema` and layout catalog, checks outline references against
-slide order, validates fragment ordering and resolves `#/slide-id[/step]`
-links to visible slides. The API reports structural errors only; visual and
-content quality checks are handled by later deck lint rules.
+`lintDeckStructure(deck)` checks an untrusted deck's schema, layout props,
+outline references, fragment ordering and `#/slide-id[/step]` links without
+rendering or changing it. `lintDeckContent(deck)` adds image alt requirements,
+chart descriptions, CTA labels, word density and speaker-note guidance. Both
+return `{ valid, diagnostics }` with stable codes, severity, path segments and
+JSONPath. Missing accessible content is an error; short chart descriptions,
+dense copy and missing or brief optional presenter notes are warnings. Density
+is an estimate: rendered text must still meet the 24 px body and 18 px label
+minimums on the 1280×720 canvas. Final contrast, text size and fit need rendered
+visual QA.
 
 ```ts
-import { lintDeckStructure } from '@protoyard/blueprint';
+import { lintDeckContent } from '@protoyard/blueprint';
 
-const result = lintDeckStructure(deckJson);
-for (const issue of result.diagnostics) {
+const content = lintDeckContent(deckJson);
+for (const issue of content.diagnostics) {
   console.log(issue.code, issue.jsonPath, issue.message);
 }
 ```
