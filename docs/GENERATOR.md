@@ -283,6 +283,13 @@ only seeded data, never validation:
   field until all 175 are used, the team's faces are dealt last, adding rows
   keeps the earlier faces, and other fields of the row do not shift.
 
+### Scenario world validation
+
+`protoyard scenario validate` checks each generated world for integrity and
+verifies that its scenario actor is present. A world with zero personas is a
+valid signed-out starting state; registering creates the first persona. When a
+world contains personas, its configured actor must still match one of them.
+
 ### Computed expressions
 
 The blueprint package exposes an opt-in data-only computed expression module for read-time
