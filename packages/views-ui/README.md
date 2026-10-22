@@ -369,6 +369,25 @@ contracts are also available from `@protoyard/views/commands`.
   still runs through `runService` and displays pending feedback.
 - **Scopes:** actions may list `scopes`. They appear only when one matches the
   registry's active scopes, updated through `commands.setScopes(...)`.
+- **Shortcut sheet:** `ShortcutSheet` renders explicitly supplied hotkey data
+  in accessible groups, formats chords for Mac or other platforms, and filters
+  scoped bindings against `activeScopes`. It supports label/chord search and
+  never registers keyboard listeners; the host remains responsible for
+  dispatch.
+
+```svelte
+<script lang="ts">
+  import { ShortcutSheet } from '@protoyard/views-ui/commands';
+  import type { HotkeyBinding } from '@protoyard/views/commands';
+
+  const bindings: HotkeyBinding[] = [
+    { id: 'save', label: 'Save', group: 'Editing', keys: ['mod+s'], scopes: ['editor'] },
+  ];
+</script>
+
+<ShortcutSheet {bindings} activeScopes={['editor']} />
+```
+
 - **Size** (last measured 2026-10-19, before async search and nested steps):
   the static listener component was 0.8 KB plus a 0.3 KB shared platform
   helper; `createCommands` was 1.2 KB; the dialog was a separate 2.4 KB chunk

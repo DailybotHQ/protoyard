@@ -8,6 +8,7 @@ import {
   isMacPlatform,
   normalizeShortcut,
   type RouteLike,
+  ShortcutSheet,
   shortcutKeys,
 } from '../src/commands/index.ts';
 
@@ -340,5 +341,57 @@ describe('AppCommandPalette', () => {
     expect(await within(dialog).findByText('Search failed.')).toBeTruthy();
     expect(dialog.getAttribute('data-state')).toBe('open');
     commands.destroy();
+  });
+});
+
+describe('ShortcutSheet', () => {
+  it('groups accessible labels, formats chords for the platform, and filters inactive scopes', () => {
+    render(ShortcutSheet, {
+      props: {
+        platform: 'mac',
+        activeScopes: ['editor'],
+        groupOrder: ['Editing', 'General'],
+        bindings: [
+          {
+            id: 'save',
+            label: 'Save changes',
+            group: 'Editing',
+            keys: ['mod+s'],
+            scopes: ['editor'],
+          },
+          { id: 'help', label: 'Show help', group: 'General', keys: ['?'], scopes: ['global'] },
+          { id: 'hidden', label: 'Canvas only', group: 'Canvas', keys: ['e'], scopes: ['canvas'] },
+        ],
+      },
+    });
+
+    const region = screen.getByRole('region', { name: 'Keyboard shortcuts' });
+    expect(within(region).getByRole('heading', { name: 'Editing' })).toBeTruthy();
+    expect(within(region).getByRole('heading', { name: 'General' })).toBeTruthy();
+    expect(within(region).getByText('Save changes')).toBeTruthy();
+    expect(within(region).getByText('⌘S')).toBeTruthy();
+    expect(within(region).getByText('Show help')).toBeTruthy();
+    expect(within(region).queryByText('Canvas only')).toBeNull();
+  });
+
+  it('filters visible shortcuts by label and chord with an announced empty state', async () => {
+    render(ShortcutSheet, {
+      props: {
+        platform: 'other',
+        bindings: [
+          { id: 'save', label: 'Save changes', group: 'Editing', keys: ['mod+s'] },
+          { id: 'help', label: 'Show help', group: 'General', keys: ['?'] },
+        ],
+      },
+    });
+    await fireEvent.input(screen.getByRole('searchbox', { name: 'Search shortcuts' }), {
+      target: { value: 'ctrl+s' },
+    });
+    expect(screen.getByText('Save changes')).toBeTruthy();
+    expect(screen.queryByText('Show help')).toBeNull();
+    await fireEvent.input(screen.getByRole('searchbox', { name: 'Search shortcuts' }), {
+      target: { value: 'not here' },
+    });
+    expect(screen.getByRole('status').textContent).toBe('No shortcuts found');
   });
 });

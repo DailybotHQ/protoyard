@@ -1,5 +1,14 @@
 import type { SessionController } from '@protoyard/core';
 
+export {
+  filterHotkeyBindings,
+  formatHotkeyChord,
+  formatHotkeyKeys,
+  type HotkeyBinding,
+  type HotkeyPlatform,
+  type HotkeyScope,
+} from './hotkeys.ts';
+
 /** A route-shaped record; route loaders are never called by the command engine. */
 export interface RouteLike {
   path: string;
