@@ -179,4 +179,21 @@ describe('gallery registry kind safety', () => {
     expect(result.entries).toEqual([]);
     expect(result.invalid[0]?.errors).toEqual(['Registry entry has an unsupported blueprintKind.']);
   });
+
+  it('keeps runnable sources whose blueprint kind is explicitly null', () => {
+    writeRegistry([
+      {
+        kind: 'prototype',
+        slug: 'example-app',
+        path: 'prototypes/example-app',
+        blueprintKind: null,
+      },
+    ]);
+
+    const result = readTestRegistry();
+    expect(result.entries).toEqual([
+      expect.objectContaining({ kind: 'prototype', slug: 'example-app', blueprintKind: null }),
+    ]);
+    expect(result.invalid).toEqual([]);
+  });
 });

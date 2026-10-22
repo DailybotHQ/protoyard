@@ -17,6 +17,7 @@ import { readRegistry } from './targets.ts';
 
 type Shelved = {
   kind: 'prototype' | 'template' | 'blueprint';
+  blueprintKind?: 'app' | 'deck' | 'page' | 'doc' | null;
   slug: string;
   name: string;
   catalog?: { category?: string; features?: string[] } | null;
@@ -37,6 +38,16 @@ function requireFirst(kind: Shelved['kind']): Shelved {
   expect(entry, `the registry shelves at least one ${kind}`).toBeDefined();
   return entry as Shelved;
 }
+
+function requireContentBlueprint(kind: 'deck' | 'page' | 'doc'): Shelved {
+  const entry = shelved.find((item) => item.kind === 'blueprint' && item.blueprintKind === kind);
+  expect(entry, `the registry shelves a ${kind} blueprint`).toBeDefined();
+  return entry as Shelved;
+}
+
+const hasPublishedContentBlueprints = (['deck', 'page', 'doc'] as const).every((kind) =>
+  shelved.some((item) => item.kind === 'blueprint' && item.blueprintKind === kind)
+);
 
 async function openMarketplace(page: Page, search = '') {
   await page.goto(`/marketplace/${search}`);
@@ -98,7 +109,7 @@ test.describe('marketplace', () => {
     );
 
     await page
-      .getByRole('group', { name: 'Kind' })
+      .getByRole('group', { name: 'Source type' })
       .getByRole('button', { name: /^Templates/ })
       .click();
     await page.getByTestId('market-search').fill(target.name);
@@ -143,6 +154,37 @@ test.describe('marketplace', () => {
         await expect(page.getByRole('heading', { name: /^Scenarios/ })).toBeVisible();
         await expect(page.getByText(`pnpm protoyard spec ${entry.slug} --check`)).toBeVisible();
       }
+    }
+  });
+
+  test('opens each content-kind blueprint in the hosted player from its detail page', async ({
+    page,
+  }) => {
+    test.skip(
+      !hasPublishedContentBlueprints,
+      'the kind examples are not published in the marketplace until they have catalog metadata'
+    );
+    const labels = { deck: 'Deck', page: 'Page', doc: 'Document' } as const;
+    for (const kind of ['deck', 'page', 'doc'] as const) {
+      const entry = requireContentBlueprint(kind);
+      await page.goto(`/marketplace/blueprint/${entry.slug}/`);
+      await expect(page.getByTestId('market-detail-title')).toHaveText(entry.name);
+      await expect(
+        page.getByText(
+          `A ${labels[kind].toLowerCase()} blueprint: validated and ready to open in the player.`
+        )
+      ).toBeVisible();
+
+      const action = page.getByTestId('open-in-player');
+      await expect(action).toHaveText(`Open ${labels[kind]} in player`);
+      await expect(action).toHaveAttribute('href', /\/play\/#bp=1\./);
+      await action.click();
+      await expect(page).toHaveURL(/\/play\/#bp=1\./);
+      await expect(page.getByRole('heading', { name: 'Play a blueprint' })).toBeVisible();
+      await expect(page.locator('iframe[title="Running Protoyard prototype"]')).toHaveAttribute(
+        'src',
+        /\/player\/\?embedder=[^#]+#bp=1\./
+      );
     }
   });
 
