@@ -1,0 +1,121 @@
+{
+  "name": "@protoyard/flows-ui",
+  "version": "1.0.0",
+  "description": "Accessible Svelte workflow editor and simulated run panels for Protoyard.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "dist/**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "svelte": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./editor": {
+      "types": "./src/editor/index.ts",
+      "svelte": "./src/editor/index.ts",
+      "default": "./src/editor/index.ts"
+    },
+    "./runs": {
+      "types": "./src/runs/index.ts",
+      "svelte": "./src/runs/index.ts",
+      "default": "./src/runs/index.ts"
+    },
+    "./keeps": {
+      "types": "./src/keeps/index.ts",
+      "svelte": "./src/keeps/index.ts",
+      "default": "./src/keeps/index.ts"
+    },
+    "./outbox": {
+      "types": "./src/outbox/index.ts",
+      "svelte": "./src/outbox/index.ts",
+      "default": "./src/outbox/index.ts"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@protoyard/flows": "workspace:*"
+  },
+  "devDependencies": {
+    "svelte": "^5.57.2"
+  },
+  "peerDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "protoyard": {
+    "build": {
+      "assets": []
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "svelte": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./editor": {
+        "types": "./dist/editor/index.d.ts",
+        "svelte": "./dist/editor/index.js",
+        "default": "./dist/editor/index.js"
+      },
+      "./runs": {
+        "types": "./dist/runs/index.d.ts",
+        "svelte": "./dist/runs/index.js",
+        "default": "./dist/runs/index.js"
+      },
+      "./keeps": {
+        "types": "./dist/keeps/index.d.ts",
+        "svelte": "./dist/keeps/index.js",
+        "default": "./dist/keeps/index.js"
+      },
+      "./outbox": {
+        "types": "./dist/outbox/index.d.ts",
+        "svelte": "./dist/outbox/index.js",
+        "default": "./dist/outbox/index.js"
+      },
+      "./styles.css": {
+        "types": "./dist/styles.css.d.ts",
+        "svelte": "./dist/styles.css",
+        "default": "./dist/styles.css"
+      }
+    },
+    "files": [
+      "dist",
+      "README.md",
+      "LICENSE"
+    ],
+    "types": "./dist/index.d.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/flows-ui"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "keywords": [
+    "protoyard",
+    "svelte",
+    "workflow",
+    "automation"
+  ]
+}

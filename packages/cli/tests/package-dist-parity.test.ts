@@ -28,6 +28,7 @@ export const SVELTE_PACKAGES = [
   'review-ui',
   'saas-ui',
   'ai-ui',
+  'flows-ui',
   'gamification-ui',
 ] as const;
 
