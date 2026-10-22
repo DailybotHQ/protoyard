@@ -11,7 +11,8 @@
     "./interactive": "./src/interactive/index.ts",
     "./code": "./src/code/index.ts",
     "./diagram": "./src/diagram/index.ts",
-    "./catalog": "./src/catalog/index.ts"
+    "./catalog": "./src/catalog/index.ts",
+    "./schema": "./src/json-schema.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
@@ -31,7 +32,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "schema"
   ],
   "publishConfig": {
     "access": "public",
@@ -66,6 +68,11 @@
         "types": "./dist/catalog/index.d.ts",
         "import": "./dist/catalog/index.js",
         "default": "./dist/catalog/index.js"
+      },
+      "./schema": {
+        "types": "./dist/json-schema.d.ts",
+        "import": "./dist/json-schema.js",
+        "default": "./dist/json-schema.js"
       }
     },
     "types": "./dist/index.d.ts"
