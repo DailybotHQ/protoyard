@@ -1,0 +1,125 @@
+{
+  "id": "harbor-landing",
+  "title": "Harbor Notes landing",
+  "description": "Fictional product landing page for UI tests and visual QA. All data uses example.com.",
+  "style": "soft-violet",
+  "sections": [
+    {
+      "id": "hero",
+      "role": "hero",
+      "title": "Hero",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "hero-title",
+          "level": 1,
+          "eyebrow": "Prototype demo",
+          "text": "Notes that feel real without a backend",
+          "subtitle": "Harbor Notes is a fictional workspace. Every name and number here is example data.",
+          "align": "center"
+        },
+        {
+          "type": "text",
+          "markdown": "Build a landing page with **blocks**, a waitlist form, and deterministic scenarios — all offline at [https://docs.example.com/harbor](https://docs.example.com/harbor)."
+        },
+        {
+          "type": "cta",
+          "title": "Try the demo",
+          "actions": [
+            { "label": "Join the waitlist", "href": "#waitlist", "variant": "primary" },
+            { "label": "Read the docs", "href": "https://docs.example.com/harbor", "variant": "secondary" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stats",
+      "anchor": "proof",
+      "role": "features",
+      "title": "Proof",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "stats-title",
+          "level": 2,
+          "text": "Numbers from the example workspace"
+        },
+        {
+          "type": "stat",
+          "items": [
+            { "value": "12k", "label": "Example notes created", "context": "Last 30 days (fictional)" },
+            { "value": "98%", "label": "Scenario replay match", "delta": "+2 pts" },
+            { "value": "4.9", "label": "Example taster score" }
+          ],
+          "source": "Harbor Notes demo metrics · example.com"
+        }
+      ]
+    },
+    {
+      "id": "waitlist",
+      "anchor": "waitlist",
+      "role": "cta",
+      "title": "Waitlist",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "waitlist-title",
+          "level": 2,
+          "text": "Join the waitlist"
+        },
+        {
+          "type": "form",
+          "id": "waitlist-form",
+          "title": "Get early access",
+          "description": "This form is **simulated**. Responses stay in this browser and never leave the device.",
+          "fields": [
+            {
+              "name": "email",
+              "label": "Work email",
+              "type": "email",
+              "required": true,
+              "placeholder": "you@example.com"
+            },
+            {
+              "name": "teamSize",
+              "label": "Team size",
+              "type": "enum",
+              "required": true,
+              "options": [
+                { "value": "solo", "label": "Just me" },
+                { "value": "small", "label": "2–10 people" },
+                { "value": "large", "label": "11 or more" }
+              ]
+            },
+            {
+              "name": "notes",
+              "label": "Anything else?",
+              "type": "longText",
+              "maxLength": 400,
+              "help": "Optional. Keep it fictional."
+            }
+          ],
+          "submitLabel": "Request access",
+          "successMessage": "Thanks — this was a simulated submit for you@example.com style demos."
+        }
+      ]
+    },
+    {
+      "id": "footer",
+      "role": "footer",
+      "title": "Footer",
+      "blocks": [
+        {
+          "type": "text",
+          "markdown": "Harbor Notes · fictional product · support@harbor.example.com · [Privacy](https://harbor.example.com/privacy)"
+        }
+      ]
+    }
+  ],
+  "nav": [
+    { "id": "nav-top", "label": "Top", "href": "#hero" },
+    { "id": "nav-proof", "label": "Proof", "href": "#proof" },
+    { "id": "nav-waitlist", "label": "Waitlist", "href": "#waitlist" }
+  ],
+  "forms": [{ "formId": "waitlist-form", "sectionId": "waitlist" }]
+}
