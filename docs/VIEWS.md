@@ -157,7 +157,7 @@ change and its current ceiling:
 | Grid | 60,243 B | 21,859 B | 23,400 B |
 | Map | — | 11,573 B | 12,400 B |
 | Editor | — | 6,452 B | 6,900 B |
-| Timeline | — | 8,458 B | 9,100 B |
+| Timeline | — | 9,100 B (8,458 B before grouped lanes, 2026-10-22) | 9,750 B |
 
 The other components have per-component gzip measurements in the
 [views-ui README](../packages/views-ui/README.md); those figures use a
