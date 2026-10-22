@@ -3,6 +3,7 @@ import type { EmbedAppBlock } from '@protoyard/blocks';
 import { cn } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import { getBlockHost } from '../host.ts';
+import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 
 /**
  * Framed preview for an embed-app block. The host's `mountEmbed` is called
@@ -108,7 +109,9 @@ onDestroy(() => {
     'overflow-hidden rounded-lg border border-border bg-surface shadow-soft',
     heightClass
   )}
+  data-py-block="embed-app"
   data-py-embed-app={block.id}
+  {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
   data-py-embed-started={started ? 'true' : 'false'}
   aria-label={block.title}
 >
