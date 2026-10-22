@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { extname, join, normalize } from 'node:path';
+import { productionBuildEnv } from './build-env.ts';
 
 /**
  * Serves the built player (packages/player/dist/app) on 127.0.0.1 with the CSP
@@ -28,6 +29,7 @@ export function ensurePlayerBuild(root: string): string {
     const run = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
       cwd: root,
       encoding: 'utf8',
+      env: productionBuildEnv(),
     });
     if (run.status !== 0) throw new Error(`player build failed:\n${run.stderr}${run.stdout}`);
   }

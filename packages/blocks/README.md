@@ -183,7 +183,7 @@ block list, including inside containers.
   - `data:image/png;base64,…` (png, jpeg, webp, gif) or `data:video/mp4;base64,…`
     (mp4, webm), at most 192 KB decoded;
   - a relative path such as `assets/cover.webp`, for level-2 prototypes only.
-    The level-1 player refuses relative sources in its untrusted-input guard.
+    Relative sources are accepted by the schema and resolve against the active host's origin.
 
   SVG, `http(s)`, protocol-relative URLs, root-absolute paths, backslashes and
   `..` segments are always rejected. `classifyMediaSource` returns the kind and

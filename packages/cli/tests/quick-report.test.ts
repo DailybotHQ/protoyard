@@ -143,7 +143,7 @@ describe('quick report building blocks', () => {
     expect(median([])).toBeNull();
     expect(median([30, 10, 20])).toBe(20);
     expect(median([10, 21])).toBe(16);
-    expect(markdownCell('a | b <img src=x>\n# h *x* [l](u)‮')).toBe(
+    expect(markdownCell('a | b <img src=x>\n# h *x* [l](u)\u202e')).toBe(
       'a \\| b \\<img src=x\\> \\# h \\*x\\* \\[l\\](u)'
     );
   });

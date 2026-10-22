@@ -180,7 +180,7 @@ const HOSTILE_URLS = [
   ' javascript:alert(1)',
   'java\tscript:alert(1)',
   'java\u0000script:alert(1)',
-  'javascript‮:alert(1)',
+  'javascript\u202e:alert(1)',
   'vbscript:msgbox(1)',
   'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
   'data:text/html,<script>alert(1)</script>',
@@ -335,7 +335,7 @@ describe('multiline strings stay inert text', () => {
       { type: 'quote', quote: `${HTML}\nline two` },
       { type: 'list', items: [{ text: `${HTML}\nnext` }] },
     ]);
-    value.deck.slides[1].notes = `${HTML}\nNotes‮ line⁦`;
+    value.deck.slides[1].notes = `${HTML}\nNotes\u202e line\u2066`;
     const result = await loadUntrustedDocument(value);
     expectLoaded(result);
     if (!result.success) return;
@@ -377,7 +377,7 @@ describe('multiline strings stay inert text', () => {
     const props = {
       ...sample('code-with-callout'),
       title: 'Code\nsample',
-      code: { lang: 'ts', source: 'const a‮ = 1;\n\tconst b = 2;' },
+      code: { lang: 'ts', source: 'const a\u202e = 1;\n\tconst b = 2;' },
     };
     const result = await loadUntrustedDocument(deckWithLayout('code-with-callout', props));
     expectLoaded(result);
