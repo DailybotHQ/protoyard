@@ -187,6 +187,17 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | Source | Tests | Layer |
 | --- | --- | --- |
 | `packages/<pkg>/src/**` | `packages/<pkg>/tests/*.test.ts` | unit / integration |
+| `packages/blocks/src/**`, `packages/blocks-ui/src/**` | `pnpm vitest run packages/blocks packages/blocks-ui` (`chart-paths.test.ts`, `timeline-layout.test.ts`, `security.test.ts`, `a11y-themes.test.ts`) + `npx tsx scripts/blocks-reference.ts --check` | unit + render + generated reference |
+| `packages/decks/src/**`, `packages/decks-ui/src/**` | `pnpm vitest run packages/decks packages/decks-ui` (`style-apply.test.ts`, `layout-design.test.ts`, `budget.test.ts`, `presenter.test.ts`) + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test deck-navigation deck-presenter interaction-sweep` | unit + render + opt-in browser |
+| `packages/pages/src/**`, `packages/pages-ui/src/**` | `pnpm vitest run packages/pages packages/pages-ui` (`page-design.test.ts`, `doc-design.test.ts`, `budget.test.ts`) | unit + render + bundle |
+| `packages/flows/src/**`, `packages/flows-ui/src/**`, `packages/gamification/src/**`, `packages/gamification-ui/src/**` | `pnpm vitest run packages/flows packages/flows-ui packages/gamification packages/gamification-ui` | unit + render |
+| `packages/blueprint/src/kinds/**` (kind union, untrusted loader, share links, `kinds/parse`) | `pnpm vitest run packages/blueprint/tests/kinds packages/blueprint/tests/identity-golden.test.ts packages/player/tests/kinds-parity.test.ts` | unit + both-level parity |
+| `packages/cli/src/lib/codegen/{emit,regenerate}.ts` (content kinds), `templates/{deck,page,doc}/**` | `pnpm vitest run packages/cli/tests/generate-kinds.test.ts packages/cli/tests/embed-level2.test.ts templates/deck templates/page templates/doc` | CLI integration (generation, drift, lint-clean output, embedded apps) |
+| `packages/player/src/**` (kind routing and entries) | `pnpm --filter @protoyard/player build && pnpm vitest run packages/player` (`kind-entries`, `kind-budget`, `kinds-security`, `budget`) | integration + bundle + security |
+| `packages/cli/src/lib/quick/**` (kinds, single file) | `pnpm vitest run packages/cli/tests/quick packages/cli/tests/quick.test.ts` | CLI integration |
+| `blueprints/{decks,pages,docs}/**` | `pnpm vitest run packages/blueprint/tests/deck-catalog.test.ts packages/blueprint/tests/page-doc-catalog.test.ts packages/blueprint/tests/catalog-docs.test.ts packages/blueprint/tests/kinds/share-kinds.test.ts` | catalog validation, docs and share-link fit |
+| `skills/protoyard/**` (deck path) | `pnpm check:skill` + `pnpm vitest run packages/cli/tests/skill-deck-path.test.ts` | skill integrity and routing |
+| `tests/e2e/{showcase,marketplace,deck-artifact,artifact-pack}.spec.ts` | `PROTOYARD_E2E_SHOWCASE=1 pnpm exec playwright test tests/e2e/showcase.spec.ts`; `pnpm exec playwright test tests/e2e/marketplace.spec.ts tests/e2e/deck-artifact.spec.ts tests/e2e/artifact-pack.spec.ts` | browser E2E (hosted player kinds, marketplace kinds, artifact harness) |
 | `packages/runtime/src/**` | `packages/runtime/tests/runtime.test.ts`, which uses the fixture `tests/fixtures/tasks-prototype.ts` | integration on fake IndexedDB |
 | `packages/cli/src/**` | `packages/cli/tests/*.test.ts` (temporary workspaces) | integration |
 | `scripts/verify-packages.ts` | `packages/cli/tests/verify-packages.test.ts` + `pnpm verify:packages` (pnpm and npm) | packed consumer integration |
