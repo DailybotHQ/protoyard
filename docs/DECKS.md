@@ -122,6 +122,9 @@ Save it as `tmp/harbor-kickoff.json`, then run
 - **Free slides** are `{ id, layout: "free", blocks }` with
   `@protoyard/blocks` content: text, lists, charts, tables, code, people,
   quizzes, polls, forms and the rest of the block catalog.
+- **Custom slides** are `{ id, layout: "custom", props: { component, data? } }`:
+  a slide that renders a component the generated deck owns. See
+  [Custom slides](#custom-slides).
 - **Shared slide fields:** `title`, `background` (a preset id or validated local image/video spec), `transition`,
   `steps` (labels), `notes` (speaker notes) and `hidden`. Hidden slides are
   skipped by navigation, the overview and print.
@@ -167,6 +170,58 @@ three identical layouts in a row.
 | `video-centered`, `video-left`, `video-right` | A demo or clip, alone or with text beside it |
 | `chart` | A real chart is clearer than a big stat or a table |
 | `free` | No layout fits: compose validated blocks |
+
+### Custom slides
+
+When no layout or block can show an idea (a configurator, a simulator, a
+small app), a generated deck (level 2) can own the slide's code:
+
+```json
+{
+  "id": "configurator",
+  "title": "Price your team, live",
+  "layout": "custom",
+  "props": {
+    "component": "pricing-configurator",
+    "data": { "maxSeats": 200, "annualDiscountPercent": 20 }
+  },
+  "steps": ["Show the breakdown"]
+}
+```
+
+Register the component in the prototype's own `src/custom-slides.ts`, with a
+lazy import, so its code loads only when its slide comes near:
+
+```ts
+import type { CustomSlideRegistry } from '@protoyard/decks-ui/app';
+
+export const customSlides: CustomSlideRegistry = Object.freeze({
+  'pricing-configurator': () => import('./slides/PricingConfigurator.svelte'),
+});
+```
+
+- The component receives `{ slide, step, stepCount, data }`
+  (`CustomSlideProps`): its own slide and its `data` as frozen copies, the
+  current step and the number of steps. It never receives the rest of the
+  deck or the runtime's write services unless the prototype passes them in
+  itself. It renders inside the scaled canvas (1280 x 720 for 16:9), and its
+  clicks never advance the deck.
+- **Steps** come from the slide's `steps` labels; `data` is never read for
+  step markers.
+- **`data`** is bounded JSON, capped like catalog props (`DECK_LIMITS`
+  `props*`), and any `src`, `poster` or `href` in it follows the deck media
+  and link policies. The component still reads it defensively.
+- **Errors stay on the slide.** A component that throws shows "This slide
+  stopped working" with a Try again button. One that fails to load, or an id
+  missing from the registry, shows its own card. The rest of the deck keeps
+  working.
+- **In the player** (level 1) there is no owned code: the slide shows a
+  labelled card, "Interactive slide — open the generated deck to run it". The
+  overview, print and previews also show a card and never run the component.
+  `deck lint` warns (`custom-slide`) so the author knows.
+- `src/custom-slides.ts` and `src/slides/` are yours: `protoyard generate`
+  never rewrites them. The flagship `create-anything-deck` prototype has one,
+  a live pricing configurator (`src/slides/PricingConfigurator.svelte`).
 
 The generated table in the
 [layout catalog section](../packages/decks/README.md#layout-catalog) lists each
@@ -615,9 +670,10 @@ Every deck string renders as text, never as HTML; see
   the whole chart, but one on a single series adds a step without hiding
   anything. Use one chart slide per reveal, or a free slide with several chart
   blocks.
-- **No custom slide components.** A generated deck's `src/custom-slides.ts`
-  is a typed registry for later. `DeckApp` renders only the catalog layouts
-  and free blocks.
+- **Custom slides run only at level 2.** The player shows a labelled card for
+  a `layout: "custom"` slide, and so do the overview, print and previews
+  (they never run owned code). Outline mode in the debug panel boxes the
+  whole custom slide, not the component's parts.
 - **Media backgrounds.** Slides accept local image and video background specs.
   Their sources use the same level-1 media policy as other deck media: relative
   paths inside the deck, bounded base64 media, or library avatars for images;

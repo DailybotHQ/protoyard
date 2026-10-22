@@ -55,7 +55,15 @@
           {
             "id": "s-try",
             "title": "Try it here",
-            "slideIds": ["try-divider", "poll", "calculator", "local", "quiz", "embed"]
+            "slideIds": [
+              "try-divider",
+              "poll",
+              "calculator",
+              "configurator",
+              "local",
+              "quiz",
+              "embed"
+            ]
           },
           {
             "id": "s-next",
@@ -547,6 +555,37 @@
             }
           ],
           "notes": "The formula is a closed data grammar, never code. Move the sliders and the result updates instantly."
+        },
+        {
+          "id": "configurator",
+          "title": "Price your team, live",
+          "layout": "custom",
+          "props": {
+            "component": "pricing-configurator",
+            "data": {
+              "plans": [
+                {
+                  "id": "starter",
+                  "name": "Starter",
+                  "centsPerSeat": 800
+                },
+                {
+                  "id": "team",
+                  "name": "Team",
+                  "centsPerSeat": 1500
+                },
+                {
+                  "id": "scale",
+                  "name": "Scale",
+                  "centsPerSeat": 2400
+                }
+              ],
+              "maxSeats": 200,
+              "annualDiscountPercent": 20
+            }
+          },
+          "steps": ["Show the breakdown"],
+          "notes": "This slide is a component the generated deck owns: pick a plan, drag the seats and switch to yearly billing, and the total and chart follow. In the player it shows a labelled placeholder instead. Fictional prices."
         },
         {
           "id": "local",
