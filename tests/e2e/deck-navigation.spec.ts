@@ -84,9 +84,9 @@ test.describe('deck navigation on a built catalog deck', () => {
     await expectLocation(page, 'quiz', 0);
 
     await page.keyboard.press('?');
-    await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toHaveCount(0);
+    await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toHaveCount(0);
   });
 
   test('honors a reduced-motion browser preference without disabling navigation', async ({

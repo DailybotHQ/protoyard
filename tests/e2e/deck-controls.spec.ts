@@ -303,10 +303,6 @@ test.describe('deck chrome controls', () => {
     });
 
     test('the help dialog explains the toolbar, not only the keys', async ({ page }) => {
-      test.fail(
-        true,
-        'KeyboardHelp lists DECK_KEY_BINDINGS only (KeyboardHelp.svelte:47); copy and the buttons are missing.'
-      );
       await openDeck(page);
       await clickTool(page, 'help');
       const help = page.getByRole('dialog', { name: /keyboard shortcuts|controls/i });
@@ -368,9 +364,9 @@ test.describe('deck chrome controls', () => {
       await openDeck(page);
       await root(page).focus();
       await page.keyboard.press('?');
-      await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
+      await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toBeVisible();
       await page.keyboard.press('Escape');
-      await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toHaveCount(0);
+      await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toHaveCount(0);
     });
   });
 });

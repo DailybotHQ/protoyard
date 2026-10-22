@@ -244,10 +244,10 @@ describe('DeckApp full screen', () => {
     await fireEvent.keyDown(app, { key: 'f' });
     await waitFor(() => expect(app.dataset.fullscreen).toBe('true'));
     await fireEvent.keyDown(app, { key: '?' });
-    expect(await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: 'Controls and shortcuts' })).toBeTruthy();
     await fireEvent.keyDown(app, { key: 'Escape' });
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull()
+      expect(screen.queryByRole('dialog', { name: 'Controls and shortcuts' })).toBeNull()
     );
     expect(app.dataset.fullscreen).toBe('true');
     await fireEvent.keyDown(app, { key: 'Escape' });

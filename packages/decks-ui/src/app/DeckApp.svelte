@@ -23,6 +23,7 @@ import {
   type DeckFullscreenMode,
   type DeckToolAction,
   DeckToolbar,
+  FirstRunHint,
   FullscreenOverlay,
   KeyboardHelp,
   LaserPointer,
@@ -719,10 +720,14 @@ onMount(() => {
     {/if}
 
     {#if inputState.help}
-      <KeyboardHelp id={helpId} onclose={() => runAction('help')} />
+      <KeyboardHelp id={helpId} environment={controlEnvironment} onclose={() => runAction('help')} />
     {/if}
 
     <ChromeToast bind:this={toast} />
+
+    {#if !presenterOpen}
+      <FirstRunHint {namespace} container={rootEl} />
+    {/if}
 
     <div class="sr-only" aria-live="polite" aria-atomic="true" data-py-deck-live>
       {announce}
