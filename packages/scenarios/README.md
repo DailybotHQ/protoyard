@@ -86,6 +86,20 @@ override both. Fragments (`fragments.density`, `.activity`, `.role`, `.tenure`,
 `.organizationAge`, `.organizationSize`, `.accountAge`, `.onboarding`, `.subscription`,
 `.network`, `.featureFlags`, `.appearance`, `.tags`) each describe one axis.
 
+**Life-stage journeys** (`journeys.ts`) add four presets in the group `Journeys`:
+`journey-signup`, `journey-invited`, `journey-first-week` and `journey-established`.
+
+- **Shared ids:** all four share the seed, reference time, organization id and actor id.
+- **Declared promises:** `LIFE_STAGE_JOURNEYS` gives each stage its persona, simulated time
+  and expected world.
+- **API:**
+  - `journeyScenario(stage, ...fragments)` returns a stage as a validated scenario;
+  - `checkJourneyWorld(stage, seed, options?)` returns a generated world's problems, an
+    empty list when it passes;
+  - `lifeStageOf(view)` and `lifeStageView(seed, actorId, referenceTime)` derive the stage
+    from data.
+- **More:** see [SCENARIOS.md](../../docs/SCENARIOS.md#life-stage-journeys).
+
 `composeScenario` deep-merges (objects merge, arrays and scalars are replaced, `undefined`
 never overwrites) and validates with `ScenarioSchema`. `resolveScenarios(inputs, PRESETS)`
 resolves `extends` against the prototype's other scenarios first, then presets. A scenario
