@@ -26,7 +26,7 @@
         "props": {
           "title": "Cedar Desk training",
           "subtitle": "Simulated support shifts",
-          "meta": "Example Co \u00b7 Learning \u00b7 2026"
+          "meta": "Example Co · Learning · 2026"
         }
       },
       {
@@ -109,7 +109,7 @@
             "options": [
               {
                 "id": "yes",
-                "label": "Yes \u2014 open the demo"
+                "label": "Yes — open the demo"
               },
               {
                 "id": "review",
@@ -167,5 +167,13 @@
         }
       ]
     }
+  },
+  "catalog": {
+    "category": "education",
+    "productType": "Training deck",
+    "platforms": ["web"],
+    "features": ["deck", "timeline", "poll", "counter", "code"],
+    "highlights": ["Timeline of the rollout", "Live counter and poll", "Code callout"],
+    "difficulty": "beginner"
   }
 }

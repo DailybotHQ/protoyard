@@ -26,7 +26,7 @@
         "props": {
           "title": "Northwind QBR",
           "subtitle": "Q3 sample review (fictional)",
-          "meta": "Internal demo \u00b7 Example Co"
+          "meta": "Internal demo · Example Co"
         }
       },
       {
@@ -150,5 +150,13 @@
         }
       ]
     }
+  },
+  "catalog": {
+    "category": "analytics",
+    "productType": "Quarterly review deck",
+    "platforms": ["web"],
+    "features": ["deck", "big-stat", "funnel", "poll"],
+    "highlights": ["Big stat", "Funnel chart", "Comparison", "Room poll"],
+    "difficulty": "intermediate"
   }
 }

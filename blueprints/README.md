@@ -66,7 +66,7 @@ layouts from `@protoyard/decks/layouts`.
 | `protoyard blueprint validate` | Yes | Yes |
 | `protoyard generate --blueprint` | Yes | Yes: the deck, page or doc template is picked from the blueprint's kind |
 | `protoyard blueprint new --from-brief` | Yes | Not yet: use `blueprintFromBrief(brief, { kind })` |
-| `protoyard index` and `protoyard list` | Yes (every flat `blueprints/*.json` file) | The kind folders are scanned, but an entry is listed only with a `catalog` block. Only the flagship deck has one today; the other examples are reported as invalid by `protoyard index` and are not listed in the registry or the gallery. |
+| `protoyard index` and `protoyard list` | Yes (every flat `blueprints/*.json` file) | The kind folders are scanned, and an entry is listed when it has a `catalog` block. Every deck, page and doc example has one except the visual-QA fixture `decks/example.json`, which stays unlisted on purpose. |
 
 ```bash
 pnpm protoyard blueprint validate blueprints/decks/northwind-qbr.json
