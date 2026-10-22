@@ -197,8 +197,11 @@ describe('block reveals', () => {
     // Hidden, not removed: the text is in the DOM (it keeps its space), styled invisible.
     const first = slideEl(container, 'plan').querySelector('[data-py-fragment]') as HTMLElement;
     expect(first.textContent).toContain('First point');
-    expect(first.className).toContain('invisible');
-    expect(first.className).toContain('translate-y-');
+    expect(first.className).toContain('py-deck-fragment');
+    expect(first.style.visibility).toBe('hidden');
+    expect(first.style.opacity).toBe('0');
+    expect(first.style.translate).toBe('0 .6em');
+    expect(first.style.transitionDuration).toBe('500ms');
     expect(first.dataset.pyFragmentReveal).toBe('fade-up');
     // The unstepped heading is part of the initial state.
     expect(slideEl(container, 'plan').textContent).toContain('The plan');
@@ -238,8 +241,10 @@ describe('block reveals', () => {
     expect(root(container).dataset.pyDeckMotion).toBe('none');
     await waitFor(() => expect(fragments(slideEl(container, 'plan'))).toHaveLength(3));
     const el = slideEl(container, 'plan').querySelector('[data-py-fragment]') as HTMLElement;
-    expect(el.className).toContain('motion-reduce:transition-none');
-    expect(el.className).toContain('[[data-py-deck-motion=none]_&]:transition-none');
+    expect(el.style.transitionProperty).toBe(
+      'opacity,transform,background-color,box-shadow,translate,scale'
+    );
+    expect(el.style.transitionDuration).toBe('500ms');
   });
 });
 

@@ -103,6 +103,9 @@ gives catalog layouts a `getPropSteps()` reader.
 - **Styles:** `@protoyard/decks-ui/styles.css` imports
   `@protoyard/blocks-ui/styles.css`, so a deck that imports only the decks-ui
   stylesheet still gets the block and reveal classes.
+  `@protoyard/decks-ui/player.css` keeps those block styles and scans only the
+  app, layout, chrome, style, overview and print sources; it omits Studio and
+  presenter-only utilities for compact deck player hosts.
 
 ### Stage and chrome
 

@@ -45,8 +45,16 @@ view stays its own chunk and adds 0 KB to a prototype's initial JS:
 
 Subpaths: `./board`, `./calendar`, `./timeline`, `./grid`, `./tree`, `./map`,
 `./editor`, `./activity`, `./notifications`, `./files`, `./settings`,
-`./states`, `./commands`, `./scenarios` and `./styles.css`. Views are never
+`./states`, `./commands`, `./scenarios`, `./player.css`, `./blocks.css` and `./styles.css`. Views are never
 re-exported from `@protoyard/ui`.
+
+Three stylesheets scan different sets of view families:
+
+- `player.css`: the board, calendar, map, states and timeline families the
+  prebuilt player renders.
+- `blocks.css`: only the map and states families that content blocks render
+  (the deck template and generated decks).
+- `styles.css`: every view family; other hosts should import this one.
 
 ## Bundle hygiene
 
