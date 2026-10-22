@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { PresenterPosition } from '@protoyard/decks';
 import {
   createDeckNavigator,
   type DeckInputState,
@@ -9,6 +10,7 @@ import {
   slideStepCount,
 } from '@protoyard/decks';
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
+import type { Component } from 'svelte';
 import { onMount } from 'svelte';
 import DeckCanvas from '../canvas/DeckCanvas.svelte';
 import {
@@ -32,12 +34,14 @@ import { DeckPrint, PrintButton, parseDeckPrintFlags } from '../print/index.ts';
  * (with `#/<id>/<step>` hash), guarded input, step progress chrome and
  * aria-live announcements. Print mode (`?print=1`, print button, Ctrl/Cmd+P)
  * swaps in the one-slide-per-page layout from `@protoyard/decks-ui/print`.
+ * Presenter (S/P) loads `@protoyard/decks-ui/presenter` lazily.
  */
 let {
   deck,
   class: className = '',
   syncHash = true,
   autofocus = true,
+  namespace = 'deck',
 }: {
   /** Validated deck document. */
   deck: Deck;
@@ -46,6 +50,8 @@ let {
   syncHash?: boolean;
   /** Focus the deck root on mount so keyboard navigation works immediately. */
   autofocus?: boolean;
+  /** BroadcastChannel namespace for the presenter (defaults to "deck"). */
+  namespace?: string;
 } = $props();
 
 let rootEl = $state<HTMLDivElement | undefined>();
@@ -69,6 +75,21 @@ let nav = $state.raw<DeckNavigator | null>(null);
 let printFlags = $state(parseDeckPrintFlags());
 let printing = $state(false);
 const showPrint = $derived(printFlags.print || printing);
+
+/** Presenter host loaded only when S/P opens it (lazy chunk). */
+let presenterOpen = $state(false);
+type PresenterHostProps = {
+  deck: Deck;
+  namespace?: string;
+  slideId: string;
+  step?: number;
+  open?: boolean;
+  onPosition?: (position: PresenterPosition) => void;
+  onNavigate?: (action: 'next' | 'prev' | 'first' | 'last') => void;
+  children?: import('svelte').Snippet;
+};
+let PresenterHostComp = $state.raw<Component<PresenterHostProps> | null>(null);
+let presenterLoadError = $state(false);
 
 // Pointer tracking for swipe decisions.
 let pointerDown: { x: number; y: number; t: number; id: number } | null = null;
@@ -172,7 +193,8 @@ function runAction(action: string): void {
       });
       break;
     case 'presenter':
-      // Presenter window is a dedicated surface (T-decks-presenter).
+      presenterOpen = !presenterOpen;
+      if (presenterOpen) void ensurePresenterHost();
       break;
     case 'print':
       // Enter print layout then open the browser dialog (also Ctrl/Cmd+P).
@@ -310,6 +332,27 @@ function closeOverview(): void {
   inputState = { ...inputState, overview: 'closed' };
 }
 
+async function ensurePresenterHost(): Promise<void> {
+  if (PresenterHostComp) return;
+  presenterLoadError = false;
+  try {
+    const mod = await import('../presenter/index.ts');
+    PresenterHostComp = mod.PresenterHost as Component<PresenterHostProps>;
+  } catch {
+    presenterLoadError = true;
+    presenterOpen = false;
+  }
+}
+
+function onPresenterPosition(position: PresenterPosition): void {
+  if (!nav) return;
+  applyLocation(nav.goTo(position.slideId, position.step));
+}
+
+function onPresenterNavigate(action: 'next' | 'prev' | 'first' | 'last'): void {
+  runAction(action);
+}
+
 onMount(() => {
   if (autofocus && !showPrint) rootEl?.focus({ preventScroll: true });
   if (typeof window === 'undefined') return undefined;
@@ -355,6 +398,7 @@ onMount(() => {
   data-blackout={inputState.blackout ? 'true' : undefined}
   data-laser={inputState.laser ? 'true' : undefined}
   data-fullscreen={fullscreen ? 'true' : undefined}
+  data-presenter={presenterOpen ? 'true' : undefined}
   role="application"
   aria-label={deck.outline?.title ?? 'Presentation'}
   tabindex="0"
@@ -366,119 +410,150 @@ onMount(() => {
     pointerDown = null;
   }}
 >
-  <div class="min-h-0 flex-1">
-    <DeckCanvas
-      slides={deck.slides}
-      activeIndex={activeIndex}
-      aspect={deck.style?.aspect ?? '16:9'}
-      label={deck.outline?.title ?? 'Presentation'}
-    >
-      {#snippet children(slide: DeckSlide, _index: number)}
-        {@const layout = layoutPropsFor(slide)}
-        <div
-          class="deck-app__slide size-full"
-          data-py-deck-slide={slide.id}
-          data-step={location?.slideId === slide.id ? activeStep : 0}
-          data-step-count={location?.slideId === slide.id ? activeStepCount : 1}
-          style={location?.slideId === slide.id
-            ? `--py-deck-step:${activeStep};--py-deck-step-count:${activeStepCount}`
-            : undefined}
-        >
-          <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
-        </div>
-      {/snippet}
-    </DeckCanvas>
-  </div>
-
-  <!-- Chrome: progress, slide number and presenting tools (guarded from advancing the deck). Hidden in full screen. -->
-  {#if !fullscreen}
-  <div
-    class="deck-app__chrome pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3"
-    data-py-deck-chrome
-    data-py-deck-chrome-root
-  >
-    <div
-      class="pointer-events-auto h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted"
-      role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={Math.round(progress)}
-      aria-label="Deck progress"
-      data-py-deck-progress
-    >
-      <div
-        class="h-full rounded-full bg-primary transition-[width] duration-200 ease-out"
-        style={`width:${progress}%`}
-      ></div>
-    </div>
-    <p
-      class="pointer-events-auto shrink-0 rounded-md bg-background/80 px-2 py-1 text-xs font-medium text-muted-foreground backdrop-blur"
-      data-py-deck-slide-number
-    >
-      {slideLabel}
-    </p>
-    <div class="pointer-events-auto flex shrink-0 items-center gap-1" data-py-deck-chrome>
-      <DeckToolbar
-        blackout={inputState.blackout === true}
-        laser={inputState.laser === true}
-        help={inputState.help === true}
-        {fullscreen}
-        fullscreenAvailable={canFullscreen}
-        {helpId}
-        reference={currentReference}
-        onaction={onTool}
-      />
-      <PrintButton />
-    </div>
-  </div>
-  {/if}
-
-  {#if inputState.laser}
-    <LaserPointer container={rootEl} />
-  {/if}
-
-  {#if inputState.blackout}
-    <BlackoutScreen onclose={() => runAction('blackout')} />
-  {/if}
-
-  {#if inputState.overview === 'open'}
-    {#await import('../overview/index.ts')}
-      <div
-        class="absolute inset-0 z-30 grid place-items-center bg-background/95 backdrop-blur"
-        data-py-deck-overview
-        data-py-deck-overview-loading
-        role="status"
-        aria-label="Loading slide overview"
-      >
-        <span class="text-sm text-muted-foreground">Loading overview…</span>
-      </div>
-    {:then mod}
-      {@const Overview = mod.DeckOverview}
-      <Overview
-        slides={visible}
-        activeSlideId={location?.slideId ?? ''}
+  {#snippet deckSurface()}
+    <div class="min-h-0 flex-1">
+      <DeckCanvas
+        slides={deck.slides}
+        activeIndex={activeIndex}
         aspect={deck.style?.aspect ?? '16:9'}
-        onSelect={goOverview}
-        onClose={closeOverview}
-      />
-    {:catch}
-      <div
-        class="absolute inset-0 z-30 grid place-items-center bg-background/95 p-6 backdrop-blur"
-        data-py-deck-overview
-        role="alert"
+        label={deck.outline?.title ?? 'Presentation'}
       >
-        <p class="text-sm text-destructive">The overview could not be loaded.</p>
+        {#snippet children(slide: DeckSlide, _index: number)}
+          {@const layout = layoutPropsFor(slide)}
+          <div
+            class="deck-app__slide size-full"
+            data-py-deck-slide={slide.id}
+            data-step={location?.slideId === slide.id ? activeStep : 0}
+            data-step-count={location?.slideId === slide.id ? activeStepCount : 1}
+            style={location?.slideId === slide.id
+              ? `--py-deck-step:${activeStep};--py-deck-step-count:${activeStepCount}`
+              : undefined}
+          >
+            <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+          </div>
+        {/snippet}
+      </DeckCanvas>
+    </div>
+
+    <!-- Chrome: progress, slide number and presenting tools (guarded from advancing the deck). Hidden in full screen. -->
+    {#if !fullscreen}
+      <div
+        class="deck-app__chrome pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3"
+        data-py-deck-chrome
+        data-py-deck-chrome-root
+      >
+        <div
+          class="pointer-events-auto h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress)}
+          aria-label="Deck progress"
+          data-py-deck-progress
+        >
+          <div
+            class="h-full rounded-full bg-primary transition-[width] duration-200 ease-out"
+            style={`width:${progress}%`}
+          ></div>
+        </div>
+        <p
+          class="pointer-events-auto shrink-0 rounded-md bg-background/80 px-2 py-1 text-xs font-medium text-muted-foreground backdrop-blur"
+          data-py-deck-slide-number
+        >
+          {slideLabel}
+        </p>
+        <div class="pointer-events-auto flex shrink-0 items-center gap-1" data-py-deck-chrome>
+          <DeckToolbar
+            blackout={inputState.blackout === true}
+            laser={inputState.laser === true}
+            help={inputState.help === true}
+            {fullscreen}
+            fullscreenAvailable={canFullscreen}
+            {helpId}
+            reference={currentReference}
+            onaction={onTool}
+          />
+          <PrintButton />
+        </div>
       </div>
-    {/await}
-  {/if}
+    {/if}
 
-  {#if inputState.help}
-    <KeyboardHelp id={helpId} onclose={() => runAction('help')} />
-  {/if}
+    {#if inputState.laser}
+      <LaserPointer container={rootEl} />
+    {/if}
 
-  <div class="sr-only" aria-live="polite" aria-atomic="true" data-py-deck-live>
-    {announce}
-  </div>
+    {#if inputState.blackout}
+      <BlackoutScreen onclose={() => runAction('blackout')} />
+    {/if}
+
+    {#if inputState.overview === 'open'}
+      {#await import('../overview/index.ts')}
+        <div
+          class="absolute inset-0 z-30 grid place-items-center bg-background/95 backdrop-blur"
+          data-py-deck-overview
+          data-py-deck-overview-loading
+          role="status"
+          aria-label="Loading slide overview"
+        >
+          <span class="text-sm text-muted-foreground">Loading overview…</span>
+        </div>
+      {:then mod}
+        {@const Overview = mod.DeckOverview}
+        <Overview
+          slides={visible}
+          activeSlideId={location?.slideId ?? ''}
+          aspect={deck.style?.aspect ?? '16:9'}
+          onSelect={goOverview}
+          onClose={closeOverview}
+        />
+      {:catch}
+        <div
+          class="absolute inset-0 z-30 grid place-items-center bg-background/95 p-6 backdrop-blur"
+          data-py-deck-overview
+          role="alert"
+        >
+          <p class="text-sm text-destructive">The overview could not be loaded.</p>
+        </div>
+      {/await}
+    {/if}
+
+    {#if inputState.help}
+      <KeyboardHelp id={helpId} onclose={() => runAction('help')} />
+    {/if}
+
+    <div class="sr-only" aria-live="polite" aria-atomic="true" data-py-deck-live>
+      {announce}
+    </div>
+  {/snippet}
+
+  {#if presenterOpen && PresenterHostComp}
+    {@const Host = PresenterHostComp}
+    <Host
+      {deck}
+      {namespace}
+      slideId={location?.slideId ?? deck.slides[0]?.id ?? 'intro'}
+      step={activeStep}
+      bind:open={presenterOpen}
+      onPosition={onPresenterPosition}
+      onNavigate={onPresenterNavigate}
+    >
+      {#snippet children()}
+        {@render deckSurface()}
+      {/snippet}
+    </Host>
+  {:else}
+    {@render deckSurface()}
+    {#if presenterOpen && !PresenterHostComp && !presenterLoadError}
+      <div
+        class="absolute inset-0 z-40 grid place-items-center bg-background/80 backdrop-blur"
+        data-py-deck-presenter-loading
+        role="status"
+        aria-label="Loading presenter"
+      >
+        <span class="text-sm text-muted-foreground">Loading presenter…</span>
+      </div>
+    {/if}
+  {/if}
 </div>
 {/if}
 

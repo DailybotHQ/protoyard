@@ -12,6 +12,7 @@
     "./style": "./src/style/index.ts",
     "./quality": "./src/quality/index.ts",
     "./text": "./src/text/index.ts",
+    "./presenter": "./src/presenter/index.ts",
     "./patch": "./src/patch/index.ts"
   },
   "scripts": {

@@ -142,32 +142,31 @@ What it checks (against `@protoyard/decks/schema` and the layout catalog):
 Deep links of the form `#/slide-id` or `#/slide-id/step` must resolve to a
 **visible** (non-hidden) slide. Visual and content quality (notes length,
 layout repetition, WCAG) live in `@protoyard/decks` quality rules, not here.
-`lintDeckStructure(deck)` checks an untrusted deck's schema, layout props,
-outline references, fragment ordering and `#/slide-id[/step]` links without
-rendering or changing it. `lintDeckContent(deck)` adds image alt requirements,
-chart descriptions, CTA labels, word density and speaker-note guidance.
-`lintDeckAssets(deck)` separately checks media URL syntax and protocol
-allowlists on raw deck data, including media nested in embedded-app data; it
-never fetches. All return `{ valid, diagnostics }` with stable codes, severity,
-path segments and JSONPath. Layout capacity violations are errors. Three
-repeated visible layouts in a row produce a warning when the catalog offers
-alternatives. Missing accessible content is an error; short chart descriptions,
-dense copy and missing or brief optional presenter notes are warnings. Density
-is an estimate: rendered text must still meet the 24 px body and 18 px label
-minimums on the 1280×720 canvas. Final contrast, text size and fit need rendered
-visual QA.
+
+`lintDeckContent(deck)` adds image alt requirements, chart descriptions, CTA
+labels, word density and speaker-note guidance. `lintDeckAssets(deck)` separately
+checks media URL syntax and protocol allowlists on raw deck data, including
+media nested in embedded-app data; it never fetches. All return
+`{ valid, diagnostics }` with stable codes, severity, path segments and
+JSONPath. Layout capacity violations are errors. Three repeated visible layouts
+in a row produce a warning when the catalog offers alternatives. Missing
+accessible content is an error; short chart descriptions, dense copy and missing
+or brief optional presenter notes are warnings. Density is an estimate: rendered
+text must still meet the 24 px body and 18 px label minimums on the 1280×720
+canvas. Final contrast, text size and fit need rendered visual QA.
 
 ```ts
-import { lintDeckContent } from '@protoyard/blueprint';
+import { lintDeckContent, lintDeckStructure } from '@protoyard/blueprint';
 
+const structure = lintDeckStructure(deckJson);
 const content = lintDeckContent(deckJson);
-for (const issue of content.diagnostics) {
+for (const issue of [...structure.diagnostics, ...content.diagnostics]) {
   console.log(issue.code, issue.jsonPath, issue.message);
 }
 ```
 
 CLI packaging of `deck lint` is owned by the CLI / KINDS lane; agents can call
-`lintDeckStructure` in-process today.
+`lintDeckStructure` and `lintDeckContent` in-process today.
 
 ## Agent authoring sequence
 
@@ -917,6 +916,7 @@ if (!blocks.success) {
   const lifted = diagnosticsFromBlockIssues(blocks.issues, ['deck', 'slides', 0, 'blocks']);
 }
 ```
+
 ## Authoring exports
 
 Authoring APIs ship from the package root (`@protoyard/blueprint`); there is no separate
@@ -928,7 +928,7 @@ only parses or generates never bundles them:
 | Brief to blueprint, by kind | `blueprintFromBrief`, `synthesizeAppFromBrief`, `synthesizeContentFromBrief`, `synthesizeDeckFromBrief`, `synthesizePageFromBrief`, `synthesizeDocFromBrief`, `isAppBriefResult`, `isContentBriefResult` |
 | Kind detection | `detectBriefKind`, `KIND_CUES`, `APP_CUES`; blueprint kinds: `detectBlueprintKind`, `BLUEPRINT_KINDS`, `CONTENT_KINDS` |
 | Outlines and bounds | `synthesizeDeckOutline`, `chooseDeckOutline`, `DECK_OUTLINES`, `buildPageOutline`, `buildDocOutline`, `selectPageOutline`, `selectDocOutline`, `boundBriefInput`, `prepareBriefForSynthesis`, `checkOutlineBounds`, `applyOutlineBounds`, `OUTLINE_LIMITS` |
-| Deck layouts and lint | `selectDeckLayouts`, `propsForSelectedLayout`, `lintDeckStructure`, `lintDeckAssets`; catalog types `DeckLayoutEntry`, `DeckLayoutId`, `LayoutPacing` (type-only) |
+| Deck layouts and lint | `selectDeckLayouts`, `propsForSelectedLayout`, `lintDeckStructure`, `lintDeckContent`, `lintDeckAssets`; catalog types `DeckLayoutEntry`, `DeckLayoutId`, `LayoutPacing` (type-only) |
 | Validation | `validateBlueprintForAuthoring`, `parseAnyBlueprint`, `safeParseAnyBlueprint` |
 | Lazy, for browsers | `loadAuthoringApis()` |
 
@@ -942,6 +942,7 @@ Measured with a real Vite build of the linked package (minified, gzip level 9; a
 `tests/authoring-exports.test.ts`):
 
 | Entry imports | Initial JS |
+| --- | --- |
 | `parseBlueprint` only (a generated app) | 39.3 KB |
 | `parseAnyBlueprint` (the kind union, as the player uses it) | 41.6 KB |
 | The kind union plus `loadAuthoringApis` | 42.1 KB (+0.5 KB); authoring loads lazily |

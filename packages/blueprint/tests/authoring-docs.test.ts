@@ -3,7 +3,7 @@
  * package README resolves to an existing file or directory.
  */
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join, normalize, resolve } from 'node:path';
+import { dirname, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 

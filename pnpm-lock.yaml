@@ -536,9 +536,6 @@ importers:
       '@protoyard/blocks-ui':
         specifier: workspace:*
         version: link:../blocks-ui
-      '@protoyard/blueprint':
-        specifier: workspace:*
-        version: link:../blueprint
       '@protoyard/pages':
         specifier: workspace:*
         version: link:../pages

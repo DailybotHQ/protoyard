@@ -6,21 +6,20 @@ player's deck entry and generated deck prototypes both mount it, so a deck
 renders the same at both levels. The presenting surfaces each have their own
 lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
 
-> **Status:** the canvas, layout renderers, `DeckApp` (with overview, presenting tools and print),
-> the print surface and Deck Studio are available. The **presenter view is not built yet**: its
-> subpath exists but exports nothing, and `S` / `P` do nothing today.
+> **Status:** the canvas, layout renderers, `DeckApp` (with overview, presenting tools,
+> print and lazy presenter), the print surface and Deck Studio are available. **S** / **P**
+> open the presenter (popup when allowed, otherwise an in-page split).
 
 ## Subpaths
 
 | Subpath | Exports | Status |
 | --- | --- | --- |
 | `@protoyard/decks-ui` | `fitDeckCanvas(container, canvas)` returns `{ scale, offsetX, offsetY }`: a letterboxed scale-to-fit, with scale 0 until the container has a size. Also the `DeckCanvasFit` type. | available |
-| `@protoyard/decks-ui/app` | `DeckApp`: canvas, layouts, hash navigation, guarded input, step chrome, presenting tools (blackout, full screen, laser, copy reference, keyboard help), print, aria-live and the lazy overview (`O`). | available |
-| `@protoyard/decks-ui/layouts` | `DeckLayoutRenderer`, and `loadLayoutRenderer(layoutId)` for validated catalog rendering through lazy text, media, data and diagram families. | available |
-| `@protoyard/decks-ui/print` | `DeckPrint`, `PrintButton`, `parseDeckPrintFlags`, `deckPrintSearch`, `PRINT_UI_SUBPATH` and the `DeckPrintFlags` type, plus `print.css`. | available |
-| `@protoyard/decks-ui/studio` | `createDeckStudio`, `deckStudioTab`, and the `DeckStudio` and `DeckStudioTab` types. | available |
-| `@protoyard/decks-ui/presenter` | Nothing yet. The design is a presenter window over `BroadcastChannel`, with an in-page split view when the popup is blocked. | **reserved** (T-decks-presenter) |
-| `@protoyard/decks-ui/styles.css` | The Tailwind `@source` for the package. | available |
+| `@protoyard/decks-ui/app` | `DeckApp`: canvas, layouts, hash navigation, guarded input, step chrome, presenting tools (blackout, full screen, laser, copy reference, keyboard help), print, aria-live, lazy overview (`O`), lazy presenter (`S`/`P`) | available |
+| `@protoyard/decks-ui/layouts` | `DeckLayoutRenderer` and `loadLayoutRenderer(layoutId)`: validated catalog rendering through lazy text, media, data and diagram families | available |
+| `@protoyard/decks-ui/presenter` | Presenter window over `BroadcastChannel`, with an in-page split fallback (notes, timers, next slide). Loaded only when opened. | available |
+| `@protoyard/decks-ui/print` | Print and PDF, one slide per page (`DeckPrint`, `PrintButton`, `print.css`) | available |
+| `@protoyard/decks-ui/studio` | Deck Studio: `createDeckStudio`, `deckStudioTab`, a lazy DevTools tab that edits the deck live and exports RFC 6902 patches | available |
 
 `DeckCanvas` is the internal slide viewport used by the app subpath. It keeps
 slide layout in virtual canvas pixels (1280×720, 1024×768, 720×1280 or
@@ -67,6 +66,7 @@ import type { Deck } from '@protoyard/decks';
 - `aria-live` announcements (`Slide n of N`) and `aria-roledescription="slide"`
 - presenting tools: blackout, full screen, laser, copy slide reference and keyboard help (see below)
 - lazy overview grid (see below)
+- **S** / **P** opens the presenter (lazy chunk): popup when allowed, otherwise an in-page split with notes, timers and next slide
 - print: `?print=1` (optional `&notes=1`), chrome **Print** button, Ctrl/Cmd+P
   / `beforeprint` swap to `DeckPrint` (one page per non-hidden slide, all steps
   revealed, `@page` size = virtual canvas, `print-color-adjust: exact`)
@@ -98,7 +98,8 @@ reads:
 Clicking slide content advances. A touch or pen swipe left or right moves next or previous: at least
 50 px, mainly horizontal, under 800 ms. Clicks and swipes on links, controls, media, interactive blocks
 and the chrome never advance (see the input guard in `@protoyard/decks`). The `presenter` action
-(`S`, `P`) is decided but has no surface yet.
+(`S`, `P`) opens the lazy presenter host: a popup when allowed, otherwise an in-page split
+with notes, timers and the next slide (see `@protoyard/decks-ui/presenter`).
 
 ### Overview grid (O)
 
@@ -202,9 +203,9 @@ All gzip level 9 (Node 26.11.1, Vite 8.3.4):
 
 ## Known limits
 
-- **The presenter view is not built.** `S` and `P` do nothing yet. Even when it lands, a separate
-  presenter window depends on popups: the artifact sandbox and many browsers block them. The design
-  therefore keeps an in-page split view (`P`) as the fallback, and never requires the popup.
+- **Presenter popups may be blocked.** Artifact sandboxes and many browsers block `window.open`.
+  When the popup fails or `BroadcastChannel` is missing, `S` / `P` fall back to an in-page split
+  presenter (notes, timers, next slide) and never require the popup.
 - **No remote media at level 1.** Images and video come only from the deck (relative paths), bounded
   `data:` URIs or library avatars, matching the player and artifact CSP. There are no iframe
   backgrounds.

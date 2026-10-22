@@ -95,6 +95,23 @@ export {
   type SlideStepCountResolver,
 } from './navigation/index.ts';
 export {
+  createBroadcastPresenterTransport,
+  createMemoryPresenterTransport,
+  createPresenterLink,
+  PRESENTER_MESSAGE_TYPES,
+  type PresenterLink,
+  type PresenterLinkOptions,
+  type PresenterMessage,
+  PresenterMessageSchema,
+  type PresenterMessageType,
+  type PresenterPosition,
+  type PresenterTransport,
+  parsePresenterMessage,
+  presenterChannelName,
+  presenterMessage,
+  sanitizeNamespace,
+} from './presenter/index.ts';
+export {
   DEFAULT_UNTRUSTED_DECK_LIMITS,
   loadUntrustedDeck,
   stripHiddenCharacters,
