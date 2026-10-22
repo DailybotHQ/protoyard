@@ -54,7 +54,7 @@ work through the prototype’s services.
 | Package | Role | Entry |
 | --- | --- | --- |
 | `@protoyard/ai` | Engine: conversations, packs, agents, tools, suggestion/approval loop, safe markdown, scenario fixtures, voice session | `.` · `./approvals` · `./packs` · `./scenarios` · `./voice` · `./chart` · `./markdown` |
-| `@protoyard/ai-ui` | Svelte 5 UI: workspace, composer, virtualized list, rich answers, canvas, voice panel, widget | `.` · `./voice` · `./widget` · `./styles.css` |
+| `@protoyard/ai-ui` | Svelte 5 UI: workspace, composer, virtualized list, rich answers, canvas, voice panel, widget, suggestion approvals | `.` · `./approvals` · `./voice` · `./widget` · `./styles.css` |
 
 Lazy subpaths (`ai/scenarios`, `ai/voice`, `ai-ui/voice`, `ai-ui/widget`) keep
 optional features out of the initial JS budget. Import styles after Tailwind
@@ -147,6 +147,35 @@ carry `effects` out. Default areas: `records`, `notifications`, `workspace`,
 `external` (capped so external messaging always asks first). Import from
 `@protoyard/ai` or `@protoyard/ai/approvals`. Complements per-tool
 `requiresApproval` on the agent runner. Simulated only — label it in the UI.
+
+**UI** (lazy `@protoyard/ai-ui/approvals`):
+
+| Component | Role |
+| --- | --- |
+| `SuggestionCard` | Evidence (summary, target, prepared apply/notify), Confirm / Approve / Edit / Dismiss with required callbacks and pending feedback |
+| `ChatApprovalCard` | Compact chat-row decisions for the same suggestion model |
+| `AutonomyLevelPicker` | Per-area level radios; uses `setLevel`; caps disable higher options |
+| `AuditTrail` | Newest-first table of `AuditEntry` rows |
+
+Every decision is an explicit callback. The components never call the reducer or
+write IndexedDB; prototypes wire `onConfirm` / `onApprove` / `onDismiss` /
+`onEdit` / `onChange` through services. Copy keeps the simulated boundary
+visible ("Simulated · no real authority").
+
+```svelte
+<script lang="ts">
+  import { SuggestionCard, AutonomyLevelPicker, AuditTrail } from '@protoyard/ai-ui/approvals';
+  import { decideSuggestion, DEFAULT_AUTONOMY } from '@protoyard/ai/approvals';
+</script>
+
+<SuggestionCard
+  {suggestion}
+  viewer={{ id: me, canApprove: true }}
+  onConfirm={(s) => service.confirm(s.id)}
+  onDismiss={(s) => service.dismiss(s.id)}
+/>
+```
+
 
 ```ts
 import { DEFAULT_AUTONOMY, suggestFromCandidate, decideSuggestion } from '@protoyard/ai/approvals';

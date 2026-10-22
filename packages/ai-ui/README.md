@@ -89,3 +89,31 @@ const { AssistantWidget } = await import('@protoyard/ai-ui/widget');
 ## Package output
 
 The repository keeps source exports for workspace development. `pnpm build:packages --filter svelte` creates the compiled ESM, declarations and Svelte components under `dist/` that the packed manifest exposes.
+
+
+## Suggestion approvals (lazy)
+
+Import from `@protoyard/ai-ui/approvals` so the approval surface stays out of the
+assistant boot chunk. Pair with `@protoyard/ai/approvals` pure helpers.
+
+| Export | Purpose |
+| --- | --- |
+| `SuggestionCard` | Waiting or decided suggestion with evidence and decision buttons |
+| `ChatApprovalCard` | Compact chat-row approval |
+| `AutonomyLevelPicker` | Per-area autonomy radios (`setLevel` via `onChange`) |
+| `AuditTrail` | Newest-first audit table |
+
+Callbacks are required for every decision. Show pending state is built in.
+Label the UI as simulated — these controls are prototype UX, not security.
+
+```ts
+import {
+  AuditTrail,
+  AutonomyLevelPicker,
+  ChatApprovalCard,
+  SuggestionCard,
+} from '@protoyard/ai-ui/approvals';
+```
+
+Bundle note: the approvals subpath is optional; assistant workspace entry graphs
+do not import it until a screen does.
