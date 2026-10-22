@@ -18,6 +18,21 @@ other way round). The Svelte half is
 
 ## Authoring catalog (`@protoyard/blocks/catalog`)
 
+The [block reference in docs/BLOCKS.md](../../docs/BLOCKS.md) is generated from
+this catalog: for every type it lists the props (read from the zod schemas,
+with required and optional fields and nested keys), limits, use-when,
+don't-use-when, accessibility notes and a minimal example. Only the region
+between the `BEGIN GENERATED BLOCK CATALOG` and `END GENERATED BLOCK CATALOG`
+markers is generated; the narrative around it is written by hand.
+
+```bash
+npx tsx scripts/blocks-reference.ts          # rewrite the region after a catalog or schema change
+npx tsx scripts/blocks-reference.ts --check  # exit 1 when the docs drifted
+```
+
+`packages/blocks/tests/catalog-docs.test.ts` and
+`tests/scripts/blocks-reference.test.ts` fail when the region drifts.
+
 ```ts
 import {
   BLOCK_CATALOG,
@@ -187,8 +202,8 @@ block list, including inside containers.
 | `./formula` | Closed JSON-AST formulas for calculator blocks; see [Formulas](#formulas-protoyardblocksformula) | done |
 | `./interactive` | Pure reducers and the `BlockStateHost` contract; see [Interactive state](#interactive-state-protoyardblocksinteractive) | done |
 | `./code` | Tiny code tokenizer with stepped line highlights; see [Code](#code-protoyardblockscode) | done |
-| `./diagram` | Flow, tree, board and terminal layout math | T-blocks-diagram-models |
-| `./catalog` | `BLOCK_CATALOG` authoring metadata (use-when, limits, examples) | T-blocks-catalog |
+| `./diagram` | Flow, tree, board and terminal layout math | done |
+| `./catalog` | `BLOCK_CATALOG` authoring metadata (use-when, limits, examples) and the docs renderer | done |
 | `./schema` | `blocksJsonSchema()` and the committed draft 2020-12 schema | done |
 
 The schema has one `$defs` entry per block type, references recursive
