@@ -26,6 +26,25 @@ The root node is `data-py-page-host` for tests and visual sweep.
 <PageHost {page} />
 ```
 
+### Doc kind host (`@protoyard/pages-ui`)
+
+`DocHost` composes the shared **docs** layout chrome for `kind: "doc"` documents:
+optional left section nav, continuous `BlockHost` flow, and a sticky on-page TOC.
+TOC entries come from `buildDocToc` in `@protoyard/pages`; heading elements get
+matching `id`s so `#` links and live `aria-current` stay aligned. The root node
+is `data-py-doc-host`. Docs layout CSS is scoped inside `DocsLayout` (sticky TOC
+from the `72rem` container breakpoint).
+
+```svelte
+<script lang="ts">
+  import { DocHost } from '@protoyard/pages-ui/doc';
+  import type { DocDocument } from '@protoyard/pages';
+  let { doc }: { doc: DocDocument } = $props();
+</script>
+
+<DocHost {doc} />
+```
+
 ## Catalog
 
 The shared layouts are selected from `preview.layout`, DevTools, or a
