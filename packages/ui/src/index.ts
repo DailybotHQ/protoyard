@@ -197,4 +197,11 @@ export {
   setOverlayPortalTarget,
   subscribeOverlayPortalTarget,
 } from './lib/overlay-portal.ts';
+export {
+  escapeSelectorValue,
+  findOption,
+  type RovingEntry,
+  rovingKeydown,
+  rovingTabIndex,
+} from './lib/roving.ts';
 export type { IconComponent, NavItem, TriggerSnippet, WithElementRef } from './lib/types.ts';
