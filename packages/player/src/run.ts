@@ -2,7 +2,7 @@ import type { AnyBlueprint } from '@protoyard/blueprint';
 import type { BootedPlayer } from './boot.ts';
 import type { EmbedListener, StartEmbedOptions } from './embed/index.ts';
 import type { LiveBlueprint, LiveReload, LiveWorld, QuickServeInfo } from './live-reload.ts';
-import { type BootExtras, bootByKind } from './sources/boot-any.ts';
+import type { BootExtras } from './sources/boot-any.ts';
 import {
   PLAYER_SHARE_SESSION_KEY,
   type StartedPlayer,
@@ -19,14 +19,18 @@ export interface RunPlayerOptions {
   /** Defaults to `startPlayer` (tests inject a fake). */
   start?: (options: StartPlayerOptions) => Promise<StartedPlayer>;
   /**
-   * Defaults to `bootByKind`: `bootPlayer` (lazy boot chunk) for apps,
-   * `bootKind` (lazy kind chunk) for decks, pages and docs.
+   * Boots a blueprint: `bootByKind` on `index.html` (main.ts), the kind boot
+   * on `deck.html`, `page.html` and `doc.html` (entries/run-kind.ts). Passed
+   * in, never defaulted here, so the shared player loop does not reference
+   * the app boot and the kind pages' module graphs stay free of it.
    */
-  boot?: (
+  boot: (
     blueprint: AnyBlueprint,
     target: HTMLElement,
     extras?: BootExtras
   ) => Promise<BootedPlayer>;
+  /** Starts fetching the boot chunk once the source resolved (`prefetchBoot` on index.html). */
+  prefetchBoot?: (blueprint: AnyBlueprint) => void;
   /** Defaults to the lazily loaded embed module. */
   loadEmbed?: () => Promise<{ startEmbed(options: StartEmbedOptions): EmbedListener | null }>;
   /**
@@ -46,14 +50,6 @@ export interface RunningPlayer {
   live: LiveReload | null;
 }
 
-async function defaultBoot(
-  blueprint: AnyBlueprint,
-  target: HTMLElement,
-  extras: BootExtras = {}
-): Promise<BootedPlayer> {
-  return bootByKind(blueprint, target, extras);
-}
-
 /**
  * Starts the player from its own source (link, adjacent file or picker) and,
  * only when framed, turns on `protoyard-player/1` so an embedding page can
@@ -66,7 +62,7 @@ async function defaultBoot(
 export async function runPlayer(options: RunPlayerOptions): Promise<RunningPlayer> {
   const { target } = options;
   const win = options.window;
-  const boot = options.boot ?? defaultBoot;
+  const boot = options.boot;
   // The boot chunk for the blueprint's kind is fetched once the source has
   // resolved (startPlayer), so a deck never downloads the app boot.
   const loadLive = options.loadLiveReload ?? (() => import('./live-reload.ts'));
@@ -128,7 +124,7 @@ export async function runPlayer(options: RunPlayerOptions): Promise<RunningPlaye
   const started = await start({
     target,
     boot: (blueprint) => swap(() => bootInto(blueprint)),
-    prefetch: !options.boot,
+    ...(options.prefetchBoot ? { prefetchBoot: options.prefetchBoot } : {}),
   });
 
   let live: LiveReload | null = null;

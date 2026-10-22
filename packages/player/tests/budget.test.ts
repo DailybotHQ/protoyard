@@ -4,8 +4,9 @@ import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { parseBudgetConfig } from '../../cli/src/lib/budgets.ts';
+import { parseBudgetConfig, resolveKindBudget } from '../../cli/src/lib/budgets.ts';
 import { classifyChunks, type ViteManifest } from '../../cli/src/lib/bundle-analysis.ts';
+import { WORKER_GRAPH_GZIP_KB } from './player-budgets.ts';
 
 /**
  * The player's bundle budget, from its real Vite build (`pnpm --filter
@@ -21,14 +22,6 @@ const REPO = fileURLToPath(new URL('../../../', import.meta.url));
 const DIST = process.env.PLAYER_DIST ?? join(REPO, 'packages', 'player', 'dist', 'app');
 const MANIFEST = join(DIST, '.vite', 'manifest.json');
 const KB = 1024;
-
-/**
- * The worker's whole import graph (entry + generator + scenarios + English
- * Faker), gzip. Measured 195.5 KB after building workers as ES modules (it
- * was 921 KB with every Faker locale). Proposed as a protoyard.budgets.json
- * key; until the lead adds one, it lives here.
- */
-const WORKER_GRAPH_GZIP_KB = 220;
 
 const gzip = (file: string) => gzipSync(readFileSync(join(DIST, file)), { level: 9 }).length;
 const sum = (files: readonly string[]) => files.reduce((total, file) => total + gzip(file), 0);
@@ -68,6 +61,19 @@ export function reachableCss(manifest: ViteManifest, page: string): string[] {
     queue.push(...(chunk.imports ?? []), ...(chunk.dynamicImports ?? []));
   }
   return [...css].sort();
+}
+
+/** Every manifest key a page can ever load: static and dynamic imports, transitively. */
+export function reachableKeys(manifest: ViteManifest, page: string): Set<string> {
+  const seen = new Set<string>();
+  const queue = [page];
+  while (queue.length > 0) {
+    const key = queue.pop() as string;
+    if (seen.has(key) || !manifest[key]) continue;
+    seen.add(key);
+    queue.push(...(manifest[key].imports ?? []), ...(manifest[key].dynamicImports ?? []));
+  }
+  return seen;
 }
 
 /** Relative module imports in an emitted chunk (static, dynamic, template literal). */
@@ -201,8 +207,10 @@ describe.skipIf(!built)(
       // routing by kind (the kind-aware loader and the router) once Dexie and
       // Rolldown's runtime got their own chunks (vite.config.ts); 120.5 KB once
       // the per-kind pages share the player loop with index.html (run, start
-      // and resolve became shared chunks, +0.4 KB of chunk overhead). See
-      // docs/PERFORMANCE.md. The cap leaves about 4 %: growth must say why here.
+      // and resolve became shared chunks, +0.4 KB of chunk overhead); 121.4 KB
+      // once index.html's own entry carries the app-and-kind boot router
+      // (boot-any.ts, +0.9 KB) so the shared loop no longer names the app boot.
+      // See docs/PERFORMANCE.md. The cap leaves about 3 %: growth must say why here.
       expect(sum(classes.initialJs) / KB).toBeLessThanOrEqual(125);
     });
 
@@ -238,43 +246,152 @@ describe.skipIf(!built)(
   }
 );
 
+/**
+ * What a deck, page or doc page may never download, initially or later: the
+ * app path. Matched on manifest keys (source paths), static and dynamic.
+ */
+const APP_ONLY_MODULES: [string, RegExp][] = [
+  ['app boot', /(^|\/)src\/boot\.ts$/],
+  ['crud app shell', /\/crud\/src\/app\//],
+  ['crud screen kits', /\/crud\/src\/screens\//],
+  ['main-thread generation fallback', /\/worker\/generate-world-core/],
+  ['blueprint world generator', /\/blueprint\/src\/generator/],
+  ['analytics kit', /\/analytics-ui\/src\//],
+  ['SaaS kit', /\/saas(-ui)?\/src\//],
+  ['AI kit', /\/ai-ui\/src\//],
+  ['player archetype kits', /(^|\/)src\/archetypes\//],
+];
+
 describe.skipIf(!built)('the per-kind player pages (deck.html, page.html, doc.html)', () => {
   const full = built ? (JSON.parse(readFileSync(MANIFEST, 'utf8')) as ViteManifest) : {};
   const budgets = parseBudgetConfig(
     JSON.parse(readFileSync(join(REPO, 'protoyard.budgets.json'), 'utf8'))
   );
-  const budget = { ...budgets.defaults, ...(budgets.overrides.player ?? {}) };
   const measured: Record<string, Record<string, number>> = {};
+  const KINDS = ['deck', 'page', 'doc'] as const;
 
-  it.each(['deck', 'page', 'doc'])('%s.html stays inside the player budgets', (name) => {
+  it.each(APP_ONLY_MODULES)(
+    'the %s pattern matches modules index.html can load',
+    (_label, pattern) => {
+      // Guards the absence checks below: a pattern that matched nothing anywhere
+      // would make them pass vacuously.
+      const reachable = reachableKeys(full, 'index.html');
+      expect([...reachable].some((key) => pattern.test(key))).toBe(true);
+    }
+  );
+
+  it('index.html can reach the worker file (so the kind pages check a real name)', () => {
+    const code = [...reachableKeys(full, 'index.html')]
+      .map((key) => full[key]?.file)
+      .filter((file): file is string => typeof file === 'string' && file.endsWith('.js'))
+      .map((file) => readFileSync(join(DIST, file), 'utf8'))
+      .join('\n');
+    expect(/generate\.worker-[\w-]+\.js/.test(code)).toBe(true);
+  });
+
+  it.each(KINDS)('%s.html stays inside its protoyard.budgets.json kind budget', (name) => {
     const page = `${name}.html`;
     expect(full[page]?.isEntry, `${page} is a build entry`).toBe(true);
+    const budget = resolveKindBudget(budgets, name);
     const classes = classifyChunks(asEntry(full, page));
     const js = sum(classes.initialJs) / KB;
     const css = sum(classes.initialCss) / KB;
     const allCss = sum(reachableCss(full, page)) / KB;
     measured[name] = { initialJsKb: js, initialCssKb: css, allCssKb: allCss };
-    // Measured 2026-10-22 (gzip -9): 121.7 KB initial JS (the shared source
-    // resolver and player loop plus 1.2 KB of kind entry glue), 18.1 KB (deck)
-    // and 18.3 KB (page, doc) initial CSS, 26.4 to 26.6 KB of CSS in all. The
-    // kind boot and renderers stay lazy. Same 125 KB cap as index.html.
-    expect(js, `${page} initial JS ${js.toFixed(1)} KB gzip`).toBeLessThanOrEqual(125);
+    expect(js, `${page} initial JS ${js.toFixed(1)} KB gzip`).toBeLessThanOrEqual(
+      budget.initialJsGzipKb
+    );
     expect(css, `${page} initial CSS ${css.toFixed(1)} KB gzip`).toBeLessThanOrEqual(
       budget.cssGzipKb
     );
     expect(allCss, `${page} all CSS ${allCss.toFixed(1)} KB gzip`).toBeLessThanOrEqual(
       budget.cssGzipKb
     );
-    // Never the app boot, the CRUD shell, Faker or the app kits up front.
-    for (const [label, pattern] of [
-      ...LAZY_MODULES,
-      ['app boot', /\/player\/src\/boot\.ts$/] as const,
-    ]) {
-      const initial = initialKeys(asEntry(full, page));
+  });
+
+  it.each(KINDS)('%s.html keeps its measured initial JS (regression cap)', (name) => {
+    // Measured 2026-10-22 (gzip -9): 121.6 KB (deck, page) and 121.5 KB (doc):
+    // the shared source resolver and player loop plus about 1.2 KB of kind
+    // entry glue; 18.1 to 18.3 KB initial CSS and 26.4 to 26.6 KB of CSS in
+    // all. The kind boot and renderers stay lazy. The cap leaves about 3 %.
+    const js = sum(classifyChunks(asEntry(full, `${name}.html`)).initialJs) / KB;
+    expect(js, `${name}.html initial JS ${js.toFixed(1)} KB gzip`).toBeLessThanOrEqual(125);
+  });
+
+  it.each(KINDS)('%s.html never reaches the app path, initially or later', (name) => {
+    const page = `${name}.html`;
+    const initial = initialKeys(asEntry(full, page));
+    const reachable = reachableKeys(full, page);
+    // Lazy modules index.html defers must not be initial here either.
+    for (const [label, pattern] of LAZY_MODULES) {
       expect(
         [...initial].filter((key) => pattern.test(key)),
-        `${page}: ${label}`
+        `${page} initial: ${label}`
       ).toEqual([]);
+    }
+    // The app path is not even reachable: the shared player loop receives the
+    // kind boot from entries/run-kind.ts and never names boot.ts.
+    for (const [label, pattern] of APP_ONLY_MODULES) {
+      expect(
+        [...reachable].filter((key) => pattern.test(key)),
+        `${page} reachable: ${label}`
+      ).toEqual([]);
+    }
+    // The world-generation worker is its own build, referenced by file name
+    // from the app boot's chunks; no chunk this page can load names it.
+    const reachableCode = [...reachable]
+      .map((key) => full[key]?.file)
+      .filter((file): file is string => typeof file === 'string' && file.endsWith('.js'))
+      .map((file) => readFileSync(join(DIST, file), 'utf8'))
+      .join('\n');
+    expect(
+      /generate\.worker-[\w-]+\.js/.test(reachableCode),
+      `${page} reachable: the worker file`
+    ).toBe(false);
+    // The kind boot itself is reachable (lazy), never initial.
+    const kindBoot = [...reachable].filter((key) => /(^|\/)src\/boot-kind\.ts$/.test(key));
+    expect(kindBoot, `${page} reaches the kind boot`).toHaveLength(1);
+    expect(initial.has(kindBoot[0] as string), `${page}: kind boot is lazy`).toBe(false);
+  });
+
+  it.each(KINDS)('%s.html reaches Faker only through the on-demand generator loader', (name) => {
+    // `@protoyard/scenarios` loads Faker with a dynamic import when a world is
+    // GENERATED; a kind runtime supplies `generateWorld` and no timeline, so
+    // that loader never runs (proved below). Its one lazy edge is the only
+    // way Faker appears in any page's reachable graph.
+    const page = `${name}.html`;
+    const fakerKeys = Object.keys(full).filter((key) => /@faker-js\/faker/.test(key));
+    expect(fakerKeys.length, 'Faker is in the build (index.html uses it)').toBeGreaterThan(0);
+    const initial = initialKeys(asEntry(full, page));
+    for (const key of fakerKeys) expect(initial.has(key), `${page} initial: ${key}`).toBe(false);
+    const reachable = reachableKeys(full, page);
+    for (const key of fakerKeys.filter((k) => reachable.has(k))) {
+      const staticImporters = [...reachable].filter((k) => full[k]?.imports?.includes(key));
+      const dynamicImporters = [...reachable].filter((k) => full[k]?.dynamicImports?.includes(key));
+      expect(staticImporters, `${page}: nothing imports Faker statically`).toEqual([]);
+      expect(dynamicImporters, `${page}: one lazy edge to Faker`).toHaveLength(1);
+      const loader = readFileSync(
+        join(DIST, full[dynamicImporters[0] as string]?.file ?? ''),
+        'utf8'
+      );
+      // The scenarios loader keeps only these three exports of the module.
+      expect(/Faker:\w+\.Faker/.test(loader), 'the importer is the scenarios Faker loader').toBe(
+        true
+      );
+    }
+  });
+
+  it('a kind runtime generates its world itself and has no timeline (so Faker never loads)', async () => {
+    const { parseAnyBlueprint } = await import('@protoyard/blueprint');
+    const { defineKindRuntime } = await import('@protoyard/blueprint/kinds');
+    const fixtures = join(REPO, 'packages', 'blueprint', 'tests', 'fixtures', 'kinds');
+    for (const file of ['intro.deck.json', 'landing.page.json', 'quarterly-report.doc.json']) {
+      const blueprint = await parseAnyBlueprint(
+        JSON.parse(readFileSync(join(fixtures, file), 'utf8'))
+      );
+      const definition = defineKindRuntime(blueprint as never, { namespace: 'budget-proof' });
+      expect(typeof definition.generateWorld, `${file}: generateWorld`).toBe('function');
+      expect(definition.timeline, `${file}: timeline`).toBeUndefined();
     }
   });
 

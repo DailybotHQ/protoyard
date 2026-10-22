@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import config from '../vite.config.ts';
+import { WORKER_GRAPH_GZIP_KB } from './player-budgets.ts';
 
 /**
  * The world-generation worker loads Faker and the blueprint generator. Built
@@ -16,8 +17,8 @@ import config from '../vite.config.ts';
  * to the English locale. This builds the player and budgets the worker graph.
  */
 
-/** Gzip budget for everything the worker downloads (measured 200 KB when set). */
-export const WORKER_GRAPH_BUDGET_GZIP = 250 * 1024;
+/** Gzip budget for everything the worker downloads: the one value both player suites share. */
+const WORKER_GRAPH_BUDGET_GZIP = WORKER_GRAPH_GZIP_KB * 1024;
 /**
  * Locale ids that only appear when Faker ships more than `en` and `base` (the
  * English data itself mentions `de_AT` once, so it is not a marker).

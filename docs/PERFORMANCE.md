@@ -1084,6 +1084,49 @@ Latest measured initial gzip bytes (2026-10-22):
 | `page.html` | 124,644 B | 18,688 B | 150 KB / 30 KB |
 | `doc.html` | 124,642 B | 18,688 B | 150 KB / 30 KB |
 
+**Kind pages: reachable graph and kind budgets (T-kinds-player-budget, measured
+2026-10-22).** Each kind page's initial graph was clean, but its *reachable*
+graph (static plus dynamic imports) was not. The shared player loop
+(`run.ts`, `sources/start.ts`) defaulted its boot to `bootByKind`, so
+`deck.html`, `page.html` and `doc.html` could still lazily reach the app boot,
+`@protoyard/crud/app` and the crud screens, the world worker, the blueprint
+generator, the main-thread generation fallback, and the analytics, SaaS and AI
+kits. The loop now takes `boot` (and an optional `prefetchBoot`) from its
+entry. `main.ts` passes `bootByKind` from `sources/boot-any.ts`. The kind pages
+pass the kind boot from `sources/kind-boot.ts`, which names only
+`boot-kind.ts`.
+
+| Page | Initial JS before | Initial JS after | Initial CSS | Kind budget (`protoyard.budgets.json`) |
+| --- | ---: | ---: | ---: | --- |
+| `index.html` | 123,348 B (120.5 KB) | 124,327 B (121.4 KB) | 20.1 KB | universal cap 125 KB, guard 196,000 B |
+| `deck.html` | 124,647 B (121.7 KB) | 124,468 B (121.6 KB) | 18.1 KB | 150 KB JS, 30 KB CSS |
+| `page.html` | 124,647 B (121.7 KB) | 124,468 B (121.6 KB) | 18.3 KB | 150 KB JS, 30 KB CSS |
+| `doc.html` | 124,645 B (121.7 KB) | 124,466 B (121.5 KB) | 18.3 KB | 150 KB JS, 30 KB CSS |
+
+- `index.html` grew 979 B because the boot router (`boot-any.ts`) now sits in
+  its own entry chunk instead of the shared loop. It stays under the 125 KB cap
+  and far below the 228,317 B regression measured on an older `dev`, which was
+  fixed earlier by narrow imports in `sources/start.ts`.
+- `budget.test.ts` now reads the kind budgets with `resolveKindBudget` from
+  `protoyard.budgets.json`. For every kind page it proves that these are absent
+  from both the initial and the reachable graph: the app boot, the crud app and
+  screens, the main-thread generation fallback, the blueprint generator, the
+  analytics-ui, SaaS and AI kits, and the player archetype kits. It proves the
+  worker's absence by content: no reachable chunk names a
+  `generate.worker-*.js` file. A non-vacuity check shows that each pattern
+  matches something reachable from `index.html`.
+- Faker is still reachable, but only behind one lazy edge. That edge is
+  `loadFaker`'s dynamic import in `@protoyard/scenarios`. It is never initial,
+  it has no static importer, and its only dynamic importer is that loader. A
+  kind runtime (`defineKindRuntime`) supplies `generateWorld` and no
+  timeline, so the runtime never calls that loader. The test checks this
+  against a deck, a page and a doc fixture. Removing the edge would mean
+  changing `@protoyard/scenarios` or `@protoyard/runtime`.
+- **Worker budget: one source of truth.** `worker-bundle.test.ts` (250 KB) and
+  `budget.test.ts` (220 KB) disagreed. Both now import
+  `WORKER_GRAPH_GZIP_KB = 220` from `packages/player/tests/player-budgets.ts`.
+  The measured worker graph is 200,371 B (195.7 KB, 4 files).
+
 **Deck UI entry (measured 2026-10-21).**
 `packages/decks-ui/tests/bundle-size.test.ts` makes a production Vite build of a
 minimal Svelte host that imports `@protoyard/decks-ui/app` and its stylesheet,
@@ -1145,8 +1188,8 @@ initial graph, the crud app shell, Faker (153 KB, avoidable) and smaller lazy
 chunks, and it is the same for the demo, quick/assistant and quick/team-chat.
 The two quick examples need no extra JS before ready.
 
-`packages/player/tests/worker-bundle.test.ts` builds the player and enforces a
-250 KB gzip budget on the whole worker graph, plus the absence of other Faker
+`packages/player/tests/worker-bundle.test.ts` builds the player and enforces the
+220 KB gzip budget shared with `budget.test.ts` (`packages/player/tests/player-budgets.ts`) on the whole worker graph, plus the absence of other Faker
 locales. It fails when the worker format reverts.
 
 ## Player world cache (measured 2026-10-20)
