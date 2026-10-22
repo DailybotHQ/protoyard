@@ -37,7 +37,7 @@ describe('/play metadata and indexing', () => {
     expect(playground).toContain('title="Running Protoyard blueprint"');
     expect(playground).not.toContain('Running Protoyard prototype');
     expect(playground).toContain("target.searchParams.set('embedder', window.location.origin)");
-    expect(playground).toContain("new URLSearchParams(window.location.hash.slice(1)).get('bp')");
+    expect(playground).toContain('readBlueprintShareFragment(window.location.hash)');
     expect(playground).toContain('if (share) target.hash =');
     expect(playground).toContain('shareAvailable = hasDeflateRaw()');
   });
