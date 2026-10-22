@@ -12,10 +12,12 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
+    "@protoyard/blocks-ui": "workspace:*",
     "@protoyard/blueprint": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/decks": "workspace:*",
     "@protoyard/decks-ui": "workspace:*",
+    "@protoyard/player": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "svelte": "^5.57.2"
   }

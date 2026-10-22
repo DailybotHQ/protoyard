@@ -9,11 +9,17 @@ import { definition } from './prototype.ts';
 const target = document.getElementById('app');
 if (!target) throw new Error('index.html must contain <div id="app"></div>');
 
-const studio = createTemplateDeckStudio(deckBlueprint.deck);
+if (new URLSearchParams(location.search).has('__py_embed')) {
+  void import('./embed-entry.ts');
+} else {
+  document.documentElement.dataset.pyHostNamespace = definition.manifest.storage.namespace;
 
-void mountPrototype({
-  definition,
-  App,
-  target,
-  ...(studio ? { devtoolsTabs: [deckStudioTab(studio)] } : {}),
-});
+  const studio = createTemplateDeckStudio(deckBlueprint.deck);
+
+  void mountPrototype({
+    definition,
+    App,
+    target,
+    ...(studio ? { devtoolsTabs: [deckStudioTab(studio)] } : {}),
+  });
+}
