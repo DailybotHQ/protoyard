@@ -71,7 +71,7 @@ cn('shadow-soft', 'shadow-none'); // → "shadow-none"
 | Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone`, `ImageInput` |
 | Overlays | `Dialog`, `AlertDialog`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip` |
 | Disclosure | `Tabs`, `Accordion`, `Carousel` |
-| Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
+| Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState`, `Notice`, `SimulatedTag`, `ProposalTag`, `StatusChip` |
 | Display | `Badge` (+ `badgeVariants`), `Avatar`, `ActorRow`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
 | Overlays | `Dialog`, `AlertDialog`, `Drawer`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip`, `overlayStack` / `useOverlayLayer` |
 | Disclosure | `Tabs`, `Accordion` |
@@ -123,6 +123,9 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Progress` | `value` (`null` = indeterminate), `max`, `label` or `ariaLabel`, `showValue`, `tone`, `size` |
 | `Spinner` / `Skeleton` | size / `class` for shape |
 | `EmptyState` / `ErrorState` / `LoadingState` | `title`, `description`, `icon`, `action` snippet; `ErrorState.onRetry`; `LoadingState.label` |
+| `Notice` | `tone` info·success·warning·error·brand, `title`, `text`, `children`, optional `actionLabel` + `onAction` (promise → pending) or `actionHref`; error → role=alert |
+| `SimulatedTag` / `ProposalTag` | Honesty labels (default "Simulated" / "Proposal under review"); always a word, never color alone; optional `title` |
+| `StatusChip` | Required `label` word, `tone` neutral·success·warning·error·info·brand, optional `icon` |
 | `Badge` | `variant` default·secondary·outline·success·warning·destructive·info |
 | `Avatar` | `name` (initials + deterministic color), `src?`, `srcset?`, `size` xs·sm·md·lg, `decorative`. The image is lazy, async-decoded and fixed-size; an unsafe `src` (any scheme but https, `//host`) or a load error shows the initials. Persona faces: `<Avatar name={p.name} {...avatarImage(p.avatar)} />` (`avatarImage` from `@protoyard/renderer-svelte`) |
 | `ActorRow` | `actor: { name, kind: 'person'·'agent', role?, avatarUrl?, avatarSrcset? }`, optional `handledBy` with the same shape, `class`. Displays an accessible identity, a visible Person or Agent · simulated label, and an optional “Handled by …” badge. Resolve fictional avatar ids with `avatarImage()` from `@protoyard/renderer-svelte` before passing the image fields. |
