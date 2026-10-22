@@ -80,6 +80,13 @@ function schemaDiagnostics(
         'Fragment steps must be valid integers from 0 through 32.'
       );
     }
+    // DeckSchema enforces the layout catalog; keep its findings under the lint's specific codes.
+    if (path[0] === 'slides' && path.length === 3 && path[2] === 'layout') {
+      return diagnostic('unknown-layout', path, issue.message);
+    }
+    if (path[0] === 'slides' && path[2] === 'props') {
+      return diagnostic('invalid-layout-props', path.slice(0, 3), issue.message);
+    }
     return diagnostic('invalid-deck-structure', path, 'This value does not match the deck schema.');
   });
 }

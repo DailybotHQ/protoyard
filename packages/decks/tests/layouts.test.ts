@@ -137,3 +137,13 @@ describe('DECK_LAYOUTS catalog', () => {
     expect(text).toContain("Don't use when:");
   });
 });
+
+describe('getDeckLayout with untrusted ids', () => {
+  it('never resolves inherited prototype keys', async () => {
+    const { getDeckLayout } = await import('../src/layouts/catalog.ts');
+    for (const id of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
+      expect(getDeckLayout(id), id).toBeUndefined();
+    }
+    expect(getDeckLayout('title-hero')?.id).toBe('title-hero');
+  });
+});
