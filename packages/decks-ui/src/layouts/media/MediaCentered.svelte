@@ -6,6 +6,7 @@ import { imageBlock, videoBlock } from '../design/media.ts';
 import SlideFrame from '../design/SlideFrame.svelte';
 import { DECK_TYPE } from '../design/scale.ts';
 import type { PropsOf } from '../design/types.ts';
+import { getPropSteps } from '../prop-steps.ts';
 
 /** image-centered and video-centered: a framed media stage with its title and caption. */
 let {
@@ -16,6 +17,8 @@ let {
   props: PropsOf<typeof ImageCenteredPropsSchema> | PropsOf<typeof VideoCenteredPropsSchema>;
 } = $props();
 
+const steps = getPropSteps();
+const mediaKey = $derived('image' in p ? 'image' : 'video');
 const media = $derived(
   'image' in p
     ? imageBlock(p.image, 'contain')
@@ -28,7 +31,7 @@ const media = $derived(
     <h2 class={`${DECK_TYPE.title} line-clamp-2 self-stretch text-center`} data-slot="title" {@attach fitText(40)}>{p.title}</h2>
   {/if}
   <figure class="m-0 flex min-h-0 w-full flex-1 flex-col items-center gap-[1.4cqw]" data-slot="figure">
-    <div class="relative min-h-0 w-full flex-1 overflow-hidden rounded-[1.8cqw] border border-border bg-muted shadow-float" data-slot="media" data-media={media.type} data-fit="contain">
+    <div {...steps([mediaKey])} class="relative min-h-0 w-full flex-1 overflow-hidden rounded-[1.8cqw] border border-border bg-muted shadow-float" data-slot="media" data-media={media.type} data-fit="contain">
       <Blocks blocks={[media]} class="h-full" />
     </div>
     {#if p.caption}

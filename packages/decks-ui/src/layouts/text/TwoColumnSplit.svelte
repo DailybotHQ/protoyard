@@ -5,7 +5,7 @@ import Markdown from '../design/Markdown.svelte';
 import SlideFrame from '../design/SlideFrame.svelte';
 import { DECK_TYPE } from '../design/scale.ts';
 import type { PropsOf } from '../design/types.ts';
-import { getPropSteps } from '../step-context.ts';
+import { getPropSteps } from '../prop-steps.ts';
 
 let { props: p }: { props: PropsOf<typeof TwoColumnSplitPropsSchema> } = $props();
 const steps = getPropSteps();

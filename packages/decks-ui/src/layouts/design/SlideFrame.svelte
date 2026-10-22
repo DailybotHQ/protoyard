@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import { getPropSteps } from '../prop-steps.ts';
 
 /**
  * The root of every designed slide. It is an inline-size container, so the
@@ -12,11 +13,14 @@ let {
   class: className = '',
   children,
 }: { layout: string; class?: string; children: Snippet } = $props();
+// A step marker on the props object itself reveals the whole slide body.
+const steps = getPropSteps();
 </script>
 
 <!-- The unpadded wrapper is the size container, so 1cqw is 1 % of the stage width. -->
 <div class="deck-slide-stage @container size-full min-w-0">
   <section
+    {...steps([])}
     data-py-deck-layout={layout}
     data-py-deck-design={layout}
     class={`deck-slide relative flex h-full w-full min-w-0 flex-col overflow-hidden text-foreground ${className}`}
@@ -27,11 +31,13 @@ let {
 
 <style>
   /*
-   * Stepped catalog items (cards, process steps, events, rows, split sides):
+   * Stepped catalog props (the slide body itself, cards, process steps,
+   * events, rows, split sides, media, code, the CTA, the chart, people):
    * hidden ones keep their space, then fade (or fade up) in; active effects
    * show on their step. Reduced motion and a deck's `motion: none` drop the
    * motion. Block fragments use utility classes from blocks-ui instead.
    */
+  .deck-slide[data-py-fragment-kind='prop'],
   .deck-slide :global([data-py-fragment-kind='prop']) {
     transition:
       opacity 500ms ease-out,
@@ -39,35 +45,43 @@ let {
       scale 500ms ease-out,
       background-color 500ms ease-out;
   }
+  .deck-slide[data-py-fragment-kind='prop'][data-py-fragment='hidden'],
   .deck-slide :global([data-py-fragment-kind='prop'][data-py-fragment='hidden']) {
     visibility: hidden;
     opacity: 0;
   }
+  .deck-slide[data-py-fragment-kind='prop'][data-py-fragment='hidden'][data-py-fragment-reveal='fade-up'],
   .deck-slide :global([data-py-fragment-kind='prop'][data-py-fragment='hidden'][data-py-fragment-reveal='fade-up']) {
     translate: 0 0.6em;
   }
+  .deck-slide[data-py-fragment-kind='prop'][data-py-fragment-active='true'][data-py-fragment-reveal='grow'],
   .deck-slide :global([data-py-fragment-kind='prop'][data-py-fragment-active='true'][data-py-fragment-reveal='grow']) {
     scale: 1.04;
   }
+  .deck-slide[data-py-fragment-kind='prop'][data-py-fragment-active='true'][data-py-fragment-reveal='shrink'],
   .deck-slide :global([data-py-fragment-kind='prop'][data-py-fragment-active='true'][data-py-fragment-reveal='shrink']) {
     scale: 0.94;
   }
+  .deck-slide[data-py-fragment-kind='prop'][data-py-fragment-active='true'][data-py-fragment-reveal='highlight'],
   .deck-slide :global([data-py-fragment-kind='prop'][data-py-fragment-active='true'][data-py-fragment-reveal='highlight']) {
     outline: 0.3cqw solid color-mix(in oklab, var(--color-primary) 60%, transparent);
     outline-offset: 0.4cqw;
   }
+  .deck-slide[data-py-fragment-kind='prop'][data-py-fragment-active='true'][data-py-fragment-reveal='strike'],
   .deck-slide :global([data-py-fragment-kind='prop'][data-py-fragment-active='true'][data-py-fragment-reveal='strike']) {
     text-decoration: line-through;
     opacity: 0.6;
   }
   @media (prefers-reduced-motion: reduce) {
-    .deck-slide :global([data-py-fragment-kind='prop']) {
+    .deck-slide[data-py-fragment-kind='prop'],
+  .deck-slide :global([data-py-fragment-kind='prop']) {
       transition: none;
       translate: none;
       scale: none;
     }
   }
-  :global([data-py-deck-motion='none']) .deck-slide :global([data-py-fragment-kind='prop']) {
+  :global([data-py-deck-motion='none']) .deck-slide[data-py-fragment-kind='prop'],
+  .deck-slide :global([data-py-fragment-kind='prop']) {
     transition: none;
     translate: none;
     scale: none;

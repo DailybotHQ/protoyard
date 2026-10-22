@@ -5,16 +5,19 @@ import { fitContent, fitText } from '../design/fit.ts';
 import SlideFrame from '../design/SlideFrame.svelte';
 import { DECK_TYPE } from '../design/scale.ts';
 import type { PropsOf } from '../design/types.ts';
+import { getPropSteps } from '../prop-steps.ts';
+import { stepEach } from '../step-each.ts';
 
 let { props: p }: { props: PropsOf<typeof TeamAvatarsPropsSchema> } = $props();
 const columns = $derived(Math.min(4, p.people.length));
+const steps = getPropSteps();
 </script>
 
 <SlideFrame layout="team-avatars" class="gap-[3cqw] px-[7cqw] py-[6cqw]">
   {#if p.title}
     <h2 class={`${DECK_TYPE.title} line-clamp-2`} data-slot="title" {@attach fitText(40)}>{p.title}</h2>
   {/if}
-  <div class="deck-team grid min-h-0 flex-1 content-center" style={`--deck-team-columns:${columns}`} data-slot="people" {@attach fitContent()}>
+  <div class="deck-team grid min-h-0 flex-1 content-center" style={`--deck-team-columns:${columns}`} data-slot="people" {@attach fitContent()} {@attach stepEach(steps, 'li', p.people.length, (index) => ['people', index])}>
     <Blocks blocks={[{ type: 'people', layout: 'grid', people: p.people }]} />
   </div>
 </SlideFrame>

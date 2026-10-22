@@ -5,8 +5,10 @@ import { fitText } from '../design/fit.ts';
 import SlideFrame from '../design/SlideFrame.svelte';
 import { DECK_TYPE } from '../design/scale.ts';
 import type { PropsOf } from '../design/types.ts';
+import { getPropSteps } from '../prop-steps.ts';
 
 let { props: p }: { props: PropsOf<typeof ClosingCtaPropsSchema> } = $props();
+const steps = getPropSteps();
 </script>
 
 <SlideFrame layout="closing-cta" class="items-center justify-center px-[9cqw] py-[7cqw] text-center">
@@ -18,7 +20,7 @@ let { props: p }: { props: PropsOf<typeof ClosingCtaPropsSchema> } = $props();
     {#if p.text}
       <p class={`${DECK_TYPE.lead} line-clamp-3 max-w-[40ch] text-muted-foreground`} data-slot="text">{p.text}</p>
     {/if}
-    <div class="deck-cta mt-[1cqw]" data-slot="action">
+    <div {...steps(['cta'])} class="deck-cta mt-[1cqw]" data-slot="action">
       <Blocks blocks={[{ type: 'cta', actions: [{ label: p.cta.label, href: p.cta.href }] }]} />
     </div>
   </div>

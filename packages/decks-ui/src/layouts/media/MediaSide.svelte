@@ -7,6 +7,7 @@ import { imageBlock, videoBlock } from '../design/media.ts';
 import SlideFrame from '../design/SlideFrame.svelte';
 import { DECK_TYPE } from '../design/scale.ts';
 import type { PropsOf } from '../design/types.ts';
+import { getPropSteps } from '../prop-steps.ts';
 
 /** image-left, image-right, video-left and video-right: media bleeds to one edge, copy on the other. */
 let {
@@ -18,6 +19,9 @@ let {
 } = $props();
 
 const mediaFirst = $derived(layout.endsWith('-left'));
+const steps = getPropSteps();
+/** The props key the media comes from: a step marker on it reveals the media pane. */
+const mediaKey = $derived('image' in p ? 'image' : 'video');
 const media = $derived(
   'image' in p
     ? imageBlock(p.image)
@@ -26,7 +30,7 @@ const media = $derived(
 </script>
 
 {#snippet mediaPane()}
-  <div class="relative min-h-0 overflow-hidden bg-muted @max-[48rem]:order-1" data-slot="media" data-media={media.type} data-fit="cover">
+  <div {...steps([mediaKey])} class="relative min-h-0 overflow-hidden bg-muted @max-[48rem]:order-1" data-slot="media" data-media={media.type} data-fit="cover">
     <Blocks blocks={[media]} class="h-full" />
   </div>
 {/snippet}

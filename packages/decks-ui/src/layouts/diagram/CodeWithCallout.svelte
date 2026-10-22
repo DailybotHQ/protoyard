@@ -6,8 +6,10 @@ import { fitContent, fitText } from '../design/fit.ts';
 import SlideFrame from '../design/SlideFrame.svelte';
 import { DECK_TYPE } from '../design/scale.ts';
 import type { PropsOf } from '../design/types.ts';
+import { getPropSteps } from '../prop-steps.ts';
 
 let { props: p }: { props: PropsOf<typeof CodeWithCalloutPropsSchema> } = $props();
+const steps = getPropSteps();
 const code = $derived({
   type: 'code',
   code: p.code.source,
@@ -21,7 +23,7 @@ const code = $derived({
     <h2 class={`${DECK_TYPE.title} line-clamp-2`} data-slot="title" {@attach fitText(40)}>{p.title}</h2>
   {/if}
   <div class="grid min-h-0 flex-1 grid-cols-[1.45fr_1fr] content-center items-start gap-[2.6cqw] @max-[48rem]:grid-cols-1">
-    <div class="deck-code min-h-0 overflow-hidden rounded-[1.6cqw] border border-border bg-card shadow-float" data-slot="code" {@attach fitContent(0.6)}>
+    <div {...steps(['code'])} class="deck-code min-h-0 overflow-hidden rounded-[1.6cqw] border border-border bg-card shadow-float" data-slot="code" {@attach fitContent(0.6)}>
       <Blocks blocks={[code]} />
     </div>
     <aside class="flex min-h-0 flex-col gap-[1.6cqw] rounded-[1.6cqw] border border-primary/30 bg-primary/10 p-[2.6cqw]" data-slot="callout" {@attach fitContent()}>

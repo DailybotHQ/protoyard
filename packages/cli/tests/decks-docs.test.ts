@@ -112,7 +112,7 @@ describe('docs/DECKS.md', () => {
     const missing = section('What decks do not do yet');
     for (const topic of [
       // Step reveals and the last step shipped in T-deck-fragments; what remains is listed.
-      'Stepped catalog props outside the item lists do not hide',
+      'Steps inside a chart do not hide',
       'custom slide components',
       'media backgrounds',
       'Heuristics are report-only',
