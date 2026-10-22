@@ -7,8 +7,8 @@ data-only rule AST. No flow can hold executable JavaScript, a URL, headers or
 a credential, so a flow can never run code or reach a network on its own.
 
 > **Status:** the model (`@protoyard/flows/model`) and the deterministic mock
-> runtime (`@protoyard/flows/runtime`) are available. The Svelte editor
-> (`@protoyard/flows-ui`) lands in a later PLAN_005 task.
+> runtime (`@protoyard/flows/runtime`) are available. The Svelte editor and
+> run panels are in [`@protoyard/flows-ui`](../flows-ui/README.md).
 
 ## The model
 

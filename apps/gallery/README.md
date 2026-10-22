@@ -34,6 +34,7 @@ templates/*/protoyard.json  ─┴─ pnpm protoyard index ──▶ .protoyard/
 | `src/lib/library.svelte.ts` | Favorites and recently opened entries, in guarded `localStorage`. |
 | `src/lib/control.svelte.ts` | Client for the local control server. |
 | `src/lib/theme.ts` | Light / dark / system, applied by an inline head script before first paint (no flash). |
+| `src/lib/content-examples.ts`, `content-showcase.ts`, `components/features/ContentShowcase.astro` | The deck, page and doc examples on the home page and `/features/`: covers from `public/examples/` (`pnpm covers`), share links into the hosted player built at static-build time, stills of the flagship deck, and the generated flagship running live in a showcase build. |
 | `src/components/*` | `Browser`, `ProjectCard`, `LivePreview`, `CreateBuilder`, `CommandBlock`, `ThemeToggle`, `FavoriteButton`, `FirstRun`. |
 
 ## Pages

@@ -64,6 +64,7 @@ and checks monorepo-only templates and registry files only for monorepos.
 | `node packages/create-protoyard/bin/create-protoyard.mjs <dir> [-t <template>] [--pm pnpm\|npm] [--no-install] [--no-git] [-y] [--json] [--skill]` | The scaffolder behind `npm create protoyard`, run from the repository until it is published: a new or empty folder with a pinned `protoyard`, the workspace marker and a starter prototype. Exit 0 created, 1 failed or not empty, 2 usage or unsafe path, 3 unknown template |
 | `pnpm preview:showcase` | Serve the built showcase (`showcase --skip-build --serve`) |
 | `pnpm thumbnails [slug…] [--check]` | Capture gallery thumbnails from real builds with Playwright for every prototype and template into `prototypes/<slug>/public/thumbnail.png` or `templates/<name>/public/thumbnail.png`, and set the manifest's `thumbnail`. `protoyard new` drops the source's thumbnail, so run it for a new prototype. The capture helpers live in `packages/cli/src/lib/capture/` (shared with `quick shot` and the visual sweep) |
+| `pnpm covers [name…]` | Capture the covers of the deck, page and doc examples the gallery shows (home page and `/features/`) from the real player, plus stills of the flagship deck's capability slides, into `apps/gallery/public/examples/`. The list lives in `apps/gallery/src/lib/content-examples.ts`; builds the player first when it is missing |
 | `pnpm hygiene` | Public-hygiene check over tracked files (secrets, tokens, stray files) |
 | `pnpm check` | `lint` + `typecheck` + `test` |
 

@@ -44,6 +44,26 @@ export const FEATURE_AREAS: readonly FeatureArea[] = [
     guides: [{ slug: 'player', label: 'Player guide' }],
   },
   {
+    id: 'content',
+    title: 'Slide decks, landing pages and documents',
+    summary:
+      'Ask for a deck on any topic and get slides you can click through, present and share: designed layouts, live charts and interactive blocks, from one JSON file.',
+    points: [
+      '`quick "<topic>" --kind deck` writes a deck from a sentence, offline; `--kind page` and `--kind doc` do the same for a landing page or a document.',
+      '21 designed slide layouts with large display type, per-deck themes, fonts and gradient backgrounds. Slides fit and center at any screen size, and content reveals step by step.',
+      'A presenter view with the next slide and notes, an overview grid, print to PDF, and Deck Studio to restyle a deck live.',
+      'Interactive blocks work in the slide itself: polls, quizzes, a what-if calculator, explorable charts with a data table, and a working app embedded in a slide.',
+      'Landing pages have a hero, pricing, steps and forms that store responses; documents have a reading layout with one table of contents.',
+      'Every kind runs at both levels: instantly in the player from a share link, or as a full prototype from `protoyard generate`. Links, single-file exports and private Claude artifacts work for all of them.',
+    ],
+    guides: [
+      { slug: 'decks', label: 'Decks guide' },
+      { slug: 'pages', label: 'Pages and documents guide' },
+      { slug: 'blocks', label: 'Blocks guide' },
+      { slug: 'kinds', label: 'Blueprint kinds guide' },
+    ],
+  },
+  {
     id: 'prototypes',
     title: 'Full prototypes from blueprints',
     summary:
@@ -56,9 +76,6 @@ export const FEATURE_AREAS: readonly FeatureArea[] = [
     ],
     guides: [
       { slug: 'generator', label: 'Generator guide' },
-      { slug: 'decks', label: 'Decks guide' },
-      { slug: 'pages', label: 'Pages and documents guide' },
-      { slug: 'kinds', label: 'Blueprint kinds guide' },
       { slug: 'brief_to_prototype', label: 'Brief to prototype guide' },
       { slug: 'specs', label: 'Specs guide' },
       { slug: 'quickstart', label: 'Quickstart' },
@@ -89,7 +106,8 @@ export const FEATURE_AREAS: readonly FeatureArea[] = [
       'A 64-theme library on top of six built-in themes, twelve shared page layouts, and device and host shells.',
       'Rich views: board, calendar, timeline, a virtualized data grid, trees, an offline map, files and activity.',
       'Charts and an analytics kit with KPIs, funnels, cohorts and an editable dashboard over deterministic events.',
-      'Simulated SaaS flows (sign-in, SSO, MFA, onboarding, billing), scripted AI assistants and agents with no model API, and 175 portraits of fictional people.',
+      'Simulated SaaS flows (sign-in, phone sign-up, SSO, MFA, onboarding, billing), scripted AI assistants and agents with no model API, and 175 portraits of fictional people.',
+      'A workflow editor with simulated runs, gamification (points, levels, badges, missions and streaks), a rich text editor and a command palette.',
     ],
     guides: [
       { slug: 'themes', label: 'Themes guide' },

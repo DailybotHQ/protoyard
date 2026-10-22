@@ -133,6 +133,7 @@ const AGREED_PUBLIC_GUIDES = [
   'PLAYER',
   'DECKS',
   'PAGES',
+  'BLOCKS',
   'KINDS',
   'ACCESSIBILITY',
   'PACKAGES',

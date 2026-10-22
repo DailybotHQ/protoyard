@@ -31,6 +31,7 @@ const FEATURES_PAGE = readFileSync(
 const CAPABILITY_MAP = [
   'quick',
   'player',
+  'content',
   'prototypes',
   'engine',
   'kits',
