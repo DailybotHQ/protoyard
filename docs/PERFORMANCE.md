@@ -1179,12 +1179,17 @@ Re-measured on `dev` 266fb823 (gzip -9, initial graph):
 All CSS reachable from `index.html` is 29.37 KiB, measured by
 `budget.test.ts`.
 
-**Deck UI entry (measured 2026-10-21).**
+**Deck UI entry (re-measured 2026-10-22, after PLAN_006).**
 `packages/decks-ui/tests/bundle-size.test.ts` makes a production Vite build of a
 minimal Svelte host that imports `@protoyard/decks-ui/app` and its stylesheet,
 then measures the entry's static imports and all emitted CSS with gzip level 9.
-The initial graph measured **80,887 B JS gzip** and all emitted CSS measured
-**2,882 B gzip** (2026-10-22), under the ceilings of 120 KB JS and 20 KB CSS. The paired hygiene test checks the built
+The probe groups Rolldown's runtime and Dexie into their own chunks, as the
+player's build does. With the PLAN_006 controls, the initial graph measures
+**92,464 B JS gzip** and all emitted CSS **3,284 B gzip**, under the ceilings of
+120 KB JS and 20 KB CSS (the same probe on `main` 1ee2d352 measured 82,546 B
+JS). The history and what stays lazy are in
+[Decks: entry and controls](#decks-entry-and-controls-plan_006-measured-2026-10-22).
+The paired hygiene test checks the built
 static graph for CRUD, Faker, the player and worker, syntax highlighting, and
 chart-family code. Layout families load on demand. Presenter and studio remain
 separate package subpaths and do not enter the app graph; the overview DOM is
@@ -1754,28 +1759,29 @@ loads Svelte, `@protoyard/ui`, `@protoyard/renderer-svelte` and the
 `@protoyard/blocks` engine. Its single lazy family import is measured as the
 gzip level-9 bytes of its static chunk closure after chunks already loaded by
 the shell are removed. The report is written to `tmp/bench-blocks.json`.
-Measured 2026-10-22 (Node 26.11.1, Vite 8.3.4):
+Re-measured 2026-10-22 after PLAN_006 (Node 26.11.1, Vite 8.3.4; `--check` passes for all ten):
 
 | Import | Gzip beyond entry | Ceiling | Result |
 | --- | ---: | ---: | --- |
-| Root dispatcher | 2.10 KB | 3 KB | Pass |
-| Text | 11.98 KB | 12.8 KB (estimate was 6 KB) | Pass |
-| Media | 2.93 KB | 4 KB | Pass |
-| Data | 4.64 KB (4,751 B; 4,999 B before the sort and filter controls moved to their own chunk) | 5 KB | Pass |
-| Structure | 12.55 KB | 13.5 KB (estimate was 8 KB) | Pass |
-| Code | 3.94 KB | 6 KB | Pass |
-| Diagram | 4.81 KB | 6 KB | Pass |
-| Interactive | 19.06 KB | 20.4 KB (estimate was 10 KB) | Pass |
-| Map | 1.02 KB | 4 KB | Pass |
-| Embed | 2.17 KB | 2.4 KB (estimate was 2 KB) | Pass |
+| Root dispatcher | 2,873 B | 3,000 B | Pass |
+| Text | 12,068 B | 12,800 B (estimate was 6 KB) | Pass |
+| Media | 2,931 B | 4,000 B | Pass |
+| Data | 4,751 B (4,999 B before the table's sort and filter controls moved to their own chunk) | 5,000 B | Pass |
+| Structure | 13,292 B | 13,500 B (estimate was 8 KB) | Pass |
+| Code | 3,957 B | 6,000 B | Pass |
+| Diagram | 4,814 B | 6,000 B | Pass |
+| Interactive | 19,590 B | 20,400 B (estimate was 10 KB) | Pass |
+| Map | 1,022 B | 4,000 B | Pass |
+| Embed | 2,167 B | 2,400 B (estimate was 2 KB) | Pass |
 
 The first ceilings were estimates made before any family existed. After measuring with the
 shell-relative method, the four families above were set to measured + 7 % (the same rule as the
 views kit) rather than left red. They remain targets to reduce: Lucide icons resolved per family
 instead of a shared icon map, Bits UI Tabs in the interactive family, and the markdown renderer in
 the text family are the largest contributors. Every family stays a separate lazy chunk, and a whole
-deck entry (DeckApp with chrome) measured 80,887 B gzip against its 120 KB ceiling
-(`packages/decks-ui/tests/bundle-size.test.ts`).
+deck entry (DeckApp with chrome) measured 92,464 B gzip against its 120 KB ceiling after PLAN_006
+(`packages/decks-ui/tests/bundle-size.test.ts`; see
+[Decks: entry and controls](#decks-entry-and-controls-plan_006-measured-2026-10-22)).
 
 The map ceiling is 4 KB, matching the small map family entry; the task
 contract did not list a separate map value. The interactive marker test also
@@ -1784,15 +1790,15 @@ form, map and embed roots carry `data-py-deck-interactive`. The form block
 remains a non-submitting preview; `@protoyard/pages-ui`'s FormBlock replaces it
 through the host for page forms.
 
-Six family entries meet their ceilings. The current `--check` exits 1 for
-text, structure, interactive and embed. A debug build (`PROTOYARD_BUNDLE_DEBUG=1`)
-shows text is led by `MdRenderer.svelte` and `TextFamilyRenderer.svelte`, plus
-the shared block icon map; structure is distributed across its cards, CTA,
-comparison, timeline, columns and steps renderers; interactive is led by the
-reducers and the chart-controls, quiz, calculator and poll renderers, with
-Bits UI Tabs as another contributor; embed is 166 B over its ceiling, led by
-`EmbedApp.svelte`. Keep the recorded ceilings; these modules identify follow-up
-chunk reductions. The figures are measured additions over the shared shell,
+All ten family entries meet their ceilings, several with little headroom
+(structure 208 B, embed 233 B, data 249 B). When text, structure, interactive
+and embed last went over, a debug build (`PROTOYARD_BUNDLE_DEBUG=1`) showed text
+led by `MdRenderer.svelte` and `TextFamilyRenderer.svelte`, plus the shared
+block icon map; structure spread across its cards, CTA, comparison, timeline,
+columns and steps renderers; interactive led by the reducers and the
+chart-controls, quiz, calculator and poll renderers, with Bits UI Tabs as
+another contributor; and embed led by `EmbedApp.svelte`. Keep the recorded
+ceilings; these modules identify follow-up chunk reductions. The figures are measured additions over the shared shell,
 not full static closures.
 
 ## Decks: a 200-slide deck (measured 2026-10-22)
@@ -1848,9 +1854,14 @@ Node 26.11.1.
 | Flagship `create-anything-deck` initial JS | — | 230.15 KB | 226.96 KB | `pnpm protoyard budget create-anything-deck` |
 | Flagship CSS (all files) | — | 30.54 KB (over the 30 KB cap) | 30.00 KB (pass, no headroom) | same |
 | Blocks data family | — | 4,999 B | 4,751 B | `pnpm exec tsx scripts/bench-blocks.ts` |
+| Debug for agents panel, lazy chunk (not in the initial graph) | — | — | 9,486 B (ceiling 12 KB) | `pnpm vitest run packages/decks-ui/tests/debug-panel.test.ts` |
+| Chrome tooltip cost on the deck entry | — | — | +1,510 B (ceiling 1,536 B; the `@protoyard/ui` Tooltip measured +36,552 B) | `pnpm vitest run packages/decks-ui/tests/tooltip-budget.test.ts` |
 
 The `main` figure is the same probe run on a checkout of 1ee2d352. The player and flagship
 could not be built from that archived tree, so they have no `main` column.
+"`dev` before" is `dev` at f299a4ab, just before Task 17. The debug panel and tooltip
+figures were measured when those tasks landed, the same day, with the same gzip method; the
+two tests above enforce their ceilings and passed on `dev` after Task 17.
 
 Step by step on the probe: pure-annotating `DeckJsonSchema` 95,200 B, lazy custom-slide host
 94,403 B, lazy keyboard help and full screen overlay 93,158 B, first-visit hint loaded only
@@ -1872,7 +1883,7 @@ does not prefetch.
 cold): harbor-ops-pitch 187.5 → 167.2 ms / 163.6 → 140.9 ms; the 42-slide `everything` deck
 204.3 → 180.1 ms / 167.8 → 145.9 ms.
 
-**Steps on the 200-slide deck** (happy-dom, see the next section): next median 0.62 ms on
+**Steps on the 200-slide deck** (happy-dom, see the previous section): next median 0.62 ms on
 `main`, 0.83–0.93 ms now (p95 1.27 → 1.56–1.68 ms); first render 116.8 ms on `main`, 68–78 ms
 now. Both remain far under a frame.
 

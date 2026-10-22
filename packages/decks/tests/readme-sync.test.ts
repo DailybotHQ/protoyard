@@ -23,6 +23,7 @@ import * as text from '../src/text/index.ts';
 
 const DECKS_README = join(import.meta.dirname, '../README.md');
 const DECKS_UI_README = join(import.meta.dirname, '../../decks-ui/README.md');
+const DECKS_GUIDE = join(import.meta.dirname, '../../../docs/DECKS.md');
 const UPDATE = process.env.PROTOYARD_UPDATE_README === '1';
 
 const cell = (value: string) => value.replaceAll('|', '\\|').replaceAll('\n', ' ');
@@ -128,6 +129,8 @@ describe('deck READMEs stay in sync with the code', () => {
   it('lists every control from DECK_CONTROLS', () => {
     const table = controlsTable();
     expect(region(DECKS_README, 'controls', table)).toBe(table);
+    // The user guide holds the same table (docs/DECKS.md, "Controls").
+    expect(region(DECKS_GUIDE, 'controls', table)).toBe(table);
   });
 
   it('lists the keyboard shortcuts from DECK_KEY_BINDINGS in the decks-ui README', () => {

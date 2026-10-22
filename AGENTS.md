@@ -29,7 +29,7 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Database | [DATABASE](docs/DATABASE.md) | Schemas, migrations, services, `liveQuery`, storage caveats |
 | Scenarios | [SCENARIOS](docs/SCENARIOS.md) | Axes, presets, generators, personas/policy, time, environment, snapshots |
 | Kinds | [KINDS](docs/KINDS.md) | App, deck, page and doc blueprints: the two levels (player JSON, generated prototype), authoring, packages, catalog, limits |
-| Decks | [DECKS](docs/DECKS.md) | Slide decks: deck JSON, 21 layouts, steps, presenter, print, style and Deck Studio, lint, sharing, limits |
+| Decks | [DECKS](docs/DECKS.md) | Slide decks: deck JSON, 21 layouts, custom slides, steps, controls, presenter, print, style and Deck Studio, Debug for agents and the agent loop, lint, sharing, limits |
 | Pages | [PAGES](docs/PAGES.md) | Landing pages and documents: hosts, sections, forms and responses, reading layout, print |
 | Blocks | [BLOCKS](docs/BLOCKS.md) | Shared content blocks for decks, pages and docs: schemas, limits, lazy families, interactive state, embedded apps |
 | Generator | [GENERATOR](docs/GENERATOR.md) | Blueprints → app, deck, page and doc prototypes: format, screens, layouts, generate/regenerate, ownership, migrations, drift |
@@ -97,8 +97,8 @@ protoyard/
 │   ├── avatars/           175 fictional portraits (WebP 64/128 px) + verified manifest, data only   (README)
 │   ├── blocks/            content block engine: schemas, limits, untrusted-input guard, closed formula AST, text helpers (no Svelte) (README)
 │   ├── blocks-ui/         Svelte block renderers, one lazy subpath per family (text, media, data, structure, code, diagram, interactive, map, embed) (README)
-│   ├── decks/             slide deck engine: schema, 21-layout catalog, navigation, steps, style, quality checks (no Svelte) (README)
-│   ├── decks-ui/          Svelte DeckApp, presenter, overview, print and Deck Studio, each on its own lazy chunk (README)
+│   ├── decks/             slide deck engine: schema, 21-layout catalog, navigation, steps, controls registry, style, quality checks, agent slide references (no Svelte) (README)
+│   ├── decks-ui/          Svelte DeckApp with registry-driven controls, presenter, overview, print, Deck Studio and the Debug for agents panel, each on its own lazy chunk (README)
 │   ├── pages/             page and doc engine: schemas, limits, TOC helpers, form-response services (no Svelte) (README)
 │   ├── pages-ui/          Svelte PageApp and DocApp hosts, forms and responses UI, print CSS (README)
 │   ├── flows/             workflow engine: serializable flows, triggers, steps, data-only conditions, simulated runs (no Svelte) (README)
@@ -121,7 +121,7 @@ protoyard/
 │                          lattice-saas-demo, mobile-banking-demo, nova-assistant-demo,
 │                          pebblestat-analytics-demo, pulse-revenue-demo*, relay-chat-demo,
 │                          support-widget-demo, ui-kit, …yours   (* generated from a blueprint)
-├── blueprints/            40 app blueprints + deck, page and doc examples (decks/, pages/, docs/) for the player and `protoyard generate` (README)
+├── blueprints/            40 app blueprints + deck, page and doc examples (decks/, pages/, docs/; decks/everything.json is the reference deck) for the player and `protoyard generate` (README)
 ├── integrations/deepworkplan/protoyard/  DWP addon packet: addon.json, SPEC.md, SKILL.md, UPSTREAM.md, templates/
 ├── skills/protoyard/      the distributable agent skill: SKILL.md router, sub-skills, setup.sh   (docs/SKILL.md)
 ├── tests/                 support/ (runtime + generator harness), e2e/ (Playwright + axe), setup/
@@ -151,6 +151,7 @@ protoyard/
 | Turn a brief into a blueprint | — | `echo "<brief>" \| pnpm protoyard blueprint new <file> --from-brief - [--generate <slug>] [--dry-run]` |
 | Generate from a blueprint | — | `pnpm protoyard blueprint validate <file>` · `pnpm protoyard generate <slug> --blueprint <file> [--dry-run]` (app, deck, page or doc) |
 | Make a slide deck | — | `pnpm protoyard quick "<topic>" --kind deck` · `pnpm protoyard generate my-deck --blueprint blueprints/decks/protoyard-create-anything.json` |
+| Check or fix a deck (agents) | — | `pnpm protoyard deck lint <file\|slug>` · `pnpm protoyard deck inspect --ref "<[slide-ref] line>"` · `pnpm protoyard deck capabilities` |
 | Find or apply a theme | — | `pnpm protoyard theme list --search <query>` · `pnpm protoyard theme use <slug> <theme-id> --dry-run` |
 | Quick exploration (no build) | — | `pnpm protoyard quick "<brief>" [--variants <1-8>]` · `pnpm protoyard quick serve <slug> --open` |
 | Validate a prototype | — | `pnpm protoyard validate <slug> --build` |

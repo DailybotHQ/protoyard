@@ -115,6 +115,12 @@ and checks monorepo-only templates and registry files only for monorepos.
 | `comments pull <slug> (--from <url> \| --file <json>) --format md\|json [--out <file>]` | Pull review comments from a comments endpoint (GET only) or a local adapter export; writes an escaped, screen-grouped `prototypes/<slug>/docs/REVIEW.md` and a timestamped `artifacts/review-comments/comments/<slug>.json` (outside `artifacts/review/`, the folder `review-index --publish` uploads). See [REVIEW_COMMENTS.md](REVIEW_COMMENTS.md). |
 | `comments export <slug> [--out <file>]` | Write the last pulled comments in the local adapter JSON format (default `artifacts/review-comments/exports/<slug>.json`) |
 | `comments import <slug> <file>` | Import a local adapter JSON export into the workspace comments cache |
+| `deck schema` | Print the deck JSON Schema (`DeckJsonSchema`, draft 2020-12); text mode prints pure JSON, so it can be piped |
+| `deck layouts [id]` | The 21 deck layouts with use-when guidance, limits and a valid sample slide; one id adds its props schema; an unknown id exits 3 with the closest ids |
+| `deck blocks [type]` | The block catalog for free slides (34 types): use-when, limits, accessibility and examples; one type adds a rich example |
+| `deck lint <file\|slug>` | Authoring lint for a deck blueprint, a bare deck file or a deck prototype: rule, severity, slide id, JSON pointer, what to change and why; exit 4 on errors, warnings alone pass. Rendered checks are listed and left to the visual sweep |
+| `deck inspect [file\|slug] --ref "<line>" \| --slide <id>` | Resolve a `[slide-ref]` line pasted from the deck's Debug for agents panel, or a slide id, to the file, JSON pointer and slide JSON. A pasted `source=` resolves only inside the workspace. A missing slide or deck exits 4 with the closest slide ids |
+| `deck capabilities` | What decks support at level 1 (player) and level 2 (generate): layouts, blocks, controls, quality rules and limits, read from the engine |
 | `theme list [--collection <collection>] [--search <query>]` | Built-in (6) and library (64) themes, filtered by library collection (`industry`, `mono`, `high-contrast`, `brand-like`, `colorblind-safe`, `seasonal`) and a deterministic search over names, ids, tags, moods and descriptions |
 | `theme show <theme-id>` | Light and dark swatches with WCAG text and UI contrast checks for a built-in or library theme |
 | `theme use <slug> <theme-id> [--dry-run]` | Set only `defaultTheme` in the prototype's validated `protoyard.json`; `--dry-run` prints the change without writing |

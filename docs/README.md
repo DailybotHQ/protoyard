@@ -24,7 +24,7 @@ exists and that its links and anchors resolve ([Testing guide](TESTING_GUIDE.md)
 | [Packages](PACKAGES.md) | The npm package families and their exports, release status (not on npm yet), versions and packed output |
 | [Database](DATABASE.md) | Schemas, migrations, services, reactive queries, storage caveats |
 | [Kinds](KINDS.md) | App, deck, page and doc blueprints: the two levels, authoring, packages, catalog and limits |
-| [Decks](DECKS.md) | Slide decks: deck JSON, the 21 layouts, steps, presenter, print, style and Deck Studio, lint, sharing and limits |
+| [Decks](DECKS.md) | Slide decks: deck JSON, the 21 layouts, custom slides, steps, controls, presenter, print, style and Deck Studio, Debug for agents and the agent loop, lint, sharing and limits |
 | [Pages](PAGES.md) | Landing pages and documents: hosts, sections, forms and responses, reading layout and print |
 | [Blocks](BLOCKS.md) | Shared content blocks for decks, pages and docs: schemas, limits, lazy families, interactive state, embedded apps |
 | [Generator](GENERATOR.md) | Blueprints to app, deck, page and doc prototypes: format, screens and layouts, `protoyard generate`, regeneration, migrations and drift checks |
@@ -112,8 +112,8 @@ Package and app references live next to the code: each `packages/*/README.md`,
 | [avatars](../packages/avatars/README.md) | 175 fictional portraits as WebP with a verified manifest (data only) |
 | [blocks](../packages/blocks/README.md) | Content block engine: schemas, limits, untrusted-input guard, closed formula AST, text helpers (no Svelte) |
 | [blocks-ui](../packages/blocks-ui/README.md) | Svelte block renderers, one lazy subpath per family |
-| [decks](../packages/decks/README.md) | Slide deck engine: schema, 21-layout catalog, navigation, steps, style, quality checks (no Svelte) |
-| [decks-ui](../packages/decks-ui/README.md) | `DeckApp`, presenter, overview, print and Deck Studio, each on its own lazy chunk |
+| [decks](../packages/decks/README.md) | Slide deck engine: schema, 21-layout catalog, navigation, steps, controls registry, style, quality checks, agent slide references (no Svelte) |
+| [decks-ui](../packages/decks-ui/README.md) | `DeckApp` with the registry-driven toolbar and slide jump list, presenter, overview, print, Deck Studio and the Debug for agents panel, each on its own lazy chunk |
 | [pages](../packages/pages/README.md) | Page and doc engine: schemas, limits, TOC helpers, form-response services (no Svelte) |
 | [pages-ui](../packages/pages-ui/README.md) | `PageApp` and `DocApp` hosts, forms and responses UI, print CSS |
 | [flows](../packages/flows/README.md) | Workflow engine: serializable flows, triggers, steps, data-only conditions, simulated runs (no Svelte) |

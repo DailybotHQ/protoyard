@@ -336,6 +336,39 @@ the test or command named on each item.
 - The deck single-file export measures about 1.61 MB, over the provisional 1.5 MiB target; the cap is 2 MiB so a shared deck keeps DevTools and Deck Studio ([PERFORMANCE.md](PERFORMANCE.md)).
 - Artifact checks run in a local harness that imitates the viewer, not on claude.ai.
 
+## PLAN_006: deck controls, Debug for agents and the agent loop
+
+The execution record is the Deep Work Plan
+`PLAN_006_deck_controls_debug_agents` (git-ignored `.dwp/plans/`), built by a
+lead and lanes in git worktrees and integrated on `dev`. Evidence is the test
+or command named on each item.
+
+**Verified on `dev`:**
+
+- [x] One registry of deck controls (`DECK_CONTROLS` in `@protoyard/decks`) drives the keys, the toolbar, the tooltips, the help dialog and `protoyard deck capabilities` [`pnpm vitest run packages/decks/tests/controls.test.ts packages/decks/tests/input.test.ts packages/decks/tests/readme-sync.test.ts`]
+- [x] A rebuilt deck toolbar: grouped controls with 44 px targets, a More menu on phones, a slide jump list, accessible tooltips, a Controls and shortcuts guide and a first-visit hint [`pnpm vitest run packages/decks-ui/tests/toolbar.test.ts packages/decks-ui/tests/tooltip.test.ts packages/decks-ui/tests/help.test.ts`, `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-controls.spec.ts`]
+- [x] Full screen enters and leaves reliably, with a visible way out and a window-filling fallback where the Fullscreen API is missing or refused; Print goes through the print layout; copy, blackout and laser give visible feedback [`pnpm vitest run packages/decks-ui/tests/fullscreen.test.ts packages/decks-ui/tests/feedback.test.ts`, `tests/e2e/deck-controls.spec.ts`]
+- [x] Debug for agents: `D` (in dev builds or with `?debug=1`) opens a lazy panel that copies a `[slide-ref]` line, a Markdown prompt or the slide JSON, and `@protoyard/decks/agent` describes the slide [`pnpm vitest run packages/decks/tests/agent-debug.test.ts packages/decks-ui/tests/debug-panel.test.ts`]
+- [x] `protoyard deck` (`schema`, `layouts`, `blocks`, `lint`, `inspect`, `capabilities`) and the `deck-cli` capability id in `doctor --json` [`pnpm vitest run packages/cli/tests/deck-command.test.ts packages/cli/tests/interface.test.ts`, [DEVELOPMENT_COMMANDS](DEVELOPMENT_COMMANDS.md)]
+- [x] The agent path for decks in [DECKS.md](DECKS.md) and the skill's deck reference, with recipes the tests parse [`pnpm vitest run packages/decks/tests/docs-snippets.test.ts packages/cli/tests/decks-docs.test.ts`, `pnpm check:skill`]
+- [x] Custom slides: a level-2 deck renders an owned Svelte component (`layout: "custom"`); the flagship `create-anything-deck` has a pricing configurator slide [`pnpm vitest run packages/decks/tests/custom-slides.test.ts packages/decks-ui/tests/custom-slides.test.ts`, `pnpm protoyard validate create-anything-deck --build`]
+- [x] Steps on every catalog layout prop that can reveal, with the `step-unrevealed` lint warning for a marker that cannot [`pnpm vitest run packages/decks/tests/steps-everywhere.test.ts packages/decks-ui/tests/steps-everywhere.test.ts`]
+- [x] Local image and video slide backgrounds with a contrast scrim, paused offscreen, posters under reduced motion and print [`pnpm vitest run packages/decks/tests/media-backgrounds.test.ts packages/decks-ui/tests/media-backgrounds.test.ts`]
+- [x] Interactive data: tables with sort, filter and row highlight, and explorable charts, with the table controls on their own chunk [`pnpm vitest run packages/blocks-ui/tests/interactive-data.test.ts`, `pnpm exec tsx scripts/bench-blocks.ts --check`]
+- [x] The everything reference deck `blueprints/decks/everything.json`: 42 slides covering all 21 layouts, all 34 block types, every chart kind and every steppable prop, with `deck lint` at 0 errors and 0 warnings [`pnpm vitest run packages/decks/tests/everything-deck.test.ts`, `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-everything.spec.ts`]
+- [x] Performance: first-paint chrome moved onto lazy chunks and idle prefetch of the next slides; deck entry 95,837 → 92,464 B gzip, flagship CSS back to its 30 KB cap, data family 4,751 B ([PERFORMANCE.md](PERFORMANCE.md#decks-entry-and-controls-plan_006-measured-2026-10-22)) [`pnpm vitest run packages/decks-ui/tests/lazy-chrome.test.ts packages/decks-ui/tests/bundle-size.test.ts`]
+- [x] Security review fixes: an untrusted deck source never reaches the debug prompt as a command (`safeAgentSource`, `isSafeDeckPath`), `deck inspect --ref` resolves a pasted source only inside the workspace, and one definition of invisible characters in `@protoyard/decks/text` [`pnpm vitest run packages/decks/tests/safe-text.test.ts packages/player/tests/debug-source.test.ts packages/cli/tests/deck-command.test.ts`]
+
+**Not verified or deferred in PLAN_006:**
+
+- **Firefox is not covered.** Playwright's Firefox does not launch on macOS 27 on the build machine; the root Playwright config runs the deck specs in Chromium (desktop and Pixel 7 emulation) only.
+- **Full screen in real browsers is a manual check.** Playwright cannot press the browser's own Escape in native full screen. Real Chrome and Safari, iOS Safari (no element full screen) and the Claude artifact viewer (which may frame without `allow="fullscreen"`) were not checked.
+- **Steps inside a chart series** add a step but do not hide anything; deck lint warns (`step-unrevealed`).
+- **The debug panel's shared-chunk glue** (about 3 KB on the deck entry) was not recovered; Rolldown splits the modules the entry shares with the lazy panel.
+- **Custom slides run only at level 2** (generated prototypes). The player, the overview, print and previews show a card in their place.
+- **The flagship's CSS has no headroom** at 30.00 of 30 KB.
+- **Open when this section was written:** in the catalog's own block examples, the quiz shows `**markdown**` literally and a card's avatar image does not render; the `team-avatars` case in `packages/decks-ui/tests/steps-everywhere.test.ts` can time out under the full parallel suite and passes alone.
+
 ## Deferred and known gaps
 
 - **Live provider deploys** were not run: there are no credentials, and real publishing needs the owner's explicit authorization.

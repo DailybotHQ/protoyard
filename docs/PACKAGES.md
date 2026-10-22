@@ -107,6 +107,24 @@ Imports must use the package name and one of its declared export paths. `.` is t
 | `@protoyard/ai-ui` | Assistant and widget components | `.`, `./voice`, `./widget`, `./styles.css` |
 | `@protoyard/review-ui` | Lazy review UI and mount entry | `./overlay`, `./thread`, `./panel`, `./toolbar`, `./mount`, `./styles.css` |
 
+### Content kinds: decks, pages, docs and blocks
+
+| Package | Role | Export paths |
+| --- | --- | --- |
+| `@protoyard/blocks` | Content block engine: schemas, limits, untrusted-input guard, formula AST, catalog (no Svelte) | `.`, `./formula`, `./interactive`, `./code`, `./diagram`, `./catalog`, `./schema`, `./safety` |
+| `@protoyard/blocks-ui` | Svelte block renderers, one lazy subpath per family | `.`, `./text`, `./media`, `./data`, `./structure`, `./code`, `./diagram`, `./interactive`, `./map`, `./embed`, `./styles.css` |
+| `@protoyard/decks` | Slide deck engine: schema, 21-layout catalog, navigation, steps, controls registry, style, quality checks (no Svelte) | `.`, `./schema`, `./layouts`, `./style`, `./quality`, `./text`, `./presenter`, `./patch`, `./agent` |
+| `@protoyard/decks-ui` | `DeckApp` with the registry-driven toolbar, presenter, overview, print, Deck Studio and the Debug for agents panel | `.`, `./app`, `./layouts`, `./studio`, `./presenter`, `./print`, `./debug`, `./styles.css`, `./player.css` |
+| `@protoyard/pages` | Page and doc engine: schemas, limits, TOC helpers, form-response services (no Svelte) | `.`, `./fixtures` |
+| `@protoyard/pages-ui` | `PageApp` and `DocApp` hosts, forms and responses UI, print CSS | `.`, `./block-host`, `./page`, `./doc`, `./form`, `./print`, `./styles.css` |
+
+Two deck subpaths serve coding agents:
+
+- `@protoyard/decks/agent` ("Debug for agents") describes the slide on screen for an agent and reads a pasted reference back: `describeSlideForAgent`, `formatAgentReference` (a one-line `[slide-ref]`, a Markdown prompt or JSON), `parseAgentReference` and `safeAgentSource`, which keeps a reference's source only when it is a plain relative `.json` path, a prototype slug or a share id. It is pure TypeScript, kept off the deck entry so the lint rules never load with a deck. `protoyard deck inspect --ref` uses it ([DEVELOPMENT_COMMANDS](DEVELOPMENT_COMMANDS.md)).
+- `@protoyard/decks-ui/debug` holds the panel (`DeckDebugPanel`, `BlockOutline`) with `deckDebugAvailable`, `debugQueryOn`, `isDevBuild`, `inertJson`, `deckFileName` and `downloadText`. `DeckApp` loads it on its own lazy chunk only when the panel opens (`debug` prop: `auto`, `on` or `off`; `debugSource` names the source file).
+
+`@protoyard/decks/text` also exports the shared untrusted-text helpers `isInvisibleCodePoint`, `inertJson`, `isSafeDeckPath`, `isSafeShareId` and `SAFE_SLUG`. The root of `@protoyard/decks` exports the `DECK_CONTROLS` registry (with `deckControlFor`, `availableDeckControls` and `deckKeyBindings`), which the toolbar, the help dialog and `protoyard deck capabilities` all read. See [DECKS.md](DECKS.md) for how they are used.
+
 For example, import a specific chart family or view only where it is used:
 
 ```ts

@@ -8,7 +8,8 @@ A slide deck is a `kind: "deck"` JSON blueprint, never Reveal.js Markdown or HTM
 
 - [Decks guide](https://protoyard.app/docs/decks/): the agent loop, the deck JSON, layouts and when to use them, steps, custom slides and limits
 - [Recipes](https://protoyard.app/docs/decks/#recipes): a chart story, a comparison table, a live poll, a calculator, an embedded app and a custom interactive slide, each one valid JSON
-- [Reference deck](https://github.com/DailybotHQ/protoyard/blob/main/blueprints/decks/protoyard-create-anything.json): the flagship catalog deck, with layouts, blocks, charts, steps and interactive slides to copy from
+- [Reference deck](https://github.com/DailybotHQ/protoyard/blob/main/blueprints/decks/everything.json): 42 slides that use every layout, every block type and every chart family, with steps, a media background, explorable data and interactive blocks, to copy from (`protoyard deck inspect blueprints/decks/everything.json --slide <id>`)
+- [Flagship deck](https://github.com/DailybotHQ/protoyard/blob/main/blueprints/decks/protoyard-create-anything.json): a real talk built on the same catalog
 - `protoyard deck schema`: prints the deck JSON Schema (draft 2020-12)
 - `protoyard deck layouts [id]` and `protoyard deck blocks [type]`: every layout and block with when to use it, its limits and a valid sample
 - `protoyard deck lint <file|slug>`: findings with JSON pointers and fixes
