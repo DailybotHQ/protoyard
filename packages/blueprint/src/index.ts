@@ -63,6 +63,12 @@ export {
   selectDeckLayouts,
 } from './authoring/index.ts';
 export {
+  type DeckLintDiagnostic,
+  type DeckLintResult,
+  type DeckLintSeverity,
+  lintDeckStructure,
+} from './authoring/deck-lint.ts';
+export {
   type BlueprintAuthoringDiagnostic,
   type BlueprintAuthoringValidation,
   type BlueprintDiagnosticPath,

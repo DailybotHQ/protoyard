@@ -4,11 +4,10 @@ Data-only blueprints for Protoyard ([ADR-017](../../docs/DECISIONS.md)). A `blue
 describes a product (entities, fields, relations, roles, screens) without any executable
 code. This package validates it and derives what a working prototype needs from it.
 
-Framework-agnostic: it depends on `@protoyard/core`, `@protoyard/scenarios` (generator
-helpers), `@protoyard/themes` (brand themes) and zod, and never imports Svelte (ADR-002). The
-Svelte CRUD screens live in [`@protoyard/crud`](../crud/README.md). How a blueprint becomes a
-prototype (`protoyard generate`, regeneration, drift checks) is in
-[docs/GENERATOR.md](../../docs/GENERATOR.md).
+Framework-agnostic: it uses the shared core, scenarios, themes, blocks, pages and deck schemas,
+plus zod, and never imports Svelte (ADR-002). The Svelte CRUD screens live in
+[`@protoyard/crud`](../crud/README.md). How a blueprint becomes a prototype (`protoyard generate`,
+regeneration, drift checks) is in [docs/GENERATOR.md](../../docs/GENERATOR.md).
 
 ## Modules
 
@@ -38,6 +37,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
 | search | ranked, policy-filtered record search across `searchable` fields (the CRUD search palette) | `./search` |
 | identity | content sha256 and `bp-…` storage namespace (`blueprintIdentity`); every shipped blueprint's identity is frozen in `tests/fixtures/identity-golden.json` | `.` |
+| deck authoring lint | structural diagnostics for slide ids, layout props, outline order, fragments and internal links | `.` |
 
 ## The schema
 
@@ -120,6 +120,25 @@ resolve them later.
 
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
 optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
+
+## Deck structural lint
+
+`lintDeckStructure(deck)` checks an untrusted deck body without rendering it or
+changing the input. It returns `{ valid, diagnostics }`; each error has a stable
+code, severity, path segments and JSONPath. It validates against the shared
+`@protoyard/decks/schema` and layout catalog, checks outline references against
+slide order, validates fragment ordering and resolves `#/slide-id[/step]`
+links to visible slides. The API reports structural errors only; visual and
+content quality checks are handled by later deck lint rules.
+
+```ts
+import { lintDeckStructure } from '@protoyard/blueprint';
+
+const result = lintDeckStructure(deckJson);
+for (const issue of result.diagnostics) {
+  console.log(issue.code, issue.jsonPath, issue.message);
+}
+```
 
 ## Agent authoring sequence
 
