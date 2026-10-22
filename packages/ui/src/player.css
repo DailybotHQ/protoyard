@@ -1,4 +1,6 @@
 /* UI utilities excluded by the prebuilt player because it does not mount these families. */
+/* The shared app layouts still need their responsive utilities in the player. */
+@source "./layouts";
 @source not "./components/carousel";
 @source not "./components/chat";
 @source not "./components/user-picker";
