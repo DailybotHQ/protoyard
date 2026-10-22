@@ -26,3 +26,4 @@ export {
   rankCommands,
   scoreCommand,
 } from './registry.ts';
+export { default as ShortcutSheet } from './ShortcutSheet.svelte';
