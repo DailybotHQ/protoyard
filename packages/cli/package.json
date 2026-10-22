@@ -25,6 +25,7 @@
     "@protoyard/player": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/review": "workspace:*",
+    "@protoyard/scenarios": "workspace:*",
     "@protoyard/templates": "workspace:*",
     "@protoyard/themes": "workspace:*",
     "commander": "^15.0.0",

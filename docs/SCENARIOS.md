@@ -346,6 +346,31 @@ $ pnpm protoyard scenario validate crm-demo -s rep-view
 The runtime option `validation: 'throw' | 'warn' | 'off'` (default `throw`)
 exists for tests and debugging.
 
+## Fixture hygiene (emails and secrets)
+
+Generated worlds and scenario sources must use fictional data only
+(AGENTS.md rule 7). `@protoyard/scenarios` provides a deterministic scanner
+that reports paths and fix hints without rewriting anything:
+
+```ts
+import { scanFixtureWorld, scanFixtureText } from '@protoyard/scenarios';
+
+expect(scanFixtureText('ops@example.com')).toEqual([]);
+expect(scanFixtureText('lead@gmail.com')[0]?.detail).toBe('gmail.com');
+expect(scanFixtureWorld(world)).toEqual([]); // empty when clean
+```
+
+Allowed domains: `example.com` / `example.net` / `example.org`, plus
+`*.example`, `*.test`, `*.invalid`, `*.localhost`. Common secret shapes
+(Slack, Stripe live, AWS, GitHub, private keys, JWTs) are flagged by pattern
+name only — the matched text never appears in the finding. Suppress a
+structured subtree with `$fixtureAllow: true`, or pass
+`allowEmailDomains` / `ignorePaths` for deliberate test fixtures.
+
+`protoyard validate` runs the same rules as the **fixtures** check over
+`src/scenarios`, `src/database`, `src/domain` and `fixtures/` (read-only).
+See [SECURITY](SECURITY.md#fixture-hygiene-generated-worlds-and-scenario-sources).
+
 ## Personas, roles and policy
 
 **This is a simulation of user experience, not security.** Everything runs
