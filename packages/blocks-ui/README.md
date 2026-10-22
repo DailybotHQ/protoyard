@@ -64,7 +64,7 @@ and are rendered through `@protoyard/blocks-ui/diagram`; they are not a
 | `./diagram` | Flow, tree, board, terminal | T-blocks-ui-code-diagram |
 | `./interactive` | Poll, quiz, calculator, tabs/reveal, counter, chart controls | T-blocks-ui-interactive |
 | `./map` | Map on the offline simulated map (views-ui/map) | T-blocks-ui-interactive |
-| `./embed` | embed-app, mounted through the host's `mountEmbed` | T-blocks-ui-embed-app |
+| `./embed` | embed-app framed preview; `mountEmbed` only after **Start the app** | T-blocks-ui-embed-app |
 | `./styles.css` | Registers the kit's markup with Tailwind (`@source`) | this scaffold |
 
 ## Text and media renderers
@@ -104,6 +104,44 @@ setBlockHost({
 ```
 
 Covered by `packages/blocks-ui/tests/structure.test.ts`.
+## Embed-app (`./embed`)
+
+An `embed-app` block is a framed level-1 app preview. The family chunk is small
+and does **not** load the app stack:
+
+```svelte
+<script lang="ts">
+import { BlockRenderer, setBlockHost } from '@protoyard/blocks-ui';
+import type { MountEmbed } from '@protoyard/blocks-ui';
+
+const mountEmbed: MountEmbed = (target, app) => {
+  // KINDS / player: validate with loadUntrustedBlueprint, then mount a level-1
+  // runtime into `target`. Return a disposer.
+  const stop = startLevel1(target, app);
+  return () => stop();
+};
+
+setBlockHost({ canvasMode: 'slide', mountEmbed });
+</script>
+
+<BlockRenderer blocks={[{ type: 'embed-app', id: 'try', title: 'Try it', app: blueprint }]} />
+```
+
+- **Lazy start.** Until the user clicks **Start the app** (or `startLabel`),
+  `mountEmbed` is never called and no app code is downloaded with the deck.
+- **Missing host.** Without `mountEmbed`, an accessible `role="note"` explains
+  that this host cannot start embedded apps.
+- **Errors.** A thrown mount is shown as `role="alert"`; the frame stays idle.
+- **Unmount.** Closing the app or destroying the block runs the disposer
+  returned by `mountEmbed` and clears the mount node.
+- **Keyboard.** While the app is running, Tab cycles inside the frame so deck
+  navigation keys are not stolen mid-input. The player / KINDS still own
+  arrow-key slide handling outside the frame.
+- **Budget.** The embed family chunk targets ≤ 2 KB gzip; the app loads only
+  on click (crud shell is a separate download).
+
+Coordinate `MountEmbed` with KINDS (`loadUntrustedBlueprint` + level-1 mount).
+See [PLAYER.md](../../docs/PLAYER.md#embedded-apps-in-decks-and-pages).
 
 ## Icons
 
