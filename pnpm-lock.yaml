@@ -1916,6 +1916,24 @@ importers:
         specifier: workspace:*
         version: link:../../packages/runtime
 
+  templates/deck:
+    dependencies:
+      '@protoyard/blueprint':
+        specifier: workspace:*
+        version: link:../../packages/blueprint
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@protoyard/decks-ui':
+        specifier: workspace:*
+        version: link:../../packages/decks-ui
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../../packages/renderer-svelte
+      svelte:
+        specifier: ^5.57.2
+        version: 5.57.2
+
   templates/design-kit:
     dependencies:
       '@lucide/svelte':
