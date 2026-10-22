@@ -939,8 +939,8 @@ the previous screen.
 
 ## ADR-043 — Design-system kits
 
-**Context.** Product teams start by turning a design system into a kit prototype. The Corag fork
-built foundations pages, a props table, review status, token conversion and a byte-copy sync,
+**Context.** Product teams start by turning a design system into a kit prototype. A downstream
+fork built foundations pages, a props table, review status, token conversion and a byte-copy sync,
 because export isolation forbids importing across prototypes.
 
 **Decision.**

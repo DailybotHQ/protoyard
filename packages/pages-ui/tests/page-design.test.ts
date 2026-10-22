@@ -115,6 +115,12 @@ describe('page design decisions (design.ts)', () => {
     expect(safePageHref('https://example.com/a')).toBe('https://example.com/a');
     expect(safePageHref('mailto:hello@example.com')).toBe('mailto:hello@example.com');
     expect(safePageHref('javascript:alert(1)')).toBeNull();
+    // Browsers treat a backslash as a slash in http(s) URLs: these are protocol-relative.
+    expect(safePageHref('/\\evil.example')).toBeNull();
+    expect(safePageHref('//evil.example')).toBeNull();
+    expect(safePageHref('/ok\\..\\x')).toBeNull();
+    expect(safePageHref('https://example.com\\@evil.example')).toBeNull();
+    expect(safePageHref('/pricing')).toBe('/pricing');
     expect(safePageHref('//evil.example')).toBeNull();
     expect(safePageHref('data:text/html,x')).toBeNull();
     expect(plainParagraphs('**Bold** and [a link](https://example.com)\n\n- item')).toEqual([

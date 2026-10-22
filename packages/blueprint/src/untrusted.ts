@@ -1,4 +1,8 @@
-import { classifyMediaSource, isUnsafeTextCharacter } from '@protoyard/blocks';
+import {
+  classifyMediaSource,
+  isUnsafeTextCharacter,
+  normalizeLineSeparators,
+} from '@protoyard/blocks/safety';
 import { type AnyBlueprint, safeParseAnyBlueprint } from './kinds/envelope.ts';
 import { detectBlueprintKind } from './kinds/kind.ts';
 import {
@@ -57,12 +61,14 @@ export type UntrustedBlueprintResult =
   | { success: false; blueprint: null; issues: UntrustedBlueprintIssue[] };
 
 /**
- * Removes C0/C1 controls, bidi overrides and BOMs. `multiline` text keeps
+ * Removes C0/C1 controls, bidi overrides, BOMs and invisible characters, and
+ * turns U+2028/U+2029 into line breaks or spaces. `multiline` text keeps
  * `\n` (after normalizing `\r\n`), and `code` keeps `\t` as well.
  */
 function stripControlAndBidi(value: string, context: TextContext = 'plain'): string {
   const keepNewlines = context !== 'plain';
-  return [...(keepNewlines ? value.replace(/\r\n?/g, '\n') : value)]
+  const lines = normalizeLineSeparators(value, keepNewlines);
+  return [...(keepNewlines ? lines.replace(/\r\n?/g, '\n') : lines)]
     .filter((char) => {
       return !isUnsafeTextCharacter(char, keepNewlines, context === 'code');
     })

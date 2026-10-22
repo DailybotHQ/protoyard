@@ -73,10 +73,10 @@ describe('single-file building blocks', () => {
   });
 
   it('makes the blueprint inert JSON that parses back to the same value', () => {
-    const value = { name: 'x </script><!-- y', note: 'line sep' };
+    const value = { name: 'x </script><!-- y', note: 'line\u2028sep' };
     const inert = inertJson(JSON.stringify(value));
     expect(inert).not.toContain('<');
-    expect(inert).not.toContain(' ');
+    expect(inert).not.toContain('\u2028');
     expect(JSON.parse(inert)).toEqual(value);
   });
 

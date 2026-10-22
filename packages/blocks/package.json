@@ -12,7 +12,8 @@
     "./code": "./src/code/index.ts",
     "./diagram": "./src/diagram/index.ts",
     "./catalog": "./src/catalog/index.ts",
-    "./schema": "./src/json-schema.ts"
+    "./schema": "./src/json-schema.ts",
+    "./safety": "./src/safety.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
@@ -73,6 +74,11 @@
         "types": "./dist/json-schema.d.ts",
         "import": "./dist/json-schema.js",
         "default": "./dist/json-schema.js"
+      },
+      "./safety": {
+        "types": "./dist/safety.d.ts",
+        "import": "./dist/safety.js",
+        "default": "./dist/safety.js"
       }
     },
     "types": "./dist/index.d.ts"

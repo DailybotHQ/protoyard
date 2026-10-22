@@ -1,16 +1,12 @@
 @import "@protoyard/renderer-svelte/app.css";
+@import "@protoyard/ui/player.css";
 @import "@protoyard/crud/styles.css";
-@import "@protoyard/views-ui/styles.css";
-@import "@protoyard/charts-ui/styles.css";
-@import "@protoyard/analytics-ui/styles.css";
-/* Decks, pages and docs (ADR-036): their renderers and the shared blocks. */
-@import "@protoyard/blocks-ui/styles.css";
-@import "@protoyard/decks-ui/styles.css";
-@import "@protoyard/pages-ui/styles.css";
+@import "./charts.css";
+@import "./views.css";
+@import "./analytics.css";
 
-/* Let Tailwind see the player's own markup; each kit stylesheet above registers its own. */
+/* Tailwind emits shared utilities once for every player renderer. */
 @source "./";
-
 html,
 body,
 #app {

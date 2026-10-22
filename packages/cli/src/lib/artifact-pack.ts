@@ -111,6 +111,61 @@ export interface PackIssue {
   reason: string;
 }
 
+// ── Top-level await ─────────────────────────────────────────────────────────
+
+/** Nodes whose bodies are not the module's top level (an `await` there is fine). */
+const FUNCTION_SCOPES = new Set([
+  'FunctionDeclaration',
+  'FunctionExpression',
+  'ArrowFunctionExpression',
+]);
+
+/**
+ * Finds `await` and `for await` at a module's top level. An artifact build is
+ * one chunk; a top-level await on a dynamic import of that same chunk never
+ * settles, so the page opens blank while every other check passes. Fails
+ * closed: a chunk that cannot be parsed is reported too.
+ */
+export async function topLevelAwaitIssues(path: string, code: string): Promise<PackIssue[]> {
+  const { parseAst } = await import('vite');
+  let ast: unknown;
+  try {
+    ast = parseAst(code);
+  } catch {
+    return [{ path, reason: 'could not be parsed to check for a top-level await' }];
+  }
+  let found = 0;
+  const visit = (node: unknown, depth: number): void => {
+    if (found > 0 || depth > 4_000 || node === null || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      for (const child of node) visit(child, depth + 1);
+      return;
+    }
+    const record = node as Record<string, unknown>;
+    const type = record.type;
+    if (typeof type === 'string') {
+      if (FUNCTION_SCOPES.has(type)) return;
+      if (type === 'AwaitExpression' || (type === 'ForOfStatement' && record.await === true)) {
+        found += 1;
+        return;
+      }
+    }
+    for (const [key, value] of Object.entries(record)) {
+      if (key !== 'type' && value && typeof value === 'object') visit(value, depth + 1);
+    }
+  };
+  visit(ast, 0);
+  return found > 0
+    ? [
+        {
+          path,
+          reason:
+            'has a top-level await; in a single-chunk artifact it can deadlock and open blank (await inside a function instead)',
+        },
+      ]
+    : [];
+}
+
 // ── Tag scanner ─────────────────────────────────────────────────────────────
 
 /** Parses the attributes of one start tag (`<tag a="1" b>` → `{ a: '1', b: '' }`). */
@@ -844,6 +899,10 @@ export async function packArtifact(options: PackArtifactOptions): Promise<PackAr
     if (kind.text) {
       const text = await readFile(join(distDir, digest.path), 'utf8');
       issues.push(...checkTextAsset(digest.path, text));
+      // A file already refused for its size is not worth parsing.
+      if (/\.m?js$/i.test(digest.path) && digest.size <= limit) {
+        issues.push(...(await topLevelAwaitIssues(digest.path, text)));
+      }
       packed = escapeReplacementCharacters(digest.path, text);
       if (packed === null && text.includes('�')) {
         issues.push({

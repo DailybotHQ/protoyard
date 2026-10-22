@@ -89,15 +89,18 @@ const fail = (...issues: UntrustedDeckIssue[]): UntrustedDeckResult => ({
  */
 export function stripHiddenCharacters(value: string): string {
   let out = '';
-  for (const char of value) {
+  // Unicode line/paragraph separators are invisible line breaks: keep a space.
+  for (const char of value.replace(/[\u2028\u2029]/g, ' ')) {
     const code = char.codePointAt(0) ?? 0;
     const hidden =
       (code <= 0x1f && code !== 0x09 && code !== 0x0a && code !== 0x0d) ||
       (code >= 0x7f && code <= 0x9f) ||
       code === 0x061c ||
+      code === 0x200b ||
       code === 0x200e ||
       code === 0x200f ||
       (code >= 0x202a && code <= 0x202e) ||
+      code === 0x2060 ||
       (code >= 0x2066 && code <= 0x2069) ||
       code === 0xfeff;
     if (!hidden) out += char;

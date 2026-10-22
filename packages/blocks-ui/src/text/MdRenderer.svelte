@@ -6,11 +6,23 @@ import {
   safeHref,
   safeImageSrc,
 } from '@protoyard/ai/markdown';
+import { classifyMediaSource } from '@protoyard/blocks';
 import { cn } from '@protoyard/ui';
 
 let { source, class: className }: { source: string; class?: string } = $props();
 const document = $derived(parseMarkdown(source));
 const external = (href: string) => /^https?:/i.test(href);
+/**
+ * Markdown images follow the block media policy, not just the chat-safe one:
+ * a relative path with an image extension and no `..`, so author Markdown
+ * cannot make viewers request arbitrary same-origin URLs (`/api/…`).
+ */
+const imageSrc = (raw: string | null): string | null => {
+  const src = raw ? safeImageSrc(raw) : null;
+  if (!src) return null;
+  const media = classifyMediaSource(src, 'image');
+  return media.ok && media.kind === 'relative' ? src : null;
+};
 </script>
 
 {#snippet inline(nodes: MdInline[])}
@@ -23,7 +35,7 @@ const external = (href: string) => /^https?:/i.test(href);
       {#if href}<a {href} class="text-primary underline underline-offset-4" target={external(href) ? '_blank' : undefined} rel={external(href) ? 'noreferrer noopener' : undefined}>{@render inline(node.children)}</a>
       {:else}{@render inline(node.children)}{/if}
     {:else if node.type === 'image'}
-      {@const src = node.src ? safeImageSrc(node.src) : null}
+      {@const src = imageSrc(node.src)}
       {#if src}<img {src} alt={node.alt} loading="lazy" decoding="async" referrerpolicy="no-referrer" class="my-2 max-w-full rounded-md border border-border" />
       {:else}<span class="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">Image: {node.alt}</span>{/if}
     {:else if node.type === 'attachment'}<span class="rounded border border-border bg-muted px-1.5 py-0.5 text-xs">{node.label}</span>

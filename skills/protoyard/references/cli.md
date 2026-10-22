@@ -132,7 +132,7 @@ deploy.
 | Command | Options | What it does | Status |
 | --- | --- | --- | --- |
 | `protoyard kit` | — | share a design kit's components between prototypes without breaking export isolation | Unreleased |
-| `protoyard kit sync <kit> <prototype>` | `--check` | copy a kit's component tree into a prototype-owned folder, record SHA-256 hashes, and with `--check` fail on drift | Unreleased |
+| `protoyard kit sync <kit> <prototype>` | `--check`, `--force` | copy a kit's component tree into a prototype-owned folder, record SHA-256 hashes, and with `--check` fail on drift; local edits in the synced folder are refused unless `--force` replaces them | Unreleased |
 | `protoyard comments` | — | pull, export and import prototype review comments | Released (1.0.0) |
 | `protoyard comments pull <slug>` | `--from <url>`, `--file <json>`, `--format <format>`, `--out <file>` | pull review comments from an endpoint or local adapter export | Released (1.0.0) |
 | `protoyard comments export <slug>` | `--out <file>` | write the local adapter JSON format from the last pulled comments | Released (1.0.0) |

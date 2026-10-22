@@ -25,6 +25,7 @@ import {
   planBatches,
   publishArguments,
   summarizeAvatars,
+  topLevelAwaitIssues,
   transformPage,
 } from '../src/lib/artifact-pack.ts';
 import { digestDirectory } from '../src/lib/checksum.ts';
@@ -340,6 +341,31 @@ describe('packArtifact', () => {
       bytes: Buffer.byteLength(js),
       sha256: createHash('sha256').update(js).digest('hex'),
     });
+  });
+
+  it('refuses a single-chunk script with a top-level await (it deadlocks and opens blank)', async () => {
+    write('assets/index-abc.js', 'const m = await import("./chunk-def.js"); console.log(m);');
+    const result = await pack();
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues).toContainEqual({
+      path: 'assets/index-abc.js',
+      reason: expect.stringContaining('top-level await'),
+    });
+  });
+
+  it('accepts awaits inside functions, and reports what it cannot parse', async () => {
+    expect(
+      await topLevelAwaitIssues(
+        'a.js',
+        'async function f(){ await 1; for await (const x of y) {} } const g = async () => await f(); class C { async m(){ await 2 } }'
+      )
+    ).toEqual([]);
+    expect(await topLevelAwaitIssues('b.js', 'for await (const x of xs) {}')).toHaveLength(1);
+    expect(await topLevelAwaitIssues('c.js', 'if (x) { await y; }')).toHaveLength(1);
+    expect(await topLevelAwaitIssues('d.js', 'const = ;')).toEqual([
+      { path: 'd.js', reason: 'could not be parsed to check for a top-level await' },
+    ]);
   });
 
   it('refuses U+FFFD in a text file type that has no escape', async () => {

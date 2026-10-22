@@ -316,7 +316,7 @@ mark the parent of a current child page.
 ## Form utilities
 
 Tag, emoji, password-strength and character-count controls
-(`src/components/form/utilities/`). Theme tokens only; no Dailybot branding.
+(`src/components/form/utilities/`). Theme tokens only, with no product branding.
 
 | Component | Behavior |
 | --- | --- |

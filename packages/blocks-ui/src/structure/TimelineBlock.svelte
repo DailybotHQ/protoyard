@@ -1,11 +1,11 @@
 <script lang="ts">
-import type { TimelineBlock } from '@protoyard/blocks';
+import type { TimelineBlock as TimelineBlockData } from '@protoyard/blocks';
 import { getBlockHost } from '../host.ts';
 import BlockIcon from './BlockIcon.svelte';
 import SafeBody from './SafeBody.svelte';
 import { toneIcon } from './tones.ts';
 
-let { block }: { block: TimelineBlock } = $props();
+let { block }: { block: TimelineBlockData } = $props();
 const host = getBlockHost();
 const vertical = $derived(block.orientation !== 'horizontal' || host.canvasMode === 'flow');
 </script>

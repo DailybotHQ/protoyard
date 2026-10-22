@@ -1,6 +1,7 @@
 import { safeHref } from '@protoyard/ai/markdown';
 import { z } from 'zod';
 import { BLOCK_ICONS } from '../icons.ts';
+import { isUnsafeTextCharacter } from '../safety.ts';
 import { BLOCK_TONES } from './vocabulary.ts';
 
 /**
@@ -88,29 +89,7 @@ export const blockBase = {
   tone: BlockToneSchema.optional(),
 };
 
-// C0/C1 controls, bidi marks/embeddings/overrides/isolates and BOMs. This
-// shared predicate also drives the untrusted-input sanitizer.
-const UNSAFE_TEXT_CODE_POINT_RANGES = [
-  [0x00, 0x1f],
-  [0x7f, 0x9f],
-  [0x061c, 0x061c],
-  [0x200e, 0x200f],
-  [0x202a, 0x202e],
-  [0x2066, 0x2069],
-  [0xfeff, 0xfeff],
-] as const;
-
-export function isUnsafeTextCharacter(
-  character: string,
-  allowNewlines = false,
-  allowTabs = false
-): boolean {
-  const code = character.codePointAt(0) ?? 0;
-  if (code === 0x0a && allowNewlines) return false;
-  if (code === 0x0d && allowNewlines) return false;
-  if (code === 0x09 && allowTabs) return false;
-  return UNSAFE_TEXT_CODE_POINT_RANGES.some(([start, end]) => code >= start && code <= end);
-}
+export { isUnsafeTextCharacter, normalizeLineSeparators } from '../safety.ts';
 
 function hasUnsafeText(value: string, allowNewlines = false, allowTabs = false): boolean {
   return [...value].some((character) => isUnsafeTextCharacter(character, allowNewlines, allowTabs));
