@@ -28,6 +28,7 @@ export const SVELTE_PACKAGES = [
   'review-ui',
   'saas-ui',
   'ai-ui',
+  'gamification-ui',
 ] as const;
 
 /** `./src/a/b.ts` → `./dist/a/b.js`; `.svelte`, `.css`, `.d.ts` and data keep their name. */
