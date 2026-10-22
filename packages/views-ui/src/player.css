@@ -1,6 +1,3 @@
-/* Player-used view families; keep this scan next to the package sources. */
-@source "./board";
-@source "./calendar";
+/* The deck template only renders map and states views inside its app embed. */
 @source "./map";
 @source "./states";
-@source "./timeline";

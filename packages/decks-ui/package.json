@@ -41,7 +41,8 @@
       "svelte": "./src/print/index.ts",
       "default": "./src/print/index.ts"
     },
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./player.css": "./src/player.css"
   },
   "scripts": {
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
@@ -59,7 +60,9 @@
   },
   "protoyard": {
     "build": {
-      "assets": []
+      "assets": [
+        "src/player.css"
+      ]
     }
   },
   "files": [
@@ -105,6 +108,11 @@
         "types": "./dist/styles.css.d.ts",
         "svelte": "./dist/styles.css",
         "default": "./dist/styles.css"
+      },
+      "./player.css": {
+        "types": "./dist/player.css.d.ts",
+        "svelte": "./dist/player.css",
+        "default": "./dist/player.css"
       }
     },
     "files": [
