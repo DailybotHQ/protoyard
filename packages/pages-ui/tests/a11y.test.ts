@@ -142,7 +142,14 @@ describe('page and doc accessibility', () => {
   });
 
   it('associates form field labels with controls', () => {
-    const services = { submit: vi.fn(async () => undefined) };
+    const services = {
+      submit: vi.fn(async () => ({
+        id: 'response-1',
+        formId: 'contact',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        values: {},
+      })),
+    };
     const view = render(FormBlock, {
       props: { form: contactForm, services },
     });
