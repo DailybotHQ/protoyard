@@ -1,7 +1,8 @@
 <script lang="ts">
-import { type DeckAspect, deckCanvasSize, slideStepCount } from '@protoyard/decks';
+import { type DeckAspect, deckCanvasSize, slidePositionCount } from '@protoyard/decks';
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
+import SlideStepHost from '../layouts/SlideStepHost.svelte';
 import DeckSlideFrame from '../style/DeckSlideFrame.svelte';
 import {
   DeckStyleState,
@@ -74,8 +75,7 @@ function layoutPropsFor(slide: DeckSlide): {
 
 /** Last step index so every fragment is visible on paper. */
 function finalStep(slide: DeckSlide): number {
-  const count = Math.max(1, slideStepCount(slide));
-  return count - 1;
+  return slidePositionCount(slide) - 1;
 }
 </script>
 
@@ -95,7 +95,7 @@ function finalStep(slide: DeckSlide): number {
     {#each pages as slide, index (slide.id)}
       {@const layout = layoutPropsFor(slide)}
       {@const step = finalStep(slide)}
-      {@const stepCount = Math.max(1, slideStepCount(slide))}
+      {@const stepCount = slidePositionCount(slide)}
       <section
         class="deck-print__page"
         data-py-deck-print-page
@@ -116,7 +116,9 @@ function finalStep(slide: DeckSlide): number {
             data-py-deck-slide-inner={slide.id}
           >
             <DeckSlideFrame background={slide.background} number={index + 1}>
-              <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+              <SlideStepHost {slide} {step}>
+                <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+              </SlideStepHost>
             </DeckSlideFrame>
           </div>
         </div>

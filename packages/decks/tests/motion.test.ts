@@ -146,6 +146,28 @@ describe('slideSteps: free slides', () => {
 });
 
 describe('slideSteps: catalog slides', () => {
+  it('steps the highlights of a catalog code prop like a code block', () => {
+    const steps = slideSteps(
+      slide({
+        id: 'code',
+        layout: 'code-with-callout',
+        props: {
+          code: { lang: 'json', source: '{}', highlights: ['1', '2-3', '4'] },
+          bullets: ['One'],
+        },
+      })
+    );
+    // Highlight 0 is the initial state; the other two take one step each.
+    expect(steps.count).toBe(2);
+    expect(steps.initial.map((f) => f.source)).toEqual([
+      { kind: 'code-highlight', path: ['props', 'code', 'highlights', 0], lines: '1' },
+    ]);
+    expect(steps.steps.map((step) => step.fragments.map((f) => f.effect))).toEqual([
+      ['highlight'],
+      ['highlight'],
+    ]);
+  });
+
   it('reads { step, fragment | reveal } markers anywhere in props, every effect included', () => {
     const steps = slideSteps(
       slide({

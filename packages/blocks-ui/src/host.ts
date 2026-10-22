@@ -14,6 +14,21 @@ export type BlockCtaAction = {
   href: string;
 };
 
+/** How a stepped block looks at the host's current step (decks only). */
+export interface BlockFragmentPhase {
+  /** Shown at all (hidden blocks keep their space, so nothing jumps). */
+  visible: boolean;
+  /** Its effect is applied (a highlight is on, a strike is drawn, a grow has grown). */
+  active: boolean;
+}
+
+/** A block as the step callbacks see it: its own `step` and `reveal` fields. */
+export interface SteppedBlock {
+  type: string;
+  step?: number;
+  reveal?: string;
+}
+
 /** Context available to every family renderer. Optional capabilities stay host-owned. */
 export interface BlockHostOptions {
   stateHost?: BlockStateHost;
@@ -22,6 +37,17 @@ export interface BlockHostOptions {
   canvasMode?: BlockCanvasMode;
   /** Current deck fragment step; code renderers use it for line highlights. */
   step?: number;
+  /**
+   * Decks: the phase of a block that has a `step`, at the current step, or
+   * `null` when the block is not stepped. Without it (pages, docs) every
+   * block is always shown.
+   */
+  fragment?: (block: SteppedBlock) => BlockFragmentPhase | null;
+  /**
+   * Decks: the index into a code block's `highlights` shown at the current
+   * step (−1 for none). Without it, code blocks fall back to `step`.
+   */
+  codeHighlight?: (block: SteppedBlock & { highlights?: readonly string[] }) => number;
   /** Stable document namespace used when family renderers address block state. */
   documentId?: string;
   /**
@@ -69,6 +95,12 @@ export function setBlockHost(host: BlockHostOptions): void {
     get step() {
       return host.step;
     },
+    get fragment() {
+      return host.fragment;
+    },
+    get codeHighlight() {
+      return host.codeHighlight;
+    },
     get documentId() {
       return host.documentId;
     },
@@ -85,4 +117,43 @@ export function setBlockHost(host: BlockHostOptions): void {
 /** Read the nearest host context, with safe layout defaults for static blocks. */
 export function getBlockHost(): BlockHost {
   return getContext<BlockHost>(BLOCK_HOST_CONTEXT) ?? DEFAULT_BLOCK_HOST;
+}
+
+const FRAGMENT_BASE =
+  'origin-left transition-[opacity,transform,background-color,box-shadow,translate,scale] duration-500 ease-out motion-reduce:transition-none motion-reduce:translate-none motion-reduce:scale-none [[data-py-deck-motion=none]_&]:transition-none';
+const FRAGMENT_HIDDEN: Record<string, string> = {
+  fade: 'invisible opacity-0',
+  'fade-up': 'invisible translate-y-[0.6em] opacity-0',
+};
+const FRAGMENT_ACTIVE: Record<string, string> = {
+  grow: 'scale-[1.04]',
+  highlight: 'rounded-md bg-primary/10 ring-2 ring-primary/50',
+  strike: 'line-through opacity-60',
+};
+
+/**
+ * Wrapper attributes for a stepped block at the host's current step, or
+ * `null` when the block shows as is. A hidden block keeps its space (no jump),
+ * is `inert` and `aria-hidden` until its step, then transitions in with its
+ * `reveal` effect. `prefers-reduced-motion` and a deck's `motion: none`
+ * (`data-py-deck-motion="none"` on an ancestor) drop the motion.
+ */
+export function fragmentAttributes(
+  host: BlockHost,
+  block: SteppedBlock
+): Record<string, string | boolean | undefined> | null {
+  const phase = host.fragment?.(block) ?? null;
+  if (!phase) return null;
+  const reveal = block.reveal ?? 'fade';
+  const look = phase.visible
+    ? `visible opacity-100 ${phase.active ? (FRAGMENT_ACTIVE[reveal] ?? '') : ''}`
+    : (FRAGMENT_HIDDEN[reveal] ?? 'invisible opacity-0');
+  return {
+    class: `${FRAGMENT_BASE} ${look}`.trim(),
+    'data-py-fragment': phase.visible ? 'shown' : 'hidden',
+    'data-py-fragment-active': phase.active ? 'true' : undefined,
+    'data-py-fragment-reveal': reveal,
+    'aria-hidden': phase.visible ? undefined : 'true',
+    inert: !phase.visible,
+  };
 }

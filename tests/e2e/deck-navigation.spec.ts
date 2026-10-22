@@ -20,10 +20,13 @@ test.describe('deck navigation on a built catalog deck', () => {
 
     await page.keyboard.press('ArrowRight');
     await expectLocation(page, 'path', 2);
+    // Three step labels: positions 0 (initial) to 3, and the last one is reachable.
+    await page.keyboard.press('ArrowRight');
+    await expectLocation(page, 'path', 3);
     await page.keyboard.press(' ');
     await expectLocation(page, 'pillars', 0);
     await page.keyboard.press('ArrowLeft');
-    await expectLocation(page, 'path', 2);
+    await expectLocation(page, 'path', 3);
   });
 
   test('bare slide clicks advance while interactive controls and links do not', async ({

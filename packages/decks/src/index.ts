@@ -93,6 +93,7 @@ export {
   formatDeckHash,
   parseDeckHash,
   type SlideStepCountResolver,
+  slidePositionCount,
 } from './navigation/index.ts';
 export {
   createBroadcastPresenterTransport,

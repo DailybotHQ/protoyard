@@ -1,8 +1,9 @@
 <script lang="ts">
-import { type DeckAspect, deckCanvasSize, slideStepCount } from '@protoyard/decks';
+import { type DeckAspect, deckCanvasSize, slidePositionCount } from '@protoyard/decks';
 import type { DeckSlide } from '@protoyard/decks/schema';
 import { onMount } from 'svelte';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
+import SlideStepHost from '../layouts/SlideStepHost.svelte';
 import DeckSlideFrame from '../style/DeckSlideFrame.svelte';
 import { fitDeckCanvas } from './fit.ts';
 
@@ -30,7 +31,7 @@ let box: HTMLDivElement;
 let width = $state(0);
 const size = $derived(deckCanvasSize(aspect));
 const fit = $derived(fitDeckCanvas({ width, height: (width * size.height) / size.width }, size));
-const steps = $derived(Math.max(1, slideStepCount(slide)));
+const steps = $derived(slidePositionCount(slide));
 const layout = $derived(
   slide.layout === 'free'
     ? { layout: 'free', props: { blocks: 'blocks' in slide ? slide.blocks : [] } }
@@ -65,7 +66,9 @@ onMount(() => {
     inert
   >
     <DeckSlideFrame background={slide.background} {number}>
-      <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+      <SlideStepHost {slide} step={steps - 1}>
+        <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+      </SlideStepHost>
     </DeckSlideFrame>
   </div>
 </div>

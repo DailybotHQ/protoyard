@@ -64,7 +64,8 @@ import type { Deck } from '@protoyard/decks';
 
 - `DeckCanvas` (virtual canvas + neighbor mount)
 - `DeckLayoutRenderer` per slide (catalog + free)
-- pure `createDeckNavigator` with `slideStepCount` and `#/<id>/<step>` hash sync
+- pure `createDeckNavigator` with `slidePositionCount` (step 0 plus every step, so the last one is reachable) and `#/<id>/<step>` hash sync
+- step reveals: stepped blocks and catalog items stay laid out but hidden, `inert` and `aria-hidden` until their step, then animate in; code highlights move per step (see [Steps on screen](#steps-on-screen))
 - guarded keyboard, click and swipe via `decideDeckInput` / `inputPathFrom`
 - progress bar and slide-number chrome (`data-py-deck-chrome`)
 - `aria-live` announcements (`Slide n of N`) and `aria-roledescription="slide"`
@@ -76,6 +77,32 @@ import type { Deck } from '@protoyard/decks';
   revealed, `@page` size = virtual canvas, `print-color-adjust: exact`)
 
 Root attribute: `data-py-deck-app`. Set `syncHash={false}` to own the hash yourself.
+
+### Steps on screen
+
+Each slide is wrapped in `SlideStepHost`, which gives its blocks the current
+step through the blocks-ui host (`fragment` and `codeHighlight` callbacks) and
+gives catalog layouts a `getPropSteps()` reader.
+
+- **Blocks:** `BlockRenderer` (and `columns`) wrap a block that has a `step`
+  in a `data-py-fragment="hidden|shown"` box. Hidden boxes are `invisible`,
+  `inert` and `aria-hidden`, so they keep their space and screen readers skip
+  them until their step. `fade-up` rises 0.6 em; `grow`, `highlight` and
+  `strike` switch on at their step.
+- **Catalog items:** cards, process steps, timeline events, comparison rows
+  and split sides carry `data-py-fragment-kind="prop"`; `SlideFrame` styles
+  them the same way. `DeckLayoutRenderer` strips `step`, `fragment` and
+  `reveal` from catalog props before the strict layout schema reads them.
+- **Code:** highlight `i` of a block at step `s` shows from authored step
+  `s + i`, mapped to the slide's dense steps.
+- **Motion:** 500 ms transitions, off under `prefers-reduced-motion` and when
+  the deck root has `data-py-deck-motion="none"` (`style.motion: none`).
+- **Whole-slide views:** overview thumbnails, print pages and the presenter's
+  next-slide preview render each slide at its last step; the slide before the
+  current one is mounted at its last step.
+- **Styles:** `@protoyard/decks-ui/styles.css` imports
+  `@protoyard/blocks-ui/styles.css`, so a deck that imports only the decks-ui
+  stylesheet still gets the block and reveal classes.
 
 ### Stage and chrome
 
@@ -240,7 +267,7 @@ All gzip level 9 (Node 26.11.1, Vite 8.3.4):
 
 | What | Measured | Gate | Where |
 | --- | --- | --- | --- |
-| `@protoyard/decks-ui/app` initial JS | 80,845 B (2026-10-22, with the fitted stage and chrome row; 80,550 B before them) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
+| `@protoyard/decks-ui/app` initial JS | 81,979 B (2026-10-22, with step reveals; 80,893 B before them) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
 | Deck style kit (lazy chunk: style resolution, library catalog, palette engine, backgrounds) | about 20 KB (2026-10-22) | not in the initial graph | `tests/budget.test.ts` |
 | All CSS emitted with it | 1,681 B (2026-10-22) | ≤ 20 KB | `tests/bundle-size.test.ts` |
 | Deck Studio panel (lazy chunk) | 3,141 B (2026-10-22) | — | measured with a Vite probe build |

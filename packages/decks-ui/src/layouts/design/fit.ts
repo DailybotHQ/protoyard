@@ -61,9 +61,14 @@ function watch(node: HTMLElement, run: () => void): () => void {
   if (node.parentElement) observer?.observe(node.parentElement);
   // Images and fonts change the size after the first measure.
   node.addEventListener('load', schedule, true);
+  // Lazy blocks arrive after the first measure without resizing this box, so
+  // added content also triggers a re-fit (only nodes, never style changes).
+  const mutations = typeof MutationObserver === 'function' ? new MutationObserver(schedule) : null;
+  mutations?.observe(node, { childList: true, subtree: true });
   return () => {
     cancelAnimationFrame(frame);
     observer?.disconnect();
+    mutations?.disconnect();
     node.removeEventListener('load', schedule, true);
   };
 }

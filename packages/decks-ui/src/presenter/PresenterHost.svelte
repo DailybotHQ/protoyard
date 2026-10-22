@@ -8,7 +8,7 @@ import {
   createPresenterLink,
   type PresenterLink,
   type PresenterPosition,
-  slideStepCount,
+  slidePositionCount,
 } from '@protoyard/decks';
 import type { Deck } from '@protoyard/decks/schema';
 import type { Snippet } from 'svelte';
@@ -50,7 +50,7 @@ const FALLBACK_COPY: Record<'popup-blocked' | 'no-broadcast' | 'no-window', stri
 };
 
 const activeSlide = $derived(deck.slides.find((s) => s.id === slideId));
-const stepCount = $derived(activeSlide ? slideStepCount(activeSlide) : 1);
+const stepCount = $derived(activeSlide ? slidePositionCount(activeSlide) : 1);
 
 function teardown(): void {
   link?.destroy();
