@@ -1168,6 +1168,13 @@ host graph. The same test checks emitted module ids to keep
 | `PageApp` | **91,588 B** | 122,880 B | **1,164 B** | 20,480 B | Pass |
 | `DocApp` | **92,553 B** | 122,880 B | **1,690 B** | 20,480 B | Pass |
 
+**Landing page design (T-page-section-design, measured 2026-10-22).** The
+`PageApp` entry grew from **91,599 B** to **97,551 B** of initial JS (+5.8 KB,
+CSS 1,164 → 1,353 B). The new hero, section header, stat row, pricing, steps
+and pull-quote patterns are what added it. `FormBlock` loads lazily: imported
+statically, it took the entry to 131,494 B, over the 122,880 B budget.
+`DocApp` is unchanged at 92,595 B.
+
 These are host-only package measurements, not the complete player entry. The
 player's separate per-kind budget remains 150 KB initial JS and 30 KB CSS.
 Run the scoped gate with `pnpm vitest run packages/pages-ui/tests/budget.test.ts`.

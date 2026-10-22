@@ -77,6 +77,50 @@ raw HTML.
 <PageHost {page} />
 ```
 
+### Landing page design
+
+`PageHost` gives a landing page a marketing design from its blocks alone. The
+decisions are pure functions in `src/page/design.ts`:
+
+- **Hero.** The section with `role: "hero"` is the hero. When no section has
+  that role, a first section that opens with a level-1 heading is the hero. The
+  heading renders at the display scale (36 px on phones, 60 px from `lg`), with
+  its eyebrow as a pill and its subtitle as the lead. Its `cta` actions render
+  as large buttons, not a card: the first is primary and the rest are outlined
+  unless they set a `variant`. On phones the buttons stack at full width.
+- **Section rhythm.** A section that opens with a heading gets a centered
+  section header. Body sections alternate plain and tinted (`bg-muted`)
+  full-width backgrounds. A last section made only of a CTA and short copy, or
+  any section with `role: "cta"`, renders as a closing band in the primary
+  color.
+- **Patterns.**
+  - A `stat` block without trends becomes one row of large figures.
+  - A `steps` block without icons becomes a numbered row with connectors
+    (up to four steps at `md`, six at `lg`). On phones it becomes a vertical
+    rail.
+  - A `quote` without an avatar becomes a pull quote.
+  - In a pricing section (`role: "pricing"`, or an anchor or id such as
+    `plans`, `pricing` or `tiers`), a `cards` block becomes pricing columns.
+    The highlighted plan is the `accent` card, otherwise the middle card of an
+    odd row.
+  - Forms, comparisons and text get widths that suit them.
+  - Every other block renders through `BlockHost`, as before.
+- **Navigation.** An explicit `page.nav` wins. Otherwise each body section
+  gets a link labeled by its `title`, or else by its opening heading. The
+  hero, the footer and the closing band get no link. Section ids are
+  humanized only when no section has a label. The header stays on screen
+  while the page scrolls, and the section in view gets
+  `aria-current="location"` and a highlight. Clicks scroll smoothly unless
+  the reader prefers reduced motion.
+- **Forms.** `PageApp` provides the page's form services when it initializes,
+  and form blocks render the real `FormBlock`, which loads lazily. Without
+  services, a form shows the block preview.
+
+All text is rendered as text nodes. Short markdown in these patterns is
+reduced to plain paragraphs, and links pass a second `safePageHref` check.
+`tests/page-design.test.ts` covers the decisions against the example
+`blueprints/pages/tidewater-roasters-landing.json`.
+
 `DocHost` derives heading ids and TOC entries from `buildDocToc` in
 `@protoyard/pages`. Its `showNav` prop can hide the left navigation rail.
 
