@@ -5,7 +5,13 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { checkHeader } from '../src/lib/codegen/header.ts';
 import { checkBlueprintDrift } from '../src/lib/codegen/regenerate.ts';
-import { biomeFormatCheck, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
+import {
+  biomeCheck,
+  biomeFormatCheck,
+  cli,
+  createWorkspace,
+  type TempWorkspace,
+} from './helpers.ts';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -122,6 +128,12 @@ describe('protoyard generate content kinds', () => {
         ...(kind === 'deck' ? [`prototypes/${slug}/src/deck-blueprint.ts`] : []),
       ]);
       expect(formatted.code, formatted.output).toBe(0);
+      // Generated code must pass the repository's full check (lint and import order), not just formatting.
+      const checked = biomeCheck(
+        ws,
+        first.data.generated.map((path) => `prototypes/${slug}/${path}`)
+      );
+      expect(checked.code, checked.output).toBe(0);
       for (const path of [
         'src/generated/schema.ts',
         'src/generated/policy.ts',
