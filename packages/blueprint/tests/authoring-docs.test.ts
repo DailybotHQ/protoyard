@@ -27,9 +27,7 @@ function linkTargets(markdown: string): string[] {
 
 function isExternal(target: string): boolean {
   return (
-    /^(https?:|mailto:|data:)/i.test(target) ||
-    target.startsWith('#') ||
-    target.startsWith('//')
+    /^(https?:|mailto:|data:)/i.test(target) || target.startsWith('#') || target.startsWith('//')
   );
 }
 
