@@ -205,7 +205,7 @@ Each control is a real named button. Toggles report `aria-pressed`, and the help
 | Key | Button | What it does |
 | --- | --- | --- |
 | `B` or `.` | Black out the screen | A black screen over everything. The screen itself is a button: a click, `B` or `Esc` brings the slide back, and never advances the deck. |
-| `F` | Full screen | Puts the deck root in browser full screen with every piece of chrome hidden (progress, slide number, toolbar). `F` or `Esc` leaves. The button is not rendered where the browser has no Fullscreen API. |
+| `F` | Full screen | Puts the deck root in browser full screen, with the chrome row replaced by a fading overlay (leave, previous, counter, next) that shows on pointer move or touch. Where the Fullscreen API is missing or refused, it fills the window with CSS instead (`data-fullscreen-mode="window"`) and the tooltip says so. `F` or `Esc` (after any open overlay) leaves, and focus returns to the deck. |
 | `L` | Laser pointer | A red dot that follows the pointer (and replaces the cursor) until `L` or `Esc`. While it is on, clicks do not advance. |
 | — | Copy slide reference | Copies `<title> · <slide-id> · #/<id>/<step>`: the slide title (else the deck title) and the deep link to the exact step. Uses the Clipboard API with an `execCommand` fallback, and announces "Slide reference copied" or "Could not copy the slide reference". |
 | `?` | Keyboard shortcuts | A dialog generated from `DECK_KEY_BINDINGS` (the input guard's own table), so it can never drift from the keys. It focuses Close, and `Esc` or `?` closes it. |
@@ -215,8 +215,11 @@ Each control is a real named button. Toggles report `aria-pressed`, and the help
 | `S` or `P` | Presenter view | Opens presenter notes, timers and the next slide in a second window or beside the deck. |
 | — | Print, one slide per page | Prints the deck or saves it as a PDF. |
 
-The level-1 entry calls the Fullscreen API directly. A level-2 prototype that also wants the
-renderer’s frame handling can call `enterFullScreen` / `exitFullScreen` from the renderer. The
+The level-1 entry calls the Fullscreen API directly through `createDeckFullscreen`, whose state
+follows `fullscreenchange` and `document.fullscreenElement`, never the request promise alone; a
+rejected request or `fullscreenerror` falls back to fill-the-window mode. A level-2 prototype that
+also wants the renderer’s frame handling can call `enterFullScreen` / `exitFullScreen` from the
+renderer. The
 helpers and toolbar components live in `src/chrome/index.ts`; the current initial bundle size is
 recorded below. Overview, studio and presenter code is not in that first chunk.
 

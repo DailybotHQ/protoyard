@@ -249,8 +249,18 @@ On screen:
   slides. Home and End jump to the first and last visible slide.
 - Press **O** to open the overview and select a slide. **Escape** closes an
   open deck overlay.
-- Press **F** to enter or leave fullscreen where the browser permits it; the
-  browser's fullscreen controls are also available.
+- Press **F** (or the full screen button) to enter or leave full screen, and
+  **Escape** to leave it. Escape first closes a tooltip, the help dialog, the
+  overview, blackout or the laser, in that order; the next Escape leaves full
+  screen, and the keyboard stays on the deck. In full screen a small overlay
+  (leave full screen, previous, the slide counter, next) appears when the
+  pointer moves or the screen is touched, and fades after 2.5 seconds, so a
+  mouse or touch viewer always has a visible way out.
+- Where the browser's Fullscreen API is missing or refused (an iPhone, or an
+  iframe without `allow="fullscreen"` such as an artifact viewer), the deck
+  fills the page's own window instead of failing silently. The button's
+  tooltip and the overlay say so, and the root carries
+  `data-fullscreen-mode="window"` (`native` for browser full screen).
 - Press **?** for the keyboard shortcuts. The dialog is generated from the
   same table the input guard uses, so it never drifts from the keys.
 - A click on the slide canvas advances. Links, buttons, embedded controls and
@@ -279,7 +289,8 @@ at every aspect (16:9, 4:3, 9:16, 1:1) and on desktop, tablet and phones in
 both orientations. The letterbox uses the theme's muted color. Progress, the
 slide counter and the presenting tools sit in their own row below the stage,
 so they never cover a slide; on phones the row wraps. Full screen hides the
-row, and resizing or rotating refits the stage. A deck takes the app height
+row in favor of the fading full screen overlay, and resizing or rotating
+refits the stage. A deck takes the app height
 by default; embed it with `fit="container"` to fill a sized parent instead.
 
 ## Presenting and printing
