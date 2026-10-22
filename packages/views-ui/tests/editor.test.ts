@@ -1,7 +1,14 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MarkdownEditor, MarkdownPreview } from '../src/editor/index.ts';
+import {
+  filterSlashCommands,
+  LinkMenu,
+  MarkdownEditor,
+  MarkdownPreview,
+  RichTextView,
+  slashAt,
+} from '../src/editor/index.ts';
 import { isMacPlatform } from '../src/lib/platform.ts';
 
 afterEach(() => {
@@ -81,6 +88,38 @@ describe('MarkdownEditor toolbar and shortcuts', () => {
   });
 });
 
+describe('MarkdownEditor slash commands', () => {
+  it('opens on / and applies a heading command', async () => {
+    const onChange = vi.fn();
+    const field = editor({ value: '', onChange });
+    await type(field, '/head');
+    const list = screen.getByRole('listbox', { name: 'Commands' });
+    expect(list).toBeTruthy();
+    const options = screen.getAllByRole('option');
+    expect(options.some((option) => option.textContent?.includes('Heading'))).toBe(true);
+    await fireEvent.keyDown(field, { key: 'Enter' });
+    await waitFor(() => expect(field.value.startsWith('#')).toBe(true));
+    expect(onChange).toHaveBeenCalled();
+    expect(screen.queryByRole('listbox', { name: 'Commands' })).toBeNull();
+  });
+
+  it('filters slash commands and closes on Escape', async () => {
+    expect(filterSlashCommands('code').map((c) => c.id)).toContain('code');
+    expect(slashAt({ text: 'hello /bu', start: 9, end: 9 })).toEqual({
+      start: 6,
+      query: 'bu',
+    });
+    const field = editor({ value: '' });
+    await type(field, '/xyzzy');
+    // No matching commands → menu closed.
+    expect(screen.queryByRole('listbox', { name: 'Commands' })).toBeNull();
+    await type(field, '/');
+    expect(screen.getByRole('listbox', { name: 'Commands' })).toBeTruthy();
+    await fireEvent.keyDown(field, { key: 'Escape' });
+    expect(screen.queryByRole('listbox', { name: 'Commands' })).toBeNull();
+  });
+});
+
 describe('MarkdownEditor completion', () => {
   it('suggests people for @, navigates with arrows and inserts with Enter', async () => {
     const field = editor({ mentions: PEOPLE });
@@ -157,6 +196,48 @@ describe('preview safety', () => {
     expect(region.querySelector('h2')?.textContent).toBe('Plan');
     expect(region.querySelectorAll('input[type="checkbox"]')).toHaveLength(2);
     expect(region.querySelector('blockquote strong')?.textContent).toBe('bold');
+  });
+});
+
+describe('RichTextView (safe document model)', () => {
+  it('renders marks, mentions and headings from the editor document', () => {
+    render(RichTextView, {
+      value: '# Title\n\nHello **world** and @{u1|Ada}\n\n- [x] done',
+      label: 'Body',
+    });
+    const region = screen.getByRole('region', { name: 'Body' });
+    expect(region.querySelector('h2')?.textContent).toBe('Title');
+    expect(region.querySelector('strong')?.textContent).toBe('world');
+    expect(region.textContent).toContain('@Ada');
+    expect(region.querySelectorAll('input[type="checkbox"]')).toHaveLength(1);
+  });
+
+  it('rejects unsafe links and keeps the label as text', () => {
+    render(RichTextView, {
+      value: '[click me](javascript:alert(1))\n\n[safe](https://example.com/docs)',
+      label: 'Links',
+    });
+    const region = screen.getByRole('region', { name: 'Links' });
+    const links = [...region.querySelectorAll('a')];
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['https://example.com/docs']);
+    expect(region.textContent).toContain('click me');
+    expect(region.querySelector('script')).toBeNull();
+  });
+});
+
+describe('LinkMenu', () => {
+  it('applies a safe href and refuses javascript: schemes', async () => {
+    const onApply = vi.fn();
+    render(LinkMenu, { open: true, href: 'https://', onApply });
+    const input = screen.getByRole('textbox', { name: 'Link URL' });
+    await fireEvent.input(input, { target: { value: 'javascript:alert(1)' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    expect(onApply).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toMatch(/http/i);
+
+    await fireEvent.input(input, { target: { value: 'https://example.com/a' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    expect(onApply).toHaveBeenCalledWith('https://example.com/a');
   });
 });
 

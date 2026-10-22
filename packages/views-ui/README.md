@@ -376,12 +376,14 @@ contracts are also available from `@protoyard/views/commands`.
 
 ## Editor (`@protoyard/views-ui/editor`)
 
-A lightweight Markdown editor on a plain `<textarea>` (no contenteditable
-library). Text commands are the pure functions of `@protoyard/views/editor`.
+A dependency-free Markdown rich-text editor on a plain `<textarea>` (no
+contenteditable library). Text commands and the document model are the pure
+functions of `@protoyard/views/editor`. Values leave through typed callbacks
+(`bind:value`, `onChange`, `onDraft`); the editor never writes database tables.
 
 ```svelte
 <script lang="ts">
-  import { MarkdownEditor } from '@protoyard/views-ui/editor';
+  import { MarkdownEditor, RichTextView } from '@protoyard/views-ui/editor';
   let body = $state(draft?.body ?? '');
 </script>
 
@@ -392,7 +394,11 @@ library). Text commands are the pure functions of `@protoyard/views/editor`.
   references={deals.map((d) => ({ id: d.id, value: d.code, label: d.name }))}
   maxLength={2000}
   onDraft={(text) => services.saveDraft(text)}
+  onChange={(text) => { /* optional live hook */ }}
 />
+
+<!-- Read-only: safe document model (no {@html}) -->
+<RichTextView value={body} label="Comment body" />
 ```
 
 - **Toolbar and shortcuts** (`mod` is ⌘ on Mac, Ctrl elsewhere; matched on
@@ -402,6 +408,10 @@ library). Text commands are the pure functions of `@protoyard/views/editor`.
   `mod+Shift+7`, task `mod+Shift+9` and quote `mod+Shift+.` lists, code
   block `mod+Alt+C`. The toolbar is one tab stop with arrow-key focus. Enter
   continues lists, and Enter on an empty item ends them.
+- **Slash commands:** typing `/` at the start of a line (or after whitespace)
+  opens a command listbox (heading, lists, quote, code block). Filter by
+  name; arrows move, Enter or Tab applies, Escape closes. Override with
+  `slashCommands` (`DEFAULT_SLASH_COMMANDS` is the built-in set).
 - **Completion:** typing `@` or `#` (after a space or at the start) offers
   `mentions` or `references` in a listbox anchored at the caret (mirror-div
   measurement). The textarea keeps its textbox role and points at the list
@@ -419,6 +429,14 @@ library). Text commands are the pure functions of `@protoyard/views/editor`.
   an accessible name (axe `scrollable-region-focusable`), matching ui-kit
   `CodeBlock`; covered with the ai-ui surfaces in
   `packages/ai-ui/tests/scroll-regions.test.ts`.
+- **RichTextView:** read-only renderer over `parseEditorDocument` /
+  `EditorDocument` from `@protoyard/views/editor`. Mentions (`@{id|label}`),
+  marks, lists, quotes and code fences become elements; unsafe `href` values
+  are stripped to plain text. Optional `onLinkClick` / `onMentionClick`
+  callbacks — still no database writes.
+- **LinkMenu:** small dialog to apply or remove a URL; refuses non-web
+  schemes via `safeHref`. Use beside a custom toolbar if you want an explicit
+  URL field instead of the default `mod+K` placeholder link.
 - **Limits and drafts:** `maxLength` (default 5,000) sets the textarea limit
   and a counter, and a command that would pass it is refused with a polite
   announcement. `onDraft` runs after typing pauses (`draftDelayMs`, default
@@ -427,6 +445,7 @@ library). Text commands are the pure functions of `@protoyard/views/editor`.
   gzip -9; svelte, core, ui, renderer, lucide and Bits UI external;
   2026-10-19): the editor chunk is 6.0 KB; the preview and the shared parser
   load as a separate 4.5 KB chunk on the first preview (at once in `split`).
+  Slash and `RichTextView` stay in the same lazy `./editor` subpath.
 - **Limits:** toolbar commands set the textarea value directly, so the
   browser's undo history does not include them.
 
