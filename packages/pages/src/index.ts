@@ -19,6 +19,11 @@ export {
   PAGE_FEATURE_TABLES,
 } from './form-response.ts';
 export {
+  createFormServices,
+  FORM_CAPABILITIES,
+  type FormServices,
+} from './form-services.ts';
+export {
   checkDocDocumentLimits,
   checkFormResponseLimits,
   checkPageDocumentLimits,
