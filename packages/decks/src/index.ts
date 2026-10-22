@@ -94,3 +94,12 @@ export {
   parseDeckHash,
   type SlideStepCountResolver,
 } from './navigation/index.ts';
+export {
+  DEFAULT_UNTRUSTED_DECK_LIMITS,
+  loadUntrustedDeck,
+  stripHiddenCharacters,
+  type UntrustedDeckIssue,
+  type UntrustedDeckIssueCode,
+  type UntrustedDeckLimits,
+  type UntrustedDeckResult,
+} from './untrusted.ts';
