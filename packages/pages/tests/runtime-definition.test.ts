@@ -1,113 +1,72 @@
-import { definePrototype, type GenerateContext, parseScenario } from '@protoyard/core';
+// @vitest-environment node
+
+import { definePrototype } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
+import { FORM_RESPONSES_STORE_STRING } from '../src/form-response.ts';
 import {
-  DocDocumentSchema,
   definePrototypeFromDoc,
   definePrototypeFromPage,
-  PageDocumentSchema,
-} from '../src/index.ts';
+  PAGES_DEFAULT_SCENARIO,
+} from '../src/runtime-definition.ts';
+import type { DocDocument, PageDocument } from '../src/schema.ts';
 
 const options = {
-  namespace: 'bp-example',
-  slug: 'example-content',
-  brandThemeId: 'ocean',
+  namespace: 'example-content',
+  name: 'Example guide',
+  description: 'Delegates to defineKindRuntime.',
 };
 
-describe('page and doc minimal runtime definitions', () => {
-  it('builds a definePrototype-valid page runtime from document metadata and brand theme', async () => {
-    const page = PageDocumentSchema.parse({
-      id: 'landing',
-      title: 'Example landing',
-      description: 'A short landing page.',
-      sections: [{ id: 'hero', blocks: [{ type: 'text', markdown: 'Welcome' }] }],
-    });
+const page: PageDocument = {
+  id: 'example-page',
+  title: 'Example page',
+  sections: [
+    {
+      id: 'hero',
+      role: 'hero',
+      blocks: [{ type: 'heading', text: 'Hello', level: 1 }],
+    },
+  ],
+};
 
+const doc: DocDocument = {
+  id: 'example-doc',
+  title: 'Example guide',
+  blocks: [
+    { type: 'heading', text: 'Guide', level: 1 },
+    {
+      type: 'form',
+      id: 'feedback',
+      fields: [{ name: 'note', label: 'Note', type: 'longText' }],
+      submitLabel: 'Send',
+      successMessage: 'Ok',
+    },
+  ],
+};
+
+describe('page and doc runtime definitions (delegate to kind runtime)', () => {
+  it('builds a page runtime with kind personas, policy and shared stores', () => {
     const definition = definePrototypeFromPage(page, options);
     expect(definePrototype(definition)).toBe(definition);
-    expect(definition.manifest).toMatchObject({
-      name: 'Example landing',
-      description: 'A short landing page.',
-      defaultTheme: 'ocean',
-      defaultScenario: 'default',
-      preview: { layout: { id: 'marketing' } },
-      storage: { namespace: 'bp-example', schemaVersion: 1 },
-    });
-    expect(definition.database.versions).toEqual([{ version: 1, stores: {} }]);
-    expect(definition.scenarios).toHaveLength(1);
-    expect(definition.scenarios[0]).toMatchObject({ id: 'default', seed: 0, density: 'empty' });
-    expect(definition.generatorVersion).toBe(1);
-    expect(await definition.generateWorld?.(parseScenario(definition.scenarios[0]))).toEqual({
-      organizations: [],
-      personas: [],
-      memberships: [],
-      tables: {},
-    });
-    expect(definition.generate({} as GenerateContext)).toEqual({
-      organizations: [],
-      personas: [],
-      memberships: [],
-      tables: {},
-    });
+    expect(definition.manifest.defaultScenario).toBe(PAGES_DEFAULT_SCENARIO);
+    expect(definition.manifest.storage.namespace).toBe('example-content');
+    expect(definition.manifest.name).toBe('Example guide');
+    expect(definition.policy?.roles.presenter).toEqual(
+      expect.arrayContaining(['form:submit', 'form:read', 'form:admin', 'blocks:interact'])
+    );
+    expect(definition.policy?.roles.viewer).toEqual(['form:submit', 'form:read']);
+    expect(definition.database.versions[0]?.stores.blockStates).toMatch(/documentId/);
+    expect(definition.database.versions[0]?.stores.formResponses).toBe(FORM_RESPONSES_STORE_STRING);
+    expect(definition.generate).toBeTypeOf('function');
   });
 
-  it('declares form response storage for forms nested in a page section', () => {
-    const page = PageDocumentSchema.parse({
-      id: 'signup',
-      title: 'Sign up',
-      sections: [
-        {
-          id: 'contact',
-          blocks: [
-            {
-              type: 'reveal',
-              id: 'expand-form',
-              label: 'Show form',
-              blocks: [
-                {
-                  type: 'form',
-                  id: 'contact-form',
-                  fields: [{ name: 'email', label: 'Email', type: 'email' }],
-                  submitLabel: 'Send',
-                  successMessage: 'Thanks.',
-                },
-              ],
-            },
-          ],
-        },
-      ],
-      forms: [{ formId: 'contact-form', sectionId: 'contact' }],
-    });
-
-    const definition = definePrototypeFromPage(page, options);
-    expect(definition.database.versions[0]?.stores).toEqual({
-      formResponses: 'id, formId, createdAt, [formId+createdAt]',
-    });
-  });
-
-  it('builds a doc runtime and includes storage for a direct form block', () => {
-    const doc = DocDocumentSchema.parse({
-      id: 'guide',
-      title: 'Example guide',
-      blocks: [
-        {
-          type: 'form',
-          id: 'feedback',
-          fields: [{ name: 'comment', label: 'Comment', type: 'longText' }],
-          submitLabel: 'Send feedback',
-          successMessage: 'Feedback received.',
-        },
-      ],
-    });
-
+  it('builds a doc runtime the same way', () => {
     const definition = definePrototypeFromDoc(doc, options);
     expect(definePrototype(definition)).toBe(definition);
-    expect(definition.manifest).toMatchObject({
-      name: 'Example guide',
-      defaultScenario: 'default',
-      preview: { layout: { id: 'docs' } },
-    });
-    expect(definition.database.versions[0]?.stores.formResponses).toBe(
-      'id, formId, createdAt, [formId+createdAt]'
+    expect(definition.manifest.name).toBe('Example guide');
+    expect(definition.manifest.defaultScenario).toBe(PAGES_DEFAULT_SCENARIO);
+    expect(definition.database.versions[0]?.stores.formResponses).toBe(FORM_RESPONSES_STORE_STRING);
+    expect(definition.policy?.roles.audience).toEqual(
+      expect.arrayContaining(['form:submit', 'form:read', 'blocks:interact'])
     );
   });
 });

@@ -1,5 +1,11 @@
-import type { Block } from '@protoyard/blocks';
-import { definePrototype, parseManifest, type Theme, type WorldSeed } from '@protoyard/core';
+import {
+  type AnyContentBlueprint,
+  defineKindRuntime,
+  KIND_DEFAULT_SCENARIO,
+  KIND_GENERATOR_VERSION,
+  type KindRuntimeOptions,
+} from '@protoyard/blueprint/kinds';
+import type { PrototypeDefinition } from '@protoyard/core';
 import type { DocDocument, PageDocument } from './schema.ts';
 
 export interface RuntimeDefinitionOptions {
@@ -15,93 +21,65 @@ export interface RuntimeDefinitionOptions {
   category?: string;
   tags?: string[];
   icon?: string;
-  /** Theme resolved from the optional blueprint brand by the caller. */
-  brandTheme?: Theme;
-  /** Theme id from the brand, including a library theme with no local Theme object. */
-  brandThemeId?: string;
 }
 
-export const PAGES_DEFAULT_SCENARIO = 'default';
-export const PAGES_GENERATOR_VERSION = 1;
+/** Alias of the kind default scenario id (shared content-kind runtime). */
+export const PAGES_DEFAULT_SCENARIO = KIND_DEFAULT_SCENARIO;
+/** Alias of the kind generator version (shared content-kind runtime). */
+export const PAGES_GENERATOR_VERSION = KIND_GENERATOR_VERSION;
 
-const FORM_RESPONSES_STORE = 'id, formId, createdAt, [formId+createdAt]';
-
-/** Creates a minimal runtime definition for a page document. */
-export function definePrototypeFromPage(page: PageDocument, options: RuntimeDefinitionOptions) {
-  return defineContentPrototype(page, options, 'marketing', hasPageForms(page));
+/**
+ * Builds the shared content-kind runtime for a page document by delegating to
+ * `defineKindRuntime` (lead decision: one runtime with personas and policy).
+ */
+export function definePrototypeFromPage(
+  page: PageDocument,
+  options: RuntimeDefinitionOptions
+): PrototypeDefinition {
+  return defineKindRuntime(pageBlueprint(page, options), toKindOptions(options));
 }
 
-/** Creates a minimal runtime definition for a doc document. */
-export function definePrototypeFromDoc(doc: DocDocument, options: RuntimeDefinitionOptions) {
-  return defineContentPrototype(doc, options, 'docs', hasDocForms(doc));
+/**
+ * Builds the shared content-kind runtime for a doc document by delegating to
+ * `defineKindRuntime`.
+ */
+export function definePrototypeFromDoc(
+  doc: DocDocument,
+  options: RuntimeDefinitionOptions
+): PrototypeDefinition {
+  return defineKindRuntime(docBlueprint(doc, options), toKindOptions(options));
 }
 
-function defineContentPrototype(
-  document: PageDocument | DocDocument,
-  options: RuntimeDefinitionOptions,
-  layout: 'marketing' | 'docs',
-  hasForms: boolean
-) {
-  const slug = options.slug ?? options.namespace;
-  const scenarios = [
-    {
-      id: PAGES_DEFAULT_SCENARIO,
-      name: 'Default',
-      description: 'An empty preview world for this content.',
-      seed: 0,
-      referenceTime: '2026-01-01T00:00:00.000Z',
-      density: 'empty' as const,
-      activity: { level: 'none' as const },
-    },
-  ];
-  const manifest = parseManifest({
-    id: `local.${slug}`,
-    slug,
-    kind: 'prototype',
-    name: options.name ?? document.title,
-    description: options.description ?? document.description ?? '',
-    version: options.version ?? '0.1.0',
-    category: options.category ?? 'general',
-    tags: options.tags ?? [],
+function toKindOptions(options: RuntimeDefinitionOptions): KindRuntimeOptions {
+  return {
+    namespace: options.namespace,
+    slug: options.slug,
+    version: options.version,
+  };
+}
+
+function pageBlueprint(page: PageDocument, options: RuntimeDefinitionOptions): AnyContentBlueprint {
+  return {
+    formatVersion: 1,
+    name: options.name ?? page.title,
+    description: options.description ?? page.description ?? '',
+    tags: options.tags ?? ['page'],
+    ...(options.category ? { category: options.category } : {}),
     ...(options.icon ? { icon: options.icon } : {}),
-    defaultScenario: PAGES_DEFAULT_SCENARIO,
-    defaultTheme: options.brandThemeId ?? options.brandTheme?.id ?? 'violet',
-    preview: { viewport: 'desktop', layout: { id: layout } },
-    storage: { namespace: options.namespace, schemaVersion: 1 },
-    scenarios: [PAGES_DEFAULT_SCENARIO],
-  });
-
-  const stores: Record<string, string | null> = {};
-  if (hasForms) stores.formResponses = FORM_RESPONSES_STORE;
-
-  return definePrototype({
-    manifest,
-    database: { versions: [{ version: 1, stores }] },
-    scenarios,
-    policy: { roles: {} },
-    generate: emptyWorld,
-    generateWorld: async () => emptyWorld(),
-    generatorVersion: PAGES_GENERATOR_VERSION,
-    ...(options.brandTheme ? { themes: [options.brandTheme] } : {}),
-  });
+    kind: 'page',
+    page,
+  } as AnyContentBlueprint;
 }
 
-function emptyWorld(): WorldSeed {
-  return { organizations: [], personas: [], memberships: [], tables: {} };
-}
-
-function hasPageForms(page: PageDocument): boolean {
-  return page.sections.some((section) => section.blocks.some(containsForm));
-}
-
-function hasDocForms(doc: DocDocument): boolean {
-  return doc.blocks.some(containsForm);
-}
-
-function containsForm(block: Block): boolean {
-  if (block.type === 'form') return true;
-  if (block.type === 'columns') return block.columns.some((column) => column.some(containsForm));
-  if (block.type === 'tabs') return block.panels.some((panel) => panel.blocks.some(containsForm));
-  if (block.type === 'reveal') return block.blocks.some(containsForm);
-  return false;
+function docBlueprint(doc: DocDocument, options: RuntimeDefinitionOptions): AnyContentBlueprint {
+  return {
+    formatVersion: 1,
+    name: options.name ?? doc.title,
+    description: options.description ?? doc.description ?? '',
+    tags: options.tags ?? ['doc'],
+    ...(options.category ? { category: options.category } : {}),
+    ...(options.icon ? { icon: options.icon } : {}),
+    kind: 'doc',
+    doc,
+  } as AnyContentBlueprint;
 }

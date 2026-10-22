@@ -19,6 +19,7 @@ export {
   PAGE_FEATURE_TABLES,
 } from './form-response.ts';
 export {
+  type CreateFormServicesOptions,
   createFormServices,
   FORM_CAPABILITIES,
   type FormServices,

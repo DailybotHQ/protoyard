@@ -310,3 +310,12 @@ from its blueprint and validate the generated application:
 pnpm protoyard generate my-prototype --blueprint path/to/blueprint.json
 pnpm protoyard validate my-prototype --build
 ```
+
+## Content kinds (page and doc)
+
+When the blueprint `kind` is `page` or `doc`, the player mounts
+`@protoyard/pages-ui` `PageApp` / `DocApp` with the runtime from
+`defineKindRuntime` (`@protoyard/blueprint/kinds`). Form responses use
+`createFormServices` from `@protoyard/pages` (same store and capabilities as
+the kind services layer).
+

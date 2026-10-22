@@ -772,3 +772,10 @@ Build a Protoyard prototype for <product> from a blueprint.
 - Adding or removing `brand` on regeneration regenerates `brand-theme.ts` but
   does not rewire `src/prototype.ts` or `defaultTheme` (they are set on the
   first generation only).
+
+## Generated page and doc apps
+
+Level-2 `generate` for `kind: "page"` / `kind: "doc"` should import the same
+`PageApp` / `DocApp` entry components the player uses (`@protoyard/pages-ui/page`
+and `…/doc`), with `defineKindRuntime` so behaviour matches level 1.
+

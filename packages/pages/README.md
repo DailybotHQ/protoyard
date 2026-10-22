@@ -209,3 +209,13 @@ these fixtures stay small and package-local.
 pnpm --filter @protoyard/pages typecheck
 pnpm vitest run packages/pages
 ```
+
+## Runtime
+
+`definePrototypeFromPage` / `definePrototypeFromDoc` **delegate** to
+`defineKindRuntime` from `@protoyard/blueprint/kinds` (shared personas, policy
+and Dexie stores). Prefer calling `defineKindRuntime` with a full content
+blueprint when you already have one.
+
+Form responses: `createFormServices` + `FormResponseSchema` (`personaId`
+optional) are the canonical contract; kind services delegate to them.
