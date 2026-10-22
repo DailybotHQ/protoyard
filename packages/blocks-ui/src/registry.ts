@@ -72,9 +72,13 @@ export const blockRendererRegistry: Readonly<Record<BlockType, BlockRendererRegi
     form: registration('interactive'),
     map: registration('map'),
     'embed-app': registration('embed'),
+    flow: registration('diagram'),
+    tree: registration('diagram'),
+    board: registration('diagram'),
+    terminal: registration('diagram'),
   });
 
-/** Load a declared family directly, for data models such as diagrams outside `Block`. */
+/** Load a declared family directly (for example to preload a family before it renders). */
 export async function loadBlockFamily(family: BlockFamily): Promise<BlockFamilyRenderer | null> {
   const load = familyLoaders[family];
   if (!load) return null;
