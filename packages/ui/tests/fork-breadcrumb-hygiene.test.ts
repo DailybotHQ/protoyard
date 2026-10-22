@@ -7,9 +7,10 @@ import { describe, expect, it } from 'vitest';
 const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 
 describe('fork engineering breadcrumbs', () => {
-  it('does not keep FORK_CORAG labels in the shared cn helper', () => {
+  it('does not keep fork task labels in the shared cn helper', () => {
     const source = readFileSync(join(ROOT, 'packages/ui/src/lib/cn.ts'), 'utf8');
-    expect(source).not.toMatch(/FORK_CORAG|FORK_DAILYBOT|FORK_[A-Z]+/);
+    // Any FORK_<NAME> task label, without naming a product fork in upstream source.
+    expect(source).not.toMatch(/FORK_[A-Z]+/);
     expect(source).toMatch(/shadow-soft/);
   });
 
