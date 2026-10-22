@@ -120,10 +120,11 @@ describe('document reading design', () => {
     const view = render(DocApp, { props: { doc, formServices } });
 
     expect(view.container.querySelector('[data-py-form-disabled]')).toBeNull();
-    await fireEvent.input(view.getByRole('textbox', { name: 'Email' }), {
+    // The doc mounts the real FormBlock, which loads lazily: wait for its field.
+    await fireEvent.input(await view.findByRole('textbox', { name: 'Email' }), {
       target: { value: 'ada@example.com' },
     });
-    await fireEvent.click(view.getByRole('button', { name: 'Send message' }));
+    await fireEvent.click(await view.findByRole('button', { name: 'Send message' }));
 
     await waitFor(() =>
       expect(submit).toHaveBeenCalledWith('contact-form', { email: 'ada@example.com' })
