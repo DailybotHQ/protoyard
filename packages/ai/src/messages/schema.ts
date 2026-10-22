@@ -22,7 +22,7 @@ export const MESSAGE_FORMAT_PREFIX = 'protoyard.message@';
 const CONTROL_EXCEPT_NEWLINE_TAB = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/;
 // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point.
 const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
-const BIDI = /[؜‎‏‪-‮⁦-⁩﻿]/;
+const BIDI = /[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]/;
 /** An HTML tag, comment, doctype or processing instruction anywhere in the string. */
 // A tag name follows `<` (or `</`) directly, as browsers parse it: `a < b` is not markup.
 const MARKUP = /<\/?[a-z][a-z0-9-]*(?=[\s/>])[^>]*>?|<!--|<!\[cdata\[|<!doctype|<\?/i;
