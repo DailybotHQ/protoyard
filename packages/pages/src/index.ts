@@ -3,7 +3,7 @@
  * (ADR-036, ADR-039). Svelte hosts live in `@protoyard/pages-ui`.
  *
  * Document schemas validate the payload bodies after KINDS parses the kind
- * union. Limits, TOC builders and form-response services arrive in later tasks.
+ * union. TOC builders are pure (no DOM) so deep links work before paint.
  */
 
 export {
@@ -28,6 +28,15 @@ export {
   safeParseDocDocument,
   safeParsePageDocument,
 } from './schema.ts';
+export {
+  allocateHeadingId,
+  type BuildDocTocOptions,
+  type BuildPageTocOptions,
+  buildDocToc,
+  buildPageToc,
+  type DocTocItem,
+  headingId,
+} from './toc.ts';
 export {
   PAGES_PACKAGE,
   PAGES_PACKAGE_VERSION,
