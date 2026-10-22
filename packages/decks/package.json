@@ -13,7 +13,8 @@
     "./quality": "./src/quality/index.ts",
     "./text": "./src/text/index.ts",
     "./presenter": "./src/presenter/index.ts",
-    "./patch": "./src/patch/index.ts"
+    "./patch": "./src/patch/index.ts",
+    "./agent": "./src/agent/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
@@ -78,6 +79,11 @@
         "types": "./dist/presenter/index.d.ts",
         "import": "./dist/presenter/index.js",
         "default": "./dist/presenter/index.js"
+      },
+      "./agent": {
+        "types": "./dist/agent/index.d.ts",
+        "import": "./dist/agent/index.js",
+        "default": "./dist/agent/index.js"
       }
     },
     "types": "./dist/index.d.ts"
