@@ -263,6 +263,9 @@ describe('protoyard quick', () => {
     expect(large.json<{ data: unknown }>().data).toMatchObject({
       layout: 'standalone',
       standaloneReason: 'too-large-for-link',
+      shareFallback: expect.stringMatching(
+        /exceeds the 16 KB share-link limit.*blueprint\.json.*quick export large-one --single-file/
+      ),
     });
   });
 

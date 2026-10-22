@@ -81,6 +81,26 @@ than 16 KB and decoded input larger than 256 KB. Pasted text is capped at 256
 KB before JSON parsing. The `/play/` landing page is indexable, but a visit
 with a share fragment is marked `noindex`.
 
+The example kind blueprints fit comfortably in the current link cap. The
+following encoded payload lengths were measured by
+`packages/blueprint/tests/kinds/share-kinds.test.ts` with Node 26.11.1; browser
+compression engines may produce different lengths.
+
+| Example | Encoded payload characters |
+| --- | ---: |
+| `decks/cedar-training.json` | 1,666 |
+| `decks/example.json` | 844 |
+| `decks/harbor-ops-pitch.json` | 1,782 |
+| `decks/lumen-launch.json` | 1,512 |
+| `decks/northwind-qbr.json` | 1,500 |
+| `pages/tidewater-roasters-landing.json` | 1,638 |
+| `docs/northwind-quarterly-report.json` | 1,368 |
+
+When a blueprint exceeds the link cap, `protoyard quick` opens its local
+`blueprint.json` file and prints that path plus a
+`protoyard quick export <slug> --single-file` alternative. The player explains
+that an oversized share link should be opened from a blueprint file.
+
 The hosted player sends a Content Security Policy from the showcase root
 `_headers` file under `/player/*`; this includes `frame-ancestors` because a
 meta policy cannot set it. Its `style-src` keeps `'unsafe-inline'` for the
