@@ -59,6 +59,11 @@ export {
   type BlueprintAuthoringDiagnostic,
   type BlueprintAuthoringValidation,
   type BlueprintDiagnosticPath,
+  blockOrAssetHint,
+  diagnosticCode,
+  diagnosticsFromBlockIssues,
+  issueToDiagnostic,
+  toJsonPath as authoringToJsonPath,
   validateBlueprintForAuthoring,
 } from './authoring-validation.ts';
 export {

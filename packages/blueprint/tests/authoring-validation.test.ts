@@ -1,8 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
+import { safeParseBlock, safeParseBlocks } from '../../blocks/src/schema/index.ts';
 import {
+  blockOrAssetHint,
   CONTENT_KINDS,
   type ContentKind,
+  diagnosticCode,
+  diagnosticsFromBlockIssues,
   parseBlueprint,
   safeParseBlueprint,
   validateBlueprintForAuthoring,
@@ -241,5 +245,178 @@ describe('validateBlueprintForAuthoring for kinds this build does not ship', () 
         },
       ],
     });
+  });
+});
+
+describe('block and asset authoring hints', () => {
+  function fromBlock(input: unknown, prefix: (string | number)[] = ['deck', 'blocks']) {
+    const parsed = safeParseBlock(input);
+    expect(parsed.success).toBe(false);
+    return diagnosticsFromBlockIssues(parsed.issues, prefix);
+  }
+
+  it('maps an unknown block type to a stable code and path-addressed hint', () => {
+    const diagnostics = fromBlock({ type: 'script', code: 'alert(1)' });
+    expect(diagnostics).toEqual([
+      {
+        code: 'unknown-block-type',
+        path: ['deck', 'blocks', 'type'],
+        jsonPath: '$["deck"]["blocks"]["type"]',
+        message: expect.stringMatching(/Invalid discriminator/i),
+        hint: blockOrAssetHint('unknown-block-type', ''),
+      },
+    ]);
+    expect(diagnostics[0]?.hint).toMatch(/supported block type/i);
+  });
+
+  it('maps missing image alt text without fetching anything', () => {
+    const diagnostics = fromBlock({
+      type: 'image',
+      src: 'assets/cover.png',
+      width: 1,
+      height: 1,
+    });
+    expect(diagnostics).toContainEqual({
+      code: 'missing-alt-text',
+      path: ['deck', 'blocks', 'alt'],
+      jsonPath: '$["deck"]["blocks"]["alt"]',
+      message: 'Describe the image in alt, or mark it decorative: true',
+      hint: expect.stringMatching(/alt description|decorative/i),
+    });
+  });
+
+  it('maps remote and script media sources as unsupported URL schemes', () => {
+    const remote = fromBlock({
+      type: 'image',
+      src: 'https://evil.example/x.png',
+      alt: 'x',
+      width: 1,
+      height: 1,
+    });
+    expect(remote[0]).toMatchObject({
+      code: 'unsupported-url-scheme',
+      path: ['deck', 'blocks', 'src'],
+      jsonPath: '$["deck"]["blocks"]["src"]',
+    });
+    expect(remote[0]?.hint).toMatch(/Remote media|javascript/i);
+    expect(remote[0]?.hint).toMatch(/nothing is fetched/i);
+
+    const link = fromBlock({
+      type: 'cta',
+      title: 'Go',
+      actions: [{ label: 'Open', href: 'javascript:alert(1)' }],
+    });
+    expect(link).toContainEqual(
+      expect.objectContaining({
+        code: 'unsupported-url-scheme',
+        path: ['deck', 'blocks', 'actions', 0, 'href'],
+        message: 'Use an http(s), mailto, #anchor or relative link',
+      })
+    );
+  });
+
+  it('maps invalid chart specs with a chart-specific hint', () => {
+    const diagnostics = fromBlock({
+      type: 'chart',
+      spec: {
+        kind: 'donut',
+        title: 'Share',
+        labels: ['a'],
+        series: [{ label: 's', values: [1, 2] }],
+      },
+    });
+    expect(diagnostics).toContainEqual({
+      code: 'invalid-chart-spec',
+      path: ['deck', 'blocks', 'spec', 'series', 0, 'values'],
+      jsonPath: '$["deck"]["blocks"]["spec"]["series"][0]["values"]',
+      message: 'Needs one value per label (1)',
+      hint: expect.stringMatching(/chart spec|one value per label/i),
+    });
+  });
+
+  it('maps invalid step or fragment targets and duplicate block ids', () => {
+    expect(diagnosticCode('custom', 'No such step "intro"', ['fragment', 'target'])).toBe(
+      'invalid-step-or-fragment-target'
+    );
+    expect(diagnosticCode('custom', 'unknown fragment target #gone', ['href'])).toBe(
+      'invalid-step-or-fragment-target'
+    );
+    expect(blockOrAssetHint('invalid-step-or-fragment-target', '')).toMatch(/block id|step index/i);
+
+    const blocks = safeParseBlocks([
+      { type: 'text', id: 'same', markdown: 'one' },
+      { type: 'text', id: 'same', markdown: 'two' },
+    ]);
+    expect(blocks.success).toBe(false);
+    const diagnostics = diagnosticsFromBlockIssues(blocks.issues, ['page', 'body']);
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: 'duplicate-block-id',
+        path: ['page', 'body', 1, 'id'],
+        hint: expect.stringMatching(/unique id/i),
+      })
+    );
+  });
+
+  it('produces deterministic diagnostics and never touches the network', () => {
+    const fetchImpl = globalThis.fetch;
+    const fetchSpy = vi.fn();
+    globalThis.fetch = fetchSpy as unknown as typeof fetch;
+    try {
+      const input = {
+        type: 'image',
+        src: 'https://cdn.example/a.png',
+        alt: 'x',
+        width: 10,
+        height: 10,
+      };
+      const first = fromBlock(input, ['doc', 'sections', 0, 'blocks', 2]);
+      const second = fromBlock(structuredClone(input), ['doc', 'sections', 0, 'blocks', 2]);
+      expect(first).toEqual(second);
+      expect(first[0]?.jsonPath).toBe('$["doc"]["sections"][0]["blocks"][2]["src"]');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      globalThis.fetch = fetchImpl;
+    }
+  });
+
+  it('keeps path prefixes when mapping a list of block issues into a deck body', () => {
+    const restore = withKindBodySchemaForTesting(
+      'deck',
+      z.strictObject({
+        title: z.string().min(1),
+        blocks: z.array(z.unknown()),
+      })
+    );
+    try {
+      // Body shape is valid; block mapping is separate and path-prefixed for authors.
+      const envelope = validateBlueprintForAuthoring({
+        formatVersion: 1,
+        kind: 'deck',
+        name: 'Pitch',
+        description: 'Fictional.',
+        deck: { title: 'Hello', blocks: [] },
+      });
+      expect(envelope.valid).toBe(true);
+
+      const mapped = diagnosticsFromBlockIssues(
+        [
+          {
+            path: [0, 'type'],
+            message: "Invalid discriminator value. Expected 'heading' | 'text' | 'image' | 'chart'",
+          },
+        ],
+        ['deck', 'blocks']
+      );
+      expect(mapped[0]).toEqual({
+        code: 'unknown-block-type',
+        path: ['deck', 'blocks', 0, 'type'],
+        jsonPath: '$["deck"]["blocks"][0]["type"]',
+        message: expect.stringContaining('Invalid discriminator'),
+        hint: expect.stringMatching(/supported block type/i),
+      });
+    } finally {
+      restore();
+    }
   });
 });
