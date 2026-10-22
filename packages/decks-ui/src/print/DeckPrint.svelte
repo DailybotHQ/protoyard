@@ -24,6 +24,16 @@ const aspect = $derived((deck.style?.aspect ?? '16:9') as DeckAspect);
 const canvas = $derived(deckCanvasSize(aspect));
 const pages = $derived(deck.slides.filter((slide) => !slide.hidden));
 
+// One printed page per slide at the canvas size. @page cannot read the custom
+// properties set on the print root, so the size is written as numbers here.
+$effect(() => {
+  const style = document.createElement('style');
+  style.setAttribute('data-py-deck-print-page-size', '');
+  style.textContent = `@media print { @page { size: ${canvas.width}px ${canvas.height}px; margin: 0; } }`;
+  document.head.append(style);
+  return () => style.remove();
+});
+
 function layoutPropsFor(slide: DeckSlide): {
   layout: string;
   props: Record<string, unknown>;

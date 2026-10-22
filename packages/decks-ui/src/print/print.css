@@ -55,7 +55,7 @@
   -webkit-print-color-adjust: exact;
 }
 
-[data-py-deck-print-notes] {
+[data-py-deck-print-notes-block] {
   margin: 0.75rem auto 1.5rem;
   max-width: var(--py-deck-print-width);
   padding: 0.75rem 1rem;
@@ -79,8 +79,8 @@
 }
 
 @media print {
+  /* The page size comes from DeckPrint, which knows the deck aspect: var() does not resolve in @page. */
   @page {
-    size: var(--py-deck-print-width) var(--py-deck-print-height);
     margin: 0;
   }
 
@@ -94,8 +94,8 @@
     color: #000 !important;
   }
 
-  /* Hide everything that is not the print root while printing. */
-  body > *:not([data-py-deck-print]):not(script):not(style) {
+  /* Hide everything that is not the print root (or a container of it) while printing. */
+  body > *:not([data-py-deck-print]):not(:has([data-py-deck-print])):not(script):not(style) {
     display: none !important;
   }
 
@@ -124,7 +124,7 @@
     page-break-after: auto;
   }
 
-  [data-py-deck-print-notes] {
+  [data-py-deck-print-notes-block] {
     break-before: avoid;
     page-break-before: avoid;
     break-inside: avoid;

@@ -124,12 +124,32 @@ describe('print stylesheet', () => {
     const css = readFileSync(join(SRC, 'print.css'), 'utf8');
     expect(css).toMatch(/@media\s+print/);
     expect(css).toMatch(/@page/);
-    expect(css).toMatch(/size:\s*var\(--py-deck-print-width\)\s+var\(--py-deck-print-height\)/);
+    // var() never resolves in @page: DeckPrint writes the size (see the next test).
+    expect(css).not.toMatch(/size:\s*var\(/);
+    // The print root is usually inside an app container, which must stay visible.
+    expect(css).toMatch(/:not\(:has\(\[data-py-deck-print\]\)\)/);
+    // Notes styles target the notes blocks, never the print root (which carries data-py-deck-print-notes).
+    expect(css).not.toMatch(/\[data-py-deck-print-notes\]\s*\{/);
     expect(css).toMatch(/page-break-after:\s*always|break-after:\s*page/);
     expect(css).toMatch(/print-color-adjust:\s*exact/);
     expect(css).toMatch(/-webkit-print-color-adjust:\s*exact/);
     expect(css).toMatch(/data-py-deck-print-page/);
     expect(css).toMatch(/data-py-print-button/);
+  });
+});
+
+describe('DeckPrint page size', () => {
+  it('writes the canvas size into @page while mounted, per aspect', () => {
+    const sizeRule = () =>
+      document.head.querySelector('style[data-py-deck-print-page-size]')?.textContent ?? null;
+    const { unmount } = render(DeckPrint, { deck: sampleDeck() });
+    expect(sizeRule()).toBe('@media print { @page { size: 1280px 720px; margin: 0; } }');
+    unmount();
+    expect(sizeRule()).toBeNull();
+
+    render(DeckPrint, { deck: { ...sampleDeck(), style: { aspect: '9:16' } } });
+    expect(sizeRule()).toMatch(/size: 720px 1280px;/);
+    expect(document.head.querySelectorAll('style[data-py-deck-print-page-size]')).toHaveLength(1);
   });
 });
 
