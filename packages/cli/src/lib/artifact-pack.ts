@@ -98,6 +98,10 @@ const CONTENT_TYPES: Record<string, { type: string; text: boolean }> = {
   ico: { type: 'image/x-icon', text: false },
   woff2: { type: 'font/woff2', text: false },
   woff: { type: 'font/woff', text: false },
+  // font/ttf and font/otf are registered web types (RFC 8081); the Artifact tool
+  // serves them as binary assets the same way it serves woff/woff2.
+  ttf: { type: 'font/ttf', text: false },
+  otf: { type: 'font/otf', text: false },
 };
 const SOURCE_MAP = { type: 'application/json', text: true };
 
