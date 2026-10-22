@@ -130,3 +130,18 @@ export {
   isBlockFamily,
   isBlockTone,
 } from './schema/vocabulary.ts';
+
+export {
+  blocksText,
+  blocksToMarkdown,
+  blockText,
+  countBlockWords,
+  countWords,
+  escapeMarkdown,
+  type OutlineEntry,
+  outlineOf,
+  slugifyHeading,
+  uniqueSlug,
+  type WalkedBlock,
+  walkBlocks,
+} from './text.ts';
