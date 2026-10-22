@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { expect, type Frame, type FrameLocator, type Page, test } from '@playwright/test';
+import { type AnyBlueprint, encodeBlueprintShare } from '../../packages/blueprint/src/index.ts';
 import { expectAccessible } from './support/a11y.ts';
+import { readShowcaseKindBlueprint, SHOWCASE_KIND_TARGETS } from './targets.ts';
 
 /**
  * The hosted showcase (`protoyard showcase`): the gallery's live preview
@@ -29,8 +31,8 @@ function playerFrame(page: Page): Frame {
 
 async function openPlay(page: Page): Promise<FrameLocator> {
   await page.goto(`${SITE}play/`);
-  await expect(page.getByRole('heading', { name: 'Play a blueprint' })).toBeVisible();
-  return page.frameLocator('iframe[title="Running Protoyard prototype"]');
+  await expect(page.getByRole('heading', { name: 'Run a blueprint' })).toBeVisible();
+  return page.frameLocator('iframe[title="Running Protoyard blueprint"]');
 }
 
 function browserFailures(page: Page): string[] {
@@ -45,7 +47,7 @@ function browserFailures(page: Page): string[] {
 }
 
 async function loadPastedAnalytics(page: Page, app: FrameLocator): Promise<void> {
-  await page.getByLabel('Blueprint JSON').fill(ANALYTICS_BLUEPRINT);
+  await page.getByLabel('Blueprint JSON (app, deck, page, or document)').fill(ANALYTICS_BLUEPRINT);
   await page.getByRole('button', { name: 'Load blueprint' }).click();
   await expect(page.getByRole('status')).toContainText('Quick Product Analytics is running');
   await expect(app.locator('html')).toHaveAttribute('data-py-ready', 'true', { timeout: 20_000 });
@@ -57,6 +59,52 @@ async function loadPastedAnalytics(page: Page, app: FrameLocator): Promise<void>
 
 test.describe('showcase site', () => {
   test.skip(process.env.PROTOYARD_E2E_SHOWCASE !== '1', 'set PROTOYARD_E2E_SHOWCASE=1');
+
+  for (const target of SHOWCASE_KIND_TARGETS) {
+    test(`opens and reloads the hosted ${target.kind} blueprint`, async ({ page }) => {
+      const failures = browserFailures(page);
+      const source = JSON.parse(readShowcaseKindBlueprint(target)) as AnyBlueprint;
+      const share = await encodeBlueprintShare(source);
+      await page.goto(`${SITE}play/#bp=${share}`);
+      await expect(page.getByRole('heading', { name: 'Run a blueprint' })).toBeVisible();
+      const app = page.frameLocator('iframe[title="Running Protoyard blueprint"]');
+      await expect(app.locator('html')).toHaveAttribute('data-py-ready', 'true', {
+        timeout: 20_000,
+      });
+      const kindRoot = app.locator(target.root);
+      await expect(kindRoot).toBeVisible();
+      if (target.kind === 'app') {
+        await expect(kindRoot.getByRole('heading').first()).toBeVisible();
+      } else {
+        await expect(
+          kindRoot.getByRole('heading', { name: target.heading, exact: true }).first()
+        ).toBeVisible();
+      }
+
+      if (target.kind === 'deck') {
+        await kindRoot.press('ArrowRight');
+        await expect(kindRoot).toHaveAttribute('data-slide-id', target.nextSlide);
+      }
+
+      await page.reload();
+
+      const reloadedApp = page.frameLocator('iframe[title="Running Protoyard blueprint"]');
+      await expect(reloadedApp.locator('html')).toHaveAttribute('data-py-ready', 'true', {
+        timeout: 20_000,
+      });
+      const reloadedRoot = reloadedApp.locator(target.root);
+      await expect(reloadedRoot).toBeVisible();
+      if (target.kind === 'app') {
+        await expect(reloadedRoot.getByRole('heading').first()).toBeVisible();
+      } else {
+        await expect(
+          reloadedRoot.getByRole('heading', { name: target.heading, exact: true }).first()
+        ).toBeVisible();
+      }
+      expect(playerFrame(page).url()).toContain('/player/');
+      expect(failures).toEqual([]);
+    });
+  }
 
   test('runs a pasted blueprint through a mutation and persona/scenario switch', async ({
     page,
@@ -120,7 +168,9 @@ test.describe('showcase site', () => {
   }, testInfo) => {
     const failures = browserFailures(page);
     await openPlay(page);
-    await page.getByLabel('Blueprint JSON').fill(ANALYTICS_BLUEPRINT);
+    await page
+      .getByLabel('Blueprint JSON (app, deck, page, or document)')
+      .fill(ANALYTICS_BLUEPRINT);
     await page.getByRole('button', { name: 'Copy share link' }).click();
     await expect(page.getByRole('status')).toContainText(/Share link/);
     const shareUrl = page.url();
@@ -129,13 +179,13 @@ test.describe('showcase site', () => {
     const sharedPage = await page.context().newPage();
     const sharedFailures = browserFailures(sharedPage);
     await sharedPage.goto(shareUrl);
-    let sharedApp = sharedPage.frameLocator('iframe[title="Running Protoyard prototype"]');
+    let sharedApp = sharedPage.frameLocator('iframe[title="Running Protoyard blueprint"]');
     await expect(sharedApp.locator('html')).toHaveAttribute('data-py-ready', 'true', {
       timeout: 20_000,
     });
     await expect(sharedApp.locator('main').getByRole('heading').first()).toBeVisible();
     await sharedPage.reload();
-    sharedApp = sharedPage.frameLocator('iframe[title="Running Protoyard prototype"]');
+    sharedApp = sharedPage.frameLocator('iframe[title="Running Protoyard blueprint"]');
     await expect(sharedApp.locator('html')).toHaveAttribute('data-py-ready', 'true', {
       timeout: 20_000,
     });

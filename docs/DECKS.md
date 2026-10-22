@@ -74,6 +74,34 @@ timers, blackout, the laser pointer, `?print=1` with and without notes, the
 Chromium PDF. Each failure names what broke, for example
 "pressing S should open the presenter popup (was it blocked?)".
 
+## Style: theme, fonts and backgrounds
+
+Everything a deck sets in `deck.style` is visible in every view that shows
+slides: the canvas, the overview thumbnails, the presenter's deck surface and
+print pages.
+
+- **Theme.** `theme` (a built-in or one of the 64 library themes) or
+  `paletteSeed` (a generated palette). It is applied to the deck root only, so
+  the host page and DevTools keep their own theme. Library themes load lazily.
+  An unknown theme or font pairing falls back to the default, and a short note
+  appears in the deck chrome; the deck never fails to render.
+- **Type and shape.** `fontPair` (system font stacks, no downloads), `radius`,
+  `density` and `motion`. Headings, body text and default borders follow the
+  deck as well as utility classes.
+- **Backgrounds.** `style.background` sets the deck background preset and each
+  `slide.background` overrides it, from the 13 `DECK_BACKGROUND_PRESET_IDS`:
+  six solids, five gradients and two patterns. Every preset gets a computed text
+  color with at least 4.5:1 contrast against all of the background. On a preset
+  that flips the theme's text tone (light text on a light theme), the slide's
+  text tokens take that color and cards become outlines. Text stays readable in
+  light and dark, in every built-in and library theme
+  (`packages/decks-ui/tests/style-apply.test.ts`).
+- **Footer.** `footer`, a local `logo` image and `slideNumbers` appear at the
+  bottom left of every slide. Turn numbers off with `slideNumbers: false`. A
+  remote logo is refused with a note.
+- **Mode.** `DeckApp` takes `mode` (`light` by default, for stable exports) or
+  `dark`.
+
 ## Authoring
 
 Deck blueprints live in `blueprints/decks/` and declare `kind: "deck"`, a
