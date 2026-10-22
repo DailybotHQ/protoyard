@@ -40,7 +40,7 @@ $effect(() => {
     bind:this={node}
     id={tooltip.id}
     role="tooltip"
-    class="pointer-events-none fixed top-0 left-0 z-50 max-w-[min(20rem,calc(100vw-1rem))] rounded-md border border-border bg-popover px-3 py-2 text-left text-xs leading-snug text-popover-foreground shadow-md motion-safe:transition-opacity motion-safe:duration-100 print:hidden"
+    class="pointer-events-none fixed top-0 left-0 z-50 max-w-xs rounded-md border border-border bg-popover px-3 py-2 text-left text-xs leading-snug text-popover-foreground shadow-lg transition-opacity duration-200"
     style={position ? `transform:translate(${Math.round(position.x)}px,${Math.round(position.y)}px)` : 'opacity:0'}
     data-py-deck-tooltip
   >

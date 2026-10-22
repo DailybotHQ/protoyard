@@ -92,7 +92,7 @@ $effect(() => {
 
 <div
   bind:this={layer}
-  class="pointer-events-none absolute inset-0 z-30 overflow-hidden print:hidden"
+  class="pointer-events-none absolute inset-0 z-30 overflow-hidden"
   aria-hidden="true"
   data-py-deck-outline
 >
@@ -102,7 +102,7 @@ $effect(() => {
       style={`left:${item.x}px;top:${item.y}px;width:${item.width}px;height:${item.height}px`}
       data-py-deck-outline-box={item.pointer}
     >
-      <span class="absolute top-0 left-0 max-w-full truncate rounded-br-sm bg-primary px-1 font-mono text-[10px] leading-4 text-primary-foreground">
+      <span class="absolute top-0 left-0 max-w-full truncate rounded-sm bg-primary px-1 font-mono text-[10px] leading-4 text-primary-foreground">
         {item.pointer}
       </span>
     </div>

@@ -211,6 +211,9 @@ test.describe('deck exported as a Claude artifact', () => {
     await frame.locator('[data-py-deck-app]').press('ArrowRight');
     await expectSlide(frame, 'promise');
 
+    // On a phone the share tools sit in the More menu (T-toolbar-redesign).
+    const more = frame.locator('[data-py-deck-more] summary');
+    if (await more.isVisible()) await more.click();
     await frame.locator('[data-py-deck-tool="copy-reference"]').click();
     await expect(frame.locator('[data-py-deck-copy-status]')).toHaveText('Could not copy the link');
     // Clicking a tool never advances the deck.

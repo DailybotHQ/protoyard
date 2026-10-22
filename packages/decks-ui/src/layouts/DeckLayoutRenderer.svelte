@@ -2,7 +2,6 @@
 import type { DeckLayoutId } from '@protoyard/decks';
 import { stripStepMarkers } from '@protoyard/decks/layouts';
 import type { CustomSlide } from '@protoyard/decks/schema';
-import CustomSlideHost from './CustomSlideHost.svelte';
 import { loadLayoutRenderer } from './registry.ts';
 
 let { layout, props }: { layout: DeckLayoutId; props: unknown } = $props();
@@ -15,7 +14,9 @@ const content = $derived(layout === 'free' ? props : stripStepMarkers(props));
 
 {#if layout === 'custom'}
   <!-- Thumbnails, print and previews never run a deck's own code: a labelled card instead. -->
-  <CustomSlideHost slide={{ id: 'custom', layout: 'custom', props } as CustomSlide} live={false} />
+  {#await import('./CustomSlideHost.svelte') then host}
+    <host.default slide={{ id: 'custom', layout: 'custom', props } as CustomSlide} live={false} />
+  {/await}
 {:else}
 {#await load}
   <div aria-label="Loading slide layout" class="grid h-full place-items-center" role="status">

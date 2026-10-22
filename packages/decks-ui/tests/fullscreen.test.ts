@@ -229,7 +229,8 @@ describe('DeckApp full screen', () => {
     expect(app.dataset.fullscreen).toBe('true');
     expect(app.className).toContain('fixed');
     expect(view.container.querySelector('[data-py-deck-toolbar]')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Leave full screen' })).toBeTruthy();
+    // The overlay loads on its own chunk.
+    expect(await screen.findByRole('button', { name: 'Leave full screen' })).toBeTruthy();
     expect(view.container.querySelector('[data-py-deck-fullscreen-mode-note]')).not.toBeNull();
 
     await fireEvent.keyDown(app, { key: 'Escape' });
@@ -267,7 +268,7 @@ describe('DeckApp full screen', () => {
       await waitFor(() => expect(app.dataset.slideId).toBe('body'));
 
       // The overlay's way out.
-      await fireEvent.click(screen.getByRole('button', { name: 'Leave full screen' }));
+      await fireEvent.click(await screen.findByRole('button', { name: 'Leave full screen' }));
       await waitFor(() => expect(app.dataset.fullscreen).toBeUndefined());
       await waitFor(() => expect(document.activeElement).toBe(app));
     } finally {
@@ -279,6 +280,7 @@ describe('DeckApp full screen', () => {
     vi.useFakeTimers();
     const { view, app } = mount();
     await fireEvent.keyDown(app, { key: 'f' });
+    await vi.dynamicImportSettled();
     flushSync();
     const overlay = () =>
       view.container.querySelector('[data-py-deck-fullscreen-overlay]') as HTMLElement;
@@ -306,6 +308,9 @@ describe('DeckApp full screen', () => {
     await fireEvent.keyDown(app, { key: 'f' });
     await fireEvent.keyDown(app, { key: 'b' });
     await waitFor(() => expect(app.dataset.blackout).toBe('true'));
+    await waitFor(() =>
+      expect(view.container.querySelector('[data-py-deck-fullscreen-overlay]')).not.toBeNull()
+    );
     const overlay = view.container.querySelector(
       '[data-py-deck-fullscreen-overlay]'
     ) as HTMLElement;

@@ -35,6 +35,13 @@ const STEP_P95_CEILING_MS = 50;
  * frame budget. Still far below rendering all 200 slides.
  */
 const JUMP_CEILING_MS = 50;
+/**
+ * Entering and leaving full screen (F, then Escape) re-lays out the stage once
+ * each way. happy-dom has no Fullscreen API, so this times the fill-the-window
+ * mode: the same state change and chrome swap a browser makes after its own
+ * full screen transition.
+ */
+const FULLSCREEN_CEILING_MS = 50;
 const SLIDES = 200;
 
 class ResizeObserverStub {
@@ -168,6 +175,23 @@ describe('a 200-slide deck', () => {
     expect(report.prevMedianMs).toBeLessThan(STEP_BUDGET_MS);
     expect(report.nextP95Ms).toBeLessThan(STEP_P95_CEILING_MS);
     expect(report.prevP95Ms).toBeLessThan(STEP_P95_CEILING_MS);
+  });
+
+  it('enters and leaves full screen within a frame or two', async () => {
+    const enterStart = performance.now();
+    fireEvent.keyDown(root, { key: 'f' });
+    await expect.poll(() => root.dataset.fullscreen, { timeout: 2_000, interval: 1 }).toBe('true');
+    flushSync();
+    report.fullscreenEnterMs = round(performance.now() - enterStart);
+    const leaveStart = performance.now();
+    fireEvent.keyDown(root, { key: 'Escape' });
+    await expect
+      .poll(() => root.dataset.fullscreen, { timeout: 2_000, interval: 1 })
+      .toBe(undefined);
+    flushSync();
+    report.fullscreenLeaveMs = round(performance.now() - leaveStart);
+    expect(report.fullscreenEnterMs).toBeLessThan(FULLSCREEN_CEILING_MS);
+    expect(report.fullscreenLeaveMs).toBeLessThan(FULLSCREEN_CEILING_MS);
   });
 
   it('jumps to the last and first slide in one step', () => {

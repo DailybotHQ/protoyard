@@ -54,10 +54,10 @@ $effect(() => {
 });
 </script>
 
-<div class="deck-media-background" aria-hidden="true" data-py-deck-media-background={media.type}>
+<div class="deck-media-background pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true" data-py-deck-media-background={media.type}>
   {#if media.type === 'image'}
     <img
-      class="deck-media-background__image"
+      class="deck-media-background__image absolute inset-0 size-full"
       src={media.src}
       alt={media.alt ?? ''}
       loading={preload === 'auto' ? 'eager' : 'lazy'}
@@ -67,7 +67,7 @@ $effect(() => {
   {:else}
     {#if media.poster}
       <img
-        class="deck-media-background__poster"
+        class="deck-media-background__poster absolute inset-0 hidden size-full"
         src={media.poster}
         alt=""
         loading={preload === 'auto' ? 'eager' : 'lazy'}
@@ -77,7 +77,7 @@ $effect(() => {
     {/if}
     <video
       bind:this={video}
-      class="deck-media-background__video"
+      class="deck-media-background__video absolute inset-0 size-full"
       src={media.src}
       poster={media.poster}
       muted
@@ -88,36 +88,11 @@ $effect(() => {
       style={`object-fit:${media.fit};object-position:${objectPosition(media.position)}`}
     ></video>
   {/if}
-  <span class="deck-media-background__scrim" style={`background:${overlayColor}`}></span>
+  <span class="deck-media-background__scrim absolute inset-0" style={`background:${overlayColor}`}></span>
 </div>
 
 <style>
-  .deck-media-background {
-    position: absolute;
-    z-index: 0;
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
-  }
-
-  .deck-media-background__image,
-  .deck-media-background__poster,
-  .deck-media-background__video {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    inset: 0;
-  }
-
-  .deck-media-background__poster {
-    display: none;
-  }
-
-  .deck-media-background__scrim {
-    position: absolute;
-    inset: 0;
-  }
-
+  /* Positioning comes from shared utilities; only the reduced-motion and print swap is local. */
   @media (prefers-reduced-motion: reduce), print {
     .deck-media-background__video {
       display: none;

@@ -51,8 +51,10 @@ describe('interactive tables', () => {
 
   it('sorts stably in either direction and exposes accessible sort state', async () => {
     render(TableBlock, { block: interactiveTable() });
+    // The sort and filter controls load on their own chunk; the plain table shows meanwhile.
+    expect(screen.getByRole('table', { name: 'Projects by team' })).toBeTruthy();
+    const sort = await screen.findByRole('button', { name: 'Sort by Project' });
     const table = screen.getByRole('table', { name: 'Projects by team' });
-    const sort = screen.getByRole('button', { name: 'Sort by Project' });
 
     await fireEvent.click(sort);
     expect(table.querySelector('th[aria-sort="ascending"]')?.textContent).toContain('Project');
@@ -81,6 +83,7 @@ describe('interactive tables', () => {
 
   it('filters rows, highlights them on pointer and keyboard focus, and blocks deck navigation', async () => {
     const { container } = render(TableBlock, { block: interactiveTable() });
+    await screen.findByRole('searchbox', { name: 'Filter Projects by team' });
     const table = screen.getByRole('table', { name: 'Projects by team' });
     const root = container.querySelector('[data-py-block="table"]');
     expect(root?.hasAttribute('data-py-deck-interactive')).toBe(true);
@@ -100,14 +103,14 @@ describe('interactive tables', () => {
     });
     const alpha = within(table).getByRole('row', { name: /Alpha/ });
     expect(alpha.getAttribute('tabindex')).toBe('0');
-    expect(alpha.className).toContain('hover:bg-primary/10');
-    expect(alpha.className).toContain('focus-visible:bg-primary/10');
+    expect(alpha.className).toContain('hover:bg-muted');
+    expect(alpha.className).toContain('focus-visible:bg-muted');
     expect(container.querySelector('[data-py-deck-interactive]')).toBe(root);
   });
 
   it('keeps sort and filter state local to the mounted slide view', async () => {
     const { unmount } = render(TableBlock, { block: interactiveTable() });
-    await fireEvent.click(screen.getByRole('button', { name: 'Sort by Project' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Sort by Project' }));
     await fireEvent.input(screen.getByRole('searchbox', { name: 'Filter Projects by team' }), {
       target: { value: 'alpha' },
     });
@@ -115,7 +118,11 @@ describe('interactive tables', () => {
 
     render(TableBlock, { block: interactiveTable() });
     expect(
-      (screen.getByRole('searchbox', { name: 'Filter Projects by team' }) as HTMLInputElement).value
+      (
+        (await screen.findByRole('searchbox', {
+          name: 'Filter Projects by team',
+        })) as HTMLInputElement
+      ).value
     ).toBe('');
     expect(screen.getByRole('button', { name: 'Sort by Project' })).toBeTruthy();
     expect(

@@ -337,8 +337,12 @@ export const DeckSchema = z
 
 export type Deck = z.infer<typeof DeckSchema>;
 
-/** A JSON Schema document for agent prompts and editor integrations. */
-export const DeckJsonSchema = z.toJSONSchema(DeckSchema, {
+/**
+ * A JSON Schema document for agent prompts and editor integrations. Pure: a
+ * renderer that never reads it (DeckApp) leaves zod's JSON Schema converter out
+ * of its bundle.
+ */
+export const DeckJsonSchema = /* @__PURE__ */ z.toJSONSchema(DeckSchema, {
   io: 'input',
   target: 'draft-2020-12',
 });

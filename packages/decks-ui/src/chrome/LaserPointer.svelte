@@ -56,7 +56,7 @@ $effect(() => {
 
 <div class="pointer-events-none absolute inset-0 z-40 overflow-hidden" aria-hidden="true" data-py-deck-laser>
   <span
-    class="absolute top-3 left-3 rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white shadow print:hidden"
+    class="absolute top-3 left-3 rounded-full bg-destructive px-2.5 py-1 text-xs font-semibold text-white shadow"
     data-py-deck-laser-chip
   >
     Laser on

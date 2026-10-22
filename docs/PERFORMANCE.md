@@ -1761,7 +1761,7 @@ Measured 2026-10-22 (Node 26.11.1, Vite 8.3.4):
 | Root dispatcher | 2.10 KB | 3 KB | Pass |
 | Text | 11.98 KB | 12.8 KB (estimate was 6 KB) | Pass |
 | Media | 2.93 KB | 4 KB | Pass |
-| Data | 3.96 KB | 5 KB | Pass |
+| Data | 4.64 KB (4,751 B; 4,999 B before the sort and filter controls moved to their own chunk) | 5 KB | Pass |
 | Structure | 12.55 KB | 13.5 KB (estimate was 8 KB) | Pass |
 | Code | 3.94 KB | 6 KB | Pass |
 | Diagram | 4.81 KB | 6 KB | Pass |
@@ -1819,6 +1819,7 @@ Ranges over six runs (Node 26.11.1, happy-dom 21, vitest 5):
 | Slowest single step | 6.5–64 ms (garbage-collection pauses) | not gated |
 | Home / End jump | 0.38–11.9 ms | < 50 ms (single sample) |
 | Slides in the DOM | 2–3 | ≤ 3 after every step |
+| Full screen enter / leave (window mode) | 1.79–3.13 ms / 4.1–7.28 ms | < 50 ms each |
 
 Step times cover the synchronous update: the key decision, the navigator, the Svelte update and the
 DOM. A layout family's lazy chunk loads asynchronously the first time a slide of that family comes
@@ -1831,6 +1832,58 @@ sample can absorb a GC pause. A regression to rendering every slide fails the wi
 dropped the canvas window failed all three tests.
 
 Run it with `pnpm vitest run packages/decks-ui/tests/large-deck.perf.test.ts`.
+
+## Decks: entry and controls (PLAN_006, measured 2026-10-22)
+
+The PLAN_006 controls (toolbar redesign, tooltips, help, first-visit hint, full screen fix,
+debug panel and custom slides) grew the deck entry. Task 17 moved what first paint does not
+need onto lazy chunks and held every gate; no ceiling was raised. Gzip level 9, M1 Max,
+Node 26.11.1.
+
+| Measure | `main` 1ee2d352 | `dev` before | After | Command |
+| --- | ---: | ---: | ---: | --- |
+| `@protoyard/decks-ui/app` initial JS (probe) | 82,546 B | 95,837 B | 92,464 B | `pnpm vitest run packages/decks-ui/tests/bundle-size.test.ts` |
+| Same, all emitted CSS | — | 3,354 B | 3,284 B | same |
+| Player `deck.html` JS / CSS | — | 125,930 / 20,668 B | 125,328 / 20,349 B | `pnpm vitest run packages/player/tests/kind-budget.test.ts` |
+| Flagship `create-anything-deck` initial JS | — | 230.15 KB | 226.96 KB | `pnpm protoyard budget create-anything-deck` |
+| Flagship CSS (all files) | — | 30.54 KB (over the 30 KB cap) | 30.00 KB (pass, no headroom) | same |
+| Blocks data family | — | 4,999 B | 4,751 B | `pnpm exec tsx scripts/bench-blocks.ts` |
+
+The `main` figure is the same probe run on a checkout of 1ee2d352. The player and flagship
+could not be built from that archived tree, so they have no `main` column.
+
+Step by step on the probe: pure-annotating `DeckJsonSchema` 95,200 B, lazy custom-slide host
+94,403 B, lazy keyboard help and full screen overlay 93,158 B, first-visit hint loaded only
+when it will show 92,828 B, lazy More menu and slide list 92,350 B, idle prefetch 92,514 B
+(+164 B). Moving the table's sort and filter controls to their own chunk and using standard
+utility classes in the chrome recovered the CSS.
+
+**What stays lazy.** `tests/lazy-chrome.test.ts` builds the probe and fails if the keyboard
+help, the full screen overlay, the first-visit hint, the More menu, the slide list, the
+custom-slide host, the debug panel, the prefetcher or the interactive table controls enter the
+initial graph.
+
+**Idle prefetch.** While a slide is on screen, DeckApp waits for an idle moment
+(`requestIdleCallback`, 2 s timeout; a 200 ms timer elsewhere) and loads the layout and block
+family chunks of the next two slides beyond the window. Failed loads are ignored. Print mode
+does not prefetch.
+
+**Time to first slide** (`scripts/bench-player.ts --kinds deck`, median of 5, first content /
+cold): harbor-ops-pitch 187.5 → 167.2 ms / 163.6 → 140.9 ms; the 42-slide `everything` deck
+204.3 → 180.1 ms / 167.8 → 145.9 ms.
+
+**Steps on the 200-slide deck** (happy-dom, see the next section): next median 0.62 ms on
+`main`, 0.83–0.93 ms now (p95 1.27 → 1.56–1.68 ms); first render 116.8 ms on `main`, 68–78 ms
+now. Both remain far under a frame.
+
+**Not recovered.** The debug panel's lazy import still adds 3,086 B to the entry: Rolldown
+moves modules the entry shares with the debug chunk into common chunks, and the glue costs
+gzip. A manual `$initial` chunk group made the entry larger (95,416 B), so it was not kept.
+
+**Rolldown runtime and Dexie in prototypes.** Adding the player's `rolldown-runtime` and
+`dexie` chunk groups to `defineProtoyardConfig` changed nothing that matters
+(create-anything-deck 226.85 → 227.06 KB, crm-demo 180.28 → 180.17 KB): prototypes open their
+database at boot, so Dexie belongs on the first screen. The groups were not added.
 
 ## Generated CRUD screens
 

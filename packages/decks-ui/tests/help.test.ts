@@ -238,7 +238,8 @@ describe('inside DeckApp', () => {
 
   it('shows the hint on the first visit only, and the guide from the toolbar', async () => {
     const first = render(DeckApp, { props: { deck: deck(), namespace: 'help-test' } });
-    expect(hint()).not.toBeNull();
+    // The hint loads on its own chunk, and only when it will show.
+    await waitFor(() => expect(hint()).not.toBeNull());
     expect(localStorage.getItem(firstRunHintKey('help-test'))).toBe('1');
     // A click on the hint never advances the deck.
     expect(hint()?.hasAttribute('data-py-deck-chrome')).toBe(true);
