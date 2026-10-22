@@ -1,7 +1,7 @@
 import { BLOCK_LIMITS, type BlockLimits } from './limits.ts';
+import { isUnsafeTextCharacter, normalizeLineSeparators } from './safety.ts';
 import { type Block, type BlockParseResult, safeParseBlocks, toJsonPath } from './schema/index.ts';
 import { base64DecodedBytes } from './schema/media.ts';
-import { isUnsafeTextCharacter, normalizeLineSeparators } from './safety.ts';
 
 export type UntrustedBlockIssue = {
   code:
