@@ -1004,6 +1004,20 @@ Faker, DevTools, the theme library, the crud screen kits, the crud app shell
 generator, and the main-thread generation fallback. It also checks the content:
 no Faker data and no worker reference appear in initial JS.
 
+**Deck UI entry (measured 2026-10-21).**
+`packages/decks-ui/tests/bundle-size.test.ts` makes a production Vite build of a
+minimal Svelte host that imports `@protoyard/decks-ui/app` and its stylesheet,
+then measures the entry's static imports and all emitted CSS with gzip level 9.
+The initial graph measured **75,176 B JS gzip** and all emitted CSS measured
+**1,003 B gzip**, under the task ceilings of 120 KB JS and 20 KB CSS. The paired hygiene test checks the built
+static graph for CRUD, Faker, the player and worker, syntax highlighting, and
+chart-family code. Layout families load on demand. Presenter and studio remain
+separate package subpaths and do not enter the app graph; the overview DOM is
+mounted only while the overview is open. At this revision DeckApp has no static
+print import. If Ctrl+P integration adds one, the same test gates its cost and
+the print module should be preloaded while idle if it exceeds the deck-entry
+budget.
+
 **Blueprint content-kind schemas.** Page, document and deck body schemas load
 through dynamic imports keyed by blueprint kind. An app blueprint therefore
 does not include their validation code in its initial graph. On this lane's
