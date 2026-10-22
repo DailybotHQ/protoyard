@@ -3,6 +3,7 @@ import { type DeckAspect, deckCanvasSize, slideStepCount } from '@protoyard/deck
 import type { DeckSlide } from '@protoyard/decks/schema';
 import { onMount, tick } from 'svelte';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
+import DeckSlideFrame from '../style/DeckSlideFrame.svelte';
 import {
   isOverviewNavKey,
   moveOverviewSelection,
@@ -188,7 +189,9 @@ onMount(() => {
                 data-step={steps - 1}
                 data-step-count={steps}
               >
-                <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+                <DeckSlideFrame background={slide.background} number={index + 1}>
+                  <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+                </DeckSlideFrame>
               </div>
             {:else}
               <div
