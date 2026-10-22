@@ -243,6 +243,9 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
+      '@protoyard/decks':
+        specifier: workspace:*
+        version: link:../decks
       '@protoyard/pages':
         specifier: workspace:*
         version: link:../pages
