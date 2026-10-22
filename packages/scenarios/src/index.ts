@@ -31,6 +31,16 @@ export {
 } from './context.ts';
 export { createGenerateContext, createSeededFaker } from './context-sync.ts';
 export {
+  COUNTERPART_DELAY,
+  COUNTERPART_TYPING_SECONDS,
+  type CounterpartMessage,
+  type CounterpartReply,
+  type CounterpartState,
+  type ScriptedCounterpart,
+  type ScriptedCounterpartOptions,
+  scriptedCounterpart,
+} from './counterpart.ts';
+export {
   ALLOWED_FIXTURE_EMAIL_DOMAINS,
   FIXTURE_ALLOW_KEY,
   type FixtureFinding,
