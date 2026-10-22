@@ -1,5 +1,6 @@
 // @vitest-environment node
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -58,5 +59,15 @@ describe('the content showcase', () => {
     }
     const flagship = cards.find((card) => card.example.prototype);
     expect(flagship?.parts).toBe(25);
+  });
+
+  it('shows nothing, rather than failing, in a workspace without the examples', async () => {
+    // The gallery installed as a package in a consumer project has no blueprints/.
+    const empty = mkdtempSync(join(tmpdir(), 'protoyard-gallery-consumer-'));
+    try {
+      expect(await contentShowcaseCards(empty)).toEqual([]);
+    } finally {
+      rmSync(empty, { recursive: true, force: true });
+    }
   });
 });

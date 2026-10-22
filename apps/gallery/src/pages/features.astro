@@ -2,6 +2,7 @@
 import ContentShowcase from '@/components/features/ContentShowcase.astro';
 import InlineText from '@/components/features/InlineText.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { contentShowcaseCards } from '@/lib/content-showcase';
 import { GITHUB_SOURCE } from '@/lib/docs';
 import { EXTRA_GUIDES, FEATURE_AREAS, MEASURED_NUMBERS, MEASURED_ON } from '@/lib/features';
 import { withBase } from '@/lib/format';
@@ -17,6 +18,7 @@ const sourceHref = (doc: string, anchor: string) =>
     ? withBase(`/docs/${doc.replace(/\.md$/, '').toLowerCase()}/#${anchor}`)
     : `${GITHUB_SOURCE}docs/${doc}#${anchor}`;
 const security = EXTRA_GUIDES.find((g) => g.slug === 'security');
+const contentCards = await contentShowcaseCards();
 const QUICK_START = [
   'git clone https://github.com/DailybotHQ/protoyard',
   'cd protoyard',
@@ -52,7 +54,7 @@ const QUICK_START = [
         <a
           href="#content"
           class="rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold hover:bg-surface-2"
-          >See the slide decks</a
+          >Slide decks, pages and documents</a
         >
         <a
           href={withBase('/docs/')}
@@ -106,9 +108,9 @@ const QUICK_START = [
               </li>
             ))}
           </ul>
-          {area.id === 'content' && (
+          {area.id === 'content' && contentCards.length > 0 && (
             <div class="mt-8">
-              <ContentShowcase variant="full" />
+              <ContentShowcase cards={contentCards} variant="full" />
             </div>
           )}
         </section>
