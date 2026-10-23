@@ -337,7 +337,7 @@ const CORE_DEFINITIONS: readonly LibraryThemeDefinition[] = [
     tags: ['minimal', 'tasks', 'focus'],
     collection: 'mono',
     mood: ['minimal'],
-    // The one documented change in Texuli's port (FIX-port-seeds, c3e9ae4): was
+    // Documented change in Texuli's port (FIX-port-seeds, c3e9ae4): was
     // '#18181b', nudged to slate to separate it from security-vault.
     seed: '#1e293b',
     secondary: '#3b82f6',
@@ -540,7 +540,9 @@ const CORE_DEFINITIONS: readonly LibraryThemeDefinition[] = [
     tags: ['climate', 'sustainability', 'green'],
     collection: 'industry',
     mood: ['calm', 'fresh'],
-    seed: '#15803d',
+    // Documented change in Texuli's port (FIX-port-identity, 0e9555e): was
+    // '#15803d', nudged within its hue to clear ΔE 0.04 from health-clinic.
+    seed: '#008f41',
     secondary: '#0f766e',
     neutral: 'zinc',
     font: 'humanist',

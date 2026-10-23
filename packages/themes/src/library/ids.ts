@@ -45,6 +45,7 @@ export const LIBRARY_THEME_IDS: readonly string[] = Object.freeze([
   'aurora-analytics',
   'clinic-calm',
   'campus-ivy',
+  'fieldwork',
   'studio-reel',
   'transit-line',
   'hearth-home',
@@ -67,9 +68,8 @@ export const LIBRARY_THEME_IDS: readonly string[] = Object.freeze([
   'clear-sight',
   'winter-frost',
   'autumn-harvest',
-  'sepia-print',
-  'fieldwork',
   'graphite',
+  'sepia-print',
 ]);
 
 const ids = new Set(LIBRARY_THEME_IDS);

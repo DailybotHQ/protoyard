@@ -446,13 +446,11 @@ describe('the 200+ theme library', () => {
   });
 
   it('keeps ported primaries apart: same-neutral themes stay ΔE_OK 0.04 apart in a mode', async () => {
-    // Texuli's builder regenerates the ported themes. This pair sits under
-    // ΔE 0.04 in both modes with it (0.038/0.033), though Protoyard's own engine
-    // kept it apart (0.043/0.052); reported to Texuli. security-vault ~
-    // productivity-minimal is apart since FIX-port-seeds nudged
-    // productivity-minimal to slate. The list is exact, so a new near-duplicate
-    // fails, and a fix in Texuli fails it until updated.
-    const KNOWN_CLOSE = ['health-clinic ~ climate-earth'];
+    // Texuli's port separates the two pairs that sat under ΔE 0.04 with its
+    // builder by documented same-hue nudges (productivity-minimal in
+    // FIX-port-seeds, climate-earth in FIX-port-identity). The list is exact,
+    // so a new near-duplicate fails.
+    const KNOWN_CLOSE: string[] = [];
     const ids = TEXULI_PORTED_META.map((meta) => meta.id);
     const themes = await Promise.all(ids.map((id) => loadLibraryTheme(id)));
     const definitions = await Promise.all(ids.map((id) => loadLibraryThemeDefinition(id)));
