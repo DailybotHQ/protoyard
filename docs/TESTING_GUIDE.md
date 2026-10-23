@@ -29,6 +29,7 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Type check one package | `pnpm --filter @protoyard/runtime typecheck` | scoped |
 | Type check one prototype | `pnpm --filter @prototype/crm-demo typecheck` | scoped |
 | All unit + integration tests | `pnpm test` | full |
+| All tests, fewer workers (a loaded machine; same tests) | `PROTOYARD_TEST_WORKERS=4 pnpm test` | full |
 | One package or prototype | `pnpm vitest run packages/runtime` | scoped |
 | One file | `pnpm vitest run packages/core/tests/core.test.ts` | scoped |
 | By test name | `pnpm vitest run -t "idempotent"` | scoped |
