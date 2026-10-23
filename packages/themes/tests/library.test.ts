@@ -146,7 +146,7 @@ describe('the library comes from @texuli/tokens', () => {
       expect(theme.style).toEqual(source.style);
     }
     expect(mismatches).toEqual([]);
-  });
+  }, 30_000); // heavy: every library theme through Texuli and back
 });
 
 describe('theme library registry', () => {
@@ -437,13 +437,13 @@ describe('the 200+ theme library', () => {
   });
 
   it('keeps ported primaries apart: same-neutral themes stay ΔE_OK 0.04 apart in a mode', async () => {
-    // Texuli's builder regenerates the ported themes. These two pairs sit under
-    // ΔE 0.04 in both modes with it, though Protoyard's own engine kept them
-    // apart (health-clinic ~ climate-earth: 0.038/0.033 vs 0.043/0.052;
-    // security-vault ~ productivity-minimal: 0.035/0.034 vs 0.195/0.174;
-    // reported to Texuli). The list is exact, so a new near-duplicate fails,
-    // and a fix in Texuli fails it until updated.
-    const KNOWN_CLOSE = ['security-vault ~ productivity-minimal', 'health-clinic ~ climate-earth'];
+    // Texuli's builder regenerates the ported themes. This pair sits under
+    // ΔE 0.04 in both modes with it (0.038/0.033), though Protoyard's own engine
+    // kept it apart (0.043/0.052); reported to Texuli. security-vault ~
+    // productivity-minimal is apart since FIX-port-seeds nudged
+    // productivity-minimal to slate. The list is exact, so a new near-duplicate
+    // fails, and a fix in Texuli fails it until updated.
+    const KNOWN_CLOSE = ['health-clinic ~ climate-earth'];
     const ids = TEXULI_PORTED_META.map((meta) => meta.id);
     const themes = await Promise.all(ids.map((id) => loadLibraryTheme(id)));
     const definitions = await Promise.all(ids.map((id) => loadLibraryThemeDefinition(id)));

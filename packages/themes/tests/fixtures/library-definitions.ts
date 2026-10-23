@@ -337,7 +337,9 @@ const CORE_DEFINITIONS: readonly LibraryThemeDefinition[] = [
     tags: ['minimal', 'tasks', 'focus'],
     collection: 'mono',
     mood: ['minimal'],
-    seed: '#18181b',
+    // The one documented change in Texuli's port (FIX-port-seeds, c3e9ae4): was
+    // '#18181b', nudged to slate to separate it from security-vault.
+    seed: '#1e293b',
     secondary: '#3b82f6',
     font: 'system',
     radius: '0.375rem',

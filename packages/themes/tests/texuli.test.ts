@@ -62,7 +62,7 @@ describe('Protoyard themes as Texuli themes (toTexuliTheme)', () => {
         }
       }
     }
-  });
+  }, 30_000); // heavy: every library theme through Texuli and back
 
   it("passes Texuli's AA gate for every library theme, at the level the theme claims", async () => {
     const level = new Map(
