@@ -48,7 +48,10 @@ describe('deck style budget (production Vite build)', () => {
       '/decks-ui/src/style/kit.ts',
       '/decks/src/style/index.ts',
       '/themes/src/library/definitions',
-      '/themes/src/library/build.ts',
+      // Library tokens come from @texuli/tokens: its definitions and builder.
+      '/tokens/src/library-port/themes/',
+      '/tokens/src/library-expand/themes/',
+      '/tokens/src/library-port/build.ts',
       '/decks/src/backgrounds/resolve.ts',
     ]) {
       expect(
@@ -63,7 +66,7 @@ describe('deck style budget (production Vite build)', () => {
     const kit = lazy.find((chunk) => hasModule(chunk, '/decks-ui/src/style/kit.ts'));
     expect(kit, 'style kit chunk').toBeDefined();
     expect(
-      lazy.some((chunk) => hasModule(chunk, '/themes/src/library/build.ts')),
+      lazy.some((chunk) => hasModule(chunk, '/tokens/src/library-port/build.ts')),
       'library theme builder'
     ).toBe(true);
     console.info(`deck style kit chunk: ${Math.ceil(gzip(kit?.code ?? '') * KB_PER_BYTE)} KB gzip`);
