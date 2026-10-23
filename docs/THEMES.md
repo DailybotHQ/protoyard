@@ -67,6 +67,37 @@ Tailwind 4 theme, so you style with ordinary utilities:
 The two hover fills are computed per theme and mode by `hoverFill()`: a
 visible step darker or lighter that keeps the button text at 4.5:1 or more.
 
+### Texuli's `--tx-*` variables (`--py-*` are their aliases)
+
+On a page that calls `enableTexuliAppearance()` from
+`@protoyard/themes/texuli`, `applyAppearance()` also writes **Texuli's**
+variables: the `--tx-*` set of `@texuli/tokens` and its `data-tx-theme`,
+`data-tx-mode`, `data-tx-motion` and `data-tx-surface` attributes. Texuli
+components read those names, and the `--py-*` names above stay, as aliases.
+
+- **Equal values.** Every palette role both contracts share has the same
+  value under both names: `--py-primary` = `--tx-primary`. The hover fills
+  and the style tokens (radius, fonts, density, motion, shadows, focus ring,
+  border width) match too. Values that reference other tokens point at their
+  own family's names, so `--tx-shadow-soft` uses `var(--tx-shadow)`.
+- **The extra roles.** Texuli has 16 roles Protoyard's palette lacks: soft
+  tones, `link`, `linkVisited`, `selection`, `canvas`, `borderStrong`,
+  `elevatedForeground`, `subtle`, `overlay`, `scrim`, `sidebarPrimary`.
+  `toTexuliTheme()` (`@protoyard/themes/texuli`) derives each from existing
+  roles: it takes the first candidate that meets the contrast pairs Texuli's
+  AA gate holds it to.
+- **Verified.** Every library theme passes Texuli's AA gate at its claimed
+  level. The six built-ins fail only one check: their light-mode `input`
+  borders measure about 1.4:1, under WCAG 1.4.11's 3:1. Fixing that would
+  restyle every prototype, so it is a separate decision.
+- **Opt-in.** Enabling them re-applies the current appearance, and later
+  calls write both families at once. Both reach the no-flash cache.
+  - Pages that don't call it never load `@texuli/tokens`. Today no prototype
+    renders Texuli components, so none does.
+  - The opt-in matters because the package doesn't declare `sideEffects`
+    yet, so a static import would put its whole theme library in every
+    initial chunk.
+
 ### Typography, shape, density and motion variables
 
 | Variable | From | Used for |
@@ -308,8 +339,7 @@ repair falls back to the family's own neutral fill.
 
 Omitting `neutral` keeps the original neutrals bit-for-bit. A library
 definition can set `neutral` too (`LibraryThemeDefinition.neutral`); the
-64-theme library uses families across its product-category and curated
-collections.
+library uses families across its product-category and curated collections.
 
 ```ts
 import { createThemeFromSeed } from '@protoyard/themes';
@@ -406,14 +436,37 @@ prototype's theme list, and `violet` (`DEFAULT_THEME_ID`) is the fallback.
 
 ### The theme library (loaded on demand)
 
-The library holds **64 themes**: the 32 product-category themes of
-`packages/themes/src/library/definitions.ts` (first table) and 32 more in
-`definitions-extra.ts` (second table). Each entry is data only: id, name,
-description, category, tags, collection, mood, a seed and secondary color,
-a neutral family, a font pairing id, radius, density, an optional style
-profile and, for colorblind-safe themes, five chart seeds. Tokens are not
-stored; they are built by the palette engine when a theme is loaded. All
-names are fictional.
+The library's tokens come from **`@texuli/tokens`** ([TEXULI.md](TEXULI.md)).
+It has two tiers:
+
+- **The catalog** holds 64 themes: the 32 product-category themes (first
+  table) and 32 more (second table).
+  - It's synchronous. `THEME_LIBRARY_META` and the lookups below use it, so a
+    blueprint, deck or picker that checks an id costs what it always did.
+  - Its definitions live in `packages/themes/src/library/definitions.ts` and
+    `definitions-extra.ts`. They are exactly the 64 that
+    `@texuli/tokens/library` ports, and `tests/library.test.ts` keeps the two
+    identical field by field.
+- **The full library** adds Texuli's expanded set: 140 more themes, for 204
+  in all.
+  - It's opt-in: call `enableFullThemeLibrary()` from
+    `@protoyard/themes/library-full`.
+  - It's opt-in because single-file exports inline everything reachable, and
+    the expanded set adds about 105 KB to each one.
+  - The expanded set also carries Protoyard's six built-ins. The library
+    leaves them out so no picker shows an id twice; they stay
+    `BUILTIN_THEMES`.
+
+Each entry is data only: id, name, description, category, tags, collection,
+mood, a seed and secondary color, a neutral family, a font pairing id,
+radius, density, an optional style profile and, for colorblind-safe themes,
+five chart seeds. Tokens are not stored.
+- Texuli builds them when a theme loads, in a lazy chunk.
+- `fromTexuliTheme` converts them to this contract: the shared palette roles
+  keep Texuli's values, and `chart1`…`chart5` take the first five categorical
+  chart colors.
+
+All names are fictional.
 
 | Id | Name | Category | Seed / secondary | Font | Radius | Density | Elevation |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -525,14 +578,20 @@ Each definition can also set catalog metadata (`packages/themes/src/library/type
 | `contrastLevel` | `AA` (text 4.5:1) or `AAA` (text 7:1, enforced by `tests/library.test.ts`) | `AA` |
 | `neutral` | a [neutral family](#neutral-families) | the original neutrals |
 
-The first 32 definitions carry product categories and tags; optional metadata
-uses the defaults above when a definition omits it. The additional 32 entries
-make the collections explicit. `tests/library.test.ts` checks every
-definition: unique kebab-case ids, `#rrggbb` seeds, known fonts, neutrals,
-collections, moods and contrast levels, density range, and the style profile
-through core's `ThemeStyleSchema`.
+Optional metadata uses the defaults above when a definition omits it.
+`tests/library.test.ts` checks every definition against these rules:
+- unique kebab-case ids and `#rrggbb` seeds
+- known fonts, neutrals, collections, moods and contrast levels
+- the density range
+- the style profile, through core's `ThemeStyleSchema`
 
-The registry API (`packages/themes/src/library/registry.ts`):
+With the full library enabled, it also runs these checks over all 204, and
+checks that metadata matches each definition. One known Texuli gap is
+tolerated: the expanded set's metadata omits the `neutral` family its
+definitions use (nothing reads `meta.neutral` at runtime).
+
+The registry API (`packages/themes/src/library/registry.ts`, also on the
+root barrel):
 
 | Export | What it does |
 | --- | --- |
@@ -540,13 +599,18 @@ The registry API (`packages/themes/src/library/registry.ts`):
 | `listThemeLibrary({ category?, tag?, collection?, mood? })` | Filters the metadata |
 | `searchThemeLibrary(query)` | Case-insensitive search over name, id, tags, mood, category, collection and description. Every word must match; results rank name and id matches first (3), then tags, mood, category and collection (2), then the description (1), with ties in library order. An empty query returns the whole library. |
 | `listCollections()` | Every collection in a fixed order with its theme count |
-| `getLibraryThemeMeta(id)`, `getLibraryThemeDefinition(id)` | Lookups |
-| `loadLibraryTheme(id)` | Async. Dynamically imports the builder (`import('./build.ts')`), runs `createThemeFromSeed`, then applies the font pairing, radius and density. Results are cached in memory. Unknown ids reject with the list of known ids. |
+| `getLibraryThemeMeta(id)`, `getLibraryThemeDefinition(id)` | Catalog lookups |
+| `loadFullLibraryMeta()`, `findLibraryThemeMeta(id)` | Async. The full library's metadata, catalog first (the catalog alone until `enableFullThemeLibrary()`) |
+| `loadLibraryThemeDefinition(id)` | Async. Any library theme's definition |
+| `loadLibraryTheme(id)` | Async. Loads any library theme's tokens and chart tokens from `@texuli/tokens` (dynamic imports only), converts them with `fromTexuliTheme`, and caches the result. Unknown ids, built-in ids included, reject with the list of known ids. |
+| `loadAllFullLibraryThemes()` | Loads every theme of the full library |
 | `loadAllLibraryThemes()` | Loads every library theme (tests, galleries) |
 | `clearLibraryThemeCache()` | Clears the cache (tests) |
 
-The dynamic import keeps the palette engine out of the eager metadata chunk
-in bundlers that split on `import()`.
+Every import of `@texuli/tokens` here is dynamic. The package doesn't declare
+`sideEffects` yet, so a static import would keep its whole library in every
+bundle that imports the themes barrel, which is in every prototype's initial
+chunk.
 
 **Using a library theme in any prototype.** Every prototype can use every
 library theme with no code of its own. `mountPrototype` gives the runtime a
@@ -573,7 +637,7 @@ because the runtime falls back instead of failing.
 The gallery's Themes page (`apps/gallery/src/pages/themes.astro`),
 the UI Kit prototype's Theme Lab and the CLI list them too.
 
-The gallery Themes page renders 70 cards (64 library themes and six built-ins) as static HTML with
+The gallery Themes page renders 70 cards (64 catalog themes and six built-ins) as static HTML with
 precomputed light and dark CSS variables, then hydrates a small filter island.
 Search, collection and mood filters stay in `?q=`, `?collection=` and `?mood=`;
 the page mode toggle changes every card's palette and the `?theme=<id>` link
@@ -789,7 +853,7 @@ without writing files; `--json` also includes CSS custom properties and
 Tailwind `@theme` tokens. A failed AA pair exits with a validation error and
 lists each failing mode and token pair; adjust the source tokens and retry.
 
-**List** the six presets and the 64 library themes:
+**List** the six presets and the 64 catalog themes:
 
 ```text
 $ pnpm protoyard theme list
@@ -938,12 +1002,14 @@ the default colors and then switch. Two things prevent that:
 2. `defineProtoyardConfig()` injects `noFlashScript(namespace)` as the first
    `<head>` script. It replays the last applied appearance from
    `localStorage` (`protoyard.<namespace>.appearance`) before first paint:
-   the `--py-*` variables, mode class, theme id, motion, `data-py-surface`
-   and the allowlisted component profile attributes. Without a cache it
-   still honors `prefers-color-scheme`.
+   the `--py-*` and `--tx-*` variables, mode class, theme id, motion,
+   `data-py-surface`, their `data-tx-*` twins, and the allowlisted component
+   profile attributes. Without a cache it still honors
+   `prefers-color-scheme`.
 
 The renderer refreshes that cache every time the appearance changes. The
-script only replays `--py-*` names with string values and known profile
+script only replays `--py-*` and `--tx-*` names with string values and known
+profile
 values, and every storage access is wrapped in `try`, so private mode or a
 tampered cache cannot break the page or inject markup.
 

@@ -27,7 +27,7 @@ protoyard/
 │   ├── database/         Dexie/IndexedDB: per-prototype data + control DBs, world I/O, storage errors
 │   ├── scenarios/        generator SDK (seeded faker/rng/ids/time), presets, integrity, timeline
 │   ├── runtime/          createPrototypeRuntime(): composes everything into one PrototypeRuntime
-│   ├── themes/           six presets + a lazy 64-theme library, palette engine, fonts, no-flash script
+│   ├── themes/           six presets + a lazy 64-theme catalog (204 opt-in) with tokens from @texuli/tokens, palette engine, fonts, no-flash script
 │   ├── ui/               Svelte 5 components (Bits UI + Tailwind 4 + Lucide), shell frames, LayoutHost + 12 layouts
 │   ├── devtools/         the in-browser control center (incl. Theme Studio)
 │   ├── renderer-svelte/  Vite config factory, mountPrototype(), ShellHost, reactive bindings, hash router
