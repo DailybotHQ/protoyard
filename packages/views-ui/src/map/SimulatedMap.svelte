@@ -540,6 +540,7 @@ async function saveFence() {
                 ]}
                 tabindex={index === active ? 0 : -1}
                 aria-current={selected === m.id ? 'true' : undefined}
+                aria-label={m.detail ? `${m.label}, ${m.detail}` : m.label}
                 data-list-item={m.id}
                 data-list-index={index}
                 onclick={() => {

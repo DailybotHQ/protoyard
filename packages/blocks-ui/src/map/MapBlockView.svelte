@@ -2,6 +2,7 @@
 import type { MapBlock as MapBlockType } from '@protoyard/blocks';
 import type { Component } from 'svelte';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
+import { mapTone } from './tones.ts';
 
 let { block }: { block: MapBlockType } = $props();
 
@@ -12,7 +13,7 @@ const markers = $derived(
     lat: point.lat,
     label: point.label,
     description: point.description,
-    tone: point.tone ?? 'primary',
+    tone: mapTone(point.tone),
   }))
 );
 

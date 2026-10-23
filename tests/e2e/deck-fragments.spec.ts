@@ -135,6 +135,34 @@ test.describe('deck fragments on the flagship deck', () => {
     await expect.poll(() => duration(page)).toBeLessThan(0.01);
   });
 
+  test('a stepped catalog prop animates unless motion is off', async ({ page }) => {
+    // The fixture steps one timeline event; SlideFrame owns its reveal transition.
+    const propDuration = (p: Page) =>
+      slide(p, 'timeline')
+        .locator('[data-py-fragment-kind="prop"][data-py-fragment]')
+        .first()
+        .evaluate((el) => {
+          const style = getComputedStyle(el);
+          return style.transitionProperty === 'none'
+            ? 0
+            : Number.parseFloat(style.transitionDuration);
+        });
+
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(`${flagship}#/timeline/0`);
+    await expect.poll(() => propDuration(page)).toBeCloseTo(0.5, 2);
+
+    await page.goto(`${flagship}&motion=none#/timeline/0`);
+    await page.reload();
+    await expect(app(page)).toHaveAttribute('data-py-deck-motion', 'none');
+    await expect.poll(() => propDuration(page)).toBeLessThan(0.01);
+
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(`${flagship}#/timeline/0`);
+    await page.reload();
+    await expect.poll(() => propDuration(page)).toBeLessThan(0.01);
+  });
+
   test('print and the overview show every step', async ({ page }) => {
     await page.goto(`${flagship}&print=1#/loop/0`);
     const printed = page.locator('[data-py-deck-slide-inner="loop"]');

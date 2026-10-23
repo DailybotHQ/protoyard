@@ -112,4 +112,27 @@ test.describe('the everything deck', () => {
     await expect(legend).toHaveText('What does a tone replace?');
     await expect(legend.locator('strong')).toHaveText('tone');
   });
+
+  // The map block once rendered unstyled on deck pages (blocks-ui's stylesheet
+  // did not scan views-ui's map): no basemap, list rows stacked, an axe
+  // "button-name" on its list, and no fill for an `accent` place.
+  test('the map block draws its basemap, its list and every place tone', async ({ page }) => {
+    await page.goto(`${deckUrl}?deck=everything#/map/0`);
+    await settled(page, 'map');
+    const map = page.locator('[data-py-deck-slide="map"] [data-py-block="map"]');
+    const basemap = await map.locator('svg').first().boundingBox();
+    expect(basemap?.height ?? 0).toBeGreaterThan(40);
+    const rows = map.locator('[data-map-list] li[aria-posinset]');
+    await expect(rows).toHaveCount(3);
+    const tops = await rows.evaluateAll((items) =>
+      items.map((item) => ({ position: getComputedStyle(item).position, top: item.style.top }))
+    );
+    expect(tops.every((row) => row.position === 'absolute')).toBe(true);
+    for (const id of ['north', 'market']) {
+      const dot = map.locator(`[data-list-item="${id}"] span`).first();
+      const fill = await dot.evaluate((el) => getComputedStyle(el).backgroundColor);
+      expect(fill, `${id} tone fill`).not.toBe('rgba(0, 0, 0, 0)');
+      await expect(map.locator(`[data-list-item="${id}"]`)).toHaveAccessibleName(/\S/);
+    }
+  });
 });

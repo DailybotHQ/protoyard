@@ -125,6 +125,23 @@ describe('SimulatedMap', () => {
     expect(document.querySelectorAll('[data-list-item]')).toHaveLength(7);
   });
 
+  it('names every list row explicitly, as its visible label and detail read', () => {
+    render(SimulatedMap, { markers: [...VANS, ...DEPOTS] });
+    // The rows are named by an explicit label (not only by text that clips, truncates
+    // or mounts later), so a row is never a nameless button on a scaled deck slide.
+    const rows = [...document.querySelectorAll<HTMLElement>('[data-list-item]')];
+    expect(rows).toHaveLength(VANS.length + DEPOTS.length);
+    expect(screen.getByRole('button', { name: 'Van 1, Delivering' })).toBe(rows[0]);
+    for (const row of rows) {
+      const label = row.getAttribute('aria-label') ?? '';
+      expect(label.length).toBeGreaterThan(0);
+      // WCAG 2.5.3: the name starts with the visible label.
+      expect(
+        label.startsWith(row.querySelector('span:nth-child(2)')?.textContent ?? '\u0000')
+      ).toBe(true);
+    }
+  });
+
   it('selects a marker and keeps the list in sync both ways', async () => {
     const onSelect = vi.fn();
     render(SimulatedMap, { markers: DEPOTS, onSelect });

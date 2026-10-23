@@ -1,2 +1,27 @@
 /* Optional kit styles. Import after Tailwind, themes and @protoyard/ui. */
+/* The kit families blocks render: chart blocks (charts-ui) and the map block (views-ui map and states). */
+@import "@protoyard/charts-ui/player.css";
+@import "@protoyard/views-ui/blocks.css";
+
 @source "./";
+
+/*
+ * Step reveals: `fragmentAttributes` (host.ts) puts each stepped block's reveal
+ * motion inline, so only these rules can drop it. They ship with the blocks so
+ * every host gets them: reduced motion and a deck's `motion: none`
+ * (`data-py-deck-motion="none"` on an ancestor) remove every fragment transition.
+ */
+[data-py-deck-motion="none"] .py-deck-fragment {
+  /* biome-ignore lint/complexity/noImportantStyles: a deck's motion setting must override inline fragment styles. */
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .py-deck-fragment {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must override inline fragment styles. */
+    transition: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must override inline fragment styles. */
+    translate: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must override inline fragment styles. */
+    scale: none !important;
+  }
+}
