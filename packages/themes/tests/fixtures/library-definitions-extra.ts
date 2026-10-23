@@ -1,4 +1,4 @@
-import type { LibraryThemeDefinition } from './types.ts';
+import type { LibraryThemeDefinition } from '../../src/library/types.ts';
 
 /**
  * The second half of the theme library (PLAN_003): industry moods, fictional

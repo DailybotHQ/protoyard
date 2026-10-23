@@ -23,7 +23,6 @@ import {
   clearLibraryThemeCache,
   findLibraryThemeMeta,
   getLibraryThemeMeta,
-  LIBRARY_THEME_DEFINITIONS,
   type LibraryThemeDefinition,
   listCollections,
   listThemeLibrary,
@@ -42,6 +41,7 @@ import { rgbToOklch } from '../src/oklch.ts';
 import { NEUTRAL_FAMILIES } from '../src/palette.ts';
 import { BUILTIN_THEMES } from '../src/presets.ts';
 import { SHARED_PALETTE_ROLES } from '../src/texuli.ts';
+import { LIBRARY_THEME_DEFINITIONS } from './fixtures/library-definitions.ts';
 
 // These suites cover the full library (204 themes); the default is the catalog.
 beforeAll(() => enableFullThemeLibrary());
@@ -77,16 +77,18 @@ describe('the library comes from @texuli/tokens', () => {
     expect(full.length + BUILTIN_THEMES.length).toBeGreaterThanOrEqual(200);
   });
 
-  it('keeps the synchronous catalog identical to the definitions Texuli ports', async () => {
-    // The catalog is eager, so it lives here; its tokens come from Texuli. The
-    // two copies of these 64 definitions must never drift.
+  it('serves the catalog from Texuli, field-identical to the 64 definitions Protoyard used to own', async () => {
+    // Protoyard no longer ships these definitions: the catalog, its metadata
+    // and its definitions are Texuli's port. The fixture is the last copy
+    // Protoyard defined; any drift in Texuli's port fails here.
     expect(LIBRARY_THEME_DEFINITIONS.map((definition) => definition.id)).toEqual(
       TEXULI_PORTED_META.map((meta) => meta.id)
     );
     for (const definition of LIBRARY_THEME_DEFINITIONS) {
       expect(await loadTexuliPortedDefinition(definition.id), definition.id).toEqual(definition);
+      expect(await loadLibraryThemeDefinition(definition.id), definition.id).toEqual(definition);
     }
-    expect(THEME_LIBRARY_META).toEqual(TEXULI_PORTED_META);
+    expect(THEME_LIBRARY_META).toBe(TEXULI_PORTED_META);
   });
 
   it('offers only the catalog until a page enables the full library', async () => {
@@ -295,8 +297,6 @@ describe('library definitions', () => {
 
   it('keeps metadata in step with each definition, with the documented defaults', async () => {
     const definitions = await loadDefinitions();
-    const ported = new Set(TEXULI_PORTED_META.map((meta) => meta.id));
-    const neutralGaps: string[] = [];
     (await loadFullLibraryMeta()).forEach((meta, index) => {
       const definition = definitions[index] as LibraryThemeDefinition;
       expect(meta.collection, meta.id).toBe(definition.collection ?? 'industry');
@@ -304,16 +304,8 @@ describe('library definitions', () => {
       expect(meta.darkFirst, meta.id).toBe(definition.darkFirst ?? false);
       expect(meta.contrastLevel, meta.id).toBe(definition.contrastLevel ?? 'AA');
       expect(meta.seed, meta.id).toBe(definition.seed);
-      if (meta.neutral === definition.neutral) return;
-      // Known Texuli defect: the expanded set's metadata rows omit the neutral
-      // family their definitions use. Only that gap is tolerated, never a
-      // different value, and never on a ported theme.
-      expect(meta.neutral, meta.id).toBeUndefined();
-      expect(ported.has(meta.id), meta.id).toBe(false);
-      neutralGaps.push(meta.id);
+      expect(meta.neutral, meta.id).toBe(definition.neutral);
     });
-    // Nothing reads meta.neutral at runtime (Theme Studio reads the definition).
-    expect(neutralGaps.length).toBeLessThanOrEqual(EXPAND_THEME_LIBRARY_META.length);
   });
 
   it('holds every theme that claims AAA to 7:1 text contrast in both modes', async () => {
@@ -445,13 +437,13 @@ describe('the 200+ theme library', () => {
   });
 
   it('keeps ported primaries apart: same-neutral themes stay ΔE_OK 0.04 apart in a mode', async () => {
-    // Texuli's builder regenerates the ported themes; these two pairs now sit at
-    // ΔE ≈ 0.034-0.035 in both modes (reported to Texuli). The list is exact, so
-    // a new near-duplicate fails, and a fix in Texuli fails it until updated.
-    const KNOWN_CLOSE = [
-      'enterprise-neutral ~ security-vault',
-      'security-vault ~ productivity-minimal',
-    ];
+    // Texuli's builder regenerates the ported themes. These two pairs sit under
+    // ΔE 0.04 in both modes with it, though Protoyard's own engine kept them
+    // apart (health-clinic ~ climate-earth: 0.038/0.033 vs 0.043/0.052;
+    // security-vault ~ productivity-minimal: 0.035/0.034 vs 0.195/0.174;
+    // reported to Texuli). The list is exact, so a new near-duplicate fails,
+    // and a fix in Texuli fails it until updated.
+    const KNOWN_CLOSE = ['security-vault ~ productivity-minimal', 'health-clinic ~ climate-earth'];
     const ids = TEXULI_PORTED_META.map((meta) => meta.id);
     const themes = await Promise.all(ids.map((id) => loadLibraryTheme(id)));
     const definitions = await Promise.all(ids.map((id) => loadLibraryThemeDefinition(id)));

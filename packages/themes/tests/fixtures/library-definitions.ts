@@ -1,9 +1,10 @@
-import { LIBRARY_THEME_DEFINITIONS_EXTRA } from './definitions-extra.ts';
-import type { LibraryThemeDefinition } from './types.ts';
+import type { LibraryThemeDefinition } from '../../src/library/types.ts';
+import { LIBRARY_THEME_DEFINITIONS_EXTRA } from './library-definitions-extra.ts';
 
 /**
- * Product-category theme library (30+). Each entry is data only; tokens come
- * from `createThemeFromSeed` when the theme is loaded.
+ * Test fixture: the 64 library definitions Protoyard defined before its
+ * catalog moved to `@texuli/tokens/library`. `tests/library.test.ts` proves
+ * Texuli's port is field-identical to them. Not shipped.
  */
 const CORE_DEFINITIONS: readonly LibraryThemeDefinition[] = [
   {

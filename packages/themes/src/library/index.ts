@@ -1,9 +1,7 @@
-export { LIBRARY_THEME_DEFINITIONS } from './definitions.ts';
 export {
   clearLibraryThemeCache,
   type ExpandedLibraryModule,
   findLibraryThemeMeta,
-  getLibraryThemeDefinition,
   getLibraryThemeMeta,
   listCollections,
   listThemeLibrary,

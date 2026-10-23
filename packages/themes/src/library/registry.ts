@@ -1,6 +1,6 @@
 import type { Theme } from '@protoyard/core';
+import { THEME_LIBRARY_META as TEXULI_LIBRARY_META } from '@texuli/tokens/library';
 import { fromTexuliTheme } from '../from-texuli.ts';
-import { LIBRARY_THEME_DEFINITIONS } from './definitions.ts';
 import {
   type LibraryThemeDefinition,
   type LibraryThemeMeta,
@@ -10,15 +10,14 @@ import {
 } from './types.ts';
 
 /**
- * The theme library. Its tokens come from `@texuli/tokens`, always through
- * dynamic imports: `@texuli/tokens` does not declare `sideEffects` yet, so a
- * static import would keep its whole library in every bundle that imports
- * this registry (the themes barrel is in every prototype's initial chunk).
+ * The theme library: Texuli's port, `@texuli/tokens/library`.
  *
- * - The **catalog** (`THEME_LIBRARY_META`, `getLibraryThemeDefinition` and the
- *   synchronous lookups) is the 64 definitions in `definitions.ts`, the same
- *   ones `@texuli/tokens/library` ports (a test keeps them identical).
- *   Their tokens load from `@texuli/tokens/library`.
+ * - The **catalog** (`THEME_LIBRARY_META` and the synchronous lookups) is
+ *   Texuli's 64-theme metadata, imported statically: `@texuli/tokens`
+ *   declares `sideEffects`, so only its metadata module reaches the bundle.
+ *   Definitions and tokens load on demand from the same port, one theme at a
+ *   time. Protoyard keeps no copy of the definitions; a test proves the port
+ *   is field-identical to the 64 Protoyard used to define.
  * - The **full library** adds Texuli's expanded set (140 more, without the six
  *   Protoyard built-ins it also carries: they stay `BUILTIN_THEMES`) once a
  *   page calls `enableFullThemeLibrary()` (`@protoyard/themes/library-full`).
@@ -28,26 +27,9 @@ import {
  *   adds about 105 KB to each.
  */
 
-function toMeta(definition: LibraryThemeDefinition): LibraryThemeMeta {
-  return {
-    id: definition.id,
-    name: definition.name,
-    description: definition.description,
-    category: definition.category,
-    tags: definition.tags,
-    collection: definition.collection ?? 'industry',
-    mood: definition.mood ?? [],
-    darkFirst: definition.darkFirst ?? false,
-    contrastLevel: definition.contrastLevel ?? 'AA',
-    seed: definition.seed,
-    ...(definition.secondary ? { secondary: definition.secondary } : {}),
-    ...(definition.neutral ? { neutral: definition.neutral } : {}),
-  };
-}
-
 /** The synchronous catalog for pickers (metadata only, no palette tokens). */
 export const THEME_LIBRARY_META: readonly LibraryThemeMeta[] =
-  LIBRARY_THEME_DEFINITIONS.map(toMeta);
+  TEXULI_LIBRARY_META as readonly LibraryThemeMeta[];
 
 const catalogIds = new Set(THEME_LIBRARY_META.map((meta) => meta.id));
 
@@ -114,10 +96,6 @@ export function getLibraryThemeMeta(id: string): LibraryThemeMeta | undefined {
   return THEME_LIBRARY_META.find((meta) => meta.id === id);
 }
 
-export function getLibraryThemeDefinition(id: string): LibraryThemeDefinition | undefined {
-  return LIBRARY_THEME_DEFINITIONS.find((definition) => definition.id === id);
-}
-
 /** Texuli's expanded library module (`@texuli/tokens/library-expand`). */
 export type ExpandedLibraryModule = typeof import('@texuli/tokens/library-expand');
 type ExpandModule = ExpandedLibraryModule;
@@ -175,8 +153,10 @@ async function unknownTheme(id: string): Promise<Error> {
 
 /** Any library theme's definition (seed, neutral family, fonts, style). */
 export async function loadLibraryThemeDefinition(id: string): Promise<LibraryThemeDefinition> {
-  const definition = getLibraryThemeDefinition(id);
-  if (definition) return definition;
+  if (catalogIds.has(id)) {
+    const ported = await import('@texuli/tokens/library');
+    return (await ported.loadLibraryThemeDefinition(id)) as LibraryThemeDefinition;
+  }
   const expand = loadExpand();
   if (!expand || !(await findLibraryThemeMeta(id))) throw await unknownTheme(id);
   return (await expand).loadExpandThemeDefinition(id) as Promise<LibraryThemeDefinition>;
