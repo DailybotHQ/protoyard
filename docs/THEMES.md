@@ -279,14 +279,18 @@ every theme and both modes; `bg-violet-600` does not.
 
 ## The palette engine
 
-`packages/themes/src/palette.ts` turns one brand color into a complete,
-accessible light and dark theme. It is pure and deterministic: the same
+`createThemeFromSeed` (`packages/themes/src/palette.ts`) turns one brand color
+into a complete, accessible light and dark theme. The engine is
+`@texuli/tokens`' generator (`generateThemeFromSeed`), with chart tokens from
+`@texuli/tokens/palette`; Protoyard keeps the API and its own defaults (fonts,
+radius, density, style). One engine builds the library, Theme Studio, deck and
+blueprint seeds and quick variants. It is pure and deterministic: the same
 input always gives the same hex values.
 
 | Function | What it does |
 | --- | --- |
 | `generatePaletteScale(seed)` | An 11-step scale (`PALETTE_STEPS`: 50, 100, 200 … 900, 950) from a `#rgb` or `#rrggbb` seed. Keeps the seed's OKLCH hue, caps chroma at `0.24`, and places each step at a fixed OKLCH lightness (`0.98` for 50 down to `0.12` for 950). Throws a `TypeError` for anything that is not hex. |
-| `createThemeFromSeed({ id, name, seed, secondary?, neutral?, style? })` | A full `Theme` validated by `defineTheme`. The optional `secondary` seed drives the secondary fill and `chart2`; without it the seed is reused. `neutral` picks a [neutral family](#neutral-families); without it the original neutrals are used. `style` is passed through. The description becomes `Generated from <seed>…`. An unknown family throws a `TypeError`. |
+| `createThemeFromSeed({ id, name, seed, secondary?, neutral?, style? })` | A full `Theme` validated by `defineTheme`. The optional `secondary` seed drives the secondary fill and `chart2`; without it the seed is reused. `neutral` picks a [neutral family](#neutral-families); without it `zinc` is used. `style` is passed through. The description becomes `Generated from <seed>…`. An unknown family throws a `TypeError`. |
 
 ### OKLCH and gamut mapping
 
@@ -337,7 +341,9 @@ searched toward black or white until they reach 4.5:1 on every background
 they sit on. When a secondary or accent fill misses 4.5:1 with its text, the
 repair falls back to the family's own neutral fill.
 
-Omitting `neutral` keeps the original neutrals bit-for-bit. A library
+Omitting `neutral` uses the `zinc` family. (Before the engine moved to
+`@texuli/tokens`, it kept a fixed set of original neutrals instead; seed
+themes without a family changed to solved zinc neutrals then.) A library
 definition can set `neutral` too (`LibraryThemeDefinition.neutral`); the
 library uses families across its product-category and curated collections.
 
@@ -355,7 +361,7 @@ export const paperTheme = createThemeFromSeed({
 The result is then held to the same WCAG pairs as the presets (see
 [Contrast checks](#contrast-checks)). `packages/themes/tests/palette.test.ts`
 checks every text and UI pair in both modes for 500 deterministic seeds,
-with the original neutrals and with every neutral family.
+without a family (zinc) and with every neutral family.
 
 ```ts
 import { createThemeFromSeed } from '@protoyard/themes';
@@ -371,10 +377,10 @@ export const harborTheme = createThemeFromSeed({
 
 ## Chart palettes
 
-Chart colors belong to the theme. `packages/themes/src/charts.ts` derives, per
-mode, the colors a chart needs from `chart1` … `chart5` and checks them with
-the same rules as the charts kit (`validateChartPalette` in
-`packages/charts/src/palette`):
+Chart colors belong to the theme. `@texuli/tokens/palette`'s
+`deriveChartTokens` derives, per mode, the colors a chart needs from
+`chart1` … `chart5`, and its `validateChartTokens` checks them with the same
+rules as the charts kit (`validateChartPalette` in `packages/charts/src/palette`):
 
 | Rule | Minimum |
 | --- | --- |
@@ -567,7 +573,7 @@ The second set:
 Every theme has its own neutral family, font, radius and elevation
 combination, and no two themes that share a neutral family have primaries
 closer than ΔE_OK 0.04 in both modes. `createThemeFromSeed({ contrast: 'AAA' })`
-searches every text pair to 7:1 and needs a `neutral` family;
+searches every text pair to 7:1, with or without a `neutral` family;
 `chartSeeds` (five hex colors) replaces the derived chart series before the
 chart repair.
 
@@ -579,7 +585,7 @@ Each definition can also set catalog metadata (`packages/themes/src/library/type
 | `mood` | any of `calm`, `bold`, `playful`, `corporate`, `editorial`, `technical`, `warm`, `fresh`, `luxurious`, `minimal` (`THEME_MOODS`) | none |
 | `darkFirst` | `true` when the theme is meant to be shown in dark mode first | `false` |
 | `contrastLevel` | `AA` (text 4.5:1) or `AAA` (text 7:1, enforced by `tests/library.test.ts`) | `AA` |
-| `neutral` | a [neutral family](#neutral-families) | the original neutrals |
+| `neutral` | a [neutral family](#neutral-families) | the builder's `zinc` |
 
 Optional metadata uses the defaults above when a definition omits it.
 `tests/library.test.ts` checks every definition against these rules:
@@ -1047,7 +1053,7 @@ contrast (`TEXT_CONTRAST_PAIRS` and `UI_CONTRAST_PAIRS` in
 | --- | --- |
 | `packages/themes/tests/contrast.test.ts` | Every built-in preset and every library theme, both modes; built-in hover fills stay visible and keep text at AA |
 | `packages/themes/tests/library.test.ts` | Every library theme, both modes |
-| `packages/themes/tests/palette.test.ts` | `createThemeFromSeed` across 500 deterministic seeds, both modes, with the original neutrals and every neutral family |
+| `packages/themes/tests/palette.test.ts` | `createThemeFromSeed` across 500 deterministic seeds, both modes, without a family and with every neutral family; every shared role equals Texuli's generator |
 | Theme Studio | Live warnings before saving |
 | `theme create` / `theme import` | Refuses to write a failing theme |
 | `generate` with a `brand` | Refuses to generate a failing brand theme |
