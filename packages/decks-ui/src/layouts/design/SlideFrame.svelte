@@ -72,19 +72,18 @@ const steps = getPropSteps();
     text-decoration: line-through;
     opacity: 0.6;
   }
+  /* With transitions off nothing moves: the hidden fade-up offset never shows and
+     grow or shrink become static emphasis. */
   @media (prefers-reduced-motion: reduce) {
     .deck-slide[data-py-fragment-kind='prop'],
-  .deck-slide :global([data-py-fragment-kind='prop']) {
+    .deck-slide :global([data-py-fragment-kind='prop']) {
       transition: none;
-      translate: none;
-      scale: none;
     }
   }
+  /* A deck's `motion: none` (on the deck root): the frame and every stepped prop inside it. */
   :global([data-py-deck-motion='none']) .deck-slide[data-py-fragment-kind='prop'],
-  .deck-slide :global([data-py-fragment-kind='prop']) {
+  :global([data-py-deck-motion='none']) .deck-slide :global([data-py-fragment-kind='prop']) {
     transition: none;
-    translate: none;
-    scale: none;
   }
   /* Shared block content keeps the deck text minimums (24 px body, 18 px labels). */
   .deck-slide :global([data-slot='blocks'] p),

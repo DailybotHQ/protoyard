@@ -8,19 +8,3 @@
 @source "./overview";
 @source "./print";
 @source "./debug";
-
-/* Inline fragment styles keep per-block states out of the shared utility set. */
-@media (prefers-reduced-motion: reduce) {
-  .py-deck-fragment {
-    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must override inline fragment styles. */
-    transition: none !important;
-    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must override inline fragment styles. */
-    translate: none !important;
-    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must override inline fragment styles. */
-    scale: none !important;
-  }
-}
-[data-py-deck-motion="none"] .py-deck-fragment {
-  /* biome-ignore lint/complexity/noImportantStyles: host motion setting must override inline fragment styles. */
-  transition: none !important;
-}
