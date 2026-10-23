@@ -6,9 +6,9 @@ Texuli is **linked**, not copied or installed from a registry, and Protoyard
 stays green.
 
 **Status:** this is the local `texuli-adoption` branch. It is not on `main`
-and has not been pushed. Themes come from `@texuli/tokens` (below); no
-prototype renders Texuli components yet. Later adoption tasks move packages
-over one at a time.
+and has not been pushed. Themes come from `@texuli/tokens`, and seven
+`@protoyard/ui` controls run on `@texuli/primitives` (both below). Later
+adoption tasks move packages over one at a time.
 
 ## How it is linked
 
@@ -65,6 +65,39 @@ Protoyard (`../texuli`):
   re-exports the whole library, so any static import of it would ship the
   library in every prototype's initial chunk.
 
+## Simple controls run on `@texuli/primitives`
+
+These `@protoyard/ui` components keep their props, classes and behavior, and
+render Texuli's headless primitives, imported by subpath
+(`@texuli/primitives/<name>`):
+
+| Component | Texuli primitive |
+| --- | --- |
+| `Separator` | `separator` (`SeparatorRoot`) |
+| `Progress` | `progress` |
+| `Checkbox` | `checkbox` (`CheckboxRoot`) |
+| `Switch` | `switch` (`Root`, `Thumb`) |
+| `RadioGroup`, `RadioGroupItem` | `radio-group` |
+| `Tabs` | `tabs` |
+| `Accordion` | `accordion` |
+
+- **Bindable `ref`.** Texuli's checkbox, switch, radio group and tabs roots
+  do not expose their element. The wrappers fill `ref` through an attachment
+  (`refAttachment`, `packages/ui/src/lib/ref.ts`) that the primitive spreads
+  on its element.
+- **Protoyard's defaults are kept:**
+  - separators are decorative (`role="none"`) unless `decorative={false}`;
+  - arrow keys wrap around the tabs (`loop`);
+  - inactive tab panels are not mounted (`forceMount={false}`).
+- **Accordion animation.** The collapse keyframes read Texuli's
+  `--tx-accordion-content-height`.
+- **Resolution.** `@protoyard/ui` imports `@texuli/primitives` through the
+  root `link:` dev dependency. Its own manifest declares no link, so
+  `pnpm check:packages` stays clean.
+- **Tests:** `pnpm vitest run packages/ui` (`simple-primitives.test.ts`
+  covers the seams above, and requires the selected radio or tab to be the
+  only tab stop, per the WAI-ARIA APG).
+
 ## The dev server
 
 `devFsAllow` (`@protoyard/renderer-svelte`) is the list of folders a
@@ -95,6 +128,7 @@ import { Button } from 'texuli/button';
 | `pnpm vitest run packages/renderer-svelte/tests/texuli-link.test.ts` | **Test.** Every linked package resolves into the Texuli checkout, not a copy. A Protoyard screen mounts Texuli's `Button`, which works on click, and blocks a `javascript:` link through `@texuli/core/url-policy`. A Texuli library theme applies to the document |
 | `pnpm vitest run packages/renderer-svelte/tests/texuli-link-build.test.ts` | **Dev and build**, through the real `defineProtoyardConfig`. A dev server on port 4962 serves the linked `Button.svelte` over `/@fs` and refuses the Texuli root `package.json` (403). A production build bundles the Texuli Button into the prototype. Without the linked roots in `devFsAllow`, the dev check fails |
 | `pnpm vitest run packages/renderer-svelte/tests/vite.test.ts` | `linkedPackageRoots`: links resolve to real folders; duplicates, missing links, non-link specifiers and an unreadable manifest add nothing. This workspace allows exactly the Texuli package folders |
+| `pnpm vitest run packages/ui/tests/simple-primitives.test.ts` | The Texuli-backed controls: bindable refs, states, tab stops, wrapping tabs and unmounted inactive panels, the accordion's size variable, separator and progress semantics |
 | `pnpm check` | Lint, typecheck and the full unit suite stay green |
 
 ## Limits
