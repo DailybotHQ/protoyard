@@ -37,8 +37,9 @@ export interface RuntimeFactoryOptions {
  * none of it. Unknown ids resolve to `undefined` and fall back visibly.
  */
 export async function resolveLibraryTheme(id: string): Promise<Theme | undefined> {
-  const { getLibraryThemeMeta, loadLibraryTheme } = await import('@protoyard/themes/library');
-  return getLibraryThemeMeta(id) ? loadLibraryTheme(id) : undefined;
+  const { findLibraryThemeMeta, loadLibraryTheme } = await import('@protoyard/themes/library');
+  // Catalog ids resolve at once; any other id may be in the expanded set, which loads on demand.
+  return (await findLibraryThemeMeta(id)) ? loadLibraryTheme(id) : undefined;
 }
 
 /**

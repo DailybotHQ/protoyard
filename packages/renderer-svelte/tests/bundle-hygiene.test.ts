@@ -237,6 +237,12 @@ describe('bundle hygiene', () => {
           /\/packages\/themes\/src\/(?:palette|oklch|library)\//.test(id)
         )
       ).toEqual([]);
+      // Nor Texuli's theme library, builder, generator or AA gate (@texuli/tokens).
+      expect(
+        initialModules.filter((id) =>
+          /\/tokens\/src\/(?:library-port|library-expand|generator|aa-gate)\//.test(id)
+        )
+      ).toEqual([]);
       expect(initialCode).not.toMatch(
         /data-py-(?:sidebar|rail|top-nav|dual-sidebar|master-detail|dashboard-grid|docs|marketing|mobile-tabs|mobile-drawer|wizard|auth-split)-layout/
       );
@@ -259,8 +265,9 @@ describe('bundle hygiene', () => {
         chunk.moduleIds.some((id) => posix(id).endsWith('/packages/themes/src/library/registry.ts'))
       );
       if (!libraryEntry) throw new Error('no theme library metadata chunk');
-      const libraryBuild = libraryChunks.find((chunk) =>
-        chunk.moduleIds.some((id) => posix(id).endsWith('/packages/themes/src/library/build.ts'))
+      // Library themes are built by @texuli/tokens, lazily, outside the metadata chunk.
+      const libraryBuild = output.chunks.find((chunk) =>
+        chunk.moduleIds.some((id) => posix(id).endsWith('/tokens/src/library-port/build.ts'))
       );
       if (!libraryBuild) throw new Error('no lazy theme library builder chunk');
       const studioSource = readFileSync(
