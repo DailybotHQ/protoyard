@@ -119,7 +119,9 @@ describe('MapScreen', () => {
     const onOpenRecord = vi.fn();
     render(MapScreen, { runtime, blueprint, services, screen: mapScreen, onOpenRecord });
 
-    const lighthouse = await screen.findByRole('button', { name: 'Lighthouse, enroute' });
+    // The marker and its list row are both buttons named after the record.
+    const lighthouse = await screen.findAllByRole('button', { name: 'Lighthouse, enroute' });
+    expect(lighthouse.map((button) => button.hasAttribute('data-marker'))).toEqual([true, false]);
     expect(document.querySelector(`[data-marker="${lighthouseRow.id}"]`)).toBeTruthy();
     expect(document.querySelector(`[data-marker="${pierRow.id}"]`)).toBeTruthy();
     expect(document.querySelector(`[data-list-item="${lighthouseRow.id}"]`)).toBeTruthy();
@@ -139,7 +141,7 @@ describe('MapScreen', () => {
       expect(onOpenRecord).toHaveBeenCalledWith(expect.objectContaining({ name: 'Lighthouse' }))
     );
 
-    expect(lighthouse).toBeTruthy();
+    expect(lighthouse).toHaveLength(2);
     expect(fetch).not.toHaveBeenCalled();
   });
 
