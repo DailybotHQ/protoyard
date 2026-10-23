@@ -832,6 +832,9 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
+      '@texuli/tokens':
+        specifier: link:../../../texuli/packages/tokens
+        version: link:../../../texuli/packages/tokens
 
   packages/ui:
     dependencies:

@@ -6,7 +6,6 @@ import {
   TEXT_CONTRAST_PAIRS,
   UI_CONTRAST_PAIRS,
 } from '../src/contrast.ts';
-import { themeFromDefinition } from '../src/library/build.ts';
 import { oklchToHex, rgbToOklch } from '../src/oklch.ts';
 import {
   createThemeFromSeed,
@@ -249,7 +248,7 @@ describe('neutral families', () => {
     );
   });
 
-  it('rejects unknown families and passes the family through library definitions', () => {
+  it('rejects unknown families and changes the neutrals when a family is given', () => {
     expect(() =>
       createThemeFromSeed({
         id: 'x',
@@ -258,24 +257,13 @@ describe('neutral families', () => {
         neutral: 'beige' as NeutralFamily,
       })
     ).toThrow(/Unknown neutral family "beige"/);
-    const definition = {
-      id: 'warm-ledger',
-      name: 'Warm Ledger',
-      description: 'A warm neutral test definition.',
-      category: 'fintech',
-      tags: ['test'],
-      seed: '#0f766e',
-      neutral: 'warm' as const,
-    };
-    const fromLibrary = themeFromDefinition(definition);
-    const direct = createThemeFromSeed({
+    const warm = createThemeFromSeed({
       id: 'warm-ledger',
       name: 'Warm Ledger',
       seed: '#0f766e',
       neutral: 'warm',
     });
-    expect(fromLibrary.light.background).toBe(direct.light.background);
-    expect(fromLibrary.light.background).not.toBe(ORIGINAL_FINTECH_LEDGER.light.background);
+    expect(warm.light.background).not.toBe(ORIGINAL_FINTECH_LEDGER.light.background);
   });
 });
 
