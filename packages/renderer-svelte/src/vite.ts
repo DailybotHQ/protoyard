@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   MANIFEST_FILENAME,
@@ -148,14 +148,48 @@ export function envFlag(value: string | undefined): boolean | undefined {
 }
 
 /**
+ * The real folders of the `link:` dependencies the workspace root declares
+ * (Texuli is consumed from `../texuli/packages/*`). They live outside the
+ * workspace, so each one, and nothing around it, joins the dev server's
+ * allow list. Links that do not resolve, and a missing or unreadable
+ * manifest, add nothing.
+ */
+export function linkedPackageRoots(workspace: string): string[] {
+  let manifest: Record<string, unknown>;
+  try {
+    manifest = JSON.parse(readFileSync(resolve(workspace, 'package.json'), 'utf8'));
+  } catch {
+    return [];
+  }
+  const roots = new Set<string>();
+  for (const field of ['dependencies', 'devDependencies']) {
+    const deps = manifest[field];
+    if (!deps || typeof deps !== 'object') continue;
+    for (const spec of Object.values(deps as Record<string, unknown>)) {
+      if (typeof spec !== 'string' || !spec.startsWith('link:')) continue;
+      const target = resolve(workspace, spec.slice('link:'.length));
+      if (!existsSync(target)) continue;
+      roots.add(realpathSync(target));
+    }
+  }
+  return [...roots].sort();
+}
+
+/**
  * What the dev server may serve through `/@fs`: this prototype, the shared
- * workspace packages and installed dependencies — never the rest of the
- * workspace (other prototypes, artifacts, dotfiles). Vite's default
- * `fs.deny` (.env, *.pem, *.crt…) still applies on top.
+ * workspace packages, installed dependencies and the folders of the root's
+ * `link:` dependencies — never the rest of the workspace (other prototypes,
+ * artifacts, dotfiles). Vite's default `fs.deny` (.env, *.pem, *.crt…) still
+ * applies on top.
  */
 export function devFsAllow(root: string): string[] {
   const workspace = searchForWorkspaceRoot(root);
-  return [resolve(root), resolve(workspace, 'packages'), resolve(workspace, 'node_modules')];
+  return [
+    resolve(root),
+    resolve(workspace, 'packages'),
+    resolve(workspace, 'node_modules'),
+    ...linkedPackageRoots(workspace),
+  ];
 }
 
 /** Where avatar images come from in this build (see src/avatars.ts). */
