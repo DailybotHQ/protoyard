@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Tooltip as TooltipPrimitive } from 'bits-ui';
+import { Tooltip as TooltipPrimitive } from '@texuli/primitives/tooltip';
 import type { Snippet } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
@@ -35,22 +35,21 @@ let {
     <TooltipPrimitive.Trigger>
       {#snippet child({ props })}{@render children({ props })}{/snippet}
     </TooltipPrimitive.Trigger>
-    <TooltipPrimitive.Portal>
-      <TooltipPrimitive.Content
-        {side}
-        {align}
-        sideOffset={6}
-        class={cn(
-          'z-50 max-w-xs rounded-md bg-foreground px-2.5 py-1.5 text-xs font-medium text-background shadow-float ui-anim-pop',
-          className
-        )}
-      >
-        {#if typeof content === 'string'}
-          {content}
-        {:else}
-          {@render content()}
-        {/if}
-      </TooltipPrimitive.Content>
-    </TooltipPrimitive.Portal>
+    <!-- Fixed positioning keeps the content above clipping ancestors without a portal. -->
+    <TooltipPrimitive.Content
+      {side}
+      {align}
+      sideOffset={6}
+      class={cn(
+        'z-50 max-w-xs rounded-md bg-foreground px-2.5 py-1.5 text-xs font-medium text-background shadow-float ui-anim-pop',
+        className
+      )}
+    >
+      {#if typeof content === 'string'}
+        {content}
+      {:else}
+        {@render content()}
+      {/if}
+    </TooltipPrimitive.Content>
   </TooltipPrimitive.Root>
 </TooltipPrimitive.Provider>

@@ -142,10 +142,7 @@ function commitText() {
       onOpenChange={(isOpen) => {
         if (isOpen) focusDate = value;
       }}
-      onOpenAutoFocus={(event) => {
-        event.preventDefault();
-        void calendar?.focus();
-      }}
+      onOpenFocus={() => void calendar?.focus()}
     >
       {#snippet trigger({ props })}
         <button

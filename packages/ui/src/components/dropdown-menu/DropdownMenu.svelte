@@ -1,5 +1,5 @@
 <script lang="ts">
-import { DropdownMenu as MenuPrimitive } from 'bits-ui';
+import * as MenuPrimitive from '@texuli/primitives/menu';
 import { cn } from '../../lib/cn.ts';
 import { floatingItem, floatingSurface } from '../../lib/overlay.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
@@ -29,7 +29,7 @@ interface Section {
   entries: (DropdownMenuAction | DropdownMenuSeparator)[];
 }
 
-// Bits requires headings inside a Group, so each `label` entry starts a labelled group.
+// A heading names its group (aria-labelledby), so each `label` entry starts a labelled group.
 const sections = $derived.by(() => {
   const result: Section[] = [{ entries: [] }];
   for (const entry of items) {
@@ -71,27 +71,26 @@ const sections = $derived.by(() => {
   <MenuPrimitive.Trigger>
     {#snippet child({ props })}{@render trigger({ props })}{/snippet}
   </MenuPrimitive.Trigger>
-  <MenuPrimitive.Portal>
-    <MenuPrimitive.Content
-      {side}
-      {align}
-      sideOffset={4}
-      class={cn(floatingSurface, 'min-w-44 p-1', className)}
-    >
-      {#each sections as section, index (index)}
-        {#if section.heading !== undefined}
-          <MenuPrimitive.Group>
-            <MenuPrimitive.GroupHeading
-              class="px-2 py-1.5 text-xs font-medium text-muted-foreground"
-            >
-              {section.heading}
-            </MenuPrimitive.GroupHeading>
-            {@render entryList(section.entries)}
-          </MenuPrimitive.Group>
-        {:else}
+  <!-- The content shows in the top layer; no portal is needed. -->
+  <MenuPrimitive.Content
+    {side}
+    {align}
+    sideOffset={4}
+    class={cn(floatingSurface, 'min-w-44 p-1', className)}
+  >
+    {#each sections as section, index (index)}
+      {#if section.heading !== undefined}
+        <MenuPrimitive.Group>
+          <MenuPrimitive.GroupHeading
+            class="px-2 py-1.5 text-xs font-medium text-muted-foreground"
+          >
+            {section.heading}
+          </MenuPrimitive.GroupHeading>
           {@render entryList(section.entries)}
-        {/if}
-      {/each}
-    </MenuPrimitive.Content>
-  </MenuPrimitive.Portal>
+        </MenuPrimitive.Group>
+      {:else}
+        {@render entryList(section.entries)}
+      {/if}
+    {/each}
+  </MenuPrimitive.Content>
 </MenuPrimitive.Root>

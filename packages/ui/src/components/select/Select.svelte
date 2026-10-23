@@ -1,12 +1,16 @@
 <script lang="ts">
 import { Check, ChevronDown } from '@lucide/svelte';
-import { Select as SelectPrimitive } from 'bits-ui';
+import { Select as SelectPrimitive } from '@texuli/primitives/select';
+import type { ComponentProps } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import { floatingItem, floatingSurface } from '../../lib/overlay.ts';
+import { refAttachment } from '../../lib/ref.ts';
 import { fieldClasses } from '../input/input-classes.ts';
 import type { SelectOption } from './types.ts';
 
-type TriggerProps = Omit<SelectPrimitive.TriggerProps, 'children' | 'child'>;
+type TriggerProps = Omit<ComponentProps<typeof SelectPrimitive.Trigger>, 'children' | 'child'> & {
+  ref?: HTMLButtonElement | null;
+};
 
 type Props = TriggerProps & {
   items: SelectOption[];
@@ -33,8 +37,7 @@ let {
   contentClass,
   onValueChange,
   ref = $bindable(null),
-  // The trigger is a button, where aria-required is not allowed; `required`
-  // is enforced through the hidden form input instead (FormField passes both).
+  // The trigger (role="combobox") states `required` itself, from the root.
   'aria-required': _ariaRequired,
   ...rest
 }: Props = $props();
@@ -62,7 +65,7 @@ const describedBy = $derived(
   {onValueChange}
 >
   <SelectPrimitive.Trigger
-    bind:ref
+    {@attach refAttachment<HTMLButtonElement>((node) => (ref = node))}
     class={cn(
       fieldClasses,
       'flex h-9 min-h-touch items-center justify-between gap-2 px-3 py-1 text-left sm:min-h-0',
@@ -70,7 +73,6 @@ const describedBy = $derived(
       className
     )}
     {...rest}
-    role="combobox"
     aria-describedby={describedBy}
   >
     <span id={valueId} class={cn('truncate', !selected && 'text-muted-foreground')}>
@@ -78,32 +80,29 @@ const describedBy = $derived(
     </span>
     <ChevronDown class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
   </SelectPrimitive.Trigger>
-  <SelectPrimitive.Portal>
-    <SelectPrimitive.Content
-      sideOffset={4}
-      class={cn(
-        floatingSurface,
-        'max-h-[min(20rem,var(--bits-select-content-available-height))] min-w-(--bits-select-anchor-width) overflow-hidden p-1',
-        contentClass
-      )}
-    >
-      <SelectPrimitive.Viewport class="max-h-[inherit]">
-        {#each items as item (item.value)}
-          <SelectPrimitive.Item
-            value={item.value}
-            label={item.label}
-            disabled={item.disabled}
-            class={cn(floatingItem, 'pr-8')}
-          >
-            {#snippet children({ selected: isSelected })}
-              <span class="truncate">{item.label}</span>
-              {#if isSelected}
-                <Check class="absolute right-2 text-primary" aria-hidden="true" />
-              {/if}
-            {/snippet}
-          </SelectPrimitive.Item>
-        {/each}
-      </SelectPrimitive.Viewport>
-    </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
+  <!-- The list opens in the top layer at the trigger's width; no portal is needed. -->
+  <SelectPrimitive.Content
+    sideOffset={4}
+    class={cn(
+      floatingSurface,
+      'max-h-[min(20rem,calc(100dvh-2rem))] overflow-hidden p-1',
+      contentClass
+    )}
+  >
+    <SelectPrimitive.Viewport class="max-h-[inherit] overflow-y-auto">
+      {#each items as item (item.value)}
+        <SelectPrimitive.Item
+          value={item.value}
+          label={item.label}
+          disabled={item.disabled}
+          class={cn(floatingItem, 'pr-8')}
+        >
+          <span class="truncate">{item.label}</span>
+          {#if item.value === value}
+            <Check class="absolute right-2 text-primary" aria-hidden="true" />
+          {/if}
+        </SelectPrimitive.Item>
+      {/each}
+    </SelectPrimitive.Viewport>
+  </SelectPrimitive.Content>
 </SelectPrimitive.Root>

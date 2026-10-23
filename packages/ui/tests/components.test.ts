@@ -148,9 +148,8 @@ describe('Kanban', () => {
     const todo = screen.getByRole('region', { name: 'To do' });
     expect(within(todo).getByText('Write brief')).toBeTruthy();
 
-    await fireEvent.pointerDown(
-      screen.getByRole('button', { name: 'Move Write brief to another column' }),
-      { button: 0, pointerType: 'mouse' }
+    await fireEvent.click(
+      screen.getByRole('button', { name: 'Move Write brief to another column' })
     );
     const menu = await screen.findByRole('menu');
     const done = within(menu).getByRole('menuitem', { name: 'Done' });

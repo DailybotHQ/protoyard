@@ -215,10 +215,7 @@ const summary = $derived(
         pending = null;
         if (isOpen) focusDate = value.start;
       }}
-      onOpenAutoFocus={(event) => {
-        event.preventDefault();
-        void calendar?.focus();
-      }}
+      onOpenFocus={() => void calendar?.focus()}
     >
       {#snippet trigger({ props })}
         <button

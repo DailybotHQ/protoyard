@@ -6,9 +6,10 @@ Texuli is **linked**, not copied or installed from a registry, and Protoyard
 stays green.
 
 **Status:** this is the local `texuli-adoption` branch. It is not on `main`
-and has not been pushed. Themes come from `@texuli/tokens`, and seven
-`@protoyard/ui` controls run on `@texuli/primitives` (both below). Later
-adoption tasks move packages over one at a time.
+and has not been pushed. Themes come from `@texuli/tokens`, and the simple
+and floating `@protoyard/ui` controls run on `@texuli/primitives` (below).
+Dialogs, sheets and drawers have not moved yet. Later adoption tasks move
+packages over one at a time.
 
 ## How it is linked
 
@@ -98,6 +99,43 @@ render Texuli's headless primitives, imported by subpath
   covers the seams above, and requires the selected radio or tab to be the
   only tab stop, per the WAI-ARIA APG).
 
+## Floating controls run on `@texuli/primitives`
+
+These components also keep their props and classes:
+
+| Component | Texuli primitive |
+| --- | --- |
+| `Tooltip` | `tooltip` |
+| `Popover` | `popover` |
+| `DropdownMenu` | `menu` |
+| `Select` | `select` |
+| `Combobox` | `combobox` |
+| `CommandPalette` (`@protoyard/ui`), the commands palette (`@protoyard/views-ui`), `UserPicker` | `command` (and `popover`) |
+
+- **No portals.** Popover, menu, select and combobox content opens in the
+  browser's top layer. Tooltip content is positioned `fixed`. Both stay
+  above clipping ancestors without moving in the DOM.
+- **Widths.** The select and combobox lists match their field's width. The
+  `UserPicker` list is `w-72`.
+- **`Popover` gains `onOpenFocus`.** The content focuses its first control
+  when it opens; `onOpenFocus` then runs, to move focus elsewhere. The date
+  pickers use it to focus the calendar's date.
+- **Combobox.**
+  - `filter` replaces the default label match. The chosen label in the
+    input is not a search, so opening the list shows every option.
+  - `name` and `required` submit and validate the chosen value through
+    Texuli's form bridge.
+- **Command lists.**
+  - The first result starts highlighted. ArrowDown moves to the next one,
+    and Enter runs it.
+  - `UserPicker` searches the name (the item label) and the subtitle (its
+    keyword).
+  - A running command marks the palette `aria-busy`.
+- **Menus** open on click or with Enter, Space or ArrowDown on the trigger.
+- **Tests:** `floating-primitives.test.ts` covers labels through a consumer
+  `id`, the combobox filter and form value, the tooltip, the menu, the
+  popover's `ref` and `onOpenFocus`, and people search.
+
 ## The dev server
 
 `devFsAllow` (`@protoyard/renderer-svelte`) is the list of folders a
@@ -129,6 +167,7 @@ import { Button } from 'texuli/button';
 | `pnpm vitest run packages/renderer-svelte/tests/texuli-link-build.test.ts` | **Dev and build**, through the real `defineProtoyardConfig`. A dev server on port 4962 serves the linked `Button.svelte` over `/@fs` and refuses the Texuli root `package.json` (403). A production build bundles the Texuli Button into the prototype. Without the linked roots in `devFsAllow`, the dev check fails |
 | `pnpm vitest run packages/renderer-svelte/tests/vite.test.ts` | `linkedPackageRoots`: links resolve to real folders; duplicates, missing links, non-link specifiers and an unreadable manifest add nothing. This workspace allows exactly the Texuli package folders |
 | `pnpm vitest run packages/ui/tests/simple-primitives.test.ts` | The Texuli-backed controls: bindable refs, states, tab stops, wrapping tabs and unmounted inactive panels, the accordion's size variable, separator and progress semantics |
+| `pnpm vitest run packages/ui/tests/floating-primitives.test.ts` | The Texuli-backed floating controls: labels through a consumer id, the combobox filter and form value, tooltip, menu, popover ref and initial focus, people search |
 | `pnpm check` | Lint, typecheck and the full unit suite stay green |
 
 ## Limits

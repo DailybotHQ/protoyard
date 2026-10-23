@@ -7,7 +7,8 @@ import {
   Spinner,
   subscribeOverlayPortalTarget,
 } from '@protoyard/ui';
-import { Command, Dialog as DialogPrimitive } from 'bits-ui';
+import { Command } from '@texuli/primitives/command';
+import { Dialog as DialogPrimitive } from 'bits-ui';
 import { shortcutKeys, shortcutLabel } from '../lib/platform.ts';
 import type { CommandEntry, CommandRegistry } from './registry.ts';
 import { COMMAND_QUERY_MAX_LENGTH, rankCommands } from './registry.ts';
@@ -155,14 +156,16 @@ function goBack() {
           </span>
         </div>
       {/if}
-      <Command.Root label="Commands" shouldFilter={false} loop>
+      <!-- The list states its own loading; a running command marks the whole palette busy. -->
+      <Command.Root label="Commands" shouldFilter={false} loop aria-busy={running !== null || undefined}>
+        <!-- The input forwards every attribute; its props type omits the input-only ones like maxlength. -->
         <Command.Input
           bind:value={query}
-          maxlength={COMMAND_QUERY_MAX_LENGTH}
+          {...{ maxlength: COMMAND_QUERY_MAX_LENGTH }}
           {placeholder}
           class="h-14 border-b border-border bg-transparent px-4 text-base outline-none placeholder:text-muted-foreground"
         />
-        <Command.List class="max-h-[min(60vh,28rem)] overflow-y-auto p-2" aria-busy={running !== null || undefined}>
+        <Command.List class="max-h-[min(60vh,28rem)] overflow-y-auto p-2">
           {#if groups.length === 0}
             <Command.Empty class="px-3 py-6 text-center text-sm text-muted-foreground">
               {#if searchState === 'loading'}
@@ -183,12 +186,13 @@ function goBack() {
                 {#each entries as entry (entry.id)}
                   <Command.Item
                     value={entry.id}
+                    label={entry.label}
                     onSelect={() => select(entry)}
                     aria-busy={running === entry.id || undefined}
                     aria-haspopup={entry.children ? 'listbox' : undefined}
                     aria-keyshortcuts={entry.shortcut ? shortcutLabel(entry.shortcut, isMac).replace(/ /g, '+') : undefined}
                     class={cn(
-                      'flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm outline-none data-[selected]:bg-muted',
+                      'flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm outline-none data-highlighted:bg-muted',
                       running !== null && running !== entry.id && 'opacity-60'
                     )}
                   >

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Command as CommandIcon, Search } from '@lucide/svelte';
-import { Command, Dialog as DialogPrimitive } from 'bits-ui';
+import { Command } from '@texuli/primitives/command';
+import { Dialog as DialogPrimitive } from 'bits-ui';
 import { onMount } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';
@@ -148,7 +149,7 @@ onMount(() => {
       <DialogPrimitive.Description class="sr-only">
         Search or choose a recent action. Use the arrow keys to move and Enter to select.
       </DialogPrimitive.Description>
-      <Command.Root label="Search commands" shouldFilter={false} loop>
+      <Command.Root label="Search commands" shouldFilter={false} loop aria-busy={loading || undefined}>
         <div class="flex items-center gap-3 border-b border-border px-4">
           <Search class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
           <Command.Input
@@ -159,11 +160,12 @@ onMount(() => {
           <kbd class="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-xs text-muted-foreground sm:inline">Esc</kbd>
         </div>
 
-        <Command.List aria-busy={loading} class="max-h-[min(60vh,28rem)] overflow-y-auto p-2">
+        <Command.List class="max-h-[min(60vh,28rem)] overflow-y-auto p-2">
           {#if loading}
-            <Command.Loading class="px-3 py-6 text-center text-sm text-muted-foreground">
+            <!-- The search runs here, not through the list, so its status is this palette's own. -->
+            <p role="status" aria-live="polite" class="px-3 py-6 text-center text-sm text-muted-foreground">
               Searching…
-            </Command.Loading>
+            </p>
           {:else if searchError}
             <p role="alert" class="px-3 py-6 text-center text-sm text-destructive">{searchError}</p>
           {:else if groupedItems.length === 0}
@@ -180,9 +182,10 @@ onMount(() => {
                   {#each group.items as item (item.id)}
                     <Command.Item
                       value={item.id}
+                      label={item.label}
                       keywords={item.keywords}
                       onSelect={() => selectItem(item)}
-                      class="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm outline-none data-[selected]:bg-muted data-[selected]:text-foreground"
+                      class="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm outline-none data-highlighted:bg-muted data-highlighted:text-foreground"
                     >
                       <CommandIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                       <span class="min-w-0 flex-1">

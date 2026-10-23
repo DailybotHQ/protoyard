@@ -1,6 +1,6 @@
 <script lang="ts">
 import { ChevronsUpDown } from '@lucide/svelte';
-import { Popover as PopoverPrimitive } from 'bits-ui';
+import * as PopoverPrimitive from '@texuli/primitives/popover';
 import { cn } from '../../lib/cn.ts';
 import { floatingSurface } from '../../lib/overlay.ts';
 import Avatar from '../avatar/Avatar.svelte';
@@ -64,7 +64,7 @@ function pick(user: PickerUser): void {
     />
   </div>
 {:else}
-  <PopoverPrimitive.Root bind:open>
+  <PopoverPrimitive.Root bind:open sideOffset={4} align="start">
     <PopoverPrimitive.Trigger
       {id}
       {disabled}
@@ -83,22 +83,19 @@ function pick(user: PickerUser): void {
       {/if}
       <ChevronsUpDown class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
     </PopoverPrimitive.Trigger>
-    <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Content
-        sideOffset={4}
-        align="start"
-        class={cn(floatingSurface, 'w-(--bits-popover-anchor-width) min-w-64 overflow-hidden p-0')}
-      >
-        <UserList
-          {users}
-          selectedId={value}
-          onPick={pick}
-          {searchable}
-          {searchPlaceholder}
-          {emptyText}
-          {label}
-        />
-      </PopoverPrimitive.Content>
-    </PopoverPrimitive.Portal>
+    <!-- The list opens in the top layer; no portal is needed. -->
+    <PopoverPrimitive.Content
+      class={cn(floatingSurface, 'w-72 max-w-[calc(100vw-2rem)] overflow-hidden p-0')}
+    >
+      <UserList
+        {users}
+        selectedId={value}
+        onPick={pick}
+        {searchable}
+        {searchPlaceholder}
+        {emptyText}
+        {label}
+      />
+    </PopoverPrimitive.Content>
   </PopoverPrimitive.Root>
 {/if}
