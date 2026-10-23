@@ -1,5 +1,5 @@
 import { defineTheme, type Theme, type ThemeInput } from '@protoyard/core';
-import { deriveChartTokens, generatePaletteScale, PALETTE_STEPS } from '@texuli/tokens';
+import { deriveChartTokens, generatePaletteScale, PALETTE_STEPS } from '@texuli/tokens/palette';
 import { generateThemeFromSeed, NEUTRAL_FAMILIES } from '@texuli/tokens/generator';
 import { fromTexuliTheme } from './from-texuli.ts';
 
