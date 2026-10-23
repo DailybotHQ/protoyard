@@ -99,7 +99,8 @@ function importGraph(entry: string): string[] {
 const LAZY_MODULES: [string, RegExp][] = [
   ['Faker', /@faker-js\/faker/],
   ['DevTools', /\/devtools\/src\//],
-  ['theme library', /\/themes\/src\/library\//],
+  // Library tokens come from @texuli/tokens, loaded on demand (the catalog metadata is eager).
+  ['theme library', /\/tokens\/src\/library-(?:port|expand)\//],
   ['crud screen kits', /\/crud\/src\/screens\//],
   ['crud app shell', /\/crud\/src\/app\//],
   ['charts', /\/charts-ui\/src\//],
