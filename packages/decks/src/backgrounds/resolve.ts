@@ -1,4 +1,4 @@
-import { chooseInk, opaqueColor, sampleGradient } from './contrast.ts';
+import { chooseInk, compositeOver, opaqueColor, sampleGradient } from './contrast.ts';
 import {
   DECK_BACKGROUND_PRESETS,
   DECK_GRADIENTS,
@@ -86,6 +86,25 @@ function darkInk(palette: DeckBackgroundPalette): string {
     : palette.background;
 }
 
+/** Fade steps between the background (0) and the theme border (full strength). */
+const PATTERN_INK_STEPS = 20;
+
+/**
+ * The line color of a dot or grid pattern: the theme's `border`, faded toward
+ * the background only when text could not read on the lines without a scrim.
+ * A pattern paints no scrim, so its ink must leave text at AA on its own.
+ * Themes that draw borders strong enough for non-text contrast (3:1, as the
+ * Texuli library does) would otherwise put pattern lines as dark as the text.
+ */
+function patternInk(base: string, border: string, inks: { light: string; dark: string }): string {
+  for (let step = PATTERN_INK_STEPS; step > 0; step -= 1) {
+    const ink =
+      step === PATTERN_INK_STEPS ? border : compositeOver(base, border, step / PATTERN_INK_STEPS);
+    if (chooseInk([base, ink], inks).overlay === null) return ink;
+  }
+  return base;
+}
+
 function solidColor(token: DeckSolidToken, palette: DeckBackgroundPalette): string {
   return token === 'inverse' ? palette.foreground : palette[token];
 }
@@ -144,11 +163,12 @@ export function resolveDeckBackground(
       break;
     }
     case 'pattern': {
-      choice = chooseInk([base, palette.border], inks);
+      const ink = patternInk(base, palette.border, inks);
+      choice = chooseInk([base, ink], inks);
       result = {
         kind: 'pattern',
         color: base,
-        pattern: { kind: spec.pattern, ink: palette.border },
+        pattern: { kind: spec.pattern, ink },
       };
       break;
     }
