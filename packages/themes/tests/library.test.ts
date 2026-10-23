@@ -1,4 +1,5 @@
 import { ThemeSchema, ThemeStyleSchema } from '@protoyard/core';
+import { chartColorDistance, validateChartTokens } from '@texuli/tokens';
 import {
   loadLibraryThemeDefinition as loadTexuliPortedDefinition,
   THEME_LIBRARY_META as TEXULI_PORTED_META,
@@ -10,7 +11,6 @@ import {
   loadFullLibraryThemeCharts,
 } from '@texuli/tokens/library-expand';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { chartColorDistance, validateChartTokens } from '../src/charts.ts';
 import {
   contrastRatio,
   parseHex,

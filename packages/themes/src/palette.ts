@@ -1,331 +1,29 @@
-import {
-  defineTheme,
-  type Theme,
-  type ThemeChartTokens,
-  type ThemeInput,
-  type ThemePalette,
-} from '@protoyard/core';
-import { deriveChartTokens } from './charts.ts';
-import { contrastRatio, parseHex } from './contrast.ts';
-import { oklchToHex, rgbToOklch } from './oklch.ts';
+import { defineTheme, type Theme, type ThemeInput } from '@protoyard/core';
+import { deriveChartTokens, generatePaletteScale, PALETTE_STEPS } from '@texuli/tokens';
+import { generateThemeFromSeed, NEUTRAL_FAMILIES } from '@texuli/tokens/generator';
+import { fromTexuliTheme } from './from-texuli.ts';
 
-export const PALETTE_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
+/**
+ * Seed themes. The palette engine is `@texuli/tokens`' generator: Protoyard
+ * keeps its public API (`createThemeFromSeed`, `generatePaletteScale`,
+ * `NEUTRAL_FAMILIES`) and its defaults (fonts, radius, density, style), and
+ * takes every color, chart color included, from Texuli. One engine builds the
+ * library, Theme Studio, deck seeds and quick variants.
+ */
+
+export { generatePaletteScale, NEUTRAL_FAMILIES, PALETTE_STEPS };
 export type PaletteStep = (typeof PALETTE_STEPS)[number];
 export type PaletteScale = Record<PaletteStep, string>;
-
-const LIGHTNESS: readonly [PaletteStep, number][] = [
-  [50, 0.98],
-  [100, 0.95],
-  [200, 0.9],
-  [300, 0.82],
-  [400, 0.72],
-  [500, 0.62],
-  [600, 0.52],
-  [700, 0.42],
-  [800, 0.32],
-  [900, 0.22],
-  [950, 0.12],
-];
-
-function seedColorToOklch(seed: string) {
-  const rgb = parseHex(seed);
-  if (!rgb) throw new TypeError(`Palette seed must be a #rgb or #rrggbb color, got "${seed}"`);
-  return rgbToOklch(rgb);
-}
-
-/** Creates a deterministic, gamut-mapped 11-step scale from a hex seed. */
-export function generatePaletteScale(seed: string): PaletteScale {
-  const color = seedColorToOklch(seed);
-  const chroma = Math.min(color.c, 0.24);
-  return Object.fromEntries(
-    LIGHTNESS.map(([step, lightness]) => [step, oklchToHex({ ...color, l: lightness, c: chroma })])
-  ) as PaletteScale;
-}
-
-function contrastSafeColor(
-  hue: number,
-  chroma: number,
-  backgrounds: readonly string[],
-  minimum: number,
-  mode: 'light' | 'dark',
-  start = mode === 'light' ? 0.52 : 0.48
-): string {
-  const direction = mode === 'light' ? -1 : 1;
-  for (let step = 0; step <= 100; step += 1) {
-    const l = Math.min(1, Math.max(0, start + direction * step * 0.01));
-    const candidate = oklchToHex({ l, c: chroma, h: hue });
-    if (backgrounds.every((background) => contrastRatio(candidate, background) >= minimum)) {
-      return candidate;
-    }
-  }
-  // At the sRGB extremes, neutral black or white always meets the requested ratio.
-  return mode === 'light' ? '#000000' : '#ffffff';
-}
-
-/** Seeds below this OKLCH chroma are treated as gray: their primary stays gray. */
-const ACHROMATIC_SEED = 0.04;
-
-function semanticColor(
-  hue: number,
-  mode: 'light' | 'dark',
-  backgrounds: readonly string[],
-  minimum = 4.5
-) {
-  return contrastSafeColor(hue, 0.2, backgrounds, minimum, mode);
-}
-
-function accessibleFill(hue: number, text: string, mode: 'light' | 'dark', minimum = 4.5): string {
-  for (let step = 0; step <= 100; step += 1) {
-    const l = mode === 'light' ? 0.98 - step * 0.005 : 0.02 + step * 0.005;
-    const candidate = oklchToHex({ l, c: 0.12, h: hue });
-    if (contrastRatio(text, candidate) >= minimum) return candidate;
-  }
-  return mode === 'light' ? '#f3f4f6' : '#27272a';
-}
-
-/**
- * Neutral families for the surfaces, text and borders of a generated theme.
- * Omitting `neutral` keeps the original fixed neutrals, so existing themes do
- * not change. `tinted` uses the seed's own hue at a low chroma.
- */
-export const NEUTRAL_FAMILIES = [
-  'zinc',
-  'slate',
-  'stone',
-  'gray',
-  'warm',
-  'cool',
-  'tinted',
-] as const;
 export type NeutralFamily = (typeof NEUTRAL_FAMILIES)[number];
-
-/** OKLCH hue and chroma of each family; `tinted` takes its hue from the seed. */
-const NEUTRAL_TINTS: Record<Exclude<NeutralFamily, 'tinted'>, { h: number; c: number }> = {
-  zinc: { h: 286, c: 0.006 },
-  slate: { h: 257, c: 0.02 },
-  stone: { h: 56, c: 0.008 },
-  gray: { h: 265, c: 0.012 },
-  warm: { h: 70, c: 0.016 },
-  cool: { h: 225, c: 0.016 },
-};
-const TINTED_CHROMA = 0.016;
-
-/** Text tokens come last: they are searched against the backgrounds resolved before them. */
-const NEUTRAL_TEXT = {
-  foreground: ['background', 'surface', 'elevated', 'muted'],
-  mutedForeground: ['background', 'surface', 'muted'],
-  sidebarForeground: ['sidebar'],
-} as const;
-type NeutralToken =
-  | 'background'
-  | 'surface'
-  | 'elevated'
-  | 'muted'
-  | 'border'
-  | 'input'
-  | 'sidebar'
-  | 'sidebarBorder'
-  /** Replacement fills when a secondary or accent fill misses 4.5:1 with its text. */
-  | 'fallbackSecondary'
-  | 'fallbackAccent'
-  | keyof typeof NEUTRAL_TEXT;
-/** A string is used as is; a number is an OKLCH lightness in the family's tint (text: the search start). */
-type NeutralTable = Record<NeutralToken, string | number>;
-type Neutrals = Record<NeutralToken, string>;
-
-/** The original fixed neutrals, kept bit-for-bit for themes without a family. */
-const ORIGINAL_NEUTRALS: Record<'light' | 'dark', NeutralTable> = {
-  light: {
-    background: '#fafafa',
-    surface: '#ffffff',
-    elevated: '#ffffff',
-    muted: '#f3f4f6',
-    border: '#e5e7eb',
-    input: '#d1d5db',
-    sidebar: '#f3f4f6',
-    sidebarBorder: '#e5e7eb',
-    fallbackSecondary: '#e5e7eb',
-    fallbackAccent: '#f3f4f6',
-    foreground: '#111827',
-    mutedForeground: '#4b5563',
-    sidebarForeground: '#1f2937',
-  },
-  dark: {
-    background: '#09090b',
-    surface: '#18181b',
-    elevated: '#27272a',
-    muted: '#27272a',
-    border: 'rgb(255 255 255 / 0.1)',
-    input: 'rgb(255 255 255 / 0.16)',
-    sidebar: '#18181b',
-    sidebarBorder: 'rgb(255 255 255 / 0.08)',
-    fallbackSecondary: '#27272a',
-    fallbackAccent: '#27272a',
-    foreground: '#fafafa',
-    mutedForeground: '#a1a1aa',
-    sidebarForeground: '#e4e4e7',
-  },
-};
-
-/** Fixed OKLCH lightness per token for every family. Dark borders stay translucent. */
-const FAMILY_NEUTRALS: Record<'light' | 'dark', NeutralTable> = {
-  light: {
-    background: 0.985,
-    surface: 1,
-    elevated: 1,
-    muted: 0.965,
-    border: 0.92,
-    input: 0.87,
-    sidebar: 0.965,
-    sidebarBorder: 0.92,
-    fallbackSecondary: 0.92,
-    fallbackAccent: 0.965,
-    foreground: 0.21,
-    mutedForeground: 0.5,
-    sidebarForeground: 0.28,
-  },
-  dark: {
-    ...ORIGINAL_NEUTRALS.dark,
-    background: 0.145,
-    surface: 0.21,
-    elevated: 0.27,
-    muted: 0.27,
-    sidebar: 0.21,
-    fallbackSecondary: 0.27,
-    fallbackAccent: 0.27,
-    foreground: 0.985,
-    mutedForeground: 0.71,
-    sidebarForeground: 0.92,
-  },
-};
-
-function resolveNeutrals(
-  mode: 'light' | 'dark',
-  family: NeutralFamily | undefined,
-  seedHue: number,
-  minimum = 4.5
-): Neutrals {
-  const table = (family ? FAMILY_NEUTRALS : ORIGINAL_NEUTRALS)[mode];
-  const tint =
-    family === 'tinted' ? { h: seedHue, c: TINTED_CHROMA } : NEUTRAL_TINTS[family ?? 'zinc'];
-  const neutrals = {} as Neutrals;
-  for (const [token, value] of Object.entries(table) as [NeutralToken, string | number][]) {
-    if (typeof value === 'string') neutrals[token] = value;
-    else if (token in NEUTRAL_TEXT) {
-      const backgrounds = NEUTRAL_TEXT[token as keyof typeof NEUTRAL_TEXT].map(
-        (key) => neutrals[key]
-      );
-      neutrals[token] = contrastSafeColor(tint.h, tint.c, backgrounds, minimum, mode, value);
-    } else neutrals[token] = oklchToHex({ l: value, ...tint });
-  }
-  return neutrals;
-}
-
-function paletteFor(
-  seedScale: PaletteScale,
-  secondaryScale: PaletteScale,
-  mode: 'light' | 'dark',
-  neutral?: NeutralFamily,
-  options: { minimum?: number; chartSeeds?: readonly string[] } = {}
-) {
-  const isLight = mode === 'light';
-  /** Text pairs reach 4.5:1 (AA) by default; 7:1 for AAA themes. */
-  const minimum = options.minimum ?? 4.5;
-  const brandHue = rgbToOklch(parseHex(seedScale[500]) as [number, number, number]).h;
-  const neutrals = resolveNeutrals(mode, neutral, brandHue, minimum);
-  const { background, foreground, surface, elevated, muted, mutedForeground } = neutrals;
-  const brandBackgrounds = isLight ? [background, surface, muted] : [background, surface, elevated];
-  const secondaryHue = rgbToOklch(parseHex(secondaryScale[500]) as [number, number, number]).h;
-  // An achromatic seed (black, graphite, slate ink) keeps a gray primary
-  // instead of being saturated to a vivid hue its brand never had.
-  const brandChroma = rgbToOklch(parseHex(seedScale[500]) as [number, number, number]).c;
-  const brand =
-    brandChroma < ACHROMATIC_SEED
-      ? contrastSafeColor(brandHue, brandChroma, brandBackgrounds, minimum, mode)
-      : semanticColor(brandHue, mode, brandBackgrounds, minimum);
-  const fillStep: PaletteStep = isLight ? 100 : 900;
-  const fillForeground = foreground;
-  const semanticFillForeground = isLight ? '#ffffff' : '#09090b';
-  const secondaryFill = accessibleFill(secondaryHue, fillForeground, mode, minimum);
-
-  const palette: ThemePalette = {
-    background,
-    foreground,
-    surface,
-    surfaceForeground: foreground,
-    elevated,
-    muted,
-    mutedForeground,
-    border: neutrals.border,
-    input: neutrals.input,
-    ring: brand,
-    primary: brand,
-    primaryForeground: semanticFillForeground,
-    secondary: secondaryFill,
-    secondaryForeground: fillForeground,
-    accent: seedScale[fillStep],
-    accentForeground: fillForeground,
-    destructive: semanticColor(25, mode, brandBackgrounds, minimum),
-    destructiveForeground: semanticFillForeground,
-    success: semanticColor(145, mode, brandBackgrounds, minimum),
-    successForeground: semanticFillForeground,
-    warning: semanticColor(90, mode, brandBackgrounds, minimum),
-    warningForeground: semanticFillForeground,
-    info: semanticColor(245, mode, brandBackgrounds, minimum),
-    infoForeground: semanticFillForeground,
-    sidebar: neutrals.sidebar,
-    sidebarForeground: neutrals.sidebarForeground,
-    sidebarBorder: neutrals.sidebarBorder,
-    // Chart seeds (a curated set such as Okabe-Ito) replace the derived series;
-    // either way charts.ts repairs them to the chart rules afterwards.
-    chart1: options.chartSeeds?.[0] ?? seedScale[600],
-    chart2: options.chartSeeds?.[1] ?? secondaryScale[600],
-    chart3: options.chartSeeds?.[2] ?? oklchToHex({ l: isLight ? 0.58 : 0.72, c: 0.16, h: 165 }),
-    chart4: options.chartSeeds?.[3] ?? oklchToHex({ l: isLight ? 0.58 : 0.72, c: 0.16, h: 70 }),
-    chart5: options.chartSeeds?.[4] ?? oklchToHex({ l: isLight ? 0.58 : 0.72, c: 0.16, h: 325 }),
-    shadow: isLight ? 'rgb(15 23 42 / 0.08)' : 'rgb(0 0 0 / 0.45)',
-  };
-
-  // The scale values above provide hue variety; these assertions catch future
-  // edits that accidentally weaken the semantic palette repair.
-  if (contrastRatio(palette.secondaryForeground, palette.secondary) < minimum) {
-    palette.secondary = neutrals.fallbackSecondary;
-  }
-  if (contrastRatio(palette.accentForeground, palette.accent) < minimum) {
-    palette.accent = neutrals.fallbackAccent;
-  }
-  return palette;
-}
-
-/**
- * Derives the validated chart tokens for a mode and writes the repaired series
- * colors back into `chart1`…`chart5`, so the palette's own chart tokens already
- * pass the charts kit's contrast and separation checks.
- */
-function withChartTokens(palette: ThemePalette, mode: 'light' | 'dark'): ThemeChartTokens {
-  const charts = deriveChartTokens(palette, mode);
-  const [chart1, chart2, chart3, chart4, chart5] = charts.categorical as [
-    string,
-    string,
-    string,
-    string,
-    string,
-  ];
-  Object.assign(palette, { chart1, chart2, chart3, chart4, chart5 });
-  return charts;
-}
 
 export interface CreateThemeFromSeedInput {
   id: string;
   name: string;
   seed: string;
   secondary?: string;
-  /** Neutral family for surfaces, text and borders; omitted keeps the original neutrals. */
+  /** Neutral family for surfaces, text and borders; `zinc` when omitted. */
   neutral?: NeutralFamily;
-  /**
-   * `AAA` searches every text pair to 7:1 instead of 4.5:1. It needs a
-   * `neutral` family: the original neutrals are fixed values, not searched.
-   */
+  /** `AAA` searches every text pair to 7:1 instead of 4.5:1. */
   contrast?: 'AA' | 'AAA';
   /** Five `#rrggbb` chart seeds (e.g. Okabe-Ito) instead of the derived series. */
   chartSeeds?: readonly string[];
@@ -334,38 +32,49 @@ export interface CreateThemeFromSeedInput {
 
 /** Builds a complete, accessible light/dark theme from one or two hex brand colors. */
 export function createThemeFromSeed(input: CreateThemeFromSeedInput): Theme {
-  const scale = generatePaletteScale(input.seed);
-  const secondaryScale = generatePaletteScale(input.secondary ?? input.seed);
   if (input.neutral !== undefined && !NEUTRAL_FAMILIES.includes(input.neutral)) {
     throw new TypeError(
       `Unknown neutral family "${input.neutral}". Known families: ${NEUTRAL_FAMILIES.join(', ')}`
     );
   }
-  if (input.contrast === 'AAA' && input.neutral === undefined) {
-    throw new TypeError(
-      'An AAA theme needs a neutral family (its text colors are searched to 7:1).'
-    );
-  }
+  const { chartSeeds } = input;
   if (
-    input.chartSeeds &&
-    (input.chartSeeds.length !== 5 || input.chartSeeds.some((c) => !/^#[0-9a-f]{6}$/i.test(c)))
+    chartSeeds &&
+    (chartSeeds.length !== 5 || chartSeeds.some((c) => !/^#[0-9a-f]{6}$/i.test(c)))
   ) {
     throw new TypeError('chartSeeds must be five #rrggbb colors.');
   }
-  const options = {
-    ...(input.contrast === 'AAA' ? { minimum: 7 } : {}),
-    ...(input.chartSeeds ? { chartSeeds: input.chartSeeds } : {}),
-  };
-  const light = paletteFor(scale, secondaryScale, 'light', input.neutral, options);
-  const dark = paletteFor(scale, secondaryScale, 'dark', input.neutral, options);
-  const charts = { light: withChartTokens(light, 'light'), dark: withChartTokens(dark, 'dark') };
+  const generated = generateThemeFromSeed({
+    seed: input.seed,
+    ...(input.secondary ? { secondary: input.secondary } : {}),
+    ...(input.neutral ? { neutral: input.neutral } : {}),
+    ...(input.contrast === 'AAA' ? { contrast: 'AAA' as const } : {}),
+    // Chart seeds replace the five derived series colors; the chart engine
+    // still repairs them to the contrast and separation rules.
+    deriveCharts: (palette, mode) =>
+      deriveChartTokens(
+        chartSeeds
+          ? {
+              ...palette,
+              chart1: chartSeeds[0] as string,
+              chart2: chartSeeds[1] as string,
+              chart3: chartSeeds[2] as string,
+              chart4: chartSeeds[3] as string,
+              chart5: chartSeeds[4] as string,
+            }
+          : palette,
+        mode
+      ),
+  });
+  // Colors and charts from Texuli; everything else keeps Protoyard's defaults.
+  const colors = fromTexuliTheme(generated);
   return defineTheme({
     id: input.id,
     name: input.name,
     description: `Generated from ${input.seed}${input.secondary ? ` and ${input.secondary}` : ''}.`,
-    light,
-    dark,
-    charts,
+    light: colors.light,
+    dark: colors.dark,
+    ...(colors.charts ? { charts: colors.charts } : {}),
     ...(input.style ? { style: input.style } : {}),
   });
 }
