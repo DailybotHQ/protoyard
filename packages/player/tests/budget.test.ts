@@ -99,7 +99,8 @@ function importGraph(entry: string): string[] {
 const LAZY_MODULES: [string, RegExp][] = [
   ['Faker', /@faker-js\/faker/],
   ['DevTools', /\/devtools\/src\//],
-  // Library tokens come from @texuli/tokens, loaded on demand (the catalog metadata is eager).
+  // Library tokens come from @texuli/tokens, loaded on demand (the catalog metadata is eager):
+  // the port's definitions, builder and chart modules, and the opt-in expansion.
   ['theme library', /\/tokens\/src\/library-(?:port|expand)\//],
   ['crud screen kits', /\/crud\/src\/screens\//],
   ['crud app shell', /\/crud\/src\/app\//],
@@ -187,7 +188,10 @@ describe.skipIf(!built)(
 
     it.each(LAZY_MODULES)('keeps the %s out of the initial graph', (_label, pattern) => {
       const keys = Object.keys(manifest).filter((key) => pattern.test(key));
-      expect(keys.length, `no ${pattern} module in the build`).toBeGreaterThan(0);
+      expect(
+        keys.length,
+        `no ${pattern} module in the build (stale? run pnpm --filter @protoyard/player build)`
+      ).toBeGreaterThan(0);
       for (const key of keys) {
         expect(initial.has(key), key).toBe(false);
         expect(classes.initialJs, key).not.toContain(manifest[key]?.file);

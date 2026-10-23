@@ -16,6 +16,7 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
@@ -76,13 +77,34 @@ function walk(dir: string): string[] {
   );
 }
 
+/**
+ * Whether a package's dist is missing or older than its sources: no
+ * `dist/index.js`, a declared export target that is not built, or a source
+ * file newer than the oldest declared output. A dist left from an earlier
+ * build would otherwise be tested instead of the current code.
+ */
+function staleDist(dir: string): boolean {
+  const base = join(ROOT, 'packages', dir);
+  const index = join(base, 'dist', 'index.js');
+  if (!existsSync(index)) return dir !== 'review';
+  const outputs = [index];
+  for (const value of Object.values(manifest(dir).exports)) {
+    const mapped = distTarget(value);
+    if (!mapped) continue;
+    for (const file of [mapped.js, mapped.dts]) {
+      if (!file) continue;
+      const path = join(base, file);
+      if (!existsSync(path)) return true;
+      outputs.push(path);
+    }
+  }
+  const builtAt = Math.min(...outputs.map((path) => statSync(path).mtimeMs));
+  return walk(join(base, 'src')).some((file) => statSync(file).mtimeMs > builtAt);
+}
+
 let consumer: string;
 beforeAll(async () => {
-  if (
-    ENGINE.some(
-      (dir) => !existsSync(join(ROOT, 'packages', dir, 'dist', 'index.js')) && dir !== 'review'
-    )
-  ) {
+  if (ENGINE.some(staleDist)) {
     const built = await buildPackages({ root: ROOT, filters: ['engine'] });
     if (!built.ok) throw new Error(`engine build failed: ${JSON.stringify(built.packages)}`);
   }
