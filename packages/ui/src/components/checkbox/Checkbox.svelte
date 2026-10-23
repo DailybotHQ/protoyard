@@ -1,9 +1,12 @@
 <script lang="ts">
 import { Check, Minus } from '@lucide/svelte';
-import { Checkbox as CheckboxPrimitive } from 'bits-ui';
+import { CheckboxRoot } from '@texuli/primitives/checkbox';
+import type { ComponentProps } from 'svelte';
 import { cn } from '../../lib/cn.ts';
+import { refAttachment } from '../../lib/ref.ts';
 
-type Props = Omit<CheckboxPrimitive.RootProps, 'children' | 'child'> & {
+type Props = Omit<ComponentProps<typeof CheckboxRoot>, 'children' | 'child'> & {
+  ref?: HTMLButtonElement | null;
   /** Optional visible label rendered next to the box and wired with `for`. */
   label?: string;
   description?: string;
@@ -24,10 +27,10 @@ let {
 </script>
 
 {#snippet box()}
-  <CheckboxPrimitive.Root
+  <CheckboxRoot
+    {@attach refAttachment<HTMLButtonElement>((node) => (ref = node))}
     bind:checked
     bind:indeterminate
-    bind:ref
     {id}
     aria-describedby={description ? `${id}-description` : undefined}
     class={cn(
@@ -48,7 +51,7 @@ let {
         <Check class="size-3.5" strokeWidth={3} aria-hidden="true" />
       {/if}
     {/snippet}
-  </CheckboxPrimitive.Root>
+  </CheckboxRoot>
 {/snippet}
 
 {#if label}

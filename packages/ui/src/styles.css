@@ -79,12 +79,12 @@
     height: 0;
   }
   to {
-    height: var(--bits-accordion-content-height);
+    height: var(--tx-accordion-content-height);
   }
 }
 @keyframes py-collapse-up {
   from {
-    height: var(--bits-accordion-content-height);
+    height: var(--tx-accordion-content-height);
   }
   to {
     height: 0;

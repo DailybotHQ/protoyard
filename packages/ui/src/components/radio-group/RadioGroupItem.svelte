@@ -1,14 +1,18 @@
 <script lang="ts">
-import { RadioGroup as RadioGroupPrimitive } from 'bits-ui';
+import { RadioGroup as RadioGroupPrimitive } from '@texuli/primitives/radio-group';
+import type { ComponentProps } from 'svelte';
 import { cn } from '../../lib/cn.ts';
+import { refAttachment } from '../../lib/ref.ts';
 
-type Props = Omit<RadioGroupPrimitive.ItemProps, 'children' | 'child'>;
+type Props = Omit<ComponentProps<typeof RadioGroupPrimitive.Item>, 'children'> & {
+  ref?: HTMLButtonElement | null;
+};
 
 let { ref = $bindable(null), class: className, ...rest }: Props = $props();
 </script>
 
 <RadioGroupPrimitive.Item
-  bind:ref
+  {@attach refAttachment<HTMLButtonElement>((node) => (ref = node))}
   class={cn(
     'peer relative inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-input bg-surface shadow-soft',
     'transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
