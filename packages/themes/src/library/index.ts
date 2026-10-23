@@ -1,3 +1,4 @@
+export { isLibraryThemeId, LIBRARY_THEME_IDS } from './ids.ts';
 export {
   clearLibraryThemeCache,
   type ExpandedLibraryModule,

@@ -23,6 +23,8 @@ import {
   clearLibraryThemeCache,
   findLibraryThemeMeta,
   getLibraryThemeMeta,
+  isLibraryThemeId,
+  LIBRARY_THEME_IDS,
   type LibraryThemeDefinition,
   listCollections,
   listThemeLibrary,
@@ -89,6 +91,13 @@ describe('the library comes from @texuli/tokens', () => {
       expect(await loadLibraryThemeDefinition(definition.id), definition.id).toEqual(definition);
     }
     expect(THEME_LIBRARY_META).toBe(TEXULI_PORTED_META);
+  });
+
+  it('keeps the boot-path id list equal, in order, to the catalog Texuli ports', () => {
+    expect(LIBRARY_THEME_IDS).toEqual(TEXULI_PORTED_META.map((meta) => meta.id));
+    for (const meta of THEME_LIBRARY_META) expect(isLibraryThemeId(meta.id), meta.id).toBe(true);
+    for (const theme of BUILTIN_THEMES) expect(isLibraryThemeId(theme.id), theme.id).toBe(false);
+    expect(isLibraryThemeId('no-such-theme')).toBe(false);
   });
 
   it('offers only the catalog until a page enables the full library', async () => {
