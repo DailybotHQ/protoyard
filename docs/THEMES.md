@@ -441,12 +441,15 @@ It has two tiers:
 
 - **The catalog** holds 64 themes: the 32 product-category themes (first
   table) and 32 more (second table).
-  - It's synchronous. `THEME_LIBRARY_META` and the lookups below use it, so a
-    blueprint, deck or picker that checks an id costs what it always did.
-  - Its definitions live in `packages/themes/src/library/definitions.ts` and
-    `definitions-extra.ts`. They are exactly the 64 that
-    `@texuli/tokens/library` ports, and `tests/library.test.ts` keeps the two
-    identical field by field.
+  - Its metadata is synchronous: `THEME_LIBRARY_META` is
+    `@texuli/tokens/library`'s, imported statically (Texuli declares
+    `sideEffects`, so only the metadata module reaches a bundle). A blueprint,
+    deck or picker that checks an id needs no load.
+  - Its definitions and tokens load on demand from the same port, one theme at
+    a time (`loadLibraryThemeDefinition`, `loadLibraryTheme`). Protoyard keeps
+    no copy of them. `tests/library.test.ts` proves the port is field-identical
+    to the 64 definitions Protoyard used to own, kept as a test fixture
+    (`packages/themes/tests/fixtures/library-definitions.ts`).
 - **The full library** adds Texuli's expanded set: 140 more themes, for 204
   in all.
   - It's opt-in: call `enableFullThemeLibrary()` from
@@ -505,11 +508,11 @@ All names are fictional.
 
 Elevation `soft` in this table is the schema default for entries that do not
 set one. Several entries also set typography, radius scale, border width,
-motion or focus-ring values; see `definitions.ts` for the full profile.
+motion or focus-ring values; `loadLibraryThemeDefinition(id)` returns the full profile.
 
 Twenty of the first 32 now use a neutral family, so no two themes in one
 family have nearly the same primary (the table above does not list the
-neutral; see `definitions.ts`). `accessible-high-contrast` and
+neutral; it is in each theme's metadata, `meta.neutral`). `accessible-high-contrast` and
 `accessible-dark-contrast` are AAA themes in the `high-contrast` collection,
 and `brutalist-block` and `productivity-minimal` are in `mono`: their black
 and near-black seeds now keep a gray primary (seeds below OKLCH chroma 0.04
@@ -599,9 +602,9 @@ root barrel):
 | `listThemeLibrary({ category?, tag?, collection?, mood? })` | Filters the metadata |
 | `searchThemeLibrary(query)` | Case-insensitive search over name, id, tags, mood, category, collection and description. Every word must match; results rank name and id matches first (3), then tags, mood, category and collection (2), then the description (1), with ties in library order. An empty query returns the whole library. |
 | `listCollections()` | Every collection in a fixed order with its theme count |
-| `getLibraryThemeMeta(id)`, `getLibraryThemeDefinition(id)` | Catalog lookups |
+| `getLibraryThemeMeta(id)` | Catalog lookup (metadata) |
 | `loadFullLibraryMeta()`, `findLibraryThemeMeta(id)` | Async. The full library's metadata, catalog first (the catalog alone until `enableFullThemeLibrary()`) |
-| `loadLibraryThemeDefinition(id)` | Async. Any library theme's definition |
+| `loadLibraryThemeDefinition(id)` | Async. Any library theme's definition, from Texuli's port |
 | `loadLibraryTheme(id)` | Async. Loads any library theme's tokens and chart tokens from `@texuli/tokens` (dynamic imports only), converts them with `fromTexuliTheme`, and caches the result. Unknown ids, built-in ids included, reject with the list of known ids. |
 | `loadAllFullLibraryThemes()` | Loads every theme of the full library |
 | `loadAllLibraryThemes()` | Loads every library theme (tests, galleries) |
