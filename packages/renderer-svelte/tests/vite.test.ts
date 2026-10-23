@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseManifest } from '@protoyard/core';
@@ -7,6 +7,7 @@ import {
   defineProtoyardConfig,
   devFsAllow,
   envFlag,
+  linkedPackageRoots,
   resolveProtoyardSettings,
   VITE_MANIFEST_PATH,
 } from '../src/vite.ts';
@@ -148,13 +149,55 @@ describe('defineProtoyardConfig', () => {
 });
 
 describe('dev server file access', () => {
-  it('allows only the prototype, workspace packages and dependencies', () => {
+  it('allows only the prototype, workspace packages, dependencies and linked packages', () => {
     const workspace = resolve(import.meta.dirname, '../../..');
     const root = resolve(workspace, 'templates/blank');
     expect(devFsAllow(root)).toEqual([
       root,
       resolve(workspace, 'packages'),
       resolve(workspace, 'node_modules'),
+      ...linkedPackageRoots(workspace),
     ]);
+  });
+
+  it('adds the real folder of each link: dependency, and nothing for anything else', () => {
+    const base = mkdtempSync(join(tmpdir(), 'protoyard-links-'));
+    try {
+      const workspace = join(base, 'protoyard');
+      const linked = join(base, 'texuli', 'packages', 'core');
+      mkdirSync(workspace, { recursive: true });
+      mkdirSync(linked, { recursive: true });
+      writeFileSync(
+        join(workspace, 'package.json'),
+        JSON.stringify({
+          dependencies: { '@texuli/core': 'link:../texuli/packages/core', svelte: '^5.0.0' },
+          devDependencies: {
+            '@texuli/missing': 'link:../texuli/packages/missing',
+            '@protoyard/core': 'workspace:*',
+            '@texuli/again': 'link:../texuli/packages/core',
+          },
+        })
+      );
+      expect(linkedPackageRoots(workspace)).toEqual([realpathSync(linked)]);
+      writeFileSync(join(workspace, 'package.json'), '{ not json');
+      expect(linkedPackageRoots(workspace)).toEqual([]);
+      expect(linkedPackageRoots(join(base, 'nowhere'))).toEqual([]);
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
+
+  it('allows the linked Texuli packages this workspace declares', () => {
+    const workspace = resolve(import.meta.dirname, '../../..');
+    const roots = linkedPackageRoots(workspace);
+    for (const name of ['core', 'tokens', 'texuli']) {
+      expect(roots).toContain(
+        realpathSync(
+          resolve(workspace, 'node_modules', name === 'texuli' ? 'texuli' : `@texuli/${name}`)
+        )
+      );
+    }
+    // Exactly the package folders: never the Texuli repository around them.
+    for (const root of roots) expect(root).toMatch(/[\\/]packages[\\/][a-z-]+$/);
   });
 });
