@@ -19,9 +19,8 @@ import {
   ELEVATION_PRESETS,
   FONT_CATALOG,
   generateThemeHarmonies,
-  getLibraryThemeDefinition,
   getThemeShareValue,
-  loadLibraryTheme,
+  type LibraryThemeDefinition,
   MOTION_PRESETS,
   type MotionPresetId,
   NEUTRAL_FAMILIES,
@@ -31,10 +30,14 @@ import {
   type RadiusPresetId,
   stylePresetInput,
   TEXT_CONTRAST_PAIRS,
-  THEME_LIBRARY_META,
   type ThemeShareDefinition,
   UI_CONTRAST_PAIRS,
 } from '@protoyard/themes';
+import {
+  loadLibraryTheme,
+  loadLibraryThemeDefinition,
+  THEME_LIBRARY_META,
+} from '@protoyard/themes/library';
 import { onMount, untrack } from 'svelte';
 import { copyText } from '../format.ts';
 import { themeShareLink } from '../link.ts';
@@ -140,7 +143,7 @@ function closestRadius(value: string | undefined): RadiusPresetId {
   return RADIUS_PRESETS.find((preset) => preset.radius === value)?.id ?? 'default';
 }
 
-function applyThemeStart(theme: Theme, definition?: ReturnType<typeof getLibraryThemeDefinition>) {
+function applyThemeStart(theme: Theme, definition?: LibraryThemeDefinition) {
   name = theme.name;
   seed = definition?.seed ?? theme.light.primary;
   secondary = definition?.secondary ?? theme.light.secondary;
@@ -169,8 +172,11 @@ async function loadStartTheme() {
   try {
     if (startFrom.startsWith('library:')) {
       const id = startFrom.slice('library:'.length);
-      const theme = await loadLibraryTheme(id);
-      applyThemeStart(theme, getLibraryThemeDefinition(id));
+      const [theme, definition] = await Promise.all([
+        loadLibraryTheme(id),
+        loadLibraryThemeDefinition(id),
+      ]);
+      applyThemeStart(theme, definition);
     } else {
       const id = startFrom.slice('builtin:'.length);
       const theme = BUILTIN_THEMES.find((candidate) => candidate.id === id);
