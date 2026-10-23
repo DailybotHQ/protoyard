@@ -265,6 +265,56 @@ export interface AppliedAppearance {
   vars: Record<string, string>;
 }
 
+/** Writes Texuli's `--tx-*` variables for one appearance; returns what it wrote. */
+export type TexuliAppearanceWriter = (
+  target: HTMLElement,
+  input: AppearanceInput
+) => Record<string, string>;
+
+let texuliWriter: TexuliAppearanceWriter | undefined;
+const lastInputs = new WeakMap<HTMLElement, AppearanceInput>();
+
+/**
+ * Turns Texuli's variables on (or off, with `undefined`): `--tx-*` and the
+ * `data-tx-*` attributes, with the `--py-*` names as their aliases. Pages that
+ * render Texuli components call `enableTexuliAppearance()` from
+ * `@protoyard/themes/texuli`, which installs the `@texuli/tokens` writer, so
+ * pages that do not pay nothing for it. Re-applies the last appearance of each
+ * given target.
+ */
+export function setTexuliAppearanceWriter(
+  writer: TexuliAppearanceWriter | undefined,
+  targets: readonly HTMLElement[] = []
+): void {
+  texuliWriter = writer;
+  for (const target of targets) {
+    const input = lastInputs.get(target);
+    if (input) applyAppearance(target, input);
+  }
+}
+
+function writeTexuli(target: HTMLElement, input: AppearanceInput): Record<string, string> {
+  if (!texuliWriter) return {};
+  target.dataset.txTheme = input.theme.id;
+  target.dataset.txMode = input.resolvedMode;
+  target.dataset.txMotion = input.reducedMotion ? 'reduce' : 'full';
+  target.dataset.txSurface = input.theme.style.surface;
+  return texuliWriter(target, input);
+}
+
+function clearTexuli(target: HTMLElement): void {
+  const names: string[] = [];
+  for (let index = 0; index < target.style.length; index += 1) {
+    const name = target.style.item(index);
+    if (name.startsWith('--tx-')) names.push(name);
+  }
+  for (const name of names) target.style.removeProperty(name);
+  delete target.dataset.txTheme;
+  delete target.dataset.txMode;
+  delete target.dataset.txMotion;
+  delete target.dataset.txSurface;
+}
+
 /**
  * Writes the appearance onto `target`. On `document.documentElement` it
  * themes the whole prototype (portals included); on any other element it
@@ -286,6 +336,8 @@ export function applyAppearance(target: HTMLElement, input: AppearanceInput): Ap
   target.classList.toggle('dark', input.resolvedMode === 'dark');
   target.classList.toggle('light', input.resolvedMode === 'light');
   target.style.colorScheme = input.resolvedMode;
+  lastInputs.set(target, input);
+  const texuli = writeTexuli(target, input);
   return {
     themeId: input.theme.id,
     mode: input.resolvedMode,
@@ -293,12 +345,14 @@ export function applyAppearance(target: HTMLElement, input: AppearanceInput): Ap
     density: Number(vars['--py-density']),
     surface: input.theme.style.surface,
     components,
-    vars,
+    vars: { ...texuli, ...vars },
   };
 }
 
 /** Removes everything {@link applyAppearance} wrote (scoped previews unmount cleanly). */
 export function clearAppearance(target: HTMLElement): void {
+  lastInputs.delete(target);
+  clearTexuli(target);
   for (const name of Object.keys(
     themeVariables({ theme: getTheme(undefined), resolvedMode: 'light' })
   )) {

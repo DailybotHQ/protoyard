@@ -37,7 +37,7 @@ small web app with:
   without losing data. Forbidden actions are actually blocked.
 - **Simulated time and conditions.** Preview the app next month, go offline,
   add latency or make requests fail, and see how the product copes.
-- **Themes.** Light, dark or system mode, six presets and a 64-theme library,
+- **Themes.** Light, dark or system mode, six presets and a 64-theme library (204 opt-in, from Texuli),
   palettes generated from a brand color and a live Theme Studio, each
   prototype styled separately.
 - **Layouts and shells.** Twelve shared page layouts, and frames that present

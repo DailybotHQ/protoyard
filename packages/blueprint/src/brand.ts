@@ -12,9 +12,9 @@ import {
   contrastRatio,
   createThemeFromSeed,
   getFontPairing,
-  getLibraryThemeMeta,
+  isLibraryThemeId,
+  LIBRARY_THEME_IDS,
   TEXT_CONTRAST_PAIRS,
-  THEME_LIBRARY_META,
   UI_CONTRAST_PAIRS,
 } from '@protoyard/themes';
 import { z } from 'zod';
@@ -162,11 +162,8 @@ export function closestIds(id: string, known: readonly string[], limit = 3): str
  */
 export function brandLibraryThemeId(brand: BlueprintBrand): string | undefined {
   const id = brand.libraryTheme;
-  if (id === undefined || getLibraryThemeMeta(id)) return id;
-  const near = closestIds(
-    id,
-    THEME_LIBRARY_META.map((meta) => meta.id)
-  );
+  if (id === undefined || isLibraryThemeId(id)) return id;
+  const near = closestIds(id, LIBRARY_THEME_IDS);
   throw new BrandThemeError(
     `Unknown library theme "${id}"${near.length > 0 ? ` (closest: ${near.join(', ')})` : ''}.`
   );

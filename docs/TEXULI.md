@@ -6,8 +6,9 @@ Texuli is **linked**, not copied or installed from a registry, and Protoyard
 stays green.
 
 **Status:** this is the local `texuli-adoption` branch. It is not on `main`
-and has not been pushed. No prototype uses Texuli yet; later adoption tasks
-move packages over one at a time.
+and has not been pushed. Themes come from `@texuli/tokens` (below); no
+prototype renders Texuli components yet. Later adoption tasks move packages
+over one at a time.
 
 ## How it is linked
 
@@ -40,6 +41,29 @@ Protoyard (`../texuli`):
 - **A worktree** (for example `tmp/lanes/<lane>`) needs `../texuli` to
   resolve from its own root. Point `tmp/lanes/texuli` at the Texuli checkout
   with a git-ignored symlink.
+
+## Themes come from `@texuli/tokens`
+
+`@protoyard/themes` wraps `@texuli/tokens`; details in
+[THEMES.md](THEMES.md#the-theme-library-loaded-on-demand).
+
+- **Tokens.** Every library theme's tokens are built by Texuli and converted
+  with `fromTexuliTheme`, through dynamic imports only.
+  - **The catalog** is 64 themes, synchronous. Its definitions are kept in
+    Protoyard and tested identical to Texuli's port.
+  - **The full library** is 204 themes, opt-in with `enableFullThemeLibrary()`
+    (`@protoyard/themes/library-full`).
+- **Variables.** On a page that calls `enableTexuliAppearance()`
+  (`@protoyard/themes/texuli`), `applyAppearance()` also writes Texuli's
+  `--tx-*` variables, and every `--py-*` name stays an alias with the same
+  value. `toTexuliTheme` completes a Protoyard palette with the 16 roles
+  Texuli adds.
+- **Prototypes are unchanged:** they keep `--py-*`, the built-ins, the
+  `protoyard.<namespace>.appearance` cache and the Violet default.
+- **Why opt-in and dynamic imports.** `@texuli/tokens` declares no
+  `sideEffects` and exposes no `css` or `contract` subpath. Its root barrel
+  re-exports the whole library, so any static import of it would ship the
+  library in every prototype's initial chunk.
 
 ## The dev server
 

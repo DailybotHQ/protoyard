@@ -30,7 +30,7 @@ exists and that its links and anchors resolve ([Testing guide](TESTING_GUIDE.md)
 | [Generator](GENERATOR.md) | Blueprints to app, deck, page and doc prototypes: format, screens and layouts, `protoyard generate`, regeneration, migrations and drift checks |
 | [Brief to prototype](BRIEF_TO_PROTOTYPE.md) | Prose brief → offline blueprint → review → generate → validate → export |
 | [Scenarios](SCENARIOS.md) | Scenario axes, generators, personas and permissions, time, environment, snapshots |
-| [Themes](THEMES.md) | Style model, palette engine, the 64-theme library, Theme Studio, the `theme` CLI, brand blocks |
+| [Themes](THEMES.md) | Style model, palette engine, the theme library (tokens from Texuli), Theme Studio, the `theme` CLI, brand blocks |
 | [Layouts](LAYOUTS.md) | Shared layout catalog, manifest setup, responsive fallbacks, shell composition, authoring and tests |
 | [Shells](SHELLS.md) | Device and host shells (phone, tablet, desktop window, browser, widget host, extension popup, side panel) |
 | [Views](VIEWS.md) | Rich views (board, calendar, timeline, grid, tree, map, editor, activity, files, settings, states, command palette): choosing one, service contracts, keyboard/phone behavior, scenario helpers, bundle sizes, limits |
@@ -88,7 +88,7 @@ Package and app references live next to the code: each `packages/*/README.md`,
 | [database](../packages/database/README.md) | Dexie: per-prototype data and control databases, world I/O, storage errors |
 | [scenarios](../packages/scenarios/README.md) | Generator SDK, presets, integrity, timeline, series, schedule, event and geo helpers |
 | [runtime](../packages/runtime/README.md) | `createPrototypeRuntime()`: composes the engine |
-| [themes](../packages/themes/README.md) | Built-in presets, the lazy 64-theme library, palette engine, fonts, no-flash script |
+| [themes](../packages/themes/README.md) | Built-in presets, the lazy 64-theme library (204 opt-in; tokens from `@texuli/tokens`), palette engine, fonts, no-flash script |
 | [ui](../packages/ui/README.md) | Svelte 5 components, shell frames, `LayoutHost` and the 12 layouts |
 | [devtools](../packages/devtools/README.md) | The in-browser control center, theme browser and Theme Studio |
 | [renderer-svelte](../packages/renderer-svelte/README.md) | Vite config factory, `mountPrototype`, `ShellHost`, bindings, hash router |

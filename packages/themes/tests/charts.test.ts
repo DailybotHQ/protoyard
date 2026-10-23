@@ -1,4 +1,11 @@
 import { type Theme, ThemeSchema } from '@protoyard/core';
+import {
+  CHART_CATEGORICAL_COUNT,
+  chartColorDistance,
+  deriveChartTokens,
+  MIN_CHART_CVD_DISTANCE,
+  validateChartTokens,
+} from '@texuli/tokens';
 import { beforeAll, describe, expect, it } from 'vitest';
 // The charts kit's own palette rules (relative import, as packages/devtools/tests do).
 import { chartPalette, validateChartPalette } from '../../charts/src/palette/index.ts';
@@ -8,13 +15,6 @@ import {
   clearAppearance,
   themeVariables,
 } from '../src/apply.ts';
-import {
-  CHART_CATEGORICAL_COUNT,
-  chartColorDistance,
-  deriveChartTokens,
-  MIN_CHART_CVD_DISTANCE,
-  validateChartTokens,
-} from '../src/charts.ts';
 import { loadAllLibraryThemes, THEME_LIBRARY_META } from '../src/library/registry.ts';
 import { createThemeFromSeed } from '../src/palette.ts';
 import { BUILTIN_THEMES, violetTheme } from '../src/presets.ts';

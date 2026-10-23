@@ -1,9 +1,5 @@
-import {
-  BUILTIN_THEMES,
-  contrastRatio,
-  loadLibraryTheme,
-  THEME_LIBRARY_META,
-} from '@protoyard/themes';
+import { BUILTIN_THEMES, contrastRatio } from '@protoyard/themes';
+import { loadLibraryTheme, THEME_LIBRARY_META } from '@protoyard/themes/library';
 import { describe, expect, it } from 'vitest';
 import { compositeOver, sampleGradient } from '../src/backgrounds/contrast.ts';
 import {
@@ -304,5 +300,41 @@ describe('slide backgrounds from older decks', () => {
         slides: [{ ...oldDeck.slides[0], background: 'url(https://example.com/x.png)' }],
       }).success
     ).toBe(false);
+  });
+});
+
+describe('pattern ink', () => {
+  it('keeps the theme border as the line color when text reads on it (the built-ins)', () => {
+    for (const theme of BUILTIN_THEMES) {
+      for (const mode of ['light', 'dark'] as const) {
+        const palette = theme[mode] as unknown as DeckBackgroundPalette;
+        for (const preset of ['pattern-dots', 'pattern-grid'] as const) {
+          const resolved = resolveDeckBackground(preset, palette);
+          expect(resolved.pattern?.ink, `${theme.id}/${mode}/${preset}`).toBe(
+            resolveDeckBackground('pattern-dots', palette).pattern?.ink
+          );
+          expect(resolved.overlay, `${theme.id}/${mode}`).toBeNull();
+        }
+      }
+    }
+    const violet = BUILTIN_THEMES[0]?.light as unknown as DeckBackgroundPalette;
+    expect(resolveDeckBackground('pattern-grid', violet).pattern?.ink).toBe(violet.border);
+  });
+
+  it('fades a border as strong as the text until text reads on the lines, with no scrim', () => {
+    const base = BUILTIN_THEMES[0]?.light as unknown as DeckBackgroundPalette;
+    // Borders drawn for 3:1 non-text contrast, as dark as the body text.
+    const palette = { ...base, border: base.foreground };
+    const resolved = resolveDeckBackground('pattern-dots', palette);
+    const ink = resolved.pattern?.ink as string;
+    expect(ink).not.toBe(palette.border);
+    expect(resolved.overlay).toBeNull();
+    for (const sample of [resolved.color, ink]) {
+      expect(contrastRatio(resolved.textColor, sample)).toBeGreaterThanOrEqual(
+        DECK_TEXT_CONTRAST_MIN
+      );
+    }
+    // The fade is the strongest that still reads: one step darker would not.
+    expect(ink).not.toBe(resolved.color);
   });
 });

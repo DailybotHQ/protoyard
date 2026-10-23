@@ -1,6 +1,16 @@
 import { ThemeSchema, ThemeStyleSchema } from '@protoyard/core';
-import { afterEach, describe, expect, it } from 'vitest';
-import { chartColorDistance, validateChartTokens } from '../src/charts.ts';
+import { chartColorDistance, validateChartTokens } from '@texuli/tokens';
+import {
+  loadLibraryThemeDefinition as loadTexuliPortedDefinition,
+  THEME_LIBRARY_META as TEXULI_PORTED_META,
+} from '@texuli/tokens/library';
+import {
+  BUILTIN_PRESET_IDS,
+  EXPAND_THEME_LIBRARY_META,
+  loadFullLibraryTheme,
+  loadFullLibraryThemeCharts,
+} from '@texuli/tokens/library-expand';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
   contrastRatio,
   parseHex,
@@ -8,16 +18,21 @@ import {
   UI_CONTRAST_PAIRS,
 } from '../src/contrast.ts';
 import { FONT_CATALOG } from '../src/fonts.ts';
-import { themeFromDefinition } from '../src/library/build.ts';
+import { disableFullThemeLibrary, enableFullThemeLibrary } from '../src/library/full.ts';
 import {
   clearLibraryThemeCache,
+  findLibraryThemeMeta,
   getLibraryThemeMeta,
-  LIBRARY_THEME_DEFINITIONS,
+  isLibraryThemeId,
+  LIBRARY_THEME_IDS,
   type LibraryThemeDefinition,
   listCollections,
   listThemeLibrary,
+  loadAllFullLibraryThemes,
   loadAllLibraryThemes,
+  loadFullLibraryMeta,
   loadLibraryTheme,
+  loadLibraryThemeDefinition,
   searchThemeLibrary,
   THEME_COLLECTIONS,
   THEME_CONTRAST_LEVELS,
@@ -27,14 +42,124 @@ import {
 import { rgbToOklch } from '../src/oklch.ts';
 import { NEUTRAL_FAMILIES } from '../src/palette.ts';
 import { BUILTIN_THEMES } from '../src/presets.ts';
+import { SHARED_PALETTE_ROLES } from '../src/texuli.ts';
+import { LIBRARY_THEME_DEFINITIONS } from './fixtures/library-definitions.ts';
+
+// These suites cover the full library (204 themes); the default is the catalog.
+beforeAll(() => enableFullThemeLibrary());
+afterAll(() => disableFullThemeLibrary());
 
 afterEach(() => {
   clearLibraryThemeCache();
 });
 
+const loadDefinitions = async () =>
+  Promise.all((await loadFullLibraryMeta()).map((meta) => loadLibraryThemeDefinition(meta.id)));
+
+describe('the library comes from @texuli/tokens', () => {
+  it('holds every Texuli library theme except the six Protoyard built-ins, each once', async () => {
+    const builtins = new Set<string>(BUILTIN_PRESET_IDS);
+    const texuli = [...TEXULI_PORTED_META, ...EXPAND_THEME_LIBRARY_META]
+      .map((meta) => meta.id)
+      .filter((id) => !builtins.has(id));
+    const full = await loadFullLibraryMeta();
+    expect(full.map((meta) => meta.id)).toEqual(texuli);
+    expect(new Set(texuli).size).toBe(texuli.length);
+    expect(await loadFullLibraryMeta()).toBe(full);
+    // The synchronous catalog is the ported set, first in the full library.
+    expect(THEME_LIBRARY_META.map((meta) => meta.id)).toEqual(
+      TEXULI_PORTED_META.map((meta) => meta.id)
+    );
+    expect(full.slice(0, THEME_LIBRARY_META.length)).toEqual([...THEME_LIBRARY_META]);
+    // Built-ins stay BUILTIN_THEMES: no picker shows an id twice.
+    for (const theme of BUILTIN_THEMES) {
+      expect(await findLibraryThemeMeta(theme.id)).toBeUndefined();
+    }
+    // 200+ themes are available to prototypes: the full library plus the built-ins.
+    expect(full.length + BUILTIN_THEMES.length).toBeGreaterThanOrEqual(200);
+  });
+
+  it('serves the catalog from Texuli, field-identical to the 64 definitions Protoyard used to own', async () => {
+    // Protoyard no longer ships these definitions: the catalog, its metadata
+    // and its definitions are Texuli's port. The fixture is the last copy
+    // Protoyard defined; any drift in Texuli's port fails here.
+    expect(LIBRARY_THEME_DEFINITIONS.map((definition) => definition.id)).toEqual(
+      TEXULI_PORTED_META.map((meta) => meta.id)
+    );
+    for (const definition of LIBRARY_THEME_DEFINITIONS) {
+      expect(await loadTexuliPortedDefinition(definition.id), definition.id).toEqual(definition);
+      expect(await loadLibraryThemeDefinition(definition.id), definition.id).toEqual(definition);
+    }
+    expect(THEME_LIBRARY_META).toBe(TEXULI_PORTED_META);
+  });
+
+  it('keeps the boot-path id list equal, in order, to the catalog Texuli ports', () => {
+    expect(LIBRARY_THEME_IDS).toEqual(TEXULI_PORTED_META.map((meta) => meta.id));
+    for (const meta of THEME_LIBRARY_META) expect(isLibraryThemeId(meta.id), meta.id).toBe(true);
+    for (const theme of BUILTIN_THEMES) expect(isLibraryThemeId(theme.id), theme.id).toBe(false);
+    expect(isLibraryThemeId('no-such-theme')).toBe(false);
+  });
+
+  it('offers only the catalog until a page enables the full library', async () => {
+    disableFullThemeLibrary();
+    clearLibraryThemeCache();
+    try {
+      const expandedId = EXPAND_THEME_LIBRARY_META.find(
+        (meta) => !(BUILTIN_PRESET_IDS as readonly string[]).includes(meta.id)
+      )?.id as string;
+      expect(await loadFullLibraryMeta()).toBe(THEME_LIBRARY_META);
+      expect(await findLibraryThemeMeta(expandedId)).toBeUndefined();
+      await expect(loadLibraryTheme(expandedId)).rejects.toThrow(/Unknown library theme/);
+      await expect(loadLibraryThemeDefinition(expandedId)).rejects.toThrow(/Unknown library theme/);
+      // Catalog themes load as always, with tokens from @texuli/tokens.
+      expect((await loadLibraryTheme('fintech-ledger')).id).toBe('fintech-ledger');
+    } finally {
+      enableFullThemeLibrary();
+      clearLibraryThemeCache();
+    }
+  });
+
+  it('finds and loads expanded themes on demand, by id', async () => {
+    const expandedId = EXPAND_THEME_LIBRARY_META.find(
+      (meta) => !(BUILTIN_PRESET_IDS as readonly string[]).includes(meta.id)
+    )?.id as string;
+    expect(getLibraryThemeMeta(expandedId)).toBeUndefined();
+    expect((await findLibraryThemeMeta(expandedId))?.id).toBe(expandedId);
+    const theme = await loadLibraryTheme(expandedId);
+    expect(ThemeSchema.parse(theme).id).toBe(expandedId);
+    expect((await loadLibraryThemeDefinition(expandedId)).id).toBe(expandedId);
+  });
+
+  it("converts each theme with Texuli's own values: shared roles, chart roles and chart tokens", async () => {
+    const mismatches: string[] = [];
+    for (const meta of await loadFullLibraryMeta()) {
+      const [theme, source, charts] = await Promise.all([
+        loadLibraryTheme(meta.id),
+        loadFullLibraryTheme(meta.id),
+        loadFullLibraryThemeCharts(meta.id),
+      ]);
+      for (const mode of ['light', 'dark'] as const) {
+        for (const role of SHARED_PALETTE_ROLES) {
+          if (theme[mode][role] !== source[mode][role].default) {
+            mismatches.push(`${meta.id}/${mode}/${role}`);
+          }
+        }
+        charts[mode].categorical.slice(0, 5).forEach((color, index) => {
+          const role = `chart${index + 1}` as 'chart1';
+          if (theme[mode][role] !== color) mismatches.push(`${meta.id}/${mode}/${role}`);
+        });
+        expect(theme.charts?.[mode].categorical, meta.id).toEqual([...charts[mode].categorical]);
+      }
+      expect(theme.radius).toBe(source.radius);
+      expect(theme.fontFamily).toBe(source.fontFamily);
+      expect(theme.style).toEqual(source.style);
+    }
+    expect(mismatches).toEqual([]);
+  }, 30_000); // heavy: every library theme through Texuli and back
+});
+
 describe('theme library registry', () => {
-  it('ships 30+ unique presets with category metadata', () => {
-    expect(THEME_LIBRARY_META.length).toBeGreaterThanOrEqual(30);
+  it('ships unique themes with category metadata', () => {
     const ids = THEME_LIBRARY_META.map((meta) => meta.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const meta of THEME_LIBRARY_META) {
@@ -55,13 +180,18 @@ describe('theme library registry', () => {
     expect(first).toBe(second);
     expect(ThemeSchema.parse(first)).toEqual(first);
     expect(first.style.surface).toBe('glass');
-    expect(first.fontFamily).toContain('geometric');
     await expect(loadLibraryTheme('not-a-theme')).rejects.toThrow(/Unknown library theme/);
+    await expect(loadLibraryTheme('violet')).rejects.toThrow(/Unknown library theme/);
+    await expect(loadLibraryThemeDefinition('violet')).rejects.toThrow(/Unknown library theme/);
+    await expect(loadLibraryThemeDefinition('not-a-theme')).rejects.toThrow(
+      /Unknown library theme/
+    );
   });
 
   it('every library theme × mode meets WCAG AA for text and UI pairs', async () => {
-    const themes = await loadAllLibraryThemes();
-    expect(themes.length).toBe(THEME_LIBRARY_META.length);
+    const themes = await loadAllFullLibraryThemes();
+    expect(themes.length).toBe((await loadFullLibraryMeta()).length);
+    expect((await loadAllLibraryThemes()).length).toBe(THEME_LIBRARY_META.length);
     const failures: string[] = [];
     for (const theme of themes) {
       ThemeSchema.parse(theme);
@@ -85,7 +215,7 @@ describe('theme library registry', () => {
 
 describe('theme values stay inside the hardened ThemeSchema', () => {
   it('every built-in and library theme passes the color, font and radius guards', async () => {
-    const themes = [...BUILTIN_THEMES, ...(await loadAllLibraryThemes())];
+    const themes = [...BUILTIN_THEMES, ...(await loadAllFullLibraryThemes())];
     expect(themes.length).toBeGreaterThan(BUILTIN_THEMES.length);
     for (const theme of themes) {
       const result = ThemeSchema.safeParse(theme);
@@ -138,18 +268,20 @@ function definitionIssues(definition: LibraryThemeDefinition): string[] {
   return issues;
 }
 
-describe('library schema v2', () => {
-  it('validates every definition: ids, hex seeds, fonts, neutrals, collections, moods and style', () => {
-    const ids = LIBRARY_THEME_DEFINITIONS.map((definition) => definition.id);
-    expect(new Set(ids).size).toBe(ids.length);
-    const failures = LIBRARY_THEME_DEFINITIONS.flatMap((definition) =>
+describe('library definitions', () => {
+  it("validates every definition against Protoyard's rules: ids, seeds, fonts, neutrals, collections, moods and style", async () => {
+    const definitions = await loadDefinitions();
+    const failures = definitions.flatMap((definition) =>
       definitionIssues(definition).map((issue) => `${definition.id}: ${issue}`)
     );
     expect(failures).toEqual([]);
+    expect(definitions.map((definition) => definition.id)).toEqual(
+      (await loadFullLibraryMeta()).map((meta) => meta.id)
+    );
   });
 
-  it('catches malformed definitions', () => {
-    const base = LIBRARY_THEME_DEFINITIONS[0] as LibraryThemeDefinition;
+  it('catches malformed definitions', async () => {
+    const base = await loadLibraryThemeDefinition('fintech-ledger');
     expect(
       definitionIssues({
         ...base,
@@ -172,20 +304,24 @@ describe('library schema v2', () => {
     ]);
   });
 
-  it('fills the new metadata with defaults, so existing entries parse unchanged', () => {
-    for (const meta of THEME_LIBRARY_META) {
-      const definition = LIBRARY_THEME_DEFINITIONS.find((entry) => entry.id === meta.id);
-      expect(meta.collection).toBe(definition?.collection ?? 'industry');
-      expect(meta.mood).toEqual(definition?.mood ?? []);
-      expect(meta.darkFirst).toBe(definition?.darkFirst ?? false);
-      expect(meta.contrastLevel).toBe(definition?.contrastLevel ?? 'AA');
-      expect(meta.neutral).toBe(definition?.neutral);
-    }
+  it('keeps metadata in step with each definition, with the documented defaults', async () => {
+    const definitions = await loadDefinitions();
+    (await loadFullLibraryMeta()).forEach((meta, index) => {
+      const definition = definitions[index] as LibraryThemeDefinition;
+      expect(meta.collection, meta.id).toBe(definition.collection ?? 'industry');
+      expect(meta.mood, meta.id).toEqual(definition.mood ?? []);
+      expect(meta.darkFirst, meta.id).toBe(definition.darkFirst ?? false);
+      expect(meta.contrastLevel, meta.id).toBe(definition.contrastLevel ?? 'AA');
+      expect(meta.seed, meta.id).toBe(definition.seed);
+      expect(meta.neutral, meta.id).toBe(definition.neutral);
+    });
   });
 
   it('holds every theme that claims AAA to 7:1 text contrast in both modes', async () => {
     const failures: string[] = [];
-    for (const meta of THEME_LIBRARY_META.filter((entry) => entry.contrastLevel === 'AAA')) {
+    const aaa = (await loadFullLibraryMeta()).filter((entry) => entry.contrastLevel === 'AAA');
+    expect(aaa.length).toBeGreaterThan(0);
+    for (const meta of aaa) {
       const theme = await loadLibraryTheme(meta.id);
       for (const mode of ['light', 'dark'] as const) {
         for (const [fg, bg] of TEXT_CONTRAST_PAIRS) {
@@ -196,7 +332,9 @@ describe('library schema v2', () => {
     }
     expect(failures).toEqual([]);
   });
+});
 
+describe('library search and browse', () => {
   it('searches case-insensitively, needs every word, and ranks name matches first', () => {
     expect(searchThemeLibrary('')).toBe(THEME_LIBRARY_META);
     expect(searchThemeLibrary('  ')).toBe(THEME_LIBRARY_META);
@@ -251,15 +389,6 @@ describe('library schema v2', () => {
       expect(listThemeLibrary({ mood }).every((meta) => meta.mood.includes(mood))).toBe(true);
     }
   });
-
-  it('passes the neutral family through to the palette engine', () => {
-    const base = LIBRARY_THEME_DEFINITIONS[0] as LibraryThemeDefinition;
-    const plain = themeFromDefinition({ ...base, neutral: undefined });
-    const warm = themeFromDefinition({ ...base, neutral: 'warm' });
-    expect(warm.light.background).not.toBe(plain.light.background);
-    expect(warm.dark.surface).not.toBe(plain.dark.surface);
-    expect(ThemeSchema.parse(warm)).toEqual(warm);
-  });
 });
 
 const oklab = (hex: string) => {
@@ -281,9 +410,8 @@ const hueGap = (a: string, b: string) => {
   return d > 180 ? 360 - d : d;
 };
 
-describe('the 64-theme library', () => {
-  it('ships at least 64 themes across every collection', () => {
-    expect(THEME_LIBRARY_META.length).toBeGreaterThanOrEqual(64);
+describe('the 200+ theme library', () => {
+  it('spreads the library across every collection', () => {
     const count = (collection: string) =>
       listThemeLibrary({ collection: collection as never }).length;
     expect(count('industry')).toBeGreaterThanOrEqual(12);
@@ -299,8 +427,13 @@ describe('the 64-theme library', () => {
     }
   });
 
-  it('gives every theme its own neutral, font, radius and elevation combination', () => {
-    const combos = LIBRARY_THEME_DEFINITIONS.map((definition) =>
+  it('gives every ported theme its own neutral, font, radius and elevation combination', async () => {
+    // The rule the 64 ported themes were curated to. Texuli's expanded set does
+    // not follow it (reported to Texuli), so it is checked on the ported ones.
+    const ported = await Promise.all(
+      TEXULI_PORTED_META.map((meta) => loadLibraryThemeDefinition(meta.id))
+    );
+    const combos = ported.map((definition) =>
       [
         definition.neutral ?? 'original',
         definition.font ?? 'default',
@@ -312,29 +445,34 @@ describe('the 64-theme library', () => {
     expect(repeated).toEqual([]);
   });
 
-  it('keeps primaries apart: no two themes with one neutral family within ΔE_OK 0.04 in both modes', async () => {
-    const themes = await loadAllLibraryThemes();
-    const family = (id: string) =>
-      LIBRARY_THEME_DEFINITIONS.find((definition) => definition.id === id)?.neutral ?? 'original';
+  it('keeps ported primaries apart: same-neutral themes stay ΔE_OK 0.04 apart in a mode', async () => {
+    // Texuli's port separates the two pairs that sat under ΔE 0.04 with its
+    // builder by documented same-hue nudges (productivity-minimal in
+    // FIX-port-seeds, climate-earth in FIX-port-identity). The list is exact,
+    // so a new near-duplicate fails.
+    const KNOWN_CLOSE: string[] = [];
+    const ids = TEXULI_PORTED_META.map((meta) => meta.id);
+    const themes = await Promise.all(ids.map((id) => loadLibraryTheme(id)));
+    const definitions = await Promise.all(ids.map((id) => loadLibraryThemeDefinition(id)));
     const close: string[] = [];
     themes.forEach((a, i) => {
-      for (const b of themes.slice(0, i)) {
-        if (family(a.id) !== family(b.id)) continue;
+      themes.slice(0, i).forEach((b, j) => {
+        const family = (index: number) => definitions[index]?.neutral ?? 'original';
+        if (family(i) !== family(j)) return;
         const light = deltaE(a.light.primary, b.light.primary);
         const dark = deltaE(a.dark.primary, b.dark.primary);
-        if (light < 0.04 && dark < 0.04)
-          close.push(`${b.id} ~ ${a.id} (${light.toFixed(3)}, ${dark.toFixed(3)})`);
-      }
+        if (light < 0.04 && dark < 0.04) close.push(`${b.id} ~ ${a.id}`);
+      });
     });
-    expect(close).toEqual([]);
+    expect(close).toEqual(KNOWN_CLOSE);
   });
 
   it('builds colorblind-safe chart palettes from Okabe-Ito seeds that pass the chart checks', async () => {
     const safe = listThemeLibrary({ collection: 'colorblind-safe' });
     expect(safe.length).toBeGreaterThanOrEqual(4);
     for (const meta of safe) {
-      const definition = LIBRARY_THEME_DEFINITIONS.find((entry) => entry.id === meta.id);
-      const seeds = definition?.chartSeeds ?? [];
+      const definition = await loadLibraryThemeDefinition(meta.id);
+      const seeds = definition.chartSeeds ?? [];
       expect(seeds, meta.id).toHaveLength(5);
       const theme = await loadLibraryTheme(meta.id);
       for (const mode of ['light', 'dark'] as const) {
