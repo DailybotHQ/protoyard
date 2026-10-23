@@ -1,6 +1,6 @@
 <script lang="ts">
 import { ChevronDown } from '@lucide/svelte';
-import { Accordion as AccordionPrimitive } from 'bits-ui';
+import { Accordion as AccordionPrimitive } from '@texuli/primitives/accordion';
 import type { Snippet } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import type { AccordionItem } from './types.ts';

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Progress as ProgressPrimitive } from 'bits-ui';
+import { Progress as ProgressPrimitive } from '@texuli/primitives/progress';
 import { cn } from '../../lib/cn.ts';
 
 interface Props {

@@ -1,8 +1,11 @@
 <script lang="ts">
-import { Switch as SwitchPrimitive } from 'bits-ui';
+import { Switch as SwitchPrimitive } from '@texuli/primitives/switch';
+import type { ComponentProps } from 'svelte';
 import { cn } from '../../lib/cn.ts';
+import { refAttachment } from '../../lib/ref.ts';
 
-type Props = Omit<SwitchPrimitive.RootProps, 'children' | 'child'> & {
+type Props = Omit<ComponentProps<typeof SwitchPrimitive.Root>, 'children' | 'child'> & {
+  ref?: HTMLButtonElement | null;
   label?: string;
   description?: string;
 };
@@ -22,8 +25,8 @@ let {
 
 {#snippet control()}
   <SwitchPrimitive.Root
+    {@attach refAttachment<HTMLButtonElement>((node) => (ref = node))}
     bind:checked
-    bind:ref
     {id}
     aria-describedby={description ? `${id}-description` : undefined}
     class={cn(

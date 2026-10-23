@@ -108,8 +108,8 @@ controls, custom tab strips, toolbar toggles) share one keyboard helper in
 - **Tab order:** use `rovingTabIndex(value, entryValue, entries)` so only the
   selected option (or the first enabled one when empty) has `tabindex={0}`.
 
-Bits UI-backed `Tabs` and `RadioGroup` already implement roving focus; use this
-helper for hand-rolled groups. Wire it on each option:
+`Tabs` and `RadioGroup` (on `@texuli/primitives`) already implement roving
+focus; use this helper for hand-rolled groups. Wire it on each option:
 
 ```ts
 import { rovingKeydown, rovingTabIndex } from '@protoyard/ui';

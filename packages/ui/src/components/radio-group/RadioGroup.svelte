@@ -1,9 +1,12 @@
 <script lang="ts">
-import { RadioGroup as RadioGroupPrimitive } from 'bits-ui';
+import { RadioGroup as RadioGroupPrimitive } from '@texuli/primitives/radio-group';
+import type { ComponentProps } from 'svelte';
 import { cn } from '../../lib/cn.ts';
+import { refAttachment } from '../../lib/ref.ts';
 import type { RadioOption } from './types.ts';
 
-type Props = Omit<RadioGroupPrimitive.RootProps, 'child'> & {
+type Props = ComponentProps<typeof RadioGroupPrimitive.Root> & {
+  ref?: HTMLDivElement | null;
   /** Rendered as labelled radio items; use `children` with `RadioGroupItem` for custom layouts. */
   items?: RadioOption[];
   /**
@@ -31,7 +34,7 @@ const isCard = $derived(variant === 'card');
 
 <RadioGroupPrimitive.Root
   bind:value
-  bind:ref
+  {@attach refAttachment<HTMLDivElement>((node) => (ref = node))}
   {orientation}
   data-variant={variant}
   class={cn(

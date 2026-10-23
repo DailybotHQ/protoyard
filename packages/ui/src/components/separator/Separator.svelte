@@ -1,8 +1,9 @@
 <script lang="ts">
-import { Separator as SeparatorPrimitive } from 'bits-ui';
+import { SeparatorRoot } from '@texuli/primitives/separator';
+import type { ComponentProps } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 
-type Props = Omit<SeparatorPrimitive.RootProps, 'child' | 'children'>;
+type Props = Omit<ComponentProps<typeof SeparatorRoot>, 'child'>;
 
 let {
   orientation = 'horizontal',
@@ -13,7 +14,7 @@ let {
 }: Props = $props();
 </script>
 
-<SeparatorPrimitive.Root
+<SeparatorRoot
   bind:ref
   {orientation}
   {decorative}

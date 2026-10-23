@@ -1,10 +1,12 @@
 <script lang="ts">
-import { Tabs as TabsPrimitive } from 'bits-ui';
-import type { Snippet } from 'svelte';
+import { Tabs as TabsPrimitive } from '@texuli/primitives/tabs';
+import type { ComponentProps, Snippet } from 'svelte';
 import { cn } from '../../lib/cn.ts';
+import { refAttachment } from '../../lib/ref.ts';
 import type { TabItem } from './types.ts';
 
-type Props = Omit<TabsPrimitive.RootProps, 'children' | 'child'> & {
+type Props = Omit<ComponentProps<typeof TabsPrimitive.Root>, 'children'> & {
+  ref?: HTMLDivElement | null;
   items: TabItem[];
   /** Renders the panel for the given tab. */
   content?: Snippet<[TabItem]>;
@@ -23,6 +25,8 @@ let {
   listClass,
   label,
   ref = $bindable(null),
+  // Arrow keys wrap from the last tab to the first.
+  loop = true,
   ...rest
 }: Props = $props();
 
@@ -33,7 +37,8 @@ $effect.pre(() => {
 
 <TabsPrimitive.Root
   bind:value={() => value ?? '', (next) => (value = next)}
-  bind:ref
+  {@attach refAttachment<HTMLDivElement>((node) => (ref = node))}
+  {loop}
   class={cn('flex flex-col gap-3', className)}
   {...rest}
 >
@@ -75,6 +80,7 @@ $effect.pre(() => {
     {#each items as item (item.value)}
       <TabsPrimitive.Content
         value={item.value}
+        forceMount={false}
         class="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {@render content(item)}
