@@ -176,7 +176,13 @@ describe('CohortTable', () => {
     render(CohortTable, {
       title: 'Weekly retention',
       result,
-      palette: { mode: 'light', categorical: [], sequential, diverging: [], repaired: [] },
+      palette: {
+        categorical: [],
+        sequential,
+        diverging: [],
+        grid: 'transparent',
+        axis: 'currentColor',
+      },
     });
     const top = document.querySelector('tbody tr [data-period="1"]') as HTMLElement;
     expect(top.style.background).toMatch(/var\(--py-seq-\d\)/);
