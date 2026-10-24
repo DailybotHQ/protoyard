@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 const SCRIPT = resolve(import.meta.dirname, '../../scripts/check-public-hygiene.sh');
 const KEY = ['api', 'Token'].join('');
 const VALUE = ['a8f3K29d', 'Lq0ZxP7m', 'N2bV'].join('');
+const LINKED = ['@texuli', 'tokens'].join('/');
 let repo = '';
 
 function git(...args: string[]) {
@@ -41,7 +42,7 @@ describe('check-public-hygiene secret-assignment rule', () => {
   it('passes package.json dependency specifiers: link:, workspace: and semver ranges', () => {
     const result = tree({
       'package.json': manifest({
-        '@texuli/tokens': 'link:../texuli/packages/tokens',
+        [LINKED]: 'link:../texuli/packages/tokens',
         '@example/tokens-core': 'workspace:*',
         '@example/token-ranges': '>=1.20.3 <2.0.0 || ^3.1.0-beta.1',
       }),
