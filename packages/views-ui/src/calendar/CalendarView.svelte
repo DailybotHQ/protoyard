@@ -166,37 +166,36 @@ function handleCreate(slot: CalendarSlot): void {
 }
 </script>
 
-<div data-calendar={label}>
-  <QueryState
-    {query}
-    label={`Loading ${label.toLowerCase()}`}
-    onRetry={onRetry ? () => { void onRetry(); } : undefined}
-    isEmpty={() => false}
-  >
-    {#snippet children(events)}
-      <TexuliCalendar
-        {events}
-        anchor={localAnchor}
-        today={todayIso}
-        now={nowProp}
-        {label}
-        {locale}
-        {timeZone}
-        bind:view
-        {weekStartsOn}
-        {getTitle}
-        {getTone}
-        {onOpen}
-        onChange={onChange && !readOnly ? handleChange : undefined}
-        onCreate={onCreate && !readOnly ? handleCreate : undefined}
-        {readOnly}
-        {canMove}
-        {min}
-        {max}
-        {slotMinutes}
-        {showYear}
-        class={className}
-      />
-    {/snippet}
-  </QueryState>
-</div>
+<!-- Host shell only: Texuli CalendarView owns `section[data-calendar]`. -->
+<QueryState
+  {query}
+  label={`Loading ${label.toLowerCase()}`}
+  onRetry={onRetry ? () => { void onRetry(); } : undefined}
+  isEmpty={() => false}
+>
+  {#snippet children(events)}
+    <TexuliCalendar
+      {events}
+      anchor={localAnchor}
+      today={todayIso}
+      now={nowProp}
+      {label}
+      {locale}
+      {timeZone}
+      bind:view
+      {weekStartsOn}
+      {getTitle}
+      {getTone}
+      {onOpen}
+      onChange={onChange && !readOnly ? handleChange : undefined}
+      onCreate={onCreate && !readOnly ? handleCreate : undefined}
+      {readOnly}
+      {canMove}
+      {min}
+      {max}
+      {slotMinutes}
+      {showYear}
+      class={className}
+    />
+  {/snippet}
+</QueryState>
