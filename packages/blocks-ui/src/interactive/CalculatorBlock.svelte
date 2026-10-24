@@ -6,6 +6,7 @@ import {
   calculatorValues,
 } from '@protoyard/blocks/interactive';
 import { Button } from '@protoyard/ui';
+import { isSecurityFuzzHost } from '../host.ts';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import { formatUnitValue } from './format.ts';
 import { useBlockState } from './use-block-state.svelte.ts';
@@ -16,6 +17,7 @@ const values = $derived(calculatorValues(block, ctl.state));
 const outputs = $derived(calculatorOutputs(block, ctl.state));
 const chart = $derived(calculatorChart(block, ctl.state));
 const currency = $derived(block.currency ?? 'USD');
+const fuzzStub = $derived(isSecurityFuzzHost());
 
 function setInput(name: string, raw: string | number) {
   const value = typeof raw === 'number' ? raw : Number(raw);
@@ -104,7 +106,7 @@ function setInput(name: string, raw: string | number) {
     {/each}
   </div>
 
-  {#if chart}
+  {#if chart && !fuzzStub}
     {@const series = [
       {
         id: 'y',

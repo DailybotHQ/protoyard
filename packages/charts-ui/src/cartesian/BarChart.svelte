@@ -1,6 +1,6 @@
 <script lang="ts">
 /** Adapter: Protoyard BarChart → Texuli BarChart; maps onselect to include datum. */
-import { BarChart as TexuliBar, StackedBarChart } from '@texuli/charts/cartesian';
+import { StackedBarChart, BarChart as TexuliBar } from '@texuli/charts/cartesian';
 import ChartRoot from '../compat/ChartRoot.svelte';
 import { type CartesianSeries, toTexuliSeries } from '../compat/series.ts';
 

@@ -248,11 +248,15 @@ export default defineConfig({
       reuseExistingServer: !ci,
       timeout: 180_000,
     })),
-    ...prototypes.map((slug, i) => ({
-      command: `pnpm protoyard build ${slug} && pnpm protoyard preview ${slug} --port ${4401 + i} --strict-port`,
-      url: `http://127.0.0.1:${4401 + i}/`,
-      reuseExistingServer: !ci,
-      timeout: 180_000,
-    })),
+    ...prototypes.map((slug, i) => {
+      const portBase = Number(process.env.PROTOYARD_E2E_PROTOTYPE_PORT_BASE ?? 4401);
+      const port = portBase + i;
+      return {
+        command: `pnpm protoyard build ${slug} && pnpm protoyard preview ${slug} --port ${port} --strict-port`,
+        url: `http://127.0.0.1:${port}/`,
+        reuseExistingServer: !ci,
+        timeout: 180_000,
+      };
+    }),
   ],
 });

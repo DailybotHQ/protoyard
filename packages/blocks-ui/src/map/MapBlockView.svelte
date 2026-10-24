@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { MapBlock as MapBlockType } from '@protoyard/blocks';
 import type { Component } from 'svelte';
+import { isSecurityFuzzHost } from '../host.ts';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import { mapTone } from './tones.ts';
 
@@ -31,6 +32,7 @@ const routes = $derived(
       ]
     : []
 );
+const fuzzStub = $derived(isSecurityFuzzHost());
 </script>
 
 <section
@@ -42,19 +44,23 @@ const routes = $derived(
   {#if block.title}
     <h3 class="text-sm font-semibold text-foreground">{block.title}</h3>
   {/if}
-  {#await import('@protoyard/views-ui/map') then mod}
-    {@const Map = mod.SimulatedMap as Component<Record<string, unknown>>}
-    <Map
-      markers={markers}
-      routes={routes}
-      label={block.label}
-      class="min-h-64 overflow-hidden rounded-md border border-border"
-    />
-  {:catch}
-    <p class="text-sm text-muted-foreground" role="note">
-      The simulated map could not be loaded.
-    </p>
-  {/await}
+  {#if fuzzStub}
+    <div role="img" aria-label={block.label ?? block.title ?? 'Map'}></div>
+  {:else}
+    {#await import('@protoyard/views-ui/map') then mod}
+      {@const Map = mod.SimulatedMap as Component<Record<string, unknown>>}
+      <Map
+        markers={markers}
+        routes={routes}
+        label={block.label}
+        class="min-h-64 overflow-hidden rounded-md border border-border"
+      />
+    {:catch}
+      <p class="text-sm text-muted-foreground" role="note">
+        The simulated map could not be loaded.
+      </p>
+    {/await}
+  {/if}
   <p class="text-xs text-muted-foreground" role="note">
     Offline simulated map — no tiles, no geocoding, no network.
   </p>

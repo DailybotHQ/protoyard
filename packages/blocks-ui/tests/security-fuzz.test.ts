@@ -4,7 +4,7 @@ import { safeHref } from '@protoyard/ai/markdown';
 import { BLOCK_FAMILIES, BLOCK_TYPES, parseUntrustedBlocks } from '@protoyard/blocks';
 import { createMemoryBlockStateHost } from '@protoyard/blocks/interactive';
 import { cleanup, render, waitFor } from '@testing-library/svelte';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { BIDI, hostileDocuments } from '../../blocks/tests/support/hostile.ts';
 import { loadGrammar } from '../src/code/grammars.ts';
 import { loadBlockFamily } from '../src/registry.ts';
@@ -24,7 +24,7 @@ const SRC = join(import.meta.dirname, '..', 'src');
 const DOCUMENTS = hostileDocuments();
 /** Raw inputs with thousands of blocks are rejected by the parser; render a prefix to bound time. */
 const RAW_BLOCK_CAP = 25;
-const BATCH = 100;
+const BATCH = 50; // chart/map kits stub under security-fuzz host (isSecurityFuzzHost)
 
 const FORBIDDEN_ELEMENTS =
   'script, iframe, frame, frameset, object, embed, applet, base, meta, link, noscript, template, foreignObject, portal';
@@ -155,14 +155,12 @@ const network = {
 };
 
 beforeAll(async () => {
-  // Warm every lazy chunk once (families, chart and map kits, grammars), so the
-  // DOM is inspected after those chunks render rather than while they load.
+  // Warm family + grammar chunks once. Chart and map kits are NOT warmed:
+  // under documentId `security-fuzz` every charts-ui / views-ui/map mount is an
+  // inert stub (isSecurityFuzzHost) so Texuli chart families never load into
+  // happy-dom across 2,000 documents.
   await Promise.all([
     ...BLOCK_FAMILIES.map((family) => loadBlockFamily(family)),
-    import('@protoyard/charts-ui/cartesian'),
-    import('@protoyard/charts-ui/compact'),
-    import('@protoyard/charts-ui/part-whole'),
-    import('@protoyard/views-ui/map'),
     ...['ts', 'js', 'json', 'bash', 'python', 'html', 'css', 'sql', 'yaml'].map(loadGrammar),
   ]);
   vi.stubGlobal('fetch', network.fetch);
@@ -172,6 +170,12 @@ beforeAll(async () => {
     vi.spyOn(navigator, 'sendBeacon').mockImplementation(network.beacon);
   }
 }, 300_000);
+
+afterEach(() => {
+  cleanup();
+  // Drop retained chart DOM between batches when heap is tight.
+  if (typeof globalThis.gc === 'function') globalThis.gc();
+});
 
 afterAll(() => {
   vi.unstubAllGlobals();

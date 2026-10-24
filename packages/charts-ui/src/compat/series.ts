@@ -53,9 +53,7 @@ export function seriesFromRows<R>(
 }
 
 /** Strip Protoyard-only fields before handing series to Texuli. */
-export function toTexuliSeries(
-  series: readonly CartesianSeries[]
-): {
+export function toTexuliSeries(series: readonly CartesianSeries[]): {
   id: string;
   label: string;
   points: { x: number | string; y: number | null }[];

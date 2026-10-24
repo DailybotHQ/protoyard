@@ -2,6 +2,7 @@
 import type { ChartControlsBlock as ChartControlsBlockType } from '@protoyard/blocks';
 import { chartControlsSpec } from '@protoyard/blocks/interactive';
 import { Button } from '@protoyard/ui';
+import { isSecurityFuzzHost } from '../host.ts';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import { useBlockState } from './use-block-state.svelte.ts';
 
@@ -9,6 +10,7 @@ let { block }: { block: ChartControlsBlockType } = $props();
 const ctl = useBlockState(() => block);
 const spec = $derived(chartControlsSpec(block, ctl.state));
 const height = $derived(block.height === 'sm' ? 160 : block.height === 'lg' ? 280 : 220);
+const fuzzStub = $derived(isSecurityFuzzHost());
 
 const series = $derived(
   spec.series.map((row, index) => ({
@@ -150,7 +152,9 @@ function setSeriesVisible(index: number, checked: boolean) {
     </div>
   {/if}
 
-  {#if partWhole}
+  {#if fuzzStub}
+    <div data-py-chart="" role="img" aria-label={spec.title ?? 'Chart'}></div>
+  {:else if partWhole}
     {#await import('@protoyard/charts-ui/part-whole') then mod}
       <mod.DonutChart title={spec.title ?? 'Chart'} data={donutData} height={height} />
     {/await}

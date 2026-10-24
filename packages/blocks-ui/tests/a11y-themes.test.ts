@@ -20,11 +20,11 @@ import A11yHarness from './fixtures/A11yHarness.svelte';
 
 // Block families load lazily; under the full parallel suite the first import of a
 // family can take longer than testing-library's 1 s default.
-configure({ asyncUtilTimeout: 15_000 });
+configure({ asyncUtilTimeout: 30_000 });
 
 const MODES = ['light', 'dark'] as const;
 const SRC = join(import.meta.dirname, '..', 'src');
-const long = { timeout: 20_000 };
+const long = { timeout: 45_000 };
 
 const palettes = BUILTIN_THEMES.flatMap((theme) =>
   MODES.map((mode) => ({

@@ -16,6 +16,11 @@ let { values, data, label = 'Trend', description, height = 32, showLast = false 
 const series = $derived(values ?? data ?? []);
 </script>
 
-<div data-py-chart="" data-py-sparkline="" aria-hidden="true">
+<!--
+  Do not set aria-hidden on this wrapper: Texuli Sparkline is a labeled
+  role="img" SVG. Hiding the wrapper while the SVG stays focusable fails
+  axe aria-hidden-focus (WCAG). The sparkline carries its own accessible name.
+-->
+<div data-py-chart="" data-py-sparkline="">
   <TexuliSparkline values={series} {label} {description} {height} {showLast} />
 </div>

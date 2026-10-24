@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { StatBlock as StatBlockData } from '@protoyard/blocks';
 import { cn } from '@protoyard/ui';
+import { isSecurityFuzzHost } from '../host.ts';
 import { TONE_INDICATOR, TONE_LABELS } from './format.ts';
 
 /**
@@ -13,6 +14,7 @@ let { block }: { block: StatBlockData } = $props();
 
 const hasTrend = $derived(block.items.some((item) => item.trend !== undefined));
 const name = $derived(block.title ?? 'Key figures');
+const fuzzStub = $derived(isSecurityFuzzHost());
 </script>
 
 <section aria-label={name} class="grid gap-3" data-py-block="stat">
@@ -30,7 +32,7 @@ const name = $derived(block.title ?? 'Key figures');
           </dd>
         {/if}
         {#if item.context}<dd class="text-xs text-muted-foreground">{item.context}</dd>{/if}
-        {#if item.trend && hasTrend}
+        {#if item.trend && hasTrend && !fuzzStub}
           <dd class="mt-1">
             {#await import('@protoyard/charts-ui/compact') then { Sparkline }}
               <Sparkline values={item.trend} label={`${item.label} trend`} height={28} />

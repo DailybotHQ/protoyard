@@ -304,12 +304,18 @@ importers:
       '@texuli/charts':
         specifier: link:../../../texuli/packages/charts
         version: link:../../../texuli/packages/charts
+      '@texuli/tokens':
+        specifier: link:../../../texuli/packages/tokens
+        version: link:../../../texuli/packages/tokens
 
   packages/charts-ui:
     dependencies:
       '@protoyard/charts':
         specifier: workspace:*
         version: link:../charts
+      '@texuli/charts':
+        specifier: link:../../../texuli/packages/charts
+        version: link:../../../texuli/packages/charts
     devDependencies:
       svelte:
         specifier: ^5.57.2

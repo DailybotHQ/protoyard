@@ -1,5 +1,6 @@
 <script lang="ts">
 import { type ChartBlock as ChartBlockData, ChartSpecSchema } from '@protoyard/blocks';
+import { isSecurityFuzzHost } from '../host.ts';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import {
   chartItems,
@@ -35,6 +36,9 @@ const load = (kind: string) =>
   isCartesianChart(kind as never)
     ? import('@protoyard/charts-ui/cartesian')
     : import('@protoyard/charts-ui/part-whole');
+
+/** Security-fuzz: inert mark only (full Texuli chart families OOM happy-dom). */
+const fuzzStub = $derived(isSecurityFuzzHost());
 </script>
 
 {#snippet table()}
@@ -77,27 +81,33 @@ const load = (kind: string) =>
     data-chart-kind={spec.kind}
     {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
   >
-    {#await load(spec.kind)}
-      <!-- The data is readable at once; the chart takes its place when it loads. -->
-      {@render table()}
-    {:then kit}
-      <div>
-        {#if 'BarChart' in kit && spec.kind === 'bar'}
-          <kit.BarChart title={spec.title} description={spec.description} series={chartSeries(spec)} {...units} {height} />
-        {:else if 'LineChart' in kit && (spec.kind === 'line' || spec.kind === 'area')}
-          <kit.LineChart title={spec.title} description={spec.description} series={chartSeries(spec)} xKind={chartXKind(spec)} {...units} area={spec.kind === 'area'} {height} />
-        {:else if 'FunnelChart' in kit && spec.kind === 'funnel'}
-          <kit.FunnelChart title={spec.title} description={spec.description} steps={chartItems(spec).map((d) => ({ id: d.id, label: d.label, count: d.value }))} unit={units.unit} {height} />
-        {:else if 'PieChart' in kit && spec.kind === 'pie'}
-          <kit.PieChart title={spec.title} description={spec.description} data={chartItems(spec)} {...units} {height} />
-        {:else if 'DonutChart' in kit}
-          <kit.DonutChart title={spec.title} description={spec.description} data={chartItems(spec)} {...units} {height} />
-        {/if}
-      </div>
+    {#if fuzzStub}
+      <!-- Lightweight inert mark for security-fuzz (avoids OOM from full chart families). -->
+      <div data-py-chart="" role="img" aria-label={spec.title}></div>
       {#if block.showTable === true}{@render table()}{/if}
-    {:catch}
-      {@render table()}
-      <p role="note" class="text-xs text-muted-foreground">The chart view did not load; the table shows the same data.</p>
-    {/await}
+    {:else}
+      {#await load(spec.kind)}
+        <!-- The data is readable at once; the chart takes its place when it loads. -->
+        {@render table()}
+      {:then kit}
+        <div>
+          {#if 'BarChart' in kit && spec.kind === 'bar'}
+            <kit.BarChart title={spec.title} description={spec.description} series={chartSeries(spec)} {...units} {height} />
+          {:else if 'LineChart' in kit && (spec.kind === 'line' || spec.kind === 'area')}
+            <kit.LineChart title={spec.title} description={spec.description} series={chartSeries(spec)} xKind={chartXKind(spec)} {...units} area={spec.kind === 'area'} {height} />
+          {:else if 'FunnelChart' in kit && spec.kind === 'funnel'}
+            <kit.FunnelChart title={spec.title} description={spec.description} steps={chartItems(spec).map((d) => ({ id: d.id, label: d.label, count: d.value }))} unit={units.unit} {height} />
+          {:else if 'PieChart' in kit && spec.kind === 'pie'}
+            <kit.PieChart title={spec.title} description={spec.description} data={chartItems(spec)} {...units} {height} />
+          {:else if 'DonutChart' in kit}
+            <kit.DonutChart title={spec.title} description={spec.description} data={chartItems(spec)} {...units} {height} />
+          {/if}
+        </div>
+        {#if block.showTable === true}{@render table()}{/if}
+      {:catch}
+        {@render table()}
+        <p role="note" class="text-xs text-muted-foreground">The chart view did not load; the table shows the same data.</p>
+      {/await}
+    {/if}
   </figure>
 {/if}
