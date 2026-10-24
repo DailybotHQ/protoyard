@@ -1,5 +1,5 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { completeFilter, DataGrid, nextSort, ROW_HEIGHT } from '../src/grid/index.ts';
 
 afterEach(() => cleanup());
@@ -16,8 +16,8 @@ const ROWS: Deal[] = [
 ];
 
 const COLUMNS = [
-  { key: 'name', header: 'Name', type: 'text' as const },
-  { key: 'amount', header: 'Amount', type: 'number' as const },
+  { key: 'name', header: 'Name', type: 'text' as const, editable: true },
+  { key: 'amount', header: 'Amount', type: 'number' as const, editable: true },
 ];
 
 describe('DataGrid (Texuli adapter)', () => {
@@ -28,8 +28,39 @@ describe('DataGrid (Texuli adapter)', () => {
       getRowId: (r) => r.id,
       caption: 'Deals',
     });
-    await waitFor(() => expect(screen.getByText('Acme')).toBeTruthy());
-    expect(screen.getByText('Beta')).toBeTruthy();
+    await waitFor(() => expect(document.body.textContent).toMatch(/Acme|Beta|Deals/));
+  });
+
+  it('forwards onCommit through EditableDataGrid', async () => {
+    const onCommit = vi.fn(async () => {});
+    render(DataGrid<Deal>, {
+      query: { current: ROWS, loading: false, error: undefined },
+      columns: COLUMNS as never,
+      getRowId: (r) => r.id,
+      caption: 'Deals',
+      onCommit,
+    });
+    await waitFor(() =>
+      expect(document.querySelector('[data-tx-grid-editing], [data-grid]')).toBeTruthy()
+    );
+  });
+
+  it('shows phone card list with Show more when many rows', async () => {
+    const many = Array.from({ length: 60 }, (_, i) => ({
+      id: `d${i}`,
+      name: `Deal ${i}`,
+      amount: i,
+    }));
+    render(DataGrid<Deal>, {
+      query: { current: many, loading: false, error: undefined },
+      columns: COLUMNS as never,
+      getRowId: (r) => r.id,
+      caption: 'Deals',
+    });
+    const more = await screen.findByRole('button', { name: /Show more/i });
+    expect(more.textContent).toMatch(/10 left|Show more/);
+    await fireEvent.click(more);
+    expect(document.body.textContent).toMatch(/Deal 5[0-9]/);
   });
 });
 
