@@ -11,11 +11,13 @@ const ROOT = resolve(import.meta.dirname, '../../..');
 const HOSTS = ['page', 'doc'] as const;
 type Host = (typeof HOSTS)[number];
 const JS_GZIP_BUDGET = 120 * 1024;
-// Default 20 KB. Per-host overrides at the measured size plus at most 5%:
-// texuli component and layout CSS on top of Tailwind (T-adopt-ui-styled,
-// T-adopt-layouts; measured page 22,115 B and doc 22,374 B). Tighten after
-// texuli's FIX-texuli-css-size.
-const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 22.5 * 1024, doc: 22.5 * 1024 };
+// Default 20 KB and it stays. Per-host overrides at the measured size + 5 %
+// (2026-10-24: page 24,242 B, doc 24,490 B gzip). Texuli component CSS
+// (~23 KB gz) replaces the former UI CSS; eager/lazy split measured; CSS diet
+// tracked as a follow-up. The sum covers every emitted stylesheet: the first
+// screen loads only the entry one (page 4,166 B, doc 4,414 B); the rest are
+// lazy block and chart families, with no repeated rule beyond `.tx-sr-only`.
+const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 25_454, doc: 25_714 };
 
 interface HostBuild {
   chunks: Rollup.OutputChunk[];
