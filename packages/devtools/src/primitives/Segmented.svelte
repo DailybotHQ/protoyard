@@ -1,6 +1,12 @@
 <script lang="ts" generics="T extends string">
 import Spinner from './Spinner.svelte';
 
+/**
+ * Single-select segmented control (radiogroup).
+ * Kept as a panel-local control so arrow keys move and select (DevTools tests
+ * and keyboard model). Visual language uses Protoyard theme tokens that map
+ * 1:1 to Texuli `--tx-*` when `enableTexuliAppearance()` is on.
+ */
 let {
   value,
   options,
@@ -14,11 +20,9 @@ let {
   label: string;
   onchange: (value: T) => void;
   disabled?: boolean;
-  /** The change is being applied: the chosen option shows a spinner, the group waits. */
   busy?: boolean;
 } = $props();
 
-/** The option the user picked last; it shows the spinner while `busy`. */
 let chosen = $state<T | null>(null);
 function choose(next: T) {
   if (busy) return;
@@ -28,7 +32,6 @@ function choose(next: T) {
 
 let group: HTMLDivElement | undefined = $state();
 
-// Radio-group keyboard model: arrows move AND select, Tab leaves the group.
 function onkeydown(event: KeyboardEvent) {
   const keys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'];
   if (!keys.includes(event.key)) return;
@@ -51,6 +54,7 @@ function onkeydown(event: KeyboardEvent) {
   aria-busy={busy || undefined}
   tabindex="-1"
   class="inline-flex w-full rounded-md bg-muted p-0.5 dark:bg-background"
+  data-py-devtools-segmented=""
   {onkeydown}
 >
   {#each options as option (option.value)}
