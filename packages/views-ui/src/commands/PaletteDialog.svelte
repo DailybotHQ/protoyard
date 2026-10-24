@@ -8,7 +8,7 @@ import {
   subscribeOverlayPortalTarget,
 } from '@protoyard/ui';
 import { Command } from '@texuli/primitives/command';
-import { Dialog as DialogPrimitive } from 'bits-ui';
+import * as DialogPrimitive from '@texuli/primitives/dialog';
 import { shortcutKeys, shortcutLabel } from '../lib/platform.ts';
 import type { CommandEntry, CommandRegistry } from './registry.ts';
 import { COMMAND_QUERY_MAX_LENGTH, rankCommands } from './registry.ts';
@@ -127,8 +127,11 @@ function goBack() {
 }
 </script>
 
+<!-- Inside a framed device the palette is contained by its screen; otherwise it opens in the top layer. -->
 <DialogPrimitive.Root
   bind:open
+  mode={portal ? 'contained' : 'top-layer'}
+  container={portal}
   onOpenChange={(next) => {
     if (!next) {
       query = '';
@@ -137,7 +140,7 @@ function goBack() {
     }
   }}
 >
-  <DialogPrimitive.Portal to={portal ?? undefined}>
+  <DialogPrimitive.Portal>
     <DialogPrimitive.Overlay class="fixed inset-0 z-50 bg-black/40" />
     <DialogPrimitive.Content
       class="fixed top-[12vh] left-1/2 z-50 flex max-h-[76vh] w-[calc(100%-2rem)] -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-border bg-elevated text-foreground shadow-float outline-none sm:top-[18vh] sm:max-w-xl"
