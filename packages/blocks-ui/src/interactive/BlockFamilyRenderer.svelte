@@ -9,10 +9,7 @@
  */
 import type { Block } from '@protoyard/blocks';
 import { InteractiveBlockView } from '@texuli/blocks/interactive/renderers';
-import {
-  TEXULI_INTERACTIVE_TYPES,
-  toTexuliInteractiveBlock,
-} from '../compat/interactive.ts';
+import { TEXULI_INTERACTIVE_TYPES, toTexuliInteractiveBlock } from '../compat/interactive.ts';
 import { getBlockHost } from '../host.ts';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import CalculatorBlock from './CalculatorBlock.svelte';

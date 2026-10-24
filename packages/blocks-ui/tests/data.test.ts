@@ -4,7 +4,7 @@ import {
   StatBlockSchema,
   TableBlockSchema,
 } from '@protoyard/blocks';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeAll, describe, expect, it, onTestFinished } from 'vitest';
 import {
   BlockFamilyRenderer,

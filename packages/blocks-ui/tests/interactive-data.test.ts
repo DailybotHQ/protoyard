@@ -1,6 +1,6 @@
 import { ChartBlockSchema, TableBlockSchema } from '@protoyard/blocks';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { afterEach, beforeAll, describe, expect, it, onTestFinished } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import ChartBlock from '../src/data/ChartBlock.svelte';
 import TableBlock from '../src/data/TableBlock.svelte';
 
