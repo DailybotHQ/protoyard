@@ -87,6 +87,14 @@ async function goTo(page: Page, slideId: string): Promise<Locator> {
   await expect(slide.locator('[role="status"][aria-label="Loading slide layout"]')).toHaveCount(0, {
     timeout: 15_000,
   });
+  // Block families are lazy chunks: wait until every block on the slide is ready
+  // (no loading skeleton) before interactive specs read data-py-block roots.
+  await expect(slide.locator('[role="status"][aria-label="Loading block"]')).toHaveCount(0, {
+    timeout: 30_000,
+  });
+  await expect(slide.locator('[aria-label="Loading chart"]')).toHaveCount(0, {
+    timeout: 30_000,
+  });
   return slide;
 }
 

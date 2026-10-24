@@ -1,6 +1,7 @@
 <script lang="ts">
 /**
  * ChartSpec → Texuli chart adapter. Loads `@texuli/charts` once per kind.
+ * Outer `data-py-block="chart"` + inner `figure[data-py-chart]` match deck E2E.
  */
 import type { ChartBlock as ChartBlockData } from '@protoyard/blocks';
 import type { Component } from 'svelte';
@@ -67,26 +68,26 @@ $effect(() => {
 });
 </script>
 
-<figure
-  class="m-0"
+<div
   data-py-block="chart"
-  data-py-chart=""
   data-chart-kind={payload?.kind}
   {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
 >
-  {#if !payload}
-    <div
-      role="note"
-      class="rounded-lg border border-dashed border-border bg-muted/40 p-3 text-sm"
-      data-chart-error
-    >
-      <p class="font-medium">This chart could not be shown.</p>
-    </div>
-  {:else if loadError}
-    <p role="note">{loadError}</p>
-  {:else if Chart && payload}
-    <Chart title={payload.title} description={payload.description} series={payload.series} />
-  {:else}
-    <p role="status">Loading chart…</p>
-  {/if}
-</figure>
+  <figure class="m-0" data-py-chart="" data-chart-kind={payload?.kind}>
+    {#if !payload}
+      <div
+        role="note"
+        class="rounded-lg border border-dashed border-border bg-muted/40 p-3 text-sm"
+        data-chart-error
+      >
+        <p class="font-medium">This chart could not be shown.</p>
+      </div>
+    {:else if loadError}
+      <p role="note">{loadError}</p>
+    {:else if Chart && payload}
+      <Chart title={payload.title} description={payload.description} series={payload.series} />
+    {:else}
+      <p role="status" aria-label="Loading chart">Loading chart…</p>
+    {/if}
+  </figure>
+</div>
