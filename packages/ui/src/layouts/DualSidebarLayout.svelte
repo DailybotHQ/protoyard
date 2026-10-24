@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Menu } from '@lucide/svelte';
+import { Tooltip } from 'texuli/tooltip';
 import Sidebar from '../components/sidebar/Sidebar.svelte';
-import Tooltip from '../components/tooltip/Tooltip.svelte';
 import { cn } from '../lib/cn.ts';
 import LayoutChrome from './LayoutChrome.svelte';
 import LayoutDrawer from './LayoutDrawer.svelte';

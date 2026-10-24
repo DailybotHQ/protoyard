@@ -1,9 +1,5 @@
 <script lang="ts">
-import Accordion from '../../src/components/accordion/Accordion.svelte';
-import Checkbox from '../../src/components/checkbox/Checkbox.svelte';
-import RadioGroup from '../../src/components/radio-group/RadioGroup.svelte';
-import Switch from '../../src/components/switch/Switch.svelte';
-import Tabs from '../../src/components/tabs/Tabs.svelte';
+import { Accordion, Checkbox, RadioGroup, Switch, Tabs } from '../../src/index.ts';
 
 interface Props {
   /** Receives each bound ref once the harness mounts. */
@@ -14,20 +10,18 @@ let { onrefs }: Props = $props();
 
 let checkboxRef = $state<HTMLButtonElement | null>(null);
 let switchRef = $state<HTMLButtonElement | null>(null);
-let radioRef = $state<HTMLDivElement | null>(null);
 let tabsRef = $state<HTMLDivElement | null>(null);
 let tab = $state<string | undefined>();
 let open = $state<string | string[] | undefined>('');
 
 $effect(() => {
-  onrefs?.({ checkbox: checkboxRef, switch: switchRef, radio: radioRef, tabs: tabsRef });
+  onrefs?.({ checkbox: checkboxRef, switch: switchRef, tabs: tabsRef });
 });
 </script>
 
 <Checkbox bind:ref={checkboxRef} label="Remember me" />
 <Switch bind:ref={switchRef} label="Alerts" />
 <RadioGroup
-  bind:ref={radioRef}
   aria-label="Plan"
   items={[
     { value: 'free', label: 'Free' },

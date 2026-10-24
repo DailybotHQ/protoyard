@@ -1,8 +1,8 @@
 <script lang="ts">
 import { Ellipsis } from '@lucide/svelte';
+import { Button } from 'texuli/button';
 import BottomNav from '../components/bottom-nav/BottomNav.svelte';
 import BottomSheet from '../components/bottom-sheet/BottomSheet.svelte';
-import Button from '../components/button/Button.svelte';
 import MobileAppShell from '../components/mobile-app-shell/MobileAppShell.svelte';
 import MobileHeader from '../components/mobile-header/MobileHeader.svelte';
 import { cn } from '../lib/cn.ts';

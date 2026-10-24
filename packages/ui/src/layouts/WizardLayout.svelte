@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
-import type { StepperStep } from '../components/stepper/types.ts';
-import Wizard from '../components/wizard/Wizard.svelte';
+import type { StepperStep } from 'texuli/stepper';
+import { Wizard } from 'texuli/stepper';
 import { cn } from '../lib/cn.ts';
 
 interface Props {
