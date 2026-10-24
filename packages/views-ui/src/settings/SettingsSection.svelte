@@ -1,6 +1,6 @@
 <script lang="ts">
-import { cn } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
+import { cx } from 'texuli/cx';
 
 interface Props {
   title: string;
@@ -17,7 +17,7 @@ const uid = $props.id();
 
 <section
   aria-labelledby={`settings-section-${uid}`}
-  class={cn('rounded-xl border border-border bg-surface', className)}
+  class={cx('rounded-xl border border-border bg-surface', className)}
 >
   <header class="border-b border-border px-4 py-3 sm:px-6">
     <h3 id={`settings-section-${uid}`} class="text-sm font-semibold">{title}</h3>

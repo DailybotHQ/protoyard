@@ -7,7 +7,7 @@
  * Plus a phone card list with "Show more" (md:hidden), matching prior Protoyard UX.
  */
 
-import { Button, cn } from '@protoyard/ui';
+import { Button } from '@protoyard/ui';
 import type { GridValue, SavedView } from '@protoyard/views/grid';
 import {
   type DataGridColumn as TexuliColumn,
@@ -16,6 +16,7 @@ import {
 import { type EditableColumn, EditableDataGrid } from '@texuli/data/grid-editing';
 import { VirtualDataGrid } from '@texuli/data/grid-virtual';
 import type { Snippet } from 'svelte';
+import { cx } from 'texuli/cx';
 import QueryState from '../states/QueryState.svelte';
 import { type DataGridColumn, formatValue, type GridViewState } from './model.ts';
 
@@ -117,7 +118,7 @@ function cellText(row: T, column: DataGridColumn<T>): string {
 void activeViewId;
 </script>
 
-<div class={cn('min-w-0', className)} data-grid={resolvedCaption}>
+<div class={cx('min-w-0', className)} data-grid={resolvedCaption}>
   <QueryState
     {query}
     label={`Loading ${resolvedCaption.toLowerCase()}`}
@@ -197,7 +198,7 @@ void activeViewId;
         {#each data.slice(0, cardLimit) as row (getRowId(row))}
           {@const cardId = getRowId(row)}
           <li
-            class={cn(
+            class={cx(
               'flex gap-3 rounded-lg border border-border p-3 text-sm',
               selectable && selectedSet.has(cardId) ? 'bg-primary/10' : 'bg-surface',
             )}

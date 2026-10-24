@@ -12,7 +12,7 @@ import {
   SquareCode,
   Strikethrough,
 } from '@lucide/svelte';
-import { cn, type IconComponent } from '@protoyard/ui';
+import { type IconComponent } from '@protoyard/ui';
 import {
   applyCompletion,
   continueList,
@@ -26,6 +26,7 @@ import {
   triggerAt,
 } from '@protoyard/views/editor';
 import { type Component, onDestroy, tick } from 'svelte';
+import { cx } from 'texuli/cx';
 import { isMacPlatform, shortcutKeys, shortcutLabel } from '../lib/platform.ts';
 import { caretCoordinates } from './caret.ts';
 import {
@@ -394,7 +395,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
 }
 </script>
 
-<div class={cn('rounded-lg border border-border bg-surface', className)}>
+<div class={cx('rounded-lg border border-border bg-surface', className)}>
   <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border px-2 py-1.5">
     {#if layout === 'tabs'}
       <div role="tablist" aria-label={`${label} mode`} class="flex gap-1">
@@ -406,7 +407,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
             aria-selected={tab === id}
             aria-controls={`editor-${uid}-panel-${id}`}
             tabindex={tab === id ? 0 : -1}
-            class={cn('rounded-md px-2.5 py-1 text-sm', tab === id ? 'bg-muted font-medium' : 'text-muted-foreground hover:bg-muted')}
+            class={cx('rounded-md px-2.5 py-1 text-sm', tab === id ? 'bg-muted font-medium' : 'text-muted-foreground hover:bg-muted')}
             onclick={() => {
               tab = id as 'write' | 'preview';
               match = null;
@@ -415,7 +416,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
         {/each}
       </div>
     {/if}
-    <div role="toolbar" aria-label={`Formatting for ${label}`} aria-controls={`editor-${uid}-input`} class={cn('flex flex-wrap gap-0.5', layout === 'tabs' && tab === 'preview' && 'invisible')}>
+    <div role="toolbar" aria-label={`Formatting for ${label}`} aria-controls={`editor-${uid}-input`} class={cx('flex flex-wrap gap-0.5', layout === 'tabs' && tab === 'preview' && 'invisible')}>
       {#each TOOLS as tool, index (tool.id)}
         <button
           type="button"
@@ -434,12 +435,12 @@ function toolbarKey(event: KeyboardEvent, index: number) {
     </div>
   </div>
 
-  <div class={cn(layout === 'split' && 'grid md:grid-cols-2 md:divide-x md:divide-border')}>
+  <div class={cx(layout === 'split' && 'grid md:grid-cols-2 md:divide-x md:divide-border')}>
     <div
       id={`editor-${uid}-panel-write`}
       role={layout === 'tabs' ? 'tabpanel' : undefined}
       aria-labelledby={layout === 'tabs' ? `editor-${uid}-tab-write` : undefined}
-      class={cn('relative', layout === 'tabs' && tab !== 'write' && 'hidden')}
+      class={cx('relative', layout === 'tabs' && tab !== 'write' && 'hidden')}
     >
       <textarea
         bind:this={textarea}
@@ -490,7 +491,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
               id={`${slashListId}-${index}`}
               role="option"
               aria-selected={index === active}
-              class={cn(
+              class={cx(
                 'flex cursor-pointer items-center gap-2 rounded px-2 py-1.5',
                 index === active && 'bg-muted'
               )}
@@ -521,7 +522,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
               id={`${listId}-${index}`}
               role="option"
               aria-selected={index === active}
-              class={cn('cursor-pointer rounded px-2 py-1.5', index === active && 'bg-muted')}
+              class={cx('cursor-pointer rounded px-2 py-1.5', index === active && 'bg-muted')}
               onmousedown={(event) => {
                 // Keep focus (and the caret) in the textarea.
                 event.preventDefault();
@@ -540,7 +541,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
       id={`editor-${uid}-panel-preview`}
       role={layout === 'tabs' ? 'tabpanel' : undefined}
       aria-labelledby={layout === 'tabs' ? `editor-${uid}-tab-preview` : undefined}
-      class={cn('px-3 py-2', layout === 'tabs' && tab !== 'preview' && 'hidden')}
+      class={cx('px-3 py-2', layout === 'tabs' && tab !== 'preview' && 'hidden')}
     >
       {#if (layout === 'split' || tab === 'preview') && Preview}
         <Preview source={value} label={`${label} preview`} />
@@ -552,7 +553,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
 
   <div class="flex items-center justify-between gap-2 border-t border-border px-3 py-1 text-xs text-muted-foreground">
     <span>Markdown supported</span>
-    <span id={`editor-${uid}-count`} class={cn(nearLimit && 'text-foreground', remaining < 0 && 'text-destructive')}>
+    <span id={`editor-${uid}-count`} class={cx(nearLimit && 'text-foreground', remaining < 0 && 'text-destructive')}>
       {value.length.toLocaleString('en')} / {maxLength.toLocaleString('en')}
     </span>
   </div>

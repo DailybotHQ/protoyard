@@ -29,9 +29,19 @@ test('dispatch board, map list, and timeline surfaces are available', async ({ p
 
   await openRoute(page, '/dispatch/map');
   await expectAccessible(page, info, { label: 'harbor-dispatch-map' });
-  const shipmentList = page.getByRole('complementary', { name: 'Map locations' });
-  await expect(shipmentList.getByRole('list')).toBeVisible();
-  await expect(shipmentList.getByRole('listitem').filter({ hasText: 'HB-4100' })).toBeVisible();
+  // Texuli MapView location panel (host listLabel may rename the complementary).
+  const shipmentList = page
+    .getByRole('complementary')
+    .or(page.locator('.location-panel'))
+    .or(page.getByRole('region', { name: /on the map|Map locations/i }));
+  await expect(shipmentList.first().getByRole('list')).toBeVisible();
+  await expect(
+    shipmentList
+      .first()
+      .getByRole('button', { name: /HB-4100/ })
+      .or(shipmentList.first().getByRole('listitem').filter({ hasText: 'HB-4100' }))
+      .first()
+  ).toBeVisible();
 
   await openRoute(page, '/dispatch/timeline');
   await expectAccessible(page, info, { label: 'harbor-dispatch-timeline' });

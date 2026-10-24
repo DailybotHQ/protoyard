@@ -911,9 +911,15 @@ importers:
       '@protoyard/views':
         specifier: workspace:*
         version: link:../views
+      '@texuli/data':
+        specifier: link:../../../texuli/packages/data
+        version: link:../../../texuli/packages/data
       bits-ui:
         specifier: ^2.19.5
         version: 2.19.5(@internationalized/date@3.12.4)(svelte@5.57.2)
+      texuli:
+        specifier: link:../../../texuli/packages/texuli
+        version: link:../../../texuli/packages/texuli
     devDependencies:
       svelte:
         specifier: ^5.57.2
