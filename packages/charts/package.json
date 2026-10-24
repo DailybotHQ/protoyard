@@ -1,7 +1,7 @@
 {
   "name": "@protoyard/charts",
   "version": "1.0.0",
-  "description": "Framework-agnostic chart math for Protoyard prototypes: scales, shapes, downsampling, layouts and theme-token palettes (no Svelte, no third-party chart library).",
+  "description": "Chart math for Protoyard prototypes: thin re-exports of @texuli/charts/math (scales, shapes, layouts, downsampling) plus theme-token chart palettes.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -18,7 +18,8 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@protoyard/core": "workspace:*"
+    "@protoyard/core": "workspace:*",
+    "@texuli/charts": "link:../../../texuli/packages/charts"
   },
   "protoyard": {
     "build": {

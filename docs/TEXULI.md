@@ -66,6 +66,16 @@ Protoyard (`../texuli`):
   re-exports the whole library, so any static import of it would ship the
   library in every prototype's initial chunk.
 
+
+## Chart math from `@texuli/charts`
+
+`@protoyard/charts` re-exports scales, shapes, layouts and downsampling from
+`@texuli/charts/math`. Chart palettes stay local (`@protoyard/charts/palette`).
+`@protoyard/charts-ui` keeps the Protoyard chart shells and data contract; its
+math imports resolve through `@protoyard/charts` to Texuli.
+
+See `packages/charts/docs/texuli-math.md` and `packages/charts-ui/docs/texuli-charts.md`.
+
 ## Simple controls run on `@texuli/primitives`
 
 These `@protoyard/ui` components keep their props, classes and behavior, and
