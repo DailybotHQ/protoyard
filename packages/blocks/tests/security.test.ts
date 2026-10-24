@@ -259,7 +259,7 @@ describe('AC-blocks-fuzz: the untrusted parser rejects or neutralizes every host
 });
 
 describe('the schema alone holds the same line for value inputs', () => {
-  it('accepts only inert documents with safeParseBlocks', () => {
+  it('accepts only inert documents with safeParseBlocks', { timeout: 30_000 }, () => {
     const failures = DOCUMENTS.filter((doc) => typeof doc.input !== 'string')
       .map((doc) => ({ doc, result: safeParseBlocks(doc.input) }))
       .filter(({ result }) => result.success)

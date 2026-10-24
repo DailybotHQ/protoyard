@@ -1,9 +1,7 @@
 /**
- * `@protoyard/blocks/diagram` — bounded, data-only diagram models and layout
- * math. Renderers turn these positions and edges into accessible HTML or SVG;
- * labels remain text and are never baked into images.
+ * `@protoyard/blocks/diagram` — layout math from `@texuli/blocks/diagram`,
+ * Zod schema adapters for flow/tree/board/terminal block documents.
  */
-
 export {
   type DiagramEdge,
   type DiagramLayout,

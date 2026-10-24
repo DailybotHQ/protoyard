@@ -1,7 +1,7 @@
 {
   "name": "@protoyard/blocks-ui",
   "version": "1.0.0",
-  "description": "Svelte 5 renderers for Protoyard's shared content blocks: a small dispatcher plus one lazy subpath per block family (text, media, data, structure, code, diagram, interactive, map, embed). Never re-exported from @protoyard/ui.",
+  "description": "Svelte 5 block renderers for Protoyard: thin adapters over @texuli/blocks family renderers, plus the Protoyard host/registry contract.",
   "license": "MIT",
   "type": "module",
   "sideEffects": [
@@ -73,7 +73,8 @@
     "@protoyard/decks": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "@protoyard/views-ui": "workspace:*"
+    "@protoyard/views-ui": "workspace:*",
+    "@texuli/blocks": "link:../../../texuli/packages/blocks"
   },
   "devDependencies": {
     "svelte": "^5.57.2"

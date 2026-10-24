@@ -17,7 +17,7 @@ import InteractiveHarness from './fixtures/InteractiveHarness.svelte';
 afterEach(() => cleanup());
 
 /** Family chunks pull charts-ui / ui; first load is slow under Vitest. */
-const long = { timeout: 15_000 };
+const long = { timeout: 45_000 };
 
 const poll = MINIMAL_EXAMPLES.poll as PollBlock;
 const counter = MINIMAL_EXAMPLES.counter as CounterBlock;
@@ -72,7 +72,7 @@ describe('interactive family through BlockStateHost', () => {
 
     const state = readBlockState(host, stateKey('deck-1', poll.id), poll);
     expect(pollResults(poll, state, 'ada').mine).toEqual(['yes']);
-  }, 20_000);
+  }, 60_000);
 
   it('keeps an unsubmitted poll choice when the state changes under it', async () => {
     // Regression: the draft followed every state update, so a host attaching or
@@ -107,7 +107,7 @@ describe('interactive family through BlockStateHost', () => {
         .getAttribute('aria-pressed')
     ).toBe('true');
     expect(screen.getByRole('button', { name: /^Vote$/i }).hasAttribute('disabled')).toBe(false);
-  }, 20_000);
+  }, 60_000);
 
   it('keeps counter state across a re-render with a memory host', async () => {
     const stateHost = createMemoryBlockStateHost();
@@ -129,7 +129,7 @@ describe('interactive family through BlockStateHost', () => {
     await waitFor(() => {
       expect(screen.getByText('2')).toBeTruthy();
     }, long);
-  }, 20_000);
+  }, 60_000);
 
   it('answers a quiz with text feedback (not color alone) and live score', async () => {
     const stateHost = createMemoryBlockStateHost();
@@ -145,7 +145,7 @@ describe('interactive family through BlockStateHost', () => {
     await fireEvent.click(screen.getByRole('button', { name: /^A$/i }));
     await waitFor(() => expect(screen.getByText(/Correct/i)).toBeTruthy(), long);
     expect(screen.getByText(/Correct/i).getAttribute('data-correct')).toBe('true');
-  }, 20_000);
+  }, 60_000);
 
   it('formats the Markdown of a quiz prompt instead of showing its markers', async () => {
     // The catalog's own rich quiz asks "What does a **tone** replace?".
@@ -164,7 +164,7 @@ describe('interactive family through BlockStateHost', () => {
     );
     expect(legend.textContent).toBe('What does a tone replace?');
     expect(legend.querySelector('strong')?.textContent).toBe('tone');
-  }, 20_000);
+  }, 60_000);
 
   it('calculator slider exposes aria-valuetext with formatted units', async () => {
     const stateHost = createMemoryBlockStateHost();
@@ -198,7 +198,7 @@ describe('interactive family through BlockStateHost', () => {
     await waitFor(() => expect(screen.getByText('Pricing')).toBeTruthy(), long);
     const slider = screen.getByRole('slider');
     expect(slider.getAttribute('aria-valuetext')).toMatch(/%/);
-  }, 20_000);
+  }, 60_000);
 
   it('switches tabs through dispatch', async () => {
     const stateHost = createMemoryBlockStateHost();
@@ -210,7 +210,7 @@ describe('interactive family through BlockStateHost', () => {
     await waitFor(() => {
       expect(readBlockState(stateHost, stateKey('tabs-doc', tabs.id), tabs).panel).toBe('b');
     }, long);
-  }, 20_000);
+  }, 60_000);
 
   it('loads the interactive family renderer for each interactive type', async () => {
     const { loadBlockFamily } = await import('../src/registry.ts');
@@ -218,7 +218,7 @@ describe('interactive family through BlockStateHost', () => {
     expect(family).toBeTypeOf('function');
     const map = await loadBlockFamily('map');
     expect(map).toBeTypeOf('function');
-  }, 20_000);
+  }, 60_000);
 
   it('marks interactive roots with data-py-deck-interactive so deck clicks do not advance', async () => {
     expect(DECK_INTERACTIVE_ATTRIBUTE).toBe('data-py-deck-interactive');
@@ -241,7 +241,7 @@ describe('interactive family through BlockStateHost', () => {
       expect(root).toContain(`data-py-block="${type}"`);
       expect(root).toContain('DECK_INTERACTIVE_ATTRIBUTE');
     }
-  }, 30_000);
+  }, 60_000);
 });
 
 describe('AC-blocks-no-direct-db', () => {

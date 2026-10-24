@@ -1,14 +1,8 @@
+import { DIAGRAM_LIMITS } from '@texuli/blocks/diagram';
 import { z } from 'zod';
 import { BlockToneSchema, blockBase, plainText } from '../schema/primitives.ts';
 
-export const DIAGRAM_LIMITS = Object.freeze({
-  flowNodes: 12,
-  treeNodes: 64,
-  treeDepth: 6,
-  boardColumns: 6,
-  boardCardsPerColumn: 8,
-  terminalLines: 40,
-});
+export { DIAGRAM_LIMITS };
 
 const DiagramIdSchema = z.string().regex(/^[a-z][a-z0-9-]{0,47}$/);
 const LabelSchema = plainText(120);

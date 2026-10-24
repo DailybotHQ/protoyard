@@ -4,9 +4,9 @@ import { safeHref } from '@protoyard/ai/markdown';
 import { BLOCK_FAMILIES, BLOCK_TYPES, parseUntrustedBlocks } from '@protoyard/blocks';
 import { createMemoryBlockStateHost } from '@protoyard/blocks/interactive';
 import { cleanup, render, waitFor } from '@testing-library/svelte';
+import { loadCodeGrammar } from '@texuli/blocks/code';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { BIDI, hostileDocuments } from '../../blocks/tests/support/hostile.ts';
-import { loadGrammar } from '../src/code/grammars.ts';
 import { loadBlockFamily } from '../src/registry.ts';
 import FuzzHarness from './fixtures/FuzzHarness.svelte';
 
@@ -163,7 +163,7 @@ beforeAll(async () => {
     import('@protoyard/charts-ui/compact'),
     import('@protoyard/charts-ui/part-whole'),
     import('@protoyard/views-ui/map'),
-    ...['ts', 'js', 'json', 'bash', 'python', 'html', 'css', 'sql', 'yaml'].map(loadGrammar),
+    ...['ts', 'js', 'json', 'bash', 'python', 'html', 'css', 'sql', 'yaml'].map(loadCodeGrammar),
   ]);
   vi.stubGlobal('fetch', network.fetch);
   vi.spyOn(XMLHttpRequest.prototype, 'open').mockImplementation(network.xhr);

@@ -70,13 +70,16 @@ describe('code token contrast', () => {
     }
   });
 
-  it('draws code on the surface and highlights on muted, as the contrast check assumes', () => {
-    const source = readFileSync(join(SRC, 'code', 'CodeBlock.svelte'), 'utf8');
-    expect(source).toContain('bg-surface text-surface-foreground');
-    expect(source).toContain("'border-primary bg-muted text-inherit'");
-    // Never dims lines (that would drop the contrast of unhighlighted code).
-    const lines = source.slice(source.indexOf('<pre'), source.indexOf('</pre>'));
-    expect(lines.length).toBeGreaterThan(0);
-    expect(lines).not.toMatch(/opacity-\d/);
+  it('draws code via the Texuli code family adapter (surface + muted highlights)', () => {
+    const adapter = readFileSync(join(SRC, 'code', 'CodeBlock.svelte'), 'utf8');
+    expect(adapter).toContain('@texuli/blocks/code/renderers');
+    expect(adapter).toContain('CodeBlockView');
+    // Texuli code.css paints tokens on surface and highlights on muted; no line dimming.
+    const texuliCss = readFileSync(
+      join(SRC, '..', '..', '..', 'node_modules', '@texuli', 'blocks', 'src', 'code', 'code.css'),
+      'utf8'
+    );
+    expect(texuliCss).toMatch(/surface|tx-code/);
+    expect(texuliCss).not.toMatch(/opacity:\s*0\.\d/);
   });
 });

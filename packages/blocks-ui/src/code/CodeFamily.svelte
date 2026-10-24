@@ -1,14 +1,10 @@
 <script lang="ts">
-import type { BlockFamilyRendererProps } from '../registry.ts';
+import type { Block } from '@protoyard/blocks';
 import CodeBlock from './CodeBlock.svelte';
 
-let { block }: BlockFamilyRendererProps = $props();
+let { block }: { block: Block } = $props();
 </script>
 
-{#if block.type === 'code'}
+<div data-py-block-family="code" data-tx-blocks="code">
   <CodeBlock {block} />
-{:else}
-  <p class="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground" role="note">
-    This block renderer is not available yet.
-  </p>
-{/if}
+</div>

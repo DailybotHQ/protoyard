@@ -145,7 +145,13 @@ describe('catalog rich examples — a11y structure', () => {
           el.tagName === 'TEXTAREA' ||
           el.tagName === 'SELECT' ||
           // ui Button ships focus rings via buttonVariants (class may be hashed in build).
-          el.classList.contains('inline-flex');
+          el.classList.contains('inline-flex') ||
+          // Texuli code/diagram paint :focus-visible in their own CSS (tx-code, tx-diagram).
+          Boolean(
+            el.closest(
+              '[data-tx-blocks], [data-tx-block], [data-tx-diagram], .tx-code, .tx-diagram'
+            )
+          );
         expect(hasFocusRing, `${type}: ${el.tagName} missing focus-visible ring class`).toBe(true);
       }
 

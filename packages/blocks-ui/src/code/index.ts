@@ -1,8 +1,5 @@
 /**
- * `@protoyard/blocks-ui/code` — code blocks: tokens from
- * `@protoyard/blocks/code` drawn as text spans in theme-token colors (AA on
- * the code surface in every built-in theme), a copy button, a focusable
- * scroller and stepped line highlights driven by the host's deck step.
+ * `@protoyard/blocks-ui/code` — thin adapter over `@texuli/blocks/code/renderers`.
  */
 
 export { default as CodeBlock } from './CodeBlock.svelte';

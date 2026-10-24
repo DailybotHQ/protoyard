@@ -1,10 +1,9 @@
 /**
- * `@protoyard/blocks-ui/data` — the data family: a stat/KPI row (value, label,
- * delta with tone, context, optional sparkline), a data table (caption, scoped
- * headers, alignment, number, percent and integer-cents formatting) and a chart
- * block on `@protoyard/charts-ui` (the AI chart spec, re-validated; a table at
- * once, the cartesian or part-whole chart lazily, and a "View as table"
- * toggle). charts-ui families load as their own chunks.
+ * `@protoyard/blocks-ui/data` — stat/table/chart family.
+ *
+ * Chart blocks use `@protoyard/charts-ui` (AI ChartSpec). Texuli data blocks
+ * (`@texuli/blocks/data`) use a different chart shape; this family is the
+ * Protoyard ChartSpec adapter so decks and pages keep working.
  */
 export { default as ChartBlock } from './ChartBlock.svelte';
 export { default as BlockFamilyRenderer } from './DataBlock.svelte';
