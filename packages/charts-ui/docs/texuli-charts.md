@@ -1,11 +1,18 @@
-# Charts UI and Texuli
+# Charts UI from `@texuli/charts`
 
-`@protoyard/charts-ui` keeps the Protoyard chart shells (titles, legends,
-tables, `seriesFromRows`, money/percent formatters) that prototypes already
-use. Chart **math** comes from `@protoyard/charts`, which re-exports
-`@texuli/charts/math`.
+Every family subpath (`cartesian`, `part-whole`, `matrix`, `compact`, `canvas`,
+`geo`, `flow`, `interaction`) re-exports Texuli chart components. Thin adapters
+map Protoyard props where needed:
 
-Svelte mark components stay in this package for API stability (props such as
-`unit`, `currency`, `xKind`, `seriesFromRows`). Texuli's own chart families
-live under `@texuli/charts/{cartesian,part-whole,…}` for new work that wants
-them directly.
+| Adapter | Mapping |
+| --- | --- |
+| Line/Bar/Area/Combo | `emptyMessage`/`description` → Texuli `description`; strip Protoyard-only series fields |
+| ScatterChart | `series[]` → Texuli matrix `points[]` |
+| Pie/Donut | default table `labels`; `height` → `size` |
+| FunnelChart | `count` → `value`; from `@texuli/charts/flow` |
+| RadialProgress | → Texuli `ProgressRing` |
+| TileMap | → Texuli `GeoMap`; `WORLD_TILES`/`REGION_TILES` re-exported |
+| Histogram | bins via `@texuli/charts/math` `bin` → BarChart |
+| CalendarHeatmap | `calendarLayout` → HeatmapChart cells |
+
+`seriesFromRows` and unit formatters stay in `compat/series.ts` for dashboards.
