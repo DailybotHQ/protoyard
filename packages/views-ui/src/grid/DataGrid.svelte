@@ -1,8 +1,8 @@
 <script lang="ts" generics="T">
 /**
  * Host adapter over `@texuli/data/grid-core` `DataGrid`: liveQuery `query` → rows.
- * Advanced host toolkit (FilterBuilder, SavedViews, …) stays as separate exports
- * when still needed; the grid body is Texuli.
+ * Extra host props (saved views, aggregates, height, label) are accepted for
+ * prototype compatibility; advanced chrome still uses the local toolkit exports.
  */
 import { type DataGridColumn, DataGrid as TexuliGrid } from '@texuli/data/grid-core';
 import type { Snippet } from 'svelte';
@@ -12,31 +12,42 @@ let {
   query,
   columns,
   getRowId,
-  caption = 'Data',
+  caption,
+  label = 'Data',
   captionHidden = false,
-  sort = $bindable([]),
+  sort = $bindable([] as { key: string; direction: 'asc' | 'desc' }[]),
   search = $bindable(''),
   searchable = false,
   filter,
   selectable = false,
   selected = $bindable<string[]>([]),
+  activeViewId = $bindable<string | null>(null),
+  savedViews: _savedViews,
+  aggregates: _aggregates,
+  height: _height,
+  class: className,
   onSelectionChange,
   onSortChange,
   onRowActivate,
+  onRowOpen,
   onCommit: _onCommit,
+  onCreateView: _onCreateView,
+  onRenameView: _onRenameView,
+  onDeleteView: _onDeleteView,
+  onViewChange: _onViewChange,
   cell,
   empty,
   onRetry,
   maxBlockSize,
   density = 'default',
   locale = 'en-US',
-  class: className,
   ..._rest
 }: {
   query: { readonly current: T[] | undefined; readonly loading: boolean; readonly error: unknown };
-  columns: readonly DataGridColumn<T>[];
+  columns: readonly DataGridColumn<T>[] | readonly unknown[];
   getRowId: (row: T) => string;
   caption?: string;
+  label?: string;
   captionHidden?: boolean;
   sort?: { key: string; direction: 'asc' | 'desc' }[];
   search?: string;
@@ -44,28 +55,40 @@ let {
   filter?: unknown;
   selectable?: boolean;
   selected?: string[];
+  activeViewId?: string | null;
+  savedViews?: unknown;
+  aggregates?: unknown;
+  height?: string;
+  class?: string;
   onSelectionChange?: (selected: string[]) => void;
   onSortChange?: (sort: { key: string; direction: 'asc' | 'desc' }[]) => void;
   onRowActivate?: (row: T) => void;
-  onCommit?: (row: T, key: string, value: never) => unknown;
+  onRowOpen?: (row: T) => void;
+  onCommit?: (row: T, key: string, value: any) => unknown;
+  onCreateView?: (...args: any[]) => unknown;
+  onRenameView?: (...args: any[]) => unknown;
+  onDeleteView?: (...args: any[]) => unknown;
+  onViewChange?: (...args: any[]) => unknown;
   cell?: Snippet<[T, DataGridColumn<T>]>;
   empty?: Snippet;
   onRetry?: () => void | Promise<void>;
   maxBlockSize?: string;
   density?: 'compact' | 'default' | 'comfortable';
   locale?: string;
-  class?: string;
   [key: string]: unknown;
 } = $props();
+
+const resolvedCaption = $derived(caption ?? label);
+void activeViewId;
 </script>
 
-<QueryState {query} label={`Loading ${caption.toLowerCase()}`} {onRetry} isEmpty={() => false}>
+<QueryState {query} label={`Loading ${resolvedCaption.toLowerCase()}`} {onRetry} isEmpty={() => false}>
   {#snippet children(rows)}
     <TexuliGrid
       {rows}
-      {columns}
+      columns={columns as never}
       {getRowId}
-      {caption}
+      caption={resolvedCaption}
       {captionHidden}
       bind:sort
       bind:search
@@ -75,11 +98,11 @@ let {
       bind:selected
       {onSelectionChange}
       {onSortChange}
-      {onRowActivate}
+      onRowActivate={onRowActivate ?? onRowOpen}
       {cell}
       {empty}
       loading={query.loading}
-      {maxBlockSize}
+      maxBlockSize={maxBlockSize ?? _height}
       {density}
       {locale}
       class={className}
