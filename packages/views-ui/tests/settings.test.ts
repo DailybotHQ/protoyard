@@ -28,7 +28,7 @@ const SECTIONS = [
 
 const nextHash = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-/** Bits UI keeps a closing dialog in the DOM for its exit animation; read its state instead. */
+/** The dialog stays in the DOM for its exit animation; read its state instead. */
 function dialogState(role: 'dialog' | 'alertdialog'): string {
   const node = document.querySelector(`[role="${role}"]`);
   return node?.getAttribute('data-state') ?? 'closed';

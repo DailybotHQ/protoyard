@@ -104,7 +104,7 @@ async function submit() {
   {/if}
 </div>
 
-<!-- The confirmation's Bits UI code loads when Delete is pressed (the button shows it pending). -->
+<!-- The confirmation's dialog code loads when Delete is pressed (the button shows it pending). -->
 {#if active && lazyDialog.current}
   {@const AlertDialog = lazyDialog.current}
   <AlertDialog

@@ -12,7 +12,7 @@ import {
  * The deck chrome tooltip costs at most 1.5 KB gzip on the deck entry
  * (PLAN_006 decision 2). The real DeckApp entry is built with and without the
  * tooltip mounted beside it, and the initial JavaScript is compared.
- * `@protoyard/ui`'s Bits UI Tooltip measured 36,552 B on the same entry, which
+ * `@protoyard/ui`'s previous Tooltip measured 36,552 B on the same entry, which
  * is why the deck has its own.
  */
 const TOOLTIP_BUDGET_BYTES = 1536;

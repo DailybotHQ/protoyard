@@ -114,7 +114,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
 <Checkbox label="I accept the terms" description="Required." bind:checked={accepted} />
 <Checkbox label="Select all" bind:checked={all} bind:indeterminate={some} />`,
     a11y: [
-      'Bits UI checkbox (role="checkbox" with aria-checked, including "mixed" when indeterminate); Space toggles.',
+      'Checkbox (role="checkbox" with aria-checked, including "mixed" when indeterminate); Space toggles.',
       'label renders a real <label for>; description is linked with aria-describedby.',
       'An invisible hit area extends the 16px box to a 44px touch target on phones.',
     ],
@@ -213,7 +213,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
   items={[{ value: 'lead', label: 'Lead' }, { value: 'won', label: 'Won' }]}
 />`,
     a11y: [
-      'Bits UI select: the trigger opens with Enter, Space or arrow keys; type-ahead jumps to options.',
+      'Select: the trigger opens with Enter, Space or arrow keys; type-ahead jumps to options.',
       'The trigger keeps the field label as its name and exposes the current value via aria-describedby.',
       'Pass name to render a hidden input so the value submits with native forms.',
     ],

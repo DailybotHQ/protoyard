@@ -12,7 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
  * realistic shell (renderer services and live queries, the ui Button and
  * toasts), linked to the real packages the way pnpm links them into a
  * prototype (so `exports` and `sideEffects` apply). It fails when a view pulls
- * Bits UI's menu, popover or dialog layers into the first screen (they load on
+ * Texuli's menu, popover or dialog layers into the first screen (they load on
  * first use, see packages/views-ui/src/lib/lazy-overlays.svelte.ts), when
  * unused siblings are bundled, or when a view grows past its ceiling.
  *
@@ -119,11 +119,13 @@ afterAll(async () => {
 });
 
 describe('views kit bundle guard (real Vite build)', () => {
-  it('keeps Bits UI menus, popovers and dialogs out of every view’s first screen', () => {
+  it('keeps menus, popovers and dialogs out of every view’s first screen', () => {
     for (const view of [...VIEWS, 'activity']) {
       const initial = modulesOf(initialChunks(view));
       const leaked = initial.filter((id) =>
-        /\/bits-ui\/dist\/bits\/(menu|dropdown-menu|popover|dialog|alert-dialog|select)\//.test(id)
+        /\/texuli\/packages\/(?:primitives\/src\/(?:menu|context-menu|popover|dialog|alert-dialog|select|sheet)|texuli\/src\/components\/(?:menus|popover|dialog|select|sheet))\//.test(
+          id
+        )
       );
       expect(leaked, `${view} first screen`).toEqual([]);
     }

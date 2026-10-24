@@ -209,7 +209,7 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
             <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() => (editing = comment.id)}>Edit</Button>
           {/if}
           {#if own && onDelete}
-            <!-- The confirmation's Bits UI code loads on the first Delete (the button shows it pending). -->
+            <!-- The confirmation's dialog code loads on the first Delete (the button shows it pending). -->
             <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() =>
               lazyDialog.load().then(() => {
                 deleting = comment;

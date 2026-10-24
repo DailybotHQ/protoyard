@@ -17,7 +17,7 @@ const recent = $derived(favorites.list.slice(0, 5).flatMap((f) => catalogEntry(f
   <p class="text-sm font-medium text-primary">@protoyard/ui</p>
   <h1 class="mt-2 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">The components behind every Protoyard prototype</h1>
   <p class="mt-3 max-w-2xl text-muted-foreground">
-    Svelte 5 + Bits UI + Tailwind 4, themed by tokens. Every demo here is live: open dialogs, sort tables,
+    Svelte 5 + Texuli + Tailwind 4, themed by tokens. Every demo here is live: open dialogs, sort tables,
     drag cards, switch themes. Use DevTools (<kbd class="rounded border border-border bg-muted px-1 font-mono text-xs">Ctrl</kbd>/<kbd class="rounded border border-border bg-muted px-1 font-mono text-xs">⌘</kbd> + <kbd class="rounded border border-border bg-muted px-1 font-mono text-xs">.</kbd>) to change persona, theme or mode.
   </p>
   <div class="mt-6 flex flex-wrap gap-2">
