@@ -1,3 +1,5 @@
+export type { LngLat } from '@protoyard/views/map';
+
 import {
   type Geofence,
   type LngLat,

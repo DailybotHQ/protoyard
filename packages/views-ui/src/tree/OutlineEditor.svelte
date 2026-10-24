@@ -61,7 +61,7 @@ let {
   onMove: (move: TreeMove, item: T) => unknown;
   /** Backspace on an empty item deletes it when given. */
   onDelete?: (item: T) => unknown;
-  onRetry?: () => void | Promise<void>;
+  onRetry?: () => unknown;
   label?: string;
   placeholder?: string;
   class?: string;
@@ -291,7 +291,7 @@ function onPointerUp(event: PointerEvent) {
 <svelte:window onpointermove={onPointerMove} onpointerup={onPointerUp} onpointercancel={() => (drag = null)} />
 
 <div class={cn('relative', className)} data-outline={uid}>
-  <QueryState {query} label={`Loading ${label.toLowerCase()}`} isEmpty={() => false} {onRetry}>
+  <QueryState {query} label={`Loading ${label.toLowerCase()}`} isEmpty={() => false} onRetry={onRetry ? () => { void onRetry(); } : undefined}>
     {#snippet children()}
       <ul aria-label={label} aria-describedby={`outline-${uid}-keys`} class="space-y-0.5">
         {#each flat as node (node.id)}

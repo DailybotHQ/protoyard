@@ -1,5 +1,5 @@
 import type { FileEntry } from '@protoyard/views/files';
-import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, render, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { FileManager } from '../src/files/index.ts';
 

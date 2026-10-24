@@ -19,7 +19,7 @@ interface Props {
   /** The empty state's primary action, e.g. a "New deal" button wired to a service. */
   emptyAction?: Snippet;
   /** Retries the query (re-run it, e.g. by bumping a key in its `deps`). Shown for retryable errors. */
-  onRetry?: () => void | Promise<void>;
+  onRetry?: () => unknown;
   /** Wait before showing the skeleton, so fast loads never flash (default 150 ms, like the pending bar). */
   delayMs?: number;
   /** Skeleton lines (default 3), or replace the skeleton with `loading`. */
@@ -75,7 +75,7 @@ const failure = $derived(
       <EmptyState role="alert" aria-label={failure.title} icon={Lock} title={failure.title} description={failure.message} />
     {:else}
       <!-- Offline and other failures can be retried. -->
-      <ErrorState aria-label={failure.title} title={failure.title} message={failure.message} {onRetry} />
+      <ErrorState aria-label={failure.title} title={failure.title} message={failure.message} onRetry={onRetry ? () => { void onRetry(); } : undefined} />
     {/if}
   {:else if waiting}
     {#if showSkeleton}
