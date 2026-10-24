@@ -1,6 +1,6 @@
 <script lang="ts">
-import Button from '../../src/components/button/Button.svelte';
-import type { ButtonProps } from '../../src/components/button/button-variants.ts';
+// Through the @protoyard/ui barrel, which re-exports texuli's Button.
+import { Button, type ButtonProps } from '../../src/index.ts';
 
 let { label = 'Save', ...props }: ButtonProps & { label?: string } = $props();
 </script>

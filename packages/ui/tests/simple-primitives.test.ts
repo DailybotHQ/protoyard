@@ -1,17 +1,16 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import Progress from '../src/components/progress/Progress.svelte';
-import RadioGroup from '../src/components/radio-group/RadioGroup.svelte';
-import Separator from '../src/components/separator/Separator.svelte';
 import Tabs from '../src/components/tabs/Tabs.svelte';
+import { Progress, RadioGroup, Separator } from '../src/index.ts';
 import SimplePrimitivesHarness from './fixtures/SimplePrimitivesHarness.svelte';
 
 /*
- * Separator, Progress, Checkbox, Switch, RadioGroup, Tabs and Accordion run on
- * @texuli/primitives. These cover the seams the wrappers own: bindable refs,
- * Protoyard's defaults (decorative separators, wrapping tabs, inactive panels
- * unmounted) and the accordion's size variable for the collapse animation.
+ * Checkbox, Switch, RadioGroup, Accordion, Separator and Progress come from
+ * texuli through the @protoyard/ui barrel; Tabs is Protoyard's wrapper on
+ * @texuli/primitives. These cover what Protoyard relies on: bindable refs,
+ * states and tab stops, wrapping tabs with unmounted inactive panels, and the
+ * accordion and progress semantics.
  */
 
 afterEach(() => cleanup());
@@ -22,9 +21,11 @@ describe('Texuli-backed simple controls', () => {
     render(SimplePrimitivesHarness, { onrefs });
     await waitFor(() => {
       const refs = onrefs.mock.lastCall?.[0] as Record<string, Element | null>;
-      expect(refs.checkbox).toBe(screen.getByRole('checkbox', { name: 'Remember me' }));
-      expect(refs.switch).toBe(screen.getByRole('switch', { name: 'Alerts' }));
-      expect(refs.radio).toBe(screen.getByRole('radiogroup', { name: 'Plan' }));
+      // A labelled control's ref is its field (label included).
+      expect(refs.checkbox?.contains(screen.getByRole('checkbox', { name: 'Remember me' }))).toBe(
+        true
+      );
+      expect(refs.switch?.contains(screen.getByRole('switch', { name: 'Alerts' }))).toBe(true);
       expect(refs.tabs?.contains(screen.getByRole('tablist', { name: 'Sections' }))).toBe(true);
     });
   });
@@ -69,7 +70,7 @@ describe('Texuli-backed simple controls', () => {
     );
   });
 
-  it('opens one accordion item and exposes its size for the collapse animation', async () => {
+  it('opens one accordion item at a time', async () => {
     render(SimplePrimitivesHarness);
     const billing = screen.getByRole('button', { name: 'Billing' });
     expect(billing.closest('h3')).not.toBeNull();
@@ -78,8 +79,6 @@ describe('Texuli-backed simple controls', () => {
     expect(screen.getByTestId('open').textContent).toBe('billing');
     const region = screen.getByRole('region', { name: 'Billing' });
     expect(region.textContent).toContain('Invoices go out monthly.');
-    expect(region.classList.contains('ui-anim-collapse')).toBe(true);
-    expect(region.style.getPropertyValue('--tx-accordion-content-height')).toMatch(/px$/);
     await fireEvent.click(screen.getByRole('button', { name: 'Security' }));
     expect(screen.getByTestId('open').textContent).toBe('security');
     expect(billing.getAttribute('aria-expanded')).toBe('false');

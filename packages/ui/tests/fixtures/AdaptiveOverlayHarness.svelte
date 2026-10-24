@@ -4,7 +4,7 @@ import type {
   AdaptiveOverlayMode,
   AdaptiveOverlayWideKind,
 } from '../../src/components/adaptive-overlay/resolve.ts';
-import Button from '../../src/components/button/Button.svelte';
+import { Button } from '../../src/index.ts';
 
 let {
   open = $bindable(false),

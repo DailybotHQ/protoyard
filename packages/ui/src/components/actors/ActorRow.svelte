@@ -1,7 +1,7 @@
 <script lang="ts">
+import { Badge } from 'texuli/badge';
 import { cn } from '../../lib/cn.ts';
 import Avatar from '../avatar/Avatar.svelte';
-import Badge from '../badge/Badge.svelte';
 
 export type ActorKind = 'person' | 'agent';
 
