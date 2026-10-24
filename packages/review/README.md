@@ -250,7 +250,7 @@ if (found.orphaned) {
   | CSS path | `nth-of-type` from the root, or from the nearest stable id | 0.6 |
 
   When a locator matches more than one element, confidence drops by 10%.
-- **Generated ids are never used** (`isGeneratedId`): Bits UI `bits-…` ids,
+- **Generated ids are never used** (`isGeneratedId`): UI-library `bits-…` ids,
   digits only, UUIDs and long hash-like ids, React `:r1:`, and any id with a
   counter segment such as Svelte `$props.id()` output (`c1` in
   `grid-c1-err`).

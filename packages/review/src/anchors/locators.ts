@@ -14,7 +14,7 @@ const NAME_MAX = 60;
 
 /**
  * Ids that change between renders or builds, so they never become locators:
- * Bits UI (`bits-…`), digits only, UUID or long hash-like ids, React `:r1:`,
+ * UI-library ids (`bits-…`), digits only, UUID or long hash-like ids, React `:r1:`,
  * and any id with a counter segment such as Svelte `$props.id()` output
  * (`c1`, `s12`) inside `grid-c1-err`.
  */

@@ -133,7 +133,7 @@ services.
   the view does not announce a creation the form has not made. Data states (loading, offline, denied, failed) come from
   `QueryState`.
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9, with svelte,
-  core, `@protoyard/ui`, the renderer, lucide, Bits UI and zod external;
+  core, `@protoyard/ui`, the renderer, lucide, the overlay primitives and zod external;
   2026-10-19): the view is 10.9 KB; with the calendar engine it imports, the
   chunk is 14.6 KB. Lazy, 0 KB initial.
 
@@ -203,7 +203,7 @@ Fictional city, not real geography." is always visible.
   `onFenceChange` through `runService` (pending button, error toast; a
   failure keeps the draft). Reset drops the draft.
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9, with svelte,
-  core, `@protoyard/ui`, the renderer, lucide, Bits UI and zod external;
+  core, `@protoyard/ui`, the renderer, lucide, the overlay primitives and zod external;
   2026-10-19): the view is 6.4 KB; with the map engine and the Port Meridian
   basemap the chunk is 9.0 KB. Lazy, 0 KB initial. 5,000 markers draw as 25
   map buttons (clusters); in happy-dom the whole render took 647 ms, most of
@@ -274,7 +274,7 @@ its own settings page, build it from these patterns on top of the same
 ```
 
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9, with `svelte`,
-  `@protoyard/ui`, the renderer, lucide and Bits UI external because
+  `@protoyard/ui`, the renderer, lucide and the overlay primitives external because
   prototypes already load them; 2026-10-19): all of `./settings` is 5.2 KB;
   per component SettingsLayout 1.7, SaveBar 1.7, DangerZone 1.3, each row or
   SettingsSection about 0.6, the guard 0.4. A typical screen (layout, a
@@ -469,7 +469,7 @@ functions of `@protoyard/views/editor`. Values leave through typed callbacks
   announcement. `onDraft` runs after typing pauses (`draftDelayMs`, default
   800 ms), on blur and on unmount.
 - **Size** (Svelte 5 client output, esbuild minified with code splitting,
-  gzip -9; svelte, core, ui, renderer, lucide and Bits UI external;
+  gzip -9; svelte, core, ui, renderer, lucide and the overlay primitives external;
   2026-10-19): the editor chunk is 6.0 KB; the preview and the shared parser
   load as a separate 4.5 KB chunk on the first preview (at once in `split`).
   Slash and `RichTextView` stay in the same lazy `./editor` subpath.
@@ -531,7 +531,7 @@ without ranks, lanes or WIP limits.
 - **States:** loading, errors (with `onRetry`) and offline come from
   `QueryState`; an empty column says "No cards".
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
-  ui, renderer, lucide, Bits UI and zod external; 2026-10-19): 9.3 KB with
+  ui, renderer, lucide, the overlay primitives and zod external; 2026-10-19): 9.3 KB with
   the board engine (6.6 KB component, 3.1 KB engine).
 
 ## Timeline (`@protoyard/views-ui/timeline`)
@@ -623,7 +623,7 @@ of inline titles), on the `@protoyard/views/tree` engine over
   when they fail. `move.rerank` carries fresh sibling ranks when older data
   needed them.
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
-  ui, renderer, lucide, Bits UI and zod external; 2026-10-19): `TreeView`
+  ui, renderer, lucide, the overlay primitives and zod external; 2026-10-19): `TreeView`
   8.2 KB and `OutlineEditor` 7.3 KB, each including the tree engine, ranks
   and (for TreeView) the virtualizer; 10.7 KB for the whole subpath.
 
@@ -730,7 +730,7 @@ of inline titles), on the `@protoyard/views/tree` engine over
   title and the next four are details, 50 cards at a time with **Show
   more**.
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
-  ui, renderer, lucide, Bits UI and zod external; 2026-10-19, before the
+  ui, renderer, lucide, the overlay primitives and zod external; 2026-10-19, before the
   filter, saved-view and bulk-action toolkit; not re-measured with this
   method): 13.9 KB for the subpath's components, or 17.8 KB with the grid
   engine bundled in (about 4 KB of that is the engine). The real-build guard
@@ -798,7 +798,7 @@ comments as `kind: 'comment'` items with their `body`).
   renderer's `avatarImage` (64 px, 128 px at 2x, lazy). `avatarSrc` overrides
   the resolution when given. Missing, unsafe or broken images show initials.
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
-  ui, renderer, lucide, Bits UI and zod external; 2026-10-19):
+  ui, renderer, lucide, the overlay primitives and zod external; 2026-10-19):
   - `CommentThread`: 7.9 KB with the engine, 6.4 KB without.
   - `ActivityFeed`: 5.5 KB with the engine, 4.5 KB without.
   - The whole subpath: 9.7 KB.
@@ -834,7 +834,7 @@ Pass `onMuteChange` when the prototype has a per-type preference service; its
 callback receives the notification kind and the requested muted state.
 
 - **Size:** 3.24 KB gzip-9 for the minified Svelte client component, with
-  Svelte, Protoyard packages, Lucide and Bits UI external. Import this subpath
+  Svelte, Protoyard packages, Lucide and the overlay primitives external. Import this subpath
   from a lazy route so the panel stays out of initial JavaScript.
 
 Replace the `<NotificationsBell>` instance with `NotificationCenter`, move its
@@ -904,7 +904,7 @@ rows.
     only text is the sanitized extension.
   - Storage caveats are in docs/DATABASE.md (Uploaded files).
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
-  ui, renderer, lucide, Bits UI and zod external; 2026-10-19):
+  ui, renderer, lucide, the overlay primitives and zod external; 2026-10-19):
   - The subpath is 16.6 KB, including the TreeView it shares (8.0 KB alone).
   - That leaves about 8.6 KB for the files chunk itself.
 

@@ -47,7 +47,7 @@ async function navTo(page: Page, label: string) {
   await link.click();
 }
 
-/** Picks an option in a ui Select (a Bits UI listbox) found by its label. */
+/** Picks an option in a ui Select (a listbox) found by its label. */
 async function choose(page: Page, label: string, option: string | RegExp) {
   // The Select trigger is a button named by its field label.
   await page.getByRole('dialog').getByRole('button', { name: label, exact: true }).click();

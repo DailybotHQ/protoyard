@@ -99,7 +99,6 @@
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
     "@texuli/data": "link:../../../texuli/packages/data",
-    "bits-ui": "^2.19.5",
     "texuli": "link:../../../texuli/packages/texuli"
   },
   "devDependencies": {

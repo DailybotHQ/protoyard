@@ -1,7 +1,7 @@
 # @protoyard/ui
 
 The component kit shared by every Protoyard prototype, template and the DevTools panel.
-Svelte 5 (runes + snippets), [Bits UI](https://bits-ui.com) primitives, Tailwind CSS 4 utilities on
+Svelte 5 (runes + snippets), Texuli components, Tailwind CSS 4 utilities on
 the `@protoyard/themes` tokens, and Lucide icons. It ships TypeScript/Svelte source; there is no
 build step.
 
@@ -400,7 +400,7 @@ is **non-modal by default**: the page behind stays usable, outside clicks do not
 only owns Escape. With `modal`, it dims the page, traps focus and locks scroll, and outside clicks
 close it (`closeOnOutsideClick` overrides either default). Like `Dialog`, it portals into the device
 screen when a shell frames the prototype. If that screen is detached, the portal target is cleared
-and Bits UI falls back to `document.body`. The shared Vitest setup resets portal and toast state,
+and the overlay falls back to `document.body`. The shared Vitest setup resets portal and toast state,
 plus local and session storage, after each test.
 
 Every `Drawer` registers with the shared `overlayStack`:
@@ -455,7 +455,7 @@ Components only use the theme tokens (`bg-surface`, `text-muted-foreground`, `bg
 `border-border`, `ring-ring`, `rounded-lg`, `shadow-soft` / `shadow-float`, `pt-safe`,
 `min-h-touch`…), so every theme and dark mode work without overrides. Semantic colors are used as
 fills with their foreground pair, which keeps small text at WCAG AA. Interactive elements have
-visible focus rings and keyboard support (from Bits UI or native elements). They also get 44px
+visible focus rings and keyboard support (from Texuli or native elements). They also get 44px
 touch targets below the `sm` breakpoint. Motion respects `prefers-reduced-motion` and the
 prototype's own reduced-motion toggle.
 
@@ -463,7 +463,7 @@ prototype's own reduced-motion toggle.
 
 ```sh
 pnpm --filter @protoyard/ui typecheck
-pnpm vitest run packages/ui        # root config inlines bits-ui, @lucide/svelte, svelte-toolbelt, runed
+pnpm vitest run packages/ui        # root config inlines @lucide/svelte
 ```
 
 ## Package output

@@ -122,7 +122,7 @@ $effect(() => {
   };
 });
 
-// Bits UI dialogs/sheets portal to body by default and escape the bezel.
+// Dialogs and sheets portal to body by default and escape the bezel.
 // While framed, send overlays to the device screen (containing block via transform).
 $effect(() => {
   if (framed && screenEl) setOverlayPortalTarget(screenEl);

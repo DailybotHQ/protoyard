@@ -71,7 +71,7 @@ export function mountDevtools(options: MountDevtoolsOptions): DevtoolsHandle {
 }
 
 /**
- * App modals (Bits UI dialogs, sheets, popovers) trap focus with a
+ * App modals (dialogs, sheets, popovers) trap focus with a
  * capture-phase `focusin` listener on `document` and dismiss on outside
  * pointer/focus events. DevTools must stay usable on top of them:
  *  - `focusin` from inside the panel is stopped at `window` (capture runs

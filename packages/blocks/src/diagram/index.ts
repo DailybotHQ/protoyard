@@ -1,5 +1,5 @@
 /**
- * `@protoyard/blocks/diagram` — layout math from `@texuli/blocks/diagram`,
+ * `@protoyard/blocks/diagram` — layout math from `@texuli/blocks/diagram/engine`,
  * Zod schema adapters for flow/tree/board/terminal block documents.
  */
 export {

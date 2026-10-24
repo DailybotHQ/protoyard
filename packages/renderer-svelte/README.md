@@ -207,7 +207,7 @@ The frame decoration is a lazily loaded chunk registered in
 A registry entry can reserve `screenInset` space inside the device box for its own chrome
 (the desktop window's 40 px title bar, the browser's 88 px toolbar), and can set
 `minWindowWidth`. Window-like shells (desktop window, browser) use 768 px and scale down on smaller desktops, while phones need the device plus its frame. While
-framed, Bits UI dialogs and sheets portal into the device screen
+framed, dialogs and sheets portal into the device screen
 (`setOverlayPortalTarget`), so overlays stay inside the frame. The app goes full-bleed
 when the shell is `none`, inside an iframe (the gallery preview draws its own device), or
 when the window is too narrow for the device plus its frame (a real phone). The wrappers

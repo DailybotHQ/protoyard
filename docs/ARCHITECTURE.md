@@ -28,7 +28,7 @@ protoyard/
 │   ├── scenarios/        generator SDK (seeded faker/rng/ids/time), presets, integrity, timeline
 │   ├── runtime/          createPrototypeRuntime(): composes everything into one PrototypeRuntime
 │   ├── themes/           six presets + a lazy 64-theme catalog (204 opt-in) with tokens from @texuli/tokens, palette engine, fonts, no-flash script
-│   ├── ui/               Svelte 5 components (Bits UI + Tailwind 4 + Lucide), shell frames, LayoutHost + 12 layouts
+│   ├── ui/               Svelte 5 components (Texuli + Tailwind 4 + Lucide), shell frames, LayoutHost + 12 layouts
 │   ├── devtools/         the in-browser control center (incl. Theme Studio)
 │   ├── renderer-svelte/  Vite config factory, mountPrototype(), ShellHost, reactive bindings, hash router
 │   ├── http/             optional fetch-compatible mock API over prototype services (no server, no service worker)

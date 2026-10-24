@@ -5,7 +5,7 @@ import type { HTMLButtonAttributes } from 'svelte/elements';
 import { lazyMenu } from './lazy-overlays.svelte.ts';
 
 /**
- * A `DropdownMenu` whose Bits UI code loads on first use: a plain trigger
+ * A `DropdownMenu` whose menu code loads on first use: a plain trigger
  * button until then (it prefetches on hover or focus), swapped for the real
  * menu, opened, on the first click. Focus stays on the trigger across the swap.
  */

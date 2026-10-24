@@ -65,7 +65,7 @@ the 2026-10-18 rebuild in that section is the current measured value.
   never download it. Making it lazy cut the CRM's main chunk from 1,080 KB to
   666 KB raw.
 - The biggest remaining contributors to the initial chunk (sourcemap
-  analysis of the CRM build) are Svelte, zod, Bits UI, tailwind-variants and
+  analysis of the CRM build) are Svelte, zod, the overlay primitives, tailwind-variants and
   tailwind-merge, and Dexie, in that order.
 - Each artifact contains only its own prototype's code. `protoyard export`
   checks this.
@@ -553,7 +553,7 @@ this change.
 
 What changed:
 
-- **Menus, popovers and dialogs load on first use.** Bits UI's floating,
+- **Menus, popovers and dialogs load on first use.** The floating,
   focus and dismiss layers were about 30 KB of every board, calendar and
   grid (an app importing only `BoardView` was 119.8 KB initial, 99.6 KB over
   a bare Svelte app).
@@ -1816,7 +1816,7 @@ Measured 2026-10-22 (Node 26.11.1, Vite 8.3.4):
 The first ceilings were estimates made before any family existed. After measuring with the
 shell-relative method, the four families above were set to measured + 7 % (the same rule as the
 views kit) rather than left red. They remain targets to reduce: Lucide icons resolved per family
-instead of a shared icon map, Bits UI Tabs in the interactive family, and the markdown renderer in
+instead of a shared icon map, the tabs primitive in the interactive family, and the markdown renderer in
 the text family are the largest contributors. Every family stays a separate lazy chunk, and a whole
 deck entry (DeckApp with chrome) measured 80,887 B gzip against its 120 KB ceiling
 (`packages/decks-ui/tests/bundle-size.test.ts`).
@@ -1834,7 +1834,7 @@ shows text is led by `MdRenderer.svelte` and `TextFamilyRenderer.svelte`, plus
 the shared block icon map; structure is distributed across its cards, CTA,
 comparison, timeline, columns and steps renderers; interactive is led by the
 reducers and the chart-controls, quiz, calculator and poll renderers, with
-Bits UI Tabs as another contributor; embed is 166 B over its ceiling, led by
+the tabs primitive as another contributor; embed is 166 B over its ceiling, led by
 `EmbedApp.svelte`. Keep the recorded ceilings; these modules identify follow-up
 chunk reductions. The figures are measured additions over the shared shell,
 not full static closures.

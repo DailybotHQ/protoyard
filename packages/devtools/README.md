@@ -72,7 +72,7 @@ global CSS is added.
 
 ## Working on top of app modals
 
-App dialogs and sheets (Bits UI) trap focus with a capture-phase `focusin`
+App dialogs and sheets trap focus with a capture-phase `focusin`
 listener on `document` and close on outside pointer/focus events. The panel
 host is isolated from both (`isolateFromAppLayers`): `focusin` originating in
 the panel is stopped at `window` (which runs before `document` capture), and
@@ -84,7 +84,7 @@ lifts above a fixed `BottomNav` (`data-py-bottom-nav`) or by
 `--py-devtools-offset` on `:root`.
 
 Caveat: focus traps from libraries that listen on `window` in the capture
-phase (not Bits UI) would still win; Tab from the app dialog does not cycle
+phase would still win; Tab from the app dialog does not cycle
 into the panel by design — use the shortcut.
 
 ## Package output

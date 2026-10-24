@@ -1,6 +1,6 @@
 /**
  * `@protoyard/blocks/code` — thin re-export of `@texuli/blocks/code/tokenizer`
- * (and language resolution from `@texuli/blocks/code`). Tokenize source into
+ * (and language resolution from `@texuli/blocks/code/engine`). Tokenize source into
  * `{ kind, text }` tokens; renderers map kinds to theme classes and never
  * build HTML.
  *
@@ -13,7 +13,7 @@ export {
   CODE_GRAMMAR_LANGUAGES,
   type CodeGrammarLanguage,
   resolveCodeLanguage,
-} from '@texuli/blocks/code';
+} from '@texuli/blocks/code/engine';
 export {
   bashGrammar,
   CODE_TOKEN_KINDS,

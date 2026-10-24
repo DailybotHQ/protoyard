@@ -156,7 +156,7 @@ Every capability below runs in the browser, with fictional data.
 | **Themes** | Six AA-checked presets plus a 64-theme library in six collections (including high-contrast AAA and colorblind-safe), palettes from one brand color, a live **Theme Studio** and the `protoyard theme` CLI. No flash on load. | [Themes](docs/THEMES.md) |
 | **Layouts** | Twelve shared page layouts (sidebar, rail, top nav, master-detail, dashboard grid, docs, wizard, mobile tabs…), switchable live or with `?layout=`. | [Layouts](docs/LAYOUTS.md) |
 | **Shells** | The same app as a phone, tablet, desktop window, browser tab, widget on a fictional site, extension popup or side panel. They simulate a device; they do not emulate one. | [Shells](docs/SHELLS.md) |
-| **UI kit** | Svelte 5 + Bits UI + Tailwind 4 components and product patterns, all in one live catalog (`ui-kit`). | [ui](packages/ui/README.md) |
+| **UI kit** | Svelte 5 + Texuli + Tailwind 4 components and product patterns, all in one live catalog (`ui-kit`). | [ui](packages/ui/README.md) |
 
 ### Kits beyond CRUD
 

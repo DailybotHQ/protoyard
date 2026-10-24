@@ -106,7 +106,7 @@ function removeButtonFor(name: string): HTMLButtonElement {
 
 /**
  * Focus moves into the dialog and never starts on the destructive action, so
- * Enter or Space cannot confirm by accident. (Bits UI focuses the dialog
+ * Enter or Space cannot confirm by accident. (The dialog focuses its
  * container; Cancel comes first in tab order.)
  */
 async function expectSafeInitialFocus(dialog: HTMLElement, confirmLabel: string): Promise<void> {

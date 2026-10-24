@@ -14,7 +14,7 @@ max-files: 5
 
 ## Goal
 
-Create a component that uses Svelte 5 runes, Bits UI primitives where
+Create a component that uses Svelte 5 runes, Texuli components where
 behavior is non-trivial, Tailwind token classes over `--py-*` variables,
 Lucide icons, and is labeled and keyboard-usable — placed where it belongs.
 
@@ -47,7 +47,7 @@ First check that it does not exist: the component table in
 3. Styling: token classes only (`bg-background`, `text-muted-foreground`,
    `bg-primary`, `border-input`, `ring-ring`…). No hex colors. Respect
    `prefers-reduced-motion`. Touch targets at least 44px on mobile.
-4. Accessibility: a semantic element or a Bits UI primitive; an accessible
+4. Accessibility: a semantic element or a Texuli component; an accessible
    name for every control (`aria-label` for icon-only buttons);
    `aria-hidden="true"` on decorative icons; visible focus; keyboard
    equivalents for pointer interactions.

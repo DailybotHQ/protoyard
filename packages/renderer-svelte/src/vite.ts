@@ -430,7 +430,7 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
       ],
       resolve: {
         // Workspace packages are linked; one copy of each runtime library.
-        dedupe: ['svelte', 'dexie', 'bits-ui'],
+        dedupe: ['svelte', 'dexie'],
       },
       define: {
         __PROTOYARD_DEVTOOLS__: JSON.stringify(settings.includeDevtools),

@@ -205,8 +205,12 @@ test.describe('global pending bar on standard builds', () => {
     await setLatency(page, 1500);
     await page.getByRole('button', { name: 'New' }).click();
     await page.getByRole('textbox', { name: 'Subject' }).fill('Pending probe ticket');
-    await page.getByRole('textbox', { name: 'Customer', exact: true }).fill('customer_0001');
-    const create = page.getByRole('button', { name: /^Create / });
+    // The customer is a relation picker (an editable combobox): open it and choose one.
+    const customer = page.getByRole('combobox', { name: 'Customer', exact: true });
+    await customer.focus();
+    await customer.press('ArrowDown');
+    await page.getByRole('option').first().click();
+    const create = page.getByRole('button', { name: 'Create Tickets', exact: true });
     await create.click();
     await expect(page.locator('[data-py-pending-bar]')).toBeVisible({ timeout: 1_000 });
     await expect(page.locator('[data-py-pending-bar]')).toHaveCount(0, { timeout: 5_000 });
