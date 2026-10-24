@@ -493,6 +493,9 @@ importers:
       '@protoyard/themes':
         specifier: workspace:*
         version: link:../themes
+      '@texuli/primitives':
+        specifier: link:../../../texuli/packages/primitives
+        version: link:../../../texuli/packages/primitives
       texuli:
         specifier: link:../../../texuli/packages/texuli
         version: link:../../../texuli/packages/texuli

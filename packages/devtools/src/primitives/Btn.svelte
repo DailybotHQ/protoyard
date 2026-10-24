@@ -24,7 +24,7 @@ let {
   class?: string;
   children: Snippet;
   disabled?: boolean;
-  onclick?: (event: MouseEvent) => void | Promise<void>;
+  onclick?: (event: MouseEvent) => unknown;
   type?: 'button' | 'submit' | 'reset';
   id?: string;
   title?: string;
@@ -40,7 +40,6 @@ const mapped: Record<string, ButtonVariant> = {
 };
 </script>
 
-<!-- Texuli Button accepts button|anchor handlers; cast keeps the panel API button-only. -->
 <Button
   {type}
   {id}

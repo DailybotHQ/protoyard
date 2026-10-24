@@ -10,7 +10,7 @@ built on Texuli styled components:
 | --- | --- |
 | `Btn` | `texuli/button` `Button` (size `sm`; `primary`→`default`, `danger`→`destructive`) |
 | `Toggle` | `texuli/choice` `Switch` |
-| `Segmented` | Panel-local radiogroup (arrow keys select); tokens via `--py-*` / `--tx-*` |
+| `Segmented` | `@texuli/primitives/radio-group` (`RadioGroup.Root` / `Item`), horizontal; panel chrome classes |
 | `SourceBadge` | `texuli/badge` `Badge` |
 | `InlineError` | `texuli/alert` `Alert` (error tone) |
 | `Confirm` | composition of `Btn` |

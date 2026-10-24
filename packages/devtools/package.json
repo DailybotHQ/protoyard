@@ -27,6 +27,7 @@
     "@protoyard/database": "workspace:*",
     "@protoyard/http": "workspace:*",
     "@protoyard/themes": "workspace:*",
+    "@texuli/primitives": "link:../../../texuli/packages/primitives",
     "texuli": "link:../../../texuli/packages/texuli"
   },
   "devDependencies": {
