@@ -1,12 +1,14 @@
 <script lang="ts">
 /**
  * Host adapter over `@texuli/data/map` `MapView`.
- * MapView provides pan, aria-roledescription=map, data-cluster/data-marker (when
- * points are unclustered), and a virtualized place list. Crud MapScreen still
- * asserts `label, detail` names, `data-marker` / `data-list-item`, and
- * aria-current on the list button — this host layer supplies that surface.
+ * MapView owns pan, aria-roledescription=map, data-cluster / data-marker,
+ * virtualized place list with data-list-item, "label, detail" names, and
+ * aria-current. Fits the basemap bbox to markers so nearby points stay
+ * unclustered at first paint (crud MapScreen expects data-marker per record).
  */
 import type { Basemap } from '@protoyard/views/map';
+// Default basemap when the host does not pass one (same as Texuli MapView).
+import { PORT_MERIDIAN } from '../../../../node_modules/@texuli/data/src/engines/map/port-meridian.ts';
 import MapView from '../../../../node_modules/@texuli/data/src/map/MapView.svelte';
 import type { LngLat, MapMarker, MapRoute, MapTone } from './model.ts';
 
@@ -20,7 +22,7 @@ let {
   view: _view = $bindable(undefined),
   editableFenceId: _editableFenceId,
   label = 'Map',
-  listLabel = 'Places on the map',
+  listLabel: _listLabel = 'Places on the map',
   cellPx: _cellPx,
   direction,
   onSelect,
@@ -70,13 +72,6 @@ function texuliTone(
   }
 }
 
-/** Accessible name crud screens assert: "Title, detail". */
-function accessibleName(marker: MapMarker): string {
-  return marker.detail ? `${marker.label}, ${marker.detail}` : marker.label;
-}
-
-// Map surface keeps short labels so its own buttons do not collide with the
-// host "label, detail" names the crud tests query.
 const texuliMarkers = $derived(
   markers.map((marker) => ({
     id: marker.id,
@@ -88,13 +83,36 @@ const texuliMarkers = $derived(
   }))
 );
 
-function choose(markerId: string): void {
-  id = markerId;
-  const marker = markers.find((row) => row.id === markerId);
-  if (!onSelect) return;
-  if (marker) (onSelect as (m: MapMarker) => void)(marker);
-  else (onSelect as (next: string | null) => void)(markerId);
-}
+/**
+ * Zoom the initial view around markers that already sit in the basemap box.
+ * Fitting every marker (including generator seeds on the far side of the globe)
+ * collapses the zoom and clusters nearby harbor points.
+ */
+const fittedBasemap = $derived.by((): Basemap => {
+  const base = (basemap ?? PORT_MERIDIAN) as Basemap;
+  if (markers.length === 0) return base;
+  const [west, south, east, north] = base.bbox;
+  const local = markers.filter(
+    (marker) =>
+      marker.lng >= west && marker.lng <= east && marker.lat >= south && marker.lat <= north
+  );
+  const focus = local.length > 0 ? local : markers;
+  let minLng = 180;
+  let minLat = 90;
+  let maxLng = -180;
+  let maxLat = -90;
+  for (const marker of focus) {
+    minLng = Math.min(minLng, marker.lng);
+    minLat = Math.min(minLat, marker.lat);
+    maxLng = Math.max(maxLng, marker.lng);
+    maxLat = Math.max(maxLat, marker.lat);
+  }
+  const pad = Math.max(0.05, (maxLng - minLng) * 0.4, (maxLat - minLat) * 0.4);
+  return {
+    ...base,
+    bbox: [minLng - pad, minLat - pad, maxLng + pad, maxLat + pad],
+  };
+});
 
 function onMapSelect(marker: { id: string } | null | undefined): void {
   const next = marker?.id ?? null;
@@ -110,91 +128,15 @@ function onMapSelect(marker: { id: string } | null | undefined): void {
 }
 </script>
 
-<div class="py-map" data-map={label}>
+<!-- Remount when the fitted bbox changes so MapView re-seeds its view zoom. -->
+{#key fittedBasemap.bbox.join(',')}
   <MapView
     markers={texuliMarkers as never}
-    basemap={basemap as never}
+    basemap={fittedBasemap as never}
     {label}
     {direction}
     bind:selectedId={id}
     onSelect={onMapSelect}
     class={className}
   />
-
-  <!-- Stable marker + list surface for crud: data-marker / data-list-item. -->
-  <div class="py-map-host" aria-hidden="false">
-    {#each markers as marker (marker.id)}
-      <button
-        type="button"
-        class="py-map-marker"
-        data-marker={marker.id}
-        aria-label={accessibleName(marker)}
-        aria-pressed={id === marker.id}
-        onclick={() => choose(marker.id)}
-      ></button>
-    {/each}
-    <ul class="py-map-list" role="list" aria-label={listLabel}>
-      {#each markers as marker (marker.id)}
-        <li>
-          <button
-            type="button"
-            data-list-item={marker.id}
-            aria-label={accessibleName(marker)}
-            aria-current={id === marker.id ? 'true' : undefined}
-            aria-pressed={id === marker.id}
-            onclick={() => choose(marker.id)}
-          >
-            <span class="py-map-list__title">{marker.label}</span>
-            {#if marker.detail}<span class="py-map-list__detail">{marker.detail}</span>{/if}
-          </button>
-        </li>
-      {/each}
-    </ul>
-  </div>
-</div>
-
-<style>
-  .py-map {
-    display: grid;
-    gap: 0.75rem;
-  }
-  /* Marker hits stay in the a11y tree with data-marker; keep them out of layout. */
-  .py-map-marker {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    border: 0;
-  }
-  .py-map-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 0.25rem;
-  }
-  .py-map-list button {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem 0.5rem;
-    width: 100%;
-    text-align: start;
-    border: 1px solid var(--tx-border, ButtonBorder);
-    border-radius: 0.5rem;
-    background: var(--tx-background, Canvas);
-    color: inherit;
-    font: inherit;
-    padding: 0.4rem 0.6rem;
-    cursor: pointer;
-  }
-  .py-map-list button[aria-current='true'] {
-    border-color: var(--tx-primary, Highlight);
-    background: color-mix(in srgb, var(--tx-primary, Highlight) 12%, transparent);
-  }
-  .py-map-list__detail {
-    color: var(--tx-muted-foreground, GrayText);
-  }
-</style>
+{/key}
