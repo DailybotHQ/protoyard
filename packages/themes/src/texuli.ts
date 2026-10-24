@@ -6,7 +6,7 @@ import {
   type SemanticRoleValue,
   type Theme as TexuliTheme,
   type ThemeCharts,
-} from '@texuli/tokens';
+} from '@texuli/tokens/contract';
 import { contrastRatio, hoverFill } from './contrast.ts';
 import { SHARED_PALETTE_ROLES } from './from-texuli.ts';
 

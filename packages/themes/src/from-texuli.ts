@@ -3,7 +3,7 @@ import {
   type Theme,
   type ThemePalette,
 } from '@protoyard/core';
-import type { SemanticRole, Theme as TexuliTheme, ThemeCharts } from '@texuli/tokens';
+import type { SemanticRole, Theme as TexuliTheme, ThemeCharts } from '@texuli/tokens/contract';
 
 /**
  * Texuli theme → Protoyard theme. Type-only imports from `@texuli/tokens`, so
