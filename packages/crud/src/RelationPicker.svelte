@@ -166,6 +166,7 @@ async function created(row: unknown) {
 </script>
 
 <div class="grid gap-2" data-relation-picker={field.name} data-option-count={options.length}>
+  <!-- Inside a form, the visible label names the input through `id`. -->
   <Combobox
     {id}
     items={options.map((option) => ({ ...option, selected: selectedIds.includes(option.value) }))}
@@ -178,7 +179,7 @@ async function created(row: unknown) {
       loadKey = '';
     }}
     onValueChange={choose}
-    aria-label={field.label ?? field.name}
+    aria-label={id ? undefined : (field.label ?? field.name)}
   />
   {#if multi && selectedIds.length > 0}
     <ul class="flex flex-wrap gap-2" aria-label={`Selected ${field.label ?? field.name}`}>

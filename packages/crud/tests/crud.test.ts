@@ -381,6 +381,9 @@ describe('EntityForm', () => {
     expect(assigneeControl?.matches('button[role="combobox"]')).toBe(true);
     expect(document.querySelector('[data-relation-picker="assignee"]')).toBeNull();
     expect(document.querySelector('input[placeholder="id"]')).toBeNull();
+    // The relation picker is named by its visible form label, not the field key.
+    expect(screen.getByRole('combobox', { name: 'Customer' })).toBeTruthy();
+    expect(screen.queryByRole('combobox', { name: 'customer' })).toBeNull();
   });
 });
 
