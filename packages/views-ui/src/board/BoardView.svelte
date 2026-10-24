@@ -51,45 +51,47 @@ async function persist(move: BoardMove, item: T): Promise<void> {
 }
 </script>
 
-<QueryState
-  {query}
-  label={`Loading ${label.toLowerCase()}`}
-  {onRetry}
-  emptyTitle={`No ${label.toLowerCase()} yet`}
-  isEmpty={() => false}
->
-  {#snippet children(items)}
-    <Board
-      {columns}
-      {lanes}
-      items={items}
-      {getId}
-      {getColumn}
-      {getLane}
-      {getRank}
-      {getLabel}
-      onMove={persist}
-      {canMove}
-      class={className}
-      labels={{ board: label, emptyCell: emptyColumnText }}
-    >
-      {#snippet card(item, state)}
-        {#if onOpen}
-          <button
-            type="button"
-            class="py-board-open"
-            data-board-no-drag
-            onclick={() => onOpen(item)}
-          >
+<div data-board={label}>
+  <QueryState
+    {query}
+    label={`Loading ${label.toLowerCase()}`}
+    {onRetry}
+    emptyTitle={`No ${label.toLowerCase()} yet`}
+    isEmpty={() => false}
+  >
+    {#snippet children(items)}
+      <Board
+        {columns}
+        {lanes}
+        items={items}
+        {getId}
+        {getColumn}
+        {getLane}
+        {getRank}
+        {getLabel}
+        onMove={persist}
+        {canMove}
+        class={className}
+        labels={{ board: label, emptyCell: emptyColumnText }}
+      >
+        {#snippet card(item, state)}
+          {#if onOpen}
+            <button
+              type="button"
+              class="py-board-open"
+              data-board-no-drag
+              onclick={() => onOpen(item)}
+            >
+              {@render card(item, state)}
+            </button>
+          {:else}
             {@render card(item, state)}
-          </button>
-        {:else}
-          {@render card(item, state)}
-        {/if}
-      {/snippet}
-    </Board>
-  {/snippet}
-</QueryState>
+          {/if}
+        {/snippet}
+      </Board>
+    {/snippet}
+  </QueryState>
+</div>
 
 <style>
   .py-board-open {
