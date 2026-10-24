@@ -29,6 +29,25 @@ most of them: Biome, `tsc` / `svelte-check` / `astro check`,
   asynchronously.
 - Never use `{@html}` with user or snapshot data. Build elements instead.
 
+## Components and Texuli
+
+Protoyard's components are built on [Texuli](TEXULI.md) ([ADR-044](DECISIONS.md)).
+
+- **Use `@protoyard/ui` first.** Its generic styled components are Texuli's,
+  re-exported, and its wrappers keep Protoyard's props. Import Texuli directly
+  only for what the kit does not offer.
+- **Import Texuli by subpath:** `texuli/button`, `@texuli/primitives/<name>`,
+  `@texuli/core/<texel>`. Never import the `@texuli/core` root barrel, and
+  never import the `@texuli/tokens` root statically: it re-exports the whole
+  theme library, which would land in a prototype's initial chunk.
+- **Style with Protoyard's tokens.** Prototype code keeps the `--py-*` tokens
+  and Tailwind theme utilities. Texuli components use their own `tx-*` classes
+  on the `--tx-*` variables, which the renderer writes with the same values.
+- **A gap in a Texuli component** is recorded with the follow-ups in
+  [TEXULI.md](TEXULI.md#follow-ups-components-that-stay-protoyard-wrappers)
+  (a Texuli change, a Protoyard wrapper, or both), not copied back into
+  Protoyard.
+
 ## Prototype domain rules
 
 ```text

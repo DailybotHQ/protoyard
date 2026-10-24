@@ -954,3 +954,44 @@ because export isolation forbids importing across prototypes.
 **Consequences.** "Turn our design system into a kit, then prototype with it" becomes a first-class
 loop.
 **Reverse:** the template and commands are additive.
+
+## ADR-044 — Adopt Texuli as the component library
+
+**Context.** Protoyard's components, themes, charts, rich views, content blocks and layouts grew
+inside `@protoyard/*` packages. They were extracted into Texuli, a standalone MIT Svelte 5
+component library (sibling checkout `../texuli`), so the same owned components serve Protoyard
+and any other app. Keeping two copies would mean fixing every bug and accessibility gap twice.
+
+**Decision.**
+- **Linked, not copied.** The root `package.json` declares ten `link:` dev dependencies on
+  `../texuli/packages/*`. Packages import Texuli by name; texels come through their subpaths
+  (`@texuli/core/<texel>`), never the root barrel.
+- **What moved to Texuli** (details in [TEXULI.md](TEXULI.md)):
+  - theme tokens: `@protoyard/themes` wraps `@texuli/tokens`;
+  - generic styled components: `@protoyard/ui` re-exports them from `texuli`, and its simple,
+    floating and dialog-family controls are wrappers on `@texuli/primitives`;
+  - layouts: `LayoutHost` wraps `texuli/layouts`, which registers 11 of the 12 layouts;
+  - charts, rich views and content blocks: `@protoyard/charts`, `charts-ui`, `views`,
+    `views-ui`, `blocks` and `blocks-ui` re-export Texuli with thin adapters.
+- **What stays Protoyard's:** the prototype pieces (device frames and shells, `ScenarioSwitcher`,
+  honesty tags, actors), the overlay stack and undo toaster, the `docs` layout, the components
+  whose APIs still differ (listed in [TEXULI.md](TEXULI.md#follow-ups-components-that-stay-protoyard-wrappers)),
+  and the host-only view and block kits.
+- **Public APIs are kept.** Prototypes import from `@protoyard/*` as before; the look of the
+  re-exported components is Texuli's (`tx-*` classes on `--tx-*` variables, which the renderer
+  writes next to `--py-*`).
+
+**Consequences.**
+- Fixes and new components land once, in Texuli, and reach every prototype.
+- Installing Protoyard needs the Texuli checkout at `../texuli`, installed first. A fresh clone
+  of Protoyard alone cannot install until Texuli is published or vendored, which is a later
+  decision.
+- **The npm packages cannot be released yet.** Eight packages (`themes`, `devtools`, `charts`,
+  `charts-ui`, `views`, `views-ui`, `blocks`, `blocks-ui`) declare their Texuli dependencies as
+  `link:` specifiers, and `pnpm check:packages` refuses a packed manifest that carries one
+  (`LOCAL_DEPENDENCY`). `@protoyard/ui` resolves Texuli through the root links without declaring
+  it. Both change when Texuli is published.
+- Protoyard's typecheck covers its own code; Texuli's sources are checked by Texuli's gates.
+
+**Reverse:** the adoption lives on the `texuli-adoption` branch. Reverting its merges restores
+Protoyard's own copies; because the `@protoyard/*` APIs were kept, prototypes need no change.

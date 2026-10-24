@@ -90,13 +90,16 @@ components read those names, and the `--py-*` names above stay, as aliases.
   level. The six built-ins fail only one check: their light-mode `input`
   borders measure about 1.4:1, under WCAG 1.4.11's 3:1. Fixing that would
   restyle every prototype, so it is a separate decision.
-- **Opt-in.** Enabling them re-applies the current appearance, and later
-  calls write both families at once. Both reach the no-flash cache.
-  - Pages that don't call it never load `@texuli/tokens`. Today no prototype
-    renders Texuli components, so none does.
-  - The opt-in matters because the package doesn't declare `sideEffects`
-    yet, so a static import would put its whole theme library in every
-    initial chunk.
+- **Opt-in, on in every prototype.** Enabling them re-applies the current
+  appearance, and later calls write both families at once. Both reach the
+  no-flash cache.
+  - The renderer's `bindAppearance` calls `enableTexuliAppearance()`, because
+    `@protoyard/ui` renders Texuli components; DevTools' `mountDevtools`
+    calls it too. A page that never imports `@protoyard/themes/texuli` writes
+    only `--py-*`.
+  - The subpath imports `@texuli/tokens/css` and `@texuli/tokens/contract`,
+    never the package root, whose barrel re-exports the whole theme library
+    ([TEXULI.md](TEXULI.md#themes-come-from-texulitokens)).
 
 ### Typography, shape, density and motion variables
 
@@ -153,6 +156,13 @@ only where the theme departs from the default look:
 | `elevation: 'flat'` (and not glass) | `data-py-card-style="bordered"` |
 | `radius` of `0` | `data-py-button-style="square"` |
 | `radius` of `999px` or more | `data-py-button-style="pill"` |
+
+The button and card profiles style `@protoyard/ui`'s own `.ui-button` and
+`.ui-card` classes. `Button` and `Card` are now re-exported from Texuli
+([TEXULI.md](TEXULI.md#generic-styled-components-come-from-texuli)) and read
+neither attribute. They follow the theme through its `--tx-*` tokens
+instead: corners from the radius tokens and shadows from the elevation. A
+glass surface does not make Texuli's `Card` translucent.
 
 `glass` is progressive enhancement: `bg-surface` and `bg-elevated` become
 translucent with a backdrop blur only in browsers that support
@@ -460,8 +470,9 @@ It has two tiers:
   in all.
   - It's opt-in: call `enableFullThemeLibrary()` from
     `@protoyard/themes/library-full`.
-  - It's opt-in because single-file exports inline everything reachable, and
-    the expanded set adds about 105 KB to each one.
+  - It's opt-in because single-file exports inline everything reachable, so
+    every such export would carry the expanded set's metadata and
+    definitions.
   - The expanded set also carries Protoyard's six built-ins. The library
     leaves them out so no picker shows an id twice; they stay
     `BUILTIN_THEMES`.
@@ -616,10 +627,10 @@ root barrel):
 | `loadAllLibraryThemes()` | Loads every library theme (tests, galleries) |
 | `clearLibraryThemeCache()` | Clears the cache (tests) |
 
-Every import of `@texuli/tokens` here is dynamic. The package doesn't declare
-`sideEffects` yet, so a static import would keep its whole library in every
-bundle that imports the themes barrel, which is in every prototype's initial
-chunk.
+The only static import of `@texuli/tokens` here is the catalog metadata
+(`@texuli/tokens/library`; the package declares `sideEffects` only for CSS).
+Definitions, tokens and the expanded set are dynamic imports, so no theme's
+tokens reach a prototype's initial chunk.
 
 **Using a library theme in any prototype.** Every prototype can use every
 library theme with no code of its own. `mountPrototype` gives the runtime a

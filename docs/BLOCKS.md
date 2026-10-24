@@ -1473,9 +1473,13 @@ hosted content, not arbitrary embedded HTML. Every stateful or hosted block
 requires a stable `id`; the closed list is exported as `STATEFUL_BLOCK_TYPES`,
 with the remaining types in `STATIC_BLOCK_TYPES`.
 
-A quiz prompt or explanation is short Markdown: bold, italic and inline code
-keep their emphasis and a link shows its text (the interactive family uses a
-small inline formatter rather than the full renderer). A card `image` follows
+A quiz prompt or explanation is short Markdown. With a block state host (the
+player) or on a deck slide, bold, italic and inline code keep
+their emphasis and a link shows its text (Protoyard's quiz uses a small inline
+formatter rather than the full renderer). Otherwise (a page or doc host
+without `stateHost`, such as a generated page or doc prototype) the quiz
+renders through Texuli and shows the prompt as plain text (see
+[Which renderer draws a block](#which-renderer-draws-a-block)). A card `image` follows
 the block media policy (a library avatar, a bounded `data:` image or a relative
 path) and loads on its own chunk, only for cards that have one.
 
@@ -1515,12 +1519,14 @@ trusted; keep it inert after parsing too.
 
 ### Text, links and media safety
 
-Rich text is bounded Markdown, not HTML. The `text.markdown`, `callout.body`,
-and related Markdown fields are parsed at render time by the safe parser from
-`@protoyard/ai/markdown`; raw HTML is not part of the format. Do not pass block
+Rich text is bounded Markdown, not HTML. The text family (`text.markdown`,
+`callout.body`, list items, quotes) renders through `@texuli/blocks`, which
+parses a closed Markdown subset into a tree and never produces HTML: raw tags
+stay literal text, links go through `safeHref`, and a Markdown image shows as
+its alt text (pictures belong to the `image` block). Do not pass block
 fields to `{@html}`, `innerHTML`, an evaluator, or a code execution API.
-Code blocks display text through the small tokenizer in `@protoyard/blocks/code`;
-highlighted tokens remain text.
+Code blocks display text through the tokenizer that `@protoyard/blocks/code`
+re-exports from `@texuli/blocks/code/tokenizer`; highlighted tokens remain text.
 
 Links in CTAs and cards use the exported `LinkHrefSchema`: supported values are
 HTTPS, `mailto:` and same-document fragments (`#section`, `#/route`). HTTP,
@@ -1560,6 +1566,43 @@ The root entry does not statically import family renderers, and none of these
 families belong in the `@protoyard/ui` barrel. This keeps a host's reachable
 graph limited to the families it renders.
 
+### Which renderer draws a block
+
+Each family subpath is a thin Protoyard adapter over the matching
+`@texuli/blocks/<family>/renderers` component. The adapter maps Protoyard's
+block shape to Texuli's and falls back to a Protoyard renderer where Texuli has
+no equivalent. `BlockRenderer`, `setBlockHost` and the zod schemas stay
+Protoyard's. See [TEXULI](TEXULI.md#content-blocks-from-texuliblocks).
+
+| Family | Texuli renders | Protoyard renders |
+| --- | --- | --- |
+| text | `heading`, `text`, `list`, `quote`, `callout`, `divider` | — |
+| media | `image`, `video` | `people` |
+| data | `chart` (through `@texuli/charts`), plain `table`, a `stat` row without title, source or trends | interactive tables (`interactive`), stat rows with a title, source or trend sparklines |
+| structure | `cards`, `cta`, `columns` in pages and docs when Texuli accepts the shape | `timeline`, `steps`, `comparison`, `icon`; every structure block on a slide; cards with an image; CTAs when the host sets `onCtaAction` |
+| code | `code` | — |
+| diagram | `flow`, `tree`, `board`, `terminal` | — |
+| interactive | `poll`, `quiz`, `calculator` when the host has no `stateHost` and is not a slide (local, unsaved state) | `tabs`, `reveal`, `counter`, `chart-controls`, `form`; `poll`, `quiz`, `calculator` with a state host or on a slide |
+| map | `map` | — |
+| embed | `embed-app` (the host still supplies `mountEmbed`) | — |
+
+The adapters pass on only the fields Texuli's shapes have. Known gaps today:
+
+- **Text:** heading and text `align`, text `size`, list `check` and `icon`
+  styles (they render as bullets), quote `role` and `avatar`, callout `icon`,
+  and divider `label` and `variant` are not drawn.
+- **Cards:** a card `icon` is not drawn on the Texuli path.
+- **Charts:** `donut`, `pie` and `funnel` specs draw as bar charts, and
+  `showTable` is ignored; the line, area and bar charts carry their own
+  "Show data table" toggle.
+- **Plain tables:** column formats (`number`, `percent`, `cents`), the
+  table currency and `highlightRow` are not applied, and numbers use the
+  browser's locale. An `interactive` table keeps all of them.
+- **Texuli `poll`, `quiz`, `calculator`:** used by pages and docs whose host
+  sets no `stateHost` (generated page and doc prototypes; the player sets
+  one). Their state is local and not saved, a quiz takes the first listed
+  answer as correct, and a calculator shows only its first output.
+
 ### Interactive state and accessibility
 
 Renderers do not write database rows. Stateful controls read and dispatch
@@ -1596,14 +1639,15 @@ exploration with `interactive: { sort: true, filter: true }`; setting
 Sorting uses a stable, locale-aware comparison; filtering searches
 the formatted cell text, and the controls do not change blueprint data. Sort,
 filter and row selection live only for the mounted slide view and reset when
-the view reloads. An interactive table (any `interactive` option) carries
-`data-py-deck-interactive`, so a click on its controls and rows does not
-advance the deck. A plain table does not: on a slide, a click on it advances
-like a click on text.
+the view reloads. The deck wraps every `table`, `stat`, `chart` and `code`
+block, and every interactive block, in `data-py-deck-interactive`
+(`deckInputGuardAttributes` in `@protoyard/decks-ui`), so a click inside one
+does not advance the deck.
 
-Chart blocks show the charts-ui hover details and keyboard point navigation.
-Multi-series charts expose the chart legend as a keyboard and pointer series
-toggle. Chart interaction stays within the chart and never advances the deck.
+Chart blocks render Texuli's charts (`@texuli/charts/cartesian`, loaded
+lazily) with hover details and keyboard point navigation. Multi-series line,
+area and bar charts expose the legend as a keyboard and pointer series toggle.
+Chart interaction stays within the chart and never advances the deck.
 
 ```json
 {

@@ -61,27 +61,41 @@ import { cn } from '@protoyard/ui';
 cn('shadow-soft', 'shadow-none'); // → "shadow-none"
 ```
 
+## Built on Texuli
+
+`@protoyard/ui` is Protoyard's kit on top of [Texuli](../../docs/TEXULI.md), the
+standalone Svelte 5 component library it links from `../texuli`:
+
+- **Re-exported from `texuli`:** the generic styled components (`Button`,
+  `Badge`, `Card…`, `Checkbox`, `Switch`, `RadioGroup`, `Label`, `Textarea`,
+  `Accordion`, `Tooltip`, `Separator`, `Progress`, `Skeleton`, `Kbd`,
+  `ErrorState`, `Stepper`, `Wizard`, `Carousel`, `Breadcrumb`, `SplitView`).
+  Import them from `@protoyard/ui` as before; their look is Texuli's (`tx-*`
+  classes on the `--tx-*` variables the renderer writes next to `--py-*`).
+  The full mapping is in [TEXULI.md](../../docs/TEXULI.md#generic-styled-components-come-from-texuli).
+- **Wrappers on `@texuli/primitives`:** `Select`, `Combobox`, `DropdownMenu`,
+  `Popover`, `Tabs`, the dialog family (`Dialog`, `AlertDialog`, `Drawer`,
+  `DetailPanel`, `BottomSheet`), `CommandPalette` and `UserPicker` keep their
+  Protoyard props and render Texuli's headless primitives.
+- **Layouts:** `LayoutHost` wraps `texuli/layouts` ([below](#shared-layout-host)).
+- **Protoyard's own:** device frames and shells, `ScenarioSwitcher`, the
+  honesty tags, actors, the overlay stack and undo toaster, `DataTable`, the
+  toasts, the form utilities and scheduling inputs, and the `docs` layout.
+
 ## Components
 
 | Group | Components |
 | --- | --- |
-| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone`, `OtpInput` |
+| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem` (`variant="card"`), `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone`, `ImageInput`, `OtpInput`, `StarRating`, `NumberStepper`, `ChipGroup` |
 | Form utilities | `TagEmailInput`, `EmojiPicker`, `PasswordStrengthMeter`, `TextCounter` (+ email and password-score helpers) |
 | Scheduling | `TimeZoneSelect`, `WeekdayPicker`, `TimeInput`, `DatePicker`, `DateRangePicker`, `Calendar` (+ pure date, time, weekday and zone helpers) |
-| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone`, `ImageInput`, `OtpInput` |
-| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem` (`variant="card"`), `StarRating`, `NumberStepper`, `ChipGroup`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone`, `ImageInput` |
-| Overlays | `Dialog`, `AlertDialog`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip` |
+| Overlays | `Dialog`, `AlertDialog`, `Drawer`, `DetailPanel`, `BottomSheet`, `AdaptiveOverlay`, `DropdownMenu`, `Popover`, `Tooltip`, `overlayStack` / `useOverlayLayer` |
 | Disclosure | `Tabs`, `Accordion`, `Carousel` |
-| Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState`, `Notice`, `SimulatedTag`, `ProposalTag`, `StatusChip` |
-| Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
+| Feedback | `Toaster` + `toast`, `UndoToaster` + `undoToast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState`, `Notice`, `SimulatedTag`, `ProposalTag`, `StatusChip` |
 | Demo | `ScenarioSwitcher` (in-app scenario load + view-as persona; labelled Simulated) |
 | Display | `Badge` (+ `badgeVariants`), `Avatar`, `ActorRow`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
-| Overlays | `Dialog`, `AlertDialog`, `Drawer`, `DetailPanel`, `BottomSheet`, `AdaptiveOverlay`, `DropdownMenu`, `Popover`, `Tooltip`, `overlayStack` / `useOverlayLayer` |
-| Disclosure | `Tabs`, `Accordion` |
-| Feedback | `Toaster` + `toast`, `UndoToaster` + `undoToast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
-| Display | `Badge` (+ `badgeVariants`), `Avatar`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
 | Data | `DataTable`, `FilterBar` (+ `applyFilters`), `Pagination`, `Kanban` |
-| Layout | `LayoutHost`, `AppShell`, `Sidebar`, `Header`, `Breadcrumb`, `CardGrid` |
+| Layout | `LayoutHost`, `AppShell`, `Sidebar`, `Header`, `Breadcrumb`, `CardGrid`, `SplitView` |
 | Shells | `WindowChrome` |
 | Collaboration | `ChatThread`, `MessageList`, `Composer`, `TypingIndicator` |
 | Flows | `Stepper`, `Wizard` |
@@ -188,8 +202,11 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 
 ## Navigation model
 
-Layouts render navigation from data, so one prototype works in every layout
-(`src/layouts/nav-model.ts`, exported from the package root):
+Layouts render navigation from data, so one prototype works in every layout.
+The model, its types and its helpers (`resolveNav`, `navPath`,
+`isNavPathActive`, `navBadge`) are Texuli's, re-exported from the package
+root; `navFromSidebar` is Protoyard's migration helper
+(`src/layouts/nav-model.ts`):
 
 ```ts
 import { navFromSidebar, resolveNav, type NavModel } from '@protoyard/ui';
@@ -202,13 +219,10 @@ const model: NavModel = navFromSidebar(nav, { brand: { label: 'Pipeline CRM', ic
 const sections = resolveNav(model, location.hash); // exactly one `active` item, parents `inTrail`
 ```
 
-- **Active state** follows the renderer's `router.isActive`: an item is
-  current for its path and its descendants (`#/` and `exact` items only
-  exactly), and the deepest match wins.
-- **Icons** are Lucide names (`'kanban'`, `'users'`; the `NavIconName` type
-  lists them) or any Lucide component. `src/layouts/NavIcon.svelte` maps names
-  through a static table. It is not in the package barrel, so only the lazy
-  layouts that render it pay for the icons (about 7 KB gzip for the 53 names).
+- **Active state:** an item is current for its path and its descendants
+  (`#/` and `exact` items only exactly), and the deepest match wins.
+- **Icons** are names from the `NavIconName` type or icon components; the
+  layouts render them.
 - **Badges** can be a getter (`badge: () => unread.count`), so a live count
   updates wherever a layout reads it.
 - **Actions** either navigate (`href`) or run `onSelect`; a returned promise
@@ -216,62 +230,12 @@ const sections = resolveNav(model, location.hash); // exactly one `active` item,
 
 ## Shared layout host
 
-For the complete layout catalog, manifest contract, responsive behavior and
-contributor checklist, see [the Layouts guide](../../docs/LAYOUTS.md).
+For the layout catalog, manifest contract, responsive behavior and tests, see
+[the Layouts guide](../../docs/LAYOUTS.md) and
+[TEXULI.md](../../docs/TEXULI.md#layouts-come-from-texulilayouts).
 
 Wrap the routed screen in `LayoutHost` when a prototype opts into a shared
-layout. The host uses the measured container width and the core `LAYOUTS`
-catalog's fallback rules, so a shell's inner screen width drives the choice.
-Each registered layout is loaded through its own relative dynamic import in
-`src/layouts/registry.ts`. A layout provides a target with `mountScreen(target)`;
-the host moves one stable screen outlet between targets, preserving the route's
-component state while the layout chrome changes. While the selected module is
-loading, the current screen stays mounted under a chrome skeleton. The registry
-currently includes `sidebar`, `rail`, `top-nav`, `dual-sidebar`,
-`mobile-tabs`, `mobile-drawer`, `master-detail`, `dashboard-grid`, `docs`,
-`marketing`, `wizard` and `auth-split`. Layout modules stay out of the
-`@protoyard/ui` barrel, so a
-prototype loads a layout only when its host selects it. If a layout has no
-registered loader, the screen renders in the host's default content frame.
-
-### Content layouts
-
-Three content layouts are available for product screens that need more than an
-application sidebar:
-
-| Component | Content | Responsive behavior |
-| --- | --- | --- |
-| `MasterDetailLayout` | `list` and `detail` snippets; bind `detailActive` to the selected route | Two panes with a keyboard- and pointer-resizable list on wide containers; one pane at a time on narrow containers. The list stays mounted while details change, and its width is stored in `localStorage` (override the key with `storageKey`). |
-| `DashboardGridLayout` | Child widgets; set `data-span="1"` through `data-span="4"` on each direct widget element | Uses one, two, three, then four columns as its container grows. Spans clamp to the current column count. It is a static grid with no drag-and-drop. |
-| `DocsLayout` | `navigation` snippet and documentation child content | Shows section navigation, the content, and a generated h2/h3 table of contents. The TOC follows visible headings and refreshes when headings are added or removed. |
-
-These layouts also accept the host's `mountScreen` outlet when selected through
-`LayoutHost`; their existing snippet props remain available for standalone use.
-
-`MasterDetailLayout` exposes the splitter as a vertical separator: Left/Right
-arrows resize it by 16 pixels, while Home and End select the minimum and maximum
-list widths. Bind `detailActive` to route selection so narrow screens show the
-matching detail; the built-in Back to list control clears it. The default width
-key is scoped to the current app pathname, so callers can pass `storageKey` to
-share a preference between routes.
-
-`DocsLayout` assigns stable fragment ids to headings that do not already have
-one. It uses `MutationObserver` to rebuild the TOC and `IntersectionObserver`
-to mark the current section; when intersection observation is unavailable, the
-TOC remains usable as a set of fragment links.
-## Desktop layouts
-
-Four desktop navigation layouts are registered (`sidebar`, `rail`,
-`top-nav`, `dual-sidebar`), plus the two mobile ones below. Each one is its
-own lazy module, measured at 1.3 to 2.8 KB gzip, and they
-share one chunk of about 7.5 KB gzip (the drawer, the chrome and the
-`NavIcon` table). They all render the `nav` the host passes, follow
-`location.hash` unless the host passes `path`, put the screen in a `<main>`
-that the **Skip to content** link focuses, and use theme tokens only.
-Breakpoints are container queries on the layout itself, so they follow a
-shell's inner width. Below its breakpoint a layout shows a menu button that
-opens a drawer. Escape, the close button, following a link or any in-app
-navigation closes the drawer, and it also closes if the layout grows wide.
+layout:
 
 ```svelte
 <LayoutHost layout="sidebar" nav={navFromSidebar(items, { brand: { label: 'Pipeline CRM' } })} storageKey={manifest.storage.namespace}>
@@ -279,39 +243,28 @@ navigation closes the drawer, and it also closes if the layout grows wide.
 </LayoutHost>
 ```
 
-| Layout | Breakpoint | What it renders |
-| `sidebar` | 48rem | `<Sidebar>` column: brand, sections, actions and user in the footer |
-| `rail` | 40rem | the same `<Sidebar>` collapsed to icons with tooltips. Its toggle expands it to labels, and the choice is saved per prototype in localStorage (`protoyard:layout:<storageKey or page path>:rail-expanded`, best effort) |
-| `top-nav` | 48rem | brand, primary links (the first `options.visibleItems`, default 5) and a **More** menu for the rest, actions and user, then the current item's `children` as secondary tabs |
-| `dual-sidebar` | 64rem | a switcher column with one button per nav section (arrow keys, Home and End move between them; it follows the current page until another section is picked), the section's pages with one level of children, and the `aside` snippet as a right context panel |
+- **The host** wraps Texuli's `LayoutHost`. It resolves the layout with the
+  core `LAYOUTS` catalog (`layoutForWidth`) from the measured width, so a
+  shell's inner width drives the choice. It keeps the `data-py-layout-host`
+  and `data-layout` hooks, and sets `data-py-layout="<id>"` once that layout
+  has loaded. One routed screen outlet is kept across layout changes.
+- **The registry** (`registerProtoyardLayouts`, `src/layouts/register.ts`)
+  registers Texuli's layouts, each its own lazy import:
+  - app: `sidebar`, `rail`, `top-nav`, `dual-sidebar`, `master-detail`;
+  - mobile: `mobile-tabs`, `mobile-drawer`;
+  - auth and settings: `wizard`, `auth-split`;
+  - `dashboard-grid` and `marketing`.
 
-### Mobile layouts
-
-`mobile-tabs` (2.1 KB gzip of its own) and `mobile-drawer` (1.2 KB, both
-plus the shared layout chunk) are where the host falls back for every desktop layout
-below its breakpoint. They also work as a prototype's own layout
-(`platform: mobile`).
-
-| Layout | What it renders |
-| --- | --- |
-| `mobile-tabs` | `MobileAppShell` with a `MobileHeader` (the current page's name and compact actions) and a `BottomNav` of the top-level items. Five or fewer fit. With more, the first four stay and a **More** tab opens a `BottomSheet` with the rest and the user; the tab is marked when it holds the current page. |
-| `mobile-drawer` | `MobileAppShell` with a `MobileHeader` (the current page's name, actions and a menu button) and the whole nav model (brand, sections, actions, user) in a side drawer. There is no bottom bar. |
-
-The tab bar sits in normal flow below the scroll region, so a screen's
-composer stays above it (the layout-fit rule). The header and bar pad for
-the safe area (`pt-safe`, `pb-safe`, `px-safe`), and both use `h-app`. On a
-wide window the layout is a centred column (`max-w-2xl`), which
-`device-frame:max-w-none` lifts inside a phone or tablet frame. Drawers and
-sheets open on the device screen inside a frame (`useOverlayPortalTarget`).
-The host registry also includes six layouts for other product frames:
-`master-detail`, `dashboard-grid` and `docs` for content; `marketing`,
-`wizard` and `auth-split` for flow pages. Each is loaded from its own lazy
-module and stays out of the package barrel.
-
-Only the exact current page gets `aria-current="page"`. Its parents are
-tinted (`data-trail`), and in a collapsed or one-level list the visible
-parent carries the mark. `Sidebar` shows one level, so `sidebar` and `rail`
-mark the parent of a current child page.
+  `docs` stays Protoyard's (`src/layouts/DocsLayout.svelte`, also exported
+  as `@protoyard/ui/layouts/docs`): section navigation from a `navigation`
+  snippet, the content, and a generated h2/h3 table of contents.
+  `@protoyard/ui/layouts/marketing` is Texuli's `MarketingLayout`.
+- **Device frames** stay Protoyard's. The host bridges a frame to Texuli's
+  tokens: `--tx-app-height` follows `--py-app-height`, and `--tx-safe-*`
+  follow the safe areas.
+- **Layout modules stay out of the barrel,** so a prototype loads a layout
+  only when its host selects it. A layout with no registered loader renders
+  the screen in the host's default content frame.
 
 ## Form utilities
 
@@ -398,14 +351,16 @@ side drawer and the height for a top or bottom one. It accepts a plain CSS lengt
 drawers, `auto` up to 85% for top and bottom ones), so a size can never inject other styles. It
 is **non-modal by default**: the page behind stays usable, outside clicks do not close it, and it
 only owns Escape. With `modal`, it dims the page, traps focus and locks scroll, and outside clicks
-close it (`closeOnOutsideClick` overrides either default). Like `Dialog`, it portals into the device
-screen when a shell frames the prototype. If that screen is detached, the portal target is cleared
-and the overlay falls back to `document.body`. The shared Vitest setup resets portal and toast state,
-plus local and session storage, after each test.
+close it (`closeOnOutsideClick` overrides either default). It renders Texuli's `sheet` primitive.
+Like the rest of the dialog family, it opens in the browser's top layer on the page; inside a
+device frame it opens in Texuli's contained mode, held by the device screen, which also bounds its
+inert page, focus trap and scroll lock (`useOverlayPortalTarget()` gives each overlay its `mode`
+and `container`). The shared Vitest setup resets overlay target and toast state, plus local and
+session storage, after each test.
 
 Every `Drawer` registers with the shared `overlayStack`:
 
-- Nested drawers paint in open order, each above the one before (z-index from 51 upward).
+- Nested drawers paint in open order, each above the one before.
 - Escape closes only the top drawer.
 - On close, focus returns to the element that opened the drawer. Focus only moves when it was lost
   with the drawer or was still inside it, so it never steals focus from the page behind a non-modal
@@ -416,8 +371,10 @@ Every `Drawer` registers with the shared `overlayStack`:
 A custom overlay joins the same stack with `useOverlayLayer(() => open, { modal: () => modal })`.
 It gets its `zIndex` and `restoreFocus(container)`. `Dialog`, `AlertDialog`, `BottomSheet` and
 `DetailPanel` also register as modal layers, so a dialog opened inside a drawer paints above it
-and Escape closes only the top layer. `UndoToaster` stays above the stack (`useOverlayTopZIndex`)
-and remains keyboard-reachable outside a modal drawer's focus trap.
+and Escape closes only the top layer. `UndoToaster` stays above the stack: on the page it re-enters
+the top layer after each overlay that opens there, and in a frame its z-index stays above every
+overlay. A modal never makes it inert, and it remains keyboard-reachable (F6) outside a modal's
+focus trap.
 
 ### AdaptiveOverlay
 
