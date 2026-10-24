@@ -39,7 +39,7 @@ async function openDemo(page: Page, id: string) {
   // The demo is a lazy chunk; framed charts render a figure, compact ones a meter or an image.
   await page
     .locator(
-      'main figure[data-py-chart], main [role="meter"], main [role="progressbar"], main svg[role="img"]'
+      'main [data-py-chart], main [role="meter"], main [role="progressbar"], main svg[role="img"]'
     )
     .first()
     .waitFor({ timeout: 15_000 });
@@ -64,7 +64,7 @@ test.describe('charts-ui demos (ui-kit static build)', () => {
     await openDemo(page, 'chart-cartesian');
     const chart = plot(page, /^Signups, last 4 weeks\./);
     await chart.focus();
-    const figure = page.locator('figure[data-py-chart]', { has: chart });
+    const figure = page.locator('[data-py-chart]', { has: chart });
     const live = figure.locator('[data-chart-live]');
     await expect(live).not.toHaveText('');
     const first = await live.textContent();
@@ -80,25 +80,34 @@ test.describe('charts-ui demos (ui-kit static build)', () => {
     await expect(live).toContainText('Previous period');
   });
 
-  test('"View as table" swaps a chart for a real table and back', async ({ page }) => {
+  test('"Show data table" opens Texuli\'s disclosure table and closes it', async ({ page }) => {
     await openDemo(page, 'chart-part-whole');
-    const figure = page.locator('figure[data-py-chart]', { hasText: 'Accounts by plan' });
-    await figure.getByRole('button', { name: 'View as table' }).click();
+    const figure = page.locator('[data-py-chart]', { hasText: 'Accounts by plan' });
+    const toggle = figure.getByRole('button', { name: 'Show data table' });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(figure.getByRole('button', { name: 'Hide data table' })).toBeVisible();
     const table = figure.getByRole('table');
     await expect(table).toBeVisible();
     await expect(table.getByRole('columnheader')).toHaveText(['Slice', 'Value', 'Share']);
     // Header + Free, Pro, Team and Other (Education and Nonprofit are under 3 % and fold into Other).
     await expect(table.getByRole('row')).toHaveCount(5);
-    await figure.getByRole('button', { name: 'View as chart' }).click();
+    await figure.getByRole('button', { name: 'Hide data table' }).click();
+    await expect(figure.getByRole('button', { name: 'Show data table' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
     await expect(table).toHaveCount(0);
     await expect(figure.locator('[data-slice]').first()).toBeVisible();
   });
 
   test('dark mode re-reads the chart palette and stays accessible', async ({ page }, testInfo) => {
     await openDemo(page, 'chart-cartesian');
+    // Texuli bar marks use data-series on rects (no data-bar polyfill).
     const bar = page
-      .locator('figure[data-py-chart]', { hasText: 'Revenue by region' })
-      .locator('[data-bar]')
+      .locator('[data-py-chart]', { hasText: 'Revenue by region' })
+      .locator('svg rect[data-series]')
       .first();
     await bar.waitFor();
     const fillOf = () => bar.evaluate((el) => getComputedStyle(el).fill);
@@ -112,7 +121,8 @@ test.describe('charts-ui demos (ui-kit static build)', () => {
   test('reduced motion removes chart transitions', async ({ page }) => {
     await openDemo(page, 'chart-cartesian');
     await page.evaluate(() => window.__protoyard?.theme.setOverride({ reducedMotion: true }));
-    const frames = page.locator('figure[data-py-chart]');
+    // Texuli figure may carry data-motion; ChartRoot is [data-py-chart].
+    const frames = page.locator('[data-py-chart] figure, [data-py-chart][data-motion]');
     await expect(frames.first()).toHaveAttribute('data-motion', 'reduce');
     expect(
       await frames.evaluateAll((els) =>
@@ -120,7 +130,7 @@ test.describe('charts-ui demos (ui-kit static build)', () => {
       )
     ).toBe(true);
     const durations = await page
-      .locator('figure[data-py-chart] [data-bar]')
+      .locator('[data-py-chart] svg rect[data-series]')
       .evaluateAll((els) => els.map((el) => getComputedStyle(el).transitionDuration));
     expect(durations.length).toBeGreaterThan(0);
     // The theme's reduced-motion rule clamps every transition to 0.01 ms (1e-05s): effectively none.

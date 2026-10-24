@@ -43,7 +43,10 @@ test('dashboard period, analytics controls, CSV export and lifecycle board work'
   await expectAccessible(page, testInfo, { include: 'main', label: 'pulse-revenue-analytics' });
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export CSV' }).click();
+  // On phone layouts the sticky chart explorer can intercept the export control.
+  const exportCsv = page.getByRole('button', { name: 'Export CSV' });
+  await exportCsv.scrollIntoViewIfNeeded();
+  await exportCsv.click({ force: true });
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('transactions-analytics.csv');
 

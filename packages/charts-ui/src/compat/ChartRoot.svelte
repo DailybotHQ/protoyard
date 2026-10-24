@@ -1,4 +1,9 @@
 <script lang="ts">
+/**
+ * Thin named-group wrapper around a Texuli chart. No DOM polyfills: Texuli
+ * owns table disclosure ("Show data table" / aria-expanded) and mark hooks
+ * (data-series on bar rects). Tests and hosts use those contracts directly.
+ */
 import type { Snippet } from 'svelte';
 
 type Props = {
@@ -9,45 +14,10 @@ type Props = {
 let { title, children }: Props = $props();
 const label = $derived(title.trim().endsWith('.') ? title.trim() : `${title.trim()}.`);
 
-function markGeometry(node: HTMLElement) {
-  const apply = () => {
-    // Texuli bar marks use data-series; Protoyard tests and hosts look for data-bar.
-    for (const rect of node.querySelectorAll(
-      'svg rect[data-series], svg rect[data-bar-index], .plot rect'
-    )) {
-      if (!rect.hasAttribute('data-bar')) rect.setAttribute('data-bar', '');
-    }
-    for (const btn of node.querySelectorAll('button[data-chart-table-toggle], button')) {
-      const text = (btn.textContent ?? '').trim();
-      const isToggle =
-        btn.hasAttribute('data-chart-table-toggle') ||
-        text === 'Show data table' ||
-        text === 'Hide data table' ||
-        btn.getAttribute('data-py-relabel') === 'table' ||
-        btn.getAttribute('data-py-relabel') === 'chart';
-      if (!isToggle) continue;
-      const open =
-        btn.getAttribute('aria-expanded') === 'true' ||
-        text === 'Hide data table' ||
-        btn.getAttribute('data-py-relabel') === 'chart';
-      // Protoyard hosts expect "View as table/chart" + aria-pressed (Texuli uses aria-expanded).
-      btn.textContent = open ? 'View as chart' : 'View as table';
-      btn.setAttribute('data-py-relabel', open ? 'chart' : 'table');
-      btn.setAttribute('aria-pressed', open ? 'true' : 'false');
-    }
-  };
-  apply();
-  const mo = new MutationObserver(apply);
-  mo.observe(node, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-    attributes: true,
-    attributeFilter: ['aria-expanded', 'data-series'],
-  });
-  return { destroy: () => mo.disconnect() };
-}
-
+/**
+ * DrillDown and other hosts focus this named group; forward into the first
+ * interactive Texuli surface so keyboard users land on the plot.
+ */
 function forwardFocus(node: HTMLElement) {
   const onFocus = () => {
     const inner = node.querySelector<HTMLElement>(
@@ -71,7 +41,6 @@ function forwardFocus(node: HTMLElement) {
   role="group"
   aria-label={label}
   tabindex="0"
-  use:markGeometry
   use:forwardFocus
 >
   {@render children()}

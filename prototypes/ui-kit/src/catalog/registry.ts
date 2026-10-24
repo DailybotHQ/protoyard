@@ -725,7 +725,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
 <BarChart title="Revenue by region" series={regions} unit="cents" mode="stacked" />`,
     a11y: [
       'The plot is one focusable group: arrow keys move between points (PageUp/PageDown switch series), Enter selects, and a polite live region reads each point.',
-      'A visible summary sentence describes the chart; "View as table" swaps in a real table with the same values.',
+      'A visible summary sentence describes the chart; "Show data table" swaps in a real table with the same values.',
       'Series are labelled in a legend that also hides them; comparison series are dashed, so color is never the only cue.',
     ],
   },
@@ -740,7 +740,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
 <SankeyChart title="Visitor flow" {nodes} links={[{ source: 'visit', target: 'signup', value: 3100 }, …]} />`,
     a11y: [
       'Slices, steps, nodes and cells are reachable with the arrow keys; each one is announced with its value and share.',
-      'Every chart has "View as table": slices with value and share, funnel steps with conversions, Sankey links source → target.',
+      'Every chart has "Show data table": slices with value and share, funnel steps with conversions, Sankey links source → target.',
       'Small slices fold into "Other" (listed in its tooltip) so labels never overlap.',
     ],
   },
