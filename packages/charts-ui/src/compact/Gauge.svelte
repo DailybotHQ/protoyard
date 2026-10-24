@@ -15,16 +15,7 @@ type Props = {
   [key: string]: unknown;
 };
 
-let {
-  label,
-  value,
-  min,
-  max = 100,
-  description,
-  thresholds,
-  bandLabels,
-  format,
-}: Props = $props();
+let { label, value, min, max = 100, description, thresholds, bandLabels, format }: Props = $props();
 </script>
 
 <ChartRoot title={label}>

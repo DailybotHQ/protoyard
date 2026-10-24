@@ -18,26 +18,12 @@ type Props = {
   [key: string]: unknown;
 };
 
-let {
-  title,
-  description,
-  data,
-  values,
-  shape = 'world',
-  layout,
-  emptyMessage,
-}: Props = $props();
+let { title, description, data, values, shape = 'world', layout, emptyMessage }: Props = $props();
 
 const desc = $derived(description ?? emptyMessage ?? title);
 const mapData = $derived(data ?? values ?? {});
 const tiles = $derived(
-  layout
-    ? layout
-    : shape === 'region'
-      ? REGION_TILES
-      : shape === 'world'
-        ? WORLD_TILES
-        : shape
+  layout ? layout : shape === 'region' ? REGION_TILES : shape === 'world' ? WORLD_TILES : shape
 );
 </script>
 
