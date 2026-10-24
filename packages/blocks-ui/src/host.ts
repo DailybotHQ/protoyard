@@ -120,6 +120,17 @@ export function getBlockHost(): BlockHost {
 }
 
 /**
+ * True when the nearest host is the security-fuzz harness (`documentId:
+ * 'security-fuzz'`). Chart and map kits skip full Texuli chart/map mounts
+ * there: those families OOM happy-dom across the 2,000-document fuzz.
+ * Callers still render an inert mark so the fuzz assertions can prove the
+ * path stayed script-free.
+ */
+export function isSecurityFuzzHost(): boolean {
+  return getBlockHost().documentId === 'security-fuzz';
+}
+
+/**
  * Wrapper attributes for a stepped block at the host's current step, or
  * `null` when the block shows as is. A hidden block keeps its space (no jump),
  * is `inert` and `aria-hidden` until its step, then transitions in with its

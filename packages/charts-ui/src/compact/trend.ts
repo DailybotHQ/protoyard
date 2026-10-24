@@ -11,16 +11,28 @@ export interface TrendSummary {
   change: number | null;
   first: number | null;
   last: number | null;
+  /** Short direction word for callers that only need up/down/flat. */
+  label: string;
+  delta: number;
 }
 
 export function trendSummary(values: readonly (number | null)[]): TrendSummary {
   const defined = values.filter((v): v is number => v !== null && Number.isFinite(v));
   const first = defined[0] ?? null;
   const last = defined.at(-1) ?? null;
-  if (first === null || last === null || defined.length < 2)
-    return { direction: 'none', change: null, first, last };
+  if (first === null || last === null || defined.length < 2) {
+    return { direction: 'none', change: null, first, last, label: 'No change', delta: 0 };
+  }
+  const delta = last - first;
   const direction = last > first ? 'up' : last < first ? 'down' : 'flat';
-  return { direction, change: first === 0 ? null : (last - first) / Math.abs(first), first, last };
+  return {
+    direction,
+    change: first === 0 ? null : delta / Math.abs(first),
+    first,
+    last,
+    delta,
+    label: direction === 'flat' ? 'Flat' : direction === 'up' ? 'Up' : 'Down',
+  };
 }
 
 /** "Trend: up 12% over 30 days", "Trend: flat over 30 days", "No trend data". */

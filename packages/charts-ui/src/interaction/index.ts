@@ -1,22 +1,34 @@
-export { default as Axis } from './Axis.svelte';
-export { default as ChartTable } from './ChartTable.svelte';
-export { default as Grid } from './Grid.svelte';
-export { default as InteractivePlot } from './InteractivePlot.svelte';
-export { default as Legend } from './Legend.svelte';
+import type { ChartFamily } from '../families.ts';
+
+export const FAMILY = 'interaction' satisfies ChartFamily;
+
 export {
   type ActivePoint,
+  type Box,
+  type BrushRange,
+  brushToDomain,
   type ChartFormatters,
   type ChartSelection,
+  ChartTable,
+  clampZoomDomain,
+  type DomainPair,
   edgeIndex,
   firstActive,
+  InteractivePlot,
+  Legend,
   nearestIndex,
+  normalizeBrush,
   type PlotPoint,
   type PlotSeries,
+  prefersReducedMotion,
+  seriesColor,
   stepIndex,
   stepSeries,
+  TableToggle,
+  type TableWindow,
   tableRows,
+  tableWindow,
   toggleSeries,
   tooltipPosition,
-} from './model.ts';
-export { default as TableToggle } from './TableToggle.svelte';
-export { default as Tooltip } from './Tooltip.svelte';
+  zoomDomain,
+} from '@texuli/charts/interaction';

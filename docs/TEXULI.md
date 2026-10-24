@@ -68,12 +68,14 @@ Protoyard (`../texuli`):
   library in every prototype's initial chunk.
 
 
-## Chart math from `@texuli/charts`
+## Charts from `@texuli/charts`
 
-`@protoyard/charts` re-exports scales, shapes, layouts and downsampling from
-`@texuli/charts/math`. Chart palettes stay local (`@protoyard/charts/palette`).
-`@protoyard/charts-ui` keeps the Protoyard chart shells and data contract; its
-math imports resolve through `@protoyard/charts` to Texuli.
+`@protoyard/charts` re-exports math from `@texuli/charts/math`. Palettes use
+`@texuli/tokens/palette` `deriveChartTokens` (with `--py-chart*` CSS helpers).
+`@protoyard/charts-ui` re-exports every Texuli chart family (`cartesian`,
+`part-whole`, `matrix`, `compact`, `canvas`, `geo`, `flow`, `interaction`) with
+thin adapters for Protoyard props (`seriesFromRows`, `emptyMessage`, funnel
+`count`, scatter series shape).
 
 See `packages/charts/docs/texuli-math.md` and `packages/charts-ui/docs/texuli-charts.md`.
 

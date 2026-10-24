@@ -1,7 +1,7 @@
 {
   "name": "@protoyard/charts-ui",
   "version": "1.0.0",
-  "description": "Svelte 5 chart components for Protoyard prototypes. Math comes from @protoyard/charts (Texuli @texuli/charts/math); shells keep the Protoyard data contract (seriesFromRows, units, legends).",
+  "description": "Svelte chart components for Protoyard: thin re-exports and adapters over @texuli/charts families.",
   "license": "MIT",
   "type": "module",
   "sideEffects": [
@@ -18,6 +18,16 @@
       "types": "./src/cartesian/index.ts",
       "svelte": "./src/cartesian/index.ts",
       "default": "./src/cartesian/index.ts"
+    },
+    "./flow": {
+      "types": "./src/flow/index.ts",
+      "svelte": "./src/flow/index.ts",
+      "default": "./src/flow/index.ts"
+    },
+    "./interaction": {
+      "types": "./src/interaction/index.ts",
+      "svelte": "./src/interaction/index.ts",
+      "default": "./src/interaction/index.ts"
     },
     "./part-whole": {
       "types": "./src/part-whole/index.ts",
@@ -51,7 +61,8 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@protoyard/charts": "workspace:*"
+    "@protoyard/charts": "workspace:*",
+    "@texuli/charts": "link:../../../texuli/packages/charts"
   },
   "devDependencies": {
     "svelte": "^5.57.2"
@@ -84,6 +95,16 @@
         "types": "./dist/cartesian/index.d.ts",
         "svelte": "./dist/cartesian/index.js",
         "default": "./dist/cartesian/index.js"
+      },
+      "./flow": {
+        "types": "./dist/flow/index.d.ts",
+        "svelte": "./dist/flow/index.js",
+        "default": "./dist/flow/index.js"
+      },
+      "./interaction": {
+        "types": "./dist/interaction/index.d.ts",
+        "svelte": "./dist/interaction/index.js",
+        "default": "./dist/interaction/index.js"
       },
       "./part-whole": {
         "types": "./dist/part-whole/index.d.ts",
