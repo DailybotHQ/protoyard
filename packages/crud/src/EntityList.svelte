@@ -158,12 +158,20 @@ async function restoreSelected(ids: string[]) {
   toast.success(`Restored ${restored} record${restored === 1 ? '' : 's'}`);
 }
 
+// The dialog stays open, its confirm button busy, until this settles; it then
+// closes itself (AlertDialog awaits onConfirm).
 async function confirmDelete() {
+  try {
+    await deletePending();
+  } finally {
+    pendingIds = [];
+  }
+}
+
+async function deletePending() {
   const ids = pendingIds;
   const svc = service;
   const ent = entity;
-  confirmOpen = false;
-  pendingIds = [];
   if (!svc || !ent || !ids.length) return;
 
   if (softDelete) {

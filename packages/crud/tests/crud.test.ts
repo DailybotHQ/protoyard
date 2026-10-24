@@ -164,7 +164,7 @@ describe('EntityList', () => {
     );
     await fireEvent.click(screen.getByRole('button', { name: 'Delete 1' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    const dialog = screen.getByRole('alertdialog');
+    const dialog = await screen.findByRole('alertdialog');
     await waitFor(() =>
       expect(dialog.querySelector('button[aria-busy="true"]')?.textContent).toContain('Delete')
     );

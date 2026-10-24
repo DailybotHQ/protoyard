@@ -215,7 +215,7 @@ const summary = $derived(
         pending = null;
         if (isOpen) focusDate = value.start;
       }}
-      onOpenFocus={() => void calendar?.focus()}
+      initialFocus={() => calendar?.focusTarget() ?? null}
     >
       {#snippet trigger({ props })}
         <button

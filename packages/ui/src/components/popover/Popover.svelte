@@ -15,11 +15,6 @@ type Props = Omit<ComponentProps<typeof PopoverPrimitive.Content>, 'children'> &
   trigger: TriggerSnippet;
   children: Snippet;
   onOpenChange?: (open: boolean) => void;
-  /**
-   * Runs once the content is open and has focused its first control; move
-   * focus elsewhere here (for example to a calendar's focused date).
-   */
-  onOpenFocus?: () => void;
 };
 
 let {
@@ -27,7 +22,6 @@ let {
   trigger,
   children,
   onOpenChange,
-  onOpenFocus,
   side = 'bottom',
   align = 'center',
   sideOffset = 6,
@@ -43,11 +37,7 @@ let {
   </PopoverPrimitive.Trigger>
   <!-- The content opens in the top layer, above every stacking context. -->
   <PopoverPrimitive.Content
-    {@attach refAttachment<HTMLElement>((node) => {
-      ref = node;
-      // The primitive focuses the content as it attaches, right after this.
-      if (node && onOpenFocus) queueMicrotask(onOpenFocus);
-    })}
+    {@attach refAttachment<HTMLElement>((node) => (ref = node))}
     class={cn(floatingSurface, 'w-72 max-w-[calc(100vw-2rem)] p-4 text-sm', className)}
     {...rest}
   >

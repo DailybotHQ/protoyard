@@ -49,7 +49,7 @@ let focusTarget = $state<HTMLButtonElement | null>(null);
   {#snippet trigger({ props })}<Button {...props}>Actions</Button>{/snippet}
 </DropdownMenu>
 
-<Popover bind:ref={popoverRef} onOpenFocus={() => focusTarget?.focus()}>
+<Popover bind:ref={popoverRef} initialFocus={() => focusTarget}>
   {#snippet trigger({ props })}<Button {...props}>Filters</Button>{/snippet}
   <button type="button">First</button>
   <button type="button" bind:this={focusTarget}>Preferred</button>

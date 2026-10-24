@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Command as CommandIcon, Search } from '@lucide/svelte';
 import { Command } from '@texuli/primitives/command';
-import { Dialog as DialogPrimitive } from 'bits-ui';
+import * as DialogPrimitive from '@texuli/primitives/dialog';
 import { onMount } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';
@@ -132,18 +132,24 @@ onMount(() => {
 });
 </script>
 
-<DialogPrimitive.Root bind:open onOpenChange={setOpen}>
-  <DialogPrimitive.Portal to={portal.current}>
+<!-- Inside a framed device the palette is contained by its screen; otherwise it opens in the top layer. -->
+<DialogPrimitive.Root
+  bind:open
+  onOpenChange={setOpen}
+  mode={portal.mode}
+  container={portal.container}
+  onCloseAutoFocus={(event) => {
+    event.preventDefault();
+    restoreFocus();
+  }}
+>
+  <DialogPrimitive.Portal>
     <DialogPrimitive.Overlay class={overlayBackdrop} />
     <DialogPrimitive.Content
       class={cn(
         'fixed top-[12vh] left-1/2 z-50 flex max-h-[76vh] w-[calc(100%-2rem)] -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-border bg-elevated text-foreground shadow-float outline-none ui-anim-pop sm:top-[18vh] sm:max-w-xl',
         className
       )}
-      onCloseAutoFocus={(event) => {
-        event.preventDefault();
-        restoreFocus();
-      }}
     >
       <DialogPrimitive.Title class="sr-only">Command palette</DialogPrimitive.Title>
       <DialogPrimitive.Description class="sr-only">

@@ -1,19 +1,19 @@
 <script lang="ts">
 import { X } from '@lucide/svelte';
-import { Dialog as DialogPrimitive } from 'bits-ui';
+import { Sheet } from '@texuli/primitives/sheet';
 import type { Snippet } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';
+import { refAttachment } from '../../lib/ref.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
-import { undoToast } from '../toast/undo.svelte.ts';
+import { overlayDismissHandler } from './dismiss.ts';
 import {
   type DrawerPlacement,
   drawerPlacementClasses,
   isDrawerPlacement,
   resolveDrawerSize,
 } from './drawer.ts';
-import { isUndoToasterTarget } from './focus-exempt.ts';
 import { type OverlayStack, overlayStack } from './overlay-stack.ts';
 import { useOverlayLayer } from './use-overlay-layer.svelte.ts';
 
@@ -80,9 +80,6 @@ const layer = useOverlayLayer(() => open, { modal: () => modal, stack });
 const edge = $derived(isDrawerPlacement(placement) ? placement : 'right');
 const resolvedSize = $derived(resolveDrawerSize(edge, size));
 const outsideCloses = $derived(closeOnOutsideClick ?? modal);
-// While an undo toast is up, release the focus trap so Undo/Dismiss stay
-// keyboard-reachable outside the modal surface (toaster paints above the stack).
-const trapFocus = $derived(modal && undoToast.items.length === 0);
 
 function setOpen(next: boolean): void {
   if (open === next) return;
@@ -90,105 +87,103 @@ function setOpen(next: boolean): void {
   onOpenChange?.(next);
 }
 
-// Bits closes the layer unless the handler prevents it; the drawer decides with the stack.
-function handleEscape(event: KeyboardEvent): void {
-  event.preventDefault();
-  if (!layer.stack.isTop(layer.entry)) return;
-  if (layer.stack.dismissLayerFor(event, ref)) return;
-  if (closeOnEscape) setOpen(false);
-}
+// The drawer decides with the stack: only the top overlay closes, and the
+// undo toaster never counts as outside.
+const handleDismiss = overlayDismissHandler({
+  layer,
+  element: () => ref,
+  escape: () => closeOnEscape,
+  outside: () => outsideCloses,
+});
 
-function handleInteractOutside(event: PointerEvent): void {
-  event.preventDefault();
-  // Undo toasts live outside the drawer; a click on them must not close it.
-  if (isUndoToasterTarget(event.target)) return;
-  if (!outsideCloses || !layer.stack.isTop(layer.entry)) return;
-  setOpen(false);
-}
-
-function handleFocusOutside(event: FocusEvent): void {
-  // Non-modal: ignore outside focus. Modal: let the undo toaster keep focus
-  // (its capture listener also stops the focus trap; see UndoToaster).
-  if (!modal || isUndoToasterTarget(event.target)) {
-    event.preventDefault();
+// A non-modal drawer has no focus scope, so it returns focus to its opener itself.
+let wasOpen = false;
+$effect(() => {
+  if (open) {
+    wasOpen = true;
+    return;
   }
-}
+  if (!wasOpen) return;
+  wasOpen = false;
+  if (!modal) queueMicrotask(() => layer.restoreFocus(null));
+});
 
-function handleCloseAutoFocus(event: Event): void {
+function handleCloseAutoFocus(event: { preventDefault(): void }): void {
   event.preventDefault();
   layer.restoreFocus(ref);
 }
 </script>
 
-<DialogPrimitive.Root open={open} onOpenChange={setOpen}>
+<!-- Inside a framed device the drawer is contained by its screen; otherwise it opens in the top layer. -->
+<Sheet.Root
+  {open}
+  onOpenChange={setOpen}
+  mode={portal.mode}
+  container={portal.container}
+  onDismissRequest={handleDismiss}
+  onCloseAutoFocus={handleCloseAutoFocus}
+>
   {#if trigger}
-    <DialogPrimitive.Trigger>
+    <Sheet.Trigger>
       {#snippet child({ props })}{@render trigger({ props })}{/snippet}
-    </DialogPrimitive.Trigger>
+    </Sheet.Trigger>
   {/if}
-  <DialogPrimitive.Portal to={portal.current}>
+  <Sheet.Portal>
     {#if modal}
-      <DialogPrimitive.Overlay class={overlayBackdrop} style={`z-index:${layer.zIndex}`} />
+      <Sheet.Overlay class={overlayBackdrop} style={`z-index:${layer.zIndex}`} />
     {/if}
-    <DialogPrimitive.Content
-      bind:ref
-      trapFocus={trapFocus}
-      preventScroll={modal}
-      onEscapeKeydown={handleEscape}
-      onInteractOutside={handleInteractOutside}
-      onFocusOutside={handleFocusOutside}
-      onCloseAutoFocus={handleCloseAutoFocus}
-    >
-      <!-- Our attributes come after the spread: Bits always marks dialogs aria-modal. -->
-      {#snippet child({ props })}
-        <div
-          {...props}
-          aria-modal={modal ? 'true' : 'false'}
-          data-placement={edge}
-          data-modal={modal ? 'true' : 'false'}
-          class={cn(
-            'ui-drawer fixed flex flex-col border-border bg-elevated text-foreground shadow-float outline-none',
-            drawerPlacementClasses(edge),
-            className
-          )}
-          style={`${typeof props.style === 'string' ? props.style : ''};--ui-drawer-size:${resolvedSize};z-index:${layer.zIndex}`}
-        >
-          {#if edge === 'bottom'}
-            <div class="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-border" aria-hidden="true"></div>
-          {/if}
-          <div class="flex shrink-0 items-start justify-between gap-4 px-5 pt-5 pb-3">
-            <div class={cn('grid min-w-0 gap-1', hideTitle && 'sr-only')}>
-              <DialogPrimitive.Title class="font-heading text-lg leading-tight font-semibold">
-                {title}
-              </DialogPrimitive.Title>
-              {#if description}
-                <DialogPrimitive.Description class="text-sm text-muted-foreground">
-                  {description}
-                </DialogPrimitive.Description>
-              {/if}
-            </div>
-            {#if !hideClose}
-              <DialogPrimitive.Close
-                class="-mt-1 -mr-2 ml-auto inline-flex size-9 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0 sm:min-w-0"
-              >
-                <X class="size-4" aria-hidden="true" />
-                <span class="sr-only">{closeLabel}</span>
-              </DialogPrimitive.Close>
+    <!-- Non-modal by default: no inert page, focus trap or scroll lock. Read once, at open. -->
+    {#key modal}
+      <Sheet.Content
+        {@attach refAttachment<HTMLElement>((node) => (ref = node))}
+        side={edge}
+        {modal}
+        dismissOutside={!modal && outsideCloses}
+        closeOnEscape={!modal && closeOnEscape}
+        data-placement={edge}
+        data-modal={modal ? 'true' : 'false'}
+        class={cn(
+          'ui-drawer fixed flex flex-col border-border bg-elevated text-foreground shadow-float outline-none',
+          drawerPlacementClasses(edge),
+          className
+        )}
+        style={`--ui-drawer-size:${resolvedSize};z-index:${layer.zIndex}`}
+      >
+        {#if edge === 'bottom'}
+          <div class="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-border" aria-hidden="true"></div>
+        {/if}
+        <div class="flex shrink-0 items-start justify-between gap-4 px-5 pt-5 pb-3">
+          <div class={cn('grid min-w-0 gap-1', hideTitle && 'sr-only')}>
+            <Sheet.Title class="font-heading text-lg leading-tight font-semibold">
+              {title}
+            </Sheet.Title>
+            {#if description}
+              <Sheet.Description class="text-sm text-muted-foreground">
+                {description}
+              </Sheet.Description>
             {/if}
           </div>
-          {#if children}
-            <div class="min-h-0 flex-1 overflow-y-auto px-5 py-2 text-sm">{@render children()}</div>
-          {/if}
-          {#if footer}
-            <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
-              {@render footer()}
-            </div>
+          {#if !hideClose}
+            <Sheet.Close
+              class="-mt-1 -mr-2 ml-auto inline-flex size-9 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0 sm:min-w-0"
+            >
+              <X class="size-4" aria-hidden="true" />
+              <span class="sr-only">{closeLabel}</span>
+            </Sheet.Close>
           {/if}
         </div>
-      {/snippet}
-    </DialogPrimitive.Content>
-  </DialogPrimitive.Portal>
-</DialogPrimitive.Root>
+        {#if children}
+          <div class="min-h-0 flex-1 overflow-y-auto px-5 py-2 text-sm">{@render children()}</div>
+        {/if}
+        {#if footer}
+          <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
+            {@render footer()}
+          </div>
+        {/if}
+      </Sheet.Content>
+    {/key}
+  </Sheet.Portal>
+</Sheet.Root>
 
 <style>
   @media (prefers-reduced-motion: no-preference) {

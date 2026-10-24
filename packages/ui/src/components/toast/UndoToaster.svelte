@@ -1,11 +1,15 @@
 <script lang="ts">
 import { Undo2, X } from '@lucide/svelte';
-import { Portal } from 'bits-ui';
+import { getInertRegistry } from '@texuli/core/inert';
+import { OVERLAY_Z_BASE } from '@texuli/core/overlay-core';
+import { createPortal } from '@texuli/core/portal';
 import { onMount } from 'svelte';
+import type { Attachment } from 'svelte/attachments';
 import { cn } from '../../lib/cn.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import Button from '../button/Button.svelte';
 import { installUndoToasterFocusExemption, UNDO_TOASTER_ATTR } from '../overlay/focus-exempt.ts';
+import { overlayStack } from '../overlay/overlay-stack.ts';
 import { useOverlayTopZIndex } from '../overlay/use-overlay-layer.svelte.ts';
 import { undoToast } from './undo.svelte.ts';
 
@@ -20,10 +24,82 @@ let { class: className, label = 'Undo notifications' }: Props = $props();
 const portal = useOverlayPortalTarget();
 // Above every open drawer, so an undo offered from inside one stays visible.
 const topZ = useOverlayTopZIndex();
-const zIndex = $derived(Math.max(60, topZ.current));
+// Contained overlays (and browsers without a top layer) order themselves from
+// OVERLAY_Z_BASE; the region stays above those too.
+let openOverlays = $state(overlayStack.size);
+$effect(() => overlayStack.subscribe((size) => (openOverlays = size)));
+const zIndex = $derived(
+  Math.max(60, topZ.current, openOverlays > 0 ? OVERLAY_Z_BASE + openOverlays + 1 : 0)
+);
 
 // Install before any modal opens when possible (app-root toaster mounts first).
 onMount(() => installUndoToasterFocusExemption());
+
+/** Moves the toaster into the framed device screen while a shell sets one, else to `body`. */
+const portalTo: Attachment<HTMLElement> = (node) => {
+  const portalled = createPortal(node, { target: portal.current ?? null });
+  return () => portalled.destroy();
+};
+
+/**
+ * Keeps the region usable under a modal overlay: it is an inert exemption
+ * (never made inert, never "outside" the modal), and in the top layer it
+ * re-enters after each overlay that opens there, so it paints above it.
+ */
+const aboveOverlays: Attachment<HTMLElement> = (node) => {
+  let exemption: { release(): void } | null = null;
+  try {
+    exemption = getInertRegistry().exempt({ element: node, label: 'undo-toaster' });
+  } catch {
+    exemption = null;
+  }
+  const popover = node as HTMLElement & { showPopover?(): void; hidePopover?(): void };
+  const inTopLayer = () => {
+    try {
+      return node.matches(':popover-open');
+    } catch {
+      return false;
+    }
+  };
+  const raise = () => {
+    try {
+      if (inTopLayer()) popover.hidePopover?.();
+      popover.showPopover?.();
+    } catch {
+      // Engines without popovers keep the fixed z-index from the stack.
+    }
+  };
+  // Inside a device frame overlays are contained, ordered by z-index: no top layer.
+  if (!portal.current) raise();
+  const onToggle = (event: Event) => {
+    if (portal.current || event.target === node || !(event.target instanceof Element)) return;
+    if ((event as Event & { newState?: string }).newState !== 'open') return;
+    if (inTopLayer()) raise();
+  };
+  const doc = node.ownerDocument;
+  doc.addEventListener('toggle', onToggle, true);
+  return () => {
+    doc.removeEventListener('toggle', onToggle, true);
+    exemption?.release();
+    try {
+      if (inTopLayer()) popover.hidePopover?.();
+    } catch {
+      // Already hidden.
+    }
+  };
+};
+
+// F6 moves focus to the newest toast's Undo, from anywhere, modal overlays included
+// (Tab stays inside a modal, per WAI-ARIA APG; this is the way out to the toasts).
+function handleHotkey(event: KeyboardEvent): void {
+  if (event.key !== 'F6' || event.altKey || event.ctrlKey || event.metaKey) return;
+  const undo = document.querySelector<HTMLElement>(
+    `[${UNDO_TOASTER_ATTR}] li:last-child button:not([disabled])`
+  );
+  if (!undo) return;
+  event.preventDefault();
+  undo.focus();
+}
 
 const politeText = $derived(
   undoToast.announcement && !undoToast.announcement.assertive ? undoToast.announcement.text : ''
@@ -49,7 +125,9 @@ function handleKeydown(event: KeyboardEvent): void {
 }
 </script>
 
-<Portal to={portal.current}>
+<svelte:window onkeydown={handleHotkey} />
+
+<div data-ui-undo-toaster-host="" {@attach portalTo}>
   <!-- Live regions stay mounted so screen readers reliably announce new messages. -->
   <div class="sr-only" aria-live="polite" aria-atomic="true">{politeText}</div>
   <div class="sr-only" aria-live="assertive" aria-atomic="true">{assertiveText}</div>
@@ -57,8 +135,12 @@ function handleKeydown(event: KeyboardEvent): void {
   <section
     aria-label={label}
     {...{ [UNDO_TOASTER_ATTR]: '' }}
+    popover="manual"
+    {@attach aboveOverlays}
     style={`z-index:${zIndex}`}
     class={cn(
+      // Reset the popover defaults (centered box, border, padding, background).
+      'top-auto m-0 h-auto max-h-none w-auto max-w-none overflow-visible border-0 bg-transparent pt-0',
       // Phones center the stack; `--py-fixed-right-edge` (set by the renderer) keeps it on the visible width.
       'pointer-events-none fixed inset-x-0 bottom-0 flex justify-center pl-4 pr-[calc(1rem+var(--py-fixed-right-edge,0px))] pb-[max(1rem,env(safe-area-inset-bottom))]',
       'sm:inset-x-auto sm:left-0 sm:justify-start sm:p-6',
@@ -129,7 +211,7 @@ function handleKeydown(event: KeyboardEvent): void {
       </ol>
     {/if}
   </section>
-</Portal>
+</div>
 
 <style>
   .ui-undo-countdown {

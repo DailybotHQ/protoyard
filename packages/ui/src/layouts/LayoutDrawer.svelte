@@ -1,6 +1,6 @@
 <script lang="ts">
 import { X } from '@lucide/svelte';
-import { Dialog as DialogPrimitive } from 'bits-ui';
+import * as DialogPrimitive from '@texuli/primitives/dialog';
 import type { Snippet } from 'svelte';
 import DrawerScope from '../components/app-shell/DrawerScope.svelte';
 import { overlayBackdrop } from '../lib/overlay.ts';
@@ -11,7 +11,7 @@ import { onNavigate } from './layout-kit.ts';
  * The navigation drawer a layout shows below its breakpoint (the AppShell
  * drawer, driven by the layout instead of the viewport). Escape, the close
  * button, the backdrop, following a link and any in-app navigation close it;
- * Bits UI traps and restores focus.
+ * the dialog traps and restores focus.
  */
 interface Props {
   open?: boolean;
@@ -36,8 +36,8 @@ function closeOnLink(event: MouseEvent): void {
 }
 </script>
 
-<DialogPrimitive.Root bind:open>
-  <DialogPrimitive.Portal to={portal.current}>
+<DialogPrimitive.Root bind:open mode={portal.mode} container={portal.container}>
+  <DialogPrimitive.Portal>
     <DialogPrimitive.Overlay class={overlayBackdrop} />
     <DialogPrimitive.Content
       class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-sidebar text-sidebar-foreground shadow-float outline-none ui-anim-drawer"

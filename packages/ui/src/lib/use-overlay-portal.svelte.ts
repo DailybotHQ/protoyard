@@ -1,11 +1,13 @@
 import { getOverlayPortalTarget, subscribeOverlayPortalTarget } from './overlay-portal.ts';
 
 /**
- * Reactive portal `to` for Bits UI: the framed device screen when set, else
- * `undefined` (Bits defaults to `document.body`).
+ * Where overlays open: inside the framed device screen when a shell sets one
+ * (`contained`, bounded by that screen), else in the page's top layer.
  */
 export function useOverlayPortalTarget(): {
   readonly current: Element | undefined;
+  readonly mode: 'top-layer' | 'contained';
+  readonly container: Element | null;
 } {
   let current = $state.raw<Element | undefined>(getOverlayPortalTarget() ?? undefined);
   $effect(() => {
@@ -24,6 +26,12 @@ export function useOverlayPortalTarget(): {
   return {
     get current() {
       return current;
+    },
+    get mode() {
+      return current ? 'contained' : 'top-layer';
+    },
+    get container() {
+      return current ?? null;
     },
   };
 }

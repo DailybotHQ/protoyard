@@ -6,10 +6,10 @@ Texuli is **linked**, not copied or installed from a registry, and Protoyard
 stays green.
 
 **Status:** this is the local `texuli-adoption` branch. It is not on `main`
-and has not been pushed. Themes come from `@texuli/tokens`, and the simple
-and floating `@protoyard/ui` controls run on `@texuli/primitives` (below).
-Dialogs, sheets and drawers have not moved yet. Later adoption tasks move
-packages over one at a time.
+and has not been pushed. Themes come from `@texuli/tokens`, and the simple,
+floating and dialog-family `@protoyard/ui` controls run on
+`@texuli/primitives` (below). Later adoption tasks move packages over one at
+a time.
 
 ## How it is linked
 
@@ -117,9 +117,9 @@ These components also keep their props and classes:
   above clipping ancestors without moving in the DOM.
 - **Widths.** The select and combobox lists match their field's width. The
   `UserPicker` list is `w-72`.
-- **`Popover` gains `onOpenFocus`.** The content focuses its first control
-  when it opens; `onOpenFocus` then runs, to move focus elsewhere. The date
-  pickers use it to focus the calendar's date.
+- **`Popover` takes `initialFocus`.** It is an element, or a getter for one,
+  that takes focus when the content opens; otherwise the first control does.
+  The date pickers use it for the calendar's focused date.
 - **Combobox.**
   - `filter` replaces the default label match. The chosen label in the
     input is not a search, so opening the list shows every option.
@@ -134,7 +134,48 @@ These components also keep their props and classes:
 - **Menus** open on click or with Enter, Space or ArrowDown on the trigger.
 - **Tests:** `floating-primitives.test.ts` covers labels through a consumer
   `id`, the combobox filter and form value, the tooltip, the menu, the
-  popover's `ref` and `onOpenFocus`, and people search.
+  popover's `ref` and `initialFocus`, and people search.
+
+## The dialog family runs on `@texuli/primitives`
+
+| Component | Texuli primitive |
+| --- | --- |
+| `Dialog`, `BottomSheet`, `DetailPanel`, the `AppShell` and layout navigation drawers, both command palettes | `dialog` |
+| `AlertDialog` | `alert-dialog` |
+| `Drawer` | `sheet` (`Sheet.Content`, modal or not) |
+
+- **Where they open.**
+  - On the page, overlays open in the browser's top layer.
+  - Inside a framed device (the shell sets the overlay target), they open in
+    Texuli's `contained` mode: the device screen holds them and bounds the
+    inert page, focus trap and scroll lock.
+  - `useOverlayPortalTarget()` gives each overlay its `mode` and `container`.
+- **Protoyard's stack still decides closing.**
+  - Every overlay still registers with `overlayStack`.
+  - `overlayDismissHandler` (`components/overlay/dismiss.ts`) applies its
+    rules through the primitive's `onDismissRequest`: only the top overlay
+    closes, a layer inside it takes Escape first, the undo toaster is never
+    outside, and `closeOnEscape` and `closeOnOutsideClick` hold.
+  - Focus returns to the opener through the stack. A non-modal drawer
+    restores focus itself, since it has no focus scope.
+- **Non-modal drawers** pass `closeOnOutsideClick` and `closeOnEscape` to
+  the sheet (`dismissOutside`, `closeOnEscape`).
+- **AlertDialog.**
+  - Cancel takes focus when the alert opens (`initialFocus`).
+  - Escape cancels and calls `onCancel`.
+  - It stays open, with a busy confirm button, until `onConfirm` settles.
+  - `EntityList` now waits for its delete before the dialog closes.
+- **The undo toaster.**
+  - It is a Texuli inert exemption: a modal never makes it inert, and a
+    press on it is never outside.
+  - On the page it re-enters the top layer after each overlay that opens
+    there, so it paints above them. In a frame, its z-index stays above
+    every overlay.
+  - F6 focuses the newest Undo. Tab stays inside a modal, per WAI-ARIA APG.
+- **Tests:** `dialog-family.test.ts` covers the toaster under a modal and F6,
+  containment in a device screen, and Escape on an alert. The overlay and
+  adaptive-overlay suites cover the stack, nesting, focus return and
+  outside presses.
 
 ## The dev server
 
@@ -168,6 +209,7 @@ import { Button } from 'texuli/button';
 | `pnpm vitest run packages/renderer-svelte/tests/vite.test.ts` | `linkedPackageRoots`: links resolve to real folders; duplicates, missing links, non-link specifiers and an unreadable manifest add nothing. This workspace allows exactly the Texuli package folders |
 | `pnpm vitest run packages/ui/tests/simple-primitives.test.ts` | The Texuli-backed controls: bindable refs, states, tab stops, wrapping tabs and unmounted inactive panels, the accordion's size variable, separator and progress semantics |
 | `pnpm vitest run packages/ui/tests/floating-primitives.test.ts` | The Texuli-backed floating controls: labels through a consumer id, the combobox filter and form value, tooltip, menu, popover ref and initial focus, people search |
+| `pnpm vitest run packages/ui/tests/dialog-family.test.ts packages/ui/tests/overlay.test.ts packages/ui/tests/adaptive-overlay.test.ts packages/ui/tests/alert-dialog.test.ts` | The Texuli-backed dialog family: the undo toaster under a modal and F6, device-screen containment, alert Escape, stacking, nesting, focus return, outside presses |
 | `pnpm check` | Lint, typecheck and the full unit suite stay green |
 
 ## Limits
