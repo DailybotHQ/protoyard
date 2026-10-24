@@ -37,8 +37,6 @@ describe('grid host toolkit helpers', () => {
   it('exports nextSort and completeFilter', () => {
     expect(typeof nextSort).toBe('function');
     expect(typeof completeFilter).toBe('function');
-    expect(
-      ROW_HEIGHT.comfortable ?? ROW_HEIGHT.default ?? Object.values(ROW_HEIGHT)[0]
-    ).toBeGreaterThan(0);
+    expect(ROW_HEIGHT.comfortable).toBeGreaterThan(0);
   });
 });
