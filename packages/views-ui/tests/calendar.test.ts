@@ -1,3 +1,4 @@
+import { setMountedRuntime } from '@protoyard/renderer-svelte';
 import type { CalendarSeries } from '@protoyard/views/calendar';
 import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -35,6 +36,29 @@ const query = (current: CalendarSeries<Data>[] | undefined = SERIES) => ({
 });
 
 describe('CalendarView (Texuli host adapter)', () => {
+  it('opens on the mounted runtime clock week when no runtime or now is passed', async () => {
+    const now = new Date('2026-10-20T12:00:00.000Z');
+    const clock = {
+      now: () => now,
+      committed: () => now,
+      reference: () => now,
+      getState: () => ({ running: false }),
+      subscribe: () => () => {},
+    };
+    setMountedRuntime({ clock } as never);
+    try {
+      render(CalendarView<Data>, {
+        query: query(),
+        timeZone: 'UTC',
+        getTitle: (o) => (o as { data?: Data }).data?.title ?? 'Event',
+      });
+      await waitFor(() => expect(document.body.textContent).toContain('Standup'));
+      expect(document.body.textContent).not.toContain('1970');
+    } finally {
+      setMountedRuntime(null);
+    }
+  });
+
   it('renders the calendar chrome and events from query', async () => {
     render(CalendarView<Data>, {
       query: query(),
