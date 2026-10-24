@@ -11,7 +11,11 @@ const ROOT = resolve(import.meta.dirname, '../../..');
 const HOSTS = ['page', 'doc'] as const;
 type Host = (typeof HOSTS)[number];
 const JS_GZIP_BUDGET = 120 * 1024;
-const CSS_GZIP_BUDGET = 20 * 1024;
+// Default 20 KB. Per-host overrides at the measured size plus at most 5%:
+// texuli component and layout CSS on top of Tailwind (T-adopt-ui-styled,
+// T-adopt-layouts; measured page 22,115 B and doc 22,374 B). Tighten after
+// texuli's FIX-texuli-css-size.
+const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 22.5 * 1024, doc: 22.5 * 1024 };
 
 interface HostBuild {
   chunks: Rollup.OutputChunk[];
@@ -140,7 +144,7 @@ describe('page and doc entry budgets (real production Vite builds)', () => {
     );
     expect(initial.length, `${host} static JS chunks`).toBeGreaterThan(0);
     expect(jsBytes, `${host} initial JS gzip`).toBeLessThanOrEqual(JS_GZIP_BUDGET);
-    expect(cssBytes, `${host} initial CSS gzip`).toBeLessThanOrEqual(CSS_GZIP_BUDGET);
+    expect(cssBytes, `${host} initial CSS gzip`).toBeLessThanOrEqual(CSS_GZIP_BUDGETS[host]);
 
     const forbidden = [
       ['crud/app', /\/crud\/src\/(?:app|screens)\//],

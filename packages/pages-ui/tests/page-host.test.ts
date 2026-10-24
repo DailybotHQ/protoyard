@@ -69,7 +69,7 @@ describe('PageHost', () => {
     expect(host?.getAttribute('data-page-id')).toBe('test-landing');
     expect(host?.getAttribute('data-style')).toBe('soft-violet');
 
-    expect(view.container.querySelector('[data-py-marketing-layout]')).toBeTruthy();
+    expect(view.container.querySelector('[data-tx-marketing-layout]')).toBeTruthy();
     expect(view.getByText('Test Landing')).toBeTruthy();
 
     const hero = view.container.querySelector('[data-py-page-section="hero"]');
