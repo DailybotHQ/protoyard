@@ -60,6 +60,28 @@ describe('workspace performance budgets', () => {
     expect(resolveBudget(config, 'other-app')).toEqual(DEFAULT_PERFORMANCE_BUDGETS);
   });
 
+  it('keeps an override reason with the config, out of the resolved budget', () => {
+    const config = parseBudgetConfig({
+      ...DEFAULT_BUDGET_CONFIG,
+      overrides: { 'crm-demo': { cssGzipKb: 34.6, reason: 'Fictional reason for a wider budget' } },
+    });
+    expect(config.overrides['crm-demo']?.reason).toBe('Fictional reason for a wider budget');
+    expect(resolveBudget(config, 'crm-demo')).toEqual({
+      ...DEFAULT_PERFORMANCE_BUDGETS,
+      cssGzipKb: 34.6,
+    });
+    for (const reason of ['', 42]) {
+      expect(
+        () =>
+          parseBudgetConfig({
+            ...DEFAULT_BUDGET_CONFIG,
+            overrides: { 'crm-demo': { cssGzipKb: 31, reason } },
+          }),
+        String(reason)
+      ).toThrow();
+    }
+  });
+
   it('reports malformed JSON and schema errors with the config path', async () => {
     ws = createWorkspace();
     ws.write('protoyard.budgets.json', '{ broken');

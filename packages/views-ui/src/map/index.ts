@@ -9,6 +9,7 @@ export {
   type MapMarker,
   type MapRoute,
   type MapTone,
+  type MapViewState,
   type MarkerShape,
   PAN_STEP,
   ringProblem,

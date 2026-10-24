@@ -327,6 +327,19 @@ function previousNonSpace(source: string, index: number): string {
   return source[cursor] ?? '';
 }
 
+/**
+ * The module sources to scan: a script file is one module; in an HTML page
+ * every `<script>` is its own module, so "top level" ends at its tag. Scanning
+ * the page as one text let brace matching run across hundreds of inlined
+ * chunks and flag an `await import()` inside a function.
+ */
+function moduleSources(path: string, text: string): string[] {
+  if (!/\.html$/i.test(path)) return [text];
+  return [...text.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)].map(
+    (match) => match[1] ?? ''
+  );
+}
+
 function topLevelAwaitDynamicImport(source: string): boolean {
   const code = maskCommentsAndLiterals(source);
   const functionBodies = new Set<number>();
@@ -599,7 +612,7 @@ export function checkTextAsset(path: string, text: string): PackIssue[] {
     }
   }
   if (/\.(?:m?js|html)$/i.test(path)) {
-    if (topLevelAwaitDynamicImport(text)) {
+    if (moduleSources(path, text).some(topLevelAwaitDynamicImport)) {
       issues.push({
         path,
         reason:

@@ -12,7 +12,8 @@ test.describe('Cadence Studio booking flow (static build)', () => {
   }, testInfo) => {
     await page.goto(`${prototypeUrl(SLUG)}?scenario=active#/bookings/calendar`);
     await waitForPrototypeReady(page, { slug: SLUG });
-    await expect(page.locator('[data-calendar]')).toBeVisible();
+    // Texuli CalendarView owns the single section[data-calendar] (no host duplicate).
+    await expect(page.locator('section[data-calendar]')).toBeVisible();
 
     // Phones render the agenda; desktop renders the week time grid. Both create
     // from an accessible empty calendar date/time slot.
@@ -69,7 +70,7 @@ test.describe('Cadence Studio booking flow (static build)', () => {
     await page.goto(`${prototypeUrl(SLUG)}?scenario=active#/bookings/calendar`);
     await waitForPrototypeReady(page, { slug: SLUG });
     await expect(page.locator('[data-py-bottom-nav]')).toBeVisible();
-    await expect(page.locator('[data-calendar]')).toBeVisible();
+    await expect(page.locator('section[data-calendar]')).toBeVisible();
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth
     );

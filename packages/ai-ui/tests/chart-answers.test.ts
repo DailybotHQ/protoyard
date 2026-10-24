@@ -46,7 +46,7 @@ describe('chart answers in RichAnswer', () => {
     expect(chart.getAttribute('tabindex')).toBe('0');
     expect(
       document.querySelectorAll(
-        '[data-chart-kind="bar"] rect[data-bar], [data-chart-kind="bar"] [data-bar]'
+        '[data-chart-kind="bar"] svg rect[data-series], [data-chart-kind="bar"] svg rect'
       ).length
     ).toBeGreaterThan(0);
     expect(screen.getByText('Wednesday peaked.')).toBeTruthy();

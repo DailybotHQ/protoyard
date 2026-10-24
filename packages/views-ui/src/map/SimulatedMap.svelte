@@ -2,13 +2,13 @@
 /**
  * Host adapter over `@texuli/data/map` `MapView`.
  * Forwards routes, fences, cellPx, onPick, listPlacement, marker shape/glyph,
- * and strong tones. MapView owns pan, fluid surface sizing, clustering,
- * data-marker / data-cluster / data-list-item, and legend names.
- * `editableFenceId` / `onFenceChange` are pass-through seams (editing deferred).
+ * strong tones, and onViewChange (camera). MapView owns pan, fluid sizing,
+ * clustering, data-marker / data-cluster / data-list-item / data-center /
+ * data-zoom. `editableFenceId` / `onFenceChange` are deferred seams.
  */
 import type { Basemap } from '@protoyard/views/map';
 import { MapView } from '@texuli/data/map';
-import type { LngLat, MapMarker, MapRoute, MapTone, MarkerShape } from './model.ts';
+import type { LngLat, MapMarker, MapRoute, MapTone, MapViewState, MarkerShape } from './model.ts';
 
 let {
   markers = [],
@@ -17,7 +17,7 @@ let {
   basemap,
   selected = $bindable<string | null>(null),
   selectedId = $bindable<string | undefined>(undefined),
-  view = $bindable<unknown>(undefined),
+  view = $bindable<MapViewState | undefined>(undefined),
   editableFenceId,
   label = 'Map',
   listLabel = 'Places on the map',
@@ -27,6 +27,7 @@ let {
   onSelect,
   onFenceChange,
   onPick,
+  onViewChange,
   class: className,
 }: {
   markers?: readonly MapMarker[];
@@ -35,8 +36,8 @@ let {
   basemap?: Basemap;
   selected?: string | null;
   selectedId?: string | undefined;
-  /** Host camera state (MapScreen bind); Texuli owns internal view after fit. */
-  view?: unknown;
+  /** Host camera (MapScreen `bind:view`); synced from Texuli `onViewChange`. */
+  view?: MapViewState | undefined;
   editableFenceId?: string;
   label?: string;
   listLabel?: string;
@@ -49,6 +50,8 @@ let {
   /** Deferred fence-edit seam (Texuli accepts; vertex handles not drawn yet). */
   onFenceChange?: (fence: unknown) => unknown;
   onPick?: (point: LngLat) => void;
+  /** Fires after pan/zoom with center + zoom (also updates `bind:view`). */
+  onViewChange?: (next: MapViewState) => void;
   class?: string;
 } = $props();
 
@@ -131,10 +134,10 @@ function handleFenceChange(fence: unknown): void {
   onFenceChange?.(fence);
 }
 
-// Keep host view bindable stable for MapScreen; MapView owns its camera after fit.
-$effect(() => {
-  void view;
-});
+function handleViewChange(next: MapViewState): void {
+  view = next;
+  onViewChange?.(next);
+}
 
 let hostRoot = $state<HTMLElement | null>(null);
 
@@ -169,6 +172,7 @@ $effect(() => {
     bind:selectedId={id}
     onSelect={onMapSelect}
     onPick={onPick ? handlePick : undefined}
+    onViewChange={handleViewChange}
     editableFenceId={editableFenceId}
     onFenceChange={onFenceChange ? handleFenceChange : undefined}
     class={className}

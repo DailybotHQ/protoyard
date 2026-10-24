@@ -57,5 +57,5 @@ A responsive web app previewed at the desktop viewport (`preview.viewport: deskt
 - Below `sm`, and in phone or tablet device shells (`device-frame:`), the date range opens in a bottom sheet.
 - Below `lg`, the sidebar is a drawer.
 - The dashboard grid collapses to one column on narrow screens.
-- Charts keep their keyboard model and their tooltips on tap; every chart also has "View as table".
+- Charts keep their keyboard model and their tooltips on tap; every chart also has "Show data table".
 

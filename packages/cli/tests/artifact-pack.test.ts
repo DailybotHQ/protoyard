@@ -325,6 +325,22 @@ describe('packArtifact', () => {
     ).toEqual([]);
   });
 
+  it('checks each script of an HTML page as its own module for top-level awaits', () => {
+    const reason =
+      'uses top-level await on a dynamic import; single-chunk Artifact bundles cannot resolve lazy chunks';
+    // A quote inside a regex in one inlined chunk (here a backtick) used to
+    // flip literal masking for the chunks after it, exposing a `}` that ended
+    // the arrow body early: "top level" now ends at each script's tag.
+    const flip = '<script type="text/plain">var r = /`/;</script>';
+    const lazy =
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: the script's own template literal
+      '<script type="module">const go = async () => { const s = `}`; return `${await import("./b.js")}`; };</script>';
+    expect(checkTextAsset('page.html', `${flip}${lazy}`)).toEqual([]);
+    expect(
+      checkTextAsset('page.html', `${flip}<script type="module">await import("./a.js");</script>`)
+    ).toContainEqual({ path: 'page.html', reason });
+  });
+
   it('escapes U+FFFD in bundled JS and CSS so the Artifact accepts them', async () => {
     write('assets/chunk-def.js', 'export const nul = `�`;');
     write('assets/index-ghi.css', '.a::after{content:"�"}');

@@ -99,7 +99,8 @@ describe('DashboardScreen', () => {
     });
     runtime.clock.setTime(new Date(Date.parse(String(created.createdAt)) + 1_000));
     await waitFor(() => expect(screen.getByText('2')).toBeTruthy());
-    const toggle = screen.queryByRole('button', { name: /View as table|Show data table/i });
+    // Texuli disclosure when the chart interaction chunk settles.
+    const toggle = screen.queryByRole('button', { name: 'Show data table' });
     void toggle;
   });
 
