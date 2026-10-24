@@ -111,6 +111,7 @@ const FIT_TARGETS: Record<string, FitTarget> = {
     scenario: 'massive',
     hash: '#/tasks',
     layout: 'document',
+    // The views-ui grid adapter: a table on desktop, a card list on phones.
     ready: '[data-grid]',
   },
 };

@@ -29,8 +29,9 @@ test('dispatch board, map list, and timeline surfaces are available', async ({ p
 
   await openRoute(page, '/dispatch/map');
   await expectAccessible(page, info, { label: 'harbor-dispatch-map' });
-  // Map surface (Texuli MapView or host shell); markers may list as HB-* text.
-  await expect(page.locator('body')).toContainText(/map|dispatch|HB-|location|shipment/i);
+  const shipmentList = page.getByRole('complementary', { name: 'Map locations' });
+  await expect(shipmentList.getByRole('list')).toBeVisible();
+  await expect(shipmentList.getByRole('listitem').filter({ hasText: 'HB-4100' })).toBeVisible();
 
   await openRoute(page, '/dispatch/timeline');
   await expectAccessible(page, info, { label: 'harbor-dispatch-timeline' });
