@@ -1,8 +1,8 @@
 <script lang="ts">
 /**
  * Host adapter over `@texuli/data/map` `MapView`.
- * Forwards basemap, markers, selection, pan (built into Texuli), and host
- * hooks (listLabel, cellPx, onPick, fences/routes) for FIX-map-view-parity.
+ * MapView already provides: aria-roledescription=map, pan/zoom, data-cluster /
+ * data-marker markers, and a virtualized place list.
  */
 import type { Basemap } from '@protoyard/views/map';
 import MapView from '../../../../node_modules/@texuli/data/src/map/MapView.svelte';
@@ -35,6 +35,7 @@ let {
   view?: unknown;
   editableFenceId?: string;
   label?: string;
+  /** Host label for the place list; Texuli MapView uses a fixed "Map locations". */
   listLabel?: string;
   cellPx?: number;
   direction?: 'ltr' | 'rtl';
@@ -49,21 +50,12 @@ $effect(() => {
   selectedId = id;
   selected = id ?? null;
 });
-
-/** Extra hooks for a richer MapView (listLabel, cellPx, onPick) when Texuli adds them. */
-const mapExtras = $derived.by(() => {
-  const extra: Record<string, unknown> = {};
-  if (_listLabel) extra.listLabel = _listLabel;
-  if (_cellPx !== undefined) extra.cellPx = _cellPx;
-  if (_onPick) extra.onPick = _onPick;
-  if (_routes.length) extra.routes = _routes;
-  if (_fences.length) extra.fences = _fences;
-  if (_onFenceChange) extra.onFenceChange = _onFenceChange;
-  if (_editableFenceId) extra.editableFenceId = _editableFenceId;
-  return extra;
-});
 </script>
 
+<!--
+  Host-only stubs kept in props for API stability (listLabel, cellPx, onPick,
+  routes, fences). Texuli MapView owns pan, cluster/marker attrs, and the list.
+-->
 <MapView
   markers={markers as never}
   basemap={basemap as never}
@@ -76,5 +68,4 @@ const mapExtras = $derived.by(() => {
     if (onSelect) (onSelect as (arg: unknown) => void)(m ?? next);
   }}
   class={className}
-  {...(mapExtras as object)}
 />

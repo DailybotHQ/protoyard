@@ -15,13 +15,26 @@ export interface CalendarItem<TData = unknown> extends Occurrence<TData> {
   grabbed: boolean;
 }
 
-/** What `onChange` receives: the edit and the series rows to write in one transaction. */
+/**
+ * Reschedule payload from Texuli CalendarView (`@texuli/data/calendar/view`),
+ * plus host-only `writes` / `scope` for series split services (keel, ui-kit).
+ * The adapter always fills `writes` when it can resolve the series.
+ */
 export interface CalendarChange<TData = unknown> {
-  occurrence: Occurrence<TData>;
-  scope: EditScope;
+  /** The series id: the record to update. */
+  id: string;
+  /** The occurrence's original start; tells repeating occurrences apart. */
+  occurrenceId: string;
   /** New start and end, in the series' format (instants, or dates when all-day). */
   start: string;
   end: string;
+  allDay: boolean;
+  recurring: boolean;
+  /** The occurrence as it was before the move. */
+  occurrence: Occurrence<TData>;
+  /** Edit scope used when building series writes (`this` for recurring, `all` otherwise). */
+  scope: EditScope;
+  /** Series rows to put/delete in one transaction (always set by the adapter). */
   writes: SeriesWrites<TData>;
 }
 

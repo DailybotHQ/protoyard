@@ -1,12 +1,12 @@
 <script lang="ts" generics="T">
 /**
  * Host adapter over `@texuli/data` `Board`: liveQuery `query`, optional open
- * handler, and service-friendly `onMove`. Move-to menus (FIX-board-move-menu)
- * ship inside Texuli Board when present — no extra host wiring beyond onMove.
+ * handler, and service-friendly `onMove`. The per-card “Move <title>” menu
+ * (lazy BoardMoveMenu) ships inside Texuli Board whenever `onMove` is set.
  */
 import { runService } from '@protoyard/renderer-svelte';
 import type { BoardColumnDef, BoardLaneDef, BoardMove, MoveRules } from '@protoyard/views/board';
-import { Board } from '@texuli/data/board';
+import { Board, type BoardLabels } from '@texuli/data/board';
 import type { Snippet } from 'svelte';
 import QueryState from '../states/QueryState.svelte';
 
@@ -23,12 +23,13 @@ let {
   onMove,
   onOpen,
   canMove,
+  isLocked,
   onRetry,
   label = 'Board',
   emptyColumnText = 'No cards',
   density,
   dir,
-  moveMenu,
+  labels: labelOverrides,
   class: className,
 }: {
   query: { readonly current: T[] | undefined; readonly loading: boolean; readonly error: unknown };
@@ -43,13 +44,14 @@ let {
   onMove: (move: BoardMove, item: T) => unknown;
   onOpen?: (item: T) => void;
   canMove?: MoveRules<T>['canMove'];
+  isLocked?: (item: T) => boolean;
   onRetry?: () => unknown;
   label?: string;
   emptyColumnText?: string;
   density?: 'comfortable' | 'compact';
   dir?: 'ltr' | 'rtl' | 'auto';
-  /** When Texuli Board exposes moveMenu (FIX-board-move-menu), forward it. */
-  moveMenu?: boolean | Record<string, unknown>;
+  /** Override Texuli Board labels (including moveMenu / moveMenuLabel). */
+  labels?: Partial<BoardLabels>;
   class?: string;
 } = $props();
 
@@ -57,12 +59,10 @@ async function persist(move: BoardMove, item: T): Promise<void> {
   await runService(() => onMove(move, item));
 }
 
-const boardExtras = $derived.by(() => {
-  const extra: Record<string, unknown> = {};
-  if (density !== undefined) extra.density = density;
-  if (dir !== undefined) extra.dir = dir;
-  if (moveMenu !== undefined) extra.moveMenu = moveMenu;
-  return extra;
+const boardLabels = $derived<Partial<BoardLabels>>({
+  board: label,
+  emptyCell: emptyColumnText,
+  ...labelOverrides,
 });
 </script>
 
@@ -84,11 +84,13 @@ const boardExtras = $derived.by(() => {
         {getLane}
         {getRank}
         {getLabel}
+        {isLocked}
         onMove={persist}
         {canMove}
+        {density}
+        {dir}
         class={className}
-        labels={{ board: label, emptyCell: emptyColumnText }}
-        {...(boardExtras as object)}
+        labels={boardLabels}
       >
         {#snippet card(item, state)}
           {#if onOpen}
@@ -118,8 +120,8 @@ const boardExtras = $derived.by(() => {
     border: 0;
     background: transparent;
     color: inherit;
-    font: inherit;
     text-align: start;
     cursor: pointer;
+    font: inherit;
   }
 </style>
