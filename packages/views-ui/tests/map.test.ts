@@ -1,5 +1,5 @@
-import { cleanup, render, waitFor } from '@testing-library/svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { type MapMarker, type MapRoute, SimulatedMap } from '../src/map/index.ts';
 
 afterEach(() => cleanup());
@@ -62,5 +62,31 @@ describe('SimulatedMap (Texuli MapView adapter)', () => {
     );
     expect(document.querySelector('[data-marker="depot"], [data-list-item="depot"]')).toBeTruthy();
     expect(document.querySelector('.map-view.list-below, [class*="list-below"]')).toBeTruthy();
+  });
+
+  it('exposes data-center/data-zoom and forwards onViewChange', async () => {
+    const onViewChange = vi.fn();
+    render(SimulatedMap, {
+      markers: MARKERS,
+      label: 'Camera map',
+      cellPx: 1,
+      onViewChange,
+    });
+    const surface = await screen.findByRole('region', { name: /map with interactive/i });
+    await waitFor(() =>
+      expect(surface.getAttribute('data-center')).toMatch(/^-?\d+\.\d{4},-?\d+\.\d{4}$/)
+    );
+    expect(surface.getAttribute('data-zoom')).toBeTruthy();
+    const before = surface.getAttribute('data-center');
+    surface.focus();
+    await fireEvent.keyDown(surface, { key: 'ArrowRight' });
+    await waitFor(() => expect(surface.getAttribute('data-center')).not.toBe(before));
+    expect(onViewChange.mock.calls.length).toBeGreaterThan(0);
+    const last = onViewChange.mock.calls.at(-1)?.[0] as {
+      center: { lat: number; lng: number };
+      zoom: number;
+    };
+    expect(Number.isFinite(last.center.lat)).toBe(true);
+    expect(Number.isFinite(last.zoom)).toBe(true);
   });
 });

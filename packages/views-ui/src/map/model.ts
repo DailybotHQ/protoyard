@@ -15,6 +15,9 @@ import {
 export type MapTone = 'primary' | 'info' | 'success' | 'warning' | 'danger' | 'neutral';
 export type MarkerShape = 'circle' | 'square' | 'diamond' | 'triangle' | 'pin';
 
+/** Camera payload from Texuli MapView (`onViewChange` / host `bind:view`). */
+export type MapViewState = { center: LngLat; zoom: number };
+
 /** Fence drawn on the map (id, name, shape + optional tone/label). */
 export type MapFence = {
   id: string;
