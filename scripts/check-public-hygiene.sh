@@ -51,6 +51,11 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
 
 SELF=scripts/check-public-hygiene.sh
 ALLOW=.public-hygiene-allow
+# A whole package.json dependency value that is a version specifier, not a
+# credential: link:/workspace: paths, or a semver range (major.minor at least,
+# with optional operators, pre-release and || alternatives).
+SEMVER='[~^]?(>=|<=|>|<|=)?v?[0-9]+\.[0-9xX*]+(\.[0-9xX*]+)?([-+][0-9A-Za-z.-]+)?'
+DEP_SPEC='^[[:space:]]*"[^"]+"[[:space:]]*:[[:space:]]*"(link:[^"]*|workspace:[^"]*|'"$SEMVER"'([[:space:]]+'"$SEMVER"')*([[:space:]]*\|\|[[:space:]]*'"$SEMVER"')*)"[[:space:]]*,?[[:space:]]*$'
 FAKE_MARKER='fake|test|planted|example|dummy'
 
 rules() {
@@ -156,6 +161,11 @@ while IFS='	' read -r rule pattern flag; do
           printf '%s\n' "$text" | grep -qiE '(security|support|hello|oss|opensource|ops|noreply)@dailybot\.com' && continue
           ;;
         secret-*)
+          # A package.json dependency specifier is never a secret: the whole
+          # value is a link:/workspace: path or a semver range, so a key such
+          # as "@texuli/tokens" with a long link: value is not a token.
+          if [ "$rule" = secret-assignment ] && [ "${f##*/}" = package.json ] &&
+            printf '%s\n' "$text" | grep -qE "$DEP_SPEC"; then continue; fi
           if is_allowed "$f" "$rule" && printf '%s\n' "$text" | grep -qiE "$FAKE_MARKER"; then continue; fi
           ;;
       esac
