@@ -75,7 +75,7 @@ protoyard/
 │   ├── scenarios/         generator SDK, presets, integrity, timeline, series/schedule/event/geo helpers (README)
 │   ├── runtime/           createPrototypeRuntime() — composes the engine                          (README)
 │   ├── themes/            6 built-ins + 64-theme library (lazy), palette engine, style presets, fonts, no-flash (README)
-│   ├── ui/                Svelte 5 components (Bits UI + Tailwind 4 + Lucide), shell frames, LayoutHost + 12 lazy layouts (README)
+│   ├── ui/                Svelte 5 components (Texuli + Tailwind 4 + Lucide), shell frames, LayoutHost + 12 lazy layouts (README)
 │   ├── devtools/          in-browser control center (shell and layout pickers, theme browser, Theme Studio) (README)
 │   ├── renderer-svelte/   Vite config factory, mountPrototype, ShellHost, bindings, hash router    (README)
 │   ├── http/              optional mock HTTP layer (fetch-compatible, no service worker)           (README)
