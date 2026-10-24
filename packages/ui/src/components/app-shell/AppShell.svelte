@@ -1,6 +1,6 @@
 <script lang="ts">
 import { X } from '@lucide/svelte';
-import { Dialog as DialogPrimitive } from 'bits-ui';
+import * as DialogPrimitive from '@texuli/primitives/dialog';
 import type { Snippet } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';

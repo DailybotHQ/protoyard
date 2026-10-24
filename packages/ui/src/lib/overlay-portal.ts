@@ -1,7 +1,7 @@
 /**
- * Where Bits UI overlays (dialogs, sheets) portal when a device shell is
- * framed. ShellHost sets the device screen so fixed overlays stay inside the
- * bezel; cleared for full-bleed (falls back to `document.body`).
+ * Where overlays (dialogs, sheets, the undo toaster) open when a device shell
+ * is framed. ShellHost sets the device screen so overlays stay inside the
+ * bezel; cleared for full-bleed (they open in the page's top layer).
  */
 
 let portalTarget: Element | null = null;

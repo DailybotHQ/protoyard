@@ -1,16 +1,15 @@
 <script lang="ts">
 import { TriangleAlert } from '@lucide/svelte';
-import { AlertDialog as AlertDialogPrimitive } from 'bits-ui';
+import * as AlertDialogPrimitive from '@texuli/primitives/alert-dialog';
 import type { Snippet } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import Button from '../button/Button.svelte';
-import { isUndoToasterTarget } from '../overlay/focus-exempt.ts';
+import { overlayDismissHandler } from '../overlay/dismiss.ts';
 import { type OverlayStack, overlayStack } from '../overlay/overlay-stack.ts';
 import { useOverlayLayer } from '../overlay/use-overlay-layer.svelte.ts';
-import { undoToast } from '../toast/undo.svelte.ts';
 
 interface Props {
   open?: boolean;
@@ -49,7 +48,6 @@ let {
 const portal = useOverlayPortalTarget();
 // svelte-ignore state_referenced_locally
 const layer = useOverlayLayer(() => open, { modal: () => true, stack });
-const trapFocus = $derived(undoToast.items.length === 0);
 
 let pending = $state(false);
 /** Cancel is the safe default: it receives focus when the dialog opens. */
@@ -77,51 +75,38 @@ function cancel(): void {
   open = false;
 }
 
-function blockWhilePending(event: Event): void {
-  if (pending) event.preventDefault();
-}
-
-function handleEscape(event: KeyboardEvent): void {
-  blockWhilePending(event);
-  if (event.defaultPrevented) return;
-  event.preventDefault();
-  if (!layer.stack.isTop(layer.entry)) return;
-  if (layer.stack.dismissLayerFor(event, cancelButton)) return;
-  cancel();
-}
-
-function handleInteractOutside(event: PointerEvent): void {
-  if (pending || isUndoToasterTarget(event.target) || !layer.stack.isTop(layer.entry)) {
-    event.preventDefault();
-  }
-}
+// Escape cancels (an alert never closes on an outside press); nothing closes it while pending.
+const handleDismiss = overlayDismissHandler({
+  layer,
+  element: () => cancelButton,
+  blocked: () => pending,
+});
 </script>
 
+<!-- Cancel, the safe default, takes focus when the alert opens. -->
 <AlertDialogPrimitive.Root
-  open={open}
+  {open}
   onOpenChange={(isOpen) => {
     if (!isOpen) {
       error = null;
       if (pending) return;
+      if (open) onCancel?.();
     }
     open = isOpen;
   }}
+  mode={portal.mode}
+  container={portal.container}
+  initialFocus={() => cancelButton}
+  onDismissRequest={handleDismiss}
 >
   {#if trigger}
     <AlertDialogPrimitive.Trigger>
       {#snippet child({ props })}{@render trigger({ props })}{/snippet}
     </AlertDialogPrimitive.Trigger>
   {/if}
-  <AlertDialogPrimitive.Portal to={portal.current}>
+  <AlertDialogPrimitive.Portal>
     <AlertDialogPrimitive.Overlay class={overlayBackdrop} style={`z-index:${layer.zIndex}`} />
     <AlertDialogPrimitive.Content
-      trapFocus={trapFocus}
-      onEscapeKeydown={handleEscape}
-      onInteractOutside={handleInteractOutside}
-      onOpenAutoFocus={(event) => {
-        event.preventDefault();
-        cancelButton?.focus();
-      }}
       aria-busy={pending || undefined}
       class={cn(
         'fixed top-1/2 left-1/2 grid w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 sm:max-w-md',

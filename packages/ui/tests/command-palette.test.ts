@@ -55,9 +55,8 @@ describe('CommandPalette', () => {
     expect(input.getAttribute('aria-activedescendant')).toBe(invite.id);
     await fireEvent.keyDown(input, { key: 'Enter' });
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'invite' }));
-    await waitFor(() =>
-      expect(screen.getByRole('dialog').getAttribute('data-state')).toBe('closed')
-    );
+    // A closed palette leaves the page.
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('ignores stale async results when a newer query resolves first', async () => {

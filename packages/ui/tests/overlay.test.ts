@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { OVERLAY_Z_BASE as PRIMITIVE_Z_BASE } from '@texuli/core/overlay-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_DRAWER_SIZE,
@@ -183,7 +184,8 @@ describe('Drawer', () => {
       expect(drawer.dataset.placement).toBe(placement);
       expect(drawer.style.getPropertyValue('--ui-drawer-size').trim()).toBe('18rem');
       expect(drawer.className).toContain(drawerPlacementClasses(placement).split(' ')[0]);
-      expect(drawer.getAttribute('aria-modal')).toBe('false');
+      // Non-modal: no aria-modal at all (its absence means false).
+      expect(drawer.hasAttribute('aria-modal')).toBe(false);
     }
   );
 
@@ -449,7 +451,9 @@ describe('UndoToaster', () => {
     const region = await screen.findByRole('region', { name: 'Undo notifications' });
     expect(region.style.zIndex).toBe('60');
     for (let i = 0; i < 12; i++) overlayStack.push({ opener: null });
-    await waitFor(() => expect(region.style.zIndex).toBe(String(overlayStack.topZIndex() + 1)));
+    // Above the stack's z-indexes and the overlays' own (ordered from PRIMITIVE_Z_BASE).
+    await waitFor(() => expect(region.style.zIndex).toBe(String(PRIMITIVE_Z_BASE + 13)));
+    expect(Number(region.style.zIndex)).toBeGreaterThan(overlayStack.topZIndex());
     overlayStack.reset();
   });
 });

@@ -1,17 +1,18 @@
 <script lang="ts">
 import { X } from '@lucide/svelte';
-import { Dialog as DialogPrimitive } from 'bits-ui';
-import type { Snippet } from 'svelte';
+import * as DialogPrimitive from '@texuli/primitives/dialog';
+import type { ComponentProps, Snippet } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';
+import { refAttachment } from '../../lib/ref.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
-import { isUndoToasterTarget } from '../overlay/focus-exempt.ts';
+import { overlayDismissHandler } from '../overlay/dismiss.ts';
 import { type OverlayStack, overlayStack } from '../overlay/overlay-stack.ts';
 import { useOverlayLayer } from '../overlay/use-overlay-layer.svelte.ts';
-import { undoToast } from '../toast/undo.svelte.ts';
 
-type Props = Omit<DialogPrimitive.ContentProps, 'children' | 'child' | 'title'> & {
+type Props = Omit<ComponentProps<typeof DialogPrimitive.Content>, 'children' | 'title'> & {
+  ref?: HTMLElement | null;
   open?: boolean;
   title: string;
   description?: string;
@@ -47,7 +48,6 @@ let {
 const portal = useOverlayPortalTarget();
 // svelte-ignore state_referenced_locally
 const layer = useOverlayLayer(() => open, { modal: () => true, stack });
-const trapFocus = $derived(undoToast.items.length === 0);
 
 const widths = { sm: 'sm:max-w-sm', md: 'sm:max-w-lg', lg: 'sm:max-w-2xl', xl: 'sm:max-w-4xl' };
 
@@ -57,44 +57,32 @@ function setOpen(next: boolean): void {
   onOpenChange?.(next);
 }
 
-function handleEscape(event: KeyboardEvent): void {
-  event.preventDefault();
-  if (!layer.stack.isTop(layer.entry)) return;
-  if (layer.stack.dismissLayerFor(event, ref)) return;
-  setOpen(false);
-}
+const handleDismiss = overlayDismissHandler({ layer, element: () => ref });
 
-function handleInteractOutside(event: PointerEvent): void {
-  if (isUndoToasterTarget(event.target)) {
-    event.preventDefault();
-    return;
-  }
-  if (!layer.stack.isTop(layer.entry)) {
-    event.preventDefault();
-    return;
-  }
-}
-
-function handleCloseAutoFocus(event: Event): void {
+function handleCloseAutoFocus(event: { preventDefault(): void }): void {
   event.preventDefault();
   layer.restoreFocus(ref);
 }
 </script>
 
-<DialogPrimitive.Root open={open} onOpenChange={setOpen}>
+<!-- Inside a framed device the dialog is contained by its screen; otherwise it opens in the top layer. -->
+<DialogPrimitive.Root
+  {open}
+  onOpenChange={setOpen}
+  mode={portal.mode}
+  container={portal.container}
+  onDismissRequest={handleDismiss}
+  onCloseAutoFocus={handleCloseAutoFocus}
+>
   {#if trigger}
     <DialogPrimitive.Trigger>
       {#snippet child({ props })}{@render trigger({ props })}{/snippet}
     </DialogPrimitive.Trigger>
   {/if}
-  <DialogPrimitive.Portal to={portal.current}>
+  <DialogPrimitive.Portal>
     <DialogPrimitive.Overlay class={overlayBackdrop} style={`z-index:${layer.zIndex}`} />
     <DialogPrimitive.Content
-      bind:ref
-      trapFocus={trapFocus}
-      onEscapeKeydown={handleEscape}
-      onInteractOutside={handleInteractOutside}
-      onCloseAutoFocus={handleCloseAutoFocus}
+      {@attach refAttachment<HTMLElement>((node) => (ref = node))}
       class={cn(
         'fixed top-1/2 left-1/2 flex max-h-[calc(var(--py-app-height)-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col',
         'rounded-xl border border-border bg-elevated text-foreground shadow-float outline-none ui-anim-pop',
