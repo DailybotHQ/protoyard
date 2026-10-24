@@ -18,15 +18,15 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.10",
+    "@astrojs/check": "^0.9.11",
     "@astrojs/svelte": "^9.1.0",
-    "@lucide/svelte": "^1.59.0",
+    "@lucide/svelte": "^1.60.0",
     "@protoyard/blueprint": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/player": "workspace:*",
     "@protoyard/themes": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
-    "astro": "^7.4.0",
+    "astro": "^7.4.1",
     "svelte": "^5.57.2",
     "tailwindcss": "^4.3.3"
   },
