@@ -17,13 +17,21 @@ type Props = {
 let { title, description, series, emptyMessage, class: className, onselect }: Props = $props();
 const desc = $derived(description ?? emptyMessage ?? `${title}.`);
 const mapped = $derived(toTexuliSeries(series));
+const interactive = $derived(true); // Texuli table toggle + keyboard; ChartAnswer opts out
 </script>
 
 <ChartRoot {title}>
   {#if mapped.every((s) => s.points.length === 0)}
     <p class="empty" data-py-chart="" role="status">{emptyMessage ?? 'No data'}</p>
   {:else}
-    <TexuliArea {title} description={desc} series={mapped} class={className} {onselect} />
+    <TexuliArea
+      {title}
+      description={desc}
+      series={mapped}
+      class={className}
+      {interactive}
+      {onselect}
+    />
   {/if}
 </ChartRoot>
 

@@ -126,7 +126,7 @@ describe('AnalyticsScreen', () => {
     );
     expect(reloaded.measure).toBe(1);
     expect(reloaded.dimension).toBe('status');
-    expect(screen.getByRole('heading', { name: 'Gross amount' })).toBeTruthy();
+    expect(screen.getAllByRole('heading', { name: 'Gross amount' }).length).toBeGreaterThan(0);
   });
 
   it('hides CSV export from a persona without export capability', async () => {

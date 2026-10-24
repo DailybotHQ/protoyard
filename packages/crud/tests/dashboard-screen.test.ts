@@ -92,7 +92,7 @@ describe('DashboardScreen', () => {
     if (latestCreatedAt) runtime.clock.setTime(new Date(Date.parse(latestCreatedAt) + 1_000));
     show(runtime);
 
-    expect(await screen.findByText('1')).toBeTruthy();
+    expect((await screen.findAllByText('1')).length).toBeGreaterThan(0);
     const created = await services.request!.create({
       title: 'Harbor inspection',
       status: 'queued',

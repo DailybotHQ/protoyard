@@ -17,6 +17,7 @@ type Props = {
     x: number | string;
     y: number | null;
   }) => void;
+  interactive?: boolean;
   [key: string]: unknown;
 };
 
@@ -28,6 +29,7 @@ let {
   area = false,
   class: className,
   onselect,
+  interactive = true,
 }: Props = $props();
 
 const desc = $derived(description ?? emptyMessage ?? `${title}.`);
@@ -39,9 +41,9 @@ const empty = $derived(mapped.every((s) => s.points.length === 0));
   {#if empty}
     <p class="empty" data-py-chart="" role="status">{emptyMessage ?? 'No data'}</p>
   {:else if area}
-    <AreaChart {title} description={desc} series={mapped} class={className} {onselect} />
+    <AreaChart {title} description={desc} series={mapped} class={className} {interactive} {onselect} />
   {:else}
-    <TexuliLine {title} description={desc} series={mapped} class={className} {onselect} />
+    <TexuliLine {title} description={desc} series={mapped} class={className} {interactive} {onselect} />
   {/if}
 </ChartRoot>
 

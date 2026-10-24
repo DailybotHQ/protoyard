@@ -11,24 +11,40 @@ const label = $derived(title.trim().endsWith('.') ? title.trim() : `${title.trim
 
 function markGeometry(node: HTMLElement) {
   const apply = () => {
-    for (const rect of node.querySelectorAll('svg rect[data-series]')) {
+    // Texuli bar marks use data-series; Protoyard tests and hosts look for data-bar.
+    for (const rect of node.querySelectorAll(
+      'svg rect[data-series], svg rect[data-bar-index], .plot rect'
+    )) {
       if (!rect.hasAttribute('data-bar')) rect.setAttribute('data-bar', '');
     }
-    for (const btn of node.querySelectorAll('button')) {
+    for (const btn of node.querySelectorAll('button[data-chart-table-toggle], button')) {
       const text = (btn.textContent ?? '').trim();
-      if (text === 'Show data table' || btn.getAttribute('data-py-relabel') === 'table') {
-        btn.textContent = 'View as table';
-        btn.setAttribute('data-py-relabel', 'table');
-      }
-      if (text === 'Hide data table' || btn.getAttribute('data-py-relabel') === 'chart') {
-        btn.textContent = 'View as chart';
-        btn.setAttribute('data-py-relabel', 'chart');
-      }
+      const isToggle =
+        btn.hasAttribute('data-chart-table-toggle') ||
+        text === 'Show data table' ||
+        text === 'Hide data table' ||
+        btn.getAttribute('data-py-relabel') === 'table' ||
+        btn.getAttribute('data-py-relabel') === 'chart';
+      if (!isToggle) continue;
+      const open =
+        btn.getAttribute('aria-expanded') === 'true' ||
+        text === 'Hide data table' ||
+        btn.getAttribute('data-py-relabel') === 'chart';
+      // Protoyard hosts expect "View as table/chart" + aria-pressed (Texuli uses aria-expanded).
+      btn.textContent = open ? 'View as chart' : 'View as table';
+      btn.setAttribute('data-py-relabel', open ? 'chart' : 'table');
+      btn.setAttribute('aria-pressed', open ? 'true' : 'false');
     }
   };
   apply();
   const mo = new MutationObserver(apply);
-  mo.observe(node, { childList: true, subtree: true, characterData: true });
+  mo.observe(node, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['aria-expanded', 'data-series'],
+  });
   return { destroy: () => mo.disconnect() };
 }
 

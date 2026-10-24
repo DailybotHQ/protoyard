@@ -18,6 +18,8 @@ type Props = {
     y: number | null;
     datum?: unknown;
   }) => void;
+  /** When false, skip Texuli interaction chunk (static marks). Default true for table toggle. */
+  interactive?: boolean;
   [key: string]: unknown;
 };
 
@@ -29,6 +31,7 @@ let {
   mode = 'grouped',
   class: className,
   onselect,
+  interactive = true,
 }: Props = $props();
 
 const desc = $derived(description ?? emptyMessage ?? `${title}.`);
@@ -57,10 +60,18 @@ function handleSelect(sel: {
       description={desc}
       series={mapped}
       class={className}
+      {interactive}
       onselect={handleSelect}
     />
   {:else}
-    <TexuliBar {title} description={desc} series={mapped} class={className} onselect={handleSelect} />
+    <TexuliBar
+      {title}
+      description={desc}
+      series={mapped}
+      class={className}
+      {interactive}
+      onselect={handleSelect}
+    />
   {/if}
 </ChartRoot>
 

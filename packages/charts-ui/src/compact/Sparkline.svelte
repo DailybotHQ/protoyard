@@ -1,10 +1,12 @@
 <script lang="ts">
 /** Adapter: Protoyard Sparkline → Texuli Sparkline (showLast off for KPI tiles). */
 import { Sparkline as TexuliSparkline } from '@texuli/charts/compact';
+import { trendLabel } from './trend.ts';
 
 type Props = {
   values?: readonly (number | null)[];
   data?: readonly (number | null)[];
+  /** Accessible text; defaults to a trend sentence such as "Trend: up 12% over 30 days". */
   label?: string;
   description?: string;
   height?: number;
@@ -18,7 +20,7 @@ type Props = {
 let {
   values,
   data,
-  label = 'Trend',
+  label,
   description,
   height = 32,
   showLast = false,
@@ -27,6 +29,7 @@ let {
   format,
 }: Props = $props();
 const series = $derived(values ?? data ?? []);
+const accessible = $derived(label ?? trendLabel(series, period, format));
 </script>
 
 <!--
@@ -37,7 +40,7 @@ const series = $derived(values ?? data ?? []);
 <div data-py-chart="" data-py-sparkline="">
   <TexuliSparkline
     values={series}
-    {label}
+    label={accessible}
     {description}
     {height}
     {showLast}
