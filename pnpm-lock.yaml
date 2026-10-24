@@ -505,9 +505,12 @@ importers:
       '@protoyard/themes':
         specifier: workspace:*
         version: link:../themes
-      '@protoyard/ui':
-        specifier: workspace:*
-        version: link:../ui
+      '@texuli/primitives':
+        specifier: link:../../../texuli/packages/primitives
+        version: link:../../../texuli/packages/primitives
+      texuli:
+        specifier: link:../../../texuli/packages/texuli
+        version: link:../../../texuli/packages/texuli
     devDependencies:
       svelte:
         specifier: ^5.57.2

@@ -313,3 +313,10 @@ import { Button } from 'texuli/button';
 - **Typecheck reach.** Protoyard's typecheck covers the fixture that imports
   Texuli. The Texuli sources themselves are type-checked by Texuli's own
   gates.
+
+## DevTools panel on Texuli
+
+`@protoyard/devtools` mounts its compact controls on Texuli components
+(`texuli/button`, `texuli/choice`, `texuli/badge`, `texuli/alert`). Theme Studio
+and the gallery theme shelf already use `@protoyard/themes` → `@texuli/tokens`.
+See `packages/devtools/docs/texuli-controls.md`.
