@@ -1,24 +1,32 @@
+/**
+ * Scale helpers for charts. Sourced from `@texuli/charts/math` (Texuli).
+ */
+
+export type {
+  BandScale,
+  BandScaleOptions,
+  ContinuousScale,
+  FormatCentsOptions,
+  FormatDateOptions,
+  FormatNumberOptions,
+  FormatPercentOptions,
+  LinearScaleOptions,
+  LogScaleOptions,
+  NumberFormatOptions,
+  OrdinalScale,
+  OrdinalScaleOptions,
+  PointScaleOptions,
+  TimeFloorOptions,
+  TimeInterval,
+  TimeScale,
+  TimeScaleOptions,
+  TimeUnit,
+} from '@texuli/charts/math';
 export {
-  type BandScale,
-  type BandScaleOptions,
   bandScale,
-  type PointScaleOptions,
-  pointScale,
-} from './band.ts';
-export {
-  type ContinuousScale,
-  type LinearScaleOptions,
-  type LogScaleOptions,
-  linearScale,
-  logScale,
-  sqrtScale,
-} from './continuous.ts';
-export { extent } from './extent.ts';
-export {
-  type FormatCentsOptions,
-  type FormatDateOptions,
-  type FormatNumberOptions,
-  type FormatPercentOptions,
+  chooseTimeInterval,
+  extent,
+  floorTime,
   formatCents,
   formatCompact,
   formatDate,
@@ -26,19 +34,17 @@ export {
   formatPercent,
   formatTick,
   formatTimeTick,
-  type NumberFormatOptions,
-} from './format.ts';
-export { niceDomain, stepPrecision, tickStep, ticks } from './ticks.ts';
-export {
-  chooseTimeInterval,
-  floorTime,
   intervalMs,
+  linearScale,
+  logScale,
+  niceDomain,
   offsetTime,
-  type TimeFloorOptions,
-  type TimeInterval,
-  type TimeScale,
-  type TimeScaleOptions,
-  type TimeUnit,
+  ordinalScale,
+  pointScale,
+  sqrtScale,
+  stepPrecision,
+  tickStep,
+  ticks,
   timeScale,
   timeTicks,
-} from './time.ts';
+} from '@texuli/charts/math';

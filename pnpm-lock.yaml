@@ -301,6 +301,9 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
+      '@texuli/charts':
+        specifier: link:../../../texuli/packages/charts
+        version: link:../../../texuli/packages/charts
 
   packages/charts-ui:
     dependencies:
