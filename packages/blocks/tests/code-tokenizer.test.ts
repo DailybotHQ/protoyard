@@ -614,9 +614,12 @@ describe('code tokenizer: pathological inputs stay linear', () => {
   ];
   const SIZE = CODE_TOKENIZE_MAX_LENGTH;
   const BUDGET_MS = 50;
+  // The millisecond budget depends on machine load, so it is asserted only in the
+  // serialized perf run (`pnpm test:perf`); every run still checks the output.
+  const PERF = process.env.PROTOYARD_PERF === '1';
 
   it.each(GRAMMARS.map((g) => [g.name, g] as const))(
-    'tokenizes 20 KB pathological %s inputs in under 50 ms each',
+    'tokenizes 20 KB pathological %s inputs (under 50 ms each in the perf run)',
     (_name, grammar) => {
       tokenize('warm up '.repeat(100), grammar);
       const slow: string[] = [];
@@ -634,7 +637,7 @@ describe('code tokenizer: pathological inputs stay linear', () => {
         const median = runs.sort((a, b) => a - b)[1] as number;
         if (median >= BUDGET_MS) slow.push(`${JSON.stringify(pattern)}: ${median.toFixed(1)} ms`);
       }
-      expect(slow).toEqual([]);
+      if (PERF) expect(slow).toEqual([]);
     }
   );
 });

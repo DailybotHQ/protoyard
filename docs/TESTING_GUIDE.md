@@ -30,6 +30,7 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Type check one prototype | `pnpm --filter @prototype/crm-demo typecheck` | scoped |
 | All unit + integration tests | `pnpm test` | full |
 | All tests, fewer workers (a loaded machine; same tests) | `PROTOYARD_TEST_WORKERS=4 pnpm test` | full |
+| Wall-clock budgets, serialized (run on a quiet machine) | `pnpm test:perf` (`PROTOYARD_PERF=1`; today the code tokenizer's 50 ms per 20 KB pathological input) | perf |
 | One package or prototype | `pnpm vitest run packages/runtime` | scoped |
 | One file | `pnpm vitest run packages/core/tests/core.test.ts` | scoped |
 | By test name | `pnpm vitest run -t "idempotent"` | scoped |
@@ -121,6 +122,20 @@ pnpm check:integrations -- --run-tests   # plus every integration test file (int
 Test files join the `--run-tests` selection by name prefix, so an
 integration test with another prefix is not picked up. These files also run
 in `pnpm test`.
+
+### Wall-clock budgets and timeouts
+
+- **Millisecond budgets are perf-only.** An assertion against a millisecond
+  budget depends on machine load, not on code. Guard it with
+  `process.env.PROTOYARD_PERF === '1'` and keep everything else running in
+  the default suite: the code tokenizer still tokenizes every pathological
+  input and checks the output on every run.
+- **The perf run.** `pnpm test:perf` runs those budgets serialized
+  (`--no-file-parallelism`). Run it on a quiet machine, and add a new
+  budgeted file to its script.
+- **Per-test timeouts.** Tests that are slow by nature, but not timed, get a
+  realistic per-test timeout instead of the 5 s default. The block security
+  property test and the `setup.sh --verify` spawn tests use 30 s.
 
 ### CI performance job (`.github/workflows/ci.yml` → `perf`)
 
