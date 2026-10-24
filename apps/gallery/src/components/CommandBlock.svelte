@@ -26,16 +26,33 @@ async function copy() {
     failed = false;
   }, 1800);
 }
+
+/**
+ * A long command scrolls sideways. While it does, the region joins the Tab
+ * order so keyboard users can scroll it too (WCAG 2.1.1); a command that fits
+ * adds no tab stop. The size is watched, so a narrower window updates it.
+ */
+function scrollableFocus(node: HTMLElement): () => void {
+  const sync = () => {
+    if (node.scrollWidth > node.clientWidth) node.tabIndex = 0;
+    else node.removeAttribute('tabindex');
+  };
+  sync();
+  if (typeof ResizeObserver === 'undefined') return () => {};
+  const observer = new ResizeObserver(sync);
+  observer.observe(node);
+  return () => observer.disconnect();
+}
 </script>
 
 <div class="rounded-lg border border-line bg-surface-2">
   {#if label}<p class="border-b border-line px-3 py-1.5 text-xs text-muted">{label}</p>{/if}
   <div class="flex items-start gap-2 p-2 pl-3">
-    <!-- Scrollable for long commands: focusable so keyboard users can scroll it. -->
+    <!-- Scrollable for long commands: focusable only while it scrolls (scrollableFocus). -->
     <pre
-      tabindex="0"
       role="region"
       aria-label={label ?? 'Command'}
+      {@attach scrollableFocus}
       class={['min-w-0 flex-1 overflow-x-auto py-1 font-mono text-[13px] leading-relaxed', multiline ? 'whitespace-pre-wrap' : 'whitespace-pre']}><code>{command}</code></pre>
     <button
       type="button"
