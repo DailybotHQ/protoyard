@@ -81,7 +81,7 @@ let selected = $state('Nothing selected yet');
     description="Daily signups against the previous period (dashed)."
     series={trend}
     xKind="time"
-    onselect={(s) => (selected = `${s.series.label}: point ${s.index + 1}`)}
+    onselect={(s: { seriesId: string; index: number }) => (selected = `${s.seriesId}: point ${s.index + 1}`)}
   />
   <AreaChart title="Trials and paid signups" series={stacked} xKind="time" stacked />
   <BarChart title="Revenue by region" series={regions} unit="cents" />

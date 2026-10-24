@@ -12,14 +12,15 @@
     "./downsample": "./src/downsample/index.ts",
     "./layout": "./src/layout/index.ts",
     "./palette": "./src/palette/index.ts",
-    "./palette/derive": "./src/palette/chart-palette.ts"
+    "./palette/derive": "./src/palette/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@protoyard/core": "workspace:*",
-    "@texuli/charts": "link:../../../texuli/packages/charts"
+    "@texuli/charts": "link:../../../texuli/packages/charts",
+    "@texuli/tokens": "link:../../../texuli/packages/tokens"
   },
   "protoyard": {
     "build": {

@@ -1,88 +1,64 @@
 <script lang="ts">
-import type { Margin } from '@protoyard/charts';
-import type { Renderer } from '../canvas/model.ts';
-import type { ChartSelection } from '../interaction/model.ts';
-import ChartShell from './ChartShell.svelte';
-import {
-  type CartesianSeries,
-  chartFormatters,
-  defaultSummary,
-  tickFormatter,
-  type ValueUnit,
-} from './model.ts';
-import ScatterPlot from './ScatterPlot.svelte';
+/**
+ * Adapter: Protoyard cartesian ScatterChart (series[]) → Texuli matrix ScatterChart (points[]).
+ */
+import { ScatterChart as TexuliScatterChart } from '@texuli/charts/matrix';
+import ChartRoot from '../compat/ChartRoot.svelte';
+import type { CartesianSeries } from '../compat/series.ts';
 
 type Props = {
   title: string;
   description?: string;
-  summary?: string;
-  /** Points with optional `size` for bubbles; each series gets its own symbol. */
   series: readonly CartesianSeries[];
-  xKind?: 'time' | 'linear';
-  unit?: ValueUnit;
-  currency?: string;
-  /** Bubble radius range in px (default 4…18). */
-  radius?: [number, number];
-  /** `auto` (default) draws on Canvas above 2,000 visible points. */
-  renderer?: Renderer;
-  height?: number;
-  margin?: Partial<Margin>;
-  xHeader?: string;
-  showLegend?: boolean;
-  showTable?: boolean;
-  loading?: boolean;
-  error?: string | null;
-  onretry?: () => unknown;
   emptyMessage?: string;
-  onselect?: (selection: ChartSelection) => void;
-  hidden?: Set<string>;
+  class?: string;
+  height?: number;
+  [key: string]: unknown;
 };
 
-let {
-  title,
-  description,
-  summary,
-  series,
-  xKind = 'linear',
-  unit = 'number',
-  currency,
-  radius = [4, 18],
-  renderer = 'auto',
-  height = 280,
-  margin,
-  xHeader,
-  showLegend,
-  showTable,
-  loading,
-  error,
-  onretry,
-  emptyMessage,
-  onselect,
-  hidden = $bindable(new Set<string>()),
-}: Props = $props();
+let { title, description, series, emptyMessage, class: className, height = 360 }: Props = $props();
 
-const units = $derived({ unit, ...(currency ? { currency } : {}) });
-const formatters = $derived(chartFormatters(xKind, units));
+const desc = $derived(description ?? emptyMessage ?? title);
+const points = $derived(
+  series.flatMap((s) =>
+    s.points
+      .filter((p) => p.y !== null && Number.isFinite(p.y))
+      .map((p, i) => ({
+        id: `${s.id}-${i}`,
+        label: `${s.label} ${String(p.x)}`,
+        x: typeof p.x === 'number' ? p.x : i,
+        y: p.y as number,
+        r: p.size,
+        seriesId: s.id,
+        color: s.color,
+      }))
+  )
+);
+const texSeries = $derived(
+  series.map((s) => ({ id: s.id, label: s.label, ...(s.color ? { color: s.color } : {}) }))
+);
 </script>
 
-<ChartShell
-  {title}
-  {description}
-  summary={summary ?? defaultSummary(series, xKind)}
-  {height}
-  margin={{ left: 48, ...margin }}
-  {loading}
-  {error}
-  {onretry}
-  {emptyMessage}
-  {series}
-  {formatters}
-  xHeader={xHeader ?? (xKind === 'time' ? 'Date' : 'X')}
-  {showLegend}
-  {showTable}
-  bind:hidden
->
-  {#snippet plot(size)}
-    <ScatterPlot label={title} {series} {hidden} {xKind} {...size} {formatters} tickFormat={tickFormatter(units)} {radius} {renderer} {onselect} />
-  {/snippet}
-</ChartShell>
+<ChartRoot title={title}>
+{#if points.length === 0}
+  <p class="empty" data-py-chart="" role="status">{emptyMessage ?? 'No data'}</p>
+{:else}
+  <TexuliScatterChart
+    {title}
+    description={desc}
+    {points}
+    series={texSeries}
+    class={className}
+    height={height}
+  />
+{/if}
+</ChartRoot>
+
+<style>
+  .empty {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--py-muted-foreground, CanvasText);
+  }
+</style>
+

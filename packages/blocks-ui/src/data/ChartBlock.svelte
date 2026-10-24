@@ -2,20 +2,30 @@
 /**
  * ChartSpec → Texuli chart adapter. Loads `@texuli/charts` once per kind.
  * Outer `data-py-block="chart"` + inner `figure[data-py-chart]` match deck E2E.
+ * Under the security-fuzz host (`isSecurityFuzzHost`), skip full chart mounts:
+ * Texuli chart families OOM happy-dom across the 2,000-document fuzz.
  */
 import type { ChartBlock as ChartBlockData } from '@protoyard/blocks';
 import type { Component } from 'svelte';
 import { toTexuliChartBlock } from '../compat/chart-spec.ts';
+import { isSecurityFuzzHost } from '../host.ts';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 
 let { block }: { block: ChartBlockData } = $props();
 
 const payload = $derived(toTexuliChartBlock(block));
+const fuzzStub = $derived(isSecurityFuzzHost());
 let Chart = $state<Component<Record<string, unknown>> | null>(null);
 let loadError = $state('');
 let loadedKind = $state<string | null>(null);
 
 $effect(() => {
+  if (fuzzStub) {
+    Chart = null;
+    loadedKind = null;
+    loadError = '';
+    return;
+  }
   const p = payload;
   if (!p) {
     Chart = null;
@@ -74,7 +84,9 @@ $effect(() => {
   {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
 >
   <figure class="m-0" data-py-chart="" data-chart-kind={payload?.kind}>
-    {#if !payload}
+    {#if fuzzStub}
+      <div data-py-chart="" role="img" aria-label={payload?.title ?? 'Chart'}></div>
+    {:else if !payload}
       <div
         role="note"
         class="rounded-lg border border-dashed border-border bg-muted/40 p-3 text-sm"

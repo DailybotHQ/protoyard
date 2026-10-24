@@ -49,12 +49,11 @@ export function readSequentialRamp(el: Element): CohortPalette | null {
     sequential.push(value);
   }
   if (sequential.length < 2) return null;
-  const dark = document.documentElement.dataset.pyMode === 'dark';
   return {
-    mode: dark ? 'dark' : 'light',
     categorical: [],
     sequential,
     diverging: [],
-    repaired: [],
+    grid: 'transparent',
+    axis: 'currentColor',
   };
 }

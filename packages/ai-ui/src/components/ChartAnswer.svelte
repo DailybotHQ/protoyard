@@ -92,9 +92,9 @@ const load = () =>
       {@render table()}
     {:then kit}
       {#if 'BarChart' in kit && spec.kind === 'bar'}
-        <kit.BarChart title={spec.title} description={spec.description} {series} {...units} height={220} />
+        <kit.BarChart title={spec.title} description={spec.description} {series} {...units} height={220} interactive={false} />
       {:else if 'LineChart' in kit && (spec.kind === 'line' || spec.kind === 'area')}
-        <kit.LineChart title={spec.title} description={spec.description} {series} {...units} area={spec.kind === 'area'} height={220} />
+        <kit.LineChart title={spec.title} description={spec.description} {series} {...units} area={spec.kind === 'area'} height={220} interactive={false} />
       {:else if 'FunnelChart' in kit && spec.kind === 'funnel'}
         <kit.FunnelChart title={spec.title} description={spec.description} steps={items.map((d) => ({ id: d.id, label: d.label, count: d.value }))} unit={units.unit} height={220} />
       {:else if 'PieChart' in kit && spec.kind === 'pie'}

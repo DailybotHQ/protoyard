@@ -1,7 +1,7 @@
-// @protoyard/charts-ui/geo — tile-grid choropleth for named regions (no real borders shipped).
 import type { ChartFamily } from '../families.ts';
 
 export const FAMILY = 'geo' satisfies ChartFamily;
 
-export { REGION_TILES, type Tile, WORLD_TILES } from './layouts.ts';
+export { GeoMap, GeoPointMap, REGION_TILES, WORLD_TILES } from '@texuli/charts/geo';
 export { default as TileMap } from './TileMap.svelte';
+export type { GeoTile, Tile } from './types.ts';
