@@ -59,6 +59,12 @@ describe('dialog family on Texuli', () => {
     screenFrame.remove();
   });
 
+  it('focuses inside a dialog that mounts already open', async () => {
+    render(DialogFamilyHarness, { initiallyOpen: true });
+    const dialog = await screen.findByRole('dialog', { name: 'Edit deal' });
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+  });
+
   it('cancels an alert with Escape', async () => {
     const onCancel = vi.fn();
     render(AlertDialogHarness, { onCancel });

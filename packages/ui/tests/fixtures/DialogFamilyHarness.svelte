@@ -3,7 +3,14 @@ import Button from '../../src/components/button/Button.svelte';
 import Dialog from '../../src/components/dialog/Dialog.svelte';
 import UndoToaster from '../../src/components/toast/UndoToaster.svelte';
 
-let open = $state(false);
+interface Props {
+  /** Mount the dialog already open (as a lazily loaded dialog is). */
+  initiallyOpen?: boolean;
+}
+
+let { initiallyOpen = false }: Props = $props();
+// svelte-ignore state_referenced_locally
+let open = $state(initiallyOpen);
 </script>
 
 <Dialog bind:open title="Edit deal" description="Change the amount.">
