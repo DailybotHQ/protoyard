@@ -1,7 +1,7 @@
 {
   "name": "@protoyard/charts-ui",
   "version": "1.0.0",
-  "description": "Svelte 5 chart components for Protoyard prototypes, one lazy subpath per chart family, colored by theme tokens.",
+  "description": "Svelte 5 chart components for Protoyard prototypes. Math comes from @protoyard/charts (Texuli @texuli/charts/math); shells keep the Protoyard data contract (seriesFromRows, units, legends).",
   "license": "MIT",
   "type": "module",
   "sideEffects": [

@@ -1,34 +1,43 @@
+/**
+ * Chart layout helpers. Sourced from `@texuli/charts/math`.
+ */
+
+export type {
+  CalendarCell,
+  CalendarLayout,
+  CalendarLayoutOptions,
+  FunnelLayoutOptions,
+  FunnelStepInput,
+  FunnelStepLayout,
+  GaugeBand,
+  GaugeLayout,
+  GaugeOptions,
+  MatrixCell,
+  MatrixLayoutOptions,
+  PackCircle,
+  PackOptions,
+  SankeyErrorCode,
+  SankeyLink,
+  SankeyLinkInput,
+  SankeyNode,
+  SankeyNodeInput,
+  SankeyOptions,
+  SunburstArc,
+  SunburstOptions,
+  TreemapNode,
+  TreemapOptions,
+  TreemapRect,
+} from '@texuli/charts/math';
 export {
-  type CalendarCell,
-  type CalendarLayout,
-  type CalendarLayoutOptions,
   calendarLayout,
-  type MatrixCell,
-  type MatrixLayoutOptions,
-  matrixLayout,
-} from './calendar.ts';
-export {
-  type FunnelLayoutOptions,
-  type FunnelStepInput,
-  type FunnelStepLayout,
   funnelLayout,
-} from './funnel.ts';
-export { type GaugeBand, type GaugeLayout, type GaugeOptions, gaugeLayout } from './gauge.ts';
-export { plotArea } from './plot.ts';
-export {
+  gaugeLayout,
+  matrixLayout,
+  pack,
+  plotArea,
   SankeyError,
-  type SankeyErrorCode,
-  type SankeyLink,
-  type SankeyLinkInput,
-  type SankeyNode,
-  type SankeyNodeInput,
-  type SankeyOptions,
   sankey,
-} from './sankey.ts';
-export {
+  sunburst,
   TreemapError,
-  type TreemapNode,
-  type TreemapOptions,
-  type TreemapRect,
   treemap,
-} from './treemap.ts';
+} from '@texuli/charts/math';
