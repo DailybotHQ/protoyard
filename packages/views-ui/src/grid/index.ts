@@ -5,6 +5,13 @@
  * `FilterBuilder`, `FilterChips`, `FacetPicker`, `ColumnChooser`,
  * `BulkActionBar` and `SavedViews`, on the `@protoyard/views/grid` engine.
  */
+
+/** Texuli data grid (rows array API). Prefer DataGrid host adapter for liveQuery, edit and saved views. */
+export {
+  DataGrid as TexuliDataGrid,
+  type DataGridColumn as TexuliDataGridColumn,
+  type DataGridLabels,
+} from '@texuli/data/grid-core';
 export { default as BulkActionBar } from './BulkActionBar.svelte';
 export { default as ColumnChooser } from './ColumnChooser.svelte';
 export { default as DataGrid } from './DataGrid.svelte';

@@ -4,6 +4,13 @@
  * and pointer moves, click-to-create and a recurrence scope dialog. Import
  * this subpath only from a lazy route screen.
  */
+
+/** Texuli calendar (events array API). Prefer CalendarView host adapter for liveQuery and edits. */
+export {
+  type CalendarLabels,
+  CalendarView as TexuliCalendarView,
+  DEFAULT_CALENDAR_LABELS,
+} from '@texuli/data/calendar/view';
 export { default as CalendarView } from './CalendarView.svelte';
 export {
   applyMove,

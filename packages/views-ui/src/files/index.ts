@@ -5,5 +5,12 @@
  * `@protoyard/views/files` engine. Import this subpath only from a lazy route
  * screen; it shares the tree view's chunk.
  */
+
+/** Texuli file browser (entries array API). Prefer FileManager host adapter for liveQuery and mutations. */
+export {
+  FileBrowser,
+  type FileBrowserLabels,
+  type FileBrowserLayout,
+} from '@texuli/data/files';
 export { default as FileManager } from './FileManager.svelte';
 export { default as FilePreview } from './FilePreview.svelte';

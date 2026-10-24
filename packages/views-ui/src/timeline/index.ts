@@ -4,6 +4,11 @@
  * pointer rescheduling. Import from a lazy route screen.
  */
 
+/** Texuli timeline (tasks array API). Prefer TimelineView host adapter for liveQuery. */
+export {
+  TimelineView as TexuliTimelineView,
+  type TimelineZoom as TexuliTimelineZoom,
+} from '@texuli/data/timeline';
 export {
   DAY_WIDTH,
   dateAtOffset,

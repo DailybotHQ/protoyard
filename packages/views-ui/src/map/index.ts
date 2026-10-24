@@ -1,7 +1,7 @@
 /**
- * `@protoyard/views-ui/map` — the simulated map: a fictional SVG basemap,
- * focusable markers and clusters, routes with progress, editable geofences and
- * a synced list. Import this subpath only from a lazy route screen.
+ * `@protoyard/views-ui/map` — host `SimulatedMap` (routes, fences, clusters) on
+ * the `@protoyard/views/map` engine (Texuli), plus a re-export of Texuli's
+ * `MapView` for the markers-only API.
  */
 
 export {
@@ -16,3 +16,4 @@ export {
   routeProgress,
 } from './model.ts';
 export { default as SimulatedMap } from './SimulatedMap.svelte';
+/** Texuli map view — import from `@texuli/data/map` directly when the markers-only API is enough. */

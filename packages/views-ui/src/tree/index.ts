@@ -1,9 +1,10 @@
 /**
- * `@protoyard/views-ui/tree` — `TreeView` (an ARIA tree with typeahead, lazy
- * children, virtualization, drag-to-reparent and "Move to…") and
- * `OutlineEditor` (inline titles with Enter, Tab / Shift+Tab and Alt+arrows),
- * on the `@protoyard/views/tree` engine.
+ * `@protoyard/views-ui/tree` — host `TreeView` / `OutlineEditor` on the
+ * `@protoyard/views/tree` engine (Texuli), plus a re-export of Texuli's
+ * `TreeDataView` for the items-array API.
  */
+
+export { TreeDataView, type TreeDataViewLabels } from '@texuli/data/tree-view';
 export {
   type DropZone,
   dropMove,

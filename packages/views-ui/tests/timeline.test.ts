@@ -3,8 +3,13 @@ import { join } from 'node:path';
 import type { Dependency, ScheduleTask, TaskChange } from '@protoyard/views/timeline';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { dateAtOffset, dateOffset, TimelineView, timelineRange } from '../src/timeline/index.ts';
-import { durationLabel } from '../src/timeline/model.ts';
+import {
+  dateAtOffset,
+  dateOffset,
+  durationLabel,
+  TimelineView,
+  timelineRange,
+} from '../src/timeline/index.ts';
 
 afterEach(() => cleanup());
 
