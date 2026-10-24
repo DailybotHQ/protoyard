@@ -1,8 +1,7 @@
 <script lang="ts" generics="T extends import('@protoyard/views/timeline').TimelineItem">
 /**
  * Host adapter over `@texuli/data/timeline` `TimelineView`: liveQuery + services.
- * Rewrites task-bar aria-labels to long month names so crud screens that assert
- * "June 2, 2026" keep working (Texuli formatDate uses month:'short' → "Jun").
+ * Texuli formats task-bar dates with month:'long' (and optional locale).
  */
 import type { PrototypeRuntime } from '@protoyard/core';
 import { runService, useClock } from '@protoyard/renderer-svelte';
@@ -17,6 +16,7 @@ let {
   zoom = $bindable('week' as TimelineZoom),
   now,
   runtime,
+  locale = 'en',
   getTitle,
   getProgress,
   onReschedule,
@@ -32,6 +32,8 @@ let {
   zoom?: TimelineZoom;
   now?: Date;
   runtime?: PrototypeRuntime;
+  /** BCP 47 locale for axis ticks and task-bar date names (full month). */
+  locale?: string;
   getTitle?: (task: T) => string;
   getProgress?: (task: T) => number | undefined;
   onReschedule?: (changes: readonly TaskChange[]) => unknown;
@@ -46,64 +48,13 @@ let {
 const clock = now || !runtime ? null : useClock(runtime);
 const today = $derived(now ?? clock?.now ?? new Date(0));
 
-let host = $state<HTMLElement | null>(null);
-
-const LONG_MONTHS: Record<string, string> = {
-  Jan: 'January',
-  Feb: 'February',
-  Mar: 'March',
-  Apr: 'April',
-  May: 'May',
-  Jun: 'June',
-  Jul: 'July',
-  Aug: 'August',
-  Sep: 'September',
-  Oct: 'October',
-  Nov: 'November',
-  Dec: 'December',
-};
-
-function expandMonths(labelText: string): string {
-  return labelText.replace(
-    /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g,
-    (m) => LONG_MONTHS[m] ?? m
-  );
-}
-
-$effect(() => {
-  // Depend on tasks so labels refresh after data loads / reschedules.
-  void query.current;
-  void today;
-  const root = host;
-  if (!root) return;
-  const apply = () => {
-    for (const bar of root.querySelectorAll<HTMLElement>(
-      '[aria-roledescription="reschedulable task"], button[aria-label*=" to "]'
-    )) {
-      const current = bar.getAttribute('aria-label');
-      if (!current) continue;
-      const next = expandMonths(current);
-      if (next !== current) bar.setAttribute('aria-label', next);
-    }
-  };
-  apply();
-  const obs = new MutationObserver(apply);
-  obs.observe(root, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['aria-label'],
-  });
-  return () => obs.disconnect();
-});
-
 async function persist(changes: readonly TaskChange[]): Promise<void> {
   if (!onReschedule) return;
   await runService(() => onReschedule(changes));
 }
 </script>
 
-<div bind:this={host} data-timeline={label}>
+<div data-timeline={label}>
   <QueryState
     {query}
     label={`Loading ${label.toLowerCase()}`}
@@ -117,6 +68,7 @@ async function persist(changes: readonly TaskChange[]): Promise<void> {
         {label}
         bind:zoom
         now={today}
+        {locale}
         {getTitle}
         {getProgress}
         onReschedule={onReschedule ? persist : undefined}

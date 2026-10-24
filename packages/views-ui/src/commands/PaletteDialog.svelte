@@ -1,14 +1,9 @@
 <script lang="ts">
 import { navigate, runService } from '@protoyard/renderer-svelte';
-import {
-  cn,
-  getOverlayPortalTarget,
-  Kbd,
-  Spinner,
-  subscribeOverlayPortalTarget,
-} from '@protoyard/ui';
+import { getOverlayPortalTarget, Kbd, Spinner, subscribeOverlayPortalTarget } from '@protoyard/ui';
 import { Command } from '@texuli/primitives/command';
 import * as DialogPrimitive from '@texuli/primitives/dialog';
+import { cx } from 'texuli/cx';
 import { shortcutKeys, shortcutLabel } from '../lib/platform.ts';
 import type { CommandEntry, CommandRegistry } from './registry.ts';
 import { COMMAND_QUERY_MAX_LENGTH, rankCommands } from './registry.ts';
@@ -193,7 +188,7 @@ function goBack() {
                     aria-busy={running === entry.id || undefined}
                     aria-haspopup={entry.children ? 'listbox' : undefined}
                     aria-keyshortcuts={entry.shortcut ? shortcutLabel(entry.shortcut, isMac).replace(/ /g, '+') : undefined}
-                    class={cn(
+                    class={cx(
                       'flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm outline-none data-highlighted:bg-muted',
                       running !== null && running !== entry.id && 'opacity-60'
                     )}

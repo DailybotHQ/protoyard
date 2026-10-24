@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
 import { Plus, X } from '@lucide/svelte';
-import { Button, cn } from '@protoyard/ui';
+import { Button } from '@protoyard/ui';
 import {
   FILTER_LIMITS,
   type FilterCondition,
@@ -10,6 +10,7 @@ import {
   type GridColumnDef,
   OPERATORS_BY_TYPE,
 } from '@protoyard/views/grid';
+import { cx } from 'texuli/cx';
 import { newCondition, newGroup, typedScalar, updateAt, valueFor } from './model.ts';
 
 /**
@@ -115,7 +116,7 @@ const control =
           <label for={`${id}-${bound}`}>{bound}</label>
           <input
             id={`${id}-${bound}`}
-            class={cn(control, 'w-32')}
+            class={cx(control, 'w-32')}
             type={inputType(column)}
             value={String(range[i] ?? '')}
             oninput={(event) => {
@@ -198,14 +199,14 @@ const control =
 {/snippet}
 
 {#snippet group(node: FilterGroup, path: number[], depth: number)}
-  <fieldset class={cn('grid gap-2 rounded-lg border border-border p-3', depth > 0 && 'bg-muted/30')} data-filter-group>
+  <fieldset class={cx('grid gap-2 rounded-lg border border-border p-3', depth > 0 && 'bg-muted/30')} data-filter-group>
     <legend class="flex items-center gap-2 px-1 text-sm">
       <label for={`filter-${uid}-g${path.join('-')}`}>
         Match<span class="sr-only">{depth === 0 ? ' for these conditions' : ` for this group (level ${depth + 1})`}</span>
       </label>
       <select
           id={`filter-${uid}-g${path.join('-')}`}
-          class={cn(control, 'h-8')}
+          class={cx(control, 'h-8')}
           value={node.op}
           onchange={(event) => set(path, { ...node, op: (event.currentTarget as HTMLSelectElement).value as 'and' | 'or' })}
         >
@@ -236,7 +237,7 @@ const control =
   </fieldset>
 {/snippet}
 
-<section aria-label={label} class={cn('grid gap-2', className)}>
+<section aria-label={label} class={cx('grid gap-2', className)}>
   {#if root}
     {@render group(root, [], 0)}
     <div>

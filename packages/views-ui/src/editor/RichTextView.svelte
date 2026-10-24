@@ -1,5 +1,4 @@
 <script lang="ts">
-import { cn } from '@protoyard/ui';
 import {
   type EditorBlock,
   type EditorDocument,
@@ -7,6 +6,7 @@ import {
   parseEditorDocument,
   safeHref,
 } from '@protoyard/views/editor';
+import { cx } from 'texuli/cx';
 
 /**
  * RichTextView — read-only renderer for the safe editor document model.
@@ -118,7 +118,7 @@ const external = (href: string) => /^https?:/i.test(href);
     {:else if block.type === 'list'}
       <svelte:element
         this={block.ordered ? 'ol' : 'ul'}
-        class={cn('my-1 space-y-1 pl-6', block.ordered ? 'list-decimal' : 'list-disc')}
+        class={cx('my-1 space-y-1 pl-6', block.ordered ? 'list-decimal' : 'list-disc')}
         start={block.ordered ? block.start : undefined}
       >
         {#each block.items as item, j (j)}
@@ -143,7 +143,7 @@ const external = (href: string) => /^https?:/i.test(href);
 <div
   role="region"
   aria-label={label}
-  class={cn('space-y-1 text-sm leading-6 break-words text-foreground', className)}
+  class={cx('space-y-1 text-sm leading-6 break-words text-foreground', className)}
 >
   {#if doc.blocks.length === 0}
     <p class="text-muted-foreground">{emptyText}</p>

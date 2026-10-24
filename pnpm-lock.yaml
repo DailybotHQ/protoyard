@@ -908,6 +908,9 @@ importers:
       '@texuli/data':
         specifier: link:../../../texuli/packages/data
         version: link:../../../texuli/packages/data
+      texuli:
+        specifier: link:../../../texuli/packages/texuli
+        version: link:../../../texuli/packages/texuli
     devDependencies:
       svelte:
         specifier: ^5.57.2

@@ -12,8 +12,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
  * realistic shell (renderer services and live queries, the ui Button and
  * toasts), linked to the real packages the way pnpm links them into a
  * prototype (so `exports` and `sideEffects` apply). It fails when a view pulls
- * Texuli's menu, popover or dialog layers into the first screen (they load on
- * first use, see packages/views-ui/src/lib/lazy-overlays.svelte.ts), when
+ * menu, popover or dialog layers into the first screen (they load on
+ * first use via Texuli lazy menus/popovers/dialogs and views-ui lazy overlays), when
  * unused siblings are bundled, or when a view grows past its ceiling.
  *
  * Run alone: `pnpm vitest run packages/cli/tests/views-bundle.test.ts`
@@ -27,25 +27,23 @@ type View = (typeof VIEWS)[number];
 
 /**
  * What each view adds to the first screen over the shell, in gzip bytes (level
- * 9), about 7 % above the values measured on 2026-10-20 with one build per
- * view (board 11,966, calendar 16,106, grid 19,142, map 11,573, editor 6,452,
- * timeline 8,458); see docs/PERFORMANCE.md → Views kit. Lower them when the
- * kit shrinks. The grid was re-measured on 2026-10-21 at 21,859 after facets,
- * filter chips, saved-view changes and row selection joined it (19,300 before;
- * the optional parts load lazily), so its ceiling is 21,859 + 7 %. The editor
- * was re-measured on 2026-10-21 at 7,090 after slash commands and the safe link
- * menu joined it (6,452 before), so its ceiling is 7,090 + 7 %. The timeline
- * was re-measured on 2026-10-22 at 9,100 after grouped lanes and their extras
- * joined it (8,458 before; Linux gzip measures about 1 % more), so its ceiling
- * is 9,100 + 7 %.
+ * 9). Defaults stay from the pre-Texuli kit (about 7 % above 2026-10-20
+ * measures); see docs/PERFORMANCE.md → Views kit. Lower them when the kit
+ * shrinks. After the Texuli views adoption + cn→cx (texuli/cx) and QueryState
+ * without `@protoyard/ui` cn, re-measured on 2026-10-24:
+ * board 10,932, calendar 14,271, grid 17,362, map 5,827, editor 8,187,
+ * timeline 10,067. Only views still over their default get a per-view ceiling
+ * at measured + 5 % (never raise the default for views that fit).
  */
 export const CEILINGS: Record<View, number> = {
   board: 12_800,
   calendar: 17_200,
   grid: 23_400,
   map: 12_400,
-  editor: 7_600,
-  timeline: 9_750,
+  // Measured 8,187 gzip over shell (Texuli-era MarkdownEditor + slash/link extras); +5 %.
+  editor: 8_597,
+  // Measured 10,067 gzip over shell (Texuli TimelineView + QueryState/empty); +5 %.
+  timeline: 10_571,
 };
 
 let dir = '';
@@ -80,10 +78,23 @@ beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), 'protoyard-views-bundle-'));
   await cp(FIXTURE, dir, { recursive: true });
   await mkdir(join(dir, 'node_modules/@protoyard'), { recursive: true });
+  await mkdir(join(dir, 'node_modules/@texuli'), { recursive: true });
   for (const name of ['views-ui', 'ui', 'renderer-svelte']) {
     await symlink(join(ROOT, 'packages', name), join(dir, 'node_modules/@protoyard', name), 'dir');
   }
   await symlink(join(ROOT, 'node_modules/svelte'), join(dir, 'node_modules/svelte'), 'dir');
+  // views-ui class composition uses texuli/cx; Texuli data views resolve @texuli/*.
+  await symlink(join(ROOT, 'node_modules/texuli'), join(dir, 'node_modules/texuli'), 'dir');
+  await symlink(
+    join(ROOT, 'node_modules/@texuli/data'),
+    join(dir, 'node_modules/@texuli/data'),
+    'dir'
+  );
+  await symlink(
+    join(ROOT, 'node_modules/@texuli/core'),
+    join(dir, 'node_modules/@texuli/core'),
+    'dir'
+  );
   // Vitest runs with NODE_ENV=test; prototypes ship production builds.
   const previousEnv = process.env.NODE_ENV;
   process.env.NODE_ENV = 'production';
@@ -129,18 +140,32 @@ describe('views kit bundle guard (real Vite build)', () => {
       );
       expect(leaked, `${view} first screen`).toEqual([]);
     }
-    // …and each overlay still ships, in its own lazy chunk.
+    // …and Texuli menu / popover / dialog surfaces still ship as lazy chunks
+    // (board Move menu, calendar Move menu, and any Texuli overlay modules).
     const lazyOf = (view: string) =>
       (builds.get(view)?.chunks ?? [])
         .filter((c) => c.isDynamicEntry)
         .map((c) => posix(c.facadeModuleId ?? ''));
     const lazy = [...lazyOf('board'), ...lazyOf('calendar'), ...lazyOf('grid')];
-    for (const overlay of ['menu', 'popover', 'dialog']) {
-      expect(
-        lazy.some((id) => id.endsWith(`/views-ui/src/lib/overlays/${overlay}.ts`)),
-        overlay
-      ).toBe(true);
-    }
+    const isTexuliOverlay = (id: string) =>
+      /\/texuli\/packages\/(data|texuli|primitives)\/.*\/(BoardMoveMenu|CalendarMoveMenu|menu|Menu|popover|Popover|dialog|Dialog|alert-dialog|AlertDialog)/i.test(
+        id
+      ) ||
+      /\/@texuli\/(data|primitives)\/.*\/(BoardMoveMenu|CalendarMoveMenu)/.test(id) ||
+      /\/views-ui\/src\/lib\/overlays\/(menu|popover|dialog)\.ts$/.test(id);
+    expect(
+      lazy.some(isTexuliOverlay),
+      `expected a lazy Texuli/views-ui overlay chunk, got: ${JSON.stringify(lazy)}`
+    ).toBe(true);
+    // Board and calendar Move menus must be dynamic entries (not on the first screen).
+    expect(
+      lazyOf('board').some((id) => id.includes('BoardMoveMenu')),
+      'board Move menu lazy'
+    ).toBe(true);
+    expect(
+      lazyOf('calendar').some((id) => id.includes('CalendarMoveMenu')),
+      'calendar Move menu lazy'
+    ).toBe(true);
   });
 
   it('drops unused sibling components of a subpath, and keeps used components’ CSS', () => {

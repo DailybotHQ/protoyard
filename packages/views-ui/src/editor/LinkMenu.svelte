@@ -1,6 +1,6 @@
 <script lang="ts">
-import { cn } from '@protoyard/ui';
 import { safeHref } from '@protoyard/views/editor';
+import { cx } from 'texuli/cx';
 
 /**
  * LinkMenu — small popover to set or clear a link URL. Rejects unsafe schemes
@@ -61,7 +61,7 @@ function onKey(event: KeyboardEvent) {
 
 {#if open}
   <div
-    class={cn(
+    class={cx(
       'z-30 w-72 rounded-md border border-border bg-elevated p-3 shadow-float',
       className
     )}
