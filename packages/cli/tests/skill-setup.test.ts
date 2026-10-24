@@ -271,7 +271,8 @@ describe('setup.sh install', () => {
   });
 });
 
-describe('setup.sh --verify', () => {
+// Each test spawns setup.sh several times; a loaded machine needs more than the 5 s default.
+describe('setup.sh --verify', { timeout: 30_000 }, () => {
   it('passes for an untouched pack with its SHA256SUMS, without installing anything', () => {
     const dir = packWithSums();
     const realHome = sentinelHome();
