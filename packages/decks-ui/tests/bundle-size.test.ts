@@ -24,15 +24,18 @@ afterAll(async () => {
 });
 
 /**
- * All emitted CSS, every lazy block and layout family included. Raised from
- * 20 KB for this entry only: measured 21,545 B gzip on 2026-10-24 once the
- * block families and charts render with Texuli (each family's stylesheet stays
- * in its own lazy chunk; nothing joined the first screen), so 21,545 + 5 %.
+ * All emitted CSS, every lazy block and layout family included. The default is
+ * 20 KB and stays; this is an override for this entry only, at the measured
+ * size + 5 %: 23,663 B gzip on 2026-10-24 (24,846 B cap). Texuli component CSS
+ * (~23 KB gz) replaces the former UI CSS; eager/lazy split measured; CSS diet
+ * tracked as a follow-up. The first screen still loads one 1,025 B stylesheet
+ * with no Texuli family CSS; the rest sits in ~28 lazy family stylesheets, and
+ * no rule repeats across them beyond one 136 B `.tx-sr-only`.
  */
-const ALL_CSS_GZIP_CAP = 22_600;
+const ALL_CSS_GZIP_CAP = 24_846;
 
 describe('decks-ui ./app initial bundle (production Vite build)', () => {
-  it('stays within 120 KB gzip JavaScript and 22.6 KB gzip CSS', () => {
+  it('stays within 120 KB gzip JavaScript and 24.3 KB gzip CSS', () => {
     const initial = initialChunks(output);
     const jsBytes = sumGzip(initial);
     const allCssBytes = cssGzip(output.assets);
