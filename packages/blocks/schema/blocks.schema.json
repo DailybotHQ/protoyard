@@ -125,10 +125,7 @@
               "description": "Value displayed or supplied to this operation."
             }
           },
-          "required": [
-            "op",
-            "value"
-          ],
+          "required": ["op", "value"],
           "additionalProperties": false
         },
         {
@@ -145,10 +142,7 @@
               "description": "Stable field or variable name used by the data model."
             }
           },
-          "required": [
-            "op",
-            "name"
-          ],
+          "required": ["op", "name"],
           "additionalProperties": false
         },
         {
@@ -168,11 +162,7 @@
               "description": "Right operand for this expression."
             }
           },
-          "required": [
-            "op",
-            "left",
-            "right"
-          ],
+          "required": ["op", "left", "right"],
           "additionalProperties": false
         },
         {
@@ -192,11 +182,7 @@
               "description": "Right operand for this expression."
             }
           },
-          "required": [
-            "op",
-            "left",
-            "right"
-          ],
+          "required": ["op", "left", "right"],
           "additionalProperties": false
         },
         {
@@ -216,11 +202,7 @@
               "description": "Right operand for this expression."
             }
           },
-          "required": [
-            "op",
-            "left",
-            "right"
-          ],
+          "required": ["op", "left", "right"],
           "additionalProperties": false
         },
         {
@@ -240,11 +222,7 @@
               "description": "Right operand for this expression."
             }
           },
-          "required": [
-            "op",
-            "left",
-            "right"
-          ],
+          "required": ["op", "left", "right"],
           "additionalProperties": false
         },
         {
@@ -264,11 +242,7 @@
               "description": "Exponent applied by this expression."
             }
           },
-          "required": [
-            "op",
-            "base",
-            "exponent"
-          ],
+          "required": ["op", "base", "exponent"],
           "additionalProperties": false
         },
         {
@@ -289,10 +263,7 @@
               "description": "Operands for this closed expression operator."
             }
           },
-          "required": [
-            "op",
-            "args"
-          ],
+          "required": ["op", "args"],
           "additionalProperties": false
         },
         {
@@ -313,10 +284,7 @@
               "description": "Operands for this closed expression operator."
             }
           },
-          "required": [
-            "op",
-            "args"
-          ],
+          "required": ["op", "args"],
           "additionalProperties": false
         },
         {
@@ -338,10 +306,7 @@
               "description": "Number of decimal places used by this rounding operation."
             }
           },
-          "required": [
-            "op",
-            "value"
-          ],
+          "required": ["op", "value"],
           "additionalProperties": false
         },
         {
@@ -365,12 +330,7 @@
               "description": "Maximum permitted numeric value."
             }
           },
-          "required": [
-            "op",
-            "value",
-            "min",
-            "max"
-          ],
+          "required": ["op", "value", "min", "max"],
           "additionalProperties": false
         },
         {
@@ -394,12 +354,7 @@
               "description": "Expression result when the condition is false."
             }
           },
-          "required": [
-            "op",
-            "test",
-            "ifTrue",
-            "ifFalse"
-          ],
+          "required": ["op", "test", "ifTrue", "ifFalse"],
           "additionalProperties": false
         }
       ]
@@ -419,10 +374,7 @@
               "description": "Value displayed or supplied to this operation."
             }
           },
-          "required": [
-            "op",
-            "value"
-          ],
+          "required": ["op", "value"],
           "additionalProperties": false
         },
         {
@@ -442,11 +394,7 @@
               "description": "Right operand for this expression."
             }
           },
-          "required": [
-            "op",
-            "left",
-            "right"
-          ],
+          "required": ["op", "left", "right"],
           "additionalProperties": false
         },
         {
@@ -466,11 +414,7 @@
               "description": "Right operand for this expression."
             }
           },
-          "required": [
-            "op",
-            "left",
-            "right"
-          ],
+          "required": ["op", "left", "right"],
           "additionalProperties": false
         },
         {
@@ -490,11 +434,7 @@
               "description": "Right operand for this expression."
             }
           },
-          "required": [
-            "op",
-            "left",
-            "right"
-          ],
+          "required": ["op", "left", "right"],
           "additionalProperties": false
         },
         {
@@ -514,11 +454,7 @@
               "description": "Right operand for this expression."
             }
           },
-          "required": [
-            "op",
-            "left",
-            "right"
-          ],
+          "required": ["op", "left", "right"],
           "additionalProperties": false
         },
         {
@@ -538,11 +474,7 @@
               "description": "Right operand for this expression."
             }
           },
-          "required": [
-            "op",
-            "left",
-            "right"
-          ],
+          "required": ["op", "left", "right"],
           "additionalProperties": false
         },
         {
@@ -562,11 +494,7 @@
               "description": "Right operand for this expression."
             }
           },
-          "required": [
-            "op",
-            "left",
-            "right"
-          ],
+          "required": ["op", "left", "right"],
           "additionalProperties": false
         },
         {
@@ -587,10 +515,7 @@
               "description": "Operands for this closed expression operator."
             }
           },
-          "required": [
-            "op",
-            "args"
-          ],
+          "required": ["op", "args"],
           "additionalProperties": false
         },
         {
@@ -611,10 +536,7 @@
               "description": "Operands for this closed expression operator."
             }
           },
-          "required": [
-            "op",
-            "args"
-          ],
+          "required": ["op", "args"],
           "additionalProperties": false
         }
       ]
@@ -640,25 +562,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "text": {
@@ -687,17 +596,11 @@
         },
         "align": {
           "type": "string",
-          "enum": [
-            "start",
-            "center"
-          ],
+          "enum": ["start", "center"],
           "description": "Horizontal alignment for this content."
         }
       },
-      "required": [
-        "type",
-        "text"
-      ],
+      "required": ["type", "text"],
       "additionalProperties": false,
       "title": "Heading",
       "description": "Open a section or slide with a clear title. text ≤ 200 characters; level 1–4; optional eyebrow and subtitle."
@@ -723,25 +626,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "markdown": {
@@ -752,26 +642,16 @@
         },
         "size": {
           "type": "string",
-          "enum": [
-            "sm",
-            "md",
-            "lg"
-          ],
+          "enum": ["sm", "md", "lg"],
           "description": "Display size or bounded text size."
         },
         "align": {
           "type": "string",
-          "enum": [
-            "start",
-            "center"
-          ],
+          "enum": ["start", "center"],
           "description": "Horizontal alignment for this content."
         }
       },
-      "required": [
-        "type",
-        "markdown"
-      ],
+      "required": ["type", "markdown"],
       "additionalProperties": false,
       "title": "Rich text",
       "description": "Paragraphs, short lists and inline emphasis in markdown. markdown ≤ 4000 characters; parsed by safe markdown (no raw HTML)."
@@ -797,35 +677,17 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "style": {
           "type": "string",
-          "enum": [
-            "bullet",
-            "number",
-            "check",
-            "icon"
-          ],
+          "enum": ["bullet", "number", "check", "icon"],
           "description": "Allow-listed visual style for this block."
         },
         "items": {
@@ -948,18 +810,13 @@
                 "description": "Whether this list item is complete."
               }
             },
-            "required": [
-              "text"
-            ],
+            "required": ["text"],
             "additionalProperties": false
           },
           "description": "Ordered content items shown by this block."
         }
       },
-      "required": [
-        "type",
-        "items"
-      ],
+      "required": ["type", "items"],
       "additionalProperties": false,
       "title": "List",
       "description": "Bullets, numbers, checks or icon rows with short items. 12 items; item text ≤ 600 markdown."
@@ -985,25 +842,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "quote": {
@@ -1029,10 +873,7 @@
           "description": "An allow-listed fictional avatar id."
         }
       },
-      "required": [
-        "type",
-        "quote"
-      ],
+      "required": ["type", "quote"],
       "additionalProperties": false,
       "title": "Quote",
       "description": "A short testimonial or pull quote with optional cite and avatar. quote ≤ 600 characters; optional avatar id av-001…175."
@@ -1058,25 +899,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "title": {
@@ -1194,10 +1022,7 @@
           "description": "Icon name from the package allow-list."
         }
       },
-      "required": [
-        "type",
-        "body"
-      ],
+      "required": ["type", "body"],
       "additionalProperties": false,
       "title": "Callout",
       "description": "Highlight a warning, tip or note beside the main story. body ≤ 1,000 markdown; tone from the closed palette."
@@ -1223,25 +1048,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "label": {
@@ -1252,16 +1064,11 @@
         },
         "variant": {
           "type": "string",
-          "enum": [
-            "line",
-            "space"
-          ],
+          "enum": ["line", "space"],
           "description": "Allow-listed visual variant for this block."
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "additionalProperties": false,
       "title": "Divider",
       "description": "Separate sections visually with an optional label. optional label; variant line or space."
@@ -1287,25 +1094,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "src": {
@@ -1349,19 +1143,11 @@
         },
         "fit": {
           "type": "string",
-          "enum": [
-            "contain",
-            "cover"
-          ],
+          "enum": ["contain", "cover"],
           "description": "How the image fits inside its declared dimensions."
         }
       },
-      "required": [
-        "type",
-        "src",
-        "width",
-        "height"
-      ],
+      "required": ["type", "src", "width", "height"],
       "additionalProperties": false,
       "title": "Image",
       "description": "Show a local or embedded raster image with alt text. avatar:av-001…175, data: raster, or relative path; width/height 1–4096; no remote URLs."
@@ -1387,25 +1173,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "src": {
@@ -1459,13 +1232,7 @@
           "description": "Viewer controls declared by this interactive block."
         }
       },
-      "required": [
-        "type",
-        "src",
-        "label",
-        "width",
-        "height"
-      ],
+      "required": ["type", "src", "label", "width", "height"],
       "additionalProperties": false,
       "title": "Video",
       "description": "Local or embedded short product clips. mp4/webm data or relative path; autoplay requires muted; label required."
@@ -1491,25 +1258,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "title": {
@@ -1520,10 +1274,7 @@
         },
         "layout": {
           "type": "string",
-          "enum": [
-            "grid",
-            "row"
-          ],
+          "enum": ["grid", "row"],
           "description": "Allow-listed diagram or content layout."
         },
         "people": {
@@ -1556,18 +1307,13 @@
                 "description": "Short fictional biography for this person."
               }
             },
-            "required": [
-              "name"
-            ],
+            "required": ["name"],
             "additionalProperties": false
           },
           "description": "Fictional people shown in this block."
         }
       },
-      "required": [
-        "type",
-        "people"
-      ],
+      "required": ["type", "people"],
       "additionalProperties": false,
       "title": "People",
       "description": "Team grids or speaker lists with fictional portraits. 1–24 people; avatar ids only."
@@ -1593,25 +1339,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "title": {
@@ -1647,14 +1380,7 @@
               },
               "deltaTone": {
                 "type": "string",
-                "enum": [
-                  "neutral",
-                  "accent",
-                  "info",
-                  "success",
-                  "warning",
-                  "danger"
-                ],
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
                 "description": "Theme tone describing the direction or meaning of the change."
               },
               "context": {
@@ -1673,10 +1399,7 @@
                 "description": "Bounded numeric sparkline values shown with this statistic."
               }
             },
-            "required": [
-              "value",
-              "label"
-            ],
+            "required": ["value", "label"],
             "additionalProperties": false
           },
           "description": "Ordered content items shown by this block."
@@ -1688,10 +1411,7 @@
           "description": "Declared source or attribution; it does not trigger a network request."
         }
       },
-      "required": [
-        "type",
-        "items"
-      ],
+      "required": ["type", "items"],
       "additionalProperties": false,
       "title": "Stats",
       "description": "KPI row with values, deltas and optional spark trends. 1–6 items; trend ≤ 60 points."
@@ -1717,25 +1437,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "caption": {
@@ -1764,27 +1471,16 @@
               },
               "align": {
                 "type": "string",
-                "enum": [
-                  "start",
-                  "center",
-                  "end"
-                ],
+                "enum": ["start", "center", "end"],
                 "description": "Horizontal alignment for this content."
               },
               "format": {
                 "type": "string",
-                "enum": [
-                  "text",
-                  "number",
-                  "percent",
-                  "cents"
-                ],
+                "enum": ["text", "number", "percent", "cents"],
                 "description": "How values in this column are interpreted and formatted."
               }
             },
-            "required": [
-              "label"
-            ],
+            "required": ["label"],
             "additionalProperties": false
           },
           "description": "Column groups or headers, depending on the enclosing block."
@@ -1840,12 +1536,7 @@
           "description": "Zero-based table row index to highlight."
         }
       },
-      "required": [
-        "type",
-        "caption",
-        "columns",
-        "rows"
-      ],
+      "required": ["type", "caption", "columns", "rows"],
       "additionalProperties": false,
       "title": "Table",
       "description": "Small comparison tables with typed cells. caption required; ≤ 8 columns; ≤ 50 rows; formats text/number/percent/cents."
@@ -1871,25 +1562,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "spec": {
@@ -1897,14 +1575,7 @@
           "properties": {
             "kind": {
               "type": "string",
-              "enum": [
-                "line",
-                "area",
-                "bar",
-                "donut",
-                "pie",
-                "funnel"
-              ],
+              "enum": ["line", "area", "bar", "donut", "pie", "funnel"],
               "description": "Chart kind or item category selected from a closed set."
             },
             "title": {
@@ -1921,12 +1592,7 @@
             },
             "unit": {
               "type": "string",
-              "enum": [
-                "number",
-                "compact",
-                "cents",
-                "percent"
-              ],
+              "enum": ["number", "compact", "cents", "percent"],
               "description": "Visible unit appended to this numeric value."
             },
             "currency": {
@@ -1962,39 +1628,24 @@
                     "maxItems": 366,
                     "type": "array",
                     "items": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
+                      "type": ["number", "null"]
                     },
                     "description": "Typed values corresponding to the declared columns or series."
                   }
                 },
-                "required": [
-                  "label",
-                  "values"
-                ],
+                "required": ["label", "values"],
                 "additionalProperties": false
               },
               "description": "Named chart series and their numeric values."
             }
           },
-          "required": [
-            "kind",
-            "title",
-            "labels",
-            "series"
-          ],
+          "required": ["kind", "title", "labels", "series"],
           "additionalProperties": false,
           "description": "Chart specification validated by the shared ChartSpec schema."
         },
         "height": {
           "type": "string",
-          "enum": [
-            "sm",
-            "md",
-            "lg"
-          ],
+          "enum": ["sm", "md", "lg"],
           "description": "Height in CSS pixels or the bounded media aspect dimension."
         },
         "showTable": {
@@ -2002,10 +1653,7 @@
           "description": "Whether an accessible data table accompanies the chart."
         }
       },
-      "required": [
-        "type",
-        "spec"
-      ],
+      "required": ["type", "spec"],
       "additionalProperties": false,
       "title": "Chart",
       "description": "Bounded ChartSpec (line, area, bar, donut, pie, funnel). ChartSpecSchema caps; optional accessible data table."
@@ -2031,25 +1679,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "code": {
@@ -2060,18 +1695,7 @@
         },
         "lang": {
           "type": "string",
-          "enum": [
-            "ts",
-            "js",
-            "json",
-            "bash",
-            "python",
-            "html",
-            "css",
-            "sql",
-            "yaml",
-            "text"
-          ],
+          "enum": ["ts", "js", "json", "bash", "python", "html", "css", "sql", "yaml", "text"],
           "description": "Language from the supported code-tokenizer list."
         },
         "filename": {
@@ -2101,11 +1725,7 @@
           "description": "Line ranges highlighted at each presentation step."
         }
       },
-      "required": [
-        "type",
-        "code",
-        "lang"
-      ],
+      "required": ["type", "code", "lang"],
       "additionalProperties": false,
       "title": "Code",
       "description": "Short code samples with a closed language list. ≤ 20000 characters; ≤ 400 lines; ≤ 16 highlight steps."
@@ -2131,25 +1751,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "title": {
@@ -2160,10 +1767,7 @@
         },
         "orientation": {
           "type": "string",
-          "enum": [
-            "horizontal",
-            "vertical"
-          ],
+          "enum": ["horizontal", "vertical"],
           "description": "Direction in which the content is laid out."
         },
         "events": {
@@ -2295,30 +1899,17 @@
               },
               "tone": {
                 "type": "string",
-                "enum": [
-                  "neutral",
-                  "accent",
-                  "info",
-                  "success",
-                  "warning",
-                  "danger"
-                ],
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
                 "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
               }
             },
-            "required": [
-              "time",
-              "title"
-            ],
+            "required": ["time", "title"],
             "additionalProperties": false
           },
           "description": "Ordered milestones shown on the timeline."
         }
       },
-      "required": [
-        "type",
-        "events"
-      ],
+      "required": ["type", "events"],
       "additionalProperties": false,
       "title": "Timeline",
       "description": "2–12 ordered events along a path. 2–12 events."
@@ -2344,25 +1935,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "title": {
@@ -2497,18 +2075,13 @@
                 "description": "Icon name from the package allow-list."
               }
             },
-            "required": [
-              "title"
-            ],
+            "required": ["title"],
             "additionalProperties": false
           },
           "description": "Ordered content items shown by this block."
         }
       },
-      "required": [
-        "type",
-        "items"
-      ],
+      "required": ["type", "items"],
       "additionalProperties": false,
       "title": "Steps",
       "description": "Short how-to sequences (2–8 steps). 2–8 items."
@@ -2534,25 +2107,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "title": {
@@ -2579,9 +2139,7 @@
                 "description": "Optional row or text range receiving a visual highlight."
               }
             },
-            "required": [
-              "label"
-            ],
+            "required": ["label"],
             "additionalProperties": false
           },
           "description": "Column groups or headers, depending on the enclosing block."
@@ -2616,20 +2174,13 @@
                 "description": "Typed values corresponding to the declared columns or series."
               }
             },
-            "required": [
-              "label",
-              "values"
-            ],
+            "required": ["label", "values"],
             "additionalProperties": false
           },
           "description": "Bounded table rows or comparison rows."
         }
       },
-      "required": [
-        "type",
-        "columns",
-        "rows"
-      ],
+      "required": ["type", "columns", "rows"],
       "additionalProperties": false,
       "title": "Comparison",
       "description": "Side-by-side plan or feature matrices. 2–4 columns; ≤ 8 rows."
@@ -2655,25 +2206,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "title": {
@@ -2845,29 +2383,17 @@
               },
               "tone": {
                 "type": "string",
-                "enum": [
-                  "neutral",
-                  "accent",
-                  "info",
-                  "success",
-                  "warning",
-                  "danger"
-                ],
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
                 "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
               }
             },
-            "required": [
-              "title"
-            ],
+            "required": ["title"],
             "additionalProperties": false
           },
           "description": "Ordered content items shown by this block."
         }
       },
-      "required": [
-        "type",
-        "items"
-      ],
+      "required": ["type", "items"],
       "additionalProperties": false,
       "title": "Cards",
       "description": "Feature grids with title, body, icon or image. 1–12 cards; 2–4 columns."
@@ -2893,25 +2419,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "icon": {
@@ -3028,19 +2541,11 @@
         },
         "size": {
           "type": "string",
-          "enum": [
-            "sm",
-            "md",
-            "lg",
-            "xl"
-          ],
+          "enum": ["sm", "md", "lg", "xl"],
           "description": "Display size or bounded text size."
         }
       },
-      "required": [
-        "type",
-        "icon"
-      ],
+      "required": ["type", "icon"],
       "additionalProperties": false,
       "title": "Icon",
       "description": "A single allow-listed icon with a label or decorative mark. allow-listed icon names; label or decorative: true."
@@ -3066,25 +2571,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "title": {
@@ -3120,11 +2612,7 @@
               },
               "variant": {
                 "type": "string",
-                "enum": [
-                  "primary",
-                  "secondary",
-                  "link"
-                ],
+                "enum": ["primary", "secondary", "link"],
                 "description": "Allow-listed visual variant for this block."
               },
               "icon": {
@@ -3230,10 +2718,7 @@
                 "description": "Icon name from the package allow-list."
               }
             },
-            "required": [
-              "label",
-              "href"
-            ],
+            "required": ["label", "href"],
             "additionalProperties": false
           },
           "description": "Safe, visibly labelled actions available from this block."
@@ -3245,10 +2730,7 @@
           "description": "Small supporting note shown below the main content."
         }
       },
-      "required": [
-        "type",
-        "actions"
-      ],
+      "required": ["type", "actions"],
       "additionalProperties": false,
       "title": "Call to action",
       "description": "One to three safe links as primary actions. 1–3 actions; https, mailto or #section href only."
@@ -3274,42 +2756,22 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "widths": {
           "type": "string",
-          "enum": [
-            "equal",
-            "wide-start",
-            "wide-end"
-          ],
+          "enum": ["equal", "wide-start", "wide-end"],
           "description": "Allow-listed relative widths for the column groups."
         },
         "align": {
           "type": "string",
-          "enum": [
-            "start",
-            "center"
-          ],
+          "enum": ["start", "center"],
           "description": "Horizontal alignment for this content."
         },
         "columns": {
@@ -3327,10 +2789,7 @@
           "description": "Column groups or headers, depending on the enclosing block."
         }
       },
-      "required": [
-        "type",
-        "columns"
-      ],
+      "required": ["type", "columns"],
       "additionalProperties": false,
       "title": "Columns",
       "description": "Side-by-side block groups on wide layouts. 2–4 columns; ≤ 12 blocks each; nest ≤ 3 deep."
@@ -3356,25 +2815,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "label": {
@@ -3513,11 +2959,7 @@
                 "description": "Nested blocks rendered inside this container."
               }
             },
-            "required": [
-              "id",
-              "label",
-              "blocks"
-            ],
+            "required": ["id", "label", "blocks"],
             "additionalProperties": false
           },
           "description": "Named tab panels, each containing a bounded block list."
@@ -3528,12 +2970,7 @@
           "description": "Id of the panel selected when the tabs first open."
         }
       },
-      "required": [
-        "type",
-        "id",
-        "label",
-        "panels"
-      ],
+      "required": ["type", "id", "label", "panels"],
       "additionalProperties": false,
       "title": "Tabs",
       "description": "2–6 alternative panels the viewer can switch. id required; 2–6 panels; ≤ 12 blocks each."
@@ -3559,25 +2996,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "label": {
@@ -3606,12 +3030,7 @@
           "description": "Whether this reveal container starts open."
         }
       },
-      "required": [
-        "type",
-        "id",
-        "label",
-        "blocks"
-      ],
+      "required": ["type", "id", "label", "blocks"],
       "additionalProperties": false,
       "title": "Reveal",
       "description": "Answers or details behind a button. id required; ≤ 12 nested blocks."
@@ -3637,25 +3056,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "question": {
@@ -3683,10 +3089,7 @@
                 "description": "Short visible label and accessible name for this item."
               }
             },
-            "required": [
-              "id",
-              "label"
-            ],
+            "required": ["id", "label"],
             "additionalProperties": false
           },
           "description": "Allow-listed options presented to the viewer."
@@ -3699,20 +3102,11 @@
         },
         "results": {
           "type": "string",
-          "enum": [
-            "after-vote",
-            "always",
-            "hidden"
-          ],
+          "enum": ["after-vote", "always", "hidden"],
           "description": "When poll results are made visible."
         }
       },
-      "required": [
-        "type",
-        "id",
-        "question",
-        "options"
-      ],
+      "required": ["type", "id", "question", "options"],
       "additionalProperties": false,
       "title": "Poll",
       "description": "Live audience choices with local tallies. id required; 2–8 options; results after-vote/always/hidden."
@@ -3738,25 +3132,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "title": {
@@ -3802,10 +3183,7 @@
                       "description": "Short visible label and accessible name for this item."
                     }
                   },
-                  "required": [
-                    "id",
-                    "label"
-                  ],
+                  "required": ["id", "label"],
                   "additionalProperties": false
                 },
                 "description": "Available answer choices, each with a stable id and visible label."
@@ -3827,22 +3205,14 @@
                 "description": "Feedback shown after the answer is checked."
               }
             },
-            "required": [
-              "id",
-              "prompt",
-              "choices",
-              "answers"
-            ],
+            "required": ["id", "prompt", "choices", "answers"],
             "additionalProperties": false
           },
           "description": "Ordered quiz questions and their declared answer choices."
         },
         "feedback": {
           "type": "string",
-          "enum": [
-            "immediate",
-            "end"
-          ],
+          "enum": ["immediate", "end"],
           "description": "When quiz feedback is revealed to the viewer."
         },
         "passScore": {
@@ -3856,11 +3226,7 @@
           "description": "Whether choices are shuffled deterministically from the block id."
         }
       },
-      "required": [
-        "type",
-        "id",
-        "questions"
-      ],
+      "required": ["type", "id", "questions"],
       "additionalProperties": false,
       "title": "Quiz",
       "description": "Short self-checks with known answers. id required; 1–20 questions; 2–6 choices; seeded shuffle."
@@ -3886,25 +3252,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "title": {
@@ -3944,10 +3297,7 @@
               },
               "control": {
                 "type": "string",
-                "enum": [
-                  "slider",
-                  "number"
-                ],
+                "enum": ["slider", "number"],
                 "description": "The allow-listed control that a viewer may use."
               },
               "min": {
@@ -3975,12 +3325,7 @@
               },
               "unit": {
                 "type": "string",
-                "enum": [
-                  "number",
-                  "compact",
-                  "cents",
-                  "percent"
-                ],
+                "enum": ["number", "compact", "cents", "percent"],
                 "description": "Visible unit appended to this numeric value."
               },
               "help": {
@@ -3990,13 +3335,7 @@
                 "description": "Supporting instructions associated with this input."
               }
             },
-            "required": [
-              "name",
-              "label",
-              "min",
-              "max",
-              "default"
-            ],
+            "required": ["name", "label", "min", "max", "default"],
             "additionalProperties": false
           },
           "description": "Bounded viewer inputs declared for this calculator."
@@ -4025,12 +3364,7 @@
               },
               "unit": {
                 "type": "string",
-                "enum": [
-                  "number",
-                  "compact",
-                  "cents",
-                  "percent"
-                ],
+                "enum": ["number", "compact", "cents", "percent"],
                 "description": "Visible unit appended to this numeric value."
               },
               "emphasis": {
@@ -4039,22 +3373,11 @@
               },
               "tone": {
                 "type": "string",
-                "enum": [
-                  "neutral",
-                  "accent",
-                  "info",
-                  "success",
-                  "warning",
-                  "danger"
-                ],
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
                 "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
               }
             },
-            "required": [
-              "id",
-              "label",
-              "formula"
-            ],
+            "required": ["id", "label", "formula"],
             "additionalProperties": false
           },
           "description": "Calculated outputs and their closed formulas."
@@ -4074,11 +3397,7 @@
             },
             "kind": {
               "type": "string",
-              "enum": [
-                "line",
-                "area",
-                "bar"
-              ],
+              "enum": ["line", "area", "bar"],
               "description": "Chart kind or item category selected from a closed set."
             },
             "points": {
@@ -4088,20 +3407,12 @@
               "description": "Bounded simulated map points; these do not request remote map data."
             }
           },
-          "required": [
-            "output",
-            "input"
-          ],
+          "required": ["output", "input"],
           "additionalProperties": false,
           "description": "Optional bounded chart configuration for the selected output."
         }
       },
-      "required": [
-        "type",
-        "id",
-        "inputs",
-        "outputs"
-      ],
+      "required": ["type", "id", "inputs", "outputs"],
       "additionalProperties": false,
       "title": "Calculator",
       "description": "Interactive what-if math with a closed formula AST. id required; 1–8 inputs; 1–6 outputs; formula caps in ./formula."
@@ -4127,25 +3438,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "label": {
@@ -4179,11 +3477,7 @@
           "description": "Visible unit appended to this numeric value."
         }
       },
-      "required": [
-        "type",
-        "id",
-        "label"
-      ],
+      "required": ["type", "id", "label"],
       "additionalProperties": false,
       "title": "Counter",
       "description": "Simple +/- tallies within min/max. id required; start/step/min/max bounds."
@@ -4209,25 +3503,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "spec": {
@@ -4235,14 +3516,7 @@
           "properties": {
             "kind": {
               "type": "string",
-              "enum": [
-                "line",
-                "area",
-                "bar",
-                "donut",
-                "pie",
-                "funnel"
-              ],
+              "enum": ["line", "area", "bar", "donut", "pie", "funnel"],
               "description": "Chart kind or item category selected from a closed set."
             },
             "title": {
@@ -4259,12 +3533,7 @@
             },
             "unit": {
               "type": "string",
-              "enum": [
-                "number",
-                "compact",
-                "cents",
-                "percent"
-              ],
+              "enum": ["number", "compact", "cents", "percent"],
               "description": "Visible unit appended to this numeric value."
             },
             "currency": {
@@ -4300,29 +3569,18 @@
                     "maxItems": 366,
                     "type": "array",
                     "items": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
+                      "type": ["number", "null"]
                     },
                     "description": "Typed values corresponding to the declared columns or series."
                   }
                 },
-                "required": [
-                  "label",
-                  "values"
-                ],
+                "required": ["label", "values"],
                 "additionalProperties": false
               },
               "description": "Named chart series and their numeric values."
             }
           },
-          "required": [
-            "kind",
-            "title",
-            "labels",
-            "series"
-          ],
+          "required": ["kind", "title", "labels", "series"],
           "additionalProperties": false,
           "description": "Chart specification validated by the shared ChartSpec schema."
         },
@@ -4332,14 +3590,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": [
-              "line",
-              "area",
-              "bar",
-              "donut",
-              "pie",
-              "funnel"
-            ]
+            "enum": ["line", "area", "bar", "donut", "pie", "funnel"]
           },
           "description": "Chart kinds the viewer may select."
         },
@@ -4353,19 +3604,11 @@
         },
         "height": {
           "type": "string",
-          "enum": [
-            "sm",
-            "md",
-            "lg"
-          ],
+          "enum": ["sm", "md", "lg"],
           "description": "Height in CSS pixels or the bounded media aspect dimension."
         }
       },
-      "required": [
-        "type",
-        "id",
-        "spec"
-      ],
+      "required": ["type", "id", "spec"],
       "additionalProperties": false,
       "title": "Chart controls",
       "description": "Let viewers switch kind, series or range on one ChartSpec. id required; kinds 2–4; needs seriesToggle or range or kinds."
@@ -4391,25 +3634,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "label": {
@@ -4426,9 +3656,7 @@
         },
         "basemap": {
           "type": "string",
-          "enum": [
-            "port-meridian"
-          ],
+          "enum": ["port-meridian"],
           "description": "The allow-listed simulated map style; no map tiles are fetched."
         },
         "points": {
@@ -4571,23 +3799,11 @@
               },
               "tone": {
                 "type": "string",
-                "enum": [
-                  "neutral",
-                  "accent",
-                  "info",
-                  "success",
-                  "warning",
-                  "danger"
-                ],
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
                 "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
               }
             },
-            "required": [
-              "id",
-              "label",
-              "lng",
-              "lat"
-            ],
+            "required": ["id", "label", "lng", "lat"],
             "additionalProperties": false
           },
           "description": "Bounded simulated map points; these do not request remote map data."
@@ -4603,12 +3819,7 @@
           "description": "Ordered point ids describing a simulated route."
         }
       },
-      "required": [
-        "type",
-        "id",
-        "label",
-        "points"
-      ],
+      "required": ["type", "id", "label", "points"],
       "additionalProperties": false,
       "title": "Map",
       "description": "Points and routes on the simulated basemap. id required; basemap port-meridian only; 1–200 points; route ≤ 50."
@@ -4634,25 +3845,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "title": {
@@ -4669,11 +3867,7 @@
         },
         "height": {
           "type": "string",
-          "enum": [
-            "sm",
-            "md",
-            "lg"
-          ],
+          "enum": ["sm", "md", "lg"],
           "description": "Height in CSS pixels or the bounded media aspect dimension."
         },
         "app": {
@@ -4685,12 +3879,7 @@
           "description": "A bounded app blueprint mounted in an isolated namespace by the host."
         }
       },
-      "required": [
-        "type",
-        "id",
-        "title",
-        "app"
-      ],
+      "required": ["type", "id", "title", "app"],
       "additionalProperties": false,
       "title": "Embedded app",
       "description": "Mount a small opaque app blueprint inside a deck or page. id required; app ≤ 64 KB; depth ≤ 24; host validates with blueprint loader."
@@ -4716,25 +3905,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "title": {
@@ -4817,10 +3993,7 @@
                       "description": "Short visible label and accessible name for this item."
                     }
                   },
-                  "required": [
-                    "value",
-                    "label"
-                  ],
+                  "required": ["value", "label"],
                   "additionalProperties": false
                 },
                 "description": "Allow-listed options presented to the viewer."
@@ -4850,11 +4023,7 @@
                 "description": "Maximum number of tags accepted."
               }
             },
-            "required": [
-              "name",
-              "label",
-              "type"
-            ],
+            "required": ["name", "label", "type"],
             "additionalProperties": false
           },
           "description": "Declared fields or inputs for this form or interactive block."
@@ -4872,13 +4041,7 @@
           "description": "Confirmation text shown after a simulated form submission."
         }
       },
-      "required": [
-        "type",
-        "id",
-        "fields",
-        "submitLabel",
-        "successMessage"
-      ],
+      "required": ["type", "id", "fields", "submitLabel", "successMessage"],
       "additionalProperties": false,
       "title": "Form",
       "description": "Collect structured fields; pages own responses. id required; 1–20 fields; closed field types; responses via @protoyard/pages."
@@ -4904,25 +4067,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "nodes": {
@@ -4945,21 +4095,11 @@
               },
               "tone": {
                 "type": "string",
-                "enum": [
-                  "neutral",
-                  "accent",
-                  "info",
-                  "success",
-                  "warning",
-                  "danger"
-                ],
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
                 "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
               }
             },
-            "required": [
-              "id",
-              "label"
-            ],
+            "required": ["id", "label"],
             "additionalProperties": false
           },
           "description": "Nodes in the diagram, with stable ids and visible labels."
@@ -4969,10 +4109,7 @@
           "description": "Id of the node reached by the optional loop-back edge."
         }
       },
-      "required": [
-        "type",
-        "nodes"
-      ],
+      "required": ["type", "nodes"],
       "additionalProperties": false,
       "title": "Flow diagram",
       "description": "Show a short process or chain of steps as connected nodes. 1–12 nodes; labels ≤ 120 characters; unique node ids."
@@ -4998,33 +4135,17 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "style": {
           "type": "string",
-          "enum": [
-            "file-tree",
-            "org"
-          ],
+          "enum": ["file-tree", "org"],
           "description": "Allow-listed visual style for this block."
         },
         "nodes": {
@@ -5059,32 +4180,17 @@
               },
               "tone": {
                 "type": "string",
-                "enum": [
-                  "neutral",
-                  "accent",
-                  "info",
-                  "success",
-                  "warning",
-                  "danger"
-                ],
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
                 "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
               }
             },
-            "required": [
-              "id",
-              "parentId",
-              "label"
-            ],
+            "required": ["id", "parentId", "label"],
             "additionalProperties": false
           },
           "description": "Nodes in the diagram, with stable ids and visible labels."
         }
       },
-      "required": [
-        "type",
-        "style",
-        "nodes"
-      ],
+      "required": ["type", "style", "nodes"],
       "additionalProperties": false,
       "title": "Tree diagram",
       "description": "A file tree or an org chart. 1–64 nodes; depth ≤ 6; every parentId must exist; no cycles."
@@ -5110,25 +4216,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "columns": {
@@ -5168,40 +4261,23 @@
                     },
                     "tone": {
                       "type": "string",
-                      "enum": [
-                        "neutral",
-                        "accent",
-                        "info",
-                        "success",
-                        "warning",
-                        "danger"
-                      ],
+                      "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
                       "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
                     }
                   },
-                  "required": [
-                    "id",
-                    "title"
-                  ],
+                  "required": ["id", "title"],
                   "additionalProperties": false
                 },
                 "description": "Cards grouped under this board column."
               }
             },
-            "required": [
-              "id",
-              "title",
-              "cards"
-            ],
+            "required": ["id", "title", "cards"],
             "additionalProperties": false
           },
           "description": "Column groups or headers, depending on the enclosing block."
         }
       },
-      "required": [
-        "type",
-        "columns"
-      ],
+      "required": ["type", "columns"],
       "additionalProperties": false,
       "title": "Board diagram",
       "description": "A static kanban-style snapshot of work by column. 1–6 columns; ≤ 8 cards per column; unique column and card ids."
@@ -5227,25 +4303,12 @@
         },
         "reveal": {
           "type": "string",
-          "enum": [
-            "fade",
-            "fade-up",
-            "grow",
-            "highlight",
-            "strike"
-          ],
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
           "description": "Presentation effect used when this block is revealed."
         },
         "tone": {
           "type": "string",
-          "enum": [
-            "neutral",
-            "accent",
-            "info",
-            "success",
-            "warning",
-            "danger"
-          ],
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
           "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
         },
         "lines": {
@@ -5257,11 +4320,7 @@
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": [
-                  "prompt",
-                  "output",
-                  "comment"
-                ],
+                "enum": ["prompt", "output", "comment"],
                 "description": "Chart kind or item category selected from a closed set."
               },
               "text": {
@@ -5271,19 +4330,13 @@
                 "description": "Plain text or short markdown content, according to the block field."
               }
             },
-            "required": [
-              "kind",
-              "text"
-            ],
+            "required": ["kind", "text"],
             "additionalProperties": false
           },
           "description": "Ordered terminal lines or source lines shown by this block."
         }
       },
-      "required": [
-        "type",
-        "lines"
-      ],
+      "required": ["type", "lines"],
       "additionalProperties": false,
       "title": "Terminal",
       "description": "Show a command-line session: prompts, output and comments. 1–40 lines; line text ≤ 240 characters; kinds: prompt, output, comment."
