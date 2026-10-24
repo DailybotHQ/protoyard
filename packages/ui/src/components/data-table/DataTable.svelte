@@ -1,11 +1,11 @@
 <script lang="ts" generics="T">
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from '@lucide/svelte';
 import type { Snippet } from 'svelte';
+import { Checkbox } from 'texuli/choice';
+import { Skeleton } from 'texuli/feedback';
 import { cn } from '../../lib/cn.ts';
-import Checkbox from '../checkbox/Checkbox.svelte';
 import EmptyState from '../empty-state/EmptyState.svelte';
 import Pagination from '../pagination/Pagination.svelte';
-import Skeleton from '../skeleton/Skeleton.svelte';
 import { formatValue, matchesQuery, readValue, sortRows } from './table-utils.ts';
 import type { DataTableBulkActionContext, DataTableColumn, DataTableSort } from './types.ts';
 

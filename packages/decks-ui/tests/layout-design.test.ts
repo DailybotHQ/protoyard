@@ -1,6 +1,6 @@
 import { DECK_TEXT_MINIMUMS } from '@protoyard/decks';
 import { DECK_LAYOUTS } from '@protoyard/decks/layouts';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { fitFontSize, fitScale, keepsZoom, textOverflows } from '../src/layouts/design/fit.ts';
 import { DECK_TYPE, DECK_TYPE_STEPS, typeSize } from '../src/layouts/design/scale.ts';
@@ -246,12 +246,16 @@ describe('the chart layout', () => {
     const slot = chart.querySelector('[data-slot="chart"]') as HTMLElement;
     const toggle = await within(slot).findByRole(
       'button',
-      { name: 'View as table' },
+      { name: 'Show data table' },
       { timeout: 4000 }
     );
-    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    // A disclosure: the table opens below the chart, closed by default.
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
     // No open table on the slide: the block's own showTable copy is never rendered.
-    expect(within(slot).queryByRole('region', { name: 'Weekly prototypes (table)' })).toBeNull();
+    expect(within(slot).queryByRole('table')).toBeNull();
+    await fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(await within(slot).findByRole('table')).toBeTruthy();
     // A print-only copy (display: none on screen) carries the same data to paper.
     const printTable = chart.querySelector('[data-slot="print-table"]') as HTMLElement;
     expect(printTable.tagName).toBe('TABLE');

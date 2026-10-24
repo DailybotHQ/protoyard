@@ -1,17 +1,50 @@
 /**
- * `@protoyard/views-ui/board` — `BoardView`, the rich kanban: columns ×
- * swimlanes, ranks, WIP limits, pointer and keyboard drag, a "Move to…" menu
- * and optimistic moves that roll back. Built on `@protoyard/views/board`. The
- * simple `Kanban` in `@protoyard/ui` stays as it is.
+ * `@protoyard/views-ui/board` — thin host adapter (`BoardView`) over
+ * `@texuli/data` `Board`, plus engine helpers for consumers.
  */
-export { default as BoardView } from './BoardView.svelte';
+
+export type {
+  BoardCell,
+  BoardColumnDef,
+  BoardGrid,
+  BoardLaneDef,
+  BoardMove,
+  BoardOptions,
+  BoardPosition,
+  KeyboardMoveState,
+  MoveIntentResult,
+  MoveKey,
+  MoveResult,
+  MoveRules,
+  MoveTarget,
+  WipEvaluation,
+  WipLimit,
+  WipStatus,
+} from '@protoyard/views/board';
 export {
-  AUTO_SCROLL_EDGE_PX,
-  autoScrollDelta,
+  assertRank,
+  compareRanks,
+  DEFAULT_LANE,
+  describePosition,
+  evaluateWip,
+  groupBoard,
+  IDLE,
+  isRank,
+  moveIntent,
+  pickUp,
+  RankError,
+  rankBetween,
+  rankSequence,
+  validateMove,
+} from '@protoyard/views/board';
+/** Alias used by existing tests and helpers. */
+export type { BoardPlacement as Placement } from '@texuli/data/board';
+export {
+  Board,
+  type BoardLabels,
+  type BoardPlacement,
   DRAG_THRESHOLD_PX,
   indexFromPointer,
-  type Placement,
   placementsOf,
-  settled,
-  withOverrides,
-} from './model.ts';
+} from '@texuli/data/board';
+export { default as BoardView } from './BoardView.svelte';

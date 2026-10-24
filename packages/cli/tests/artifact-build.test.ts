@@ -78,7 +78,11 @@ describe('PROTOYARD_TARGET propagation', () => {
     } as const;
     const plain = defineProtoyardConfig({ root })(configEnv);
     expect(plain.build?.cssCodeSplit).toBeUndefined();
-    expect(plain.build?.rolldownOptions).toBeUndefined();
+    // A plain build only groups Texuli's styles into one stylesheet chunk.
+    const groups = (
+      plain.build?.rolldownOptions?.output as { codeSplitting?: { groups?: { name: string }[] } }
+    )?.codeSplitting?.groups;
+    expect(groups?.map((group) => group.name)).toEqual(['texuli-css']);
     vi.stubEnv('PROTOYARD_TARGET', 'artifact');
     const artifact = defineProtoyardConfig({ root })(configEnv);
     expect(artifact.build?.cssCodeSplit).toBe(false);

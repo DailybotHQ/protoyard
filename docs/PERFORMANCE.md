@@ -251,7 +251,47 @@ For one prototype, set only the values that differ:
 }
 ```
 
-The root file contains these defaults with an empty `overrides` object.
+The root file contains these defaults. The defaults stay unchanged, and the
+`overrides` object carries the per-entry CSS budgets below.
+
+**CSS overrides for Texuli's component styles (T-adopt-ui-styled).**
+- **Why:** `@protoyard/ui` re-exports Texuli's styled components (see
+  [TEXULI.md](TEXULI.md)). Their stylesheets add to Protoyard's Tailwind CSS.
+  The player build carries about 10 KB gzip of `tx-*` rules, in per-component
+  chunks.
+- **Shrinking first:** the Tailwind side already dropped what only the
+  deleted components used (the collapse, skeleton shimmer and indeterminate
+  progress rules).
+- **Each override** is the measured all-CSS gzip size plus at most 5%. Its
+  reason: *Texuli component CSS on top of Tailwind; tighten after Texuli's
+  FIX-texuli-css-size.*
+
+| Entry | Measured (KB gzip) | Budget |
+| --- | ---: | ---: |
+| `player` (the app entry, `index.html`) | 40.0 | 41.5 |
+| kind `deck` (`deck.html`) | 34.9 | 36.5 |
+| kind `page` (`page.html`) | 34.1 | 35.5 |
+| kind `doc` (`doc.html`) | 34.1 | 35.5 |
+| `create-anything-deck` | 40.40 | 42 |
+| `keel-projects-demo` | 35.11 | 36.5 |
+| `ui-kit` | 34.66 | 36 |
+| `helpdesk-demo` | 30.56 | 32 |
+| `cadence-studio-demo`, `harbor-dispatch-demo`, `pulse-revenue-demo` | 30.52 | 32 |
+
+Every other prototype stays inside the 30 KB default.
+
+**Layout host overhead (T-adopt-layouts).**
+- `LAYOUT_BUNDLE_BUDGETS.hostInitialDelta` in
+  `packages/renderer-svelte/tests/bundle-hygiene.test.ts` caps what
+  `LayoutHost` adds to the initial app path.
+- The cap was 2,000 B gzip. It is now 3,600 B: measured 3,498 B plus under
+  5%.
+- **Reason:** Protoyard's host wraps texuli's. The initial path carries
+  texuli's host, catalog and host CSS next to Protoyard's catalog (for the
+  `docs` width rule), plus the `data-py-layout` mirror.
+- Every layout stays its own lazy chunk.
+- **pages-ui:** page and doc initial CSS caps are now 22.5 KB each (measured
+  22,115 B and 22,374 B), for texuli's component and layout CSS.
 Budgets stay out of `protoyard.json` so performance targets can evolve
 without changing the strict prototype manifest contract.
 
@@ -1184,7 +1224,11 @@ All CSS reachable from `index.html` is 29.37 KiB, measured by
 minimal Svelte host that imports `@protoyard/decks-ui/app` and its stylesheet,
 then measures the entry's static imports and all emitted CSS with gzip level 9.
 The initial graph measured **80,887 B JS gzip** and all emitted CSS measured
-**2,882 B gzip** (2026-10-22), under the ceilings of 120 KB JS and 20 KB CSS. The paired hygiene test checks the built
+**2,882 B gzip** (2026-10-22), under the ceilings of 120 KB JS and 20 KB CSS.
+Since the block families and charts render with Texuli, all emitted CSS
+measures **21,545 B gzip** (2026-10-24): each family's stylesheet sits in its
+own lazy chunk and nothing joined the first screen. This entry's CSS ceiling
+is 22,600 B (the measured number + 5 %), an override for this entry only. The paired hygiene test checks the built
 static graph for CRUD, Faker, the player and worker, syntax highlighting, and
 chart-family code. Layout families load on demand. Presenter and studio remain
 separate package subpaths and do not enter the app graph; the overview DOM is

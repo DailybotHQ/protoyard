@@ -1,8 +1,12 @@
-import type { BasemapFeature } from '../map/basemap.ts';
-import type { MapPoint } from '../map/cluster.ts';
-import { type Geofence, pointInRing, type Ring } from '../map/fence.ts';
-import { haversine, type LngLat } from '../map/geo.ts';
-import { PORT_MERIDIAN } from '../map/port-meridian.ts';
+import type { BasemapFeature, MapPoint } from '../map/index.ts';
+import {
+  type Geofence,
+  haversine,
+  type LngLat,
+  PORT_MERIDIAN,
+  pointInRing,
+  type Ring,
+} from '../map/index.ts';
 import { countFor, type ViewsCtx, type ViewsLevel, viewsLevel, viewsRng } from './shared.ts';
 
 export interface GeoSite extends MapPoint {

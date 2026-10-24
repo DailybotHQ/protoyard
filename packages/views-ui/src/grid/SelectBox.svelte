@@ -1,5 +1,5 @@
 <script lang="ts">
-import { cn } from '@protoyard/ui';
+import { cx } from 'texuli/cx';
 
 /**
  * The selection checkbox of a DataGrid row, header or phone card. It loads
@@ -48,7 +48,7 @@ let {
   <div
     role={variant === 'header' ? 'columnheader' : 'gridcell'}
     aria-colindex={1}
-    class={cn('sticky left-0 z-10 flex shrink-0 items-center justify-center', variant === 'header' ? 'bg-muted' : checked ? 'bg-primary/10' : 'bg-surface')}
+    class={cx('sticky left-0 z-10 flex shrink-0 items-center justify-center', variant === 'header' ? 'bg-muted' : checked ? 'bg-primary/10' : 'bg-surface')}
     style:width={`${width}px`}
   >
     <!-- Rows: a pointer target; keyboard users press Space on any cell of the row. -->

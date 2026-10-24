@@ -10,25 +10,34 @@
     "quickReadyMs": 5000
   },
   "overrides": {
+    "create-anything-deck": {
+      "cssGzipKb": 46.5
+    },
+    "keel-projects-demo": {
+      "cssGzipKb": 34
+    },
     "player": {
+      "cssGzipKb": 36
+    },
+    "ui-kit": {
       "cssGzipKb": 36
     }
   },
   "kinds": {
+    "doc": {
+      "initialJsGzipKb": 150,
+      "singleFileKb": 2048,
+      "cssGzipKb": 36
+    },
     "deck": {
       "initialJsGzipKb": 150,
-      "cssGzipKb": 36,
-      "singleFileKb": 2048
+      "singleFileKb": 2048,
+      "cssGzipKb": 36
     },
     "page": {
       "initialJsGzipKb": 150,
-      "cssGzipKb": 36,
-      "singleFileKb": 2048
-    },
-    "doc": {
-      "initialJsGzipKb": 150,
-      "cssGzipKb": 36,
-      "singleFileKb": 2048
+      "singleFileKb": 2048,
+      "cssGzipKb": 36
     }
   }
 }

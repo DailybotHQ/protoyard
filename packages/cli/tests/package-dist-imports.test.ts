@@ -128,8 +128,14 @@ beforeAll(async () => {
     );
     for (const dep of Object.keys(pkg.dependencies ?? {})) {
       if (dep.startsWith('@protoyard/') || existsSync(join(modules, dep))) continue;
-      const source = join(ROOT, 'packages', dir, 'node_modules', dep);
-      if (!existsSync(source)) continue;
+      // Prefer the package's own node_modules, then the workspace root (link: deps
+      // such as @texuli/* often live only at the root after pnpm install).
+      const candidates = [
+        join(ROOT, 'packages', dir, 'node_modules', dep),
+        join(ROOT, 'node_modules', dep),
+      ];
+      const source = candidates.find((path) => existsSync(path));
+      if (!source) continue;
       mkdirSync(dirname(join(modules, dep)), { recursive: true });
       symlinkSync(realpathSync(source), join(modules, dep));
     }

@@ -1,7 +1,15 @@
+/// <reference path="./css.d.ts" />
+import type { ComponentProps } from 'svelte';
+import type { Button as TexuliButton } from 'texuli/button';
+
 // Utilities and shared types
 
-export { default as Accordion } from './components/accordion/Accordion.svelte';
-export type { AccordionItem } from './components/accordion/types.ts';
+// Display
+export { Badge, type BadgeVariant, badgeClass as badgeVariants } from 'texuli/badge';
+// Primitives
+export { Button, type ButtonSize, type ButtonVariant, buttonVariants } from 'texuli/button';
+export { Breadcrumb, type BreadcrumbItem } from 'texuli/navigation';
+export { Accordion, type AccordionItemDef as AccordionItem } from 'texuli/tabs-accordion';
 export {
   type ActorIdentity,
   type ActorKind,
@@ -24,34 +32,41 @@ export {
   getAppShellContext,
 } from './components/app-shell/context.ts';
 export { default as Avatar } from './components/avatar/Avatar.svelte';
-// Display
-export { default as Badge } from './components/badge/Badge.svelte';
-export { type BadgeVariant, badgeVariants } from './components/badge/badge-variants.ts';
 // Mobile
 export { default as BottomNav } from './components/bottom-nav/BottomNav.svelte';
 export { default as BottomSheet } from './components/bottom-sheet/BottomSheet.svelte';
-export { default as Breadcrumb } from './components/breadcrumb/Breadcrumb.svelte';
-export type { BreadcrumbItem } from './components/breadcrumb/types.ts';
 export { formatAddress, parseAddress } from './components/browser-chrome/address.ts';
 export { default as BrowserChrome } from './components/browser-chrome/BrowserChrome.svelte';
-// Primitives
-export { default as Button } from './components/button/Button.svelte';
+/** The props of `Button` (generic styled components come from `texuli`). */
+export type ButtonProps = ComponentProps<typeof TexuliButton>;
 export {
-  type ButtonProps,
-  type ButtonSize,
-  type ButtonVariant,
-  buttonVariants,
-} from './components/button/button-variants.ts';
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardGrid,
+  CardHeader,
+  CardTitle,
+} from 'texuli/card';
+export { Carousel, type CarouselItem } from 'texuli/carousel';
+export {
+  Checkbox,
+  Radio as RadioGroupItem,
+  RadioGroup,
+  type RadioOption,
+  Switch,
+} from 'texuli/choice';
+export { ErrorState } from 'texuli/empty';
+export { Progress, Skeleton } from 'texuli/feedback';
+export { Label } from 'texuli/field';
+export { Textarea } from 'texuli/input';
+export { Kbd } from 'texuli/kbd-code';
+export { default as SplitView } from 'texuli/layouts/app/split-view';
+export { Separator } from 'texuli/separator-aspect';
+// Flows
+export { Stepper, type StepperStep, Wizard } from 'texuli/stepper';
+export { Tooltip } from 'texuli/tooltip';
 export { default as ChipGroup } from './components/ChipGroup.svelte';
-export { default as Card } from './components/card/Card.svelte';
-export { default as CardContent } from './components/card/CardContent.svelte';
-export { default as CardDescription } from './components/card/CardDescription.svelte';
-export { default as CardFooter } from './components/card/CardFooter.svelte';
-export { default as CardHeader } from './components/card/CardHeader.svelte';
-export { default as CardTitle } from './components/card/CardTitle.svelte';
-export { default as CardGrid } from './components/card-grid/CardGrid.svelte';
-export { default as Carousel } from './components/carousel/Carousel.svelte';
-export type { CarouselItem } from './components/carousel/types.ts';
 // Collaboration
 export { default as ChatThread } from './components/chat/ChatThread.svelte';
 export { groupMessages, type MessageGroup } from './components/chat/group-messages.ts';
@@ -61,7 +76,6 @@ export type {
   ChatMessage,
   ChatMessageStatus,
 } from './components/chat/types.ts';
-export { default as Checkbox } from './components/checkbox/Checkbox.svelte';
 export type { ChipOption } from './components/chip-group-types.ts';
 export { default as Combobox } from './components/combobox/Combobox.svelte';
 export { default as CommandPalette } from './components/command-palette/CommandPalette.svelte';
@@ -91,7 +105,6 @@ export type {
   DropdownMenuSeparator,
 } from './components/dropdown-menu/types.ts';
 export { default as EmptyState } from './components/empty-state/EmptyState.svelte';
-export { default as ErrorState } from './components/error-state/ErrorState.svelte';
 export { formatBytes, matchesAccept, validateFiles } from './components/file-dropzone/accept.ts';
 export { default as FileDropzone } from './components/file-dropzone/FileDropzone.svelte';
 export type { DropzoneFile, DropzoneReject } from './components/file-dropzone/types.ts';
@@ -138,8 +151,6 @@ export {
 export { default as Input } from './components/input/Input.svelte';
 export { default as Kanban } from './components/kanban/Kanban.svelte';
 export type { KanbanColumn } from './components/kanban/types.ts';
-export { default as Kbd } from './components/kbd/Kbd.svelte';
-export { default as Label } from './components/label/Label.svelte';
 export { default as LoadingState } from './components/loading-state/LoadingState.svelte';
 export { default as MobileAppShell } from './components/mobile-app-shell/MobileAppShell.svelte';
 export { default as MobileHeader } from './components/mobile-header/MobileHeader.svelte';
@@ -181,19 +192,13 @@ export {
 export { default as Pagination } from './components/pagination/Pagination.svelte';
 export { getPageTokens, type PageToken } from './components/pagination/pages.ts';
 export { default as Popover } from './components/popover/Popover.svelte';
-export { default as Progress } from './components/progress/Progress.svelte';
-export { default as RadioGroup } from './components/radio-group/RadioGroup.svelte';
-export { default as RadioGroupItem } from './components/radio-group/RadioGroupItem.svelte';
-export type { RadioOption } from './components/radio-group/types.ts';
 export { default as ScenarioSwitcher } from './components/ScenarioSwitcher.svelte';
 export { default as StarRating } from './components/StarRating.svelte';
 export { default as SafeArea } from './components/safe-area/SafeArea.svelte';
 export { default as Select } from './components/select/Select.svelte';
 export type { SelectOption } from './components/select/types.ts';
-export { default as Separator } from './components/separator/Separator.svelte';
 export { default as Sidebar } from './components/sidebar/Sidebar.svelte';
 export type { SidebarItem, SidebarSection } from './components/sidebar/types.ts';
-export { default as Skeleton } from './components/skeleton/Skeleton.svelte';
 export { default as Spinner } from './components/spinner/Spinner.svelte';
 export { default as StatCard } from './components/stat-card/StatCard.svelte';
 export {
@@ -209,14 +214,9 @@ export {
   STATUS_CHIP_TONES,
   type StatusChipTone,
 } from './components/status-chip/tones.ts';
-// Flows
-export { default as Stepper } from './components/stepper/Stepper.svelte';
-export type { StepperStep } from './components/stepper/types.ts';
-export { default as Switch } from './components/switch/Switch.svelte';
 // Disclosure
 export { default as Tabs } from './components/tabs/Tabs.svelte';
 export type { TabItem } from './components/tabs/types.ts';
-export { default as Textarea } from './components/textarea/Textarea.svelte';
 // Feedback
 export { default as Toaster } from './components/toast/Toaster.svelte';
 export {
@@ -243,7 +243,6 @@ export {
   type UndoToastStore,
   undoToast,
 } from './components/toast/undo.svelte.ts';
-export { default as Tooltip } from './components/tooltip/Tooltip.svelte';
 export { default as TypingIndicator } from './components/typing-indicator/TypingIndicator.svelte';
 export type { PickerUser } from './components/user-picker/types.ts';
 export { default as UserPicker } from './components/user-picker/UserPicker.svelte';
@@ -253,7 +252,6 @@ export type {
 } from './components/window-chrome/types.ts';
 // Shells
 export { default as WindowChrome } from './components/window-chrome/WindowChrome.svelte';
-export { default as Wizard } from './components/wizard/Wizard.svelte';
 export { default as LayoutHost } from './layouts/LayoutHost.svelte';
 // Navigation is data; navigation layout modules stay lazy. Content primitives are separate exports.
 export {
@@ -274,7 +272,6 @@ export {
   resolveNav,
 } from './layouts/nav-model.ts';
 export { default as PageGrid } from './layouts/PageGrid.svelte';
-export { default as SplitView } from './layouts/SplitView.svelte';
 export { cn } from './lib/cn.ts';
 export { type DateInput, formatDay, formatTime } from './lib/date.ts';
 export { hashString, initials } from './lib/hash.ts';

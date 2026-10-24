@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
 import { ArrowDown, ArrowUp } from '@lucide/svelte';
-import { Button, cn, Input } from '@protoyard/ui';
+import { Button, Input } from '@protoyard/ui';
 import {
   type ColumnState,
   defaultColumnState,
@@ -9,6 +9,7 @@ import {
   setColumnHidden,
   showAllColumns,
 } from '@protoyard/views/grid';
+import { cx } from 'texuli/cx';
 
 /**
  * Chooses which columns show and in what order: a checkbox per column (the
@@ -61,7 +62,7 @@ function move(key: string, step: -1 | 1) {
 }
 </script>
 
-<fieldset class={cn('grid gap-2', className)}>
+<fieldset class={cx('grid gap-2', className)}>
   <legend class="mb-1 text-sm font-medium">{label}</legend>
   {#if columns.length > 8}
     <Input bind:value={query} aria-label={`Search ${label.toLowerCase()}`} placeholder="Search columns" class="h-8" />

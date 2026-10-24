@@ -1,113 +1,105 @@
 <script lang="ts">
-import { type ChartBlock as ChartBlockData, ChartSpecSchema } from '@protoyard/blocks';
+/**
+ * ChartSpec → Texuli chart adapter. Loads `@texuli/charts` once per kind.
+ * Outer `data-py-block="chart"` + inner `figure[data-py-chart]` match deck E2E.
+ * Under the security-fuzz host (`isSecurityFuzzHost`), skip full chart mounts:
+ * Texuli chart families OOM happy-dom across the 2,000-document fuzz.
+ */
+import type { ChartBlock as ChartBlockData } from '@protoyard/blocks';
+import type { Component } from 'svelte';
+import { toTexuliChartBlock } from '../compat/chart-spec.ts';
 import { isSecurityFuzzHost } from '../host.ts';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
-import {
-  chartItems,
-  chartSeries,
-  chartValueFormatter,
-  chartXKind,
-  isCartesianChart,
-} from './format.ts';
 
-/**
- * A chart block on `@protoyard/charts-ui`. The spec is the AI chart spec
- * (`ChartSpecSchema`), checked again here: an invalid one shows a short note
- * instead of a chart. A valid one shows its data table at once, then the chart
- * when the cartesian or part-whole chunk arrives. Every charts-ui chart has its
- * own "View as table" toggle, so the block adds none; `showTable` keeps the
- * data table under the chart. Charts draw with the theme's `--py-chart1..8`
- * palette, so they follow every theme.
- */
 let { block }: { block: ChartBlockData } = $props();
 
-const HEIGHTS = { sm: 160, md: 220, lg: 300 } as const;
-const parsed = $derived(ChartSpecSchema.safeParse(block.spec));
-const spec = $derived(parsed.success ? parsed.data : null);
-const problem = $derived(
-  parsed.success ? null : (parsed.error.issues[0]?.message ?? 'Invalid chart')
-);
-const format = $derived(spec ? chartValueFormatter(spec) : (value: number) => String(value));
-const units = $derived(
-  spec ? { unit: spec.unit ?? 'number', currency: spec.currency ?? 'USD' } : null
-);
-const height = $derived(HEIGHTS[block.height ?? 'md']);
-const load = (kind: string) =>
-  isCartesianChart(kind as never)
-    ? import('@protoyard/charts-ui/cartesian')
-    : import('@protoyard/charts-ui/part-whole');
-
-/** Security-fuzz: inert mark only (full Texuli chart families OOM happy-dom). */
+const payload = $derived(toTexuliChartBlock(block));
 const fuzzStub = $derived(isSecurityFuzzHost());
+let Chart = $state<Component<Record<string, unknown>> | null>(null);
+let loadError = $state('');
+let loadedKind = $state<string | null>(null);
+
+$effect(() => {
+  if (fuzzStub) {
+    Chart = null;
+    loadedKind = null;
+    loadError = '';
+    return;
+  }
+  const p = payload;
+  if (!p) {
+    Chart = null;
+    loadedKind = null;
+    loadError = '';
+    return;
+  }
+  const kind = p.kind;
+  if (loadedKind === kind && Chart) return;
+
+  let cancelled = false;
+  loadError = '';
+  void (async () => {
+    try {
+      let next: Component<Record<string, unknown>> | null = null;
+      if (kind === 'heatmap') {
+        const mod = await import('@texuli/charts/matrix');
+        next = mod.HeatmapChart as unknown as Component<Record<string, unknown>>;
+      } else if (kind === 'scatter' || kind === 'bubble') {
+        const mod = await import('@texuli/charts/matrix');
+        next = (kind === 'bubble' ? mod.BubbleChart : mod.ScatterChart) as unknown as Component<
+          Record<string, unknown>
+        >;
+      } else {
+        const mod = await import('@texuli/charts/cartesian');
+        const map: Record<string, unknown> = {
+          line: mod.LineChart,
+          area: mod.AreaChart,
+          bar: mod.BarChart,
+          'stacked-bar': mod.StackedBarChart,
+        };
+        next = (map[kind] ?? mod.BarChart) as Component<Record<string, unknown>>;
+      }
+      if (!cancelled) {
+        Chart = next;
+        loadedKind = kind;
+      }
+    } catch (error) {
+      if (!cancelled) {
+        loadError = error instanceof Error ? error.message : 'Chart failed to load';
+        Chart = null;
+        loadedKind = null;
+      }
+    }
+  })();
+
+  return () => {
+    cancelled = true;
+  };
+});
 </script>
 
-{#snippet table()}
-  {#if spec}
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable region must be keyboard reachable (WCAG 2.1.1). -->
-    <div class="overflow-x-auto rounded-lg border border-border focus-visible:outline-2 focus-visible:outline-ring" role="region" aria-label={`${spec.title} (table)`} tabindex="0">
-      <table class="w-full border-collapse text-left text-sm tabular-nums">
-        <caption class="px-3 py-2 text-left font-semibold">{spec.title}</caption>
-        <thead class="bg-muted/70">
-          <tr>
-            <th scope="col" class="border-b border-border px-3 py-2 font-semibold">Label</th>
-            {#each spec.series as series, i (i)}<th scope="col" class="border-b border-border px-3 py-2 text-right font-semibold">{series.label}</th>{/each}
-          </tr>
-        </thead>
-        <tbody>
-          {#each spec.labels as label, j (j)}
-            <tr class="border-b border-border last:border-0">
-              <th scope="row" class="px-3 py-1.5 font-medium">{label}</th>
-              {#each spec.series as series, i (i)}
-                {@const value = series.values[j] ?? null}
-                <td class="px-3 py-1.5 text-right">{value === null ? '—' : format(value)}</td>
-              {/each}
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-  {/if}
-{/snippet}
-
-{#if !spec}
-  <div role="note" class="rounded-lg border border-dashed border-border bg-muted/40 p-3 text-sm" data-chart-error data-py-block="chart">
-    <p class="font-medium">This chart could not be shown.</p>
-    <p class="mt-1 text-muted-foreground">{problem}</p>
-  </div>
-{:else if units}
-  <figure
-    class="m-0 grid gap-2"
-    data-py-block="chart"
-    data-chart-kind={spec.kind}
-    {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
-  >
+<div
+  data-py-block="chart"
+  data-chart-kind={payload?.kind}
+  {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
+>
+  <figure class="m-0" data-py-chart="" data-chart-kind={payload?.kind}>
     {#if fuzzStub}
-      <!-- Lightweight inert mark for security-fuzz (avoids OOM from full chart families). -->
-      <div data-py-chart="" role="img" aria-label={spec.title}></div>
-      {#if block.showTable === true}{@render table()}{/if}
+      <div data-py-chart="" role="img" aria-label={payload?.title ?? 'Chart'}></div>
+    {:else if !payload}
+      <div
+        role="note"
+        class="rounded-lg border border-dashed border-border bg-muted/40 p-3 text-sm"
+        data-chart-error
+      >
+        <p class="font-medium">This chart could not be shown.</p>
+      </div>
+    {:else if loadError}
+      <p role="note">{loadError}</p>
+    {:else if Chart && payload}
+      <Chart title={payload.title} description={payload.description} series={payload.series} />
     {:else}
-      {#await load(spec.kind)}
-        <!-- The data is readable at once; the chart takes its place when it loads. -->
-        {@render table()}
-      {:then kit}
-        <div>
-          {#if 'BarChart' in kit && spec.kind === 'bar'}
-            <kit.BarChart title={spec.title} description={spec.description} series={chartSeries(spec)} {...units} {height} />
-          {:else if 'LineChart' in kit && (spec.kind === 'line' || spec.kind === 'area')}
-            <kit.LineChart title={spec.title} description={spec.description} series={chartSeries(spec)} xKind={chartXKind(spec)} {...units} area={spec.kind === 'area'} {height} />
-          {:else if 'FunnelChart' in kit && spec.kind === 'funnel'}
-            <kit.FunnelChart title={spec.title} description={spec.description} steps={chartItems(spec).map((d) => ({ id: d.id, label: d.label, count: d.value }))} unit={units.unit} {height} />
-          {:else if 'PieChart' in kit && spec.kind === 'pie'}
-            <kit.PieChart title={spec.title} description={spec.description} data={chartItems(spec)} {...units} {height} />
-          {:else if 'DonutChart' in kit}
-            <kit.DonutChart title={spec.title} description={spec.description} data={chartItems(spec)} {...units} {height} />
-          {/if}
-        </div>
-        {#if block.showTable === true}{@render table()}{/if}
-      {:catch}
-        {@render table()}
-        <p role="note" class="text-xs text-muted-foreground">The chart view did not load; the table shows the same data.</p>
-      {/await}
+      <p role="status" aria-label="Loading chart">Loading chart…</p>
     {/if}
   </figure>
-{/if}
+</div>

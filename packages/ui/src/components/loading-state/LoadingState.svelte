@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { HTMLAttributes } from 'svelte/elements';
+import { Skeleton } from 'texuli/feedback';
 import { cn } from '../../lib/cn.ts';
-import Skeleton from '../skeleton/Skeleton.svelte';
 import Spinner from '../spinner/Spinner.svelte';
 
 type Props = HTMLAttributes<HTMLDivElement> & {

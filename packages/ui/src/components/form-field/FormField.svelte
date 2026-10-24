@@ -1,8 +1,8 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
+import { Label } from 'texuli/field';
 import { cn } from '../../lib/cn.ts';
-import Label from '../label/Label.svelte';
 import type { FormFieldControl } from './form-field.ts';
 
 interface Props extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {

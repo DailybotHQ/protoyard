@@ -121,10 +121,10 @@ export function getBlockHost(): BlockHost {
 
 /**
  * True when the nearest host is the security-fuzz harness (`documentId:
- * 'security-fuzz'`). Chart and map kits skip full `@protoyard/charts-ui` /
- * `@protoyard/views-ui/map` mounts there: Texuli chart families OOM happy-dom
- * across the 2,000-document fuzz. Callers still render an inert mark so the
- * fuzz assertions can prove the path stayed script-free.
+ * 'security-fuzz'`). Chart and map kits skip full Texuli chart/map mounts
+ * there: those families OOM happy-dom across the 2,000-document fuzz.
+ * Callers still render an inert mark so the fuzz assertions can prove the
+ * path stayed script-free.
  */
 export function isSecurityFuzzHost(): boolean {
   return getBlockHost().documentId === 'security-fuzz';

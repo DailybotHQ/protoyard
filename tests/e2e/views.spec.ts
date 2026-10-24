@@ -77,8 +77,12 @@ test.describe('views kit (ui-kit)', () => {
   }) => {
     await openDemo(page, 'board');
     const board = page.locator('[data-board]');
-    const card = (title: string) => board.locator('[data-card-control]').filter({ hasText: title });
-    const column = (id: string) => board.locator(`[data-board-cell][data-column="${id}"]`);
+    // Each card's drag handle (`data-board-handle`) is a button named "Move <title>".
+    const card = (title: string) =>
+      board.getByRole('button', { name: `Move ${title}`, exact: true });
+    const cardBody = (title: string) =>
+      board.locator('[data-board-card]').filter({ hasText: title });
+    const column = (id: string) => board.locator(`[data-board-cell][data-column-id="${id}"]`);
     await expect(card('Map the onboarding flow')).toBeVisible();
 
     if (!isMobile) {
@@ -93,12 +97,12 @@ test.describe('views kit (ui-kit)', () => {
       await page.getByRole('button', { name: 'Add local task' }).click();
       const added = card('Try a board action');
       await expect(added).toBeVisible();
-      const first = await boxOf(card('Map the onboarding flow'));
+      const first = await boxOf(cardBody('Map the onboarding flow'));
       await drag(page, center(await boxOf(added)), {
         x: first.x + first.width / 2,
         y: first.y + 4,
       });
-      await expect(column('todo').locator('[data-card-id]').first()).toContainText(
+      await expect(column('todo').locator('[data-board-card]').first()).toContainText(
         'Try a board action'
       );
     }

@@ -1,8 +1,7 @@
 /**
- * `@protoyard/views/tree` — trees and outlines over `{ id, parentId, rank }`
- * rows: index, flatten (with ARIA level, position and set size), cycle-safe
- * moves, indent and outdent, sibling moves, new-sibling ranks and valid
- * parents. `@protoyard/views-ui/tree` renders it.
+ * `@protoyard/views/tree` — thin re-export of `@texuli/data/tree`
+ * (index, flatten, cycle-safe moves, indent/outdent).
+ * `@protoyard/views-ui/tree` renders it.
  */
 export {
   buildTree,
@@ -22,4 +21,4 @@ export {
   type TreeMove,
   type TreeMoveResult,
   validParents,
-} from './tree.ts';
+} from '@texuli/data/tree';

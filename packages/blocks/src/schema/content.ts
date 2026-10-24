@@ -1,6 +1,6 @@
 import { ChartSpecSchema } from '@protoyard/ai/chart';
 import { z } from 'zod';
-import { parseLineSpec } from '../code/highlight.ts';
+import { parseLineSpec } from '../code/index.ts';
 import { AvatarIdSchema, ImageSourceSchema, VideoSourceSchema } from './media.ts';
 import {
   BlockToneSchema,

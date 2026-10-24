@@ -2,6 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Cascade layer order first: Texuli components between Tailwind's base and utilities. -->
+    <style>@layer theme, base, tx.base, tx.components, components, utilities;</style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Protoyard page player: open a page blueprint in your browser. Simulated data only." />
     <!-- The page player page (and every #bp= link to it) runs one blueprint; it is not a landing page. -->

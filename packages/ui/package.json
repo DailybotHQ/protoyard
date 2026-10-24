@@ -24,9 +24,9 @@
       "default": "./src/layouts/DocsLayout.svelte"
     },
     "./layouts/marketing": {
-      "types": "./src/layouts/MarketingLayout.svelte",
-      "svelte": "./src/layouts/MarketingLayout.svelte",
-      "default": "./src/layouts/MarketingLayout.svelte"
+      "types": "./src/layouts/marketing.ts",
+      "svelte": "./src/layouts/marketing.ts",
+      "default": "./src/layouts/marketing.ts"
     }
   },
   "scripts": {
@@ -82,9 +82,9 @@
         "default": "./dist/layouts/DocsLayout.svelte"
       },
       "./layouts/marketing": {
-        "types": "./dist/layouts/MarketingLayout.svelte.d.ts",
-        "svelte": "./dist/layouts/MarketingLayout.svelte",
-        "default": "./dist/layouts/MarketingLayout.svelte"
+        "types": "./dist/layouts/marketing.d.ts",
+        "svelte": "./dist/layouts/marketing.js",
+        "default": "./dist/layouts/marketing.js"
       }
     },
     "files": [

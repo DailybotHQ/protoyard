@@ -1,7 +1,7 @@
 <script lang="ts" generics="T">
 import { GripVertical, MoveRight } from '@lucide/svelte';
 import { runService } from '@protoyard/renderer-svelte';
-import { cn, DropdownMenu, type DropdownMenuEntry, Spinner, toast } from '@protoyard/ui';
+import { DropdownMenu, type DropdownMenuEntry, Spinner, toast } from '@protoyard/ui';
 import {
   buildTree,
   type FlatNode,
@@ -16,6 +16,7 @@ import {
   validParents,
 } from '@protoyard/views/tree';
 import { tick } from 'svelte';
+import { cx } from 'texuli/cx';
 import QueryState from '../states/QueryState.svelte';
 import {
   type DropZone,
@@ -61,7 +62,7 @@ let {
   onMove: (move: TreeMove, item: T) => unknown;
   /** Backspace on an empty item deletes it when given. */
   onDelete?: (item: T) => unknown;
-  onRetry?: () => void | Promise<void>;
+  onRetry?: () => unknown;
   label?: string;
   placeholder?: string;
   class?: string;
@@ -290,15 +291,15 @@ function onPointerUp(event: PointerEvent) {
 
 <svelte:window onpointermove={onPointerMove} onpointerup={onPointerUp} onpointercancel={() => (drag = null)} />
 
-<div class={cn('relative', className)} data-outline={uid}>
-  <QueryState {query} label={`Loading ${label.toLowerCase()}`} isEmpty={() => false} {onRetry}>
+<div class={cx('relative', className)} data-outline={uid}>
+  <QueryState {query} label={`Loading ${label.toLowerCase()}`} isEmpty={() => false} onRetry={onRetry ? () => { void onRetry(); } : undefined}>
     {#snippet children()}
       <ul aria-label={label} aria-describedby={`outline-${uid}-keys`} class="space-y-0.5">
         {#each flat as node (node.id)}
           {@const over = drag?.active && drag.over?.id === node.id ? drag.over.zone : null}
           <li
             data-tree-row={node.id}
-            class={cn(
+            class={cx(
               'group flex items-center gap-1 rounded-md pr-1',
               drag?.active && drag.id === node.id && 'opacity-40',
               over === 'inside' && 'bg-primary/10 ring-1 ring-primary',

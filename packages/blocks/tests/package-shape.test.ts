@@ -75,11 +75,12 @@ describe('@protoyard/blocks package shape', () => {
     }
   });
 
-  it('depends only on ai, avatars, core and zod, has no Svelte, and is side-effect free', () => {
+  it('depends on ai, avatars, core, zod and @texuli/blocks; has no Svelte; side-effect free', () => {
     expect(Object.keys(pkg.dependencies).sort()).toEqual([
       '@protoyard/ai',
       '@protoyard/avatars',
       '@protoyard/core',
+      '@texuli/blocks',
       'zod',
     ]);
     const all = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.peerDependencies };
@@ -125,6 +126,6 @@ describe('@protoyard/blocks/safety', () => {
   it('stays free of zod, markdown, chart and catalog imports so first screens can use it', () => {
     const source = readFileSync(join(PKG, 'src/safety.ts'), 'utf8');
     const imports = [...source.matchAll(/from '([^']+)'/g)].map((match) => match[1]);
-    expect(imports).toEqual(['@protoyard/avatars']);
+    expect(imports).toEqual(['@texuli/blocks/core']);
   });
 });

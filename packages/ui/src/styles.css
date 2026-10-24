@@ -74,31 +74,6 @@
     transform: translateY(0.5rem) scale(0.98);
   }
 }
-@keyframes py-collapse-down {
-  from {
-    height: 0;
-  }
-  to {
-    height: var(--tx-accordion-content-height);
-  }
-}
-@keyframes py-collapse-up {
-  from {
-    height: var(--tx-accordion-content-height);
-  }
-  to {
-    height: 0;
-  }
-}
-@keyframes py-shimmer {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.55;
-  }
-}
 @keyframes py-typing {
   0%,
   60%,
@@ -111,15 +86,6 @@
     transform: translateY(-3px);
   }
 }
-@keyframes py-indeterminate {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(300%);
-  }
-}
-
 @media (prefers-reduced-motion: no-preference) {
   .ui-anim-fade[data-state="open"] {
     animation: py-fade-in 150ms ease-out;
@@ -164,30 +130,21 @@
     animation: py-toast-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .ui-anim-collapse[data-state="open"] {
-    animation: py-collapse-down 200ms ease-out;
-  }
-  .ui-anim-collapse[data-state="closed"] {
-    animation: py-collapse-up 160ms ease-in;
-  }
-
-  .ui-skeleton {
-    animation: py-shimmer 1.6s ease-in-out infinite;
-  }
-
   .ui-typing-dot {
     animation: py-typing 1.2s ease-in-out infinite;
   }
-
-  .ui-progress-indeterminate {
-    animation: py-indeterminate 1.4s ease-in-out infinite;
-  }
 }
 
-/* Without motion the indeterminate bar still needs to read as "in progress". */
-@media (prefers-reduced-motion: reduce) {
-  .ui-progress-indeterminate {
-    width: 100%;
-    opacity: 0.6;
-  }
+/*
+ * Texuli's layouts size themselves from --tx-app-height and --tx-safe-*.
+ * Declared on the layout host, which sits inside a device frame's screen, so
+ * they follow the frame's --py-app-height and --py-safe-* (and the page's
+ * own safe areas outside a frame).
+ */
+[data-py-layout-host] {
+  --tx-app-height: var(--py-app-height, 100dvh);
+  --tx-safe-top: max(env(safe-area-inset-top, 0px), var(--py-safe-top, 0px));
+  --tx-safe-right: max(env(safe-area-inset-right, 0px), var(--py-safe-right, 0px));
+  --tx-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--py-safe-bottom, 0px));
+  --tx-safe-left: max(env(safe-area-inset-left, 0px), var(--py-safe-left, 0px));
 }

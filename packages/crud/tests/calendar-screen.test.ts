@@ -161,21 +161,15 @@ describe('CalendarScreen', () => {
     });
     show(runtime, services);
     const [walk] = await eventButton(/^Lighthouse walk/);
+    // Texuli Space-grab: the held chip is marked data-grabbed + aria-pressed.
+    const grabbed = () =>
+      document.querySelector('[data-grabbed][aria-pressed="true"]') as HTMLElement;
     await fireEvent.keyDown(walk as HTMLElement, { key: ' ' });
+    await waitFor(() => expect(grabbed()).toBeTruthy());
     for (let i = 0; i < 4; i++) {
-      await fireEvent.keyDown(
-        document.querySelector('[data-key][aria-pressed="true"]') as HTMLElement,
-        {
-          key: 'ArrowDown',
-        }
-      );
+      await fireEvent.keyDown(grabbed(), { key: 'ArrowDown' });
     }
-    await fireEvent.keyDown(
-      document.querySelector('[data-key][aria-pressed="true"]') as HTMLElement,
-      {
-        key: 'Enter',
-      }
-    );
+    await fireEvent.keyDown(grabbed(), { key: 'Enter' });
     await waitFor(async () =>
       expect(await services.booking!.get(created.id as string)).toMatchObject({
         startsAt: '2026-06-02T11:00:00.000Z',
@@ -230,11 +224,18 @@ describe('CalendarScreen', () => {
   it('is read-only for a viewer: no drag, no create', async () => {
     const { runtime, services } = await boot('viewer');
     show(runtime, services);
-    await waitFor(() => expect(document.querySelector('[data-slot][data-focused]')).toBeTruthy());
+    // Readiness: query ready + Texuli calendar chrome (no create slots when onCreate is off).
+    await waitFor(() =>
+      expect(
+        document.querySelector('[data-query-state="ready"] section[data-calendar]')
+      ).toBeTruthy()
+    );
+    expect(document.querySelector('[data-slot]')).toBeNull();
+    expect(document.querySelectorAll('[data-movable]')).toHaveLength(0);
     expect(document.querySelectorAll('[aria-roledescription="draggable event"]')).toHaveLength(0);
-    const slot = document.querySelector('[data-slot][data-focused]') as HTMLElement;
-    expect(slot.getAttribute('aria-label')).not.toMatch(/Enter adds/);
-    await fireEvent.click(slot);
+    const day = document.querySelector('[data-day-column]') as HTMLElement;
+    expect(day).toBeTruthy();
+    await fireEvent.click(day);
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 

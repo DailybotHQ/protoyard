@@ -1,4 +1,4 @@
-import { rankSequence } from '../board/rank.ts';
+import { rankSequence } from '../board/index.ts';
 import {
   countFor,
   type ViewsCtx,

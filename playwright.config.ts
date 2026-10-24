@@ -74,6 +74,10 @@ for (const [name, port] of [
     throw new Error(`${name} must be a port number`);
   }
 }
+const PROTOTYPE_PORT_BASE = Number(process.env.PROTOYARD_E2E_PROTOTYPE_PORT_BASE ?? 4401);
+if (!Number.isInteger(PROTOTYPE_PORT_BASE) || PROTOTYPE_PORT_BASE < 1024) {
+  throw new Error('PROTOYARD_E2E_PROTOTYPE_PORT_BASE must be a port number');
+}
 const DEVTOOLS_PORT_BASE = Number(process.env.PROTOYARD_E2E_DEVTOOLS_PORT_BASE ?? 4451);
 if (!Number.isInteger(DEVTOOLS_PORT_BASE) || DEVTOOLS_PORT_BASE < 1024) {
   throw new Error('PROTOYARD_E2E_DEVTOOLS_PORT_BASE must be a port number');
@@ -248,15 +252,11 @@ export default defineConfig({
       reuseExistingServer: !ci,
       timeout: 180_000,
     })),
-    ...prototypes.map((slug, i) => {
-      const portBase = Number(process.env.PROTOYARD_E2E_PROTOTYPE_PORT_BASE ?? 4401);
-      const port = portBase + i;
-      return {
-        command: `pnpm protoyard build ${slug} && pnpm protoyard preview ${slug} --port ${port} --strict-port`,
-        url: `http://127.0.0.1:${port}/`,
-        reuseExistingServer: !ci,
-        timeout: 180_000,
-      };
-    }),
+    ...prototypes.map((slug, i) => ({
+      command: `pnpm protoyard build ${slug} && pnpm protoyard preview ${slug} --port ${PROTOTYPE_PORT_BASE + i} --strict-port`,
+      url: `http://127.0.0.1:${PROTOTYPE_PORT_BASE + i}/`,
+      reuseExistingServer: !ci,
+      timeout: 180_000,
+    })),
   ],
 });

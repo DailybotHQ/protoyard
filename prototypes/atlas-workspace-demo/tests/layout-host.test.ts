@@ -10,17 +10,18 @@ afterEach(() => {
 });
 
 describe('Atlas layout gallery', () => {
+  // The host marks the layout on screen (data-py-layout); docs marks itself.
   const layoutMarkers: Record<string, string> = {
     sidebar: '[data-py-layout="sidebar"]',
     rail: '[data-py-layout="rail"]',
     'top-nav': '[data-py-layout="top-nav"]',
     'dual-sidebar': '[data-py-layout="dual-sidebar"]',
-    'master-detail': '[data-py-master-detail]',
-    'dashboard-grid': '[data-py-dashboard-grid]',
+    'master-detail': '[data-py-layout="master-detail"]',
+    'dashboard-grid': '[data-py-layout="dashboard-grid"]',
     docs: '[data-py-docs-layout]',
-    marketing: '[data-py-marketing-layout]',
-    wizard: '[data-py-wizard-layout]',
-    'auth-split': '[data-py-auth-split-layout]',
+    marketing: '[data-py-layout="marketing"]',
+    wizard: '[data-py-layout="wizard"]',
+    'auth-split': '[data-py-layout="auth-split"]',
   };
 
   it('renders its default layout through LayoutHost', async () => {

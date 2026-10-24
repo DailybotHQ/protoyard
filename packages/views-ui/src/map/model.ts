@@ -1,3 +1,5 @@
+export type { LngLat } from '@protoyard/views/map';
+
 import {
   type Geofence,
   type LngLat,
@@ -11,7 +13,19 @@ import {
 } from '@protoyard/views/map';
 
 export type MapTone = 'primary' | 'info' | 'success' | 'warning' | 'danger' | 'neutral';
-export type MarkerShape = 'circle' | 'square' | 'diamond' | 'triangle';
+export type MarkerShape = 'circle' | 'square' | 'diamond' | 'triangle' | 'pin';
+
+/** Fence drawn on the map (id, name, shape + optional tone/label). */
+export type MapFence = {
+  id: string;
+  name: string;
+  shape: 'polygon' | 'circle';
+  ring?: readonly (readonly [number, number])[];
+  center?: readonly [number, number];
+  radiusMeters?: number;
+  tone?: MapTone;
+  label?: string;
+};
 
 /** A place on the map. Shape and glyph carry meaning too, never color alone. */
 export interface MapMarker extends LngLat {

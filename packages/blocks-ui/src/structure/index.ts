@@ -1,5 +1,5 @@
 /**
- * `@protoyard/blocks-ui/structure` — timeline, steps, comparison, cards, icon,
- * CTA and columns. Lazy family chunk loaded by BlockRenderer.
+ * `@protoyard/blocks-ui/structure` — Texuli structure family + Protoyard
+ * extensions (timeline, steps, comparison, icon).
  */
 export { default as BlockFamilyRenderer } from './StructureFamily.svelte';

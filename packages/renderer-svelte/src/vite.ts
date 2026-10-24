@@ -94,6 +94,26 @@ export function targetBuildOptions(
   };
 }
 
+/**
+ * A CSS module that comes from Texuli (`texuli` or any `@texuli/*` package),
+ * whether linked from a workspace (`…/texuli/packages/<pkg>/…`) or installed
+ * (`node_modules/texuli/…`, `node_modules/@texuli/<pkg>/…`): a stylesheet, or
+ * a component's scoped `<style>` (`X.svelte?svelte&type=style&lang.css`).
+ */
+export const TEXULI_CSS_MODULE =
+  /[\\/](?:texuli[\\/]packages[\\/][^\\/]+|node_modules[\\/](?:texuli|@texuli[\\/][^\\/]+))[\\/][^?]*\.(?:css(?:$|\?)|svelte\?svelte&type=style)/;
+
+/**
+ * One chunk group for every Texuli CSS module, so a regular build emits
+ * Texuli's component CSS as ONE stylesheet instead of one per lazy chunk.
+ * Separate files cannot share a gzip dictionary: the same CSS measured
+ * 11,349 B gzip as 10 files and 6,386 B as one. Only CSS modules match, so
+ * JavaScript splitting is unchanged (the group's script is an empty shell).
+ * The stylesheet loads with the first chunk that uses Texuli, after the
+ * cascade-layer order declaration the page head carries.
+ */
+export const TEXULI_CSS_GROUP = { name: 'texuli-css', test: TEXULI_CSS_MODULE } as const;
+
 /** Shape of the `__PROTOYARD_BUILD__` global. */
 export interface ProtoyardBuildInfo {
   id: string;
@@ -355,7 +375,17 @@ export function resolveProtoyardSettings(
   };
 }
 
-/** Injects the no-flash appearance script and prototype metadata into index.html. */
+/**
+ * The cascade layer order, declared before any stylesheet: Texuli's component
+ * layers sit above Tailwind's base (its reset) and below Tailwind's
+ * utilities, so a component keeps its own styles and a utility class on it
+ * still wins. Layer order is fixed by first appearance, so this must come
+ * first in the document.
+ */
+export const CASCADE_LAYER_ORDER =
+  '@layer theme, base, tx.base, tx.components, components, utilities;';
+
+/** Injects the layer order, the no-flash appearance script and prototype metadata into index.html. */
 function protoyardHtml(manifest: PrototypeManifest, namespace: string): Plugin {
   return {
     name: 'protoyard:html',
@@ -373,6 +403,7 @@ function protoyardHtml(manifest: PrototypeManifest, namespace: string): Plugin {
             children: noFlashScript(namespace),
             injectTo: 'head-prepend',
           },
+          { tag: 'style', children: CASCADE_LAYER_ORDER, injectTo: 'head-prepend' },
         ];
       },
     },
@@ -429,6 +460,10 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
         sourcemap: false,
         reportCompressedSize: false,
         manifest: VITE_MANIFEST_PATH,
+        // The artifact target already emits one stylesheet (cssCodeSplit: false).
+        ...(settings.target === 'artifact'
+          ? {}
+          : { rolldownOptions: { output: { codeSplitting: { groups: [TEXULI_CSS_GROUP] } } } }),
         ...targetBuildOptions(settings.target),
       },
     };

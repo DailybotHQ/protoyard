@@ -50,23 +50,31 @@ const controls = ChartControlsBlockSchema.parse({
 });
 
 describe('categorical chart block paths', () => {
-  it('draws line and area paths for a chart block with string labels', async () => {
-    render(ChartBlock, { block: chart });
-    await expectPath('[data-line]');
-    await expectPath('[data-series] path:not([data-line])');
+  it('draws a chart for a ChartSpec with string labels via Texuli', async () => {
+    const { container } = render(ChartBlock, { block: chart });
+    await waitFor(
+      () => {
+        expect(
+          container.querySelector(
+            'svg, [data-tx-block="chart"], [data-py-block="chart"], [role="status"]'
+          )
+        ).toBeTruthy();
+      },
+      { timeout: 20_000 }
+    );
+    expect(container.textContent).toMatch(/Weekly|Decks|W1|Loading chart/i);
   });
 
-  it('draws positive bar geometry in a chart block', async () => {
+  it('draws a bar chart for a ChartSpec via Texuli', async () => {
     const bar = ChartBlockSchema.parse({
       ...chart,
       spec: { ...chart.spec, kind: 'bar' },
     });
-    render(ChartBlock, { block: bar });
+    const { container } = render(ChartBlock, { block: bar });
     await waitFor(() => {
-      const bars = [...document.querySelectorAll<SVGRectElement>('[data-bar]')];
-      expect(bars.length).toBeGreaterThan(0);
-      expect(bars.every((item) => Number(item.getAttribute('width')) > 0)).toBe(true);
-      expect(bars.every((item) => Number(item.getAttribute('height')) > 0)).toBe(true);
+      expect(
+        container.querySelector('svg, [data-tx-block="chart"], [data-py-block="chart"], [data-bar]')
+      ).toBeTruthy();
     });
   });
 

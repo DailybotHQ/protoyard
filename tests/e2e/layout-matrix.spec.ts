@@ -11,19 +11,20 @@ const viewports = [
   { name: 'phone-390x844', size: { width: 390, height: 844 }, project: 'mobile' },
 ] as const;
 
+// Texuli renders every layout except docs (data-tx-*); docs is still Protoyard's.
 const layoutMarkers: Partial<Record<LayoutId, string>> = {
-  sidebar: '[data-py-layout="sidebar"]',
-  rail: '[data-py-layout="rail"]',
-  'top-nav': '[data-py-layout="top-nav"]',
-  'dual-sidebar': '[data-py-layout="dual-sidebar"]',
-  'master-detail': '[data-py-master-detail]',
-  'dashboard-grid': '[data-py-dashboard-grid]',
+  sidebar: '[data-tx-app-layout="sidebar"]',
+  rail: '[data-tx-app-layout="rail"]',
+  'top-nav': '[data-tx-app-layout="top-nav"]',
+  'dual-sidebar': '[data-tx-app-layout="three-pane"]',
+  'master-detail': '[data-tx-app-layout="master-detail"]',
+  'dashboard-grid': '[data-tx-layout="dashboard-grid"]',
   docs: '[data-py-docs-layout]',
-  marketing: '[data-py-marketing-layout]',
-  'mobile-tabs': '[data-py-layout="mobile-tabs"]',
-  'mobile-drawer': '[data-py-layout="mobile-drawer"]',
-  wizard: '[data-py-wizard-layout]',
-  'auth-split': '[data-py-auth-split-layout]',
+  marketing: '[data-tx-marketing-layout]',
+  'mobile-tabs': '[data-tx-layout="mobile-tabs"]',
+  'mobile-drawer': '[data-tx-layout="mobile-drawer"]',
+  wizard: '[data-tx-layout="wizard"]',
+  'auth-split': '[data-tx-layout="auth-split"]',
 };
 
 async function tabTo(page: Page, target: Locator): Promise<boolean> {

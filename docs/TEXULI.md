@@ -6,10 +6,11 @@ Texuli is **linked**, not copied or installed from a registry, and Protoyard
 stays green.
 
 **Status:** this is the local `texuli-adoption` branch. It is not on `main`
-and has not been pushed. Themes come from `@texuli/tokens`, and the simple,
+and has not been pushed. Themes come from `@texuli/tokens`; the simple,
 floating and dialog-family `@protoyard/ui` controls run on
-`@texuli/primitives` (below). Later adoption tasks move packages over one at
-a time.
+`@texuli/primitives`; and the generic styled components are re-exported
+from `texuli` (below). Later adoption tasks move packages over one at a
+time.
 
 ## How it is linked
 
@@ -77,6 +78,23 @@ thin adapters for Protoyard props (`seriesFromRows`, `emptyMessage`, funnel
 `count`, scatter series shape).
 
 See `packages/charts/docs/texuli-math.md` and `packages/charts-ui/docs/texuli-charts.md`.
+
+
+
+## Content blocks from `@texuli/blocks`
+
+`@protoyard/blocks` re-exports code tokenization, diagram layout, limits and
+safety from `@texuli/blocks`. Zod block schemas, interactive host and catalog stay adapters.
+Formula engine is `@texuli/blocks/formula` (Zod schemas remain adapters).
+
+`@protoyard/blocks-ui` every Texuli family renders through
+`@texuli/blocks/*/renderers` with thin shape adapters (ChartSpec→chart series,
+map tones, embed start labels). Protoyard-only types (people, timeline, steps,
+comparison, icon, form, counter, chart-controls, reveal) register as extensions.
+
+See `packages/blocks/docs/texuli-blocks.md` and
+`packages/blocks-ui/docs/texuli-blocks.md`.
+
 
 ## Simple controls run on `@texuli/primitives`
 
@@ -189,6 +207,106 @@ These components also keep their props and classes:
   adaptive-overlay suites cover the stack, nesting, focus return and
   outside presses.
 
+## Generic styled components come from `texuli`
+
+`@protoyard/ui` re-exports these from Texuli's styled `texuli` package, and its
+own copies are gone. Import them from `@protoyard/ui` as before:
+
+| `@protoyard/ui` export | From |
+| --- | --- |
+| `Button`, `buttonVariants`, `ButtonVariant`, `ButtonSize` (`ButtonProps` is `ComponentProps<typeof Button>`) | `texuli/button` |
+| `Badge`, `BadgeVariant`, `badgeVariants` (Texuli's `badgeClass`) | `texuli/badge` |
+| `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`, `CardGrid` | `texuli/card` |
+| `Checkbox`, `Switch`, `RadioGroup`, `RadioGroupItem` (Texuli's `Radio`), `RadioOption` | `texuli/choice` |
+| `Label` | `texuli/field` |
+| `Textarea` | `texuli/input` |
+| `Accordion`, `AccordionItem` (Texuli's `AccordionItemDef`) | `texuli/tabs-accordion` |
+| `Tooltip` | `texuli/tooltip` |
+| `Separator` | `texuli/separator-aspect` |
+| `Progress`, `Skeleton` | `texuli/feedback` |
+| `Kbd` | `texuli/kbd-code` |
+| `ErrorState` | `texuli/empty` |
+| `Stepper`, `StepperStep`, `Wizard` | `texuli/stepper` |
+| `Carousel`, `CarouselItem` | `texuli/carousel` |
+| `Breadcrumb`, `BreadcrumbItem` | `texuli/navigation` |
+
+- **Their look is Texuli's.** Each component imports its own stylesheet
+  (`tx-*` classes in `@layer tx.components`), colored by the `--tx-*`
+  variables.
+  - The renderer calls `enableTexuliAppearance()` in `bindAppearance`, so
+    every appearance write sets `--tx-*` next to `--py-*`. They have the same
+    values, and the no-flash cache replays both.
+  - `@protoyard/themes/texuli` now imports `@texuli/tokens/css` and
+    `@texuli/tokens/contract`, not the package root, so the theme library
+    never enters the initial chunk.
+- **Stylesheet imports type-check** through `packages/ui/src/css.d.ts`. The
+  barrel references it, and a package that imports `@protoyard/ui` sources
+  by path adds it to its `tsconfig` `include` (`devtools` does).
+- **`@protoyard/ui` keeps:**
+  - the prototype pieces: frames and shells, `ScenarioSwitcher`, the
+    honesty tags, actors and layouts;
+  - its overlay stack and undo toaster;
+  - the components in the follow-up list below, as wrappers on
+    `@texuli/primitives`.
+
+### Follow-ups: components that stay Protoyard wrappers
+
+Their APIs differ from Texuli's styled components. Each needs a Texuli
+change, a Protoyard wrapper, or both, before it can be re-exported:
+
+| Component | Gap | Proposed change |
+| --- | --- | --- |
+| `Select` (73 importers), `Combobox` | One component with `items` and `placeholder` versus compound parts | A Texuli items-driven `Select` and `Combobox` (or a thin Protoyard wrapper over the styled parts) |
+| `DropdownMenu` | `items[]` with `trigger` versus compound menu parts | An items-driven `DropdownMenu` in Texuli |
+| `Popover` | One component with a `trigger` snippet versus Root, Trigger and Content | A one-piece styled `Popover` in Texuli |
+| `Dialog`, `AlertDialog`, `Drawer`, `DetailPanel`, `BottomSheet` | Protoyard's overlay `stack` (nesting order, dismissible layers, focus return) and device-frame containment | Texuli's layer stack covers nesting; drop `stack` once Protoyard's overlays need only it |
+| `Tabs` | Variant names (`segmented`/`underline` versus `line`/`pills`/`enclosed`), item `icon` | Map the variants in a wrapper; Texuli `TabItem.icon` |
+| `Input` | `value` binds numbers too; Texuli's is a string | Texuli `Input` with number binding for `type="number"` |
+| `FormField` (75 importers) | One-piece field with label, hint and error versus compound `Field` | A one-piece `FormField` over Texuli's `Field` parts |
+| `EmptyState`, `Notice`, `StatCard`, `Sidebar` | An `icon` component prop versus a snippet | Accept an icon component in Texuli, or wrap |
+| `Avatar` | `srcset` | Texuli `Avatar` `srcset` |
+| `Spinner` | Numeric `size` versus `sm`/`md`/`lg` | Map in a wrapper |
+| `Pagination`, `NumberStepper`, `OtpInput`, `StarRating`, `ChipGroup`, `FileDropzone`, `TagEmailInput` | Different props or compound parts | One wrapper each, or Texuli one-piece variants |
+| `Calendar`, `DatePicker`, `DateRangePicker` | `IsoDate` strings and `min`/`max` versus `CalendarDate` and `minValue`/`maxValue`; Texuli requires `label` | A date adapter in a wrapper |
+| `CommandPalette` | Inline palette versus Texuli's modal palette | Keep Protoyard's, or a Texuli inline mode |
+| `Toaster` and `toast` (39 importers) | A different toast store singleton | Move every `toast` import with the `Toaster` |
+| `DataTable` | No Texuli counterpart (Texuli has table markup only) | Keep Protoyard's on Texuli table parts later |
+
+## Layouts come from `texuli/layouts`
+
+- **The host.** `@protoyard/ui`'s `LayoutHost` wraps texuli's `LayoutHost`.
+  - It resolves the layout with Protoyard's catalog (`layoutForWidth` from
+    `@protoyard/core`), starting from the real width.
+  - It keeps the `data-py-layout-host` and `data-layout` hooks, and mirrors
+    the layout on screen as `data-py-layout="<id>"`, set only once that
+    layout has loaded.
+  - Texuli renders the chrome and keeps the one routed screen outlet.
+- **The registry** is texuli's (`registerProtoyardLayouts`,
+  `packages/ui/src/layouts/register.ts`): texuli's `registerAppLayouts`,
+  `registerMobileLayouts` (after the app ones) and
+  `registerAuthSettingsLayouts`, plus `dashboard-grid` and `marketing`. Each
+  is one lazy import per layout.
+- **`docs` stays Protoyard's.** Its contract differs from texuli's docs
+  layout: a `navigation` snippet rather than the nav model, and it is wide
+  only (900 px), falling back to mobile-drawer, where texuli's has no width
+  rule. `pages-ui` and `blocks` follow its heading ids.
+- **The nav model** (`NavModel`, `resolveNav`, `navPath`, …) is texuli's,
+  re-exported from `@protoyard/ui`. `navFromSidebar` stays Protoyard's.
+- **Re-exported and removed:** `SplitView` comes from
+  `texuli/layouts/app/split-view`, and `@protoyard/ui/layouts/marketing` is
+  texuli's `MarketingLayout`. Protoyard's own sidebar, rail, top-nav,
+  dual-sidebar, mobile, master-detail, dashboard-grid, marketing, wizard and
+  auth-split layouts are deleted, with their chrome (`LayoutChrome`,
+  `LayoutDrawer`, `NavIcon`, `layout-kit`).
+- **Device frames** stay Protoyard's (texuli has none). The layout host
+  bridges the frame to texuli's tokens: `--tx-app-height` follows
+  `--py-app-height`, and `--tx-safe-top`, `--tx-safe-right`,
+  `--tx-safe-bottom` and `--tx-safe-left` follow the page's safe areas and
+  the frame's `--py-safe-*`.
+- **Markers** in tests and E2E: texuli's (`data-tx-app-layout="sidebar"`,
+  `data-tx-layout="mobile-tabs"`, …) or the host's `data-py-layout`;
+  `docs` keeps `data-py-docs-layout`.
+
 ## The dev server
 
 `devFsAllow` (`@protoyard/renderer-svelte`) is the list of folders a
@@ -222,6 +340,7 @@ import { Button } from 'texuli/button';
 | `pnpm vitest run packages/ui/tests/simple-primitives.test.ts` | The Texuli-backed controls: bindable refs, states, tab stops, wrapping tabs and unmounted inactive panels, the accordion's size variable, separator and progress semantics |
 | `pnpm vitest run packages/ui/tests/floating-primitives.test.ts` | The Texuli-backed floating controls: labels through a consumer id, the combobox filter and form value, tooltip, menu, popover ref and initial focus, people search |
 | `pnpm vitest run packages/ui/tests/dialog-family.test.ts packages/ui/tests/overlay.test.ts packages/ui/tests/adaptive-overlay.test.ts packages/ui/tests/alert-dialog.test.ts` | The Texuli-backed dialog family: the undo toaster under a modal and F6, device-screen containment, alert Escape, stacking, nesting, focus return, outside presses |
+| `pnpm vitest run packages/ui/tests/layout-host.test.ts packages/ui/tests/layouts-desktop.test.ts packages/ui/tests/layouts-mobile.test.ts packages/ui/tests/layouts-content.test.ts packages/renderer-svelte/tests/bundle-hygiene.test.ts` | LayoutHost on texuli's: registration, lazy loading, fallbacks, the routed screen kept across layouts, one lazy chunk per layout |
 | `pnpm check` | Lint, typecheck and the full unit suite stay green |
 
 ## Limits
@@ -232,3 +351,37 @@ import { Button } from 'texuli/button';
 - **Typecheck reach.** Protoyard's typecheck covers the fixture that imports
   Texuli. The Texuli sources themselves are type-checked by Texuli's own
   gates.
+
+## Views from `@texuli/data`
+
+### Engines (`@protoyard/views`)
+
+Board, calendar, timeline, grid, tree, map, activity and files are **thin
+re-exports** of `@texuli/data` engine subpaths (`@texuli/data/board/engine`,
+`@texuli/data/calendar`, `@texuli/data/grid`, …). Protoyard-only modules stay
+local: editor, notifications, settings, states, commands and scenarios.
+
+Texuli view schemas use `DataSchema` (`parse` / `safeParse`), not Zod — bridge
+when composing service inputs (see `keel-projects-demo`).
+
+### UI (`@protoyard/views-ui`)
+
+Each rich view is a **thin host adapter** over the matching `@texuli/data`
+Svelte entry, plus liveQuery/`runService` where the host API differs:
+
+| Subpath | Texuli source | Adapter notes |
+| --- | --- | --- |
+| `board` | `@texuli/data` `Board` | `query` → `items`, `onMove` via `runService`, optional `onOpen` |
+| `calendar` | `@texuli/data/calendar/view` | `query` → `events`; write `onChange`/`onCreate` not on Texuli yet |
+| `timeline` | `@texuli/data/timeline` | `query` → `tasks`, `onReschedule` via `runService` |
+| `grid` | `@texuli/data/grid-core` | `query` → `rows`; host FilterBuilder/SavedViews toolkit kept |
+| `tree` | `@texuli/data/tree-view` | `query` → `items`; OutlineEditor stays host-only |
+| `map` | `@texuli/data/map` `MapView` | markers/select; routes/fences not on Texuli MapView |
+| `files` | `@texuli/data/files` `FileBrowser` | `query` → `entries` |
+| `activity` | `@texuli/data/activity` | `query` → `items`; CommentThread stays host-only |
+| `virtual-list` | `@texuli/data/virtual-list` | pure re-export |
+
+Replaced Protoyard rendering for those surfaces was deleted. Host-only kits
+remain: editor, notifications, settings, states, commands, scenarios,
+CommentThread, OutlineEditor, and grid filter/saved-view chrome.
+
