@@ -6,7 +6,7 @@
  * `writes` via splitSeries for keel/crud series services.
  */
 import type { PrototypeRuntime } from '@protoyard/core';
-import { runService, useClock } from '@protoyard/renderer-svelte';
+import { getRuntime, runService, useClock } from '@protoyard/renderer-svelte';
 import {
   type CalendarSeries,
   type IsoDate,
@@ -75,8 +75,19 @@ let {
   class?: string;
 } = $props();
 
+/** The runtime prop, else the mounted prototype's runtime (templates pass none). */
+function runtimeInScope(): PrototypeRuntime | undefined {
+  if (runtime) return runtime;
+  try {
+    return getRuntime();
+  } catch {
+    return undefined;
+  }
+}
+
 // svelte-ignore state_referenced_locally -- only subscribe when a runtime is in scope
-const clock = now !== undefined || !runtime ? null : useClock(runtime);
+const clockRuntime = now !== undefined ? undefined : runtimeInScope();
+const clock = clockRuntime ? useClock(clockRuntime) : null;
 
 function toIsoDate(value: Date | string): IsoDate {
   if (typeof value === 'string') return value.slice(0, 10) as IsoDate;

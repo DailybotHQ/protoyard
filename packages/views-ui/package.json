@@ -124,6 +124,16 @@
     "access": "public",
     "provenance": true,
     "exports": {
+      "./activity": {
+        "types": "./dist/activity/index.d.ts",
+        "svelte": "./dist/activity/index.js",
+        "default": "./dist/activity/index.js"
+      },
+      "./blocks.css": {
+        "types": "./dist/blocks.css.d.ts",
+        "svelte": "./dist/blocks.css",
+        "default": "./dist/blocks.css"
+      },
       "./board": {
         "types": "./dist/board/index.d.ts",
         "svelte": "./dist/board/index.js",
@@ -134,45 +144,45 @@
         "svelte": "./dist/calendar/index.js",
         "default": "./dist/calendar/index.js"
       },
-      "./timeline": {
-        "types": "./dist/timeline/index.d.ts",
-        "svelte": "./dist/timeline/index.js",
-        "default": "./dist/timeline/index.js"
-      },
-      "./grid": {
-        "types": "./dist/grid/index.d.ts",
-        "svelte": "./dist/grid/index.js",
-        "default": "./dist/grid/index.js"
-      },
-      "./tree": {
-        "types": "./dist/tree/index.d.ts",
-        "svelte": "./dist/tree/index.js",
-        "default": "./dist/tree/index.js"
-      },
-      "./map": {
-        "types": "./dist/map/index.d.ts",
-        "svelte": "./dist/map/index.js",
-        "default": "./dist/map/index.js"
+      "./commands": {
+        "types": "./dist/commands/index.d.ts",
+        "svelte": "./dist/commands/index.js",
+        "default": "./dist/commands/index.js"
       },
       "./editor": {
         "types": "./dist/editor/index.d.ts",
         "svelte": "./dist/editor/index.js",
         "default": "./dist/editor/index.js"
       },
-      "./activity": {
-        "types": "./dist/activity/index.d.ts",
-        "svelte": "./dist/activity/index.js",
-        "default": "./dist/activity/index.js"
+      "./files": {
+        "types": "./dist/files/index.d.ts",
+        "svelte": "./dist/files/index.js",
+        "default": "./dist/files/index.js"
+      },
+      "./grid": {
+        "types": "./dist/grid/index.d.ts",
+        "svelte": "./dist/grid/index.js",
+        "default": "./dist/grid/index.js"
+      },
+      "./map": {
+        "types": "./dist/map/index.d.ts",
+        "svelte": "./dist/map/index.js",
+        "default": "./dist/map/index.js"
       },
       "./notifications": {
         "types": "./dist/notifications/index.d.ts",
         "svelte": "./dist/notifications/index.js",
         "default": "./dist/notifications/index.js"
       },
-      "./files": {
-        "types": "./dist/files/index.d.ts",
-        "svelte": "./dist/files/index.js",
-        "default": "./dist/files/index.js"
+      "./player.css": {
+        "types": "./dist/player.css.d.ts",
+        "svelte": "./dist/player.css",
+        "default": "./dist/player.css"
+      },
+      "./scenarios": {
+        "types": "./dist/scenarios/index.d.ts",
+        "svelte": "./dist/scenarios/index.js",
+        "default": "./dist/scenarios/index.js"
       },
       "./settings": {
         "types": "./dist/settings/index.d.ts",
@@ -184,30 +194,25 @@
         "svelte": "./dist/states/index.js",
         "default": "./dist/states/index.js"
       },
-      "./commands": {
-        "types": "./dist/commands/index.d.ts",
-        "svelte": "./dist/commands/index.js",
-        "default": "./dist/commands/index.js"
-      },
-      "./scenarios": {
-        "types": "./dist/scenarios/index.d.ts",
-        "svelte": "./dist/scenarios/index.js",
-        "default": "./dist/scenarios/index.js"
-      },
-      "./player.css": {
-        "types": "./dist/player.css.d.ts",
-        "svelte": "./dist/player.css",
-        "default": "./dist/player.css"
-      },
       "./styles.css": {
         "types": "./dist/styles.css.d.ts",
         "svelte": "./dist/styles.css",
         "default": "./dist/styles.css"
       },
-      "./blocks.css": {
-        "types": "./dist/blocks.css.d.ts",
-        "svelte": "./dist/blocks.css",
-        "default": "./dist/blocks.css"
+      "./timeline": {
+        "types": "./dist/timeline/index.d.ts",
+        "svelte": "./dist/timeline/index.js",
+        "default": "./dist/timeline/index.js"
+      },
+      "./tree": {
+        "types": "./dist/tree/index.d.ts",
+        "svelte": "./dist/tree/index.js",
+        "default": "./dist/tree/index.js"
+      },
+      "./virtual-list": {
+        "types": "./dist/virtual-list/index.d.ts",
+        "svelte": "./dist/virtual-list/index.js",
+        "default": "./dist/virtual-list/index.js"
       }
     },
     "files": [

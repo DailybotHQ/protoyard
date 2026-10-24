@@ -1,33 +1,32 @@
 <script lang="ts">
 /**
  * Host adapter over `@texuli/data/map` `MapView`.
- * MapView owns pan, aria-roledescription=map, data-cluster / data-marker,
- * virtualized place list with data-list-item, "label, detail" names, and
- * aria-current. Fits the basemap bbox to markers so nearby points stay
- * unclustered at first paint (crud MapScreen expects data-marker per record).
+ * Forwards routes, fences, cellPx, onPick, listPlacement, marker shape/glyph,
+ * and strong tones. MapView owns pan, fluid surface sizing, clustering,
+ * data-marker / data-cluster / data-list-item, and legend names.
+ * `editableFenceId` / `onFenceChange` are pass-through seams (editing deferred).
  */
 import type { Basemap } from '@protoyard/views/map';
-// Default basemap when the host does not pass one (same as Texuli MapView).
-import { PORT_MERIDIAN } from '../../../../node_modules/@texuli/data/src/engines/map/port-meridian.ts';
-import MapView from '../../../../node_modules/@texuli/data/src/map/MapView.svelte';
-import type { LngLat, MapMarker, MapRoute, MapTone } from './model.ts';
+import { MapView } from '@texuli/data/map';
+import type { LngLat, MapMarker, MapRoute, MapTone, MarkerShape } from './model.ts';
 
 let {
   markers = [],
-  routes: _routes = [],
-  fences: _fences = [],
+  routes = [],
+  fences = [],
   basemap,
   selected = $bindable<string | null>(null),
   selectedId = $bindable<string | undefined>(undefined),
-  view: _view = $bindable(undefined),
-  editableFenceId: _editableFenceId,
+  view = $bindable<unknown>(undefined),
+  editableFenceId,
   label = 'Map',
-  listLabel: _listLabel = 'Places on the map',
-  cellPx: _cellPx,
+  listLabel = 'Places on the map',
+  listPlacement = 'below' as 'side' | 'below',
+  cellPx,
   direction,
   onSelect,
-  onFenceChange: _onFenceChange,
-  onPick: _onPick,
+  onFenceChange,
+  onPick,
   class: className,
 }: {
   markers?: readonly MapMarker[];
@@ -36,13 +35,18 @@ let {
   basemap?: Basemap;
   selected?: string | null;
   selectedId?: string | undefined;
+  /** Host camera state (MapScreen bind); Texuli owns internal view after fit. */
   view?: unknown;
   editableFenceId?: string;
   label?: string;
   listLabel?: string;
+  /** Place list beside the map (`side`) or under it (`below`, Protoyard default). */
+  listPlacement?: 'side' | 'below';
+  /** Cluster cell size in projected px. `1` keeps nearby markers separate. */
   cellPx?: number;
   direction?: 'ltr' | 'rtl';
   onSelect?: ((marker: MapMarker) => void) | ((id: string | null) => void);
+  /** Deferred fence-edit seam (Texuli accepts; vertex handles not drawn yet). */
   onFenceChange?: (fence: unknown) => unknown;
   onPick?: (point: LngLat) => void;
   class?: string;
@@ -54,22 +58,33 @@ $effect(() => {
   selected = id ?? null;
 });
 
+/** Strong tones: primary→primary, info→info (no soft accent alias). */
 function texuliTone(
   tone: MapTone | undefined
-): 'default' | 'accent' | 'success' | 'warning' | 'danger' {
+): 'primary' | 'info' | 'success' | 'warning' | 'danger' | 'neutral' {
   switch (tone) {
+    case 'info':
+      return 'info';
     case 'success':
       return 'success';
     case 'warning':
       return 'warning';
     case 'danger':
       return 'danger';
-    case 'primary':
-    case 'info':
-      return 'accent';
+    case 'neutral':
+      return 'neutral';
     default:
-      return 'default';
+      return 'primary';
   }
+}
+
+/** Protoyard `triangle` maps to Texuli `pin`. */
+function texuliShape(
+  shape: MarkerShape | undefined
+): 'circle' | 'square' | 'diamond' | 'pin' | undefined {
+  if (!shape) return undefined;
+  if (shape === 'triangle') return 'pin';
+  return shape;
 }
 
 const texuliMarkers = $derived(
@@ -80,39 +95,20 @@ const texuliMarkers = $derived(
     label: marker.label,
     detail: marker.detail,
     tone: texuliTone(marker.tone),
+    shape: texuliShape(marker.shape),
+    glyph: marker.glyph,
   }))
 );
 
-/**
- * Zoom the initial view around markers that already sit in the basemap box.
- * Fitting every marker (including generator seeds on the far side of the globe)
- * collapses the zoom and clusters nearby harbor points.
- */
-const fittedBasemap = $derived.by((): Basemap => {
-  const base = (basemap ?? PORT_MERIDIAN) as Basemap;
-  if (markers.length === 0) return base;
-  const [west, south, east, north] = base.bbox;
-  const local = markers.filter(
-    (marker) =>
-      marker.lng >= west && marker.lng <= east && marker.lat >= south && marker.lat <= north
-  );
-  const focus = local.length > 0 ? local : markers;
-  let minLng = 180;
-  let minLat = 90;
-  let maxLng = -180;
-  let maxLat = -90;
-  for (const marker of focus) {
-    minLng = Math.min(minLng, marker.lng);
-    minLat = Math.min(minLat, marker.lat);
-    maxLng = Math.max(maxLng, marker.lng);
-    maxLat = Math.max(maxLat, marker.lat);
-  }
-  const pad = Math.max(0.05, (maxLng - minLng) * 0.4, (maxLat - minLat) * 0.4);
-  return {
-    ...base,
-    bbox: [minLng - pad, minLat - pad, maxLng + pad, maxLat + pad],
-  };
-});
+const texuliRoutes = $derived(
+  routes.map((route) => ({
+    id: route.id,
+    label: route.label,
+    stops: route.stops,
+    progress: route.progress,
+    tone: texuliTone(route.tone),
+  }))
+);
 
 function onMapSelect(marker: { id: string } | null | undefined): void {
   const next = marker?.id ?? null;
@@ -126,17 +122,70 @@ function onMapSelect(marker: { id: string } | null | undefined): void {
     (onSelect as (next: string | null) => void)(null);
   }
 }
+
+function handlePick(point: LngLat): void {
+  onPick?.(point);
+}
+
+function handleFenceChange(fence: unknown): void {
+  onFenceChange?.(fence);
+}
+
+// Keep host view bindable stable for MapScreen; MapView owns its camera after fit.
+$effect(() => {
+  void view;
+});
+
+let hostRoot = $state<HTMLElement | null>(null);
+
+// Texuli's location panel ships as "Map locations"; host screens pass listLabel
+// (logistics/iot E2E assert those region names).
+$effect(() => {
+  const root = hostRoot;
+  if (!root) return;
+  const apply = () => {
+    const panel = root.querySelector('.location-panel');
+    if (panel) panel.setAttribute('aria-label', listLabel);
+    const places = root.querySelector('[data-map-place-list]');
+    if (places) places.setAttribute('aria-label', listLabel);
+  };
+  apply();
+  const obs = new MutationObserver(apply);
+  obs.observe(root, { childList: true, subtree: true });
+  return () => obs.disconnect();
+});
 </script>
 
-<!-- Remount when the fitted bbox changes so MapView re-seeds its view zoom. -->
-{#key fittedBasemap.bbox.join(',')}
+<div bind:this={hostRoot} class="py-map" data-map={label} data-list-label={listLabel} role="region" aria-label={listLabel}>
   <MapView
     markers={texuliMarkers as never}
-    basemap={fittedBasemap as never}
+    routes={texuliRoutes as never}
+    fences={fences as never}
+    basemap={basemap as never}
     {label}
     {direction}
+    {cellPx}
+    {listPlacement}
     bind:selectedId={id}
     onSelect={onMapSelect}
+    onPick={onPick ? handlePick : undefined}
+    editableFenceId={editableFenceId}
+    onFenceChange={onFenceChange ? handleFenceChange : undefined}
     class={className}
   />
-{/key}
+</div>
+
+<style>
+  /* Fill the host card so logistics/iot/harbor maps are full-size in their slot. */
+  .py-map {
+    display: block;
+    inline-size: 100%;
+    min-block-size: 24rem;
+    block-size: 100%;
+  }
+  .py-map :global(.map-view) {
+    inline-size: 100%;
+    min-block-size: 24rem;
+    block-size: 100%;
+  }
+</style>

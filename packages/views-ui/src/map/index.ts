@@ -5,6 +5,7 @@
 export {
   circleRadiusPx,
   linePath,
+  type MapFence,
   type MapMarker,
   type MapRoute,
   type MapTone,
