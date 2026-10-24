@@ -9,6 +9,8 @@ import {
   envFlag,
   linkedPackageRoots,
   resolveProtoyardSettings,
+  TEXULI_CSS_GROUP,
+  TEXULI_CSS_MODULE,
   VITE_MANIFEST_PATH,
 } from '../src/vite.ts';
 
@@ -199,5 +201,55 @@ describe('dev server file access', () => {
     }
     // Exactly the package folders: never the Texuli repository around them.
     for (const root of roots) expect(root).toMatch(/[\\/]packages[\\/][a-z-]+$/);
+  });
+});
+
+describe('Texuli CSS chunk group', () => {
+  it('matches CSS from texuli and @texuli/*, linked or installed, and nothing else', () => {
+    for (const id of [
+      '/w/texuli/packages/texuli/src/components/button/button.css',
+      '/w/texuli/packages/tokens/dist/tokens.css?inline',
+      '/p/node_modules/texuli/dist/styles.css',
+      '/p/node_modules/@texuli/charts/dist/charts.css',
+      'C:\\p\\node_modules\\@texuli\\data\\dist\\grid.css',
+      '/w/texuli/packages/texuli/src/Button.svelte?svelte&type=style&lang.css',
+    ]) {
+      expect(TEXULI_CSS_MODULE.test(id), id).toBe(true);
+    }
+    for (const id of [
+      '/w/texuli/packages/texuli/src/button.ts',
+      '/p/node_modules/@texuli/charts/dist/index.js',
+      '/p/packages/ui/src/app.css',
+      '/p/node_modules/texuli-like/dist/styles.css',
+      '/p/node_modules/@other/texuli/dist/styles.css',
+    ]) {
+      expect(TEXULI_CSS_MODULE.test(id), id).toBe(false);
+    }
+  });
+
+  it('adds one group to regular builds and none to the artifact target', () => {
+    const root = mkdtempSync(join(tmpdir(), 'protoyard-vite-'));
+    writeFileSync(join(root, 'protoyard.json'), JSON.stringify(manifest));
+    const env = {
+      command: 'build',
+      mode: 'production',
+      isSsrBuild: false,
+      isPreview: false,
+    } as const;
+    const groupsOf = () =>
+      (
+        defineProtoyardConfig({ root })(env).build?.rolldownOptions?.output as {
+          codeSplitting?: { groups?: unknown[] };
+        }
+      )?.codeSplitting?.groups ?? [];
+    expect(groupsOf()).toEqual([TEXULI_CSS_GROUP]);
+    const previous = process.env.PROTOYARD_TARGET;
+    process.env.PROTOYARD_TARGET = 'artifact';
+    try {
+      expect(groupsOf()).not.toContain(TEXULI_CSS_GROUP);
+    } finally {
+      if (previous === undefined) delete process.env.PROTOYARD_TARGET;
+      else process.env.PROTOYARD_TARGET = previous;
+    }
   });
 });
