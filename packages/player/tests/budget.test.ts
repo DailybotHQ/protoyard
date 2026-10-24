@@ -106,7 +106,9 @@ const LAZY_MODULES: [string, RegExp][] = [
   ['crud app shell', /\/crud\/src\/app\//],
   ['charts', /\/charts-ui\/src\//],
   ['analytics kit', /\/analytics-ui\/src\//],
-  ['views kit', /\/views-ui\/src\//],
+  // Rich views come from Texuli's data views (linked or installed); their lazy
+  // view and menu modules are the manifest keys (views-ui only adapts them).
+  ['views kit', /[\\/](?:texuli[\\/]packages[\\/]data|node_modules[\\/]@texuli[\\/]data)[\\/]/],
   ['blueprint world generator', /\/blueprint\/src\/generator/],
   ['main-thread generation fallback', /\/worker\/generate-world-core/],
 ];
@@ -185,6 +187,24 @@ describe.skipIf(!built)(
         );
       }
     });
+
+    it.each(['index', 'deck', 'page', 'doc'])(
+      "%s.html never links a lazy Texuli module's stylesheet initially",
+      (name) => {
+        const initialCss = classifyChunks(asEntry(full, `${name}.html`)).initialCss;
+        // Lazy Texuli modules (block, chart and data-view families, move menus)
+        // are dynamic entries; their CSS loads with them, never up front.
+        const lazy = Object.entries(full).filter(
+          ([key, chunk]) =>
+            chunk.isDynamicEntry === true &&
+            /[\\/](?:texuli[\\/]packages|node_modules[\\/]@?texuli)[\\/]/.test(key)
+        );
+        expect(lazy.length, 'lazy Texuli modules in the build').toBeGreaterThan(0);
+        const sheets = lazy.flatMap(([, chunk]) => chunk.css ?? []);
+        expect(sheets.length, 'stylesheets of lazy Texuli modules').toBeGreaterThan(0);
+        for (const file of sheets) expect(initialCss, file).not.toContain(file);
+      }
+    );
 
     it.each(LAZY_MODULES)('keeps the %s out of the initial graph', (_label, pattern) => {
       const keys = Object.keys(manifest).filter((key) => pattern.test(key));

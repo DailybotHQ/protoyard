@@ -48,6 +48,13 @@ export interface ProtoyardConfigOptions extends UserConfig {
    * for avatar ids, so the UI falls back to initials.
    */
   avatars?: boolean;
+  /**
+   * Group Texuli's CSS into a few shared stylesheets (default true; see
+   * TEXULI_CSS_GROUP). A build with several HTML pages may turn it off: the
+   * groups follow the module graph, where Texuli's barrel makes every
+   * component look reachable from every page.
+   */
+  texuliCssGroups?: boolean;
 }
 
 /**
@@ -103,16 +110,52 @@ export function targetBuildOptions(
 export const TEXULI_CSS_MODULE =
   /[\\/](?:texuli[\\/]packages[\\/][^\\/]+|node_modules[\\/](?:texuli|@texuli[\\/][^\\/]+))[\\/][^?]*\.(?:css(?:$|\?)|svelte\?svelte&type=style)/;
 
+/** The module graph Rolldown hands a chunk group's `name` function. */
+export interface ChunkGraph {
+  getModuleInfo(id: string): { isEntry: boolean; importers: readonly string[] } | null;
+}
+
 /**
- * One chunk group for every Texuli CSS module, so a regular build emits
- * Texuli's component CSS as ONE stylesheet instead of one per lazy chunk.
- * Separate files cannot share a gzip dictionary: the same CSS measured
- * 11,349 B gzip as 10 files and 6,386 B as one. Only CSS modules match, so
- * JavaScript splitting is unchanged (the group's script is an empty shell).
- * The stylesheet loads with the first chunk that uses Texuli, after the
- * cascade-layer order declaration the page head carries.
+ * True when a chain of static imports leads to the module from a build entry,
+ * so it loads with the first screen. A module only reached through a dynamic
+ * `import()` (a lazy block, chart or data-view family) is not eager.
  */
-export const TEXULI_CSS_GROUP = { name: 'texuli-css', test: TEXULI_CSS_MODULE } as const;
+export function isEagerModule(id: string, graph: ChunkGraph): boolean {
+  const seen = new Set<string>();
+  const queue = [id];
+  while (queue.length > 0) {
+    const current = queue.pop() as string;
+    if (seen.has(current)) continue;
+    seen.add(current);
+    const info = graph.getModuleInfo(current);
+    if (!info) continue;
+    if (info.isEntry) return true;
+    queue.push(...info.importers);
+  }
+  return false;
+}
+
+/**
+ * Two chunk groups for Texuli's CSS, so a regular build emits it as two
+ * stylesheets instead of one per chunk. Separate files cannot share a gzip
+ * dictionary: the same CSS measured 11,349 B gzip as 10 files and 6,386 B as
+ * one. Eager CSS (tokens, base, the components the shell imports) goes to
+ * `texuli-css`; lazy family CSS to `texuli-lazy-css`, which only lazy chunks
+ * import, so it never becomes initial. Only CSS modules match, so JavaScript
+ * splitting is unchanged (a group's script is an empty shell). The eager
+ * stylesheet loads after the cascade-layer order declaration the page head
+ * carries.
+ *
+ * The groups follow the module graph, not the tree-shaken chunks: through
+ * Texuli's barrel every component looks statically imported, so its CSS is
+ * eager here even when the page never renders it. A build with several pages
+ * (the player) turns the groups off with `texuliCssGroups: false`.
+ */
+export const TEXULI_CSS_GROUP = {
+  name: (id: string, graph: ChunkGraph): string =>
+    isEagerModule(id, graph) ? 'texuli-css' : 'texuli-lazy-css',
+  test: TEXULI_CSS_MODULE,
+} as const;
 
 /** Shape of the `__PROTOYARD_BUILD__` global. */
 export interface ProtoyardBuildInfo {
@@ -411,7 +454,7 @@ function protoyardHtml(manifest: PrototypeManifest, namespace: string): Plugin {
 }
 
 export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConfigFnObject {
-  const { root, avatars, ...overrides } = options;
+  const { root, avatars, texuliCssGroups = true, ...overrides } = options;
   return defineConfig((configEnv) => {
     const manifest = readPrototypeManifest(root);
     const settings = resolveProtoyardSettings(manifest, configEnv.command, process.env, root, {
@@ -461,7 +504,7 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
         reportCompressedSize: false,
         manifest: VITE_MANIFEST_PATH,
         // The artifact target already emits one stylesheet (cssCodeSplit: false).
-        ...(settings.target === 'artifact'
+        ...(settings.target === 'artifact' || !texuliCssGroups
           ? {}
           : { rolldownOptions: { output: { codeSplitting: { groups: [TEXULI_CSS_GROUP] } } } }),
         ...targetBuildOptions(settings.target),
