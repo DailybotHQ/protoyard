@@ -52,7 +52,7 @@ TODO: for each prototype piece (schema, services, policy, personas, environment 
 | default theme | `ocean` |
 | storage namespace | `template-crud-app` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 2542597583 |
 | timeline | no |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->
