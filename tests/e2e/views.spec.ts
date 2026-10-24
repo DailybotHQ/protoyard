@@ -257,26 +257,35 @@ test.describe('views kit (ui-kit)', () => {
     await openDemo(page, 'map');
     const surface = page.locator('[role="region"][aria-roledescription="map"]');
     await expect(surface).toBeVisible();
+    // FIX-map-view-state: surface reports camera as data-center ("lat,lng" 4dp) and data-zoom.
+    await expect(surface).toHaveAttribute('data-center', /^-?\d+\.\d{4},-?\d+\.\d{4}$/);
+    await expect(surface).toHaveAttribute('data-zoom', /.+/);
 
-    // Pan: keyboard on the map surface (stable when data-center is not yet on MapView).
-    // Marker/cluster left/top % shift when the camera moves.
-    const markerOrCluster = () => surface.locator('[data-marker], [data-cluster]').first();
-    await expect(markerOrCluster()).toBeVisible();
-    const styleOf = async () => (await markerOrCluster().getAttribute('style')) as string;
-    const beforeStyle = await styleOf();
-    await surface.focus();
-    await page.keyboard.press('ArrowRight');
-    await page.keyboard.press('ArrowRight');
-    await page.keyboard.press('ArrowDown');
-    await expect.poll(styleOf).not.toBe(beforeStyle);
+    // Pan with a real drag, started on empty map (the center holds a cluster button).
+    const before = (await surface.getAttribute('data-center')) as string;
+    const box = await boxOf(surface);
+    const start = { x: box.x + 24, y: box.y + 40 };
+    await drag(page, start, { x: start.x + 80, y: start.y + 60 });
+    await expect(surface).not.toHaveAttribute('data-center', before);
 
-    // Zoom with the control buttons (Texuli MapView has no wheel handler yet).
-    const z0 = await styleOf();
+    // Zoom with the button, and with the wheel on desktop.
+    const zoom = async () => Number(await surface.getAttribute('data-zoom'));
+    const z0 = await zoom();
     await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
-    await expect.poll(styleOf).not.toBe(z0);
-    const z1 = await styleOf();
-    await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
-    await expect.poll(styleOf).not.toBe(z1);
+    await expect.poll(zoom).toBeGreaterThan(z0);
+    if (!isMobile) {
+      const z1 = await zoom();
+      await page.mouse.move(center(box).x, center(box).y);
+      await page.mouse.wheel(0, 300);
+      // Wheel zoom is optional on MapView; button zoom already proved data-zoom.
+      const afterWheel = await zoom();
+      if (afterWheel === z1) {
+        await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
+        await expect.poll(zoom).toBeLessThan(z1);
+      } else {
+        expect(afterWheel).toBeLessThan(z1);
+      }
+    }
     // Reset camera to the basemap fit (ui-kit demo has no separate "Show everything").
     await page.getByRole('button', { name: 'Reset map view', exact: true }).click();
 
@@ -308,10 +317,10 @@ test.describe('views kit (ui-kit)', () => {
     expect(onMap, 'map buttons (clusters)').toBeLessThan(500);
     expect(listRows, 'virtualized list rows').toBeLessThanOrEqual(40);
 
-    // Open a cluster: the map zooms in (marker/cluster screen position shifts).
-    const zBefore = await styleOf();
+    // Open a cluster: the map zooms in.
+    const zBefore = await zoom();
     await page.locator('[data-cluster]').first().click();
-    await expect.poll(styleOf).not.toBe(zBefore);
+    await expect.poll(zoom).toBeGreaterThan(zBefore);
 
     // Every place stays reachable through the virtualized list (one tab stop + roving).
     const list = page.locator('[data-map-place-list]');
