@@ -61,6 +61,7 @@ export { Progress, Skeleton } from 'texuli/feedback';
 export { Label } from 'texuli/field';
 export { Textarea } from 'texuli/input';
 export { Kbd } from 'texuli/kbd-code';
+export { default as SplitView } from 'texuli/layouts/app/split-view';
 export { Separator } from 'texuli/separator-aspect';
 // Flows
 export { Stepper, type StepperStep, Wizard } from 'texuli/stepper';
@@ -271,7 +272,6 @@ export {
   resolveNav,
 } from './layouts/nav-model.ts';
 export { default as PageGrid } from './layouts/PageGrid.svelte';
-export { default as SplitView } from './layouts/SplitView.svelte';
 export { cn } from './lib/cn.ts';
 export { type DateInput, formatDay, formatTime } from './lib/date.ts';
 export { hashString, initials } from './lib/hash.ts';

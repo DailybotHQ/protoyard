@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
@@ -200,23 +200,26 @@ describe('bundle hygiene', () => {
       const baseline = entryChunks(output.chunks, 'baseline');
       const initialModules = initial.flatMap((chunk) => chunk.moduleIds).map(posix);
       const initialCode = initial.map((chunk) => chunk.code).join('\n');
-      const expectedLayoutFiles = [
-        'AuthSplitLayout.svelte',
-        'DashboardGridLayout.svelte',
-        'DocsLayout.svelte',
-        'DualSidebarLayout.svelte',
-        'MarketingLayout.svelte',
-        'MasterDetailLayout.svelte',
-        'MobileDrawerLayout.svelte',
-        'MobileTabsLayout.svelte',
-        'RailLayout.svelte',
-        'SidebarLayout.svelte',
-        'TopNavLayout.svelte',
-        'WizardLayout.svelte',
-      ];
-      const expectedLayoutPaths = new Set(
-        expectedLayoutFiles.map((file) => `${ROOT}/packages/ui/src/layouts/${file}`)
+      // texuli renders every layout but docs, which is still Protoyard's.
+      const texuliLayouts = posix(
+        realpathSync(join(ROOT, 'node_modules', 'texuli', 'src', 'layouts'))
       );
+      const expectedLayoutPaths = new Set([
+        ...[
+          'app/DualSidebarLayout.svelte',
+          'app/MasterDetailLayout.svelte',
+          'app/RailLayout.svelte',
+          'app/SidebarLayout.svelte',
+          'app/TopNavLayout.svelte',
+          'auth-settings/AuthSplitHostLayout.svelte',
+          'auth-settings/WizardHostLayout.svelte',
+          'dashboard/DashboardGridLayout.svelte',
+          'marketing/MarketingLayout.svelte',
+          'mobile/MobileDrawerLayout.svelte',
+          'mobile/MobileTabsLayout.svelte',
+        ].map((file) => `${texuliLayouts}/${file}`),
+        `${ROOT}/packages/ui/src/layouts/DocsLayout.svelte`,
+      ]);
       const layoutModules = output.chunks.flatMap((chunk) =>
         chunk.moduleIds.filter((id) => expectedLayoutPaths.has(posix(id)))
       );
@@ -230,7 +233,7 @@ describe('bundle hygiene', () => {
         return owner;
       });
       expect(new Set(layoutOwners.map((chunk) => chunk.fileName)).size).toBe(
-        expectedLayoutFiles.length
+        expectedLayoutPaths.size
       );
       expect(
         initialModules.filter((id) =>

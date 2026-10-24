@@ -134,3 +134,17 @@
     animation: py-typing 1.2s ease-in-out infinite;
   }
 }
+
+/*
+ * Texuli's layouts size themselves from --tx-app-height and --tx-safe-*.
+ * Declared on the layout host, which sits inside a device frame's screen, so
+ * they follow the frame's --py-app-height and --py-safe-* (and the page's
+ * own safe areas outside a frame).
+ */
+[data-py-layout-host] {
+  --tx-app-height: var(--py-app-height, 100dvh);
+  --tx-safe-top: max(env(safe-area-inset-top, 0px), var(--py-safe-top, 0px));
+  --tx-safe-right: max(env(safe-area-inset-right, 0px), var(--py-safe-right, 0px));
+  --tx-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--py-safe-bottom, 0px));
+  --tx-safe-left: max(env(safe-area-inset-left, 0px), var(--py-safe-left, 0px));
+}

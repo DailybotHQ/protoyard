@@ -2,7 +2,6 @@ import { LayoutDashboard, Users } from '@lucide/svelte';
 import { cleanup, render } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { SidebarItem } from '../src/components/sidebar/types.ts';
-import NavIcon, { NAV_ICONS, navIconComponent } from '../src/layouts/NavIcon.svelte';
 import {
   isNavPathActive,
   type NavIconName,
@@ -161,30 +160,5 @@ describe('navFromSidebar', () => {
       'tasks-2',
     ]);
     expect(navFromSidebar([]).sections).toEqual([{ id: 'section-1', items: [] }]);
-  });
-});
-
-describe('NavIcon', () => {
-  it('maps every name to a Lucide component and passes components through', () => {
-    const names = Object.keys(NAV_ICONS) as NavIconName[];
-    expect(names.length).toBeGreaterThanOrEqual(50);
-    for (const name of names) expect(typeof navIconComponent(name)).toBe('function');
-    expect(navIconComponent(Users)).toBe(Users);
-    expect(navIconComponent('no-such-icon' as NavIconName)).toBeUndefined();
-    expect(navIconComponent('toString' as NavIconName)).toBeUndefined();
-    expect(navIconComponent(undefined)).toBeUndefined();
-  });
-
-  it('renders a decorative svg for a name or a component, and nothing for an unknown name', () => {
-    const named = render(NavIcon, { icon: 'kanban', class: 'size-4' });
-    const svg = named.container.querySelector('svg');
-    expect(svg?.getAttribute('aria-hidden')).toBe('true');
-    expect(svg?.getAttribute('class')).toContain('size-4');
-    cleanup();
-    expect(render(NavIcon, { icon: Users }).container.querySelector('svg')).not.toBeNull();
-    cleanup();
-    expect(
-      render(NavIcon, { icon: 'unknown' as NavIconName }).container.querySelector('svg')
-    ).toBeNull();
   });
 });

@@ -148,9 +148,10 @@ describe('PageHost marketing design', () => {
     const actions = hero.querySelector('[data-py-page-actions="hero"]') as HTMLElement;
     const links = within(actions).getAllByRole('link');
     expect(links.map((link) => link.getAttribute('href'))).toEqual(['#waitlist', '#plans']);
-    expect(links[0]?.className).toContain('bg-primary');
-    expect(links[1]?.className).toContain('border');
-    expect(links[1]?.className).not.toContain('bg-primary ');
+    // Primary first, then an outline action (texuli's button classes).
+    expect(links[0]?.className).toContain('tx-button--default');
+    expect(links[1]?.className).toContain('tx-button--outline');
+    expect(links[1]?.className).not.toContain('tx-button--default');
     // Stacks full width on phones, sits in a row from `sm`.
     expect(actions.lastElementChild?.className).toContain('flex-col');
     expect(actions.lastElementChild?.className).toContain('sm:flex-row');
