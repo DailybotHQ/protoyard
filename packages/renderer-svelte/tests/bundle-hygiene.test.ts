@@ -24,8 +24,13 @@ const SOURCE = /\.(ts|svelte|astro|js)$/;
 
 /** Gzip-9 caps recorded in docs/PERFORMANCE.md. */
 export const LAYOUT_BUNDLE_BUDGETS = {
-  /** LayoutHost plus registry/preload overhead in the initial app path. */
-  hostInitialDelta: 2_000,
+  /**
+   * LayoutHost plus registry/preload overhead in the initial app path. Was
+   * 2,000 B; the host now wraps texuli's (texuli's host, catalog and host CSS
+   * next to Protoyard's catalog): measured 3,498 B, cap 3,600 B
+   * (T-adopt-layouts; docs/PERFORMANCE.md).
+   */
+  hostInitialDelta: 3_600,
 };
 
 function sourceFiles(dir: string, out: string[] = []): string[] {

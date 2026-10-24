@@ -1,10 +1,9 @@
 import { registerAppLayouts } from 'texuli/layouts/app';
 import { registerAuthSettingsLayouts } from 'texuli/layouts/auth-settings';
+import { registerDashboardLayouts } from 'texuli/layouts/dashboard/register';
 import { registerLayout } from 'texuli/layouts/host';
-import { registerMobileLayouts } from 'texuli/layouts/mobile';
-// These two register their layout when imported.
-import 'texuli/layouts/dashboard';
-import 'texuli/layouts/marketing';
+import { registerMarketingLayouts } from 'texuli/layouts/marketing/register';
+import { registerMobileLayouts } from 'texuli/layouts/mobile/register';
 
 let registered = false;
 
@@ -21,5 +20,7 @@ export function registerProtoyardLayouts(): void {
   registerAppLayouts();
   registerMobileLayouts();
   registerAuthSettingsLayouts();
+  registerDashboardLayouts();
+  registerMarketingLayouts();
   registerLayout('docs', { load: () => import('./DocsLayout.svelte'), owner: 'protoyard' });
 }

@@ -279,6 +279,19 @@ The root file contains these defaults. The defaults stay unchanged, and the
 | `cadence-studio-demo`, `harbor-dispatch-demo`, `pulse-revenue-demo` | 30.52 | 32 |
 
 Every other prototype stays inside the 30 KB default.
+
+**Layout host overhead (T-adopt-layouts).**
+- `LAYOUT_BUNDLE_BUDGETS.hostInitialDelta` in
+  `packages/renderer-svelte/tests/bundle-hygiene.test.ts` caps what
+  `LayoutHost` adds to the initial app path.
+- The cap was 2,000 B gzip. It is now 3,600 B: measured 3,498 B plus under
+  5%.
+- **Reason:** Protoyard's host wraps texuli's. The initial path carries
+  texuli's host, catalog and host CSS next to Protoyard's catalog (for the
+  `docs` width rule), plus the `data-py-layout` mirror.
+- Every layout stays its own lazy chunk.
+- **pages-ui:** page and doc initial CSS caps are now 22.5 KB each (measured
+  22,115 B and 22,374 B), for texuli's component and layout CSS.
 Budgets stay out of `protoyard.json` so performance targets can evolve
 without changing the strict prototype manifest contract.
 
