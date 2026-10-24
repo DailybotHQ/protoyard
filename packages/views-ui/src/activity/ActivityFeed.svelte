@@ -37,7 +37,7 @@ let {
   locale?: string;
   filter?: ActivityFilter;
   onFilterChange?: (filter: ActivityFilter) => void;
-  onRetry?: () => void | Promise<void>;
+  onRetry?: () => unknown;
   label?: string;
   class?: string;
   getActorName?: (item: T) => string;
@@ -48,7 +48,6 @@ let {
     emoji: string,
     next: Record<string, string[]>
   ) => void | Promise<void>;
-  [key: string]: unknown;
 } = $props();
 
 const byId = $derived(new Map(people.map((p) => [p.id, p])));
@@ -61,7 +60,7 @@ const actorSrc =
   });
 </script>
 
-<QueryState {query} label={`Loading ${label.toLowerCase()}`} {onRetry} isEmpty={() => false}>
+<QueryState {query} label={`Loading ${label.toLowerCase()}`} onRetry={onRetry ? () => { void onRetry(); } : undefined} isEmpty={() => false}>
   {#snippet children(items)}
     <TexuliFeed
       {items}

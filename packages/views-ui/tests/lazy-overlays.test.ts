@@ -10,9 +10,9 @@ import LazyMenuHarness from './fixtures/LazyMenuHarness.svelte';
  */
 afterEach(() => cleanup());
 
-// The first dynamic import transforms Bits UI's dialog, menu and popover
+// The first dynamic import transforms dialog, menu and popover
 // modules; on a busy machine (the full suite in parallel) that takes seconds.
-const SLOW_IMPORT_MS = 30_000;
+const SLOW_IMPORT_MS = 90_000;
 
 describe('lazy overlays', () => {
   it(

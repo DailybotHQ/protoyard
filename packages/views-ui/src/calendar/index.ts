@@ -3,6 +3,7 @@
  * Host types for service write contracts stay local.
  */
 
+export type { CalendarSeries, Occurrence } from '@protoyard/views/calendar';
 export {
   type CalendarLabels,
   type CalendarMode,

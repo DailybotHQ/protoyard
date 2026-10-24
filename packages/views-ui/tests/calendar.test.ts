@@ -1,5 +1,5 @@
 import type { CalendarSeries } from '@protoyard/views/calendar';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CalendarView } from '../src/calendar/index.ts';
 

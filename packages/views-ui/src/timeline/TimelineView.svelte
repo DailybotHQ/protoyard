@@ -34,7 +34,7 @@ let {
   getProgress?: (task: T) => number | undefined;
   onReschedule?: (changes: readonly TaskChange[]) => unknown;
   onOpen?: (task: T) => void;
-  onRetry?: () => void | Promise<void>;
+  onRetry?: () => unknown;
   getGroup?: (task: T) => { id: string; label: string } | undefined;
   maxRows?: number;
   class?: string;
@@ -50,7 +50,7 @@ async function persist(changes: readonly TaskChange[]): Promise<void> {
 }
 </script>
 
-<QueryState {query} label={`Loading ${label.toLowerCase()}`} {onRetry} isEmpty={() => false}>
+<QueryState {query} label={`Loading ${label.toLowerCase()}`} onRetry={onRetry ? () => { void onRetry(); } : undefined} isEmpty={() => false}>
   {#snippet children(tasks)}
     <TexuliTimeline
       {tasks}
