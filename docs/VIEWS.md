@@ -167,8 +167,9 @@ Measured on 2026-10-24 with
 
 The other subpaths have no current per-component measurement. A full
 prototype that uses several views, `keel-projects-demo`, measured with
-`pnpm protoyard budget keel-projects-demo`: initial JS 175.77 KB gzip (budget
-250 KB, pass) and CSS 40.27 KB gzip (budget 34 KB, **fails** by 6.27 KB).
+`pnpm protoyard budget keel-projects-demo`: initial JS 175.79 KB gzip (budget
+250 KB, pass) and CSS 41.31 KB gzip (budget 43.4 KB, a measured override for
+Texuli's component CSS, pass).
 Method notes are in [`PERFORMANCE.md`](PERFORMANCE.md#views-kit).
 
 ## Honest limits

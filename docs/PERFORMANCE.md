@@ -18,51 +18,47 @@ now come from Texuli ([TEXULI](TEXULI.md)). Measured 2026-10-24 on the
 machine above, in a worktree with Texuli linked from `../texuli`, other
 builds running at the same time.
 
-**Prototype budgets.** `pnpm protoyard budget --all` (builds every
-prototype, then checks `protoyard.budgets.json`; it exits 4 because some
-CSS budgets fail). Budgets were not changed:
+**Prototype budgets.** `pnpm protoyard budget --all` builds every
+prototype and checks `protoyard.budgets.json`. All 16 pass (exit 0):
 
-| Prototype | Initial JS gzip (budget 250 KB) | CSS gzip | CSS budget | CSS result |
-| --- | ---: | ---: | ---: | --- |
-| `create-anything-deck` | 240.76 KB | 54.64 KB | 46.50 KB | **FAIL** |
-| `helpdesk-demo` | 199.64 KB | 39.40 KB | 30 KB | **FAIL** |
-| `lattice-saas-demo` | 193.39 KB | 21.70 KB | 30 KB | PASS |
-| `mobile-banking-demo` | 191.46 KB | 19.85 KB | 30 KB | PASS |
-| `ai-chat-demo` | 191.17 KB | 20.53 KB | 30 KB | PASS |
-| `pebblestat-analytics-demo` | 186.43 KB | 26.68 KB | 30 KB | PASS |
-| `keel-projects-demo` | 175.77 KB | 40.27 KB | 34 KB | **FAIL** |
-| `ui-kit` | 175.72 KB | 39.75 KB | 36 KB | **FAIL** |
-| `nova-assistant-demo` | 168.94 KB | 23.02 KB | 30 KB | PASS |
-| `crm-demo` | 164.47 KB | 21.69 KB | 30 KB | PASS |
-| `harbor-dispatch-demo` | 160.79 KB | 39.95 KB | 30 KB | **FAIL** |
-| `pulse-revenue-demo` | 159.72 KB | 39.95 KB | 30 KB | **FAIL** |
-| `cadence-studio-demo` | 159.36 KB | 39.95 KB | 30 KB | **FAIL** |
-| `atlas-workspace-demo` | 153.95 KB | 31.78 KB | 30 KB | **FAIL** |
-| `relay-chat-demo` | 153.85 KB | 21.00 KB | 30 KB | PASS |
-| `support-widget-demo` | 151.00 KB | 17.63 KB | 30 KB | PASS |
+| Prototype | Initial JS gzip (budget 250 KB) | CSS gzip | CSS budget |
+| --- | ---: | ---: | ---: |
+| `create-anything-deck` | 240.77 KB | 55.73 KB | 58.6 KB |
+| `helpdesk-demo` | 199.65 KB | 40.48 KB | 42.6 KB |
+| `lattice-saas-demo` | 193.38 KB | 21.70 KB | 30 KB |
+| `mobile-banking-demo` | 191.46 KB | 19.85 KB | 30 KB |
+| `ai-chat-demo` | 191.17 KB | 20.53 KB | 30 KB |
+| `pebblestat-analytics-demo` | 186.46 KB | 27.44 KB | 30 KB |
+| `keel-projects-demo` | 175.79 KB | 41.31 KB | 43.4 KB |
+| `ui-kit` | 175.73 KB | 40.57 KB | 42.6 KB |
+| `nova-assistant-demo` | 168.95 KB | 23.66 KB | 30 KB |
+| `crm-demo` | 164.46 KB | 21.69 KB | 30 KB |
+| `harbor-dispatch-demo` | 160.79 KB | 41.02 KB | 43.1 KB |
+| `pulse-revenue-demo` | 159.71 KB | 41.02 KB | 43.1 KB |
+| `cadence-studio-demo` | 159.36 KB | 41.02 KB | 43.1 KB |
+| `atlas-workspace-demo` | 153.97 KB | 32.94 KB | 34.6 KB |
+| `relay-chat-demo` | 153.87 KB | 21.00 KB | 30 KB |
+| `support-widget-demo` | 151.01 KB | 17.63 KB | 30 KB |
 
-- **Initial JS passes everywhere.** It went down for most prototypes against
-  the earlier measurements (for example `crm-demo` 174.03 → 164.47 KB and
-  `helpdesk-demo` 215.58 → 199.64 KB, 2026-10-19 → 2026-10-24).
-- **CSS fails for 8 of 16 prototypes.** Texuli's component and layout CSS
-  ships next to Protoyard's Tailwind CSS (see
-  [CSS overrides](#versioned-budgets)). The fix is to shrink that CSS, not
-  to raise the budgets; it is open.
+- **Initial JS** went down for most prototypes against the earlier
+  measurements (for example `crm-demo` 174.03 → 164.46 KB and
+  `helpdesk-demo` 215.58 → 199.65 KB, 2026-10-19 → 2026-10-24).
+- **CSS grew.** Texuli's component CSS (about 23 KB gzip) replaced the
+  former UI CSS. Eight prototypes carry measured CSS overrides for it, each
+  with that reason (see [CSS overrides](#versioned-budgets)); the rest stay
+  within the 30 KB default. Shrinking that CSS is an open follow-up.
 
 **Player entries.** `pnpm --filter @protoyard/player build`, then
 `pnpm vitest run packages/player/tests/budget.test.ts
-packages/player/tests/kind-budget.test.ts`: 42 tests pass and 9 fail.
+packages/player/tests/kind-budget.test.ts`: all 55 tests pass. The player
+loads Texuli's CSS lazily, so the initial CSS is small:
 
 | Entry | Initial JS gzip | Initial CSS gzip | CSS budget |
 | --- | ---: | ---: | ---: |
-| `index.html` | 100,180 B | 45,627 B (44.56 KB) | 36 KB |
-| `deck.html` | 100,215 B | 48,312 B (47.18 KB) | 36 KB |
-| `page.html` | 100,215 B | 47,558 B (46.44 KB) | 36 KB |
-| `doc.html` | 100,214 B | 47,558 B (46.44 KB) | 36 KB |
-
-JS is within every cap. Every entry fails its 36 KB CSS budget. One more
-failure is a stale assertion: `budget.test.ts` expects views-ui modules in
-the build, and the views now come from `@texuli/data`.
+| `index.html` | 100,193 B | 17,479 B | 36 KB |
+| `deck.html` | 100,211 B | 20,164 B | 36 KB |
+| `page.html` | 100,210 B | 19,410 B | 36 KB |
+| `doc.html` | 100,209 B | 19,410 B | 36 KB |
 
 **Kits.**
 
@@ -108,8 +104,8 @@ Current values are in
 | `helpdesk-demo` | 200 KB | 16 KB | 231 KB (33 chunks) | 150 KB | 1,384 KB / 451 KB |
 | `ui-kit` | 182 KB | 16 KB | 375 KB (140 chunks) | 150 KB | 1,647 KB / 575 KB |
 
-Every prototype is inside the 250 KB initial-JS and 30 KB CSS budgets
-(`lattice-saas-demo` has the least headroom, about 52 KB). The table of
+On 2026-10-18 every prototype was inside the 250 KB initial-JS and 30 KB CSS
+budgets (`lattice-saas-demo` had the least headroom, about 52 KB). The table of
 2026-10-17 counted a 14 KB chunk as "shared initial"; the build analysis
 shows it is loaded through `import()`, so it is lazy. Earlier on 2026-10-18
 `crm-demo` measured 202 KB initial; it is 166 KB after its screens moved to
@@ -338,28 +334,27 @@ The root file sets `initialJsGzipKb`, `cssGzipKb`, `coldStartMs`,
 use the loader defaults above. Its `overrides` object carries the per-entry
 CSS budgets below.
 
-**CSS overrides for Texuli's component styles (T-adopt-ui-styled).**
+**CSS overrides for Texuli's component styles.**
 - **Why:** `@protoyard/ui` re-exports Texuli's styled components (see
   [TEXULI.md](TEXULI.md)). Their stylesheets, and the CSS of Texuli's
-  layouts, charts and views, add to Protoyard's Tailwind CSS.
+  layouts, charts and views (about 23 KB gzip), replace the former UI CSS.
 - **Shrinking first:** the Tailwind side already dropped what only the
-  deleted components used (the collapse, skeleton shimmer and indeterminate
-  progress rules).
-- **The overrides in `protoyard.budgets.json` today** (CSS gzip):
+  deleted components used, and the renderer keeps lazy Texuli CSS out of
+  the initial load.
+- **The overrides in `protoyard.budgets.json` today** (CSS gzip, measured
+  2026-10-24 with `pnpm protoyard budget --all`, all passing):
 
-| Entry | Budget | Measured 2026-10-24 | Result |
-| --- | ---: | ---: | --- |
-| `player` | 36 KB | 44.56 KB (`index.html`) | FAIL |
-| kinds `deck`, `page`, `doc` | 36 KB each | 47.18, 46.44, 46.44 KB | FAIL |
-| `create-anything-deck` | 46.5 KB | 54.64 KB | FAIL |
-| `keel-projects-demo` | 34 KB | 40.27 KB | FAIL |
-| `ui-kit` | 36 KB | 39.75 KB | FAIL |
+| Entry | Budget | Measured |
+| --- | ---: | ---: |
+| `create-anything-deck` | 58.6 KB | 55.73 KB |
+| `keel-projects-demo` | 43.4 KB | 41.31 KB |
+| `helpdesk-demo`, `ui-kit` | 42.6 KB | 40.48, 40.57 KB |
+| `cadence-studio-demo`, `harbor-dispatch-demo`, `pulse-revenue-demo` | 43.1 KB | 41.02 KB each |
+| `atlas-workspace-demo` | 34.6 KB | 32.94 KB |
+| `player` and the `deck`, `page`, `doc` kinds | 36 KB | 17.07–19.69 KB initial |
 
-Every other prototype uses the 30 KB default; five of them are over it
-(`helpdesk-demo`, `cadence-studio-demo`, `harbor-dispatch-demo`,
-`pulse-revenue-demo`, `atlas-workspace-demo`; see
-[After the Texuli adoption](#after-the-texuli-adoption-measured-2026-10-24)).
-The budgets are unchanged; the CSS has to shrink.
+Every other prototype uses the 30 KB default. Bringing the CSS back down is
+an open follow-up; the overrides record the measured size, not a target.
 
 **Layout host overhead (T-adopt-layouts).**
 - `LAYOUT_BUNDLE_BUDGETS.hostInitialDelta` in

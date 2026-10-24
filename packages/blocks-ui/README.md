@@ -91,16 +91,16 @@ families are over them now, so `--check` exits 1.
 
 | Subpath | Blocks | Gzip added | Budget |
 | --- | --- | --- | --- |
-| `.` | `BlockRenderer` dispatcher and host context | 3,097 B | 3,000 B (over) |
+| `.` | `BlockRenderer` dispatcher and host context | 3,094 B | 3,000 B (over) |
 | `./text` | Heading, rich text, list, quote, callout, divider | 32,021 B | 12,800 B (over) |
 | `./media` | Image, video, people (avatars) | 14,186 B | 4,000 B (over) |
-| `./data` | Stat/KPI row, table, chart (chart families load separately) | 20,157 B | 5,000 B (over) |
-| `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | 37,609 B | 13,500 B (over) |
+| `./data` | Stat/KPI row, table, chart (chart families load separately) | 20,158 B | 5,000 B (over) |
+| `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | 37,623 B | 13,500 B (over) |
 | `./code` | Code with stepped highlights (grammars load per language) | 5,648 B | 6,000 B |
 | `./diagram` | Flow, tree, board, terminal | 4,197 B | 6,000 B |
-| `./interactive` | Poll, quiz, calculator, tabs/reveal, counter, chart-controls, form | 36,746 B | 20,400 B (over) |
+| `./interactive` | Poll, quiz, calculator, tabs/reveal, counter, chart-controls, form | 36,750 B | 20,400 B (over) |
 | `./map` | Map on the offline simulated map | 7,445 B | 4,000 B (over) |
-| `./embed` | embed-app framed preview; the app loads only on start | 4,315 B | 2,400 B (over) |
+| `./embed` | embed-app framed preview; the app loads only on start | 4,368 B | 2,400 B (over) |
 | `./styles.css` | Registers the kit's markup with Tailwind (`@source`) | — | — |
 
 Every block type's props, limits, use-when and a minimal example are in the
@@ -238,7 +238,7 @@ setBlockHost({ canvasMode: 'slide', mountEmbed });
 - **Keyboard.** While the app is running, Tab cycles inside the frame so deck
   navigation keys are not stolen mid-input. The player / KINDS still own
   arrow-key slide handling outside the frame.
-- **Size.** The embed family chunk adds 4,315 B gzip (the table above, over
+- **Size.** The embed family chunk adds 4,368 B gzip (the table above, over
   its 2,400 B budget); the app loads only on click (the crud shell is a
   separate download).
 
