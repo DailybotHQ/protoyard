@@ -161,10 +161,9 @@ function goBack() {
       {/if}
       <!-- The list states its own loading; a running command marks the whole palette busy. -->
       <Command.Root label="Commands" shouldFilter={false} loop aria-busy={running !== null || undefined}>
-        <!-- The input forwards every attribute; its props type omits the input-only ones like maxlength. -->
         <Command.Input
           bind:value={query}
-          {...{ maxlength: COMMAND_QUERY_MAX_LENGTH }}
+          maxlength={COMMAND_QUERY_MAX_LENGTH}
           {placeholder}
           class="h-14 border-b border-border bg-transparent px-4 text-base outline-none placeholder:text-muted-foreground"
         />
