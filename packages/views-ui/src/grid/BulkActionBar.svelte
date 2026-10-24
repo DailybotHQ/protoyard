@@ -1,6 +1,7 @@
 <script lang="ts" generics="T">
 import { runService } from '@protoyard/renderer-svelte';
-import { Button, cn } from '@protoyard/ui';
+import { Button } from '@protoyard/ui';
+import { cx } from 'texuli/cx';
 import { lazyDialog } from '../lib/lazy-overlays.svelte.ts';
 import type { BulkAction } from './model.ts';
 
@@ -48,7 +49,7 @@ function start(action: BulkAction<T>) {
 </script>
 
 {#if rows.length > 0}
-  <div role="toolbar" aria-label={label} class={cn('flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/60 px-3 py-2', className)}>
+  <div role="toolbar" aria-label={label} class={cx('flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/60 px-3 py-2', className)}>
     <span class="text-sm font-medium tabular-nums" aria-live="polite">{rows.length.toLocaleString('en')} selected</span>
     {#each actions as action (action.id)}
       <Button

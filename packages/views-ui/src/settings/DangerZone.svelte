@@ -1,5 +1,6 @@
 <script lang="ts">
-import { Button, cn, Dialog, Input } from '@protoyard/ui';
+import { Button, Dialog, Input } from '@protoyard/ui';
+import { cx } from 'texuli/cx';
 
 interface Props {
   title?: string;
@@ -46,7 +47,7 @@ async function confirm() {
 
 <section
   aria-labelledby={`danger-${uid}`}
-  class={cn('rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-4 sm:px-6', className)}
+  class={cx('rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-4 sm:px-6', className)}
 >
   <h3 id={`danger-${uid}`} class="text-sm font-semibold text-destructive">{title}</h3>
   <div class="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

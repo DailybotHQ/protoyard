@@ -6,7 +6,7 @@ import {
   safeHref,
   safeImageSrc,
 } from '@protoyard/ai/markdown';
-import { cn } from '@protoyard/ui';
+import { cx } from 'texuli/cx';
 
 interface Props {
   /** Markdown source. Rendered as elements and text only: never `{@html}`. */
@@ -76,7 +76,7 @@ const external = (href: string) => /^https?:/i.test(href);
         class="overflow-x-auto rounded-md border border-border bg-muted/60 p-3 text-xs focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
       ><code>{block.text}</code></pre>
     {:else if block.type === 'list'}
-      <svelte:element this={block.ordered ? 'ol' : 'ul'} class={cn('space-y-1 pl-6', block.ordered ? 'list-decimal' : 'list-disc')} start={block.ordered ? block.start : undefined}>
+      <svelte:element this={block.ordered ? 'ol' : 'ul'} class={cx('space-y-1 pl-6', block.ordered ? 'list-decimal' : 'list-disc')} start={block.ordered ? block.start : undefined}>
         {#each block.items as item, j (j)}
           <li>
             {#if item.checked !== null}<input type="checkbox" checked={item.checked} disabled aria-label={item.checked ? 'Done' : 'Not done'} class="mr-1.5 align-middle" />{/if}
@@ -94,7 +94,7 @@ const external = (href: string) => /^https?:/i.test(href);
   {/each}
 {/snippet}
 
-<div role="region" aria-label={label} class={cn('space-y-3 text-sm leading-6 break-words', className)}>
+<div role="region" aria-label={label} class={cx('space-y-3 text-sm leading-6 break-words', className)}>
   {#if doc.blocks.length === 0}
     <p class="text-muted-foreground">{emptyText}</p>
   {:else}

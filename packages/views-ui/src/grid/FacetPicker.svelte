@@ -7,7 +7,8 @@ export interface FacetOption {
 
 <script lang="ts" generics="T">
 import { Check, ChevronDown } from '@lucide/svelte';
-import { buttonVariants, cn } from '@protoyard/ui';
+import { cx } from 'texuli/cx';
+import { buttonVariants } from '@protoyard/ui';
 import {
   compareScalars,
   type FilterNode,
@@ -120,7 +121,7 @@ function onFocusOut(event: FocusEvent) {
 }
 </script>
 
-<div bind:this={root} class={cn('relative inline-block', className)} onfocusout={onFocusOut}>
+<div bind:this={root} class={cx('relative inline-block', className)} onfocusout={onFocusOut}>
   <button
     bind:this={trigger}
     type="button"
@@ -162,13 +163,13 @@ function onFocusOut(event: FocusEvent) {
             id={optionId(index)}
             role="option"
             aria-selected={isSelected(option)}
-            class={cn('flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm', index === activeIndex && 'bg-muted')}
+            class={cx('flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm', index === activeIndex && 'bg-muted')}
             onpointerenter={() => (activeIndex = index)}
             onpointerdown={(event) => event.preventDefault()}
             onclick={() => toggle(option)}
             onkeydown={() => {}}
           >
-            <span class={cn('flex size-4 items-center justify-center rounded border border-input', isSelected(option) && 'border-primary bg-primary text-primary-foreground')}>
+            <span class={cx('flex size-4 items-center justify-center rounded border border-input', isSelected(option) && 'border-primary bg-primary text-primary-foreground')}>
               {#if isSelected(option)}<Check class="size-3" aria-hidden="true" />{/if}
             </span>
             <span class="truncate">{option.label}</span>
