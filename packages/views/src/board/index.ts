@@ -1,10 +1,9 @@
 /**
- * `@protoyard/views/board` — the framework-free board engine: fractional rank
- * keys, columns × swimlanes grouping, WIP limits, move validation and a
- * keyboard drag state machine. `@protoyard/views-ui/board` renders it.
- * Everything here is pure; persisting a move is the prototype's service job
- * (policy, zod, `environment.run`, one transaction), and services must
- * enforce hard WIP limits too.
+ * `@protoyard/views/board` — framework-free board engine (ranks, WIP, moves,
+ * keyboard). Math matches `@texuli/data` engines/board. The public
+ * `@texuli/data/board` entry also exports `Board.svelte`, so this subpath keeps
+ * the engine sources local for plain-Node package dist (no Svelte in engines).
+ * `@protoyard/views-ui/board` renders it.
  */
 export {
   type BoardCell,
@@ -34,4 +33,11 @@ export {
   moveIntent,
   pickUp,
 } from './keyboard.ts';
-export { assertRank, compareRanks, isRank, RankError, rankBetween, rankSequence } from './rank.ts';
+export {
+  assertRank,
+  compareRanks,
+  isRank,
+  RankError,
+  rankBetween,
+  rankSequence,
+} from './rank.ts';

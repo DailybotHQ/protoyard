@@ -220,3 +220,27 @@ import { Button } from 'texuli/button';
 - **Typecheck reach.** Protoyard's typecheck covers the fixture that imports
   Texuli. The Texuli sources themselves are type-checked by Texuli's own
   gates.
+
+## Views from `@texuli/data`
+
+`@protoyard/views` engines for calendar, timeline, grid, tree, map, activity
+and files are **thin re-exports** of `@texuli/data` (engine-only public
+subpaths such as `@texuli/data/calendar`, `@texuli/data/grid`,
+`@texuli/data/timeline/engine`). Protoyard-only view modules stay local:
+editor, notifications, settings, states, commands and scenarios.
+
+**Board** keeps engine sources under `packages/views/src/board/` (content
+aligned with `@texuli/data` `engines/board`). The public `@texuli/data/board`
+entry also exports `Board.svelte`, so a re-export would pull Svelte into the
+plain-Node engine package dist. When Texuli adds a board engine-only subpath,
+board can switch to a thin re-export like the others.
+
+Texuli view schemas use a small `DataSchema` (`parse` / `safeParse`, throws
+`ValidationError`). They are not Zod objects, so prototypes must not call
+`.optional()` or `.omit()` on them. Bridge with `z.unknown().transform` (or
+`safeParse` inside a refine) when composing service input schemas.
+
+`@protoyard/views-ui` keeps the host Svelte views (liveQuery, services,
+toasts) and continues to call `@protoyard/views/*`, so prototypes keep the
+same import paths while the math comes from Texuli.
+

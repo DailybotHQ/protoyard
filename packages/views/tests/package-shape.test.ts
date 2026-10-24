@@ -74,10 +74,11 @@ describe('@protoyard/views package shape', () => {
     expect(runtime).toEqual([]);
   });
 
-  it('depends only on avatars (data only), core and zod, and is side-effect free', () => {
+  it('depends only on avatars (data only), core, @texuli/data and zod, and is side-effect free', () => {
     expect(Object.keys(pkg.dependencies).sort()).toEqual([
       '@protoyard/avatars',
       '@protoyard/core',
+      '@texuli/data',
       'zod',
     ]);
     expect(pkg.sideEffects).toBe(false);

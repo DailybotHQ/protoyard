@@ -10,11 +10,21 @@ import {
   type Scenario,
 } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
-import { dateIn, weekdayOf } from '../src/calendar/dates.ts';
-import { expandAll, hasOccurrence, RecurrenceRuleSchema } from '../src/calendar/recurrence.ts';
-import { GeofenceSchema, pointInRing, type Ring, ringSelfIntersects } from '../src/map/fence.ts';
-import { haversine } from '../src/map/geo.ts';
-import { PORT_MERIDIAN } from '../src/map/port-meridian.ts';
+import {
+  dateIn,
+  expandAll,
+  hasOccurrence,
+  RecurrenceRuleSchema,
+  weekdayOf,
+} from '../src/calendar/index.ts';
+import {
+  GeofenceSchema,
+  haversine,
+  PORT_MERIDIAN,
+  pointInRing,
+  type Ring,
+  ringSelfIntersects,
+} from '../src/map/index.ts';
 import {
   defaultPeople,
   generateActivity,
