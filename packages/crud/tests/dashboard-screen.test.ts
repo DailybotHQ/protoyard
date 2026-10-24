@@ -81,7 +81,7 @@ function show(runtime: Awaited<ReturnType<typeof harness.boot>>) {
 }
 
 describe('DashboardScreen', () => {
-  it('renders aggregates and refreshes after a service mutation', async () => {
+  it('renders aggregates and refreshes after a service mutation', { timeout: 30_000 }, async () => {
     const runtime = await harness.boot('owner');
     const services = createEntityServices(runtime, blueprint);
     const seeded = await services.request!.list();

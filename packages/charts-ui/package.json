@@ -130,6 +130,16 @@
         "types": "./dist/styles.css.d.ts",
         "svelte": "./dist/styles.css",
         "default": "./dist/styles.css"
+      },
+      "./flow": {
+        "types": "./dist/flow/index.d.ts",
+        "svelte": "./dist/flow/index.js",
+        "default": "./dist/flow/index.js"
+      },
+      "./interaction": {
+        "types": "./dist/interaction/index.d.ts",
+        "svelte": "./dist/interaction/index.js",
+        "default": "./dist/interaction/index.js"
       }
     },
     "files": [
