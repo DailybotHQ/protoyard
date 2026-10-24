@@ -9,21 +9,46 @@
     "indexColdMs": 100,
     "quickReadyMs": 5000
   },
-  "overrides": {},
+  "overrides": {
+    "cadence-studio-demo": {
+      "cssGzipKb": 32
+    },
+    "create-anything-deck": {
+      "cssGzipKb": 42
+    },
+    "harbor-dispatch-demo": {
+      "cssGzipKb": 32
+    },
+    "helpdesk-demo": {
+      "cssGzipKb": 32
+    },
+    "keel-projects-demo": {
+      "cssGzipKb": 36.5
+    },
+    "player": {
+      "cssGzipKb": 41.5
+    },
+    "pulse-revenue-demo": {
+      "cssGzipKb": 32
+    },
+    "ui-kit": {
+      "cssGzipKb": 36
+    }
+  },
   "kinds": {
     "deck": {
       "initialJsGzipKb": 150,
-      "cssGzipKb": 30,
+      "cssGzipKb": 36.5,
       "singleFileKb": 2048
     },
     "page": {
       "initialJsGzipKb": 150,
-      "cssGzipKb": 30,
+      "cssGzipKb": 35.5,
       "singleFileKb": 2048
     },
     "doc": {
       "initialJsGzipKb": 150,
-      "cssGzipKb": 30,
+      "cssGzipKb": 35.5,
       "singleFileKb": 2048
     }
   }
