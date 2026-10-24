@@ -1,29 +1,36 @@
+/**
+ * Path and layout shapes for charts. Sourced from `@texuli/charts/math`.
+ */
+
+export type {
+  ArcOptions,
+  AreaPathOptions,
+  AreaPoint,
+  Bin,
+  BinOptions,
+  Curve,
+  GroupOffsets,
+  LinePathOptions,
+  PathPoint,
+  PieOptions,
+  PieSlice,
+  StackOffset,
+  StackOptions,
+  StackSpan,
+  SymbolType,
+} from '@texuli/charts/math';
 export {
-  type ArcOptions,
   arcCentroid,
   arcPath,
-  type PieOptions,
-  type PieSlice,
-  pie,
-} from './arc.ts';
-export { type Bin, type BinOptions, bin, sturges } from './bin.ts';
-export {
-  type AreaPathOptions,
-  type AreaPoint,
   areaPath,
-  type Curve,
-  type LinePathOptions,
-  linePath,
-  type PathPoint,
-} from './line.ts';
-export { roundCoord } from './round.ts';
-export {
-  type GroupOffsets,
+  bin,
   groupOffsets,
-  type StackOffset,
-  type StackOptions,
-  type StackSpan,
+  linePath,
+  pie,
+  roundCoord,
+  SYMBOL_TYPES,
   stack,
   stackExtent,
-} from './stack.ts';
-export { SYMBOL_TYPES, type SymbolType, symbolPath } from './symbol.ts';
+  sturges,
+  symbolPath,
+} from '@texuli/charts/math';
