@@ -1,7 +1,5 @@
 /**
- * `@protoyard/views-ui/map` — the simulated map: a fictional SVG basemap,
- * focusable markers and clusters, routes with progress, editable geofences and
- * a synced list. Import this subpath only from a lazy route screen.
+ * `@protoyard/views-ui/map` — thin SimulatedMap adapter over `@texuli/data/map`.
  */
 
 export {

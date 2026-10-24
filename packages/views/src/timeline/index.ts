@@ -1,9 +1,7 @@
 /**
- * `@protoyard/views/timeline` — scheduling for timelines and gantt charts:
- * working-day calendars, FS / SS / FF / SF dependencies with lag, topological
- * order with readable cycle errors (and a zod list schema that rejects
- * cycles), the critical path with slack, and cascading a move to the
- * successors it pushes. `@protoyard/views-ui/timeline` renders it.
+ * `@protoyard/views/timeline` — thin re-export of `@texuli/data/timeline/engine`
+ * (working-day schedules, dependencies, critical path, cascade).
+ * `@protoyard/views-ui/timeline` renders it.
  */
 export {
   type CascadeResult,
@@ -28,4 +26,4 @@ export {
   type WorkCalendar,
   type WorkDays,
   workDays,
-} from './schedule.ts';
+} from '@texuli/data/timeline/engine';

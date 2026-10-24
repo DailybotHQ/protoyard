@@ -1,4 +1,4 @@
-import { addDays, dateIn, daysBetween, type IsoDate, weekdayOf } from '../calendar/dates.ts';
+import { addDays, dateIn, daysBetween, type IsoDate, weekdayOf } from '../calendar/index.ts';
 import {
   countFor,
   phrase,

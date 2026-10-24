@@ -1,9 +1,14 @@
 /**
- * `@protoyard/views-ui/files` — `FileManager` (folder tree, breadcrumbs,
- * grid or list with multi-select and roving focus, rename, move, delete, new
- * folder, upload and a preview lightbox) and `FilePreview`, on the
- * `@protoyard/views/files` engine. Import this subpath only from a lazy route
- * screen; it shares the tree view's chunk.
+ * `@protoyard/views-ui/files` — thin FileManager adapter over `@texuli/data/files`.
  */
+
+/** @deprecated Prefer previewOf from Texuli; kept for import stability. */
+export {
+  FileBrowser,
+  FileBrowser as FilePreview,
+  type FileBrowserLabels,
+  type FileBrowserLayout,
+  type FilePreviewModel,
+  previewOf,
+} from '@texuli/data/files';
 export { default as FileManager } from './FileManager.svelte';
-export { default as FilePreview } from './FilePreview.svelte';

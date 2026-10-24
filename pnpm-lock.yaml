@@ -884,6 +884,9 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
+      '@texuli/data':
+        specifier: link:../../../texuli/packages/data
+        version: link:../../../texuli/packages/data
       zod:
         specifier: ^4.6.7
         version: 4.6.7

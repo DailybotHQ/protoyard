@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { createRng } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
-import { addDays } from '../src/calendar/dates.ts';
+import { addDays } from '../src/calendar/index.ts';
 import {
   cascade,
   criticalPath,

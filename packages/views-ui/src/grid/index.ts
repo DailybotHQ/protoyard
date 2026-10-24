@@ -1,10 +1,16 @@
 /**
- * `@protoyard/views-ui/grid` — `DataGrid` (the ARIA grid with virtualized
- * rows and columns, column controls, grouping, inline edit, filters and saved
- * views, facets, filter chips and bulk actions; cards on phones),
- * `FilterBuilder`, `FilterChips`, `FacetPicker`, `ColumnChooser`,
- * `BulkActionBar` and `SavedViews`, on the `@protoyard/views/grid` engine.
+ * `@protoyard/views-ui/grid` — thin DataGrid adapter over `@texuli/data/grid-core`,
+ * plus host filter/saved-view toolkit used by prototypes.
  */
+
+export {
+  DataGrid as TexuliDataGrid,
+  type DataGridColumn as TexuliDataGridColumn,
+  type DataGridLabels,
+  gridRows,
+  moveCell,
+  nextSort as texuliNextSort,
+} from '@texuli/data/grid-core';
 export { default as BulkActionBar } from './BulkActionBar.svelte';
 export { default as ColumnChooser } from './ColumnChooser.svelte';
 export { default as DataGrid } from './DataGrid.svelte';

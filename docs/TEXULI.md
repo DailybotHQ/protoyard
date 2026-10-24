@@ -314,9 +314,36 @@ import { Button } from 'texuli/button';
   Texuli. The Texuli sources themselves are type-checked by Texuli's own
   gates.
 
-## DevTools panel on Texuli
+## Views from `@texuli/data`
 
-`@protoyard/devtools` mounts its compact controls on Texuli components
-(`texuli/button`, `texuli/choice`, `texuli/badge`, `texuli/alert`). Theme Studio
-and the gallery theme shelf already use `@protoyard/themes` → `@texuli/tokens`.
-See `packages/devtools/docs/texuli-controls.md`.
+### Engines (`@protoyard/views`)
+
+Board, calendar, timeline, grid, tree, map, activity and files are **thin
+re-exports** of `@texuli/data` engine subpaths (`@texuli/data/board/engine`,
+`@texuli/data/calendar`, `@texuli/data/grid`, …). Protoyard-only modules stay
+local: editor, notifications, settings, states, commands and scenarios.
+
+Texuli view schemas use `DataSchema` (`parse` / `safeParse`), not Zod — bridge
+when composing service inputs (see `keel-projects-demo`).
+
+### UI (`@protoyard/views-ui`)
+
+Each rich view is a **thin host adapter** over the matching `@texuli/data`
+Svelte entry, plus liveQuery/`runService` where the host API differs:
+
+| Subpath | Texuli source | Adapter notes |
+| --- | --- | --- |
+| `board` | `@texuli/data` `Board` | `query` → `items`, `onMove` via `runService`, optional `onOpen` |
+| `calendar` | `@texuli/data/calendar/view` | `query` → `events`; write `onChange`/`onCreate` not on Texuli yet |
+| `timeline` | `@texuli/data/timeline` | `query` → `tasks`, `onReschedule` via `runService` |
+| `grid` | `@texuli/data/grid-core` | `query` → `rows`; host FilterBuilder/SavedViews toolkit kept |
+| `tree` | `@texuli/data/tree-view` | `query` → `items`; OutlineEditor stays host-only |
+| `map` | `@texuli/data/map` `MapView` | markers/select; routes/fences not on Texuli MapView |
+| `files` | `@texuli/data/files` `FileBrowser` | `query` → `entries` |
+| `activity` | `@texuli/data/activity` | `query` → `items`; CommentThread stays host-only |
+| `virtual-list` | `@texuli/data/virtual-list` | pure re-export |
+
+Replaced Protoyard rendering for those surfaces was deleted. Host-only kits
+remain: editor, notifications, settings, states, commands, scenarios,
+CommentThread, OutlineEditor, and grid filter/saved-view chrome.
+
