@@ -7,6 +7,7 @@ import {
   defineProtoyardConfig,
   devFsAllow,
   envFlag,
+  isEagerModule,
   linkedPackageRoots,
   resolveProtoyardSettings,
   TEXULI_CSS_GROUP,
@@ -251,5 +252,44 @@ describe('Texuli CSS chunk group', () => {
       if (previous === undefined) delete process.env.PROTOYARD_TARGET;
       else process.env.PROTOYARD_TARGET = previous;
     }
+  });
+
+  it('leaves Texuli CSS to the default split with texuliCssGroups: false', () => {
+    const root = mkdtempSync(join(tmpdir(), 'protoyard-vite-'));
+    writeFileSync(join(root, 'protoyard.json'), JSON.stringify(manifest));
+    const env = {
+      command: 'build',
+      mode: 'production',
+      isSsrBuild: false,
+      isPreview: false,
+    } as const;
+    const output = defineProtoyardConfig({ root, texuliCssGroups: false })(env).build
+      ?.rolldownOptions?.output as { codeSplitting?: { groups?: unknown[] } } | undefined;
+    expect(output?.codeSplitting?.groups ?? []).not.toContain(TEXULI_CSS_GROUP);
+  });
+
+  it('puts eager Texuli CSS in texuli-css and lazy family CSS in texuli-lazy-css', () => {
+    // entry -> shell.svelte -> shell style (eager); entry -> import() -> family.svelte
+    // -> family style (lazy); orphan has no importer at all.
+    const modules: Record<string, { isEntry: boolean; importers: string[] }> = {
+      entry: { isEntry: true, importers: [] },
+      'shell.svelte': { isEntry: false, importers: ['entry'] },
+      'shell.svelte?svelte&type=style&lang.css': { isEntry: false, importers: ['shell.svelte'] },
+      'family.svelte': { isEntry: false, importers: [] },
+      'family.svelte?svelte&type=style&lang.css': { isEntry: false, importers: ['family.svelte'] },
+      'cycle-a.css': { isEntry: false, importers: ['cycle-b.css'] },
+      'cycle-b.css': { isEntry: false, importers: ['cycle-a.css'] },
+    };
+    const graph = { getModuleInfo: (id: string) => modules[id] ?? null };
+    expect(isEagerModule('shell.svelte?svelte&type=style&lang.css', graph)).toBe(true);
+    expect(isEagerModule('family.svelte?svelte&type=style&lang.css', graph)).toBe(false);
+    expect(isEagerModule('cycle-a.css', graph)).toBe(false);
+    expect(isEagerModule('missing.css', graph)).toBe(false);
+    expect(TEXULI_CSS_GROUP.name('shell.svelte?svelte&type=style&lang.css', graph)).toBe(
+      'texuli-css'
+    );
+    expect(TEXULI_CSS_GROUP.name('family.svelte?svelte&type=style&lang.css', graph)).toBe(
+      'texuli-lazy-css'
+    );
   });
 });

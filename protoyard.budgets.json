@@ -10,17 +10,40 @@
     "quickReadyMs": 5000
   },
   "overrides": {
+    "atlas-workspace-demo": {
+      "cssGzipKb": 34.6,
+      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
+    },
+    "cadence-studio-demo": {
+      "cssGzipKb": 43.1,
+      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
+    },
     "create-anything-deck": {
-      "cssGzipKb": 46.5
+      "cssGzipKb": 58.6,
+      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
+    },
+    "harbor-dispatch-demo": {
+      "cssGzipKb": 43.1,
+      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
+    },
+    "helpdesk-demo": {
+      "cssGzipKb": 42.6,
+      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
     },
     "keel-projects-demo": {
-      "cssGzipKb": 34
+      "cssGzipKb": 43.4,
+      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
     },
     "player": {
       "cssGzipKb": 36
     },
+    "pulse-revenue-demo": {
+      "cssGzipKb": 43.1,
+      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
+    },
     "ui-kit": {
-      "cssGzipKb": 36
+      "cssGzipKb": 42.6,
+      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
     }
   },
   "kinds": {
