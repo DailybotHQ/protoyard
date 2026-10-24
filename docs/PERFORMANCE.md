@@ -366,8 +366,11 @@ an open follow-up; the overrides record the measured size, not a target.
   texuli's host, catalog and host CSS next to Protoyard's catalog (for the
   `docs` width rule), plus the `data-py-layout` mirror.
 - Every layout stays its own lazy chunk.
-- **pages-ui:** page and doc initial CSS caps are now 22.5 KB each (measured
-  22,115 B and 22,374 B), for texuli's component and layout CSS.
+- **pages-ui:** the page and doc CSS caps (all emitted stylesheets) are
+  25,454 B and 25,714 B, measured 24,242 B and 24,490 B gzip (2026-10-24)
+  plus 5%. The default stays 20 KB. Texuli component CSS (~23 KB gz) replaces
+  the former UI CSS; the eager/lazy split was measured (the first screen loads
+  only the entry stylesheet, 4,166 B and 4,414 B); a CSS diet is a follow-up.
 Budgets stay out of `protoyard.json` so performance targets can evolve
 without changing the strict prototype manifest contract.
 
@@ -1353,9 +1356,12 @@ then measures the entry's static imports and all emitted CSS with gzip level 9.
 The initial graph measured **80,887 B JS gzip** and all emitted CSS measured
 **2,882 B gzip** (2026-10-22), under the ceilings of 120 KB JS and 20 KB CSS.
 Since the block families and charts render with Texuli, all emitted CSS
-measures **21,545 B gzip** (2026-10-24): each family's stylesheet sits in its
-own lazy chunk and nothing joined the first screen. This entry's CSS ceiling
-is 22,600 B (the measured number + 5 %), an override for this entry only. The paired hygiene test checks the built
+measures **23,663 B gzip** (re-measured 2026-10-24 against Texuli `dev`):
+each family's stylesheet sits in its own lazy chunk, the first screen loads one
+1,025 B stylesheet, and the same CSS joined into one file would gzip to
+15,010 B. This entry's CSS ceiling is 24,846 B (the measured number + 5 %), an
+override for this entry only; the 20 KB default is unchanged. A CSS diet is a
+follow-up. The paired hygiene test checks the built
 static graph for CRUD, Faker, the player and worker, syntax highlighting, and
 chart-family code. Layout families load on demand. Presenter and studio remain
 separate package subpaths and do not enter the app graph; the overview DOM is
