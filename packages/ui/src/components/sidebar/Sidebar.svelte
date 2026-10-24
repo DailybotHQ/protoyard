@@ -1,10 +1,10 @@
 <script lang="ts">
 import { PanelLeftClose, PanelLeftOpen } from '@lucide/svelte';
 import type { Snippet } from 'svelte';
+import { Tooltip } from 'texuli/tooltip';
 import { cn } from '../../lib/cn.ts';
 import { anchorProps } from '../../lib/props.ts';
 import { isInDrawer } from '../app-shell/context.ts';
-import Tooltip from '../tooltip/Tooltip.svelte';
 import type { SidebarItem, SidebarSection } from './types.ts';
 
 interface Props {

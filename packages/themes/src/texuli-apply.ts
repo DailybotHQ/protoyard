@@ -1,4 +1,4 @@
-import { applyTheme } from '@texuli/tokens';
+import { applyTheme } from '@texuli/tokens/css';
 import { type AppearanceInput, densityScale, setTexuliAppearanceWriter } from './apply.ts';
 import { toTexuliTheme } from './texuli.ts';
 

@@ -1,8 +1,8 @@
 <script lang="ts">
 import { Filter, X } from '@lucide/svelte';
+import { buttonVariants } from 'texuli/button';
+import { Checkbox } from 'texuli/choice';
 import { cn } from '../../lib/cn.ts';
-import { buttonVariants } from '../button/button-variants.ts';
-import Checkbox from '../checkbox/Checkbox.svelte';
 import Input from '../input/Input.svelte';
 import Popover from '../popover/Popover.svelte';
 import Select from '../select/Select.svelte';

@@ -1,8 +1,8 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import { Badge } from 'texuli/badge';
+import { Button } from 'texuli/button';
 import { cn } from '../lib/cn.ts';
-import Badge from './badge/Badge.svelte';
-import Button from './button/Button.svelte';
 import EmptyState from './empty-state/EmptyState.svelte';
 
 /**
