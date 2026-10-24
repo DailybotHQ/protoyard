@@ -73,7 +73,9 @@ describe('categorical chart block paths', () => {
     const { container } = render(ChartBlock, { block: bar });
     await waitFor(() => {
       expect(
-        container.querySelector('svg, [data-tx-block="chart"], [data-py-block="chart"], [data-bar]')
+        container.querySelector(
+          'svg, [data-tx-block="chart"], [data-py-block="chart"], svg rect[data-series]'
+        )
       ).toBeTruthy();
     });
   });
@@ -95,7 +97,8 @@ describe('categorical chart block paths', () => {
 
     await fireEvent.click(await screen.findByRole('button', { name: 'bar' }));
     await waitFor(() => {
-      const bar = document.querySelector<SVGRectElement>('[data-bar]');
+      // Texuli bar marks use data-series on rects.
+      const bar = document.querySelector<SVGRectElement>('svg rect[data-series]');
       expect(bar).toBeTruthy();
       expect(Number(bar?.getAttribute('width'))).toBeGreaterThan(0);
       expect(Number(bar?.getAttribute('height'))).toBeGreaterThan(0);

@@ -40,7 +40,7 @@ test('deck chart blocks draw categorical paths when their canvas scales and cont
   await expectPaths(chart.locator('[data-line], [data-series] path, path[data-line]'));
   // Area/line may share path marks; accept any series geometry once loaded.
   await expect
-    .poll(async () => chart.locator('svg path, svg rect[data-bar], [data-bar]').count())
+    .poll(async () => chart.locator('svg path, svg rect[data-series]').count())
     .toBeGreaterThan(0);
   await page.screenshot({ path: 'tmp/blocks-chart-scaled.png', fullPage: true });
 
@@ -55,7 +55,8 @@ test('deck chart blocks draw categorical paths when their canvas scales and cont
   await controls.getByRole('button', { name: 'area', exact: true }).click();
   await expectPaths(controls.locator('[data-series] path:not([data-line])'));
   await controls.getByRole('button', { name: 'bar', exact: true }).click();
-  const bar = controls.locator('[data-bar]').first();
+  // Texuli bar marks: rect[data-series] (no data-bar polyfill).
+  const bar = controls.locator('svg rect[data-series]').first();
   await expect(bar).toBeVisible();
   await expect
     .poll(() => bar.getAttribute('height').then((height) => Number(height)))
