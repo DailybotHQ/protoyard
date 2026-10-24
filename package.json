@@ -31,6 +31,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium",
+    "test:perf": "PROTOYARD_PERF=1 vitest run --no-file-parallelism packages/blocks/tests/code-tokenizer.test.ts",
     "bench:index": "tsx scripts/bench-index.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "visual:sweep": "tsx scripts/visual-sweep.ts",
