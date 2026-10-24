@@ -9,10 +9,23 @@ type Props = {
   description?: string;
   height?: number;
   showLast?: boolean;
+  variant?: 'line' | 'area' | 'bar';
+  period?: string;
+  format?: (value: number) => string;
   [key: string]: unknown;
 };
 
-let { values, data, label = 'Trend', description, height = 32, showLast = false }: Props = $props();
+let {
+  values,
+  data,
+  label = 'Trend',
+  description,
+  height = 32,
+  showLast = false,
+  variant,
+  period,
+  format,
+}: Props = $props();
 const series = $derived(values ?? data ?? []);
 </script>
 
@@ -22,5 +35,14 @@ const series = $derived(values ?? data ?? []);
   axe aria-hidden-focus (WCAG). The sparkline carries its own accessible name.
 -->
 <div data-py-chart="" data-py-sparkline="">
-  <TexuliSparkline values={series} {label} {description} {height} {showLast} />
+  <TexuliSparkline
+    values={series}
+    {label}
+    {description}
+    {height}
+    {showLast}
+    {variant}
+    {period}
+    {format}
+  />
 </div>

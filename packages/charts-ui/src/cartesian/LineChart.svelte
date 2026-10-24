@@ -11,7 +11,12 @@ type Props = {
   emptyMessage?: string;
   area?: boolean;
   class?: string;
-  onselect?: (selection: unknown) => void;
+  onselect?: (selection: {
+    seriesId: string;
+    index: number;
+    x: number | string;
+    y: number | null;
+  }) => void;
   [key: string]: unknown;
 };
 
