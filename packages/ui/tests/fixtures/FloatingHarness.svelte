@@ -1,11 +1,10 @@
 <script lang="ts">
-import Button from '../../src/components/button/Button.svelte';
 import Combobox from '../../src/components/combobox/Combobox.svelte';
 import DropdownMenu from '../../src/components/dropdown-menu/DropdownMenu.svelte';
 import { matchesTimeZone } from '../../src/components/form/scheduling/timezones.ts';
 import Popover from '../../src/components/popover/Popover.svelte';
-import Tooltip from '../../src/components/tooltip/Tooltip.svelte';
 import UserPicker from '../../src/components/user-picker/UserPicker.svelte';
+import { Button, Tooltip } from '../../src/index.ts';
 
 interface Props {
   onSelected?: (label: string) => void;

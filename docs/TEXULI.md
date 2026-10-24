@@ -6,10 +6,11 @@ Texuli is **linked**, not copied or installed from a registry, and Protoyard
 stays green.
 
 **Status:** this is the local `texuli-adoption` branch. It is not on `main`
-and has not been pushed. Themes come from `@texuli/tokens`, and the simple,
+and has not been pushed. Themes come from `@texuli/tokens`; the simple,
 floating and dialog-family `@protoyard/ui` controls run on
-`@texuli/primitives` (below). Later adoption tasks move packages over one at
-a time.
+`@texuli/primitives`; and the generic styled components are re-exported
+from `texuli` (below). Later adoption tasks move packages over one at a
+time.
 
 ## How it is linked
 
@@ -203,6 +204,71 @@ These components also keep their props and classes:
   containment in a device screen, and Escape on an alert. The overlay and
   adaptive-overlay suites cover the stack, nesting, focus return and
   outside presses.
+
+## Generic styled components come from `texuli`
+
+`@protoyard/ui` re-exports these from Texuli's styled `texuli` package, and its
+own copies are gone. Import them from `@protoyard/ui` as before:
+
+| `@protoyard/ui` export | From |
+| --- | --- |
+| `Button`, `buttonVariants`, `ButtonVariant`, `ButtonSize` (`ButtonProps` is `ComponentProps<typeof Button>`) | `texuli/button` |
+| `Badge`, `BadgeVariant`, `badgeVariants` (Texuli's `badgeClass`) | `texuli/badge` |
+| `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`, `CardGrid` | `texuli/card` |
+| `Checkbox`, `Switch`, `RadioGroup`, `RadioGroupItem` (Texuli's `Radio`), `RadioOption` | `texuli/choice` |
+| `Label` | `texuli/field` |
+| `Textarea` | `texuli/input` |
+| `Accordion`, `AccordionItem` (Texuli's `AccordionItemDef`) | `texuli/tabs-accordion` |
+| `Tooltip` | `texuli/tooltip` |
+| `Separator` | `texuli/separator-aspect` |
+| `Progress`, `Skeleton` | `texuli/feedback` |
+| `Kbd` | `texuli/kbd-code` |
+| `ErrorState` | `texuli/empty` |
+| `Stepper`, `StepperStep`, `Wizard` | `texuli/stepper` |
+| `Carousel`, `CarouselItem` | `texuli/carousel` |
+| `Breadcrumb`, `BreadcrumbItem` | `texuli/navigation` |
+
+- **Their look is Texuli's.** Each component imports its own stylesheet
+  (`tx-*` classes in `@layer tx.components`), colored by the `--tx-*`
+  variables.
+  - The renderer calls `enableTexuliAppearance()` in `bindAppearance`, so
+    every appearance write sets `--tx-*` next to `--py-*`. They have the same
+    values, and the no-flash cache replays both.
+  - `@protoyard/themes/texuli` now imports `@texuli/tokens/css` and
+    `@texuli/tokens/contract`, not the package root, so the theme library
+    never enters the initial chunk.
+- **Stylesheet imports type-check** through `packages/ui/src/css.d.ts`. The
+  barrel references it, and a package that imports `@protoyard/ui` sources
+  by path adds it to its `tsconfig` `include` (`devtools` does).
+- **`@protoyard/ui` keeps:**
+  - the prototype pieces: frames and shells, `ScenarioSwitcher`, the
+    honesty tags, actors and layouts;
+  - its overlay stack and undo toaster;
+  - the components in the follow-up list below, as wrappers on
+    `@texuli/primitives`.
+
+### Follow-ups: components that stay Protoyard wrappers
+
+Their APIs differ from Texuli's styled components. Each needs a Texuli
+change, a Protoyard wrapper, or both, before it can be re-exported:
+
+| Component | Gap | Proposed change |
+| --- | --- | --- |
+| `Select` (73 importers), `Combobox` | One component with `items` and `placeholder` versus compound parts | A Texuli items-driven `Select` and `Combobox` (or a thin Protoyard wrapper over the styled parts) |
+| `DropdownMenu` | `items[]` with `trigger` versus compound menu parts | An items-driven `DropdownMenu` in Texuli |
+| `Popover` | One component with a `trigger` snippet versus Root, Trigger and Content | A one-piece styled `Popover` in Texuli |
+| `Dialog`, `AlertDialog`, `Drawer`, `DetailPanel`, `BottomSheet` | Protoyard's overlay `stack` (nesting order, dismissible layers, focus return) and device-frame containment | Texuli's layer stack covers nesting; drop `stack` once Protoyard's overlays need only it |
+| `Tabs` | Variant names (`segmented`/`underline` versus `line`/`pills`/`enclosed`), item `icon` | Map the variants in a wrapper; Texuli `TabItem.icon` |
+| `Input` | `value` binds numbers too; Texuli's is a string | Texuli `Input` with number binding for `type="number"` |
+| `FormField` (75 importers) | One-piece field with label, hint and error versus compound `Field` | A one-piece `FormField` over Texuli's `Field` parts |
+| `EmptyState`, `Notice`, `StatCard`, `Sidebar` | An `icon` component prop versus a snippet | Accept an icon component in Texuli, or wrap |
+| `Avatar` | `srcset` | Texuli `Avatar` `srcset` |
+| `Spinner` | Numeric `size` versus `sm`/`md`/`lg` | Map in a wrapper |
+| `Pagination`, `NumberStepper`, `OtpInput`, `StarRating`, `ChipGroup`, `FileDropzone`, `TagEmailInput` | Different props or compound parts | One wrapper each, or Texuli one-piece variants |
+| `Calendar`, `DatePicker`, `DateRangePicker` | `IsoDate` strings and `min`/`max` versus `CalendarDate` and `minValue`/`maxValue`; Texuli requires `label` | A date adapter in a wrapper |
+| `CommandPalette` | Inline palette versus Texuli's modal palette | Keep Protoyard's, or a Texuli inline mode |
+| `Toaster` and `toast` (39 importers) | A different toast store singleton | Move every `toast` import with the `Toaster` |
+| `DataTable` | No Texuli counterpart (Texuli has table markup only) | Keep Protoyard's on Texuli table parts later |
 
 ## The dev server
 

@@ -355,7 +355,17 @@ export function resolveProtoyardSettings(
   };
 }
 
-/** Injects the no-flash appearance script and prototype metadata into index.html. */
+/**
+ * The cascade layer order, declared before any stylesheet: Texuli's component
+ * layers sit above Tailwind's base (its reset) and below Tailwind's
+ * utilities, so a component keeps its own styles and a utility class on it
+ * still wins. Layer order is fixed by first appearance, so this must come
+ * first in the document.
+ */
+export const CASCADE_LAYER_ORDER =
+  '@layer theme, base, tx.base, tx.components, components, utilities;';
+
+/** Injects the layer order, the no-flash appearance script and prototype metadata into index.html. */
 function protoyardHtml(manifest: PrototypeManifest, namespace: string): Plugin {
   return {
     name: 'protoyard:html',
@@ -373,6 +383,7 @@ function protoyardHtml(manifest: PrototypeManifest, namespace: string): Plugin {
             children: noFlashScript(namespace),
             injectTo: 'head-prepend',
           },
+          { tag: 'style', children: CASCADE_LAYER_ORDER, injectTo: 'head-prepend' },
         ];
       },
     },

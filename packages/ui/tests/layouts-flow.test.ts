@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
+import type { StepperStep } from 'texuli/stepper';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { StepperStep } from '../src/components/stepper/types.ts';
 import AuthSplitLayout from '../src/layouts/AuthSplitLayout.svelte';
 import MarketingLayout from '../src/layouts/MarketingLayout.svelte';
 import WizardLayout from '../src/layouts/WizardLayout.svelte';

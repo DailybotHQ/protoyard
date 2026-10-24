@@ -251,7 +251,34 @@ For one prototype, set only the values that differ:
 }
 ```
 
-The root file contains these defaults with an empty `overrides` object.
+The root file contains these defaults. The defaults stay unchanged, and the
+`overrides` object carries the per-entry CSS budgets below.
+
+**CSS overrides for Texuli's component styles (T-adopt-ui-styled).**
+- **Why:** `@protoyard/ui` re-exports Texuli's styled components (see
+  [TEXULI.md](TEXULI.md)). Their stylesheets add to Protoyard's Tailwind CSS.
+  The player build carries about 10 KB gzip of `tx-*` rules, in per-component
+  chunks.
+- **Shrinking first:** the Tailwind side already dropped what only the
+  deleted components used (the collapse, skeleton shimmer and indeterminate
+  progress rules).
+- **Each override** is the measured all-CSS gzip size plus at most 5%. Its
+  reason: *Texuli component CSS on top of Tailwind; tighten after Texuli's
+  FIX-texuli-css-size.*
+
+| Entry | Measured (KB gzip) | Budget |
+| --- | ---: | ---: |
+| `player` (the app entry, `index.html`) | 40.0 | 41.5 |
+| kind `deck` (`deck.html`) | 34.9 | 36.5 |
+| kind `page` (`page.html`) | 34.1 | 35.5 |
+| kind `doc` (`doc.html`) | 34.1 | 35.5 |
+| `create-anything-deck` | 40.40 | 42 |
+| `keel-projects-demo` | 35.11 | 36.5 |
+| `ui-kit` | 34.66 | 36 |
+| `helpdesk-demo` | 30.56 | 32 |
+| `cadence-studio-demo`, `harbor-dispatch-demo`, `pulse-revenue-demo` | 30.52 | 32 |
+
+Every other prototype stays inside the 30 KB default.
 Budgets stay out of `protoyard.json` so performance targets can evolve
 without changing the strict prototype manifest contract.
 

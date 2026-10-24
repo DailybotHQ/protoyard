@@ -4,6 +4,8 @@
  *   @import '@protoyard/renderer-svelte/app.css';
  *   @source './';
  */
+/* Texuli's component layers sit between Tailwind's base and its utilities (see CASCADE_LAYER_ORDER). */
+@layer theme, base, tx.base, tx.components, components, utilities;
 @import "tailwindcss";
 @import "@protoyard/themes/base.css";
 @import "@protoyard/ui/styles.css";

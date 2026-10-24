@@ -1,38 +1,25 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buttonVariants } from '../src/components/button/button-variants.ts';
+import { buttonVariants } from '../src/index.ts';
 import ButtonHarness from './fixtures/ButtonHarness.svelte';
 
 afterEach(() => cleanup());
 
 describe('Button', () => {
-  it('renders each variant with its token classes', () => {
-    const expectations = {
-      default: 'bg-primary',
-      secondary: 'bg-secondary',
-      outline: 'border-input',
-      ghost: 'hover:bg-muted',
-      destructive: 'bg-destructive',
-      link: 'underline-offset-4',
-    } as const;
-    for (const [variant, token] of Object.entries(expectations)) {
-      const { unmount } = render(ButtonHarness, {
-        variant: variant as keyof typeof expectations,
-        label: variant,
-      });
-      const button = screen.getByRole('button', { name: variant });
-      expect(button.className).toContain(token);
+  it('renders each variant and size with its class, and keeps custom classes', () => {
+    const variants = ['default', 'secondary', 'outline', 'ghost', 'destructive', 'link'] as const;
+    for (const variant of variants) {
+      const { unmount } = render(ButtonHarness, { variant, label: variant });
+      expect(screen.getByRole('button', { name: variant }).className).toContain(
+        `tx-button--${variant}`
+      );
       unmount();
     }
-  });
-
-  it('applies size classes and merges custom classes', () => {
-    render(ButtonHarness, { size: 'lg', class: 'w-full px-10' });
+    render(ButtonHarness, { size: 'lg', class: 'w-full' });
     const button = screen.getByRole('button', { name: 'Save' });
-    expect(button.className).toContain('h-11');
-    expect(button.className).toContain('px-10');
-    expect(button.className).not.toContain('px-6');
-    expect(buttonVariants({ size: 'icon' })).toContain('size-9');
+    expect(button.className).toContain('tx-button--lg');
+    expect(button.className).toContain('w-full');
+    expect(buttonVariants({ size: 'icon' })).toContain('tx-button--icon');
   });
 
   it('fires click handlers', async () => {
@@ -48,7 +35,7 @@ describe('Button', () => {
     const button = screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
     expect(button.getAttribute('aria-busy')).toBe('true');
-    expect(button.querySelector('svg')).not.toBeNull();
+    expect(button.querySelector('[data-tx-button-spinner]')).not.toBeNull();
     await fireEvent.click(button);
     expect(onclick).not.toHaveBeenCalled();
   });
@@ -90,14 +77,14 @@ describe('Button pending feedback', () => {
     await fireEvent.click(button);
     expect(button.getAttribute('aria-busy')).toBe('true');
     expect(button.disabled).toBe(true);
-    expect(button.querySelector('[data-ui-button-spinner] svg')).not.toBeNull();
+    expect(button.querySelector('[data-tx-button-spinner]')).not.toBeNull();
     await fireEvent.click(button);
     expect(onclick).toHaveBeenCalledTimes(1);
     work.resolve();
     await settle();
     expect(button.hasAttribute('aria-busy')).toBe(false);
     expect(button.disabled).toBe(false);
-    expect(button.querySelector('[data-ui-button-spinner]')).toBeNull();
+    expect(button.querySelector('[data-tx-button-spinner]')).toBeNull();
   });
 
   it('clears loading after a rejected promise too', async () => {
@@ -115,8 +102,9 @@ describe('Button pending feedback', () => {
     render(ButtonHarness, { loading: true, loadingLabel: 'Saving' });
     const button = screen.getByRole('button', { name: /Save/ });
     const label = [...button.querySelectorAll('span')].find((s) => s.textContent === 'Save');
-    expect(label?.className).toContain('opacity-0');
-    expect(button.querySelector('[data-ui-button-spinner]')?.className).toContain('absolute');
+    // The label stays in the layout, hidden, under the spinner.
+    expect(label?.className).toContain('tx-button__label--hidden');
+    expect(button.querySelector('[data-tx-button-spinner]')).not.toBeNull();
   });
 
   it('autoLoading={false} opts out', async () => {
@@ -135,7 +123,7 @@ describe('Button pending feedback', () => {
     const button = screen.getByRole('button', { name: 'Delete' }) as HTMLButtonElement;
     await fireEvent.click(button);
     expect(button.getAttribute('aria-busy')).toBe('true');
-    expect(button.querySelector('[data-ui-button-spinner]')).not.toBeNull();
+    expect(button.querySelector('[data-tx-button-spinner]')).not.toBeNull();
     work.resolve();
     await settle();
     expect(button.hasAttribute('aria-busy')).toBe(false);

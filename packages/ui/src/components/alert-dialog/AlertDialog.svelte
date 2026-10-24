@@ -2,11 +2,11 @@
 import { TriangleAlert } from '@lucide/svelte';
 import * as AlertDialogPrimitive from '@texuli/primitives/alert-dialog';
 import type { Snippet } from 'svelte';
+import { Button } from 'texuli/button';
 import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
-import Button from '../button/Button.svelte';
 import { overlayDismissHandler } from '../overlay/dismiss.ts';
 import { type OverlayStack, overlayStack } from '../overlay/overlay-stack.ts';
 import { useOverlayLayer } from '../overlay/use-overlay-layer.svelte.ts';

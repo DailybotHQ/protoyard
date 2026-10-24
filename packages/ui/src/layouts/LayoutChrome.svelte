@@ -5,7 +5,7 @@ export type ChromePart = 'skip' | 'brand' | 'actions' | 'user';
 
 <script lang="ts">
 import Avatar from '../components/avatar/Avatar.svelte';
-import Button from '../components/button/Button.svelte';
+import { Button } from 'texuli/button';
 import { cn } from '../lib/cn.ts';
 import NavIcon from './NavIcon.svelte';
 import type { NavModel } from './nav-model.ts';

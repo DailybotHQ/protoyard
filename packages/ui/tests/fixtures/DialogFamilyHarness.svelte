@@ -1,7 +1,7 @@
 <script lang="ts">
-import Button from '../../src/components/button/Button.svelte';
 import Dialog from '../../src/components/dialog/Dialog.svelte';
 import UndoToaster from '../../src/components/toast/UndoToaster.svelte';
+import { Button } from '../../src/index.ts';
 
 interface Props {
   /** Mount the dialog already open (as a lazily loaded dialog is). */

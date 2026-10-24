@@ -2,8 +2,8 @@
 import { FileUp, X } from '@lucide/svelte';
 import type { Snippet } from 'svelte';
 import { onDestroy } from 'svelte';
+import { Progress } from 'texuli/feedback';
 import { cn } from '../../lib/cn.ts';
-import Progress from '../progress/Progress.svelte';
 import { formatBytes, validateFiles } from './accept.ts';
 import type { DropzoneFile, DropzoneReject } from './types.ts';
 

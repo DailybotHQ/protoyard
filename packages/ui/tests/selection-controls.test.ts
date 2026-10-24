@@ -2,8 +2,8 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/sve
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ChipGroup from '../src/components/ChipGroup.svelte';
 import NumberStepper from '../src/components/NumberStepper.svelte';
-import RadioGroup from '../src/components/radio-group/RadioGroup.svelte';
 import StarRating from '../src/components/StarRating.svelte';
+import { RadioGroup } from '../src/index.ts';
 
 afterEach(() => cleanup());
 
@@ -127,9 +127,8 @@ describe('RadioGroup card variant', () => {
     expect(group.getAttribute('data-variant')).toBe('card');
     expect(screen.getByText('For individuals')).toBeTruthy();
     expect(screen.getByText('For small teams')).toBeTruthy();
-    const cards = group.querySelectorAll('label');
-    expect(cards.length).toBe(2);
-    expect(cards[0]?.className).toMatch(/rounded-xl/);
+    // Each card is a label: pressing anywhere on it selects its radio.
+    expect(group.querySelectorAll('label').length).toBe(2);
     const teamRadio = screen.getByRole('radio', { name: /Team/i });
     await fireEvent.click(teamRadio);
     expect(

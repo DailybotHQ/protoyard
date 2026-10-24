@@ -1,5 +1,5 @@
 <script lang="ts">
-import Wizard from '../../src/components/wizard/Wizard.svelte';
+import { Wizard } from 'texuli/stepper';
 
 let { onFinish }: { onFinish?: () => void } = $props();
 let name = $state('');

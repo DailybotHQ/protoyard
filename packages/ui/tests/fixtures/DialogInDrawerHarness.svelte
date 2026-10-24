@@ -1,8 +1,8 @@
 <script lang="ts">
-import Button from '../../src/components/button/Button.svelte';
 import Dialog from '../../src/components/dialog/Dialog.svelte';
 import Drawer from '../../src/components/overlay/Drawer.svelte';
 import UndoToaster from '../../src/components/toast/UndoToaster.svelte';
+import { Button } from '../../src/index.ts';
 
 let drawerOpen = $state(false);
 let dialogOpen = $state(false);

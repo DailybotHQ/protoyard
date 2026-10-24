@@ -1,8 +1,8 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import { Button } from 'texuli/button';
 import { cn } from '../../lib/cn.ts';
 import type { IconComponent } from '../../lib/types.ts';
-import Button from '../button/Button.svelte';
 import { NOTICE_DEFAULT_ICONS, NOTICE_TONE_CLASSES, type NoticeTone } from './tones.ts';
 
 /**
