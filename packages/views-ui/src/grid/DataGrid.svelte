@@ -2,11 +2,13 @@
 /**
  * Host adapter over `@texuli/data/grid-core` `DataGrid`: liveQuery `query` → rows.
  * Extra host props (saved views, aggregates, height, label) are accepted for
- * prototype compatibility; advanced chrome still uses the local toolkit exports.
+ * prototype compatibility; row/callback generics stay intact (no unknown erasure).
  */
+import type { GridValue, SavedView } from '@protoyard/views/grid';
 import { type DataGridColumn, DataGrid as TexuliGrid } from '@texuli/data/grid-core';
 import type { Snippet } from 'svelte';
 import QueryState from '../states/QueryState.svelte';
+import type { GridViewState } from './model.ts';
 
 let {
   query,
@@ -41,10 +43,9 @@ let {
   maxBlockSize,
   density = 'default',
   locale = 'en-US',
-  ..._rest
 }: {
   query: { readonly current: T[] | undefined; readonly loading: boolean; readonly error: unknown };
-  columns: readonly DataGridColumn<T>[] | readonly unknown[];
+  columns: readonly DataGridColumn<T>[];
   getRowId: (row: T) => string;
   caption?: string;
   label?: string;
@@ -56,7 +57,7 @@ let {
   selectable?: boolean;
   selected?: string[];
   activeViewId?: string | null;
-  savedViews?: unknown;
+  savedViews?: readonly SavedView[] | unknown;
   aggregates?: unknown;
   height?: string;
   class?: string;
@@ -64,25 +65,24 @@ let {
   onSortChange?: (sort: { key: string; direction: 'asc' | 'desc' }[]) => void;
   onRowActivate?: (row: T) => void;
   onRowOpen?: (row: T) => void;
-  onCommit?: (row: T, key: string, value: any) => unknown;
-  onCreateView?: (...args: any[]) => unknown;
-  onRenameView?: (...args: any[]) => unknown;
-  onDeleteView?: (...args: any[]) => unknown;
-  onViewChange?: (...args: any[]) => unknown;
+  onCommit?: (row: T, key: string, value: GridValue) => unknown;
+  onCreateView?: (name: string, view: GridViewState | unknown) => unknown;
+  onRenameView?: (view: SavedView, name: string) => unknown;
+  onDeleteView?: (view: SavedView) => unknown;
+  onViewChange?: (view: GridViewState | unknown) => unknown;
   cell?: Snippet<[T, DataGridColumn<T>]>;
   empty?: Snippet;
-  onRetry?: () => void | Promise<void>;
+  onRetry?: () => unknown;
   maxBlockSize?: string;
   density?: 'compact' | 'default' | 'comfortable';
   locale?: string;
-  [key: string]: unknown;
 } = $props();
 
 const resolvedCaption = $derived(caption ?? label);
 void activeViewId;
 </script>
 
-<QueryState {query} label={`Loading ${resolvedCaption.toLowerCase()}`} {onRetry} isEmpty={() => false}>
+<QueryState {query} label={`Loading ${resolvedCaption.toLowerCase()}`} onRetry={onRetry ? () => { void onRetry(); } : undefined} isEmpty={() => false}>
   {#snippet children(rows)}
     <TexuliGrid
       {rows}

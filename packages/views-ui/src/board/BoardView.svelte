@@ -40,7 +40,7 @@ let {
   onMove: (move: BoardMove, item: T) => unknown;
   onOpen?: (item: T) => void;
   canMove?: MoveRules<T>['canMove'];
-  onRetry?: () => void | Promise<void>;
+  onRetry?: () => unknown;
   label?: string;
   emptyColumnText?: string;
   class?: string;
@@ -55,7 +55,7 @@ async function persist(move: BoardMove, item: T): Promise<void> {
   <QueryState
     {query}
     label={`Loading ${label.toLowerCase()}`}
-    {onRetry}
+    onRetry={onRetry ? () => { void onRetry(); } : undefined}
     emptyTitle={`No ${label.toLowerCase()} yet`}
     isEmpty={() => false}
   >

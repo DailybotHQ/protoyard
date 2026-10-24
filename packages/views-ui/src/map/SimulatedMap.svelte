@@ -1,31 +1,45 @@
 <script lang="ts">
 /**
  * Host adapter over `@texuli/data/map` `MapView`.
- * Markers + select are the shared surface; routes/fences remain a documented gap.
+ * Markers + select are the shared surface. Host props for routes, fences,
+ * basemap, listLabel, and pick mode are accepted for prototype compatibility.
  */
 import MapView from '../../../../node_modules/@texuli/data/src/map/MapView.svelte';
-import type { MapMarker, MapRoute } from './model.ts';
+import type { LngLat, MapMarker, MapRoute } from './model.ts';
 
 let {
   markers = [],
   routes: _routes = [],
-  label,
+  fences: _fences = [],
+  basemap: _basemap,
   selected = $bindable<string | null>(null),
   selectedId = $bindable<string | undefined>(undefined),
+  view: _view = $bindable(undefined),
+  editableFenceId: _editableFenceId,
+  label = 'Map',
+  listLabel: _listLabel = 'Places on the map',
+  cellPx: _cellPx,
   onSelect,
-  basemap: _basemap,
+  onFenceChange: _onFenceChange,
+  onPick: _onPick,
   class: className,
-  ..._rest
 }: {
   markers?: readonly MapMarker[];
   routes?: readonly MapRoute[];
-  label?: string;
+  fences?: readonly unknown[];
+  basemap?: unknown;
   selected?: string | null;
   selectedId?: string | undefined;
-  onSelect?: (marker: MapMarker) => void;
-  basemap?: unknown;
+  view?: unknown;
+  editableFenceId?: string;
+  label?: string;
+  listLabel?: string;
+  cellPx?: number;
+  /** Host used either a marker or an id callback. */
+  onSelect?: ((marker: MapMarker) => void) | ((id: string | null) => void);
+  onFenceChange?: (fence: unknown) => unknown;
+  onPick?: (point: LngLat) => void;
   class?: string;
-  [key: string]: unknown;
 } = $props();
 
 let id = $state<string | undefined>(selectedId ?? selected ?? undefined);
@@ -39,6 +53,10 @@ $effect(() => {
   markers={markers as never}
   {label}
   bind:selectedId={id}
-  onSelect={onSelect as never}
+  onSelect={(m) => {
+    const next = m?.id ?? null;
+    id = next ?? undefined;
+    if (onSelect) (onSelect as (arg: unknown) => void)(m ?? next);
+  }}
   class={className}
 />
