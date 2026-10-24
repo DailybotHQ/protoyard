@@ -7,8 +7,10 @@ import { build } from 'vite';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   buildTarget,
+  type ChunkGraph,
   defineProtoyardConfig,
   resolveProtoyardSettings,
+  TEXULI_CSS_GROUP,
   targetBuildOptions,
 } from '../../renderer-svelte/src/vite.ts';
 import { buildEnv } from '../src/lib/vite.ts';
@@ -78,11 +80,24 @@ describe('PROTOYARD_TARGET propagation', () => {
     } as const;
     const plain = defineProtoyardConfig({ root })(configEnv);
     expect(plain.build?.cssCodeSplit).toBeUndefined();
-    // A plain build only groups Texuli's styles into one stylesheet chunk.
+    // A plain build only groups Texuli's styles: one group whose name sends eager
+    // CSS to `texuli-css` and lazy family CSS to `texuli-lazy-css`.
     const groups = (
-      plain.build?.rolldownOptions?.output as { codeSplitting?: { groups?: { name: string }[] } }
+      plain.build?.rolldownOptions?.output as {
+        codeSplitting?: { groups?: (typeof TEXULI_CSS_GROUP)[] };
+      }
     )?.codeSplitting?.groups;
-    expect(groups?.map((group) => group.name)).toEqual(['texuli-css']);
+    expect(groups).toEqual([TEXULI_CSS_GROUP]);
+    const graph: ChunkGraph = {
+      getModuleInfo: (id) =>
+        ({
+          entry: { isEntry: true, importers: [] },
+          eager: { isEntry: false, importers: ['entry'] },
+          lazy: { isEntry: false, importers: [] },
+        })[id] ?? null,
+    };
+    expect(groups?.[0]?.name('eager', graph)).toBe('texuli-css');
+    expect(groups?.[0]?.name('lazy', graph)).toBe('texuli-lazy-css');
     vi.stubEnv('PROTOYARD_TARGET', 'artifact');
     const artifact = defineProtoyardConfig({ root })(configEnv);
     expect(artifact.build?.cssCodeSplit).toBe(false);
