@@ -74,16 +74,19 @@ describe('theme chart palettes', () => {
   });
 
   it('leaves nothing for the charts kit to repair', () => {
-    const repaired: string[] = [];
+    // chartPalette is deriveChartTokens; validateChartPalette returns issues[].
+    const failures: string[] = [];
     for (const theme of themes) {
       for (const mode of MODES) {
         const palette = chartPalette(theme[mode], mode);
-        if (palette.repaired.length)
-          repaired.push(`${theme.id}/${mode}: ${palette.repaired.join(',')}`);
-        expect(validateChartPalette(palette, theme[mode]).ok, `${theme.id}/${mode}`).toBe(true);
+        const issues = validateChartPalette(palette, theme[mode], mode);
+        if (issues.length)
+          failures.push(
+            `${theme.id}/${mode}: ${issues.map((i) => `${i.kind}:${i.list}`).join(',')}`
+          );
       }
     }
-    expect(repaired).toEqual([]);
+    expect(failures).toEqual([]);
   });
 
   it('gives every generated theme a schema-valid charts block that passes in both modes', {
@@ -107,8 +110,8 @@ describe('theme chart palettes', () => {
         for (const issue of validateChartTokens(tokens, theme[mode], mode)) {
           failures.push(`${seed}/${mode}: ${issue.kind} ${issue.list} ${issue.indices.join('-')}`);
         }
-        if (chartPalette(theme[mode], mode).repaired.length)
-          failures.push(`${seed}/${mode}: kit repair`);
+        const kitIssues = validateChartPalette(chartPalette(theme[mode], mode), theme[mode], mode);
+        if (kitIssues.length) failures.push(`${seed}/${mode}: kit issues ${kitIssues.length}`);
       }
     }
     expect(failures).toEqual([]);
