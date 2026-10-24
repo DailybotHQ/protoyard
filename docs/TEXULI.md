@@ -82,8 +82,8 @@ See `packages/charts/docs/texuli-math.md` and `packages/charts-ui/docs/texuli-ch
 ## Content blocks from `@texuli/blocks`
 
 `@protoyard/blocks` re-exports code tokenization, diagram layout, limits and
-safety from `@texuli/blocks`. Zod schemas, formula (until `@texuli/blocks/formula`),
-interactive host and catalog stay adapters.
+safety from `@texuli/blocks`. Zod block schemas, interactive host and catalog stay adapters.
+Formula engine is `@texuli/blocks/formula` (Zod schemas remain adapters).
 
 `@protoyard/blocks-ui` every Texuli family renders through
 `@texuli/blocks/*/renderers` with thin shape adapters (ChartSpec→chart series,

@@ -5,7 +5,7 @@
 | Code tokenizer + grammars | `@texuli/blocks/code/tokenizer` |
 | Diagram layout | `@texuli/blocks/diagram` |
 | Limits, safety, vocabulary | `@texuli/blocks/core` |
-| Formula | Local until `@texuli/blocks/formula` lands (lane M); then switch |
+| Formula | `@texuli/blocks/formula` (+ Zod adapters in `formula/zod.ts`) |
 
 ## Adapters kept here
 
