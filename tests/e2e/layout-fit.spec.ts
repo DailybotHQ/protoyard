@@ -111,7 +111,7 @@ const FIT_TARGETS: Record<string, FitTarget> = {
     scenario: 'massive',
     hash: '#/tasks',
     layout: 'document',
-    ready: '[data-grid]',
+    ready: '[data-tx-data-grid]',
   },
 };
 

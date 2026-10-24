@@ -42,11 +42,9 @@ test('dispatch persists, map list is available, and timeline reschedules', async
 
   await openRoute(page, '/dispatch/map');
   await expectAccessible(page, info, { label: 'harbor-dispatch-map' });
-  const shipmentList = page.locator('[data-map-list]');
+  const shipmentList = page.getByRole('complementary', { name: 'Map locations' });
   await expect(shipmentList.getByRole('list')).toBeVisible();
-  await expect(
-    shipmentList.locator('[data-list-item]').filter({ hasText: 'HB-4100' })
-  ).toBeVisible();
+  await expect(shipmentList.getByRole('listitem').filter({ hasText: 'HB-4100' })).toBeVisible();
 
   await openRoute(page, '/dispatch/timeline');
   await expectAccessible(page, info, { label: 'harbor-dispatch-timeline' });
