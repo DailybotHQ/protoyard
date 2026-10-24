@@ -1,18 +1,15 @@
-import type { CodeTokenKind } from '@protoyard/blocks/code';
-
 /**
- * Theme tokens a code token kind may be drawn in. Each is a pair the theme
- * presets already hold to WCAG AA (4.5:1) as text on `surface` (the code
- * background) and on `muted` (a highlighted line); `code-contrast.test.ts`
- * checks every built-in theme in light and dark.
+ * Code token styles — roles from `@texuli/blocks/code`, with Protoyard
+ * Tailwind class names so existing contrast tests stay green. Highlight index
+ * keeps the Protoyard host-step signature (decks pass hostStep − block.step).
  */
-export type CodeColorRole =
-  | 'surfaceForeground'
-  | 'mutedForeground'
-  | 'primary'
-  | 'success'
-  | 'info'
-  | 'destructive';
+import type { CodeTokenKind } from '@protoyard/blocks/code';
+import {
+  CODE_TOKEN_STYLES as TEXULI_TOKEN_STYLES,
+  type CodeColorRole as TexuliColorRole,
+} from '@texuli/blocks/code';
+
+export type CodeColorRole = TexuliColorRole;
 
 export interface CodeTokenStyle {
   color: CodeColorRole;
@@ -29,34 +26,35 @@ const COLOR_CLASS: Record<CodeColorRole, string> = {
   destructive: 'text-destructive',
 };
 
-function style(color: CodeColorRole, extra = ''): CodeTokenStyle {
-  return { color, className: extra ? `${COLOR_CLASS[color]} ${extra}` : COLOR_CLASS[color] };
-}
+const EMPHASIS_CLASS = {
+  bold: 'font-semibold',
+  italic: 'italic',
+} as const;
 
 /** One style per token kind; keywords and tags are also bold, comments italic. */
-export const CODE_TOKEN_STYLES: Readonly<Record<CodeTokenKind, CodeTokenStyle>> = Object.freeze({
-  plain: style('surfaceForeground'),
-  punctuation: style('surfaceForeground'),
-  operator: style('surfaceForeground'),
-  variable: style('surfaceForeground'),
-  property: style('surfaceForeground'),
-  keyword: style('primary', 'font-semibold'),
-  tag: style('primary', 'font-semibold'),
-  string: style('success'),
-  attr: style('success'),
-  number: style('destructive'),
-  constant: style('destructive'),
-  function: style('info'),
-  type: style('info'),
-  comment: style('mutedForeground', 'italic'),
-});
+export const CODE_TOKEN_STYLES: Readonly<Record<CodeTokenKind, CodeTokenStyle>> = Object.freeze(
+  Object.fromEntries(
+    (Object.keys(TEXULI_TOKEN_STYLES) as CodeTokenKind[]).map((kind) => {
+      const style = TEXULI_TOKEN_STYLES[kind];
+      const extra =
+        'emphasis' in style && style.emphasis
+          ? EMPHASIS_CLASS[style.emphasis as 'bold' | 'italic']
+          : '';
+      const colorClass = COLOR_CLASS[style.color];
+      return [
+        kind,
+        {
+          color: style.color,
+          className: extra ? `${colorClass} ${extra}` : colorClass,
+        } satisfies CodeTokenStyle,
+      ];
+    })
+  ) as Record<CodeTokenKind, CodeTokenStyle>
+);
 
 /**
- * Which highlight step a code block shows. With a host step (a deck fragment
- * index), the block's own `step` is where its highlights start: step `s`
- * shows `highlights[s - blockStep]`, clamped to the first and last. Without
- * a host step (pages, docs), the first step is shown as static emphasis.
- * `-1` means no highlights.
+ * Which highlight step a block shows for a deck host step.
+ * `hostStep - blockStep`, clamped; no host step → first step; empty → none.
  */
 export function activeHighlightIndex(
   stepCount: number,

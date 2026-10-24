@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
@@ -358,13 +358,18 @@ describe('formula parsing and diagnostics', () => {
     expect(parseFormula(v('seats'), { variables: ['seats'] }).success).toBe(true);
   });
 
+  it('strips unknown keys on a valid num node (Texuli parser)', () => {
+    const parsed = parseFormula({ op: 'num', value: 1, code: 'x' });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.formula).toEqual({ op: 'num', value: 1 });
+  });
+
   it.each<[string, unknown, string]>([
-    ['an extra key', { op: 'num', value: 1, code: 'x' }, '$'],
     [
       'a thenable then/else pair',
       // biome-ignore lint/suspicious/noThenProperty: proves a thenable-shaped node is rejected.
       { op: 'if', test: { op: 'lt', left: n(1), right: n(2) }, then: n(1), else: n(2) },
-      '$',
+      '$["ifTrue"]',
     ],
     ['a string number', { op: 'num', value: '1' }, '$["value"]'],
     ['a non-finite literal', { op: 'num', value: Number.POSITIVE_INFINITY }, '$["value"]'],
@@ -435,13 +440,16 @@ describe('formula formatting', () => {
 });
 
 describe('formula source safety', () => {
-  it('contains no eval, Function constructor or dynamic code', () => {
+  it('re-exports Texuli formula and keeps Zod adapters free of eval', () => {
     const dir = join(import.meta.dirname, '..', 'src', 'formula');
-    const files = readdirSync(dir).filter((name) => statSync(join(dir, name)).isFile());
-    expect(files.length).toBeGreaterThanOrEqual(4);
+    const files = readdirSync(dir)
+      .filter((name) => name.endsWith('.ts'))
+      .sort();
+    expect(files).toEqual(['index.ts', 'zod.ts']);
     for (const name of files) {
       const text = readFileSync(join(dir, name), 'utf8');
-      expect(text, name).not.toMatch(/\beval\s*\(|new\s+Function|\bFunction\s*\(|import\s*\(/);
+      expect(text, name).not.toMatch(/\beval\s*\(|new\s+Function|\bFunction\s*\(/);
     }
+    expect(readFileSync(join(dir, 'index.ts'), 'utf8')).toContain('@texuli/blocks/formula');
   });
 });

@@ -1,18 +1,19 @@
 <script lang="ts">
-import type { Block, EmbedAppBlock } from '@protoyard/blocks';
-import EmbedApp from './EmbedApp.svelte';
+/**
+ * Embed family: Texuli EmbedBlockView. Start labels and mountEmbed from host.
+ */
+import type { Block } from '@protoyard/blocks';
+import { EmbedBlockView } from '@texuli/blocks/embed/renderers';
+import { getBlockHost } from '../host.ts';
 
-interface Props {
-  block: Block;
-}
+let { block }: { block: Block } = $props();
+const host = getBlockHost();
 
-let { block }: Props = $props();
+const labels = $derived(
+  block.type === 'embed-app' && block.startLabel ? { start: block.startLabel } : undefined
+);
 </script>
 
-{#if block.type === 'embed-app'}
-  <EmbedApp block={block as EmbedAppBlock} />
-{:else}
-  <p class="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground" role="note">
-    This embed family cannot render a {block.type} block.
-  </p>
-{/if}
+<div data-py-block-family="embed" data-tx-blocks="embed">
+  <EmbedBlockView {block} mountEmbed={host.mountEmbed} {labels} />
+</div>

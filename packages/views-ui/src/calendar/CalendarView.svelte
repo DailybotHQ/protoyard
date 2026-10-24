@@ -25,6 +25,7 @@ let {
   newId: _newId,
   onRetry,
   runtime: _runtime,
+  now: _now,
   class: className,
 }: {
   query: {
@@ -46,6 +47,7 @@ let {
   newId?: (series: any) => string;
   onRetry?: () => void | Promise<void>;
   runtime?: unknown;
+  now?: Date | string;
   class?: string;
 } = $props();
 

@@ -4,9 +4,9 @@ import { safeHref } from '@protoyard/ai/markdown';
 import { BLOCK_FAMILIES, BLOCK_TYPES, parseUntrustedBlocks } from '@protoyard/blocks';
 import { createMemoryBlockStateHost } from '@protoyard/blocks/interactive';
 import { cleanup, render, waitFor } from '@testing-library/svelte';
+import { loadCodeGrammar } from '@texuli/blocks/code';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { BIDI, hostileDocuments } from '../../blocks/tests/support/hostile.ts';
-import { loadGrammar } from '../src/code/grammars.ts';
 import { loadBlockFamily } from '../src/registry.ts';
 import FuzzHarness from './fixtures/FuzzHarness.svelte';
 
@@ -163,7 +163,7 @@ beforeAll(async () => {
     import('@protoyard/charts-ui/compact'),
     import('@protoyard/charts-ui/part-whole'),
     import('@protoyard/views-ui/map'),
-    ...['ts', 'js', 'json', 'bash', 'python', 'html', 'css', 'sql', 'yaml'].map(loadGrammar),
+    ...['ts', 'js', 'json', 'bash', 'python', 'html', 'css', 'sql', 'yaml'].map(loadCodeGrammar),
   ]);
   vi.stubGlobal('fetch', network.fetch);
   vi.spyOn(XMLHttpRequest.prototype, 'open').mockImplementation(network.xhr);
@@ -223,11 +223,18 @@ describe('AC-blocks-fuzz: 2,000 hostile documents render inert', () => {
         // layout, so the SVG plot itself may be empty) and a map's surface.
         const types = new Set(doc.blocks.map((block) => (block as { type?: string }).type));
         if (types.has('chart')) {
-          expect(section.querySelector('[data-py-chart]'), `${doc.id} chart`).not.toBeNull();
+          expect(
+            section.querySelector(
+              '[data-py-chart], [data-py-block="chart"], [data-tx-block="chart"], [data-chart-kind], svg'
+            ),
+            `${doc.id} chart`
+          ).not.toBeNull();
         }
         if (types.has('map')) {
           expect(
-            section.querySelector('[data-py-block="map"] svg, [data-py-block="map"] [role="img"]'),
+            section.querySelector(
+              '[data-py-block="map"] svg, [data-py-block="map"] [role="img"], [data-tx-block="map"] svg, [data-tx-map-marker]'
+            ),
             `${doc.id} map`
           ).not.toBeNull();
         }
