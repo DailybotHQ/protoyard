@@ -1,7 +1,5 @@
 /**
- * `@protoyard/views-ui/map` — host `SimulatedMap` (routes, fences, clusters) on
- * the `@protoyard/views/map` engine (Texuli), plus a re-export of Texuli's
- * `MapView` for the markers-only API.
+ * `@protoyard/views-ui/map` — thin SimulatedMap adapter over `@texuli/data/map`.
  */
 
 export {
@@ -16,4 +14,3 @@ export {
   routeProgress,
 } from './model.ts';
 export { default as SimulatedMap } from './SimulatedMap.svelte';
-/** Texuli map view — import from `@texuli/data/map` directly when the markers-only API is enough. */

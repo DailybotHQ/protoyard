@@ -1,12 +1,8 @@
 /**
- * `@protoyard/views-ui/activity` — `CommentThread` (threads, replies, edit and
- * delete, reactions, a composer with mentions stored as ids, pending send) and
- * `ActivityFeed` (day groups, filters, load more), on the
- * `@protoyard/views/activity` engine. Import this subpath only from a lazy
- * route screen.
+ * `@protoyard/views-ui/activity` — thin ActivityFeed adapter over Texuli;
+ * CommentThread remains a Protoyard host surface (threads/composer).
  */
 
-/** Texuli activity feed (items array API). Prefer ActivityFeed host adapter for liveQuery. */
 export {
   ActivityFeed as TexuliActivityFeed,
   type ActivityFeedLabels,

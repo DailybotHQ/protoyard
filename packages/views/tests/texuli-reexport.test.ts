@@ -1,11 +1,12 @@
 // @vitest-environment node
 /**
  * @protoyard/views engines are thin re-exports of @texuli/data (T-adopt-views).
- * Board keeps local engine sources: `@texuli/data/board` also exports Board.svelte
- * and cannot pack into plain-Node engine dist.
  */
-
 import { groupByDay as txGroupByDay } from '@texuli/data/activity/engine';
+import {
+  groupBoard as txGroupBoard,
+  rankBetween as txRankBetween,
+} from '@texuli/data/board/engine';
 import { monthGrid as txMonthGrid } from '@texuli/data/calendar';
 import { childrenOf as txChildrenOf } from '@texuli/data/files/engine';
 import { PORT_MERIDIAN as txMeridian } from '@texuli/data/geo';
@@ -13,11 +14,6 @@ import { resolveColumns as txResolveColumns } from '@texuli/data/grid';
 import { cascade as txCascade } from '@texuli/data/timeline/engine';
 import { buildTree as txBuildTree } from '@texuli/data/tree';
 import { describe, expect, it } from 'vitest';
-import {
-  groupBoard as txGroupBoard,
-  rankBetween as txRankBetween,
-  rankSequence as txRankSequence,
-} from '../../../node_modules/@texuli/data/src/engines/board/index.ts';
 import { groupByDay } from '../src/activity/index.ts';
 import { groupBoard, rankBetween, rankSequence } from '../src/board/index.ts';
 import { monthGrid, parseIsoDate } from '../src/calendar/index.ts';
@@ -28,7 +24,9 @@ import { cascade, workDays } from '../src/timeline/index.ts';
 import { buildTree, flatten } from '../src/tree/index.ts';
 
 describe('@protoyard/views re-exports @texuli/data engines', () => {
-  it('calendar, grid, tree, map, timeline, activity and files share texuli implementations', () => {
+  it('board, calendar, grid, tree, map, timeline, activity and files share texuli implementations', () => {
+    expect(groupBoard).toBe(txGroupBoard);
+    expect(rankBetween).toBe(txRankBetween);
     expect(monthGrid).toBe(txMonthGrid);
     expect(resolveColumns).toBe(txResolveColumns);
     expect(buildTree).toBe(txBuildTree);
@@ -36,16 +34,6 @@ describe('@protoyard/views re-exports @texuli/data engines', () => {
     expect(cascade).toBe(txCascade);
     expect(groupByDay).toBe(txGroupByDay);
     expect(childrenOf).toBe(txChildrenOf);
-  });
-
-  it('board engine matches texuli engines/board behavior (local sources; public board is Svelte-mixed)', () => {
-    expect(groupBoard).not.toBe(txGroupBoard);
-    expect(rankSequence(4)).toEqual(txRankSequence(4));
-    const ranks = rankSequence(3);
-    expect(rankBetween(null, ranks[0] ?? null)).toBe(txRankBetween(null, ranks[0] ?? null));
-    expect(rankBetween(ranks[0] ?? null, ranks[1] ?? null)).toBe(
-      txRankBetween(ranks[0] ?? null, ranks[1] ?? null)
-    );
   });
 
   it('still behaves for a minimal board rank and calendar cell', () => {

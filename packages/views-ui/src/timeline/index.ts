@@ -1,14 +1,7 @@
 /**
- * `@protoyard/views-ui/timeline` — a virtualized Gantt timeline with dependency
- * arrows, a runtime-clock today line, progress, critical path, and keyboard or
- * pointer rescheduling. Import from a lazy route screen.
+ * `@protoyard/views-ui/timeline` — thin host adapter over `@texuli/data/timeline`.
  */
 
-/** Texuli timeline (tasks array API). Prefer TimelineView host adapter for liveQuery. */
-export {
-  TimelineView as TexuliTimelineView,
-  type TimelineZoom as TexuliTimelineZoom,
-} from '@texuli/data/timeline';
 export {
   DAY_WIDTH,
   dateAtOffset,
@@ -16,8 +9,9 @@ export {
   durationLabel,
   progressValue,
   ROW_HEIGHT,
+  TimelineView as TexuliTimelineView,
   type TimelineZoom,
   timelineRange,
   ZOOMS,
-} from './model.ts';
+} from '@texuli/data/timeline';
 export { default as TimelineView } from './TimelineView.svelte';

@@ -9,6 +9,12 @@
     "dist/**/*.css"
   ],
   "exports": {
+    "./activity": {
+      "types": "./src/activity/index.ts",
+      "svelte": "./src/activity/index.ts",
+      "default": "./src/activity/index.ts"
+    },
+    "./blocks.css": "./src/blocks.css",
     "./board": {
       "types": "./src/board/index.ts",
       "svelte": "./src/board/index.ts",
@@ -19,45 +25,41 @@
       "svelte": "./src/calendar/index.ts",
       "default": "./src/calendar/index.ts"
     },
-    "./timeline": {
-      "types": "./src/timeline/index.ts",
-      "svelte": "./src/timeline/index.ts",
-      "default": "./src/timeline/index.ts"
-    },
-    "./grid": {
-      "types": "./src/grid/index.ts",
-      "svelte": "./src/grid/index.ts",
-      "default": "./src/grid/index.ts"
-    },
-    "./tree": {
-      "types": "./src/tree/index.ts",
-      "svelte": "./src/tree/index.ts",
-      "default": "./src/tree/index.ts"
-    },
-    "./map": {
-      "types": "./src/map/index.ts",
-      "svelte": "./src/map/index.ts",
-      "default": "./src/map/index.ts"
+    "./commands": {
+      "types": "./src/commands/index.ts",
+      "svelte": "./src/commands/index.ts",
+      "default": "./src/commands/index.ts"
     },
     "./editor": {
       "types": "./src/editor/index.ts",
       "svelte": "./src/editor/index.ts",
       "default": "./src/editor/index.ts"
     },
-    "./activity": {
-      "types": "./src/activity/index.ts",
-      "svelte": "./src/activity/index.ts",
-      "default": "./src/activity/index.ts"
+    "./files": {
+      "types": "./src/files/index.ts",
+      "svelte": "./src/files/index.ts",
+      "default": "./src/files/index.ts"
+    },
+    "./grid": {
+      "types": "./src/grid/index.ts",
+      "svelte": "./src/grid/index.ts",
+      "default": "./src/grid/index.ts"
+    },
+    "./map": {
+      "types": "./src/map/index.ts",
+      "svelte": "./src/map/index.ts",
+      "default": "./src/map/index.ts"
     },
     "./notifications": {
       "types": "./src/notifications/index.ts",
       "svelte": "./src/notifications/index.ts",
       "default": "./src/notifications/index.ts"
     },
-    "./files": {
-      "types": "./src/files/index.ts",
-      "svelte": "./src/files/index.ts",
-      "default": "./src/files/index.ts"
+    "./player.css": "./src/player.css",
+    "./scenarios": {
+      "types": "./src/scenarios/index.ts",
+      "svelte": "./src/scenarios/index.ts",
+      "default": "./src/scenarios/index.ts"
     },
     "./settings": {
       "types": "./src/settings/index.ts",
@@ -69,19 +71,22 @@
       "svelte": "./src/states/index.ts",
       "default": "./src/states/index.ts"
     },
-    "./commands": {
-      "types": "./src/commands/index.ts",
-      "svelte": "./src/commands/index.ts",
-      "default": "./src/commands/index.ts"
-    },
-    "./scenarios": {
-      "types": "./src/scenarios/index.ts",
-      "svelte": "./src/scenarios/index.ts",
-      "default": "./src/scenarios/index.ts"
-    },
-    "./player.css": "./src/player.css",
     "./styles.css": "./src/styles.css",
-    "./blocks.css": "./src/blocks.css"
+    "./timeline": {
+      "types": "./src/timeline/index.ts",
+      "svelte": "./src/timeline/index.ts",
+      "default": "./src/timeline/index.ts"
+    },
+    "./tree": {
+      "types": "./src/tree/index.ts",
+      "svelte": "./src/tree/index.ts",
+      "default": "./src/tree/index.ts"
+    },
+    "./virtual-list": {
+      "types": "./src/virtual-list/index.ts",
+      "svelte": "./src/virtual-list/index.ts",
+      "default": "./src/virtual-list/index.ts"
+    }
   },
   "scripts": {
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"

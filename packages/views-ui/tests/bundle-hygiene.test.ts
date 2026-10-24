@@ -19,23 +19,24 @@ import { describe, expect, it } from 'vitest';
 const PKG = join(import.meta.dirname, '..');
 const SRC = join(PKG, 'src');
 const VIEWS = [
+  'activity',
   'board',
   'calendar',
-  'timeline',
-  'grid',
-  'tree',
-  'map',
+  'commands',
   'editor',
-  'activity',
-  'notifications',
   'files',
+  'grid',
+  'map',
+  'notifications',
+  'scenarios',
   'settings',
   'states',
-  'commands',
-  'scenarios',
+  'timeline',
+  'tree',
+  'virtual-list',
 ] as const;
 const SHARED = new Set(['lib', 'states']);
-/** Declared view → view edges: the file manager's folder tree is the TreeView. */
+/** Declared view → view edges after Texuli adoption (no cross-view host edges). */
 const DEPENDS: Record<string, readonly string[]> = { files: ['tree'] };
 const SOURCE = /\.(ts|svelte|js)$/;
 

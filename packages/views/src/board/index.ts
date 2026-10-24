@@ -1,11 +1,9 @@
 /**
- * `@protoyard/views/board` — framework-free board engine (ranks, WIP, moves,
- * keyboard). Math matches `@texuli/data` engines/board. The public
- * `@texuli/data/board` entry also exports `Board.svelte`, so this subpath keeps
- * the engine sources local for plain-Node package dist (no Svelte in engines).
- * `@protoyard/views-ui/board` renders it.
+ * `@protoyard/views/board` — thin re-export of `@texuli/data/board/engine`
+ * (Svelte-free ranks, WIP, moves, keyboard). `@protoyard/views-ui/board` renders.
  */
 export {
+  assertRank,
   type BoardCell,
   type BoardColumnDef,
   type BoardGrid,
@@ -13,31 +11,26 @@ export {
   type BoardMove,
   type BoardOptions,
   type BoardPosition,
+  compareRanks,
   DEFAULT_LANE,
+  describePosition,
   evaluateWip,
   groupBoard,
+  IDLE,
+  isRank,
+  type KeyboardMoveState,
+  type MoveIntentResult,
+  type MoveKey,
   type MoveResult,
   type MoveRules,
   type MoveTarget,
+  moveIntent,
+  pickUp,
+  RankError,
+  rankBetween,
+  rankSequence,
   validateMove,
   type WipEvaluation,
   type WipLimit,
   type WipStatus,
-} from './board.ts';
-export {
-  describePosition,
-  IDLE,
-  type KeyboardMoveState,
-  type MoveIntentResult,
-  type MoveKey,
-  moveIntent,
-  pickUp,
-} from './keyboard.ts';
-export {
-  assertRank,
-  compareRanks,
-  isRank,
-  RankError,
-  rankBetween,
-  rankSequence,
-} from './rank.ts';
+} from '@texuli/data/board/engine';

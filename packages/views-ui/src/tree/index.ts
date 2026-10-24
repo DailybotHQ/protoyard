@@ -1,7 +1,6 @@
 /**
- * `@protoyard/views-ui/tree` — host `TreeView` / `OutlineEditor` on the
- * `@protoyard/views/tree` engine (Texuli), plus a re-export of Texuli's
- * `TreeDataView` for the items-array API.
+ * `@protoyard/views-ui/tree` — thin TreeView adapter over Texuli TreeDataView;
+ * OutlineEditor remains a Protoyard host surface (no Texuli outline editor).
  */
 
 export { TreeDataView, type TreeDataViewLabels } from '@texuli/data/tree-view';

@@ -235,32 +235,32 @@ import { Button } from 'texuli/button';
 
 ### Engines (`@protoyard/views`)
 
-Calendar, timeline, grid, tree, map, activity and files are **thin re-exports** of
-`@texuli/data` engine-only subpaths. Board engines stay under
-`packages/views/src/board/` (aligned with Texuli `engines/board`) because the
-public `@texuli/data/board` entry also exports `Board.svelte` and cannot pack
-into the plain-Node engine dist. Protoyard-only modules stay local: editor,
-notifications, settings, states, commands and scenarios.
+Board, calendar, timeline, grid, tree, map, activity and files are **thin
+re-exports** of `@texuli/data` engine subpaths (`@texuli/data/board/engine`,
+`@texuli/data/calendar`, `@texuli/data/grid`, …). Protoyard-only modules stay
+local: editor, notifications, settings, states, commands and scenarios.
 
-Texuli view schemas use `DataSchema` (`parse` / `safeParse`). They are not Zod
-objects — bridge with transforms when composing service inputs (see
-`keel-projects-demo`).
+Texuli view schemas use `DataSchema` (`parse` / `safeParse`), not Zod — bridge
+when composing service inputs (see `keel-projects-demo`).
 
 ### UI (`@protoyard/views-ui`)
 
-- **Board** — thin host adapter: `BoardView` wraps `@texuli/data` `Board` with
-  liveQuery `query`, `runService` `onMove`, and optional `onOpen`. Deleted the
-  previous Protoyard board implementation and model.
-- **Other rich views** (calendar, timeline, grid, tree, map, files, activity)
-  keep Protoyard **host adapters** (liveQuery, edit, filters, routes/fences,
-  CommentThread, …) on Texuli engines via `@protoyard/views/*`. Each index also
-  re-exports the matching Texuli UI entry where the items-array API is enough
-  (`TexuliCalendarView`, `TexuliTimelineView`, `TexuliDataGrid`, `TreeDataView`,
-  `FileBrowser`, `TexuliActivityFeed`). MapView is imported from
-  `@texuli/data/map` directly.
-- **Host-only** (no Texuli counterpart yet): editor, notifications, settings,
-  states, commands, scenarios, CommentThread, OutlineEditor, FilePreview,
-  SimulatedMap extras (routes/fences).
+Each rich view is a **thin host adapter** over the matching `@texuli/data`
+Svelte entry, plus liveQuery/`runService` where the host API differs:
 
-Consumers keep `@protoyard/views-ui/<view>` import paths.
+| Subpath | Texuli source | Adapter notes |
+| --- | --- | --- |
+| `board` | `@texuli/data` `Board` | `query` → `items`, `onMove` via `runService`, optional `onOpen` |
+| `calendar` | `@texuli/data/calendar/view` | `query` → `events`; write `onChange`/`onCreate` not on Texuli yet |
+| `timeline` | `@texuli/data/timeline` | `query` → `tasks`, `onReschedule` via `runService` |
+| `grid` | `@texuli/data/grid-core` | `query` → `rows`; host FilterBuilder/SavedViews toolkit kept |
+| `tree` | `@texuli/data/tree-view` | `query` → `items`; OutlineEditor stays host-only |
+| `map` | `@texuli/data/map` `MapView` | markers/select; routes/fences not on Texuli MapView |
+| `files` | `@texuli/data/files` `FileBrowser` | `query` → `entries` |
+| `activity` | `@texuli/data/activity` | `query` → `items`; CommentThread stays host-only |
+| `virtual-list` | `@texuli/data/virtual-list` | pure re-export |
+
+Replaced Protoyard rendering for those surfaces was deleted. Host-only kits
+remain: editor, notifications, settings, states, commands, scenarios,
+CommentThread, OutlineEditor, and grid filter/saved-view chrome.
 
