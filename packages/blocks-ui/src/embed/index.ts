@@ -1,7 +1,14 @@
 /**
- * `@protoyard/blocks-ui/embed` — embed-app: framed preview with a start button.
- * `host.mountEmbed(target, app)` runs only after the click (KINDS supplies the
- * host and validates with loadUntrustedBlueprint). No app code loads before then.
+ * `@protoyard/blocks-ui/embed` — Texuli embed family + host mountEmbed adapter.
+ * Sandbox helpers: `createSandboxedEmbedIframe` / `createSandboxedEmbedMount`
+ * from `@texuli/blocks/embed`.
  */
+
+export {
+  createSandboxedEmbedIframe,
+  createSandboxedEmbedMount,
+  EMBED_IFRAME_REFERRER_POLICY,
+  EMBED_IFRAME_SANDBOX,
+} from '@texuli/blocks/embed';
 export { default as BlockFamilyRenderer } from './BlockFamilyRenderer.svelte';
 export { default as EmbedApp } from './EmbedApp.svelte';

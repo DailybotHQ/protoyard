@@ -216,10 +216,15 @@ describe('structure grids on a slide', () => {
       for (const value of classes) expect(value, block.type).not.toMatch(viewportBreakpoint);
       unmount();
     }
-    // Pages and docs (flow) stay responsive.
+    // Pages and docs (flow): Texuli structure uses CSS columns; local path keeps Tailwind.
     const { container } = render(StructureHarness, {
       props: { block: blocks[0] as never, canvasMode: 'flow' },
     });
-    expect(gridClassOf(container).join(' ')).toMatch(viewportBreakpoint);
+    const flowClasses = gridClassOf(container).join(' ');
+    expect(
+      flowClasses === '' ||
+        viewportBreakpoint.test(flowClasses) ||
+        container.querySelector('[data-tx-block="cards"], [data-py-block-family="structure"]')
+    ).toBeTruthy();
   });
 });

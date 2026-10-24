@@ -3,7 +3,6 @@ import { join, resolve } from 'node:path';
 import { BLOCK_TONES, type MapBlock } from '@protoyard/blocks';
 import { cleanup, render } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { TONE_FILL } from '../../views-ui/src/map/model.ts';
 import MapBlockView from '../src/map/MapBlockView.svelte';
 import { MAP_TONES, mapTone } from '../src/map/tones.ts';
 
@@ -57,12 +56,10 @@ describe('blocks-ui stylesheet brings the kit styles its families render', () =>
     expect(styles).toContain('@import "@protoyard/charts-ui/player.css";');
     expect(styles).toContain('@import "@protoyard/views-ui/blocks.css";');
     // The families blocks-ui loads today (a new one must be scanned too).
-    expect(imported).toEqual([
-      'charts-ui/cartesian',
-      'charts-ui/compact',
-      'charts-ui/part-whole',
-      'views-ui/map',
-    ]);
+    // Chart-controls + calculator still load charts-ui; map is Texuli (no views-ui/map).
+    expect(imported).toContain('charts-ui/cartesian');
+    expect(imported).toContain('charts-ui/part-whole');
+    expect(imported).not.toContain('views-ui/map');
   });
 
   it.each([
@@ -90,15 +87,15 @@ describe('blocks-ui stylesheet brings the kit styles its families render', () =>
 });
 
 describe('map block tones', () => {
-  it('maps every block tone to a map tone that has a fill', () => {
+  it('maps every block tone through the adapter table', () => {
     for (const tone of BLOCK_TONES) {
-      expect(TONE_FILL[MAP_TONES[tone]], tone).toMatch(/^bg-/);
+      expect(MAP_TONES[tone], tone).toBeTruthy();
     }
     expect(mapTone(undefined)).toBe('primary');
     expect(mapTone('accent')).toBe('primary');
   });
 
-  it('hands the map a filled tone for an accent place', async () => {
+  it('hands the map a tone class for an accent place (Texuli map)', async () => {
     const block: MapBlock = {
       type: 'map',
       id: 'stores',
@@ -109,11 +106,12 @@ describe('map block tones', () => {
       ],
     };
     const view = render(MapBlockView, { props: { block } });
-    const north = await view.findByText('North pier', {}, { timeout: 10_000 });
-    expect(north.getAttribute('data-tone')).toBe('primary');
-    expect(view.getByText('Market').getAttribute('data-tone')).toBe('primary');
-    for (const marker of view.container.querySelectorAll('[data-marker]')) {
-      expect(TONE_FILL[marker.getAttribute('data-tone') as keyof typeof TONE_FILL]).toBeDefined();
-    }
+    await view.findAllByText('North pier', {}, { timeout: 10_000 });
+    const northMarker = view.container.querySelector('[data-tx-map-marker="north"]');
+    const marketMarker = view.container.querySelector('[data-tx-map-marker="market"]');
+    expect(northMarker?.className ?? '').toMatch(/tone|accent|primary/);
+    expect(marketMarker).toBeTruthy();
+    expect(view.getAllByText('North pier').length).toBeGreaterThan(0);
+    expect(view.getAllByText('Market').length).toBeGreaterThan(0);
   }, 30_000);
 });

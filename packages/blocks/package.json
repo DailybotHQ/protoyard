@@ -1,7 +1,7 @@
 {
   "name": "@protoyard/blocks",
   "version": "1.0.0",
-  "description": "Framework-free engine for Protoyard's shared content blocks: zod schemas, limits, an untrusted-input guard, JSON Schema, the block catalog, text helpers, a closed-AST formula engine, a tiny code tokenizer and diagram layout math. Data only; no Svelte.",
+  "description": "Framework-free content-block engine for Protoyard: thin re-exports of @texuli/blocks/core (and family engines) plus Zod schema adapters for decks, pages and docs.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -22,6 +22,7 @@
     "@protoyard/ai": "workspace:*",
     "@protoyard/avatars": "workspace:*",
     "@protoyard/core": "workspace:*",
+    "@texuli/blocks": "link:../../../texuli/packages/blocks",
     "zod": "^4.6.7"
   },
   "protoyard": {

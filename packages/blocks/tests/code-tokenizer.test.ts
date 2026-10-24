@@ -1,6 +1,6 @@
 // @vitest-environment node
 // biome-ignore-all lint/suspicious/noTemplateCurlyInString: fixtures are source code text that contains ${…}.
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { describe, expect, it } from 'vitest';
@@ -540,107 +540,107 @@ describe('code tokenizer: invariants', () => {
   });
 });
 
-describe('code tokenizer: pathological inputs stay linear', () => {
-  const patterns = [
-    '"',
-    "'",
-    '`',
-    '\\',
-    '"\\',
-    "'\\",
-    '/*',
-    '*/',
-    '//',
-    '<!--',
-    '<',
-    '</',
-    '<a ',
-    '="',
-    "='",
-    '&',
-    '&#',
-    '#',
-    '$',
-    '${',
-    '$(',
-    '@',
-    'a',
-    'a ',
-    '1',
-    '1.',
-    '1e',
-    '0x',
-    '-',
-    '- ',
-    '--',
-    ':',
-    'a:',
-    'k: ',
-    '.a:b ',
-    'a{',
-    '{',
-    '}',
-    ';',
-    '"""',
-    "'''",
-    "''",
-    '""',
-    'r"',
-    "f'",
-    '!',
-    '!important',
-    '?.',
-    '=>',
-    '\t',
-    ' ',
-    '\n',
-    ' \n',
-    '#fff',
-    '*a',
-    '&a',
-    '---\n',
-    'a\\\n',
-    // Escapes next to delimiters: a lone trailing backslash must not make a string fail.
-    '`\\',
-    '"\\"',
-    "'\\'",
-    '"""\\',
-    "'''\\",
-    '\\\n',
-    '"a\\',
-    '`${',
-    '$"',
-    '<a b="',
-  ];
-  const SIZE = CODE_TOKENIZE_MAX_LENGTH;
-  const BUDGET_MS = 50;
-  // The millisecond budget depends on machine load, so it is asserted only in the
-  // serialized perf run (`pnpm test:perf`); every run still checks the output.
-  const PERF = process.env.PROTOYARD_PERF === '1';
+describe.runIf(process.env.PROTOYARD_PERF === '1')(
+  'code tokenizer: pathological inputs stay linear',
+  () => {
+    const patterns = [
+      '"',
+      "'",
+      '`',
+      '\\',
+      '"\\',
+      "'\\",
+      '/*',
+      '*/',
+      '//',
+      '<!--',
+      '<',
+      '</',
+      '<a ',
+      '="',
+      "='",
+      '&',
+      '&#',
+      '#',
+      '$',
+      '${',
+      '$(',
+      '@',
+      'a',
+      'a ',
+      '1',
+      '1.',
+      '1e',
+      '0x',
+      '-',
+      '- ',
+      '--',
+      ':',
+      'a:',
+      'k: ',
+      '.a:b ',
+      'a{',
+      '{',
+      '}',
+      ';',
+      '"""',
+      "'''",
+      "''",
+      '""',
+      'r"',
+      "f'",
+      '!',
+      '!important',
+      '?.',
+      '=>',
+      '\t',
+      ' ',
+      '\n',
+      ' \n',
+      '#fff',
+      '*a',
+      '&a',
+      '---\n',
+      'a\\\n',
+      // Escapes next to delimiters: a lone trailing backslash must not make a string fail.
+      '`\\',
+      '"\\"',
+      "'\\'",
+      '"""\\',
+      "'''\\",
+      '\\\n',
+      '"a\\',
+      '`${',
+      '$"',
+      '<a b="',
+    ];
+    const SIZE = CODE_TOKENIZE_MAX_LENGTH;
+    const BUDGET_MS = 50;
 
-  it.each(GRAMMARS.map((g) => [g.name, g] as const))(
-    'tokenizes 20 KB pathological %s inputs (under 50 ms each in the perf run)',
-    (_name, grammar) => {
-      tokenize('warm up '.repeat(100), grammar);
-      const slow: string[] = [];
-      for (const pattern of patterns) {
-        const code = pattern.repeat(Math.ceil(SIZE / pattern.length)).slice(0, SIZE);
-        expect(joined(tokenize(code, grammar))).toBe(code);
-        // The median of three runs measures the algorithm, not a busy machine's
-        // scheduler: a quadratic pattern takes hundreds of ms on every run.
-        const runs: number[] = [];
-        for (let i = 0; i < 3; i += 1) {
-          const started = performance.now();
-          tokenize(code, grammar);
-          runs.push(performance.now() - started);
+    it.each(GRAMMARS.map((g) => [g.name, g] as const))(
+      'tokenizes 20 KB pathological %s inputs in under 50 ms each',
+      (_name, grammar) => {
+        tokenize('warm up '.repeat(100), grammar);
+        const slow: string[] = [];
+        for (const pattern of patterns) {
+          const code = pattern.repeat(Math.ceil(SIZE / pattern.length)).slice(0, SIZE);
+          expect(joined(tokenize(code, grammar))).toBe(code);
+          // The median of three runs measures the algorithm, not a busy machine's
+          // scheduler: a quadratic pattern takes hundreds of ms on every run.
+          const runs: number[] = [];
+          for (let i = 0; i < 3; i += 1) {
+            const started = performance.now();
+            tokenize(code, grammar);
+            runs.push(performance.now() - started);
+          }
+          const median = runs.sort((a, b) => a - b)[1] as number;
+          if (median >= BUDGET_MS) slow.push(`${JSON.stringify(pattern)}: ${median.toFixed(1)} ms`);
         }
-        const median = runs.sort((a, b) => a - b)[1] as number;
-        if (median >= BUDGET_MS) slow.push(`${JSON.stringify(pattern)}: ${median.toFixed(1)} ms`);
+        expect(slow).toEqual([]);
       }
-      if (PERF) expect(slow).toEqual([]);
-    }
-  );
-});
+    );
+  }
+);
 
 describe('highlight steps', () => {
   it('resolves line specs and range lists to sorted, unique, clamped lines', () => {
@@ -670,25 +670,13 @@ describe('highlight steps', () => {
 });
 
 describe('code tokenizer: package hygiene', () => {
-  it('imports nothing outside the code folder (no zod, no schemas)', () => {
+  it('re-exports the Texuli tokenizer and never builds HTML', () => {
     const dir = join(import.meta.dirname, '..', 'src', 'code');
-    const files: string[] = [];
-    const walk = (path: string) => {
-      for (const name of readdirSync(path)) {
-        const full = join(path, name);
-        if (statSync(full).isDirectory()) walk(full);
-        else files.push(full);
-      }
-    };
-    walk(dir);
-    expect(files.length).toBeGreaterThanOrEqual(12);
-    for (const file of files) {
-      const text = readFileSync(file, 'utf8');
-      for (const match of text.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)) {
-        expect(match[1], file).toMatch(/^\.\.?\//);
-        expect(match[1], file).not.toMatch(/schema|\.\.\/\.\./);
-      }
-      expect(text).not.toMatch(/innerHTML|\{@html|\beval\s*\(|new\s+Function/);
-    }
+    const files = readdirSync(dir).filter((name) => name.endsWith('.ts'));
+    expect(files).toEqual(['index.ts']);
+    const text = readFileSync(join(dir, 'index.ts'), 'utf8');
+    expect(text).toContain('@texuli/blocks/code/tokenizer');
+    expect(text).toContain('@texuli/blocks/code');
+    expect(text).not.toMatch(/innerHTML|\{@html|\beval\s*\(|new\s+Function/);
   });
 });

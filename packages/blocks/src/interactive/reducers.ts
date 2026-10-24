@@ -1,6 +1,6 @@
 import type { AiChartSpec } from '@protoyard/ai';
 import { z } from 'zod';
-import { evaluateFormula } from '../formula/evaluate.ts';
+import { evaluateFormula } from '../formula/index.ts';
 import type {
   CalculatorBlock,
   ChartControlsBlock,
