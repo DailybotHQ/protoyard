@@ -1,4 +1,4 @@
-import { DIAGRAM_LIMITS } from '@texuli/blocks/diagram';
+import { DIAGRAM_LIMITS } from '@texuli/blocks/diagram/engine';
 import { z } from 'zod';
 import { BlockToneSchema, blockBase, plainText } from '../schema/primitives.ts';
 

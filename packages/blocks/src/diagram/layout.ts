@@ -1,5 +1,5 @@
 /**
- * Diagram layout math — thin re-export of `@texuli/blocks/diagram`.
+ * Diagram layout math — thin re-export of `@texuli/blocks/diagram/engine`.
  * Renderers turn positions and edges into accessible HTML or SVG; labels
  * stay text.
  */
@@ -12,4 +12,4 @@ export {
   layoutFlow,
   layoutTerminal,
   layoutTree,
-} from '@texuli/blocks/diagram';
+} from '@texuli/blocks/diagram/engine';
