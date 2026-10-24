@@ -153,44 +153,9 @@ function handleCreate(slot: CalendarSlot): void {
   if (!onCreate) return;
   void runService(() => onCreate(slot));
 }
-
-let hostRoot = $state<HTMLElement | null>(null);
-
-/**
- * Crud screen tests still query `[data-key][aria-pressed]` for the Space-grab
- * chip. Texuli names that state `data-grabbed` + `aria-pressed`. Mirror the key
- * onto `data-key` while grabbed so host selectors keep working.
- */
-$effect(() => {
-  void query.current;
-  const root = hostRoot;
-  if (!root) return;
-  const sync = () => {
-    for (const chip of root.querySelectorAll<HTMLElement>('[data-calendar-event]')) {
-      if (chip.hasAttribute('data-grabbed') || chip.getAttribute('aria-pressed') === 'true') {
-        const key = chip.getAttribute('data-calendar-event');
-        if (key) chip.setAttribute('data-key', key);
-      } else if (chip.hasAttribute('data-key')) {
-        chip.removeAttribute('data-key');
-      }
-    }
-  };
-  sync();
-  const obs = new MutationObserver(sync);
-  obs.observe(root, {
-    subtree: true,
-    childList: true,
-    attributes: true,
-    attributeFilter: ['data-grabbed', 'aria-pressed', 'data-calendar-event'],
-  });
-  return () => obs.disconnect();
-});
-
-/** Empty-slot chrome when create is off: Texuli omits `[data-slot]` without onCreate. */
-const showReadonlySlot = $derived(!onCreate || readOnly === true);
 </script>
 
-<div bind:this={hostRoot} data-calendar={label}>
+<div data-calendar={label}>
   <QueryState
     {query}
     label={`Loading ${label.toLowerCase()}`}
@@ -223,29 +188,4 @@ const showReadonlySlot = $derived(!onCreate || readOnly === true);
       />
     {/snippet}
   </QueryState>
-
-  {#if showReadonlySlot && !query.loading && query.current !== undefined}
-    <button
-      type="button"
-      class="py-calendar-slot"
-      data-slot={todayIso}
-      data-focused="true"
-      aria-label={`Empty slot ${todayIso}`}
-      disabled
-    ></button>
-  {/if}
 </div>
-
-<style>
-  .py-calendar-slot {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-</style>
