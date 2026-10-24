@@ -1,10 +1,8 @@
 /**
- * `@protoyard/blocks-ui/data` — stat/table/chart family.
- *
- * Chart blocks use `@protoyard/charts-ui` (AI ChartSpec). Texuli data blocks
- * (`@texuli/blocks/data`) use a different chart shape; this family is the
- * Protoyard ChartSpec adapter so decks and pages keep working.
+ * `@protoyard/blocks-ui/data` — Texuli data family + ChartSpec adapter.
  */
+
+export { toTexuliChartBlock } from '../compat/chart-spec.ts';
 export { default as ChartBlock } from './ChartBlock.svelte';
 export { default as BlockFamilyRenderer } from './DataBlock.svelte';
 export {

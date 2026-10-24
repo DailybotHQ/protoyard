@@ -74,7 +74,9 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@protoyard/views-ui": "workspace:*",
-    "@texuli/blocks": "link:../../../texuli/packages/blocks"
+    "@texuli/blocks": "link:../../../texuli/packages/blocks",
+    "@texuli/charts": "link:../../../texuli/packages/charts",
+    "@texuli/data": "link:../../../texuli/packages/data"
   },
   "devDependencies": {
     "svelte": "^5.57.2"

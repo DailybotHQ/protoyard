@@ -1,16 +1,33 @@
 # Blocks UI from `@texuli/blocks`
 
-| Family | Source |
-| --- | --- |
-| `diagram` | `@texuli/blocks/diagram/renderers` |
-| `code` | `@texuli/blocks/code/renderers` (+ token style class adapter, host step) |
-| `text` | Local Protoyard markdown/media policy + list/quote/divider extensions; Texuli `TextBlockView` for plain heading |
-| `media` | `@texuli/blocks/media/renderers` for image/video (+ `blocks:media-ready`); local `people` |
-| `map` | Protoyard `@protoyard/views-ui/map` adapter (tone table + kit styles) |
-| `embed` | Protoyard host `mountEmbed` adapter |
-| `data` | Protoyard ChartSpec adapter on `@protoyard/charts-ui` |
-| `structure` | Protoyard deck/page adapter (timeline/steps/comparison/icon) |
-| `interactive` | Host-backed adapter on `@protoyard/blocks/interactive` (Texuli is ephemeral) |
+Every family Texuli ships renders through `@texuli/blocks/*/renderers`, with
+thin adapters where Protoyard data shapes differ.
 
-Root `BlockRenderer`, `registry`, and `setBlockHost` stay the Protoyard host
-contract for decks, pages, docs and the player.
+| Family | Texuli path | Adapter notes |
+| --- | --- | --- |
+| `text` | `text/renderers` TextBlockView | list/quote/callout/heading/text mapped; divider → structure |
+| `media` | `media/renderers` MediaBlockView | image/video (+ figure/gallery); **people** is a Protoyard extension |
+| `data` | `data/renderers` DataBlockView | table/stat field map; **chart** via ChartSpec→Texuli series points |
+| `structure` | `structure/renderers` | columns/grid/tabs/accordion/cards/divider/cta when valid; nested Protoyard-only children fall back locally |
+| `code` | `code/renderers` | host step → hostStep |
+| `diagram` | `diagram/renderers` | flow/tree/board/terminal |
+| `interactive` | `interactive/renderers` | poll/quiz/calculator/checklist when no BlockStateHost; with host (decks) local host-backed adapters |
+| `map` | `map/renderers` | shape/tone adapter (`toTexuliMapBlock`) |
+| `embed` | `embed/renderers` | mountEmbed + startLabel; sandbox helpers re-exported from `@texuli/blocks/embed` |
+
+## Protoyard extensions (Texuli has no type)
+
+| Type | Family | Note |
+| --- | --- | --- |
+| `people` | media | Portrait grid on `@protoyard/avatars` |
+| `timeline` | structure | Event list |
+| `steps` | structure | Numbered steps |
+| `comparison` | structure | Side-by-side columns |
+| `icon` | structure | Allow-listed Lucide name |
+| `form` | interactive | Host form responses |
+| `counter` | interactive | BlockStateHost counter |
+| `chart-controls` | interactive | Live ChartSpec controls |
+| `reveal` | interactive | Stepped reveal panels |
+| `tabs` | interactive | Host-backed tab state (structure tabs when no host) |
+
+Root `BlockRenderer`, `registry`, and `setBlockHost` stay the Protoyard host contract.

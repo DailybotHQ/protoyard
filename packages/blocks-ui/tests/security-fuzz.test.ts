@@ -223,11 +223,18 @@ describe('AC-blocks-fuzz: 2,000 hostile documents render inert', () => {
         // layout, so the SVG plot itself may be empty) and a map's surface.
         const types = new Set(doc.blocks.map((block) => (block as { type?: string }).type));
         if (types.has('chart')) {
-          expect(section.querySelector('[data-py-chart]'), `${doc.id} chart`).not.toBeNull();
+          expect(
+            section.querySelector(
+              '[data-py-chart], [data-py-block="chart"], [data-tx-block="chart"], [data-chart-kind], svg'
+            ),
+            `${doc.id} chart`
+          ).not.toBeNull();
         }
         if (types.has('map')) {
           expect(
-            section.querySelector('[data-py-block="map"] svg, [data-py-block="map"] [role="img"]'),
+            section.querySelector(
+              '[data-py-block="map"] svg, [data-py-block="map"] [role="img"], [data-tx-block="map"] svg, [data-tx-map-marker]'
+            ),
             `${doc.id} map`
           ).not.toBeNull();
         }

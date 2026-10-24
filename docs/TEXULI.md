@@ -77,19 +77,21 @@ math imports resolve through `@protoyard/charts` to Texuli.
 See `packages/charts/docs/texuli-math.md` and `packages/charts-ui/docs/texuli-charts.md`.
 
 
+
 ## Content blocks from `@texuli/blocks`
 
-`@protoyard/blocks` re-exports code tokenization, formula evaluation, diagram
-layout, limits and safety from `@texuli/blocks`. Zod schemas and the
-interactive state host stay as Protoyard adapters.
+`@protoyard/blocks` re-exports code tokenization, diagram layout, limits and
+safety from `@texuli/blocks`. Zod schemas, formula (until `@texuli/blocks/formula`),
+interactive host and catalog stay adapters.
 
-`@protoyard/blocks-ui` diagram, code, map and embed families render through
-`@texuli/blocks/*/renderers`. Text and media prefer Texuli with thin local
-extensions; data, structure and interactive keep Protoyard host contracts
-(ChartSpec, BlockStateHost, deck-only types).
+`@protoyard/blocks-ui` every Texuli family renders through
+`@texuli/blocks/*/renderers` with thin shape adapters (ChartSpec→chart series,
+map tones, embed start labels). Protoyard-only types (people, timeline, steps,
+comparison, icon, form, counter, chart-controls, reveal) register as extensions.
 
 See `packages/blocks/docs/texuli-blocks.md` and
 `packages/blocks-ui/docs/texuli-blocks.md`.
+
 
 ## Simple controls run on `@texuli/primitives`
 

@@ -1,11 +1,12 @@
 import type { BlockTone } from '@protoyard/blocks';
-import type { MapTone } from '@protoyard/views-ui/map';
 
 /**
- * Block tones (the shared content vocabulary) on the simulated map's tones.
- * The map has no `accent`: it is the brand emphasis, which the map draws as
- * `primary`. Without this table an `accent` place got no fill class at all.
+ * Block tones on the map. Accent maps to primary (brand emphasis). Kept for
+ * kit-styles and hosts that still read MAP_TONES; Texuli map applies its own
+ * toneClass from the same vocabulary.
  */
+export type MapTone = 'neutral' | 'primary' | 'info' | 'success' | 'warning' | 'danger';
+
 export const MAP_TONES: Readonly<Record<BlockTone, MapTone>> = Object.freeze({
   neutral: 'neutral',
   accent: 'primary',

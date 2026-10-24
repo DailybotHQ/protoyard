@@ -1,5 +1,6 @@
 /**
- * `@protoyard/blocks-ui/map` — map block on the offline simulated map
- * (`@protoyard/views-ui/map`). Loaded only when a map block is present.
+ * `@protoyard/blocks-ui/map` — Texuli map block + tone/shape adapter.
  */
 export { default as BlockFamilyRenderer } from './BlockFamilyRenderer.svelte';
+export { default as MapBlockView } from './MapBlockView.svelte';
+export { MAP_TONES, mapTone } from './tones.ts';

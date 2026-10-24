@@ -1,16 +1,15 @@
 <script lang="ts">
 /**
- * Adapter: image/video → `@texuli/blocks/media` MediaBlockView.
- * People is Protoyard-only. Dispatches `blocks:media-ready` after load so
- * decks/pages that wait on media keep working.
+ * Media family: Texuli MediaBlockView for image/video (figure/gallery when present).
+ * Extension: people (Protoyard-only portraits layout).
  */
 import type { Block } from '@protoyard/blocks';
 import { avatarUrl } from '@protoyard/renderer-svelte';
 import { Avatar, cn } from '@protoyard/ui';
 import { MediaBlockView } from '@texuli/blocks/media/renderers';
+import { TEXULI_MEDIA_TYPES, toTexuliMediaBlock } from '../compat/media.ts';
 
 let { block }: { block: Block } = $props();
-
 const resolveAvatar = (id: string) => avatarUrl(id);
 
 function onMediaEvent(event: Event) {
@@ -29,7 +28,8 @@ function onMediaEvent(event: Event) {
   onloadeddatacapture={onMediaEvent}
 >
   {#if block.type === 'people'}
-    <section aria-label={block.title ?? 'People'} class="space-y-3">
+    <!-- Extension: people (Texuli has no people block) -->
+    <section aria-label={block.title ?? 'People'} class="space-y-3" data-py-block-extension="people">
       {#if block.title}<h3 class="font-semibold text-foreground">{block.title}</h3>{/if}
       <ul
         class={cn(
@@ -58,7 +58,9 @@ function onMediaEvent(event: Event) {
         {/each}
       </ul>
     </section>
+  {:else if TEXULI_MEDIA_TYPES.has(block.type)}
+    <MediaBlockView block={toTexuliMediaBlock(block)} {resolveAvatar} />
   {:else}
-    <MediaBlockView {block} {resolveAvatar} />
+    <p class="text-sm text-muted-foreground" role="note">This media block could not be shown.</p>
   {/if}
 </div>
