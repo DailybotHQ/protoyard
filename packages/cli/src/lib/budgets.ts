@@ -28,7 +28,10 @@ export const PerformanceBudgetSchema = z
   })
   .strict();
 
-export const PerformanceBudgetOverrideSchema = PerformanceBudgetSchema.partial();
+export const PerformanceBudgetOverrideSchema = PerformanceBudgetSchema.partial().extend({
+  /** Why this prototype needs its own numbers (kept with the override, never a metric). */
+  reason: z.string().min(1).max(500).optional(),
+});
 
 /** Blueprint content kinds that ship their own minimal player entry (ADR-040). */
 export const KIND_BUDGET_KINDS = ['deck', 'page', 'doc'] as const;
@@ -141,7 +144,8 @@ export async function loadBudgets(workspaceRoot: string): Promise<BudgetConfig> 
 
 /** Applies the selected prototype override to the workspace defaults. */
 export function resolveBudget(config: BudgetConfig, slug: string): PerformanceBudget {
-  return { ...config.defaults, ...config.overrides[slug] };
+  const { reason: _reason, ...override } = config.overrides[slug] ?? {};
+  return { ...config.defaults, ...override };
 }
 
 /** Resolves the budget of one per-kind player entry, falling back to the provisional defaults. */
