@@ -1,8 +1,9 @@
 <script lang="ts" generics="TData = unknown">
 /**
  * Host adapter over `@texuli/data/calendar/view` `CalendarView`.
- * Maps liveQuery `query` → `events`. Callbacks keep `Occurrence<TData>` so
- * consumers retain their event data type (no unknown erasure).
+ * Maps liveQuery `query` → `events`. Callbacks keep `Occurrence<TData>`.
+ * `onChange` / `onCreate` / `newId` are forwarded when Texuli CalendarView
+ * exposes them (FIX-calendar-reschedule); until then they remain host hooks.
  */
 import type { CalendarSeries, IsoDate, Occurrence } from '@protoyard/views/calendar';
 import { CalendarView as TexuliCalendar } from '@texuli/data/calendar/view';
@@ -20,9 +21,9 @@ let {
   getTitle,
   getTone,
   onOpen,
-  onChange: _onChange,
-  onCreate: _onCreate,
-  newId: _newId,
+  onChange,
+  onCreate,
+  newId,
   onRetry,
   runtime: _runtime,
   now: _now,
@@ -57,12 +58,26 @@ $effect(() => {
   if (anchor) localAnchor = anchor;
 });
 
-// Keep getTone referenced so consumers can pass it without TS stripping the prop.
-void getTone;
+/**
+ * Forward reschedule/create hooks to Texuli when present (lane D).
+ * Typed loosely so a newer CalendarView with onChange does not break this adapter.
+ */
+const rescheduleProps = $derived.by(() => {
+  const extra: Record<string, unknown> = {};
+  if (onChange) extra.onChange = onChange;
+  if (onCreate) extra.onCreate = onCreate;
+  if (newId) extra.newId = newId;
+  return extra;
+});
 </script>
 
 <div data-calendar={label}>
-  <QueryState {query} label={`Loading ${label.toLowerCase()}`} onRetry={onRetry ? () => { void onRetry(); } : undefined} isEmpty={() => false}>
+  <QueryState
+    {query}
+    label={`Loading ${label.toLowerCase()}`}
+    onRetry={onRetry ? () => { void onRetry(); } : undefined}
+    isEmpty={() => false}
+  >
     {#snippet children(events)}
       <TexuliCalendar
         {events}
@@ -77,6 +92,7 @@ void getTone;
         {getTone}
         {onOpen}
         class={className}
+        {...(rescheduleProps as object)}
       />
     {/snippet}
   </QueryState>

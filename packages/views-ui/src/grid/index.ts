@@ -1,16 +1,21 @@
 /**
- * `@protoyard/views-ui/grid` — thin DataGrid adapter over `@texuli/data/grid-core`,
- * plus host filter/saved-view toolkit used by prototypes.
+ * `@protoyard/views-ui/grid` — thin DataGrid adapter over Texuli grid-core,
+ * grid-editing and grid-virtual, plus host filter/saved-view toolkit.
  */
 
 export {
   DataGrid as TexuliDataGrid,
   type DataGridColumn as TexuliDataGridColumn,
   type DataGridLabels,
-  gridRows,
-  moveCell,
-  nextSort as texuliNextSort,
 } from '@texuli/data/grid-core';
+export {
+  CellEditor,
+  createUndoStack,
+  type EditableColumn,
+  EditableDataGrid,
+  type UndoStack,
+} from '@texuli/data/grid-editing';
+export { VirtualDataGrid, virtualGridWindow } from '@texuli/data/grid-virtual';
 export { default as BulkActionBar } from './BulkActionBar.svelte';
 export { default as ColumnChooser } from './ColumnChooser.svelte';
 export { default as DataGrid } from './DataGrid.svelte';

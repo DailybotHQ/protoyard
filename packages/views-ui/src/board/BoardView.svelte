@@ -1,8 +1,8 @@
 <script lang="ts" generics="T">
 /**
  * Host adapter over `@texuli/data` `Board`: liveQuery `query`, optional open
- * handler, and service-friendly `onMove`. Presentation and drag math come from
- * Texuli; this file only bridges the Protoyard host contract.
+ * handler, and service-friendly `onMove`. Move-to menus (FIX-board-move-menu)
+ * ship inside Texuli Board when present — no extra host wiring beyond onMove.
  */
 import { runService } from '@protoyard/renderer-svelte';
 import type { BoardColumnDef, BoardLaneDef, BoardMove, MoveRules } from '@protoyard/views/board';
@@ -26,6 +26,9 @@ let {
   onRetry,
   label = 'Board',
   emptyColumnText = 'No cards',
+  density,
+  dir,
+  moveMenu,
   class: className,
 }: {
   query: { readonly current: T[] | undefined; readonly loading: boolean; readonly error: unknown };
@@ -43,12 +46,24 @@ let {
   onRetry?: () => unknown;
   label?: string;
   emptyColumnText?: string;
+  density?: 'comfortable' | 'compact';
+  dir?: 'ltr' | 'rtl' | 'auto';
+  /** When Texuli Board exposes moveMenu (FIX-board-move-menu), forward it. */
+  moveMenu?: boolean | Record<string, unknown>;
   class?: string;
 } = $props();
 
 async function persist(move: BoardMove, item: T): Promise<void> {
   await runService(() => onMove(move, item));
 }
+
+const boardExtras = $derived.by(() => {
+  const extra: Record<string, unknown> = {};
+  if (density !== undefined) extra.density = density;
+  if (dir !== undefined) extra.dir = dir;
+  if (moveMenu !== undefined) extra.moveMenu = moveMenu;
+  return extra;
+});
 </script>
 
 <div data-board={label}>
@@ -73,6 +88,7 @@ async function persist(move: BoardMove, item: T): Promise<void> {
         {canMove}
         class={className}
         labels={{ board: label, emptyCell: emptyColumnText }}
+        {...(boardExtras as object)}
       >
         {#snippet card(item, state)}
           {#if onOpen}
