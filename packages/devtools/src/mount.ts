@@ -1,4 +1,5 @@
 import type { PrototypeRuntime, Theme } from '@protoyard/core';
+import { enableTexuliAppearance } from '@protoyard/themes/texuli';
 import type { Component } from 'svelte';
 import { mount, unmount } from 'svelte';
 import Panel from './Panel.svelte';
@@ -39,6 +40,8 @@ export function mountDevtools(options: MountDevtoolsOptions): DevtoolsHandle {
   const host = options.target ?? document.body.appendChild(document.createElement('div'));
   host.classList.add('py-devtools');
   host.dataset.protoyardDevtools = '';
+  // Panel controls render Texuli components; keep --tx-* in sync with --py-*.
+  enableTexuliAppearance();
   // Svelte delegates `click` & co. to the element it mounts into and walks the
   // event path from there; it stops at the first `stopPropagation()`. The
   // isolation listeners must therefore sit on an ANCESTOR of the mount point:
