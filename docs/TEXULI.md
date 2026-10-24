@@ -38,8 +38,13 @@ Protoyard (`../texuli`):
   first. Its packages ship TypeScript and Svelte sources, which Protoyard's
   Vite and Vitest compile like workspace code. Svelte comes from Protoyard:
   the prototype config dedupes `svelte`.
-- **Packed packages never carry the links.** They are root dev dependencies
-  only, and `pnpm check:packages` refuses `link:` in any packed manifest.
+- **Packages that declare Texuli.** `themes`, `devtools`, `charts`,
+  `charts-ui`, `views`, `views-ui`, `blocks` and `blocks-ui` list their
+  `@texuli/*` (and `texuli`) dependencies as `link:` specifiers in their own
+  manifests. `pnpm check:packages` refuses `link:` in a packed manifest
+  (`LOCAL_DEPENDENCY`), so these packages cannot be packed for npm until
+  Texuli is published. `@protoyard/ui` imports Texuli through the root links
+  without declaring it.
 - **A worktree** (for example `tmp/lanes/<lane>`) needs `../texuli` to
   resolve from its own root. Point `tmp/lanes/texuli` at the Texuli checkout
   with a git-ignored symlink.
@@ -60,12 +65,16 @@ Protoyard (`../texuli`):
   `--tx-*` variables, and every `--py-*` name stays an alias with the same
   value. `toTexuliTheme` completes a Protoyard palette with the 16 roles
   Texuli adds.
-- **Prototypes are unchanged:** they keep `--py-*`, the built-ins, the
-  `protoyard.<namespace>.appearance` cache and the Violet default.
-- **Why opt-in and dynamic imports.** `@texuli/tokens` declares no
-  `sideEffects` and exposes no `css` or `contract` subpath. Its root barrel
-  re-exports the whole library, so any static import of it would ship the
-  library in every prototype's initial chunk.
+- **Prototypes keep their tokens:** `--py-*`, the built-ins, the
+  `protoyard.<namespace>.appearance` cache and the Violet default. The
+  renderer now calls `enableTexuliAppearance()` in `bindAppearance` (and
+  `mountDevtools` does too), so every prototype also gets the `--tx-*`
+  variables the re-exported Texuli components read.
+- **Why subpaths and dynamic imports.** `@texuli/tokens` declares
+  `sideEffects: ["**/*.css"]` and exposes `css`, `contract` and `library`
+  subpaths, which Protoyard imports. Its root barrel re-exports the whole
+  library, so a static import of the root would ship the library in every
+  prototype's initial chunk.
 
 
 ## Charts from `@texuli/charts`
@@ -372,7 +381,7 @@ Svelte entry, plus liveQuery/`runService` where the host API differs:
 | Subpath | Texuli source | Adapter notes |
 | --- | --- | --- |
 | `board` | `@texuli/data` `Board` | `query` → `items`, `onMove` via `runService`, optional `onOpen` |
-| `calendar` | `@texuli/data/calendar/view` | `query` → `events`; write `onChange`/`onCreate` not on Texuli yet |
+| `calendar` | `@texuli/data/calendar/view` | `query` → `events`; `onChange` and `onCreate` forwarded |
 | `timeline` | `@texuli/data/timeline` | `query` → `tasks`, `onReschedule` via `runService` |
 | `grid` | `@texuli/data/grid-core` | `query` → `rows`; host FilterBuilder/SavedViews toolkit kept |
 | `tree` | `@texuli/data/tree-view` | `query` → `items`; OutlineEditor stays host-only |

@@ -2,14 +2,27 @@
 
 Svelte 5 components for Protoyard's rich views kit (ADR-022): board, calendar,
 timeline, data grid, tree, simulated map, editor, activity, notifications,
-files, settings, states and an app command palette. They are built on
-`@protoyard/ui` tokens, and the engines live in
+files, settings, states and an app command palette. The engines live in
 [`@protoyard/views`](../views/README.md).
 
-> **Status:** all listed UI subpaths are implemented. Several smaller engine
-> subpaths currently reserve names without runtime helpers; see the [views kit guide](../../docs/VIEWS.md)
-> for the component selection guide, service contract, responsive behavior,
-> measured UI chunks and current limitations.
+**Where each view comes from (ADR-044):**
+
+- **Texuli adapters:** board, calendar, timeline, grid (`DataGrid`), tree
+  (`TreeView`), map, files and activity (`ActivityFeed`) render the matching
+  `@texuli/data` component. Each adapter maps a `liveQuery` result (`query`) to
+  the component's data prop, wraps it in `QueryState`, and runs mutation
+  callbacks through `runService`. `virtual-list` re-exports
+  `@texuli/data/virtual-list`.
+- **Protoyard components:** editor, notifications, settings, states,
+  commands, `CommentThread`, `OutlineEditor` and the grid toolkit
+  (`FilterBuilder`, `SavedViews`, `FilterChips`, `FacetPicker`,
+  `ColumnChooser`, `BulkActionBar`).
+
+Some adapters still accept props from the earlier Protoyard API that they do
+not forward; each section below lists them. The mapping table is in
+[TEXULI](../../docs/TEXULI.md#views-from-texulidata). The
+[views kit guide](../../docs/VIEWS.md) has the selection guide, service
+contract, measured chunks and limits.
 
 ## Install
 
@@ -45,8 +58,9 @@ view stays its own chunk and adds 0 KB to a prototype's initial JS:
 
 Subpaths: `./board`, `./calendar`, `./timeline`, `./grid`, `./tree`, `./map`,
 `./editor`, `./activity`, `./notifications`, `./files`, `./settings`,
-`./states`, `./commands`, `./scenarios`, `./player.css`, `./blocks.css` and `./styles.css`. Views are never
-re-exported from `@protoyard/ui`.
+`./states`, `./commands`, `./scenarios`, `./virtual-list`, `./player.css`,
+`./blocks.css` and `./styles.css`. Views are never re-exported from
+`@protoyard/ui`.
 
 Three stylesheets scan different sets of view families:
 
@@ -60,9 +74,10 @@ Three stylesheets scan different sets of view families:
 
 `tests/bundle-hygiene.test.ts` fails when:
 
-- a view imports another view's subpath or folder. Only `lib/` and
-  `states/` are shared, plus the edges declared in `DEPENDS`: `files` uses
-  `tree`, so the folder tree reuses the TreeView chunk;
+- a view statically imports another view's subpath or folder. Only `lib/`
+  and `states/` are shared, plus the edges declared in `DEPENDS` (`files` may
+  use `tree`; the files adapter does not use it today). Dynamic imports are
+  allowed, which is how the activity thread loads the editor;
 - any file imports `@protoyard/ui` dynamically, which would put the ui barrel
   in every initial chunk (see docs/PERFORMANCE.md, Shells);
 - a runtime value is imported from the `@protoyard/views` root instead of an
@@ -76,7 +91,9 @@ pnpm --filter @protoyard/views-ui typecheck
 
 ## Calendar (`@protoyard/views-ui/calendar`)
 
-`CalendarView` shows calendar series (with recurrence, from
+`CalendarView` is a host adapter over Texuli's `CalendarView`
+(`@texuli/data/calendar/view`, also exported here as `TexuliCalendarView`). It
+shows calendar series (with recurrence, from
 [`@protoyard/views/calendar`](../views/README.md#calendar-protoyardviewscalendar))
 as a month, week, day or agenda view. It never writes data itself: moves and
 new slots go out through `onChange` / `onCreate`, which call the prototype's
@@ -107,35 +124,36 @@ services.
 />
 ```
 
-- **Views:** month (6 × 7 with up to three events a day and a "+N more"
-  popover), week and day (a time grid that only draws the hours in view, with
-  an all-day row and a now-line), agenda (a grouped list; the default below
-  `sm`, and the most screen-reader-friendly). `view` and `anchor` are
-  bindable; M / W / D / A switch views.
-- **Time:** "now" comes from the runtime clock (`useClock`), so DevTools time
-  travel moves the now-line and today; pass `now` for a fixed time. Dates,
-  hours and the now-line follow `timeZone`; the week starts from `locale`.
-- **Keyboard:** arrows move a focus slot (a day in month and agenda, a
-  15-minute slot in week and day); Enter on a slot creates, Enter on an event
-  opens it. Space grabs an event: arrows move it (15 minutes up/down, a day
-  left/right; a week up/down in month), Shift + up/down changes its length,
-  Enter saves, Escape cancels. A live region describes each step.
-- **Pointer:** drag an event to move it (days across, 15-minute steps down) or
-  its bottom edge to resize; click an empty slot or a month day to create.
-- **Saving:** the event moves at once and shows as busy until the `onChange`
-  promise settles (run through `runService`, so the global bar and error
-  toasts apply); a failed save puts it back. A repeating event first asks
-  "This event / This and following events / All events" (ui `AlertDialog`);
-  `change.writes` is `splitSeries` output for that scope (`newId` names the
-  series a "following" edit creates).
-- **Read-only** without `onChange` (nothing to drag or grab); no create
-  without `onCreate`. An `onCreate` that only opens a form returns `false`, so
-  the view does not announce a creation the form has not made. Data states (loading, offline, denied, failed) come from
-  `QueryState`.
-- **Size** (Svelte 5 client output, esbuild minified, gzip -9, with svelte,
-  core, `@protoyard/ui`, the renderer, lucide, the overlay primitives and zod external;
-  2026-10-19): the view is 10.9 KB; with the calendar engine it imports, the
-  chunk is 14.6 KB. Lazy, 0 KB initial.
+**What the adapter adds:**
+
+- **Data:** `query` (a `liveQuery` of `CalendarSeries` rows) becomes Texuli's
+  `events`, inside `QueryState` for loading, offline, denied and failed states.
+- **Clock:** "now" comes from the runtime clock (`useClock`), so DevTools time
+  travel moves the now-line and today; pass `now` for a fixed time. The
+  visible range is seeded once from `anchor` or the clock; later clock jumps
+  leave it in place until the person picks Today.
+- **Series writes:** Texuli emits a move (`id`, `occurrenceId`, `start`,
+  `end`, `allDay`, `recurring`, `occurrence`). The adapter adds `scope` and
+  `writes` (from `splitSeries`) and calls `onChange` through `runService`.
+  A repeating occurrence always uses scope `this`; one-off events use `all`.
+  `newId` names any series the split creates.
+- **Forwarded props:** `view` and `anchor` (bindable), `timeZone`, `locale`,
+  `weekStartsOn`, `getTitle`, `getTone`, `onOpen`, `readOnly`, `canMove`,
+  `min`, `max`, `slotMinutes` and `showYear` (default `always` here).
+
+**What Texuli's view does** (see its docs for the full keyboard model):
+
+- **Views:** month, week, day (a time grid with an all-day row and a
+  now-line) and agenda. M / W / D / A switch views.
+- **Moving:** drag an event, press Alt or Control with an arrow key, or press
+  Space to grab it, move with the arrows and drop with Space or Enter. Shift+F10
+  or a right-click opens a lazy Move menu. The agenda view does not move
+  events.
+- **Creating:** with `onCreate`, Enter on a focused empty slot or a click on an
+  empty part of a day creates a one-hour event; date buttons create all-day
+  ones.
+- **Limits:** events cannot be resized, and there is no "this / following /
+  all" prompt for repeating events.
 
 ```bash
 pnpm vitest run packages/views-ui/tests/calendar.test.ts
@@ -143,15 +161,14 @@ pnpm vitest run packages/views-ui/tests/calendar.test.ts
 
 ## Map (`@protoyard/views-ui/map`)
 
-`SimulatedMap` draws the offline engine from
-[`@protoyard/views/map`](../views/README.md#map-protoyardviewsmap): a fictional
-basemap (Port Meridian by default) as SVG, with markers, clusters, routes and
-geofences. No tiles, no network, no real geography; the chip "Simulated map.
-Fictional city, not real geography." is always visible.
+`SimulatedMap` is a host adapter over Texuli's `MapView` (`@texuli/data/map`).
+It draws a fictional basemap (Port Meridian by default) as SVG, with markers,
+clusters, routes and geofences, from the offline engine in
+[`@protoyard/views/map`](../views/README.md#map-protoyardviewsmap). No tiles,
+no network, no real geography.
 
 ```svelte
 <script lang="ts">
-  import { runService } from '@protoyard/renderer-svelte';
   import { type MapMarker, SimulatedMap } from '@protoyard/views-ui/map';
 
   let selected = $state<string | null>(null);
@@ -165,49 +182,37 @@ Fictional city, not real geography." is always visible.
   {markers}
   routes={[{ id: 'loop', label: 'Morning loop', stops, progress: done / total }]}
   fences={zones}
-  editableFenceId="yard"
-  onFenceChange={(fence) => services.updateZone(fence)}
+  listLabel="Vans on the map"
   bind:selected
 />
 ```
 
-- **Moving:** drag to pan, wheel or pinch to zoom at the pointer, or the
-  zoom-in, zoom-out and "show everything" buttons. On the focused map, the
-  arrow keys pan, + and − zoom, 0 shows everything and Escape clears the
-  selection. `view` (center and zoom) is bindable.
-- **Markers** are buttons named by `label` and `detail`, drawn with a shape,
-  a glyph and a tone (never color alone). Nearby markers cluster
-  (`cellPx`); activating a cluster zooms to its members. `selected` is
-  bindable and `onSelect` reports changes.
-- **List alternative:** every marker is also in a list under the map. Picking
-  a list row selects the marker and centers the map on it, and selecting on
-  the map marks the row (`aria-current`). The list is virtualized with the
-  grid's axis (`createAxis`/`windowAxis`, 32 px rows, at most 224 px tall), so
-  5,000 markers render about 13 rows instead of 5,000 buttons. Each row keeps
-  `aria-setsize`/`aria-posinset`. The list is one tab stop: ArrowUp/Down,
-  Home, End and PageUp/PageDown move focus through every marker and scroll as
-  needed, and a marker picked on the map becomes the list's tab stop. In
-  Chromium (M1 Max, ui-kit build) the map with 5,000 markers paints 22–30 ms
-  after loading them; the list alone took 174–198 ms before virtualization
-  (`tests/e2e/views.spec.ts` asserts under 100 ms).
-- **Moving markers and routes:** positions come from props only. The
-  prototype advances them through its services and the runtime clock (for
-  example `pointAlong` on a route by simulated time), and the map animates the
-  change with CSS (off under `prefers-reduced-motion`); it never runs timers
-  that write data. Routes draw the remaining part dashed, the travelled part
-  solid, and the current position from `progress` (0–1).
-- **Geofences:** polygons and circles. With `editableFenceId` and
-  `onFenceChange`, a polygon gets draggable corner handles and a corner list
-  (latitude, longitude, add, remove) for the keyboard. Save is enabled only
-  for a valid ring (three corners, in range, no crossing edges) and runs
-  `onFenceChange` through `runService` (pending button, error toast; a
-  failure keeps the draft). Reset drops the draft.
-- **Size** (Svelte 5 client output, esbuild minified, gzip -9, with svelte,
-  core, `@protoyard/ui`, the renderer, lucide, the overlay primitives and zod external;
-  2026-10-19): the view is 6.4 KB; with the map engine and the Port Meridian
-  basemap the chunk is 9.0 KB. Lazy, 0 KB initial. 5,000 markers draw as 25
-  map buttons (clusters); in happy-dom the whole render took 647 ms, most of
-  it the 5,000-row list.
+**What the adapter maps:**
+
+- **Markers and routes:** Protoyard tones pass through as Texuli's strong
+  tones; the `triangle` shape becomes Texuli's `pin`.
+- **Selection:** `selected` (`string | null`) and `selectedId` are both
+  bindable and kept in step; `onSelect` receives the Protoyard marker.
+- **List:** the place list sits below the map by default
+  (`listPlacement="below"`; Texuli's default is `side`), and its region is
+  named by `listLabel`.
+- **Forwarded props:** `fences`, `basemap`, `label`, `direction`, `cellPx`
+  (cluster cell size; `1` keeps nearby markers separate) and `onPick`.
+
+**What Texuli's view does:**
+
+- **Moving:** zoom in, zoom out, reset and pan buttons. On the focused map,
+  the arrow keys pan, + and − zoom and 0 resets. With `onPick`, a click
+  without dragging, or Enter or Space on the focused map, reports a point.
+- **Markers** are named by `label` and `detail`, and drawn with a shape, a
+  glyph and a tone (never color alone). Nearby markers cluster; activating a
+  cluster zooms in.
+- **Place list:** a virtualized list of every marker, route and fence, with
+  `aria-setsize`/`aria-posinset` and `aria-current` on the selected place.
+- **Positions** come from props only. The prototype advances them through its
+  services and the runtime clock; the map runs no timers that write data.
+- **Geofence editing is not implemented.** `editableFenceId` and
+  `onFenceChange` are accepted and forwarded, but no handles are drawn.
 
 ```bash
 pnpm vitest run packages/views-ui/tests/map.test.ts
@@ -273,12 +278,8 @@ its own settings page, build it from these patterns on top of the same
 <SaveBar {dirty} bind:errors onSave={save} onDiscard={() => (draft = { ...saved })} />
 ```
 
-- **Size** (Svelte 5 client output, esbuild minified, gzip -9, with `svelte`,
-  `@protoyard/ui`, the renderer, lucide and the overlay primitives external because
-  prototypes already load them; 2026-10-19): all of `./settings` is 5.2 KB;
-  per component SettingsLayout 1.7, SaveBar 1.7, DangerZone 1.3, each row or
-  SettingsSection about 0.6, the guard 0.4. A typical screen (layout, a
-  section, the save bar, a few rows) is about 4.5 KB. Lazy, 0 KB initial.
+- **Loading:** import `./settings` from a lazy route; it adds nothing to the
+  initial JavaScript of routes that do not use it.
 
 ## States (`@protoyard/views-ui/states`)
 
@@ -315,9 +316,8 @@ data-less states.
   duplicated core copy breaks `instanceof` (the renderer's `runService` does
   the same).
 - `onRetry` should re-run the query, e.g. by bumping a value in its `deps`.
-- **Size** (Svelte 5 client output, esbuild minified, gzip -9, with svelte,
-  core, `@protoyard/ui`, the renderer and lucide external): 1.4 KB, small
-  enough for route screens to import statically.
+- Every adapter in this package uses it for its own data-less states, so it
+  ships with any view you import.
 
 ## Commands (`@protoyard/views-ui/commands`)
 
@@ -396,10 +396,7 @@ contracts are also available from `@protoyard/views/commands`.
 <ShortcutSheet {bindings} activeScopes={['editor']} />
 ```
 
-- **Size** (last measured 2026-10-19, before async search and nested steps):
-  the static listener component was 0.8 KB plus a 0.3 KB shared platform
-  helper; `createCommands` was 1.2 KB; the dialog was a separate 2.4 KB chunk
-  fetched on first open. The extended command engine has not been remeasured.
+- **Loading:** the palette dialog is a separate chunk fetched on first open.
 
 ## Editor (`@protoyard/views-ui/editor`)
 
@@ -468,23 +465,23 @@ functions of `@protoyard/views/editor`. Values leave through typed callbacks
   and a counter, and a command that would pass it is refused with a polite
   announcement. `onDraft` runs after typing pauses (`draftDelayMs`, default
   800 ms), on blur and on unmount.
-- **Size** (Svelte 5 client output, esbuild minified with code splitting,
-  gzip -9; svelte, core, ui, renderer, lucide and the overlay primitives external;
-  2026-10-19): the editor chunk is 6.0 KB; the preview and the shared parser
-  load as a separate 4.5 KB chunk on the first preview (at once in `split`).
-  Slash and `RichTextView` stay in the same lazy `./editor` subpath.
+- **Size:** the real-build guard measured the editor at 8,187 B gzip over the
+  shell on 2026-10-24 (ceiling 8,597 B; see
+  [docs/VIEWS.md](../../docs/VIEWS.md#bundle-measurements)). Slash and
+  `RichTextView` stay in the same lazy `./editor` subpath.
 - **Limits:** toolbar commands set the textarea value directly, so the
   browser's undo history does not include them.
 
 ## Board (`@protoyard/views-ui/board`)
 
-`BoardView` is the rich kanban, on the `@protoyard/views/board` engine. The
-simple `Kanban` in `@protoyard/ui` is unchanged; use it for small boards
-without ranks, lanes or WIP limits.
+`BoardView` is the rich kanban: a host adapter over Texuli's `Board`
+(`@texuli/data/board`, also exported here with its helpers), on the
+`@protoyard/views/board` engine. The simple `Kanban` in `@protoyard/ui` is
+unchanged; use it for small boards without ranks, lanes or WIP limits.
 
 ```svelte
 <script lang="ts">
-  import { liveQuery, runService } from '@protoyard/renderer-svelte';
+  import { liveQuery } from '@protoyard/renderer-svelte';
   import { BoardView } from '@protoyard/views-ui/board';
 
   const tasks = liveQuery(() => services.listTasks(), { initial: [], deps: () => [] });
@@ -504,74 +501,79 @@ without ranks, lanes or WIP limits.
   onMove={(move) => services.moveTask(move)}
   onOpen={(t) => navigate(`/tasks/${t.id}`)}
 >
-  {#snippet card(task, { pending })}<span class="font-medium">{task.title}</span>{/snippet}
+  {#snippet card(task)}<span class="font-medium">{task.title}</span>{/snippet}
 </BoardView>
 ```
 
-- **Moves** go through `onMove(move, item)`: the service writes the column,
-  lane and rank (and `move.rerank`, when older data needed fresh ranks) in one
-  transaction and must enforce hard WIP limits too. The card moves at once,
-  shows a spinner and `aria-busy` until the promise settles, and goes back
-  (with an announcement and `runService`'s toast) when it fails.
-- **Pointer drag:** mouse and pen drag from anywhere on the card after 4 px
-  (a click still opens it), with a placeholder at the drop position and
-  auto-scroll near the board's edges. On touch, drag from the grip, so a swipe
-  still scrolls the board. A drop the rules reject shows a toast and the
-  reason.
-- **Keyboard:** each card is a focusable control whose description explains
-  the keys: Space picks it up, the arrows move it (Shift + Up/Down changes
-  lane), Space drops, Escape cancels, Enter opens. The held card previews
-  where it would land, and every step is announced.
-- **"Move to…" menu** on each card: columns and lanes, with full or
-  disallowed targets disabled.
-- **WIP:** each column shows `count / limit` with warn and full styling; a
-  full column refuses drops.
-- **Lanes** collapse and expand like an accordion. **Phones:** one column per
-  screen with snap scrolling. Motion only with `motion-safe`.
-- **States:** loading, errors (with `onRetry`) and offline come from
-  `QueryState`; an empty column says "No cards".
-- **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
-  ui, renderer, lucide, the overlay primitives and zod external; 2026-10-19): 9.3 KB with
-  the board engine (6.6 KB component, 3.1 KB engine).
+**What the adapter adds:**
+
+- **Data:** `query` becomes Texuli's `items`, inside `QueryState` (loading,
+  errors with `onRetry`, offline).
+- **Moves:** `onMove(move, item)` runs through `runService`. The service
+  writes the column, lane and rank (and `move.rerank`, when older data needed
+  fresh ranks) in one transaction and must enforce hard WIP limits too.
+- **Opening:** with `onOpen`, the card content becomes a button that opens
+  the card without starting a drag.
+- **Labels:** `label` names the board and `emptyColumnText` (default "No
+  cards") fills empty cells; `labels` overrides any other Texuli label.
+- **Forwarded props:** `columns`, `lanes`, the accessors, `canMove`,
+  `isLocked`, `density`, `dir` and `class`.
+
+**What Texuli's board does:**
+
+- **Keyboard:** focus a card, press Space or Enter to pick it up, choose a
+  position with the arrows (Shift + Up/Down changes lane), and press Space or
+  Enter to drop. Escape cancels. Every step is announced.
+- **Move menu:** each card has a lazy "Move" menu listing columns and
+  positions.
+- **Pointer drag** starts after a small threshold (`DRAG_THRESHOLD_PX`), so a
+  click still works.
+- **WIP:** each column shows its count against the hard limit, with warn and
+  full styling.
+- **Motion** only without `prefers-reduced-motion`.
+
+```bash
+pnpm vitest run packages/views-ui/tests/board.test.ts
+```
 
 ## Timeline (`@protoyard/views-ui/timeline`)
 
-`TimelineView` renders a virtualized Gantt plan, dependency links, critical
-path, progress and a runtime-clock today line. It accepts schedule task rows
-and dependencies from `@protoyard/views/timeline`:
+`TimelineView` is a host adapter over Texuli's `TimelineView`
+(`@texuli/data/timeline`, also exported here as `TexuliTimelineView`). Texuli
+renders a Gantt plan with dependency links, critical path, progress, zoom and
+a today line. It takes schedule task rows and dependencies from
+`@protoyard/views/timeline`:
 
 ```svelte
 <TimelineView
   query={tasks}
-  dependencies={dependencies}
+  {dependencies}
   bind:zoom
   now={runtime.clock.now()}
   getTitle={(task) => task.title}
   getProgress={(task) => task.progress}
   onReschedule={(changes) => services.rescheduleTasks(changes)}
-  onOpen={(task) => navigate(`/tasks/${task.id}`)}
 />
 ```
 
-`onReschedule` receives every date change produced by the dependency cascade;
-persist the full list in one service transaction and validate permissions and
-dependency rules there. Without the callback the timeline is read-only. A
-failed save restores the original dates and announces the failure.
+`onReschedule` receives every date change produced by the dependency cascade,
+through `runService`; persist the full list in one service transaction and
+validate permissions and dependency rules there. Without the callback the
+timeline is read-only.
 
-- **Zoom:** bindable `zoom` accepts `day`, `week`, `month` or `quarter`. The
-  timeline's date canvas scrolls horizontally; rows are windowed vertically.
+- **Data:** `query` becomes Texuli's `tasks`, inside `QueryState` (pass
+  `onRetry` for an actionable retry).
+- **Clock:** pass `now`, or `runtime` to follow the runtime clock.
+- **Zoom:** bindable `zoom` accepts `day`, `week`, `month` or `quarter`.
 - **Keyboard:** Tab reaches each task bar. Space picks up a task; ←/→ changes
-  its dates one day at a time; Shift+Space picks up its end for resizing; Enter
-  saves the preview and Escape cancels it. A live region announces previews
-  and results.
-- **Pointer:** drag a bar to move it or drag either end to resize it. The
-  preview includes successor dates from the cascade and dependency links.
-- **Phones:** the date canvas is hidden and each row shows a compact schedule
-  bar with task dates; zoom controls stay visible.
-- **States:** loading, empty, denied, offline and error are rendered through
-  `QueryState`; pass `onRetry` for an actionable retry.
-- **Size:** the isolated Vite shell build is 8,458 B gzip, under the 9,100 B
-  guard ceiling (see [docs/VIEWS.md](../../docs/VIEWS.md#bundle-measurements)).
+  its dates one day at a time; Shift+Space picks up its end for resizing;
+  Enter saves and Escape cancels. A live region announces previews.
+- **Pointer:** drag a bar to move it or drag its ends to resize it.
+- **Texuli extras:** a "Milestones only" toggle and an unscheduled tray for
+  tasks without dates.
+- **Not forwarded yet:** the adapter accepts `getGroup`, `maxRows` and
+  `onOpen` but does not pass them on. Rows are not grouped, Texuli's default
+  limit of 500 rows applies, and items in the unscheduled tray do not open.
 
 ```bash
 pnpm vitest run packages/views-ui/tests/timeline.test.ts
@@ -579,9 +581,12 @@ pnpm vitest run packages/views-ui/tests/timeline.test.ts
 
 ## Tree (`@protoyard/views-ui/tree`)
 
-`TreeView` (page trees, folders, org charts) and `OutlineEditor` (an outline
-of inline titles), on the `@protoyard/views/tree` engine over
-`{ id, parentId, rank }` rows.
+Two components over `{ id, parentId, rank }` rows and the
+`@protoyard/views/tree` engine:
+
+- `TreeView` (page trees, folders, org charts) is a host adapter over Texuli's
+  `TreeDataView` (`@texuli/data/tree-view`, also exported here).
+- `OutlineEditor` (an outline of inline titles) is a Protoyard component.
 
 ```svelte
 <TreeView
@@ -601,37 +606,45 @@ of inline titles), on the `@protoyard/views/tree` engine over
 />
 ```
 
-- **TreeView** is an ARIA tree with roving focus:
-  - ↑/↓, Home and End move; → opens a node or goes to its first child; ←
-    closes it or goes to its parent; `*` opens all siblings; typing jumps by
-    label; Enter or Space selects. Rows carry `aria-level`, `aria-posinset`,
-    `aria-setsize` and `aria-expanded`.
-  - **Lazy children:** pass `hasChildren` and `loadChildren`; opening such a
-    node loads once, with `aria-busy` while loading.
-  - Above 500 rows (`virtualizeAbove`) it renders only the visible window, in
-    a fixed `height`, and scrolls a focused row into view.
+- **TreeView adapter:**
+  - `query` becomes Texuli's `items`, inside `QueryState`.
+  - `selected` stays a single id (`string | null`); Texuli's row checkboxes
+    are multi-select, and the adapter keeps the first selected id and calls
+    `onSelect` with its row.
+  - `onMove` runs through `runService`. `expanded` (bindable), `hasChildren`,
+    `loadChildren` and the `item` snippet are forwarded.
+  - **Not forwarded yet:** `onOpen`, `emptyTitle`, `height`,
+    `virtualizeAbove` and `rowHeight` are accepted and ignored.
+- **TreeView keyboard (Texuli):** arrows move focus; Left and Right collapse
+  or expand; Space toggles the row checkbox; Alt+Up/Down reorders among
+  siblings; Tab indents and Shift+Tab outdents. Rows also move by dragging the
+  grip. Moves and load errors are announced.
 - **OutlineEditor:** Enter adds a sibling (focus follows the new item when
   `onCreate` resolves with its id), Tab and Shift+Tab indent and outdent,
   Alt+↑/↓ move among siblings, ↑/↓ change item, Escape reverts an edit,
   Backspace on an empty item deletes it (with `onDelete`). Titles save on
-  blur or Enter and go back to the saved title if saving fails.
-- **Moving** (both): drag a row (on touch, from the grip) and drop it before,
-  inside or after another, or open **"Move to…"** with Shift+F10 (or the
-  context-menu key), which lists only valid parents. A node can never move
-  into its own subtree. Moves go through `onMove`, show at once with
-  `aria-busy`, open the new parent so the node stays visible, and roll back
-  when they fail. `move.rerank` carries fresh sibling ranks when older data
-  needed them.
-- **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
-  ui, renderer, lucide, the overlay primitives and zod external; 2026-10-19): `TreeView`
-  8.2 KB and `OutlineEditor` 7.3 KB, each including the tree engine, ranks
-  and (for TreeView) the virtualizer; 10.7 KB for the whole subpath.
+  blur or Enter and go back to the saved title if saving fails. Rows drag
+  from a grip, and a "Move to…" menu lists only valid parents. Moves show at
+  once with `aria-busy` and roll back when they fail.
+
+```bash
+pnpm vitest run packages/views-ui/tests/tree.test.ts
+```
 
 ## Grid (`@protoyard/views-ui/grid`)
 
-`DataGrid` (tables of records), `FilterBuilder`, `SavedViews`,
-`FilterChips`, `FacetPicker`, `ColumnChooser` and `BulkActionBar`, on the
-`@protoyard/views/grid` engine.
+`DataGrid` (tables of records) is a host adapter over Texuli's grid modules,
+on the `@protoyard/views/grid` engine. It picks one of three Texuli
+components:
+
+| When | Texuli component |
+| --- | --- |
+| `onCommit` is set | `EditableDataGrid` (`@texuli/data/grid-editing`) |
+| no `onCommit` and more rows than `virtualizeAbove` (default 200) | `VirtualDataGrid` (`@texuli/data/grid-virtual`) |
+| otherwise | `DataGrid` (`@texuli/data/grid-core`) |
+
+The three are also exported directly (`TexuliDataGrid`, `EditableDataGrid`,
+`VirtualDataGrid`), with `CellEditor` and `createUndoStack`.
 
 ```svelte
 <DataGrid
@@ -641,106 +654,74 @@ of inline titles), on the `@protoyard/views/tree` engine over
     { key: 'stage', header: 'Stage', type: 'enum', options: ['lead', 'won', 'lost'], editable: true },
     { key: 'amountCents', header: 'Amount', type: 'number', format: (v) => money(v) },
   ]}
-  bind:view onViewChange={(v) => services.saveGridState(v)}
-  aggregates={[{ fn: 'sum', key: 'amountCents' }]}
   onCommit={(deal, key, value) => services.updateDeal(deal.id, { [key]: value })}
-  savedViews={views.current ?? []} bind:activeViewId
-  onCreateView={(name, v) => services.createView({ name, ...v })}
-  onRenameView={(v, name) => services.renameView(v.id, name)}
-  onDeleteView={(v) => services.deleteView(v.id)}
-  onUpdateView={(v, state) => services.updateView(v.id, state)}
-  facets={['stage']}
-  bulkActions={[
-    { id: 'won', label: 'Mark won', run: (rows) => services.markWon(rows.map((d) => d.id)) },
-    { id: 'delete', label: 'Delete', destructive: true, confirm: {}, run: (rows) => services.deleteDeals(rows.map((d) => d.id)) },
-  ]}
-  bind:selection
   onRowOpen={(deal) => navigate(`/deals/${deal.id}`)}
 />
 ```
 
-- **ARIA grid with roving focus:** one tab stop. The arrows move, Home/End
-  go to the row's first or last cell, Ctrl+Home/End to the first or last
-  cell, and PageUp/PageDown move by a page. The target is scrolled into view
-  and the grid carries `aria-rowcount` and `aria-colcount`.
-- **Virtualized both ways:** only the visible rows and center columns are in
-  the DOM, under a sticky header, with pinned columns sticky on either side.
-  A 1,000-row test renders at most 60 rows. A full-height grid on a 1080p
-  screen needs about 30 at the default density: about 25 visible rows plus
-  overscan. Density (compact, comfortable, spacious) sets
-  the row height.
-- **Columns:**
-  - Click a header to sort (asc → desc → off). Shift+click adds a sort key.
-  - Each header has a menu: sort, pin left or right, move, group by, hide.
-    The **Columns** menu shows hidden ones again.
-  - Resize by dragging the edge, or with ←/→ on the focused handle (±16 px).
-  - Reorder by dragging a header, or with Alt+Shift+←/→ on its button.
-- **Groups:** `view.groupBy` makes group rows with counts and your
-  `aggregates` (count, sum, min, max). Enter, Space or a click opens or
-  closes a group.
-- **Inline edit:** Enter or F2 on an `editable` cell opens an editor by
-  type:
-  - text and number: an input
-  - date: `input type=date`
-  - enum: a native `<select>`
-  - boolean: a native checkbox switch
+- **Data:** `query` becomes `rows`, inside `QueryState`. `label` (or
+  `caption`) names the grid.
+- **Core grid** (read-only, few rows): `sort` and `search` (bindable),
+  `searchable`, `filter` (a `FilterNode`), `selectable` with bindable
+  `selected`, `onRowActivate` (or `onRowOpen`), a `cell` snippet, `empty`,
+  `density`, `locale` and `maxBlockSize` (or `height`). One tab stop with the
+  APG grid keys: arrows, Home/End, Ctrl/Cmd+Home/End, PageUp/PageDown;
+  Enter or Space on a header sorts and Shift adds a key; Space toggles a row.
+- **Editing:** Enter or F2 (or a double-click) on an `editable` cell opens a
+  native editor; Enter saves and Escape cancels. The adapter awaits
+  `onCommit`; a failed commit keeps the old value and shows an alert under the
+  cell. Undo and redo need `onApply` too. In this mode `searchable`,
+  `selectable` and `density` are forwarded, but `sort`, `filter`, `cell` and
+  row activation are not.
+- **Virtual:** the rows are windowed (`rowHeight`, default 36 px; `height`
+  in `px` sets the viewport, else 360 px). Cells show formatted text only, with
+  no sorting, filter, selection or editing.
+- **Phones:** below `md`, the same rows show as cards: the first column is the
+  title and the next four are details, 50 cards at a time with **Show more**.
+- **Not forwarded:** `savedViews`, `aggregates`, `activeViewId`,
+  `onCreateView`, `onRenameView`, `onDeleteView` and `onViewChange` are
+  accepted and ignored. There is no grouping, column resizing, reordering or
+  pinning UI.
 
-  The editor (`CellEditor`) loads with the first edit, so read-only grids
-  never download it. Enter or blur commits, and Escape cancels. The commit goes through
-  `onCommit` in `runService`. The cell shows the new value with a spinner
-  and `aria-busy` until the promise settles. If it rejects, the cell goes
-  back to the saved value and shows the reason: the field's zod issue or the
-  error message, set with `aria-invalid` and announced.
-- **Filters:** `FilterBuilder` edits the engine's filter AST as nested
-  and/or fieldsets. Every control is labelled, add and remove buttons are
-  named, and the operators match each column type. While a condition has no
-  value yet, the grid applies the rest and says so (`completeFilter`). A
-  filter the engine rejects is not applied, and its message is shown.
-- **Quick filters and chips:** `facets` lists column keys that get a
-  `FacetPicker` in the row under the toolbar. It is a keyboard-first
-  multi-select (↓ opens; arrows, Home/End, Enter or Space toggle; typing
-  searches; Escape closes and returns focus). Picks are OR within the column
-  and AND with everything else. `FilterChips` shows every top-level condition
-  as a removable chip ("Stage is any of lead or won"), with "Clear all". All
-  three editors change the same `view.filter`.
-- **Saved views:** `SavedViews` picks, saves, renames and deletes through
-  your callbacks, with pending feedback and a confirm step before deleting.
-  Applying a view runs `sanitizeView`, which drops columns that no longer
-  exist and announces the drop. With `current` (DataGrid passes its view)
-  and `onUpdate` (`onUpdateView` on DataGrid), a changed view shows
-  "Modified", **Save changes** and **Revert**. Equivalent filters built in
-  another order do not count as a change (`isViewModified`).
-- **Selection and bulk actions:** `bulkActions` adds a sticky checkbox column
-  (the header box selects the shown rows, and Shift+click selects a range).
-  Space on any cell selects the row, and Shift+Space extends from the last
-  one. Rows carry `aria-selected`, and phone cards get a checkbox.
-  `selection` is the bindable list of ids in row order; rows that disappear
-  leave it. `BulkActionBar` runs each `BulkAction` through `runService`
-  (pending, a `confirm` step for destructive actions, and the selection
-  clears on success unless `keepSelection`). The checkboxes, chips, pickers
-  and bar are lazy chunks loaded only when a grid uses them.
-- **Standalone pieces:** `FilterChips`, `FacetPicker`, `ColumnChooser` (a
-  checkbox per column, move up/down, Show all, Reset; the last visible
-  column cannot be hidden) and `BulkActionBar` are controlled components with
-  typed `onchange`/`run` callbacks, for lists that are not a `DataGrid`.
-- **View state:** `view` is plain data (columns, sort, groupBy, filter,
-  density). Bind it, or persist it from `onViewChange`.
-- **Phones:** below `md` the same rows show as cards, under the same
-  toolbar (saved views, filters, density). The first visible column is the
-  title and the next four are details, 50 cards at a time with **Show
-  more**.
-- **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
-  ui, renderer, lucide, the overlay primitives and zod external; 2026-10-19, before the
-  filter, saved-view and bulk-action toolkit; not re-measured with this
-  method): 13.9 KB for the subpath's components, or 17.8 KB with the grid
-  engine bundled in (about 4 KB of that is the engine). The real-build guard
-  measured the grid's first screen at 21,859 B on 2026-10-21 (19,300 B
-  before the toolkit); see [PERFORMANCE](../../docs/PERFORMANCE.md#grid-toolkit-2026-10-21).
+### Grid toolkit
+
+These Protoyard components are exported on their own and are not drawn by
+`DataGrid`. Each is controlled, edits plain engine state and calls typed
+callbacks:
+
+- **`FilterBuilder`** edits the engine's filter AST as nested and/or
+  fieldsets (`value` bindable, `onchange`). Every control is labelled and the
+  operators match each column type. `completeFilter` drops conditions that
+  have no value yet.
+- **`FacetPicker`**: a keyboard-first multi-select for one column (arrows,
+  Home/End, Enter or Space toggle; typing searches; Escape closes).
+  Picks are OR within the column and AND with everything else.
+- **`FilterChips`** shows every top-level condition as a removable chip, with
+  "Clear all".
+- **`SavedViews`** picks, saves, renames and deletes views through your
+  callbacks, with pending feedback and a confirm step before deleting. With
+  `current` and `onUpdate`, a changed view shows "Modified", **Save
+  changes** and **Revert**.
+- **`ColumnChooser`**: a checkbox per column, move up and down, Show all and
+  Reset; the last visible column cannot be hidden.
+- **`BulkActionBar`** runs each `BulkAction` through `runService` (pending, a
+  `confirm` step for destructive actions, and the selection clears on success
+  unless `keepSelection`).
+
+Pass the filter they build to `DataGrid`'s `filter` prop, which only the core
+grid applies.
+
+```bash
+pnpm vitest run packages/views-ui/tests/grid.test.ts
+```
 
 ## Activity (`@protoyard/views-ui/activity`)
 
-`CommentThread` and `ActivityFeed`, on the `@protoyard/views/activity`
-engine.
+Two components on the `@protoyard/views/activity` engine:
+
+- `ActivityFeed` is a host adapter over Texuli's `ActivityFeed`
+  (`@texuli/data/activity`, also exported here as `TexuliActivityFeed`).
+- `CommentThread` is a Protoyard component.
 
 ```svelte
 <CommentThread
@@ -753,28 +734,38 @@ engine.
   onReact={(c, emoji) => services.toggleReaction(c.id, emoji)}
 />
 
-<ActivityFeed
-  query={activity} people={personas} now={runtime.clock.now()}
-  onOpenRecord={(item) => navigate(`/deals/${item.recordId}`)}
-/>
+<ActivityFeed query={activity} people={personas} now={runtime.clock.now()} />
 ```
 
 Build `activity` from blueprint audit rows with `auditToActivity` (and
 comments as `kind: 'comment'` items with their `body`).
 
+- **ActivityFeed adapter:**
+  - `query` becomes Texuli's `items`, inside `QueryState`.
+  - Actor names and images come from `people` (`name`, `avatar`) unless you
+    pass `getActorName` / `getActorSrc`.
+  - Forwarded: `now`, `timeZone`, `locale`, `personaId`, `filter`,
+    `onFilterChange` and `onReactionToggle`.
+  - Texuli groups items under day headings relative to `now` and pages them
+    locally. Keys: arrows, Home/End and Enter.
+  - **Not forwarded yet:** `records`, and any other prop (such as
+    `onOpenRecord`, `pageSize`, `hasMore` or `onLoadMore`), is accepted and
+    ignored. Kind filter chips are off.
 - **CommentThread:**
   - **Threads:** root comments are shown oldest first, each with one level
     of replies. A comment that was deleted but still has replies shows as a
     note.
   - **Names and avatars:** names, avatars and `#` references are resolved
-    from ids when shown. Stored bodies use the editor view's lazy
-    `MarkdownPreview`; rendering creates elements and text, never HTML.
+    from ids when shown. A person's `avatar` (a library id such as `av-001`,
+    an `https://` URL or a root-relative path) shows through the renderer's
+    `avatarImage`; `avatarSrc` overrides it. Missing or unsafe images show
+    initials. Stored bodies use the editor view's lazy `MarkdownPreview`;
+    rendering creates elements and text, never HTML.
   - **Composer:** `@` and `#` typed in the composer are stored as id tokens.
     Saving a comment, a reply or an edit goes through the callback in
     `runService`. A new comment shows at once as "Sending…" (with
     `aria-busy`) until the promise settles. If saving fails, the draft comes
-    back and the reason (the zod issue for `body`, or the error message) is
-    announced.
+    back and the reason is announced.
   - **Edit and delete:** both appear only where `canEdit(comment)` says so
     (default: your own); the service still enforces policy. Delete asks
     first, and the dialog stays open with the error if deleting fails.
@@ -785,24 +776,10 @@ comments as `kind: 'comment'` items with their `body`).
     a separate chunk; activity has no static dependency on another view.
     While it loads, a plain textarea is used: ⌘/Ctrl+Enter
     sends, and Escape cancels a reply or an edit.
-- **ActivityFeed:**
-  - **Items:** newest first, under day headings ("Today", "Yesterday",
-    weekday, date) relative to `now` in `timeZone`. Every item is plain text:
-    the actor, the change lines or a comment excerpt with names, and an
-    optional record link.
-  - **Filters:** by kind (all activity, comments, changes) and by person.
-  - **Paging:** `pageSize` items at a time with **Show more**. On the last
-    page, `hasMore` with `onLoadMore` adds a **Load older activity** button.
-- **Avatars:** a person's `avatar` (a library id such as `av-001`, an
-  `https://` URL or a root-relative path) shows as a photo through the
-  renderer's `avatarImage` (64 px, 128 px at 2x, lazy). `avatarSrc` overrides
-  the resolution when given. Missing, unsafe or broken images show initials.
-- **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
-  ui, renderer, lucide, the overlay primitives and zod external; 2026-10-19):
-  - `CommentThread`: 7.9 KB with the engine, 6.4 KB without.
-  - `ActivityFeed`: 5.5 KB with the engine, 4.5 KB without.
-  - The whole subpath: 9.7 KB.
-  - The editor, when loaded, is its own chunk.
+
+```bash
+pnpm vitest run packages/views-ui/tests/activity.test.ts
+```
 
 ## Notifications (`@protoyard/views-ui/notifications`)
 
@@ -833,9 +810,8 @@ the default route is `/<subjectId>`.
 Pass `onMuteChange` when the prototype has a per-type preference service; its
 callback receives the notification kind and the requested muted state.
 
-- **Size:** 3.24 KB gzip-9 for the minified Svelte client component, with
-  Svelte, Protoyard packages, Lucide and the overlay primitives external. Import this subpath
-  from a lazy route so the panel stays out of initial JavaScript.
+- **Loading:** import this subpath from a lazy route so the panel stays out of
+  initial JavaScript.
 
 Replace the `<NotificationsBell>` instance with `NotificationCenter`, move its
 existing bell button markup into the `trigger` snippet, and pass the prototype's
@@ -846,67 +822,39 @@ template demonstrates this with actor filtering and recipient-scoped reads.
 
 ## Files (`@protoyard/views-ui/files`)
 
-`FileManager` (drive, CMS, DAM and attachment screens) and `FilePreview`, on
-the `@protoyard/views/files` engine over flat
-`{ id, parentId, name, kind: 'folder' | 'file', type?, size?, updatedAt?, hasBlob? }`
-rows.
+`FileManager` is a host adapter over Texuli's `FileBrowser`
+(`@texuli/data/files`, also exported here; `FilePreview` is a deprecated alias
+of `FileBrowser`). It reads flat
+`{ id, parentId, name, kind: 'folder' | 'file', type?, size?, updatedAt? }`
+rows on the `@protoyard/views/files` engine.
 
 ```svelte
 <FileManager
-  query={entries} bind:folder bind:view
-  getBlob={(entry) => services.readBlob(entry.id)}
-  onCreateFolder={(parentId, name) => services.createFolder({ parentId, name })}
-  onRename={(entry, name) => services.rename(entry.id, name)}
-  onMove={(list, targetId) => services.move(list.map((e) => e.id), targetId)}
-  onDelete={(list) => services.remove(list.map((e) => e.id))}
-  onUpload={(files, folderId) => services.upload(files, folderId)}
-  accept="image/*,.pdf" maxSize={10 * 1024 * 1024}
+  query={entries} bind:folder bind:view bind:selected
+  onOpenFile={(entry) => navigate(`/files/${entry.id}`)}
 />
 ```
 
-- **Navigation:**
-  - From `md`, a folder tree (the `TreeView`, opened down to the current
-    folder) sits beside breadcrumbs.
-  - Folders open with a double-click, Enter or the toolbar's **Open**.
-  - The open folder is the bindable `folder` (`null` is the root).
-  - Grid or list layout comes from the bindable `view`.
-- **Keyboard:** the folder is a multi-select listbox with one tab stop.
-  - Arrows move, Up and Down by a row of tiles. Home and End jump to the
-    ends.
-  - Shift+arrow or Shift+click selects a range, and Ctrl/⌘+click toggles.
-  - Space toggles, Ctrl/⌘+A selects all, and Escape clears the selection.
-  - Enter opens, F2 renames, and Delete deletes after a confirm.
-  - On touch, **Select multiple** makes taps toggle.
-- **Writes** go through the callbacks in `runService`:
-  - Names are checked first (`nameProblem`: empty, `/`, duplicates in the
-    folder).
-  - Moves are checked first too (`moveProblem`: a folder into itself or its
-    subfolders is disabled in the destination list).
-  - A rename shows the new name, and a move takes the items out of the
-    folder at once, with a spinner and `aria-busy`. Both roll back and
-    announce why if the promise rejects.
-  - New folder suggests a unique name ("Untitled folder 2").
-  - Delete confirms in an `AlertDialog`, and keeps it open with the error if
-    the delete fails.
-  - Upload uses the ui `FileDropzone` into the open folder, with an
-    "Uploading…" status.
-- **Preview:** Enter on a file opens a lightbox over the folder's files.
-  - ←/→ or the Previous and Next buttons step through them (wrapping), and
-    Escape closes.
-  - Images show their blob, and files with no blob show the generated
-    thumbnail.
-- **Blobs and thumbnails:**
-  - `getBlob` is called once per image file with `hasBlob`. The blob is
-    shown through an object URL, and every URL is revoked when the
-    component is destroyed.
-  - Everything else uses `thumbnailSvg` / `thumbnailUrl`: a deterministic
-    SVG made only from the id (and an optional hue), with no network. Its
-    only text is the sanitized extension.
-  - Storage caveats are in docs/DATABASE.md (Uploaded files).
-- **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
-  ui, renderer, lucide, the overlay primitives and zod external; 2026-10-19):
-  - The subpath is 16.6 KB, including the TreeView it shares (8.0 KB alone).
-  - That leaves about 8.6 KB for the files chunk itself.
+- **Adapter:** `query` becomes Texuli's `entries`, inside `QueryState`. The
+  open folder is bindable as `folder` or `folderId` (`null` is the root) and
+  the layout as `view` or `layout` (`grid` or `list`); each pair stays in
+  step. `selected`, `onFolderChange`, `onSelectedChange`, `onLayoutChange`
+  and `onOpenFile` are forwarded, and `label` names the browser.
+- **Texuli's browser:** breadcrumbs, grid and list layouts with
+  multi-select, and a side preview with a deterministic SVG thumbnail made
+  from the entry (no network). Keys: arrows (grid-aware), Enter opens, Space
+  selects, Backspace goes up a folder.
+- **Read-only today:** `onCreateFolder`, `onRename`, `onMove`, `onDelete`,
+  `onUpload`, `getBlob`, `accept`, `maxSize` and `rootLabel` are accepted so
+  existing screens typecheck, but the adapter does not forward them. There
+  is no rename, move, delete, new folder, upload or blob preview in the UI.
+- The engine still exports `nameProblem`, `moveProblem` and `thumbnailSvg`
+  for services. Storage caveats for uploaded files are in docs/DATABASE.md
+  (Uploaded files).
+
+```bash
+pnpm vitest run packages/views-ui/tests/files.test.ts
+```
 
 ## Package output
 

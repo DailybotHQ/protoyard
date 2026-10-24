@@ -7,7 +7,7 @@ registerProtoyardLayouts();
 
 /**
  * The registry LayoutHost loads from: texuli's, filled with texuli's layouts
- * and Protoyard's `rail`, `master-detail` and `docs` (see `register.ts`).
+ * and Protoyard's `docs` (see `register.ts`).
  * Each entry is a separate lazy import, so unused layouts stay out of the
  * boot path.
  */

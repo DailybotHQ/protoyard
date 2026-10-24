@@ -49,7 +49,10 @@ ready, export it as a static site that runs on any host.
 
 ## 60-second start
 
-You need Node.js 24.20 or newer and pnpm 11 (through Corepack).
+You need Node.js 24.20 or newer and pnpm 11 (through Corepack). Protoyard links its
+component library, [Texuli](docs/TEXULI.md), from a sibling checkout: the Texuli
+repository must sit next to Protoyard (`../texuli`) and be installed first
+([how it is linked](docs/TEXULI.md#how-it-is-linked)).
 
 ```bash
 git clone https://github.com/DailybotHQ/protoyard

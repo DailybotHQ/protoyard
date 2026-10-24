@@ -70,6 +70,15 @@ Styling: Tailwind utilities on the app's `--py-*` tokens (the panel follows
 the active theme), mounted in its own `.py-devtools` host outside `#app`; no
 global CSS is added.
 
+**Built on Texuli.** The panel's control primitives (`src/primitives/`) are
+Texuli components: `Btn` wraps `texuli/button`, `SourceBadge` uses
+`texuli/badge`, `Toggle` uses `Switch` from `texuli/choice`, `InlineError`
+uses `texuli/alert`, and `Segmented` is built on
+`@texuli/primitives/radio-group`. They read Texuli's `--tx-*` variables, so
+`mountDevtools` calls `enableTexuliAppearance()` (`@protoyard/themes/texuli`),
+which keeps them equal to the `--py-*` values
+([docs/TEXULI.md](../../docs/TEXULI.md#themes-come-from-texulitokens)).
+
 ## Working on top of app modals
 
 App dialogs and sheets trap focus with a capture-phase `focusin`

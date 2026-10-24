@@ -6,12 +6,17 @@ Svelte 5 renderers for Protoyard's shared content blocks
 levels (the player and generated prototypes), render blocks with these same
 components.
 
-> **Status:** the root dispatcher, host context, **structure**, **data**,
-> **text/media**, **interactive** and **map** family subpaths are implemented.
-> Other family subpaths are filled by the PLAN_005 tasks named in the table.
-> **Status:** the root dispatcher, the host context and the `./code` and
-> `./diagram` families are implemented. The other family subpaths are filled
-> by the PLAN_005 tasks named in the table.
+Every family subpath is a thin adapter over Texuli's renderers
+(`@texuli/blocks/<family>/renderers`): it maps Protoyard's block shapes to
+Texuli's (ChartSpec to chart series, map tones, embed start labels) and keeps
+a Protoyard renderer for the types Texuli has no equivalent for (`people`,
+`timeline`, `steps`, `comparison`, `icon`, `form`, `counter`,
+`chart-controls`, `reveal`, `tabs`) and for a few host-driven cases.
+`BlockRenderer`, `setBlockHost` and the registry stay Protoyard's. Which
+renderer draws each type, and the fields the adapters do not carry yet, are
+in [BLOCKS](../../docs/BLOCKS.md#which-renderer-draws-a-block); the adoption is
+described in [TEXULI](../../docs/TEXULI.md#content-blocks-from-texuliblocks)
+and [docs/texuli-blocks.md](docs/texuli-blocks.md).
 
 ## Shape
 
@@ -80,20 +85,22 @@ unsupported blocks; it never displays invalid block content. Diagram blocks
 route to `@protoyard/blocks-ui/diagram`.
 
 Measured with `npx tsx scripts/bench-blocks.ts --check` (gzip level 9, what
-each subpath adds over a minimal Svelte shell; 2026-10-22):
+each subpath adds over a minimal Svelte shell; 2026-10-24, with the Texuli
+renderers). The budgets were set before the adoption: eight of the ten
+families are over them now, so `--check` exits 1.
 
 | Subpath | Blocks | Gzip added | Budget |
 | --- | --- | --- | --- |
-| `.` | `BlockRenderer` dispatcher and host context | 2.1 KB | 3.0 KB |
-| `./text` | Heading, rich text, list, quote, callout, divider | 12.0 KB | 12.8 KB |
-| `./media` | Image, video, people (avatars) | 2.9 KB | 4.0 KB |
-| `./data` | Stat/KPI row, table, chart (charts-ui families load separately) | 4.0 KB | 5.0 KB |
-| `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | 12.6 KB | 13.5 KB |
-| `./code` | Code with stepped highlights (grammars load per language) | 3.9 KB | 6.0 KB |
-| `./diagram` | Flow, tree, board, terminal | 4.8 KB | 6.0 KB |
-| `./interactive` | Poll, quiz, calculator, tabs/reveal, counter, chart-controls, form | 19.1 KB | 20.4 KB |
-| `./map` | Map on the offline simulated map (views-ui/map loads lazily) | 1.0 KB | 4.0 KB |
-| `./embed` | embed-app framed preview; the app loads only on start | 2.2 KB | 2.4 KB |
+| `.` | `BlockRenderer` dispatcher and host context | 3,094 B | 3,000 B (over) |
+| `./text` | Heading, rich text, list, quote, callout, divider | 32,021 B | 12,800 B (over) |
+| `./media` | Image, video, people (avatars) | 14,186 B | 4,000 B (over) |
+| `./data` | Stat/KPI row, table, chart (chart families load separately) | 20,158 B | 5,000 B (over) |
+| `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | 37,623 B | 13,500 B (over) |
+| `./code` | Code with stepped highlights (grammars load per language) | 5,648 B | 6,000 B |
+| `./diagram` | Flow, tree, board, terminal | 4,197 B | 6,000 B |
+| `./interactive` | Poll, quiz, calculator, tabs/reveal, counter, chart-controls, form | 36,750 B | 20,400 B (over) |
+| `./map` | Map on the offline simulated map | 7,445 B | 4,000 B (over) |
+| `./embed` | embed-app framed preview; the app loads only on start | 4,368 B | 2,400 B (over) |
 | `./styles.css` | Registers the kit's markup with Tailwind (`@source`) | — | — |
 
 Every block type's props, limits, use-when and a minimal example are in the
@@ -102,30 +109,40 @@ generated [block reference](../../docs/BLOCKS.md).
 ## Text and media renderers
 
 `@protoyard/blocks-ui/text` renders headings, safe Markdown text, lists,
-quotes, callouts and dividers. Markdown uses the bounded AST from
-`@protoyard/ai/markdown`; raw HTML remains text and unsafe link or image URLs
-are omitted. `@protoyard/blocks-ui/media` renders images, video and people.
-Image and video sources are checked again by the renderer, so unsupported
-remote sources do not become browser requests. Images include their declared
-dimensions and accessible alt text (or an empty alt for decorative images).
-Video is muted, inline and controlled; autoplay is disabled when the user
-prefers reduced motion. Loaded media bubbles a `blocks:media-ready` event for
-hosts that need to recalculate layout. People and `avatar:` media use the
-renderer avatar URL helper.
+quotes, callouts and dividers through Texuli's `TextBlockView` (dividers
+through Texuli's structure family). Texuli parses a closed Markdown subset and
+never produces HTML: raw tags stay text, links pass `safeHref`, and a Markdown
+image shows as its alt text. The subpath still exports `MdRenderer`, a
+renderer on `@protoyard/ai/markdown` that the family itself no longer uses.
+
+`@protoyard/blocks-ui/media` renders images and video through Texuli's
+`MediaBlockView` and `people` with its own portrait grid. Images include their
+declared dimensions and accessible alt text (or an empty alt for decorative
+images). Video plays inline with controls unless `controls: false`; autoplay
+needs `muted` and is off when the user prefers reduced motion. Loaded media
+bubbles a `blocks:media-ready` event for hosts that need to recalculate
+layout. People and `avatar:` media use the renderer avatar URL helper.
 
 ## Structure family (`./structure`)
 
 Lazy chunk for timeline, steps, comparison, cards, icon, CTA and columns:
 
-- **Flow vs slide:** below 640 px in `canvasMode: 'flow'`, multi-column layouts
-  collapse to one column; `slide` keeps a fixed grid for the deck canvas.
+- **Who renders:** in `canvasMode: 'flow'`, cards, CTAs and columns render
+  through Texuli's `StructureFamily` when Texuli accepts the mapped shape.
+  Protoyard renders timeline, steps, comparison and icon, cards with an image,
+  CTAs when the host sets `onCtaAction`, and every structure block in
+  `canvasMode: 'slide'`.
+- **Flow vs slide:** Protoyard's renderers collapse multi-column layouts to
+  one column below 640 px in `flow`; `slide` keeps a fixed grid for the deck
+  canvas.
 - **Timeline:** vertical flow timelines reserve a marker column beside each
   event's time and title. Markers do not sit over text, including at narrow
   widths. This same renderer is used by decks and page/doc flows.
-- **CTA:** every action has a schema-validated `href` run through `safeHref`.
-  Set `onCtaAction` on the host to handle clicks; return a promise so
-  `@protoyard/ui` `Button` shows pending feedback until it settles. Without a
-  host handler, HTTPS and mailto links navigate.
+- **CTA:** every action has a schema-validated `href`. Set `onCtaAction` on
+  the host to handle clicks (Protoyard's renderer runs the `href` through
+  `safeHref`); return a promise so `@protoyard/ui` `Button` shows pending
+  feedback until it settles. Without a host handler, Texuli renders the
+  actions as links.
 - **Comparison** uses a real `<table>` with column and row headers.
 - **Columns** resolve nested blocks through the same dispatcher (lazy).
 - **Icons** come from `BLOCK_ICON_COMPONENTS` (static Lucide map).
@@ -143,10 +160,15 @@ Covered by `packages/blocks-ui/tests/structure.test.ts`.
 
 ## Interactive family (`./interactive`)
 
-Every change goes through `stateHost.dispatch` (a promise so `Button` can show
-pending). blocks-ui never imports `@protoyard/database` or Dexie. Roots carry
-`data-py-deck-interactive` (`DECK_INTERACTIVE_ATTRIBUTE` from `@protoyard/decks`)
-so a click or swipe inside never advances a deck.
+`poll`, `quiz` and `calculator` render through Texuli's
+`InteractiveBlockView` when the host has no `stateHost` and is not a slide;
+that state is local and is not saved. Otherwise, and for every other
+interactive type, Protoyard's renderers run, and every change goes through
+`stateHost.dispatch` (a promise so `Button` can show pending; without a
+`stateHost` an in-memory host is used). blocks-ui never imports
+`@protoyard/database` or Dexie. The family root carries
+`data-py-deck-interactive` (`DECK_INTERACTIVE_ATTRIBUTE` from
+`@protoyard/decks`) so a click or swipe inside never advances a deck.
 
 ```svelte
 <script lang="ts">
@@ -173,16 +195,20 @@ setBlockHost({
 | `chart-controls` | Kind switch, series toggle, label range; charts-ui lazy |
 | `form` | Honest placeholder until the pages kit's FormBlock replaces it through the host; responses belong to the pages form runtime |
 
-Map blocks load `@protoyard/views-ui/map` only from `./map` (not from the
-interactive chunk) and also set `data-py-deck-interactive`, as does the
-`embed-app` frame. `tests/deck-interactive.test.ts` checks the root of all ten
-interactive types (poll, quiz, calculator, counter, tabs, reveal,
-chart-controls, form, map, embed-app).
+Map blocks render Texuli's `MapBlockView` from `./map` (not from the
+interactive chunk). The map and embed family roots do not set
+`data-py-deck-interactive` themselves; on a slide, the deck's block wrapper
+(`deckInputGuardAttributes` in `@protoyard/decks-ui`) sets it around them.
+`tests/deck-interactive.test.ts` renders all ten types (poll, quiz,
+calculator, counter, tabs, reveal, chart-controls, form, map, embed-app), but
+its check also passes when any element in the harness carries the attribute,
+so it does not prove that each root is marked.
 
 ## Embed-app (`./embed`)
 
-An `embed-app` block is a framed level-1 app preview. The family chunk is small
-and does **not** load the app stack:
+An `embed-app` block is a framed level-1 app preview, rendered by Texuli's
+`EmbedBlockView` with the host's `mountEmbed` and the block's `startLabel`.
+The family chunk does **not** load the app stack:
 
 ```svelte
 <script lang="ts">
@@ -212,8 +238,9 @@ setBlockHost({ canvasMode: 'slide', mountEmbed });
 - **Keyboard.** While the app is running, Tab cycles inside the frame so deck
   navigation keys are not stolen mid-input. The player / KINDS still own
   arrow-key slide handling outside the frame.
-- **Budget.** The embed family chunk targets ≤ 2 KB gzip; the app loads only
-  on click (crud shell is a separate download).
+- **Size.** The embed family chunk adds 4,368 B gzip (the table above, over
+  its 2,400 B budget); the app loads only on click (the crud shell is a
+  separate download).
 
 Coordinate `MountEmbed` with KINDS (`loadUntrustedBlueprint` + level-1 mount).
 See [PLAYER.md](../../docs/PLAYER.md#embedded-apps-in-decks-and-pages).
@@ -221,10 +248,16 @@ See [PLAYER.md](../../docs/PLAYER.md#embedded-apps-in-decks-and-pages).
 ## Data family (`./data`)
 
 `BlockFamilyRenderer` routes `stat`, `table` and `chart` blocks. `StatBlock`,
-`TableBlock` and `ChartBlock` are also exported, with the pure helpers
-(`formatCents`, `formatTableCell`, `columnAlign`, `chartValueFormatter`,
-`chartSeries`, `chartItems`, `isCartesianChart`).
+`TableBlock`, `ChartBlock` and the `toTexuliChartBlock` adapter are also
+exported, with the pure helpers (`formatCents`, `formatTableCell`,
+`columnAlign`, `chartValueFormatter`, `chartSeries`, `chartItems`,
+`isCartesianChart`).
 
+- **Who renders:** a plain `table`, and a `stat` row without a title, source
+  or trend, render through Texuli's `DataBlockView`. Protoyard's `StatBlock`
+  renders stat rows that have a title, source or trend, and `TableBlock`
+  renders tables with any `interactive` option. The two bullets below
+  describe Protoyard's renderers.
 - **Stat row:** a region named by the title (or "Key figures") holding a
   description list. Each figure is a term (label) with its value, delta,
   context and an optional sparkline. The delta's tone shows as a theme-colored
@@ -238,31 +271,30 @@ See [PLAYER.md](../../docs/PLAYER.md#embedded-apps-in-decks-and-pages).
   and `cents` (integer minor units in the table's three-letter currency:
   `123450` with `EUR` is `€1,234.50`). Empty cells show `—`, and
   `highlightRow` is emphasized. The table scrolls inside a focusable region
-  named after it. Formatting uses `en-US`, never the system locale.
-- **Chart:** the AI chart spec (`ChartSpecSchema` from `@protoyard/ai/chart`)
-  is checked again at render time, and an invalid spec shows a note with the
-  reason instead of a chart.
-  - Its string labels are category positions, so line and area adapters select
-    a categorical x-axis instead of parsing those labels as dates.
-  - A valid chart shows its data table at once, then the chart when
-    `@protoyard/charts-ui/cartesian` (line, area, bar) or `/part-whole`
-    (donut, pie, funnel) arrives.
-  - Every charts-ui chart has its own "View as table" toggle, so the block
-    adds none. `showTable: true` keeps the table under the chart.
-  - If the chart chunk fails, the table stays, with a note.
-  - Charts draw with `--py-chart1..8`, so they follow every theme.
-- **Size** (real Vite build, gzip -9, over a shell that already ships zod and
-  the ui class helper, as every prototype does; 2026-10-21): the data chunk is
-  4,253 B, including the chart spec schema. The charts-ui families stay
-  separate lazy chunks: cartesian 11.1 KB, part-whole 9.5 KB, compact 3.4 KB.
+  named after it. Formatting uses `en-US`, never the system locale. A plain
+  table on the Texuli path shows cells as given: column formats, currency
+  and `highlightRow` are not applied, and numbers use the browser's locale.
+- **Chart:** `ChartBlock` checks the AI chart spec (`ChartSpecSchema` from
+  `@protoyard/ai/chart`) again at render time; an invalid spec shows "This
+  chart could not be shown." instead of a chart.
+  - `toTexuliChartBlock` turns the spec's labels and series values into
+    Texuli series points, and the chart loads lazily from
+    `@texuli/charts/cartesian` with a "Loading chart…" status meanwhile.
+  - `line`, `area` and `bar` keep their kind; `donut`, `pie` and `funnel`
+    draw as bar charts for now.
+  - Texuli's cartesian charts have their own "Show data table" toggle, a
+    keyboard and pointer series legend for more than one series, hover
+    details and keyboard point navigation. `showTable` is ignored.
+  - If the chart chunk fails, its error message shows in a note.
 ## Code (`./code`)
 
-`CodeBlock` renders `@protoyard/blocks/code` tokens as text spans, never HTML,
-so markup in the source stays text. The `<code>` element's text equals the
+`CodeBlock` hands the block and the host step to Texuli's `CodeBlockView`,
+which renders tokens from the tokenizer that `@protoyard/blocks/code`
+re-exports as text spans, never HTML, so markup in the source stays text. The `<code>` element's text equals the
 source exactly: line numbers (`lineNumbers`) are CSS `content`, and each line
 ends with a real newline, so a copied selection matches. It also provides:
 
-- **Colors** (`CODE_TOKEN_STYLES`). Each token kind maps to a theme token that
+- **Colors** (`CODE_TOKEN_STYLES`, exported here). Each token kind maps to a theme token that
   reaches WCAG AA (4.5:1) on the code surface (`surface`) and on a highlighted
   line (`muted`), in every built-in theme and mode
   (`tests/code-contrast.test.ts`). Keywords and tags are also bold and comments
@@ -277,10 +309,14 @@ ends with a real newline, so a copied selection matches. It also provides:
 - **Keyboard.** The scroller (`<pre tabindex="0">`) is labelled by the file
   name or language, so long lines are reachable from the keyboard.
 - **Lazy grammars.** Only the block's language grammar is downloaded
-  (`grammars.ts`, one chunk per language). Until it arrives, and for `text`,
+  (one chunk per language, from `@texuli/blocks/code`). Until it arrives, and for `text`,
   lines show as plain text with the same content and highlights.
 
 ## Diagrams (`./diagram`)
+
+The diagram family renders Texuli's diagram renderer
+(`@texuli/blocks/diagram/renderers`); `DIAGRAM_PAD` and `TONE_BORDER` are
+re-exported from `@texuli/blocks/diagram`.
 
 | Block | Rendering | Text alternative |
 | --- | --- | --- |
@@ -295,29 +331,20 @@ Labels are always text: long ones clamp to two lines with the full label as a
 org charts are `aria-hidden`, and every wide diagram scrolls inside a
 focusable region.
 
-Measured with a Vite library build (Svelte external, minified, gzip):
-
-- **`./code`:** 3.6 KB, plus the tokenizer core (1.2 KB), so 4.7 KB before
-  any grammar.
-- **Grammars:** each language adds its grammar plus 0.4 KB of shared helpers,
-  only when a block uses it. That is json 0.8, html 0.9, yaml 1.0, css 1.1,
-  python 1.1, bash 1.2, sql 1.2 and ts/js 1.5 KB. So a code block costs
-  5.5–6.2 KB in all, and ts/js is the one language past 6 KB.
-- **`./diagram`:** 5.4 KB.
-- **Icons:** neither chunk imports the icon library; their few icons are inline
-  SVG strokes.
+Sizes for `./code` (before any grammar) and `./diagram` are in the
+measured table above.
 
 ## Accessibility and themes
 
 `src/lib/tones.ts` maps every `BlockTone` to theme-token Tailwind classes
-(icon chips, borders, indicators) and documents the palette pairs that must
-reach WCAG AA. `packages/blocks-ui/tests/a11y-themes.test.ts` renders every
+(icon chips, borders, indicators) for Protoyard's own renderers and documents
+the palette pairs that must reach WCAG AA. `packages/blocks-ui/tests/a11y-themes.test.ts` renders every
 `RICH_EXAMPLES` catalog fixture, checks heading order, image `alt`, named
 focusable controls with `focus-visible` rings, and AA contrast of those tone
 pairs across all **6 built-in themes × light/dark**. Failures name the block,
-theme and mode. Interactive, map and embed roots also set
-`data-py-deck-interactive` so deck navigation ignores clicks inside them.
-The form block remains a placeholder until the pages `FormBlock` owns
+theme and mode. The interactive family root also sets
+`data-py-deck-interactive` so deck navigation ignores clicks inside it. The
+form block remains a placeholder until the pages `FormBlock` owns
 responses through the host.
 
 ```bash
@@ -338,6 +365,10 @@ raw input. The rendered DOM must have:
 - no remote media;
 - no `fetch`, XHR or beacon request.
 
+Under the fuzz harness (`isSecurityFuzzHost`), chart blocks render an empty
+labelled placeholder instead of mounting Texuli's charts, so the fuzz does not
+cover chart markup.
+
 The source has no `{@html}`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`,
 `document.write`, `eval` or `new Function`.
 
@@ -354,9 +385,6 @@ family chunks import the module, so icons never reach an entry.
 - the map has no extra keys;
 - the blueprint's `SCREEN_NAV_ICONS` are included;
 - the imports stay named.
-
-Measured in a Vite build: all 96 icons add about 8.5 KB gzip over a single
-icon, roughly 90 B each.
 
 ## Styles
 

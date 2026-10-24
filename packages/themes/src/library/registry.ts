@@ -23,8 +23,8 @@ import {
  *   page calls `enableFullThemeLibrary()` (`@protoyard/themes/library-full`).
  *   Its metadata then loads on demand (`loadFullLibraryMeta`), and
  *   `loadLibraryTheme` accepts every id of it: all 204 by id. It is opt-in
- *   because single-file exports inline everything reachable, and the set
- *   adds about 105 KB to each.
+ *   because single-file exports inline everything reachable, so the whole
+ *   set would land in each one.
  */
 
 /** The synchronous catalog for pickers (metadata only, no palette tokens). */

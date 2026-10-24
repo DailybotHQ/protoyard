@@ -5,6 +5,10 @@ about a minute of commands; the rest explains what you just did.
 
 ## The 60-second path
 
+Protoyard links its component library, [Texuli](TEXULI.md), from a sibling checkout: the
+Texuli repository must sit next to Protoyard (`../texuli`) and be installed first
+([how it is linked](TEXULI.md#how-it-is-linked)).
+
 ```bash
 git clone https://github.com/DailybotHQ/protoyard.git
 cd protoyard
