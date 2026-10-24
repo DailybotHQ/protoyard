@@ -15,7 +15,9 @@ describe('onboarding layout', () => {
     const runtime = await harness.boot('not-started');
     try {
       const { container } = render(AppHost, { runtime });
-      await waitFor(() => expect(container.querySelector('[data-py-wizard-layout]')).toBeTruthy());
+      await waitFor(() =>
+        expect(container.querySelector('[data-py-layout="wizard"]')).toBeTruthy()
+      );
       expect(container.querySelector('[data-py-layout-host]')?.getAttribute('data-layout')).toBe(
         'wizard'
       );

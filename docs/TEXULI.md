@@ -270,6 +270,41 @@ change, a Protoyard wrapper, or both, before it can be re-exported:
 | `Toaster` and `toast` (39 importers) | A different toast store singleton | Move every `toast` import with the `Toaster` |
 | `DataTable` | No Texuli counterpart (Texuli has table markup only) | Keep Protoyard's on Texuli table parts later |
 
+## Layouts come from `texuli/layouts`
+
+- **The host.** `@protoyard/ui`'s `LayoutHost` wraps texuli's `LayoutHost`.
+  - It resolves the layout with Protoyard's catalog (`layoutForWidth` from
+    `@protoyard/core`), starting from the real width.
+  - It keeps the `data-py-layout-host` and `data-layout` hooks, and mirrors
+    the layout on screen as `data-py-layout="<id>"`, set only once that
+    layout has loaded.
+  - Texuli renders the chrome and keeps the one routed screen outlet.
+- **The registry** is texuli's (`registerProtoyardLayouts`,
+  `packages/ui/src/layouts/register.ts`): texuli's `registerAppLayouts`,
+  `registerMobileLayouts` (after the app ones) and
+  `registerAuthSettingsLayouts`, plus `dashboard-grid` and `marketing`. Each
+  is one lazy import per layout.
+- **`docs` stays Protoyard's.** Its contract differs from texuli's docs
+  layout: a `navigation` snippet rather than the nav model, and it is wide
+  only (900 px), falling back to mobile-drawer, where texuli's has no width
+  rule. `pages-ui` and `blocks` follow its heading ids.
+- **The nav model** (`NavModel`, `resolveNav`, `navPath`, …) is texuli's,
+  re-exported from `@protoyard/ui`. `navFromSidebar` stays Protoyard's.
+- **Re-exported and removed:** `SplitView` comes from
+  `texuli/layouts/app/split-view`, and `@protoyard/ui/layouts/marketing` is
+  texuli's `MarketingLayout`. Protoyard's own sidebar, rail, top-nav,
+  dual-sidebar, mobile, master-detail, dashboard-grid, marketing, wizard and
+  auth-split layouts are deleted, with their chrome (`LayoutChrome`,
+  `LayoutDrawer`, `NavIcon`, `layout-kit`).
+- **Device frames** stay Protoyard's (texuli has none). The layout host
+  bridges the frame to texuli's tokens: `--tx-app-height` follows
+  `--py-app-height`, and `--tx-safe-top`, `--tx-safe-right`,
+  `--tx-safe-bottom` and `--tx-safe-left` follow the page's safe areas and
+  the frame's `--py-safe-*`.
+- **Markers** in tests and E2E: texuli's (`data-tx-app-layout="sidebar"`,
+  `data-tx-layout="mobile-tabs"`, …) or the host's `data-py-layout`;
+  `docs` keeps `data-py-docs-layout`.
+
 ## The dev server
 
 `devFsAllow` (`@protoyard/renderer-svelte`) is the list of folders a
@@ -303,6 +338,7 @@ import { Button } from 'texuli/button';
 | `pnpm vitest run packages/ui/tests/simple-primitives.test.ts` | The Texuli-backed controls: bindable refs, states, tab stops, wrapping tabs and unmounted inactive panels, the accordion's size variable, separator and progress semantics |
 | `pnpm vitest run packages/ui/tests/floating-primitives.test.ts` | The Texuli-backed floating controls: labels through a consumer id, the combobox filter and form value, tooltip, menu, popover ref and initial focus, people search |
 | `pnpm vitest run packages/ui/tests/dialog-family.test.ts packages/ui/tests/overlay.test.ts packages/ui/tests/adaptive-overlay.test.ts packages/ui/tests/alert-dialog.test.ts` | The Texuli-backed dialog family: the undo toaster under a modal and F6, device-screen containment, alert Escape, stacking, nesting, focus return, outside presses |
+| `pnpm vitest run packages/ui/tests/layout-host.test.ts packages/ui/tests/layouts-desktop.test.ts packages/ui/tests/layouts-mobile.test.ts packages/ui/tests/layouts-content.test.ts packages/renderer-svelte/tests/bundle-hygiene.test.ts` | LayoutHost on texuli's: registration, lazy loading, fallbacks, the routed screen kept across layouts, one lazy chunk per layout |
 | `pnpm check` | Lint, typecheck and the full unit suite stay green |
 
 ## Limits
