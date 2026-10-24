@@ -82,6 +82,13 @@ function unavailable(date: IsoDate): boolean {
   return !isWithinBounds(date, { min, max }) || Boolean(isDateDisabled?.(date));
 }
 
+/** The button of the focused date, where keyboard focus belongs when the calendar opens. */
+export function focusTarget(): HTMLButtonElement | null {
+  return (
+    grid?.querySelector<HTMLButtonElement>(`button[data-date="${focusDate ?? anchor}"]`) ?? null
+  );
+}
+
 /** Moves keyboard focus to the focused date (or `date`) inside the grid. */
 export async function focus(date?: IsoDate): Promise<void> {
   if (date) focusDate = date;

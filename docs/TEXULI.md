@@ -117,9 +117,9 @@ These components also keep their props and classes:
   above clipping ancestors without moving in the DOM.
 - **Widths.** The select and combobox lists match their field's width. The
   `UserPicker` list is `w-72`.
-- **`Popover` gains `onOpenFocus`.** The content focuses its first control
-  when it opens; `onOpenFocus` then runs, to move focus elsewhere. The date
-  pickers use it to focus the calendar's date.
+- **`Popover` takes `initialFocus`.** It is an element, or a getter for one,
+  that takes focus when the content opens; otherwise the first control does.
+  The date pickers use it for the calendar's focused date.
 - **Combobox.**
   - `filter` replaces the default label match. The chosen label in the
     input is not a search, so opening the list shows every option.
@@ -134,7 +134,7 @@ These components also keep their props and classes:
 - **Menus** open on click or with Enter, Space or ArrowDown on the trigger.
 - **Tests:** `floating-primitives.test.ts` covers labels through a consumer
   `id`, the combobox filter and form value, the tooltip, the menu, the
-  popover's `ref` and `onOpenFocus`, and people search.
+  popover's `ref` and `initialFocus`, and people search.
 
 ## The dialog family runs on `@texuli/primitives`
 

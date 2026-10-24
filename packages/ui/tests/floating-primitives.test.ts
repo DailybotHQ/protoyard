@@ -7,7 +7,7 @@ import PickersHarness from './fixtures/PickersHarness.svelte';
  * Tooltip, Popover, DropdownMenu, Select, Combobox and Command (CommandPalette,
  * UserPicker) run on @texuli/primitives. These cover the seams the wrappers
  * own: labels through a consumer id, a custom combobox filter and its form
- * value, the popover's ref and onOpenFocus, menu headings and actions, and
+ * value, the popover's ref and initialFocus, menu headings and actions, and
  * people search by name or subtitle.
  */
 
@@ -63,7 +63,7 @@ describe('Texuli-backed floating controls', () => {
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
   });
 
-  it('binds the popover ref and moves focus with onOpenFocus', async () => {
+  it('binds the popover ref and focuses its initialFocus target', async () => {
     render(FloatingHarness);
     await fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
     await waitFor(() => expect(screen.getByTestId('popover-ref').textContent).toBe('dialog'));
