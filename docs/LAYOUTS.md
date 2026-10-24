@@ -4,8 +4,10 @@ A layout is the page structure around a prototype's routed screens: navigation,
 header, content columns and responsive chrome. A shell is the simulated device
 or host frame around the whole app ([SHELLS.md](SHELLS.md)); the two compose.
 Layouts render navigation from data, so the same route set can work in several
-page structures. The implementation is in `@protoyard/ui`; the contract and
-width fallbacks are data in `@protoyard/core`.
+page structures. The contract and width fallbacks are data in `@protoyard/core`.
+`@protoyard/ui`'s `LayoutHost` wraps texuli's (`texuli/layouts/host`): every
+layout but `docs` is texuli's implementation, and `docs` stays Protoyard's
+([TEXULI.md](TEXULI.md#layouts-come-from-texulilayouts)).
 
 
 ### Page kind host (`@protoyard/pages-ui`)
