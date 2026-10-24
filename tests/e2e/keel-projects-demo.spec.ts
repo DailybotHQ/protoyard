@@ -33,7 +33,7 @@ test.describe('Keel Projects flagship', () => {
   test('board: drag a card with the mouse on desktop, move it with the keyboard on a phone', async ({
     page,
     isMobile,
-  }, testInfo) => {
+  }, _testInfo) => {
     await open(page, '#/projects/project_0001');
     const board = page.locator('[data-board]');
     const todo = board.locator('[data-board-cell][data-column-id="todo"]');
@@ -80,7 +80,7 @@ test.describe('Keel Projects flagship', () => {
   test('timeline: moving a milestone two days later shifts its successors', async ({
     page,
     isMobile,
-  }, testInfo) => {
+  }, _testInfo) => {
     test.skip(isMobile, 'the timeline canvas is hidden below md (task table only)');
     await open(page, '#/timeline');
     const timeline = page.locator('section[data-timeline]');
@@ -120,7 +120,7 @@ test.describe('Keel Projects flagship', () => {
 
   test('mention a teammate, switch persona, and read the notification', async ({
     page,
-  }, testInfo) => {
+  }, _testInfo) => {
     await open(page, '#/projects/project_0001');
     const card = page.locator('[data-board] [data-board-card]').first();
     const taskId = (await card.getAttribute('data-item-id')) as string;
@@ -156,7 +156,7 @@ test.describe('Keel Projects flagship', () => {
   test('task grid: 10,004 tasks, a saved view filters them, and the page never scrolls sideways', async ({
     page,
     isMobile,
-  }, testInfo) => {
+  }, _testInfo) => {
     await open(page, '#/tasks', 'scenario=massive');
     await expect(page.getByText('10,004 tasks across every project')).toBeVisible();
     const overflow = await page.evaluate(
@@ -169,10 +169,12 @@ test.describe('Keel Projects flagship', () => {
     // No full axe on the 10k-row page (Texuli grid may not window rows; axe times out).
   });
 
-  test('calendar and command palette', async ({ page, isMobile }, testInfo) => {
+  test('calendar and command palette', async ({ page, isMobile }, _testInfo) => {
     await open(page, '#/calendar');
     await expect(page.getByRole('heading', { name: 'Studio calendar' })).toBeVisible();
-    await expect(page.locator('[data-calendar], .tx-calendar, [class*="tx-calendar"]').first()).toBeVisible();
+    await expect(
+      page.locator('[data-calendar], .tx-calendar, [class*="tx-calendar"]').first()
+    ).toBeVisible();
     await expectAccessible(page, testInfo, { label: 'keel-calendar' });
     if (isMobile) return;
     // The palette reads the platform from the page (the Desktop Chrome profile reports Windows).
