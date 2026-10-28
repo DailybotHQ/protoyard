@@ -23,7 +23,7 @@ let lastShare = $state<string | null>(null);
     <ul class="grid gap-1">
       {#each targets as target (target.id)}
         <li>
-          <button
+          <Button
             type="button"
             class="flex min-h-touch w-full items-center gap-3 rounded-md px-3 py-2 text-left hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             onclick={() => {
@@ -34,7 +34,7 @@ let lastShare = $state<string | null>(null);
           >
             <target.icon class="size-5 text-muted-foreground" aria-hidden="true" />
             {target.label}
-          </button>
+          </Button>
         </li>
       {/each}
     </ul>

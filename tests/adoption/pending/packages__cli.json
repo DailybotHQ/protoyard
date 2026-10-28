@@ -1,30 +1,4 @@
 {
   "unit": "packages__cli",
-  "entries": [
-    {
-      "file": "packages/cli/src/lib/artifact-pack.ts",
-      "rule": "py-token",
-      "count": 4
-    },
-    {
-      "file": "packages/cli/src/lib/quick/compare-html.ts",
-      "rule": "py-token",
-      "count": 16
-    },
-    {
-      "file": "packages/cli/src/lib/quick/index-html.ts",
-      "rule": "py-token",
-      "count": 11
-    },
-    {
-      "file": "packages/cli/src/lib/review-index-html.ts",
-      "rule": "py-token",
-      "count": 15
-    },
-    {
-      "file": "packages/cli/src/lib/theme-export.ts",
-      "rule": "py-token",
-      "count": 1
-    }
-  ]
+  "entries": []
 }

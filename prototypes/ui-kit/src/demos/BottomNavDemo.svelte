@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Bell, House, Search, User } from '@lucide/svelte';
-import { BottomNav, type NavItem } from '@protoyard/ui';
+import { BottomNav, Button, type NavItem } from '@protoyard/ui';
 import { interceptDemoNav } from './nav.ts';
 
 let current = $state('#demo/tabs/home');
@@ -31,13 +31,13 @@ function navigate(href: string): void {
   <div class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
     <p class="font-heading text-lg font-semibold">{title}</p>
     <p class="text-sm text-muted-foreground">Tap a tab. Opening Alerts clears its badge.</p>
-    <button
+    <Button
       type="button"
       class="text-xs font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       onclick={() => (alerts += 1)}
     >
       Simulate a new alert
-    </button>
+    </Button>
   </div>
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
   <div onclick={(event) => interceptDemoNav(event, navigate)}>

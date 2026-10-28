@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Separator } from '@protoyard/ui';
+import { Input, Separator } from '@protoyard/ui';
 
 let semantic = $state(false);
 </script>
@@ -18,7 +18,7 @@ let semantic = $state(false);
     </div>
   </div>
   <label class="flex items-center gap-2 text-sm">
-    <input type="checkbox" bind:checked={semantic} />
+    <Input type="checkbox" checked={semantic} onchange={(event) => (semantic = event.currentTarget.checked)} />
     Expose as <code>role="separator"</code> (non-decorative)
   </label>
   <p class="text-xs text-muted-foreground">

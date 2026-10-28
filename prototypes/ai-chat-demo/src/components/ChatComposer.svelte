@@ -1,7 +1,8 @@
 <script lang="ts">
 import { SendHorizontal, Square } from '@lucide/svelte';
-import { Spinner } from '@protoyard/ui';
+import { Button, Spinner, Textarea } from '@protoyard/ui';
 import { tick } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { Agent } from '../database/schema.ts';
 import { activeMention, addMention, applyMention, type MentionQuery } from '../lib/mentions.ts';
 
@@ -181,7 +182,7 @@ function onkeydown(event: KeyboardEvent): void {
     }}
   >
     <label for={inputId} class="sr-only">Message</label>
-    <textarea
+    <Textarea
       bind:this={textarea}
       bind:value
       id={inputId}
@@ -202,27 +203,27 @@ function onkeydown(event: KeyboardEvent): void {
       }}
       onblur={() => (mention = null)}
       {onkeydown}
-    ></textarea>
+    ></Textarea>
     <span id={hintId} class="sr-only">
       {disabled ? disabledReason : 'Press Enter to send, Shift+Enter for a new line. Type @ to mention an agent.'}
     </span>
     {#if streaming && onStop}
-      <button
+      <Button
         type="button"
         onclick={onStop}
         class="inline-flex h-9 min-h-touch shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0"
       >
-        <Square class="size-3.5 fill-current" aria-hidden="true" /> Stop
-      </button>
+        <LucideIcon icon={Square} class="size-3.5 fill-current" /> Stop
+      </Button>
     {/if}
-    <button
+    <Button
       type="submit"
       disabled={!canSend}
       aria-busy={sending || undefined}
       class="inline-flex size-9 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-soft hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 sm:min-h-0 sm:min-w-0"
     >
-      {#if sending}<Spinner />{:else}<SendHorizontal class="size-4" aria-hidden="true" />{/if}
+      {#if sending}<Spinner />{:else}<LucideIcon icon={SendHorizontal} class="size-4" />{/if}
       <span class="sr-only">{sending ? 'Sending…' : 'Send message'}</span>
-    </button>
+    </Button>
   </form>
 </div>

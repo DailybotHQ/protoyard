@@ -1,6 +1,8 @@
 <script lang="ts">
-import { Plus, Settings, Trash2 } from '@lucide/svelte';
+import { Settings, Trash2 } from '@lucide/svelte';
 import { Button, type ButtonSize, type ButtonVariant, toast } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { wait } from './nav.ts';
 
 const variants: ButtonVariant[] = [
@@ -52,11 +54,11 @@ async function save(): Promise<void> {
     <div class="flex flex-wrap items-center gap-3">
       {#each sizes as size (size)}
         <Button {size} variant="outline" onclick={() => toast.info(`Size ${size}`)}>
-          <Plus aria-hidden="true" /> Size {size}
+          <Icon icon="plus" aria-hidden="true" /> Size {size}
         </Button>
       {/each}
       <Button size="icon" variant="ghost" aria-label="Settings" onclick={() => toast.info('Settings')}>
-        <Settings aria-hidden="true" />
+        <LucideIcon icon={Settings} />
       </Button>
       <Button
         size="icon"
@@ -64,7 +66,7 @@ async function save(): Promise<void> {
         aria-label="Delete"
         onclick={() => toast.warning('Delete pressed', { description: 'Nothing was deleted.' })}
       >
-        <Trash2 aria-hidden="true" />
+        <LucideIcon icon={Trash2} />
       </Button>
     </div>
   </section>

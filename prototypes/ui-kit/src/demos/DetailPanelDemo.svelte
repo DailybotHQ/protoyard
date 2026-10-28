@@ -52,7 +52,7 @@ function resolve(): void {
 <ul class="grid max-w-lg gap-2">
   {#each tickets as ticket (ticket.id)}
     <li>
-      <button
+      <Button
         type="button"
         class="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         onclick={() => show(ticket.id)}
@@ -62,7 +62,7 @@ function resolve(): void {
           <span class="text-xs text-muted-foreground">{ticket.id} · {ticket.requester}</span>
         </span>
         <Badge variant={ticket.status === 'open' ? 'info' : 'success'}>{ticket.status}</Badge>
-      </button>
+      </Button>
     </li>
   {/each}
 </ul>

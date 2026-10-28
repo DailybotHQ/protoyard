@@ -20,7 +20,7 @@ let locked = $state(true);
       <Label for="label-demo-locked">Dims with a disabled peer</Label>
     </div>
     <label class="flex items-center gap-2 text-xs text-muted-foreground">
-      <input type="checkbox" bind:checked={locked} />
+      <Input type="checkbox" checked={locked} onchange={(event) => (locked = event.currentTarget.checked)} />
       Disable the input
     </label>
   </div>

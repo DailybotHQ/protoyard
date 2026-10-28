@@ -2,6 +2,7 @@
 import { Lock, ShieldCheck } from '@lucide/svelte';
 import { avatarImage, can, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
 import { Avatar, Badge, Card } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import { CAPABILITIES, ROLE_LABELS } from '../domain/policy.ts';
 import { useCrm } from '../lib/context.ts';
@@ -71,7 +72,7 @@ const org = $derived(principal.current?.organization);
     </ul>
     {#if !can(CAPABILITIES.teamManage)}
       <p class="mt-4 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-        <Lock class="size-3.5" /> Only owners and admins can manage the team.
+        <LucideIcon icon={Lock} class="size-3.5" /> Only owners and admins can manage the team.
       </p>
     {/if}
   </Card>
@@ -91,7 +92,7 @@ const org = $derived(principal.current?.organization);
         {/each}
       </ul>
       <p class="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
-        <ShieldCheck class="mt-0.5 size-3.5 shrink-0" /> Simulated permissions for prototyping — not real security.
+        <LucideIcon icon={ShieldCheck} class="mt-0.5 size-3.5 shrink-0" /> Simulated permissions for prototyping — not real security.
       </p>
     </Card>
 
@@ -101,7 +102,7 @@ const org = $derived(principal.current?.organization);
         <p class="mt-2 text-sm">Plan: <Badge>{org?.plan}</Badge> · status <Badge variant={org?.billingStatus === 'expired' ? 'destructive' : 'success'}>{org?.billingStatus}</Badge></p>
         <p class="mt-2 text-xs text-muted-foreground">Billing is simulated. Load the “Trial expired” scenario to see the paywall.</p>
       {:else}
-        <p class="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Lock class="size-3.5" /> Only the owner can see billing.</p>
+        <p class="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><LucideIcon icon={Lock} class="size-3.5" /> Only the owner can see billing.</p>
       {/if}
     </Card>
 

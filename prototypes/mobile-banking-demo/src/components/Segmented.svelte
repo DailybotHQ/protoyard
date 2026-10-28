@@ -1,4 +1,6 @@
 <script lang="ts" generics="T extends string">
+import { Input } from '@protoyard/ui';
+
 /**
  * Segmented control built on native radio inputs, so arrow keys, labels
  * and screen readers work without extra code.
@@ -31,7 +33,7 @@ const name = `seg-${uid}`;
             : 'text-muted-foreground hover:text-foreground',
         ]}
       >
-        <input
+        <Input
           type="radio"
           class="sr-only"
           {name}

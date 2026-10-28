@@ -1,7 +1,7 @@
 <script lang="ts">
-import { Plus } from '@lucide/svelte';
 import { can, liveQuery, navigate } from '@protoyard/renderer-svelte';
 import { Avatar, Badge, Button, DataTable, type DataTableColumn, Select } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
 import CompanyDialog from '../components/CompanyDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import { type Company, INDUSTRIES, OPEN_STAGES } from '../database/schema.ts';
@@ -67,7 +67,7 @@ const columns: DataTableColumn<Row>[] = [
 <PageHeader title="Companies" description={`${(rows.current ?? []).length} accounts`}>
   {#snippet actions()}
     {#if can(CAPABILITIES.companiesWrite)}
-      <Button onclick={() => (createOpen = true)} disabled={services.isPaywalled()}><Plus class="size-4" /> New company</Button>
+      <Button onclick={() => (createOpen = true)} disabled={services.isPaywalled()}><Icon icon="plus" class="size-4" /> New company</Button>
     {/if}
   {/snippet}
 </PageHeader>
