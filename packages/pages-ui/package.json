@@ -47,10 +47,12 @@
   "dependencies": {
     "@protoyard/blocks": "workspace:*",
     "@protoyard/blocks-ui": "workspace:*",
+    "@protoyard/blueprint": "workspace:*",
     "@protoyard/pages": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "@protoyard/blueprint": "workspace:*"
+    "@texuli/blocks": "0.3.0",
+    "texuli": "0.3.0"
   },
   "devDependencies": {
     "svelte": "^5.57.2"

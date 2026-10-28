@@ -17,7 +17,8 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "dexie": "^4.4.6",
-    "svelte": "^5.57.2"
+    "svelte": "^5.57.2",
+    "texuli": "0.3.0"
   },
   "devDependencies": {
     "@protoyard/runtime": "workspace:*",

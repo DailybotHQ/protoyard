@@ -1,6 +1,6 @@
 <script lang="ts">
 /** Re-export wrapper: Protoyard Gauge → Texuli Gauge. */
-import { Gauge as TexuliGauge } from '@texuli/charts/compact';
+import { type ChartFormatSpec, Gauge as TexuliGauge } from '@texuli/charts/compact';
 import ChartRoot from '../compat/ChartRoot.svelte';
 
 type Props = {
@@ -11,7 +11,8 @@ type Props = {
   description?: string;
   thresholds?: readonly number[];
   bandLabels?: readonly string[];
-  format?: (value: number) => string;
+  /** Plain-data number or date format (Texuli's JSON-safe spec). */
+  format?: ChartFormatSpec;
   [key: string]: unknown;
 };
 

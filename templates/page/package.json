@@ -12,8 +12,8 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@protoyard/blueprint": "workspace:*",
     "@protoyard/blocks-ui": "workspace:*",
+    "@protoyard/blueprint": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/pages": "workspace:*",
     "@protoyard/pages-ui": "workspace:*",
@@ -21,7 +21,8 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "dexie": "^4.4.6",
-    "svelte": "^5.57.2"
+    "svelte": "^5.57.2",
+    "texuli": "0.3.0"
   },
   "devDependencies": {
     "@protoyard/runtime": "workspace:*",

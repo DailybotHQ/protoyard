@@ -28,7 +28,7 @@
   "dependencies": {
     "@protoyard/avatars": "workspace:*",
     "@protoyard/core": "workspace:*",
-    "@texuli/data": "link:../../../texuli/packages/data",
+    "@texuli/data": "0.3.0",
     "zod": "^4.6.7"
   },
   "protoyard": {

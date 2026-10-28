@@ -47,7 +47,8 @@
     "@protoyard/review": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
-    "@protoyard/views-ui": "workspace:*"
+    "@protoyard/views-ui": "workspace:*",
+    "texuli": "0.3.0"
   },
   "devDependencies": {
     "svelte": "^5.57.2"

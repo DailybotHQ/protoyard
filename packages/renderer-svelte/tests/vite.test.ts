@@ -190,18 +190,9 @@ describe('dev server file access', () => {
     }
   });
 
-  it('allows the linked Texuli packages this workspace declares', () => {
+  it('adds no extra roots for this workspace, which installs Texuli from npm', () => {
     const workspace = resolve(import.meta.dirname, '../../..');
-    const roots = linkedPackageRoots(workspace);
-    for (const name of ['core', 'tokens', 'texuli']) {
-      expect(roots).toContain(
-        realpathSync(
-          resolve(workspace, 'node_modules', name === 'texuli' ? 'texuli' : `@texuli/${name}`)
-        )
-      );
-    }
-    // Exactly the package folders: never the Texuli repository around them.
-    for (const root of roots) expect(root).toMatch(/[\\/]packages[\\/][a-z-]+$/);
+    expect(linkedPackageRoots(workspace)).toEqual([]);
   });
 });
 
