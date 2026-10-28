@@ -25,6 +25,7 @@
     "@protoyard/core": "workspace:*",
     "@protoyard/player": "workspace:*",
     "@protoyard/themes": "workspace:*",
+    "@protoyard/ui": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@texuli/astro": "0.4.0",
     "@texuli/tokens": "0.4.0",

@@ -19,6 +19,7 @@
     "@protoyard/decks-ui": "workspace:*",
     "@protoyard/player": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/ui": "workspace:*",
     "svelte": "^5.57.2",
     "texuli": "0.4.0"
   }
