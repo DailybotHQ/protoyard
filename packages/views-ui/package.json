@@ -99,6 +99,7 @@
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
     "@texuli/data": "link:../../../texuli/packages/data",
+    "@texuli/drag": "link:../../../texuli/packages/drag",
     "texuli": "link:../../../texuli/packages/texuli"
   },
   "devDependencies": {
