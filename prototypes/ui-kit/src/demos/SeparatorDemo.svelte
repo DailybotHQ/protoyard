@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Separator } from '@protoyard/ui';
+import { Checkbox, Separator } from '@protoyard/ui';
 
 let semantic = $state(false);
 </script>
@@ -17,10 +17,7 @@ let semantic = $state(false);
       <span>Changelog</span>
     </div>
   </div>
-  <label class="flex items-center gap-2 text-sm">
-    <input type="checkbox" bind:checked={semantic} />
-    Expose as <code>role="separator"</code> (non-decorative)
-  </label>
+  <Checkbox bind:checked={semantic} label={'Expose as role="separator" (non-decorative)'} class="text-sm" />
   <p class="text-xs text-muted-foreground">
     Decorative separators are hidden from assistive tech; use the semantic form only when the
     division carries meaning.

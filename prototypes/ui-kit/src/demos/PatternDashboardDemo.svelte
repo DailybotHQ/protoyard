@@ -29,6 +29,7 @@ import {
   StatCard,
   toast,
 } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { sampleFace } from './faces.ts';
 import { interceptDemoNav } from './nav.ts';
 
@@ -159,7 +160,7 @@ function createDeal(event: SubmitEvent): void {
           {#snippet header({ collapsed })}
             <span class="flex items-center gap-2 font-heading font-semibold">
               <span class="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground" aria-hidden="true">
-                <TrendingUp class="size-4" />
+                <LucideIcon icon={TrendingUp} class="size-4" />
               </span>
               {#if !collapsed}Pipeline{/if}
             </span>

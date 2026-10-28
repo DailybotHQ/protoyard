@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Pencil, Star } from '@lucide/svelte';
 import { Button, MobileHeader, toast } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 const contacts = [
   { id: 'c1', name: 'Ana Lee', role: 'Designer · Lisbon' },
@@ -25,10 +26,10 @@ const contact = $derived(contacts.find((c) => c.id === openId));
           onclick={() =>
             (starred = isStarred ? starred.filter((id) => id !== contact.id) : [...starred, contact.id])}
         >
-          <Star aria-hidden="true" class={isStarred ? 'fill-current text-warning' : undefined} />
+          <LucideIcon icon={Star} class={isStarred ? 'fill-current text-warning' : undefined} />
         </Button>
         <Button size="icon" variant="ghost" aria-label="Edit contact" onclick={() => toast.info('Edit (demo)')}>
-          <Pencil aria-hidden="true" />
+          <LucideIcon icon={Pencil} />
         </Button>
       {/snippet}
     </MobileHeader>
@@ -40,14 +41,14 @@ const contact = $derived(contacts.find((c) => c.id === openId));
     <ul class="divide-y divide-border">
       {#each contacts as item (item.id)}
         <li>
-          <button
+          <Button
             type="button"
             class="flex min-h-touch w-full flex-col items-start px-4 py-3 text-left hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
             onclick={() => (openId = item.id)}
           >
             <span class="text-sm font-medium">{item.name}{starred.includes(item.id) ? ' ★' : ''}</span>
             <span class="text-xs text-muted-foreground">{item.role}</span>
-          </button>
+          </Button>
         </li>
       {/each}
     </ul>

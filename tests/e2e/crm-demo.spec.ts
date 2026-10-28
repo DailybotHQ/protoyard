@@ -70,6 +70,23 @@ async function createCompany(page: Page, name: string) {
 }
 
 test.describe('Pipeline CRM (static build)', () => {
+  test('pipeline choice controls filter owned deals and reveal lost deals', async ({ page }) => {
+    await openApp(page, '#/pipeline');
+    const stages = page.getByRole('list', { name: 'Pipeline stages' });
+    const totalDeals = async () =>
+      (await stages.getByRole('listitem').allTextContents()).reduce((sum, label) => {
+        const match = label.match(/(\d+) deals/);
+        return sum + Number(match?.[1] ?? 0);
+      }, 0);
+
+    await expect.poll(totalDeals).toBeGreaterThan(0);
+    const allDeals = await totalDeals();
+    await page.getByRole('checkbox', { name: 'Mine' }).check();
+    expect(await totalDeals()).toBeLessThan(allDeals);
+    await page.getByRole('checkbox', { name: 'Show lost' }).check();
+    await expect(stages.getByRole('listitem', { name: /^Lost:/ })).toBeVisible();
+  });
+
   test('section navigation and the role label are reachable on phones', async ({
     page,
     isMobile,

@@ -1,4 +1,5 @@
 <script lang="ts">
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { Transaction } from '../database/schema.ts';
 import { CATEGORY_LABELS, formatDay, formatSigned } from '../lib/format.ts';
 import { CATEGORY_ICONS } from './icons.ts';
@@ -9,7 +10,7 @@ let {
   accountName,
 }: { transaction: Transaction; now: Date; accountName?: string } = $props();
 
-const Icon = $derived(CATEGORY_ICONS[transaction.category]);
+const CategoryGlyph = $derived(CATEGORY_ICONS[transaction.category]);
 const pending = $derived(transaction.status === 'pending');
 const incoming = $derived(transaction.amountCents > 0);
 </script>
@@ -22,7 +23,7 @@ const incoming = $derived(transaction.amountCents > 0);
     ]}
     aria-hidden="true"
   >
-    <Icon class="size-4" />
+    <LucideIcon icon={CategoryGlyph} class="size-4" />
   </span>
   <div class="min-w-0 flex-1">
     <p class="truncate text-sm font-medium">{transaction.description}</p>

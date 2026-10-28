@@ -23,6 +23,7 @@ import {
   Skeleton,
   Switch,
 } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import { CURRENCIES, type Currency } from '../database/schema.ts';
 import { CAPABILITIES, ROLE_LABELS } from '../domain/policy.ts';
@@ -134,7 +135,7 @@ const updatedByName = $derived(
             {#if settings.current}Last changed {fromNow(settings.current.updatedAt, clock.now)} by {updatedByName}.{/if}
           </p>
         </div>
-        {#if !canManage}<Badge variant="outline"><Lock aria-hidden="true" />Read-only</Badge>{/if}
+        {#if !canManage}<Badge variant="outline"><LucideIcon icon={Lock} />Read-only</Badge>{/if}
       </div>
 
       {#if settings.loading}
@@ -172,7 +173,7 @@ const updatedByName = $derived(
           <div><dt class="text-muted-foreground">Weekly report</dt><dd class="font-medium">{settings.current.weeklyReport ? 'On' : 'Off'}</dd></div>
         </dl>
         <p class="mt-4 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-          <Lock class="size-3.5" aria-hidden="true" />Only owners and admins can change workspace settings.
+          <LucideIcon icon={Lock} class="size-3.5" />Only owners and admins can change workspace settings.
         </p>
       {/if}
     </Card>
@@ -228,7 +229,7 @@ const updatedByName = $derived(
         </dl>
         <p class="mt-3 text-xs text-muted-foreground">Billing is simulated: no payment provider is involved.</p>
       {:else}
-        <p class="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Lock class="size-3.5" aria-hidden="true" />Only the owner can see billing.</p>
+        <p class="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><LucideIcon icon={Lock} class="size-3.5" />Only the owner can see billing.</p>
       {/if}
     </Card>
 
@@ -245,7 +246,7 @@ const updatedByName = $derived(
         {/each}
       </ul>
       <p class="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
-        <ShieldCheck class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />Simulated permissions for prototyping — not real security.
+        <LucideIcon icon={ShieldCheck} class="mt-0.5 size-3.5 shrink-0" />Simulated permissions for prototyping — not real security.
       </p>
     </Card>
   </div>

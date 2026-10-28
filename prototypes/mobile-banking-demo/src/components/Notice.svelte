@@ -1,6 +1,8 @@
 <script lang="ts">
 import { Info, TriangleAlert, WifiOff } from '@lucide/svelte';
 import type { Snippet } from 'svelte';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 /**
  * Inline banner for conditions people must understand (offline, view-only,
@@ -18,7 +20,9 @@ let {
   icon?: 'info' | 'warning' | 'offline';
 } = $props();
 
-const Icon = $derived(icon === 'offline' ? WifiOff : icon === 'warning' ? TriangleAlert : Info);
+const NoticeGlyph = $derived(
+  icon === 'offline' ? WifiOff : icon === 'warning' ? TriangleAlert : null
+);
 const tones = {
   info: 'border-info/30 bg-info/10',
   warning: 'border-warning/40 bg-warning/15',
@@ -30,7 +34,7 @@ const tones = {
   role={tone === 'info' ? 'note' : 'status'}
   class={['flex gap-3 rounded-xl border p-3 text-sm text-foreground', tones[tone]]}
 >
-  <Icon class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+  {#if NoticeGlyph}<LucideIcon icon={NoticeGlyph} class="mt-0.5 size-4 shrink-0" />{:else}<Icon icon="info" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />{/if}
   <div class="min-w-0">
     <p class="font-medium">{title}</p>
     <!-- Foreground text: muted text on a tinted notice drops below 4.5:1 in dark mode. -->

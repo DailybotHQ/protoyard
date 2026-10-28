@@ -1,6 +1,7 @@
 <script lang="ts">
 import { FileText } from '@lucide/svelte';
-import { Composer } from '@protoyard/ui';
+import { Button, Composer } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { wait } from './nav.ts';
 
 let value = $state('');
@@ -23,14 +24,14 @@ async function submit(text: string): Promise<boolean> {
 <div class="grid max-w-lg gap-4">
   <Composer bind:value onSubmit={submit} maxLength={500} placeholder="Write an update…">
     {#snippet actions()}
-      <button
+      <Button
         type="button"
         class="inline-flex size-9 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0 sm:min-w-0"
         aria-label="Insert stand-up template"
         onclick={() => (value = `Yesterday: \nToday: \nBlockers: none`)}
       >
-        <FileText class="size-4" aria-hidden="true" />
-      </button>
+        <LucideIcon icon={FileText} class="size-4" />
+      </Button>
     {/snippet}
   </Composer>
   {#if rejected}

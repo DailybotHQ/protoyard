@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { CustomSlideProps } from '@protoyard/decks-ui/app';
+import { Checkbox, Input } from '@protoyard/ui';
 
 /**
  * A live pricing configurator on a slide: pick a plan, set the seats, switch
@@ -92,7 +93,7 @@ const uid = $props.id();
           <label
             class={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border-2 px-4 ${option.id === plan?.id ? 'border-primary bg-primary/10' : 'border-border'}`}
           >
-            <input
+            <Input
               type="radio"
               name={`plan-${uid}`}
               value={option.id}
@@ -111,7 +112,7 @@ const uid = $props.id();
 
     <label class="flex flex-col gap-3 text-2xl">
       <span class="font-semibold text-muted-foreground">Seats: <span class="text-foreground tabular-nums">{seatCount}</span></span>
-      <input
+      <Input
         type="range"
         min="1"
         max={maxSeats}
@@ -121,10 +122,9 @@ const uid = $props.id();
       />
     </label>
 
-    <label class="flex min-h-12 cursor-pointer items-center gap-4 text-2xl">
-      <input type="checkbox" bind:checked={annual} class="size-6" />
-      Pay yearly ({annualDiscountPercent}% off)
-    </label>
+    <div class="flex min-h-12 items-center text-2xl">
+      <Checkbox bind:checked={annual} label="Pay yearly ({annualDiscountPercent}% off)" />
+    </div>
 
     <div class="mt-auto rounded-2xl bg-muted/60 px-6 py-4" aria-live="polite">
       <p class="text-2xl text-muted-foreground">Per month</p>

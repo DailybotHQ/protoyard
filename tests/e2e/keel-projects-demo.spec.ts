@@ -30,6 +30,20 @@ async function center(locator: Locator) {
 }
 
 test.describe('Keel Projects flagship', () => {
+  test('project color swatches remain a keyboard-operable radio group', async ({ page }) => {
+    await open(page, '#/');
+    await page.getByRole('button', { name: 'New project' }).click();
+    const dialog = page.getByRole('dialog', { name: 'New project' });
+    const violet = dialog.getByRole('radio', { name: 'violet' });
+    await expect(violet).toHaveAttribute('aria-checked', 'true');
+    await violet.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(dialog.getByRole('radio', { name: 'blue' })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
+  });
+
   test('board: drag a card with the mouse on desktop, move it with the keyboard on a phone', async ({
     page,
     isMobile,

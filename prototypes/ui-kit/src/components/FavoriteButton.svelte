@@ -2,6 +2,7 @@
 import { Star } from '@lucide/svelte';
 import { can, runService } from '@protoyard/renderer-svelte';
 import { Button, Tooltip } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { favoritesService } from '../lib/services.ts';
 
@@ -25,13 +26,13 @@ async function toggle() {
     loading={busy}
     onclick={toggle}
   >
-    <Star class={starred ? 'size-4 fill-current text-warning' : 'size-4'} aria-hidden="true" />
+    <LucideIcon icon={Star} class={starred ? 'size-4 fill-current text-warning' : 'size-4'} />
   </Button>
 {:else}
   <Tooltip content="Viewers can't change favorites. Switch persona in DevTools.">
     {#snippet children({ props })}
       <Button {...props} variant="ghost" size="icon" aria-disabled="true" aria-label={`${name} favorites are read-only`} onclick={(e: MouseEvent) => e.preventDefault()}>
-        <Star class={starred ? 'size-4 fill-current text-warning' : 'size-4 opacity-50'} aria-hidden="true" />
+        <LucideIcon icon={Star} class={starred ? 'size-4 fill-current text-warning' : 'size-4 opacity-50'} />
       </Button>
     {/snippet}
   </Tooltip>

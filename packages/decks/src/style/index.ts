@@ -115,15 +115,20 @@ export async function resolveDeckStyle(
     density: DENSITY[effective.density ?? 'comfortable'],
   };
   const variables = themeVariables(appearance);
+  // Deck overrides write Texuli's canonical --tx-* names, which Texuli components
+  // read, and the deprecated --py-* aliases for Protoyard's own CSS.
   if (pairing) {
-    variables['--py-font-sans'] = pairing.fontFamily;
-    variables['--py-font-heading'] = pairing.fontFamilyHeading;
-    variables['--py-font-mono'] = pairing.fontFamilyMono;
+    for (const prefix of ['--tx', '--py']) {
+      variables[`${prefix}-font-sans`] = pairing.fontFamily;
+      variables[`${prefix}-font-heading`] = pairing.fontFamilyHeading;
+      variables[`${prefix}-font-mono`] = pairing.fontFamilyMono;
+    }
   }
 
   variables['--py-deck-aspect-ratio'] = ASPECT_RATIO[effective.aspect ?? '16:9'];
   variables['--py-deck-density'] = String(DENSITY[effective.density ?? 'comfortable']);
   variables['--py-deck-radius'] = RADIUS[effective.radius ?? 'medium'];
+  variables['--tx-radius'] = RADIUS[effective.radius ?? 'medium'];
   variables['--py-radius'] = RADIUS[effective.radius ?? 'medium'];
   variables['--py-deck-motion'] = effective.motion ?? 'full';
   variables['--py-deck-transition'] = effective.transition ?? 'fade';

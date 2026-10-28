@@ -10,6 +10,7 @@ import {
   ErrorState,
   Select,
 } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import CustomerDialog from '../components/CustomerDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -84,7 +85,7 @@ const columns: DataTableColumn<Row>[] = [
 >
   {#snippet actions()}
     {#if can(CAPABILITIES.customersCreate)}
-      <Button onclick={() => (createOpen = true)}><UserPlus class="size-4" aria-hidden="true" />New customer</Button>
+      <Button onclick={() => (createOpen = true)}><LucideIcon icon={UserPlus} class="size-4" />New customer</Button>
     {/if}
   {/snippet}
 </PageHeader>

@@ -43,7 +43,8 @@ describe('protoyard theme', () => {
     const css = await cli(['--json', 'theme', 'export', 'fintech-ledger', '--format', 'css']);
     expect(css.code).toBe(0);
     expect(css.json<{ data: { content: string } }>().data.content).toContain(':root {');
-    expect(css.json<{ data: { content: string } }>().data.content).toContain('--py-background:');
+    expect(css.json<{ data: { content: string } }>().data.content).toContain('--tx-background:');
+    expect(css.json<{ data: { content: string } }>().data.content).not.toContain('--py-');
 
     const tailwind = await cli(['--json', 'theme', 'export', 'violet', '--format', 'tailwind']);
     expect(tailwind.code).toBe(0);

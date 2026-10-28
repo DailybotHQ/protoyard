@@ -3,6 +3,7 @@ import { ArrowLeftRight, Banknote, Landmark, ReceiptText, Users } from '@lucide/
 import { MS_PER_DAY } from '@protoyard/core';
 import { can, liveQuery, useClock, usePrincipal } from '@protoyard/renderer-svelte';
 import { Button, EmptyState, Skeleton, toast } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import AccountCard from '../components/AccountCard.svelte';
 import Notice from '../components/Notice.svelte';
 import Page from '../components/Page.svelte';
@@ -110,16 +111,16 @@ const quickActions = [
         {action.label}
       </a>
     {/each}
-    <button
+    <Button
       type="button"
       class="flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-xl bg-surface p-2 text-xs font-medium shadow-soft transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       disabled={!canMove || !depositTarget || depositing}
       title={!canMove ? 'View-only access' : !depositTarget ? 'No active checking account' : undefined}
       onclick={deposit}
     >
-      <Banknote class="size-5 text-primary" aria-hidden="true" />
+      <LucideIcon icon={Banknote} class="size-5 text-primary" />
       {depositing ? 'Adding…' : 'Payroll'}
-    </button>
+    </Button>
   </nav>
 
   {#if isNew}
@@ -131,7 +132,7 @@ const quickActions = [
       {#snippet action()}
         {#if canMove && depositTarget}
           <Button onclick={deposit} loading={depositing}>
-            <Banknote aria-hidden="true" />Simulate payroll deposit ({formatMoney(PAYROLL_CENTS)})
+            <LucideIcon icon={Banknote} />Simulate payroll deposit ({formatMoney(PAYROLL_CENTS)})
           </Button>
         {:else}
           <p class="text-sm text-muted-foreground">Ask the primary holder to make the first deposit.</p>

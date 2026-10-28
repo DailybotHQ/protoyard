@@ -32,18 +32,20 @@ type View = (typeof VIEWS)[number];
  * shrinks. After the Texuli views adoption + cn→cx (texuli/cx) and QueryState
  * without `@protoyard/ui` cn, re-measured on 2026-10-24:
  * board 10,932, calendar 14,271, grid 17,362, map 5,827, editor 8,187,
- * timeline 10,067. Only views still over their default get a per-view ceiling
- * at measured + 5 % (never raise the default for views that fit).
+ * timeline 10,067. On the npm Texuli 0.4.0 (2026-10-28, board dragging on
+ * @texuli/drag): board 13,900, calendar 15,801, grid 19,297, map 8,073,
+ * editor 9,484, timeline 11,973. Only views still over their default get a
+ * per-view ceiling at measured + 5 % (never raise the default for views that fit).
  */
 export const CEILINGS: Record<View, number> = {
-  board: 12_800,
+  board: 14_595,
   calendar: 17_200,
   grid: 23_400,
   map: 12_400,
-  // Measured 8,187 gzip over shell (Texuli-era MarkdownEditor + slash/link extras); +5 %.
-  editor: 8_597,
-  // Measured 10,067 gzip over shell (Texuli TimelineView + QueryState/empty); +5 %.
-  timeline: 10_571,
+  // Measured 9,484 gzip over shell on Texuli 0.4.0 (MarkdownEditor on Texuli Textarea); +5 %.
+  editor: 9_958,
+  // Measured 11,973 gzip over shell on Texuli 0.4.0 (TimelineView + QueryState/empty); +5 %.
+  timeline: 12_572,
 };
 
 let dir = '';

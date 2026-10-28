@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Archive, Inbox, MessagesSquare, Pin, Plus, Search, Sparkles } from '@lucide/svelte';
+import { Archive, Inbox, MessagesSquare, Pin, Sparkles } from '@lucide/svelte';
 import {
   can,
   DEMO_BADGE_ENABLED,
@@ -10,6 +10,8 @@ import {
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import { Button, EmptyState, Input } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { Message } from '../database/schema.ts';
 import { CAPABILITIES, ROLE_LABELS } from '../domain/policy.ts';
 import { startWithAgent } from '../lib/actions.ts';
@@ -72,7 +74,7 @@ async function askAtlas() {
   <div class="flex items-center gap-2.5 px-4 pt-4 pb-3">
     <a href="#/" class="flex min-w-0 flex-1 items-center gap-2.5 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
       <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm" aria-hidden="true">
-        <MessagesSquare class="size-4" />
+        <LucideIcon icon={MessagesSquare} class="size-4" />
       </span>
       <span class="min-w-0 leading-tight">
         <h1 class="block text-sm font-semibold text-foreground">Relay</h1>
@@ -81,14 +83,14 @@ async function askAtlas() {
     </a>
     {#if can(CAPABILITIES.createConversation)}
       <Button size="sm" onclick={onNew}>
-        <Plus aria-hidden="true" /> New<span class="sr-only"> conversation</span>
+        <Icon icon="plus" aria-hidden="true" /> New<span class="sr-only"> conversation</span>
       </Button>
     {/if}
   </div>
 
   <div class="px-4 pb-3">
     <div class="relative">
-      <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+      <Icon icon="search" class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
       <Input type="search" bind:value={query} placeholder="Search messages…" aria-label="Search messages" class="pl-8" />
     </div>
   </div>
@@ -121,7 +123,7 @@ async function askAtlas() {
     </div>
   {:else}
     <div class="flex gap-1 px-4 pb-2" role="group" aria-label="Which conversations to show">
-      <button
+      <Button
         type="button"
         aria-pressed={!showArchived}
         class={[
@@ -130,10 +132,10 @@ async function askAtlas() {
         ]}
         onclick={() => (showArchived = false)}
       >
-        <Inbox class="size-3.5" aria-hidden="true" /> Inbox
+        <LucideIcon icon={Inbox} class="size-3.5" /> Inbox
         {#if unreadTotal > 0}<span class="sr-only">({unreadTotal} unread)</span>{/if}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
         aria-pressed={showArchived}
         class={[
@@ -142,8 +144,8 @@ async function askAtlas() {
         ]}
         onclick={() => (showArchived = true)}
       >
-        <Archive class="size-3.5" aria-hidden="true" /> Archived ({archivedCount})
-      </button>
+        <LucideIcon icon={Archive} class="size-3.5" /> Archived ({archivedCount})
+      </Button>
     </div>
 
     <nav class="min-h-0 flex-1 overflow-y-auto px-2 pb-4" aria-label={showArchived ? 'Archived conversations' : 'Conversations'}>
@@ -158,7 +160,7 @@ async function askAtlas() {
               {#if can(CAPABILITIES.createConversation)}
                 <!-- Desktop shows the larger welcome pane instead. -->
                 <span class="@3xl:hidden">
-                  <Button size="sm" onclick={askAtlas} loading={starting}><Sparkles aria-hidden="true" /> Ask Atlas</Button>
+                  <Button size="sm" onclick={askAtlas} loading={starting}><LucideIcon icon={Sparkles} /> Ask Atlas</Button>
                 </span>
               {/if}
             {/snippet}
@@ -189,7 +191,7 @@ async function askAtlas() {
                     <span class={['flex-1 truncate text-sm', item.unread > 0 ? 'font-semibold text-foreground' : 'font-medium text-foreground/90']}>
                       {item.title}
                     </span>
-                    {#if item.pinned}<Pin class="size-3 shrink-0 text-muted-foreground" aria-label="Pinned" />{/if}
+                    {#if item.pinned}<LucideIcon icon={Pin} class="size-3 shrink-0 text-muted-foreground" label="Pinned" />{/if}
                     <span class="shrink-0 text-[0.7rem] text-muted-foreground">{shortStamp(item.lastMessageAt, clock.now)}</span>
                   </span>
                   <span class="mt-0.5 flex items-center gap-2">

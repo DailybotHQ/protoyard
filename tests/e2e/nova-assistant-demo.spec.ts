@@ -12,6 +12,25 @@ declare global {
 }
 
 test.describe('Nova Assistant flagship', () => {
+  test('saved-memory checkbox persists its disabled state', async ({ page }) => {
+    await page.goto(`${prototypeUrl(SLUG)}#/settings`);
+    await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true', {
+      timeout: 20_000,
+    });
+    const memory = page.getByRole('checkbox', { name: 'Use saved memory in simulated replies' });
+    await expect(memory).toBeChecked();
+    await memory.uncheck();
+    await page.getByRole('button', { name: 'Save settings' }).click();
+    await expect(page.getByRole('status')).toContainText(/saved|updated/i);
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true', {
+      timeout: 20_000,
+    });
+    await expect(
+      page.getByRole('checkbox', { name: 'Use saved memory in simulated replies' })
+    ).not.toBeChecked();
+  });
+
   test('streams, stops, and regenerates an assistant reply', async ({ page }, testInfo) => {
     await page.goto(`${prototypeUrl(SLUG)}?scenario=slow-model`);
     await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true', {

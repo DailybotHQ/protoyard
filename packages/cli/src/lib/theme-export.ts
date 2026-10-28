@@ -37,21 +37,27 @@ export function exportTheme(theme: Theme, format: ThemeExportFormat): string {
   if (format === 'css') {
     assertExportable(theme);
     const light = paletteEntries(theme, 'light')
-      .map(([key, value]) => `  ${tokenToCssVar(key)}: ${cssValue(value)};`)
+      .map(
+        ([key, value]) =>
+          `  ${tokenToCssVar(key).replace(/^--[^-]+-/, '--tx-')}: ${cssValue(value)};`
+      )
       .join('\n');
     const dark = paletteEntries(theme, 'dark')
-      .map(([key, value]) => `  ${tokenToCssVar(key)}: ${cssValue(value)};`)
+      .map(
+        ([key, value]) =>
+          `  ${tokenToCssVar(key).replace(/^--[^-]+-/, '--tx-')}: ${cssValue(value)};`
+      )
       .join('\n');
-    return `:root {\n${light}\n  --py-radius: ${cssValue(theme.radius)};\n  --py-density: ${cssValue(theme.density)};\n  --py-font-family: ${cssValue(theme.fontFamily)};\n}\n\n.dark {\n${dark}\n}\n`;
+    return `:root {\n${light}\n  --tx-radius: ${cssValue(theme.radius)};\n  --tx-density: ${cssValue(theme.density)};\n  --tx-font-family: ${cssValue(theme.fontFamily)};\n}\n\n.dark {\n${dark}\n}\n`;
   }
 
   if (format === 'tailwind') {
     const entries = paletteEntries(theme, 'light');
     const lines = entries.map(
       ([key]) =>
-        `  --color-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}: var(${tokenToCssVar(key)});`
+        `  --color-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}: var(${tokenToCssVar(key).replace(/^--[^-]+-/, '--tx-')});`
     );
-    lines.push('  --radius-theme: var(--py-radius);');
+    lines.push('  --radius-theme: var(--tx-radius);');
     return `@theme {\n${lines.join('\n')}\n}\n`;
   }
 

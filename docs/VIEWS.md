@@ -163,12 +163,12 @@ Measured on 2026-10-24 with
 
 | View | Measured | Ceiling |
 | --- | ---: | ---: |
-| Board | 10,932 B | 12,800 B |
+| Board | 13,900 B (Texuli 0.4.0) | 14,595 B |
 | Calendar | 14,327 B | 17,200 B |
 | Grid (`DataGrid` only) | 17,804 B | 23,400 B |
 | Map | 7,984 B | 12,400 B |
-| Editor | 8,187 B | 8,597 B |
-| Timeline | 10,067 B | 10,571 B |
+| Editor | 9,484 B (Texuli 0.4.0) | 9,958 B |
+| Timeline | 11,973 B (Texuli 0.4.0) | 12,572 B |
 
 The other subpaths have no current per-component measurement. A full
 prototype that uses several views, `keel-projects-demo`, measured with

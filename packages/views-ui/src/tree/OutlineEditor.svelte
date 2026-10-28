@@ -15,6 +15,7 @@ import {
   type TreeMoveResult,
   validParents,
 } from '@protoyard/views/tree';
+import { createPointerTracker } from '@texuli/drag/gesture';
 import { tick } from 'svelte';
 import { cx } from 'texuli/cx';
 import { LucideIcon } from 'texuli/icons/lucide';
@@ -244,9 +245,11 @@ interface Drag {
   over: { id: string; zone: DropZone } | null;
 }
 let drag = $state<Drag | null>(null);
+const pointerTracker = createPointerTracker({ threshold: TREE_DRAG_THRESHOLD_PX });
 
 function onGripDown(event: PointerEvent, node: FlatNode<T>) {
   if (event.button !== 0 || pending[node.id]) return;
+  if (!pointerTracker.down(event)) return;
   event.preventDefault();
   drag = {
     id: node.id,
@@ -261,11 +264,8 @@ function onGripDown(event: PointerEvent, node: FlatNode<T>) {
 
 function onPointerMove(event: PointerEvent) {
   if (!drag || event.pointerId !== drag.pointerId) return;
-  if (
-    !drag.active &&
-    Math.hypot(event.clientX - drag.x0, event.clientY - drag.y0) < TREE_DRAG_THRESHOLD_PX
-  )
-    return;
+  pointerTracker.move(event);
+  if (!drag.active && pointerTracker.phase !== 'dragging') return;
   const row = document
     .elementFromPoint(event.clientX, event.clientY)
     ?.closest<HTMLElement>(`[data-outline="${uid}"] [data-tree-row]`);
@@ -282,15 +282,21 @@ function onPointerMove(event: PointerEvent) {
 
 function onPointerUp(event: PointerEvent) {
   if (!drag || event.pointerId !== drag.pointerId) return;
+  pointerTracker.up(event);
   const finished = drag;
   drag = null;
   if (finished.active && finished.over && finished.over.id !== finished.id) {
     apply(dropMove(tree, finished.id, finished.over.id, finished.over.zone));
   }
 }
+
+function onPointerCancel(event: PointerEvent) {
+  pointerTracker.cancel(event);
+  drag = null;
+}
 </script>
 
-<svelte:window onpointermove={onPointerMove} onpointerup={onPointerUp} onpointercancel={() => (drag = null)} />
+<svelte:window onpointermove={onPointerMove} onpointerup={onPointerUp} onpointercancel={onPointerCancel} />
 
 <div class={cx('relative', className)} data-outline={uid}>
   <QueryState {query} label={`Loading ${label.toLowerCase()}`} isEmpty={() => false} onRetry={onRetry ? () => { void onRetry(); } : undefined}>

@@ -431,7 +431,8 @@ this is still a simulation, not security. The crud-app scenarios use the roles
 - `brand`: a `seed` color (`#rrggbb`) and/or a built-in `preset`, plus optional
   `secondary`, `styleProfile`, `font`, `radius` and `density`. `generate`
   writes a hash-headed `src/generated/brand-theme.ts`, registers it and sets
-  `defaultTheme`. Contrast failures exit 4. Or `libraryTheme`, a theme
+  `defaultTheme`. Generated palette and typography custom properties use the
+  `--tx-*` Texuli token namespace. Contrast failures exit 4. Or `libraryTheme`, a theme
   library id (alone: no seed, preset or style fields): `generate` only sets
   `defaultTheme` to it, with no theme module; an unknown id exits 4 with the
   closest ids ([THEMES](THEMES.md#the-blueprint-brand-block)).

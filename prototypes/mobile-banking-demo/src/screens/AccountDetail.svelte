@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowLeftRight, LockOpen, Search, Snowflake, SunMedium } from '@lucide/svelte';
+import { ArrowLeftRight, LockOpen, Snowflake, SunMedium } from '@lucide/svelte';
 import { can, liveQuery, type RouteProps, useClock } from '@protoyard/renderer-svelte';
 import {
   AlertDialog,
@@ -11,6 +11,8 @@ import {
   Skeleton,
   toast,
 } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import AccountStatusBadge from '../components/AccountStatusBadge.svelte';
 import { ACCOUNT_ICONS } from '../components/icons.ts';
 import Notice from '../components/Notice.svelte';
@@ -58,7 +60,7 @@ const pendingCents = $derived(
     .reduce((sum, t) => sum + t.amountCents, 0)
 );
 const canManage = $derived(can(CAPABILITIES.accountsManage));
-const Icon = $derived(current ? ACCOUNT_ICONS[current.type] : null);
+const AccountGlyph = $derived(current ? ACCOUNT_ICONS[current.type] : null);
 const categoryItems = [
   { value: '', label: 'All categories' },
   ...CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] })),
@@ -123,7 +125,7 @@ async function applyStatus() {
     <section class="rounded-2xl bg-surface p-5 shadow-soft" aria-labelledby="acct-balance">
       <div class="flex items-center justify-between gap-2">
         <span class="inline-flex items-center gap-2 text-sm text-muted-foreground">
-          {#if Icon}<Icon class="size-4" aria-hidden="true" />{/if}
+          {#if AccountGlyph}<LucideIcon icon={AccountGlyph} class="size-4" />{/if}
           {current.type === 'credit' ? 'Current balance' : 'Available balance'}
         </span>
         <AccountStatusBadge status={current.status} />
@@ -140,7 +142,7 @@ async function applyStatus() {
       <div class="mt-4 flex flex-wrap gap-2">
         {#if current.status === 'active'}
           <Button href={`#/transfer?from=${current.id}`} size="lg" class="flex-1">
-            <ArrowLeftRight aria-hidden="true" />Move money
+            <LucideIcon icon={ArrowLeftRight} />Move money
           </Button>
         {/if}
         {#if canManage && action}
@@ -154,7 +156,7 @@ async function applyStatus() {
           >
             {#snippet trigger({ props })}
               <Button {...props} variant={action.destructive ? 'outline' : 'default'} size="lg" class="flex-1">
-                {#if action.next === 'locked'}<Snowflake aria-hidden="true" />{:else if current.status === 'locked'}<LockOpen aria-hidden="true" />{:else}<SunMedium aria-hidden="true" />{/if}
+                {#if action.next === 'locked'}<LucideIcon icon={Snowflake} />{:else if current.status === 'locked'}<LucideIcon icon={LockOpen} />{:else}<LucideIcon icon={SunMedium} />{/if}
                 {action.label}
               </Button>
             {/snippet}
@@ -181,7 +183,7 @@ async function applyStatus() {
       <div class="flex flex-col gap-2 sm:flex-row">
         <label class="relative flex-1">
           <span class="sr-only">Search transactions</span>
-          <Search class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Icon icon="search" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input type="search" placeholder="Search merchant or memo" class="pl-9" bind:value={search} />
         </label>
         <Select items={categoryItems} bind:value={category} aria-label="Filter by category" class="sm:w-44" />

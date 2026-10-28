@@ -3,6 +3,7 @@ import { BellRing, CircleDot } from '@lucide/svelte';
 import { LiveCounter } from '@protoyard/analytics-ui';
 import { liveQuery, useClock } from '@protoyard/renderer-svelte';
 import { Badge, Card } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import { EVENT_LABELS, LIVE_COUNTER } from '../domain/catalog.ts';
 import { useAnalytics } from '../lib/context.ts';
@@ -87,9 +88,9 @@ const fresh = $derived((stream.current ?? []).filter((i) => i.at > openedAt).len
           <li class="flex items-center justify-between gap-3 py-2.5 text-sm" data-stream-kind={item.kind}>
             <span class="flex min-w-0 items-center gap-2">
               {#if item.kind === 'check'}
-                <BellRing class="size-4 shrink-0 {item.fired ? 'text-destructive' : 'text-muted-foreground'}" aria-hidden="true" />
+                <LucideIcon icon={BellRing} class="size-4 shrink-0 {item.fired ? 'text-destructive' : 'text-muted-foreground'}" />
               {:else}
-                <CircleDot class="size-4 shrink-0 text-primary" aria-hidden="true" />
+                <LucideIcon icon={CircleDot} class="size-4 shrink-0 text-primary" />
               {/if}
               <span class="min-w-0 truncate">
                 <span class="font-medium">{item.title}</span>

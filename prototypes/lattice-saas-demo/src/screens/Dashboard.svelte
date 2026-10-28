@@ -1,7 +1,9 @@
 <script lang="ts">
-import { ArrowRight, Check, CircleDashed, Clock3, Layers3, Plus, Users, Zap } from '@lucide/svelte';
+import { ArrowRight, CircleDashed, Clock3, Layers3, Users, Zap } from '@lucide/svelte';
 import { getRuntime, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
 import { Button } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { B2bSaasDatabase } from '../database/schema.ts';
 
 const runtime = getRuntime<B2bSaasDatabase>();
@@ -39,27 +41,27 @@ const firstName = $derived(principal.current?.persona.name.split(' ')[0] ?? 'the
         <h1 id="overview-title" class="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Good morning, {firstName}.</h1>
         <p class="mt-2 max-w-2xl text-muted-foreground">Your team’s work, priorities, and delivery health in one calm place.</p>
       </div>
-      {#if canCreateProject}<Button href="#/projects"><Plus size={16} /> New project</Button>{/if}
+      {#if canCreateProject}<Button href="#/projects"><Icon icon="plus" size="sm" /> New project</Button>{/if}
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Workspace project summary">
       <article class="rounded-2xl border border-border bg-surface p-5">
-        <div class="flex items-center justify-between text-sm text-muted-foreground"><span>Active projects</span><Layers3 size={18} /></div>
+        <div class="flex items-center justify-between text-sm text-muted-foreground"><span>Active projects</span><LucideIcon icon={Layers3} class="size-[18px]" /></div>
         <p class="mt-5 text-3xl font-semibold tabular-nums">{activeCount}</p>
         <p class="mt-1 text-xs text-muted-foreground">Moving forward this week</p>
       </article>
       <article class="rounded-2xl border border-border bg-surface p-5">
-        <div class="flex items-center justify-between text-sm text-muted-foreground"><span>In planning</span><CircleDashed size={18} /></div>
+        <div class="flex items-center justify-between text-sm text-muted-foreground"><span>In planning</span><LucideIcon icon={CircleDashed} class="size-[18px]" /></div>
         <p class="mt-5 text-3xl font-semibold tabular-nums">{planningCount}</p>
         <p class="mt-1 text-xs text-muted-foreground">Ready for the next milestone</p>
       </article>
       <article class="rounded-2xl border border-border bg-surface p-5">
-        <div class="flex items-center justify-between text-sm text-muted-foreground"><span>Completed</span><Check size={18} /></div>
+        <div class="flex items-center justify-between text-sm text-muted-foreground"><span>Completed</span><Icon icon="check" size="md" /></div>
         <p class="mt-5 text-3xl font-semibold tabular-nums">{completeCount}</p>
         <p class="mt-1 text-xs text-muted-foreground">Delivered in this workspace</p>
       </article>
       <article class="rounded-2xl border border-border bg-primary p-5 text-primary-foreground">
-        <div class="flex items-center justify-between text-sm opacity-80"><span>Team momentum</span><Zap size={18} /></div>
+        <div class="flex items-center justify-between text-sm opacity-80"><span>Team momentum</span><LucideIcon icon={Zap} class="size-[18px]" /></div>
         <p class="mt-5 text-3xl font-semibold">On track</p>
         <p class="mt-1 text-xs opacity-80">Based on your current project board</p>
       </article>
@@ -69,7 +71,7 @@ const firstName = $derived(principal.current?.persona.name.split(' ')[0] ?? 'the
       <section class="overflow-hidden rounded-2xl border border-border bg-surface" aria-labelledby="projects-title">
         <header class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4 sm:px-6">
           <div><h2 id="projects-title" class="font-semibold">Project portfolio</h2><p class="mt-1 text-sm text-muted-foreground">A live view of work in this workspace.</p></div>
-          <a class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline" href="#/projects">All projects <ArrowRight size={15} /></a>
+          <a class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline" href="#/projects">All projects <LucideIcon icon={ArrowRight} class="size-[15px]" /></a>
         </header>
         {#if projects.error}
           <p class="p-6 text-sm text-destructive" role="alert">Could not load projects: {String(projects.error)}</p>
@@ -80,14 +82,14 @@ const firstName = $derived(principal.current?.persona.name.split(' ')[0] ?? 'the
             {#each recentProjects as project (project.id)}
               <li class="flex flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-6">
                 <div class="flex min-w-0 items-start gap-3">
-                  <span class="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-muted text-primary"><Layers3 size={17} /></span>
+                  <span class="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-muted text-primary"><LucideIcon icon={Layers3} class="size-[17px]" /></span>
                   <div class="min-w-0"><h3 class="truncate font-medium">{project.name}</h3><p class="mt-1 line-clamp-1 text-sm text-muted-foreground">{project.summary || 'Project workspace'}</p></div>
                 </div>
                 <div class="flex items-center gap-4 text-sm">
                   <span class="inline-flex items-center gap-1.5 text-muted-foreground">
                     {#if project.status === 'active'}<span class="size-2 rounded-full bg-emerald-500"></span>{project.status}
-                    {:else if project.status === 'complete'}<Check size={14} class="text-emerald-600" />{project.status}
-                    {:else}<Clock3 size={14} />{project.status}{/if}
+                    {:else if project.status === 'complete'}<Icon icon="check" size="xs" class="text-emerald-600" />{project.status}
+                    {:else}<LucideIcon icon={Clock3} class="size-[14px]" />{project.status}{/if}
                   </span>
                   <a class="font-medium text-primary hover:underline" href="#/projects" aria-label={`Open ${project.name}`}>Open</a>
                 </div>
@@ -95,21 +97,21 @@ const firstName = $derived(principal.current?.persona.name.split(' ')[0] ?? 'the
             {/each}
           </ul>
         {:else}
-          <div class="px-6 py-12 text-center"><p class="font-medium">Your portfolio starts here</p><p class="mt-1 text-sm text-muted-foreground">Create a project to give the team a shared plan.</p>{#if canCreateProject}<Button class="mt-4" href="#/projects"><Plus size={16} /> Create a project</Button>{/if}</div>
+          <div class="px-6 py-12 text-center"><p class="font-medium">Your portfolio starts here</p><p class="mt-1 text-sm text-muted-foreground">Create a project to give the team a shared plan.</p>{#if canCreateProject}<Button class="mt-4" href="#/projects"><Icon icon="plus" size="sm" /> Create a project</Button>{/if}</div>
         {/if}
       </section>
 
       <aside class="space-y-4">
         <section class="rounded-2xl border border-border bg-surface p-5">
-          <div class="flex items-center gap-2"><Users size={18} class="text-primary" /><h2 class="font-semibold">Bring your team in</h2></div>
+          <div class="flex items-center gap-2"><LucideIcon icon={Users} class="size-[18px] text-primary" /><h2 class="font-semibold">Bring your team in</h2></div>
           <p class="mt-2 text-sm leading-6 text-muted-foreground">Invite a teammate, choose a simulated role, and see the collaboration flow in action.</p>
-          <a class="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline" href="#/settings/members">Manage members <ArrowRight size={15} /></a>
+          <a class="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline" href="#/settings/members">Manage members <LucideIcon icon={ArrowRight} class="size-[15px]" /></a>
         </section>
         <section class="rounded-2xl border border-border bg-muted/50 p-5">
           <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your workspace</p>
           <h2 class="mt-2 text-lg font-semibold">{principal.current.organization?.name ?? 'Lattice workspace'}</h2>
           <p class="mt-1 text-sm text-muted-foreground">A shared space for planning, progress, and better team decisions.</p>
-          <a class="mt-4 inline-flex items-center gap-2 text-sm font-medium hover:underline" href="#/settings">Workspace settings <ArrowRight size={15} /></a>
+          <a class="mt-4 inline-flex items-center gap-2 text-sm font-medium hover:underline" href="#/settings">Workspace settings <LucideIcon icon={ArrowRight} class="size-[15px]" /></a>
         </section>
       </aside>
     </div>
@@ -122,7 +124,7 @@ const firstName = $derived(principal.current?.persona.name.split(' ')[0] ?? 'the
       <h1 class="mt-6 max-w-2xl text-5xl font-semibold tracking-tight sm:text-6xl">Make the next big thing feel <span class="text-primary">manageable.</span></h1>
       <p class="mt-5 max-w-xl text-lg leading-8 text-muted-foreground">Lattice brings projects, priorities, and people into one thoughtful workspace—so every team knows what matters next.</p>
       <div class="mt-7 flex flex-wrap gap-3">
-        <a class="rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90" href="#/sign-up">Create your workspace <ArrowRight size={16} class="ml-1 inline" /></a>
+        <a class="rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90" href="#/sign-up">Create your workspace <LucideIcon icon={ArrowRight} class="size-[16px] ml-1 inline" /></a>
         <a class="rounded-lg border border-border bg-surface px-5 py-3 text-sm font-semibold hover:bg-muted" href="#/sign-in">Explore a demo account</a>
       </div>
       <p class="mt-4 text-xs text-muted-foreground">No email or payment provider is contacted. This product experience is simulated.</p>
