@@ -62,12 +62,18 @@ importers:
       '@texuli/data':
         specifier: link:../texuli/packages/data
         version: link:../texuli/packages/data
+      '@texuli/deck':
+        specifier: link:../texuli/packages/deck
+        version: link:../texuli/packages/deck
       '@texuli/media':
         specifier: link:../texuli/packages/media
         version: link:../texuli/packages/media
       '@texuli/primitives':
         specifier: link:../texuli/packages/primitives
         version: link:../texuli/packages/primitives
+      '@texuli/slides':
+        specifier: link:../texuli/packages/slides
+        version: link:../texuli/packages/slides
       '@texuli/tokens':
         specifier: link:../texuli/packages/tokens
         version: link:../texuli/packages/tokens
@@ -474,6 +480,9 @@ importers:
       '@protoyard/themes':
         specifier: workspace:*
         version: link:../themes
+      '@texuli/deck':
+        specifier: link:../../../texuli/packages/deck
+        version: link:../../../texuli/packages/deck
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -489,6 +498,12 @@ importers:
       '@protoyard/decks':
         specifier: workspace:*
         version: link:../decks
+      '@texuli/deck':
+        specifier: link:../../../texuli/packages/deck
+        version: link:../../../texuli/packages/deck
+      '@texuli/slides':
+        specifier: link:../../../texuli/packages/slides
+        version: link:../../../texuli/packages/slides
     devDependencies:
       svelte:
         specifier: ^5.57.2
@@ -682,6 +697,9 @@ importers:
       '@protoyard/scenarios':
         specifier: workspace:*
         version: link:../scenarios
+      tailwindcss:
+        specifier: ^4.3.3
+        version: 4.3.3
 
   packages/protoyard:
     dependencies:
@@ -914,6 +932,9 @@ importers:
       '@texuli/data':
         specifier: link:../../../texuli/packages/data
         version: link:../../../texuli/packages/data
+      '@texuli/drag':
+        specifier: link:../../../texuli/packages/drag
+        version: link:../../../texuli/packages/drag
       texuli:
         specifier: link:../../../texuli/packages/texuli
         version: link:../../../texuli/packages/texuli

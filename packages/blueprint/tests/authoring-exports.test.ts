@@ -243,14 +243,15 @@ describe('authoring code stays out of runtime bundles', () => {
       authoring: bundle('authoring').initialGzip,
       lazy: bundle('lazy').initialGzip,
     };
-    // Measured 2026-10-22: runtime 39,293, kinds 41,641, authoring 82,960, lazy 42,276
-    // (README → Authoring exports). Static authoring adds 41,319 over the kind union
-    // (38,627 on 2026-10-21, before deck asset lint and the content URL and text
-    // policies); the ceiling is that plus about 7 %. Lower it when authoring shrinks.
+    // Measured 2026-10-28: runtime 39,293, kinds 41,051, authoring 105,509, lazy 42,275
+    // (README → Authoring exports). Static authoring adds 64,458 over the kind union
+    // (41,319 on 2026-10-22): deck lint and layout selection now run on @texuli/deck
+    // (its model, validation and lint), which the kind union only loads with a deck.
+    // The ceiling is that plus about 7 %. Lower it when authoring shrinks.
     expect(sizes.runtime).toBeLessThanOrEqual(sizes.kinds);
     expect(sizes.authoring - sizes.kinds).toBeGreaterThan(0);
-    expect(sizes.authoring - sizes.kinds).toBeLessThan(44_200);
     if (process.env.PROTOYARD_BUNDLE_DEBUG)
       process.stdout.write(`authoring-exports sizes ${JSON.stringify(sizes)}\n`);
+    expect(sizes.authoring - sizes.kinds).toBeLessThan(69_000);
   });
 });

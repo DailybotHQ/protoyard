@@ -1,30 +1,40 @@
 # @protoyard/decks
 
-The framework-agnostic slide deck engine for Protoyard
-([ADR-038](../../docs/DECISIONS.md)). It holds everything about a deck that is
-not rendering: the bounded deck schema, the layout catalog, the virtual
-canvas, navigation, input decisions, steps and motion, backgrounds and the
-contrast rule, style resolution, quality rules, text twins, untrusted loading
-and Deck Studio's patch engine. It has no Svelte and does not use Reveal.js.
-[`@protoyard/decks-ui`](../decks-ui/README.md) renders it.
+Protoyard's deck engine ([ADR-038](../../docs/DECISIONS.md)), a thin layer
+over [`@texuli/deck`](../../../texuli/packages/deck/README.md) (Texuli
+ADR-009). Protoyard keeps what is its own: the deck shape a `kind: "deck"`
+blueprint stores (`{ style, slides, outline? }`, zod, for the blueprint
+envelope, the TypeScript types and `DeckJsonSchema`), its offline media and
+link policy, its theme ids and font pairings, the agent slide references,
+Deck Studio's edits, the word-count, step-marker and boilerplate lint rules
+it keeps, and the Markdown-to-blueprint bridge. The deck model, validation,
+layout catalog, steps and fragments, transitions, navigation and hash routes,
+the controls registry, input decisions, the virtual canvas, backgrounds and
+their contrast math, the presenter protocol, lint, RFC 6902 patches and the
+text twins come from `@texuli/deck`: a stored Protoyard deck is migrated with
+`migrateDeck` (detected as `protoyard`) and validated with `parseDeck`. It has
+no Svelte. [`@protoyard/decks-ui`](../decks-ui/README.md) presents decks on
+the `@texuli/slides` stage.
 
-This README names every runtime export and states only measured numbers.
-`tests/readme-sync.test.ts` keeps three parts generated from the code: the
-layout table, the limits table, and the decks-ui keyboard table.
+This README names every runtime export. `tests/readme-sync.test.ts` keeps
+three parts generated from the code: the layout table, the limits table and
+the controls table (and the decks-ui keyboard table).
 
 ## Exports
 
-| Subpath | Exports |
+| Import | What it provides |
 | --- | --- |
-| `@protoyard/decks` | **Canvas:** `DECK_ASPECTS`, `DEFAULT_DECK_ASPECT`, `isDeckAspect`, `deckCanvasSize`, `DECK_TEXT_MINIMUMS`. **Catalog:** `DECK_LAYOUTS`, `DECK_LAYOUT_BY_ID`, `DECK_LAYOUT_IDS`, `LAYOUT_PACING`, `getDeckLayout`, `parseLayoutProps`, `describeLayouts`. **Navigation:** `createDeckNavigator`, `parseDeckHash`, `formatDeckHash`, `defaultSlideStepCount`, `slidePositionCount`, `DECK_HASH_ID_MAX`, `DECK_HASH_STEP_MAX`. **Controls:** `DECK_CONTROLS`, `deckControlFor`, `availableDeckControls`, `deckKeyBindings`, `DECK_CONTROL_GROUPS`, `DECK_CONTROL_ICONS`, `DECK_CONTROL_CAPABILITIES`, `DEFAULT_DECK_CONTROL_ENVIRONMENT`. **Input:** `decideDeckInput`, `inputPathFrom`, `DECK_INPUT_ACTIONS`, `DECK_ESCAPE_ORDER`, `DECK_KEY_BINDINGS`, `DECK_INTERACTIVE_ATTRIBUTE`, `DECK_CHROME_ATTRIBUTE`, `DECK_SWIPE_MIN_DISTANCE`, `DECK_SWIPE_AXIS_RATIO`, `DECK_SWIPE_MAX_DURATION_MS`. **Steps and motion:** `slideSteps`, `slideStepCount`, `slideFragments`, `fragmentPhase`, `activeCodeHighlight`, `FRAGMENT_EFFECTS`, `isFragmentEffect`, `DECK_TRANSITIONS`, `DEFAULT_TRANSITION`, `DEFAULT_MOTION`, `MAX_MOTION_MS`, `REDUCED_FADE_MS`, `resolveSlideTransition`, `resolveDeckTransitions`, `resolveFragmentMotion`, `effectiveMotion`, `prefersReducedMotion`. **Backgrounds:** `resolveDeckBackground`, `DeckBackgroundSchema`, `DeckBackgroundSpecSchema`, `DECK_BACKGROUND_PRESETS`, `DECK_BACKGROUND_PRESET_IDS`, `DECK_GRADIENT_IDS`, `DEFAULT_DECK_BACKGROUND`, `checkDeckMediaSrc`, `DECK_TEXT_CONTRAST_MIN`. **Untrusted input:** `loadUntrustedDeck`, `DEFAULT_UNTRUSTED_DECK_LIMITS`, `stripHiddenCharacters`. **Presenter protocol:** `PRESENTER_MESSAGE_TYPES`, `PresenterMessageSchema`, `presenterMessage`, `sanitizeNamespace`. Plus the matching types. |
-| `@protoyard/decks/schema` | `DeckSchema`, `DeckStyleSchema`, `DeckSlideSchema`, `CatalogSlideSchema`, `FreeSlideSchema`, `CustomSlideSchema`, `CustomSlideComponentIdSchema`, `isCustomSlide`, `DeckOutlineSchema`, `DeckSectionSchema`, `DeckAspectSchema`, `DeckDensitySchema`, `DeckRadiusSchema`, `DeckMotionSchema`, `DeckJsonSchema` (Draft 2020-12), `safeParseDeck`, `DECK_LIMITS`, and the deck types. `@protoyard/blueprint`'s `kind: "deck"` branch validates its body with this schema. |
-| `@protoyard/decks/layouts` | The catalog (`DECK_LAYOUTS`, `DECK_LAYOUT_BY_ID`, `DECK_LAYOUT_IDS`, `LAYOUT_PACING`, `getDeckLayout`, `parseLayoutProps`, `stripStepMarkers`, `describeLayouts`). `stripStepMarkers` removes reveal metadata before strict catalog props validation; DeckSchema validates markers before stripping them. Where each layout reveals a step marker: `DECK_LAYOUT_STEPPABLE`, `isSteppablePropPath`, `steppablePattern`, `stepMarkersOutsideLayout` (see "Steps and motion"). The entries one by one: `titleHero`, `sectionDivider`, `twoColumnSplit`, `threeColumnCards`, `imageLeft`, `imageRight`, `imageCentered`, `imageFullBleed`, `quote`, `codeWithCallout`, `bigStat`, `comparisonTable`, `processSteps`, `timeline`, `teamAvatars`, `closingCta`, `videoCentered`, `videoLeft`, `videoRight`, `chart`, `free`. Their props schemas: `TitleHeroPropsSchema`, `SectionDividerPropsSchema`, `TwoColumnSplitPropsSchema`, `ThreeColumnCardsPropsSchema`, `ImageSidePropsSchema`, `ImageCenteredPropsSchema`, `ImageFullBleedPropsSchema`, `QuotePropsSchema`, `CodeWithCalloutPropsSchema`, `BigStatPropsSchema`, `ComparisonTablePropsSchema`, `ProcessStepsPropsSchema`, `TimelinePropsSchema`, `TeamAvatarsPropsSchema`, `ClosingCtaPropsSchema`, `VideoCenteredPropsSchema`, `VideoSidePropsSchema`, `ChartLayoutPropsSchema`, `FreeLayoutPropsSchema`, `LayoutImageSchema`, `LayoutVideoSchema`. |
-| `@protoyard/decks/style` | `resolveDeckStyle`: a built-in or library theme or a numeric palette seed, a font pairing and the presentation tokens. It returns an `AppearanceInput` for `@protoyard/themes` `applyAppearance`, CSS variables, the effective style and fallback warnings. |
-| `@protoyard/decks/quality` | `DECK_QUALITY` thresholds, `DECK_QUALITY_RULES`, `DECK_QUALITY_RULE_BY_ID`, `checkDeckStatic`, `deckJsonPath`. Renderers never import it. |
-| `@protoyard/decks/text` | `deckToMarkdown`, `deckOutline`, `formatDeckOutline`, `slideTitle`, `blocksMarkdown`, `chartTable`, `richText`, `mdDocumentToMarkdown`, `escapeText`, `escapeInline`, `stripInvisible`, and the shared safety rules for text that leaves a deck: `isInvisibleCodePoint` (the one definition of control, zero-width and bidi characters), `inertJson` (JSON with them escaped), `isSafeDeckPath`, `isSafeShareId` and `SAFE_SLUG` (the only deck sources that may appear in a suggested command or resolve in a workspace). It is a subpath so the Markdown parser never enters a deck entry. |
-| `@protoyard/decks/presenter` | The presenter view's protocol and transport (untrusted messages only): `PRESENTER_MESSAGE_TYPES`, `PresenterMessageSchema`, `parsePresenterMessage`, `presenterMessage`, `presenterChannelName`, `sanitizeNamespace`, `createBroadcastPresenterTransport` (same-origin `BroadcastChannel`), `createMemoryPresenterTransport` (tests and the in-page split fallback), `createPresenterLink`, plus the matching types (`PresenterMessage`, `PresenterMessageType`, `PresenterPosition`, `PresenterTransport`, `PresenterLink`, `PresenterLinkOptions`). Re-exported from `@protoyard/decks`. Messages are validated with zod; nothing is executed. |
-| `@protoyard/decks/agent` | "Debug for agents": `describeSlideForAgent`, `formatAgentReference`, `parseAgentReference`, `safeAgentSource` (drops a source with shell syntax or a path escape), `cleanReferenceText`, `capText`, `jsonPointer`, `referenceBytes`, `AGENT_REFERENCE_FORMAT`, `AGENT_REFERENCE_VERSION`, `AGENT_REFERENCE_LIMITS`, `AGENT_REFERENCE_MAX_BYTES`, `AGENT_REFERENCE_FORMATS`, `SLIDE_REF_PREFIX`. It is a subpath so the lint rules never enter a deck entry. |
-| `@protoyard/decks/patch` | Deck Studio's engine: `applyDeckEdits`, `deckEditsToPatch`, `compatibleLayouts`, `deckStudioOptions`, `DECK_STUDIO_STYLE_KEYS`, `DECK_STUDIO_SLIDE_KEYS`, `applyDeckPatch` (RFC 6902 test, add, replace and remove; prototype keys refused), `DECK_PATCH_MAX_OPS` (1,000), `DeckPatchError`, `parsePointer`, `formatPointer`, `jsonEquals`. It is a subpath so the theme-library listing never enters a deck entry. |
+| `@protoyard/decks` | **Texuli bridge:** `checkProtoyardDeck` (migrate and validate a Protoyard deck: errors, warnings and the model deck), `toTexuliDeck` (the model deck a validated Protoyard deck presents as). **Canvas** (the engine's): `DECK_ASPECTS`, `DEFAULT_DECK_ASPECT`, `isDeckAspect`, `deckCanvasSize`, `DECK_TEXT_MINIMUMS`. **Catalog:** `DECK_LAYOUTS`, `DECK_LAYOUT_BY_ID`, `DECK_LAYOUT_IDS`, `LAYOUT_PACING`, `getDeckLayout`, `parseLayoutProps`, `describeLayouts`. **Navigation** (the engine's): `createDeckNavigator`, `parseDeckHash`, `formatDeckHash`, `parseDeckRoute`, `slidePositionCount`, `DECK_HASH_ID_MAX`, `DECK_HASH_STEP_MAX`. **Controls** (the engine registry in Protoyard's shape): `DECK_CONTROLS`, `deckControlFor`, `availableDeckControls`, `deckKeyBindings`, `DECK_KEY_BINDINGS`, `DECK_CONTROL_GROUPS`, `DECK_CONTROL_ICONS`, `DECK_CONTROL_CAPABILITIES`, `DEFAULT_DECK_CONTROL_ENVIRONMENT`. **Input** (the engine's): `decideDeckInput`, `inputPathFrom`, `DECK_INPUT_ACTIONS`, `DECK_ESCAPE_ORDER`, `DECK_CHROME_ATTRIBUTE`, `DECK_SWIPE_MIN_DISTANCE`, `DECK_SWIPE_AXIS_RATIO`, `DECK_SWIPE_MAX_DURATION_MS`, and `DECK_INTERACTIVE_ATTRIBUTE` (the marker `@protoyard/blocks-ui` puts on blocks with their own controls). **Steps and motion** (the model's): `slideSteps`, `slideStepCount`, `slideFragments`, `fragmentPhase`, `activeCodeHighlight`, `FRAGMENT_EFFECTS`, `DECK_TRANSITIONS`, `DEFAULT_TRANSITION`, `DEFAULT_MOTION`, `MAX_MOTION_MS`, `REDUCED_FADE_MS`, `resolveSlideTransition`, `resolveDeckTransitions`, `resolveFragmentMotion`, `effectiveMotion`. **Backgrounds:** the model's resolver and contrast math (`resolveDeckBackground`, `chooseInk`, `compositeOver`, `sampleGradient`, `worstContrast`, `DECK_TEXT_CONTRAST_MIN`, `DECK_BACKGROUND_PRESETS`, `DECK_BACKGROUND_PRESET_IDS`, `DECK_GRADIENT_IDS`, `DEFAULT_DECK_BACKGROUND`), Protoyard's `DeckBackgroundSchema`, `DeckBackgroundSpecSchema` and offline media policy `checkDeckMediaSrc`. **Untrusted input:** `loadUntrustedDeck`, `DEFAULT_UNTRUSTED_DECK_LIMITS`, `stripHiddenCharacters`. **Presenter protocol** (the engine's): `PRESENTER_MESSAGE_TYPES`, `parsePresenterMessage`, `presenterMessage`, `presenterChannelName`, `sanitizeNamespace`, `createBroadcastPresenterTransport`, `createMemoryPresenterTransport`. Plus the matching types. |
+| `@protoyard/decks/schema` | `DeckSchema`, `DeckStyleSchema`, `DeckSlideSchema`, `CatalogSlideSchema`, `FreeSlideSchema`, `CustomSlideSchema`, `CustomSlideComponentIdSchema`, `isCustomSlide`, `DeckOutlineSchema`, `DeckSectionSchema`, `DeckAspectSchema`, `DeckDensitySchema`, `DeckRadiusSchema`, `DeckMotionSchema`, `DeckJsonSchema` (Draft 2020-12), `safeParseDeck`, `DECK_LIMITS`, and the deck types. The zod part is Protoyard's deck shape; its refinement runs Protoyard's media and link policy, then `checkProtoyardDeck` (the model's validation). `@protoyard/blueprint`'s `kind: "deck"` branch validates its body with this schema. |
+| `@protoyard/decks/layouts` | The catalog from `DECK_LAYOUTS` in `@texuli/deck/model`, in Protoyard's shape: `DECK_LAYOUTS` (each entry's `propsSchema` is its JSON Schema, built on first read; `sample` uses local media; `chart` keeps Protoyard's `ChartSpec`), `DECK_LAYOUT_BY_ID`, `DECK_LAYOUT_IDS`, `LAYOUT_PACING`, `getDeckLayout`, `parseLayoutProps` (the model's props validation, step markers removed, links by Protoyard's policy), `stripStepMarkers`, `describeLayouts`, and where each layout reveals a step marker: `DECK_LAYOUT_STEPPABLE`, `isSteppablePropPath`, `steppablePattern`, `stepMarkersOutsideLayout`. |
+| `@protoyard/decks/style` | How a deck's theme reaches the stage: `deckThemeKey` (a theme id, `seed-<hex>` for a palette seed, or the default `DEFAULT_DECK_THEME_ID`) and `loadDeckTheme` (the six built-ins, the 64-theme library and seeds through `@protoyard/themes`, with the deck's font pairing, as a Texuli theme; unknown ids fall back with warnings). `@protoyard/decks/style/key` holds `deckThemeKey` alone, for the deck entry. |
+| `@protoyard/decks/quality` | `DECK_QUALITY` thresholds, `DECK_QUALITY_RULES`, `DECK_QUALITY_RULE_BY_ID`, `checkDeckStatic` (the model's `lintDeck` with Protoyard's rule ids and paths, plus Protoyard's own `too-many-words`, `step-unrevealed`, `notes-boilerplate` and `unknown-background` checks on the stored deck), `deckJsonPath`. Renderers never import it. |
+| `@protoyard/decks/text` | The text twins (the model's `deckToText` and `deckOutline` on the migrated deck): `deckToMarkdown`, `deckOutline`, `formatDeckOutline`, `slideTitle`; `escapeText`, `escapeInline`, `stripInvisible`; and the shared safety rules for text that leaves a deck: `isInvisibleCodePoint`, `inertJson`, `isSafeDeckPath`, `isSafeShareId` and `SAFE_SLUG`. |
+| `@protoyard/decks/markdown` | `parseMarkdownDeck`: a Markdown deck (the `@texuli/deck` dialect) read into a validated Protoyard deck, every issue with its line and column; what a Protoyard deck cannot hold (component slides, math, embedded themes) is reported. `protoyard deck from-markdown` uses it. |
+| `@protoyard/decks/presenter` | The presenter protocol the stage and its presenter window speak (the engine's): `PRESENTER_MESSAGE_TYPES`, `PRESENTER_PROTOCOL_VERSION`, `parsePresenterMessage`, `isPresenterMessage`, `presenterMessage`, `presenterChannelName`, `sanitizeNamespace`, `createBroadcastPresenterTransport`, `createMemoryPresenterTransport`, `createPresenterTransport`. Messages are closed shapes; nothing is executed. |
+| `@protoyard/decks/agent` | "Debug for agents": `describeSlideForAgent`, `formatAgentReference`, `parseAgentReference`, `safeAgentSource` (drops a source with shell syntax or a path escape), `cleanReferenceText`, `capText`, `jsonPointer`, `referenceBytes`, `AGENT_REFERENCE_FORMAT`, `AGENT_REFERENCE_VERSION`, `AGENT_REFERENCE_LIMITS`, `AGENT_REFERENCE_MAX_BYTES`, `AGENT_REFERENCE_FORMATS`, `SLIDE_REF_PREFIX`. |
+| `@protoyard/decks/patch` | Deck Studio's engine: `applyDeckEdits`, `deckEditsToPatch`, `compatibleLayouts`, `deckStudioOptions`, `DECK_STUDIO_STYLE_KEYS`, `DECK_STUDIO_SLIDE_KEYS`, `applyDeckPatch` (the model's RFC 6902 patch; returns the document or throws `DeckPatchError`, never half-applies, never replaces the root), `DECK_PATCH_MAX_OPS` (1,000), `DeckPatchError`, `parsePointer`, `formatPointer`, `jsonEquals`. |
+| `@protoyard/decks/style/key` | `deckThemeKey`, `DEFAULT_DECK_THEME_ID` (no theme registry). |
 
 ## The deck schema
 
@@ -119,251 +129,56 @@ lint. No brand hex values and no site-specific class names.
 <!-- layout-catalog:start (generated by packages/decks/tests/readme-sync.test.ts) -->
 | Layout | Name | Pacing | Limits | Use when |
 | --- | --- | --- | --- | --- |
-| `title-hero` | Title hero | punch, story | title ≤ 100 characters; optional subtitle and meta | Opening slide of a deck — title + subtitle + author + event line. |
-| `section-divider` | Section divider | punch | title ≤ 120 characters; optional eyebrow | Announcing a new chapter or section in the deck. |
-| `two-column-split` | Two-column split | idea, diagram | exactly two columns; body ≤ 600 characters each | Comparing two ideas, before/after, problem/solution, text+text. |
-| `three-column-cards` | Three-column cards | idea, diagram | exactly 3 cards | Three parallel concepts (pillars, features, principles). |
-| `image-left` | Image left | idea, diagram | one image with alt; body ≤ 600 characters | Walking through a screenshot, photo or diagram with text. |
-| `image-right` | Image right | idea, story | one image with alt; body ≤ 600 characters | Same as image-left but text-first reading flow. |
-| `image-centered` | Image centered | diagram, punch | one image with alt; optional caption | A single image is the focus — chart, diagram, screenshot with title. |
-| `image-full-bleed` | Image full bleed | punch, story | one image with alt; optional caption and credit | Image is the message (hero photo, quote-on-image). |
-| `quote` | Quote | punch, story | quote ≤ 280 characters; optional cite | A single short quote that earns the air it takes up. |
-| `code-with-callout` | Code with callout | diagram, idea | source ≤ 8,000 characters; 1–6 bullets; ≤ 16 highlight steps | Explaining what a code block does, side-by-side. |
-| `big-stat` | Big stat | punch | one number and label; optional context and source | A single number that lands a point — adoption, scale, time saved. |
-| `comparison-table` | Comparison table | diagram, idea | 2–4 columns; 3–5 rows; row value counts must match column count | Comparing 2–4 options across 3–5 attributes. |
-| `process-steps` | Process steps | idea, diagram | 3–5 steps | A 3–5 step linear process or workflow. |
-| `timeline` | Timeline | story, diagram | 4–8 events | 4–8 dated events forming a story arc. |
-| `team-avatars` | Team avatars | idea, story | 1–8 people; optional avatar id | Introducing your team or co-presenters. |
-| `closing-cta` | Closing CTA | punch, story | one primary CTA link; optional footnote | Final slide — handle, CTA, contact channels. |
-| `video-centered` | Video centered | diagram, story | one local/embedded video; optional caption | A single video is the focus — demo, trailer, explainer clip. |
-| `video-left` | Video left | idea, diagram | one video; body ≤ 600 characters | Walking through a demo or clip with explanatory text alongside. |
-| `video-right` | Video right | idea, story | one video; body ≤ 600 characters | Same as video-left but text-first reading flow. |
-| `chart` | Chart | diagram, idea | ChartSpecSchema caps (≤ 366 points, ≤ 8 series); optional data table | A real chart is clearer than a big-stat or table. |
-| `free` | Free blocks | idea, diagram, story, punch | 1–48 blocks; full BlockListSchema rules | The catalog has no layout for this idea; compose from @protoyard/blocks. |
+| `title-hero` | Title hero | punch, story | title 1–100 characters; optional subtitle and meta, 160 characters each | The first slide of a deck: title, subtitle, speaker and event. |
+| `section-divider` | Section divider | punch | title 1–120 characters; optional eyebrow, 80 characters | Opening a new chapter or section of the deck. |
+| `two-column-split` | Two-column split | idea, diagram | exactly two columns; body 1–600 characters each; optional heading, 80 | Two ideas side by side: before and after, problem and solution. |
+| `three-column-cards` | Three-column cards | idea, diagram | exactly 3 cards; heading 1–80, body 1–280 characters; optional icon name | Three parallel concepts: pillars, features or principles. |
+| `image-left` | Image left | idea, diagram | one image with alt text; body 1–600 characters | Walking through a screenshot, photo or diagram with some text. |
+| `image-right` | Image right | idea, story | one image with alt text; body 1–600 characters | The idea comes first and the image anchors it. |
+| `image-centered` | Image centered | diagram, punch | one image with alt text; optional caption, 200 characters | A single diagram, screenshot or chart image is the point of the slide. |
+| `image-full-bleed` | Image full bleed | punch, story | one image with alt text; optional caption (200) and credit (160) | The image is the message: a hero photo or a quote on an image. |
+| `quote` | Quote | punch, story | quote 1–280 characters; optional cite, 120 characters | A short quote that earns a slide of its own. |
+| `code-with-callout` | Code with callout | diagram, idea | source 1–8,000 characters, kept verbatim; 1–6 bullets of up to 200 characters; up to 16 highlight ranges, each revealed as a step | Explaining what a short piece of code does. |
+| `big-stat` | Big stat | punch | number 1–32 characters; label 1–200 characters; optional context and source | A single number makes the case: adoption, scale, time saved. |
+| `comparison-table` | Comparison table | diagram, idea | 2–4 columns; 3–5 rows; every row has one value per column | Comparing 2–4 options across 3–5 attributes. |
+| `process-steps` | Process steps | idea, diagram | 3–5 steps; title 1–80, optional body 200 characters | A 3–5 step process or workflow. |
+| `timeline` | Timeline | story, diagram | 4–8 events; time 1–40, text 1–200 characters | 4–8 dated events that form a story arc. |
+| `team-avatars` | Team avatars | idea, story | 1–8 people; name 1–80, optional role 80; optional avatar id or media source | Introducing the team or the co-presenters. |
+| `closing-cta` | Closing call to action | punch, story | title 1–120 characters; one link: label 1–60, href up to 512; optional footnote | The final slide: what to do next and where to go. |
+| `video-centered` | Video centered | diagram, story | one video; optional caption, 200 characters | A single demo, trailer or explainer clip is the point of the slide. |
+| `video-left` | Video left | idea, diagram | one video; body 1–600 characters | Walking through a demo or clip with some text. |
+| `video-right` | Video right | idea, story | one video; body 1–600 characters | The idea comes first and the clip shows it. |
+| `chart` | Chart | diagram, idea | spec: a chart block without `type`, checked by the stage chart block parser; spec JSON: depth 6, 100 keys per object, 400 items per array; optional height (sm, md, lg) and data table | A trend or a distribution is clearer as a chart than as a number or a table. |
+| `free` | Free blocks | punch, idea, diagram, story | 1–2,000 top-level blocks; lint warns past 48; each block follows the blocks schema and may carry step fields | No catalog layout fits the idea; compose it from content blocks. |
 <!-- layout-catalog:end -->
 
-### Style resolution
+### Style and themes
 
-Resolve a deck's style before mounting the deck UI. The optional slide override
-shallowly replaces only the supplied deck style fields. Unknown theme and font
-ids fall back to the standard theme/font and are returned as warnings. Numeric
-palette seeds are converted deterministically to a six-digit color seed. The
-host can select light or dark mode and pass its reduced-motion preference; a
-deck's `motion: "none"` also disables theme motion.
-
-```ts
-import { applyAppearance } from '@protoyard/themes';
-import { resolveDeckStyle } from '@protoyard/decks/style';
-
-const slideOverride = { background: 'gradient-dusk', transition: 'slide' };
-const resolved = await resolveDeckStyle(deck.style, slideOverride, {
-  mode: 'light',
-  reducedMotion: false,
-});
-applyAppearance(root, resolved.appearance);
-for (const [name, value] of Object.entries(resolved.variables)) {
-  root.style.setProperty(name, value);
-}
-```
-
-`resolved.style` retains non-CSS presentation metadata such as logo and footer
-text. Deck CSS variables include the aspect ratio, density, radius, motion,
-transition, background preset, progress location and slide-number flag.
+The stage resolves `style` (aspect, density, radius, motion, transition,
+backgrounds, logo, footer, slide numbers, progress) with `@texuli/deck`.
+Protoyard resolves only the theme: `deckThemeKey(style)` names it (a theme id,
+`seed-<8 hex digits>` for `paletteSeed`, else the default `violet`) and
+`loadDeckTheme(key, fontPair)` turns it into a Texuli theme through
+`@protoyard/themes` (`toTexuliTheme`), with the deck's font pairing. An unknown
+theme or font pairing falls back with a warning; DeckApp shows it.
 
 ## The virtual canvas
 
-A slide is laid out on a fixed canvas and scaled as a whole by a transform. Layouts
-and lint thresholds are therefore in canvas pixels and never depend on the
-viewer's screen.
+The fixed virtual canvas is the engine's (`deckCanvasSize`: 1280 × 720 for
+16:9, 1024 × 768, 720 × 1280, 1080 × 1080). Lint thresholds are in canvas
+pixels: `DECK_TEXT_MINIMUMS` (24 px body, 18 px labels).
 
-| Aspect | Canvas |
-| --- | --- |
-| `16:9` (default) | 1280 × 720 |
-| `4:3` | 1024 × 768 |
-| `9:16` | 720 × 1280 |
-| `1:1` | 1080 × 1080 |
+## Navigation, input and the presenter protocol
 
-`deckCanvasSize(aspect)` falls back to 16:9 for any unknown value.
-`DECK_TEXT_MINIMUMS` is `{ bodyPx: 24, labelPx: 18 }`. Layout CSS and deck lint
-both read it.
-
-```ts
-import { deckCanvasSize } from '@protoyard/decks';
-
-deckCanvasSize('4:3'); // { width: 1024, height: 768 }
-```
-
-## Presentation surfaces (`@protoyard/decks-ui`)
-
-The engine's presentation features are rendered by the separate Svelte package
-[`@protoyard/decks-ui`](../decks-ui/README.md):
-
-- **Overview:** `O` opens a lazy, windowed slide grid. Thumbnails show the final
-  step; selecting one slide changes position once.
-- **Presenter:** `S` or `P` opens a popup synced over `BroadcastChannel`. When
-  popups are blocked or that API is unavailable, an in-page split view shows
-  the current and next slides, speaker notes and timers.
-- **Print:** `?print=1`, the Print button or Ctrl/Cmd+P prints each visible
-  slide on its own aspect-sized page, with every step revealed. Add
-  `&notes=1` to include speaker notes.
-- **Deck Studio:** the lazy DevTools tab edits deck style and the current slide
-  in memory, then exports an RFC 6902 patch for the source deck. It does not
-  write files or database rows.
-
-These surfaces stay outside the first `DeckApp` chunk except for its small
-entry wiring; the overview and presenter open only when requested.
-
-## Navigation (pure)
-
-`createDeckNavigator(deck)` is framework-free: no DOM and no `location.hash`.
-`DeckApp` in decks-ui binds it to the `#/<slide-id>/<step>` hash.
-
-```ts
-import { createDeckNavigator, formatDeckHash, parseDeckHash } from '@protoyard/decks';
-import type { Deck } from '@protoyard/decks/schema';
-
-const nav = createDeckNavigator(deck);
-nav.next(); // advance one step, or the next visible slide
-nav.prev();
-nav.goTo('closing', 0);
-nav.goToIndex(2); // among non-hidden slides only
-nav.toHash(); // "#/<slide-id>/<step>"
-nav.applyHash('#/intro/1'); // unknown or hidden ids fall back to the first visible slide
-
-parseDeckHash('#/intro/1'); // { slideId, step } or null for hostile input
-formatDeckHash('intro', 1); // "#/intro/1"
-```
-
-Rules:
-
-- **Steps then slides.** `next` / `prev` move within the current slide's step
-  range, then to the next or previous **visible** slide.
-- **Hidden slides** (`hidden: true`) are skipped by sequential moves and by
-  `goToIndex`. Direct `goTo(hiddenId)` falls back to the first visible slide.
-- **Step count** defaults to `max(1, slide.steps?.length ?? 0)`. Pass
-  `stepCount: (slide) => number` when the steps/motion model supplies a richer
-  count (DECKS-steps-motion).
-- **Deep links** use `#/<slide-id>/<step>`. `parseDeckHash` rejects path
-  traversal, uppercase ids, queries, percents and out-of-range steps.
-## Backgrounds and the contrast rule
-
-`resolveDeckBackground(background, palette)` resolves a background against the theme palette of the
-mode the deck renders in. The result carries:
-
-- the colors, gradient, pattern or media to draw;
-- a **text tone**, light or dark, and its ink;
-- an optional scrim;
-- `--py-deck-bg*` CSS variables;
-- the worst-case contrast, which is always at least 4.5:1 (WCAG AA for body text).
-
-| Preset id | What it is |
-| --- | --- |
-| `solid-color` (default), `solid-surface`, `solid-primary`, `solid-accent`, `solid-muted`, `solid-inverse` | A theme token as a flat color |
-| `gradient-brand`, `gradient-dusk`, `gradient-dawn`, `gradient-forest`, `gradient-mist` | Five gradients of two or three theme tokens |
-| `pattern-dots`, `pattern-grid` | The page background with a pattern in the `border` token |
-
-Media are specs, not presets:
-
-- `{ kind: 'image' | 'image-full', src, alt?, fit?, position?, tone?, overlay? }`
-- `{ kind: 'video' | 'video-full', src, poster?, position?, tone?, overlay? }`
-
-Video is always muted, looping, inline and autoplaying, so iOS plays it.
-
-**The rule, ported from the developer's site.** Image and video backgrounds get light text over a dark
-scrim; `tone: 'light'` declares a light image, which gets dark text over a light scrim. Every
-background is checked against what can sit behind the text:
-
-- a solid color;
-- a gradient at its stops and in between;
-- a pattern's base and ink;
-- for media, the worst possible pixel: pure black **and** pure white.
-
-When the background alone is not enough, a scrim is added at the lowest alpha, in 0.05 steps, that
-reaches 4.5:1. An author's `overlay` can only strengthen it. Tests hold all 6 built-in themes and the
-70-theme library, light and dark, to this.
-
-**The media URL policy** is `checkDeckMediaSrc`. `DeckBackgroundSchema` enforces it, and it allows only:
-
-- relative paths inside the deck, without `..`;
-- base64 `data:` URIs of PNG, JPEG, WebP, GIF, AVIF, MP4 or WebM, up to 1.5 M characters;
-- library avatars (`avatar:av-012`).
-
-Remote and protocol-relative URLs, `javascript:` and every other scheme, `blob:`, SVG, backslashes and
-control or bidirectional characters are refused. This matches the artifact CSP, so there is no remote
-media at level 1. There are no iframe backgrounds. Media sources are never written into CSS: renderers
-use `<img>` and `<video>`.
-
-`slide.background` takes a preset id or a media spec (validated by `DeckBackgroundSchema`). Any other
-slug still parses, so decks saved before media backgrounds keep opening: the slide renders
-`solid-color` and `checkDeckStatic` reports `unknown-background`. `style.background`, the deck-wide
-default, still takes only a preset id.
-
-## Presenter protocol (pure)
-
-`@protoyard/decks/presenter` (also re-exported from `@protoyard/decks`) is the
-popup / split-view sync protocol. Messages are **untrusted**: zod-validated
-`{ type, slideId, step }` only (`hello` | `sync` | `request`). Never eval.
-
-```ts
-import {
-  createMemoryPresenterTransport,
-  createPresenterLink,
-  parsePresenterMessage,
-  presenterChannelName,
-} from '@protoyard/decks';
-
-const transport = createMemoryPresenterTransport('my-deck'); // or createBroadcastPresenterTransport
-const link = createPresenterLink({
-  transport,
-  initial: { slideId: 'intro', step: 0 },
-  onRemote: (pos) => navigator.goTo(pos.slideId, pos.step),
-});
-link.publish({ slideId: 'body', step: 0 });
-parsePresenterMessage({ type: 'sync', slideId: 'x', step: 0, extra: 1 }); // null
-```
-
-Channel names are `protoyard.deck.presenter.v1:<namespace>`. The UI lives in
-`@protoyard/decks-ui/presenter` (lazy): try `window.open`, fall back to an
-in-page split when the popup is blocked or BroadcastChannel is missing.
-
-## Input (pure)
-
-`decideDeckInput(event, state)` turns a key press, a click or a swipe into one action or `null`. The
-actions are `next`, `prev`, `first`, `last`, `overview`, `presenter`, `fullscreen`, `blackout`,
-`laser`, `help` and `print`. The function never touches the DOM: the renderer passes the event target
-as a path of plain facts. `inputPathFrom(event.composedPath(), deckRoot)` builds that path from real
-elements.
-
-| Input | Action |
-| --- | --- |
-| `→` `↓` `Page Down` `Space` / `←` `↑` `Page Up` `Shift+Space` | `next` / `prev` (key repeat allowed) |
-| `Home` / `End` | `first` / `last` |
-| `O`, `S` or `P`, `F`, `B` or `.`, `L`, `?` | overview, presenter, fullscreen, blackout, laser, help (no key repeat) |
-| `Ctrl+P` / `⌘+P` | `print` (the one browser shortcut a deck takes over) |
-| `Esc` | Closes what is open, innermost first: help, overview, blackout, laser, then full screen (`fullscreen-exit`) |
-| `D` | `debug`, only where the debug panel is available (`debugAvailable`) |
-| Primary click on slide content | `next` |
-| Touch or pen swipe left / right | `next` / `prev`: at least 50 px, 1.5 times longer horizontally than vertically, under 800 ms |
-
-Guards:
-
-- **Clicks** never advance in these cases:
-  - with a modifier, a non-primary button or a text selection;
-  - on a link, button, form control, label, summary, `iframe`, `video` or `audio`, a widget role
-    (button, tab, slider…) or `contenteditable`;
-  - inside an element marked `data-py-deck-interactive` (interactive blocks) or
-    `data-py-deck-chrome` (progress bar, slide number);
-  - while the overview is open **or closing**. That ports the fix for the Reveal double advance,
-    where the click that closed the overview also moved forward.
-  - while help, blackout or the laser is on.
-- **Keys** are ignored in fields and editable content, during IME composition, and with Ctrl, ⌘ or
-  Alt (except print). A focused control keeps its arrows and Space. The overview, help and a
-  blacked-out screen accept only their own toggle and `Esc`.
-- **Swipes** only count for touch and pen, never mouse drags. Vertical swipes scroll instead of
-  navigating.
-
-`DECK_KEY_BINDINGS` lists the bindings a normal viewer has, with a label, for the help overlay;
-`deckKeyBindings(env)` lists them for another environment (with debug on, it adds `D`).
+These are `@texuli/deck/engine`'s, re-exported: `createDeckNavigator` reads a
+Protoyard deck as is (hidden slides skipped, `steps` labels and step markers
+counted; `stepCount` is a slide's last step, so positions run `0 …
+stepCount`); `slidePositionCount(slide)` is `stepCount + 1`; hash routes are
+`#/<slide-id>/<step>` (`parseDeckHash`, `formatDeckHash`, `parseDeckRoute`
+with the `?print=1` and `notes=1` flags); `decideDeckInput` maps keys, clicks
+and swipes through the controls registry; the presenter protocol is a closed
+`{ type, slideId, step }` message on `texuli-deck-presenter/1:<namespace>`.
+The `@texuli/slides` stage runs all of them; Texuli's tests cover them.
 
 ### Controls
 
@@ -394,21 +209,21 @@ opens debug).
 <!-- controls:start (generated by packages/decks/tests/readme-sync.test.ts) -->
 | Control | Group | Label | Keys | Available | What it does |
 | --- | --- | --- | --- | --- | --- |
-| `prev` | navigate | Previous step or slide | `←`, `↑`, `Page Up`, `Shift + Space` | always | Goes back one step, or to the previous slide when this one is at its start. |
+| `prev` | navigate | Previous step or slide | `←`, `↑`, `Page Up`, `Shift + Space`, `Backspace` | always | Goes back one step, or to the previous slide. |
 | `jump` | navigate | Choose a slide | — | always | Opens the slide list so you can jump directly to a slide. |
-| `next` | navigate | Next step or slide | `→`, `↓`, `Page Down`, `Space` | always | Shows the next step of this slide, or the next slide when it has none left. |
-| `first` | navigate | First slide | `Home` | always | Jumps back to the first slide. |
+| `next` | navigate | Next step or slide | `→`, `↓`, `Page Down`, `Space`, `Enter` | always | Shows the next step, or advances to the next slide. |
+| `first` | navigate | First slide | `Home` | always | Jumps to the first slide. |
 | `last` | navigate | Last slide | `End` | always | Jumps to the last slide. |
-| `overview` | view | Overview of all slides | `O`, `Esc` | always | Shows every slide as a grid, so you can jump straight to any of them. |
-| `fullscreen` | view | Full screen | `F` | fullscreen | Fills the whole screen with the slides; press Esc to leave. |
-| `fullscreen-exit` | view | Leave full screen | `Esc` | fullscreen | Leaves full screen and returns the deck to its normal place on the page. |
-| `presenter` | present | Presenter view | `S`, `P` | always | Shows your notes, the next slide and timers, in a second window or beside the deck. |
-| `blackout` | present | Black out the screen | `B`, `.`, `Esc` | always | Turns the screen black to pause the room; press B again or click to come back. |
-| `laser` | present | Laser pointer | `L`, `Esc` | always | Turns the mouse pointer into a bright dot for pointing at the slide. |
-| `copy-link` | share | Copy link to this slide | — | clipboard | Copies a link that opens the deck at this slide and step. |
-| `print` | share | Print, one slide per page | `Ctrl + P`, `⌘ + P` | print | Prints the deck with one slide per page, or saves it as a PDF. |
-| `help` | help | Controls and shortcuts | `?`, `Esc` | always | Lists every control in this deck, with its keys. |
-| `debug` | debug | Debug for agents | `D`, `Esc` | debug | Shows this slide's source, its checks and a reference to paste into an AI agent. |
+| `overview` | view | Overview of all slides | `O`, `Esc` | always | Shows every slide as a grid. |
+| `fullscreen` | view | Full screen | `F` | fullscreen | Fills the screen with the slides. |
+| `fullscreen-exit` | view | Leave full screen | `Esc` | fullscreen | Returns the deck to its normal place. |
+| `presenter` | present | Presenter view | `S`, `P` | always | Shows notes, the next slide and timers. |
+| `blackout` | present | Black out the screen | `B`, `.`, `Esc` | always | Turns the screen black. |
+| `laser` | present | Laser pointer | `L`, `Esc` | always | Turns the pointer into a bright dot. |
+| `copy-link` | share | Copy link to this slide | — | clipboard | Copies a link to this slide and step. |
+| `print` | share | Print, one slide per page | `Ctrl + P`, `⌘ + P` | print | Prints the deck or saves it as a PDF. |
+| `help` | help | Controls and shortcuts | `?`, `Esc` | always | Lists every control and its keys. |
+| `debug` | debug | Debug for agents | `D`, `Esc` | debug | Shows this slide source, checks and reference. |
 <!-- controls:end -->
 
 ## Steps and motion
@@ -463,32 +278,28 @@ renderer whether a fragment is `visible` and whether its effect is `active`:
 code prop (`{ source, highlights }`, as in `code-with-callout`) steps its
 highlights like a code block does.
 
-Navigation counts positions, not steps: `slidePositionCount(slide)` is
-`1 + slideStepCount(slide)` (the initial state plus one per step), and it is
-the navigator's default resolver (`defaultSlideStepCount` is the same
-function under its older name). Passing `slideStepCount` itself as the
-`stepCount` option makes the last step unreachable.
+Navigation counts positions: a slide with N steps has N + 1 positions
+(`slidePositionCount(slide)` is `1 + slideStepCount(slide)`); the engine
+navigator's `stepCount` is the last step (N).
 
-`resolveSlideTransition(style, slide, { prefersReducedMotion })` picks the
-transition into a slide. It uses the slide's `transition` first, then the
-deck's `style.transition`, then `fade`, and applies the motion level:
+Transitions (`none`, `fade`, `fade-up`, `slide`, `zoom`, `morph`) and the
+motion levels (`full`, `subtle`, `none`, and the viewer's reduced-motion
+preference, which only lowers the level) are the model's
+(`resolveSlideTransition`, `resolveDeckTransitions`, `resolveFragmentMotion`,
+`effectiveMotion`; durations capped at `MAX_MOTION_MS`, a reduced-motion fade
+of `REDUCED_FADE_MS`). The `@texuli/slides` stage plays them.
 
-| Level | Result |
-| --- | --- |
-| `full` (default) | as requested: fade 300 ms, slide 400 ms, zoom 350 ms, morph 400 ms |
-| `subtle` | zoom becomes fade; the others keep their direction at 60% of the duration |
-| `none` | always `none`, 0 ms |
-| reduced motion (viewer) | `none` stays `none`; everything else is a 150 ms fade |
+## Backgrounds
 
-The viewer's reduced-motion preference can only lower the deck's level, never
-raise it. Durations never exceed `MAX_MOTION_MS` (400 ms).
-`resolveFragmentMotion` applies the same rules to fragments: under reduced
-motion or `none`, moving effects (`fade-up`, `grow`, `shrink`) become a plain
-`in`, while `highlight` and `strike` keep their meaning without motion.
-`prefersReducedMotion()` reads `prefers-reduced-motion` and the prototype's
-`<html data-py-motion="reduce">` toggle, and is safe without a DOM. Each
-`ResolvedTransition` carries a `reason` (`slide-override`, `deck-default`,
-`engine-default`, `subtle`, `reduced-motion`, `motion-none`) for DevTools.
+The 13 presets, media specs, the resolver and its contrast guarantee (a scrim
+keeps slide text at `DECK_TEXT_CONTRAST_MIN`, 4.5:1, against the worst point)
+are the model's (`resolveDeckBackground`, tested in `@texuli/deck` for every
+library theme in light and dark). Protoyard keeps `DeckBackgroundSchema` for
+its deck shape and `checkDeckMediaSrc`, its offline media policy: relative
+paths, bounded `data:` raster images or web video, and library avatars; no
+remote media, no SVG. An unknown preset slug from an older deck still opens:
+migration paints `solid-color` and `checkDeckStatic` warns
+(`unknown-background`).
 
 ## Quality rules (`@protoyard/decks/quality`)
 
@@ -640,10 +451,12 @@ Deck data is untrusted, so nothing from it can become Markdown structure:
   artifact CSP. There are no iframe backgrounds.
 - **Media backgrounds are per slide.** `slide.background` takes an image or video spec;
   `style.background` (the deck-wide default) takes only a preset id.
-- **Presenter needs a same-origin peer.** The protocol is ready (`@protoyard/decks/presenter`); the UI
-  is lazy in `@protoyard/decks-ui/presenter` (popup over `BroadcastChannel`, in-page split when blocked).
-  Cross-origin and multi-tab beyond one presenter peer are out of scope at level 1.
-- **No KaTeX or math, and no highlight.js.** Code highlighting comes from the blocks tokenizer.
+- **Presenter needs a same-origin peer.** The `@texuli/slides` stage opens the presenter view
+  beside the slides and, on request, a second window over `BroadcastChannel`; cross-origin and
+  other devices are out of scope.
+- **No math, component slides or vertical stacks in Protoyard decks yet.** The deck model has
+  them; Protoyard's deck shape does not, and `parseMarkdownDeck` reports them. No highlight.js:
+  code highlighting comes from the blocks tokenizer.
 - **Rendered checks need a browser.** `checkDeckStatic` covers structure, assets, steps, notes and
   density; font size, overflow and contrast on real pixels belong to the visual sweep.
 

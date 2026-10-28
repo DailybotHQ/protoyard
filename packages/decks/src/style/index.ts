@@ -1,4 +1,3 @@
-import type { AppearanceInput, ResolvedMode } from '@protoyard/themes';
 import {
   createThemeFromSeed,
   findTheme,
@@ -6,9 +5,27 @@ import {
   getLibraryThemeMeta,
   getTheme,
   loadLibraryTheme,
-  themeVariables,
 } from '@protoyard/themes';
-import type { DeckStyle } from '../schema/index.ts';
+import type { toTexuliTheme } from '@protoyard/themes/texuli';
+
+export { DEFAULT_DECK_THEME_ID, deckThemeKey } from './key.ts';
+
+/**
+ * `@protoyard/decks/style`: how a Protoyard deck's `style.theme`,
+ * `style.paletteSeed` and `style.fontPair` become the theme the
+ * `@texuli/slides` stage paints with. The stage applies the theme, density,
+ * radius, motion, backgrounds, logo, footer, numbering and progress itself
+ * (`@texuli/deck` style resolution); Protoyard resolves only its own theme
+ * ids (the six built-ins, the 64-theme library and palette seeds) and font
+ * pairings, through `@protoyard/themes`, so a deck looks the same in the
+ * player and in a generated prototype.
+ */
+
+/** A Protoyard theme (`@protoyard/themes`). */
+type Theme = ReturnType<typeof getTheme>;
+
+/** A Texuli theme (`@texuli/tokens/contract`), as `toTexuliTheme` returns it. */
+export type DeckTexuliTheme = ReturnType<typeof toTexuliTheme>;
 
 export type DeckStyleWarningCode = 'unknown-theme' | 'unknown-font-pair';
 
@@ -18,118 +35,58 @@ export interface DeckStyleWarning {
   value: string;
 }
 
-export interface ResolveDeckStyleOptions {
-  /** Appearance mode chosen by the host. Decks default to light for stable exports. */
-  mode?: ResolvedMode;
-  /** Honor a host or operating-system reduced-motion preference. */
-  reducedMotion?: boolean;
-}
+const SEED_KEY = /^seed-([0-9a-f]{8})$/;
 
-export interface ResolvedDeckStyle {
-  /** Effective deck style after applying the slide-level override. */
-  style: DeckStyle;
-  /** Input for `@protoyard/themes` `applyAppearance`. */
-  appearance: AppearanceInput;
-  /** All theme and deck CSS custom properties. */
-  variables: Record<string, string>;
-  /** Resolution issues that were recovered with a documented fallback. */
-  warnings: DeckStyleWarning[];
-}
-
-const DEFAULT_STYLE: DeckStyle = {};
-const RADIUS: Record<NonNullable<DeckStyle['radius']>, string> = {
-  none: '0',
-  small: '0.25rem',
-  medium: '0.625rem',
-  large: '1rem',
-  full: '9999px',
-};
-const DENSITY: Record<NonNullable<DeckStyle['density']>, number> = {
-  compact: 0.875,
-  comfortable: 1.125,
-  spacious: 1.25,
-};
-const ASPECT_RATIO: Record<NonNullable<DeckStyle['aspect']>, string> = {
-  '16:9': '16 / 9',
-  '4:3': '4 / 3',
-  '9:16': '9 / 16',
-  '1:1': '1 / 1',
-};
-
-function seedColor(seed: number): string {
-  return `#${(seed >>> 0).toString(16).padStart(8, '0').slice(-6)}`;
-}
-
-async function resolveTheme(style: DeckStyle, warnings: DeckStyleWarning[]) {
-  if (style.paletteSeed !== undefined) {
+async function resolveTheme(key: string, warnings: DeckStyleWarning[]): Promise<Theme> {
+  const seed = SEED_KEY.exec(key);
+  if (seed) {
     return createThemeFromSeed({
-      id: `deck-seed-${style.paletteSeed.toString(16)}`,
+      id: `deck-seed-${Number.parseInt(seed[1] as string, 16).toString(16)}`,
       name: 'Deck palette',
-      seed: seedColor(style.paletteSeed),
+      seed: `#${(seed[1] as string).slice(-6)}`,
     });
   }
-
-  if (!style.theme) return getTheme(undefined);
-
-  const builtin = findTheme(style.theme);
+  const builtin = findTheme(key);
   if (builtin) return builtin;
-
-  if (getLibraryThemeMeta(style.theme)) {
-    return loadLibraryTheme(style.theme);
-  }
-
+  if (getLibraryThemeMeta(key)) return loadLibraryTheme(key);
   warnings.push({
     code: 'unknown-theme',
-    value: style.theme,
-    message: `Unknown theme "${style.theme}"; using the default theme.`,
+    value: key,
+    message: `Unknown theme "${key}"; using the default theme.`,
   });
   return getTheme(undefined);
 }
 
-/**
- * Resolve a bounded deck style and an optional slide override into theme and
- * deck CSS variables. The input should first pass `DeckStyleSchema` validation.
- */
-export async function resolveDeckStyle(
-  style: DeckStyle = DEFAULT_STYLE,
-  slideOverride?: Partial<DeckStyle>,
-  options: ResolveDeckStyleOptions = {}
-): Promise<ResolvedDeckStyle> {
-  const effective: DeckStyle = { ...style, ...slideOverride };
-  const warnings: DeckStyleWarning[] = [];
-  const theme = await resolveTheme(effective, warnings);
-  const pairing = effective.fontPair ? getFontPairing(effective.fontPair) : undefined;
+export interface LoadedDeckTheme {
+  theme: DeckTexuliTheme;
+  warnings: DeckStyleWarning[];
+}
 
-  if (effective.fontPair && !pairing) {
+/**
+ * Resolve a theme key ({@link deckThemeKey}) and an optional font pairing to
+ * the Texuli theme the stage applies. Unknown ids fall back to the default
+ * theme and unknown font pairings to the theme's own fonts, each with a
+ * warning (the deck still opens).
+ */
+export async function loadDeckTheme(key: string, fontPair?: string): Promise<LoadedDeckTheme> {
+  const warnings: DeckStyleWarning[] = [];
+  const base = await resolveTheme(key, warnings);
+  const pairing = fontPair ? getFontPairing(fontPair) : undefined;
+  if (fontPair && !pairing) {
     warnings.push({
       code: 'unknown-font-pair',
-      value: effective.fontPair,
-      message: `Unknown font pairing "${effective.fontPair}"; using the theme font pairing.`,
+      value: fontPair,
+      message: `Unknown font pairing "${fontPair}"; using the theme font pairing.`,
     });
   }
-
-  const appearance: AppearanceInput = {
-    theme,
-    resolvedMode: options.mode ?? 'light',
-    reducedMotion: Boolean(options.reducedMotion || effective.motion === 'none'),
-    density: DENSITY[effective.density ?? 'comfortable'],
-  };
-  const variables = themeVariables(appearance);
-  if (pairing) {
-    variables['--py-font-sans'] = pairing.fontFamily;
-    variables['--py-font-heading'] = pairing.fontFamilyHeading;
-    variables['--py-font-mono'] = pairing.fontFamilyMono;
-  }
-
-  variables['--py-deck-aspect-ratio'] = ASPECT_RATIO[effective.aspect ?? '16:9'];
-  variables['--py-deck-density'] = String(DENSITY[effective.density ?? 'comfortable']);
-  variables['--py-deck-radius'] = RADIUS[effective.radius ?? 'medium'];
-  variables['--py-radius'] = RADIUS[effective.radius ?? 'medium'];
-  variables['--py-deck-motion'] = effective.motion ?? 'full';
-  variables['--py-deck-transition'] = effective.transition ?? 'fade';
-  variables['--py-deck-background'] = effective.background ?? 'solid-color';
-  variables['--py-deck-progress'] = effective.progress ?? 'bottom';
-  variables['--py-deck-slide-numbers'] = effective.slideNumbers === false ? '0' : '1';
-
-  return { style: effective, appearance, variables, warnings };
+  const theme: Theme = pairing
+    ? {
+        ...base,
+        fontFamily: pairing.fontFamily,
+        fontFamilyHeading: pairing.fontFamilyHeading,
+        fontFamilyMono: pairing.fontFamilyMono,
+      }
+    : base;
+  const { toTexuliTheme: convert } = await import('@protoyard/themes/texuli');
+  return { theme: convert(theme), warnings };
 }

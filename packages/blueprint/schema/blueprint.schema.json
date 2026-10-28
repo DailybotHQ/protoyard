@@ -7159,7 +7159,7 @@
                 },
                 "transition": {
                   "type": "string",
-                  "enum": ["none", "fade", "slide", "zoom", "morph"]
+                  "enum": ["none", "fade", "fade-up", "slide", "zoom", "morph"]
                 },
                 "background": {
                   "type": "string",
@@ -7358,7 +7358,7 @@
                       },
                       "transition": {
                         "type": "string",
-                        "enum": ["none", "fade", "slide", "zoom", "morph"]
+                        "enum": ["none", "fade", "fade-up", "slide", "zoom", "morph"]
                       },
                       "steps": {
                         "maxItems": 32,
@@ -8327,7 +8327,7 @@
                       },
                       "transition": {
                         "type": "string",
-                        "enum": ["none", "fade", "slide", "zoom", "morph"]
+                        "enum": ["none", "fade", "fade-up", "slide", "zoom", "morph"]
                       },
                       "steps": {
                         "maxItems": 32,
@@ -8528,7 +8528,7 @@
                       },
                       "transition": {
                         "type": "string",
-                        "enum": ["none", "fade", "slide", "zoom", "morph"]
+                        "enum": ["none", "fade", "fade-up", "slide", "zoom", "morph"]
                       },
                       "steps": {
                         "maxItems": 32,

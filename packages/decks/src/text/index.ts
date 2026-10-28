@@ -1,5 +1,3 @@
-export { blocksMarkdown } from './blocks.ts';
-export { chartTable } from './chart.ts';
 export {
   type DeckOutlineSlide,
   type DeckOutlineText,
@@ -10,7 +8,6 @@ export {
   slideTitle,
 } from './deck.ts';
 export { escapeInline, escapeText, stripInvisible } from './escape.ts';
-export { mdDocumentToMarkdown, richText } from './rich.ts';
 export {
   inertJson,
   isInvisibleCodePoint,

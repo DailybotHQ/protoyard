@@ -259,9 +259,8 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
         jsonPath: '$.slides[1].blocks[0].columns[1][0].step',
       },
     ]);
-    expect(only(report.issues, 'step-order')[0]?.message).toMatch(
-      /\$\.slides\[0\]\.blocks\[0\]\.step \(step 2\)/
-    );
+    // The deck model's lint message (it names the rule, not the earlier element's path).
+    expect(only(report.issues, 'step-order')[0]?.message).toMatch(/revealed before an earlier/);
   });
 
   it('empty-steps (warning): more step labels than fragments', () => {
@@ -273,7 +272,9 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
       ])
     );
     expect(only(report.issues, 'empty-steps')).toMatchObject([
+      // The deck model's lint points at each label nothing reveals on.
       { severity: 'warning', jsonPath: '$.slides[0].steps[1]' },
+      { severity: 'warning', jsonPath: '$.slides[0].steps[2]' },
     ]);
   });
 
@@ -307,12 +308,12 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
       {
         severity: 'warning',
         jsonPath: '$.slides[0].notes',
-        message: expect.stringMatching(/Add speaker notes/),
+        message: expect.stringMatching(/speaker notes/),
       },
       {
         severity: 'warning',
         jsonPath: '$.slides[1].notes',
-        message: expect.stringMatching(/10 characters/),
+        message: expect.stringMatching(/speaker notes/),
       },
     ]);
   });
@@ -332,7 +333,7 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
       {
         severity: 'warning',
         jsonPath: '$.slides[1].notes',
-        message: expect.stringMatching(/slide "a"/),
+        message: expect.stringMatching(/repeat slide 1/),
       },
     ]);
     expect(only(report.issues, 'notes-boilerplate')).toMatchObject([
@@ -357,12 +358,12 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
       {
         severity: 'warning',
         jsonPath: '$.slides[2].layout',
-        message: expect.stringMatching(/^3 slides in a row/),
+        message: expect.stringMatching(/repeats more than twice in a row/),
       },
       {
         severity: 'warning',
         jsonPath: '$.slides[3].layout',
-        message: expect.stringMatching(/^4 slides in a row/),
+        message: expect.stringMatching(/repeats more than twice in a row/),
       },
     ]);
   });
