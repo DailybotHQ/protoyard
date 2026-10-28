@@ -55,6 +55,27 @@ describe('demos', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Load 100,000 rows' }));
     expect(screen.getAllByText(/100,000 rows/).length).toBeGreaterThan(0);
   });
+
+  it('label demo checkbox keeps the input disabled state in sync', async () => {
+    const demo = DEMOS.label;
+    if (!demo) throw new Error('missing label demo');
+    render(await demo.load(), {});
+    const title = screen.getByRole('textbox', { name: 'Dims with a disabled peer' });
+    expect((title as HTMLInputElement).disabled).toBe(true);
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Disable the input' }));
+    expect((title as HTMLInputElement).disabled).toBe(false);
+  });
+
+  it('separator demo switches all three separators to semantic roles', async () => {
+    const demo = DEMOS.separator;
+    if (!demo) throw new Error('missing separator demo');
+    render(await demo.load(), {});
+    expect(screen.queryAllByRole('separator')).toHaveLength(0);
+    await fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Expose as role="separator" (non-decorative)' })
+    );
+    expect(screen.getAllByRole('separator')).toHaveLength(3);
+  });
 });
 
 describe('forms page', () => {

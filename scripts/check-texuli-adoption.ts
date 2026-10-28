@@ -12,6 +12,8 @@
  * - `py-token`: a `var(--py-…)` read (consumers read `--tx-*`);
  * - `raw-control`: a native `<button>`, `<input>`, `<select>`, `<textarea>` or
  *   `<dialog>` in a Svelte component, where Texuli ships the styled control;
+ * - `input-as-choice`: a Texuli `<Input>` used as a checkbox or radio (choice
+ *   controls use `Checkbox` or `RadioGroup` so checked state works correctly);
  * - `own-component`: a leaf Svelte component of a UI package (`packages/ui`,
  *   `packages/*-ui`, `devtools`, `crud`, `player`, `apps/gallery`) that imports
  *   nothing from `texuli`, `@texuli/*`, `@protoyard/*-ui`/`ui` or another
@@ -49,12 +51,19 @@ const SKIP_DIRS = new Set([
   'build',
 ]);
 
-export type Rule = 'legacy-import' | 'raw-lucide' | 'py-token' | 'raw-control' | 'own-component';
+export type Rule =
+  | 'legacy-import'
+  | 'raw-lucide'
+  | 'py-token'
+  | 'raw-control'
+  | 'input-as-choice'
+  | 'own-component';
 export const RULES: readonly Rule[] = [
   'legacy-import',
   'raw-lucide',
   'py-token',
   'raw-control',
+  'input-as-choice',
   'own-component',
 ];
 
@@ -100,6 +109,7 @@ const LEGACY_IMPORT =
   /(?:from\s+|import\s*\(\s*|import\s+)['"](clsx|tailwind-merge|tailwind-variants)(?:\/[^'"]*)?['"]/g;
 const PY_TOKEN = /var\(\s*--py-/g;
 const RAW_CONTROL = /<(button|input|select|textarea|dialog)(?=[\s/>])/g;
+const INPUT_TAG = /<Input(?=[\s/>])[^>]*>/g;
 const UI_UNIT = /^(packages\/(ui|[a-z-]+-ui|devtools|crud|player)|apps\/gallery)\//;
 const COMPOSES =
   /from\s*['"](texuli(?:\/[^'"]*)?|@texuli\/[^'"]+|@protoyard\/(?:ui|[a-z-]+-ui)(?:\/[^'"]*)?|[^'"]+\.svelte)['"]/;
@@ -121,6 +131,13 @@ function stripComments(text: string): string {
 
 function markupOf(svelte: string): string {
   return svelte.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '');
+}
+
+/** Counts Texuli Input opening tags used where a dedicated choice control belongs. */
+function inputAsChoiceCount(markup: string): number {
+  return [...markup.matchAll(new RegExp(INPUT_TAG.source, INPUT_TAG.flags))].filter(
+    ([tag]) => /\btype\s*=\s*(['"])(?:checkbox|radio)\1/i.test(tag) || /\bbind:checked\b/.test(tag)
+  ).length;
 }
 
 function lucideNames(text: string): string[] {
@@ -152,6 +169,7 @@ export function scanSource(file: string, source: string): Violation[] {
   if (file.endsWith('.svelte')) {
     const markup = markupOf(text);
     add('raw-control', count(markup, RAW_CONTROL));
+    add('input-as-choice', inputAsChoiceCount(markup));
     let raw = 0;
     for (const name of lucideNames(text)) {
       raw += count(markup, new RegExp(`<${name.replace(/\$/g, '\\$')}(?=[\\s/>])`, 'g'));
