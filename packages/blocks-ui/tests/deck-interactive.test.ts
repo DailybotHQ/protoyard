@@ -69,4 +69,24 @@ describe('data-py-deck-interactive', () => {
       expect(marked, type).toBe(true);
     }
   }, 90_000);
+
+  // Regression: the embed family on Texuli's renderers had lost its block root.
+  it('gives the embed-app block its data-py-block root, marked interactive', async () => {
+    const { container } = render(InteractiveHarness, {
+      blocks: [MINIMAL_EXAMPLES['embed-app']],
+      stateHost: createMemoryBlockStateHost(),
+      documentId: 'deck-interactive-embed',
+    });
+    await waitFor(
+      () => {
+        const root = container.querySelector('[data-py-block="embed-app"]');
+        expect(root).not.toBeNull();
+        expect(root?.hasAttribute(DECK_INTERACTIVE_ATTRIBUTE)).toBe(true);
+        // The embed host (mountEmbed) reads the block id from this attribute.
+        expect(root?.getAttribute('data-py-embed-app')).toBe(MINIMAL_EXAMPLES['embed-app'].id);
+        expect(root?.querySelector('[data-tx-embed-started="false"]')).not.toBeNull();
+      },
+      { timeout: 30_000, interval: 50 }
+    );
+  }, 60_000);
 });

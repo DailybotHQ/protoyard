@@ -17,7 +17,13 @@ const labels = $derived({
 });
 </script>
 
-<div data-py-block="embed-app" {...{ [DECK_INTERACTIVE_ATTRIBUTE]: true }} data-tx-blocks="embed">
+<!-- `data-py-embed-app` carries the block id, which a prototype's embed host reads for the app's storage namespace. -->
+<div
+  data-py-block="embed-app"
+  data-py-embed-app={block.type === 'embed-app' ? block.id : undefined}
+  {...{ [DECK_INTERACTIVE_ATTRIBUTE]: true }}
+  data-tx-blocks="embed"
+>
   {#if block.type === 'embed-app'}
     <TexuliEmbedApp {block} mountEmbed={host.mountEmbed} {labels} />
   {/if}
