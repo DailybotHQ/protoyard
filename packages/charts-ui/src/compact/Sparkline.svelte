@@ -1,6 +1,6 @@
 <script lang="ts">
 /** Adapter: Protoyard Sparkline → Texuli Sparkline (showLast off for KPI tiles). */
-import { Sparkline as TexuliSparkline } from '@texuli/charts/compact';
+import { type ChartFormatSpec, Sparkline as TexuliSparkline } from '@texuli/charts/compact';
 import { trendLabel } from './trend.ts';
 
 type Props = {
@@ -13,7 +13,13 @@ type Props = {
   showLast?: boolean;
   variant?: 'line' | 'area' | 'bar';
   period?: string;
-  format?: (value: number) => string;
+  /**
+   * A JSON format spec is applied by the Texuli chart to every painted value.
+   * A function only shapes Protoyard's own text (the sparkline trend sentence);
+   * Texuli's compact charts take no formatter callbacks, so painted values then
+   * use the default number format.
+   */
+  format?: ChartFormatSpec | ((value: number) => string);
   [key: string]: unknown;
 };
 
@@ -29,7 +35,10 @@ let {
   format,
 }: Props = $props();
 const series = $derived(values ?? data ?? []);
-const accessible = $derived(label ?? trendLabel(series, period, format));
+const accessible = $derived(
+  label ?? trendLabel(series, period, typeof format === 'function' ? format : undefined)
+);
+const spec = $derived(typeof format === 'function' ? undefined : format);
 </script>
 
 <!--
@@ -46,6 +55,6 @@ const accessible = $derived(label ?? trendLabel(series, period, format));
     {showLast}
     {variant}
     {period}
-    {format}
+    format={spec}
   />
 </div>
