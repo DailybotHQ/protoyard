@@ -1,8 +1,10 @@
 # @protoyard/review-ui
 
-Svelte 5 UI for review comments on published prototypes, on `@protoyard/ui`
-tokens: comment mode and pins, threads, the comments panel and the floating
-review toolbar. The engine is [`@protoyard/review`](../review/README.md).
+Svelte 5 UI for review comments on published prototypes, composed from Texuli
+components and `--tx-*` tokens: comment mode and pins, threads, the comments
+panel and the floating review toolbar. Lucide supplies glyphs through
+Texuli's `LucideIcon` bridge. The engine is
+[`@protoyard/review`](../review/README.md).
 
 The package is split into lazy subpaths so a prototype that does not enable
 review comments pays no cost for them.

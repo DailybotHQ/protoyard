@@ -68,6 +68,11 @@ function runtimeMock(activeScenario = 'busy-week') {
 }
 
 describe('review comments panel', () => {
+  async function chooseFilter(label: string, option: string): Promise<void> {
+    await fireEvent.click(screen.getByRole('combobox', { name: label }));
+    await fireEvent.click(await screen.findByRole('option', { name: option }));
+  }
+
   it('filters threads and shows per-screen counts and route, author, time and state', async () => {
     render(ReviewPanel, { comments, currentContext: context });
     expect(
@@ -79,9 +84,7 @@ describe('review comments panel', () => {
     expect(
       within(screen.getByRole('list', { name: 'Comment threads' })).queryByText('/settings')
     ).toBeNull();
-    await fireEvent.change(screen.getByLabelText('Filter by state'), {
-      target: { value: 'resolved' },
-    });
+    await chooseFilter('Filter by state', 'Resolved');
     expect(
       await within(screen.getByRole('list', { name: 'Comment threads' })).findByText('/settings')
     ).toBeTruthy();
@@ -97,30 +100,20 @@ describe('review comments panel', () => {
 
   it('filters by screen, author and orphan status', async () => {
     render(ReviewPanel, { comments, orphanedThreadIds: [comments[1]?.id ?? ''] });
-    await fireEvent.change(screen.getByLabelText('Filter by state'), {
-      target: { value: 'all' },
-    });
-    await fireEvent.change(screen.getByLabelText('Filter by screen'), {
-      target: { value: '/settings' },
-    });
+    await chooseFilter('Filter by state', 'All states');
+    await chooseFilter('Filter by screen', '/settings');
     expect(
       within(screen.getByRole('list', { name: 'Comment threads' })).getByText('Looks good now')
     ).toBeTruthy();
-    await fireEvent.change(screen.getByLabelText('Filter by author'), {
-      target: { value: 'Marta Reviewer' },
-    });
+    await chooseFilter('Filter by author', 'Marta Reviewer');
     expect(
       within(screen.getByRole('list', { name: 'Comment threads' })).getByText(/Marta Reviewer/)
     ).toBeTruthy();
-    await fireEvent.change(screen.getByLabelText('Filter by anchor status'), {
-      target: { value: 'orphaned' },
-    });
+    await chooseFilter('Filter by anchor status', 'Orphaned');
     expect(
       within(screen.getByRole('list', { name: 'Comment threads' })).getByText('Looks good now')
     ).toBeTruthy();
-    await fireEvent.change(screen.getByLabelText('Filter by author'), {
-      target: { value: 'Alex Reviewer' },
-    });
+    await chooseFilter('Filter by author', 'Alex Reviewer');
     expect(screen.getByText('No comments match these filters.')).toBeTruthy();
   });
 
@@ -161,9 +154,7 @@ describe('review comments panel', () => {
   it('confirms destructive scenario changes and requests a safety snapshot', async () => {
     const runtime = runtimeMock();
     render(ReviewPanel, { comments, currentContext: context, runtime, onNavigate: vi.fn() });
-    await fireEvent.change(screen.getByLabelText('Filter by state'), {
-      target: { value: 'resolved' },
-    });
+    await chooseFilter('Filter by state', 'Resolved');
     await fireEvent.click(screen.getByRole('button', { name: /Looks good now/ }));
     expect(runtime.scenarios.load).not.toHaveBeenCalled();
     expect(screen.getByRole('alertdialog').textContent).toContain(

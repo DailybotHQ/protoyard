@@ -5,6 +5,7 @@ import { BottomSheet, Button, Popover, type TriggerSnippet } from '@protoyard/ui
 import { type ActivityComment } from '@protoyard/views/activity';
 import { type ActivityPerson, CommentThread } from '@protoyard/views-ui/activity';
 import { onMount } from 'svelte';
+import { Input } from 'texuli/input';
 
 let {
   open = $bindable(true),
@@ -140,7 +141,7 @@ async function react(comment: ActivityComment, emoji: string) {
         <h2 class="font-semibold">Choose your name</h2>
         <p class="text-sm text-muted-foreground">Your name is shown to other reviewers. It is not a login.</p>
         <label class="grid gap-1 text-sm" for="review-display-name">Your name</label>
-        <input id="review-display-name" bind:value={nameDraft} maxlength="60" required class="rounded-md border border-input bg-surface px-3 py-2 text-sm" />
+        <Input id="review-display-name" bind:value={nameDraft} maxlength={60} required class="rounded-md px-3 py-2 text-sm" />
         {#if nameError}<p role="alert" class="text-sm text-destructive">{nameError}</p>{/if}
         <Button type="submit" disabled={!nameDraft.trim()}>Continue</Button>
       </form>

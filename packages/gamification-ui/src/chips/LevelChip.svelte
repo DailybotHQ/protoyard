@@ -1,4 +1,6 @@
 <script lang="ts">
+import { Badge } from 'texuli/badge';
+
 /**
  * Compact level indicator. Theme tokens only; AA on surface backgrounds.
  */
@@ -14,13 +16,13 @@ let {
 } = $props();
 
 const label = $derived(`Level ${level}`);
-const classes = $derived(
-  `inline-flex h-9 items-center rounded-full border border-border bg-muted px-3 text-xs font-semibold text-foreground ${className}`
-);
+const classes = $derived(`font-semibold ${className}`);
 </script>
 
 {#if href}
-  <a {href} class={classes} aria-label={label}>{label}</a>
+  <a {href} aria-label={label} class="inline-flex rounded-full no-underline">
+    <Badge variant="secondary" class={classes}>{label}</Badge>
+  </a>
 {:else}
-  <span class={classes} role="img" aria-label={label}>{label}</span>
+  <Badge variant="secondary" class={classes} role="img" aria-label={label}>{label}</Badge>
 {/if}
