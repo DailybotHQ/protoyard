@@ -308,7 +308,16 @@ export function writePending(
     byUnit.set(unitOf(v.file), list);
   }
   const units = new Set([...byUnit.keys(), ...[...old.values()].map((p) => unitOf(p.file))]);
+  // A scoped prune rewrites only the units its scopes touch; every other list stays byte for byte.
+  const touched = (unit: string) =>
+    mode === 'baseline' ||
+    scopes.length === 0 ||
+    [...old.values(), ...violations].some(
+      (v) => unitOf(v.file) === unit && inScope(v.file, scopes)
+    ) ||
+    scopes.some((s) => unitOf(`${s}/x`) === unit);
   for (const unit of units) {
+    if (!touched(unit)) continue;
     const entries = (byUnit.get(unit) ?? []).sort(
       (a, b) => a.file.localeCompare(b.file) || a.rule.localeCompare(b.rule)
     );
