@@ -232,7 +232,7 @@ builds (numbers move with the load):
 | Second exploration (shared player reused) | 987 ms |
 | Player initial JS | 178.8 KB gzip in 27 files |
 | `quick export --single-file` over the 40 catalog blueprints | 3.25 MB (about 1.05 MB gzip), refused over 4 MiB |
-| `quick export --single-file`, catalog deck, page and doc (2026-10-22) | 1.61 MB each, refused over 2 MiB |
+| `quick export --single-file`, catalog deck, page and doc (2026-10-28, npm Texuli 0.3.0) | 2.39–2.40 MB each (1.61 MB on 2026-10-22), refused over 2.5 MiB |
 | `quick shot` PNG, quick blueprints | 38–97 KB each (150 KB budget) |
 
 

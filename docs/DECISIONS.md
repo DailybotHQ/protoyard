@@ -865,7 +865,7 @@ player, which splits level 1 from level 2.
   and 1.5 MiB for a deck single file. Measured numbers replace them in `protoyard.budgets.json`.
   *Outcome (2026-10-22):* the kind JS and CSS budgets stayed at 150 KB and 30 KB. The 1.5 MiB
   single file was not met (about 1.61 MB, because DevTools, Deck Studio and the theme tools
-  stay); the enforced cap is 2 MiB per kind (`QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` in
+  stay); the enforced cap is 2.5 MiB per kind (2 MiB until the npm Texuli 0.3.0, ADR-045) (`QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` in
   `packages/cli/src/lib/quick/single-file.ts`), and `kinds.*.singleFileKb` is recorded but not
   read by any gate. The player worker graph cap is one constant, `WORKER_GRAPH_GZIP_KB = 220`
   (`packages/player/tests/player-budgets.ts`).

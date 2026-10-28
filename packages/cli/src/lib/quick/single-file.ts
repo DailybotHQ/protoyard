@@ -47,16 +47,19 @@ export type SingleFileEntry = 'index' | 'deck' | 'page' | 'doc';
 /**
  * Cap per entry. A deck, page or doc exported from its own page embeds only
  * that page's graph: measured 2026-10-22 at 1,606,788–1,607,557 bytes (the
- * catalog deck, page and doc). 2 MiB leaves ~23% headroom, like the app cap.
+ * catalog deck, page and doc). On the npm Texuli 0.3.0 (2026-10-28) they
+ * measure 2,388,502–2,395,746 bytes: Texuli 0.3.0 grew, and its published
+ * dist bundles ~11% larger than its sources (Texuli gap G22). 2.5 MiB keeps
+ * ~9% headroom; lower it back toward 2 MiB when G22 ships.
  * The proposed 1.5 MiB deck budget (ADR-040, `kinds.deck.singleFileKb`) is
  * not met: DevTools (Deck Studio, themes), review comments, device shells and
  * chart blocks are all reachable from a kind page and ship with it.
  */
 export const QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES: Record<SingleFileEntry, number> = {
   index: QUICK_SINGLE_FILE_BUDGET_BYTES,
-  deck: 2 * 1024 * 1024,
-  page: 2 * 1024 * 1024,
-  doc: 2 * 1024 * 1024,
+  deck: 2.5 * 1024 * 1024,
+  page: 2.5 * 1024 * 1024,
+  doc: 2.5 * 1024 * 1024,
 };
 
 /**

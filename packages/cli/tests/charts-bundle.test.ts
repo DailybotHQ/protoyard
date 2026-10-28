@@ -27,12 +27,13 @@ const ROOT = resolve(import.meta.dirname, '../../..');
 const FIXTURE = join(ROOT, 'tests/fixtures/charts-prototype');
 
 /**
- * Ceilings in gzip bytes (level 9). Measured after Texuli charts-ui re-export
- * (sparkline initial delta ~3,211 B). ~7 % headroom; lower when the kit shrinks.
+ * Ceilings in gzip bytes (level 9). Re-measured on the npm @texuli/charts 0.3.0
+ * (sparkline initial delta 5,927 B: its Sparkline now carries the table window
+ * and interaction model). ~5 % headroom; lower when the kit shrinks.
  */
 export const CEILINGS = {
   /** What Sparkline adds to the first screen's JS, over the same app without charts. */
-  sparklineInitialDelta: 3_450,
+  sparklineInitialDelta: 6_250,
   /** LineChart + BarChart: what opening the charts view downloads (table and Canvas excluded, they load later). */
   lineBarLazy: 17_000,
 };

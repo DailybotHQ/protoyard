@@ -183,7 +183,7 @@ Measured 2026-10-24 on the Apple M1 Max (10 cores, 64 GB), macOS 27.0, Node
 | LTTB, 10,000 points → 1,600 (Node, median) | 0.20–0.27 ms | < 2 ms | `pnpm exec tsx scripts/bench-charts.ts --skip-browser --check` (two runs) |
 | Scale + LTTB + path, 10,000 points (Node, median) | 0.86–0.97 ms | — | same |
 | Scale + LTTB + path, 100,000 points (Node, median) | 5.44–25.11 ms | — | same (machine shared with other builds) |
-| Sparkline added to a first screen (Vite build, gzip) | 3,211 B | ≤ 3,450 B | `pnpm vitest run packages/cli/tests/charts-bundle.test.ts` |
+| Sparkline added to a first screen (Vite build, gzip, `@texuli/charts` 0.3.0 from npm) | 5,927 B | ≤ 6,250 B | `pnpm vitest run packages/cli/tests/charts-bundle.test.ts` |
 | LineChart + BarChart view (lazy, gzip) | 8,977 B | ≤ 17,000 B | same |
 
 Whole family subpaths (every component, gzip level 9, beyond the app entry),

@@ -12,12 +12,13 @@ const HOSTS = ['page', 'doc'] as const;
 type Host = (typeof HOSTS)[number];
 const JS_GZIP_BUDGET = 120 * 1024;
 // Default 20 KB and it stays. Per-host overrides at the measured size + 5 %
-// (2026-10-24: page 24,242 B, doc 24,490 B gzip). Texuli component CSS
+// (2026-10-28, npm Texuli 0.3.0: page 27,785 B, doc 28,033 B gzip; 24,242 B and
+// 24,490 B on 2026-10-24 with the linked Texuli). Texuli component CSS
 // (~23 KB gz) replaces the former UI CSS; eager/lazy split measured; CSS diet
 // tracked as a follow-up. The sum covers every emitted stylesheet: the first
 // screen loads only the entry one (page 4,166 B, doc 4,414 B); the rest are
 // lazy block and chart families, with no repeated rule beyond `.tx-sr-only`.
-const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 25_454, doc: 25_714 };
+const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 29_174, doc: 29_435 };
 
 interface HostBuild {
   chunks: Rollup.OutputChunk[];
