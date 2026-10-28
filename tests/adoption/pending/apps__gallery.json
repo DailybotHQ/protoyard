@@ -1,0 +1,230 @@
+{
+  "unit": "apps__gallery",
+  "entries": [
+    {
+      "file": "apps/gallery/src/components/Browser.svelte",
+      "rule": "raw-control",
+      "count": 11
+    },
+    {
+      "file": "apps/gallery/src/components/Browser.svelte",
+      "rule": "raw-lucide",
+      "count": 4
+    },
+    {
+      "file": "apps/gallery/src/components/CommandBlock.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/CommandBlock.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/CommandBlock.svelte",
+      "rule": "raw-lucide",
+      "count": 2
+    },
+    {
+      "file": "apps/gallery/src/components/CommandPalette.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/CommandPalette.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "apps/gallery/src/components/CommandPalette.svelte",
+      "rule": "raw-lucide",
+      "count": 2
+    },
+    {
+      "file": "apps/gallery/src/components/CommandPaletteTrigger.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/CommandPaletteTrigger.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/CommandPaletteTrigger.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/CompareView.svelte",
+      "rule": "raw-control",
+      "count": 9
+    },
+    {
+      "file": "apps/gallery/src/components/CompareView.svelte",
+      "rule": "raw-lucide",
+      "count": 7
+    },
+    {
+      "file": "apps/gallery/src/components/CreateBuilder.svelte",
+      "rule": "py-token",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/CreateBuilder.svelte",
+      "rule": "raw-control",
+      "count": 5
+    },
+    {
+      "file": "apps/gallery/src/components/docs/DocsSearch.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/docs/DocsSearch.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/docs/DocsSearch.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/EmptyBrowseState.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/EmptyBrowseState.svelte",
+      "rule": "raw-control",
+      "count": 2
+    },
+    {
+      "file": "apps/gallery/src/components/EmptyBrowseState.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/FavoriteButton.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/FavoriteButton.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/LivePreview.svelte",
+      "rule": "py-token",
+      "count": 2
+    },
+    {
+      "file": "apps/gallery/src/components/LivePreview.svelte",
+      "rule": "raw-control",
+      "count": 13
+    },
+    {
+      "file": "apps/gallery/src/components/LivePreview.svelte",
+      "rule": "raw-lucide",
+      "count": 10
+    },
+    {
+      "file": "apps/gallery/src/components/marketplace/CreateFlow.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "apps/gallery/src/components/marketplace/CreateFlow.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/marketplace/DeviceThumb.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/marketplace/MarketplaceBrowser.svelte",
+      "rule": "raw-control",
+      "count": 11
+    },
+    {
+      "file": "apps/gallery/src/components/marketplace/MarketplaceBrowser.svelte",
+      "rule": "raw-lucide",
+      "count": 2
+    },
+    {
+      "file": "apps/gallery/src/components/player/Playground.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/player/Playground.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "apps/gallery/src/components/ProjectCard.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/ProjectIcon.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/ThemeBrowser.svelte",
+      "rule": "raw-control",
+      "count": 5
+    },
+    {
+      "file": "apps/gallery/src/components/ThemeBrowser.svelte",
+      "rule": "raw-lucide",
+      "count": 2
+    },
+    {
+      "file": "apps/gallery/src/components/ThemeExplorer.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/ThemeExplorer.svelte",
+      "rule": "raw-control",
+      "count": 7
+    },
+    {
+      "file": "apps/gallery/src/components/ThemeSwatch.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/ThemeSwatch.svelte",
+      "rule": "py-token",
+      "count": 30
+    },
+    {
+      "file": "apps/gallery/src/components/ThemeToggle.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/components/ThemeToggle.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "apps/gallery/src/pages/themes.astro",
+      "rule": "py-token",
+      "count": 18
+    },
+    {
+      "file": "apps/gallery/src/styles/global.css",
+      "rule": "py-token",
+      "count": 22
+    }
+  ]
+}

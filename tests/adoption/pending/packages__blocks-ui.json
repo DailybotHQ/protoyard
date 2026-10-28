@@ -1,0 +1,100 @@
+{
+  "unit": "packages__blocks-ui",
+  "entries": [
+    {
+      "file": "packages/blocks-ui/src/BlockRenderer.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/blocks-ui/src/data/ChartBlock.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/blocks-ui/src/data/InteractiveTable.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/blocks-ui/src/data/TableView.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/blocks-ui/src/host.ts",
+      "rule": "py-token",
+      "count": 5
+    },
+    {
+      "file": "packages/blocks-ui/src/interactive/CalculatorBlock.svelte",
+      "rule": "raw-control",
+      "count": 2
+    },
+    {
+      "file": "packages/blocks-ui/src/interactive/ChartControlsBlock.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "packages/blocks-ui/src/interactive/FormBlockView.svelte",
+      "rule": "raw-control",
+      "count": 2
+    },
+    {
+      "file": "packages/blocks-ui/src/interactive/NestedBlocks.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/blocks-ui/src/interactive/PollBlock.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/blocks-ui/src/interactive/QuizBlock.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/blocks-ui/src/map/MapBlockView.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/blocks-ui/src/structure/BlockIcon.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/blocks-ui/src/structure/CardImage.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/blocks-ui/src/structure/ColumnsBlock.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/blocks-ui/src/structure/ComparisonBlock.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/blocks-ui/src/structure/ComparisonBlock.svelte",
+      "rule": "raw-lucide",
+      "count": 2
+    },
+    {
+      "file": "packages/blocks-ui/src/structure/SafeBody.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/blocks-ui/src/text/MdRenderer.svelte",
+      "rule": "raw-control",
+      "count": 1
+    }
+  ]
+}

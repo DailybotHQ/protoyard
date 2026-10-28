@@ -1,0 +1,60 @@
+{
+  "unit": "packages__flows-ui",
+  "entries": [
+    {
+      "file": "packages/flows-ui/src/editor/ConditionEditor.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/flows-ui/src/editor/ConditionEditor.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "packages/flows-ui/src/editor/FlowEditor.svelte",
+      "rule": "raw-control",
+      "count": 20
+    },
+    {
+      "file": "packages/flows-ui/src/editor/StepDataEditor.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/flows-ui/src/editor/StepDataEditor.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/flows-ui/src/editor/TriggerDataEditor.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/flows-ui/src/editor/TriggerDataEditor.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/flows-ui/src/keeps/KeepsPanel.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/flows-ui/src/outbox/OutboxPanel.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/flows-ui/src/runs/RunPanel.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/flows-ui/src/runs/RunPanel.svelte",
+      "rule": "raw-control",
+      "count": 1
+    }
+  ]
+}

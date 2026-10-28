@@ -1,0 +1,95 @@
+{
+  "unit": "packages__analytics-ui",
+  "entries": [
+    {
+      "file": "packages/analytics-ui/src/cohort/CohortTable.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/analytics-ui/src/date-range/DateRangePanel.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "packages/analytics-ui/src/date-range/MonthGrid.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/analytics-ui/src/date-range/MonthGrid.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "packages/analytics-ui/src/date-range/MonthGrid.svelte",
+      "rule": "raw-lucide",
+      "count": 2
+    },
+    {
+      "file": "packages/analytics-ui/src/drill/DrillDown.svelte",
+      "rule": "raw-control",
+      "count": 2
+    },
+    {
+      "file": "packages/analytics-ui/src/filters/BreakdownSelect.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/analytics-ui/src/filters/BreakdownSelect.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/analytics-ui/src/filters/FilterGroupEditor.svelte",
+      "rule": "raw-control",
+      "count": 13
+    },
+    {
+      "file": "packages/analytics-ui/src/filters/FilterGroupEditor.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "packages/analytics-ui/src/filters/SegmentPicker.svelte",
+      "rule": "raw-control",
+      "count": 2
+    },
+    {
+      "file": "packages/analytics-ui/src/funnel/FunnelAnalysis.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/analytics-ui/src/grid/DashboardGrid.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/analytics-ui/src/grid/DashboardGrid.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "packages/analytics-ui/src/grid/WidgetCard.svelte",
+      "rule": "raw-lucide",
+      "count": 2
+    },
+    {
+      "file": "packages/analytics-ui/src/kpi/KpiRow.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/analytics-ui/src/kpi/KpiTile.svelte",
+      "rule": "py-token",
+      "count": 1
+    },
+    {
+      "file": "packages/analytics-ui/src/kpi/LiveCounter.svelte",
+      "rule": "own-component",
+      "count": 1
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "unit": "packages__charts",
+  "entries": [
+    {
+      "file": "packages/charts/src/palette/index.ts",
+      "rule": "py-token",
+      "count": 5
+    }
+  ]
+}

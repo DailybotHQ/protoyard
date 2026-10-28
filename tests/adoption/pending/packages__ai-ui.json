@@ -1,0 +1,205 @@
+{
+  "unit": "packages__ai-ui",
+  "entries": [
+    {
+      "file": "packages/ai-ui/src/approvals/AuditTrail.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/approvals/AutonomyLevelPicker.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/approvals/AutonomyLevelPicker.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/approvals/ChatApprovalCard.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/approvals/ChatApprovalCard.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "packages/ai-ui/src/approvals/ChatApprovalCard.svelte",
+      "rule": "raw-lucide",
+      "count": 3
+    },
+    {
+      "file": "packages/ai-ui/src/approvals/SuggestionCard.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/approvals/SuggestionCard.svelte",
+      "rule": "raw-control",
+      "count": 7
+    },
+    {
+      "file": "packages/ai-ui/src/approvals/SuggestionCard.svelte",
+      "rule": "raw-lucide",
+      "count": 4
+    },
+    {
+      "file": "packages/ai-ui/src/components/AssistantComposer.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/components/AssistantComposer.svelte",
+      "rule": "raw-control",
+      "count": 6
+    },
+    {
+      "file": "packages/ai-ui/src/components/AssistantComposer.svelte",
+      "rule": "raw-lucide",
+      "count": 4
+    },
+    {
+      "file": "packages/ai-ui/src/components/AssistantWorkspace.svelte",
+      "rule": "raw-control",
+      "count": 19
+    },
+    {
+      "file": "packages/ai-ui/src/components/AssistantWorkspace.svelte",
+      "rule": "raw-lucide",
+      "count": 15
+    },
+    {
+      "file": "packages/ai-ui/src/components/CanvasPanel.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/components/CanvasPanel.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "packages/ai-ui/src/components/CanvasPanel.svelte",
+      "rule": "raw-lucide",
+      "count": 3
+    },
+    {
+      "file": "packages/ai-ui/src/components/ChartAnswer.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/components/RichAnswer.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/MessageList.svelte",
+      "rule": "raw-control",
+      "count": 9
+    },
+    {
+      "file": "packages/ai-ui/src/MessageList.svelte",
+      "rule": "raw-lucide",
+      "count": 6
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageAttachments.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageAttachments.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageAttachments.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageButtons.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageButtons.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageButtons.svelte",
+      "rule": "raw-lucide",
+      "count": 2
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageForm.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageForm.svelte",
+      "rule": "raw-control",
+      "count": 7
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageForm.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageLinkPreview.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageLinkPreview.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageSelect.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageSelect.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageSelect.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/messages/MessageTable.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/voice/VoiceMode.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/voice/VoiceMode.svelte",
+      "rule": "raw-control",
+      "count": 6
+    },
+    {
+      "file": "packages/ai-ui/src/widget/AssistantWidget.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/ai-ui/src/widget/AssistantWidget.svelte",
+      "rule": "raw-control",
+      "count": 4
+    }
+  ]
+}

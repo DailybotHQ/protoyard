@@ -1,0 +1,180 @@
+{
+  "unit": "packages__views-ui",
+  "entries": [
+    {
+      "file": "packages/views-ui/src/activity/Composer.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/activity/Segments.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/activity/Segments.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/board/BoardView.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/commands/AppCommandPalette.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/commands/PaletteDialog.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/commands/ShortcutSheet.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/commands/ShortcutSheet.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/editor/LinkMenu.svelte",
+      "rule": "raw-control",
+      "count": 4
+    },
+    {
+      "file": "packages/views-ui/src/editor/MarkdownEditor.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "packages/views-ui/src/editor/MarkdownPreview.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/editor/RichTextView.svelte",
+      "rule": "raw-control",
+      "count": 2
+    },
+    {
+      "file": "packages/views-ui/src/grid/CellEditor.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "packages/views-ui/src/grid/ColumnChooser.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "packages/views-ui/src/grid/ColumnChooser.svelte",
+      "rule": "raw-lucide",
+      "count": 2
+    },
+    {
+      "file": "packages/views-ui/src/grid/DataGrid.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/grid/FacetPicker.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "packages/views-ui/src/grid/FacetPicker.svelte",
+      "rule": "raw-lucide",
+      "count": 2
+    },
+    {
+      "file": "packages/views-ui/src/grid/FilterBuilder.svelte",
+      "rule": "raw-control",
+      "count": 9
+    },
+    {
+      "file": "packages/views-ui/src/grid/FilterBuilder.svelte",
+      "rule": "raw-lucide",
+      "count": 4
+    },
+    {
+      "file": "packages/views-ui/src/grid/FilterChips.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/grid/FilterChips.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/grid/SavedViews.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/grid/SelectBox.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/lib/LazyDropdownMenu.svelte",
+      "rule": "raw-control",
+      "count": 2
+    },
+    {
+      "file": "packages/views-ui/src/lib/LazyPopover.svelte",
+      "rule": "own-component",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/lib/LazyPopover.svelte",
+      "rule": "raw-control",
+      "count": 2
+    },
+    {
+      "file": "packages/views-ui/src/notifications/NotificationCenter.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/notifications/NotificationCenter.svelte",
+      "rule": "raw-lucide",
+      "count": 5
+    },
+    {
+      "file": "packages/views-ui/src/settings/SettingsLayout.svelte",
+      "rule": "raw-control",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/settings/SettingsLayout.svelte",
+      "rule": "raw-lucide",
+      "count": 2
+    },
+    {
+      "file": "packages/views-ui/src/states/QueryState.svelte",
+      "rule": "raw-lucide",
+      "count": 1
+    },
+    {
+      "file": "packages/views-ui/src/tree/OutlineEditor.svelte",
+      "rule": "py-token",
+      "count": 2
+    },
+    {
+      "file": "packages/views-ui/src/tree/OutlineEditor.svelte",
+      "rule": "raw-control",
+      "count": 3
+    },
+    {
+      "file": "packages/views-ui/src/tree/OutlineEditor.svelte",
+      "rule": "raw-lucide",
+      "count": 2
+    }
+  ]
+}

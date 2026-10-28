@@ -1,0 +1,107 @@
+[
+  {
+    "id": "G1",
+    "status": "fixed",
+    "summary": "texuli/icons (10 names): glyphs for 152 Lucide symbols"
+  },
+  {
+    "id": "G2",
+    "status": "open",
+    "summary": "@texuli/charts compact: a formatValue(value) => string callback (units such as % on Gauge); 0.3.0 accepts only a ChartFormatSpec"
+  },
+  {
+    "id": "G3",
+    "status": "open",
+    "summary": "@texuli/charts matrix: rendered sequential ramp/scale legend (RampLegend)"
+  },
+  {
+    "id": "G4",
+    "status": "open",
+    "summary": "texuli/dialog, texuli/sheet + @texuli/core: overlay stack/layer option; a documented focus-exempt region (undo toaster)"
+  },
+  {
+    "id": "G5",
+    "status": "open",
+    "summary": "Dialog, Tabs, TextCounter: ref = $bindable() and rest spread (data-*, aria-*)"
+  },
+  {
+    "id": "G6",
+    "status": "open",
+    "summary": "texuli/sheet ResponsiveModal: force?: 'auto'|'dialog'|'sheet' and container/host width"
+  },
+  {
+    "id": "G7",
+    "status": "open",
+    "summary": "@texuli/data/grid-core DataGrid: client paging, rowClass(row), toolbar/filters/bulk-action snippets"
+  },
+  {
+    "id": "G8",
+    "status": "open",
+    "summary": "texuli/file-upload: onFilesAdd, onFileRemove callbacks"
+  },
+  {
+    "id": "G9",
+    "status": "open",
+    "summary": "texuli/toast: onSettle(reason: 'timeout'|'dismiss'|'action') for undo"
+  },
+  {
+    "id": "G10",
+    "status": "open",
+    "summary": "texuli/avatar: srcset/sizes under the URL trust policy"
+  },
+  {
+    "id": "G11",
+    "status": "open",
+    "summary": "texuli/tags-color TagsInput: onInvalid(reason) and bindable draft input"
+  },
+  {
+    "id": "G12",
+    "status": "open",
+    "summary": "texuli/date pickers: today (simulated clock \u2014 determinism), weekStartsOn, range highlight, maxDays, onInvalid"
+  },
+  {
+    "id": "G13",
+    "status": "open",
+    "summary": "texuli: styled TimeField"
+  },
+  {
+    "id": "G14",
+    "status": "open",
+    "summary": "@texuli/data/board: columnFooter(column) snippet, heading level"
+  },
+  {
+    "id": "G15",
+    "status": "open",
+    "summary": "texuli/layouts/mobile: standalone BottomNav, MobileHeader, mobile app frame components"
+  },
+  {
+    "id": "G16",
+    "status": "open",
+    "summary": "@texuli/astro: appearance switcher island (nice to have)"
+  },
+  {
+    "id": "G17",
+    "status": "open",
+    "summary": "@texuli/editor: not published (private 0.0.0); views-ui OutlineEditor/MarkdownEditor need it, plus Markdown round-trip"
+  },
+  {
+    "id": "G18",
+    "status": "open",
+    "summary": "@texuli/data: nested filter builder (and/or groups, field operators)"
+  },
+  {
+    "id": "G19",
+    "status": "open",
+    "summary": "@texuli/data/activity: notification inbox: unread, mark read, per-item actions"
+  },
+  {
+    "id": "G20",
+    "status": "open",
+    "summary": "@texuli/charts: cohort retention table semantics (row/period headers, table a11y)"
+  },
+  {
+    "id": "G21",
+    "status": "open",
+    "summary": "@texuli/blocks renderers: fields Protoyard blocks use: heading/text align, text size, list check/icon, quote role/avatar, callout icon, divider label/variant, card icon, stat title/source/trend"
+  }
+]
