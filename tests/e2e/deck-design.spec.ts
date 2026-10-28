@@ -264,8 +264,26 @@ async function settled(
   return last;
 }
 
+/*
+ * Level 2 needs the built flagship prototype, which playwright.config.ts
+ * serves only when this spec is named on the command line or the run sets
+ * PROTOYARD_E2E_PROTOTYPES=create-anything-deck. A full deck run without
+ * either skips level 2 with that reason instead of failing to connect.
+ */
+let prototypeServed: boolean | undefined;
+async function requireLevel2Server(): Promise<void> {
+  prototypeServed ??= await fetch(PROTOTYPE)
+    .then((response) => response.ok)
+    .catch(() => false);
+  test.skip(
+    !prototypeServed,
+    'level 2 needs the flagship prototype server: run deck-design.spec.ts by path or set PROTOYARD_E2E_PROTOTYPES=create-anything-deck'
+  );
+}
+
 for (const level of Object.keys(LEVELS) as Level[]) {
   test.describe(`flagship deck at ${level === 'player' ? 'level 1 (player)' : 'level 2 (prototype)'}`, () => {
+    if (level === 'prototype') test.beforeEach(requireLevel2Server);
     test('every slide passes the design gate', async ({ page }, testInfo) => {
       test.setTimeout(240_000);
       const shots = join(process.cwd(), 'tmp', 'deck-design', `${level}-${testInfo.project.name}`);
@@ -384,6 +402,7 @@ for (const level of Object.keys(LEVELS) as Level[]) {
  * inside the real deck: plan choice, yearly billing, the breakdown step, axe.
  */
 test.describe('flagship deck at level 2 (prototype): the custom configurator slide', () => {
+  test.beforeEach(requireLevel2Server);
   test('runs the owned component inside the deck', async ({ page }, testInfo) => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
