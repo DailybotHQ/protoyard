@@ -97,11 +97,18 @@ function importGraph(entry: string): string[] {
 
 /**
  * Ceilings on every stylesheet a player page can ever load, gzip KB: measured
- * 2026-10-24 (FIX-texuli-css-split) + 5 %, rounded up. index.html 75.9 KB
- * (it plays every kind and kit), deck.html 53.3, page.html and doc.html 52.6.
- * The 36 KB cssGzipKb budget applies to each entry's initial CSS (17-20 KB).
+ * + 5 %, rounded up. Re-measured 2026-10-28 (T-decks-salvage, decks on the
+ * `@texuli/slides` stage): index.html 113.8 KB (it plays every kind and kit),
+ * deck.html 100.1, page.html and doc.html 101.4 (each can open a deck through
+ * the kind boot). Without decks-ui, page.html measures 53.9 KB, close to the
+ * 52.6 KB of 2026-10-24. Of the +47 KB, about 25 KB is the stage's catalog
+ * component registry, which DeckApp turns off (`defaultRenderers={false}`)
+ * but `DeckStage` imports statically, so its lazy chunks stay reachable in the
+ * build (a Texuli gap, reported to the Texuli lead); the rest is the stage,
+ * layouts and chrome CSS a deck uses. All of it is lazy: the initial CSS of
+ * each entry stays under the 36 KB cssGzipKb budget (17-20 KB).
  */
-const PLAYER_TOTAL_CSS_GZIP_KB = { index: 80, deck: 56, page: 55.3, doc: 55.3 } as const;
+const PLAYER_TOTAL_CSS_GZIP_KB = { index: 119.5, deck: 105.2, page: 106.5, doc: 106.5 } as const;
 
 /** Modules that must only ever load on demand, by manifest key. */
 const LAZY_MODULES: [string, RegExp][] = [
@@ -178,7 +185,7 @@ describe.skipIf(!built)(
       // Decision (FIX-texuli-css-split, 2026-10-24): for the player, cssGzipKb
       // is the INITIAL CSS of each entry. Every stylesheet index.html can ever
       // load (all kinds and kits, split by Rolldown) has its own ceiling at the
-      // measured 75.9 KB + 5 %, so the total cannot grow silently.
+      // measured total + 5 % (PLAYER_TOTAL_CSS_GZIP_KB), so it cannot grow silently.
       const allKb = sum(reachableCss(manifest, 'index.html')) / KB;
       expect(allKb, `all CSS ${allKb.toFixed(1)} KB gzip`).toBeLessThanOrEqual(
         PLAYER_TOTAL_CSS_GZIP_KB.index
