@@ -189,7 +189,8 @@ describe('onboarding wizard screen', () => {
       runtime.members.list().find((m) => m.persona.email === 'sam.lee@example.com')?.persona.name
     ).toBe('Sam Lee');
 
-    await fireEvent.change(field('Color mode'), { target: { value: 'dark' } });
+    await fireEvent.click(field('Color mode'));
+    await fireEvent.click(await screen.findByRole('option', { name: 'Dark' }));
     await next();
     await expectStep('Step 5 of 5: Done');
     expect(runtime.theme.appearance().mode).toMatchObject({ value: 'dark', source: 'preference' });
