@@ -189,11 +189,13 @@ test.describe('gallery', () => {
       card.locator('[data-theme-mode="light"] [aria-label="Chart palette preview"] span')
     ).toHaveCount(8);
 
-    await page.getByTestId('theme-collection').selectOption('brand-like');
+    await page.getByTestId('theme-collection').click();
+    await page.getByRole('option', { name: 'brand-like' }).click();
     await expect(page.getByTestId('theme-count')).toContainText('Showing 0 of');
     await expect(page).toHaveURL(/[?&]collection=brand-like/);
     await page.getByRole('button', { name: 'Clear filters' }).click();
-    await page.getByTestId('theme-mood').selectOption('calm');
+    await page.getByTestId('theme-mood').click();
+    await page.getByRole('option', { name: 'calm' }).click();
     await expect(card).toBeVisible();
     await expect(page).toHaveURL(/[?&]mood=calm/);
     await page.getByRole('button', { name: 'Clear filters' }).click();
@@ -206,7 +208,8 @@ test.describe('gallery', () => {
 
     const target = prototypes[0];
     if (!target) return;
-    await page.getByTestId('theme-prototype').selectOption(target.slug);
+    await page.getByTestId('theme-prototype').click();
+    await page.getByRole('option', { name: target.name, exact: true }).click();
     const link = card.getByRole('link', { name: `Open ${target.name} in this theme` });
     await expect(link).toHaveAttribute('href', /theme=health-clinic.*mode=dark/);
     await expect(link).toHaveAttribute('target', '_blank');
@@ -325,11 +328,20 @@ test.describe('gallery', () => {
     await expect(page.locator('[data-testid="compare"][data-hydrated="true"]')).toHaveCount(1);
     const a = page.getByTestId('compare-scenario-a');
     const b = page.getByTestId('compare-scenario-b');
-    const [beforeA, beforeB] = [await a.inputValue(), await b.inputValue()];
+    const [beforeA, beforeB] = await Promise.all([
+      a.getAttribute('data-value'),
+      b.getAttribute('data-value'),
+    ]);
+    if (!beforeA || !beforeB) throw new Error('Compare select did not expose its selected value');
     expect(beforeA).not.toBe(beforeB);
     await page.getByRole('button', { name: 'Swap A and B' }).click();
-    await expect(a).toHaveValue(beforeB);
-    await expect(b).toHaveValue(beforeA);
-    await expect(page).toHaveURL(new RegExp(`[?&]a=${beforeB}&b=${beforeA}`));
+    await expect(a).toHaveAttribute('data-value', beforeB);
+    await expect(b).toHaveAttribute('data-value', beforeA);
+    await expect
+      .poll(() => page.evaluate(() => new URL(location.href).searchParams.get('a')))
+      .toBe(beforeB);
+    await expect
+      .poll(() => page.evaluate(() => new URL(location.href).searchParams.get('b')))
+      .toBe(beforeA);
   });
 });

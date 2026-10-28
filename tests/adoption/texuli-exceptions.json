@@ -53,5 +53,10 @@
     "path": "packages/ui/src/styles.css",
     "rules": ["py-token"],
     "reason": "The remaining --py-* reads are renderer-written frame geometry (app height, simulated safe-area insets, fixed right edge) mapped onto Texuli's --tx-app-height and --tx-safe-* variables, not semantic design tokens."
+  },
+  {
+    "path": "apps/gallery/src/components/marketplace/DeviceThumb.svelte",
+    "rules": ["own-component"],
+    "reason": "Brand-neutral device frames and browser/window chrome are gallery preview fixtures; Texuli provides app shells for product layouts, not screenshot device mockups."
   }
 ]

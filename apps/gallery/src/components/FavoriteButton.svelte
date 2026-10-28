@@ -1,6 +1,8 @@
 <script lang="ts">
 import Star from '@lucide/svelte/icons/star';
+import { Button } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { library } from '@/lib/library.svelte';
 
 let {
@@ -13,7 +15,7 @@ const active = $derived(library.isFavorite(slug));
 onMount(() => library.load());
 </script>
 
-<button
+<Button
   type="button"
   class={[
     'inline-flex items-center gap-1.5 rounded-md border border-transparent p-1.5 text-sm text-muted transition-colors hover:border-line hover:text-fg',
@@ -31,8 +33,8 @@ onMount(() => library.load());
     library.toggleFavorite(slug);
   }}
 >
-  <Star size={16} fill={active ? 'currentColor' : 'none'} aria-hidden="true" />
+  <LucideIcon icon={Star} size={16} fill={active ? 'currentColor' : 'none'} aria-hidden="true" />
   <!-- With a visible label, the name starts with that label (WCAG 2.5.3) and
        aria-pressed carries the state, so the name never changes on toggle. -->
   {#if withLabel}<span>Favorite</span><span class="sr-only"> {name}</span>{/if}
-</button>
+</Button>

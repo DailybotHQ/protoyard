@@ -65,22 +65,22 @@ const prototypeTargets = prototypes()
           </div>
         </header>
         <div class="p-4" data-theme-mode="light" style={theme.lightStyle}>
-          <p class="mb-3 text-[11px] font-medium tracking-wide text-[color:var(--py-muted-foreground)] uppercase">Light preview</p>
-          <div class="rounded-[var(--py-radius)] border border-[color:var(--py-border)] bg-[color:var(--py-background)] p-3 text-[color:var(--py-foreground)]">
-            <p class="text-sm font-semibold" style="font-family:var(--py-font-heading);font-weight:var(--py-font-weight-heading)">A clear, readable interface</p>
-            <p class="mt-1 text-xs text-[color:var(--py-muted-foreground)]">Palette surfaces and chart colors</p>
+          <p class="mb-3 text-[11px] font-medium tracking-wide text-[color:var(--tx-muted-foreground)] uppercase">Light preview</p>
+          <div class="rounded-[var(--tx-radius)] border border-[color:var(--tx-border)] bg-[color:var(--tx-background)] p-3 text-[color:var(--tx-foreground)]">
+            <p class="text-sm font-semibold" style="font-family:var(--tx-font-heading);font-weight:var(--tx-font-weight-heading)">A clear, readable interface</p>
+            <p class="mt-1 text-xs text-[color:var(--tx-muted-foreground)]">Palette surfaces and chart colors</p>
             <div class="mt-3 flex gap-2" role="img" aria-label="Chart palette preview">
-              {theme.chartColors.map((_, index) => <span class="size-5 rounded-full border border-black/10" style={`background:var(--py-chart${index + 1})`} aria-hidden="true"></span>)}
+              {theme.chartColors.map((_, index) => <span class="size-5 rounded-full border border-black/10" style={`background:var(--tx-chart${index + 1})`} aria-hidden="true"></span>)}
             </div>
           </div>
         </div>
         <div class="p-4" data-theme-mode="dark" style={theme.darkStyle} hidden>
-          <p class="mb-3 text-[11px] font-medium tracking-wide text-[color:var(--py-muted-foreground)] uppercase">Dark preview</p>
-          <div class="rounded-[var(--py-radius)] border border-[color:var(--py-border)] bg-[color:var(--py-background)] p-3 text-[color:var(--py-foreground)]">
-            <p class="text-sm font-semibold" style="font-family:var(--py-font-heading);font-weight:var(--py-font-weight-heading)">A clear, readable interface</p>
-            <p class="mt-1 text-xs text-[color:var(--py-muted-foreground)]">Palette surfaces and chart colors</p>
+          <p class="mb-3 text-[11px] font-medium tracking-wide text-[color:var(--tx-muted-foreground)] uppercase">Dark preview</p>
+          <div class="rounded-[var(--tx-radius)] border border-[color:var(--tx-border)] bg-[color:var(--tx-background)] p-3 text-[color:var(--tx-foreground)]">
+            <p class="text-sm font-semibold" style="font-family:var(--tx-font-heading);font-weight:var(--tx-font-weight-heading)">A clear, readable interface</p>
+            <p class="mt-1 text-xs text-[color:var(--tx-muted-foreground)]">Palette surfaces and chart colors</p>
             <div class="mt-3 flex gap-2" role="img" aria-label="Chart palette preview">
-              {theme.chartColors.map((_, index) => <span class="size-5 rounded-full border border-white/10" style={`background:var(--py-chart${index + 1})`} aria-hidden="true"></span>)}
+              {theme.chartColors.map((_, index) => <span class="size-5 rounded-full border border-white/10" style={`background:var(--tx-chart${index + 1})`} aria-hidden="true"></span>)}
             </div>
           </div>
         </div>

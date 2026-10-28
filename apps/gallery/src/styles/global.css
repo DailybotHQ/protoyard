@@ -10,66 +10,66 @@
  * Foreground/background pairs meet WCAG AA (4.5:1) for body text.
  */
 :root {
-  --py-bg: #fafafa;
-  --py-surface: #ffffff;
-  --py-surface-2: #f4f4f5;
-  --py-border: #e4e4e7;
-  --py-text: #18181b;
-  --py-muted: #52525b;
-  --py-accent: #4f46e5;
-  --py-accent-hover: #4338ca;
-  --py-accent-soft: #eef2ff;
-  --py-accent-text: #3730a3;
+  --tx-background: #fafafa;
+  --tx-surface: #ffffff;
+  --tx-elevated: #f4f4f5;
+  --tx-border: #e4e4e7;
+  --tx-foreground: #18181b;
+  --tx-muted-foreground: #52525b;
+  --tx-primary: #4f46e5;
+  --tx-primary-hover: #4338ca;
+  --tx-primary-soft: #eef2ff;
+  --tx-primary-text: #3730a3;
   /* Text on solid accent fills (buttons): AA on both themes. */
-  --py-on-accent: #ffffff;
-  --py-success: #15803d;
-  --py-warning: #a16207;
-  --py-danger: #b91c1c;
-  --py-ring: #6366f1;
+  --tx-primary-foreground: #ffffff;
+  --tx-success: #15803d;
+  --tx-warning: #a16207;
+  --tx-danger: #b91c1c;
+  --tx-ring: #6366f1;
   color-scheme: light;
 }
 
 [data-tx-mode="dark"] {
-  --py-bg: #09090b;
-  --py-surface: #111113;
-  --py-surface-2: #18181b;
-  --py-border: #27272a;
-  --py-text: #f4f4f5;
-  --py-muted: #a1a1aa;
-  --py-accent: #818cf8;
-  --py-accent-hover: #a5b4fc;
-  --py-accent-soft: #1e1b4b;
-  --py-accent-text: #c7d2fe;
-  --py-on-accent: #0f0d2e;
-  --py-success: #4ade80;
-  --py-warning: #facc15;
-  --py-danger: #f87171;
-  --py-ring: #818cf8;
+  --tx-background: #09090b;
+  --tx-surface: #111113;
+  --tx-elevated: #18181b;
+  --tx-border: #27272a;
+  --tx-foreground: #f4f4f5;
+  --tx-muted-foreground: #a1a1aa;
+  --tx-primary: #818cf8;
+  --tx-primary-hover: #a5b4fc;
+  --tx-primary-soft: #1e1b4b;
+  --tx-primary-text: #c7d2fe;
+  --tx-primary-foreground: #0f0d2e;
+  --tx-success: #4ade80;
+  --tx-warning: #facc15;
+  --tx-danger: #f87171;
+  --tx-ring: #818cf8;
   color-scheme: dark;
 }
 
 @theme inline {
-  --color-bg: var(--py-bg);
-  --color-surface: var(--py-surface);
-  --color-surface-2: var(--py-surface-2);
-  --color-line: var(--py-border);
-  --color-fg: var(--py-text);
-  --color-muted: var(--py-muted);
-  --color-accent: var(--py-accent);
-  --color-accent-hover: var(--py-accent-hover);
-  --color-accent-soft: var(--py-accent-soft);
-  --color-accent-fg: var(--py-accent-text);
-  --color-on-accent: var(--py-on-accent);
-  --color-success: var(--py-success);
-  --color-warning: var(--py-warning);
-  --color-danger: var(--py-danger);
+  --color-bg: var(--tx-background);
+  --color-surface: var(--tx-surface);
+  --color-surface-2: var(--tx-elevated);
+  --color-line: var(--tx-border);
+  --color-fg: var(--tx-foreground);
+  --color-muted: var(--tx-muted-foreground);
+  --color-accent: var(--tx-primary);
+  --color-accent-hover: var(--tx-primary-hover);
+  --color-accent-soft: var(--tx-primary-soft);
+  --color-accent-fg: var(--tx-primary-text);
+  --color-on-accent: var(--tx-primary-foreground);
+  --color-success: var(--tx-success);
+  --color-warning: var(--tx-warning);
+  --color-danger: var(--tx-danger);
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 html {
-  background: var(--py-bg);
-  color: var(--py-text);
+  background: var(--tx-background);
+  color: var(--tx-foreground);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -79,7 +79,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--py-ring);
+  outline: 2px solid var(--tx-ring);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -121,16 +121,16 @@ body {
 
 /* Device-shaped preview skeleton (LivePreview). Shimmer only when motion is ok. */
 .py-skeleton {
-  background: color-mix(in oklab, var(--py-border, #e4e4e7) 65%, var(--py-surface, #fff));
+  background: color-mix(in oklab, var(--tx-border, #e4e4e7) 65%, var(--tx-surface, #fff));
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .py-skeleton {
     background: linear-gradient(
       90deg,
-      color-mix(in oklab, var(--py-border, #e4e4e7) 55%, transparent) 0%,
-      color-mix(in oklab, var(--py-surface-2, #f4f4f5) 90%, transparent) 50%,
-      color-mix(in oklab, var(--py-border, #e4e4e7) 55%, transparent) 100%
+      color-mix(in oklab, var(--tx-border, #e4e4e7) 55%, transparent) 0%,
+      color-mix(in oklab, var(--tx-elevated, #f4f4f5) 90%, transparent) 50%,
+      color-mix(in oklab, var(--tx-border, #e4e4e7) 55%, transparent) 100%
     );
     background-size: 200% 100%;
     animation: py-skeleton-shimmer 1.4s ease-in-out infinite;

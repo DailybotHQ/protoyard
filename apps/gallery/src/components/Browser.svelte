@@ -1,9 +1,10 @@
 <script lang="ts">
 import ChevronLeft from '@lucide/svelte/icons/chevron-left';
-import ChevronRight from '@lucide/svelte/icons/chevron-right';
-import Search from '@lucide/svelte/icons/search';
 import X from '@lucide/svelte/icons/x';
+import { Button, Input } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { library } from '@/lib/library.svelte';
 import {
   applyQuery,
@@ -15,6 +16,7 @@ import {
 } from '@/lib/search';
 import type { CompactEntry } from '@/lib/types';
 import EmptyBrowseState from './EmptyBrowseState.svelte';
+import GallerySelect from './GallerySelect.svelte';
 import ProjectCard from './ProjectCard.svelte';
 
 interface Props {
@@ -117,8 +119,8 @@ const views = [
     <div class="flex flex-col gap-3 md:flex-row md:items-center">
       <label class="relative flex-1">
         <span class="sr-only">Search prototypes</span>
-        <Search size={16} class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
-        <input
+        <Icon icon="search" size={16} class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
+        <Input
           bind:this={searchInput}
           type="search"
           placeholder="Search name, tag, description…"
@@ -133,56 +135,44 @@ const views = [
       </label>
       <div role="group" aria-label="Kind" class="flex rounded-lg border border-line bg-bg p-0.5">
         {#each kinds as kind (kind.value)}
-          <button
+          <Button
             type="button"
             class="rounded-md px-3 py-1.5 text-sm text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
             aria-pressed={query.kind === kind.value}
             onclick={() => update({ kind: kind.value })}
           >
             {kind.label} <span class="text-xs text-muted">{kind.count}</span>
-          </button>
+          </Button>
         {/each}
       </div>
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <label class="flex items-center gap-1.5 text-sm text-muted">
         <span>Platform</span>
-        <select class={select} value={query.platform} onchange={(e) => update({ platform: e.currentTarget.value })}>
-          <option value="">Any</option>
-          {#each platforms as [value, n] (value)}<option {value}>{value} ({n})</option>{/each}
-        </select>
+        <GallerySelect class={select} value={query.platform} onValueChange={(value) => update({ platform: value })} items={[{ value: '', label: 'Any' }, ...platforms.map(([value, n]) => ({ value, label: `${value} (${n})` }))]} />
       </label>
       <label class="flex items-center gap-1.5 text-sm text-muted">
         <span>Category</span>
-        <select class={select} value={query.category} onchange={(e) => update({ category: e.currentTarget.value })}>
-          <option value="">Any</option>
-          {#each categories as [value, n] (value)}<option {value}>{value} ({n})</option>{/each}
-        </select>
+        <GallerySelect class={select} value={query.category} onValueChange={(value) => update({ category: value })} items={[{ value: '', label: 'Any' }, ...categories.map(([value, n]) => ({ value, label: `${value} (${n})` }))]} />
       </label>
       <label class="flex items-center gap-1.5 text-sm text-muted">
         <span>Tag</span>
-        <select class={select} value={query.tag} onchange={(e) => update({ tag: e.currentTarget.value })}>
-          <option value="">Any</option>
-          {#each tags as [value, n] (value)}<option {value}>#{value} ({n})</option>{/each}
-        </select>
+        <GallerySelect class={select} value={query.tag} onValueChange={(value) => update({ tag: value })} items={[{ value: '', label: 'Any' }, ...tags.map(([value, n]) => ({ value, label: `#${value} (${n})` }))]} />
       </label>
       <label class="flex items-center gap-1.5 text-sm text-muted">
         <span>Sort</span>
-        <select class={select} value={query.sort} onchange={(e) => update({ sort: e.currentTarget.value as BrowseQuery['sort'] })}>
-          <option value="name">Name</option>
-          <option value="modified">Last modified</option>
-        </select>
+        <GallerySelect class={select} value={query.sort} onValueChange={(value) => update({ sort: value as BrowseQuery['sort'] })} items={[{ value: 'name', label: 'Name' }, { value: 'modified', label: 'Last modified' }]} />
       </label>
       <div role="group" aria-label="Show" class="ml-auto flex rounded-lg border border-line bg-bg p-0.5">
         {#each views as view (view.value)}
-          <button
+          <Button
             type="button"
             class="rounded-md px-2.5 py-1 text-sm text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
             aria-pressed={query.view === view.value}
             onclick={() => update({ view: view.value })}
           >
             {view.label}{#if view.value === 'favorites' && library.favorites.length > 0}<span class="ml-1 text-xs">{library.favorites.length}</span>{/if}
-          </button>
+          </Button>
         {/each}
       </div>
     </div>
@@ -193,9 +183,9 @@ const views = [
       {#if results.length === 0}No matches{:else}Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, results.length)} of {results.length}{/if}
     </p>
     {#if filtered}
-      <button type="button" class="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-surface-2 hover:text-fg" onclick={reset}>
-        <X size={14} aria-hidden="true" /> Clear filters
-      </button>
+      <Button type="button" class="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-surface-2 hover:text-fg" onclick={reset}>
+        <LucideIcon icon={X} size={14} aria-hidden="true" /> Clear filters
+      </Button>
     {/if}
   </div>
 
@@ -221,19 +211,17 @@ const views = [
 
   {#if pageCount > 1}
     <nav aria-label="Pagination" class="mt-6 flex items-center justify-center gap-2 text-sm">
-      <button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 disabled:opacity-40" disabled={page === 1} onclick={() => goTo(page - 1)}>
-        <ChevronLeft size={14} aria-hidden="true" /> Previous
-      </button>
+      <Button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 disabled:opacity-40" disabled={page === 1} onclick={() => goTo(page - 1)}>
+        <LucideIcon icon={ChevronLeft} size={14} aria-hidden="true" /> Previous
+      </Button>
       <label class="flex items-center gap-1.5 text-muted">
         <span class="sr-only">Page</span>
-        <select class={select} value={page} onchange={(e) => goTo(Number(e.currentTarget.value))}>
-          {#each Array.from({ length: pageCount }, (_, i) => i + 1) as n (n)}<option value={n}>Page {n}</option>{/each}
-        </select>
+        <GallerySelect class={select} value={String(page)} onValueChange={(value) => goTo(Number(value))} items={Array.from({ length: pageCount }, (_, i) => ({ value: String(i + 1), label: `Page ${i + 1}` }))} />
         <span>of {pageCount}</span>
       </label>
-      <button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 disabled:opacity-40" disabled={page === pageCount} onclick={() => goTo(page + 1)}>
-        Next <ChevronRight size={14} aria-hidden="true" />
-      </button>
+      <Button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 disabled:opacity-40" disabled={page === pageCount} onclick={() => goTo(page + 1)}>
+        Next <Icon icon="chevron-right" size={14} aria-hidden="true" />
+      </Button>
     </nav>
   {/if}
 </section>

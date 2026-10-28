@@ -1,6 +1,8 @@
 <script lang="ts">
-import Check from '@lucide/svelte/icons/check';
 import Copy from '@lucide/svelte/icons/copy';
+import { Button } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 let {
   command,
@@ -52,16 +54,17 @@ function scrollableFocus(node: HTMLElement): () => void {
     <pre
       role="region"
       aria-label={label ?? 'Command'}
+      tabindex="0"
       {@attach scrollableFocus}
       class={['min-w-0 flex-1 overflow-x-auto py-1 font-mono text-[13px] leading-relaxed', multiline ? 'whitespace-pre-wrap' : 'whitespace-pre']}><code>{command}</code></pre>
-    <button
+    <Button
       type="button"
       class="shrink-0 rounded-md border border-line bg-surface p-1.5 text-muted hover:text-fg"
       aria-label={copied ? 'Copied' : `Copy ${label ?? 'command'}`}
       onclick={copy}
     >
-      {#if copied}<Check size={14} aria-hidden="true" />{:else}<Copy size={14} aria-hidden="true" />{/if}
-    </button>
+      {#if copied}<Icon icon="check" size={14} aria-hidden="true" />{:else}<LucideIcon icon={Copy} size={14} aria-hidden="true" />{/if}
+    </Button>
   </div>
   <p class="sr-only" aria-live="polite">{copied ? 'Copied to clipboard' : failed ? 'Copy failed; select the text instead' : ''}</p>
   {#if failed}<p class="px-3 pb-2 text-xs text-warning">Copy is blocked here — select the text instead.</p>{/if}

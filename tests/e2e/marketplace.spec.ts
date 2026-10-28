@@ -145,14 +145,15 @@ test.describe('marketplace', () => {
     for (const { kind } of MARKETPLACE_CONTENT_KIND_TARGETS) {
       const expected = shelved.filter((item) => (item.blueprintKind ?? 'app') === kind).length;
       expect(expected, `at least one catalog blueprint of kind ${kind}`).toBeGreaterThan(0);
-      await filter.selectOption(kind);
+      await filter.click();
+      await page.getByRole('option', { name: new RegExp(kind, 'i') }).click();
       await expect(page).toHaveURL(new RegExp(`[?&]contentKind=${kind}(?:&|$)`));
       const cards = page.getByTestId('market-results').getByTestId('market-card');
       await expect(cards).toHaveCount(expected);
       await expect(cards.first()).toHaveAttribute('data-content-kind', kind);
 
       await page.reload();
-      await expect(page.getByLabel('Content type')).toHaveValue(kind);
+      await expect(page.getByLabel('Content type')).toContainText(new RegExp(kind, 'i'));
       await expect(page.getByTestId('market-results').getByTestId('market-card')).toHaveCount(
         expected
       );
@@ -282,19 +283,19 @@ test.describe('marketplace', () => {
     await openMarketplace(page);
     await expect(page.getByTestId('market-theme').first()).toContainText('Theme:');
     const select = page.getByTestId('market-collection');
-    const options = await select
-      .locator('option')
-      .evaluateAll((nodes) =>
-        nodes.map((node) => [(node as HTMLOptionElement).value, node.textContent ?? ''])
-      );
-    const [value, text] = options.find(([v]) => v !== '') ?? ['', ''];
-    expect(value, 'at least one theme collection is shelved').not.toBe('');
+    await select.click();
+    const option = page
+      .getByRole('option')
+      .filter({ hasText: /Custom \(\d+\)/ })
+      .first();
+    const text = (await option.textContent()) ?? '';
     const count = Number(/\((\d+)\)/.exec(text)?.[1]);
-    await select.selectOption(value);
+    await option.click();
+    const value = 'custom';
     await expect(page).toHaveURL(new RegExp(`collection=${value}`));
     await expect(page.getByTestId('market-results').getByTestId('market-card')).toHaveCount(count);
     await page.reload();
-    await expect(page.getByTestId('market-collection')).toHaveValue(value);
+    await expect(page.getByTestId('market-collection')).toContainText('Custom');
     await expect(page.getByTestId('market-results').getByTestId('market-card')).toHaveCount(count);
   });
 
