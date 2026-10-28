@@ -454,7 +454,9 @@ describe.skipIf(!built)('the per-kind player pages (deck.html, page.html, doc.ht
       expect(typeof definition.generateWorld, `${file}: generateWorld`).toBe('function');
       expect(definition.timeline, `${file}: timeline`).toBeUndefined();
     }
-  });
+    // The first import transforms the blueprint schema and, through the deck
+    // schema, the @texuli/deck model: about 4 s cold, so the 5 s default flakes.
+  }, 30_000);
 
   it('reports the measurements', () => {
     console.info(`[player kind pages] ${JSON.stringify(measured)}`);
