@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Check, ChevronsUpDown, Plus } from '@lucide/svelte';
+import { ChevronsUpDown } from '@lucide/svelte';
 import type { PrototypeRuntime } from '@protoyard/core';
 import { usePrincipal } from '@protoyard/renderer-svelte';
 import { createWorkspaces, type WorkspacesRuntime, type WorkspacesService } from '@protoyard/saas';
@@ -11,6 +11,7 @@ import {
   FormField,
   Input,
 } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 interface Props {
   /** Prototype runtime (must expose `identity` for create). */
@@ -65,9 +66,8 @@ const menuItems = $derived.by((): DropdownMenuEntry[] => {
     const id = member.organization.id;
     const active = id === currentId;
     items.push({
-      label: member.organization.name,
-      icon: active ? Check : undefined,
       disabled: active || busy,
+      label: active ? `${member.organization.name} (current)` : member.organization.name,
       onSelect: () => {
         void switchTo(id);
       },
@@ -76,7 +76,6 @@ const menuItems = $derived.by((): DropdownMenuEntry[] => {
   items.push({ type: 'separator' });
   items.push({
     label: 'Create workspace',
-    icon: Plus,
     disabled: busy,
     onSelect: () => {
       name = '';
@@ -155,7 +154,7 @@ async function createWorkspace(): Promise<void> {
           disabled={busy}
         >
           <span class="truncate">{triggerLabel}</span>
-          <ChevronsUpDown class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <LucideIcon icon={ChevronsUpDown} size="sm" class="shrink-0 text-muted-foreground" />
         </Button>
       {/snippet}
     </DropdownMenu>

@@ -2,6 +2,8 @@
 import { createInbox, type InboxService, type SaasInboxMessage } from '@protoyard/saas';
 import { Dialog } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { Button } from 'texuli/button';
+import { Input } from 'texuli/input';
 import InboxBadge from '../../components/InboxBadge.svelte';
 import { getSaas } from '../../context.ts';
 
@@ -108,18 +110,18 @@ onMount(() => {
     {:else}
       <form class="flex flex-wrap gap-2" onsubmit={(event) => { event.preventDefault(); void refresh(); }}>
         <label class="sr-only" for="simulated-inbox-email">Fictional inbox email</label>
-        <input
+        <Input
           id="simulated-inbox-email"
-          class="min-h-11 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          class="min-w-0 flex-1"
           type="email"
           autocomplete="email"
           placeholder="you@example.com"
           bind:value={address}
           aria-describedby="inbox-email-help"
         />
-        <button class="min-h-11 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" type="submit">
+        <Button type="submit">
           Open inbox
-        </button>
+        </Button>
       </form>
       <p id="inbox-email-help" class="text-xs text-muted-foreground">Use a fictional @example.com address.</p>
     {/if}
@@ -144,18 +146,18 @@ onMount(() => {
             <p class="whitespace-pre-wrap break-words text-sm text-muted-foreground">{message.body}</p>
             <div class="flex flex-wrap gap-2">
               {#if message.action}
-                <button class="min-h-11 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" type="button" onclick={() => void openAction(message)}>
+                <Button type="button" onclick={() => openAction(message)}>
                   Open {message.action.label}
-                </button>
+                </Button>
               {/if}
               {#if !message.readAt}
-                <button class="min-h-11 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" type="button" onclick={() => void markRead(message)}>
+                <Button type="button" variant="outline" onclick={() => markRead(message)}>
                   Mark as read
-                </button>
+                </Button>
               {/if}
-              <button class="min-h-11 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" type="button" onclick={() => void archive(message)}>
+              <Button type="button" variant="outline" onclick={() => archive(message)}>
                 Archive
-              </button>
+              </Button>
             </div>
           </li>
         {/each}
@@ -182,7 +184,7 @@ onMount(() => {
     description="Messages and links stay inside this prototype."
     size="md"
     onOpenChange={handleOpenChange}
-    class="max-h-[min(42rem,calc(var(--py-app-height)-2rem))]"
+    class="max-h-[min(42rem,calc(100dvh-2rem))]"
   >
     {#snippet children()}
       {@render content()}
