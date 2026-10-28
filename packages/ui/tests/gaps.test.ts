@@ -1,6 +1,15 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  cleanup,
+  createEvent,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { shouldDismissSwipe } from '../src/components/bottom-sheet/swipe.ts';
 import KanbanHarness from './fixtures/KanbanHarness.svelte';
 import PickersHarness from './fixtures/PickersHarness.svelte';
 import SheetHarness from './fixtures/SheetHarness.svelte';
@@ -10,42 +19,45 @@ import Showcase from './fixtures/Showcase.svelte';
 afterEach(() => cleanup());
 
 describe('app-height layout tokens (no raw dvh)', () => {
-  it('AppShell sizes the frame and desktop sidebar with min-h-app / h-app', () => {
+  it("AppShell is Texuli's shell, sized by the app-frame height token", () => {
     const { container } = render(ShellHarness);
-    const root = container.querySelector('.min-h-app');
-    expect(root).toBeTruthy();
-    expect(root?.className).toContain('min-h-app');
-    expect(root?.className).not.toMatch(/dvh/);
+    const root = container.querySelector<HTMLElement>('[data-tx-app-shell]');
+    expect(root?.classList.contains('tx-app-shell')).toBe(true);
+    expect(root?.className ?? '').not.toMatch(/dvh/);
 
     const sidebar = screen.getByRole('complementary', { name: 'Navigation' });
-    expect(sidebar.className).toContain('h-app');
+    expect(sidebar.dataset.txAppShellSlot).toBe('sidebar');
     expect(sidebar.className).not.toMatch(/dvh/);
 
-    // Sidebar fills the app-height column via h-full (no raw dvh of its own).
-    const sidebarRoot = sidebar.firstElementChild as HTMLElement | null;
-    expect(sidebarRoot?.className).toContain('h-full');
-    expect(sidebarRoot?.className ?? '').not.toMatch(/dvh/);
+    // Texuli's shell sizes from --tx-app-height; @protoyard/ui maps it to the frame height.
+    const styles = readFileSync(join(process.cwd(), 'packages/ui/src/styles.css'), 'utf8');
+    expect(styles).toMatch(/\.tx-app-shell[^{]*\{\s*--tx-app-height:\s*var\(--py-app-height/);
   });
 
-  it('BottomSheet max-height uses --py-app-height', async () => {
+  // The overlays are Texuli surfaces sized by their stylesheets against the
+  // containing frame (sheet-parts.css), never by viewport-unit utilities.
+  it('BottomSheet is a Texuli drawer surface from the bottom edge', async () => {
     render(SheetHarness);
     const dialog = await screen.findByRole('dialog');
-    expect(dialog.className).toContain('max-h-[calc(var(--py-app-height)*0.9)]');
-    expect(dialog.className).not.toMatch(/dvh/);
+    expect(dialog.classList.contains('tx-drawer')).toBe(true);
+    expect(dialog.classList.contains('ui-bottom-sheet')).toBe(true);
+    expect(dialog.dataset.side).toBe('bottom');
+    expect(dialog.className).not.toMatch(/dvh|--py-/);
   });
 
-  it('Dialog max-height uses --py-app-height', async () => {
+  it('Dialog is a Texuli dialog surface', async () => {
     render(Showcase, { overlay: 'dialog' });
     const dialog = await screen.findByRole('dialog', { name: 'Edit profile' });
-    expect(dialog.className).toContain('max-h-[calc(var(--py-app-height)-2rem)]');
-    expect(dialog.className).not.toMatch(/dvh/);
+    expect(dialog.classList.contains('tx-dialog')).toBe(true);
+    expect(dialog.className).not.toMatch(/dvh|--py-/);
   });
 
-  it('DetailPanel phone height uses --py-app-height', async () => {
+  it('DetailPanel is a Texuli detail-panel surface on the end side', async () => {
     render(Showcase, { overlay: 'panel' });
     const dialog = await screen.findByRole('dialog');
-    expect(dialog.className).toContain('h-[calc(var(--py-app-height)-1.5rem)]');
-    expect(dialog.className).not.toMatch(/dvh/);
+    expect(dialog.classList.contains('tx-detail-panel')).toBe(true);
+    expect(dialog.dataset.side).toBe('right');
+    expect(dialog.className).not.toMatch(/dvh|--py-/);
   });
 });
 
@@ -73,34 +85,33 @@ describe('Combobox', () => {
 });
 
 describe('BottomSheet swipe-to-dismiss', () => {
-  it('decides by distance or flick velocity', () => {
-    expect(shouldDismissSwipe({ distance: 40, height: 400, durationMs: 400 })).toBe(false);
-    expect(shouldDismissSwipe({ distance: 120, height: 400, durationMs: 400 })).toBe(true);
-    expect(shouldDismissSwipe({ distance: 50, height: 400, durationMs: 50 })).toBe(true);
-    expect(shouldDismissSwipe({ distance: -200, height: 400, durationMs: 50 })).toBe(false);
-  });
-
-  it('closes when the handle is dragged down and snaps back on a short drag', async () => {
-    let now = 0;
-    const clock = vi.spyOn(performance, 'now').mockImplementation(() => now);
+  // Texuli's drawer settles a release by projected distance against the
+  // sheet's measured height (jsdom has no layout, so the height is stubbed).
+  it('closes when the sheet is dragged down and snaps back on a short drag', async () => {
     render(SheetHarness);
-    const handle = await waitFor(() => {
-      const el = document.querySelector<HTMLElement>('[data-sheet-drag-handle]');
-      if (!el) throw new Error('no handle');
-      return el;
-    });
-    await fireEvent.pointerDown(handle, { pointerId: 1, button: 0, clientY: 100 });
-    now = 500;
-    await fireEvent.pointerMove(handle, { pointerId: 1, clientY: 130 });
-    await fireEvent.pointerUp(handle, { pointerId: 1, clientY: 130 });
+    const dialog = await screen.findByRole('dialog');
+    dialog.getBoundingClientRect = () => new DOMRect(0, 400, 400, 400);
+    const handle = dialog.querySelector<HTMLElement>('[data-drawer-handle]');
+    if (!handle) throw new Error('no handle');
+    const pointer = async (
+      kind: 'pointerDown' | 'pointerMove' | 'pointerUp',
+      init: { pointerId: number; clientY: number },
+      timeStamp: number
+    ) => {
+      const event = createEvent[kind](handle, { ...init, button: 0, clientX: 10, bubbles: true });
+      Object.defineProperty(event, 'timeStamp', { value: timeStamp });
+      await fireEvent(handle, event);
+    };
+
+    await pointer('pointerDown', { pointerId: 1, clientY: 100 }, 0);
+    await pointer('pointerMove', { pointerId: 1, clientY: 130 }, 500);
+    await pointer('pointerUp', { pointerId: 1, clientY: 130 }, 1000);
     expect(screen.getByTestId('state').textContent).toBe('open');
 
-    await fireEvent.pointerDown(handle, { pointerId: 2, button: 0, clientY: 100 });
-    now = 1000;
-    await fireEvent.pointerMove(handle, { pointerId: 2, clientY: 400 });
-    await fireEvent.pointerUp(handle, { pointerId: 2, clientY: 400 });
+    await pointer('pointerDown', { pointerId: 2, clientY: 100 }, 2000);
+    await pointer('pointerMove', { pointerId: 2, clientY: 400 }, 2500);
+    await pointer('pointerUp', { pointerId: 2, clientY: 400 }, 3000);
     await waitFor(() => expect(screen.getByTestId('state').textContent).toBe('closed'));
-    clock.mockRestore();
   });
 
   it('still closes with Escape', async () => {

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   formatBytes,
@@ -79,10 +79,10 @@ describe('FileDropzone', () => {
 
     const input = getInput();
     expect(input.type).toBe('file');
-    expect(input.className).toContain('sr-only');
-    // Label is associated for pointer and assistive tech.
-    expect(document.querySelector(`label[for="${input.id}"]`)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Browse files' })).toBeTruthy();
+    // The file input itself is the keyboard control; the browse label is tied to it.
+    expect(input.tabIndex).not.toBe(-1);
+    const browse = document.querySelector(`label[for="${input.id}"]`);
+    expect(browse?.textContent).toContain('Browse files');
 
     const file = makeFile('notes.txt', { type: 'text/plain', content: 'hello' });
     await pickFiles([file]);
@@ -110,9 +110,7 @@ describe('FileDropzone', () => {
     expect(errors.textContent).toMatch(/Type not allowed/);
     expect(errors.textContent).toMatch(/huge\.png/);
     expect(errors.textContent).toMatch(/Larger than/);
-    expect(
-      screen.queryByText('readme.txt', { selector: '[data-file-dropzone-list] *' })
-    ).toBeNull();
+    expect(document.querySelector('[data-tx-file-upload-list]')).toBeNull();
     expect(getInput().getAttribute('aria-invalid')).toBe('true');
   });
 
@@ -129,16 +127,16 @@ describe('FileDropzone', () => {
     await pickFiles([makeFile('second.txt', { content: 'b' })]);
     expect(screen.getByRole('alert').textContent).toMatch(/second\.txt/);
     expect(screen.getByRole('alert').textContent).toMatch(/Only 1 file/);
-    const list = document.querySelector('[data-file-dropzone-list]') as HTMLElement;
+    const list = document.querySelector('[data-tx-file-upload-list]') as HTMLElement;
     expect(within(list).getByText('first.txt')).toBeTruthy();
     expect(within(list).queryByText('second.txt')).toBeNull();
-    expect(list.querySelectorAll('[data-file-id]')).toHaveLength(1);
+    expect(list.querySelectorAll('[data-file-key]')).toHaveLength(1);
   });
 
   it('creates image previews via object URLs and revokes them on remove', async () => {
     const createObjectURL = vi
       .spyOn(URL, 'createObjectURL')
-      .mockImplementation(() => 'blob:mock-preview');
+      .mockImplementation(() => 'blob:http://localhost/2f6c9a1e-preview');
     const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
 
     render(FileDropzone, {
@@ -148,14 +146,18 @@ describe('FileDropzone', () => {
 
     await pickFiles([makeFile('shot.png', { type: 'image/png', content: 'img' })]);
     expect(createObjectURL).toHaveBeenCalledTimes(1);
-    const preview = document.querySelector<HTMLImageElement>('[data-file-preview]');
-    expect(preview?.getAttribute('src')).toBe('blob:mock-preview');
+    const preview = await waitFor(() => {
+      const img = document.querySelector<HTMLImageElement>('img.tx-file-upload__preview');
+      if (!img) throw new Error('no preview yet');
+      return img;
+    });
+    expect(preview?.getAttribute('src')).toBe('blob:http://localhost/2f6c9a1e-preview');
     // Empty alt: the file name is already exposed as text.
     expect(preview?.getAttribute('alt')).toBe('');
 
     await fireEvent.click(screen.getByRole('button', { name: 'Remove shot.png' }));
-    expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-preview');
-    expect(document.querySelector('[data-file-preview]')).toBeNull();
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:http://localhost/2f6c9a1e-preview');
+    expect(document.querySelector('img.tx-file-upload__preview')).toBeNull();
     expect(screen.queryByText('shot.png')).toBeNull();
 
     createObjectURL.mockRestore();
@@ -167,7 +169,7 @@ describe('FileDropzone', () => {
     render(FileDropzone, { label: 'Docs' });
     await pickFiles([makeFile('doc.pdf', { type: 'application/pdf', content: '%PDF' })]);
     expect(createObjectURL).not.toHaveBeenCalled();
-    expect(document.querySelector('[data-file-preview]')).toBeNull();
+    expect(document.querySelector('img.tx-file-upload__preview')).toBeNull();
     createObjectURL.mockRestore();
   });
 
@@ -185,11 +187,30 @@ describe('FileDropzone', () => {
       label: 'Uploads',
     });
 
-    const row = document.querySelector('[data-file-id="existing"]') as HTMLElement;
-    expect(row.getAttribute('data-file-status')).toBe('uploading');
+    const row = document.querySelector('[data-file-key^="upload.bin:"]') as HTMLElement;
+    expect(row.getAttribute('data-status')).toBe('uploading');
     expect(
-      within(row).getByRole('progressbar', { name: 'Upload progress for upload.bin' })
+      within(row).getByRole('progressbar', { name: 'upload.bin upload progress' })
     ).toBeTruthy();
+  });
+
+  it('reports removals with the Protoyard item and maps rejects to { name, reason }', async () => {
+    const onRemove = vi.fn();
+    const existing: DropzoneFile = {
+      id: 'kept-id',
+      file: makeFile('keep.txt', { content: 'k' }),
+      progress: null,
+      status: 'ready',
+    };
+    render(FileDropzone, { files: [existing], onRemove, maxSize: 2, label: 'Docs' });
+
+    await pickFiles([makeFile('big.txt', { content: 'too big' })]);
+    expect(screen.getByRole('alert').textContent).toMatch(/big\.txt[\s\S]*Larger than 2 B/);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove keep.txt' }));
+    expect(onRemove).toHaveBeenCalledTimes(1);
+    expect(onRemove.mock.calls[0]?.[0]).toMatchObject({ id: 'kept-id', file: existing.file });
+    expect(screen.queryByText('keep.txt')).toBeNull();
   });
 
   it('disables picking when disabled', async () => {

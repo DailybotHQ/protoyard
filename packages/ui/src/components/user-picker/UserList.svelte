@@ -1,7 +1,6 @@
 <script lang="ts">
-import { Check, Search } from '@lucide/svelte';
-import { Command } from '@texuli/primitives/command';
-import { cn } from '../../lib/cn.ts';
+import { CommandEmpty, CommandInput, CommandItem, CommandList, CommandRoot } from 'texuli/command';
+import { Icon } from 'texuli/icons';
 import Avatar from '../avatar/Avatar.svelte';
 import type { PickerUser } from './types.ts';
 
@@ -28,37 +27,52 @@ let {
 }: Props = $props();
 </script>
 
-<Command.Root {label} loop class={cn('flex flex-col', className)}>
+<!-- Texuli's command list (`texuli/command`) with an avatar row per person. -->
+<CommandRoot {label} loop class={className}>
   {#if searchable}
-    <div class="flex items-center gap-2 border-b border-border px-3">
-      <Search class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      <Command.Input
-        placeholder={searchPlaceholder}
-        class="h-10 min-h-touch w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground sm:min-h-0 sm:text-sm"
-      />
-    </div>
+    <CommandInput placeholder={searchPlaceholder} showEscHint={false} />
   {/if}
-  <Command.List class="max-h-72 overflow-y-auto p-1">
-    <Command.Empty class="px-2 py-6 text-center text-sm text-muted-foreground">{emptyText}</Command.Empty>
+  <CommandList>
+    <CommandEmpty>{emptyText}</CommandEmpty>
     {#each users as user (user.id)}
       <!-- Search matches what people see (the name, then the subtitle), never the id. -->
-      <Command.Item
+      <CommandItem
         value={user.id}
         label={user.name}
         keywords={user.subtitle ? [user.subtitle] : []}
         onSelect={() => onPick(user)}
-        class="flex min-h-touch cursor-default items-center gap-3 rounded-md px-2 py-1.5 text-sm outline-none select-none data-disabled:opacity-50 data-highlighted:bg-muted sm:min-h-10"
+        hideIcon
       >
-        <Avatar name={user.name} src={user.avatarUrl} srcset={user.avatarSrcset} size="sm" decorative />
-        <span class="grid min-w-0 flex-1">
-          <span class="truncate font-medium text-foreground">{user.name}</span>
-          {#if user.subtitle}<span class="truncate text-xs text-muted-foreground">{user.subtitle}</span>{/if}
+        <span class="ui-user-row">
+          <Avatar name={user.name} src={user.avatarUrl} srcset={user.avatarSrcset} size="sm" decorative />
+          <span class="ui-user-row__text">
+            <span class="tx-command__item-label">{user.name}</span>
+            {#if user.subtitle}<span class="tx-command__item-description">{user.subtitle}</span>{/if}
+          </span>
+          {#if user.id === selectedId}
+            <Icon icon="check" size="sm" class="ui-user-row__check" aria-hidden="true" />
+            <span class="tx-sr-only">(selected)</span>
+          {/if}
         </span>
-        {#if user.id === selectedId}
-          <Check class="size-4 shrink-0 text-primary" aria-hidden="true" />
-          <span class="sr-only">(selected)</span>
-        {/if}
-      </Command.Item>
+      </CommandItem>
     {/each}
-  </Command.List>
-</Command.Root>
+  </CommandList>
+</CommandRoot>
+
+<style>
+  .ui-user-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    min-inline-size: 0;
+  }
+  .ui-user-row__text {
+    display: grid;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+  }
+  .ui-user-row :global(.ui-user-row__check) {
+    flex-shrink: 0;
+    color: var(--tx-primary, Highlight);
+  }
+</style>

@@ -1,7 +1,7 @@
 <script lang="ts">
-import FormField from '../../src/components/form-field/FormField.svelte';
 import Input from '../../src/components/input/Input.svelte';
 import Tabs from '../../src/components/tabs/Tabs.svelte';
+import { FormField } from '../../src/index.ts';
 
 let { error }: { error?: string } = $props();
 let value = $state('');

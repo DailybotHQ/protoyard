@@ -197,20 +197,20 @@ describe('FilterBar', () => {
 
     const chipList = screen.getByRole('list', { name: 'Active filters' });
     expect(
-      within(chipList).getByRole('button', { name: 'Remove filter Stage: Open' })
+      within(chipList).getByRole('button', { name: 'Remove filter: Stage: Open' })
     ).toBeTruthy();
     expect(
-      within(chipList).getByRole('button', { name: 'Remove filter Active: Active' })
+      within(chipList).getByRole('button', { name: 'Remove filter: Active: Active' })
     ).toBeTruthy();
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Remove filter Stage: Open' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove filter: Stage: Open' }));
 
     expect(onValuesChange).toHaveBeenCalled();
     const next = onValuesChange.mock.calls.at(-1)?.[0] as FilterValues;
     expect(next.stage).toBeNull();
     expect(next.active).toBe(true);
-    expect(screen.queryByRole('button', { name: 'Remove filter Stage: Open' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Remove filter Active: Active' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Remove filter: Stage: Open' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Remove filter: Active: Active' })).toBeTruthy();
   });
 
   it('resets every active filter', async () => {
@@ -247,8 +247,8 @@ describe('FilterBar', () => {
       onValuesChange,
     });
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Remove filter Owner: Alex' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove filter: Owner: Alex' }));
     expect(onValuesChange.mock.calls.at(-1)?.[0]).toMatchObject({ ownerId: ['u2'] });
-    expect(screen.getByRole('button', { name: 'Remove filter Owner: Blair' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Remove filter: Owner: Blair' })).toBeTruthy();
   });
 });

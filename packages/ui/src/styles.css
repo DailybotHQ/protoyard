@@ -137,10 +137,11 @@
 
 /*
  * Texuli's layouts size themselves from --tx-app-height and --tx-safe-*.
- * Declared on the layout host, which sits inside a device frame's screen, so
- * they follow the frame's --py-app-height and --py-safe-* (and the page's
- * own safe areas outside a frame).
+ * Declared on the layout host and on Texuli's AppShell (both sit inside a
+ * device frame's screen), so they follow the frame's --py-app-height and
+ * --py-safe-* (and the page's own safe areas outside a frame).
  */
+.tx-app-shell,
 [data-py-layout-host] {
   --tx-app-height: var(--py-app-height, 100dvh);
   --tx-safe-top: max(env(safe-area-inset-top, 0px), var(--py-safe-top, 0px));

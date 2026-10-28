@@ -1,7 +1,7 @@
 <script lang="ts">
 import * as MenuPrimitive from '@texuli/primitives/menu';
-import { cn } from '../../lib/cn.ts';
-import { floatingItem, floatingSurface } from '../../lib/overlay.ts';
+import { Icon } from 'texuli/icons';
+import { MenuContent, MenuGroup, MenuItem, MenuLabel, MenuSeparator } from 'texuli/menus';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import type { DropdownMenuAction, DropdownMenuEntry, DropdownMenuSeparator } from './types.ts';
 
@@ -40,29 +40,29 @@ const sections = $derived.by(() => {
 });
 </script>
 
+<!--
+  A thin adapter: Texuli's styled menu parts (`texuli/menus`), driven by an
+  `items` list. The trigger stays the caller's own element, so the root is the
+  primitive. Texuli's MenuItem has no destructive tone yet, so it is set here.
+-->
 {#snippet entryList(entries: Section['entries'])}
   {#each entries as entry, index (index)}
     {#if entry.type === 'separator'}
-      <MenuPrimitive.Separator class="-mx-1 my-1 h-px bg-border" />
+      <MenuSeparator />
     {:else}
-      <MenuPrimitive.Item
+      {#snippet entryIcon()}
+        {#if entry.icon}<Icon icon={entry.icon} size="sm" aria-hidden="true" />{/if}
+      {/snippet}
+      <MenuItem
         disabled={entry.disabled}
         textValue={entry.label}
         onSelect={() => entry.onSelect?.()}
-        class={cn(
-          floatingItem,
-          entry.destructive &&
-            'text-destructive data-highlighted:bg-destructive data-highlighted:text-destructive-foreground'
-        )}
+        shortcut={entry.shortcut}
+        icon={entry.icon ? entryIcon : undefined}
+        data-destructive={entry.destructive ? '' : undefined}
       >
-        {#if entry.icon}
-          <entry.icon aria-hidden="true" />
-        {/if}
-        <span class="flex-1 truncate">{entry.label}</span>
-        {#if entry.shortcut}
-          <span class="ml-4 text-xs tracking-wide text-muted-foreground">{entry.shortcut}</span>
-        {/if}
-      </MenuPrimitive.Item>
+        {entry.label}
+      </MenuItem>
     {/if}
   {/each}
 {/snippet}
@@ -72,25 +72,26 @@ const sections = $derived.by(() => {
     {#snippet child({ props })}{@render trigger({ props })}{/snippet}
   </MenuPrimitive.Trigger>
   <!-- The content shows in the top layer; no portal is needed. -->
-  <MenuPrimitive.Content
-    {side}
-    {align}
-    sideOffset={4}
-    class={cn(floatingSurface, 'min-w-44 p-1', className)}
-  >
+  <MenuContent {side} {align} sideOffset={4} class={className}>
     {#each sections as section, index (index)}
       {#if section.heading !== undefined}
-        <MenuPrimitive.Group>
-          <MenuPrimitive.GroupHeading
-            class="px-2 py-1.5 text-xs font-medium text-muted-foreground"
-          >
-            {section.heading}
-          </MenuPrimitive.GroupHeading>
+        <MenuGroup>
+          <MenuLabel>{section.heading}</MenuLabel>
           {@render entryList(section.entries)}
-        </MenuPrimitive.Group>
+        </MenuGroup>
       {:else}
         {@render entryList(section.entries)}
       {/if}
     {/each}
-  </MenuPrimitive.Content>
+  </MenuContent>
 </MenuPrimitive.Root>
+
+<style>
+  :global(.tx-menu-item[data-destructive]) {
+    color: var(--tx-destructive, crimson);
+  }
+  :global(.tx-menu-item[data-destructive][data-highlighted]) {
+    background: var(--tx-destructive, crimson);
+    color: var(--tx-destructive-foreground, white);
+  }
+</style>

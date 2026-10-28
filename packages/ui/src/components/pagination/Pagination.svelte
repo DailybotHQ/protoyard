@@ -1,7 +1,8 @@
 <script lang="ts">
-import { ChevronLeft, ChevronRight } from '@lucide/svelte';
-import { buttonVariants } from 'texuli/button';
-import { cn } from '../../lib/cn.ts';
+import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+import ChevronRight from '@lucide/svelte/icons/chevron-right';
+import { LucideIcon } from 'texuli/icons/lucide';
+import { Pagination, paginationItemClass, paginationListClass } from 'texuli/navigation';
 import { getPageTokens } from './pages.ts';
 
 interface Props {
@@ -30,68 +31,70 @@ let {
   compact = false,
   class: className,
 }: Props = $props();
-
-const count = $derived(Math.max(1, pageCount ?? Math.ceil((total ?? 0) / Math.max(1, pageSize))));
-const tokens = $derived(getPageTokens(page, count, siblings));
-
-function go(next: number): void {
-  const clamped = Math.min(Math.max(1, next), count);
-  if (clamped === page) return;
-  page = clamped;
-  onPageChange?.(clamped);
-}
-
-const itemClass = cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'tabular-nums');
 </script>
 
-<nav aria-label={label} class={cn('flex items-center', className)}>
-  <ul class="flex items-center gap-1">
-    <li>
-      <button
-        type="button"
-        class={cn(buttonVariants({ variant: 'ghost', size: 'md' }), 'gap-1 px-2.5')}
-        disabled={page <= 1}
-        onclick={() => go(page - 1)}
-        aria-label="Previous page"
-      >
-        <ChevronLeft aria-hidden="true" />
-        <span class="hidden sm:inline">Previous</span>
-      </button>
-    </li>
-    {#if compact}
-      <li class="px-2 text-sm text-muted-foreground tabular-nums" aria-current="page">
-        Page {page} of {count}
+<!--
+  A thin adapter over Texuli's styled Pagination (`texuli/navigation`): its
+  root owns the page state, count and labels; this adds the compact "Page n
+  of m" mode, icon-plus-word previous/next buttons and `getPageTokens`, which
+  keeps the token count stable so the control never shifts under the pointer.
+-->
+<Pagination.Root
+  bind:page
+  {pageCount}
+  {total}
+  {pageSize}
+  {siblings}
+  {onPageChange}
+  {label}
+  class={className}
+>
+  {#snippet children(ctx)}
+    <ul class={paginationListClass()}>
+      <li class={paginationItemClass()}>
+        <Pagination.PreviousButton>
+          <LucideIcon icon={ChevronLeft} size="sm" />
+          <span class="hidden sm:inline">Previous</span>
+        </Pagination.PreviousButton>
       </li>
-    {:else}
-      {#each tokens as token (token)}
-        <li class={typeof token === 'number' && token !== page && token !== 1 && token !== count ? 'hidden sm:block' : undefined}>
-          {#if typeof token === 'number'}
-            <button
-              type="button"
-              class={cn(itemClass, token === page && 'border border-input bg-surface shadow-soft')}
-              aria-current={token === page ? 'page' : undefined}
-              aria-label={`Page ${token}`}
-              onclick={() => go(token)}
-            >
-              {token}
-            </button>
-          {:else}
-            <span class="flex size-9 items-center justify-center text-muted-foreground" aria-hidden="true">…</span>
-          {/if}
+      {#if compact}
+        <li class={paginationItemClass({ class: 'ui-pagination__status' })} aria-current="page">
+          Page {ctx.page} of {ctx.pageCount}
         </li>
-      {/each}
-    {/if}
-    <li>
-      <button
-        type="button"
-        class={cn(buttonVariants({ variant: 'ghost', size: 'md' }), 'gap-1 px-2.5')}
-        disabled={page >= count}
-        onclick={() => go(page + 1)}
-        aria-label="Next page"
-      >
-        <span class="hidden sm:inline">Next</span>
-        <ChevronRight aria-hidden="true" />
-      </button>
-    </li>
-  </ul>
-</nav>
+      {:else}
+        {#each getPageTokens(ctx.page, ctx.pageCount, siblings) as token (token)}
+          <!-- Phones keep the first, last and current page; the rest show from `sm`. -->
+          <li
+            class={paginationItemClass({
+              class:
+                typeof token === 'number' && token !== ctx.page && token !== 1 && token !== ctx.pageCount
+                  ? 'hidden sm:block'
+                  : undefined,
+            })}
+          >
+            {#if typeof token === 'number'}
+              <Pagination.Page page={token}>{token}</Pagination.Page>
+            {:else}
+              <Pagination.Ellipsis />
+            {/if}
+          </li>
+        {/each}
+      {/if}
+      <li class={paginationItemClass()}>
+        <Pagination.NextButton>
+          <span class="hidden sm:inline">Next</span>
+          <LucideIcon icon={ChevronRight} size="sm" />
+        </Pagination.NextButton>
+      </li>
+    </ul>
+  {/snippet}
+</Pagination.Root>
+
+<style>
+  .ui-pagination__status {
+    padding-inline: 0.5rem;
+    color: var(--tx-muted-foreground, GrayText);
+    font-size: var(--tx-font-size-sm, 0.875rem);
+    font-variant-numeric: tabular-nums;
+  }
+</style>

@@ -1,7 +1,7 @@
 <script lang="ts">
-import FormField from '../../src/components/form-field/FormField.svelte';
 import Kanban from '../../src/components/kanban/Kanban.svelte';
 import Select from '../../src/components/select/Select.svelte';
+import { FormField } from '../../src/index.ts';
 
 let stage = $state('');
 </script>
