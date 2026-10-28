@@ -59,6 +59,8 @@ describe('scanSource', () => {
       <Checkbox type="checkbox" />
       <!-- <Input type="radio" /> -->`;
     expect(rules('templates/shop/src/Choice.svelte', source)['input-as-choice']).toBe(3);
+  });
+
   it('flags Texuli or @protoyard/ui component refs used as DOM elements', () => {
     const texuli = `<script>import { Textarea as Field } from 'texuli/input'; let field: HTMLTextAreaElement | null = null; function focus() { field?.focus(); field?.setSelectionRange(1, 1); }</script><Field bind:this={field} />`;
     expect(rules('templates/x/src/A.svelte', texuli)['component-bind-this']).toBe(1);
