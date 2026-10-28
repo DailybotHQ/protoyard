@@ -238,7 +238,7 @@ describe('deck-interactive roots (follow-up)', () => {
 });
 
 describe('focus ring presence in family sources', () => {
-  it('interactive and structure sources use focus-visible ring utilities', () => {
+  it('interactive and structure sources use Texuli controls or focus-visible ring utilities', () => {
     const files: string[] = [];
     const walk = (dir: string) => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -252,13 +252,19 @@ describe('focus ring presence in family sources', () => {
     }
     const withControls = files.filter((file) => {
       const text = readFileSync(file, 'utf8');
-      return /<button|<a |type="range"|type="checkbox"/.test(text);
+      return /<(Button|Input|Textarea|Checkbox)\b|<button|<a |type="range"|type="checkbox"/.test(
+        text
+      );
     });
     expect(withControls.length).toBeGreaterThan(5);
     for (const file of withControls) {
       const text = readFileSync(file, 'utf8');
-      // Buttons from @protoyard/ui already ring; local controls must declare focus-visible.
-      if (text.includes('<Button') && !text.includes('<button') && !text.includes('type="range"'))
+      // Texuli-backed controls carry their focus styles; local controls declare them.
+      if (
+        /<(Button|Input|Textarea|Checkbox)\b/.test(text) &&
+        !text.includes('<button') &&
+        !text.includes('type="range"')
+      )
         continue;
       if (!/type="range"|type="checkbox"|<button|<a /.test(text)) continue;
       if (text.includes('<Button') && text.includes('type="range"')) {

@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { DropdownMenuEntry } from '@protoyard/ui';
-import type { Snippet } from 'svelte';
+import { Button } from '@protoyard/ui';
+import type { ComponentProps, Snippet } from 'svelte';
 import type { HTMLButtonAttributes } from 'svelte/elements';
 import { lazyMenu } from './lazy-overlays.svelte.ts';
 
@@ -37,23 +38,15 @@ const keepFocus = (node: HTMLElement) => {
   {@const Menu = lazyMenu.current}
   <Menu {items} {align} {side} bind:open>
     {#snippet trigger({ props })}
-      <button {...button} {...props} type="button" {@attach keepFocus}>{@render children()}</button>
+      {@const triggerProps = { ...button, ...props, type: 'button' } as ComponentProps<typeof Button>}
+      <Button {...triggerProps} {@attach keepFocus}>{@render children()}</Button>
     {/snippet}
   </Menu>
 {:else}
-  <button
-    {...button}
-    type="button"
-    aria-haspopup="menu"
-    aria-expanded="false"
-    onpointerenter={prefetch}
-    onfocus={() => {
-      focused = true;
-      prefetch();
-    }}
-    onblur={() => (focused = false)}
-    onclick={activate}
+  {@const triggerProps = { ...button, type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false', onpointerenter: prefetch, onfocus: () => { focused = true; prefetch(); }, onblur: () => (focused = false), onclick: activate } as ComponentProps<typeof Button>}
+  <Button
+    {...triggerProps}
   >
     {@render children()}
-  </button>
+  </Button>
 {/if}

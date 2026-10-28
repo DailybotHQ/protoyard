@@ -1586,7 +1586,8 @@ Protoyard's. See [TEXULI](TEXULI.md#content-blocks-from-texuliblocks).
 | map | `map` | — |
 | embed | `embed-app` (the host still supplies `mountEmbed`) | — |
 
-The adapters pass on only the fields Texuli's shapes have. Known gaps today:
+The adapters pass on only the fields Texuli's shapes have. Known gap G21 in
+Texuli 0.3.0:
 
 - **Text:** heading and text `align`, text `size`, list `check` and `icon`
   styles (they render as bullets), quote `role` and `avatar`, callout `icon`,
@@ -1602,6 +1603,12 @@ The adapters pass on only the fields Texuli's shapes have. Known gaps today:
   sets no `stateHost` (generated page and doc prototypes; the player sets
   one). Their state is local and not saved, a quiz takes the first listed
   answer as correct, and a calculator shows only its first output.
+
+Until G21 is released, Protoyard keeps thin family adapters for those fields
+and the documented exception renderers. `poll`, `quiz` and `calculator` use
+Texuli's `InteractiveBlockView` for ephemeral non-slide hosts; host-backed
+and slide paths remain Protoyard adapters so state still goes through
+`BlockStateHost`.
 
 ### Interactive state and accessibility
 

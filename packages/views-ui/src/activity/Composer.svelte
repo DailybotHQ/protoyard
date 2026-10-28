@@ -1,6 +1,6 @@
 <script lang="ts">
 import { isValidationError, runService } from '@protoyard/renderer-svelte';
-import { Button } from '@protoyard/ui';
+import { Button, Textarea } from '@protoyard/ui';
 import { decodeMentions, encodeMentions } from '@protoyard/views/activity';
 import { type Component, onMount } from 'svelte';
 import type { ComposerEditorProps, EditorLoader } from './types.ts';
@@ -80,11 +80,11 @@ async function submit() {
     <Editor bind:value={draft} {label} {mentions} {references} rows={3} />
   {:else}
     <label for={`composer-${uid}`} class="sr-only">{label}</label>
-    <textarea
+    <Textarea
       id={`composer-${uid}`}
       bind:value={draft}
-      rows="3"
-      maxlength="5000"
+      rows={3}
+      maxlength={5000}
       aria-invalid={error ? true : undefined}
       aria-describedby={error ? `composer-${uid}-error` : undefined}
       class="w-full rounded-md border border-input bg-surface px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -98,7 +98,7 @@ async function submit() {
           onCancel();
         }
       }}
-    ></textarea>
+    ></Textarea>
   {/if}
   {#if error}<p id={`composer-${uid}-error`} role="alert" class="text-sm text-destructive">{error}</p>{/if}
   <div class="flex justify-end gap-2">

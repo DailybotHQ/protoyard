@@ -7,16 +7,16 @@ files, settings, states and an app command palette. The engines live in
 
 **Where each view comes from (ADR-044):**
 
-- **Texuli adapters:** board, calendar, timeline, grid (`DataGrid`), tree
+- **Texuli view adapters:** board, calendar, timeline, grid (`DataGrid`), tree
   (`TreeView`), map, files and activity (`ActivityFeed`) render the matching
-  `@texuli/data` component. Each adapter maps a `liveQuery` result (`query`) to
-  the component's data prop, wraps it in `QueryState`, and runs mutation
-  callbacks through `runService`. `virtual-list` re-exports
-  `@texuli/data/virtual-list`.
-- **Protoyard components:** editor, notifications, settings, states,
-  commands, `CommentThread`, `OutlineEditor` and the grid toolkit
-  (`FilterBuilder`, `SavedViews`, `FilterChips`, `FacetPicker`,
-  `ColumnChooser`, `BulkActionBar`).
+  `@texuli/data` component. `virtual-list` re-exports
+  `@texuli/data/virtual-list`. The grid toolkit and settings rows keep their
+  stable Protoyard props while composing Texuli controls; Lucide glyphs render
+  through `Icon` or `LucideIcon` from `texuli/icons`.
+- **Protoyard host behavior:** comments, notifications, Markdown source and
+  outline editing retain Protoyard's callbacks, state and keyboard contracts.
+  Texuli 0.3.0 has no published editor/Markdown round-trip API (G17), recursive
+  filter authoring API (G18), or notification inbox/read-action API (G19).
 
 Some adapters still accept props from the earlier Protoyard API that they do
 not forward; each section below lists them. The mapping table is in
@@ -400,7 +400,7 @@ contracts are also available from `@protoyard/views/commands`.
 
 ## Editor (`@protoyard/views-ui/editor`)
 
-A dependency-free Markdown rich-text editor on a plain `<textarea>` (no
+A dependency-free Markdown source editor on Texuli's `Textarea` (no
 contenteditable library). Text commands and the document model are the pure
 functions of `@protoyard/views/editor`. Values leave through typed callbacks
 (`bind:value`, `onChange`, `onDraft`); the editor never writes database tables.
@@ -626,6 +626,9 @@ Two components over `{ id, parentId, rank }` rows and the
   blur or Enter and go back to the saved title if saving fails. Rows drag
   from a grip, and a "Move to…" menu lists only valid parents. Moves show at
   once with `aria-busy` and roll back when they fail.
+  Texuli 0.3.0's `TreeDataView` has no inline-editing/service-move contract;
+  this component remains the Protoyard host adapter and composes Texuli
+  controls.
 
 ```bash
 pnpm vitest run packages/views-ui/tests/tree.test.ts
@@ -692,7 +695,9 @@ callbacks:
 - **`FilterBuilder`** edits the engine's filter AST as nested and/or
   fieldsets (`value` bindable, `onchange`). Every control is labelled and the
   operators match each column type. `completeFilter` drops conditions that
-  have no value yet.
+  have no value yet. Texuli 0.3.0 consumes this AST in its grid but has no
+  recursive filter-authoring component (G18), so this remains the minimal AST
+  editor with Texuli controls.
 - **`FacetPicker`**: a keyboard-first multi-select for one column (arrows,
   Home/End, Enter or Space toggle; typing searches; Escape closes).
   Picks are OR within the column and AND with everything else.
@@ -774,7 +779,7 @@ comments as `kind: 'comment'` items with their `body`).
   - **Rich editor:** the `MarkdownEditor` is loaded from the editor view when
     a composer opens. Override its loader with `loadEditor` when needed. It is
     a separate chunk; activity has no static dependency on another view.
-    While it loads, a plain textarea is used: ⌘/Ctrl+Enter
+    While it loads, Texuli's `Textarea` is used: ⌘/Ctrl+Enter
     sends, and Escape cancels a reply or an edit.
 
 ```bash
@@ -792,9 +797,15 @@ an app's bell button. Opening a row calls the hash router with `hrefFor(row)`;
 the default route is `/<subjectId>`.
 
 ```svelte
+<script lang="ts">
+import { Bell } from '@lucide/svelte';
+import { Button } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
+</script>
+
 {#snippet bellTrigger({ props })}
   <Button {...props} variant="ghost" size="icon" aria-label="Notifications">
-    <Bell aria-hidden="true" />
+    <LucideIcon icon={Bell} />
   </Button>
 {/snippet}
 
@@ -809,6 +820,9 @@ the default route is `/<subjectId>`.
 
 Pass `onMuteChange` when the prototype has a per-type preference service; its
 callback receives the notification kind and the requested muted state.
+The panel composes Texuli controls while preserving the Protoyard service
+contract. Texuli 0.3.0's activity API has no inbox model for unread counts,
+mark-read persistence or per-item actions (G19).
 
 - **Loading:** import this subpath from a lazy route so the panel stays out of
   initial JavaScript.

@@ -5,6 +5,7 @@
  * (lazy BoardMoveMenu) ships inside Texuli Board whenever `onMove` is set.
  */
 import { runService } from '@protoyard/renderer-svelte';
+import { Button } from '@protoyard/ui';
 import type { BoardColumnDef, BoardLaneDef, BoardMove, MoveRules } from '@protoyard/views/board';
 import { Board, type BoardLabels } from '@texuli/data/board';
 import type { Snippet } from 'svelte';
@@ -94,14 +95,14 @@ const boardLabels = $derived<Partial<BoardLabels>>({
       >
         {#snippet card(item, state)}
           {#if onOpen}
-            <button
+            <Button
               type="button"
               class="py-board-open"
               data-board-no-drag
               onclick={() => onOpen(item)}
             >
               {@render card(item, state)}
-            </button>
+            </Button>
           {:else}
             {@render card(item, state)}
           {/if}

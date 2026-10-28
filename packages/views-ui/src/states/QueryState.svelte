@@ -7,6 +7,7 @@
 import { Lock } from '@lucide/svelte';
 import type { Component, Snippet } from 'svelte';
 import { EmptyState, ErrorState } from 'texuli/empty';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { classifyQueryError } from './classify.ts';
 
 type IconComponent = Component<{ class?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
@@ -85,7 +86,7 @@ const failure = $derived(
     {#if failure.kind === 'denied'}
       <EmptyState role="alert" aria-label={failure.title} title={failure.title} description={failure.message}>
         {#snippet illustration()}
-          <Lock class="size-6" aria-hidden="true" />
+          <LucideIcon icon={Lock} class="size-6"  />
         {/snippet}
       </EmptyState>
     {:else}
@@ -105,7 +106,7 @@ const failure = $derived(
           {#each Array.from({ length: rows }, (_, i) => i) as index (index)}
             <div
               class="h-4 animate-pulse rounded bg-muted {index === rows - 1 ? 'w-2/3' : 'w-full'}"
-              aria-hidden="true"
+
             ></div>
           {/each}
         </div>
@@ -121,7 +122,7 @@ const failure = $derived(
     >
       {#snippet illustration()}
         {#if EmptyIcon}
-          <EmptyIcon class="size-6" aria-hidden="true" />
+          <EmptyIcon class="size-6" />
         {/if}
       {/snippet}
     </EmptyState>

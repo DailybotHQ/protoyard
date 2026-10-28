@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { ColumnsBlock as ColumnsBlockData } from '@protoyard/blocks';
 import type { Component } from 'svelte';
+import { cx } from 'texuli/cx';
 import { fragmentAttributes, getBlockHost } from '../host.ts';
 import type { BlockFamilyRenderer } from '../registry.ts';
 
@@ -47,7 +48,7 @@ async function resolveChild(input: unknown): Promise<ChildResult> {
 </script>
 
 <div
-  class="grid gap-4 {slide ? slideWidths : `max-[639px]:grid-cols-1 ${widths}`}"
+  class={cx('grid gap-4', slide ? slideWidths : `max-[639px]:grid-cols-1 ${widths}`)}
   data-block-type="columns"
   data-align={block.align ?? 'start'}
   style:align-items={block.align === 'center' ? 'center' : 'start'}

@@ -203,7 +203,7 @@ void activeViewId;
               selectable && selectedSet.has(cardId) ? 'bg-primary/10' : 'bg-surface',
             )}
           >
-            <button
+            <Button
               type="button"
               class="min-w-0 flex-1 text-left"
               onclick={() => (onRowOpen ?? onRowActivate)?.(row)}
@@ -216,7 +216,7 @@ void activeViewId;
                   <dd class="truncate">{cellText(row, c)}</dd>
                 {/each}
               </dl>
-            </button>
+            </Button>
           </li>
         {/each}
         {#if data.length > cardLimit}

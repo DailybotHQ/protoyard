@@ -12,7 +12,7 @@ import {
   SquareCode,
   Strikethrough,
 } from '@lucide/svelte';
-import { type IconComponent } from '@protoyard/ui';
+import { Button, type IconComponent, Textarea } from '@protoyard/ui';
 import {
   applyCompletion,
   continueList,
@@ -27,6 +27,7 @@ import {
 } from '@protoyard/views/editor';
 import { type Component, onDestroy, tick } from 'svelte';
 import { cx } from 'texuli/cx';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { isMacPlatform, shortcutKeys, shortcutLabel } from '../lib/platform.ts';
 import { caretCoordinates } from './caret.ts';
 import {
@@ -84,7 +85,8 @@ let {
 
 const uid = $props.id();
 const isMac = isMacPlatform();
-let textarea = $state<HTMLTextAreaElement>();
+let textarea = $state<HTMLElement | null>(null);
+const textareaElement = () => textarea as HTMLTextAreaElement | undefined;
 let tab = $state<'write' | 'preview'>('write');
 let notice = $state('');
 
@@ -189,8 +191,8 @@ const TOOLS: Tool[] = [
 function selection(): TextState {
   return {
     text: value,
-    start: textarea?.selectionStart ?? value.length,
-    end: textarea?.selectionEnd ?? value.length,
+    start: textareaElement()?.selectionStart ?? value.length,
+    end: textareaElement()?.selectionEnd ?? value.length,
   };
 }
 
@@ -205,8 +207,8 @@ async function apply(transform: (state: TextState) => TextState | null): Promise
   value = next.text;
   onChange?.(next.text);
   await tick();
-  textarea?.focus();
-  textarea?.setSelectionRange(next.start, next.end);
+  textareaElement()?.focus();
+  textareaElement()?.setSelectionRange(next.start, next.end);
   updateSuggestions();
   return true;
 }
@@ -237,7 +239,7 @@ const slashListId = `editor-${uid}-slash`;
 
 function updateSuggestions() {
   // Only while writing: the preview tab has no caret.
-  if (!textarea || (layout === 'tabs' && tab !== 'write')) {
+  if (!textareaElement() || (layout === 'tabs' && tab !== 'write')) {
     match = null;
     slashMatch = null;
     return;
@@ -248,8 +250,9 @@ function updateSuggestions() {
     if (nextSlash.start !== slashMatch?.start || nextSlash.query !== slashMatch?.query) active = 0;
     slashMatch = nextSlash;
     match = null;
-    if (textarea) {
-      const at = caretCoordinates(textarea, nextSlash.start);
+    const input = textareaElement();
+    if (input) {
+      const at = caretCoordinates(input, nextSlash.start);
       anchor = { top: at.top + at.height, left: at.left };
     }
     return;
@@ -258,10 +261,18 @@ function updateSuggestions() {
   const next = triggerAt(state);
   if (next?.start !== match?.start || next?.query !== match?.query) active = 0;
   match = next;
-  if (next && textarea) {
-    const at = caretCoordinates(textarea, next.start);
+  const input = textareaElement();
+  if (next && input) {
+    const at = caretCoordinates(input, next.start);
     anchor = { top: at.top + at.height, left: at.left };
   }
+}
+
+function handleValueChange(next: string) {
+  value = next;
+  notice = '';
+  updateSuggestions();
+  scheduleDraft();
 }
 
 async function choose(index: number) {
@@ -400,7 +411,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
     {#if layout === 'tabs'}
       <div role="tablist" aria-label={`${label} mode`} class="flex gap-1">
         {#each [['write', 'Write'], ['preview', 'Preview']] as [id, text] (id)}
-          <button
+          <Button
             type="button"
             role="tab"
             id={`editor-${uid}-tab-${id}`}
@@ -412,13 +423,13 @@ function toolbarKey(event: KeyboardEvent, index: number) {
               tab = id as 'write' | 'preview';
               match = null;
             }}
-          >{text}</button>
+          >{text}</Button>
         {/each}
       </div>
     {/if}
     <div role="toolbar" aria-label={`Formatting for ${label}`} aria-controls={`editor-${uid}-input`} class={cx('flex flex-wrap gap-0.5', layout === 'tabs' && tab === 'preview' && 'invisible')}>
       {#each TOOLS as tool, index (tool.id)}
-        <button
+        <Button
           type="button"
           aria-label={tool.label}
           title={tool.shortcut ? `${tool.label} (${shortcutKeys(tool.shortcut.hint, isMac).join(isMac ? '' : '+')})` : tool.label}
@@ -429,8 +440,8 @@ function toolbarKey(event: KeyboardEvent, index: number) {
           onclick={() => apply(tool.apply)}
           onkeydown={(event) => toolbarKey(event, index)}
         >
-          <tool.icon class="size-4" aria-hidden="true" />
-        </button>
+          <LucideIcon icon={tool.icon} class="size-4" />
+        </Button>
       {/each}
     </div>
   </div>
@@ -442,8 +453,8 @@ function toolbarKey(event: KeyboardEvent, index: number) {
       aria-labelledby={layout === 'tabs' ? `editor-${uid}-tab-write` : undefined}
       class={cx('relative', layout === 'tabs' && tab !== 'write' && 'hidden')}
     >
-      <textarea
-        bind:this={textarea}
+      <Textarea
+        bind:ref={textarea}
         bind:value
         id={`editor-${uid}-input`}
         aria-label={label}
@@ -461,11 +472,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
         {disabled}
         maxlength={maxLength}
         class="block w-full resize-y bg-transparent px-3 py-2 font-mono text-sm outline-none placeholder:text-muted-foreground"
-        oninput={() => {
-          notice = '';
-          updateSuggestions();
-          scheduleDraft();
-        }}
+        onValueChange={handleValueChange}
         onclick={updateSuggestions}
         onkeyup={(event) => {
           if (event.key.startsWith('Arrow') && !open) updateSuggestions();
@@ -476,7 +483,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
           slashMatch = null;
           flushDraft();
         }}
-      ></textarea>
+      ></Textarea>
       {#if slashOpen && slashMatch}
         <ul
           id={slashListId}
@@ -502,7 +509,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
             >
               <span
                 class="inline-flex min-w-8 justify-center rounded bg-muted px-1 font-mono text-xs text-muted-foreground"
-                aria-hidden="true">{item.glyph}</span
+               >{item.glyph}</span
               >
               <span class="font-medium">{item.label}</span>
             </li>
