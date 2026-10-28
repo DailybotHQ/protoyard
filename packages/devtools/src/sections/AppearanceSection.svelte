@@ -17,9 +17,11 @@ import {
   type ViewportPreset,
 } from '@protoyard/core';
 import Btn from '../primitives/Btn.svelte';
+import Glyph from '../primitives/Glyph.svelte';
 import InlineError from '../primitives/InlineError.svelte';
 import Section from '../primitives/Section.svelte';
 import Segmented from '../primitives/Segmented.svelte';
+import SelectField from '../primitives/SelectField.svelte';
 import SourceBadge from '../primitives/SourceBadge.svelte';
 import Toggle from '../primitives/Toggle.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
@@ -255,18 +257,15 @@ async function setFrame(on: boolean) {
     {#snippet actions()}<SourceBadge source={appearance.layout.source} />{/snippet}
     <label class="block text-[11px] text-muted-foreground">
       <span class="mb-1 block">App layout</span>
-      <select
+      <SelectField
         class="w-full rounded-md border border-border bg-surface px-2 py-1.5 text-xs text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
-        aria-label="App layout"
+        label="App layout"
         aria-busy={layoutApplying || undefined}
         disabled={layoutApplying}
         value={appearance.layout.value}
-        onchange={(event) => setLayout((event.currentTarget as HTMLSelectElement).value as LayoutId)}
-      >
-        {#each layoutOptions as option (option.value)}
-          <option value={option.value}>{option.label}</option>
-        {/each}
-      </select>
+        onchange={(value) => setLayout(value as LayoutId)}
+        options={layoutOptions}
+      />
     </label>
     <InlineError message={dt.errorFor('appearance')} />
   </Section>
@@ -294,23 +293,23 @@ async function setFrame(on: boolean) {
   />
   {#if moreShells.length > 0}
     <div class="mt-2">
-      <button
+      <Btn
         type="button"
         class="inline-flex min-h-touch items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring sm:min-h-7"
         aria-expanded={moreShellsOpen}
         onclick={() => (moreShellsOpen = !moreShellsOpen)}
       >
         More shells
-        <ChevronDown
+        <Glyph icon="chevron-down"
           class="size-3.5 transition-transform {moreShellsOpen ? 'rotate-180' : ''}"
           aria-hidden="true"
         />
-      </button>
+      </Btn>
       {#if moreShellsOpen}
         <div class="mt-1.5 grid grid-cols-2 gap-1" role="group" aria-label="More shells">
           {#each moreShells as option (option.value)}
             {@const selected = shellControlValue === option.value}
-            <button
+            <Btn
               type="button"
               class="min-h-touch rounded-md border px-2 text-left text-[11px] font-medium focus-visible:outline-2 focus-visible:outline-ring sm:min-h-7 {selected
                 ? 'border-primary bg-primary/5 text-foreground ring-1 ring-primary'
@@ -319,7 +318,7 @@ async function setFrame(on: boolean) {
               onclick={() => setShellPatch({ shell: option.value })}
             >
               {option.label}
-            </button>
+            </Btn>
           {/each}
         </div>
       {/if}
@@ -341,17 +340,13 @@ async function setFrame(on: boolean) {
     {#snippet actions()}<SourceBadge source={appearance.device.source} />{/snippet}
     <label class="block text-[11px] text-muted-foreground">
       <span class="mb-1 block">Device</span>
-      <select
+      <SelectField
         class="w-full rounded-md border border-border bg-surface px-2 py-1.5 text-xs text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        aria-label="Device"
+        label="Device"
         value={deviceControlValue}
-        onchange={(e) =>
-          setShellPatch({ device: (e.currentTarget as HTMLSelectElement).value as DeviceId })}
-      >
-        {#each devicesForShell as device (device.id)}
-          <option value={device.id}>{device.label}</option>
-        {/each}
-      </select>
+        onchange={(value) => setShellPatch({ device: value as DeviceId })}
+        options={devicesForShell.map((device) => ({ value: device.id, label: device.label }))}
+      />
     </label>
   </Section>
 

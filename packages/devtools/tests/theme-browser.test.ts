@@ -16,6 +16,7 @@ import {
 } from '../../themes/src/library/index.ts';
 import { type DevtoolsHandle, mountDevtools } from '../src/index.ts';
 import { librarySwatches } from '../src/sections/ThemeBrowser.svelte';
+import { selectOption } from './select-option.ts';
 
 /**
  * The theme browser in DevTools → Look, on a real runtime whose resolver
@@ -137,7 +138,7 @@ describe('DevTools theme browser', () => {
     ).toBe('true');
 
     await fireEvent.click(browser.getByRole('button', { name: 'All' }));
-    await fireEvent.change(browser.getByLabelText('Filter by tag'), { target: { value: 'neon' } });
+    await selectOption('Filter by tag', 'neon');
     await settle();
     expect(radioNames(browser.getByRole('radiogroup', { name: 'Theme library' }))).toEqual(
       listThemeLibrary({ tag: 'neon' }).map((meta) => meta.id)

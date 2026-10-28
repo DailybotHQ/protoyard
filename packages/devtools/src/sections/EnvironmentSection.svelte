@@ -8,10 +8,14 @@ import {
   SubscriptionStatusSchema,
   type ValueSource,
 } from '@protoyard/core';
+import { Input } from 'texuli/input';
+import { Slider } from 'texuli/slider';
 import Btn from '../primitives/Btn.svelte';
+import Glyph from '../primitives/Glyph.svelte';
 import InlineError from '../primitives/InlineError.svelte';
 import Section from '../primitives/Section.svelte';
 import Segmented from '../primitives/Segmented.svelte';
+import SelectField from '../primitives/SelectField.svelte';
 import SourceBadge from '../primitives/SourceBadge.svelte';
 import Toggle from '../primitives/Toggle.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
@@ -109,7 +113,7 @@ function addScope() {
   />
   <label class="mt-2.5 flex items-center gap-2 text-[11px] text-muted-foreground">
     <span class="flex-1">Extra latency (ms) <SourceBadge source={sourceOf('latencyMs')} /></span>
-    <input
+    <Input
       type="number"
       min="0"
       max="30000"
@@ -130,28 +134,32 @@ function addScope() {
   <fieldset class="m-0 min-w-0 space-y-2.5 border-0 p-0" disabled={applying} aria-busy={applying || undefined}>
     <label class="flex items-center gap-2 text-[11px] text-muted-foreground">
       <span class="flex-1">Mode <SourceBadge source={sourceOf('failureMode')} /></span>
-      <select
+      <SelectField
         class="min-h-touch rounded-md border border-input bg-surface px-2 text-xs text-surface-foreground sm:min-h-7"
+        label="Failure mode"
         value={env.failureMode}
-        onchange={(e) => patch({ failureMode: (e.currentTarget as HTMLSelectElement).value as EnvironmentState['failureMode'] })}
-      >
-        {#each failureModes as mode (mode)}<option value={mode}>{mode}</option>{/each}
-      </select>
+        onchange={(value) => patch({ failureMode: value as EnvironmentState['failureMode'] })}
+        options={failureModes.map((mode) => ({ value: mode, label: mode }))}
+      />
     </label>
     <label class="block text-[11px] text-muted-foreground">
       <span class="flex items-center justify-between">
         <span>Failure rate <SourceBadge source={sourceOf('failureRate')} /></span>
         <span class="font-mono text-foreground">{Math.round(env.failureRate * 100)}%</span>
       </span>
-      <input
-        type="range"
-        min="0"
-        max="100"
-        step="5"
+      <Slider
+        min={0}
+        max={100}
+        step={5}
         class="mt-1 w-full accent-primary"
         value={Math.round(env.failureRate * 100)}
         disabled={env.failureMode === 'none'}
-        onchange={(e) => patch({ failureRate: Number((e.currentTarget as HTMLInputElement).value) / 100 })}
+        label="Failure rate"
+        aria-label="Failure rate"
+        getValueText={(value) => `${value}%`}
+        onValueChange={(value) => {
+          if (typeof value === 'number') patch({ failureRate: value / 100 });
+        }}
       />
     </label>
     <div class="text-[11px] text-muted-foreground">
@@ -161,14 +169,14 @@ function addScope() {
         {#each scope as prefix (prefix)}
           <span class="inline-flex items-center gap-1 rounded bg-muted py-0.5 pr-0.5 pl-1.5 font-mono text-[11px] text-foreground">
             {prefix}
-            <button
+            <Btn
               type="button"
               class="inline-flex size-5 items-center justify-center rounded hover:bg-background focus-visible:outline-2 focus-visible:outline-ring"
               aria-label={`Remove scope ${prefix}`}
               onclick={() => patch({ failureScope: scope.filter((s) => s !== prefix) })}
             >
-              <X class="size-3" aria-hidden="true" />
-            </button>
+              <Glyph icon="close" class="size-3" aria-hidden="true" />
+            </Btn>
           </span>
         {:else}
           <span class="italic">all operations</span>
@@ -176,8 +184,8 @@ function addScope() {
       </div>
       <form class="mt-1.5 flex gap-1.5" onsubmit={(e) => { e.preventDefault(); addScope(); }}>
         <label class="sr-only" for="py-dt-scope">Add failure scope prefix</label>
-        <input id="py-dt-scope" class="min-h-touch min-w-0 flex-1 rounded-md border border-input bg-surface px-2 font-mono text-xs text-surface-foreground sm:min-h-7" placeholder="deals." bind:value={newScope} />
-        <Btn type="submit" disabled={!newScope.trim()}><Plus class="size-3.5" aria-hidden="true" />Add</Btn>
+        <Input id="py-dt-scope" class="min-h-touch min-w-0 flex-1 rounded-md border border-input bg-surface px-2 font-mono text-xs text-surface-foreground sm:min-h-7" placeholder="deals." bind:value={newScope} />
+        <Btn type="submit" disabled={!newScope.trim()}><Glyph icon="plus" class="size-3.5" aria-hidden="true" />Add</Btn>
       </form>
     </div>
   </fieldset>
@@ -187,17 +195,18 @@ function addScope() {
   <fieldset class="m-0 min-w-0 border-0 p-0" disabled={applying} aria-busy={applying || undefined}>
   <label class="flex items-center gap-2 text-[11px] text-muted-foreground">
     <span class="flex-1">Subscription <SourceBadge source={sourceOf('subscription')} /></span>
-    <select
+    <SelectField
       class="min-h-touch rounded-md border border-input bg-surface px-2 text-xs text-surface-foreground sm:min-h-7"
+      label="Subscription"
       value={env.subscription ?? ''}
-      onchange={(e) => {
-        const value = (e.currentTarget as HTMLSelectElement).value;
+      onchange={(value) => {
         void patch(value ? { subscription: value as EnvironmentState['subscription'] } : { subscription: undefined });
       }}
-    >
-      <option value="">(organization default)</option>
-      {#each subscriptions as status (status)}<option value={status}>{status}</option>{/each}
-    </select>
+      options={[
+        { value: '', label: '(organization default)' },
+        ...subscriptions.map((status) => ({ value: status, label: status })),
+      ]}
+    />
   </label>
   <ul class="mt-2.5 space-y-0.5">
     {#each flags as [flag, enabled] (flag)}
@@ -219,8 +228,8 @@ function addScope() {
   </ul>
   <form class="mt-2 flex gap-1.5" onsubmit={(e) => { e.preventDefault(); addFlag(); }}>
     <label class="sr-only" for="py-dt-flag">New feature flag</label>
-    <input id="py-dt-flag" class="min-h-touch min-w-0 flex-1 rounded-md border border-input bg-surface px-2 font-mono text-xs text-surface-foreground sm:min-h-7" placeholder="new-flag" bind:value={newFlag} />
-    <Btn type="submit" disabled={!newFlag.trim()}><Plus class="size-3.5" aria-hidden="true" />Flag</Btn>
+    <Input id="py-dt-flag" class="min-h-touch min-w-0 flex-1 rounded-md border border-input bg-surface px-2 font-mono text-xs text-surface-foreground sm:min-h-7" placeholder="new-flag" bind:value={newFlag} />
+    <Btn type="submit" disabled={!newFlag.trim()}><Glyph icon="plus" class="size-3.5" aria-hidden="true" />Flag</Btn>
   </form>
   </fieldset>
 </Section>

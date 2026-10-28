@@ -1,7 +1,9 @@
 <script lang="ts">
+import Btn from '../primitives/Btn.svelte';
 import Initials from '../primitives/Initials.svelte';
 import InlineError from '../primitives/InlineError.svelte';
 import Section from '../primitives/Section.svelte';
+import SelectField from '../primitives/SelectField.svelte';
 import SourceBadge from '../primitives/SourceBadge.svelte';
 import Spinner from '../primitives/Spinner.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
@@ -50,8 +52,7 @@ async function switchTo(personaId: string) {
   );
 }
 
-async function setRole(event: Event) {
-  const value = (event.currentTarget as HTMLSelectElement).value;
+async function setRole(value: string) {
   await dt.run(
     'persona:role',
     () => (value ? runtime.overrides.set({ role: value }) : runtime.overrides.clear(['role'])),
@@ -59,8 +60,7 @@ async function setRole(event: Event) {
   );
 }
 
-async function setOrganization(event: Event) {
-  const value = (event.currentTarget as HTMLSelectElement).value;
+async function setOrganization(value: string) {
   await dt.run(
     'persona:org',
     () => runtime.session.switchOrganization(value),
@@ -115,7 +115,7 @@ async function setOrganization(event: Event) {
       {@const current = principal?.persona.id === persona.id}
       {@const pending = dt.isBusy(`persona:${persona.id}`)}
       <li>
-        <button
+        <Btn
           type="button"
           class="flex min-h-touch w-full items-center gap-2.5 rounded-md border px-2 py-1.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-default {current
             ? 'border-primary/60 bg-primary/5'
@@ -132,7 +132,7 @@ async function setOrganization(event: Event) {
           </span>
           {#if pending}<Spinner class="text-primary" />{/if}
           <span class="font-mono text-[10px] text-muted-foreground">{roleOf(persona.id)}</span>
-        </button>
+        </Btn>
       </li>
     {:else}
       <li class="text-xs text-muted-foreground">This scenario has no personas.</li>
@@ -145,31 +145,29 @@ async function setOrganization(event: Event) {
   <div class="space-y-2.5">
     <label class="block text-[11px] text-muted-foreground">
       <span class="flex items-center justify-between">Role override {#if roleOverride}<SourceBadge source="override" />{/if}</span>
-      <select
+      <SelectField
         class="mt-1 block min-h-touch w-full rounded-md border border-input bg-surface px-2 text-xs text-surface-foreground sm:min-h-7"
+        label="Role override"
         value={roleOverride ?? ''}
         onchange={setRole}
+        options={[
+          { value: '', label: `Membership role (${principal?.membership?.role ?? '—'})` },
+          ...roles.map((role) => ({ value: role, label: role })),
+        ]}
         disabled={!principal || switching}
-      >
-        <option value="">Membership role ({principal?.membership?.role ?? '—'})</option>
-        {#each roles as role (role)}
-          <option value={role}>{role}</option>
-        {/each}
-      </select>
+      />
     </label>
     {#if organizations.length > 1}
       <label class="block text-[11px] text-muted-foreground">
         Organization
-        <select
+        <SelectField
           class="mt-1 block min-h-touch w-full rounded-md border border-input bg-surface px-2 text-xs text-surface-foreground sm:min-h-7"
+          label="Organization"
           value={principal?.organization?.id ?? ''}
           onchange={setOrganization}
+          options={organizations.map((org) => ({ value: org.id, label: org.name }))}
           disabled={switching}
-        >
-          {#each organizations as org (org.id)}
-            <option value={org.id}>{org.name}</option>
-          {/each}
-        </select>
+        />
       </label>
     {/if}
   </div>

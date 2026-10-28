@@ -39,11 +39,16 @@ import {
   THEME_LIBRARY_META,
 } from '@protoyard/themes/library';
 import { onMount, untrack } from 'svelte';
+import { Checkbox } from 'texuli/choice';
+import { Input, Textarea } from 'texuli/input';
+import { Slider } from 'texuli/slider';
 import { copyText } from '../format.ts';
 import { themeShareLink } from '../link.ts';
 import Btn from '../primitives/Btn.svelte';
+import FileInput from '../primitives/FileInput.svelte';
 import Section from '../primitives/Section.svelte';
 import Segmented from '../primitives/Segmented.svelte';
+import SelectField from '../primitives/SelectField.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
 
 /**
@@ -418,53 +423,58 @@ const inputClass =
       <div class="grid grid-cols-[1fr_auto] items-end gap-2">
         <label class="grid gap-1 text-[11px] text-muted-foreground">
           Start from a theme
-          <select class={inputClass} value={startFrom} onchange={(event) => { startFrom = event.currentTarget.value; }} aria-label="Start from a theme">
-            <option value="">Choose a built-in or library theme</option>
-            <optgroup label="Built-in themes">
-              {#each BUILTIN_THEMES as theme (theme.id)}<option value={`builtin:${theme.id}`}>{theme.name}</option>{/each}
-            </optgroup>
-            <optgroup label="Theme library">
-              {#each THEME_LIBRARY_META as theme (theme.id)}<option value={`library:${theme.id}`}>{theme.name}</option>{/each}
-            </optgroup>
-          </select>
+          <SelectField
+            class={inputClass}
+            value={startFrom}
+            label="Start from a theme"
+            onchange={(value) => { startFrom = value; }}
+            options={[
+              { value: '', label: 'Choose a built-in or library theme' },
+              ...BUILTIN_THEMES.map((theme) => ({ value: `builtin:${theme.id}`, label: `Built-in · ${theme.name}` })),
+              ...THEME_LIBRARY_META.map((theme) => ({ value: `library:${theme.id}`, label: `Library · ${theme.name}` })),
+            ]}
+          />
         </label>
         <Btn busy={loadingStart} disabled={!startFrom} onclick={loadStartTheme}>Load</Btn>
       </div>
       {#if startError}<p class="text-xs text-destructive" role="alert">{startError}</p>{/if}
       <label class="grid gap-1 text-[11px] text-muted-foreground">
         Name
-        <input class={inputClass} bind:value={name} maxlength="40" aria-label="Theme name" />
+        <Input class={inputClass} bind:value={name} maxlength={40} aria-label="Theme name" />
       </label>
       <div class="grid grid-cols-2 gap-2">
         <div class="grid gap-1 text-[11px] text-muted-foreground">
           <span>Seed color</span>
           <span class="flex items-center gap-1.5">
-            <input type="color" class="size-7 shrink-0 rounded border border-border bg-transparent" bind:value={seed} aria-label="Seed color picker" />
-            <input class={inputClass} bind:value={seed} aria-label="Seed color" spellcheck="false" />
+            <Input type="color" class="size-7 shrink-0 rounded border border-border bg-transparent" bind:value={seed} aria-label="Seed color picker" />
+            <Input class={inputClass} bind:value={seed} aria-label="Seed color" spellcheck="false" />
           </span>
         </div>
         <div class="grid gap-1 text-[11px] text-muted-foreground">
           <label class="flex items-center gap-1.5">
-            <input type="checkbox" bind:checked={useSecondary} />
+          <Checkbox bind:checked={useSecondary} aria-label="Use a secondary color" />
             Use a secondary color
           </label>
           <span class="flex items-center gap-1.5">
-            <input type="color" class="size-7 shrink-0 rounded border border-border bg-transparent" bind:value={secondary} disabled={!useSecondary} aria-label="Secondary color picker" />
-            <input class={inputClass} bind:value={secondary} disabled={!useSecondary} aria-label="Secondary color" spellcheck="false" />
+            <Input type="color" class="size-7 shrink-0 rounded border border-border bg-transparent" bind:value={secondary} disabled={!useSecondary} aria-label="Secondary color picker" />
+            <Input class={inputClass} bind:value={secondary} disabled={!useSecondary} aria-label="Secondary color" spellcheck="false" />
           </span>
         </div>
       </div>
       <label class="grid gap-1 text-[11px] text-muted-foreground">
         Neutral family
-        <select class={inputClass} bind:value={neutral} aria-label="Neutral family">
-          {#each NEUTRAL_FAMILIES as family (family)}<option value={family}>{family[0]?.toUpperCase()}{family.slice(1)}</option>{/each}
-        </select>
+        <SelectField
+          class={inputClass}
+          bind:value={neutral}
+          label="Neutral family"
+          options={NEUTRAL_FAMILIES.map((family) => ({ value: family, label: `${family[0]?.toUpperCase()}${family.slice(1)}` }))}
+        />
       </label>
       <fieldset class="grid gap-1.5" aria-label="Color harmony suggestions">
         <legend class="text-[11px] text-muted-foreground">Suggested secondary colors</legend>
         <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
           {#each harmonies as suggestion (suggestion.id)}
-            <button
+            <Btn
               type="button"
               class="grid min-h-touch gap-1 rounded-md border border-border p-1.5 text-left text-[10px] text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
               aria-label={`Use ${suggestion.label} harmony`}
@@ -476,26 +486,29 @@ const inputClass =
                 <span class="flex-1" style:background-color={suggestion.theme.light.primary}></span>
                 <span class="flex-1" style:background-color={suggestion.theme.light.secondary}></span>
               </span>
-            </button>
+            </Btn>
           {/each}
         </div>
       </fieldset>
       <div class="grid grid-cols-2 gap-2">
         <label class="grid gap-1 text-[11px] text-muted-foreground">
           Font pairing
-          <select class={inputClass} bind:value={fontId} aria-label="Font pairing">
-            {#each FONT_CATALOG as font (font.id)}
-              <option value={font.id}>{font.label}</option>
-            {/each}
-          </select>
+          <SelectField
+            class={inputClass}
+            bind:value={fontId}
+            label="Font pairing"
+            options={FONT_CATALOG.map((font) => ({ value: font.id, label: font.label }))}
+          />
         </label>
         <label class="grid gap-1 text-[11px] text-muted-foreground">
           Corner radius
-          <select class={inputClass} bind:value={radius} onchange={() => { radiusOverride = undefined; radiusChanged = true; }} aria-label="Corner radius">
-            {#each RADIUS_PRESETS as option (option.id)}
-              <option value={option.id}>{option.label}</option>
-            {/each}
-          </select>
+          <SelectField
+            class={inputClass}
+            bind:value={radius}
+            label="Corner radius"
+            onchange={() => { radiusOverride = undefined; radiusChanged = true; }}
+            options={RADIUS_PRESETS.map((option) => ({ value: option.id, label: option.label }))}
+          />
         </label>
       </div>
       <div class="grid gap-1 text-[11px] text-muted-foreground">
@@ -536,7 +549,16 @@ const inputClass =
       </div>
       <label class="block text-[11px] text-muted-foreground">
         <span class="flex justify-between"><span>Density</span><span class="font-mono text-foreground">{density}×</span></span>
-        <input type="range" min="0.75" max="1.25" step="0.125" class="mt-1 w-full accent-primary" bind:value={density} aria-label="Theme density" />
+        <Slider
+          min={0.75}
+          max={1.25}
+          step={0.125}
+          class="mt-1 w-full"
+          bind:value={density}
+          label="Theme density"
+          aria-label="Theme density"
+          getValueText={(value) => `${value} times`}
+        />
       </label>
     </div>
   </Section>
@@ -560,16 +582,16 @@ const inputClass =
         {@attach preview}
         data-testid="theme-studio-preview"
         class="grid gap-2 rounded-lg border border-border bg-background p-3 text-foreground"
-        style:font-family="var(--py-font-sans)"
+        style:font-family="var(--tx-font-sans)"
       >
-        <p class="text-sm font-semibold" style:font-family="var(--py-font-heading)">{draft.theme.name}</p>
+        <p class="text-sm font-semibold" style:font-family="var(--tx-font-heading)">{draft.theme.name}</p>
         <div class="rounded-md border border-border bg-surface p-2.5 text-surface-foreground shadow-sm">
           <p class="text-xs">A card on the surface color.</p>
           <p class="text-[11px] text-muted-foreground">Muted supporting text.</p>
         </div>
         <div class="flex flex-wrap gap-1.5">
-          <span class="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground" style:border-radius="var(--py-radius)">Primary</span>
-          <span class="inline-flex items-center rounded-md bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground" style:border-radius="var(--py-radius)">Secondary</span>
+          <span class="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground" style:border-radius="var(--tx-radius)">Primary</span>
+          <span class="inline-flex items-center rounded-md bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground" style:border-radius="var(--tx-radius)">Secondary</span>
           <span class="inline-flex items-center rounded-md bg-destructive px-2.5 py-1 text-xs font-medium text-destructive-foreground">Delete</span>
           <span class="inline-flex items-center rounded-full bg-success px-2 py-0.5 text-[11px] text-success-foreground">Success</span>
         </div>
@@ -599,7 +621,7 @@ const inputClass =
         {/if}
         <Btn busy={sharing} disabled={!('theme' in draft)} onclick={copyShareLink}>Copy draft share link</Btn>
       </div>
-      {#if sharedLink}<textarea class="{inputClass} mt-1 h-16 font-mono" readonly aria-label="Theme share link">{sharedLink}</textarea>{/if}
+      {#if sharedLink}<Textarea class="{inputClass} mt-1 h-16 font-mono" readonly value={sharedLink} aria-label="Theme share link" />{/if}
       <p class="mt-1 text-[11px] text-muted-foreground">Saved as <code class="font-mono">{draft.theme.id}</code>. Saving again with the same name replaces it.</p>
     {/if}
   </Section>
@@ -625,20 +647,20 @@ const inputClass =
     {/if}
     {#if exported && downloadHref}
       <div class="mt-2 grid gap-1">
-        <textarea class="{inputClass} h-24 font-mono" readonly aria-label="Exported theme JSON">{exported.json}</textarea>
+        <Textarea class="{inputClass} h-24 font-mono" readonly value={exported.json} aria-label="Exported theme JSON" />
         <a class="text-[11px] font-medium text-primary underline" href={downloadHref} download={`${exported.id}.theme.json`}>Download {exported.id}.theme.json</a>
       </div>
     {/if}
     <div class="mt-3 grid gap-1.5">
       <label class="grid gap-1 text-[11px] text-muted-foreground">
         Import theme JSON
-        <textarea class="{inputClass} h-20 font-mono" bind:value={importText} aria-label="Theme JSON to import" spellcheck="false"></textarea>
+        <Textarea class="{inputClass} h-20 font-mono" bind:value={importText} aria-label="Theme JSON to import" spellcheck="false"></Textarea>
       </label>
       <div class="flex flex-wrap items-center gap-1.5">
         <Btn onclick={importTheme} disabled={!importText.trim()}>Import</Btn>
         <label class="text-[11px] text-muted-foreground">
           or a file
-          <input type="file" accept="application/json,.json" class="text-[11px]" onchange={importFile} aria-label="Theme file to import" />
+          <FileInput accept="application/json,.json" class="text-[11px]" onchange={importFile} label="Theme file to import" />
         </label>
       </div>
       {#if importError}<p class="text-[11px] text-destructive" role="alert">{importError}</p>{/if}

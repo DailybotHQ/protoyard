@@ -6,8 +6,10 @@ import {
   MOTION_PRESETS,
   RADIUS_PRESETS,
 } from '@protoyard/themes';
+import { Slider } from 'texuli/slider';
 import Section from '../primitives/Section.svelte';
 import Segmented from '../primitives/Segmented.svelte';
+import SelectField from '../primitives/SelectField.svelte';
 import SourceBadge from '../primitives/SourceBadge.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
 
@@ -63,18 +65,19 @@ const formatDensity = (value: number) =>
     />
     <label class="block text-[11px] text-muted-foreground">
       <span class="flex justify-between"><span>Fine tune</span><span class="font-mono text-foreground">{formatDensity(density)}</span></span>
-      <input
-        type="range"
-        min="0.75"
-        max="1.25"
-        step="0.025"
+      <Slider
+        min={0.75}
+        max={1.25}
+        step={0.025}
         class="mt-1 w-full accent-primary"
         value={density}
         disabled={applying}
+        label="Density"
         aria-label="Density"
-        aria-valuetext={`${density} times`}
-        onchange={(event) =>
-          apply('density', { density: Number((event.currentTarget as HTMLInputElement).value) })}
+        getValueText={(value) => `${value} times`}
+        onValueChange={(value) => {
+          if (typeof value === 'number') apply('density', { density: value });
+        }}
       />
     </label>
   </div>
@@ -108,21 +111,16 @@ const formatDensity = (value: number) =>
 
 <Section title="Font pairing" description="System-first font stacks; nothing is downloaded.">
   {#snippet actions()}{#if appearance.font}<SourceBadge source={appearance.font.source} />{/if}{/snippet}
-  <select
+  <SelectField
     class="h-8 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground disabled:opacity-60"
-    aria-label="Font pairing"
+    label="Font pairing"
     value={appearance.font?.value ?? THEME}
     disabled={applying}
-    onchange={(event) => {
-      const value = (event.currentTarget as HTMLSelectElement).value;
+    onchange={(value) => {
       apply('font', { font: value === THEME ? undefined : (value as Patch['font']) });
     }}
-  >
-    <option value={THEME}>Theme</option>
-    {#each FONT_PRESETS as preset (preset.id)}
-      <option value={preset.id}>{preset.label}</option>
-    {/each}
-  </select>
+    options={[{ value: THEME, label: 'Theme' }, ...FONT_PRESETS.map((preset) => ({ value: preset.id, label: preset.label }))]}
+  />
 </Section>
 
 <Section title="Motion" description="Transition speed and easing. Reduced motion still wins.">

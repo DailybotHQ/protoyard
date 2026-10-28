@@ -6,6 +6,7 @@ import { createPrototypeRuntime, type ProtoyardRuntime } from '../../runtime/src
 import { createTasksDefinition } from '../../runtime/tests/fixtures/tasks-prototype.ts';
 import { BUILTIN_THEMES } from '../../themes/src/index.ts';
 import { type DevtoolsHandle, mountDevtools } from '../src/index.ts';
+import { selectOption } from './select-option.ts';
 
 /**
  * DevTools → Look style controls on a real runtime: density presets and fine
@@ -62,7 +63,7 @@ describe('DevTools style controls', () => {
     for (const group of ['Density preset', 'Corner radius', 'Elevation', 'Motion']) {
       expect(checked(panel, group), group).toEqual(['Theme']);
     }
-    expect((panel.getByLabelText('Font pairing') as HTMLSelectElement).value).toBe('theme');
+    expect(panel.getByRole('combobox', { name: 'Font pairing' }).textContent).toContain('Theme');
     expect(
       within(panel.getByRole('radiogroup', { name: 'Corner radius' }))
         .getAllByRole('radio')
@@ -81,9 +82,7 @@ describe('DevTools style controls', () => {
     await pick('Corner radius', 'Round');
     await pick('Elevation', 'Layered');
     await pick('Motion', 'Subtle');
-    await fireEvent.change(panel.getByLabelText('Font pairing'), {
-      target: { value: 'editorial' },
-    });
+    await selectOption('Font pairing', 'Editorial serif');
     await settle();
 
     await waitFor(() =>
@@ -111,9 +110,11 @@ describe('DevTools style controls', () => {
     expect(runtime.theme.appearance().density).toEqual({ value: 1.125, source: 'override' });
     expect(checked(panel, 'Density preset')).toEqual(['Comfortable']);
 
-    await fireEvent.change(panel.getByRole('slider', { name: 'Density' }), {
-      target: { value: '1.05' },
-    });
+    const slider = panel.getByRole('slider', { name: 'Density' });
+    for (let i = 0; i < 3; i++) {
+      await fireEvent.keyDown(slider, { key: 'ArrowLeft' });
+      await settle();
+    }
     await settle();
     expect(runtime.theme.appearance().density).toEqual({ value: 1.05, source: 'override' });
     // Between presets: no preset is checked.
@@ -140,7 +141,9 @@ describe('DevTools style controls', () => {
     await fireEvent.click(within(radius).getByRole('radio', { name: 'Pill' }));
     await settle();
     expect(radius.getAttribute('aria-busy')).toBe('true');
-    expect((panel.getByLabelText('Font pairing') as HTMLSelectElement).disabled).toBe(true);
+    expect(
+      (panel.getByRole('combobox', { name: 'Font pairing' }) as HTMLButtonElement).disabled
+    ).toBe(true);
     release();
     await waitFor(() => expect(runtime.theme.appearance().radius?.value).toBe('pill'));
     await settle();

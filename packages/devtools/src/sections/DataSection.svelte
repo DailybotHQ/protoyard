@@ -8,6 +8,7 @@ import {
 import { formatCell } from '../format.ts';
 import Btn from '../primitives/Btn.svelte';
 import Confirm from '../primitives/Confirm.svelte';
+import Glyph from '../primitives/Glyph.svelte';
 import Section from '../primitives/Section.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
 
@@ -147,14 +148,14 @@ function pick(name: string) {
 <Section title="Tables">
   {#snippet actions()}
     <Btn variant="ghost" busy={loading} onclick={refresh} aria-label="Refresh counts">
-      <RefreshCw class="size-3.5" aria-hidden="true" />
+      <Glyph icon={RefreshCw} class="size-3.5" aria-hidden="true" />
     </Btn>
   {/snippet}
   {#if error}<p class="mb-2 text-xs text-destructive" role="alert">{error}</p>{/if}
   <ul class="grid grid-cols-2 gap-1">
     {#each tables as name (name)}
       <li>
-        <button
+        <Btn
           type="button"
           class="flex min-h-touch w-full items-center justify-between gap-2 rounded-md border px-2 text-left text-xs focus-visible:outline-2 focus-visible:outline-ring sm:min-h-7 {table ===
           name
@@ -165,7 +166,7 @@ function pick(name: string) {
         >
           <span class="truncate font-mono {name.startsWith('py_') ? 'text-muted-foreground' : ''}">{name}</span>
           <span class="font-mono tabular-nums text-muted-foreground">{counts[name] ?? '…'}</span>
-        </button>
+        </Btn>
       </li>
     {/each}
   </ul>
