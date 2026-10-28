@@ -1,4 +1,15 @@
 {
   "unit": "templates",
-  "entries": []
+  "entries": [
+    {
+      "file": "templates/course-lms/src/screens/CourseCatalog.svelte",
+      "rule": "input-as-choice",
+      "count": 1
+    },
+    {
+      "file": "templates/mobile-app/src/components/Segmented.svelte",
+      "rule": "input-as-choice",
+      "count": 1
+    }
+  ]
 }

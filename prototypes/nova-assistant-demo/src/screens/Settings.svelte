@@ -1,6 +1,6 @@
 <script lang="ts">
 import { ArrowLeft, Database, Save, ShieldCheck, Sparkles } from '@lucide/svelte';
-import { Button, Input, Select, Textarea } from '@protoyard/ui';
+import { Button, Checkbox, Input, Select, Textarea } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
 
 import { useAssistant } from '../lib/context.ts';
@@ -93,7 +93,7 @@ async function clearMemory() {
 
     <section class="space-y-4" aria-labelledby="memory-title">
       <div class="border-b border-border pb-3"><h2 id="memory-title" class="text-sm font-semibold">Memory</h2><p class="mt-1 text-xs text-muted-foreground">Stored in this prototype's IndexedDB. Simulated roles are UX only, not security.</p></div>
-      <label class="flex items-center gap-3 text-sm"><Input type="checkbox" checked={memoryEnabled} onchange={(event) => (memoryEnabled = event.currentTarget.checked)} class="size-4 accent-primary" /> Use saved memory in simulated replies</label>
+      <Checkbox bind:checked={memoryEnabled} label="Use saved memory in simulated replies" class="text-sm" />
       <label class="block text-xs font-medium text-muted-foreground" for="memory-content">Saved memory
         <Textarea id="memory-content" bind:value={memory} maxlength={1200} rows={3} class="mt-2 w-full resize-y rounded-xl border border-border bg-background p-3 text-sm font-normal text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"></Textarea>
       </label>

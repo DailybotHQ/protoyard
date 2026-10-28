@@ -47,6 +47,20 @@ describe('scanSource', () => {
     expect(rules('templates/x/src/A.svelte', src)['raw-control']).toBe(2);
   });
 
+  it('flags Texuli Input used as a checkbox or radio, including bind:checked', () => {
+    const source = `<script>const ignored = '<Input type="checkbox">';</script>
+      <Input type="checkbox" checked={active} />
+      <Input bind:checked={enabled} />
+      <Input
+        bind:value={choice}
+        type='radio'
+      />
+      <Input type="text" bind:value={name} />
+      <Checkbox type="checkbox" />
+      <!-- <Input type="radio" /> -->`;
+    expect(rules('templates/shop/src/Choice.svelte', source)['input-as-choice']).toBe(3);
+  });
+
   it('flags leaf UI-package components that compose nothing from Texuli or Protoyard', () => {
     const leaf =
       '<script lang="ts">let { label } = $props();</script>\n<span class="badge">{label}</span>';
