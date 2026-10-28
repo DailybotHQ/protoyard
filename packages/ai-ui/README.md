@@ -66,7 +66,11 @@ The composer supports Enter to send, Shift+Enter for a newline, Escape to stop a
 
 Conversation folder controls require `folders`, `onCreateFolder`, and `onMoveToFolder` callbacks. Features without a callback are disabled. The caller supplies `onRegenerate`, `onEditMessage`, `onBranchChange`, `onFeedback`, and `onShare` only when those operations are implemented.
 
-All components use Svelte 5 runes and theme token utility classes. Import `styles.css` to register this package's class sources with Tailwind. Components accept data-only messages from `@protoyard/ai`; no credentials, provider SDKs, generated models or external network calls are included.
+All components use Svelte 5 runes and theme token utility classes. Import `styles.css` to register this package's class sources with Tailwind.
+
+### Built on Texuli
+
+Every message renders with `ChatMessageDisplay` from `@texuli/chat` (author, role, time and a rich body), and every control is a `texuli` component: `Button`/`IconButton`, `Textarea`/`Input`, `Select`, `Checkbox`/`RadioGroup`, `Field`, `Card`, `Badge`/`Tag`, `Table`, `Code`, `Kbd`, `DropdownMenu` and `EmptyState`. Lucide glyphs render through `LucideIcon` from `texuli/icons/lucide` (or `Icon` for Texuli's built-in names). The assistant behavior stays Protoyard's because `@texuli/chat@0.3.0` does not expose it yet: the composer's stop while streaming, slash and mention suggestions and model choice, and the list's per-message actions (feedback, branches, edit, regenerate), its virtual window and its per-conversation scroll anchor. Those are reported Texuli gaps; the adapters keep the public props unchanged. Rich answers are still parsed by `@protoyard/ai` (`parseMarkdown`) and render as text, never HTML. Components accept data-only messages from `@protoyard/ai`; no credentials, provider SDKs, generated models or external network calls are included.
 
 ## Simulated voice mode
 
