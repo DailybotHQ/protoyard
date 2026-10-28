@@ -117,8 +117,9 @@ describe('AnalyticsScreen', () => {
     await fireEvent.change(measure, { target: { value: '1' } });
     await waitFor(() => expect(location.hash).toContain('measure=1'));
 
-    const breakdown = await screen.findByLabelText('Break down by');
-    await fireEvent.change(breakdown, { target: { value: 'status' } });
+    // The breakdown is Texuli's accessible select: open it, then choose the option.
+    await fireEvent.click(await screen.findByRole('combobox', { name: 'Break down by' }));
+    await fireEvent.click(await screen.findByRole('option', { name: /status/i }));
     await waitFor(() => expect(location.hash).toContain('dimension=status'));
     const reloaded = parseAnalyticsQuery(
       new URLSearchParams(location.hash.split('?')[1]),
