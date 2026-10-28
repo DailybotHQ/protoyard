@@ -86,6 +86,24 @@ describe('applyAppearance', () => {
     expect(root.dataset.pyMotion).toBe('full');
   });
 
+  it('keeps deprecated aliases equivalent to canonical tokens in light and dark mode', () => {
+    for (const mode of ['light', 'dark'] as const) {
+      const applied = applyAppearance(root, { theme: oceanTheme, resolvedMode: mode });
+      for (const [name, value] of Object.entries(applied.vars)) {
+        if (!name.startsWith('--tx-')) continue;
+        const legacyName = name.replace('--tx-', '--py-');
+        const legacyValue = applied.vars[legacyName];
+        expect(legacyValue, `${mode}/${name} alias exists`).toBeDefined();
+        expect(legacyValue?.replaceAll('--py-', '--tx-'), `${mode}/${name}`).toBe(value);
+      }
+      for (const token of ['background', 'foreground', 'primary', 'primary-foreground', 'chart1']) {
+        expect(root.style.getPropertyValue(`--py-${token}`), `${mode}/${token}`).toBe(
+          root.style.getPropertyValue(`--tx-${token}`)
+        );
+      }
+    }
+  });
+
   it('can scope a theme to one element without touching the document', () => {
     const preview = document.createElement('div');
     document.body.append(preview);
@@ -239,7 +257,9 @@ describe('style preset overrides', () => {
     expect(root.style.getPropertyValue('--py-radius')).toBe('9999px');
     expect(root.style.getPropertyValue('--py-elevation-style')).toBe('flat');
     expect(root.style.getPropertyValue('--py-shadow-soft')).toBe('none');
-    expect(root.style.getPropertyValue('--py-font-heading')).toBe(editorial?.fontFamilyHeading);
+    expect(root.style.getPropertyValue('--py-font-heading')).toBe(
+      editorial?.fontFamilyHeading.replaceAll('--tx-', '--py-')
+    );
     expect(root.style.getPropertyValue('--py-motion-base')).toBe('300ms');
     expect(root.style.getPropertyValue('--py-motion-easing')).toBe(
       'cubic-bezier(0.34, 1.56, 0.64, 1)'
@@ -303,13 +323,13 @@ describe('base.css', () => {
 
   it('maps every palette token into the Tailwind theme', () => {
     for (const token of Object.keys(violetTheme.light)) {
-      const cssVar = tokenToCssVar(token);
-      const twName = cssVar.replace('--py-', '').replace(/^chart(\d)$/, 'chart-$1');
+      const cssVar = tokenToCssVar(token).replace('--py-', '--tx-');
+      const twName = cssVar.replace('--tx-', '').replace(/^chart(\d)$/, 'chart-$1');
       const mapping =
         token === 'surface'
-          ? `--color-${twName}: var(--py-surface-fill, var(${cssVar}));`
+          ? `--color-${twName}: var(--tx-surface-fill, var(${cssVar}));`
           : token === 'elevated'
-            ? `--color-${twName}: var(--py-elevated-fill, var(${cssVar}));`
+            ? `--color-${twName}: var(--tx-elevated-fill, var(${cssVar}));`
             : `--color-${twName}: var(${cssVar});`;
       expect(css, token).toContain(mapping);
     }
@@ -318,17 +338,17 @@ describe('base.css', () => {
 
   it('ships Violet defaults that match the preset (first paint before boot)', () => {
     for (const [token, value] of Object.entries(violetTheme.light)) {
-      expect(css).toContain(`${tokenToCssVar(token)}: ${value};`);
+      expect(css).toContain(`${tokenToCssVar(token).replace('--py-', '--tx-')}: ${value};`);
     }
     const lightVars = themeVariables({ theme: violetTheme, resolvedMode: 'light' });
     const darkVars = themeVariables({ theme: violetTheme, resolvedMode: 'dark' });
-    for (const name of ['--py-primary-hover', '--py-destructive-hover']) {
+    for (const name of ['--tx-primary-hover', '--tx-destructive-hover']) {
       expect(css).toContain(`${name}: ${lightVars[name]};`);
       expect(css.slice(css.indexOf(':root.dark'))).toContain(`${name}: ${darkVars[name]};`);
     }
     const darkBlock = css.slice(css.indexOf(':root.dark'));
     for (const [token, value] of Object.entries(violetTheme.dark)) {
-      expect(darkBlock).toContain(`${tokenToCssVar(token)}: ${value};`);
+      expect(darkBlock).toContain(`${tokenToCssVar(token).replace('--py-', '--tx-')}: ${value};`);
     }
   });
 
@@ -346,9 +366,9 @@ describe('base.css', () => {
       expect(css).toContain(`@utility ${utility} {`);
     }
     expect(css).toContain('--py-app-height: 100dvh;');
-    expect(css).toContain('height: var(--py-app-height, 100dvh);');
-    expect(css).toContain('min-height: var(--py-app-height, 100dvh);');
-    expect(css).toContain('max-height: var(--py-app-height, 100dvh);');
+    expect(css).toContain('height: var(--tx-app-height, 100dvh);');
+    expect(css).toContain('min-height: var(--tx-app-height, 100dvh);');
+    expect(css).toContain('max-height: var(--tx-app-height, 100dvh);');
 
     for (const [side, inset] of [
       ['top', 'top'],
@@ -356,23 +376,23 @@ describe('base.css', () => {
       ['left', 'left'],
       ['right', 'right'],
     ]) {
-      expect(css).toContain(`max(env(safe-area-inset-${inset}, 0px), var(--py-safe-${side}, 0px))`);
+      expect(css).toContain(`max(env(safe-area-inset-${inset}, 0px), var(--tx-safe-${side}, 0px))`);
     }
   });
 
   it('maps style dimensions and progressive glass surfaces into CSS tokens', () => {
     for (const token of [
-      '--font-weight-normal: var(--py-font-weight-body, 400);',
-      '--text-base: var(--py-font-size-base, 1rem);',
-      '--default-border-width: var(--py-border-width, 1px);',
-      '--shadow-soft: var(--py-shadow-soft,',
-      '--duration-fast: var(--py-motion-fast, 150ms);',
-      '--tracking-heading: var(--py-letter-spacing-heading, 0);',
+      '--font-weight-normal: var(--tx-font-weight-body, 400);',
+      '--text-base: var(--tx-font-size-base, 1rem);',
+      '--default-border-width: var(--tx-border-width, 1px);',
+      '--shadow-soft: var(--tx-shadow-soft,',
+      '--duration-fast: var(--tx-motion-fast, 150ms);',
+      '--tracking-heading: var(--tx-letter-spacing-heading, 0);',
     ]) {
       expect(css).toContain(token);
     }
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(css).toContain('--py-motion-fast: 0ms !important;');
+    expect(css).toContain('--py-motion-fast: var(--tx-motion-fast) !important;');
     expect(css).toContain('[data-py-surface="glass"]');
     expect(css).toContain(
       '@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))'
@@ -422,7 +442,7 @@ describe('base.css', () => {
     const supportStart = css.indexOf('@supports (backdrop-filter: blur(1px))');
     expect(supportStart).toBeGreaterThan(-1);
     const glassRules = css.slice(supportStart);
-    expect(glassRules).toMatch(/--py-surface-fill: color-mix\(\s*in srgb,\s*var\(--py-surface\)/);
-    expect(glassRules).toContain('backdrop-filter: blur(var(--py-glass-blur, 16px));');
+    expect(glassRules).toMatch(/--tx-surface-fill: color-mix\(\s*in srgb,\s*var\(--tx-surface\)/);
+    expect(glassRules).toContain('backdrop-filter: blur(var(--tx-glass-blur, 16px));');
   });
 });

@@ -43,43 +43,55 @@ A theme is a `Theme` (`packages/core/src/theme.ts`, validated by
 ### Color tokens → CSS variables → Tailwind utilities
 
 `applyAppearance()` writes each palette token of the resolved mode as a
-`--py-*` custom property (`tokenToCssVar('primaryForeground')` →
-`--py-primary-foreground`). `@protoyard/themes/base.css` maps them into the
-Tailwind 4 theme, so you style with ordinary utilities:
+canonical `--tx-*` custom property (`primaryForeground` →
+`--tx-primary-foreground`) and also writes its deprecated `--py-*` alias for
+already exported prototypes. New CSS and Tailwind mappings use only the
+canonical name. `@protoyard/themes/base.css` maps them into the Tailwind 4
+theme, so you style with ordinary utilities:
 
 | Palette token | CSS variable | Tailwind utilities |
 | --- | --- | --- |
-| `background` / `foreground` | `--py-background` / `--py-foreground` | `bg-background`, `text-foreground` |
-| `surface` / `surfaceForeground` | `--py-surface` / `--py-surface-foreground` | `bg-surface`, `text-surface-foreground` |
-| `elevated` | `--py-elevated` | `bg-elevated` |
-| `muted` / `mutedForeground` | `--py-muted` / `--py-muted-foreground` | `bg-muted`, `text-muted-foreground` |
-| `border`, `input`, `ring` | `--py-border`, `--py-input`, `--py-ring` | `border-border`, `border-input`, `ring-ring` |
-| `primary` / `primaryForeground` | `--py-primary` / `--py-primary-foreground` | `bg-primary`, `text-primary-foreground` |
-| `secondary` / `secondaryForeground` | `--py-secondary` / … | `bg-secondary`, `text-secondary-foreground` |
-| `accent` / `accentForeground` | `--py-accent` / … | `bg-accent`, `text-accent-foreground` |
-| `destructive`, `success`, `warning`, `info` (+ `…Foreground`) | `--py-destructive` … | `bg-destructive`, `text-success`, `bg-warning text-warning-foreground`… |
-| `sidebar`, `sidebarForeground`, `sidebarBorder` | `--py-sidebar` … | `bg-sidebar`, `text-sidebar-foreground`, `border-sidebar-border` |
-| `chart1` … `chart5` | `--py-chart1` … `--py-chart5` | `bg-chart-1` … `bg-chart-5`, `text-chart-1`… |
-| [Chart palette](#chart-palettes) (optional `theme.charts`) | `--py-chart6` … `--py-chart8`, `--py-seq-1` … `--py-seq-9`, `--py-div-1` … `--py-div-9`, `--py-chart-grid`, `--py-chart-axis` | `bg-chart-6` … `bg-chart-8` (fall back to series 1–3), `stroke-chart-grid`, `text-chart-axis` |
-| `shadow` | `--py-shadow` | used inside `shadow-soft`, `shadow-float` |
-| (computed) | `--py-primary-hover`, `--py-destructive-hover` | `bg-primary-hover`, `bg-destructive-hover` |
+| `background` / `foreground` | `--tx-background` / `--tx-foreground` | `bg-background`, `text-foreground` |
+| `surface` / `surfaceForeground` | `--tx-surface` / `--tx-surface-foreground` | `bg-surface`, `text-surface-foreground` |
+| `elevated` | `--tx-elevated` | `bg-elevated` |
+| `muted` / `mutedForeground` | `--tx-muted` / `--tx-muted-foreground` | `bg-muted`, `text-muted-foreground` |
+| `border`, `input`, `ring` | `--tx-border`, `--tx-input`, `--tx-ring` | `border-border`, `border-input`, `ring-ring` |
+| `primary` / `primaryForeground` | `--tx-primary` / `--tx-primary-foreground` | `bg-primary`, `text-primary-foreground` |
+| `secondary` / `secondaryForeground` | `--tx-secondary` / … | `bg-secondary`, `text-secondary-foreground` |
+| `accent` / `accentForeground` | `--tx-accent` / … | `bg-accent`, `text-accent-foreground` |
+| `destructive`, `success`, `warning`, `info` (+ `…Foreground`) | `--tx-destructive` … | `bg-destructive`, `text-success`, `bg-warning text-warning-foreground`… |
+| `sidebar`, `sidebarForeground`, `sidebarBorder` | `--tx-sidebar` … | `bg-sidebar`, `text-sidebar-foreground`, `border-sidebar-border` |
+| `chart1` … `chart5` | `--tx-chart1` … `--tx-chart5` | `bg-chart-1` … `bg-chart-5`, `text-chart-1`… |
+| [Chart palette](#chart-palettes) (optional `theme.charts`) | `--tx-chart6` … `--tx-chart8`, `--tx-seq-1` … `--tx-seq-9`, `--tx-div-1` … `--tx-div-9`, `--tx-chart-grid`, `--tx-chart-axis` | `bg-chart-6` … `bg-chart-8` (fall back to series 1–3), `stroke-chart-grid`, `text-chart-axis` |
+| `shadow` | `--tx-shadow` | used inside `shadow-soft`, `shadow-float` |
+| (computed) | `--tx-primary-hover`, `--tx-destructive-hover` | `bg-primary-hover`, `bg-destructive-hover` |
 
 The two hover fills are computed per theme and mode by `hoverFill()`: a
 visible step darker or lighter that keeps the button text at 4.5:1 or more.
 
-### Texuli's `--tx-*` variables (`--py-*` are their aliases)
+### Deprecated `--py-*` aliases
+
+`--py-*` names remain writable for compatibility with exported prototypes
+and existing custom CSS. They are deprecated: new styles should use
+`--tx-*`. `applyAppearance()` writes both names from the same value in light
+and dark mode, and values that refer to other tokens use their own prefix
+(`--tx-shadow-soft` refers to `var(--tx-shadow)`; its alias refers to
+`var(--py-shadow)`).
+
+### Texuli's extended appearance metadata
 
 On a page that calls `enableTexuliAppearance()` from
-`@protoyard/themes/texuli`, `applyAppearance()` also writes **Texuli's**
-variables: the `--tx-*` set of `@texuli/tokens` and its `data-tx-theme`,
-`data-tx-mode`, `data-tx-motion` and `data-tx-surface` attributes. Texuli
-components read those names, and the `--py-*` names above stay, as aliases.
+`@protoyard/themes/texuli`, the package uses `@texuli/tokens` to write its
+extended semantic roles and `data-tx-theme`, `data-tx-mode`,
+`data-tx-motion` and `data-tx-surface` attributes. The core `--tx-*` token
+set and deprecated `--py-*` aliases are written by `applyAppearance()` on
+every page.
 
-- **Equal values.** Every palette role both contracts share has the same
-  value under both names: `--py-primary` = `--tx-primary`. The hover fills
-  and the style tokens (radius, fonts, density, motion, shadows, focus ring,
-  border width) match too. Values that reference other tokens point at their
-  own family's names, so `--tx-shadow-soft` uses `var(--tx-shadow)`.
+- **Equal values.** Every palette role and style token has the same resolved
+  value under both names: `--tx-primary` = `--py-primary`. Values that
+  reference other tokens point at their own family's names, so
+  `--tx-shadow-soft` uses `var(--tx-shadow)` and `--py-shadow-soft` uses
+  `var(--py-shadow)`.
 - **The extra roles.** Texuli has 16 roles Protoyard's palette lacks: soft
   tones, `link`, `linkVisited`, `selection`, `canvas`, `borderStrong`,
   `elevatedForeground`, `subtle`, `overlay`, `scrim`, `sidebarPrimary`.
@@ -90,13 +102,14 @@ components read those names, and the `--py-*` names above stay, as aliases.
   level. The six built-ins fail only one check: their light-mode `input`
   borders measure about 1.4:1, under WCAG 1.4.11's 3:1. Fixing that would
   restyle every prototype, so it is a separate decision.
-- **Opt-in, on in every prototype.** Enabling them re-applies the current
-  appearance, and later calls write both families at once. Both reach the
-  no-flash cache.
+- **Opt-in metadata, on in every prototype.** Enabling the Texuli bridge
+  re-applies the current appearance and later calls write the extended roles
+  and `data-tx-*` attributes. Canonical tokens and deprecated aliases reach
+  the no-flash cache in either case.
   - The renderer's `bindAppearance` calls `enableTexuliAppearance()`, because
     `@protoyard/ui` renders Texuli components; DevTools' `mountDevtools`
-    calls it too. A page that never imports `@protoyard/themes/texuli` writes
-    only `--py-*`.
+    calls it too. A page that never imports `@protoyard/themes/texuli` still
+    writes core `--tx-*` tokens and deprecated `--py-*` aliases.
   - The subpath imports `@texuli/tokens/css` and `@texuli/tokens/contract`,
     never the package root, whose barrel re-exports the whole theme library
     ([TEXULI.md](TEXULI.md#themes-come-from-texulitokens)).
@@ -105,18 +118,18 @@ components read those names, and the `--py-*` names above stay, as aliases.
 
 | Variable | From | Used for |
 | --- | --- | --- |
-| `--py-font-sans`, `--py-font-heading`, `--py-font-mono` | `fontFamily`, `fontFamilyHeading`, `fontFamilyMono` | `font-sans`, `font-heading`, `font-mono`; `h1`–`h4` use the heading font |
-| `--py-font-size-xs` … `--py-font-size-9xl` | `style.typography.scaleRatio` | `text-xs` … `text-9xl`. `null` keeps Tailwind's sizes; a ratio gives `ratio^n rem` with `base` = `1rem` |
-| `--py-font-weight-body`, `-medium`, `-heading`, `-bold` | `style.typography.weights` | `font-normal`, `font-medium`, `font-semibold`, `font-bold`; body and heading weights |
-| `--py-letter-spacing-body`, `-heading` | `style.typography.tracking` | body and `h1`–`h4` letter spacing; `tracking-body`, `tracking-heading` |
-| `--py-radius` | `radius` | `rounded-lg`; `rounded-xs` … `rounded-2xl` are derived from it |
-| `--py-radius-step-6`, `-4`, `-2` | `style.shape.radiusScale` | The offsets between radius steps (`6px`, `4px`, `2px` × scale) |
-| `--py-border-width` | `style.shape.borderWidth` | Tailwind's default border width |
-| `--py-shadow-soft`, `--py-shadow-float` | `style.elevation` | `shadow-soft`, `shadow-float` |
-| `--py-density` | `density` (or a density override) | Multiplies Tailwind's `--spacing`, so every `p-4`, `gap-2` scales |
-| `--py-motion-fast`, `-base`, `-slow`, `--py-motion-easing` | `style.motion` | `duration-fast`, `duration-base`, `duration-slow`, default transition duration and easing; `0ms` / `linear` under reduced motion |
-| `--py-focus-ring-width`, `--py-focus-ring-offset` | `style.focusRing` | `@protoyard/ui` focus-ring profiles |
-| `--py-motion` | reduced motion | `0` when reduced, `1` otherwise |
+| `--tx-font-sans`, `--tx-font-heading`, `--tx-font-mono` | `fontFamily`, `fontFamilyHeading`, `fontFamilyMono` | `font-sans`, `font-heading`, `font-mono`; `h1`–`h4` use the heading font |
+| `--tx-font-size-xs` … `--tx-font-size-9xl` | `style.typography.scaleRatio` | `text-xs` … `text-9xl`. `null` keeps Tailwind's sizes; a ratio gives `ratio^n rem` with `base` = `1rem` |
+| `--tx-font-weight-body`, `-medium`, `-heading`, `-bold` | `style.typography.weights` | `font-normal`, `font-medium`, `font-semibold`, `font-bold`; body and heading weights |
+| `--tx-letter-spacing-body`, `-heading` | `style.typography.tracking` | body and `h1`–`h4` letter spacing; `tracking-body`, `tracking-heading` |
+| `--tx-radius` | `radius` | `rounded-lg`; `rounded-xs` … `rounded-2xl` are derived from it |
+| `--tx-radius-step-6`, `-4`, `-2` | `style.shape.radiusScale` | The offsets between radius steps (`6px`, `4px`, `2px` × scale) |
+| `--tx-border-width` | `style.shape.borderWidth` | Tailwind's default border width |
+| `--tx-shadow-soft`, `--tx-shadow-float` | `style.elevation` | `shadow-soft`, `shadow-float` |
+| `--tx-density` | `density` (or a density override) | Multiplies Tailwind's `--spacing`, so every `p-4`, `gap-2` scales |
+| `--tx-motion-fast`, `-base`, `-slow`, `--tx-motion-easing` | `style.motion` | `duration-fast`, `duration-base`, `duration-slow`, default transition duration and easing; `0ms` / `linear` under reduced motion |
+| `--tx-focus-ring-width`, `--tx-focus-ring-offset` | `style.focusRing` | `@protoyard/ui` focus-ring profiles |
+| `--tx-motion` | reduced motion | `0` when reduced, `1` otherwise |
 
 `applyAppearance()` also sets `data-py-theme`, `data-py-mode`,
 `data-py-motion` (`reduce` or `full`), `data-py-surface` (`solid` or
@@ -235,7 +248,7 @@ await runtime.theme.clearOverride(); // back to the scenario, then the theme
   (`pill` gives pill buttons, `flat` bordered cards). The preset data loads
   as a small lazy chunk the first time a preset is active; until it arrives
   the page keeps what it shows. The density override and reduced motion
-  still win. The no-flash cache replays the merged `--py-*` variables, so a
+  still win. The no-flash cache replays the merged `--tx-*` variables, so a
   reload paints the overridden look first.
 - **Storage.** Overrides live in the prototype's control DB only, never the
   data DB (ADR-005), and `theme.clearOverride()` or DevTools' "Clear
@@ -252,9 +265,9 @@ await runtime.theme.clearOverride(); // back to the scenario, then the theme
 `FONT_CATALOG` (`packages/themes/src/fonts.ts`) has eight system-first
 pairings: `system`, `humanist`, `geometric`, `grotesk`, `editorial` (serif
 headings), `rounded`, `condensed` and `mono`. Each stack is
-`var(--py-font-stack-<id>-…, <local fallback>)`, so choosing one never
+`var(--tx-font-stack-<id>-…, <local fallback>)`, so choosing one never
 downloads a font. `@protoyard/themes/fonts.css` is optional and only declares
-those `--py-font-stack-*` variables so a prototype can override them.
+those `--tx-font-stack-*` variables so a prototype can override them.
 `loadVariableFont({ family, src })` loads a self-hosted, same-origin `.woff2`
 face only when called; remote URLs and other formats are refused.
 
@@ -407,10 +420,10 @@ the three derived series colors may also shift hue a little.
 
 | Field | Content | CSS variables |
 | --- | --- | --- |
-| `categorical` | 8 series colors; the first five are `chart1` … `chart5` | `--py-chart1` … `--py-chart8` |
-| `sequential` | 9 steps, low → high values | `--py-seq-1` … `--py-seq-9` |
-| `diverging` | 9 steps, negative end → neutral midpoint (step 5) → positive end | `--py-div-1` … `--py-div-9` |
-| `grid`, `axis` | The palette's `border` and `mutedForeground` | `--py-chart-grid`, `--py-chart-axis` |
+| `categorical` | 8 series colors; the first five are `chart1` … `chart5` | `--tx-chart1` … `--tx-chart8` |
+| `sequential` | 9 steps, low → high values | `--tx-seq-1` … `--tx-seq-9` |
+| `diverging` | 9 steps, negative end → neutral midpoint (step 5) → positive end | `--tx-div-1` … `--tx-div-9` |
+| `grid`, `axis` | The palette's `border` and `mutedForeground` | `--tx-chart-grid`, `--tx-chart-axis` |
 
 Where the colors come from:
 
@@ -425,7 +438,7 @@ Where the colors come from:
   8 / 9 / 9 entries); without it they behave like the presets, and the charts
   kit repairs any `chart1` … `chart5` that fail.
 
-`applyAppearance` always writes `--py-chart-grid` and `--py-chart-axis`, and
+`applyAppearance` always writes `--tx-chart-grid` and `--tx-chart-axis`, and
 writes the series 1–8 and the ramps when the theme has a `charts` block. It
 removes series 6–8 and the ramps again when the next theme has none.
 `packages/themes/tests/charts.test.ts` checks every preset and library theme
@@ -891,8 +904,9 @@ crypto-ledger	Crypto Ledger	library
 ```
 
 **Export** a built-in or library theme (library themes are built on the fly
-with `loadLibraryTheme`). `css` prints both palettes as `--py-*` variables
-under `:root` and `.dark`:
+with `loadLibraryTheme`). `css` keeps the deprecated `--py-*` names in its
+output for compatibility with exported prototypes. For new styles, use the
+canonical `--tx-*` names documented above:
 
 ```text
 $ pnpm protoyard theme export fintech-ledger --format css
@@ -923,11 +937,11 @@ font family, density):
 ```text
 $ pnpm protoyard theme export ocean --format tailwind
 @theme {
-  --color-background: var(--py-background);
-  --color-foreground: var(--py-foreground);
+  --color-background: var(--tx-background);
+  --color-foreground: var(--tx-foreground);
   …
-  --color-shadow: var(--py-shadow);
-  --radius-theme: var(--py-radius);
+  --color-shadow: var(--tx-shadow);
+  --radius-theme: var(--tx-radius);
 }
 
 $ pnpm protoyard theme export violet --format tokens
@@ -945,7 +959,7 @@ $ pnpm protoyard theme export violet --format tokens
 
 The exports cover the palettes, radius, density and font family only, not
 the style profile. Two naming details differ from `base.css`: the `css`
-format names the font `--py-font-family` (the runtime uses `--py-font-sans`),
+format names the font `--tx-font-family` (the runtime uses `--tx-font-sans`),
 and the `tailwind` format names chart colors `--color-chart1` (the base
 stylesheet uses `--color-chart-1`). An unknown id exits with code 3 and lists
 the known ids.
@@ -1022,7 +1036,7 @@ the default colors and then switch. Two things prevent that:
 2. `defineProtoyardConfig()` injects `noFlashScript(namespace)` as the first
    `<head>` script. It replays the last applied appearance from
    `localStorage` (`protoyard.<namespace>.appearance`) before first paint:
-   the `--py-*` and `--tx-*` variables, mode class, theme id, motion,
+   the `--py-*` aliases and canonical `--tx-*` variables, mode class, theme id, motion,
    `data-py-surface`, their `data-tx-*` twins, and the allowlisted component
    profile attributes. Without a cache it still honors
    `prefers-color-scheme`.

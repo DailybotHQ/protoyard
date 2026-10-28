@@ -1,36 +1,62 @@
 /* Optional theme font stacks. Every stack is local/system-first and performs no request. */
 :root {
-  --py-font-stack-system-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --py-font-stack-system-heading: var(--py-font-stack-system-sans);
-  --py-font-stack-system-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --tx-font-stack-system-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --tx-font-stack-system-heading: var(--tx-font-stack-system-sans);
+  --tx-font-stack-system-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
-  --py-font-stack-humanist-sans: "Trebuchet MS", "Segoe UI", sans-serif;
-  --py-font-stack-humanist-heading: var(--py-font-stack-humanist-sans);
-  --py-font-stack-humanist-mono: var(--py-font-stack-system-mono);
+  --tx-font-stack-humanist-sans: "Trebuchet MS", "Segoe UI", sans-serif;
+  --tx-font-stack-humanist-heading: var(--tx-font-stack-humanist-sans);
+  --tx-font-stack-humanist-mono: var(--tx-font-stack-system-mono);
 
-  --py-font-stack-geometric-sans: "Avenir Next", Avenir, "Century Gothic", sans-serif;
-  --py-font-stack-geometric-heading: var(--py-font-stack-geometric-sans);
-  --py-font-stack-geometric-mono: var(--py-font-stack-system-mono);
+  --tx-font-stack-geometric-sans: "Avenir Next", Avenir, "Century Gothic", sans-serif;
+  --tx-font-stack-geometric-heading: var(--tx-font-stack-geometric-sans);
+  --tx-font-stack-geometric-mono: var(--tx-font-stack-system-mono);
 
-  --py-font-stack-grotesk-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --py-font-stack-grotesk-heading: var(--py-font-stack-grotesk-sans);
-  --py-font-stack-grotesk-mono: var(--py-font-stack-system-mono);
+  --tx-font-stack-grotesk-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --tx-font-stack-grotesk-heading: var(--tx-font-stack-grotesk-sans);
+  --tx-font-stack-grotesk-mono: var(--tx-font-stack-system-mono);
 
-  --py-font-stack-editorial-sans: var(--py-font-stack-system-sans);
-  --py-font-stack-editorial-heading:
+  --tx-font-stack-editorial-sans: var(--tx-font-stack-system-sans);
+  --tx-font-stack-editorial-heading:
     "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  --py-font-stack-editorial-mono: var(--py-font-stack-system-mono);
+  --tx-font-stack-editorial-mono: var(--tx-font-stack-system-mono);
 
-  --py-font-stack-rounded-sans: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif;
-  --py-font-stack-rounded-heading: var(--py-font-stack-rounded-sans);
-  --py-font-stack-rounded-mono: var(--py-font-stack-system-mono);
+  --tx-font-stack-rounded-sans: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif;
+  --tx-font-stack-rounded-heading: var(--tx-font-stack-rounded-sans);
+  --tx-font-stack-rounded-mono: var(--tx-font-stack-system-mono);
 
-  --py-font-stack-condensed-sans:
+  --tx-font-stack-condensed-sans:
     "Arial Narrow", "Roboto Condensed", "Liberation Sans Narrow", sans-serif;
-  --py-font-stack-condensed-heading: var(--py-font-stack-condensed-sans);
-  --py-font-stack-condensed-mono: var(--py-font-stack-system-mono);
+  --tx-font-stack-condensed-heading: var(--tx-font-stack-condensed-sans);
+  --tx-font-stack-condensed-mono: var(--tx-font-stack-system-mono);
 
-  --py-font-stack-mono-sans: var(--py-font-stack-system-sans);
-  --py-font-stack-mono-heading: var(--py-font-stack-system-sans);
-  --py-font-stack-mono-mono: var(--py-font-stack-system-mono);
+  --tx-font-stack-mono-sans: var(--tx-font-stack-system-sans);
+  --tx-font-stack-mono-heading: var(--tx-font-stack-system-sans);
+  --tx-font-stack-mono-mono: var(--tx-font-stack-system-mono);
+
+  /* Deprecated aliases for exported prototypes. */
+  --py-font-stack-system-sans: var(--tx-font-stack-system-sans);
+  --py-font-stack-system-heading: var(--tx-font-stack-system-heading);
+  --py-font-stack-system-mono: var(--tx-font-stack-system-mono);
+  --py-font-stack-humanist-sans: var(--tx-font-stack-humanist-sans);
+  --py-font-stack-humanist-heading: var(--tx-font-stack-humanist-heading);
+  --py-font-stack-humanist-mono: var(--tx-font-stack-humanist-mono);
+  --py-font-stack-geometric-sans: var(--tx-font-stack-geometric-sans);
+  --py-font-stack-geometric-heading: var(--tx-font-stack-geometric-heading);
+  --py-font-stack-geometric-mono: var(--tx-font-stack-geometric-mono);
+  --py-font-stack-grotesk-sans: var(--tx-font-stack-grotesk-sans);
+  --py-font-stack-grotesk-heading: var(--tx-font-stack-grotesk-heading);
+  --py-font-stack-grotesk-mono: var(--tx-font-stack-grotesk-mono);
+  --py-font-stack-editorial-sans: var(--tx-font-stack-editorial-sans);
+  --py-font-stack-editorial-heading: var(--tx-font-stack-editorial-heading);
+  --py-font-stack-editorial-mono: var(--tx-font-stack-editorial-mono);
+  --py-font-stack-rounded-sans: var(--tx-font-stack-rounded-sans);
+  --py-font-stack-rounded-heading: var(--tx-font-stack-rounded-heading);
+  --py-font-stack-rounded-mono: var(--tx-font-stack-rounded-mono);
+  --py-font-stack-condensed-sans: var(--tx-font-stack-condensed-sans);
+  --py-font-stack-condensed-heading: var(--tx-font-stack-condensed-heading);
+  --py-font-stack-condensed-mono: var(--tx-font-stack-condensed-mono);
+  --py-font-stack-mono-sans: var(--tx-font-stack-mono-sans);
+  --py-font-stack-mono-heading: var(--tx-font-stack-mono-heading);
+  --py-font-stack-mono-mono: var(--tx-font-stack-mono-mono);
 }

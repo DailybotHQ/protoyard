@@ -62,65 +62,65 @@ export const FONT_CATALOG: readonly FontPairing[] = [
     'system',
     'System',
     'system',
-    `var(--py-font-stack-system-sans, ${systemStack})`,
-    `var(--py-font-stack-system-heading, ${systemStack})`,
-    `var(--py-font-stack-system-mono, ${monoStack})`
+    `var(--tx-font-stack-system-sans, ${systemStack})`,
+    `var(--tx-font-stack-system-heading, ${systemStack})`,
+    `var(--tx-font-stack-system-mono, ${monoStack})`
   ),
   pairing(
     'humanist',
     'Humanist',
     'humanist',
-    `var(--py-font-stack-humanist-sans, ${stacks.humanist[0]})`,
-    `var(--py-font-stack-humanist-heading, ${stacks.humanist[0]})`,
-    `var(--py-font-stack-humanist-mono, ${monoStack})`
+    `var(--tx-font-stack-humanist-sans, ${stacks.humanist[0]})`,
+    `var(--tx-font-stack-humanist-heading, ${stacks.humanist[0]})`,
+    `var(--tx-font-stack-humanist-mono, ${monoStack})`
   ),
   pairing(
     'geometric',
     'Geometric',
     'geometric',
-    `var(--py-font-stack-geometric-sans, ${stacks.geometric[0]})`,
-    `var(--py-font-stack-geometric-heading, ${stacks.geometric[0]})`,
-    `var(--py-font-stack-geometric-mono, ${monoStack})`
+    `var(--tx-font-stack-geometric-sans, ${stacks.geometric[0]})`,
+    `var(--tx-font-stack-geometric-heading, ${stacks.geometric[0]})`,
+    `var(--tx-font-stack-geometric-mono, ${monoStack})`
   ),
   pairing(
     'grotesk',
     'Grotesk',
     'grotesk',
-    `var(--py-font-stack-grotesk-sans, ${stacks.grotesk[0]})`,
-    `var(--py-font-stack-grotesk-heading, ${stacks.grotesk[0]})`,
-    `var(--py-font-stack-grotesk-mono, ${monoStack})`
+    `var(--tx-font-stack-grotesk-sans, ${stacks.grotesk[0]})`,
+    `var(--tx-font-stack-grotesk-heading, ${stacks.grotesk[0]})`,
+    `var(--tx-font-stack-grotesk-mono, ${monoStack})`
   ),
   pairing(
     'editorial',
     'Editorial serif',
     'editorial',
-    `var(--py-font-stack-editorial-sans, ${systemStack})`,
-    `var(--py-font-stack-editorial-heading, ${editorialStack})`,
-    `var(--py-font-stack-editorial-mono, ${monoStack})`
+    `var(--tx-font-stack-editorial-sans, ${systemStack})`,
+    `var(--tx-font-stack-editorial-heading, ${editorialStack})`,
+    `var(--tx-font-stack-editorial-mono, ${monoStack})`
   ),
   pairing(
     'rounded',
     'Rounded',
     'rounded',
-    `var(--py-font-stack-rounded-sans, ${roundedStack})`,
-    `var(--py-font-stack-rounded-heading, ${roundedStack})`,
-    `var(--py-font-stack-rounded-mono, ${monoStack})`
+    `var(--tx-font-stack-rounded-sans, ${roundedStack})`,
+    `var(--tx-font-stack-rounded-heading, ${roundedStack})`,
+    `var(--tx-font-stack-rounded-mono, ${monoStack})`
   ),
   pairing(
     'condensed',
     'Condensed',
     'condensed',
-    `var(--py-font-stack-condensed-sans, ${condensedStack})`,
-    `var(--py-font-stack-condensed-heading, ${condensedStack})`,
-    `var(--py-font-stack-condensed-mono, ${monoStack})`
+    `var(--tx-font-stack-condensed-sans, ${condensedStack})`,
+    `var(--tx-font-stack-condensed-heading, ${condensedStack})`,
+    `var(--tx-font-stack-condensed-mono, ${monoStack})`
   ),
   pairing(
     'mono',
     'Monospace',
     'mono',
-    `var(--py-font-stack-mono-sans, ${systemStack})`,
-    `var(--py-font-stack-mono-heading, ${systemStack})`,
-    `var(--py-font-stack-mono-mono, ${monoStack})`
+    `var(--tx-font-stack-mono-sans, ${systemStack})`,
+    `var(--tx-font-stack-mono-heading, ${systemStack})`,
+    `var(--tx-font-stack-mono-mono, ${monoStack})`
   ),
 ];
 
