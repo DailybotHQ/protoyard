@@ -10,6 +10,9 @@ import { ARTIFACT_PACK_TARGET } from './targets.ts';
 let harness: ArtifactHarnessServer;
 
 test.beforeAll(async () => {
+  // The first run exports the pack (`protoyard export --target artifact`), which
+  // can take minutes; the harness itself waits up to five for it.
+  test.setTimeout(6 * 60_000);
   harness = await startArtifactHarnessServer();
 });
 
