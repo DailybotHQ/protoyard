@@ -68,6 +68,18 @@ family. Unknown block types show a safe message; content is not inserted as
 raw HTML. A family chunk that fails to download (offline, a reset connection,
 a redeploy) is retried once and then shows a "Block failed to load" state with
 a retry button. It is never reported as an unsupported block.
+
+The hosts and sections are built on Texuli: `PageHost` uses the marketing
+layout from `@protoyard/ui` (Texuli's `texuli/layouts/marketing`); stat rows are
+Texuli `Stat` cards, the hero eyebrow a `Badge`, quote attributions an
+`Avatar`, short section copy goes through `@texuli/blocks` `RichText` (its
+closed Markdown subset: text and safe links, never HTML) and an unknown block
+is a `Callout`. Styles read `--tx-*` tokens. Two parts stay Protoyard's:
+`SectionHeader` (Texuli's heading renderer and `MarketingSection` carry no
+heading id, level or alignment yet, gap G21) and `DocHost`'s reading layout
+(Texuli's `ContentLayout` builds its own table of contents from every `h2`/`h3`
+and its own heading ids, while a document's TOC takes heading blocks only and
+keeps the ids `@protoyard/pages` allocates for deep links).
 `packages/blocks-ui/tests/comparison-render.test.ts` proves that every catalog
 block type resolves to a renderer through this host and through blocks-ui's
 registry.

@@ -1,18 +1,11 @@
 <script lang="ts">
 import type { QuoteBlock } from '@protoyard/blocks';
+import { Avatar } from 'texuli/avatar';
 import { plainParagraphs } from '../design.ts';
 
 /** A testimonial as a pull quote with its attribution. */
 let { block }: { block: QuoteBlock } = $props();
 const paragraphs = $derived(plainParagraphs(block.quote));
-const initials = $derived(
-  (block.cite ?? '')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word.charAt(0).toUpperCase())
-    .join('')
-);
 </script>
 
 <figure class="mx-auto grid max-w-3xl justify-items-center gap-6 text-center" data-py-page-quote>
@@ -28,14 +21,7 @@ const initials = $derived(
   </blockquote>
   {#if block.cite || block.role}
     <figcaption class="flex items-center gap-3 text-start">
-      {#if initials}
-        <span
-          class="grid size-11 shrink-0 place-items-center rounded-full bg-muted font-semibold text-foreground"
-          aria-hidden="true"
-        >
-          {initials}
-        </span>
-      {/if}
+      {#if block.cite}<Avatar name={block.cite} size="lg" decorative />{/if}
       <span class="grid">
         {#if block.cite}<span class="font-semibold text-foreground">{block.cite}</span>{/if}
         {#if block.role}<span class="text-sm text-muted-foreground">{block.role}</span>{/if}

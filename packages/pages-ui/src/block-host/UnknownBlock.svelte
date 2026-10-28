@@ -1,4 +1,6 @@
 <script lang="ts">
+import { Callout } from 'texuli/alert';
+
 /**
  * Safe placeholder when a block type is unknown or its family is missing.
  * Plain text only — never raw HTML.
@@ -12,15 +14,16 @@ let {
 } = $props();
 </script>
 
-<aside
-  class="rounded-md border border-dashed border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground"
+<!-- A static note, not a live region (Callout's neutral tone would be role="status"). -->
+<Callout
+  tone="neutral"
+  title="Unsupported block"
+  text={message}
   role="note"
-  data-py-unknown-block
+  data-py-unknown-block=""
   data-block-type={blockType}
 >
-  <p class="m-0 font-medium text-foreground">Unsupported block</p>
-  <p class="mt-1 m-0">{message}</p>
   {#if blockType}
-    <p class="mt-1 m-0 text-xs opacity-80">Type: {blockType}</p>
+    <p class="m-0 mt-1 text-xs text-muted-foreground">Type: {blockType}</p>
   {/if}
-</aside>
+</Callout>

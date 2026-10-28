@@ -2,39 +2,10 @@
   "unit": "packages__pages-ui",
   "entries": [
     {
-      "file": "packages/pages-ui/src/block-host/UnknownBlock.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/pages-ui/src/doc/DocHost.svelte",
-      "rule": "py-token",
-      "count": 37
-    },
-    {
-      "file": "packages/pages-ui/src/page/sections/PageHero.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/pages-ui/src/page/sections/PlainText.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/pages-ui/src/page/sections/PullQuote.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
       "file": "packages/pages-ui/src/page/sections/SectionHeader.svelte",
       "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/pages-ui/src/page/sections/StatRow.svelte",
-      "rule": "own-component",
-      "count": 1
+      "count": 1,
+      "gap": "G21"
     }
   ]
 }
