@@ -99,13 +99,12 @@ describe('simulated phone sign-in screens', () => {
     render(AuthHarness, { props: { runtime, screen: 'phone-code' } });
 
     expect(await screen.findByTestId('auth-simulated-phone-code')).toBeTruthy();
-    for (let index = 0; index < issued.code.length; index += 1) {
-      const cell = screen.getByLabelText(`Digit ${index + 1} of 6`);
-      await fireEvent.input(cell, { target: { value: issued.code[index] } });
-    }
+    await fireEvent.input(screen.getByLabelText('Six-digit phone code'), {
+      target: { value: issued.code },
+    });
     await waitFor(() => expect(runtime.session.isSignedIn()).toBe(true));
     expect(runtime.session.principal()?.persona.name).toBe('Morgan Example');
-    expect(location.hash).toBe('#/workspace');
+    await waitFor(() => expect(location.hash).toBe('#/workspace'));
     expect(toast.items.some((item) => item.id === PHONE_CODE_TOAST_ID)).toBe(false);
   });
 
