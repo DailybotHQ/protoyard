@@ -1,5 +1,13 @@
 // @vitest-environment node
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -341,6 +349,64 @@ describe('deck inspect', () => {
     expect(text.stdout).not.toContain(String.fromCharCode(0x1b));
     expect(text.stdout).not.toMatch(/[\u202a-\u202e\u2066-\u2069]/);
     expect(text.stdout).toContain('\\u202e');
+  });
+});
+
+describe('deck from-markdown', () => {
+  const MARKDOWN = `---
+title: Harbor kickoff
+---
+
+<!-- .slide: id=cover layout=title-hero -->
+
+# Harbor kickoff
+
+Fictional figures only
+
+---
+
+## The plan
+
+- Agree on the scope <!-- .element: fragment -->
+- Ship the first slice <!-- .element: fragment -->
+
+Note: Reveal one step at a time and keep each line short for the room.
+`;
+
+  it('turns a Markdown deck into a deck blueprint that lints clean, and writes it with --out', async () => {
+    ws.write('talk.md', MARKDOWN);
+    const json = await deckJson('from-markdown', 'talk.md');
+    expect(json.code).toBe(0);
+    const data = json.json<{
+      data: { valid: boolean; blueprint: { kind: string; name: string; deck: unknown } };
+    }>().data;
+    expect(data.valid).toBe(true);
+    expect(data.blueprint).toMatchObject({ kind: 'deck', name: 'Harbor kickoff' });
+    expect(safeParseDeck(data.blueprint.deck).success).toBe(true);
+
+    const out = join(ws.root, 'decks/talk.json');
+    const written = await deck('from-markdown', 'talk.md', '--out', out);
+    expect(written.code).toBe(0);
+    expect(written.stdout).toMatch(/Wrote \S*decks\/talk\.json \(2 slides\)\./);
+    expect(existsSync(out)).toBe(true);
+    expect((await deck('lint', 'decks/talk.json')).code).toBe(0);
+    // Never over an existing file without --force.
+    expect((await deck('from-markdown', 'talk.md', '--out', out)).code).not.toBe(0);
+  });
+
+  it('reports Markdown issues with their line and column, and refuses HTML and remote media', async () => {
+    ws.write(
+      'bad.md',
+      `---\ntitle: Bad\n---\n\n# Hello <script>alert(1)</script>\n\n---\n\n<!-- .slide: layout=image-centered -->\n\n![A diagram](https://example.com/a.webp)\n`
+    );
+    const json = await deckJson('from-markdown', 'bad.md');
+    expect(json.code).not.toBe(0);
+    const issues = json.json<{
+      data: { valid: boolean; issues: { severity: string; line?: number }[] };
+    }>().data.issues;
+    expect(issues.some((issue) => issue.severity === 'error')).toBe(true);
+    expect(issues.some((issue) => typeof issue.line === 'number')).toBe(true);
+    expect(existsSync(join(ws.root, 'decks/bad.json'))).toBe(false);
   });
 });
 

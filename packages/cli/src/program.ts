@@ -13,6 +13,7 @@ import {
 import {
   deckBlocksCommand,
   deckCapabilitiesCommand,
+  deckFromMarkdownCommand,
   deckInspectCommand,
   deckLayoutsCommand,
   deckLintCommand,
@@ -455,6 +456,13 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--ref <reference>', 'a [slide-ref] line copied from the deck debug panel')
     .option('--slide <id>', 'a slide id')
     .action(def('deck inspect', deckInspectCommand, true));
+  deck
+    .command('from-markdown')
+    .description('turn a Markdown deck (@texuli/deck dialect) into a deck blueprint')
+    .argument('<file.md>', 'Markdown deck file')
+    .option('--out <file>', 'write the blueprint here (default: print it)')
+    .option('--force', 'replace an existing --out file')
+    .action(def('deck from-markdown', deckFromMarkdownCommand, true));
   deck
     .command('capabilities')
     .description('list what decks support at level 1 (player) and level 2 (generate)')

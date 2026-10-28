@@ -132,6 +132,7 @@ deploy.
 | `protoyard deck blocks [type]` | — | list the content blocks for free slides with limits and examples | New since 1.0.0 |
 | `protoyard deck lint <file\|slug>` | — | check a deck file or deck prototype; each finding has a JSON pointer, what to change and why (exit 4 on errors) | New since 1.0.0 |
 | `protoyard deck inspect [file\|slug]` | `--ref <reference>`, `--slide <id>` | resolve a `[slide-ref]` line pasted from the deck debug panel, or a slide id, to the file, JSON pointer and slide JSON; a slide that no longer exists exits 4 with the closest ids | New since 1.0.0 |
+| `protoyard deck from-markdown <file.md>` | `--out <file>`, `--force` | turn a Markdown deck (the `@texuli/deck` dialect) into a deck blueprint; every issue has its line and column; prints the blueprint without `--out`, never replaces a file without `--force` (exit 4 on errors) | New since 1.0.0 |
 | `protoyard deck capabilities` | — | list what decks support at level 1 (player) and level 2 (generate): layouts, blocks, controls, quality rules and limits | New since 1.0.0 |
 
 ### Build, share and review
