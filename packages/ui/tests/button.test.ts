@@ -100,7 +100,8 @@ describe('Button pending feedback', () => {
 
   it('keeps the label in place while loading, so the width cannot change', () => {
     render(ButtonHarness, { loading: true, loadingLabel: 'Saving' });
-    const button = screen.getByRole('button', { name: /Save/ });
+    // The loading label is the whole accessible name; the hidden visible label does not join it.
+    const button = screen.getByRole('button', { name: 'Saving' });
     const label = [...button.querySelectorAll('span')].find((s) => s.textContent === 'Save');
     // The label stays in the layout, hidden, under the spinner.
     expect(label?.className).toContain('tx-button__label--hidden');
