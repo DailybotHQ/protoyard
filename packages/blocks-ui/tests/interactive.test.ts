@@ -200,6 +200,65 @@ describe('interactive family through BlockStateHost', () => {
     expect(slider.getAttribute('aria-valuetext')).toMatch(/%/);
   }, 60_000);
 
+  it('calculator inputs stay enabled and keep focus while a value saves', async () => {
+    const memory = createMemoryBlockStateHost();
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    // A slow host: every save waits until the test releases it.
+    const stateHost: BlockStateHost = {
+      read: (key) => memory.read(key),
+      dispatch: (async (key, block, action) => {
+        await gate;
+        return memory.dispatch(key, block, action);
+      }) as BlockStateHost['dispatch'],
+      subscribe: (key, listener) => memory.subscribe(key, listener),
+    };
+    const calc = {
+      type: 'calculator' as const,
+      id: 'calc-focus',
+      title: 'Savings',
+      inputs: [
+        {
+          name: 'a',
+          label: 'Ideas',
+          min: 1,
+          max: 40,
+          step: 1,
+          default: 8,
+          control: 'slider' as const,
+        },
+        {
+          name: 'b',
+          label: 'Hours',
+          min: 1,
+          max: 40,
+          step: 1,
+          default: 4,
+          control: 'number' as const,
+        },
+      ],
+      outputs: [{ id: 'out', label: 'Total', formula: { op: 'var' as const, name: 'a' } }],
+    };
+    render(InteractiveHarness, {
+      props: { blocks: [calc], stateHost, documentId: 'calc-doc' },
+    });
+    await waitFor(() => expect(screen.getByText('Savings')).toBeTruthy(), long);
+    const slider = screen.getByRole('slider') as HTMLInputElement;
+    slider.focus();
+    await fireEvent.input(slider, { target: { value: '9' } });
+    const section = slider.closest('[data-py-block="calculator"]');
+    await waitFor(() => expect(section?.getAttribute('aria-busy')).toBe('true'), long);
+    for (const input of section?.querySelectorAll('input') ?? []) {
+      expect(input.disabled, input.getAttribute('aria-label') ?? '').toBe(false);
+    }
+    expect(document.activeElement).toBe(slider);
+    release();
+    await waitFor(() => expect(section?.hasAttribute('aria-busy')).toBe(false), long);
+    expect(document.activeElement).toBe(slider);
+  }, 60_000);
+
   it('switches tabs through dispatch', async () => {
     const stateHost = createMemoryBlockStateHost();
     render(InteractiveHarness, {

@@ -32,7 +32,14 @@ function setInput(name: string, raw: string | number) {
   {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
   data-block-id={block.id}
   aria-labelledby="calc-title-{block.id}"
+  aria-busy={ctl.pending || undefined}
 >
+  <!--
+    Inputs stay enabled while a value saves: disabling the focused slider would
+    drop keyboard focus to the page on every step (and the next arrow key would
+    then reach the deck). Each change sets an absolute value, so a later save
+    supersedes an earlier one.
+  -->
   {#if block.title}
     <h3 class="text-base font-semibold text-foreground" id="calc-title-{block.id}">
       {block.title}
@@ -60,7 +67,6 @@ function setInput(name: string, raw: string | number) {
             max={input.max}
             step={input.step ?? 'any'}
             value={current}
-            disabled={ctl.pending}
             aria-label={input.label}
             aria-valuetext={valueText}
             onchange={(e) => setInput(input.name, (e.currentTarget as HTMLInputElement).value)}
@@ -73,7 +79,6 @@ function setInput(name: string, raw: string | number) {
             max={input.max}
             step={input.step ?? (input.max - input.min) / 100}
             value={current}
-            disabled={ctl.pending}
             aria-label={input.label}
             aria-valuemin={input.min}
             aria-valuemax={input.max}
