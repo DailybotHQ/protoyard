@@ -99,9 +99,9 @@ describe('the review toolbar on phones', () => {
   it('measures the nav against the visible bottom of a smaller visual viewport', async () => {
     const original = Object.getOwnPropertyDescriptor(window, 'visualViewport');
     const viewport = Object.assign(new EventTarget(), {
-      offsetLeft: 0,
+      offsetLeft: 20,
       offsetTop: 0,
-      width: 390,
+      width: window.innerWidth - 40,
       height: 600,
     });
     Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
@@ -111,6 +111,7 @@ describe('the review toolbar on phones', () => {
       render(ReviewToolbar, { adapter, count: 1 });
       const bar = screen.getByRole('navigation', { name: 'Prototype review toolbar' });
       await waitFor(() => expect(bar.style.bottom).toBe('72px'));
+      await waitFor(() => expect(bar.style.getPropertyValue('--review-right-edge')).toBe('20px'));
     } finally {
       if (original) Object.defineProperty(window, 'visualViewport', original);
       else delete (window as { visualViewport?: unknown }).visualViewport;
@@ -137,14 +138,14 @@ describe('the review toolbar on phones', () => {
     );
   });
 
-  it('follows the visible right edge in CSS (--py-fixed-right-edge) and stays inside it', () => {
+  it('follows the visible right edge from the visual viewport and stays inside it', () => {
     const source = readFileSync(
       join(import.meta.dirname, '../src/toolbar/ReviewToolbar.svelte'),
       'utf8'
     );
     const rule = /\.review-toolbar\{([^}]*)\}/.exec(source)?.[1] ?? '';
-    expect(rule).toContain('right:calc(.75rem + var(--py-fixed-right-edge,0px))');
-    expect(rule).toContain('max-width:calc(100vw - 1.5rem - var(--py-fixed-right-edge,0px))');
+    expect(rule).toContain('right:calc(.75rem + var(--review-right-edge,0px))');
+    expect(rule).toContain('max-width:calc(100vw - 1.5rem - var(--review-right-edge,0px))');
   });
 
   it('keeps the action row in the DOM but hidden until opened, so aria-controls resolves', async () => {

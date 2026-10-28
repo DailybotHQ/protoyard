@@ -10,6 +10,8 @@ import type {
 import { ReviewAuthorSchema, ReviewCommentSchema } from '@protoyard/core/review';
 import type { ReviewAdapter } from '@protoyard/review/store';
 import { mount, onMount, unmount } from 'svelte';
+import { Button } from 'texuli/button';
+import { Textarea } from 'texuli/input';
 import { createReviewOverlay, type ReviewOverlayHandle } from '../overlay/index.ts';
 import type { ReviewPanelProps } from '../panel/types.ts';
 import { ReviewToolbar } from '../toolbar/index.ts';
@@ -338,16 +340,16 @@ onMount(() => {
 
 {#if selectedRoot}
   <section class="review-thread-host" aria-label="Comment thread">
-    <header><h2>Thread on {selectedRoot.anchor?.route.path ?? 'this screen'}</h2><button type="button" onclick={closeThread}>Close</button></header>
+    <header><h2>Thread on {selectedRoot.anchor?.route.path ?? 'this screen'}</h2><Button variant="outline" size="sm" type="button" onclick={closeThread}>Close</Button></header>
     <ol>{#each selectedComments as comment (comment.id)}<li><strong>{comment.author.name}</strong><p>{comment.body}</p><time datetime={comment.createdAt}>{comment.createdAt}</time></li>{/each}</ol>
     {#if selectedRoot.author.clientId === clientId}
-      <button type="button" disabled={threadBusy} aria-busy={threadBusy} onclick={() => { const author = authorForReview(); if (author) void resolve(selectedRoot as ReviewComment, author, !selectedRoot?.resolvedAt); }}>
+      <Button variant="outline" size="sm" type="button" disabled={threadBusy} aria-busy={threadBusy} onclick={() => { const author = authorForReview(); if (author) void resolve(selectedRoot as ReviewComment, author, !selectedRoot?.resolvedAt); }}>
         {selectedRoot.resolvedAt ? 'Reopen thread' : 'Resolve thread'}
-      </button>
+      </Button>
     {/if}
     <form onsubmit={sendReply}>
-      <label for="review-reply-body">Reply</label><textarea id="review-reply-body" bind:value={replyBody} maxlength="2000" required></textarea>
-      <button type="submit" disabled={threadBusy || !replyBody.trim()} aria-busy={threadBusy}>{threadBusy ? 'Sending…' : 'Send reply'}</button>
+      <label for="review-reply-body">Reply</label><Textarea id="review-reply-body" bind:value={replyBody} maxlength={2000} required rows={4} />
+      <Button type="submit" disabled={threadBusy || !replyBody.trim()} aria-busy={threadBusy}>{threadBusy ? 'Sending…' : 'Send reply'}</Button>
     </form>
   </section>
 {/if}
@@ -356,9 +358,9 @@ onMount(() => {
 {#if notice}<p class="review-notice" role="status">{notice}</p>{/if}
 
 <style>
-  .review-panel-host{display:none}.review-panel-host.open{position:fixed;z-index:2147482999;top:4.25rem;right:.75rem;bottom:.75rem;display:block;width:min(28rem,calc(100vw - 1.5rem));overflow:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);box-shadow:0 8px 32px rgb(0 0 0 / .24)}
-  .review-thread-host{position:fixed;z-index:2147483001;right:1rem;bottom:1rem;width:min(30rem,calc(100vw - 2rem));max-height:80vh;overflow:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);padding:.75rem;color:var(--py-foreground,#18181b);box-shadow:0 8px 32px rgb(0 0 0 / .24);font:inherit}.review-thread-host header{display:flex;align-items:center;justify-content:space-between;gap:.5rem}.review-thread-host h2{font-size:1rem}.review-thread-host ol{display:grid;gap:.5rem;padding:0;list-style:none}.review-thread-host li{border:1px solid var(--py-border,#d4d4d8);border-radius:.5rem;padding:.65rem}.review-thread-host p{white-space:pre-wrap;overflow-wrap:anywhere}.review-thread-host time{font-size:.75rem;color:var(--py-muted-foreground,#52525b)}.review-thread-host form{display:grid;gap:.4rem;margin-top:.75rem}.review-thread-host textarea{min-height:5rem;border:1px solid var(--py-border,#d4d4d8);border-radius:.4rem;background:var(--py-surface,#fff);padding:.5rem;color:inherit;font:inherit}.review-thread-host button{border:1px solid var(--py-border,#d4d4d8);border-radius:.4rem;background:var(--py-surface,#fff);padding:.45rem .65rem;color:inherit}
-  .review-notice{position:fixed;z-index:2147483003;right:1rem;bottom:1rem;max-width:min(30rem,calc(100vw - 2rem));border:1px solid var(--py-border,#d4d4d8);border-radius:.5rem;background:var(--py-surface,#fff);padding:.75rem;color:var(--py-foreground,#18181b);box-shadow:0 4px 16px rgb(0 0 0 / .16)}
-  .review-status{position:fixed;z-index:2147483003;right:1rem;bottom:1rem;max-width:min(30rem,calc(100vw - 2rem));border-radius:.5rem;background:var(--py-destructive,#b91c1c);padding:.75rem;color:#fff}
+  .review-panel-host{display:none}.review-panel-host.open{position:fixed;z-index:2147482999;top:4.25rem;right:.75rem;bottom:.75rem;display:block;width:min(28rem,calc(100vw - 1.5rem));overflow:auto;border:1px solid var(--tx-border,#d4d4d8);border-radius:.75rem;background:var(--tx-surface,#fff);box-shadow:0 8px 32px rgb(0 0 0 / .24)}
+  .review-thread-host{position:fixed;z-index:2147483001;right:1rem;bottom:1rem;width:min(30rem,calc(100vw - 2rem));max-height:80vh;overflow:auto;border:1px solid var(--tx-border,#d4d4d8);border-radius:.75rem;background:var(--tx-surface,#fff);padding:.75rem;color:var(--tx-foreground,#18181b);box-shadow:0 8px 32px rgb(0 0 0 / .24);font:inherit}.review-thread-host header{display:flex;align-items:center;justify-content:space-between;gap:.5rem}.review-thread-host h2{font-size:1rem}.review-thread-host ol{display:grid;gap:.5rem;padding:0;list-style:none}.review-thread-host li{border:1px solid var(--tx-border,#d4d4d8);border-radius:.5rem;padding:.65rem}.review-thread-host p{white-space:pre-wrap;overflow-wrap:anywhere}.review-thread-host time{font-size:.75rem;color:var(--tx-muted-foreground,#52525b)}.review-thread-host form{display:grid;gap:.4rem;margin-top:.75rem}
+  .review-notice{position:fixed;z-index:2147483003;right:1rem;bottom:1rem;max-width:min(30rem,calc(100vw - 2rem));border:1px solid var(--tx-border,#d4d4d8);border-radius:.5rem;background:var(--tx-surface,#fff);padding:.75rem;color:var(--tx-foreground,#18181b);box-shadow:0 4px 16px rgb(0 0 0 / .16)}
+  .review-status{position:fixed;z-index:2147483003;right:1rem;bottom:1rem;max-width:min(30rem,calc(100vw - 2rem));border-radius:.5rem;background:var(--tx-destructive,#b91c1c);padding:.75rem;color:#fff}
   @media(max-width:40rem){.review-panel-host.open{inset:4.25rem .5rem .5rem;width:auto}.review-thread-host{inset:auto .5rem .5rem;width:auto;max-height:70vh}}
 </style>

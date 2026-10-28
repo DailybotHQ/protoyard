@@ -1,40 +1,4 @@
 {
   "unit": "packages__gamification-ui",
-  "entries": [
-    {
-      "file": "packages/gamification-ui/src/badge/AchievementBadge.svelte",
-      "rule": "py-token",
-      "count": 3
-    },
-    {
-      "file": "packages/gamification-ui/src/badge/AchievementBadge.svelte",
-      "rule": "raw-control",
-      "count": 1
-    },
-    {
-      "file": "packages/gamification-ui/src/chips/LevelChip.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/gamification-ui/src/chips/PointsChip.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/gamification-ui/src/chips/PointsChip.svelte",
-      "rule": "raw-lucide",
-      "count": 2
-    },
-    {
-      "file": "packages/gamification-ui/src/chips/StreakChip.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/gamification-ui/src/chips/StreakChip.svelte",
-      "rule": "raw-lucide",
-      "count": 1
-    }
-  ]
+  "entries": []
 }

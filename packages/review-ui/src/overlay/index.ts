@@ -5,6 +5,7 @@ import {
   createAnchor,
   resolveAnchor,
 } from '@protoyard/review/anchors';
+import { buttonVariants } from 'texuli/button';
 
 export interface ReviewOverlayOptions {
   /** The prototype root used for anchor resolution and comment capture. */
@@ -46,17 +47,17 @@ export interface ReviewOverlayHandle {
 }
 
 const STYLE = `
-[data-py-review-overlay]{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font:inherit;color:var(--py-foreground,#18181b)}
+[data-py-review-overlay]{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font:inherit;color:var(--tx-foreground,#18181b)}
 [data-py-review-overlay] [data-py-review-capture]{position:absolute;pointer-events:auto;cursor:crosshair;background:transparent;touch-action:none}
-[data-py-review-overlay] [data-py-review-pin],[data-py-review-overlay] [data-py-review-place]{position:absolute;pointer-events:auto;box-sizing:border-box;border:2px solid #fff;border-radius:999px;background:var(--py-primary,#6d28d9);color:var(--py-primary-foreground,#fff);box-shadow:0 0 0 2px var(--py-primary,#6d28d9),0 2px 8px rgb(0 0 0 / .28);font-family:inherit;font-size:13px;font-weight:600;line-height:1.2;cursor:pointer}
+[data-py-review-overlay] [data-py-review-pin],[data-py-review-overlay] [data-py-review-place]{position:absolute;pointer-events:auto;box-sizing:border-box;border-radius:999px}
 [data-py-review-overlay] [data-py-review-pin]{min-width:30px;min-height:30px;padding:5px 8px;transform:translate(-50%,-50%);white-space:nowrap}
 [data-py-review-overlay] [data-py-review-place]{width:30px;height:30px;padding:0;transform:translate(-50%,-50%);cursor:crosshair}
-[data-py-review-overlay] [data-py-review-pin]:focus-visible,[data-py-review-overlay] [data-py-review-place]:focus-visible,[data-py-review-overlay] [data-py-review-toggle]:focus-visible{outline:3px solid var(--py-ring,#7c3aed);outline-offset:4px}
-[data-py-review-overlay] [data-py-review-toggle]{position:absolute;right:12px;top:12px;z-index:2;pointer-events:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:999px;background:var(--py-surface,#fff);color:var(--py-surface-foreground,#18181b);padding:8px 12px;font-family:inherit;font-size:13px;font-weight:600;line-height:1.2;cursor:pointer;box-shadow:0 2px 8px rgb(0 0 0 / .18)}
+[data-py-review-overlay] [data-py-review-pin]:focus-visible,[data-py-review-overlay] [data-py-review-place]:focus-visible,[data-py-review-overlay] [data-py-review-toggle]:focus-visible{outline:3px solid var(--tx-ring,#7c3aed);outline-offset:4px}
+[data-py-review-overlay] [data-py-review-toggle]{position:absolute;right:12px;top:12px;z-index:2;pointer-events:auto;border-radius:999px}
 [data-py-review-overlay] [data-py-review-status]{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 [data-py-review-overlay] [data-py-review-pin][data-low-confidence]{border-style:dashed}
 [data-py-review-overlay] [data-pulsing]{animation:py-review-pin-pulse 1.4s ease-in-out infinite}
-@keyframes py-review-pin-pulse{50%{box-shadow:0 0 0 5px rgb(255 255 255 / .85),0 0 0 8px var(--py-primary,#6d28d9)}}
+@keyframes py-review-pin-pulse{50%{box-shadow:0 0 0 5px rgb(255 255 255 / .85),0 0 0 8px var(--tx-primary,#6d28d9)}}
 @media(prefers-reduced-motion:reduce){[data-py-review-overlay] [data-pulsing]{animation:none}}
 `;
 
@@ -165,6 +166,7 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
   overlay.append(status);
   const toggle = document.createElement('button');
   toggle.type = 'button';
+  toggle.className = buttonVariants({ variant: 'outline', size: 'sm' });
   toggle.dataset.pyReviewToggle = '';
   toggle.addEventListener('click', () => setActive(!active));
   if (options.toggle !== false) overlay.append(toggle);
@@ -276,6 +278,7 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
   function makePinButton(pin: Pin, point: { x: number; y: number }): HTMLButtonElement {
     const button = document.createElement('button');
     button.type = 'button';
+    button.className = buttonVariants({ variant: 'default', size: 'sm' });
     button.dataset.pyReviewPin = '';
     button.dataset.threadId = pin.comment.threadId;
     if (pin.confidence < 0.7) button.dataset.lowConfidence = '';
@@ -319,6 +322,7 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
       if (!expandedClusters.has(key)) {
         const button = document.createElement('button');
         button.type = 'button';
+        button.className = buttonVariants({ variant: 'default', size: 'sm' });
         button.dataset.pyReviewPin = '';
         button.dataset.threadIds = group.pins.map((pin) => pin.comment.threadId).join(' ');
         button.setAttribute('aria-label', `${group.pins.length} comment threads`);
@@ -378,6 +382,7 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
       if (crosshair) {
         placeButton = document.createElement('button');
         placeButton.type = 'button';
+        placeButton.className = buttonVariants({ variant: 'default', size: 'sm' });
         placeButton.dataset.pyReviewPlace = '';
         placeButton.textContent = placing ? '…' : '＋';
         placeButton.disabled = placing;

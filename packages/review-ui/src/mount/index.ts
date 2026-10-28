@@ -1,11 +1,11 @@
 /** `@protoyard/review-ui/mount` — lazy renderer integration for review mode. */
 
-import { MessageSquare } from '@lucide/svelte';
 import type { PrototypeDefinition, PrototypeRuntime } from '@protoyard/core';
 import type { ReviewAdapter } from '@protoyard/review/store';
 import { type Component, mount, unmount } from 'svelte';
 import type { ReviewToolbarPlacer } from '../toolbar/types.ts';
 import { createPanelState } from './panel-state.svelte.ts';
+import ReviewTabIcon from './ReviewTabIcon.svelte';
 
 export interface MountReviewOptions {
   definition: PrototypeDefinition;
@@ -122,7 +122,7 @@ export async function mountReview(options: MountReviewOptions): Promise<MountedR
           devtoolsTab: {
             id: 'review-comments',
             label: 'Comments',
-            icon: MessageSquare as unknown as Component<{ class?: string }>,
+            icon: ReviewTabIcon as Component<{ class?: string }>,
             // The panel loads only when the tab is first opened; the props stay live (a shared $state object).
             load: async () => (await import('../panel/ReviewPanel.svelte')).default,
             props: panelState,
