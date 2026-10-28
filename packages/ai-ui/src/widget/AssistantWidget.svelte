@@ -1,6 +1,9 @@
 <script lang="ts">
+import { MessageCircle } from '@lucide/svelte';
 import type { Component } from 'svelte';
 import { onMount, tick } from 'svelte';
+import { Button, IconButton } from 'texuli/button';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { AssistantWidgetMode, AssistantWidgetProps } from './types.ts';
 
 const MODE_KEY_PREFIX = 'protoyard:ai-widget-mode:';
@@ -109,23 +112,19 @@ function trapFullscreenFocus(event: KeyboardEvent): void {
 <svelte:window onkeydown={handleWindowKeydown} />
 
 <div bind:this={root} class="pointer-events-none absolute inset-0 z-40" data-ai-widget data-widget-mode={mode}>
-  <button
-    type="button"
-    class="pointer-events-auto absolute bottom-4 right-4 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-    aria-label="Open simulated assistant"
+  <IconButton
+    variant="default"
+    class={`pointer-events-auto absolute bottom-4 right-4 size-14 rounded-full shadow-lg transition-transform duration-200 hover:scale-105 ${mode !== 'launcher' ? 'scale-0 opacity-0' : ''}`}
+    label="Open simulated assistant"
     aria-expanded={mode !== 'launcher'}
     aria-hidden={mode !== 'launcher'}
     aria-controls="ai-widget-panel"
     tabindex={mode === 'launcher' ? 0 : -1}
     data-widget-launcher
     onclick={() => void openSidebar()}
-    class:scale-0={mode !== 'launcher'}
-    class:opacity-0={mode !== 'launcher'}
   >
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-      <path d="M21 12c0 4.4-4 8-9 8-1.1 0-2.2-.2-3.2-.6L3 21l1.8-4.2C4.3 15.9 3 13.9 3 12c0-4.4 4-8 9-8s9 3.6 9 8Z" stroke-linecap="round" stroke-linejoin="round" />
-    </svg>
-  </button>
+    <LucideIcon icon={MessageCircle} size="lg" />
+  </IconButton>
 
   {#if hasOpened && Panel}
     <div
@@ -153,11 +152,11 @@ function trapFullscreenFocus(event: KeyboardEvent): void {
         <span class="truncate text-sm font-semibold">Simulated assistant</span>
         <div class="flex items-center gap-1">
           {#if mode === 'sidebar'}
-            <button type="button" class="min-h-10 rounded-lg px-3 text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Expand assistant to full screen" onclick={() => void setMode('fullscreen')}>Expand</button>
+            <Button size="sm" variant="ghost" aria-label="Expand assistant to full screen" onclick={() => void setMode('fullscreen')}>Expand</Button>
           {:else}
-            <button type="button" class="min-h-10 rounded-lg px-3 text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Restore assistant sidebar" onclick={() => void setMode('sidebar')}>Restore</button>
+            <Button size="sm" variant="ghost" aria-label="Restore assistant sidebar" onclick={() => void setMode('sidebar')}>Restore</Button>
           {/if}
-          <button data-widget-close type="button" class="min-h-10 rounded-lg px-3 text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="{mode === 'fullscreen' ? 'Restore assistant sidebar' : 'Close assistant'}" onclick={collapse}>{mode === 'fullscreen' ? 'Restore' : 'Close'}</button>
+          <Button data-widget-close size="sm" variant="ghost" aria-label={mode === 'fullscreen' ? 'Restore assistant sidebar' : 'Close assistant'} onclick={collapse}>{mode === 'fullscreen' ? 'Restore' : 'Close'}</Button>
         </div>
       </header>
       <div class="min-h-0 flex-1 overflow-hidden p-2 sm:p-4">
