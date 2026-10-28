@@ -1,4 +1,6 @@
 <script lang="ts">
+import { Badge } from 'texuli/badge';
+
 /**
  * Outline mode: a box and the JSON pointer for each top-level block of the
  * slide on screen (a free slide), or for the slide's props (a catalog
@@ -106,9 +108,10 @@ $effect(() => {
       style={`left:${item.x}px;top:${item.y}px;width:${item.width}px;height:${item.height}px`}
       data-py-deck-outline-box={item.pointer}
     >
-      <span class="absolute top-0 left-0 max-w-full truncate rounded-sm bg-primary px-1 font-mono text-[10px] leading-4 text-primary-foreground">
-        {item.pointer}
-      </span>
+      <Badge
+        class="absolute top-0 left-0 max-w-full truncate rounded-sm px-1 font-mono text-[10px] leading-4"
+        label={item.pointer}
+      />
     </div>
   {/each}
 </div>

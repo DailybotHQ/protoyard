@@ -63,7 +63,9 @@ const start = $derived(lead ? 1 : 0);
   .py-deck-free {
     /* Protoyard tokens follow the stage theme (every shared --py-<role> equals --tx-<role>). */
     --py-background: var(--tx-background);
-    --py-foreground: var(--tx-deck-bg-text, var(--tx-foreground));
+    /* Text on the slide follows the background's ink (`--tx-deck-bg-text`). */
+    --deck-free-foreground: var(--tx-deck-bg-text, var(--tx-foreground));
+    --py-foreground: var(--deck-free-foreground);
     --py-surface: var(--tx-surface);
     --py-surface-foreground: var(--tx-surface-foreground);
     --py-elevated: var(--tx-elevated);
@@ -89,12 +91,12 @@ const start = $derived(lead ? 1 : 0);
     --py-font-sans: var(--tx-font-sans);
     --py-font-heading: var(--tx-font-heading);
     --py-font-mono: var(--tx-font-mono);
-    --color-foreground: var(--py-foreground);
-    --color-border: var(--py-border);
-    --color-primary: var(--py-primary);
-    --color-muted-foreground: var(--py-muted-foreground);
-    --font-sans: var(--py-font-sans);
-    --font-heading: var(--py-font-heading);
+    --color-foreground: var(--deck-free-foreground);
+    --color-border: var(--tx-border);
+    --color-primary: var(--tx-primary);
+    --color-muted-foreground: var(--tx-muted-foreground);
+    --font-sans: var(--tx-font-sans);
+    --font-heading: var(--tx-font-heading);
     /* One frame over the slide body, as the stage's layout frames: a fixed box the content fits in. */
     position: absolute;
     inset: 0;
@@ -105,8 +107,8 @@ const start = $derived(lead ? 1 : 0);
     box-sizing: border-box;
     padding-block: 64px;
     padding-inline: 77px;
-    color: var(--py-foreground);
-    font-family: var(--py-font-sans);
+    color: var(--deck-free-foreground);
+    font-family: var(--tx-font-sans);
     font-size: 24px;
   }
 
@@ -119,7 +121,7 @@ const start = $derived(lead ? 1 : 0);
 
   .py-deck-free__eyebrow {
     margin: 0;
-    color: var(--py-primary);
+    color: var(--tx-primary);
     font-size: 20px;
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -130,7 +132,7 @@ const start = $derived(lead ? 1 : 0);
     display: -webkit-box;
     margin: 0;
     overflow: hidden;
-    font-family: var(--py-font-heading);
+    font-family: var(--tx-font-heading);
     font-size: 56px;
     font-weight: 700;
     line-height: 1.1;
@@ -141,7 +143,7 @@ const start = $derived(lead ? 1 : 0);
 
   .py-deck-free__subtitle {
     margin: 0;
-    color: var(--py-muted-foreground);
+    color: var(--tx-muted-foreground);
     font-size: 28px;
   }
 

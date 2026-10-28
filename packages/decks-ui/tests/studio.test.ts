@@ -35,11 +35,21 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const select = (label: string) => screen.getByLabelText(label) as HTMLSelectElement;
+// Texuli selects: the labelled trigger opens a listbox; an option is picked by its text
+// (exactly, else the option whose text contains the value, as "2. Photo" for `photo`).
+const select = (label: string) => screen.getByLabelText(label);
+const openOptions = async (label: string) => {
+  await fireEvent.click(select(label));
+  return screen.findAllByRole('option');
+};
 const choose = async (label: string, value: string) => {
-  const element = select(label);
-  element.value = value;
-  await fireEvent.change(element);
+  const options = await openOptions(label);
+  const text = (item: HTMLElement) => item.textContent?.trim() ?? '';
+  const option =
+    options.find((item) => text(item) === value) ??
+    options.find((item) => text(item).toLowerCase().includes(value.toLowerCase()));
+  if (!option) throw new Error(`no option ${value} for ${label}`);
+  await fireEvent.click(option);
   flushSync();
 };
 
@@ -95,10 +105,15 @@ describe('Deck Studio panel', () => {
 
     // Switching layout only offers layouts the slide's content already fits.
     await choose('Edit slide', 'photo');
-    expect(Array.from(select('Layout').options).map((option) => option.value)).toEqual(
+    const layouts = await openOptions('Layout');
+    expect(layouts.map((option) => option.textContent?.trim())).toEqual(
       expect.arrayContaining(['image-left', 'image-right'])
     );
-    await choose('Layout', 'image-right');
+    // The listbox is still open: pick from it.
+    const imageRight = layouts.find((option) => option.textContent?.trim() === 'image-right');
+    if (!imageRight) throw new Error('no image-right layout');
+    await fireEvent.click(imageRight);
+    flushSync();
     expect(studio.preview.slides[1]?.layout).toBe('image-right');
   });
 
@@ -143,6 +158,29 @@ describe('Deck Studio panel', () => {
     await choose('Motion', 'none');
     await fireEvent.click(screen.getByRole('button', { name: 'Copy patch' }));
     await waitFor(() => expect(screen.getByText(/the patch is selected/)).toBeTruthy());
+  });
+
+  it('keeps a slide background authored as a spec as its own choice', async () => {
+    const source = DeckSchema.parse({
+      style: {},
+      slides: [
+        {
+          id: 'intro',
+          title: 'Intro',
+          layout: 'title-hero',
+          props: sample('title-hero'),
+          background: { kind: 'solid', token: 'muted' },
+        },
+      ],
+    });
+    const studio = createDeckStudio(source);
+    render(StudioHarness, { studio });
+    expect(select('Slide background').textContent).toContain('Custom (deck JSON)');
+    // Choosing it again changes nothing; a preset replaces it.
+    await choose('Slide background', 'Custom (deck JSON)');
+    expect(studio.patch).toEqual([]);
+    await choose('Slide background', 'Deck default');
+    expect(studio.preview.slides[0]?.background).toBeUndefined();
   });
 
   it('follows the deck hash to the slide on screen', () => {

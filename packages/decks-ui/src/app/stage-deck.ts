@@ -8,7 +8,7 @@ import { deckThemeKey } from '@protoyard/decks/style/key';
  *   palette seed as `seed-<hex>`, or the default theme), which DeckApp's
  *   `loadTheme` resolves through `@protoyard/themes`.
  * - **Free slides** stay free slides: the stage checks their blocks with
- *   DeckApp's `validateBlock` (Protoyard's block schema, see `renderers.ts`)
+ *   DeckApp's `validateBlock` (a typed-object check, see `renderers.ts`)
  *   and counts their steps itself. A free slide with no title takes its
  *   first heading's text, which the stage names the slide by. DeckApp's
  *   free-slide renderer paints the original `@protoyard/blocks` from

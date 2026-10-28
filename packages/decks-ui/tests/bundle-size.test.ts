@@ -82,7 +82,7 @@ describe('decks-ui ./app initial bundle (production Vite build)', () => {
       );
     // The stage's 20 layout renderers load per layout (the Texuli layouts table).
     for (const renderer of ['TitleHero', 'BigStat', 'ChartSlide', 'MediaSide', 'Timeline']) {
-      const pattern = new RegExp(`/slides/src/layouts/${renderer}\\.svelte$`);
+      const pattern = new RegExp(`/slides/(?:src|dist)/layouts/${renderer}\\.svelte$`);
       expect(
         moduleIds.some((id) => pattern.test(id)),
         renderer
@@ -95,7 +95,7 @@ describe('decks-ui ./app initial bundle (production Vite build)', () => {
       /\/decks-ui\/src\/app\/CustomSlide\.svelte$/,
       /\/decks-ui\/src\/studio\//,
       /\/decks-ui\/src\/debug\/DeckDebugPanel\.svelte$/,
-      /\/slides\/src\/export\/(?:pptx|DeckPrintPages)/,
+      /\/slides\/(?:src|dist)\/export\/(?:pptx|DeckPrintPages)/,
     ]) {
       expect(
         moduleIds.some((id) => surface.test(id)),

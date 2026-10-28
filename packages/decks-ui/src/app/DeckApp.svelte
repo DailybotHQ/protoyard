@@ -1,5 +1,6 @@
 <script lang="ts">
 import '@texuli/slides/styles.css';
+import { Bug } from '@lucide/svelte';
 import { checkProtoyardDeck } from '@protoyard/decks';
 import type { AgentReferenceSource } from '@protoyard/decks/agent';
 import type { Deck } from '@protoyard/decks/schema';
@@ -13,6 +14,8 @@ import {
 } from '@texuli/deck/engine';
 import { DeckProgress, DeckStage, type DeckThemeLoader, DeckToolbar } from '@texuli/slides/stage';
 import { flushSync, onMount, untrack } from 'svelte';
+import { IconButton } from 'texuli/button';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { type DeckDebugSetting, deckDebugAvailable, isDevBuild } from '../debug/availability.ts';
 import type { CustomSlideRegistry } from '../layouts/custom-slides.ts';
 import { setDeckHostContext } from './context.ts';
@@ -356,21 +359,18 @@ onMount(() => {
     <DeckProgress />
     <div class="deck-app__tools">
       <DeckToolbar />
-      <button
-        type="button"
+      <IconButton
+        variant="ghost"
         class="deck-app__debug"
+        label="Debug for agents"
         aria-pressed={debugOpen}
         aria-keyshortcuts="D"
         title="Debug for agents (D)"
         data-py-deck-tool="debug"
         onclick={toggleDebug}
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m8 2 1.88 1.88M14.12 3.88 16 2M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" />
-          <path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6M12 20v-9M6.53 9C4.6 8.8 3 7.1 3 5M6 13H2M3 21c0-2.1 1.7-3.9 3.8-4M20.97 5c0 2.1-1.6 3.8-3.5 4M22 13h-4M17.2 17c2.1.1 3.8 1.9 3.8 4" />
-        </svg>
-        <span class="sr-only">Debug for agents</span>
-      </button>
+        <LucideIcon icon={Bug} size="sm" />
+      </IconButton>
     </div>
   </div>
 {/snippet}
@@ -409,11 +409,11 @@ onMount(() => {
 
   .deck-app__debug:hover,
   .deck-app__debug[aria-pressed='true'] {
-    background: var(--tx-muted, var(--py-muted));
+    background: var(--tx-muted);
   }
 
   .deck-app__debug:focus-visible {
-    outline: 2px solid var(--tx-ring, var(--py-ring));
+    outline: 2px solid var(--tx-ring);
     outline-offset: 2px;
   }
 

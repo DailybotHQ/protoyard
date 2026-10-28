@@ -537,6 +537,9 @@ importers:
 
   packages/decks-ui:
     dependencies:
+      '@lucide/svelte':
+        specifier: ^1.59.0
+        version: 1.59.0(svelte@5.57.2)
       '@protoyard/blocks':
         specifier: workspace:*
         version: link:../blocks
