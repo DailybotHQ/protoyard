@@ -1,6 +1,8 @@
 <script lang="ts">
 import { FileText } from '@lucide/svelte';
 import type { MessageAttachment } from '@protoyard/ai/messages';
+import { Button } from 'texuli/button';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { formatBytes, isImageMime, isInlineImageUrl } from './format.ts';
 import { settle } from './types.ts';
 
@@ -34,17 +36,18 @@ async function open(attachment: MessageAttachment): Promise<void> {
       {#if isImageMime(attachment.mime) && isInlineImageUrl(attachment.url)}
         <img class="max-h-40 max-w-60 rounded-md border border-border object-contain" src={attachment.url} alt={attachment.name} loading="lazy" />
       {:else}
-        <FileText class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <LucideIcon icon={FileText} size="sm" class="shrink-0 text-muted-foreground" />
         {#if onOpen}
-          <button
-            type="button"
-            class="min-h-touch rounded-md text-left text-primary underline underline-offset-4 disabled:opacity-50 sm:min-h-0"
+          <!-- One open at a time: pending is the component's own state, so autoLoading is off. -->
+          <Button
+            variant="link"
+            autoLoading={false}
+            loading={pending === attachment.id}
             disabled={pending !== null}
-            aria-busy={pending === attachment.id ? 'true' : undefined}
             onclick={() => open(attachment)}
           >
             {attachment.name}
-          </button>
+          </Button>
         {:else}
           <span>{attachment.name}</span>
         {/if}
