@@ -49,13 +49,20 @@ const SKIP_DIRS = new Set([
   'build',
 ]);
 
-export type Rule = 'legacy-import' | 'raw-lucide' | 'py-token' | 'raw-control' | 'own-component';
+export type Rule =
+  | 'legacy-import'
+  | 'raw-lucide'
+  | 'py-token'
+  | 'raw-control'
+  | 'own-component'
+  | 'component-bind-this';
 export const RULES: readonly Rule[] = [
   'legacy-import',
   'raw-lucide',
   'py-token',
   'raw-control',
   'own-component',
+  'component-bind-this',
 ];
 
 export interface Violation {
@@ -106,6 +113,10 @@ const COMPOSES =
 const LUCIDE_IMPORT = /import\s*\{([^}]*)\}\s*from\s*['"]@lucide\/svelte(?:\/[^'"]*)?['"]/g;
 const LUCIDE_DEFAULT =
   /import\s+([A-Za-z_$][\w$]*)\s+from\s*['"]@lucide\/svelte\/icons\/[^'"]+['"]/g;
+const COMPONENT_IMPORT = /^(?:texuli(?:\/.*)?|@texuli\/[^/]+|@protoyard\/ui(?:\/.*)?)$/;
+const DOM_ELEMENT_MEMBERS =
+  /(?:\?\.|\.)\s*(?:setSelectionRange|scrollIntoView|scrollTo|getBoundingClientRect|contains|querySelector(?:All)?|closest|matches|addEventListener)\s*\(/;
+const DOM_ELEMENT_TYPE = /\b(?:HTML[A-Za-z]+Element|HTMLElement|Element|Node)\b/;
 
 function count(text: string, pattern: RegExp): number {
   return [...text.matchAll(new RegExp(pattern.source, pattern.flags))].length;
@@ -121,6 +132,58 @@ function stripComments(text: string): string {
 
 function markupOf(svelte: string): string {
   return svelte.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '');
+}
+
+/** Counts component refs from Texuli/@protoyard/ui that are used as DOM elements. */
+function componentBindThisCount(svelte: string): number {
+  const imported = new Set<string>();
+  const namespaces = new Set<string>();
+  for (const match of svelte.matchAll(/import\s+([\s\S]*?)\s+from\s*['"]([^'"]+)['"]/g)) {
+    const clause = match[1] ?? '';
+    if (!COMPONENT_IMPORT.test(match[2] ?? '')) continue;
+    const namespace = clause.match(/\*\s+as\s+([A-Za-z_$][\w$]*)/);
+    if (namespace?.[1]) namespaces.add(namespace[1]);
+    const named = clause.match(/\{([^}]*)\}/)?.[1];
+    if (named) {
+      for (const specifier of named.split(',')) {
+        const parts = specifier
+          .trim()
+          .replace(/^type\s+/, '')
+          .split(/\s+as\s+/);
+        const local = parts.at(-1)?.trim();
+        if (local && /^[A-Za-z_$][\w$]*$/.test(local)) imported.add(local);
+      }
+    }
+    const defaultImport = clause.match(/^\s*([A-Za-z_$][\w$]*)\s*(?:,|$)/);
+    if (defaultImport?.[1] && defaultImport[1] !== 'type') imported.add(defaultImport[1]);
+  }
+
+  const script = (svelte.match(/<script[\s\S]*?<\/script>/g) ?? []).join('\n');
+  const markup = markupOf(svelte);
+  const tags = [
+    ...imported,
+    ...[...namespaces].flatMap((prefix) =>
+      [...markup.matchAll(new RegExp(`<${prefix}\\.([A-Za-z_$][\\w$]*)`, 'g'))].map(
+        (match) => `${prefix}.${match[1]}`
+      )
+    ),
+  ];
+  let violations = 0;
+  for (const tag of tags) {
+    const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const component = new RegExp(
+      `<${escaped}(?=[\\s/>])[^>]*\\bbind:this\\s*=\\s*\\{\\s*([A-Za-z_$][\\w$]*)\\s*\\}`,
+      'g'
+    );
+    for (const match of markup.matchAll(component)) {
+      const ref = match[1];
+      if (!ref) continue;
+      const elementType = new RegExp(`\\b${ref}\\b[^;\\n]*${DOM_ELEMENT_TYPE.source}`, 'm');
+      const domMember = new RegExp(`\\b${ref}\\s*${DOM_ELEMENT_MEMBERS.source}`, 'm');
+      if (elementType.test(script) || domMember.test(script)) violations += 1;
+    }
+  }
+  return violations;
 }
 
 function lucideNames(text: string): string[] {
@@ -152,6 +215,7 @@ export function scanSource(file: string, source: string): Violation[] {
   if (file.endsWith('.svelte')) {
     const markup = markupOf(text);
     add('raw-control', count(markup, RAW_CONTROL));
+    add('component-bind-this', componentBindThisCount(text));
     let raw = 0;
     for (const name of lucideNames(text)) {
       raw += count(markup, new RegExp(`<${name.replace(/\$/g, '\\$')}(?=[\\s/>])`, 'g'));

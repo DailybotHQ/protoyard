@@ -47,6 +47,20 @@ describe('scanSource', () => {
     expect(rules('templates/x/src/A.svelte', src)['raw-control']).toBe(2);
   });
 
+  it('flags Texuli or @protoyard/ui component refs used as DOM elements', () => {
+    const texuli = `<script>import { Textarea as Field } from 'texuli/input'; let field: HTMLTextAreaElement | null = null; function focus() { field?.focus(); field?.setSelectionRange(1, 1); }</script><Field bind:this={field} />`;
+    expect(rules('templates/x/src/A.svelte', texuli)['component-bind-this']).toBe(1);
+
+    const nestedExport = `<script>import { LucideIcon as Glyph } from 'texuli/icons/lucide'; let glyph: HTMLElement | null = null; glyph?.focus();</script><Glyph bind:this={glyph} />`;
+    expect(rules('templates/x/src/A.svelte', nestedExport)['component-bind-this']).toBe(1);
+
+    const protoyard = `<script>import { Input } from '@protoyard/ui'; let input: HTMLInputElement | null = null; function scroll() { input?.scrollIntoView(); }</script><Input bind:this={input} />`;
+    expect(rules('templates/x/src/A.svelte', protoyard)['component-bind-this']).toBe(1);
+
+    const legitimate = `<script>import { Calendar } from '@protoyard/ui'; let calendar: ReturnType<typeof Calendar> | null = null; calendar?.focusTarget(); calendar?.focus();</script><Calendar bind:this={calendar} /><div bind:this={node} />`;
+    expect(rules('templates/x/src/A.svelte', legitimate)['component-bind-this']).toBeUndefined();
+  });
+
   it('flags leaf UI-package components that compose nothing from Texuli or Protoyard', () => {
     const leaf =
       '<script lang="ts">let { label } = $props();</script>\n<span class="badge">{label}</span>';
