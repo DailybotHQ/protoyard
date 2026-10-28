@@ -1,5 +1,10 @@
 <script lang="ts">
 import { ArrowLeft, ArrowRight, ChevronUp, RefreshCw, ThumbsDown, ThumbsUp } from '@lucide/svelte';
+import { ChatMessageDisplay } from '@texuli/chat';
+import { Badge } from 'texuli/badge';
+import { Button, IconButton } from 'texuli/button';
+import { LucideIcon } from 'texuli/icons/lucide';
+import { Textarea } from 'texuli/input';
 import RichAnswer from './components/RichAnswer.svelte';
 import type { AssistantMessage, FeedbackRating } from './types.ts';
 import {
@@ -117,12 +122,6 @@ function observeMessage(node: HTMLElement, id: string) {
   return { destroy: () => observer?.disconnect() };
 }
 
-function formatDate(date: string): string {
-  const value = new Date(date);
-  if (Number.isNaN(value.getTime())) return '';
-  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(value);
-}
-
 function saveEdit(message: AssistantMessage): void {
   const content = editDraft.trim();
   if (content) onEditMessage?.(message.id, content);
@@ -130,6 +129,12 @@ function saveEdit(message: AssistantMessage): void {
 }
 </script>
 
+<!--
+  Each message is @texuli/chat's ChatMessageDisplay. The list itself stays
+  Protoyard's: @texuli/chat's MessageList owns its viewport and has no
+  per-conversation scroll anchor, action row or edit mode (Texuli gap, see the
+  lane-C map), so the virtual window and anchor below are kept (virtual.ts).
+-->
 <div
   bind:this={viewport}
   class="@container min-h-0 flex-1 overflow-y-auto px-4 py-5 @xl:px-8"
@@ -143,35 +148,58 @@ function saveEdit(message: AssistantMessage): void {
     {#each windowed.items as item (messages[item.index]?.id)}
       {@const message = messages[item.index]}
       {#if message}
+        <!-- The outer article keeps ai-ui's names ("Your message", "Assistant message") that hosts and E2E address. -->
         <article
           use:observeMessage={message.id}
-          class={`group min-w-0 pb-8 ${message.role === 'user' ? 'ml-auto max-w-[92%] @xl:max-w-[85%]' : 'max-w-full'}`}
+          class="group min-w-0 pb-8"
           aria-label={message.role === 'user' ? 'Your message' : 'Assistant message'}
+          data-message-role={message.role}
           style={`position:absolute;top:${item.start}px;left:0;right:0`}
         >
-          <div class="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-            <span class="font-medium text-foreground">{message.role === 'user' ? 'You' : 'Assistant'}</span>
-            {#if message.role === 'assistant'}<span class="rounded-full border border-border px-2 py-0.5 text-[0.62rem]">Simulated</span>{/if}
-            <time class="ml-auto" datetime={message.createdAt}>{formatDate(message.createdAt)}</time>
-          </div>
-          {#if editingId === message.id}
-            <form class="space-y-2" onsubmit={(event) => { event.preventDefault(); saveEdit(message); }}>
-              <label for={`edit-${message.id}`} class="sr-only">Edit your message</label>
-              <textarea id={`edit-${message.id}`} bind:value={editDraft} rows="4" class="w-full rounded-xl border border-border bg-surface p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"></textarea>
-              <div class="flex justify-end gap-2"><button type="button" class="min-h-10 rounded-lg px-3 text-xs hover:bg-muted" onclick={() => (editingId = '')}>Cancel</button><button type="submit" class="min-h-10 rounded-lg bg-primary px-3 text-xs text-primary-foreground disabled:opacity-40" disabled={!onEditMessage || !editDraft.trim()}>Save and resend</button></div>
-            </form>
-          {:else if message.role === 'user'}
-            <div class="rounded-2xl rounded-tr-sm bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground whitespace-pre-wrap">{message.content}</div>
-            {#if onEditMessage}<button type="button" class="mt-1 min-h-9 rounded-lg px-2 text-xs text-muted-foreground opacity-100 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring @xl:opacity-0 @xl:group-hover:opacity-100 @xl:focus-visible:opacity-100" aria-label="Edit your message" onclick={() => { editingId = message.id; editDraft = message.content; }}><span class="inline-flex items-center gap-1"><ChevronUp class="size-3" aria-hidden="true" /> Edit</span></button>{/if}
+          {#if message.role === 'user'}
+            <ChatMessageDisplay author="You" role="user" at={message.createdAt} text={editingId === message.id ? undefined : message.content}>
+              {#if editingId === message.id}
+                <form class="w-full min-w-72 space-y-2" onsubmit={(event) => { event.preventDefault(); saveEdit(message); }}>
+                  <label for={`edit-${message.id}`} class="sr-only">Edit your message</label>
+                  <Textarea id={`edit-${message.id}`} bind:value={editDraft} rows={4} />
+                  <div class="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onclick={() => (editingId = '')}>Cancel</Button>
+                    <Button type="submit" size="sm" disabled={!onEditMessage || !editDraft.trim()}>Save and resend</Button>
+                  </div>
+                </form>
+              {:else if onEditMessage}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="text-xs opacity-100 transition-[color,background-color,border-color,box-shadow] @xl:opacity-0 @xl:group-hover:opacity-100 @xl:focus-visible:opacity-100"
+                  aria-label="Edit your message"
+                  onclick={() => { editingId = message.id; editDraft = message.content; }}
+                ><LucideIcon icon={ChevronUp} size="xs" /> Edit</Button>
+              {/if}
+            </ChatMessageDisplay>
           {:else}
-            <RichAnswer content={message.content} />
-            <div class="mt-2 flex flex-wrap items-center gap-1 text-xs text-muted-foreground opacity-100 @xl:opacity-0 @xl:group-hover:opacity-100 @xl:focus-within:opacity-100">
-              {#if onFeedback}<button type="button" class={`inline-flex min-h-9 items-center gap-1 rounded-lg px-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${message.feedback === 'up' ? 'text-primary' : ''}`} aria-label="Helpful response" aria-pressed={message.feedback === 'up'} onclick={() => onFeedback?.(message.id, 'up')}><ThumbsUp class="size-3.5" aria-hidden="true" />Helpful</button><button type="button" class={`inline-flex min-h-9 items-center gap-1 rounded-lg px-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${message.feedback === 'down' ? 'text-primary' : ''}`} aria-label="Not helpful response" aria-pressed={message.feedback === 'down'} onclick={() => onFeedback?.(message.id, 'down')}><ThumbsDown class="size-3.5" aria-hidden="true" />Not helpful</button>{/if}
-              {#if message.branchCount && message.branchCount > 1}<span class="ml-1 inline-flex items-center gap-1"><button type="button" class="inline-flex size-9 items-center justify-center rounded-md hover:bg-muted disabled:opacity-40" aria-label="Previous response version" disabled={message.branchIndex === 0 || !onBranchChange} onclick={() => onBranchChange?.(message.id, -1)}><ArrowLeft class="size-3.5" aria-hidden="true" /></button><span>{(message.branchIndex ?? 0) + 1} / {message.branchCount}</span><button type="button" class="inline-flex size-9 items-center justify-center rounded-md hover:bg-muted disabled:opacity-40" aria-label="Next response version" disabled={(message.branchIndex ?? 0) >= message.branchCount - 1 || !onBranchChange} onclick={() => onBranchChange?.(message.id, 1)}><ArrowRight class="size-3.5" aria-hidden="true" /></button></span>{/if}
-              {#if lastAssistantId === message.id && onRegenerate}<button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={streaming} aria-label="Regenerate response" onclick={onRegenerate}><RefreshCw class="size-3.5" aria-hidden="true" /> Regenerate</button>{/if}
-            </div>
+            <ChatMessageDisplay author="Assistant" role="agent" at={message.createdAt}>
+              <Badge variant="outline" label="Simulated" class="mb-1" />
+              <RichAnswer content={message.content} />
+              <div class="mt-2 flex flex-wrap items-center gap-1 text-xs text-muted-foreground opacity-100 @xl:opacity-0 @xl:group-hover:opacity-100 @xl:focus-within:opacity-100">
+                {#if onFeedback}
+                  <Button variant="ghost" size="sm" class={message.feedback === 'up' ? 'text-primary' : ''} aria-label="Helpful response" aria-pressed={message.feedback === 'up'} onclick={() => onFeedback?.(message.id, 'up')}><LucideIcon icon={ThumbsUp} size="xs" />Helpful</Button>
+                  <Button variant="ghost" size="sm" class={message.feedback === 'down' ? 'text-primary' : ''} aria-label="Not helpful response" aria-pressed={message.feedback === 'down'} onclick={() => onFeedback?.(message.id, 'down')}><LucideIcon icon={ThumbsDown} size="xs" />Not helpful</Button>
+                {/if}
+                {#if message.branchCount && message.branchCount > 1}
+                  <span class="ml-1 inline-flex items-center gap-1">
+                    <IconButton variant="ghost" size="sm" label="Previous response version" disabled={message.branchIndex === 0 || !onBranchChange} onclick={() => onBranchChange?.(message.id, -1)}><LucideIcon icon={ArrowLeft} size="xs" /></IconButton>
+                    <span>{(message.branchIndex ?? 0) + 1} / {message.branchCount}</span>
+                    <IconButton variant="ghost" size="sm" label="Next response version" disabled={(message.branchIndex ?? 0) >= message.branchCount - 1 || !onBranchChange} onclick={() => onBranchChange?.(message.id, 1)}><LucideIcon icon={ArrowRight} size="xs" /></IconButton>
+                  </span>
+                {/if}
+                {#if lastAssistantId === message.id && onRegenerate}
+                  <Button variant="ghost" size="sm" disabled={streaming} aria-label="Regenerate response" onclick={onRegenerate}><LucideIcon icon={RefreshCw} size="xs" /> Regenerate</Button>
+                {/if}
+              </div>
+              {#if lastAssistantId === message.id && streaming}<p class="mt-2 text-xs text-muted-foreground" aria-live="polite">Writing…</p>{/if}
+            </ChatMessageDisplay>
           {/if}
-          {#if message.role === 'assistant' && lastAssistantId === message.id && streaming}<p class="mt-2 text-xs text-muted-foreground" aria-live="polite">Writing…</p>{/if}
         </article>
       {/if}
     {/each}

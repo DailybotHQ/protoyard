@@ -1,10 +1,15 @@
 <script lang="ts">
-import { LoaderCircle } from '@lucide/svelte';
 import type { FormBlock, FormField } from '@protoyard/ai/messages';
+import { Button } from 'texuli/button';
+import { Checkbox } from 'texuli/choice';
+import { Field } from 'texuli/field';
+import { Input, Textarea } from 'texuli/input';
+import { SelectContent, SelectItem, SelectRoot, SelectTrigger, SelectValue } from 'texuli/select';
 import { type MessageActionHandler, type MessageFormValue, settle } from './types.ts';
 
 /**
- * A form in a message. Required fields are checked before anything is sent;
+ * A form in a message, drawn with Texuli's field, input, select, checkbox and
+ * button. Required fields are checked before anything is sent;
  * a submission reports `{ kind: 'form', values }` with typed values (strings,
  * numbers, booleans, string lists or null), stays busy while the host works,
  * shows the host's error and keeps the input on failure, and locks with
@@ -92,8 +97,7 @@ function setMulti(key: string, value: string, checked: boolean): void {
   values[key] = checked ? [...current, value] : current.filter((v) => v !== value);
 }
 
-const control =
-  'min-h-touch w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 aria-[invalid=true]:border-destructive sm:min-h-9';
+const locked = $derived(!onAction || pending || submitted);
 </script>
 
 <form
@@ -104,24 +108,22 @@ const control =
   onsubmit={submit}
 >
   <p id="{uid}-heading" class="m-0 text-sm font-semibold">{block.title}</p>
-  <fieldset class="m-0 grid gap-3 border-0 p-0" disabled={!onAction || pending || submitted}>
+  <fieldset class="m-0 grid gap-3 border-0 p-0" disabled={locked}>
     {#each block.fields as field (field.key)}
       {@const id = `${uid}-field-${field.key}`}
       {@const error = errors[field.key]}
       {#if field.kind === 'checkbox'}
         <div class="grid gap-1">
-          <label class="flex items-center gap-2 text-sm">
-            <input
-              {id}
-              type="checkbox"
-              class="size-4 accent-primary"
-              checked={values[field.key] === true}
-              aria-invalid={error ? 'true' : undefined}
-              aria-describedby={error ? `${id}-error` : undefined}
-              onchange={(event) => (values[field.key] = event.currentTarget.checked)}
-            />
-            {field.label}{#if field.required}<span aria-hidden="true"> *</span>{/if}
-          </label>
+          <Checkbox
+            {id}
+            label={field.label}
+            required={field.required}
+            disabled={locked}
+            checked={values[field.key] === true}
+            aria-invalid={error ? 'true' : undefined}
+            aria-describedby={error ? `${id}-error` : undefined}
+            onCheckedChange={(checked) => (values[field.key] = checked)}
+          />
           {#if error}<p id="{id}-error" class="m-0 text-xs text-destructive">{error}</p>{/if}
         </div>
       {:else if field.kind === 'multiselect'}
@@ -130,98 +132,85 @@ const control =
             {field.label}{#if field.required}<span aria-hidden="true"> *</span>{/if}
           </legend>
           {#each field.options ?? [] as option, index (option.value)}
-            <label class="flex items-center gap-2 text-sm">
-              <input
-                id={index === 0 ? id : undefined}
-                type="checkbox"
-                class="size-4 accent-primary"
-                checked={((values[field.key] as string[] | null) ?? []).includes(option.value)}
-                onchange={(event) => setMulti(field.key, option.value, event.currentTarget.checked)}
-              />
-              {option.label}
-            </label>
+            <Checkbox
+              id={index === 0 ? id : undefined}
+              label={option.label}
+              value={option.value}
+              disabled={locked}
+              checked={((values[field.key] as string[] | null) ?? []).includes(option.value)}
+              onCheckedChange={(checked) => setMulti(field.key, option.value, checked)}
+            />
           {/each}
           {#if error}<p id="{id}-error" class="m-0 text-xs text-destructive">{error}</p>{/if}
         </fieldset>
       {:else}
-        <div class="grid gap-1">
-          <label class="text-sm font-medium" for={id}>
-            {field.label}{#if field.required}<span aria-hidden="true"> *</span>{/if}
-          </label>
-          {#if field.kind === 'textarea'}
-            <textarea
-              {id}
-              class="{control} min-h-20 py-2"
-              placeholder={field.placeholder}
-              required={field.required}
-              maxlength={4000}
-              aria-invalid={error ? 'true' : undefined}
-              aria-describedby={error ? `${id}-error` : undefined}
-              value={(values[field.key] as string | null) ?? ''}
-              oninput={(event) => (values[field.key] = event.currentTarget.value)}
-            ></textarea>
-          {:else if field.kind === 'select'}
-            <select
-              {id}
-              class={control}
-              required={field.required}
-              aria-invalid={error ? 'true' : undefined}
-              aria-describedby={error ? `${id}-error` : undefined}
-              value={(values[field.key] as string | null) ?? ''}
-              onchange={(event) => (values[field.key] = event.currentTarget.value || null)}
-            >
-              <option value="">{field.placeholder ?? 'Choose…'}</option>
-              {#each field.options ?? [] as option (option.value)}
-                <option value={option.value}>{option.label}</option>
-              {/each}
-            </select>
-          {:else if field.kind === 'number'}
-            <input
-              {id}
-              type="number"
-              inputmode="decimal"
-              class={control}
-              placeholder={field.placeholder}
-              required={field.required}
-              aria-invalid={error ? 'true' : undefined}
-              aria-describedby={error ? `${id}-error` : undefined}
-              value={(values[field.key] as number | null) ?? ''}
-              oninput={(event) => {
-                const raw = event.currentTarget.value;
-                const parsed = Number(raw);
-                values[field.key] = raw === '' || !Number.isFinite(parsed) ? null : parsed;
-              }}
-            />
-          {:else}
-            <input
-              {id}
-              type={field.kind === 'date' ? 'date' : 'text'}
-              class={control}
-              placeholder={field.placeholder}
-              required={field.required}
-              maxlength={field.kind === 'text' ? 4000 : undefined}
-              aria-invalid={error ? 'true' : undefined}
-              aria-describedby={error ? `${id}-error` : undefined}
-              value={(values[field.key] as string | null) ?? ''}
-              oninput={(event) => (values[field.key] = event.currentTarget.value)}
-            />
-          {/if}
-          {#if error}<p id="{id}-error" class="m-0 text-xs text-destructive">{error}</p>{/if}
-        </div>
+        <Field {id} label={field.label} required={field.required} {error}>
+          {#snippet children(control)}
+            {#if field.kind === 'textarea'}
+              <Textarea
+                {...control.props}
+                class="min-h-20"
+                placeholder={field.placeholder}
+                required={field.required}
+                maxlength={4000}
+                disabled={locked}
+                value={(values[field.key] as string | null) ?? ''}
+                onValueChange={(value) => (values[field.key] = value)}
+              />
+            {:else if field.kind === 'select'}
+              <SelectRoot
+                value={(values[field.key] as string | null) ?? ''}
+                items={(field.options ?? []).map((option) => ({ value: option.value, label: option.label }))}
+                required={field.required}
+                disabled={locked}
+                onValueChange={(value) => (values[field.key] = value || null)}
+              >
+                <SelectTrigger {...control.props} disabled={locked} class="w-full">
+                  <SelectValue placeholder={field.placeholder ?? 'Choose…'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {#each field.options ?? [] as option (option.value)}
+                    <SelectItem value={option.value} label={option.label}>{option.label}</SelectItem>
+                  {/each}
+                </SelectContent>
+              </SelectRoot>
+            {:else if field.kind === 'number'}
+              <Input
+                {...control.props}
+                type="number"
+                inputmode="decimal"
+                placeholder={field.placeholder}
+                required={field.required}
+                disabled={locked}
+                value={values[field.key] === null ? '' : String(values[field.key])}
+                onValueChange={(raw) => {
+                  const parsed = Number(raw);
+                  values[field.key] = raw === '' || !Number.isFinite(parsed) ? null : parsed;
+                }}
+              />
+            {:else}
+              <Input
+                {...control.props}
+                type={field.kind === 'date' ? 'date' : 'text'}
+                placeholder={field.placeholder}
+                required={field.required}
+                maxlength={field.kind === 'text' ? 4000 : undefined}
+                disabled={locked}
+                value={(values[field.key] as string | null) ?? ''}
+                onValueChange={(value) => (values[field.key] = value)}
+              />
+            {/if}
+          {/snippet}
+        </Field>
       {/if}
     {/each}
   </fieldset>
 
   <div class="flex flex-wrap items-center gap-3">
-    <button
-      type="submit"
-      class="inline-flex min-h-touch items-center gap-1.5 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-9"
-      disabled={!onAction || pending || submitted}
-      aria-busy={pending ? 'true' : undefined}
-    >
-      {#if pending}<LoaderCircle class="size-3.5 motion-safe:animate-spin" aria-hidden="true" />{/if}
+    <!-- Pending follows the host's promise through `submit`, so autoLoading is off. -->
+    <Button type="submit" autoLoading={false} loading={pending} disabled={locked}>
       {block.submitLabel ?? 'Submit'}
-    </button>
+    </Button>
     <p class="m-0 text-xs text-muted-foreground" role="status" aria-live="polite">
       {#if pending}Sending…{:else if submitted}Submitted.{/if}
     </p>

@@ -126,12 +126,11 @@ describe('SuggestionCard', () => {
       },
     });
     await fireEvent.click(view.getByRole('button', { name: 'Edit' }));
-    const select = view.container.querySelector(
-      '#suggestion-edit-approval_sug_resp_1'
-    ) as HTMLSelectElement;
-    expect(select).toBeTruthy();
-    select.value = 'task_99';
-    await fireEvent.change(select);
+    // The target is a Texuli select: open it and pick the option.
+    const select = view.getByRole('combobox', { name: 'Link to target' });
+    expect(select.id).toBe('suggestion-edit-approval_sug_resp_1');
+    await fireEvent.click(select);
+    await fireEvent.click(view.getByRole('option', { name: 'ENG-99 — Docs pass' }));
     await fireEvent.click(view.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
       expect(onEdit).toHaveBeenCalledWith(

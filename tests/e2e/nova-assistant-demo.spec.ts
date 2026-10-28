@@ -44,7 +44,9 @@ test.describe('Nova Assistant flagship', () => {
       timeout: 20_000,
     });
     const thread = page.getByRole('log', { name: 'Conversation messages' });
-    await page.getByLabel('Simulated model').selectOption('py-orbit-agent');
+    // The model picker is a Texuli select: open the trigger, then choose the option.
+    await page.getByRole('combobox', { name: 'Simulated model' }).click();
+    await page.getByRole('option', { name: 'Orbit Agent · Simulated' }).click();
     page.once('dialog', (dialog) => dialog.accept());
     await page.getByLabel('Message the simulated assistant').fill('Search the launch checklist.');
     await page.getByRole('button', { name: 'Send message' }).click();

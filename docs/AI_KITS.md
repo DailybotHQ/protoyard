@@ -270,6 +270,12 @@ parent owns streaming state and must route mutations through services.
   picker, files, slash commands, @mentions.
 - `RichAnswer` renders the markdown AST; `CanvasPanel` shows code or editable
   document text.
+- Built on Texuli: each message is a `@texuli/chat` `ChatMessageDisplay`, and
+  every control is a `texuli` component (buttons, textarea, select, menus,
+  code, table, badges); Lucide glyphs render through `LucideIcon`. Stop while
+  streaming, slash and mention suggestions, model choice, per-message actions
+  and the scroll anchor stay Protoyard's until `@texuli/chat` exposes them
+  (reported Texuli gaps).
 
 ### Chat message blocks (lazy `@protoyard/ai-ui/messages`)
 

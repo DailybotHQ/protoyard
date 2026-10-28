@@ -32,6 +32,12 @@ function view(message: unknown, props: Record<string, unknown> = {}) {
   return render(ChatMessageBlocks, { message, ...props });
 }
 
+/** Picks an option from a Texuli select (its trigger is a combobox button). */
+async function choose(trigger: HTMLElement, option: string) {
+  await fireEvent.click(trigger);
+  await fireEvent.click(await screen.findByRole('option', { name: option }));
+}
+
 describe('chat message blocks: rendering', () => {
   it('renders plain text as text and markdown through the safe renderer', () => {
     const { container } = view(
@@ -77,10 +83,13 @@ describe('chat message blocks: rendering', () => {
         .getAllByRole('columnheader')
         .map((h) => h.textContent)
     ).toEqual(['Name', 'Count', 'Urgent']);
-    expect(within(table).getByText('1,234.5').className).toContain('text-right');
+    expect(within(table).getByText('1,234.5').className).toContain('tx-table__cell--end');
     expect(within(table).getByText('Yes')).toBeTruthy();
     expect(within(table).getByText('—')).toBeTruthy();
-    expect(screen.getByRole('region', { name: 'Open tickets' }).getAttribute('tabindex')).toBe('0');
+    // Texuli's table owns the scroll area: it turns into a focusable region named by the title when it overflows.
+    expect(
+      table.closest('[data-tx-table-wrap]')?.closest('[data-py-message-block="table"]')
+    ).not.toBeNull();
   });
 
   it('renders a link preview that never loads remote media and opens safely', () => {
@@ -287,8 +296,8 @@ describe('chat message blocks: actions', () => {
       ]),
       { onAction }
     );
-    const select = screen.getByLabelText('Team') as HTMLSelectElement;
-    await fireEvent.change(select, { target: { value: 'eng' } });
+    const select = screen.getByRole('combobox', { name: 'Team' });
+    await choose(select, 'Engineering');
     expect(onAction).toHaveBeenLastCalledWith({
       kind: 'select',
       messageId: 'msg-1',
@@ -297,9 +306,9 @@ describe('chat message blocks: actions', () => {
       values: ['eng'],
     });
     await screen.findByText('Sent.');
-    await fireEvent.change(select, { target: { value: 'design' } });
+    await choose(select, 'Design');
     expect((await screen.findByRole('alert')).textContent).toBe('Could not save.');
-    await waitFor(() => expect(select.value).toBe('eng'));
+    await waitFor(() => expect(select.textContent?.trim()).toBe('Engineering'));
   });
 
   it('sends a multiple select as a checkbox group', async () => {
@@ -321,8 +330,8 @@ describe('chat message blocks: actions', () => {
       { onAction }
     );
     const group = screen.getByRole('group', { name: 'Pick tags' });
-    expect((within(group).getByRole('checkbox', { name: /Bug/ }) as HTMLInputElement).checked).toBe(
-      true
+    expect(within(group).getByRole('checkbox', { name: /Bug/ }).getAttribute('aria-checked')).toBe(
+      'true'
     );
     await fireEvent.click(within(group).getByRole('checkbox', { name: /UX/ }));
     await fireEvent.click(screen.getByRole('button', { name: 'Send' }));
@@ -390,7 +399,7 @@ describe('chat message blocks: forms', () => {
       },
     });
     await fireEvent.input(screen.getByLabelText(/Title/), { target: { value: 'Login loops' } });
-    await fireEvent.change(screen.getByLabelText(/Severity/), { target: { value: 'high' } });
+    await choose(screen.getByLabelText(/Severity/), 'High');
     await fireEvent.input(screen.getByLabelText(/Affected users/), { target: { value: '42' } });
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Mobile' }));
     await fireEvent.click(screen.getByRole('checkbox', { name: /I checked the docs/ }));
@@ -425,7 +434,7 @@ describe('chat message blocks: forms', () => {
       onAction: () => Promise.reject(new Error('Tracker is read-only in this scenario.')),
     });
     await fireEvent.input(screen.getByLabelText(/Title/), { target: { value: 'Crash' } });
-    await fireEvent.change(screen.getByLabelText(/Severity/), { target: { value: 'low' } });
+    await choose(screen.getByLabelText(/Severity/), 'Low');
     await fireEvent.click(screen.getByRole('checkbox', { name: /I checked the docs/ }));
     await fireEvent.click(screen.getByRole('button', { name: 'File it' }));
     expect((await screen.findByRole('alert')).textContent).toBe(
