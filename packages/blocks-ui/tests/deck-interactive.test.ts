@@ -89,4 +89,21 @@ describe('data-py-deck-interactive', () => {
       { timeout: 30_000, interval: 50 }
     );
   }, 60_000);
+
+  // Regression: the map family on Texuli's renderer had lost its block root and deck mark.
+  it('gives the map block its data-py-block root, marked interactive', async () => {
+    const { container } = render(InteractiveHarness, {
+      blocks: [MINIMAL_EXAMPLES.map],
+      stateHost: createMemoryBlockStateHost(),
+      documentId: 'deck-interactive-map',
+    });
+    await waitFor(
+      () => {
+        const root = container.querySelector('[data-py-block="map"]');
+        expect(root).not.toBeNull();
+        expect(root?.hasAttribute(DECK_INTERACTIVE_ATTRIBUTE)).toBe(true);
+      },
+      { timeout: 30_000, interval: 50 }
+    );
+  }, 60_000);
 });
