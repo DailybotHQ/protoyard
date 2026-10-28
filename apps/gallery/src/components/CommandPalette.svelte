@@ -181,7 +181,7 @@ async function run(action: PaletteAction): Promise<void> {
     return;
   }
 
-  const current = document.documentElement.dataset.theme;
+  const current = document.documentElement.dataset.txMode;
   const preferred = readThemeChoice();
   const dark = current === 'dark' || (current !== 'light' && preferred === 'dark');
   applyTheme(dark ? 'light' : 'dark');

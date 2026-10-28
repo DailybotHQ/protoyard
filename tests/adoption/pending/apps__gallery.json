@@ -209,12 +209,14 @@
     {
       "file": "apps/gallery/src/components/ThemeToggle.svelte",
       "rule": "own-component",
-      "count": 1
+      "count": 1,
+      "gap": "G16"
     },
     {
       "file": "apps/gallery/src/components/ThemeToggle.svelte",
       "rule": "raw-control",
-      "count": 1
+      "count": 1,
+      "gap": "G16"
     },
     {
       "file": "apps/gallery/src/pages/themes.astro",

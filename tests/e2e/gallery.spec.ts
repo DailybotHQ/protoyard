@@ -146,10 +146,28 @@ test.describe('gallery', () => {
     await page.goto('/');
     await hydrated(page, '[aria-label="Color theme"]');
     await page.getByRole('button', { name: 'Dark theme' }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('html')).toHaveAttribute('data-tx-mode', 'dark');
     await page.reload();
     // Set by the inline head script before paint, i.e. no flash of light theme.
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('html')).toHaveAttribute('data-tx-mode', 'dark');
+  });
+
+  test('migrates the previous saved mode into Texuli appearance storage once', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('protoyard.gallery.theme', 'dark'));
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-tx-mode', 'dark');
+    const appearance = await page.evaluate(() => {
+      const raw = localStorage.getItem('texuli.gallery.appearance');
+      return raw ? (JSON.parse(raw) as { themeId: string; mode: string }) : null;
+    });
+    expect(appearance).toMatchObject({ themeId: 'gallery', mode: 'dark' });
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem('protoyard.gallery.theme')))
+      .toBeNull();
+
+    await page.evaluate(() => localStorage.setItem('protoyard.gallery.theme', 'light'));
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-tx-mode', 'dark');
   });
 
   test('theme explorer filters by collection and mood and links a prototype in the selected mode', async ({

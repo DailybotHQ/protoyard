@@ -264,7 +264,7 @@ test.describe('marketplace', () => {
     test(`has no axe violations in ${scheme} mode`, async ({ page }, testInfo) => {
       await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
       await openMarketplace(page);
-      await expect(page.locator('html')).toHaveAttribute('data-theme', scheme);
+      await expect(page.locator('html')).toHaveAttribute('data-tx-mode', scheme);
       await expectAccessible(page, testInfo, { label: `marketplace-${scheme}` });
 
       const template = requireFirst('template');

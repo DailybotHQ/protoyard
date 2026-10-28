@@ -94,7 +94,7 @@ describe('ThemeSwatch', () => {
       expect(results.violations).toEqual([]);
     }
 
-    document.documentElement.dataset.theme = 'light';
+    document.documentElement.dataset.txMode = 'light';
     const { unmount } = render(ThemeSwatch, {
       theme: sampleCard(),
       previewUrl: '/apps/crm-demo/',
@@ -102,13 +102,13 @@ describe('ThemeSwatch', () => {
     await checkAxe();
     unmount();
 
-    document.documentElement.dataset.theme = 'dark';
+    document.documentElement.dataset.txMode = 'dark';
     render(ThemeSwatch, {
       theme: sampleCard({ id: 'fintech-ledger', name: 'Fintech Ledger', category: 'fintech' }),
       previewUrl: '/apps/crm-demo/',
     });
     await checkAxe();
-    document.documentElement.dataset.theme = 'light';
+    document.documentElement.dataset.txMode = 'light';
   });
 });
 
@@ -159,7 +159,7 @@ describe('ThemeBrowser', () => {
   });
 
   it('is axe-clean with filters visible', async () => {
-    document.documentElement.dataset.theme = 'light';
+    document.documentElement.dataset.txMode = 'light';
     render(ThemeBrowser, {
       themes: [sampleCard(), sampleCard({ id: 'rose', name: 'Rose', category: 'builtin' })],
       categories: ['builtin'],

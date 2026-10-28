@@ -1,8 +1,9 @@
 /* biome-ignore-all lint/complexity/noImportantStyles: reduced motion must override component transitions */
 @import "tailwindcss";
+@import "@texuli/astro/styles.css";
 
-/* Dark mode follows the html[data-theme] attribute set before first paint. */
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+/* Dark mode follows Texuli's no-flash data-tx-mode bootstrap. */
+@custom-variant dark (&:where([data-tx-mode="dark"], [data-tx-mode="dark"] *));
 
 /*
  * Restrained developer-tool palette: neutral canvas, one indigo accent.
@@ -28,7 +29,7 @@
   color-scheme: light;
 }
 
-[data-theme="dark"] {
+[data-tx-mode="dark"] {
   --py-bg: #09090b;
   --py-surface: #111113;
   --py-surface-2: #18181b;

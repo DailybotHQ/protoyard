@@ -1,24 +1,19 @@
 <script lang="ts">
-import Monitor from '@lucide/svelte/icons/monitor';
-import Moon from '@lucide/svelte/icons/moon';
-import Sun from '@lucide/svelte/icons/sun';
 import { onMount } from 'svelte';
 import { applyTheme, readThemeChoice, type ThemeChoice } from '@/lib/theme';
 
 let choice = $state<ThemeChoice>('system');
 let hydrated = $state(false);
-
 const options = [
-  { value: 'light', label: 'Light theme', Icon: Sun },
-  { value: 'dark', label: 'Dark theme', Icon: Moon },
-  { value: 'system', label: 'Match system theme', Icon: Monitor },
+  { value: 'light', label: 'Light theme', glyph: '☼' },
+  { value: 'dark', label: 'Dark theme', glyph: '◐' },
+  { value: 'system', label: 'Match system theme', glyph: '◉' },
 ] as const;
 
 onMount(() => {
   choice = readThemeChoice();
   hydrated = true;
   const media = window.matchMedia('(prefers-color-scheme: dark)');
-  // While on "system", follow OS changes live.
   const onChange = () => {
     if (choice === 'system') applyTheme('system');
   };
@@ -26,7 +21,7 @@ onMount(() => {
   return () => media.removeEventListener('change', onChange);
 });
 
-function select(value: ThemeChoice) {
+function select(value: ThemeChoice): void {
   choice = value;
   applyTheme(value);
 }
@@ -42,7 +37,7 @@ function select(value: ThemeChoice) {
       title={option.label}
       onclick={() => select(option.value)}
     >
-      <option.Icon size={15} aria-hidden="true" />
+      <span aria-hidden="true">{option.glyph}</span>
     </button>
   {/each}
 </div>
