@@ -179,7 +179,7 @@ $effect(() => {
 
   .docs-layout__toc-title {
     margin: 0 0 0.5rem;
-    color: var(--py-foreground, #18181b);
+    color: var(--tx-foreground, #18181b);
     font-size: 0.75rem;
     font-weight: 600;
   }
@@ -197,7 +197,7 @@ $effect(() => {
     min-height: 32px;
     padding: 0.35rem 0.5rem;
     border-radius: 0.375rem;
-    color: var(--py-muted-foreground, #52525b);
+    color: var(--tx-muted-foreground, #52525b);
     font-size: 0.75rem;
     line-height: 1.4;
     text-decoration: none;
@@ -206,12 +206,12 @@ $effect(() => {
   .docs-layout__toc a:hover,
   .docs-layout__toc a:focus-visible,
   .docs-layout__toc a[aria-current='location'] {
-    background: var(--py-muted, #f4f4f5);
-    color: var(--py-foreground, #18181b);
+    background: var(--tx-muted, #f4f4f5);
+    color: var(--tx-foreground, #18181b);
   }
 
   .docs-layout__toc a:focus-visible {
-    outline: 2px solid var(--py-ring, #7c3aed);
+    outline: 2px solid var(--tx-ring, #7c3aed);
     outline-offset: 2px;
   }
 
@@ -220,7 +220,7 @@ $effect(() => {
   }
 
   .docs-layout__empty {
-    color: var(--py-muted-foreground, #52525b);
+    color: var(--tx-muted-foreground, #52525b);
     font-size: 0.75rem;
   }
 
@@ -245,7 +245,7 @@ $effect(() => {
       position: sticky;
       top: 1rem;
       align-self: start;
-      max-height: calc(var(--py-app-height, 100vh) - 2rem);
+      max-height: calc(var(--tx-app-height, 100vh) - 2rem);
       overflow: auto;
     }
   }

@@ -11,7 +11,7 @@ describe('fork engineering breadcrumbs', () => {
     const source = readFileSync(join(ROOT, 'packages/ui/src/lib/cn.ts'), 'utf8');
     // Any FORK_<NAME> task label, without naming a product fork in upstream source.
     expect(source).not.toMatch(/FORK_[A-Z]+/);
-    expect(source).toMatch(/shadow-soft/);
+    expect(source).toMatch(/from 'texuli\/cx'/);
   });
 
   it('does not describe the SaaS scenario helper rng as "forked"', () => {

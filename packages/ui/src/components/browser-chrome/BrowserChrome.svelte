@@ -1,8 +1,14 @@
 <script lang="ts">
-import { ArrowLeft, ArrowRight, Globe2, RotateCw } from '@lucide/svelte';
+import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+import ArrowRight from '@lucide/svelte/icons/arrow-right';
+import Globe2 from '@lucide/svelte/icons/globe-2';
+import RotateCw from '@lucide/svelte/icons/rotate-cw';
 import type { Snippet } from 'svelte';
 import { onMount } from 'svelte';
-import { cn } from '../../lib/cn.ts';
+import { IconButton } from 'texuli/button';
+import { cx } from 'texuli/cx';
+import { Icon } from 'texuli/icons';
+import Input from '../input/Input.svelte';
 import { formatAddress, parseAddress } from './address.ts';
 
 interface Props {
@@ -91,48 +97,32 @@ onMount(() => {
 });
 </script>
 
-<section class={cn('flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-background text-foreground shadow-soft', className)}>
+<!-- A fake browser frame (a legitimate Protoyard host chrome) built from Texuli's IconButton, Input and Icon. -->
+<section class={cx('flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-background text-foreground shadow-soft', className)}>
   <div class="flex h-10 shrink-0 items-end gap-1 border-b border-border bg-muted/70 px-2 pt-1" role="tablist" aria-label="Browser tabs">
     <div class="flex h-9 max-w-64 min-w-36 items-center gap-2 rounded-t-lg border border-border border-b-background bg-background px-3 text-sm" role="tab" aria-selected="true" tabindex="0">
-      <Globe2 class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <Icon icon={Globe2} size="sm" class="shrink-0 text-muted-foreground" aria-hidden="true" />
       <span class="truncate">{title}</span>
     </div>
   </div>
 
   <div class="flex min-h-12 shrink-0 items-center gap-1 border-b border-border bg-background px-2">
-    <button
-      type="button"
-      class="inline-flex size-10 min-h-touch min-w-[44px] items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40"
-      aria-label="Back"
-      disabled={!canGoBack}
-      onclick={() => window.history.back()}
-    >
-      <ArrowLeft class="size-4" aria-hidden="true" />
-    </button>
-    <button
-      type="button"
-      class="inline-flex size-10 min-h-touch min-w-[44px] items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40"
-      aria-label="Forward"
-      disabled={!canGoForward}
-      onclick={() => window.history.forward()}
-    >
-      <ArrowRight class="size-4" aria-hidden="true" />
-    </button>
-    <button
-      type="button"
-      class="inline-flex size-10 min-h-touch min-w-[44px] items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-      aria-label="Reload"
-      onclick={reloadRoute}
-    >
-      <RotateCw class="size-4" aria-hidden="true" />
-    </button>
+    <IconButton label="Back" disabled={!canGoBack} onclick={() => window.history.back()}>
+      <Icon icon={ArrowLeft} size="sm" aria-hidden="true" />
+    </IconButton>
+    <IconButton label="Forward" disabled={!canGoForward} onclick={() => window.history.forward()}>
+      <Icon icon={ArrowRight} size="sm" aria-hidden="true" />
+    </IconButton>
+    <IconButton label="Reload" onclick={reloadRoute}>
+      <Icon icon={RotateCw} size="sm" aria-hidden="true" />
+    </IconButton>
     <form class="min-w-0 flex-1" onsubmit={submitAddress}>
       <label class="sr-only" for="browser-address">Address</label>
       <div class="flex h-10 min-h-touch items-center gap-2 rounded-full border border-input bg-muted/50 px-3 focus-within:ring-2 focus-within:ring-ring">
-        <Globe2 class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <input
+        <Icon icon={Globe2} size="sm" class="shrink-0 text-muted-foreground" aria-hidden="true" />
+        <Input
           id="browser-address"
-          class="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          class="ui-browser-address"
           type="text"
           inputmode="url"
           autocomplete="off"
@@ -147,3 +137,16 @@ onMount(() => {
     {@render children?.()}
   </div>
 </section>
+
+<style>
+  /* The address pill draws the field; the input inside is borderless. */
+  :global(.ui-browser-address) {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    block-size: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+</style>

@@ -39,6 +39,8 @@ export { formatAddress, parseAddress } from './components/browser-chrome/address
 export { default as BrowserChrome } from './components/browser-chrome/BrowserChrome.svelte';
 /** The props of `Button` (generic styled components come from `texuli`). */
 export type ButtonProps = ComponentProps<typeof TexuliButton>;
+// Collaboration
+export { ChatThread, groupMessages, MessageList, TypingIndicator } from '@texuli/chat';
 export {
   Card,
   CardContent,
@@ -65,16 +67,15 @@ export { default as SplitView } from 'texuli/layouts/app/split-view';
 export { Separator } from 'texuli/separator-aspect';
 // Flows
 export { Stepper, type StepperStep, Wizard } from 'texuli/stepper';
+// Feedback
+export { Toaster } from 'texuli/toast';
 export { Tooltip } from 'texuli/tooltip';
 export { default as ChipGroup } from './components/ChipGroup.svelte';
-// Collaboration
-export { default as ChatThread } from './components/chat/ChatThread.svelte';
-export { groupMessages, type MessageGroup } from './components/chat/group-messages.ts';
-export { default as MessageList } from './components/chat/MessageList.svelte';
 export type {
   ChatAuthor,
   ChatMessage,
   ChatMessageStatus,
+  MessageGroup,
 } from './components/chat/types.ts';
 export type { ChipOption } from './components/chip-group-types.ts';
 export { default as Combobox } from './components/combobox/Combobox.svelte';
@@ -216,8 +217,6 @@ export {
 // Disclosure
 export { default as Tabs } from './components/tabs/Tabs.svelte';
 export type { TabItem } from './components/tabs/types.ts';
-// Feedback
-export { default as Toaster } from './components/toast/Toaster.svelte';
 export {
   MAX_TOASTS,
   type ToastAction,
@@ -242,7 +241,6 @@ export {
   type UndoToastStore,
   undoToast,
 } from './components/toast/undo.svelte.ts';
-export { default as TypingIndicator } from './components/typing-indicator/TypingIndicator.svelte';
 export type { PickerUser } from './components/user-picker/types.ts';
 export { default as UserPicker } from './components/user-picker/UserPicker.svelte';
 export type {

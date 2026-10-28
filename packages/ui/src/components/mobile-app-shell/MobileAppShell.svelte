@@ -39,7 +39,8 @@ $effect(() => {
 });
 </script>
 
-<div class={cn('flex h-app min-h-0 flex-col overflow-hidden bg-background text-foreground', className)}>
+<!-- The default frame height sits in a lower cascade layer, so a caller's height utility (h-[640px]) wins. -->
+<div class={cn('ui-mobile-app-shell flex min-h-0 flex-col overflow-hidden bg-background text-foreground', className)}>
   <a
     href={`#${mainId}`}
     class="sr-only z-[70] rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
@@ -63,3 +64,11 @@ $effect(() => {
   {@render stickyFooter?.()}
   {@render bottomNav?.()}
 </div>
+
+<style>
+  @layer components {
+    .ui-mobile-app-shell {
+      height: var(--tx-app-height, 100dvh);
+    }
+  }
+</style>

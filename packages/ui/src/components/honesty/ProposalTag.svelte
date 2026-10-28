@@ -1,6 +1,8 @@
 <script lang="ts">
-import { FlaskConical } from '@lucide/svelte';
-import { cn } from '../../lib/cn.ts';
+import FlaskConical from '@lucide/svelte/icons/flask-conical';
+import { Badge } from 'texuli/badge';
+import { cx } from 'texuli/cx';
+import { Icon } from 'texuli/icons';
 
 /**
  * Marks a feature that is a proposal still under review — not a product promise.
@@ -17,14 +19,14 @@ let {
 } = $props();
 </script>
 
-<span
-  class={cn(
-    'inline-flex items-center gap-1 rounded-full border border-dashed border-info/50 bg-info/10 px-2.5 py-1 text-xs font-semibold text-info',
-    className
-  )}
-  {title}
-  data-py-tag="proposal"
->
-  <FlaskConical class="size-3.5 shrink-0" aria-hidden="true" />
+<!-- Protoyard's honesty label (AGENTS.md rule 10) on Texuli's Badge. -->
+<Badge variant="info" class={cx('ui-honesty-tag ui-honesty-tag--proposal', className)} {title} data-py-tag="proposal">
+  <Icon icon={FlaskConical} size="xs" aria-hidden="true" />
   {label}
-</span>
+</Badge>
+
+<style>
+  :global(.ui-honesty-tag--proposal) {
+    border-style: dashed;
+  }
+</style>
