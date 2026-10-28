@@ -228,3 +228,12 @@ describe('structure grids on a slide', () => {
     ).toBeTruthy();
   });
 });
+
+describe('structure block bodies', () => {
+  it('render only the body text (no stray markup or component source)', async () => {
+    const { default: SafeBody } = await import('../src/structure/SafeBody.svelte');
+    const { container } = render(SafeBody, { props: { text: 'Entities, roles and **screens**.' } });
+    await waitFor(() => expect(container.textContent).toContain('screens'));
+    expect(container.textContent?.replace(/\s+/g, ' ').trim()).toBe('Entities, roles and screens.');
+  });
+});
