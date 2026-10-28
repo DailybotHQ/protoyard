@@ -1,7 +1,9 @@
 <script lang="ts">
-import { Pencil, Plus, Trash2 } from '@lucide/svelte';
+import { Pencil, Trash2 } from '@lucide/svelte';
 import { avatarImage, can, Link, liveQuery, runService } from '@protoyard/renderer-svelte';
 import { AlertDialog, Avatar, Button, DataTable, type DataTableColumn } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import ContactDialog from '../components/ContactDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import type { Contact } from '../database/schema.ts';
@@ -54,10 +56,10 @@ const columns: DataTableColumn<Row>[] = [
 {#snippet actionsCell(c: Row)}
   <span class="flex justify-end gap-1">
     {#if can(CAPABILITIES.contactsWrite)}
-      <Button variant="ghost" size="icon" aria-label={`Edit ${c.name}`} onclick={() => { editing = c; editOpen = true; }}><Pencil class="size-4" /></Button>
+      <Button variant="ghost" size="icon" aria-label={`Edit ${c.name}`} onclick={() => { editing = c; editOpen = true; }}><LucideIcon icon={Pencil} class="size-4" /></Button>
     {/if}
     {#if can(CAPABILITIES.contactsDelete)}
-      <Button variant="ghost" size="icon" aria-label={`Delete ${c.name}`} onclick={() => { removing = c; removeOpen = true; }}><Trash2 class="size-4" /></Button>
+      <Button variant="ghost" size="icon" aria-label={`Delete ${c.name}`} onclick={() => { removing = c; removeOpen = true; }}><LucideIcon icon={Trash2} class="size-4" /></Button>
     {/if}
   </span>
 {/snippet}
@@ -65,7 +67,7 @@ const columns: DataTableColumn<Row>[] = [
 <PageHeader title="Contacts" description={`${(rows.current ?? []).length} people across your accounts`}>
   {#snippet actions()}
     {#if can(CAPABILITIES.contactsWrite)}
-      <Button onclick={() => (createOpen = true)} disabled={services.isPaywalled()}><Plus class="size-4" /> New contact</Button>
+      <Button onclick={() => (createOpen = true)} disabled={services.isPaywalled()}><Icon icon="plus" class="size-4" /> New contact</Button>
     {/if}
   {/snippet}
 </PageHeader>

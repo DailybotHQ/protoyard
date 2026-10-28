@@ -1,5 +1,5 @@
 <script lang="ts">
-import { GripVertical, MoveRight, Plus } from '@lucide/svelte';
+import { GripVertical, MoveRight } from '@lucide/svelte';
 import {
   avatarImage,
   can,
@@ -9,6 +9,8 @@ import {
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import { Avatar, Button, Card, DropdownMenu, Input } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import DealDialog from '../components/DealDialog.svelte';
 import LostReasonDialog from '../components/LostReasonDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
@@ -91,10 +93,10 @@ function onDrop(stage: DealStage) {
   {#snippet actions()}
     <Input type="search" placeholder="Filter deals…" aria-label="Filter deals" bind:value={query} class="w-56" />
     <label class="flex items-center gap-2 text-sm text-muted-foreground">
-      <input type="checkbox" bind:checked={mineOnly} class="size-4 accent-[var(--color-primary)]" /> Mine
+      <Input type="checkbox" checked={mineOnly} onchange={(event) => (mineOnly = event.currentTarget.checked)} class="size-4 accent-[var(--color-primary)]" /> Mine
     </label>
     <label class="flex items-center gap-2 text-sm text-muted-foreground">
-      <input type="checkbox" bind:checked={showClosed} class="size-4 accent-[var(--color-primary)]" /> Show lost
+      <Input type="checkbox" checked={showClosed} onchange={(event) => (showClosed = event.currentTarget.checked)} class="size-4 accent-[var(--color-primary)]" /> Show lost
     </label>
   {/snippet}
 </PageHeader>
@@ -136,7 +138,7 @@ function onDrop(stage: DealStage) {
                 createOpen = true;
               }}
             >
-              <Plus class="size-4" />
+              <Icon icon="plus" class="size-4" />
             </Button>
           {/if}
         </header>
@@ -159,7 +161,7 @@ function onDrop(stage: DealStage) {
               <Card class="group p-3 shadow-sm transition-shadow hover:shadow-md">
                 <div class="flex items-start gap-2">
                   {#if editable}
-                    <GripVertical class="mt-0.5 size-4 shrink-0 cursor-grab text-muted-foreground/50" aria-hidden="true" />
+                    <LucideIcon icon={GripVertical} class="mt-0.5 size-4 shrink-0 cursor-grab text-muted-foreground/50" />
                   {/if}
                   <div class="min-w-0 flex-1">
                     <Link href={`/deals/${deal.id}`} class="block truncate text-sm font-medium hover:text-primary">{deal.title}</Link>
@@ -179,7 +181,7 @@ function onDrop(stage: DealStage) {
                     >
                       {#snippet trigger({ props })}
                         <Button {...props} variant="ghost" size="icon" class="size-7 shrink-0" aria-label={`Move ${deal.title}`}>
-                          <MoveRight class="size-4" />
+                          <LucideIcon icon={MoveRight} class="size-4" />
                         </Button>
                       {/snippet}
                     </DropdownMenu>

@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
+import { chooseOption } from './support/select.ts';
 import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
 
 test.skip(
@@ -27,13 +28,14 @@ test('dashboard period, analytics controls, CSV export and lifecycle board work'
 }, testInfo) => {
   await openRoute(page, '/', 'launch-spike');
   await expect(page.getByRole('heading', { name: 'Revenue overview' })).toBeVisible();
-  await page.getByLabel('Period').selectOption('7');
-  await expect(page.getByLabel('Period')).toHaveValue('7');
+  const period = page.getByLabel('Period');
+  await chooseOption(page, period, 'Last 7 days');
+  await expect(period).toHaveText('Last 7 days');
   await expectAccessible(page, testInfo, { include: 'main', label: 'pulse-revenue-dashboard' });
 
   await openRoute(page, '/insights', 'launch-spike');
-  await page.getByLabel('Measure').selectOption({ label: 'Gross revenue' });
-  await page.getByLabel('Break down by').selectOption('plan');
+  await chooseOption(page, page.getByLabel('Measure'), 'Gross revenue');
+  await chooseOption(page, page.getByLabel('Break down by'), 'Plan');
   await expect(page).toHaveURL(/measure=1/);
   await expect(page).toHaveURL(/dimension=plan/);
 

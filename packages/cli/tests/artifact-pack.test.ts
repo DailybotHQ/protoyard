@@ -90,7 +90,7 @@ describe('transformPage', () => {
   });
 
   it('defines light and dark tokens and an explicit body background', () => {
-    expect(ARTIFACT_PAGE_STYLE).toContain(':root{--py-artifact-background:#fafafa');
+    expect(ARTIFACT_PAGE_STYLE).toContain(':root{--tx-artifact-background:#fafafa');
     expect(ARTIFACT_PAGE_STYLE).toContain(
       '@media (prefers-color-scheme: dark){:root:not([data-theme="light"])'
     );

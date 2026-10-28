@@ -1,6 +1,6 @@
 <script lang="ts">
-import { Plus } from '@lucide/svelte';
 import { Avatar, Badge, Button, Kanban, type KanbanColumn } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
 import { sampleFace } from './faces.ts';
 
 interface Task {
@@ -67,7 +67,7 @@ function add(columnId: string): void {
   {/snippet}
   {#snippet columnFooter(column)}
     <Button size="sm" variant="ghost" class="w-full" onclick={() => add(column.id)}>
-      <Plus aria-hidden="true" /> Add to {column.title}
+      <Icon icon="plus" aria-hidden="true" /> Add to {column.title}
     </Button>
   {/snippet}
 </Kanban>

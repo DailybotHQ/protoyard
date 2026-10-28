@@ -2,6 +2,7 @@
 import { Lock, MessagesSquare, Sparkles } from '@lucide/svelte';
 import { can, usePrincipal } from '@protoyard/renderer-svelte';
 import { Button, EmptyState } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import AuthorAvatar from '../components/AuthorAvatar.svelte';
 import type { Agent } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
@@ -30,7 +31,7 @@ async function start(agent: Agent) {
   {#if isNew}
     <div class="flex max-w-xl flex-col items-center text-center">
       <span class="grid size-14 place-items-center rounded-2xl bg-primary text-primary-foreground" aria-hidden="true">
-        <Sparkles class="size-7" />
+        <LucideIcon icon={Sparkles} class="size-7" />
       </span>
       <h1 class="mt-5 text-2xl font-semibold tracking-tight">Welcome to Relay, {firstName}</h1>
       <p class="mt-2 text-sm text-muted-foreground">
@@ -41,12 +42,12 @@ async function start(agent: Agent) {
         {@const atlas = agents.find((a) => a.handle === 'atlas')}
         {#if atlas}
           <Button size="lg" class="mt-6" onclick={() => start(atlas)} loading={starting === atlas.id}>
-            <Sparkles aria-hidden="true" /> Ask Atlas
+            <LucideIcon icon={Sparkles} /> Ask Atlas
           </Button>
         {/if}
       {:else}
         <p class="mt-6 inline-flex items-center gap-2 text-sm text-muted-foreground">
-          <Lock class="size-4" aria-hidden="true" /> Your role can read conversations but not start them.
+          <LucideIcon icon={Lock} class="size-4" /> Your role can read conversations but not start them.
         </p>
       {/if}
     </div>

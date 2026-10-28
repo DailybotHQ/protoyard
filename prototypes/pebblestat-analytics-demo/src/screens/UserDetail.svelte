@@ -2,6 +2,7 @@
 import { ArrowLeft } from '@lucide/svelte';
 import { avatarImage, Link, liveQuery, useClock } from '@protoyard/renderer-svelte';
 import { Avatar, Badge, Card, DataTable, EmptyState, Skeleton } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import type { TrackedEvent } from '../database/schema.ts';
 import { ACTIVATION_FUNNEL, EVENT_LABELS } from '../domain/catalog.ts';
@@ -31,7 +32,7 @@ const time = (iso: string) => new Date(iso).toISOString().slice(11, 16);
   <time datetime={e.at}>{formatDate(e.at)} {time(e.at)} UTC</time>
 {/snippet}
 
-<Link href="/users" class="mb-4 inline-flex items-center gap-1 text-sm text-primary hover:underline"><ArrowLeft class="size-4" aria-hidden="true" />All users</Link>
+<Link href="/users" class="mb-4 inline-flex items-center gap-1 text-sm text-primary hover:underline"><LucideIcon icon={ArrowLeft} class="size-4" />All users</Link>
 
 {#if data.current === undefined}
   <Skeleton class="h-72 rounded-xl" aria-hidden="true" />

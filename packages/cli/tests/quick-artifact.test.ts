@@ -112,7 +112,7 @@ describe('singleFileToArtifactPage', () => {
     expect(page).toContain('<div id="app"></div>');
     expect(page).toContain('<script type="application/json" id="protoyard-blueprint">');
     expect(page).toContain('<script type="text/plain" data-py-chunk="index.js">');
-    expect(page).toContain('--py-artifact-background');
+    expect(page).toContain('--tx-artifact-background');
   });
 
   it('escapes the title', () => {

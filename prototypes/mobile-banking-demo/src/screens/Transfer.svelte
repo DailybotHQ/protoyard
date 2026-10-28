@@ -12,6 +12,7 @@ import {
 } from '@protoyard/renderer-svelte';
 import { Avatar, Button, EmptyState, FormField, Input, Skeleton, toast } from '@protoyard/ui';
 import { fly } from 'svelte/transition';
+import { LucideIcon } from 'texuli/icons/lucide';
 import ChoiceList from '../components/ChoiceList.svelte';
 import { ACCOUNT_ICONS } from '../components/icons.ts';
 import Notice from '../components/Notice.svelte';
@@ -270,9 +271,9 @@ $effect(() => {
               }}
             >
               {#snippet row(account)}
-                {@const Icon = ACCOUNT_ICONS[account.type]}
+                {@const Glyph = ACCOUNT_ICONS[account.type]}
                 <span class="flex items-center gap-3">
-                  <Icon class="size-5 text-primary" aria-hidden="true" />
+                  <LucideIcon icon={Glyph} class="size-5 text-primary" />
                   <span class="min-w-0">
                     <span class="block truncate font-medium">{account.name} <span class="text-muted-foreground">{account.masked}</span></span>
                     <span class="block text-sm text-muted-foreground tabular-nums">{formatMoney(account.balanceCents)} available</span>
@@ -383,7 +384,7 @@ $effect(() => {
         {:else if step === 'done' && receipt}
           <div class="flex flex-col items-center gap-2 pt-4 text-center">
             <span class="grid size-16 place-items-center rounded-full bg-success text-success-foreground" aria-hidden="true">
-              <CircleCheck class="size-9" />
+              <LucideIcon icon={CircleCheck} class="size-9" />
             </span>
             <h2 class="text-2xl font-semibold tabular-nums">{formatMoney(receipt.amountCents)}</h2>
             <p class="text-muted-foreground">sent to {to?.name ?? 'recipient'}</p>

@@ -1,6 +1,8 @@
 <script lang="ts">
-import { Bell, Plus } from '@lucide/svelte';
+import { Bell } from '@lucide/svelte';
 import { Badge, Breadcrumb, Button, DropdownMenu, Header, toast } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { interceptDemoNav } from './nav.ts';
 
 let notifications = $state(2);
@@ -34,13 +36,13 @@ let range = $state('This week');
           class="relative"
           onclick={() => (notifications = 0)}
         >
-          <Bell aria-hidden="true" />
+          <LucideIcon icon={Bell} />
           {#if notifications > 0}
             <span class="absolute top-1 right-1 size-2 rounded-full bg-destructive" aria-hidden="true"></span>
           {/if}
         </Button>
         <Button size="sm" onclick={() => toast.success('Project created (demo)')}>
-          <Plus aria-hidden="true" /> New
+          <Icon icon="plus" aria-hidden="true" /> New
         </Button>
       {/snippet}
     </Header>

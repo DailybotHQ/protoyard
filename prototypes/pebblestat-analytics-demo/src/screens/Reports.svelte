@@ -3,6 +3,7 @@ import { ExternalLink, PencilLine, Trash2 } from '@lucide/svelte';
 import { describeFilter } from '@protoyard/analytics-ui/filters';
 import { can, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { AlertDialog, Button, Card, EmptyState } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import RenameDialog from '../components/RenameDialog.svelte';
 import type { SavedReport } from '../database/schema.ts';
@@ -67,7 +68,7 @@ const summary = (r: SavedReport) =>
             <p class="text-xs text-muted-foreground">By {people.current?.get(report.ownerId) ?? 'someone'} · updated {formatDate(report.updatedAt)}</p>
           </div>
           <div class="flex gap-2">
-            <Button variant="outline" size="sm" href="#/trends?report={encodeURIComponent(report.id)}"><ExternalLink class="size-4" aria-hidden="true" />Open<span class="sr-only"> {report.name}</span></Button>
+            <Button variant="outline" size="sm" href="#/trends?report={encodeURIComponent(report.id)}"><LucideIcon icon={ExternalLink} class="size-4" />Open<span class="sr-only"> {report.name}</span></Button>
             {#if canManage(report)}
               <Button
                 variant="outline"
@@ -75,7 +76,7 @@ const summary = (r: SavedReport) =>
                 onclick={() => {
                   renaming = report;
                   renameOpen = true;
-                }}><PencilLine class="size-4" aria-hidden="true" />Rename<span class="sr-only"> {report.name}</span></Button
+                }}><LucideIcon icon={PencilLine} class="size-4" />Rename<span class="sr-only"> {report.name}</span></Button
               >
               <Button
                 variant="ghost"
@@ -83,7 +84,7 @@ const summary = (r: SavedReport) =>
                 onclick={() => {
                   deleting = report;
                   deleteOpen = true;
-                }}><Trash2 class="size-4" aria-hidden="true" />Delete<span class="sr-only"> {report.name}</span></Button
+                }}><LucideIcon icon={Trash2} class="size-4" />Delete<span class="sr-only"> {report.name}</span></Button
               >
             {/if}
           </div>

@@ -23,6 +23,7 @@ import {
   Tabs,
   Textarea,
 } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import DealDialog from '../components/DealDialog.svelte';
 import LostReasonDialog from '../components/LostReasonDialog.svelte';
 import StageBadge from '../components/StageBadge.svelte';
@@ -114,9 +115,9 @@ const ICONS = { note: MessageSquare, call: Phone, email: Mail, meeting: Users } 
   </EmptyState>
 {:else}
   {@const d = deal.current}
-  <button type="button" onclick={() => back('/deals')} class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-    <ArrowLeft class="size-4" /> Back
-  </button>
+  <Button type="button" onclick={() => back('/deals')} class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+    <LucideIcon icon={ArrowLeft} class="size-4" /> Back
+  </Button>
 
   <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div class="min-w-0">
@@ -138,10 +139,10 @@ const ICONS = { note: MessageSquare, call: Phone, email: Mail, meeting: Users } 
           value={d.stage}
           onValueChange={changeStage}
         />
-        <Button variant="outline" onclick={() => (editOpen = true)}><Pencil class="size-4" /> Edit</Button>
+        <Button variant="outline" onclick={() => (editOpen = true)}><LucideIcon icon={Pencil} class="size-4" /> Edit</Button>
       {/if}
       {#if deletable}
-        <Button variant="outline" class="text-destructive" onclick={() => (deleteOpen = true)}><Trash2 class="size-4" /> Delete</Button>
+        <Button variant="outline" class="text-destructive" onclick={() => (deleteOpen = true)}><LucideIcon icon={Trash2} class="size-4" /> Delete</Button>
       {/if}
       {#if !editable}
         <Badge variant="outline">Read-only for your role</Badge>
@@ -196,10 +197,10 @@ const ICONS = { note: MessageSquare, call: Phone, email: Mail, meeting: Users } 
             {/if}
             <ol class="relative space-y-4 border-l border-border pl-5">
               {#each activities.current ?? [] as item (item.id)}
-                {@const Icon = ICONS[item.type as keyof typeof ICONS] ?? MessageSquare}
+                {@const Glyph = ICONS[item.type as keyof typeof ICONS] ?? MessageSquare}
                 <li class="relative">
                   <span class="absolute -left-[1.6rem] grid size-6 place-items-center rounded-full border border-border bg-background">
-                    <Icon class="size-3 text-muted-foreground" aria-hidden="true" />
+                    <LucideIcon icon={Glyph} class="size-3 text-muted-foreground" />
                   </span>
                   <p class="text-sm">{item.body}</p>
                   <p class="text-xs text-muted-foreground">

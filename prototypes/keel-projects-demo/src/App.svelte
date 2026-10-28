@@ -1,5 +1,4 @@
 <script lang="ts">
-import { Search } from '@lucide/svelte';
 import {
   avatarImage,
   createRouter,
@@ -10,9 +9,10 @@ import {
   useClock,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
-import { Kbd, LayoutHost, type NavModel } from '@protoyard/ui';
+import { Button, Kbd, LayoutHost, type NavModel } from '@protoyard/ui';
 import { createCommands } from '@protoyard/views-ui/commands';
 import { onDestroy } from 'svelte';
+import { Icon } from 'texuli/icons';
 import { ROLE_LABELS } from './domain/policy.ts';
 import { provideWorkspace } from './lib/context.svelte.ts';
 
@@ -132,15 +132,15 @@ const layoutNav = $derived({
       {#await import('@protoyard/views-ui/commands') then { AppCommandPalette }}
       <AppCommandPalette registry={commands} placeholder="Jump to a page, a board or an action…">
         {#snippet trigger({ open, keys })}
-          <button
+          <Button
             type="button"
             class="inline-flex h-9 min-w-0 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:w-64"
             onclick={open}
           >
-            <Search class="size-4 shrink-0" aria-hidden="true" />
+            <Icon icon="search" class="size-4 shrink-0" aria-hidden="true" />
             <span class="truncate">Search or jump to…</span>
             <span class="ml-auto hidden gap-0.5 sm:inline-flex" aria-hidden="true">{#each keys as key (key)}<Kbd>{key}</Kbd>{/each}</span>
-          </button>
+          </Button>
         {/snippet}
       </AppCommandPalette>
       {/await}

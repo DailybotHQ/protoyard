@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Circle, CircleCheck, ListTodo, Plus } from '@lucide/svelte';
+import { Circle, CircleCheck, ListTodo } from '@lucide/svelte';
 import {
   can,
   Link,
@@ -9,6 +9,8 @@ import {
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import { Button, Checkbox, EmptyState, ErrorState, Select, Skeleton } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import DueBadge from '../components/DueBadge.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import PriorityBadge from '../components/PriorityBadge.svelte';
@@ -84,7 +86,7 @@ async function toggleDone(task: Task) {
   {#snippet actions()}
     {#if can(CAPABILITIES.tasksCreate)}
       <Button onclick={() => (createOpen = true)} disabled={!projects.loading && (projects.current?.size ?? 0) === 0}>
-        <Plus class="size-4" aria-hidden="true" />New task
+        <Icon icon="plus" class="size-4" aria-hidden="true" />New task
       </Button>
     {/if}
   {/snippet}
@@ -138,7 +140,7 @@ async function toggleDone(task: Task) {
           {#each group.tasks as task (task.id)}
             {@const project = projects.current?.get(task.projectId)}
             <li class="flex items-center gap-3 px-3 py-2.5 sm:px-4">
-              <button
+              <Button
                 type="button"
                 class="inline-flex size-9 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-success focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0 sm:min-w-0"
                 aria-label={task.status === 'done' ? `Reopen ${task.title}` : `Mark ${task.title} as done`}
@@ -146,11 +148,11 @@ async function toggleDone(task: Task) {
                 onclick={() => toggleDone(task)}
               >
                 {#if task.status === 'done'}
-                  <CircleCheck class="size-5 text-success" aria-hidden="true" />
+                  <LucideIcon icon={CircleCheck} class="size-5 text-success" />
                 {:else}
-                  <Circle class="size-5" aria-hidden="true" />
+                  <LucideIcon icon={Circle} class="size-5" />
                 {/if}
-              </button>
+              </Button>
               <div class="min-w-0 flex-1">
                 <Link href={`/tasks/${task.id}`} class={['block truncate text-sm font-medium hover:text-primary', task.status === 'done' && 'text-muted-foreground line-through']}>
                   {task.title}

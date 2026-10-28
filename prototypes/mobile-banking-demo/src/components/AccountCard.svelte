@@ -1,4 +1,5 @@
 <script lang="ts">
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { Account } from '../database/schema.ts';
 import { ACCOUNT_TYPE_LABELS, formatMoney, LOW_BALANCE_CENTS } from '../lib/format.ts';
 import AccountStatusBadge from './AccountStatusBadge.svelte';
@@ -6,7 +7,7 @@ import { ACCOUNT_ICONS } from './icons.ts';
 
 let { account }: { account: Account } = $props();
 
-const Icon = $derived(ACCOUNT_ICONS[account.type]);
+const AccountGlyph = $derived(ACCOUNT_ICONS[account.type]);
 const low = $derived(
   account.type !== 'credit' &&
     account.status === 'active' &&
@@ -27,7 +28,7 @@ const low = $derived(
        last digits) is its accessible name, as WCAG 2.5.3 asks. -->
   <div class="flex items-center justify-between gap-2">
     <span class="inline-flex items-center gap-2 text-sm font-medium">
-      <Icon class="size-4" aria-hidden="true" />
+      <LucideIcon icon={AccountGlyph} class="size-4" />
       {account.name}
     </span>
     <AccountStatusBadge status={account.status} />

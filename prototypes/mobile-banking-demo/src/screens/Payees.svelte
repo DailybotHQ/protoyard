@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Plus, Send, Trash, Users } from '@lucide/svelte';
+import { Send, Trash, Users } from '@lucide/svelte';
 import { avatarImage, can, liveQuery } from '@protoyard/renderer-svelte';
 import {
   AlertDialog,
@@ -12,6 +12,8 @@ import {
   Skeleton,
   toast,
 } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import Notice from '../components/Notice.svelte';
 import Page from '../components/Page.svelte';
 import type { Beneficiary } from '../database/schema.ts';
@@ -89,7 +91,7 @@ async function remove() {
   {#snippet actions()}
     {#if canManage}
       <Button size="icon" variant="ghost" aria-label="Add payee" onclick={openSheet}>
-        <Plus aria-hidden="true" />
+        <Icon icon="plus" aria-hidden="true" />
       </Button>
     {/if}
   {/snippet}
@@ -109,7 +111,7 @@ async function remove() {
       description="Save the people and businesses you pay so sending money takes two taps."
     >
       {#snippet action()}
-        {#if canManage}<Button onclick={openSheet}><Plus aria-hidden="true" />Add a payee</Button>{/if}
+        {#if canManage}<Button onclick={openSheet}><Icon icon="plus" aria-hidden="true" />Add a payee</Button>{/if}
       {/snippet}
     </EmptyState>
   {:else}
@@ -125,7 +127,7 @@ async function remove() {
           </div>
           {#if canSend}
             <Button size="icon" variant="ghost" href={`#/transfer?to=${payee.id}`} aria-label={`Send money to ${payee.nickname || payee.name}`}>
-              <Send aria-hidden="true" />
+              <LucideIcon icon={Send} />
             </Button>
           {/if}
           {#if canManage}
@@ -138,7 +140,7 @@ async function remove() {
                 removeOpen = true;
               }}
             >
-              <Trash aria-hidden="true" />
+              <LucideIcon icon={Trash} />
             </Button>
           {/if}
         </li>

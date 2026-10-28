@@ -3,6 +3,7 @@ import { Blocks, Palette, Shapes, Star } from '@lucide/svelte';
 import { usePrincipal } from '@protoyard/renderer-svelte';
 import { BUILTIN_THEMES } from '@protoyard/themes';
 import { Button, CardGrid, StatCard } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { CATALOG, CATALOG_GROUPS, catalogEntry } from '../catalog/entries.ts';
 import { useFavorites } from '../lib/favorites.svelte.ts';
 
@@ -21,8 +22,8 @@ const recent = $derived(favorites.list.slice(0, 5).flatMap((f) => catalogEntry(f
     drag cards, switch themes. Use DevTools (<kbd class="rounded border border-border bg-muted px-1 font-mono text-xs">Ctrl</kbd>/<kbd class="rounded border border-border bg-muted px-1 font-mono text-xs">⌘</kbd> + <kbd class="rounded border border-border bg-muted px-1 font-mono text-xs">.</kbd>) to change persona, theme or mode.
   </p>
   <div class="mt-6 flex flex-wrap gap-2">
-    <Button href="#/components/forms"><Blocks class="size-4" aria-hidden="true" />Browse components</Button>
-    <Button variant="outline" href="#/themes"><Palette class="size-4" aria-hidden="true" />Open the theme lab</Button>
+    <Button href="#/components/forms"><LucideIcon icon={Blocks} class="size-4" />Browse components</Button>
+    <Button variant="outline" href="#/themes"><LucideIcon icon={Palette} class="size-4" />Open the theme lab</Button>
   </div>
 </section>
 
@@ -55,7 +56,7 @@ const recent = $derived(favorites.list.slice(0, 5).flatMap((f) => catalogEntry(f
     {:else}
       <ul class="space-y-1">
         {#each recent as entry (entry.id)}
-          <li><a href={`#/c/${entry.id}`} class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"><Star class="size-3.5 fill-current text-warning" aria-hidden="true" />{entry.name}</a></li>
+          <li><a href={`#/c/${entry.id}`} class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"><LucideIcon icon={Star} class="size-3.5 fill-current text-warning" />{entry.name}</a></li>
         {/each}
       </ul>
       <a href="#/favorites" class="mt-2 inline-block text-sm font-medium text-primary hover:underline">All favorites →</a>
