@@ -1,9 +1,9 @@
 # Texuli in Protoyard
 
-Protoyard is adopting [Texuli](../../texuli), the standalone MIT Svelte 5
-component library extracted from `@protoyard/ui`. This is the first step:
-Texuli is **linked**, not copied or installed from a registry, and Protoyard
-stays green.
+Protoyard is adopting [Texuli](https://www.npmjs.com/package/texuli), the
+standalone MIT Svelte 5 component library extracted from `@protoyard/ui`.
+Protoyard installs the **published npm packages**, and new UI comes from
+Texuli first ([the adoption check](#texuli-first-the-adoption-check)).
 
 **Status:** this is the local `texuli-adoption` branch. It is not on `main`
 and has not been pushed. Themes come from `@texuli/tokens`; the simple,
@@ -14,40 +14,64 @@ time.
 
 ## How it is linked
 
-The root `package.json` declares ten `link:` dev dependencies. Each path is
-relative to the Protoyard root, so the Texuli checkout must sit next to
-Protoyard (`../texuli`):
+Protoyard installs Texuli **from npm**, at exact versions. No Texuli checkout is
+needed, and no manifest uses `link:` or `file:` for Texuli (a test in
+`tests/adoption/` fails if one does).
 
-| Package | Link |
-| --- | --- |
-| `@texuli/core` | `link:../texuli/packages/core` |
-| `@texuli/primitives` | `link:../texuli/packages/primitives` |
-| `@texuli/tokens` | `link:../texuli/packages/tokens` |
-| `texuli` | `link:../texuli/packages/texuli` |
-| `@texuli/blocks` | `link:../texuli/packages/blocks` |
-| `@texuli/catalog` | `link:../texuli/packages/catalog` |
-| `@texuli/charts` | `link:../texuli/packages/charts` |
-| `@texuli/chat` | `link:../texuli/packages/chat` |
-| `@texuli/data` | `link:../texuli/packages/data` |
-| `@texuli/media` | `link:../texuli/packages/media` |
+| Package | Version | Declared by |
+| --- | --- | --- |
+| `texuli` | `0.3.0` | the root and every UI package, template and prototype |
+| `@texuli/core`, `@texuli/primitives`, `@texuli/date`, `@texuli/chat`, `@texuli/data` | `0.3.0` | the root and `@protoyard/ui` |
+| `@texuli/tokens` | `0.3.0` | the root, `themes`, `charts` and the gallery |
+| `@texuli/charts` | `0.3.0` | the root, `charts`, `charts-ui`, `blocks-ui` and `analytics-ui` |
+| `@texuli/data` | `0.3.0` | `views`, `views-ui`, `blocks-ui` and `analytics-ui` |
+| `@texuli/blocks` | `0.3.0` | the root, `blocks`, `blocks-ui` and `pages-ui` |
+| `@texuli/workflows` | `0.3.0` | the root and `flows-ui` |
+| `@texuli/drag` | `0.3.0` | the root and `views-ui` |
+| `@texuli/astro` | `0.3.0` | the root and the gallery |
+| `@texuli/catalog`, `@texuli/media` | `0.3.0` | the root |
 
-- `pnpm install` links `node_modules/@texuli/*` and `node_modules/texuli` to
-  those folders. The lockfile records only the `link:` specifiers, and
-  nothing is fetched.
-- **Texuli installs its own dependencies.** Run `pnpm install` in `../texuli`
-  first. Its packages ship TypeScript and Svelte sources, which Protoyard's
-  Vite and Vitest compile like workspace code. Svelte comes from Protoyard:
-  the prototype config dedupes `svelte`.
-- **Packages that declare Texuli.** `themes`, `devtools`, `charts`,
-  `charts-ui`, `views`, `views-ui`, `blocks` and `blocks-ui` list their
-  `@texuli/*` (and `texuli`) dependencies as `link:` specifiers in their own
-  manifests. `pnpm check:packages` refuses `link:` in a packed manifest
-  (`LOCAL_DEPENDENCY`), so these packages cannot be packed for npm until
-  Texuli is published. `@protoyard/ui` imports Texuli through the root links
-  without declaring it.
-- **A worktree** (for example `tmp/lanes/<lane>`) needs `../texuli` to
-  resolve from its own root. Point `tmp/lanes/texuli` at the Texuli checkout
-  with a git-ignored symlink.
+- **What Protoyard compiles.** The npm tarballs ship built `dist/` files
+  (JavaScript, Svelte components and `.d.ts` types). `svelte-check` checks
+  Protoyard against those published types. With the old `link:` setup it
+  never type-checked the linked sources, so some mismatches went unnoticed
+  (see gap G2 in the adoption plan).
+- **The release-age guard.** `pnpm-workspace.yaml` keeps
+  `minimumReleaseAge: 4320` (3 days) for every dependency except `texuli` and
+  `@texuli/*` (`minimumReleaseAgeExclude`). Texuli is Dailybot's own library,
+  released by the same owner, and Protoyard adopts a release the day it ships.
+- **Updating.** Bump every Texuli specifier to the same released version in
+  one change. Run `pnpm install`, then `pnpm check`.
+
+## Texuli first: the adoption check
+
+`pnpm exec tsx scripts/check-texuli-adoption.ts` keeps Protoyard on Texuli.
+It scans the Svelte, TypeScript, CSS and Astro sources of `packages/`,
+`apps/`, `templates/` and `prototypes/` (tests and build output excluded) for
+five rules:
+
+| Rule | Fails on | Use instead |
+| --- | --- | --- |
+| `legacy-import` | importing `clsx`, `tailwind-merge` or `tailwind-variants` | `cx` from `texuli/cx` |
+| `raw-lucide` | a `@lucide/svelte` component rendered directly in markup | `Icon` from `texuli/icons` for its built-in names, otherwise `<LucideIcon icon={Glyph} />` from `texuli/icons/lucide`. Lucide stays the glyph source; Texuli renders it. |
+| `py-token` | a `var(--py-…)` read | the `--tx-*` tokens |
+| `raw-control` | a native `<button>`, `<input>`, `<select>`, `<textarea>` or `<dialog>` in a Svelte component | the Texuli control |
+| `own-component` | a leaf component of a UI package that imports nothing from Texuli or Protoyard and draws its own UI | compose Texuli |
+
+- **Pending lists.** Known violations are listed per unit in
+  `tests/adoption/pending/<unit>.json`. The default run is a ratchet: it
+  fails only on a violation those lists do not cover, and `pnpm test` runs it.
+- **`--scope <path> --strict`** fails on every violation in scope.
+- **`--allow-gaps`** (used with `--strict`) still accepts a pending entry that
+  cites an open Texuli gap from `tests/adoption/texuli-gaps.json`.
+- **`--prune`** removes the entries that are fixed. It never adds one.
+- **Exceptions.** `tests/adoption/texuli-exceptions.json` is the closed list
+  of files that stay Protoyard's (device frames, browser and window chrome,
+  scenario and honesty UI, Protoyard-only block types). Every entry carries a
+  reason.
+- **Texuli gaps.** When Texuli lacks something, keep a minimal adapter, cite
+  the gap in the pending entry, and report it to the Texuli maintainers.
+  Never patch or copy Texuli code.
 
 ## Themes come from `@texuli/tokens`
 

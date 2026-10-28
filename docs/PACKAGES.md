@@ -7,9 +7,8 @@ Protoyard is a pnpm workspace of small packages. Install only the pieces an app 
 The package manifests and tarball tooling are being prepared for the first npm release. **Protoyard packages are not yet available from the public npm registry.** The release workflow has an npm job (Trusted Publishing with provenance; see [PUBLISHING](PUBLISHING.md#releasing-the-packages-to-npm)), but no release has been published to npm yet: the first live publish awaits the developer's approval. The npm commands below are the supported consumer commands once that release is available; they do not install today's unpublished workspace packages.
 
 For repository development, clone the source and install its workspace dependencies.
-Protoyard links its component library, [Texuli](TEXULI.md), from a sibling checkout: the
-Texuli repository must sit next to Protoyard (`../texuli`) and be installed first
-([how it is linked](TEXULI.md#how-it-is-linked)).
+Protoyard installs its component library, [Texuli](TEXULI.md), from npm with the rest of
+its dependencies ([how it is linked](TEXULI.md#how-it-is-linked)).
 
 ```sh
 git clone https://github.com/DailybotHQ/protoyard.git
