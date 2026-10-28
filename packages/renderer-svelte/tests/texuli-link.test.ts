@@ -18,10 +18,14 @@ const workspace = resolve(import.meta.dirname, '../../..');
 
 describe('Texuli from npm in Protoyard: test', () => {
   it('resolves every Texuli package to the published version in the pnpm store', () => {
-    const declared = JSON.parse(readFileSync(resolve(workspace, 'package.json'), 'utf8')).devDependencies;
+    const declared = JSON.parse(
+      readFileSync(resolve(workspace, 'package.json'), 'utf8')
+    ).devDependencies;
     for (const name of ['@texuli/core', '@texuli/primitives', '@texuli/tokens', 'texuli']) {
       const real = realpathSync(resolve(workspace, 'node_modules', name));
-      expect(real.startsWith(realpathSync(resolve(workspace, 'node_modules/.pnpm'))), name).toBe(true);
+      expect(real.startsWith(realpathSync(resolve(workspace, 'node_modules/.pnpm'))), name).toBe(
+        true
+      );
       const manifest = JSON.parse(readFileSync(resolve(real, 'package.json'), 'utf8'));
       expect(manifest.version, name).toBe(declared[name]);
       expect(existsSync(resolve(real, 'dist')), name).toBe(true);

@@ -39,10 +39,24 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const REPO = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const ROOTS = ['packages', 'apps', 'templates', 'prototypes'];
 const EXTENSIONS = ['.svelte', '.ts', '.css', '.astro'];
-const SKIP_DIRS = new Set(['node_modules', 'dist', 'tests', '.astro', '.svelte-kit', 'coverage', 'build']);
+const SKIP_DIRS = new Set([
+  'node_modules',
+  'dist',
+  'tests',
+  '.astro',
+  '.svelte-kit',
+  'coverage',
+  'build',
+]);
 
 export type Rule = 'legacy-import' | 'raw-lucide' | 'py-token' | 'raw-control' | 'own-component';
-export const RULES: readonly Rule[] = ['legacy-import', 'raw-lucide', 'py-token', 'raw-control', 'own-component'];
+export const RULES: readonly Rule[] = [
+  'legacy-import',
+  'raw-lucide',
+  'py-token',
+  'raw-control',
+  'own-component',
+];
 
 export interface Violation {
   file: string;
@@ -82,13 +96,16 @@ export interface AdoptionOptions {
   allowGaps?: boolean;
 }
 
-const LEGACY_IMPORT = /(?:from\s+|import\s*\(\s*|import\s+)['"](clsx|tailwind-merge|tailwind-variants)(?:\/[^'"]*)?['"]/g;
+const LEGACY_IMPORT =
+  /(?:from\s+|import\s*\(\s*|import\s+)['"](clsx|tailwind-merge|tailwind-variants)(?:\/[^'"]*)?['"]/g;
 const PY_TOKEN = /var\(\s*--py-/g;
 const RAW_CONTROL = /<(button|input|select|textarea|dialog)(?=[\s/>])/g;
 const UI_UNIT = /^(packages\/(ui|[a-z-]+-ui|devtools|crud|player)|apps\/gallery)\//;
-const COMPOSES = /from\s*['"](texuli(?:\/[^'"]*)?|@texuli\/[^'"]+|@protoyard\/(?:ui|[a-z-]+-ui)(?:\/[^'"]*)?|[^'"]+\.svelte)['"]/;
+const COMPOSES =
+  /from\s*['"](texuli(?:\/[^'"]*)?|@texuli\/[^'"]+|@protoyard\/(?:ui|[a-z-]+-ui)(?:\/[^'"]*)?|[^'"]+\.svelte)['"]/;
 const LUCIDE_IMPORT = /import\s*\{([^}]*)\}\s*from\s*['"]@lucide\/svelte(?:\/[^'"]*)?['"]/g;
-const LUCIDE_DEFAULT = /import\s+([A-Za-z_$][\w$]*)\s+from\s*['"]@lucide\/svelte\/icons\/[^'"]+['"]/g;
+const LUCIDE_DEFAULT =
+  /import\s+([A-Za-z_$][\w$]*)\s+from\s*['"]@lucide\/svelte\/icons\/[^'"]+['"]/g;
 
 function count(text: string, pattern: RegExp): number {
   return [...text.matchAll(new RegExp(pattern.source, pattern.flags))].length;
@@ -112,7 +129,10 @@ function lucideNames(text: string): string[] {
     for (const part of (m[1] ?? '').split(',')) {
       const spec = part.trim().replace(/^type\s+/, '');
       if (!spec || part.trim().startsWith('type ')) continue;
-      const local = spec.split(/\s+as\s+/).pop()?.trim();
+      const local = spec
+        .split(/\s+as\s+/)
+        .pop()
+        ?.trim();
       if (local) names.push(local);
     }
   }
@@ -138,7 +158,8 @@ export function scanSource(file: string, source: string): Violation[] {
     }
     add('raw-lucide', raw);
     const script = (text.match(/<script[\s\S]*?<\/script>/g) ?? []).join('\n');
-    if (UI_UNIT.test(file) && !COMPOSES.test(script) && markup.trim().length > 0) add('own-component', 1);
+    if (UI_UNIT.test(file) && !COMPOSES.test(script) && markup.trim().length > 0)
+      add('own-component', 1);
   }
   return out;
 }
@@ -169,12 +190,17 @@ function readJson<T>(path: string, fallback: T): T {
 }
 
 function inScope(file: string, scopes: string[]): boolean {
-  return scopes.length === 0 || scopes.some((s) => file === s || file.startsWith(`${s.replace(/\/$/, '')}/`));
+  return (
+    scopes.length === 0 ||
+    scopes.some((s) => file === s || file.startsWith(`${s.replace(/\/$/, '')}/`))
+  );
 }
 
 function excepted(v: Violation, exceptions: Exception[]): boolean {
   return exceptions.some(
-    (e) => e.rules.includes(v.rule) && (e.path.endsWith('/') ? v.file.startsWith(e.path) : v.file === e.path),
+    (e) =>
+      e.rules.includes(v.rule) &&
+      (e.path.endsWith('/') ? v.file.startsWith(e.path) : v.file === e.path)
   );
 }
 
@@ -189,7 +215,10 @@ export function loadPending(root: string): Map<string, PendingEntry> {
   return map;
 }
 
-export function scanRepository(root: string = REPO, scopes: string[] = []): { files: string[]; violations: Violation[] } {
+export function scanRepository(
+  root: string = REPO,
+  scopes: string[] = []
+): { files: string[]; violations: Violation[] } {
   const files: string[] = [];
   for (const top of ROOTS) walk(join(root, top), root, files);
   const scoped = files.filter((f) => inScope(f, scopes)).sort();
@@ -227,11 +256,14 @@ export function checkAdoption(options: AdoptionOptions = {}): AdoptionReport {
     } else if (p) {
       problems.push(`${v.file}: ${v.rule} grew from ${p.count} to ${v.count}`);
     } else {
-      problems.push(`${v.file}: new ${v.rule} ×${v.count} (use Texuli, or add a reasoned exception)`);
+      problems.push(
+        `${v.file}: new ${v.rule} ×${v.count} (use Texuli, or add a reasoned exception)`
+      );
     }
   }
   for (const p of pending.values()) {
-    if (p.gap && !gaps.some((g) => g.id === p.gap)) problems.push(`${p.file}: cites unknown gap ${p.gap}`);
+    if (p.gap && !gaps.some((g) => g.id === p.gap))
+      problems.push(`${p.file}: cites unknown gap ${p.gap}`);
   }
   return {
     ok: problems.length === 0,
@@ -242,7 +274,12 @@ export function checkAdoption(options: AdoptionOptions = {}): AdoptionReport {
 }
 
 /** Writes pending lists from violations: `prune` keeps only entries that still exist (and never raises a count). */
-export function writePending(root: string, violations: Violation[], mode: 'baseline' | 'prune', scopes: string[] = []): void {
+export function writePending(
+  root: string,
+  violations: Violation[],
+  mode: 'baseline' | 'prune',
+  scopes: string[] = []
+): void {
   const dir = join(root, 'tests/adoption/pending');
   mkdirSync(dir, { recursive: true });
   const old = loadPending(root);
@@ -260,7 +297,11 @@ export function writePending(root: string, violations: Violation[], mode: 'basel
     if (excepted(v, exceptions)) continue;
     const prev = old.get(`${v.file}\u0000${v.rule}`);
     if (mode === 'prune' && !prev) continue;
-    const entry: PendingEntry = { file: v.file, rule: v.rule, count: prev ? Math.min(prev.count, v.count) : v.count };
+    const entry: PendingEntry = {
+      file: v.file,
+      rule: v.rule,
+      count: prev ? Math.min(prev.count, v.count) : v.count,
+    };
     if (prev?.gap) entry.gap = prev.gap;
     const list = byUnit.get(unitOf(v.file)) ?? [];
     list.push(entry);
@@ -268,7 +309,9 @@ export function writePending(root: string, violations: Violation[], mode: 'basel
   }
   const units = new Set([...byUnit.keys(), ...[...old.values()].map((p) => unitOf(p.file))]);
   for (const unit of units) {
-    const entries = (byUnit.get(unit) ?? []).sort((a, b) => a.file.localeCompare(b.file) || a.rule.localeCompare(b.rule));
+    const entries = (byUnit.get(unit) ?? []).sort(
+      (a, b) => a.file.localeCompare(b.file) || a.rule.localeCompare(b.rule)
+    );
     writeFileSync(join(dir, `${unit}.json`), `${JSON.stringify({ unit, entries }, null, 2)}\n`);
   }
 }
@@ -285,7 +328,9 @@ function main(argv: string[]): number {
         return 2;
       }
       scopes.push(v.replace(/\/$/, ''));
-    } else if (['--strict', '--allow-gaps', '--prune', '--write-baseline', '--json'].includes(a ?? '')) {
+    } else if (
+      ['--strict', '--allow-gaps', '--prune', '--write-baseline', '--json'].includes(a ?? '')
+    ) {
       flags.add(a as string);
     } else {
       console.error(`unknown option ${a}`);
@@ -300,16 +345,21 @@ function main(argv: string[]): number {
     const { violations } = scanRepository(REPO, scopes);
     writePending(REPO, violations, flags.has('--prune') ? 'prune' : 'baseline', scopes);
   }
-  const report = checkAdoption({ scopes, strict: flags.has('--strict'), allowGaps: flags.has('--allow-gaps') });
+  const report = checkAdoption({
+    scopes,
+    strict: flags.has('--strict'),
+    allowGaps: flags.has('--allow-gaps'),
+  });
   if (flags.has('--json')) console.log(JSON.stringify(report, null, 2));
   else {
     for (const p of report.problems) console.log(`✗ ${p}`);
     const c = report.counts;
     console.log(
-      `${report.ok ? '✓' : '✗'} Texuli adoption: ${c.files} files, ${c.violations} violations (${c.pending} pending, ${c.gapBlocked} waiting on a Texuli gap)`,
+      `${report.ok ? '✓' : '✗'} Texuli adoption: ${c.files} files, ${c.violations} violations (${c.pending} pending, ${c.gapBlocked} waiting on a Texuli gap)`
     );
   }
   return report.ok ? 0 : 1;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) process.exit(main(process.argv.slice(2)));
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href)
+  process.exit(main(process.argv.slice(2)));

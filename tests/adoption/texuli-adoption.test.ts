@@ -3,14 +3,24 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { checkAdoption, scanSource, unitOf, writePending } from '../../scripts/check-texuli-adoption.ts';
+import {
+  checkAdoption,
+  scanSource,
+  unitOf,
+  writePending,
+} from '../../scripts/check-texuli-adoption.ts';
 
 const rules = (file: string, source: string) =>
   Object.fromEntries(scanSource(file, source).map((v) => [v.rule, v.count]));
 
 describe('scanSource', () => {
   it('flags clsx, tailwind-merge and tailwind-variants imports', () => {
-    expect(rules('packages/x/src/a.ts', "import clsx from 'clsx';\nimport { twMerge } from 'tailwind-merge';")).toEqual({
+    expect(
+      rules(
+        'packages/x/src/a.ts',
+        "import clsx from 'clsx';\nimport { twMerge } from 'tailwind-merge';"
+      )
+    ).toEqual({
       'legacy-import': 2,
     });
     expect(rules('packages/x/src/a.ts', "import { cx } from 'texuli/cx';")).toEqual({});
@@ -24,7 +34,11 @@ describe('scanSource', () => {
   });
 
   it('flags var(--py-*) reads and not --tx-* reads', () => {
-    expect(rules('packages/x/src/a.css', '.a { color: var(--py-fg); background: var( --py-bg ); }')['py-token']).toBe(2);
+    expect(
+      rules('packages/x/src/a.css', '.a { color: var(--py-fg); background: var( --py-bg ); }')[
+        'py-token'
+      ]
+    ).toBe(2);
     expect(rules('packages/x/src/a.css', '.a { color: var(--tx-fg); }')).toEqual({});
   });
 
@@ -34,7 +48,8 @@ describe('scanSource', () => {
   });
 
   it('flags leaf UI-package components that compose nothing from Texuli or Protoyard', () => {
-    const leaf = '<script lang="ts">let { label } = $props();</script>\n<span class="badge">{label}</span>';
+    const leaf =
+      '<script lang="ts">let { label } = $props();</script>\n<span class="badge">{label}</span>';
     expect(rules('packages/ui/src/Badge.svelte', leaf)['own-component']).toBe(1);
     expect(rules('templates/x/src/Badge.svelte', leaf)['own-component']).toBeUndefined();
     const composed = `<script lang="ts">import { Badge } from 'texuli/badge';</script>\n<Badge>{label}</Badge>`;
@@ -64,7 +79,10 @@ describe('checkAdoption on a fixture repository', () => {
   function fixture() {
     root = mkdtempSync(join(tmpdir(), 'texuli-adoption-'));
     put('packages/ui/src/Search.svelte', legacy);
-    put('tests/adoption/texuli-gaps.json', JSON.stringify([{ id: 'G1', status: 'open', summary: 'icons' }]));
+    put(
+      'tests/adoption/texuli-gaps.json',
+      JSON.stringify([{ id: 'G1', status: 'open', summary: 'icons' }])
+    );
     put('tests/adoption/texuli-exceptions.json', '[]');
   }
 
@@ -88,35 +106,59 @@ describe('checkAdoption on a fixture repository', () => {
     fixture();
     put(
       'tests/adoption/pending/packages__ui.json',
-      JSON.stringify({ entries: [{ file: 'packages/ui/src/Search.svelte', rule: 'raw-lucide', count: 1, gap: 'G1' }] }),
+      JSON.stringify({
+        entries: [
+          { file: 'packages/ui/src/Search.svelte', rule: 'raw-lucide', count: 1, gap: 'G1' },
+        ],
+      })
     );
     expect(checkAdoption({ root, strict: true, allowGaps: true }).ok).toBe(true);
-    put('tests/adoption/texuli-gaps.json', JSON.stringify([{ id: 'G1', status: 'fixed', summary: 'icons' }]));
-    expect(checkAdoption({ root, strict: true, allowGaps: true }).problems[0]).toMatch(/gap G1 is not open/);
+    put(
+      'tests/adoption/texuli-gaps.json',
+      JSON.stringify([{ id: 'G1', status: 'fixed', summary: 'icons' }])
+    );
+    expect(checkAdoption({ root, strict: true, allowGaps: true }).problems[0]).toMatch(
+      /gap G1 is not open/
+    );
   });
 
   it('honors a reasoned exception and rejects one without a reason', () => {
     fixture();
     put(
       'tests/adoption/texuli-exceptions.json',
-      JSON.stringify([{ path: 'packages/ui/src/Search.svelte', rules: ['raw-lucide'], reason: 'device frame glyph' }]),
+      JSON.stringify([
+        {
+          path: 'packages/ui/src/Search.svelte',
+          rules: ['raw-lucide'],
+          reason: 'device frame glyph',
+        },
+      ])
     );
     expect(checkAdoption({ root, strict: true }).ok).toBe(true);
     put(
       'tests/adoption/texuli-exceptions.json',
-      JSON.stringify([{ path: 'packages/ui/src/Search.svelte', rules: ['raw-lucide'], reason: ' ' }]),
+      JSON.stringify([
+        { path: 'packages/ui/src/Search.svelte', rules: ['raw-lucide'], reason: ' ' },
+      ])
     );
-    expect(checkAdoption({ root }).problems).toContain('exception packages/ui/src/Search.svelte has no reason');
+    expect(checkAdoption({ root }).problems).toContain(
+      'exception packages/ui/src/Search.svelte has no reason'
+    );
   });
 
   it('prune drops fixed entries and never adds new ones', () => {
     fixture();
     writePending(root, checkAdoption({ root }).violations, 'baseline');
-    put('packages/ui/src/Search.svelte', '<script lang="ts">import { Badge } from \'texuli/badge\';</script>\n<Badge />');
+    put(
+      'packages/ui/src/Search.svelte',
+      '<script lang="ts">import { Badge } from \'texuli/badge\';</script>\n<Badge />'
+    );
     put('packages/ui/src/New.svelte', legacy);
     writePending(root, checkAdoption({ root }).violations, 'prune');
     const report = checkAdoption({ root });
-    expect(report.problems).toEqual(['packages/ui/src/New.svelte: new raw-lucide ×1 (use Texuli, or add a reasoned exception)']);
+    expect(report.problems).toEqual([
+      'packages/ui/src/New.svelte: new raw-lucide ×1 (use Texuli, or add a reasoned exception)',
+    ]);
   });
 });
 
@@ -134,13 +176,17 @@ describe('Texuli comes from npm', () => {
     const manifests = ['package.json'];
     for (const top of ['packages', 'apps', 'templates', 'prototypes']) {
       for (const name of readdirSync(join(root, top))) {
-        if (existsSync(join(root, top, name, 'package.json'))) manifests.push(`${top}/${name}/package.json`);
+        if (existsSync(join(root, top, name, 'package.json')))
+          manifests.push(`${top}/${name}/package.json`);
       }
     }
     const versions = new Set<string>();
     const bad: string[] = [];
     for (const m of manifests) {
-      const json = JSON.parse(readFileSync(join(root, m), 'utf8')) as Record<string, Record<string, string> | undefined>;
+      const json = JSON.parse(readFileSync(join(root, m), 'utf8')) as Record<
+        string,
+        Record<string, string> | undefined
+      >;
       for (const section of ['dependencies', 'devDependencies', 'peerDependencies']) {
         for (const [name, spec] of Object.entries(json[section] ?? {})) {
           if (name !== 'texuli' && !name.startsWith('@texuli/')) continue;

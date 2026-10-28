@@ -31,7 +31,9 @@ describe('compact adapters over @texuli/charts', () => {
       values: [1000, 2000],
       formatSpec: { type: 'number', notation: 'compact', locale: 'en-US' },
     });
-    expect(document.querySelector('[role="img"]')?.getAttribute('aria-label')).toBe('Trend: up 100%');
+    expect(document.querySelector('[role="img"]')?.getAttribute('aria-label')).toBe(
+      'Trend: up 100%'
+    );
   });
 
   it('trendSummary classifies direction', () => {
