@@ -1,45 +1,4 @@
 {
   "unit": "packages__player",
-  "entries": [
-    {
-      "file": "packages/player/src/app.css",
-      "rule": "py-token",
-      "count": 2
-    },
-    {
-      "file": "packages/player/src/archetypes/business/AnalyticsApp.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/player/src/entries/deck.css",
-      "rule": "py-token",
-      "count": 2
-    },
-    {
-      "file": "packages/player/src/entries/doc.css",
-      "rule": "py-token",
-      "count": 2
-    },
-    {
-      "file": "packages/player/src/entries/KindMismatch.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/player/src/entries/page.css",
-      "rule": "py-token",
-      "count": 2
-    },
-    {
-      "file": "packages/player/src/kinds/content.css",
-      "rule": "py-token",
-      "count": 2
-    },
-    {
-      "file": "packages/player/src/validation/ValidationPanel.svelte",
-      "rule": "raw-control",
-      "count": 1
-    }
-  ]
+  "entries": []
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Button } from '@protoyard/ui';
 import { onMount } from 'svelte';
 import { chromeMessages } from '../messages.ts';
 import { isFrameExitKey } from './frame-mode.ts';
@@ -39,8 +40,10 @@ onMount(() => {
 const messages = chromeMessages().frame;
 </script>
 
-<button
+<Button
   type="button"
+  variant="ghost"
+  size="icon"
   data-py-frame-toggle
   aria-label={messages.exit}
   aria-pressed="true"
@@ -49,7 +52,7 @@ const messages = chromeMessages().frame;
   onclick={onexit}
 >
   <Icon name="shrink" class="size-4" />
-</button>
+</Button>
 {#if hint}
   <p
     data-py-frame-hint

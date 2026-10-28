@@ -18,7 +18,7 @@ import {
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import type { DataTableColumn, DataTableSort } from '@protoyard/ui';
-import { Button, DataTable } from '@protoyard/ui';
+import { Button, DataTable, Select } from '@protoyard/ui';
 import { onMount } from 'svelte';
 import { formatEntityHeading, formatMoney } from '../../format.ts';
 import {
@@ -211,7 +211,7 @@ const chartSeries = $derived.by(() => {
     const current = result.current.filter((point) => point.dimension === dimension);
     const previous = result.previous.filter((point) => point.dimension === dimension);
     const label = formatDimension(entity, routeState.dimension, dimension);
-    const color = `var(--py-chart${(index % 6) + 1})`;
+    const color = `var(--tx-chart-${(index % 6) + 1})`;
     return [
       {
         id: `current-${dimension ?? 'all'}`,
@@ -288,8 +288,8 @@ function persistState(next: AnalyticsQueryState) {
   navigate(`${current.path}?${params.toString()}`, { replace: true });
 }
 
-function chooseMeasure(event: Event) {
-  const value = Number((event.currentTarget as HTMLSelectElement).value);
+function chooseMeasure(raw: string) {
+  const value = Number(raw);
   if (Number.isInteger(value) && screen.measures[value])
     persistState({ ...routeState, measure: value });
 }
@@ -336,11 +336,15 @@ onMount(() => {
     <div class="flex flex-wrap items-center gap-3">
       <label class="grid gap-1 text-xs text-muted-foreground">
         Measure
-        <select class="h-9 rounded-md border border-input bg-surface px-2 text-sm text-foreground" value={routeState.measure} onchange={chooseMeasure}>
-          {#each screen.measures as measure, index (`${measure.aggregate}-${measure.field ?? 'count'}-${index}`)}
-            <option value={index}>{measure.label ?? measure.field ?? measure.aggregate}</option>
-          {/each}
-        </select>
+        <Select
+          class="min-w-48"
+          value={String(routeState.measure)}
+          items={screen.measures.map((measure, index) => ({
+            value: String(index),
+            label: measure.label ?? measure.field ?? measure.aggregate,
+          }))}
+          onValueChange={chooseMeasure}
+        />
       </label>
       {#await import('@protoyard/analytics-ui/filters') then { BreakdownSelect }}
         <BreakdownSelect properties={dimensions} value={routeState.dimension} onchange={chooseDimension} />

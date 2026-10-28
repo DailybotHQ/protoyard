@@ -2,89 +2,10 @@
   "unit": "packages__charts-ui",
   "entries": [
     {
-      "file": "packages/charts-ui/src/cartesian/AreaChart.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/cartesian/BarChart.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/cartesian/ComboChart.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/cartesian/LineChart.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/cartesian/ScatterChart.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/compat/ChartRoot.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/compat/ChartRoot.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/geo/TileMap.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/matrix/CalendarHeatmap.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/matrix/Heatmap.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/matrix/Histogram.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
       "file": "packages/charts-ui/src/matrix/RampLegend.svelte",
       "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/part-whole/DonutChart.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/part-whole/FunnelChart.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/part-whole/PieChart.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/part-whole/SankeyChart.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/charts-ui/src/part-whole/Treemap.svelte",
-      "rule": "py-token",
-      "count": 1
+      "count": 1,
+      "gap": "G3"
     }
   ]
 }

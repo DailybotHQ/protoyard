@@ -2,6 +2,7 @@
 import { Search } from '@lucide/svelte';
 import { navigate } from '@protoyard/renderer-svelte';
 import { Button } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import SearchPalette from '../SearchPalette.svelte';
 import { useBlueprintApp } from './context.ts';
 
@@ -14,7 +15,7 @@ function openPalette(event: MouseEvent) {
 </script>
 
 <Button size="sm" variant="outline" onclick={openPalette}>
-  <Search class="size-4" aria-hidden="true" />
+  <LucideIcon icon={Search} class="size-4" />
   <!-- The name starts with the visible "Search" (WCAG 2.5.3); phones hide the word visually only. -->
   <span class="sr-only sm:not-sr-only">Search</span>
   <span class="sr-only">records (Command or Control K)</span>

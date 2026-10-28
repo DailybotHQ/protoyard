@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { StorageStatus } from '@protoyard/core';
+import { Button } from '@protoyard/ui';
 import { chromeMessages } from '../messages.ts';
 import Icon from './Icon.svelte';
 
@@ -18,13 +19,15 @@ const messages = chromeMessages().storage;
       <strong class="font-semibold">{messages.title}</strong>
       {storage.warning ?? messages.body}
     </p>
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       class="-m-1 inline-flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-black/10 sm:size-7"
       aria-label={messages.dismiss}
       onclick={() => (dismissed = true)}
     >
       <Icon name="close" />
-    </button>
+    </Button>
   </div>
 {/if}

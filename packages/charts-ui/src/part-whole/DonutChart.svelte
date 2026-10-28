@@ -33,6 +33,6 @@ const size = $derived(Math.max(120, height));
   .empty {
     margin: 0;
     font-size: 0.875rem;
-    color: var(--py-muted-foreground, CanvasText);
+    color: var(--tx-muted-foreground, CanvasText);
   }
 </style>

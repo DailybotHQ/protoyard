@@ -113,13 +113,14 @@ describe('AnalyticsScreen', () => {
     expect(
       await screen.findByRole('button', { name: 'Show data table' }, { timeout: 10_000 })
     ).toBeTruthy();
-    const measure = screen.getByLabelText('Measure');
-    await fireEvent.change(measure, { target: { value: '1' } });
+    const measure = screen.getByRole('combobox', { name: 'Measure' });
+    await fireEvent.click(measure);
+    await fireEvent.click(await screen.findByRole('option', { name: 'Gross amount' }));
     await waitFor(() => expect(location.hash).toContain('measure=1'));
 
-    // The breakdown is Texuli's accessible select: open it, then choose the option.
-    await fireEvent.click(await screen.findByRole('combobox', { name: 'Break down by' }));
-    await fireEvent.click(await screen.findByRole('option', { name: /status/i }));
+    const breakdown = await screen.findByLabelText('Break down by');
+    await fireEvent.click(breakdown);
+    await fireEvent.click(await screen.findByRole('option', { name: 'Status' }));
     await waitFor(() => expect(location.hash).toContain('dimension=status'));
     const reloaded = parseAnalyticsQuery(
       new URLSearchParams(location.hash.split('?')[1]),

@@ -11,6 +11,11 @@ screen from the runtime blueprint; the screen UI is imported from a CRUD subpath
 panels load on demand. The route map and regeneration ownership are documented in
 [GENERATOR.md](../../docs/GENERATOR.md).
 
+CRUD screen controls and icons compose the shared Texuli-backed components from
+`@protoyard/ui`; Lucide symbols are glyph inputs rendered through Texuli's
+`LucideIcon` wrapper. The hidden CSV file input remains native because it
+opens the browser file picker.
+
 `screenKinds` in `@protoyard/crud` is the typed runtime registry for blueprint screen
 components. Each kit loader uses a dynamic import, so board, calendar, map, analytics, dashboard
 and settings code stays outside the initial chunk until that screen is opened. The
