@@ -1,6 +1,7 @@
 <script lang="ts">
 import { X } from '@lucide/svelte';
 import { type FilterCondition, type FilterGroup, OPERATOR_LABELS } from '@protoyard/analytics';
+import { LucideIcon } from 'texuli/icons/lucide';
 // Self-import for nested groups, under another name: the emitted declaration
 // already declares `FilterGroupEditor`.
 import NestedGroupEditor from './FilterGroupEditor.svelte';
@@ -203,7 +204,7 @@ const inputType = (p: FilterProperty | undefined) =>
             {/if}
           {/if}
           <button type="button" class={ghost} aria-label="Remove condition {i + 1}" onclick={() => removeAt(i)}>
-            <X class="size-3.5" aria-hidden="true" />
+            <LucideIcon icon={X} class="size-3.5" />
           </button>
         </div>
         {#if message}<p id={errorId} class="m-0 text-xs text-destructive">{message}</p>{/if}

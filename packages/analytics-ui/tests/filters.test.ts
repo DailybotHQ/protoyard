@@ -287,16 +287,18 @@ describe('BreakdownSelect', () => {
   it('offers category properties only and emits the chosen path', async () => {
     const onchange = vi.fn();
     render(BreakdownSelect, { properties: PROPERTIES, value: null, onchange });
-    const select = screen.getByLabelText('Break down by') as HTMLSelectElement;
-    expect([...select.options].map((o) => o.textContent)).toEqual([
+    const select = screen.getByRole('combobox', { name: 'Break down by' });
+    await fireEvent.click(select);
+    expect(screen.getAllByRole('option').map((o) => o.textContent?.trim())).toEqual([
       'None',
       'Plan',
       'Country',
       'On trial',
     ]);
-    await fireEvent.change(select, { target: { value: 'properties.plan' } });
+    await fireEvent.click(screen.getByRole('option', { name: 'Plan' }));
     expect(onchange).toHaveBeenLastCalledWith('properties.plan');
-    await fireEvent.change(select, { target: { value: '' } });
+    await fireEvent.click(select);
+    await fireEvent.click(screen.getByRole('option', { name: 'None' }));
     expect(onchange).toHaveBeenLastCalledWith(null);
   });
 });
