@@ -15,6 +15,16 @@ function buttonVariant(variant: 'primary' | 'secondary' | 'link' | undefined): B
   return 'default';
 }
 
+/**
+ * A link action reads `--tx-link`, which Protoyard themes do not set yet, so
+ * Texuli falls back to the system link color (unreadable on a dark surface).
+ * Pin it to the foreground, AA on the surface in every theme, and keep the
+ * underline so it still reads as a link.
+ */
+function actionClass(variant: 'primary' | 'secondary' | 'link' | undefined): string | undefined {
+  return variant === 'link' ? '[--tx-link:var(--tx-foreground)] underline' : undefined;
+}
+
 async function runAction(label: string, href: string): Promise<void> {
   const safe = safeHref(href);
   if (!safe) return;
@@ -45,19 +55,25 @@ async function runAction(label: string, href: string): Promise<void> {
         {#if host.onCtaAction}
           <Button
             variant={buttonVariant(action.variant)}
+            class={actionClass(action.variant)}
             onclick={() => runAction(action.label, action.href)}
           >
             {#if action.icon}<BlockIcon name={action.icon} class="size-4" />{/if}
             {action.label}
           </Button>
         {:else if href.startsWith('#') || href.startsWith('/')}
-          <Button variant={buttonVariant(action.variant)} href={href}>
+          <Button
+            variant={buttonVariant(action.variant)}
+            class={actionClass(action.variant)}
+            {href}
+          >
             {#if action.icon}<BlockIcon name={action.icon} class="size-4" />{/if}
             {action.label}
           </Button>
         {:else}
           <Button
             variant={buttonVariant(action.variant)}
+            class={actionClass(action.variant)}
             onclick={() => runAction(action.label, action.href)}
           >
             {#if action.icon}<BlockIcon name={action.icon} class="size-4" />{/if}
