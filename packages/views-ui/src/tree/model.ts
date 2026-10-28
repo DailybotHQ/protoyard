@@ -13,7 +13,7 @@ export interface TreePlacement {
   rank: string;
 }
 
-/** Pointer travel before a press becomes a drag. */
+/** Pointer travel before a press becomes a drag (Texuli gesture default). */
 export const TREE_DRAG_THRESHOLD_PX = 4;
 
 export type DropZone = 'before' | 'inside' | 'after';
