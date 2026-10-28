@@ -29,7 +29,7 @@ test.describe('gallery', () => {
     }
   });
 
-  test('searches, filters and opens a detail page', async ({ page }) => {
+  test('searches, filters and opens an accessible detail page', async ({ page }, testInfo) => {
     test.skip(prototypes.length === 0, 'no prototypes indexed');
     const target = prototypes[prototypes.length - 1];
     if (!target) return;
@@ -54,6 +54,15 @@ test.describe('gallery', () => {
     await page.getByRole('link', { name: target.name, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/p/${target.slug}/?$`));
     await expect(page.getByTestId('detail-title')).toHaveText(target.name);
+    const commandRegions = page.locator('pre[role="region"]');
+    const commandRegionCount = await commandRegions.count();
+    expect(commandRegionCount).toBeGreaterThan(0);
+    for (let index = 0; index < commandRegionCount; index += 1) {
+      const region = commandRegions.nth(index);
+      await expect(region).toHaveAttribute('tabindex', '0');
+      await expect(region).toHaveAttribute('aria-label', /\S/);
+    }
+    await expectAccessible(page, testInfo, { label: 'gallery-detail' });
     if (target.scenarios.length > 0) {
       await expect(page.getByTestId('scenarios').getByRole('listitem')).toHaveCount(
         target.scenarios.length
@@ -306,6 +315,9 @@ test.describe('gallery', () => {
     if (!template) return;
     await page.goto(`/t/${template.slug}/`);
     await page.getByRole('link', { name: 'Use this template' }).click();
+    await expect(page.locator('[data-testid="create-builder"][data-hydrated="true"]')).toHaveCount(
+      1
+    );
     const slug = page.getByLabel(/^Slug/);
     await expect(slug).toBeEditable();
     await slug.fill('team-crm');

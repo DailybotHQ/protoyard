@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Input, RadioGroup, Textarea } from '@protoyard/ui';
+import { onMount } from 'svelte';
 import { agentPrompt, newCommand } from '@/lib/commands';
 import CommandBlock from './CommandBlock.svelte';
 
@@ -16,6 +17,11 @@ let template = $state(initialTemplate || templates[0]?.slug || '');
 let name = $state('');
 let description = $state('');
 let idea = $state('');
+let hydrated = $state(false);
+
+onMount(() => {
+  hydrated = true;
+});
 
 // Mirrors core checkSlug(): lowercase kebab-case, 2–48 chars.
 const SLUG_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
@@ -44,7 +50,7 @@ function suggestSlug() {
 const input = 'h-10 w-full rounded-lg border border-line bg-bg px-3 text-sm';
 </script>
 
-<div class="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+<div class="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" data-testid="create-builder" data-hydrated={hydrated}>
   <form class="space-y-4 rounded-xl border border-line bg-surface p-5" onsubmit={(e) => e.preventDefault()} aria-describedby="builder-note">
     <p id="builder-note" class="text-sm text-muted">
       This page cannot create files — it builds the exact command to run in your terminal (or to give your coding agent).
