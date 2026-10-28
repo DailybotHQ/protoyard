@@ -1,10 +1,11 @@
 <script lang="ts">
-import { ChevronsUpDown } from '@lucide/svelte';
 import * as PopoverPrimitive from '@texuli/primitives/popover';
-import { cn } from '../../lib/cn.ts';
-import { floatingSurface } from '../../lib/overlay.ts';
+import { cardClass } from 'texuli/card';
+import { cx } from 'texuli/cx';
+import { Icon } from 'texuli/icons';
+import { PopoverContent } from 'texuli/popover';
+import { selectTriggerClass } from 'texuli/select';
 import Avatar from '../avatar/Avatar.svelte';
-import { fieldClasses } from '../input/input-classes.ts';
 import type { PickerUser } from './types.ts';
 import UserList from './UserList.svelte';
 
@@ -51,8 +52,12 @@ function pick(user: PickerUser): void {
 }
 </script>
 
+<!--
+  A person picker composed of Texuli parts: the select-style trigger
+  (`texuli/select` classes), Texuli's popover surface and command list.
+-->
 {#if variant === 'inline'}
-  <div class={cn('overflow-hidden rounded-xl border border-border bg-surface shadow-soft', className)}>
+  <div class={cardClass({ class: cx('ui-user-picker--inline', className) })} data-tx-card="">
     <UserList
       {users}
       selectedId={value}
@@ -69,24 +74,21 @@ function pick(user: PickerUser): void {
       {id}
       {disabled}
       aria-label={selected ? `${label}: ${selected.name}` : label}
-      class={cn(
-        fieldClasses,
-        'flex h-10 min-h-touch items-center gap-2 px-2.5 text-left sm:min-h-0',
-        className
-      )}
+      class={selectTriggerClass({ class: className })}
+      data-tx-select-trigger=""
     >
-      {#if selected}
-        <Avatar name={selected.name} src={selected.avatarUrl} srcset={selected.avatarSrcset} size="xs" decorative />
-        <span class="min-w-0 flex-1 truncate">{selected.name}</span>
-      {:else}
-        <span class="min-w-0 flex-1 truncate text-muted-foreground">{placeholder}</span>
-      {/if}
-      <ChevronsUpDown class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <span class="tx-select-trigger__body ui-user-picker__value">
+        {#if selected}
+          <Avatar name={selected.name} src={selected.avatarUrl} srcset={selected.avatarSrcset} size="xs" decorative />
+          <span class="tx-select-value">{selected.name}</span>
+        {:else}
+          <span class="tx-select-value" data-placeholder="">{placeholder}</span>
+        {/if}
+      </span>
+      <Icon icon="chevron-down" size="sm" class="tx-select-trigger__chevron" aria-hidden="true" />
     </PopoverPrimitive.Trigger>
     <!-- The list opens in the top layer; no portal is needed. -->
-    <PopoverPrimitive.Content
-      class={cn(floatingSurface, 'w-72 max-w-[calc(100vw-2rem)] overflow-hidden p-0')}
-    >
+    <PopoverContent arrow={false} class="ui-user-picker__content">
       <UserList
         {users}
         selectedId={value}
@@ -96,6 +98,23 @@ function pick(user: PickerUser): void {
         {emptyText}
         {label}
       />
-    </PopoverPrimitive.Content>
+    </PopoverContent>
   </PopoverPrimitive.Root>
 {/if}
+
+<style>
+  .ui-user-picker__value {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    min-inline-size: 0;
+  }
+  :global(.ui-user-picker__content) {
+    padding: 0;
+    overflow: hidden;
+  }
+  .ui-user-picker--inline {
+    overflow: hidden;
+    padding: 0;
+  }
+</style>

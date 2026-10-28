@@ -8,6 +8,8 @@ import type { Button as TexuliButton } from 'texuli/button';
 export { Badge, type BadgeVariant, badgeClass as badgeVariants } from 'texuli/badge';
 // Primitives
 export { Button, type ButtonSize, type ButtonVariant, buttonVariants } from 'texuli/button';
+// Layout & navigation
+export { AppShell } from 'texuli/layouts/shells';
 export { Breadcrumb, type BreadcrumbItem } from 'texuli/navigation';
 export { Accordion, type AccordionItemDef as AccordionItem } from 'texuli/tabs-accordion';
 export {
@@ -25,8 +27,6 @@ export {
   resolveAdaptiveOverlayPresentation,
 } from './components/adaptive-overlay/index.ts';
 export { default as AlertDialog } from './components/alert-dialog/AlertDialog.svelte';
-// Layout & navigation
-export { default as AppShell } from './components/app-shell/AppShell.svelte';
 export {
   type AppShellContext,
   getAppShellContext,
@@ -58,7 +58,7 @@ export {
 } from 'texuli/choice';
 export { ErrorState } from 'texuli/empty';
 export { Progress, Skeleton } from 'texuli/feedback';
-export { Label } from 'texuli/field';
+export { Field as FormField, Label } from 'texuli/field';
 export { Textarea } from 'texuli/input';
 export { Kbd } from 'texuli/kbd-code';
 export { default as SplitView } from 'texuli/layouts/app/split-view';
@@ -135,7 +135,6 @@ export type {
 export * from './components/form/scheduling/index.ts';
 // Form utilities: tags/email, emoji, password strength, character counter
 export * from './components/form/utilities/index.ts';
-export { default as FormField } from './components/form-field/FormField.svelte';
 export type { FormFieldControl } from './components/form-field/form-field.ts';
 export { default as Header } from './components/header/Header.svelte';
 export { ProposalTag, SimulatedTag } from './components/honesty/index.ts';

@@ -2,21 +2,6 @@
   "unit": "packages__ui",
   "entries": [
     {
-      "file": "packages/ui/src/components/alert-dialog/AlertDialog.svelte",
-      "rule": "raw-lucide",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/app-shell/AppShell.svelte",
-      "rule": "raw-lucide",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/app-shell/DrawerScope.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
       "file": "packages/ui/src/components/avatar/Avatar.svelte",
       "rule": "own-component",
       "count": 1
@@ -24,11 +9,6 @@
     {
       "file": "packages/ui/src/components/bottom-nav/BottomNav.svelte",
       "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/bottom-sheet/BottomSheet.svelte",
-      "rule": "py-token",
       "count": 1
     },
     {
@@ -57,52 +37,12 @@
       "count": 1
     },
     {
-      "file": "packages/ui/src/components/combobox/Combobox.svelte",
-      "rule": "raw-lucide",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/command-palette/CommandPalette.svelte",
-      "rule": "raw-lucide",
-      "count": 2
-    },
-    {
       "file": "packages/ui/src/components/composer/Composer.svelte",
       "rule": "raw-control",
       "count": 2
     },
     {
       "file": "packages/ui/src/components/composer/Composer.svelte",
-      "rule": "raw-lucide",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/data-table/DataTable.svelte",
-      "rule": "raw-control",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/data-table/DataTable.svelte",
-      "rule": "raw-lucide",
-      "count": 4
-    },
-    {
-      "file": "packages/ui/src/components/detail-panel/DetailPanel.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/detail-panel/DetailPanel.svelte",
-      "rule": "raw-lucide",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/dialog/Dialog.svelte",
-      "rule": "py-token",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/dialog/Dialog.svelte",
       "rule": "raw-lucide",
       "count": 1
     },
@@ -110,26 +50,6 @@
       "file": "packages/ui/src/components/empty-state/EmptyState.svelte",
       "rule": "own-component",
       "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/file-dropzone/FileDropzone.svelte",
-      "rule": "raw-control",
-      "count": 3
-    },
-    {
-      "file": "packages/ui/src/components/file-dropzone/FileDropzone.svelte",
-      "rule": "raw-lucide",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/filter-bar/FilterBar.svelte",
-      "rule": "raw-control",
-      "count": 4
-    },
-    {
-      "file": "packages/ui/src/components/filter-bar/FilterBar.svelte",
-      "rule": "raw-lucide",
-      "count": 2
     },
     {
       "file": "packages/ui/src/components/form/scheduling/Calendar.svelte",
@@ -347,39 +267,9 @@
       "count": 2
     },
     {
-      "file": "packages/ui/src/components/overlay/Drawer.svelte",
-      "rule": "raw-lucide",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/pagination/Pagination.svelte",
-      "rule": "raw-control",
-      "count": 3
-    },
-    {
-      "file": "packages/ui/src/components/pagination/Pagination.svelte",
-      "rule": "raw-lucide",
-      "count": 2
-    },
-    {
       "file": "packages/ui/src/components/safe-area/SafeArea.svelte",
       "rule": "own-component",
       "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/select/Select.svelte",
-      "rule": "raw-lucide",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/sidebar/Sidebar.svelte",
-      "rule": "raw-control",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/sidebar/Sidebar.svelte",
-      "rule": "raw-lucide",
-      "count": 2
     },
     {
       "file": "packages/ui/src/components/spinner/Spinner.svelte",
@@ -454,16 +344,6 @@
     {
       "file": "packages/ui/src/components/typing-indicator/TypingIndicator.svelte",
       "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/user-picker/UserList.svelte",
-      "rule": "raw-lucide",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/user-picker/UserPicker.svelte",
-      "rule": "raw-lucide",
       "count": 1
     },
     {

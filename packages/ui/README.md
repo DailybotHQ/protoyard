@@ -64,7 +64,8 @@ cn('shadow-soft', 'shadow-none'); // → "shadow-none"
 ## Built on Texuli
 
 `@protoyard/ui` is Protoyard's kit on top of [Texuli](../../docs/TEXULI.md), the
-standalone Svelte 5 component library it links from `../texuli`:
+standalone Svelte 5 component library, consumed from its published npm packages
+(`texuli`, `@texuli/*` at `0.3.0`):
 
 - **Re-exported from `texuli`:** the generic styled components (`Button`,
   `Badge`, `Card…`, `Checkbox`, `Switch`, `RadioGroup`, `Label`, `Textarea`,
@@ -73,14 +74,24 @@ standalone Svelte 5 component library it links from `../texuli`:
   Import them from `@protoyard/ui` as before; their look is Texuli's (`tx-*`
   classes on the `--tx-*` variables the renderer writes next to `--py-*`).
   The full mapping is in [TEXULI.md](../../docs/TEXULI.md#generic-styled-components-come-from-texuli).
-- **Wrappers on `@texuli/primitives`:** `Select`, `Combobox`, `DropdownMenu`,
-  `Popover`, `Tabs`, the dialog family (`Dialog`, `AlertDialog`, `Drawer`,
-  `DetailPanel`, `BottomSheet`), `CommandPalette` and `UserPicker` keep their
-  Protoyard props and render Texuli's headless primitives.
+- **Re-exported from Texuli under Protoyard's names:** `AppShell` (and
+  `getAppShellContext`) from `texuli/layouts/shells`, `FormField` (Texuli's
+  `Field`, `texuli/field`).
+- **Thin adapters over Texuli's styled components:** `Select`, `Combobox`,
+  `DropdownMenu`, `Popover`, `Tabs`, `Sidebar`, `Pagination`, `Notice`
+  (`Alert`), `FileDropzone` (`FileUpload`), `CommandPalette`, `UserPicker`,
+  `FilterBar`, `DataTable` (`texuli/table`) and the dialog family (`Dialog`,
+  `AlertDialog`, `Drawer`, `DetailPanel`, `BottomSheet`). They keep their
+  Protoyard props and render Texuli's parts and classes. What stays in the
+  adapter is what the published Texuli cannot take yet, each tracked as a
+  Texuli gap: the shared overlay stack and the framed-device portal on
+  overlays (G4), `bind:ref` and rest attributes (G5), paging, row classes and
+  toolbar slots on a data grid (G7), add and remove callbacks on file upload
+  (G8), and styled sheet header, body and footer parts (`overlay/sheet-parts.css`).
 - **Layouts:** `LayoutHost` wraps `texuli/layouts` ([below](#shared-layout-host)).
 - **Protoyard's own:** device frames and shells, `ScenarioSwitcher`, the
-  honesty tags, actors, the overlay stack and undo toaster, `DataTable`, the
-  toasts, the form utilities and scheduling inputs, and the `docs` layout.
+  honesty tags, actors, the overlay stack and undo toaster, the toasts, the
+  form utilities and scheduling inputs, and the `docs` layout.
 
 ## Components
 
@@ -114,7 +125,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Input` / `Textarea` | native attributes, `bind:value`, `aria-invalid` styling |
 | `OtpInput` | fixed-length one-time-code cells (`length` 2–12, default 6); paste, arrows, backspace; `onComplete` exact-once; **simulated UX only** — never SMS or auth |
 | `Label` | `for` |
-| `FileDropzone` | `accept`, `maxSize`, `maxFiles`, `multiple`, `bind:files` (`DropzoneFile[]` with real `File`s), `bind:rejects`, drag-and-drop + keyboard file input, image previews via `URL.createObjectURL` (revoked on remove/destroy), per-file `Progress`, inline limit errors. Never reads file contents as HTML. |
+| `FileDropzone` | `accept`, `maxSize`, `maxFiles`, `multiple`, `bind:files` (`DropzoneFile[]` with real `File`s), `bind:rejects`, drag-and-drop + keyboard file input, image previews via `URL.createObjectURL` (revoked on remove/destroy), per-file progress, inline limit errors, `onAdd`/`onRemove`. Renders Texuli's `FileUpload`; `children` shows above the zone and `listClass` is ignored. Never reads file contents as HTML. |
 | `ImageInput` | Labeled local image picker (`label`, `hint`, `accept`, `multiple`, `required`, `onFilesSelected`). Raster previews only via object URLs (`image/jpeg|png|gif|webp|avif`); SVG/HTML never become markup. Every object URL is revoked on replace, clear and unmount. Persistence and upload stay in the caller service. |
 | `ScenarioSwitcher` | In-app demo control: scenarios grouped by `group`, Load with pending feedback, View as… persona chips on the active world. Always labelled **Simulated**. Props: `scenarios`/`groups`, `activeScenarioId`, `personas`, `activePersonaId`, `onLoadScenario`, `onViewAs`, optional loading ids. Wire via `@protoyard/renderer-svelte` `scenarioSwitcherProps` / `createScenarioSwitcherActions`. |
 | `FormField` | `label`, `description`, `error`, `required`, `hideLabel`, `id`; `children({ id, describedBy, invalid, required, props })` |
@@ -134,7 +145,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Dialog` | `bind:open`, `title`, `description`, `size` sm·md·lg·xl, `trigger`, `footer`, `hideClose` |
 | `AlertDialog` | `bind:open`, `title`, `description`, `confirmLabel`, `cancelLabel`, `destructive`, `onConfirm` (async → spinner, closes on resolve, shows the error on reject), `trigger` |
 | `DetailPanel` | right sheet (full-height bottom sheet on phones): `bind:open`, `title`, `description`, `footer`, `trigger` |
-| `BottomSheet` | `bind:open`, `title`, `description`, `hideTitle`, `footer`, `trigger`, `swipeToDismiss` (default true: drag/flick the handle down; Esc and backdrop always close; reduced-motion aware) |
+| `BottomSheet` | `bind:open`, `title`, `description`, `hideTitle`, `footer`, `trigger`, `swipeToDismiss` (default true: drag or flick the sheet down, Texuli's drawer drag; false: it springs back; Esc and backdrop always close) |
 | `DropdownMenu` | `items: (action \| { type: 'separator' } \| { type: 'label' })[]` with `label`, `icon`, `onSelect`, `destructive`, `disabled`; `trigger` |
 | `Popover` | `bind:open`, `trigger`, `side`, `align`, children |
 | `Tooltip` | `content` (string or snippet), `children` is the trigger, `side`, `delayDuration` |
@@ -158,7 +169,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `FilterBar` | `fields: { id, label, kind: enum·date-range·boolean·relation, options?, multiple?, key?, accessor? }[]`, `bind:values` (plain JSON for the hash query), chips + reset; pair with pure `applyFilters(rows, fields, values)` |
 | `Pagination` | `bind:page`, `pageCount` or `total` + `pageSize` |
 | `Kanban` | `columns: { id, title }[]`, `items`, `getColumn`, `getItemId`, `getItemLabel`, `onMove(item, columnId)` (async ok), `canMove`, `card` snippet; HTML5 drag and drop + a keyboard "Move to…" menu per card |
-| `AppShell` | `sidebar`, `header`, `bottomNav`, children, `bind:sidebarOpen` (mobile drawer, auto-closes at `lg`), `sidebarClass`, `mainClass`, `mainId`, `mainElement` (`div` when nested in another `<main>`), skip link; frame uses `min-h-app` / sidebar column `h-app` (`--py-app-height`) so framed shells match the device screen |
+| `AppShell` | `sidebar`, `header`, `bottomNav`, children, `bind:sidebarOpen` (mobile drawer, auto-closes at `lg`), `sidebarClass`, `mainClass`, `mainId`, `mainElement` (`div` when nested in another `<main>`), skip link, plus Texuli's `commandBar` and `notifications` slots. It is Texuli's shell; it sizes from `--tx-app-height`, which `styles.css` maps to the frame's `--py-app-height`, so framed shells match the device screen |
 | `LayoutHost` | `layout: LayoutId`, routed screen snippet, `nav` (NavModel), `path`, `options`, `storageKey`, `aside` snippet, `class`; measures its own container, applies the core layout fallback below its breakpoint, and lazy-loads the registered module with a skeleton while loading. Layout modules call `mountScreen(target)` to place the stable routed-screen outlet without remounting its local state. Unregistered layouts leave the screen in the host's default content frame. |
 | `MobileAppShell` | Fixed `h-app` flex column with optional `header`, one focusable scrolling `<main>`, optional `stickyFooter`, and an in-flow `bottomNav` snippet. Compose the nav with `<BottomNav fixed={false}>` so it remains visible below the scroll region in any frame. Resets main scroll on hash navigation. |
 | `Sidebar` | `items` or `sections: { label?, items: { label, href, icon?, badge?, active? }[] }[]`, `bind:collapsed`, `header`/`footer({ collapsed })` |
@@ -351,7 +362,7 @@ side drawer and the height for a top or bottom one. It accepts a plain CSS lengt
 drawers, `auto` up to 85% for top and bottom ones), so a size can never inject other styles. It
 is **non-modal by default**: the page behind stays usable, outside clicks do not close it, and it
 only owns Escape. With `modal`, it dims the page, traps focus and locks scroll, and outside clicks
-close it (`closeOnOutsideClick` overrides either default). It renders Texuli's `sheet` primitive.
+close it (`closeOnOutsideClick` overrides either default). It renders Texuli's `sheet` primitive with the `tx-sheet` surface from `texuli/sheet`.
 Like the rest of the dialog family, it opens in the browser's top layer on the page; inside a
 device frame it opens in Texuli's contained mode, held by the device screen, which also bounds its
 inert page, focus trap and scroll lock (`useOverlayPortalTarget()` gives each overlay its `mode`

@@ -2,7 +2,7 @@
 import DatePicker from '../../src/components/form/scheduling/DatePicker.svelte';
 import TimeInput from '../../src/components/form/scheduling/TimeInput.svelte';
 import WeekdayPicker from '../../src/components/form/scheduling/WeekdayPicker.svelte';
-import FormField from '../../src/components/form-field/FormField.svelte';
+import { FormField } from '../../src/index.ts';
 
 let { error = null }: { error?: string | null } = $props();
 </script>

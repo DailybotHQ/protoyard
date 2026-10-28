@@ -1,14 +1,10 @@
 <script lang="ts">
-import { Check, ChevronsUpDown } from '@lucide/svelte';
-import { Combobox as ComboboxPrimitive } from '@texuli/primitives/combobox';
 import type { ComponentProps } from 'svelte';
-import { cn } from '../../lib/cn.ts';
-import { floatingItem, floatingSurface } from '../../lib/overlay.ts';
+import { Combobox as TexuliCombobox } from 'texuli/combobox';
 import { refAttachment } from '../../lib/ref.ts';
-import { fieldClasses } from '../input/input-classes.ts';
 import type { SelectOption } from '../select/types.ts';
 
-type InputProps = Omit<ComponentProps<typeof ComboboxPrimitive.Input>, 'child' | 'value'>;
+type InputProps = Omit<ComponentProps<typeof TexuliCombobox.Input>, 'child' | 'value' | 'size'>;
 
 type Props = InputProps & {
   items: SelectOption[];
@@ -61,7 +57,8 @@ const matches = (item: SelectOption, query: string): boolean =>
   query === (selected?.label ?? '').trim() || filter(item, query);
 </script>
 
-<ComboboxPrimitive.Root
+<!-- A thin adapter: Texuli's styled Combobox, driven by an `items` list. -->
+<TexuliCombobox.Root
   bind:value={() => value, (next) => (value = typeof next === 'string' ? next : '')}
   bind:open
   bind:inputValue={inputText}
@@ -72,42 +69,21 @@ const matches = (item: SelectOption, query: string): boolean =>
   {required}
   onValueChange={(next) => onValueChange?.(typeof next === 'string' ? next : '')}
 >
-  <div class={cn('relative', className)}>
-    <ComboboxPrimitive.Input
+  <TexuliCombobox.Field {disabled} class={className}>
+    <TexuliCombobox.Input
       {@attach refAttachment<HTMLInputElement>((node) => (ref = node))}
       {placeholder}
-      class={cn(fieldClasses, 'flex h-9 min-h-touch px-3 py-1 pr-10 sm:min-h-0')}
       {...rest}
     />
-    <ComboboxPrimitive.Trigger
-      aria-label="Show options"
-      class="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-md text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <ChevronsUpDown class="size-4" aria-hidden="true" />
-    </ComboboxPrimitive.Trigger>
-  </div>
+    <TexuliCombobox.Trigger aria-label="Show options" />
+  </TexuliCombobox.Field>
   <!-- The list opens in the top layer at the field's width; no portal is needed. -->
-  <ComboboxPrimitive.Content
-    sideOffset={4}
-    class={cn(floatingSurface, 'max-h-[min(20rem,calc(100dvh-2rem))] overflow-hidden p-1', contentClass)}
-  >
-    <ComboboxPrimitive.Viewport class="max-h-[inherit] overflow-y-auto">
+  <TexuliCombobox.Content sideOffset={4} class={contentClass}>
+    <TexuliCombobox.Viewport>
       {#snippet children(item)}
-        <ComboboxPrimitive.Item
-          value={item.value}
-          label={item.label}
-          disabled={item.disabled}
-          class={cn(floatingItem, 'pr-8')}
-        >
-          <span class="truncate">{item.label}</span>
-          {#if item.value === value}
-            <Check class="absolute right-2 text-primary" aria-hidden="true" />
-          {/if}
-        </ComboboxPrimitive.Item>
+        <TexuliCombobox.Item value={item.value} label={item.label} disabled={item.disabled} />
       {/snippet}
-    </ComboboxPrimitive.Viewport>
-    <ComboboxPrimitive.Empty class="px-2 py-6 text-center text-sm text-muted-foreground">
-      {emptyText}
-    </ComboboxPrimitive.Empty>
-  </ComboboxPrimitive.Content>
-</ComboboxPrimitive.Root>
+    </TexuliCombobox.Viewport>
+    <TexuliCombobox.Empty announce={emptyText}>{emptyText}</TexuliCombobox.Empty>
+  </TexuliCombobox.Content>
+</TexuliCombobox.Root>
