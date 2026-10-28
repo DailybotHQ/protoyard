@@ -3,7 +3,12 @@ import { rankSequence } from '@protoyard/views/board';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BoardView, indexFromPointer, placementsOf } from '../src/board/index.ts';
+import {
+  BoardView,
+  DRAG_THRESHOLD_PX,
+  indexFromPointer,
+  placementsOf,
+} from '../src/board/index.ts';
 
 afterEach(() => {
   cleanup();
@@ -166,7 +171,12 @@ describe('BoardView (Texuli Board host adapter)', () => {
 
 describe('board helpers', () => {
   it('computes drop indexes and the placements of a move', () => {
+    expect(DRAG_THRESHOLD_PX).toBe(4);
     expect(indexFromPointer([10, 30, 50], 25)).toBe(1);
+    expect(indexFromPointer([10, 30, 50], 10)).toBe(1);
+    expect(indexFromPointer([10, 30, 50], 51)).toBe(3);
+    expect(indexFromPointer([], 10)).toBe(0);
+    expect(indexFromPointer([30, 10, 50], 25)).toBe(0);
     expect(
       placementsOf({
         itemId: 't1',
