@@ -95,3 +95,59 @@ export function hoverFill(fill: string, text: string): string {
   // Most contrast wins; a visible step is guaranteed by the delta filter.
   return candidates.sort((x, y) => y.ratio - x.ratio)[0]?.color ?? fill;
 }
+
+/** Texuli's link states (`--tx-link`, `--tx-link-<state>`, `--tx-link-visited`). */
+export interface LinkStates {
+  default: string;
+  hover: string;
+  active: string;
+  focus: string;
+  visited: string;
+  disabled: string;
+}
+
+/** Surfaces Texuli's AA gate checks link text on (button `link` variant pairs). */
+export const LINK_SURFACES = ['background', 'surface', 'muted', 'elevated'] as const;
+
+type LinkPalette = Record<
+  (typeof LINK_SURFACES)[number] | 'primary' | 'foreground' | 'mutedForeground',
+  string
+>;
+
+function worstRatio(color: string, backgrounds: readonly string[]): number {
+  return Math.min(
+    ...backgrounds.map((background) =>
+      parseHex(color) && parseHex(background) ? contrastRatio(color, background) : 21
+    )
+  );
+}
+
+/**
+ * Link colors for one palette. The default is the theme's primary when it
+ * reads at AA (4.5:1) on every link surface, else the foreground (or the
+ * muted foreground); hover and active step further toward the foreground,
+ * so they stay at AA and differ visibly; focus matches hover; visited links
+ * look like links (prototypes keep no browsing history worth styling); a
+ * disabled link uses the muted foreground (WCAG exempts disabled text).
+ */
+export function linkStates(palette: LinkPalette): LinkStates {
+  const surfaces = LINK_SURFACES.map((role) => palette[role]);
+  const candidates = [palette.primary, palette.foreground, palette.mutedForeground];
+  const base =
+    candidates.find((color) => worstRatio(color, surfaces) >= 4.5) ??
+    [...candidates].sort((a, b) => worstRatio(b, surfaces) - worstRatio(a, surfaces))[0] ??
+    palette.foreground;
+  const step = (amount: number): string => {
+    const mixed = mixHex(base, palette.foreground, amount);
+    return mixed && worstRatio(mixed, surfaces) >= worstRatio(base, surfaces) ? mixed : base;
+  };
+  const hover = step(0.25);
+  return {
+    default: base,
+    hover,
+    active: step(0.4),
+    focus: hover,
+    visited: base,
+    disabled: palette.mutedForeground,
+  };
+}

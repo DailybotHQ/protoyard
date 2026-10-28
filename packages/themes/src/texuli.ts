@@ -7,7 +7,7 @@ import {
   type Theme as TexuliTheme,
   type ThemeCharts,
 } from '@texuli/tokens/contract';
-import { contrastRatio, hoverFill } from './contrast.ts';
+import { contrastRatio, hoverFill, linkStates } from './contrast.ts';
 import { SHARED_PALETTE_ROLES } from './from-texuli.ts';
 
 export { fromTexuliTheme, SHARED_PALETTE_ROLES } from './from-texuli.ts';
@@ -70,11 +70,8 @@ export function deriveTexuliRoles(palette: ThemePalette): Record<string, string>
   // Soft tones: a tinted surface that `foreground` and a soft foreground read on.
   const softBackground = pick([p.muted, p.background], [p.foreground], 4.5);
   const softForeground = pick([p.foreground, p.mutedForeground], [softBackground], 4.5);
-  const link = pick(
-    [p.primary, p.foreground, p.mutedForeground],
-    [p.background, p.surface, p.muted, p.elevated],
-    4.5
-  );
+  // One derivation for both writers (`themeVariables` writes the same values).
+  const link = linkStates(p).default;
   return {
     canvas: p.background,
     elevatedForeground: pick([p.foreground, p.surfaceForeground], [p.elevated], 4.5),
@@ -117,6 +114,15 @@ function texuliPalette(palette: ThemePalette): Record<SemanticRole, string | Sem
   const primaryHover = hoverFill(palette.primary, palette.primaryForeground);
   out.primary = { default: palette.primary, hover: primaryHover };
   out.sidebarPrimary = { default: palette.primary, hover: primaryHover };
+  const link = linkStates(palette);
+  out.link = {
+    default: link.default,
+    hover: link.hover,
+    active: link.active,
+    focus: link.focus,
+    disabled: link.disabled,
+  };
+  out.linkVisited = link.visited;
   out.destructive = {
     default: palette.destructive,
     hover: hoverFill(palette.destructive, palette.destructiveForeground),
