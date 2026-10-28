@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
+import { chooseOption } from './support/select.ts';
 import { PEBBLESTAT_DEMO, PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
 
 /**
@@ -106,11 +107,11 @@ test.describe('Pebblestat Analytics (static build)', () => {
     test.skip(isMobile, 'filter editing is covered on desktop');
     await openApp(page, '#/trends');
     await page.getByRole('button', { name: '+ Add condition' }).first().click();
-    await page.getByLabel('Property').last().selectOption({ label: 'Plan' });
+    await chooseOption(page, page.getByLabel('Property').last(), 'Plan');
     const value = page.getByLabel('Value').last();
-    if ((await value.evaluate((el) => el.tagName)) === 'SELECT')
-      await value.selectOption({ label: 'Team' });
-    else await value.fill('team');
+    const valueTag = await value.evaluate((el) => el.tagName);
+    if (valueTag === 'INPUT' || valueTag === 'TEXTAREA') await value.fill('team');
+    else await chooseOption(page, value, 'Team');
     await page.getByRole('button', { name: 'Apply filters' }).click();
     await page.getByLabel('Save current filter as a segment').fill('Team plan (e2e)');
     await page.getByRole('button', { name: 'Save segment' }).click();
