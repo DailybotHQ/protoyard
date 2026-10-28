@@ -149,3 +149,16 @@
   --tx-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--py-safe-bottom, 0px));
   --tx-safe-left: max(env(safe-area-inset-left, 0px), var(--py-safe-left, 0px));
 }
+
+/*
+ * Texuli's Toaster stays inside the visible right edge the renderer
+ * publishes (--py-fixed-right-edge, for example beside the docked devtools
+ * panel). Unlayered, so it wins over Texuli's layered padding.
+ */
+[data-tx-toaster] .tx-toaster__viewport {
+  padding-right: calc(
+    var(--tx-toaster-edge, 1rem) +
+    env(safe-area-inset-right, 0px) +
+    var(--py-fixed-right-edge, 0px)
+  );
+}

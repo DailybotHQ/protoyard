@@ -12,6 +12,7 @@ import {
   useClock,
 } from '@protoyard/renderer-svelte';
 import { AlertDialog, Badge, Button, EmptyState, Skeleton, Textarea } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import AgentDialog from '../components/AgentDialog.svelte';
 import RunStatusBadge from '../components/RunStatusBadge.svelte';
 import StepTimeline from '../components/StepTimeline.svelte';
@@ -86,7 +87,7 @@ async function remove() {
 </script>
 
 <a href="#/" class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-  <ArrowLeft class="size-4" aria-hidden="true" />Agents
+  <LucideIcon icon={ArrowLeft} class="size-4" />Agents
 </a>
 
 {#if agent.loading}
@@ -101,8 +102,8 @@ async function remove() {
       <p class="mt-1 text-sm text-muted-foreground">{a.description}</p>
     </div>
     <div class="flex gap-2">
-      {#if canEdit}<Button variant="outline" onclick={() => (editOpen = true)}><Pencil class="size-4" aria-hidden="true" />Edit</Button>{/if}
-      {#if canDelete}<Button variant="outline" onclick={() => (deleteOpen = true)}><Trash2 class="size-4" aria-hidden="true" />Delete</Button>{/if}
+      {#if canEdit}<Button variant="outline" onclick={() => (editOpen = true)}><LucideIcon icon={Pencil} class="size-4" />Edit</Button>{/if}
+      {#if canDelete}<Button variant="outline" onclick={() => (deleteOpen = true)}><LucideIcon icon={Trash2} class="size-4" />Delete</Button>{/if}
     </div>
   </div>
 
@@ -118,9 +119,9 @@ async function remove() {
           <Textarea id="prompt" rows={3} bind:value={prompt} placeholder="Look up the customer Jordan Lee and search for incident notes" aria-invalid={promptError ? 'true' : undefined} aria-describedby={promptError ? 'prompt-error' : undefined} />
           {#if promptError}<p id="prompt-error" class="text-sm text-destructive">{promptError}</p>{/if}
           <div class="flex flex-wrap gap-2">
-            <Button type="submit" loading={status === 'running'} disabled={status === 'awaiting-approval'}><Play class="size-4" aria-hidden="true" />Run agent</Button>
+            <Button type="submit" loading={status === 'running'} disabled={status === 'awaiting-approval'}><LucideIcon icon={Play} class="size-4" />Run agent</Button>
             {#if status === 'running' || status === 'awaiting-approval'}
-              <Button variant="ghost" onclick={() => handle?.cancel()}><Square class="size-4" aria-hidden="true" />Cancel</Button>
+              <Button variant="ghost" onclick={() => handle?.cancel()}><LucideIcon icon={Square} class="size-4" />Cancel</Button>
             {/if}
           </div>
         </form>

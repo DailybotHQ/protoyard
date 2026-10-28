@@ -9,6 +9,7 @@ import {
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import { Button, Composer, EmptyState, TypingIndicator } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import ConversationMenu from '../components/ConversationMenu.svelte';
 import MessageList from '../components/MessageList.svelte';
 import { ASSISTANT } from '../domain/assistant.ts';
@@ -65,7 +66,7 @@ async function send(text: string): Promise<boolean> {
   <div class="flex h-full min-h-0 flex-col">
     <header class="flex items-center gap-2 border-b border-border px-3 py-2.5 sm:px-4">
       <a href="#/" aria-label="Back to conversations" class="grid size-9 min-h-touch min-w-[44px] place-items-center rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none @3xl:hidden">
-        <ArrowLeft class="size-5" aria-hidden="true" />
+        <LucideIcon icon={ArrowLeft} class="size-5" />
       </a>
       <h1 class="min-w-0 flex-1 truncate text-base font-semibold">{conversation.current.title}</h1>
       <ConversationMenu conversation={conversation.current} />
@@ -73,7 +74,7 @@ async function send(text: string): Promise<boolean> {
 
     {#if !canSend}
       <div class="flex items-center gap-2 border-b border-border bg-info/10 px-4 py-2 text-sm" role="note">
-        <Eye class="size-4 shrink-0" aria-hidden="true" />
+        <LucideIcon icon={Eye} class="size-4 shrink-0" />
         You have read-only access. Ask the owner for a member seat to post.
       </div>
     {/if}

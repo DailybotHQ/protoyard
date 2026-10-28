@@ -1,5 +1,5 @@
 <script lang="ts">
-import { FolderX, Pencil, Plus, Search } from '@lucide/svelte';
+import { FolderX, Pencil } from '@lucide/svelte';
 import {
   can,
   liveQuery,
@@ -19,6 +19,8 @@ import {
   Select,
   Skeleton,
 } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import ProjectDialog from '../components/ProjectDialog.svelte';
 import TaskCard from '../components/TaskCard.svelte';
@@ -136,7 +138,7 @@ async function move(task: Task, status: string) {
       createOpen = true;
     }}
   >
-    <Plus class="size-4" aria-hidden="true" />Add task<span class="sr-only"> to {column.title}</span>
+    <Icon icon="plus" class="size-4" aria-hidden="true" />Add task<span class="sr-only"> to {column.title}</span>
   </Button>
 {/snippet}
 
@@ -155,17 +157,17 @@ async function move(task: Task, status: string) {
     {#snippet actions()}
       <span class={['rounded-md px-2 py-1 font-mono text-xs font-medium', PROJECT_COLOR_CLASSES[current.color].soft]}>{current.key}</span>
       {#if can(CAPABILITIES.projectsManage)}
-        <Button variant="outline" onclick={() => (editProjectOpen = true)}><Pencil class="size-4" aria-hidden="true" />Edit</Button>
+        <Button variant="outline" onclick={() => (editProjectOpen = true)}><LucideIcon icon={Pencil} class="size-4" />Edit</Button>
       {/if}
       {#if canCreate}
-        <Button onclick={() => { createIn = 'todo'; createOpen = true; }}><Plus class="size-4" aria-hidden="true" />New task</Button>
+        <Button onclick={() => { createIn = 'todo'; createOpen = true; }}><Icon icon="plus" class="size-4" aria-hidden="true" />New task</Button>
       {/if}
     {/snippet}
   </PageHeader>
 
   <div class="mb-4 flex flex-wrap items-center gap-2" role="search" aria-label="Filter tasks">
     <div class="relative w-full sm:w-60">
-      <Search class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+      <Icon icon="search" class="pointer-events-none absolute top-1 2 left-3 size-4 -translate-y-1 2 text-muted-foreground" aria-hidden="true" />
       <Input type="search" class="pl-9" placeholder="Filter tasks…" aria-label="Filter tasks by text" bind:value={query} />
     </div>
     <Select

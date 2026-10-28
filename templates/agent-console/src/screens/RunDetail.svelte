@@ -3,6 +3,7 @@ import { ArrowLeft, FileQuestion } from '@lucide/svelte';
 import { RichAnswer } from '@protoyard/ai-ui';
 import { getRuntime, liveQuery } from '@protoyard/renderer-svelte';
 import { EmptyState, formatDay, formatTime, Skeleton } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import RunStatusBadge from '../components/RunStatusBadge.svelte';
 import StepTimeline from '../components/StepTimeline.svelte';
 import type { ConsoleDatabase } from '../database/schema.ts';
@@ -23,7 +24,7 @@ const actor = $derived(
 </script>
 
 <a href="#/runs" class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-  <ArrowLeft class="size-4" aria-hidden="true" />Runs
+  <LucideIcon icon={ArrowLeft} class="size-4" />Runs
 </a>
 
 {#if run.loading}

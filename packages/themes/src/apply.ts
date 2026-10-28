@@ -5,7 +5,7 @@ import {
   type ThemePalette,
   tokenToCssVar,
 } from '@protoyard/core';
-import { hoverFill } from './contrast.ts';
+import { hoverFill, linkStates } from './contrast.ts';
 import { BUILTIN_THEMES, DEFAULT_THEME_ID } from './presets.ts';
 
 export type ResolvedMode = 'light' | 'dark';
@@ -127,6 +127,14 @@ export function themeVariables(input: AppearanceInput): Record<string, string> {
   }
   vars['--tx-primary-hover'] = hoverFill(palette.primary, palette.primaryForeground);
   vars['--tx-destructive-hover'] = hoverFill(palette.destructive, palette.destructiveForeground);
+  // Texuli's link role and its states (the `link` button variant, blocks links).
+  const link = linkStates(palette);
+  vars['--tx-link'] = link.default;
+  vars['--tx-link-hover'] = link.hover;
+  vars['--tx-link-active'] = link.active;
+  vars['--tx-link-focus'] = link.focus;
+  vars['--tx-link-disabled'] = link.disabled;
+  vars['--tx-link-visited'] = link.visited;
   vars['--tx-radius'] = input.theme.radius;
   vars['--tx-font-sans'] = input.theme.fontFamily;
   vars['--tx-font-heading'] = input.theme.fontFamilyHeading ?? input.theme.fontFamily;

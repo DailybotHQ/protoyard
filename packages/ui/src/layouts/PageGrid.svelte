@@ -29,7 +29,7 @@ const safeMinItem = $derived(Math.max(120, Math.floor(minItem)));
   data-columns={safeColumns}
   role={label ? 'region' : undefined}
   aria-label={label}
-  style={`--py-page-grid-columns: ${safeColumns}; --py-page-grid-min: ${safeMinItem}px; --py-page-grid-gap: ${gap}`}
+  style={`--ui-page-grid-columns: ${safeColumns}; --ui-page-grid-min: ${safeMinItem}px; --ui-page-grid-gap: ${gap}`}
 >
   <div class="page-grid__items min-w-0">
     {@render children()}
@@ -45,17 +45,17 @@ const safeMinItem = $derived(Math.max(120, Math.floor(minItem)));
   .page-grid__items {
     display: grid;
     min-width: 0;
-    gap: var(--py-page-grid-gap, 1rem);
+    gap: var(--ui-page-grid-gap, 1rem);
     grid-template-columns: repeat(
       auto-fit,
       minmax(
         min(
           100%,
           max(
-            var(--py-page-grid-min, 280px),
+            var(--ui-page-grid-min, 280px),
             calc(
-              (100% - (var(--py-page-grid-columns, 3) - 1) * var(--py-page-grid-gap, 1rem)) /
-                var(--py-page-grid-columns, 3)
+              (100% - (var(--ui-page-grid-columns, 3) - 1) * var(--ui-page-grid-gap, 1rem)) /
+                var(--ui-page-grid-columns, 3)
             )
           )
         ),

@@ -1,15 +1,15 @@
 <script lang="ts">
-import { plainParagraphs } from '../design.ts';
+import { RichText } from '@texuli/blocks/text/renderers';
 
-/** Short markdown as text paragraphs (never HTML). */
+/**
+ * Short Markdown as text through Texuli's RichText: its closed Markdown
+ * subset renders text and safe links only, never HTML.
+ */
 let { text, class: className = '' }: { text: string; class?: string } = $props();
-const paragraphs = $derived(plainParagraphs(text));
 </script>
 
-{#if paragraphs.length > 0}
-  <div class="grid gap-2 {className}">
-    {#each paragraphs as paragraph, i (i)}
-      <p>{paragraph}</p>
-    {/each}
+{#if text.trim()}
+  <div class="grid gap-2 {className}" data-py-plain-text>
+    <RichText source={text} />
   </div>
 {/if}

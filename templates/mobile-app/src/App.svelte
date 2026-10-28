@@ -56,7 +56,7 @@ const nav = $derived({
 </script>
 
 <!--
-  The shell is exactly one app-height tall (--py-app-height: the window, or the
+  The shell is exactly one app-height tall (--tx-app-height: the window, or the
   device screen inside a shell frame). Only <main> scrolls, and the bottom nav
   sits in normal flow below it, so it is always visible. On a desktop window,
   ShellHost frames the app as a phone (platform "mobile").

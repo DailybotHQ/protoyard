@@ -8,6 +8,7 @@ import {
   useClock,
 } from '@protoyard/renderer-svelte';
 import { Button, Card, EmptyState, FormField, Input } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import type { Booking } from '../database/schema.ts';
 import { freeSlots } from '../domain/booking.ts';
@@ -105,7 +106,7 @@ function reset() {
 
 {#if confirmed}
   <Card class="grid max-w-xl gap-3 p-6" role="status">
-    <p class="flex items-center gap-2 text-lg font-semibold"><CircleCheck class="size-5 text-success" aria-hidden="true" />You're booked</p>
+    <p class="flex items-center gap-2 text-lg font-semibold"><LucideIcon icon={CircleCheck} class="size-5 text-success" />You're booked</p>
     <p>{resource?.name}: {formatSpan(confirmed.start, confirmed.end)}</p>
     <p class="text-sm text-muted-foreground">A confirmation would go to {confirmed.customerEmail} (simulated: no email is sent).</p>
     <div><Button variant="outline" onclick={reset}>Book another time</Button></div>

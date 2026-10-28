@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Pin } from '@lucide/svelte';
-import { EmptyState } from '@protoyard/ui';
+import { Button, EmptyState } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { Document } from '../database/schema.ts';
 import { fromNow, preview } from '../lib/format.ts';
 
@@ -28,19 +29,19 @@ let {
   <ul class="divide-y divide-border" aria-label="Documents" data-testid="document-list">
     {#each documents as doc (doc.id)}
       <li>
-        <button
+        <Button
           type="button"
           class="block w-full px-3 py-2.5 text-left hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset aria-[current=true]:bg-primary/10"
           aria-current={doc.id === activeId ? 'true' : undefined}
           onclick={() => onopen(doc.id)}
         >
           <span class="flex items-center gap-1.5">
-            {#if doc.pinned}<Pin class="size-3.5 shrink-0 text-primary" aria-label="Pinned" />{/if}
+            {#if doc.pinned}<LucideIcon icon={Pin} class="size-3.5 shrink-0 text-primary" label="Pinned" />{/if}
             <span class="min-w-0 flex-1 truncate text-sm font-medium">{doc.title}</span>
             <span class="shrink-0 text-xs text-muted-foreground">{fromNow(doc.updatedAt, now)}</span>
           </span>
           <span class="mt-0.5 block truncate text-xs text-muted-foreground">{preview(doc.body) || 'No text yet'}</span>
-        </button>
+        </Button>
       </li>
     {/each}
   </ul>

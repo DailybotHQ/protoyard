@@ -188,5 +188,40 @@
     "id": "G38",
     "status": "open",
     "summary": "texuli/input (file): null default value"
+  },
+  {
+    "id": "G39",
+    "status": "open",
+    "summary": "texuli/layouts/content ContentLayout: TOC from given entries or existing ids, heading-level choice, declarative content slot"
+  },
+  {
+    "id": "G40",
+    "status": "open",
+    "summary": "texuli/toggle ToggleGroup: form name (one entry per pressed value)"
+  },
+  {
+    "id": "G41",
+    "status": "open",
+    "summary": "texuli/toggle ToggleGroup: id and aria-describedby (rest attributes); roving tab stop starts on the first pressed item"
+  },
+  {
+    "id": "G42",
+    "status": "open",
+    "summary": "texuli/number-pin PinInput.Root: typed name and input attributes; bindable inputRef through the styled root"
+  },
+  {
+    "id": "G43",
+    "status": "open",
+    "summary": "texuli/card CardGrid: maxColumns"
+  },
+  {
+    "id": "G44",
+    "status": "open",
+    "summary": "texuli/input Input: number binding for number and range inputs"
+  },
+  {
+    "id": "G45",
+    "status": "open",
+    "summary": "texuli/toast: pause/resume and announcement access for hosts (nice to have)"
   }
 ]

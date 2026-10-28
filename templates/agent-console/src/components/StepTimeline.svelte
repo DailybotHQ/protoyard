@@ -12,6 +12,7 @@ import {
 } from '@lucide/svelte';
 import type { AgentStep } from '@protoyard/ai';
 import { formatTime } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 /** The agent step trace: plan → tool calls → approvals → results → answer. */
 let { steps }: { steps: readonly AgentStep[] } = $props();
@@ -55,7 +56,7 @@ const detail = (value: unknown) => (value === undefined ? '' : JSON.stringify(va
     {@const Icon = ICONS[step.type]}
     <li class="relative">
       <span class="absolute top-0.5 -left-[2.05rem] grid size-6 place-items-center rounded-full border border-border bg-surface {TONES[step.type] ?? 'text-muted-foreground'}">
-        <Icon class="size-3.5" aria-hidden="true" />
+        <LucideIcon icon={Icon} class="size-3.5" />
       </span>
       <div class="flex flex-wrap items-baseline gap-x-2 text-sm">
         <span class="font-medium">{LABELS[step.type]}</span>

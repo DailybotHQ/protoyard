@@ -2,6 +2,7 @@
 import { UserPlus } from '@lucide/svelte';
 import { can, liveQuery, navigate, useClock } from '@protoyard/renderer-svelte';
 import { Button, DataTable, type DataTableColumn } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import PatientDialog from '../components/PatientDialog.svelte';
 import type { Patient } from '../database/schema.ts';
@@ -46,7 +47,7 @@ const columns: DataTableColumn<Patient>[] = [
 <PageHeader title="Patients" description="Fictional patients only. Sensitive fields stay masked until revealed on the patient's page, which is audited.">
   {#snippet actions()}
     {#if canManage}
-      <Button onclick={() => (registerOpen = true)}><UserPlus class="size-4" aria-hidden="true" />Register patient</Button>
+      <Button onclick={() => (registerOpen = true)}><LucideIcon icon={UserPlus} class="size-4" />Register patient</Button>
     {/if}
   {/snippet}
 </PageHeader>

@@ -1,5 +1,6 @@
 <script lang="ts">
-import { cn } from '../../../lib/cn.ts';
+import { cx } from 'texuli/cx';
+import { Progress } from 'texuli/feedback';
 import { PASSWORD_SCORE_LEVELS, PASSWORD_SCORE_WORDS, passwordScore } from './password-score.ts';
 
 /**
@@ -32,21 +33,16 @@ const result = $derived(passwordScore(value));
 const level = $derived(PASSWORD_SCORE_LEVELS[result.score] ?? '');
 const word = $derived(PASSWORD_SCORE_WORDS[result.score] ?? 'None');
 
-const segmentClass = $derived.by(() => {
-  switch (result.score) {
-    case 1:
-    case 2:
-      return 'bg-destructive';
-    case 3:
-      return 'bg-warning';
-    case 4:
-      return 'bg-warning';
-    case 5:
-      return 'bg-success';
-    default:
-      return 'bg-border';
-  }
-});
+// Texuli's Progress draws the bar; its tone follows the score.
+const tone = $derived(
+  result.score >= 5
+    ? 'success'
+    : result.score >= 3
+      ? 'warning'
+      : result.score > 0
+        ? 'destructive'
+        : 'neutral'
+);
 
 $effect(() => {
   if (!value) return;
@@ -55,8 +51,9 @@ $effect(() => {
 });
 </script>
 
+<!-- A meter (the score is a measurement, not progress); the bar inside is Texuli's Progress, hidden from assistive tech. -->
 <div
-  class={cn('grid grid-cols-5 gap-1', className)}
+  class={cx('ui-password-meter', className)}
   role="meter"
   aria-label={label}
   aria-valuemin={0}
@@ -65,20 +62,25 @@ $effect(() => {
   aria-valuetext={word}
   data-level={level || undefined}
 >
-  {#each [0, 1, 2, 3, 4] as index (index)}
-    <span
-      class={cn(
-        'h-1 rounded-full transition-colors duration-200 motion-reduce:transition-none',
-        index < result.score ? segmentClass : 'bg-border'
-      )}
-    ></span>
-  {/each}
+  <Progress value={result.score} max={5} {tone} size="sm" aria-hidden="true" />
 </div>
 
 {#if value && result.messages.length}
-  <ul class="mt-1.5 grid gap-0.5 text-xs text-muted-foreground" aria-live="polite">
+  <ul class="ui-password-meter__messages" aria-live="polite">
     {#each result.messages as message (message)}
       <li>{message}</li>
     {/each}
   </ul>
 {/if}
+
+<style>
+  .ui-password-meter__messages {
+    display: grid;
+    gap: 0.125rem;
+    margin: 0.375rem 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--tx-muted-foreground, GrayText);
+    font-size: var(--tx-font-size-xs, 0.75rem);
+  }
+</style>

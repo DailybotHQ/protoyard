@@ -1,6 +1,7 @@
 <script lang="ts">
 import { CalendarClock } from '@lucide/svelte';
 import { useClock } from '@protoyard/renderer-svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { Task } from '../database/schema.ts';
 import { dueState } from '../domain/tasks.ts';
 import { dueLabel, formatDay } from '../lib/format.ts';
@@ -22,7 +23,7 @@ const due = $derived(dueState(task, clock.now));
     ]}
     title={formatDay(task.dueDate)}
   >
-    <CalendarClock class="size-3" aria-hidden="true" />
+    <LucideIcon icon={CalendarClock} class="size-3" />
     {due === 'done' ? formatDay(task.dueDate) : dueLabel(task.dueDate, clock.now)}
   </span>
 {/if}

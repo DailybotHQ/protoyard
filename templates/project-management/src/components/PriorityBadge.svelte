@@ -1,5 +1,6 @@
 <script lang="ts">
 import { ChevronDown, ChevronsUp, ChevronUp, Equal } from '@lucide/svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { TaskPriority } from '../database/schema.ts';
 import { PRIORITY_LABELS } from '../domain/tasks.ts';
 
@@ -22,6 +23,6 @@ const Icon = $derived(icons[priority]);
   ]}
   title={`${PRIORITY_LABELS[priority]} priority`}
 >
-  <Icon class="size-3" aria-hidden="true" />
+  <LucideIcon icon={Icon} class="size-3" />
   {#if compact}<span class="sr-only">{PRIORITY_LABELS[priority]} priority</span>{:else}{PRIORITY_LABELS[priority]}{/if}
 </span>

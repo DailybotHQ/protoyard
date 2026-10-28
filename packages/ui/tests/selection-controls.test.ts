@@ -78,7 +78,8 @@ describe('NumberStepper', () => {
     const spin = screen.getByRole('spinbutton', { name: 'Quantity' });
     spin.focus();
     await fireEvent.keyDown(spin, { key: 'ArrowUp' });
-    expect(onchange).toHaveBeenCalledWith(7);
+    // Texuli's NumberField steps onto the min + n×step grid: 5 → 6 with step 2.
+    expect(onchange).toHaveBeenCalledWith(6);
     await fireEvent.keyDown(spin, { key: 'Home' });
     expect(onchange).toHaveBeenLastCalledWith(0);
   });
@@ -91,27 +92,36 @@ describe('ChipGroup', () => {
     { value: 'c', label: 'Gamma', disabled: true },
   ];
 
-  it('single mode selects one chip with mouse and arrows', async () => {
+  // ChipGroup is Texuli's ToggleGroup: aria-pressed buttons in one labelled
+  // group with a single tab stop; arrows move focus, a press selects.
+  it('single mode keeps at most one chip pressed; arrows move focus', async () => {
     const onchange = vi.fn();
     render(ChipGroup, { label: 'Plan', items, mode: 'single', value: [], onchange });
-    const group = screen.getByRole('radiogroup', { name: 'Plan' });
-    await fireEvent.click(within(group).getByRole('radio', { name: 'Alpha' }));
+    const group = screen.getByRole('group', { name: 'Plan' });
+    const alpha = within(group).getByRole('button', { name: 'Alpha' });
+    await fireEvent.click(alpha);
     expect(onchange).toHaveBeenCalledWith(['a']);
-    const alpha = within(group).getByRole('radio', { name: 'Alpha' });
+    expect(alpha.getAttribute('aria-pressed')).toBe('true');
+    alpha.focus();
     await fireEvent.keyDown(alpha, { key: 'ArrowRight' });
+    const beta = within(group).getByRole('button', { name: 'Beta' });
+    expect(document.activeElement).toBe(beta);
+    await fireEvent.click(beta);
     expect(onchange).toHaveBeenLastCalledWith(['b']);
-    expect(within(group).getByRole('radio', { name: 'Gamma' }).hasAttribute('disabled')).toBe(true);
+    expect(alpha.getAttribute('aria-pressed')).toBe('false');
+    expect(within(group).getByRole('button', { name: 'Gamma' }).hasAttribute('disabled')).toBe(
+      true
+    );
   });
 
-  it('multi mode toggles chips with click and Space', async () => {
+  it('multi mode toggles chips on and off', async () => {
     const onchange = vi.fn();
     render(ChipGroup, { label: 'Tags', items, mode: 'multi', value: ['a'], onchange });
     const group = screen.getByRole('group', { name: 'Tags' });
     const beta = within(group).getByRole('button', { name: 'Beta' });
     await fireEvent.click(beta);
     expect(onchange).toHaveBeenCalledWith(['a', 'b']);
-    beta.focus();
-    await fireEvent.keyDown(beta, { key: ' ' });
+    await fireEvent.click(beta);
     expect(onchange).toHaveBeenLastCalledWith(['a']);
   });
 });
