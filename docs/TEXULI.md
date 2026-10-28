@@ -344,11 +344,11 @@ change, a Protoyard wrapper, or both, before it can be re-exported:
 
 `devFsAllow` (`@protoyard/renderer-svelte`) is the list of folders a
 prototype's dev server may serve through `/@fs`.
-- It now also includes the real folder of each `link:` dependency the root
-  declares (`linkedPackageRoots`).
-- It allows each linked package folder and nothing around it. The rest of
-  the Texuli checkout (its root files, `.dwp/`, other packages) is still
-  refused with 403.
+- It also includes the real folder of each `link:` dependency the root
+  declares (`linkedPackageRoots`), and only that folder.
+- Texuli now comes from npm (inside `node_modules`), so for this workspace
+  the list adds nothing. The function stays for consumers that link a
+  local package.
 - A link that doesn't resolve adds nothing.
 
 ## Using a Texuli package
@@ -367,9 +367,10 @@ import { Button } from 'texuli/button';
 
 | Command | What it proves |
 | --- | --- |
-| `pnpm vitest run packages/renderer-svelte/tests/texuli-link.test.ts` | **Test.** Every linked package resolves into the Texuli checkout, not a copy. A Protoyard screen mounts Texuli's `Button`, which works on click, and blocks a `javascript:` link through `@texuli/core/url-policy`. A Texuli library theme applies to the document |
-| `pnpm vitest run packages/renderer-svelte/tests/texuli-link-build.test.ts` | **Dev and build**, through the real `defineProtoyardConfig`. A dev server on port 4962 serves the linked `Button.svelte` over `/@fs` and refuses the Texuli root `package.json` (403). A production build bundles the Texuli Button into the prototype. Without the linked roots in `devFsAllow`, the dev check fails |
-| `pnpm vitest run packages/renderer-svelte/tests/vite.test.ts` | `linkedPackageRoots`: links resolve to real folders; duplicates, missing links, non-link specifiers and an unreadable manifest add nothing. This workspace allows exactly the Texuli package folders |
+| `pnpm vitest run packages/renderer-svelte/tests/texuli-link.test.ts` | **Test.** Every Texuli package resolves to its published version in the pnpm store, with a `dist/`. A Protoyard screen mounts Texuli's `Button`, which works on click, and blocks a `javascript:` link through `@texuli/core/url-policy`. A Texuli library theme applies to the document |
+| `pnpm vitest run packages/renderer-svelte/tests/texuli-link-build.test.ts` | **Dev and build**, through the real `defineProtoyardConfig`. A dev server on port 4962 serves the published `Button.svelte` over `/@fs`. A production build bundles the Texuli Button into the prototype |
+| `pnpm vitest run packages/renderer-svelte/tests/vite.test.ts` | `linkedPackageRoots`: links resolve to real folders; duplicates, missing links, non-link specifiers and an unreadable manifest add nothing. This workspace, on npm Texuli, adds no roots |
+| `pnpm vitest run tests/adoption` | The adoption check's rules, ratchet, `--strict`, `--allow-gaps`, exceptions and `--prune`; every manifest pins Texuli to one exact npm version; the repository has no violation outside the pending lists |
 | `pnpm vitest run packages/ui/tests/simple-primitives.test.ts` | The Texuli-backed controls: bindable refs, states, tab stops, wrapping tabs and unmounted inactive panels, the accordion's size variable, separator and progress semantics |
 | `pnpm vitest run packages/ui/tests/floating-primitives.test.ts` | The Texuli-backed floating controls: labels through a consumer id, the combobox filter and form value, tooltip, menu, popover ref and initial focus, people search |
 | `pnpm vitest run packages/ui/tests/dialog-family.test.ts packages/ui/tests/overlay.test.ts packages/ui/tests/adaptive-overlay.test.ts packages/ui/tests/alert-dialog.test.ts` | The Texuli-backed dialog family: the undo toaster under a modal and F6, device-screen containment, alert Escape, stacking, nesting, focus return, outside presses |
@@ -378,12 +379,12 @@ import { Button } from 'texuli/button';
 
 ## Limits
 
-- **Local only.** The links need a Texuli checkout at `../texuli`. A fresh
-  clone of Protoyard alone cannot install this branch until Texuli is
-  published or vendored, a later adoption decision.
-- **Typecheck reach.** Protoyard's typecheck covers the fixture that imports
-  Texuli. The Texuli sources themselves are type-checked by Texuli's own
-  gates.
+- **Adoption is in progress.** The pending lists in `tests/adoption/pending/`
+  record what still duplicates Texuli, and the adoption plan removes them
+  package by package. Some entries wait on Texuli APIs that are not
+  published yet (`tests/adoption/texuli-gaps.json`).
+- **Typecheck reach.** Protoyard type-checks against Texuli's published
+  `.d.ts` files. Texuli's own sources are type-checked by Texuli's gates.
 
 ## Views from `@texuli/data`
 
