@@ -8,7 +8,14 @@ export function librarySwatches(meta: LibraryThemeMeta): string[] {
 </script>
 
 <script lang="ts">
+import { Input } from 'texuli/input';
+
+import Btn from '../primitives/Btn.svelte';
 import { Check } from '@lucide/svelte';
+
+import Glyph from '../primitives/Glyph.svelte';
+
+
 import type { Theme } from '@protoyard/core';
 import { BUILTIN_THEMES } from '@protoyard/themes';
 import {
@@ -18,6 +25,7 @@ import {
   type ThemeCollection,
 } from '@protoyard/themes/library';
 import Spinner from '../primitives/Spinner.svelte';
+import SelectField from '../primitives/SelectField.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
 
 /**
@@ -134,7 +142,7 @@ function tabStop(ids: readonly string[], id: string): 0 | -1 {
 {#snippet card(id: string, name: string, description: string, swatches: readonly string[], groupIds: readonly string[])}
   {@const selected = appearance.theme.value === id}
   {@const pending = dt.isBusy(`appearance:theme:${id}`)}
-  <button
+  <Btn
     type="button"
     role="radio"
     aria-checked={selected}
@@ -155,15 +163,15 @@ function tabStop(ids: readonly string[], id: string): 0 | -1 {
     </span>
     <span class="flex w-full items-center justify-between gap-1 text-[11px] font-medium">
       <span class="truncate">{name}</span>
-      {#if pending}<Spinner class="text-primary" />{:else if selected}<Check class="size-3 shrink-0 text-primary" aria-hidden="true" />{/if}
+      {#if pending}<Spinner class="text-primary" />{:else if selected}<Glyph icon="check" class="size-3 shrink-0 text-primary" aria-hidden="true" />{/if}
     </span>
-  </button>
+  </Btn>
 {/snippet}
 
 <div class="grid gap-3" data-testid="theme-browser">
   <label class="grid gap-1 text-[11px] text-muted-foreground">
     Search themes
-    <input
+    <Input
       type="search"
       class="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
       placeholder="Name, mood, tag or category"
@@ -198,61 +206,57 @@ function tabStop(ids: readonly string[], id: string): 0 | -1 {
 
   <div class="grid gap-1.5">
     {#if !libraryVisible}
-      <button
+      <Btn
         type="button"
         class="min-h-touch rounded-md border border-dashed border-border px-2 py-1.5 text-xs font-medium hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-ring"
         aria-expanded="false"
         onclick={() => (libraryOpen = true)}
       >
         Browse {THEME_LIBRARY_META.length} more themes
-      </button>
+      </Btn>
     {:else}
       <div class="flex items-center justify-between gap-2">
         <p class="text-[11px] font-medium text-muted-foreground" id="theme-group-library">Theme library</p>
         {#if libraryOpen && !filtering}
-          <button
+          <Btn
             type="button"
             class="rounded px-1.5 text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
             aria-expanded="true"
             onclick={() => (libraryOpen = false)}
           >
             Hide library
-          </button>
+          </Btn>
         {/if}
       </div>
       <div class="flex flex-wrap gap-1" role="group" aria-label="Collections">
-        <button
+        <Btn
           type="button"
           aria-pressed={collection === ''}
           class="rounded-full border px-2 py-0.5 text-[11px] {collection === '' ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}"
           onclick={() => (collection = '')}
         >
           All
-        </button>
+        </Btn>
         {#each COLLECTIONS as entry (entry.id)}
-          <button
+          <Btn
             type="button"
             aria-pressed={collection === entry.id}
             class="rounded-full border px-2 py-0.5 text-[11px] {collection === entry.id ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}"
             onclick={() => (collection = collection === entry.id ? '' : entry.id)}
           >
             {entry.id} <span class="tabular-nums">{entry.count}</span>
-          </button>
+          </Btn>
         {/each}
       </div>
       <label class="grid gap-1 text-[11px] text-muted-foreground">
         Tag
-        <select
+        <SelectField
           class="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
           value={tag}
-          onchange={(event) => (tag = (event.currentTarget as HTMLSelectElement).value)}
-          aria-label="Filter by tag"
-        >
-          <option value="">Any tag</option>
-          {#each TAGS as value (value)}
-            <option {value}>{value}</option>
-          {/each}
-        </select>
+          label="Filter by tag"
+          onchange={(value) => (tag = value)}
+          options={[{ value: '', label: 'Any tag' }, ...TAGS.map((value) => ({ value, label: value }))]}
+        />
       </label>
       {#if library.length === 0}
         <p class="text-xs text-muted-foreground">No library theme matches.</p>

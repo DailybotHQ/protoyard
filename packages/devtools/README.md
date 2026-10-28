@@ -66,18 +66,27 @@ only when selected, so optional panels remain outside the initial DevTools
 module graph. Registered tabs participate in the same keyboard navigation and
 remembered selection as built-in tabs.
 
-Styling: Tailwind utilities on the app's `--py-*` tokens (the panel follows
-the active theme), mounted in its own `.py-devtools` host outside `#app`; no
-global CSS is added.
+Styling: the panel consumes Texuli's `--tx-*` tokens and mounts in its own
+`.py-devtools` host outside `#app`; no global CSS is added. The renderer's
+visible-right-edge layout value is copied to a DevTools-local CSS variable so
+the launcher and panel keep their existing viewport positioning.
 
-**Built on Texuli.** The panel's control primitives (`src/primitives/`) are
-Texuli components: `Btn` wraps `texuli/button`, `SourceBadge` uses
-`texuli/badge`, `Toggle` uses `Switch` from `texuli/choice`, `InlineError`
-uses `texuli/alert`, and `Segmented` is built on
-`@texuli/primitives/radio-group`. They read Texuli's `--tx-*` variables, so
-`mountDevtools` calls `enableTexuliAppearance()` (`@protoyard/themes/texuli`),
-which keeps them equal to the `--py-*` values
+**Built on Texuli 0.3.0.** The panel uses `Button` from `texuli/button`,
+`Input` and `Textarea` from `texuli/input`, `Select` from `texuli/select`,
+`Checkbox`, `Radio` and `Switch` from `texuli/choice`, `Slider` from
+`texuli/slider`, `Spinner` from `texuli/feedback`, `Card` from `texuli/card`,
+`Badge` from `texuli/badge`, and `Alert` from `texuli/alert`. The `Glyph`
+adapter sends Texuli's ten built-in names through `Icon` from `texuli/icons`
+and other Lucide components through `LucideIcon` from
+`texuli/icons/lucide`. `mountDevtools` calls
+`enableTexuliAppearance()` (`@protoyard/themes/texuli`) to keep Texuli's
+`--tx-*` tokens aligned with the active appearance
 ([docs/TEXULI.md](../../docs/TEXULI.md#themes-come-from-texulitokens)).
+
+`Initials` remains a minimal avatar adapter because Texuli 0.3.0's Avatar does
+not accept `srcset`/`sizes` while preserving the renderer's URL trust policy
+(open Texuli gap G10). It retains the validated resolver source, 2x source set,
+and initials fallback when an image fails.
 
 ## Working on top of app modals
 

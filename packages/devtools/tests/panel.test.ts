@@ -8,6 +8,7 @@ import { BUILTIN_THEMES } from '../../themes/src/index.ts';
 import { type DevtoolsHandle, mountDevtools, reproducibleLink } from '../src/index.ts';
 import { loadPrefs } from '../src/persist.ts';
 import ScenarioSection from '../src/sections/ScenarioSection.svelte';
+import { selectOption } from './select-option.ts';
 
 const STYLE_KEYS = ['radius', 'elevation', 'font', 'motion'];
 
@@ -92,11 +93,35 @@ describe('DevTools panel', () => {
       await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
       await settle();
       const launcher = screen.getByRole('button', { name: /Open Protoyard DevTools/ });
-      expect(launcher.className).toContain('right-[var(--py-fixed-right-edge,0px)]');
+      expect(launcher.className).toContain('right-[var(--devtools-fixed-right-edge,0px)]');
       expect(launcher.className).toContain('top-1/2');
       expect(launcher.textContent?.trim()).toBe('');
     } finally {
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+    }
+  });
+
+  it('tracks renderer positioning values while keeping their public variables intact', async () => {
+    const runtime = createFakeRuntime();
+    await runtime.scenarios.ensureSeeded();
+    handle = mountDevtools({ runtime, themes: BUILTIN_THEMES });
+    flushSync();
+    const root = document.documentElement;
+    const priorRight = root.style.getPropertyValue('--py-fixed-right-edge');
+    const priorOffset = root.style.getPropertyValue('--py-devtools-offset');
+    try {
+      root.style.setProperty('--py-fixed-right-edge', '18px');
+      root.style.setProperty('--py-devtools-offset', '22px');
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+      await settle();
+      const dock = document.querySelector<HTMLElement>('.py-devtools-root');
+      expect(dock?.style.getPropertyValue('--devtools-fixed-right-edge')).toBe('18px');
+      expect(dock?.style.getPropertyValue('--devtools-offset')).toBe('22px');
+    } finally {
+      if (priorRight) root.style.setProperty('--py-fixed-right-edge', priorRight);
+      else root.style.removeProperty('--py-fixed-right-edge');
+      if (priorOffset) root.style.setProperty('--py-devtools-offset', priorOffset);
+      else root.style.removeProperty('--py-devtools-offset');
     }
   });
 
@@ -204,8 +229,7 @@ describe('DevTools panel', () => {
     await fireEvent.click(within(panel).getByRole('button', { name: /Victor Viewer/ }));
     await settle();
     expect(runtime.session.principal()?.persona.id).toBe('user_0002');
-    const select = within(panel).getByRole('combobox', { name: /Role override/ });
-    await fireEvent.change(select, { target: { value: 'owner' } });
+    await selectOption('Role override', 'owner');
     await settle();
     expect(runtime.overrides.get().role).toBe('owner');
     expect(within(panel).getByRole('button', { name: /Reset 1/ })).toBeTruthy();
@@ -252,7 +276,7 @@ describe('DevTools panel', () => {
     flushSync();
     expect(row.getAttribute('aria-busy')).toBe('true');
     expect(row.getAttribute('aria-pressed')).toBe('true');
-    expect(row.querySelector('.animate-spin')).not.toBeNull();
+    expect(row.querySelector('[data-tx-spinner]')).not.toBeNull();
     expect(panel.querySelector('[data-dt-working]')).not.toBeNull();
     expect(panel.querySelector('header')?.getAttribute('aria-busy')).toBe('true');
     // Every persona control waits: no second switch can start.
@@ -260,7 +284,7 @@ describe('DevTools panel', () => {
     expect(rows.length).toBeGreaterThan(1);
     for (const other of rows) expect(other.disabled).toBe(true);
     expect(
-      (within(panel).getByRole('combobox', { name: /Role override/ }) as HTMLSelectElement).disabled
+      (within(panel).getByRole('combobox', { name: /Role override/ }) as HTMLButtonElement).disabled
     ).toBe(true);
     await fireEvent.click(row);
     expect(calls).toEqual(['user_0002']);
@@ -296,7 +320,7 @@ describe('DevTools panel', () => {
     const offline = within(panel).getByRole('radio', { name: 'Offline' });
     await fireEvent.click(offline);
     flushSync();
-    expect(offline.querySelector('.animate-spin')).not.toBeNull();
+    expect(offline.querySelector('[data-tx-spinner]')).not.toBeNull();
     expect((within(panel).getByRole('radio', { name: 'Slow' }) as HTMLButtonElement).disabled).toBe(
       true
     );
@@ -304,7 +328,7 @@ describe('DevTools panel', () => {
     releaseEnv();
     await settle();
     expect(runtime.overrides.get().environment?.network).toBe('offline');
-    expect(offline.querySelector('.animate-spin')).toBeNull();
+    expect(offline.querySelector('[data-tx-spinner]')).toBeNull();
 
     const realOverride = runtime.theme.setOverride;
     let releaseTheme!: () => void;
@@ -316,7 +340,7 @@ describe('DevTools panel', () => {
     await fireEvent.click(ocean);
     flushSync();
     expect(ocean.getAttribute('aria-busy')).toBe('true');
-    expect(ocean.querySelector('.animate-spin')).not.toBeNull();
+    expect(ocean.querySelector('[data-tx-spinner]')).not.toBeNull();
     releaseTheme();
     await settle();
     expect(ocean.hasAttribute('aria-busy')).toBe(false);
@@ -378,9 +402,11 @@ describe('DevTools panel', () => {
     await settle();
     expect(runtime.theme.appearance().mode).toEqual({ value: 'dark', source: 'preference' });
 
-    await fireEvent.change(within(panel).getByRole('slider', { name: 'Density' }), {
-      target: { value: '0.875' },
-    });
+    const densitySlider = within(panel).getByRole('slider', { name: 'Density' });
+    for (let i = 0; i < 5; i++) {
+      await fireEvent.keyDown(densitySlider, { key: 'ArrowLeft' });
+      await settle();
+    }
     await settle();
     expect(runtime.theme.appearance().density).toEqual({ value: 0.875, source: 'override' });
   });

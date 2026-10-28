@@ -5,9 +5,12 @@ import {
   type SnapshotImportPreview,
   type SnapshotSummary,
 } from '@protoyard/core';
+import { Input, Textarea } from 'texuli/input';
 import { downloadText, formatDateTime } from '../format.ts';
 import Btn from '../primitives/Btn.svelte';
 import Confirm from '../primitives/Confirm.svelte';
+import FileInput from '../primitives/FileInput.svelte';
+import Glyph from '../primitives/Glyph.svelte';
 import Section from '../primitives/Section.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
 
@@ -22,7 +25,7 @@ let importText = $state<string | null>(null);
 let importName = $state('');
 let preview = $state<SnapshotImportPreview | null>(null);
 let importError = $state<string | null>(null);
-let fileInput: HTMLInputElement | undefined = $state();
+let fileInput: HTMLInputElement | null = $state(null);
 
 async function refresh() {
   try {
@@ -131,9 +134,9 @@ function rowTotal(stats: Record<string, number>): number {
   <form class="space-y-2" onsubmit={save}>
     <label class="block text-[11px] text-muted-foreground">
       Name
-      <input
+      <Input
         class="mt-1 block min-h-touch w-full rounded-md border border-input bg-surface px-2 text-xs text-surface-foreground sm:min-h-7"
-        maxlength="120"
+        maxlength={120}
         required
         placeholder="Before the demo"
         bind:value={name}
@@ -141,17 +144,17 @@ function rowTotal(stats: Record<string, number>): number {
     </label>
     <label class="block text-[11px] text-muted-foreground">
       Notes (optional)
-      <textarea
+      <Textarea
         class="mt-1 block w-full rounded-md border border-input bg-surface px-2 py-1 text-xs text-surface-foreground"
-        rows="2"
-        maxlength="2000"
+        rows={2}
+        maxlength={2000}
         bind:value={notes}
-      ></textarea>
+      ></Textarea>
     </label>
     <div class="flex flex-wrap gap-1.5">
       <Btn type="submit" variant="primary" disabled={!name.trim()} busy={dt.isBusy('snap:save')}>Save snapshot</Btn>
       <Btn busy={dt.isBusy('snap:export:current')} onclick={() => exportOne()}>
-        <Download class="size-3.5" aria-hidden="true" />Export current world
+        <Glyph icon={Download} class="size-3.5" aria-hidden="true" />Export current world
       </Btn>
     </div>
     <p class="text-[11px] text-muted-foreground">
@@ -175,7 +178,7 @@ function rowTotal(stats: Record<string, number>): number {
           </div>
           <div class="flex shrink-0 gap-0.5">
             <Btn variant="ghost" aria-label={`Download ${snapshot.name}`} onclick={() => exportOne(snapshot.id)}>
-              <Download class="size-3.5" aria-hidden="true" />
+              <Glyph icon={Download} class="size-3.5" aria-hidden="true" />
             </Btn>
           </div>
         </div>
@@ -204,8 +207,8 @@ function rowTotal(stats: Record<string, number>): number {
 </Section>
 
 <Section title="Import" description="Snapshot files are validated as data and never executed.">
-  <input bind:this={fileInput} type="file" accept=".json,application/json" class="sr-only" tabindex="-1" aria-hidden="true" onchange={onFile} />
-  <Btn onclick={() => fileInput?.click()}><Upload class="size-3.5" aria-hidden="true" />Choose snapshot file…</Btn>
+  <FileInput bind:ref={fileInput} accept=".json,application/json" class="sr-only" label="Snapshot file" hidden onchange={onFile} />
+  <Btn onclick={() => fileInput?.click()}><Glyph icon={Upload} class="size-3.5" aria-hidden="true" />Choose snapshot file…</Btn>
   {#if importError}
     <p class="mt-2 text-xs text-destructive" role="alert">{importError}</p>
   {/if}
@@ -234,7 +237,7 @@ function rowTotal(stats: Record<string, number>): number {
           onconfirm={() => confirmImport(true)}
         />
         <Btn variant="ghost" onclick={() => { preview = null; importText = null; }}>
-          <Trash2 class="size-3.5" aria-hidden="true" />Discard
+          <Glyph icon={Trash2} class="size-3.5" aria-hidden="true" />Discard
         </Btn>
       </div>
     </div>

@@ -11,25 +11,45 @@ let {
   busy = false,
   class: className = '',
   children,
+  ref = $bindable(null),
   disabled = false,
-  onclick,
   type = 'button',
   id,
   title,
+  role,
+  tabindex,
+  onclick,
+  style,
   'aria-label': ariaLabel,
   'aria-expanded': ariaExpanded,
+  'aria-pressed': ariaPressed,
+  'aria-controls': ariaControls,
+  'aria-selected': ariaSelected,
+  'aria-checked': ariaChecked,
+  'aria-busy': ariaBusy,
+  'data-theme-id': dataThemeId,
 }: {
   variant?: 'primary' | 'outline' | 'ghost' | 'danger';
   busy?: boolean;
   class?: string;
   children: Snippet;
+  ref?: HTMLElement | null;
   disabled?: boolean;
-  onclick?: (event: MouseEvent) => unknown;
   type?: 'button' | 'submit' | 'reset';
   id?: string;
   title?: string;
+  role?: string;
+  tabindex?: number;
+  onclick?: (event: MouseEvent) => unknown;
+  style?: string;
   'aria-label'?: string;
   'aria-expanded'?: boolean | 'true' | 'false';
+  'aria-pressed'?: boolean | 'true' | 'false';
+  'aria-controls'?: string;
+  'aria-selected'?: boolean | 'true' | 'false';
+  'aria-checked'?: boolean | 'true' | 'false';
+  'aria-busy'?: boolean | 'true' | 'false';
+  'data-theme-id'?: string;
 } = $props();
 
 const mapped: Record<string, ButtonVariant> = {
@@ -41,13 +61,23 @@ const mapped: Record<string, ButtonVariant> = {
 </script>
 
 <Button
+  bind:ref
+  {disabled}
   {type}
   {id}
   {title}
-  {disabled}
-  onclick={onclick as never}
+  {role}
+  {tabindex}
+  {onclick}
+  {style}
   aria-label={ariaLabel}
   aria-expanded={ariaExpanded as never}
+  aria-pressed={ariaPressed as never}
+  aria-controls={ariaControls}
+  aria-selected={ariaSelected as never}
+  aria-checked={ariaChecked as never}
+  aria-busy={ariaBusy ?? (busy ? 'true' : undefined) as never}
+  data-theme-id={dataThemeId}
   variant={mapped[variant] ?? 'outline'}
   size="sm"
   loading={busy}
