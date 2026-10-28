@@ -91,6 +91,13 @@ const start = $derived(lead ? 1 : 0);
     --py-font-sans: var(--tx-font-sans);
     --py-font-heading: var(--tx-font-heading);
     --py-font-mono: var(--tx-font-mono);
+    /*
+     * The deck's radius choice: the stage writes it to --tx-deck-radius only,
+     * so Texuli components on the slide (buttons, cards, inputs) would keep the
+     * theme radius. --py-radius stays the alias Protoyard CSS reads.
+     */
+    --tx-radius: var(--tx-deck-radius);
+    --py-radius: var(--tx-radius);
     --color-foreground: var(--deck-free-foreground);
     --color-border: var(--tx-border);
     --color-primary: var(--tx-primary);

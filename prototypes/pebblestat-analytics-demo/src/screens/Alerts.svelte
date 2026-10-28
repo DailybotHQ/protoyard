@@ -3,6 +3,7 @@ import { BellOff, BellPlus, BellRing, Flag, Trash2 } from '@lucide/svelte';
 import { Sparkline } from '@protoyard/charts-ui/compact';
 import { can, liveQuery, runService, useClock, usePrincipal } from '@protoyard/renderer-svelte';
 import { AlertDialog, Badge, Button, Card, EmptyState } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import AnnotationDialog from '../components/AnnotationDialog.svelte';
 import MetricAlertDialog from '../components/MetricAlertDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
@@ -56,7 +57,7 @@ const rule = (a: MetricAlert) =>
 <PageHeader title="Alerts & annotations" description="Daily thresholds on event counts, checked once a day as simulated time advances, and the notes shown on the charts.">
   {#snippet actions()}
     {#if can(CAPABILITIES.alertsManage)}
-      <Button size="sm" onclick={() => (createOpen = true)}><BellPlus class="size-4" aria-hidden="true" />New alert</Button>
+      <Button size="sm" onclick={() => (createOpen = true)}><LucideIcon icon={BellPlus} class="size-4" />New alert</Button>
     {/if}
   {/snippet}
 </PageHeader>
@@ -74,9 +75,9 @@ const rule = (a: MetricAlert) =>
             <p class="text-sm text-muted-foreground">{rule(alert)}</p>
           </div>
           {#if alert.muted}
-            <Badge variant="outline"><BellOff class="size-3" aria-hidden="true" />Muted</Badge>
+            <Badge variant="outline"><LucideIcon icon={BellOff} class="size-3" />Muted</Badge>
           {:else if alert.status === 'firing'}
-            <Badge variant="destructive"><BellRing class="size-3" aria-hidden="true" />Firing</Badge>
+            <Badge variant="destructive"><LucideIcon icon={BellRing} class="size-3" />Firing</Badge>
           {:else}
             <Badge variant="secondary">OK</Badge>
           {/if}
@@ -103,7 +104,7 @@ const rule = (a: MetricAlert) =>
               onclick={() => {
                 deleting = alert;
                 deleteOpen = true;
-              }}><Trash2 class="size-4" aria-hidden="true" />Delete<span class="sr-only"> {alert.name}</span></Button
+              }}><LucideIcon icon={Trash2} class="size-4" />Delete<span class="sr-only"> {alert.name}</span></Button
             >
           </div>
         {/if}
@@ -116,7 +117,7 @@ const rule = (a: MetricAlert) =>
   <div class="flex flex-wrap items-center justify-between gap-2">
     <h2 id="annotations-title" class="text-base font-semibold">Annotations</h2>
     {#if can(CAPABILITIES.annotationsCreate)}
-      <Button variant="outline" size="sm" onclick={() => (annotateOpen = true)}><Flag class="size-4" aria-hidden="true" />Add annotation</Button>
+      <Button variant="outline" size="sm" onclick={() => (annotateOpen = true)}><LucideIcon icon={Flag} class="size-4" />Add annotation</Button>
     {/if}
   </div>
   {#if (notes.current ?? []).length === 0}
@@ -133,7 +134,7 @@ const rule = (a: MetricAlert) =>
             </span>
             {#if can(CAPABILITIES.annotationsManageAll) || (can(CAPABILITIES.annotationsCreate) && note.authorId === principal.current?.persona.id)}
               <Button variant="ghost" size="sm" onclick={() => runService(() => services.annotations.remove(note.id), { success: 'Annotation removed' })}>
-                <Trash2 class="size-4" aria-hidden="true" />Remove<span class="sr-only"> {note.title}</span>
+                <LucideIcon icon={Trash2} class="size-4" />Remove<span class="sr-only"> {note.title}</span>
               </Button>
             {/if}
           </li>

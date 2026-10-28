@@ -26,6 +26,7 @@ import {
   formatTime,
   Textarea,
 } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { useCrudApp } from '../lib/context.ts';
 import { STATUS_LABELS, slaLabel, slaState, type TicketStatus } from '../lib/metrics.ts';
 import { serviceOf } from '../lib/require.ts';
@@ -122,7 +123,7 @@ function markSolved(row: Row) {
 </script>
 
 <a href="#/" class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-  <ArrowLeft class="size-4" aria-hidden="true" />Dashboard
+  <LucideIcon icon={ArrowLeft} class="size-4" />Dashboard
 </a>
 
 {#if ticket.loading}
@@ -149,10 +150,10 @@ function markSolved(row: Row) {
     <div class="flex flex-wrap gap-2">
       {#if canUpdate}
         <Button variant="outline" onclick={() => navigate(`/tickets/${encodeURIComponent(id)}`)}>
-          <Pencil class="size-4" aria-hidden="true" />Edit
+          <LucideIcon icon={Pencil} class="size-4" />Edit
         </Button>
         {#if t.status !== 'solved'}
-          <Button onclick={() => markSolved(t)}><CheckCircle2 class="size-4" aria-hidden="true" />Mark solved</Button>
+          <Button onclick={() => markSolved(t)}><LucideIcon icon={CheckCircle2} class="size-4" />Mark solved</Button>
         {/if}
       {/if}
     </div>
@@ -162,7 +163,7 @@ function markSolved(row: Row) {
     <div class="space-y-6">
       <section aria-labelledby="conversation-title" class="rounded-xl border border-border bg-surface p-4 shadow-soft">
         <h2 id="conversation-title" class="flex items-center gap-2 font-medium">
-          <MessageSquare class="size-4" aria-hidden="true" />Conversation
+          <LucideIcon icon={MessageSquare} class="size-4" />Conversation
         </h2>
         <ol class="mt-3 space-y-3" aria-label="Replies">
           {#each replies.current ?? [] as reply (reply.id)}
@@ -171,7 +172,7 @@ function markSolved(row: Row) {
                 <Avatar name={nameOf(reply.authorId)} {...faceOf(reply.authorId)} size="xs" />
                 <span class="font-medium text-foreground">{nameOf(reply.authorId)}</span>
                 <span>{formatDay(String(reply.createdAt))} {formatTime(String(reply.createdAt))}</span>
-                {#if reply.internal}<Badge variant="warning"><Lock aria-hidden="true" />Internal</Badge>{/if}
+                {#if reply.internal}<Badge variant="warning"><LucideIcon icon={Lock} />Internal</Badge>{/if}
               </div>
               <p class="mt-1.5 text-sm whitespace-pre-wrap">{reply.message}</p>
             </li>

@@ -13,7 +13,7 @@ import {
   THEME_LIBRARY_META,
   UI_CONTRAST_PAIRS,
 } from '@protoyard/themes';
-import { Badge, Button } from '@protoyard/ui';
+import { Badge, Button, Input, Select, Textarea } from '@protoyard/ui';
 import ThemePreview from '../components/ThemePreview.svelte';
 import { themeLabService } from '../lib/services.ts';
 import {
@@ -211,9 +211,7 @@ async function copyTokens(theme: Theme) {
       </div>
       <label class="grid gap-1 text-sm">
         <span class="font-medium">Category</span>
-        <select class="min-h-touch w-52 rounded-lg border border-input bg-background px-3 text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" aria-label="Theme category" value={category} onchange={(event) => changeCategory(event.currentTarget.value)}>
-          {#each categoryItems as item (item.value)}<option value={item.value}>{item.label}</option>{/each}
-        </select>
+        <Select class="min-h-touch w-52 rounded-lg border border-input bg-background px-3 text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" aria-label="Theme category" value={category} items={categoryItems} onValueChange={changeCategory} />
       </label>
     </div>
     {#if loadingLibrary && visibleThemes.length === 0}
@@ -254,27 +252,23 @@ async function copyTokens(theme: Theme) {
     </div>
     <label class="grid gap-1 text-sm">
       <span class="font-medium">Theme name</span>
-      <input class="min-h-touch rounded-lg border border-input bg-background px-3 text-foreground" bind:value={studioName} placeholder={`${selected.name} Lab`} aria-label="Theme Studio name" />
+      <Input class="min-h-touch rounded-lg border border-input bg-background px-3 text-foreground" bind:value={studioName} placeholder={`${selected.name} Lab`} aria-label="Theme Studio name" />
     </label>
     <label class="grid gap-1 text-sm">
       <span class="font-medium">Brand color</span>
-      <input class="h-11 w-full rounded-lg border border-input bg-background p-1" type="color" bind:value={studioSeed} aria-label="Theme Studio brand color" />
+      <Input class="h-11 w-full rounded-lg border border-input bg-background p-1" type="color" bind:value={studioSeed} aria-label="Theme Studio brand color" />
     </label>
     <label class="grid gap-1 text-sm">
       <span class="font-medium">Font pairing</span>
-      <select class="min-h-touch rounded-lg border border-input bg-background px-3 text-foreground" bind:value={fontId} aria-label="Theme Studio font pairing">
-        {#each FONT_CATALOG as fontOption (fontOption.id)}<option value={fontOption.id}>{fontOption.label}</option>{/each}
-      </select>
+      <Select class="min-h-touch rounded-lg border border-input bg-background px-3 text-foreground" bind:value={fontId} aria-label="Theme Studio font pairing" items={FONT_CATALOG.map((fontOption) => ({ value: fontOption.id, label: fontOption.label }))} />
     </label>
     <label class="grid gap-1 text-sm">
       <span class="flex justify-between"><span class="font-medium">Density</span><span class="text-muted-foreground">{density}</span></span>
-      <select class="min-h-touch rounded-lg border border-input bg-background px-3 text-foreground" bind:value={density} aria-label="Theme Studio density">
-        <option value="compact">Compact</option><option value="default">Default</option><option value="comfortable">Comfortable</option>
-      </select>
+      <Select class="min-h-touch rounded-lg border border-input bg-background px-3 text-foreground" bind:value={density} aria-label="Theme Studio density" items={[{ value: 'compact', label: 'Compact' }, { value: 'default', label: 'Default' }, { value: 'comfortable', label: 'Comfortable' }]} />
     </label>
     <label class="grid gap-1 text-sm">
       <span class="font-medium">Corner radius: {radius}px</span>
-      <input class="min-h-touch accent-primary" type="range" min="0" max="20" step="1" bind:value={radius} aria-label="Theme Studio corner radius" />
+      <Input class="min-h-touch accent-primary" type="range" min="0" max="20" step="1" bind:value={radius} aria-label="Theme Studio corner radius" />
     </label>
     <div class="grid grid-cols-2 gap-2">
       <ThemePreview theme={studioTheme} mode="light" compact />
@@ -292,12 +286,10 @@ async function copyTokens(theme: Theme) {
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <label class="sr-only" for="theme-token-selection">Theme to inspect</label>
-      <select id="theme-token-selection" class="min-h-touch w-48 rounded-lg border border-input bg-background px-3 text-foreground" bind:value={selectedId} aria-label="Theme to inspect">
-        {#each visibleThemes as card (card.theme.id)}<option value={card.theme.id}>{card.theme.name}</option>{/each}
-      </select>
+      <Select id="theme-token-selection" class="min-h-touch w-48 rounded-lg border border-input bg-background px-3 text-foreground" bind:value={selectedId} aria-label="Theme to inspect" items={visibleThemes.map((card) => ({ value: card.theme.id, label: card.theme.name }))} />
       <div class="inline-flex rounded-lg bg-muted p-1" role="group" aria-label="Token mode">
         {#each ['light', 'dark'] as const as mode (mode)}
-          <button type="button" aria-pressed={tableMode === mode} class="min-h-touch rounded-md px-3 text-sm font-medium capitalize sm:min-h-8 {tableMode === mode ? 'bg-surface text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'}" onclick={() => (tableMode = mode)}>{mode}</button>
+          <Button type="button" aria-pressed={tableMode === mode} class="min-h-touch rounded-md px-3 text-sm font-medium capitalize sm:min-h-8 {tableMode === mode ? 'bg-surface text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'}" onclick={() => (tableMode = mode)}>{mode}</Button>
         {/each}
       </div>
       <Button size="sm" variant="outline" onclick={() => copyTokens(selected)}>Copy theme tokens</Button>
@@ -307,7 +299,7 @@ async function copyTokens(theme: Theme) {
   {#if copyText && copyStatus.startsWith('Clipboard access')}
     <label class="mb-3 grid gap-1 text-sm">
       <span>Exported theme JSON</span>
-      <textarea class="min-h-32 rounded-lg border border-input bg-background p-3 font-mono text-xs text-foreground" readonly value={copyText} aria-label="Exported theme JSON"></textarea>
+      <Textarea class="min-h-32 rounded-lg border border-input bg-background p-3 font-mono text-xs text-foreground" readonly value={copyText} aria-label="Exported theme JSON"></Textarea>
     </label>
   {/if}
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the wide table scrolls; keyboard users must reach it (WCAG 2.1.1). -->

@@ -11,6 +11,7 @@ import {
 import { avatarImage, createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
 import { AppShell, Avatar, Badge, Header } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import SidebarNav from './components/SidebarNav.svelte';
 import { ROLE_LABELS } from './domain/policy.ts';
 import { provideCrm } from './lib/context.ts';
@@ -54,7 +55,7 @@ const plan = $derived(org?.billingStatus === 'expired' ? 'expired' : (org?.plan 
           class="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm"
           aria-hidden="true"
         >
-          <ChartNoAxesColumn class="size-4" />
+          <LucideIcon icon={ChartNoAxesColumn} class="size-4" />
         </span>
         <span class="leading-tight">
           <span class="block text-sm font-semibold text-sidebar-foreground">Pipeline</span>

@@ -5,6 +5,7 @@ import { KpiRow, KpiTile } from '@protoyard/analytics-ui';
 import { DashboardGrid, WidgetCard } from '@protoyard/analytics-ui/grid';
 import { can, liveQuery, runService, useClock } from '@protoyard/renderer-svelte';
 import { Badge, Button, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import AnnotationStrip from '../components/AnnotationStrip.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import RangeBar from '../components/RangeBar.svelte';
@@ -110,9 +111,9 @@ const removeAnnotation = (a: Annotation) =>
     {#if sampled}<Badge variant="outline" title="Counts are estimated from a user sample; event totals come from exact daily rollups">Sampled · {Math.round(rate * 100)} % of users</Badge>{/if}
     <RangeBar now={clock.now} />
     {#if canEdit && dashboard.current}
-      <Button variant="outline" size="sm" onclick={() => (renameOpen = true)}><PencilLine class="size-4" aria-hidden="true" />Rename</Button>
+      <Button variant="outline" size="sm" onclick={() => (renameOpen = true)}><LucideIcon icon={PencilLine} class="size-4" />Rename</Button>
       <Button variant={editing ? 'secondary' : 'outline'} size="sm" aria-pressed={editing} onclick={() => (editing = !editing)}>
-        <Pencil class="size-4" aria-hidden="true" />{editing ? 'Done editing' : 'Edit layout'}
+        <LucideIcon icon={Pencil} class="size-4" />{editing ? 'Done editing' : 'Edit layout'}
       </Button>
     {/if}
   {/snippet}

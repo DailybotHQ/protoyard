@@ -254,13 +254,13 @@ export interface TransformedPage {
 /**
  * The page contract's color tokens: light values on `:root`, dark values under
  * `prefers-color-scheme` unless the page says light, and again for an explicit
- * dark theme. The app's own `--py-*` tokens win once the theme engine runs.
+ * dark theme. The app's own `--tx-*` tokens win once the theme engine runs.
  */
 export const ARTIFACT_PAGE_STYLE = [
-  ':root{--py-artifact-background:#fafafa;--py-artifact-foreground:#09090b;color-scheme:light dark}',
-  '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--py-artifact-background:#09090b;--py-artifact-foreground:#fafafa}}',
-  ':root[data-theme="dark"]{--py-artifact-background:#09090b;--py-artifact-foreground:#fafafa}',
-  'html,body{margin:0;background:var(--py-background,var(--py-artifact-background));color:var(--py-foreground,var(--py-artifact-foreground))}',
+  ':root{--tx-artifact-background:#fafafa;--tx-artifact-foreground:#09090b;color-scheme:light dark}',
+  '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--tx-artifact-background:#09090b;--tx-artifact-foreground:#fafafa}}',
+  ':root[data-theme="dark"]{--tx-artifact-background:#09090b;--tx-artifact-foreground:#fafafa}',
+  'html,body{margin:0;background:var(--tx-background,var(--tx-artifact-background));color:var(--tx-foreground,var(--tx-artifact-foreground))}',
 ].join('\n');
 
 const SERVICE_WORKER = /\bserviceWorker\s*\.\s*register\s*\(/;

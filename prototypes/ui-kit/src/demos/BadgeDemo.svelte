@@ -1,6 +1,7 @@
 <script lang="ts">
 import { CircleAlert, CircleCheck } from '@lucide/svelte';
 import { Badge, type BadgeVariant, Button } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 const variants: BadgeVariant[] = [
   'default',
@@ -21,8 +22,8 @@ let unread = $state(3);
     {/each}
   </div>
   <div class="flex flex-wrap items-center gap-2">
-    <Badge variant="success"><CircleCheck aria-hidden="true" /> Paid</Badge>
-    <Badge variant="destructive"><CircleAlert aria-hidden="true" /> Overdue</Badge>
+    <Badge variant="success"><LucideIcon icon={CircleCheck} /> Paid</Badge>
+    <Badge variant="destructive"><LucideIcon icon={CircleAlert} /> Overdue</Badge>
     <Badge variant="outline">v2.4.0</Badge>
   </div>
   <div class="flex flex-wrap items-center gap-3">

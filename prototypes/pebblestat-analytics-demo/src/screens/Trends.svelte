@@ -5,6 +5,7 @@ import { BreakdownSelect, FilterBuilder, SegmentPicker } from '@protoyard/analyt
 import { BarChart, LineChart } from '@protoyard/charts-ui/cartesian';
 import { can, liveQuery, runService, useClock } from '@protoyard/renderer-svelte';
 import { Badge, Button, Card, ErrorState, Select } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import AnnotationDialog from '../components/AnnotationDialog.svelte';
 import AnnotationStrip from '../components/AnnotationStrip.svelte';
 import PageHeader from '../components/PageHeader.svelte';
@@ -193,10 +194,10 @@ const removeAnnotation = (a: Annotation) =>
     {#if rate < 1}<Badge variant="outline">Estimated from a {Math.round(rate * 100)} % user sample</Badge>{/if}
     <RangeBar now={clock.now} />
     {#if can(CAPABILITIES.annotationsCreate)}
-      <Button variant="outline" size="sm" onclick={() => (annotateOpen = true)}><Flag class="size-4" aria-hidden="true" />Annotate</Button>
+      <Button variant="outline" size="sm" onclick={() => (annotateOpen = true)}><LucideIcon icon={Flag} class="size-4" />Annotate</Button>
     {/if}
     {#if can(CAPABILITIES.reportsSave)}
-      <Button size="sm" onclick={() => (saveOpen = true)}><BookmarkPlus class="size-4" aria-hidden="true" />Save report</Button>
+      <Button size="sm" onclick={() => (saveOpen = true)}><LucideIcon icon={BookmarkPlus} class="size-4" />Save report</Button>
     {/if}
   {/snippet}
 </PageHeader>

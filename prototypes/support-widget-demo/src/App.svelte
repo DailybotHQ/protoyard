@@ -10,6 +10,7 @@ import {
 } from '@protoyard/renderer-svelte';
 import { Button, Composer, Input, TypingIndicator } from '@protoyard/ui';
 import { onMount, untrack } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import ConditionBanner from './components/ConditionBanner.svelte';
 import MessageList from './components/MessageList.svelte';
 import type { Order, ReturnRequest } from './database/schema.ts';
@@ -172,7 +173,7 @@ async function startReturn() {
       class="grid size-9 place-items-center rounded-full bg-primary/15 text-primary"
       aria-hidden="true"
     >
-      <Headset class="size-4" />
+      <LucideIcon icon={Headset} class="size-4" />
     </span>
     <div class="min-w-0 flex-1">
       <h1 class="truncate text-sm font-semibold">{runtime.manifest.name}</h1>
@@ -213,7 +214,7 @@ async function startReturn() {
           disabled={environment.current.network === 'offline'}
           data-testid="order-lookup-submit"
         >
-          <Package class="size-3.5" aria-hidden="true" /> Look up order
+          <LucideIcon icon={Package} class="size-3.5" /> Look up order
         </Button>
       </div>
       {#if orderError}
@@ -260,7 +261,7 @@ async function startReturn() {
                 disabled={environment.current.network === 'offline'}
                 data-testid="start-return"
               >
-                <RotateCcw class="size-3.5" aria-hidden="true" /> Start return
+                <LucideIcon icon={RotateCcw} class="size-3.5" /> Start return
               </Button>
             </div>
             {#if returnError}
@@ -323,7 +324,7 @@ async function startReturn() {
             disabled={environment.current.network === 'offline'}
             data-testid="handoff"
           >
-            <UserRound class="size-3.5" aria-hidden="true" /> Talk to a human
+            <LucideIcon icon={UserRound} class="size-3.5" /> Talk to a human
           </Button>
         </div>
       {/if}

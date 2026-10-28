@@ -24,7 +24,7 @@ function placement(node: HTMLElement): void {
 }
 </script>
 
-<div class="absolute inset-0 overflow-hidden" {@attach placement}>
+<div class="py-deck-custom absolute inset-0 overflow-hidden" {@attach placement}>
   <CustomSlideHost
     slide={slide as unknown as Slide}
     step={step.step}
@@ -33,3 +33,11 @@ function placement(node: HTMLElement): void {
     {live}
   />
 </div>
+
+<style>
+  /* The deck's radius choice reaches the custom slide's Texuli components (see FreeSlide). */
+  .py-deck-custom {
+    --tx-radius: var(--tx-deck-radius);
+    --py-radius: var(--tx-radius);
+  }
+</style>

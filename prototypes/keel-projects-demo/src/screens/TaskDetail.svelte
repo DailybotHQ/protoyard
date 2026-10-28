@@ -24,6 +24,7 @@ import {
   Skeleton,
 } from '@protoyard/ui';
 import { CommentThread } from '@protoyard/views-ui/activity';
+import { LucideIcon } from 'texuli/icons/lucide';
 import DueBadge from '../components/DueBadge.svelte';
 import LabelChip from '../components/LabelChip.svelte';
 import PriorityBadge from '../components/PriorityBadge.svelte';
@@ -99,7 +100,7 @@ async function removeTask() {
 </script>
 
 <Button variant="ghost" size="sm" class="-ml-2" onclick={() => back(task.current ? `/projects/${task.current.projectId}` : '/')}>
-  <ArrowLeft class="size-4" aria-hidden="true" />Back
+  <LucideIcon icon={ArrowLeft} class="size-4" />Back
 </Button>
 
 {#if task.loading}
@@ -125,11 +126,11 @@ async function removeTask() {
     {#if editable || deletable}
       <div class="flex shrink-0 gap-2">
         {#if editable}
-          <Button variant="outline" onclick={() => (editOpen = true)}><Pencil class="size-4" aria-hidden="true" />Edit</Button>
+          <Button variant="outline" onclick={() => (editOpen = true)}><LucideIcon icon={Pencil} class="size-4" />Edit</Button>
         {/if}
         {#if deletable}
           <Button variant="ghost" class="text-destructive hover:bg-destructive/10" onclick={() => (deleteOpen = true)}>
-            <Trash2 class="size-4" aria-hidden="true" />Delete
+            <LucideIcon icon={Trash2} class="size-4" />Delete
           </Button>
         {/if}
       </div>

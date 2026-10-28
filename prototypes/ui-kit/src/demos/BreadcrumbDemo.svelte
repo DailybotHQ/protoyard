@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Folder } from '@lucide/svelte';
-import { Breadcrumb } from '@protoyard/ui';
+import { Breadcrumb, Button } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { interceptDemoNav } from './nav.ts';
 
 interface Node {
@@ -42,14 +43,14 @@ function navigate(href: string): void {
   <ul class="grid max-w-sm gap-1">
     {#each current.children ?? [] as child (child.name)}
       <li>
-        <button
+        <Button
           type="button"
           class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           onclick={() => (path = [...path, child])}
         >
-          <Folder class="size-4 text-muted-foreground" aria-hidden="true" />
+          <LucideIcon icon={Folder} class="size-4 text-muted-foreground" />
           {child.name}
-        </button>
+        </Button>
       </li>
     {:else}
       <li class="text-sm text-muted-foreground">This folder is empty. Use the breadcrumb to go back.</li>
