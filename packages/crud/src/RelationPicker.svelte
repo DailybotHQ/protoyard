@@ -185,9 +185,9 @@ async function created(row: unknown) {
     <ul class="flex flex-wrap gap-2" aria-label={`Selected ${field.label ?? field.name}`}>
       {#each selectedIds as selected (selected)}
         <li>
-          <button type="button" class="rounded border px-2 py-1 text-sm" disabled={disabled} onclick={() => choose(selected)}>
+          <Button type="button" variant="outline" size="sm" disabled={disabled} onclick={() => choose(selected)}>
             {options.find((option) => option.value === selected)?.label ?? selected} <span aria-hidden="true">×</span>
-          </button>
+          </Button>
         </li>
       {/each}
     </ul>

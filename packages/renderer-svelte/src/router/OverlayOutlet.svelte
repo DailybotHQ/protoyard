@@ -1,5 +1,5 @@
 <script lang="ts">
-import { AdaptiveOverlay, buttonVariants, Spinner } from '@protoyard/ui';
+import { AdaptiveOverlay, Button, Spinner } from '@protoyard/ui';
 import { chromeMessages } from '../messages.ts';
 import type { RouteMatch, Router } from './hash-router.svelte.ts';
 import { routeOverlay } from './hash-router.svelte.ts';
@@ -68,7 +68,7 @@ function retry() {
         <div class="grid justify-items-start gap-2 py-4" role="alert">
           <p class="font-medium">{messages.loadFailedTitle}</p>
           <p class="text-sm text-muted-foreground">{error instanceof Error ? error.message : String(error)}</p>
-          <button type="button" class={buttonVariants({ variant: 'outline', size: 'sm' })} onclick={retry}>{messages.retry}</button>
+          <Button type="button" variant="outline" size="sm" onclick={retry}>{messages.retry}</Button>
         </div>
       {/await}
     {:else if page}

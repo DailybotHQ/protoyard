@@ -1,5 +1,6 @@
 <script lang="ts">
 import { type AuditEntry, type Blueprint, fieldLabel, inputProperty } from '@protoyard/blueprint';
+import { Card } from '@protoyard/ui';
 
 let { entries, blueprint }: { entries: AuditEntry[]; blueprint: Blueprint } = $props();
 
@@ -28,7 +29,7 @@ function changeLabel(entry: AuditEntry, name: string): string {
 {:else}
   <ol class="grid gap-3" aria-label="Change history">
     {#each entries as entry (entry.id)}
-      <li class="rounded-lg border border-border p-4">
+      <li><Card class="p-4">
         <p class="text-sm font-medium">
           {entry.action} <time class="font-normal text-muted-foreground" datetime={entry.at}>{entry.at}</time>
         </p>
@@ -39,7 +40,7 @@ function changeLabel(entry: AuditEntry, name: string): string {
             {/each}
           </ul>
         {/if}
-      </li>
+      </Card></li>
     {/each}
   </ol>
 {/if}

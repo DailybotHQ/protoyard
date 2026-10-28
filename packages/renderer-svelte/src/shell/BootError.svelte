@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Button } from '@protoyard/ui';
 import { chromeMessages, formatMessage } from '../messages.ts';
 import Icon from './Icon.svelte';
 
@@ -62,40 +63,47 @@ const messages = chromeMessages().boot;
       <p class="mt-3 text-sm text-destructive" role="alert">{wipeError}</p>
     {/if}
     <div class="mt-6 flex flex-wrap gap-2">
-      <button
+      <Button
         type="button"
+        size="sm"
         class="inline-flex min-h-touch items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover sm:min-h-9"
         onclick={() => location.reload()}
       >
         <Icon name="refresh" /> {messages.reload}
-      </button>
+      </Button>
       {#if namespace}
         {#if confirming}
-          <button
+          <Button
             type="button"
+            variant="destructive"
+            size="sm"
             class="inline-flex min-h-touch items-center rounded-md bg-destructive px-4 text-sm font-medium text-destructive-foreground hover:bg-destructive-hover disabled:opacity-60 sm:min-h-9"
             disabled={wiping}
             aria-busy={wiping}
             onclick={wipe}
           >
             {wiping ? messages.resetting : messages.confirmReset}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             class="inline-flex min-h-touch items-center rounded-md border border-border px-4 text-sm font-medium hover:bg-muted sm:min-h-9"
             disabled={wiping}
             onclick={() => (confirming = false)}
           >
             {messages.cancel}
-          </button>
+          </Button>
         {:else}
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             class="inline-flex min-h-touch items-center rounded-md border border-border px-4 text-sm font-medium hover:bg-muted sm:min-h-9"
             onclick={() => (confirming = true)}
           >
             {messages.reset}
-          </button>
+          </Button>
         {/if}
       {/if}
     </div>

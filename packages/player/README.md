@@ -11,6 +11,10 @@ it on the same engine as a generated prototype:
 Everything it shows is simulated. Every page carries the "Prototype · simulated
 data" badge.
 
+The player shell and its kind-mismatch state use Texuli-backed components from
+`@protoyard/ui` and `texuli/card`. The renderer keeps its device frames and
+simulated browser/window chrome as Protoyard-owned shell exceptions.
+
 ## How it boots
 
 `@protoyard/player/boot` provides `bootPlayer({ blueprint, target })`, used by

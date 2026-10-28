@@ -3,6 +3,7 @@ import { UserPlus } from '@lucide/svelte';
 import { MEMBER_CAPABILITIES, OWNER_ROLE, type PrototypeRuntime } from '@protoyard/core';
 import { avatarImage, can, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { Avatar, Button, FormField, Input, Select, toast } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 /**
  * Team members for the active organization: invite, change role, remove.
@@ -163,7 +164,7 @@ function roleDisabled(targetRole: string, currentRole: string): boolean {
       </FormField>
       <div class="flex items-end">
         <Button type="submit" loading={busy} data-testid="invite-submit">
-          <UserPlus aria-hidden="true" /> Invite
+          <LucideIcon icon={UserPlus} /> Invite
         </Button>
       </div>
       {#if inviteError}

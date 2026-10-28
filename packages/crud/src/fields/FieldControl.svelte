@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { BlueprintField } from '@protoyard/blueprint';
 import { fieldLabel, parseMoneyText } from '@protoyard/blueprint';
-import { Input, Select, Textarea } from '@protoyard/ui';
+import { Checkbox, Input, Select, Textarea } from '@protoyard/ui';
 import GeoField from './GeoField.svelte';
 
 /**
@@ -70,14 +70,12 @@ const enumItems = $derived(
 
 {#if field.kind === 'boolean'}
   <label class="inline-flex items-center gap-2 text-sm">
-    <input
+    <Checkbox
       {id}
-      type="checkbox"
-      class="size-4 rounded border-input"
       checked={Boolean(value)}
       {disabled}
       aria-invalid={error ? 'true' : undefined}
-      onchange={(e) => (value = (e.currentTarget as HTMLInputElement).checked)}
+      onCheckedChange={(checked) => (value = checked === true)}
     />
     <span class="text-muted-foreground">{label}</span>
   </label>

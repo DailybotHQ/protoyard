@@ -1,1 +1,37 @@
-[]
+[
+  {
+    "path": "packages/crud/src/EntityList.svelte",
+    "rules": ["raw-control"],
+    "reason": "The visually hidden CSV file input must remain a native file input so the Import CSV action can open the browser file picker and consume File objects."
+  },
+  {
+    "path": "packages/player/src/archetypes/business/AnalyticsApp.svelte",
+    "rules": ["own-component"],
+    "reason": "This is a route-injection adapter around the caller-provided BlueprintApp, not an independently rendered UI component."
+  },
+  {
+    "path": "packages/player/src/entries/KindMismatch.svelte",
+    "rules": ["own-component"],
+    "reason": "This page explains a player routing error for the wrong blueprint kind; its blueprint-specific message and alternate-player link have no equivalent Texuli component."
+  },
+  {
+    "path": "packages/renderer-svelte/src/app.css",
+    "rules": ["py-token"],
+    "reason": "The remaining --py-* references are renderer-owned frame geometry and host layout variables such as device radius and side-panel width, not semantic design tokens."
+  },
+  {
+    "path": "packages/renderer-svelte/src/shell/floating.ts",
+    "rules": ["py-token"],
+    "reason": "--py-fixed-right-edge is a renderer-owned positioning measurement for floating chrome, not a semantic design token."
+  },
+  {
+    "path": "packages/renderer-svelte/src/shell/DemoBadge.svelte",
+    "rules": ["py-token"],
+    "reason": "--py-fixed-right-edge is the renderer's measured visible-viewport offset used to keep its simulation honesty badge on screen."
+  },
+  {
+    "path": "packages/renderer-svelte/src/shell/frames/",
+    "rules": ["raw-control"],
+    "reason": "Device frames and simulated browser/window chrome need native controls to reproduce their shell affordances, such as minimize, rotate and home-indicator behavior."
+  }
+]

@@ -5,6 +5,7 @@
  * (data-series on bar rects). Tests and hosts use those contracts directly.
  */
 import type { Snippet } from 'svelte';
+import { cx } from 'texuli/cx';
 
 type Props = {
   title: string;
@@ -36,7 +37,7 @@ function forwardFocus(node: HTMLElement) {
 
 <!-- tabindex=0 so analytics DrillDown can focus the named group, then we forward into Texuli. -->
 <div
-  class="py-chart-root"
+  class={cx('py-chart-root', 'grid min-w-0')}
   data-py-chart=""
   role="group"
   aria-label={label}
@@ -47,12 +48,8 @@ function forwardFocus(node: HTMLElement) {
 </div>
 
 <style>
-  .py-chart-root {
-    display: grid;
-    min-inline-size: 0;
-  }
   .py-chart-root:focus {
-    outline: 2px solid var(--py-ring, Highlight);
+    outline: 2px solid var(--tx-ring, Highlight);
     outline-offset: 2px;
   }
 </style>
