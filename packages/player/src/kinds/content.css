@@ -11,8 +11,8 @@
 }
 
 .leading-6 {
-  --tw-leading: calc(calc(0.25rem * var(--py-density)) * 6);
-  line-height: calc(calc(0.25rem * var(--py-density)) * 6);
+  --tw-leading: calc(calc(0.25rem * var(--tx-density, 1)) * 6);
+  line-height: calc(calc(0.25rem * var(--tx-density, 1)) * 6);
 }
 
 /* Keep the toolbar geometry stable when its Tailwind utilities are loaded lazily. */

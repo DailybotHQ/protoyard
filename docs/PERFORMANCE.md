@@ -64,7 +64,7 @@ loads Texuli's CSS lazily, so the initial CSS is small:
 
 | Measure | Value | Ceiling | Command |
 | --- | ---: | ---: | --- |
-| Sparkline on a first screen | 3,211 B | 3,450 B | `pnpm vitest run packages/cli/tests/charts-bundle.test.ts` |
+| Sparkline on a first screen (`@texuli/charts` 0.3.0) | 5,927 B | 6,250 B | `pnpm vitest run packages/cli/tests/charts-bundle.test.ts` |
 | LineChart + BarChart view | 8,977 B | 17,000 B | same |
 | Chart family subpaths | cartesian 13,466 B, part-whole 9,819 B, matrix 15,923 B, compact 7,213 B, canvas 1,647 B, geo 4,651 B | — | `pnpm exec tsx scripts/bench-charts.ts --skip-browser --check` |
 | Chart math, 10k / 100k points (Node, median total) | 0.86–0.97 ms / 5.44–25.11 ms | LTTB 10k < 2 ms (0.20–0.27 ms) | same |
@@ -235,7 +235,7 @@ player's kind tests do.
 | --- | ---: | --- |
 | `initialJsGzipKb` | 150 KB | Initial JavaScript of the kind's minimal player entry, gzip |
 | `cssGzipKb` | 30 KB | CSS of the kind's player entry, gzip |
-| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,048 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (2.65 MiB per kind) in `packages/cli/src/lib/quick/single-file.ts`. Calibrated on 2026-10-22 from measured files of 1,606,842 B (deck), 1,607,557 B (page) and 1,606,788 B (doc); re-measured on 2026-10-28, with decks on the `@texuli/slides` stage, at 2,598,103 to 2,606,261 B. The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
+| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,560 KB each since the npm Texuli 0.3.0) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (2 MiB per kind) in `packages/cli/src/lib/quick/single-file.ts`. Calibrated on 2026-10-22 from measured files of 1,606,842 B (deck), 1,607,557 B (page) and 1,606,788 B (doc). The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
 
 These budgets are **enforced**:
 
@@ -367,7 +367,7 @@ an open follow-up; the overrides record the measured size, not a target.
   `docs` width rule), plus the `data-py-layout` mirror.
 - Every layout stays its own lazy chunk.
 - **pages-ui:** the page and doc CSS caps (all emitted stylesheets) are
-  25,454 B and 25,714 B, measured 24,242 B and 24,490 B gzip (2026-10-24)
+  29,174 B and 29,435 B, measured 27,785 B and 28,033 B gzip on the npm Texuli 0.3.0 (2026-10-28)
   plus 5%. The default stays 20 KB. Texuli component CSS (~23 KB gz) replaces
   the former UI CSS; the eager/lazy split was measured (the first screen loads
   only the entry stylesheet, 4,166 B and 4,414 B); a CSS diet is a follow-up.
@@ -1359,7 +1359,7 @@ Since the block families and charts render with Texuli, all emitted CSS
 measures **23,663 B gzip** (re-measured 2026-10-24 against Texuli `dev`):
 each family's stylesheet sits in its own lazy chunk, the first screen loads one
 1,025 B stylesheet, and the same CSS joined into one file would gzip to
-15,010 B. This entry's CSS ceiling is 24,846 B (the measured number + 5 %), an
+15,010 B. This entry's CSS ceiling is 28,546 B (27,187 B measured on the npm Texuli 0.3.0 + 5 %), an
 override for this entry only; the 20 KB default is unchanged. A CSS diet is a
 follow-up. The paired hygiene test checks the built
 static graph for CRUD, Faker, the player and worker, syntax highlighting, and

@@ -9,6 +9,12 @@ the charts of [Texuli](../../docs/TEXULI.md#charts-from-texulicharts)
 has its own subpath, so a prototype pays only for the families its screens
 import. Nothing here is re-exported from the `@protoyard/ui` barrel.
 
+`ChartRoot` is a compatibility wrapper around Texuli chart families: it keeps
+Protoyard's named-group focus target and `data-py-chart` marker while using
+Texuli's `cx` helper for its styling. `CellPlot` is a direct alias of the
+Texuli-backed `Heatmap` adapter. `RampLegend` remains a small local adapter
+while `@texuli/charts@0.3.0` has no rendered matrix ramp legend (open gap G3).
+
 ## Install in a workspace prototype
 
 Add `"@protoyard/charts-ui": "workspace:*"` to the prototype dependencies and

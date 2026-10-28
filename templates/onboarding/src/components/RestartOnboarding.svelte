@@ -2,6 +2,7 @@
 import { RotateCcw } from '@lucide/svelte';
 import { navigate, runService } from '@protoyard/renderer-svelte';
 import { AlertDialog, Button, type ButtonVariant } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { useOnboarding } from '../lib/context.ts';
 
 /** "Restart onboarding" with a confirmation. Answers are kept as defaults; invitations stay sent. */
@@ -16,7 +17,7 @@ async function restart() {
 }
 </script>
 
-<Button {variant} onclick={() => (open = true)}><RotateCcw aria-hidden="true" />Restart onboarding</Button>
+<Button {variant} onclick={() => (open = true)}><LucideIcon icon={RotateCcw} />Restart onboarding</Button>
 <AlertDialog
   bind:open
   title="Restart onboarding?"

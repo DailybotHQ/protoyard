@@ -1,14 +1,10 @@
 <script lang="ts">
-import { Check, ChevronDown } from '@lucide/svelte';
-import { Select as SelectPrimitive } from '@texuli/primitives/select';
 import type { ComponentProps } from 'svelte';
-import { cn } from '../../lib/cn.ts';
-import { floatingItem, floatingSurface } from '../../lib/overlay.ts';
+import { Select as TexuliSelect } from 'texuli/select';
 import { refAttachment } from '../../lib/ref.ts';
-import { fieldClasses } from '../input/input-classes.ts';
 import type { SelectOption } from './types.ts';
 
-type TriggerProps = Omit<ComponentProps<typeof SelectPrimitive.Trigger>, 'children' | 'child'> & {
+type TriggerProps = Omit<ComponentProps<typeof TexuliSelect.Trigger>, 'children' | 'child'> & {
   ref?: HTMLButtonElement | null;
 };
 
@@ -54,7 +50,8 @@ const describedBy = $derived(
 );
 </script>
 
-<SelectPrimitive.Root
+<!-- A thin adapter: Texuli's styled Select, driven by an `items` list. -->
+<TexuliSelect.Root
   type="single"
   bind:value
   bind:open
@@ -64,45 +61,22 @@ const describedBy = $derived(
   {name}
   {onValueChange}
 >
-  <SelectPrimitive.Trigger
+  <TexuliSelect.Trigger
     {@attach refAttachment<HTMLButtonElement>((node) => (ref = node))}
-    class={cn(
-      fieldClasses,
-      'flex h-9 min-h-touch items-center justify-between gap-2 px-3 py-1 text-left sm:min-h-0',
-      'data-placeholder:text-muted-foreground',
-      className
-    )}
+    class={className}
     {...rest}
     aria-describedby={describedBy}
   >
-    <span id={valueId} class={cn('truncate', !selected && 'text-muted-foreground')}>
+    <span id={valueId} class="tx-select-value" data-placeholder={selected ? undefined : ''}>
       {selected?.label ?? placeholder}
     </span>
-    <ChevronDown class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-  </SelectPrimitive.Trigger>
+  </TexuliSelect.Trigger>
   <!-- The list opens in the top layer at the trigger's width; no portal is needed. -->
-  <SelectPrimitive.Content
-    sideOffset={4}
-    class={cn(
-      floatingSurface,
-      'max-h-[min(20rem,calc(100dvh-2rem))] overflow-hidden p-1',
-      contentClass
-    )}
-  >
-    <SelectPrimitive.Viewport class="max-h-[inherit] overflow-y-auto">
+  <TexuliSelect.Content sideOffset={4} class={contentClass}>
+    <TexuliSelect.Viewport>
       {#each items as item (item.value)}
-        <SelectPrimitive.Item
-          value={item.value}
-          label={item.label}
-          disabled={item.disabled}
-          class={cn(floatingItem, 'pr-8')}
-        >
-          <span class="truncate">{item.label}</span>
-          {#if item.value === value}
-            <Check class="absolute right-2 text-primary" aria-hidden="true" />
-          {/if}
-        </SelectPrimitive.Item>
+        <TexuliSelect.Item value={item.value} label={item.label} disabled={item.disabled} />
       {/each}
-    </SelectPrimitive.Viewport>
-  </SelectPrimitive.Content>
-</SelectPrimitive.Root>
+    </TexuliSelect.Viewport>
+  </TexuliSelect.Content>
+</TexuliSelect.Root>

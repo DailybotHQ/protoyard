@@ -7,10 +7,10 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { defineProtoyardConfig } from '../src/vite.ts';
 
 /**
- * Texuli linked into Protoyard, through the real prototype Vite config
- * (`defineProtoyardConfig`): the dev server serves the linked Texuli sources
- * (and nothing else of the Texuli checkout), and a production build bundles
- * a Texuli component into the prototype.
+ * Texuli from npm, through the real prototype Vite config
+ * (`defineProtoyardConfig`): the dev server serves the published Texuli
+ * components, and a production build bundles a Texuli component into the
+ * prototype.
  */
 
 const ROOT = resolve(import.meta.dirname, 'fixtures/texuli-link');
@@ -35,8 +35,8 @@ function config(command: 'serve' | 'build'): InlineConfig {
   };
 }
 
-describe('Texuli linked into Protoyard: dev and build', () => {
-  it('dev: serves linked Texuli files over /@fs, and refuses the rest of the Texuli checkout', async () => {
+describe('Texuli from npm in Protoyard: dev and build', () => {
+  it('dev: serves the published Texuli components over /@fs', async () => {
     const server = await createServer({
       ...config('serve'),
       server: { ...config('serve').server, port: PORT, strictPort: true, host: '127.0.0.1' },
@@ -49,14 +49,11 @@ describe('Texuli linked into Protoyard: dev and build', () => {
       const main = await fetch(`${base}/main.ts`);
       expect(main.status).toBe(200);
       const button = realpathSync(
-        resolve(workspace, 'node_modules/texuli/src/components/button/Button.svelte')
+        resolve(workspace, 'node_modules/texuli/dist/components/button/Button.svelte')
       );
       const served = await fetch(`${base}/@fs${button}`);
       expect(served.status).toBe(200);
       expect(await served.text()).toContain('tx-button');
-      const texuliRoot = resolve(realpathSync(resolve(workspace, 'node_modules/texuli')), '../..');
-      const outside = await fetch(`${base}/@fs${resolve(texuliRoot, 'package.json')}`);
-      expect(outside.status).toBe(403);
     } finally {
       await server.close();
     }

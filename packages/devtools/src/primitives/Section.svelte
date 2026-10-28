@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import { Card } from 'texuli/card';
 
 let {
   title,
@@ -21,5 +22,7 @@ let {
       <div class="flex shrink-0 items-center gap-1.5">{@render actions()}</div>
     {/if}
   </div>
-  {@render children()}
+  <Card class="border-0 bg-transparent p-0 shadow-none">
+    {@render children()}
+  </Card>
 </section>

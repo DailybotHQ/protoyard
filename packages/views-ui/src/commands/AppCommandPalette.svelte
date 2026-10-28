@@ -1,7 +1,8 @@
 <script lang="ts">
 import { runService } from '@protoyard/renderer-svelte';
-import type { Component, Snippet } from 'svelte';
+import type { Snippet } from 'svelte';
 import { isMacPlatform, shortcutKeys } from '../lib/platform.ts';
+import type PaletteDialog from './PaletteDialog.svelte';
 import type { CommandRegistry } from './registry.ts';
 
 interface Props {
@@ -16,12 +17,7 @@ let { registry, placeholder, trigger }: Props = $props();
 const isMac = isMacPlatform();
 let open = $state(false);
 // The dialog body is its own chunk, fetched on the first open.
-let Dialog = $state<Component<{
-  registry: CommandRegistry;
-  open: boolean;
-  isMac: boolean;
-  placeholder?: string;
-}> | null>(null);
+let Dialog = $state<typeof PaletteDialog | null>(null);
 
 async function show() {
   if (!Dialog) Dialog = (await import('./PaletteDialog.svelte')).default;

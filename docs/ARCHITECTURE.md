@@ -123,8 +123,8 @@ published engine and Svelte packages map their exports to built `dist/` files.
 ## Texuli underneath
 
 The experience and several kits build on [Texuli](TEXULI.md), a standalone
-Svelte 5 component library linked from a sibling checkout (`../texuli`) by ten
-root `link:` dev dependencies ([ADR-044](DECISIONS.md)). Imports from Texuli,
+Svelte 5 component library installed from npm at exact versions
+([ADR-044](DECISIONS.md), [ADR-045](DECISIONS.md)). Imports from Texuli,
 by package:
 
 | Package | Texuli packages it imports | How it resolves them |

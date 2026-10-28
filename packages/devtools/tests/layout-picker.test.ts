@@ -6,6 +6,7 @@ import { BUILTIN_THEMES } from '../../themes/src/index.ts';
 import { LAYOUT_REGISTRY } from '../../ui/src/layouts/registry.ts';
 import { mountDevtools } from '../src/index.ts';
 import { reproducibleLink } from '../src/link.ts';
+import { selectOption } from './select-option.ts';
 
 const settle = async () => {
   for (let i = 0; i < 5; i++) await new Promise((resolve) => setTimeout(resolve, 0));
@@ -61,14 +62,11 @@ describe('DevTools layout picker', () => {
     if (!section) return;
     const select = within(section).getByRole('combobox', {
       name: 'App layout',
-    }) as HTMLSelectElement;
-    expect(Array.from(select.options).map((option) => option.textContent)).toEqual([
-      'Sidebar',
-      'Marketing page',
-    ]);
+    }) as HTMLButtonElement;
+    expect(select.textContent).toContain('Sidebar');
     expect(within(section).getByText('default')).toBeTruthy();
 
-    await fireEvent.change(select, { target: { value: 'marketing' } });
+    await selectOption('App layout', 'Marketing page');
     await settle();
     expect(setOverride).toHaveBeenCalledWith({ layout: 'marketing' });
     expect(select.disabled).toBe(true);

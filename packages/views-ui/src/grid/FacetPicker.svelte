@@ -1,4 +1,5 @@
 <script lang="ts" module>
+import { Icon } from 'texuli/icons';
 export interface FacetOption {
   value: string | number | boolean | null;
   label: string;
@@ -8,7 +9,7 @@ export interface FacetOption {
 <script lang="ts" generics="T">
 import { Check, ChevronDown } from '@lucide/svelte';
 import { cx } from 'texuli/cx';
-import { buttonVariants } from '@protoyard/ui';
+import { buttonVariants, Button, Input } from '@protoyard/ui';
 import {
   compareScalars,
   type FilterNode,
@@ -46,7 +47,7 @@ let open = $state(false);
 let query = $state('');
 let activeIndex = $state(0);
 let root = $state<HTMLDivElement>();
-let trigger = $state<HTMLButtonElement>();
+let trigger = $state<HTMLElement>();
 let search = $state<HTMLInputElement>();
 
 const options = $derived<readonly FacetOption[]>(
@@ -122,8 +123,8 @@ function onFocusOut(event: FocusEvent) {
 </script>
 
 <div bind:this={root} class={cx('relative inline-block', className)} onfocusout={onFocusOut}>
-  <button
-    bind:this={trigger}
+  <Button
+    bind:ref={trigger}
     type="button"
     aria-haspopup="listbox"
     aria-expanded={open}
@@ -138,12 +139,12 @@ function onFocusOut(event: FocusEvent) {
     }}
   >
     {column.header}{#if selected.length}<span class="tabular-nums">· {selected.length}</span><span class="sr-only"> selected</span>{/if}
-    <ChevronDown class="size-4" aria-hidden="true" />
-  </button>
+    <Icon icon="chevron-down" class="size-4" aria-hidden="true"  />
+  </Button>
   {#if open}
     <div class="absolute top-full left-0 z-30 mt-1 w-64 rounded-md border border-border bg-surface p-1 shadow-lg">
-      <input
-        bind:this={search}
+      <Input
+        bind:ref={search}
         bind:value={query}
         role="combobox"
         aria-label={`Search ${column.header} values`}
@@ -170,7 +171,7 @@ function onFocusOut(event: FocusEvent) {
             onkeydown={() => {}}
           >
             <span class={cx('flex size-4 items-center justify-center rounded border border-input', isSelected(option) && 'border-primary bg-primary text-primary-foreground')}>
-              {#if isSelected(option)}<Check class="size-3" aria-hidden="true" />{/if}
+              {#if isSelected(option)}<Icon icon="check" class="size-3" aria-hidden="true"  />{/if}
             </span>
             <span class="truncate">{option.label}</span>
           </li>
@@ -179,14 +180,14 @@ function onFocusOut(event: FocusEvent) {
         {/each}
       </ul>
       {#if selected.length}
-        <button
+        <Button
           type="button"
           class="mt-1 w-full rounded px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           onclick={() => {
             onchange(setFacet(value, column.key, []));
             search?.focus();
           }}
-        >Clear {column.header}</button>
+        >Clear {column.header}</Button>
       {/if}
     </div>
   {/if}

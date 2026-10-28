@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Button } from '@protoyard/ui';
 import { onMount } from 'svelte';
 import { chromeMessages, formatMessage } from '../messages.ts';
 import {
@@ -125,7 +126,9 @@ const messages = chromeMessages().badge;
     style:left="{compact.left}px"
     style:top="{compact.top}px"
   >
-    <button
+    <Button
+      variant="ghost"
+      size="icon"
       type="button"
       class="pointer-events-auto inline-flex size-5 items-center justify-center rounded-full border border-border bg-elevated/90 shadow-soft backdrop-blur focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       aria-expanded={expanded}
@@ -134,7 +137,7 @@ const messages = chromeMessages().badge;
       onclick={() => (expanded = !expanded)}
     >
       <span class="size-1.5 rounded-full bg-primary" aria-hidden="true"></span>
-    </button>
+    </Button>
     {#if expanded}
       <span
         class={[

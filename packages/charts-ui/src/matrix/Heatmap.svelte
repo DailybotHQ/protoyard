@@ -31,7 +31,7 @@ const list = $derived(cells ?? data ?? []);
   .empty {
     margin: 0;
     font-size: 0.875rem;
-    color: var(--py-muted-foreground, CanvasText);
+    color: var(--tx-muted-foreground, CanvasText);
   }
 </style>
 

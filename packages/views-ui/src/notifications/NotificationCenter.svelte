@@ -4,6 +4,7 @@ import { navigate, runService } from '@protoyard/renderer-svelte';
 import type { TriggerSnippet } from '@protoyard/ui';
 import { BottomSheet, Button, Popover } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 /** Blueprint notifications use createdAt/personaId; views rows use at/recipientId. */
 export type NotificationItem = {
@@ -151,7 +152,7 @@ function openItem(item: NotificationItem) {
 {#snippet defaultTrigger({ props }: { props: Record<string, unknown> })}
   <!-- The unread badge is the button's only visible text, so the name starts with it (WCAG 2.5.3, label in name). -->
   <Button {...props} variant="ghost" size="icon" aria-label={unreadCount ? `${unreadCount} unread, ${label}` : label} class="relative">
-    <Bell size={18} />
+    <LucideIcon icon={Bell} class="size-[18px]"  />
     {#if unreadCount}<span aria-live="polite" aria-atomic="true" class="absolute -top-1 -right-1 grid min-h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] text-destructive-foreground">{unreadCount}</span>{/if}
   </Button>
 {/snippet}
@@ -160,7 +161,7 @@ function openItem(item: NotificationItem) {
   <section aria-label={label} class="grid max-h-[min(70vh,36rem)] min-h-48 gap-3 overflow-y-auto">
     <header class="flex items-center justify-between gap-2">
       <h2 class="font-semibold">{label}</h2>
-      <Button size="sm" variant="ghost" disabled={pendingAll || unreadCount === 0} loading={pendingAll} onclick={markAllRead}><CheckCheck size={15} /> Mark all read</Button>
+      <Button size="sm" variant="ghost" disabled={pendingAll || unreadCount === 0} loading={pendingAll} onclick={markAllRead}><LucideIcon icon={CheckCheck} class="size-[15px]"  /> Mark all read</Button>
     </header>
     <div role="tablist" aria-label="Notification filter" class="flex gap-1 border-b border-border">
       <Button role="tab" aria-selected={unreadOnly} variant={unreadOnly ? 'secondary' : 'ghost'} size="sm" onclick={() => (unreadOnly = true)}>Unread <span aria-live="polite" class="ml-1 tabular-nums">{unreadCount}</span></Button>
@@ -174,13 +175,13 @@ function openItem(item: NotificationItem) {
         <div class="grid gap-1"><h3 class="px-1 text-xs font-semibold text-muted-foreground">{group.label}</h3>
           {#each group.items as item (item.id)}
             <article class="flex items-start gap-2 rounded-md p-2" class:bg-muted={!isRead(item)}>
-              <button type="button" class="min-w-0 flex-1 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" aria-label={`Open ${item.title}`} onclick={() => openItem(item)}>
+              <Button type="button" class="min-w-0 flex-1 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" aria-label={`Open ${item.title}`} onclick={() => openItem(item)}>
                 <span class="block font-medium">{item.title}</span>
                 {#if item.body}<span class="mt-0.5 block text-xs text-muted-foreground">{item.body}</span>{/if}
                 <time class="mt-1 block text-xs text-muted-foreground" datetime={hrefDate(item)}>{new Date(hrefDate(item)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</time>
-              </button>
-              {#if !isRead(item)}<Button size="icon" variant="ghost" aria-label={`Mark ${item.title} read`} disabled={pendingIds.has(item.id)} loading={pendingIds.has(item.id)} onclick={() => markRead(item)}><CheckCheck size={15} /></Button>{/if}
-              <Button size="icon" variant="ghost" aria-label={`${muted(item.kind) ? 'Unmute' : 'Mute'} ${item.kind}`} aria-pressed={muted(item.kind)} disabled={!onMuteChange || pendingMutes.has(item.kind)} loading={pendingMutes.has(item.kind)} onclick={() => toggleMute(item.kind)}>{#if muted(item.kind)}<VolumeX size={15} />{:else}<Volume2 size={15} />{/if}</Button>
+              </Button>
+              {#if !isRead(item)}<Button size="icon" variant="ghost" aria-label={`Mark ${item.title} read`} disabled={pendingIds.has(item.id)} loading={pendingIds.has(item.id)} onclick={() => markRead(item)}><LucideIcon icon={CheckCheck} class="size-[15px]"  /></Button>{/if}
+              <Button size="icon" variant="ghost" aria-label={`${muted(item.kind) ? 'Unmute' : 'Mute'} ${item.kind}`} aria-pressed={muted(item.kind)} disabled={!onMuteChange || pendingMutes.has(item.kind)} loading={pendingMutes.has(item.kind)} onclick={() => toggleMute(item.kind)}>{#if muted(item.kind)}<LucideIcon icon={VolumeX} class="size-[15px]"  />{:else}<LucideIcon icon={Volume2} class="size-[15px]"  />{/if}</Button>
             </article>
           {/each}
         </div>

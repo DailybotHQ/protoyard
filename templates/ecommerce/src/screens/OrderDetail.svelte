@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowLeft, Check, CircleCheckBig, PackageX } from '@lucide/svelte';
+import { ArrowLeft, CircleCheckBig, PackageX } from '@lucide/svelte';
 import {
   back,
   can,
@@ -9,6 +9,8 @@ import {
   runService,
 } from '@protoyard/renderer-svelte';
 import { AlertDialog, Button, Card, EmptyState, ErrorState, Select, Skeleton } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import OrderStatusBadge from '../components/OrderStatusBadge.svelte';
 import type { OrderStatus } from '../database/schema.ts';
 import { ORDER_STATUS_LABELS, SHIPPING_RATES } from '../domain/catalog.ts';
@@ -64,7 +66,7 @@ async function setStatus(status: string) {
 </script>
 
 <Button variant="ghost" size="sm" class="-ml-2" onclick={() => back('/orders')}>
-  <ArrowLeft class="size-4" aria-hidden="true" />Orders
+  <LucideIcon icon={ArrowLeft} class="size-4" />Orders
 </Button>
 
 {#if order.loading}
@@ -81,7 +83,7 @@ async function setStatus(status: string) {
   {@const cancellable = (current.status === 'placed' || current.status === 'processing') && can(CAPABILITIES.ordersCancel, current)}
   {#if justPlaced}
     <div class="mt-4 flex gap-3 rounded-xl border border-success/50 bg-success/10 p-4" role="status">
-      <CircleCheckBig class="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
+      <LucideIcon icon={CircleCheckBig} class="mt-0.5 size-5 shrink-0 text-success" />
       <div class="text-sm">
         <p class="font-semibold">Thank you — order {current.number} is placed.</p>
         <p class="text-muted-foreground">Paid with the demo wallet. Stock was reserved and your cart is now empty.</p>
@@ -120,7 +122,7 @@ async function setStatus(status: string) {
         <li class="flex flex-col gap-2" aria-current={i === step ? 'step' : undefined}>
           <span class={['h-1.5 rounded-full', i <= step ? 'bg-primary' : 'bg-muted']}></span>
           <span class={['flex items-center gap-1 text-xs', i <= step ? 'font-medium text-foreground' : 'text-muted-foreground']}>
-            {#if i < step}<Check class="size-3" aria-hidden="true" />{/if}{ORDER_STATUS_LABELS[s]}
+            {#if i < step}<Icon icon="check" class="size-3" aria-hidden="true" />{/if}{ORDER_STATUS_LABELS[s]}
             <span class="sr-only">{i < step ? '(done)' : i === step ? '(current)' : '(upcoming)'}</span>
           </span>
         </li>

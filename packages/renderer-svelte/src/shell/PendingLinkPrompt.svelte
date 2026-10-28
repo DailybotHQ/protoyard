@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { PrototypeRuntime } from '@protoyard/core';
+import { Button, Checkbox } from '@protoyard/ui';
 import { chromeMessages } from '../messages.ts';
 import Icon from './Icon.svelte';
 import MessageText from './MessageText.svelte';
@@ -74,27 +75,30 @@ async function load() {
         {/if}
       </div>
       <label class="inline-flex min-h-touch items-center gap-2 text-xs sm:min-h-0">
-        <input type="checkbox" class="size-4 accent-primary" bind:checked={snapshotFirst} />
+        <Checkbox checked={snapshotFirst} onCheckedChange={(checked) => (snapshotFirst = checked === true)} />
         {messages.snapshotFirst}
       </label>
       <div class="flex gap-2">
-        <button
+        <Button
           type="button"
+          size="sm"
           class="inline-flex min-h-touch items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-60 sm:min-h-8"
           disabled={busy}
           aria-busy={busy}
           onclick={load}
         >
           {busy ? loadingText : messages.load}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           class="inline-flex min-h-touch items-center rounded-md border border-border bg-surface px-3 text-sm font-medium text-surface-foreground hover:bg-muted sm:min-h-8"
           disabled={busy}
           onclick={() => (pending = null)}
         >
           {messages.keep}
-        </button>
+        </Button>
       </div>
     </div>
   </div>

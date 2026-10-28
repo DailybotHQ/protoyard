@@ -1,4 +1,4 @@
-import { realpathSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { applyTheme } from '@texuli/tokens';
@@ -7,21 +7,28 @@ import { afterEach, describe, expect, it } from 'vitest';
 import TexuliLinkProbe from './fixtures/texuli-link/TexuliLinkProbe.svelte';
 
 /**
- * Texuli is linked into Protoyard (`link:../texuli/packages/*` in the root
- * package.json). A Protoyard screen imports a Texuli component, a texel and
- * the tokens, and Vitest compiles and runs them like workspace code.
+ * Texuli is installed from npm (exact versions in package.json, ADR-045). A
+ * Protoyard screen imports a Texuli component, a texel and the tokens from the
+ * published `dist/`, and Vitest compiles and runs them like workspace code.
  */
 
 afterEach(() => cleanup());
 
 const workspace = resolve(import.meta.dirname, '../../..');
 
-describe('Texuli linked into Protoyard: test', () => {
-  it('resolves every linked package to the Texuli checkout, not a copy', () => {
+describe('Texuli from npm in Protoyard: test', () => {
+  it('resolves every Texuli package to the published version in the pnpm store', () => {
+    const declared = JSON.parse(
+      readFileSync(resolve(workspace, 'package.json'), 'utf8')
+    ).devDependencies;
     for (const name of ['@texuli/core', '@texuli/primitives', '@texuli/tokens', 'texuli']) {
       const real = realpathSync(resolve(workspace, 'node_modules', name));
-      expect(real, name).toMatch(/[\\/]texuli[\\/]packages[\\/][a-z]+$/);
-      expect(real.startsWith(realpathSync(workspace)), name).toBe(false);
+      expect(real.startsWith(realpathSync(resolve(workspace, 'node_modules/.pnpm'))), name).toBe(
+        true
+      );
+      const manifest = JSON.parse(readFileSync(resolve(real, 'package.json'), 'utf8'));
+      expect(manifest.version, name).toBe(declared[name]);
+      expect(existsSync(resolve(real, 'dist')), name).toBe(true);
     }
   });
 

@@ -76,7 +76,7 @@ describe('code token contrast', () => {
     expect(adapter).toContain('CodeBlockView');
     // Texuli code.css paints tokens on surface and highlights on muted; no line dimming.
     const texuliCss = readFileSync(
-      join(SRC, '..', '..', '..', 'node_modules', '@texuli', 'blocks', 'src', 'code', 'code.css'),
+      join(SRC, '..', 'node_modules', '@texuli', 'blocks', 'dist', 'code', 'code.css'),
       'utf8'
     );
     expect(texuliCss).toMatch(/surface|tx-code/);

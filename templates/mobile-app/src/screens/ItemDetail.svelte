@@ -9,6 +9,7 @@ import {
   useClock,
 } from '@protoyard/renderer-svelte';
 import { AlertDialog, Button, ErrorState, Skeleton } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import Page from '../components/Page.svelte';
 import Segmented from '../components/Segmented.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -54,7 +55,7 @@ async function remove() {
   {#snippet actions()}
     {#if canEdit && item.current}
       <Button size="icon" variant="ghost" href={`#/items/${id}/edit`} aria-label="Edit item">
-        <Pencil aria-hidden="true" />
+        <LucideIcon icon={Pencil} />
       </Button>
     {/if}
   {/snippet}
@@ -103,7 +104,7 @@ async function remove() {
         onConfirm={remove}
       >
         {#snippet trigger({ props })}
-          <Button {...props} variant="outline" size="lg"><Trash aria-hidden="true" />Delete item</Button>
+          <Button {...props} variant="outline" size="lg"><LucideIcon icon={Trash} />Delete item</Button>
         {/snippet}
       </AlertDialog>
     {/if}

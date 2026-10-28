@@ -63,14 +63,16 @@ const outcomeLabel = {
     <h2 id="py-validation-title" class="text-sm font-semibold">
       {view ? `Task ${view.index + 1} of ${view.total}` : 'Tasks'}
     </h2>
-    <button
+    <Button
       type="button"
-      class="rounded px-2 text-xs text-muted-foreground hover:bg-muted"
+      variant="ghost"
+      size="sm"
+      class="px-2 text-xs text-muted-foreground"
       aria-expanded={!collapsed}
       onclick={() => (collapsed = !collapsed)}
     >
       {collapsed ? 'Show' : 'Hide'}
-    </button>
+    </Button>
   </div>
   {#if view && !collapsed}
     <div class="space-y-3 px-4 py-3 text-sm">

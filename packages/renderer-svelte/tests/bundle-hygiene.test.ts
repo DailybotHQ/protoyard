@@ -207,7 +207,7 @@ describe('bundle hygiene', () => {
       const initialCode = initial.map((chunk) => chunk.code).join('\n');
       // texuli renders every layout but docs, which is still Protoyard's.
       const texuliLayouts = posix(
-        realpathSync(join(ROOT, 'node_modules', 'texuli', 'src', 'layouts'))
+        realpathSync(join(ROOT, 'node_modules', 'texuli', 'dist', 'layouts'))
       );
       const expectedLayoutPaths = new Set([
         ...[
@@ -275,7 +275,7 @@ describe('bundle hygiene', () => {
       if (!libraryEntry) throw new Error('no theme library metadata chunk');
       // Library themes are built by @texuli/tokens, lazily, outside the metadata chunk.
       const libraryBuild = output.chunks.find((chunk) =>
-        chunk.moduleIds.some((id) => posix(id).endsWith('/tokens/src/library-port/build.ts'))
+        chunk.moduleIds.some((id) => posix(id).endsWith('/tokens/dist/library-port/build.js'))
       );
       if (!libraryBuild) throw new Error('no lazy theme library builder chunk');
       const studioSource = readFileSync(

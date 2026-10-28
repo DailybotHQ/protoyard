@@ -251,14 +251,14 @@ describe('--py-* names are aliases of the --tx-* variables', () => {
   });
 });
 
-describe('Texuli variables are opt-in per page', () => {
+describe('Texuli-only appearance metadata is opt-in per page', () => {
   afterEach(() => disableTexuliAppearance());
 
-  it('writes no --tx-* variable or data-tx-* attribute until a page enables them', () => {
+  it('writes canonical --tx-* theme tokens while keeping Texuli metadata opt-in', () => {
     const applied = applyAppearance(root, { theme: violetTheme, resolvedMode: 'light' });
-    expect(txVars(root)).toEqual([]);
+    expect(txVars(root).length).toBeGreaterThan(0);
     expect(root.dataset.txTheme).toBeUndefined();
-    expect(Object.keys(applied.vars).some((name) => name.startsWith('--tx-'))).toBe(false);
+    expect(applied.vars['--tx-primary']).toBe(violetTheme.light.primary);
     expect(root.style.getPropertyValue('--py-primary')).toBe(violetTheme.light.primary);
   });
 

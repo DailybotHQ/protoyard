@@ -13,13 +13,10 @@ type Props = {
   showLast?: boolean;
   variant?: 'line' | 'area' | 'bar';
   period?: string;
-  /**
-   * A JSON format spec is applied by the Texuli chart to every painted value.
-   * A function only shapes Protoyard's own text (the sparkline trend sentence);
-   * Texuli's compact charts take no formatter callbacks, so painted values then
-   * use the default number format.
-   */
-  format?: ChartFormatSpec | ((value: number) => string);
+  /** Formats values in the default trend sentence. */
+  format?: (value: number) => string;
+  /** Plain-data format for Texuli's own value text (tooltip, last value). */
+  formatSpec?: ChartFormatSpec;
   [key: string]: unknown;
 };
 
@@ -33,12 +30,10 @@ let {
   variant,
   period,
   format,
+  formatSpec,
 }: Props = $props();
 const series = $derived(values ?? data ?? []);
-const accessible = $derived(
-  label ?? trendLabel(series, period, typeof format === 'function' ? format : undefined)
-);
-const spec = $derived(typeof format === 'function' ? undefined : format);
+const accessible = $derived(label ?? trendLabel(series, period, format));
 </script>
 
 <!--
@@ -55,6 +50,6 @@ const spec = $derived(typeof format === 'function' ? undefined : format);
     {showLast}
     {variant}
     {period}
-    format={spec}
+    format={formatSpec}
   />
 </div>

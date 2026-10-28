@@ -16,6 +16,26 @@ describe('compact adapters over @texuli/charts', () => {
     expect(document.body.textContent).toMatch(/Done|40/);
   });
 
+  it('Gauge forwards a plain-data format spec to Texuli', () => {
+    render(Gauge, {
+      label: 'Conversion',
+      value: 0.42,
+      max: 1,
+      format: { type: 'number', style: 'percent', locale: 'en-US' },
+    });
+    expect(document.body.textContent).toContain('42%');
+  });
+
+  it('Sparkline keeps its trend sentence and accepts a plain-data spec for Texuli', () => {
+    render(Sparkline, {
+      values: [1000, 2000],
+      formatSpec: { type: 'number', notation: 'compact', locale: 'en-US' },
+    });
+    expect(document.querySelector('[role="img"]')?.getAttribute('aria-label')).toBe(
+      'Trend: up 100%'
+    );
+  });
+
   it('trendSummary classifies direction', () => {
     expect(trendSummary([1, 2, 3]).direction).toBe('up');
     expect(trendSummary([3, 2, 1]).direction).toBe('down');

@@ -1,5 +1,8 @@
 <script lang="ts">
 import { type Flow, type FlowRunResult, type FlowRuntimeOptions, runFlow } from '@protoyard/flows';
+import { WorkflowViewer } from '@texuli/workflows/viewer';
+import { Button } from 'texuli/button';
+import { flowStepRegistry, graphForLabels } from '../editor/workflow-graph.ts';
 
 let {
   flow,
@@ -16,6 +19,7 @@ let {
 let pending = $state(false);
 let result = $state<FlowRunResult | null>(null);
 let error = $state('');
+const runGraph = $derived(graphForLabels(result?.run.path ?? []));
 
 $effect(() => {
   flow;
@@ -46,13 +50,7 @@ async function run(): Promise<void> {
       <h2 id="flow-runs-heading" class="m-0 text-lg font-semibold">Test run</h2>
       <p class="m-0 text-sm text-muted-foreground">Runs use the deterministic local simulator. Effects are previews only.</p>
     </div>
-    <button
-      type="button"
-      class="inline-flex min-h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-wait disabled:opacity-60"
-      disabled={pending}
-      aria-busy={pending ? 'true' : undefined}
-      onclick={run}
-    >{pending ? 'Running…' : 'Run test'}</button>
+    <Button loading={pending} loadingLabel="Running simulated workflow" onclick={run}>Run test</Button>
   </header>
 
   {#if error}<p class="m-0 text-sm text-destructive" role="alert">{error}</p>{/if}
@@ -76,6 +74,9 @@ async function run(): Promise<void> {
         </ul>
       {/if}
       <p class="m-0 text-xs text-muted-foreground">No messages, tools or external services were contacted.</p>
+      {#if result.run.path.length}
+        <WorkflowViewer graph={runGraph} registry={flowStepRegistry} label="Visited workflow steps" />
+      {/if}
     </div>
   {:else if !pending && !error}
     <p class="m-0 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">Run the workflow to inspect its result, keeps and masked outbox.</p>

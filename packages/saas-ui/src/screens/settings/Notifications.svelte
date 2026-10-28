@@ -7,6 +7,7 @@ import {
 } from '@protoyard/saas';
 import { Button } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { Checkbox } from 'texuli/choice';
 import { getSaas } from '../../context.ts';
 
 const runtime = getSaas().runtime as Parameters<typeof createSettingsServices>[0];
@@ -47,9 +48,24 @@ async function save(): Promise<void> {
     <p class="text-sm text-muted-foreground">Choose which simulated inbox notifications this account receives.</p>
   </div>
   <form class="grid max-w-xl gap-4" onsubmit={(event) => { event.preventDefault(); void save(); }}>
-    <label class="flex items-start gap-3"><input type="checkbox" bind:checked={preferences.productUpdates} disabled={!allowed || busy} /><span><span class="block font-medium">Product updates</span><span class="text-sm text-muted-foreground">Occasional product news in the simulated inbox.</span></span></label>
-    <label class="flex items-start gap-3"><input type="checkbox" bind:checked={preferences.securityAlerts} disabled={!allowed || busy} /><span><span class="block font-medium">Security alerts</span><span class="text-sm text-muted-foreground">Sign-in and account changes in the simulated inbox.</span></span></label>
-    <label class="flex items-start gap-3"><input type="checkbox" bind:checked={preferences.workspaceActivity} disabled={!allowed || busy} /><span><span class="block font-medium">Workspace activity</span><span class="text-sm text-muted-foreground">Invitations and workspace updates in the simulated inbox.</span></span></label>
+    <Checkbox
+      bind:checked={preferences.productUpdates}
+      disabled={!allowed || busy}
+      label="Product updates"
+      description="Occasional product news in the simulated inbox."
+    />
+    <Checkbox
+      bind:checked={preferences.securityAlerts}
+      disabled={!allowed || busy}
+      label="Security alerts"
+      description="Sign-in and account changes in the simulated inbox."
+    />
+    <Checkbox
+      bind:checked={preferences.workspaceActivity}
+      disabled={!allowed || busy}
+      label="Workspace activity"
+      description="Invitations and workspace updates in the simulated inbox."
+    />
     {#if !allowed}<p class="text-sm text-muted-foreground">Your simulated role cannot edit notification preferences.</p>{/if}
     {#if message}<p role="status" class="text-sm text-muted-foreground">{message}</p>{/if}
     <Button type="submit" disabled={!allowed || busy} loading={busy} loadingLabel="Saving preferences">Save preferences</Button>

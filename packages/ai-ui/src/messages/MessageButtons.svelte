@@ -1,14 +1,18 @@
 <script lang="ts">
-import { ExternalLink, LoaderCircle } from '@lucide/svelte';
+import { ExternalLink } from '@lucide/svelte';
 import type { ButtonsBlock, MessageButton } from '@protoyard/ai/messages';
 import { tick } from 'svelte';
+import { Button, type ButtonVariant } from 'texuli/button';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { type MessageActionHandler, settle } from './types.ts';
 
 /**
- * Action and link buttons. An action button reports `{ kind: 'button' }` and
- * stays busy while the host's promise is pending; a confirmation asks first,
- * inline, with Cancel focused. Link buttons open in a new tab without access
- * to this page (`noopener noreferrer`).
+ * Action and link buttons, drawn with Texuli's `Button`. An action button
+ * reports `{ kind: 'button' }` and stays busy (`loading`) while the host's
+ * promise is pending; a confirmation asks first, inline, with Cancel focused.
+ * Link buttons go through Texuli's URL policy at the untrusted tier (message
+ * content is untrusted) and open in a new tab without access to this page
+ * (`noopener noreferrer`).
  */
 let {
   block,
@@ -26,16 +30,16 @@ const uid = $props.id();
 let pending = $state<number | null>(null);
 let confirming = $state<number | null>(null);
 let error = $state('');
-let cancelButton = $state<HTMLButtonElement | null>(null);
-const triggers: (HTMLButtonElement | null)[] = $state([]);
+let cancelButton = $state<HTMLElement | null>(null);
+// One slot per button (the block is fixed for this component's life), so each binds a defined ref.
+// svelte-ignore state_referenced_locally
+const triggers: (HTMLElement | null)[] = $state(block.buttons.map(() => null));
 
-const STYLE: Record<MessageButton['style'], string> = {
-  default: 'border border-border bg-background text-foreground hover:bg-muted',
-  primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
-  danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+const VARIANT: Record<MessageButton['style'], ButtonVariant> = {
+  default: 'outline',
+  primary: 'default',
+  danger: 'destructive',
 };
-const BASE =
-  'inline-flex min-h-touch items-center gap-1.5 rounded-md px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-9';
 
 async function run(index: number): Promise<void> {
   const button = block.buttons[index];
@@ -84,32 +88,31 @@ async function cancel(): Promise<void> {
   <div class="flex flex-wrap gap-2">
     {#each block.buttons as button, index (index)}
       {#if button.url}
-        <a
-          class="{BASE} {STYLE[button.style]}"
+        <Button
+          variant={VARIANT[button.style]}
           href={button.url}
+          hrefTrust="untrusted"
           target="_blank"
           rel="noopener noreferrer"
         >
           {button.label}
-          <ExternalLink class="size-3.5" aria-hidden="true" />
+          <LucideIcon icon={ExternalLink} size="xs" />
           <span class="sr-only">(opens in a new tab)</span>
-        </a>
+        </Button>
       {:else}
-        <button
-          type="button"
-          class="{BASE} {STYLE[button.style]}"
-          bind:this={triggers[index]}
+        <!-- Pending is the component's own state (it also blocks the other buttons), so autoLoading is off. -->
+        <Button
+          variant={VARIANT[button.style]}
+          bind:ref={triggers[index]}
+          autoLoading={false}
+          loading={pending === index}
           disabled={!onAction || pending !== null}
-          aria-busy={pending === index ? 'true' : undefined}
           aria-expanded={button.confirm ? confirming === index : undefined}
           aria-controls={button.confirm ? `${uid}-confirm` : undefined}
           onclick={() => press(index)}
         >
-          {#if pending === index}
-            <LoaderCircle class="size-3.5 motion-safe:animate-spin" aria-hidden="true" />
-          {/if}
           {button.label}
-        </button>
+        </Button>
       {/if}
     {/each}
   </div>
@@ -135,21 +138,16 @@ async function cancel(): Promise<void> {
         <p id="{uid}-confirm-title" class="m-0 text-sm font-semibold">{confirm.title}</p>
         <p id="{uid}-confirm-body" class="m-0 whitespace-pre-wrap text-sm text-muted-foreground">{confirm.body}</p>
         <div class="flex flex-wrap gap-2">
-          <button
-            type="button"
-            class="{BASE} {STYLE.default}"
-            bind:this={cancelButton}
-            onclick={cancel}
-          >
+          <Button variant="outline" bind:ref={cancelButton} autoLoading={false} onclick={cancel}>
             {confirm.cancelLabel}
-          </button>
-          <button
-            type="button"
-            class="{BASE} {STYLE[block.buttons[confirming]?.style === 'danger' ? 'danger' : 'primary']}"
+          </Button>
+          <Button
+            variant={block.buttons[confirming]?.style === 'danger' ? 'destructive' : 'default'}
+            autoLoading={false}
             onclick={() => run(confirming as number)}
           >
             {confirm.confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     {/if}

@@ -10,6 +10,7 @@ import {
 } from '@protoyard/views/grid';
 import { tick } from 'svelte';
 import { cx } from 'texuli/cx';
+import { Icon } from 'texuli/icons';
 
 /**
  * The active filter as removable chips ("Stage is any of Lead or Won"), one
@@ -55,15 +56,15 @@ async function remove(index: number) {
         <span class="truncate">
           <span class="font-medium">{chip.label}</span>{#if chip.operator}{' '}<span class="text-muted-foreground">{chip.operator}</span>{/if}{#if chip.value}{' '}{chip.value}{/if}
         </span>
-        <button
+        <Button
           type="button"
           data-chip-remove
           aria-label={`Remove filter: ${chip.text}`}
           class="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           onclick={() => remove(index)}
         >
-          <X class="size-3.5" aria-hidden="true" />
-        </button>
+          <Icon icon="close" class="size-3.5" aria-hidden="true"  />
+        </Button>
       </li>
     {/each}
     {#if chips.length > 1}

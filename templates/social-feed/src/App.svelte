@@ -3,6 +3,7 @@ import { Bell, House, UsersRound } from '@lucide/svelte';
 import { createRouter, liveQuery, Router, usePrincipal } from '@protoyard/renderer-svelte';
 import { Avatar, Badge, BottomNav } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { ROLE_LABELS } from './domain/policy.ts';
 import { personIdOf, provideSocial } from './lib/context.ts';
 import { routes } from './routes.ts';
@@ -49,7 +50,7 @@ const nav = $derived([
           {@const Icon = item.icon}
           <li>
             <a href={item.href} aria-current={item.active ? 'page' : undefined} class="flex items-center gap-2 rounded-md px-2 py-2 text-sm {item.active ? 'bg-primary/10 font-medium text-primary' : 'hover:bg-muted'}">
-              <Icon class="size-4" aria-hidden="true" />{item.label}
+              <LucideIcon icon={Icon} class="size-4" />{item.label}
               {#if item.badge}<Badge class="ml-auto">{item.badge}<span class="sr-only"> unread</span></Badge>{/if}
             </a>
           </li>

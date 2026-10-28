@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { AuditEntry } from '@protoyard/blueprint';
 import type { PrototypeRuntime } from '@protoyard/core';
+import { Card } from '@protoyard/ui';
 
 let { entries, runtime }: { entries: AuditEntry[]; runtime: PrototypeRuntime } = $props();
 const people = $derived(
@@ -22,13 +23,13 @@ const actionLabel = (action: AuditEntry['action']) =>
 {:else}
   <ol class="grid gap-3" aria-label="Activity feed">
     {#each entries as entry (entry.id)}
-      <li class="rounded-lg border border-border p-4">
+      <li><Card class="p-4">
         <p class="m-0 text-sm">
           <span class="font-medium">{people.get(entry.actorId) ?? 'A team member'}</span>
           {' '}{actionLabel(entry.action)} this record
           <time class="ml-2 text-muted-foreground" datetime={entry.at}>{entry.at}</time>
         </p>
-      </li>
+      </Card></li>
     {/each}
   </ol>
 {/if}

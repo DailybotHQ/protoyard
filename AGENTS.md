@@ -142,7 +142,7 @@ protoyard/
 
 | Task | Full | Scoped |
 | --- | --- | --- |
-| Install | `pnpm install` (needs the Texuli checkout at `../texuli`, installed first: [TEXULI](docs/TEXULI.md#how-it-is-linked)) | — |
+| Install | `pnpm install` (Texuli comes from npm: [TEXULI](docs/TEXULI.md#how-it-is-linked)) | — |
 | Gallery (dev) | `pnpm dev` (`pnpm dev:create` enables the marketplace create flow) | — |
 | Run one prototype | — | `pnpm protoyard dev <slug>` |
 | Lint + format | `pnpm lint` | `npx biome check <path>` |

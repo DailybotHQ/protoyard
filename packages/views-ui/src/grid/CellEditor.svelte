@@ -1,5 +1,6 @@
 <script lang="ts" generics="T">
-import { Button } from '@protoyard/ui';
+import { Button, Input, Select } from '@protoyard/ui';
+import { Checkbox } from 'texuli/choice';
 import type { DataGridColumn } from './model.ts';
 
 /**
@@ -25,31 +26,29 @@ let {
 </script>
 
 {#if column.type === 'boolean'}
-  <input
+  <Checkbox
     data-editor
-    type="checkbox"
     role="switch"
     aria-label={column.header}
     class="size-4 accent-primary"
     checked={draft === true}
-    onchange={(event) => onDraft((event.currentTarget as HTMLInputElement).checked)}
+    onCheckedChange={onDraft}
     onkeydown={onKeydown}
   />
   <Button size="sm" variant="ghost" onclick={onSave}>Save</Button>
 {:else if column.type === 'enum' && column.options}
-  <select
+  <Select
     data-editor
     aria-label={column.header}
     class="h-7 rounded border border-input bg-background px-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    items={column.options.map((option) => ({ value: option, label: column.format ? column.format(option, row) : option }))}
     value={String(draft)}
-    onchange={(event) => onDraft((event.currentTarget as HTMLSelectElement).value)}
+    onValueChange={onDraft}
     onkeydown={onKeydown}
-  >
-    {#each column.options as option (option)}<option value={option}>{column.format ? column.format(option, row) : option}</option>{/each}
-  </select>
+  />
   <Button size="sm" variant="ghost" onclick={onSave}>Save</Button>
 {:else}
-  <input
+  <Input
     data-editor
     aria-label={column.header}
     type={column.type === 'number' ? 'number' : column.type === 'date' ? 'date' : 'text'}

@@ -179,14 +179,14 @@ const primaryLabel = $derived(
     inset: 0;
     z-index: 2147483000;
     pointer-events: none;
-    font-family: var(--py-font-sans, system-ui, sans-serif);
+    font-family: var(--tx-font-sans, system-ui, sans-serif);
   }
   .py-tour-spotlight {
     position: fixed;
     border-radius: 8px;
     box-shadow:
       0 0 0 9999px rgb(0 0 0 / 0.45),
-      0 0 0 2px var(--py-ring, #6366f1);
+      0 0 0 2px var(--tx-ring, #6366f1);
     pointer-events: none;
     transition:
       top 120ms ease,
@@ -210,9 +210,9 @@ const primaryLabel = $derived(
     width: min(360px, calc(100vw - 32px));
     padding: 16px;
     border-radius: 12px;
-    border: 1px solid var(--py-border, #e5e7eb);
-    background: var(--py-surface, #fff);
-    color: var(--py-surface-foreground, #111827);
+    border: 1px solid var(--tx-border, #e5e7eb);
+    background: var(--tx-surface, #fff);
+    color: var(--tx-surface-foreground, #111827);
     box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
     outline: none;
   }
@@ -229,12 +229,12 @@ const primaryLabel = $derived(
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--py-muted-foreground, #6b7280);
+    color: var(--tx-muted-foreground, #6b7280);
   }
   .py-tour-progress {
     margin: 0;
     font-size: 12px;
-    color: var(--py-muted-foreground, #6b7280);
+    color: var(--tx-muted-foreground, #6b7280);
   }
   .py-tour-title {
     margin: 0;
@@ -246,12 +246,12 @@ const primaryLabel = $derived(
     margin: 0;
     font-size: 13px;
     line-height: 1.45;
-    color: var(--py-muted-foreground, #4b5563);
+    color: var(--tx-muted-foreground, #4b5563);
   }
   .py-tour-error {
     margin: 0;
     font-size: 12px;
-    color: var(--py-destructive, #b91c1c);
+    color: var(--tx-destructive, #b91c1c);
   }
   .py-tour-actions {
     display: flex;

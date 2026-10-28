@@ -865,7 +865,7 @@ player, which splits level 1 from level 2.
   and 1.5 MiB for a deck single file. Measured numbers replace them in `protoyard.budgets.json`.
   *Outcome (2026-10-22):* the kind JS and CSS budgets stayed at 150 KB and 30 KB. The 1.5 MiB
   single file was not met (about 1.61 MB, because DevTools, Deck Studio and the theme tools
-  stay); the enforced cap is 2 MiB per kind (`QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` in
+  stay); the enforced cap is 2.5 MiB per kind (2 MiB until the npm Texuli 0.3.0, ADR-045) (`QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` in
   `packages/cli/src/lib/quick/single-file.ts`), and `kinds.*.singleFileKb` is recorded but not
   read by any gate. The player worker graph cap is one constant, `WORKER_GRAPH_GZIP_KB = 220`
   (`packages/player/tests/player-budgets.ts`).
@@ -995,3 +995,31 @@ and any other app. Keeping two copies would mean fixing every bug and accessibil
 
 **Reverse:** the adoption lives on the `texuli-adoption` branch. Reverting its merges restores
 Protoyard's own copies; because the `@protoyard/*` APIs were kept, prototypes need no change.
+
+## ADR-045 — Install Texuli from npm
+
+**Context.** ADR-044 linked Texuli from a sibling checkout. Texuli is now published on npm
+(`texuli` and `@texuli/*` at 0.3.0). Under `link:`, a fresh clone could not install, packages
+with `link:` dependencies could not be packed, and `svelte-check` never type-checked the
+linked Texuli sources.
+
+**Decision.**
+- **npm only.** Every Texuli dependency is an exact npm version, the same for every package.
+  No manifest uses `link:` or `file:` for Texuli. A package declares the Texuli packages it
+  imports.
+- **Release-age guard.** `minimumReleaseAge` (3 days) still applies to every third-party
+  dependency. `texuli` and `@texuli/*` are excluded, because the same owner releases them and
+  Protoyard adopts each release the day it ships.
+- **Texuli first.** `scripts/check-texuli-adoption.ts` ratchets Protoyard toward Texuli and
+  blocks new duplicates ([TEXULI.md](TEXULI.md#texuli-first-the-adoption-check)). Lucide
+  stays the glyph source behind `texuli/icons`, which is Texuli's documented icon model.
+- **Gaps go upstream.** When Texuli lacks an API, Protoyard keeps a minimal adapter, records
+  the gap, and the Texuli maintainers fix it in a release.
+
+**Consequences.**
+- A fresh clone installs with `pnpm install` alone.
+- Protoyard type-checks against Texuli's published `.d.ts` files, which catches mismatches
+  the links hid. The charts `format` prop was one.
+- Each Texuli upgrade is one coordinated version bump across the workspace.
+- **How to reverse:** point the specifiers back at `link:` paths (ADR-044) and remove the
+  release-age exclusion.

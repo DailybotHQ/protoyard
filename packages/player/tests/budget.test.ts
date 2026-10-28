@@ -116,7 +116,7 @@ const LAZY_MODULES: [string, RegExp][] = [
   ['DevTools', /\/devtools\/src\//],
   // Library tokens come from @texuli/tokens, loaded on demand (the catalog metadata is eager):
   // the port's definitions, builder and chart modules, and the opt-in expansion.
-  ['theme library', /\/tokens\/src\/library-(?:port|expand)\//],
+  ['theme library', /\/tokens\/dist\/library-(?:port|expand)\//],
   ['crud screen kits', /\/crud\/src\/screens\//],
   ['crud app shell', /\/crud\/src\/app\//],
   ['charts', /\/charts-ui\/src\//],

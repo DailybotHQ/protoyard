@@ -9,7 +9,9 @@ import {
   setColumnHidden,
   showAllColumns,
 } from '@protoyard/views/grid';
+import { Checkbox } from 'texuli/choice';
 import { cx } from 'texuli/cx';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 /**
  * Chooses which columns show and in what order: a checkbox per column (the
@@ -73,9 +75,8 @@ function move(key: string, step: -1 | 1) {
       {@const at = entries.findIndex((s) => s.key === entry.key)}
       {@const lastVisible = !entry.hidden && visibleCount <= 1}
       <li class="flex items-center gap-2 rounded px-1 py-0.5 hover:bg-muted/50">
-        <input
+        <Checkbox
           id={`col-${uid}-${entry.key}`}
-          type="checkbox"
           class="size-4 accent-primary"
           checked={!entry.hidden}
           disabled={lastVisible}
@@ -83,20 +84,20 @@ function move(key: string, step: -1 | 1) {
           onchange={(event) => onchange(setColumnHidden(listed(), entry.key, !(event.currentTarget as HTMLInputElement).checked))}
         />
         <label for={`col-${uid}-${entry.key}`} class="min-w-0 flex-1 truncate text-sm">{header}</label>
-        <button
+        <Button
           type="button"
           aria-label={`Move ${header} up`}
           disabled={at <= 0 || query.trim() !== ''}
           class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-40"
           onclick={() => move(entry.key, -1)}
-        ><ArrowUp class="size-3.5" aria-hidden="true" /></button>
-        <button
+        ><LucideIcon icon={ArrowUp} class="size-3.5"  /></Button>
+        <Button
           type="button"
           aria-label={`Move ${header} down`}
           disabled={at >= entries.length - 1 || query.trim() !== ''}
           class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-40"
           onclick={() => move(entry.key, 1)}
-        ><ArrowDown class="size-3.5" aria-hidden="true" /></button>
+        ><LucideIcon icon={ArrowDown} class="size-3.5"  /></Button>
       </li>
     {:else}
       <li class="px-1 text-sm text-muted-foreground">No columns match.</li>

@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Button } from '@protoyard/ui';
 import { chromeMessages } from '../messages.ts';
 import Icon from './Icon.svelte';
 
@@ -22,17 +23,18 @@ const GAP = 8;
 const messages = chromeMessages().frame;
 </script>
 
-<button
+<Button
   type="button"
+  variant="ghost"
+  size="sm"
   data-py-frame-toggle
   aria-label={messages.enter}
   aria-pressed="false"
   title={messages.enterHint}
-  style:bottom="calc(100% + {offset + GAP}px)"
-  style:right="{-offset}px"
+  style={`bottom: calc(100% + ${offset + GAP}px); right: ${-offset}px`}
   class="pointer-events-auto absolute z-[35] inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 bg-zinc-800/85 px-3 text-xs font-medium text-white shadow-sm hover:bg-zinc-700/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:bg-zinc-950/85"
   onclick={(event) => onenter({ browser: event.shiftKey })}
 >
   <Icon name="expand" class="size-3.5" />
   <span aria-hidden="true">{messages.enterShort}</span>
-</button>
+</Button>

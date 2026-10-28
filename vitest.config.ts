@@ -26,6 +26,7 @@ export default defineConfig({
       'prototypes/*/tests/**/*.test.ts',
       'tests/unit/**/*.test.ts',
       'tests/scripts/**/*.test.ts',
+      'tests/adoption/**/*.test.ts',
       'scripts/tests/**/*.test.ts',
       'tests/integration/**/*.test.ts',
     ],

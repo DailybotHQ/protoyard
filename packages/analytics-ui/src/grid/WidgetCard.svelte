@@ -2,6 +2,7 @@
 import { Ellipsis, Maximize2 } from '@lucide/svelte';
 import { Button, Dialog, DropdownMenu, type DropdownMenuEntry } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 type Props = {
   title: string;
@@ -83,14 +84,14 @@ const emptyMessage = $derived(typeof empty === 'string' ? empty : 'No data yet')
           aria-label="Expand {title}"
           onclick={() => (expanded = true)}
         >
-          <Maximize2 class="size-4" aria-hidden="true" />
+          <LucideIcon icon={Maximize2} class="size-4" />
         </Button>
       {/if}
       {#if menu.length > 0}
         <DropdownMenu items={menu}>
           {#snippet trigger({ props })}
             <Button {...props} variant="ghost" size="icon" class="size-8 min-h-0 min-w-0" aria-label="{title} options">
-              <Ellipsis class="size-4" aria-hidden="true" />
+              <LucideIcon icon={Ellipsis} class="size-4" />
             </Button>
           {/snippet}
         </DropdownMenu>

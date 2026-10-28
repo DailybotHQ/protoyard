@@ -1,13 +1,19 @@
 <script lang="ts">
-import { ChevronDown, ChevronUp } from '@lucide/svelte';
-import { tick } from 'svelte';
-import { cn } from '../../../lib/cn.ts';
-import { fieldClasses } from '../../input/input-classes.ts';
+import { createFormBridge, type FormBridge } from '@texuli/core/form-bridge';
+import { tick, untrack } from 'svelte';
+import { Button } from 'texuli/button';
+import { cx } from 'texuli/cx';
+import { labelClass } from 'texuli/field';
+import { Icon } from 'texuli/icons';
+import { popoverContentClass } from 'texuli/popover';
+import Input from '../../input/Input.svelte';
 import { EMOJI_GROUPS } from './emojis.ts';
 
 /**
  * EmojiPicker — choose one emoji from a searchable, grouped grid. Arrow keys
  * move in the grid; Enter picks; Escape closes. No network, no skin-tone API.
+ * Texuli has no emoji picker, so this composes Texuli's Button, Input, Icon
+ * and popover surface around Protoyard's emoji data.
  */
 interface Props {
   value?: string;
@@ -51,7 +57,7 @@ let open = $state(false);
 let query = $state('');
 let focusIndex = $state(0);
 let root: HTMLDivElement | undefined = $state();
-let trigger: HTMLButtonElement | undefined = $state();
+let trigger: HTMLElement | null = $state(null);
 let grid: HTMLDivElement | undefined = $state();
 
 const groups = $derived.by(() => {
@@ -125,6 +131,29 @@ function onRootKey(event: KeyboardEvent) {
   }
 }
 
+// With a `name` (or `required`), Texuli's form bridge (`@texuli/core/form-bridge`)
+// submits the emoji and takes part in validation, focusing the trigger when invalid.
+let bridge: FormBridge | null = null;
+$effect(() => {
+  if (!(name || required) || !root || !trigger) return;
+  const created = createFormBridge(root.ownerDocument, {
+    name: name ?? '',
+    value: untrack(() => value),
+    required,
+    disabled,
+    focusTarget: trigger,
+  });
+  root.prepend(created.input);
+  bridge = created;
+  return () => {
+    created.dispose();
+    bridge = null;
+  };
+});
+$effect(() => {
+  bridge?.setValue(value ?? '');
+});
+
 $effect(() => {
   if (!open) return;
   const outside = (event: PointerEvent) => {
@@ -135,24 +164,17 @@ $effect(() => {
 });
 </script>
 
-<div class={cn('grid gap-1.5', className)}>
+<div class={cx('ui-emoji-picker', className)}>
   {#if label}
-    <span class="text-sm font-medium text-foreground" id={`${fieldId}-label`}>{label}</span>
+    <span class={labelClass()} id={`${fieldId}-label`}>{label}</span>
   {/if}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div bind:this={root} class="relative w-fit" onkeydown={onRootKey}>
-    {#if name || required}
-      <input type="hidden" {name} value={value} required={required || undefined} />
-    {/if}
-    <button
-      bind:this={trigger}
-      type="button"
+  <div bind:this={root} class="ui-emoji-picker__anchor" onkeydown={onRootKey}>
+    <Button
+      bind:ref={trigger}
+      variant="outline"
       id={fieldId}
-      class={cn(
-        fieldClasses,
-        'inline-flex h-9 min-h-touch w-[7.5rem] items-center justify-between gap-2 px-3 sm:min-h-0',
-        invalid && 'border-destructive'
-      )}
+      class={cx('ui-emoji-picker__trigger', invalid && 'ui-emoji-picker__trigger--invalid')}
       aria-haspopup="dialog"
       aria-expanded={open}
       aria-controls={`${fieldId}-picker`}
@@ -165,33 +187,28 @@ $effect(() => {
       onclick={toggle}
     >
       {#if value}
-        <span class="text-xl leading-none" aria-hidden="true">{value}</span>
-        <span class="sr-only">{value}</span>
+        <span class="ui-emoji-picker__value" aria-hidden="true">{value}</span>
+        <span class="tx-sr-only">{value}</span>
       {:else}
-        <span class="truncate text-muted-foreground">{placeholder}</span>
+        <span class="ui-emoji-picker__placeholder">{placeholder}</span>
       {/if}
-      {#if open}
-        <ChevronUp class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      {:else}
-        <ChevronDown class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      {/if}
-    </button>
+      <Icon icon="chevron-down" size="sm" class={open ? 'ui-emoji-picker__chevron--open' : undefined} aria-hidden="true" />
+    </Button>
     {#if open}
       <div
         id={`${fieldId}-picker`}
-        class="absolute top-[calc(100%+0.5rem)] left-0 z-30 w-80 max-w-[calc(100vw-2rem)] rounded-md border border-border bg-surface p-3 shadow-lg"
+        class={popoverContentClass({ class: 'ui-emoji-picker__panel' })}
         role="dialog"
         aria-label={label || placeholder}
       >
-        <input
+        <Input
           data-emoji-search
-          class={cn(fieldClasses, 'h-9 min-h-touch px-3 sm:min-h-0')}
           type="search"
           bind:value={query}
           placeholder={searchPlaceholder}
           aria-label={searchPlaceholder}
           autocomplete="off"
-          onkeydown={(event) => {
+          onkeydown={(event: KeyboardEvent) => {
             if (event.key === 'ArrowDown') {
               event.preventDefault();
               void moveTo(0);
@@ -200,29 +217,22 @@ $effect(() => {
         />
         <div
           bind:this={grid}
-          class="mt-2 max-h-64 overflow-y-auto outline-none"
+          class="ui-emoji-picker__grid"
           role="grid"
           aria-label="Emoji"
           tabindex="-1"
           onkeydown={onGridKey}
         >
           {#each groups as group (group.id)}
-            <div
-              class="px-0.5 pt-2 pb-1 text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase"
-              role="presentation"
-            >
-              {group.label}
-            </div>
-            <div class="grid grid-cols-8 gap-0.5" role="row">
+            <div class="ui-emoji-picker__group" role="presentation">{group.label}</div>
+            <div class="ui-emoji-picker__row" role="row">
               {#each group.emojis as [emoji, emojiName] (emoji)}
                 {@const index = flat.findIndex(([entry]) => entry === emoji)}
                 <span role="gridcell">
-                  <button
-                    type="button"
-                    class={cn(
-                      'flex size-9 items-center justify-center rounded-md text-xl hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:size-8',
-                      emoji === value && 'bg-muted'
-                    )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="ui-emoji-picker__emoji"
                     data-index={index}
                     tabindex={index === focusIndex ? 0 : -1}
                     aria-label={emojiName}
@@ -230,15 +240,84 @@ $effect(() => {
                     onclick={() => pick(emoji)}
                   >
                     {emoji}
-                  </button>
+                  </Button>
                 </span>
               {/each}
             </div>
           {:else}
-            <p class="py-4 text-center text-sm text-muted-foreground">No emoji matches</p>
+            <p class="ui-emoji-picker__empty">No emoji matches</p>
           {/each}
         </div>
       </div>
     {/if}
   </div>
 </div>
+
+<style>
+  .ui-emoji-picker {
+    display: grid;
+    gap: 0.375rem;
+  }
+  .ui-emoji-picker__anchor {
+    position: relative;
+    inline-size: fit-content;
+  }
+  :global(.ui-emoji-picker__trigger) {
+    inline-size: 7.5rem;
+    justify-content: space-between;
+  }
+  :global(.ui-emoji-picker__trigger--invalid) {
+    border-color: var(--tx-destructive, crimson);
+  }
+  :global(.ui-emoji-picker__chevron--open) {
+    rotate: 180deg;
+  }
+  .ui-emoji-picker__value {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  .ui-emoji-picker__placeholder {
+    overflow: hidden;
+    color: var(--tx-muted-foreground, GrayText);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  :global(.ui-emoji-picker__panel) {
+    position: absolute;
+    inset-block-start: calc(100% + 0.5rem);
+    inset-inline-start: 0;
+    z-index: 30;
+    inline-size: min(20rem, calc(100vw - 2rem));
+  }
+  .ui-emoji-picker__grid {
+    max-block-size: 16rem;
+    margin-block-start: 0.5rem;
+    overflow-y: auto;
+    outline: none;
+  }
+  .ui-emoji-picker__group {
+    padding: 0.5rem 0.125rem 0.25rem;
+    color: var(--tx-muted-foreground, GrayText);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .ui-emoji-picker__row {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 0.125rem;
+  }
+  :global(.ui-emoji-picker__emoji) {
+    font-size: 1.25rem;
+  }
+  :global(.ui-emoji-picker__emoji[aria-pressed='true']) {
+    background: var(--tx-muted, Canvas);
+  }
+  .ui-emoji-picker__empty {
+    padding-block: 1rem;
+    color: var(--tx-muted-foreground, GrayText);
+    font-size: var(--tx-font-size-sm, 0.875rem);
+    text-align: center;
+  }
+</style>

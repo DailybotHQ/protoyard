@@ -1,7 +1,7 @@
 <script lang="ts" generics="T">
 import { GripVertical, MoveRight } from '@lucide/svelte';
 import { runService } from '@protoyard/renderer-svelte';
-import { DropdownMenu, type DropdownMenuEntry, Spinner, toast } from '@protoyard/ui';
+import { Button, DropdownMenu, type DropdownMenuEntry, Input, Spinner, toast } from '@protoyard/ui';
 import {
   buildTree,
   type FlatNode,
@@ -17,6 +17,7 @@ import {
 } from '@protoyard/views/tree';
 import { tick } from 'svelte';
 import { cx } from 'texuli/cx';
+import { LucideIcon } from 'texuli/icons/lucide';
 import QueryState from '../states/QueryState.svelte';
 import {
   type DropZone,
@@ -303,8 +304,8 @@ function onPointerUp(event: PointerEvent) {
               'group flex items-center gap-1 rounded-md pr-1',
               drag?.active && drag.id === node.id && 'opacity-40',
               over === 'inside' && 'bg-primary/10 ring-1 ring-primary',
-              over === 'before' && 'shadow-[inset_0_2px_0_0_var(--py-primary)]',
-              over === 'after' && 'shadow-[inset_0_-2px_0_0_var(--py-primary)]'
+              over === 'before' && 'shadow-[inset_0_2px_0_0_var(--tx-primary)]',
+              over === 'after' && 'shadow-[inset_0_-2px_0_0_var(--tx-primary)]'
             )}
             style:padding-left={`${(node.level - 1) * 1.5}rem`}
           >
@@ -314,10 +315,10 @@ function onPointerUp(event: PointerEvent) {
               class="inline-flex cursor-grab touch-none text-muted-foreground/60 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100"
               onpointerdown={(event) => onGripDown(event, node)}
             >
-              <GripVertical class="size-4" aria-hidden="true" />
+              <LucideIcon icon={GripVertical} class="size-4"  />
             </span>
-            <span class="text-muted-foreground" aria-hidden="true">•</span>
-            <input
+            <span class="text-muted-foreground">•</span>
+            <Input
               id={`outline-${uid}-${node.id}`}
               value={titleOf(node)}
               {placeholder}
@@ -332,16 +333,16 @@ function onPointerUp(event: PointerEvent) {
             <span data-tree-menu class="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100">
               <DropdownMenu items={menuFor(node)} align="end">
                 {#snippet trigger({ props })}
-                  <button
+                  <Button
                     {...props}
                     type="button"
-                    tabindex="-1"
+                    tabindex={-1}
                     disabled={pending[node.id]}
                     aria-label={`Move ${titleOf(node) || placeholder} to…`}
                     class="inline-flex size-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                   >
-                    <MoveRight class="size-3.5" aria-hidden="true" />
-                  </button>
+                    <LucideIcon icon={MoveRight} class="size-3.5"  />
+                  </Button>
                 {/snippet}
               </DropdownMenu>
             </span>
@@ -349,7 +350,7 @@ function onPointerUp(event: PointerEvent) {
         {/each}
       </ul>
       {#if flat.length === 0}
-        <button
+        <Button
           type="button"
           class="mt-1 rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           disabled={creating}
@@ -357,7 +358,7 @@ function onPointerUp(event: PointerEvent) {
           onclick={() => create(null)}
         >
           + Add the first item
-        </button>
+        </Button>
       {/if}
     {/snippet}
   </QueryState>

@@ -9,7 +9,8 @@ import {
   SAAS_PROVIDERS,
   type SaasProvider,
 } from '@protoyard/saas';
-import { Button } from '@protoyard/ui';
+import { Button } from 'texuli/button';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { getSaas } from '../context.ts';
 
 interface Props {
@@ -67,7 +68,7 @@ async function start(provider: SaasProvider): Promise<void> {
       aria-describedby={noteId}
       onclick={() => start(provider)}
     >
-      <KeyRound class="size-4 shrink-0" aria-hidden="true" />
+      <LucideIcon icon={KeyRound} size="sm" />
       <span>Continue with {name}</span>
       <span
         class="ml-auto rounded-full border border-border px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground"

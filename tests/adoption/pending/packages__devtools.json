@@ -1,0 +1,23 @@
+{
+  "unit": "packages__devtools",
+  "entries": [
+    {
+      "file": "packages/devtools/src/primitives/FileInput.svelte",
+      "rule": "own-component",
+      "count": 1,
+      "gap": "G8"
+    },
+    {
+      "file": "packages/devtools/src/primitives/FileInput.svelte",
+      "rule": "raw-control",
+      "count": 1,
+      "gap": "G8"
+    },
+    {
+      "file": "packages/devtools/src/primitives/Initials.svelte",
+      "rule": "own-component",
+      "count": 1,
+      "gap": "G10"
+    }
+  ]
+}

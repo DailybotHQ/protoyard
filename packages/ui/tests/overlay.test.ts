@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_DRAWER_SIZE,
   DRAWER_PLACEMENTS,
-  drawerPlacementClasses,
   resolveDrawerSize,
 } from '../src/components/overlay/drawer.ts';
 import { OVERLAY_Z_BASE, OverlayStack } from '../src/components/overlay/overlay-stack.ts';
@@ -136,18 +135,6 @@ describe('OverlayStack', () => {
 });
 
 describe('drawer placement helpers', () => {
-  it('maps each of the four edges to its own anchor and border', () => {
-    const anchors = { right: 'right-0', left: 'left-0', top: 'top-0', bottom: 'bottom-0' };
-    const borders = { right: 'border-l', left: 'border-r', top: 'border-b', bottom: 'border-t' };
-    for (const placement of DRAWER_PLACEMENTS) {
-      const classes = drawerPlacementClasses(placement).split(' ');
-      expect(classes).toContain(anchors[placement]);
-      expect(classes).toContain(borders[placement]);
-    }
-    expect(drawerPlacementClasses('left')).toContain('w-[var(--ui-drawer-size)]');
-    expect(drawerPlacementClasses('bottom')).toContain('h-[var(--ui-drawer-size)]');
-  });
-
   it('accepts plain lengths and pixels, and rejects anything that could inject CSS', () => {
     expect(resolveDrawerSize('right', '30rem')).toBe('30rem');
     expect(resolveDrawerSize('bottom', '40%')).toBe('40%');
@@ -183,7 +170,9 @@ describe('Drawer', () => {
       const drawer = await openOuter();
       expect(drawer.dataset.placement).toBe(placement);
       expect(drawer.style.getPropertyValue('--ui-drawer-size').trim()).toBe('18rem');
-      expect(drawer.className).toContain(drawerPlacementClasses(placement).split(' ')[0]);
+      // Texuli's sheet surface, anchored by the primitive's physical side.
+      expect(drawer.classList.contains('tx-sheet')).toBe(true);
+      expect(drawer.dataset.side).toBe(placement);
       // Non-modal: no aria-modal at all (its absence means false).
       expect(drawer.hasAttribute('aria-modal')).toBe(false);
     }

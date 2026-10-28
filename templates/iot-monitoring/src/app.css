@@ -3,9 +3,9 @@
 @import "@protoyard/charts-ui/styles.css";
 
 :root {
-  font-family: var(--py-font-sans, ui-sans-serif, system-ui, sans-serif);
-  color: var(--py-foreground);
-  background: var(--py-background);
+  font-family: var(--tx-font-sans, ui-sans-serif, system-ui, sans-serif);
+  color: var(--tx-foreground);
+  background: var(--tx-background);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }

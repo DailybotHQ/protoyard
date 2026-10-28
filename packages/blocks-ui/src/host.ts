@@ -148,12 +148,12 @@ export function fragmentAttributes(
     'transform-origin:0',
     'transition-property:opacity,transform,background-color,box-shadow,translate,scale',
     'transition-duration:500ms',
-    'transition-timing-function:var(--py-motion-easing,cubic-bezier(.4,0,.2,1))',
+    'transition-timing-function:cubic-bezier(.4,0,.2,1)',
     phase.visible ? 'visibility:visible;opacity:1' : 'visibility:hidden;opacity:0',
     !phase.visible && reveal === 'fade-up' ? 'translate:0 .6em' : '',
     phase.active && reveal === 'grow' ? 'scale:1.04' : '',
     phase.active && reveal === 'highlight'
-      ? 'border-radius:calc(var(--py-radius) - var(--py-radius-step-2,2px));background-color:color-mix(in oklab,var(--py-primary) 10%,transparent);--tw-ring-color:color-mix(in oklab,var(--py-primary) 50%,transparent);--tw-ring-shadow:var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color,currentcolor);box-shadow:var(--tw-inset-shadow),var(--tw-inset-ring-shadow),var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow)'
+      ? 'border-radius:var(--tx-radius);background-color:color-mix(in oklab,var(--tx-primary) 10%,transparent);--tw-ring-color:color-mix(in oklab,var(--tx-primary) 50%,transparent);--tw-ring-shadow:var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color,currentcolor);box-shadow:var(--tw-inset-shadow),var(--tw-inset-ring-shadow),var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow)'
       : '',
     phase.active && reveal === 'strike' ? 'text-decoration-line:line-through;opacity:.6' : '',
   ]

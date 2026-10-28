@@ -40,7 +40,9 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@protoyard/flows": "workspace:*"
+    "@protoyard/flows": "workspace:*",
+    "@texuli/workflows": "0.4.0",
+    "texuli": "0.4.0"
   },
   "devDependencies": {
     "svelte": "^5.57.2"

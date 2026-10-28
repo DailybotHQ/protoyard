@@ -45,15 +45,5 @@ export {
   type BoardPlacement,
   placementsOf,
 } from '@texuli/data/board';
-/**
- * Index before the first item whose midpoint is past the pointer (sorted
- * midpoints). Texuli moved it out of `@texuli/data/board` into the shared drag
- * engine as `midpointIndex`; the old name stays for Protoyard callers.
- */
-export { midpointIndex as indexFromPointer } from '@texuli/drag/collision';
-/**
- * Pointer travel before a press becomes a drag, preserving ordinary clicks.
- * Matches the default `threshold` of `@texuli/drag/gesture`'s pointer tracker.
- */
-export const DRAG_THRESHOLD_PX = 4;
 export { default as BoardView } from './BoardView.svelte';
+export { DRAG_THRESHOLD_PX, indexFromPointer } from './pointer.ts';

@@ -1,6 +1,6 @@
 <script lang="ts">
 import { getRuntime, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
-import { Button, Input } from '@protoyard/ui';
+import { Button, Input, Select } from '@protoyard/ui';
 import type { B2bSaasDatabase } from '../database/schema.ts';
 import { createProjectServices } from '../domain/projects.ts';
 
@@ -49,6 +49,6 @@ async function updateStatus(id: string, status: 'planning' | 'active' | 'complet
   </form>
   {#if message}<p role="status" class="text-sm text-muted-foreground">{message}</p>{/if}
   {#if projects.error}<p role="alert" class="text-sm text-destructive">Could not load projects: {String(projects.error)}</p>{:else if projects.loading}<p role="status">Loading projects…</p>{:else if projects.current?.length}
-    <ul class="grid gap-3 sm:grid-cols-2">{#each projects.current as project (project.id)}<li class="rounded-xl border border-border bg-surface p-5"><div class="flex items-start justify-between gap-3"><div><h2 class="font-semibold">{project.name}</h2><p class="mt-1 text-sm text-muted-foreground">{project.summary || 'No summary yet.'}</p></div><label class="text-xs text-muted-foreground">Status<select class="mt-1 block rounded-md border border-border bg-background px-2 py-1 text-foreground" value={project.status} onchange={(event) => void updateStatus(project.id, event.currentTarget.value as 'planning' | 'active' | 'complete')}><option value="planning">Planning</option><option value="active">Active</option><option value="complete">Complete</option></select></label></div><p class="mt-4 text-xs text-muted-foreground">Updated {new Date(project.updatedAt).toLocaleDateString()}</p></li>{/each}</ul>
+    <ul class="grid gap-3 sm:grid-cols-2">{#each projects.current as project (project.id)}<li class="rounded-xl border border-border bg-surface p-5"><div class="flex items-start justify-between gap-3"><div><h2 class="font-semibold">{project.name}</h2><p class="mt-1 text-sm text-muted-foreground">{project.summary || 'No summary yet.'}</p></div><label class="text-xs text-muted-foreground">Status<Select class="mt-1 block" value={project.status} items={[{ value: 'planning', label: 'Planning' }, { value: 'active', label: 'Active' }, { value: 'complete', label: 'Complete' }]} onValueChange={(value) => void updateStatus(project.id, value as 'planning' | 'active' | 'complete')} /></label></div><p class="mt-4 text-xs text-muted-foreground">Updated {new Date(project.updatedAt).toLocaleDateString()}</p></li>{/each}</ul>
   {:else}<p class="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground">No projects yet. Create the first one above.</p>{/if}
 </section>

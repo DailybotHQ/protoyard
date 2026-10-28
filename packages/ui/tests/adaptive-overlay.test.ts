@@ -62,7 +62,8 @@ describe('AdaptiveOverlay', () => {
     await settle();
     const sheet = await screen.findByRole('dialog', { name: 'Filters' });
     expect(document.querySelector('[data-adaptive-overlay-presentation="sheet"]')).toBeTruthy();
-    expect(sheet.className).toMatch(/bottom-0/);
+    expect(sheet.classList.contains('tx-drawer')).toBe(true);
+    expect(sheet.dataset.side).toBe('bottom');
     await fireEvent.keyDown(sheet, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Filters' })).toBeNull());
   });
@@ -78,7 +79,7 @@ describe('AdaptiveOverlay', () => {
     await settle();
     const dialog = await screen.findByRole('dialog', { name: 'Filters' });
     expect(document.querySelector('[data-adaptive-overlay-presentation="dialog"]')).toBeTruthy();
-    expect(dialog.className).toMatch(/top-1\/2/);
+    expect(dialog.classList.contains('tx-dialog')).toBe(true);
     expect(within(dialog).getByText('Overlay body')).toBeTruthy();
   });
 
@@ -95,7 +96,7 @@ describe('AdaptiveOverlay', () => {
     expect(
       document.querySelector('[data-adaptive-overlay-presentation="side-panel"]')
     ).toBeTruthy();
-    expect(panel.className).toMatch(/sm:right-0/);
+    expect(panel.classList.contains('tx-detail-panel')).toBe(true);
   });
 
   it('force=dialog uses a dialog even on a narrow host', async () => {

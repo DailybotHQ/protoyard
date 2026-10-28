@@ -17,15 +17,20 @@ Protoyard keeps the parts that need its runtime:
   tree, map, activity and files are thin re-exports of `@texuli/data` engine
   subpaths. Editor, notifications, settings, states, commands and scenarios
   stay Protoyard modules.
-- **Components** (`@protoyard/views-ui/<subpath>`): board, calendar, timeline,
+- **Texuli view adapters** (`@protoyard/views-ui/<subpath>`): board, calendar, timeline,
   grid, tree, map, files and activity are thin host adapters over the matching
   `@texuli/data` component. An adapter maps a `liveQuery` result (`query`) to
   the component's data prop, wraps it in `QueryState`, and runs mutation
   callbacks through `runService`. `virtual-list` is a plain re-export.
-- **Protoyard-only components:** editor, notifications, settings, states,
+- **Protoyard-owned behavior:** editor, notifications, settings, states,
   commands, `CommentThread`, `OutlineEditor` and the grid toolkit
   (`FilterBuilder`, `SavedViews`, `FilterChips`, `FacetPicker`,
-  `ColumnChooser`, `BulkActionBar`).
+  `ColumnChooser`, `BulkActionBar`) retain Protoyard's public state/service
+  contracts and use Texuli-backed controls. `CommentThread`,
+  `NotificationCenter`, `OutlineEditor` and Markdown source editing also keep
+  their Protoyard-specific host behavior; the missing Texuli 0.3.0 APIs are
+  tracked as G17 (editor/Markdown round-trip), G18 (recursive filter authoring)
+  and G19 (notification inbox/read actions).
 
 Texuli view schemas use `DataSchema` (`parse` / `safeParse`), not zod. The
 mapping table and limits are in
@@ -191,7 +196,7 @@ Method notes are in [`PERFORMANCE.md`](PERFORMANCE.md#views-kit).
   editing turns virtualization off.
 - `scripts/bench-grid.ts` currently fails ("rows never rendered") against the
   ui-kit grid demo, so there is no current 100,000-row measurement.
-- The editor is a textarea-based Markdown editor, not a WYSIWYG editor. Its
+- The editor is a Texuli `Textarea`-based Markdown editor, not a WYSIWYG editor. Its
   preview renders a safe syntax tree as elements and never injects HTML.
 - These packages provide simulated prototype behavior. They are not a
   production calendar, geographic information system, file backend or

@@ -6,11 +6,13 @@ import {
   CAP_REASON,
   setLevel,
 } from '@protoyard/ai';
+import { Radio, RadioGroup } from 'texuli/choice';
 import { AUTONOMY_LEVEL_LABELS, areaLabel } from './labels.ts';
 
 /**
- * Per-area autonomy level radios. Calls `onChange` with the next config from
- * `setLevel` (pure). Caps disable higher options. Simulated product settings.
+ * Per-area autonomy level radios (Texuli's card radio group). Calls `onChange`
+ * with the next config from `setLevel` (pure). Caps disable higher options.
+ * Simulated product settings.
  */
 let {
   config,
@@ -62,38 +64,33 @@ async function pick(level: AutonomyLevel): Promise<void> {
   <p class="m-0 text-xs text-muted-foreground">
     Simulated settings. Levels are not security boundaries.
   </p>
-  <div class="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="{legend} for {areaLabel(area)}">
+  <RadioGroup
+    class="grid gap-2 sm:grid-cols-2"
+    variant="card"
+    name="autonomy-{area}"
+    value={String(current)}
+    disabled={disabled || pending}
+    aria-label="{legend} for {areaLabel(area)}"
+    onValueChange={(value) => void pick(Number(value) as AutonomyLevel)}
+  >
     {#each AUTONOMY_LEVELS as level (level)}
       {@const meta = AUTONOMY_LEVEL_LABELS[level]}
       {@const capped = cap !== undefined && level > cap}
-      <label
-        class="relative grid min-h-11 cursor-pointer gap-0.5 rounded-lg border border-border bg-surface px-3 py-2.5 pl-9 text-left {current ===
-        level
-          ? 'border-primary bg-primary/5'
-          : ''} {capped ? 'cursor-not-allowed opacity-60' : ''}"
+      <Radio
+        card
+        value={String(level)}
+        label={`Level ${level}: ${meta.name}`}
+        description={meta.definition}
+        disabled={capped || disabled || pending}
       >
-        <input
-          type="radio"
-          class="absolute top-3 left-3"
-          name="autonomy-{area}"
-          value={level}
-          checked={current === level}
-          disabled={capped || disabled || pending}
-          aria-label={`Level ${level}: ${meta.name}`}
-          onchange={() => void pick(level)}
-        />
-        <span class="text-sm font-semibold text-foreground" aria-hidden="true"
-          >{level}. {meta.name}</span
-        >
-        <span class="text-xs text-muted-foreground">{meta.definition}</span>
         {#if capped}
           <span class="text-xs text-muted-foreground"
             >{area === 'external' ? CAP_REASON : `Capped at level ${String(cap)}.`}</span
           >
         {/if}
-      </label>
+      </Radio>
     {/each}
-  </div>
+  </RadioGroup>
   {#if pending}
     <p class="m-0 text-xs text-muted-foreground" role="status" aria-live="polite">Saving…</p>
   {/if}

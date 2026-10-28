@@ -8,6 +8,12 @@ packages:
 # ago (4320 minutes). Protects against compromised releases that get yanked or
 # patched within days. Affects new installs and updates; the lockfile is honored.
 minimumReleaseAge: 4320
+# Texuli is Dailybot's own component library, released by the same owner and
+# adopted from npm the day it ships (docs/TEXULI.md). Only these names skip
+# the age guard; every third-party dependency keeps it.
+minimumReleaseAgeExclude:
+  - texuli
+  - '@texuli/*'
 
 allowBuilds:
   # Native bindings / install scripts that pnpm would otherwise refuse to run.

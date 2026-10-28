@@ -54,7 +54,7 @@ async function submit(event: SubmitEvent) {
     </FormField>
     <FormField label="Stock" required error={errors.stock}>
       {#snippet children(control)}
-        <Input {...control.props} type="number" inputmode="numeric" min="0" step="1" bind:value={stock} />
+        <Input {...control.props} type="number" inputmode="numeric" min={0} step={1} bind:value={stock} />
       {/snippet}
     </FormField>
   </form>

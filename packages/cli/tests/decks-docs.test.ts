@@ -97,8 +97,8 @@ describe('docs/DECKS.md', () => {
     expect(limits).toContain(
       `${DECK_TEXT_MINIMUMS.bodyPx} px body, ${DECK_TEXT_MINIMUMS.labelPx} px labels`
     );
-    expect(QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES.deck).toBe(Math.round(2.65 * 1024 * 1024));
-    expect(limits).toContain('| 2.65 MiB |');
+    expect(QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES.deck).toBe(2.5 * 1024 * 1024);
+    expect(limits).toContain('| 2.5 MiB |');
   });
 
   it('names every transition, the motion cap and the background count', () => {

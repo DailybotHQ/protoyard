@@ -1,7 +1,12 @@
 <script lang="ts">
 import type { StatBlock } from '@protoyard/blocks';
+import { Stat } from 'texuli/stat';
 
-/** Figures as one row of large numbers that stacks on phones. */
+/**
+ * Figures as one row of Texuli stats that stacks on phones. The row's title
+ * and source stay Protoyard's text (the stat block fields Texuli's renderer
+ * does not carry yet, G21).
+ */
 let { block }: { block: StatBlock } = $props();
 
 const COLUMNS: Record<number, string> = {
@@ -19,24 +24,18 @@ const columns = $derived(COLUMNS[block.items.length] ?? 'sm:grid-cols-3');
   {#if block.title}
     <p class="text-center text-sm font-semibold text-muted-foreground">{block.title}</p>
   {/if}
-  <dl
-    class="grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-soft {columns}"
-  >
+  <ul class="m-0 grid list-none gap-4 p-0 {columns}">
     {#each block.items as item, i (i)}
-      <div class="flex flex-col items-center gap-2 bg-surface px-6 py-8 text-center sm:py-10">
-        <dt class="order-2 text-sm font-medium text-muted-foreground">{item.label}</dt>
-        <dd class="order-1 font-heading text-4xl font-bold tracking-tight text-foreground tabular-nums sm:text-5xl">
-          {item.value}
-        </dd>
-        {#if item.delta || item.context}
-          <dd class="order-3 text-xs text-muted-foreground">
-            {#if item.delta}<span class="font-semibold text-foreground tabular-nums">{item.delta}</span>{/if}
-            {#if item.delta && item.context}<span aria-hidden="true"> · </span>{/if}
-            {#if item.context}{item.context}{/if}
-          </dd>
-        {/if}
-      </div>
+      <li class="min-w-0">
+        <Stat
+          label={item.label}
+          value={item.value}
+          delta={item.delta}
+          hint={item.context}
+          class="h-full text-center"
+        />
+      </li>
     {/each}
-  </dl>
+  </ul>
   {#if block.source}<p class="text-center text-xs text-muted-foreground">Source: {block.source}</p>{/if}
 </section>

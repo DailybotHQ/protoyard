@@ -2,6 +2,7 @@
 import { FilePlus, FileQuestion } from '@lucide/svelte';
 import { can, Link, liveQuery, type RouteProps, useClock } from '@protoyard/renderer-svelte';
 import { Button, Card, EmptyState, Skeleton } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import NewPageDialog from '../components/NewPageDialog.svelte';
 import PageTree from '../components/PageTree.svelte';
 import SearchForm from '../components/SearchForm.svelte';
@@ -38,7 +39,7 @@ let newOpen = $state(false);
       <p class="mt-1 text-sm text-muted-foreground">{s.description}</p>
     </div>
     {#if can(CAPABILITIES.pagesEdit)}
-      <Button onclick={() => (newOpen = true)}><FilePlus class="size-4" aria-hidden="true" />New page</Button>
+      <Button onclick={() => (newOpen = true)}><LucideIcon icon={FilePlus} class="size-4" />New page</Button>
     {/if}
   </header>
   <div class="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">

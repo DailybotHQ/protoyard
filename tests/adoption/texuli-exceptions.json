@@ -1,0 +1,57 @@
+[
+  {
+    "path": "packages/crud/src/EntityList.svelte",
+    "rules": ["raw-control"],
+    "reason": "The visually hidden CSV file input must remain a native file input so the Import CSV action can open the browser file picker and consume File objects."
+  },
+  {
+    "path": "packages/player/src/archetypes/business/AnalyticsApp.svelte",
+    "rules": ["own-component"],
+    "reason": "This is a route-injection adapter around the caller-provided BlueprintApp, not an independently rendered UI component."
+  },
+  {
+    "path": "packages/player/src/entries/KindMismatch.svelte",
+    "rules": ["own-component"],
+    "reason": "This page explains a player routing error for the wrong blueprint kind; its blueprint-specific message and alternate-player link have no equivalent Texuli component."
+  },
+  {
+    "path": "packages/renderer-svelte/src/app.css",
+    "rules": ["py-token"],
+    "reason": "The remaining --py-* references are renderer-owned frame geometry and host layout variables such as device radius and side-panel width, not semantic design tokens."
+  },
+  {
+    "path": "packages/renderer-svelte/src/shell/floating.ts",
+    "rules": ["py-token"],
+    "reason": "--py-fixed-right-edge is a renderer-owned positioning measurement for floating chrome, not a semantic design token."
+  },
+  {
+    "path": "packages/renderer-svelte/src/shell/DemoBadge.svelte",
+    "rules": ["py-token"],
+    "reason": "--py-fixed-right-edge is the renderer's measured visible-viewport offset used to keep its simulation honesty badge on screen."
+  },
+  {
+    "path": "packages/renderer-svelte/src/shell/frames/",
+    "rules": ["raw-control"],
+    "reason": "Device frames and simulated browser/window chrome need native controls to reproduce their shell affordances, such as minimize, rotate and home-indicator behavior."
+  },
+  {
+    "path": "packages/ui/src/components/safe-area/SafeArea.svelte",
+    "rules": ["own-component"],
+    "reason": "Applies the simulated device's safe-area insets (from the renderer's frame) to its children; it is prototype device simulation, not a UI component Texuli could own."
+  },
+  {
+    "path": "packages/ui/src/components/window-chrome/WindowChrome.svelte",
+    "rules": ["raw-control"],
+    "reason": "Simulated desktop window chrome (traffic lights, title bar controls) reproduces an operating system's window affordances inside a device frame, like the renderer's frames."
+  },
+  {
+    "path": "packages/ui/src/layouts/DocsLayout.svelte",
+    "rules": ["own-component"],
+    "reason": "The docs layout stays Protoyard's (ADR-044: texuli/layouts registers 11 of the 12 layouts); its deep-link ids and TOC rules also wait on gap G39."
+  },
+  {
+    "path": "packages/ui/src/styles.css",
+    "rules": ["py-token"],
+    "reason": "The remaining --py-* reads are renderer-written frame geometry (app height, simulated safe-area insets, fixed right edge) mapped onto Texuli's --tx-app-height and --tx-safe-* variables, not semantic design tokens."
+  }
+]

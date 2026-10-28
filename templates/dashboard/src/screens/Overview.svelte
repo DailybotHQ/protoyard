@@ -1,7 +1,9 @@
 <script lang="ts">
-import { CircleDollarSign, Plus, Receipt, ShoppingCart, UserPlus, Users } from '@lucide/svelte';
+import { CircleDollarSign, Receipt, ShoppingCart, UserPlus, Users } from '@lucide/svelte';
 import { can, Link, liveQuery, useClock, usePrincipal } from '@protoyard/renderer-svelte';
 import { Button, Card, EmptyState, ErrorState, Skeleton, StatCard } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import CustomerDialog from '../components/CustomerDialog.svelte';
 import MetricCard from '../components/MetricCard.svelte';
 import OrderDialog from '../components/OrderDialog.svelte';
@@ -72,10 +74,10 @@ const trend = (value: number | null) =>
 <PageHeader title={`Welcome back, ${firstName}`} description="How your workspace is doing over the last 30 days.">
   {#snippet actions()}
     {#if can(CAPABILITIES.customersCreate) && !isEmpty}
-      <Button variant="outline" onclick={() => (customerOpen = true)}><UserPlus class="size-4" aria-hidden="true" />Customer</Button>
+      <Button variant="outline" onclick={() => (customerOpen = true)}><LucideIcon icon={UserPlus} class="size-4" />Customer</Button>
     {/if}
     {#if can(CAPABILITIES.ordersCreate) && !isEmpty}
-      <Button onclick={() => (orderOpen = true)}><Plus class="size-4" aria-hidden="true" />New order</Button>
+      <Button onclick={() => (orderOpen = true)}><Icon icon="plus" class="size-4" aria-hidden="true" />New order</Button>
     {/if}
   {/snippet}
 </PageHeader>
@@ -97,7 +99,7 @@ const trend = (value: number | null) =>
   >
     {#snippet action()}
       {#if can(CAPABILITIES.customersCreate)}
-        <Button onclick={() => (customerOpen = true)}><UserPlus class="size-4" aria-hidden="true" />Add your first customer</Button>
+        <Button onclick={() => (customerOpen = true)}><LucideIcon icon={UserPlus} class="size-4" />Add your first customer</Button>
       {/if}
     {/snippet}
   </EmptyState>

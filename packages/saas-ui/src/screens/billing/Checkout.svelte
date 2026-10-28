@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { RadioGroup } from 'texuli/choice';
 import { getSaas } from '../../context.ts';
 import { formatCents } from '../../lib/money.ts';
 
@@ -108,23 +109,16 @@ async function submit() {
       </p>
 
       {#if showOutcomePicker}
-        <fieldset class="space-y-2" data-testid="checkout-outcome-picker">
-          <legend class="text-sm font-medium">Simulator outcome (DevTools / scenario)</legend>
-          {#each OUTCOMES as item (item.id)}
-            <label class="flex cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name="checkout-outcome"
-                value={item.id}
-                checked={outcome === item.id}
-                onchange={() => (outcome = item.id)}
-              />
-              {item.label}
-            </label>
-          {/each}
-        </fieldset>
-      {:else}
-        <input type="hidden" name="checkout-outcome" value="success" />
+        <div class="space-y-2" data-testid="checkout-outcome-picker">
+          <h3 class="text-sm font-medium">Simulator outcome (DevTools / scenario)</h3>
+          <RadioGroup
+            name="checkout-outcome"
+            aria-label="Simulator outcome"
+            bind:value={outcome}
+            items={OUTCOMES.map((item) => ({ value: item.id, label: item.label }))}
+            class="gap-2"
+          />
+        </div>
       {/if}
 
       {#if error}

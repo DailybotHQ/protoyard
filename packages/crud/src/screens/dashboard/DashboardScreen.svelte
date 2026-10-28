@@ -4,7 +4,7 @@ import type { Blueprint, EntityServices } from '@protoyard/blueprint';
 import { dashboardWidgets, inputProperty } from '@protoyard/blueprint';
 import { PermissionDeniedError, type PrototypeRuntime, type Row } from '@protoyard/core';
 import { liveQuery, navigate, useClock, usePrincipal } from '@protoyard/renderer-svelte';
-import { Button } from '@protoyard/ui';
+import { Button, Select } from '@protoyard/ui';
 import { formatEntityHeading } from '../../format.ts';
 import {
   aggregateWidget,
@@ -140,7 +140,7 @@ function chartSeries(widget: Extract<DashboardWidget, { kind: 'chart' }>) {
       const cell = result.series.find((item) => item.bucket === bucket && item.group === group);
       return { x: Date.parse(bucket), y: cell?.value ?? 0 };
     }),
-    color: `var(--py-chart${(index % 6) + 1})`,
+    color: `var(--tx-chart-${(index % 6) + 1})`,
   }));
 }
 
@@ -152,7 +152,7 @@ function chartSlices(widget: Extract<DashboardWidget, { kind: 'chart' }>) {
     id: group,
     label: groupLabel(entity, widget.groupBy ?? '', group),
     value: result.series.find((item) => item.group === group)?.value ?? 0,
-    color: `var(--py-chart${(index % 6) + 1})`,
+    color: `var(--tx-chart-${(index % 6) + 1})`,
   }));
 }
 
@@ -187,11 +187,18 @@ function listLabel(row: Row, widget: Extract<DashboardWidget, { kind: 'list' }>)
     <h1 class="m-0 font-heading text-2xl font-semibold">{titleText}</h1>
     <label class="flex items-center gap-2 text-sm text-muted-foreground">
       Period
-      <select class="rounded-md border border-border bg-surface px-3 py-2 text-surface-foreground" bind:value={periodDays}>
-        <option value={7}>Last 7 days</option>
-        <option value={30}>Last 30 days</option>
-        <option value={90}>Last 90 days</option>
-      </select>
+      <Select
+        class="w-40"
+        value={String(periodDays)}
+        items={[
+          { value: '7', label: 'Last 7 days' },
+          { value: '30', label: 'Last 30 days' },
+          { value: '90', label: 'Last 90 days' },
+        ]}
+        onValueChange={(value) => {
+          if (value === '7' || value === '30' || value === '90') periodDays = Number(value) as 7 | 30 | 90;
+        }}
+      />
     </label>
   </header>
 
@@ -244,7 +251,7 @@ function listLabel(row: Row, widget: Extract<DashboardWidget, { kind: 'list' }>)
             {:else}
               <ul class="m-0 grid list-none gap-2 p-0">
                 {#each list as row (String(row.id))}
-                  <li><button class="text-left text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring" onclick={() => open(widget, row)}>{listLabel(row, widget)}</button></li>
+                  <li><Button variant="link" class="h-auto min-h-0 px-0 py-0 text-left" onclick={() => open(widget, row)}>{listLabel(row, widget)}</Button></li>
                 {/each}
               </ul>
             {/if}
@@ -256,7 +263,7 @@ function listLabel(row: Row, widget: Extract<DashboardWidget, { kind: 'list' }>)
               <ul class="m-0 grid list-none gap-2 p-0">
                 {#each result?.groups ?? [] as value (value)}
                   {@const count = result?.series.find((item) => item.group === value)?.value ?? 0}
-                  <li><button class="flex w-full justify-between gap-2 text-left hover:underline focus-visible:outline-2 focus-visible:outline-ring" onclick={() => openBoard(widget, value)}><span>{groupLabel(entity, widget.groupBy, value)}</span><span class="tabular-nums">{count}</span></button></li>
+                  <li><Button variant="ghost" class="flex h-auto min-h-0 w-full justify-between gap-2 px-0 py-0 text-left" onclick={() => openBoard(widget, value)}><span>{groupLabel(entity, widget.groupBy, value)}</span><span class="tabular-nums">{count}</span></Button></li>
                 {/each}
               </ul>
             {/if}

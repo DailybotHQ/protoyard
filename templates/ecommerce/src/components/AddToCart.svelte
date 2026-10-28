@@ -2,6 +2,7 @@
 import { ShoppingCart } from '@lucide/svelte';
 import { can, isValidationError, runService } from '@protoyard/renderer-svelte';
 import { Button, toast } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { Product } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { useShop } from '../lib/context.ts';
@@ -53,7 +54,7 @@ async function add() {
     loading={adding}
     onclick={add}
   >
-    {#if !soldOut}<ShoppingCart class="size-4" aria-hidden="true" />{/if}
+    {#if !soldOut}<LucideIcon icon={ShoppingCart} class="size-4" />{/if}
     <!-- The visible words start the name (WCAG 2.5.3); the product is for screen readers. -->
     {soldOut ? 'Sold out' : 'Add to cart'}<span class="sr-only">: {product.name}</span>
   </Button>

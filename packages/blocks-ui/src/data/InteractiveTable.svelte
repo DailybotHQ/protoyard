@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { TableBlock as TableBlockData } from '@protoyard/blocks';
+import { Input } from '@protoyard/ui';
 import { formatTableCell } from './format.ts';
 import TableView from './TableView.svelte';
 
@@ -56,7 +57,7 @@ function toggleSort(column: number): void {
   <div class="mb-2 flex flex-wrap items-center gap-2">
     <label class="grid w-full gap-1 text-xs text-muted-foreground sm:max-w-xs">
       <span>Filter {block.caption}</span>
-      <input
+      <Input
         type="search"
         class="min-h-touch rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
         value={query}

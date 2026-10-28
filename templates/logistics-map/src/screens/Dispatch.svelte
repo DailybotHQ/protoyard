@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Truck } from '@lucide/svelte';
 import { can, liveQuery, runService, useClock } from '@protoyard/renderer-svelte';
-import { Button, Card, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
+import { Button, Card, EmptyState, ErrorState, Select, Skeleton } from '@protoyard/ui';
 import { etaSeconds, pointAlong, routeLength } from '@protoyard/views/map';
 import type { MapMarker, MapRoute } from '@protoyard/views-ui/map';
 import { onMount } from 'svelte';
@@ -153,10 +153,7 @@ async function reassign(shipmentId: string) {
           {#if canDispatch && shipment.status === 'in-transit'}
             <div class="flex flex-wrap items-center gap-2">
               <label class="sr-only" for={`vehicle-${shipment.id}`}>Replacement vehicle for {shipment.reference}</label>
-              <select id={`vehicle-${shipment.id}`} class="min-h-9 rounded-md border border-border bg-background px-2 text-sm" bind:value={reassignment[shipment.id]}>
-                <option value="">Reassign vehicle…</option>
-                {#each (vehicles.current ?? []).filter((candidate) => candidate.depotId === shipment.depotId && candidate.id !== shipment.vehicleId) as candidate (candidate.id)}<option value={candidate.id}>{candidate.name}</option>{/each}
-              </select>
+              <Select id={`vehicle-${shipment.id}`} class="min-h-9" bind:value={reassignment[shipment.id]} items={[{ value: '', label: 'Reassign vehicle…' }, ...(vehicles.current ?? []).filter((candidate) => candidate.depotId === shipment.depotId && candidate.id !== shipment.vehicleId).map((candidate) => ({ value: candidate.id, label: candidate.name }))]} />
               <Button size="sm" variant="outline" onclick={() => reassign(shipment.id)}>Reassign</Button>
             </div>
           {/if}

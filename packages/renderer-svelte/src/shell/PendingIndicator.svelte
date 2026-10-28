@@ -76,7 +76,7 @@ const message = $derived.by(() => {
     position: fixed;
     inset-inline: 0;
     /* The top of the app screen: under a device's status bar when framed. */
-    top: var(--py-safe-top, 0px);
+    top: var(--tx-safe-top, 0px);
     z-index: 70;
     height: 3px;
     overflow: hidden;

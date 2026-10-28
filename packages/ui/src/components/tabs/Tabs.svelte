@@ -1,7 +1,8 @@
 <script lang="ts">
 import { Tabs as TabsPrimitive } from '@texuli/primitives/tabs';
 import type { ComponentProps, Snippet } from 'svelte';
-import { cn } from '../../lib/cn.ts';
+import { Icon } from 'texuli/icons';
+import { tabsListClass, tabsRootClass, tabsTriggerClass } from 'texuli/tabs-accordion';
 import { refAttachment } from '../../lib/ref.ts';
 import type { TabItem } from './types.ts';
 
@@ -33,44 +34,42 @@ let {
 $effect.pre(() => {
   if (value === undefined || value === '') value = items.find((item) => !item.disabled)?.value;
 });
+
+// Protoyard's two looks map onto Texuli's: the segmented control is `pills`, underline is `line`.
+const texuliVariant = $derived(variant === 'underline' ? 'line' : 'pills');
 </script>
 
+<!--
+  A thin adapter over Texuli's tabs: the primitive with the classes of `Tabs`
+  from `texuli/tabs-accordion`, plus what that component cannot take yet: tab
+  icons, `bind:ref` and rest attributes (Texuli gap G5).
+-->
 <TabsPrimitive.Root
   bind:value={() => value ?? '', (next) => (value = next)}
   {@attach refAttachment<HTMLDivElement>((node) => (ref = node))}
   {loop}
-  class={cn('flex flex-col gap-3', className)}
+  class={tabsRootClass({ orientation: 'horizontal', variant: texuliVariant, class: className })}
+  data-tx-tabs=""
+  data-variant={texuliVariant}
   {...rest}
 >
-  <div class="-mx-1 overflow-x-auto px-1 pb-0.5">
+  <div class="tx-tabs__scroller">
     <TabsPrimitive.List
       aria-label={label}
-      class={cn(
-        variant === 'segmented'
-          ? 'inline-flex items-center gap-1 rounded-lg bg-muted p-1 text-muted-foreground'
-          : 'flex items-center gap-4 border-b border-border text-muted-foreground',
-        listClass
-      )}
+      class={tabsListClass({ variant: texuliVariant, class: listClass })}
+      data-tx-tabs-list=""
     >
       {#each items as item (item.value)}
         <TabsPrimitive.Trigger
           value={item.value}
           disabled={item.disabled}
-          class={cn(
-            'inline-flex min-h-touch items-center gap-2 text-sm font-medium whitespace-nowrap transition-colors outline-none sm:min-h-0',
-            'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-            'disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4',
-            variant === 'segmented'
-              ? 'h-8 rounded-md px-3 hover:text-foreground data-[state=active]:bg-surface data-[state=active]:text-foreground data-[state=active]:shadow-soft'
-              : '-mb-px h-10 border-b-2 border-transparent px-1 hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground'
-          )}
+          class={tabsTriggerClass({ variant: texuliVariant })}
+          data-tx-tabs-trigger=""
         >
-          {#if item.icon}<item.icon aria-hidden="true" />{/if}
+          {#if item.icon}<Icon icon={item.icon} size="sm" aria-hidden="true" />{/if}
           {item.label}
           {#if item.badge !== undefined}
-            <span class="rounded-full bg-background px-1.5 text-xs tabular-nums text-muted-foreground">
-              {item.badge}
-            </span>
+            <span class="tx-tabs__badge">{item.badge}</span>
           {/if}
         </TabsPrimitive.Trigger>
       {/each}
@@ -78,11 +77,7 @@ $effect.pre(() => {
   </div>
   {#if content}
     {#each items as item (item.value)}
-      <TabsPrimitive.Content
-        value={item.value}
-        forceMount={false}
-        class="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
+      <TabsPrimitive.Content value={item.value} forceMount={false} class="tx-tabs__panel" data-tx-tabs-panel="">
         {@render content(item)}
       </TabsPrimitive.Content>
     {/each}

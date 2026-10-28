@@ -1,7 +1,8 @@
 <script lang="ts">
-import { Menu } from '@lucide/svelte';
 import type { Snippet } from 'svelte';
-import { cn } from '../../lib/cn.ts';
+import { IconButton } from 'texuli/button';
+import { cx } from 'texuli/cx';
+import { Icon } from 'texuli/icons';
 import { getAppShellContext } from '../app-shell/context.ts';
 
 interface Props {
@@ -35,23 +36,23 @@ const shell = getAppShellContext();
 const menuHandler = $derived(onMenuClick ?? shell?.openSidebar);
 </script>
 
+<!-- The page header: Texuli has no standalone one (gap G15), so this lays out Texuli's IconButton and Protoyard's slots. -->
 <header
-  class={cn(
+  class={cx(
     'z-30 flex min-h-14 shrink-0 items-center gap-3 border-b border-border bg-background/85 px-4 pt-safe backdrop-blur-md sm:px-6',
     sticky && 'sticky top-0',
     className
   )}
 >
   {#if menuHandler}
-    <button
-      type="button"
-      class="-ml-2 inline-flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:hidden"
-      aria-label={menuLabel}
+    <IconButton
+      label={menuLabel}
+      class="-ml-2 shrink-0 lg:hidden"
       aria-expanded={shell ? shell.sidebarOpen : undefined}
       onclick={menuHandler}
     >
-      <Menu class="size-5" aria-hidden="true" />
-    </button>
+      <Icon icon="menu" aria-hidden="true" />
+    </IconButton>
   {/if}
   {#if leading}<div class="flex min-w-0 items-center gap-2">{@render leading()}</div>{/if}
   <div class="min-w-0 flex-1 py-2">

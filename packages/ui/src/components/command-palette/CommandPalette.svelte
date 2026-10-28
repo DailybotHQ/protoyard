@@ -1,10 +1,19 @@
 <script lang="ts">
-import { Command as CommandIcon, Search } from '@lucide/svelte';
-import { Command } from '@texuli/primitives/command';
 import * as DialogPrimitive from '@texuli/primitives/dialog';
 import { onMount } from 'svelte';
-import { cn } from '../../lib/cn.ts';
-import { overlayBackdrop } from '../../lib/overlay.ts';
+import {
+  CommandEmpty,
+  CommandGroup,
+  CommandGroupHeading,
+  CommandGroupItems,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandRoot,
+  commandLoadingClass,
+  commandPaletteClass,
+} from 'texuli/command';
+import { cx } from 'texuli/cx';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import type { CommandPaletteItem, CommandPaletteSearch, CommandPaletteSelect } from './types.ts';
 
@@ -132,7 +141,13 @@ onMount(() => {
 });
 </script>
 
-<!-- Inside a framed device the palette is contained by its screen; otherwise it opens in the top layer. -->
+<!--
+  A thin adapter over Texuli's command palette: the parts and classes of
+  `CommandPalette` from `texuli/command`, on a dialog root that also takes the
+  framed-device portal, which Texuli's palette cannot take yet (gap G4).
+  Inside a framed device the palette is contained by its screen; otherwise it
+  opens in the top layer.
+-->
 <DialogPrimitive.Root
   bind:open
   onOpenChange={setOpen}
@@ -144,74 +159,46 @@ onMount(() => {
   }}
 >
   <DialogPrimitive.Portal>
-    <DialogPrimitive.Overlay class={overlayBackdrop} />
+    <DialogPrimitive.Overlay class="tx-command-palette__overlay" data-tx-command-palette-overlay="" />
     <DialogPrimitive.Content
-      class={cn(
-        'fixed top-[12vh] left-1/2 z-50 flex max-h-[76vh] w-[calc(100%-2rem)] -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-border bg-elevated text-foreground shadow-float outline-none ui-anim-pop sm:top-[18vh] sm:max-w-xl',
-        className
-      )}
+      class={cx('tx-command-palette__content', commandPaletteClass({ size: 'md' }), className)}
+      data-tx-command-palette=""
+      data-size="md"
     >
-      <DialogPrimitive.Title class="sr-only">Command palette</DialogPrimitive.Title>
-      <DialogPrimitive.Description class="sr-only">
+      <DialogPrimitive.Title class="tx-sr-only">Command palette</DialogPrimitive.Title>
+      <DialogPrimitive.Description class="tx-sr-only">
         Search or choose a recent action. Use the arrow keys to move and Enter to select.
       </DialogPrimitive.Description>
-      <Command.Root label="Search commands" shouldFilter={false} loop aria-busy={loading || undefined}>
-        <div class="flex items-center gap-3 border-b border-border px-4">
-          <Search class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <Command.Input
-            bind:value={query}
-            placeholder={placeholder}
-            class="h-14 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
-          />
-          <kbd class="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-xs text-muted-foreground sm:inline">Esc</kbd>
-        </div>
-
-        <Command.List class="max-h-[min(60vh,28rem)] overflow-y-auto p-2">
+      <CommandRoot label="Search commands" shouldFilter={false} loop aria-busy={loading || undefined}>
+        <CommandInput bind:value={query} {placeholder} />
+        <CommandList>
           {#if loading}
             <!-- The search runs here, not through the list, so its status is this palette's own. -->
-            <p role="status" aria-live="polite" class="px-3 py-6 text-center text-sm text-muted-foreground">
-              Searching…
-            </p>
+            <p role="status" aria-live="polite" class={commandLoadingClass()}>Searching…</p>
           {:else if searchError}
-            <p role="alert" class="px-3 py-6 text-center text-sm text-destructive">{searchError}</p>
+            <p role="alert" class="tx-command__error" data-tx-command-error="">{searchError}</p>
           {:else if groupedItems.length === 0}
-            <Command.Empty class="px-3 py-6 text-center text-sm text-muted-foreground">
-              {query.trim() ? 'No results found.' : 'No recent items.'}
-            </Command.Empty>
+            <CommandEmpty>{query.trim() ? 'No results found.' : 'No recent items.'}</CommandEmpty>
           {:else}
             {#each groupedItems as group (group.label)}
-              <Command.Group value={group.label} class="mb-2 last:mb-0">
-                <Command.GroupHeading class="px-3 py-2 text-xs font-medium tracking-wide text-muted-foreground">
-                  {group.label}
-                </Command.GroupHeading>
-                <Command.GroupItems>
+              <CommandGroup value={group.label}>
+                <CommandGroupHeading>{group.label}</CommandGroupHeading>
+                <CommandGroupItems>
                   {#each group.items as item (item.id)}
-                    <Command.Item
+                    <CommandItem
                       value={item.id}
                       label={item.label}
+                      description={item.description}
                       keywords={item.keywords}
                       onSelect={() => selectItem(item)}
-                      class="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm outline-none data-highlighted:bg-muted data-highlighted:text-foreground"
-                    >
-                      <CommandIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                      <span class="min-w-0 flex-1">
-                        <span class="block truncate font-medium">{item.label}</span>
-                        {#if item.description}
-                          <span class="block truncate text-xs text-muted-foreground">{item.description}</span>
-                        {/if}
-                      </span>
-                    </Command.Item>
+                    />
                   {/each}
-                </Command.GroupItems>
-              </Command.Group>
+                </CommandGroupItems>
+              </CommandGroup>
             {/each}
           {/if}
-        </Command.List>
-        <div class="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-muted-foreground">
-          <span>Navigate with ↑ ↓</span>
-          <span>Select with Enter</span>
-        </div>
-      </Command.Root>
+        </CommandList>
+      </CommandRoot>
     </DialogPrimitive.Content>
   </DialogPrimitive.Portal>
 </DialogPrimitive.Root>

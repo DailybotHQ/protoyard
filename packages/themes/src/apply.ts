@@ -5,7 +5,7 @@ import {
   type ThemePalette,
   tokenToCssVar,
 } from '@protoyard/core';
-import { hoverFill } from './contrast.ts';
+import { hoverFill, linkStates } from './contrast.ts';
 import { BUILTIN_THEMES, DEFAULT_THEME_ID } from './presets.ts';
 
 export type ResolvedMode = 'light' | 'dark';
@@ -81,7 +81,7 @@ const FONT_SIZES = [
 function fontSizeVariables(scaleRatio: number | null): Record<string, string> {
   return Object.fromEntries(
     FONT_SIZES.map(([step, exponent, fallback]) => [
-      `--py-font-size-${step}`,
+      `--tx-font-size-${step}`,
       scaleRatio === null
         ? fallback
         : `${Number(scaleRatio ** exponent)
@@ -97,22 +97,22 @@ function elevationShadows(elevation: Theme['style']['elevation']): [string, stri
     case 'flat':
       return ['none', 'none'];
     case 'crisp':
-      return ['0 1px 2px 0 var(--py-shadow)', '0 4px 8px -2px var(--py-shadow)'];
+      return ['0 1px 2px 0 var(--tx-shadow)', '0 4px 8px -2px var(--tx-shadow)'];
     case 'glow':
       return [
-        '0 0 12px color-mix(in oklab, var(--py-primary) 24%, transparent)',
-        '0 0 28px color-mix(in oklab, var(--py-primary) 32%, transparent)',
+        '0 0 12px color-mix(in oklab, var(--tx-primary) 24%, transparent)',
+        '0 0 28px color-mix(in oklab, var(--tx-primary) 32%, transparent)',
       ];
     case 'layered':
       // Contact, key and ambient layers: depth grows with distance from the surface.
       return [
-        '0 1px 1px 0 var(--py-shadow), 0 2px 4px -1px var(--py-shadow), 0 4px 8px -2px var(--py-shadow)',
-        '0 1px 2px 0 var(--py-shadow), 0 4px 8px -2px var(--py-shadow), 0 12px 24px -6px var(--py-shadow), 0 24px 48px -12px var(--py-shadow)',
+        '0 1px 1px 0 var(--tx-shadow), 0 2px 4px -1px var(--tx-shadow), 0 4px 8px -2px var(--tx-shadow)',
+        '0 1px 2px 0 var(--tx-shadow), 0 4px 8px -2px var(--tx-shadow), 0 12px 24px -6px var(--tx-shadow), 0 24px 48px -12px var(--tx-shadow)',
       ];
     default:
       return [
-        '0 1px 2px 0 var(--py-shadow), 0 1px 3px 0 var(--py-shadow)',
-        '0 10px 30px -8px var(--py-shadow), 0 4px 10px -4px var(--py-shadow)',
+        '0 1px 2px 0 var(--tx-shadow), 0 1px 3px 0 var(--tx-shadow)',
+        '0 10px 30px -8px var(--tx-shadow), 0 4px 10px -4px var(--tx-shadow)',
       ];
   }
 }
@@ -122,43 +122,64 @@ export function themeVariables(input: AppearanceInput): Record<string, string> {
   const palette: ThemePalette =
     input.resolvedMode === 'dark' ? input.theme.dark : input.theme.light;
   const vars: Record<string, string> = {};
-  for (const [token, value] of Object.entries(palette)) vars[tokenToCssVar(token)] = value;
-  vars['--py-primary-hover'] = hoverFill(palette.primary, palette.primaryForeground);
-  vars['--py-destructive-hover'] = hoverFill(palette.destructive, palette.destructiveForeground);
-  vars['--py-radius'] = input.theme.radius;
-  vars['--py-font-sans'] = input.theme.fontFamily;
-  vars['--py-font-heading'] = input.theme.fontFamilyHeading ?? input.theme.fontFamily;
-  vars['--py-font-mono'] = input.theme.fontFamilyMono;
-  vars['--py-density'] = String(densityScale(input.density, input.theme));
-  vars['--py-motion'] = input.reducedMotion ? '0' : '1';
+  for (const [token, value] of Object.entries(palette)) {
+    vars[tokenToCssVar(token).replace('--py-', '--tx-')] = value;
+  }
+  vars['--tx-primary-hover'] = hoverFill(palette.primary, palette.primaryForeground);
+  vars['--tx-destructive-hover'] = hoverFill(palette.destructive, palette.destructiveForeground);
+  // Texuli's link role and its states (the `link` button variant, blocks links).
+  const link = linkStates(palette);
+  vars['--tx-link'] = link.default;
+  vars['--tx-link-hover'] = link.hover;
+  vars['--tx-link-active'] = link.active;
+  vars['--tx-link-focus'] = link.focus;
+  vars['--tx-link-disabled'] = link.disabled;
+  vars['--tx-link-visited'] = link.visited;
+  vars['--tx-radius'] = input.theme.radius;
+  vars['--tx-font-sans'] = input.theme.fontFamily;
+  vars['--tx-font-heading'] = input.theme.fontFamilyHeading ?? input.theme.fontFamily;
+  vars['--tx-font-mono'] = input.theme.fontFamilyMono;
+  vars['--tx-density'] = String(densityScale(input.density, input.theme));
+  vars['--tx-motion'] = input.reducedMotion ? '0' : '1';
   const style = input.theme.style;
   const [softShadow, floatShadow] = elevationShadows(style.elevation);
   Object.assign(vars, fontSizeVariables(style.typography.scaleRatio));
-  vars['--py-font-weight-body'] = String(style.typography.weights.body);
-  vars['--py-font-weight-medium'] = String(style.typography.weights.medium);
-  vars['--py-font-weight-heading'] = String(style.typography.weights.heading);
-  vars['--py-font-weight-bold'] = String(style.typography.weights.bold);
-  vars['--py-letter-spacing-body'] = style.typography.tracking.body;
-  vars['--py-letter-spacing-heading'] = style.typography.tracking.heading;
-  vars['--py-radius-scale'] = String(style.shape.radiusScale);
-  vars['--py-radius-step-6'] = `${Number((6 * style.shape.radiusScale).toFixed(4))}px`;
-  vars['--py-radius-step-4'] = `${Number((4 * style.shape.radiusScale).toFixed(4))}px`;
-  vars['--py-radius-step-2'] = `${Number((2 * style.shape.radiusScale).toFixed(4))}px`;
-  vars['--py-border-width'] = style.shape.borderWidth;
-  vars['--py-elevation-style'] = style.elevation;
-  vars['--py-shadow-soft'] = softShadow;
-  vars['--py-shadow-float'] = floatShadow;
-  vars['--py-surface-style'] = style.surface;
-  vars['--py-glass-opacity'] = '82%';
-  vars['--py-glass-blur'] = '16px';
-  vars['--py-motion-fast'] = input.reducedMotion ? '0ms' : `${style.motion.durations.fast}ms`;
-  vars['--py-motion-base'] = input.reducedMotion ? '0ms' : `${style.motion.durations.base}ms`;
-  vars['--py-motion-slow'] = input.reducedMotion ? '0ms' : `${style.motion.durations.slow}ms`;
-  vars['--py-motion-easing'] = input.reducedMotion ? 'linear' : style.motion.easing;
-  vars['--py-focus-ring-width'] = style.focusRing.width;
-  vars['--py-focus-ring-offset'] = style.focusRing.offset;
+  vars['--tx-font-weight-body'] = String(style.typography.weights.body);
+  vars['--tx-font-weight-medium'] = String(style.typography.weights.medium);
+  vars['--tx-font-weight-heading'] = String(style.typography.weights.heading);
+  vars['--tx-font-weight-bold'] = String(style.typography.weights.bold);
+  vars['--tx-letter-spacing-body'] = style.typography.tracking.body;
+  vars['--tx-letter-spacing-heading'] = style.typography.tracking.heading;
+  vars['--tx-radius-scale'] = String(style.shape.radiusScale);
+  vars['--tx-radius-step-6'] = `${Number((6 * style.shape.radiusScale).toFixed(4))}px`;
+  vars['--tx-radius-step-4'] = `${Number((4 * style.shape.radiusScale).toFixed(4))}px`;
+  vars['--tx-radius-step-2'] = `${Number((2 * style.shape.radiusScale).toFixed(4))}px`;
+  vars['--tx-border-width'] = style.shape.borderWidth;
+  vars['--tx-elevation-style'] = style.elevation;
+  vars['--tx-shadow-soft'] = softShadow;
+  vars['--tx-shadow-float'] = floatShadow;
+  vars['--tx-surface-style'] = style.surface;
+  vars['--tx-glass-opacity'] = '82%';
+  vars['--tx-glass-blur'] = '16px';
+  vars['--tx-motion-fast'] = input.reducedMotion ? '0ms' : `${style.motion.durations.fast}ms`;
+  vars['--tx-motion-base'] = input.reducedMotion ? '0ms' : `${style.motion.durations.base}ms`;
+  vars['--tx-motion-slow'] = input.reducedMotion ? '0ms' : `${style.motion.durations.slow}ms`;
+  vars['--tx-motion-easing'] = input.reducedMotion ? 'linear' : style.motion.easing;
+  vars['--tx-focus-ring-width'] = style.focusRing.width;
+  vars['--tx-focus-ring-offset'] = style.focusRing.offset;
   Object.assign(vars, chartVariables(input.theme, input.resolvedMode, palette));
-  return vars;
+  return withDeprecatedPyAliases(vars);
+}
+
+/** Keep exported prototypes working while making --tx-* the source of truth. */
+function withDeprecatedPyAliases(txVars: Record<string, string>): Record<string, string> {
+  const pyVars = Object.fromEntries(
+    Object.entries(txVars).map(([name, value]) => [
+      name.replace('--tx-', '--py-'),
+      value.replaceAll('--tx-', '--py-'),
+    ])
+  );
+  return { ...txVars, ...pyVars };
 }
 
 /**
@@ -166,10 +187,15 @@ export function themeVariables(input: AppearanceInput): Record<string, string> {
  * and the 9-step sequential and diverging ramps (the names the charts kit
  * reads). Cleared when the next theme has no `charts` block.
  */
+const TX_CHART_EXTENSION_VARIABLES: readonly string[] = [
+  ...[6, 7, 8].map((n) => `--tx-chart${n}`),
+  ...Array.from({ length: 9 }, (_, i) => `--tx-seq-${i + 1}`),
+  ...Array.from({ length: 9 }, (_, i) => `--tx-div-${i + 1}`),
+];
+
 export const CHART_EXTENSION_VARIABLES: readonly string[] = [
-  ...[6, 7, 8].map((n) => `--py-chart${n}`),
-  ...Array.from({ length: 9 }, (_, i) => `--py-seq-${i + 1}`),
-  ...Array.from({ length: 9 }, (_, i) => `--py-div-${i + 1}`),
+  ...TX_CHART_EXTENSION_VARIABLES,
+  ...TX_CHART_EXTENSION_VARIABLES.map((name) => name.replace('--tx-', '--py-')),
 ];
 
 /** Chart grid and axis colors always; the full series and ramps when the theme carries them. */
@@ -180,18 +206,18 @@ function chartVariables(
 ): Record<string, string> {
   const charts = theme.charts?.[mode];
   const vars: Record<string, string> = {
-    '--py-chart-grid': charts?.grid ?? palette.border,
-    '--py-chart-axis': charts?.axis ?? palette.mutedForeground,
+    '--tx-chart-grid': charts?.grid ?? palette.border,
+    '--tx-chart-axis': charts?.axis ?? palette.mutedForeground,
   };
   if (!charts) return vars;
   charts.categorical.forEach((color, i) => {
-    vars[`--py-chart${i + 1}`] = color;
+    vars[`--tx-chart${i + 1}`] = color;
   });
   charts.sequential.forEach((color, i) => {
-    vars[`--py-seq-${i + 1}`] = color;
+    vars[`--tx-seq-${i + 1}`] = color;
   });
   charts.diverging.forEach((color, i) => {
-    vars[`--py-div-${i + 1}`] = color;
+    vars[`--tx-div-${i + 1}`] = color;
   });
   return vars;
 }
@@ -342,7 +368,7 @@ export function applyAppearance(target: HTMLElement, input: AppearanceInput): Ap
     themeId: input.theme.id,
     mode: input.resolvedMode,
     reducedMotion,
-    density: Number(vars['--py-density']),
+    density: Number(vars['--tx-density']),
     surface: input.theme.style.surface,
     components,
     vars: { ...texuli, ...vars },

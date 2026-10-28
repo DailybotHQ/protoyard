@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { TableBlock as TableBlockData } from '@protoyard/blocks';
-import { cn } from '@protoyard/ui';
+import { Button, cn } from '@protoyard/ui';
 import { columnAlign, formatTableCell } from './format.ts';
 
 /**
@@ -47,7 +47,7 @@ const rowHeaders = $derived(
             aria-sort={sort?.column === c ? sort.direction : undefined}
           >
             {#if onsort}
-              <button
+              <Button
                 type="button"
                 class="inline-flex min-h-touch items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-0"
                 aria-label="Sort by {column.label}"
@@ -55,7 +55,7 @@ const rowHeaders = $derived(
               >
                 {column.label}
                 <span aria-hidden="true">{sort?.column === c ? (sort.direction === 'ascending' ? '↑' : '↓') : '↕'}</span>
-              </button>
+              </Button>
             {:else}
               {column.label}
             {/if}

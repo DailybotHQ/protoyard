@@ -1,19 +1,15 @@
 <script lang="ts">
-import { X } from '@lucide/svelte';
 import { Sheet } from '@texuli/primitives/sheet';
 import type { Snippet } from 'svelte';
-import { cn } from '../../lib/cn.ts';
-import { overlayBackdrop } from '../../lib/overlay.ts';
+import { cx } from 'texuli/cx';
+import { Icon } from 'texuli/icons';
+import { sheetContentClass } from 'texuli/sheet';
 import { refAttachment } from '../../lib/ref.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import { overlayDismissHandler } from './dismiss.ts';
-import {
-  type DrawerPlacement,
-  drawerPlacementClasses,
-  isDrawerPlacement,
-  resolveDrawerSize,
-} from './drawer.ts';
+import { type DrawerPlacement, isDrawerPlacement, resolveDrawerSize } from './drawer.ts';
+import './sheet-parts.css';
 import { type OverlayStack, overlayStack } from './overlay-stack.ts';
 import { useOverlayLayer } from './use-overlay-layer.svelte.ts';
 
@@ -114,7 +110,13 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
 }
 </script>
 
-<!-- Inside a framed device the drawer is contained by its screen; otherwise it opens in the top layer. -->
+<!--
+  A thin adapter over Texuli's sheet: the primitive with the `tx-sheet` surface
+  from `texuli/sheet`, plus what Texuli's styled sheet cannot take yet (gap G4):
+  the shared overlay stack, the framed-device portal and `bind:ref`. Inside a
+  framed device the drawer is contained by its screen; otherwise it opens in the
+  top layer.
+-->
 <Sheet.Root
   {open}
   onOpenChange={setOpen}
@@ -130,7 +132,11 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
   {/if}
   <Sheet.Portal>
     {#if modal}
-      <Sheet.Overlay class={overlayBackdrop} style={`z-index:${layer.zIndex}`} />
+      <Sheet.Overlay
+        class="tx-sheet-overlay"
+        data-tx-sheet-overlay=""
+        style={`z-index:${layer.zIndex}`}
+      />
     {/if}
     <!-- Non-modal by default: no inert page, focus trap or scroll lock. Read once, at open. -->
     {#key modal}
@@ -142,78 +148,34 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
         closeOnEscape={!modal && closeOnEscape}
         data-placement={edge}
         data-modal={modal ? 'true' : 'false'}
-        class={cn(
-          'ui-drawer fixed flex flex-col border-border bg-elevated text-foreground shadow-float outline-none',
-          drawerPlacementClasses(edge),
-          className
-        )}
+        data-tx-sheet=""
+        class={cx(sheetContentClass(), 'ui-sheet--sized', className)}
         style={`--ui-drawer-size:${resolvedSize};z-index:${layer.zIndex}`}
       >
         {#if edge === 'bottom'}
-          <div class="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-border" aria-hidden="true"></div>
+          <div data-drawer-handle aria-hidden="true"></div>
         {/if}
-        <div class="flex shrink-0 items-start justify-between gap-4 px-5 pt-5 pb-3">
-          <div class={cn('grid min-w-0 gap-1', hideTitle && 'sr-only')}>
-            <Sheet.Title class="font-heading text-lg leading-tight font-semibold">
-              {title}
-            </Sheet.Title>
+        <div class="ui-sheet__header">
+          <div class="ui-sheet__heading" data-hidden={hideTitle ? '' : undefined}>
+            <Sheet.Title class="ui-sheet__title">{title}</Sheet.Title>
             {#if description}
-              <Sheet.Description class="text-sm text-muted-foreground">
-                {description}
-              </Sheet.Description>
+              <Sheet.Description class="ui-sheet__description">{description}</Sheet.Description>
             {/if}
           </div>
           {#if !hideClose}
-            <Sheet.Close
-              class="-mt-1 -mr-2 ml-auto inline-flex size-9 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0 sm:min-w-0"
-            >
-              <X class="size-4" aria-hidden="true" />
-              <span class="sr-only">{closeLabel}</span>
+            <Sheet.Close class="ui-sheet__close" type="button">
+              <Icon icon="close" size="sm" aria-hidden="true" />
+              <span class="ui-sheet__sr-only">{closeLabel}</span>
             </Sheet.Close>
           {/if}
         </div>
         {#if children}
-          <div class="min-h-0 flex-1 overflow-y-auto px-5 py-2 text-sm">{@render children()}</div>
+          <div class="ui-sheet__body">{@render children()}</div>
         {/if}
         {#if footer}
-          <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
-            {@render footer()}
-          </div>
+          <div class="ui-sheet__footer">{@render footer()}</div>
         {/if}
       </Sheet.Content>
     {/key}
   </Sheet.Portal>
 </Sheet.Root>
-
-<style>
-  @media (prefers-reduced-motion: no-preference) {
-    :global(.ui-drawer[data-state='open']) {
-      animation: ui-drawer-in 240ms cubic-bezier(0.32, 0.72, 0, 1);
-    }
-    :global(.ui-drawer[data-state='closed']) {
-      animation: ui-drawer-out 160ms ease-in forwards;
-    }
-  }
-  :global(.ui-drawer[data-placement='right']) {
-    --ui-drawer-from: translateX(100%);
-  }
-  :global(.ui-drawer[data-placement='left']) {
-    --ui-drawer-from: translateX(-100%);
-  }
-  :global(.ui-drawer[data-placement='top']) {
-    --ui-drawer-from: translateY(-100%);
-  }
-  :global(.ui-drawer[data-placement='bottom']) {
-    --ui-drawer-from: translateY(100%);
-  }
-  @keyframes -global-ui-drawer-in {
-    from {
-      transform: var(--ui-drawer-from);
-    }
-  }
-  @keyframes -global-ui-drawer-out {
-    to {
-      transform: var(--ui-drawer-from);
-    }
-  }
-</style>

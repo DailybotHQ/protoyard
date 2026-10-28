@@ -8,6 +8,7 @@ import {
 } from '@protoyard/http';
 import { formatDateTime } from '../format.ts';
 import Btn from '../primitives/Btn.svelte';
+import Glyph from '../primitives/Glyph.svelte';
 import Section from '../primitives/Section.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
 
@@ -57,18 +58,18 @@ function chip(status: number | null): { label: string; cls: string } {
         {@const key = `${api}#${entry.id}`}
         {@const c = chip(entry.status)}
         <li>
-          <button
+          <Btn
             type="button"
             class="flex min-h-touch w-full items-center gap-2 px-2 py-1 text-left text-[11px] hover:bg-muted/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:min-h-7"
             aria-expanded={expanded === key}
             onclick={() => (expanded = expanded === key ? null : key)}
           >
-            <ChevronRight class={['size-3 shrink-0 transition-transform motion-reduce:transition-none', expanded === key && 'rotate-90']} aria-hidden="true" />
+            <Glyph icon="chevron-right" class={['size-3 shrink-0 transition-transform motion-reduce:transition-none', expanded === key && 'rotate-90']} aria-hidden="true" />
             <span class="w-10 shrink-0 font-mono font-semibold">{entry.method}</span>
             <span class="min-w-0 flex-1 truncate font-mono" title={entry.url}>{entry.url}</span>
             <span class="shrink-0 rounded px-1 font-mono text-[10px] font-medium {c.cls}">{c.label}</span>
             <span class="w-12 shrink-0 text-right font-mono text-muted-foreground tabular-nums">{Math.round(entry.durationMs)} ms</span>
-          </button>
+          </Btn>
           {#if expanded === key}
             <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 bg-muted/40 px-3 py-2 text-[11px]">
               <dt class="text-muted-foreground">Route</dt>

@@ -1,8 +1,8 @@
 <script lang="ts">
 import { House, Settings } from '@lucide/svelte';
-import AppShell from '../../src/components/app-shell/AppShell.svelte';
 import Header from '../../src/components/header/Header.svelte';
 import Sidebar from '../../src/components/sidebar/Sidebar.svelte';
+import { AppShell } from '../../src/index.ts';
 
 let { collapsed = false }: { collapsed?: boolean } = $props();
 let sidebarOpen = $state(false);

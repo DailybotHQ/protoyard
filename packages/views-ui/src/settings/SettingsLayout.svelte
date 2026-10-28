@@ -4,6 +4,8 @@ import { Button } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
 import { tick } from 'svelte';
 import { cx } from 'texuli/cx';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { SettingsNavItem } from './types.ts';
 
 interface Props {
@@ -71,7 +73,7 @@ async function backToList() {
         {#each sections as section (section.id)}
           {@const selected = section.id === current?.id}
           <li>
-            <button
+            <Button
               type="button"
               aria-current={selected ? 'page' : undefined}
               class={cx(
@@ -80,15 +82,15 @@ async function backToList() {
               )}
               onclick={() => choose(section.id)}
             >
-              {#if section.icon}<section.icon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />{/if}
+              {#if section.icon}<section.icon class="size-4 shrink-0 text-muted-foreground" />{/if}
               <span class="min-w-0 flex-1">
                 <span class="block truncate">{section.label}</span>
                 {#if section.description}
                   <span class="block truncate text-xs text-muted-foreground md:hidden">{section.description}</span>
                 {/if}
               </span>
-              <ChevronRight class="size-4 shrink-0 text-muted-foreground md:hidden" aria-hidden="true" />
-            </button>
+              <Icon icon="chevron-right" class="size-4 shrink-0 text-muted-foreground md:hidden"  />
+            </Button>
           </li>
         {/each}
       </ul>
@@ -98,7 +100,7 @@ async function backToList() {
       class={cx(listOpen ? 'hidden' : 'block', 'min-w-0 md:block')}
     >
       <Button variant="ghost" size="sm" class="-ml-2 mb-2 md:hidden" onclick={() => backToList()}>
-        <ChevronLeft class="size-4" aria-hidden="true" />
+        <LucideIcon icon={ChevronLeft} class="size-4"  />
         {title}
       </Button>
       <h2

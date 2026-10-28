@@ -5,7 +5,7 @@ import {
   parseManifest,
 } from '@protoyard/core';
 import type { ProtoyardRuntime } from '@protoyard/runtime';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import {
@@ -99,9 +99,8 @@ const invitationStatus = async (runtime: ProtoyardRuntime) =>
 
 function removeButtonFor(name: string): HTMLButtonElement {
   const row = screen.getByText(name).closest('li');
-  const button = row?.querySelector('button');
-  if (!button) throw new Error(`No Remove button for ${name}`);
-  return button as HTMLButtonElement;
+  if (!row) throw new Error(`No member row for ${name}`);
+  return within(row).getByRole('button', { name: 'Remove' }) as HTMLButtonElement;
 }
 
 /**

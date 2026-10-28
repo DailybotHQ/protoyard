@@ -1,6 +1,12 @@
 <script lang="ts">
 import { navigate, runService } from '@protoyard/renderer-svelte';
-import { getOverlayPortalTarget, Kbd, Spinner, subscribeOverlayPortalTarget } from '@protoyard/ui';
+import {
+  Button,
+  getOverlayPortalTarget,
+  Kbd,
+  Spinner,
+  subscribeOverlayPortalTarget,
+} from '@protoyard/ui';
 import { Command } from '@texuli/primitives/command';
 import * as DialogPrimitive from '@texuli/primitives/dialog';
 import { cx } from 'texuli/cx';
@@ -146,9 +152,9 @@ function goBack() {
       </DialogPrimitive.Description>
       {#if stepStack.length}
         <div class="flex items-center gap-2 border-b border-border px-3 py-2">
-          <button type="button" class="rounded px-2 py-1 text-sm hover:bg-muted" onclick={goBack}>
+          <Button type="button" class="rounded px-2 py-1 text-sm hover:bg-muted" onclick={goBack}>
             Back
-          </button>
+          </Button>
           <span class="truncate text-sm text-muted-foreground" aria-live="polite">
             {stepStack.map(({ entry }) => entry.label).join(' › ')}
           </span>

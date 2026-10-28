@@ -1,12 +1,10 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { groupMessages, MessageList, TypingIndicator } from '@texuli/chat';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Avatar from '../src/components/avatar/Avatar.svelte';
-import { groupMessages } from '../src/components/chat/group-messages.ts';
-import MessageList from '../src/components/chat/MessageList.svelte';
 import Composer from '../src/components/composer/Composer.svelte';
 import { getPageTokens } from '../src/components/pagination/pages.ts';
 import StatCard from '../src/components/stat-card/StatCard.svelte';
-import TypingIndicator from '../src/components/typing-indicator/TypingIndicator.svelte';
 import UserPicker from '../src/components/user-picker/UserPicker.svelte';
 import FormHarness from './fixtures/FormHarness.svelte';
 import KanbanHarness from './fixtures/KanbanHarness.svelte';
@@ -132,6 +130,15 @@ describe('MobileAppShell', () => {
     ).toBeTruthy();
   });
 
+  it('keeps its default height out of the class list, so a caller height class wins', () => {
+    // `cn` no longer resolves Tailwind conflicts: the frame height lives in a
+    // lower cascade layer (components) instead of an `h-app` class.
+    render(MobileShellHarness);
+    const root = screen.getByRole('main').parentElement as HTMLElement;
+    expect(root.classList.contains('ui-mobile-app-shell')).toBe(true);
+    expect(root.classList.contains('h-app')).toBe(false);
+  });
+
   it('resets the main scroll position when the hash route changes', async () => {
     render(MobileShellHarness);
     const main = screen.getByRole('main');
@@ -230,8 +237,9 @@ describe('Display components', () => {
 
   it('StatCard colors deltas by whether the direction is good', () => {
     render(StatCard, { label: 'Churn', value: '2.1%', delta: -0.4, positive: 'down' });
-    const delta = screen.getByText('-0.4');
-    expect(delta.className).toContain('text-success');
+    const delta = screen.getByText('-0.4').closest('.tx-stat__delta') as HTMLElement;
+    // Texuli's Stat: a good decrease gets the "good" tone.
+    expect(delta.className).toContain('tx-stat__delta--good');
     expect(delta.textContent).toContain('Decreased');
   });
 

@@ -36,17 +36,3 @@ export function resolveDrawerSize(placement: DrawerPlacement, size?: string | nu
   const trimmed = size?.trim();
   return trimmed && LENGTH.test(trimmed) ? trimmed : DEFAULT_DRAWER_SIZE[placement];
 }
-
-const PLACEMENT_CLASSES: Record<DrawerPlacement, string> = {
-  right:
-    'inset-y-0 right-0 h-full w-[var(--ui-drawer-size)] max-w-full border-l pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
-  left: 'inset-y-0 left-0 h-full w-[var(--ui-drawer-size)] max-w-full border-r pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
-  top: 'inset-x-0 top-0 h-[var(--ui-drawer-size)] max-h-[85%] w-full rounded-b-xl border-b pt-[env(safe-area-inset-top)]',
-  bottom:
-    'inset-x-0 bottom-0 h-[var(--ui-drawer-size)] max-h-[85%] w-full rounded-t-xl border-t pb-[env(safe-area-inset-bottom)]',
-};
-
-/** Position and edge classes for a placement (layout only; surface styling lives in Drawer). */
-export function drawerPlacementClasses(placement: DrawerPlacement): string {
-  return PLACEMENT_CLASSES[placement];
-}

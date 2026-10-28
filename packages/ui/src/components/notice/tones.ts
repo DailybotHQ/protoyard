@@ -5,6 +5,10 @@ import type { IconComponent } from '../../lib/types.ts';
 export const NOTICE_TONES = ['info', 'success', 'warning', 'error', 'brand'] as const;
 export type NoticeTone = (typeof NOTICE_TONES)[number];
 
+/**
+ * Lucide glyphs per tone, for callers that render a tone icon themselves
+ * (through `Icon` from `texuli/icons`). Notice uses Texuli's own tone glyphs.
+ */
 export const NOTICE_DEFAULT_ICONS: Record<NoticeTone, IconComponent> = {
   info: Info,
   success: BadgeCheck,
@@ -13,7 +17,11 @@ export const NOTICE_DEFAULT_ICONS: Record<NoticeTone, IconComponent> = {
   brand: Sparkles,
 };
 
-/** Box and title classes per tone — tinted fills with readable title color. */
+/**
+ * @deprecated Notice renders Texuli's `Alert`, which styles each tone itself;
+ * these Tailwind classes are kept for callers that styled their own boxes.
+ * Box and title classes per tone — tinted fills with readable title color.
+ */
 export const NOTICE_TONE_CLASSES: Record<NoticeTone, { box: string; title: string }> = {
   info: {
     box: 'border border-info/30 bg-info/10',

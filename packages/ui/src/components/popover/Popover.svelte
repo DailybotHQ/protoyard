@@ -1,12 +1,11 @@
 <script lang="ts">
 import * as PopoverPrimitive from '@texuli/primitives/popover';
 import type { ComponentProps, Snippet } from 'svelte';
-import { cn } from '../../lib/cn.ts';
-import { floatingSurface } from '../../lib/overlay.ts';
+import { PopoverContent } from 'texuli/popover';
 import { refAttachment } from '../../lib/ref.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 
-type Props = Omit<ComponentProps<typeof PopoverPrimitive.Content>, 'children'> & {
+type Props = Omit<ComponentProps<typeof PopoverContent>, 'children' | 'arrow'> & {
   side?: PopoverPrimitive.PopoverSide;
   align?: PopoverPrimitive.PopoverAlign;
   sideOffset?: number;
@@ -35,12 +34,17 @@ let {
   <PopoverPrimitive.Trigger>
     {#snippet child({ props })}{@render trigger({ props })}{/snippet}
   </PopoverPrimitive.Trigger>
-  <!-- The content opens in the top layer, above every stacking context. -->
-  <PopoverPrimitive.Content
+  <!--
+    Texuli's styled popover surface (`texuli/popover`). The trigger stays the
+    caller's own element (the `trigger` snippet), so the root is the primitive.
+    The content opens in the top layer, above every stacking context.
+  -->
+  <PopoverContent
     {@attach refAttachment<HTMLElement>((node) => (ref = node))}
-    class={cn(floatingSurface, 'w-72 max-w-[calc(100vw-2rem)] p-4 text-sm', className)}
+    arrow={false}
+    class={className}
     {...rest}
   >
     {@render children()}
-  </PopoverPrimitive.Content>
+  </PopoverContent>
 </PopoverPrimitive.Root>

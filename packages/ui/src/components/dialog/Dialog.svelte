@@ -1,9 +1,17 @@
 <script lang="ts">
-import { X } from '@lucide/svelte';
 import * as DialogPrimitive from '@texuli/primitives/dialog';
 import type { ComponentProps, Snippet } from 'svelte';
-import { cn } from '../../lib/cn.ts';
-import { overlayBackdrop } from '../../lib/overlay.ts';
+import {
+  dialogBodyClass,
+  dialogCloseClass,
+  dialogContentClass,
+  dialogDescriptionClass,
+  dialogFooterClass,
+  dialogHeaderClass,
+  dialogOverlayClass,
+  dialogTitleClass,
+} from 'texuli/dialog';
+import { Icon } from 'texuli/icons';
 import { refAttachment } from '../../lib/ref.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
@@ -49,8 +57,6 @@ const portal = useOverlayPortalTarget();
 // svelte-ignore state_referenced_locally
 const layer = useOverlayLayer(() => open, { modal: () => true, stack });
 
-const widths = { sm: 'sm:max-w-sm', md: 'sm:max-w-lg', lg: 'sm:max-w-2xl', xl: 'sm:max-w-4xl' };
-
 function setOpen(next: boolean): void {
   if (open === next) return;
   open = next;
@@ -65,7 +71,14 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
 }
 </script>
 
-<!-- Inside a framed device the dialog is contained by its screen; otherwise it opens in the top layer. -->
+<!--
+  A thin adapter over Texuli's dialog: the same primitive, parts and classes as
+  `Dialog` from `texuli/dialog`, plus what that component cannot take yet
+  (Texuli gaps G4 and G5): the shared overlay stack (z-order and dismiss of the
+  top layer), the framed-device portal, `bind:ref` and rest attributes. Inside a
+  framed device the dialog is contained by its screen; otherwise it opens in the
+  top layer.
+-->
 <DialogPrimitive.Root
   {open}
   onOpenChange={setOpen}
@@ -80,47 +93,43 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
     </DialogPrimitive.Trigger>
   {/if}
   <DialogPrimitive.Portal>
-    <DialogPrimitive.Overlay class={overlayBackdrop} style={`z-index:${layer.zIndex}`} />
+    <DialogPrimitive.Overlay
+      class={dialogOverlayClass()}
+      data-tx-dialog-overlay=""
+      style={`z-index:${layer.zIndex}`}
+    />
     <DialogPrimitive.Content
       {@attach refAttachment<HTMLElement>((node) => (ref = node))}
-      class={cn(
-        'fixed top-1/2 left-1/2 flex max-h-[calc(var(--py-app-height)-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col',
-        'rounded-xl border border-border bg-elevated text-foreground shadow-float outline-none ui-anim-pop',
-        widths[size],
-        className
-      )}
+      class={dialogContentClass({ size, class: className })}
+      data-tx-dialog=""
+      data-size={size}
+      data-state={open ? 'open' : 'closed'}
       {...rest}
       style={`z-index:${layer.zIndex}`}
     >
-      <div class="flex items-start justify-between gap-4 px-6 pt-6 pb-2">
-        <div class="grid gap-1.5">
-          <DialogPrimitive.Title class="font-heading text-lg leading-tight font-semibold">
-            {title}
-          </DialogPrimitive.Title>
+      <div class={dialogHeaderClass()} data-tx-dialog-header="">
+        <div class="tx-dialog__heading">
+          <DialogPrimitive.Title class={dialogTitleClass()}>{title}</DialogPrimitive.Title>
           {#if description}
-            <DialogPrimitive.Description class="text-sm text-muted-foreground">
+            <DialogPrimitive.Description class={dialogDescriptionClass()}>
               {description}
             </DialogPrimitive.Description>
           {/if}
         </div>
         {#if !hideClose}
-          <DialogPrimitive.Close
-            class="-mt-1 -mr-2 inline-flex size-9 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0 sm:min-w-0"
-          >
-            <X class="size-4" aria-hidden="true" />
-            <span class="sr-only">{closeLabel}</span>
+          <DialogPrimitive.Close class={dialogCloseClass()} data-tx-dialog-close="" type="button">
+            <Icon icon="close" size="sm" aria-hidden="true" />
+            <span class="tx-dialog__close-label">{closeLabel}</span>
           </DialogPrimitive.Close>
         {/if}
       </div>
       {#if children}
-        <div class="min-h-0 flex-1 overflow-y-auto px-6 py-2 text-sm">{@render children()}</div>
+        <div class={dialogBodyClass()} data-tx-dialog-body="">{@render children()}</div>
       {/if}
       {#if footer}
-        <div class="flex flex-col-reverse gap-2 px-6 pt-2 pb-6 sm:flex-row sm:justify-end">
-          {@render footer()}
-        </div>
+        <div class={dialogFooterClass()} data-tx-dialog-footer="">{@render footer()}</div>
       {:else}
-        <div class="pb-4"></div>
+        <div class="tx-dialog__footer-spacer" aria-hidden="true"></div>
       {/if}
     </DialogPrimitive.Content>
   </DialogPrimitive.Portal>

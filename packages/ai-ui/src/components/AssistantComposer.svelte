@@ -1,6 +1,12 @@
 <script lang="ts">
 import { ArrowUp, LoaderCircle, Paperclip, Square } from '@lucide/svelte';
 import { AI_MODELS, type AiModel } from '@protoyard/ai';
+import { onMount } from 'svelte';
+import { Tag } from 'texuli/badge';
+import { Button, IconButton } from 'texuli/button';
+import { LucideIcon } from 'texuli/icons/lucide';
+import { Textarea } from 'texuli/input';
+import { Select } from 'texuli/select';
 import type { AssistantSendInput } from '../types.ts';
 
 interface Props {
@@ -37,7 +43,10 @@ let error = $state('');
 let sending = $state(false);
 const waiting = $derived(sending && !streaming);
 let activeSuggestion = $state(0);
-let textarea = $state<HTMLTextAreaElement | null>(null);
+let textarea = $state<HTMLElement | null>(null);
+const modelItems = $derived(
+  models.map((model) => ({ value: model.id, label: `${model.name} · Simulated` }))
+);
 const trigger = $derived(/(?:^|\s)([/@][\w-]*)$/.exec(value));
 const suggestions = $derived.by(() => {
   if (!trigger?.[1]) return [];
@@ -121,54 +130,99 @@ function addFiles(event: Event): void {
   files = [...files, ...Array.from(input.files)];
   input.value = '';
 }
+
+/*
+ * The attachment picker: Texuli's IconButton opens a hidden file input.
+ * Texuli ships no button-style file picker (FileUpload is a dropzone without
+ * add/remove callbacks, gap G8), so the input is created here and kept in the
+ * composer, named "Choose attachments".
+ */
+let root = $state<HTMLDivElement | null>(null);
+let picker: HTMLInputElement | null = null;
+onMount(() => {
+  if (!root) return;
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.multiple = true;
+  input.hidden = true;
+  input.tabIndex = -1;
+  input.setAttribute('aria-label', 'Choose attachments');
+  input.addEventListener('change', addFiles);
+  root.append(input);
+  picker = input;
+  return () => {
+    input.removeEventListener('change', addFiles);
+    input.remove();
+    picker = null;
+  };
+});
 </script>
 
-<div class="@container relative mx-auto w-full max-w-3xl rounded-3xl border border-border bg-surface shadow-soft focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25">
+<!--
+  Built from texuli parts rather than @texuli/chat's Composer: that one has no
+  stop state, no textarea keydown or ref for the slash/mention list, and no
+  slot for the model choice (Texuli gap, see the lane-C map).
+-->
+<div bind:this={root} class="@container relative mx-auto w-full max-w-3xl rounded-3xl border border-border bg-surface shadow-soft focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25">
   {#if suggestions.length}
     <div class="absolute bottom-full left-3 z-10 mb-2 max-h-52 w-64 overflow-y-auto rounded-xl border border-border bg-elevated p-1 shadow-float" role="listbox" aria-label={trigger?.[1]?.startsWith('/') ? 'Slash commands' : 'People'}>
       {#each suggestions as item, index (`${item.kind}-${item.id}`)}
-        <button type="button" role="option" aria-selected={index === activeSuggestion} class="flex min-h-10 w-full items-center rounded-lg px-3 text-left text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-none" onclick={() => chooseSuggestion(item)}>{item.kind === 'mention' ? `@${item.label}` : item.label}</button>
+        <Button variant="ghost" role="option" aria-selected={index === activeSuggestion} class={`w-full justify-start ${index === activeSuggestion ? 'bg-muted' : ''}`} onclick={() => chooseSuggestion(item)}>{item.kind === 'mention' ? `@${item.label}` : item.label}</Button>
       {/each}
     </div>
   {/if}
   <label for="assistant-prompt" class="sr-only">Message the simulated assistant</label>
-  <textarea
-    bind:this={textarea}
+  <Textarea
+    bind:ref={textarea}
     bind:value
     id="assistant-prompt"
-    rows="1"
+    rows={1}
     {placeholder}
     {disabled}
     aria-describedby="assistant-composer-hint"
-    class="max-h-52 min-h-14 w-full resize-y bg-transparent px-5 pt-4 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-50"
+    class="max-h-52 min-h-14 w-full resize-y rounded-none border-0 bg-transparent px-5 pt-4 text-sm leading-6 shadow-none focus-visible:ring-0"
     onkeydown={handleKeydown}
-  ></textarea>
+  />
   <span id="assistant-composer-hint" class="sr-only">Press Enter to send. Shift plus Enter starts a new line. Type slash for commands or at sign to mention a person.</span>
   {#if files.length}
     <ul class="flex flex-wrap gap-2 px-4 pb-2" aria-label="Attachments">
       {#each files as file, index (`${file.name}-${index}`)}
-        <li class="inline-flex items-center gap-2 rounded-lg border border-border bg-muted px-2 py-1 text-xs">
-          <span class="max-w-44 truncate">{file.name}</span>
-          <button type="button" class="rounded px-1 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Remove ${file.name}`} onclick={() => (files = files.filter((_, itemIndex) => itemIndex !== index))}>×</button>
-        </li>
+        <li><Tag label={file.name} removeLabel="Remove" onRemove={() => (files = files.filter((_, itemIndex) => itemIndex !== index))} /></li>
       {/each}
     </ul>
   {/if}
   <div class="flex min-h-12 items-center gap-2 px-3 pb-3">
-    <label class="inline-flex size-10 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-within:ring-2 focus-within:ring-ring" aria-label="Attach files">
-      <Paperclip class="size-4" aria-hidden="true" />
-      <input class="sr-only" type="file" multiple aria-label="Choose attachments" onchange={addFiles} />
-    </label>
+    <IconButton variant="ghost" class="rounded-full" label="Attach files" {disabled} onclick={() => picker?.click()}>
+      <LucideIcon icon={Paperclip} size="sm" />
+    </IconButton>
     <label for="assistant-model" class="sr-only">Simulated model</label>
-    <select id="assistant-model" class="h-9 min-w-0 max-w-48 rounded-full border border-border bg-background px-3 text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" value={modelId} disabled={disabled || streaming || !onModelChange} onchange={(event) => onModelChange?.(event.currentTarget.value)}>
-      {#each models as model (model.id)}
-        <option value={model.id}>{model.name} · Simulated</option>
-      {/each}
-    </select>
+    <Select.Root
+      value={modelId}
+      items={modelItems}
+      disabled={disabled || streaming || !onModelChange}
+      onValueChange={(id) => onModelChange?.(id)}
+    >
+      <Select.Trigger id="assistant-model" aria-label="Simulated model" size="sm" class="min-w-0 max-w-48 rounded-full text-xs text-muted-foreground">
+        <Select.Value />
+      </Select.Trigger>
+      <Select.Content>
+        {#each modelItems as item (item.value)}
+          <Select.Item value={item.value} label={item.label}>{item.label}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
     <span class="ml-auto hidden text-[0.7rem] text-muted-foreground @md:inline">Simulated AI · no provider connection</span>
-  <button type="button" class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40" disabled={streaming ? !onStop : waiting || !value.trim() || disabled || !selectedModel} aria-busy={waiting || undefined} aria-label={streaming ? 'Stop response' : waiting ? 'Sending message' : 'Send message'} onclick={() => void submit()}>
-      {#if streaming}<Square class="size-4 fill-current" aria-hidden="true" />{:else if waiting}<LoaderCircle class="size-5 motion-safe:animate-spin" aria-hidden="true" data-composer-sending />{:else}<ArrowUp class="size-5" aria-hidden="true" />{/if}
-    </button>
+    <!-- Pending is the composer's own (Enter submits too), so the button does not track the promise. -->
+    <IconButton
+      class="shrink-0 rounded-full"
+      autoLoading={false}
+      disabled={streaming ? !onStop : waiting || !value.trim() || disabled || !selectedModel}
+      aria-busy={waiting || undefined}
+      label={streaming ? 'Stop response' : waiting ? 'Sending message' : 'Send message'}
+      onclick={submit}
+    >
+      {#if streaming}<LucideIcon icon={Square} size="sm" class="fill-current" />{:else if waiting}<span class="inline-flex" data-composer-sending><LucideIcon icon={LoaderCircle} size="md" class="motion-safe:animate-spin" /></span>{:else}<LucideIcon icon={ArrowUp} size="md" />{/if}
+    </IconButton>
   </div>
   {#if error}<p class="px-5 pb-3 text-xs text-destructive" role="alert">{error}</p>{/if}
 </div>

@@ -7,6 +7,7 @@ import { PASSWORD_RULES, passwordScore } from '../src/components/form/utilities/
 import TagEmailInput from '../src/components/form/utilities/TagEmailInput.svelte';
 import TextCounter from '../src/components/form/utilities/TextCounter.svelte';
 import * as barrel from '../src/index.ts';
+import EmojiFormHarness from './fixtures/EmojiFormHarness.svelte';
 
 afterEach(() => cleanup());
 
@@ -192,5 +193,18 @@ describe('form utilities barrel', () => {
     expect(typeof barrel.passwordScore).toBe('function');
     expect(typeof barrel.isEmailAddress).toBe('function');
     expect(barrel.EMOJI_GROUPS.length).toBeGreaterThan(0);
+  });
+});
+
+describe('EmojiPicker in a form', () => {
+  it("submits the emoji through Texuli's form bridge and is invalid while empty and required", async () => {
+    const { rerender } = render(EmojiFormHarness, { value: '' });
+    const form = screen.getByTestId('form') as HTMLFormElement;
+    const bridge = form.querySelector<HTMLInputElement>('input[name="reaction"]');
+    expect(bridge?.dataset.txFormBridge).toBe('');
+    expect(form.checkValidity()).toBe(false);
+    await rerender({ value: '👍' });
+    expect(new FormData(form).get('reaction')).toBe('👍');
+    expect(form.checkValidity()).toBe(true);
   });
 });

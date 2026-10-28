@@ -7,6 +7,7 @@
  */
 import type { ChartBlock as ChartBlockData } from '@protoyard/blocks';
 import type { Component } from 'svelte';
+import { cx } from 'texuli/cx';
 import { toTexuliChartBlock } from '../compat/chart-spec.ts';
 import { isSecurityFuzzHost } from '../host.ts';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
@@ -83,7 +84,7 @@ $effect(() => {
   data-chart-kind={payload?.kind}
   {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
 >
-  <figure class="m-0" data-py-chart="" data-chart-kind={payload?.kind}>
+  <figure class={cx('m-0')} data-py-chart="" data-chart-kind={payload?.kind}>
     {#if fuzzStub}
       <div data-py-chart="" role="img" aria-label={payload?.title ?? 'Chart'}></div>
     {:else if !payload}

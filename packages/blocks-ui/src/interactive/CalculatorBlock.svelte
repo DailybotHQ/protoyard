@@ -5,7 +5,7 @@ import {
   calculatorOutputs,
   calculatorValues,
 } from '@protoyard/blocks/interactive';
-import { Button } from '@protoyard/ui';
+import { Button, Input } from '@protoyard/ui';
 import { isSecurityFuzzHost } from '../host.ts';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import { formatUnitValue } from './format.ts';
@@ -60,7 +60,7 @@ function setInput(name: string, raw: string | number) {
           <span class="font-normal text-muted-foreground">({valueText})</span>
         </span>
         {#if control === 'number'}
-          <input
+          <Input
             type="number"
             class="rounded-md border border-border bg-background px-2 py-1.5 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
             min={input.min}
@@ -72,7 +72,7 @@ function setInput(name: string, raw: string | number) {
             onchange={(e) => setInput(input.name, (e.currentTarget as HTMLInputElement).value)}
           />
         {:else}
-          <input
+          <Input
             type="range"
             class="w-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
             min={input.min}

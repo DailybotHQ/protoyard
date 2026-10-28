@@ -2,6 +2,7 @@
 import { MessageSquare } from '@lucide/svelte';
 import { avatarImage, Link } from '@protoyard/renderer-svelte';
 import { Avatar } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { Project, Task } from '../database/schema.ts';
 import { taskKey } from '../domain/tasks.ts';
 import { useWorkspace } from '../lib/context.svelte.ts';
@@ -39,7 +40,7 @@ const assignee = $derived(task.assigneeId ? workspace.peopleById.get(task.assign
   <DueBadge {task} />
   {#if comments > 0}
     <span class="inline-flex items-center gap-1 text-[0.7rem] text-muted-foreground" title={`${comments} comments`}>
-      <MessageSquare class="size-3" aria-hidden="true" />{comments}<span class="sr-only"> comments</span>
+      <LucideIcon icon={MessageSquare} class="size-3" />{comments}<span class="sr-only"> comments</span>
     </span>
   {/if}
   <span class="ml-auto">

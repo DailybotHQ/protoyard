@@ -243,7 +243,7 @@ The export refuses files over `QUICK_SINGLE_FILE_BUDGET_BYTES` (4 MiB).
 **Content kinds (measured 2026-10-22).** The catalog deck (Lumen launch), page
 and doc export at 1,606,788–1,607,557 bytes, against 3,051,751 bytes for the
 CRM app from the same player build.
-- **Budget:** a kind file is refused over 2 MiB
+- **Budget:** a kind file is refused over 2.5 MiB
   (`QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES`).
 - **Not met:** the proposed 1.5 MiB deck budget. DevTools (with Deck Studio
   and the theme browser), review comments, device shells and the chart blocks

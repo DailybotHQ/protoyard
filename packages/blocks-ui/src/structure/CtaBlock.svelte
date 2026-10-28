@@ -51,7 +51,10 @@ async function runAction(label: string, href: string): Promise<void> {
             {action.label}
           </Button>
         {:else if href.startsWith('#') || href.startsWith('/')}
-          <Button variant={buttonVariant(action.variant)} href={href}>
+          <Button
+            variant={buttonVariant(action.variant)}
+            {href}
+          >
             {#if action.icon}<BlockIcon name={action.icon} class="size-4" />{/if}
             {action.label}
           </Button>

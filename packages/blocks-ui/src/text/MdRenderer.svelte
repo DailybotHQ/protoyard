@@ -8,6 +8,7 @@ import {
 } from '@protoyard/ai/markdown';
 import { classifyMediaSource } from '@protoyard/blocks';
 import { cn } from '@protoyard/ui';
+import { Checkbox } from 'texuli/choice';
 
 let { source, class: className }: { source: string; class?: string } = $props();
 const document = $derived(parseMarkdown(source));
@@ -54,7 +55,7 @@ const imageSrc = (raw: string | null): string | null => {
       <pre tabindex="0" aria-label="Code block" class="overflow-x-auto rounded-md border border-border bg-muted/60 p-3 text-xs"><code>{block.text}</code></pre>
     {:else if block.type === 'list'}
       <svelte:element this={block.ordered ? 'ol' : 'ul'} class={cn('space-y-1 pl-6', block.ordered ? 'list-decimal' : 'list-disc')} start={block.ordered ? block.start : undefined}>
-        {#each block.items as item, j (j)}<li>{#if item.checked !== null}<input type="checkbox" checked={item.checked} disabled aria-label={item.checked ? 'Done' : 'Not done'} class="mr-1.5 align-middle" />{/if}{@render blocks(item.children)}</li>{/each}
+        {#each block.items as item, j (j)}<li>{#if item.checked !== null}<Checkbox checked={item.checked} disabled aria-label={item.checked ? 'Done' : 'Not done'} class="mr-1.5 align-middle" />{/if}{@render blocks(item.children)}</li>{/each}
       </svelte:element>
     {:else if block.type === 'quote'}<blockquote class="border-l-2 border-border pl-3 text-muted-foreground">{@render blocks(block.children)}</blockquote>
     {:else if block.type === 'table'}
