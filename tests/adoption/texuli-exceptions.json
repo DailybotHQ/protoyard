@@ -33,5 +33,25 @@
     "path": "packages/renderer-svelte/src/shell/frames/",
     "rules": ["raw-control"],
     "reason": "Device frames and simulated browser/window chrome need native controls to reproduce their shell affordances, such as minimize, rotate and home-indicator behavior."
+  },
+  {
+    "path": "packages/ui/src/components/safe-area/SafeArea.svelte",
+    "rules": ["own-component"],
+    "reason": "Applies the simulated device's safe-area insets (from the renderer's frame) to its children; it is prototype device simulation, not a UI component Texuli could own."
+  },
+  {
+    "path": "packages/ui/src/components/window-chrome/WindowChrome.svelte",
+    "rules": ["raw-control"],
+    "reason": "Simulated desktop window chrome (traffic lights, title bar controls) reproduces an operating system's window affordances inside a device frame, like the renderer's frames."
+  },
+  {
+    "path": "packages/ui/src/layouts/DocsLayout.svelte",
+    "rules": ["own-component"],
+    "reason": "The docs layout stays Protoyard's (ADR-044: texuli/layouts registers 11 of the 12 layouts); its deep-link ids and TOC rules also wait on gap G39."
+  },
+  {
+    "path": "packages/ui/src/styles.css",
+    "rules": ["py-token"],
+    "reason": "The remaining --py-* reads are renderer-written frame geometry (app height, simulated safe-area insets, fixed right edge) mapped onto Texuli's --tx-app-height and --tx-safe-* variables, not semantic design tokens."
   }
 ]

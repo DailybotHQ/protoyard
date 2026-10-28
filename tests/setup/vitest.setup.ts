@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 import { configure } from '@testing-library/svelte';
+import { resetToastStore } from 'texuli/toast';
 import { afterEach } from 'vitest';
 import { toast } from '../../packages/ui/src/components/toast/toast.svelte.ts';
 import { undoToast } from '../../packages/ui/src/components/toast/undo.svelte.ts';
@@ -16,6 +17,7 @@ configure({ asyncUtilTimeout: 3000 });
 afterEach(() => {
   setOverlayPortalTarget(null);
   toast.dismiss();
+  resetToastStore();
   toast.announcement = null;
   undoToast.dismiss();
   undoToast.announcement = null;

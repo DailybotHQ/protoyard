@@ -64,7 +64,8 @@
     {
       "file": "packages/ui/src/components/form/scheduling/WeekdayPicker.svelte",
       "rule": "raw-control",
-      "count": 1
+      "count": 1,
+      "gap": "G40"
     },
     {
       "file": "packages/ui/src/components/form/utilities/TagEmailInput.svelte",
@@ -174,7 +175,8 @@
     {
       "file": "packages/ui/src/layouts/PageGrid.svelte",
       "rule": "own-component",
-      "count": 1
+      "count": 1,
+      "gap": "G43"
     },
     {
       "file": "packages/ui/src/styles.css",
