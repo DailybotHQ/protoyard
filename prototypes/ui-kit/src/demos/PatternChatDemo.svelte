@@ -1,6 +1,15 @@
 <script lang="ts">
 import { ChevronLeft, Hash } from '@lucide/svelte';
-import { Avatar, Badge, type ChatAuthor, type ChatMessage, ChatThread, cn } from '@protoyard/ui';
+import {
+  Avatar,
+  Badge,
+  Button,
+  type ChatAuthor,
+  type ChatMessage,
+  ChatThread,
+  cn,
+} from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { ANA, KAI, ME, messageId, OMAR, scriptedReply, today } from './chat.ts';
 import { sampleFace } from './faces.ts';
 import { wait } from './nav.ts';
@@ -108,14 +117,14 @@ async function reply(conversation: Conversation): Promise<void> {
     <ul class="grid gap-0.5 px-2">
       {#each conversations as conversation (conversation.id)}
         <li>
-          <button
+          <Button
             type="button"
             aria-current={conversation.id === activeId ? 'true' : undefined}
             class="flex min-h-touch w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-[current=true]:bg-primary/10 aria-[current=true]:font-semibold aria-[current=true]:text-foreground sm:min-h-9"
             onclick={() => select(conversation.id)}
           >
             {#if conversation.kind === 'channel'}
-              <Hash class="size-4 shrink-0" aria-hidden="true" />
+              <LucideIcon icon={Hash} class="size-4 shrink-0" />
             {:else}
               <Avatar name={conversation.name} {...sampleFace(conversation.name)} size="xs" decorative />
             {/if}
@@ -123,7 +132,7 @@ async function reply(conversation: Conversation): Promise<void> {
             {#if conversation.unread > 0}
               <Badge>{conversation.unread}<span class="sr-only"> unread</span></Badge>
             {/if}
-          </button>
+          </Button>
         </li>
       {/each}
     </ul>
@@ -144,14 +153,14 @@ async function reply(conversation: Conversation): Promise<void> {
       >
         {#snippet header()}
           <div class="flex items-center gap-2 border-b border-border px-3 py-2.5">
-            <button
+            <Button
               type="button"
               class="inline-flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:hidden"
               aria-label="Back to conversations"
               onclick={() => (showThreadOnMobile = false)}
             >
-              <ChevronLeft class="size-5" aria-hidden="true" />
-            </button>
+              <LucideIcon icon={ChevronLeft} class="size-5" />
+            </Button>
             <p class="font-medium">
               {conversation.kind === 'channel' ? `#${conversation.name}` : conversation.name}
             </p>

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Accessibility } from '@lucide/svelte';
 import { Badge } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { CatalogEntryMeta } from '../catalog/entries.ts';
 import { DEMOS } from '../catalog/registry.ts';
 import CodeBlock from './CodeBlock.svelte';
@@ -50,7 +51,7 @@ const loading = $derived(demo?.load());
       {#if demo.a11y?.length}
         <ul class="space-y-1 text-sm text-muted-foreground" aria-label={`${entry.name} accessibility notes`}>
           {#each demo.a11y as note, i (i)}
-            <li class="flex gap-2"><Accessibility class="mt-0.5 size-4 shrink-0 text-info" aria-hidden="true" />{note}</li>
+            <li class="flex gap-2"><LucideIcon icon={Accessibility} class="mt-0.5 size-4 shrink-0 text-info" />{note}</li>
           {/each}
         </ul>
       {/if}

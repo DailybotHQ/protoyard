@@ -3,6 +3,7 @@ import { PencilLine, Trash2 } from '@lucide/svelte';
 import { describeFilter } from '@protoyard/analytics-ui/filters';
 import { can, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { AlertDialog, Button, Card, EmptyState } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import RenameDialog from '../components/RenameDialog.svelte';
 import type { SavedSegment } from '../database/schema.ts';
@@ -62,7 +63,7 @@ const canManage = (segment: SavedSegment) =>
                 onclick={() => {
                   renaming = segment;
                   renameOpen = true;
-                }}><PencilLine class="size-4" aria-hidden="true" />Rename<span class="sr-only"> {segment.name}</span></Button
+                }}><LucideIcon icon={PencilLine} class="size-4" />Rename<span class="sr-only"> {segment.name}</span></Button
               >
               <Button
                 variant="ghost"
@@ -70,7 +71,7 @@ const canManage = (segment: SavedSegment) =>
                 onclick={() => {
                   deleting = segment;
                   deleteOpen = true;
-                }}><Trash2 class="size-4" aria-hidden="true" />Delete<span class="sr-only"> {segment.name}</span></Button
+                }}><LucideIcon icon={Trash2} class="size-4" />Delete<span class="sr-only"> {segment.name}</span></Button
               >
             </div>
           {/if}

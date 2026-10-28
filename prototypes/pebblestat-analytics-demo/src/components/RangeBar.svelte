@@ -6,6 +6,7 @@ import {
   describeDateRange,
 } from '@protoyard/analytics-ui/date-range';
 import { BottomSheet, Button } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { sharedRange } from '../lib/range.svelte.ts';
 
 /**
@@ -23,7 +24,7 @@ const described = $derived(describeDateRange(sharedRange.value, now.getTime()));
 </div>
 <div class="sm:hidden device-frame:block">
   <Button variant="outline" size="sm" onclick={() => (sheetOpen = true)} aria-haspopup="dialog">
-    <CalendarRange class="size-4" aria-hidden="true" />{described.label}
+    <LucideIcon icon={CalendarRange} class="size-4" />{described.label}
   </Button>
   <BottomSheet bind:open={sheetOpen} title="Date range" description={described.span}>
     <DateRangePanel

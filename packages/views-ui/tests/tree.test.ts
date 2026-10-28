@@ -1,7 +1,7 @@
 import { rankSequence } from '@protoyard/views/board';
 import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { OutlineEditor, TreeView } from '../src/tree/index.ts';
+import { OutlineEditor, TREE_DRAG_THRESHOLD_PX, TreeView } from '../src/tree/index.ts';
 
 afterEach(() => cleanup());
 
@@ -33,6 +33,10 @@ describe('TreeView (Texuli TreeDataView adapter)', () => {
 });
 
 describe('OutlineEditor', () => {
+  it('uses Texuli gesture threshold distance', () => {
+    expect(TREE_DRAG_THRESHOLD_PX).toBe(4);
+  });
+
   it('lists every item with its title', async () => {
     render(OutlineEditor<Node>, {
       query: { current: NODES, loading: false, error: undefined },

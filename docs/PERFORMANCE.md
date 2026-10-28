@@ -603,12 +603,12 @@ measured what each view adds over the shell, gzip level 9:
 
 | View (subpath) | Measured | Guard ceiling |
 | --- | ---: | ---: |
-| `BoardView` (`/board`) | 10,932 B | 12,800 B |
+| `BoardView` (`/board`, Texuli 0.4.0) | 13,900 B | 14,595 B |
 | `CalendarView` (`/calendar`) | 14,327 B | 17,200 B |
 | `DataGrid` (`/grid`) | 17,804 B | 23,400 B |
 | `SimulatedMap` (`/map`) | 7,984 B | 12,400 B |
-| `MarkdownEditor` (`/editor`) | 8,187 B | 8,597 B |
-| `TimelineView` (`/timeline`) | 10,067 B | 10,571 B |
+| `MarkdownEditor` (`/editor`, Texuli 0.4.0) | 9,484 B | 9,958 B |
+| `TimelineView` (`/timeline`, Texuli 0.4.0) | 11,973 B | 12,572 B |
 
 The rest of this section is **history**: it measured Protoyard's own view
 components before they moved to Texuli.
@@ -1359,7 +1359,7 @@ Since the block families and charts render with Texuli, all emitted CSS
 measures **23,663 B gzip** (re-measured 2026-10-24 against Texuli `dev`):
 each family's stylesheet sits in its own lazy chunk, the first screen loads one
 1,025 B stylesheet, and the same CSS joined into one file would gzip to
-15,010 B. This entry's CSS ceiling is 28,546 B (27,187 B measured on the npm Texuli 0.3.0 + 5 %), an
+15,010 B. This entry's CSS ceiling is 31,857 B (30,340 B measured on the npm Texuli 0.4.0 + 5 %), an
 override for this entry only; the 20 KB default is unchanged. A CSS diet is a
 follow-up. The paired hygiene test checks the built
 static graph for CRUD, Faker, the player and worker, syntax highlighting, and

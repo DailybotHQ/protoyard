@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Archive, Copy, Ellipsis, Pencil, Share2, Trash2 } from '@lucide/svelte';
 import { Button, DropdownMenu, type DropdownMenuEntry, toast } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 let last = $state('Nothing yet');
 let starred = $state(false);
@@ -47,7 +48,7 @@ const items: DropdownMenuEntry[] = $derived([
   >
     {#snippet trigger({ props })}
       <Button {...props} size="icon" variant="ghost" aria-label="Sort options">
-        <Ellipsis aria-hidden="true" />
+        <LucideIcon icon={Ellipsis} />
       </Button>
     {/snippet}
   </DropdownMenu>

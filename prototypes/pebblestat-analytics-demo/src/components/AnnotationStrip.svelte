@@ -1,7 +1,9 @@
 <script lang="ts">
-import { Flag, Megaphone, Rocket, TriangleAlert, X } from '@lucide/svelte';
+import { Flag, Megaphone, Rocket, TriangleAlert } from '@lucide/svelte';
 import type { DateRange } from '@protoyard/analytics';
 import { Button } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { Annotation } from '../database/schema.ts';
 import { annotationMarks } from '../domain/metrics.ts';
 import { formatDate } from '../lib/format.ts';
@@ -32,13 +34,13 @@ const LABELS = { release: 'Release', incident: 'Incident', campaign: 'Campaign' 
   <section aria-label="Annotations" class="grid gap-2">
     <div class="relative h-6 rounded-md bg-muted/60" aria-hidden="true">
       {#each marks as mark (mark.id)}
-        {@const Icon = ICONS[mark.kind] ?? Flag}
+        {@const Glyph = ICONS[mark.kind] ?? Flag}
         <span
           class="absolute top-1/2 grid size-5 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-border bg-surface {mark.kind === 'incident' ? 'text-destructive' : 'text-primary'}"
           style:left="{(mark.position * 100).toFixed(2)}%"
           title="{formatDate(mark.at)}: {mark.title}"
         >
-          <Icon class="size-3" />
+          <LucideIcon icon={Glyph} class="size-3" />
         </span>
       {/each}
     </div>
@@ -51,7 +53,7 @@ const LABELS = { release: 'Release', incident: 'Incident', campaign: 'Campaign' 
           {#if onremove}
             <!-- Returns the service promise, so the button shows it is pending. -->
             <Button variant="ghost" size="icon" class="size-6" aria-label="Remove annotation {mark.title}" onclick={() => onremove?.(mark)}>
-              <X class="size-3" aria-hidden="true" />
+              <Icon icon="close" class="size-3" aria-hidden="true" />
             </Button>
           {/if}
         </li>

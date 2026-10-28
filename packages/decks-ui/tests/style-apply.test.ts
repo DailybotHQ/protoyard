@@ -112,10 +112,13 @@ describe('slide surfaces stay readable on every background preset', () => {
       'light'
     );
     expect(aurora.themeId).toBe('aurora-analytics');
-    expect(aurora.rootStyle).toContain('--py-radius:1rem');
-    expect(aurora.rootStyle).toMatch(
-      /--py-font-sans:var\(--py-font-stack-geometric-sans, "Avenir Next"/
-    );
+    // Texuli components read the canonical --tx-* names; the --py-* aliases follow.
+    for (const prefix of ['--tx', '--py']) {
+      expect(aurora.rootStyle).toContain(`${prefix}-radius:1rem`);
+      expect(aurora.rootStyle).toMatch(
+        new RegExp(`${prefix}-font-sans:var\\(--tx-font-stack-geometric-sans, "Avenir Next"`)
+      );
+    }
     expect(aurora.warnings).toEqual([]);
     const unknown = await resolveDeckLook(
       { theme: 'no-such-theme', fontPair: 'no-such-font' },

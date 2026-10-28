@@ -80,7 +80,7 @@ describe('generated page and doc prototypes', () => {
     expect(sheet).toMatch(/@layer theme/);
     expect(sheet).toMatch(/@layer utilities/);
     expect(sheet).toContain('--color-primary');
-    expect(sheet).toContain('--py-primary');
+    expect(sheet).toContain('--tx-primary');
     // Utilities used only by the kit renderers, so their Tailwind sources were scanned.
     expect(sheet).toMatch(/\.max-w-\\\[11rem\\\]/); // pages-ui landing header
     expect(sheet).toMatch(/\.shadow-soft/); // @protoyard/ui and blocks-ui cards
