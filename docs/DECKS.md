@@ -985,7 +985,7 @@ one 548,131 B gzip script. A quick deck exported as one file measured
 | Slide title | 160 characters | `DECK_LIMITS.slideTitle` |
 | Rendered text minimum | 24 px body, 18 px labels, in canvas pixels | `DECK_TEXT_MINIMUMS` |
 | Slides mounted at once | the active slide and its neighbors (2–3) | `DeckCanvas` |
-| Single-file export of a deck page | 2.5 MiB (2.40 MB measured on the npm Texuli 0.3.0) | `quick export --single-file` |
+| Single-file export of a deck page | 2.5 MiB | `quick export --single-file` |
 
 Media come only from the deck itself: relative paths without `..`, bounded
 base64 `data:` URIs of raster images and mp4/webm video, or library avatars

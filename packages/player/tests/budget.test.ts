@@ -97,11 +97,12 @@ function importGraph(entry: string): string[] {
 
 /**
  * Ceilings on every stylesheet a player page can ever load, gzip KB: measured
- * 2026-10-24 (FIX-texuli-css-split) + 5 %, rounded up. index.html 75.9 KB
- * (it plays every kind and kit), deck.html 53.3, page.html and doc.html 52.6.
+ * + 5 %, rounded up. On the npm Texuli 0.3.0 (2026-10-28): index.html 80.0 KB
+ * (it plays every kind and kit), deck.html 56.8, page.html and doc.html 56.1
+ * (2026-10-24, linked Texuli: 75.9, 53.3 and 52.6; Texuli CSS weight is gap G23).
  * The 36 KB cssGzipKb budget applies to each entry's initial CSS (17-20 KB).
  */
-const PLAYER_TOTAL_CSS_GZIP_KB = { index: 80, deck: 56, page: 55.3, doc: 55.3 } as const;
+const PLAYER_TOTAL_CSS_GZIP_KB = { index: 84.1, deck: 59.7, page: 58.9, doc: 58.9 } as const;
 
 /** Modules that must only ever load on demand, by manifest key. */
 const LAZY_MODULES: [string, RegExp][] = [
@@ -109,7 +110,7 @@ const LAZY_MODULES: [string, RegExp][] = [
   ['DevTools', /\/devtools\/src\//],
   // Library tokens come from @texuli/tokens, loaded on demand (the catalog metadata is eager):
   // the port's definitions, builder and chart modules, and the opt-in expansion.
-  ['theme library', /\/tokens\/src\/library-(?:port|expand)\//],
+  ['theme library', /\/tokens\/dist\/library-(?:port|expand)\//],
   ['crud screen kits', /\/crud\/src\/screens\//],
   ['crud app shell', /\/crud\/src\/app\//],
   ['charts', /\/charts-ui\/src\//],
