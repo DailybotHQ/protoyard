@@ -46,41 +46,90 @@ export type SingleFileEntry = 'index' | 'deck' | 'page' | 'doc';
 
 /**
  * Cap per entry. A deck, page or doc exported from its own page embeds only
- * that page's graph: measured 2026-10-22 at 1,606,788–1,607,557 bytes (the
- * catalog deck, page and doc). 2 MiB leaves ~23% headroom, like the app cap.
- * The proposed 1.5 MiB deck budget (ADR-040, `kinds.deck.singleFileKb`) is
- * not met: DevTools (Deck Studio, themes), review comments, device shells and
- * chart blocks are all reachable from a kind page and ship with it.
+ * that page's graph. Measured 2026-10-22 at 1,606,788–1,607,557 bytes (2 MiB
+ * cap); re-measured 2026-10-28 with decks on the `@texuli/slides` stage at
+ * 2,598,103–2,606,261 bytes (the catalog deck, page and doc), so the cap is
+ * 2.65 MiB (about 6 % headroom). The stage, its layouts, print/PPTX export and
+ * theme expansion add about 0.5 MB over the old renderer, and every kind page
+ * can open a deck. The proposed 1.5 MiB deck budget (ADR-040,
+ * `kinds.deck.singleFileKb`) is not met: DevTools (Deck Studio, themes),
+ * review comments, device shells and chart blocks are all reachable from a
+ * kind page and ship with it.
  */
 export const QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES: Record<SingleFileEntry, number> = {
   index: QUICK_SINGLE_FILE_BUDGET_BYTES,
-  deck: 2 * 1024 * 1024,
-  page: 2 * 1024 * 1024,
-  doc: 2 * 1024 * 1024,
+  deck: Math.round(2.65 * 1024 * 1024),
+  page: Math.round(2.65 * 1024 * 1024),
+  doc: Math.round(2.65 * 1024 * 1024),
 };
 
 /**
- * Modules a content kind can reach but never runs, left out of deck, page and
- * doc files. Faker is reachable through the scenarios package's lazy loader,
- * which only a generated world calls; the kind runtime (`defineKindRuntime`)
- * supplies `generateWorld` and no timeline, so it never generates.
+ * Modules a player page can reach but never runs, left out of every single
+ * file: the `@texuli/slides` component registry's renderers (whole-slide
+ * components, component items and its catalog-aware free slide, which pull in
+ * every `@texuli/player` painter). They are reachable because `DeckStage`
+ * imports its default tables statically, but DeckApp mounts the stage with
+ * `defaultRenderers={false}` (Protoyard's own table paints free slides), so
+ * they never load.
+ */
+export const SINGLE_FILE_EXCLUDED_MODULES: readonly RegExp[] = [
+  /texuli[\\/](?:packages[\\/])?slides[\\/](?:src|dist)[\\/]components[\\/](?:ComponentSlide|ComponentItem|FreeSlide)\.(?:svelte|js)$/,
+];
+
+/**
+ * Modules a content kind can reach but never runs, also left out of deck,
+ * page and doc files. Faker is reachable through the scenarios package's lazy
+ * loader, which only a generated world calls; the kind runtime
+ * (`defineKindRuntime`) supplies `generateWorld` and no timeline, so it never
+ * generates.
  */
 export const SINGLE_FILE_KIND_EXCLUDED_MODULES: readonly RegExp[] = [
+  ...SINGLE_FILE_EXCLUDED_MODULES,
   /[\\/]@faker-js[\\/]faker[\\/]/,
 ];
 
-/** Emitted files of the modules matching `patterns`, from the player's Vite manifest (none without one). */
-async function manifestFiles(playerDir: string, patterns: readonly RegExp[]): Promise<Set<string>> {
+interface ManifestChunk {
+  file?: unknown;
+  css?: unknown;
+  imports?: unknown;
+  dynamicImports?: unknown;
+}
+
+/**
+ * Emitted files (chunks and stylesheets) that `page` reaches only through the
+ * modules matching `patterns`, from the player's Vite manifest (none without
+ * one). A shared chunk an excluded module needs is left out with it (an
+ * importer's preload list names it too), while one the page also reaches
+ * another way stays.
+ */
+async function neverRunFiles(
+  playerDir: string,
+  page: string,
+  patterns: readonly RegExp[]
+): Promise<Set<string>> {
   const text = await readFile(join(playerDir, '.vite', 'manifest.json'), 'utf8').catch(() => null);
   if (text === null) return new Set();
-  const manifest = JSON.parse(text) as Record<string, { file?: unknown }>;
-  const files = new Set<string>();
-  for (const [key, chunk] of Object.entries(manifest)) {
-    if (typeof chunk.file === 'string' && patterns.some((pattern) => pattern.test(key))) {
-      files.add(chunk.file.replace(/^assets\//, ''));
+  const manifest = JSON.parse(text) as Record<string, ManifestChunk>;
+  const strings = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+  const reach = (cut: boolean): Set<string> => {
+    const files = new Set<string>();
+    const seen = new Set<string>();
+    const queue = [page];
+    while (queue.length > 0) {
+      const key = queue.pop() as string;
+      const chunk = manifest[key];
+      if (seen.has(key) || !chunk) continue;
+      seen.add(key);
+      if (cut && patterns.some((pattern) => pattern.test(key))) continue;
+      if (typeof chunk.file === 'string') files.add(chunk.file.replace(/^assets\//, ''));
+      for (const css of strings(chunk.css)) files.add(css.replace(/^assets\//, ''));
+      queue.push(...strings(chunk.imports), ...strings(chunk.dynamicImports));
     }
-  }
-  return files;
+    return files;
+  };
+  const kept = reach(true);
+  return new Set([...reach(false)].filter((file) => !kept.has(file)));
 }
 
 /** The page that runs a blueprint of this kind (an app may leave `kind` out). */
@@ -221,12 +270,13 @@ export async function buildSingleFile(input: SingleFileInput): Promise<SingleFil
 
   // Only what this page can load: its entry chunk and every chunk and
   // stylesheet reachable from it. The world-generation worker never starts
-  // from a blob base: leave it out. A kind page also leaves out what a kind
-  // never runs (Faker).
-  const neverRun =
-    page === 'index'
-      ? new Set<string>()
-      : await manifestFiles(input.playerDir, SINGLE_FILE_KIND_EXCLUDED_MODULES);
+  // from a blob base: leave it out. Every page leaves out what it never runs
+  // (the stage's component registry); a kind page also leaves out Faker.
+  const neverRun = await neverRunFiles(
+    input.playerDir,
+    `${page}.html`,
+    page === 'index' ? SINGLE_FILE_EXCLUDED_MODULES : SINGLE_FILE_KIND_EXCLUDED_MODULES
+  );
   const graph = await entryGraph({
     html: indexHtml,
     files,

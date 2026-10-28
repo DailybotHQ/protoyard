@@ -235,7 +235,7 @@ player's kind tests do.
 | --- | ---: | --- |
 | `initialJsGzipKb` | 150 KB | Initial JavaScript of the kind's minimal player entry, gzip |
 | `cssGzipKb` | 30 KB | CSS of the kind's player entry, gzip |
-| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,048 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (2 MiB per kind) in `packages/cli/src/lib/quick/single-file.ts`. Calibrated on 2026-10-22 from measured files of 1,606,842 B (deck), 1,607,557 B (page) and 1,606,788 B (doc). The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
+| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,048 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (2.65 MiB per kind) in `packages/cli/src/lib/quick/single-file.ts`. Calibrated on 2026-10-22 from measured files of 1,606,842 B (deck), 1,607,557 B (page) and 1,606,788 B (doc); re-measured on 2026-10-28, with decks on the `@texuli/slides` stage, at 2,598,103 to 2,606,261 B. The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
 
 These budgets are **enforced**:
 

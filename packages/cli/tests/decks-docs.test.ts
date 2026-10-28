@@ -12,8 +12,8 @@ import {
 } from '../../blueprint/src/index.ts';
 import { DECK_BACKGROUND_PRESET_IDS } from '../../decks/src/backgrounds/index.ts';
 import { DECK_TEXT_MINIMUMS } from '../../decks/src/canvas.ts';
-import { DECK_LAYOUT_IDS } from '../../decks/src/layouts/catalog.ts';
-import { DECK_TRANSITIONS, MAX_MOTION_MS } from '../../decks/src/motion/transition.ts';
+import { DECK_LAYOUT_IDS } from '../../decks/src/layouts/index.ts';
+import { DECK_TRANSITIONS, MAX_MOTION_MS } from '../../decks/src/motion/index.ts';
 import { DECK_LIMITS } from '../../decks/src/schema/index.ts';
 import { QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES } from '../src/lib/quick/single-file.ts';
 import { createProgram } from '../src/program.ts';
@@ -97,8 +97,8 @@ describe('docs/DECKS.md', () => {
     expect(limits).toContain(
       `${DECK_TEXT_MINIMUMS.bodyPx} px body, ${DECK_TEXT_MINIMUMS.labelPx} px labels`
     );
-    expect(QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES.deck).toBe(2 * 1024 * 1024);
-    expect(limits).toContain('| 2 MiB |');
+    expect(QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES.deck).toBe(Math.round(2.65 * 1024 * 1024));
+    expect(limits).toContain('| 2.65 MiB |');
   });
 
   it('names every transition, the motion cap and the background count', () => {
