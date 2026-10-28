@@ -37,7 +37,8 @@ test.describe('deck navigation on a built catalog deck', () => {
     page,
   }) => {
     await page.goto(`${deckUrl}#/cover/0`);
-    await page.locator('[data-py-deck-slide="cover"]').click({ position: { x: 8, y: 8 } });
+    // The @texuli/slides stage marks each slide with data-tx-deck-slide.
+    await page.locator('[data-tx-deck-slide="cover"]').click({ position: { x: 8, y: 8 } });
     await expectLocation(page, 'divider', 0);
 
     await page.goto(`${deckUrl}#/quiz/0`);
@@ -64,23 +65,21 @@ test.describe('deck navigation on a built catalog deck', () => {
   test('overview selection and fullscreen escape stay on the chosen slide', async ({ page }) => {
     await page.goto(`${deckUrl}#/cover/0`);
     await page.keyboard.press('o');
-    await expect(page.getByRole('dialog', { name: 'Slide overview' })).toBeVisible();
-    await page.locator('[data-py-deck-overview-item="quiz"]').click();
+    // The stage's overview is a navigation landmark of slide cards.
+    const overview = page.getByRole('navigation', { name: 'Slides' });
+    await expect(overview).toBeVisible();
+    await page.locator('[data-tx-deck-overview-item="quiz"]').click();
     await expectLocation(page, 'quiz', 0);
-    await expect(page.getByRole('dialog', { name: 'Slide overview' })).toHaveCount(0);
+    await expect(overview).toHaveCount(0);
 
+    // Full screen holds the stage root (the deck, without the host page).
+    const stage = page.locator('.tx-deck-stage');
     await page.keyboard.press('f');
     await expect
-      .poll(() =>
-        page.locator('[data-py-deck-app]').evaluate((root) => document.fullscreenElement === root)
-      )
+      .poll(() => stage.evaluate((root) => document.fullscreenElement === root))
       .toBe(true);
     await page.keyboard.press('f');
-    await expect
-      .poll(() =>
-        page.locator('[data-py-deck-app]').evaluate(() => document.fullscreenElement === null)
-      )
-      .toBe(true);
+    await expect.poll(() => stage.evaluate(() => document.fullscreenElement === null)).toBe(true);
     await expectLocation(page, 'quiz', 0);
 
     await page.keyboard.press('?');
@@ -98,12 +97,13 @@ test.describe('deck navigation on a built catalog deck', () => {
       .poll(() => page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches))
       .toBe(true);
 
+    await expect(page.locator('.tx-deck-stage')).toHaveAttribute('data-motion', 'reduce');
     await page.keyboard.press('ArrowRight');
     await expectLocation(page, 'divider', 0);
     await expect
       .poll(() =>
         page
-          .locator('[data-py-deck-slide="divider"]')
+          .locator('[data-tx-deck-slide="divider"]')
           .evaluate((slide) => getComputedStyle(slide).animationName)
       )
       .toBe('none');
@@ -115,7 +115,8 @@ test.describe('deck navigation on a built catalog deck', () => {
       'Touch swipe is exercised in the mobile project.'
     );
     await page.goto(`${deckUrl}#/cover/0`);
-    const root = page.locator('[data-py-deck-app]');
+    // Swipes are read on the stage canvas.
+    const root = page.locator('[data-tx-deck-canvas]');
     await root.evaluate((element) => {
       element.dispatchEvent(
         new PointerEvent('pointerdown', {

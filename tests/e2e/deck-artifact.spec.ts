@@ -91,8 +91,9 @@ async function expectSlide(frame: Frame, slideId: string, step = 0): Promise<voi
   await expect(app).toHaveAttribute('data-slide-id', slideId);
   await expect(app).toHaveAttribute('data-slide-step', String(step));
   await expect.poll(() => frame.evaluate(() => window.location.hash)).toBe(`#/${slideId}/${step}`);
+  // The @texuli/slides stage marks the slide on screen as active.
   await expect(
-    frame.locator(`[data-canvas-slide][aria-hidden="false"] [data-py-deck-slide="${slideId}"]`)
+    frame.locator(`[data-tx-deck-slide="${slideId}"][data-tx-deck-active="true"]`)
   ).toBeVisible();
 }
 
@@ -135,20 +136,28 @@ test.describe('deck exported as a Claude artifact', () => {
     await expectSlide(frame, 'cover');
     await expect(
       frame
-        .locator('[data-canvas-slide][aria-hidden="false"]')
+        .locator('[data-tx-deck-active="true"]')
         .getByRole('heading', { name: 'Protoyard: create anything' })
     ).toBeVisible();
-    await expect(frame.locator('[data-py-deck-slide-number]')).toHaveText(/^Slide 1 of \d+$/);
+    // The stage's slide counter (the slide list button).
+    await expect(frame.locator('[data-tx-deck-tool="jump"]')).toHaveAttribute(
+      'aria-label',
+      /, 1 \/ \d+$/
+    );
 
     // Keyboard: forward twice, back once (the deck takes focus from a click on its frame).
-    await frame.locator('[data-py-deck-app]').focus();
-    await frame.locator('[data-py-deck-app]').press('ArrowRight');
+    const stage = frame.locator('.tx-deck-stage');
+    await stage.focus();
+    await stage.press('ArrowRight');
     await expectSlide(frame, 'promise');
-    await frame.locator('[data-py-deck-app]').press('ArrowRight');
+    await stage.press('ArrowRight');
     await expectSlide(frame, 'problem');
-    await frame.locator('[data-py-deck-app]').press('ArrowLeft');
+    await stage.press('ArrowLeft');
     await expectSlide(frame, 'promise');
-    await expect(frame.locator('[data-py-deck-slide-number]')).toHaveText(/^Slide 2 of \d+$/);
+    await expect(frame.locator('[data-tx-deck-tool="jump"]')).toHaveAttribute(
+      'aria-label',
+      /, 2 \/ \d+$/
+    );
 
     // A slide link inside the artifact frame, as a shared #/<id>/<step> would open it.
     await frame.evaluate(() => {
@@ -212,15 +221,17 @@ test.describe('deck exported as a Claude artifact', () => {
       frame.getByRole('status').filter({ hasText: "Changes won't be saved." })
     ).toBeVisible();
 
-    await frame.locator('[data-py-deck-app]').focus();
-    await frame.locator('[data-py-deck-app]').press('ArrowRight');
+    await frame.locator('.tx-deck-stage').focus();
+    await frame.locator('.tx-deck-stage').press('ArrowRight');
     await expectSlide(frame, 'promise');
 
-    // On a phone the share tools sit in the More menu (T-toolbar-redesign).
-    const more = frame.locator('[data-py-deck-more] summary');
-    if (await more.isVisible()) await more.click();
-    await frame.locator('[data-py-deck-tool="copy-reference"]').click();
-    await expect(frame.locator('[data-py-deck-copy-status]')).toHaveText('Could not copy the link');
+    // On a phone the share tools sit in the stage's More menu.
+    const copy = frame.locator('[data-tx-deck-tool="copy-link"]');
+    const more = frame.locator('.tx-deck-chrome-more summary');
+    await expect.poll(async () => (await copy.isVisible()) || (await more.isVisible())).toBe(true);
+    if (!(await copy.isVisible())) await more.click();
+    await copy.click();
+    await expect(frame.locator('.tx-deck-chrome-toast')).toHaveText(/Could not copy the link/);
     // Clicking a tool never advances the deck.
     await expectSlide(frame, 'promise');
 

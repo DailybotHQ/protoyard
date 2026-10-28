@@ -1,6 +1,6 @@
 <script lang="ts">
 import { setBlockHost } from '@protoyard/blocks-ui';
-import { getRuntime } from '@protoyard/renderer-svelte';
+import { avatarUrl, getRuntime } from '@protoyard/renderer-svelte';
 import { ErrorState, LoadingState } from '@protoyard/ui';
 import { deckDebugSource } from './debug-source.ts';
 import { createDeferredStateHost } from './deferred-host.ts';
@@ -63,6 +63,7 @@ const what = blueprint.kind === 'deck' ? 'deck' : blueprint.kind === 'page' ? 'p
     <module.DeckApp
       deck={studio?.preview ?? blueprint.deck}
       {namespace}
+      resolveAvatar={(id: string) => avatarUrl(id)}
       debugSource={deckDebugSource(location.search, namespace)}
     />
   {:else if blueprint.kind === 'page' && 'PageApp' in module}

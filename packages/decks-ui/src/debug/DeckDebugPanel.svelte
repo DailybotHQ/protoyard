@@ -6,8 +6,8 @@ import {
 } from '@protoyard/decks/agent';
 import { checkDeckStatic } from '@protoyard/decks/quality';
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
+import { copyDeckText as copyText } from '@texuli/slides/stage';
 import { onMount, tick } from 'svelte';
-import { copyText } from '../chrome/clipboard.ts';
 import BlockOutline from './BlockOutline.svelte';
 import { deckFileName, downloadText, inertJson } from './format.ts';
 
@@ -109,7 +109,7 @@ const buttonClass =
   class="absolute inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-border bg-background text-foreground shadow-xl"
   aria-labelledby={titleId}
   data-py-deck-debug
-  data-py-deck-chrome
+  data-tx-deck-chrome
 >
   <div class="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
     <h2 id={titleId} class="text-base font-semibold">Debug for agents</h2>

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, type Page, test } from '@playwright/test';
-import { slidePositionCount } from '../../packages/decks/src/navigation/steps.ts';
+import { slidePositionCount } from '../../packages/decks/src/navigation/index.ts';
 import { type DeckSlide, safeParseDeck } from '../../packages/decks/src/schema/index.ts';
 import { expectAccessible } from './support/a11y.ts';
 
@@ -33,7 +33,7 @@ const root = (page: Page) => page.locator('[data-py-deck-app]');
 
 /** Waits until the active slide has no loading placeholder left (lazy layouts and block families). */
 async function settled(page: Page, id: string): Promise<void> {
-  const slide = page.locator(`[data-py-deck-slide="${id}"]`);
+  const slide = page.locator(`[data-tx-deck-slide="${id}"]`);
   await expect(slide).toBeVisible();
   await expect(slide.locator('[role="status"][aria-label^="Loading"]')).toHaveCount(0, {
     timeout: 15_000,
@@ -92,6 +92,26 @@ test.describe('the everything deck', () => {
           }
           expect(step, `${label}: steps reached vs. declared (slidePositionCount)`).toBe(last);
           if (step > 0) {
+            // The stage drops a hash change that lands during a slide transition: let the
+            // last move's transition finish before following the deep link.
+            await page.evaluate(() =>
+              Promise.race([
+                Promise.all(
+                  document
+                    .getAnimations()
+                    .filter(
+                      (animation) => animation.effect?.getComputedTiming().iterations !== Infinity
+                    )
+                    .map((animation) => animation.finished.catch(() => undefined))
+                ),
+                new Promise((done) => setTimeout(done, 2_000)),
+              ])
+            );
+            await page.waitForFunction(
+              () =>
+                !document.querySelector('[data-tx-deck-enter]') &&
+                !document.documentElement.matches(':active-view-transition')
+            );
             await page.goto(`${deckUrl}?deck=everything&mode=${colorScheme}#/${id}/${step}`);
             await expect(root(page)).toHaveAttribute('data-slide-step', String(step));
             await settled(page, id);
@@ -108,7 +128,7 @@ test.describe('the everything deck', () => {
   test('the quiz formats its Markdown prompt', async ({ page }) => {
     await page.goto(`${deckUrl}?deck=everything#/poll-quiz/0`);
     await settled(page, 'poll-quiz');
-    const legend = page.locator('[data-py-deck-slide="poll-quiz"] legend', { hasText: 'tone' });
+    const legend = page.locator('[data-tx-deck-slide="poll-quiz"] legend', { hasText: 'tone' });
     await expect(legend).toHaveText('What does a tone replace?');
     await expect(legend.locator('strong')).toHaveText('tone');
   });
@@ -116,23 +136,41 @@ test.describe('the everything deck', () => {
   // The map block once rendered unstyled on deck pages (blocks-ui's stylesheet
   // did not scan views-ui's map): no basemap, list rows stacked, an axe
   // "button-name" on its list, and no fill for an `accent` place.
-  test('the map block draws its basemap, its list and every place tone', async ({ page }) => {
+  test('the map block draws its basemap, its markers, its place list and every place tone', async ({
+    page,
+  }) => {
     await page.goto(`${deckUrl}?deck=everything#/map/0`);
     await settled(page, 'map');
-    const map = page.locator('[data-py-deck-slide="map"] [data-py-block="map"]');
-    const basemap = await map.locator('svg').first().boundingBox();
-    expect(basemap?.height ?? 0).toBeGreaterThan(40);
-    const rows = map.locator('[data-map-list] li[aria-posinset]');
-    await expect(rows).toHaveCount(3);
-    const tops = await rows.evaluateAll((items) =>
-      items.map((item) => ({ position: getComputedStyle(item).position, top: item.style.top }))
-    );
-    expect(tops.every((row) => row.position === 'absolute')).toBe(true);
-    for (const id of ['north', 'market']) {
-      const dot = map.locator(`[data-list-item="${id}"] span`).first();
-      const fill = await dot.evaluate((el) => getComputedStyle(el).backgroundColor);
+    // @protoyard/blocks-ui paints the map family through @texuli/blocks' MapBlockView.
+    const map = page.locator('[data-tx-deck-slide="map"] [data-py-block-family="map"]');
+    const canvas = map.locator('[data-tx-map-canvas]');
+    await expect(canvas).toHaveAccessibleName('Stores on the simulated map');
+    // The simulated basemap is drawn (land, roads and labels), not an empty frame.
+    const basemap = canvas.locator('svg').first();
+    const box = await basemap.boundingBox();
+    expect(box?.height ?? 0).toBeGreaterThan(40);
+    expect(await basemap.locator('path').count()).toBeGreaterThan(3);
+    await expect(basemap.locator('text', { hasText: 'Meridian River' })).toHaveCount(1);
+    const places = ['north', 'market'];
+    for (const id of places) {
+      // Every point is a marker on the basemap…
+      const marker = basemap.locator(`[data-tx-map-marker="${id}"]`);
+      await expect(marker).toHaveCount(1);
+      const markerBox = await marker.boundingBox();
+      expect(markerBox?.width ?? 0, `${id} marker`).toBeGreaterThan(0);
+      // …and a named row in the place list, whose tone dot is filled.
+      const place = map.locator(`[data-tx-map-place="${id}"]`);
+      await expect(place).toHaveAccessibleName(/\S/);
+      const fill = await place
+        .locator('span[aria-hidden="true"]')
+        .first()
+        .evaluate((el) => getComputedStyle(el).backgroundColor);
       expect(fill, `${id} tone fill`).not.toBe('rgba(0, 0, 0, 0)');
-      await expect(map.locator(`[data-list-item="${id}"]`)).toHaveAccessibleName(/\S/);
     }
+    await expect(map.locator('[data-tx-map-place-list] li[aria-posinset]')).toHaveCount(
+      places.length
+    );
+    // The route between the two places is summarized as text.
+    await expect(map.locator('[data-tx-map-route-summary]')).toContainText('2 stops');
   });
 });

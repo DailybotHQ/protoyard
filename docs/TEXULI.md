@@ -29,7 +29,9 @@ Protoyard (`../texuli`):
 | `@texuli/charts` | `link:../texuli/packages/charts` |
 | `@texuli/chat` | `link:../texuli/packages/chat` |
 | `@texuli/data` | `link:../texuli/packages/data` |
+| `@texuli/deck` | `link:../texuli/packages/deck` |
 | `@texuli/media` | `link:../texuli/packages/media` |
+| `@texuli/slides` | `link:../texuli/packages/slides` |
 
 - `pnpm install` links `node_modules/@texuli/*` and `node_modules/texuli` to
   those folders. The lockfile records only the `link:` specifiers, and
@@ -76,6 +78,16 @@ Protoyard (`../texuli`):
   library, so a static import of the root would ship the library in every
   prototype's initial chunk.
 
+
+## Decks run on `@texuli/deck` and `@texuli/slides`
+
+`@protoyard/decks` is a thin layer over `@texuli/deck` (the deck model,
+validation, catalog, steps, navigation, controls, presenter protocol, lint,
+patches and text twins), and `@protoyard/decks-ui`'s `DeckApp` presents decks
+on the `@texuli/slides` stage. Protoyard keeps its deck shape, offline media
+policy, themes, free slides through `@protoyard/blocks-ui`, custom slides, the
+debug panel and Deck Studio. Details and the migration note:
+[DECKS](DECKS.md#built-on-texuli-migration-note).
 
 ## Charts from `@texuli/charts`
 

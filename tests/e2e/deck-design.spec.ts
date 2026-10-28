@@ -69,11 +69,9 @@ async function open(page: Page, level: Level): Promise<void> {
   await page.evaluate(() => document.fonts?.ready);
 }
 
-/** The active slide: the rendered, visible copy of `[data-py-deck-slide=id]`. */
+/** The active slide on the @texuli/slides stage (its neighbours are mounted, inert and hidden). */
 function activeSlide(page: Page, slideId: string): Locator {
-  return page.locator(
-    `[data-canvas-slide]:not([aria-hidden="true"]) [data-py-deck-slide="${slideId}"]`
-  );
+  return page.locator(`[data-tx-deck-slide="${slideId}"][data-tx-deck-active="true"]`);
 }
 
 async function goTo(page: Page, slideId: string): Promise<Locator> {
@@ -84,9 +82,9 @@ async function goTo(page: Page, slideId: string): Promise<Locator> {
   const slide = activeSlide(page, slideId);
   await expect(slide).toBeVisible();
   // Each layout family is its own chunk: wait until the slide has its layout.
-  await expect(slide.locator('[role="status"][aria-label="Loading slide layout"]')).toHaveCount(0, {
-    timeout: 15_000,
-  });
+  await expect(
+    slide.locator('[role="status"][aria-label="Loading slide layout"], .tx-deck-stage__loading')
+  ).toHaveCount(0, { timeout: 15_000 });
   // Block families are lazy chunks: wait until every block on the slide is ready
   // (no loading skeleton) before interactive specs read data-py-block roots.
   await expect(slide.locator('[role="status"][aria-label="Loading block"]')).toHaveCount(0, {
@@ -111,7 +109,7 @@ function measure(page: Page, slideId: string): Promise<DeckDesignMeasure> {
     const app = document.querySelector('[data-py-deck-app]');
     const candidates = [
       ...document.querySelectorAll<HTMLElement>(
-        `[data-canvas-slide]:not([aria-hidden="true"]) [data-py-deck-slide="${CSS.escape(id)}"]`
+        `[data-tx-deck-slide="${CSS.escape(id)}"][data-tx-deck-active="true"]`
       ),
     ].filter((node) => node.checkVisibility({ opacityProperty: true, visibilityProperty: true }));
     const slide = candidates[0];
@@ -127,7 +125,8 @@ function measure(page: Page, slideId: string): Promise<DeckDesignMeasure> {
       series: [],
     };
     if (!slide) return empty;
-    const frame = slide.querySelector<HTMLElement>('[data-py-deck-frame]') ?? slide;
+    // The stage slide is the fixed canvas frame (1280 × 720 for 16:9).
+    const frame = slide;
     const stage = toBox(frame.getBoundingClientRect());
     // The canvas scales the slide with a CSS transform (a phone shows it small):
     // computed font sizes are in canvas pixels, boxes in screen pixels.
@@ -136,6 +135,26 @@ function measure(page: Page, slideId: string): Promise<DeckDesignMeasure> {
       element instanceof Element &&
       element.checkVisibility({ opacityProperty: true, visibilityProperty: true });
 
+    /**
+     * Visually hidden text under any class name (Tailwind's `.sr-only`, Texuli's
+     * `.tx-sr-only` and its families' own): a box clipped to nothing, or a 1 px box
+     * that hides its overflow. Its text ranges still report full-size rects.
+     */
+    const visuallyHidden = (element: Element): boolean => {
+      for (let at: Element | null = element; at && at !== frame; at = at.parentElement) {
+        const style = getComputedStyle(at);
+        const clipped =
+          /^rect\(0(px)?,? 0(px)?,? 0(px)?,? 0(px)?\)$/.test(style.clip) ||
+          style.clipPath === 'inset(50%)';
+        const pixel =
+          at instanceof HTMLElement &&
+          at.offsetWidth <= 1 &&
+          at.offsetHeight <= 1 &&
+          style.overflow === 'hidden';
+        if (clipped || pixel) return true;
+      }
+      return false;
+    };
     const textBoxes: { label: string; box: B }[] = [];
     let displayTitlePx = 0;
     const walker = document.createTreeWalker(frame, NodeFilter.SHOW_TEXT);
@@ -145,7 +164,7 @@ function measure(page: Page, slideId: string): Promise<DeckDesignMeasure> {
       const parent = node.parentElement;
       if (!text || !parent || !shown(parent)) continue;
       // Screen-reader-only text is clipped to a pixel; it is not drawn.
-      if (parent.closest('.sr-only')) continue;
+      if (parent.closest('.sr-only') || visuallyHidden(parent)) continue;
       index += 1;
       const range = document.createRange();
       range.selectNodeContents(node);
@@ -165,7 +184,8 @@ function measure(page: Page, slideId: string): Promise<DeckDesignMeasure> {
         });
       }
       const size = fontPx;
-      if (size > displayTitlePx && !parent.closest('[data-py-deck-footer]')) displayTitlePx = size;
+      if (size > displayTitlePx && !parent.closest('[data-py-deck-footer], .tx-deck-stage__footer'))
+        displayTitlePx = size;
     }
     const media = [...frame.querySelectorAll('img, canvas, iframe, svg')]
       .filter((element) => !element.parentElement?.closest('svg') && shown(element))
@@ -174,7 +194,15 @@ function measure(page: Page, slideId: string): Promise<DeckDesignMeasure> {
         box: toBox(element.getBoundingClientRect()),
       }));
 
-    const charts = [...frame.querySelectorAll('[data-py-chart]')].filter(shown);
+    // Protoyard charts mark their root; the stage's chart layout paints Texuli's chart
+    // block, whose root is the figure (or image) around its series marks.
+    const roots = new Set<Element>(frame.querySelectorAll('[data-py-chart]'));
+    for (const mark of frame.querySelectorAll('[data-series]')) {
+      if ([...roots].some((root) => root.contains(mark))) continue;
+      const root = mark.closest('figure, [role="img"]');
+      if (root) roots.add(root);
+    }
+    const charts = [...roots].filter(shown);
     const series: {
       chart: string;
       series: string;
@@ -208,7 +236,9 @@ function measure(page: Page, slideId: string): Promise<DeckDesignMeasure> {
       slideId: id,
       stage,
       theme: app?.getAttribute('data-py-deck-theme') ?? null,
-      background: frame.getAttribute('data-py-deck-background'),
+      background:
+        frame.querySelector('[data-tx-deck-bg-preset]')?.getAttribute('data-tx-deck-bg-preset') ??
+        null,
       displayTitlePx: displayTitlePx || null,
       textBoxes,
       contentBoxes: [...textBoxes, ...media],
@@ -297,7 +327,12 @@ for (const level of Object.keys(LEVELS) as Level[]) {
       for (const slide of PLAN.slides.filter((item) => item.interactive.length > 0)) {
         const root = await goTo(page, slide.id);
         for (const kind of slide.interactive) {
-          const block = root.locator(`[data-py-block="${kind}"]`).first();
+          // The embed family is painted by @texuli/blocks' EmbedApp (data-tx-block, data-tx-embed-started).
+          const block = root
+            .locator(
+              kind === 'embed-app' ? '[data-tx-block="embed-app"]' : `[data-py-block="${kind}"]`
+            )
+            .first();
           await expect(block, `${slide.id}: ${kind} block`).toBeVisible();
           if (kind === 'poll') {
             await block.getByRole('list').getByRole('button').first().click();
@@ -343,10 +378,10 @@ for (const level of Object.keys(LEVELS) as Level[]) {
               `${level}: no start button; without an embed host (mountEmbed) the app cannot start (a generated deck needs the deck template's embed-host wiring)`
             ).toBeVisible({ timeout: 5_000 });
             // Nothing runs until the viewer asks for it.
-            await expect(block).toHaveAttribute('data-py-embed-started', 'false');
+            await expect(block).toHaveAttribute('data-tx-embed-started', 'false');
             await expect(block.locator('iframe')).toHaveCount(0);
             await startButton.click();
-            await expect(block).toHaveAttribute('data-py-embed-started', 'true', {
+            await expect(block).toHaveAttribute('data-tx-embed-started', 'true', {
               timeout: 30_000,
             });
             const frame = block.frameLocator('iframe');
@@ -395,7 +430,7 @@ test.describe('flagship deck at level 2 (prototype): the custom configurator sli
     await expect(deckRoot(page)).toHaveAttribute('data-slide-id', 'configurator');
     await expect(deckRoot(page)).toHaveAttribute('data-slide-step', '0');
 
-    await deckRoot(page).focus();
+    await page.locator('.tx-deck-stage').focus();
     await page.keyboard.press('ArrowRight');
     await expect(deckRoot(page)).toHaveAttribute('data-slide-step', '1');
     await expect(breakdown).toHaveText('25 seats × $8, minus $40 for paying yearly');

@@ -20,11 +20,6 @@ vi.mock('../src/debug/DeckDebugPanel.svelte', async (importOriginal) => {
   return importOriginal();
 });
 
-vi.mock('../src/layouts/index.ts', async () => {
-  const Mock = (await import('./fixtures/MockLayoutRenderer.svelte')).default;
-  return { DeckLayoutRenderer: Mock };
-});
-
 class ResizeObserverMock {
   observe() {}
   unobserve() {}
@@ -77,9 +72,10 @@ afterEach(() => {
 
 function mount(debug: 'auto' | 'on' | 'off', deck: Deck = fixtureDeck()) {
   const view = render(DeckApp, { props: { deck, debug, autofocus: true } });
+  // Keys go to the stage root (the Texuli stage listens there); the panel listens on window.
   const app = view.container.querySelector('[data-py-deck-app]') as HTMLElement;
-  app.focus();
-  return { view, app };
+  const stage = () => view.container.querySelector('.tx-deck-stage') as HTMLElement;
+  return { view, app, stage };
 }
 
 const panel = () => document.querySelector<HTMLElement>('[data-py-deck-debug]');
@@ -98,9 +94,9 @@ describe('availability', () => {
   });
 
   it('has no control and ignores D when off', async () => {
-    const { app } = mount('off');
+    const { stage } = mount('off');
     expect(screen.queryByRole('button', { name: 'Debug for agents' })).toBeNull();
-    await fireEvent.keyDown(app, { key: 'd' });
+    await fireEvent.keyDown(stage(), { key: 'd' });
     expect(panel()).toBeNull();
   });
 
@@ -114,9 +110,9 @@ describe('availability', () => {
 describe('the lazy chunk', () => {
   it('is loaded only when the panel opens', async () => {
     const before = panelLoads.count;
-    const { app } = mount('on');
+    const { stage } = mount('on');
     expect(panelLoads.count).toBe(before);
-    await fireEvent.keyDown(app, { key: 'd' });
+    await fireEvent.keyDown(stage(), { key: 'd' });
     await waitFor(() => expect(panel()).not.toBeNull());
     expect(panelLoads.count).toBe(before + 1);
   });
@@ -138,10 +134,10 @@ describe('the lazy chunk', () => {
 
 describe('the panel', () => {
   it('opens with D, shows the slide record and checks, and Esc closes it first', async () => {
-    const { app } = mount('on');
-    await fireEvent.keyDown(app, { key: 'd' });
+    const { stage } = mount('on');
+    await fireEvent.keyDown(stage(), { key: 'd' });
     await waitFor(() => expect(panel()).not.toBeNull());
-    await fireEvent.keyDown(app, { key: '?' });
+    await fireEvent.keyDown(stage(), { key: '?' });
     await screen.findByRole('dialog', { name: 'Controls and shortcuts' });
     const sheet = panel() as HTMLElement;
     expect(sheet.querySelector('[data-py-deck-debug-slide]')?.textContent).toBe('intro');
@@ -152,34 +148,34 @@ describe('the panel', () => {
       screen.getByRole('button', { name: 'Debug for agents' }).getAttribute('aria-pressed')
     ).toBe('true');
     // The panel and the help dialog are both open: Esc closes the panel first.
-    await fireEvent.keyDown(app, { key: 'Escape' });
+    await fireEvent.keyDown(stage(), { key: 'Escape' });
     await waitFor(() => expect(panel()).toBeNull());
     expect(screen.getByRole('dialog', { name: 'Controls and shortcuts' })).toBeTruthy();
   });
 
   it('leaves the panel alone while the presenter hides it', async () => {
-    const { app } = mount('on');
-    await fireEvent.keyDown(app, { key: 'd' });
+    const { app, stage } = mount('on');
+    await fireEvent.keyDown(stage(), { key: 'd' });
     await waitFor(() => expect(panel()).not.toBeNull());
-    await fireEvent.keyDown(app, { key: 'p' });
+    await fireEvent.keyDown(stage(), { key: 'p' });
     await waitFor(() => expect(panel()).toBeNull());
     expect(app.getAttribute('data-presenter')).toBe('true');
     // Esc reaches nothing visible here: the hidden panel stays open.
-    await fireEvent.keyDown(app, { key: 'Escape' });
-    await fireEvent.keyDown(app, { key: 'p' });
+    await fireEvent.keyDown(stage(), { key: 'Escape' });
+    await fireEvent.keyDown(stage(), { key: 'p' });
     expect(app.getAttribute('data-presenter')).not.toBe('true');
     await waitFor(() => expect(panel()).not.toBeNull());
     // Nor does D.
-    await fireEvent.keyDown(app, { key: 'p' });
+    await fireEvent.keyDown(stage(), { key: 'p' });
     await waitFor(() => expect(panel()).toBeNull());
-    await fireEvent.keyDown(app, { key: 'd' });
-    await fireEvent.keyDown(app, { key: 'p' });
+    await fireEvent.keyDown(stage(), { key: 'd' });
+    await fireEvent.keyDown(stage(), { key: 'p' });
     await waitFor(() => expect(panel()).not.toBeNull());
   });
 
   it('lists the slide checks and jumps to other slides with findings', async () => {
-    const { app } = mount('on');
-    await fireEvent.keyDown(app, { key: 'd' });
+    const { app, stage } = mount('on');
+    await fireEvent.keyDown(stage(), { key: 'd' });
     await waitFor(() => expect(panel()).not.toBeNull());
     // The free slide has no speaker notes: a finding on another slide.
     const jump = panel()?.querySelector<HTMLButtonElement>('[data-py-deck-debug-jump="body"]');
@@ -197,8 +193,8 @@ describe('the panel', () => {
   it('copies the agent reference, the prompt and the slide JSON in their formats', async () => {
     const writeText = stubClipboard();
     const deck = fixtureDeck();
-    const { app } = mount('on', deck);
-    await fireEvent.keyDown(app, { key: 'd' });
+    const { stage } = mount('on', deck);
+    await fireEvent.keyDown(stage(), { key: 'd' });
     await waitFor(() => expect(panel()).not.toBeNull());
     const action = (name: string) =>
       panel()?.querySelector<HTMLButtonElement>(
@@ -250,8 +246,8 @@ describe('the panel', () => {
       clicks.push(this.download);
     });
     const deck = fixtureDeck();
-    const { app } = mount('on', deck);
-    await fireEvent.keyDown(app, { key: 'd' });
+    const { stage } = mount('on', deck);
+    await fireEvent.keyDown(stage(), { key: 'd' });
     await waitFor(() => expect(panel()).not.toBeNull());
     await fireEvent.click(
       panel()?.querySelector('[data-py-deck-debug-action="download"]') as HTMLButtonElement
@@ -263,8 +259,8 @@ describe('the panel', () => {
   });
 
   it('draws block outlines that never take the pointer', async () => {
-    const { app } = mount('on');
-    await fireEvent.keyDown(app, { key: 'd' });
+    const { stage } = mount('on');
+    await fireEvent.keyDown(stage(), { key: 'd' });
     await waitFor(() => expect(panel()).not.toBeNull());
     const toggle = panel()?.querySelector(
       '[data-py-deck-debug-action="outline"]'
@@ -285,8 +281,8 @@ describe('hostile slide text', () => {
   it('is inert in the panel and on the clipboard', async () => {
     const writeText = stubClipboard();
     const deck = fixtureDeck(`Pay ${RLO}gnp.exe${ZWSP} now`);
-    const { app } = mount('on', deck);
-    await fireEvent.keyDown(app, { key: 'd' });
+    const { stage } = mount('on', deck);
+    await fireEvent.keyDown(stage(), { key: 'd' });
     await waitFor(() => expect(panel()).not.toBeNull());
     expect(panel()?.textContent).not.toMatch(INVISIBLE);
     expect(panel()?.textContent).toContain('gnp.exe');

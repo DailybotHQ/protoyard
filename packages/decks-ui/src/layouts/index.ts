@@ -1,3 +1,15 @@
-/** Lazy Svelte renderers for the data-only @protoyard/decks layout catalog. */
-export { default as DeckLayoutRenderer } from './DeckLayoutRenderer.svelte';
-export { loadLayoutRenderer } from './registry.ts';
+/**
+ * `@protoyard/decks-ui/layouts`: custom slides, the one slide kind a
+ * generated deck renders with its own code. The 20 catalog layouts render on
+ * the `@texuli/slides` stage (`@texuli/slides/layouts`).
+ */
+
+export { default as CustomSlideHost } from './CustomSlideHost.svelte';
+export {
+  type CustomSlideComponent,
+  type CustomSlideLoader,
+  type CustomSlideProps,
+  type CustomSlideRegistry,
+  customSlideLoader,
+  frozenCopy,
+} from './custom-slides.ts';

@@ -9,11 +9,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDeckStudio, deckStudioTab } from '../src/studio/index.ts';
 import StudioHarness from './fixtures/StudioHarness.svelte';
 
-vi.mock('../src/layouts/index.ts', async () => {
-  const Mock = (await import('./fixtures/MockLayoutRenderer.svelte')).default;
-  return { DeckLayoutRenderer: Mock };
-});
-
 class ResizeObserverStub {
   observe() {}
   unobserve() {}

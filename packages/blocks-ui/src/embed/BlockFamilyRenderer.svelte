@@ -14,6 +14,11 @@ const labels = $derived(
 );
 </script>
 
-<div data-py-block-family="embed" data-tx-blocks="embed">
+<!-- data-py-embed-app: the block id a generated deck's embed host reads (templates/deck/src/embed-host.ts). -->
+<div
+  data-py-block-family="embed"
+  data-tx-blocks="embed"
+  data-py-embed-app={block.type === 'embed-app' ? block.id : undefined}
+>
   <EmbedBlockView {block} mountEmbed={host.mountEmbed} {labels} />
 </div>

@@ -66,7 +66,9 @@ function ensurePlayer(): void {
 /** Writes a PNG of the slide (decks) or the viewport (pages, documents). */
 async function save(page: Page, kind: ContentKind, path: string): Promise<void> {
   const target =
-    kind === 'deck' ? page.locator('[data-canvas-slide][aria-hidden="false"]').first() : page;
+    kind === 'deck'
+      ? page.locator('[data-tx-deck-slide][data-tx-deck-active="true"]').first()
+      : page;
   const png = optimizePng(await target.screenshot({ type: 'png' }));
   const file = join(OUT, path);
   mkdirSync(join(file, '..'), { recursive: true });
@@ -114,7 +116,10 @@ async function main() {
             await page.evaluate((hash) => {
               window.location.hash = hash;
             }, `#/${slide.id}/${slide.step}`);
-            await page.locator(`[data-canvas-slide][aria-hidden="false"]`).first().waitFor();
+            await page
+              .locator(`[data-tx-deck-slide][data-tx-deck-active="true"]`)
+              .first()
+              .waitFor();
             await page.waitForLoadState('networkidle');
             await page.waitForTimeout(600);
             await save(page, 'deck', flagshipSlideCover(slide));

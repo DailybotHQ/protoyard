@@ -1,7 +1,7 @@
 {
   "name": "@protoyard/decks-ui",
   "version": "1.0.0",
-  "description": "Svelte 5 slide deck renderer for Protoyard: DeckApp, presenter view, print and Deck Studio, each on its own lazy subpath.",
+  "description": "Svelte 5 deck host for Protoyard: DeckApp on the @texuli/slides stage, with Protoyard's free and custom slides, Deck Studio and the Debug for agents panel, each on its own lazy subpath.",
   "license": "MIT",
   "type": "module",
   "sideEffects": [
@@ -31,16 +31,6 @@
       "svelte": "./src/studio/index.ts",
       "default": "./src/studio/index.ts"
     },
-    "./presenter": {
-      "types": "./src/presenter/index.ts",
-      "svelte": "./src/presenter/index.ts",
-      "default": "./src/presenter/index.ts"
-    },
-    "./print": {
-      "types": "./src/print/index.ts",
-      "svelte": "./src/print/index.ts",
-      "default": "./src/print/index.ts"
-    },
     "./debug": {
       "types": "./src/debug/index.ts",
       "svelte": "./src/debug/index.ts",
@@ -55,7 +45,9 @@
   "dependencies": {
     "@protoyard/blocks": "workspace:*",
     "@protoyard/blocks-ui": "workspace:*",
-    "@protoyard/decks": "workspace:*"
+    "@protoyard/decks": "workspace:*",
+    "@texuli/deck": "link:../../../texuli/packages/deck",
+    "@texuli/slides": "link:../../../texuli/packages/slides"
   },
   "devDependencies": {
     "svelte": "^5.57.2"
@@ -98,16 +90,6 @@
         "types": "./dist/studio/index.d.ts",
         "svelte": "./dist/studio/index.js",
         "default": "./dist/studio/index.js"
-      },
-      "./presenter": {
-        "types": "./dist/presenter/index.d.ts",
-        "svelte": "./dist/presenter/index.js",
-        "default": "./dist/presenter/index.js"
-      },
-      "./print": {
-        "types": "./dist/print/index.d.ts",
-        "svelte": "./dist/print/index.js",
-        "default": "./dist/print/index.js"
       },
       "./debug": {
         "types": "./dist/debug/index.d.ts",

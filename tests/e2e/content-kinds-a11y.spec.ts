@@ -221,13 +221,13 @@ test('the everything deck formats the quiz prompt and shows the card image', asy
   };
 
   await show('poll-quiz');
-  const legend = page.locator('[data-py-deck-slide="poll-quiz"] legend', { hasText: 'tone' });
+  const legend = page.locator('[data-tx-deck-slide="poll-quiz"] legend', { hasText: 'tone' });
   await expect(legend).toHaveText('What does a tone replace?', { timeout: 15_000 });
   await expect(legend.locator('strong')).toHaveText('tone');
 
   await show('structure-b');
   const image = page
-    .locator('[data-py-deck-slide="structure-b"]')
+    .locator('[data-tx-deck-slide="structure-b"]')
     .getByRole('img', { name: 'A face' });
   await expect(image).toBeVisible({ timeout: 15_000 });
   await expect

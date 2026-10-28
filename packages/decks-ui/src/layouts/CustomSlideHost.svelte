@@ -72,7 +72,7 @@ const label = $derived(slide.title ?? id);
       {@const Slide = module.default}
       <svelte:boundary>
         <!-- The component owns its clicks: they never advance the deck. -->
-        <div class="size-full" data-py-deck-interactive>
+        <div class="size-full" data-tx-deck-interactive>
           <Slide slide={ownSlide} {step} {stepCount} {data} />
         </div>
         {#snippet failed(_error, reset)}

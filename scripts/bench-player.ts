@@ -103,7 +103,7 @@ function fail(message: string): never {
 }
 
 export function contentSelector(kind: PlayerKind): string | null {
-  if (kind === 'deck') return '[data-py-deck-slide]';
+  if (kind === 'deck') return '[data-tx-deck-slide]';
   if (kind === 'page') return '[data-py-page-section]';
   if (kind === 'doc') return '[data-py-doc-block]';
   return null;

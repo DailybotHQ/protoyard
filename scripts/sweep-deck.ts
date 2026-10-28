@@ -302,8 +302,8 @@ async function measureSlide(
         document.querySelector('[data-testid="deck-canvas"]') ||
         document.querySelector('[data-py-deck-app]');
       const slide =
-        document.querySelector(`[data-py-deck-slide="${id}"]`) ||
-        document.querySelector('[data-py-deck-slide]');
+        document.querySelector(`[data-tx-deck-slide="${id}"][data-tx-deck-active="true"]`) ||
+        document.querySelector('[data-tx-deck-slide][data-tx-deck-active="true"]');
       const measure: {
         slideId: string;
         step: number;
@@ -341,7 +341,7 @@ async function measureSlide(
         if (['SCRIPT', 'STYLE', 'BR', 'DEFS', 'TITLE'].includes(tag)) continue;
         if (
           el.closest(
-            '[data-py-deck-chrome], [data-py-deck-overview], [data-py-deck-help], [data-py-deck-blackout], [data-py-deck-live]'
+            '[data-tx-deck-chrome], [data-tx-deck-overview], [data-tx-deck-help], [data-tx-deck-blackout], .tx-deck-stage__live, [data-py-deck-debug]'
           )
         ) {
           continue;
@@ -368,7 +368,7 @@ async function measureSlide(
           const fontSize = parseFloat(cs.fontSize);
           const isLabel = Boolean(
             el.closest(
-              '[data-py-deck-slide-number], [data-py-deck-chrome], kbd, small, .text-xs, [data-label]'
+              '.tx-deck-stage__slide-number, [data-tx-deck-chrome], kbd, small, .text-xs, [data-label]'
             )
           );
           const min = isLabel ? minLabel : minBody;

@@ -39,7 +39,8 @@
   },
   "devDependencies": {
     "@protoyard/runtime": "workspace:*",
-    "@protoyard/scenarios": "workspace:*"
+    "@protoyard/scenarios": "workspace:*",
+    "tailwindcss": "^4.3.3"
   },
   "files": [
     "dist",

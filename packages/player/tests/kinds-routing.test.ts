@@ -325,7 +325,10 @@ describe('bootKind (real) on fake IndexedDB', () => {
     expect(player.namespace).toMatch(/^bp-[a-z2-7]{26}$/);
     expect(player.runtime?.manifest.storage.namespace).toBe(player.namespace);
     expect(player.runtime?.session.principal()?.persona.id).toBe('presenter');
-    await vi.waitFor(() => expect(target.querySelector('[data-py-deck-app]')).not.toBeNull());
+    // The first deck mount transforms the @texuli/slides stage on demand (cold in Vitest).
+    await vi.waitFor(() => expect(target.querySelector('[data-py-deck-app]')).not.toBeNull(), {
+      timeout: 10_000,
+    });
     expect(document.querySelector('[data-py-demo-badge]')).not.toBeNull();
   });
 
