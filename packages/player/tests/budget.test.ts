@@ -97,12 +97,14 @@ function importGraph(entry: string): string[] {
 
 /**
  * Ceilings on every stylesheet a player page can ever load, gzip KB: measured
- * + 5 %, rounded up. On the npm Texuli 0.3.0 (2026-10-28): index.html 80.0 KB
- * (it plays every kind and kit), deck.html 56.8, page.html and doc.html 56.1
- * (2026-10-24, linked Texuli: 75.9, 53.3 and 52.6; Texuli CSS weight is gap G23).
+ * + 5 %, rounded up. On the npm Texuli 0.4.0 with every kit migrated to Texuli
+ * (PLAN_007, 2026-10-28): index.html 97.1 KB (it plays every kind and kit),
+ * deck.html 63.7, page.html and doc.html 62.8. Earlier: 80.0 / 56.8 / 56.1 on
+ * 0.3.0 before the kit migrations, 75.9 / 53.3 / 52.6 linked on 2026-10-24. The
+ * growth is lazily loaded Texuli family CSS (gap G23); lower when it shrinks.
  * The 36 KB cssGzipKb budget applies to each entry's initial CSS (17-20 KB).
  */
-const PLAYER_TOTAL_CSS_GZIP_KB = { index: 84.1, deck: 59.7, page: 58.9, doc: 58.9 } as const;
+const PLAYER_TOTAL_CSS_GZIP_KB = { index: 102, deck: 66.9, page: 66, doc: 66 } as const;
 
 /** Modules that must only ever load on demand, by manifest key. */
 const LAZY_MODULES: [string, RegExp][] = [
