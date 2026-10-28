@@ -1,6 +1,6 @@
 <script lang="ts">
 import { can, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
-import { Button, Card, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
+import { Button, Card, EmptyState, ErrorState, Input, Skeleton } from '@protoyard/ui';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { useCourseLms } from '../lib/context.ts';
 
@@ -118,7 +118,7 @@ async function submitQuiz(quizId: string, questionIds: string[]) {
                 <legend class="text-sm font-medium">{question.prompt}</legend>
                 {#each question.choices as choice, index (index)}
                   <label class="flex cursor-pointer items-start gap-2 rounded-md border border-border p-2 text-sm">
-                    <input
+                    <Input
                       type="radio"
                       name={`${quiz.id}-${question.id}`}
                       value={index}

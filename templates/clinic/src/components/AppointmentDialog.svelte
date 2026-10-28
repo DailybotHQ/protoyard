@@ -152,7 +152,7 @@ async function submit(event: SubmitEvent) {
     <div class="grid grid-cols-2 gap-3">
       <FormField label="Start (UTC)" required>
         {#snippet children(control)}
-          <Input {...control.props} type="time" step="900" bind:value={form.time} />
+          <Input {...control.props} type="time" step={900} bind:value={form.time} />
         {/snippet}
       </FormField>
       <FormField label="Length" required error={errors.end}>

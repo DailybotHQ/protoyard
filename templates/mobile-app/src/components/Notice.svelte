@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Info, TriangleAlert, WifiOff } from '@lucide/svelte';
 import type { Snippet } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 /**
  * Inline banner for conditions people must understand (offline, read-only access,
@@ -30,7 +31,7 @@ const tones = {
   role={tone === 'info' ? 'note' : 'status'}
   class={['flex gap-3 rounded-xl border p-3 text-sm text-foreground', tones[tone]]}
 >
-  <Icon class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+  <LucideIcon icon={Icon} class="mt-0.5 size-4 shrink-0" />
   <div class="min-w-0">
     <p class="font-medium">{title}</p>
     {#if children}<div class="mt-0.5 text-muted-foreground">{@render children()}</div>{/if}

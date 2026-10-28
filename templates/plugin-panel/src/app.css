@@ -27,7 +27,7 @@ button:disabled {
   opacity: 0.5;
 }
 .plugin-panel {
-  min-height: var(--py-app-height, 100vh);
+  min-height: var(--tx-app-height, 100vh);
   width: 100%;
   max-width: 440px;
   margin: 0 auto;

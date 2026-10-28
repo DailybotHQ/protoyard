@@ -59,6 +59,10 @@ The player routes by kind **before** loading the app shell
 same shells so behavior matches
 ([Player](PLAYER.md), [Generator](GENERATOR.md)).
 
+The 31 starter templates compose the shared `@protoyard/ui` components and
+Texuli's `Icon` / `LucideIcon` renderers. Lucide remains the glyph source, while
+template styles read the canonical `--tx-*` theme tokens.
+
 ## App kind
 
 An **app** blueprint describes entities, roles, screens and optional kits

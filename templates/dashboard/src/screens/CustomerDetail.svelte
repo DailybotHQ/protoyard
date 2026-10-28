@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowLeft, Building2, Globe, Mail, Pencil, Plus, Trash2, UserX } from '@lucide/svelte';
+import { ArrowLeft, Building2, Globe, Mail, Pencil, Trash2, UserX } from '@lucide/svelte';
 import {
   avatarImage,
   back,
@@ -19,6 +19,8 @@ import {
   ErrorState,
   LoadingState,
 } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import CustomerDialog from '../components/CustomerDialog.svelte';
 import OrderDialog from '../components/OrderDialog.svelte';
 import OrderStatusMenu from '../components/OrderStatusMenu.svelte';
@@ -77,7 +79,7 @@ async function remove(customerId: string) {
 </script>
 
 <Button variant="ghost" size="sm" class="-ml-2 mb-4" onclick={() => back('/customers')}>
-  <ArrowLeft class="size-4" aria-hidden="true" />Customers
+  <LucideIcon icon={ArrowLeft} class="size-4" />Customers
 </Button>
 
 {#if customer.error}
@@ -96,18 +98,18 @@ async function remove(customerId: string) {
       <div class="min-w-0">
         <h1 class="truncate text-2xl font-semibold tracking-tight">{c.name}</h1>
         <p class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-          <span class="inline-flex items-center gap-1"><Mail class="size-3.5" aria-hidden="true" />{c.email}</span>
-          {#if c.company}<span class="inline-flex items-center gap-1"><Building2 class="size-3.5" aria-hidden="true" />{c.company}</span>{/if}
-          {#if c.country}<span class="inline-flex items-center gap-1"><Globe class="size-3.5" aria-hidden="true" />{c.country}</span>{/if}
+          <span class="inline-flex items-center gap-1"><LucideIcon icon={Mail} class="size-3.5" />{c.email}</span>
+          {#if c.company}<span class="inline-flex items-center gap-1"><LucideIcon icon={Building2} class="size-3.5" />{c.company}</span>{/if}
+          {#if c.country}<span class="inline-flex items-center gap-1"><LucideIcon icon={Globe} class="size-3.5" />{c.country}</span>{/if}
         </p>
       </div>
     </div>
     <div class="flex flex-wrap gap-2">
       {#if can(CAPABILITIES.customersUpdate)}
-        <Button variant="outline" onclick={() => (editOpen = true)}><Pencil class="size-4" aria-hidden="true" />Edit</Button>
+        <Button variant="outline" onclick={() => (editOpen = true)}><LucideIcon icon={Pencil} class="size-4" />Edit</Button>
       {/if}
       {#if can(CAPABILITIES.customersDelete)}
-        <Button variant="outline" class="text-destructive" onclick={() => (deleteOpen = true)}><Trash2 class="size-4" aria-hidden="true" />Delete</Button>
+        <Button variant="outline" class="text-destructive" onclick={() => (deleteOpen = true)}><LucideIcon icon={Trash2} class="size-4" />Delete</Button>
       {/if}
     </div>
   </div>
@@ -124,7 +126,7 @@ async function remove(customerId: string) {
       <div class="flex items-center justify-between">
         <h2 class="text-sm font-semibold">Orders <span class="font-normal text-muted-foreground">{(orders.current ?? []).length}</span></h2>
         {#if can(CAPABILITIES.ordersCreate)}
-          <Button size="sm" variant="ghost" onclick={() => (orderOpen = true)}><Plus class="size-4" aria-hidden="true" />New order</Button>
+          <Button size="sm" variant="ghost" onclick={() => (orderOpen = true)}><Icon icon="plus" class="size-4" aria-hidden="true" />New order</Button>
         {/if}
       </div>
       <ul class="mt-3 divide-y divide-border">

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { AlertTriangle, ShoppingCart, Trash2, UserRound } from '@lucide/svelte';
+import { ShoppingCart, Trash2, UserRound } from '@lucide/svelte';
 import {
   can,
   Link,
@@ -9,6 +9,8 @@ import {
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import { AlertDialog, Button, Card, EmptyState, ErrorState, Skeleton, toast } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import ProductArt from '../components/ProductArt.svelte';
 import QuantityStepper from '../components/QuantityStepper.svelte';
@@ -49,7 +51,7 @@ async function setQuantity(productId: string, quantity: number) {
   {#snippet actions()}
     {#if (lines.current?.length ?? 0) > 0}
       <Button variant="ghost" class="text-destructive hover:bg-destructive/10" onclick={() => (confirmClear = true)}>
-        <Trash2 class="size-4" aria-hidden="true" />Clear cart
+        <LucideIcon icon={Trash2} class="size-4" />Clear cart
       </Button>
     {/if}
   {/snippet}
@@ -72,7 +74,7 @@ async function setQuantity(productId: string, quantity: number) {
     <div class="space-y-3">
       {#if problems.length > 0}
         <div class="flex gap-3 rounded-xl border border-warning/50 bg-warning/10 p-4 text-sm" role="alert">
-          <AlertTriangle class="mt-0.5 size-4 shrink-0 text-warning-foreground dark:text-warning" aria-hidden="true" />
+          <Icon icon="warning" class="mt-0.5 size-4 shrink-0 text-warning-foreground dark:text-warning" aria-hidden="true" />
           <p>Some items sold out while they were in your cart. Lower the highlighted quantities — checkout will refuse the order until they fit the stock.</p>
         </div>
       {/if}

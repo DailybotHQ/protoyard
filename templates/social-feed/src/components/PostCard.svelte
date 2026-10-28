@@ -2,6 +2,7 @@
 import { MessageCircle, Trash2 } from '@lucide/svelte';
 import { can, Link, liveQuery, runService, useClock } from '@protoyard/renderer-svelte';
 import { Avatar, Button, Input } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import {
   type Comment,
   type Person,
@@ -82,11 +83,11 @@ async function comment() {
           </Button>
         {/each}
         <Button variant="ghost" size="sm" aria-expanded={open} onclick={() => (open = !open)}>
-          <MessageCircle class="size-4" aria-hidden="true" />{post.commentCount}<span class="sr-only"> comments</span>
+          <LucideIcon icon={MessageCircle} class="size-4" />{post.commentCount}<span class="sr-only"> comments</span>
         </Button>
         {#if canRemove}
           <Button class="ml-auto" variant="ghost" size="sm" onclick={() => runService(() => services.posts.remove(post.id), { success: 'Post deleted' })}>
-            <Trash2 class="size-4" aria-hidden="true" /><span class="sr-only">Delete post</span>
+            <LucideIcon icon={Trash2} class="size-4" /><span class="sr-only">Delete post</span>
           </Button>
         {/if}
       </div>

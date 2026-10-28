@@ -57,7 +57,7 @@ async function submit(event: SubmitEvent) {
     </FormField>
     <FormField label={`Amount (${currency})`} required error={errors.amount}>
       {#snippet children(control)}
-        <Input {...control.props} type="number" min="0" step="0.01" inputmode="decimal" bind:value={form.amount} placeholder="499" />
+        <Input {...control.props} type="number" min={0} step="0.01" inputmode="decimal" bind:value={form.amount} placeholder="499" />
       {/snippet}
     </FormField>
   </form>
