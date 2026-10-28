@@ -2,6 +2,7 @@
 import { Compass } from '@lucide/svelte';
 import { avatarImage, usePrincipal } from '@protoyard/renderer-svelte';
 import { Avatar, Badge } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { ROLE_LABELS } from '../domain/policy.ts';
 import { useOnboarding } from '../lib/context.ts';
 
@@ -13,7 +14,7 @@ const { workspace } = useOnboarding();
   <div class="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4 sm:px-6">
     <a href="#/" class="flex min-w-0 items-center gap-2 rounded-md font-semibold tracking-tight">
       <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <Compass class="size-4" aria-hidden="true" />
+        <LucideIcon icon={Compass} class="size-4" />
       </span>
       <span class="truncate">{workspace.current?.name ?? principal.current?.organization?.name ?? 'Workspace'}</span>
     </a>

@@ -1,7 +1,8 @@
 <script lang="ts">
-import { MessagesSquare, Plus } from '@lucide/svelte';
+import { MessagesSquare } from '@lucide/svelte';
 import { can } from '@protoyard/renderer-svelte';
 import { Button, EmptyState } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { useChat } from '../lib/context.ts';
 
@@ -22,7 +23,7 @@ const empty = $derived(!inbox.loading && (inbox.current ?? []).length === 0);
   >
     {#snippet action()}
       {#if can(CAPABILITIES.create) && onNew}
-        <Button onclick={onNew}><Plus aria-hidden="true" /> New conversation</Button>
+        <Button onclick={onNew}><Icon icon="plus" aria-hidden="true" /> New conversation</Button>
       {/if}
     {/snippet}
   </EmptyState>

@@ -20,6 +20,7 @@ import {
   Skeleton,
   Textarea,
 } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import StatusBadge from '../components/StatusBadge.svelte';
 import { checkInBlocker, patientName, waitMinutes } from '../domain/clinic.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
@@ -101,7 +102,7 @@ const cancel = () =>
 </script>
 
 <Link href="/" class="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-  <ArrowLeft class="size-4" aria-hidden="true" />Front desk
+  <LucideIcon icon={ArrowLeft} class="size-4" />Front desk
 </Link>
 
 {#if visit.current === undefined}

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowLeft, CircleCheck, CircleX, FileQuestion, Play, Plus, Trash2 } from '@lucide/svelte';
+import { ArrowLeft, CircleCheck, CircleX, FileQuestion, Play, Trash2 } from '@lucide/svelte';
 import {
   can,
   getRuntime,
@@ -21,6 +21,8 @@ import {
   Textarea,
   toast,
 } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { ConsoleDatabase, Evaluation } from '../database/schema.ts';
 import { TOOL_NAMES } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
@@ -99,7 +101,7 @@ const caseResult = (caseId: string) => shown?.results.find((r) => r.caseId === c
 </script>
 
 <a href="#/evaluations" class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-  <ArrowLeft class="size-4" aria-hidden="true" />Evaluations
+  <LucideIcon icon={ArrowLeft} class="size-4" />Evaluations
 </a>
 
 {#if dataset.loading}
@@ -118,9 +120,9 @@ const caseResult = (caseId: string) => shown?.results.find((r) => r.caseId === c
     </div>
     <div class="flex gap-2">
       {#if canRun}
-        <Button onclick={runEvaluation} loading={running} disabled={d.cases.length === 0 || !agent.current}><Play class="size-4" aria-hidden="true" />Run evaluation</Button>
+        <Button onclick={runEvaluation} loading={running} disabled={d.cases.length === 0 || !agent.current}><LucideIcon icon={Play} class="size-4" />Run evaluation</Button>
       {/if}
-      {#if canWrite}<Button variant="outline" onclick={() => (deleteOpen = true)}><Trash2 class="size-4" aria-hidden="true" />Delete</Button>{/if}
+      {#if canWrite}<Button variant="outline" onclick={() => (deleteOpen = true)}><LucideIcon icon={Trash2} class="size-4" />Delete</Button>{/if}
     </div>
   </div>
 
@@ -144,7 +146,7 @@ const caseResult = (caseId: string) => shown?.results.find((r) => r.caseId === c
       <li class="rounded-xl border border-border bg-surface p-4 shadow-soft">
         <div class="flex items-start gap-3">
           {#if result}
-            {#if result.pass}<CircleCheck class="mt-0.5 size-5 shrink-0 text-success" aria-label="Passed" />{:else}<CircleX class="mt-0.5 size-5 shrink-0 text-destructive" aria-label="Failed" />{/if}
+            {#if result.pass}<LucideIcon icon={CircleCheck} class="mt-0.5 size-5 shrink-0 text-success" label="Passed" />{:else}<LucideIcon icon={CircleX} class="mt-0.5 size-5 shrink-0 text-destructive" label="Failed" />{/if}
           {/if}
           <div class="min-w-0 flex-1">
             <p class="font-medium">{testCase.prompt}</p>
@@ -159,7 +161,7 @@ const caseResult = (caseId: string) => shown?.results.find((r) => r.caseId === c
           </div>
           {#if canWrite}
             <Button variant="ghost" size="icon" aria-label={`Remove case: ${testCase.prompt}`} onclick={() => runService(() => services().datasets.removeCase(id, testCase.id), { success: 'Case removed' })}>
-              <Trash2 class="size-4" aria-hidden="true" />
+              <LucideIcon icon={Trash2} class="size-4" />
             </Button>
           {/if}
         </div>
@@ -187,7 +189,7 @@ const caseResult = (caseId: string) => shown?.results.find((r) => r.caseId === c
           <Input {...control.props} bind:value={form.expectText} placeholder="Taylor" />
         {/snippet}
       </FormField>
-      <div class="sm:col-span-2"><Button type="submit" loading={adding}><Plus class="size-4" aria-hidden="true" />Add case</Button></div>
+      <div class="sm:col-span-2"><Button type="submit" loading={adding}><Icon icon="plus" class="size-4" aria-hidden="true" />Add case</Button></div>
     </form>
   {/if}
 

@@ -2,6 +2,7 @@
 import { Lock } from '@lucide/svelte';
 import { can, isValidationError, runService } from '@protoyard/renderer-svelte';
 import { FormField, Input, RadioGroup, Select } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import StepFooter from '../components/StepFooter.svelte';
 import StepHeading from '../components/StepHeading.svelte';
 import { TEAM_SIZES, type TeamSize, USE_CASES, type UseCase } from '../database/schema.ts';
@@ -98,7 +99,7 @@ async function submit(event: SubmitEvent) {
       </dl>
     {/if}
     <p class="mt-4 flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground" role="note">
-      <Lock class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      <LucideIcon icon={Lock} class="mt-0.5 size-4 shrink-0" />
       Only owners and admins can change workspace settings. Continue to finish your own setup.
     </p>
   </form>

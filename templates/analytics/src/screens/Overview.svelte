@@ -5,6 +5,7 @@ import { KpiRow, KpiTile } from '@protoyard/analytics-ui';
 import { DashboardGrid, WidgetCard } from '@protoyard/analytics-ui/grid';
 import { can, liveQuery, useClock } from '@protoyard/renderer-svelte';
 import { Button, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import RangeBar from '../components/RangeBar.svelte';
 import RenameDialog from '../components/RenameDialog.svelte';
@@ -59,9 +60,9 @@ const save = (layout: DashboardLayout) =>
   {#snippet actions()}
     <RangeBar now={clock.now} />
     {#if canEdit && dashboard.current}
-      <Button variant="outline" size="sm" onclick={() => (renameOpen = true)}><PencilLine class="size-4" aria-hidden="true" />Rename</Button>
+      <Button variant="outline" size="sm" onclick={() => (renameOpen = true)}><LucideIcon icon={PencilLine} class="size-4" />Rename</Button>
       <Button variant={editing ? 'secondary' : 'outline'} size="sm" aria-pressed={editing} onclick={() => (editing = !editing)}>
-        <Pencil class="size-4" aria-hidden="true" />{editing ? 'Done editing' : 'Edit layout'}
+        <LucideIcon icon={Pencil} class="size-4" />{editing ? 'Done editing' : 'Edit layout'}
       </Button>
     {/if}
   {/snippet}

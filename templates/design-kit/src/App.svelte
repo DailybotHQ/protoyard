@@ -1,6 +1,6 @@
 <script lang="ts">
 import { getRuntime, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
-import { Button } from '@protoyard/ui';
+import { Button, Input, Select, Textarea } from '@protoyard/ui';
 import type { Component } from 'svelte';
 import { ENTRIES, GROUPS } from './catalog/entries.ts';
 import { demoLoader, demoProps } from './catalog/registry.ts';
@@ -138,17 +138,17 @@ function contrastInk(hex: string) {
   <aside class="sidebar">
     <a href="#/" class="brand"><span class="brand-mark">✳</span><span><strong>Studio Kit</strong><small>Design system</small></span></a>
     <p class="nav-label">LIBRARY</p>
-    <button class:active={section === 'Foundations'} class="nav-item" onclick={() => section = 'Foundations'}><span>◈</span> Foundations</button>
-    <button class:active={section === 'Catalog'} class="nav-item" onclick={() => section = 'Catalog'}><span>▦</span> Components <span class="count">{ENTRIES.length}</span></button>
+    <Button class={`nav-item ${section === 'Foundations' ? 'active' : ''}`} onclick={() => section = 'Foundations'}><span>◈</span> Foundations</Button>
+    <Button class={`nav-item ${section === 'Catalog' ? 'active' : ''}`} onclick={() => section = 'Catalog'}><span>▦</span> Components <span class="count">{ENTRIES.length}</span></Button>
     <p class="nav-label">FOUNDATIONS</p>
     {#each foundations as item}
-      <button class:sub-active={foundation === item} class="nav-sub" onclick={() => { section = 'Foundations'; foundation = item; }}>{item}</button>
+      <Button class={`nav-sub ${foundation === item ? 'sub-active' : ''}`} onclick={() => { section = 'Foundations'; foundation = item; }}>{item}</Button>
     {/each}
     <div class="sidebar-footer"><span class="avatar">AC</span><span><strong>Avery Chen</strong><small>Design owner</small></span><span class="online-dot"></span></div>
   </aside>
 
   <main class="main">
-    <header class="topbar"><div><span class="crumb">Workspace</span><span class="slash">/</span><strong>{section === 'Foundations' ? foundation : 'Component catalog'}</strong></div><div class="top-actions"><span class="local-tag">● Local preview</span><button class="avatar small" aria-label="Current persona">AC</button></div></header>
+    <header class="topbar"><div><span class="crumb">Workspace</span><span class="slash">/</span><strong>{section === 'Foundations' ? foundation : 'Component catalog'}</strong></div><div class="top-actions"><span class="local-tag">● Local preview</span><Button class="avatar small" aria-label="Current persona">AC</Button></div></header>
     {#if section === 'Foundations'}
       <section class="content">
         <div class="page-heading"><div><p class="eyebrow">FOUNDATION / {foundation.toUpperCase()}</p><h1>{foundation} foundations</h1><p class="lede">A practical starting point for a coherent, accessible product language.</p></div><span class="version-pill">v1.0 · Draft</span></div>
@@ -173,17 +173,17 @@ function contrastInk(hex: string) {
     {:else}
       <section class="content catalog-content">
         <div class="page-heading"><div><p class="eyebrow">LIBRARY / COMPONENTS</p><h1>Component catalog</h1><p class="lede">Explore patterns, copy usage and leave a review for each entry.</p></div><span class="version-pill">{ENTRIES.length} entries</span></div>
-        <label class="search-box"><span aria-hidden="true">⌕</span><input bind:value={search} placeholder="Search components and patterns" aria-label="Search components and patterns" /><kbd>⌘ K</kbd></label>
+        <label class="search-box"><span aria-hidden="true">⌕</span><Input bind:value={search} placeholder="Search components and patterns" aria-label="Search components and patterns" /><kbd>⌘ K</kbd></label>
         <div class="catalog-layout">
-          <nav class="catalog-nav" aria-label="Component groups"><span class="tiny-label">GROUPS</span>{#each GROUPS as group}<button class:group-active={selected.group === group} onclick={() => { const first = ENTRIES.find((entry) => entry.group === group); if (first) void selectEntry(first.id); }}>{group}<span>{ENTRIES.filter((entry) => entry.group === group).length}</span></button>{/each}<span class="tiny-label recently">ENTRIES</span>{#each filtered as entry}<button class:entry-active={selectedId === entry.id} class="entry-link" onclick={() => void selectEntry(entry.id)}>{entry.name}</button>{/each}</nav>
+          <nav class="catalog-nav" aria-label="Component groups"><span class="tiny-label">GROUPS</span>{#each GROUPS as group}<Button class={selected.group === group ? 'group-active' : ''} onclick={() => { const first = ENTRIES.find((entry) => entry.group === group); if (first) void selectEntry(first.id); }}>{group}<span>{ENTRIES.filter((entry) => entry.group === group).length}</span></Button>{/each}<span class="tiny-label recently">ENTRIES</span>{#each filtered as entry}<Button class={`entry-link ${selectedId === entry.id ? 'entry-active' : ''}`} onclick={() => void selectEntry(entry.id)}>{entry.name}</Button>{/each}</nav>
           <div class="entry-main">
             {#if filtered.length === 0}<div class="empty-search"><span>⌕</span><h2>No matching components</h2><p>Try a different name or group.</p></div>
             {:else}<div class="entry-heading"><div><span class="eyebrow">{selected.group.toUpperCase()} · COMPONENT</span><h2>{selected.name}</h2><p>{selected.summary}</p></div><span class={`status-pill ${review?.status ?? 'todo'}`}>{review?.status ?? 'Not reviewed'}</span></div>
-              <section class="demo-section"><div class="section-head"><div><strong>Responsive preview</strong><small>Same component, two common viewports</small></div><button class="quiet-action" onclick={copySnippet} disabled={copying}>{copying ? 'Copying…' : copied ? 'Copied' : 'Copy snippet ↗'}</button></div>{#if copyError}<p class="error" role="alert">{copyError}</p>{/if}
+              <section class="demo-section"><div class="section-head"><div><strong>Responsive preview</strong><small>Same component, two common viewports</small></div><Button class="quiet-action" onclick={copySnippet} disabled={copying}>{copying ? 'Copying…' : copied ? 'Copied' : 'Copy snippet ↗'}</Button></div>{#if copyError}<p class="error" role="alert">{copyError}</p>{/if}
                 <div class="preview-grid"><article class="preview-frame desktop-frame"><div class="frame-toolbar"><span class="traffic"><i></i><i></i><i></i></span><small>Desktop · 1280 px</small><span>↗</span></div><div class="demo-canvas">{#if loadingDemo}<span class="loading">Loading preview…</span>{:else if Demo}<Demo />{/if}</div></article><article class="preview-frame phone-frame"><div class="frame-toolbar"><span class="phone-notch"></span><small>Phone · 390 px</small></div><div class="demo-canvas">{#if loadingDemo}<span class="loading">Loading…</span>{:else if Demo}<Demo />{/if}</div></article></div>
               </section>
               <section class="props-section"><div class="section-head"><div><strong>Props</strong><small>Read from this demo's source annotations</small></div><span class="generated-tag">GENERATED</span></div>{#if props.length}<div class="props-table" role="table" aria-label={`${selected.name} properties`}><div class="props-row props-header" role="row"><span role="columnheader">Name</span><span role="columnheader">Type</span><span role="columnheader">Description</span></div>{#each props as prop}<div class="props-row" role="row"><code>{prop.name}</code><code>{prop.type}</code><span>{prop.description}</span></div>{/each}</div>{:else}<p class="hint">Add @prop annotations to the component source to document its API.</p>{/if}</section>
-              <section class="review-section"><div class="section-head"><div><strong>Review notes</strong><small>Saved for {principal.current?.persona.name ?? 'this persona'} in this browser</small></div><span class="saved-at">{review ? `Updated ${new Date(review.updatedAt).toLocaleDateString()}` : 'Not reviewed yet'}</span></div><div class="review-fields"><label>Status<select bind:value={status}><option value="todo">To do</option><option value="in-progress">In progress</option><option value="approved">Approved</option></select></label><label class="note-field">Notes<textarea bind:value={note} maxlength="500" placeholder="Add a decision, question or follow-up…"></textarea><small>{note.length}/500</small></label><Button class="primary save-button" loadingLabel="Saving review" onclick={() => saveReview()}>Save review</Button>{#if error}<p class="error" role="alert">{error}</p>{/if}</div></section>
+              <section class="review-section"><div class="section-head"><div><strong>Review notes</strong><small>Saved for {principal.current?.persona.name ?? 'this persona'} in this browser</small></div><span class="saved-at">{review ? `Updated ${new Date(review.updatedAt).toLocaleDateString()}` : 'Not reviewed yet'}</span></div><div class="review-fields"><label>Status<Select bind:value={status} items={[{ value: 'todo', label: 'To do' }, { value: 'in-progress', label: 'In progress' }, { value: 'approved', label: 'Approved' }]} /></label><label class="note-field">Notes<Textarea bind:value={note} maxlength={500} placeholder="Add a decision, question or follow-up…"></Textarea><small>{note.length}/500</small></label><Button class="primary save-button" loadingLabel="Saving review" onclick={() => saveReview()}>Save review</Button>{#if error}<p class="error" role="alert">{error}</p>{/if}</div></section>
             {/if}
           </div>
         </div>

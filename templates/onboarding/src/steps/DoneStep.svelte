@@ -2,6 +2,7 @@
 import { CircleCheck, CircleDashed, PartyPopper, Pencil } from '@lucide/svelte';
 import { isValidationError, navigate, runService } from '@protoyard/renderer-svelte';
 import { Button } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import RestartOnboarding from '../components/RestartOnboarding.svelte';
 import StepHeading from '../components/StepHeading.svelte';
 import { ACTIONABLE_STEPS, type OnboardingState, type StepId } from '../database/schema.ts';
@@ -39,7 +40,7 @@ const status = (step: StepId) =>
 
 {#if flow.completedAt}
   <div class="flex flex-col items-center py-6 text-center">
-    <span class="grid size-14 place-items-center rounded-full bg-success text-success-foreground"><PartyPopper class="size-7" aria-hidden="true" /></span>
+    <span class="grid size-14 place-items-center rounded-full bg-success text-success-foreground"><LucideIcon icon={PartyPopper} class="size-7" /></span>
     <StepHeading title="You're all set" description="Onboarding is complete. Here is what you set up." />
   </div>
 {:else}
@@ -51,9 +52,9 @@ const status = (step: StepId) =>
     {@const s = status(step)}
     <li class="flex items-start gap-3 p-4">
       {#if s === 'done'}
-        <CircleCheck class="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
+        <LucideIcon icon={CircleCheck} class="mt-0.5 size-5 shrink-0 text-success" />
       {:else}
-        <CircleDashed class="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <LucideIcon icon={CircleDashed} class="mt-0.5 size-5 shrink-0 text-muted-foreground" />
       {/if}
       <div class="min-w-0 flex-1 text-sm">
         <p class="font-medium">
@@ -80,7 +81,7 @@ const status = (step: StepId) =>
       </div>
       {#if !flow.completedAt}
         <Button variant="ghost" size="sm" onclick={() => onEdit(step)} aria-label={`Edit ${STEP_DETAILS[step].label}`}>
-          <Pencil aria-hidden="true" />Edit
+          <LucideIcon icon={Pencil} />Edit
         </Button>
       {/if}
     </li>

@@ -1,7 +1,9 @@
 <script lang="ts">
-import { Pin, PinOff, Plus, Save, Trash2, X } from '@lucide/svelte';
+import { Pin, PinOff, Save, Trash2 } from '@lucide/svelte';
 import { isValidationError, runService } from '@protoyard/renderer-svelte';
 import { Button, Input, Select, Textarea } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { Document, Folder, Tag } from '../database/schema.ts';
 import { DOCUMENT_BODY_MAX, DOCUMENT_TITLE_MAX } from '../domain/validation.ts';
 import { useDesktop } from '../lib/context.ts';
@@ -126,28 +128,28 @@ const status = $derived(
         />
       </div>
       <Button variant="ghost" size="icon" aria-label={doc.pinned ? 'Unpin document' : 'Pin document'} aria-pressed={doc.pinned} onclick={togglePin}>
-        {#if doc.pinned}<PinOff aria-hidden="true" />{:else}<Pin aria-hidden="true" />{/if}
+        {#if doc.pinned}<LucideIcon icon={PinOff} />{:else}<LucideIcon icon={Pin} />{/if}
       </Button>
     {/if}
     {#if canDelete}
       <Button variant="ghost" size="icon" aria-label="Delete document" onclick={ondelete}>
-        <Trash2 aria-hidden="true" />
+        <LucideIcon icon={Trash2} />
       </Button>
     {/if}
     {#if canEdit}
       <Button size="sm" onclick={save} loading={saving} disabled={!dirty}>
-        <Save aria-hidden="true" /> Save
+        <LucideIcon icon={Save} /> Save
       </Button>
     {/if}
     <Button variant="ghost" size="icon" aria-label="Close document" onclick={onclose}>
-      <X aria-hidden="true" />
+      <Icon icon="close" aria-hidden="true" />
     </Button>
   </header>
 
   <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-6 py-5">
     <div>
       <label class="sr-only" for="doc-title">Title</label>
-      <input
+      <Input
         id="doc-title"
         class="w-full bg-transparent font-heading text-2xl font-semibold outline-none placeholder:text-muted-foreground"
         bind:value={title}
@@ -162,7 +164,7 @@ const status = $derived(
 
     <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Tags">
       {#each tags as tag (tag.id)}
-        <button
+        <Button
           type="button"
           class="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary disabled:cursor-default"
           aria-pressed={tagIds.includes(tag.id)}
@@ -170,13 +172,13 @@ const status = $derived(
           onclick={() => toggleTag(tag.id)}
         >
           #{tag.name}
-        </button>
+        </Button>
       {/each}
       {#if canEdit}
         <form class="flex items-center gap-1" onsubmit={addTag} novalidate>
           <Input class="h-7 w-28 text-xs" bind:value={newTag} placeholder="New tag" aria-label="New tag name" maxlength={24} aria-invalid={tagError ? 'true' : undefined} />
           <Button type="submit" variant="ghost" size="sm" aria-label="Add tag" disabled={!newTag.trim()}>
-            <Plus aria-hidden="true" />
+            <Icon icon="plus" aria-hidden="true" />
           </Button>
         </form>
       {/if}

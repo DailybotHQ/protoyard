@@ -3,6 +3,7 @@ import { Building2, CalendarDays, Globe, ListChecks } from '@lucide/svelte';
 import { createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
 import { AppShell, Avatar, Badge, Header, Sidebar } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { ROLE_LABELS } from './domain/policy.ts';
 import { provideBooking } from './lib/context.ts';
 import { routes } from './routes.ts';
@@ -34,7 +35,7 @@ const workspaceName = $derived(principal.current?.organization?.name ?? 'Booking
       {#snippet header()}
         <a href="#/" class="flex min-w-0 items-center gap-2.5 rounded-md px-1">
           <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm" aria-hidden="true">
-            <CalendarDays class="size-4" />
+            <LucideIcon icon={CalendarDays} class="size-4" />
           </span>
           <span class="truncate text-sm font-semibold">{workspaceName}</span>
         </a>

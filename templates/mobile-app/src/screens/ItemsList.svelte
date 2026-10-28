@@ -1,7 +1,8 @@
 <script lang="ts">
-import { ChevronRight, ListTodo, Plus } from '@lucide/svelte';
+import { ListTodo } from '@lucide/svelte';
 import { can, liveQuery, useClock } from '@protoyard/renderer-svelte';
 import { Button, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
 import Page from '../components/Page.svelte';
 import Segmented from '../components/Segmented.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -28,7 +29,7 @@ const canCreate = $derived(can(CAPABILITIES.create));
   {#snippet actions()}
     {#if canCreate}
       <Button size="icon" variant="ghost" href="#/items/new" aria-label="New item">
-        <Plus aria-hidden="true" />
+        <Icon icon="plus" aria-hidden="true" />
       </Button>
     {/if}
   {/snippet}
@@ -48,7 +49,7 @@ const canCreate = $derived(can(CAPABILITIES.create));
         : 'The owner has not added anything yet.'}
     >
       {#snippet action()}
-        {#if canCreate}<Button href="#/items/new"><Plus aria-hidden="true" />New item</Button>{/if}
+        {#if canCreate}<Button href="#/items/new"><Icon icon="plus" aria-hidden="true" />New item</Button>{/if}
       {/snippet}
     </EmptyState>
   {:else}
@@ -79,7 +80,7 @@ const canCreate = $derived(can(CAPABILITIES.create));
                 <p class="mt-0.5 text-xs text-muted-foreground">Updated {fromNow(item.updatedAt, clock.now)}</p>
               </div>
               <StatusBadge status={item.status} />
-              <ChevronRight class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <Icon icon="chevron-right" class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
             </a>
           </li>
         {/each}

@@ -6,7 +6,6 @@ import {
   EllipsisVertical,
   FolderKanban,
   ListTodo,
-  Plus,
 } from '@lucide/svelte';
 import {
   can,
@@ -27,6 +26,8 @@ import {
   Skeleton,
   StatCard,
 } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import ProjectDialog from '../components/ProjectDialog.svelte';
 import type { Project } from '../database/schema.ts';
@@ -99,7 +100,7 @@ async function removeProject() {
 <PageHeader title={`Hi ${firstName}`} description={`${formatLongDay(clock.now.toISOString().slice(0, 10))} · here is where your team stands.`}>
   {#snippet actions()}
     {#if canManage}
-      <Button onclick={() => openEditor(null)}><Plus class="size-4" aria-hidden="true" />New project</Button>
+      <Button onclick={() => openEditor(null)}><Icon icon="plus" class="size-4" aria-hidden="true" />New project</Button>
     {/if}
   {/snippet}
 </PageHeader>
@@ -129,7 +130,7 @@ async function removeProject() {
   >
     {#snippet action()}
       {#if canManage}
-        <Button onclick={() => openEditor(null)}><Plus class="size-4" aria-hidden="true" />Create a project</Button>
+        <Button onclick={() => openEditor(null)}><Icon icon="plus" class="size-4" aria-hidden="true" />Create a project</Button>
       {/if}
     {/snippet}
   </EmptyState>
@@ -165,7 +166,7 @@ async function removeProject() {
               >
                 {#snippet trigger({ props })}
                   <Button {...props} variant="ghost" size="icon" class="relative z-10 -mt-1 -mr-2" aria-label={`Actions for ${project.name}`}>
-                    <EllipsisVertical class="size-4" />
+                    <LucideIcon icon={EllipsisVertical} class="size-4" />
                   </Button>
                 {/snippet}
               </DropdownMenu>

@@ -14,6 +14,7 @@ import {
   ErrorState,
   LoadingState,
 } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import ReasonDialog from '../components/ReasonDialog.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -62,7 +63,7 @@ const setDisabled = (person: TenantPerson, disabled: boolean) =>
 </script>
 
 <a href="#/tenants" class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-  <ArrowLeft class="size-4" aria-hidden="true" />Tenants
+  <LucideIcon icon={ArrowLeft} class="size-4" />Tenants
 </a>
 
 {#if tenant.loading}
