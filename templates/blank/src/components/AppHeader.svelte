@@ -2,6 +2,7 @@
 import { NotebookPen } from '@lucide/svelte';
 import { avatarImage, can, usePrincipal } from '@protoyard/renderer-svelte';
 import { Avatar, Badge } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { CAPABILITIES } from '../domain/policy.ts';
 
 const principal = usePrincipal();
@@ -12,7 +13,7 @@ const readOnly = $derived(principal.current ? !can(CAPABILITIES.create) : false)
   <div class="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4 sm:px-6">
     <a href="#/" class="flex items-center gap-2 rounded-md font-semibold tracking-tight">
       <span class="inline-flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <NotebookPen class="size-4" aria-hidden="true" />
+        <LucideIcon icon={NotebookPen} class="size-4" />
       </span>
       <span>{principal.current?.organization?.name ?? 'Notes'}</span>
     </a>

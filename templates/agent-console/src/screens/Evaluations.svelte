@@ -1,7 +1,8 @@
 <script lang="ts">
-import { FlaskConical, Plus } from '@lucide/svelte';
+import { FlaskConical } from '@lucide/svelte';
 import { can, getRuntime, liveQuery, useClock } from '@protoyard/renderer-svelte';
 import { Badge, Button, EmptyState, Skeleton } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
 import DatasetDialog from '../components/DatasetDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import type { ConsoleDatabase } from '../database/schema.ts';
@@ -30,7 +31,7 @@ const latestFor = (datasetId: string) =>
 <PageHeader title="Evaluations" description="Datasets of prompts with expected tools or text. Runs are simulated and deterministic.">
   {#snippet actions()}
     {#if canWrite && hasAgents}
-      <Button onclick={() => (dialogOpen = true)}><Plus class="size-4" aria-hidden="true" />New dataset</Button>
+      <Button onclick={() => (dialogOpen = true)}><Icon icon="plus" class="size-4" aria-hidden="true" />New dataset</Button>
     {/if}
   {/snippet}
 </PageHeader>

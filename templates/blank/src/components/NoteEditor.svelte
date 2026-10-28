@@ -1,6 +1,6 @@
 <script lang="ts">
 import { isValidationError, runService } from '@protoyard/renderer-svelte';
-import { Button, Dialog, FormField, Input, Textarea } from '@protoyard/ui';
+import { Button, Checkbox, Dialog, FormField, Input, Textarea } from '@protoyard/ui';
 import type { Note } from '../database/schema.ts';
 import { notesService } from '../lib/services.ts';
 
@@ -76,7 +76,7 @@ async function submit(event: SubmitEvent) {
       {/snippet}
     </FormField>
     <label class="inline-flex min-h-touch items-center gap-2 text-sm sm:min-h-0">
-      <input type="checkbox" class="size-4 accent-primary" bind:checked={pinned} />
+      <Checkbox class="size-4" bind:checked={pinned} />
       Pin to the top
     </label>
   </form>

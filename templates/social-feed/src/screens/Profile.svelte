@@ -2,6 +2,7 @@
 import { ArrowLeft } from '@lucide/svelte';
 import { Link, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
 import { Avatar, EmptyState, LoadingState } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import FollowButton from '../components/FollowButton.svelte';
 import PostCard from '../components/PostCard.svelte';
 import VirtualFeed from '../components/VirtualFeed.svelte';
@@ -44,7 +45,7 @@ const data = liveQuery(
 
 <div class="flex h-full min-h-0 flex-col">
   <div class="border-b border-border px-4 py-2">
-    <Link href="/people" class="inline-flex items-center gap-1 text-sm text-primary hover:underline"><ArrowLeft class="size-4" aria-hidden="true" />People</Link>
+    <Link href="/people" class="inline-flex items-center gap-1 text-sm text-primary hover:underline"><LucideIcon icon={ArrowLeft} class="size-4" />People</Link>
   </div>
   {#if data.current === undefined}
     <LoadingState label="Loading profile" class="py-16" />

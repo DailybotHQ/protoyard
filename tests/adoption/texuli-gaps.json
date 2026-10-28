@@ -103,5 +103,125 @@
     "id": "G21",
     "status": "open",
     "summary": "@texuli/blocks renderers: fields Protoyard blocks use: heading/text align, text size, list check/icon, quote role/avatar, callout icon, divider label/variant, card icon, stat title/source/trend"
+  },
+  {
+    "id": "G22",
+    "status": "open",
+    "summary": "npm dist/ packaging: single-file deck export: 2,149,984 B with Texuli 0.3.0 sources linked vs 2,395,746 B from the npm 0.3.0 tarballs (+11 %, spread across every chunk; extra media and Checkbox chunks only in the npm build)"
+  },
+  {
+    "id": "G23",
+    "status": "open",
+    "summary": "Texuli component CSS weight: deck/page/doc CSS 27.2\u201328.0 KB gzip on 0.3.0 (23.7\u201324.5 KB on e134ffcb); Sparkline first-screen cost 5,927 B (3,211 B before)"
+  },
+  {
+    "id": "G24",
+    "status": "open",
+    "summary": "@texuli/slides DeckStage: default renderer tables imported statically even with defaultRenderers={false}; create-anything-deck initial JS 315 KB gz (budget 250)"
+  },
+  {
+    "id": "G25",
+    "status": "open",
+    "summary": "@texuli/slides print: print imports the default renderer tables statically"
+  },
+  {
+    "id": "G26",
+    "status": "open",
+    "summary": "texuli/input Input (BUG): a caller's oninput replaces the internal handler, so bind:value stops updating"
+  },
+  {
+    "id": "G27",
+    "status": "open",
+    "summary": "styled sheets: header/body/footer/close parts"
+  },
+  {
+    "id": "G28",
+    "status": "open",
+    "summary": "texuli/menus MenuItem: destructive tone"
+  },
+  {
+    "id": "G29",
+    "status": "open",
+    "summary": "texuli/tabs-accordion TabItem: icon"
+  },
+  {
+    "id": "G30",
+    "status": "open",
+    "summary": "Pagination: stable-count tokens"
+  },
+  {
+    "id": "G31",
+    "status": "open",
+    "summary": "AppShell docs: document --tx-app-height"
+  },
+  {
+    "id": "G32",
+    "status": "open",
+    "summary": "@texuli/chat Composer: stop/cancel while streaming, keydown hook, actions slot"
+  },
+  {
+    "id": "G33",
+    "status": "open",
+    "summary": "@texuli/chat MessageList: per-message actions, inline edit, stream scroll anchor + jump-to-latest"
+  },
+  {
+    "id": "G34",
+    "status": "open",
+    "summary": "texuli/card: anchor attrs (target, rel, download) with href"
+  },
+  {
+    "id": "G35",
+    "status": "open",
+    "summary": "@texuli/blocks code: wrapper/slot for header and toolbar"
+  },
+  {
+    "id": "G36",
+    "status": "open",
+    "summary": "CopyButton: oncopy / onerror callbacks"
+  },
+  {
+    "id": "G37",
+    "status": "open",
+    "summary": "Tag: customizable remove-button name"
+  },
+  {
+    "id": "G38",
+    "status": "open",
+    "summary": "texuli/input (file): null default value"
+  },
+  {
+    "id": "G39",
+    "status": "open",
+    "summary": "texuli/layouts/content ContentLayout: TOC from given entries or existing ids, heading-level choice, declarative content slot"
+  },
+  {
+    "id": "G40",
+    "status": "open",
+    "summary": "texuli/toggle ToggleGroup: form name (one entry per pressed value)"
+  },
+  {
+    "id": "G41",
+    "status": "open",
+    "summary": "texuli/toggle ToggleGroup: id and aria-describedby (rest attributes); roving tab stop starts on the first pressed item"
+  },
+  {
+    "id": "G42",
+    "status": "open",
+    "summary": "texuli/number-pin PinInput.Root: typed name and input attributes; bindable inputRef through the styled root"
+  },
+  {
+    "id": "G43",
+    "status": "open",
+    "summary": "texuli/card CardGrid: maxColumns"
+  },
+  {
+    "id": "G44",
+    "status": "open",
+    "summary": "texuli/input Input: number binding for number and range inputs"
+  },
+  {
+    "id": "G45",
+    "status": "open",
+    "summary": "texuli/toast: pause/resume and announcement access for hosts (nice to have)"
   }
 ]

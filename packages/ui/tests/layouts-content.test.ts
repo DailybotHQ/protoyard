@@ -28,7 +28,7 @@ describe('PageGrid', () => {
     expect(grid.getAttribute('data-columns')).toBe('3');
     expect(grid.className).toContain('min-w-0');
     expect(items?.className).toContain('min-w-0');
-    expect(grid.style.getPropertyValue('--py-page-grid-min')).toBe('280px');
+    expect(grid.style.getPropertyValue('--ui-page-grid-min')).toBe('280px');
     const wideCard = grid.querySelector('[data-testid="wide-card"]');
     expect(wideCard).toBeTruthy();
   });

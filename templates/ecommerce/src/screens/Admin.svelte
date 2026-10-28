@@ -10,6 +10,7 @@ import {
   Select,
   StatCard,
 } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import ProductEditDialog from '../components/ProductEditDialog.svelte';
 import StockBadge from '../components/StockBadge.svelte';
@@ -80,7 +81,7 @@ function edit(product: Product) {
 {/snippet}
 {#snippet actionsCell(p: Row)}
   <Button variant="ghost" size="sm" onclick={(event: MouseEvent) => { event.stopPropagation(); edit(p); }}>
-    <Pencil class="size-4" aria-hidden="true" />Edit<span class="sr-only"> {p.name}</span>
+    <LucideIcon icon={Pencil} class="size-4" />Edit<span class="sr-only"> {p.name}</span>
   </Button>
 {/snippet}
 

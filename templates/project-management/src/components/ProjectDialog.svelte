@@ -82,7 +82,7 @@ async function submit(event: SubmitEvent) {
       <div class="mt-2 flex flex-wrap gap-2">
         {#each PROJECT_COLORS as option (option)}
           <label class="relative cursor-pointer">
-            <input type="radio" name="project-color" value={option} bind:group={color} class="peer sr-only" />
+            <Input type="radio" name="project-color" value={option} checked={color === option} onchange={() => (color = option)} class="peer sr-only" />
             <span
               class={[
                 'block size-8 rounded-full ring-offset-2 ring-offset-background peer-checked:ring-2 peer-checked:ring-ring peer-focus-visible:outline-2 peer-focus-visible:outline-ring',

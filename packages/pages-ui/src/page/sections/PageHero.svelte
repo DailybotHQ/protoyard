@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { HeadingBlock } from '@protoyard/blocks';
+import { Badge } from 'texuli/badge';
 
 /** The hero title at the display scale, with its eyebrow and lead. */
 let { heading }: { heading: HeadingBlock } = $props();
@@ -11,12 +12,10 @@ const centered = $derived(heading.align !== 'start');
   data-py-page-hero-header
 >
   {#if heading.eyebrow}
-    <p
-      class="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold tracking-wide text-foreground uppercase shadow-soft"
-    >
+    <Badge variant="outline" class="gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold tracking-wide uppercase shadow-soft">
       <span class="size-1.5 rounded-full bg-primary" aria-hidden="true"></span>
       {heading.eyebrow}
-    </p>
+    </Badge>
   {/if}
   <h1
     id={heading.id}

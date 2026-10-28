@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { CartesianSeries } from '@protoyard/charts-ui/cartesian';
 import { can, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
-import { Button, Card, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
+import { Button, Card, EmptyState, ErrorState, Input, Select, Skeleton } from '@protoyard/ui';
 import { onMount } from 'svelte';
 import type { Transaction } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
@@ -188,10 +188,10 @@ async function submitTransfer() {
         <div><h2 class="text-lg font-semibold">Move money</h2><p class="text-sm text-muted-foreground">A transfer updates both account balances and ledger entries.</p></div>
         {#if canTransfer}
           <form class="space-y-3" onsubmit={(event) => event.preventDefault()}>
-            <label class="block text-sm">From account<select class="mt-1 w-full rounded-md border border-border bg-background p-2" bind:value={fromAccountId}>{#each accounts.current as account (account.id)}<option value={account.id}>{account.name} · {money(account.balanceCents)}</option>{/each}</select></label>
-            <label class="block text-sm">To account<select class="mt-1 w-full rounded-md border border-border bg-background p-2" bind:value={toAccountId}>{#each accounts.current as account (account.id)}<option value={account.id}>{account.name}</option>{/each}</select></label>
-            <label class="block text-sm">Amount (USD)<input class="mt-1 w-full rounded-md border border-border bg-background p-2" inputmode="decimal" placeholder="125.00" bind:value={amount} /></label>
-            <label class="block text-sm">Note<input class="mt-1 w-full rounded-md border border-border bg-background p-2" maxlength="120" bind:value={memo} /></label>
+            <label class="block text-sm">From account<Select class="mt-1 w-full" bind:value={fromAccountId} items={accounts.current.map((account) => ({ value: account.id, label: `${account.name} · ${money(account.balanceCents)}` }))} /></label>
+            <label class="block text-sm">To account<Select class="mt-1 w-full" bind:value={toAccountId} items={accounts.current.map((account) => ({ value: account.id, label: account.name }))} /></label>
+            <label class="block text-sm">Amount (USD)<Input class="mt-1 w-full rounded-md border border-border bg-background p-2" inputmode="decimal" placeholder="125.00" bind:value={amount} /></label>
+            <label class="block text-sm">Note<Input class="mt-1 w-full rounded-md border border-border bg-background p-2" maxlength={120} bind:value={memo} /></label>
             <Button type="submit" class="w-full" onclick={() => submitTransfer()}>Transfer funds</Button>
             {#if transferMessage}<p class={`text-sm ${transferSuccess ? 'text-primary' : 'text-destructive'}`} role={transferSuccess ? 'status' : 'alert'}>{transferMessage}</p>{/if}
           </form>

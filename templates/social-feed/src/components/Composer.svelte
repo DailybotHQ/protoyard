@@ -2,6 +2,7 @@
 import { ImagePlus } from '@lucide/svelte';
 import { isValidationError, runService } from '@protoyard/renderer-svelte';
 import { Button, Textarea } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { MAX_POST_LENGTH } from '../domain/validation.ts';
 import { useSocial } from '../lib/context.ts';
 
@@ -53,7 +54,7 @@ async function post() {
   <div class="flex flex-wrap items-center justify-between gap-2">
     <div class="flex items-center gap-2">
       <Button variant={withImage ? 'secondary' : 'ghost'} size="sm" aria-pressed={withImage} onclick={() => (withImage = !withImage)}>
-        <ImagePlus class="size-4" aria-hidden="true" />Image
+        <LucideIcon icon={ImagePlus} class="size-4" />Image
       </Button>
       {#if error}
         <p id="{uid}-error" class="text-xs text-destructive" role="alert">{error}</p>

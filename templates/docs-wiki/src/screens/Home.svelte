@@ -10,6 +10,7 @@ import {
   useClock,
 } from '@protoyard/renderer-svelte';
 import { Button, Card, Dialog, EmptyState, FormField, Input, Skeleton } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import SearchForm from '../components/SearchForm.svelte';
 import { CAPABILITIES } from '../domain/policy.ts';
@@ -62,7 +63,7 @@ async function createSpace(event: SubmitEvent) {
           form = { name: '', key: '', description: '' };
           errors = {};
           spaceOpen = true;
-        }}><FolderPlus class="size-4" aria-hidden="true" />New space</Button
+        }}><LucideIcon icon={FolderPlus} class="size-4" />New space</Button
       >
     {/if}
   {/snippet}

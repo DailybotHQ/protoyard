@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -144,6 +144,20 @@ describe('checkAdoption on a fixture repository', () => {
     expect(checkAdoption({ root }).problems).toContain(
       'exception packages/ui/src/Search.svelte has no reason'
     );
+  });
+
+  it('a scoped prune leaves the pending lists of other units untouched', () => {
+    fixture();
+    put('templates/blank/src/A.svelte', legacy);
+    writePending(root, checkAdoption({ root }).violations, 'baseline');
+    const other = join(root, 'tests/adoption/pending/templates.json');
+    const before =
+      '{"unit":"templates","entries":[{"rule":"raw-lucide","file":"templates/blank/src/A.svelte","count":1}]}';
+    writeFileSync(other, before);
+    writePending(root, checkAdoption({ root, scopes: ['packages/ui'] }).violations, 'prune', [
+      'packages/ui',
+    ]);
+    expect(readFileSync(other, 'utf8')).toBe(before);
   });
 
   it('prune drops fixed entries and never adds new ones', () => {

@@ -43,8 +43,7 @@ export {
   Board,
   type BoardLabels,
   type BoardPlacement,
-  DRAG_THRESHOLD_PX,
-  indexFromPointer,
   placementsOf,
 } from '@texuli/data/board';
 export { default as BoardView } from './BoardView.svelte';
+export { DRAG_THRESHOLD_PX, indexFromPointer } from './pointer.ts';

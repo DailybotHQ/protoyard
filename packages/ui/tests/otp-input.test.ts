@@ -1,17 +1,34 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import OtpInput from '../src/components/otp-input/OtpInput.svelte';
 import * as barrel from '../src/index.ts';
 
 afterEach(() => cleanup());
 
-function cells(label = 'Verification code'): HTMLInputElement[] {
-  const fieldset = screen.getByRole('group', { name: label });
-  return within(fieldset).getAllByRole('textbox') as HTMLInputElement[];
+// OtpInput is Texuli's PinInput: one real, labelled input drawn as cells.
+function field(label = 'Verification code'): HTMLInputElement {
+  return screen.getByLabelText(label) as HTMLInputElement;
+}
+
+function cellsOf(input: HTMLInputElement): Element[] {
+  return [
+    ...(input.closest('[data-pin-input-root]')?.querySelectorAll('.tx-pin-input__cell') ?? []),
+  ];
+}
+
+async function type(input: HTMLInputElement, value: string): Promise<void> {
+  await fireEvent.input(input, { target: { value } });
+}
+
+async function paste(input: HTMLInputElement, text: string): Promise<void> {
+  input.setSelectionRange(input.value.length, input.value.length);
+  await fireEvent.paste(input, {
+    clipboardData: { getData: () => text },
+  } as unknown as ClipboardEvent);
 }
 
 describe('OtpInput', () => {
-  it('types digits, moves focus forward and fires onComplete exactly once', async () => {
+  it('draws one cell per character and fires onComplete exactly once per full code', async () => {
     const onComplete = vi.fn();
     const onValueChange = vi.fn();
     render(OtpInput, {
@@ -22,26 +39,23 @@ describe('OtpInput', () => {
       onComplete,
       onValueChange,
     });
-    const inputs = cells();
-    expect(inputs).toHaveLength(4);
-    expect(screen.getByText('Verification code').tagName).toBe('LEGEND');
+    const input = field();
+    expect(input.getAttribute('autocomplete')).toBe('one-time-code');
+    expect(input.getAttribute('inputmode')).toBe('numeric');
+    expect(cellsOf(input)).toHaveLength(4);
 
-    await fireEvent.input(inputs[0]!, { target: { value: '1' } });
+    await type(input, '1');
     expect(onValueChange).toHaveBeenLastCalledWith('1');
-    expect(document.activeElement).toBe(inputs[1]);
-
-    await fireEvent.input(inputs[1]!, { target: { value: '2' } });
-    await fireEvent.input(inputs[2]!, { target: { value: '3' } });
-    await fireEvent.input(inputs[3]!, { target: { value: '4' } });
+    await type(input, '1234');
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(onComplete).toHaveBeenCalledWith('1234');
 
-    // Still full — do not fire again for the same code.
-    await fireEvent.input(inputs[3]!, { target: { value: '4' } });
+    // Still the same full code: no second call.
+    await type(input, '1234');
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
-  it('pastes a full code from the first cell', async () => {
+  it('pastes a full code, keeping only allowed characters', async () => {
     const onComplete = vi.fn();
     render(OtpInput, {
       label: 'Verification code',
@@ -50,42 +64,24 @@ describe('OtpInput', () => {
       autofocus: false,
       onComplete,
     });
-    const inputs = cells();
-    const clipboardData = {
-      getData: () => '98-76 54',
-    };
-    await fireEvent.paste(inputs[0]!, { clipboardData } as unknown as ClipboardEvent);
+    const input = field();
+    await paste(input, '98-76 54');
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(onComplete).toHaveBeenCalledWith('987654');
-    expect(inputs.map((input) => input.value).join('')).toBe('987654');
+    expect(input.value).toBe('987654');
   });
 
-  it('moves with arrows and backspace', async () => {
+  it('rejects characters outside the pattern', async () => {
     const onValueChange = vi.fn();
-    render(OtpInput, {
-      label: 'Code',
-      length: 4,
-      value: '12',
-      autofocus: false,
-      onValueChange,
-    });
-    const inputs = cells('Code');
-    inputs[1]!.focus();
-    await fireEvent.keyDown(inputs[1]!, { key: 'ArrowLeft' });
-    expect(document.activeElement).toBe(inputs[0]);
-    await fireEvent.keyDown(inputs[0]!, { key: 'ArrowRight' });
-    expect(document.activeElement).toBe(inputs[1]);
-    await fireEvent.keyDown(inputs[1]!, { key: 'End' });
-    expect(document.activeElement).toBe(inputs[3]);
-    await fireEvent.keyDown(inputs[3]!, { key: 'Home' });
-    expect(document.activeElement).toBe(inputs[0]);
-
-    inputs[1]!.focus();
-    await fireEvent.keyDown(inputs[1]!, { key: 'Backspace' });
+    render(OtpInput, { label: 'Code', length: 4, value: '12', autofocus: false, onValueChange });
+    const input = field('Code');
+    await type(input, '12a');
+    expect(onValueChange).not.toHaveBeenCalled();
+    await type(input, '1');
     expect(onValueChange).toHaveBeenCalledWith('1');
   });
 
-  it('respects disabled and keeps an accessible label per digit', () => {
+  it('respects disabled', () => {
     render(OtpInput, {
       label: 'Team invite code',
       length: 3,
@@ -93,17 +89,10 @@ describe('OtpInput', () => {
       disabled: true,
       autofocus: false,
     });
-    const fieldset = screen.getByRole('group', { name: 'Team invite code' });
-    expect(fieldset.tagName).toBe('FIELDSET');
-    expect((fieldset as HTMLFieldSetElement).disabled).toBe(true);
-    for (const digit of [1, 2, 3]) {
-      expect((screen.getByLabelText(`Digit ${digit} of 3`) as HTMLInputElement).disabled).toBe(
-        true
-      );
-    }
+    expect(field('Team invite code').disabled).toBe(true);
   });
 
-  it('supports alphanumeric pattern and configurable length', async () => {
+  it('supports the alphanumeric pattern (upper-cased) and a configurable length', async () => {
     const onComplete = vi.fn();
     render(OtpInput, {
       label: 'Backup code',
@@ -113,12 +102,10 @@ describe('OtpInput', () => {
       autofocus: false,
       onComplete,
     });
-    const inputs = cells('Backup code');
-    expect(inputs).toHaveLength(5);
-    await fireEvent.input(inputs[0]!, { target: { value: 'a' } });
-    await fireEvent.paste(inputs[1]!, {
-      clipboardData: { getData: () => 'b2c3' },
-    } as unknown as ClipboardEvent);
+    const input = field('Backup code');
+    expect(cellsOf(input)).toHaveLength(5);
+    await type(input, 'a');
+    await paste(input, 'b2c3');
     expect(onComplete).toHaveBeenCalledWith('AB2C3');
   });
 
@@ -131,13 +118,18 @@ describe('OtpInput', () => {
       autofocus: false,
       onComplete,
     });
-    // Initial full value does not auto-fire (user already had it).
+    // A code that was already full does not fire on mount.
     expect(onComplete).not.toHaveBeenCalled();
-    const inputs = cells();
-    await fireEvent.keyDown(inputs[2]!, { key: 'Backspace' });
-    await fireEvent.input(inputs[2]!, { target: { value: '2' } });
+    const input = field();
+    await type(input, '11');
+    await type(input, '112');
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(onComplete).toHaveBeenCalledWith('112');
+  });
+
+  it('focuses the field on mount unless autofocus is false', () => {
+    render(OtpInput, { label: 'Verification code', value: '' });
+    expect(document.activeElement).toBe(field());
   });
 });
 

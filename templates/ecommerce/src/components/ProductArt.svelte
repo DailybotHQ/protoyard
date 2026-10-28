@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Armchair, Backpack, Laptop, NotebookPen, Tent } from '@lucide/svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 /**
  * Generated product artwork (no image assets, no external URLs): a soft
@@ -36,5 +37,5 @@ const iconSize = { sm: 'size-6', md: 'size-12', lg: 'size-20' };
   class={['grid place-items-center overflow-hidden', className]}
   style={`background: radial-gradient(circle at 30% 25%, hsl(${hue} 80% 88%), hsl(${(hue + 35) % 360} 55% 70%));`}
 >
-  <Icon class={[iconSize[size], 'text-slate-900/55']} aria-hidden="true" strokeWidth={1.5} />
+  <LucideIcon icon={Icon} class={[iconSize[size], 'text-slate-900 55']} strokeWidth={1.5} />
 </div>

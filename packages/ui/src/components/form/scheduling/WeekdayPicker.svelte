@@ -1,18 +1,19 @@
 <script lang="ts">
-import { cn } from '../../../lib/cn.ts';
+import { cx } from 'texuli/cx';
+import { ToggleGroup, ToggleGroupItem } from 'texuli/toggle';
 import {
   type IsoWeekday,
   normalizeWeekdays,
   orderedWeekdays,
-  toggleWeekday,
   type WeekdayStyle,
   weekdayName,
 } from './weekdays.ts';
 
 /**
- * WeekdayPicker — a set of days of the week as toggle buttons in one group.
- * The group is a single tab stop: arrows (and Home/End) move between days,
- * Space or Enter toggles one. The value is a sorted list of ISO weekdays
+ * WeekdayPicker — a set of days of the week as toggle buttons in one group:
+ * a thin adapter over Texuli's `ToggleGroup` (`texuli/toggle`). The group is
+ * a single tab stop: arrows (and Home/End) move between days, Space or Enter
+ * toggles one. The value is a sorted list of ISO weekdays
  * (1 = Monday … 7 = Sunday). For a single weekday use `Select` with
  * `weekdayOptions()`.
  */
@@ -56,7 +57,6 @@ let {
   onValueChange,
 }: Props = $props();
 
-let group = $state<HTMLDivElement | null>(null);
 const days = $derived(
   orderedWeekdays(weekStartsOn).map((day) => ({
     day,
@@ -65,75 +65,46 @@ const days = $derived(
   }))
 );
 const selected = $derived(normalizeWeekdays(value));
-let active = $state<IsoWeekday | null>(null);
-const tabStop = $derived(active ?? selected[0] ?? weekStartsOn);
 const invalid = $derived(ariaInvalid === true || ariaInvalid === 'true');
 
-function toggle(day: IsoWeekday) {
-  active = day;
-  const next = toggleWeekday(selected, day);
-  value = next;
-  onValueChange?.(next);
-}
-
-function onkeydown(event: KeyboardEvent, index: number) {
-  const last = days.length - 1;
-  const targets: Record<string, number> = {
-    ArrowRight: index === last ? 0 : index + 1,
-    ArrowDown: index === last ? 0 : index + 1,
-    ArrowLeft: index === 0 ? last : index - 1,
-    ArrowUp: index === 0 ? last : index - 1,
-    Home: 0,
-    End: last,
-  };
-  const target = targets[event.key];
-  if (target === undefined) return;
-  event.preventDefault();
-  const day = days[target]?.day;
-  if (!day) return;
-  active = day;
-  group?.querySelector<HTMLButtonElement>(`button[data-weekday="${day}"]`)?.focus();
+function commit(next: string | string[]): void {
+  const days = normalizeWeekdays((Array.isArray(next) ? next : [next]).map(Number));
+  value = days;
+  onValueChange?.(days);
 }
 </script>
 
+<!--
+  The named, described group is this wrapper: Texuli's ToggleGroup takes no
+  id or aria-describedby yet (gap G5), and FormField points its description
+  and error at the field id.
+-->
 <div
-  bind:this={group}
   {id}
   role="group"
   aria-label={labelledBy ? undefined : label}
   aria-labelledby={labelledBy}
   aria-describedby={describedBy}
-  class={cn('ui-weekday-picker flex flex-wrap gap-1.5', className)}
+  class={cx('ui-weekday-picker', className)}
+  data-invalid={invalid ? '' : undefined}
 >
-  {#each days as entry, index (entry.day)}
-    {@const pressed = selected.includes(entry.day)}
-    <button
-      type="button"
-      data-weekday={entry.day}
-      tabindex={entry.day === tabStop ? 0 : -1}
-      aria-pressed={pressed}
-      aria-label={entry.long}
-      {disabled}
-      class={cn(
-        'inline-flex h-9 min-h-touch min-w-11 items-center justify-center rounded-md border px-2 text-sm font-medium sm:min-h-0',
-        'outline-none transition-colors duration-150 motion-reduce:transition-none',
-        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-        'disabled:cursor-not-allowed disabled:opacity-50',
-        pressed
-          ? 'border-primary bg-primary text-primary-foreground hover:bg-primary-hover'
-          : 'border-input bg-surface text-foreground hover:bg-muted',
-        invalid && !pressed && 'border-destructive'
-      )}
-      onclick={() => toggle(entry.day)}
-      onkeydown={(event) => onkeydown(event, index)}
-      onfocus={() => (active = entry.day)}
-    >
-      {entry.text}
-    </button>
-  {/each}
+  <ToggleGroup type="multiple" value={selected.map(String)} onValueChange={commit} {disabled} wrap>
+    {#each days as entry (entry.day)}
+      <ToggleGroupItem value={String(entry.day)} aria-label={entry.long} data-weekday={entry.day}>
+        {entry.text}
+      </ToggleGroupItem>
+    {/each}
+  </ToggleGroup>
+  <!-- Texuli's ToggleGroup takes no form `name` yet, so each selected day submits through a hidden input. -->
   {#if name}
     {#each selected as day (day)}
       <input type="hidden" {name} value={day} />
     {/each}
   {/if}
 </div>
+
+<style>
+  .ui-weekday-picker[data-invalid] :global([aria-pressed='false']) {
+    border-color: var(--tx-destructive, crimson);
+  }
+</style>

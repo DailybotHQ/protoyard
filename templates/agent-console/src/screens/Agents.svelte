@@ -1,7 +1,9 @@
 <script lang="ts">
-import { Bot, Plus, Wrench } from '@lucide/svelte';
+import { Bot, Wrench } from '@lucide/svelte';
 import { can, getRuntime, liveQuery, useClock } from '@protoyard/renderer-svelte';
 import { Badge, Button, EmptyState, Skeleton } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import AgentDialog from '../components/AgentDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import type { ConsoleDatabase } from '../database/schema.ts';
@@ -41,7 +43,7 @@ const statsFor = (agentId: string) => {
 <PageHeader title="Agents" description="Define instructions, tools and a simulated model, then try them in the playground.">
   {#snippet actions()}
     {#if canCreate}
-      <Button onclick={() => (dialogOpen = true)}><Plus class="size-4" aria-hidden="true" />New agent</Button>
+      <Button onclick={() => (dialogOpen = true)}><Icon icon="plus" class="size-4" aria-hidden="true" />New agent</Button>
     {/if}
   {/snippet}
 </PageHeader>
@@ -59,7 +61,7 @@ const statsFor = (agentId: string) => {
       : 'Nobody has defined an agent yet. Your role can read agents but not create them.'}
   >
     {#snippet action()}
-      {#if canCreate}<Button onclick={() => (dialogOpen = true)}><Plus class="size-4" aria-hidden="true" />Create an agent</Button>{/if}
+      {#if canCreate}<Button onclick={() => (dialogOpen = true)}><Icon icon="plus" class="size-4" aria-hidden="true" />Create an agent</Button>{/if}
     {/snippet}
   </EmptyState>
 {:else}
@@ -68,7 +70,7 @@ const statsFor = (agentId: string) => {
       {@const stats = statsFor(agent.id)}
       <li class="group relative flex flex-col rounded-xl border border-border bg-surface p-4 shadow-soft transition-colors hover:border-primary/40">
         <div class="flex items-start gap-3">
-          <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary" aria-hidden="true"><Bot class="size-4" /></span>
+          <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary" aria-hidden="true"><LucideIcon icon={Bot} class="size-4" /></span>
           <div class="min-w-0">
             <h2 class="font-medium">
               <a href={`#/agents/${encodeURIComponent(agent.id)}`} class="after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none">{agent.name}</a>
@@ -79,7 +81,7 @@ const statsFor = (agentId: string) => {
         <p class="mt-3 line-clamp-2 text-sm text-muted-foreground">{agent.description || agent.instructions}</p>
         <div class="mt-3 flex flex-wrap gap-1.5">
           {#each agent.tools as tool (tool)}
-            <Badge variant="outline"><Wrench aria-hidden="true" />{tool}{agent.approvalTools.includes(tool) ? ' · approval' : ''}</Badge>
+            <Badge variant="outline"><LucideIcon icon={Wrench} />{tool}{agent.approvalTools.includes(tool) ? ' · approval' : ''}</Badge>
           {:else}
             <Badge variant="secondary">No tools</Badge>
           {/each}

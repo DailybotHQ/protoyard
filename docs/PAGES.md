@@ -90,7 +90,8 @@ Page sections may have roles `hero`, `body`, `footer`, `cta`, `features`,
 - `footer` goes to the page footer.
 - A `pricing` role, or a pricing-like id or anchor (`plans`, `pricing`,
   `tiers`), renders its cards as plan columns with one plan emphasized.
-- Plain stat rows, numbered steps and quotes get page-specific rows. `features`,
+- Plain stat rows (Texuli `Stat` cards), numbered steps and quotes (a Texuli
+  `Avatar` for the attribution) get page-specific rows. `features`,
   `faq` and every other block render in the normal body flow on alternating
   backgrounds.
 

@@ -519,9 +519,10 @@ describe('WeekdayPicker', () => {
     render(WeekdayPicker, { value: [3], weekStartsOn: 7, locale: 'en-US' });
     const buttons = screen.getAllByRole('button');
     expect(buttons.map((b) => b.getAttribute('aria-label'))[0]).toBe('Sunday');
+    // Texuli's ToggleGroup: one tab stop for the whole group.
     expect(buttons.filter((b) => b.getAttribute('tabindex') === '0')).toHaveLength(1);
     const wednesday = screen.getByRole('button', { name: 'Wednesday' });
-    expect(wednesday.getAttribute('tabindex')).toBe('0');
+    expect(wednesday.getAttribute('aria-pressed')).toBe('true');
     wednesday.focus();
     await fireEvent.keyDown(wednesday, { key: 'ArrowRight' });
     expect(document.activeElement?.getAttribute('aria-label')).toBe('Thursday');

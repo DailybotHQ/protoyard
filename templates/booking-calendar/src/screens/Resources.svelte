@@ -2,6 +2,7 @@
 import { PencilLine } from '@lucide/svelte';
 import { can, isValidationError, liveQuery, runService } from '@protoyard/renderer-svelte';
 import { Button, Card, Dialog, FormField, Input } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import type { AvailabilityRule } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
@@ -78,7 +79,7 @@ async function submit(event: SubmitEvent) {
               <td class="py-1.5 tabular-nums">{formatMinute(rule.startMinute)}–{formatMinute(rule.endMinute)}</td>
               <td class="py-1 text-right">
                 {#if can(CAPABILITIES.availabilityManage)}
-                  <Button variant="ghost" size="sm" onclick={() => edit(rule)}><PencilLine class="size-4" aria-hidden="true" /><span class="sr-only">Edit {WEEKDAYS[rule.weekday]} hours of {resource.name}</span></Button>
+                  <Button variant="ghost" size="sm" onclick={() => edit(rule)}><LucideIcon icon={PencilLine} class="size-4" /><span class="sr-only">Edit {WEEKDAYS[rule.weekday]} hours of {resource.name}</span></Button>
                 {/if}
               </td>
             </tr>
@@ -92,10 +93,10 @@ async function submit(event: SubmitEvent) {
 <Dialog bind:open title="Opening hours" description={editing ? `${WEEKDAYS[editing.weekday]}, in UTC` : undefined}>
   <form id="hours-form" class="grid grid-cols-2 gap-4" onsubmit={submit} novalidate>
     <FormField label="Opens" required error={errors.startMinute}>
-      {#snippet children(control)}<Input {...control.props} type="time" step="900" bind:value={form.start} />{/snippet}
+      {#snippet children(control)}<Input {...control.props} type="time" step={900} bind:value={form.start} />{/snippet}
     </FormField>
     <FormField label="Closes" required error={errors.endMinute}>
-      {#snippet children(control)}<Input {...control.props} type="time" step="900" bind:value={form.end} />{/snippet}
+      {#snippet children(control)}<Input {...control.props} type="time" step={900} bind:value={form.end} />{/snippet}
     </FormField>
   </form>
   {#snippet footer()}

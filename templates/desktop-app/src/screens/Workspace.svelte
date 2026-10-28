@@ -12,6 +12,8 @@ import {
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import { AlertDialog, Avatar, Button, EmptyState, Input, toast } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import DocumentEditor from '../components/DocumentEditor.svelte';
 import DocumentList from '../components/DocumentList.svelte';
 import FolderDialog from '../components/FolderDialog.svelte';
@@ -298,12 +300,12 @@ const menus = $derived<Menu[]>([
       <div class="flex items-center gap-2 border-b border-border p-2">
         <label class="relative flex-1">
           <span class="sr-only">Search documents</span>
-          <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Icon icon="search" class="pointer-events-none absolute top-1 2 left-2.5 size-4 -translate-y-1 2 text-muted-foreground" aria-hidden="true" />
           <Input bind:ref={searchInput} bind:value={search} type="search" placeholder="Search" class="pl-8" />
         </label>
         {#if canCreate}
           <Button variant="ghost" size="icon" aria-label="New document" onclick={() => void newDocument()}>
-            <FilePlus aria-hidden="true" />
+            <LucideIcon icon={FilePlus} />
           </Button>
         {/if}
       </div>

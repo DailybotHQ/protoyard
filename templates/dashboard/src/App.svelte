@@ -1,11 +1,5 @@
 <script lang="ts">
-import {
-  ChartNoAxesColumn,
-  LayoutDashboard,
-  Settings as SettingsIcon,
-  ShoppingCart,
-  Users,
-} from '@lucide/svelte';
+import { LayoutDashboard, Settings as SettingsIcon, ShoppingCart, Users } from '@lucide/svelte';
 import {
   avatarImage,
   createRouter,

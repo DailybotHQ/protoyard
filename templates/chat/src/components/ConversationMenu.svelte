@@ -2,6 +2,7 @@
 import { Ellipsis, Pencil, Trash2 } from '@lucide/svelte';
 import { can, isValidationError, navigate, runService } from '@protoyard/renderer-svelte';
 import { AlertDialog, Button, Dialog, DropdownMenu, FormField, Input } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { Conversation } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { useChat } from '../lib/context.ts';
@@ -51,7 +52,7 @@ async function remove() {
     ]}
   >
     {#snippet trigger({ props })}
-      <Button {...props} variant="ghost" size="icon" aria-label="Conversation options"><Ellipsis aria-hidden="true" /></Button>
+      <Button {...props} variant="ghost" size="icon" aria-label="Conversation options"><LucideIcon icon={Ellipsis} /></Button>
     {/snippet}
   </DropdownMenu>
 {/if}

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Plus, SearchX, ShoppingCart } from '@lucide/svelte';
+import { SearchX, ShoppingCart } from '@lucide/svelte';
 import { can, Link, liveQuery, useClock } from '@protoyard/renderer-svelte';
 import {
   Button,
@@ -9,6 +9,7 @@ import {
   ErrorState,
   Select,
 } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
 import OrderDialog from '../components/OrderDialog.svelte';
 import OrderStatusMenu from '../components/OrderStatusMenu.svelte';
 import PageHeader from '../components/PageHeader.svelte';
@@ -67,7 +68,7 @@ const columns: DataTableColumn<Row>[] = [
   {#snippet actions()}
     {#if can(CAPABILITIES.ordersCreate)}
       <Button onclick={() => (createOpen = true)} disabled={!customerCount.loading && customerCount.current === 0}>
-        <Plus class="size-4" aria-hidden="true" />New order
+        <Icon icon="plus" class="size-4" aria-hidden="true" />New order
       </Button>
     {/if}
   {/snippet}

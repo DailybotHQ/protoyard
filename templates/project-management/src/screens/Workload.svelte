@@ -1,6 +1,6 @@
 <script lang="ts">
 import { liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
-import { Card, CardContent, CardHeader, CardTitle } from '@protoyard/ui';
+import { Card, CardContent, CardHeader, CardTitle, Select } from '@protoyard/ui';
 import PageHeader from '../components/PageHeader.svelte';
 import { useWorkspace } from '../lib/context.svelte.ts';
 
@@ -47,17 +47,15 @@ async function assign(taskId: string, value: string) {
             <li class="flex flex-wrap items-center justify-between gap-3 py-3">
               <a href={`#/tasks/${task.id}`} class="min-w-0 flex-1 font-medium hover:underline">{task.title}<span class="ml-2 text-xs text-muted-foreground">{task.estimateHours}h · due {task.dueDate ?? 'not set'}</span></a>
               <label class="sr-only" for={`assign-${task.id}`}>Assignee for {task.title}</label>
-              <select
+              <Select
                 id={`assign-${task.id}`}
-                class="h-9 max-w-48 rounded-md border border-input bg-background px-2 text-sm"
+                class="h-9 max-w-48"
                 value={task.assigneeId ?? ''}
+                items={[{ value: '', label: 'Unassigned' }, ...people.map((person) => ({ value: person.id, label: person.name }))]}
                 disabled={!canAssign || saving.has(task.id)}
                 aria-busy={saving.has(task.id)}
-                onchange={(event) => assign(task.id, event.currentTarget.value)}
-              >
-                <option value="">Unassigned</option>
-                {#each people as person (person.id)}<option value={person.id}>{person.name}</option>{/each}
-              </select>
+                onValueChange={(value) => assign(task.id, value)}
+              />
               {#if saving.has(task.id)}<span class="text-xs text-muted-foreground" role="status">Saving…</span>{/if}
             </li>
           {:else}

@@ -44,21 +44,22 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 
 ## Class names (`cn`)
 
-`cn(...inputs)` (re-exported from `@protoyard/ui`) is `clsx` plus an extended
-`tailwind-merge`. It knows Protoyard utilities from `@protoyard/themes/base.css`
-so a consumer class reliably overrides a component default:
+`cn(...inputs)` (re-exported from `@protoyard/ui`) is an alias of Texuli's
+`cx` (`texuli/cx`): it joins strings, arrays and `{ class: condition }`
+objects and drops falsy values. **It no longer resolves Tailwind conflicts**
+(it used to run tailwind-merge): `cn('p-4', 'p-2')` keeps both classes, and
+the stylesheet decides which wins.
 
-| Group | Examples that merge correctly |
-| --- | --- |
-| Shadows | `shadow-soft`, `shadow-float`, `shadow-none`, `shadow-md` |
-| Heights | `min-h-touch`, `min-h-app`, `h-app`, `max-h-app` |
-| Surfaces | `bg-surface`, `bg-elevated`, `bg-muted`, … |
-| Text | `text-muted-foreground`, `text-sm` / `text-lg`, … |
-| Safe area | `pt-safe`, `px-safe`, … |
+To override a component's look, pass a class that does not collide with its
+defaults, or use Tailwind's important modifier (`p-2!`). Texuli's components
+keep their styles in `@layer tx.components`, so any Tailwind utility you pass
+already wins over them; Protoyard components that set a default you may need
+to override (for example `MobileAppShell`'s frame height) keep it in a lower
+cascade layer for the same reason.
 
 ```ts
 import { cn } from '@protoyard/ui';
-cn('shadow-soft', 'shadow-none'); // → "shadow-none"
+cn('flex', isOpen && 'gap-2', { hidden: !visible }); // → "flex gap-2"
 ```
 
 ## Built on Texuli
@@ -76,7 +77,10 @@ standalone Svelte 5 component library, consumed from its published npm packages
   The full mapping is in [TEXULI.md](../../docs/TEXULI.md#generic-styled-components-come-from-texuli).
 - **Re-exported from Texuli under Protoyard's names:** `AppShell` (and
   `getAppShellContext`) from `texuli/layouts/shells`, `FormField` (Texuli's
-  `Field`, `texuli/field`).
+  `Field`, `texuli/field`), `Toaster` and `toast` (`texuli/toast`),
+  `ChatThread`, `MessageList`, `TypingIndicator` and `groupMessages`
+  (`@texuli/chat`), and `resolveTrend`, `trendWord` and `formatDelta`
+  (`texuli/stat`).
 - **Thin adapters over Texuli's styled components:** `Select`, `Combobox`,
   `DropdownMenu`, `Popover`, `Tabs`, `Sidebar`, `Pagination`, `Notice`
   (`Alert`), `FileDropzone` (`FileUpload`), `CommandPalette`, `UserPicker`,
@@ -88,10 +92,28 @@ standalone Svelte 5 component library, consumed from its published npm packages
   overlays (G4), `bind:ref` and rest attributes (G5), paging, row classes and
   toolbar slots on a data grid (G7), add and remove callbacks on file upload
   (G8), and styled sheet header, body and footer parts (`overlay/sheet-parts.css`).
+  Also thin adapters: `Input` (Texuli's `Input`; it keeps `bind:value` next
+  to a caller `oninput`, gap G26, and binds numbers for number inputs),
+  `TextCounter`, `Spinner`, `StatCard` (`Stat`), `EmptyState`, `StarRating`
+  (`Rating`), `NumberStepper` (`NumberField`), `OtpInput` (`PinInput`),
+  `ChipGroup` and `WeekdayPicker` (`ToggleGroup`), `Composer`
+  (`@texuli/chat`), `StatusChip` and the honesty tags (`Badge`), and `Avatar`
+  (Texuli's avatar classes, with a `srcset` until gap G10).
+- **Composed of Texuli parts:** `EmojiPicker` (Button, Input, popover surface,
+  form bridge), `PasswordStrengthMeter` (a meter around Texuli's `Progress`),
+  `Header` (Texuli's `IconButton`), `BrowserChrome` and `WindowChrome` (device
+  chrome; the window's traffic lights and caption buttons stay native on
+  purpose).
+- **Waiting on a Texuli gap** (still Protoyard's markup): `Calendar`,
+  `DatePicker`, `DateRangePicker` (G12: a simulated `today`, `weekStartsOn`,
+  range limits), `TimeInput` (G13), `TagEmailInput` (G11), `ImageInput` (G8),
+  `Kanban` (G14), `MobileHeader`, `BottomNav`, `MobileAppShell` (G15) and
+  `UndoToaster` (G9).
 - **Layouts:** `LayoutHost` wraps `texuli/layouts` ([below](#shared-layout-host)).
-- **Protoyard's own:** device frames and shells, `ScenarioSwitcher`, the
-  honesty tags, actors, the overlay stack and undo toaster, the toasts, the
-  form utilities and scheduling inputs, and the `docs` layout.
+- **Protoyard's own:** device frames and shells, `SafeArea`,
+  `ScenarioSwitcher`, actors, the overlay stack, `PageGrid` (a column cap
+  Texuli's `CardGrid` does not have) and the `docs` layout (its own
+  navigation contract and heading slugs).
 
 ## Components
 
@@ -123,7 +145,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | --- | --- |
 | `Button` | `variant` default·secondary·outline·ghost·destructive·link, `size` sm·md·lg·icon (the icon button), `loading` (+`loadingLabel`): spinner over the kept, invisible label so the width never changes, `aria-busy`, disabled. An `onclick` that returns a promise sets `loading` until it settles (`autoLoading={false}` opts out). `href` → `<a>`, `bind:ref` |
 | `Input` / `Textarea` | native attributes, `bind:value`, `aria-invalid` styling |
-| `OtpInput` | fixed-length one-time-code cells (`length` 2–12, default 6); paste, arrows, backspace; `onComplete` exact-once; **simulated UX only** — never SMS or auth |
+| `OtpInput` | fixed-length one-time code (`length` 2–12, default 6): one real input (one-time-code autofill, paste keeps allowed characters) drawn as cells; `onComplete` exact-once; **simulated UX only** — never SMS or auth |
 | `Label` | `for` |
 | `FileDropzone` | `accept`, `maxSize`, `maxFiles`, `multiple`, `bind:files` (`DropzoneFile[]` with real `File`s), `bind:rejects`, drag-and-drop + keyboard file input, image previews via `URL.createObjectURL` (revoked on remove/destroy), per-file progress, inline limit errors, `onAdd`/`onRemove`. Renders Texuli's `FileUpload`; `children` shows above the zone and `listClass` is ignored. Never reads file contents as HTML. |
 | `ImageInput` | Labeled local image picker (`label`, `hint`, `accept`, `multiple`, `required`, `onFilesSelected`). Raster previews only via object URLs (`image/jpeg|png|gif|webp|avif`); SVG/HTML never become markup. Every object URL is revoked on replace, clear and unmount. Persistence and upload stay in the caller service. |
@@ -135,9 +157,9 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `TextCounter` | `bind:value`, `maxlength`, countdown while focused once `showAfter` chars remain; `tag="input"\|"textarea"` |
 | `Checkbox` | `bind:checked`, `bind:indeterminate`, `label`, `description` |
 | `RadioGroup` / `RadioGroupItem` | `items: { value, label, description?, disabled? }[]`, `bind:value`, `variant` `default`·`card` (Bits props pass through) |
-| `StarRating` | `bind:value` (0…maxStars), `label`, `maxStars` (2–10, default 5), `disabled`, `onchange`; radiogroup with roving arrows |
-| `NumberStepper` | `label` (required), `bind:value`, `min`·`max`·`step`, `unit`, `disabled`, `onchange`; spinbutton + ± buttons |
-| `ChipGroup` | `label`, `items`, `mode` `single`·`multi`, `bind:value` (`string[]`), `size` sm·md, `disabled`, `onchange` |
+| `StarRating` | `bind:value` (0…maxStars), `label`, `maxStars` (2–10, default 5), `disabled`, `onchange`; Texuli's `Rating` radio group |
+| `NumberStepper` | `label` (required), `bind:value`, `min`·`max`·`step`, `unit`, `disabled`, `onchange`; Texuli's `NumberField` (steps snap to the `min + n×step` grid) |
+| `ChipGroup` | `label`, `items`, `mode` `single`·`multi`, `bind:value` (`string[]`), `size` sm·md, `disabled`, `onchange`; Texuli's `ToggleGroup` (`aria-pressed` chips, one tab stop) |
 | `Switch` | `bind:checked`, `label`, `description` |
 | `Select` | `items: { value, label, disabled? }[]`, `bind:value`, `bind:open`, `placeholder`, `name` (hidden input). Name comes from your label/`aria-label`; the selected value is exposed via `aria-describedby` |
 | `Combobox` | like `Select` + `filter`, `emptyText`; external `value` changes are mirrored into the input (unless a search is open) |
@@ -189,7 +211,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 
 ## Conventions
 
-- `variant`, `size` and `class` (merged with `cn`, so your utilities win). Most components spread
+- `variant`, `size` and `class` (joined with `cn`; see *Class names* for overrides). Most components spread
   the remaining attributes onto their root element.
 - Two-way state uses `bind:`: `bind:value`, `bind:open`, `bind:checked`, `bind:page`,
   `bind:collapsed`, `bind:sidebarOpen`.
@@ -286,7 +308,7 @@ Tag, emoji, password-strength and character-count controls
 | --- | --- |
 | `TagEmailInput` | Invite-style tags. Commit with Enter, Space, comma or semicolon; paste splits on the same separators; Backspace on an empty draft removes the last tag. Email checks are format-only (`local@domain`) via `isEmailAddress` — not deliverability. Use `ignoreValidation` for free-form tags. |
 | `EmojiPicker` | One emoji from a built-in grouped catalog (`EMOJI_GROUPS`). Search filters by name; the grid is keyboard-roving (arrows, Home/End, Enter). |
-| `PasswordStrengthMeter` | Five-segment `role="meter"` under a password field. Rates the string in memory with `passwordScore` (length, case, digit, symbol, tiny fictional common list). **Simulation only:** it never stores, hashes or transmits the value. Pair with `Input type="password"`. |
+| `PasswordStrengthMeter` | A `role="meter"` (Texuli `Progress` bar inside) under a password field. Rates the string in memory with `passwordScore` (length, case, digit, symbol, tiny fictional common list). **Simulation only:** it never stores, hashes or transmits the value. Pair with `Input type="password"`. |
 | `TextCounter` | Input or textarea with `maxlength` and a remaining-character countdown shown while focused once `showAfter` (default 20) characters remain. |
 
 - **Honesty.** Password strength is UX feedback for prototypes, not security. Email validation is shape-only.
@@ -332,14 +354,17 @@ toast.error('Upload failed', { action: { label: 'Retry', onClick: retry } });
 toast.dismiss(id); // or toast.dismiss() for all
 ```
 
-Toasts auto-dismiss (4–8 s depending on kind, configurable with `duration`). The countdown pauses
-while the stack is hovered or focused. Messages are announced politely, and errors assertively.
-Render one `<Toaster />` near the app root. It sits bottom-right, or bottom-center above the safe
-area on phones. Only the toasts take pointer events: taps around them and in the gaps between them
-reach the page. To keep toasts above a bottom nav or a sticky composer, pass `offset` (px or any CSS
-length, `<Toaster offset={64} />`) or set `--py-toast-offset` on the page. Inside a prototype, the
-toasts also stay inside the visible right edge (`--py-fixed-right-edge`, kept current by the
-renderer).
+The toast API and `<Toaster />` are Texuli's (`texuli/toast`), re-exported
+here; `toast.promise(promise, { loading, success, error })` is available too.
+Toasts auto-dismiss (configurable with `duration`; `0` keeps them), the
+countdown pauses while a toast is hovered or focused, and Texuli's Toaster
+announces each message. Render one `<Toaster />` near the app root; `position`
+picks the edge (default `bottom-end`, centered on phones). To keep toasts above
+a bottom nav or a sticky composer, pass `offset` (px or any CSS length,
+`<Toaster offset={64} />`) or set `--tx-toast-offset` on the page. Inside a
+prototype, the toasts also stay inside the visible right edge
+(`--py-fixed-right-edge`, kept current by the renderer; mapped in
+`styles.css`).
 
 ## Drawers and the overlay stack
 

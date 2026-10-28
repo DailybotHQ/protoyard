@@ -1,6 +1,8 @@
 <script lang="ts">
-import { Sparkles } from '@lucide/svelte';
-import { cn } from '../../lib/cn.ts';
+import Sparkles from '@lucide/svelte/icons/sparkles';
+import { Badge } from 'texuli/badge';
+import { cx } from 'texuli/cx';
+import { Icon } from 'texuli/icons';
 
 /**
  * Marks a step that is simulated in the prototype (sign-in, billing, AI, …).
@@ -18,14 +20,8 @@ let {
 } = $props();
 </script>
 
-<span
-  class={cn(
-    'inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/20 px-2.5 py-1 text-xs font-semibold text-warning-foreground',
-    className
-  )}
-  {title}
-  data-py-tag="simulated"
->
-  <Sparkles class="size-3.5 shrink-0" aria-hidden="true" />
+<!-- Protoyard's honesty label (AGENTS.md rule 10) on Texuli's Badge. -->
+<Badge variant="warning" class={cx('ui-honesty-tag', className)} {title} data-py-tag="simulated">
+  <Icon icon={Sparkles} size="xs" aria-hidden="true" />
   {label}
-</span>
+</Badge>

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { MessagesSquare, Plus } from '@lucide/svelte';
+import { MessagesSquare } from '@lucide/svelte';
 import {
   can,
   DEMO_BADGE_ENABLED,
@@ -9,6 +9,8 @@ import {
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import { Button, EmptyState } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { CAPABILITIES, ROLE_LABELS } from '../domain/policy.ts';
 import { authorOf, useChat } from '../lib/context.ts';
 import { shortStamp } from '../lib/format.ts';
@@ -28,7 +30,7 @@ const me = $derived(principal.current);
   <div class="flex items-center gap-2 px-4 pt-4 pb-3">
     <a href="#/" class="flex min-w-0 flex-1 items-center gap-2.5 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
       <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground" aria-hidden="true">
-        <MessagesSquare class="size-4" />
+        <LucideIcon icon={MessagesSquare} class="size-4" />
       </span>
       <span class="min-w-0 leading-tight">
         <h1 class="block text-sm font-semibold">Chat</h1>
@@ -36,7 +38,7 @@ const me = $derived(principal.current);
       </span>
     </a>
     {#if can(CAPABILITIES.create)}
-      <Button size="sm" onclick={onNew}><Plus aria-hidden="true" /> New<span class="sr-only"> conversation</span></Button>
+      <Button size="sm" onclick={onNew}><Icon icon="plus" aria-hidden="true" /> New<span class="sr-only"> conversation</span></Button>
     {/if}
   </div>
 

@@ -83,7 +83,7 @@
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
     "@protoyard/views-ui": "workspace:*",
-    "texuli": "0.3.0",
+    "texuli": "0.4.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {

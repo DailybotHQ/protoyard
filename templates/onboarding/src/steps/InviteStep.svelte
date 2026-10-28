@@ -1,7 +1,9 @@
 <script lang="ts">
-import { Lock, Plus, X } from '@lucide/svelte';
+import { Lock } from '@lucide/svelte';
 import { can, isValidationError, runService } from '@protoyard/renderer-svelte';
 import { Button, Input, Select } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import StepFooter from '../components/StepFooter.svelte';
 import StepHeading from '../components/StepHeading.svelte';
 import { INVITE_ROLES, type InviteRole, type OnboardingState } from '../database/schema.ts';
@@ -85,7 +87,7 @@ async function submit(event: SubmitEvent) {
               bind:value={invite.role}
             />
             <Button variant="ghost" size="icon" aria-label={`Remove teammate ${index + 1}`} onclick={() => remove(index)}>
-              <X aria-hidden="true" />
+              <Icon icon="close" aria-hidden="true" />
             </Button>
           </div>
           {#if error}<p id={`invite-error-${invite.key}`} class="mt-1 text-xs text-destructive">{error}</p>{/if}
@@ -94,14 +96,14 @@ async function submit(event: SubmitEvent) {
     </ul>
     {#if errors.invites}<p class="mt-3 text-sm text-destructive" role="alert">{errors.invites}</p>{/if}
     <Button variant="ghost" size="sm" class="mt-3" onclick={add} disabled={rows.length >= MAX}>
-      <Plus aria-hidden="true" />{rows.length >= MAX ? `Up to ${MAX} at a time` : 'Add another'}
+      <Icon icon="plus" aria-hidden="true" />{rows.length >= MAX ? `Up to ${MAX} at a time` : 'Add another'}
     </Button>
   </form>
   <StepFooter form="step-invite" {busy} {onBack} {onSkip} submitLabel="Send invitations" />
 {:else}
   <form id="step-invite" onsubmit={(e) => { e.preventDefault(); onSkip(); }}>
     <p class="flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground" role="note">
-      <Lock class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      <LucideIcon icon={Lock} class="mt-0.5 size-4 shrink-0" />
       Your role can't invite people. Ask a workspace owner or admin to add teammates.
     </p>
   </form>

@@ -96,10 +96,12 @@ function isCorrect(questionId: string): boolean | null {
           {#if choice}
             {@const selected = chosen.includes(choice.id)}
             <li>
+              <!-- Outline variant: foreground text on the surface (AA); selected adds a primary tint. -->
               <Button
                 type="button"
-                class="w-full rounded-md border px-3 py-2 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring
-                  {selected ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/50'}"
+                variant="outline"
+                class="h-auto w-full justify-start rounded-md px-3 py-2 text-left text-sm
+                  {selected ? 'border-primary bg-primary/10' : ''}"
                 aria-pressed={selected}
                 disabled={locked}
                 onclick={() => answer(question.id, choice.id, multi)}

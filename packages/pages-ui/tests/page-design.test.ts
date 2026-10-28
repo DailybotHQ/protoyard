@@ -177,20 +177,21 @@ describe('PageHost marketing design', () => {
   it('renders the figures as one stat row that stacks on phones', () => {
     const view = render(PageHost, { props: { page: tidewater() } });
     const stats = view.container.querySelector('[data-py-page-stats]') as HTMLElement;
-    const list = stats.querySelector('dl') as HTMLElement;
+    // One Texuli Stat per figure, in a list that stacks on phones.
+    const list = stats.querySelector('ul') as HTMLElement;
     expect(list.className).toContain('sm:grid-cols-3');
     expect(list.className).not.toMatch(/(^|\s)grid-cols-/);
-    const terms = [...list.querySelectorAll('dt')].map((dt) => dt.textContent?.trim());
+    const terms = [...list.querySelectorAll('[data-tx-stat-label]')].map((label) =>
+      label.textContent?.trim()
+    );
     expect(terms).toEqual([
       'From roast to shipping',
       'Single origins this season',
       'Example taster rating',
     ]);
-    expect([...list.querySelectorAll('dd')].map((dd) => dd.textContent?.trim())).toEqual([
-      '48 h',
-      '12',
-      '4.8/5',
-    ]);
+    expect(
+      [...list.querySelectorAll('[data-tx-stat-value]')].map((value) => value.textContent?.trim())
+    ).toEqual(['48 h', '12', '4.8/5']);
   });
 
   it('renders plans as pricing columns with the middle plan highlighted', () => {

@@ -1,5 +1,7 @@
 <script lang="ts">
-import { Minus, Plus } from '@lucide/svelte';
+import { Button, Input } from '@protoyard/ui';
+
+import { Icon } from 'texuli/icons';
 
 /** Accessible − n + control. `onchange` fires with the new clamped value. */
 let {
@@ -24,10 +26,10 @@ const buttonClass =
 </script>
 
 <div class="inline-flex items-center overflow-hidden rounded-md border border-input bg-surface" role="group" aria-label={label}>
-  <button type="button" class={buttonClass} aria-label="Decrease quantity" disabled={disabled || value <= min} onclick={() => onchange(clamp(value - 1))}>
-    <Minus class="size-4" aria-hidden="true" />
-  </button>
-  <input
+  <Button type="button" class={buttonClass} aria-label="Decrease quantity" disabled={disabled || value <= min} onclick={() => onchange(clamp(value - 1))}>
+    <Icon icon="minus" class="size-4" aria-hidden="true" />
+  </Button>
+  <Input
     type="number"
     inputmode="numeric"
     class="h-9 w-12 border-x border-input bg-transparent text-center text-sm tabular-nums outline-none [appearance:textfield] focus-visible:bg-muted [&::-webkit-inner-spin-button]:appearance-none"
@@ -43,7 +45,7 @@ const buttonClass =
       if (clamped !== value) onchange(clamped);
     }}
   />
-  <button type="button" class={buttonClass} aria-label="Increase quantity" disabled={disabled || value >= max} onclick={() => onchange(clamp(value + 1))}>
-    <Plus class="size-4" aria-hidden="true" />
-  </button>
+  <Button type="button" class={buttonClass} aria-label="Increase quantity" disabled={disabled || value >= max} onclick={() => onchange(clamp(value + 1))}>
+    <Icon icon="plus" class="size-4" aria-hidden="true" />
+  </Button>
 </div>
