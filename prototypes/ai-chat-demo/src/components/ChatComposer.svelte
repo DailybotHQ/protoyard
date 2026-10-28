@@ -183,11 +183,11 @@ function onkeydown(event: KeyboardEvent): void {
   >
     <label for={inputId} class="sr-only">Message</label>
     <Textarea
-      bind:this={textarea}
+      bind:ref={textarea}
       bind:value
       id={inputId}
       data-py-composer=""
-      rows="1"
+      rows={1}
       maxlength={4000}
       {disabled}
       placeholder={disabled ? disabledReason : 'Message the team — type @ to mention an agent'}
