@@ -136,6 +136,15 @@ function measure(page: Page, slideId: string): Promise<DeckDesignMeasure> {
       element instanceof Element &&
       element.checkVisibility({ opacityProperty: true, visibilityProperty: true });
 
+    const visuallyHidden = (element: Element): boolean => {
+      for (let node: Element | null = element; node && node !== frame; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        const clipped =
+          style.clip === 'rect(0px, 0px, 0px, 0px)' || style.clipPath === 'inset(50%)';
+        if (clipped && style.position === 'absolute') return true;
+      }
+      return false;
+    };
     const textBoxes: { label: string; box: B }[] = [];
     let displayTitlePx = 0;
     const walker = document.createTreeWalker(frame, NodeFilter.SHOW_TEXT);
@@ -144,8 +153,9 @@ function measure(page: Page, slideId: string): Promise<DeckDesignMeasure> {
       const text = node.textContent?.replace(/\s+/g, ' ').trim() ?? '';
       const parent = node.parentElement;
       if (!text || !parent || !shown(parent)) continue;
-      // Screen-reader-only text is clipped to a pixel; it is not drawn.
-      if (parent.closest('.sr-only')) continue;
+      // Screen-reader-only text (Tailwind's `sr-only`, Texuli's `tx-sr-only`
+      // and its hidden labels) is clipped to a pixel; it is not drawn.
+      if (visuallyHidden(parent)) continue;
       index += 1;
       const range = document.createRange();
       range.selectNodeContents(node);
@@ -342,11 +352,13 @@ for (const level of Object.keys(LEVELS) as Level[]) {
               startButton,
               `${level}: no start button; without an embed host (mountEmbed) the app cannot start (a generated deck needs the deck template's embed-host wiring)`
             ).toBeVisible({ timeout: 5_000 });
-            // Nothing runs until the viewer asks for it.
-            await expect(block).toHaveAttribute('data-py-embed-started', 'false');
+            // Nothing runs until the viewer asks for it (Texuli's embed reports
+            // its state on the inner `data-tx-embed-started` element).
+            const embed = block.locator('[data-tx-embed-started]');
+            await expect(embed).toHaveAttribute('data-tx-embed-started', 'false');
             await expect(block.locator('iframe')).toHaveCount(0);
             await startButton.click();
-            await expect(block).toHaveAttribute('data-py-embed-started', 'true', {
+            await expect(embed).toHaveAttribute('data-tx-embed-started', 'true', {
               timeout: 30_000,
             });
             const frame = block.frameLocator('iframe');
