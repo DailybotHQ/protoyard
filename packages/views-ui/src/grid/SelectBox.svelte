@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Checkbox } from 'texuli/choice';
 import { cx } from 'texuli/cx';
 
 /**
@@ -27,9 +28,8 @@ let {
 </script>
 
 {#snippet box(cls: string, tabindex: number | undefined)}
-  <input
-    type="checkbox"
-    {tabindex}
+  <Checkbox
+        {tabindex}
     class={cls}
     aria-label={label}
     {checked}

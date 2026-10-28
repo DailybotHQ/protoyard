@@ -1,6 +1,7 @@
 <script lang="ts">
 import { classifyMediaSource } from '@protoyard/blocks';
 import { avatarUrl } from '@protoyard/renderer-svelte';
+import { cx } from 'texuli/cx';
 
 /**
  * A card's image under the block media policy: a library avatar, a bounded
@@ -17,4 +18,4 @@ const src = $derived.by(() => {
 });
 </script>
 
-{#if src}<img {src} {alt} loading="lazy" decoding="async" referrerpolicy="no-referrer" class="h-auto max-w-full rounded-md border border-border" />{/if}
+{#if src}<img {src} {alt} loading="lazy" decoding="async" referrerpolicy="no-referrer" class={cx('h-auto max-w-full rounded-md border border-border')} />{/if}

@@ -1,7 +1,8 @@
 <script lang="ts">
 import type { ChartControlsBlock as ChartControlsBlockType } from '@protoyard/blocks';
 import { chartControlsSpec } from '@protoyard/blocks/interactive';
-import { Button } from '@protoyard/ui';
+import { Button, Input } from '@protoyard/ui';
+import { Checkbox } from 'texuli/choice';
 import { isSecurityFuzzHost } from '../host.ts';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import { useBlockState } from './use-block-state.svelte.ts';
@@ -82,14 +83,12 @@ function setSeriesVisible(index: number, checked: boolean) {
       {#each block.spec.series as row, index (index)}
         {@const checked = seriesVisible(index)}
         <label class="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+          <Checkbox
             class="size-4 rounded border-border outline-none focus-visible:ring-2 focus-visible:ring-ring"
             {checked}
             disabled={ctl.pending}
             aria-label="Show {row.label}"
-            onchange={(e) =>
-              setSeriesVisible(index, (e.currentTarget as HTMLInputElement).checked)}
+            onCheckedChange={(checked) => setSeriesVisible(index, checked)}
           />
           <span>{row.label}</span>
         </label>
@@ -105,7 +104,7 @@ function setSeriesVisible(index: number, checked: boolean) {
       <div class="flex flex-wrap items-center gap-2">
         <label class="flex items-center gap-1">
           From
-          <input
+          <Input
             type="number"
             class="w-16 rounded border border-border px-1 py-0.5 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
             min={0}
@@ -122,7 +121,7 @@ function setSeriesVisible(index: number, checked: boolean) {
         </label>
         <label class="flex items-center gap-1">
           To
-          <input
+          <Input
             type="number"
             class="w-16 rounded border border-border px-1 py-0.5 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
             min={1}

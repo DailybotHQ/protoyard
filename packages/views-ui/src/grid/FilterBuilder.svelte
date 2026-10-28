@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
 import { Plus, X } from '@lucide/svelte';
-import { Button } from '@protoyard/ui';
+import { Button, Input, Select } from '@protoyard/ui';
 import {
   FILTER_LIMITS,
   type FilterCondition,
@@ -10,7 +10,9 @@ import {
   type GridColumnDef,
   OPERATORS_BY_TYPE,
 } from '@protoyard/views/grid';
+import { Checkbox } from 'texuli/choice';
 import { cx } from 'texuli/cx';
+import { Icon } from 'texuli/icons';
 import { newCondition, newGroup, typedScalar, updateAt, valueFor } from './model.ts';
 
 /**
@@ -80,41 +82,37 @@ const control =
   <div class="flex flex-wrap items-end gap-2" data-filter-condition>
     <div class="grid gap-1 text-xs text-muted-foreground">
       <label for={`${id}-field`}>Field</label>
-      <select
+      <Select
         id={`${id}-field`}
         class={control}
+        items={columns.map((option) => ({ value: option.key, label: option.header }))}
         value={condition.field}
-        onchange={(event) => {
-          const next = byKey.get((event.currentTarget as HTMLSelectElement).value);
+        onValueChange={(field) => {
+          const next = byKey.get(field);
           const operator = next ? (OPERATORS_BY_TYPE[next.type][0] ?? 'eq') : condition.operator;
           set(path, { type: 'condition', field: next?.key ?? '', operator, value: valueFor(next, operator) });
         }}
-      >
-        {#each columns as option (option.key)}<option value={option.key}>{option.header}</option>{/each}
-      </select>
+      />
     </div>
     <div class="grid gap-1 text-xs text-muted-foreground">
       <label for={`${id}-op`}>Condition</label>
-      <select
+      <Select
         id={`${id}-op`}
         class={control}
+        items={(column ? OPERATORS_BY_TYPE[column.type] : []).map((operator) => ({ value: operator, label: OPERATOR_LABELS[operator] }))}
         value={condition.operator}
-        onchange={(event) => {
-          const operator = (event.currentTarget as HTMLSelectElement).value as FilterOperator;
+        onValueChange={(value) => {
+          const operator = value as FilterOperator;
           set(path, { ...condition, operator, value: valueFor(column, operator) });
         }}
-      >
-        {#each column ? OPERATORS_BY_TYPE[column.type] : [] as operator (operator)}
-          <option value={operator}>{OPERATOR_LABELS[operator]}</option>
-        {/each}
-      </select>
+      />
     </div>
     {#if condition.operator === 'between'}
       {@const range = Array.isArray(condition.value) ? condition.value : ['', '']}
       {#each ['From', 'To'] as bound, i (bound)}
         <div class="grid gap-1 text-xs text-muted-foreground">
           <label for={`${id}-${bound}`}>{bound}</label>
-          <input
+          <Input
             id={`${id}-${bound}`}
             class={cx(control, 'w-32')}
             type={inputType(column)}
@@ -133,11 +131,9 @@ const control =
         <legend class="mb-1 text-xs text-muted-foreground">Values</legend>
         {#each column.options as option (option)}
           <label class="flex items-center gap-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={chosen.includes(option)}
-              onchange={(event) => {
-                const on = (event.currentTarget as HTMLInputElement).checked;
+              onCheckedChange={(on) => {
                 set(path, { ...condition, value: on ? [...chosen, option] : chosen.filter((v) => v !== option) });
               }}
             />
@@ -148,7 +144,7 @@ const control =
     {:else if condition.operator === 'in'}
       <div class="grid gap-1 text-xs text-muted-foreground">
         <label for={`${id}-values`}>Values (comma-separated)</label>
-        <input
+        <Input
           id={`${id}-values`}
           class={control}
           value={Array.isArray(condition.value) ? condition.value.join(', ') : ''}
@@ -162,27 +158,23 @@ const control =
       <div class="grid gap-1 text-xs text-muted-foreground">
         <label for={`${id}-value`}>Value</label>
         {#if column?.type === 'boolean'}
-          <select
+          <Select
             id={`${id}-value`}
             class={control}
+            items={[{ value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }]}
             value={String(condition.value)}
-            onchange={(event) => set(path, { ...condition, value: (event.currentTarget as HTMLSelectElement).value === 'true' })}
-          >
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </select>
+            onValueChange={(value) => set(path, { ...condition, value: value === 'true' })}
+          />
         {:else if column?.type === 'enum' && column.options}
-          <select
+          <Select
             id={`${id}-value`}
             class={control}
+            items={[{ value: '', label: 'Choose…', disabled: true }, ...column.options.map((option) => ({ value: option, label: option }))]}
             value={String(condition.value ?? '')}
-            onchange={(event) => set(path, { ...condition, value: (event.currentTarget as HTMLSelectElement).value })}
-          >
-            <option value="" disabled>Choose…</option>
-            {#each column.options as option (option)}<option value={option}>{option}</option>{/each}
-          </select>
+            onValueChange={(value) => set(path, { ...condition, value })}
+          />
         {:else}
-          <input
+          <Input
             id={`${id}-value`}
             class={control}
             type={inputType(column)}
@@ -193,7 +185,7 @@ const control =
       </div>
     {/if}
     <Button variant="ghost" size="icon" aria-label={`Remove condition ${n}`} onclick={() => set(path, null)}>
-      <X class="size-4" aria-hidden="true" />
+      <Icon icon="close" class="size-4" aria-hidden="true"  />
     </Button>
   </div>
 {/snippet}
@@ -204,15 +196,13 @@ const control =
       <label for={`filter-${uid}-g${path.join('-')}`}>
         Match<span class="sr-only">{depth === 0 ? ' for these conditions' : ` for this group (level ${depth + 1})`}</span>
       </label>
-      <select
+      <Select
           id={`filter-${uid}-g${path.join('-')}`}
           class={cx(control, 'h-8')}
+          items={[{ value: 'and', label: 'all of' }, { value: 'or', label: 'any of' }]}
           value={node.op}
-          onchange={(event) => set(path, { ...node, op: (event.currentTarget as HTMLSelectElement).value as 'and' | 'or' })}
-        >
-          <option value="and">all of</option>
-          <option value="or">any of</option>
-        </select>
+          onValueChange={(op) => set(path, { ...node, op: op as 'and' | 'or' })}
+        />
     </legend>
     {#each node.children as child, i (i)}
       {#if child.type === 'group'}
@@ -223,11 +213,11 @@ const control =
     {/each}
     <div class="flex flex-wrap gap-2">
       <Button variant="outline" size="sm" onclick={() => set(path, { ...node, children: [...node.children, newCondition(columns)] })}>
-        <Plus class="size-4" aria-hidden="true" />Add condition
+        <Icon icon="plus" class="size-4" aria-hidden="true"  />Add condition
       </Button>
       {#if depth + 2 < FILTER_LIMITS.depth}
         <Button variant="outline" size="sm" onclick={() => set(path, { ...node, children: [...node.children, newGroup(columns)] })}>
-          <Plus class="size-4" aria-hidden="true" />Add group
+          <Icon icon="plus" class="size-4" aria-hidden="true"  />Add group
         </Button>
       {/if}
       {#if depth > 0}
@@ -245,7 +235,7 @@ const control =
     </div>
   {:else}
     <Button variant="outline" size="sm" onclick={() => emit(newGroup(columns))}>
-      <Plus class="size-4" aria-hidden="true" />Add a filter
+      <Icon icon="plus" class="size-4" aria-hidden="true"  />Add a filter
     </Button>
   {/if}
 </section>

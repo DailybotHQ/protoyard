@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Input } from '@protoyard/ui';
 import {
   filterHotkeyBindings,
   formatHotkeyKeys,
@@ -67,7 +68,7 @@ const groups = $derived.by(() => {
   <header class="flex flex-wrap items-center justify-between gap-3">
     <h2 id={titleId} class="text-lg font-semibold">{title}</h2>
     <label class="sr-only" for={`shortcut-sheet-search-${uid}`}>{searchLabel}</label>
-    <input
+    <Input
       id={`shortcut-sheet-search-${uid}`}
       bind:value={query}
       class="min-h-10 min-w-48 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"

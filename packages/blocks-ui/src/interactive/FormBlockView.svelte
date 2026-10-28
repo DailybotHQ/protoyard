@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { FormBlock as FormBlockType } from '@protoyard/blocks';
-import { Button } from '@protoyard/ui';
+import { Button, Input, Textarea } from '@protoyard/ui';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 
 /**
@@ -36,14 +36,14 @@ let { block }: { block: FormBlockType } = $props();
           {#if field.required}<span class="text-destructive" aria-hidden="true">*</span>{/if}
         </span>
         {#if field.type === 'longText'}
-          <textarea
+          <Textarea
             class="min-h-20 rounded-md border border-border bg-background px-2 py-1.5"
             name={field.name}
             disabled
             placeholder="Handled by the page form runtime"
-          ></textarea>
+          ></Textarea>
         {:else}
-          <input
+          <Input
             class="rounded-md border border-border bg-background px-2 py-1.5"
             type={field.type === 'email' ? 'email' : field.type === 'url' ? 'url' : 'text'}
             name={field.name}

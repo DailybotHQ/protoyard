@@ -194,7 +194,7 @@ describe('preview safety', () => {
     });
     const region = screen.getByRole('region', { name: 'Preview' });
     expect(region.querySelector('h2')?.textContent).toBe('Plan');
-    expect(region.querySelectorAll('input[type="checkbox"]')).toHaveLength(2);
+    expect(region.querySelectorAll('[role="checkbox"]')).toHaveLength(2);
     expect(region.querySelector('blockquote strong')?.textContent).toBe('bold');
   });
 });
@@ -209,7 +209,7 @@ describe('RichTextView (safe document model)', () => {
     expect(region.querySelector('h2')?.textContent).toBe('Title');
     expect(region.querySelector('strong')?.textContent).toBe('world');
     expect(region.textContent).toContain('@Ada');
-    expect(region.querySelectorAll('input[type="checkbox"]')).toHaveLength(1);
+    expect(region.querySelectorAll('[role="checkbox"]')).toHaveLength(1);
   });
 
   it('rejects unsafe links and keeps the label as text', () => {

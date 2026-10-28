@@ -5,6 +5,7 @@
  * Dynamic import keeps the map kit out of the fuzz module graph.
  */
 import type { Block } from '@protoyard/blocks';
+import { cx } from 'texuli/cx';
 import { toTexuliMapBlock } from '../compat/map.ts';
 import { isSecurityFuzzHost } from '../host.ts';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
@@ -15,7 +16,7 @@ const mapBlock = $derived(block.type === 'map' ? block : null);
 const ariaLabel = $derived(mapBlock ? (mapBlock.label ?? mapBlock.title ?? 'Map') : 'Map');
 </script>
 
-<div data-py-block="map" {...{ [DECK_INTERACTIVE_ATTRIBUTE]: true }} data-tx-blocks="map">
+<div class={cx('contents')} data-py-block="map" {...{ [DECK_INTERACTIVE_ATTRIBUTE]: true }} data-tx-blocks="map">
   {#if mapBlock}
     {#if fuzzStub}
       <div role="img" aria-label={ariaLabel}></div>

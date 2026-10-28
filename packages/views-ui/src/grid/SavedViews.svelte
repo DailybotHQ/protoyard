@@ -1,6 +1,6 @@
 <script lang="ts">
 import { runService } from '@protoyard/renderer-svelte';
-import { Button, Input } from '@protoyard/ui';
+import { Button, Input, Select } from '@protoyard/ui';
 import { isViewModified, type SavedView } from '@protoyard/views/grid';
 import { lazyDialog } from '../lib/lazy-overlays.svelte.ts';
 import type { GridViewState } from './model.ts';
@@ -62,19 +62,16 @@ async function submit() {
 
 <div class="flex flex-wrap items-center gap-2">
   <label for={`views-${uid}`} class="text-sm text-muted-foreground">View</label>
-  <select
+  <Select
     id={`views-${uid}`}
     class="h-9 rounded-md border border-input bg-surface px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    items={[{ value: '', label: 'Default' }, ...views.map((view) => ({ value: view.id, label: view.name }))]}
     value={activeId ?? ''}
-    onchange={(event) => {
-      const id = (event.currentTarget as HTMLSelectElement).value;
+    onValueChange={(id) => {
       activeId = id || null;
       onApply(views.find((view) => view.id === id) ?? null);
     }}
-  >
-    <option value="">Default</option>
-    {#each views as view (view.id)}<option value={view.id}>{view.name}</option>{/each}
-  </select>
+  />
 
   {#if mode === 'idle'}
     {#if modified && active}

@@ -6,6 +6,7 @@ import {
   safeHref,
   safeImageSrc,
 } from '@protoyard/ai/markdown';
+import { Checkbox } from 'texuli/choice';
 import { cx } from 'texuli/cx';
 
 interface Props {
@@ -79,7 +80,7 @@ const external = (href: string) => /^https?:/i.test(href);
       <svelte:element this={block.ordered ? 'ol' : 'ul'} class={cx('space-y-1 pl-6', block.ordered ? 'list-decimal' : 'list-disc')} start={block.ordered ? block.start : undefined}>
         {#each block.items as item, j (j)}
           <li>
-            {#if item.checked !== null}<input type="checkbox" checked={item.checked} disabled aria-label={item.checked ? 'Done' : 'Not done'} class="mr-1.5 align-middle" />{/if}
+            {#if item.checked !== null}<Checkbox checked={item.checked} disabled aria-label={item.checked ? 'Done' : 'Not done'} class="mr-1.5 align-middle" />{/if}
             {@render blocks(item.children)}
           </li>
         {/each}
