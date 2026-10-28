@@ -1,22 +1,24 @@
 <script lang="ts">
-import { LoaderCircle } from '@lucide/svelte';
-import { cn } from '../../lib/cn.ts';
+import { Spinner as TexuliSpinner } from 'texuli/feedback';
 
 interface Props {
   class?: string;
   /** When set, the spinner is announced; otherwise it is decorative. */
   label?: string;
+  /** Pixels (16 by default) or Texuli's `sm` / `md` / `lg`. */
   size?: number | string;
 }
 
 let { class: className, label, size }: Props = $props();
+
+// Protoyard sizes are pixels; Texuli's spinner comes in three steps.
+const texuliSize = $derived.by((): 'sm' | 'md' | 'lg' => {
+  if (size === 'sm' || size === 'md' || size === 'lg') return size;
+  const px = typeof size === 'number' ? size : Number.parseFloat(size ?? '16');
+  if (!Number.isFinite(px) || px <= 16) return 'sm';
+  return px <= 24 ? 'md' : 'lg';
+});
 </script>
 
-{#if label}
-  <span role="status" class="inline-flex items-center">
-    <LoaderCircle {size} aria-hidden="true" class={cn('size-4 motion-safe:animate-spin', className)} />
-    <span class="sr-only">{label}</span>
-  </span>
-{:else}
-  <LoaderCircle {size} aria-hidden="true" class={cn('size-4 motion-safe:animate-spin', className)} />
-{/if}
+<!-- A thin adapter over Texuli's Spinner (`texuli/feedback`). -->
+<TexuliSpinner {label} size={texuliSize} class={className} />

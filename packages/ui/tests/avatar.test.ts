@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
+import { MessageList } from '@texuli/chat';
 import { afterEach, describe, expect, it } from 'vitest';
 import Avatar from '../src/components/avatar/Avatar.svelte';
-import MessageList from '../src/components/chat/MessageList.svelte';
 import UserPicker from '../src/components/user-picker/UserPicker.svelte';
 import { isSafeImageSource, safeSrcset } from '../src/lib/image-source.ts';
 
@@ -16,8 +16,9 @@ describe('Avatar image', () => {
     // One accessible element: the photo itself, named by its alt.
     const img = screen.getByRole('img', { name: 'Grace Hopper' });
     expect(img.tagName).toBe('IMG');
-    expect(img.parentElement?.dataset.avatar).toBe('image');
-    expect(img.parentElement?.getAttribute('title')).toBe('Grace Hopper');
+    const root = img.closest<HTMLElement>('[data-tx-avatar]');
+    expect(root?.dataset.avatar).toBe('image');
+    expect(root?.getAttribute('title')).toBe('Grace Hopper');
     expect(img?.getAttribute('src')).toBe(SRC);
     expect(img?.getAttribute('srcset')).toBe(SRCSET);
     expect(img?.getAttribute('alt')).toBe('Grace Hopper');
@@ -124,7 +125,11 @@ describe('isSafeImageSource', () => {
 });
 
 describe('kit components pass faces through', () => {
-  it('MessageList shows the author photo with its srcset, decorative', () => {
+  // Texuli's MessageList renders `avatarUrl` only; the 2x `srcset` returns
+  // when Texuli's avatars take one (gap G10).
+  it.todo('MessageList passes the author photo srcset (Texuli gap G10)');
+
+  it('MessageList shows the author photo, decorative, and initials otherwise', () => {
     const ada = { id: 'u1', name: 'Ada Lovelace', avatarUrl: SRC, avatarSrcset: SRCSET };
     const bob = { id: 'u2', name: 'Bob Stone' };
     const { container } = render(MessageList, {
@@ -136,7 +141,7 @@ describe('kit components pass faces through', () => {
     });
     const faces = container.querySelectorAll('img');
     expect(faces).toHaveLength(1);
-    expect(faces[0]?.getAttribute('srcset')).toBe(SRCSET);
+    expect(faces[0]?.getAttribute('src')).toBe(SRC);
     expect(faces[0]?.getAttribute('alt')).toBe('');
     expect(container.textContent).toContain('BS');
   });

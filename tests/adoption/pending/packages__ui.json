@@ -2,269 +2,141 @@
   "unit": "packages__ui",
   "entries": [
     {
-      "file": "packages/ui/src/components/avatar/Avatar.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
       "file": "packages/ui/src/components/bottom-nav/BottomNav.svelte",
       "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/browser-chrome/BrowserChrome.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/browser-chrome/BrowserChrome.svelte",
-      "rule": "raw-control",
-      "count": 4
-    },
-    {
-      "file": "packages/ui/src/components/browser-chrome/BrowserChrome.svelte",
-      "rule": "raw-lucide",
-      "count": 5
-    },
-    {
-      "file": "packages/ui/src/components/ChipGroup.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/ChipGroup.svelte",
-      "rule": "raw-control",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/composer/Composer.svelte",
-      "rule": "raw-control",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/composer/Composer.svelte",
-      "rule": "raw-lucide",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/empty-state/EmptyState.svelte",
-      "rule": "own-component",
-      "count": 1
+      "count": 1,
+      "gap": "G15"
     },
     {
       "file": "packages/ui/src/components/form/scheduling/Calendar.svelte",
       "rule": "own-component",
-      "count": 1
+      "count": 1,
+      "gap": "G12"
     },
     {
       "file": "packages/ui/src/components/form/scheduling/Calendar.svelte",
       "rule": "raw-control",
-      "count": 3
+      "count": 3,
+      "gap": "G12"
     },
     {
       "file": "packages/ui/src/components/form/scheduling/Calendar.svelte",
       "rule": "raw-lucide",
-      "count": 2
+      "count": 2,
+      "gap": "G12"
     },
     {
       "file": "packages/ui/src/components/form/scheduling/DatePicker.svelte",
       "rule": "raw-control",
-      "count": 3
+      "count": 3,
+      "gap": "G12"
     },
     {
       "file": "packages/ui/src/components/form/scheduling/DatePicker.svelte",
       "rule": "raw-lucide",
-      "count": 1
+      "count": 1,
+      "gap": "G12"
     },
     {
       "file": "packages/ui/src/components/form/scheduling/DateRangePicker.svelte",
       "rule": "raw-control",
-      "count": 5
+      "count": 5,
+      "gap": "G12"
     },
     {
       "file": "packages/ui/src/components/form/scheduling/DateRangePicker.svelte",
       "rule": "raw-lucide",
-      "count": 1
+      "count": 1,
+      "gap": "G12"
     },
     {
       "file": "packages/ui/src/components/form/scheduling/TimeInput.svelte",
       "rule": "own-component",
-      "count": 1
+      "count": 1,
+      "gap": "G13"
     },
     {
       "file": "packages/ui/src/components/form/scheduling/TimeInput.svelte",
       "rule": "raw-control",
-      "count": 4
-    },
-    {
-      "file": "packages/ui/src/components/form/scheduling/WeekdayPicker.svelte",
-      "rule": "own-component",
-      "count": 1
+      "count": 4,
+      "gap": "G13"
     },
     {
       "file": "packages/ui/src/components/form/scheduling/WeekdayPicker.svelte",
       "rule": "raw-control",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/form/utilities/EmojiPicker.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/form/utilities/EmojiPicker.svelte",
-      "rule": "raw-control",
-      "count": 4
-    },
-    {
-      "file": "packages/ui/src/components/form/utilities/EmojiPicker.svelte",
-      "rule": "raw-lucide",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/form/utilities/PasswordStrengthMeter.svelte",
-      "rule": "own-component",
       "count": 1
     },
     {
       "file": "packages/ui/src/components/form/utilities/TagEmailInput.svelte",
       "rule": "own-component",
-      "count": 1
+      "count": 1,
+      "gap": "G11"
     },
     {
       "file": "packages/ui/src/components/form/utilities/TagEmailInput.svelte",
       "rule": "raw-control",
-      "count": 2
+      "count": 2,
+      "gap": "G11"
     },
     {
       "file": "packages/ui/src/components/form/utilities/TagEmailInput.svelte",
       "rule": "raw-lucide",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/form/utilities/TextCounter.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/form/utilities/TextCounter.svelte",
-      "rule": "raw-control",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/header/Header.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/header/Header.svelte",
-      "rule": "raw-control",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/header/Header.svelte",
-      "rule": "raw-lucide",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/honesty/ProposalTag.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/honesty/ProposalTag.svelte",
-      "rule": "raw-lucide",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/honesty/SimulatedTag.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/honesty/SimulatedTag.svelte",
-      "rule": "raw-lucide",
-      "count": 1
+      "count": 1,
+      "gap": "G11"
     },
     {
       "file": "packages/ui/src/components/image-input/ImageInput.svelte",
       "rule": "own-component",
-      "count": 1
+      "count": 1,
+      "gap": "G8"
     },
     {
       "file": "packages/ui/src/components/image-input/ImageInput.svelte",
       "rule": "raw-control",
-      "count": 2
+      "count": 2,
+      "gap": "G8"
     },
     {
       "file": "packages/ui/src/components/image-input/ImageInput.svelte",
       "rule": "raw-lucide",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/input/Input.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/input/Input.svelte",
-      "rule": "raw-control",
-      "count": 2
+      "count": 2,
+      "gap": "G8"
     },
     {
       "file": "packages/ui/src/components/kanban/Kanban.svelte",
       "rule": "raw-control",
-      "count": 1
+      "count": 1,
+      "gap": "G14"
     },
     {
       "file": "packages/ui/src/components/kanban/Kanban.svelte",
       "rule": "raw-lucide",
-      "count": 2
+      "count": 2,
+      "gap": "G14"
     },
     {
       "file": "packages/ui/src/components/mobile-app-shell/MobileAppShell.svelte",
       "rule": "own-component",
-      "count": 1
+      "count": 1,
+      "gap": "G15"
     },
     {
       "file": "packages/ui/src/components/mobile-header/MobileHeader.svelte",
       "rule": "own-component",
-      "count": 1
+      "count": 1,
+      "gap": "G15"
     },
     {
       "file": "packages/ui/src/components/mobile-header/MobileHeader.svelte",
       "rule": "raw-control",
-      "count": 1
+      "count": 1,
+      "gap": "G15"
     },
     {
       "file": "packages/ui/src/components/mobile-header/MobileHeader.svelte",
       "rule": "raw-lucide",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/NumberStepper.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/NumberStepper.svelte",
-      "rule": "raw-control",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/NumberStepper.svelte",
-      "rule": "raw-lucide",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/otp-input/OtpInput.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/otp-input/OtpInput.svelte",
-      "rule": "raw-control",
-      "count": 2
+      "count": 2,
+      "gap": "G15"
     },
     {
       "file": "packages/ui/src/components/safe-area/SafeArea.svelte",
@@ -272,129 +144,42 @@
       "count": 1
     },
     {
-      "file": "packages/ui/src/components/spinner/Spinner.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/spinner/Spinner.svelte",
-      "rule": "raw-lucide",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/StarRating.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/StarRating.svelte",
-      "rule": "raw-control",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/StarRating.svelte",
-      "rule": "raw-lucide",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/stat-card/StatCard.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/status-chip/StatusChip.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/toast/Toaster.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/toast/Toaster.svelte",
-      "rule": "py-token",
-      "count": 4
-    },
-    {
-      "file": "packages/ui/src/components/toast/Toaster.svelte",
-      "rule": "raw-control",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/toast/Toaster.svelte",
-      "rule": "raw-lucide",
-      "count": 1
-    },
-    {
       "file": "packages/ui/src/components/toast/UndoToaster.svelte",
       "rule": "py-token",
-      "count": 1
+      "count": 1,
+      "gap": "G9"
     },
     {
       "file": "packages/ui/src/components/toast/UndoToaster.svelte",
       "rule": "raw-control",
-      "count": 1
+      "count": 1,
+      "gap": "G9"
     },
     {
       "file": "packages/ui/src/components/toast/UndoToaster.svelte",
       "rule": "raw-lucide",
-      "count": 2
-    },
-    {
-      "file": "packages/ui/src/components/typing-indicator/TypingIndicator.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/components/window-chrome/WindowChrome.svelte",
-      "rule": "own-component",
-      "count": 1
+      "count": 2,
+      "gap": "G9"
     },
     {
       "file": "packages/ui/src/components/window-chrome/WindowChrome.svelte",
       "rule": "raw-control",
-      "count": 8
-    },
-    {
-      "file": "packages/ui/src/components/window-chrome/WindowChrome.svelte",
-      "rule": "raw-lucide",
-      "count": 8
-    },
-    {
-      "file": "packages/ui/src/layouts/DocsLayout.svelte",
-      "rule": "own-component",
-      "count": 1
-    },
-    {
-      "file": "packages/ui/src/layouts/DocsLayout.svelte",
-      "rule": "py-token",
       "count": 7
     },
     {
-      "file": "packages/ui/src/layouts/PageGrid.svelte",
+      "file": "packages/ui/src/layouts/DocsLayout.svelte",
       "rule": "own-component",
       "count": 1
     },
     {
       "file": "packages/ui/src/layouts/PageGrid.svelte",
-      "rule": "py-token",
-      "count": 5
-    },
-    {
-      "file": "packages/ui/src/lib/cn.ts",
-      "rule": "legacy-import",
-      "count": 2
+      "rule": "own-component",
+      "count": 1
     },
     {
       "file": "packages/ui/src/styles.css",
       "rule": "py-token",
-      "count": 5
-    },
-    {
-      "file": "packages/ui/src/styles/variants.css",
-      "rule": "py-token",
-      "count": 9
+      "count": 6
     }
   ]
 }
