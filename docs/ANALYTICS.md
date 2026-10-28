@@ -111,6 +111,18 @@ Accessibility:
 - The cohort table has scoped headers, and its cell text is shown only where it reaches 4.5:1.
 - Toggles use `aria-pressed`.
 
+KPI tiles and rows adapt `texuli/stat` (`Kpi`, `KpiRow`); formatting helpers
+re-export that package, and sparklines come from `@texuli/charts/compact`.
+Cohort fills use `@texuli/charts/matrix` `heatmapFill`, while Protoyard keeps
+the semantic cohort table because Texuli 0.3.0 has no row/period header
+contract (G20). `MonthGrid` delegates its calendar grid to `texuli/date`
+`Calendar`; simulated-clock and selected-range behavior remain in the
+Protoyard adapter until G12 is fixed. `FilterGroupEditor` remains the nested
+analytics AST adapter until Texuli provides the builder contract (G18).
+`DashboardGrid` owns saved 12-column placement and service callbacks;
+Texuli's `AnalyticsGrid` is an auto-fit card layout and does not replace that
+saved editor.
+
 ## Build an analytics prototype
 
 ```bash
@@ -166,8 +178,8 @@ heavy shared load (load average 60–140): upper bounds.
 | Flagship initial JS (gzip) | 207.4 KB; 208.9 KB with review comments on (`budget`, 2026-10-20) | ≤ 210 KB (plan), 250 KB |
 | Flagship `enterprise-scale` dashboard, first visit (generate + render) | ~1.0 s, 0 long tasks | 0 long tasks > 200 ms |
 
-View sizes (esbuild, gzip, with `svelte`, `@protoyard/ui` and the engine
-treated as external):
+Pre-migration view sizes (esbuild, gzip, with `svelte`, `@protoyard/ui` and the engine
+treated as external; remeasure after the Texuli 0.3.0 component migration):
 
 | View | Gzip |
 | --- | ---: |
