@@ -6,7 +6,7 @@ Svelte 5 renderers for Protoyard's shared content blocks
 levels (the player and generated prototypes), render blocks with these same
 components.
 
-Every family subpath is a thin adapter over Texuli's renderers
+Every family subpath is a thin adapter over Texuli 0.5.0's renderers
 (`@texuli/blocks/<family>/renderers`): it maps Protoyard's block shapes to
 Texuli's (ChartSpec to chart series, map tones, embed start labels) and keeps
 a Protoyard renderer for the types Texuli has no equivalent for (`people`,
@@ -271,20 +271,21 @@ exported, with the pure helpers (`formatCents`, `formatTableCell`,
   and `cents` (integer minor units in the table's three-letter currency:
   `123450` with `EUR` is `€1,234.50`). Empty cells show `—`, and
   `highlightRow` is emphasized. The table scrolls inside a focusable region
-  named after it. Formatting uses `en-US`, never the system locale. A plain
-  table on the Texuli path shows cells as given: column formats, currency
-  and `highlightRow` are not applied, and numbers use the browser's locale.
+  named after it. Formatting uses `en-US`, never the system locale. Plain
+  tables use Texuli's formatting, currency and highlighted-row fields through
+  `DataBlockView`; interactive tables remain local to preserve Protoyard's
+  sorting and filtering behavior.
 - **Chart:** `ChartBlock` checks the AI chart spec (`ChartSpecSchema` from
   `@protoyard/ai/chart`) again at render time; an invalid spec shows "This
   chart could not be shown." instead of a chart.
   - `toTexuliChartBlock` turns the spec's labels and series values into
     Texuli series points, and the chart loads lazily from
     `@texuli/charts/cartesian` with a "Loading chart…" status meanwhile.
-  - `line`, `area` and `bar` keep their kind; `donut`, `pie` and `funnel`
-    draw as bar charts for now.
+  - The adapter maps every supported chart kind, including `donut`, `pie` and
+    `funnel`, and forwards `showTable` to Texuli's renderer.
   - Texuli's cartesian charts have their own "Show data table" toggle, a
     keyboard and pointer series legend for more than one series, hover
-    details and keyboard point navigation. `showTable` is ignored.
+    details and keyboard point navigation.
   - If the chart chunk fails, its error message shows in a note.
 ## Code (`./code`)
 

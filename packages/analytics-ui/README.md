@@ -2,8 +2,9 @@
 
 Svelte 5 analytics kit for Protoyard prototypes
 ([ADR-021](../../docs/DECISIONS.md)), built on
-[`@protoyard/analytics`](../analytics/README.md), Texuli 0.3.0 (`texuli/stat`,
-`texuli/date`, `texuli/select`, `texuli/toggle`, `@texuli/charts/compact` and
+[`@protoyard/analytics`](../analytics/README.md), Texuli 0.5.0 (`texuli/stat`,
+`texuli/date`, `texuli/select`, `texuli/toggle`,
+`@texuli/data/filter-builder`, `@texuli/charts/compact` and
 `@texuli/charts/matrix`),
 [`@protoyard/charts-ui`](../charts-ui/README.md) and `@protoyard/ui`. Each
 view has its own subpath, so a prototype pays only for the views its screens
@@ -123,10 +124,11 @@ const properties: FilterProperty[] = [
 per-field values (`FilterValues`) for CRUD screens. Analytics filters are
 nested AND/OR trees that are saved as segments and validated against a
 property catalog, so they need this data-first builder. Texuli's 0.5.0
-`@texuli/data/filter-builder` targets the grid filter AST; it does not expose
-the analytics property catalog and segment validation contract.
-`FilterGroupEditor` remains the small Protoyard adapter for that AST. Use
-FilterBar for entity lists and FilterBuilder for analytics queries.
+`@texuli/data/filter-builder` provides nested groups and conditions, but does
+not yet expose field/operator extension hooks for an analytics property
+catalog (G49). `FilterGroupEditor` is the small Protoyard adapter that supplies
+that catalog and validates segments. Use FilterBar for entity lists and
+FilterBuilder for analytics queries.
 
 Pre-migration size estimates (esbuild minify + gzip -9; svelte, @protoyard/ui, @protoyard/analytics
 and zod external), each imported from the subpath: FilterBuilder 4.6 KB (5.5 KB
@@ -238,6 +240,10 @@ prototypes already ship them): `DashboardGrid` + `WidgetCard` 3.6 KB, or
     steps after it.
 - **`CohortTable`**: a real `<table>` with a caption, `scope="col"` period
   headers, `scope="row"` cohort headers and an average row.
+  It uses `@texuli/charts/matrix` `heatmapFill` for cell fills; its semantic
+  row/period layout and contrast-checked text stay Protoyard-owned. Texuli's
+  cohort API does not yet expose a palette/token override with its contrast
+  guarantees (G51).
   - Cells use the sequential ramp (`var(--tx-seq-N)`). Text is colored on the
     fill only when it reaches 4.5:1 against that step's hex, read from the
     theme's `--tx-seq-*` (or a `palette` prop). Otherwise the value sits on a

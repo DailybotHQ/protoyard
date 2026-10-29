@@ -17,9 +17,12 @@ files, settings, states and an app command palette. The engines live in
   Markdown source commands and outline editing retain Protoyard's callbacks,
   state and keyboard contracts. The grid filter editor wraps Texuli's
   `@texuli/data/filter-builder` while retaining Protoyard's nullable value
-  contract. The source editor keeps Protoyard's mention and slash-command
-  extensions; the Texuli Markdown codec is available for ordinary editor
-  documents, while those extensions remain host-owned.
+  contract. Texuli's `@texuli/editor/markdown` codec handles ordinary
+  Markdown, but does not expose extension-node hooks for mentions and
+  references; those source-editor extensions remain Protoyard-owned (G48).
+  `NotificationCenter` keeps recipient-scoped rows and service callbacks; the
+  Texuli inbox API still needs a way to hide mark-unread or accept a separate
+  callback (G50).
 
 Some adapters still accept props from the earlier Protoyard API that they do
 not forward; each section below lists them. The mapping table is in
@@ -629,7 +632,7 @@ Two components over `{ id, parentId, rank }` rows and the
   blur or Enter and go back to the saved title if saving fails. Rows drag
   from a grip, and a "Move to…" menu lists only valid parents. Moves show at
   once with `aria-busy` and roll back when they fail.
-  Texuli 0.3.0's `TreeDataView` has no inline-editing/service-move contract;
+  Texuli 0.5.0's `TreeDataView` has no inline-editing/service-move contract;
   this component remains the Protoyard host adapter and composes Texuli
   controls.
 

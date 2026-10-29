@@ -1569,16 +1569,19 @@ graph limited to the families it renders.
 ### Which renderer draws a block
 
 Each family subpath is a thin Protoyard adapter over the matching
-`@texuli/blocks/<family>/renderers` component. The adapter maps Protoyard's
-block shape to Texuli's and falls back to a Protoyard renderer where Texuli has
-no equivalent. `BlockRenderer`, `setBlockHost` and the zod schemas stay
-Protoyard's. See [TEXULI](TEXULI.md#content-blocks-from-texuliblocks).
+`@texuli/blocks/<family>/renderers`: `TextBlockView`, `MediaBlockView`,
+`DataBlockView`, `StructureFamily`, `CodeBlockView`, `DiagramFamily`,
+`InteractiveBlockView`, `MapBlockView` and `EmbedBlockView`. The adapter maps
+Protoyard's block shapes and delegates fields supported by Texuli 0.5.0.
+Protoyard keeps renderers for its own block types and for host-backed behavior.
+`BlockRenderer`, `setBlockHost` and the zod schemas stay Protoyard's. See
+[TEXULI](TEXULI.md#content-blocks-from-texuliblocks).
 
 | Family | Texuli renders | Protoyard renders |
 | --- | --- | --- |
 | text | `heading`, `text`, `list`, `quote`, `callout`, `divider` | — |
 | media | `image`, `video` | `people` |
-| data | `chart` (through `@texuli/charts`), plain `table`, a `stat` row without title, source or trends | interactive tables (`interactive`), stat rows with a title, source or trend sparklines |
+| data | charts through `@texuli/charts`; plain `table` and `stat` through `DataBlockView` | interactive tables (sorting/filtering); rich stat rows whose trend Sparkline is lazy-loaded through charts-ui |
 | structure | `cards`, `cta`, `columns` in pages and docs when Texuli accepts the shape | `timeline`, `steps`, `comparison`, `icon`; every structure block on a slide; cards with an image; CTAs when the host sets `onCtaAction` |
 | code | `code` | — |
 | diagram | `flow`, `tree`, `board`, `terminal` | — |
@@ -1586,29 +1589,16 @@ Protoyard's. See [TEXULI](TEXULI.md#content-blocks-from-texuliblocks).
 | map | `map` | — |
 | embed | `embed-app` (the host still supplies `mountEmbed`) | — |
 
-The adapters pass on only the fields Texuli's shapes have. Known gap G21 in
-Texuli 0.3.0:
-
-- **Text:** heading and text `align`, text `size`, list `check` and `icon`
-  styles (they render as bullets), quote `role` and `avatar`, callout `icon`,
-  and divider `label` and `variant` are not drawn.
-- **Cards:** a card `icon` is not drawn on the Texuli path.
-- **Charts:** `donut`, `pie` and `funnel` specs draw as bar charts, and
-  `showTable` is ignored; the line, area and bar charts carry their own
-  "Show data table" toggle.
-- **Plain tables:** column formats (`number`, `percent`, `cents`), the
-  table currency and `highlightRow` are not applied, and numbers use the
-  browser's locale. An `interactive` table keeps all of them.
-- **Texuli `poll`, `quiz`, `calculator`:** used by pages and docs whose host
-  sets no `stateHost` (generated page and doc prototypes; the player sets
-  one). Their state is local and not saved, a quiz takes the first listed
-  answer as correct, and a calculator shows only its first output.
-
-Until G21 is released, Protoyard keeps thin family adapters for those fields
-and the documented exception renderers. `poll`, `quiz` and `calculator` use
-Texuli's `InteractiveBlockView` for ephemeral non-slide hosts; host-backed
-and slide paths remain Protoyard adapters so state still goes through
-`BlockStateHost`.
+Texuli 0.5.0's renderers now support the block fields that previously needed
+local fallbacks. Remaining Protoyard renderers preserve host behavior: rich
+stat trends use Protoyard's lazy Sparkline; interactive tables keep their
+sorting and filtering controls; and `poll`, `quiz` and `calculator` use
+Texuli's `InteractiveBlockView` only for ephemeral non-slide hosts. With a
+`BlockStateHost` or on a slide, those actions stay in Protoyard so state goes
+through the host's validated service contract. Other local structure types
+(`timeline`, `steps`, `comparison`, `icon`), form, counter, chart-controls,
+reveal and tabs have Protoyard-specific schemas or interactions without a
+matching Texuli renderer contract.
 
 ### Interactive state and accessibility
 
