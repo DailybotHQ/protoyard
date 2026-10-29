@@ -12,7 +12,7 @@ let {
 }: {
   db: Db;
   min: number;
-  mode?: 'auto' | 'deps' | 'after-await' | 'partial-deps';
+  mode?: 'auto' | 'deps' | 'after-await' | 'partial-deps' | 'deferred';
   other?: number;
   onQuery?: () => void;
 } = $props();
@@ -24,17 +24,19 @@ const items =
       liveQuery(() => db.items.where('n').aboveOrEqual(min).toArray(), { deps: () => other })
     : mode === 'deps'
       ? liveQuery(() => db.items.where('n').aboveOrEqual(min).toArray(), { deps: () => min })
-      : // svelte-ignore state_referenced_locally
-        mode === 'after-await'
-        ? liveQuery(async () => {
-            await Promise.resolve();
-            // Read after an await: invisible to Svelte without `deps`.
-            return db.items.where('n').aboveOrEqual(min).toArray();
-          })
-        : liveQuery(() => {
-            onQuery?.();
-            return db.items.where('n').aboveOrEqual(min).toArray();
-          });
+      : mode === 'deferred'
+        ? liveQuery(() => db.items.toArray(), { deferResults: true })
+        : // svelte-ignore state_referenced_locally
+          mode === 'after-await'
+          ? liveQuery(async () => {
+              await Promise.resolve();
+              // Read after an await: invisible to Svelte without `deps`.
+              return db.items.where('n').aboveOrEqual(min).toArray();
+            })
+          : liveQuery(() => {
+              onQuery?.();
+              return db.items.where('n').aboveOrEqual(min).toArray();
+            });
 </script>
 
 {#if items.loading}<p>loading</p>{:else}<p data-testid="count">{items.current?.length}</p>{/if}

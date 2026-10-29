@@ -221,6 +221,8 @@ export interface LiveQuery<T> {
 export interface LiveQueryOptions<T> {
   /** Value exposed as `current` until the first result arrives. */
   initial?: T;
+  /** Publish query results from a fresh task instead of the Dexie notification task. */
+  deferResults?: boolean;
   /**
    * The query's reactive inputs: `deps: () => [id, stage]`. Project rule:
    * list every route param, filter or state the query depends on. Reads the
@@ -269,18 +271,33 @@ export function liveQuery<T>(
     }
     if (probe instanceof Promise) probe.catch(() => {});
     loading = true;
+    const pendingResults = new Set<ReturnType<typeof setTimeout>>();
     const subscription = dexieLiveQuery(querier).subscribe({
       next(value) {
-        current = value;
-        error = undefined;
-        loading = false;
+        const publish = () => {
+          current = value;
+          error = undefined;
+          loading = false;
+        };
+        if (!options.deferResults) {
+          publish();
+          return;
+        }
+        const timer = setTimeout(() => {
+          pendingResults.delete(timer);
+          publish();
+        }, 0);
+        pendingResults.add(timer);
       },
       error(err) {
         error = err;
         loading = false;
       },
     });
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      for (const timer of pendingResults) clearTimeout(timer);
+    };
   });
 
   return {

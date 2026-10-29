@@ -30,7 +30,10 @@ export function provideAssistant(runtime?: PrototypeRuntime<AssistantDatabase>):
   const conversations = liveQuery(() => db.conversations.orderBy('updatedAt').reverse().toArray(), {
     initial: [],
   });
-  const messages = liveQuery(() => db.messages.orderBy('createdAt').toArray(), { initial: [] });
+  const messages = liveQuery(() => db.messages.orderBy('createdAt').toArray(), {
+    initial: [],
+    deferResults: true,
+  });
   const settings = liveQuery(() => db.settings.get('workspace'), { initial: undefined });
   const context: AssistantContext = {
     runtime: activeRuntime,
