@@ -109,6 +109,56 @@ test.describe('deck navigation on a built catalog deck', () => {
       .toBe('none');
   });
 
+  // Regression: the reduced-motion reset (`@protoyard/themes/base.css`) gave
+  // every element a 0.01ms transition of `all`, `visibility` included. A
+  // slide mounted hidden beside the current one, with its blocks already
+  // loaded, then revealed its subtree one nesting level per style update once
+  // it turned active: on a slow device its buttons stayed hidden for frames
+  // while the slide showed, so a screen reader (or axe) could meet a button
+  // whose label was not visible yet. This rebuilds that state in the real deck
+  // page (its stylesheet, reduced motion): content as deep as a deck block,
+  // mounted inside a hidden container that then turns visible.
+  for (const motion of ['media', 'toggle'] as const) {
+    test(`reduced motion (${motion}) shows hidden-mounted content in the same frame it turns visible`, async ({
+      page,
+    }) => {
+      if (motion === 'media') await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.goto(`${deckUrl}#/cover/0`);
+      await expectLocation(page, 'cover', 0);
+      const result = await page.evaluate(async (useToggle) => {
+        if (useToggle) document.documentElement.setAttribute('data-py-motion', 'reduce');
+        const frame = () => new Promise((done) => requestAnimationFrame(() => done(null)));
+        const container = document.createElement('div');
+        container.style.visibility = 'hidden';
+        let parent: HTMLElement = container;
+        for (let depth = 0; depth < 25; depth += 1) {
+          const child = document.createElement('div');
+          parent.append(child);
+          parent = child;
+        }
+        const button = document.createElement('button');
+        button.type = 'button';
+        const label = document.createElement('span');
+        label.textContent = 'Deep option';
+        button.append(label);
+        parent.append(button);
+        document.body.append(container);
+        await frame();
+        await frame();
+        const before = getComputedStyle(label).visibility;
+        container.style.visibility = 'visible';
+        await frame();
+        const after = getComputedStyle(label).visibility;
+        const duration = getComputedStyle(button).transitionDuration;
+        container.remove();
+        return { before, after, duration };
+      }, motion === 'toggle');
+      expect(result.before).toBe('hidden');
+      expect(result.after, 'the deepest label is visible on the next frame').toBe('visible');
+      expect(result.duration, 'no transition under reduced motion').toBe('0s');
+    });
+  }
+
   test('a horizontal touch swipe advances a slide on mobile', async ({ page }, testInfo) => {
     test.skip(
       testInfo.project.name !== 'mobile',
