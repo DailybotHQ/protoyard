@@ -63,5 +63,10 @@
     "path": "apps/gallery/src/components/marketplace/DeviceThumb.svelte",
     "rules": ["own-component"],
     "reason": "Brand-neutral device frames and browser/window chrome are gallery preview fixtures; Texuli provides app shells for product layouts, not screenshot device mockups."
+  },
+  {
+    "path": "prototypes/nova-assistant-demo/src/App.svelte",
+    "rules": ["py-token"],
+    "reason": "Its root sits outside the renderer's layout host, where --tx-app-height is not set, so it reads the renderer-written --py-app-height frame geometry to fit inside device and browser frames; not a semantic design token."
   }
 ]
