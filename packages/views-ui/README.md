@@ -468,8 +468,8 @@ functions of `@protoyard/views/editor`. Values leave through typed callbacks
   and a counter, and a command that would pass it is refused with a polite
   announcement. `onDraft` runs after typing pauses (`draftDelayMs`, default
   800 ms), on blur and on unmount.
-- **Size:** the real-build guard measured the editor at 8,187 B gzip over the
-  shell on 2026-10-24 (ceiling 8,597 B; see
+- **Size:** the real-build guard measured the editor at 9,508 B gzip over the
+  shell on Texuli 0.5.0 (ceiling 9,958 B; see
   [docs/VIEWS.md](../../docs/VIEWS.md#bundle-measurements)). Slash and
   `RichTextView` stay in the same lazy `./editor` subpath.
 - **Limits:** toolbar commands set the textarea value directly, so the

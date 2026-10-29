@@ -3,7 +3,7 @@
 All numbers on this page were **measured in this repository**, with the
 method stated. Nothing is extrapolated. Machine for every measurement below:
 Apple M1 Max MacBook Pro (10 cores, 64 GB, macOS 27.0), Node 26.11.1,
-pnpm 11.23.0. Each section states its date (2026-10-17 to 2026-10-24).
+pnpm 11.23.0. Sections state their measurement dates.
 
 Sections dated before the Texuli adoption ([ADR-044](DECISIONS.md),
 [TEXULI](TEXULI.md)) measured Protoyard's earlier components, charts,
@@ -14,7 +14,7 @@ current prototype bundle numbers are in
 ## After the Texuli adoption (measured 2026-10-28)
 
 Protoyard's charts, layouts, styled components, rich views and theme library
-use published Texuli `0.4.0` ([TEXULI](TEXULI.md)). Measured 2026-10-28 on
+use published Texuli `0.5.0` ([TEXULI](TEXULI.md)). Measured 2026-10-28 on
 the machine above with the workspace's npm dependencies installed. The build
 ran with other local build activity; the size check was repeated against the
 written manifests after the builds completed.
@@ -24,58 +24,59 @@ prototype and checks `protoyard.budgets.json` (exit 0). Then
 `pnpm protoyard budget --all --skip-build` rechecked the recorded sizes
 (exit 0). All 16 pass:
 
-| Prototype | Initial JS gzip (budget 250 KB) | CSS gzip | CSS budget |
+| Prototype | Initial JS gzip on 0.5.0 | CSS 0.4.0 → 0.5.0 | CSS ceiling before → after |
 | --- | ---: | ---: | ---: |
-| `create-anything-deck` (2026-10-28, decks on `@texuli/slides` 0.4.0; JS budget 319.1 KB) | 303.82 KB | 79.67 KB | 83.7 KB |
-| `helpdesk-demo` | 200.52 KB | 49.97 KB | 52.5 KB |
-| `lattice-saas-demo` | 197.45 KB | 27.00 KB | 30 KB |
-| `mobile-banking-demo` | 192.85 KB | 23.85 KB | 30 KB |
-| `ai-chat-demo` | 188.00 KB | 24.24 KB | 30 KB |
-| `nova-assistant-demo` | 189.11 KB | 30.89 KB | 32.5 KB |
-| `pebblestat-analytics-demo` | 181.35 KB | 38.38 KB | 40.3 KB |
-| `keel-projects-demo` | 178.73 KB | 45.47 KB | 47.8 KB |
-| `ui-kit` | 169.72 KB | 51.82 KB | 54.5 KB |
-| `crm-demo` | 154.67 KB | 29.93 KB | 30 KB |
-| `harbor-dispatch-demo` | 157.92 KB | 50.26 KB | 52.8 KB |
-| `pulse-revenue-demo` | 156.86 KB | 50.29 KB | 52.9 KB |
-| `cadence-studio-demo` | 156.49 KB | 50.26 KB | 52.8 KB |
-| `atlas-workspace-demo` | 157.24 KB | 38.64 KB | 40.6 KB |
-| `relay-chat-demo` | 153.65 KB | 23.79 KB | 30 KB |
-| `support-widget-demo` | 151.09 KB | 19.00 KB | 30 KB |
+| `create-anything-deck` | 303.82 → 282.43 KB; ceiling 319.1 → 296.6 KB | 79.67 → 82.30 KB | 83.7 → 83.7 KB |
+| `helpdesk-demo` | 200.52 → 202.89 KB | 49.97 → 49.44 KB | 52.5 → 51.9 KB |
+| `lattice-saas-demo` | 197.45 → 198.81 KB | 27.00 → 26.10 KB | 30 → 30 KB |
+| `mobile-banking-demo` | 192.85 → 202.75 KB | 23.85 → 24.54 KB | 30 → 30 KB |
+| `ai-chat-demo` | 188.00 → 189.12 KB | 24.24 → 23.34 KB | 30 → 30 KB |
+| `nova-assistant-demo` | 189.11 → 194.07 KB | 30.89 → 30.60 KB | 32.5 → 32.2 KB |
+| `pebblestat-analytics-demo` | 181.35 → 184.19 KB | 38.38 → 37.54 KB | 40.3 → 39.5 KB |
+| `keel-projects-demo` | 178.73 → 180.06 KB | 45.47 → 45.17 KB | 47.8 → 47.5 KB |
+| `ui-kit` | 169.72 → 172.29 KB | 51.82 → 52.64 KB | 54.5 → 54.5 KB |
+| `crm-demo` | 154.67 → 158.69 KB | 29.93 → 29.17 KB | 30 → 30 KB |
+| `harbor-dispatch-demo` | 157.92 → 158.60 KB | 50.26 → 49.85 KB | 52.8 → 52.4 KB |
+| `pulse-revenue-demo` | 156.86 → 157.55 KB | 50.29 → 49.89 KB | 52.9 → 52.4 KB |
+| `cadence-studio-demo` | 156.49 → 157.17 KB | 50.26 → 49.85 KB | 52.8 → 52.4 KB |
+| `atlas-workspace-demo` | 157.24 → 158.56 KB | 38.64 → 37.95 KB | 40.6 → 39.9 KB |
+| `relay-chat-demo` | 153.65 → 156.39 KB | 23.79 → 22.70 KB | 30 → 30 KB |
+| `support-widget-demo` | 151.09 → 152.03 KB | 19.00 → 17.93 KB | 30 → 30 KB |
 
-- All prototypes are within both configured limits. `create-anything-deck`
-  was re-measured with decks on the `@texuli/slides` stage and has its own
-  initial-JS override (319.1 KB, measured 303.82 KB + 5 %; the theme library and palette generator left its first chunk, 319.90 → 303.82 KB, guarded by `packages/decks-ui/tests/themes-initial-graph.test.ts`; npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB of CSS and initial JS; lower when it ships); `crm-demo` has
-  0.07 KB headroom under its CSS budget. Budget overrides are recorded in
+- All prototypes pass both configured limits on Texuli 0.5.0. `create-anything-deck`
+  keeps its CSS cap because measured CSS +5% is higher, while its initial-JS
+  ceiling drops from 319.1 to 296.6 KB. The theme library and palette
+  generator remain outside its first chunk, guarded by
+  `packages/decks-ui/tests/themes-initial-graph.test.ts`. Budget overrides are recorded in
   [versioned budgets](#versioned-budgets).
 
-**Player entries (historical, measured 2026-10-24 on Texuli 0.3.0).**
-These entry sizes and test counts were not remeasured in the 0.4.0 budget
-pass. `pnpm --filter @protoyard/player build`, then
-`pnpm vitest run packages/player/tests/budget.test.ts
-packages/player/tests/kind-budget.test.ts`: all 55 tests pass. The player
-loads Texuli's CSS lazily, so the initial CSS is small:
+**Player entries (Texuli 0.5.0, remeasured 2026-10-28).**
+`pnpm --filter @protoyard/player build`, then the budget and kind-budget tests:
+all 55 tests pass. All-CSS totals include lazy families reachable from each
+entry; their previous 0.4.0 ceilings were already below new measurements + 5%,
+so they remain unchanged.
 
-| Entry | Initial JS gzip | Initial CSS gzip | CSS budget |
-| --- | ---: | ---: | ---: |
-| `index.html` | 100,193 B | 17,479 B | 36 KB |
-| `deck.html` | 100,211 B | 20,164 B | 36 KB |
-| `page.html` | 100,210 B | 19,410 B | 36 KB |
-| `doc.html` | 100,209 B | 19,410 B | 36 KB |
+| Entry | Initial JS gzip | Initial CSS gzip (ceiling) | All reachable CSS | All-CSS ceiling |
+| --- | ---: | ---: | ---: | ---: |
+| `index.html` | 102,023 B | 15,330 B (15.8 KB; was 36 KB) | 134.454 KB (was 129.7 KB) | 136.2 KB |
+| `deck.html` | 101,910 B | 15,644 B (16.1 KB; was 36 KB) | 107.663 KB (was 105.6 KB) | 110.9 KB |
+| `page.html` | 101,909 B | 16,968 B (17.4 KB; was 36 KB) | 108.956 KB (was 106.9 KB) | 112.3 KB |
+| `doc.html` | 101,907 B | 16,968 B (17.4 KB; was 36 KB) | 108.956 KB (was 106.9 KB) | 112.3 KB |
 
-**Kits.** The measurements below were recorded 2026-10-24 with Texuli
-`0.3.0`; they were not remeasured as part of the 0.4.0 bundle-budget pass.
+**Kits.** The Sparkline, views, deck, player and pages/doc budgets below were
+remeasured on npm Texuli `0.5.0`; older values are retained as before/after
+history.
 
 | Measure | Value | Ceiling | Command |
 | --- | ---: | ---: | --- |
-| Sparkline on a first screen (`@texuli/charts` 0.3.0, historical) | 5,927 B | 6,250 B | `pnpm vitest run packages/cli/tests/charts-bundle.test.ts` |
-| LineChart + BarChart view | 8,977 B | 17,000 B | same |
+| Sparkline on a first screen (`sparkline-lite`) | 3,539 B (was 5,927 B on 0.3.0) | 3,716 B (was 6,250 B) | `pnpm vitest run packages/cli/tests/charts-bundle.test.ts` |
+| LineChart + BarChart view | 11,167 B (was 8,977 B) | 17,000 B | same |
 | Chart family subpaths | cartesian 13,466 B, part-whole 9,819 B, matrix 15,923 B, compact 7,213 B, canvas 1,647 B, geo 4,651 B | — | `pnpm exec tsx scripts/bench-charts.ts --skip-browser --check` |
 | Chart math, 10k / 100k points (Node, median total) | 0.86–0.97 ms / 5.44–25.11 ms | LTTB 10k < 2 ms (0.20–0.27 ms) | same |
 | `LayoutHost` initial delta | 3,497 B | 3,600 B | `pnpm vitest run packages/renderer-svelte/tests/bundle-hygiene.test.ts --silent=false` |
 | Layout chunks | 899–3,744 B each ([table](#layout-and-theme-payloads-plan_003-measured-2026-10-19)) | — | same |
 | Theme library metadata / lazy builder | 8,463 B / 4,064 B | — | same |
-| Views over the shell | 7,984–17,804 B ([table](#views-kit)) | per view | `pnpm vitest run packages/cli/tests/views-bundle.test.ts --silent=false` |
+| Views over the shell | 8,066–20,116 B ([table](#views-kit)) | per view | `pnpm vitest run packages/cli/tests/views-bundle.test.ts --silent=false` |
 
 All gzip level 9. The machine is the Apple M1 Max above, Node 26.11.1.
 
@@ -238,8 +239,8 @@ player's kind tests do.
 | `kinds.<deck\|page\|doc>` field | Loader default (configured value) | Meaning |
 | --- | ---: | --- |
 | `initialJsGzipKb` | 150 KB | Initial JavaScript of the kind's minimal player entry, gzip |
-| `cssGzipKb` | 30 KB | CSS of the kind's player entry, gzip |
-| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,560 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (2,818,330 B per kind) in `packages/cli/src/lib/quick/single-file.ts`, measured 2026-10-28 at 2,656,649–2,684,123 B (catalog decks; page 2,666,205 B, doc 2,665,424 B) + 5 %, and 1,606,788–1,607,557 B on 2026-10-22. The app file's cap (`QUICK_SINGLE_FILE_BUDGET_BYTES`) is 4,418,158 B (measured 4,206,872–4,207,769 B). Both carry the note: npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB of CSS and initial JS; lower when it ships. The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
+| `cssGzipKb` | deck 16.1 KB, page 17.4 KB, doc 17.4 KB (was 36 KB each) | Initial CSS of the kind's player entry, gzip; measured + 5%, rounded up on Texuli 0.5.0 |
+| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,560 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap remains `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (2,818,330 B per kind), measured on Texuli 0.5.0 at 2,681,755–2,689,852 B (2,656,649–2,684,123 B on 0.4.0). The app cap (`QUICK_SINGLE_FILE_BUDGET_BYTES`) stays 4,418,158 B after the maximum catalog file moved from 4,207,769 B on 0.4.0 to 4,284,417 B on 0.5.0; neither cap is raised because measured + 5% is higher. The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
 
 These budgets are **enforced**:
 
@@ -345,20 +346,24 @@ CSS budgets below.
 - **Shrinking first:** the Tailwind side already dropped what only the
   deleted components used, and the renderer keeps lazy Texuli CSS out of
   the initial load.
-- **The overrides in `protoyard.budgets.json` today** (CSS gzip, measured
-  2026-10-24 with `pnpm protoyard budget --all`, all passing):
+- **Before → after on Texuli 0.5.0** (CSS gzip, `pnpm protoyard budget --all`):
 
-| Entry | Budget | Measured |
+| Entry | CSS measured before → after | Ceiling before → after |
 | --- | ---: | ---: |
-| `create-anything-deck` (2026-10-28, also an initial JS override: 319.1 KB, measured 303.82 KB) | 83.7 KB | 79.67 KB |
-| `keel-projects-demo` | 43.4 KB | 41.31 KB |
-| `helpdesk-demo`, `ui-kit` | 42.6 KB | 40.48, 40.57 KB |
-| `cadence-studio-demo`, `harbor-dispatch-demo`, `pulse-revenue-demo` | 43.1 KB | 41.02 KB each |
-| `atlas-workspace-demo` | 34.6 KB | 32.94 KB |
-| `player` and the `deck`, `page`, `doc` kinds | 36 KB | 17.07–19.69 KB initial |
+| `create-anything-deck` | 79.67 → 82.30 KB | 83.7 → 83.7 KB |
+| `keel-projects-demo` | 45.47 → 45.17 KB | 47.8 → 47.5 KB |
+| `helpdesk-demo` | 49.97 → 49.44 KB | 52.5 → 51.9 KB |
+| `cadence-studio-demo` | 50.26 → 49.85 KB | 52.8 → 52.4 KB |
+| `harbor-dispatch-demo` | 50.26 → 49.85 KB | 52.8 → 52.4 KB |
+| `pulse-revenue-demo` | 50.29 → 49.89 KB | 52.9 → 52.4 KB |
+| `atlas-workspace-demo` | 38.64 → 37.95 KB | 40.6 → 39.9 KB |
+| `nova-assistant-demo` | 30.89 → 30.60 KB | 32.5 → 32.2 KB |
+| `pebblestat-analytics-demo` | 38.38 → 37.54 KB | 40.3 → 39.5 KB |
+| `player` initial CSS | 17.07–19.69 KB (historical 0.3) → 14.97 KB | 36 → 15.8 KB |
 
-Every other prototype uses the 30 KB default. Bringing the CSS back down is
-an open follow-up; the overrides record the measured size, not a target.
+Every other prototype uses the 30 KB default. The content-kind initial-CSS
+caps are 16.1 KB for deck and 17.5 KB for page and doc; all-stylesheet totals
+have separate measured guards.
 
 **Layout host overhead.**
 - `LAYOUT_BUNDLE_BUDGETS.hostInitialDelta` in
@@ -370,13 +375,12 @@ an open follow-up; the overrides record the measured size, not a target.
   texuli's host, catalog and host CSS next to Protoyard's catalog (for the
   `docs` width rule), plus the `data-py-layout` mirror.
 - Every layout stays its own lazy chunk.
-- **pages-ui:** the page and doc CSS caps (all emitted stylesheets) are
-  29,174 B and 29,435 B, set to 5% over the historical Texuli 0.3.0
-  measurements (27,785 B and 28,033 B gzip, 2026-10-28). They have not been
-  recalibrated for 0.4.0. The default stays 20 KB. Texuli component CSS
-  (~23 KB gz) replaces
-  the former UI CSS; the eager/lazy split was measured (the first screen loads
-  only the entry stylesheet, 4,166 B and 4,414 B); a CSS diet is a follow-up.
+- **pages-ui:** on Texuli 0.5.0 the page and doc all-stylesheet totals are
+  31,710 B and 32,290 B (previous 0.4.0: 30,844 B and 30,607 B). Their caps
+  remain 32,387 B and 33,905 B: page's prior cap is already tighter than
+  measured + 5%, while doc's cap equals measured + 5%. The default stays
+  20 KB. Initial entry CSS is 4,166 B and 4,414 B; other family CSS remains
+  lazy.
 Budgets stay out of `protoyard.json` so performance targets can evolve
 without changing the strict prototype manifest contract.
 
@@ -603,18 +607,18 @@ pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check
 
 ## Views kit
 
-**Current (2026-10-24, views on `@texuli/data`).** The views bundle guard
+**Current (2026-10-28, views on `@texuli/data` 0.5.0).** The views bundle guard
 (`pnpm vitest run packages/cli/tests/views-bundle.test.ts`, method 1 below)
 measured what each view adds over the shell, gzip level 9:
 
-| View (subpath) | Measured | Guard ceiling |
+| View (subpath) | Texuli 0.4.0 → 0.5.0 | Ceiling before → after |
 | --- | ---: | ---: |
-| `BoardView` (`/board`, Texuli 0.4.0) | 13,900 B | 14,595 B |
-| `CalendarView` (`/calendar`) | 14,327 B | 17,200 B |
-| `DataGrid` (`/grid`) | 17,804 B | 23,400 B |
-| `SimulatedMap` (`/map`) | 7,984 B | 12,400 B |
-| `MarkdownEditor` (`/editor`, Texuli 0.4.0) | 9,484 B | 9,958 B |
-| `TimelineView` (`/timeline`, Texuli 0.4.0) | 11,973 B | 12,572 B |
+| `BoardView` (`/board`) | 13,900 → 14,137 B | 14,595 → 14,595 B |
+| `CalendarView` (`/calendar`) | 15,801 → 15,847 B | 17,200 → 16,640 B |
+| `DataGrid` (`/grid`) | 19,297 → 20,116 B | 23,400 → 21,122 B |
+| `SimulatedMap` (`/map`) | 8,073 → 8,066 B | 12,400 → 8,470 B |
+| `MarkdownEditor` (`/editor`) | 9,484 → 9,508 B | 9,958 → 9,958 B |
+| `TimelineView` (`/timeline`) | 11,973 → 11,981 B | 12,572 → 12,572 B |
 
 The rest of this section is **history**: it measured Protoyard's own view
 components before they moved to Texuli.
@@ -1871,8 +1875,8 @@ Measured 2026-10-24 (Apple M1 Max, Node 26.11.1), with Texuli's charts:
 
 | Measure | Bytes | Ceiling (`CEILINGS` in the test) |
 | --- | ---: | ---: |
-| Sparkline initial delta | **3,211 B** | 3,450 B |
-| Line + bar view | **8,977 B** | 17,000 B |
+| Sparkline initial delta | 5,927 B on 0.3.0 → **3,539 B on 0.5.0** | 6,250 → 3,716 B |
+| Line + bar view | 8,977 B on 0.4.0 → **11,167 B on 0.5.0** | 17,000 B |
 
 The guard also fails when any module under
 `charts-ui/src/{cartesian,interaction,frame}` reaches initial JS, or when

@@ -42,12 +42,12 @@ afterAll(async () => {
  *   measured on 2026-10-24 (24,846 B cap). On npm 0.4.0: initial JS 134,092
  *   B and all CSS 76,345 B, inside their caps.
  *
- * Re-measured 2026-10-28 on npm Texuli 0.5.0 (PLAN_007 T-adopt050): initial JS
- * 106,344 B gzip (from 134,092 B: with DeckApp's own free renderer and block
+ * Re-measured 2026-10-28 on npm Texuli 0.5.0: initial JS
+ * 106,340 B gzip (from 134,092 B: with DeckApp's own free renderer and block
  * check and `defaultRenderers={false}`, the stage no longer reaches its default
- * tables, the built-in block chunk or `migrateDeck` on the first screen; G24,
- * G46), first-screen CSS 8,479 B, all emitted CSS 79,410 B. Caps at +5 %:
- * 111,662 B, 8,903 B and 83,381 B.
+ * tables, the built-in block chunk or `migrateDeck` on the first screen),
+ * first-screen CSS 8,479 B, all emitted CSS 79,410 B. Caps at +5 %: 111,657 B,
+ * 8,903 B and 83,381 B.
  *
  * Note for the all-CSS cap: most of it (all CSS was 23,663 B before the stage)
  * is lazy stylesheets of the stage's default component registry
@@ -57,7 +57,7 @@ afterAll(async () => {
  * the defaults (reported as a Texuli gap); lower when the stage can be built
  * without it.
  */
-const INITIAL_JS_GZIP_CAP = 111_662;
+const INITIAL_JS_GZIP_CAP = 111_657;
 const INITIAL_CSS_GZIP_CAP = 8_903;
 const ALL_CSS_GZIP_CAP = 83_381;
 

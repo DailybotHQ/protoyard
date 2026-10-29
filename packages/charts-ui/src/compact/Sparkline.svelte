@@ -1,6 +1,6 @@
 <script lang="ts">
 /** Adapter: Protoyard Sparkline → Texuli Sparkline (showLast off for KPI tiles). */
-import { type ChartFormatSpec, Sparkline as TexuliSparkline } from '@texuli/charts/compact';
+import { type ChartFormatSpec, Sparkline as TexuliSparkline } from '@texuli/charts/sparkline-lite';
 import { trendLabel } from './trend.ts';
 
 type Props = {
@@ -51,5 +51,6 @@ const accessible = $derived(label ?? trendLabel(series, period, format));
     {variant}
     {period}
     format={formatSpec}
+    formatValue={format}
   />
 </div>

@@ -35,14 +35,11 @@ import { entryGraph } from './chunk-graph.ts';
  */
 
 /**
- * Cap on the exported file (UTF-8 bytes, uncompressed). Measured 2026-10-20 over
- * the 40 catalog blueprints at 3,245,592–3,246,497 bytes (4 MiB cap); on
- * 2026-10-28, with decks on the `@texuli/slides` stage, at 4,206,872–4,207,769
- * bytes, so the cap is that + 5 % (4,418,158 bytes): an app export is never
- * refused for the deck stage it can open.
- * npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default
- * renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB
- * of CSS and initial JS; lower when it ships.
+ * Cap on the exported file (UTF-8 bytes, uncompressed). Measured on the 40
+ * catalog blueprints at 3,245,592–3,246,497 bytes (2026-10-20),
+ * 4,206,872–4,207,769 bytes (Texuli 0.4.0, 2026-10-28), and at a maximum of
+ * 4,284,417 bytes on Texuli 0.5.0. Keep the existing 4,418,158-byte cap:
+ * 0.5.0's measured maximum + 5 % is higher, and this task never raises a cap.
  */
 export const QUICK_SINGLE_FILE_BUDGET_BYTES = 4_418_158;
 
@@ -51,14 +48,11 @@ export type SingleFileEntry = 'index' | 'deck' | 'page' | 'doc';
 
 /**
  * Cap per entry. A deck, page or doc exported from its own page embeds only
- * that page's graph: measured 2026-10-22 at 1,606,788–1,607,557 bytes (the
- * catalog deck, page and doc), 2,388,502–2,395,746 on the npm Texuli 0.3.0,
- * and on 2026-10-28 with decks on the `@texuli/slides` stage at
- * 2,656,649–2,684,123 bytes (7 catalog decks; page 2,666,205, doc 2,665,424).
- * The cap is that + 5 % (2,818,330 bytes, about 2.69 MiB).
- * npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default
- * renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB
- * of CSS and initial JS; lower when it ships.
+ * that page's graph: measured at 1,606,788–1,607,557 bytes (2026-10-22),
+ * 2,656,649–2,684,123 bytes (Texuli 0.4.0, 2026-10-28), and
+ * 2,681,755–2,689,852 bytes on Texuli 0.5.0. Keep the existing 2,818,330-byte
+ * cap (about 2.69 MiB): 0.5.0's measured maximum + 5 % is higher, and this
+ * task never raises a cap.
  * The proposed 1.5 MiB deck budget (ADR-040, `kinds.deck.singleFileKb`) is
  * not met: DevTools (Deck Studio, themes), review comments, device shells and
  * chart blocks are all reachable from a kind page and ship with it.

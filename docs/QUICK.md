@@ -231,8 +231,8 @@ builds (numbers move with the load):
 | Brief → ready (`quick` CLI + player ready, no build) | 1,527 ms median (1,515–1,583 ms) |
 | Second exploration (shared player reused) | 987 ms |
 | Player initial JS | 178.8 KB gzip in 27 files |
-| `quick export --single-file` over the 40 catalog blueprints (2026-10-28, decks on `@texuli/slides` 0.4.0) | 4.21 MB, refused over 4,418,158 bytes |
-| `quick export --single-file`, catalog decks, page and doc (2026-10-28, npm Texuli 0.4.0) | 2.66–2.68 MB each (1.61 MB on 2026-10-22), refused over 2,818,330 bytes (G24/G25: about 23 KB is the unused default renderer registry) |
+| `quick export --single-file` over the 40 catalog blueprints | max 4,284,417 B on Texuli 0.5.0 (was 4,207,769 B on 0.4.0); cap remains 4,418,158 B |
+| `quick export --single-file`, catalog deck, page and doc | 2,681,755–2,689,852 B on Texuli 0.5.0 (was 2,656,649–2,684,123 B on 0.4.0); cap remains 2,818,330 B |
 | `quick shot` PNG, quick blueprints | 38–97 KB each (150 KB budget) |
 
 

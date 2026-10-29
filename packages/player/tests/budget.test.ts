@@ -96,16 +96,13 @@ function importGraph(entry: string): string[] {
 }
 
 /**
- * Ceilings on every stylesheet a player page can ever load, gzip KB: measured
- * + 5 %, rounded up. Re-measured 2026-10-28 on npm Texuli 0.4.0 with decks on
- * the `@texuli/slides` stage: index.html 129.7 KB (it plays every kind and
- * kit), deck.html 105.6, page.html and doc.html 106.9 (each can open a deck
- * through the kind boot). Without the stage's unused component registry they
- * measure 118.2, 82.4 and 83.7. All of it is lazy: the initial CSS of each
- * entry stays under the 36 KB cssGzipKb budget (17-20 KB).
- * npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default
- * renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB
- * of CSS and initial JS; lower when it ships.
+ * Ceilings on every stylesheet a player page can ever load, gzip KB. The
+ * existing 0.4.0 ceilings are already tighter than Texuli 0.5.0 measurements
+ * + 5 %, so keep them rather than raising them: index.html 134.454 KB (old
+ * 129.7; cap 136.2), deck.html 107.663 KB (old 105.6; cap 110.9), page.html
+ * and doc.html 108.956 KB (old 106.9; cap 112.3). The 0.5.0 initial CSS is
+ * 15,330 B for index, 15,644 B for deck and 16,968 B for page/doc. Initial-CSS
+ * caps are tightened in protoyard.budgets.json to measured + 5% (rounded up).
  */
 const PLAYER_TOTAL_CSS_GZIP_KB = { index: 136.2, deck: 110.9, page: 112.3, doc: 112.3 } as const;
 
