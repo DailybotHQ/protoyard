@@ -36,7 +36,7 @@ let mobilePane = $state<'channels' | 'channel'>('channel');
 // Below `sm` search, file sharing and huddles live in a row the "More actions" button
 // discloses (a native disclosure: a menu library would add ~30 KB to this eager screen).
 let toolsOpen = $state(false);
-let toolsTrigger = $state<HTMLElement>();
+let toolsTrigger = $state<HTMLElement | null>(null);
 let toolsPanel = $state<HTMLDivElement>();
 let channelHeading = $state<HTMLHeadingElement>();
 let channelNav = $state<HTMLElement>();

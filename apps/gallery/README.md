@@ -33,7 +33,7 @@ templates/*/protoyard.json  ─┴─ pnpm protoyard index ──▶ .protoyard/
 | `src/lib/search.ts` | Pure filtering and sorting over a pre-normalized index, plus query ⇄ URL sync. |
 | `src/lib/library.svelte.ts` | Favorites and recently opened entries, in guarded `localStorage`. |
 | `src/lib/control.svelte.ts` | Client for the local control server. |
-| `src/lib/theme.ts` | Light / dark / system, applied by an inline head script before first paint (no flash). |
+| `src/lib/theme.ts` | Light / dark / system, persisted in Texuli's namespaced appearance cache and applied before first paint. |
 | `src/lib/content-examples.ts`, `content-showcase.ts`, `components/features/ContentShowcase.astro` | The deck, page and doc examples on the home page and `/features/`: covers from `public/examples/` (`pnpm covers`), share links into the hosted player built at static-build time, stills of the flagship deck, and the generated flagship running live in a showcase build. |
 | `src/components/*` | `Browser`, `ProjectCard`, `LivePreview`, `CreateBuilder`, `CommandBlock`, `ThemeToggle`, `FavoriteButton`, `FirstRun`. |
 
@@ -181,6 +181,10 @@ frame never appear in another, and the prototype's normal (non-sandboxed) data i
   frame A fresh. The page is also covered by the axe checks.
 
 ## Accessibility
+
+The document mode is bootstrapped by `@texuli/astro` on `data-tx-mode`. The gallery's small mode
+switcher stores the resolved appearance in Texuli's `texuli.gallery.appearance` cache; a one-time
+bootstrap migration moves the prior `protoyard.gallery.theme` choice and removes the old key.
 
 - A skip link, landmark regions, one `h1` per page, and labelled sections.
 - Every control has a visible or `sr-only` label. Toggle groups use `aria-pressed`, and the result

@@ -47,8 +47,8 @@ let open = $state(false);
 let query = $state('');
 let activeIndex = $state(0);
 let root = $state<HTMLDivElement>();
-let trigger = $state<HTMLElement>();
-let search = $state<HTMLInputElement>();
+let trigger = $state<HTMLElement | null>(null);
+let search = $state<HTMLInputElement | null>(null);
 
 const options = $derived<readonly FacetOption[]>(
   given ??

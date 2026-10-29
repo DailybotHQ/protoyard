@@ -1,5 +1,7 @@
 <script lang="ts">
 import X from '@lucide/svelte/icons/x';
+import { Button } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { withBase } from '../lib/format.ts';
 
 export type EmptyKind = 'favorites' | 'recent' | 'filters' | 'none';
@@ -42,24 +44,24 @@ let { kind, onClearFilters, onBrowseAll }: Props = $props();
   </p>
   <div class="mt-5 flex flex-wrap items-center justify-center gap-2" data-testid="browse-empty-actions">
     {#if kind === 'filters' && onClearFilters}
-      <button
+      <Button
         type="button"
         class="inline-flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-hover"
         data-testid="empty-clear-filters"
         onclick={onClearFilters}
       >
-        <X size={14} aria-hidden="true" /> Clear filters
-      </button>
+        <LucideIcon icon={X} size={14} aria-hidden="true" /> Clear filters
+      </Button>
     {/if}
     {#if (kind === 'favorites' || kind === 'recent') && onBrowseAll}
-      <button
+      <Button
         type="button"
         class="inline-flex items-center rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-hover"
         data-testid="empty-browse-all"
         onclick={onBrowseAll}
       >
         Browse all prototypes
-      </button>
+      </Button>
     {/if}
     <a
       href="#templates"

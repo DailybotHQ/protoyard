@@ -1,6 +1,8 @@
 <script lang="ts">
 import LoaderCircle from '@lucide/svelte/icons/loader-circle';
+import { Button, Input } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { devCommand } from '@/lib/commands';
 import { control, localDevUrl } from '@/lib/control.svelte';
 import CommandBlock from '../CommandBlock.svelte';
@@ -92,11 +94,11 @@ const input = 'h-10 w-full rounded-lg border border-line bg-bg px-3 text-sm';
   <form class="mt-4 space-y-3" onsubmit={submit} novalidate>
     <label class="block space-y-1.5">
       <span class="text-sm font-medium">Name</span>
-      <input class={input} bind:value={name} onblur={onNameBlur} placeholder="Team CRM" maxlength="80" />
+      <Input class={input} bind:value={name} onblur={onNameBlur} placeholder="Team CRM" maxlength="80" />
     </label>
     <label class="block space-y-1.5">
       <span class="text-sm font-medium">Slug <span class="font-normal text-muted">(folder name and URL)</span></span>
-      <input
+      <Input
         class={[input, 'font-mono']}
         bind:value={slug}
         oninput={() => (touched = true)}
@@ -113,14 +115,14 @@ const input = 'h-10 w-full rounded-lg border border-line bg-bg px-3 text-sm';
     </label>
 
     {#if live}
-      <button
+      <Button
         type="submit"
         class="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover disabled:opacity-60"
         disabled={creating}
         data-testid="create-submit"
       >
-        {#if creating}<LoaderCircle size={14} class="animate-spin" aria-hidden="true" /> Creating…{:else}{verb}{/if}
-      </button>
+        {#if creating}<LucideIcon icon={LoaderCircle} size={14} class="animate-spin" aria-hidden="true" /> Creating…{:else}{verb}{/if}
+      </Button>
     {:else}
       <p class="text-sm text-muted">
         {#if kind === 'blueprint'}

@@ -84,6 +84,13 @@ describe('scanSource', () => {
     expect(rules('packages/ui/src/Badge.svelte', composed)['own-component']).toBeUndefined();
   });
 
+  it('flags bind:ref on a ref that does not start as null', () => {
+    const bad = `<script>import { Input } from 'texuli/input'; let field = $state<HTMLElement>(); let other: HTMLElement | undefined = $state();</script><Input bind:ref={field} /><Input bind:ref={other} />`;
+    expect(rules('templates/x/src/A.svelte', bad)['ref-undefined']).toBe(2);
+    const good = `<script>import { Input } from 'texuli/input'; let field = $state<HTMLElement | null>(null);</script><Input bind:ref={field} />`;
+    expect(rules('templates/x/src/A.svelte', good)['ref-undefined']).toBeUndefined();
+  });
+
   it('maps files to pending units', () => {
     expect(unitOf('packages/ui/src/A.svelte')).toBe('packages__ui');
     expect(unitOf('apps/gallery/src/A.astro')).toBe('apps__gallery');

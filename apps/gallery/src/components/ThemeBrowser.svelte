@@ -1,9 +1,12 @@
 <script lang="ts">
-import Search from '@lucide/svelte/icons/search';
 import X from '@lucide/svelte/icons/x';
+import { Button, Input } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { ThemeCardData } from '../lib/theme-catalog.ts';
 import { filterThemeCards } from '../lib/theme-catalog.ts';
+import GallerySelect from './GallerySelect.svelte';
 import ThemeSwatch from './ThemeSwatch.svelte';
 
 interface Props {
@@ -58,11 +61,11 @@ const selectClass =
   <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
     <label class="relative min-w-0 flex-1 sm:max-w-sm">
       <span class="sr-only">Search themes</span>
-      <Search
+      <Icon icon="search"
         class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted"
         aria-hidden="true"
       />
-      <input
+      <Input
         type="search"
         class="h-9 w-full rounded-lg border border-line bg-surface pr-3 pl-9 text-sm text-fg placeholder:text-muted focus-visible:outline-2 focus-visible:outline-accent"
         placeholder="Search name, id, tag…"
@@ -72,35 +75,22 @@ const selectClass =
     </label>
     <label class="flex flex-col gap-1 text-xs text-muted">
       Category
-      <select
-        class={selectClass}
-        bind:value={category}
-        data-testid="theme-category"
-        aria-label="Filter by category"
-      >
-        <option value="all">All categories ({themes.length})</option>
-        {#each categories as cat (cat)}
-          <option value={cat}>
-            {cat}
-            ({themes.filter((t) => t.category === cat).length})
-          </option>
-        {/each}
-      </select>
+      <GallerySelect class={selectClass} bind:value={category} data-testid="theme-category" aria-label="Filter by category" items={[{ value: 'all', label: `All categories (${themes.length})` }, ...categories.map((cat) => ({ value: cat, label: `${cat} (${themes.filter((theme) => theme.category === cat).length})` }))]} />
     </label>
     {#if category !== 'all' || q.trim()}
-      <button
+      <Button
         type="button"
         class="inline-flex h-9 items-center gap-1 rounded-lg border border-line bg-surface px-3 text-sm text-fg hover:bg-surface-2"
         onclick={clearFilters}
       >
-        <X class="size-3.5" aria-hidden="true" />
+        <LucideIcon icon={X} class="size-3.5" aria-hidden="true" />
         Clear filters
-      </button>
+      </Button>
     {/if}
   </div>
 
   <div class="flex flex-wrap gap-1.5" role="group" aria-label="Category chips">
-    <button
+    <Button
       type="button"
       class={[
         'rounded-full px-3 py-1 text-xs font-medium',
@@ -110,9 +100,9 @@ const selectClass =
       onclick={() => selectCategory('all')}
     >
       All
-    </button>
+    </Button>
     {#each categories as cat (cat)}
-      <button
+      <Button
         type="button"
         class={[
           'rounded-full px-3 py-1 text-xs font-medium capitalize',
@@ -122,7 +112,7 @@ const selectClass =
         onclick={() => selectCategory(cat)}
       >
         {cat}
-      </button>
+      </Button>
     {/each}
   </div>
 

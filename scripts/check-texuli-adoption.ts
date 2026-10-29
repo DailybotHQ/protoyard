@@ -17,7 +17,12 @@
  * - `own-component`: a leaf Svelte component of a UI package (`packages/ui`,
  *   `packages/*-ui`, `devtools`, `crud`, `player`, `apps/gallery`) that imports
  *   nothing from `texuli`, `@texuli/*`, `@protoyard/*-ui`/`ui` or another
- *   `.svelte` file: it draws its own UI instead of composing Texuli's.
+ *   `.svelte` file: it draws its own UI instead of composing Texuli's;
+ * - `component-bind-this`: `bind:this` on a Texuli or `@protoyard/ui`
+ *   component whose value is then used as a DOM element (use `bind:ref`);
+ * - `ref-undefined`: `bind:ref={x}` where `x` does not start as `null`. Svelte
+ *   throws at runtime on `bind:ref={undefined}` against a `ref` with a fallback,
+ *   which stops the whole island; start refs as `$state<HTMLElement | null>(null)`.
  *
  * Known violations live per unit in `tests/adoption/pending/<unit>.json`
  * (unit = `packages__<name>`, `apps__<name>`, `templates` or `prototypes`).
@@ -58,7 +63,8 @@ export type Rule =
   | 'raw-control'
   | 'input-as-choice'
   | 'own-component'
-  | 'component-bind-this';
+  | 'component-bind-this'
+  | 'ref-undefined';
 export const RULES: readonly Rule[] = [
   'legacy-import',
   'raw-lucide',
@@ -67,6 +73,7 @@ export const RULES: readonly Rule[] = [
   'input-as-choice',
   'own-component',
   'component-bind-this',
+  'ref-undefined',
 ];
 
 export interface Violation {
@@ -144,6 +151,19 @@ function inputAsChoiceCount(markup: string): number {
   return [...markup.matchAll(new RegExp(INPUT_TAG.source, INPUT_TAG.flags))].filter(
     ([tag]) => /\btype\s*=\s*(['"])(?:checkbox|radio)\1/i.test(tag) || /\bbind:checked\b/.test(tag)
   ).length;
+}
+
+/** Counts `bind:ref={x}` whose `x` is declared with no `null` initial value. */
+function refUndefinedCount(svelte: string): number {
+  const script = (svelte.match(/<script[\s\S]*?<\/script>/g) ?? []).join('\n');
+  const markup = markupOf(svelte);
+  let violations = 0;
+  for (const match of markup.matchAll(/\bbind:ref=\{\s*([A-Za-z_$][\w$]*)\s*\}/g)) {
+    const name = match[1] ?? '';
+    const decl = script.match(new RegExp(`\\blet\\s+${name.replace(/\$/g, '\\$')}\\b([^;\\n]*)`));
+    if (decl && !/\bnull\b/.test(decl[1] ?? '')) violations += 1;
+  }
+  return violations;
 }
 
 /** Counts component refs from Texuli/@protoyard/ui that are used as DOM elements. */
@@ -229,6 +249,7 @@ export function scanSource(file: string, source: string): Violation[] {
     add('raw-control', count(markup, RAW_CONTROL));
     add('input-as-choice', inputAsChoiceCount(markup));
     add('component-bind-this', componentBindThisCount(text));
+    add('ref-undefined', refUndefinedCount(text));
     let raw = 0;
     for (const name of lucideNames(text)) {
       raw += count(markup, new RegExp(`<${name.replace(/\$/g, '\\$')}(?=[\\s/>])`, 'g'));

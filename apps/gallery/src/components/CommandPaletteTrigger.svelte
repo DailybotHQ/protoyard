@@ -1,6 +1,7 @@
 <script lang="ts">
-import Search from '@lucide/svelte/icons/search';
 import { mount, onMount } from 'svelte';
+import { Button } from 'texuli/button';
+import { Icon } from 'texuli/icons';
 import { retryable } from '../lib/retryable.ts';
 
 /**
@@ -17,7 +18,8 @@ interface Props {
 
 let { homeUrl }: Props = $props();
 let hydrated = $state(false);
-let trigger: HTMLButtonElement;
+// $state: bind:ref on a component writes through a reactive binding.
+let trigger = $state<HTMLElement | null>(null);
 let host: HTMLDivElement;
 let show: (() => void) | null = null;
 let failed = $state(false);
@@ -28,9 +30,10 @@ const load = retryable(() =>
       target: host,
       props: {
         homeUrl,
-        externalTrigger: trigger,
+        externalTrigger: trigger ?? undefined,
         onReady: (api: { show: () => void }) => {
           show = api.show;
+          api.show();
         },
       },
     });
@@ -69,20 +72,20 @@ onMount(() => {
 </script>
 
 <div class="flex items-center" data-testid="command-palette" data-hydrated={hydrated}>
-  <button
-    bind:this={trigger}
+  <Button
+    bind:ref={trigger}
     type="button"
     class="inline-flex h-9 items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-sm text-muted hover:bg-surface-2 hover:text-fg sm:px-3"
     aria-haspopup="dialog"
     onclick={() => void open()}
   >
-    <Search size={15} aria-hidden="true" />
+    <Icon icon="search" size={15} aria-hidden="true" />
     <!-- The accessible name starts with the visible "Search" (WCAG 2.5.3); on
          phones the word is visually hidden but still names the button. -->
     <span class="sr-only sm:not-sr-only">Search</span>
     <span class="sr-only">(Command or Control K)</span>
     <kbd aria-hidden="true" class="rounded border border-line bg-bg px-1.5 py-0.5 font-mono text-[10px] text-muted">⌘K</kbd>
-  </button>
+  </Button>
   {#if failed}
     <p role="alert" class="ml-2 text-xs text-danger" data-testid="command-palette-error">
       Search could not load. Check your connection and try again.
