@@ -76,6 +76,17 @@ describe('demos', () => {
     );
     expect(screen.getAllByRole('separator')).toHaveLength(3);
   });
+
+  it('safe-area demo toggles the selected padding edges with Texuli checkboxes', async () => {
+    const demo = DEMOS['safe-area'];
+    if (!demo) throw new Error('missing safe-area demo');
+    render(await demo.load(), {});
+    expect(screen.getByText(/pt-safe pb-safe/)).toBeTruthy();
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'right' }));
+    expect(screen.getByText(/pt-safe pr-safe pb-safe/)).toBeTruthy();
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'top' }));
+    expect(screen.getByText(/pr-safe pb-safe/)).toBeTruthy();
+  });
 });
 
 describe('forms page', () => {

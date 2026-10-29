@@ -1,6 +1,14 @@
 <script lang="ts">
 import { can, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
-import { Button, Card, EmptyState, ErrorState, Input, Skeleton } from '@protoyard/ui';
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  RadioGroup,
+  RadioGroupItem,
+  Skeleton,
+} from '@protoyard/ui';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { useCourseLms } from '../lib/context.ts';
 
@@ -116,19 +124,16 @@ async function submitQuiz(quizId: string, questionIds: string[]) {
             {#each quiz.questions as question (question.id)}
               <fieldset class="space-y-2">
                 <legend class="text-sm font-medium">{question.prompt}</legend>
-                {#each question.choices as choice, index (index)}
-                  <label class="flex cursor-pointer items-start gap-2 rounded-md border border-border p-2 text-sm">
-                    <Input
-                      type="radio"
-                      name={`${quiz.id}-${question.id}`}
-                      value={index}
-                      aria-label={choice}
-                      checked={answers[quiz.id]?.[question.id] === index}
-                      onchange={(event) => setAnswer(quiz.id, question.id, event.currentTarget.value)}
-                    />
-                    <span>{choice}</span>
-                  </label>
-                {/each}
+                <RadioGroup
+                  aria-label={question.prompt}
+                  name={`${quiz.id}-${question.id}`}
+                  value={String(answers[quiz.id]?.[question.id] ?? '')}
+                  onValueChange={(value) => setAnswer(quiz.id, question.id, value)}
+                >
+                  {#each question.choices as choice, index (index)}
+                    <RadioGroupItem value={String(index)} label={choice} />
+                  {/each}
+                </RadioGroup>
               </fieldset>
             {/each}
             {#if latestAttempt}<p class="text-sm" role="status">Latest attempt: {latestAttempt.score}% · {latestAttempt.passed ? 'Passed' : 'Not passed yet'}</p>{/if}

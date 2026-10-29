@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Input, SafeArea } from '@protoyard/ui';
+import { Checkbox, SafeArea } from '@protoyard/ui';
 
 type Edge = 'top' | 'right' | 'bottom' | 'left';
 const all: Edge[] = ['top', 'right', 'bottom', 'left'];
@@ -14,14 +14,12 @@ function toggle(edge: Edge, on: boolean): void {
   <fieldset class="flex flex-wrap gap-4 text-sm">
     <legend class="mb-2 text-xs text-muted-foreground">Edges that get env(safe-area-inset-*) padding</legend>
     {#each all as edge (edge)}
-      <label class="flex items-center gap-2 capitalize">
-        <Input
-          type="checkbox"
-          checked={edges.includes(edge)}
-          onchange={(event) => toggle(edge, event.currentTarget.checked)}
-        />
-        {edge}
-      </label>
+      <Checkbox
+        class="capitalize"
+        label={edge}
+        checked={edges.includes(edge)}
+        onCheckedChange={(checked) => toggle(edge, checked)}
+      />
     {/each}
   </fieldset>
   <div class="mx-auto w-full max-w-[390px] rounded-[2rem] border-4 border-border bg-muted p-1">
