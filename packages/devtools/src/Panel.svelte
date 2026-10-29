@@ -363,6 +363,7 @@ function presentationMode() {
             class="flex min-h-touch min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-0.5 py-1 text-[10px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring {selected
               ? 'bg-primary/10 font-semibold text-foreground [&_svg]:text-primary'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+            autoLoading={false}
             onclick={() => selectTab(t)}
           >
             <Glyph icon={t.icon} class="size-4" />

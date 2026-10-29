@@ -5,10 +5,14 @@ import { Button, type ButtonVariant } from 'texuli/button';
 /**
  * Compact panel button on Texuli's Button (size sm).
  * Keeps the DevTools variant names (`primary` / `danger`) as a thin adapter.
+ * `autoLoading={false}` keeps a button enabled while its `onclick` promise
+ * settles: Texuli disables a pending button, and disabling the focused one
+ * drops focus to <body>, out of the panel (its Escape handler then misses).
  */
 let {
   variant = 'outline',
   busy = false,
+  autoLoading = true,
   class: className = '',
   children,
   ref = $bindable(null),
@@ -31,6 +35,7 @@ let {
 }: {
   variant?: 'primary' | 'outline' | 'ghost' | 'danger';
   busy?: boolean;
+  autoLoading?: boolean;
   class?: string;
   children: Snippet;
   ref?: HTMLElement | null;
@@ -81,6 +86,7 @@ const mapped: Record<string, ButtonVariant> = {
   variant={mapped[variant] ?? 'outline'}
   size="sm"
   loading={busy}
+  {autoLoading}
   class={className || undefined}
   data-py-devtools-btn=""
 >
