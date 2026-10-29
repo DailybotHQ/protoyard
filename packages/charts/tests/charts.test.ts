@@ -38,11 +38,11 @@ describe('@protoyard/charts scaffold', () => {
   });
 
   it('seriesColor cycles 8 colors, falling back to the theme chart tokens', () => {
-    expect(seriesColor(0)).toBe('var(--py-chart1)');
-    expect(seriesColor(CHART_TOKENS.length - 1)).toBe('var(--py-chart5)');
-    expect(seriesColor(CHART_TOKENS.length)).toBe('var(--py-chart6, var(--py-chart1))');
-    expect(seriesColor(8)).toBe('var(--py-chart1)');
-    expect(seriesColor(-1)).toBe('var(--py-chart8, var(--py-chart3))');
+    expect(seriesColor(0)).toBe('var(--tx-chart1)');
+    expect(seriesColor(CHART_TOKENS.length - 1)).toBe('var(--tx-chart5)');
+    expect(seriesColor(CHART_TOKENS.length)).toBe('var(--tx-chart6, var(--tx-chart1))');
+    expect(seriesColor(8)).toBe('var(--tx-chart1)');
+    expect(seriesColor(-1)).toBe('var(--tx-chart8, var(--tx-chart3))');
   });
 
   it('every subpath export resolves to a module', async () => {

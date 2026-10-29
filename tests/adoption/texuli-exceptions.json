@@ -53,5 +53,10 @@
     "path": "packages/ui/src/styles.css",
     "rules": ["py-token"],
     "reason": "The remaining --py-* reads are renderer-written frame geometry (app height, simulated safe-area insets, fixed right edge) mapped onto Texuli's --tx-app-height and --tx-safe-* variables, not semantic design tokens."
+  },
+  {
+    "path": "packages/ui/src/components/toast/UndoToaster.svelte",
+    "rules": ["py-token"],
+    "reason": "--py-fixed-right-edge is the renderer's measured visible-viewport offset that keeps the undo toast on screen inside device frames, not a semantic design token."
   }
 ]

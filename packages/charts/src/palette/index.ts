@@ -1,6 +1,6 @@
 /**
  * Chart palette: `@texuli/tokens/palette` `deriveChartTokens`, plus CSS var helpers
- * for Protoyard `--py-chart*` names. No local palette engine.
+ * for the `--tx-chart*` names (with the deprecated `--py-*` aliases). No local palette engine.
  */
 export {
   CHART_CATEGORICAL_COUNT as CATEGORICAL_COUNT,
@@ -37,21 +37,21 @@ import {
   validateChartTokens,
 } from '@texuli/tokens/palette';
 
-/** Slot color as a CSS variable (`--py-chart1` …). Slots past theme chart5 fall back. */
+/** Slot color as a CSS variable (`--tx-chart1` …). Slots past theme chart5 fall back. */
 export function seriesColor(index: number): string {
   const n = CHART_CATEGORICAL_COUNT;
   const slot = ((Math.trunc(index) % n) + n) % n;
   const primary = slot + 1;
-  if (primary <= 5) return `var(--py-chart${primary})`;
+  if (primary <= 5) return `var(--tx-chart${primary})`;
   const fallback = ((slot - 5) % 5) + 1;
-  return `var(--py-chart${primary}, var(--py-chart${fallback}))`;
+  return `var(--tx-chart${primary}, var(--tx-chart${fallback}))`;
 }
 
 /** Sequential ramp CSS variable for t in 0…1. */
 export function sequentialColor(t: number): string {
   const steps = CHART_RAMP_STEPS;
   const step = Math.round(Math.min(1, Math.max(0, Number.isFinite(t) ? t : 0)) * (steps - 1));
-  return `var(--py-seq-${step + 1})`;
+  return `var(--tx-seq-${step + 1})`;
 }
 
 /** Diverging ramp CSS variable for t in −1…1. */
@@ -59,24 +59,25 @@ export function divergingColor(t: number): string {
   const steps = CHART_RAMP_STEPS;
   const clamped = Math.min(1, Math.max(-1, Number.isFinite(t) ? t : 0));
   const step = Math.round(((clamped + 1) / 2) * (steps - 1));
-  return `var(--py-div-${step + 1})`;
+  return `var(--tx-div-${step + 1})`;
 }
 
-/** Writes derived chart tokens as `--py-*` custom properties. */
+/** Writes derived chart tokens as `--tx-*` custom properties, plus the deprecated `--py-*` aliases. */
 export function chartPaletteVariables(palette: ChartTokens): Record<string, string> {
-  const vars: Record<string, string> = {
-    '--py-chart-grid': palette.grid,
-    '--py-chart-axis': palette.axis,
-  };
-  palette.categorical.forEach((color, i) => {
-    vars[`--py-chart${i + 1}`] = color;
-  });
-  palette.sequential.forEach((color, i) => {
-    vars[`--py-seq-${i + 1}`] = color;
-  });
-  palette.diverging.forEach((color, i) => {
-    vars[`--py-div-${i + 1}`] = color;
-  });
+  const vars: Record<string, string> = {};
+  for (const prefix of ['--tx', '--py']) {
+    vars[`${prefix}-chart-grid`] = palette.grid;
+    vars[`${prefix}-chart-axis`] = palette.axis;
+    palette.categorical.forEach((color, i) => {
+      vars[`${prefix}-chart${i + 1}`] = color;
+    });
+    palette.sequential.forEach((color, i) => {
+      vars[`${prefix}-seq-${i + 1}`] = color;
+    });
+    palette.diverging.forEach((color, i) => {
+      vars[`${prefix}-div-${i + 1}`] = color;
+    });
+  }
   return vars;
 }
 

@@ -46,13 +46,17 @@ describe('chart palettes from @texuli/tokens/palette', () => {
     expect(vars['--py-chart1']).toBe(palette.categorical[0]);
     expect(vars['--py-seq-1']).toBe(palette.sequential[0]);
     expect(vars['--py-div-5']).toBeTruthy();
+    // The canonical --tx-* names carry the same values as the deprecated aliases.
+    expect(vars['--tx-chart1']).toBe(vars['--py-chart1']);
+    expect(vars['--tx-seq-1']).toBe(vars['--py-seq-1']);
+    expect(vars['--tx-div-5']).toBe(vars['--py-div-5']);
   });
 
   it('seriesColor and ramp helpers return CSS variables', () => {
-    expect(seriesColor(0)).toBe('var(--py-chart1)');
-    expect(seriesColor(8)).toBe('var(--py-chart1)');
-    expect(sequentialColor(0)).toMatch(/^var\(--py-seq-/);
-    expect(divergingColor(0)).toMatch(/^var\(--py-div-/);
+    expect(seriesColor(0)).toBe('var(--tx-chart1)');
+    expect(seriesColor(8)).toBe('var(--tx-chart1)');
+    expect(sequentialColor(0)).toMatch(/^var\(--tx-seq-/);
+    expect(divergingColor(0)).toMatch(/^var\(--tx-div-/);
   });
 
   it('validateChartTokens returns an array of issues', () => {
