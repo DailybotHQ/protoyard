@@ -113,6 +113,7 @@ const quickActions = [
     {/each}
     <Button
       type="button"
+      variant="ghost"
       class="flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-xl bg-surface p-2 text-xs font-medium shadow-soft transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       disabled={!canMove || !depositTarget || depositing}
       title={!canMove ? 'View-only access' : !depositTarget ? 'No active checking account' : undefined}

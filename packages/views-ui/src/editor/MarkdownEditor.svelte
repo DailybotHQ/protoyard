@@ -413,12 +413,16 @@ function toolbarKey(event: KeyboardEvent, index: number) {
         {#each [['write', 'Write'], ['preview', 'Preview']] as [id, text] (id)}
           <Button
             type="button"
+            variant="ghost"
             role="tab"
             id={`editor-${uid}-tab-${id}`}
             aria-selected={tab === id}
             aria-controls={`editor-${uid}-panel-${id}`}
             tabindex={tab === id ? 0 : -1}
-            class={cx('rounded-md px-2.5 py-1 text-sm', tab === id ? 'bg-muted font-medium' : 'text-muted-foreground hover:bg-muted')}
+            class={cx(
+              'rounded-md px-2.5 py-1 text-sm text-surface-foreground',
+              tab === id ? 'bg-muted font-medium' : 'hover:bg-muted'
+            )}
             onclick={() => {
               tab = id as 'write' | 'preview';
               match = null;
