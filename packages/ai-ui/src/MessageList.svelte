@@ -61,11 +61,23 @@ function viewportOf(element: HTMLElement | null): HTMLElement | null {
   return element?.querySelector<HTMLElement>('[data-tx-chat-message-list]') ?? null;
 }
 
+/** Frames the restored position must hold before the reader's own scrolling is remembered again. */
+const SETTLE_FRAMES = 3;
+/** Longest restore (about 1 s at 60 Hz): late content (a chart, an image) has landed by then. */
+const MAX_RESTORE_FRAMES = 60;
+
 /*
  * Texuli's MessageList follows the stream and offers jump-to-latest; the
  * reading position per conversation stays Protoyard's. The list is keyed by
  * conversation, so switching remounts it, and the saved anchor is restored
  * once Texuli has made its first stick to the bottom.
+ *
+ * Until the reader scrolls, Texuli still sticks to the bottom whenever content
+ * resizes (a lazy chart answer, an image). So the restore keeps re-applying
+ * the anchor every frame until the position has held for a few frames, and
+ * scroll events in that time are the restore's, not the reader's: they never
+ * save or clear the anchor. A wheel, touch, key or pointer press is the
+ * reader taking over, which ends the restore at once.
  */
 $effect(() => {
   const key = storageKey;
@@ -73,29 +85,44 @@ $effect(() => {
   if (!viewport) return;
   const anchor = loadScrollAnchor(key);
   let frame = 0;
+  let restoring = anchor !== null;
+  const stopRestoring = () => {
+    restoring = false;
+    cancelAnimationFrame(frame);
+  };
   if (anchor) {
-    // Two frames: after Texuli's first stick to the bottom. A miss (the row is
-    // outside the virtual window) moved to the raw position; one more pass
-    // places the row exactly once the window has re-rendered there.
-    let tries = 0;
+    // A miss (the row is outside the virtual window) moves to the raw position; a later
+    // frame places the row exactly once the window has re-rendered there.
+    let frames = 0;
+    let held = 0;
+    let last = Number.NaN;
     const restore = () => {
-      tries += 1;
-      if (!restoreScrollAnchor(viewport, anchor) && tries < 4)
-        frame = requestAnimationFrame(restore);
+      if (!restoring) return;
+      frames += 1;
+      const placed = restoreScrollAnchor(viewport, anchor);
+      held = placed && Math.abs(viewport.scrollTop - last) < 1 ? held + 1 : 0;
+      last = viewport.scrollTop;
+      if (held >= SETTLE_FRAMES || frames >= MAX_RESTORE_FRAMES) restoring = false;
+      else frame = requestAnimationFrame(restore);
     };
+    // Two frames first: after Texuli's own first stick to the bottom.
     frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(restore);
     });
   }
   const remember = () => {
+    if (restoring) return;
     const atBottom =
       viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < BOTTOM_SLACK;
     if (atBottom) clearScrollAnchor(key);
     else saveScrollAnchor(key, captureScrollAnchor(viewport));
   };
+  const intents = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
+  for (const type of intents) viewport.addEventListener(type, stopRestoring, { passive: true });
   viewport.addEventListener('scroll', remember, { passive: true });
   return () => {
     cancelAnimationFrame(frame);
+    for (const type of intents) viewport.removeEventListener(type, stopRestoring);
     viewport.removeEventListener('scroll', remember);
   };
 });
