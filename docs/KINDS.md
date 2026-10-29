@@ -199,10 +199,27 @@ built on them never loads brand resolution or the palette generator. Prefer
 `defineKindRuntime` when you already have a full content blueprint
 (`formatVersion`, `name`, `kind`, body) whose `brand` must be resolved at
 runtime (the player); a prototype passes the brand resolved ahead to
-`defineKindPrototype` instead. The deck template keeps its resolved brand in
-`src/brand-theme.ts`: `protoyard new` rewrites it from the copied
-`src/blueprint.json`, and the template's test fails when `brand` changes
-without it.
+`defineKindPrototype` instead.
+
+### Editing a deck's brand
+
+A deck made with `protoyard new --template deck` keeps its brand resolved in
+`src/brand-theme.ts`, so its first chunk never loads the palette generator.
+Edit `brand` in `src/blueprint.json`, never the module: the normal loop keeps
+it in step.
+
+| Step | What happens to `src/brand-theme.ts` |
+| --- | --- |
+| `pnpm protoyard new <slug> --template deck` | Written from the copied blueprint |
+| `pnpm protoyard dev <slug>` | Rewritten at start and after every save of `src/blueprint.json`; the terminal prints `Refreshed src/brand-theme.ts …` and Vite reloads the page |
+| `pnpm protoyard validate <slug>` | A stale module is rewritten before the definition loads, reported as a warning (`brand-theme` check) |
+
+A brand that does not resolve (an unknown library theme, a blueprint that
+does not parse) never overwrites the module: `dev` prints why and keeps the
+last good theme, and `validate` fails the `brand-theme` check with the reason.
+`dev` on a template demo never writes template files. The template's test
+(`tests/deck-template.test.ts`, copied into each deck) also fails when the
+module and `brand` disagree.
 
 ## Catalog discovery
 
