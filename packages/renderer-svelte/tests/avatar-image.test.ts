@@ -63,7 +63,8 @@ describe('Avatar with a persona avatar', () => {
     expect(img?.getAttribute('loading')).toBe('lazy');
     expect(img?.getAttribute('decoding')).toBe('async');
     expect(img?.getAttribute('width')).toBe('36');
-    expect(img?.getAttribute('alt')).toBe('Grace Hopper');
+    // Texuli's Avatar names its root (role=img); the image itself is decorative.
+    expect(img?.closest('[role="img"]')?.getAttribute('aria-label')).toBe('Grace Hopper');
   });
 
   it('shows an https avatar as is', () => {

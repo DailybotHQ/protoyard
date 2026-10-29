@@ -202,7 +202,8 @@ describe('members and profile: people show their faces', () => {
     const avatar = await screen.findByTestId('settings-profile-avatar');
     const face = avatar.querySelector('img');
     expect(face?.getAttribute('src')).toBe(`./avatars/64/${owner.persona.avatar}.webp`);
-    expect(face?.getAttribute('alt')).toBe(owner.persona.name);
+    // Texuli's Avatar names its root (role=img); the image itself is decorative.
+    expect(face?.closest('[role="img"]')?.getAttribute('aria-label')).toBe(owner.persona.name);
     expect(face?.getAttribute('width')).toBe('48');
   });
 });

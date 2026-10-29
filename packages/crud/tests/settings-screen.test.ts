@@ -199,7 +199,8 @@ describe('SettingsScreen', () => {
     const avatar = await screen.findByTestId('settings-profile-avatar');
     const face = avatar.querySelector('img');
     expect(face?.getAttribute('src')).toBe(`./avatars/64/${persona?.avatar}.webp`);
-    expect(face?.getAttribute('alt')).toBe(persona?.name);
+    // Texuli's Avatar names its root (role=img); the image itself is decorative.
+    expect(face?.closest('[role="img"]')?.getAttribute('aria-label')).toBe(persona?.name);
   });
 
   it('renames the workspace from the form for an owner', async () => {
