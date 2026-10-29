@@ -122,17 +122,17 @@ test.describe('the everything deck', () => {
     const map = page.locator('[data-py-deck-slide="map"] [data-py-block="map"]');
     const basemap = await map.locator('svg').first().boundingBox();
     expect(basemap?.height ?? 0).toBeGreaterThan(40);
-    const rows = map.locator('[data-map-list] li[aria-posinset]');
-    await expect(rows).toHaveCount(3);
-    const tops = await rows.evaluateAll((items) =>
-      items.map((item) => ({ position: getComputedStyle(item).position, top: item.style.top }))
-    );
-    expect(tops.every((row) => row.position === 'absolute')).toBe(true);
+    // Texuli's map (`@texuli/blocks/map`): the places panel is a plain list,
+    // one row per place (the everything deck has two: north and market).
+    const rows = map.locator('[data-tx-map-place-list] li[aria-posinset]');
+    await expect(rows).toHaveCount(2);
     for (const id of ['north', 'market']) {
-      const dot = map.locator(`[data-list-item="${id}"] span`).first();
-      const fill = await dot.evaluate((el) => getComputedStyle(el).backgroundColor);
+      const place = map.locator(`[data-tx-map-place="${id}"]`);
+      const fill = await place
+        .locator('.swatch')
+        .evaluate((el) => getComputedStyle(el).backgroundColor);
       expect(fill, `${id} tone fill`).not.toBe('rgba(0, 0, 0, 0)');
-      await expect(map.locator(`[data-list-item="${id}"]`)).toHaveAccessibleName(/\S/);
+      await expect(place).toHaveAccessibleName(/\S/);
     }
   });
 });

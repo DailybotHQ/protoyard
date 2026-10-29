@@ -49,12 +49,22 @@ the reference for props and APIs: open the linked guide instead of guessing.
    `@protoyard/ui` or from an app-wide barrel: each prototype's initial
    JavaScript budget is 250 KB gzip, and unused kits must add nothing to it.
    `protoyard budget <slug>` measures it.
-6. **Keep the data path.** Kits render and collect input; writes still go
+6. **Build UI Texuli-first.** Prefer Texuli's published components and the
+   public `@protoyard/ui` exports over hand-built generic controls. Use
+   `Icon` from `texuli/icons` for its ten built-in names; otherwise import the
+   glyph from `@lucide/svelte` and render it with `LucideIcon` from
+   `texuli/icons/lucide` (`<LucideIcon icon={Activity} />`). Never render raw
+   Lucide markup. Use `Checkbox` or `RadioGroup` for choices, never
+   `Input type="checkbox"`/`"radio"`. Use `bind:ref` for exposed DOM elements,
+   `bind:this` only for component APIs, and `--tx-*` tokens for new UI. If an
+   API is missing, retain a minimal adapter and record its gap id in the
+   adoption pending list (see the repository's `docs/TEXULI.md`).
+7. **Keep the data path.** Kits render and collect input; writes still go
    through the prototype's services (`session.assert` → zod →
    `environment.run` → `db.transaction`). Wire every async action to a
    `@protoyard/ui` `Button` whose `onclick` returns the promise, so it shows
    pending feedback.
-7. **State the simulation honestly.** Sign-in, roles, MFA, billing, maps, AI
+8. **State the simulation honestly.** Sign-in, roles, MFA, billing, maps, AI
    answers and voice are simulated in the browser. Never describe them as
    security, a real provider or a real model.
 
