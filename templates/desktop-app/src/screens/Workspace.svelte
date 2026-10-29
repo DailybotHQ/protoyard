@@ -74,7 +74,7 @@ let folderDialogOpen = $state(false);
 let confirmDocumentDelete = $state(false);
 let confirmFolderDelete = $state(false);
 let dirty = $state(false);
-let pendingDiscard = $state<(() => void) | null>(null);
+let pendingDiscard = $state<(() => void | Promise<void>) | null>(null);
 let editor = $state<{ save(): Promise<void> } | undefined>();
 
 const visible = $derived((scoped.current ?? []).filter((d) => matchesQuery(d, search)));
@@ -106,9 +106,9 @@ function authorName(personaId: string): string {
 }
 
 /** Runs `action` now, or after the user confirms discarding unsaved edits. */
-function guard(action: () => void) {
+async function guard(action: () => void | Promise<void>): Promise<void> {
   if (dirty) pendingDiscard = action;
-  else action();
+  else await action();
 }
 
 function go(path: string) {
@@ -128,7 +128,7 @@ async function newDocument() {
   if (!canCreate) return toast.info('Your role cannot create documents.');
   const target = folderId ?? (folders.current ?? [])[0]?.id;
   if (!target) return toast.info('Create a folder first.');
-  guard(async () => {
+  await guard(async () => {
     const result = await runService(() => services.documents.create({ folderId: target }), {
       success: 'Document created',
     });
@@ -304,7 +304,7 @@ const menus = $derived<Menu[]>([
           <Input bind:ref={searchInput} bind:value={search} type="search" placeholder="Search" class="pl-8" />
         </label>
         {#if canCreate}
-          <Button variant="ghost" size="icon" aria-label="New document" onclick={() => void newDocument()}>
+          <Button variant="ghost" size="icon" aria-label="New document" onclick={() => newDocument()}>
             <LucideIcon icon={FilePlus} />
           </Button>
         {/if}
@@ -406,6 +406,6 @@ const menus = $derived<Menu[]>([
     const action = pendingDiscard;
     pendingDiscard = null;
     dirty = false;
-    action?.();
+    return action?.();
   }}
 />

@@ -603,7 +603,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
                     title={canReact ? `Toggle ${chip.emoji}` : readOnlyReason}
                     aria-describedby={!canReact ? 'relay-read-only-reason' : undefined}
                     aria-label={`${chip.emoji} ${chip.count}${chip.mine ? ', you reacted' : ''}`}
-                    onclick={() => void react(msg.id, chip.emoji)}
+                    onclick={() => react(msg.id, chip.emoji)}
                   >
                     {chip.emoji}
                     <span class="ml-0.5 tabular-nums">{chip.count}</span>
@@ -620,7 +620,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
                 disabled={!canReact}
                 title={canReact ? 'React with thumbs up' : readOnlyReason}
                 aria-describedby={!canReact ? 'relay-read-only-reason' : undefined}
-                onclick={() => void react(msg.id)}
+                onclick={() => react(msg.id)}
               >
                 👍 React
               </Button>

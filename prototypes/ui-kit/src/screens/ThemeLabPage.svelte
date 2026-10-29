@@ -289,7 +289,7 @@ async function copyTokens(theme: Theme) {
       <Select id="theme-token-selection" class="min-h-touch w-48 rounded-lg border border-input bg-background px-3 text-foreground" bind:value={selectedId} aria-label="Theme to inspect" items={visibleThemes.map((card) => ({ value: card.theme.id, label: card.theme.name }))} />
       <div class="inline-flex rounded-lg bg-muted p-1" role="group" aria-label="Token mode">
         {#each ['light', 'dark'] as const as mode (mode)}
-          <Button type="button" aria-pressed={tableMode === mode} class="min-h-touch rounded-md px-3 text-sm font-medium capitalize sm:min-h-8 {tableMode === mode ? 'bg-surface text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'}" onclick={() => (tableMode = mode)}>{mode}</Button>
+          <Button type="button" variant="ghost" aria-pressed={tableMode === mode} class="min-h-touch rounded-md px-3 text-sm font-medium capitalize sm:min-h-8 {tableMode === mode ? 'bg-surface text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'}" onclick={() => (tableMode = mode)}>{mode}</Button>
         {/each}
       </div>
       <Button size="sm" variant="outline" onclick={() => copyTokens(selected)}>Copy theme tokens</Button>

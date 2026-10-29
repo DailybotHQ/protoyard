@@ -50,7 +50,7 @@ const list = liveQuery(() => notifications.list(), {
           size="sm"
           variant="ghost"
           class="text-xs"
-          onclick={() => void notifications.markAllRead()}
+          onclick={() => notifications.markAllRead()}
         >
           Mark all read
         </Button>
@@ -62,7 +62,7 @@ const list = liveQuery(() => notifications.list(), {
               type="button"
               variant="ghost"
               class="flex w-full flex-col items-start whitespace-normal text-left"
-              onclick={() => void notifications.markRead(String(row.id))}
+              onclick={() => notifications.markRead(String(row.id))}
             >
               <p class="font-medium {row.readAt ? 'text-muted-foreground' : ''}">{String(row.title)}</p>
               <p class="text-[0.65rem] text-muted-foreground">{String(row.kind)}</p>

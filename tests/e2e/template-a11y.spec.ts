@@ -56,11 +56,12 @@ test.describe('template home accessibility', () => {
         { cwd: template.dir, stdio: 'ignore' }
       );
       const url = `http://127.0.0.1:${port}/`;
+      const homeUrl = template.name === 'team-chat' ? `${url}?scenario=busy-day` : url;
       try {
         await waitUntilReady(child, url);
         for (const mode of ['light', 'dark'] as const) {
           await page.emulateMedia({ colorScheme: mode, reducedMotion: 'reduce' });
-          await page.goto(url);
+          await page.goto(homeUrl);
           await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true', {
             timeout: 15_000,
           });
@@ -90,6 +91,40 @@ test.describe('template home accessibility', () => {
               'height',
               '400px'
             );
+            await page.route('**/LazyCanvas.svelte*', (route) => route.abort());
+            await page.getByRole('button', { name: 'Canvas' }).click();
+            await expect(page.getByRole('status')).toBeVisible();
+            await page.unroute('**/LazyCanvas.svelte*');
+            await page.route('**/*voice*', (route) => route.abort());
+            await page.getByRole('button', { name: 'Voice' }).click();
+            await expect(page.getByRole('alert')).toBeVisible();
+            await page.unroute('**/*voice*');
+            await page.reload();
+            await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true');
+            await page.getByRole('link', { name: 'Settings', exact: true }).click();
+            await expect(page.getByRole('heading', { name: 'Assistant settings' })).toBeVisible();
+            const clearData = page.getByRole('button', { name: 'Clear local workspace data' });
+            await expect(clearData).toBeVisible();
+            await clearData.hover();
+            await expectAccessible(page, testInfo, { label: 'ai-assistant-clear-data-hover' });
+          }
+
+          if (mode === 'dark' && template.name === 'ai-assistant') {
+            const attach = page.getByRole('button', { name: 'Attach files' });
+            await expect(attach).toBeVisible();
+            await expect(attach).not.toHaveCSS('color', 'rgb(36, 34, 53)');
+          }
+
+          if (mode === 'light' && template.name === 'team-chat') {
+            const search = page.getByRole('textbox', { name: 'Search messages' });
+            await search.fill('shipping');
+            await page.getByRole('button', { name: 'Search', exact: true }).first().click();
+            const results = page.getByRole('region', { name: 'Search results' });
+            const hit = results.getByRole('button').first();
+            await expect(hit).toBeVisible();
+            await expect(hit).toHaveAttribute('data-variant', 'ghost');
+            await expect(hit).toHaveCSS('white-space', 'normal');
+            await expect(hit).toHaveCSS('justify-content', 'flex-start');
           }
 
           if (mode === 'light' && template.name === 'docs-wiki') {

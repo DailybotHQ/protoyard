@@ -46,6 +46,16 @@ describe('desktop app shell', () => {
     expect(screen.getByTestId('document-list').textContent).toContain('Quarterly plan');
   });
 
+  it('keeps the New document Button pending until its create service settles', async () => {
+    const runtime = await harness.boot('empty');
+    runtime.environment.set({ latencyMs: 300 });
+    render(AppHost, { runtime });
+    const create = await screen.findByRole('button', { name: 'New document' });
+    (create as HTMLButtonElement).click();
+    await waitFor(() => expect(create.getAttribute('aria-busy')).toBe('true'));
+    await waitFor(() => expect(create.getAttribute('aria-busy')).toBeNull());
+  });
+
   it('asks before Alt+W discards unsaved edits, and keeps them on "Keep editing"', async () => {
     const runtime = await harness.boot('active');
     const doc = await runtime.db.documents.toCollection().first();
