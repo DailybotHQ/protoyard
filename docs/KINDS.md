@@ -223,7 +223,8 @@ None of these steps writes through a symlink: when the prototype folder,
 one included), or the module resolves outside the folder, nothing is read or
 written; `validate` fails the check, `dev` says why (on stderr; one JSON line
 per event with `--json`) and does not watch.
-`dev` on a template demo never writes template files. The template's test
+`dev` on a template demo never writes template files, and neither does
+`validate deck`: a stale `templates/deck/src/brand-theme.ts` fails the check. The template's test
 (`tests/deck-template.test.ts`, copied into each deck) also fails when the
 module and `brand` disagree.
 

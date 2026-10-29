@@ -134,9 +134,38 @@ function count(text: string, pattern: RegExp): number {
   return [...text.matchAll(new RegExp(pattern.source, pattern.flags))].length;
 }
 
-/** Strips JS and CSS comments from script, style, TypeScript or CSS source. */
+/**
+ * Strips JS and CSS comments from script, style, TypeScript or CSS source.
+ * String literals are skipped, so `'../demos/*Demo.svelte'` or `'**\/*'`
+ * never opens a comment. A `'` or `"` string ends at a newline (JS strings
+ * cannot span lines), so a lone quote in a regex literal affects one line at
+ * most. A `//` right after `:` (`http://`) is kept, as before.
+ */
 function stripCodeComments(text: string): string {
-  return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1');
+  let out = '';
+  let quote = '';
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i] as string;
+    if (quote) {
+      out += c;
+      if (c === '\\' && i + 1 < text.length) out += text[++i];
+      else if (c === quote || (c === '\n' && quote !== '`')) quote = '';
+      continue;
+    }
+    if (c === '/' && text[i + 1] === '*') {
+      const end = text.indexOf('*/', i + 2);
+      i = end < 0 ? text.length : end + 1;
+      continue;
+    }
+    if (c === '/' && text[i + 1] === '/' && text[i - 1] !== ':') {
+      const end = text.indexOf('\n', i);
+      i = (end < 0 ? text.length : end) - 1;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') quote = c;
+    out += c;
+  }
+  return out;
 }
 
 /**
@@ -174,7 +203,13 @@ function openingTags(markup: string, name: string): string[] {
     for (; i < markup.length; i++) {
       const c = markup[i];
       if (quote) {
-        if (c === quote) quote = '';
+        // In an expression a '…' or "…" string cannot span lines.
+        if (depth > 0 && c === '\\') i += 1;
+        else if (c === quote || (depth > 0 && c === '\n' && quote !== '`')) quote = '';
+      } else if (depth > 0 && c === '/' && (markup[i + 1] === '*' || markup[i + 1] === '/')) {
+        // A JS comment inside an expression (`{() => { /* don't */ go(); }}`).
+        const end = markup.indexOf(markup[i + 1] === '*' ? '*/' : '\n', i + 2);
+        i = end < 0 ? markup.length : markup[i + 1] === '*' ? end + 1 : end - 1;
       } else if (c === '"' || c === "'" || (c === '`' && depth > 0)) quote = c;
       else if (c === '{') depth += 1;
       else if (c === '}') depth = Math.max(0, depth - 1);

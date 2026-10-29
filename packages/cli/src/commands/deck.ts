@@ -630,7 +630,9 @@ export const deckCapabilitiesCommand: Handler = async (): Promise<CommandResult>
  * root (its real path), so an alias of the root (`/var` for `/private/var`)
  * still counts as inside while every symlink below the root stays visible to
  * the guard's lstat walk. Paths with no such ancestor are returned as is (the
- * guard refuses them as outside the workspace).
+ * guard refuses them as outside the workspace). That includes, on purpose, a
+ * path through a symlink to the root (`~/link-to-repo/tmp/x.json`) or in
+ * another letter case: refused, never resolved (docs/DECKS.md).
  */
 function relativeToRoot(root: string, path: string): string {
   const real = (candidate: string): string | null => {

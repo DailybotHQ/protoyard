@@ -442,15 +442,17 @@ export async function checkBlueprint(
  * `src/brand-theme.ts`. Locally a stale module is rewritten from the blueprint
  * before the definition loads, and reported as a warning. With `write: false`
  * (`--check`, or CI) nothing is written: a stale module fails with the command
- * that fixes it. A symlink on the way is never written through (`unsafe`).
+ * that fixes it. A template's own module is never written (as in `dev`): a
+ * stale one fails. A symlink on the way is never written through (`unsafe`).
  */
 export async function checkTemplateBrand(
   dir: string,
   slug: string,
-  write: boolean
+  write: boolean,
+  { template = false }: { template?: boolean } = {}
 ): Promise<Check | null> {
   const label = 'Brand theme (src/brand-theme.ts follows the blueprint brand)';
-  const result = await refreshTemplateBrand(dir, { write });
+  const result = await refreshTemplateBrand(dir, { write: write && !template });
   switch (result.status) {
     case 'absent':
       return null;
@@ -463,7 +465,9 @@ export async function checkTemplateBrand(
     case 'stale':
       return check('brand-theme', label, 'fail', [
         `src/brand-theme.ts is stale: it does not match the ${TEMPLATE_BLUEPRINT_PATH} brand${result.themeId ? ` (${result.themeId})` : ''}`,
-        `Fix: run \`pnpm protoyard validate ${slug}\` locally (without CI or --check) to rewrite it, then commit it.`,
+        template
+          ? `Fix: templates are never rewritten by validate; update templates/${slug}/src/brand-theme.ts to match its brand (tests/deck-template.test.ts shows the expected values), then commit it.`
+          : `Fix: run \`pnpm protoyard validate ${slug}\` locally (without CI or --check) to rewrite it, then commit it.`,
       ]);
     case 'unsafe':
       return check('brand-theme', label, 'fail', [
@@ -531,9 +535,11 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
     const blueprintCheck = await checkBlueprint(dir, slug, parsed.manifest);
     if (blueprintCheck) checks.push(blueprintCheck);
     // Before the definition loads, so it loads the refreshed brand.
-    // Locally the stale module is fixed; with --check or in CI nothing is written.
+    // Locally the stale module is fixed; with --check, in CI or in a template nothing is written.
     const brandWrite = !symlinkedFolder && !ctx.ci && !flag(options, 'check');
-    const brandCheck = await checkTemplateBrand(dir, slug, brandWrite);
+    const brandCheck = await checkTemplateBrand(dir, slug, brandWrite, {
+      template: kind === 'template',
+    });
     if (brandCheck) checks.push(brandCheck);
     if (existsSync(join(dir, 'src', 'prototype.ts'))) {
       try {

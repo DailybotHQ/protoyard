@@ -6,12 +6,13 @@ import {
   readFileSync,
   rmSync,
   symlinkSync,
+  watch,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Check } from '../src/commands/validate.ts';
 import {
   refreshTemplateBrand,
@@ -26,6 +27,30 @@ import { cli, createWorkspace, type TempWorkspace } from './helpers.ts';
  * `dev` rewrites the module on every blueprint change, `validate` fixes a
  * stale one and says so, and a broken edit never overwrites a good module.
  */
+/** Runs once when the module is read, between the safety check and the write (a swap window). */
+const onModuleRead = vi.hoisted(() => ({
+  hook: null as null | ((path: string) => void),
+  /** Reads of src/blueprint.json: each refresh starts with one. */
+  blueprintReads: 0,
+}));
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>();
+  const readFile = (async (path: unknown, ...rest: unknown[]) => {
+    if (String(path).endsWith('blueprint.json')) onModuleRead.blueprintReads += 1;
+    const result = await (actual.readFile as (...args: unknown[]) => Promise<unknown>)(
+      path,
+      ...rest
+    );
+    if (String(path).endsWith('brand-theme.ts') && onModuleRead.hook) {
+      const hook = onModuleRead.hook;
+      onModuleRead.hook = null;
+      hook(String(path));
+    }
+    return result;
+  }) as typeof actual.readFile;
+  return { ...actual, readFile, default: { ...actual, readFile } };
+});
+
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const TEMPLATE = join(REPO_ROOT, 'templates/deck');
 const cleanups: (() => void)[] = [];
@@ -124,6 +149,18 @@ describe('refreshTemplateBrand never writes through a symlink', () => {
     expect(existsSync(target)).toBe(false);
   });
 
+  it('refuses a module swapped for a symlink after the first check', async () => {
+    const dir = deckDir();
+    setBrand(dir, { name: 'Harbor', seed: '#0f766e' });
+    const target = outsideFile('export const victim = true;\n');
+    onModuleRead.hook = (path) => {
+      rmSync(path);
+      symlinkSync(target, path);
+    };
+    expect((await refreshTemplateBrand(dir)).status).toBe('unsafe');
+    expect(readFileSync(target, 'utf8')).toBe('export const victim = true;\n');
+  });
+
   it('refuses a symlinked src/ folder and a symlinked blueprint', async () => {
     const dir = deckDir();
     const real = mkdtempSync(join(tmpdir(), 'protoyard-brand-src-'));
@@ -146,7 +183,13 @@ describe('refreshTemplateBrand never writes through a symlink', () => {
 });
 
 describe('watchTemplateBrand (protoyard dev)', () => {
-  it('refreshes the module after each blueprint save, without reacting to its own write', async () => {
+  // Every step awaits the watcher's own result or fs event, never a bare
+  // sleep. The timeout covers two refreshes (each parses the blueprint and builds a
+  // palette) on a loaded machine; the debounce itself is 20 ms.
+  const DEBOUNCE_MS = 20;
+  it('refreshes the module after each blueprint save, without reacting to its own write', {
+    timeout: 30_000,
+  }, async () => {
     const dir = deckDir();
     const results: TemplateBrandResult[] = [];
     let notify: () => void = () => {};
@@ -156,7 +199,7 @@ describe('watchTemplateBrand (protoyard dev)', () => {
         results.push(result);
         notify();
       },
-      { debounceMs: 20 }
+      { debounceMs: DEBOUNCE_MS }
     );
     expect(stop).not.toBeNull();
     cleanups.push(() => stop?.());
@@ -168,12 +211,32 @@ describe('watchTemplateBrand (protoyard dev)', () => {
     expect(results).toEqual([{ status: 'refreshed', themeId: 'harbor' }]);
     expect(brandModule(dir)).toContain("'harbor'");
 
+    // Watch the module's own write the way the watcher sees it.
+    const spy = watch(join(dir, 'src'));
+    cleanups.push(() => spy.close());
+    // Resolves with the blueprint reads counted when the write's event lands.
+    // macOS can deliver an earlier write's event late: only the event that
+    // finds the new brand in the module counts.
+    const ownWrite = new Promise<number>((resolve) =>
+      spy.on('change', (_event, file) => {
+        if (file === 'brand-theme.ts' && brandModule(dir).includes("'fintech-ledger'"))
+          resolve(onModuleRead.blueprintReads);
+      })
+    );
     seen = next();
     setBrand(dir, { libraryTheme: 'fintech-ledger' });
     await seen;
     expect(results.at(-1)).toEqual({ status: 'refreshed', themeId: 'fintech-ledger' });
-    // Its own writes to brand-theme.ts trigger nothing.
-    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    // Its own write to brand-theme.ts starts no refresh. Anchored to that
+    // write's own fs event (seen by a second watcher in the same tick): any
+    // reaction would start reading the blueprint when its debounce timer
+    // fires, and timers fire in order, so a window of 10 debounces after the
+    // event always contains that start, however loaded the machine is (an
+    // early one is counted too: the count is taken at the event).
+    const reads = await ownWrite;
+    await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_MS * 10));
+    expect(onModuleRead.blueprintReads).toBe(reads);
     expect(results).toHaveLength(2);
   });
 
@@ -254,6 +317,17 @@ describe('protoyard validate: brand theme', () => {
     expect(await brandCheck('ci-deck')).toMatchObject({ status: 'warn' });
     expect(brandModule(dir)).not.toBe(before);
     expect(await brandCheck('ci-deck', ['--check'])).toMatchObject({ status: 'pass' });
+  });
+
+  it('never rewrites the deck template itself: a stale template module fails', async () => {
+    await scaffoldDeck('any-deck');
+    const template = join(ws.root, 'templates/deck');
+    setBrand(template, { name: 'Harbor', seed: '#0f766e' });
+    const before = brandModule(template);
+    const result = await brandCheck('deck');
+    expect(result?.status).toBe('fail');
+    expect(result?.details.join(' ')).toContain('templates are never rewritten by validate');
+    expect(brandModule(template)).toBe(before);
   });
 
   it('fails on a symlinked module and never writes through it', async () => {

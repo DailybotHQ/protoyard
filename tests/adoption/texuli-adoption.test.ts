@@ -120,6 +120,31 @@ describe('scanSource', () => {
     expect(rules('templates/x/src/A.svelte', choice)['input-as-choice']).toBe(2);
   });
 
+  it('never opens a comment inside a string (a glob such as *Demo.svelte)', () => {
+    const glob = `const demos = import.meta.glob('../demos/*Demo.svelte');
+import clsx from 'clsx';
+const css = 'a { color: var(--py-fg) }'; /* a real comment */`;
+    expect(rules('prototypes/x/src/registry.ts', glob)).toEqual({
+      'legacy-import': 1,
+      'py-token': 1,
+    });
+    const script = `<script>const all = '**/*'; import clsx from 'clsx'; // done</script>`;
+    expect(rules('templates/x/src/A.svelte', script)['legacy-import']).toBe(1);
+  });
+
+  it('skips JS comments in brace attributes, so an apostrophe there never extends a tag', () => {
+    const source = `<Input onclick={() => { /* don't */ go(); }} type="text" />
+<p>Pick one</p>
+<Checkbox type="checkbox" />`;
+    expect(rules('templates/x/src/A.svelte', source)['input-as-choice']).toBeUndefined();
+    const line = `<Input oninput={(e) => {
+  // it's typed
+  f(e);
+}} type="text" />
+<Checkbox type="checkbox" />`;
+    expect(rules('templates/x/src/A.svelte', line)['input-as-choice']).toBeUndefined();
+  });
+
   it('maps files to pending units', () => {
     expect(unitOf('packages/ui/src/A.svelte')).toBe('packages__ui');
     expect(unitOf('apps/gallery/src/A.astro')).toBe('apps__gallery');

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRouter, navigate } from '../src/router/hash-router.svelte.ts';
 import LazyScreen from './fixtures/LazyScreen.svelte';
 import RouterHarness from './fixtures/RouterHarness.svelte';
+import ShellNavHarness from './fixtures/ShellNavHarness.svelte';
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -204,6 +205,71 @@ describe('<Router> lazy screens', () => {
     });
     expect(router.current.route?.path).toBe('/other');
     router.destroy();
+  });
+
+  describe('from a shell link outside the outlet (the link keeps focus across the remount)', () => {
+    const routes = () =>
+      createRouter([
+        { path: '/', component: LazyScreen, title: 'Home' },
+        { path: '/other', component: LazyScreen, title: 'Other' },
+      ]);
+
+    it('moves focus into the new screen after a keyboard activation', async () => {
+      const router = routes();
+      location.hash = '#/';
+      render(ShellNavHarness, { router });
+      await waitFor(() => expect(screen.getByTestId('lazy-screen')).toBeTruthy());
+      const link = screen.getByRole('link', { name: 'Other' });
+      link.focus();
+      // Enter on a focused link follows its href.
+      await fireEvent.keyDown(link, { key: 'Enter' });
+      location.hash = link.getAttribute('href') ?? '';
+      await waitFor(() => {
+        expect(screen.getByTestId('lazy-screen').dataset.path).toBe('/other');
+        expect(document.activeElement).toBe(document.querySelector('[data-py-router-outlet]'));
+      });
+      router.destroy();
+    });
+
+    it('moves focus into the new screen after a click (browsers focus the clicked link)', async () => {
+      const router = routes();
+      location.hash = '#/';
+      render(ShellNavHarness, { router });
+      await waitFor(() => expect(screen.getByTestId('lazy-screen')).toBeTruthy());
+      const link = screen.getByRole('link', { name: 'Other' });
+      link.focus();
+      await fireEvent.click(link);
+      await waitFor(() => {
+        expect(router.current.path).toBe('/other');
+        expect(document.activeElement).toBe(document.querySelector('[data-py-router-outlet]'));
+      });
+      router.destroy();
+    });
+
+    it('leaves focus that moved while the outlet focus waited', async () => {
+      let focusFrame: FrameRequestCallback | undefined;
+      const requestFrame = vi
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation((callback) => {
+          focusFrame = callback;
+          return 1;
+        });
+      const router = routes();
+      location.hash = '#/';
+      render(ShellNavHarness, { router });
+      await waitFor(() => expect(screen.getByTestId('lazy-screen')).toBeTruthy());
+      const other = screen.getByRole('link', { name: 'Other' });
+      other.focus();
+      navigate('/other');
+      await waitFor(() => expect(screen.getByTestId('lazy-screen').dataset.path).toBe('/other'));
+      // Focus moves before the frame runs (an overlay returning focus, a Tab).
+      const home = screen.getByRole('link', { name: 'Home' });
+      home.focus();
+      focusFrame?.(performance.now());
+      expect(document.activeElement).toBe(home);
+      requestFrame.mockRestore();
+      router.destroy();
+    });
   });
 
   it('focuses a mounted lazy outlet on the next animation frame', async () => {

@@ -186,7 +186,7 @@ function typedInvalid(text: string, reason: DateInvalidReason) {
       if (open) set(next);
     }}
   >
-    <div bind:this={control} class="tx-date__control">
+    <div bind:this={control} class="tx-date__control ui-input">
       <Picker.Field
         class="tx-date__field"
         {id}
