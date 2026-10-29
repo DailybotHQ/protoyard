@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { BLOCK_CATALOG_LIST, renderBlockCatalogMarkdown } from '@protoyard/blocks/catalog';
 import { lintDeckAssets, lintDeckContent } from '@protoyard/blueprint';
@@ -20,6 +28,7 @@ import { inertJson, isSafeDeckPath, SAFE_SLUG } from '@protoyard/decks/text';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { opt } from '../lib/command.ts';
 import { CliError } from '../lib/output.ts';
+import { guardOutputFile } from '../lib/output-guard.ts';
 import { isInside } from '../lib/paths.ts';
 import type { CommandContext } from '../lib/workspace.ts';
 
@@ -612,9 +621,38 @@ export const deckCapabilitiesCommand: Handler = async (): Promise<CommandResult>
  * `@texuli/deck` dialect) to a deck blueprint. The Markdown is read as text,
  * capped at the untrusted-deck size, parsed (every issue with its line and
  * column), written in Protoyard's deck shape and validated like a JSON deck.
- * Without `--out` it prints the blueprint; `--out` writes it (never over an
- * existing file unless `--force`).
+ * Without `--out` it prints the blueprint; `--out` writes it under artifacts/
+ * or tmp/ (guardOutputFile: never through a symlink, never over an existing
+ * file unless `--force`).
  */
+/**
+ * `path` relative to the workspace root, rebased at the ancestor that IS the
+ * root (its real path), so an alias of the root (`/var` for `/private/var`)
+ * still counts as inside while every symlink below the root stays visible to
+ * the guard's lstat walk. Paths with no such ancestor are returned as is (the
+ * guard refuses them as outside the workspace).
+ */
+function relativeToRoot(root: string, path: string): string {
+  const real = (candidate: string): string | null => {
+    try {
+      return realpathSync(candidate);
+    } catch {
+      return null;
+    }
+  };
+  const rootReal = real(root);
+  for (let current = path; ; current = dirname(current)) {
+    // A real folder only: a symlink below the root that points back at it must not rebase.
+    const isRoot =
+      current === root ||
+      (rootReal !== null && real(current) === rootReal && !lstatSync(current).isSymbolicLink());
+    if (isRoot) {
+      return relative(current, path);
+    }
+    if (dirname(current) === current) return path;
+  }
+}
+
 export const deckFromMarkdownCommand: Handler = async (ctx, args, options) => {
   const target = args[0];
   if (!target) {
@@ -657,7 +695,13 @@ export const deckFromMarkdownCommand: Handler = async (ctx, args, options) => {
   const out = opt(options, 'out');
   let written: string | null = null;
   if (blueprint && out) {
-    const destination = resolve(base, out);
+    // The Markdown is untrusted: the file lands only under artifacts/ or tmp/, never
+    // through a symlink (a dangling one included) and never over anything but a file.
+    const destination = guardOutputFile({
+      root: ctx.root,
+      paths: ctx.paths,
+      requested: relativeToRoot(ctx.root, resolve(base, out)),
+    });
     if (existsSync(destination) && options.force !== true) {
       throw new CliError('conflict', `${out} already exists.`, {
         hint: 'Pass --force to replace it, or choose another --out path.',

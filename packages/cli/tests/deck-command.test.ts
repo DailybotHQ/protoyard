@@ -384,14 +384,66 @@ Note: Reveal one step at a time and keep each line short for the room.
     expect(data.blueprint).toMatchObject({ kind: 'deck', name: 'Harbor kickoff' });
     expect(safeParseDeck(data.blueprint.deck).success).toBe(true);
 
-    const out = join(ws.root, 'decks/talk.json');
+    const out = join(ws.root, 'tmp/decks/talk.json');
     const written = await deck('from-markdown', 'talk.md', '--out', out);
     expect(written.code).toBe(0);
-    expect(written.stdout).toMatch(/Wrote \S*decks\/talk\.json \(2 slides\)\./);
+    expect(written.stdout).toMatch(/Wrote \S*tmp\/decks\/talk\.json \(2 slides\)\./);
     expect(existsSync(out)).toBe(true);
-    expect((await deck('lint', 'decks/talk.json')).code).toBe(0);
+    expect((await deck('lint', 'tmp/decks/talk.json')).code).toBe(0);
     // Never over an existing file without --force.
     expect((await deck('from-markdown', 'talk.md', '--out', out)).code).not.toBe(0);
+  });
+
+  describe('--out is guarded like every file the CLI writes from untrusted data', () => {
+    const refused = async (out: string, ...extra: string[]) => {
+      const run = await deckJson('from-markdown', 'talk.md', '--out', out, ...extra);
+      expect(run.code).not.toBe(0);
+      expect(run.json<{ ok: boolean; error: { code: string } }>().error.code).toBe('unsafe_path');
+    };
+
+    it('refuses a path outside the workspace', async () => {
+      ws.write('talk.md', MARKDOWN);
+      const outside = mkdtempSync(join(tmpdir(), 'py-deck-out-'));
+      try {
+        await refused(join(outside, 'x.json'));
+        await refused('../escape.json');
+        expect(existsSync(join(outside, 'x.json'))).toBe(false);
+      } finally {
+        rmSync(outside, { recursive: true, force: true });
+      }
+    });
+
+    it('refuses source folders, even with --force', async () => {
+      ws.write('talk.md', MARKDOWN);
+      ws.write('packages/core/src/index.ts', 'export const kept = true;\n');
+      await refused('packages/core/src/index.ts', '--force');
+      expect(readFileSync(join(ws.root, 'packages/core/src/index.ts'), 'utf8')).toBe(
+        'export const kept = true;\n'
+      );
+    });
+
+    it('never writes through a symlinked file, a dangling symlink or a symlinked folder', async () => {
+      ws.write('talk.md', MARKDOWN);
+      ws.write('victim.txt', 'keep\n');
+      mkdirSync(join(ws.root, 'tmp'), { recursive: true });
+      // A link to an existing file (with --force).
+      symlinkSync(join(ws.root, 'victim.txt'), join(ws.root, 'tmp/link.json'));
+      await refused('tmp/link.json', '--force');
+      expect(readFileSync(join(ws.root, 'victim.txt'), 'utf8')).toBe('keep\n');
+      // A dangling link: existsSync() is false for it, the guard still refuses.
+      symlinkSync(join(ws.root, 'planted.json'), join(ws.root, 'tmp/dangling.json'));
+      await refused('tmp/dangling.json');
+      expect(existsSync(join(ws.root, 'planted.json'))).toBe(false);
+      // A symlinked parent folder pointing out of the safe zone.
+      mkdirSync(join(ws.root, 'src-real'), { recursive: true });
+      symlinkSync(join(ws.root, 'src-real'), join(ws.root, 'tmp/linked-dir'));
+      await refused('tmp/linked-dir/x.json');
+      expect(existsSync(join(ws.root, 'src-real/x.json'))).toBe(false);
+      // A link back to the workspace root: the path still goes through a symlink.
+      symlinkSync(ws.root, join(ws.root, 'tmp/root-link'));
+      await refused('tmp/root-link/tmp/x.json');
+      expect(existsSync(join(ws.root, 'tmp/x.json'))).toBe(false);
+    });
   });
 
   it('reports Markdown issues with their line and column, and refuses HTML and remote media', async () => {
