@@ -1,8 +1,12 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { groupMessages, MessageList, TypingIndicator } from '@texuli/chat';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Avatar from '../src/components/avatar/Avatar.svelte';
+import BottomNav from '../src/components/bottom-nav/BottomNav.svelte';
 import Composer from '../src/components/composer/Composer.svelte';
+import MobileHeader from '../src/components/mobile-header/MobileHeader.svelte';
 import { getPageTokens } from '../src/components/pagination/pages.ts';
 import StatCard from '../src/components/stat-card/StatCard.svelte';
 import UserPicker from '../src/components/user-picker/UserPicker.svelte';
@@ -120,23 +124,47 @@ describe('MobileAppShell', () => {
     const navigation = screen.getByRole('navigation', { name: 'Primary' });
     expect(screen.getByRole('banner')).toBeTruthy();
     expect(main.getAttribute('tabindex')).toBe('-1');
-    expect(main.className).toContain('overflow-y-auto');
-    expect(main.className).toContain('min-h-0');
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeTruthy();
-    expect(navigation.className).not.toContain('fixed');
-    expect(navigation.className).toContain('pb-safe');
+    expect(main.id).toBe('mobile-app-content');
+    // Texuli's MobileAppFrame: the screen region is the only scroller.
+    expect(main.hasAttribute('data-tx-mobile-frame-main')).toBe(true);
+    const save = screen.getByRole('button', { name: 'Save changes' });
+    // The caller's footer sits between the screen and the navigation, unwrapped.
+    expect(main.contains(save)).toBe(false);
+    expect(save.closest('[data-tx-mobile-frame-footer]')).toBeNull();
+    expect(main.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
-      main.compareDocumentPosition(navigation) & Node.DOCUMENT_POSITION_FOLLOWING
+      save.compareDocumentPosition(navigation) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
+    expect(navigation.className).not.toContain('tx-mobile-tabs--fixed');
+    expect(navigation.hasAttribute('data-py-bottom-nav')).toBe(true);
   });
 
   it('keeps its default height out of the class list, so a caller height class wins', () => {
-    // `cn` no longer resolves Tailwind conflicts: the frame height lives in a
-    // lower cascade layer (components) instead of an `h-app` class.
-    render(MobileShellHarness);
+    // The frame height (`--tx-app-height`) lives in Texuli's `@layer tx.components`,
+    // which the renderer orders below Tailwind's utilities.
+    render(MobileShellHarness, { class: 'h-[640px]' });
     const root = screen.getByRole('main').parentElement as HTMLElement;
+    expect(root.hasAttribute('data-tx-mobile-frame')).toBe(true);
     expect(root.classList.contains('ui-mobile-app-shell')).toBe(true);
+    expect(root.classList.contains('h-[640px]')).toBe(true);
     expect(root.classList.contains('h-app')).toBe(false);
+    const css = readFileSync(
+      join(process.cwd(), 'packages/ui/node_modules/texuli/dist/layouts/mobile/mobile.css'),
+      'utf8'
+    );
+    const frameRule = css.slice(css.indexOf('.tx-mobile-frame {'));
+    expect(css).toContain('@layer tx.components {');
+    expect(frameRule).toMatch(/block-size: var\(--tx-app-height, 100dvh\)/);
+    const appCss = readFileSync(
+      join(process.cwd(), 'packages/renderer-svelte/src/app.css'),
+      'utf8'
+    );
+    const order =
+      appCss
+        .match(/@layer ([^;]+);/)?.[1]
+        ?.split(',')
+        .map((name) => name.trim()) ?? [];
+    expect(order.indexOf('tx.components')).toBeLessThan(order.indexOf('utilities'));
   });
 
   it('resets the main scroll position when the hash route changes', async () => {
@@ -146,25 +174,83 @@ describe('MobileAppShell', () => {
     window.dispatchEvent(new HashChangeEvent('hashchange'));
     await waitFor(() => expect(main.scrollTop).toBe(0));
   });
+
+  it('skip link focuses the screen instead of changing the hash route', async () => {
+    render(MobileShellHarness);
+    await fireEvent.click(screen.getByRole('link', { name: 'Skip to content' }));
+    expect(document.activeElement).toBe(screen.getByRole('main'));
+  });
+});
+
+describe('BottomNav', () => {
+  it('marks the active item, keeps badges in the link name and pins by default', () => {
+    render(BottomNav, {
+      items: [
+        { label: 'Home', href: '#/home', active: true },
+        { label: 'Inbox', href: '#/inbox', badge: 3 },
+      ],
+    });
+    const nav = screen.getByRole('navigation', { name: 'Primary' });
+    expect(nav.className).toContain('tx-mobile-tabs--fixed');
+    expect(nav.hasAttribute('data-py-bottom-nav')).toBe(true);
+    expect(screen.getByRole('link', { name: 'Home' }).getAttribute('aria-current')).toBe('page');
+    const inbox = screen.getByRole('link', { name: 'Inbox 3' });
+    expect(inbox.getAttribute('href')).toBe('#/inbox');
+    expect(inbox.hasAttribute('aria-current')).toBe(false);
+  });
+});
+
+describe('MobileHeader', () => {
+  it('renders Back as a link or a button with the given label, then title and actions', async () => {
+    const onBack = vi.fn();
+    render(MobileHeader, { title: 'Account', subtitle: 'Checking', onBack, backLabel: 'Accounts' });
+    expect(screen.getByRole('heading', { level: 1, name: 'Account' })).toBeTruthy();
+    expect(screen.getByText('Checking')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+    cleanup();
+
+    render(MobileHeader, { title: 'Detail', titleAs: 'p', backHref: '#/list', sticky: false });
+    expect(screen.queryByRole('heading')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Back' }).getAttribute('href')).toBe('#/list');
+    expect(screen.getByRole('banner').className).toContain('tx-mobile-header--static');
+  });
 });
 
 describe('Kanban', () => {
-  it('groups items by column and moves through the keyboard-accessible menu', async () => {
+  const column = (name: string) => screen.getByRole('list', { name });
+  const live = () => document.querySelector('[aria-live="polite"]')?.textContent ?? '';
+
+  it('groups items by column in item order and moves through the keyboard-accessible menu', async () => {
     const onMoved = vi.fn();
     render(KanbanHarness, { onMoved });
-    const todo = screen.getByRole('region', { name: 'To do' });
-    expect(within(todo).getByText('Write brief')).toBeTruthy();
+    expect(
+      within(column('To do'))
+        .getAllByRole('listitem')
+        .map((item) => item.textContent?.match(/Write brief|Plan sprint/)?.[0])
+    ).toEqual(['Write brief', 'Plan sprint']);
 
     await fireEvent.click(
       screen.getByRole('button', { name: 'Move Write brief to another column' })
     );
-    const menu = await screen.findByRole('menu');
-    const done = within(menu).getByRole('menuitem', { name: 'Done' });
-    await fireEvent.click(done);
-    await waitFor(() => expect(onMoved).toHaveBeenCalledWith('t1', 'done'));
+    const menu = await screen.findByRole('menu', {}, { timeout: 5000 });
+    // Moving inside its own column is not offered: the host saves columns, not order.
     expect(
-      within(screen.getByRole('region', { name: 'Done' })).getByText('Write brief')
-    ).toBeTruthy();
+      within(menu).getByRole('menuitem', { name: 'To do — top' }).getAttribute('aria-disabled')
+    ).toBe('true');
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Done — top' }));
+    await waitFor(() => expect(onMoved).toHaveBeenCalledWith('t1', 'done'));
+    await waitFor(() => expect(within(column('Done')).getByText('Write brief')).toBeTruthy());
+    expect(within(column('To do')).queryByText('Write brief')).toBeNull();
+    expect(live()).toContain('Moved Write brief to Done');
+  });
+
+  it('passes the column to columnFooter, shows descriptions and follows headingLevel', () => {
+    render(KanbanHarness, { withFooter: true, headingLevel: 4 });
+    expect(screen.getByRole('heading', { level: 4, name: 'In progress' })).toBeTruthy();
+    expect(screen.getByTestId('footer-doing').textContent).toBe('Add to In progress');
+    expect(screen.getByTestId('footer-done').textContent).toBe('Add to Done');
+    expect(screen.getByText('Limit: 3')).toBeTruthy();
   });
 });
 
