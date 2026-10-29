@@ -32,6 +32,7 @@ let {
     <li>
       <Button
         type="button"
+        variant="ghost"
         class={[
           'flex min-h-16 w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
           reason ? 'cursor-not-allowed opacity-60' : 'hover:bg-muted',

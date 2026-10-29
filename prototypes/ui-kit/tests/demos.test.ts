@@ -147,6 +147,15 @@ describe('chart demos', () => {
     );
   });
 
+  it('compact demo keeps percent units in churn, uptime and CPU outputs', async () => {
+    const demo = DEMOS['chart-compact'];
+    if (!demo) throw new Error('missing chart-compact demo');
+    render(await demo.load(), {});
+    expect(document.querySelector('[role="img"][aria-label*="%"]')).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Uptime this month (%)' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'CPU load (%)' })).toBeTruthy();
+  });
+
   it('states demo switches a chart to its error state and recovers on retry', async () => {
     const demo = DEMOS['chart-states'];
     if (!demo) throw new Error('missing chart-states demo');

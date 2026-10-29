@@ -294,6 +294,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
 <!-- `data-py-scroll-root` is reserved for the renderer's own wrapper: the message log
      uses `data-message-log`, or the renderer's layout rules would flatten it. -->
 <div class="flex h-app max-h-app min-h-0 overflow-hidden bg-background text-foreground">
+  <span id="relay-read-only-reason" class="sr-only">{readOnlyReason}</span>
   <aside
     class="{mobilePane === 'channels'
       ? 'flex w-full'
@@ -434,6 +435,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
         <Button
           bind:ref={toolsTrigger}
           type="button"
+          variant="ghost"
           class="inline-flex size-9 min-h-touch min-w-[44px] items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:hidden"
           aria-label="More actions"
           aria-expanded={toolsOpen}
@@ -516,6 +518,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
             <li>
               <Button
                 type="button"
+                variant="ghost"
                 class="text-left hover:underline"
                 onclick={() => {
                   channelId = hit.channelId;
@@ -592,11 +595,13 @@ function closeToolsOnEscape(event: KeyboardEvent) {
                 {#each reactionsByMessage.get(msg.id) ?? [] as chip (chip.emoji)}
                   <Button
                     type="button"
+                    variant="ghost"
                     class="rounded-full border px-1.5 py-0.5 text-xs {chip.mine
                       ? 'border-primary bg-primary/10 text-foreground'
                       : 'border-border bg-muted/40 text-muted-foreground'}"
                     disabled={!canReact}
                     title={canReact ? `Toggle ${chip.emoji}` : readOnlyReason}
+                    aria-describedby={!canReact ? 'relay-read-only-reason' : undefined}
                     aria-label={`${chip.emoji} ${chip.count}${chip.mine ? ', you reacted' : ''}`}
                     onclick={() => void react(msg.id, chip.emoji)}
                   >
@@ -614,6 +619,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
                 aria-label="React with thumbs up"
                 disabled={!canReact}
                 title={canReact ? 'React with thumbs up' : readOnlyReason}
+                aria-describedby={!canReact ? 'relay-read-only-reason' : undefined}
                 onclick={() => void react(msg.id)}
               >
                 👍 React
@@ -688,13 +694,15 @@ function closeToolsOnEscape(event: KeyboardEvent) {
         />
         <Button
           type="submit"
+          variant="default"
           aria-label="Send message"
           disabled={!canPost || (Boolean(activeChannel) && !memberOfChannel)}
           title={canPost
             ? memberOfChannel || !activeChannel
               ? 'Send'
               : 'Join this channel before posting'
-            : readOnlyReason}>Send</Button
+            : readOnlyReason}
+          aria-describedby={!canPost ? 'relay-read-only-reason' : undefined}>Send</Button
         >
       </form>
     </footer>

@@ -35,9 +35,3 @@ async function themeLibrary() {
     retryLabel="Try again"
   />
 {/await}
-
-<style>
-  :global([data-board-card] .text-muted-foreground) {
-    color: var(--tx-primary-foreground);
-  }
-</style>

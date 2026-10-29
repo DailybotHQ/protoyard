@@ -17,6 +17,7 @@ import { onDestroy } from 'svelte';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { provideAssistant } from './lib/context.ts';
+import { sortMessagesForDisplay } from './lib/message-order.ts';
 import Settings from './screens/Settings.svelte';
 import Workspace from './screens/Workspace.svelte';
 
@@ -60,7 +61,9 @@ const activeConversation = $derived(
   ) ?? projectConversations[0]
 );
 const activeMessages = $derived(
-  (messages.current ?? []).filter((message) => message.conversationId === activeConversation?.id)
+  sortMessagesForDisplay(
+    (messages.current ?? []).filter((message) => message.conversationId === activeConversation?.id)
+  )
 );
 const latestAssistantReply = $derived(
   [...activeMessages].reverse().find((message) => message.role === 'assistant')?.content ?? ''
@@ -95,15 +98,25 @@ async function send(conversationId: string, input: AssistantSendInput) {
 async function loadVoice() {
   activeTab = 'voice';
   if (voiceLoaded) return;
-  const module = await import('@protoyard/ai-ui/voice');
-  VoiceMode = module.VoiceMode;
-  voiceLoaded = true;
+  alertText = '';
+  try {
+    const module = await import('@protoyard/ai-ui/voice');
+    VoiceMode = module.VoiceMode;
+    voiceLoaded = true;
+  } catch (error) {
+    alertText = messageOf(error);
+  }
 }
 
 async function loadWidgetDemo() {
   activeTab = 'widget';
   if (WidgetDemo) return;
-  WidgetDemo = (await import('./components/WidgetDemo.svelte')).default;
+  alertText = '';
+  try {
+    WidgetDemo = (await import('./components/WidgetDemo.svelte')).default;
+  } catch (error) {
+    alertText = messageOf(error);
+  }
 }
 
 async function sendVoiceTranscript(prompt: string) {
@@ -170,8 +183,8 @@ function messageOf(error: unknown) {
       <div><p class="text-sm font-semibold">{router.current.route?.title ?? 'Assistant'}</p><p class="text-[0.68rem] text-muted-foreground">A calm place to think, build, and explore</p></div>
       <div class="flex items-center gap-2">
         <Button type="button" variant="ghost" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'assistant' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'assistant'} onclick={() => (activeTab = 'assistant')}><LucideIcon icon={Bot} class="size-4" /> Assistant</Button>
-        <Button type="button" variant="ghost" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'voice' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'voice'} onclick={() => void loadVoice()}><LucideIcon icon={AudioLines} class="size-4" /> Voice</Button>
-        <Button type="button" variant="ghost" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'widget' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'widget'} onclick={() => void loadWidgetDemo()}><LucideIcon icon={MessageSquarePlus} class="size-4" /> Widget demo</Button>
+        <Button type="button" variant="ghost" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'voice' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'voice'} onclick={loadVoice}><LucideIcon icon={AudioLines} class="size-4" /> Voice</Button>
+        <Button type="button" variant="ghost" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'widget' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'widget'} onclick={loadWidgetDemo}><LucideIcon icon={MessageSquarePlus} class="size-4" /> Widget demo</Button>
         <a href="#/settings" class="inline-flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted lg:hidden" aria-label="Settings"><LucideIcon icon={Settings2} class="size-4" /></a>
       </div>
     </header>

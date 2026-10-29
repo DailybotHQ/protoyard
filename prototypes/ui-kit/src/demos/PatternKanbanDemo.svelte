@@ -173,6 +173,7 @@ function remove(): void {
       {#snippet card(task)}
         <Button
           type="button"
+          variant="ghost"
           class="grid w-full gap-2 rounded-md text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           onclick={() => open(task)}
         >

@@ -97,7 +97,7 @@ async function clearMemory() {
       <label class="block text-xs font-medium text-muted-foreground" for="memory-content">Saved memory
         <Textarea id="memory-content" bind:value={memory} maxlength={1200} rows={3} class="mt-2 w-full resize-y rounded-xl border border-border bg-background p-3 text-sm font-normal text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"></Textarea>
       </label>
-      <Button type="button" class="min-h-9 rounded-lg px-3 text-xs font-medium text-primary hover:bg-muted" onclick={() => void clearMemory()}>Clear saved memory</Button>
+      <Button type="button" variant="ghost" class="min-h-9 rounded-lg px-3 text-xs font-medium text-primary hover:bg-muted" onclick={clearMemory}>Clear saved memory</Button>
     </section>
 
     <section class="space-y-4" aria-labelledby="data-title">
@@ -113,7 +113,7 @@ async function clearMemory() {
 
     <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
       <Button type="submit" class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><LucideIcon icon={Save} class="size-4" /> Save settings</Button>
-      <Button type="button" class="min-h-10 rounded-lg border border-destructive/40 px-3 text-xs font-medium text-destructive hover:bg-muted" onclick={() => void clearWorkspace()}>Clear local workspace data</Button>
+      <Button type="button" variant="ghost" class="min-h-10 rounded-lg border border-destructive/40 px-3 text-xs font-medium text-destructive hover:bg-muted" onclick={clearWorkspace}>Clear local workspace data</Button>
     </div>
   </form>
 </section>

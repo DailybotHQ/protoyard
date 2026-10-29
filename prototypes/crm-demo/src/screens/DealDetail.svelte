@@ -115,7 +115,7 @@ const ICONS = { note: MessageSquare, call: Phone, email: Mail, meeting: Users } 
   </EmptyState>
 {:else}
   {@const d = deal.current}
-  <Button type="button" onclick={() => back('/deals')} class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+  <Button type="button" variant="ghost" onclick={() => back('/deals')} class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
     <LucideIcon icon={ArrowLeft} class="size-4" /> Back
   </Button>
 

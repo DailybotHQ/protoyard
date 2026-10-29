@@ -33,6 +33,7 @@ function navigate(href: string): void {
     <p class="text-sm text-muted-foreground">Tap a tab. Opening Alerts clears its badge.</p>
     <Button
       type="button"
+      variant="link"
       class="text-xs font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       onclick={() => (alerts += 1)}
     >
