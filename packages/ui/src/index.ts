@@ -183,6 +183,7 @@ export {
   type PushOverlayOptions,
   type RestoreFocusOptions,
 } from './components/overlay/overlay-stack.ts';
+export { installPopoverOrder } from './components/overlay/popover-order.ts';
 export {
   type OverlayLayer,
   type OverlayLayerOptions,

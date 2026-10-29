@@ -143,7 +143,10 @@ test('finds a ticket with the search palette and attaches a file by drag and dro
     data.items.add(new File(['printer error log'], 'printer-log.txt', { type: 'text/plain' }));
     return data;
   });
-  await page.locator('[data-file-dropzone-zone]').dispatchEvent('drop', { dataTransfer: transfer });
+  // The drop zone is Texuli's FileUpload zone: a group named by the dropzone label.
+  await page
+    .getByRole('group', { name: 'Drop files here' })
+    .dispatchEvent('drop', { dataTransfer: transfer });
   await expect(page.getByText('Attached printer-log.txt', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('printer-log.txt').first()).toBeVisible();
 });

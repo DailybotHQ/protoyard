@@ -15,6 +15,7 @@ import {
 } from 'texuli/command';
 import { cx } from 'texuli/cx';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
+import { installPopoverOrder } from '../overlay/popover-order.ts';
 import type { CommandPaletteItem, CommandPaletteSearch, CommandPaletteSelect } from './types.ts';
 
 interface Props {
@@ -36,6 +37,8 @@ let {
 }: Props = $props();
 
 const portal = useOverlayPortalTarget();
+// Popovers opened inside the overlay stay above Texuli's dialog backdrop (gap N30).
+installPopoverOrder();
 
 let open = $state(false);
 let query = $state('');

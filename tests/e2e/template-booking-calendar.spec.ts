@@ -49,8 +49,8 @@ async function navTo(page: Page, label: string) {
 
 /** Picks an option in a ui Select (a listbox) found by its label. */
 async function choose(page: Page, label: string, option: string | RegExp) {
-  // The Select trigger is a button named by its field label.
-  await page.getByRole('dialog').getByRole('button', { name: label, exact: true }).click();
+  // The Select trigger is a combobox named by its field label.
+  await page.getByRole('dialog').getByRole('combobox', { name: label, exact: true }).click();
   await page.getByRole('option', { name: option }).first().click();
 }
 
