@@ -18,12 +18,39 @@ pnpm protoyard doctor
 pnpm protoyard dev crm-demo
 ```
 
-**Texuli blocks the npm release today.** Eight packages (`@protoyard/themes`, `devtools`,
-`charts`, `charts-ui`, `views`, `views-ui`, `blocks` and `blocks-ui`) declare their Texuli
-dependencies as `link:` specifiers, and `pnpm check:packages` refuses a packed manifest that
-carries one (`LOCAL_DEPENDENCY`). `@protoyard/ui` imports Texuli without declaring it. The
-release needs Texuli on npm and these dependencies declared as registry versions
-([ADR-044](DECISIONS.md)).
+Protoyard consumes the published Texuli `0.4.0` packages from npm at exact
+versions ([TEXULI](TEXULI.md)). The table shows direct workspace dependencies;
+transitive dependencies are omitted. Every template and prototype app also
+declares `texuli@0.4.0` for its Svelte UI. The root pins the complete Texuli
+family used by current and optional surfaces.
+
+| Protoyard package | Direct Texuli dependencies |
+| --- | --- |
+| `@protoyard/ai-ui` | `@texuli/chat`, `texuli` |
+| `@protoyard/analytics-ui` | `@texuli/charts`, `@texuli/data`, `@texuli/date`, `texuli` |
+| `@protoyard/blocks` | `@texuli/blocks` |
+| `@protoyard/blocks-ui` | `@texuli/blocks`, `@texuli/charts`, `@texuli/data`, `texuli` |
+| `@protoyard/charts` | `@texuli/charts`, `@texuli/tokens` |
+| `@protoyard/charts-ui` | `@texuli/charts`, `texuli` |
+| `@protoyard/crud` | `texuli` |
+| `@protoyard/decks-ui` | `texuli` |
+| `@protoyard/devtools` | `@texuli/primitives`, `texuli` |
+| `@protoyard/flows-ui` | `@texuli/workflows`, `texuli` |
+| `@protoyard/gamification-ui` | `texuli` |
+| `@protoyard/pages-ui` | `@texuli/blocks`, `texuli` |
+| `@protoyard/player` | `texuli` |
+| `@protoyard/renderer-svelte` | `texuli` |
+| `@protoyard/review-ui` | `texuli` |
+| `@protoyard/saas-ui` | `texuli` |
+| `@protoyard/themes` | `@texuli/tokens` |
+| `@protoyard/ui` | `@texuli/chat`, `@texuli/core`, `@texuli/data`, `@texuli/date`, `@texuli/primitives`, `texuli` |
+| `@protoyard/views` | `@texuli/data` |
+| `@protoyard/views-ui` | `@texuli/data`, `@texuli/drag`, `@texuli/primitives`, `texuli` |
+| `@protoyard/gallery` | `@texuli/astro`, `@texuli/tokens`, `texuli` |
+
+The workspace's `pnpm-workspace.yaml` release-age policy allows the Texuli
+maintainer's packages to be adopted when released. No Texuli dependency uses
+a local checkout, `link:`, or `file:` specifier.
 
 After the npm release, scaffold a workspace with either supported package manager:
 
