@@ -374,6 +374,16 @@ describe('Calendar', () => {
 });
 
 describe('DatePicker', () => {
+  it('keeps the ui-input hook on the bordered control, so filled and underline profiles apply', () => {
+    const { container } = render(DatePicker, { 'aria-label': 'Due date', locale: 'en-US' });
+    expect(container.querySelector('.tx-date__control')?.classList.contains('ui-input')).toBe(true);
+    cleanup();
+    const range = render(DateRangePicker, { locale: 'en-US' });
+    expect(range.container.querySelector('.tx-date__control')?.classList.contains('ui-input')).toBe(
+      true
+    );
+  });
+
   it('commits a typed date when the field is left, not on every keystroke', async () => {
     const onValueChange = vi.fn();
     render(DatePicker, { 'aria-label': 'Due date', locale: 'en-US', onValueChange });

@@ -64,7 +64,9 @@
 }
 
 :where([data-py-input-style="underline"]) .ui-input:focus-visible,
-.ui-input[data-py-input-style="underline"]:focus-visible {
+.ui-input[data-py-input-style="underline"]:focus-visible,
+:where([data-py-input-style="underline"]) .ui-input:has(:focus-visible),
+.ui-input[data-py-input-style="underline"]:has(:focus-visible) {
   border-bottom-color: var(--color-ring);
   box-shadow: 0 1px 0 var(--color-ring);
   outline: none;
