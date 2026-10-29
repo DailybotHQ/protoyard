@@ -73,5 +73,15 @@
     "path": "packages/pages-ui/src/page/sections/SectionHeader.svelte",
     "rules": ["own-component"],
     "reason": "The opening heading inside a page section that PageHost already renders as the labelled landmark. Texuli's MarketingSection is itself a labelled <section> with its own block padding and takes no heading id or level, so wrapping the header nested a duplicate landmark and added 40-56px of padding (FR-review-2 W13). Texuli has no heading-only section header; reported as a Texuli gap."
+  },
+  {
+    "path": "templates/ai-assistant/src/App.svelte",
+    "rules": ["py-token"],
+    "reason": "Its root sits outside the renderer's layout host, where --tx-app-height is not set, so it reads the renderer-written --py-app-height frame geometry to fit inside device and browser frames; not a semantic design token."
+  },
+  {
+    "path": "templates/plugin-panel/src/app.css",
+    "rules": ["py-token"],
+    "reason": "Its root sits outside the renderer's layout host, where --tx-app-height is not set, so it reads the renderer-written --py-app-height frame geometry to fit inside device and browser frames; not a semantic design token."
   }
 ]

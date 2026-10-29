@@ -25,7 +25,9 @@ const JS_GZIP_BUDGET = 120 * 1024;
 // tracked as a follow-up. The sum covers every emitted stylesheet: the first
 // screen loads only the entry one (page 4,166 B, doc 4,414 B); the rest are
 // lazy block and chart families, with no repeated rule beyond `.tx-sr-only`.
-const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 32_387, doc: 33_905 };
+// Final Review (2026-10-29): page 32,635 B after the review fixes (Button
+// variants, the plain section header), so its cap is measured + 5 %.
+const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 34_267, doc: 33_905 };
 
 interface HostBuild {
   chunks: Rollup.OutputChunk[];

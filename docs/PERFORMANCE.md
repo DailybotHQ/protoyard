@@ -376,9 +376,9 @@ have separate measured guards.
   `docs` width rule), plus the `data-py-layout` mirror.
 - Every layout stays its own lazy chunk.
 - **pages-ui:** on Texuli 0.5.0 the page and doc all-stylesheet totals are
-  31,710 B and 32,290 B (previous 0.4.0: 30,844 B and 30,607 B). Their caps
-  remain 32,387 B and 33,905 B: page's prior cap is already tighter than
-  measured + 5%, while doc's cap equals measured + 5%. The default stays
+  31,710 B and 32,290 B (previous 0.4.0: 30,844 B and 30,607 B); after the
+  Final Review fixes (Button variants, a plain section header) the page is
+  32,635 B. The caps are 34,267 B and 33,905 B, each measured + 5%. The default stays
   20 KB. Initial entry CSS is 4,166 B and 4,414 B; other family CSS remains
   lazy.
 Budgets stay out of `protoyard.json` so performance targets can evolve
