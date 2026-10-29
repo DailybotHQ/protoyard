@@ -21,9 +21,9 @@ describe('theme-catalog helpers', () => {
     expect(cards.some((c) => c.source === 'builtin' && c.id === 'violet')).toBe(true);
     expect(cards.some((c) => c.source === 'library')).toBe(true);
     for (const card of cards) {
-      expect(card.lightStyle).toContain('--py-background:');
-      expect(card.lightStyle).toContain('--py-primary:');
-      expect(card.darkStyle).toContain('--py-background:');
+      expect(card.lightStyle).toContain('--tx-background:');
+      expect(card.lightStyle).toContain('--tx-primary:');
+      expect(card.darkStyle).toContain('--tx-background:');
       expect(card.category.length).toBeGreaterThan(0);
     }
     expect(themeCategories(cards)[0]).toBe('builtin');
@@ -59,9 +59,9 @@ function sampleCard(overrides: Partial<ThemeCardData> = {}): ThemeCardData {
     source: 'builtin',
     chartColors: ['#2563eb', '#0ea5e9'],
     lightStyle:
-      '--py-background:#fff;--py-foreground:#111;--py-primary:#2563eb;--py-primary-foreground:#fff;--py-muted-foreground:#52525b;--py-border:#e4e4e7;--py-surface:#fff;--py-surface-foreground:#111;--py-secondary:#f4f4f5;--py-secondary-foreground:#18181b;--py-destructive:#b91c1c;--py-destructive-foreground:#fff;--py-success:#15803d;--py-chart1:#2563eb;--py-chart2:#0ea5e9;--py-radius:0.5rem;--py-font-sans:system-ui;--py-font-heading:system-ui;--py-letter-spacing-body:0;--py-letter-spacing-heading:0;--py-font-weight-heading:600;--py-shadow-soft:none',
+      '--tx-background:#fff;--py-foreground:#111;--tx-primary:#2563eb;--py-primary-foreground:#fff;--py-muted-foreground:#52525b;--py-border:#e4e4e7;--py-surface:#fff;--py-surface-foreground:#111;--py-secondary:#f4f4f5;--py-secondary-foreground:#18181b;--py-destructive:#b91c1c;--py-destructive-foreground:#fff;--py-success:#15803d;--py-chart1:#2563eb;--py-chart2:#0ea5e9;--py-radius:0.5rem;--py-font-sans:system-ui;--py-font-heading:system-ui;--py-letter-spacing-body:0;--py-letter-spacing-heading:0;--py-font-weight-heading:600;--py-shadow-soft:none',
     darkStyle:
-      '--py-background:#09090b;--py-foreground:#fafafa;--py-primary:#60a5fa;--py-primary-foreground:#0f172a;--py-muted-foreground:#a1a1aa;--py-border:rgb(255 255 255 / 0.1);--py-surface:#18181b;--py-surface-foreground:#fafafa;--py-secondary:#27272a;--py-secondary-foreground:#fafafa;--py-destructive:#f87171;--py-destructive-foreground:#450a0a;--py-success:#4ade80;--py-chart1:#60a5fa;--py-chart2:#22d3ee;--py-radius:0.5rem;--py-font-sans:system-ui;--py-font-heading:system-ui;--py-letter-spacing-body:0;--py-letter-spacing-heading:0;--py-font-weight-heading:600;--py-shadow-soft:none',
+      '--tx-background:#09090b;--py-foreground:#fafafa;--tx-primary:#60a5fa;--py-primary-foreground:#0f172a;--py-muted-foreground:#a1a1aa;--py-border:rgb(255 255 255 / 0.1);--py-surface:#18181b;--py-surface-foreground:#fafafa;--py-secondary:#27272a;--py-secondary-foreground:#fafafa;--py-destructive:#f87171;--py-destructive-foreground:#450a0a;--py-success:#4ade80;--py-chart1:#60a5fa;--py-chart2:#22d3ee;--py-radius:0.5rem;--py-font-sans:system-ui;--py-font-heading:system-ui;--py-letter-spacing-body:0;--py-letter-spacing-heading:0;--py-font-weight-heading:600;--py-shadow-soft:none',
     ...overrides,
   };
 }
@@ -94,7 +94,7 @@ describe('ThemeSwatch', () => {
       expect(results.violations).toEqual([]);
     }
 
-    document.documentElement.dataset.theme = 'light';
+    document.documentElement.dataset.txMode = 'light';
     const { unmount } = render(ThemeSwatch, {
       theme: sampleCard(),
       previewUrl: '/apps/crm-demo/',
@@ -102,13 +102,13 @@ describe('ThemeSwatch', () => {
     await checkAxe();
     unmount();
 
-    document.documentElement.dataset.theme = 'dark';
+    document.documentElement.dataset.txMode = 'dark';
     render(ThemeSwatch, {
       theme: sampleCard({ id: 'fintech-ledger', name: 'Fintech Ledger', category: 'fintech' }),
       previewUrl: '/apps/crm-demo/',
     });
     await checkAxe();
-    document.documentElement.dataset.theme = 'light';
+    document.documentElement.dataset.txMode = 'light';
   });
 });
 
@@ -159,7 +159,7 @@ describe('ThemeBrowser', () => {
   });
 
   it('is axe-clean with filters visible', async () => {
-    document.documentElement.dataset.theme = 'light';
+    document.documentElement.dataset.txMode = 'light';
     render(ThemeBrowser, {
       themes: [sampleCard(), sampleCard({ id: 'rose', name: 'Rose', category: 'builtin' })],
       categories: ['builtin'],

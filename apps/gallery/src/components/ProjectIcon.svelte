@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Badge } from '@protoyard/ui';
 import { monogram } from '@/lib/format';
 
 let {
@@ -15,5 +16,5 @@ let {
     size === 'lg' ? 'size-14 text-2xl' : 'size-10 text-lg',
   ]}
 >
-  {#if icon}{icon}{:else}<span class={size === 'lg' ? 'text-base' : 'text-xs'}>{monogram(name)}</span>{/if}
+  <Badge variant="secondary" class="border-0 bg-transparent p-0 text-inherit">{#if icon}{icon}{:else}{monogram(name)}{/if}</Badge>
 </span>

@@ -46,8 +46,8 @@ describe('ThemeExplorer', () => {
     await waitFor(() =>
       expect(screen.getByTestId('theme-count').textContent).toContain('Showing 1 of 2')
     );
-    expect((screen.getByTestId('theme-collection') as HTMLSelectElement).value).toBe('industry');
-    expect((screen.getByTestId('theme-mood') as HTMLSelectElement).value).toBe('calm');
+    expect(screen.getByTestId('theme-collection').textContent).toContain('industry');
+    expect(screen.getByTestId('theme-mood').textContent).toContain('calm');
 
     await fireEvent.input(screen.getByTestId('theme-search'), { target: { value: 'clinic' } });
     await waitFor(() =>
@@ -55,9 +55,8 @@ describe('ThemeExplorer', () => {
     );
     expect(window.location.search).toContain('q=clinic');
 
-    await fireEvent.change(screen.getByTestId('theme-collection'), {
-      target: { value: 'brand-like' },
-    });
+    await fireEvent.click(screen.getByTestId('theme-collection'));
+    await fireEvent.click(await screen.findByText('brand-like'));
     await waitFor(() =>
       expect(screen.getByTestId('theme-count').textContent).toContain('Showing 0 of 2')
     );
@@ -128,8 +127,8 @@ describe('theme explorer catalog data', () => {
   it('exposes serializable palette styles and chart colors without requiring runtime theme code', async () => {
     const themes = await buildThemeCatalog();
     const card = themes.find((theme) => theme.id === 'violet') as ThemeCardData;
-    expect(card.lightStyle).toContain('--py-background:');
-    expect(card.darkStyle).toContain('--py-background:');
+    expect(card.lightStyle).toContain('--tx-background:');
+    expect(card.darkStyle).toContain('--tx-background:');
     expect(card.chartColors.every((color) => color.startsWith('#'))).toBe(true);
   });
 });

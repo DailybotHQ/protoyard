@@ -1,4 +1,6 @@
 <script lang="ts">
+import { Input, RadioGroup, Textarea } from '@protoyard/ui';
+import { onMount } from 'svelte';
 import { agentPrompt, newCommand } from '@/lib/commands';
 import CommandBlock from './CommandBlock.svelte';
 
@@ -15,6 +17,11 @@ let template = $state(initialTemplate || templates[0]?.slug || '');
 let name = $state('');
 let description = $state('');
 let idea = $state('');
+let hydrated = $state(false);
+
+onMount(() => {
+  hydrated = true;
+});
 
 // Mirrors core checkSlug(): lowercase kebab-case, 2–48 chars.
 const SLUG_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
@@ -43,18 +50,18 @@ function suggestSlug() {
 const input = 'h-10 w-full rounded-lg border border-line bg-bg px-3 text-sm';
 </script>
 
-<div class="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+<div class="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" data-testid="create-builder" data-hydrated={hydrated}>
   <form class="space-y-4 rounded-xl border border-line bg-surface p-5" onsubmit={(e) => e.preventDefault()} aria-describedby="builder-note">
     <p id="builder-note" class="text-sm text-muted">
       This page cannot create files — it builds the exact command to run in your terminal (or to give your coding agent).
     </p>
     <label class="block space-y-1.5">
       <span class="text-sm font-medium">Display name</span>
-      <input class={input} bind:value={name} onblur={suggestSlug} placeholder="Team CRM" maxlength="80" />
+      <Input class={input} bind:value={name} onblur={suggestSlug} placeholder="Team CRM" maxlength="80" />
     </label>
     <label class="block space-y-1.5">
       <span class="text-sm font-medium">Slug <span class="font-normal text-muted">(folder name and URL)</span></span>
-      <input class={[input, 'font-mono']} bind:value={slug} placeholder="team-crm" aria-invalid={slugError !== ''} aria-describedby="slug-help" spellcheck="false" autocomplete="off" />
+      <Input class={[input, 'font-mono']} value={slug} oninput={(event) => (slug = event.currentTarget.value)} placeholder="team-crm" aria-invalid={slugError !== ''} aria-describedby="slug-help" spellcheck="false" autocomplete="off" />
       <span id="slug-help" class={['block text-xs', slugError ? 'text-danger' : 'text-muted']}>{slugError || 'Created at prototypes/<slug>/.'}</span>
     </label>
     <fieldset class="space-y-2">
@@ -62,23 +69,21 @@ const input = 'h-10 w-full rounded-lg border border-line bg-bg px-3 text-sm';
       {#if templates.length === 0}
         <p class="text-sm text-warning">No templates are indexed yet. Run <code class="font-mono">pnpm protoyard index</code>.</p>
       {/if}
-      {#each templates as option (option.slug)}
-        <label class="flex cursor-pointer gap-3 rounded-lg border border-line p-3 has-checked:border-accent has-checked:bg-accent-soft">
-          <input type="radio" name="template" value={option.slug} bind:group={template} class="mt-1 accent-[var(--py-accent)]" />
-          <span class="min-w-0 break-words">
-            <span class="block text-sm font-medium">{option.name} <span class="font-mono text-xs text-muted">{option.slug}</span></span>
-            <span class="block text-xs text-muted">{option.description}</span>
-          </span>
-        </label>
-      {/each}
+      <RadioGroup
+        bind:value={template}
+        name="template"
+        items={templates.map((option) => ({ value: option.slug, label: `${option.name} (${option.slug}) — ${option.description}` }))}
+        aria-label="Template"
+        class="grid gap-2"
+      />
     </fieldset>
     <label class="block space-y-1.5">
       <span class="text-sm font-medium">Description <span class="font-normal text-muted">(optional)</span></span>
-      <input class={input} bind:value={description} maxlength="280" placeholder="Pipeline and accounts for a small sales team" />
+      <Input class={input} bind:value={description} maxlength="280" placeholder="Pipeline and accounts for a small sales team" />
     </label>
     <label class="block space-y-1.5">
       <span class="text-sm font-medium">Idea for your agent <span class="font-normal text-muted">(optional)</span></span>
-      <textarea class={[input, 'h-24 py-2']} bind:value={idea} placeholder="Who uses it, what they do, which flows matter…"></textarea>
+      <Textarea class={[input, 'h-24 py-2']} bind:value={idea} placeholder="Who uses it, what they do, which flows matter…"></Textarea>
     </label>
   </form>
   <div class="space-y-4">

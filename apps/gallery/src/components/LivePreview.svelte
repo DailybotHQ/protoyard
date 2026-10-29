@@ -4,7 +4,9 @@ import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 import Play from '@lucide/svelte/icons/play';
 import RotateCw from '@lucide/svelte/icons/rotate-cw';
 import Square from '@lucide/svelte/icons/square';
+import { Button, Input } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { control } from '@/lib/control.svelte';
 import {
   DEVICES,
@@ -18,6 +20,7 @@ import {
 } from '@/lib/devices';
 import { library } from '@/lib/library.svelte';
 import CommandBlock from './CommandBlock.svelte';
+import GallerySelect from './GallerySelect.svelte';
 import { THEME_ID_PATTERN, withThemeParam } from './marketplace/model';
 
 interface Props {
@@ -219,39 +222,39 @@ async function openManual(event: SubmitEvent) {
     <h2 id={titleId} class="font-medium">Live preview</h2>
     <div role="group" aria-label="Device" class="flex flex-wrap rounded-lg border border-line bg-bg p-0.5" data-testid="devices">
       {#each DEVICES as d (d.id)}
-        <button
+        <Button
           type="button"
           class="rounded-md px-2.5 py-1 text-xs text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
           aria-pressed={device === d.id}
           onclick={() => selectDevice(d.id)}
         >
           {d.label}
-        </button>
+        </Button>
       {/each}
-      <button
+      <Button
         type="button"
         class="rounded-md px-2.5 py-1 text-xs text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
         aria-pressed={device === 'custom'}
         onclick={() => selectDevice('custom')}
       >
         Custom
-      </button>
+      </Button>
     </div>
     {#if device === 'custom'}
       <div class="flex items-center gap-1.5 text-xs text-muted">
-        <label class="flex items-center gap-1">W <input type="number" min="240" max="3840" class="h-7 w-20 rounded-md border border-line bg-bg px-2 text-fg" bind:value={customWidth} /></label>
-        <label class="flex items-center gap-1">H <input type="number" min="240" max="3840" class="h-7 w-20 rounded-md border border-line bg-bg px-2 text-fg" bind:value={customHeight} /></label>
+        <label class="flex items-center gap-1">W <Input type="number" min="240" max="3840" class="h-7 w-20 rounded-md border border-line bg-bg px-2 text-fg" bind:value={customWidth} /></label>
+        <label class="flex items-center gap-1">H <Input type="number" min="240" max="3840" class="h-7 w-20 rounded-md border border-line bg-bg px-2 text-fg" bind:value={customHeight} /></label>
       </div>
     {/if}
     {#if canRotate}
-      <button
+      <Button
         type="button"
         class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 text-xs hover:bg-surface-2"
         onclick={toggleOrientation}
         data-testid="rotate-device"
       >
         Rotate
-      </button>
+      </Button>
     {/if}
     <span class="ml-auto text-xs text-muted">{frame.width}×{frame.height}{scale < 1 ? ` · ${Math.round(scale * 100)}%` : ''}</span>
   </div>
@@ -269,45 +272,37 @@ async function openManual(event: SubmitEvent) {
       {#if scenarios.length > 0}
         <label class="ml-auto flex items-center gap-1.5 text-muted">
           <span>Scenario</span>
-          <select
-            class="h-8 max-w-48 rounded-lg border border-line bg-bg px-2 text-sm text-fg sm:max-w-none"
-            bind:value={scenario}
-            onchange={() => show(embeddedHref(scenario))}
-            data-testid="scenario-select"
-          >
-            <option value="">Saved state{defaultScenario ? ` (first run: ${defaultScenario})` : ''}</option>
-            {#each scenarios as id (id)}<option value={id}>{id}</option>{/each}
-          </select>
+          <GallerySelect class="h-8 max-w-48 rounded-lg border border-line bg-bg px-2 text-sm text-fg sm:max-w-none" bind:value={scenario} onValueChange={() => show(embeddedHref(scenario))} data-testid="scenario-select" items={[{ value: '', label: `Saved state${defaultScenario ? ` (first run: ${defaultScenario})` : ''}` }, ...scenarios.map((id) => ({ value: id, label: id }))]} />
         </label>
       {/if}
       <a class={['inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2', scenarios.length === 0 && 'ml-auto']} href={embeddedHref(scenario)} target="_blank" rel="noopener">
-        <ExternalLink size={14} aria-hidden="true" /> Open
+        <LucideIcon icon={ExternalLink} size={14} aria-hidden="true" /> Open
       </a>
-      <button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" onclick={() => (reloadKey += 1)}>
-        <RotateCw size={14} aria-hidden="true" /> Reload
-      </button>
+      <Button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" onclick={() => (reloadKey += 1)}>
+        <LucideIcon icon={RotateCw} size={14} aria-hidden="true" /> Reload
+      </Button>
     {:else if control.status === 'available'}
       {#if running}
         <span class="inline-flex items-center gap-1.5 text-success"><span class="size-2 rounded-full bg-current"></span>Running at</span>
         <a class="font-mono text-xs underline underline-offset-2" href={running.url} target="_blank" rel="noopener">{running.url}</a>
         <a class="ml-auto inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" href={running.url} target="_blank" rel="noopener">
-          <ExternalLink size={14} aria-hidden="true" /> Open
+          <LucideIcon icon={ExternalLink} size={14} aria-hidden="true" /> Open
         </a>
-        <button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" onclick={() => (reloadKey += 1)}>
-          <RotateCw size={14} aria-hidden="true" /> Reload
-        </button>
-        <button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2 disabled:opacity-50" disabled={busy === 'stopping'} onclick={stop}>
-          <Square size={14} aria-hidden="true" /> {busy === 'stopping' ? 'Stopping…' : 'Stop'}
-        </button>
+        <Button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" onclick={() => (reloadKey += 1)}>
+          <LucideIcon icon={RotateCw} size={14} aria-hidden="true" /> Reload
+        </Button>
+        <Button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2 disabled:opacity-50" disabled={busy === 'stopping'} onclick={stop}>
+          <LucideIcon icon={Square} size={14} aria-hidden="true" /> {busy === 'stopping' ? 'Stopping…' : 'Stop'}
+        </Button>
       {:else}
         <span class="text-muted">Local control server connected.</span>
-        <button type="button" class="ml-auto inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 font-medium text-on-accent hover:bg-accent-hover disabled:opacity-60" disabled={busy === 'starting'} onclick={start} data-testid="start">
-          {#if busy === 'starting'}<LoaderCircle size={14} class="animate-spin" aria-hidden="true" /> Starting…{:else}<Play size={14} aria-hidden="true" /> Start {name}{/if}
-        </button>
+        <Button type="button" class="ml-auto inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 font-medium text-on-accent hover:bg-accent-hover disabled:opacity-60" disabled={busy === 'starting'} onclick={start} data-testid="start">
+          {#if busy === 'starting'}<LucideIcon icon={LoaderCircle} size={14} class="animate-spin" aria-hidden="true" /> Starting…{:else}<LucideIcon icon={Play} size={14} aria-hidden="true" /> Start {name}{/if}
+        </Button>
       {/if}
       {#if error}<p class="w-full text-xs text-danger" role="alert">{error}</p>{/if}
     {:else if control.status === 'checking' || control.status === 'unknown'}
-      <span class="inline-flex items-center gap-1.5 text-muted"><LoaderCircle size={14} class="animate-spin" aria-hidden="true" /> Looking for the local control server…</span>
+      <span class="inline-flex items-center gap-1.5 text-muted"><LucideIcon icon={LoaderCircle} size={14} class="animate-spin" aria-hidden="true" /> Looking for the local control server…</span>
     {:else}
       <div class="w-full space-y-2">
         <p class="text-muted">
@@ -317,9 +312,9 @@ async function openManual(event: SubmitEvent) {
         <form class="flex flex-wrap gap-2" onsubmit={openManual}>
           <label class="min-w-56 flex-1">
             <span class="sr-only">Prototype URL</span>
-            <input type="url" inputmode="url" placeholder="http://localhost:5173/" class="h-9 w-full rounded-lg border border-line bg-bg px-3 font-mono text-xs" bind:value={manualUrl} />
+            <Input type="url" inputmode="url" placeholder="http://localhost:5173/" class="h-9 w-full rounded-lg border border-line bg-bg px-3 font-mono text-xs" bind:value={manualUrl} />
           </label>
-          <button type="submit" class="rounded-lg border border-line px-3 text-sm hover:bg-surface-2">Preview URL</button>
+          <Button type="submit" class="rounded-lg border border-line px-3 text-sm hover:bg-surface-2">Preview URL</Button>
         </form>
         {#if manualError}<p class="text-xs text-danger" role="alert">{manualError}</p>{/if}
       </div>
@@ -412,7 +407,7 @@ async function openManual(event: SubmitEvent) {
             {/key}
             {#if loading && !loadFailed}
               <div
-                class="absolute inset-0 z-30 flex flex-col bg-[color:var(--py-bg,#fafafa)] dark:bg-[color:var(--py-bg,#09090b)]"
+                class="absolute inset-0 z-30 flex flex-col bg-[color:var(--tx-bg,#fafafa)] dark:bg-[color:var(--tx-bg,#09090b)]"
                 style:padding-top={frame.framed && frame.spec ? `${Math.max(frame.spec.statusBar.height, 12)}px` : '0'}
                 style:padding-bottom={frame.framed && frame.spec ? `${frame.spec.homeIndicator.height}px` : '0'}
                 aria-live="polite"
@@ -445,14 +440,14 @@ async function openManual(event: SubmitEvent) {
                     prototype is running, then retry.
                   </p>
                   <div class="flex flex-wrap items-center justify-center gap-2">
-                    <button
+                    <Button
                       type="button"
                       class="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-hover"
                       data-testid="preview-retry"
                       onclick={retryPreview}
                     >
-                      <RotateCw size={14} aria-hidden="true" /> Retry
-                    </button>
+                      <LucideIcon icon={RotateCw} size={14} aria-hidden="true" /> Retry
+                    </Button>
                     {#if previewUrl}
                       <a
                         class="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 text-sm hover:bg-surface-2"
@@ -460,7 +455,7 @@ async function openManual(event: SubmitEvent) {
                         target="_blank"
                         rel="noopener"
                       >
-                        <ExternalLink size={14} aria-hidden="true" /> Open in tab
+                        <LucideIcon icon={ExternalLink} size={14} aria-hidden="true" /> Open in tab
                       </a>
                     {/if}
                   </div>

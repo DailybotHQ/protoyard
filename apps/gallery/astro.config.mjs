@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import svelte from '@astrojs/svelte';
 import tailwindcss from '@tailwindcss/vite';
+import { texuli } from '@texuli/astro';
 import { defineConfig } from 'astro/config';
 import { protoyardRegistry } from './src/integrations/registry-plugin.mjs';
 
@@ -32,6 +33,7 @@ export default defineConfig({
   compressHTML: true,
   integrations: [
     svelte(),
+    texuli({ namespace: 'gallery', bootstrap: 'manual' }),
     protoyardRegistry({
       registryPath: process.env.PROTOYARD_REGISTRY
         ? resolve(process.cwd(), process.env.PROTOYARD_REGISTRY)

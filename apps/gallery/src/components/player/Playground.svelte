@@ -8,6 +8,7 @@ import {
   readBlueprintShareFragment,
 } from '@protoyard/blueprint';
 import { connectPlayer, type PlayerConnection } from '@protoyard/player/embed';
+import { Button, Textarea } from '@protoyard/ui';
 import { onMount } from 'svelte';
 import { parsePastedBlueprint } from './blueprint.ts';
 
@@ -153,7 +154,7 @@ onMount(() => {
   <div class="space-y-4">
     <label class="block space-y-2 text-sm font-medium" for="blueprint-source">
       Blueprint JSON (app, deck, page, or document)
-      <textarea
+      <Textarea
         id="blueprint-source"
         bind:value={source}
         rows="14"
@@ -162,21 +163,21 @@ onMount(() => {
         class="w-full rounded-lg border border-line bg-bg p-3 font-mono text-xs text-fg shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         placeholder="Paste a blueprint JSON document"
         aria-describedby="player-status"
-      ></textarea>
+      ></Textarea>
     </label>
     <div class="flex flex-wrap gap-2">
-      <button
+      <Button
         type="button"
         class="rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent disabled:cursor-wait disabled:opacity-60"
         disabled={busy || !playerReady || source.trim().length === 0}
         onclick={loadPasted}
-      >{busy ? 'Loading…' : 'Load blueprint'}</button>
-      <button
+      >{busy ? 'Loading…' : 'Load blueprint'}</Button>
+      <Button
         type="button"
         class="rounded-md border border-line px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
         disabled={busy || source.trim().length === 0 || !shareAvailable}
         onclick={copyShareLink}
-      >Copy share link</button>
+      >Copy share link</Button>
     </div>
     <p id="player-status" class="min-h-10 text-sm text-muted" role="status" aria-live="polite">{status}</p>
   </div>

@@ -58,5 +58,10 @@
     "path": "packages/ui/src/components/toast/UndoToaster.svelte",
     "rules": ["py-token"],
     "reason": "--py-fixed-right-edge is the renderer's measured visible-viewport offset that keeps the undo toast on screen inside device frames, not a semantic design token."
+  },
+  {
+    "path": "apps/gallery/src/components/marketplace/DeviceThumb.svelte",
+    "rules": ["own-component"],
+    "reason": "Brand-neutral device frames and browser/window chrome are gallery preview fixtures; Texuli provides app shells for product layouts, not screenshot device mockups."
   }
 ]

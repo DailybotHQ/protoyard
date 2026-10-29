@@ -16,9 +16,9 @@ export interface ThemeCardData {
   mood: readonly string[];
   tags: readonly string[];
   source: 'builtin' | 'library';
-  /** Inline style applying light-mode `--py-*` tokens. */
+  /** Inline style applying light-mode `--tx-*` tokens. */
   lightStyle: string;
-  /** Inline style applying dark-mode `--py-*` tokens. */
+  /** Inline style applying dark-mode `--tx-*` tokens. */
   darkStyle: string;
   /** Chart series colors, derived from the precomputed mode styles. */
   chartColors: readonly string[];
@@ -26,9 +26,18 @@ export interface ThemeCardData {
 }
 
 function styleAttr(theme: Theme, mode: 'light' | 'dark'): string {
-  const vars = themeVariables({ theme, resolvedMode: mode, reducedMotion: true });
-  return Object.entries(vars)
-    .map(([name, value]) => `${name}:${value}`)
+  const vars = Object.entries(themeVariables({ theme, resolvedMode: mode, reducedMotion: true }));
+  const overridden = new Set(
+    vars
+      .filter(([name]) => name.startsWith('--py-'))
+      .map(([name]) => name.replace('--py-', '--tx-'))
+  );
+  return vars
+    .filter(([name]) => !name.startsWith('--tx-') || !overridden.has(name))
+    .map(
+      ([name, value]) =>
+        `${name.replaceAll('--py-', '--tx-')}:${value.replaceAll('--py-', '--tx-')}`
+    )
     .join(';');
 }
 
@@ -43,7 +52,7 @@ function cardFromTheme(
 ): ThemeCardData {
   const lightStyle = styleAttr(theme, 'light');
   const darkStyle = styleAttr(theme, 'dark');
-  const chartColors = [...lightStyle.matchAll(/--py-chart([1-8]):([^;]+)/g)]
+  const chartColors = [...lightStyle.matchAll(/--tx-chart([1-8]):([^;]+)/g)]
     .sort((a, b) => Number(a[1]) - Number(b[1]))
     .map((match) => match[2] ?? '')
     .filter(Boolean);

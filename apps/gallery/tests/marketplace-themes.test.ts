@@ -144,9 +144,9 @@ describe('MarketplaceBrowser', () => {
     render(MarketplaceBrowser, {
       props: { entries: shelf, facets: facets(shelf), themes: themeChoices() },
     });
-    const select = screen.getByTestId('market-collection') as HTMLSelectElement;
-    expect([...select.options].map((o) => o.value)).toContain('high-contrast');
-    await fireEvent.change(select, { target: { value: 'high-contrast' } });
+    const select = screen.getByTestId('market-collection');
+    await fireEvent.click(select);
+    await fireEvent.click(await screen.findByRole('option', { name: 'High contrast (1)' }));
     const results = await screen.findByTestId('market-results');
     expect(
       within(results)
