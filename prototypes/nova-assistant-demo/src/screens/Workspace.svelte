@@ -47,13 +47,7 @@ const activeConversation = $derived(
   ) ?? visibleConversations[0]
 );
 const activeMessages = $derived(
-  (messages.current ?? [])
-    .filter((message) => message.conversationId === activeConversation?.id)
-    .sort(
-      (left, right) =>
-        left.createdAt.localeCompare(right.createdAt) ||
-        (left.role === right.role ? 0 : left.role === 'user' ? -1 : 1)
-    )
+  (messages.current ?? []).filter((message) => message.conversationId === activeConversation?.id)
 );
 const activeModelId = $derived(
   activeConversation?.modelId ?? ASSISTANT_MODELS[0]?.id ?? 'py-orbit-small'

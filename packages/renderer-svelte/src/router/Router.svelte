@@ -64,7 +64,8 @@ function focusOutlet(node: HTMLElement): void {
   const path = routeKey;
   if (focusedPath === path) return;
   focusedPath = path;
-  queueMicrotask(() => {
+  requestAnimationFrame(() => {
+    if (focusedPath !== path || !node.isConnected) return;
     if (document.activeElement === node) return;
     node.focus({ preventScroll: true });
   });

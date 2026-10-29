@@ -205,6 +205,34 @@ describe('<Router> lazy screens', () => {
     expect(router.current.route?.path).toBe('/other');
     router.destroy();
   });
+
+  it('focuses a mounted lazy outlet on the next animation frame', async () => {
+    let focusFrame: FrameRequestCallback | undefined;
+    const requestFrame = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((callback) => {
+        focusFrame = callback;
+        return 1;
+      });
+    const router = createRouter([
+      {
+        path: '/',
+        load: async () => ({ default: LazyScreen }),
+      },
+    ]);
+    location.hash = '#/';
+    render(RouterHarness, { router });
+    await waitFor(() => expect(screen.getByTestId('lazy-screen')).toBeTruthy());
+    const outlet = document.querySelector('[data-py-router-outlet]');
+    expect(outlet).toBeTruthy();
+    expect(document.activeElement).not.toBe(outlet);
+    expect(requestFrame).toHaveBeenCalled();
+
+    focusFrame?.(performance.now());
+    await waitFor(() => expect(document.activeElement).toBe(outlet));
+    requestFrame.mockRestore();
+    router.destroy();
+  });
 });
 
 describe('lazy route title + scroll', () => {

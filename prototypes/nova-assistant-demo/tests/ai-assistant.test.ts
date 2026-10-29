@@ -57,6 +57,12 @@ describe('AI assistant template', () => {
     const first = generateAssistantWorld(createGenerateContext(scenario));
     const second = generateAssistantWorld(createGenerateContext(scenario));
     expect(first.tables.messages).toHaveLength(5000);
+    expect(new Set(first.tables.messages.map((message) => message.conversationId)).size).toBe(1);
+    expect(first.tables.messages.map((message) => message.createdAt)).toEqual(
+      [...first.tables.messages]
+        .map((message) => message.createdAt)
+        .sort((left, right) => left.localeCompare(right))
+    );
     expect(second).toEqual(first);
     expect(
       validateWorld(first, { ...definition.integrity, referenceTime: scenario.referenceTime })
