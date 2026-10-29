@@ -73,7 +73,7 @@ async function clearMemory() {
 }
 </script>
 
-<section class="mx-auto max-h-full w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#e9e6ef] bg-white p-5 shadow-sm sm:p-8" aria-labelledby="settings-title">
+<section data-template-light-surface class="mx-auto max-h-full w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#e9e6ef] bg-white p-5 shadow-sm sm:p-8" aria-labelledby="settings-title">
   <a href="#/" class="mb-6 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f7f5fa]"><LucideIcon icon={ArrowLeft} class="size-3.5" /> Back to assistant</a>
   <div class="mb-7 flex items-start gap-3">
     <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#eeeafa] text-[#7662ca]"><LucideIcon icon={Sparkles} class="size-5" /></span>
@@ -112,7 +112,7 @@ async function clearMemory() {
 
     <div class="flex flex-wrap items-center justify-between gap-3 border-t border-[#efedf2] pt-5">
       <Button type="submit" variant="default" class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#302a58] px-4 text-sm font-medium text-white hover:bg-[#403878] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8370db]"><LucideIcon icon={Save} class="size-4" /> Save settings</Button>
-      <Button type="button" variant="destructive" class="min-h-10 rounded-lg border border-[#e6d1cf] px-3 text-xs font-medium hover:bg-[#fff5f3]" onclick={clearWorkspace}>Clear local workspace data</Button>
+      <Button type="button" variant="outline" class="min-h-10 rounded-lg border border-[#e6d1cf] px-3 text-xs font-medium text-[#923e34]" onclick={clearWorkspace}>Clear local workspace data</Button>
     </div>
   </form>
 </section>

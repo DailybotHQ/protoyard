@@ -84,7 +84,7 @@ async function removeProject(id: string) {
             <li class="rounded-2xl border border-border bg-surface p-5 transition-shadow hover:shadow-md">
               <div class="flex items-start justify-between gap-3">
                 <span class="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary"><LucideIcon icon={Rocket} class="size-[19px]" /></span>
-                {#if canDelete}<Button variant="ghost" class="rounded-md p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" type="button" aria-label={`Delete ${project.name}`} disabled={busy} onclick={() => void removeProject(project.id)}><LucideIcon icon={Trash2} class="size-[16px]" /></Button>{/if}
+                {#if canDelete}<Button variant="ghost" class="rounded-md p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" type="button" aria-label={`Delete ${project.name}`} disabled={busy} onclick={() => removeProject(project.id)}><LucideIcon icon={Trash2} class="size-[16px]" /></Button>{/if}
               </div>
               <h2 class="mt-4 text-lg font-semibold">{project.name}</h2>
               <p class="mt-1 min-h-10 text-sm leading-5 text-muted-foreground">{project.summary || 'A shared plan for the next team milestone.'}</p>

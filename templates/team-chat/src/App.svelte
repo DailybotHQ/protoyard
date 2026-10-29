@@ -538,7 +538,8 @@ function closeToolsOnEscape(event: KeyboardEvent) {
             <li>
               <Button
                 type="button"
-                class="text-left hover:underline"
+                variant="ghost"
+                class="flex w-full justify-start whitespace-normal text-left hover:underline"
                 onclick={() => {
                   channelId = hit.channelId;
                   threadId = hit.threadId;

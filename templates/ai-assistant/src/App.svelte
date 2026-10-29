@@ -91,9 +91,14 @@ async function send(conversationId: string, input: AssistantSendInput) {
 async function loadVoice() {
   activeTab = 'voice';
   if (voiceLoaded) return;
-  const module = await import('@protoyard/ai-ui/voice');
-  VoiceMode = module.VoiceMode;
-  voiceLoaded = true;
+  alertText = '';
+  try {
+    const module = await import('@protoyard/ai-ui/voice');
+    VoiceMode = module.VoiceMode;
+    voiceLoaded = true;
+  } catch (error) {
+    alertText = messageOf(error);
+  }
 }
 
 async function sendVoiceTranscript(prompt: string) {

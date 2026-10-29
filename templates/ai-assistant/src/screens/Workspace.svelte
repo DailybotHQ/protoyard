@@ -99,10 +99,14 @@ async function send(conversationId: string, input: AssistantSendInput) {
 }
 
 async function loadCanvas() {
-  if (!CanvasPanel) CanvasPanel = (await import('../components/LazyCanvas.svelte')).default;
-  if (!settings.current?.canvas)
-    await services.updateCanvas('Start shaping an idea here. Changes are saved in this browser.');
-  canvasOpen = true;
+  try {
+    if (!CanvasPanel) CanvasPanel = (await import('../components/LazyCanvas.svelte')).default;
+    if (!settings.current?.canvas)
+      await services.updateCanvas('Start shaping an idea here. Changes are saved in this browser.');
+    canvasOpen = true;
+  } catch (error) {
+    report(error);
+  }
 }
 
 async function shareConversation() {
