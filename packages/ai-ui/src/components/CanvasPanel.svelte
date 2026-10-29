@@ -1,10 +1,10 @@
 <script lang="ts">
-import { Check, Copy } from '@lucide/svelte';
+import { Copy } from '@lucide/svelte';
 import { IconButton } from 'texuli/button';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { Textarea } from 'texuli/input';
-import { Code } from 'texuli/kbd-code';
+import { Code, CopyButton } from 'texuli/kbd-code';
 import type { AssistantCanvas } from '../types.ts';
 
 interface Props {
@@ -14,20 +14,7 @@ interface Props {
 }
 
 let { document, onChange, onClose }: Props = $props();
-let copied = $state(false);
 let copyError = $state(false);
-
-async function copyContent(): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(document.content);
-    copied = true;
-    copyError = false;
-    setTimeout(() => (copied = false), 1400);
-  } catch {
-    copyError = true;
-    copied = false;
-  }
-}
 </script>
 
 <aside class="flex min-h-0 min-w-0 flex-col border-l border-border bg-surface" aria-label="Canvas">
@@ -36,10 +23,16 @@ async function copyContent(): Promise<void> {
       <h2 class="truncate text-sm font-semibold">{document.title}</h2>
       <p class="text-[0.7rem] text-muted-foreground">{document.kind === 'code' ? document.language ?? 'Code' : 'Document'} canvas</p>
     </div>
-    <!-- Its own copy (not CopyButton): a failed clipboard write shows the alert below. -->
-    <IconButton variant="ghost" label="Copy canvas content" onclick={copyContent}>
-      <LucideIcon icon={copied ? Check : Copy} size="sm" />
-    </IconButton>
+    <!-- CopyButton announces "Canvas copied"; a failed clipboard write shows the alert below. -->
+    <CopyButton
+      value={document.content}
+      label="Copy canvas content"
+      copiedLabel="Canvas copied"
+      onCopy={() => (copyError = false)}
+      onCopyError={() => (copyError = true)}
+    >
+      <LucideIcon icon={Copy} size="sm" />
+    </CopyButton>
     {#if onClose}<IconButton variant="ghost" label="Close canvas" onclick={onClose}><Icon icon="close" size="sm" /></IconButton>{/if}
   </header>
   {#if document.kind === 'code'}
@@ -65,5 +58,5 @@ async function copyContent(): Promise<void> {
       onValueChange={(value) => onChange?.(value)}
     />
   {/if}
-  {#if copyError}<p role="alert" class="border-t border-border px-4 py-2 text-xs text-destructive">Clipboard access is unavailable in this browser.</p>{:else if copied}<p class="sr-only" role="status">Canvas copied.</p>{/if}
+  {#if copyError}<p role="alert" class="border-t border-border px-4 py-2 text-xs text-destructive">Clipboard access is unavailable in this browser.</p>{/if}
 </aside>

@@ -44,7 +44,6 @@ describe('AssistantComposer', () => {
     const sending = await screen.findByRole('button', { name: 'Sending message' });
     expect(sending.getAttribute('aria-busy')).toBe('true');
     expect((sending as HTMLButtonElement).disabled).toBe(true);
-    expect(sending.querySelector('[data-composer-sending]')).not.toBeNull();
     await fireEvent.keyDown(prompt, { key: 'Enter' });
     expect(onSubmit).toHaveBeenCalledTimes(1);
     release();
@@ -97,6 +96,44 @@ describe('AssistantComposer', () => {
       { key: 'Escape' }
     );
     expect(onStop).toHaveBeenCalledTimes(1);
+    await fireEvent.click(screen.getByRole('button', { name: 'Stop response' }));
+    expect(onStop).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('button', { name: 'Send message' })).toBeNull();
+  });
+
+  it('Enter picks the highlighted suggestion instead of sending, and the arrows move it', async () => {
+    const onSubmit = vi.fn();
+    render(AssistantComposer, { onSubmit, slashCommands: ['/summarize', '/search'] });
+    const prompt = screen.getByRole('textbox', { name: 'Message the simulated assistant' });
+    await fireEvent.input(prompt, { target: { value: '/s' } });
+    await fireEvent.keyDown(prompt, { key: 'ArrowDown' });
+    expect(screen.getByRole('option', { name: '/search' }).getAttribute('aria-selected')).toBe(
+      'true'
+    );
+    await fireEvent.keyDown(prompt, { key: 'Enter' });
+    expect((prompt as HTMLTextAreaElement).value).toBe('/search ');
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('keeps the draft and the attachments when onSubmit returns false, and shows the error on reject', async () => {
+    const file = new File(['brief'], 'brief.txt', { type: 'text/plain' });
+    const onSubmit = vi.fn().mockResolvedValueOnce(false).mockRejectedValueOnce(new Error('x'));
+    render(AssistantComposer, { onSubmit });
+    const prompt = screen.getByRole('textbox', { name: 'Message the simulated assistant' });
+    await fireEvent.input(prompt, { target: { value: 'Keep me' } });
+    await fireEvent.change(screen.getByLabelText('Choose attachments'), {
+      target: { files: [file] },
+    });
+    await fireEvent.keyDown(prompt, { key: 'Enter' });
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect((prompt as HTMLTextAreaElement).value).toBe('Keep me');
+    expect(screen.getByText('brief.txt')).toBeTruthy();
+    await fireEvent.keyDown(prompt, { key: 'Enter' });
+    expect(await screen.findByRole('alert')).toHaveProperty(
+      'textContent',
+      'The message could not be sent. Your draft is still here.'
+    );
+    expect((prompt as HTMLTextAreaElement).value).toBe('Keep me');
   });
 });
 
@@ -118,7 +155,7 @@ describe('AssistantComposer attachments', () => {
       target: { files: [file] },
     });
     expect(screen.getByText('brief.txt')).toBeTruthy();
-    await fireEvent.click(screen.getByRole('button', { name: 'Remove: brief.txt' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove brief.txt' }));
     await waitFor(() => expect(screen.queryByText('brief.txt')).toBeNull());
   });
 });
@@ -142,16 +179,15 @@ describe('MessageList', () => {
   ];
 
   it('renders each message as a Texuli chat message with the simulated marker', () => {
-    const { container } = render(MessageList, { messages: thread, conversationId: 'c1' });
-    expect(container.querySelectorAll('[data-tx-chat-display-message]').length).toBe(2);
+    render(MessageList, { messages: thread, conversationId: 'c1' });
+    const log = screen.getByRole('log', { name: 'Conversation messages' });
+    expect(log.hasAttribute('data-tx-chat-message-list')).toBe(true);
     expect(screen.getByRole('article', { name: 'Your message' }).textContent).toContain(
       'Plan the launch'
     );
-    expect(screen.getByRole('article', { name: 'Assistant message' })).toBeTruthy();
-    expect(container.querySelector('[data-role="user"]')?.textContent).toContain('Plan the launch');
-    const agent = container.querySelector('[data-role="agent"]');
-    expect(agent?.textContent).toContain('Simulated');
-    expect(agent?.querySelector('strong')?.textContent).toBe('Step one');
+    const agent = screen.getByRole('article', { name: 'Assistant message' });
+    expect(agent.textContent).toContain('Simulated');
+    expect(agent.querySelector('strong')?.textContent).toBe('Step one');
   });
 
   it('keeps feedback, branches and edit-and-resend', async () => {
@@ -177,7 +213,26 @@ describe('MessageList', () => {
     const editor = screen.getByRole('textbox', { name: 'Edit your message' });
     await fireEvent.input(editor, { target: { value: 'Plan the beta launch' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Save and resend' }));
-    expect(onEditMessage).toHaveBeenCalledWith('u1', 'Plan the beta launch');
+    await waitFor(() => expect(onEditMessage).toHaveBeenCalledWith('u1', 'Plan the beta launch'));
+  });
+
+  it('marks the last reply as writing while streaming, with its actions held back', () => {
+    render(MessageList, {
+      messages: thread,
+      conversationId: 'c1',
+      streaming: true,
+      onFeedback: vi.fn(),
+      onRegenerate: vi.fn(),
+    });
+    expect(screen.getByText('Writing…')).toBeTruthy();
+    expect(screen.getByText('Writing a reply…')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Helpful response' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Regenerate response' })).toBeNull();
+  });
+
+  it('offers no edit control without onEditMessage', () => {
+    render(MessageList, { messages: thread, conversationId: 'c1' });
+    expect(screen.queryByRole('button', { name: 'Edit your message' })).toBeNull();
   });
 });
 

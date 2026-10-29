@@ -153,12 +153,19 @@ test.describe('gallery', () => {
 
   test('theme toggle applies without reload and persists', async ({ page }) => {
     await page.goto('/');
-    await hydrated(page, '[aria-label="Color theme"]');
-    await page.getByRole('button', { name: 'Dark theme' }).click();
+    // Texuli's AppearanceSwitcher reads the stored choice once it has mounted.
+    const switcher = page.getByRole('radiogroup', { name: 'Color theme' });
+    await expect(switcher).toHaveAttribute('data-tx-appearance', 'system');
+    await switcher.getByRole('radio', { name: 'Dark' }).check();
     await expect(page.locator('html')).toHaveAttribute('data-tx-mode', 'dark');
     await page.reload();
     // Set by the inline head script before paint, i.e. no flash of light theme.
     await expect(page.locator('html')).toHaveAttribute('data-tx-mode', 'dark');
+    await expect(switcher.getByRole('radio', { name: 'Dark' })).toBeChecked();
+    await switcher.getByRole('radio', { name: 'System' }).check();
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem('texuli.gallery.appearance')))
+      .toBeNull();
   });
 
   test('migrates the previous saved mode into Texuli appearance storage once', async ({ page }) => {

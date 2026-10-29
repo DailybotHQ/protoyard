@@ -53,9 +53,9 @@ describe('AssistantWidget', () => {
     const prompt = await screen.findByRole('textbox', { name: 'Message the simulated assistant' });
     await fireEvent.input(prompt, { target: { value: 'Keep this draft' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Close assistant' }));
-    expect((container.querySelector('#assistant-prompt') as HTMLTextAreaElement).value).toBe(
-      'Keep this draft'
-    );
+    expect(
+      (container.querySelector('[data-tx-chat-composer] textarea') as HTMLTextAreaElement).value
+    ).toBe('Keep this draft');
     expect(window.localStorage.getItem('protoyard:ai-widget-mode:support-demo')).toBe('launcher');
     unmount();
 

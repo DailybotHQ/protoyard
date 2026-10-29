@@ -15,9 +15,6 @@ import { hostOf, isInlineImageUrl } from './format.ts';
 let { block }: { block: LinkPreviewBlock } = $props();
 
 const site = $derived(block.siteName ?? hostOf(block.url));
-// Card renders an <a> for `href` but types its props as HTMLAttributes, so the
-// anchor-only attributes travel in a spread.
-const NEW_TAB = { target: '_blank', rel: 'noopener noreferrer' } as const;
 </script>
 
 <Card
@@ -25,7 +22,8 @@ const NEW_TAB = { target: '_blank', rel: 'noopener noreferrer' } as const;
   data-py-message-block="link_preview"
   href={block.url}
   hrefTrust="untrusted"
-  {...NEW_TAB}
+  target="_blank"
+  rel="noopener noreferrer"
 >
   {#if block.image && isInlineImageUrl(block.image)}
     <img class="size-16 shrink-0 rounded-md border border-border object-cover" src={block.image} alt="" loading="lazy" />

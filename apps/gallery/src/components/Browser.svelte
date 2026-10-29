@@ -135,7 +135,7 @@ const views = [
       </label>
       <div role="group" aria-label="Kind" class="flex rounded-lg border border-line bg-bg p-0.5">
         {#each kinds as kind (kind.value)}
-          <Button
+          <Button variant="ghost"
             type="button"
             class="rounded-md px-3 py-1.5 text-sm text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
             aria-pressed={query.kind === kind.value}
@@ -165,7 +165,7 @@ const views = [
       </label>
       <div role="group" aria-label="Show" class="ml-auto flex rounded-lg border border-line bg-bg p-0.5">
         {#each views as view (view.value)}
-          <Button
+          <Button variant="ghost"
             type="button"
             class="rounded-md px-2.5 py-1 text-sm text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
             aria-pressed={query.view === view.value}
