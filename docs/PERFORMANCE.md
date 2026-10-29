@@ -58,7 +58,7 @@ so they remain unchanged.
 
 | Entry | Initial JS gzip | Initial CSS gzip (ceiling) | All reachable CSS | All-CSS ceiling |
 | --- | ---: | ---: | ---: | ---: |
-| `index.html` | 102,023 B | 15,330 B (15.8 KB; was 36 KB) | 134.454 KB (was 129.7 KB) | 136.2 KB |
+| `index.html` | 102,023 B | 16,207 B (17.0 KB; was 36 KB) | 134.454 KB (was 129.7 KB) | 136.2 KB |
 | `deck.html` | 101,910 B | 16,496 B (17.0 KB; was 36 KB) | 107.663 KB (was 105.6 KB) | 110.9 KB |
 | `page.html` | 101,909 B | 17,833 B (18.3 KB; was 36 KB) | 108.956 KB (was 106.9 KB) | 112.3 KB |
 | `doc.html` | 101,907 B | 17,833 B (18.3 KB; was 36 KB) | 108.956 KB (was 106.9 KB) | 112.3 KB |
@@ -359,7 +359,7 @@ CSS budgets below.
 | `atlas-workspace-demo` | 38.64 → 37.95 KB | 40.6 → 39.9 KB |
 | `nova-assistant-demo` | 30.89 → 30.60 KB | 32.5 → 32.2 KB |
 | `pebblestat-analytics-demo` | 38.38 → 37.54 KB | 40.3 → 39.5 KB |
-| `player` initial CSS | 17.07–19.69 KB (historical 0.3) → 14.97 KB | 36 → 15.8 KB |
+| `player` initial CSS | 17.07–19.69 KB (historical 0.3) → 15.83 KB | 36 → 17.0 KB |
 
 Every other prototype uses the 30 KB default. The content-kind initial-CSS
 caps are 17.0 KB for deck and 18.3 KB for page and doc; all-stylesheet totals

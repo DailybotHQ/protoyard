@@ -44,8 +44,8 @@
       "reason": "Texuli 0.5.0: measured 37.54 KB CSS gzip; +5% rounded up to 39.5 KB, lower than the prior 40.3 KB ceiling."
     },
     "player": {
-      "cssGzipKb": 15.8,
-      "reason": "Texuli 0.5.0: index.html initial CSS measured 15,330 B (14.97 KB); +5% rounded up to 15.8 KB, lower than the prior 36 KB ceiling."
+      "cssGzipKb": 17.0,
+      "reason": "Texuli 0.5.0: index.html initial CSS measured 16,207 B (15.83 KB) once @protoyard/ui/styles.css loads the sheet parts (so published declarations carry no .css import); +5% rounded up to 17.0 KB, lower than the prior 36 KB ceiling."
     },
     "pulse-revenue-demo": {
       "cssGzipKb": 52.4,
