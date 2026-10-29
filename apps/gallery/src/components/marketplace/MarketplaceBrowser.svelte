@@ -99,7 +99,7 @@ const sourceKinds = [
       </label>
       <div role="group" aria-label="Source type" class="flex flex-wrap rounded-lg border border-line bg-bg p-0.5">
         {#each sourceKinds as kind (kind.value)}
-          <Button variant="ghost"
+          <Button
             type="button"
             variant="ghost"
             class="rounded-md px-3 py-1.5 text-sm text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
