@@ -227,7 +227,9 @@ test.describe('deck chrome controls', () => {
       await expect.poll(() => printedLayout(page)).toBe(true);
     });
 
-    test('on paper, Ctrl/Cmd+P prints the sheet alone, every page unclipped', async ({ page }) => {
+    test('in print media, the print sheet shows alone with every page unclipped', async ({
+      page,
+    }) => {
       await openDeck(page);
       await expect(root(page)).toHaveAttribute('data-py-deck-print-ready', 'true');
       await page.emulateMedia({ media: 'print' });
