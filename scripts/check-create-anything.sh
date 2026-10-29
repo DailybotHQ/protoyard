@@ -63,6 +63,8 @@ for dir in templates/*/; do
   step "new --template $template" py new "$slug" --template "$template" --no-install
 done
 step "install the scaffolded prototypes" pnpm install --prefer-offline
+# `--no-install` defers workspace linking, including the new command's spec refresh.
+# This batch path alone needs a refresh after linking; documented create paths do it themselves.
 refresh_scaffolded_specs() {
   local dir slug
   for dir in prototypes/zz-new-*/; do
@@ -83,18 +85,18 @@ done
 generate_kind() {
   local slug="$1" blueprint="$2"
   py generate "$slug" --blueprint "$blueprint" && pnpm install --prefer-offline &&
-    refresh_spec "$slug" && py validate "$slug" --build
+    py validate "$slug" --build
 }
-step "generate app" generate_kind zz-gen-app "$(ls blueprints/*.json | head -1)"
+step "generate app" generate_kind zz-gen-app "$(printf '%s\n' blueprints/*.json | head -n 1)"
 step "generate deck (everything)" generate_kind zz-gen-deck blueprints/decks/everything.json
-step "generate page" generate_kind zz-gen-page "$(ls blueprints/pages/*.json | head -1)"
-step "generate doc" generate_kind zz-gen-doc "$(ls blueprints/docs/*.json | head -1)"
+step "generate page" generate_kind zz-gen-page "$(printf '%s\n' blueprints/pages/*.json | head -n 1)"
+step "generate doc" generate_kind zz-gen-doc "$(printf '%s\n' blueprints/docs/*.json | head -n 1)"
 
 # 3. Prose brief → blueprint → generated prototype.
 brief() {
   echo "A field-service app where dispatchers assign repair jobs to technicians, track parts and bill customers" |
     pnpm --silent protoyard blueprint new tmp/zz-brief.blueprint.json --from-brief - --generate zz-brief &&
-    pnpm install --prefer-offline && refresh_spec zz-brief && py validate zz-brief --build
+    pnpm install --prefer-offline && py validate zz-brief --build
 }
 step "brief → blueprint → prototype" brief
 
