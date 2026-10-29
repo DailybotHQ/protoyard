@@ -368,7 +368,8 @@ for (const level of Object.keys(LEVELS) as Level[]) {
           } else if (kind === 'calculator') {
             const outputs = block.locator('[aria-live="polite"]').first();
             const before = await outputs.innerText();
-            const slider = block.locator('input[type="range"]').first();
+            // Texuli's Slider: the thumb is the role="slider" control that takes the keys.
+            const slider = block.getByRole('slider').first();
             await slider.focus();
             await page.keyboard.press('ArrowRight');
             await page.keyboard.press('ArrowRight');
