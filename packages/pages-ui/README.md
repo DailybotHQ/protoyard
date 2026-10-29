@@ -76,10 +76,11 @@ Texuli `Stat` cards, the hero eyebrow a `Badge`, quote attributions an
 closed Markdown subset: text and safe links, never HTML) and an unknown block
 is a `Callout`. Styles read `--tx-*` tokens. `SectionHeader` keeps
 page-specific type scale and inverted-section styling around Texuli's
-`MarketingSection`. `DocHost` owns the reading shell and active-heading
-tracking. Texuli 0.5.0's `ContentLayout` accepts the host's exact TOC ids, but
-does not provide the page's live form services or heading-block-only tracking
-contract.
+`MarketingSection`. `DocHost` owns the reading shell, TOC and active-heading
+tracking; it does not use Texuli's `ContentLayout` because that API does not
+provide active-heading tracking with `aria-current="location"` for the host's
+heading-block contract (G52). Form services also remain supplied by the
+Protoyard host.
 `packages/blocks-ui/tests/comparison-render.test.ts` proves that every catalog
 block type resolves to a renderer through this host and through blocks-ui's
 registry.

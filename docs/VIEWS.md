@@ -21,16 +21,25 @@ Protoyard keeps the parts that need its runtime:
   grid, tree, map, files and activity are thin host adapters over the matching
   `@texuli/data` component. An adapter maps a `liveQuery` result (`query`) to
   the component's data prop, wraps it in `QueryState`, and runs mutation
-  callbacks through `runService`. `virtual-list` is a plain re-export.
+  callbacks through `runService`. The package also re-exports the matching
+  engines and `@texuli/data/virtual-list`; grid rendering selects
+  `@texuli/data/board`, `calendar/view`, `timeline`, `grid-core`,
+  `grid-editing`, `grid-virtual`, `tree-view`, `map`, `files` and `activity`.
+  Grid filters use `@texuli/data/filter-builder`.
 - **Protoyard-owned behavior:** editor, notifications, settings, states,
   commands, `CommentThread`, `OutlineEditor` and the grid toolkit
   (`FilterBuilder`, `SavedViews`, `FilterChips`, `FacetPicker`,
   `ColumnChooser`, `BulkActionBar`) retain Protoyard's public state/service
-  contracts and use Texuli-backed controls. `CommentThread`,
-  `NotificationCenter`, `OutlineEditor` and Markdown source editing also keep
-  their Protoyard-specific host behavior; the missing Texuli 0.3.0 APIs are
-  tracked as G17 (editor/Markdown round-trip), G18 (recursive filter authoring)
-  and G19 (notification inbox/read actions).
+  contracts and use Texuli-backed controls. Markdown preview uses the safe
+  Protoyard Markdown parser; Texuli's `@texuli/blocks/text/renderers` handles
+  ordinary rich text. The source editor keeps Protoyard's mention, reference
+  and slash-command extensions because `@texuli/editor/markdown` does not yet
+  expose extension-node hooks (G48). The grid filter editor uses
+  `@texuli/data/filter-builder`; analytics adds a thin adapter for its
+  property catalog and operator set, which that API does not yet allow hosts
+  to extend (G49). `NotificationCenter` keeps its recipient-scoped rows and
+  mark-read service callbacks; the Texuli inbox API still needs a way to hide
+  mark-unread or accept a separate `onMarkUnread` callback (G50).
 
 Texuli view schemas use `DataSchema` (`parse` / `safeParse`), not zod. The
 mapping table and limits are in
@@ -200,6 +209,9 @@ Method notes are in [`PERFORMANCE.md`](PERFORMANCE.md#views-kit).
   ui-kit grid demo, so there is no current 100,000-row measurement.
 - The editor is a Texuli `Textarea`-based Markdown editor, not a WYSIWYG editor. Its
   preview renders a safe syntax tree as elements and never injects HTML.
+- `NotificationCenter` is Protoyard's service adapter around Texuli controls;
+  mark-read operations remain service callbacks. Texuli's inbox API currently
+  exposes a mark-unread action that this host cannot wire to its service (G50).
 - These packages provide simulated prototype behavior. They are not a
   production calendar, geographic information system, file backend or
   collaborative service.

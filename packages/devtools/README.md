@@ -71,7 +71,7 @@ Styling: the panel consumes Texuli's `--tx-*` tokens and mounts in its own
 visible-right-edge layout value is copied to a DevTools-local CSS variable so
 the launcher and panel keep their existing viewport positioning.
 
-**Built on Texuli 0.3.0.** The panel uses `Button` from `texuli/button`,
+**Built on Texuli 0.5.0.** The panel uses `Button` from `texuli/button`,
 `Input` and `Textarea` from `texuli/input`, `Select` from `texuli/select`,
 `Checkbox`, `Radio` and `Switch` from `texuli/choice`, `Slider` from
 `texuli/slider`, `Spinner` from `texuli/feedback`, `Card` from `texuli/card`,
@@ -83,10 +83,9 @@ and other Lucide components through `LucideIcon` from
 `--tx-*` tokens aligned with the active appearance
 ([docs/TEXULI.md](../../docs/TEXULI.md#themes-come-from-texulitokens)).
 
-`Initials` remains a minimal avatar adapter because Texuli 0.3.0's Avatar does
-not accept `srcset`/`sizes` while preserving the renderer's URL trust policy
-(open Texuli gap G10). It retains the validated resolver source, 2x source set,
-and initials fallback when an image fails.
+`Initials` is a presentation wrapper around Texuli's `Avatar`; it passes the
+resolver's validated `src` and `srcset` and applies the panel's persona color.
+Texuli 0.5.0 accepts responsive sources under the same URL trust policy.
 
 ## Working on top of app modals
 
