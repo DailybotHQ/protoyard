@@ -8,6 +8,7 @@ import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import { overlayDismissHandler } from './dismiss.ts';
 import { type DrawerPlacement, isDrawerPlacement, resolveDrawerSize } from './drawer.ts';
+import { installPopoverOrder } from './popover-order.ts';
 import './sheet-parts.css';
 import { type OverlayStack, overlayStack } from './overlay-stack.ts';
 import { useOverlayLayer } from './use-overlay-layer.svelte.ts';
@@ -68,6 +69,8 @@ let {
 }: Props = $props();
 
 const portal = useOverlayPortalTarget();
+// Popovers opened inside the overlay stay above Texuli's dialog backdrop (gap N30).
+installPopoverOrder();
 // The stack is fixed for the drawer's lifetime; handlers use `layer.stack`.
 // svelte-ignore state_referenced_locally
 const layer = useOverlayLayer(() => open, { modal: () => modal, stack });
