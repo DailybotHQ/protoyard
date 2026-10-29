@@ -1,7 +1,15 @@
 // @vitest-environment node
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Check } from '../src/commands/validate.ts';
@@ -86,6 +94,57 @@ describe('refreshTemplateBrand', () => {
   });
 });
 
+describe('refreshTemplateBrand never writes through a symlink', () => {
+  function outsideFile(content: string): string {
+    const dir = mkdtempSync(join(tmpdir(), 'protoyard-brand-target-'));
+    cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
+    const path = join(dir, 'target.ts');
+    writeFileSync(path, content);
+    return path;
+  }
+
+  it('refuses a symlinked module and leaves its target untouched', async () => {
+    const dir = deckDir();
+    setBrand(dir, { name: 'Harbor', seed: '#0f766e' });
+    const target = outsideFile('export const victim = true;\n');
+    rmSync(join(dir, 'src/brand-theme.ts'));
+    symlinkSync(target, join(dir, 'src/brand-theme.ts'));
+    const result = await refreshTemplateBrand(dir);
+    expect(result.status).toBe('unsafe');
+    expect(readFileSync(target, 'utf8')).toBe('export const victim = true;\n');
+  });
+
+  it('refuses a dangling module symlink and never creates its target', async () => {
+    const dir = deckDir();
+    const target = join(mkdtempSync(join(tmpdir(), 'protoyard-brand-dangling-')), 'planted.ts');
+    cleanups.push(() => rmSync(dirname(target), { recursive: true, force: true }));
+    rmSync(join(dir, 'src/brand-theme.ts'));
+    symlinkSync(target, join(dir, 'src/brand-theme.ts'));
+    expect((await refreshTemplateBrand(dir)).status).toBe('unsafe');
+    expect(existsSync(target)).toBe(false);
+  });
+
+  it('refuses a symlinked src/ folder and a symlinked blueprint', async () => {
+    const dir = deckDir();
+    const real = mkdtempSync(join(tmpdir(), 'protoyard-brand-src-'));
+    cleanups.push(() => rmSync(real, { recursive: true, force: true }));
+    cpSync(join(dir, 'src'), real, { recursive: true });
+    rmSync(join(dir, 'src'), { recursive: true });
+    symlinkSync(real, join(dir, 'src'));
+    setBrand(dir, { name: 'Harbor', seed: '#0f766e' });
+    const before = readFileSync(join(real, 'brand-theme.ts'), 'utf8');
+    expect((await refreshTemplateBrand(dir)).status).toBe('unsafe');
+    expect(readFileSync(join(real, 'brand-theme.ts'), 'utf8')).toBe(before);
+    expect(watchTemplateBrand(dir, () => {})).toBeNull();
+
+    const other = deckDir();
+    const blueprint = outsideFile(readFileSync(join(other, 'src/blueprint.json'), 'utf8'));
+    rmSync(join(other, 'src/blueprint.json'));
+    symlinkSync(blueprint, join(other, 'src/blueprint.json'));
+    expect((await refreshTemplateBrand(other)).status).toBe('unsafe');
+  });
+});
+
 describe('watchTemplateBrand (protoyard dev)', () => {
   it('refreshes the module after each blueprint save, without reacting to its own write', async () => {
     const dir = deckDir();
@@ -149,8 +208,15 @@ describe('protoyard validate: brand theme', () => {
     return join(ws.root, 'prototypes', slug);
   }
 
-  async function brandCheck(slug: string): Promise<Check | undefined> {
-    const run = await cli(['--root', ws.root, '--json', 'validate', slug, '--skip-typecheck']);
+  async function brandCheck(
+    slug: string,
+    extra: string[] = [],
+    env: Record<string, string> = {}
+  ): Promise<Check | undefined> {
+    const run = await cli(
+      ['--root', ws.root, '--json', 'validate', slug, '--skip-typecheck', ...extra],
+      env
+    );
     return run
       .json<{ data: { checks: Check[] } }>()
       .data.checks.find((c) => c.id === 'brand-theme');
@@ -169,6 +235,39 @@ describe('protoyard validate: brand theme', () => {
     });
     expect(brandModule(dir)).toContain("export const defaultThemeId: string | null = 'harbor';");
     expect(await brandCheck('my-deck')).toMatchObject({ status: 'pass' });
+  });
+
+  it('with --check or in CI never writes: a stale module fails with the fix command', async () => {
+    const dir = await scaffoldDeck('ci-deck');
+    setBrand(dir, { name: 'Harbor', seed: '#0f766e' });
+    const before = brandModule(dir);
+    for (const [extra, env] of [
+      [['--check'], {}],
+      [[], { CI: 'true' }],
+    ] as const) {
+      const result = await brandCheck('ci-deck', [...extra], { ...env });
+      expect(result?.status).toBe('fail');
+      expect(result?.details.join(' ')).toContain('pnpm protoyard validate ci-deck');
+      expect(brandModule(dir)).toBe(before);
+    }
+    // Locally (no CI, no --check) the same run fixes it and warns.
+    expect(await brandCheck('ci-deck')).toMatchObject({ status: 'warn' });
+    expect(brandModule(dir)).not.toBe(before);
+    expect(await brandCheck('ci-deck', ['--check'])).toMatchObject({ status: 'pass' });
+  });
+
+  it('fails on a symlinked module and never writes through it', async () => {
+    const dir = await scaffoldDeck('linked-deck');
+    const outside = mkdtempSync(join(tmpdir(), 'protoyard-brand-validate-'));
+    cleanups.push(() => rmSync(outside, { recursive: true, force: true }));
+    writeFileSync(join(outside, 'target.ts'), 'keep\n');
+    rmSync(join(dir, 'src/brand-theme.ts'));
+    symlinkSync(join(outside, 'target.ts'), join(dir, 'src/brand-theme.ts'));
+    setBrand(dir, { name: 'Harbor', seed: '#0f766e' });
+    const result = await brandCheck('linked-deck');
+    expect(result?.status).toBe('fail');
+    expect(result?.details[0]).toMatch(/symlink/);
+    expect(readFileSync(join(outside, 'target.ts'), 'utf8')).toBe('keep\n');
   });
 
   it('fails on an unknown library theme and keeps the module', async () => {

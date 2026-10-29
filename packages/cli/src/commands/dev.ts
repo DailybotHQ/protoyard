@@ -26,12 +26,19 @@ export const devCommand: Handler = async (ctx, args, options): Promise<CommandRe
   // A deck made from the deck template: keep src/brand-theme.ts in step with the
   // blueprint's brand while it is edited (Vite reloads the module). Template
   // demos never write template files.
+  // Reported on stderr in every mode: with --json as one JSON line per event,
+  // so the stdout envelope stays clean.
   const reportBrand = (result: TemplateBrandResult) => {
+    if (result.status === 'absent' || result.status === 'current') return;
+    if (ctx.out.options.json) {
+      process.stderr.write(`${JSON.stringify({ event: 'brand-theme', ...result })}\n`);
+      return;
+    }
     if (result.status === 'refreshed') {
       ctx.out.warn(
         `${mark(ctx.out.c, 'pass')} Refreshed src/brand-theme.ts from the ${TEMPLATE_BLUEPRINT_PATH} brand${result.themeId ? ` (${result.themeId})` : ''}.`
       );
-    } else if (result.status === 'invalid') {
+    } else if (result.status === 'invalid' || result.status === 'unsafe') {
       ctx.out.warn(
         `${mark(ctx.out.c, 'warn')} src/brand-theme.ts left as it was: ${result.message}`
       );

@@ -1,8 +1,9 @@
-import { existsSync, type FSWatcher, watch } from 'node:fs';
+import { type FSWatcher, lstatSync, watch } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { BrandThemeError, isAppBlueprint, safeParseAnyBlueprint } from '@protoyard/blueprint';
 import { TEMPLATE_BRAND_THEME_PATH, templateBrandThemeModule } from './codegen/emit.ts';
+import { isInside } from './paths.ts';
 
 /**
  * A deck made from the deck template keeps its brand resolved in
@@ -10,6 +11,10 @@ import { TEMPLATE_BRAND_THEME_PATH, templateBrandThemeModule } from './codegen/e
  * (`defineKindPrototype`). The module follows `src/blueprint.json`: `new`
  * writes it, `dev` rewrites it whenever the blueprint changes, and `validate`
  * fixes a stale one. Prototypes without both files are left alone.
+ *
+ * It never writes through a symlink: the folder, `src/`, the module and the
+ * blueprint must be real (lstat), and the module must resolve inside the
+ * folder; otherwise the result is `unsafe` and nothing is read or written.
  */
 
 export const TEMPLATE_BLUEPRINT_PATH = 'src/blueprint.json';
@@ -21,14 +26,46 @@ export type TemplateBrandResult =
   /** The module was stale (or `write: false` and it would be rewritten). */
   | { status: 'refreshed' | 'stale'; themeId: string | null }
   /** The blueprint does not parse or its brand does not resolve: nothing was written. */
-  | { status: 'invalid'; message: string };
+  | { status: 'invalid'; message: string }
+  /** A symlink (or a path leaving the folder) on the way: nothing was read or written. */
+  | { status: 'unsafe'; message: string };
 
-/** Whether `dir` is a deck whose brand lives in `src/brand-theme.ts`. */
+/** The entry at `path` without following a symlink, or null when there is none. */
+function entry(path: string): ReturnType<typeof lstatSync> | null {
+  try {
+    return lstatSync(path);
+  } catch {
+    return null;
+  }
+}
+
+/** Whether `dir` is a deck whose brand lives in `src/brand-theme.ts` (a symlink counts, to be refused). */
 export function hasTemplateBrand(dir: string): boolean {
   return (
-    existsSync(join(dir, TEMPLATE_BRAND_THEME_PATH)) &&
-    existsSync(join(dir, TEMPLATE_BLUEPRINT_PATH))
+    entry(join(dir, TEMPLATE_BRAND_THEME_PATH)) !== null &&
+    entry(join(dir, TEMPLATE_BLUEPRINT_PATH)) !== null
   );
+}
+
+/** Why the brand files of `dir` must not be touched, or null when they are real files inside it. */
+export function templateBrandUnsafe(dir: string): string | null {
+  const checks: [string, 'directory' | 'file'][] = [
+    [dir, 'directory'],
+    [join(dir, 'src'), 'directory'],
+    [join(dir, TEMPLATE_BRAND_THEME_PATH), 'file'],
+    [join(dir, TEMPLATE_BLUEPRINT_PATH), 'file'],
+  ];
+  for (const [path, kind] of checks) {
+    const stat = entry(path);
+    const name = path === dir ? 'the prototype folder' : path.slice(dir.length + 1);
+    if (!stat) return `${name} is missing`;
+    if (stat.isSymbolicLink()) return `${name} is a symlink, so it is never written through`;
+    if (kind === 'directory' ? !stat.isDirectory() : !stat.isFile())
+      return `${name} is not a regular ${kind}`;
+  }
+  if (!isInside(dir, join(dir, TEMPLATE_BRAND_THEME_PATH)))
+    return `${TEMPLATE_BRAND_THEME_PATH} resolves outside the prototype folder`;
+  return null;
 }
 
 /**
@@ -41,6 +78,8 @@ export async function refreshTemplateBrand(
   { write = true }: { write?: boolean } = {}
 ): Promise<TemplateBrandResult> {
   if (!hasTemplateBrand(dir)) return { status: 'absent' };
+  const unsafe = templateBrandUnsafe(dir);
+  if (unsafe) return { status: 'unsafe', message: unsafe };
   let raw: unknown;
   try {
     raw = JSON.parse(await readFile(join(dir, TEMPLATE_BLUEPRINT_PATH), 'utf8'));
@@ -87,6 +126,8 @@ export function watchTemplateBrand(
   { debounceMs = 150 }: { debounceMs?: number } = {}
 ): (() => void) | null {
   if (!hasTemplateBrand(dir)) return null;
+  // Never watch through a symlinked src/: the start-up refresh already reported it.
+  if (templateBrandUnsafe(dir)) return null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let running = Promise.resolve();
   const watcher: FSWatcher = watch(join(dir, 'src'), (_event, file) => {
@@ -101,8 +142,17 @@ export function watchTemplateBrand(
         );
     }, debounceMs);
   });
-  return () => {
+  const stop = () => {
     clearTimeout(timer);
     watcher.close();
   };
+  // src/ removed or renamed (a branch switch): stop watching and say so, never crash dev.
+  watcher.on('error', (error) => {
+    stop();
+    onResult({
+      status: 'invalid',
+      message: `stopped watching ${TEMPLATE_BLUEPRINT_PATH}: ${(error as Error).message}`,
+    });
+  });
+  return stop;
 }
