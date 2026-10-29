@@ -28,6 +28,10 @@ let name = $state('');
 let nameError = $state('');
 let status = $state('');
 let failure = $state('');
+let selectedId = $state<string | null>(null);
+$effect(() => {
+  selectedId = activeId;
+});
 
 async function save() {
   nameError = '';
@@ -63,14 +67,20 @@ async function save() {
 <section class="grid gap-3" aria-label="Segments">
   <div role="group" aria-label="Saved segments" class="flex flex-wrap gap-1">
     {#each [null, ...segments] as segment (segment?.id ?? '__everyone')}
-      {@const active = (segment?.id ?? null) === activeId}
+      {@const segmentId = segment?.id ?? null}
+      {@const active = segmentId === selectedId}
       <Toggle
         pressed={active}
+        onPressedChange={(pressed) => {
+          if (!pressed) return;
+          selectedId = segmentId;
+          onapply(segment);
+        }}
         title={segment ? describeFilter(segment.filter, properties) : 'No filter'}
         class="rounded-full border px-3 py-1 text-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {active
           ? 'border-primary bg-primary text-primary-foreground'
           : 'border-border text-foreground hover:bg-muted'}"
-        onclick={() => onapply(segment)}>{segment?.name ?? 'Everyone'}</Toggle
+        >{segment?.name ?? 'Everyone'}</Toggle
       >
     {/each}
   </div>

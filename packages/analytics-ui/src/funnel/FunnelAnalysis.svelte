@@ -50,7 +50,7 @@ const choose = (key: string | null) => {
       <div role="group" aria-label={breakdownLabel} class="flex flex-wrap gap-1 text-xs">
         {#each series as s (s.key ?? '')}
           <Toggle
-            pressed={s.key === current.key}
+            bind:pressed={() => s.key === current.key, () => {}}
             onPressedChange={(pressed) => pressed && choose(s.key)}
             class="rounded-md border px-2 py-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {s.key ===
             current.key

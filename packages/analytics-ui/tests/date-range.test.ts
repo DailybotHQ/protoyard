@@ -122,6 +122,10 @@ describe('DateRangePanel', () => {
     expect(
       within(presets).getByRole('button', { name: 'Last 30 days' }).getAttribute('aria-pressed')
     ).toBe('true');
+    const last30 = within(presets).getByRole('button', { name: 'Last 30 days' });
+    await fireEvent.keyDown(last30, { key: 'Enter' });
+    await fireEvent.keyUp(last30, { key: 'Enter' });
+    expect(last30.getAttribute('aria-pressed')).toBe('true');
     await fireEvent.click(within(presets).getByRole('button', { name: 'Year to date' }));
     const [value, change] = onchange.mock.calls[0] ?? [];
     expect(change).toBe('range');
@@ -135,6 +139,15 @@ describe('DateRangePanel', () => {
 
   it('changes comparison and only offers granularities the range allows', async () => {
     const { onchange } = setup();
+    const previousPeriod = within(screen.getByRole('group', { name: 'Compare to' })).getByRole(
+      'button',
+      {
+        name: 'Previous period',
+      }
+    );
+    await fireEvent.click(previousPeriod);
+    expect(previousPeriod.getAttribute('aria-pressed')).toBe('true');
+    expect(onchange).not.toHaveBeenCalled();
     await fireEvent.click(
       within(screen.getByRole('group', { name: 'Compare to' })).getByRole('button', {
         name: 'Previous year',
@@ -179,9 +192,15 @@ describe('DateRangePanel', () => {
 });
 
 describe('MonthGrid Texuli Calendar adapter', () => {
+  it('opens at the currently selected month when no initial-month override exists', () => {
+    render(MonthGrid, { start: '2025-11-05', end: '2025-11-12', max: NOW, onrange: () => {} });
+    expect(document.querySelector('[data-tx-calendar-heading]')?.textContent).toContain(
+      'November 2025'
+    );
+  });
   it('passes the simulated clock and forwards range selections', async () => {
     const onrange = vi.fn();
-    render(MonthGrid, { initial: '2026-03-18', max: NOW, onrange });
+    render(MonthGrid, { max: NOW, onrange });
     expect(screen.getByRole('grid')).toBeTruthy();
     expect(screen.getByRole('group', { name: 'Choose a date range day' })).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'Tuesday, March 17, 2026' }));
@@ -190,7 +209,6 @@ describe('MonthGrid Texuli Calendar adapter', () => {
 
   it('highlights the current selected range', () => {
     render(MonthGrid, {
-      initial: '2026-03-10',
       start: '2026-03-05',
       end: '2026-03-07',
       onrange: () => {},

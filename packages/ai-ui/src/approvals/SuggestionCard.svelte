@@ -209,6 +209,10 @@ function saveEdit(): void {
       <div class="grid gap-1 text-sm">
         <Label for="suggestion-edit-{suggestion.id}">Link to target</Label>
         <SelectRoot
+          items={targets.map((target) => ({
+            value: target.targetId,
+            label: `${target.targetKey} — ${target.targetLabel}`,
+          }))}
           value={pickedId ?? undefined}
           onValueChange={(next) => {
             pickedId = next;
