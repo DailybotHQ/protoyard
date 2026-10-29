@@ -75,6 +75,16 @@ describe('FlowEditor', () => {
     );
   });
 
+  it('keeps the step graph in step with local edits when the host does not pass the flow back', async () => {
+    // Uncontrolled: onChange is not written back into the `flow` prop.
+    const view = render(FlowEditor, { props: { flow: sampleFlow(), onChange: vi.fn() } });
+    const nodes = () => view.container.querySelectorAll('[data-wf-node]').length;
+    const before = nodes();
+    await fireEvent.click(view.getByRole('button', { name: 'Add reply step' }));
+    await waitFor(() => expect(nodes()).toBe(before + 1));
+    expect(view.container.textContent).not.toContain('Connect every top-level step');
+  });
+
   it('keeps the last valid flow and reports schema feedback for invalid operations', async () => {
     const onChange = vi.fn();
     const view = render(FlowEditor, { props: { flow: sampleFlow(), onChange } });

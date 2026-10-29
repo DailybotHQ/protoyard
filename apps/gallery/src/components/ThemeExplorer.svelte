@@ -148,13 +148,13 @@ const selectClass =
         </label>
       {/if}
       <div class="inline-flex rounded-lg border border-line bg-surface p-1" role="group" aria-label="Theme preview mode">
-        <Button
+        <Button variant="ghost"
           type="button"
           class={mode === 'light' ? 'rounded-md bg-accent px-3 py-1.5 text-sm text-on-accent' : 'rounded-md px-3 py-1.5 text-sm text-muted hover:text-fg'}
           aria-pressed={mode === 'light'}
           onclick={() => (mode = 'light')}
         >Light</Button>
-        <Button
+        <Button variant="ghost"
           type="button"
           class={mode === 'dark' ? 'rounded-md bg-accent px-3 py-1.5 text-sm text-on-accent' : 'rounded-md px-3 py-1.5 text-sm text-muted hover:text-fg'}
           aria-pressed={mode === 'dark'}
@@ -162,7 +162,7 @@ const selectClass =
         >Dark</Button>
       </div>
       {#if q || collection !== 'all' || mood !== 'all'}
-        <Button
+        <Button variant="outline"
           type="button"
           class="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg hover:bg-surface-2"
           onclick={clearFilters}

@@ -1,5 +1,5 @@
 import { cleanup, render, screen } from '@testing-library/svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import MessageList from '../src/MessageList.svelte';
 import {
   captureScrollAnchor,
@@ -104,5 +104,53 @@ describe('conversation scroll anchor', () => {
     log.scrollTop = 1600;
     log.dispatchEvent(new Event('scroll'));
     expect(loadScrollAnchor('protoyard:ai-ui:scroll:c9')).toBeNull();
+  });
+
+  it('a snap to the bottom during the restore keeps the anchor and is undone; the reader then takes over', async () => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
+    try {
+      const key = 'protoyard:ai-ui:scroll:c7';
+      saveScrollAnchor(key, { messageId: 'u1', offset: 40, scrollTop: 40 });
+      const messages = [
+        { id: 'u1', role: 'user' as const, content: 'Hi', createdAt: '2026-10-17T12:00:00.000Z' },
+        {
+          id: 'a1',
+          role: 'assistant' as const,
+          content: 'Hello',
+          createdAt: '2026-10-17T12:00:01.000Z',
+        },
+      ];
+      render(MessageList, { messages, conversationId: 'c7' });
+      const log = screen.getByRole('log', { name: 'Conversation messages' });
+      Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 2000 });
+      Object.defineProperty(log, 'clientHeight', { configurable: true, value: 400 });
+      // jsdom has no layout: rows sit at fixed offsets in the scrolled log.
+      log.getBoundingClientRect = () => ({ top: 100 }) as DOMRect;
+      for (const [index, row] of [
+        ...log.querySelectorAll<HTMLElement>('[data-py-message-id]'),
+      ].entries()) {
+        row.getBoundingClientRect = () => {
+          const top = 100 - log.scrollTop + index * 300;
+          return { top, bottom: top + 300 } as DOMRect;
+        };
+      }
+      // Two frames to the first restore (after Texuli's own first stick).
+      vi.advanceTimersToNextFrame();
+      vi.advanceTimersToNextFrame();
+      expect(log.scrollTop).toBe(40);
+      // Late content resizes and Texuli snaps to the bottom before the reader did anything.
+      log.scrollTop = 1600;
+      log.dispatchEvent(new Event('scroll'));
+      expect(loadScrollAnchor(key)?.messageId, 'the restore never clears the anchor').toBe('u1');
+      vi.advanceTimersToNextFrame();
+      expect(log.scrollTop, 'the next frame puts the reader back').toBe(40);
+      // The reader scrolls: their position is remembered again (the bottom clears the anchor).
+      log.dispatchEvent(new Event('wheel'));
+      log.scrollTop = 1600;
+      log.dispatchEvent(new Event('scroll'));
+      expect(loadScrollAnchor(key)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -249,7 +249,7 @@ async function openManual(event: SubmitEvent) {
       </div>
     {/if}
     {#if canRotate}
-      <Button
+      <Button variant="outline"
         type="button"
         class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 text-xs hover:bg-surface-2"
         onclick={toggleOrientation}
@@ -280,7 +280,7 @@ async function openManual(event: SubmitEvent) {
       <a class={['inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2', scenarios.length === 0 && 'ml-auto']} href={embeddedHref(scenario)} target="_blank" rel="noopener">
         <LucideIcon icon={ExternalLink} size={14} aria-hidden="true" /> Open
       </a>
-      <Button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" onclick={() => (reloadKey += 1)}>
+      <Button variant="outline" type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" onclick={() => (reloadKey += 1)}>
         <LucideIcon icon={RotateCw} size={14} aria-hidden="true" /> Reload
       </Button>
     {:else if control.status === 'available'}
@@ -290,10 +290,10 @@ async function openManual(event: SubmitEvent) {
         <a class="ml-auto inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" href={running.url} target="_blank" rel="noopener">
           <LucideIcon icon={ExternalLink} size={14} aria-hidden="true" /> Open
         </a>
-        <Button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" onclick={() => (reloadKey += 1)}>
+        <Button variant="outline" type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" onclick={() => (reloadKey += 1)}>
           <LucideIcon icon={RotateCw} size={14} aria-hidden="true" /> Reload
         </Button>
-        <Button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2 disabled:opacity-50" disabled={busy === 'stopping'} onclick={stop}>
+        <Button variant="outline" type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2 disabled:opacity-50" disabled={busy === 'stopping'} onclick={stop}>
           <LucideIcon icon={Square} size={14} aria-hidden="true" /> {busy === 'stopping' ? 'Stopping…' : 'Stop'}
         </Button>
       {:else}
@@ -316,7 +316,7 @@ async function openManual(event: SubmitEvent) {
             <span class="sr-only">Prototype URL</span>
             <Input type="url" inputmode="url" placeholder="http://localhost:5173/" class="h-9 w-full rounded-lg border border-line bg-bg px-3 font-mono text-xs" bind:value={manualUrl} />
           </label>
-          <Button type="submit" class="rounded-lg border border-line px-3 text-sm hover:bg-surface-2">Preview URL</Button>
+          <Button variant="outline" type="submit" class="rounded-lg border border-line px-3 text-sm hover:bg-surface-2">Preview URL</Button>
         </form>
         {#if manualError}<p class="text-xs text-danger" role="alert">{manualError}</p>{/if}
       </div>
@@ -409,7 +409,7 @@ async function openManual(event: SubmitEvent) {
             {/key}
             {#if loading && !loadFailed}
               <div
-                class="absolute inset-0 z-30 flex flex-col bg-[color:var(--tx-bg,#fafafa)] dark:bg-[color:var(--tx-bg,#09090b)]"
+                class="absolute inset-0 z-30 flex flex-col bg-bg"
                 style:padding-top={frame.framed && frame.spec ? `${Math.max(frame.spec.statusBar.height, 12)}px` : '0'}
                 style:padding-bottom={frame.framed && frame.spec ? `${frame.spec.homeIndicator.height}px` : '0'}
                 aria-live="polite"

@@ -141,19 +141,19 @@ const select = 'h-9 rounded-lg border border-line bg-bg px-2.5 text-sm text-fg';
       <span>Device (all frames)</span>
       <GallerySelect class={select} bind:value={state.device} data-testid="compare-device" items={DEVICES.filter((d) => d.id !== 'custom').map((d) => ({ value: d.id, label: `${d.label} · ${d.width}×${d.height}` }))} />
     </label>
-    <Button type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={swap}>
+    <Button variant="outline" type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={swap}>
       <LucideIcon icon={ArrowLeftRight} size={14} aria-hidden="true" /> Swap A and B
     </Button>
     {#if state.scenarios.length < 3}
-      <Button type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={addPane}>
+      <Button variant="outline" type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={addPane}>
         <Icon icon="plus" size={14} aria-hidden="true" /> Add a third frame
       </Button>
     {:else}
-      <Button type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={removePane}>
+      <Button variant="outline" type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={removePane}>
         <LucideIcon icon={X} size={14} aria-hidden="true" /> Remove frame C
       </Button>
     {/if}
-    <Button
+    <Button variant="outline"
       type="button"
       class="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2"
       onclick={resetSandboxes}
@@ -197,7 +197,7 @@ const select = 'h-9 rounded-lg border border-line bg-bg px-2.5 text-sm text-fg';
             <span class="sr-only">Prototype URL</span>
             <Input type="url" inputmode="url" placeholder="http://localhost:5173/" class="h-9 w-full rounded-lg border border-line bg-bg px-3 font-mono text-xs" bind:value={manualUrl} />
           </label>
-          <Button type="submit" class="rounded-lg border border-line px-3 text-sm hover:bg-surface-2">Compare this URL</Button>
+          <Button variant="outline" type="submit" class="rounded-lg border border-line px-3 text-sm hover:bg-surface-2">Compare this URL</Button>
         </form>
         {#if manualError}<p class="text-xs text-danger" role="alert">{manualError}</p>{/if}
       {/if}

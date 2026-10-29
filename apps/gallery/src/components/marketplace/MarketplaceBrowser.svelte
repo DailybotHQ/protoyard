@@ -137,7 +137,7 @@ const sourceKinds = [
     </div>
     <div role="group" aria-label="Features" class="flex flex-wrap gap-1.5">
       {#each featureChips as [feature, n] (feature)}
-        <Button
+        <Button variant="outline"
           type="button"
           class="rounded-full border border-line px-2.5 py-1 text-xs text-muted hover:text-fg aria-pressed:border-accent aria-pressed:bg-accent-soft aria-pressed:text-accent-fg"
           aria-pressed={query.features.includes(feature)}
@@ -155,7 +155,7 @@ const sourceKinds = [
         <p aria-live="polite" data-testid="market-count">
           {results.length === 0 ? 'No matches' : `${results.length} ${results.length === 1 ? 'result' : 'results'}`}
         </p>
-        <Button type="button" class="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-surface-2 hover:text-fg" onclick={() => (query = { ...EMPTY_QUERY })}>
+        <Button variant="ghost" type="button" class="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-surface-2 hover:text-fg" onclick={() => (query = { ...EMPTY_QUERY })}>
           <LucideIcon icon={X} size={14} aria-hidden="true" /> Clear filters
         </Button>
       </div>
@@ -169,7 +169,7 @@ const sourceKinds = [
         <div class="rounded-xl border border-dashed border-line p-10 text-center">
           <p class="font-medium">Nothing matches these filters</p>
           <p class="mt-1 text-sm text-muted">Try fewer features or another word.</p>
-          <Button type="button" class="mt-4 rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-surface-2" onclick={() => (query = { ...EMPTY_QUERY })}>
+          <Button variant="outline" type="button" class="mt-4 rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-surface-2" onclick={() => (query = { ...EMPTY_QUERY })}>
             Show everything
           </Button>
         </div>
@@ -183,7 +183,7 @@ const sourceKinds = [
               <h3 id={`rail-${category}`} class="text-lg font-semibold tracking-tight">
                 {label(category)} <span class="text-sm font-normal text-muted">{items.length}</span>
               </h3>
-              <Button type="button" class="text-sm text-accent-fg underline-offset-2 hover:underline" onclick={() => showCategory(category)}>
+              <Button variant="link" type="button" class="text-sm text-accent-fg underline-offset-2 hover:underline" onclick={() => showCategory(category)}>
                 See all<span class="sr-only"> {label(category)}</span>
               </Button>
             </div>

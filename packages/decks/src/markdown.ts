@@ -7,10 +7,13 @@
  * it passes the same schema and offline media policy as a JSON deck.
  *
  * What a Protoyard deck cannot hold is reported, never dropped silently:
- * component slides and items, math, vertical stacks and embedded themes.
+ * component slides and items, math, vertical stacks, embedded themes, and
+ * slide backgrounds outside Protoyard's background spec (for example a
+ * remote image under the offline media policy).
  */
 import { parseDeckMarkdown } from '@texuli/deck/markdown';
 import { DECK_TRANSITIONS, type Deck as ModelDeck } from '@texuli/deck/model';
+import { DeckBackgroundSpecSchema } from './backgrounds/schema.ts';
 import { type Deck, safeParseDeck } from './schema/index.ts';
 
 export interface MarkdownDeckIssue {
@@ -125,6 +128,20 @@ function toProtoyardShape(model: ModelDeck, issues: MarkdownDeckIssue[]): Bag {
     const out: Bag = {};
     for (const key of SLIDE_KEYS) if (slide[key] !== undefined) out[key] = slide[key];
     if (typeof slide.background === 'string') out.background = slide.background;
+    else if (slide.background !== undefined) {
+      // `data-background-*` attributes give an object background (solid, gradient, pattern,
+      // image, video): keep it when Protoyard's spec takes it, else report it.
+      const background = DeckBackgroundSpecSchema.safeParse(slide.background);
+      if (background.success) out.background = background.data;
+      else {
+        issues.push({
+          severity: 'warning',
+          code: 'background',
+          message: `This slide background is not kept: ${background.error.issues[0]?.message ?? 'it is outside the Protoyard background spec'}.`,
+          path: [...path, 'background'],
+        });
+      }
+    }
     const slideTransition = transition(slide.transition, [...path, 'transition'], issues);
     if (slideTransition !== undefined) out.transition = slideTransition;
     return out;

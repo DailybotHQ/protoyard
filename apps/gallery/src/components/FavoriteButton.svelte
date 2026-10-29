@@ -15,7 +15,7 @@ const active = $derived(library.isFavorite(slug));
 onMount(() => library.load());
 </script>
 
-<Button
+<Button variant="ghost"
   type="button"
   class={[
     'inline-flex items-center gap-1.5 rounded-md border border-transparent p-1.5 text-sm text-muted transition-colors hover:border-line hover:text-fg',

@@ -226,6 +226,51 @@ test.describe('deck chrome controls', () => {
       await page.evaluate(() => window.print());
       await expect.poll(() => printedLayout(page)).toBe(true);
     });
+
+    test('on paper, Ctrl/Cmd+P prints the sheet alone, every page unclipped', async ({ page }) => {
+      await openDeck(page);
+      await expect(root(page)).toHaveAttribute('data-py-deck-print-ready', 'true');
+      await page.emulateMedia({ media: 'print' });
+      const liveStage = page.locator('[data-py-deck-app] > .tx-deck-stage');
+      // Before a print starts there is no sheet: the deck root keeps the stage on paper
+      // (never the blank page Texuli's print isolation would give with no target).
+      await expect(liveStage).toBeVisible();
+      await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+      const sheet = page.locator('.deck-app__print-sheet');
+      await expect(sheet.locator('[data-print-ready="true"]')).toHaveCount(1, { timeout: 15_000 });
+      await expect(liveStage).toBeHidden();
+      const paper = await page.evaluate(() => {
+        const app = document.querySelector('[data-py-deck-app]') as HTMLElement;
+        const sheetEl = app.querySelector(':scope > .deck-app__print-sheet') as HTMLElement;
+        const pages = [...sheetEl.querySelectorAll<HTMLElement>('[data-slide-id][data-aspect]')];
+        // Every ancestor of the sheet: none may clip it to one screen.
+        const clipped: string[] = [];
+        for (let el: HTMLElement | null = sheetEl.parentElement; el; el = el.parentElement) {
+          if (
+            getComputedStyle(el).overflowY !== 'visible' &&
+            el.scrollHeight > el.clientHeight + 1
+          ) {
+            clipped.push(el.tagName.toLowerCase() + (el.id ? `#${el.id}` : ''));
+          }
+        }
+        return {
+          pages: pages.length,
+          lastBottom: pages.at(-1)?.getBoundingClientRect().bottom ?? 0,
+          appBottom: app.getBoundingClientRect().bottom,
+          clipped,
+        };
+      });
+      expect(paper.pages).toBe(6);
+      expect(
+        paper.lastBottom,
+        'the last page is inside the released deck root'
+      ).toBeLessThanOrEqual(paper.appBottom + 1);
+      expect(paper.clipped, 'no ancestor clips the sheet').toEqual([]);
+      await page.emulateMedia({ media: 'screen' });
+      await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+      await expect(sheet).toHaveCount(0);
+      await expect(liveStage).toBeVisible();
+    });
   });
 
   test.describe('visible feedback (T-print-and-feedback)', () => {

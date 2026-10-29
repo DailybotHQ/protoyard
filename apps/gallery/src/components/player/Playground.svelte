@@ -172,7 +172,7 @@ onMount(() => {
         disabled={busy || !playerReady || source.trim().length === 0}
         onclick={loadPasted}
       >{busy ? 'Loading…' : 'Load blueprint'}</Button>
-      <Button
+      <Button variant="outline"
         type="button"
         class="rounded-md border border-line px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
         disabled={busy || source.trim().length === 0 || !shareAvailable}

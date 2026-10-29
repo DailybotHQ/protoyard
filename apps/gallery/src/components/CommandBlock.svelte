@@ -1,6 +1,7 @@
 <script lang="ts">
 import Copy from '@lucide/svelte/icons/copy';
 import { Button } from '@protoyard/ui';
+import type { Attachment } from 'svelte/attachments';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
 
@@ -28,18 +29,38 @@ async function copy() {
     failed = false;
   }, 1800);
 }
+
+/**
+ * A long command scrolls sideways; while it does, the region is a Tab stop so
+ * keyboard users can scroll it (WCAG 2.1.1). The server HTML always has
+ * `tabindex="0"` (reachable before hydration); once hydrated, a command that
+ * fits drops the extra stop, and the size is watched so a narrower window
+ * brings it back.
+ */
+const scrollableFocus: Attachment<HTMLElement> = (node) => {
+  const sync = () => {
+    if (node.scrollWidth > node.clientWidth) node.tabIndex = 0;
+    else node.removeAttribute('tabindex');
+  };
+  sync();
+  if (typeof ResizeObserver === 'undefined') return;
+  const observer = new ResizeObserver(sync);
+  observer.observe(node);
+  return () => observer.disconnect();
+};
 </script>
 
 <div class="rounded-lg border border-line bg-surface-2">
   {#if label}<p class="border-b border-line px-3 py-1.5 text-xs text-muted">{label}</p>{/if}
   <div class="flex items-start gap-2 p-2 pl-3">
-    <!-- Keep the labeled code region focusable so keyboard users can scroll it. -->
+    <!-- A Tab stop while it scrolls, so keyboard users can scroll it (scrollableFocus). -->
     <pre
       role="region"
       aria-label={label ?? 'Command'}
       tabindex="0"
+      {@attach scrollableFocus}
       class={['min-w-0 flex-1 overflow-x-auto py-1 font-mono text-[13px] leading-relaxed', multiline ? 'whitespace-pre-wrap' : 'whitespace-pre']}><code>{command}</code></pre>
-    <Button
+    <Button variant="outline"
       type="button"
       class="shrink-0 rounded-md border border-line bg-surface p-1.5 text-muted hover:text-fg"
       aria-label={copied ? 'Copied' : `Copy ${label ?? 'command'}`}

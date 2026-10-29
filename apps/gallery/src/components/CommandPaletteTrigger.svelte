@@ -72,7 +72,7 @@ onMount(() => {
 </script>
 
 <div class="flex items-center" data-testid="command-palette" data-hydrated={hydrated}>
-  <Button
+  <Button variant="outline"
     bind:ref={trigger}
     type="button"
     class="inline-flex h-9 items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-sm text-muted hover:bg-surface-2 hover:text-fg sm:px-3"
