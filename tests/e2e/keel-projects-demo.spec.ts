@@ -72,7 +72,15 @@ test.describe('Keel Projects flagship', () => {
       await page.mouse.move(from.x, from.y);
       await page.mouse.down();
       await page.mouse.move(from.x + 8, from.y + 8, { steps: 4 });
-      await page.mouse.move(to.x, to.box.y + 24, { steps: 14 });
+      // Aim inside the column's visible part: its center can sit at the viewport edge,
+      // where the board auto-scrolls instead of taking the drop.
+      await page.mouse.move(
+        to.box.x + Math.min(120, to.box.width / 2),
+        to.box.y + to.box.height / 2,
+        {
+          steps: 14,
+        }
+      );
       await page.mouse.up();
     }
     // On a phone each column is 85vw wide: bring the moved card into view before asserting.

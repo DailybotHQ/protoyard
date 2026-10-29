@@ -73,8 +73,13 @@ test.describe('Pipeline CRM (static build)', () => {
   test('pipeline choice controls filter owned deals and reveal lost deals', async ({ page }) => {
     await openApp(page, '#/pipeline');
     const stages = page.getByRole('list', { name: 'Pipeline stages' });
+    // Each stage is a list item named "<stage>: <n> deals".
     const totalDeals = async () =>
-      (await stages.getByRole('listitem').allTextContents()).reduce((sum, label) => {
+      (
+        await stages
+          .getByRole('listitem')
+          .evaluateAll((items) => items.map((item) => item.getAttribute('aria-label') ?? ''))
+      ).reduce((sum, label) => {
         const match = label.match(/(\d+) deals/);
         return sum + Number(match?.[1] ?? 0);
       }, 0);

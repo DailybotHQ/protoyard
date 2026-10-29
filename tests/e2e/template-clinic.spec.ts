@@ -54,9 +54,9 @@ const iso = (h: number, m: number) =>
 const label = (h: number, m: number) =>
   `${h > 12 ? h - 12 : h}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 
-/** Picks a ui Select option in the dialog (the trigger is a button named by its label). */
+/** Picks a ui Select option in the dialog (the trigger is a combobox named by its label). */
 async function choose(page: Page, field: string, option: string) {
-  await page.getByRole('dialog').getByRole('button', { name: field, exact: true }).click();
+  await page.getByRole('dialog').getByRole('combobox', { name: field, exact: true }).click();
   await page.getByRole('option', { name: option, exact: true }).click();
 }
 

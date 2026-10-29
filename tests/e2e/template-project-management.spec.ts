@@ -16,13 +16,15 @@ test('board move persists after reload and the phone layout fits', async ({ page
   await projectLink.waitFor();
   const boardUrl = await projectLink.getAttribute('href');
   await projectLink.click();
-  const moveMenu = page.getByRole('button', { name: /^Move .+ to…$/ }).first();
+  // Texuli's Board names each card's move menu "Move <task>" and lists every column twice.
+  const moveMenu = page
+    .locator('[data-board-card]')
+    .first()
+    .getByRole('button', { name: /^Move / });
   await moveMenu.waitFor();
-  const taskName = (await moveMenu.getAttribute('aria-label'))
-    ?.replace(/^Move /, '')
-    .replace(/ to…$/, '');
+  const taskName = (await moveMenu.getAttribute('aria-label'))?.replace(/^Move /, '');
   await moveMenu.click();
-  await page.getByRole('menuitem', { name: 'Review', exact: true }).first().click();
+  await page.getByRole('menuitem', { name: 'Review — top', exact: true }).click();
   await expect(
     page
       .locator('[data-board-cell][data-column-id="review"] [data-board-card]')

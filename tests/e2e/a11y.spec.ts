@@ -25,14 +25,14 @@ for (const mode of ['light', 'dark'] as const) {
 
     test('gallery home', async ({ page }, testInfo) => {
       await page.goto('/');
-      await expect(page.locator('html')).toHaveAttribute('data-theme', mode);
+      await expect(page.locator('html')).toHaveAttribute('data-tx-mode', mode);
       await settle(page);
       await expectAccessible(page, testInfo, { label: `gallery-home-${mode}` });
     });
 
     test('features page', async ({ page }, testInfo) => {
       await page.goto('/features/');
-      await expect(page.locator('html')).toHaveAttribute('data-theme', mode);
+      await expect(page.locator('html')).toHaveAttribute('data-tx-mode', mode);
       await expect(page.getByRole('heading', { level: 1 })).toHaveText('Everything Protoyard does');
       await settle(page);
       await expectAccessible(page, testInfo, { label: `features-${mode}` });
