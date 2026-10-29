@@ -50,7 +50,7 @@ let deleteOpen = $state(false);
   </EmptyState>
 {:else}
   {@const c = company.current}
-  <Button type="button" onclick={() => back('/companies')} class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+  <Button type="button" variant="ghost" onclick={() => back('/companies')} class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
     <LucideIcon icon={ArrowLeft} class="size-4" /> Back
   </Button>
   <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

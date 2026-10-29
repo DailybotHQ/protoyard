@@ -107,6 +107,7 @@ function addOrder(): void {
           <li>
             <Button
               type="button"
+              variant="ghost"
               class="flex min-h-touch w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
               onclick={() => openOrder(order.id)}
             >

@@ -200,6 +200,7 @@ $effect(() => {
                         {#if canInvoke && message.runId}
                           <Button
                             type="button"
+                            variant="ghost"
                             class="inline-flex min-h-touch items-center gap-1 rounded px-1.5 font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0"
                             onclick={() => message.runId && onStop(message.runId)}
                           >
@@ -236,6 +237,7 @@ $effect(() => {
   {#if showJump}
     <Button
       type="button"
+      variant="ghost"
       class="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border bg-elevated px-3 py-1.5 text-xs font-medium text-foreground shadow-float hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       onclick={() => scrollToLatest(true)}
     >

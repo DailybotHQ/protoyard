@@ -43,6 +43,7 @@ const contact = $derived(contacts.find((c) => c.id === openId));
         <li>
           <Button
             type="button"
+            variant="ghost"
             class="flex min-h-touch w-full flex-col items-start px-4 py-3 text-left hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
             onclick={() => (openId = item.id)}
           >

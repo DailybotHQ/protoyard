@@ -16,6 +16,7 @@ import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { ASSISTANT_MODELS } from '../domain/services.ts';
 import { useAssistant } from '../lib/context.ts';
+import { sortMessagesForDisplay } from '../lib/message-order.ts';
 
 type LazyCanvasComponent = Component<{
   document: AssistantCanvas;
@@ -47,7 +48,9 @@ const activeConversation = $derived(
   ) ?? visibleConversations[0]
 );
 const activeMessages = $derived(
-  (messages.current ?? []).filter((message) => message.conversationId === activeConversation?.id)
+  sortMessagesForDisplay(
+    (messages.current ?? []).filter((message) => message.conversationId === activeConversation?.id)
+  )
 );
 const activeModelId = $derived(
   activeConversation?.modelId ?? ASSISTANT_MODELS[0]?.id ?? 'py-orbit-small'
@@ -117,10 +120,14 @@ async function regenerate(conversationId: string) {
 }
 
 async function loadCanvas() {
-  if (!CanvasPanel) CanvasPanel = (await import('../components/LazyCanvas.svelte')).default;
-  if (!settings.current?.canvas)
-    await services.updateCanvas('Start shaping an idea here. Changes are saved in this browser.');
-  canvasOpen = true;
+  try {
+    if (!CanvasPanel) CanvasPanel = (await import('../components/LazyCanvas.svelte')).default;
+    if (!settings.current?.canvas)
+      await services.updateCanvas('Start shaping an idea here. Changes are saved in this browser.');
+    canvasOpen = true;
+  } catch (error) {
+    report(error);
+  }
 }
 
 async function shareConversation() {
@@ -180,12 +187,12 @@ function report(error: unknown) {
       <div class="flex min-w-0 flex-1 flex-col">
         <header class="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2.5 sm:px-4">
           <div class="min-w-0 flex-1"><p class="truncate text-sm font-medium text-foreground">{activeConversation.title}</p><p class="text-[0.65rem] text-muted-foreground">{activeConversation.folder ? `In ${activeConversation.folder} · ` : ''}Responses are simulated</p></div>
-          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-foreground hover:bg-muted" aria-label={activeConversation.pinned ? 'Unpin conversation' : 'Pin conversation'} aria-pressed={activeConversation.pinned ?? false} onclick={() => void services.togglePin(activeConversation.id).catch(report)}><LucideIcon icon={Star} class="size-3.5" /> Pin</Button>
+          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-foreground hover:bg-muted" aria-label={activeConversation.pinned ? 'Unpin conversation' : 'Pin conversation'} aria-pressed={activeConversation.pinned ?? false} onclick={() => services.togglePin(activeConversation.id).catch(report)}><LucideIcon icon={Star} class="size-3.5" /> Pin</Button>
           <label for="conversation-folder" class="sr-only">Move conversation to folder</label>
           <Select id="conversation-folder" value={activeConversation.folder ?? ''} class="min-h-9 max-w-28 rounded-lg border border-border bg-surface px-2 text-xs text-muted-foreground" items={[{ value: '', label: 'No folder' }, ...folders.map((folder) => ({ value: folder, label: folder }))]} onValueChange={(value) => void services.moveToFolder(activeConversation.id, value || null).catch(report)} />
-          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-foreground hover:bg-muted" onclick={() => void services.rename(activeConversation.id, window.prompt('Rename conversation', activeConversation.title) ?? activeConversation.title).catch(report)}><LucideIcon icon={MoreHorizontal} class="size-3.5" /> Rename</Button>
-          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-foreground hover:bg-muted" onclick={() => void shareConversation()}><LucideIcon icon={ArrowUpRight} class="size-3.5" /> Share</Button>
-          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-foreground hover:bg-muted" onclick={() => void loadCanvas()}><LucideIcon icon={FileText} class="size-3.5" /> Canvas</Button>
+          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-foreground hover:bg-muted" onclick={() => services.rename(activeConversation.id, window.prompt('Rename conversation', activeConversation.title) ?? activeConversation.title).catch(report)}><LucideIcon icon={MoreHorizontal} class="size-3.5" /> Rename</Button>
+          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-foreground hover:bg-muted" onclick={shareConversation}><LucideIcon icon={ArrowUpRight} class="size-3.5" /> Share</Button>
+          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-foreground hover:bg-muted" onclick={loadCanvas}><LucideIcon icon={FileText} class="size-3.5" /> Canvas</Button>
         </header>
         {#key messageListRevision}
           <MessageList

@@ -119,6 +119,7 @@ async function reply(conversation: Conversation): Promise<void> {
         <li>
           <Button
             type="button"
+            variant="ghost"
             aria-current={conversation.id === activeId ? 'true' : undefined}
             class="flex min-h-touch w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-[current=true]:bg-primary/10 aria-[current=true]:font-semibold aria-[current=true]:text-foreground sm:min-h-9"
             onclick={() => select(conversation.id)}
@@ -155,6 +156,7 @@ async function reply(conversation: Conversation): Promise<void> {
           <div class="flex items-center gap-2 border-b border-border px-3 py-2.5">
             <Button
               type="button"
+              variant="ghost"
               class="inline-flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:hidden"
               aria-label="Back to conversations"
               onclick={() => (showThreadOnMobile = false)}

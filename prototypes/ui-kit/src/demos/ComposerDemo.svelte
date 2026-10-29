@@ -26,6 +26,7 @@ async function submit(text: string): Promise<boolean> {
     {#snippet actions()}
       <Button
         type="button"
+        variant="ghost"
         class="inline-flex size-9 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0 sm:min-w-0"
         aria-label="Insert stand-up template"
         onclick={() => (value = `Yesterday: \nToday: \nBlockers: none`)}
