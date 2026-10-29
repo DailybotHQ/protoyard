@@ -267,7 +267,7 @@ function controlActive(field: FilterField): boolean {
         <li>
           <Tag
             label={chip.label}
-            removeLabel="Remove filter"
+            removeLabel={(label) => `Remove filter: ${label}`}
             onRemove={() => removeChip(chip.fieldId, chip.value)}
           />
         </li>
