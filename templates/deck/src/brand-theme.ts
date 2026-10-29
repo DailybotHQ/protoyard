@@ -1,9 +1,10 @@
 import { defineTheme, type Theme } from '@protoyard/core';
 
 /**
- * The brand of src/blueprint.json, resolved when `protoyard new` created this
- * prototype, so its first chunk never loads the palette generator a seed brand
- * needs. tests/deck-template.test.ts fails when `brand` changes without it.
+ * The brand of src/blueprint.json, resolved ahead so this deck's first chunk
+ * never loads the palette generator a seed brand needs. `protoyard new`,
+ * `dev` (on every blueprint change) and `validate` rewrite it: edit
+ * `brand` in src/blueprint.json, not this file.
  */
 export const brandTheme: Theme | null = defineTheme({
   id: 'lumen-notes',

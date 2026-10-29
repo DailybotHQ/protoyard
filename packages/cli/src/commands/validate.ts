@@ -21,6 +21,7 @@ import { childPath, toPosixRelative } from '../lib/paths.ts';
 import { resolvePackageBin, run, stripAnsi } from '../lib/process.ts';
 import { loadRegistry, toRegistryEntry } from '../lib/registry.ts';
 import { SPEC_FILES } from '../lib/spec-render.ts';
+import { refreshTemplateBrand, TEMPLATE_BLUEPRINT_PATH } from '../lib/template-brand.ts';
 import { assertSlug, type CommandContext, readPackageJson } from '../lib/workspace.ts';
 import { specForPrototype } from './spec.ts';
 
@@ -436,6 +437,35 @@ export async function checkBlueprint(
   }
 }
 
+/**
+ * A deck made from the deck template keeps its brand resolved in
+ * `src/brand-theme.ts`. A stale module is rewritten from the blueprint before
+ * the definition loads (and reported), so editing `brand` just works; a
+ * symlinked folder is only checked, never written.
+ */
+export async function checkTemplateBrand(dir: string, write: boolean): Promise<Check | null> {
+  const label = 'Brand theme (src/brand-theme.ts follows the blueprint brand)';
+  const result = await refreshTemplateBrand(dir, { write });
+  switch (result.status) {
+    case 'absent':
+      return null;
+    case 'current':
+      return check('brand-theme', label, 'pass', [`matches ${TEMPLATE_BLUEPRINT_PATH}`]);
+    case 'refreshed':
+      return check('brand-theme', label, 'warn', [
+        `refreshed src/brand-theme.ts from the ${TEMPLATE_BLUEPRINT_PATH} brand${result.themeId ? ` (${result.themeId})` : ''}`,
+      ]);
+    case 'stale':
+      return check('brand-theme', label, 'fail', [
+        `src/brand-theme.ts is stale and this folder is a symlink, so it was not rewritten`,
+      ]);
+    case 'invalid':
+      return check('brand-theme', label, 'fail', [
+        `${result.message} (src/brand-theme.ts left as it was)`,
+      ]);
+  }
+}
+
 export const validateCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const slug = assertSlug(args[0]);
   // Folder lookup (not the registry), so a broken manifest is still validated.
@@ -490,6 +520,9 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
     checks.push(await checkSchemaVersion(dir, parsed.manifest));
     const blueprintCheck = await checkBlueprint(dir, slug, parsed.manifest);
     if (blueprintCheck) checks.push(blueprintCheck);
+    // Before the definition loads, so it loads the refreshed brand.
+    const brandCheck = await checkTemplateBrand(dir, !symlinkedFolder);
+    if (brandCheck) checks.push(brandCheck);
     if (existsSync(join(dir, 'src', 'prototype.ts'))) {
       try {
         // `spec` mode is `inspect` plus the facts the spec check needs: one runner pass.

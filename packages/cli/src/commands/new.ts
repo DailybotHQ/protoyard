@@ -11,9 +11,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { BrandThemeError, isAppBlueprint, safeParseAnyBlueprint } from '@protoyard/blueprint';
 import { MANIFEST_FILENAME, safeParseManifest } from '@protoyard/core';
-import { TEMPLATE_BRAND_THEME_PATH, templateBrandThemeModule } from '../lib/codegen/emit.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { inspectSpec } from '../lib/inspect.ts';
@@ -22,6 +20,7 @@ import { childPath, isInside, toPosixRelative, workspaceLayout } from '../lib/pa
 import { installWorkspace, runPnpm } from '../lib/pnpm.ts';
 import { buildIndex } from '../lib/registry.ts';
 import { SPEC_FILES } from '../lib/spec-render.ts';
+import { refreshTemplateBrand } from '../lib/template-brand.ts';
 import {
   assertSlug,
   CLI_VERSION,
@@ -216,33 +215,11 @@ export async function personalize(dir: string, input: NewProjectInput) {
  * prototype always starts with the brand its blueprint names.
  */
 async function resolveTemplateBrand(dir: string): Promise<void> {
-  const modulePath = join(dir, TEMPLATE_BRAND_THEME_PATH);
-  const blueprintPath = join(dir, 'src/blueprint.json');
-  if (!existsSync(modulePath) || !existsSync(blueprintPath)) return;
-  let raw: unknown;
-  try {
-    raw = JSON.parse(await readFile(blueprintPath, 'utf8'));
-  } catch (error) {
-    throw new CliError(
-      'validation',
-      `src/blueprint.json is not valid JSON: ${(error as Error).message}`
-    );
-  }
-  const parsed = await safeParseAnyBlueprint(raw);
-  if (!parsed.success || isAppBlueprint(parsed.data)) {
-    throw new CliError(
-      'validation',
-      'src/blueprint.json is not a valid deck, page or doc blueprint.',
-      {
-        hint: 'Run `pnpm protoyard blueprint validate <file>` on the source blueprint.',
-      }
-    );
-  }
-  try {
-    await writeFile(modulePath, templateBrandThemeModule(parsed.data));
-  } catch (error) {
-    if (error instanceof BrandThemeError) throw new CliError('validation', error.message);
-    throw error;
+  const result = await refreshTemplateBrand(dir);
+  if (result.status === 'invalid') {
+    throw new CliError('validation', result.message, {
+      hint: 'Run `pnpm protoyard blueprint validate <file>` on the source blueprint.',
+    });
   }
 }
 
