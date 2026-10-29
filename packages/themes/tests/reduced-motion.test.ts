@@ -27,4 +27,17 @@ describe('reduced motion reset', () => {
       expect(rules).not.toMatch(/transition-duration:\s*0\.01ms/);
     });
   }
+
+  // Texuli 0.5.0's tokens base.css sets `transition-duration: 0.01ms !important`
+  // on `*` in `@layer tx.base`; a layered !important beats an unlayered one, so
+  // the reset sits in that layer with more specific selectors (`html *`).
+  it("lives in tx.base with selectors more specific than Texuli's `*`", () => {
+    const layer = css.indexOf('@layer tx.base {');
+    expect(layer).toBeGreaterThanOrEqual(0);
+    expect(css.indexOf('@media (prefers-reduced-motion: reduce)')).toBeGreaterThan(layer);
+    expect(block('@media (prefers-reduced-motion: reduce)')).toMatch(
+      /html \*,\s*html ::before,\s*html ::after/
+    );
+    expect(css).toMatch(/html\[data-py-motion="reduce"\] \*/);
+  });
 });
