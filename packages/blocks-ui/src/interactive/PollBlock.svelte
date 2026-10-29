@@ -79,7 +79,9 @@ function clearVote() {
         >
           <span class="font-medium text-foreground">{option.label}</span>
           {#if showResults && row}
+            <!-- Texuli's Progress has no width of its own; in this start-aligned column it needs the full row. -->
             <Progress
+              class="w-full"
               value={Math.round(row.share * 100)}
               max={100}
               size="sm"

@@ -12,4 +12,3 @@ let { text = '' }: { text?: string } = $props();
     <RichText source={text} compact />
   </div>
 {/if}
-import { RichText } from '@texuli/blocks/text/renderers';
