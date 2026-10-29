@@ -232,6 +232,6 @@ const adapterLabel = $derived.by(() => {
   .review-toolbar__count,.review-toolbar__adapter,.review-toolbar__pending{flex:none;font-size:.72rem;white-space:nowrap}.review-toolbar__adapter{color:var(--tx-muted-foreground,#52525b)}
   .review-toolbar__pending{color:var(--tx-foreground,#18181b)}
   .review-toolbar__error{position:absolute;bottom:100%;right:0;margin-bottom:.3rem;border-radius:.375rem;background:var(--tx-destructive,#b91c1c);padding:.35rem .5rem;color:#fff;font-size:.75rem}
-  .review-toolbar__sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
+  :global(.review-toolbar__sr){position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
   @media(max-width:40rem){.review-toolbar__adapter,.review-toolbar__count{display:none}}
 </style>

@@ -23,6 +23,7 @@ async function copy() {
     <span class="text-xs font-medium text-muted-foreground">{label}</span>
     <Button
       type="button"
+      variant="ghost"
       class="inline-flex min-h-touch items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground sm:min-h-7"
       aria-label={copied ? 'Copied' : `Copy ${label.toLowerCase()} code`}
       onclick={copy}

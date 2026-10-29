@@ -111,10 +111,10 @@ describe('DevTools style controls', () => {
     expect(checked(panel, 'Density preset')).toEqual(['Comfortable']);
 
     const slider = panel.getByRole('slider', { name: 'Density' });
-    for (let i = 0; i < 3; i++) {
-      await fireEvent.keyDown(slider, { key: 'ArrowLeft' });
-      await settle();
-    }
+    for (let i = 0; i < 3; i++) await fireEvent.keyDown(slider, { key: 'ArrowLeft' });
+    expect(slider.getAttribute('aria-disabled')).not.toBe('true');
+    expect(panel.getByText('1.05×')).toBeTruthy();
+    await fireEvent.keyUp(slider, { key: 'ArrowLeft' });
     await settle();
     expect(runtime.theme.appearance().density).toEqual({ value: 1.05, source: 'override' });
     // Between presets: no preset is checked.
@@ -141,6 +141,9 @@ describe('DevTools style controls', () => {
     await fireEvent.click(within(radius).getByRole('radio', { name: 'Pill' }));
     await settle();
     expect(radius.getAttribute('aria-busy')).toBe('true');
+    expect(panel.getByRole('slider', { name: 'Density' }).getAttribute('aria-disabled')).not.toBe(
+      'true'
+    );
     expect(
       (panel.getByRole('combobox', { name: 'Font pairing' }) as HTMLButtonElement).disabled
     ).toBe(true);

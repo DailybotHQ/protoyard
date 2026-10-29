@@ -60,7 +60,8 @@ const list = liveQuery(() => notifications.list(), {
           <li class="rounded-md px-2 py-1.5 hover:bg-muted/50">
             <Button
               type="button"
-              class="w-full text-left"
+              variant="ghost"
+              class="flex w-full flex-col items-start whitespace-normal text-left"
               onclick={() => void notifications.markRead(String(row.id))}
             >
               <p class="font-medium {row.readAt ? 'text-muted-foreground' : ''}">{String(row.title)}</p>

@@ -142,6 +142,7 @@ async function toggleDone(task: Task) {
             <li class="flex items-center gap-3 px-3 py-2.5 sm:px-4">
               <Button
                 type="button"
+                variant="ghost"
                 class="inline-flex size-9 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-success focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0 sm:min-w-0"
                 aria-label={task.status === 'done' ? `Reopen ${task.title}` : `Mark ${task.title} as done`}
                 aria-pressed={task.status === 'done'}

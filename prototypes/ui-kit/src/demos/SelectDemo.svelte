@@ -34,6 +34,7 @@ let owner = $state('');
     />
     <Button
       type="button"
+      variant="link"
       class="justify-self-start text-xs font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       onclick={() => (owner = '')}
       disabled={!owner}

@@ -13,8 +13,8 @@ const gaps = [12, 15, null, null, 18, 22, 19, 25];
       <Sparkline values={signups} period="12 weeks" />
     </div>
     <div class="rounded-lg border border-border p-3">
-      <p class="text-xs text-muted-foreground">Churn % · area</p>
-      <Sparkline values={churn} variant="area" period="10 months" />
+      <p class="text-xs text-muted-foreground">Churn (%) · area</p>
+      <Sparkline values={churn} variant="area" period="10 months" format={(value) => `${value.toFixed(1)}%`} />
     </div>
     <div class="rounded-lg border border-border p-3">
       <p class="text-xs text-muted-foreground">Deploys · bars with gaps</p>
@@ -22,8 +22,8 @@ const gaps = [12, 15, null, null, 18, 22, 19, 25];
     </div>
   </div>
   <div class="flex flex-wrap items-center gap-8">
-    <Gauge label="Uptime this month" value={99.2} min={95} max={100} thresholds={[98, 99.5]} bandLabels={['Breach', 'At risk', 'Healthy']} format={{ type: 'number', minimumFractionDigits: 1, maximumFractionDigits: 1 }} />
-    <Gauge label="CPU load" value={64} max={100} />
+    <Gauge label="Uptime this month (%)" value={99.2} min={95} max={100} thresholds={[98, 99.5]} bandLabels={['Breach', 'At risk', 'Healthy']} format={{ type: 'number', minimumFractionDigits: 1, maximumFractionDigits: 1 }} />
+    <Gauge label="CPU load (%)" value={64} max={100} />
     <RadialProgress label="Onboarding complete" value={7} max={10} />
     <RadialProgress label="Storage used" value={0.82} max={1} />
   </div>

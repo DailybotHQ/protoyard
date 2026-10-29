@@ -363,6 +363,37 @@ describe('DevTools panel', () => {
     expect(one.hasAttribute('aria-busy')).toBe(false);
   });
 
+  it('commits the final failure-rate slider value after an in-flight environment write', async () => {
+    const runtime = createFakeRuntime();
+    await runtime.overrides.set({ environment: { failureMode: 'server-error' } });
+    const { panel } = await open(runtime);
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Env' }));
+    await settle();
+
+    const realSet = runtime.overrides.set.bind(runtime.overrides);
+    let release!: () => void;
+    let first = true;
+    runtime.overrides.set = (patch) => {
+      if (first) {
+        first = false;
+        return new Promise<void>((resolve) => (release = resolve)).then(() => realSet(patch));
+      }
+      return realSet(patch);
+    };
+    await fireEvent.click(within(panel).getByRole('radio', { name: 'Offline' }));
+    const slider = within(panel).getByRole('slider', { name: 'Failure rate' });
+    expect(slider.getAttribute('aria-disabled')).not.toBe('true');
+    await fireEvent.keyDown(slider, { key: 'ArrowLeft' });
+    await fireEvent.keyDown(slider, { key: 'ArrowLeft' });
+    await fireEvent.keyDown(slider, { key: 'ArrowLeft' });
+    await fireEvent.keyUp(slider, { key: 'ArrowLeft' });
+    expect(slider.getAttribute('aria-valuenow')).toBe('85');
+    expect(slider.getAttribute('aria-disabled')).not.toBe('true');
+    release();
+    await vi.waitFor(() => expect(runtime.overrides.get().environment?.failureRate).toBe(0.85));
+    expect(runtime.overrides.get().environment?.network).toBe('offline');
+  });
+
   it('loads a scenario only after confirmation', async () => {
     const { runtime, panel } = await open();
     await fireEvent.click(within(panel).getByRole('radio', { name: /Busy/ }));

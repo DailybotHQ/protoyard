@@ -40,6 +40,10 @@ const withTheme = (presets: readonly { id: string; label: string }[]) => [
 ];
 
 const density = $derived(appearance.density?.value ?? 1);
+let densityDraft = $state(1);
+$effect(() => {
+  densityDraft = density;
+});
 /** The density preset that matches the current value, if any. */
 const densityPreset = $derived(
   appearance.density?.source === 'override'
@@ -70,12 +74,14 @@ const formatDensity = (value: number) =>
         max={1.25}
         step={0.025}
         class="mt-1 w-full accent-primary"
-        value={density}
-        disabled={applying}
+        value={densityDraft}
         label="Density"
         aria-label="Density"
         getValueText={(value) => `${value} times`}
         onValueChange={(value) => {
+          if (typeof value === 'number') densityDraft = value;
+        }}
+        onValueCommit={(value) => {
           if (typeof value === 'number') apply('density', { density: value });
         }}
       />

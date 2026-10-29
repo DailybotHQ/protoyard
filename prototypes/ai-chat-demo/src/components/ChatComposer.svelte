@@ -210,6 +210,7 @@ function onkeydown(event: KeyboardEvent): void {
     {#if streaming && onStop}
       <Button
         type="button"
+        variant="outline"
         onclick={onStop}
         class="inline-flex h-9 min-h-touch shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0"
       >

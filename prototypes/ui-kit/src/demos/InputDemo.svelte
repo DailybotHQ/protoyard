@@ -47,6 +47,7 @@ const emailInvalid = $derived(email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.
       />
       <Button
         type="button"
+        variant="link"
         class="shrink-0 rounded-md px-2 text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         aria-pressed={showPassword}
         onclick={() => (showPassword = !showPassword)}

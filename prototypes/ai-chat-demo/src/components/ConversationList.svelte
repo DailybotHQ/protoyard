@@ -125,6 +125,7 @@ async function askAtlas() {
     <div class="flex gap-1 px-4 pb-2" role="group" aria-label="Which conversations to show">
       <Button
         type="button"
+        variant="ghost"
         aria-pressed={!showArchived}
         class={[
           'inline-flex min-h-touch items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0',
@@ -137,6 +138,7 @@ async function askAtlas() {
       </Button>
       <Button
         type="button"
+        variant="ghost"
         aria-pressed={showArchived}
         class={[
           'inline-flex min-h-touch items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0',

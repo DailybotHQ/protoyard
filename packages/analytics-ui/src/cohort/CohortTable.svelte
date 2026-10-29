@@ -81,7 +81,7 @@ const show = (rate: number | null, value: number | null) =>
     <div role="group" aria-label="Show values as" class="inline-flex rounded-md border border-border p-0.5 text-xs">
       {#each [['percent', '%'], ['count', 'Count']] as const as [value, text] (value)}
         <Toggle
-          pressed={display === value}
+          bind:pressed={() => display === value, () => {}}
           onPressedChange={(pressed) => pressed && setDisplay(value as CohortDisplay)}
           class="rounded px-2 py-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {display ===
           value

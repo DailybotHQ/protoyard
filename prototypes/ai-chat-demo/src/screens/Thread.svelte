@@ -200,6 +200,7 @@ async function sendStarter(prompt: string) {
               <li>
                 <Button
                   type="button"
+                  variant="ghost"
                   class="rounded-full border border-border bg-surface px-3 py-1.5 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                   onclick={() => sendStarter(prompt)}
                 >
@@ -244,6 +245,7 @@ async function sendStarter(prompt: string) {
             {#each agents as agent (agent.id)}
               <Button
                 type="button"
+                variant="ghost"
                 class="inline-flex min-h-touch items-center gap-1 rounded-full border border-border px-2 py-0.5 font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0"
                 onclick={() => mention(agent)}
                 aria-label={`Mention ${agent.name}`}

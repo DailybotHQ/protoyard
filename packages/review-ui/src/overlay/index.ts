@@ -55,7 +55,7 @@ const STYLE = `
 [data-py-review-overlay] [data-py-review-pin]:focus-visible,[data-py-review-overlay] [data-py-review-place]:focus-visible,[data-py-review-overlay] [data-py-review-toggle]:focus-visible{outline:3px solid var(--tx-ring,#7c3aed);outline-offset:4px}
 [data-py-review-overlay] [data-py-review-toggle]{position:absolute;right:12px;top:12px;z-index:2;pointer-events:auto;border-radius:999px}
 [data-py-review-overlay] [data-py-review-status]{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-[data-py-review-overlay] [data-py-review-pin][data-low-confidence]{border-style:dashed}
+[data-py-review-overlay] [data-py-review-pin][data-low-confidence]{border:2px dashed var(--tx-surface,#fff)}
 [data-py-review-overlay] [data-pulsing]{animation:py-review-pin-pulse 1.4s ease-in-out infinite}
 @keyframes py-review-pin-pulse{50%{box-shadow:0 0 0 5px rgb(255 255 255 / .85),0 0 0 8px var(--tx-primary,#6d28d9)}}
 @media(prefers-reduced-motion:reduce){[data-py-review-overlay] [data-pulsing]{animation:none}}
