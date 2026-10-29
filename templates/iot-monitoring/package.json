@@ -12,7 +12,7 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.59.0",
+    "@lucide/svelte": "^1.61.0",
     "@protoyard/charts": "workspace:*",
     "@protoyard/charts-ui": "workspace:*",
     "@protoyard/core": "workspace:*",
@@ -22,7 +22,7 @@
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
     "@protoyard/views-ui": "workspace:*",
-    "dexie": "^4.4.6",
+    "dexie": "^4.4.7",
     "svelte": "^5.57.2",
     "texuli": "0.5.0",
     "zod": "^4.6.7"

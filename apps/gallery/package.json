@@ -18,9 +18,9 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.10",
-    "@astrojs/svelte": "^9.1.0",
-    "@lucide/svelte": "^1.59.0",
+    "@astrojs/check": "^0.9.12",
+    "@astrojs/svelte": "^9.1.1",
+    "@lucide/svelte": "^1.61.0",
     "@protoyard/blueprint": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/player": "workspace:*",
@@ -29,7 +29,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@texuli/astro": "0.5.0",
     "@texuli/tokens": "0.5.0",
-    "astro": "^7.4.0",
+    "astro": "^7.4.2",
     "svelte": "^5.57.2",
     "tailwindcss": "^4.3.3",
     "texuli": "0.5.0"
