@@ -309,7 +309,12 @@ test.describe('showcase site', () => {
     await expectAccessible(page, testInfo, { label: 'compare' });
 
     // Both frames on the SAME scenario, so only the sandbox separates them.
-    await chooseOption(page, page.getByTestId('compare-scenario-b'), 'growing-team');
+    // The default scenario's option reads "growing-team (default)".
+    await chooseOption(
+      page,
+      page.getByTestId('compare-scenario-b'),
+      /^growing-team( \(default\))?$/
+    );
     await expect(page).toHaveURL(/[?&]b=growing-team/);
     await ready(b);
 
