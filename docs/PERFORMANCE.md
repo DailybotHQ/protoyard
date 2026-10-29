@@ -26,7 +26,7 @@ prototype and checks `protoyard.budgets.json` (exit 0). Then
 
 | Prototype | Initial JS gzip (budget 250 KB) | CSS gzip | CSS budget |
 | --- | ---: | ---: | ---: |
-| `create-anything-deck` (2026-10-28, decks on `@texuli/slides` 0.4.0; JS budget 335.9 KB) | 319.90 KB | 79.67 KB | 83.7 KB |
+| `create-anything-deck` (2026-10-28, decks on `@texuli/slides` 0.4.0; JS budget 319.1 KB) | 303.82 KB | 79.67 KB | 83.7 KB |
 | `helpdesk-demo` | 200.52 KB | 49.97 KB | 52.5 KB |
 | `lattice-saas-demo` | 197.45 KB | 27.00 KB | 30 KB |
 | `mobile-banking-demo` | 192.85 KB | 23.85 KB | 30 KB |
@@ -45,7 +45,7 @@ prototype and checks `protoyard.budgets.json` (exit 0). Then
 
 - All prototypes are within both configured limits. `create-anything-deck`
   was re-measured with decks on the `@texuli/slides` stage and has its own
-  initial-JS override (335.9 KB, 16 KB headroom; npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB of CSS and initial JS; lower when it ships); `crm-demo` has
+  initial-JS override (319.1 KB, measured 303.82 KB + 5 %; the theme library and palette generator left its first chunk, 319.90 → 303.82 KB, guarded by `packages/decks-ui/tests/themes-initial-graph.test.ts`; npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB of CSS and initial JS; lower when it ships); `crm-demo` has
   0.07 KB headroom under its CSS budget. Budget overrides are recorded in
   [versioned budgets](#versioned-budgets).
 
@@ -350,7 +350,7 @@ CSS budgets below.
 
 | Entry | Budget | Measured |
 | --- | ---: | ---: |
-| `create-anything-deck` (2026-10-28, also an initial JS override: 335.9 KB, measured 319.90 KB) | 83.7 KB | 79.67 KB |
+| `create-anything-deck` (2026-10-28, also an initial JS override: 319.1 KB, measured 303.82 KB) | 83.7 KB | 79.67 KB |
 | `keel-projects-demo` | 43.4 KB | 41.31 KB |
 | `helpdesk-demo`, `ui-kit` | 42.6 KB | 40.48, 40.57 KB |
 | `cadence-studio-demo`, `harbor-dispatch-demo`, `pulse-revenue-demo` | 43.1 KB | 41.02 KB each |
