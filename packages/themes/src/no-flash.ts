@@ -62,15 +62,15 @@ export function readCachedAppearance(
 }
 
 /**
- * The inline script body (no `<script>` tag). Only `--py-*` and `--tx-*`
+ * The inline script body (no `<script>` tag). Only `--tx-*`
  * names and string values are replayed, so a tampered cache cannot inject
  * markup.
  * Without a cache it still honors `prefers-color-scheme` for the base CSS.
  */
 export function noFlashScript(namespace: string): string {
   const key = JSON.stringify(appearanceCacheKey(namespace));
-  // Replays --py-* and --tx-* vars, mode class, theme id, motion, data-py-surface
+  // Replays --tx-* vars, mode class, theme id, motion, data-py-surface
   // (glass/solid) and allowlisted component profiles so first paint matches
   // the last applied appearance. The data-tx-* twins are what Texuli components read.
-  return `(function(){var d=document.documentElement;try{var c=JSON.parse(localStorage.getItem(${key})||'null');if(c&&c.v===${APPEARANCE_CACHE_VERSION}&&c.vars){for(var k in c.vars){if(/^--(?:py|tx)-[a-z0-9-]+$/.test(k)&&typeof c.vars[k]==='string')d.style.setProperty(k,c.vars[k]);}var m=c.mode==='dark'?'dark':'light';d.classList.add(m);d.dataset.pyMode=m;d.dataset.txMode=m;d.style.colorScheme=m;if(typeof c.themeId==='string'){d.dataset.pyTheme=c.themeId;d.dataset.txTheme=c.themeId;}d.dataset.pyMotion=c.reducedMotion?'reduce':'full';d.dataset.txMotion=d.dataset.pyMotion;var s=typeof c.surface==='string'?c.surface:(c.vars&&c.vars['--tx-surface-style']);if(s==='glass'||s==='solid'){d.dataset.pySurface=s;d.dataset.txSurface=s;}var p=c.components||{};if(p.button==='pill'||p.button==='square')d.dataset.pyButtonStyle=p.button;if(p.card==='glass'||p.card==='bordered')d.dataset.pyCardStyle=p.card;if(/^(ring|outline|glow|inset)$/.test(p.focusRing))d.dataset.pyFocusRingStyle=p.focusRing;return;}}catch(e){}try{if(matchMedia('(prefers-color-scheme: dark)').matches){d.classList.add('dark');d.dataset.pyMode='dark';d.dataset.txMode='dark';d.style.colorScheme='dark';}}catch(e){}})();`;
+  return `(function(){var d=document.documentElement;try{var c=JSON.parse(localStorage.getItem(${key})||'null');if(c&&c.v===${APPEARANCE_CACHE_VERSION}&&c.vars){for(var k in c.vars){if(/^--tx-[a-z0-9-]+$/.test(k)&&typeof c.vars[k]==='string')d.style.setProperty(k,c.vars[k]);}var m=c.mode==='dark'?'dark':'light';d.classList.add(m);d.dataset.pyMode=m;d.dataset.txMode=m;d.style.colorScheme=m;if(typeof c.themeId==='string'){d.dataset.pyTheme=c.themeId;d.dataset.txTheme=c.themeId;}d.dataset.pyMotion=c.reducedMotion?'reduce':'full';d.dataset.txMotion=d.dataset.pyMotion;var s=typeof c.surface==='string'?c.surface:(c.vars&&c.vars['--tx-surface-style']);if(s==='glass'||s==='solid'){d.dataset.pySurface=s;d.dataset.txSurface=s;}var p=c.components||{};if(p.button==='pill'||p.button==='square')d.dataset.pyButtonStyle=p.button;if(p.card==='glass'||p.card==='bordered')d.dataset.pyCardStyle=p.card;if(/^(ring|outline|glow|inset)$/.test(p.focusRing))d.dataset.pyFocusRingStyle=p.focusRing;return;}}catch(e){}try{if(matchMedia('(prefers-color-scheme: dark)').matches){d.classList.add('dark');d.dataset.pyMode='dark';d.dataset.txMode='dark';d.style.colorScheme='dark';}}catch(e){}})();`;
 }

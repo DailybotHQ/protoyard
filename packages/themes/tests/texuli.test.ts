@@ -54,7 +54,7 @@ describe('Protoyard themes as Texuli themes (toTexuliTheme)', () => {
       expect(result.ok, `${theme.id}: ${JSON.stringify(result).slice(0, 300)}`).toBe(true);
       for (const mode of ['light', 'dark'] as const) {
         expect(Object.keys(converted[mode]).sort()).toEqual([...SEMANTIC_ROLES].sort());
-        // The shared roles pass through unchanged: --py-<role> and --tx-<role> agree.
+        // The shared roles pass through unchanged: --tx-<role> and --tx-<role> agree.
         for (const role of SHARED_PALETTE_ROLES) {
           expect(converted[mode][role].default, `${theme.id}/${mode}/${role}`).toBe(
             theme[mode][role]
@@ -176,18 +176,16 @@ describe('Texuli themes as Protoyard themes (fromTexuliTheme)', () => {
   });
 });
 
-describe('--py-* names are aliases of the --tx-* variables', () => {
+describe('theme writers use only canonical --tx-* variables', () => {
   beforeAll(() => enableTexuliAppearance());
   afterAll(() => disableTexuliAppearance());
 
-  it('writes both families, with equal values for every shared role and style token', async () => {
+  it('writes every shared role and style token under --tx-* only', () => {
     const applied = applyAppearance(root, { theme: oceanTheme, resolvedMode: 'dark' });
-
-    const style = root.style;
     for (const role of SHARED_PALETTE_ROLES) {
       const name = role.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-      expect(style.getPropertyValue(`--tx-${name}`), role).toBe(oceanTheme.dark[role]);
-      expect(style.getPropertyValue(`--py-${name}`), role).toBe(oceanTheme.dark[role]);
+      expect(root.style.getPropertyValue(`--tx-${name}`), role).toBe(oceanTheme.dark[role]);
+      expect(root.style.getPropertyValue(`--py-${name}`), role).toBe('');
     }
     for (const token of [
       'primary-hover',
@@ -202,22 +200,17 @@ describe('--py-* names are aliases of the --tx-* variables', () => {
       'focus-ring-width',
       'border-width',
     ]) {
-      // Values that reference other tokens point at their own family's names.
-      expect(style.getPropertyValue(`--py-${token}`).replaceAll('--py-', '--tx-'), token).toBe(
-        style.getPropertyValue(`--tx-${token}`)
-      );
-      expect(style.getPropertyValue(`--py-${token}`), token).not.toBe('');
+      expect(root.style.getPropertyValue(`--tx-${token}`), token).not.toBe('');
+      expect(root.style.getPropertyValue(`--py-${token}`), token).toBe('');
     }
+    expect(Object.keys(applied.vars).every((name) => name.startsWith('--tx-'))).toBe(true);
     expect(root.dataset.txTheme).toBe('ocean');
     expect(root.dataset.txMode).toBe('dark');
     expect(root.dataset.pyTheme).toBe('ocean');
-    // Both families reach the no-flash cache.
-    expect(applied.vars['--tx-primary']).toBe(oceanTheme.dark.primary);
-    expect(applied.vars['--py-primary']).toBe(oceanTheme.dark.primary);
     expect(JSON.parse(JSON.stringify(applied.vars))).toEqual(applied.vars);
   });
 
-  it('follows mode, density and reduced motion like the --py-* names', async () => {
+  it('follows mode, density and reduced motion', () => {
     applyAppearance(root, {
       theme: violetTheme,
       resolvedMode: 'light',
@@ -225,14 +218,12 @@ describe('--py-* names are aliases of the --tx-* variables', () => {
       reducedMotion: true,
     });
     expect(root.style.getPropertyValue('--tx-background')).toBe(violetTheme.light.background);
-    expect(root.style.getPropertyValue('--tx-density')).toBe(
-      root.style.getPropertyValue('--py-density')
-    );
+    expect(root.style.getPropertyValue('--tx-density')).toBe('0.875');
     expect(root.style.getPropertyValue('--tx-motion-base')).toBe('0ms');
     expect(root.dataset.txMotion).toBe('reduce');
   });
 
-  it('clears every --tx-* variable and data-tx-* attribute', async () => {
+  it('clears every --tx-* variable and data-tx-* attribute', () => {
     applyAppearance(root, { theme: violetTheme, resolvedMode: 'dark' });
     expect(txVars(root).length).toBeGreaterThan(50);
     clearAppearance(root);
@@ -241,7 +232,7 @@ describe('--py-* names are aliases of the --tx-* variables', () => {
     expect(root.dataset.txMode).toBeUndefined();
   });
 
-  it('scopes both families to a preview element', async () => {
+  it('scopes Texuli variables to a preview element', () => {
     const preview = document.createElement('div');
     applyAppearance(preview, { theme: oceanTheme, resolvedMode: 'light' });
     expect(preview.style.getPropertyValue('--tx-primary')).toBe(oceanTheme.light.primary);
@@ -259,7 +250,7 @@ describe('Texuli-only appearance metadata is opt-in per page', () => {
     expect(txVars(root).length).toBeGreaterThan(0);
     expect(root.dataset.txTheme).toBeUndefined();
     expect(applied.vars['--tx-primary']).toBe(violetTheme.light.primary);
-    expect(root.style.getPropertyValue('--py-primary')).toBe(violetTheme.light.primary);
+    expect(root.style.getPropertyValue('--tx-primary')).toBe(violetTheme.light.primary);
   });
 
   it('re-applies the current appearance when enabled, and keeps writing after', () => {
@@ -276,8 +267,8 @@ describe('Texuli-only appearance metadata is opt-in per page', () => {
   });
 });
 
-describe('no-flash replays the --tx-* variables too', () => {
-  it('replays cached --tx-* and --py-* names and the data-tx-* attributes, nothing else', () => {
+describe('no-flash replays canonical theme variables', () => {
+  it('replays only valid --tx-* names and the data-tx-* attributes', () => {
     localStorage.setItem(
       appearanceCacheKey('crm-demo'),
       JSON.stringify({
@@ -287,7 +278,7 @@ describe('no-flash replays the --tx-* variables too', () => {
         reducedMotion: false,
         vars: {
           '--tx-primary': '#123456',
-          '--py-primary': '#123456',
+          '--py-primary': '#654321',
           color: 'red',
           '--tx-bad;name': 'x',
           '--evil-primary': '#000000',
@@ -296,12 +287,11 @@ describe('no-flash replays the --tx-* variables too', () => {
     );
     new Function(noFlashScript('crm-demo'))();
     expect(root.style.getPropertyValue('--tx-primary')).toBe('#123456');
-    expect(root.style.getPropertyValue('--py-primary')).toBe('#123456');
+    expect(root.style.getPropertyValue('--py-primary')).toBe('');
     expect(root.style.getPropertyValue('color')).toBe('');
     expect(root.style.getPropertyValue('--evil-primary')).toBe('');
     expect(root.dataset.txMode).toBe('dark');
     expect(root.dataset.txTheme).toBe('ocean');
     root.style.removeProperty('--tx-primary');
-    root.style.removeProperty('--py-primary');
   });
 });

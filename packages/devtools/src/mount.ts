@@ -40,7 +40,7 @@ export function mountDevtools(options: MountDevtoolsOptions): DevtoolsHandle {
   const host = options.target ?? document.body.appendChild(document.createElement('div'));
   host.classList.add('py-devtools');
   host.dataset.protoyardDevtools = '';
-  // Panel controls render Texuli components; keep --tx-* in sync with --py-*.
+  // Panel controls render Texuli components; apply the current --tx-* appearance.
   enableTexuliAppearance();
   // Svelte delegates `click` & co. to the element it mounts into and walks the
   // event path from there; it stops at the first `stopPropagation()`. The

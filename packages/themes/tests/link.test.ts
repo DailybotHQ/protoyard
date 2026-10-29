@@ -37,7 +37,10 @@ describe('link tokens', () => {
         const vars = themeVariables({ theme, resolvedMode: mode });
         for (const name of LINK_VARS) {
           expect(vars[name], `${theme.id}/${mode} writes ${name}`).toMatch(/^#[0-9a-f]{6}$/i);
-          expect(vars[name.replace('--tx-', '--py-')], 'keeps the --py-* alias').toBe(vars[name]);
+          expect(
+            vars[name.replace('--tx-', '--py-')],
+            'does not write a legacy alias'
+          ).toBeUndefined();
         }
         for (const name of READABLE) {
           for (const surface of LINK_SURFACES) {
@@ -103,7 +106,7 @@ describe('link tokens', () => {
       const vars = themeVariables({ theme: violet, resolvedMode: mode });
       for (const name of LINK_VARS) {
         expect(css, `${mode} ${name}`).toContain(`${name}: ${vars[name]};`);
-        expect(css).toContain(`${name.replace('--tx-', '--py-')}: var(${name});`);
+        expect(css).not.toContain(`${name.replace('--tx-', '--py-')}: var(${name});`);
       }
     }
   });

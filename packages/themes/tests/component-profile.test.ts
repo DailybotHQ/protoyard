@@ -22,8 +22,8 @@ describe('themeComponentProfile → ui data-py-* attributes', () => {
     expect(root.dataset.pyFocusRingStyle).toBeUndefined();
     expect(root.dataset.pyCardStyle).toBeUndefined();
     expect(root.dataset.pyButtonStyle).toBeUndefined();
-    expect(root.style.getPropertyValue('--py-focus-ring-width')).toBe('2px');
-    expect(root.style.getPropertyValue('--py-focus-ring-offset')).toBe('2px');
+    expect(root.style.getPropertyValue('--tx-focus-ring-width')).toBe('2px');
+    expect(root.style.getPropertyValue('--tx-focus-ring-offset')).toBe('2px');
   });
 
   it('maps focus ring, surface, elevation and radius to profiles and CSS variables', () => {
@@ -41,8 +41,8 @@ describe('themeComponentProfile → ui data-py-* attributes', () => {
     expect(root.dataset.pyFocusRingStyle).toBe('inset');
     expect(root.dataset.pyCardStyle).toBe('glass');
     expect(root.dataset.pyButtonStyle).toBe('square');
-    expect(root.style.getPropertyValue('--py-focus-ring-width')).toBe('3px');
-    expect(root.style.getPropertyValue('--py-focus-ring-offset')).toBe('0');
+    expect(root.style.getPropertyValue('--tx-focus-ring-width')).toBe('3px');
+    expect(root.style.getPropertyValue('--tx-focus-ring-offset')).toBe('0');
 
     expect(
       themeComponentProfile(variant({ radius: '9999px', style: { elevation: 'flat' } }))

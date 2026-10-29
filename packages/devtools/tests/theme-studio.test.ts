@@ -100,7 +100,7 @@ describe('Theme Studio (DevTools)', () => {
       'Zinc'
     );
     expect(
-      within(panel).getByTestId('theme-studio-preview').style.getPropertyValue('--py-radius')
+      within(panel).getByTestId('theme-studio-preview').style.getPropertyValue('--tx-radius')
     ).toBe('0.75rem');
     expect(within(studio).getByRole('combobox', { name: 'Font pairing' }).textContent).toContain(
       'Humanist'
@@ -125,10 +125,10 @@ describe('Theme Studio (DevTools)', () => {
       name: 'Sunset Brand',
       seed: '#e8590c',
     });
-    expect(preview.style.getPropertyValue('--py-primary')).toBe(expected.light.primary);
+    expect(preview.style.getPropertyValue('--tx-primary')).toBe(expected.light.primary);
     expect(preview.dataset.pyCardStyle).toBe('glass');
     expect(preview.dataset.pyFocusRingStyle).toBe('inset');
-    expect(document.documentElement.style.getPropertyValue('--py-primary')).not.toBe(
+    expect(document.documentElement.style.getPropertyValue('--tx-primary')).not.toBe(
       expected.light.primary
     );
     expect(within(panel).getByText(/meet WCAG AA in light and dark/)).toBeTruthy();

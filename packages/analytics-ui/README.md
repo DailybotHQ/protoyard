@@ -238,9 +238,9 @@ prototypes already ship them): `DashboardGrid` + `WidgetCard` 3.6 KB, or
     steps after it.
 - **`CohortTable`**: a real `<table>` with a caption, `scope="col"` period
   headers, `scope="row"` cohort headers and an average row.
-  - Cells use the sequential ramp (`var(--py-seq-N)`). Text is colored on the
+  - Cells use the sequential ramp (`var(--tx-seq-N)`). Text is colored on the
     fill only when it reaches 4.5:1 against that step's hex, read from the
-    theme's `--py-seq-*` (or a `palette` prop). Otherwise the value sits on a
+    theme's `--tx-seq-*` (or a `palette` prop). Otherwise the value sits on a
     surface chip, so contrast never depends on a guess.
   - The % / Count toggle uses `aria-pressed` buttons and is bindable
     (`display`). Incomplete periods are outlined and marked with an asterisk

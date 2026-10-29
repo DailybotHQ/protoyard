@@ -3,8 +3,7 @@ import { type AppearanceInput, densityScale, setTexuliAppearanceWriter } from '.
 import { toTexuliTheme } from './texuli.ts';
 
 /**
- * Writes Texuli's `--tx-*` variables (the canonical names; `--py-*` are their
- * aliases) with `@texuli/tokens` itself.
+ * Writes Texuli's canonical `--tx-*` variables with `@texuli/tokens` itself.
  */
 export function writeTexuliAppearance(
   target: HTMLElement,

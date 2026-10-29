@@ -1,6 +1,6 @@
 /**
  * Chart palette: `@texuli/tokens/palette` `deriveChartTokens`, plus CSS var helpers
- * for the `--tx-chart*` names (with the deprecated `--py-*` aliases). No local palette engine.
+ * for the canonical `--tx-chart*` names. No local palette engine.
  */
 export {
   CHART_CATEGORICAL_COUNT as CATEGORICAL_COUNT,
@@ -62,22 +62,20 @@ export function divergingColor(t: number): string {
   return `var(--tx-div-${step + 1})`;
 }
 
-/** Writes derived chart tokens as `--tx-*` custom properties, plus the deprecated `--py-*` aliases. */
+/** Writes derived chart tokens as canonical `--tx-*` custom properties. */
 export function chartPaletteVariables(palette: ChartTokens): Record<string, string> {
   const vars: Record<string, string> = {};
-  for (const prefix of ['--tx', '--py']) {
-    vars[`${prefix}-chart-grid`] = palette.grid;
-    vars[`${prefix}-chart-axis`] = palette.axis;
-    palette.categorical.forEach((color, i) => {
-      vars[`${prefix}-chart${i + 1}`] = color;
-    });
-    palette.sequential.forEach((color, i) => {
-      vars[`${prefix}-seq-${i + 1}`] = color;
-    });
-    palette.diverging.forEach((color, i) => {
-      vars[`${prefix}-div-${i + 1}`] = color;
-    });
-  }
+  vars['--tx-chart-grid'] = palette.grid;
+  vars['--tx-chart-axis'] = palette.axis;
+  palette.categorical.forEach((color, i) => {
+    vars[`--tx-chart${i + 1}`] = color;
+  });
+  palette.sequential.forEach((color, i) => {
+    vars[`--tx-seq-${i + 1}`] = color;
+  });
+  palette.diverging.forEach((color, i) => {
+    vars[`--tx-div-${i + 1}`] = color;
+  });
   return vars;
 }
 

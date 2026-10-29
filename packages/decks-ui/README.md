@@ -67,9 +67,8 @@ machinery (`createDeckStepContext` over the model's step table of the
 original slide), so fragments carry `data-tx-deck-fragment` and animate with
 the stage's styles; code highlights move per step. A leading unstepped
 heading is the slide title; the blocks zoom down to fit the canvas.
-Protoyard's `--py-*` theme tokens are aliased to the stage's `--tx-*` tokens
-inside the slide, so blocks follow the deck theme and the background's text
-color.
+The stage's `--tx-*` theme tokens feed Protoyard's blocks inside the slide, so
+blocks follow the deck theme and the background's text color.
 
 ### Custom slides
 

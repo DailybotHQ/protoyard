@@ -60,7 +60,7 @@ workspace rules. CI and local validation also use scoped strict checks with
 | --- | --- | --- |
 | `legacy-import` | Imports of `clsx`, `tailwind-merge`, or `tailwind-variants` | Use Texuli's `cx` from `texuli/cx`. Protoyard keeps `cn` as an alias for compatibility; it is equivalent to `cx` and does not resolve Tailwind conflicts. Update callers that relied on conflict merging. |
 | `raw-lucide` | Rendering a component directly from `@lucide/svelte` | Use `Icon` from `texuli/icons` for its ten built-in names. For every other glyph, import the glyph from `@lucide/svelte` and render it through `LucideIcon` from `texuli/icons/lucide`, e.g. `<LucideIcon icon={Activity} />`. Lucide is only the glyph source. |
-| `py-token` | Reading legacy `--py-*` styling tokens in authored UI | Use Texuli's `--tx-*` tokens. Compatibility aliases and explicitly excepted Protoyard frame geometry remain documented exceptions. |
+| `py-token` | Reading legacy `--py-*` styling tokens in authored UI | Use Texuli's `--tx-*` theme tokens. Only renderer-owned geometry (`--py-fixed-right-edge`, `--py-side-panel-width`, `--py-safe-*`, `--py-device-radius`, `--py-app-height`) remains under `--py-*`; deck-stage properties use `--tx-deck-*`. |
 | `raw-control` | Native interactive controls in Svelte markup | Use the matching Texuli or public `@protoyard/ui` control. |
 | `input-as-choice` | Using `Input` with `type="checkbox"` or `type="radio"` | Use `Checkbox` or `RadioGroup`/`RadioGroupItem`. Texuli `Input` binds its `value`; it is not a choice control. |
 | `own-component` | A leaf UI component that draws a generic control without using Texuli or Protoyard UI | Compose Texuli, or use a documented Protoyard exception where the behavior is product-specific. |
@@ -93,11 +93,11 @@ tests and build output are excluded.
 
 `@protoyard/themes` builds and adapts Protoyard's appearance model using
 `@texuli/tokens`. The 64-theme catalog and opt-in 204-theme library remain
-Protoyard's product surface. `enableTexuliAppearance()` writes Texuli's
-`--tx-*` variables, which new UI should read; `--py-*` aliases remain for
-compatibility and frame geometry. Import token subpaths such as
-`@texuli/tokens/css` and `@texuli/tokens/contract`; do not statically import
-the root barrel, which includes the theme library.
+Protoyard's product surface. Theme writers now emit only Texuli's `--tx-*`
+variables. The deprecated `--py-*` theme aliases are removed; renderer-owned
+geometry remains under `--py-*`, while deck-stage properties use `--tx-deck-*`. Import token
+subpaths such as `@texuli/tokens/css` and `@texuli/tokens/contract`; do not
+statically import the root barrel, which includes the theme library.
 
 ## Decks run on `@texuli/deck` and `@texuli/slides`
 

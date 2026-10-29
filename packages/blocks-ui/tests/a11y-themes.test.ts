@@ -181,8 +181,8 @@ describe('catalog rich examples — a11y structure', () => {
         expect(container.querySelectorAll('[aria-label="Loading block"]').length).toBe(0);
       }, long);
       const root = container.querySelector('[data-a11y-harness]') as HTMLElement;
-      expect(root.style.getPropertyValue('--py-background')).toMatch(/^#/);
-      expect(root.style.getPropertyValue('--py-foreground')).toMatch(/^#/);
+      expect(root.style.getPropertyValue('--tx-background')).toMatch(/^#/);
+      expect(root.style.getPropertyValue('--tx-foreground')).toMatch(/^#/);
     }
   }, 60_000);
 });

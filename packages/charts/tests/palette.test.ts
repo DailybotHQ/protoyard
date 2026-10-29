@@ -43,13 +43,11 @@ describe('chart palettes from @texuli/tokens/palette', () => {
     const input = themeToChartInput(BUILTIN_THEMES[0]!.light as Record<string, string>);
     const palette = chartPalette(input, 'light');
     const vars = chartPaletteVariables(palette);
-    expect(vars['--py-chart1']).toBe(palette.categorical[0]);
-    expect(vars['--py-seq-1']).toBe(palette.sequential[0]);
-    expect(vars['--py-div-5']).toBeTruthy();
-    // The canonical --tx-* names carry the same values as the deprecated aliases.
-    expect(vars['--tx-chart1']).toBe(vars['--py-chart1']);
-    expect(vars['--tx-seq-1']).toBe(vars['--py-seq-1']);
-    expect(vars['--tx-div-5']).toBe(vars['--py-div-5']);
+    expect(vars['--tx-chart1']).toBe(palette.categorical[0]);
+    expect(vars['--tx-seq-1']).toBe(palette.sequential[0]);
+    expect(vars['--tx-div-5']).toBeTruthy();
+    expect(Object.keys(vars).every((name) => name.startsWith('--tx-'))).toBe(true);
+    expect(vars).not.toHaveProperty('--py-chart1');
   });
 
   it('seriesColor and ramp helpers return CSS variables', () => {

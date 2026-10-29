@@ -18,7 +18,7 @@ plain TypeScript tested in Node. Svelte components live in
 | `@protoyard/charts/shapes` | `linePath(points, { curve, defined })` and `areaPath(points)` with `linear`, `monotone-x`, `step`, `step-before`, `step-after` curves and gaps; `stack(series, { offset: 'none' \| 'expand' \| 'diverging' })`, `stackExtent`, `groupOffsets(bandwidth, n, padding)`; `pie(values, { padAngle, sort })`, `arcPath({ innerRadius, outerRadius, startAngle, endAngle, cornerRadius, padAngle })`, `arcCentroid`; `symbolPath(type, x, y, area)` (circle, square, diamond, triangle, cross); `bin(values, { thresholds \| count, domain })` with Sturges default; `roundCoord` |
 | `@protoyard/charts/downsample` | `largestTriangleThreeBuckets(points, threshold)` (keeps gaps, returns the input when small), `lttbIndices(xs, ys, threshold)` (plain or typed arrays), `minMaxBuckets(xs, ys, { buckets, x0?, x1? })` (first/min/max/last per pixel column, for canvas), `bisectX` / `bisectLeft` (O(log n) crosshair lookup), `downsampleThreshold(plotWidthPx)` (2 per pixel, 200–4,000) |
 | `@protoyard/charts/layout` | `treemap(root, { width, height, padding, paddingTop })` (squarified; validates sums, `TreemapError`); `sankey(nodes, links, { width, height, nodeWidth, nodePadding, iterations })` (DAG only, `SankeyError` with `code: 'cycle' \| 'unknown-node' \| 'invalid-value' \| 'duplicate-node'`); `funnelLayout(steps, { width, height, orientation, gap })` (geometry + conversion/drop-off); `calendarLayout({ start, end }, { values, weekStartsOn })` (UTC week columns × weekday rows, missing days `null`); `matrixLayout(rows, cols, { width, height, gap })`; `gaugeLayout(value, { min, max, startAngle, endAngle, thresholds })`; `plotArea` |
-| `@protoyard/charts/palette` | `chartPalette(themePalette, mode)` → 8 categorical + 9-step sequential + 9-step diverging hex colors, repaired to pass; `validateChartPalette()`; `chartPaletteVariables()` (`--py-chart1…8`, `--py-seq-1…9`, `--py-div-1…9` for a chart root); `readChartPaletteInput()`; `seriesColor(i)`, `sequentialColor(t)`, `divergingColor(t)`; color math (`contrastRatio`, OKLCH, `simulateDeficiency`) |
+| `@protoyard/charts/palette` | `chartPalette(themePalette, mode)` → 8 categorical + 9-step sequential + 9-step diverging hex colors, repaired to pass; `validateChartPalette()`; `chartPaletteVariables()` (`--tx-chart1…8`, `--tx-seq-1…9`, `--tx-div-1…9` for a chart root); `readChartPaletteInput()`; `seriesColor(i)`, `sequentialColor(t)`, `divergingColor(t)`; color math (`contrastRatio`, OKLCH, `simulateDeficiency`) |
 | `@protoyard/charts/palette/derive` | The palette builder alone (`chartPalette`, `validateChartPalette`), for lazy `import()`: chart frames load it only for themes without a chart block. Sizes and thresholds live in `palette/constants.ts`, so static imports of `@protoyard/charts/palette` never pull it in. |
 
 Scales are complete (PLAN_003 `T-charts-scales`): the whole `./scales` module
@@ -72,7 +72,7 @@ Compute it once per appearance change, not per render.
 
 ## Rules
 
-- Color comes only from theme variables (`--py-chart*`), so light/dark and
+- Color comes only from theme variables (`--tx-chart*`), so light/dark and
   every theme work without recomputation.
 - No `Date.now()` or `Math.random()`: time and data come from the caller.
 - Time scales, ticks and date formatters work in UTC, so labels do not move

@@ -73,7 +73,7 @@ standalone Svelte 5 component library, consumed from its published npm packages
   `Accordion`, `Tooltip`, `Separator`, `Progress`, `Skeleton`, `Kbd`,
   `ErrorState`, `Stepper`, `Wizard`, `Carousel`, `Breadcrumb`, `SplitView`).
   Import them from `@protoyard/ui` as before; their look is Texuli's (`tx-*`
-  classes on the `--tx-*` variables the renderer writes next to `--py-*`).
+  classes on the canonical `--tx-*` theme variables and renderer-owned `--py-*` geometry).
   The full mapping is in [TEXULI.md](../../docs/TEXULI.md#generic-styled-components-come-from-texuli).
 - **Re-exported from Texuli under Protoyard's names:** `AppShell` (and
   `getAppShellContext`) from `texuli/layouts/shells`, `FormField` (Texuli's

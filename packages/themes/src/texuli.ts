@@ -29,8 +29,8 @@ export {
  *   categorical chart colors, as Protoyard's own palette engine does.
  * - `toTexuliTheme` completes a Protoyard theme into a Texuli theme so
  *   `@texuli/tokens` can write the `--tx-*` variables. The 34 shared roles pass
- *   through unchanged (so every `--py-<role>` equals `--tx-<role>`); the 16
- *   roles Protoyard does not have are derived from existing roles, each
+ *   through unchanged; the 16 roles Protoyard does not have are derived from
+ *   existing roles, each
  *   choosing the first candidate that meets the contrast pairs Texuli's AA
  *   gate holds it to.
  */
@@ -110,7 +110,7 @@ function texuliPalette(palette: ThemePalette): Record<SemanticRole, string | Sem
     const shared = (SHARED_PALETTE_ROLES as readonly string[]).includes(role);
     out[role] = shared ? palette[role as keyof ThemePalette] : (derived[role] as string);
   }
-  // Protoyard computes these hover fills (`--py-primary-hover`); Texuli carries them as states.
+  // Protoyard computes these hover fills; Texuli carries them as states.
   const primaryHover = hoverFill(palette.primary, palette.primaryForeground);
   out.primary = { default: palette.primary, hover: primaryHover };
   out.sidebarPrimary = { default: palette.primary, hover: primaryHover };
