@@ -541,9 +541,6 @@ test.describe('deck chrome controls', () => {
       await page.goto(`${deckUrl}?debug=1#/cover/0`);
       await expect(root(page)).toHaveAttribute('data-slide-id', 'cover');
       const chrome = toolbar(page);
-      const visibleButtons = await chrome
-        .locator('button:visible, summary:visible')
-        .evaluateAll((nodes) => nodes.length);
 
       // Tab from the deck through the whole chrome: every stop shows a focus ring.
       await stage(page).focus();
@@ -569,6 +566,11 @@ test.describe('deck chrome controls', () => {
         if (reached.includes(stop.name)) break;
         reached.push(stop.name);
       }
+      // Counted after the walk: on a phone the toolbar folds tools into its More
+      // menu once it has measured its width, so an early count can miss that button.
+      const visibleButtons = await chrome
+        .locator('button:visible, summary:visible')
+        .evaluateAll((nodes) => nodes.length);
       expect(reached.length).toBe(visibleButtons);
 
       // The slide list: Enter opens it on the current slide, arrows move, Enter picks.
