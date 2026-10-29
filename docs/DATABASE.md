@@ -328,6 +328,7 @@ initialisation (it owns an `$effect`).
 | --- | --- |
 | `initial` | Value of `current` until the first result arrives (`[]` avoids `undefined` checks in lists) |
 | `deps` | A function that reads every reactive value the query uses |
+| `deferResults` | When `true`, publishes each result from a fresh task instead of the Dexie notification task. Use it when one notification publishes a large result set whose synchronous UI update would make that task too long. Pending publications are cleared when the component unsubscribes. |
 
 `deps` matters because Dexie runs the query asynchronously, outside Svelte's
 dependency tracking. Without it, a query that uses a route param or a filter
@@ -339,6 +340,8 @@ const note = liveQuery(() => runtime.db.notes.get(id), { deps: () => id });
 ```
 
 With several inputs, return them all: `deps: () => [id, stage]`.
+`deferResults` does not change dependency tracking: continue listing every
+reactive query input in `deps`, including inputs only read after an `await`.
 
 ## Seeded ids vs runtime ids
 

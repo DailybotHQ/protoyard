@@ -273,7 +273,7 @@ no `build` option, every prototype behaves exactly as before.
 | API | Returns |
 | --- | --- |
 | `getRuntime<TDb>()` | the runtime (context, or the mounted one outside components) |
-| `liveQuery(fn, { initial?, deps? })` | `{ current, loading, error }`; re-runs on table changes and when its inputs change. **List every reactive input in `deps: () => [...]`** (route params, filters, persona). As a safety net, reads made before the querier's first `await` are tracked automatically (one extra query per subscription); inputs read only after an `await` need `deps` |
+| `liveQuery(fn, { initial?, deps?, deferResults? })` | `{ current, loading, error }`; re-runs on table changes and when its inputs change. **List every reactive input in `deps: () => [...]`** (route params, filters, persona). As a safety net, reads made before the querier's first `await` are tracked automatically (one extra query per subscription); inputs read only after an `await` need `deps`. Set `deferResults: true` when one notification publishes a large result set whose synchronous UI update could make the Dexie task too long; each publication then runs on a fresh task, and queued publications are cleared on unsubscribe. |
 | `usePrincipal()` / `useAppearance()` / `useEnvironment()` / `useOverrides()` | `{ current }` |
 | `useScenario()` | `{ active, list }` |
 | `useClock()` | `{ now, committed, reference, previewing, state }` |

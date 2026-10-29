@@ -336,6 +336,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
       {#each channels.current ?? [] as ch (ch.id)}
         <Button
           type="button"
+          variant="ghost"
           class="flex min-h-touch w-full items-center gap-1 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted md:min-h-0 {channelId ===
           ch.id
             ? 'bg-muted font-medium'
@@ -608,7 +609,8 @@ function closeToolsOnEscape(event: KeyboardEvent) {
             <div class="mt-1 flex gap-2">
               <Button
                 type="button"
-                class="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                variant="ghost"
+                class="text-xs disabled:opacity-100 disabled:text-muted-foreground"
                 aria-label="React with thumbs up"
                 disabled={!canReact}
                 title={canReact ? 'React with thumbs up' : readOnlyReason}
@@ -619,7 +621,8 @@ function closeToolsOnEscape(event: KeyboardEvent) {
               {#if !msg.threadId}
                 <Button
                   type="button"
-                  class="text-xs text-muted-foreground hover:text-foreground"
+                  variant="ghost"
+                  class="text-xs"
                   aria-label="Reply in thread"
                   data-thread-trigger=""
                   onclick={() => replyInThread(msg.id)}
