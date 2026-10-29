@@ -57,7 +57,7 @@
 
   /* Navigation and the table of contents are for screens. */
   :is([data-py-page-host], [data-py-doc-host], .py-print-root)
-  :is([data-py-page-nav], .docs-layout__navigation, .docs-layout__toc, nav) {
+    :is([data-py-page-nav], .docs-layout__navigation, .docs-layout__toc, nav) {
     display: none !important;
   }
 
@@ -73,7 +73,7 @@
 
   /* Keep the destination of external links on paper. */
   :is([data-py-page-host], [data-py-doc-host], .py-print-root)
-  a[href^="http"]:not(:has(img))::after {
+    a[href^="http"]:not(:has(img))::after {
     content: " (" attr(href) ")";
     font-size: 0.85em;
     font-weight: normal;
@@ -82,7 +82,7 @@
 
   /* Blocks that read badly when split. */
   :is([data-py-page-host], [data-py-doc-host], .py-print-root)
-  :is([data-py-block], figure, table, pre, blockquote, img, svg, li) {
+    :is([data-py-block], figure, table, pre, blockquote, img, svg, li) {
     break-inside: avoid;
     page-break-inside: avoid;
   }
@@ -94,7 +94,7 @@
 
   /* Scroll regions print their whole content. */
   :is([data-py-page-host], [data-py-doc-host], .py-print-root)
-  :is(.overflow-auto, .overflow-x-auto, .overflow-y-auto) {
+    :is(.overflow-auto, .overflow-x-auto, .overflow-y-auto) {
     overflow: visible !important;
     max-height: none !important;
   }
