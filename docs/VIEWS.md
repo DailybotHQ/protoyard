@@ -157,18 +157,20 @@ view adds to the first screen (gzip -9). It also checks that menus and the
 board and calendar Move menus stay lazy and that unused sibling views are
 shaken out.
 
-Measured on 2026-10-24 with
-`pnpm vitest run packages/cli/tests/views-bundle.test.ts --silent=false`
-(Texuli adapters in place):
+Measured with `pnpm vitest run packages/cli/tests/views-bundle.test.ts
+--silent=false`, gzip level 9:
 
-| View | Measured | Ceiling |
-| --- | ---: | ---: |
-| Board | 13,900 B (Texuli 0.4.0) | 14,595 B |
-| Calendar | 14,327 B | 17,200 B |
-| Grid (`DataGrid` only) | 17,804 B | 23,400 B |
-| Map | 7,984 B | 12,400 B |
-| Editor | 9,484 B (Texuli 0.4.0) | 9,958 B |
-| Timeline | 11,973 B (Texuli 0.4.0) | 12,572 B |
+| View | Texuli 0.4.0 | Texuli 0.5.0 | Ceiling before → after |
+| --- | ---: | ---: | ---: |
+| Board | 13,900 B | 14,137 B | 14,595 → 14,595 B |
+| Calendar | 15,801 B | 15,847 B | 17,200 → 16,640 B |
+| Grid (`DataGrid` only) | 19,297 B | 20,116 B | 23,400 → 21,122 B |
+| Map | 8,073 B | 8,066 B | 12,400 → 8,470 B |
+| Editor | 9,484 B | 9,508 B | 9,958 → 9,958 B |
+| Timeline | 11,973 B | 11,981 B | 12,572 → 12,572 B |
+
+Each lowered ceiling is the Texuli 0.5.0 measurement + 5%, rounded up. The
+previous ceiling stays where it is already lower than that threshold.
 
 The other subpaths have no current per-component measurement. A full
 prototype that uses several views, `keel-projects-demo`, measured with

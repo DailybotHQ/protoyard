@@ -11,65 +11,66 @@
   },
   "overrides": {
     "atlas-workspace-demo": {
-      "cssGzipKb": 40.6,
-      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
+      "cssGzipKb": 39.9,
+      "reason": "Texuli 0.5.0: measured 37.95 KB CSS gzip; +5% rounded up to 39.9 KB, lower than the prior 40.6 KB ceiling."
     },
     "cadence-studio-demo": {
-      "cssGzipKb": 52.8,
-      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
+      "cssGzipKb": 52.4,
+      "reason": "Texuli 0.5.0: measured 49.85 KB CSS gzip; +5% rounded up to 52.4 KB, lower than the prior 52.8 KB ceiling."
     },
     "create-anything-deck": {
-      "initialJsGzipKb": 319.1,
+      "initialJsGzipKb": 296.6,
       "cssGzipKb": 83.7,
-      "reason": "Measured 2026-10-28 + 5 % (initial JS 303.82 KB after the theme library and palette generator left the first chunk, CSS 79.67 KB): npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB of CSS and initial JS; lower when it ships."
+      "reason": "Texuli 0.5.0: initial JS 282.43 KB gzip, +5% rounded up to 296.6 KB (lower than 319.1 KB); CSS ceiling retained at 83.7 KB because measured CSS +5% is higher."
     },
     "harbor-dispatch-demo": {
-      "cssGzipKb": 52.8,
-      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
+      "cssGzipKb": 52.4,
+      "reason": "Texuli 0.5.0: measured 49.85 KB CSS gzip; +5% rounded up to 52.4 KB, lower than the prior 52.8 KB ceiling."
     },
     "helpdesk-demo": {
-      "cssGzipKb": 52.5,
-      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
+      "cssGzipKb": 51.9,
+      "reason": "Texuli 0.5.0: measured 49.44 KB CSS gzip; +5% rounded up to 51.9 KB, lower than the prior 52.5 KB ceiling."
     },
     "keel-projects-demo": {
-      "cssGzipKb": 47.8,
-      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
+      "cssGzipKb": 47.5,
+      "reason": "Texuli 0.5.0: measured 45.17 KB CSS gzip; +5% rounded up to 47.5 KB, lower than the prior 47.8 KB ceiling."
     },
     "nova-assistant-demo": {
-      "cssGzipKb": 32.5,
-      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
+      "cssGzipKb": 32.2,
+      "reason": "Texuli 0.5.0: measured 30.60 KB CSS gzip; +5% rounded up to 32.2 KB, lower than the prior 32.5 KB ceiling."
     },
     "pebblestat-analytics-demo": {
-      "cssGzipKb": 40.3,
-      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
+      "cssGzipKb": 39.5,
+      "reason": "Texuli 0.5.0: measured 37.54 KB CSS gzip; +5% rounded up to 39.5 KB, lower than the prior 40.3 KB ceiling."
     },
     "player": {
-      "cssGzipKb": 36
+      "cssGzipKb": 15.8,
+      "reason": "Texuli 0.5.0: index.html initial CSS measured 15,330 B (14.97 KB); +5% rounded up to 15.8 KB, lower than the prior 36 KB ceiling."
     },
     "pulse-revenue-demo": {
-      "cssGzipKb": 52.9,
-      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
+      "cssGzipKb": 52.4,
+      "reason": "Texuli 0.5.0: measured 49.89 KB CSS gzip; +5% rounded up to 52.4 KB, lower than the prior 52.9 KB ceiling."
     },
     "ui-kit": {
       "cssGzipKb": 54.5,
-      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
+      "reason": "Texuli 0.5.0: measured 52.64 KB CSS gzip; prior 54.5 KB ceiling is already below measured +5%, so it stays unchanged."
     }
   },
   "kinds": {
     "doc": {
       "initialJsGzipKb": 150,
       "singleFileKb": 2560,
-      "cssGzipKb": 36
+      "cssGzipKb": 17.4
     },
     "deck": {
       "initialJsGzipKb": 150,
       "singleFileKb": 2560,
-      "cssGzipKb": 36
+      "cssGzipKb": 16.1
     },
     "page": {
       "initialJsGzipKb": 150,
       "singleFileKb": 2560,
-      "cssGzipKb": 36
+      "cssGzipKb": 17.4
     }
   }
 }

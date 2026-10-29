@@ -967,8 +967,10 @@ pnpm exec playwright test tests/e2e/deck-artifact.spec.ts
 
 Measured 2026-10-22: that pack is 177 files plus the page (2,193,470 B), with
 one 548,131 B gzip script. A quick deck exported as one file measured
-1.53 MB then. With decks on the `@texuli/slides` stage (npm 0.4.0) the catalog
-decks export at 2.66–2.68 MB, under the 2,818,330-byte cap for a deck page (npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB of CSS and initial JS; lower when it ships).
+1.53 MB then. On npm Texuli 0.5.0, catalog deck, page and doc single-file
+exports measure 2,681,755–2,689,852 B (the 0.4.0 range was 2,656,649–2,684,123
+B). The existing 2,818,330-byte cap stays because it is already below the
+0.5.0 maximum plus 5%.
 
 ## Limits
 

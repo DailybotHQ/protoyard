@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/svelte';
+import { cleanup, render } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Gauge, RadialProgress, Sparkline, trendSummary } from '../src/compact/index.ts';
 
@@ -34,6 +34,17 @@ describe('compact adapters over @texuli/charts', () => {
     expect(document.querySelector('[role="img"]')?.getAttribute('aria-label')).toBe(
       'Trend: up 100%'
     );
+  });
+
+  it('Sparkline-lite preserves Protoyard callback formatting and its accessible trend name', () => {
+    render(Sparkline, {
+      values: [0, 3],
+      period: '2 weeks',
+      format: (value) => `$${value}`,
+    });
+    const image = document.querySelector('[role="img"]');
+    expect(image?.getAttribute('aria-label')).toBe('Trend: up from $0 to $3 over 2 weeks');
+    expect(image?.querySelector('desc')?.textContent).toContain('$0');
   });
 
   it('trendSummary classifies direction', () => {
