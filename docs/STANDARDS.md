@@ -55,6 +55,10 @@ contract. Do not build a generic component that duplicates Texuli.
   component instance and is appropriate only when calling its component API.
   If the needed DOM ref is absent, keep a minimal adapter and record the
   Texuli gap; do not assume the component instance is an element.
+  Start every bound ref as `null` (`let field = $state<HTMLElement | null>(null)`):
+  Svelte throws at runtime on `bind:ref={undefined}` when the component's `ref`
+  has a fallback, which stops the whole island. The adoption check's
+  `ref-undefined` rule enforces it.
 - **Use `--tx-*` tokens for authored UI.** Existing `--py-*` aliases and
   explicitly excepted frame geometry remain for compatibility; new UI reads
   Texuli's `--tx-*` tokens. Use the theme utilities for semantic colors.

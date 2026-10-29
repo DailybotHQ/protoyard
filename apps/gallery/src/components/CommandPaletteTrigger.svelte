@@ -18,7 +18,8 @@ interface Props {
 
 let { homeUrl }: Props = $props();
 let hydrated = $state(false);
-let trigger: HTMLButtonElement;
+// $state: bind:ref on a component writes through a reactive binding.
+let trigger = $state<HTMLElement | null>(null);
 let host: HTMLDivElement;
 let show: (() => void) | null = null;
 let failed = $state(false);
@@ -29,7 +30,7 @@ const load = retryable(() =>
       target: host,
       props: {
         homeUrl,
-        externalTrigger: trigger,
+        externalTrigger: trigger ?? undefined,
         onReady: (api: { show: () => void }) => {
           show = api.show;
           api.show();
@@ -72,7 +73,7 @@ onMount(() => {
 
 <div class="flex items-center" data-testid="command-palette" data-hydrated={hydrated}>
   <Button
-    bind:this={trigger}
+    bind:ref={trigger}
     type="button"
     class="inline-flex h-9 items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-sm text-muted hover:bg-surface-2 hover:text-fg sm:px-3"
     aria-haspopup="dialog"

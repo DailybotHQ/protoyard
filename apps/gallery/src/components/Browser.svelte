@@ -37,7 +37,7 @@ let all = $state<CompactEntry[]>(initial);
 let ready = $state(false);
 let query = $state<BrowseQuery>({ ...DEFAULT_QUERY });
 let page = $state(1);
-let searchInput: HTMLInputElement | undefined = $state();
+let searchInput = $state<HTMLElement | null>(null);
 
 const index = $derived(all.map((entry) => ({ entry, text: haystack(entry) })));
 const results = $derived(applyQuery(index, query, library));
@@ -121,7 +121,7 @@ const views = [
         <span class="sr-only">Search prototypes</span>
         <Icon icon="search" size={16} class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
         <Input
-          bind:this={searchInput}
+          bind:ref={searchInput}
           type="search"
           placeholder="Search name, tag, description…"
           autocomplete="off"

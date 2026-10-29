@@ -33,9 +33,9 @@ let status = $state('');
 let hydrated = $state(false);
 let indexLoaded = $state(false);
 let indexError = $state(false);
-let input: HTMLInputElement;
+let input = $state<HTMLElement | null>(null);
 // $state: the own button only renders without an external trigger.
-let trigger = $state<HTMLButtonElement>();
+let trigger = $state<HTMLElement | null>(null);
 let returnFocusTo: HTMLElement | null = null;
 
 const commands = $derived(
@@ -108,7 +108,7 @@ function show(): void {
   activeIndex = 0;
   status = '';
   open = true;
-  requestAnimationFrame(() => input.focus());
+  requestAnimationFrame(() => input?.focus());
 }
 
 function close(): void {
@@ -213,7 +213,7 @@ async function run(action: PaletteAction): Promise<void> {
 >
   {#if !externalTrigger}
   <Button
-    bind:this={trigger}
+    bind:ref={trigger}
     type="button"
     class="inline-flex h-9 items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-sm text-muted hover:bg-surface-2 hover:text-fg sm:px-3"
     aria-haspopup="dialog"
@@ -231,7 +231,7 @@ async function run(action: PaletteAction): Promise<void> {
     <div class="flex items-center gap-3 border-b border-line px-4">
       <Icon icon="search" size={18} class="shrink-0 text-muted" aria-hidden="true" />
       <Input
-        bind:this={input}
+        bind:ref={input}
         id="gallery-command-input"
         type="text"
         role="combobox"
