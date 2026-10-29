@@ -41,6 +41,11 @@ step() {
   fi
 }
 
+refresh_spec() {
+  local slug="$1"
+  py spec "$slug" --write
+}
+
 git -C "$ROOT" worktree add --detach "$WT" HEAD >>"$LOG" 2>&1 || {
   echo "✗ could not create the worktree (log: $LOG)"
   exit 1
@@ -58,6 +63,15 @@ for dir in templates/*/; do
   step "new --template $template" py new "$slug" --template "$template" --no-install
 done
 step "install the scaffolded prototypes" pnpm install --prefer-offline
+refresh_scaffolded_specs() {
+  local dir slug
+  for dir in prototypes/zz-new-*/; do
+    [ -d "$dir" ] || continue
+    slug="$(basename "$dir")"
+    refresh_spec "$slug" || return 1
+  done
+}
+step "refresh scaffolded prototype specs" refresh_scaffolded_specs
 for dir in templates/*/; do
   template="$(basename "$dir")"
   slug="zz-new-$template"
@@ -69,7 +83,7 @@ done
 generate_kind() {
   local slug="$1" blueprint="$2"
   py generate "$slug" --blueprint "$blueprint" && pnpm install --prefer-offline &&
-    py validate "$slug" --build
+    refresh_spec "$slug" && py validate "$slug" --build
 }
 step "generate app" generate_kind zz-gen-app "$(ls blueprints/*.json | head -1)"
 step "generate deck (everything)" generate_kind zz-gen-deck blueprints/decks/everything.json
@@ -80,7 +94,7 @@ step "generate doc" generate_kind zz-gen-doc "$(ls blueprints/docs/*.json | head
 brief() {
   echo "A field-service app where dispatchers assign repair jobs to technicians, track parts and bill customers" |
     pnpm --silent protoyard blueprint new tmp/zz-brief.blueprint.json --from-brief - --generate zz-brief &&
-    pnpm install --prefer-offline && py validate zz-brief --build
+    pnpm install --prefer-offline && refresh_spec zz-brief && py validate zz-brief --build
 }
 step "brief → blueprint → prototype" brief
 
