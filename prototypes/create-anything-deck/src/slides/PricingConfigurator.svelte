@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { CustomSlideProps } from '@protoyard/decks-ui/app';
-import { Checkbox, Input } from '@protoyard/ui';
+import { Checkbox, Input, RadioGroup, RadioGroupItem } from '@protoyard/ui';
 
 /**
  * A live pricing configurator on a slide: pick a plan, set the seats, switch
@@ -88,26 +88,25 @@ const uid = $props.id();
 
     <fieldset class="flex flex-col gap-3">
       <legend class="mb-2 text-2xl font-semibold text-muted-foreground">Plan</legend>
-      <div class="grid grid-cols-3 gap-3">
+      <RadioGroup
+        aria-label="Plan"
+        class="grid grid-cols-3 gap-3"
+        name={`plan-${uid}`}
+        orientation="horizontal"
+        variant="card"
+        value={plan?.id ?? ''}
+        onValueChange={(value) => (planId = value)}
+      >
         {#each plans as option (option.id)}
-          <label
-            class={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border-2 px-4 ${option.id === plan?.id ? 'border-primary bg-primary/10' : 'border-border'}`}
-          >
-            <Input
-              type="radio"
-              name={`plan-${uid}`}
-              value={option.id}
-              checked={option.id === plan?.id}
-              onchange={() => (planId = option.id)}
-              class="size-5"
-            />
-            <span class="flex flex-col leading-tight">
-              <span class="text-2xl font-semibold">{option.name}</span>
-              <span class="text-xl text-muted-foreground">{usd(option.centsPerSeat)}/seat</span>
-            </span>
-          </label>
+          <RadioGroupItem
+            value={option.id}
+            label={option.name}
+            description={`${usd(option.centsPerSeat)}/seat`}
+            card
+            class="pricing-plan-option min-h-16 items-center gap-3 rounded-xl border-2 px-4"
+          />
         {/each}
-      </div>
+      </RadioGroup>
     </fieldset>
 
     <label class="flex flex-col gap-3 text-2xl">
@@ -165,3 +164,21 @@ const uid = $props.id();
     <figcaption class="text-xl text-muted-foreground">Monthly total by plan at {seatCount} seats. Fictional prices.</figcaption>
   </figure>
 </div>
+
+<style>
+  :global([data-pricing-configurator] .pricing-plan-option) {
+    align-items: center;
+    border-width: 2px;
+    padding: 1rem;
+  }
+
+  :global([data-pricing-configurator] .pricing-plan-option .tx-choice__label) {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  :global([data-pricing-configurator] .pricing-plan-option .tx-choice__description) {
+    font-size: 1.25rem;
+  }
+</style>

@@ -5,7 +5,7 @@ import blueprint from '../blueprint.json';
 import PricingConfigurator from '../src/slides/PricingConfigurator.svelte';
 
 /**
- * The flagship's custom slide (PLAN_006 Final Review, area B, finding 2):
+ * The flagship's custom pricing slide:
  * plan choice, seats, the annual discount in integer cents, the step-gated
  * breakdown, defensive data (fallback plans, clamped seats, duplicate ids).
  */
@@ -32,7 +32,7 @@ const breakdown = (container: HTMLElement) =>
 describe('PricingConfigurator', () => {
   it('starts on the Team plan at 25 seats: 25 × $15 = $375 a month', () => {
     const { container } = mount();
-    expect((screen.getByRole('radio', { name: /Team/ }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByRole('radio', { name: /Team/ }).getAttribute('aria-checked')).toBe('true');
     expect(total(container)).toBe('$375');
     expect(breakdown(container)).toBe('25 seats × $15');
   });
@@ -46,6 +46,15 @@ describe('PricingConfigurator', () => {
     expect(total(container)).toBe('$320');
     expect(breakdown(container)).toBe('40 seats × $8');
     expect(seats.getAttribute('aria-valuetext')).toBe('40 seats');
+  });
+
+  it('moves the selected plan with radio arrow keys', async () => {
+    const { container } = mount();
+    const team = screen.getByRole('radio', { name: /Team/ });
+    team.focus();
+    await fireEvent.keyDown(team, { key: 'ArrowRight' });
+    expect(screen.getByRole('radio', { name: /Scale/ }).getAttribute('aria-checked')).toBe('true');
+    expect(total(container)).toBe('$600');
   });
 
   it('takes the annual discount off in integer cents and says how much was saved', async () => {
@@ -73,10 +82,10 @@ describe('PricingConfigurator', () => {
 
   it('falls back to its own plans and defaults when the data is missing or wrong', () => {
     const { container } = mount({ plans: 'nope', maxSeats: 'many', annualDiscountPercent: -5 });
-    expect(screen.getAllByRole('radio').map((radio) => radio.getAttribute('value'))).toEqual([
-      'starter',
-      'team',
-      'scale',
+    expect(screen.getAllByRole('radio').map((radio) => radio.getAttribute('aria-label'))).toEqual([
+      'Starter',
+      'Team',
+      'Scale',
     ]);
     expect(total(container)).toBe('$375');
     expect(screen.getByRole('slider').getAttribute('max')).toBe('200');
@@ -100,9 +109,9 @@ describe('PricingConfigurator', () => {
       { id: 'crew', name: 'Crew', centsPerSeat: 1_000 },
     ];
     const { container } = mount({ plans });
-    expect(screen.getAllByRole('radio').map((radio) => radio.getAttribute('value'))).toEqual([
-      'solo',
-      'crew',
+    expect(screen.getAllByRole('radio').map((radio) => radio.getAttribute('aria-label'))).toEqual([
+      'Solo',
+      'Crew',
     ]);
     expect(container.querySelectorAll('[data-pricing-bar]')).toHaveLength(2);
     // The default is the second plan (Crew at $10): 25 × $10.
