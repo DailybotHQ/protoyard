@@ -1,5 +1,4 @@
 <script lang="ts">
-import { Plus, X } from '@lucide/svelte';
 import {
   type EnvironmentPatch,
   type EnvironmentState,
@@ -87,6 +86,7 @@ async function commitFailureRate(value: number) {
         () => runtime.overrides.set({ environment: { ...overrideEnv, failureRate: next / 100 } }),
         `Failure rate set to ${next}%.`
       );
+      if (dt.errorFor('env')) failureRateDraft = Math.round(env.failureRate * 100);
     }
   } finally {
     savingFailureRate = false;

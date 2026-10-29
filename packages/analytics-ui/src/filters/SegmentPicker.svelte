@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { FilterGroup, Segment } from '@protoyard/analytics';
 import { Button } from '@protoyard/ui';
+import { untrack } from 'svelte';
 import { Input } from 'texuli/input';
 import { Toggle } from 'texuli/toggle';
 import { describeFilter, type FilterProperty, saveErrorOf } from './model.ts';
@@ -21,17 +22,14 @@ type Props = {
   onsave?: (input: { name: string; filter: FilterGroup }) => unknown;
 };
 
-let { segments, activeId = null, onapply, properties, filter, onsave }: Props = $props();
+let { segments, activeId, onapply, properties, filter, onsave }: Props = $props();
 
 const uid = $props.id();
 let name = $state('');
 let nameError = $state('');
 let status = $state('');
 let failure = $state('');
-let selectedId = $state<string | null>(null);
-$effect(() => {
-  selectedId = activeId;
-});
+let selectedId = $state<string | null>(untrack(() => activeId ?? null));
 
 async function save() {
   nameError = '';
@@ -68,12 +66,12 @@ async function save() {
   <div role="group" aria-label="Saved segments" class="flex flex-wrap gap-1">
     {#each [null, ...segments] as segment (segment?.id ?? '__everyone')}
       {@const segmentId = segment?.id ?? null}
-      {@const active = segmentId === selectedId}
+      {@const active = activeId !== undefined ? segmentId === activeId : segmentId === selectedId}
       <Toggle
-        pressed={active}
+        bind:pressed={() => active, () => {}}
         onPressedChange={(pressed) => {
           if (!pressed) return;
-          selectedId = segmentId;
+          if (activeId === undefined) selectedId = segmentId;
           onapply(segment);
         }}
         title={segment ? describeFilter(segment.filter, properties) : 'No filter'}

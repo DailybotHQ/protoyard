@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Check, Copy } from '@lucide/svelte';
+import { Copy } from '@lucide/svelte';
 import { copyText } from '../format.ts';
 import { reproducibleLink } from '../link.ts';
 import Btn from '../primitives/Btn.svelte';

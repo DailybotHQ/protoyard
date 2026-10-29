@@ -1,5 +1,4 @@
 <script lang="ts">
-import { ChevronDown } from '@lucide/svelte';
 import {
   type ColorMode,
   DEVICES,

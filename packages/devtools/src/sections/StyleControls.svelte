@@ -30,8 +30,9 @@ const applying = $derived(dt.isBusy('appearance'));
 const THEME = 'theme';
 type Patch = Parameters<typeof runtime.theme.setOverride>[0];
 
-function apply(key: string, patch: Patch) {
-  return dt.run(`appearance:style:${key}`, () => runtime.theme.setOverride(patch));
+async function apply(key: string, patch: Patch) {
+  await dt.run(`appearance:style:${key}`, () => runtime.theme.setOverride(patch));
+  return dt.errorFor('appearance') === null;
 }
 
 const withTheme = (presets: readonly { id: string; label: string }[]) => [
@@ -44,6 +45,24 @@ let densityDraft = $state(1);
 $effect(() => {
   densityDraft = density;
 });
+let queuedDensity: number | undefined;
+let savingDensity = false;
+async function commitDensity(value: number) {
+  queuedDensity = value;
+  if (savingDensity) return;
+  savingDensity = true;
+  try {
+    while (queuedDensity !== undefined) {
+      while (applying) await new Promise((resolve) => setTimeout(resolve, 0));
+      const next = queuedDensity;
+      queuedDensity = undefined;
+      if (!(await apply('density', { density: next }))) densityDraft = density;
+    }
+  } finally {
+    savingDensity = false;
+    if (queuedDensity !== undefined) void commitDensity(queuedDensity);
+  }
+}
 /** The density preset that matches the current value, if any. */
 const densityPreset = $derived(
   appearance.density?.source === 'override'
@@ -68,7 +87,7 @@ const formatDensity = (value: number) =>
       }}
     />
     <label class="block text-[11px] text-muted-foreground">
-      <span class="flex justify-between"><span>Fine tune</span><span class="font-mono text-foreground">{formatDensity(density)}</span></span>
+      <span class="flex justify-between"><span>Fine tune</span><span class="font-mono text-foreground">{formatDensity(densityDraft)}</span></span>
       <Slider
         min={0.75}
         max={1.25}
@@ -82,7 +101,7 @@ const formatDensity = (value: number) =>
           if (typeof value === 'number') densityDraft = value;
         }}
         onValueCommit={(value) => {
-          if (typeof value === 'number') apply('density', { density: value });
+          if (typeof value === 'number') void commitDensity(value);
         }}
       />
     </label>

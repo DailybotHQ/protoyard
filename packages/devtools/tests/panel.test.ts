@@ -394,6 +394,23 @@ describe('DevTools panel', () => {
     expect(runtime.overrides.get().environment?.network).toBe('offline');
   });
 
+  it('restores the saved failure rate when the slider write fails', async () => {
+    const runtime = createFakeRuntime();
+    await runtime.overrides.set({ environment: { failureMode: 'server-error', failureRate: 0.5 } });
+    const { panel } = await open(runtime);
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Env' }));
+    await settle();
+    runtime.overrides.set = async () => {
+      throw new Error('save failed');
+    };
+
+    const slider = within(panel).getByRole('slider', { name: 'Failure rate' });
+    await fireEvent.keyDown(slider, { key: 'ArrowRight' });
+    await fireEvent.keyUp(slider, { key: 'ArrowRight' });
+    await vi.waitFor(() => expect(slider.getAttribute('aria-valuenow')).toBe('50'));
+    expect(within(panel).getByRole('alert').textContent).toContain('save failed');
+  });
+
   it('loads a scenario only after confirmation', async () => {
     const { runtime, panel } = await open();
     await fireEvent.click(within(panel).getByRole('radio', { name: /Busy/ }));

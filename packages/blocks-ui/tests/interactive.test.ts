@@ -25,6 +25,23 @@ const quiz = MINIMAL_EXAMPLES.quiz as QuizBlock;
 const tabs = MINIMAL_EXAMPLES.tabs as TabsBlock;
 
 describe('interactive family through BlockStateHost', () => {
+  it('uses Texuli NumberField controls for chart label ranges', async () => {
+    const chartControls = {
+      ...MINIMAL_EXAMPLES['chart-controls'],
+      range: true,
+    };
+    const stateHost = createMemoryBlockStateHost();
+    render(InteractiveHarness, {
+      props: { blocks: [chartControls], stateHost, documentId: 'chart-range' },
+    });
+    const start = await screen.findByRole('spinbutton', { name: 'Label range start' }, long);
+    const end = screen.getByRole('spinbutton', { name: 'Label range end' });
+    expect(start.classList.contains('tx-number-field__input')).toBe(true);
+    expect(end.classList.contains('tx-number-field__input')).toBe(true);
+    await fireEvent.keyDown(start, { key: 'ArrowUp' });
+    await waitFor(() => expect((start as HTMLInputElement).value).toBe('1'), long);
+  }, 60_000);
+
   it('votes through a spy host, shows pending, and announces results', async () => {
     // Keep this behavior test independent of the cold lazy chunk transform. The
     // renderer's lazy boundary is covered separately; under the combined package

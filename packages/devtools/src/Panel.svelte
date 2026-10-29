@@ -11,7 +11,6 @@ import {
   Share2,
   Users,
   Wifi,
-  X,
 } from '@lucide/svelte';
 import type { PrototypeRuntime, Theme } from '@protoyard/core';
 import type { Component } from 'svelte';

@@ -1,5 +1,4 @@
 <script lang="ts">
-import { ChevronRight } from '@lucide/svelte';
 import {
   getMockApis,
   type MockApi,

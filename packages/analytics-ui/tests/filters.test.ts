@@ -227,14 +227,61 @@ describe('SegmentPicker', () => {
 
   it('applies saved segments and everyone', async () => {
     const onapply = vi.fn();
-    render(SegmentPicker, { segments, activeId: 'seg_1', onapply, properties: PROPERTIES, filter });
+    const view = render(SegmentPicker, {
+      segments,
+      activeId: 'seg_1',
+      onapply,
+      properties: PROPERTIES,
+      filter,
+    });
     const pro = screen.getByRole('button', { name: 'Pro users' });
     expect(pro.getAttribute('aria-pressed')).toBe('true');
     expect(pro.getAttribute('title')).toBe('Plan is Pro');
     await fireEvent.click(screen.getByRole('button', { name: 'Everyone' }));
     expect(onapply).toHaveBeenCalledWith(null);
+    expect(pro.getAttribute('aria-pressed')).toBe('true');
+    view.rerender({ segments, activeId: null, onapply, properties: PROPERTIES, filter });
     await fireEvent.click(pro);
-    expect(onapply).toHaveBeenCalledWith(segments[0]);
+    expect(onapply).toHaveBeenLastCalledWith(segments[0]);
+  });
+
+  it('keeps pressed state controlled by activeId and supports uncontrolled selection', async () => {
+    const onapply = vi.fn();
+    const view = render(SegmentPicker, {
+      segments,
+      activeId: 'seg_1',
+      onapply,
+      properties: PROPERTIES,
+      filter,
+    });
+    const pro = screen.getByRole('button', { name: 'Pro users' });
+    const everyone = screen.getByRole('button', { name: 'Everyone' });
+    expect(pro.getAttribute('aria-pressed')).toBe('true');
+    expect(everyone.getAttribute('aria-pressed')).toBe('false');
+    await fireEvent.click(everyone);
+    expect(everyone.getAttribute('aria-pressed')).toBe('false');
+    view.rerender({
+      segments,
+      activeId: null,
+      onapply,
+      properties: PROPERTIES,
+      filter,
+    });
+    expect(everyone.getAttribute('aria-pressed')).toBe('true');
+    view.unmount();
+
+    const uncontrolled = render(SegmentPicker, {
+      segments,
+      onapply,
+      properties: PROPERTIES,
+      filter,
+    });
+    const uncontrolledPro = within(uncontrolled.container).getByRole('button', {
+      name: 'Pro users',
+    });
+    await fireEvent.click(uncontrolledPro);
+    expect(uncontrolledPro.getAttribute('aria-pressed')).toBe('true');
+    uncontrolled.unmount();
   });
 
   it('handles Texuli keyboard activation through pressed-state changes', () => {
