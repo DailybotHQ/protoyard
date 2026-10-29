@@ -17,7 +17,17 @@ import {
   useEnvironment,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
-import { Button, Card, EmptyState, FormField, Input, Select, Skeleton } from '@protoyard/ui';
+import {
+  Button,
+  Card,
+  EmptyState,
+  FormField,
+  Input,
+  RadioGroup,
+  RadioGroupItem,
+  Select,
+  Skeleton,
+} from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import { type Order, SHIPPING_METHODS, type ShippingMethod } from '../database/schema.ts';
@@ -170,19 +180,19 @@ function clearError(event: Event) {
       <Card class="p-5">
         <fieldset>
           <legend class="font-semibold">Delivery</legend>
-          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <RadioGroup bind:value={form.shippingMethod} name="shipping" aria-label="Delivery" orientation="horizontal" class="mt-4 grid gap-3 sm:grid-cols-2">
             {#each SHIPPING_METHODS as method (method)}
               {@const rate = SHIPPING_RATES[method]}
               {@const price = computeTotals((lines.current ?? []).map((l) => ({ unitPriceCents: l.product.priceCents, quantity: l.quantity })), method).shippingCents}
-              <label class={['flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors has-focus-visible:outline-2 has-focus-visible:outline-ring', form.shippingMethod === method ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted']}>
-                <Input type="radio" name="shipping" value={method} checked={form.shippingMethod === method} onchange={() => (form.shippingMethod = method)} class="mt-1 size-4 accent-primary" />
-                <span class="flex-1 text-sm">
-                  <span class="flex justify-between font-medium"><span>{rate.label}</span><span class="tabular-nums">{price ? money(price) : 'Free'}</span></span>
-                  <span class="text-muted-foreground">{rate.eta}</span>
-                </span>
-              </label>
+              <RadioGroupItem
+                value={method}
+                label={rate.label}
+                description={`${price ? money(price) : 'Free'} · ${rate.eta}`}
+                card
+                class="rounded-lg border border-border p-3 text-sm transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary/5 hover:bg-muted"
+              />
             {/each}
-          </div>
+          </RadioGroup>
         </fieldset>
       </Card>
     </div>

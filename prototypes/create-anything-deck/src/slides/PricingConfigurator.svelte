@@ -1,7 +1,6 @@
 <script lang="ts">
 import type { CustomSlideProps } from '@protoyard/decks-ui/app';
-import { Input } from '@protoyard/ui';
-import { Checkbox } from 'texuli/choice';
+import { Checkbox, Input } from '@protoyard/ui';
 
 /**
  * A live pricing configurator on a slide: pick a plan, set the seats, switch
@@ -123,13 +122,9 @@ const uid = $props.id();
       />
     </label>
 
-    <!-- A Texuli checkbox: `bind:checked` (Input binds a value, never `checked`). -->
-    <Checkbox
-      bind:checked={annual}
-      size="md"
-      label={`Pay yearly (${annualDiscountPercent}% off)`}
-      class="min-h-12 text-2xl"
-    />
+    <div class="flex min-h-12 items-center text-2xl">
+      <Checkbox bind:checked={annual} label="Pay yearly ({annualDiscountPercent}% off)" />
+    </div>
 
     <div class="mt-auto rounded-2xl bg-muted/60 px-6 py-4" aria-live="polite">
       <p class="text-2xl text-muted-foreground">Per month</p>

@@ -191,7 +191,7 @@ async function askAtlas() {
                     <span class={['flex-1 truncate text-sm', item.unread > 0 ? 'font-semibold text-foreground' : 'font-medium text-foreground/90']}>
                       {item.title}
                     </span>
-                    {#if item.pinned}<LucideIcon icon={Pin} class="size-3 shrink-0 text-muted-foreground" aria-label="Pinned" />{/if}
+                    {#if item.pinned}<LucideIcon icon={Pin} class="size-3 shrink-0 text-muted-foreground" label="Pinned" />{/if}
                     <span class="shrink-0 text-[0.7rem] text-muted-foreground">{shortStamp(item.lastMessageAt, clock.now)}</span>
                   </span>
                   <span class="mt-0.5 flex items-center gap-2">

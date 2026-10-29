@@ -8,7 +8,7 @@ import {
   runService,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
-import { Avatar, Button, Card, DropdownMenu, Input } from '@protoyard/ui';
+import { Avatar, Button, Card, Checkbox, DropdownMenu, Input } from '@protoyard/ui';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
 import DealDialog from '../components/DealDialog.svelte';
@@ -92,12 +92,8 @@ function onDrop(stage: DealStage) {
 <PageHeader title="Pipeline" description="Drag cards between stages, or use each card's menu.">
   {#snippet actions()}
     <Input type="search" placeholder="Filter deals…" aria-label="Filter deals" bind:value={query} class="w-56" />
-    <label class="flex items-center gap-2 text-sm text-muted-foreground">
-      <Input type="checkbox" checked={mineOnly} onchange={(event) => (mineOnly = event.currentTarget.checked)} class="size-4 accent-[var(--color-primary)]" /> Mine
-    </label>
-    <label class="flex items-center gap-2 text-sm text-muted-foreground">
-      <Input type="checkbox" checked={showClosed} onchange={(event) => (showClosed = event.currentTarget.checked)} class="size-4 accent-[var(--color-primary)]" /> Show lost
-    </label>
+    <Checkbox bind:checked={mineOnly} label="Mine" class="text-sm text-muted-foreground" />
+    <Checkbox bind:checked={showClosed} label="Show lost" class="text-sm text-muted-foreground" />
   {/snippet}
 </PageHeader>
 

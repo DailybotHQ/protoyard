@@ -11,39 +11,47 @@
   },
   "overrides": {
     "atlas-workspace-demo": {
-      "cssGzipKb": 34.6,
-      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
+      "cssGzipKb": 40.6,
+      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
     },
     "cadence-studio-demo": {
-      "cssGzipKb": 43.1,
-      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
+      "cssGzipKb": 52.8,
+      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
     },
     "create-anything-deck": {
-      "cssGzipKb": 58.6,
-      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
+      "cssGzipKb": 68.2,
+      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
     },
     "harbor-dispatch-demo": {
-      "cssGzipKb": 43.1,
-      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
+      "cssGzipKb": 52.8,
+      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
     },
     "helpdesk-demo": {
-      "cssGzipKb": 42.6,
-      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
+      "cssGzipKb": 52.5,
+      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
     },
     "keel-projects-demo": {
-      "cssGzipKb": 43.4,
-      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
+      "cssGzipKb": 47.8,
+      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
+    },
+    "nova-assistant-demo": {
+      "cssGzipKb": 32.5,
+      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
+    },
+    "pebblestat-analytics-demo": {
+      "cssGzipKb": 40.3,
+      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
     },
     "player": {
       "cssGzipKb": 36
     },
     "pulse-revenue-demo": {
-      "cssGzipKb": 43.1,
-      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
+      "cssGzipKb": 52.9,
+      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
     },
     "ui-kit": {
-      "cssGzipKb": 42.6,
-      "reason": "Texuli component CSS (~23 KB gz) replaces the former UI CSS; eager/lazy split measured in FIX-texuli-css-split; CSS diet tracked as a follow-up"
+      "cssGzipKb": 54.5,
+      "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
     }
   },
   "kinds": {
