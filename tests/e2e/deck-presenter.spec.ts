@@ -363,6 +363,11 @@ test.describe('print', () => {
     await expect(app(page)).toHaveAttribute('data-py-deck-print-ready', 'true');
     await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
     await expect(page.locator('[data-py-deck-print]')).toHaveCount(1);
+    // The sheet settles off-screen (hidden); once ready, it is what goes on paper.
+    await expect(page.locator('[data-py-deck-print] [data-print-ready="true"]')).toHaveCount(1, {
+      timeout: 15_000,
+    });
+    await expect(page.locator('[data-py-deck-print]')).toBeHidden();
     await page.emulateMedia({ media: 'print' });
     await expect(page.locator('[data-py-deck-print]')).toBeVisible();
     await expect(
@@ -370,7 +375,9 @@ test.describe('print', () => {
     ).toHaveCount(SLIDE_ORDER.length);
     await page.emulateMedia({ media: 'screen' });
     await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
-    await expect(page.locator('[data-py-deck-print]')).toHaveCount(0);
+    // Back on screen: the stage, with the prepared sheet hidden for the next print.
+    await expect(page.locator('[data-py-deck-print]')).toBeHidden();
+    await expect(page.locator('[data-py-deck-app] > .tx-deck-stage')).toBeVisible();
     await expectSlide(page, 'pillars');
   });
 });
