@@ -97,18 +97,17 @@ function importGraph(entry: string): string[] {
 
 /**
  * Ceilings on every stylesheet a player page can ever load, gzip KB: measured
- * + 5 %, rounded up. Re-measured 2026-10-28 (T-decks-salvage, decks on the
- * `@texuli/slides` stage): index.html 113.8 KB (it plays every kind and kit),
- * deck.html 100.1, page.html and doc.html 101.4 (each can open a deck through
- * the kind boot). Without decks-ui, page.html measures 53.9 KB, close to the
- * 52.6 KB of 2026-10-24. Of the +47 KB, about 25 KB is the stage's catalog
- * component registry, which DeckApp turns off (`defaultRenderers={false}`)
- * but `DeckStage` imports statically, so its lazy chunks stay reachable in the
- * build (a Texuli gap, reported to the Texuli lead); the rest is the stage,
- * layouts and chrome CSS a deck uses. All of it is lazy: the initial CSS of
- * each entry stays under the 36 KB cssGzipKb budget (17-20 KB).
+ * + 5 %, rounded up. Re-measured 2026-10-28 on npm Texuli 0.4.0 with decks on
+ * the `@texuli/slides` stage: index.html 129.7 KB (it plays every kind and
+ * kit), deck.html 105.6, page.html and doc.html 106.9 (each can open a deck
+ * through the kind boot). Without the stage's unused component registry they
+ * measure 118.2, 82.4 and 83.7. All of it is lazy: the initial CSS of each
+ * entry stays under the 36 KB cssGzipKb budget (17-20 KB).
+ * npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default
+ * renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB
+ * of CSS and initial JS; lower when it ships.
  */
-const PLAYER_TOTAL_CSS_GZIP_KB = { index: 119.5, deck: 105.2, page: 106.5, doc: 106.5 } as const;
+const PLAYER_TOTAL_CSS_GZIP_KB = { index: 136.2, deck: 110.9, page: 112.3, doc: 112.3 } as const;
 
 /** Modules that must only ever load on demand, by manifest key. */
 const LAZY_MODULES: [string, RegExp][] = [

@@ -19,11 +19,11 @@ machine above, in a worktree with Texuli linked from `../texuli`, other
 builds running at the same time.
 
 **Prototype budgets.** `pnpm protoyard budget --all` builds every
-prototype and checks `protoyard.budgets.json`. All 16 pass (exit 0):
+prototype and checks `protoyard.budgets.json`. All 16 pass (exit 0); the `create-anything-deck` row was re-measured on 2026-10-28 with decks on the `@texuli/slides` stage (npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB of CSS and initial JS; lower when it ships):
 
 | Prototype | Initial JS gzip (budget 250 KB) | CSS gzip | CSS budget |
 | --- | ---: | ---: | ---: |
-| `create-anything-deck` | 240.77 KB | 55.73 KB | 58.6 KB |
+| `create-anything-deck` (2026-10-28, decks on `@texuli/slides` 0.4.0; JS budget 335.9 KB) | 319.90 KB | 79.67 KB | 83.7 KB |
 | `helpdesk-demo` | 199.65 KB | 40.48 KB | 42.6 KB |
 | `lattice-saas-demo` | 193.38 KB | 21.70 KB | 30 KB |
 | `mobile-banking-demo` | 191.46 KB | 19.85 KB | 30 KB |
@@ -235,7 +235,7 @@ player's kind tests do.
 | --- | ---: | --- |
 | `initialJsGzipKb` | 150 KB | Initial JavaScript of the kind's minimal player entry, gzip |
 | `cssGzipKb` | 30 KB | CSS of the kind's player entry, gzip |
-| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,560 KB each since the npm Texuli 0.3.0) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (2 MiB per kind) in `packages/cli/src/lib/quick/single-file.ts`. Calibrated on 2026-10-22 from measured files of 1,606,842 B (deck), 1,607,557 B (page) and 1,606,788 B (doc). The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
+| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,560 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (2,818,330 B per kind) in `packages/cli/src/lib/quick/single-file.ts`, measured 2026-10-28 at 2,656,649–2,684,123 B (catalog decks; page 2,666,205 B, doc 2,665,424 B) + 5 %, and 1,606,788–1,607,557 B on 2026-10-22. The app file's cap (`QUICK_SINGLE_FILE_BUDGET_BYTES`) is 4,418,158 B (measured 4,206,872–4,207,769 B). Both carry the note: npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB of CSS and initial JS; lower when it ships. The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
 
 These budgets are **enforced**:
 
@@ -346,7 +346,7 @@ CSS budgets below.
 
 | Entry | Budget | Measured |
 | --- | ---: | ---: |
-| `create-anything-deck` | 58.6 KB | 55.73 KB |
+| `create-anything-deck` (2026-10-28, also an initial JS override: 335.9 KB, measured 319.90 KB) | 83.7 KB | 79.67 KB |
 | `keel-projects-demo` | 43.4 KB | 41.31 KB |
 | `helpdesk-demo`, `ui-kit` | 42.6 KB | 40.48, 40.57 KB |
 | `cadence-studio-demo`, `harbor-dispatch-demo`, `pulse-revenue-demo` | 43.1 KB | 41.02 KB each |

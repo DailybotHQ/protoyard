@@ -32,16 +32,23 @@ afterAll(async () => {
  *   and migration, and the block schemas it checks free slides with) is on
  *   the first screen; Protoyard's own share is DeckApp (about 3 KB). Cap
  *   135,500 B.
- * - First-screen CSS: 6,921 B gzip (the stage stylesheet and DeckApp). Cap
- *   7,300 B.
+ * - First-screen CSS: 6,921 B gzip (the stage stylesheet and DeckApp); 8,475 B
+ *   re-measured 2026-10-28 on npm Texuli 0.4.0 (Texuli component CSS on the
+ *   deck entry, with the debug tool's IconButton). Cap 8,899 B.
  * - All emitted CSS: 72,999 B gzip. Most of it is lazy stylesheets of the
  *   stage's default component registry (charts, data views, chat, workflows,
  *   forms painters), which a Protoyard deck never loads (it has no component
  *   slides) but the stage always installs. Cap 76,650 B. Was 23,663 B
- *   measured on 2026-10-24 (24,846 B cap).
+ *   measured on 2026-10-24 (24,846 B cap). On npm 0.4.0: initial JS 134,092
+ *   B and all CSS 76,345 B, inside their caps.
+ *
+ * Note for the caps above:
+ * npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default
+ * renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB
+ * of CSS and initial JS; lower when it ships.
  */
 const INITIAL_JS_GZIP_CAP = 135_500;
-const INITIAL_CSS_GZIP_CAP = 7_300;
+const INITIAL_CSS_GZIP_CAP = 8_899;
 const ALL_CSS_GZIP_CAP = 76_650;
 
 function initialCssGzip(build: DeckBuild): number {

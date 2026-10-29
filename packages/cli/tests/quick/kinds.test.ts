@@ -199,7 +199,7 @@ describe('quick with a deck (AC)', () => {
   it('exports a single file from the deck page, and an artifact with the slides icon (AC)', async () => {
     await ok('--blueprint', DECK, '--slug', 'talk');
     const exported = await ok('export', 'talk', '--single-file');
-    expect(exported).toMatchObject({ kind: 'deck', entry: 'deck', budgetBytes: 2.5 * 1024 * 1024 });
+    expect(exported).toMatchObject({ kind: 'deck', entry: 'deck', budgetBytes: 2_818_330 });
     const html = readFileSync(join(ws.root, exported.file as string), 'utf8');
     expect(html).toContain('data-py-chunk="deck.js"');
     expect(html).not.toContain('data-py-chunk="app.js"');

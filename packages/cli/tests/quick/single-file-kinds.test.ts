@@ -193,7 +193,7 @@ describe('buildSingleFile with an entry page', () => {
     expect(singleFileEntryFor({ kind: 'doc' })).toBe('doc');
     expect(singleFileEntryFor({ kind: '../index' })).toBe('index');
     for (const kind of ['deck', 'page', 'doc'] as const) {
-      expect(QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES[kind]).toBe(2.5 * 1024 * 1024);
+      expect(QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES[kind]).toBe(2_818_330);
     }
     expect(QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES.index).toBe(QUICK_SINGLE_FILE_BUDGET_BYTES);
   });
