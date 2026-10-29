@@ -1,8 +1,7 @@
 <script lang="ts">
-import { Drawer } from '@texuli/primitives/sheet';
 import type { ComponentProps, Snippet } from 'svelte';
 import { cx } from 'texuli/cx';
-import { drawerContentClass } from 'texuli/sheet';
+import { Drawer } from 'texuli/sheet';
 import { refAttachment } from '../../lib/ref.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
@@ -66,12 +65,11 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
 </script>
 
 <!--
-  A thin adapter over Texuli's drawer: the drawer primitive (drag with fling
-  and snap back, reduced-motion aware) with the `tx-drawer` surface from
-  `texuli/sheet`, plus what Texuli's styled drawer cannot take yet (gap G4):
-  the shared overlay stack, the framed-device portal, `bind:ref` and rest
-  attributes. Inside a framed device the sheet is contained by its screen;
-  otherwise it opens in the top layer.
+  Texuli's drawer from `texuli/sheet` (drag with fling and snap back,
+  reduced-motion aware), from the bottom edge. Protoyard adds the framed-device
+  container (its root opens `contained` inside a device screen, otherwise in
+  the top layer) and the shared overlay stack (z-order, top-layer dismiss,
+  focus return).
 -->
 <Drawer.Root
   {open}
@@ -96,8 +94,7 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
       {@attach refAttachment<HTMLElement>((node) => (ref = node))}
       side="bottom"
       dismissible={swipeToDismiss}
-      class={cx(drawerContentClass(), 'ui-bottom-sheet', className)}
-      data-tx-drawer=""
+      class={cx('ui-bottom-sheet', className)}
       {...rest}
       style={`z-index:${layer.zIndex}`}
     >

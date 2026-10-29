@@ -1,9 +1,8 @@
 <script lang="ts">
-import { Sheet } from '@texuli/primitives/sheet';
 import type { Snippet } from 'svelte';
 import { cx } from 'texuli/cx';
 import { Icon } from 'texuli/icons';
-import { sheetContentClass } from 'texuli/sheet';
+import { Sheet } from 'texuli/sheet';
 import { refAttachment } from '../../lib/ref.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
@@ -111,11 +110,10 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
 </script>
 
 <!--
-  A thin adapter over Texuli's sheet: the primitive with the `tx-sheet` surface
-  from `texuli/sheet`, plus what Texuli's styled sheet cannot take yet (gap G4):
-  the shared overlay stack, the framed-device portal and `bind:ref`. Inside a
-  framed device the drawer is contained by its screen; otherwise it opens in the
-  top layer.
+  Texuli's sheet from `texuli/sheet`, on any edge. Protoyard adds the
+  framed-device container (its root opens `contained` inside a device screen,
+  otherwise in the top layer) and the shared overlay stack (z-order, top-layer
+  dismiss, focus return).
 -->
 <Sheet.Root
   {open}
@@ -148,8 +146,7 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
         closeOnEscape={!modal && closeOnEscape}
         data-placement={edge}
         data-modal={modal ? 'true' : 'false'}
-        data-tx-sheet=""
-        class={cx(sheetContentClass(), 'ui-sheet--sized', className)}
+        class={cx('ui-sheet--sized', className)}
         style={`--ui-drawer-size:${resolvedSize};z-index:${layer.zIndex}`}
       >
         {#if edge === 'bottom'}

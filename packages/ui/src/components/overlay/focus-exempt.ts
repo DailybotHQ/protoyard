@@ -2,10 +2,9 @@
  * Surfaces that must stay keyboard-reachable while a modal overlay traps
  * focus (the undo toaster). Mark the host with {@link UNDO_TOASTER_ATTR}.
  *
- * Bits modal focus scopes listen on document `focusin` (capture) and pull
- * focus back into the overlay. {@link installUndoToasterFocusExemption}
- * registers an earlier capture listener that stops those handlers when focus
- * lands in the toaster, so Tab can reach Undo / Dismiss.
+ * The toaster registers as an inert exemption (`@texuli/core/inert`), which
+ * Texuli's overlays treat as part of every modal: Tab reaches it, and presses
+ * in it are never "outside".
  */
 
 /** Attribute on the UndoToaster landmark. */
@@ -17,26 +16,11 @@ export function isUndoToasterTarget(target: EventTarget | null | undefined): boo
   return target.closest(`[${UNDO_TOASTER_ATTR}]`) !== null;
 }
 
-let exemptionInstalled = false;
-
 /**
- * Install once per document. Safe to call from `UndoToaster` mount and from
- * tests. Returns an uninstall function (no-op after the first install keeps
- * the listener for the app lifetime).
+ * @deprecated No longer needed: Texuli's modal focus scopes keep inert
+ * exemptions (the undo toaster registers as one) reachable. Kept as a no-op
+ * so existing callers keep working; returns a no-op uninstall function.
  */
-export function installUndoToasterFocusExemption(
-  doc: Document = typeof document !== 'undefined' ? document : (undefined as unknown as Document)
-): () => void {
-  if (!doc || exemptionInstalled) return () => {};
-  exemptionInstalled = true;
-  const onFocusIn = (event: FocusEvent) => {
-    if (isUndoToasterTarget(event.target)) {
-      event.stopImmediatePropagation();
-    }
-  };
-  doc.addEventListener('focusin', onFocusIn, true);
-  return () => {
-    doc.removeEventListener('focusin', onFocusIn, true);
-    exemptionInstalled = false;
-  };
+export function installUndoToasterFocusExemption(_doc?: Document): () => void {
+  return () => {};
 }
