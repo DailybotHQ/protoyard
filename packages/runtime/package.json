@@ -16,7 +16,7 @@
     "@protoyard/database": "workspace:*",
     "@protoyard/scenarios": "workspace:*",
     "@protoyard/themes": "workspace:*",
-    "dexie": "^4.4.6"
+    "dexie": "^4.4.7"
   },
   "protoyard": {
     "build": {
