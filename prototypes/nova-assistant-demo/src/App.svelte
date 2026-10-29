@@ -134,19 +134,19 @@ function messageOf(error: unknown) {
 }
 </script>
 
-<div class="flex h-[var(--tx-app-height,100dvh)] min-h-0 bg-background text-foreground">
-  <aside class="hidden w-64 shrink-0 flex-col border-r border-border bg-surface p-4 lg:flex overflow-y-auto" aria-label="Assistant workspace navigation">
+<div class="flex h-[var(--py-app-height,100dvh)] min-h-0 bg-background text-foreground">
+  <aside class="hidden h-full min-h-0 w-64 shrink-0 flex-col border-r border-border bg-surface p-4 lg:flex overflow-y-auto" aria-label="Assistant workspace navigation">
     <a href="#/" class="mb-6 flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-semibold">
       <span class="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground"><LucideIcon icon={Sparkles} class="size-5" /></span>
       <span>Nova <span class="font-normal text-muted-foreground">Assistant</span></span>
     </a>
-    <Button type="button" class="mb-5 flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-3 text-left text-sm font-medium shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onclick={createConversation}>
+    <Button type="button" variant="outline" class="mb-5 flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-3 text-left text-sm font-medium text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onclick={createConversation}>
       <LucideIcon icon={MessageSquarePlus} class="size-4" /> New conversation <span class="ml-auto text-xs text-muted-foreground">⌘ K</span>
     </Button>
     <p class="px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-muted-foreground">Projects</p>
     <nav class="space-y-1" aria-label="Projects">
       {#each projects.current ?? [] as project (project.id)}
-        <Button type="button" class={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-left text-sm hover:bg-muted ${activeProjectId === project.id ? 'bg-muted font-medium' : 'text-muted-foreground'}`} aria-pressed={activeProjectId === project.id} onclick={() => (activeProjectId = activeProjectId === project.id ? '' : project.id)}>
+        <Button type="button" variant="ghost" class={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-left text-sm hover:bg-muted ${activeProjectId === project.id ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground'}`} aria-pressed={activeProjectId === project.id} onclick={() => (activeProjectId = activeProjectId === project.id ? '' : project.id)}>
           <span class="size-2 rounded-full" style={`background:${project.color}`}></span><span class="truncate">{project.name}</span>
         </Button>
       {/each}
@@ -154,7 +154,7 @@ function messageOf(error: unknown) {
     <div class="mt-6 flex items-center gap-2 px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-muted-foreground"><LucideIcon icon={Folder} class="size-3.5" /> History</div>
     <div class="min-h-24 flex-1 overflow-y-auto">
       {#each projectConversations.slice(0, 10) as conversation (conversation.id)}
-        <Button type="button" class={`mb-1 w-full truncate rounded-lg px-2 py-2 text-left text-xs hover:bg-muted ${conversation.id === activeConversation?.id ? 'bg-muted text-foreground' : 'text-muted-foreground'}`} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</Button>
+        <Button type="button" variant="ghost" class={`mb-1 w-full truncate rounded-lg px-2 py-2 text-left text-xs hover:bg-muted ${conversation.id === activeConversation?.id ? 'bg-muted text-foreground' : 'text-muted-foreground'}`} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</Button>
       {/each}
     </div>
     <div class="mt-3 rounded-xl border border-border bg-surface p-3">
@@ -169,9 +169,9 @@ function messageOf(error: unknown) {
     <header class="mb-3 flex items-center justify-between rounded-2xl border border-border bg-surface/90 px-4 py-3 shadow-sm">
       <div><p class="text-sm font-semibold">{router.current.route?.title ?? 'Assistant'}</p><p class="text-[0.68rem] text-muted-foreground">A calm place to think, build, and explore</p></div>
       <div class="flex items-center gap-2">
-        <Button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'assistant' ? 'bg-muted text-primary' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'assistant'} onclick={() => (activeTab = 'assistant')}><LucideIcon icon={Bot} class="size-4" /> Assistant</Button>
-        <Button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'voice' ? 'bg-muted text-primary' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'voice'} onclick={() => void loadVoice()}><LucideIcon icon={AudioLines} class="size-4" /> Voice</Button>
-        <Button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'widget' ? 'bg-muted text-primary' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'widget'} onclick={() => void loadWidgetDemo()}><LucideIcon icon={MessageSquarePlus} class="size-4" /> Widget demo</Button>
+        <Button type="button" variant="ghost" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'assistant' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'assistant'} onclick={() => (activeTab = 'assistant')}><LucideIcon icon={Bot} class="size-4" /> Assistant</Button>
+        <Button type="button" variant="ghost" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'voice' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'voice'} onclick={() => void loadVoice()}><LucideIcon icon={AudioLines} class="size-4" /> Voice</Button>
+        <Button type="button" variant="ghost" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'widget' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'widget'} onclick={() => void loadWidgetDemo()}><LucideIcon icon={MessageSquarePlus} class="size-4" /> Widget demo</Button>
         <a href="#/settings" class="inline-flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted lg:hidden" aria-label="Settings"><LucideIcon icon={Settings2} class="size-4" /></a>
       </div>
     </header>

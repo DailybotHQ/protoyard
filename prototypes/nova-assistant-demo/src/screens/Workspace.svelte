@@ -159,10 +159,10 @@ function report(error: unknown) {
   <div class="mb-3 flex flex-wrap items-center gap-2">
     <div class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
       {#each projects.current ?? [] as project (project.id)}
-        <Button type="button" class={`min-h-9 shrink-0 rounded-full border px-3 text-xs transition-colors ${selectedProjectId === project.id ? 'border-primary bg-muted text-primary' : 'border-border bg-surface text-muted-foreground hover:bg-muted'}`} aria-pressed={selectedProjectId === project.id} onclick={() => (selectedProjectId = selectedProjectId === project.id ? '' : project.id)}><span class="mr-1.5 inline-block size-1.5 rounded-full" style={`background:${project.color}`}></span>{project.name}</Button>
+        <Button type="button" variant="outline" class={`min-h-9 shrink-0 rounded-full border px-3 text-xs transition-colors ${selectedProjectId === project.id ? 'border-primary bg-muted text-foreground' : 'border-border bg-surface text-foreground hover:bg-muted'}`} aria-pressed={selectedProjectId === project.id} onclick={() => (selectedProjectId = selectedProjectId === project.id ? '' : project.id)}><span class="mr-1.5 inline-block size-1.5 rounded-full" style={`background:${project.color}`}></span>{project.name}</Button>
       {/each}
     </div>
-    <Button type="button" class="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-xs font-medium text-muted-foreground hover:bg-muted" onclick={createConversation}><Icon icon="plus" class="size-3.5" aria-hidden="true" /> New</Button>
+    <Button type="button" variant="outline" class="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-xs font-medium text-foreground hover:bg-muted" onclick={createConversation}><Icon icon="plus" class="size-3.5" aria-hidden="true" /> New</Button>
   </div>
   {#if notice}<p class="mb-2 rounded-lg border border-destructive bg-surface px-3 py-2 text-xs text-destructive" role="status">{notice}</p>{/if}
   {#if activeConversation}
@@ -173,25 +173,25 @@ function report(error: unknown) {
         <p class="mb-2 px-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Recent conversations</p>
         <div class="min-h-0 flex-1 overflow-y-auto">
           {#each visibleConversations as conversation (conversation.id)}
-            <Button type="button" class={`mb-1 w-full truncate rounded-lg px-2 py-2 text-left text-xs ${conversation.id === activeConversation.id ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-current={conversation.id === activeConversation.id ? 'page' : undefined} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</Button>
+            <Button type="button" variant="ghost" class={`mb-1 w-full truncate rounded-lg px-2 py-2 text-left text-xs ${conversation.id === activeConversation.id ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-current={conversation.id === activeConversation.id ? 'page' : undefined} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</Button>
           {/each}
           {#if visibleConversations.length === 0}<p class="px-2 py-3 text-xs text-muted-foreground">No matching conversations.</p>{/if}
         </div>
         <div class="mt-3 border-t border-border pt-3">
           <div class="mb-2 flex items-center justify-between px-1 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground"><span>Folders</span><LucideIcon icon={FolderPlus} class="size-3.5" /></div>
-          {#each folders as folder (folder)}<Button type="button" class={`mb-1 block w-full truncate rounded-lg px-2 py-1.5 text-left text-xs ${folderFilter === folder ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={folderFilter === folder} onclick={() => (folderFilter = folderFilter === folder ? '' : folder)}>{folder}</Button>{/each}
-          <form class="mt-2 flex gap-1" onsubmit={(event) => { event.preventDefault(); void createFolder(); }}><label for="new-folder" class="sr-only">New folder name</label><Input id="new-folder" bind:value={folderDraft} class="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-xs outline-none focus:border-ring" placeholder="New folder" maxlength={40} /><Button type="submit" class="rounded-md px-2 text-xs text-primary hover:bg-muted" aria-label="Create folder">+</Button></form>
+          {#each folders as folder (folder)}<Button type="button" variant="ghost" class={`mb-1 block w-full truncate rounded-lg px-2 py-1.5 text-left text-xs ${folderFilter === folder ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={folderFilter === folder} onclick={() => (folderFilter = folderFilter === folder ? '' : folder)}>{folder}</Button>{/each}
+          <form class="mt-2 flex gap-1" onsubmit={(event) => { event.preventDefault(); void createFolder(); }}><label for="new-folder" class="sr-only">New folder name</label><Input id="new-folder" bind:value={folderDraft} class="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-xs outline-none focus:border-ring" placeholder="New folder" maxlength={40} /><Button type="submit" variant="ghost" class="rounded-md px-2 text-xs text-primary hover:bg-muted" aria-label="Create folder">+</Button></form>
         </div>
       </aside>
       <div class="flex min-w-0 flex-1 flex-col">
         <header class="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2.5 sm:px-4">
           <div class="min-w-0 flex-1"><p class="truncate text-sm font-medium text-foreground">{activeConversation.title}</p><p class="text-[0.65rem] text-muted-foreground">{activeConversation.folder ? `In ${activeConversation.folder} · ` : ''}Responses are simulated</p></div>
-          <Button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-muted-foreground hover:bg-muted" aria-label={activeConversation.pinned ? 'Unpin conversation' : 'Pin conversation'} aria-pressed={activeConversation.pinned ?? false} onclick={() => void services.togglePin(activeConversation.id).catch(report)}><LucideIcon icon={Star} class="size-3.5" /> Pin</Button>
+          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-foreground hover:bg-muted" aria-label={activeConversation.pinned ? 'Unpin conversation' : 'Pin conversation'} aria-pressed={activeConversation.pinned ?? false} onclick={() => void services.togglePin(activeConversation.id).catch(report)}><LucideIcon icon={Star} class="size-3.5" /> Pin</Button>
           <label for="conversation-folder" class="sr-only">Move conversation to folder</label>
           <Select id="conversation-folder" value={activeConversation.folder ?? ''} class="min-h-9 max-w-28 rounded-lg border border-border bg-surface px-2 text-xs text-muted-foreground" items={[{ value: '', label: 'No folder' }, ...folders.map((folder) => ({ value: folder, label: folder }))]} onValueChange={(value) => void services.moveToFolder(activeConversation.id, value || null).catch(report)} />
-          <Button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-muted-foreground hover:bg-muted" onclick={() => void services.rename(activeConversation.id, window.prompt('Rename conversation', activeConversation.title) ?? activeConversation.title).catch(report)}><LucideIcon icon={MoreHorizontal} class="size-3.5" /> Rename</Button>
-          <Button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-muted-foreground hover:bg-muted" onclick={() => void shareConversation()}><LucideIcon icon={ArrowUpRight} class="size-3.5" /> Share</Button>
-          <Button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-muted-foreground hover:bg-muted" onclick={() => void loadCanvas()}><LucideIcon icon={FileText} class="size-3.5" /> Canvas</Button>
+          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-foreground hover:bg-muted" onclick={() => void services.rename(activeConversation.id, window.prompt('Rename conversation', activeConversation.title) ?? activeConversation.title).catch(report)}><LucideIcon icon={MoreHorizontal} class="size-3.5" /> Rename</Button>
+          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-foreground hover:bg-muted" onclick={() => void shareConversation()}><LucideIcon icon={ArrowUpRight} class="size-3.5" /> Share</Button>
+          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-foreground hover:bg-muted" onclick={() => void loadCanvas()}><LucideIcon icon={FileText} class="size-3.5" /> Canvas</Button>
         </header>
         {#key messageListRevision}
           <MessageList
