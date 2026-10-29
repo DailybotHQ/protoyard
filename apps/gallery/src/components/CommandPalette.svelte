@@ -10,7 +10,7 @@ import {
 } from '@/lib/commands.ts';
 import { control } from '@/lib/control.svelte.ts';
 import { withBase } from '@/lib/format.ts';
-import { applyTheme, readThemeChoice } from '@/lib/theme.ts';
+import { applyThemeMode } from '@/lib/theme.ts';
 import type { CompactEntry } from '@/lib/types.ts';
 
 interface Props {
@@ -198,10 +198,8 @@ async function run(action: PaletteAction): Promise<void> {
     return;
   }
 
-  const current = document.documentElement.dataset.txMode;
-  const preferred = readThemeChoice();
-  const dark = current === 'dark' || (current !== 'light' && preferred === 'dark');
-  applyTheme(dark ? 'light' : 'dark');
+  const dark = document.documentElement.dataset.txMode === 'dark';
+  applyThemeMode(dark ? 'light' : 'dark');
   status = `Switched to ${dark ? 'light' : 'dark'} theme.`;
 }
 </script>

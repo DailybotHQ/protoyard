@@ -35,7 +35,7 @@ templates/*/protoyard.json  ─┴─ pnpm protoyard index ──▶ .protoyard/
 | `src/lib/control.svelte.ts` | Client for the local control server. |
 | `src/lib/theme.ts` | Light / dark / system, persisted in Texuli's namespaced appearance cache and applied before first paint. |
 | `src/lib/content-examples.ts`, `content-showcase.ts`, `components/features/ContentShowcase.astro` | The deck, page and doc examples on the home page and `/features/`: covers from `public/examples/` (`pnpm covers`), share links into the hosted player built at static-build time, stills of the flagship deck, and the generated flagship running live in a showcase build. |
-| `src/components/*` | `Browser`, `ProjectCard`, `LivePreview`, `CreateBuilder`, `CommandBlock`, `ThemeToggle`, `FavoriteButton`, `FirstRun`. |
+| `src/components/*` | `Browser`, `ProjectCard`, `LivePreview`, `CreateBuilder`, `CommandBlock`, `FavoriteButton`, `FirstRun`. The header appearance choice is `@texuli/astro`'s `AppearanceSwitcher`. |
 
 ## Pages
 

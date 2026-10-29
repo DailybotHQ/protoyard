@@ -222,7 +222,7 @@ async function openManual(event: SubmitEvent) {
     <h2 id={titleId} class="font-medium">Live preview</h2>
     <div role="group" aria-label="Device" class="flex flex-wrap rounded-lg border border-line bg-bg p-0.5" data-testid="devices">
       {#each DEVICES as d (d.id)}
-        <Button
+        <Button variant="ghost"
           type="button"
           class="rounded-md px-2.5 py-1 text-xs text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
           aria-pressed={device === d.id}
@@ -231,7 +231,7 @@ async function openManual(event: SubmitEvent) {
           {d.label}
         </Button>
       {/each}
-      <Button
+      <Button variant="ghost"
         type="button"
         class="rounded-md px-2.5 py-1 text-xs text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
         aria-pressed={device === 'custom'}
