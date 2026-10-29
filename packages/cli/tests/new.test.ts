@@ -427,3 +427,48 @@ describe('new --from', () => {
     expect(existsSync(join(ws.root, 'prototypes/ok-app'))).toBe(false);
   });
 });
+
+describe('protoyard new: the deck template brand', () => {
+  const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
+  const copyDeckTemplate = () =>
+    cpSync(join(REPO_ROOT, 'templates/deck'), join(ws.root, 'templates/deck'), {
+      recursive: true,
+      filter: (source) => !/[/\\](node_modules|dist)([/\\]|$)/.test(source),
+    });
+  const newDeck = (slug: string) =>
+    cli(['--root', ws.root, '--json', 'new', slug, '--template', 'deck', '--no-install']);
+
+  it('resolves src/brand-theme.ts from the copied blueprint at scaffold time', async () => {
+    copyDeckTemplate();
+    expect((await newDeck('my-deck')).code).toBe(0);
+    // The template's own module is what scaffolding writes for the same blueprint.
+    expect(read('prototypes/my-deck/src/brand-theme.ts')).toBe(
+      readFileSync(join(REPO_ROOT, 'templates/deck/src/brand-theme.ts'), 'utf8')
+    );
+
+    const path = join(ws.root, 'templates/deck/src/blueprint.json');
+    const blueprint = JSON.parse(readFileSync(path, 'utf8'));
+    writeFileSync(
+      path,
+      JSON.stringify({ ...blueprint, brand: { libraryTheme: 'fintech-ledger' } })
+    );
+    expect((await newDeck('library-deck')).code).toBe(0);
+    const library = read('prototypes/library-deck/src/brand-theme.ts');
+    expect(library).toContain('export const brandTheme: Theme | null = null;');
+    expect(library).toContain("export const defaultThemeId: string | null = 'fintech-ledger';");
+    expect(library).not.toContain('defineTheme');
+  });
+
+  it('refuses a deck template whose brand names an unknown library theme', async () => {
+    copyDeckTemplate();
+    const path = join(ws.root, 'templates/deck/src/blueprint.json');
+    const blueprint = JSON.parse(readFileSync(path, 'utf8'));
+    writeFileSync(path, JSON.stringify({ ...blueprint, brand: { libraryTheme: 'no-such-theme' } }));
+    const run = await newDeck('bad-deck');
+    expect(run.code).not.toBe(0);
+    expect(run.json<{ error: { message: string } }>().error.message).toMatch(
+      /Unknown library theme "no-such-theme"/
+    );
+    expect(existsSync(join(ws.root, 'prototypes/bad-deck'))).toBe(false);
+  });
+});

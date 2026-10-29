@@ -1,9 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { safeParseAnyBlueprint } from '@protoyard/blueprint';
+import {
+  type AnyContentBlueprint,
+  kindBrandTheme,
+  kindDefaultThemeId,
+} from '@protoyard/blueprint/kinds';
 import type { DeckPatchOperation } from '@protoyard/decks/patch';
 import { describe, expect, it } from 'vitest';
 import blueprint from '../src/blueprint.json';
+import { brandTheme, defaultThemeId } from '../src/brand-theme.ts';
 import { canCreateDeckStudio, prefixDeckPatchForBlueprint } from '../src/deck-studio.ts';
 
 describe('deck level-two template', () => {
@@ -13,6 +19,18 @@ describe('deck level-two template', () => {
     if (parsed.success) {
       expect('deck' in parsed.data && parsed.data.deck.slides).toHaveLength(6);
     }
+  });
+
+  it('keeps src/brand-theme.ts in step with the blueprint brand', async () => {
+    const parsed = await safeParseAnyBlueprint(blueprint);
+    if (!parsed.success) throw parsed.error;
+    const doc = parsed.data as AnyContentBlueprint;
+    // The runtime reads the brand resolved ahead (no palette generator in the first chunk).
+    // After changing `brand`, resolve it again: replace these exports with the values below.
+    expect(brandTheme, 'src/brand-theme.ts brandTheme is stale').toEqual(kindBrandTheme(doc));
+    expect(defaultThemeId, 'src/brand-theme.ts defaultThemeId is stale').toBe(
+      kindDefaultThemeId(doc)
+    );
   });
 
   it('creates Studio only when DevTools are built and not explicitly hidden', () => {

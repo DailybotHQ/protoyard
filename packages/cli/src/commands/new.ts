@@ -11,7 +11,9 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { BrandThemeError, isAppBlueprint, safeParseAnyBlueprint } from '@protoyard/blueprint';
 import { MANIFEST_FILENAME, safeParseManifest } from '@protoyard/core';
+import { TEMPLATE_BRAND_THEME_PATH, templateBrandThemeModule } from '../lib/codegen/emit.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { inspectSpec } from '../lib/inspect.ts';
@@ -203,7 +205,45 @@ export async function personalize(dir: string, input: NewProjectInput) {
     );
     if (retitled !== text) await writeFile(path, retitled);
   }
+  await resolveTemplateBrand(dir);
   if (input.consumerPackageVersion) await adaptConsumerTemplate(dir);
+}
+
+/**
+ * The deck template keeps its brand resolved in `src/brand-theme.ts`, so a
+ * new deck's first chunk never loads the palette generator. Rewrites that
+ * module from the copied `src/blueprint.json` (scaffold time), so the
+ * prototype always starts with the brand its blueprint names.
+ */
+async function resolveTemplateBrand(dir: string): Promise<void> {
+  const modulePath = join(dir, TEMPLATE_BRAND_THEME_PATH);
+  const blueprintPath = join(dir, 'src/blueprint.json');
+  if (!existsSync(modulePath) || !existsSync(blueprintPath)) return;
+  let raw: unknown;
+  try {
+    raw = JSON.parse(await readFile(blueprintPath, 'utf8'));
+  } catch (error) {
+    throw new CliError(
+      'validation',
+      `src/blueprint.json is not valid JSON: ${(error as Error).message}`
+    );
+  }
+  const parsed = await safeParseAnyBlueprint(raw);
+  if (!parsed.success || isAppBlueprint(parsed.data)) {
+    throw new CliError(
+      'validation',
+      'src/blueprint.json is not a valid deck, page or doc blueprint.',
+      {
+        hint: 'Run `pnpm protoyard blueprint validate <file>` on the source blueprint.',
+      }
+    );
+  }
+  try {
+    await writeFile(modulePath, templateBrandThemeModule(parsed.data));
+  } catch (error) {
+    if (error instanceof BrandThemeError) throw new CliError('validation', error.message);
+    throw error;
+  }
 }
 
 /** Replaces pnpm workspace ranges in every dependency section with a published lockstep version. */

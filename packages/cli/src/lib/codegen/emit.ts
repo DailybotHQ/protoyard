@@ -236,9 +236,43 @@ export const deckBlueprint: DeckBlueprint = blueprint;
 `;
 }
 
-/** Template files a generated prototype of this kind leaves out (the template's own sample data). */
+/**
+ * Template files a generated prototype of this kind leaves out: the template's
+ * own sample data, and its brand module (the generated runtime imports
+ * `src/generated/brand-theme.ts` instead).
+ */
 export function kindTemplateFilesRemoved(kind: Exclude<AnyBlueprint, Blueprint>['kind']): string[] {
-  return kind === 'deck' ? ['src/blueprint.json'] : [];
+  return kind === 'deck' ? ['src/blueprint.json', TEMPLATE_BRAND_THEME_PATH] : [];
+}
+
+/** The deck template's brand module, rewritten by `protoyard new` from `src/blueprint.json`. */
+export const TEMPLATE_BRAND_THEME_PATH = 'src/brand-theme.ts';
+
+/**
+ * `src/brand-theme.ts` of a prototype made from the deck template: the brand
+ * of its `src/blueprint.json`, resolved when `protoyard new` copies it, so the
+ * prototype's first chunk never loads the palette generator a seed brand
+ * needs (`defineKindPrototype`). Throws `BrandThemeError` like `generate`.
+ */
+export function templateBrandThemeModule(blueprint: Exclude<AnyBlueprint, Blueprint>): string {
+  const libraryId = blueprint.brand ? brandLibraryThemeId(blueprint.brand) : undefined;
+  const theme =
+    blueprint.brand && !libraryId
+      ? resolveBlueprintBrand(blueprint.brand, { blueprintName: blueprint.name })
+      : null;
+  const themeId = theme?.id ?? libraryId ?? null;
+  return `${theme ? "import { defineTheme, type Theme } from '@protoyard/core';" : "import type { Theme } from '@protoyard/core';"}
+
+/**
+ * The brand of src/blueprint.json, resolved when \`protoyard new\` created this
+ * prototype, so its first chunk never loads the palette generator a seed brand
+ * needs. tests/deck-template.test.ts fails when \`brand\` changes without it.
+ */
+export const brandTheme: Theme | null = ${theme ? `defineTheme(${formatTs(theme)})` : 'null'};
+
+/** The theme the deck opens in: the brand theme, a library theme id, or null for the default. */
+export const defaultThemeId: string | null = ${themeId === null ? 'null' : lit(themeId)};
+`;
 }
 
 /** Kind emission stays small and has no entity schema, services or tests. */
