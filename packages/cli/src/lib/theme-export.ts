@@ -37,16 +37,10 @@ export function exportTheme(theme: Theme, format: ThemeExportFormat): string {
   if (format === 'css') {
     assertExportable(theme);
     const light = paletteEntries(theme, 'light')
-      .map(
-        ([key, value]) =>
-          `  ${tokenToCssVar(key).replace(/^--[^-]+-/, '--tx-')}: ${cssValue(value)};`
-      )
+      .map(([key, value]) => `  ${tokenToCssVar(key)}: ${cssValue(value)};`)
       .join('\n');
     const dark = paletteEntries(theme, 'dark')
-      .map(
-        ([key, value]) =>
-          `  ${tokenToCssVar(key).replace(/^--[^-]+-/, '--tx-')}: ${cssValue(value)};`
-      )
+      .map(([key, value]) => `  ${tokenToCssVar(key)}: ${cssValue(value)};`)
       .join('\n');
     return `:root {\n${light}\n  --tx-radius: ${cssValue(theme.radius)};\n  --tx-density: ${cssValue(theme.density)};\n  --tx-font-family: ${cssValue(theme.fontFamily)};\n}\n\n.dark {\n${dark}\n}\n`;
   }
@@ -55,7 +49,7 @@ export function exportTheme(theme: Theme, format: ThemeExportFormat): string {
     const entries = paletteEntries(theme, 'light');
     const lines = entries.map(
       ([key]) =>
-        `  --color-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}: var(${tokenToCssVar(key).replace(/^--[^-]+-/, '--tx-')});`
+        `  --color-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}: var(${tokenToCssVar(key)});`
     );
     lines.push('  --radius-theme: var(--tx-radius);');
     return `@theme {\n${lines.join('\n')}\n}\n`;

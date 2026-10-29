@@ -74,7 +74,7 @@ history.
 | Chart family subpaths | cartesian 13,466 B, part-whole 9,819 B, matrix 15,923 B, compact 7,213 B, canvas 1,647 B, geo 4,651 B | — | `pnpm exec tsx scripts/bench-charts.ts --skip-browser --check` |
 | Chart math, 10k / 100k points (Node, median total) | 0.86–0.97 ms / 5.44–25.11 ms | LTTB 10k < 2 ms (0.20–0.27 ms) | same |
 | `LayoutHost` initial delta | 3,497 B | 3,600 B | `pnpm vitest run packages/renderer-svelte/tests/bundle-hygiene.test.ts --silent=false` |
-| Layout chunks | 899–3,744 B each ([table](#layout-and-theme-payloads-plan_003-measured-2026-10-19)) | — | same |
+| Layout chunks | 899–3,744 B each ([table](#layout-and-theme-payloads-measured-2026-10-19)) | — | same |
 | Theme library metadata / lazy builder | 8,463 B / 4,064 B | — | same |
 | Views over the shell | 8,066–20,116 B ([table](#views-kit)) | per view | `pnpm vitest run packages/cli/tests/views-bundle.test.ts --silent=false` |
 

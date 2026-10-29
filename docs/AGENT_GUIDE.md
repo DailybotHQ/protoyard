@@ -123,7 +123,7 @@ Lucide component. Use `Checkbox` or `RadioGroup` for choices, never
 component's exposed DOM element; `bind:this` captures the component instance.
 New UI reads `--tx-*` tokens. If a needed Texuli behavior is missing, keep a
 minimal adapter and record its gap id in the adoption pending list. See
-[TEXULI.md](TEXULI.md#texuli-first-the-adoption-check) for all seven rules and
+[TEXULI.md](TEXULI.md#texuli-first-the-adoption-check) for all eight rules and
 the exception/gap process.
 
 **Tests.** Two kinds, both run by `pnpm vitest run prototypes/<slug>`:

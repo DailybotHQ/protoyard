@@ -91,6 +91,35 @@ describe('scanSource', () => {
     expect(rules('templates/x/src/A.svelte', good)['ref-undefined']).toBeUndefined();
   });
 
+  it('judges bind:ref by the initializer, not by a null in the type', () => {
+    const typed = `<script>let a = $state<HTMLInputElement | null>();\nlet b: HTMLElement | null = $state();\nlet c: HTMLElement | null;</script><Input bind:ref={a} /><Input bind:ref={b} /><Input bind:ref={c} />`;
+    expect(rules('templates/x/src/A.svelte', typed)['ref-undefined']).toBe(3);
+    const nulls = `<script>let a = $state<HTMLElement | null>(null);\nlet b = $state(null);\nlet c: HTMLElement | null = null;\nlet d: HTMLElement | null = $state( null );</script><Input bind:ref={a} /><Input bind:ref={b} /><Input bind:ref={c} /><Input bind:ref={d} />`;
+    expect(rules('templates/x/src/A.svelte', nulls)['ref-undefined']).toBeUndefined();
+  });
+
+  it('strips JS and CSS comments only inside script and style blocks of a Svelte file', () => {
+    const glob = `<script>// <button> in a comment\nconst a = 1; /* <select> */</script>
+<input type="file" accept="image/*" />
+<button type="button">Upload</button>
+<select></select>
+<style>/* x */ .a { color: red; }</style>`;
+    expect(rules('templates/x/src/A.svelte', glob)['raw-control']).toBe(3);
+    const slashes = '<p>and // or</p> <button type="button">Go</button>\n<!-- <button> -->';
+    expect(rules('templates/x/src/A.svelte', slashes)['raw-control']).toBe(1);
+    // Whole TypeScript and CSS files keep JS/CSS comment stripping.
+    expect(rules('packages/x/src/a.ts', "// import clsx from 'clsx';\n/* var(--py-a) */")).toEqual(
+      {}
+    );
+  });
+
+  it('reads tags past `=>` in brace attributes', () => {
+    const bind = `<script>import { Button } from '@protoyard/ui'; let b: HTMLElement | null = null; b?.scrollIntoView();</script><Button onclick={() => go()} bind:this={b}>Go</Button>`;
+    expect(rules('templates/x/src/A.svelte', bind)['component-bind-this']).toBe(1);
+    const choice = `<Input oninput={(e) => f(e)} type="checkbox" /><Input onchange={(e) => { f(e); }} bind:checked={on} /><Input oninput={(e) => f(e)} type="text" />`;
+    expect(rules('templates/x/src/A.svelte', choice)['input-as-choice']).toBe(2);
+  });
+
   it('maps files to pending units', () => {
     expect(unitOf('packages/ui/src/A.svelte')).toBe('packages__ui');
     expect(unitOf('apps/gallery/src/A.astro')).toBe('apps__gallery');
@@ -179,6 +208,22 @@ describe('checkAdoption on a fixture repository', () => {
     expect(checkAdoption({ root }).problems).toContain(
       'exception packages/ui/src/Search.svelte has no reason'
     );
+  });
+
+  it('fails on a stale pending entry until --prune tightens it', () => {
+    fixture();
+    writePending(root, checkAdoption({ root }).violations, 'baseline');
+    put(
+      'packages/ui/src/Search.svelte',
+      '<script lang="ts">import { Badge } from \'texuli/badge\';</script>\n<Badge />'
+    );
+    expect(checkAdoption({ root }).problems).toEqual([
+      'packages/ui/src/Search.svelte: raw-lucide pending ×1 is stale (now ×0); run --prune to tighten it',
+    ]);
+    // Out of scope, the stale entry is not this run's business.
+    expect(checkAdoption({ root, scopes: ['templates'] }).ok).toBe(true);
+    writePending(root, checkAdoption({ root }).violations, 'prune');
+    expect(checkAdoption({ root }).ok).toBe(true);
   });
 
   it('a scoped prune leaves the pending lists of other units untouched', () => {

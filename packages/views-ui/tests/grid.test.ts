@@ -1,6 +1,12 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { completeFilter, DataGrid, nextSort, ROW_HEIGHT } from '../src/grid/index.ts';
+import {
+  completeFilter,
+  DataGrid,
+  FilterBuilder,
+  nextSort,
+  ROW_HEIGHT,
+} from '../src/grid/index.ts';
 
 afterEach(() => cleanup());
 
@@ -69,5 +75,39 @@ describe('grid host toolkit helpers', () => {
     expect(typeof nextSort).toBe('function');
     expect(typeof completeFilter).toBe('function');
     expect(ROW_HEIGHT.comfortable).toBeGreaterThan(0);
+  });
+});
+
+describe('FilterBuilder', () => {
+  const columns = [
+    { key: 'name', header: 'Name', type: 'text' as const },
+    { key: 'amount', header: 'Amount', type: 'number' as const },
+  ];
+
+  it('removing the last condition moves focus to "Add a filter"', async () => {
+    const onchange = vi.fn();
+    render(FilterBuilder, { columns: columns as never, onchange });
+    await fireEvent.click(screen.getByRole('button', { name: 'Add a filter' }));
+    const remove = await screen.findByRole('button', { name: /^Remove condition/ });
+    remove.focus();
+    await fireEvent.click(remove);
+    const add = await screen.findByRole('button', { name: 'Add a filter' });
+    await waitFor(() => expect(document.activeElement).toBe(add));
+    expect(onchange).toHaveBeenLastCalledWith(null);
+  });
+
+  it('"Clear filters" empties the filter and focuses "Add a filter"', async () => {
+    const onchange = vi.fn();
+    render(FilterBuilder, { columns: columns as never, onchange });
+    await fireEvent.click(screen.getByRole('button', { name: 'Add a filter' }));
+    const clear = await screen.findByRole('button', { name: 'Clear filters' });
+    expect(clear.classList.contains('tx-button--ghost')).toBe(true);
+    clear.focus();
+    await fireEvent.click(clear);
+    expect(onchange).toHaveBeenLastCalledWith(null);
+    const add = await screen.findByRole('button', { name: 'Add a filter' });
+    await waitFor(() => expect(document.activeElement).toBe(add));
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
+    await waitFor(() => expect(screen.getByText('Filters cleared')).toBeTruthy());
   });
 });

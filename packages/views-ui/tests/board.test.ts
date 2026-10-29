@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { BoardMove } from '@protoyard/views/board';
 import { rankSequence } from '@protoyard/views/board';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
@@ -121,6 +123,27 @@ describe('BoardView (Texuli Board host adapter)', () => {
     expect(open).toBeTruthy();
     await fireEvent.click(open);
     expect(onOpen).toHaveBeenCalled();
+  });
+
+  it('renders the card open control as a ghost button that wraps like text', () => {
+    board();
+    const open = screen.getByText('Login form').closest('button.py-board-open') as HTMLElement;
+    expect(open.classList.contains('tx-button--ghost')).toBe(true);
+    expect(open.classList.contains('tx-button--default')).toBe(false);
+    // The reset lives in BoardView's <style>; it must be reachable from the child Button
+    // (global under the view's own root), and it resets Texuli's nowrap/centering/no-select.
+    const source = readFileSync(join(import.meta.dirname, '../src/board/BoardView.svelte'), 'utf8');
+    const rule =
+      /\[data-board\]\s*:global\(\.py-board-open\)\s*\{([^}]*)\}/.exec(source)?.[1] ?? '';
+    for (const declaration of [
+      'white-space: normal',
+      'user-select: text',
+      'align-items: stretch',
+      'justify-content: flex-start',
+      'text-align: start',
+    ]) {
+      expect(rule).toContain(declaration);
+    }
   });
 
   it('shows the query states through QueryState', async () => {

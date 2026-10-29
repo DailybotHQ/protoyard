@@ -18,10 +18,10 @@ pnpm protoyard doctor
 pnpm protoyard dev crm-demo
 ```
 
-Protoyard consumes the published Texuli `0.4.0` packages from npm at exact
+Protoyard consumes the published Texuli `0.5.0` packages from npm at exact
 versions ([TEXULI](TEXULI.md)). The table shows direct workspace dependencies;
 transitive dependencies are omitted. Every template and prototype app also
-declares `texuli@0.4.0` for its Svelte UI. The root pins the complete Texuli
+declares `texuli@0.5.0` for its Svelte UI. The root pins the complete Texuli
 family used by current and optional surfaces.
 
 | Protoyard package | Direct Texuli dependencies |
@@ -29,11 +29,12 @@ family used by current and optional surfaces.
 | `@protoyard/ai-ui` | `@texuli/chat`, `texuli` |
 | `@protoyard/analytics-ui` | `@texuli/charts`, `@texuli/data`, `@texuli/date`, `texuli` |
 | `@protoyard/blocks` | `@texuli/blocks` |
-| `@protoyard/blocks-ui` | `@texuli/blocks`, `@texuli/charts`, `@texuli/data`, `texuli` |
+| `@protoyard/blocks-ui` | `@texuli/blocks`, `@texuli/charts`, `@texuli/data`, `@texuli/editor`, `texuli` |
 | `@protoyard/charts` | `@texuli/charts`, `@texuli/tokens` |
 | `@protoyard/charts-ui` | `@texuli/charts`, `texuli` |
 | `@protoyard/crud` | `texuli` |
-| `@protoyard/decks-ui` | `texuli` |
+| `@protoyard/decks` | `@texuli/deck` |
+| `@protoyard/decks-ui` | `@texuli/deck`, `@texuli/slides`, `texuli` |
 | `@protoyard/devtools` | `@texuli/primitives`, `texuli` |
 | `@protoyard/flows-ui` | `@texuli/workflows`, `texuli` |
 | `@protoyard/gamification-ui` | `texuli` |
@@ -45,7 +46,7 @@ family used by current and optional surfaces.
 | `@protoyard/themes` | `@texuli/tokens` |
 | `@protoyard/ui` | `@texuli/chat`, `@texuli/core`, `@texuli/data`, `@texuli/date`, `@texuli/primitives`, `texuli` |
 | `@protoyard/views` | `@texuli/data` |
-| `@protoyard/views-ui` | `@texuli/data`, `@texuli/drag`, `@texuli/primitives`, `texuli` |
+| `@protoyard/views-ui` | `@texuli/data`, `@texuli/drag`, `@texuli/editor`, `@texuli/primitives`, `texuli` |
 | `@protoyard/gallery` | `@texuli/astro`, `@texuli/tokens`, `texuli` |
 
 The workspace's `pnpm-workspace.yaml` release-age policy allows the Texuli

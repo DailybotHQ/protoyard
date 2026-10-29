@@ -4,7 +4,7 @@ import { cardClass } from 'texuli/card';
 import { cx } from 'texuli/cx';
 import { Icon } from 'texuli/icons';
 import { PopoverContent } from 'texuli/popover';
-import { selectTriggerClass } from 'texuli/select';
+import { selectTriggerClass, selectValueClass } from 'texuli/select';
 import Avatar from '../avatar/Avatar.svelte';
 import type { PickerUser } from './types.ts';
 import UserList from './UserList.svelte';
@@ -82,7 +82,7 @@ function pick(user: PickerUser): void {
           <Avatar name={selected.name} src={selected.avatarUrl} srcset={selected.avatarSrcset} size="xs" decorative />
           <span class="tx-select-value">{selected.name}</span>
         {:else}
-          <span class="tx-select-value" data-placeholder="">{placeholder}</span>
+          <span class={selectValueClass({ placeholder: true })} data-placeholder="">{placeholder}</span>
         {/if}
       </span>
       <Icon icon="chevron-down" size="sm" class="tx-select-trigger__chevron" aria-hidden="true" />

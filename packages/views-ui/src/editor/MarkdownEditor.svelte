@@ -435,6 +435,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
       {#each TOOLS as tool, index (tool.id)}
         <Button
           type="button"
+          variant="ghost"
           aria-label={tool.label}
           title={tool.shortcut ? `${tool.label} (${shortcutKeys(tool.shortcut.hint, isMac).join(isMac ? '' : '+')})` : tool.label}
           aria-keyshortcuts={tool.shortcut ? shortcutLabel(tool.shortcut.hint, isMac).replace(/ /g, '+') : undefined}
@@ -512,6 +513,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
               }}
             >
               <span
+                aria-hidden="true"
                 class="inline-flex min-w-8 justify-center rounded bg-muted px-1 font-mono text-xs text-muted-foreground"
                >{item.glyph}</span
               >

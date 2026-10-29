@@ -87,7 +87,7 @@ test.describe('Pipeline CRM (static build)', () => {
     await expect.poll(totalDeals).toBeGreaterThan(0);
     const allDeals = await totalDeals();
     await page.getByRole('checkbox', { name: 'Mine' }).check();
-    expect(await totalDeals()).toBeLessThan(allDeals);
+    await expect.poll(totalDeals).toBeLessThan(allDeals);
     await page.getByRole('checkbox', { name: 'Show lost' }).check();
     await expect(stages.getByRole('listitem', { name: /^Lost:/ })).toBeVisible();
   });

@@ -47,9 +47,12 @@ const rowHeaders = $derived(
             aria-sort={sort?.column === c ? sort.direction : undefined}
           >
             {#if onsort}
+              <!-- Ghost, not the default solid primary: a header reads as text with a sort affordance. -->
               <Button
                 type="button"
-                class="inline-flex min-h-touch items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-0"
+                variant="ghost"
+                size="sm"
+                class="inline-flex h-auto min-h-touch items-center gap-1 rounded-sm px-0 text-sm font-semibold outline-none hover:bg-transparent hover:underline focus-visible:ring-2 focus-visible:ring-ring sm:min-h-0"
                 aria-label="Sort by {column.label}"
                 onclick={() => onsort(c)}
               >

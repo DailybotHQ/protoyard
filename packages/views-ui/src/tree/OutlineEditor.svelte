@@ -323,7 +323,7 @@ function onPointerCancel(event: PointerEvent) {
             >
               <LucideIcon icon={GripVertical} class="size-4"  />
             </span>
-            <span class="text-muted-foreground">•</span>
+            <span class="text-muted-foreground" aria-hidden="true">•</span>
             <Input
               id={`outline-${uid}-${node.id}`}
               value={titleOf(node)}
@@ -342,6 +342,7 @@ function onPointerCancel(event: PointerEvent) {
                   <Button
                     {...props}
                     type="button"
+                    variant="ghost"
                     tabindex={-1}
                     disabled={pending[node.id]}
                     aria-label={`Move ${titleOf(node) || placeholder} to…`}
@@ -358,6 +359,7 @@ function onPointerCancel(event: PointerEvent) {
       {#if flat.length === 0}
         <Button
           type="button"
+          variant="ghost"
           class="mt-1 rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           disabled={creating}
           aria-busy={creating || undefined}

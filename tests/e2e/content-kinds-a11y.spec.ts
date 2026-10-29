@@ -122,11 +122,13 @@ async function checkScreen(page: Page, testInfo: TestInfo, label: string): Promi
 
 async function checkDeck(page: Page, testInfo: TestInfo, label: string): Promise<void> {
   const deck = page.locator(ROOT.deck);
-  // The deck is a labelled keyboard application, and every slide is announced.
-  await expect(deck).toHaveAttribute('role', 'application');
-  await expect(deck).toHaveAccessibleName(/\S/);
-  await expectVisibleFocus(page, label, ROOT.deck);
-  await deck.focus();
+  // The @texuli/slides stage is a labelled region driven by the keyboard, and every slide is announced.
+  const stage = deck.locator('.tx-deck-stage').first();
+  await expect(stage).toHaveAttribute('role', 'region');
+  await expect(stage).toHaveAccessibleName(/\S/);
+  // The stage takes the keys (the deck root only carries the position attributes).
+  await expectVisibleFocus(page, label, `${ROOT.deck} .tx-deck-stage`);
+  await stage.focus();
   const seen = new Set<string>();
   for (let guard = 0; guard < 400; guard++) {
     const at = `${await deck.getAttribute('data-slide-id')}/${await deck.getAttribute('data-slide-step')}`;
@@ -138,17 +140,17 @@ async function checkDeck(page: Page, testInfo: TestInfo, label: string): Promise
     if (at.endsWith('/0')) {
       await expect(
         page.locator(
-          '[data-canvas-slide]:not([aria-hidden="true"]) [role="status"][aria-label^="Loading"]'
+          '[data-tx-deck-slide][data-tx-deck-active="true"] :is([role="status"][aria-label^="Loading"], .tx-deck-stage__loading)'
         ),
         `${label} ${at}: slide finished loading`
       ).toHaveCount(0, { timeout: 30_000 });
-      // The canvas swaps slide copies on navigation: wait until one copy is
-      // active and drawn (not mid-swap, when it is still visibility-hidden).
+      // The @texuli/slides stage keeps neighbor slides mounted: wait until one
+      // slide is active and drawn (not mid-swap, when it is still visibility-hidden).
       await page.waitForFunction(
         () => {
           const active = [
             ...document.querySelectorAll<HTMLElement>(
-              '[data-canvas-slide]:not([aria-hidden="true"])'
+              '[data-tx-deck-slide][data-tx-deck-active="true"]'
             ),
           ];
           return (

@@ -212,11 +212,17 @@ it in step.
 | --- | --- |
 | `pnpm protoyard new <slug> --template deck` | Written from the copied blueprint |
 | `pnpm protoyard dev <slug>` | Rewritten at start and after every save of `src/blueprint.json`; the terminal prints `Refreshed src/brand-theme.ts …` and Vite reloads the page |
-| `pnpm protoyard validate <slug>` | A stale module is rewritten before the definition loads, reported as a warning (`brand-theme` check) |
+| `pnpm protoyard validate <slug>` (locally) | A stale module is rewritten before the definition loads, reported as a warning (`brand-theme` check) |
+| `pnpm protoyard validate <slug> --check`, or any `validate` with `CI` set | Nothing is written: a stale module fails the `brand-theme` check with the fix, ``run `pnpm protoyard validate <slug>` locally (without CI or --check)``, then commit the module |
 
 A brand that does not resolve (an unknown library theme, a blueprint that
 does not parse) never overwrites the module: `dev` prints why and keeps the
 last good theme, and `validate` fails the `brand-theme` check with the reason.
+None of these steps writes through a symlink: when the prototype folder,
+`src/`, `src/brand-theme.ts` or `src/blueprint.json` is a symlink (a dangling
+one included), or the module resolves outside the folder, nothing is read or
+written; `validate` fails the check, `dev` says why (on stderr; one JSON line
+per event with `--json`) and does not watch.
 `dev` on a template demo never writes template files. The template's test
 (`tests/deck-template.test.ts`, copied into each deck) also fails when the
 module and `brand` disagree.

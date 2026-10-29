@@ -245,18 +245,126 @@ describe('interactive family through BlockStateHost', () => {
       props: { blocks: [calc], stateHost, documentId: 'calc-doc' },
     });
     await waitFor(() => expect(screen.getByText('Savings')).toBeTruthy(), long);
-    const slider = screen.getByRole('slider') as HTMLInputElement;
+    const slider = screen.getByRole('slider');
     slider.focus();
-    await fireEvent.input(slider, { target: { value: '9' } });
+    await fireEvent.keyDown(slider, { key: 'ArrowRight' });
     const section = slider.closest('[data-py-block="calculator"]');
     await waitFor(() => expect(section?.getAttribute('aria-busy')).toBe('true'), long);
     for (const input of section?.querySelectorAll('input') ?? []) {
       expect(input.disabled, input.getAttribute('aria-label') ?? '').toBe(false);
     }
+    expect(slider.getAttribute('aria-disabled')).not.toBe('true');
     expect(document.activeElement).toBe(slider);
     release();
     await waitFor(() => expect(section?.hasAttribute('aria-busy')).toBe(false), long);
     expect(document.activeElement).toBe(slider);
+  }, 60_000);
+
+  it('calculator slider is a Texuli Slider: named, keyboard-operable, saved through the block state', async () => {
+    const memory = createMemoryBlockStateHost();
+    const dispatch = vi.fn(
+      (key: string, block: Parameters<BlockStateHost['dispatch']>[1], action: unknown) =>
+        memory.dispatch(key, block, action)
+    );
+    const stateHost: BlockStateHost = {
+      read: (key) => memory.read(key),
+      dispatch: dispatch as BlockStateHost['dispatch'],
+      subscribe: (key, listener) => memory.subscribe(key, listener),
+    };
+    const calc = {
+      type: 'calculator' as const,
+      id: 'calc-slider',
+      title: 'Team cost',
+      inputs: [
+        {
+          name: 'seats',
+          label: 'Seats',
+          min: 1,
+          max: 50,
+          step: 1,
+          default: 10,
+          control: 'slider' as const,
+        },
+      ],
+      outputs: [
+        {
+          id: 'total',
+          label: 'Total seats',
+          formula: { op: 'var' as const, name: 'seats' },
+        },
+      ],
+    };
+    render(InteractiveHarness, {
+      props: { blocks: [calc], stateHost, documentId: 'calc-slider-doc' },
+    });
+    await waitFor(() => expect(screen.getByText('Team cost')).toBeTruthy(), long);
+    const slider = screen.getByRole('slider', { name: 'Seats' });
+    // Texuli's slider thumb, not a text-field-styled <input type="range">.
+    expect(slider.hasAttribute('data-tx-slider-thumb')).toBe(true);
+    expect(
+      slider.closest('[data-py-block="calculator"]')?.querySelector('input[type="range"]')
+    ).toBeNull();
+    expect(slider.getAttribute('aria-valuenow')).toBe('10');
+
+    slider.focus();
+    await fireEvent.keyDown(slider, { key: 'ArrowRight' });
+    await waitFor(() => expect(dispatch).toHaveBeenCalled(), long);
+    expect(dispatch.mock.calls.at(-1)?.[2]).toEqual({ type: 'set', name: 'seats', value: 11 });
+    await waitFor(
+      () =>
+        expect(
+          readBlockState(stateHost, stateKey('calc-slider-doc', calc.id), calc as never)
+        ).toMatchObject({ values: { seats: 11 } }),
+      long
+    );
+    expect(slider.getAttribute('aria-valuenow')).toBe('11');
+    expect(screen.getByText('(11)')).toBeTruthy();
+
+    await fireEvent.keyDown(slider, { key: 'End' });
+    await waitFor(() => expect(slider.getAttribute('aria-valuenow')).toBe('50'), long);
+    expect(dispatch.mock.calls.at(-1)?.[2]).toEqual({ type: 'set', name: 'seats', value: 50 });
+    expect(document.activeElement).toBe(slider);
+  }, 60_000);
+
+  it('long quiz and poll choices wrap instead of clipping (nowrap is reset)', async () => {
+    const long_ = 'an answer long enough to pass a phone width';
+    const longQuiz = {
+      ...quiz,
+      id: 'quiz-wrap',
+      questions: quiz.questions.map((question) => ({
+        ...question,
+        choices: question.choices.map((choice) => ({
+          ...choice,
+          label: `${choice.label} ${long_}`,
+        })),
+      })),
+    } as QuizBlock;
+    const longPoll = {
+      ...poll,
+      id: 'poll-wrap',
+      options: poll.options.map((option) => ({ ...option, label: `${option.label} ${long_}` })),
+    } as PollBlock;
+    render(InteractiveHarness, {
+      props: {
+        blocks: [longQuiz, longPoll],
+        stateHost: createMemoryBlockStateHost(),
+        documentId: 'wrap-doc',
+        viewerId: 'ada',
+      },
+    });
+    await waitFor(() => expect(screen.getByText(poll.question)).toBeTruthy(), long);
+    const choices = screen
+      .getAllByRole('button')
+      .filter((button) => button.textContent?.includes(long_));
+    expect(choices.length).toBe(
+      longQuiz.questions.reduce((sum, q) => sum + q.choices.length, 0) + longPoll.options.length
+    );
+    for (const choice of choices) {
+      expect(choice.className).toMatch(/\bwhitespace-normal\b/);
+      expect(choice.className).toMatch(/\bbreak-words\b/);
+      expect(choice.className).toMatch(/\btext-left\b/);
+      expect(choice.className).toMatch(/\bh-auto\b/);
+    }
   }, 60_000);
 
   it('switches tabs through dispatch', async () => {

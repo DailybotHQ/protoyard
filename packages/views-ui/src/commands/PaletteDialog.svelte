@@ -152,7 +152,7 @@ function goBack() {
       </DialogPrimitive.Description>
       {#if stepStack.length}
         <div class="flex items-center gap-2 border-b border-border px-3 py-2">
-          <Button type="button" class="rounded px-2 py-1 text-sm hover:bg-muted" onclick={goBack}>
+          <Button type="button" variant="ghost" class="rounded px-2 py-1 text-sm hover:bg-muted" onclick={goBack}>
             Back
           </Button>
           <span class="truncate text-sm text-muted-foreground" aria-live="polite">

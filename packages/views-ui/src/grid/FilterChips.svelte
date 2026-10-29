@@ -58,6 +58,7 @@ async function remove(index: number) {
         </span>
         <Button
           type="button"
+          variant="ghost"
           data-chip-remove
           aria-label={`Remove filter: ${chip.text}`}
           class="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"

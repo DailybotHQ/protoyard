@@ -100,7 +100,7 @@ function isCorrect(questionId: string): boolean | null {
               <Button
                 type="button"
                 variant="outline"
-                class="h-auto w-full justify-start rounded-md px-3 py-2 text-left text-sm
+                class="h-auto w-full justify-start rounded-md px-3 py-2 text-left text-sm whitespace-normal break-words
                   {selected ? 'border-primary bg-primary/10' : ''}"
                 aria-pressed={selected}
                 disabled={locked}

@@ -114,7 +114,11 @@ const boardLabels = $derived<Partial<BoardLabels>>({
 </div>
 
 <style>
-  :global(.py-board-open) {
+  /* The card body is a Texuli Button rendered inside Texuli's Board, so the reset has to be
+     global to reach it; scoping it under this view's own root keeps it from leaking. Unlayered
+     rules win over `.tx-button` (in `@layer tx.components`): a card wraps, reads left to right
+     and stays selectable instead of a centered, nowrap button label. */
+  [data-board] :global(.py-board-open) {
     display: block;
     inline-size: 100%;
     margin: 0;
@@ -123,6 +127,11 @@ const boardLabels = $derived<Partial<BoardLabels>>({
     background: transparent;
     color: inherit;
     text-align: start;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    user-select: text;
+    align-items: stretch;
+    justify-content: flex-start;
     cursor: pointer;
     font: inherit;
   }

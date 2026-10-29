@@ -216,7 +216,7 @@ export async function personalize(dir: string, input: NewProjectInput) {
  */
 async function resolveTemplateBrand(dir: string): Promise<void> {
   const result = await refreshTemplateBrand(dir);
-  if (result.status === 'invalid') {
+  if (result.status === 'invalid' || result.status === 'unsafe') {
     throw new CliError('validation', result.message, {
       hint: 'Run `pnpm protoyard blueprint validate <file>` on the source blueprint.',
     });

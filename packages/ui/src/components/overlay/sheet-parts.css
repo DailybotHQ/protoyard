@@ -1,10 +1,11 @@
 /*
  * Header, body, footer and close of Protoyard's sheets (Drawer, DetailPanel,
  * BottomSheet). The surfaces are Texuli's (`tx-sheet`, `tx-drawer`,
- * `tx-detail-panel` from `texuli/sheet`); Texuli 0.3.0 styles only the
- * surface, so these parts stay here, on `--tx-*` tokens, until it ships them
- * (Texuli gap: sheet header/body/footer parts). Same layer as Texuli's
- * components, so consumer utilities still override.
+ * `tx-detail-panel` from `texuli/sheet`). Texuli 0.5.0 also ships styled
+ * header, body, footer and close parts (`Sheet.Header`…); Protoyard's sheets
+ * still lay out their own with these rules, on `--tx-*` tokens (moving them to
+ * Texuli's parts is a follow-up). Same layer as Texuli's components, so
+ * consumer utilities still override.
  */
 @layer tx.components {
   .ui-sheet__header {

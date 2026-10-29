@@ -195,6 +195,10 @@ $effect(() => {
         style:--py-safe-right={box && insets && sizedScreen ? `${insets.right}px` : undefined}
         style:--py-safe-bottom={box && insets && sizedScreen ? `${insets.bottom}px` : undefined}
         style:--py-safe-left={box && insets && sizedScreen ? `${insets.left}px` : undefined}
+        style:--tx-safe-top={box && insets && sizedScreen ? `${insets.top}px` : undefined}
+        style:--tx-safe-right={box && insets && sizedScreen ? `${insets.right}px` : undefined}
+        style:--tx-safe-bottom={box && insets && sizedScreen ? `${insets.bottom}px` : undefined}
+        style:--tx-safe-left={box && insets && sizedScreen ? `${insets.left}px` : undefined}
       >
         {@render children()}
       </div>

@@ -110,7 +110,7 @@ deploy.
 | Command | Options | What it does | Status |
 | --- | --- | --- | --- |
 | `protoyard dev <slug>` | `-p, --port <port>`, `--host` | start ONLY that prototype's Vite dev server | Released (1.0.0) |
-| `protoyard validate <slug>` | `--skip-typecheck`, `--build`, `--strict-spec` | check manifest, folder contract, package, scenarios, schema version and types | Released (1.0.0) |
+| `protoyard validate <slug>` | `--skip-typecheck`, `--build`, `--strict-spec`, `--check` | check manifest, folder contract, package, scenarios, schema version and types; `--check` (implied in CI) never writes, so a stale `src/brand-theme.ts` fails instead of being rewritten | Released (1.0.0) |
 | `protoyard budget [slug]` | `--all`, `--skip-build` | check initial JavaScript and CSS bundle sizes against configured budgets | Released (1.0.0) |
 | `protoyard scenario` | — | inspect a prototype's scenarios | Released (1.0.0) |
 | `protoyard scenario list <slug>` | `--details` |  | Released (1.0.0) |

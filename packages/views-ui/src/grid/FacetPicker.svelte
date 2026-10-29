@@ -182,7 +182,8 @@ function onFocusOut(event: FocusEvent) {
       {#if selected.length}
         <Button
           type="button"
-          class="mt-1 w-full rounded px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          variant="ghost"
+          class="mt-1 w-full justify-start rounded px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           onclick={() => {
             onchange(setFacet(value, column.key, []));
             search?.focus();

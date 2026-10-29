@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to npm `0.4.0` in this workspace.
+Protoyard. Every Texuli dependency is pinned to npm `0.5.0` in this workspace.
 
 ## How it is linked
 
@@ -26,12 +26,13 @@ one workspace update.
 | `@texuli/date` | `analytics-ui`, `ui` |
 | `@texuli/deck` | `decks`, `decks-ui` |
 | `@texuli/drag` | `views-ui` |
+| `@texuli/editor` | `blocks-ui`, `views-ui` |
 | `@texuli/primitives` | `devtools`, `ui`, `views-ui` |
 | `@texuli/slides` | `decks-ui` |
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-`texuli` and all listed `@texuli/*` packages are `0.4.0`. The root manifest
+`texuli` and all listed `@texuli/*` packages are `0.5.0`. The root manifest
 also pins the published Texuli package family used by optional and future
 workspace surfaces. `docs/PACKAGES.md` lists the package graph and direct
 dependencies.
@@ -52,9 +53,12 @@ those steps for the new release and replace the folder; never edit it in place.
 
 ## Texuli first: the adoption check
 
-Run `pnpm exec tsx scripts/check-texuli-adoption.ts` to enforce the seven
-workspace rules. CI and local validation also use scoped strict checks with
-`--strict --allow-gaps` for migrated surfaces.
+Run `pnpm exec tsx scripts/check-texuli-adoption.ts` to enforce the eight
+workspace rules. `pnpm test` (which CI runs) includes
+`tests/adoption/texuli-adoption.test.ts`, which runs this default ratchet over
+the whole repository. Scoped strict checks (`--scope <path> --strict`, with
+`--allow-gaps` where a pending entry waits on an open gap) are not part of CI;
+run them by hand for the surface a task migrates.
 
 | Rule | Prevents | Required direction |
 | --- | --- | --- |
@@ -65,6 +69,7 @@ workspace rules. CI and local validation also use scoped strict checks with
 | `input-as-choice` | Using `Input` with `type="checkbox"` or `type="radio"` | Use `Checkbox` or `RadioGroup`/`RadioGroupItem`. Texuli `Input` binds its `value`; it is not a choice control. |
 | `own-component` | A leaf UI component that draws a generic control without using Texuli or Protoyard UI | Compose Texuli, or use a documented Protoyard exception where the behavior is product-specific. |
 | `component-bind-this` | Capturing a Texuli/Protoyard UI component with `bind:this` and then using it as a DOM element | Use `bind:ref` when the component exposes a DOM ref. If it does not, keep a minimal adapter and report the missing ref as a gap. `bind:this` remains valid for component APIs, not DOM operations. |
+| `ref-undefined` | `bind:ref={x}` where `x` does not start as `null` (for example `$state<HTMLElement \| null>()` or a declaration with no initializer). Svelte throws at runtime on `bind:ref={undefined}` against a `ref` with a fallback, which stops the whole island | Start refs as `$state<HTMLElement \| null>(null)`, `$state(null)` or `= null`. The check reads the initializer, not the type. |
 
 ### Exceptions and the gap loop
 
@@ -86,6 +91,11 @@ inside Protoyard.
 
 The checker supports a normal ratchet run, `--scope <path> --strict`,
 `--allow-gaps` with strict mode, and `--prune` to remove fixed pending entries.
+The ratchet also fails on a stale pending entry (its recorded count is above
+today's, or the violation is gone) until `--prune` tightens it, so a fixed file
+cannot regress silently up to its old count. In `.svelte` files, markup drops
+only `<!-- -->` comments; JS and CSS comments are stripped only inside
+`<script>` and `<style>`.
 It scans source under `packages/`, `apps/`, `templates/`, and `prototypes/`;
 tests and build output are excluded.
 
@@ -218,7 +228,7 @@ of truth for current behavior. Useful checks include:
 
 | Command | What it proves |
 | --- | --- |
-| `pnpm exec tsx scripts/check-texuli-adoption.ts` | The seven adoption rules and pending/gap ratchet |
+| `pnpm exec tsx scripts/check-texuli-adoption.ts` | The eight adoption rules and pending/gap ratchet |
 | `pnpm vitest run tests/adoption` | Rule matching, strict mode, gap allowances, exception records and pending cleanup |
 | `pnpm vitest run packages/ui` | The shared Texuli-backed component API and Protoyard wrapper contracts |
 | `pnpm check:packages --filter @protoyard/ui` | The packed public component exports and declarations |
