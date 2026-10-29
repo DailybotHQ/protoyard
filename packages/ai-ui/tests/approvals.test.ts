@@ -129,6 +129,7 @@ describe('SuggestionCard', () => {
     // The target is a Texuli select: open it and pick the option.
     const select = view.getByRole('combobox', { name: 'Link to target' });
     expect(select.id).toBe('suggestion-edit-approval_sug_resp_1');
+    expect(select.textContent).toContain('ENG-12 — Ship onboarding');
     await fireEvent.click(select);
     await fireEvent.click(view.getByRole('option', { name: 'ENG-99 — Docs pass' }));
     await fireEvent.click(view.getByRole('button', { name: 'Save' }));

@@ -51,6 +51,21 @@ const ghost =
   'inline-flex h-8 items-center rounded-md px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
 
 const propertyOf = (c: FilterCondition) => properties.find((p) => p.path === c.property);
+const propertyItems = (selected: string) => [
+  ...(properties.some((property) => property.path === selected)
+    ? []
+    : [{ value: selected, label: selected }]),
+  ...properties.map((property) => ({ value: property.path, label: property.label })),
+];
+const operatorItems = (property: FilterProperty | undefined, selected: string) => [
+  ...(operatorsFor(property).includes(selected as never)
+    ? []
+    : [{ value: selected, label: selected }]),
+  ...operatorsFor(property).map((operator) => ({
+    value: operator,
+    label: OPERATOR_LABELS[operator],
+  })),
+];
 const setAt = (i: number, next: FilterCondition | FilterGroup) =>
   onchange({ ...group, conditions: group.conditions.map((c, k) => (k === i ? next : c)) });
 const removeAt = (i: number) =>
@@ -100,6 +115,7 @@ const inputType = (p: FilterProperty | undefined) =>
       <div class="grid gap-1" data-condition={i}>
         <div class="flex flex-wrap items-center gap-1.5">
           <Select.Root
+            items={propertyItems(condition.property)}
             value={condition.property}
             onValueChange={(value) => {
               const next = properties.find((p) => p.path === value);
@@ -113,12 +129,13 @@ const inputType = (p: FilterProperty | undefined) =>
             ><Select.Value placeholder="Property" /></Select.Trigger>
             <Select.Content>
               <Select.Viewport>
-                {#if !property}<Select.Item value={condition.property}>{condition.property}</Select.Item>{/if}
-                {#each properties as p (p.path)}<Select.Item value={p.path}>{p.label}</Select.Item>{/each}
+                {#if !property}<Select.Item value={condition.property} label={condition.property}>{condition.property}</Select.Item>{/if}
+                {#each properties as p (p.path)}<Select.Item value={p.path} label={p.label}>{p.label}</Select.Item>{/each}
               </Select.Viewport>
             </Select.Content>
           </Select.Root>
           <Select.Root
+            items={operatorItems(property, condition.operator)}
             value={condition.operator}
             onValueChange={(value) =>
               property && setAt(i, adjustCondition({ ...condition, operator: value as never }, property))}
@@ -130,7 +147,7 @@ const inputType = (p: FilterProperty | undefined) =>
             ><Select.Value placeholder="Operator" /></Select.Trigger>
             <Select.Content>
               <Select.Viewport>
-                {#each operatorsFor(property) as op (op)}<Select.Item value={op}>{OPERATOR_LABELS[op]}</Select.Item>{/each}
+                {#each operatorsFor(property) as op (op)}<Select.Item value={op} label={OPERATOR_LABELS[op]}>{OPERATOR_LABELS[op]}</Select.Item>{/each}
               </Select.Viewport>
             </Select.Content>
           </Select.Root>
@@ -138,14 +155,15 @@ const inputType = (p: FilterProperty | undefined) =>
           {#if takesValue(condition.operator) && property}
             {#if property.type === 'boolean'}
               <Select.Root
+                items={[{ value: 'true', label: 'true' }, { value: 'false', label: 'false' }]}
                 value={String(condition.value ?? true)}
                 onValueChange={(value) => setAt(i, { ...condition, value: value === 'true' })}
               >
                 <Select.Trigger class={field} aria-label="Value"><Select.Value /></Select.Trigger>
                 <Select.Content>
                   <Select.Viewport>
-                    <Select.Item value="true">true</Select.Item>
-                    <Select.Item value="false">false</Select.Item>
+                    <Select.Item value="true" label="true">true</Select.Item>
+                    <Select.Item value="false" label="false">false</Select.Item>
                   </Select.Viewport>
                 </Select.Content>
               </Select.Root>
@@ -200,6 +218,7 @@ const inputType = (p: FilterProperty | undefined) =>
               />
             {:else if property.options}
               <Select.Root
+                items={property.options.map((option) => ({ value: option.value, label: option.label }))}
                 value={text(condition.value)}
                 onValueChange={(value) => setAt(i, { ...condition, value: value || null })}
               >
@@ -211,7 +230,7 @@ const inputType = (p: FilterProperty | undefined) =>
                 ><Select.Value placeholder="Choose…" /></Select.Trigger>
                 <Select.Content>
                   <Select.Viewport>
-                    {#each property.options as o (o.value)}<Select.Item value={o.value}>{o.label}</Select.Item>{/each}
+                    {#each property.options as o (o.value)}<Select.Item value={o.value} label={o.label}>{o.label}</Select.Item>{/each}
                   </Select.Viewport>
                 </Select.Content>
               </Select.Root>

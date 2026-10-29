@@ -243,6 +243,26 @@ describe('review comment overlay', () => {
     expect(document.querySelector('style')?.textContent).toContain('prefers-reduced-motion:reduce');
   });
 
+  it('keeps the low-confidence pin border visible and dashed', () => {
+    const { root, target } = setup();
+    const anchor = createAnchor(
+      target,
+      { x: 48, y: 40 },
+      { root, route: { pattern: '/', path: '/' } }
+    );
+    const uncertain = { ...anchor, fingerprint: 'A different target label' };
+    const handle = createReviewOverlay({
+      root,
+      comments: [comment('thread_0000005', uncertain)],
+      onPlace: vi.fn(),
+    });
+    handles.push(handle);
+    const pin = document.querySelector<HTMLElement>('[data-py-review-pin][data-low-confidence]');
+    expect(pin).toBeTruthy();
+    expect(getComputedStyle(pin as HTMLElement).borderTopWidth).toBe('2px');
+    expect(getComputedStyle(pin as HTMLElement).borderTopStyle).toBe('dashed');
+  });
+
   it('moves its host into the device portal when the renderer marks the screen', async () => {
     setup();
     const portal = document.createElement('section');

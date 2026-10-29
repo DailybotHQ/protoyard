@@ -111,6 +111,15 @@ describe('LiveCounter', () => {
   const value = () => document.querySelector('[data-tx-stat-value]')?.textContent?.trim();
   const spoken = () => document.querySelector('[data-counter-live]')?.textContent;
 
+  it('does not show an empty-state message before the first live value', () => {
+    render(CounterHarness, { value: null });
+    expect(document.querySelector('[data-tx-stat-empty]')).toBeNull();
+    expect(value()).toBe('0');
+    expect(document.querySelector('[data-tx-stat-value]')?.textContent).not.toContain(
+      'No data yet'
+    );
+  });
+
   it('renders the final value immediately under reduced motion', async () => {
     document.documentElement.dataset.txMotion = 'reduce';
     const view = render(CounterHarness, { value: 10 });

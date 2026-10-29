@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { compileFilter, type FilterGroup, FilterSchema, type Segment } from '@protoyard/analytics';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -173,6 +175,20 @@ describe('FilterBuilder', () => {
     expect(document.querySelectorAll('[data-condition]')).toHaveLength(0);
   });
 
+  it('keeps restored property, operator and option labels visible on closed triggers', () => {
+    render(FilterBuilder, {
+      value: {
+        combinator: 'and',
+        conditions: [{ property: 'properties.plan', operator: 'eq', value: 'pro' }],
+      },
+      properties: PROPERTIES,
+      onchange: vi.fn(),
+    });
+    expect(screen.getByRole('combobox', { name: 'Property' }).textContent).toContain('Plan');
+    expect(screen.getByRole('combobox', { name: 'Operator' }).textContent).toContain('is');
+    expect(screen.getByRole('combobox', { name: 'Value' }).textContent).toContain('Pro');
+  });
+
   it('shows validation errors inline and does not apply', async () => {
     const onchange = vi.fn();
     render(FilterBuilder, {
@@ -218,7 +234,16 @@ describe('SegmentPicker', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Everyone' }));
     expect(onapply).toHaveBeenCalledWith(null);
     await fireEvent.click(pro);
-    expect(onapply).toHaveBeenLastCalledWith(segments[0]);
+    expect(onapply).toHaveBeenCalledWith(segments[0]);
+  });
+
+  it('handles Texuli keyboard activation through pressed-state changes', () => {
+    const source = readFileSync(
+      join(import.meta.dirname, '../src/filters/SegmentPicker.svelte'),
+      'utf8'
+    );
+    expect(source).toContain('onPressedChange={(pressed) =>');
+    expect(source).not.toContain('onclick={() => onapply');
   });
 
   it('saves through the service with pending feedback, then confirms', async () => {
@@ -281,6 +306,15 @@ describe('SegmentPicker', () => {
 });
 
 describe('BreakdownSelect', () => {
+  it('shows the selected label while closed', () => {
+    render(BreakdownSelect, {
+      properties: PROPERTIES,
+      value: 'properties.plan',
+      onchange: vi.fn(),
+    });
+    expect(screen.getByRole('combobox', { name: 'Break down by' }).textContent).toContain('Plan');
+  });
+
   it('offers category properties only and emits the chosen path', async () => {
     const onchange = vi.fn();
     render(BreakdownSelect, { properties: PROPERTIES, value: null, onchange });

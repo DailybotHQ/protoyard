@@ -19,7 +19,6 @@ import {
   fitGranularity,
   formatSpan,
   GRANULARITY_LABELS,
-  isoDay,
 } from './model.ts';
 
 type Props = {
@@ -76,11 +75,11 @@ const segment =
     {#each presets as preset (preset)}
       {@const active = value.range.kind === 'preset' && value.range.preset === preset}
       <Toggle
-        pressed={active}
+        bind:pressed={() => active, () => {}}
+        onPressedChange={(pressed) => pressed && emitRange({ kind: 'preset', preset })}
         class="rounded-md px-2 py-1.5 text-left text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {active
           ? 'bg-primary text-primary-foreground'
           : 'text-foreground hover:bg-muted'}"
-        onclick={() => emitRange({ kind: 'preset', preset })}
       >
         {PRESET_LABELS[preset]}
       </Toggle>
@@ -92,7 +91,6 @@ const segment =
       <MonthGrid
         start={draftStart ?? (value.range.kind === 'custom' ? value.range.start : null)}
         end={draftStart ? draftEnd : value.range.kind === 'custom' ? value.range.end : null}
-        initial={isoDay(Math.max(details.range.start, details.range.end - 1))}
         max={now}
         {weekStartsOn}
         onrange={updateDraft}
@@ -110,8 +108,9 @@ const segment =
       {#each comparisons as comparison (comparison)}
         <Toggle
           class={segment}
-          pressed={value.comparison === comparison}
-          onclick={() => onchange({ ...value, comparison }, 'comparison')}>{COMPARISON_LABELS[comparison]}</Toggle
+          bind:pressed={() => value.comparison === comparison, () => {}}
+          onPressedChange={(pressed) => pressed && onchange({ ...value, comparison }, 'comparison')}
+          >{COMPARISON_LABELS[comparison]}</Toggle
         >
       {/each}
     </div>
@@ -122,10 +121,11 @@ const segment =
         {@const ok = allowed.includes(granularity)}
         <Toggle
           class={segment}
-          pressed={value.granularity === granularity}
+          bind:pressed={() => value.granularity === granularity, () => {}}
+          onPressedChange={(pressed) => pressed && onchange({ ...value, granularity }, 'granularity')}
           disabled={!ok}
           title={ok ? undefined : `Not available for ${details.span}`}
-          onclick={() => onchange({ ...value, granularity }, 'granularity')}>{GRANULARITY_LABELS[granularity]}</Toggle
+          >{GRANULARITY_LABELS[granularity]}</Toggle
         >
       {/each}
     </div>

@@ -158,6 +158,8 @@ describe('CohortTable', () => {
     );
     await fireEvent.click(screen.getByRole('button', { name: 'Count' }));
     expect(screen.getByRole('button', { name: 'Count' }).getAttribute('aria-pressed')).toBe('true');
+    await fireEvent.click(screen.getByRole('button', { name: 'Count' }));
+    expect(screen.getByRole('button', { name: 'Count' }).getAttribute('aria-pressed')).toBe('true');
     expect(bodyRows[0]?.querySelector('[data-period="1"]')?.textContent?.trim()).toBe('3');
   });
 
@@ -243,6 +245,8 @@ describe('FunnelAnalysis', () => {
     await fireEvent.click(free);
     expect(free.getAttribute('aria-pressed')).toBe('true');
     expect(onselectedchange).toHaveBeenCalledWith('free');
+    await fireEvent.click(free);
+    expect(free.getAttribute('aria-pressed')).toBe('true');
     expect(document.querySelector('table[data-series]')?.getAttribute('data-series')).toBe('free');
     const first = document.querySelector('tbody tr') as HTMLElement;
     expect(first.textContent).toContain('4'); // 4 free users entered

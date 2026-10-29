@@ -193,6 +193,14 @@ describe('the review toolbar on phones', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Import' }));
     expect(click).toHaveBeenCalledTimes(1);
   });
+
+  it('uses a global visually-hidden rule for the Texuli file input', () => {
+    const source = readFileSync(
+      join(import.meta.dirname, '../src/toolbar/ReviewToolbar.svelte'),
+      'utf8'
+    );
+    expect(source).toContain(':global(.review-toolbar__sr)');
+  });
 });
 
 describe('the overlay inside a review session', () => {

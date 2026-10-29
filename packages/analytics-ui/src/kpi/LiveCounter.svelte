@@ -91,13 +91,13 @@ const isInteger = $derived(Number.isInteger(query.current ?? 0));
 <div class={className} data-live-counter="" data-motion={reduced ? 'reduce' : 'full'}>
   <Kpi
     {label}
-    value={shown === null ? null : isInteger ? Math.round(shown) : shown}
+    value={shown === null ? 0 : isInteger ? Math.round(shown) : shown}
     {unit}
     {currency}
     variant="flat"
+    empty={false}
     class="border-0 bg-transparent p-0 shadow-none"
     aria-hidden="true"
-    data-counter-value=""
   />
   <span class="sr-only" aria-live="polite" data-counter-live="">{spoken}</span>
 </div>
