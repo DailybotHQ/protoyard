@@ -161,7 +161,10 @@ describe('protoyard generate content kinds', () => {
       expect(generatedBlueprint).not.toMatch(/^(?!\s*(?:\*|\/\/|\/\*)).*\bawait\b/m);
       expect(checkHeader(generatedBlueprint)).toEqual({ generated: true, intact: true });
       const runtime = read(`prototypes/${slug}/src/prototype.ts`);
-      expect(runtime).toContain('defineKindRuntime');
+      // The brand is resolved at generate time, so the first chunk never loads the palette generator.
+      expect(runtime).toContain('defineKindPrototype');
+      expect(runtime).not.toContain('defineKindRuntime');
+      expect(runtime).toContain('brandTheme: null');
       expect(runtime).toContain(`blueprintKind = '${kind}'`);
       expect(checkHeader(runtime)).toEqual({ generated: true, intact: true });
       const formatted = biomeFormatCheck(ws, [
@@ -251,4 +254,28 @@ describe('protoyard generate content kinds', () => {
       expect(handEdited.problems.join('\n')).toMatch(/src\/prototype\.ts was edited by hand/);
     }
   );
+
+  it('emits a seed brand theme at generate time and registers it in the kind runtime', async () => {
+    const slug = 'deck-branded';
+    const fixture = JSON.parse(readFileSync(join(REPO_ROOT, FIXTURES.deck), 'utf8'));
+    const file = join(ws.root, 'branded.deck.json');
+    writeFileSync(file, JSON.stringify({ ...fixture, brand: { seed: '#2563eb' } }, null, 2));
+    const created = await generate(slug, '--blueprint', file, '--no-install');
+    expect(created.code).toBe(0);
+    const { generated } = created.json<{ data: { generated: string[] } }>().data;
+    expect(generated).toContain('src/generated/brand-theme.ts');
+    const brandTheme = read(`prototypes/${slug}/src/generated/brand-theme.ts`);
+    expect(checkHeader(brandTheme)).toEqual({ generated: true, intact: true });
+    const exportName = /export const (\w+): Theme/.exec(brandTheme)?.[1];
+    expect(exportName).toBeDefined();
+    const runtime = read(`prototypes/${slug}/src/prototype.ts`);
+    expect(runtime).toContain(`import { ${exportName} } from './generated/brand-theme.ts';`);
+    expect(runtime).toContain(`brandTheme: ${exportName},`);
+    expect(runtime).toMatch(/defaultThemeId: '[a-z0-9-]+',/);
+    const checked = biomeCheck(
+      ws,
+      generated.map((path) => `prototypes/${slug}/${path}`)
+    );
+    expect(checked.code, checked.output).toBe(0);
+  });
 });

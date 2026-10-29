@@ -1,8 +1,8 @@
 import type { PrototypeDefinition } from '@protoyard/core';
 import type { DocDocument, PageDocument } from '@protoyard/pages';
+import { defineKindRuntime } from './brand-runtime.ts';
 import {
   type AnyContentBlueprint,
-  defineKindRuntime,
   KIND_DEFAULT_SCENARIO,
   KIND_GENERATOR_VERSION,
   type KindRuntimeOptions,

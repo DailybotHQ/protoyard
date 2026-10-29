@@ -12,7 +12,6 @@ import {
   type WorldSeed,
 } from '@protoyard/core';
 import { FORM_CAPABILITIES, FORM_RESPONSES_STORE_STRING } from '@protoyard/pages';
-import { brandLibraryThemeId, resolveBlueprintBrand } from '../brand.ts';
 import type { ContentBlueprint } from './envelope.ts';
 import type { ContentKind } from './kind.ts';
 
@@ -107,23 +106,17 @@ export interface KindRuntimeOptions {
   version?: string;
 }
 
+/** {@link defineKindPrototype} options: the blueprint brand, already resolved. */
+export interface KindPrototypeOptions extends KindRuntimeOptions {
+  /** The theme the prototype opens in (`kindDefaultThemeId`); `null` for the default theme. */
+  defaultThemeId: string | null;
+  /** The built brand theme to register (`kindBrandTheme`); `null` for none or a library brand. */
+  brandTheme: Theme | null;
+}
+
 /** Any parsed content-kind blueprint. */
 /** One content blueprint of any kind (a union over kinds, not an intersection of bodies). */
 export type AnyContentBlueprint = { [K in ContentKind]: ContentBlueprint<K> }[ContentKind];
-
-/** The theme id a content blueprint opens in: its library theme, its built brand theme, or null. */
-export function kindDefaultThemeId(doc: AnyContentBlueprint): string | null {
-  if (!doc.brand) return null;
-  return (
-    brandLibraryThemeId(doc.brand) ??
-    resolveBlueprintBrand(doc.brand, { blueprintName: doc.name }).id
-  );
-}
-
-function kindBrandTheme(doc: AnyContentBlueprint): Theme | null {
-  if (!doc.brand || brandLibraryThemeId(doc.brand)) return null;
-  return resolveBlueprintBrand(doc.brand, { blueprintName: doc.name });
-}
 
 export function kindScenarios(): ScenarioDefinition[] {
   return [
@@ -200,16 +193,17 @@ export function kindWorld(scenario: Pick<Scenario, 'referenceTime' | 'organizati
 }
 
 /**
- * Builds a `definePrototype`-valid definition for a deck, page or doc. Throws
- * `BrandThemeError` for an unknown library theme or a brand that fails AA,
- * like the app path.
+ * Builds a `definePrototype`-valid definition for a deck, page or doc whose
+ * brand is already resolved. Generated kind prototypes call it with the theme
+ * `protoyard generate` resolved, so their first chunk never loads the palette
+ * generator a seed brand needs; `defineKindRuntime` resolves the brand first.
  */
-export function defineKindRuntime(
+export function defineKindPrototype(
   doc: AnyContentBlueprint,
-  options: KindRuntimeOptions
+  options: KindPrototypeOptions
 ): PrototypeDefinition {
   const slug = options.slug ?? options.namespace;
-  const theme = kindBrandTheme(doc);
+  const theme = options.brandTheme;
   const scenarios = kindScenarios();
   const manifest = parseManifest({
     id: `local.${slug}`,
@@ -222,7 +216,7 @@ export function defineKindRuntime(
     tags: doc.tags,
     ...(doc.icon ? { icon: doc.icon } : {}),
     defaultScenario: KIND_DEFAULT_SCENARIO,
-    defaultTheme: kindDefaultThemeId(doc) ?? 'violet',
+    defaultTheme: options.defaultThemeId ?? 'violet',
     preview: { viewport: 'desktop' },
     storage: { namespace: options.namespace, schemaVersion: 1 },
     scenarios: scenarios.map((scenario) => scenario.id),

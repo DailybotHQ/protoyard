@@ -175,23 +175,43 @@ export const blueprint: ${typeName} = ${parser}(blueprintJson);
 `;
 }
 
-/** Shared runtime module for a generated deck, page or doc prototype. */
-function contentRuntimeModule(kind: keyof typeof CONTENT_BLUEPRINT_TYPES): string {
+/** The blueprint brand, resolved at generate time for a content kind's runtime module. */
+interface ContentBrand {
+  /** The theme the prototype opens in, or null for the default theme. */
+  themeId: string | null;
+  /** Export name in `src/generated/brand-theme.ts`, or null when no theme is built. */
+  exportName: string | null;
+}
+
+/**
+ * Shared runtime module for a generated deck, page or doc prototype. The
+ * brand is resolved here, at generate time (`defineKindPrototype`), so the
+ * prototype's first chunk never loads the palette generator a seed needs.
+ */
+function contentRuntimeModule(
+  kind: keyof typeof CONTENT_BLUEPRINT_TYPES,
+  brand: ContentBrand
+): string {
   const typeName = CONTENT_BLUEPRINT_TYPES[kind];
   const bodyExport = kind === 'page' ? 'pageDocument' : kind === 'doc' ? 'docDocument' : null;
+  const brandImport = brand.exportName
+    ? `import { ${brand.exportName} } from './generated/brand-theme.ts';\n`
+    : '';
   return `import type { ${typeName} } from '@protoyard/blueprint';
-import { type AnyContentBlueprint, defineKindRuntime } from '@protoyard/blueprint/kinds';
+import { type AnyContentBlueprint, defineKindPrototype } from '@protoyard/blueprint/kinds';
 import { parseManifest } from '@protoyard/core';
 import manifestJson from '../protoyard.json';
 import { blueprint } from './generated/blueprint.ts';
-
+${brandImport}
 const manifest = parseManifest(manifestJson);
 const contentBlueprint = blueprint as ${typeName};
 
-${bodyExport ? `export const ${bodyExport} = contentBlueprint.${kind};\n` : ''}export const definition = defineKindRuntime(contentBlueprint as AnyContentBlueprint, {
+${bodyExport ? `export const ${bodyExport} = contentBlueprint.${kind};\n` : ''}export const definition = defineKindPrototype(contentBlueprint as AnyContentBlueprint, {
   namespace: manifest.storage.namespace,
   slug: manifest.slug,
   version: manifest.version,
+  defaultThemeId: ${brand.themeId === null ? 'null' : lit(brand.themeId)},
+  brandTheme: ${brand.exportName ?? 'null'},
 });
 definition.manifest.blueprintKind = '${kind}';
 if (manifest.template) definition.manifest.template = manifest.template;
@@ -227,10 +247,21 @@ export function emitContentKindPrototype(
   blueprintText: string
 ): EmittedFile[] {
   const kind = blueprint.kind;
+  // A library brand ships by id; only a built brand emits a theme module, as for apps.
+  const libraryId = blueprint.brand ? brandLibraryThemeId(blueprint.brand) : undefined;
+  const theme =
+    blueprint.brand && !libraryId
+      ? resolveBlueprintBrand(blueprint.brand, { blueprintName: blueprint.name })
+      : null;
+  const brand: ContentBrand = {
+    themeId: theme?.id ?? libraryId ?? null,
+    exportName: theme ? brandThemeExportName(theme.id) : null,
+  };
   return [
     owned('blueprint.json', blueprintText),
     generated('src/generated/blueprint.ts', contentBlueprintModule(kind)),
-    generated('src/prototype.ts', contentRuntimeModule(kind)),
+    ...(theme ? [generated('src/generated/brand-theme.ts', brandThemeModule(theme))] : []),
+    generated('src/prototype.ts', contentRuntimeModule(kind, brand)),
     ...(kind === 'deck' ? [generated('src/deck-blueprint.ts', deckBlueprintModule())] : []),
   ];
 }

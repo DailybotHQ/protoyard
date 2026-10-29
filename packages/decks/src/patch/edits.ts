@@ -1,6 +1,3 @@
-import { BUILTIN_THEMES, FONT_CATALOG, THEME_LIBRARY_META } from '@protoyard/themes';
-import { DECK_BACKGROUND_PRESET_IDS } from '../backgrounds/schema.ts';
-import { DECK_ASPECTS } from '../canvas.ts';
 import { DECK_LAYOUTS } from '../layouts/index.ts';
 import { type Deck, type DeckSlide, type DeckStyle, safeParseDeck } from '../schema/index.ts';
 import { applyDeckPatch, type DeckPatchOperation } from './json-patch.ts';
@@ -43,22 +40,6 @@ export interface DeckStudioEdits {
       hidden?: boolean | null;
     }
   >;
-}
-
-/** Choices the panel offers, from the same registries the renderer resolves. */
-export function deckStudioOptions() {
-  return {
-    themes: [
-      ...BUILTIN_THEMES.map((theme) => ({ id: theme.id, label: theme.name })),
-      ...THEME_LIBRARY_META.map((meta) => ({ id: meta.id, label: meta.name })),
-    ],
-    fontPairs: FONT_CATALOG.map((pair) => ({ id: pair.id, label: pair.label })),
-    aspects: [...DECK_ASPECTS],
-    motions: ['full', 'subtle', 'none'] as const,
-    backgrounds: [...DECK_BACKGROUND_PRESET_IDS],
-    progress: ['none', 'top', 'bottom'] as const,
-    transitions: ['none', 'fade', 'slide', 'zoom', 'morph'] as const,
-  };
 }
 
 /**

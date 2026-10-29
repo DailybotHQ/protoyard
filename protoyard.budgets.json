@@ -19,9 +19,9 @@
       "reason": "Texuli 0.4.0 component CSS replaces the former UI CSS (all UI migrated in PLAN_007); measured 2026-10-28 + 5 %. Lower when Texuli ships its CSS diet and sparkline-lite (gap G23)."
     },
     "create-anything-deck": {
-      "initialJsGzipKb": 335.9,
+      "initialJsGzipKb": 319.1,
       "cssGzipKb": 83.7,
-      "reason": "Measured 2026-10-28 + 5 % (initial JS 319.90 KB, CSS 79.67 KB): npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB of CSS and initial JS; lower when it ships."
+      "reason": "Measured 2026-10-28 + 5 % (initial JS 303.82 KB after the theme library and palette generator left the first chunk, CSS 79.67 KB): npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB of CSS and initial JS; lower when it ships."
     },
     "harbor-dispatch-demo": {
       "cssGzipKb": 52.8,

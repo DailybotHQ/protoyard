@@ -5,7 +5,6 @@ import {
   type DeckStudioEdits,
   type DeckStudioSlideKey,
   type DeckStudioStyleKey,
-  deckStudioOptions,
 } from '@protoyard/decks/patch';
 import type { Deck } from '@protoyard/decks/schema';
 
@@ -39,7 +38,6 @@ export function prefixDeckPatch(
  */
 export function createDeckStudio(sourceDeck: Deck, studioOptions: DeckStudioOptions = {}) {
   const source = structuredClone(sourceDeck);
-  const options = deckStudioOptions();
   let edits = $state<DeckStudioEdits>({ style: {}, slides: {} });
   let slideId = $state(source.slides[0]?.id ?? '');
 
@@ -56,7 +54,6 @@ export function createDeckStudio(sourceDeck: Deck, studioOptions: DeckStudioOpti
 
   return {
     source,
-    options,
     get edits() {
       return edits;
     },

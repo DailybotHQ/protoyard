@@ -8,7 +8,6 @@ export {
   type DeckStudioSlideKey,
   type DeckStudioStyleKey,
   deckEditsToPatch,
-  deckStudioOptions,
 } from './edits.ts';
 export {
   applyDeckPatch,
@@ -19,3 +18,4 @@ export {
   jsonEquals,
   parsePointer,
 } from './json-patch.ts';
+export { deckStudioOptions } from './options.ts';

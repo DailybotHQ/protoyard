@@ -800,9 +800,11 @@ of their initial chunk.
 
 Without `brand`, the template's default theme is kept.
 
-Decks, pages and docs accept the same `brand`, but `generate` writes no theme
-module for them: `defineKindRuntime` resolves the library or brand theme at
-runtime.
+Decks, pages and docs accept the same `brand`. `generate` writes the built
+theme to `src/generated/brand-theme.ts`, as for apps, and the generated runtime
+module passes it to `defineKindPrototype`, so the palette generator stays out
+of the prototype's first chunk. A library brand ships by id. The player
+resolves either brand at runtime with `defineKindRuntime`.
 
 ### Design kits
 
