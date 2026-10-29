@@ -68,7 +68,6 @@ export { Separator } from 'texuli/separator-aspect';
 // Flows
 export { Stepper, type StepperStep, Wizard } from 'texuli/stepper';
 // Feedback
-export { Toaster } from 'texuli/toast';
 export { Tooltip } from 'texuli/tooltip';
 export { default as ChipGroup } from './components/ChipGroup.svelte';
 export type {
@@ -218,6 +217,7 @@ export {
 // Disclosure
 export { default as Tabs } from './components/tabs/Tabs.svelte';
 export type { TabItem } from './components/tabs/types.ts';
+export { default as Toaster } from './components/toast/Toaster.svelte';
 export {
   DEFAULT_TOAST_DURATION,
   MAX_TOASTS,

@@ -218,6 +218,9 @@ frame:
   `packages/renderer-svelte/tests/floating.test.ts`.
 - **Overlays:** dialogs, sheets, drawers and the undo toaster open contained by the
   device screen (Texuli's `contained` overlay mode), so they stay inside the frame.
+  The `@protoyard/ui` `Toaster` takes Texuli's toast region out of the page's top
+  layer while a frame is shown, so toasts paint inside the screen above contained
+  overlays; announcements are unchanged. Without a frame it stays in the top layer.
 - **Widget badge:** in `widget-host`, call `getWidgetHost().setUnread(n)` (exported by
   `@protoyard/renderer-svelte`) to drive the launcher's unread badge.
 

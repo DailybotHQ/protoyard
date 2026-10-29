@@ -77,7 +77,7 @@ standalone Svelte 5 component library, consumed from its published npm packages
   The full mapping is in [TEXULI.md](../../docs/TEXULI.md#generic-styled-components-come-from-texuli).
 - **Re-exported from Texuli under Protoyard's names:** `AppShell` (and
   `getAppShellContext`) from `texuli/layouts/shells`, `FormField` (Texuli's
-  `Field`, `texuli/field`), `Toaster` and `toast` (`texuli/toast`),
+  `Field`, `texuli/field`), `toast` (`texuli/toast`),
   `ChatThread`, `MessageList`, `TypingIndicator` and `groupMessages`
   (`@texuli/chat`), and `resolveTrend`, `trendWord` and `formatDelta`
   (`texuli/stat`).
@@ -109,7 +109,10 @@ standalone Svelte 5 component library, consumed from its published npm packages
   `DateRangePicker` and `TimeInput` (Texuli's date-picker and time-field
   parts with Texuli's field classes, so they fit `FormField`), `Kanban`
   (`@texuli/data/board`), and `BottomNav`, `MobileHeader` and
-  `MobileAppShell` (`texuli/layouts/mobile`). `UndoToaster` draws its toasts
+  `MobileAppShell` (`texuli/layouts/mobile`). `Toaster` is Texuli's
+  `texuli/toast` Toaster (same props) that leaves the page's top layer while a
+  shell frame sets the overlay portal target, so toasts stay inside the framed
+  screen (Texuli gap N32). `UndoToaster` draws its toasts
   with Texuli's `Button`, `IconButton` and `Icon`; its undo store stays
   Protoyard's because Texuli's toast closes after a failed action, where an
   undo must stay open to retry (N17).
