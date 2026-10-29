@@ -166,6 +166,7 @@ $effect(() => {
           {@const on = form.labels.includes(label)}
           <Button
             type="button"
+            variant="ghost"
             aria-pressed={on}
             onclick={() => toggleLabel(label)}
             class={[

@@ -159,11 +159,11 @@ async function addConnection(event: SubmitEvent) {
             {#if canManage}
               <div class="row-actions">
                 {#if editId === item.id}
-                  <Button class="icon-button" aria-label="Save connection" onclick={() => void saveEdit(item)}><Icon icon="check" style="width:16px;height:16px" /></Button>
+                  <Button variant="ghost" class="icon-button" aria-label="Save connection" onclick={() => saveEdit(item)}><Icon icon="check" style="width:16px;height:16px" /></Button>
                   <Button class="icon-button" aria-label="Cancel editing" onclick={() => (editId = null)}><Icon icon="close" style="width:16px;height:16px" /></Button>
                 {:else}
                   <Button class="icon-button" aria-label={`Edit ${item.label}`} onclick={() => startEdit(item)}><LucideIcon icon={Pencil} class="size-[15px]" /></Button>
-                  <Button class="icon-button danger" aria-label={`Delete ${item.label}`} onclick={() => void runService(() => services.remove(item.id), { success: 'Connection removed', errorTitle: 'Could not remove connection' })}><LucideIcon icon={Trash2} class="size-[15px]" /></Button>
+                  <Button variant="destructive" class="icon-button danger" aria-label={`Delete ${item.label}`} onclick={() => runService(() => services.remove(item.id), { success: 'Connection removed', errorTitle: 'Could not remove connection' })}><LucideIcon icon={Trash2} class="size-[15px]" /></Button>
                 {/if}
               </div>
             {/if}
@@ -173,7 +173,7 @@ async function addConnection(event: SubmitEvent) {
         {/each}
       </div>
       {#if canManage}
-        <Button class="connect-button" onclick={() => (consentOpen = true)}><Icon icon="plus" style="width:16px;height:16px" /> Connect account <LucideIcon icon={ArrowRight} class="size-[15px]" /></Button>
+        <Button variant="default" class="connect-button" onclick={() => (consentOpen = true)}><Icon icon="plus" style="width:16px;height:16px" /> Connect account <LucideIcon icon={ArrowRight} class="size-[15px]" /></Button>
       {/if}
     </section>
 
@@ -193,12 +193,10 @@ async function addConnection(event: SubmitEvent) {
       <Button class="dialog-close icon-button" aria-label="Close simulated connection" onclick={() => (consentOpen = false)}><Icon icon="close" style="width:17px;height:17px" /></Button>
       <div class="consent-mark"><LucideIcon icon={ShieldCheck} class="size-[22px]" /></div>
       <p class="eyebrow">SIMULATED ACCOUNT CONNECTION</p>
-      <h2 id="consent-title">Connect an account</h2>
-      <p class="dialog-copy">This preview stays in Protoyard. It does not open a provider or share data.</p>
       <label>Choose a service<Select bind:value={connectProvider} items={PROVIDERS.map((provider) => ({ value: provider, label: provider }))} /></label>
       <label>Fictional account email<Input bind:value={connectEmail} type="email" required /></label>
       <div class="simulation-banner"><span class="simulation-dot"></span><span><strong>Simulation only</strong><small>No OAuth redirect, credentials, or network request.</small></span></div>
-      <Button class="primary-button consent-submit" disabled={busy || !canManage} onclick={() => void connect()}>{#if busy}<LucideIcon icon={LoaderCircle} class="size-[16px] spin" /> Connecting…{:else}<LucideIcon icon={ArrowRight} class="size-[16px]" /> Approve simulated connection{/if}</Button>
+      <Button variant="default" class="primary-button consent-submit" disabled={busy || !canManage} onclick={connect}>{#if busy}<LucideIcon icon={LoaderCircle} class="size-[16px] spin" /> Connecting…{:else}<LucideIcon icon={ArrowRight} class="size-[16px]" /> Approve simulated connection{/if}</Button>
       <Button class="quiet-button cancel-consent" onclick={() => (consentOpen = false)}>Cancel</Button>
   {/snippet}
 </Dialog>

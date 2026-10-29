@@ -171,6 +171,7 @@ targets are opt-in through environment variables:
 | `PROTOYARD_E2E_REVIEW=1` | Run the review-index page against the checked-in fixture ledger, with no deploy | `4502`; `PROTOYARD_E2E_REVIEW_PORT` overrides the port |
 | `PROTOYARD_E2E_PLAYER=1` | Build the player into `tmp/e2e-player` and serve it, plus the embedder fixture, for the player, marketplace, content-kinds and deck-design specs (also starts when one of those is named on the argv) | `4861` and `4862` (`PROTOYARD_E2E_PLAYER_PORT`, `PROTOYARD_E2E_PLAYER_EMBEDDER_PORT`); the deck-design level-2 prototype on `4892` (`PROTOYARD_E2E_DECK_PROTOTYPE_PORT`) |
 | `PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo` | Build the listed prototypes with `PROTOYARD_REVIEW=1` into `tmp/e2e-comments/<slug>` for `tests/e2e/review-comments.spec.ts`; the first one is also built with the `http` adapter and served with the comments handler on an in-memory store (two reviewers) | One server per slug from `4601` (`PROTOYARD_E2E_COMMENTS_PORT_BASE`); the shared server on `4651` (`PROTOYARD_E2E_COMMENTS_SHARED_PORT`) |
+| `PROTOYARD_E2E_TEMPLATES_A11Y=1` | Render every `templates/*` home screen and run axe in light and dark; serious and critical violations fail | Template Vite server is started and stopped per template on `5551` (`PROTOYARD_E2E_TEMPLATE_PORT` overrides it) |
 
 The gallery uses port `4329` (`PROTOYARD_E2E_GALLERY_PORT` overrides it). The
 standalone CLI `review-index --serve` defaults to `4520` (or the next free
@@ -184,6 +185,16 @@ from 1024 to 65535. Outside CI, Playwright **reuses a server already listening
 on a port**, so two checkouts on the same defaults test each other's builds.
 To run beside another checkout (another agent or worktree), move every port and
 turn reuse off with `CI=1`:
+
+The opt-in all-template accessibility sweep is intentionally separate from the
+normal prototype audit because it starts a development server for every
+template. Run it with the lane's private gallery port and Chromium project:
+
+```bash
+PROTOYARD_E2E_TEMPLATES_A11Y=1 PROTOYARD_E2E_GALLERY_PORT=5529 \
+  PROTOYARD_E2E_TEMPLATE_PORT=5551 \
+  pnpm exec playwright test tests/e2e/template-a11y.spec.ts --project=chromium
+```
 
 ```bash
 CI=1 PROTOYARD_E2E_GALLERY_PORT=5329 PROTOYARD_E2E_SHOWCASE_PORT=5501 \

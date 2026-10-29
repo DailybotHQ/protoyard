@@ -135,39 +135,39 @@ function report(error: unknown) {
   <div class="mb-3 flex flex-wrap items-center gap-2">
     <div class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
       {#each projects.current ?? [] as project (project.id)}
-        <Button type="button" class={`min-h-9 shrink-0 rounded-full border px-3 text-xs transition-colors ${selectedProjectId === project.id ? 'border-[#7865d6] bg-[#f0edfa] text-[#5545a4]' : 'border-[#e4e1ea] bg-white text-[#716d7f] hover:bg-[#f8f7fa]'}`} aria-pressed={selectedProjectId === project.id} onclick={() => (selectedProjectId = selectedProjectId === project.id ? '' : project.id)}><span class="mr-1.5 inline-block size-1.5 rounded-full" style={`background:${project.color}`}></span>{project.name}</Button>
+        <Button type="button" variant="ghost" class={`min-h-9 shrink-0 rounded-full border px-3 text-xs transition-colors ${selectedProjectId === project.id ? 'border-[#7865d6] bg-[#f0edfa] text-[#5545a4]' : 'border-[#e4e1ea] bg-white text-[#716d7f] hover:bg-[#f8f7fa]'}`} aria-pressed={selectedProjectId === project.id} onclick={() => (selectedProjectId = selectedProjectId === project.id ? '' : project.id)}><span class="mr-1.5 inline-block size-1.5 rounded-full" style={`background:${project.color}`}></span>{project.name}</Button>
       {/each}
     </div>
-    <Button type="button" class="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#e4e1ea] bg-white px-3 text-xs font-medium text-[#5e596e] hover:bg-[#f8f7fa]" onclick={createConversation}><Icon icon="plus" class="size-3.5" aria-hidden="true" /> New</Button>
+    <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#e4e1ea] bg-white px-3 text-xs font-medium text-[#5e596e] hover:bg-[#f8f7fa]" onclick={createConversation}><Icon icon="plus" class="size-3.5" aria-hidden="true" /> New</Button>
   </div>
   {#if notice}<p class="mb-2 rounded-lg border border-[#e9b2a9] bg-[#fff1ee] px-3 py-2 text-xs text-[#8a3125]" role="status">{notice}</p>{/if}
   {#if activeConversation}
     <div class="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-[#e9e6ef] bg-white shadow-sm">
       <aside class="hidden w-64 shrink-0 flex-col border-r border-[#efedf2] bg-[#fcfbfd] p-3 md:flex" aria-label="Conversation history">
         <label for="history-search" class="sr-only">Search conversations</label>
-        <div class="mb-3 flex min-h-10 items-center gap-2 rounded-lg border border-[#e8e5ed] bg-white px-3"><Icon icon="search" class="size-3.5 text-[#8b8798]" aria-hidden="true" /><Input id="history-search" bind:value={search} class="min-w-0 flex-1 bg-transparent text-xs outline-none" placeholder="Search history" /></div>
-        <p class="mb-2 px-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#8b8798]">Recent conversations</p>
+        <div class="mb-3 flex min-h-10 items-center gap-2 rounded-lg border border-[#e8e5ed] bg-white px-3"><Icon icon="search" class="size-3.5 text-[#696579]" aria-hidden="true" /><Input id="history-search" bind:value={search} class="min-w-0 flex-1 bg-transparent text-xs outline-none" placeholder="Search history" /></div>
+        <p class="mb-2 px-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#696579]">Recent conversations</p>
         <div class="min-h-0 flex-1 overflow-y-auto">
           {#each visibleConversations as conversation (conversation.id)}
-            <Button type="button" class={`mb-1 w-full truncate rounded-lg px-2 py-2 text-left text-xs ${conversation.id === activeConversation.id ? 'bg-[#efedf6] text-[#43386e]' : 'text-[#686477] hover:bg-[#f2f0f6]'}`} aria-current={conversation.id === activeConversation.id ? 'page' : undefined} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</Button>
+            <Button type="button" variant="ghost" class={`mb-1 flex w-full justify-start whitespace-normal rounded-lg px-2 py-2 text-left text-xs ${conversation.id === activeConversation.id ? 'bg-[#efedf6] text-[#43386e]' : 'text-[#686477] hover:bg-[#f2f0f6]'}`} aria-current={conversation.id === activeConversation.id ? 'page' : undefined} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</Button>
           {/each}
-          {#if visibleConversations.length === 0}<p class="px-2 py-3 text-xs text-[#858194]">No matching conversations.</p>{/if}
+          {#if visibleConversations.length === 0}<p class="px-2 py-3 text-xs text-[#696579]">No matching conversations.</p>{/if}
         </div>
         <div class="mt-3 border-t border-[#efedf2] pt-3">
-          <div class="mb-2 flex items-center justify-between px-1 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#8b8798]"><span>Folders</span><LucideIcon icon={FolderPlus} class="size-3.5" /></div>
-          {#each folders as folder (folder)}<Button type="button" class={`mb-1 block w-full truncate rounded-lg px-2 py-1.5 text-left text-xs ${folderFilter === folder ? 'bg-[#efedf6] text-[#43386e]' : 'text-[#686477] hover:bg-[#f2f0f6]'}`} aria-pressed={folderFilter === folder} onclick={() => (folderFilter = folderFilter === folder ? '' : folder)}>{folder}</Button>{/each}
-          <form class="mt-2 flex gap-1" onsubmit={(event) => { event.preventDefault(); void createFolder(); }}><label for="new-folder" class="sr-only">New folder name</label><Input id="new-folder" bind:value={folderDraft} class="min-w-0 flex-1 rounded-md border border-[#e8e5ed] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#8771d9]" placeholder="New folder" maxlength={40} /><Button type="submit" class="rounded-md px-2 text-xs text-[#6553ae] hover:bg-[#f0edf8]" aria-label="Create folder">+</Button></form>
+          <div class="mb-2 flex items-center justify-between px-1 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#696579]"><span>Folders</span><LucideIcon icon={FolderPlus} class="size-3.5" /></div>
+          {#each folders as folder (folder)}<Button type="button" variant="ghost" class={`mb-1 flex w-full justify-start whitespace-normal rounded-lg px-2 py-1.5 text-left text-xs ${folderFilter === folder ? 'bg-[#efedf6] text-[#43386e]' : 'text-[#686477] hover:bg-[#f2f0f6]'}`} aria-pressed={folderFilter === folder} onclick={() => (folderFilter = folderFilter === folder ? '' : folder)}>{folder}</Button>{/each}
+          <form class="mt-2 flex gap-1" onsubmit={(event) => { event.preventDefault(); void createFolder(); }}><label for="new-folder" class="sr-only">New folder name</label><Input id="new-folder" bind:value={folderDraft} class="min-w-0 flex-1 rounded-md border border-[#e8e5ed] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#8771d9]" placeholder="New folder" maxlength={40} /><Button type="submit" variant="ghost" class="rounded-md px-2 text-xs text-[#6553ae] hover:bg-[#f0edf8]" aria-label="Create folder">+</Button></form>
         </div>
       </aside>
       <div class="flex min-w-0 flex-1 flex-col">
         <header class="flex flex-wrap items-center gap-2 border-b border-[#efedf2] px-3 py-2.5 sm:px-4">
-          <div class="min-w-0 flex-1"><p class="truncate text-sm font-medium text-[#373348]">{activeConversation.title}</p><p class="text-[0.65rem] text-[#8b8798]">{activeConversation.folder ? `In ${activeConversation.folder} · ` : ''}Responses are simulated</p></div>
-          <Button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" aria-label={activeConversation.pinned ? 'Unpin conversation' : 'Pin conversation'} aria-pressed={activeConversation.pinned ?? false} onclick={() => void services.togglePin(activeConversation.id).catch(report)}><LucideIcon icon={Star} class="size-3.5" /> Pin</Button>
+          <div class="min-w-0 flex-1"><p class="truncate text-sm font-medium text-[#373348]">{activeConversation.title}</p><p class="text-[0.65rem] text-[#696579]">{activeConversation.folder ? `In ${activeConversation.folder} · ` : ''}Responses are simulated</p></div>
+          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" aria-label={activeConversation.pinned ? 'Unpin conversation' : 'Pin conversation'} aria-pressed={activeConversation.pinned ?? false} onclick={() => services.togglePin(activeConversation.id).catch(report)}><LucideIcon icon={Star} class="size-3.5" /> Pin</Button>
           <label for="conversation-folder" class="sr-only">Move conversation to folder</label>
           <Select id="conversation-folder" value={activeConversation.folder ?? ''} class="min-h-9 max-w-28" items={[{ value: '', label: 'No folder' }, ...folders.map((folder) => ({ value: folder, label: folder }))]} onValueChange={(value) => void services.moveToFolder(activeConversation.id, value || null).catch(report)} />
-          <Button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" onclick={() => void services.rename(activeConversation.id, window.prompt('Rename conversation', activeConversation.title) ?? activeConversation.title).catch(report)}><LucideIcon icon={MoreHorizontal} class="size-3.5" /> Rename</Button>
-          <Button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" onclick={() => void shareConversation()}><LucideIcon icon={ArrowUpRight} class="size-3.5" /> Share</Button>
-          <Button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" onclick={() => void loadCanvas()}><LucideIcon icon={FileText} class="size-3.5" /> Canvas</Button>
+          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" onclick={() => services.rename(activeConversation.id, window.prompt('Rename conversation', activeConversation.title) ?? activeConversation.title).catch(report)}><LucideIcon icon={MoreHorizontal} class="size-3.5" /> Rename</Button>
+          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" onclick={shareConversation}><LucideIcon icon={ArrowUpRight} class="size-3.5" /> Share</Button>
+          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" onclick={loadCanvas}><LucideIcon icon={FileText} class="size-3.5" /> Canvas</Button>
         </header>
         <MessageList
           messages={activeMessages}
@@ -187,7 +187,7 @@ function report(error: unknown) {
             onStop={() => services.stop(activeConversation.id)}
             onSubmit={(input) => send(activeConversation.id, input)}
           />
-          <p class="mt-2 flex items-center justify-center gap-1 text-[0.62rem] text-[#8b8798]"><LucideIcon icon={Sparkles} class="size-3" /> Models and agent tools are simulated · <a href="#/settings" class="underline decoration-dotted underline-offset-2">Settings and data controls</a></p>
+          <p class="mt-2 flex items-center justify-center gap-1 text-[0.62rem] text-[#696579]"><LucideIcon icon={Sparkles} class="size-3" /> Models and agent tools are simulated · <a href="#/settings" class="underline decoration-dotted underline-offset-2">Settings and data controls</a></p>
         </div>
       </div>
     </div>
@@ -202,7 +202,7 @@ function report(error: unknown) {
     <div class="my-auto flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-[#dcd7e9] bg-white/60 px-5 text-center">
       <span class="mb-4 flex size-14 items-center justify-center rounded-2xl bg-[#eeeafa] text-[#7662ca]"><LucideIcon icon={Bot} class="size-7" /></span>
       <h1 class="text-xl font-semibold tracking-tight">A little room for big ideas</h1>
-      <p class="mt-2 max-w-sm text-sm leading-6 text-[#777386]">Start a conversation with a deterministic local assistant. Nothing is sent to a real model provider.</p>
+      <p class="mt-2 max-w-sm text-sm leading-6 text-[#696579]">Start a conversation with a deterministic local assistant. Nothing is sent to a real model provider.</p>
       <Button type="button" class="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#302a58] px-4 text-sm font-medium text-white hover:bg-[#403878] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8370db]" onclick={createConversation}><Icon icon="plus" class="size-4" aria-hidden="true" /> Start a conversation</Button>
     </div>
   {/if}

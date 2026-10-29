@@ -148,7 +148,7 @@ function contrastInk(hex: string) {
   </aside>
 
   <main class="main">
-    <header class="topbar"><div><span class="crumb">Workspace</span><span class="slash">/</span><strong>{section === 'Foundations' ? foundation : 'Component catalog'}</strong></div><div class="top-actions"><span class="local-tag">● Local preview</span><Button class="avatar small" aria-label="Current persona">AC</Button></div></header>
+    <header class="topbar"><div><span class="crumb">Workspace</span><span class="slash">/</span><strong>{section === 'Foundations' ? foundation : 'Component catalog'}</strong></div><div class="top-actions"><span class="local-tag">● Local preview</span><Button class="avatar small" aria-label="Current persona AC">AC</Button></div></header>
     {#if section === 'Foundations'}
       <section class="content">
         <div class="page-heading"><div><p class="eyebrow">FOUNDATION / {foundation.toUpperCase()}</p><h1>{foundation} foundations</h1><p class="lede">A practical starting point for a coherent, accessible product language.</p></div><span class="version-pill">v1.0 · Draft</span></div>
@@ -175,7 +175,7 @@ function contrastInk(hex: string) {
         <div class="page-heading"><div><p class="eyebrow">LIBRARY / COMPONENTS</p><h1>Component catalog</h1><p class="lede">Explore patterns, copy usage and leave a review for each entry.</p></div><span class="version-pill">{ENTRIES.length} entries</span></div>
         <label class="search-box"><span aria-hidden="true">⌕</span><Input bind:value={search} placeholder="Search components and patterns" aria-label="Search components and patterns" /><kbd>⌘ K</kbd></label>
         <div class="catalog-layout">
-          <nav class="catalog-nav" aria-label="Component groups"><span class="tiny-label">GROUPS</span>{#each GROUPS as group}<Button class={selected.group === group ? 'group-active' : ''} onclick={() => { const first = ENTRIES.find((entry) => entry.group === group); if (first) void selectEntry(first.id); }}>{group}<span>{ENTRIES.filter((entry) => entry.group === group).length}</span></Button>{/each}<span class="tiny-label recently">ENTRIES</span>{#each filtered as entry}<Button class={`entry-link ${selectedId === entry.id ? 'entry-active' : ''}`} onclick={() => void selectEntry(entry.id)}>{entry.name}</Button>{/each}</nav>
+          <nav class="catalog-nav" aria-label="Component groups"><span class="tiny-label">GROUPS</span>{#each GROUPS as group}<Button variant="ghost" class={selected.group === group ? 'group-active' : ''} onclick={() => { const first = ENTRIES.find((entry) => entry.group === group); if (first) return selectEntry(first.id); }}>{group}<span>{ENTRIES.filter((entry) => entry.group === group).length}</span></Button>{/each}<span class="tiny-label recently">ENTRIES</span>{#each filtered as entry}<Button variant="ghost" class={`entry-link ${selectedId === entry.id ? 'entry-active' : ''}`} onclick={() => selectEntry(entry.id)}>{entry.name}</Button>{/each}</nav>
           <div class="entry-main">
             {#if filtered.length === 0}<div class="empty-search"><span>⌕</span><h2>No matching components</h2><p>Try a different name or group.</p></div>
             {:else}<div class="entry-heading"><div><span class="eyebrow">{selected.group.toUpperCase()} · COMPONENT</span><h2>{selected.name}</h2><p>{selected.summary}</p></div><span class={`status-pill ${review?.status ?? 'todo'}`}>{review?.status ?? 'Not reviewed'}</span></div>

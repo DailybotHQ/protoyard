@@ -31,7 +31,8 @@ let {
       <li>
         <Button
           type="button"
-          class="block w-full px-3 py-2.5 text-left hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset aria-[current=true]:bg-primary/10"
+          variant="ghost"
+          class="flex w-full flex-col items-stretch justify-start whitespace-normal px-3 py-2.5 text-left hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset aria-[current=true]:bg-primary/10"
           aria-current={doc.id === activeId ? 'true' : undefined}
           onclick={() => onopen(doc.id)}
         >

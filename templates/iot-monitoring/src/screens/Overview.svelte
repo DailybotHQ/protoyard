@@ -96,7 +96,7 @@ const openAlerts = $derived(alerts.current?.length ?? 0);
       <div class="flex items-center justify-between"><h2 id="device-list-title" class="text-lg font-semibold">Field devices</h2><span class="text-sm text-muted-foreground">{incidents.current?.length ?? 0} active incidents</span></div>
       <div class="max-h-[24rem] space-y-2 overflow-auto">
         {#each devices.current ?? [] as device (device.id)}
-          <Button class="flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-left hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" aria-pressed={selectedDeviceId === device.id} onclick={() => { selectedDeviceId = device.id; }}>
+          <Button variant="ghost" class="flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-left whitespace-normal hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" aria-pressed={selectedDeviceId === device.id} onclick={() => { selectedDeviceId = device.id; }}>
             <span class="min-w-0"><span class="block truncate font-medium">{device.name}</span><span class="text-xs text-muted-foreground">{device.kind} · {device.status}</span></span>
             <span class="shrink-0 text-sm tabular-nums">{(telemetry.current ?? []).find((row) => row.deviceId === device.id)?.value?.toFixed(1) ?? '—'} {device.unit}</span>
           </Button>
