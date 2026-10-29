@@ -4,9 +4,9 @@ import { TextCounter as TexuliTextCounter } from 'texuli/input';
 
 /**
  * TextCounter — input or textarea with a remaining-character countdown that
- * appears while focused once fewer than `showAfter` characters are left. A
- * thin adapter over Texuli's `TextCounter` (`texuli/input`); extra HTML
- * attributes are not forwarded until Texuli spreads them (gap G5).
+ * appears while focused once fewer than `showAfter` characters are left.
+ * Texuli's `TextCounter` (`texuli/input`): extra attributes reach the input
+ * or textarea (`aria-*`, `data-*`, handlers) or the wrapper (the rest).
  */
 type Props = {
   value?: string;
@@ -63,7 +63,11 @@ let {
   'aria-label': ariaLabel,
   class: className,
   onValueChange,
+  ...rest
 }: Props = $props();
+
+// A plain record keeps the spread onto Texuli's TextCounter a finite type.
+const forwarded = $derived(rest as Record<string, unknown>);
 </script>
 
 <TexuliTextCounter
@@ -85,4 +89,5 @@ let {
   aria-label={ariaLabel}
   class={className}
   {onValueChange}
+  {...forwarded}
 />

@@ -124,6 +124,15 @@ describe('ChipGroup', () => {
     await fireEvent.click(beta);
     expect(onchange).toHaveBeenLastCalledWith(['a']);
   });
+
+  it('starts the single tab stop on the pressed chip', () => {
+    render(ChipGroup, { label: 'Size', items, mode: 'single', value: ['b'] });
+    const group = screen.getByRole('group', { name: 'Size' });
+    const stops = within(group)
+      .getAllByRole('button')
+      .filter((button) => button.getAttribute('tabindex') === '0');
+    expect(stops.map((button) => button.textContent?.trim())).toEqual(['Beta']);
+  });
 });
 
 describe('RadioGroup card variant', () => {

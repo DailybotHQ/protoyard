@@ -24,11 +24,14 @@ describe('PageGrid', () => {
       children: rawSnippet('<article data-testid="wide-card">Wide content</article>'),
     });
     const grid = screen.getByRole('region', { name: 'Project cards' });
-    const items = grid.querySelector('.page-grid__items');
+    // Texuli's CardGrid: auto-fill columns of at least 280px, capped at three.
+    expect(grid.hasAttribute('data-tx-card-grid')).toBe(true);
     expect(grid.getAttribute('data-columns')).toBe('3');
+    expect(grid.getAttribute('data-max-columns')).toBe('3');
+    expect(grid.style.gridTemplateColumns).toContain('280px');
+    expect(grid.className).toContain('tx-card-grid--gap-md');
     expect(grid.className).toContain('min-w-0');
-    expect(items?.className).toContain('min-w-0');
-    expect(grid.style.getPropertyValue('--ui-page-grid-min')).toBe('280px');
+    expect(grid.className).toContain('[&>*]:min-w-0');
     const wideCard = grid.querySelector('[data-testid="wide-card"]');
     expect(wideCard).toBeTruthy();
   });

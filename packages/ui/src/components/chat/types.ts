@@ -6,8 +6,8 @@ import type {
 export type { ChatMessageStatus, MessageGroup } from '@texuli/chat';
 
 /**
- * Texuli's chat author plus `avatarSrcset`. Texuli's chat renders `avatarUrl`
- * only until its avatars take a `srcset` (Texuli gap G10).
+ * Texuli's chat author plus `avatarSrcset`. Texuli's avatar takes a `srcset`
+ * (0.5.0), but `@texuli/chat` still renders `avatarUrl` only (Texuli gap N19).
  */
 export interface ChatAuthor extends TexuliChatAuthor {
   /** Image URL (for a persona, `avatarImage(persona.avatar).src` from @protoyard/renderer-svelte). */
