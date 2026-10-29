@@ -9,7 +9,6 @@ import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import { overlayDismissHandler } from './dismiss.ts';
 import { type DrawerPlacement, isDrawerPlacement, resolveDrawerSize } from './drawer.ts';
 import { installPopoverOrder } from './popover-order.ts';
-import './sheet-parts.css';
 import { type OverlayStack, overlayStack } from './overlay-stack.ts';
 import { useOverlayLayer } from './use-overlay-layer.svelte.ts';
 

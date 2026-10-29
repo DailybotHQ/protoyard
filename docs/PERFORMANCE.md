@@ -59,9 +59,9 @@ so they remain unchanged.
 | Entry | Initial JS gzip | Initial CSS gzip (ceiling) | All reachable CSS | All-CSS ceiling |
 | --- | ---: | ---: | ---: | ---: |
 | `index.html` | 102,023 B | 15,330 B (15.8 KB; was 36 KB) | 134.454 KB (was 129.7 KB) | 136.2 KB |
-| `deck.html` | 101,910 B | 15,644 B (16.1 KB; was 36 KB) | 107.663 KB (was 105.6 KB) | 110.9 KB |
-| `page.html` | 101,909 B | 16,968 B (17.4 KB; was 36 KB) | 108.956 KB (was 106.9 KB) | 112.3 KB |
-| `doc.html` | 101,907 B | 16,968 B (17.4 KB; was 36 KB) | 108.956 KB (was 106.9 KB) | 112.3 KB |
+| `deck.html` | 101,910 B | 16,496 B (17.0 KB; was 36 KB) | 107.663 KB (was 105.6 KB) | 110.9 KB |
+| `page.html` | 101,909 B | 17,833 B (18.3 KB; was 36 KB) | 108.956 KB (was 106.9 KB) | 112.3 KB |
+| `doc.html` | 101,907 B | 17,833 B (18.3 KB; was 36 KB) | 108.956 KB (was 106.9 KB) | 112.3 KB |
 
 **Kits.** The Sparkline, views, deck, player and pages/doc budgets below were
 remeasured on npm Texuli `0.5.0`; older values are retained as before/after
@@ -239,7 +239,7 @@ player's kind tests do.
 | `kinds.<deck\|page\|doc>` field | Loader default (configured value) | Meaning |
 | --- | ---: | --- |
 | `initialJsGzipKb` | 150 KB | Initial JavaScript of the kind's minimal player entry, gzip |
-| `cssGzipKb` | deck 16.1 KB, page 17.4 KB, doc 17.4 KB (was 36 KB each) | Initial CSS of the kind's player entry, gzip; measured + 5%, rounded up on Texuli 0.5.0 |
+| `cssGzipKb` | deck 17.0 KB, page 18.3 KB, doc 18.3 KB (was 36 KB each) | Initial CSS of the kind's player entry, gzip; measured + 5%, rounded up on Texuli 0.5.0, including the sheet parts that `@protoyard/ui/styles.css` loads so published declarations carry no `.css` import |
 | `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,560 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap remains `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (2,818,330 B per kind), measured on Texuli 0.5.0 at 2,681,755–2,689,852 B (2,656,649–2,684,123 B on 0.4.0). The app cap (`QUICK_SINGLE_FILE_BUDGET_BYTES`) stays 4,418,158 B after the maximum catalog file moved from 4,207,769 B on 0.4.0 to 4,284,417 B on 0.5.0; neither cap is raised because measured + 5% is higher. The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
 
 These budgets are **enforced**:
@@ -362,7 +362,7 @@ CSS budgets below.
 | `player` initial CSS | 17.07–19.69 KB (historical 0.3) → 14.97 KB | 36 → 15.8 KB |
 
 Every other prototype uses the 30 KB default. The content-kind initial-CSS
-caps are 16.1 KB for deck and 17.5 KB for page and doc; all-stylesheet totals
+caps are 17.0 KB for deck and 18.3 KB for page and doc; all-stylesheet totals
 have separate measured guards.
 
 **Layout host overhead.**

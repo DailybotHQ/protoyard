@@ -10,7 +10,6 @@ import { overlayDismissHandler } from '../overlay/dismiss.ts';
 import { type OverlayStack, overlayStack } from '../overlay/overlay-stack.ts';
 import { installPopoverOrder } from '../overlay/popover-order.ts';
 import { useOverlayLayer } from '../overlay/use-overlay-layer.svelte.ts';
-import '../overlay/sheet-parts.css';
 
 type Props = Omit<ComponentProps<typeof Panel.Content>, 'children' | 'title'> & {
   ref?: HTMLElement | null;

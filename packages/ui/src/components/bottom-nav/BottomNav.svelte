@@ -1,5 +1,5 @@
 <script lang="ts">
-import { BottomNav, type BottomNavItem } from 'texuli/layouts/mobile';
+import { type BottomNavItem, BottomNav as TexuliBottomNav } from 'texuli/layouts/mobile';
 import type { NavItem } from '../../lib/types.ts';
 
 interface Props {
@@ -26,4 +26,4 @@ const tabs = $derived<BottomNavItem[]>(
 </script>
 
 <!-- `data-py-bottom-nav` lets DevTools and the shell tests find a pinned tab bar. -->
-<BottomNav items={tabs} {label} {fixed} class={className} data-py-bottom-nav="" />
+<TexuliBottomNav items={tabs} {label} {fixed} class={className} data-py-bottom-nav="" />

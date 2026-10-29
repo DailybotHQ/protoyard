@@ -68,9 +68,9 @@
         "default": "./dist/palette/index.js"
       },
       "./palette/derive": {
-        "types": "./dist/palette/chart-palette.d.ts",
-        "import": "./dist/palette/chart-palette.js",
-        "default": "./dist/palette/chart-palette.js"
+        "types": "./dist/palette/index.d.ts",
+        "import": "./dist/palette/index.js",
+        "default": "./dist/palette/index.js"
       }
     },
     "types": "./dist/index.d.ts"

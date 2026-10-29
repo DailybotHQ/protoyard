@@ -13,6 +13,9 @@
  */
 
 @import "./styles/variants.css";
+/* Sheet header, body and footer parts (Drawer, BottomSheet, DetailPanel). Loaded here, not
+   from the components, so their published .d.ts files carry no .css import. */
+@import "./components/overlay/sheet-parts.css";
 
 @source "./";
 

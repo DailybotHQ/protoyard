@@ -60,17 +60,17 @@
     "doc": {
       "initialJsGzipKb": 150,
       "singleFileKb": 2560,
-      "cssGzipKb": 17.4
+      "cssGzipKb": 18.3
     },
     "deck": {
       "initialJsGzipKb": 150,
       "singleFileKb": 2560,
-      "cssGzipKb": 16.1
+      "cssGzipKb": 17.0
     },
     "page": {
       "initialJsGzipKb": 150,
       "singleFileKb": 2560,
-      "cssGzipKb": 17.4
+      "cssGzipKb": 18.3
     }
   }
 }

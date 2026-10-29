@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
-import { MobileHeader } from 'texuli/layouts/mobile';
+import { MobileHeader as TexuliMobileHeader } from 'texuli/layouts/mobile';
 
 interface Props {
   title: string;
@@ -31,7 +31,7 @@ let {
 }: Props = $props();
 </script>
 
-<MobileHeader
+<TexuliMobileHeader
   {title}
   {subtitle}
   {titleAs}

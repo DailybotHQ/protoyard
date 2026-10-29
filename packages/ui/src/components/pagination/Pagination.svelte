@@ -2,7 +2,11 @@
 import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 import ChevronRight from '@lucide/svelte/icons/chevron-right';
 import { LucideIcon } from 'texuli/icons/lucide';
-import { Pagination, paginationItemClass, paginationListClass } from 'texuli/navigation';
+import {
+  paginationItemClass,
+  paginationListClass,
+  Pagination as TexuliPagination,
+} from 'texuli/navigation';
 import { getPageTokens } from './pages.ts';
 
 interface Props {
@@ -39,7 +43,7 @@ let {
   of m" mode, icon-plus-word previous/next buttons and `getPageTokens`, which
   keeps the token count stable so the control never shifts under the pointer.
 -->
-<Pagination.Root
+<TexuliPagination.Root
   bind:page
   {pageCount}
   {total}
@@ -52,10 +56,10 @@ let {
   {#snippet children(ctx)}
     <ul class={paginationListClass()}>
       <li class={paginationItemClass()}>
-        <Pagination.PreviousButton>
+        <TexuliPagination.PreviousButton>
           <LucideIcon icon={ChevronLeft} size="sm" />
           <span class="hidden sm:inline">Previous</span>
-        </Pagination.PreviousButton>
+        </TexuliPagination.PreviousButton>
       </li>
       {#if compact}
         <li class={paginationItemClass({ class: 'ui-pagination__status' })} aria-current="page">
@@ -73,22 +77,22 @@ let {
             })}
           >
             {#if typeof token === 'number'}
-              <Pagination.Page page={token}>{token}</Pagination.Page>
+              <TexuliPagination.Page page={token}>{token}</TexuliPagination.Page>
             {:else}
-              <Pagination.Ellipsis />
+              <TexuliPagination.Ellipsis />
             {/if}
           </li>
         {/each}
       {/if}
       <li class={paginationItemClass()}>
-        <Pagination.NextButton>
+        <TexuliPagination.NextButton>
           <span class="hidden sm:inline">Next</span>
           <LucideIcon icon={ChevronRight} size="sm" />
-        </Pagination.NextButton>
+        </TexuliPagination.NextButton>
       </li>
     </ul>
   {/snippet}
-</Pagination.Root>
+</TexuliPagination.Root>
 
 <style>
   .ui-pagination__status {

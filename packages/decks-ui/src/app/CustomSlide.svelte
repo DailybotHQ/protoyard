@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { CustomSlide as Slide } from '@protoyard/decks/schema';
-import type { CustomSlide } from '@texuli/deck/model';
+import type { CustomSlide as CustomSlideModel } from '@texuli/deck/model';
 import { type DeckSlideRendererProps, getDeckStepContext } from '@texuli/slides/stage';
 import CustomSlideHost from '../layouts/CustomSlideHost.svelte';
 import { getDeckHostContext } from './context.ts';
@@ -12,7 +12,7 @@ import { getDeckHostContext } from './context.ts';
  * never run owned code (the stage paints them with the same renderers, so
  * the slide checks where it was mounted).
  */
-let { slide, context }: DeckSlideRendererProps<CustomSlide> = $props();
+let { slide, context }: DeckSlideRendererProps<CustomSlideModel> = $props();
 const host = getDeckHostContext();
 const fromContext = getDeckStepContext();
 const step = $derived(fromContext ?? context.step);

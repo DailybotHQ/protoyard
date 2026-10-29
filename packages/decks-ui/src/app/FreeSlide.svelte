@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { Block } from '@protoyard/blocks';
-import type { DeckSlide, FreeSlide } from '@texuli/deck/model';
+import type { DeckSlide, FreeSlide as FreeSlideModel } from '@texuli/deck/model';
 import { fitText } from '@texuli/slides/layouts';
 import {
   createDeckStepContext,
@@ -21,7 +21,7 @@ import { fitContent } from './fit.ts';
  * the canvas. Texuli's `--tx-*` tokens feed Protoyard's blocks, so they follow the deck
  * theme, the slide theme and the background's text color.
  */
-let { slide, context }: DeckSlideRendererProps<FreeSlide> = $props();
+let { slide, context }: DeckSlideRendererProps<FreeSlideModel> = $props();
 const host = getDeckHostContext();
 const fromContext = getDeckStepContext();
 const stageStep = $derived(fromContext ?? context.step);
