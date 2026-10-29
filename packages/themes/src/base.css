@@ -377,7 +377,15 @@
     --py-motion-easing: var(--tx-motion-easing) !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    /*
+     * 0s, not 0.01ms: with any duration every element (transition-property is
+     * `all` by default) also transitions `visibility`, so a slide or panel
+     * that turns visible reveals its subtree one nesting level per frame and
+     * buttons sit unnamed for a moment on a slow device. A zero duration and
+     * delay start no transition at all.
+     */
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
 }
@@ -388,7 +396,9 @@
 [data-py-motion="reduce"] {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
+  /* See the media query above: no transition at all, so visibility applies at once. */
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
   scroll-behavior: auto !important;
 }
 
