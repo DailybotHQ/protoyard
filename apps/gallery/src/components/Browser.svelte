@@ -185,7 +185,7 @@ const views = [
       {#if results.length === 0}No matches{:else}Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, results.length)} of {results.length}{/if}
     </p>
     {#if filtered}
-      <Button type="button" class="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-surface-2 hover:text-fg" onclick={reset}>
+      <Button variant="ghost" type="button" class="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-surface-2 hover:text-fg" onclick={reset}>
         <LucideIcon icon={X} size={14} aria-hidden="true" /> Clear filters
       </Button>
     {/if}
@@ -213,7 +213,7 @@ const views = [
 
   {#if pageCount > 1}
     <nav aria-label="Pagination" class="mt-6 flex items-center justify-center gap-2 text-sm">
-      <Button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 disabled:opacity-40" disabled={page === 1} onclick={() => goTo(page - 1)}>
+      <Button variant="outline" type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 disabled:opacity-40" disabled={page === 1} onclick={() => goTo(page - 1)}>
         <LucideIcon icon={ChevronLeft} size={14} aria-hidden="true" /> Previous
       </Button>
       <label class="flex items-center gap-1.5 text-muted">
@@ -221,7 +221,7 @@ const views = [
         <GallerySelect class={select} value={String(page)} onValueChange={(value) => goTo(Number(value))} items={Array.from({ length: pageCount }, (_, i) => ({ value: String(i + 1), label: `Page ${i + 1}` }))} />
         <span>of {pageCount}</span>
       </label>
-      <Button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 disabled:opacity-40" disabled={page === pageCount} onclick={() => goTo(page + 1)}>
+      <Button variant="outline" type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 disabled:opacity-40" disabled={page === pageCount} onclick={() => goTo(page + 1)}>
         Next <Icon icon="chevron-right" size={14} aria-hidden="true" />
       </Button>
     </nav>

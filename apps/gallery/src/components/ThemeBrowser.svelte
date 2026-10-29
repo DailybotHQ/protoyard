@@ -78,7 +78,7 @@ const selectClass =
       <GallerySelect class={selectClass} bind:value={category} data-testid="theme-category" aria-label="Filter by category" items={[{ value: 'all', label: `All categories (${themes.length})` }, ...categories.map((cat) => ({ value: cat, label: `${cat} (${themes.filter((theme) => theme.category === cat).length})` }))]} />
     </label>
     {#if category !== 'all' || q.trim()}
-      <Button
+      <Button variant="outline"
         type="button"
         class="inline-flex h-9 items-center gap-1 rounded-lg border border-line bg-surface px-3 text-sm text-fg hover:bg-surface-2"
         onclick={clearFilters}
@@ -90,7 +90,7 @@ const selectClass =
   </div>
 
   <div class="flex flex-wrap gap-1.5" role="group" aria-label="Category chips">
-    <Button
+    <Button variant="ghost"
       type="button"
       class={[
         'rounded-full px-3 py-1 text-xs font-medium',
@@ -102,7 +102,7 @@ const selectClass =
       All
     </Button>
     {#each categories as cat (cat)}
-      <Button
+      <Button variant="ghost"
         type="button"
         class={[
           'rounded-full px-3 py-1 text-xs font-medium capitalize',

@@ -64,7 +64,7 @@ const prototypeTargets = prototypes()
             {theme.mood.map((item) => <span class="rounded-md bg-surface-2 px-2 py-0.5 text-xs text-muted">{item}</span>)}
           </div>
         </header>
-        <div class="p-4" data-theme-mode="light" style={theme.lightStyle}>
+        <div class="bg-[color:var(--tx-background)] p-4" data-theme-mode="light" style={theme.lightStyle}>
           <p class="mb-3 text-[11px] font-medium tracking-wide text-[color:var(--tx-muted-foreground)] uppercase">Light preview</p>
           <div class="rounded-[var(--tx-radius)] border border-[color:var(--tx-border)] bg-[color:var(--tx-background)] p-3 text-[color:var(--tx-foreground)]">
             <p class="text-sm font-semibold" style="font-family:var(--tx-font-heading);font-weight:var(--tx-font-weight-heading)">A clear, readable interface</p>
@@ -74,7 +74,7 @@ const prototypeTargets = prototypes()
             </div>
           </div>
         </div>
-        <div class="p-4" data-theme-mode="dark" style={theme.darkStyle} hidden>
+        <div class="bg-[color:var(--tx-background)] p-4" data-theme-mode="dark" style={theme.darkStyle} hidden>
           <p class="mb-3 text-[11px] font-medium tracking-wide text-[color:var(--tx-muted-foreground)] uppercase">Dark preview</p>
           <div class="rounded-[var(--tx-radius)] border border-[color:var(--tx-border)] bg-[color:var(--tx-background)] p-3 text-[color:var(--tx-foreground)]">
             <p class="text-sm font-semibold" style="font-family:var(--tx-font-heading);font-weight:var(--tx-font-weight-heading)">A clear, readable interface</p>

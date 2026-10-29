@@ -38,6 +38,26 @@ for (const mode of ['light', 'dark'] as const) {
       await expectAccessible(page, testInfo, { label: `features-${mode}` });
     });
 
+    test('themes page', async ({ page }, testInfo) => {
+      await page.goto('/themes/');
+      await expect(page.locator('html')).toHaveAttribute('data-tx-mode', mode);
+      await expect(
+        page.locator('[data-testid="theme-explorer"][data-hydrated="true"]')
+      ).toHaveCount(1);
+      await settle(page);
+      await expectAccessible(page, testInfo, { label: `themes-${mode}` });
+    });
+
+    test('marketplace page', async ({ page }, testInfo) => {
+      await page.goto('/marketplace/');
+      await expect(page.locator('html')).toHaveAttribute('data-tx-mode', mode);
+      await expect(
+        page.locator('section[aria-labelledby="market-browse-title"][data-hydrated="true"]')
+      ).toHaveCount(1);
+      await settle(page);
+      await expectAccessible(page, testInfo, { label: `marketplace-${mode}` });
+    });
+
     test('gallery detail page', async ({ page }, testInfo) => {
       test.skip(!firstPrototype, 'no prototypes indexed');
       await page.goto(`/p/${firstPrototype?.slug}/`);

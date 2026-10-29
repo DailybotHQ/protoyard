@@ -38,7 +38,7 @@ const darkHref = $derived(previewUrl ? withThemeParam(previewUrl, theme.id, 'dar
 
   <div class="grid grid-cols-1 gap-0 sm:grid-cols-2">
     <section
-      class="theme-preview border-b border-line p-4 sm:border-r sm:border-b-0"
+      class="theme-preview border-b border-line bg-[color:var(--tx-background)] p-4 sm:border-r sm:border-b-0"
       style={theme.lightStyle}
       aria-label={`${theme.name} light mode sample`}
       data-mode="light"
@@ -49,7 +49,7 @@ const darkHref = $derived(previewUrl ? withThemeParam(previewUrl, theme.id, 'dar
       {@render sample()}
     </section>
     <section
-      class="theme-preview p-4"
+      class="theme-preview bg-[color:var(--tx-background)] p-4"
       style={theme.darkStyle}
       aria-label={`${theme.name} dark mode sample`}
       data-mode="dark"

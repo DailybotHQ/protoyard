@@ -59,8 +59,11 @@ test.describe('gallery', () => {
     expect(commandRegionCount).toBeGreaterThan(0);
     for (let index = 0; index < commandRegionCount; index += 1) {
       const region = commandRegions.nth(index);
-      await expect(region).toHaveAttribute('tabindex', '0');
       await expect(region).toHaveAttribute('aria-label', /\S/);
+      // A command that scrolls is always a Tab stop (WCAG 2.1.1). One that fits drops the
+      // stop once its island hydrates (unit-tested in apps/gallery/tests/command-block.test.ts).
+      const scrolls = await region.evaluate((el) => el.scrollWidth > el.clientWidth);
+      if (scrolls) await expect(region).toHaveAttribute('tabindex', '0');
     }
     await expectAccessible(page, testInfo, { label: 'gallery-detail' });
     if (target.scenarios.length > 0) {
