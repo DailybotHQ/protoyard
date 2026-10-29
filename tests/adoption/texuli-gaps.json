@@ -223,5 +223,15 @@
     "id": "G45",
     "status": "open",
     "summary": "texuli/toast: pause/resume and announcement access for hosts (nice to have)"
+  },
+  {
+    "id": "G46",
+    "status": "open",
+    "summary": "@texuli/slides stage: default validateDeckBlock and free renderer (@texuli/blocks/core) on the first paint"
+  },
+  {
+    "id": "G47",
+    "status": "wontfix",
+    "summary": "Deck first-chunk theme generator and library: not a Texuli defect; @protoyard/themes imports them statically"
   }
 ]
