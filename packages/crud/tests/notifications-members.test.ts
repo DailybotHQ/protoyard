@@ -95,6 +95,11 @@ describe('NotificationsBell', () => {
     await fireEvent.click(screen.getByTestId('notifications-bell-trigger'));
     await waitFor(() => expect(screen.getByTestId('notifications-list')).toBeTruthy());
     const item = await screen.findByTestId('notification-item');
+    expect(item.getAttribute('data-variant')).toBe('ghost');
+    expect(item.className).toContain('items-start');
+    expect(item.className).toContain('whitespace-normal');
+    expect(item.className).toContain('break-words');
+    expect(item.className).toContain('select-text');
     expect(item.getAttribute('data-unread')).toBe('true');
     await fireEvent.click(item);
     await waitFor(async () => {

@@ -136,7 +136,7 @@ function whenOf(row: Row): string {
                   type="button"
                   variant="ghost"
                   class={[
-                    'flex w-full flex-col gap-0.5 px-3 py-2.5 text-left hover:bg-muted',
+                    'flex w-full flex-col items-start whitespace-normal break-words select-text gap-0.5 px-3 py-2.5 text-left hover:bg-muted',
                     isUnread(row) && 'bg-muted',
                   ]}
                   data-testid="notification-item"

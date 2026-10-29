@@ -66,6 +66,9 @@ function focusOutlet(node: HTMLElement): void {
   focusedPath = path;
   requestAnimationFrame(() => {
     if (focusedPath !== path || !node.isConnected) return;
+    // Do not steal focus from a control the user reached while this deferred
+    // focus was waiting (for example, the link that opens an overlay route).
+    if (document.activeElement !== document.body && document.activeElement !== node) return;
     if (document.activeElement === node) return;
     node.focus({ preventScroll: true });
   });
