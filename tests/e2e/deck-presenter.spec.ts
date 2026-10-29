@@ -180,6 +180,11 @@ test.describe('presenter view', () => {
       split(page),
       'without BroadcastChannel the presenter view stays in-page'
     ).toBeVisible();
+    // Asking for the window says why it stays on the page.
+    await viewButton(page, 'Open presenter window').click();
+    await expect(
+      split(page).locator('[data-tx-deck-presenter-reason="no-broadcast"]')
+    ).toContainText('cannot link two windows');
     await viewButton(page, 'Next').click();
     await expectSlide(page, 'divider');
   });

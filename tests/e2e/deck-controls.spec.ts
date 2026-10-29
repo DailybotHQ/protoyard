@@ -213,12 +213,16 @@ test.describe('deck chrome controls', () => {
       await printPage.close();
     });
 
-    test('Ctrl/Cmd+P prints one slide per page (works today)', async ({ page }) => {
+    test('printing the page (the browser’s Ctrl/Cmd+P) lays out one slide per page', async ({
+      page,
+    }) => {
       await openDeck(page);
       await capturePrintLayout(page);
       // The print view loads while the browser is idle after the deck opens.
       await expect(root(page)).toHaveAttribute('data-py-deck-print-ready', 'true');
       await stage(page).focus();
+      // Ctrl/Cmd+P stays the browser's own print (@texuli/slides leaves the key to it), and a
+      // headless browser cannot open that dialog: print the page the way the shortcut does.
       await page.evaluate(() => window.print());
       await expect.poll(() => printedLayout(page)).toBe(true);
     });
