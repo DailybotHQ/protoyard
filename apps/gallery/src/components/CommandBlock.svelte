@@ -34,8 +34,9 @@ async function copy() {
  * A long command scrolls sideways; while it does, the region is a Tab stop so
  * keyboard users can scroll it (WCAG 2.1.1). The server HTML always has
  * `tabindex="0"` (reachable before hydration); once hydrated, a command that
- * fits drops the extra stop, and the size is watched so a narrower window
- * brings it back.
+ * fits drops the extra stop. Both the size and the text are watched: a
+ * narrower window or a longer command (the create builder rewrites it as the
+ * user types) brings the stop back.
  */
 const scrollableFocus: Attachment<HTMLElement> = (node) => {
   const sync = () => {
@@ -43,10 +44,14 @@ const scrollableFocus: Attachment<HTMLElement> = (node) => {
     else node.removeAttribute('tabindex');
   };
   sync();
-  if (typeof ResizeObserver === 'undefined') return;
-  const observer = new ResizeObserver(sync);
-  observer.observe(node);
-  return () => observer.disconnect();
+  const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(sync);
+  resize?.observe(node);
+  const text = new MutationObserver(sync);
+  text.observe(node, { characterData: true, childList: true, subtree: true });
+  return () => {
+    resize?.disconnect();
+    text.disconnect();
+  };
 };
 </script>
 
