@@ -9,10 +9,10 @@ import { waitForPrototypeReady } from './support/ready.ts';
  * a real pointer click on an icon-only button lands on its <svg>, and the
  * panel host's app-layer isolation used to hide that click from the button.
  *
- * Runs with PROTOYARD_E2E_SHOWCASE=1 (port 4501), at the reported 2000×1030
+ * Runs with PROTOYARD_E2E_SHOWCASE=1 (port 4501, or PROTOYARD_E2E_SHOWCASE_PORT), at the reported 2000×1030
  * window, at 1440×900 (Desktop Chrome project) and at 390×844 (mobile project).
  */
-const ORIGIN = 'http://127.0.0.1:4501';
+const ORIGIN = `http://127.0.0.1:${process.env.PROTOYARD_E2E_SHOWCASE_PORT ?? 4501}`;
 const BASE = process.env.PROTOYARD_E2E_SHOWCASE_BASE ?? '/';
 const APP = `${ORIGIN}${BASE}p/ai-chat-demo/app/`;
 const SLUG = 'ai-chat-demo';

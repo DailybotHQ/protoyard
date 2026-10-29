@@ -122,6 +122,12 @@ protoyard quick promote gym-bookings gym-desk --variant v2
 
 ## Validate the result
 
+When adding owned screens, build UI Texuli-first and use public
+`@protoyard/ui` exports for Protoyard host contracts. Follow the icon,
+choice-control, DOM-ref, token, and gap rules in the
+repository's `docs/TEXULI.md`:
+`Icon`/`LucideIcon`, `Checkbox`/`RadioGroup`, `bind:ref`, and `--tx-*`.
+
 ```bash
 protoyard spec acme-desk --write
 pnpm vitest run prototypes/acme-desk

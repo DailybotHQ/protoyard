@@ -164,18 +164,39 @@ targets are opt-in through environment variables:
 
 | Variable | Effect | Ports |
 | --- | --- | --- |
-| `PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo` | Build and serve the listed prototypes for prototype and viewport tests | One server per slug from `4401`, in list order |
-| `PROTOYARD_E2E_SHOWCASE=1` | Include the combined gallery + prototype showcase (hosted `/play/` for app, deck, page and doc share links) | `4501`; `PROTOYARD_E2E_SHOWCASE_BASE=/path/` sets its public base |
+| `PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo` | Build and serve the listed prototypes for prototype and viewport tests | One server per slug from `4401`, in list order (`PROTOYARD_E2E_PROTOTYPE_PORT_BASE` overrides it) |
+| `PROTOYARD_E2E_SHOWCASE=1` | Include the combined gallery + prototype showcase (hosted `/play/` for app, deck, page and doc share links) | `4501` (`PROTOYARD_E2E_SHOWCASE_PORT` overrides it); `PROTOYARD_E2E_SHOWCASE_BASE=/path/` sets its public base |
 | `PROTOYARD_E2E_DECK=1` | Build and serve the catalog deck fixture for `deck-navigation.spec.ts`, `deck-presenter.spec.ts`, `deck-controls.spec.ts` and `deck-everything.spec.ts` (it also starts when `deck-navigation`, `deck-presenter`, `deck-design`, `deck-fragments` or `interaction-sweep` is named on the Playwright argv; `deck-controls` and `deck-everything` need the flag) | `4891`; `PROTOYARD_E2E_DECK_PORT` overrides the port |
 | `PROTOYARD_E2E_DEVTOOLS_PROTOTYPES=mobile-banking-demo` | Also build the listed prototypes WITH DevTools into `tmp/e2e-devtools/<slug>` and serve them, for `tests/e2e/pending-feedback.spec.ts` (the standard builds stay DevTools-free) | One server per slug from `4451` (`PROTOYARD_E2E_DEVTOOLS_PORT_BASE` overrides it) |
 | `PROTOYARD_E2E_REVIEW=1` | Run the review-index page against the checked-in fixture ledger, with no deploy | `4502`; `PROTOYARD_E2E_REVIEW_PORT` overrides the port |
+| `PROTOYARD_E2E_PLAYER=1` | Build the player into `tmp/e2e-player` and serve it, plus the embedder fixture, for the player, marketplace, content-kinds and deck-design specs (also starts when one of those is named on the argv) | `4861` and `4862` (`PROTOYARD_E2E_PLAYER_PORT`, `PROTOYARD_E2E_PLAYER_EMBEDDER_PORT`); the deck-design level-2 prototype on `4892` (`PROTOYARD_E2E_DECK_PROTOTYPE_PORT`) |
 | `PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo` | Build the listed prototypes with `PROTOYARD_REVIEW=1` into `tmp/e2e-comments/<slug>` for `tests/e2e/review-comments.spec.ts`; the first one is also built with the `http` adapter and served with the comments handler on an in-memory store (two reviewers) | One server per slug from `4601` (`PROTOYARD_E2E_COMMENTS_PORT_BASE`); the shared server on `4651` (`PROTOYARD_E2E_COMMENTS_SHARED_PORT`) |
 
-The gallery uses port `4329`. The standalone CLI `review-index --serve`
-defaults to `4520` (or the next free port); `--strict-port` makes a collision
-an error. Example E2E invocations, including the review-index target, are in
-[tests/e2e/README.md](../tests/e2e/README.md). Run **one E2E session per
-machine at a time** because these web servers use fixed ports.
+The gallery uses port `4329` (`PROTOYARD_E2E_GALLERY_PORT` overrides it). The
+standalone CLI `review-index --serve` defaults to `4520` (or the next free
+port); `--strict-port` makes a collision an error. Example E2E invocations,
+including the review-index target, are in
+[tests/e2e/README.md](../tests/e2e/README.md).
+
+Every web-server port has a `PROTOYARD_E2E_*_PORT` (or `*_PORT_BASE`) override
+with the defaults above; `playwright.config.ts` accepts only a whole number
+from 1024 to 65535. Outside CI, Playwright **reuses a server already listening
+on a port**, so two checkouts on the same defaults test each other's builds.
+To run beside another checkout (another agent or worktree), move every port and
+turn reuse off with `CI=1`:
+
+```bash
+CI=1 PROTOYARD_E2E_GALLERY_PORT=5329 PROTOYARD_E2E_SHOWCASE_PORT=5501 \
+  PROTOYARD_E2E_PROTOTYPE_PORT_BASE=5401 PROTOYARD_E2E_DEVTOOLS_PORT_BASE=5451 \
+  PROTOYARD_E2E_REVIEW_PORT=5502 PROTOYARD_E2E_COMMENTS_PORT_BASE=5601 \
+  PROTOYARD_E2E_COMMENTS_SHARED_PORT=5651 PROTOYARD_E2E_PLAYER_PORT=5861 \
+  PROTOYARD_E2E_PLAYER_EMBEDDER_PORT=5862 PROTOYARD_E2E_DECK_PORT=5891 \
+  PROTOYARD_E2E_DECK_PROTOTYPE_PORT=5892 PROTOYARD_E2E_QUICK_PORT=5878 \
+  pnpm test:e2e
+```
+
+`CI=1` also turns on one retry, two workers and the HTML report. Without the
+overrides, run **one E2E session per machine at a time**.
 
 ### Verified scoped runs (evidence, re-measured at the end of the foundation build, 2026-10-17)
 

@@ -121,6 +121,19 @@ describe('structure family renderers', () => {
     expect(screen.getByRole('img', { name: 'Featured' })).toBeTruthy();
   });
 
+  // Regression: a stray `import { RichText } …` line outside SafeBody's script was
+  // template text, so every card body printed the component's compiled source.
+  it('renders a slide card body as its text only, with no leaked source', async () => {
+    // On a slide, cards render through Protoyard's CardsBlock and SafeBody.
+    const { container } = render(StructureHarness, { block: cards, canvasMode: 'slide' });
+    await tick();
+    const fast = [...container.querySelectorAll('li')].find((li) =>
+      li.textContent?.includes('Fast')
+    );
+    expect(fast?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Fast Loads quickly.');
+    expect(container.textContent).not.toMatch(/import|function|@texuli/);
+  });
+
   it('renders a card image under the media policy, with its alt text', async () => {
     // The catalog's own rich cards: "Safe" has a library avatar and imageAlt "A face".
     render(StructureFamily, { block: RICH_EXAMPLES.cards });

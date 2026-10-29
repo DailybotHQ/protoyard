@@ -133,7 +133,34 @@ async function checkDeck(page: Page, testInfo: TestInfo, label: string): Promise
     if (seen.has(at)) break;
     seen.add(at);
     // Every slide (its first step) is checked; later steps reveal more of the same slide.
-    if (at.endsWith('/0')) await checkScreen(page, testInfo, `${label} ${at}`);
+    // Layout and block families are lazy chunks (Texuli's renderers): scan the
+    // slide once nothing on it is still loading, not halfway through a render.
+    if (at.endsWith('/0')) {
+      await expect(
+        page.locator(
+          '[data-canvas-slide]:not([aria-hidden="true"]) [role="status"][aria-label^="Loading"]'
+        ),
+        `${label} ${at}: slide finished loading`
+      ).toHaveCount(0, { timeout: 30_000 });
+      // The canvas swaps slide copies on navigation: wait until one copy is
+      // active and drawn (not mid-swap, when it is still visibility-hidden).
+      await page.waitForFunction(
+        () => {
+          const active = [
+            ...document.querySelectorAll<HTMLElement>(
+              '[data-canvas-slide]:not([aria-hidden="true"])'
+            ),
+          ];
+          return (
+            active.length === 1 &&
+            active[0]?.checkVisibility({ opacityProperty: true, visibilityProperty: true }) === true
+          );
+        },
+        undefined,
+        { timeout: 10_000 }
+      );
+      await checkScreen(page, testInfo, `${label} ${at}`);
+    }
     await page.keyboard.press('ArrowRight');
     // The last step of the last slide stays put; the loop ends when nothing changes.
     await page.waitForTimeout(50);

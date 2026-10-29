@@ -31,22 +31,36 @@ most of them: Biome, `tsc` / `svelte-check` / `astro check`,
 
 ## Components and Texuli
 
-Protoyard's components are built on [Texuli](TEXULI.md) ([ADR-044](DECISIONS.md)).
+Protoyard's UI is Texuli-first ([TEXULI.md](TEXULI.md), [ADR-044](DECISIONS.md)).
+Start with Texuli's published component or kit, then use a public
+`@protoyard/*` export when it provides the host integration or stable Protoyard
+contract. Do not build a generic component that duplicates Texuli.
 
-- **Use `@protoyard/ui` first.** Its generic styled components are Texuli's,
-  re-exported, and its wrappers keep Protoyard's props. Import Texuli directly
-  only for what the kit does not offer.
-- **Import Texuli by subpath:** `texuli/button`, `@texuli/primitives/<name>`,
-  `@texuli/core/<texel>`. Never import the `@texuli/core` root barrel, and
-  never import the `@texuli/tokens` root statically: it re-exports the whole
-  theme library, which would land in a prototype's initial chunk.
-- **Style with Protoyard's tokens.** Prototype code keeps the `--py-*` tokens
-  and Tailwind theme utilities. Texuli components use their own `tx-*` classes
-  on the `--tx-*` variables, which the renderer writes with the same values.
-- **A gap in a Texuli component** is recorded with the follow-ups in
-  [TEXULI.md](TEXULI.md#follow-ups-components-that-stay-protoyard-wrappers)
-  (a Texuli change, a Protoyard wrapper, or both), not copied back into
-  Protoyard.
+- **Import public subpaths.** Use `texuli/<component>` and
+  `@texuli/<package>/<export>` only where a package adapter needs Texuli
+  directly. Never import package `src/` paths. Avoid the `@texuli/core` root
+  barrel and static imports of the `@texuli/tokens` root; the latter includes
+  the theme library in the initial chunk.
+- **Icons have one rendering path.** Import `Icon` from `texuli/icons` for its
+  ten built-in names. For any other glyph, import the glyph (for example
+  `Activity`) from `@lucide/svelte`, then render it with `LucideIcon` from
+  `texuli/icons/lucide`: `<LucideIcon icon={Activity} />`. Never render a raw
+  Lucide component in markup.
+- **Use the right choice control.** Use `Checkbox` or `RadioGroup`/
+  `RadioGroupItem` for choices. `Input` binds `value`; never use
+  `Input type="checkbox"` or `Input type="radio"`.
+- **Bind DOM refs with `bind:ref`.** When a Texuli or `@protoyard/ui`
+  component exposes an element ref, use `bind:ref` for DOM operations such as
+  focus, selection, measurement, or scrolling. `bind:this` captures the
+  component instance and is appropriate only when calling its component API.
+  If the needed DOM ref is absent, keep a minimal adapter and record the
+  Texuli gap; do not assume the component instance is an element.
+- **Use `--tx-*` tokens for authored UI.** Existing `--py-*` aliases and
+  explicitly excepted frame geometry remain for compatibility; new UI reads
+  Texuli's `--tx-*` tokens. Use the theme utilities for semantic colors.
+- **Keep the gap loop honest.** The adoption check enforces seven rules;
+  tracked gaps may use minimal adapters listed in the pending files with a
+  `gap` id. See [the adoption check and exception policy](TEXULI.md#texuli-first-the-adoption-check).
 
 ## Prototype domain rules
 
@@ -81,7 +95,7 @@ UI ─► service ─► session.assert(capability, record)  ─► zod validati
 | Capability | `resource:action` | `deals:update` |
 | Scenario id | kebab-case | `growing-team` |
 | Svelte components | PascalCase files | `DealDialog.svelte` |
-| CSS tokens | `--py-<token>` | `--py-primary-foreground` |
+| CSS tokens | `--tx-<token>` for authored UI | `--tx-primary-foreground` |
 
 ## Errors and feedback
 
