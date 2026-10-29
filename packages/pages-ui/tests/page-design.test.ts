@@ -194,6 +194,17 @@ describe('PageHost marketing design', () => {
     ).toEqual(['48 h', '12', '4.8/5']);
   });
 
+  it('a section heading adds no nested landmark or padding of its own', () => {
+    const view = render(PageHost, { props: { page: tidewater() } });
+    const headers = [...view.container.querySelectorAll('[data-py-page-section-header]')];
+    expect(headers.length).toBeGreaterThan(0);
+    for (const header of headers) {
+      expect(header.tagName).toBe('HEADER');
+      // The nearest region is the page section itself: no section wraps just the heading.
+      expect(header.closest('section')?.hasAttribute('data-py-page-section')).toBe(true);
+    }
+  });
+
   it('renders plans as pricing columns with the middle plan highlighted', () => {
     const view = render(PageHost, { props: { page: tidewater() } });
     const pricing = view.container.querySelector('[data-py-page-pricing]') as HTMLElement;
