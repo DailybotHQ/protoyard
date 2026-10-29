@@ -75,9 +75,10 @@ async function backToList() {
           <li>
             <Button
               type="button"
+              variant="ghost"
               aria-current={selected ? 'page' : undefined}
               class={cx(
-                'flex min-h-touch w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:min-h-0',
+                'flex min-h-touch w-full items-center justify-start gap-3 font-normal whitespace-normal rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:min-h-0',
                 selected && 'md:bg-muted md:font-medium'
               )}
               onclick={() => choose(section.id)}

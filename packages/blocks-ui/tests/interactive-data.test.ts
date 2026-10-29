@@ -55,6 +55,12 @@ describe('interactive tables', () => {
     expect(screen.getByRole('table', { name: 'Projects by team' })).toBeTruthy();
     const sort = await screen.findByRole('button', { name: 'Sort by Project' });
     const table = screen.getByRole('table', { name: 'Projects by team' });
+    // A header reads as text with a sort affordance, not a solid primary pill.
+    expect(sort.classList.contains('tx-button--ghost')).toBe(true);
+    expect(sort.classList.contains('tx-button--default')).toBe(false);
+    expect(sort.classList.contains('tx-button--sm')).toBe(true);
+    expect(sort.className).toMatch(/\bh-auto\b/);
+    expect(sort.className).toMatch(/\bpx-0\b/);
 
     await fireEvent.click(sort);
     expect(table.querySelector('th[aria-sort="ascending"]')?.textContent).toContain('Project');

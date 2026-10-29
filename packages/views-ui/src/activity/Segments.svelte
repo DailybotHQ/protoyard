@@ -15,6 +15,7 @@ let {
       class:line-through={segment.missing}>@{segment.label}</span
     >{:else if onOpenReference && !segment.missing}<Button
       type="button"
+      variant="ghost"
       class="rounded px-0.5 font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       onclick={() => onOpenReference(segment.id)}>#{segment.label}</Button
     >{:else}<span class="font-medium">#{segment.label}</span>{/if}

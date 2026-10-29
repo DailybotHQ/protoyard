@@ -86,6 +86,7 @@ function move(key: string, step: -1 | 1) {
         <label for={`col-${uid}-${entry.key}`} class="min-w-0 flex-1 truncate text-sm">{header}</label>
         <Button
           type="button"
+          variant="ghost"
           aria-label={`Move ${header} up`}
           disabled={at <= 0 || query.trim() !== ''}
           class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-40"
@@ -93,6 +94,7 @@ function move(key: string, step: -1 | 1) {
         ><LucideIcon icon={ArrowUp} class="size-3.5"  /></Button>
         <Button
           type="button"
+          variant="ghost"
           aria-label={`Move ${header} down`}
           disabled={at >= entries.length - 1 || query.trim() !== ''}
           class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-40"

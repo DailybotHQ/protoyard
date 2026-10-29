@@ -93,6 +93,7 @@ function onKey(event: KeyboardEvent) {
       </Button>
       <Button
         type="button"
+        variant="outline"
         class="inline-flex h-8 items-center rounded-md border border-border px-3 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         onclick={() => onRemove?.()}
       >
@@ -100,6 +101,7 @@ function onKey(event: KeyboardEvent) {
       </Button>
       <Button
         type="button"
+        variant="ghost"
         class="inline-flex h-8 items-center rounded-md px-3 text-sm text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         onclick={() => onClose?.()}
       >

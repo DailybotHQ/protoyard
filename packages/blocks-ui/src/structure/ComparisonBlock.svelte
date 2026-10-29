@@ -1,5 +1,4 @@
 <script lang="ts">
-import { Check, X } from '@lucide/svelte';
 import type { ComparisonBlock as ComparisonBlockData } from '@protoyard/blocks';
 import { Icon } from 'texuli/icons';
 import { getBlockHost } from '../host.ts';

@@ -70,6 +70,7 @@ const external = (href: string) => /^https?:/i.test(href);
       {#if onMentionClick}
         <Button
           type="button"
+          variant="ghost"
           class="rounded-md bg-muted px-1.5 py-0.5 text-sm font-medium text-foreground hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           onclick={() => onMentionClick({ id: node.id, label: node.label })}
         >

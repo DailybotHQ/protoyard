@@ -205,7 +205,8 @@ void activeViewId;
           >
             <Button
               type="button"
-              class="min-w-0 flex-1 text-left"
+              variant="ghost"
+              class="block h-auto min-w-0 flex-1 px-0 text-left font-normal whitespace-normal break-words select-text hover:bg-transparent disabled:cursor-default disabled:opacity-100"
               onclick={() => (onRowOpen ?? onRowActivate)?.(row)}
               disabled={!(onRowOpen || onRowActivate)}
             >

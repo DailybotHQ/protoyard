@@ -6,6 +6,7 @@ import {
   calculatorValues,
 } from '@protoyard/blocks/interactive';
 import { Button, Input } from '@protoyard/ui';
+import { Slider } from 'texuli/slider';
 import { isSecurityFuzzHost } from '../host.ts';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import { formatUnitValue } from './format.ts';
@@ -13,9 +14,16 @@ import { useBlockState } from './use-block-state.svelte.ts';
 
 let { block }: { block: CalculatorBlockType } = $props();
 const ctl = useBlockState(() => block);
-const values = $derived(calculatorValues(block, ctl.state));
-const outputs = $derived(calculatorOutputs(block, ctl.state));
-const chart = $derived(calculatorChart(block, ctl.state));
+/**
+ * Slider values while a pointer drag is in flight. A drag previews its value
+ * (the label, outputs and chart follow it) and saves once, on release; keyboard
+ * steps commit right away. A draft clears when its save settles.
+ */
+let drafts = $state<Record<string, number>>({});
+const view = $derived({ ...ctl.state, values: { ...ctl.state.values, ...drafts } });
+const values = $derived(calculatorValues(block, view));
+const outputs = $derived(calculatorOutputs(block, view));
+const chart = $derived(calculatorChart(block, view));
 const currency = $derived(block.currency ?? 'USD');
 const fuzzStub = $derived(isSecurityFuzzHost());
 
@@ -23,6 +31,19 @@ function setInput(name: string, raw: string | number) {
   const value = typeof raw === 'number' ? raw : Number(raw);
   if (!Number.isFinite(value)) return Promise.resolve(null);
   return ctl.dispatch({ type: 'set', name, value });
+}
+
+function draftInput(name: string, value: number | number[]) {
+  if (typeof value === 'number') drafts = { ...drafts, [name]: value };
+}
+
+function commitInput(name: string, value: number | number[]) {
+  if (typeof value !== 'number') return;
+  drafts = { ...drafts, [name]: value };
+  void setInput(name, value).finally(() => {
+    if (drafts[name] !== value) return;
+    drafts = Object.fromEntries(Object.entries(drafts).filter(([key]) => key !== name));
+  });
 }
 </script>
 
@@ -54,7 +75,8 @@ function setInput(name: string, raw: string | number) {
       {@const current = values[input.name] ?? input.default}
       {@const control = input.control ?? 'slider'}
       {@const valueText = formatUnitValue(current, input.unit, currency)}
-      <label class="grid gap-1.5 text-sm">
+      <!-- A <label> only for the native number field; the slider thumb is named by aria-label. -->
+      <svelte:element this={control === 'number' ? 'label' : 'div'} class="grid gap-1.5 text-sm">
         <span class="font-medium text-foreground">
           {input.label}
           <span class="font-normal text-muted-foreground">({valueText})</span>
@@ -72,25 +94,22 @@ function setInput(name: string, raw: string | number) {
             onchange={(e) => setInput(input.name, (e.currentTarget as HTMLInputElement).value)}
           />
         {:else}
-          <Input
-            type="range"
-            class="w-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          <Slider
+            class="w-full"
             min={input.min}
             max={input.max}
             step={input.step ?? (input.max - input.min) / 100}
             value={current}
             aria-label={input.label}
-            aria-valuemin={input.min}
-            aria-valuemax={input.max}
-            aria-valuenow={current}
-            aria-valuetext={valueText}
-            oninput={(e) => setInput(input.name, (e.currentTarget as HTMLInputElement).value)}
+            getValueText={(value) => formatUnitValue(value, input.unit, currency)}
+            onValueChange={(value) => draftInput(input.name, value)}
+            onValueCommit={(value) => commitInput(input.name, value)}
           />
         {/if}
         {#if input.help}
           <span class="text-xs text-muted-foreground">{input.help}</span>
         {/if}
-      </label>
+      </svelte:element>
     {/each}
   </div>
 

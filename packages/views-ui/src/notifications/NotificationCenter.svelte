@@ -175,7 +175,7 @@ function openItem(item: NotificationItem) {
         <div class="grid gap-1"><h3 class="px-1 text-xs font-semibold text-muted-foreground">{group.label}</h3>
           {#each group.items as item (item.id)}
             <article class="flex items-start gap-2 rounded-md p-2" class:bg-muted={!isRead(item)}>
-              <Button type="button" class="min-w-0 flex-1 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" aria-label={`Open ${item.title}`} onclick={() => openItem(item)}>
+              <Button type="button" variant="ghost" class="block h-auto min-w-0 flex-1 px-0 text-left font-normal whitespace-normal break-words select-text hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" aria-label={`Open ${item.title}`} onclick={() => openItem(item)}>
                 <span class="block font-medium">{item.title}</span>
                 {#if item.body}<span class="mt-0.5 block text-xs text-muted-foreground">{item.body}</span>{/if}
                 <time class="mt-1 block text-xs text-muted-foreground" datetime={hrefDate(item)}>{new Date(hrefDate(item)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</time>
