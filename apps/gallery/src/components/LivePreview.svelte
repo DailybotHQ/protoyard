@@ -224,6 +224,7 @@ async function openManual(event: SubmitEvent) {
       {#each DEVICES as d (d.id)}
         <Button
           type="button"
+          variant="ghost"
           class="rounded-md px-2.5 py-1 text-xs text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
           aria-pressed={device === d.id}
           onclick={() => selectDevice(d.id)}
@@ -233,6 +234,7 @@ async function openManual(event: SubmitEvent) {
       {/each}
       <Button
         type="button"
+        variant="ghost"
         class="rounded-md px-2.5 py-1 text-xs text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
         aria-pressed={device === 'custom'}
         onclick={() => selectDevice('custom')}

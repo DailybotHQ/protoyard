@@ -137,6 +137,7 @@ const views = [
         {#each kinds as kind (kind.value)}
           <Button
             type="button"
+            variant="ghost"
             class="rounded-md px-3 py-1.5 text-sm text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
             aria-pressed={query.kind === kind.value}
             onclick={() => update({ kind: kind.value })}
@@ -167,6 +168,7 @@ const views = [
         {#each views as view (view.value)}
           <Button
             type="button"
+            variant="ghost"
             class="rounded-md px-2.5 py-1 text-sm text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
             aria-pressed={query.view === view.value}
             onclick={() => update({ view: view.value })}

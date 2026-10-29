@@ -101,6 +101,7 @@ const sourceKinds = [
         {#each sourceKinds as kind (kind.value)}
           <Button
             type="button"
+            variant="ghost"
             class="rounded-md px-3 py-1.5 text-sm text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
             aria-pressed={query.kind === kind.value}
             onclick={() => update({ kind: kind.value as MarketQuery['kind'] })}
