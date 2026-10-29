@@ -1,4 +1,4 @@
-import { type FSWatcher, lstatSync, watch } from 'node:fs';
+import { constants, type FSWatcher, lstatSync, watch } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { BrandThemeError, isAppBlueprint, safeParseAnyBlueprint } from '@protoyard/blueprint';
@@ -110,7 +110,13 @@ export async function refreshTemplateBrand(
   if ((await readFile(modulePath, 'utf8')) === source) return { status: 'current' };
   const themeId = /export const defaultThemeId: string \| null = '([^']+)'/.exec(source)?.[1];
   if (!write) return { status: 'stale', themeId: themeId ?? null };
-  await writeFile(modulePath, source);
+  // Reads and parsing awaited since the first check: check again, and open
+  // without following a symlink swapped in at the module (O_NOFOLLOW; 0 on Windows).
+  const swapped = templateBrandUnsafe(dir);
+  if (swapped) return { status: 'unsafe', message: swapped };
+  await writeFile(modulePath, source, {
+    flag: constants.O_WRONLY | constants.O_TRUNC | (constants.O_NOFOLLOW ?? 0),
+  });
   return { status: 'refreshed', themeId: themeId ?? null };
 }
 

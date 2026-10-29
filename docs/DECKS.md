@@ -78,7 +78,11 @@ Protoyard deck cannot hold yet is an error, never dropped: `::: component`
 fences, `$$` math and embedded themes; a vertical stack (`--`) plays as
 consecutive slides. Without `--out` it prints the blueprint. `--out` writes
 only under `artifacts/` or `tmp/` and never through a symlink (the Markdown is
-untrusted input), and it never replaces a file unless `--force`. `@protoyard/decks/markdown` (`parseMarkdownDeck`)
+untrusted input), and it never replaces a file unless `--force`. A path that
+reaches the workspace through a symlink (`~/link-to-repo/tmp/talk.json`) is
+refused as outside the workspace even when the link points at it: spell the
+path through the real folder, or run from the workspace and pass
+`tmp/talk.json`. `@protoyard/decks/markdown` (`parseMarkdownDeck`)
 does the same from code.
 
 ## The agent loop
