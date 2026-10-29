@@ -16,7 +16,7 @@ import { Button, IconButton } from 'texuli/button';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { Input } from 'texuli/input';
-import { Kbd } from 'texuli/kbd-code';
+import { CopyButton, Kbd } from 'texuli/kbd-code';
 import { DropdownMenu } from 'texuli/menus';
 import { Select } from 'texuli/select';
 import MessageList from '../MessageList.svelte';
@@ -97,7 +97,6 @@ let sidebarOpen = $state(false);
 let folderDraft = $state('');
 let shareUrl = $state('');
 let shareError = $state('');
-let copiedShare = $state(false);
 let editingId = $state('');
 let editDraft = $state('');
 let searchInput = $state<HTMLElement | null>(null);
@@ -179,16 +178,6 @@ async function createShareLink(): Promise<void> {
     shareUrl = await onShare(activeId);
   } catch {
     shareError = 'A share link could not be created.';
-  }
-}
-
-async function copyShareLink(): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(shareUrl);
-    copiedShare = true;
-    setTimeout(() => (copiedShare = false), 1400);
-  } catch {
-    shareError = 'Clipboard access is unavailable. Copy the link from the field.';
   }
 }
 
@@ -301,7 +290,7 @@ function formatDate(date: string): string {
     </header>
     {#if shareUrl || shareError}
       <div class="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-2">
-        {#if shareUrl}<label for="assistant-share-link" class="sr-only">Share link</label><Input id="assistant-share-link" readonly value={shareUrl} class="min-w-0 flex-1 text-xs" /><IconButton variant="ghost" size="sm" label="Copy share link" onclick={copyShareLink}>{#if copiedShare}<Icon icon="check" size="sm" />{:else}<LucideIcon icon={Copy} size="sm" />{/if}</IconButton>{/if}
+        {#if shareUrl}<label for="assistant-share-link" class="sr-only">Share link</label><Input id="assistant-share-link" readonly value={shareUrl} class="min-w-0 flex-1 text-xs" /><CopyButton value={shareUrl} size="sm" label="Copy share link" copiedLabel="Share link copied" onCopy={() => (shareError = '')} onCopyError={() => (shareError = 'Clipboard access is unavailable. Copy the link from the field.')}><LucideIcon icon={Copy} size="sm" /></CopyButton>{/if}
         {#if shareError}<p role="alert" class="text-xs text-destructive">{shareError}</p>{/if}
         <IconButton variant="ghost" size="sm" label="Close share link" onclick={() => { shareUrl = ''; shareError = ''; }}><Icon icon="close" size="sm" /></IconButton>
       </div>
