@@ -1,0 +1,372 @@
+[
+  {
+    "rule": "Catalog guidance is law",
+    "check": "dontUseWhen",
+    "why": "The brief says the header has the navigation; the tree adds a menu of links anyway.",
+    "task": "g03-onboarding-handbook",
+    "tree": {
+      "id": "layout-doc",
+      "props": {
+        "title": "Your first page at Harbor"
+      },
+      "children": [
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "text",
+              "markdown": "Welcome aboard."
+            }
+          }
+        },
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "list",
+              "ordered": false,
+              "items": [
+                {
+                  "text": "[Benefits](https://example.com/benefits)"
+                },
+                {
+                  "text": "[Payroll](https://example.com/payroll)"
+                },
+                {
+                  "text": "[Holidays](https://example.com/holidays)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "quote",
+              "quote": "Questions are a feature here.",
+              "cite": "Dana Ruiz, team lead"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "rule": "Catalog guidance is law",
+    "check": "dontUseWhen",
+    "why": "The header already has Sign in; the tree repeats it as content.",
+    "task": "g08-pricing-faq",
+    "tree": {
+      "id": "layout-doc",
+      "props": {
+        "title": "Pebble pricing FAQ"
+      },
+      "children": [
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "heading",
+              "level": 2,
+              "text": "Can I switch plans?"
+            }
+          }
+        },
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "text",
+              "markdown": "Yes. [Sign in](https://example.com/signin) to change your plan."
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "rule": "Catalog guidance is law",
+    "check": "dontUseWhen",
+    "why": "Content layouts are never app chrome; this card is a sidebar.",
+    "task": "g30-feature-announcement",
+    "tree": {
+      "id": "layout-page",
+      "props": {
+        "title": "Meet board templates",
+        "description": "Start each plan from a shape that works"
+      },
+      "children": [
+        {
+          "id": "media-image",
+          "props": {
+            "src": "images/templates-hero.webp",
+            "alt": "A board built from a template",
+            "width": 640,
+            "height": 360
+          }
+        },
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "text",
+              "markdown": "Templates hand every team a ready structure."
+            }
+          }
+        },
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "list",
+              "ordered": false,
+              "items": [
+                {
+                  "text": "Eight templates"
+                },
+                {
+                  "text": "Save any board as a template"
+                },
+                {
+                  "text": "Share templates"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "layout-card",
+          "props": {
+            "title": "Sidebar"
+          },
+          "children": [
+            {
+              "id": "blocks-text",
+              "props": {
+                "block": {
+                  "type": "text",
+                  "markdown": "Boards, Templates, Settings"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "rule": "Sink-free",
+    "check": "sinks",
+    "why": "A script URL in a link: never emit executable URLs.",
+    "task": "g02-release-notes",
+    "tree": {
+      "id": "layout-doc",
+      "props": {
+        "title": "What is new in Pebble 4.2"
+      },
+      "children": [
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "text",
+              "markdown": "Read the [full notes](javascript:alert(1)) for details."
+            }
+          }
+        },
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "heading",
+              "level": 2,
+              "text": "New"
+            }
+          }
+        },
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "list",
+              "ordered": false,
+              "items": [
+                {
+                  "text": "Shortcuts"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "rule": "Sink-free",
+    "check": "sinks",
+    "why": "A style key: trees carry data, never styling or markup.",
+    "task": "g18-recipe",
+    "tree": {
+      "id": "layout-doc",
+      "props": {
+        "title": "Lemon barley soup"
+      },
+      "children": [
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "text",
+              "markdown": "A bright soup."
+            },
+            "style": "color: red"
+          }
+        },
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "list",
+              "ordered": false,
+              "items": [
+                {
+                  "text": "Barley"
+                },
+                {
+                  "text": "Stock"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "rule": "Untrusted agent trees",
+    "check": "schema",
+    "why": "Untrusted output may not emit overlays: dialog is tier-denied.",
+    "task": "g06-plan-comparison",
+    "tree": {
+      "id": "layout-page",
+      "props": {
+        "title": "Pebble plans side by side",
+        "description": "Seats, storage and support"
+      },
+      "children": [
+        {
+          "id": "dialog",
+          "props": {
+            "title": "Upgrade now"
+          },
+          "children": [
+            {
+              "id": "blocks-text",
+              "props": {
+                "block": {
+                  "type": "text",
+                  "markdown": "Pick a plan"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "rule": "A11y and contrast",
+    "check": "grammar",
+    "why": "A heading skips a rank under the page h1.",
+    "task": "g05-incident-postmortem",
+    "tree": {
+      "id": "layout-doc",
+      "props": {
+        "title": "Checkout errors on 3 June"
+      },
+      "children": [
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "text",
+              "markdown": "For 23 minutes checkout failed."
+            }
+          }
+        },
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "heading",
+              "level": 4,
+              "text": "Timeline"
+            }
+          }
+        },
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                {
+                  "text": "14:02 pushed"
+                },
+                {
+                  "text": "14:25 reverted"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "rule": "Match the brief to",
+    "check": "coverage",
+    "why": "The brief asks for a hero image; the tree leaves it out.",
+    "task": "g30-feature-announcement",
+    "tree": {
+      "id": "layout-page",
+      "props": {
+        "title": "Meet board templates",
+        "description": "Start each plan from a shape that works"
+      },
+      "children": [
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "text",
+              "markdown": "Templates hand every team a ready structure."
+            }
+          }
+        },
+        {
+          "id": "blocks-text",
+          "props": {
+            "block": {
+              "type": "list",
+              "ordered": false,
+              "items": [
+                {
+                  "text": "Eight templates"
+                },
+                {
+                  "text": "Save any board as a template"
+                },
+                {
+                  "text": "Share templates"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+]

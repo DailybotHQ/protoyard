@@ -40,6 +40,16 @@ Protoyard typechecks against the published package declarations in
 `node_modules`; Texuli's own source is covered by the Texuli maintainers'
 checks.
 
+## The Texuli agent skill
+
+Agents working in this repository have the Texuli skill at
+`.agents/skills/texuli` (version 0.2.3). It is the pinned `skill-v0.2.3`
+release, installed from its archive after checking the archive and every file
+against the release's `SHA256SUMS` and running
+`setup.sh --verify --expect-version 0.2.3`. It explains Texuli's components,
+tokens, icons and layouts, and how to report a missing API. To upgrade, repeat
+those steps for the new release and replace the folder; never edit it in place.
+
 ## Texuli first: the adoption check
 
 Run `pnpm exec tsx scripts/check-texuli-adoption.ts` to enforce the seven

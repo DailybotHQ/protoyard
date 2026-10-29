@@ -560,8 +560,9 @@ behind its toggle (printed on paper). The type scale follows the stage width,
 so 16:9, 4:3, 9:16 and 1:1 stages all read well, and it never drops below the
 deck minimums of 24 px body and 18 px labels. Long text clamps, or the content
 zooms down to a floor; nothing overflows the stage. Layouts use theme tokens
-only, so themes and dark mode apply. The per-layout table and the scale are in
-[the decks-ui guide](../packages/decks-ui/README.md#slide-design).
+only, so themes and dark mode apply. The layouts and the type scale come from
+`@texuli/slides` (its stage and layouts), which Protoyard installs from npm
+([Texuli in Protoyard](TEXULI.md)).
 
 ## Steps and step links
 

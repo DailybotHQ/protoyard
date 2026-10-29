@@ -1,0 +1,547 @@
+{
+  "version": 1,
+  "scenarios": [
+    {
+      "task": "g01-weekly-support-digest",
+      "title": "Weekly support digest",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "blocks-data", "charts-line"],
+      "recorded": false
+    },
+    {
+      "task": "g02-release-notes",
+      "title": "Release notes",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-doc", "blocks-text"],
+      "recorded": true
+    },
+    {
+      "task": "g03-onboarding-handbook",
+      "title": "Team onboarding handbook",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": ["Application navigation, account controls or mutations."],
+      "mustInclude": ["layout-doc", "blocks-text"],
+      "recorded": true
+    },
+    {
+      "task": "g04-quarterly-revenue",
+      "title": "Quarterly revenue review",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "charts-stacked-bar", "charts-donut"],
+      "recorded": false
+    },
+    {
+      "task": "g05-incident-postmortem",
+      "title": "Incident postmortem",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-doc", "blocks-text"],
+      "recorded": true
+    },
+    {
+      "task": "g06-plan-comparison",
+      "title": "Plan comparison",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": ["Application navigation, account controls or mutations."],
+      "mustInclude": ["layout-page", "blocks-data"],
+      "recorded": true
+    },
+    {
+      "task": "g07-harbor-traffic-map",
+      "title": "Harbor district traffic",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "charts-geo-point-map"],
+      "recorded": false
+    },
+    {
+      "task": "g08-pricing-faq",
+      "title": "Pricing FAQ",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": ["Application navigation, account controls or mutations."],
+      "mustInclude": ["layout-doc", "blocks-text"],
+      "recorded": true
+    },
+    {
+      "task": "g09-hiring-funnel",
+      "title": "Hiring funnel",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "charts-funnel"],
+      "recorded": false
+    },
+    {
+      "task": "g10-energy-usage",
+      "title": "Building energy usage",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-grid", "charts-sparkline"],
+      "recorded": false
+    },
+    {
+      "task": "g11-team-photos",
+      "title": "Team offsite photos",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "media-image"],
+      "recorded": false
+    },
+    {
+      "task": "g12-course-syllabus",
+      "title": "Course syllabus",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-doc", "blocks-text"],
+      "recorded": false
+    },
+    {
+      "task": "g13-customer-quotes",
+      "title": "Customer quotes",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-grid", "blocks-text"],
+      "recorded": false
+    },
+    {
+      "task": "g14-budget-treemap",
+      "title": "Budget breakdown",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "charts-treemap"],
+      "recorded": false
+    },
+    {
+      "task": "g15-service-dependencies",
+      "title": "Service dependencies",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "charts-network"],
+      "recorded": false
+    },
+    {
+      "task": "g16-sprint-review-deck",
+      "title": "Sprint review deck",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-deck", "charts-bar"],
+      "recorded": false
+    },
+    {
+      "task": "g17-service-status",
+      "title": "Service status",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": ["Application navigation, account controls or mutations."],
+      "mustInclude": ["layout-page", "blocks-data"],
+      "recorded": true
+    },
+    {
+      "task": "g18-recipe",
+      "title": "Recipe",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-doc", "blocks-text"],
+      "recorded": true
+    },
+    {
+      "task": "g19-survey-results",
+      "title": "Survey results",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "charts-bar", "charts-pie"],
+      "recorded": false
+    },
+    {
+      "task": "g20-api-changelog",
+      "title": "API changelog",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-doc", "blocks-text"],
+      "recorded": false
+    },
+    {
+      "task": "g21-event-agenda",
+      "title": "Event agenda",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "blocks-data"],
+      "recorded": true
+    },
+    {
+      "task": "g22-signup-sources",
+      "title": "Sign-up sources",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "charts-sankey"],
+      "recorded": false
+    },
+    {
+      "task": "g23-activity-heatmap",
+      "title": "Activity heatmap",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "charts-heatmap"],
+      "recorded": false
+    },
+    {
+      "task": "g24-feature-adoption",
+      "title": "Feature adoption",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "charts-scatter"],
+      "recorded": false
+    },
+    {
+      "task": "g25-quarter-goals",
+      "title": "Quarter goals",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-grid", "charts-progress-ring"],
+      "recorded": true
+    },
+    {
+      "task": "g26-website-visitors",
+      "title": "Website visitors",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "charts-area"],
+      "recorded": false
+    },
+    {
+      "task": "g27-warehouse-kpis",
+      "title": "Warehouse KPIs",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-page", "blocks-data", "charts-combo"],
+      "recorded": false
+    },
+    {
+      "task": "g28-newsletter",
+      "title": "Team newsletter",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-doc", "media-image", "blocks-text"],
+      "recorded": false
+    },
+    {
+      "task": "g29-server-load",
+      "title": "Server load",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [],
+      "mustInclude": ["layout-grid", "charts-gauge"],
+      "recorded": false
+    },
+    {
+      "task": "g30-feature-announcement",
+      "title": "Feature announcement",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["A", "B", "C", "D"],
+      "rules": [
+        "Catalog guidance is law",
+        "Sink-free",
+        "Untrusted agent trees",
+        "A11y and contrast"
+      ],
+      "traps": [
+        "Application navigation, account controls or mutations.",
+        "App chrome shells (sidebar, top-nav, dialogs)"
+      ],
+      "mustInclude": ["layout-page", "media-image", "blocks-text"],
+      "recorded": true
+    }
+  ],
+  "interactive": [
+    {
+      "task": "i01-sortable-lists",
+      "title": "Sortable lists that exchange items (drag and drop)",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["B", "C", "D"],
+      "rules": ["Public imports only", "Sink-free", "A11y and contrast"],
+      "traps": [
+        "A drag with no keyboard path or non-drag alternative (WCAG 2.5.7)",
+        "Hardcoded English announcements instead of DragMessages"
+      ],
+      "mustInclude": ["@texuli/primitives/sortable"],
+      "reference": "tests/behavior/scenarios/sortable/scenario.svelte",
+      "recorded": false
+    },
+    {
+      "task": "i02-workflow-editor",
+      "title": "Workflow editor with typed nodes and auto-layout",
+      "follow": "build-ui/SKILL.md",
+      "stages": ["B", "C", "D"],
+      "rules": ["Public imports only", "Sink-free", "A11y and contrast"],
+      "traps": [
+        "Rendering node labels or props as HTML",
+        "Editing the graph outside the validated workflow ops"
+      ],
+      "mustInclude": ["@texuli/workflows/editor", "@texuli/workflows/model"],
+      "reference": "packages/examples/src/workflows-editor/WorkflowsEditorDemo.svelte",
+      "recorded": false
+    },
+    {
+      "task": "i03-stateful-board-json",
+      "title": "Stateful sprint board as a JSON blueprint with reorder (drag as data)",
+      "follow": "blueprints/SKILL.md",
+      "stages": ["A", "D", "G"],
+      "rules": [
+        "Validate first, paint second.",
+        "Actions are closed",
+        "Drag as data",
+        "A blueprint that validates paints"
+      ],
+      "traps": [
+        "An action outside the closed set (fetch, navigate)",
+        "Bidirectional or zero-width characters in a draggable list item"
+      ],
+      "mustInclude": ["layout-page", "sortable-list"],
+      "reference": "packages/spec/fixtures/golden/sortable-board.json",
+      "recorded": false
+    },
+    {
+      "task": "i04-workflow-builder-json",
+      "title": "Editable workflow-graph bound to a workflow variable",
+      "follow": "blueprints/SKILL.md",
+      "stages": ["A", "D", "G"],
+      "rules": ["Validate first, paint second.", "Workflows:", "A blueprint that validates paints"],
+      "traps": [
+        "A graph prop set both in props and in bind",
+        "A forbidden cycle or more than 500 nodes"
+      ],
+      "mustInclude": ["layout-page", "workflow-graph"],
+      "reference": "packages/spec/fixtures/golden/workflow-builder.json",
+      "recorded": false
+    },
+    {
+      "task": "i05-lego-composition",
+      "title": "One JSON screen: board, charts, media, blocks, sortable palette and outline, workflow editor",
+      "follow": "blueprints/SKILL.md",
+      "stages": ["A", "D", "G"],
+      "rules": [
+        "Validate first, paint second.",
+        "Drag as data",
+        "Workflows:",
+        "A blueprint that validates paints"
+      ],
+      "traps": [
+        "Moving items between lists whose groups do not accept each other",
+        "A form field outside an action-form"
+      ],
+      "mustInclude": [
+        "layout-page",
+        "data-board",
+        "sortable-list",
+        "workflow-graph",
+        "media-image",
+        "blocks-text"
+      ],
+      "reference": "packages/spec/fixtures/golden/lego.json",
+      "recorded": false
+    }
+  ]
+}

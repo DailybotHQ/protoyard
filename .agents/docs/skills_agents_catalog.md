@@ -47,6 +47,7 @@ to concrete models in your harness, in one place (see [../README.md](../README.m
 | --- | --- | --- |
 | [deepworkplan](../skills/deepworkplan/SKILL.md) (7.8.1) | `deepworkplan-create`, `-execute`, `-refine`, `-resume`, `-status`, `-verify`, `-upgrade`, `-onboard`, `-author` | Deep Work Plans, repository conformance, authoring this kit |
 | [ai-diff-reviewer](../skills/ai-diff-reviewer/SKILL.md) (3.3.14) | `ai-diff-reviewer-setup`, `-generate-extension`, `-open-pr`, `-apply-review`, `-address-review` | Local diff review with `.review/extension.md`, PR authoring, CI review follow-up |
+| [texuli](../skills/texuli/SKILL.md) (0.2.3) | `build-ui`, `components`, `blueprints`, `media`, `contribute`, `setup` | Building UI from Texuli components, tokens, icons and layouts; reporting a missing Texuli API (pinned `skill-v0.2.3`, verified against the release `SHA256SUMS`) |
 
 ## Commands (`.agents/commands/`)
 
