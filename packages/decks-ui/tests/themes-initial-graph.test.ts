@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   buildDeckEntry,
@@ -40,6 +41,24 @@ Object.assign(globalThis, {
 mount(DeckApp, { target: document.getElementById('app')!, props: { deck: studio.preview } });
 `;
 
+const TEMPLATES = resolve(import.meta.dirname, '../../../templates');
+
+/**
+ * A prototype from \`protoyard new --template deck|page|doc\`: each template's
+ * runtime definition (the deck one with its seeded brand, resolved ahead in
+ * src/brand-theme.ts) and the deck template's Studio state.
+ */
+const TEMPLATES_MAIN = `import { definition as deck } from '${TEMPLATES}/deck/src/prototype.ts';
+import { createTemplateDeckStudio } from '${TEMPLATES}/deck/src/deck-studio.ts';
+import { deckBlueprint } from '${TEMPLATES}/deck/src/deck-blueprint.ts';
+import { definition as page } from '${TEMPLATES}/page/src/prototype.ts';
+import { definition as doc } from '${TEMPLATES}/doc/src/prototype.ts';
+
+Object.assign(globalThis, {
+  fixture: { deck, page, doc, studio: createTemplateDeckStudio(deckBlueprint.deck, '', true) },
+});
+`;
+
 /** The eager paths this test guards against: proves the pattern finds them. */
 const EAGER_CONTROL_MAIN = `import { defineKindRuntime } from '@protoyard/blueprint/kinds';
 import { deckStudioOptions } from '@protoyard/decks/patch';
@@ -50,18 +69,21 @@ Object.assign(globalThis, { fixture: { defineKindRuntime, options: deckStudioOpt
 const builds: { dir: string; output: DeckBuild }[] = [];
 let deck: DeckBuild;
 let control: DeckBuild;
+let templates: DeckBuild;
 
 const moduleIds = (chunks: readonly { moduleIds: readonly string[] }[]) =>
   chunks.flatMap((chunk) => chunk.moduleIds.map(posix));
 
 beforeAll(async () => {
-  const [deckBuild, controlBuild] = await Promise.all([
+  const [deckBuild, controlBuild, templatesBuild] = await Promise.all([
     buildDeckEntry(GENERATED_DECK_MAIN),
     buildDeckEntry(EAGER_CONTROL_MAIN),
+    buildDeckEntry(TEMPLATES_MAIN),
   ]);
-  builds.push(deckBuild, controlBuild);
+  builds.push(deckBuild, controlBuild, templatesBuild);
   deck = deckBuild.output;
   control = controlBuild.output;
+  templates = templatesBuild.output;
 }, 600_000);
 
 afterAll(async () => {
@@ -79,6 +101,18 @@ describe('deck initial graph: one theme at first paint', () => {
     const initial = new Set(initialChunks(deck).map((chunk) => chunk.fileName));
     const lazy = deck.chunks.filter((chunk) => !initial.has(chunk.fileName));
     expect(moduleIds(lazy).some((id) => /library-port\/records\.js$/.test(id))).toBe(true);
+  });
+
+  it('has none in a prototype made from the deck, page or doc template', () => {
+    const initial = moduleIds(initialChunks(templates));
+    for (const kind of ['deck', 'page', 'doc']) {
+      expect(
+        initial.some((id) => id.endsWith(`/templates/${kind}/src/prototype.ts`)),
+        kind
+      ).toBe(true);
+    }
+    expect(initial.some((id) => id.endsWith('/templates/deck/src/brand-theme.ts'))).toBe(true);
+    expect(initial.filter((id) => LIBRARY_OR_GENERATOR.test(id))).toEqual([]);
   });
 
   it('catches the eager paths (control build)', () => {

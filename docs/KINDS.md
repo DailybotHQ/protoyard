@@ -194,8 +194,15 @@ import {
 } from '@protoyard/blueprint/kinds';
 ```
 
-Those wrappers call `defineKindRuntime`. Prefer `defineKindRuntime` when you
-already have a full content blueprint (`formatVersion`, `name`, `kind`, body).
+Those wrappers call `defineKindPrototype` with no brand, so a page or doc
+built on them never loads brand resolution or the palette generator. Prefer
+`defineKindRuntime` when you already have a full content blueprint
+(`formatVersion`, `name`, `kind`, body) whose `brand` must be resolved at
+runtime (the player); a prototype passes the brand resolved ahead to
+`defineKindPrototype` instead. The deck template keeps its resolved brand in
+`src/brand-theme.ts`: `protoyard new` rewrites it from the copied
+`src/blueprint.json`, and the template's test fails when `brand` changes
+without it.
 
 ## Catalog discovery
 

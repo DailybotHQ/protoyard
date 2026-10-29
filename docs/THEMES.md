@@ -803,8 +803,10 @@ Without `brand`, the template's default theme is kept.
 Decks, pages and docs accept the same `brand`. `generate` writes the built
 theme to `src/generated/brand-theme.ts`, as for apps, and the generated runtime
 module passes it to `defineKindPrototype`, so the palette generator stays out
-of the prototype's first chunk. A library brand ships by id. The player
-resolves either brand at runtime with `defineKindRuntime`.
+of the prototype's first chunk. A library brand ships by id. A deck made with
+`protoyard new --template deck` gets the same: `new` writes the brand of its
+`src/blueprint.json` to `src/brand-theme.ts`. The player resolves either brand
+at runtime with `defineKindRuntime`.
 
 ### Design kits
 
