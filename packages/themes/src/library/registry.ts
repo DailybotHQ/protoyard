@@ -1,5 +1,10 @@
 import type { Theme } from '@protoyard/core';
-import { THEME_LIBRARY_META as TEXULI_LIBRARY_META } from '@texuli/tokens/library';
+import {
+  loadLibraryTheme as loadTexuliLibraryTheme,
+  loadLibraryThemeCharts as loadTexuliLibraryThemeCharts,
+  loadLibraryThemeDefinition as loadTexuliLibraryThemeDefinition,
+  THEME_LIBRARY_META as TEXULI_LIBRARY_META,
+} from '@texuli/tokens/library';
 import { fromTexuliTheme } from '../from-texuli.ts';
 import {
   type LibraryThemeDefinition,
@@ -154,8 +159,7 @@ async function unknownTheme(id: string): Promise<Error> {
 /** Any library theme's definition (seed, neutral family, fonts, style). */
 export async function loadLibraryThemeDefinition(id: string): Promise<LibraryThemeDefinition> {
   if (catalogIds.has(id)) {
-    const ported = await import('@texuli/tokens/library');
-    return (await ported.loadLibraryThemeDefinition(id)) as LibraryThemeDefinition;
+    return (await loadTexuliLibraryThemeDefinition(id)) as LibraryThemeDefinition;
   }
   const expand = loadExpand();
   if (!expand || !(await findLibraryThemeMeta(id))) throw await unknownTheme(id);
@@ -164,10 +168,9 @@ export async function loadLibraryThemeDefinition(id: string): Promise<LibraryThe
 
 async function loadTheme(id: string): Promise<Theme> {
   if (catalogIds.has(id)) {
-    const ported = await import('@texuli/tokens/library');
     const [theme, charts] = await Promise.all([
-      ported.loadLibraryTheme(id),
-      ported.loadLibraryThemeCharts(id),
+      loadTexuliLibraryTheme(id),
+      loadTexuliLibraryThemeCharts(id),
     ]);
     return fromTexuliTheme(theme, charts);
   }
