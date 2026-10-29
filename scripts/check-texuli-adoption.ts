@@ -26,8 +26,9 @@
  *
  * Known violations live per unit in `tests/adoption/pending/<unit>.json`
  * (unit = `packages__<name>`, `apps__<name>`, `templates` or `prototypes`).
- * The default run is a ratchet: it fails only on violations the pending lists
- * do not cover. `--scope <path>` limits the run; `--strict` fails on every
+ * The default run is a ratchet: it fails on violations the pending lists do
+ * not cover, and on stale pending entries (a count above today's, including
+ * a violation that is gone) until `--prune` tightens them. `--scope <path>` limits the run; `--strict` fails on every
  * violation in scope; `--allow-gaps` (with `--strict`) still accepts a pending
  * entry that cites an open gap in `tests/adoption/texuli-gaps.json`.
  * `tests/adoption/texuli-exceptions.json` is the closed list of files that stay
@@ -118,7 +119,6 @@ const LEGACY_IMPORT =
   /(?:from\s+|import\s*\(\s*|import\s+)['"](clsx|tailwind-merge|tailwind-variants)(?:\/[^'"]*)?['"]/g;
 const PY_TOKEN = /var\(\s*--py-/g;
 const RAW_CONTROL = /<(button|input|select|textarea|dialog)(?=[\s/>])/g;
-const INPUT_TAG = /<Input(?=[\s/>])[^>]*>/g;
 const UI_UNIT = /^(packages\/(ui|[a-z-]+-ui|devtools|crud|player)|apps\/gallery)\//;
 const COMPOSES =
   /from\s*['"](texuli(?:\/[^'"]*)?|@texuli\/[^'"]+|@protoyard\/(?:ui|[a-z-]+-ui)(?:\/[^'"]*)?|[^'"]+\.svelte)['"]/;
@@ -134,12 +134,55 @@ function count(text: string, pattern: RegExp): number {
   return [...text.matchAll(new RegExp(pattern.source, pattern.flags))].length;
 }
 
-/** Strips HTML and JS comments so commented-out code does not count. */
-function stripComments(text: string): string {
-  return text
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/(^|[^:'"`])\/\/.*$/gm, '$1');
+/** Strips JS and CSS comments from script, style, TypeScript or CSS source. */
+function stripCodeComments(text: string): string {
+  return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1');
+}
+
+/**
+ * Strips comments so commented-out code does not count. In a `.svelte` file,
+ * markup loses only `<!-- -->` (so `accept="image/*"` or a ` // ` in text never
+ * hides what follows), and JS/CSS comments are stripped only inside `<script>`
+ * and `<style>` blocks. Other files strip `<!-- -->`, `/* *\/` and `//`.
+ */
+function stripComments(file: string, text: string): string {
+  if (!file.endsWith('.svelte')) return stripCodeComments(text.replace(/<!--[\s\S]*?-->/g, ''));
+  return text.replace(
+    /<!--[\s\S]*?-->|(<(script|style)\b[^>]*>)([\s\S]*?)(<\/\2\s*>)/g,
+    (
+      _whole,
+      open: string | undefined,
+      _tag,
+      body: string | undefined,
+      close: string | undefined
+    ) => (open ? `${open}${stripCodeComments(body ?? '')}${close}` : '')
+  );
+}
+
+/**
+ * Returns the opening tags of `<name …>` in markup. Attribute values in braces
+ * (`onclick={() => go()}`) and quotes are balanced, so a `>` inside them does
+ * not end the tag.
+ */
+function openingTags(markup: string, name: string): string[] {
+  const tags: string[] = [];
+  const start = new RegExp(`<${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=[\\s/>])`, 'g');
+  for (const match of markup.matchAll(start)) {
+    let i = (match.index ?? 0) + match[0].length;
+    let depth = 0;
+    let quote = '';
+    for (; i < markup.length; i++) {
+      const c = markup[i];
+      if (quote) {
+        if (c === quote) quote = '';
+      } else if (c === '"' || c === "'" || (c === '`' && depth > 0)) quote = c;
+      else if (c === '{') depth += 1;
+      else if (c === '}') depth = Math.max(0, depth - 1);
+      else if (c === '>' && depth === 0) break;
+    }
+    tags.push(markup.slice(match.index ?? 0, i + 1));
+  }
+  return tags;
 }
 
 function markupOf(svelte: string): string {
@@ -148,9 +191,23 @@ function markupOf(svelte: string): string {
 
 /** Counts Texuli Input opening tags used where a dedicated choice control belongs. */
 function inputAsChoiceCount(markup: string): number {
-  return [...markup.matchAll(new RegExp(INPUT_TAG.source, INPUT_TAG.flags))].filter(
-    ([tag]) => /\btype\s*=\s*(['"])(?:checkbox|radio)\1/i.test(tag) || /\bbind:checked\b/.test(tag)
+  return openingTags(markup, 'Input').filter(
+    (tag) => /\btype\s*=\s*(['"])(?:checkbox|radio)\1/i.test(tag) || /\bbind:checked\b/.test(tag)
   ).length;
+}
+
+/**
+ * True when a `let` declaration tail (`: T = init`) starts the variable as
+ * `null`: `= null`, `= $state(null)` or `= $state<T>(null)`. The type is
+ * ignored, so `$state<HTMLElement | null>()` (undefined) does not pass.
+ */
+function startsNull(tail: string): boolean {
+  const eq = tail.search(/(?<![=!<>])=(?![=>])/);
+  if (eq < 0) return false;
+  const init = tail.slice(eq + 1).trim();
+  if (/^null\b/.test(init)) return true;
+  const state = init.match(/^\$state(?:\.raw)?\s*(?:<.*>)?\s*\(([^)]*)\)/);
+  return state !== null && (state[1] ?? '').trim() === 'null';
 }
 
 /** Counts `bind:ref={x}` whose `x` is declared with no `null` initial value. */
@@ -161,7 +218,7 @@ function refUndefinedCount(svelte: string): number {
   for (const match of markup.matchAll(/\bbind:ref=\{\s*([A-Za-z_$][\w$]*)\s*\}/g)) {
     const name = match[1] ?? '';
     const decl = script.match(new RegExp(`\\blet\\s+${name.replace(/\$/g, '\\$')}\\b([^;\\n]*)`));
-    if (decl && !/\bnull\b/.test(decl[1] ?? '')) violations += 1;
+    if (decl && !startsNull(decl[1] ?? '')) violations += 1;
   }
   return violations;
 }
@@ -202,13 +259,8 @@ function componentBindThisCount(svelte: string): number {
   ];
   let violations = 0;
   for (const tag of tags) {
-    const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const component = new RegExp(
-      `<${escaped}(?=[\\s/>])[^>]*\\bbind:this\\s*=\\s*\\{\\s*([A-Za-z_$][\\w$]*)\\s*\\}`,
-      'g'
-    );
-    for (const match of markup.matchAll(component)) {
-      const ref = match[1];
+    for (const opening of openingTags(markup, tag)) {
+      const ref = opening.match(/\bbind:this\s*=\s*\{\s*([A-Za-z_$][\w$]*)\s*\}/)?.[1];
       if (!ref) continue;
       const elementType = new RegExp(`\\b${ref}\\b[^;\\n]*${DOM_ELEMENT_TYPE.source}`, 'm');
       const domMember = new RegExp(`\\b${ref}\\s*${DOM_ELEMENT_MEMBERS.source}`, 'm');
@@ -237,7 +289,7 @@ function lucideNames(text: string): string[] {
 
 /** Counts each rule in one source file. Pure; exported for tests. */
 export function scanSource(file: string, source: string): Violation[] {
-  const text = stripComments(source);
+  const text = stripComments(file, source);
   const out: Violation[] = [];
   const add = (rule: Rule, n: number) => {
     if (n > 0) out.push({ file, rule, count: n });
@@ -359,9 +411,17 @@ export function checkAdoption(options: AdoptionOptions = {}): AdoptionReport {
       );
     }
   }
-  for (const p of pending.values()) {
+  const liveCounts = new Map(live.map((v) => [`${v.file}\u0000${v.rule}`, v.count]));
+  for (const [key, p] of pending) {
     if (p.gap && !gaps.some((g) => g.id === p.gap))
       problems.push(`${p.file}: cites unknown gap ${p.gap}`);
+    // A stale allowance would let a fixed file regress silently up to the old count.
+    if (!inScope(p.file, scopes)) continue;
+    const now = liveCounts.get(key) ?? 0;
+    if (now < p.count)
+      problems.push(
+        `${p.file}: ${p.rule} pending ×${p.count} is stale (now ×${now}); run --prune to tighten it`
+      );
   }
   return {
     ok: problems.length === 0,

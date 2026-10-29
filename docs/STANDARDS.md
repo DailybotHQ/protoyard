@@ -62,7 +62,7 @@ contract. Do not build a generic component that duplicates Texuli.
 - **Use `--tx-*` tokens for authored UI.** Existing `--py-*` aliases and
   explicitly excepted frame geometry remain for compatibility; new UI reads
   Texuli's `--tx-*` tokens. Use the theme utilities for semantic colors.
-- **Keep the gap loop honest.** The adoption check enforces seven rules;
+- **Keep the gap loop honest.** The adoption check enforces eight rules;
   tracked gaps may use minimal adapters listed in the pending files with a
   `gap` id. See [the adoption check and exception policy](TEXULI.md#texuli-first-the-adoption-check).
 
