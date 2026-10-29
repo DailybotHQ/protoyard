@@ -105,9 +105,11 @@ $effect(() => {
   @texuli/chat's MessageList: virtual window, stream follow, jump to latest,
   per-message actions and inline edit. ai-ui keeps its names ("Conversation
   messages", "Your message", "Assistant message") that hosts and E2E address,
-  the rich answer body, and the per-conversation reading position.
+  the rich answer body, and the per-conversation reading position. The group
+  row wraps so a day separator spans the list instead of sitting beside the
+  avatar (Texuli 0.5.0 places it inside the row; reported as a Texuli gap).
 -->
-<div bind:this={root} class="@container flex min-h-0 flex-1 flex-col">
+<div bind:this={root} class="@container flex min-h-0 flex-1 flex-col overflow-hidden">
   {#key conversationId}
     <TexuliMessageList
       messages={chatMessages}
@@ -116,7 +118,7 @@ $effect(() => {
       emptyText="No messages yet. Ask the simulated assistant anything."
       labels={{ editInput: 'Edit your message', saveEdit: 'Save and resend' }}
       onEdit={onEditMessage ? (message, body) => onEditMessage(message.id, body) : undefined}
-      class="px-4 py-5 @xl:px-8"
+      class="px-4 py-5 @xl:px-8 [&_.tx-chat-message-group]:flex-wrap [&_.tx-chat-message-list\_\_day]:basis-full"
     >
       {#snippet body(chat)}
         {@const message = byId.get(chat.id)}
