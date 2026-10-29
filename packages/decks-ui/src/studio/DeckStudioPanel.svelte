@@ -1,4 +1,5 @@
 <script lang="ts">
+import { deckStudioOptions } from '@protoyard/decks/patch';
 import { Button, buttonVariants } from 'texuli/button';
 import { Checkbox } from 'texuli/choice';
 import { cx } from 'texuli/cx';
@@ -14,7 +15,8 @@ import type { DeckStudio } from './studio.svelte.ts';
  */
 let { studio }: { studio: DeckStudio; [key: string]: unknown } = $props();
 
-const options = $derived(studio.options);
+// The choices load with this lazy panel: the theme list includes the library catalog.
+const options = deckStudioOptions();
 const style = $derived(studio.preview.style);
 const slide = $derived(studio.slide);
 let copying = $state(false);
