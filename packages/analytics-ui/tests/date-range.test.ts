@@ -179,24 +179,24 @@ describe('DateRangePanel', () => {
 });
 
 describe('MonthGrid Texuli Calendar adapter', () => {
-  it('passes the simulated max day and forwards calendar selections', async () => {
-    const onpick = vi.fn();
-    render(MonthGrid, { initial: '2026-03-18', max: NOW, onpick });
+  it('passes the simulated clock and forwards range selections', async () => {
+    const onrange = vi.fn();
+    render(MonthGrid, { initial: '2026-03-18', max: NOW, onrange });
     expect(screen.getByRole('grid')).toBeTruthy();
     expect(screen.getByRole('group', { name: 'Choose a date range day' })).toBeTruthy();
-    await fireEvent.click(screen.getByRole('button', { name: 'Thursday, March 19, 2026' }));
-    expect(onpick).toHaveBeenCalledWith('2026-03-19');
+    await fireEvent.click(screen.getByRole('button', { name: 'Tuesday, March 17, 2026' }));
+    expect(onrange).toHaveBeenCalledWith({ start: '2026-03-17', end: null });
   });
 
-  it('uses the current range start as the calendar value', () => {
+  it('highlights the current selected range', () => {
     render(MonthGrid, {
       initial: '2026-03-10',
       start: '2026-03-05',
       end: '2026-03-07',
-      onpick: () => {},
+      onrange: () => {},
     });
     expect(
-      document.querySelector('[data-calendar-date="2026-03-05"]')?.hasAttribute('data-selected')
+      document.querySelector('[data-calendar-date="2026-03-05"]')?.hasAttribute('data-range-start')
     ).toBe(true);
   });
 });

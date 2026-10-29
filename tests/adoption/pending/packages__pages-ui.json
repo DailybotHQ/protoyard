@@ -1,11 +1,4 @@
 {
   "unit": "packages__pages-ui",
-  "entries": [
-    {
-      "file": "packages/pages-ui/src/page/sections/SectionHeader.svelte",
-      "rule": "own-component",
-      "count": 1,
-      "gap": "G21"
-    }
-  ]
+  "entries": []
 }

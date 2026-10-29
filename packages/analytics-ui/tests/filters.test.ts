@@ -118,17 +118,14 @@ describe('FilterBuilder', () => {
     render(FilterBuilder, { value: EMPTY, properties: PROPERTIES, onchange });
     await fireEvent.click(screen.getByRole('button', { name: '+ Add condition' }));
     // First property is Plan (with options): choose Pro.
-    await fireEvent.change(screen.getByRole('combobox', { name: 'Value' }), {
-      target: { value: 'pro' },
-    });
+    await fireEvent.click(screen.getByRole('combobox', { name: 'Value' }));
+    await fireEvent.click(await screen.findByRole('option', { name: 'Pro' }));
     await fireEvent.click(screen.getByRole('button', { name: '+ Add condition' }));
     const second = document.querySelectorAll('[data-condition]')[1] as HTMLElement;
-    await fireEvent.change(within(second).getByRole('combobox', { name: 'Property' }), {
-      target: { value: 'properties.seats' },
-    });
-    await fireEvent.change(within(second).getByRole('combobox', { name: 'Operator' }), {
-      target: { value: 'gte' },
-    });
+    await fireEvent.click(within(second).getByRole('combobox', { name: 'Property' }));
+    await fireEvent.click(await screen.findByRole('option', { name: 'Seats' }));
+    await fireEvent.click(within(second).getByRole('combobox', { name: 'Operator' }));
+    await fireEvent.click(await screen.findByRole('option', { name: 'at least' }));
     await fireEvent.input(within(second).getByRole('spinbutton', { name: 'Value' }), {
       target: { value: '5' },
     });

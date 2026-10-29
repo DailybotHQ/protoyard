@@ -1,11 +1,4 @@
 {
   "unit": "packages__charts-ui",
-  "entries": [
-    {
-      "file": "packages/charts-ui/src/matrix/RampLegend.svelte",
-      "rule": "own-component",
-      "count": 1,
-      "gap": "G3"
-    }
-  ]
+  "entries": []
 }

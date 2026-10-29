@@ -82,11 +82,12 @@ const show = (rate: number | null, value: number | null) =>
       {#each [['percent', '%'], ['count', 'Count']] as const as [value, text] (value)}
         <Toggle
           pressed={display === value}
+          onPressedChange={(pressed) => pressed && setDisplay(value as CohortDisplay)}
           class="rounded px-2 py-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {display ===
           value
             ? 'bg-primary text-primary-foreground'
             : 'text-foreground hover:bg-muted'}"
-          onclick={() => setDisplay(value)}>{text}</Toggle
+          >{text}</Toggle
         >
       {/each}
     </div>

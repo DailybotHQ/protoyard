@@ -1,29 +1,4 @@
 {
   "unit": "packages__analytics-ui",
-  "entries": [
-    {
-      "file": "packages/analytics-ui/src/filters/FilterGroupEditor.svelte",
-      "rule": "raw-control",
-      "count": 13,
-      "gap": "G18"
-    },
-    {
-      "file": "packages/analytics-ui/src/date-range/DateRangePanel.svelte",
-      "rule": "own-component",
-      "count": 1,
-      "gap": "G12"
-    },
-    {
-      "file": "packages/analytics-ui/src/date-range/MonthGrid.svelte",
-      "rule": "own-component",
-      "count": 1,
-      "gap": "G12"
-    },
-    {
-      "file": "packages/analytics-ui/src/cohort/CohortTable.svelte",
-      "rule": "own-component",
-      "count": 1,
-      "gap": "G20"
-    }
-  ]
+  "entries": []
 }

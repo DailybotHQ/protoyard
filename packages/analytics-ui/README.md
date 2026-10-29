@@ -122,10 +122,11 @@ const properties: FilterProperty[] = [
 **Why not `@protoyard/ui` `FilterBar`?** FilterBar filters list rows by flat
 per-field values (`FilterValues`) for CRUD screens. Analytics filters are
 nested AND/OR trees that are saved as segments and validated against a
-property catalog, so they need this data-first builder. Texuli 0.3.0 has no
-nested analytics filter builder (gap G18); `FilterGroupEditor` remains the
-small Protoyard adapter for that AST. Use FilterBar for entity lists and
-FilterBuilder for analytics queries.
+property catalog, so they need this data-first builder. Texuli's 0.5.0
+`@texuli/data/filter-builder` targets the grid filter AST; it does not expose
+the analytics property catalog and segment validation contract.
+`FilterGroupEditor` remains the small Protoyard adapter for that AST. Use
+FilterBar for entity lists and FilterBuilder for analytics queries.
 
 Pre-migration size estimates (esbuild minify + gzip -9; svelte, @protoyard/ui, @protoyard/analytics
 and zod external), each imported from the subpath: FilterBuilder 4.6 KB (5.5 KB
@@ -154,10 +155,9 @@ follows the simulated clock:
 - **Presets:** today through last month, as `aria-pressed` buttons. Picking
   one emits at once and closes the popover.
 - **Custom range:** the month view is rendered by `texuli/date` `Calendar`.
-  The adapter supplies the simulated maximum date and forwards date picks.
-  Texuli 0.3.0 does not accept the simulated `today`, `weekStartsOn`, selected
-  range highlighting, `maxDays` or invalid-range callback (gap G12); the
-  range model and Apply behavior remain Protoyard-owned until that API lands.
+  The adapter supplies the simulated maximum and today, week start, selected
+  range highlighting, and the 3,660-day limit. Presets, comparison and Apply
+  behavior remain Protoyard-owned.
 - **Compare to** none, previous period or previous year, and **Group by**
   hour/day/week/month: segmented `aria-pressed` buttons. Granularities that
   do not fit the span (hourly over a year, monthly over a week) are
@@ -169,9 +169,9 @@ follows the simulated clock:
   `MAX_CUSTOM_RANGE_DAYS` (3,660 days), so a shared link cannot request more
   than `MAX_BUCKETS` buckets.
 
-The date adapter consumes Texuli's keyboard-accessible Calendar and supplies
-the simulated max date. The missing G12 range behaviors remain in its compact
-Protoyard adapter.
+The date adapter consumes Texuli's keyboard-accessible range Calendar and
+keeps only Protoyard's analytics-specific preset, comparison and granularity
+controls around it.
 
 ## Dashboard grid (`./grid`)
 

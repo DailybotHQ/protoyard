@@ -51,11 +51,11 @@ const choose = (key: string | null) => {
         {#each series as s (s.key ?? '')}
           <Toggle
             pressed={s.key === current.key}
+            onPressedChange={(pressed) => pressed && choose(s.key)}
             class="rounded-md border px-2 py-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {s.key ===
             current.key
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border text-foreground hover:bg-muted'}"
-            onclick={() => choose(s.key)}
           >
             {s.label}
             <span class="opacity-80">· {formatConversion(s.steps.at(-1)?.conversion ?? null)}</span>

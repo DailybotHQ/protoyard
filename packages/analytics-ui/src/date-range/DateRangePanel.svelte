@@ -53,11 +53,9 @@ function emitRange(range: DateRangeValue['range']) {
   onchange({ ...value, range, granularity: fitGranularity(value.granularity, resolved) }, 'range');
 }
 
-function pick(day: string) {
-  if (!draftStart || draftEnd) {
-    draftStart = day;
-    draftEnd = null;
-  } else draftEnd = day;
+function updateDraft(range: { start: string | null; end: string | null }) {
+  draftStart = range.start;
+  draftEnd = range.end;
 }
 
 function apply() {
@@ -97,7 +95,7 @@ const segment =
         initial={isoDay(Math.max(details.range.start, details.range.end - 1))}
         max={now}
         {weekStartsOn}
-        onpick={pick}
+        onrange={updateDraft}
       />
       <div class="flex items-center justify-between gap-2">
         <p class="text-xs text-muted-foreground" aria-live="polite">

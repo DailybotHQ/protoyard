@@ -3,9 +3,8 @@ import type { StatBlock } from '@protoyard/blocks';
 import { Stat } from 'texuli/stat';
 
 /**
- * Figures as one row of Texuli stats that stacks on phones. The row's title
- * and source stay Protoyard's text (the stat block fields Texuli's renderer
- * does not carry yet, G21).
+ * Figures as one row of Texuli stats that stacks on phones. Protoyard's
+ * optional row title and source label sit outside the individual Stat cards.
  */
 let { block }: { block: StatBlock } = $props();
 
