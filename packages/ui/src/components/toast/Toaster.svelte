@@ -1,115 +1,82 @@
 <script lang="ts">
-import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from '@lucide/svelte';
-import { cn } from '../../lib/cn.ts';
-import { type ToastKind, toast } from './toast.svelte.ts';
+import { OVERLAY_Z_BASE } from '@texuli/core/overlay-core';
+import type { ComponentProps } from 'svelte';
+import type { Attachment } from 'svelte/attachments';
+import { Toaster as TexuliToaster } from 'texuli/toast';
+import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
+import { overlayStack } from '../overlay/overlay-stack.ts';
+import { useOverlayTopZIndex } from '../overlay/use-overlay-layer.svelte.ts';
 
-interface Props {
-  class?: string;
-  /** Landmark label for the notification region. */
-  label?: string;
-  /**
-   * Extra space below the toasts, for a bottom nav or a sticky composer: a
-   * number of px or any CSS length. It sets `--py-toast-offset`; without it
-   * the toasts read that variable from the page (default 0).
-   */
-  offset?: number | string;
-}
+/**
+ * Texuli's `Toaster` (same props), kept inside a framed device or browser
+ * screen. Texuli 0.5.0's toast viewport is always a `popover="manual"` in the
+ * page's top layer, with no container option (Texuli gap N32), so inside a
+ * frame the toasts painted at the page's corner, outside the simulated screen.
+ *
+ * While a shell sets an overlay portal target (a framed screen, which is the
+ * containing block for fixed descendants), the viewport leaves the top layer
+ * and stays a fixed box inside the screen, ordered above contained overlays
+ * by z-index, as contained dialogs are. Without a frame it is Texuli's top-layer
+ * viewport unchanged. The region, its live toasts and its inert exemption stay
+ * mounted either way, so toasts are announced and reachable under modals.
+ */
+type Props = ComponentProps<typeof TexuliToaster>;
 
-let { class: className, label = 'Notifications', offset }: Props = $props();
+let props: Props = $props();
 
-const offsetValue = $derived(
-  offset === undefined ? undefined : typeof offset === 'number' ? `${offset}px` : offset
+const portal = useOverlayPortalTarget();
+const topZ = useOverlayTopZIndex();
+let openOverlays = $state(overlayStack.size);
+$effect(() => overlayStack.subscribe((size) => (openOverlays = size)));
+/** Above every contained overlay, as the undo toaster is. */
+const containedZ = $derived(
+  Math.max(60, topZ.current, openOverlays > 0 ? OVERLAY_Z_BASE + openOverlays + 1 : 0)
 );
 
-const icons = { success: CircleCheck, error: CircleAlert, info: Info, warning: TriangleAlert };
-const iconTone: Record<ToastKind, string> = {
-  success: 'bg-success text-success-foreground',
-  error: 'bg-destructive text-destructive-foreground',
-  info: 'bg-info text-info-foreground',
-  warning: 'bg-warning text-warning-foreground',
-};
-
-const politeText = $derived(
-  toast.announcement && !toast.announcement.assertive ? toast.announcement.text : ''
-);
-const assertiveText = $derived(toast.announcement?.assertive ? toast.announcement.text : '');
-
-function handleFocusOut(event: FocusEvent): void {
-  const next = event.relatedTarget;
-  if (!(next instanceof Node) || !(event.currentTarget as HTMLElement).contains(next)) {
-    toast.resume();
+function isOpen(node: HTMLElement): boolean {
+  try {
+    return node.matches(':popover-open');
+  } catch {
+    return false;
   }
 }
+
+/**
+ * Contains or releases Texuli's viewport. An attachment re-runs when the frame
+ * or the overlay stack changes. It runs before Texuli's own mount effect: with
+ * the `popover` attribute already removed, that effect's `showPopover()`
+ * throws and Texuli falls back to its fixed positioning, as on engines
+ * without popovers.
+ */
+const placeViewport: Attachment<HTMLElement> = (host) => {
+  const contained = portal.current !== undefined;
+  const z = containedZ;
+  const viewport = host.querySelector<HTMLElement>('[data-tx-toast-viewport]');
+  if (!viewport) return;
+  if (contained) {
+    try {
+      if (isOpen(viewport)) viewport.hidePopover();
+    } catch {
+      // Already out of the top layer.
+    }
+    // Without the attribute the UA no longer hides it, and Texuli's re-raise
+    // (which only acts on an open popover) leaves it in place.
+    viewport.removeAttribute('popover');
+    viewport.setAttribute('data-py-toaster-contained', '');
+    viewport.style.zIndex = String(z);
+    return;
+  }
+  viewport.removeAttribute('data-py-toaster-contained');
+  viewport.style.zIndex = '';
+  if (!viewport.hasAttribute('popover')) viewport.setAttribute('popover', 'manual');
+  try {
+    if (!isOpen(viewport)) viewport.showPopover();
+  } catch {
+    // Engines without popovers keep Texuli's fixed positioning.
+  }
+};
 </script>
 
-<!-- Live regions stay mounted so screen readers reliably announce new messages. -->
-<div class="sr-only" aria-live="polite" aria-atomic="true">{politeText}</div>
-<div class="sr-only" aria-live="assertive" aria-atomic="true">{assertiveText}</div>
-
-<!--
-  The region and the list are pointer-transparent, so taps in the gaps between
-  toasts (and around them) reach the page; only the toasts take pointer
-  events. `--py-toast-offset` lifts them above a bottom nav or sticky composer.
--->
-<section
-  aria-label={label}
-  class={cn(
-    // `--py-fixed-right-edge` (set by the renderer) keeps toasts inside a narrower visual viewport.
-    'pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex justify-center pl-4 pr-[calc(1rem+var(--py-fixed-right-edge,0px))] pb-[calc(max(1rem,env(safe-area-inset-bottom))+var(--py-toast-offset,0px))]',
-    'sm:inset-x-auto sm:right-0 sm:justify-end sm:p-6 sm:pr-[calc(1.5rem+var(--py-fixed-right-edge,0px))] sm:pb-[calc(1.5rem+var(--py-toast-offset,0px))]',
-    className
-  )}
-  style:--py-toast-offset={offsetValue}
->
-  {#if toast.items.length > 0}
-    <ol
-      class="pointer-events-none flex w-full max-w-sm flex-col gap-2"
-      onmouseenter={toast.pause}
-      onmouseleave={toast.resume}
-      onfocusin={toast.pause}
-      onfocusout={handleFocusOut}
-    >
-      {#each toast.items as item (item.id)}
-        {@const Icon = icons[item.kind]}
-        <li
-          data-kind={item.kind}
-          class="pointer-events-auto flex items-start gap-3 rounded-lg border border-border bg-elevated p-3 pr-2 text-foreground shadow-float ui-anim-toast"
-        >
-          <span
-            class={cn('mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full', iconTone[item.kind])}
-            aria-hidden="true"
-          >
-            <Icon class="size-3.5" strokeWidth={2.5} />
-          </span>
-          <div class="grid min-w-0 flex-1 gap-0.5 pt-px">
-            <p class="text-sm font-medium">{item.title}</p>
-            {#if item.description}
-              <p class="text-sm text-muted-foreground">{item.description}</p>
-            {/if}
-            {#if item.action}
-              {@const action = item.action}
-              <button
-                type="button"
-                class="mt-1 justify-self-start rounded-md text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                onclick={() => {
-                  action.onClick();
-                  toast.dismiss(item.id);
-                }}
-              >
-                {action.label}
-              </button>
-            {/if}
-          </div>
-          <button
-            type="button"
-            class="-my-1 inline-flex size-8 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0 sm:min-w-0"
-            onclick={() => toast.dismiss(item.id)}
-          >
-            <X class="size-4" aria-hidden="true" />
-            <span class="sr-only">Dismiss notification: {item.title}</span>
-          </button>
-        </li>
-      {/each}
-    </ol>
-  {/if}
-</section>
+<div style="display: contents" data-py-toaster="" {@attach placeViewport}>
+  <TexuliToaster {...props} />
+</div>

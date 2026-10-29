@@ -26,11 +26,13 @@ describe('text block family', () => {
     expect(screen.getByText('safe emphasis').tagName).toBe('STRONG');
   });
 
-  it('does not send a referrer when rendering a local markdown image', () => {
+  it('keeps markdown images out of Texuli RichText (use MdRenderer for media policy)', () => {
     const { container } = render(TextFamilyRenderer, {
       props: { block: { type: 'text', markdown: '![Cover](assets/cover.webp)' } },
     });
-    expect(container.querySelector('img')?.getAttribute('referrerpolicy')).toBe('no-referrer');
+    // Texuli closed Markdown subset does not emit <img>; media blocks own images.
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.textContent).toMatch(/Cover|assets\/cover|!\[/);
   });
 
   it('renders accessible heading, list, quote, callout and divider variants', () => {
@@ -48,8 +50,9 @@ describe('text block family', () => {
     expect(screen.getByRole('heading', { level: 3, name: 'Quarterly report' })).toBeTruthy();
 
     rerender({ block: { type: 'list', style: 'check', items: [{ text: 'Ship it', done: true }] } });
-    expect(screen.getByText('✓')).toBeTruthy();
     expect(screen.getByText('Ship it')).toBeTruthy();
+    // Texuli list is ordered/unordered text; check style is a Protoyard field mapped away.
+    expect(screen.queryByText('✓')).toBeNull();
 
     rerender({
       block: { type: 'quote', quote: 'A clear quote', cite: 'Ada Example', role: 'Engineer' },
@@ -61,8 +64,8 @@ describe('text block family', () => {
     expect(screen.getByText('Useful details')).toBeTruthy();
 
     rerender({ block: { type: 'divider', label: 'Next section' } });
-    expect(screen.getByText('Next section')).toBeTruthy();
-    expect(container.querySelector('hr')).toBeTruthy();
+    // Texuli divider is a plain <hr>; label is a Protoyard field dropped in the map.
+    expect(container.querySelector('hr, [data-tx-block="divider"]')).toBeTruthy();
   });
 });
 

@@ -1,35 +1,36 @@
 <script lang="ts">
+import { TimeField } from '@texuli/primitives/date-field';
+import { dateFieldClass } from 'texuli/date';
 import { cn } from '../../../lib/cn.ts';
-import { fieldClasses } from '../../input/input-classes.ts';
-import {
-  type DayPeriod,
-  formatTimeOfDay,
-  fromTwelveHour,
-  minuteSteps,
-  parseTimeOfDay,
-  type TimeFormat,
-  type TimeOfDay,
-  toTwelveHour,
-} from './time.ts';
+import { isTimeOfDay, minuteSteps, type TimeFormat, type TimeOfDay } from './time.ts';
 
 /**
- * TimeInput — hour, minute and (in the 12-hour format) AM/PM as native selects
- * in one labelled group, so arrows, typing and mobile pickers all work. The
- * value is always 24-hour `HH:mm`, or `null` until hour and minute are chosen.
- * A value off the minute step keeps its minute as an extra option.
+ * TimeInput — Texuli's time field (`@texuli/primitives/date-field`
+ * `TimeField`, styled with the `texuli/date` recipe): hour and minute
+ * spinbuttons and, in the 12-hour format, an AM/PM select, in one labelled
+ * group. ArrowUp/ArrowDown spin a segment (the minute by `intervalMinutes`),
+ * Home/End jump to the ends, digits type a value. It composes the primitive
+ * instead of the styled `TimeField` so it can sit inside FormField (`id`,
+ * `aria-describedby`, `aria-invalid`, no second visible label).
+ *
+ * The value is always 24-hour `HH:mm`, or `null` until hour and minute are
+ * chosen; an incomplete entry leaves the value as it was. A value off the
+ * minute step shows its own minute.
  */
 interface Props {
   value?: TimeOfDay | null;
   format?: TimeFormat;
-  /** Minute step; must divide 60, otherwise 15. */
+  /** Minute step of the arrow keys; must divide 60, otherwise 15. */
   intervalMinutes?: number;
-  /** Id of the hour select, so a `<label for>` or FormField focuses it. */
+  /** Id of the field group, so a `<label for>` or FormField points at it. */
   id?: string;
   /** Group name for assistive tech (FormField's label is linked through `aria-labelledby`). */
   label?: string;
   name?: string;
   disabled?: boolean;
   required?: boolean;
+  /** Segment order and digits; `en-US` (hh:mm AM/PM) by default. */
+  locale?: string;
   'aria-describedby'?: string;
   /** From FormField; treated like `required`. */
   'aria-required'?: boolean | 'true' | 'false';
@@ -50,6 +51,7 @@ let {
   name,
   disabled = false,
   required: requiredProp = false,
+  locale = 'en-US',
   'aria-describedby': describedBy,
   'aria-required': ariaRequired,
   'aria-invalid': ariaInvalid,
@@ -59,122 +61,45 @@ let {
 }: Props = $props();
 
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
-
-let hour = $state('');
-let minute = $state('');
-let period = $state<DayPeriod>('AM');
-
-// Each select reads its own change event (a `bind:value` would update after
-// `onchange` runs). Mirror the bound value into the three parts whenever it changes from outside.
-$effect(() => {
-  const parts = parseTimeOfDay(value);
-  if (!parts) {
-    hour = '';
-    minute = '';
-    return;
-  }
-  if (format === 12) {
-    const twelve = toTwelveHour(parts.hour);
-    hour = String(twelve.hour);
-    period = twelve.period;
-  } else {
-    hour = String(parts.hour);
-  }
-  minute = String(parts.minute);
-});
-
-const pad = (n: number) => String(n).padStart(2, '0');
-const hours = $derived(
-  format === 12
-    ? Array.from({ length: 12 }, (_, i) => i + 1)
-    : Array.from({ length: 24 }, (_, i) => i)
-);
-const minutes = $derived.by(() => {
-  const steps = minuteSteps(intervalMinutes);
-  const current = parseTimeOfDay(value)?.minute;
-  return current === undefined || steps.includes(current)
-    ? steps
-    : [...steps, current].sort((a, b) => a - b);
-});
 const invalid = $derived(ariaInvalid === true || ariaInvalid === 'true');
+/** `minuteSteps` falls back to 15 when the interval does not divide 60. */
+const minuteStep = $derived(minuteSteps(intervalMinutes)[1] ?? 60);
 
-function commit() {
-  if (hour === '' || minute === '') return;
-  const h = format === 12 ? fromTwelveHour(Number(hour), period) : Number(hour);
-  const next = formatTimeOfDay({ hour: h, minute: Number(minute) });
-  if (next === value) return;
+/** What the field shows; an incomplete entry never reaches `value`. */
+let draft = $state<TimeOfDay | null>(null);
+$effect(() => {
+  draft = value;
+});
+
+function change(next: string | null) {
+  if (!isTimeOfDay(next) || next === value) return;
   value = next;
   onValueChange?.(next);
 }
-
-const selectClasses = cn(
-  fieldClasses,
-  'h-9 min-h-touch w-auto cursor-pointer px-2 py-1 tabular-nums sm:min-h-0'
-);
 </script>
 
 <div
-  role="group"
-  aria-label={labelledBy ? undefined : label}
-  aria-labelledby={labelledBy}
-  aria-describedby={describedBy}
-  class={cn('ui-time-input inline-flex items-center gap-1', className)}
+  class={cn(dateFieldClass(), 'tx-date--time ui-time-input', className)}
+  data-tx-time
+  data-invalid={invalid ? 'true' : undefined}
+  data-disabled={disabled ? 'true' : undefined}
 >
-  <select
-    {id}
-    class={selectClasses}
-    aria-label="Hour"
-    aria-invalid={invalid || undefined}
-    aria-describedby={describedBy}
-    {disabled}
-    {required}
-    value={hour}
-    onchange={(event) => {
-      hour = event.currentTarget.value;
-      commit();
-    }}
-  >
-    <option value="" disabled>hh</option>
-    {#each hours as h (h)}
-      <option value={String(h)}>{pad(h)}</option>
-    {/each}
-  </select>
-  <span class="text-muted-foreground" aria-hidden="true">:</span>
-  <select
-    id={`${id}-minute`}
-    class={selectClasses}
-    aria-label="Minute"
-    aria-invalid={invalid || undefined}
-    {disabled}
-    {required}
-    value={minute}
-    onchange={(event) => {
-      minute = event.currentTarget.value;
-      commit();
-    }}
-  >
-    <option value="" disabled>mm</option>
-    {#each minutes as m (m)}
-      <option value={String(m)}>{pad(m)}</option>
-    {/each}
-  </select>
-  {#if format === 12}
-    <select
-      id={`${id}-period`}
-      class={selectClasses}
-      aria-label="AM or PM"
+  <div class="tx-date__control">
+    <TimeField.Root
+      class="tx-date__field"
+      bind:value={draft}
+      {id}
+      {label}
+      {locale}
+      hourCycle={format}
+      {minuteStep}
       {disabled}
-      value={period}
-      onchange={(event) => {
-        period = event.currentTarget.value === 'PM' ? 'PM' : 'AM';
-        commit();
-      }}
-    >
-      <option value="AM">AM</option>
-      <option value="PM">PM</option>
-    </select>
-  {/if}
-  {#if name}
-    <input type="hidden" {name} value={value ?? ''} />
-  {/if}
+      {required}
+      {...name ? { name } : {}}
+      aria-labelledby={labelledBy}
+      aria-describedby={describedBy}
+      aria-invalid={invalid || undefined}
+      onValueChange={change}
+    />
+  </div>
 </div>

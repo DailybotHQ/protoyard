@@ -3,6 +3,7 @@ import { Blocks, Palette, Shapes, Star } from '@lucide/svelte';
 import { usePrincipal } from '@protoyard/renderer-svelte';
 import { BUILTIN_THEMES } from '@protoyard/themes';
 import { Button, CardGrid, StatCard } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { CATALOG, CATALOG_GROUPS, catalogEntry } from '../catalog/entries.ts';
 import { useFavorites } from '../lib/favorites.svelte.ts';
 
@@ -17,12 +18,12 @@ const recent = $derived(favorites.list.slice(0, 5).flatMap((f) => catalogEntry(f
   <p class="text-sm font-medium text-primary">@protoyard/ui</p>
   <h1 class="mt-2 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">The components behind every Protoyard prototype</h1>
   <p class="mt-3 max-w-2xl text-muted-foreground">
-    Svelte 5 + Bits UI + Tailwind 4, themed by tokens. Every demo here is live: open dialogs, sort tables,
+    Svelte 5 + Texuli + Tailwind 4, themed by tokens. Every demo here is live: open dialogs, sort tables,
     drag cards, switch themes. Use DevTools (<kbd class="rounded border border-border bg-muted px-1 font-mono text-xs">Ctrl</kbd>/<kbd class="rounded border border-border bg-muted px-1 font-mono text-xs">⌘</kbd> + <kbd class="rounded border border-border bg-muted px-1 font-mono text-xs">.</kbd>) to change persona, theme or mode.
   </p>
   <div class="mt-6 flex flex-wrap gap-2">
-    <Button href="#/components/forms"><Blocks class="size-4" aria-hidden="true" />Browse components</Button>
-    <Button variant="outline" href="#/themes"><Palette class="size-4" aria-hidden="true" />Open the theme lab</Button>
+    <Button href="#/components/forms"><LucideIcon icon={Blocks} class="size-4" />Browse components</Button>
+    <Button variant="outline" href="#/themes"><LucideIcon icon={Palette} class="size-4" />Open the theme lab</Button>
   </div>
 </section>
 
@@ -55,7 +56,7 @@ const recent = $derived(favorites.list.slice(0, 5).flatMap((f) => catalogEntry(f
     {:else}
       <ul class="space-y-1">
         {#each recent as entry (entry.id)}
-          <li><a href={`#/c/${entry.id}`} class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"><Star class="size-3.5 fill-current text-warning" aria-hidden="true" />{entry.name}</a></li>
+          <li><a href={`#/c/${entry.id}`} class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"><LucideIcon icon={Star} class="size-3.5 fill-current text-warning" />{entry.name}</a></li>
         {/each}
       </ul>
       <a href="#/favorites" class="mt-2 inline-block text-sm font-medium text-primary hover:underline">All favorites →</a>

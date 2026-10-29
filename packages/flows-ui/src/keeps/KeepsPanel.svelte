@@ -1,7 +1,10 @@
 <script lang="ts">
 import type { FlowRunResult } from '@protoyard/flows';
+import { WorkflowViewer } from '@texuli/workflows/viewer';
+import { flowStepRegistry, graphForLabels } from '../editor/workflow-graph.ts';
 
 let { result }: { result: FlowRunResult | null } = $props();
+const keepsGraph = $derived(graphForLabels(result?.run.path ?? []));
 </script>
 
 <section class="grid gap-3 rounded-xl border border-border bg-card p-4 text-foreground sm:p-6" aria-labelledby="flow-keeps-heading">
@@ -14,6 +17,9 @@ let { result }: { result: FlowRunResult | null } = $props();
   {:else if result.keeps.records.length === 0 && Object.keys(result.keeps.lists).length === 0}
     <p class="m-0 text-sm text-muted-foreground">This run produced no keeps.</p>
   {:else}
+    {#if result.run.path.length}
+      <WorkflowViewer graph={keepsGraph} registry={flowStepRegistry} label="Steps that proposed these keeps" />
+    {/if}
     {#if result.keeps.records.length}
       <ul class="m-0 grid gap-2 p-0" aria-label="Kept records">
         {#each result.keeps.records as record (record.id)}

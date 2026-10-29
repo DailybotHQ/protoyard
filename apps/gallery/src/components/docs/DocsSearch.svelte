@@ -1,5 +1,6 @@
 <script lang="ts">
-import Search from '@lucide/svelte/icons/search';
+import { Input } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
 import { type DocsSearchIndex, isDocsSearchIndex, searchDocs } from '../../lib/docs/search.ts';
 
 interface Props {
@@ -91,8 +92,8 @@ function onKeydown(event: KeyboardEvent) {
 <div class="relative" role="search">
   <label for="docs-search-input" class="sr-only">Search the documentation</label>
   <div class="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 focus-within:border-accent">
-    <Search size={16} class="shrink-0 text-muted" aria-hidden="true" />
-    <input
+    <Icon icon="search" size={16} class="shrink-0 text-muted" aria-hidden="true" />
+    <Input
       id="docs-search-input"
       type="search"
       autocomplete="off"

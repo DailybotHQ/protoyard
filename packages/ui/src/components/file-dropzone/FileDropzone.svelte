@@ -1,10 +1,8 @@
 <script lang="ts">
-import { FileUp, X } from '@lucide/svelte';
+import type { FileDropRejection } from '@texuli/primitives/file-drop';
 import type { Snippet } from 'svelte';
-import { onDestroy } from 'svelte';
-import { cn } from '../../lib/cn.ts';
-import Progress from '../progress/Progress.svelte';
-import { formatBytes, validateFiles } from './accept.ts';
+import { FileUpload } from 'texuli/file-upload';
+import { formatBytes } from './accept.ts';
 import type { DropzoneFile, DropzoneReject } from './types.ts';
 
 interface Props {
@@ -27,9 +25,13 @@ interface Props {
   onAdd?: (files: File[]) => void;
   /** Called when a listed file is removed. */
   onRemove?: (item: DropzoneFile) => void;
-  /** Optional custom empty-state content inside the drop target. */
+  /**
+   * Extra content shown above the drop zone. Texuli's FileUpload has no slot
+   * inside the zone yet, so it no longer replaces the zone's empty state.
+   */
   children?: Snippet;
   class?: string;
+  /** @deprecated Texuli's FileUpload styles its own list; this class is ignored. */
   listClass?: string;
 }
 
@@ -50,283 +52,116 @@ let {
   onRemove,
   children,
   class: className,
-  listClass,
 }: Props = $props();
 
-let inputEl = $state<HTMLInputElement | null>(null);
-let dragging = $state(false);
 let idSeq = 0;
+/** Texuli's own rejection list, which its FileUpload renders as an inline alert. */
+let texuliRejects = $state<FileDropRejection[]>([]);
 
-const inputId = `file-dropzone-${uid}`;
-const errorId = `file-dropzone-errors-${uid}`;
+/** Texuli keys a file by name, size and modification time. */
+function fileKey(file: File): string {
+  return `${file.name}:${file.size}:${file.lastModified}`;
+}
 
 const hint = $derived.by(() => {
   const parts: string[] = [];
   if (description) parts.push(description);
   if (accept) parts.push(`Accepted: ${accept}`);
   if (maxSize !== undefined) parts.push(`Max size: ${formatBytes(maxSize)}`);
-  if (Number.isFinite(maxFiles)) {
-    parts.push(`Max files: ${maxFiles}`);
-  }
+  if (Number.isFinite(maxFiles)) parts.push(`Max files: ${maxFiles}`);
   return parts.join(' · ');
 });
 
-const describedBy = $derived(
-  [hint ? `${inputId}-hint` : null, rejects.length > 0 ? errorId : null]
-    .filter((id): id is string => Boolean(id))
-    .join(' ') || undefined
-);
-
-function revokePreview(item: DropzoneFile): void {
-  if (item.previewUrl) {
-    URL.revokeObjectURL(item.previewUrl);
-  }
-}
-
-function revokeAll(): void {
-  for (const item of files) revokePreview(item);
-}
-
-onDestroy(() => {
-  revokeAll();
+const labels = $derived({
+  label,
+  inputLabel: label,
+  browse: browseLabel,
+  description: hint,
+  rejectType: accept ? `Type not allowed (${accept})` : 'Type not allowed',
+  rejectSize: maxSize !== undefined ? `Larger than ${formatBytes(maxSize)}` : 'Too large',
+  rejectCount: multiple
+    ? `Only ${maxFiles} file${maxFiles === 1 ? '' : 's'} allowed`
+    : 'Only one file allowed',
 });
 
-function toDropzoneFile(file: File): DropzoneFile {
+// Protoyard's per-file progress and status, keyed the way Texuli keys files.
+const progress = $derived(
+  Object.fromEntries(files.map((item) => [fileKey(item.file), item.progress]))
+);
+const status = $derived(
+  Object.fromEntries(
+    files.map((item): [string, 'pending' | 'uploading' | 'done' | 'error'] => [
+      fileKey(item.file),
+      item.status === 'ready' ? 'pending' : item.status,
+    ])
+  )
+);
+
+/** Every listed file's Protoyard entry (stable id, progress, status), kept across list changes. */
+const entries = new WeakMap<File, DropzoneFile>();
+
+function entryFor(file: File): DropzoneFile {
+  const known = files.find((item) => item.file === file) ?? entries.get(file);
+  if (known) return known;
   idSeq += 1;
-  const item: DropzoneFile = {
-    id: `dz-${uid}-${idSeq}`,
-    file,
-    progress: null,
-    status: 'ready',
-  };
-  // Previews only for image/* via object URLs — never read contents as HTML.
-  if (file.type.startsWith('image/')) {
-    item.previewUrl = URL.createObjectURL(file);
-  }
-  return item;
+  const entry: DropzoneFile = { id: `dz-${uid}-${idSeq}`, file, progress: null, status: 'ready' };
+  entries.set(file, entry);
+  return entry;
 }
 
-function ingest(list: Iterable<File>): void {
+/** Texuli's FileUpload owns the File list; Protoyard's list follows it with stable entries. */
+function syncFiles(next: File[]): void {
   if (disabled) return;
-  const { accepted, rejects: nextRejects } = validateFiles(list, {
-    accept,
-    maxSize,
-    maxFiles,
-    currentCount: files.length,
-    multiple,
-  });
-  rejects = nextRejects;
-  if (accepted.length === 0) return;
-
-  const added = accepted.map(toDropzoneFile);
-  files = multiple ? [...files, ...added] : added.slice(0, 1);
-  onAdd?.(accepted);
+  // Remember the current entries (host-set ones too): Texuli reports a removal after the list changed.
+  for (const item of files) entries.set(item.file, item);
+  files = next.map(entryFor);
 }
 
-function onInputChange(event: Event): void {
-  const input = event.currentTarget as HTMLInputElement;
-  const list = input.files ? Array.from(input.files) : [];
-  // Allow selecting the same file again after remove.
-  input.value = '';
-  ingest(list);
+function handleAdd(added: File[]): void {
+  rejects = [];
+  onAdd?.(added);
 }
 
-function openPicker(): void {
-  if (disabled) return;
-  inputEl?.click();
+function handleRemove(file: File): void {
+  onRemove?.(entryFor(file));
 }
 
-function removeItem(item: DropzoneFile): void {
-  revokePreview(item);
-  files = files.filter((entry) => entry.id !== item.id);
-  onRemove?.(item);
-}
-
-function onDragEnter(event: DragEvent): void {
-  event.preventDefault();
-  if (disabled) return;
-  dragging = true;
-}
-
-function onDragOver(event: DragEvent): void {
-  event.preventDefault();
-  if (disabled) return;
-  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
-  dragging = true;
-}
-
-function onDragLeave(event: DragEvent): void {
-  event.preventDefault();
-  const current = event.currentTarget as HTMLElement;
-  const related = event.relatedTarget as Node | null;
-  if (related && current.contains(related)) return;
-  dragging = false;
-}
-
-function onDrop(event: DragEvent): void {
-  event.preventDefault();
-  dragging = false;
-  if (disabled) return;
-  const list = event.dataTransfer?.files ? Array.from(event.dataTransfer.files) : [];
-  ingest(list);
-}
-
-function onZoneKeydown(event: KeyboardEvent): void {
-  if (disabled) return;
-  if (event.key === 'Enter' || event.key === ' ') {
-    event.preventDefault();
-    openPicker();
-  }
+function syncRejects(next: FileDropRejection[]): void {
+  texuliRejects = next;
+  rejects = next.map((rejection) => ({
+    name: rejection.file.name,
+    reason:
+      rejection.reason === 'type'
+        ? labels.rejectType
+        : rejection.reason === 'size'
+          ? labels.rejectSize
+          : labels.rejectCount,
+  }));
 }
 </script>
 
-<div
-  class={cn('grid gap-3', className)}
-  data-file-dropzone
-  data-disabled={disabled ? 'true' : 'false'}
->
-  <input
-    bind:this={inputEl}
-    id={inputId}
-    type="file"
-    class="sr-only"
+<!--
+  A thin adapter over Texuli's FileUpload (`texuli/file-upload`): drop zone,
+  keyboard-reachable file input, accept/size/count validation, image previews
+  (object URLs, revoked on remove and destroy), per-file progress and inline
+  rejection messages are Texuli's.
+-->
+<div class={className} data-file-dropzone data-disabled={disabled ? 'true' : 'false'}>
+  {@render children?.()}
+  <FileUpload
+    bind:files={() => files.map((item) => item.file), syncFiles}
+    bind:rejects={() => texuliRejects, syncRejects}
     {accept}
-    multiple={multiple || undefined}
-    disabled={disabled || undefined}
-    aria-label={label}
-    aria-describedby={describedBy}
+    {maxSize}
+    {maxFiles}
+    {multiple}
+    {disabled}
+    {progress}
+    {status}
+    {labels}
+    onFilesAdd={handleAdd}
+    onFileRemove={handleRemove}
     aria-invalid={rejects.length > 0 ? 'true' : undefined}
-    onchange={onInputChange}
-    data-file-dropzone-input
+    data-file-dropzone-input=""
   />
-
-  <!-- Drop target; the primary control remains the labelled file input. -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div
-    role="group"
-    aria-label={label}
-    class={cn(
-      'relative flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-muted/30 px-6 py-10 text-center transition-colors',
-      dragging && 'border-primary bg-primary/5',
-      disabled && 'cursor-not-allowed opacity-60',
-      !disabled && 'hover:border-muted-foreground/40 hover:bg-muted/50'
-    )}
-    data-file-dropzone-zone
-    data-dragging={dragging ? 'true' : 'false'}
-    ondragenter={onDragEnter}
-    ondragover={onDragOver}
-    ondragleave={onDragLeave}
-    ondrop={onDrop}
-  >
-    {#if children}
-      {@render children()}
-    {:else}
-      <div
-        class="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground"
-        aria-hidden="true"
-      >
-        <FileUp class="size-6" />
-      </div>
-      <div class="grid max-w-sm gap-1">
-        <p class="font-heading text-sm font-semibold text-foreground">{label}</p>
-        {#if hint}
-          <p id={`${inputId}-hint`} class="text-xs text-muted-foreground">{hint}</p>
-        {/if}
-      </div>
-    {/if}
-
-    <label
-      for={inputId}
-      class={cn(
-        'inline-flex h-9 cursor-pointer items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-within:ring-2 focus-within:ring-ring',
-        disabled && 'pointer-events-none'
-      )}
-    >
-      {browseLabel}
-    </label>
-
-    <!-- Keyboard activation of the zone also opens the picker. -->
-    <button
-      type="button"
-      class="sr-only"
-      disabled={disabled || undefined}
-      onclick={openPicker}
-      onkeydown={onZoneKeydown}
-      data-file-dropzone-keyboard
-    >
-      {browseLabel}
-    </button>
-  </div>
-
-  {#if rejects.length > 0}
-    <ul
-      id={errorId}
-      class="grid gap-1 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-      role="alert"
-      data-file-dropzone-errors
-    >
-      {#each rejects as reject (reject.name + reject.reason)}
-        <li>
-          <span class="font-medium">{reject.name}</span>
-          — {reject.reason}
-        </li>
-      {/each}
-    </ul>
-  {/if}
-
-  {#if files.length > 0}
-    <ul class={cn('grid gap-2', listClass)} data-file-dropzone-list>
-      {#each files as item (item.id)}
-        <li
-          class="flex items-start gap-3 rounded-lg border border-border bg-surface px-3 py-2"
-          data-file-id={item.id}
-          data-file-status={item.status}
-        >
-          {#if item.previewUrl}
-            <img
-              src={item.previewUrl}
-              alt=""
-              class="size-12 shrink-0 rounded-md object-cover"
-              data-file-preview
-            />
-          {:else}
-            <div
-              class="flex size-12 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-medium text-muted-foreground"
-              aria-hidden="true"
-            >
-              FILE
-            </div>
-          {/if}
-          <div class="min-w-0 flex-1 grid gap-1">
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0">
-                <p class="truncate text-sm font-medium text-foreground">{item.file.name}</p>
-                <p class="text-xs text-muted-foreground">{formatBytes(item.file.size)}</p>
-              </div>
-              <button
-                type="button"
-                class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                aria-label={`Remove ${item.file.name}`}
-                disabled={disabled || undefined}
-                onclick={() => removeItem(item)}
-                data-file-remove
-              >
-                <X class="size-4" aria-hidden="true" />
-              </button>
-            </div>
-            {#if item.status === 'uploading' || item.progress !== null}
-              <Progress
-                value={item.progress}
-                size="sm"
-                ariaLabel={`Upload progress for ${item.file.name}`}
-              />
-            {/if}
-            {#if item.error}
-              <p class="text-xs text-destructive">{item.error}</p>
-            {/if}
-          </div>
-        </li>
-      {/each}
-    </ul>
-  {/if}
 </div>

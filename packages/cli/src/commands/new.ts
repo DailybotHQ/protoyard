@@ -20,6 +20,7 @@ import { childPath, isInside, toPosixRelative, workspaceLayout } from '../lib/pa
 import { installWorkspace, runPnpm } from '../lib/pnpm.ts';
 import { buildIndex } from '../lib/registry.ts';
 import { SPEC_FILES } from '../lib/spec-render.ts';
+import { refreshTemplateBrand } from '../lib/template-brand.ts';
 import {
   assertSlug,
   CLI_VERSION,
@@ -203,7 +204,23 @@ export async function personalize(dir: string, input: NewProjectInput) {
     );
     if (retitled !== text) await writeFile(path, retitled);
   }
+  await resolveTemplateBrand(dir);
   if (input.consumerPackageVersion) await adaptConsumerTemplate(dir);
+}
+
+/**
+ * The deck template keeps its brand resolved in `src/brand-theme.ts`, so a
+ * new deck's first chunk never loads the palette generator. Rewrites that
+ * module from the copied `src/blueprint.json` (scaffold time), so the
+ * prototype always starts with the brand its blueprint names.
+ */
+async function resolveTemplateBrand(dir: string): Promise<void> {
+  const result = await refreshTemplateBrand(dir);
+  if (result.status === 'invalid' || result.status === 'unsafe') {
+    throw new CliError('validation', result.message, {
+      hint: 'Run `pnpm protoyard blueprint validate <file>` on the source blueprint.',
+    });
+  }
 }
 
 /** Replaces pnpm workspace ranges in every dependency section with a published lockstep version. */

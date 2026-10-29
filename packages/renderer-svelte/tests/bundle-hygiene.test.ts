@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
@@ -24,8 +24,13 @@ const SOURCE = /\.(ts|svelte|astro|js)$/;
 
 /** Gzip-9 caps recorded in docs/PERFORMANCE.md. */
 export const LAYOUT_BUNDLE_BUDGETS = {
-  /** LayoutHost plus registry/preload overhead in the initial app path. */
-  hostInitialDelta: 2_000,
+  /**
+   * LayoutHost plus registry/preload overhead in the initial app path. Was
+   * 2,000 B; the host now wraps texuli's (texuli's host, catalog and host CSS
+   * next to Protoyard's catalog): measured 3,498 B, cap 3,600 B
+   * (T-adopt-layouts; docs/PERFORMANCE.md).
+   */
+  hostInitialDelta: 3_600,
 };
 
 function sourceFiles(dir: string, out: string[] = []): string[] {
@@ -200,23 +205,26 @@ describe('bundle hygiene', () => {
       const baseline = entryChunks(output.chunks, 'baseline');
       const initialModules = initial.flatMap((chunk) => chunk.moduleIds).map(posix);
       const initialCode = initial.map((chunk) => chunk.code).join('\n');
-      const expectedLayoutFiles = [
-        'AuthSplitLayout.svelte',
-        'DashboardGridLayout.svelte',
-        'DocsLayout.svelte',
-        'DualSidebarLayout.svelte',
-        'MarketingLayout.svelte',
-        'MasterDetailLayout.svelte',
-        'MobileDrawerLayout.svelte',
-        'MobileTabsLayout.svelte',
-        'RailLayout.svelte',
-        'SidebarLayout.svelte',
-        'TopNavLayout.svelte',
-        'WizardLayout.svelte',
-      ];
-      const expectedLayoutPaths = new Set(
-        expectedLayoutFiles.map((file) => `${ROOT}/packages/ui/src/layouts/${file}`)
+      // texuli renders every layout but docs, which is still Protoyard's.
+      const texuliLayouts = posix(
+        realpathSync(join(ROOT, 'node_modules', 'texuli', 'dist', 'layouts'))
       );
+      const expectedLayoutPaths = new Set([
+        ...[
+          'app/DualSidebarLayout.svelte',
+          'app/MasterDetailLayout.svelte',
+          'app/RailLayout.svelte',
+          'app/SidebarLayout.svelte',
+          'app/TopNavLayout.svelte',
+          'auth-settings/AuthSplitHostLayout.svelte',
+          'auth-settings/WizardHostLayout.svelte',
+          'dashboard/DashboardGridLayout.svelte',
+          'marketing/MarketingLayout.svelte',
+          'mobile/MobileDrawerLayout.svelte',
+          'mobile/MobileTabsLayout.svelte',
+        ].map((file) => `${texuliLayouts}/${file}`),
+        `${ROOT}/packages/ui/src/layouts/DocsLayout.svelte`,
+      ]);
       const layoutModules = output.chunks.flatMap((chunk) =>
         chunk.moduleIds.filter((id) => expectedLayoutPaths.has(posix(id)))
       );
@@ -230,11 +238,17 @@ describe('bundle hygiene', () => {
         return owner;
       });
       expect(new Set(layoutOwners.map((chunk) => chunk.fileName)).size).toBe(
-        expectedLayoutFiles.length
+        expectedLayoutPaths.size
       );
       expect(
         initialModules.filter((id) =>
           /\/packages\/themes\/src\/(?:palette|oklch|library)\//.test(id)
+        )
+      ).toEqual([]);
+      // Nor Texuli's theme library, builder, generator or AA gate (@texuli/tokens).
+      expect(
+        initialModules.filter((id) =>
+          /\/tokens\/src\/(?:library-port|library-expand|generator|aa-gate)\//.test(id)
         )
       ).toEqual([]);
       expect(initialCode).not.toMatch(
@@ -259,8 +273,9 @@ describe('bundle hygiene', () => {
         chunk.moduleIds.some((id) => posix(id).endsWith('/packages/themes/src/library/registry.ts'))
       );
       if (!libraryEntry) throw new Error('no theme library metadata chunk');
-      const libraryBuild = libraryChunks.find((chunk) =>
-        chunk.moduleIds.some((id) => posix(id).endsWith('/packages/themes/src/library/build.ts'))
+      // Library themes are built by @texuli/tokens, lazily, outside the metadata chunk.
+      const libraryBuild = output.chunks.find((chunk) =>
+        chunk.moduleIds.some((id) => posix(id).endsWith('/tokens/dist/library-port/build.js'))
       );
       if (!libraryBuild) throw new Error('no lazy theme library builder chunk');
       const studioSource = readFileSync(

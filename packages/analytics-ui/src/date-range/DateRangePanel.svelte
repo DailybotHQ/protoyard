@@ -8,6 +8,7 @@ import {
   resolveDateRange,
 } from '@protoyard/analytics';
 import { Button } from '@protoyard/ui';
+import { Toggle } from 'texuli/toggle';
 import MonthGrid from './MonthGrid.svelte';
 import {
   allowedGranularities,
@@ -18,7 +19,6 @@ import {
   fitGranularity,
   formatSpan,
   GRANULARITY_LABELS,
-  isoDay,
 } from './model.ts';
 
 type Props = {
@@ -52,11 +52,9 @@ function emitRange(range: DateRangeValue['range']) {
   onchange({ ...value, range, granularity: fitGranularity(value.granularity, resolved) }, 'range');
 }
 
-function pick(day: string) {
-  if (!draftStart || draftEnd) {
-    draftStart = day;
-    draftEnd = null;
-  } else draftEnd = day;
+function updateDraft(range: { start: string | null; end: string | null }) {
+  draftStart = range.start;
+  draftEnd = range.end;
 }
 
 function apply() {
@@ -76,16 +74,15 @@ const segment =
   <div role="group" aria-label="Preset ranges" class="grid content-start gap-0.5">
     {#each presets as preset (preset)}
       {@const active = value.range.kind === 'preset' && value.range.preset === preset}
-      <button
-        type="button"
-        aria-pressed={active}
+      <Toggle
+        bind:pressed={() => active, () => {}}
+        onPressedChange={(pressed) => pressed && emitRange({ kind: 'preset', preset })}
         class="rounded-md px-2 py-1.5 text-left text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {active
           ? 'bg-primary text-primary-foreground'
           : 'text-foreground hover:bg-muted'}"
-        onclick={() => emitRange({ kind: 'preset', preset })}
       >
         {PRESET_LABELS[preset]}
-      </button>
+      </Toggle>
     {/each}
   </div>
 
@@ -94,10 +91,9 @@ const segment =
       <MonthGrid
         start={draftStart ?? (value.range.kind === 'custom' ? value.range.start : null)}
         end={draftStart ? draftEnd : value.range.kind === 'custom' ? value.range.end : null}
-        initial={isoDay(Math.max(details.range.start, details.range.end - 1))}
         max={now}
         {weekStartsOn}
-        onpick={pick}
+        onrange={updateDraft}
       />
       <div class="flex items-center justify-between gap-2">
         <p class="text-xs text-muted-foreground" aria-live="polite">
@@ -110,11 +106,11 @@ const segment =
     <div role="group" aria-label="Compare to" class="flex flex-wrap items-center gap-1">
       <span class="mr-1 text-xs text-muted-foreground" aria-hidden="true">Compare</span>
       {#each comparisons as comparison (comparison)}
-        <button
-          type="button"
+        <Toggle
           class={segment}
-          aria-pressed={value.comparison === comparison}
-          onclick={() => onchange({ ...value, comparison }, 'comparison')}>{COMPARISON_LABELS[comparison]}</button
+          bind:pressed={() => value.comparison === comparison, () => {}}
+          onPressedChange={(pressed) => pressed && onchange({ ...value, comparison }, 'comparison')}
+          >{COMPARISON_LABELS[comparison]}</Toggle
         >
       {/each}
     </div>
@@ -123,13 +119,13 @@ const segment =
       <span class="mr-1 text-xs text-muted-foreground" aria-hidden="true">Group by</span>
       {#each granularities as granularity (granularity)}
         {@const ok = allowed.includes(granularity)}
-        <button
-          type="button"
+        <Toggle
           class={segment}
-          aria-pressed={value.granularity === granularity}
+          bind:pressed={() => value.granularity === granularity, () => {}}
+          onPressedChange={(pressed) => pressed && onchange({ ...value, granularity }, 'granularity')}
           disabled={!ok}
           title={ok ? undefined : `Not available for ${details.span}`}
-          onclick={() => onchange({ ...value, granularity }, 'granularity')}>{GRANULARITY_LABELS[granularity]}</button
+          >{GRANULARITY_LABELS[granularity]}</Toggle
         >
       {/each}
     </div>

@@ -71,17 +71,18 @@ describe('isPreviewableImage / buildImagePreviews', () => {
 });
 
 describe('ImageInput', () => {
-  it('exposes an accessible labelled file control', () => {
-    render(ImageInput, { label: 'Evidence photos', inputId: 'evidence', hint: 'JPEG or PNG' });
-    const input = screen.getByLabelText('Evidence photos');
-    expect(input).toBeInstanceOf(HTMLInputElement);
-    expect((input as HTMLInputElement).type).toBe('file');
-    expect((input as HTMLInputElement).id).toBe('evidence');
-    expect((input as HTMLInputElement).getAttribute('accept')).toBe(DEFAULT_IMAGE_ACCEPT);
+  const fileInput = (name: string) =>
+    screen.getByLabelText(name, { selector: 'input' }) as HTMLInputElement;
+
+  it('exposes an accessible labelled file control on Texuli FileUpload', () => {
+    render(ImageInput, { label: 'Evidence photos', hint: 'JPEG or PNG' });
+    const input = fileInput('Evidence photos');
+    expect(input.type).toBe('file');
+    expect(input.getAttribute('accept')).toBe(DEFAULT_IMAGE_ACCEPT);
+    expect(input.hasAttribute('data-image-input-control')).toBe(true);
+    expect(input.closest('[data-tx-file-upload]')).not.toBeNull();
     expect(screen.getByText('JPEG or PNG')).toBeTruthy();
-    expect(document.querySelector('[data-image-input-add]')?.getAttribute('aria-label')).toBe(
-      'Add images'
-    );
+    expect(screen.getAllByText('Add images').length).toBeGreaterThan(0);
   });
 
   it('previews selected images and notifies the caller with File objects', async () => {
@@ -90,41 +91,37 @@ describe('ImageInput', () => {
     vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
     const onFilesSelected = vi.fn();
 
-    render(ImageInput, {
-      label: 'Photos',
-      inputId: 'photos',
-      onFilesSelected,
-    });
-    const input = screen.getByLabelText('Photos') as HTMLInputElement;
+    render(ImageInput, { label: 'Photos', onFilesSelected });
     const first = makeFile('evidence-one.jpg', 'image/jpeg');
-    await pickFiles(input, [first]);
+    await pickFiles(fileInput('Photos'), [first]);
 
     expect(onFilesSelected).toHaveBeenCalledWith([first]);
     expect(createObjectURL).toHaveBeenCalledWith(first);
-    expect(screen.getByAltText('evidence-one.jpg')).toBeTruthy();
     expect(screen.getByAltText('evidence-one.jpg').tagName).toBe('IMG');
     expect(document.querySelector('iframe')).toBeNull();
     expect(document.querySelector('object')).toBeNull();
     expect(document.querySelector('embed')).toBeNull();
   });
 
-  it('revokes object URLs when the selection is replaced and on unmount', async () => {
+  it('adds later picks to the selection, removes one file, and revokes URLs', async () => {
     const createObjectURL = vi.fn((file: File) => `blob:${file.name}`);
     const revokeObjectURL = vi.fn();
     vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const onFilesSelected = vi.fn();
 
-    const { unmount } = render(ImageInput, { label: 'Photos', inputId: 'photos' });
-    const input = screen.getByLabelText('Photos') as HTMLInputElement;
-
+    const { unmount } = render(ImageInput, { label: 'Photos', onFilesSelected });
     const first = makeFile('evidence-one.jpg', 'image/jpeg');
-    await pickFiles(input, [first]);
-    expect(screen.getByAltText('evidence-one.jpg')).toBeTruthy();
-
     const second = makeFile('evidence-two.jpg', 'image/jpeg');
-    await pickFiles(input, [second]);
+    await pickFiles(fileInput('Photos'), [first]);
+    await pickFiles(fileInput('Photos'), [second]);
+    expect(onFilesSelected).toHaveBeenLastCalledWith([first, second]);
+    expect(screen.getByAltText('evidence-one.jpg')).toBeTruthy();
+    expect(screen.getByAltText('evidence-two.jpg')).toBeTruthy();
+
+    await fireEvent.click(screen.getByRole('button', { name: /Remove evidence-one\.jpg/ }));
+    expect(onFilesSelected).toHaveBeenLastCalledWith([second]);
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:evidence-one.jpg');
     expect(screen.queryByAltText('evidence-one.jpg')).toBeNull();
-    expect(screen.getByAltText('evidence-two.jpg')).toBeTruthy();
 
     unmount();
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:evidence-two.jpg');
@@ -136,16 +133,15 @@ describe('ImageInput', () => {
     vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
     const onFilesSelected = vi.fn();
 
-    render(ImageInput, { label: 'Photos', inputId: 'photos', onFilesSelected });
-    const input = screen.getByLabelText('Photos') as HTMLInputElement;
-    await pickFiles(input, [makeFile('shot.png', 'image/png')]);
+    render(ImageInput, { label: 'Photos', onFilesSelected });
+    await pickFiles(fileInput('Photos'), [makeFile('shot.png', 'image/png')]);
 
-    const clear = screen.getByRole('button', { name: 'Remove images' });
-    await fireEvent.click(clear);
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove images' }));
 
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:shot.png');
     expect(screen.queryByAltText('shot.png')).toBeNull();
     expect(onFilesSelected).toHaveBeenLastCalledWith([]);
+    expect(screen.queryByRole('button', { name: 'Remove images' })).toBeNull();
   });
 
   it('does not preview SVG or HTML selections as markup', async () => {
@@ -153,18 +149,14 @@ describe('ImageInput', () => {
     vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
     const onFilesSelected = vi.fn();
 
-    render(ImageInput, { label: 'Photos', inputId: 'photos', onFilesSelected, accept: 'image/*' });
-    const input = screen.getByLabelText('Photos') as HTMLInputElement;
+    render(ImageInput, { label: 'Photos', onFilesSelected, accept: 'image/*,text/html' });
     const svg = makeFile('icon.svg', 'image/svg+xml', '<svg onload="alert(1)"></svg>');
     const html = makeFile('page.html', 'text/html', '<script>alert(1)</script>');
-    await pickFiles(input, [svg, html]);
+    await pickFiles(fileInput('Photos'), [svg, html]);
 
     expect(onFilesSelected).toHaveBeenCalledWith([svg, html]);
     expect(createObjectURL).not.toHaveBeenCalled();
-    expect(screen.queryByAltText('icon.svg')).toBeNull();
-    expect(screen.queryByAltText('page.html')).toBeNull();
     expect(document.body.innerHTML).not.toContain('<script>');
-    // Only the Lucide chrome icon may be an <svg>; no user-file SVG/HTML markup.
     expect(document.querySelectorAll('[data-image-input-preview]')).toHaveLength(0);
     expect(document.querySelector('img')).toBeNull();
     expect(document.querySelector('iframe')).toBeNull();
@@ -175,6 +167,6 @@ describe('ImageInput', () => {
   it('marks the required badge when required is set', () => {
     render(ImageInput, { label: 'Cover', required: true });
     expect(screen.getByText('Required')).toBeTruthy();
-    expect((screen.getByLabelText('Cover') as HTMLInputElement).required).toBe(true);
+    expect(fileInput('Cover').required).toBe(true);
   });
 });

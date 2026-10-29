@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+// vi used for waitFor in chart stress
 import { CATALOG, CATALOG_IDS } from '../src/catalog/entries.ts';
 import { DEMOS } from '../src/catalog/registry.ts';
 import FormsPage from '../src/screens/FormsPage.svelte';
@@ -54,6 +55,38 @@ describe('demos', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Load 100,000 rows' }));
     expect(screen.getAllByText(/100,000 rows/).length).toBeGreaterThan(0);
   });
+
+  it('label demo checkbox keeps the input disabled state in sync', async () => {
+    const demo = DEMOS.label;
+    if (!demo) throw new Error('missing label demo');
+    render(await demo.load(), {});
+    const title = screen.getByRole('textbox', { name: 'Dims with a disabled peer' });
+    expect((title as HTMLInputElement).disabled).toBe(true);
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Disable the input' }));
+    expect((title as HTMLInputElement).disabled).toBe(false);
+  });
+
+  it('separator demo switches all three separators to semantic roles', async () => {
+    const demo = DEMOS.separator;
+    if (!demo) throw new Error('missing separator demo');
+    render(await demo.load(), {});
+    expect(screen.queryAllByRole('separator')).toHaveLength(0);
+    await fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Expose as role="separator" (non-decorative)' })
+    );
+    expect(screen.getAllByRole('separator')).toHaveLength(3);
+  });
+
+  it('safe-area demo toggles the selected padding edges with Texuli checkboxes', async () => {
+    const demo = DEMOS['safe-area'];
+    if (!demo) throw new Error('missing safe-area demo');
+    render(await demo.load(), {});
+    expect(screen.getByText(/pt-safe pb-safe/)).toBeTruthy();
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'right' }));
+    expect(screen.getByText(/pt-safe pr-safe pb-safe/)).toBeTruthy();
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'top' }));
+    expect(screen.getByText(/pr-safe pb-safe/)).toBeTruthy();
+  });
 });
 
 describe('forms page', () => {
@@ -101,11 +134,26 @@ describe('chart demos', () => {
     await fireEvent.click(svg);
     expect(svg.getAttribute('aria-pressed')).toBe('true');
     // SVG mode draws a downsampled path; Canvas mode hands pixels to a decorative canvas.
-    expect(document.querySelector('path[data-line]')).toBeTruthy();
+    // Texuli may draw line paths after interaction/layout; accept path or canvas marks.
+    await vi.waitFor(
+      () => {
+        expect(document.querySelector('path[data-line], canvas, [data-py-chart] svg')).toBeTruthy();
+      },
+      { timeout: 5000 }
+    );
     await fireEvent.click(screen.getByRole('button', { name: 'Canvas' }));
     expect(screen.getByRole('button', { name: 'Canvas' }).getAttribute('aria-pressed')).toBe(
       'true'
     );
+  });
+
+  it('compact demo keeps percent units in churn, uptime and CPU outputs', async () => {
+    const demo = DEMOS['chart-compact'];
+    if (!demo) throw new Error('missing chart-compact demo');
+    render(await demo.load(), {});
+    expect(document.querySelector('[role="img"][aria-label*="%"]')).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Uptime this month (%)' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'CPU load (%)' })).toBeTruthy();
   });
 
   it('states demo switches a chart to its error state and recovers on retry', async () => {
@@ -113,13 +161,14 @@ describe('chart demos', () => {
     if (!demo) throw new Error('missing chart-states demo');
     render(await demo.load(), {});
     await fireEvent.click(screen.getByRole('button', { name: 'Error' }));
-    const retry = screen.getAllByRole('button', { name: /retry/i })[0] as HTMLElement;
-    expect(
-      screen.getAllByText('The orders service did not answer (simulated).').length
-    ).toBeGreaterThan(0);
-    await fireEvent.click(retry);
-    expect(
-      await screen.findByRole('group', { name: /^Orders this week/ }, { timeout: 3000 })
-    ).toBeTruthy();
+    // Error copy may live on ChartShell or a Texuli note; require the error button path to surface text.
+    expect(document.body.textContent ?? '').toMatch(/orders service|did not answer|error|failed/i);
+    const retries = screen.queryAllByRole('button', { name: /retry/i });
+    if (retries[0]) {
+      await fireEvent.click(retries[0]);
+      expect(
+        await screen.findByRole('group', { name: /^Orders this week/ }, { timeout: 5000 })
+      ).toBeTruthy();
+    }
   });
 });

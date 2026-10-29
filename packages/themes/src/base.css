@@ -5,195 +5,207 @@
  *   @import 'tailwindcss';
  *   @import '@protoyard/themes/base.css';
  *
- * Tokens are `--py-*` custom properties written by `applyAppearance()`. The
- * defaults below (Violet) make the first paint correct even before the
- * runtime boots; `noFlashScript()` replays the last real appearance.
+ * Tokens are `--tx-*` custom properties written by `applyAppearance()`.
+ * The defaults below (Violet) make the first paint correct before runtime boot;
+ * `noFlashScript()` replays the last real appearance.
  */
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
-  --color-background: var(--py-background);
-  --color-foreground: var(--py-foreground);
-  --color-surface: var(--py-surface-fill, var(--py-surface));
-  --color-surface-foreground: var(--py-surface-foreground);
-  --color-elevated: var(--py-elevated-fill, var(--py-elevated));
-  --color-muted: var(--py-muted);
-  --color-muted-foreground: var(--py-muted-foreground);
-  --color-border: var(--py-border);
-  --color-input: var(--py-input);
-  --color-ring: var(--py-ring);
-  --color-primary: var(--py-primary);
-  --color-primary-foreground: var(--py-primary-foreground);
-  --color-secondary: var(--py-secondary);
-  --color-secondary-foreground: var(--py-secondary-foreground);
-  --color-accent: var(--py-accent);
-  --color-accent-foreground: var(--py-accent-foreground);
-  --color-destructive: var(--py-destructive);
-  --color-destructive-foreground: var(--py-destructive-foreground);
-  --color-success: var(--py-success);
-  --color-success-foreground: var(--py-success-foreground);
-  --color-warning: var(--py-warning);
-  --color-warning-foreground: var(--py-warning-foreground);
-  --color-info: var(--py-info);
-  --color-info-foreground: var(--py-info-foreground);
-  --color-sidebar: var(--py-sidebar);
-  --color-sidebar-foreground: var(--py-sidebar-foreground);
-  --color-sidebar-border: var(--py-sidebar-border);
-  --color-chart-1: var(--py-chart1);
-  --color-chart-2: var(--py-chart2);
-  --color-chart-3: var(--py-chart3);
-  --color-chart-4: var(--py-chart4);
-  --color-chart-5: var(--py-chart5);
+  --color-background: var(--tx-background);
+  --color-foreground: var(--tx-foreground);
+  --color-surface: var(--tx-surface-fill, var(--tx-surface));
+  --color-surface-foreground: var(--tx-surface-foreground);
+  --color-elevated: var(--tx-elevated-fill, var(--tx-elevated));
+  --color-muted: var(--tx-muted);
+  --color-muted-foreground: var(--tx-muted-foreground);
+  --color-border: var(--tx-border);
+  --color-input: var(--tx-input);
+  --color-ring: var(--tx-ring);
+  --color-primary: var(--tx-primary);
+  --color-primary-foreground: var(--tx-primary-foreground);
+  --color-secondary: var(--tx-secondary);
+  --color-secondary-foreground: var(--tx-secondary-foreground);
+  --color-accent: var(--tx-accent);
+  --color-accent-foreground: var(--tx-accent-foreground);
+  --color-destructive: var(--tx-destructive);
+  --color-destructive-foreground: var(--tx-destructive-foreground);
+  --color-success: var(--tx-success);
+  --color-success-foreground: var(--tx-success-foreground);
+  --color-warning: var(--tx-warning);
+  --color-warning-foreground: var(--tx-warning-foreground);
+  --color-info: var(--tx-info);
+  --color-info-foreground: var(--tx-info-foreground);
+  --color-sidebar: var(--tx-sidebar);
+  --color-sidebar-foreground: var(--tx-sidebar-foreground);
+  --color-sidebar-border: var(--tx-sidebar-border);
+  --color-chart-1: var(--tx-chart1);
+  --color-chart-2: var(--tx-chart2);
+  --color-chart-3: var(--tx-chart3);
+  --color-chart-4: var(--tx-chart4);
+  --color-chart-5: var(--tx-chart5);
   /* Series 6–8 exist when the theme carries a charts block; otherwise they fall back to 1–3. */
-  --color-chart-6: var(--py-chart6, var(--py-chart1));
-  --color-chart-7: var(--py-chart7, var(--py-chart2));
-  --color-chart-8: var(--py-chart8, var(--py-chart3));
-  --color-chart-grid: var(--py-chart-grid);
-  --color-chart-axis: var(--py-chart-axis);
-  --color-shadow: var(--py-shadow);
+  --color-chart-6: var(--tx-chart6, var(--tx-chart1));
+  --color-chart-7: var(--tx-chart7, var(--tx-chart2));
+  --color-chart-8: var(--tx-chart8, var(--tx-chart3));
+  --color-chart-grid: var(--tx-chart-grid);
+  --color-chart-axis: var(--tx-chart-axis);
+  --color-shadow: var(--tx-shadow);
   /* Hover fills are computed per theme and mode by applyAppearance (hoverFill):
      a visible darker/lighter step that keeps the button text at >= 4.5:1. */
-  --color-primary-hover: var(--py-primary-hover);
-  --color-destructive-hover: var(--py-destructive-hover);
+  --color-primary-hover: var(--tx-primary-hover);
+  --color-destructive-hover: var(--tx-destructive-hover);
 
-  --radius-xs: calc(var(--py-radius) - var(--py-radius-step-6, 6px));
-  --radius-sm: calc(var(--py-radius) - var(--py-radius-step-4, 4px));
-  --radius-md: calc(var(--py-radius) - var(--py-radius-step-2, 2px));
-  --radius-lg: var(--py-radius);
-  --radius-xl: calc(var(--py-radius) + var(--py-radius-step-4, 4px));
+  --radius-xs: calc(var(--tx-radius) - var(--tx-radius-step-6, 6px));
+  --radius-sm: calc(var(--tx-radius) - var(--tx-radius-step-4, 4px));
+  --radius-md: calc(var(--tx-radius) - var(--tx-radius-step-2, 2px));
+  --radius-lg: var(--tx-radius);
+  --radius-xl: calc(var(--tx-radius) + var(--tx-radius-step-4, 4px));
   --radius-2xl: calc(
-    var(--py-radius) +
-    var(--py-radius-step-6, 6px) +
-    var(--py-radius-step-2, 2px)
+    var(--tx-radius) +
+    var(--tx-radius-step-6, 6px) +
+    var(--tx-radius-step-2, 2px)
   );
 
-  --font-sans: var(--py-font-sans);
-  --font-heading: var(--py-font-heading);
-  --font-mono: var(--py-font-mono);
-  --font-weight-normal: var(--py-font-weight-body, 400);
-  --font-weight-medium: var(--py-font-weight-medium, 500);
-  --font-weight-semibold: var(--py-font-weight-heading, 600);
-  --font-weight-bold: var(--py-font-weight-bold, 700);
-  --tracking-body: var(--py-letter-spacing-body, 0);
-  --tracking-heading: var(--py-letter-spacing-heading, 0);
+  --font-sans: var(--tx-font-sans);
+  --font-heading: var(--tx-font-heading);
+  --font-mono: var(--tx-font-mono);
+  --font-weight-normal: var(--tx-font-weight-body, 400);
+  --font-weight-medium: var(--tx-font-weight-medium, 500);
+  --font-weight-semibold: var(--tx-font-weight-heading, 600);
+  --font-weight-bold: var(--tx-font-weight-bold, 700);
+  --tracking-body: var(--tx-letter-spacing-body, 0);
+  --tracking-heading: var(--tx-letter-spacing-heading, 0);
 
-  --text-xs: var(--py-font-size-xs, 0.75rem);
-  --text-sm: var(--py-font-size-sm, 0.875rem);
-  --text-base: var(--py-font-size-base, 1rem);
-  --text-lg: var(--py-font-size-lg, 1.125rem);
-  --text-xl: var(--py-font-size-xl, 1.25rem);
-  --text-2xl: var(--py-font-size-2xl, 1.5rem);
-  --text-3xl: var(--py-font-size-3xl, 1.875rem);
-  --text-4xl: var(--py-font-size-4xl, 2.25rem);
-  --text-5xl: var(--py-font-size-5xl, 3rem);
-  --text-6xl: var(--py-font-size-6xl, 3.75rem);
-  --text-7xl: var(--py-font-size-7xl, 4.5rem);
-  --text-8xl: var(--py-font-size-8xl, 6rem);
-  --text-9xl: var(--py-font-size-9xl, 8rem);
+  --text-xs: var(--tx-font-size-xs, 0.75rem);
+  --text-sm: var(--tx-font-size-sm, 0.875rem);
+  --text-base: var(--tx-font-size-base, 1rem);
+  --text-lg: var(--tx-font-size-lg, 1.125rem);
+  --text-xl: var(--tx-font-size-xl, 1.25rem);
+  --text-2xl: var(--tx-font-size-2xl, 1.5rem);
+  --text-3xl: var(--tx-font-size-3xl, 1.875rem);
+  --text-4xl: var(--tx-font-size-4xl, 2.25rem);
+  --text-5xl: var(--tx-font-size-5xl, 3rem);
+  --text-6xl: var(--tx-font-size-6xl, 3.75rem);
+  --text-7xl: var(--tx-font-size-7xl, 4.5rem);
+  --text-8xl: var(--tx-font-size-8xl, 6rem);
+  --text-9xl: var(--tx-font-size-9xl, 8rem);
 
   /* Density scales the whole spacing system (compact 0.875 … comfortable 1.125). */
-  --spacing: calc(0.25rem * var(--py-density));
+  --spacing: calc(0.25rem * var(--tx-density));
 
-  --default-border-width: var(--py-border-width, 1px);
-  --duration-fast: var(--py-motion-fast, 150ms);
-  --duration-base: var(--py-motion-base, 200ms);
-  --duration-slow: var(--py-motion-slow, 300ms);
-  --default-transition-duration: var(--py-motion-base, 200ms);
-  --default-transition-timing-function: var(--py-motion-easing, cubic-bezier(0.4, 0, 0.2, 1));
+  --default-border-width: var(--tx-border-width, 1px);
+  --duration-fast: var(--tx-motion-fast, 150ms);
+  --duration-base: var(--tx-motion-base, 200ms);
+  --duration-slow: var(--tx-motion-slow, 300ms);
+  --default-transition-duration: var(--tx-motion-base, 200ms);
+  --default-transition-timing-function: var(--tx-motion-easing, cubic-bezier(0.4, 0, 0.2, 1));
 
-  --shadow-soft: var(--py-shadow-soft, 0 1px 2px 0 var(--py-shadow), 0 1px 3px 0 var(--py-shadow));
+  --shadow-soft: var(--tx-shadow-soft, 0 1px 2px 0 var(--tx-shadow), 0 1px 3px 0 var(--tx-shadow));
   --shadow-float: var(
-    --py-shadow-float,
-    0 10px 30px -8px var(--py-shadow),
-    0 4px 10px -4px var(--py-shadow)
+    --tx-shadow-float,
+    0 10px 30px -8px var(--tx-shadow),
+    0 4px 10px -4px var(--tx-shadow)
   );
 }
 
 @layer base {
   :root {
-    --py-background: #fafafa;
-    --py-foreground: #09090b;
-    --py-surface: #ffffff;
-    --py-surface-foreground: #09090b;
-    --py-elevated: #ffffff;
-    --py-muted: #f4f4f5;
-    --py-muted-foreground: #52525b;
-    --py-border: #e4e4e7;
-    --py-input: #d4d4d8;
-    --py-ring: #8b5cf6;
-    --py-primary: #7c3aed;
-    --py-primary-foreground: #ffffff;
-    --py-secondary: #f4f4f5;
-    --py-secondary-foreground: #18181b;
-    --py-accent: #f5f3ff;
-    --py-accent-foreground: #4c1d95;
-    --py-destructive: #b91c1c;
-    --py-destructive-foreground: #ffffff;
-    --py-success: #15803d;
-    --py-success-foreground: #ffffff;
-    --py-warning: #fbbf24;
-    --py-warning-foreground: #451a03;
-    --py-info: #0369a1;
-    --py-info-foreground: #ffffff;
-    --py-sidebar: #f4f4f5;
-    --py-sidebar-foreground: #27272a;
-    --py-sidebar-border: #e4e4e7;
-    --py-chart1: #7c3aed;
-    --py-chart2: #0284c7;
-    --py-chart3: #27a094;
-    --py-chart4: #c88000;
-    --py-chart5: #f43f5e;
-    --py-chart-grid: var(--py-border);
-    --py-chart-axis: var(--py-muted-foreground);
-    --py-shadow: rgb(15 23 42 / 0.08);
-    --py-primary-hover: #6b32cc;
-    --py-destructive-hover: #9f1818;
-    --py-radius: 0.625rem;
+    --tx-background: #fafafa;
+    --tx-foreground: #09090b;
+    --tx-surface: #ffffff;
+    --tx-surface-foreground: #09090b;
+    --tx-elevated: #ffffff;
+    --tx-muted: #f4f4f5;
+    --tx-muted-foreground: #52525b;
+    --tx-border: #e4e4e7;
+    --tx-input: #d4d4d8;
+    --tx-ring: #8b5cf6;
+    --tx-primary: #7c3aed;
+    --tx-primary-foreground: #ffffff;
+    --tx-link: #7c3aed;
+    --tx-link-hover: #5f2eb5;
+    --tx-link-active: #4e2693;
+    --tx-link-focus: #5f2eb5;
+    --tx-link-disabled: #52525b;
+    --tx-link-visited: #7c3aed;
+    --tx-secondary: #f4f4f5;
+    --tx-secondary-foreground: #18181b;
+    --tx-accent: #f5f3ff;
+    --tx-accent-foreground: #4c1d95;
+    --tx-destructive: #b91c1c;
+    --tx-destructive-foreground: #ffffff;
+    --tx-success: #15803d;
+    --tx-success-foreground: #ffffff;
+    --tx-warning: #fbbf24;
+    --tx-warning-foreground: #451a03;
+    --tx-info: #0369a1;
+    --tx-info-foreground: #ffffff;
+    --tx-sidebar: #f4f4f5;
+    --tx-sidebar-foreground: #27272a;
+    --tx-sidebar-border: #e4e4e7;
+    --tx-chart1: #7c3aed;
+    --tx-chart2: #0284c7;
+    --tx-chart3: #27a094;
+    --tx-chart4: #c88000;
+    --tx-chart5: #f43f5e;
+    --tx-chart-grid: var(--tx-border);
+    --tx-chart-axis: var(--tx-muted-foreground);
+    --tx-shadow: rgb(15 23 42 / 0.08);
+    --tx-primary-hover: #6b32cc;
+    --tx-destructive-hover: #9f1818;
+    --tx-radius: 0.625rem;
     --py-app-height: 100dvh;
-    --py-font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
-    --py-font-heading: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
-    --py-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-    --py-density: 1;
-    --py-motion: 1;
+    --tx-font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+    --tx-font-heading: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+    --tx-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --tx-density: 1;
+    --tx-motion: 1;
   }
   :root.dark,
   .dark {
-    --py-background: #09090b;
-    --py-foreground: #fafafa;
-    --py-surface: #18181b;
-    --py-surface-foreground: #fafafa;
-    --py-elevated: #27272a;
-    --py-muted: #27272a;
-    --py-muted-foreground: #a1a1aa;
-    --py-border: rgb(255 255 255 / 0.1);
-    --py-input: rgb(255 255 255 / 0.16);
-    --py-ring: #a78bfa;
-    --py-primary: #a78bfa;
-    --py-primary-foreground: #2e1065;
-    --py-secondary: #27272a;
-    --py-secondary-foreground: #fafafa;
-    --py-accent: #2e1065;
-    --py-accent-foreground: #ede9fe;
-    --py-destructive: #f87171;
-    --py-destructive-foreground: #450a0a;
-    --py-success: #4ade80;
-    --py-success-foreground: #052e16;
-    --py-warning: #fbbf24;
-    --py-warning-foreground: #451a03;
-    --py-info: #38bdf8;
-    --py-info-foreground: #082f49;
-    --py-sidebar: #18181b;
-    --py-sidebar-foreground: #e4e4e7;
-    --py-sidebar-border: rgb(255 255 255 / 0.08);
-    --py-chart1: #a78bfa;
-    --py-chart2: #38bdf8;
-    --py-chart3: #42e1cc;
-    --py-chart4: #fbbf24;
-    --py-chart5: #fb7185;
-    --py-shadow: rgb(0 0 0 / 0.45);
-    --py-primary-hover: #b39bfb;
-    --py-destructive-hover: #f98585;
+    --tx-background: #09090b;
+    --tx-foreground: #fafafa;
+    --tx-surface: #18181b;
+    --tx-surface-foreground: #fafafa;
+    --tx-elevated: #27272a;
+    --tx-muted: #27272a;
+    --tx-muted-foreground: #a1a1aa;
+    --tx-border: rgb(255 255 255 / 0.1);
+    --tx-input: rgb(255 255 255 / 0.16);
+    --tx-ring: #a78bfa;
+    --tx-primary: #a78bfa;
+    --tx-primary-foreground: #2e1065;
+    --tx-link: #a78bfa;
+    --tx-link-hover: #bca7fa;
+    --tx-link-active: #c8b7fa;
+    --tx-link-focus: #bca7fa;
+    --tx-link-disabled: #a1a1aa;
+    --tx-link-visited: #a78bfa;
+    --tx-secondary: #27272a;
+    --tx-secondary-foreground: #fafafa;
+    --tx-accent: #2e1065;
+    --tx-accent-foreground: #ede9fe;
+    --tx-destructive: #f87171;
+    --tx-destructive-foreground: #450a0a;
+    --tx-success: #4ade80;
+    --tx-success-foreground: #052e16;
+    --tx-warning: #fbbf24;
+    --tx-warning-foreground: #451a03;
+    --tx-info: #38bdf8;
+    --tx-info-foreground: #082f49;
+    --tx-sidebar: #18181b;
+    --tx-sidebar-foreground: #e4e4e7;
+    --tx-sidebar-border: rgb(255 255 255 / 0.08);
+    --tx-chart1: #a78bfa;
+    --tx-chart2: #38bdf8;
+    --tx-chart3: #42e1cc;
+    --tx-chart4: #fbbf24;
+    --tx-chart5: #fb7185;
+    --tx-shadow: rgb(0 0 0 / 0.45);
+    --tx-primary-hover: #b39bfb;
+    --tx-destructive-hover: #f98585;
   }
 
   *,
@@ -214,8 +226,8 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    font-weight: var(--py-font-weight-body, 400);
-    letter-spacing: var(--py-letter-spacing-body, 0);
+    font-weight: var(--tx-font-weight-body, 400);
+    letter-spacing: var(--tx-letter-spacing-body, 0);
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -227,8 +239,8 @@
   h3,
   h4 {
     font-family: var(--font-heading);
-    font-weight: var(--py-font-weight-heading, 600);
-    letter-spacing: var(--py-letter-spacing-heading, 0);
+    font-weight: var(--tx-font-weight-heading, 600);
+    letter-spacing: var(--tx-letter-spacing-heading, 0);
     text-wrap: balance;
   }
 
@@ -259,78 +271,102 @@
   }
 }
 
-/* Reduced motion: the OS setting, or the prototype's own toggle. */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  ::before,
-  ::after {
-    --py-motion-fast: 0ms !important;
-    --py-motion-base: 0ms !important;
-    --py-motion-slow: 0ms !important;
-    --py-motion-easing: linear !important;
+/*
+ * Reduced motion: the OS setting, or the prototype's own toggle.
+ *
+ * In Texuli's own layer, `tx.base`: Texuli 0.5.0's `@texuli/tokens/base.css`
+ * sets `transition-duration: 0.01ms !important` on `*` there, and an
+ * `!important` declaration in a layer beats an unlayered one. In the same
+ * layer the more specific selector wins whatever order the stylesheets load
+ * in: `html *` (0,0,1) over `*` (0,0,0), `html ::before` over `*::before`.
+ */
+@layer tx.base {
+  @media (prefers-reduced-motion: reduce) {
+    html *,
+    html ::before,
+    html ::after {
+      --tx-motion-fast: 0ms !important;
+      --tx-motion-base: 0ms !important;
+      --tx-motion-slow: 0ms !important;
+      --tx-motion-easing: linear !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      /*
+       * 0s, not 0.01ms: with any duration every element (transition-property
+       * is `all` by default) also transitions `visibility`, so a slide or
+       * panel that turns visible reveals its subtree one nesting level per
+       * frame and buttons sit unnamed for a moment on a slow device. A zero
+       * duration and delay start no transition at all.
+       */
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  html[data-py-motion="reduce"] *,
+  html[data-py-motion="reduce"] ::before,
+  html[data-py-motion="reduce"] ::after,
+  html[data-py-motion="reduce"],
+  html [data-py-motion="reduce"] *,
+  html [data-py-motion="reduce"] ::before,
+  html [data-py-motion="reduce"] ::after,
+  html [data-py-motion="reduce"] {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    /* See the media query above: no transition at all, so visibility applies at once. */
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
-}
-
-[data-py-motion="reduce"] *,
-[data-py-motion="reduce"] ::before,
-[data-py-motion="reduce"] ::after,
-[data-py-motion="reduce"] {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
-  scroll-behavior: auto !important;
 }
 
 /* Glass is progressive enhancement: browsers without backdrop-filter keep solid fills. */
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   [data-py-surface="glass"] {
-    --py-surface-fill: color-mix(
+    --tx-surface-fill: color-mix(
       in srgb,
-      var(--py-surface) var(--py-glass-opacity, 82%),
+      var(--tx-surface) var(--tx-glass-opacity, 82%),
       transparent
     );
-    --py-elevated-fill: color-mix(
+    --tx-elevated-fill: color-mix(
       in srgb,
-      var(--py-elevated) var(--py-glass-opacity, 82%),
+      var(--tx-elevated) var(--tx-glass-opacity, 82%),
       transparent
     );
   }
 
   [data-py-surface="glass"] :is(.bg-surface, .bg-elevated) {
-    backdrop-filter: blur(var(--py-glass-blur, 16px));
-    -webkit-backdrop-filter: blur(var(--py-glass-blur, 16px));
+    backdrop-filter: blur(var(--tx-glass-blur, 16px));
+    -webkit-backdrop-filter: blur(var(--tx-glass-blur, 16px));
   }
 }
 
 /* Safe-area helpers for notched phones (pair with viewport-fit=cover). */
 @utility pt-safe {
-  padding-top: max(env(safe-area-inset-top, 0px), var(--py-safe-top, 0px));
+  padding-top: max(env(safe-area-inset-top, 0px), var(--tx-safe-top, 0px));
 }
 @utility pb-safe {
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--py-safe-bottom, 0px));
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--tx-safe-bottom, 0px));
 }
 @utility pl-safe {
-  padding-left: max(env(safe-area-inset-left, 0px), var(--py-safe-left, 0px));
+  padding-left: max(env(safe-area-inset-left, 0px), var(--tx-safe-left, 0px));
 }
 @utility pr-safe {
-  padding-right: max(env(safe-area-inset-right, 0px), var(--py-safe-right, 0px));
+  padding-right: max(env(safe-area-inset-right, 0px), var(--tx-safe-right, 0px));
 }
 @utility px-safe {
-  padding-left: max(env(safe-area-inset-left, 0px), var(--py-safe-left, 0px));
-  padding-right: max(env(safe-area-inset-right, 0px), var(--py-safe-right, 0px));
+  padding-left: max(env(safe-area-inset-left, 0px), var(--tx-safe-left, 0px));
+  padding-right: max(env(safe-area-inset-right, 0px), var(--tx-safe-right, 0px));
 }
 @utility h-app {
-  height: var(--py-app-height, 100dvh);
+  height: var(--tx-app-height, 100dvh);
 }
 @utility min-h-app {
-  min-height: var(--py-app-height, 100dvh);
+  min-height: var(--tx-app-height, 100dvh);
 }
 @utility max-h-app {
-  max-height: var(--py-app-height, 100dvh);
+  max-height: var(--tx-app-height, 100dvh);
 }
 @utility min-h-touch {
   min-height: 44px;

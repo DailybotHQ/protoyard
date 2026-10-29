@@ -2,6 +2,7 @@
 import { ArrowDown, CircleAlert, RotateCcw, Square } from '@lucide/svelte';
 import { Button } from '@protoyard/ui';
 import { tick } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { AgentRun, Message } from '../database/schema.ts';
 import { authorOf, type Directory } from '../lib/context.ts';
 import { formatLongDay, formatTime } from '../lib/format.ts';
@@ -180,11 +181,11 @@ $effect(() => {
                 <div class="mt-0.5 text-sm leading-relaxed text-foreground" data-message-id={message.id} data-status={message.status}>
                   {#if message.status === 'failed'}
                     <div class="flex flex-wrap items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2">
-                      <CircleAlert class="size-4 shrink-0 text-destructive" aria-hidden="true" />
+                      <LucideIcon icon={CircleAlert} class="size-4 shrink-0 text-destructive" />
                       <span class="flex-1"><span class="font-medium">Reply failed.</span> {message.body}</span>
                       {#if canInvoke && message.runId}
                         <Button size="sm" variant="outline" onclick={() => message.runId && onRetry(message.runId)}>
-                          <RotateCcw aria-hidden="true" /> Retry
+                          <LucideIcon icon={RotateCcw} /> Retry
                         </Button>
                       {/if}
                     </div>
@@ -197,22 +198,23 @@ $effect(() => {
                         <span class="relay-caret" aria-hidden="true"></span>
                         <span>{message.body ? 'Writing…' : 'Thinking…'}</span>
                         {#if canInvoke && message.runId}
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
                             class="inline-flex min-h-touch items-center gap-1 rounded px-1.5 font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0"
                             onclick={() => message.runId && onStop(message.runId)}
                           >
-                            <Square class="size-3 fill-current" aria-hidden="true" /> Stop<span class="sr-only"> {author.name}</span>
-                          </button>
+                            <LucideIcon icon={Square} class="size-3 fill-current" /> Stop<span class="sr-only"> {author.name}</span>
+                          </Button>
                         {/if}
                       </div>
                     {:else}
                       <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <CircleAlert class="size-3.5" aria-hidden="true" />
+                        <LucideIcon icon={CircleAlert} class="size-3.5" />
                         <span>Reply interrupted (the page reloaded mid-stream).</span>
                         {#if canInvoke && message.runId}
                           <Button size="sm" variant="ghost" onclick={() => message.runId && onRetry(message.runId)}>
-                            <RotateCcw aria-hidden="true" /> Retry
+                            <LucideIcon icon={RotateCcw} /> Retry
                           </Button>
                         {/if}
                       </div>
@@ -233,13 +235,14 @@ $effect(() => {
   </section>
 
   {#if showJump}
-    <button
+    <Button
       type="button"
+      variant="ghost"
       class="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border bg-elevated px-3 py-1.5 text-xs font-medium text-foreground shadow-float hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       onclick={() => scrollToLatest(true)}
     >
-      <ArrowDown class="size-3.5" aria-hidden="true" /> New messages
-    </button>
+      <LucideIcon icon={ArrowDown} class="size-3.5" /> New messages
+    </Button>
   {/if}
 
   <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>

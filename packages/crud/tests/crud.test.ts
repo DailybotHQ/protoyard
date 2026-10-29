@@ -164,7 +164,7 @@ describe('EntityList', () => {
     );
     await fireEvent.click(screen.getByRole('button', { name: 'Delete 1' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    const dialog = screen.getByRole('alertdialog');
+    const dialog = await screen.findByRole('alertdialog');
     await waitFor(() =>
       expect(dialog.querySelector('button[aria-busy="true"]')?.textContent).toContain('Delete')
     );
@@ -374,13 +374,16 @@ describe('EntityForm', () => {
 
     await waitFor(() => {
       expect(document.querySelector('[data-relation-picker="customer"]')).toBeTruthy();
-      expect(document.querySelectorAll('[data-select-trigger]')).toHaveLength(2);
+      expect(document.querySelectorAll('button[role="combobox"]')).toHaveLength(2);
     });
     const assigneeLabel = screen.getByText('Assignee').closest('label');
     const assigneeControl = assigneeLabel ? document.getElementById(assigneeLabel.htmlFor) : null;
-    expect(assigneeControl?.hasAttribute('data-select-trigger')).toBe(true);
+    expect(assigneeControl?.matches('button[role="combobox"]')).toBe(true);
     expect(document.querySelector('[data-relation-picker="assignee"]')).toBeNull();
     expect(document.querySelector('input[placeholder="id"]')).toBeNull();
+    // The relation picker is named by its visible form label, not the field key.
+    expect(screen.getByRole('combobox', { name: 'Customer' })).toBeTruthy();
+    expect(screen.queryByRole('combobox', { name: 'customer' })).toBeNull();
   });
 });
 

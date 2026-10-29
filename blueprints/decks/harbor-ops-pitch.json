@@ -112,6 +112,7 @@
           "spec": {
             "kind": "bar",
             "title": "Closed jobs by week",
+            "description": "Sample data: closed jobs rise from 12 in week 1 to 22 in week 4, with a dip to 15 in week 3.",
             "unit": "number",
             "labels": ["W1", "W2", "W3", "W4"],
             "series": [

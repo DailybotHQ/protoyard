@@ -6,7 +6,8 @@ import manifestJson from '../protoyard.json';
 
 /**
  * Content-kind runtime for this doc template (ADR-040).
- * `definePrototypeFromDoc` → `defineKindRuntime`.
+ * `definePrototypeFromDoc` → `defineKindPrototype` (no brand, so no palette
+ * generator in the first chunk).
  */
 const manifest = parseManifest(manifestJson);
 const doc = DocDocumentSchema.parse((blueprintJson as { doc?: unknown }).doc ?? blueprintJson);

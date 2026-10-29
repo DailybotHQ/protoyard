@@ -1,5 +1,7 @@
 <script lang="ts">
+import { Button, Input } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import GallerySelect from './GallerySelect.svelte';
 
 interface PrototypeTarget {
   slug: string;
@@ -116,7 +118,7 @@ const selectClass =
   <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
     <label class="relative min-w-0 lg:col-span-2">
       <span class="sr-only">Search themes</span>
-      <input
+      <Input
         class={`${selectClass} w-full pl-3`}
         type="search"
         placeholder="Search name, palette, mood…"
@@ -126,31 +128,11 @@ const selectClass =
     </label>
     <label class="flex flex-col gap-1 text-xs text-muted">
       Collection
-      <select
-        class={selectClass}
-        value={collection}
-        onchange={(event) => (collection = event.currentTarget.value)}
-        data-testid="theme-collection"
-      >
-        <option value="all">All collections</option>
-        {#each collections as item (item)}
-          <option value={item}>{item}</option>
-        {/each}
-      </select>
+      <GallerySelect class={selectClass} value={collection} onValueChange={(value) => (collection = value)} data-testid="theme-collection" items={[{ value: 'all', label: 'All collections' }, ...collections.map((item) => ({ value: item, label: item }))]} />
     </label>
     <label class="flex flex-col gap-1 text-xs text-muted">
       Mood
-      <select
-        class={selectClass}
-        value={mood}
-        onchange={(event) => (mood = event.currentTarget.value)}
-        data-testid="theme-mood"
-      >
-        <option value="all">All moods</option>
-        {#each moods as item (item)}
-          <option value={item}>{item}</option>
-        {/each}
-      </select>
+      <GallerySelect class={selectClass} value={mood} onValueChange={(value) => (mood = value)} data-testid="theme-mood" items={[{ value: 'all', label: 'All moods' }, ...moods.map((item) => ({ value: item, label: item }))]} />
     </label>
   </div>
 
@@ -162,38 +144,29 @@ const selectClass =
       {#if prototypes.length > 0}
         <label class="flex items-center gap-2 text-sm text-muted">
           Preview prototype
-          <select
-            class={selectClass}
-            value={prototypeSlug}
-            onchange={(event) => (prototypeSlug = event.currentTarget.value)}
-            data-testid="theme-prototype"
-          >
-            {#each prototypes as prototype (prototype.slug)}
-              <option value={prototype.slug}>{prototype.name}</option>
-            {/each}
-          </select>
+          <GallerySelect class={selectClass} value={prototypeSlug} onValueChange={(value) => (prototypeSlug = value)} data-testid="theme-prototype" items={prototypes.map((prototype) => ({ value: prototype.slug, label: prototype.name }))} />
         </label>
       {/if}
       <div class="inline-flex rounded-lg border border-line bg-surface p-1" role="group" aria-label="Theme preview mode">
-        <button
+        <Button variant="ghost"
           type="button"
           class={mode === 'light' ? 'rounded-md bg-accent px-3 py-1.5 text-sm text-on-accent' : 'rounded-md px-3 py-1.5 text-sm text-muted hover:text-fg'}
           aria-pressed={mode === 'light'}
           onclick={() => (mode = 'light')}
-        >Light</button>
-        <button
+        >Light</Button>
+        <Button variant="ghost"
           type="button"
           class={mode === 'dark' ? 'rounded-md bg-accent px-3 py-1.5 text-sm text-on-accent' : 'rounded-md px-3 py-1.5 text-sm text-muted hover:text-fg'}
           aria-pressed={mode === 'dark'}
           onclick={() => (mode = 'dark')}
-        >Dark</button>
+        >Dark</Button>
       </div>
       {#if q || collection !== 'all' || mood !== 'all'}
-        <button
+        <Button variant="outline"
           type="button"
           class="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg hover:bg-surface-2"
           onclick={clearFilters}
-        >Clear filters</button>
+        >Clear filters</Button>
       {/if}
     </div>
   </div>

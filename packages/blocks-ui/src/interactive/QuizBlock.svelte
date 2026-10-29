@@ -3,6 +3,7 @@ import type { QuizBlock as QuizBlockType } from '@protoyard/blocks';
 import { quizChoiceOrder, quizScore } from '@protoyard/blocks/interactive';
 import { Button } from '@protoyard/ui';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
+import { inlineParts } from '../lib/inline.ts';
 import { useBlockState } from './use-block-state.svelte.ts';
 
 let { block }: { block: QuizBlockType } = $props();
@@ -51,6 +52,15 @@ function isCorrect(questionId: string): boolean | null {
 }
 </script>
 
+{#snippet rich(text: string)}
+  {#each inlineParts(text) as part, i (i)}
+    {#if part.mark === 'strong'}<strong>{part.text}</strong>
+    {:else if part.mark === 'em'}<em>{part.text}</em>
+    {:else if part.mark === 'code'}<code class="font-mono">{part.text}</code>
+    {:else}{part.text}{/if}
+  {/each}
+{/snippet}
+
 <section
   class="grid gap-4 rounded-lg border border-border bg-card p-4"
   data-py-block="quiz"
@@ -76,7 +86,7 @@ function isCorrect(questionId: string): boolean | null {
     {@const correct = isCorrect(question.id)}
     {@const locked = score.submitted || (feedback === 'immediate' && chosen.length > 0)}
     <fieldset class="grid gap-2 rounded-md border border-border p-3" disabled={ctl.pending}>
-      <legend class="px-1 text-sm font-medium text-foreground">{question.prompt}</legend>
+      <legend class="px-1 text-sm font-medium text-foreground">{@render rich(question.prompt)}</legend>
       <p class="text-xs text-muted-foreground">
         {multi ? 'Select all that apply.' : 'Select one answer.'}
       </p>
@@ -86,10 +96,12 @@ function isCorrect(questionId: string): boolean | null {
           {#if choice}
             {@const selected = chosen.includes(choice.id)}
             <li>
-              <button
+              <!-- Outline variant: foreground text on the surface (AA); selected adds a primary tint. -->
+              <Button
                 type="button"
-                class="w-full rounded-md border px-3 py-2 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring
-                  {selected ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/50'}"
+                variant="outline"
+                class="h-auto w-full justify-start rounded-md px-3 py-2 text-left text-sm whitespace-normal break-words
+                  {selected ? 'border-primary bg-primary/10' : ''}"
                 aria-pressed={selected}
                 disabled={locked}
                 onclick={() => answer(question.id, choice.id, multi)}
@@ -98,7 +110,7 @@ function isCorrect(questionId: string): boolean | null {
                 {#if selected}
                   <span class="sr-only">(selected)</span>
                 {/if}
-              </button>
+              </Button>
             </li>
           {/if}
         {/each}
@@ -115,7 +127,7 @@ function isCorrect(questionId: string): boolean | null {
             Not quite
           {/if}
           {#if question.explanation}
-            <span class="font-normal text-muted-foreground"> — {question.explanation}</span>
+            <span class="font-normal text-muted-foreground"> — {@render rich(question.explanation)}</span>
           {/if}
         </p>
       {/if}

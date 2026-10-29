@@ -3,8 +3,9 @@ import { PermissionDeniedError, parseScenario } from '@protoyard/core';
 import { createGenerateContext, validateWorld } from '@protoyard/scenarios';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
-import type { AssistantDatabase } from '../src/database/schema.ts';
+import type { AssistantDatabase, Message } from '../src/database/schema.ts';
 import { createAssistantServices } from '../src/domain/services.ts';
+import { sortMessagesForDisplay } from '../src/lib/message-order.ts';
 import { definition } from '../src/prototype.ts';
 import { generateAssistantWorld } from '../src/scenarios/generators.ts';
 
@@ -56,7 +57,14 @@ describe('AI assistant template', () => {
     const scenario = getScenario('long-history');
     const first = generateAssistantWorld(createGenerateContext(scenario));
     const second = generateAssistantWorld(createGenerateContext(scenario));
-    expect(first.tables.messages).toHaveLength(5000);
+    const messages = (first.tables.messages ?? []) as unknown as Message[];
+    expect(messages).toHaveLength(5000);
+    expect(new Set(messages.map((message) => message.conversationId)).size).toBe(1);
+    expect(messages.map((message) => message.createdAt)).toEqual(
+      [...messages]
+        .map((message) => message.createdAt)
+        .sort((left, right) => left.localeCompare(right))
+    );
     expect(second).toEqual(first);
     expect(
       validateWorld(first, { ...definition.integrity, referenceTime: scenario.referenceTime })
@@ -106,6 +114,24 @@ describe('AI assistant template', () => {
     expect(reply?.content).toMatch(/practical|starting point|manageable/i);
     expect(reply?.usage?.totalTokens).toBeGreaterThan(0);
     expect((await runtime.db.settings.get('workspace'))?.canvas?.content).toBe(reply?.content);
+  });
+
+  it('renders a runtime reply after its user prompt when timestamps tie', async () => {
+    const runtime = await harness.boot('fresh-workspace');
+    const services = createAssistantServices(runtime, { chunkDelayMs: 0 });
+    const [project] = await runtime.db.projects.toArray();
+    const conversationId = await services.createConversation(project?.id);
+    await services.send(conversationId, 'Put the prompt before the reply.', AI_MODELS[0]!);
+
+    const rows = await runtime.db.messages.where('conversationId').equals(conversationId).toArray();
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.createdAt).toBe(rows[1]?.createdAt);
+    const ordered = sortMessagesForDisplay(rows);
+    expect(ordered.map((message) => message.role)).toEqual(['user', 'assistant']);
+    expect(ordered.map((message) => message.content)).toEqual([
+      'Put the prompt before the reply.',
+      expect.stringMatching(/.+/),
+    ]);
   });
 
   it('stops an in-flight response stream and records only emitted token usage', async () => {

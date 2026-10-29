@@ -3,6 +3,7 @@ import { CircleAlert, RotateCcw, Square } from '@lucide/svelte';
 import type { Persona } from '@protoyard/core';
 import { Button } from '@protoyard/ui';
 import { tick } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { Message } from '../database/schema.ts';
 import { authorOf } from '../lib/context.ts';
 import { formatDay, formatTime } from '../lib/format.ts';
@@ -118,9 +119,9 @@ $effect(() => {
             <div class="mt-0.5 text-sm leading-relaxed break-words whitespace-pre-wrap" data-message-id={message.id} data-status={message.status}>
               {#if message.status === 'failed'}
                 <div class="flex flex-wrap items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 whitespace-normal">
-                  <CircleAlert class="size-4 shrink-0 text-destructive" aria-hidden="true" />
+                  <LucideIcon icon={CircleAlert} class="size-4 shrink-0 text-destructive" />
                   <span class="flex-1"><span class="font-medium">Reply failed.</span> {message.error}</span>
-                  {#if canSend}<Button size="sm" variant="outline" onclick={() => onRetry(message.id)}><RotateCcw aria-hidden="true" /> Retry</Button>{/if}
+                  {#if canSend}<Button size="sm" variant="outline" onclick={() => onRetry(message.id)}><LucideIcon icon={RotateCcw} /> Retry</Button>{/if}
                 </div>
               {:else}
                 {message.body}
@@ -129,19 +130,19 @@ $effect(() => {
                     {#if isLive(message.id)}
                       {message.body ? 'Writing…' : 'Thinking…'}
                       {#if canSend}
-                        <button type="button" class="inline-flex min-h-touch items-center gap-1 rounded px-1.5 font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0" onclick={() => onStop(message.id)}>
-                          <Square class="size-3 fill-current" aria-hidden="true" /> Stop
-                        </button>
+                        <Button type="button" variant="ghost" class="inline-flex min-h-touch items-center gap-1 rounded px-1.5 font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0" onclick={() => onStop(message.id)}>
+                          <LucideIcon icon={Square} class="size-3 fill-current" /> Stop
+                        </Button>
                       {/if}
                     {:else}
                       Reply interrupted by a reload.
-                      {#if canSend}<Button size="sm" variant="ghost" onclick={() => onRetry(message.id)}><RotateCcw aria-hidden="true" /> Retry</Button>{/if}
+                      {#if canSend}<Button size="sm" variant="ghost" onclick={() => onRetry(message.id)}><LucideIcon icon={RotateCcw} /> Retry</Button>{/if}
                     {/if}
                   </span>
                 {:else if message.status === 'stopped'}
                   <span class="mt-0.5 flex items-center gap-2 text-xs whitespace-normal text-muted-foreground italic">
                     Stopped
-                    {#if canSend}<Button size="sm" variant="ghost" onclick={() => onRetry(message.id)}><RotateCcw aria-hidden="true" /> Regenerate</Button>{/if}
+                    {#if canSend}<Button size="sm" variant="ghost" onclick={() => onRetry(message.id)}><LucideIcon icon={RotateCcw} /> Regenerate</Button>{/if}
                   </span>
                 {/if}
               {/if}

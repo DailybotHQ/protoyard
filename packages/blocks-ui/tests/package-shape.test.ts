@@ -85,6 +85,7 @@ describe('@protoyard/blocks-ui package shape', () => {
   it('takes Svelte as a peer and the blocks engine as a dependency', () => {
     expect(Object.keys(pkg.peerDependencies)).toEqual(['svelte']);
     expect(pkg.dependencies['@protoyard/blocks']).toBe('workspace:*');
+    expect(pkg.dependencies['@texuli/blocks']).toMatch(/^\d+\.\d+\.\d+$/);
     expect(Object.keys(pkg.dependencies).filter((name) => /dexie|faker/.test(name))).toEqual([]);
   });
 

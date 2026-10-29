@@ -1,6 +1,6 @@
 <script lang="ts" generics="R">
 import { compileFilter, type FilterGroup } from '@protoyard/analytics';
-import { DataTable, type DataTableColumn } from '@protoyard/ui';
+import { Button, DataTable, type DataTableColumn } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
 import { type DrillPath, type DrillStep, drillFilter, pushDrill, truncateDrill } from './model.ts';
 
@@ -49,18 +49,20 @@ const drill = (step: DrillStep) => onchange(pushDrill(path, step));
       <span aria-current="location" class="font-medium">All</span>
       <span class="text-muted-foreground">· select a chart element to drill in</span>
     {:else}
-      <button
-        type="button"
+      <Button
+        variant="link"
+        size="sm"
         class="rounded px-1 text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-        onclick={() => onchange(truncateDrill(path, 0))}>All</button
+        onclick={() => onchange(truncateDrill(path, 0))}>All</Button
       >
       {#each path.steps as step, i (step.filter.property)}
         <span aria-hidden="true" class="text-muted-foreground">›</span>
         {#if i < path.steps.length - 1}
-          <button
-            type="button"
+          <Button
+            variant="link"
+            size="sm"
             class="rounded px-1 text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-            onclick={() => onchange(truncateDrill(path, i + 1))}>{step.label}</button
+            onclick={() => onchange(truncateDrill(path, i + 1))}>{step.label}</Button
           >
         {:else}
           <span aria-current="location" class="font-medium">{step.label}</span>

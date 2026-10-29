@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Input, Label } from '@protoyard/ui';
+import { Checkbox, Input, Label } from '@protoyard/ui';
 
 let title = $state('');
 let locked = $state(true);
@@ -19,9 +19,6 @@ let locked = $state(true);
       <Input id="label-demo-locked" class="peer max-w-48" disabled={locked} value="read-only value" />
       <Label for="label-demo-locked">Dims with a disabled peer</Label>
     </div>
-    <label class="flex items-center gap-2 text-xs text-muted-foreground">
-      <input type="checkbox" bind:checked={locked} />
-      Disable the input
-    </label>
+    <Checkbox bind:checked={locked} label="Disable the input" class="text-xs text-muted-foreground" />
   </div>
 </div>

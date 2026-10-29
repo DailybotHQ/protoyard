@@ -24,13 +24,13 @@ exists and that its links and anchors resolve ([Testing guide](TESTING_GUIDE.md)
 | [Packages](PACKAGES.md) | The npm package families and their exports, release status (not on npm yet), versions and packed output |
 | [Database](DATABASE.md) | Schemas, migrations, services, reactive queries, storage caveats |
 | [Kinds](KINDS.md) | App, deck, page and doc blueprints: the two levels, authoring, packages, catalog and limits |
-| [Decks](DECKS.md) | Slide decks: deck JSON, the 21 layouts, steps, presenter, print, style and Deck Studio, lint, sharing and limits |
+| [Decks](DECKS.md) | Slide decks: deck JSON, the 21 layouts, custom slides, steps, controls, presenter, print, style and Deck Studio, Debug for agents and the agent loop, lint, sharing and limits |
 | [Pages](PAGES.md) | Landing pages and documents: hosts, sections, forms and responses, reading layout and print |
 | [Blocks](BLOCKS.md) | Shared content blocks for decks, pages and docs: schemas, limits, lazy families, interactive state, embedded apps |
 | [Generator](GENERATOR.md) | Blueprints to app, deck, page and doc prototypes: format, screens and layouts, `protoyard generate`, regeneration, migrations and drift checks |
 | [Brief to prototype](BRIEF_TO_PROTOTYPE.md) | Prose brief → offline blueprint → review → generate → validate → export |
 | [Scenarios](SCENARIOS.md) | Scenario axes, generators, personas and permissions, time, environment, snapshots |
-| [Themes](THEMES.md) | Style model, palette engine, the 64-theme library, Theme Studio, the `theme` CLI, brand blocks |
+| [Themes](THEMES.md) | Style model, palette engine, the theme library (tokens from Texuli), Theme Studio, the `theme` CLI, brand blocks |
 | [Layouts](LAYOUTS.md) | Shared layout catalog, manifest setup, responsive fallbacks, shell composition, authoring and tests |
 | [Shells](SHELLS.md) | Device and host shells (phone, tablet, desktop window, browser, widget host, extension popup, side panel) |
 | [Views](VIEWS.md) | Rich views (board, calendar, timeline, grid, tree, map, editor, activity, files, settings, states, command palette): choosing one, service contracts, keyboard/phone behavior, scenario helpers, bundle sizes, limits |
@@ -88,7 +88,7 @@ Package and app references live next to the code: each `packages/*/README.md`,
 | [database](../packages/database/README.md) | Dexie: per-prototype data and control databases, world I/O, storage errors |
 | [scenarios](../packages/scenarios/README.md) | Generator SDK, presets, integrity, timeline, series, schedule, event and geo helpers |
 | [runtime](../packages/runtime/README.md) | `createPrototypeRuntime()`: composes the engine |
-| [themes](../packages/themes/README.md) | Built-in presets, the lazy 64-theme library, palette engine, fonts, no-flash script |
+| [themes](../packages/themes/README.md) | Built-in presets, the lazy 64-theme library (204 opt-in; tokens from `@texuli/tokens`), palette engine, fonts, no-flash script |
 | [ui](../packages/ui/README.md) | Svelte 5 components, shell frames, `LayoutHost` and the 12 layouts |
 | [devtools](../packages/devtools/README.md) | The in-browser control center, theme browser and Theme Studio |
 | [renderer-svelte](../packages/renderer-svelte/README.md) | Vite config factory, `mountPrototype`, `ShellHost`, bindings, hash router |
@@ -112,8 +112,8 @@ Package and app references live next to the code: each `packages/*/README.md`,
 | [avatars](../packages/avatars/README.md) | 175 fictional portraits as WebP with a verified manifest (data only) |
 | [blocks](../packages/blocks/README.md) | Content block engine: schemas, limits, untrusted-input guard, closed formula AST, text helpers (no Svelte) |
 | [blocks-ui](../packages/blocks-ui/README.md) | Svelte block renderers, one lazy subpath per family |
-| [decks](../packages/decks/README.md) | Slide deck engine: schema, 21-layout catalog, navigation, steps, style, quality checks (no Svelte) |
-| [decks-ui](../packages/decks-ui/README.md) | `DeckApp`, presenter, overview, print and Deck Studio, each on its own lazy chunk |
+| [decks](../packages/decks/README.md) | Slide deck engine: schema, 21-layout catalog, navigation, steps, controls registry, style, quality checks, agent slide references (no Svelte) |
+| [decks-ui](../packages/decks-ui/README.md) | `DeckApp` with the registry-driven toolbar and slide jump list, presenter, overview, print, Deck Studio and the Debug for agents panel, each on its own lazy chunk |
 | [pages](../packages/pages/README.md) | Page and doc engine: schemas, limits, TOC helpers, form-response services (no Svelte) |
 | [pages-ui](../packages/pages-ui/README.md) | `PageApp` and `DocApp` hosts, forms and responses UI, print CSS |
 | [flows](../packages/flows/README.md) | Workflow engine: serializable flows, triggers, steps, data-only conditions, simulated runs (no Svelte) |

@@ -67,19 +67,21 @@ function clearVote() {
       {@const selected = draft.includes(option.id)}
       {@const row = results.options.find((o) => o.id === option.id)}
       <li>
-        <button
+        <!-- Outline variant: foreground text on the surface (AA); selected adds a primary tint. -->
+        <Button
           type="button"
-          class="flex w-full flex-col gap-1 rounded-md border px-3 py-2 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring
-            {selected
-            ? 'border-primary bg-primary/10 ring-1 ring-primary'
-            : 'border-border hover:bg-muted/50'}"
+          variant="outline"
+          class="flex h-auto w-full flex-col items-stretch gap-1 rounded-md px-3 py-2 text-left text-sm whitespace-normal break-words
+            {selected ? 'border-primary bg-primary/10 ring-1 ring-primary' : ''}"
           aria-pressed={selected}
           disabled={ctl.pending || (hasVoted && resultsMode === 'after-vote')}
           onclick={() => toggle(option.id)}
         >
           <span class="font-medium text-foreground">{option.label}</span>
           {#if showResults && row}
+            <!-- Texuli's Progress has no width of its own; in this start-aligned column it needs the full row. -->
             <Progress
+              class="w-full"
               value={Math.round(row.share * 100)}
               max={100}
               size="sm"
@@ -92,7 +94,7 @@ function clearVote() {
               ({Math.round(row.share * 100)}%)
             </span>
           {/if}
-        </button>
+        </Button>
       </li>
     {/each}
   </ul>

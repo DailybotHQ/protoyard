@@ -3,9 +3,9 @@
 The command map the Protoyard skill uses for examples and flag spelling. It
 was taken from the real command tree (`protoyard --help` and every
 `protoyard <command> --help`) of the Protoyard CLI 1.0.0 line on 2026-10-20
-(source revision `b4f45af`). It covers 46 commands and subcommands, and
+(source revision `b4f45af`). It covers 53 commands and subcommands, and
 `pnpm check:skill` keeps every row and flag in step with the real CLI.
-(source revision `b4f45af`). It covers 46 commands and subcommands.
+(source revision `b4f45af`). It covers 53 commands and subcommands.
 
 **Verify before you act.** The CLI you have may be older or newer than this
 page. Before following an example, run:
@@ -50,7 +50,7 @@ With `--json`, every command prints exactly one envelope on stdout:
 `protoyard doctor --json` also carries the machine interface at the top
 level, beside `ok`, `command` and `data`, on every outcome (new since 1.0.0):
 `"interface": 1` and `"capabilities"`, the sorted ids this CLI implements
-(`blueprint-schema`, `generate`, `mcp`, `player`, `quick`; `import` is defined
+(`blueprint-schema`, `deck-cli`, `generate`, `kind-deck`, `kind-doc`, `kind-page`, `mcp`, `player`, `quick`; `import` is defined
 but not implemented yet). Tools detect Protoyard by reading
 `interface`.
 
@@ -110,7 +110,7 @@ deploy.
 | Command | Options | What it does | Status |
 | --- | --- | --- | --- |
 | `protoyard dev <slug>` | `-p, --port <port>`, `--host` | start ONLY that prototype's Vite dev server | Released (1.0.0) |
-| `protoyard validate <slug>` | `--skip-typecheck`, `--build`, `--strict-spec` | check manifest, folder contract, package, scenarios, schema version and types | Released (1.0.0) |
+| `protoyard validate <slug>` | `--skip-typecheck`, `--build`, `--strict-spec`, `--check` | check manifest, folder contract, package, scenarios, schema version and types; `--check` (implied in CI) never writes, so a stale `src/brand-theme.ts` fails instead of being rewritten | Released (1.0.0) |
 | `protoyard budget [slug]` | `--all`, `--skip-build` | check initial JavaScript and CSS bundle sizes against configured budgets | Released (1.0.0) |
 | `protoyard scenario` | — | inspect a prototype's scenarios | Released (1.0.0) |
 | `protoyard scenario list <slug>` | `--details` |  | Released (1.0.0) |
@@ -126,6 +126,14 @@ deploy.
 | `protoyard snapshot` | — | snapshot files committed with a prototype | Released (1.0.0) |
 | `protoyard snapshot list <slug>` | — |  | Released (1.0.0) |
 | `protoyard spec [slug]` | `--all`, `--write`, `--check`, `--init`, `--bundle` | keep a prototype's AGENTS.md and docs/ generated regions in sync with its definition (runs local code) | Released (1.0.0) |
+| `protoyard deck` | — | learn, check and fix slide decks: schema, catalogs, lint, inspect | New since 1.0.0 |
+| `protoyard deck schema` | — | print the deck JSON Schema (draft 2020-12) | New since 1.0.0 |
+| `protoyard deck layouts [id]` | — | list the deck layouts with when to use them, limits and a valid sample; one id adds its props schema | New since 1.0.0 |
+| `protoyard deck blocks [type]` | — | list the content blocks for free slides with limits and examples | New since 1.0.0 |
+| `protoyard deck lint <file\|slug>` | — | check a deck file or deck prototype; each finding has a JSON pointer, what to change and why (exit 4 on errors) | New since 1.0.0 |
+| `protoyard deck inspect [file\|slug]` | `--ref <reference>`, `--slide <id>` | resolve a `[slide-ref]` line pasted from the deck debug panel, or a slide id, to the file, JSON pointer and slide JSON; a slide that no longer exists exits 4 with the closest ids | New since 1.0.0 |
+| `protoyard deck from-markdown <file.md>` | `--out <file>`, `--force` | turn a Markdown deck (the `@texuli/deck` dialect) into a deck blueprint; every issue has its line and column; prints the blueprint without `--out`, never replaces a file without `--force` (exit 4 on errors) | New since 1.0.0 |
+| `protoyard deck capabilities` | — | list what decks support at level 1 (player) and level 2 (generate): layouts, blocks, controls, quality rules and limits | New since 1.0.0 |
 
 ### Build, share and review
 

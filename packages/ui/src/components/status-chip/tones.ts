@@ -8,6 +8,10 @@ export const STATUS_CHIP_TONES = [
 ] as const;
 export type StatusChipTone = (typeof STATUS_CHIP_TONES)[number];
 
+/**
+ * @deprecated StatusChip renders Texuli's `Badge`, which styles each tone;
+ * these Tailwind classes are kept for callers that style their own chips.
+ */
 export const STATUS_CHIP_TONE_CLASSES: Record<StatusChipTone, string> = {
   neutral: 'bg-muted text-muted-foreground',
   success: 'bg-success/15 text-success',

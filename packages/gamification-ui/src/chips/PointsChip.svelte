@@ -1,5 +1,7 @@
 <script lang="ts">
 import { Sparkles } from '@lucide/svelte';
+import { Badge } from 'texuli/badge';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 /**
  * Compact verified-points indicator. Optional provisional total is spoken, not
@@ -21,16 +23,16 @@ const spoken = $derived(
   provisional > 0 ? `${points} points verified, ${provisional} in progress` : `${points} points`
 );
 const classes = $derived(
-  `inline-flex h-9 items-center gap-1 rounded-full border border-border bg-primary/10 px-3 text-xs font-bold text-primary tabular-nums ${className}`
+  `inline-flex items-center gap-1 rounded-full text-xs font-bold tabular-nums ${className}`
 );
 </script>
 
 {#if href}
-  <a {href} class={classes} aria-label={spoken}>
-    <Sparkles class="size-3.5 shrink-0" aria-hidden="true" />{points}
+  <a {href} class="inline-flex rounded-full no-underline" aria-label={spoken}>
+    <Badge variant="default" class={classes}><LucideIcon icon={Sparkles} class="size-3.5 shrink-0" />{points}</Badge>
   </a>
 {:else}
-  <span class={classes} role="img" aria-label={spoken}>
-    <Sparkles class="size-3.5 shrink-0" aria-hidden="true" />{points}
-  </span>
+  <Badge variant="default" class={classes} role="img" aria-label={spoken}>
+    <LucideIcon icon={Sparkles} class="size-3.5 shrink-0" />{points}
+  </Badge>
 {/if}

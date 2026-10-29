@@ -9,6 +9,7 @@ import {
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import { Button, EmptyState, LoadingState } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { NotificationKind } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { personIdOf, useSocial } from '../lib/context.ts';
@@ -58,7 +59,7 @@ const ICONS: Record<NotificationKind, typeof Heart> = {
           {@const Icon = ICONS[n.kind]}
           {@const actor = data.current.people.get(n.actorId)}
           <li class="flex items-center gap-3 px-4 py-3 text-sm {n.read ? '' : 'bg-primary/5'}" data-notification={n.kind}>
-            <Icon class="size-4 shrink-0 {n.read ? 'text-muted-foreground' : 'text-primary'}" aria-hidden="true" />
+            <LucideIcon icon={Icon} class="size-4 shrink-0 {n.read ? 'text-muted-foreground' : 'text-primary'}" />
             <span class="min-w-0 flex-1">
               {#if actor}<Link href={`/people/${actor.handle}`} class="font-medium hover:underline">{actor.name}</Link>{/if}
               <span>{n.text.replace(actor?.name ?? '', '').trim()}</span>

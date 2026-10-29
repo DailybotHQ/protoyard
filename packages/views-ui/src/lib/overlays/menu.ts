@@ -1,2 +1,2 @@
-// Lazy chunk: the ui DropdownMenu and its Bits UI menu stack.
+// Lazy chunk: the ui DropdownMenu and its menu stack.
 export { DropdownMenu } from '@protoyard/ui';

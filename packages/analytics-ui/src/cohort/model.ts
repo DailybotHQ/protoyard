@@ -35,7 +35,7 @@ export const cohortLabel = (interval: RetentionInterval, start: number) =>
 const HEX = /^#[0-9a-f]{6}$/i;
 
 /**
- * The theme's sequential ramp as hex, read from `--py-seq-*` on an element
+ * The theme's sequential ramp as hex, read from Texuli's `--tx-chart-sequential-*` tokens
  * (themes with a chart block publish it on <html>). Null when it is missing
  * or not hex: cells then keep a neutral text chip instead of guessing contrast.
  */
@@ -43,18 +43,17 @@ export function readSequentialRamp(el: Element): CohortPalette | null {
   const style = getComputedStyle(el);
   const sequential: string[] = [];
   for (let i = 1; i <= 16; i++) {
-    const value = style.getPropertyValue(`--py-seq-${i}`).trim();
+    const value = style.getPropertyValue(`--tx-chart-sequential-${i}`).trim();
     if (!value) break;
     if (!HEX.test(value)) return null;
     sequential.push(value);
   }
   if (sequential.length < 2) return null;
-  const dark = document.documentElement.dataset.pyMode === 'dark';
   return {
-    mode: dark ? 'dark' : 'light',
     categorical: [],
     sequential,
     diverging: [],
-    repaired: [],
+    grid: 'transparent',
+    axis: 'currentColor',
   };
 }

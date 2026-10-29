@@ -67,7 +67,7 @@ button:disabled {
 }
 .eyebrow {
   margin: 0 0 3px;
-  color: #78908d;
+  color: #526560;
   font-size: 9px;
   font-weight: 750;
   letter-spacing: 0.13em;
@@ -125,7 +125,7 @@ main {
 }
 .intro-card p {
   margin: 0;
-  color: #70807d;
+  color: #505e5b;
   font-size: 11px;
   line-height: 1.4;
 }
@@ -177,7 +177,7 @@ main {
 }
 .section-hint {
   margin: 6px 0 12px;
-  color: #788784;
+  color: #505e5b;
   font-size: 11px;
   line-height: 1.45;
 }
@@ -219,7 +219,7 @@ main {
 .connection-main p {
   overflow: hidden;
   margin: 0 0 7px;
-  color: #81908c;
+  color: #505e5b;
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -338,7 +338,7 @@ main {
 }
 .setting-row small {
   margin-top: 3px;
-  color: #8b9995;
+  color: #505e5b;
   font-size: 9px;
 }
 .setting-row input[type="checkbox"] {
@@ -390,7 +390,7 @@ main {
 }
 .privacy-note p {
   margin: 0;
-  color: #71857e;
+  color: #505e5b;
   font-size: 9px;
   line-height: 1.45;
 }
@@ -401,7 +401,7 @@ footer {
   gap: 6px;
   min-height: 42px;
   padding: 0 12px;
-  color: #899792;
+  color: #505e5b;
   border-top: 1px solid #edf0ed;
   background: #fff;
   font-size: 9px;
@@ -411,7 +411,7 @@ footer b {
   color: #bec9c2;
 }
 .footer-link {
-  color: #6c8580;
+  color: #4f6863;
   font-size: 9px;
 }
 .edit-card {

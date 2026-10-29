@@ -35,7 +35,23 @@ import { defineConfig, devices } from '@playwright/test';
  * (PROTOYARD_E2E_COMMENTS_SHARED_PORT); specs use `commentsUrl(slug)`.
  */
 
-const GALLERY_PORT = 4329;
+/**
+ * A web-server port from the environment, or its default. Each fixed port has
+ * an override so several checkouts (or agents) can run the suite side by side;
+ * a server already on the port is reused outside CI, so a shared port would
+ * test someone else's build. Only plain port numbers are accepted: they end up
+ * in shell commands.
+ */
+function envPort(name: string, fallback: number): number {
+  const raw = process.env[name];
+  const port = raw === undefined || raw === '' ? fallback : Number(raw);
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+    throw new Error(`${name} must be a port number from 1024 to 65535 (got "${raw}")`);
+  }
+  return port;
+}
+
+const GALLERY_PORT = envPort('PROTOYARD_E2E_GALLERY_PORT', 4329);
 // Both values end up in shell webServer commands: accept only safe shapes.
 const SLUG = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const prototypes = (process.env.PROTOYARD_E2E_PROTOTYPES ?? '')
@@ -64,20 +80,10 @@ for (const slug of commentsPrototypes) {
     throw new Error(`PROTOYARD_E2E_COMMENTS_PROTOTYPES: invalid slug "${slug}"`);
   }
 }
-const COMMENTS_PORT_BASE = Number(process.env.PROTOYARD_E2E_COMMENTS_PORT_BASE ?? 4601);
-const COMMENTS_SHARED_PORT = Number(process.env.PROTOYARD_E2E_COMMENTS_SHARED_PORT ?? 4651);
-for (const [name, port] of [
-  ['PROTOYARD_E2E_COMMENTS_PORT_BASE', COMMENTS_PORT_BASE],
-  ['PROTOYARD_E2E_COMMENTS_SHARED_PORT', COMMENTS_SHARED_PORT],
-] as const) {
-  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
-    throw new Error(`${name} must be a port number`);
-  }
-}
-const DEVTOOLS_PORT_BASE = Number(process.env.PROTOYARD_E2E_DEVTOOLS_PORT_BASE ?? 4451);
-if (!Number.isInteger(DEVTOOLS_PORT_BASE) || DEVTOOLS_PORT_BASE < 1024) {
-  throw new Error('PROTOYARD_E2E_DEVTOOLS_PORT_BASE must be a port number');
-}
+const COMMENTS_PORT_BASE = envPort('PROTOYARD_E2E_COMMENTS_PORT_BASE', 4601);
+const COMMENTS_SHARED_PORT = envPort('PROTOYARD_E2E_COMMENTS_SHARED_PORT', 4651);
+const PROTOTYPE_PORT_BASE = envPort('PROTOYARD_E2E_PROTOTYPE_PORT_BASE', 4401);
+const DEVTOOLS_PORT_BASE = envPort('PROTOYARD_E2E_DEVTOOLS_PORT_BASE', 4451);
 const ci = Boolean(process.env.CI);
 /** PROTOYARD_E2E_SHOWCASE=1 builds `protoyard showcase` and runs tests/e2e/showcase.spec.ts. */
 const showcase = process.env.PROTOYARD_E2E_SHOWCASE === '1';
@@ -86,15 +92,10 @@ const showcaseBase = process.env.PROTOYARD_E2E_SHOWCASE_BASE ?? '/';
 if (!/^\/(?:[a-z0-9._-]+\/)*$/i.test(showcaseBase)) {
   throw new Error(`PROTOYARD_E2E_SHOWCASE_BASE must look like /path/ (got "${showcaseBase}")`);
 }
-export const SHOWCASE_PORT = 4501;
+export const SHOWCASE_PORT = envPort('PROTOYARD_E2E_SHOWCASE_PORT', 4501);
 /** PROTOYARD_E2E_REVIEW=1 serves the review index built from the fixture ledger. */
 const review = process.env.PROTOYARD_E2E_REVIEW === '1';
-const REVIEW_PORT = Number(process.env.PROTOYARD_E2E_REVIEW_PORT ?? 4502);
-if (!Number.isInteger(REVIEW_PORT) || REVIEW_PORT < 1024 || REVIEW_PORT > 65535) {
-  throw new Error(
-    `PROTOYARD_E2E_REVIEW_PORT must be a port number (got "${process.env.PROTOYARD_E2E_REVIEW_PORT}")`
-  );
-}
+const REVIEW_PORT = envPort('PROTOYARD_E2E_REVIEW_PORT', 4502);
 
 // Specs that open the built player; naming one on the command line turns the player
 // servers on (and tells its workers through the environment they inherit).
@@ -103,8 +104,8 @@ if (process.argv.some((arg) => PLAYER_SPECS.some((spec) => arg.includes(spec))))
   process.env.PROTOYARD_E2E_PLAYER = '1';
 }
 const playerE2e = process.env.PROTOYARD_E2E_PLAYER === '1';
-const PLAYER_PORT = Number(process.env.PROTOYARD_E2E_PLAYER_PORT ?? 4861);
-const PLAYER_EMBEDDER_PORT = Number(process.env.PROTOYARD_E2E_PLAYER_EMBEDDER_PORT ?? 4862);
+const PLAYER_PORT = envPort('PROTOYARD_E2E_PLAYER_PORT', 4861);
+const PLAYER_EMBEDDER_PORT = envPort('PROTOYARD_E2E_PLAYER_EMBEDDER_PORT', 4862);
 const PLAYER_OUT = resolve('tmp/e2e-player');
 // Specs that drive the built catalog deck; naming one on the command line starts its server.
 const DECK_SERVER_SPECS = [
@@ -112,6 +113,8 @@ const DECK_SERVER_SPECS = [
   'deck-presenter',
   'deck-design',
   'deck-fragments',
+  'deck-controls',
+  'deck-everything',
   'interaction-sweep',
 ];
 // Opt-in: the built catalog deck for tests/e2e/deck-navigation.spec.ts.
@@ -121,13 +124,15 @@ const deckE2e =
   process.argv.some((arg) => DECK_SERVER_SPECS.some((spec) => arg.includes(spec)));
 // Workers inherit the flag, so deck specs run only when their server starts and skip otherwise.
 if (deckE2e) process.env.PROTOYARD_E2E_DECK = '1';
-const DECK_PORT = Number(process.env.PROTOYARD_E2E_DECK_PORT ?? 4891);
+const DECK_PORT = envPort('PROTOYARD_E2E_DECK_PORT', 4891);
 // The deck design gate also opens the generated flagship prototype (level 2).
-const deckDesignE2e = process.argv.some((arg) => arg.includes('deck-design'));
-const DECK_PROTOTYPE_PORT = Number(process.env.PROTOYARD_E2E_DECK_PROTOTYPE_PORT ?? 4892);
-if (!Number.isInteger(DECK_PORT) || DECK_PORT < 1024 || DECK_PORT > 65535) {
-  throw new Error('PROTOYARD_E2E_DECK_PORT must be a port number');
-}
+// The design gate also runs in a combined deck run that asks for the flagship prototype
+// (the Final Review's PROTOYARD_E2E_DECK=1 PROTOYARD_E2E_PROTOTYPES=create-anything-deck).
+const deckDesignE2e =
+  process.argv.some((arg) => arg.includes('deck-design')) ||
+  (process.env.PROTOYARD_E2E_DECK === '1' &&
+    (process.env.PROTOYARD_E2E_PROTOTYPES ?? '').split(',').includes('create-anything-deck'));
+const DECK_PROTOTYPE_PORT = envPort('PROTOYARD_E2E_DECK_PROTOTYPE_PORT', 4892);
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -242,8 +247,8 @@ export default defineConfig({
       timeout: 180_000,
     })),
     ...prototypes.map((slug, i) => ({
-      command: `pnpm protoyard build ${slug} && pnpm protoyard preview ${slug} --port ${4401 + i} --strict-port`,
-      url: `http://127.0.0.1:${4401 + i}/`,
+      command: `pnpm protoyard build ${slug} && pnpm protoyard preview ${slug} --port ${PROTOTYPE_PORT_BASE + i} --strict-port`,
+      url: `http://127.0.0.1:${PROTOTYPE_PORT_BASE + i}/`,
       reuseExistingServer: !ci,
       timeout: 180_000,
     })),

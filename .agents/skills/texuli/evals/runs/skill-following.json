@@ -1,0 +1,669 @@
+{
+  "g02-release-notes": {
+    "id": "layout-doc",
+    "props": {
+      "title": "What is new in Pebble 4.2"
+    },
+    "children": [
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "text",
+            "markdown": "This release speeds up shared boards and brings shortcuts to the editor."
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "heading",
+            "level": 2,
+            "text": "New"
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "list",
+            "ordered": false,
+            "items": [
+              {
+                "text": "Shortcuts for moving cards between columns"
+              },
+              {
+                "text": "Starter templates for weekly planning"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "heading",
+            "level": 2,
+            "text": "Fixed"
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "list",
+            "ordered": false,
+            "items": [
+              {
+                "text": "Mentions no longer lose focus while typing"
+              },
+              {
+                "text": "Due dates follow the viewer time zone"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "callout",
+            "tone": "warning",
+            "title": "Old exports go away",
+            "body": "Pebble 4.3 drops the 3.x export format. Export older boards again before upgrading."
+          }
+        }
+      }
+    ]
+  },
+  "g03-onboarding-handbook": {
+    "id": "layout-doc",
+    "props": {
+      "title": "Your first page at Harbor"
+    },
+    "children": [
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "text",
+            "markdown": "Welcome aboard. This handbook explains how Harbor plans, ships and supports its fictional product."
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "heading",
+            "level": 2,
+            "text": "Week one checklist"
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "list",
+            "ordered": true,
+            "items": [
+              {
+                "text": "Pair with your onboarding buddy"
+              },
+              {
+                "text": "Run the sandbox setup script"
+              },
+              {
+                "text": "Pick up a starter issue"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "quote",
+            "quote": "Questions are a feature here, not a cost.",
+            "cite": "Dana Ruiz, team lead"
+          }
+        }
+      }
+    ]
+  },
+  "g05-incident-postmortem": {
+    "id": "layout-doc",
+    "props": {
+      "title": "Checkout errors on 3 June"
+    },
+    "children": [
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "text",
+            "markdown": "For 23 minutes checkout failed after a configuration push. Orders were retried and none were lost."
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "heading",
+            "level": 2,
+            "text": "Timeline"
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "list",
+            "ordered": true,
+            "items": [
+              {
+                "text": "14:02 configuration pushed"
+              },
+              {
+                "text": "14:06 error rate alert"
+              },
+              {
+                "text": "14:25 configuration reverted"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "quote",
+            "quote": "Seeing the config diff in the alert would have saved ten minutes.",
+            "cite": "Sam Ito, on call"
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "callout",
+            "tone": "info",
+            "title": "Follow-up owner",
+            "body": "Lena Park adds a configuration canary before the next release."
+          }
+        }
+      }
+    ]
+  },
+  "g06-plan-comparison": {
+    "id": "layout-page",
+    "props": {
+      "title": "Pebble plans side by side",
+      "description": "Seats, storage and support for each plan"
+    },
+    "children": [
+      {
+        "id": "blocks-data",
+        "props": {
+          "block": {
+            "type": "table",
+            "caption": "Plan comparison",
+            "columns": [
+              {
+                "id": "plan",
+                "label": "Plan"
+              },
+              {
+                "id": "seats",
+                "label": "Seats"
+              },
+              {
+                "id": "storage",
+                "label": "Storage"
+              },
+              {
+                "id": "support",
+                "label": "Support"
+              }
+            ],
+            "rows": [
+              {
+                "plan": "Starter",
+                "seats": 3,
+                "storage": "5 GB",
+                "support": "Community forum"
+              },
+              {
+                "plan": "Team",
+                "seats": 25,
+                "storage": "100 GB",
+                "support": "Email, next business day"
+              },
+              {
+                "plan": "Business",
+                "seats": 250,
+                "storage": "1 TB",
+                "support": "Priority, four hours"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "g08-pricing-faq": {
+    "id": "layout-doc",
+    "props": {
+      "title": "Pebble pricing FAQ"
+    },
+    "children": [
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "heading",
+            "level": 2,
+            "text": "Can I switch plans?"
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "text",
+            "markdown": "Yes. A new plan starts with your next billing period."
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "heading",
+            "level": 2,
+            "text": "How long is the trial?"
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "text",
+            "markdown": "Every plan includes a 14-day trial with all features."
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "heading",
+            "level": 2,
+            "text": "Are there nonprofit discounts?"
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "text",
+            "markdown": "Registered nonprofits receive 30% off the Team plan."
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "heading",
+            "level": 2,
+            "text": "What counts as a seat?"
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "text",
+            "markdown": "Anyone who used Pebble during the billing period."
+          }
+        }
+      }
+    ]
+  },
+  "g17-service-status": {
+    "id": "layout-page",
+    "props": {
+      "title": "Pebble service status",
+      "description": "Health of the fictional Pebble services"
+    },
+    "children": [
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "callout",
+            "tone": "success",
+            "title": "Everything is running",
+            "body": "No open incidents in the past three days."
+          }
+        }
+      },
+      {
+        "id": "blocks-data",
+        "props": {
+          "block": {
+            "type": "stat",
+            "items": [
+              {
+                "label": "Web uptime",
+                "value": "99.98%"
+              },
+              {
+                "label": "API uptime",
+                "value": "99.95%"
+              },
+              {
+                "label": "Sync uptime",
+                "value": "99.90%"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "layout-card",
+        "props": {
+          "title": "Recent incidents"
+        },
+        "children": [
+          {
+            "id": "blocks-text",
+            "props": {
+              "block": {
+                "type": "list",
+                "ordered": false,
+                "items": [
+                  {
+                    "text": "2 June: slow sync for 9 minutes"
+                  },
+                  {
+                    "text": "27 May: API timeouts for 5 minutes"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "g18-recipe": {
+    "id": "layout-doc",
+    "props": {
+      "title": "Lemon barley soup"
+    },
+    "children": [
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "text",
+            "markdown": "A bright, filling soup for a cold evening. Serves four."
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "heading",
+            "level": 2,
+            "text": "Ingredients"
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "list",
+            "ordered": false,
+            "items": [
+              {
+                "text": "1 cup pearl barley"
+              },
+              {
+                "text": "1 onion, diced"
+              },
+              {
+                "text": "2 carrots, sliced"
+              },
+              {
+                "text": "6 cups vegetable stock"
+              },
+              {
+                "text": "2 lemons, juiced"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "heading",
+            "level": 2,
+            "text": "Steps"
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "list",
+            "ordered": true,
+            "items": [
+              {
+                "text": "Soften the onion and carrots in a little oil"
+              },
+              {
+                "text": "Add the barley and stock, then simmer for 40 minutes"
+              },
+              {
+                "text": "Stir in the lemon juice and season to taste"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "g21-event-agenda": {
+    "id": "layout-page",
+    "props": {
+      "title": "Pebble community day",
+      "description": "Program for 14 September"
+    },
+    "children": [
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "text",
+            "markdown": "Every session runs in the fictional Orchard Hall, with coffee between talks."
+          }
+        }
+      },
+      {
+        "id": "blocks-data",
+        "props": {
+          "block": {
+            "type": "table",
+            "caption": "Community day program",
+            "columns": [
+              {
+                "id": "time",
+                "label": "Time"
+              },
+              {
+                "id": "session",
+                "label": "Session"
+              },
+              {
+                "id": "speaker",
+                "label": "Speaker"
+              }
+            ],
+            "rows": [
+              {
+                "time": "09:30",
+                "session": "Opening",
+                "speaker": "Ada Brook"
+              },
+              {
+                "time": "10:00",
+                "session": "Boards for large teams",
+                "speaker": "Jonah Pike"
+              },
+              {
+                "time": "11:15",
+                "session": "Planning habits that last",
+                "speaker": "Mara Lind"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "g25-quarter-goals": {
+    "id": "layout-page",
+    "props": {
+      "title": "Harbor quarter goals",
+      "description": "Progress so far this quarter"
+    },
+    "children": [
+      {
+        "id": "layout-grid",
+        "props": {
+          "columns": 3
+        },
+        "children": [
+          {
+            "id": "layout-card",
+            "props": {
+              "title": "First reply time"
+            },
+            "children": [
+              {
+                "id": "charts-progress-ring",
+                "props": {
+                  "label": "First reply time goal",
+                  "value": 68,
+                  "max": 100
+                }
+              }
+            ]
+          },
+          {
+            "id": "layout-card",
+            "props": {
+              "title": "Self-service answers"
+            },
+            "children": [
+              {
+                "id": "charts-progress-ring",
+                "props": {
+                  "label": "Self-service goal",
+                  "value": 51,
+                  "max": 100
+                }
+              }
+            ]
+          },
+          {
+            "id": "layout-card",
+            "props": {
+              "title": "Hiring plan"
+            },
+            "children": [
+              {
+                "id": "charts-progress-ring",
+                "props": {
+                  "label": "Hiring goal",
+                  "value": 87,
+                  "max": 100
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "g30-feature-announcement": {
+    "id": "layout-page",
+    "props": {
+      "title": "Meet board templates",
+      "description": "Start each plan from a shape that works"
+    },
+    "children": [
+      {
+        "id": "media-image",
+        "props": {
+          "src": "images/templates-hero.webp",
+          "alt": "A Pebble board built from a template, with goal, task and risk columns",
+          "width": 640,
+          "height": 360
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "text",
+            "markdown": "Templates hand every team a ready structure, and step aside once work begins."
+          }
+        }
+      },
+      {
+        "id": "blocks-text",
+        "props": {
+          "block": {
+            "type": "list",
+            "ordered": false,
+            "items": [
+              {
+                "text": "Eight templates to start from"
+              },
+              {
+                "text": "Turn any board into a template"
+              },
+              {
+                "text": "Share templates between workspaces"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

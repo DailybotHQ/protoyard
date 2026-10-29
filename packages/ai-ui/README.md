@@ -19,7 +19,7 @@ Add `"@protoyard/ai-ui": "workspace:*"` to the prototype dependencies. Import th
 
 `AssistantWorkspace` accepts conversation summaries and the active branch's messages. Send, stop, rename, pin, folder, feedback, branch, regenerate, edit and share operations are callbacks. The component does not persist changes. `onShare` must return a URL created by the consuming prototype; the UI then offers a copy action.
 
-The workspace renders its conversation through `MessageList`, which virtualizes rows using measured heights and a small overscan window. It keeps the visible message anchored as streamed content changes and restores that message and offset from session storage when the same conversation is reopened in the tab. The saved position is presentation state; conversation messages remain owned by the prototype.
+The workspace renders its conversation through `MessageList`, which is `@texuli/chat`'s `MessageList`: it virtualizes long threads, keeps the visible message anchored as streamed content changes and offers "Jump to latest". ai-ui restores the first message in view and its offset from session storage when the same conversation is reopened in the tab (and reopens at the latest message when the reader left it at the bottom). A reopened position is held until it settles, even when late content (a chart answer, an image) resizes the thread. Editing a message calls `onEditMessage` only when its text changed: "Save and resend" with the same text closes the editor (`@texuli/chat`'s inline edit), and Regenerate is the way to ask again for the last reply. The saved position is presentation state; conversation messages remain owned by the prototype.
 
 ```svelte
 <script lang="ts">
@@ -66,7 +66,11 @@ The composer supports Enter to send, Shift+Enter for a newline, Escape to stop a
 
 Conversation folder controls require `folders`, `onCreateFolder`, and `onMoveToFolder` callbacks. Features without a callback are disabled. The caller supplies `onRegenerate`, `onEditMessage`, `onBranchChange`, `onFeedback`, and `onShare` only when those operations are implemented.
 
-All components use Svelte 5 runes and theme token utility classes. Import `styles.css` to register this package's class sources with Tailwind. Components accept data-only messages from `@protoyard/ai`; no credentials, provider SDKs, generated models or external network calls are included.
+All components use Svelte 5 runes and theme token utility classes. Import `styles.css` to register this package's class sources with Tailwind.
+
+### Built on Texuli
+
+The list is `@texuli/chat`'s `MessageList` (per-message actions snippet, inline edit, stream follow) and the composer is its `Composer` (stop and Escape while streaming, keydown hook, attachments and actions snippets), and every control is a `texuli` component: `Button`/`IconButton`, `CopyButton`, `Textarea`/`Input` (the attachment picker is a file `Input`), `Select`, `Checkbox`/`RadioGroup`, `Field`, `Card`, `Badge`/`Tag`, `Table`, `Code`, `Kbd`, `DropdownMenu` and `EmptyState`. Lucide glyphs render through `LucideIcon` from `texuli/icons/lucide` (or `Icon` for Texuli's built-in names). ai-ui keeps what is assistant-specific: slash and mention suggestions, the model choice, feedback, branches and regenerate, and the reading position per conversation; the public props are unchanged. Rich answers are still parsed by `@protoyard/ai` (`parseMarkdown`) and render as text, never HTML. Components accept data-only messages from `@protoyard/ai`; no credentials, provider SDKs, generated models or external network calls are included.
 
 ## Simulated voice mode
 

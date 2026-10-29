@@ -291,6 +291,7 @@ export const DOCTOR_INTERFACE = INTERFACE_MAJOR;
 /** Every stable capability id the interface defines (docs/INTERFACE.md). */
 export const CAPABILITY_IDS = [
   'blueprint-schema',
+  'deck-cli',
   'generate',
   'import',
   'kind-deck',
@@ -310,6 +311,7 @@ export type CapabilityId = (typeof CAPABILITY_IDS)[number];
  */
 export const CAPABILITIES: readonly CapabilityId[] = Object.freeze([
   'blueprint-schema',
+  'deck-cli',
   'generate',
   'kind-deck',
   'kind-doc',

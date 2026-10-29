@@ -1,10 +1,11 @@
 <script lang="ts">
-import type { Snippet } from 'svelte';
+import { Button } from '@protoyard/ui';
+import type { ComponentProps, Snippet } from 'svelte';
 import type { HTMLButtonAttributes } from 'svelte/elements';
 import { lazyPopover } from './lazy-overlays.svelte.ts';
 
 /**
- * A `Popover` whose Bits UI code loads on first use: a plain trigger button
+ * A `Popover` whose popover code loads on first use: a plain trigger button
  * until then (it prefetches on hover or focus), swapped for the real popover,
  * opened, on the first click. Focus stays on the trigger across the swap.
  */
@@ -46,24 +47,16 @@ const keepFocus = (node: HTMLElement) => {
   {@const Pop = lazyPopover.current}
   <Pop {align} {side} class={className} bind:open>
     {#snippet trigger({ props })}
-      <button {...button} {...props} type="button" {@attach keepFocus}>{@render label()}</button>
+      {@const triggerProps = { ...button, ...props, type: 'button' } as ComponentProps<typeof Button>}
+      <Button {...triggerProps} {@attach keepFocus}>{@render label()}</Button>
     {/snippet}
     {@render children()}
   </Pop>
 {:else}
-  <button
-    {...button}
-    type="button"
-    aria-haspopup="dialog"
-    aria-expanded="false"
-    onpointerenter={prefetch}
-    onfocus={() => {
-      focused = true;
-      prefetch();
-    }}
-    onblur={() => (focused = false)}
-    onclick={activate}
+  {@const triggerProps = { ...button, type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', onpointerenter: prefetch, onfocus: () => { focused = true; prefetch(); }, onblur: () => (focused = false), onclick: activate } as ComponentProps<typeof Button>}
+  <Button
+    {...triggerProps}
   >
     {@render label()}
-  </button>
+  </Button>
 {/if}

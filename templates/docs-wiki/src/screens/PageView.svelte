@@ -10,6 +10,7 @@ import {
   useClock,
 } from '@protoyard/renderer-svelte';
 import { AlertDialog, Breadcrumb, Button, Card, EmptyState, Skeleton } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import NewPageDialog from '../components/NewPageDialog.svelte';
 import PageBody from '../components/PageBody.svelte';
 import PageTree from '../components/PageTree.svelte';
@@ -86,13 +87,13 @@ const remove = async () => {
         </div>
         <div class="flex flex-wrap gap-2">
           {#if canEdit}
-            <Button href="#/pages/{page.id}/edit"><Pencil class="size-4" aria-hidden="true" />Edit</Button>
+            <Button href="#/pages/{page.id}/edit"><LucideIcon icon={Pencil} class="size-4" />Edit</Button>
           {/if}
-          <Button variant="outline" href="#/pages/{page.id}/history"><History class="size-4" aria-hidden="true" />History</Button>
+          <Button variant="outline" href="#/pages/{page.id}/history"><LucideIcon icon={History} class="size-4" />History</Button>
           {#if canEdit}
-            <Button variant="outline" onclick={() => (subOpen = true)}><FilePlus class="size-4" aria-hidden="true" />New subpage</Button>
+            <Button variant="outline" onclick={() => (subOpen = true)}><LucideIcon icon={FilePlus} class="size-4" />New subpage</Button>
             {#if children.length === 0}
-              <Button variant="ghost" onclick={() => (deleteOpen = true)}><Trash2 class="size-4" aria-hidden="true" />Delete</Button>
+              <Button variant="ghost" onclick={() => (deleteOpen = true)}><LucideIcon icon={Trash2} class="size-4" />Delete</Button>
             {/if}
           {/if}
         </div>

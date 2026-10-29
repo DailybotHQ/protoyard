@@ -1,6 +1,6 @@
 import { ChartSpecSchema } from '@protoyard/ai/chart';
 import { z } from 'zod';
-import { parseLineSpec } from '../code/highlight.ts';
+import { parseLineSpec } from '../code/index.ts';
 import { AvatarIdSchema, ImageSourceSchema, VideoSourceSchema } from './media.ts';
 import {
   BlockToneSchema,
@@ -206,6 +206,15 @@ const TableColumnSchema = z.strictObject({
 
 const TableCellSchema = z.union([plainText(200), z.number().finite(), z.null()]);
 
+const TableInteractiveSchema = z.strictObject({
+  /** Let viewers sort by one column at a time. */
+  sort: z.boolean().optional(),
+  /** Show a text filter above the table. */
+  filter: z.boolean().optional(),
+  /** Highlight a row while it is hovered or keyboard-focused/selected. */
+  rowHighlight: z.boolean().optional(),
+});
+
 export const TableBlockSchema = z
   .strictObject({
     type: z.literal('table'),
@@ -218,6 +227,8 @@ export const TableBlockSchema = z
       .optional(),
     columns: z.array(TableColumnSchema).min(1).max(L.tableColumns),
     rows: z.array(z.array(TableCellSchema).max(L.tableColumns)).min(1).max(L.tableRows),
+    /** Opt into local, per-viewer table controls. State resets when the view reloads. */
+    interactive: TableInteractiveSchema.optional(),
     /** Zero-based row to emphasize. */
     highlightRow: z
       .number()
@@ -227,6 +238,13 @@ export const TableBlockSchema = z
       .optional(),
   })
   .superRefine((block, ctx) => {
+    if (block.interactive && !Object.values(block.interactive).some(Boolean)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['interactive'],
+        message: 'Enable at least one table interaction',
+      });
+    }
     block.rows.forEach((row, r) => {
       if (row.length !== block.columns.length) {
         ctx.addIssue({

@@ -1,5 +1,4 @@
 <script lang="ts">
-import { LoaderCircle } from '@lucide/svelte';
 import {
   type ApprovalActor,
   mayDecide,
@@ -7,11 +6,17 @@ import {
   type SuggestionTarget,
   statusLine,
 } from '@protoyard/ai';
+import { Badge } from 'texuli/badge';
+import { Button } from 'texuli/button';
+import { Card } from 'texuli/card';
+import { Label } from 'texuli/field';
+import { SelectContent, SelectItem, SelectRoot, SelectTrigger, SelectValue } from 'texuli/select';
 import { modeNeedsApproval, SUGGESTION_STATUS_LABELS } from './labels.ts';
 
 /**
  * Evidence-backed suggestion card. Every decision is an explicit callback the
  * prototype routes through its services. Pending feedback is local UI only.
+ * Texuli card, badge, buttons and select.
  * Simulated — not real authority or security.
  */
 type Decision = 'confirm' | 'approve' | 'dismiss' | 'edit';
@@ -83,18 +88,15 @@ function saveEdit(): void {
 }
 </script>
 
-<article
-  class="grid gap-3 rounded-xl border border-border bg-surface p-4 text-surface-foreground shadow-soft {className}"
+<Card
+  class="grid gap-3 p-4 {className}"
   data-py-suggestion-card
   data-status={suggestion.status}
   data-mode={suggestion.mode}
   aria-labelledby="suggestion-{suggestion.id}-title"
 >
   <header class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-    <span
-      class="rounded-full bg-muted px-2 py-0.5 font-semibold text-foreground"
-      data-py-agent-chip>Simulated agent</span
-    >
+    <Badge variant="secondary" data-py-agent-chip>Simulated agent</Badge>
     <span>{SUGGESTION_STATUS_LABELS[suggestion.status]}</span>
     <span class="ml-auto text-[0.7rem]">Simulated · no real authority</span>
   </header>
@@ -139,55 +141,39 @@ function saveEdit(): void {
   {#if waiting && (canApprove || canConfirm || canDismiss || canEdit)}
     <div class="flex flex-wrap gap-2" aria-label="Suggestion actions">
       {#if canApprove && onApprove}
-        <button
-          type="button"
-          class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+        <Button
+          variant="default"
+          autoLoading={false}
+          loading={pending === 'approve'}
           disabled={busy}
-          aria-busy={pending === 'approve' ? 'true' : undefined}
           onclick={() => run('approve', () => onApprove(suggestion))}
         >
-          {#if pending === 'approve'}
-            <LoaderCircle class="size-4 motion-safe:animate-spin" aria-hidden="true" />
-          {/if}
           Approve
-        </button>
+        </Button>
       {:else if canConfirm && onConfirm}
-        <button
-          type="button"
-          class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+        <Button
+          variant="default"
+          autoLoading={false}
+          loading={pending === 'confirm'}
           disabled={busy}
-          aria-busy={pending === 'confirm' ? 'true' : undefined}
           onclick={() => run('confirm', () => onConfirm(suggestion))}
         >
-          {#if pending === 'confirm'}
-            <LoaderCircle class="size-4 motion-safe:animate-spin" aria-hidden="true" />
-          {/if}
           Confirm
-        </button>
+        </Button>
       {/if}
       {#if canEdit && onEdit}
-        <button
-          type="button"
-          class="inline-flex min-h-10 items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-          disabled={busy}
-          onclick={openEdit}
-        >
-          Edit
-        </button>
+        <Button variant="outline" disabled={busy} onclick={openEdit}>Edit</Button>
       {/if}
       {#if canDismiss && onDismiss}
-        <button
-          type="button"
-          class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+        <Button
+          variant="outline"
+          autoLoading={false}
+          loading={pending === 'dismiss'}
           disabled={busy}
-          aria-busy={pending === 'dismiss' ? 'true' : undefined}
           onclick={() => run('dismiss', () => onDismiss(suggestion))}
         >
-          {#if pending === 'dismiss'}
-            <LoaderCircle class="size-4 motion-safe:animate-spin" aria-hidden="true" />
-          {/if}
           Dismiss
-        </button>
+        </Button>
       {/if}
     </div>
   {:else if !waiting}
@@ -220,45 +206,43 @@ function saveEdit(): void {
       class="grid gap-3 rounded-lg border border-border bg-muted/30 p-3"
       data-py-suggestion-edit
     >
-      <label class="grid gap-1 text-sm" for="suggestion-edit-{suggestion.id}">
-        <span class="font-medium text-foreground">Link to target</span>
-        <select
-          id="suggestion-edit-{suggestion.id}"
-          class="h-10 rounded-md border border-input bg-background px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      <div class="grid gap-1 text-sm">
+        <Label for="suggestion-edit-{suggestion.id}">Link to target</Label>
+        <SelectRoot
+          items={targets.map((target) => ({
+            value: target.targetId,
+            label: `${target.targetKey} — ${target.targetLabel}`,
+          }))}
           value={pickedId ?? undefined}
-          onchange={(event) => {
-            pickedId = event.currentTarget.value;
+          onValueChange={(next) => {
+            pickedId = next;
           }}
         >
-          {#each targets as target (target.targetId)}
-            <option value={target.targetId}
-              >{target.targetKey} — {target.targetLabel}</option
-            >
-          {/each}
-        </select>
-      </label>
+          <SelectTrigger id="suggestion-edit-{suggestion.id}">
+            <SelectValue placeholder="Choose a target" />
+          </SelectTrigger>
+          <SelectContent>
+            {#each targets as target (target.targetId)}
+              <SelectItem value={target.targetId} label={`${target.targetKey} — ${target.targetLabel}`}
+                >{target.targetKey} — {target.targetLabel}</SelectItem
+              >
+            {/each}
+          </SelectContent>
+        </SelectRoot>
+      </div>
       <div class="flex flex-wrap gap-2">
-        <button
-          type="button"
-          class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground disabled:opacity-50"
+        <Button
+          autoLoading={false}
+          loading={pending === 'edit'}
           disabled={busy || !pickedId}
-          aria-busy={pending === 'edit' ? 'true' : undefined}
           onclick={saveEdit}
         >
-          {#if pending === 'edit'}
-            <LoaderCircle class="size-4 motion-safe:animate-spin" aria-hidden="true" />
-          {/if}
           Save
-        </button>
-        <button
-          type="button"
-          class="inline-flex min-h-10 items-center rounded-lg border border-border px-3 text-sm"
-          disabled={busy}
-          onclick={() => (editOpen = false)}
-        >
+        </Button>
+        <Button variant="outline" disabled={busy} onclick={() => (editOpen = false)}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   {/if}
-</article>
+</Card>

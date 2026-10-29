@@ -1,6 +1,7 @@
 <script lang="ts">
 import { ArrowLeft, ArrowRight } from '@lucide/svelte';
 import { Breadcrumb, Button, EmptyState } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { CATALOG, CATALOG_GROUPS, catalogEntry } from '../catalog/entries.ts';
 import ShowcaseEntry from '../components/ShowcaseEntry.svelte';
 import { useFavorites } from '../lib/favorites.svelte.ts';
@@ -26,10 +27,10 @@ const group = $derived(CATALOG_GROUPS.find((g) => g.id === entry?.group));
   <ShowcaseEntry {entry} starred={favorites.has(entry.id)} headingLevel={1} />
   <nav class="mt-6 flex justify-between gap-3" aria-label="Previous and next component">
     {#if prev}
-      <Button variant="outline" href={`#/c/${prev.id}`}><ArrowLeft class="size-4" aria-hidden="true" />{prev.name}</Button>
+      <Button variant="outline" href={`#/c/${prev.id}`}><LucideIcon icon={ArrowLeft} class="size-4" />{prev.name}</Button>
     {:else}<span></span>{/if}
     {#if next}
-      <Button variant="outline" href={`#/c/${next.id}`}>{next.name}<ArrowRight class="size-4" aria-hidden="true" /></Button>
+      <Button variant="outline" href={`#/c/${next.id}`}>{next.name}<LucideIcon icon={ArrowRight} class="size-4" /></Button>
     {/if}
   </nav>
 {:else}

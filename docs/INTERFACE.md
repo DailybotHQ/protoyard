@@ -38,7 +38,7 @@ protoyard doctor --json --offline
   "command": "doctor",
   "data": { "ok": true, "checks": [ … ] },
   "interface": 1,
-  "capabilities": ["blueprint-schema", "generate", "kind-deck", "kind-doc", "kind-page", "mcp", "player", "quick"]
+  "capabilities": ["blueprint-schema", "deck-cli", "generate", "kind-deck", "kind-doc", "kind-page", "mcp", "player", "quick"]
 }
 ```
 
@@ -79,6 +79,7 @@ needs and treats a missing id as "not available in this CLI".
 | Id | Means | In this CLI |
 | --- | --- | --- |
 | `blueprint-schema` | `protoyard blueprint validate` and the published blueprint JSON Schema (`@protoyard/blueprint/schema.json`), including the kind union | yes |
+| `deck-cli` | `protoyard deck schema\|layouts\|blocks\|lint\|inspect\|capabilities`: the deck schema and catalogs, lint findings with JSON pointers, and resolving a pasted `[slide-ref]` reference to its file, pointer and slide ([DEVELOPMENT_COMMANDS](DEVELOPMENT_COMMANDS.md)) | yes |
 | `generate` | `protoyard generate` and `blueprint new --generate`: full prototypes from a blueprint | yes |
 | `import` | Importing a data shape (CSV, JSON, a SQLite schema) into a blueprint from the CLI | not yet |
 | `kind-deck` | Deck blueprints: `kind: "deck"`, `quick --kind deck`, generate/player deck entry, and the deck branch of the published schema | yes |

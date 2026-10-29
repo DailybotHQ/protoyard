@@ -6,6 +6,7 @@
  * prototypes and the universal player never load it.
  */
 
+export { defineKindRuntime, kindBrandTheme, kindDefaultThemeId } from './brand-runtime.ts';
 export {
   definePrototypeFromDoc,
   definePrototypeFromPage,
@@ -15,16 +16,16 @@ export {
 } from './page-doc-runtime.ts';
 export {
   type AnyContentBlueprint,
-  defineKindRuntime,
+  defineKindPrototype,
   KIND_CAPABILITIES,
   KIND_DEFAULT_SCENARIO,
   KIND_GENERATOR_VERSION,
   KIND_PERSONAS,
   KIND_ROLES,
   KIND_STORES,
+  type KindPrototypeOptions,
   type KindRole,
   type KindRuntimeOptions,
-  kindDefaultThemeId,
   kindPolicy,
   kindScenarios,
   kindWorld,

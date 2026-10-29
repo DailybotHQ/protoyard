@@ -6,6 +6,7 @@ import Spinner from './Spinner.svelte';
 /**
  * Inline two-step confirmation for destructive panel actions. A modal on
  * top of a floating panel would fight the app's own dialogs for focus.
+ * Actions use Texuli-backed Btn adapters.
  */
 let {
   label,
@@ -28,11 +29,6 @@ let {
 } = $props();
 
 let asking = $state(false);
-let confirmButton: HTMLButtonElement | undefined = $state();
-
-$effect(() => {
-  if (asking) confirmButton?.focus();
-});
 
 async function confirm() {
   await onconfirm();
@@ -49,16 +45,9 @@ async function confirm() {
     <p class="text-xs text-foreground">{message}</p>
     {#if extra}<div class="mt-2">{@render extra()}</div>{/if}
     <div class="mt-2 flex gap-1.5">
-      <button
-        bind:this={confirmButton}
-        type="button"
-        class="inline-flex min-h-touch items-center gap-1.5 rounded-md bg-destructive px-2.5 text-xs font-medium text-destructive-foreground hover:bg-destructive-hover focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:opacity-50 sm:min-h-7"
-        disabled={busy}
-        aria-busy={busy || undefined}
-        onclick={confirm}
-      >
+      <Btn variant="danger" {busy} onclick={confirm}>
         {#if busy}<Spinner />Working…{:else}{confirmLabel}{/if}
-      </button>
+      </Btn>
       <Btn variant="ghost" disabled={busy} onclick={() => (asking = false)}>Cancel</Btn>
     </div>
   </div>

@@ -16,6 +16,13 @@ export type OnboardingStepSnippet = Snippet<[OnboardingStepSnippetArgs]>;
 import { navigate, nextPath } from '@protoyard/renderer-svelte';
 import { createOnboarding, DONE_STEP, parseInput, type SaasOnboarding } from '@protoyard/saas';
 import {
+  SelectContent,
+  SelectItem,
+  SelectRoot,
+  SelectTrigger,
+  SelectValue,
+} from 'texuli/select';
+import {
   AlertDialog,
   Button,
   Card,
@@ -256,19 +263,21 @@ const answerSummary = (step: OnboardingUiStep): string => {
                   setValue(step.id, field.name, (event.currentTarget as HTMLTextAreaElement).value)}
               />
             {:else if field.kind === 'select'}
-              <select
-                {...control.props}
-                class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-60"
+              <SelectRoot
+                type="single"
                 value={stepValuesNow[field.name] ?? ''}
+                onValueChange={(value) => setValue(step.id, field.name, value)}
                 disabled={locked}
-                onchange={(event) =>
-                  setValue(step.id, field.name, (event.currentTarget as HTMLSelectElement).value)}
               >
-                <option value="" disabled>Choose…</option>
-                {#each field.options ?? [] as option (option.value)}
-                  <option value={option.value}>{option.label}</option>
-                {/each}
-              </select>
+                <SelectTrigger {...control.props} class="w-full" disabled={locked}>
+                  <SelectValue placeholder="Choose…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {#each field.options ?? [] as option (option.value)}
+                    <SelectItem value={option.value} label={option.label} />
+                  {/each}
+                </SelectContent>
+              </SelectRoot>
             {:else}
               <Input
                 {...control.props}

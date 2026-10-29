@@ -1,5 +1,5 @@
+import type { LayoutPacing } from '@texuli/deck/model';
 import { DECK_TEXT_MINIMUMS } from '../canvas.ts';
-import type { LayoutPacing } from '../layouts/types.ts';
 
 /**
  * Deck quality thresholds as data (ADR-038), ported from the developer's
@@ -66,6 +66,20 @@ export const DECK_QUALITY_RULES = Object.freeze([
     description: "A catalog slide's props break its layout's schema or size limits.",
   },
   {
+    id: 'unknown-background',
+    severity: 'warning',
+    check: 'static',
+    description:
+      'A slide background names no preset; the slide renders the default solid color instead.',
+  },
+  {
+    id: 'custom-slide',
+    severity: 'warning',
+    check: 'static',
+    description:
+      'A custom slide runs a component only a generated deck has; the player shows a placeholder there.',
+  },
+  {
     id: 'image-alt',
     severity: 'error',
     check: 'static',
@@ -88,6 +102,13 @@ export const DECK_QUALITY_RULES = Object.freeze([
     severity: 'warning',
     check: 'static',
     description: 'A slide labels more steps than it has fragments, so some clicks do nothing.',
+  },
+  {
+    id: 'step-unrevealed',
+    severity: 'warning',
+    check: 'static',
+    description:
+      'A step marker sits where the layout reveals nothing (inside a chart series, say): the click adds a step but nothing appears.',
   },
   {
     id: 'notes-missing',

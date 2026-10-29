@@ -1,13 +1,15 @@
 <script lang="ts">
 import { navigate, runService } from '@protoyard/renderer-svelte';
 import {
-  cn,
+  Button,
   getOverlayPortalTarget,
   Kbd,
   Spinner,
   subscribeOverlayPortalTarget,
 } from '@protoyard/ui';
-import { Command, Dialog as DialogPrimitive } from 'bits-ui';
+import { Command } from '@texuli/primitives/command';
+import * as DialogPrimitive from '@texuli/primitives/dialog';
+import { cx } from 'texuli/cx';
 import { shortcutKeys, shortcutLabel } from '../lib/platform.ts';
 import type { CommandEntry, CommandRegistry } from './registry.ts';
 import { COMMAND_QUERY_MAX_LENGTH, rankCommands } from './registry.ts';
@@ -126,8 +128,11 @@ function goBack() {
 }
 </script>
 
+<!-- Inside a framed device the palette is contained by its screen; otherwise it opens in the top layer. -->
 <DialogPrimitive.Root
   bind:open
+  mode={portal ? 'contained' : 'top-layer'}
+  container={portal}
   onOpenChange={(next) => {
     if (!next) {
       query = '';
@@ -136,7 +141,7 @@ function goBack() {
     }
   }}
 >
-  <DialogPrimitive.Portal to={portal ?? undefined}>
+  <DialogPrimitive.Portal>
     <DialogPrimitive.Overlay class="fixed inset-0 z-50 bg-black/40" />
     <DialogPrimitive.Content
       class="fixed top-[12vh] left-1/2 z-50 flex max-h-[76vh] w-[calc(100%-2rem)] -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-border bg-elevated text-foreground shadow-float outline-none sm:top-[18vh] sm:max-w-xl"
@@ -147,22 +152,23 @@ function goBack() {
       </DialogPrimitive.Description>
       {#if stepStack.length}
         <div class="flex items-center gap-2 border-b border-border px-3 py-2">
-          <button type="button" class="rounded px-2 py-1 text-sm hover:bg-muted" onclick={goBack}>
+          <Button type="button" variant="ghost" class="rounded px-2 py-1 text-sm hover:bg-muted" onclick={goBack}>
             Back
-          </button>
+          </Button>
           <span class="truncate text-sm text-muted-foreground" aria-live="polite">
             {stepStack.map(({ entry }) => entry.label).join(' › ')}
           </span>
         </div>
       {/if}
-      <Command.Root label="Commands" shouldFilter={false} loop>
+      <!-- The list states its own loading; a running command marks the whole palette busy. -->
+      <Command.Root label="Commands" shouldFilter={false} loop aria-busy={running !== null || undefined}>
         <Command.Input
           bind:value={query}
           maxlength={COMMAND_QUERY_MAX_LENGTH}
           {placeholder}
           class="h-14 border-b border-border bg-transparent px-4 text-base outline-none placeholder:text-muted-foreground"
         />
-        <Command.List class="max-h-[min(60vh,28rem)] overflow-y-auto p-2" aria-busy={running !== null || undefined}>
+        <Command.List class="max-h-[min(60vh,28rem)] overflow-y-auto p-2">
           {#if groups.length === 0}
             <Command.Empty class="px-3 py-6 text-center text-sm text-muted-foreground">
               {#if searchState === 'loading'}
@@ -183,12 +189,13 @@ function goBack() {
                 {#each entries as entry (entry.id)}
                   <Command.Item
                     value={entry.id}
+                    label={entry.label}
                     onSelect={() => select(entry)}
                     aria-busy={running === entry.id || undefined}
                     aria-haspopup={entry.children ? 'listbox' : undefined}
                     aria-keyshortcuts={entry.shortcut ? shortcutLabel(entry.shortcut, isMac).replace(/ /g, '+') : undefined}
-                    class={cn(
-                      'flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm outline-none data-[selected]:bg-muted',
+                    class={cx(
+                      'flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm outline-none data-highlighted:bg-muted',
                       running !== null && running !== entry.id && 'opacity-60'
                     )}
                   >

@@ -73,13 +73,14 @@ const FIT_TARGETS: Record<string, FitTarget> = {
     scenario: 'enterprise-scale',
     hash: '#/',
     layout: 'document',
-    ready: 'figure[data-py-chart]',
+    // ChartRoot marks data-py-chart on a div; sparklines and figures nest inside.
+    ready: '[data-py-chart]',
   },
   analytics: {
     scenario: 'massive',
     hash: '#/',
     layout: 'document',
-    ready: 'figure[data-py-chart]',
+    ready: '[data-py-chart]',
   },
   'iot-monitoring': {
     scenario: 'active',
@@ -111,6 +112,7 @@ const FIT_TARGETS: Record<string, FitTarget> = {
     scenario: 'massive',
     hash: '#/tasks',
     layout: 'document',
+    // The views-ui grid adapter: a table on desktop, a card list on phones.
     ready: '[data-grid]',
   },
 };

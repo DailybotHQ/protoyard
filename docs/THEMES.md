@@ -43,46 +43,87 @@ A theme is a `Theme` (`packages/core/src/theme.ts`, validated by
 ### Color tokens → CSS variables → Tailwind utilities
 
 `applyAppearance()` writes each palette token of the resolved mode as a
-`--py-*` custom property (`tokenToCssVar('primaryForeground')` →
-`--py-primary-foreground`). `@protoyard/themes/base.css` maps them into the
-Tailwind 4 theme, so you style with ordinary utilities:
+canonical `--tx-*` custom property (`primaryForeground` →
+`--tx-primary-foreground`). Theme-token `--py-*` aliases have been removed.
+`@protoyard/themes/base.css` maps the canonical names into the Tailwind 4
+theme, so you style with ordinary utilities:
 
 | Palette token | CSS variable | Tailwind utilities |
 | --- | --- | --- |
-| `background` / `foreground` | `--py-background` / `--py-foreground` | `bg-background`, `text-foreground` |
-| `surface` / `surfaceForeground` | `--py-surface` / `--py-surface-foreground` | `bg-surface`, `text-surface-foreground` |
-| `elevated` | `--py-elevated` | `bg-elevated` |
-| `muted` / `mutedForeground` | `--py-muted` / `--py-muted-foreground` | `bg-muted`, `text-muted-foreground` |
-| `border`, `input`, `ring` | `--py-border`, `--py-input`, `--py-ring` | `border-border`, `border-input`, `ring-ring` |
-| `primary` / `primaryForeground` | `--py-primary` / `--py-primary-foreground` | `bg-primary`, `text-primary-foreground` |
-| `secondary` / `secondaryForeground` | `--py-secondary` / … | `bg-secondary`, `text-secondary-foreground` |
-| `accent` / `accentForeground` | `--py-accent` / … | `bg-accent`, `text-accent-foreground` |
-| `destructive`, `success`, `warning`, `info` (+ `…Foreground`) | `--py-destructive` … | `bg-destructive`, `text-success`, `bg-warning text-warning-foreground`… |
-| `sidebar`, `sidebarForeground`, `sidebarBorder` | `--py-sidebar` … | `bg-sidebar`, `text-sidebar-foreground`, `border-sidebar-border` |
-| `chart1` … `chart5` | `--py-chart1` … `--py-chart5` | `bg-chart-1` … `bg-chart-5`, `text-chart-1`… |
-| [Chart palette](#chart-palettes) (optional `theme.charts`) | `--py-chart6` … `--py-chart8`, `--py-seq-1` … `--py-seq-9`, `--py-div-1` … `--py-div-9`, `--py-chart-grid`, `--py-chart-axis` | `bg-chart-6` … `bg-chart-8` (fall back to series 1–3), `stroke-chart-grid`, `text-chart-axis` |
-| `shadow` | `--py-shadow` | used inside `shadow-soft`, `shadow-float` |
-| (computed) | `--py-primary-hover`, `--py-destructive-hover` | `bg-primary-hover`, `bg-destructive-hover` |
+| `background` / `foreground` | `--tx-background` / `--tx-foreground` | `bg-background`, `text-foreground` |
+| `surface` / `surfaceForeground` | `--tx-surface` / `--tx-surface-foreground` | `bg-surface`, `text-surface-foreground` |
+| `elevated` | `--tx-elevated` | `bg-elevated` |
+| `muted` / `mutedForeground` | `--tx-muted` / `--tx-muted-foreground` | `bg-muted`, `text-muted-foreground` |
+| `border`, `input`, `ring` | `--tx-border`, `--tx-input`, `--tx-ring` | `border-border`, `border-input`, `ring-ring` |
+| `primary` / `primaryForeground` | `--tx-primary` / `--tx-primary-foreground` | `bg-primary`, `text-primary-foreground` |
+| `secondary` / `secondaryForeground` | `--tx-secondary` / … | `bg-secondary`, `text-secondary-foreground` |
+| `accent` / `accentForeground` | `--tx-accent` / … | `bg-accent`, `text-accent-foreground` |
+| `destructive`, `success`, `warning`, `info` (+ `…Foreground`) | `--tx-destructive` … | `bg-destructive`, `text-success`, `bg-warning text-warning-foreground`… |
+| `sidebar`, `sidebarForeground`, `sidebarBorder` | `--tx-sidebar` … | `bg-sidebar`, `text-sidebar-foreground`, `border-sidebar-border` |
+| `chart1` … `chart5` | `--tx-chart1` … `--tx-chart5` | `bg-chart-1` … `bg-chart-5`, `text-chart-1`… |
+| [Chart palette](#chart-palettes) (optional `theme.charts`) | `--tx-chart6` … `--tx-chart8`, `--tx-seq-1` … `--tx-seq-9`, `--tx-div-1` … `--tx-div-9`, `--tx-chart-grid`, `--tx-chart-axis` | `bg-chart-6` … `bg-chart-8` (fall back to series 1–3), `stroke-chart-grid`, `text-chart-axis` |
+| `shadow` | `--tx-shadow` | used inside `shadow-soft`, `shadow-float` |
+| (computed) | `--tx-primary-hover`, `--tx-destructive-hover` | `bg-primary-hover`, `bg-destructive-hover` |
 
 The two hover fills are computed per theme and mode by `hoverFill()`: a
 visible step darker or lighter that keeps the button text at 4.5:1 or more.
+
+### Renderer geometry variables
+
+Theme tokens use only `--tx-*`. Renderer-owned geometry keeps its existing
+`--py-*` names: `--py-fixed-right-edge`, `--py-side-panel-width`,
+`--py-safe-*`, `--py-device-radius` and `--py-app-height`. These values
+describe the visible viewport and simulated device frames; they are not theme
+tokens. Deck-stage styling uses separate `--tx-deck-*` properties.
+
+### Texuli's extended appearance metadata
+
+On a page that calls `enableTexuliAppearance()` from
+`@protoyard/themes/texuli`, the package uses `@texuli/tokens` to write its
+extended semantic roles and `data-tx-theme`, `data-tx-mode`,
+`data-tx-motion` and `data-tx-surface` attributes. The core `--tx-*` token
+set is written by `applyAppearance()` on every page.
+
+- **Canonical tokens.** Both the default writer and the opt-in Texuli writer
+  write `--tx-*`; neither emits theme-token `--py-*` aliases.
+- **The extra roles.** Texuli has 16 roles Protoyard's palette lacks: soft
+  tones, `link`, `linkVisited`, `selection`, `canvas`, `borderStrong`,
+  `elevatedForeground`, `subtle`, `overlay`, `scrim`, `sidebarPrimary`.
+  `toTexuliTheme()` (`@protoyard/themes/texuli`) derives each from existing
+  roles: it takes the first candidate that meets the contrast pairs Texuli's
+  AA gate holds it to.
+- **Verified.** Every library theme passes Texuli's AA gate at its claimed
+  level. The six built-ins fail only one check: their light-mode `input`
+  borders measure about 1.4:1, under WCAG 1.4.11's 3:1. Fixing that would
+  restyle every prototype, so it is a separate decision.
+- **Opt-in metadata, on in every prototype.** Enabling the Texuli bridge
+  re-applies the current appearance and later calls write the extended roles
+  and `data-tx-*` attributes. Canonical tokens reach the no-flash cache in
+  either case.
+  - The renderer's `bindAppearance` calls `enableTexuliAppearance()`, because
+    `@protoyard/ui` renders Texuli components; DevTools' `mountDevtools`
+    calls it too. A page that never imports `@protoyard/themes/texuli` still
+    writes core `--tx-*` tokens.
+  - The subpath imports `@texuli/tokens/css` and `@texuli/tokens/contract`,
+    never the package root, whose barrel re-exports the whole theme library
+    ([TEXULI.md](TEXULI.md#themes-come-from-texulitokens)).
 
 ### Typography, shape, density and motion variables
 
 | Variable | From | Used for |
 | --- | --- | --- |
-| `--py-font-sans`, `--py-font-heading`, `--py-font-mono` | `fontFamily`, `fontFamilyHeading`, `fontFamilyMono` | `font-sans`, `font-heading`, `font-mono`; `h1`–`h4` use the heading font |
-| `--py-font-size-xs` … `--py-font-size-9xl` | `style.typography.scaleRatio` | `text-xs` … `text-9xl`. `null` keeps Tailwind's sizes; a ratio gives `ratio^n rem` with `base` = `1rem` |
-| `--py-font-weight-body`, `-medium`, `-heading`, `-bold` | `style.typography.weights` | `font-normal`, `font-medium`, `font-semibold`, `font-bold`; body and heading weights |
-| `--py-letter-spacing-body`, `-heading` | `style.typography.tracking` | body and `h1`–`h4` letter spacing; `tracking-body`, `tracking-heading` |
-| `--py-radius` | `radius` | `rounded-lg`; `rounded-xs` … `rounded-2xl` are derived from it |
-| `--py-radius-step-6`, `-4`, `-2` | `style.shape.radiusScale` | The offsets between radius steps (`6px`, `4px`, `2px` × scale) |
-| `--py-border-width` | `style.shape.borderWidth` | Tailwind's default border width |
-| `--py-shadow-soft`, `--py-shadow-float` | `style.elevation` | `shadow-soft`, `shadow-float` |
-| `--py-density` | `density` (or a density override) | Multiplies Tailwind's `--spacing`, so every `p-4`, `gap-2` scales |
-| `--py-motion-fast`, `-base`, `-slow`, `--py-motion-easing` | `style.motion` | `duration-fast`, `duration-base`, `duration-slow`, default transition duration and easing; `0ms` / `linear` under reduced motion |
-| `--py-focus-ring-width`, `--py-focus-ring-offset` | `style.focusRing` | `@protoyard/ui` focus-ring profiles |
-| `--py-motion` | reduced motion | `0` when reduced, `1` otherwise |
+| `--tx-font-sans`, `--tx-font-heading`, `--tx-font-mono` | `fontFamily`, `fontFamilyHeading`, `fontFamilyMono` | `font-sans`, `font-heading`, `font-mono`; `h1`–`h4` use the heading font |
+| `--tx-font-size-xs` … `--tx-font-size-9xl` | `style.typography.scaleRatio` | `text-xs` … `text-9xl`. `null` keeps Tailwind's sizes; a ratio gives `ratio^n rem` with `base` = `1rem` |
+| `--tx-font-weight-body`, `-medium`, `-heading`, `-bold` | `style.typography.weights` | `font-normal`, `font-medium`, `font-semibold`, `font-bold`; body and heading weights |
+| `--tx-letter-spacing-body`, `-heading` | `style.typography.tracking` | body and `h1`–`h4` letter spacing; `tracking-body`, `tracking-heading` |
+| `--tx-radius` | `radius` | `rounded-lg`; `rounded-xs` … `rounded-2xl` are derived from it |
+| `--tx-radius-step-6`, `-4`, `-2` | `style.shape.radiusScale` | The offsets between radius steps (`6px`, `4px`, `2px` × scale) |
+| `--tx-border-width` | `style.shape.borderWidth` | Tailwind's default border width |
+| `--tx-shadow-soft`, `--tx-shadow-float` | `style.elevation` | `shadow-soft`, `shadow-float` |
+| `--tx-density` | `density` (or a density override) | Multiplies Tailwind's `--spacing`, so every `p-4`, `gap-2` scales |
+| `--tx-motion-fast`, `-base`, `-slow`, `--tx-motion-easing` | `style.motion` | `duration-fast`, `duration-base`, `duration-slow`, default transition duration and easing; `0ms` / `linear` under reduced motion |
+| `--tx-focus-ring-width`, `--tx-focus-ring-offset` | `style.focusRing` | `@protoyard/ui` focus-ring profiles |
+| `--tx-motion` | reduced motion | `0` when reduced, `1` otherwise |
 
 `applyAppearance()` also sets `data-py-theme`, `data-py-mode`,
 `data-py-motion` (`reduce` or `full`), `data-py-surface` (`solid` or
@@ -122,6 +163,13 @@ only where the theme departs from the default look:
 | `elevation: 'flat'` (and not glass) | `data-py-card-style="bordered"` |
 | `radius` of `0` | `data-py-button-style="square"` |
 | `radius` of `999px` or more | `data-py-button-style="pill"` |
+
+The button and card profiles style `@protoyard/ui`'s own `.ui-button` and
+`.ui-card` classes. `Button` and `Card` are now re-exported from Texuli
+([TEXULI.md](TEXULI.md#generic-styled-components-come-from-texuli)) and read
+neither attribute. They follow the theme through its `--tx-*` tokens
+instead: corners from the radius tokens and shadows from the elevation. A
+glass surface does not make Texuli's `Card` translucent.
 
 `glass` is progressive enhancement: `bg-surface` and `bg-elevated` become
 translucent with a backdrop blur only in browsers that support
@@ -194,7 +242,7 @@ await runtime.theme.clearOverride(); // back to the scenario, then the theme
   (`pill` gives pill buttons, `flat` bordered cards). The preset data loads
   as a small lazy chunk the first time a preset is active; until it arrives
   the page keeps what it shows. The density override and reduced motion
-  still win. The no-flash cache replays the merged `--py-*` variables, so a
+  still win. The no-flash cache replays the merged `--tx-*` variables, so a
   reload paints the overridden look first.
 - **Storage.** Overrides live in the prototype's control DB only, never the
   data DB (ADR-005), and `theme.clearOverride()` or DevTools' "Clear
@@ -211,9 +259,9 @@ await runtime.theme.clearOverride(); // back to the scenario, then the theme
 `FONT_CATALOG` (`packages/themes/src/fonts.ts`) has eight system-first
 pairings: `system`, `humanist`, `geometric`, `grotesk`, `editorial` (serif
 headings), `rounded`, `condensed` and `mono`. Each stack is
-`var(--py-font-stack-<id>-…, <local fallback>)`, so choosing one never
+`var(--tx-font-stack-<id>-…, <local fallback>)`, so choosing one never
 downloads a font. `@protoyard/themes/fonts.css` is optional and only declares
-those `--py-font-stack-*` variables so a prototype can override them.
+those `--tx-font-stack-*` variables so a prototype can override them.
 `loadVariableFont({ family, src })` loads a self-hosted, same-origin `.woff2`
 face only when called; remote URLs and other formats are refused.
 
@@ -248,14 +296,18 @@ every theme and both modes; `bg-violet-600` does not.
 
 ## The palette engine
 
-`packages/themes/src/palette.ts` turns one brand color into a complete,
-accessible light and dark theme. It is pure and deterministic: the same
+`createThemeFromSeed` (`packages/themes/src/palette.ts`) turns one brand color
+into a complete, accessible light and dark theme. The engine is
+`@texuli/tokens`' generator (`generateThemeFromSeed`), with chart tokens from
+`@texuli/tokens/palette`; Protoyard keeps the API and its own defaults (fonts,
+radius, density, style). One engine builds the library, Theme Studio, deck and
+blueprint seeds and quick variants. It is pure and deterministic: the same
 input always gives the same hex values.
 
 | Function | What it does |
 | --- | --- |
 | `generatePaletteScale(seed)` | An 11-step scale (`PALETTE_STEPS`: 50, 100, 200 … 900, 950) from a `#rgb` or `#rrggbb` seed. Keeps the seed's OKLCH hue, caps chroma at `0.24`, and places each step at a fixed OKLCH lightness (`0.98` for 50 down to `0.12` for 950). Throws a `TypeError` for anything that is not hex. |
-| `createThemeFromSeed({ id, name, seed, secondary?, neutral?, style? })` | A full `Theme` validated by `defineTheme`. The optional `secondary` seed drives the secondary fill and `chart2`; without it the seed is reused. `neutral` picks a [neutral family](#neutral-families); without it the original neutrals are used. `style` is passed through. The description becomes `Generated from <seed>…`. An unknown family throws a `TypeError`. |
+| `createThemeFromSeed({ id, name, seed, secondary?, neutral?, style? })` | A full `Theme` validated by `defineTheme`. The optional `secondary` seed drives the secondary fill and `chart2`; without it the seed is reused. `neutral` picks a [neutral family](#neutral-families); without it `zinc` is used. `style` is passed through. The description becomes `Generated from <seed>…`. An unknown family throws a `TypeError`. |
 
 ### OKLCH and gamut mapping
 
@@ -306,10 +358,11 @@ searched toward black or white until they reach 4.5:1 on every background
 they sit on. When a secondary or accent fill misses 4.5:1 with its text, the
 repair falls back to the family's own neutral fill.
 
-Omitting `neutral` keeps the original neutrals bit-for-bit. A library
+Omitting `neutral` uses the `zinc` family. (Before the engine moved to
+`@texuli/tokens`, it kept a fixed set of original neutrals instead; seed
+themes without a family changed to solved zinc neutrals then.) A library
 definition can set `neutral` too (`LibraryThemeDefinition.neutral`); the
-64-theme library uses families across its product-category and curated
-collections.
+library uses families across its product-category and curated collections.
 
 ```ts
 import { createThemeFromSeed } from '@protoyard/themes';
@@ -325,7 +378,7 @@ export const paperTheme = createThemeFromSeed({
 The result is then held to the same WCAG pairs as the presets (see
 [Contrast checks](#contrast-checks)). `packages/themes/tests/palette.test.ts`
 checks every text and UI pair in both modes for 500 deterministic seeds,
-with the original neutrals and with every neutral family.
+without a family (zinc) and with every neutral family.
 
 ```ts
 import { createThemeFromSeed } from '@protoyard/themes';
@@ -341,10 +394,10 @@ export const harborTheme = createThemeFromSeed({
 
 ## Chart palettes
 
-Chart colors belong to the theme. `packages/themes/src/charts.ts` derives, per
-mode, the colors a chart needs from `chart1` … `chart5` and checks them with
-the same rules as the charts kit (`validateChartPalette` in
-`packages/charts/src/palette`):
+Chart colors belong to the theme. `@texuli/tokens/palette`'s
+`deriveChartTokens` derives, per mode, the colors a chart needs from
+`chart1` … `chart5`, and its `validateChartTokens` checks them with the same
+rules as the charts kit (`validateChartPalette` in `packages/charts/src/palette`):
 
 | Rule | Minimum |
 | --- | --- |
@@ -361,10 +414,10 @@ the three derived series colors may also shift hue a little.
 
 | Field | Content | CSS variables |
 | --- | --- | --- |
-| `categorical` | 8 series colors; the first five are `chart1` … `chart5` | `--py-chart1` … `--py-chart8` |
-| `sequential` | 9 steps, low → high values | `--py-seq-1` … `--py-seq-9` |
-| `diverging` | 9 steps, negative end → neutral midpoint (step 5) → positive end | `--py-div-1` … `--py-div-9` |
-| `grid`, `axis` | The palette's `border` and `mutedForeground` | `--py-chart-grid`, `--py-chart-axis` |
+| `categorical` | 8 series colors; the first five are `chart1` … `chart5` | `--tx-chart1` … `--tx-chart8` |
+| `sequential` | 9 steps, low → high values | `--tx-seq-1` … `--tx-seq-9` |
+| `diverging` | 9 steps, negative end → neutral midpoint (step 5) → positive end | `--tx-div-1` … `--tx-div-9` |
+| `grid`, `axis` | The palette's `border` and `mutedForeground` | `--tx-chart-grid`, `--tx-chart-axis` |
 
 Where the colors come from:
 
@@ -379,7 +432,7 @@ Where the colors come from:
   8 / 9 / 9 entries); without it they behave like the presets, and the charts
   kit repairs any `chart1` … `chart5` that fail.
 
-`applyAppearance` always writes `--py-chart-grid` and `--py-chart-axis`, and
+`applyAppearance` always writes `--tx-chart-grid` and `--tx-chart-axis`, and
 writes the series 1–8 and the ramps when the theme has a `charts` block. It
 removes series 6–8 and the ramps again when the next theme has none.
 `packages/themes/tests/charts.test.ts` checks every preset and library theme
@@ -406,14 +459,41 @@ prototype's theme list, and `violet` (`DEFAULT_THEME_ID`) is the fallback.
 
 ### The theme library (loaded on demand)
 
-The library holds **64 themes**: the 32 product-category themes of
-`packages/themes/src/library/definitions.ts` (first table) and 32 more in
-`definitions-extra.ts` (second table). Each entry is data only: id, name,
-description, category, tags, collection, mood, a seed and secondary color,
-a neutral family, a font pairing id, radius, density, an optional style
-profile and, for colorblind-safe themes, five chart seeds. Tokens are not
-stored; they are built by the palette engine when a theme is loaded. All
-names are fictional.
+The library's tokens come from **`@texuli/tokens`** ([TEXULI.md](TEXULI.md)).
+It has two tiers:
+
+- **The catalog** holds 64 themes: the 32 product-category themes (first
+  table) and 32 more (second table).
+  - Its metadata is synchronous: `THEME_LIBRARY_META` is
+    `@texuli/tokens/library`'s, imported statically (Texuli declares
+    `sideEffects`, so only the metadata module reaches a bundle). A blueprint,
+    deck or picker that checks an id needs no load.
+  - Its definitions and tokens load on demand from the same port, one theme at
+    a time (`loadLibraryThemeDefinition`, `loadLibraryTheme`). Protoyard keeps
+    no copy of them. `tests/library.test.ts` proves the port is field-identical
+    to the 64 definitions Protoyard used to own, kept as a test fixture
+    (`packages/themes/tests/fixtures/library-definitions.ts`).
+- **The full library** adds Texuli's expanded set: 140 more themes, for 204
+  in all.
+  - It's opt-in: call `enableFullThemeLibrary()` from
+    `@protoyard/themes/library-full`.
+  - It's opt-in because single-file exports inline everything reachable, so
+    every such export would carry the expanded set's metadata and
+    definitions.
+  - The expanded set also carries Protoyard's six built-ins. The library
+    leaves them out so no picker shows an id twice; they stay
+    `BUILTIN_THEMES`.
+
+Each entry is data only: id, name, description, category, tags, collection,
+mood, a seed and secondary color, a neutral family, a font pairing id,
+radius, density, an optional style profile and, for colorblind-safe themes,
+five chart seeds. Tokens are not stored.
+- Texuli builds them when a theme loads, in a lazy chunk.
+- `fromTexuliTheme` converts them to this contract: the shared palette roles
+  keep Texuli's values, and `chart1`…`chart5` take the first five categorical
+  chart colors.
+
+All names are fictional.
 
 | Id | Name | Category | Seed / secondary | Font | Radius | Density | Elevation |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -452,11 +532,11 @@ names are fictional.
 
 Elevation `soft` in this table is the schema default for entries that do not
 set one. Several entries also set typography, radius scale, border width,
-motion or focus-ring values; see `definitions.ts` for the full profile.
+motion or focus-ring values; `loadLibraryThemeDefinition(id)` returns the full profile.
 
 Twenty of the first 32 now use a neutral family, so no two themes in one
 family have nearly the same primary (the table above does not list the
-neutral; see `definitions.ts`). `accessible-high-contrast` and
+neutral; it is in each theme's metadata, `meta.neutral`). `accessible-high-contrast` and
 `accessible-dark-contrast` are AAA themes in the `high-contrast` collection,
 and `brutalist-block` and `productivity-minimal` are in `mono`: their black
 and near-black seeds now keep a gray primary (seeds below OKLCH chroma 0.04
@@ -511,7 +591,7 @@ The second set:
 Every theme has its own neutral family, font, radius and elevation
 combination, and no two themes that share a neutral family have primaries
 closer than ΔE_OK 0.04 in both modes. `createThemeFromSeed({ contrast: 'AAA' })`
-searches every text pair to 7:1 and needs a `neutral` family;
+searches every text pair to 7:1, with or without a `neutral` family;
 `chartSeeds` (five hex colors) replaces the derived chart series before the
 chart repair.
 
@@ -523,16 +603,22 @@ Each definition can also set catalog metadata (`packages/themes/src/library/type
 | `mood` | any of `calm`, `bold`, `playful`, `corporate`, `editorial`, `technical`, `warm`, `fresh`, `luxurious`, `minimal` (`THEME_MOODS`) | none |
 | `darkFirst` | `true` when the theme is meant to be shown in dark mode first | `false` |
 | `contrastLevel` | `AA` (text 4.5:1) or `AAA` (text 7:1, enforced by `tests/library.test.ts`) | `AA` |
-| `neutral` | a [neutral family](#neutral-families) | the original neutrals |
+| `neutral` | a [neutral family](#neutral-families) | the builder's `zinc` |
 
-The first 32 definitions carry product categories and tags; optional metadata
-uses the defaults above when a definition omits it. The additional 32 entries
-make the collections explicit. `tests/library.test.ts` checks every
-definition: unique kebab-case ids, `#rrggbb` seeds, known fonts, neutrals,
-collections, moods and contrast levels, density range, and the style profile
-through core's `ThemeStyleSchema`.
+Optional metadata uses the defaults above when a definition omits it.
+`tests/library.test.ts` checks every definition against these rules:
+- unique kebab-case ids and `#rrggbb` seeds
+- known fonts, neutrals, collections, moods and contrast levels
+- the density range
+- the style profile, through core's `ThemeStyleSchema`
 
-The registry API (`packages/themes/src/library/registry.ts`):
+With the full library enabled, it also runs these checks over all 204, and
+checks that metadata matches each definition. One known Texuli gap is
+tolerated: the expanded set's metadata omits the `neutral` family its
+definitions use (nothing reads `meta.neutral` at runtime).
+
+The registry API (`packages/themes/src/library/registry.ts`, also on the
+root barrel):
 
 | Export | What it does |
 | --- | --- |
@@ -540,13 +626,18 @@ The registry API (`packages/themes/src/library/registry.ts`):
 | `listThemeLibrary({ category?, tag?, collection?, mood? })` | Filters the metadata |
 | `searchThemeLibrary(query)` | Case-insensitive search over name, id, tags, mood, category, collection and description. Every word must match; results rank name and id matches first (3), then tags, mood, category and collection (2), then the description (1), with ties in library order. An empty query returns the whole library. |
 | `listCollections()` | Every collection in a fixed order with its theme count |
-| `getLibraryThemeMeta(id)`, `getLibraryThemeDefinition(id)` | Lookups |
-| `loadLibraryTheme(id)` | Async. Dynamically imports the builder (`import('./build.ts')`), runs `createThemeFromSeed`, then applies the font pairing, radius and density. Results are cached in memory. Unknown ids reject with the list of known ids. |
+| `getLibraryThemeMeta(id)` | Catalog lookup (metadata) |
+| `loadFullLibraryMeta()`, `findLibraryThemeMeta(id)` | Async. The full library's metadata, catalog first (the catalog alone until `enableFullThemeLibrary()`) |
+| `loadLibraryThemeDefinition(id)` | Async. Any library theme's definition, from Texuli's port |
+| `loadLibraryTheme(id)` | Async. Loads any library theme's tokens and chart tokens from `@texuli/tokens` (dynamic imports only), converts them with `fromTexuliTheme`, and caches the result. Unknown ids, built-in ids included, reject with the list of known ids. |
+| `loadAllFullLibraryThemes()` | Loads every theme of the full library |
 | `loadAllLibraryThemes()` | Loads every library theme (tests, galleries) |
 | `clearLibraryThemeCache()` | Clears the cache (tests) |
 
-The dynamic import keeps the palette engine out of the eager metadata chunk
-in bundlers that split on `import()`.
+The only static import of `@texuli/tokens` here is the catalog metadata
+(`@texuli/tokens/library`; the package declares `sideEffects` only for CSS).
+Definitions, tokens and the expanded set are dynamic imports, so no theme's
+tokens reach a prototype's initial chunk.
 
 **Using a library theme in any prototype.** Every prototype can use every
 library theme with no code of its own. `mountPrototype` gives the runtime a
@@ -573,7 +664,7 @@ because the runtime falls back instead of failing.
 The gallery's Themes page (`apps/gallery/src/pages/themes.astro`),
 the UI Kit prototype's Theme Lab and the CLI list them too.
 
-The gallery Themes page renders 70 cards (64 library themes and six built-ins) as static HTML with
+The gallery Themes page renders 70 cards (64 catalog themes and six built-ins) as static HTML with
 precomputed light and dark CSS variables, then hydrates a small filter island.
 Search, collection and mood filters stay in `?q=`, `?collection=` and `?mood=`;
 the page mode toggle changes every card's palette and the `?theme=<id>` link
@@ -703,9 +794,14 @@ of their initial chunk.
 
 Without `brand`, the template's default theme is kept.
 
-Decks, pages and docs accept the same `brand`, but `generate` writes no theme
-module for them: `defineKindRuntime` resolves the library or brand theme at
-runtime.
+Decks, pages and docs accept the same `brand`. `generate` writes the built
+theme to `src/generated/brand-theme.ts`, as for apps, and the generated runtime
+module passes it to `defineKindPrototype`, so the palette generator stays out
+of the prototype's first chunk. A library brand ships by id. A deck made with
+`protoyard new --template deck` gets the same: `new` writes the brand of its
+`src/blueprint.json` to `src/brand-theme.ts`, and `dev` and `validate` keep it
+in step when `brand` changes ([KINDS](KINDS.md#editing-a-decks-brand)). The player resolves either brand
+at runtime with `defineKindRuntime`.
 
 ### Design kits
 
@@ -789,7 +885,7 @@ without writing files; `--json` also includes CSS custom properties and
 Tailwind `@theme` tokens. A failed AA pair exits with a validation error and
 lists each failing mode and token pair; adjust the source tokens and retry.
 
-**List** the six presets and the 64 library themes:
+**List** the six presets and the 64 catalog themes:
 
 ```text
 $ pnpm protoyard theme list
@@ -807,27 +903,26 @@ crypto-ledger	Crypto Ledger	library
 ```
 
 **Export** a built-in or library theme (library themes are built on the fly
-with `loadLibraryTheme`). `css` prints both palettes as `--py-*` variables
-under `:root` and `.dark`:
+with `loadLibraryTheme`). `css` prints canonical `--tx-*` theme-token names:
 
 ```text
 $ pnpm protoyard theme export fintech-ledger --format css
 :root {
-  --py-background: #fafafa;
-  --py-foreground: #111827;
+  --tx-background: #fafafa;
+  --tx-foreground: #111827;
   …
-  --py-primary: #007a71;
-  --py-primary-foreground: #ffffff;
+  --tx-primary: #007a71;
+  --tx-primary-foreground: #ffffff;
   …
-  --py-radius: 0.5rem;
-  --py-density: 0.95;
-  --py-font-family: var(--py-font-stack-grotesk-sans, "Helvetica Neue", Helvetica, Arial, sans-serif);
+  --tx-radius: 0.5rem;
+  --tx-density: 0.95;
+  --tx-font-family: var(--tx-font-stack-grotesk-sans, "Helvetica Neue", Helvetica, Arial, sans-serif);
 }
 
 .dark {
   …
-  --py-primary: #00a296;
-  --py-primary-foreground: #09090b;
+  --tx-primary: #00a296;
+  --tx-primary-foreground: #09090b;
   …
 }
 ```
@@ -839,11 +934,11 @@ font family, density):
 ```text
 $ pnpm protoyard theme export ocean --format tailwind
 @theme {
-  --color-background: var(--py-background);
-  --color-foreground: var(--py-foreground);
+  --color-background: var(--tx-background);
+  --color-foreground: var(--tx-foreground);
   …
-  --color-shadow: var(--py-shadow);
-  --radius-theme: var(--py-radius);
+  --color-shadow: var(--tx-shadow);
+  --radius-theme: var(--tx-radius);
 }
 
 $ pnpm protoyard theme export violet --format tokens
@@ -861,7 +956,7 @@ $ pnpm protoyard theme export violet --format tokens
 
 The exports cover the palettes, radius, density and font family only, not
 the style profile. Two naming details differ from `base.css`: the `css`
-format names the font `--py-font-family` (the runtime uses `--py-font-sans`),
+format names the font `--tx-font-family` (the runtime uses `--tx-font-sans`),
 and the `tailwind` format names chart colors `--color-chart1` (the base
 stylesheet uses `--color-chart-1`). An unknown id exits with code 3 and lists
 the known ids.
@@ -938,12 +1033,14 @@ the default colors and then switch. Two things prevent that:
 2. `defineProtoyardConfig()` injects `noFlashScript(namespace)` as the first
    `<head>` script. It replays the last applied appearance from
    `localStorage` (`protoyard.<namespace>.appearance`) before first paint:
-   the `--py-*` variables, mode class, theme id, motion, `data-py-surface`
-   and the allowlisted component profile attributes. Without a cache it
-   still honors `prefers-color-scheme`.
+   canonical `--tx-*` variables, mode class, theme id, motion,
+   `data-py-surface`, their `data-tx-*` twins, and the allowlisted component
+   profile attributes. Without a cache it still honors
+   `prefers-color-scheme`.
 
 The renderer refreshes that cache every time the appearance changes. The
-script only replays `--py-*` names with string values and known profile
+script only replays `--tx-*` names with string values and known
+profile
 values, and every storage access is wrapped in `try`, so private mode or a
 tampered cache cannot break the page or inject markup.
 
@@ -978,7 +1075,7 @@ contrast (`TEXT_CONTRAST_PAIRS` and `UI_CONTRAST_PAIRS` in
 | --- | --- |
 | `packages/themes/tests/contrast.test.ts` | Every built-in preset and every library theme, both modes; built-in hover fills stay visible and keep text at AA |
 | `packages/themes/tests/library.test.ts` | Every library theme, both modes |
-| `packages/themes/tests/palette.test.ts` | `createThemeFromSeed` across 500 deterministic seeds, both modes, with the original neutrals and every neutral family |
+| `packages/themes/tests/palette.test.ts` | `createThemeFromSeed` across 500 deterministic seeds, both modes, without a family and with every neutral family; every shared role equals Texuli's generator |
 | Theme Studio | Live warnings before saving |
 | `theme create` / `theme import` | Refuses to write a failing theme |
 | `generate` with a `brand` | Refuses to generate a failing brand theme |

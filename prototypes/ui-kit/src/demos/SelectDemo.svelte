@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Label, Select, type SelectOption } from '@protoyard/ui';
+import { Button, Label, Select, type SelectOption } from '@protoyard/ui';
 
 const stages: SelectOption[] = [
   { value: 'lead', label: 'Lead' },
@@ -32,14 +32,15 @@ let owner = $state('');
         { value: 'kai', label: 'Kai Moreno' },
       ]}
     />
-    <button
+    <Button
       type="button"
+      variant="link"
       class="justify-self-start text-xs font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       onclick={() => (owner = '')}
       disabled={!owner}
     >
       Clear owner
-    </button>
+    </Button>
   </div>
 
   <div class="grid gap-1.5">

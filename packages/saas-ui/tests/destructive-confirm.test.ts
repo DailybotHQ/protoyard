@@ -5,7 +5,7 @@ import {
   parseManifest,
 } from '@protoyard/core';
 import type { ProtoyardRuntime } from '@protoyard/runtime';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import {
@@ -99,14 +99,13 @@ const invitationStatus = async (runtime: ProtoyardRuntime) =>
 
 function removeButtonFor(name: string): HTMLButtonElement {
   const row = screen.getByText(name).closest('li');
-  const button = row?.querySelector('button');
-  if (!button) throw new Error(`No Remove button for ${name}`);
-  return button as HTMLButtonElement;
+  if (!row) throw new Error(`No member row for ${name}`);
+  return within(row).getByRole('button', { name: 'Remove' }) as HTMLButtonElement;
 }
 
 /**
  * Focus moves into the dialog and never starts on the destructive action, so
- * Enter or Space cannot confirm by accident. (Bits UI focuses the dialog
+ * Enter or Space cannot confirm by accident. (The dialog focuses its
  * container; Cancel comes first in tab order.)
  */
 async function expectSafeInitialFocus(dialog: HTMLElement, confirmLabel: string): Promise<void> {
@@ -203,7 +202,8 @@ describe('members and profile: people show their faces', () => {
     const avatar = await screen.findByTestId('settings-profile-avatar');
     const face = avatar.querySelector('img');
     expect(face?.getAttribute('src')).toBe(`./avatars/64/${owner.persona.avatar}.webp`);
-    expect(face?.getAttribute('alt')).toBe(owner.persona.name);
+    // Texuli's Avatar names its root (role=img); the image itself is decorative.
+    expect(face?.closest('[role="img"]')?.getAttribute('aria-label')).toBe(owner.persona.name);
     expect(face?.getAttribute('width')).toBe('48');
   });
 });

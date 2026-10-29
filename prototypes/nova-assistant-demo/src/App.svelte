@@ -3,7 +3,6 @@ import {
   Archive,
   AudioLines,
   Bot,
-  Check,
   Folder,
   MessageSquarePlus,
   Settings2,
@@ -12,9 +11,13 @@ import {
 import { AI_MODELS } from '@protoyard/ai';
 import type { AssistantSendInput } from '@protoyard/ai-ui';
 import { createRouter, Router } from '@protoyard/renderer-svelte';
+import { Button } from '@protoyard/ui';
 import type { Component } from 'svelte';
 import { onDestroy } from 'svelte';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { provideAssistant } from './lib/context.ts';
+import { sortMessagesForDisplay } from './lib/message-order.ts';
 import Settings from './screens/Settings.svelte';
 import Workspace from './screens/Workspace.svelte';
 
@@ -58,7 +61,9 @@ const activeConversation = $derived(
   ) ?? projectConversations[0]
 );
 const activeMessages = $derived(
-  (messages.current ?? []).filter((message) => message.conversationId === activeConversation?.id)
+  sortMessagesForDisplay(
+    (messages.current ?? []).filter((message) => message.conversationId === activeConversation?.id)
+  )
 );
 const latestAssistantReply = $derived(
   [...activeMessages].reverse().find((message) => message.role === 'assistant')?.content ?? ''
@@ -93,15 +98,25 @@ async function send(conversationId: string, input: AssistantSendInput) {
 async function loadVoice() {
   activeTab = 'voice';
   if (voiceLoaded) return;
-  const module = await import('@protoyard/ai-ui/voice');
-  VoiceMode = module.VoiceMode;
-  voiceLoaded = true;
+  alertText = '';
+  try {
+    const module = await import('@protoyard/ai-ui/voice');
+    VoiceMode = module.VoiceMode;
+    voiceLoaded = true;
+  } catch (error) {
+    alertText = messageOf(error);
+  }
 }
 
 async function loadWidgetDemo() {
   activeTab = 'widget';
   if (WidgetDemo) return;
-  WidgetDemo = (await import('./components/WidgetDemo.svelte')).default;
+  alertText = '';
+  try {
+    WidgetDemo = (await import('./components/WidgetDemo.svelte')).default;
+  } catch (error) {
+    alertText = messageOf(error);
+  }
 }
 
 async function sendVoiceTranscript(prompt: string) {
@@ -133,26 +148,26 @@ function messageOf(error: unknown) {
 </script>
 
 <div class="flex h-[var(--py-app-height,100dvh)] min-h-0 bg-background text-foreground">
-  <aside class="hidden w-64 shrink-0 flex-col border-r border-border bg-surface p-4 lg:flex overflow-y-auto" aria-label="Assistant workspace navigation">
+  <aside class="hidden h-full min-h-0 w-64 shrink-0 flex-col border-r border-border bg-surface p-4 lg:flex overflow-y-auto" aria-label="Assistant workspace navigation">
     <a href="#/" class="mb-6 flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-semibold">
-      <span class="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Sparkles class="size-5" aria-hidden="true" /></span>
+      <span class="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground"><LucideIcon icon={Sparkles} class="size-5" /></span>
       <span>Nova <span class="font-normal text-muted-foreground">Assistant</span></span>
     </a>
-    <button type="button" class="mb-5 flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-3 text-left text-sm font-medium shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onclick={createConversation}>
-      <MessageSquarePlus class="size-4" aria-hidden="true" /> New conversation <span class="ml-auto text-xs text-muted-foreground">⌘ K</span>
-    </button>
+    <Button type="button" variant="outline" class="mb-5 flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-3 text-left text-sm font-medium text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onclick={createConversation}>
+      <LucideIcon icon={MessageSquarePlus} class="size-4" /> New conversation <span class="ml-auto text-xs text-muted-foreground">⌘ K</span>
+    </Button>
     <p class="px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-muted-foreground">Projects</p>
     <nav class="space-y-1" aria-label="Projects">
       {#each projects.current ?? [] as project (project.id)}
-        <button type="button" class={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-left text-sm hover:bg-muted ${activeProjectId === project.id ? 'bg-muted font-medium' : 'text-muted-foreground'}`} aria-pressed={activeProjectId === project.id} onclick={() => (activeProjectId = activeProjectId === project.id ? '' : project.id)}>
+        <Button type="button" variant="ghost" class={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-left text-sm hover:bg-muted ${activeProjectId === project.id ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground'}`} aria-pressed={activeProjectId === project.id} onclick={() => (activeProjectId = activeProjectId === project.id ? '' : project.id)}>
           <span class="size-2 rounded-full" style={`background:${project.color}`}></span><span class="truncate">{project.name}</span>
-        </button>
+        </Button>
       {/each}
     </nav>
-    <div class="mt-6 flex items-center gap-2 px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-muted-foreground"><Folder class="size-3.5" aria-hidden="true" /> History</div>
+    <div class="mt-6 flex items-center gap-2 px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-muted-foreground"><LucideIcon icon={Folder} class="size-3.5" /> History</div>
     <div class="min-h-24 flex-1 overflow-y-auto">
       {#each projectConversations.slice(0, 10) as conversation (conversation.id)}
-        <button type="button" class={`mb-1 w-full truncate rounded-lg px-2 py-2 text-left text-xs hover:bg-muted ${conversation.id === activeConversation?.id ? 'bg-muted text-foreground' : 'text-muted-foreground'}`} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</button>
+        <Button type="button" variant="ghost" class={`mb-1 w-full truncate rounded-lg px-2 py-2 text-left text-xs hover:bg-muted ${conversation.id === activeConversation?.id ? 'bg-muted text-foreground' : 'text-muted-foreground'}`} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</Button>
       {/each}
     </div>
     <div class="mt-3 rounded-xl border border-border bg-surface p-3">
@@ -160,17 +175,17 @@ function messageOf(error: unknown) {
       <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" role="meter" aria-label="Simulated monthly token usage" aria-valuemin="0" aria-valuemax={monthlyLimit} aria-valuenow={usedTokens}><div class="h-full rounded-full bg-primary" style={`width:${Math.min(100, (usedTokens / monthlyLimit) * 100)}%`}></div></div>
       <p class="mt-1 text-[0.65rem] text-muted-foreground">{usedTokens.toLocaleString()} / {monthlyLimit.toLocaleString()} tokens · simulated</p>
     </div>
-    <a href="#/settings" class="mt-3 flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm text-muted-foreground hover:bg-muted"><Settings2 class="size-4" aria-hidden="true" /> Settings</a>
+    <a href="#/settings" class="mt-3 flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm text-muted-foreground hover:bg-muted"><LucideIcon icon={Settings2} class="size-4" /> Settings</a>
   </aside>
 
   <main class="flex min-w-0 flex-1 flex-col p-2 sm:p-4 lg:p-6">
     <header class="mb-3 flex items-center justify-between rounded-2xl border border-border bg-surface/90 px-4 py-3 shadow-sm">
       <div><p class="text-sm font-semibold">{router.current.route?.title ?? 'Assistant'}</p><p class="text-[0.68rem] text-muted-foreground">A calm place to think, build, and explore</p></div>
       <div class="flex items-center gap-2">
-        <button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'assistant' ? 'bg-muted text-primary' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'assistant'} onclick={() => (activeTab = 'assistant')}><Bot class="size-4" aria-hidden="true" /> Assistant</button>
-        <button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'voice' ? 'bg-muted text-primary' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'voice'} onclick={() => void loadVoice()}><AudioLines class="size-4" aria-hidden="true" /> Voice</button>
-        <button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'widget' ? 'bg-muted text-primary' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'widget'} onclick={() => void loadWidgetDemo()}><MessageSquarePlus class="size-4" aria-hidden="true" /> Widget demo</button>
-        <a href="#/settings" class="inline-flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted lg:hidden" aria-label="Settings"><Settings2 class="size-4" aria-hidden="true" /></a>
+        <Button type="button" variant="ghost" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'assistant' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'assistant'} onclick={() => (activeTab = 'assistant')}><LucideIcon icon={Bot} class="size-4" /> Assistant</Button>
+        <Button type="button" variant="ghost" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'voice' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'voice'} onclick={loadVoice}><LucideIcon icon={AudioLines} class="size-4" /> Voice</Button>
+        <Button type="button" variant="ghost" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'widget' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'widget'} onclick={loadWidgetDemo}><LucideIcon icon={MessageSquarePlus} class="size-4" /> Widget demo</Button>
+        <a href="#/settings" class="inline-flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted lg:hidden" aria-label="Settings"><LucideIcon icon={Settings2} class="size-4" /></a>
       </div>
     </header>
     {#if alertText}<p class="mb-3 rounded-xl border border-destructive bg-surface px-4 py-3 text-sm text-destructive" role="alert">{alertText}</p>{/if}
@@ -188,6 +203,6 @@ function messageOf(error: unknown) {
         <Router {router} />
       </div>
     {/if}
-    <footer class="flex shrink-0 items-center justify-center gap-1 pt-2 text-[0.65rem] text-muted-foreground"><Archive class="size-3" aria-hidden="true" /> Simulation only · responses use deterministic local packs · no model provider is contacted <Check class="size-3" aria-hidden="true" /></footer>
+    <footer class="flex shrink-0 items-center justify-center gap-1 pt-2 text-[0.65rem] text-muted-foreground"><LucideIcon icon={Archive} class="size-3" /> Simulation only · responses use deterministic local packs · no model provider is contacted <Icon icon="check" class="size-3" aria-hidden="true" /></footer>
   </main>
 </div>

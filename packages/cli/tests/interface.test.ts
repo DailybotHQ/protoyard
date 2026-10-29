@@ -97,6 +97,9 @@ describe('the doctor interface', () => {
       generate: commands.has('generate'),
       'blueprint-schema':
         commands.has('blueprint validate') && Boolean(blueprintExports['./schema.json']),
+      'deck-cli': ['schema', 'layouts', 'blocks', 'lint', 'inspect', 'capabilities'].every((sub) =>
+        commands.has(`deck ${sub}`)
+      ),
       'kind-deck': contentKind('deck'),
       'kind-page': contentKind('page'),
       'kind-doc': contentKind('doc'),

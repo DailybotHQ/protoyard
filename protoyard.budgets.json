@@ -9,22 +9,68 @@
     "indexColdMs": 100,
     "quickReadyMs": 5000
   },
-  "overrides": {},
+  "overrides": {
+    "atlas-workspace-demo": {
+      "cssGzipKb": 39.9,
+      "reason": "Texuli 0.5.0: measured 37.95 KB CSS gzip; +5% rounded up to 39.9 KB, lower than the prior 40.6 KB ceiling."
+    },
+    "cadence-studio-demo": {
+      "cssGzipKb": 52.4,
+      "reason": "Texuli 0.5.0: measured 49.85 KB CSS gzip; +5% rounded up to 52.4 KB, lower than the prior 52.8 KB ceiling."
+    },
+    "create-anything-deck": {
+      "initialJsGzipKb": 296.6,
+      "cssGzipKb": 83.7,
+      "reason": "Texuli 0.5.0: initial JS 282.43 KB gzip, +5% rounded up to 296.6 KB (lower than 319.1 KB); CSS ceiling retained at 83.7 KB because measured CSS +5% is higher."
+    },
+    "harbor-dispatch-demo": {
+      "cssGzipKb": 52.4,
+      "reason": "Texuli 0.5.0: measured 49.85 KB CSS gzip; +5% rounded up to 52.4 KB, lower than the prior 52.8 KB ceiling."
+    },
+    "helpdesk-demo": {
+      "cssGzipKb": 51.9,
+      "reason": "Texuli 0.5.0: measured 49.44 KB CSS gzip; +5% rounded up to 51.9 KB, lower than the prior 52.5 KB ceiling."
+    },
+    "keel-projects-demo": {
+      "cssGzipKb": 47.5,
+      "reason": "Texuli 0.5.0: measured 45.17 KB CSS gzip; +5% rounded up to 47.5 KB, lower than the prior 47.8 KB ceiling."
+    },
+    "nova-assistant-demo": {
+      "cssGzipKb": 32.2,
+      "reason": "Texuli 0.5.0: measured 30.60 KB CSS gzip; +5% rounded up to 32.2 KB, lower than the prior 32.5 KB ceiling."
+    },
+    "pebblestat-analytics-demo": {
+      "cssGzipKb": 39.5,
+      "reason": "Texuli 0.5.0: measured 37.54 KB CSS gzip; +5% rounded up to 39.5 KB, lower than the prior 40.3 KB ceiling."
+    },
+    "player": {
+      "cssGzipKb": 17.0,
+      "reason": "Texuli 0.5.0: index.html initial CSS measured 16,207 B (15.83 KB) once @protoyard/ui/styles.css loads the sheet parts (so published declarations carry no .css import); +5% rounded up to 17.0 KB, lower than the prior 36 KB ceiling."
+    },
+    "pulse-revenue-demo": {
+      "cssGzipKb": 52.4,
+      "reason": "Texuli 0.5.0: measured 49.89 KB CSS gzip; +5% rounded up to 52.4 KB, lower than the prior 52.9 KB ceiling."
+    },
+    "ui-kit": {
+      "cssGzipKb": 54.5,
+      "reason": "Texuli 0.5.0: measured 52.64 KB CSS gzip; prior 54.5 KB ceiling is already below measured +5%, so it stays unchanged."
+    }
+  },
   "kinds": {
+    "doc": {
+      "initialJsGzipKb": 150,
+      "singleFileKb": 2560,
+      "cssGzipKb": 18.3
+    },
     "deck": {
       "initialJsGzipKb": 150,
-      "cssGzipKb": 30,
-      "singleFileKb": 2048
+      "singleFileKb": 2560,
+      "cssGzipKb": 17.0
     },
     "page": {
       "initialJsGzipKb": 150,
-      "cssGzipKb": 30,
-      "singleFileKb": 2048
-    },
-    "doc": {
-      "initialJsGzipKb": 150,
-      "cssGzipKb": 30,
-      "singleFileKb": 2048
+      "singleFileKb": 2560,
+      "cssGzipKb": 18.3
     }
   }
 }

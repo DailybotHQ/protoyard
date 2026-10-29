@@ -1,6 +1,6 @@
 import { ChartSpecSchema } from '@protoyard/ai/chart';
 import { z } from 'zod';
-import { FormulaVariableNameSchema, NumberFormulaSchema, parseFormula } from '../formula/schema.ts';
+import { FormulaVariableNameSchema, NumberFormulaSchema, parseFormula } from '../formula/index.ts';
 import {
   BlockIdSchema,
   BlockToneSchema,

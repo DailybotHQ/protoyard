@@ -44,7 +44,7 @@ async function boot(search: string, namespace: string) {
   return app;
 }
 
-const primary = () => root.style.getPropertyValue('--py-primary');
+const primary = () => root.style.getPropertyValue('--tx-primary');
 
 describe('library themes in every prototype', () => {
   it('resolves library ids and nothing else', async () => {
@@ -73,7 +73,7 @@ describe('library themes in every prototype', () => {
     const cached = JSON.parse(localStorage.getItem(appearanceCacheKey('library-cache')) ?? 'null');
     expect(cached).toMatchObject({
       themeId: 'fintech-ledger',
-      vars: { '--py-primary': expected.light.primary },
+      vars: { '--tx-primary': expected.light.primary },
     });
 
     // A fresh page: no styles yet, only the cache. The build inlines this script in <head>.

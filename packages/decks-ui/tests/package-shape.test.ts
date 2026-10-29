@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  */
 
 const PACKAGES = fileURLToPath(new URL('../../', import.meta.url));
-const LAZY_SUBPATHS = ['app', 'studio', 'presenter', 'print'] as const;
+const LAZY_SUBPATHS = ['app', 'studio', 'debug'] as const;
 
 const manifest = (name: string) =>
   JSON.parse(readFileSync(join(PACKAGES, name, 'package.json'), 'utf8')) as {
@@ -41,7 +41,7 @@ describe('deck package shape', () => {
     }
   });
 
-  it('decks-ui declares one lazy subpath per presenting surface', () => {
+  it('decks-ui declares one lazy subpath per host surface (the stage itself is @texuli/slides)', () => {
     const subpaths = Object.keys(manifest('decks-ui').exports);
     for (const lazy of LAZY_SUBPATHS) expect(subpaths).toContain(`./${lazy}`);
   });

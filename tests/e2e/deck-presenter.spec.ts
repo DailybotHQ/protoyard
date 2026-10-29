@@ -12,12 +12,23 @@ import { expect, type Page, test } from '@playwright/test';
 
 const deckPort = Number(process.env.PROTOYARD_E2E_DECK_PORT ?? 4891);
 const deckUrl = `http://127.0.0.1:${deckPort}/`;
-/** DeckApp's default presenter namespace is "deck" (protocol.ts presenterChannelName). */
-const CHANNEL = 'protoyard.deck.presenter.v1:deck';
+/** The @texuli/slides presenter protocol channel for DeckApp's default namespace, "deck". */
+const CHANNEL = 'texuli-deck-presenter/1:deck';
 const SLIDE_ORDER = ['cover', 'divider', 'path', 'pillars', 'quiz', 'close'];
 
+/*
+ * The presenter is the @texuli/slides stage's: S or P opens the presenter view
+ * beside the slides (notes, up next, timers, Previous and Next), and its "Open
+ * presenter window" button opens a second window that follows the deck over
+ * the presenter protocol (BroadcastChannel). A blocked window keeps the view on
+ * the page and says why.
+ */
 const app = (page: Page) => page.locator('[data-py-deck-app]');
-const split = (page: Page) => page.getByRole('dialog', { name: 'Presenter view' });
+const stage = (page: Page) => page.locator('.tx-deck-stage');
+const split = (page: Page) => page.getByRole('group', { name: 'Presenter view' });
+/** The view's own controls (the toolbar has its own Previous and Next). */
+const viewButton = (page: Page, name: string) =>
+  split(page).getByRole('button', { name, exact: true });
 
 async function expectSlide(page: Page, slideId: string, step = 0): Promise<void> {
   await expect(app(page), `the deck should be on ${slideId}/${step}`).toHaveAttribute(
@@ -39,24 +50,32 @@ test.describe('presenter view', () => {
     process.env.PROTOYARD_E2E_DECK !== '1',
     'Opt-in: PROTOYARD_E2E_DECK=1 (or name a deck spec) starts the built deck server.'
   );
-  test('opens a popup that follows the deck, and syncs both ways over BroadcastChannel', async ({
+  // The view sits beside the slides; a taller window keeps it clear of the toolbar row.
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test('opens a window that follows the deck, and syncs both ways over BroadcastChannel', async ({
     page,
     context,
   }) => {
     await page.goto(`${deckUrl}#/cover/0`);
     await expectSlide(page, 'cover');
 
-    const popupEvent = context.waitForEvent('page', { timeout: 7_000 }).catch(() => null);
+    await stage(page).focus();
     await page.keyboard.press('s');
+    await expect(split(page)).toBeVisible();
+    const popupEvent = context.waitForEvent('page', { timeout: 7_000 }).catch(() => null);
+    await viewButton(page, 'Open presenter window').click();
     const popup = await popupEvent;
-    expect(popup, 'pressing S should open the presenter popup (was it blocked?)').not.toBeNull();
+    expect(popup, 'the presenter window should open (was it blocked?)').not.toBeNull();
     if (!popup) return;
-    await expect(popup.locator('[data-py-presenter-popup]')).toBeVisible();
-    await expect(popup.locator('#pos')).toHaveText('cover · step 0');
+    const window_ = popup.locator('[data-tx-deck-presenter-window]');
+    await expect(window_).toBeVisible();
+    await expect(window_).toContainText('Slide 1 of 6');
+    await expect(window_).toContainText('Welcome everyone');
 
-    // The popup listens on the deck's channel: it must be able to open one.
+    // The window listens on the deck's channel: it must be able to open one.
     const hasChannel = await popup.evaluate(() => typeof BroadcastChannel === 'function');
-    expect(hasChannel, 'the presenter popup has no BroadcastChannel').toBe(true);
+    expect(hasChannel, 'the presenter window has no BroadcastChannel').toBe(true);
     await popup.evaluate((name) => {
       const channel = new BroadcastChannel(name);
       const store = window as unknown as { received: unknown[]; channel: BroadcastChannel };
@@ -65,11 +84,12 @@ test.describe('presenter view', () => {
       channel.onmessage = (event) => store.received.push(event.data);
     }, CHANNEL);
 
-    // Deck → presenter: navigation is published as a `sync` message and shown in the popup.
+    // Deck → presenter: navigation is published as a `sync` message and shown in the window.
     await page.bringToFront();
+    await stage(page).focus();
     await page.keyboard.press('ArrowRight');
     await expectSlide(page, 'divider');
-    await expect(popup.locator('#pos')).toHaveText('divider · step 0');
+    await expect(window_).toContainText('Slide 2 of 6');
     await expect
       .poll(() => popup.evaluate(() => (window as unknown as { received: unknown[] }).received), {
         message: 'the deck never published its position on BroadcastChannel',
@@ -96,66 +116,53 @@ test.describe('presenter view', () => {
     await page.waitForTimeout(200);
     await expectSlide(page, 'pillars');
 
-    // S again closes the presenter and its window.
+    // The window's own controls drive the deck, and its Close ends it.
+    await popup.getByRole('button', { name: 'Next', exact: true }).click();
+    await expectSlide(page, 'quiz');
     const closed = popup.waitForEvent('close', { timeout: 7_000 });
-    await page.bringToFront();
-    await app(page).focus();
-    await page.keyboard.press('s');
+    await popup.getByRole('button', { name: 'Close presenter window' }).click();
     await closed;
   });
 
-  test('falls back to an in-page split view when the popup is blocked', async ({ page }) => {
+  test('stays on the page and says why when the window is blocked', async ({ page }) => {
     await blockPopups(page);
     await page.goto(`${deckUrl}#/cover/0`);
+    await stage(page).focus();
     await page.keyboard.press('p');
-    await expect(split(page), 'a blocked popup should open the in-page presenter').toBeVisible();
-    // The in-page view says why it is not a separate window.
+    await expect(split(page), 'P opens the presenter view').toBeVisible();
+    await expect(app(page)).toHaveAttribute('data-presenter', 'true');
+    await viewButton(page, 'Open presenter window').click();
+    // The view says why it is not a separate window.
     await expect(
-      split(page).locator('[data-py-presenter-fallback-reason][data-reason="popup-blocked"]')
-    ).toContainText('The presenter popup was blocked');
+      split(page).locator('[data-tx-deck-presenter-reason="popup-blocked"]')
+    ).toContainText('blocked the presenter window');
 
-    // The deck and its chrome stay inside their own cell and never cover the presenter panel.
-    const main = await split(page).locator('[data-py-deck-presenter-main]').boundingBox();
-    const chrome = await split(page).locator('[data-py-deck-chrome-root]').boundingBox();
-    expect(main && chrome, 'the split view should lay out the deck and its chrome').toBeTruthy();
-    if (main && chrome) {
-      expect(
-        chrome.x + chrome.width,
-        'deck chrome overflows into the presenter panel'
-      ).toBeLessThanOrEqual(main.x + main.width + 1);
-      expect(
-        chrome.y + chrome.height,
-        'deck chrome overflows into the presenter panel'
-      ).toBeLessThanOrEqual(main.y + main.height + 1);
-    }
+    // The slides and the view never overlap.
+    const slides = await page.locator('.tx-deck-stage__viewport').boundingBox();
+    const side = await split(page).boundingBox();
+    expect(slides && side, 'the presenter view should lay out beside the slides').toBeTruthy();
+    if (slides && side) expect(slides.x + slides.width).toBeLessThanOrEqual(side.x + 1);
 
-    const view = split(page).locator('[data-py-deck-presenter]');
-    await expect(view.locator('[data-py-presenter-position]')).toHaveText(
-      `1 / ${SLIDE_ORDER.length}`
-    );
-    await expect(view.locator('[data-py-presenter-current-title]')).toContainText('cover');
-    await expect(view.locator('[data-py-presenter-notes]')).toContainText('Welcome everyone');
-    await expect(view.locator('[data-py-presenter-next-title]')).toContainText('divider');
-    await expect(view.locator('[data-py-presenter-next-notes]')).toContainText('Pause here');
+    await expect(split(page)).toContainText('Slide 1 of 6');
+    await expect(split(page).locator('.tx-deck-stage__notes')).toContainText('Welcome everyone');
+    await expect(split(page).locator('.tx-deck-stage__next-title')).toContainText('The plan');
 
-    // The presenter's own controls drive the deck, and the view follows.
-    await split(page).getByRole('button', { name: 'Next' }).click();
+    // The view's own controls drive the deck, and the view follows.
+    await viewButton(page, 'Next').click();
     await expectSlide(page, 'divider');
-    await expect(view.locator('[data-py-presenter-position]')).toHaveText(
-      `2 / ${SLIDE_ORDER.length}`
-    );
-    await expect(view.locator('[data-py-presenter-notes]')).toContainText('Pause here');
-    await expect(view.locator('[data-py-presenter-next-title]')).toContainText('path');
-    await expect(view.locator('[data-py-presenter-next-notes]')).toHaveText('No notes.');
+    await expect(split(page)).toContainText('Slide 2 of 6');
+    await expect(split(page).locator('.tx-deck-stage__notes')).toContainText('Pause here');
+    await expect(split(page).locator('.tx-deck-stage__next-title')).toContainText('Launch path');
 
-    await split(page).getByRole('button', { name: 'Next' }).click();
-    await expect(view.locator('[data-py-presenter-notes]')).toHaveText(
-      'No speaker notes for this slide.'
-    );
-    await split(page).getByRole('button', { name: 'Previous' }).click();
+    await viewButton(page, 'Next').click();
+    await expectSlide(page, 'path');
+    await expect(split(page).locator('.tx-deck-stage__notes')).not.toContainText('Pause here');
+    await viewButton(page, 'Previous').click();
     await expectSlide(page, 'divider');
 
-    await split(page).getByRole('button', { name: 'Close presenter' }).click();
+    // P again closes the view and leaves the deck where it is.
+    await stage(page).focus();
+    await page.keyboard.press('p');
     await expect(split(page)).toBeHidden();
     await expectSlide(page, 'divider');
   });
@@ -167,54 +174,61 @@ test.describe('presenter view', () => {
     });
     await page.goto(`${deckUrl}#/cover/0`);
     expect(await page.evaluate(() => 'BroadcastChannel' in window)).toBe(false);
+    await stage(page).focus();
     await page.keyboard.press('s');
     await expect(
       split(page),
-      'without BroadcastChannel the presenter falls back in-page'
+      'without BroadcastChannel the presenter view stays in-page'
     ).toBeVisible();
+    // Asking for the window says why it stays on the page.
+    await viewButton(page, 'Open presenter window').click();
     await expect(
-      split(page).locator('[data-py-presenter-fallback-reason][data-reason="no-broadcast"]')
-    ).toContainText('BroadcastChannel is unavailable');
-    await split(page).getByRole('button', { name: 'Next' }).click();
+      split(page).locator('[data-tx-deck-presenter-reason="no-broadcast"]')
+    ).toContainText('cannot link two windows');
+    await viewButton(page, 'Next').click();
     await expectSlide(page, 'divider');
   });
 
   test('runs elapsed and per-slide timers on the controlled clock', async ({ page }) => {
     await page.clock.install({ time: new Date('2026-03-02T09:00:00Z') });
+    // Frozen: time moves only with runFor.
+    await page.clock.pauseAt(new Date('2026-03-02T09:00:01Z'));
     await blockPopups(page);
     await page.goto(`${deckUrl}#/cover/0`);
+    await stage(page).focus();
     await page.keyboard.press('p');
-    const view = split(page).locator('[data-py-deck-presenter]');
-    await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('00:00');
+    const elapsed = split(page).locator('[data-tx-deck-timer="elapsed"]');
+    const slideTime = split(page).locator('[data-tx-deck-timer="slide"]');
+    // The timers start when the presenter view opens.
+    await expect(elapsed).toHaveText('0:00');
 
     await page.clock.runFor(65_000);
-    await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('01:05');
-    await expect(view.locator('[data-py-presenter-slide-time]')).toHaveText('01:05');
+    await expect(elapsed).toHaveText('1:05');
+    await expect(slideTime).toHaveText('1:05');
 
     // A new slide restarts the slide timer; the elapsed timer keeps running.
-    await split(page).getByRole('button', { name: 'Next' }).click();
+    await viewButton(page, 'Next').click();
     await page.clock.runFor(10_000);
-    await expect(view.locator('[data-py-presenter-slide-time]')).toHaveText('00:10');
-    await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('01:15');
+    await expect(split(page)).toContainText('Slide 2 of 6');
+    // The stage restarts the slide timer once the incoming slide is shown (after its
+    // transition), so up to a second of these ten may pass before it.
+    await expect(slideTime).toHaveText(/^0:(09|10)$/);
+    const onSlide = (await slideTime.textContent()) ?? '';
+    await expect(elapsed).toHaveText('1:15');
 
-    // Pause holds both timers; resume continues from there; reset goes back to zero.
-    const pause = split(page).getByRole('button', { name: 'Pause', exact: true });
-    await pause.click();
-    await expect(split(page).getByRole('button', { name: 'Resume', exact: true })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
+    // Pause holds both timers; start continues from there; reset goes back to zero.
+    await viewButton(page, 'Pause timers').click();
     await page.clock.runFor(30_000);
-    await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('01:15');
-    await expect(view.locator('[data-py-presenter-slide-time]')).toHaveText('00:10');
-    await split(page).getByRole('button', { name: 'Resume', exact: true }).click();
+    await expect(elapsed).toHaveText('1:15');
+    await expect(slideTime).toHaveText(onSlide);
+    await viewButton(page, 'Start timers').click();
     await page.clock.runFor(5_000);
-    await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('01:20');
-    await split(page).getByRole('button', { name: 'Reset', exact: true }).click();
-    await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('00:00');
-    await expect(view.locator('[data-py-presenter-slide-time]')).toHaveText('00:00');
+    await expect(elapsed).toHaveText('1:20');
+    await viewButton(page, 'Reset timers').click();
+    await expect(elapsed).toHaveText('0:00');
+    await expect(slideTime).toHaveText('0:00');
     await page.clock.runFor(3_000);
-    await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('00:03');
+    await expect(elapsed).toHaveText('0:03');
   });
 });
 
@@ -226,16 +240,21 @@ test.describe('presenting tools', () => {
   test('blackout hides the slide and returns to it without advancing', async ({ page }) => {
     await page.goto(`${deckUrl}#/divider/0`);
     await page.keyboard.press('b');
-    const blackout = page.locator('[data-py-deck-blackout]');
+    const blackout = page.locator('[data-tx-deck-blackout]');
     await expect(blackout).toBeVisible();
-    await expect(app(page)).toHaveAttribute('data-blackout', 'true');
+    await expect(page.locator('[data-tx-deck-tool="blackout"]')).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
     await page.keyboard.press('ArrowRight');
     await expectSlide(page, 'divider');
     await blackout.click();
     await expect(blackout).toBeHidden();
     await expectSlide(page, 'divider');
-    // The clicked blackout button is gone: focus returns to the deck, so its keys still work.
-    await expect(app(page)).toBeFocused();
+    // The clicked blackout button is gone: focus returns to the slide, so the deck keys still work.
+    await expect
+      .poll(() => stage(page).evaluate((root) => root.contains(document.activeElement)))
+      .toBe(true);
     await page.keyboard.press('.');
     await expect(blackout).toBeVisible();
     await page.keyboard.press('Escape');
@@ -247,9 +266,10 @@ test.describe('presenting tools', () => {
   }, testInfo) => {
     await page.goto(`${deckUrl}#/divider/0`);
     await page.keyboard.press('l');
-    await expect(app(page)).toHaveAttribute('data-laser', 'true');
-    // The deck's own box: slide elements can sit off screen in the canvas track.
-    const box = await app(page).boundingBox();
+    const laser = page.locator('[data-tx-deck-tool="laser"]');
+    await expect(laser).toHaveAttribute('aria-pressed', 'true');
+    // The slide canvas: a click there would advance the deck without the laser.
+    const box = await page.locator('[data-tx-deck-canvas]').boundingBox();
     expect(box, 'the deck should be laid out').not.toBeNull();
     if (!box) return;
     const x = box.x + box.width / 2;
@@ -259,15 +279,17 @@ test.describe('presenting tools', () => {
       await page.touchscreen.tap(x, y);
     } else {
       await page.mouse.move(x, y);
-      await expect(page.locator('[data-py-deck-laser-dot]')).toBeVisible();
+      await expect(page.locator('[data-tx-deck-laser]').first()).toBeVisible();
       await page.mouse.click(x, y);
     }
     await expectSlide(page, 'divider');
     // A tap or click never strands focus on the page: the deck keeps its keys.
-    await expect(app(page)).toBeFocused();
+    await expect
+      .poll(() => stage(page).evaluate((root) => root.contains(document.activeElement)))
+      .toBe(true);
     await page.keyboard.press('Escape');
-    await expect(app(page)).not.toHaveAttribute('data-laser', 'true');
-    await expect(page.locator('[data-py-deck-laser-dot]')).toHaveCount(0);
+    await expect(laser).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('[data-tx-deck-laser]')).toHaveCount(0);
   });
 });
 
@@ -280,34 +302,44 @@ test.describe('print', () => {
     page,
   }) => {
     await page.goto(`${deckUrl}?print=1#/cover/0`);
+    // The stage's print view (`@texuli/slides/export`): one page per visible slide.
     const print = page.locator('[data-py-deck-print]');
     await expect(print).toBeVisible();
-    const pages = print.locator('[data-py-deck-print-page]');
+    await expect(print.locator('[data-print-ready="true"]')).toHaveCount(1, { timeout: 15_000 });
+    const pages = print.locator('[data-print-ready] [data-slide-id][data-aspect]');
     await expect(pages).toHaveCount(SLIDE_ORDER.length);
     expect(
-      await pages.evaluateAll((nodes) => nodes.map((n) => n.getAttribute('data-py-deck-slide')))
+      await pages.evaluateAll((nodes) => nodes.map((n) => n.getAttribute('data-slide-id')))
     ).toEqual(SLIDE_ORDER);
     // No deck app, chrome, progress or toolbar in print mode.
     await expect(app(page)).toHaveCount(0);
-    await expect(page.locator('[data-py-deck-chrome]')).toHaveCount(0);
-    await expect(page.locator('[data-py-deck-print-notes-block]')).toHaveCount(0);
+    await expect(page.locator('.tx-deck-stage__toolbar, [role="progressbar"]')).toHaveCount(0);
+    await expect(page.locator('[data-tx-deck-chrome]')).toHaveCount(0);
+    await expect(page.locator('.tx-deck-print-view__appendix')).toHaveCount(0);
 
-    // Each slide breaks to its own printed page.
-    const breaks = await pages.evaluateAll((nodes) =>
-      nodes.map((n) => getComputedStyle(n).breakAfter || getComputedStyle(n).pageBreakAfter)
+    // Each slide is its own printed page: a canvas-sized named page (break-before on the
+    // ones after it); the PDF test below counts the pages.
+    await page.emulateMedia({ media: 'print' });
+    const paged = await pages.evaluateAll((nodes) =>
+      nodes.map((n) => {
+        const style = getComputedStyle(n) as CSSStyleDeclaration & { page?: string };
+        return (style.page ?? 'auto') !== 'auto' || style.breakBefore === 'page';
+      })
     );
-    expect(breaks.slice(0, -1).every((value) => value === 'page' || value === 'always')).toBe(true);
+    expect(paged.every(Boolean)).toBe(true);
+    await page.emulateMedia({ media: 'screen' });
 
     await page.goto(`${deckUrl}?print=1&notes=1#/cover/0`);
-    await expect(page.locator('[data-py-deck-print-notes-block]').first()).toContainText(
-      'Welcome everyone'
-    );
+    await expect(page.locator('.tx-deck-print-view__appendix')).toContainText('Welcome everyone');
   });
 
   test('a printed PDF has one page per slide', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'page.pdf() is Chromium-only');
     await page.goto(`${deckUrl}?print=1#/cover/0`);
-    await expect(page.locator('[data-py-deck-print-page]')).toHaveCount(SLIDE_ORDER.length);
+    await expect(page.locator('[data-print-ready="true"]')).toHaveCount(1, { timeout: 15_000 });
+    await expect(page.locator('[data-print-ready] [data-slide-id][data-aspect]')).toHaveCount(
+      SLIDE_ORDER.length
+    );
     await page.emulateMedia({ media: 'print' });
     const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
     const source = pdf.toString('latin1');
@@ -327,11 +359,25 @@ test.describe('print', () => {
   }) => {
     await page.goto(`${deckUrl}#/pillars/0`);
     await expectSlide(page, 'pillars');
+    // The print view loads while the browser is idle after the deck opens.
+    await expect(app(page)).toHaveAttribute('data-py-deck-print-ready', 'true');
     await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+    await expect(page.locator('[data-py-deck-print]')).toHaveCount(1);
+    // The sheet settles off-screen (hidden); once ready, it is what goes on paper.
+    await expect(page.locator('[data-py-deck-print] [data-print-ready="true"]')).toHaveCount(1, {
+      timeout: 15_000,
+    });
+    await expect(page.locator('[data-py-deck-print]')).toBeHidden();
+    await page.emulateMedia({ media: 'print' });
     await expect(page.locator('[data-py-deck-print]')).toBeVisible();
-    await expect(page.locator('[data-py-deck-print-page]')).toHaveCount(SLIDE_ORDER.length);
+    await expect(
+      page.locator('[data-py-deck-print] [data-print-ready] [data-slide-id][data-aspect]')
+    ).toHaveCount(SLIDE_ORDER.length);
+    await page.emulateMedia({ media: 'screen' });
     await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
-    await expect(page.locator('[data-py-deck-print]')).toHaveCount(0);
+    // Back on screen: the stage, with the prepared sheet hidden for the next print.
+    await expect(page.locator('[data-py-deck-print]')).toBeHidden();
+    await expect(page.locator('[data-py-deck-app] > .tx-deck-stage')).toBeVisible();
     await expectSlide(page, 'pillars');
   });
 });

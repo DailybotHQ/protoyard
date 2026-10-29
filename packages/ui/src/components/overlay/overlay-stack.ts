@@ -2,7 +2,7 @@
  * One ordered stack for every layered surface (drawers, and any overlay that
  * opts in through `useOverlayLayer`).
  *
- * Bits UI already routes Escape and outside clicks to the topmost layer, traps
+ * The overlay primitives already route Escape and outside clicks to the topmost layer, traps
  * focus in modal content and locks scroll. The stack adds what nesting needs
  * on top of that: monotonic z-indexes so a later overlay always paints above
  * an earlier one, the question "is this the top overlay?", the element that

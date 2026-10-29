@@ -4,6 +4,7 @@ import type { Persona } from '@protoyard/core';
 import { avatarImage, getRuntime, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
 import { Avatar, Button, Input } from '@protoyard/ui';
 import { tick } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import HuddlePanel from './components/HuddlePanel.svelte';
 import type { Channel, Message, TeamChatDatabase, Workspace } from './database/schema.ts';
 import {
@@ -35,7 +36,7 @@ let mobilePane = $state<'channels' | 'channel'>('channel');
 // Below `sm` search, file sharing and huddles live in a row the "More actions" button
 // discloses (a native disclosure: a menu library would add ~30 KB to this eager screen).
 let toolsOpen = $state(false);
-let toolsTrigger = $state<HTMLButtonElement>();
+let toolsTrigger = $state<HTMLElement | null>(null);
 let toolsPanel = $state<HTMLDivElement>();
 let channelHeading = $state<HTMLHeadingElement>();
 let channelNav = $state<HTMLElement>();
@@ -354,9 +355,10 @@ function closeToolsOnEscape(event: KeyboardEvent) {
       aria-label="Channels"
     >
       {#each channels.current ?? [] as ch (ch.id)}
-        <button
+        <Button
           type="button"
-          class="flex min-h-touch w-full items-center gap-1 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted md:min-h-0 {channelId ===
+          variant="ghost"
+          class="flex min-h-touch w-full items-center justify-start gap-1 whitespace-normal rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted md:min-h-0 {channelId ===
           ch.id
             ? 'bg-muted font-medium'
             : ''}"
@@ -365,7 +367,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
         >
           <span class="text-muted-foreground">{ch.kind === 'dm' ? '·' : '#'}</span>
           <span class="truncate">{ch.name}</span>
-        </button>
+        </Button>
       {/each}
     </nav>
     <div class="border-t border-border px-3 py-2">
@@ -407,7 +409,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
         aria-label="Back to channels"
         onclick={() => showChannelList()}
       >
-        <ChevronLeft class="size-5" aria-hidden="true" />
+        <LucideIcon icon={ChevronLeft} class="size-5" />
       </Button>
       <div class="min-w-0 flex-1">
         <h1 bind:this={channelHeading} tabindex="-1" class="truncate text-sm font-semibold outline-none">
@@ -450,17 +452,18 @@ function closeToolsOnEscape(event: KeyboardEvent) {
             Huddle
           </Button>
         </div>
-        <button
-          bind:this={toolsTrigger}
+        <Button
+          bind:ref={toolsTrigger}
           type="button"
+          variant="ghost"
           class="inline-flex size-9 min-h-touch min-w-[44px] items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:hidden"
           aria-label="More actions"
           aria-expanded={toolsOpen}
           aria-controls="team-chat-phone-tools"
           onclick={() => (toolsOpen = !toolsOpen)}
         >
-          <Ellipsis class="size-5" aria-hidden="true" />
-        </button>
+          <LucideIcon icon={Ellipsis} class="size-5" />
+        </Button>
       </div>
     </header>
 
@@ -533,9 +536,10 @@ function closeToolsOnEscape(event: KeyboardEvent) {
         <ul class="mt-1 max-h-24 space-y-1 overflow-y-auto">
           {#each searchHits as hit}
             <li>
-              <button
+              <Button
                 type="button"
-                class="text-left hover:underline"
+                variant="ghost"
+                class="flex w-full justify-start whitespace-normal text-left hover:underline"
                 onclick={() => {
                   channelId = hit.channelId;
                   threadId = hit.threadId;
@@ -543,7 +547,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
                 }}
               >
                 {hit.body.slice(0, 80)}
-              </button>
+              </Button>
             </li>
           {/each}
         </ul>
@@ -609,7 +613,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
             {#if (reactionsByMessage.get(msg.id) ?? []).length > 0}
               <div class="mt-1 flex flex-wrap gap-1" data-reactions="" aria-label="Reactions">
                 {#each reactionsByMessage.get(msg.id) ?? [] as chip (chip.emoji)}
-                  <button
+                  <Button
                     type="button"
                     class="rounded-full border px-1.5 py-0.5 text-xs {chip.mine
                       ? 'border-primary bg-primary/10 text-foreground'
@@ -617,35 +621,37 @@ function closeToolsOnEscape(event: KeyboardEvent) {
                     disabled={!canReact}
                     title={canReact ? `Toggle ${chip.emoji}` : readOnlyReason}
                     aria-label={`${chip.emoji} ${chip.count}${chip.mine ? ', you reacted' : ''}`}
-                    onclick={() => void react(msg.id, chip.emoji)}
+                    onclick={() => react(msg.id, chip.emoji)}
                   >
                     {chip.emoji}
                     <span class="ml-0.5 tabular-nums">{chip.count}</span>
-                  </button>
+                  </Button>
                 {/each}
               </div>
             {/if}
             <div class="mt-1 flex gap-2">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 class="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
                 aria-label="React with thumbs up"
                 disabled={!canReact}
                 title={canReact ? 'React with thumbs up' : readOnlyReason}
-                onclick={() => void react(msg.id)}
+                onclick={() => react(msg.id)}
               >
                 👍 React
-              </button>
+              </Button>
               {#if !msg.threadId}
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   class="text-xs text-muted-foreground hover:text-foreground"
                   aria-label="Reply in thread"
                   data-thread-trigger=""
                   onclick={() => replyInThread(msg.id)}
                 >
                   Reply in thread
-                </button>
+                </Button>
               {/if}
             </div>
           </article>

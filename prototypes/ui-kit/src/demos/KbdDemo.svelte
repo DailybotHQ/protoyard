@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Kbd, Label } from '@protoyard/ui';
+import { Input, Kbd, Label } from '@protoyard/ui';
 
 const shortcuts = [
   { keys: ['⌘', 'K'], label: 'Open command palette' },
@@ -40,7 +40,7 @@ function capture(event: KeyboardEvent): void {
   </ul>
   <div class="grid gap-1.5">
     <Label for="kbd-demo-capture">Press a key combination</Label>
-    <input
+    <Input
       id="kbd-demo-capture"
       readonly
       onkeydown={capture}

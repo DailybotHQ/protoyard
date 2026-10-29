@@ -203,6 +203,10 @@ function assetsManifestPlugin(): Plugin {
 
 export default defineProtoyardConfig({
   root: import.meta.dirname,
+  // Four pages: shared Texuli CSS groups would link every page's components
+  // into each page (initial CSS, and the CSS a single-file export inlines).
+  // Rolldown's own split follows the tree-shaken chunks instead.
+  texuliCssGroups: false,
   plugins: [cspPlugin(), assetsManifestPlugin()],
   // PROTOYARD_OUT_DIR and `--outDir` still win (showcase, e2e, visual sweep).
   build: {

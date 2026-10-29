@@ -4,7 +4,7 @@ import {
   MAX_CUSTOM_RANGE_DAYS,
   resolveDateRange,
 } from '@protoyard/analytics';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DateRangePanel from '../src/date-range/DateRangePanel.svelte';
 import DateRangePicker from '../src/date-range/DateRangePicker.svelte';
@@ -122,6 +122,10 @@ describe('DateRangePanel', () => {
     expect(
       within(presets).getByRole('button', { name: 'Last 30 days' }).getAttribute('aria-pressed')
     ).toBe('true');
+    const last30 = within(presets).getByRole('button', { name: 'Last 30 days' });
+    await fireEvent.keyDown(last30, { key: 'Enter' });
+    await fireEvent.keyUp(last30, { key: 'Enter' });
+    expect(last30.getAttribute('aria-pressed')).toBe('true');
     await fireEvent.click(within(presets).getByRole('button', { name: 'Year to date' }));
     const [value, change] = onchange.mock.calls[0] ?? [];
     expect(change).toBe('range');
@@ -135,6 +139,15 @@ describe('DateRangePanel', () => {
 
   it('changes comparison and only offers granularities the range allows', async () => {
     const { onchange } = setup();
+    const previousPeriod = within(screen.getByRole('group', { name: 'Compare to' })).getByRole(
+      'button',
+      {
+        name: 'Previous period',
+      }
+    );
+    await fireEvent.click(previousPeriod);
+    expect(previousPeriod.getAttribute('aria-pressed')).toBe('true');
+    expect(onchange).not.toHaveBeenCalled();
     await fireEvent.click(
       within(screen.getByRole('group', { name: 'Compare to' })).getByRole('button', {
         name: 'Previous year',
@@ -178,56 +191,31 @@ describe('DateRangePanel', () => {
   });
 });
 
-describe('MonthGrid keyboard', () => {
-  it('moves focus by day, week, week edge and month, and never picks future days', async () => {
-    const onpick = vi.fn();
-    render(MonthGrid, { initial: '2026-03-18', max: NOW, onpick });
-    const grid = screen.getByRole('grid', { name: 'March 2026' });
-    const focusedDate = () => (document.activeElement as HTMLElement | null)?.dataset.date;
-    const start = grid.querySelector<HTMLButtonElement>('[data-date="2026-03-18"]');
-    expect(start?.tabIndex).toBe(0);
-    start?.focus();
-    const key = async (k: string, shiftKey = false) => {
-      await fireEvent.keyDown(document.activeElement as Element, { key: k, shiftKey });
-      await waitFor(() => expect(document.activeElement?.tagName).toBe('BUTTON'));
-    };
-    await key('ArrowRight');
-    expect(focusedDate()).toBe('2026-03-19');
-    await key('ArrowUp');
-    expect(focusedDate()).toBe('2026-03-12');
-    await key('Home');
-    expect(focusedDate()).toBe('2026-03-09');
-    await key('End');
-    expect(focusedDate()).toBe('2026-03-15');
-    await key('PageUp');
-    expect(focusedDate()).toBe('2026-02-15');
-    expect(screen.getByRole('grid', { name: 'February 2026' })).toBeTruthy();
-    await key('PageDown', true);
-    expect(focusedDate()).toBe('2027-02-15');
-    await key('PageUp', true);
-    await key('PageDown');
-    await key('ArrowDown');
-    expect(focusedDate()).toBe('2026-03-22');
-    // The 22nd is after "now": it can be focused but not picked.
-    expect((document.activeElement as HTMLElement).getAttribute('aria-disabled')).toBe('true');
-    await fireEvent.click(document.activeElement as Element);
-    expect(onpick).not.toHaveBeenCalled();
-    await key('ArrowLeft');
-    await fireEvent.click(screen.getByRole('button', { name: 'Thursday, March 19, 2026' }));
-    expect(onpick).toHaveBeenCalledWith('2026-03-19');
+describe('MonthGrid Texuli Calendar adapter', () => {
+  it('opens at the currently selected month when no initial-month override exists', () => {
+    render(MonthGrid, { start: '2025-11-05', end: '2025-11-12', max: NOW, onrange: () => {} });
+    expect(document.querySelector('[data-tx-calendar-heading]')?.textContent).toContain(
+      'November 2025'
+    );
+  });
+  it('passes the simulated clock and forwards range selections', async () => {
+    const onrange = vi.fn();
+    render(MonthGrid, { max: NOW, onrange });
+    expect(screen.getByRole('grid')).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Choose a date range day' })).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Tuesday, March 17, 2026' }));
+    expect(onrange).toHaveBeenCalledWith({ start: '2026-03-17', end: null });
   });
 
-  it('marks the selected span', () => {
+  it('highlights the current selected range', () => {
     render(MonthGrid, {
-      initial: '2026-03-10',
       start: '2026-03-05',
       end: '2026-03-07',
-      onpick: () => {},
+      onrange: () => {},
     });
-    const selected = [
-      ...document.querySelectorAll('[role="gridcell"][aria-selected="true"] button'),
-    ].map((b) => (b as HTMLElement).dataset.date);
-    expect(selected).toEqual(['2026-03-05', '2026-03-06', '2026-03-07']);
+    expect(
+      document.querySelector('[data-calendar-date="2026-03-05"]')?.hasAttribute('data-range-start')
+    ).toBe(true);
   });
 });
 

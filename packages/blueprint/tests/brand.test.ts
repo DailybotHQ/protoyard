@@ -151,13 +151,15 @@ describe('resolveBlueprintBrand', () => {
   it('emits a defineTheme module that round-trips the resolved theme', () => {
     const brand = parseBlueprint({
       ...baseBlueprint,
-      brand: { seed: '#7c3aed', id: 'violet-brand' },
+      brand: { seed: '#7c3aed', id: 'violet-brand', font: 'editorial' },
     }).brand!;
     const theme = resolveBlueprintBrand(brand);
     const source = emitBrandThemeModule(theme);
     expect(source).toContain('violetBrandTheme');
     expect(source).toContain('"id": "violet-brand"');
     expect(source).toContain('defineTheme');
+    expect(source).toContain('--tx-font-stack-');
+    expect(source).not.toContain('--py-');
   });
 
   it('lists every style profile id', () => {

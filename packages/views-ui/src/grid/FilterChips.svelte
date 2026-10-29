@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
 import { X } from '@lucide/svelte';
-import { Button, cn } from '@protoyard/ui';
+import { Button } from '@protoyard/ui';
 import {
   type DescribeFilterOptions,
   describeFilter,
@@ -9,6 +9,8 @@ import {
   removeFilterAt,
 } from '@protoyard/views/grid';
 import { tick } from 'svelte';
+import { cx } from 'texuli/cx';
+import { Icon } from 'texuli/icons';
 
 /**
  * The active filter as removable chips ("Stage is any of Lead or Won"), one
@@ -48,21 +50,22 @@ async function remove(index: number) {
 </script>
 
 {#if chips.length > 0}
-  <ul bind:this={list} tabindex="-1" aria-label={label} class={cn('flex flex-wrap items-center gap-2 outline-none', className)}>
+  <ul bind:this={list} tabindex="-1" aria-label={label} class={cx('flex flex-wrap items-center gap-2 outline-none', className)}>
     {#each chips as chip, index (chip.id + chip.text)}
       <li class="inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-muted py-0.5 pr-1 pl-3 text-sm">
         <span class="truncate">
           <span class="font-medium">{chip.label}</span>{#if chip.operator}{' '}<span class="text-muted-foreground">{chip.operator}</span>{/if}{#if chip.value}{' '}{chip.value}{/if}
         </span>
-        <button
+        <Button
           type="button"
+          variant="ghost"
           data-chip-remove
           aria-label={`Remove filter: ${chip.text}`}
           class="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           onclick={() => remove(index)}
         >
-          <X class="size-3.5" aria-hidden="true" />
-        </button>
+          <Icon icon="close" class="size-3.5" aria-hidden="true"  />
+        </Button>
       </li>
     {/each}
     {#if chips.length > 1}

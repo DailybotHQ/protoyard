@@ -1,6 +1,6 @@
 <script lang="ts">
-import { Info } from '@lucide/svelte';
 import { Badge, Button, Checkbox, Popover } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
 
 const statuses = ['Open', 'In review', 'Blocked', 'Done'];
 let selected = $state<string[]>(['Open', 'In review']);
@@ -38,7 +38,7 @@ function toggle(status: string, value: boolean): void {
     <Popover side="right">
       {#snippet trigger({ props })}
         <Button {...props} size="icon" variant="ghost" aria-label="About billing cycles">
-          <Info aria-hidden="true" />
+          <Icon icon="info" aria-hidden="true" />
         </Button>
       {/snippet}
       <p class="text-muted-foreground">

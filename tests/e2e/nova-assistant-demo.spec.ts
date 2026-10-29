@@ -12,6 +12,25 @@ declare global {
 }
 
 test.describe('Nova Assistant flagship', () => {
+  test('saved-memory checkbox persists its disabled state', async ({ page }) => {
+    await page.goto(`${prototypeUrl(SLUG)}#/settings`);
+    await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true', {
+      timeout: 20_000,
+    });
+    const memory = page.getByRole('checkbox', { name: 'Use saved memory in simulated replies' });
+    await expect(memory).toBeChecked();
+    await memory.uncheck();
+    await page.getByRole('button', { name: 'Save settings' }).click();
+    await expect(page.getByRole('status')).toContainText(/saved|updated/i);
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true', {
+      timeout: 20_000,
+    });
+    await expect(
+      page.getByRole('checkbox', { name: 'Use saved memory in simulated replies' })
+    ).not.toBeChecked();
+  });
+
   test('streams, stops, and regenerates an assistant reply', async ({ page }, testInfo) => {
     await page.goto(`${prototypeUrl(SLUG)}?scenario=slow-model`);
     await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true', {
@@ -44,7 +63,9 @@ test.describe('Nova Assistant flagship', () => {
       timeout: 20_000,
     });
     const thread = page.getByRole('log', { name: 'Conversation messages' });
-    await page.getByLabel('Simulated model').selectOption('py-orbit-agent');
+    // The model picker is a Texuli select: open the trigger, then choose the option.
+    await page.getByRole('combobox', { name: 'Simulated model' }).click();
+    await page.getByRole('option', { name: 'Orbit Agent · Simulated' }).click();
     page.once('dialog', (dialog) => dialog.accept());
     await page.getByLabel('Message the simulated assistant').fill('Search the launch checklist.');
     await page.getByRole('button', { name: 'Send message' }).click();

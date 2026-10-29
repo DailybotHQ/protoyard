@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Input, Label } from '@protoyard/ui';
+import { Button, Input, Label } from '@protoyard/ui';
 
 let name = $state('');
 let email = $state('not-an-email');
@@ -45,14 +45,15 @@ const emailInvalid = $derived(email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.
         bind:value={password}
         autocomplete="new-password"
       />
-      <button
+      <Button
         type="button"
+        variant="link"
         class="shrink-0 rounded-md px-2 text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         aria-pressed={showPassword}
         onclick={() => (showPassword = !showPassword)}
       >
         {showPassword ? 'Hide' : 'Show'}
-      </button>
+      </Button>
     </div>
     <p class="text-xs text-muted-foreground">{password.length} characters</p>
   </div>

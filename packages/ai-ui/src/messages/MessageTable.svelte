@@ -1,44 +1,48 @@
 <script lang="ts">
 import type { TableBlock } from '@protoyard/ai/messages';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from 'texuli/table';
 import { formatCell } from './format.ts';
 
-/** A data table: caption, column headers, aligned cells, a keyboard-scrollable region. */
+/**
+ * A data table on Texuli's `Table`: caption, column headers, aligned cells.
+ * When it overflows, Texuli's scroll area becomes a focusable region named by
+ * the title (WCAG 2.1.1), so wide tables stay reachable by keyboard.
+ */
 let { block }: { block: TableBlock } = $props();
-
-const ALIGN = { start: 'text-left', center: 'text-center', end: 'text-right' } as const;
 </script>
 
-<!-- svelte-ignore a11y_no_noninteractive_tabindex -- wide tables scroll; keyboard users must reach them (WCAG 2.1.1). -->
-<div
-  class="max-w-full overflow-x-auto rounded-lg border border-border"
-  data-py-message-block="table"
-  role="region"
-  aria-label={block.title ?? 'Table'}
-  tabindex="0"
->
-  <table class="w-full border-collapse text-sm tabular-nums">
+<div class="max-w-full" data-py-message-block="table">
+  <Table class="tabular-nums" label={block.title ?? 'Table'}>
     {#if block.title}
-      <caption class="px-3 py-2 text-left font-semibold">{block.title}</caption>
+      <TableCaption>{block.title}</TableCaption>
     {/if}
-    <thead class="bg-muted/70">
-      <tr>
+    <TableHeader>
+      <TableRow>
         {#each block.columns as column (column.key)}
-          <th scope="col" class="border-b border-border px-3 py-2 font-semibold {ALIGN[column.align]}">{column.header}</th>
+          <TableHead scope="col" align={column.align}>{column.header}</TableHead>
         {/each}
-      </tr>
-    </thead>
-    <tbody>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
       {#each block.rows as row, index (index)}
-        <tr class="border-b border-border last:border-0">
+        <TableRow>
           {#each block.columns as column (column.key)}
-            <td class="px-3 py-1.5 {ALIGN[column.align]}">{formatCell(Object.hasOwn(row, column.key) ? row[column.key] : null)}</td>
+            <TableCell align={column.align}>{formatCell(Object.hasOwn(row, column.key) ? row[column.key] : null)}</TableCell>
           {/each}
-        </tr>
+        </TableRow>
       {:else}
-        <tr>
-          <td class="px-3 py-2 text-muted-foreground" colspan={block.columns.length}>No rows.</td>
-        </tr>
+        <TableRow>
+          <TableCell class="text-muted-foreground" colspan={block.columns.length}>No rows.</TableCell>
+        </TableRow>
       {/each}
-    </tbody>
-  </table>
+    </TableBody>
+  </Table>
 </div>

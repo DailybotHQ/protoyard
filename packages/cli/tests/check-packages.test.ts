@@ -249,7 +249,7 @@ describe('the svelte-component-declaration attw exception', () => {
     expect(drops({ resolutionOption: 'node10' })).toBe(false);
     expect(drops({ kind: 'NoResolution' })).toBe(false);
     expect(drops({ moduleSpecifier: './helpers.js' })).toBe(false);
-    expect(drops({ moduleSpecifier: 'bits-ui/Button.svelte' })).toBe(false);
+    expect(drops({ moduleSpecifier: 'example-ui/Button.svelte' })).toBe(false);
     // Another package's file, or a path that leaves the package.
     expect(drops({}, '@protoyard/ui')).toBe(false);
     expect(drops({ moduleSpecifier: '../../../other/X.svelte' })).toBe(false);
@@ -269,7 +269,7 @@ describe('svelteDeclarationFindings', () => {
       [
         'dist/dialog/Dialog.svelte.d.ts',
         bytes(
-          "import { Dialog as DialogPrimitive } from 'bits-ui';\nimport type { Snippet } from 'svelte';\ndeclare const Dialog: import('svelte').Component;\nexport default Dialog;\n"
+          "import { Dialog as DialogPrimitive } from 'example-ui';\nimport type { Snippet } from 'svelte';\ndeclare const Dialog: import('svelte').Component;\nexport default Dialog;\n"
         ),
       ],
       ['dist/index.d.ts', bytes("import type { Router } from './router.ts';\n")],

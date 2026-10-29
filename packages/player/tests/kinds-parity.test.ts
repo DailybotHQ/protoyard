@@ -146,10 +146,10 @@ const runtimeFactory = () => {
 /** What a renderer shows, in document order: the active slide, page sections, doc headings. */
 function shown(root: Element, kind: Kind): string[] {
   if (kind === 'deck') {
-    // DeckCanvas keeps a window around the active slide; only one is not hidden.
-    return [
-      ...root.querySelectorAll('[data-canvas-slide][aria-hidden="false"] [data-py-deck-slide]'),
-    ].map((n) => n.getAttribute('data-py-deck-slide') ?? '');
+    // The stage keeps a window of slides mounted; exactly one is marked active.
+    return [...root.querySelectorAll('[data-tx-deck-slide][data-tx-deck-active="true"]')].map(
+      (n) => n.getAttribute('data-tx-deck-slide') ?? ''
+    );
   }
   if (kind === 'page') {
     return [...root.querySelectorAll('[data-py-page-section]')].map(
@@ -171,12 +171,13 @@ async function content(root: Element, kind: Kind, want: readonly string[]): Prom
     await vi.waitFor(() => expect(shown(root, kind)).toEqual(want), { timeout: 15_000 });
     return shown(root, kind);
   }
-  const app = root.querySelector<HTMLElement>(ROOT_MARK.deck);
-  if (!app) throw new Error('No deck app.');
+  // The @texuli/slides stage (a labeled region inside DeckApp) owns the deck keys.
+  const stage = root.querySelector<HTMLElement>(`${ROOT_MARK.deck} .tx-deck-stage`);
+  if (!stage) throw new Error('No deck stage.');
   await vi.waitFor(() => expect(shown(root, kind)).toHaveLength(1), { timeout: 15_000 });
   const seen = [shown(root, kind)[0] ?? ''];
   for (let press = 0; press < want.length * 8 && seen.length < want.length; press += 1) {
-    app.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    stage.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
     await new Promise((done) => setTimeout(done, 10));
     const active = shown(root, kind)[0] ?? '';
     if (active !== seen.at(-1)) seen.push(active);
@@ -241,7 +242,10 @@ describe.each(['deck', 'page', 'doc'] as const)(
       });
       opened.push(player);
       expect(player.error).toBeNull();
-      await vi.waitFor(() => expect(playerTarget.querySelector(ROOT_MARK[kind])).not.toBeNull());
+      // The first deck mount transforms the @texuli/slides stage on demand (cold in Vitest).
+      await vi.waitFor(() => expect(playerTarget.querySelector(ROOT_MARK[kind])).not.toBeNull(), {
+        timeout: 10_000,
+      });
       const want = expected(kind, json);
       const level1Content = await content(playerTarget, kind, want);
       // A deck's location lives in the URL hash; start level 2 from the first slide.

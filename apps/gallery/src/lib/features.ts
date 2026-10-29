@@ -51,8 +51,10 @@ export const FEATURE_AREAS: readonly FeatureArea[] = [
     points: [
       '`quick "<topic>" --kind deck` writes a deck from a sentence, offline; `--kind page` and `--kind doc` do the same for a landing page or a document.',
       '21 designed slide layouts with large display type, per-deck themes, fonts and gradient backgrounds. Slides fit and center at any screen size, and content reveals step by step.',
-      'A presenter view with the next slide and notes, an overview grid, print to PDF, and Deck Studio to restyle a deck live.',
-      'Interactive blocks work in the slide itself: polls, quizzes, a what-if calculator, explorable charts with a data table, and a working app embedded in a slide.',
+      'Controls that explain themselves: every button has an icon, a tooltip with what it does and its keys, and visible feedback. Full screen always leaves with Esc, and ? lists every control.',
+      'A presenter view with the next slide and notes, an overview grid, print to PDF one slide per page, and Deck Studio to restyle a deck live.',
+      'Interactive blocks work in the slide itself: polls, quizzes, a what-if calculator, sortable tables, explorable charts with a data table, and a working app embedded in a slide. Any element can reveal step by step, and slides take image or video backgrounds.',
+      'Built for agents: "Debug for agents" (?debug=1, then D) copies a reference to the exact slide, and `protoyard deck schema | layouts | blocks | lint | inspect` lets an agent write, check and fix a deck. A generated deck can also run its own Svelte components as slides.',
       'Landing pages have a hero, pricing, steps and forms that store responses; documents have a reading layout with one table of contents.',
       'Every kind runs at both levels: instantly in the player from a share link, or as a full prototype from `protoyard generate`. Links, single-file exports and private Claude artifacts work for all of them.',
     ],

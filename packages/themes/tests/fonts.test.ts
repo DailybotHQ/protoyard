@@ -20,14 +20,18 @@ describe('font catalog', () => {
     expect(
       FONT_CATALOG.every(({ fontFamily, fontFamilyHeading, fontFamilyMono }) =>
         [fontFamily, fontFamilyHeading, fontFamilyMono].every((family) =>
-          family.startsWith('var(--py-font-stack-')
+          family.startsWith('var(--tx-font-stack-')
         )
       )
     ).toBe(true);
     expect(getFontPairing('editorial')?.fontFamilyHeading).toContain('editorial-heading');
     expect(getFontPairing('missing')).toBeUndefined();
-    expect(css).toContain('--py-font-stack-editorial-heading:');
-    expect(css).toContain('--py-font-stack-condensed-sans:');
+    expect(css).toContain('--tx-font-stack-editorial-heading:');
+    expect(css).toContain('--tx-font-stack-condensed-sans:');
+    expect(css).toContain(
+      '--tx-font-stack-editorial-heading:\n    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;'
+    );
+    expect(css).not.toMatch(/^\s*--py-font-stack-/m);
     expect(css).not.toMatch(/https?:\/\//);
     expect(css).not.toContain('@import');
   });

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   MANIFEST_FILENAME,
@@ -48,6 +48,13 @@ export interface ProtoyardConfigOptions extends UserConfig {
    * for avatar ids, so the UI falls back to initials.
    */
   avatars?: boolean;
+  /**
+   * Group Texuli's CSS into a few shared stylesheets (default true; see
+   * TEXULI_CSS_GROUP). A build with several HTML pages may turn it off: the
+   * groups follow the module graph, where Texuli's barrel makes every
+   * component look reachable from every page.
+   */
+  texuliCssGroups?: boolean;
 }
 
 /**
@@ -93,6 +100,62 @@ export function targetBuildOptions(
     },
   };
 }
+
+/**
+ * A CSS module that comes from Texuli (`texuli` or any `@texuli/*` package),
+ * whether linked from a workspace (`…/texuli/packages/<pkg>/…`) or installed
+ * (`node_modules/texuli/…`, `node_modules/@texuli/<pkg>/…`): a stylesheet, or
+ * a component's scoped `<style>` (`X.svelte?svelte&type=style&lang.css`).
+ */
+export const TEXULI_CSS_MODULE =
+  /[\\/](?:texuli[\\/]packages[\\/][^\\/]+|node_modules[\\/](?:texuli|@texuli[\\/][^\\/]+))[\\/][^?]*\.(?:css(?:$|\?)|svelte\?svelte&type=style)/;
+
+/** The module graph Rolldown hands a chunk group's `name` function. */
+export interface ChunkGraph {
+  getModuleInfo(id: string): { isEntry: boolean; importers: readonly string[] } | null;
+}
+
+/**
+ * True when a chain of static imports leads to the module from a build entry,
+ * so it loads with the first screen. A module only reached through a dynamic
+ * `import()` (a lazy block, chart or data-view family) is not eager.
+ */
+export function isEagerModule(id: string, graph: ChunkGraph): boolean {
+  const seen = new Set<string>();
+  const queue = [id];
+  while (queue.length > 0) {
+    const current = queue.pop() as string;
+    if (seen.has(current)) continue;
+    seen.add(current);
+    const info = graph.getModuleInfo(current);
+    if (!info) continue;
+    if (info.isEntry) return true;
+    queue.push(...info.importers);
+  }
+  return false;
+}
+
+/**
+ * Two chunk groups for Texuli's CSS, so a regular build emits it as two
+ * stylesheets instead of one per chunk. Separate files cannot share a gzip
+ * dictionary: the same CSS measured 11,349 B gzip as 10 files and 6,386 B as
+ * one. Eager CSS (tokens, base, the components the shell imports) goes to
+ * `texuli-css`; lazy family CSS to `texuli-lazy-css`, which only lazy chunks
+ * import, so it never becomes initial. Only CSS modules match, so JavaScript
+ * splitting is unchanged (a group's script is an empty shell). The eager
+ * stylesheet loads after the cascade-layer order declaration the page head
+ * carries.
+ *
+ * The groups follow the module graph, not the tree-shaken chunks: through
+ * Texuli's barrel every component looks statically imported, so its CSS is
+ * eager here even when the page never renders it. A build with several pages
+ * (the player) turns the groups off with `texuliCssGroups: false`.
+ */
+export const TEXULI_CSS_GROUP = {
+  name: (id: string, graph: ChunkGraph): string =>
+    isEagerModule(id, graph) ? 'texuli-css' : 'texuli-lazy-css',
+  test: TEXULI_CSS_MODULE,
+} as const;
 
 /** Shape of the `__PROTOYARD_BUILD__` global. */
 export interface ProtoyardBuildInfo {
@@ -148,14 +211,48 @@ export function envFlag(value: string | undefined): boolean | undefined {
 }
 
 /**
+ * The real folders of the `link:` dependencies the workspace root declares
+ * (Texuli is consumed from `../texuli/packages/*`). They live outside the
+ * workspace, so each one, and nothing around it, joins the dev server's
+ * allow list. Links that do not resolve, and a missing or unreadable
+ * manifest, add nothing.
+ */
+export function linkedPackageRoots(workspace: string): string[] {
+  let manifest: Record<string, unknown>;
+  try {
+    manifest = JSON.parse(readFileSync(resolve(workspace, 'package.json'), 'utf8'));
+  } catch {
+    return [];
+  }
+  const roots = new Set<string>();
+  for (const field of ['dependencies', 'devDependencies']) {
+    const deps = manifest[field];
+    if (!deps || typeof deps !== 'object') continue;
+    for (const spec of Object.values(deps as Record<string, unknown>)) {
+      if (typeof spec !== 'string' || !spec.startsWith('link:')) continue;
+      const target = resolve(workspace, spec.slice('link:'.length));
+      if (!existsSync(target)) continue;
+      roots.add(realpathSync(target));
+    }
+  }
+  return [...roots].sort();
+}
+
+/**
  * What the dev server may serve through `/@fs`: this prototype, the shared
- * workspace packages and installed dependencies — never the rest of the
- * workspace (other prototypes, artifacts, dotfiles). Vite's default
- * `fs.deny` (.env, *.pem, *.crt…) still applies on top.
+ * workspace packages, installed dependencies and the folders of the root's
+ * `link:` dependencies — never the rest of the workspace (other prototypes,
+ * artifacts, dotfiles). Vite's default `fs.deny` (.env, *.pem, *.crt…) still
+ * applies on top.
  */
 export function devFsAllow(root: string): string[] {
   const workspace = searchForWorkspaceRoot(root);
-  return [resolve(root), resolve(workspace, 'packages'), resolve(workspace, 'node_modules')];
+  return [
+    resolve(root),
+    resolve(workspace, 'packages'),
+    resolve(workspace, 'node_modules'),
+    ...linkedPackageRoots(workspace),
+  ];
 }
 
 /** Where avatar images come from in this build (see src/avatars.ts). */
@@ -321,7 +418,17 @@ export function resolveProtoyardSettings(
   };
 }
 
-/** Injects the no-flash appearance script and prototype metadata into index.html. */
+/**
+ * The cascade layer order, declared before any stylesheet: Texuli's component
+ * layers sit above Tailwind's base (its reset) and below Tailwind's
+ * utilities, so a component keeps its own styles and a utility class on it
+ * still wins. Layer order is fixed by first appearance, so this must come
+ * first in the document.
+ */
+export const CASCADE_LAYER_ORDER =
+  '@layer theme, base, tx.base, tx.components, components, utilities;';
+
+/** Injects the layer order, the no-flash appearance script and prototype metadata into index.html. */
 function protoyardHtml(manifest: PrototypeManifest, namespace: string): Plugin {
   return {
     name: 'protoyard:html',
@@ -339,6 +446,7 @@ function protoyardHtml(manifest: PrototypeManifest, namespace: string): Plugin {
             children: noFlashScript(namespace),
             injectTo: 'head-prepend',
           },
+          { tag: 'style', children: CASCADE_LAYER_ORDER, injectTo: 'head-prepend' },
         ];
       },
     },
@@ -346,7 +454,7 @@ function protoyardHtml(manifest: PrototypeManifest, namespace: string): Plugin {
 }
 
 export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConfigFnObject {
-  const { root, avatars, ...overrides } = options;
+  const { root, avatars, texuliCssGroups = true, ...overrides } = options;
   return defineConfig((configEnv) => {
     const manifest = readPrototypeManifest(root);
     const settings = resolveProtoyardSettings(manifest, configEnv.command, process.env, root, {
@@ -365,7 +473,7 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
       ],
       resolve: {
         // Workspace packages are linked; one copy of each runtime library.
-        dedupe: ['svelte', 'dexie', 'bits-ui'],
+        dedupe: ['svelte', 'dexie'],
       },
       define: {
         __PROTOYARD_DEVTOOLS__: JSON.stringify(settings.includeDevtools),
@@ -395,6 +503,10 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
         sourcemap: false,
         reportCompressedSize: false,
         manifest: VITE_MANIFEST_PATH,
+        // The artifact target already emits one stylesheet (cssCodeSplit: false).
+        ...(settings.target === 'artifact' || !texuliCssGroups
+          ? {}
+          : { rolldownOptions: { output: { codeSplitting: { groups: [TEXULI_CSS_GROUP] } } } }),
         ...targetBuildOptions(settings.target),
       },
     };

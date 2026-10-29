@@ -1,13 +1,18 @@
-export { LIBRARY_THEME_DEFINITIONS } from './definitions.ts';
+export { isLibraryThemeId, LIBRARY_THEME_IDS } from './ids.ts';
 export {
   clearLibraryThemeCache,
-  getLibraryThemeDefinition,
+  type ExpandedLibraryModule,
+  findLibraryThemeMeta,
   getLibraryThemeMeta,
   listCollections,
   listThemeLibrary,
+  loadAllFullLibraryThemes,
   loadAllLibraryThemes,
+  loadFullLibraryMeta,
   loadLibraryTheme,
+  loadLibraryThemeDefinition,
   searchThemeLibrary,
+  setExpandedLibraryLoader,
   THEME_LIBRARY_META,
 } from './registry.ts';
 export {

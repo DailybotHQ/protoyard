@@ -1,8 +1,6 @@
 /**
- * `@protoyard/views/map` — an offline, simulated map engine: a fictional
- * basemap as data (Port Meridian, or your own validated one), Web Mercator
- * views, clustering, geofences, distances, routes and nearest points. No
- * tiles, no network, no geocoding, no real geography.
+ * `@protoyard/views/map` — thin re-export of `@texuli/data/geo`
+ * (offline basemap, mercator, clusters, fences). No tiles or network.
  * `@protoyard/views-ui/map` renders it.
  */
 export {
@@ -13,43 +11,41 @@ export {
   type BasemapKind,
   type BasemapPath,
   BasemapSchema,
+  type Bbox,
   basemapPaths,
-} from './basemap.ts';
-export { type ClusterItem, cluster, type MapPoint } from './cluster.ts';
-export {
+  type ClusterItem,
+  clampZoom,
+  cluster,
+  etaSeconds,
   type FenceEvent,
   fencesAt,
   fenceTransitions,
+  fitBounds,
   type Geofence,
   GeofenceSchema,
-  insideFence,
-  pointInRing,
-  type Ring,
-  RingSchema,
-  ringContains,
-  ringSelfIntersects,
-  type TrackPoint,
-} from './fence.ts';
-export {
-  type Bbox,
-  clampZoom,
-  etaSeconds,
-  fitBounds,
   haversine,
+  insideFence,
   inverseMercator,
   type LngLat,
   MAX_ZOOM,
+  type MapPoint,
   type MapSize,
   type MapView,
   MIN_ZOOM,
   mercator,
   nearest,
+  PORT_MERIDIAN,
   panBy,
   pointAlong,
+  pointInRing,
   project,
+  type Ring,
+  RingSchema,
+  ringContains,
+  ringSelfIntersects,
   routeLength,
+  type TrackPoint,
   unproject,
   viewBounds,
   zoomAround,
-} from './geo.ts';
-export { PORT_MERIDIAN } from './port-meridian.ts';
+} from '@texuli/data/geo';

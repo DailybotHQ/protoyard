@@ -4,8 +4,10 @@ A layout is the page structure around a prototype's routed screens: navigation,
 header, content columns and responsive chrome. A shell is the simulated device
 or host frame around the whole app ([SHELLS.md](SHELLS.md)); the two compose.
 Layouts render navigation from data, so the same route set can work in several
-page structures. The implementation is in `@protoyard/ui`; the contract and
-width fallbacks are data in `@protoyard/core`.
+page structures. The contract and width fallbacks are data in `@protoyard/core`.
+`@protoyard/ui`'s `LayoutHost` wraps texuli's (`texuli/layouts/host`): every
+layout but `docs` is texuli's implementation, and `docs` stays Protoyard's
+([TEXULI.md](TEXULI.md#layouts-come-from-texulilayouts)).
 
 
 ### Page kind host (`@protoyard/pages-ui`)
@@ -138,19 +140,20 @@ show a loading skeleton while their lazy import resolves.
 
 ### Content layouts
 
-`MasterDetailLayout` can wrap a route's list and detail snippets directly. Bind
-`detailActive` to route selection so narrow widths show the active pane and
-the built-in Back to list control returns to the list. The list remains
-mounted while the detail changes. `DashboardGridLayout` arranges child widgets
-using `data-span="1"` through `data-span="4"`; spans clamp to the current
-column count, and the grid does not implement drag-and-drop. `DocsLayout`
-accepts navigation and content snippets and builds a table of contents from
-visible h2 and h3 headings. All three can also host the routed outlet through
-`LayoutHost`.
+`master-detail`, `dashboard-grid` and `docs` are page layouts like the others:
+select them through `LayoutHost`, which mounts the routed screen in them.
+`master-detail` (Texuli's) lists the nav model's items as the master list and
+shows the routed screen as the detail; on narrow containers it shows the list
+or the active detail with a Back link. `dashboard-grid` (Texuli's) mounts the
+screen into a container-query widget grid where children with `data-span="2"`
+through `data-span="4"` span columns, clamped to the current column count; it
+does not implement drag-and-drop. `docs` (Protoyard's `DocsLayout`, also
+exported as `@protoyard/ui/layouts/docs`) accepts navigation and content
+snippets and builds a table of contents from visible h2 and h3 headings.
 
 For composition inside a screen, `PageGrid` fits cards to a minimum preferred
-item width and caps the number of columns, while `SplitView` provides labeled
-list and detail regions. The grid and panes use `min-width: 0` so wide child
+item width and caps the number of columns, while `SplitView` (Texuli's,
+re-exported) provides labeled list and detail regions. The grid and panes use `min-width: 0` so wide child
 content can shrink within narrow containers. `SplitView` shows the list or the
 selected detail on narrow hosts via `detailActive`, and both panes at the
 existing 56rem desktop breakpoint. The caller owns route selection and back
@@ -199,15 +202,21 @@ would otherwise leave a narrow column inside a wide device frame. See
 
 ## Adding or changing a shared layout
 
+Every shared layout but `docs` is Texuli's, so a change to one of those
+belongs in Texuli ([TEXULI.md](TEXULI.md#layouts-come-from-texulilayouts)).
+For a new id, or a layout Protoyard owns:
+
 1. Add the data-only id, platform support, minimum width and fallback in
    `packages/core/src/layouts.ts`; keep `LAYOUT_IDS` and `LAYOUTS` aligned and
    extend `packages/core/tests/layouts.test.ts`.
-2. Implement the Svelte layout under `packages/ui/src/layouts/`. Accept the
-   shared `LayoutProps`, mount the outlet with `mountScreen(target)`, preserve
-   the supplied route content, and cover focus, narrow containers, navigation
-   and shell composition.
-3. Register one lazy relative import for the id in
-   `packages/ui/src/layouts/registry.ts`. Do not export the layout through the
+2. Implement the layout against Texuli's `LayoutProps` (exported from
+   `texuli/layouts/host`): mount the outlet with `mountScreen(target)`,
+   preserve the supplied route content, and cover focus, narrow containers,
+   navigation and shell composition. A Protoyard-owned layout lives under
+   `packages/ui/src/layouts/`, as `DocsLayout.svelte` does.
+3. Register one lazy import for the id in `registerProtoyardLayouts`
+   (`packages/ui/src/layouts/register.ts`), the way `docs` is registered
+   with `registerLayout`. Do not export the layout through the
    `@protoyard/ui` barrel; unused layout code must stay off the initial path.
 4. Add or extend the UI layout tests and verify a production bundle. Run the
    layout-fit E2E checks on the app's desktop and phone contexts when its

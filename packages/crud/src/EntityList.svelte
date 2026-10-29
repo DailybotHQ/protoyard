@@ -12,6 +12,7 @@ import {
 import type { Row } from '@protoyard/core';
 import { can, getRuntime, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { AlertDialog, Button, DataTable, type DataTableSort, toast } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import {
   type EntityListDisplayNames,
   entityListColumns,
@@ -158,12 +159,20 @@ async function restoreSelected(ids: string[]) {
   toast.success(`Restored ${restored} record${restored === 1 ? '' : 's'}`);
 }
 
+// The dialog stays open, its confirm button busy, until this settles; it then
+// closes itself (AlertDialog awaits onConfirm).
 async function confirmDelete() {
+  try {
+    await deletePending();
+  } finally {
+    pendingIds = [];
+  }
+}
+
+async function deletePending() {
   const ids = pendingIds;
   const svc = service;
   const ent = entity;
-  confirmOpen = false;
-  pendingIds = [];
   if (!svc || !ent || !ids.length) return;
 
   if (softDelete) {
@@ -288,7 +297,7 @@ async function onImportFile(event: Event) {
             page = 1;
           }}
         >
-          <Trash2 class="size-3.5" aria-hidden="true" /> Trash
+          <LucideIcon icon={Trash2} class="size-3.5" /> Trash
         </Button>
       </div>
     {/if}
@@ -318,17 +327,17 @@ async function onImportFile(event: Event) {
         <div class="flex flex-wrap items-center gap-2">
           {#if canCreate && view === 'active' && onCreate}
             <Button size="sm" onclick={onCreate}>
-              <Plus class="size-3.5" aria-hidden="true" /> New
+              <LucideIcon icon={Plus} class="size-3.5" /> New
             </Button>
           {/if}
           {#if csvEnabled && canExport}
             <Button size="sm" variant="outline" onclick={() => exportCsv()}>
-              <Download class="size-3.5" aria-hidden="true" /> Export CSV
+              <LucideIcon icon={Download} class="size-3.5" /> Export CSV
             </Button>
           {/if}
           {#if csvEnabled && canImport && view === 'active'}
             <Button size="sm" variant="outline" onclick={() => importInput?.click()}>
-              <Upload class="size-3.5" aria-hidden="true" /> Import CSV
+              <LucideIcon icon={Upload} class="size-3.5" /> Import CSV
             </Button>
             <input
               bind:this={importInput}
@@ -347,7 +356,7 @@ async function onImportFile(event: Event) {
           </Button>
         {:else}
           <Button size="sm" variant="destructive" onclick={() => askDelete(ids)}>
-            <Trash2 class="size-3.5" aria-hidden="true" /> Delete {ids.length}
+            <LucideIcon icon={Trash2} class="size-3.5" /> Delete {ids.length}
           </Button>
         {/if}
       {/snippet}

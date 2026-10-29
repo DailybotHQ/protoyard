@@ -1,6 +1,7 @@
 <script lang="ts">
-import { cn } from '@protoyard/ui';
+import { Button, Input } from '@protoyard/ui';
 import { safeHref } from '@protoyard/views/editor';
+import { cx } from 'texuli/cx';
 
 /**
  * LinkMenu — small popover to set or clear a link URL. Rejects unsafe schemes
@@ -61,7 +62,7 @@ function onKey(event: KeyboardEvent) {
 
 {#if open}
   <div
-    class={cn(
+    class={cx(
       'z-30 w-72 rounded-md border border-border bg-elevated p-3 shadow-float',
       className
     )}
@@ -70,7 +71,7 @@ function onKey(event: KeyboardEvent) {
   >
     <label class="grid gap-1.5 text-sm">
       <span class="font-medium text-foreground">{label}</span>
-      <input
+      <Input
         type="url"
         class="h-9 w-full rounded-md border border-input bg-surface px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
         bind:value={draft}
@@ -83,27 +84,29 @@ function onKey(event: KeyboardEvent) {
       <p id="link-menu-error" class="mt-1.5 text-xs text-destructive" role="alert">{error}</p>
     {/if}
     <div class="mt-3 flex flex-wrap gap-2">
-      <button
+      <Button
         type="button"
         class="inline-flex h-8 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         onclick={apply}
       >
         Apply
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="outline"
         class="inline-flex h-8 items-center rounded-md border border-border px-3 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         onclick={() => onRemove?.()}
       >
         Remove
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="ghost"
         class="inline-flex h-8 items-center rounded-md px-3 text-sm text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         onclick={() => onClose?.()}
       >
         Cancel
-      </button>
+      </Button>
     </div>
   </div>
 {/if}

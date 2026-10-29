@@ -57,7 +57,7 @@ describe('bindAppearance style presets', () => {
   it('applies and reverts live radius, elevation, font and motion presets without a reload', async () => {
     const { runtime, set } = stubRuntime();
     const stop = bindAppearance(runtime, BUILTIN_THEMES, root);
-    const themeRadius = root.style.getPropertyValue('--py-radius');
+    const themeRadius = root.style.getPropertyValue('--tx-radius');
 
     set({
       radius: { value: 'pill', source: 'override' },
@@ -66,17 +66,17 @@ describe('bindAppearance style presets', () => {
       motion: { value: 'none', source: 'override' },
     });
     // The presets load on first use; until then the document keeps what it shows.
-    expect(root.style.getPropertyValue('--py-radius')).toBe(themeRadius);
-    await vi.waitFor(() => expect(root.style.getPropertyValue('--py-radius')).toBe('9999px'));
-    expect(root.style.getPropertyValue('--py-shadow-soft')).toBe('none');
-    expect(root.style.getPropertyValue('--py-motion-base')).toBe('0ms');
+    expect(root.style.getPropertyValue('--tx-radius')).toBe(themeRadius);
+    await vi.waitFor(() => expect(root.style.getPropertyValue('--tx-radius')).toBe('9999px'));
+    expect(root.style.getPropertyValue('--tx-shadow-soft')).toBe('none');
+    expect(root.style.getPropertyValue('--tx-motion-base')).toBe('0ms');
     expect(root.dataset.pyButtonStyle).toBe('pill');
     expect(root.dataset.pyTheme).toBe('violet');
     // The no-flash cache holds the overridden look, so a reload paints it first.
-    expect(readCachedAppearance('appearance-test')?.vars['--py-radius']).toBe('9999px');
+    expect(readCachedAppearance('appearance-test')?.vars['--tx-radius']).toBe('9999px');
 
     set({ radius: { value: null, source: 'default' } });
-    expect(root.style.getPropertyValue('--py-radius')).toBe(themeRadius);
+    expect(root.style.getPropertyValue('--tx-radius')).toBe(themeRadius);
     expect(root.dataset.pyButtonStyle).toBeUndefined();
     stop();
   });

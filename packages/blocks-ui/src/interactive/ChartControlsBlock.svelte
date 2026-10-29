@@ -2,6 +2,9 @@
 import type { ChartControlsBlock as ChartControlsBlockType } from '@protoyard/blocks';
 import { chartControlsSpec } from '@protoyard/blocks/interactive';
 import { Button } from '@protoyard/ui';
+import { Checkbox } from 'texuli/choice';
+import { NumberField } from 'texuli/number-pin';
+import { isSecurityFuzzHost } from '../host.ts';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import { useBlockState } from './use-block-state.svelte.ts';
 
@@ -9,6 +12,7 @@ let { block }: { block: ChartControlsBlockType } = $props();
 const ctl = useBlockState(() => block);
 const spec = $derived(chartControlsSpec(block, ctl.state));
 const height = $derived(block.height === 'sm' ? 160 : block.height === 'lg' ? 280 : 220);
+const fuzzStub = $derived(isSecurityFuzzHost());
 
 const series = $derived(
   spec.series.map((row, index) => ({
@@ -80,14 +84,12 @@ function setSeriesVisible(index: number, checked: boolean) {
       {#each block.spec.series as row, index (index)}
         {@const checked = seriesVisible(index)}
         <label class="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+          <Checkbox
             class="size-4 rounded border-border outline-none focus-visible:ring-2 focus-visible:ring-ring"
             {checked}
             disabled={ctl.pending}
             aria-label="Show {row.label}"
-            onchange={(e) =>
-              setSeriesVisible(index, (e.currentTarget as HTMLInputElement).checked)}
+            onCheckedChange={(checked) => setSeriesVisible(index, checked)}
           />
           <span>{row.label}</span>
         </label>
@@ -103,40 +105,40 @@ function setSeriesVisible(index: number, checked: boolean) {
       <div class="flex flex-wrap items-center gap-2">
         <label class="flex items-center gap-1">
           From
-          <input
-            type="number"
+          <NumberField.Root
             class="w-16 rounded border border-border px-1 py-0.5 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
             min={0}
             max={max - 1}
             value={range[0]}
             disabled={ctl.pending}
-            aria-label="Label range start"
-            onchange={(e) => {
-              const start = Number((e.currentTarget as HTMLInputElement).value);
+            onValueChange={(start) => {
+              if (start === null) return;
               const end = Math.max(start + 1, range[1]);
               void ctl.dispatch({ type: 'set-range', range: [start, Math.min(end, max)] });
             }}
-          />
+          >
+            <NumberField.Input aria-label="Label range start" />
+          </NumberField.Root>
         </label>
         <label class="flex items-center gap-1">
           To
-          <input
-            type="number"
+          <NumberField.Root
             class="w-16 rounded border border-border px-1 py-0.5 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
             min={1}
             max={max}
             value={range[1]}
             disabled={ctl.pending}
-            aria-label="Label range end"
-            onchange={(e) => {
-              const end = Number((e.currentTarget as HTMLInputElement).value);
+            onValueChange={(end) => {
+              if (end === null) return;
               const start = Math.min(range[0], end - 1);
               void ctl.dispatch({
                 type: 'set-range',
                 range: [Math.max(0, start), end],
               });
             }}
-          />
+          >
+            <NumberField.Input aria-label="Label range end" />
+          </NumberField.Root>
         </label>
         <Button
           size="sm"
@@ -150,7 +152,9 @@ function setSeriesVisible(index: number, checked: boolean) {
     </div>
   {/if}
 
-  {#if partWhole}
+  {#if fuzzStub}
+    <div data-py-chart="" role="img" aria-label={spec.title ?? 'Chart'}></div>
+  {:else if partWhole}
     {#await import('@protoyard/charts-ui/part-whole') then mod}
       <mod.DonutChart title={spec.title ?? 'Chart'} data={donutData} height={height} />
     {/await}

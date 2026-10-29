@@ -29,7 +29,7 @@ test.describe('gallery', () => {
     }
   });
 
-  test('searches, filters and opens a detail page', async ({ page }) => {
+  test('searches, filters and opens an accessible detail page', async ({ page }, testInfo) => {
     test.skip(prototypes.length === 0, 'no prototypes indexed');
     const target = prototypes[prototypes.length - 1];
     if (!target) return;
@@ -54,6 +54,18 @@ test.describe('gallery', () => {
     await page.getByRole('link', { name: target.name, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/p/${target.slug}/?$`));
     await expect(page.getByTestId('detail-title')).toHaveText(target.name);
+    const commandRegions = page.locator('pre[role="region"]');
+    const commandRegionCount = await commandRegions.count();
+    expect(commandRegionCount).toBeGreaterThan(0);
+    for (let index = 0; index < commandRegionCount; index += 1) {
+      const region = commandRegions.nth(index);
+      await expect(region).toHaveAttribute('aria-label', /\S/);
+      // A command that scrolls is always a Tab stop (WCAG 2.1.1). One that fits drops the
+      // stop once its island hydrates (unit-tested in apps/gallery/tests/command-block.test.ts).
+      const scrolls = await region.evaluate((el) => el.scrollWidth > el.clientWidth);
+      if (scrolls) await expect(region).toHaveAttribute('tabindex', '0');
+    }
+    await expectAccessible(page, testInfo, { label: 'gallery-detail' });
     if (target.scenarios.length > 0) {
       await expect(page.getByTestId('scenarios').getByRole('listitem')).toHaveCount(
         target.scenarios.length
@@ -144,12 +156,37 @@ test.describe('gallery', () => {
 
   test('theme toggle applies without reload and persists', async ({ page }) => {
     await page.goto('/');
-    await hydrated(page, '[aria-label="Color theme"]');
-    await page.getByRole('button', { name: 'Dark theme' }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    // Texuli's AppearanceSwitcher reads the stored choice once it has mounted.
+    const switcher = page.getByRole('radiogroup', { name: 'Color theme' });
+    await expect(switcher).toHaveAttribute('data-tx-appearance', 'system');
+    await switcher.getByRole('radio', { name: 'Dark' }).check();
+    await expect(page.locator('html')).toHaveAttribute('data-tx-mode', 'dark');
     await page.reload();
     // Set by the inline head script before paint, i.e. no flash of light theme.
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('html')).toHaveAttribute('data-tx-mode', 'dark');
+    await expect(switcher.getByRole('radio', { name: 'Dark' })).toBeChecked();
+    await switcher.getByRole('radio', { name: 'System' }).check();
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem('texuli.gallery.appearance')))
+      .toBeNull();
+  });
+
+  test('migrates the previous saved mode into Texuli appearance storage once', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('protoyard.gallery.theme', 'dark'));
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-tx-mode', 'dark');
+    const appearance = await page.evaluate(() => {
+      const raw = localStorage.getItem('texuli.gallery.appearance');
+      return raw ? (JSON.parse(raw) as { themeId: string; mode: string }) : null;
+    });
+    expect(appearance).toMatchObject({ themeId: 'gallery', mode: 'dark' });
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem('protoyard.gallery.theme')))
+      .toBeNull();
+
+    await page.evaluate(() => localStorage.setItem('protoyard.gallery.theme', 'light'));
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-tx-mode', 'dark');
   });
 
   test('theme explorer filters by collection and mood and links a prototype in the selected mode', async ({
@@ -171,11 +208,13 @@ test.describe('gallery', () => {
       card.locator('[data-theme-mode="light"] [aria-label="Chart palette preview"] span')
     ).toHaveCount(8);
 
-    await page.getByTestId('theme-collection').selectOption('brand-like');
+    await page.getByTestId('theme-collection').click();
+    await page.getByRole('option', { name: 'brand-like' }).click();
     await expect(page.getByTestId('theme-count')).toContainText('Showing 0 of');
     await expect(page).toHaveURL(/[?&]collection=brand-like/);
     await page.getByRole('button', { name: 'Clear filters' }).click();
-    await page.getByTestId('theme-mood').selectOption('calm');
+    await page.getByTestId('theme-mood').click();
+    await page.getByRole('option', { name: 'calm' }).click();
     await expect(card).toBeVisible();
     await expect(page).toHaveURL(/[?&]mood=calm/);
     await page.getByRole('button', { name: 'Clear filters' }).click();
@@ -188,7 +227,8 @@ test.describe('gallery', () => {
 
     const target = prototypes[0];
     if (!target) return;
-    await page.getByTestId('theme-prototype').selectOption(target.slug);
+    await page.getByTestId('theme-prototype').click();
+    await page.getByRole('option', { name: target.name, exact: true }).click();
     const link = card.getByRole('link', { name: `Open ${target.name} in this theme` });
     await expect(link).toHaveAttribute('href', /theme=health-clinic.*mode=dark/);
     await expect(link).toHaveAttribute('target', '_blank');
@@ -285,6 +325,9 @@ test.describe('gallery', () => {
     if (!template) return;
     await page.goto(`/t/${template.slug}/`);
     await page.getByRole('link', { name: 'Use this template' }).click();
+    await expect(page.locator('[data-testid="create-builder"][data-hydrated="true"]')).toHaveCount(
+      1
+    );
     const slug = page.getByLabel(/^Slug/);
     await expect(slug).toBeEditable();
     await slug.fill('team-crm');
@@ -307,11 +350,20 @@ test.describe('gallery', () => {
     await expect(page.locator('[data-testid="compare"][data-hydrated="true"]')).toHaveCount(1);
     const a = page.getByTestId('compare-scenario-a');
     const b = page.getByTestId('compare-scenario-b');
-    const [beforeA, beforeB] = [await a.inputValue(), await b.inputValue()];
+    const [beforeA, beforeB] = await Promise.all([
+      a.getAttribute('data-value'),
+      b.getAttribute('data-value'),
+    ]);
+    if (!beforeA || !beforeB) throw new Error('Compare select did not expose its selected value');
     expect(beforeA).not.toBe(beforeB);
     await page.getByRole('button', { name: 'Swap A and B' }).click();
-    await expect(a).toHaveValue(beforeB);
-    await expect(b).toHaveValue(beforeA);
-    await expect(page).toHaveURL(new RegExp(`[?&]a=${beforeB}&b=${beforeA}`));
+    await expect(a).toHaveAttribute('data-value', beforeB);
+    await expect(b).toHaveAttribute('data-value', beforeA);
+    await expect
+      .poll(() => page.evaluate(() => new URL(location.href).searchParams.get('a')))
+      .toBe(beforeB);
+    await expect
+      .poll(() => page.evaluate(() => new URL(location.href).searchParams.get('b')))
+      .toBe(beforeA);
   });
 });

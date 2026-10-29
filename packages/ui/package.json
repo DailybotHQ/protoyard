@@ -1,7 +1,7 @@
 {
   "name": "@protoyard/ui",
   "version": "1.0.0",
-  "description": "Svelte 5 UI primitives and product patterns for Protoyard prototypes (Bits UI + Tailwind CSS 4 + Lucide).",
+  "description": "Svelte 5 UI components and product patterns for Protoyard prototypes, built on Texuli (Tailwind CSS 4 + Lucide).",
   "license": "MIT",
   "type": "module",
   "sideEffects": [
@@ -24,9 +24,9 @@
       "default": "./src/layouts/DocsLayout.svelte"
     },
     "./layouts/marketing": {
-      "types": "./src/layouts/MarketingLayout.svelte",
-      "svelte": "./src/layouts/MarketingLayout.svelte",
-      "default": "./src/layouts/MarketingLayout.svelte"
+      "types": "./src/layouts/marketing.ts",
+      "svelte": "./src/layouts/marketing.ts",
+      "default": "./src/layouts/marketing.ts"
     }
   },
   "scripts": {
@@ -34,10 +34,12 @@
   },
   "dependencies": {
     "@lucide/svelte": "^1.59.0",
-    "bits-ui": "^2.19.5",
-    "clsx": "^2.1.1",
-    "tailwind-merge": "^3.7.0",
-    "tailwind-variants": "^3.3.1"
+    "@texuli/chat": "0.5.0",
+    "@texuli/core": "0.5.0",
+    "@texuli/data": "0.5.0",
+    "@texuli/date": "0.5.0",
+    "@texuli/primitives": "0.5.0",
+    "texuli": "0.5.0"
   },
   "devDependencies": {
     "svelte": "^5.57.2"
@@ -82,9 +84,9 @@
         "default": "./dist/layouts/DocsLayout.svelte"
       },
       "./layouts/marketing": {
-        "types": "./dist/layouts/MarketingLayout.svelte.d.ts",
-        "svelte": "./dist/layouts/MarketingLayout.svelte",
-        "default": "./dist/layouts/MarketingLayout.svelte"
+        "types": "./dist/layouts/marketing.d.ts",
+        "svelte": "./dist/layouts/marketing.js",
+        "default": "./dist/layouts/marketing.js"
       }
     },
     "files": [

@@ -66,13 +66,30 @@ only when selected, so optional panels remain outside the initial DevTools
 module graph. Registered tabs participate in the same keyboard navigation and
 remembered selection as built-in tabs.
 
-Styling: Tailwind utilities on the app's `--py-*` tokens (the panel follows
-the active theme), mounted in its own `.py-devtools` host outside `#app`; no
-global CSS is added.
+Styling: the panel consumes Texuli's `--tx-*` tokens and mounts in its own
+`.py-devtools` host outside `#app`; no global CSS is added. The renderer's
+visible-right-edge layout value is copied to a DevTools-local CSS variable so
+the launcher and panel keep their existing viewport positioning.
+
+**Built on Texuli 0.5.0.** The panel uses `Button` from `texuli/button`,
+`Input` and `Textarea` from `texuli/input`, `Select` from `texuli/select`,
+`Checkbox`, `Radio` and `Switch` from `texuli/choice`, `Slider` from
+`texuli/slider`, `Spinner` from `texuli/feedback`, `Card` from `texuli/card`,
+`Badge` from `texuli/badge`, and `Alert` from `texuli/alert`. The `Glyph`
+adapter sends Texuli's ten built-in names through `Icon` from `texuli/icons`
+and other Lucide components through `LucideIcon` from
+`texuli/icons/lucide`. `mountDevtools` calls
+`enableTexuliAppearance()` (`@protoyard/themes/texuli`) to keep Texuli's
+`--tx-*` tokens aligned with the active appearance
+([docs/TEXULI.md](../../docs/TEXULI.md#themes-come-from-texulitokens)).
+
+`Initials` is a presentation wrapper around Texuli's `Avatar`; it passes the
+resolver's validated `src` and `srcset` and applies the panel's persona color.
+Texuli 0.5.0 accepts responsive sources under the same URL trust policy.
 
 ## Working on top of app modals
 
-App dialogs and sheets (Bits UI) trap focus with a capture-phase `focusin`
+App dialogs and sheets trap focus with a capture-phase `focusin`
 listener on `document` and close on outside pointer/focus events. The panel
 host is isolated from both (`isolateFromAppLayers`): `focusin` originating in
 the panel is stopped at `window` (which runs before `document` capture), and
@@ -84,7 +101,7 @@ lifts above a fixed `BottomNav` (`data-py-bottom-nav`) or by
 `--py-devtools-offset` on `:root`.
 
 Caveat: focus traps from libraries that listen on `window` in the capture
-phase (not Bits UI) would still win; Tab from the app dialog does not cycle
+phase would still win; Tab from the app dialog does not cycle
 into the panel by design — use the shortcut.
 
 ## Package output

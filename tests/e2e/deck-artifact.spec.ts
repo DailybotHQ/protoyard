@@ -24,6 +24,9 @@ let harness: ArtifactHarnessServer;
 const WORKER_SCRIPT = /\.worker-[\w-]+\.js$/;
 
 test.beforeAll(async () => {
+  // The first run exports the pack (`protoyard export --target artifact`), which
+  // can take minutes; the harness itself waits up to five for it.
+  test.setTimeout(6 * 60_000);
   harness = await startArtifactHarnessServer({
     target: DECK_ARTIFACT_TARGET,
     frameTitle: 'Packed Create Anything deck',
@@ -52,7 +55,12 @@ function watch(page: Page): Watch {
     const url = response.url();
     if (response.status() >= 400) seen.failed.push(`${response.status()} ${url}`);
     if (url.includes('/__packed__/') && new URL(url).pathname.endsWith('.js')) {
-      seen.scripts.push({ url, body: response.text() });
+      // The test's own fetch() of each packed script lands here too, and its body
+      // may still be pending when the test ends; Playwright then rejects it with
+      // "Test ended". Settle it, so only an awaited body can fail the test.
+      const body = response.text();
+      body.catch(() => undefined);
+      seen.scripts.push({ url, body });
     }
   });
   return seen;
@@ -86,8 +94,9 @@ async function expectSlide(frame: Frame, slideId: string, step = 0): Promise<voi
   await expect(app).toHaveAttribute('data-slide-id', slideId);
   await expect(app).toHaveAttribute('data-slide-step', String(step));
   await expect.poll(() => frame.evaluate(() => window.location.hash)).toBe(`#/${slideId}/${step}`);
+  // The @texuli/slides stage marks the slide on screen as active.
   await expect(
-    frame.locator(`[data-canvas-slide][aria-hidden="false"] [data-py-deck-slide="${slideId}"]`)
+    frame.locator(`[data-tx-deck-slide="${slideId}"][data-tx-deck-active="true"]`)
   ).toBeVisible();
 }
 
@@ -130,20 +139,28 @@ test.describe('deck exported as a Claude artifact', () => {
     await expectSlide(frame, 'cover');
     await expect(
       frame
-        .locator('[data-canvas-slide][aria-hidden="false"]')
+        .locator('[data-tx-deck-active="true"]')
         .getByRole('heading', { name: 'Protoyard: create anything' })
     ).toBeVisible();
-    await expect(frame.locator('[data-py-deck-slide-number]')).toHaveText(/^Slide 1 of \d+$/);
+    // The stage's slide counter (the slide list button).
+    await expect(frame.locator('[data-tx-deck-tool="jump"]')).toHaveAttribute(
+      'aria-label',
+      /, 1 \/ \d+$/
+    );
 
     // Keyboard: forward twice, back once (the deck takes focus from a click on its frame).
-    await frame.locator('[data-py-deck-app]').focus();
-    await frame.locator('[data-py-deck-app]').press('ArrowRight');
+    const stage = frame.locator('.tx-deck-stage');
+    await stage.focus();
+    await stage.press('ArrowRight');
     await expectSlide(frame, 'promise');
-    await frame.locator('[data-py-deck-app]').press('ArrowRight');
+    await stage.press('ArrowRight');
     await expectSlide(frame, 'problem');
-    await frame.locator('[data-py-deck-app]').press('ArrowLeft');
+    await stage.press('ArrowLeft');
     await expectSlide(frame, 'promise');
-    await expect(frame.locator('[data-py-deck-slide-number]')).toHaveText(/^Slide 2 of \d+$/);
+    await expect(frame.locator('[data-tx-deck-tool="jump"]')).toHaveAttribute(
+      'aria-label',
+      /, 2 \/ \d+$/
+    );
 
     // A slide link inside the artifact frame, as a shared #/<id>/<step> would open it.
     await frame.evaluate(() => {
@@ -207,14 +224,17 @@ test.describe('deck exported as a Claude artifact', () => {
       frame.getByRole('status').filter({ hasText: "Changes won't be saved." })
     ).toBeVisible();
 
-    await frame.locator('[data-py-deck-app]').focus();
-    await frame.locator('[data-py-deck-app]').press('ArrowRight');
+    await frame.locator('.tx-deck-stage').focus();
+    await frame.locator('.tx-deck-stage').press('ArrowRight');
     await expectSlide(frame, 'promise');
 
-    await frame.locator('[data-py-deck-tool="copy-reference"]').click();
-    await expect(frame.locator('[data-py-deck-copy-status]')).toHaveText(
-      'Could not copy the slide reference'
-    );
+    // On a phone the share tools sit in the stage's More menu.
+    const copy = frame.locator('[data-tx-deck-tool="copy-link"]');
+    const more = frame.locator('.tx-deck-chrome-more summary');
+    await expect.poll(async () => (await copy.isVisible()) || (await more.isVisible())).toBe(true);
+    if (!(await copy.isVisible())) await more.click();
+    await copy.click();
+    await expect(frame.locator('.tx-deck-chrome-toast')).toHaveText(/Could not copy the link/);
     // Clicking a tool never advances the deck.
     await expectSlide(frame, 'promise');
 

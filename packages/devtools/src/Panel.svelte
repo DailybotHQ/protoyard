@@ -11,7 +11,6 @@ import {
   Share2,
   Users,
   Wifi,
-  X,
 } from '@lucide/svelte';
 import type { PrototypeRuntime, Theme } from '@protoyard/core';
 import type { Component } from 'svelte';
@@ -20,6 +19,8 @@ import { on } from 'svelte/events';
 import { reproducibleLink } from './link.ts';
 import type { DevtoolsTab } from './mount.ts';
 import { loadPrefs, savePrefs } from './persist.ts';
+import Btn from './primitives/Btn.svelte';
+import Glyph from './primitives/Glyph.svelte';
 import AppearanceSection from './sections/AppearanceSection.svelte';
 import DataSection from './sections/DataSection.svelte';
 import EnvironmentSection from './sections/EnvironmentSection.svelte';
@@ -99,7 +100,7 @@ let tab = $state<TabId>(tabs.some((t) => t.id === initial.tab) ? initial.tab : '
 let loadedTabs = $state<Record<string, ExtensionView>>({});
 let loadingTabs = $state<string[]>([]);
 let tabErrors = $state<Record<string, string>>({});
-let launcher: HTMLButtonElement | undefined = $state();
+let launcher: HTMLElement | null = $state(null);
 let heading: HTMLHeadingElement | undefined = $state();
 let tabList: HTMLDivElement | undefined = $state();
 
@@ -123,6 +124,8 @@ onMount(() => {
  * `--py-devtools-offset` on :root for anything else pinned to the bottom.
  */
 let navOffset = $state(0);
+let fixedRightEdge = $state('0px');
+let devtoolsOffset = $state('0px');
 let appModalOpen = $state(false);
 /** Phone-width windows: a bottom pill covers composers, send buttons and tab bars. */
 let narrow = $state(false);
@@ -131,6 +134,14 @@ $effect(() => {
   const measure = () => {
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => {
+      fixedRightEdge =
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--py-fixed-right-edge')
+          .trim() || '0px';
+      devtoolsOffset =
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--py-devtools-offset')
+          .trim() || '0px';
       let offset = 0;
       for (const nav of document.querySelectorAll<HTMLElement>('[data-py-bottom-nav]')) {
         const rect = nav.getBoundingClientRect();
@@ -153,6 +164,10 @@ $effect(() => {
     subtree: true,
     attributes: true,
     attributeFilter: ['aria-modal', 'role', 'class', 'style'],
+  });
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['style'],
   });
   const offResize = on(window, 'resize', measure);
   return () => {
@@ -230,46 +245,46 @@ function presentationMode() {
 }
 </script>
 
-<div class="py-devtools-root pointer-events-auto font-sans text-[13px] leading-normal text-foreground antialiased">
+<div class="py-devtools-root pointer-events-auto font-sans text-[13px] leading-normal text-foreground antialiased" style={`--devtools-fixed-right-edge: ${fixedRightEdge}; --devtools-offset: ${devtoolsOffset}`}>
   {#if !open}
     {#if appModalOpen || narrow}
       <!-- Docked to the right edge so it never covers an app dialog's actions or a phone's bottom controls. -->
-      <button
-        bind:this={launcher}
+      <Btn
+        bind:ref={launcher}
         type="button"
-        class="fixed top-1/2 right-[var(--py-fixed-right-edge,0px)] z-[2147483000] inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-l-xl border border-r-0 border-border bg-elevated text-primary shadow-float focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        class="fixed top-1/2 right-[var(--devtools-fixed-right-edge,0px)] z-[2147483000] inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-l-xl border border-r-0 border-border bg-elevated text-primary shadow-float focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         aria-label="Open Protoyard DevTools (Ctrl or Command + period)"
         aria-expanded="false"
         onclick={() => setOpen(true)}
       >
-        <FlaskConical class="size-4" aria-hidden="true" />
-      </button>
+        <Glyph icon={FlaskConical} class="size-4" aria-hidden="true" />
+      </Btn>
     {:else}
-      <button
-        bind:this={launcher}
+      <Btn
+        bind:ref={launcher}
         type="button"
-        class="fixed right-[calc(1rem+var(--py-fixed-right-edge,0px))] z-[2147483000] inline-flex h-11 items-center gap-2 rounded-full border border-border bg-elevated pr-4 pl-3 text-xs font-semibold text-foreground shadow-float transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
-        style:bottom={navOffset > 0
-          ? `calc(${navOffset + 12}px + var(--py-devtools-offset, 0px))`
-          : 'calc(1rem + env(safe-area-inset-bottom, 0px) + var(--py-devtools-offset, 0px))'}
+        class="fixed right-[calc(1rem+var(--devtools-fixed-right-edge,0px))] z-[2147483000] inline-flex h-11 items-center gap-2 rounded-full border border-border bg-elevated pr-4 pl-3 text-xs font-semibold text-foreground shadow-float transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+        style={`bottom: ${navOffset > 0
+          ? `calc(${navOffset + 12}px + var(--devtools-offset, 0px))`
+          : 'calc(1rem + env(safe-area-inset-bottom, 0px) + var(--devtools-offset, 0px))'}`}
         aria-label={overrideCount > 0
           ? `Open Protoyard DevTools ${overrideCount} active overrides (Ctrl or Command + period)`
           : 'Open Protoyard DevTools (Ctrl or Command + period)'}
         aria-expanded="false"
         onclick={() => setOpen(true)}
       >
-        <FlaskConical class="size-4 text-primary" aria-hidden="true" />
+        <Glyph icon={FlaskConical} class="size-4 text-primary" aria-hidden="true" />
         DevTools
         {#if overrideCount > 0}
           <!-- The visible count is part of the button's name (label-content-name-mismatch). -->
           <span class="rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">{overrideCount}</span>
         {/if}
-      </button>
+      </Btn>
     {/if}
   {:else}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -- Escape-to-close is delegated from the whole dock. -->
     <aside
-      class="fixed inset-x-0 bottom-0 z-[2147483000] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl border border-border bg-background shadow-float sm:inset-x-auto sm:right-[calc(1rem+var(--py-fixed-right-edge,0px))] sm:bottom-4 sm:h-[min(680px,calc(100dvh-2rem))] sm:max-h-none sm:w-[400px] sm:rounded-xl"
+      class="fixed inset-x-0 bottom-0 z-[2147483000] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl border border-border bg-background shadow-float sm:inset-x-auto sm:right-[calc(1rem+var(--devtools-fixed-right-edge,0px))] sm:bottom-4 sm:h-[min(680px,calc(100dvh-2rem))] sm:max-h-none sm:w-[400px] sm:rounded-xl"
       aria-label="Protoyard DevTools"
       onkeydown={onPanelKeydown}
     >
@@ -286,7 +301,7 @@ function presentationMode() {
             <div class="h-full w-1/3 animate-pulse bg-primary motion-reduce:w-full motion-reduce:animate-none"></div>
           </div>
         {/if}
-        <FlaskConical class="size-4 shrink-0 text-primary" aria-hidden="true" />
+        <Glyph icon={FlaskConical} class="size-4 shrink-0 text-primary" aria-hidden="true" />
         <div class="min-w-0 flex-1">
           <h2 bind:this={heading} tabindex="-1" class="truncate text-xs font-semibold outline-none">
             {runtime.manifest.name} <span class="font-normal text-muted-foreground">· DevTools</span>
@@ -298,33 +313,33 @@ function presentationMode() {
           </p>
         </div>
         {#if overrideCount > 0}
-          <button
+          <Btn
             type="button"
             class="inline-flex min-h-touch items-center gap-1 rounded-md px-2 text-[11px] font-medium text-primary hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring sm:min-h-7"
             title="Clear every temporary override (actor, role, environment, appearance)"
             disabled={dt.isBusy('overrides:clear')}
             onclick={resetOverrides}
           >
-            <Eraser class="size-3.5" aria-hidden="true" />Reset {overrideCount}
-          </button>
+            <Glyph icon={Eraser} class="size-3.5" aria-hidden="true" />Reset {overrideCount}
+          </Btn>
         {/if}
-        <button
+        <Btn
           type="button"
           class="inline-flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring sm:size-7"
           aria-label="Presentation mode: reload without DevTools"
           title="Presentation mode (?devtools=0)"
           onclick={presentationMode}
         >
-          <Presentation class="size-4" aria-hidden="true" />
-        </button>
-        <button
+          <Glyph icon={Presentation} class="size-4" aria-hidden="true" />
+        </Btn>
+        <Btn
           type="button"
           class="inline-flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring sm:size-7"
           aria-label="Close DevTools"
           onclick={() => setOpen(false)}
         >
-          <X class="size-4" aria-hidden="true" />
-        </button>
+          <Glyph icon="close" class="size-4" aria-hidden="true" />
+        </Btn>
       </header>
 
       <div
@@ -338,7 +353,7 @@ function presentationMode() {
       >
         {#each tabs as t (t.id)}
           {@const selected = t.id === tab}
-          <button
+          <Btn
             id={`py-dt-tab-${t.id}`}
             type="button"
             role="tab"
@@ -348,11 +363,12 @@ function presentationMode() {
             class="flex min-h-touch min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-0.5 py-1 text-[10px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring {selected
               ? 'bg-primary/10 font-semibold text-foreground [&_svg]:text-primary'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+            autoLoading={false}
             onclick={() => selectTab(t)}
           >
-            <t.icon class="size-4" />
+            <Glyph icon={t.icon} class="size-4" />
             <span class="max-w-full truncate">{t.label}</span>
-          </button>
+          </Btn>
         {/each}
       </div>
 

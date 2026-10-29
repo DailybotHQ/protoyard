@@ -1,0 +1,7 @@
+{
+  "id": "example.texuli-link",
+  "slug": "texuli-link-fixture",
+  "name": "Texuli link fixture",
+  "version": "0.1.0",
+  "storage": { "namespace": "texuli-link-fixture", "schemaVersion": 1 }
+}

@@ -1,4 +1,11 @@
 import { type Theme, ThemeSchema } from '@protoyard/core';
+import {
+  CHART_CATEGORICAL_COUNT,
+  chartColorDistance,
+  deriveChartTokens,
+  MIN_CHART_CVD_DISTANCE,
+  validateChartTokens,
+} from '@texuli/tokens';
 import { beforeAll, describe, expect, it } from 'vitest';
 // The charts kit's own palette rules (relative import, as packages/devtools/tests do).
 import { chartPalette, validateChartPalette } from '../../charts/src/palette/index.ts';
@@ -8,13 +15,6 @@ import {
   clearAppearance,
   themeVariables,
 } from '../src/apply.ts';
-import {
-  CHART_CATEGORICAL_COUNT,
-  chartColorDistance,
-  deriveChartTokens,
-  MIN_CHART_CVD_DISTANCE,
-  validateChartTokens,
-} from '../src/charts.ts';
 import { loadAllLibraryThemes, THEME_LIBRARY_META } from '../src/library/registry.ts';
 import { createThemeFromSeed } from '../src/palette.ts';
 import { BUILTIN_THEMES, violetTheme } from '../src/presets.ts';
@@ -74,16 +74,19 @@ describe('theme chart palettes', () => {
   });
 
   it('leaves nothing for the charts kit to repair', () => {
-    const repaired: string[] = [];
+    // chartPalette is deriveChartTokens; validateChartPalette returns issues[].
+    const failures: string[] = [];
     for (const theme of themes) {
       for (const mode of MODES) {
         const palette = chartPalette(theme[mode], mode);
-        if (palette.repaired.length)
-          repaired.push(`${theme.id}/${mode}: ${palette.repaired.join(',')}`);
-        expect(validateChartPalette(palette, theme[mode]).ok, `${theme.id}/${mode}`).toBe(true);
+        const issues = validateChartPalette(palette, theme[mode], mode);
+        if (issues.length)
+          failures.push(
+            `${theme.id}/${mode}: ${issues.map((i) => `${i.kind}:${i.list}`).join(',')}`
+          );
       }
     }
-    expect(repaired).toEqual([]);
+    expect(failures).toEqual([]);
   });
 
   it('gives every generated theme a schema-valid charts block that passes in both modes', {
@@ -107,8 +110,8 @@ describe('theme chart palettes', () => {
         for (const issue of validateChartTokens(tokens, theme[mode], mode)) {
           failures.push(`${seed}/${mode}: ${issue.kind} ${issue.list} ${issue.indices.join('-')}`);
         }
-        if (chartPalette(theme[mode], mode).repaired.length)
-          failures.push(`${seed}/${mode}: kit repair`);
+        const kitIssues = validateChartPalette(chartPalette(theme[mode], mode), theme[mode], mode);
+        if (kitIssues.length) failures.push(`${seed}/${mode}: kit issues ${kitIssues.length}`);
       }
     }
     expect(failures).toEqual([]);
@@ -171,20 +174,20 @@ describe('chart tokens in the schema and the CSS variables', () => {
     const theme = createThemeFromSeed({ id: 'x', name: 'X', seed: '#2563eb' });
     const vars = themeVariables({ theme, resolvedMode: 'dark' });
     const charts = theme.charts?.dark;
-    expect(vars['--py-chart8']).toBe(charts?.categorical[7]);
-    expect(vars['--py-chart1']).toBe(theme.dark.chart1);
-    expect(vars['--py-seq-9']).toBe(charts?.sequential[8]);
-    expect(vars['--py-div-5']).toBe(charts?.diverging[4]);
-    expect(vars['--py-chart-grid']).toBe(theme.dark.border);
-    expect(vars['--py-chart-axis']).toBe(theme.dark.mutedForeground);
+    expect(vars['--tx-chart8']).toBe(charts?.categorical[7]);
+    expect(vars['--tx-chart1']).toBe(theme.dark.chart1);
+    expect(vars['--tx-seq-9']).toBe(charts?.sequential[8]);
+    expect(vars['--tx-div-5']).toBe(charts?.diverging[4]);
+    expect(vars['--tx-chart-grid']).toBe(theme.dark.border);
+    expect(vars['--tx-chart-axis']).toBe(theme.dark.mutedForeground);
     for (const name of CHART_EXTENSION_VARIABLES)
       expect(vars[name], name).toMatch(/^#[0-9a-f]{6}$/);
   });
 
   it('writes only grid and axis without a charts block and clears stale series and ramps', () => {
     const vars = themeVariables({ theme: violetTheme, resolvedMode: 'light' });
-    expect(vars['--py-chart-grid']).toBe(violetTheme.light.border);
-    expect(vars['--py-chart-axis']).toBe(violetTheme.light.mutedForeground);
+    expect(vars['--tx-chart-grid']).toBe(violetTheme.light.border);
+    expect(vars['--tx-chart-axis']).toBe(violetTheme.light.mutedForeground);
     expect(CHART_EXTENSION_VARIABLES.some((name) => name in vars)).toBe(false);
 
     const element = document.createElement('div');
@@ -192,17 +195,17 @@ describe('chart tokens in the schema and the CSS variables', () => {
       theme: createThemeFromSeed({ id: 'x', name: 'X', seed: '#2563eb' }),
       resolvedMode: 'light',
     });
-    expect(element.style.getPropertyValue('--py-seq-1')).not.toBe('');
+    expect(element.style.getPropertyValue('--tx-seq-1')).not.toBe('');
     applyAppearance(element, { theme: violetTheme, resolvedMode: 'light' });
-    expect(element.style.getPropertyValue('--py-seq-1')).toBe('');
-    expect(element.style.getPropertyValue('--py-chart6')).toBe('');
-    expect(element.style.getPropertyValue('--py-chart-grid')).toBe(violetTheme.light.border);
+    expect(element.style.getPropertyValue('--tx-seq-1')).toBe('');
+    expect(element.style.getPropertyValue('--tx-chart6')).toBe('');
+    expect(element.style.getPropertyValue('--tx-chart-grid')).toBe(violetTheme.light.border);
     applyAppearance(element, {
       theme: createThemeFromSeed({ id: 'x', name: 'X', seed: '#2563eb' }),
       resolvedMode: 'dark',
     });
     clearAppearance(element);
-    expect(element.style.getPropertyValue('--py-div-9')).toBe('');
-    expect(element.style.getPropertyValue('--py-chart-axis')).toBe('');
+    expect(element.style.getPropertyValue('--tx-div-9')).toBe('');
+    expect(element.style.getPropertyValue('--tx-chart-axis')).toBe('');
   });
 });

@@ -1,6 +1,11 @@
 <script lang="ts">
 import { X } from '@lucide/svelte';
 import { type FilterCondition, type FilterGroup, OPERATOR_LABELS } from '@protoyard/analytics';
+import { Button } from 'texuli/button';
+import { Checkbox } from 'texuli/choice';
+import { LucideIcon } from 'texuli/icons/lucide';
+import { Input } from 'texuli/input';
+import { Select } from 'texuli/select';
 // Self-import for nested groups, under another name: the emitted declaration
 // already declares `FilterGroupEditor`.
 import NestedGroupEditor from './FilterGroupEditor.svelte';
@@ -46,6 +51,21 @@ const ghost =
   'inline-flex h-8 items-center rounded-md px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
 
 const propertyOf = (c: FilterCondition) => properties.find((p) => p.path === c.property);
+const propertyItems = (selected: string) => [
+  ...(properties.some((property) => property.path === selected)
+    ? []
+    : [{ value: selected, label: selected }]),
+  ...properties.map((property) => ({ value: property.path, label: property.label })),
+];
+const operatorItems = (property: FilterProperty | undefined, selected: string) => [
+  ...(operatorsFor(property).includes(selected as never)
+    ? []
+    : [{ value: selected, label: selected }]),
+  ...operatorsFor(property).map((operator) => ({
+    value: operator,
+    label: OPERATOR_LABELS[operator],
+  })),
+];
 const setAt = (i: number, next: FilterCondition | FilterGroup) =>
   onchange({ ...group, conditions: group.conditions.map((c, k) => (k === i ? next : c)) });
 const removeAt = (i: number) =>
@@ -61,18 +81,18 @@ const inputType = (p: FilterProperty | undefined) =>
   <div class="flex flex-wrap items-center gap-1" role="group" aria-label="Match">
     <span class="mr-1 text-xs text-muted-foreground" aria-hidden="true">Match</span>
     {#each [['and', 'All conditions'], ['or', 'Any condition']] as [combinator, label] (combinator)}
-      <button
+      <Button
         type="button"
         class="rounded-md px-2 py-1 text-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {group.combinator ===
         combinator
           ? 'bg-primary text-primary-foreground'
           : 'hover:bg-muted'}"
         aria-pressed={group.combinator === combinator}
-        onclick={() => onchange({ ...group, combinator: combinator as 'and' | 'or' })}>{label}</button
+        onclick={() => onchange({ ...group, combinator: combinator as 'and' | 'or' })}>{label}</Button
       >
     {/each}
     {#if onremove}
-      <button type="button" class="{ghost} ml-auto" onclick={onremove}>Remove group</button>
+      <Button type="button" variant="ghost" class="{ghost} ml-auto" onclick={onremove}>Remove group</Button>
     {/if}
   </div>
 
@@ -94,117 +114,141 @@ const inputType = (p: FilterProperty | undefined) =>
       {@const message = errorAt(i, 'value') ?? errorAt(i, 'property') ?? errorAt(i, 'operator')}
       <div class="grid gap-1" data-condition={i}>
         <div class="flex flex-wrap items-center gap-1.5">
-          <select
-            class={field}
-            aria-label="Property"
-            aria-invalid={errorAt(i, 'property') ? 'true' : undefined}
+          <Select.Root
+            items={propertyItems(condition.property)}
             value={condition.property}
-            onchange={(e) => {
-              const next = properties.find((p) => p.path === e.currentTarget.value);
+            onValueChange={(value) => {
+              const next = properties.find((p) => p.path === value);
               if (next) setAt(i, adjustCondition({ ...condition, property: next.path }, next));
             }}
           >
-            {#if !property}<option value={condition.property}>{condition.property}</option>{/if}
-            {#each properties as p (p.path)}<option value={p.path}>{p.label}</option>{/each}
-          </select>
-          <select
-            class={field}
-            aria-label="Operator"
-            aria-invalid={errorAt(i, 'operator') ? 'true' : undefined}
+            <Select.Trigger
+              class={field}
+              aria-label="Property"
+              aria-invalid={errorAt(i, 'property') ? 'true' : undefined}
+            ><Select.Value placeholder="Property" /></Select.Trigger>
+            <Select.Content>
+              <Select.Viewport>
+                {#if !property}<Select.Item value={condition.property} label={condition.property}>{condition.property}</Select.Item>{/if}
+                {#each properties as p (p.path)}<Select.Item value={p.path} label={p.label}>{p.label}</Select.Item>{/each}
+              </Select.Viewport>
+            </Select.Content>
+          </Select.Root>
+          <Select.Root
+            items={operatorItems(property, condition.operator)}
             value={condition.operator}
-            onchange={(e) =>
-              property && setAt(i, adjustCondition({ ...condition, operator: e.currentTarget.value as never }, property))}
+            onValueChange={(value) =>
+              property && setAt(i, adjustCondition({ ...condition, operator: value as never }, property))}
           >
-            {#each operatorsFor(property) as op (op)}<option value={op}>{OPERATOR_LABELS[op]}</option>{/each}
-          </select>
+            <Select.Trigger
+              class={field}
+              aria-label="Operator"
+              aria-invalid={errorAt(i, 'operator') ? 'true' : undefined}
+            ><Select.Value placeholder="Operator" /></Select.Trigger>
+            <Select.Content>
+              <Select.Viewport>
+                {#each operatorsFor(property) as op (op)}<Select.Item value={op} label={OPERATOR_LABELS[op]}>{OPERATOR_LABELS[op]}</Select.Item>{/each}
+              </Select.Viewport>
+            </Select.Content>
+          </Select.Root>
 
           {#if takesValue(condition.operator) && property}
             {#if property.type === 'boolean'}
-              <select
-                class={field}
-                aria-label="Value"
+              <Select.Root
+                items={[{ value: 'true', label: 'true' }, { value: 'false', label: 'false' }]}
                 value={String(condition.value ?? true)}
-                onchange={(e) => setAt(i, { ...condition, value: e.currentTarget.value === 'true' })}
+                onValueChange={(value) => setAt(i, { ...condition, value: value === 'true' })}
               >
-                <option value="true">true</option>
-                <option value="false">false</option>
-              </select>
+                <Select.Trigger class={field} aria-label="Value"><Select.Value /></Select.Trigger>
+                <Select.Content>
+                  <Select.Viewport>
+                    <Select.Item value="true" label="true">true</Select.Item>
+                    <Select.Item value="false" label="false">false</Select.Item>
+                  </Select.Viewport>
+                </Select.Content>
+              </Select.Root>
             {:else if condition.operator === 'between'}
               {@const pair = Array.isArray(condition.value) ? condition.value : [null, null]}
               {#each [0, 1] as k (k)}
-                <input
+                <Input
                   class="{field} w-28"
                   type={inputType(property)}
                   aria-label={k === 0 ? 'From' : 'To'}
                   aria-invalid={errorAt(i, 'value') ? 'true' : undefined}
                   aria-describedby={message ? errorId : undefined}
                   value={text(pair[k])}
-                  oninput={(e) => {
+                  onValueChange={(value) => {
                     const next = [...pair];
-                    next[k] = parseScalar(e.currentTarget.value, property.type) as never;
+                    next[k] = parseScalar(value, property.type) as never;
                     setAt(i, { ...condition, value: next as never });
                   }}
                 />
               {/each}
             {:else if takesList(condition.operator) && property.options}
-              <select
-                multiple
-                class="{field} h-auto min-h-16 py-1"
-                aria-label="Values"
-                aria-invalid={errorAt(i, 'value') ? 'true' : undefined}
-                aria-describedby={message ? errorId : undefined}
-                onchange={(e) =>
-                  setAt(i, { ...condition, value: [...e.currentTarget.selectedOptions].map((o) => o.value) })}
-              >
+              <div class="grid gap-1 rounded-md border border-input bg-surface p-2" role="group" aria-label="Values">
                 {#each property.options as o (o.value)}
-                  <option value={o.value} selected={Array.isArray(condition.value) && condition.value.includes(o.value)}
-                    >{o.label}</option
-                  >
+                  <Checkbox
+                    label={o.label}
+                    checked={Array.isArray(condition.value) && condition.value.includes(o.value)}
+                    onCheckedChange={(checked) => {
+                      const values = Array.isArray(condition.value) ? condition.value : [];
+                      setAt(i, {
+                        ...condition,
+                        value: checked ? [...values, o.value] : values.filter((value) => value !== o.value),
+                      });
+                    }}
+                  />
                 {/each}
-              </select>
+              </div>
             {:else if takesList(condition.operator)}
-              <input
+              <Input
                 class="{field} w-48"
                 aria-label="Values, separated by commas"
                 aria-invalid={errorAt(i, 'value') ? 'true' : undefined}
                 aria-describedby={message ? errorId : undefined}
                 value={Array.isArray(condition.value) ? condition.value.join(', ') : ''}
-                oninput={(e) =>
+                onValueChange={(value) =>
                   setAt(i, {
                     ...condition,
-                    value: e.currentTarget.value
+                    value: value
                       .split(',')
                       .map((part) => parseScalar(part, property.type))
                       .filter((v): v is string | number => v !== null && typeof v !== 'boolean'),
                   })}
               />
             {:else if property.options}
-              <select
-                class={field}
-                aria-label="Value"
-                aria-invalid={errorAt(i, 'value') ? 'true' : undefined}
-                aria-describedby={message ? errorId : undefined}
+              <Select.Root
+                items={property.options.map((option) => ({ value: option.value, label: option.label }))}
                 value={text(condition.value)}
-                onchange={(e) => setAt(i, { ...condition, value: e.currentTarget.value || null })}
+                onValueChange={(value) => setAt(i, { ...condition, value: value || null })}
               >
-                <option value="">Choose…</option>
-                {#each property.options as o (o.value)}<option value={o.value}>{o.label}</option>{/each}
-              </select>
+                <Select.Trigger
+                  class={field}
+                  aria-label="Value"
+                  aria-invalid={errorAt(i, 'value') ? 'true' : undefined}
+                  aria-describedby={message ? errorId : undefined}
+                ><Select.Value placeholder="Choose…" /></Select.Trigger>
+                <Select.Content>
+                  <Select.Viewport>
+                    {#each property.options as o (o.value)}<Select.Item value={o.value} label={o.label}>{o.label}</Select.Item>{/each}
+                  </Select.Viewport>
+                </Select.Content>
+              </Select.Root>
             {:else}
-              <input
+              <Input
                 class="{field} w-40"
                 type={inputType(property)}
                 aria-label="Value"
                 aria-invalid={errorAt(i, 'value') ? 'true' : undefined}
                 aria-describedby={message ? errorId : undefined}
                 value={text(condition.value)}
-                oninput={(e) => setAt(i, { ...condition, value: parseScalar(e.currentTarget.value, property.type) })}
+                onValueChange={(value) => setAt(i, { ...condition, value: parseScalar(value, property.type) })}
               />
             {/if}
           {/if}
-          <button type="button" class={ghost} aria-label="Remove condition {i + 1}" onclick={() => removeAt(i)}>
-            <X class="size-3.5" aria-hidden="true" />
-          </button>
+          <Button type="button" variant="ghost" class={ghost} aria-label="Remove condition {i + 1}" onclick={() => removeAt(i)}>
+            <LucideIcon icon={X} class="size-3.5" />
+          </Button>
         </div>
         {#if message}<p id={errorId} class="m-0 text-xs text-destructive">{message}</p>{/if}
       </div>
@@ -212,17 +256,19 @@ const inputType = (p: FilterProperty | undefined) =>
   {/each}
 
   <div class="flex flex-wrap gap-1">
-    <button
+    <Button
       type="button"
+      variant="ghost"
       class={ghost}
       disabled={properties.length === 0}
       onclick={() =>
         properties[0] && onchange({ ...group, conditions: [...group.conditions, newCondition(properties[0])] })}
-      >+ Add condition</button
+      >+ Add condition</Button
     >
     {#if depth < maxDepth}
-      <button
+      <Button
         type="button"
+        variant="ghost"
         class={ghost}
         disabled={properties.length === 0}
         onclick={() =>
@@ -230,7 +276,7 @@ const inputType = (p: FilterProperty | undefined) =>
           onchange({
             ...group,
             conditions: [...group.conditions, { combinator: 'or', conditions: [newCondition(properties[0])] }],
-          })}>+ Add group</button
+          })}>+ Add group</Button
       >
     {/if}
   </div>

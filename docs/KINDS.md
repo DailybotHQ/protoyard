@@ -59,6 +59,10 @@ The player routes by kind **before** loading the app shell
 same shells so behavior matches
 ([Player](PLAYER.md), [Generator](GENERATOR.md)).
 
+The 31 starter templates compose the shared `@protoyard/ui` components and
+Texuli's `Icon` / `LucideIcon` renderers. Lucide remains the glyph source, while
+template styles read the canonical `--tx-*` theme tokens.
+
 ## App kind
 
 An **app** blueprint describes entities, roles, screens and optional kits
@@ -87,6 +91,11 @@ A **deck** is a bounded slide presentation of [blocks](BLOCKS.md).
 - **Navigation:** hash `#/<slide-id>/<step>`; keyboard, overview, presenter and
   print paths are documented in [Decks](DECKS.md).
 - **Catalog:** `blueprints/decks/`.
+- **Custom slides (level 2 only):** a `layout: "custom"` slide renders a
+  component the generated deck registers in its own `src/custom-slides.ts`
+  (loaded lazily, given `{ slide, step, stepCount, data }`). The player has
+  no owned code and shows a labelled placeholder; see
+  [Decks: Custom slides](DECKS.md#custom-slides).
 - **Honest limits:** speaker notes and overlays are simulation chrome; there is
   no live multiplayer presenter backend.
 
@@ -185,8 +194,39 @@ import {
 } from '@protoyard/blueprint/kinds';
 ```
 
-Those wrappers call `defineKindRuntime`. Prefer `defineKindRuntime` when you
-already have a full content blueprint (`formatVersion`, `name`, `kind`, body).
+Those wrappers call `defineKindPrototype` with no brand, so a page or doc
+built on them never loads brand resolution or the palette generator. Prefer
+`defineKindRuntime` when you already have a full content blueprint
+(`formatVersion`, `name`, `kind`, body) whose `brand` must be resolved at
+runtime (the player); a prototype passes the brand resolved ahead to
+`defineKindPrototype` instead.
+
+### Editing a deck's brand
+
+A deck made with `protoyard new --template deck` keeps its brand resolved in
+`src/brand-theme.ts`, so its first chunk never loads the palette generator.
+Edit `brand` in `src/blueprint.json`, never the module: the normal loop keeps
+it in step.
+
+| Step | What happens to `src/brand-theme.ts` |
+| --- | --- |
+| `pnpm protoyard new <slug> --template deck` | Written from the copied blueprint |
+| `pnpm protoyard dev <slug>` | Rewritten at start and after every save of `src/blueprint.json`; the terminal prints `Refreshed src/brand-theme.ts …` and Vite reloads the page |
+| `pnpm protoyard validate <slug>` (locally) | A stale module is rewritten before the definition loads, reported as a warning (`brand-theme` check) |
+| `pnpm protoyard validate <slug> --check`, or any `validate` with `CI` set | Nothing is written: a stale module fails the `brand-theme` check with the fix, ``run `pnpm protoyard validate <slug>` locally (without CI or --check)``, then commit the module |
+
+A brand that does not resolve (an unknown library theme, a blueprint that
+does not parse) never overwrites the module: `dev` prints why and keeps the
+last good theme, and `validate` fails the `brand-theme` check with the reason.
+None of these steps writes through a symlink: when the prototype folder,
+`src/`, `src/brand-theme.ts` or `src/blueprint.json` is a symlink (a dangling
+one included), or the module resolves outside the folder, nothing is read or
+written; `validate` fails the check, `dev` says why (on stderr; one JSON line
+per event with `--json`) and does not watch.
+`dev` on a template demo never writes template files, and neither does
+`validate deck`: a stale `templates/deck/src/brand-theme.ts` fails the check. The template's test
+(`tests/deck-template.test.ts`, copied into each deck) also fails when the
+module and `brand` disagree.
 
 ## Catalog discovery
 

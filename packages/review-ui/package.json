@@ -48,7 +48,7 @@
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
     "@protoyard/views-ui": "workspace:*",
-    "bits-ui": "^2.19.5"
+    "texuli": "0.5.0"
   },
   "devDependencies": {
     "svelte": "^5.57.2"

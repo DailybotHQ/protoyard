@@ -2,6 +2,7 @@
 import { CalendarCheck, CalendarPlus, Clock, UserCheck, UserX } from '@lucide/svelte';
 import { can, Link, liveQuery, runService, useClock } from '@protoyard/renderer-svelte';
 import { Button, EmptyState, Select, Skeleton, StatCard } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import AppointmentDialog from '../components/AppointmentDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -80,7 +81,7 @@ const checkIn = (a: Appointment) =>
       />
     </label>
     {#if canManage}
-      <Button onclick={openBooking}><CalendarPlus class="size-4" aria-hidden="true" />Book appointment</Button>
+      <Button onclick={openBooking}><LucideIcon icon={CalendarPlus} class="size-4" />Book appointment</Button>
     {/if}
   {/snippet}
 </PageHeader>

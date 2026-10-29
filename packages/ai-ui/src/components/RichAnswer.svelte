@@ -1,5 +1,8 @@
 <script lang="ts">
 import { type MdBlock, type MdInline, parseMarkdown } from '@protoyard/ai';
+import { Badge } from 'texuli/badge';
+import { Code } from 'texuli/kbd-code';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from 'texuli/table';
 
 interface Props {
   content: string;
@@ -23,7 +26,7 @@ function sourceFor(id: string) {
       {:else if node.type === 'break'}
         <br />
       {:else if node.type === 'code'}
-        <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em]">{node.text}</code>
+        <Code value={node.text} />
       {:else if node.type === 'link'}
         <a class="text-primary underline decoration-primary/40 underline-offset-4 hover:decoration-primary" href={node.href} target={node.href.startsWith('http') ? '_blank' : undefined} rel={node.href.startsWith('http') ? 'noreferrer noopener' : undefined}>
           {@render renderInline(node.children)}
@@ -35,7 +38,7 @@ function sourceFor(id: string) {
           <span class="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">Image: {node.alt}</span>
         {/if}
       {:else if node.type === 'attachment'}
-        <span class="rounded border border-border bg-muted px-2 py-1 text-xs">{node.label}</span>
+        <Badge variant="outline" label={node.label} />
       {:else if node.type === 'citation'}
         {@const source = sourceFor(node.id)}
         {#if source?.href}
@@ -63,12 +66,16 @@ function sourceFor(id: string) {
             <span>{block.lang || 'code'}</span>
             {#if !block.closed}<span role="status">Streaming</span>{/if}
           </div>
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -- scrollable code; keyboard users must reach it (WCAG 2.1.1 / axe scrollable-region-focusable). -->
-          <pre
-            tabindex="0"
+          <!-- The block code scrolls, so it takes focus and a name (WCAG 2.1.1 / axe scrollable-region-focusable). -->
+          <Code
+            variant="block"
+            value={block.text}
+            language={block.lang || undefined}
+            role="region"
+            tabindex={0}
             aria-label={`${block.lang || 'code'} code`}
-            class="overflow-x-auto p-3 text-xs leading-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-          ><code>{block.text}</code></pre>
+            class="overflow-x-auto rounded-none border-0 p-3 text-xs leading-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+          />
         </div>
       {:else if block.type === 'chart'}
         {#snippet chartStatus(text: string)}<p role="status" class="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">{text}</p>{/snippet}
@@ -95,12 +102,14 @@ function sourceFor(id: string) {
       {:else if block.type === 'quote'}
         <blockquote class="border-l-2 border-primary/40 pl-4 text-muted-foreground">{@render renderBlocks(block.children)}</blockquote>
       {:else if block.type === 'table'}
-        <div class="overflow-x-auto rounded-lg border border-border">
-          <table class="w-full border-collapse text-left text-xs">
-            <thead class="bg-muted/70"><tr>{#each block.header as cell, cellIndex (`h-${cellIndex}`)}<th class="border-b border-border px-3 py-2 font-semibold">{@render renderInline(cell)}</th>{/each}</tr></thead>
-            <tbody>{#each block.rows as row, rowIndex (`r-${rowIndex}`)}<tr class="border-b border-border last:border-0">{#each row as cell, cellIndex (`${rowIndex}-${cellIndex}`)}<td class="px-3 py-2">{@render renderInline(cell)}</td>{/each}</tr>{/each}</tbody>
-          </table>
-        </div>
+        <Table class="text-xs">
+          <TableHeader>
+            <TableRow>{#each block.header as cell, cellIndex (`h-${cellIndex}`)}<TableHead>{@render renderInline(cell)}</TableHead>{/each}</TableRow>
+          </TableHeader>
+          <TableBody>
+            {#each block.rows as row, rowIndex (`r-${rowIndex}`)}<TableRow>{#each row as cell, cellIndex (`${rowIndex}-${cellIndex}`)}<TableCell>{@render renderInline(cell)}</TableCell>{/each}</TableRow>{/each}
+          </TableBody>
+        </Table>
       {:else}
         <hr class="border-border" />
       {/if}

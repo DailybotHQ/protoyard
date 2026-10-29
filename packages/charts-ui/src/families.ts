@@ -1,7 +1,6 @@
 /**
  * Chart families, one lazy subpath each (`@protoyard/charts-ui/<family>`).
- * The root entry never imports a family, so a prototype pays only for the
- * families its screens import.
+ * Rendering comes from `@texuli/charts` via thin adapters.
  */
 export const CHART_FAMILIES = [
   'cartesian',
@@ -10,6 +9,8 @@ export const CHART_FAMILIES = [
   'compact',
   'canvas',
   'geo',
+  'flow',
+  'interaction',
 ] as const;
 
 export type ChartFamily = (typeof CHART_FAMILIES)[number];

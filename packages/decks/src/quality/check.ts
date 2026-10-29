@@ -1,9 +1,15 @@
 import { type Block, blockText, countWords, forEachBlock } from '@protoyard/blocks';
-import { getDeckLayout, parseLayoutProps } from '../layouts/catalog.ts';
-import { stripStepMarkers } from '../layouts/props.ts';
-import { LAYOUT_PACING, type LayoutPacing } from '../layouts/types.ts';
-import { slideSteps } from '../motion/steps.ts';
+import { lintDeck } from '@texuli/deck/authoring';
+import {
+  DECK_BACKGROUND_PRESETS,
+  DEFAULT_DECK_BACKGROUND,
+  getDeckLayout,
+  LAYOUT_PACING,
+  type LayoutPacing,
+} from '@texuli/deck/model';
+import { stepMarkersOutsideLayout } from '../layouts/steppable.ts';
 import type { Deck, DeckSlide } from '../schema/index.ts';
+import { toTexuliDeck } from '../texuli.ts';
 import {
   DECK_QUALITY,
   DECK_QUALITY_RULE_BY_ID,
@@ -43,31 +49,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 /** Props nest at most a few levels (DECK_LIMITS.propsDepth); this bound covers them with room. */
 const MAX_WALK_DEPTH = 8;
-
-/** Calls `visit` for every object in a props tree, in key order, with its path. */
-function walkProps(
-  value: unknown,
-  path: (string | number)[],
-  visit: (
-    record: Record<string, unknown>,
-    path: (string | number)[],
-    key: string | number | null
-  ) => void,
-  key: string | number | null = null,
-  depth = 0
-): void {
-  if (depth > MAX_WALK_DEPTH || value === null || typeof value !== 'object') return;
-  if (Array.isArray(value)) {
-    value.forEach((item, i) => {
-      walkProps(item, [...path, i], visit, i, depth + 1);
-    });
-    return;
-  }
-  visit(value as Record<string, unknown>, path, key);
-  for (const [childKey, child] of Object.entries(value)) {
-    walkProps(child, [...path, childKey], visit, childKey, depth + 1);
-  }
-}
 
 // ── words ─────────────────────────────────────────────────────────────────
 
@@ -134,31 +115,12 @@ function wordLimit(slide: DeckSlide): { limit: number; pacing: LayoutPacing } {
   return { limit: DECK_QUALITY.maxWords[best], pacing: best };
 }
 
-// ── steps ─────────────────────────────────────────────────────────────────
-
-const validStep = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isInteger(value) && value > 0 && value <= 1_000;
-
-/** Fragments in reading order: free blocks depth-first, catalog props in key order. */
-function fragmentsInOrder(
-  slide: DeckSlide,
-  base: (string | number)[]
-): { step: number; path: (string | number)[] }[] {
-  const found: { step: number; path: (string | number)[] }[] = [];
-  if ('blocks' in slide) {
-    forEachBlock(slide.blocks as Block[], (block, path) => {
-      if (validStep(block.step))
-        found.push({ step: block.step, path: [...base, 'blocks', ...path, 'step'] });
-    });
-  } else {
-    walkProps(slide.props, [...base, 'props'], (record, path) => {
-      if (validStep(record.step)) found.push({ step: record.step, path: [...path, 'step'] });
-    });
-  }
-  return found;
-}
-
-// ── notes ─────────────────────────────────────────────────────────────────
+/** Rules Protoyard checks itself on the stored deck (see `checkDeckStatic`). */
+const PROTOYARD_RULES: ReadonlySet<string> = new Set([
+  'too-many-words',
+  'step-unrevealed',
+  'notes-boilerplate',
+]);
 
 const normalizeNotes = (notes: string) =>
   notes
@@ -169,162 +131,116 @@ const normalizeNotes = (notes: string) =>
 const BOILERPLATE = DECK_QUALITY.notesBoilerplate.map(normalizeNotes);
 
 /**
- * Static deck quality checks: everything that needs no browser. Takes a deck
- * that already passed `safeParseDeck`; never throws. Each issue names its rule
- * (`DECK_QUALITY_RULES`), severity, slide and JSONPath, so `deck lint`, the
- * visual sweep and editors report the same findings. Hidden slides are still
- * checked for structure, assets and step order, but not for notes, words or
- * layout repetition, since nobody sees them.
+ * The static deck checks: `@texuli/deck`'s `lintDeck` on the migrated deck,
+ * reported with Protoyard's rule ids, severities and JSON paths (the deck
+ * body's paths: `$.slides[3].props.image.alt`). Suggestions outside
+ * Protoyard's rule table (`prefer-layout`) are left out. `too-many-words` stays
+ * Protoyard's: it counts only what a slide shows (`blockText` of each block,
+ * captions but not alt text, no code), where the model's lint also counts
+ * block settings (chart kinds, column widths) and reports free slides at
+ * `props`; so does `step-unrevealed`, on the stored slide (migrating a chart
+ * spec rebuilds its series), and `notes-boilerplate`, which flags notes that
+ * contain a boilerplate phrase (the model's lint only flags notes that are
+ * exactly one). The rendered rules
+ * (font size, overflow, contrast) need a browser: the visual sweep runs them.
  */
 export function checkDeckStatic(deck: Deck): DeckQualityReport {
+  const report = lintDeck(toTexuliDeck(deck));
   const issues: DeckQualityIssue[] = [];
-  const add = (
-    rule: DeckQualityRuleId,
-    slideId: string | null,
-    path: (string | number)[],
-    message: string
-  ) => {
+  for (const item of report.issues) {
+    const rule = DECK_QUALITY_RULE_BY_ID[item.rule as DeckQualityRuleId];
+    if (!rule || PROTOYARD_RULES.has(rule.id)) continue;
+    const path = [...item.path];
+    // A custom slide's steps are its labels: the component reveals what it likes.
+    if (rule.id === 'empty-steps' && isCustomAt(deck, path)) continue;
     issues.push({
-      rule,
-      severity: DECK_QUALITY_RULE_BY_ID[rule].severity,
-      slideId,
+      rule: rule.id as DeckQualityRuleId,
+      severity: item.severity === 'error' ? 'error' : 'warning',
+      slideId: item.slideId ?? slideIdAt(deck, path),
       path,
       jsonPath: deckJsonPath(path),
-      message,
+      message: item.message,
     });
-  };
-
-  const notesSeen = new Map<string, string>();
-  let runLayout: string | null = null;
-  let runStart = 0;
-  let runLength = 0;
-
+  }
+  // Migration maps an unknown background slug from an older deck to the default,
+  // so the model's lint never sees it: Protoyard reports it on the deck as stored.
   deck.slides.forEach((slide, index) => {
-    const base: (string | number)[] = ['slides', index];
-    const id = slide.id;
-
-    // Structure: layout and props.
-    if (slide.layout !== 'free') {
-      if (!getDeckLayout(slide.layout)) {
-        add('unknown-layout', id, [...base, 'layout'], `Unknown layout "${slide.layout}".`);
-      } else if ('props' in slide) {
-        const parsed = parseLayoutProps(slide.layout, stripStepMarkers(slide.props));
-        if (!parsed.success) {
-          for (const problem of parsed.issues) {
-            add('layout-props', id, [...base, 'props', ...problem.path], problem.message);
-          }
-        }
-      }
-    }
-
-    // Assets: images in layout props (image blocks enforce alt and size in their schema).
-    if ('props' in slide) {
-      walkProps(slide.props, [...base, 'props'], (record, path, key) => {
-        if (key !== 'image' || typeof record.src !== 'string') return;
-        if (typeof record.alt !== 'string' || record.alt.trim() === '') {
-          add('image-alt', id, [...path, 'alt'], `Describe the image "${record.src}" in alt.`);
-        }
-        if (typeof record.width !== 'number' || typeof record.height !== 'number') {
-          add('image-size', id, path, `Give the image "${record.src}" a width and height.`);
-        }
+    if (
+      typeof slide.background === 'string' &&
+      !Object.hasOwn(DECK_BACKGROUND_PRESETS, slide.background)
+    ) {
+      const path = ['slides', index, 'background'];
+      issues.push({
+        rule: 'unknown-background',
+        severity: 'warning',
+        slideId: slide.id,
+        path,
+        jsonPath: deckJsonPath(path),
+        message: `Unknown background "${slide.background}"; the slide renders ${DEFAULT_DECK_BACKGROUND}. Use a preset id or a media spec.`,
       });
     }
-
-    // Step order: in reading order, a fragment never reveals before one above it.
-    let latest = 0;
-    let latestPath: (string | number)[] = [];
-    for (const fragment of fragmentsInOrder(slide, base)) {
-      if (fragment.step < latest) {
-        add(
-          'step-order',
-          id,
-          fragment.path,
-          `Step ${fragment.step} reveals before ${deckJsonPath(latestPath)} (step ${latest}), which comes earlier on the slide. Renumber the steps in reading order.`
-        );
-      }
-      if (fragment.step > latest) {
-        latest = fragment.step;
-        latestPath = fragment.path;
-      }
-    }
-    const labels = slide.steps?.length ?? 0;
-    const used = slideSteps(slide).steps.filter((step) => step.fragments.length > 0).length;
-    if (labels > used) {
-      add(
-        'empty-steps',
-        id,
-        [...base, 'steps', used],
-        `The slide labels ${labels} steps but only ${used} reveal something; the extra clicks do nothing.`
-      );
-    }
-
-    if (slide.hidden) return;
-
-    // Notes.
-    const notes = slide.notes?.trim() ?? '';
-    if (notes.length < DECK_QUALITY.minNotesLength) {
-      add(
-        'notes-missing',
-        id,
-        [...base, 'notes'],
-        notes
-          ? `Speaker notes are ${notes.length} characters; write at least ${DECK_QUALITY.minNotesLength}.`
-          : 'Add speaker notes: what to say on this slide.'
-      );
-    }
-    if (notes) {
-      const key = normalizeNotes(notes);
-      if (BOILERPLATE.some((phrase) => key.includes(phrase))) {
-        add(
-          'notes-boilerplate',
-          id,
-          [...base, 'notes'],
-          'Write what to say instead of "do not read the slide".'
-        );
-      }
-      const first = notesSeen.get(key);
-      if (first !== undefined) {
-        add(
-          'notes-duplicate',
-          id,
-          [...base, 'notes'],
-          `These notes repeat the notes of slide "${first}".`
-        );
-      } else {
-        notesSeen.set(key, id);
-      }
-    }
-
-    // Layout repetition among visible slides.
-    if (slide.layout === runLayout) {
-      runLength += 1;
-    } else {
-      runLayout = slide.layout;
-      runStart = index;
-      runLength = 1;
-    }
-    if (runLength > DECK_QUALITY.maxLayoutRun) {
-      add(
-        'layout-repetition',
-        id,
-        [...base, 'layout'],
-        `${runLength} slides in a row (from slides[${runStart}]) use the "${slide.layout}" layout; vary the layout to keep attention.`
-      );
-    }
-
-    // Density.
-    const words = slideWords(slide);
-    const { limit, pacing } = wordLimit(slide);
-    if (words > limit) {
-      add(
-        'too-many-words',
-        id,
-        [...base, 'blocks' in slide ? 'blocks' : 'props'],
-        `The slide shows ${words} words; a ${pacing} slide holds at most ${limit}. Split it or move detail to the notes.`
-      );
+  });
+  // Markers a layout does not reveal, found on the stored slide: migrating a chart spec
+  // rebuilds its series, so the model's lint would not see a marker placed on one.
+  deck.slides.forEach((slide, index) => {
+    if (slide.layout === 'custom') return;
+    for (const markerPath of stepMarkersOutsideLayout(slide)) {
+      const path = ['slides', index, 'props', ...markerPath];
+      issues.push({
+        rule: 'step-unrevealed',
+        severity: 'warning',
+        slideId: slide.id,
+        path,
+        jsonPath: deckJsonPath(path),
+        message: `The ${slide.layout} layout does not reveal a step marker here, so this click shows nothing. Move the marker to a prop the layout reveals (see DECK_LAYOUT_STEPPABLE), or use a free slide.`,
+      });
     }
   });
-
+  // Boilerplate anywhere in the notes of a visible slide.
+  deck.slides.forEach((slide, index) => {
+    if (slide.hidden || !slide.notes) return;
+    const key = normalizeNotes(slide.notes);
+    if (!BOILERPLATE.some((phrase) => key.includes(phrase))) return;
+    const path = ['slides', index, 'notes'];
+    issues.push({
+      rule: 'notes-boilerplate',
+      severity: 'warning',
+      slideId: slide.id,
+      path,
+      jsonPath: deckJsonPath(path),
+      message: 'Write what to say instead of "do not read the slide".',
+    });
+  });
+  // Density, by the layout's pacing; hidden slides are not seen, so they are not counted.
+  deck.slides.forEach((slide, index) => {
+    if (slide.hidden) return;
+    const words = slideWords(slide);
+    const { limit, pacing } = wordLimit(slide);
+    if (words <= limit) return;
+    const path = ['slides', index, 'blocks' in slide ? 'blocks' : 'props'];
+    issues.push({
+      rule: 'too-many-words',
+      severity: 'warning',
+      slideId: slide.id,
+      path,
+      jsonPath: deckJsonPath(path),
+      message: `The slide shows ${words} words; a ${pacing} slide holds at most ${limit}. Split it or move detail to the notes.`,
+    });
+  });
+  const slideOf = (issue: DeckQualityIssue) =>
+    issue.path[0] === 'slides' && typeof issue.path[1] === 'number' ? issue.path[1] : -1;
+  issues.sort((a, b) => slideOf(a) - slideOf(b));
   const errors = issues.filter((issue) => issue.severity === 'error').length;
   return { ok: errors === 0, errors, warnings: issues.length - errors, issues };
+}
+
+function slideIdAt(deck: Deck, path: readonly (string | number)[]): string | null {
+  if (path[0] !== 'slides' || typeof path[1] !== 'number') return null;
+  return deck.slides[path[1]]?.id ?? null;
+}
+
+function isCustomAt(deck: Deck, path: readonly (string | number)[]): boolean {
+  return path[0] === 'slides' && typeof path[1] === 'number'
+    ? deck.slides[path[1]]?.layout === 'custom'
+    : false;
 }

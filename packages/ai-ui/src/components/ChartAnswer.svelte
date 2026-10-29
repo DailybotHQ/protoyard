@@ -1,5 +1,15 @@
 <script lang="ts">
 import { parseChartSpec } from '@protoyard/ai/chart';
+import { Code } from 'texuli/kbd-code';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from 'texuli/table';
 
 /*
  * A ```chart fence from a simulated answer, loaded on demand by RichAnswer.
@@ -47,28 +57,26 @@ const load = () =>
 
 {#snippet table()}
   {#if spec}
-    <div class="overflow-x-auto rounded-lg border border-border">
-      <table class="w-full border-collapse text-left text-xs tabular-nums">
-        <caption class="px-3 py-2 text-left font-semibold">{spec.title}</caption>
-        <thead class="bg-muted/70">
-          <tr>
-            <th scope="col" class="border-b border-border px-3 py-2 font-semibold">Label</th>
-            {#each spec.series as s, i (i)}<th scope="col" class="border-b border-border px-3 py-2 text-right font-semibold">{s.label}</th>{/each}
-          </tr>
-        </thead>
-        <tbody>
-          {#each spec.labels as label, j (j)}
-            <tr class="border-b border-border last:border-0">
-              <th scope="row" class="px-3 py-1.5 font-medium">{label}</th>
-              {#each spec.series as s, i (i)}
-                {@const v = s.values[j] ?? null}
-                <td class="px-3 py-1.5 text-right">{v === null ? '—' : valueFormat(v)}</td>
-              {/each}
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+    <Table class="text-xs tabular-nums">
+      <TableCaption class="text-left font-semibold">{spec.title}</TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead scope="col">Label</TableHead>
+          {#each spec.series as s, i (i)}<TableHead scope="col" numeric>{s.label}</TableHead>{/each}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {#each spec.labels as label, j (j)}
+          <TableRow>
+            <TableHead scope="row">{label}</TableHead>
+            {#each spec.series as s, i (i)}
+              {@const v = s.values[j] ?? null}
+              <TableCell numeric>{v === null ? '—' : valueFormat(v)}</TableCell>
+            {/each}
+          </TableRow>
+        {/each}
+      </TableBody>
+    </Table>
   {/if}
 {/snippet}
 
@@ -78,12 +86,15 @@ const load = () =>
     <p class="mt-1 text-muted-foreground">{result.error}</p>
     <details class="mt-2">
       <summary class="cursor-pointer text-muted-foreground">Show the chart data</summary>
-      <!-- svelte-ignore a11y_no_noninteractive_tabindex -- scrollable chart data; keyboard users must reach it (WCAG 2.1.1 / axe scrollable-region-focusable). -->
-      <pre
-        tabindex="0"
+      <!-- The raw data scrolls, so it takes focus and a name (WCAG 2.1.1 / axe scrollable-region-focusable). -->
+      <Code
+        variant="block"
+        value={text}
+        role="region"
+        tabindex={0}
         aria-label="Chart data"
         class="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all font-mono focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-      >{text}</pre>
+      />
     </details>
   </div>
 {:else if spec && units}
@@ -92,9 +103,9 @@ const load = () =>
       {@render table()}
     {:then kit}
       {#if 'BarChart' in kit && spec.kind === 'bar'}
-        <kit.BarChart title={spec.title} description={spec.description} {series} {...units} height={220} />
+        <kit.BarChart title={spec.title} description={spec.description} {series} {...units} height={220} interactive={false} />
       {:else if 'LineChart' in kit && (spec.kind === 'line' || spec.kind === 'area')}
-        <kit.LineChart title={spec.title} description={spec.description} {series} {...units} area={spec.kind === 'area'} height={220} />
+        <kit.LineChart title={spec.title} description={spec.description} {series} {...units} area={spec.kind === 'area'} height={220} interactive={false} />
       {:else if 'FunnelChart' in kit && spec.kind === 'funnel'}
         <kit.FunnelChart title={spec.title} description={spec.description} steps={items.map((d) => ({ id: d.id, label: d.label, count: d.value }))} unit={units.unit} height={220} />
       {:else if 'PieChart' in kit && spec.kind === 'pie'}

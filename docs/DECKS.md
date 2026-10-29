@@ -1,8 +1,10 @@
 # Decks
 
 Protoyard decks are bounded, data-only presentations: a `kind: "deck"`
-blueprint holds every slide as JSON, and `@protoyard/decks-ui`'s `DeckApp`
-renders it (ADR-038). The same component runs a deck in the no-install player
+blueprint holds every slide as JSON (or comes from a Markdown deck, see
+[Markdown decks](#markdown-decks)), and `@protoyard/decks-ui`'s `DeckApp`
+presents it on the `@texuli/slides` stage (ADR-038; Texuli ADR-009, see
+[Built on Texuli](#built-on-texuli-migration-note)). The same component runs a deck in the no-install player
 (`deck.html`), in a quick exploration and in a generated prototype. A deck uses
 stable slide ids, and the renderer keeps the current slide and step in the URL
 hash as `#/<slide-id>/<step>`, so a copied link opens the same place without a
@@ -10,9 +12,10 @@ server or client-side router.
 
 This guide is the product workflow. The API reference lives in the package
 guides: [`@protoyard/decks`](../packages/decks/README.md) for the schema,
-catalog, navigation, steps, quality rules and text twins, and
-[`@protoyard/decks-ui`](../packages/decks-ui/README.md) for `DeckApp`, the
-presenter, print and Deck Studio. There is no Reveal.js inside.
+catalog, navigation, steps, quality rules and text twins (a thin layer over
+`@texuli/deck`), and [`@protoyard/decks-ui`](../packages/decks-ui/README.md)
+for `DeckApp`, free and custom slides, the debug panel, print and Deck Studio.
+There is no Reveal.js inside.
 
 ## Start a deck
 
@@ -44,11 +47,334 @@ pnpm protoyard dev rehearsal
   `generate <slug> --blueprint .protoyard/quick/<exploration>/blueprint.json`.
 - The catalog decks live in [`blueprints/decks/`](../blueprints/decks/README.md):
   `example`, `cedar-training`, `harbor-ops-pitch`, `lumen-launch`,
-  `northwind-qbr` and `protoyard-create-anything`.
+  `northwind-qbr` and `protoyard-create-anything`. `everything` is the
+  reference deck to copy from: every layout, block type and chart family on
+  42 slides (`pnpm protoyard deck inspect blueprints/decks/everything.json
+  --slide <id>` prints any slide's JSON).
 - A generated deck prototype changes through its data. Edit
   `prototypes/<slug>/blueprint.json`, run the same `generate` command again,
   then `validate`. Never edit `src/generated/**`; see
   [GENERATOR](GENERATOR.md).
+
+## Markdown decks
+
+A deck can start as Markdown, in the `@texuli/deck` dialect: closed-key
+frontmatter (`title`, `theme`, `transition`…), `---` between slides, `Note:`
+for speaker notes, `<!-- .slide: layout=title-hero -->` and
+`<!-- .element: fragment -->` comments, `layout="<id>"` slides with `:::`
+regions. It is not reveal.js Markdown: raw HTML, iframes, `class`, `style`
+and event handlers are refused with a diagnostic.
+
+```sh
+pnpm protoyard deck from-markdown talk.md --out tmp/talk.json
+pnpm protoyard deck lint tmp/talk.json
+pnpm protoyard quick --blueprint tmp/talk.json
+```
+
+`deck from-markdown` reports every issue with its line and column, writes
+the deck in Protoyard's shape inside a deck blueprint, and validates it like a
+JSON deck (so remote media is refused, as in every Protoyard deck). What a
+Protoyard deck cannot hold yet is an error, never dropped: `::: component`
+fences, `$$` math and embedded themes; a vertical stack (`--`) plays as
+consecutive slides. Without `--out` it prints the blueprint. `--out` writes
+only under `artifacts/` or `tmp/` and never through a symlink (the Markdown is
+untrusted input), and it never replaces a file unless `--force`. A path that
+reaches the workspace through a symlink (`~/link-to-repo/tmp/talk.json`) is
+refused as outside the workspace even when the link points at it: spell the
+path through the real folder, or run from the workspace and pass
+`tmp/talk.json`. `@protoyard/decks/markdown` (`parseMarkdownDeck`)
+does the same from code.
+
+## The agent loop
+
+An agent with no context can go from an idea to a presented deck with the
+`deck` commands. Each takes `--json` for a machine-readable envelope.
+
+```sh
+pnpm protoyard deck capabilities
+pnpm protoyard deck schema
+pnpm protoyard deck layouts
+pnpm protoyard deck layouts chart
+pnpm protoyard deck blocks poll
+```
+
+1. **Learn.**
+   - `deck capabilities` says what decks support at level 1 (the player) and
+     level 2 (a generated prototype): layouts, blocks, controls, quality
+     rules and limits.
+   - `deck schema` prints the deck JSON Schema (draft 2020-12).
+   - `deck layouts [id]` and `deck blocks [type]` print each layout or block
+     with when to use it, its limits and a valid sample to copy.
+2. **Write** the blueprint JSON (see [The deck JSON](#the-deck-json) and
+   [Recipes](#recipes)), for example `tmp/harbor-notes.json` with the name
+   "Harbor Notes".
+3. **Check** it. `deck lint` reports errors and warnings with JSON pointers
+   and a fix for each; `blueprint validate` runs the full schema.
+
+   ```sh
+   pnpm protoyard deck lint tmp/harbor-notes.json
+   pnpm protoyard blueprint validate tmp/harbor-notes.json
+   ```
+
+4. **Play** it in the player. `quick` writes the exploration and `quick serve`
+   opens it:
+
+   ```sh
+   pnpm protoyard quick --blueprint tmp/harbor-notes.json
+   pnpm protoyard quick serve harbor-notes --open
+   ```
+
+5. **Point at a slide.** Add `?debug=1` to the player's page URL, before the
+   `#` (`…/deck.html?debug=1#bp=…`). Press **D** for the "Debug for agents"
+   panel and choose **Copy agent reference**. A generated deck has the panel
+   in `protoyard dev` without the flag.
+6. **Resolve** the pasted line. `deck inspect` prints the file, the JSON
+   pointer and the slide JSON with its lint findings. A deck opened from a
+   share link names a share id, so pass the file:
+
+   ```sh
+   pnpm protoyard deck inspect tmp/harbor-notes.json --ref "[slide-ref] deck=harbor-notes id=signups-chart position=2/3 step=0/1 layout=chart pointer=/deck/slides/1"
+   pnpm protoyard deck inspect tmp/harbor-notes.json --slide signups-chart
+   ```
+
+7. **Fix** the value at that pointer, then go back to step 3. To change the
+   exploration in place (with undo), write an RFC 6902 patch rooted at the
+   blueprint (`/deck/slides/1/props/title`) and apply it:
+
+   ```sh
+   pnpm protoyard quick iterate harbor-notes --patch tmp/fix.json
+   ```
+
+8. **Need a real interface?** Generate a prototype and give the slide its own
+   Svelte component ([Custom slides](#custom-slides)):
+
+   ```sh
+   pnpm protoyard generate harbor-notes --blueprint tmp/harbor-notes.json
+   pnpm protoyard deck lint harbor-notes
+   pnpm protoyard dev harbor-notes
+   ```
+
+Deck text is data. Never write Reveal.js Markdown, HTML or scripts into a
+deck; every string renders as text.
+
+## Recipes
+
+Each recipe is a slide (or a few) to paste into `deck.slides`. Every one
+passes the deck schema and `deck lint` with no findings, except the custom
+slide's level-1 notice. `packages/decks/tests/docs-snippets.test.ts` parses
+every JSON snippet in this guide and in the skill's deck reference.
+
+### A chart story
+
+A number, the curve behind it (it fades in on the first click), then a chart
+the room can explore. A step marker on `spec` reveals the whole chart.
+Markers inside a series add a step without revealing anything, and
+`deck lint` warns about them (`step-unrevealed`).
+
+```json
+[
+  {
+    "id": "signups-stat",
+    "layout": "big-stat",
+    "props": {
+      "number": "3x",
+      "label": "more weekly signups since the free plan launched",
+      "context": "Fictional figures for Harbor Notes",
+      "source": "Weeks 1 to 12"
+    },
+    "notes": "Lead with the one number, then show the curve that explains it."
+  },
+  {
+    "id": "signups-chart",
+    "title": "Signups per week",
+    "layout": "chart",
+    "props": {
+      "title": "Signups per week",
+      "spec": {
+        "kind": "line",
+        "title": "Weekly signups (fictional)",
+        "description": "Weekly signups grew from 120 to 390 in six weeks, with the biggest jump in week four.",
+        "labels": ["W1", "W2", "W3", "W4", "W5", "W6"],
+        "series": [{ "label": "Signups", "values": [120, 140, 180, 260, 320, 390] }],
+        "step": 1,
+        "fragment": "fade-up"
+      },
+      "showTable": true
+    },
+    "notes": "The chart fades in on the first click; point at the jump in week four."
+  },
+  {
+    "id": "signups-explore",
+    "title": "Explore the data",
+    "layout": "free",
+    "blocks": [
+      { "type": "heading", "text": "Explore the data" },
+      {
+        "type": "chart-controls",
+        "id": "signups-controls",
+        "spec": {
+          "kind": "bar",
+          "title": "Signups by plan (fictional)",
+          "description": "Most signups come from the free plan; Team and Business follow far behind.",
+          "labels": ["Free", "Team", "Business"],
+          "series": [{ "label": "Signups", "values": [820, 310, 90] }]
+        },
+        "kinds": ["bar", "line"]
+      }
+    ],
+    "notes": "Hand the controls to the room: switch the chart type and read the table."
+  }
+]
+```
+
+### A comparison table
+
+Two to four options across three to five attributes, one row revealed per
+click:
+
+```json
+{
+  "id": "plans-compared",
+  "title": "Which plan fits",
+  "layout": "comparison-table",
+  "props": {
+    "title": "Which plan fits",
+    "columns": ["Free", "Team", "Business"],
+    "rows": [
+      { "label": "Editors", "values": ["1", "Up to 20", "Unlimited"] },
+      { "label": "Shared spaces", "values": [false, true, true], "step": 1 },
+      { "label": "Audit log", "values": [false, false, true], "step": 2 }
+    ]
+  },
+  "notes": "Reveal one row per click, so the room compares one attribute at a time."
+}
+```
+
+### A live poll
+
+Votes are saved in the browser that cast them, and results show after a
+vote:
+
+```json
+{
+  "id": "room-poll",
+  "title": "Ask the room",
+  "layout": "free",
+  "blocks": [
+    { "type": "heading", "text": "Where do your notes live today?" },
+    {
+      "type": "poll",
+      "id": "notes-today",
+      "question": "Pick up to two",
+      "options": [
+        { "id": "docs", "label": "Shared docs" },
+        { "id": "chat", "label": "Team chat" },
+        { "id": "paper", "label": "Paper notebooks" }
+      ],
+      "maxChoices": 2,
+      "results": "after-vote"
+    }
+  ],
+  "notes": "Votes stay in this browser; results appear once someone has voted."
+}
+```
+
+### A calculator
+
+Inputs drive outputs through a closed formula (no code runs). Money is in
+integer cents:
+
+```json
+{
+  "id": "cost-calculator",
+  "title": "What it would cost",
+  "layout": "free",
+  "blocks": [
+    { "type": "heading", "text": "What would your team pay?" },
+    {
+      "type": "calculator",
+      "id": "team-cost",
+      "title": "Monthly cost",
+      "currency": "USD",
+      "inputs": [
+        { "name": "seats", "label": "Seats", "control": "slider", "min": 1, "max": 200, "step": 1, "default": 12 }
+      ],
+      "outputs": [
+        {
+          "id": "monthly",
+          "label": "Per month",
+          "unit": "cents",
+          "formula": {
+            "op": "mul",
+            "left": { "op": "var", "name": "seats" },
+            "right": { "op": "num", "value": 900 }
+          }
+        }
+      ]
+    }
+  ],
+  "notes": "Drag the slider to the size of the team in the room; prices are fictional."
+}
+```
+
+### An embedded app
+
+A whole app blueprint plays inside the slide, in its own frame with its own
+data, after the viewer presses start. It is one level only: an embedded app
+can't embed again.
+
+```json
+{
+  "id": "try-the-app",
+  "title": "Try it now",
+  "layout": "free",
+  "blocks": [
+    { "type": "heading", "text": "Try the tracker yourself" },
+    {
+      "type": "embed-app",
+      "id": "tracker-demo",
+      "title": "Fictional task tracker",
+      "startLabel": "Open the demo",
+      "height": "md",
+      "app": {
+        "formatVersion": 1,
+        "name": "Mini tracker",
+        "entities": [
+          {
+            "name": "task",
+            "plural": "tasks",
+            "titleField": "title",
+            "fields": [{ "name": "title", "kind": "text", "required": true }]
+          }
+        ],
+        "roles": [{ "name": "member", "permissions": { "*": ["*"] } }]
+      }
+    }
+  ],
+  "notes": "The app starts when someone presses the button and keeps its own data."
+}
+```
+
+### A custom interactive slide
+
+For anything the blocks can't show, a generated deck renders its own Svelte
+component. The player shows a labelled card, and `deck lint` says so
+(`custom-slide`). Register the component as in
+[Custom slides](#custom-slides):
+
+```json
+{
+  "id": "live-configurator",
+  "title": "Price your team, live",
+  "layout": "custom",
+  "props": {
+    "component": "pricing-configurator",
+    "data": { "maxSeats": 200, "annualDiscountPercent": 20 }
+  },
+  "steps": ["Show the breakdown"],
+  "notes": "Runs the prototype's own Svelte component; the player shows a labelled card."
+}
+```
 
 ## The deck JSON
 
@@ -122,7 +448,10 @@ Save it as `tmp/harbor-kickoff.json`, then run
 - **Free slides** are `{ id, layout: "free", blocks }` with
   `@protoyard/blocks` content: text, lists, charts, tables, code, people,
   quizzes, polls, forms and the rest of the block catalog.
-- **Shared slide fields:** `title`, `background` (a preset id), `transition`,
+- **Custom slides** are `{ id, layout: "custom", props: { component, data? } }`:
+  a slide that renders a component the generated deck owns. See
+  [Custom slides](#custom-slides).
+- **Shared slide fields:** `title`, `background` (a preset id or validated local image/video spec; an unknown slug from an older deck still opens, renders `solid-color` and gets an `unknown-background` lint warning), `transition`,
   `steps` (labels), `notes` (speaker notes) and `hidden`. Hidden slides are
   skipped by navigation, the overview and print.
 - **Slide ids** are unique lowercase slugs. They are the deep links, so keep
@@ -168,6 +497,58 @@ three identical layouts in a row.
 | `chart` | A real chart is clearer than a big stat or a table |
 | `free` | No layout fits: compose validated blocks |
 
+### Custom slides
+
+When no layout or block can show an idea (a configurator, a simulator, a
+small app), a generated deck (level 2) can own the slide's code:
+
+```json
+{
+  "id": "configurator",
+  "title": "Price your team, live",
+  "layout": "custom",
+  "props": {
+    "component": "pricing-configurator",
+    "data": { "maxSeats": 200, "annualDiscountPercent": 20 }
+  },
+  "steps": ["Show the breakdown"]
+}
+```
+
+Register the component in the prototype's own `src/custom-slides.ts`, with a
+lazy import, so its code loads only when its slide comes near:
+
+```ts
+import type { CustomSlideRegistry } from '@protoyard/decks-ui/app';
+
+export const customSlides: CustomSlideRegistry = Object.freeze({
+  'pricing-configurator': () => import('./slides/PricingConfigurator.svelte'),
+});
+```
+
+- The component receives `{ slide, step, stepCount, data }`
+  (`CustomSlideProps`): its own slide and its `data` as frozen copies, the
+  current step and the number of steps. It never receives the rest of the
+  deck or the runtime's write services unless the prototype passes them in
+  itself. It renders inside the scaled canvas (1280 x 720 for 16:9), and its
+  clicks never advance the deck.
+- **Steps** come from the slide's `steps` labels; `data` is never read for
+  step markers.
+- **`data`** is bounded JSON, capped like catalog props (`DECK_LIMITS`
+  `props*`), and any `src`, `poster` or `href` in it follows the deck media
+  and link policies. The component still reads it defensively.
+- **Errors stay on the slide.** A component that throws shows "This slide
+  stopped working" with a Try again button. One that fails to load, or an id
+  missing from the registry, shows its own card. The rest of the deck keeps
+  working.
+- **In the player** (level 1) there is no owned code: the slide shows a
+  labelled card, "Interactive slide — open the generated deck to run it". The
+  overview, print and previews also show a card and never run the component.
+  `deck lint` warns (`custom-slide`) so the author knows.
+- `src/custom-slides.ts` and `src/slides/` are yours: `protoyard generate`
+  never rewrites them. The flagship `create-anything-deck` prototype has one,
+  a live pricing configurator (`src/slides/PricingConfigurator.svelte`).
+
 The generated table in the
 [layout catalog section](../packages/decks/README.md#layout-catalog) lists each
 layout's pacing and limits. It is kept in sync with the code by
@@ -184,8 +565,9 @@ behind its toggle (printed on paper). The type scale follows the stage width,
 so 16:9, 4:3, 9:16 and 1:1 stages all read well, and it never drops below the
 deck minimums of 24 px body and 18 px labels. Long text clamps, or the content
 zooms down to a floor; nothing overflows the stage. Layouts use theme tokens
-only, so themes and dark mode apply. The per-layout table and the scale are in
-[the decks-ui guide](../packages/decks-ui/README.md#slide-design).
+only, so themes and dark mode apply. The layouts and the type scale come from
+`@texuli/slides` (its stage and layouts), which Protoyard installs from npm
+([Texuli in Protoyard](TEXULI.md)).
 
 ## Steps and step links
 
@@ -217,10 +599,21 @@ On screen:
   fades in (`fade`, `in`), fades up (`fade-up`), or switches its effect on
   (`grow`, `shrink`, `highlight`, `strike`). `out` and `in-then-out` hide
   again. Going back hides it again.
-- **Catalog items** that take a step today: `three-column-cards` cards,
-  `process-steps` steps, `timeline` events, `comparison-table` rows and the
-  `two-column-split` sides. A marker on another prop counts as a step, but that
-  prop is always shown.
+- **Every catalog prop can take a step.** A marker on the props object
+  itself reveals the whole slide body (a `big-stat`, a `quote`, a hero). A
+  marker on a nested object reveals what it draws:
+  - the `image` or `video` media pane;
+  - the `code-with-callout` code panel;
+  - the `closing-cta` button;
+  - the `chart` spec;
+  - a `two-column-split` side.
+
+  On list items it reveals one card, process step, timeline event, table row
+  or team member. The full table is in the
+  [package guide](../packages/decks/README.md#steps-and-motion).
+  - A marker deeper inside a prop (a single chart series) still adds a step,
+    but nothing hides. `stepMarkersOutsideLayout` from
+    `@protoyard/decks/layouts` lists those markers.
 - **Code highlights move per step,** on free code blocks and on the
   `code-with-callout` code: highlight 0 is the initial state and each further
   highlight takes one step.
@@ -238,10 +631,32 @@ On screen:
   slides. Home and End jump to the first and last visible slide.
 - Press **O** to open the overview and select a slide. **Escape** closes an
   open deck overlay.
-- Press **F** to enter or leave fullscreen where the browser permits it; the
-  browser's fullscreen controls are also available.
-- Press **?** for the keyboard shortcuts. The dialog is generated from the
-  same table the input guard uses, so it never drifts from the keys.
+- Press **F** (or the full screen button) to enter or leave full screen, and
+  **Escape** to leave it. Escape first closes a tooltip, the help dialog, the
+  overview, blackout or the laser, in that order; the next Escape leaves full
+  screen, and the keyboard stays on the deck. In full screen a small overlay
+  (leave full screen, previous, the slide counter, next) appears when the
+  pointer moves or the screen is touched, and fades after 2.5 seconds, so a
+  mouse or touch viewer always has a visible way out.
+- Where the browser's Fullscreen API is missing or refused (an iPhone, or an
+  iframe without `allow="fullscreen"` such as an artifact viewer), the deck
+  fills the page's own window instead of failing silently. The button's
+  tooltip and the overlay say so, and the root carries
+  `data-fullscreen-mode="window"` (`native` for browser full screen).
+- Press **?** (or the Controls and shortcuts button) for **Controls and
+  shortcuts**: every control this deck offers, grouped as in the toolbar
+  (move around, view, present, share and print, help), each with its icon,
+  label, one-sentence description and keys, or "Button only". It is built
+  from the same registry (`DECK_CONTROLS`) as the toolbar and the input
+  guard, so it never drifts from the buttons or the keys, and it leaves out
+  controls the host cannot offer.
+- On a deck's first visit a hint says "Use ← → to move, F for full screen, ?
+  for every control." It leaves after 6 seconds, on the first key or pointer
+  input, or with **Got it**, and never takes focus. It shows once per deck
+  namespace (remembered in `localStorage`; where storage is blocked it shows
+  again next time), never in print or the presenter, and never under
+  automation such as screenshots and artifact thumbnail capture. Add
+  `?hint=0` to the page URL to turn it off (`?hint=1` forces it for checks).
 - A click on the slide canvas advances. Links, buttons, embedded controls and
   the deck's progress chrome keep their own click behavior.
 - On touch devices, a horizontal swipe moves between slides; vertical movement
@@ -263,63 +678,88 @@ notes to two slides for the presenter checks.
 
 ## Stage and chrome
 
-The slide stage is scaled to fit and centered in the space the chrome leaves,
-at every aspect (16:9, 4:3, 9:16, 1:1) and on desktop, tablet and phones in
-both orientations. The letterbox uses the theme's muted color. Progress, the
-slide counter and the presenting tools sit in their own row below the stage,
-so they never cover a slide; on phones the row wraps. Full screen hides the
-row, and resizing or rotating refits the stage. A deck takes the app height
-by default; embed it with `fit="container"` to fill a sized parent instead.
+Decks are presented by the `@texuli/slides` stage. Each slide is painted on a
+fixed virtual canvas (1280 × 720 for 16:9; also 4:3, 9:16 and 1:1) and scaled
+and letterboxed into the deck's box, so it looks the same on a phone, a laptop
+and a projector. The toolbar sits in its own row below the slide, aligned to
+the inline end; when it does not fit (measured, not a breakpoint) the
+secondary tools fold into **More**. A progress bar runs on the edge
+`style.progress` names. Full screen hides the toolbar in favor of a fading
+overlay, and resizing or rotating refits the canvas. A deck takes the app
+height by default; embed it with `fit="container"` to fill a sized parent.
+
+### Controls
+
+Every control has an icon, an accessible name and a tooltip with what it does
+and its keys (hover, keyboard focus or a long press on touch). The toolbar,
+the tooltips, the "Controls and shortcuts" dialog (**?**), `protoyard deck
+capabilities` and the table below all read one registry, `DECK_CONTROLS` in
+`@protoyard/decks`, so they never disagree. A control the browser cannot run
+(no Fullscreen API, no clipboard, no print) is hidden, never left dead. Each
+tool shows as its icon. When the toolbar does not fit (a phone, a narrow
+window) the secondary tools fold into a **More** menu that opens above it, and on a first visit a
+short hint names the arrows, **F** and **?** (`?hint=0` turns it off).
+
+<!-- controls:start (generated by packages/decks/tests/readme-sync.test.ts) -->
+| Control | Group | Label | Keys | Available | What it does |
+| --- | --- | --- | --- | --- | --- |
+| `prev` | navigate | Previous step or slide | `←`, `↑`, `Page Up`, `Shift + Space`, `Backspace` | always | Goes back one step, or to the previous slide. |
+| `jump` | navigate | Choose a slide | — | always | Opens the slide list so you can jump directly to a slide. |
+| `next` | navigate | Next step or slide | `→`, `↓`, `Page Down`, `Space`, `Enter` | always | Shows the next step, or advances to the next slide. |
+| `first` | navigate | First slide | `Home` | always | Jumps to the first slide. |
+| `last` | navigate | Last slide | `End` | always | Jumps to the last slide. |
+| `overview` | view | Overview of all slides | `O`, `Esc` | always | Shows every slide as a grid. |
+| `fullscreen` | view | Full screen | `F` | fullscreen | Fills the screen with the slides. |
+| `fullscreen-exit` | view | Leave full screen | `Esc` | fullscreen | Returns the deck to its normal place. |
+| `presenter` | present | Presenter view | `S`, `P` | always | Shows notes, the next slide and timers. |
+| `blackout` | present | Black out the screen | `B`, `.`, `Esc` | always | Turns the screen black. |
+| `laser` | present | Laser pointer | `L`, `Esc` | always | Turns the pointer into a bright dot. |
+| `copy-link` | share | Copy link to this slide | — | clipboard | Copies a link to this slide and step. |
+| `print` | share | Print, one slide per page | `Ctrl + P`, `⌘ + P` | print | Prints the deck or saves it as a PDF. |
+| `help` | help | Controls and shortcuts | `?`, `Esc` | always | Lists every control and its keys. |
+| `debug` | debug | Debug for agents | `D`, `Esc` | debug | Shows this slide source, checks and reference. |
+<!-- controls:end -->
 
 ## Presenting and printing
 
-- Press **S** or **P** to open the presenter view. It opens in a popup window
-  that follows the deck over `BroadcastChannel`, and either side can move the
-  other. The popup shows only the current slide id and step today; the full
-  panel below is the in-page view, where the Next panel shows a live, scaled
-  preview of the next slide (the same renderer as the stage). Messages are validated; anything malformed
-  is ignored. Press **S** again to close it.
-- When the popup is blocked (by the browser or a sandbox such as an artifact
-  frame) or the browser has no `BroadcastChannel`, the presenter opens in the
-  page instead, as a split view: the deck beside a panel with the position,
-  the current and next slide with their speaker notes, Previous and Next
-  buttons, an elapsed timer and a per-slide timer. A note at the top says
-  why it is not a separate window (pop-ups blocked, no `BroadcastChannel`,
-  or no window at all).
-- **Pause** holds both timers and **Resume** continues from there; **Reset**
-  sets both back to 00:00. The per-slide timer restarts on every slide change
-  (a paused one stays paused, and pausing never resets it).
+- Press **S** or **P** (or the toolbar's Presenter view) for the presenter
+  view beside the slides: the position, timers (elapsed, on this slide and the
+  wall clock, started when the view opens, with Pause/Start and Reset), the
+  speaker notes, the next slide's title and a live preview, and Previous and
+  Next. Press **S** or **P** again to close it.
+- **Open presenter window** opens a second window of the same origin that
+  follows the deck over `BroadcastChannel` (the presenter protocol,
+  `texuli-deck-presenter/1:<namespace>`); either side moves the other, and
+  malformed messages are ignored. When the browser blocks the window (or a
+  sandbox such as an artifact frame does), the view stays on the page and says
+  why. Without `BroadcastChannel` the in-page view still works.
 - **B** or **.** blacks out the screen (a click, B or Escape brings the slide
-  back; arrows do nothing meanwhile). **L** turns the mouse pointer into a
-  laser dot, and clicks stop advancing while it is on. On touch screens the
-  dot only shows under a finger.
-- The **copy slide reference** button copies the slide title, its id and the
-  deep link to the exact step. Where the clipboard is blocked it says "Could
-  not copy the slide reference" instead of claiming success.
-- `?print=1` (add `&notes=1` for speaker notes) or the browser's print command
-  lays out every visible slide on its own page at the canvas size, with all
-  steps shown and no deck chrome. A printed PDF has one page per slide, sized
-  to the deck aspect (1280 x 720 CSS px for 16:9).
+  back and focus returns to it). **L** turns the pointer into a laser dot;
+  clicks stop advancing while it is on, and on touch screens the dot moves to
+  each tap.
+- **Copy link to this slide** copies the page URL with `#/<slide-id>/<step>`
+  and a toast confirms it, or says "Could not copy the link." where the
+  clipboard is blocked.
+- **Debug for agents** (the bug button, or **D**) opens a side sheet for
+  pointing a coding agent at this exact slide: its id, position, step,
+  layout, JSON pointer, blocks, visible text and lint findings. It copies the
+  one-line agent reference (`[slide-ref] …`, which `protoyard deck inspect
+  --ref` resolves), a Markdown agent prompt or the slide JSON, downloads the
+  deck JSON, and can outline each block with its JSON pointer. **Escape**
+  closes it first. It is on in dev builds and with `?debug=1`; a host can pass
+  `debug="on"` or `debug="off"`. It loads on its own chunk only when it opens.
+- The **Print** button opens `?print=1` (add `&notes=1` for speaker notes) in
+  a new tab: every visible slide on its own page at the canvas size, all steps
+  shown, no deck chrome. Ctrl/Cmd+P on the deck prints the same pages. A
+  printed PDF has one page per slide, sized to the deck aspect (1280 × 720 CSS
+  px for 16:9).
 
-The keys reach the deck while it has focus. When a click or tap would leave
-focus nowhere (the blackout screen removes itself after a click, a tap lands
-on plain slide content), the deck takes focus back, so its keys keep working.
-It never takes focus from a control elsewhere on the page.
-
-The browser checks run on the same built fixture, on the desktop and mobile
+The browser checks run on the built fixture, on the desktop and mobile
 projects, with the timers on Playwright's controlled clock:
 
 ```sh
 pnpm exec playwright test tests/e2e/deck-presenter.spec.ts
 ```
-
-They cover the popup in both sync directions, malformed messages, the in-page
-fallback for a blocked popup and for a missing `BroadcastChannel` (with the
-reason shown), notes, timers with pause, resume and reset, blackout and the
-focus kept on the deck after a click, the laser pointer, `?print=1` with and without notes, the
-`beforeprint` and `afterprint` swap, and the page count and size of a
-Chromium PDF. Each failure names what broke, for example
-"pressing S should open the presenter popup (was it blocked?)".
 
 ## Customize a deck
 
@@ -330,8 +770,9 @@ slides: the canvas, the overview thumbnails, the presenter's deck surface and
 print pages.
 
 - **Theme.** `theme` (a built-in or one of the 64 library themes) or
-  `paletteSeed` (a generated palette). It is applied to the deck root only, so
-  the host page and DevTools keep their own theme. Library themes load lazily.
+  `paletteSeed` (a generated palette), resolved by `@protoyard/themes` and
+  applied by the stage to the deck only, so the host page and DevTools keep
+  their own theme. Themes load lazily.
   An unknown theme or font pairing falls back to the default, and a short note
   appears in the deck chrome; the deck never fails to render. Find a theme with
   `pnpm protoyard theme list --search <query>` ([THEMES](THEMES.md)).
@@ -343,18 +784,20 @@ print pages.
   out in canvas pixels and scaled as a whole, so a deck looks the same on any
   screen.
 - **Transitions.** `transition` on the deck or a slide: `fade` (the default),
-  `slide`, `zoom`, `morph` or `none`. `motion: "subtle"` shortens them and
+  `fade-up`, `slide`, `zoom`, `morph` or `none`. `motion: "subtle"` shortens them and
   `motion: "none"` turns them off. The viewer's reduced-motion preference can
   only lower the level, never raise it, and no transition runs longer than
   400 ms.
-- **Backgrounds.** `style.background` sets the deck background preset and each
-  `slide.background` overrides it, from the 13 `DECK_BACKGROUND_PRESET_IDS`:
+- **Backgrounds.** `style.background` sets the deck background preset (a preset
+  id only) and each `slide.background` overrides it with one of
+  the 13 `DECK_BACKGROUND_PRESET_IDS` or a validated local image/video spec (an
+  unknown id renders `solid-color` with a lint warning). The presets are
   six solids, five gradients and two patterns. Every preset gets a computed text
   color with at least 4.5:1 contrast against all of the background. On a preset
   that flips the theme's text tone (light text on a light theme), the slide's
   text tokens take that color and cards become outlines. Text stays readable in
-  light and dark, in every built-in and library theme
-  (`packages/decks-ui/tests/style-apply.test.ts`).
+  light and dark, in every library theme (the deck model's background
+  resolver, tested in `@texuli/deck`).
 - **Footer.** `footer`, a local `logo` image and `slideNumbers` appear at the
   bottom left of every slide. Turn numbers off with `slideNumbers: false`. A
   remote logo is refused with a note.
@@ -390,8 +833,9 @@ deterministic, never fetch and never render. The structure lint runs the
 static quality rules of `@protoyard/decks/quality` (`checkDeckStatic`) and adds
 outline, slide-link and chart-description checks. The asset lint walks every
 image and video source, poster and embedded-app value. Each diagnostic has a
-`code`, a `severity` and a JSON path. There is no CLI command for them yet:
-call them from code, a test or an agent tool.
+`code`, a `severity` and a JSON path. From the command line,
+`protoyard deck lint <file|slug>` prints the same findings with JSON
+pointers and a fix for each (see [The agent loop](#the-agent-loop)).
 
 Catalog layout props may contain `{ step, fragment }` or `{ step, reveal }`
 markers. The schema validates those markers, then lint and static quality
@@ -404,8 +848,10 @@ markers remain in the parsed deck for step navigation and reveal behavior.
   unsafe asset URLs.
 - **Warnings** report and never fail: missing, short, duplicated or
   boilerplate speaker notes; a third identical layout in a row; more visible
-  words than the layout's pacing allows; step labels without fragments; short
-  chart descriptions; external images without a credit.
+  words than the layout's pacing allows; step labels without fragments (not
+  on custom slides, whose steps are their labels); a step marker where the
+  layout reveals nothing (`step-unrevealed`, such as inside a chart series);
+  short chart descriptions; external images without a credit.
 
 The warning thresholds (40-character notes; 15, 45, 60 and 50 visible words
 for punch, idea, diagram and story slides) are ported from the developer's
@@ -526,7 +972,10 @@ pnpm exec playwright test tests/e2e/deck-artifact.spec.ts
 
 Measured 2026-10-22: that pack is 177 files plus the page (2,193,470 B), with
 one 548,131 B gzip script. A quick deck exported as one file measured
-1.53 MB, under the 2 MiB single-file cap for a deck page.
+1.53 MB then. On npm Texuli 0.5.0, catalog deck, page and doc single-file
+exports measure 2,681,755–2,689,852 B (the 0.4.0 range was 2,656,649–2,684,123
+B). The existing 2,818,330-byte cap stays because it is already below the
+0.5.0 maximum plus 5%.
 
 ## Limits
 
@@ -542,7 +991,7 @@ one 548,131 B gzip script. A quick deck exported as one file measured
 | Slide title | 160 characters | `DECK_LIMITS.slideTitle` |
 | Rendered text minimum | 24 px body, 18 px labels, in canvas pixels | `DECK_TEXT_MINIMUMS` |
 | Slides mounted at once | the active slide and its neighbors (2–3) | `DeckCanvas` |
-| Single-file export of a deck page | 2 MiB | `quick export --single-file` |
+| Single-file export of a deck page | 2,818,330 B (about 2.69 MiB) | `quick export --single-file` |
 
 Media come only from the deck itself: relative paths without `..`, bounded
 base64 `data:` URIs of raster images and mp4/webm video, or library avatars
@@ -553,19 +1002,18 @@ Every deck string renders as text, never as HTML; see
 
 ## What decks do not do yet
 
-- **Stepped catalog props outside the item lists do not hide.** A step marker
-  on a catalog prop that is not a card, process step, timeline event, table
-  row or split side (a `big-stat` number, a `closing-cta` button, a media
-  prop) adds a step, but the prop is shown from the start. Use a free slide
-  for those reveals. The steps model and its rules are in the
-  [steps and motion section](../packages/decks/README.md#steps-and-motion)
-  of the package guide.
-- **No custom slide components.** A generated deck's `src/custom-slides.ts`
-  is a typed registry for later. `DeckApp` renders only the catalog layouts
-  and free blocks.
-- **No media backgrounds on slides.** `style.background` and
-  `slide.background` take a preset id. Image and video background specs
-  validate with `DeckBackgroundSchema`, but a slide cannot carry one yet.
+- **Steps inside a chart do not hide.** A marker on the `chart` spec reveals
+  the whole chart, but one on a single series adds a step without hiding
+  anything. Use one chart slide per reveal, or a free slide with several chart
+  blocks.
+- **Custom slides run only at level 2.** The player shows a labelled card for
+  a `layout: "custom"` slide, and so do the overview, print and previews
+  (they never run owned code). Outline mode in the debug panel boxes the
+  whole custom slide, not the component's parts.
+- **Media backgrounds are local only.** Image and video backgrounds follow the
+  level-1 media policy: relative paths inside the deck, bounded base64 media or
+  library avatars; remote URLs and `..` paths are refused. A video without a
+  poster falls back to the background color in print and with reduced motion.
 - **No remote media, iframes, math or syntax themes.** There is no KaTeX and
   no highlight.js; code highlighting comes from the blocks tokenizer.
 - **Briefs to deck blueprints only through quick.** `blueprint new` refuses
@@ -579,13 +1027,45 @@ Every deck string renders as text, never as HTML; see
   `font-too-small` never fail a deck, and the sweep's contrast estimate is not
   implemented, until they are calibrated.
 
+## Built on Texuli (migration note)
+
+Since PLAN_008 (2026-10-28), Protoyard decks run on Texuli's deck library:
+
+- **What moved to Texuli.** The deck model and its validation, the layout
+  catalog, steps and fragments, transitions, navigation and hash routes, the
+  controls registry, input, the virtual canvas, backgrounds and their contrast
+  math, the presenter protocol, lint and patches are `@texuli/deck`'s; the
+  stage, chrome, overview, presenter view and window, print and layout
+  renderers are `@texuli/slides`'. Protoyard's own copies were deleted with
+  their tests; Texuli's tests cover them.
+- **What Protoyard keeps.** The deck JSON a blueprint stores (unchanged: no
+  conversion of existing decks), its offline media and link policy, theme ids
+  and font pairings, free slides painted by `@protoyard/blocks-ui` (persistent
+  block state, embedded apps, Protoyard-only blocks), custom slides, the debug
+  panel, Deck Studio, agent slide references, the deck sweep and the lint
+  rules the model's lint does not match yet (`too-many-words`,
+  `step-unrevealed`, `notes-boilerplate`, `unknown-background`). Free slides
+  fit their blocks with Protoyard's own `fitContent`
+  (`packages/decks-ui/src/app/fit.ts`): `@texuli/slides/layouts`' version
+  lacks the guard that keeps a zoom under which the content still fits, so a
+  chart that lays out at its measured width made the zoom flip every frame.
+- **What changed on screen.** The toolbar has the stage's look and sits below
+  the slide at the inline end; S/P opens the presenter view beside the slides
+  and the window opens from its button; Print opens `?print=1` in a new tab;
+  choosing a slide from the slide list moves focus to the slide; timers read
+  `m:ss`; `fade-up` is a slide transition too. E2E selectors use the stage's
+  `data-tx-deck-*` attributes and roles; `data-py-deck-app`, `data-slide-id`
+  and `data-slide-step` stay on DeckApp.
+- **New.** Markdown decks (`deck from-markdown`).
+
 ## Tests
 
 ```sh
 pnpm vitest run packages/decks packages/decks-ui
+pnpm vitest run packages/decks/tests/docs-snippets.test.ts   # every deck snippet in the guides parses
 pnpm vitest run packages/cli/tests/decks-docs.test.ts   # this guide's commands, example and catalog
 pnpm vitest run scripts/tests/deck-sweep.test.ts
-pnpm exec playwright test tests/e2e/deck-navigation.spec.ts
+pnpm exec playwright test tests/e2e/deck-navigation.spec.ts tests/e2e/deck-controls.spec.ts tests/e2e/deck-fragments.spec.ts tests/e2e/deck-everything.spec.ts
 pnpm exec playwright test tests/e2e/deck-presenter.spec.ts
 pnpm exec playwright test tests/e2e/deck-artifact.spec.ts
 pnpm check:docs

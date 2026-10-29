@@ -21,6 +21,7 @@ import {
 } from '@protoyard/analytics';
 import { Button } from '@protoyard/ui';
 import { type Snippet, tick, untrack } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 type Props = {
   /** The saved layout (data); the grid always shows it compacted. */
@@ -197,8 +198,9 @@ const controls: { label: string; icon: typeof ArrowUp; run: (id: string) => Prom
           role="toolbar"
           aria-label="Arrange {name(item)}"
         >
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             data-widget-handle={item.id}
             class="inline-flex size-7 cursor-grab items-center justify-center rounded-md text-sm text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             aria-label="{name(item)}, {position(item)}"
@@ -206,8 +208,8 @@ const controls: { label: string; icon: typeof ArrowUp; run: (id: string) => Prom
             aria-disabled={pending ? 'true' : undefined}
             onkeydown={(event) => onkeydown(event, item.id)}
           >
-            <GripVertical class="size-4" aria-hidden="true" />
-          </button>
+            <LucideIcon icon={GripVertical} class="size-4" />
+          </Button>
           {#each controls as control (control.label)}
             <Button
               variant="ghost"
@@ -218,7 +220,7 @@ const controls: { label: string; icon: typeof ArrowUp; run: (id: string) => Prom
               disabled={pending}
               onclick={() => control.run(item.id)}
             >
-              <control.icon class="size-3.5" aria-hidden="true" />
+              <LucideIcon icon={control.icon} class="size-3.5" />
             </Button>
           {/each}
         </div>

@@ -1,20 +1,24 @@
 <script lang="ts">
 import {
   ArrowDown,
-  Check,
   Copy,
   FileText,
   FolderPlus,
-  Menu,
   MessageSquarePlus,
   MoreHorizontal,
   Pin,
-  Search,
   Share2,
-  X,
 } from '@lucide/svelte';
 import { AI_MODELS, type AiModel } from '@protoyard/ai';
 import { onMount } from 'svelte';
+import { Badge } from 'texuli/badge';
+import { Button, IconButton } from 'texuli/button';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
+import { Input } from 'texuli/input';
+import { CopyButton, Kbd } from 'texuli/kbd-code';
+import { DropdownMenu } from 'texuli/menus';
+import { Select } from 'texuli/select';
 import MessageList from '../MessageList.svelte';
 import type {
   AssistantCanvas,
@@ -93,10 +97,16 @@ let sidebarOpen = $state(false);
 let folderDraft = $state('');
 let shareUrl = $state('');
 let shareError = $state('');
-let copiedShare = $state(false);
 let editingId = $state('');
 let editDraft = $state('');
-let searchInput = $state<HTMLInputElement | null>(null);
+let searchInput = $state<HTMLElement | null>(null);
+/** Texuli's Select keeps "" as "nothing chosen", so "all conversations" has its own value. */
+const ALL_FOLDERS = '__all';
+const folderItems = $derived([
+  { value: ALL_FOLDERS, label: 'All conversations' },
+  { value: '__unfiled', label: 'Unfiled' },
+  ...folders.map((folder) => ({ value: folder, label: folder })),
+]);
 const activeConversation = $derived(
   conversations.find((conversation) => conversation.id === activeId)
 );
@@ -171,16 +181,6 @@ async function createShareLink(): Promise<void> {
   }
 }
 
-async function copyShareLink(): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(shareUrl);
-    copiedShare = true;
-    setTimeout(() => (copiedShare = false), 1400);
-  } catch {
-    shareError = 'Clipboard access is unavailable. Copy the link from the field.';
-  }
-}
-
 function saveRename(id: string): void {
   const title = editDraft.trim();
   if (title) onRenameConversation?.(id, title);
@@ -202,27 +202,33 @@ function formatDate(date: string): string {
 </script>
 
 <div class="@container relative flex h-full min-h-[32rem] min-w-0 overflow-hidden rounded-2xl border border-border bg-background text-foreground shadow-soft">
-  {#if sidebarOpen}<button type="button" class="absolute inset-0 z-20 bg-black/30 @3xl:hidden" aria-label="Close conversation navigation" onclick={() => (sidebarOpen = false)}></button>{/if}
+  {#if sidebarOpen}<Button variant="ghost" class="absolute inset-0 z-20 h-auto rounded-none bg-black/30 hover:bg-black/30 @3xl:hidden" aria-label="Close conversation navigation" onclick={() => (sidebarOpen = false)} />{/if}
   <aside class={`absolute inset-y-0 left-0 z-30 flex w-[min(19rem,85%)] min-w-0 flex-col border-r border-border bg-surface transition-transform @3xl:static @3xl:w-72 @3xl:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full @3xl:translate-x-0'}`} aria-label="Conversation history">
     <div class="flex items-center gap-2 p-3">
-      <button type="button" class="flex min-h-11 flex-1 items-center gap-2 rounded-xl border border-border bg-background px-3 text-left text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" disabled={!onCreateConversation} onclick={newConversation}>
-        <MessageSquarePlus class="size-4" aria-hidden="true" /> New chat
-        <span class="ml-auto text-xs text-muted-foreground">⌘ K</span>
-      </button>
-      <button type="button" class="inline-flex size-11 items-center justify-center rounded-xl hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring @3xl:hidden" aria-label="Close conversation navigation" onclick={() => (sidebarOpen = false)}><X class="size-4" aria-hidden="true" /></button>
+      <Button variant="outline" class="min-h-11 flex-1 justify-start gap-2" disabled={!onCreateConversation} onclick={newConversation}>
+        <LucideIcon icon={MessageSquarePlus} size="sm" /> New chat
+        <Kbd class="ml-auto" aria-hidden="true">⌘ K</Kbd>
+      </Button>
+      <IconButton variant="ghost" class="@3xl:hidden" label="Close conversation navigation" onclick={() => (sidebarOpen = false)}><Icon icon="close" size="sm" /></IconButton>
     </div>
     <div class="px-3 pb-2">
       <label for="conversation-search" class="sr-only">Search conversations</label>
-      <div class="flex h-10 items-center gap-2 rounded-lg border border-border bg-background px-3 focus-within:ring-2 focus-within:ring-ring">
-        <Search class="size-4 text-muted-foreground" aria-hidden="true" />
-        <input bind:this={searchInput} bind:value={query} id="conversation-search" class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" placeholder="Search conversations" />
-        <kbd class="text-[0.65rem] text-muted-foreground">⌘K</kbd>
+      <div class="relative">
+        <Icon icon="search" size="sm" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input bind:ref={searchInput} bind:value={query} id="conversation-search" class="pl-9" placeholder="Search conversations" aria-keyshortcuts="Meta+K Control+K" />
       </div>
-      <label for="conversation-folder-filter" class="sr-only">Filter by folder</label>
-      <select id="conversation-folder-filter" bind:value={folderFilter} class="mt-2 h-9 w-full rounded-lg bg-transparent px-2 text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <option value="">All conversations</option><option value="__unfiled">Unfiled</option>
-        {#each folders as folder (folder)}<option value={folder}>{folder}</option>{/each}
-      </select>
+      <Select.Root
+        value={folderFilter || ALL_FOLDERS}
+        items={folderItems}
+        onValueChange={(value) => (folderFilter = value === ALL_FOLDERS ? '' : value)}
+      >
+        <Select.Trigger id="conversation-folder-filter" aria-label="Filter by folder" size="sm" class="mt-2 w-full text-xs text-muted-foreground">
+          <Select.Value />
+        </Select.Trigger>
+        <Select.Content>
+          {#each folderItems as item (item.value)}<Select.Item value={item.value} label={item.label}>{item.label}</Select.Item>{/each}
+        </Select.Content>
+      </Select.Root>
     </div>
     <nav class="min-h-0 flex-1 overflow-y-auto px-2 pb-2" aria-label="Conversations">
       {#if sortedConversations.length === 0}<p class="px-3 py-6 text-center text-xs text-muted-foreground">No conversations found.</p>{/if}
@@ -232,26 +238,32 @@ function formatDate(date: string): string {
             {#if editingId === conversation.id}
               <form class="flex gap-1" onsubmit={(event) => { event.preventDefault(); saveRename(conversation.id); }}>
                 <label class="sr-only" for={`rename-${conversation.id}`}>Conversation title</label>
-                <input id={`rename-${conversation.id}`} bind:value={editDraft} class="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-2 text-sm" maxlength="80" />
-                <button class="inline-flex size-9 items-center justify-center rounded-md hover:bg-background" aria-label="Save conversation title"><Check class="size-4" aria-hidden="true" /></button>
+                <Input id={`rename-${conversation.id}`} bind:value={editDraft} class="min-w-0 flex-1" maxlength={80} />
+                <IconButton type="submit" variant="ghost" label="Save conversation title"><Icon icon="check" size="sm" /></IconButton>
               </form>
             {:else}
               <div class="flex min-w-0 items-center gap-1">
-                <button type="button" class="min-h-10 min-w-0 flex-1 rounded-lg px-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-current={activeId === conversation.id ? 'page' : undefined} onclick={() => selectConversation(conversation.id)}>
-                  <span class="flex items-center gap-1.5 truncate text-sm">{#if conversation.pinned}<Pin class="size-3 shrink-0 text-primary" aria-label="Pinned" />{/if}<span class="truncate">{conversation.title || 'New conversation'}</span></span>
+                <Button variant="ghost" class="h-auto min-h-10 min-w-0 flex-1 flex-col items-stretch justify-center gap-0 px-2 py-1 text-left font-normal" aria-current={activeId === conversation.id ? 'page' : undefined} onclick={() => selectConversation(conversation.id)}>
+                  <span class="flex items-center gap-1.5 truncate text-sm">{#if conversation.pinned}<LucideIcon icon={Pin} size="xs" label="Pinned" class="shrink-0 text-primary" />{/if}<span class="truncate">{conversation.title || 'New conversation'}</span></span>
                   <span class="mt-0.5 block truncate text-[0.68rem] text-muted-foreground">{conversation.folder ?? 'Personal'} · {formatDate(conversation.updatedAt)}</span>
-                </button>
-                <details class="group relative shrink-0">
-                  <summary class="flex size-9 cursor-pointer list-none items-center justify-center rounded-md text-muted-foreground hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Actions for ${conversation.title}`}><MoreHorizontal class="size-4" aria-hidden="true" /></summary>
-                  <div class="absolute right-0 top-9 z-20 w-48 rounded-xl border border-border bg-elevated p-2 shadow-float">
-                    <button type="button" class="flex min-h-9 w-full items-center gap-2 rounded-lg px-2 text-left text-xs hover:bg-muted" disabled={!onRenameConversation} onclick={(event) => { editingId = conversation.id; editDraft = conversation.title; (event.currentTarget.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open'); }}>{conversation.title ? 'Rename' : 'Name conversation'}</button>
-                    <button type="button" class="flex min-h-9 w-full items-center gap-2 rounded-lg px-2 text-left text-xs hover:bg-muted" disabled={!onTogglePin} onclick={() => onTogglePin?.(conversation.id)}>{conversation.pinned ? 'Unpin' : 'Pin'} conversation</button>
-                    <label class="sr-only" for={`folder-${conversation.id}`}>Move {conversation.title} to folder</label>
-                    <select id={`folder-${conversation.id}`} class="mt-1 h-9 w-full rounded-md border border-border bg-background px-2 text-xs" value={conversation.folder ?? ''} disabled={!onMoveToFolder} onchange={(event) => onMoveToFolder?.(conversation.id, event.currentTarget.value || null)}>
-                      <option value="">Move to folder…</option>{#each folders as folder (folder)}<option value={folder}>{folder}</option>{/each}
-                    </select>
-                  </div>
-                </details>
+                </Button>
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger class="shrink-0" aria-label={`Actions for ${conversation.title}`}><LucideIcon icon={MoreHorizontal} size="sm" /></DropdownMenu.Trigger>
+                  <DropdownMenu.Content class="w-48">
+                    <DropdownMenu.Item disabled={!onRenameConversation} onSelect={() => { editingId = conversation.id; editDraft = conversation.title; }}>{conversation.title ? 'Rename' : 'Name conversation'}</DropdownMenu.Item>
+                    <DropdownMenu.Item disabled={!onTogglePin} onSelect={() => onTogglePin?.(conversation.id)}>{conversation.pinned ? 'Unpin' : 'Pin'} conversation</DropdownMenu.Item>
+                    {#if folders.length > 0}
+                      <DropdownMenu.Separator />
+                      <DropdownMenu.Group>
+                        <DropdownMenu.Label>Move {conversation.title} to folder</DropdownMenu.Label>
+                        <DropdownMenu.RadioGroup value={conversation.folder ?? ''} onValueChange={(folder) => onMoveToFolder?.(conversation.id, folder || null)}>
+                          {#each folders as folder (folder)}<DropdownMenu.RadioItem value={folder} disabled={!onMoveToFolder}>{folder}</DropdownMenu.RadioItem>{/each}
+                        </DropdownMenu.RadioGroup>
+                        {#if conversation.folder}<DropdownMenu.Item disabled={!onMoveToFolder} onSelect={() => onMoveToFolder?.(conversation.id, null)}>Remove from folder</DropdownMenu.Item>{/if}
+                      </DropdownMenu.Group>
+                    {/if}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
               </div>
             {/if}
           </li>
@@ -260,27 +272,27 @@ function formatDate(date: string): string {
     </nav>
     <form class="flex gap-2 border-t border-border p-3" onsubmit={(event) => { event.preventDefault(); addFolder(); }}>
       <label for="new-conversation-folder" class="sr-only">New folder name</label>
-      <input id="new-conversation-folder" bind:value={folderDraft} maxlength="40" class="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="New folder" disabled={!onCreateFolder} />
-      <button type="submit" class="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40" aria-label="Create folder" disabled={!onCreateFolder || !folderDraft.trim()}><FolderPlus class="size-4" aria-hidden="true" /></button>
+      <Input id="new-conversation-folder" bind:value={folderDraft} maxlength={40} class="min-w-0 flex-1 text-xs" placeholder="New folder" disabled={!onCreateFolder} />
+      <IconButton type="submit" variant="ghost" label="Create folder" disabled={!onCreateFolder || !folderDraft.trim()}><LucideIcon icon={FolderPlus} size="sm" /></IconButton>
     </form>
     <p class="px-4 pb-3 text-[0.65rem] text-muted-foreground">All conversations and models are simulated.</p>
   </aside>
 
   <section class="flex min-w-0 flex-1 flex-col" aria-label="Assistant conversation">
     <header class="flex min-h-14 items-center gap-2 border-b border-border px-3 @xl:px-5">
-      <button type="button" class="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring @3xl:hidden" aria-label="Open conversation history" onclick={() => (sidebarOpen = true)}><Menu class="size-4" aria-hidden="true" /></button>
+      <IconButton variant="ghost" class="@3xl:hidden" label="Open conversation history" onclick={() => (sidebarOpen = true)}><Icon icon="menu" size="sm" /></IconButton>
       <div class="min-w-0 flex-1">
         <h1 class="truncate text-sm font-semibold">{activeConversation?.title || 'New conversation'}</h1>
         <p class="text-[0.68rem] text-muted-foreground">{activeModel?.name ?? 'Simulated assistant'} · Simulated</p>
       </div>
-      {#if onShare}<button type="button" class="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40" aria-label="Create share link" disabled={!activeId} onclick={() => void createShareLink()}><Share2 class="size-4" aria-hidden="true" /><span class="hidden @xl:inline">Share</span></button>{/if}
-      {#if canvas}<span class="inline-flex min-h-8 items-center gap-1 rounded-full border border-border px-2 text-[0.68rem] text-muted-foreground"><FileText class="size-3" aria-hidden="true" /> Canvas open</span>{/if}
+      {#if onShare}<Button variant="ghost" size="sm" aria-label="Create share link" disabled={!activeId} onclick={createShareLink}><LucideIcon icon={Share2} size="sm" /><span class="hidden @xl:inline">Share</span></Button>{/if}
+      {#if canvas}<Badge variant="outline" class="gap-1"><LucideIcon icon={FileText} size="xs" /> Canvas open</Badge>{/if}
     </header>
     {#if shareUrl || shareError}
       <div class="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-2">
-        {#if shareUrl}<label for="assistant-share-link" class="sr-only">Share link</label><input id="assistant-share-link" readonly value={shareUrl} class="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-2 text-xs" /><button type="button" class="inline-flex size-9 items-center justify-center rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" aria-label="Copy share link" onclick={() => void copyShareLink()}>{#if copiedShare}<Check class="size-4" aria-hidden="true" />{:else}<Copy class="size-4" aria-hidden="true" />{/if}</button>{/if}
+        {#if shareUrl}<label for="assistant-share-link" class="sr-only">Share link</label><Input id="assistant-share-link" readonly value={shareUrl} class="min-w-0 flex-1 text-xs" /><CopyButton value={shareUrl} size="sm" label="Copy share link" copiedLabel="Share link copied" onCopy={() => (shareError = '')} onCopyError={() => (shareError = 'Clipboard access is unavailable. Copy the link from the field.')}><LucideIcon icon={Copy} size="sm" /></CopyButton>{/if}
         {#if shareError}<p role="alert" class="text-xs text-destructive">{shareError}</p>{/if}
-        <button type="button" class="inline-flex size-9 items-center justify-center rounded-md hover:bg-muted" aria-label="Close share link" onclick={() => { shareUrl = ''; shareError = ''; }}><X class="size-4" aria-hidden="true" /></button>
+        <IconButton variant="ghost" size="sm" label="Close share link" onclick={() => { shareUrl = ''; shareError = ''; }}><Icon icon="close" size="sm" /></IconButton>
       </div>
     {/if}
     {#if streaming}<p role="status" class="border-b border-border px-5 py-2 text-xs text-primary">Generating a simulated response… Press Esc to stop.</p>{/if}
@@ -298,20 +310,18 @@ function formatDate(date: string): string {
           />
         {:else}
           <div class="min-h-0 flex-1 overflow-y-auto px-4 py-5 @xl:px-8">
-          {#if messages.length === 0}
             <div class="mx-auto flex min-h-full max-w-2xl flex-col justify-center py-8">
               <div class="mb-8 text-center">
-                <div class="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><MessageSquarePlus class="size-5" aria-hidden="true" /></div>
+                <div class="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><LucideIcon icon={MessageSquarePlus} size="md" /></div>
                 <h2 class="text-xl font-semibold tracking-tight @xl:text-2xl">What would you like to explore?</h2>
                 <p class="mt-2 text-sm text-muted-foreground">Draft, reason, and experiment with a deterministic simulated assistant.</p>
               </div>
               <div class="grid gap-2 @xl:grid-cols-2">
                 {#each suggestions as suggestion (suggestion)}
-                  <button type="button" class="min-h-14 rounded-xl border border-border bg-surface px-4 py-3 text-left text-sm text-muted-foreground shadow-soft transition-colors hover:border-ring/50 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!activeId || !activeModel || streaming} onclick={() => chooseSuggestion(suggestion)}><span>{suggestion}</span><ArrowDown class="mt-1 size-3 text-muted-foreground/60" aria-hidden="true" /></button>
+                  <Button variant="outline" class="h-auto min-h-14 flex-col items-start justify-start whitespace-normal px-4 py-3 text-left font-normal text-muted-foreground hover:text-foreground" disabled={!activeId || !activeModel || streaming} onclick={() => chooseSuggestion(suggestion)}><span>{suggestion}</span><LucideIcon icon={ArrowDown} size="xs" class="mt-1 text-muted-foreground/60" /></Button>
                 {/each}
               </div>
             </div>
-          {/if}
           </div>
         {/if}
         <footer class="space-y-2 border-t border-border bg-background/90 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] @xl:px-5">

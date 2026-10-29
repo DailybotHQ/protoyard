@@ -1,17 +1,20 @@
 <script lang="ts">
-import { Dialog as DialogPrimitive } from 'bits-ui';
-import type { Snippet } from 'svelte';
-import { cn } from '../../lib/cn.ts';
-import { overlayBackdrop } from '../../lib/overlay.ts';
+import type { ComponentProps, Snippet } from 'svelte';
+import { cx } from 'texuli/cx';
+import { Drawer } from 'texuli/sheet';
+import { refAttachment } from '../../lib/ref.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
-import { isUndoToasterTarget } from '../overlay/focus-exempt.ts';
+import { overlayDismissHandler } from '../overlay/dismiss.ts';
 import { type OverlayStack, overlayStack } from '../overlay/overlay-stack.ts';
+import { installPopoverOrder } from '../overlay/popover-order.ts';
 import { useOverlayLayer } from '../overlay/use-overlay-layer.svelte.ts';
-import { undoToast } from '../toast/undo.svelte.ts';
-import { prefersReducedMotion, shouldDismissSwipe } from './swipe.ts';
 
-type Props = Omit<DialogPrimitive.ContentProps, 'children' | 'child' | 'title'> & {
+type Props = Omit<
+  ComponentProps<typeof Drawer.Content>,
+  'children' | 'title' | 'side' | 'dismissible' | 'snapPoints' | 'activeSnapPoint'
+> & {
+  ref?: HTMLElement | null;
   open?: boolean;
   title: string;
   description?: string;
@@ -21,7 +24,7 @@ type Props = Omit<DialogPrimitive.ContentProps, 'children' | 'child' | 'title'> 
   footer?: Snippet;
   children?: Snippet;
   onOpenChange?: (open: boolean) => void;
-  /** Drag the handle/header down to close (Esc and the backdrop always work). */
+  /** Drag the sheet down to close (Esc and the backdrop always work). */
   swipeToDismiss?: boolean;
   /** Defaults to the shared stack; pass one to isolate a subtree (tests). Read once at mount. */
   stack?: OverlayStack;
@@ -44,9 +47,10 @@ let {
 }: Props = $props();
 
 const portal = useOverlayPortalTarget();
+// Popovers opened inside the overlay stay above Texuli's dialog backdrop (gap N30).
+installPopoverOrder();
 // svelte-ignore state_referenced_locally
 const layer = useOverlayLayer(() => open, { modal: () => true, stack });
-const trapFocus = $derived(undoToast.items.length === 0);
 
 function setOpen(next: boolean): void {
   if (open === next) return;
@@ -54,107 +58,59 @@ function setOpen(next: boolean): void {
   onOpenChange?.(next);
 }
 
-function handleEscape(event: KeyboardEvent): void {
-  event.preventDefault();
-  if (!layer.stack.isTop(layer.entry)) return;
-  if (layer.stack.dismissLayerFor(event, ref)) return;
-  setOpen(false);
-}
+const handleDismiss = overlayDismissHandler({ layer, element: () => ref });
 
-function handleInteractOutside(event: PointerEvent): void {
-  if (isUndoToasterTarget(event.target) || !layer.stack.isTop(layer.entry)) {
-    event.preventDefault();
-  }
-}
-
-function handleCloseAutoFocus(event: Event): void {
+function handleCloseAutoFocus(event: { preventDefault(): void }): void {
   event.preventDefault();
   layer.restoreFocus(ref);
 }
-
-let drag = $state<{ id: number; startY: number; startAt: number; dy: number } | null>(null);
-let settling = $state(false);
-
-function onpointerdown(event: PointerEvent) {
-  if (!swipeToDismiss || event.button !== 0) return;
-  (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
-  drag = { id: event.pointerId, startY: event.clientY, startAt: performance.now(), dy: 0 };
-  settling = false;
-}
-
-function onpointermove(event: PointerEvent) {
-  if (!drag || event.pointerId !== drag.id) return;
-  // Only downward travel; a little resistance upwards keeps it feeling attached.
-  const raw = event.clientY - drag.startY;
-  drag.dy = raw > 0 ? raw : raw / 6;
-}
-
-function onpointerup(event: PointerEvent) {
-  if (!drag || event.pointerId !== drag.id) return;
-  const dismiss = shouldDismissSwipe({
-    distance: drag.dy,
-    height: ref?.getBoundingClientRect().height ?? 0,
-    durationMs: performance.now() - drag.startAt,
-  });
-  drag = null;
-  // Snap back smoothly unless the user asked for reduced motion.
-  settling = !prefersReducedMotion(ref);
-  if (settling) setTimeout(() => (settling = false), 220);
-  if (dismiss) setOpen(false);
-}
-
-const dragStyle = $derived(
-  drag && drag.dy !== 0 ? `transform: translateY(${drag.dy}px); transition: none;` : undefined
-);
 </script>
 
-<DialogPrimitive.Root open={open} onOpenChange={setOpen}>
+<!--
+  Texuli's drawer from `texuli/sheet` (drag with fling and snap back,
+  reduced-motion aware), from the bottom edge. Protoyard adds the framed-device
+  container (its root opens `contained` inside a device screen, otherwise in
+  the top layer) and the shared overlay stack (z-order, top-layer dismiss,
+  focus return).
+-->
+<Drawer.Root
+  {open}
+  onOpenChange={setOpen}
+  mode={portal.mode}
+  container={portal.container}
+  onDismissRequest={handleDismiss}
+  onCloseAutoFocus={handleCloseAutoFocus}
+>
   {#if trigger}
-    <DialogPrimitive.Trigger>
+    <Drawer.Trigger>
       {#snippet child({ props })}{@render trigger({ props })}{/snippet}
-    </DialogPrimitive.Trigger>
+    </Drawer.Trigger>
   {/if}
-  <DialogPrimitive.Portal to={portal.current}>
-    <DialogPrimitive.Overlay class={overlayBackdrop} style={`z-index:${layer.zIndex}`} />
-    <DialogPrimitive.Content
-      bind:ref
-      trapFocus={trapFocus}
-      onEscapeKeydown={handleEscape}
-      onInteractOutside={handleInteractOutside}
-      onCloseAutoFocus={handleCloseAutoFocus}
-      class={cn(
-        'fixed inset-x-0 bottom-0 mx-auto flex max-h-[calc(var(--py-app-height)*0.9)] w-full max-w-lg flex-col rounded-t-2xl border border-b-0 border-border bg-elevated text-foreground shadow-float outline-none ui-anim-sheet',
-        settling && 'transition-transform duration-200 ease-out',
-        className
-      )}
+  <Drawer.Portal>
+    <Drawer.Overlay
+      class="tx-sheet-overlay"
+      data-tx-sheet-overlay=""
+      style={`z-index:${layer.zIndex}`}
+    />
+    <Drawer.Content
+      {@attach refAttachment<HTMLElement>((node) => (ref = node))}
+      side="bottom"
+      dismissible={swipeToDismiss}
+      class={cx('ui-bottom-sheet', className)}
       {...rest}
-      style={[dragStyle, `z-index:${layer.zIndex}`].filter(Boolean).join(';')}
+      style={`z-index:${layer.zIndex}`}
     >
-      <!-- Drag zone: the handle and header. Pointer-only by design; keyboard users close with Esc. -->
-      <div
-        class={cn('shrink-0 touch-none select-none', swipeToDismiss && 'cursor-grab active:cursor-grabbing')}
-        data-sheet-drag-handle=""
-        {onpointerdown}
-        {onpointermove}
-        {onpointerup}
-        onpointercancel={() => (drag = null)}
-        role="presentation"
-      >
-        <div class="mx-auto mt-2.5 mb-1 h-1.5 w-10 rounded-full bg-muted-foreground/30" aria-hidden="true"></div>
-      <div class={cn('grid gap-1 px-5 pt-2 pb-3 text-center', hideTitle && 'sr-only')}>
-        <DialogPrimitive.Title class="font-heading text-base font-semibold">{title}</DialogPrimitive.Title>
+      <Drawer.Handle />
+      <div class="ui-sheet__heading ui-bottom-sheet__heading" data-hidden={hideTitle ? '' : undefined}>
+        <Drawer.Title class="ui-sheet__title">{title}</Drawer.Title>
         {#if description}
-          <DialogPrimitive.Description class="text-sm text-muted-foreground">
-            {description}
-          </DialogPrimitive.Description>
+          <Drawer.Description class="ui-sheet__description">{description}</Drawer.Description>
         {/if}
       </div>
-      </div>
-      <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-4 text-sm">{@render children?.()}</div>
+      <div class="ui-sheet__body">{@render children?.()}</div>
       {#if footer}
-        <div class="flex flex-col gap-2 border-t border-border px-5 pt-3 pb-3">{@render footer()}</div>
+        <div class="ui-sheet__footer ui-bottom-sheet__footer">{@render footer()}</div>
       {/if}
-      <div class="pb-safe"></div>
-    </DialogPrimitive.Content>
-  </DialogPrimitive.Portal>
-</DialogPrimitive.Root>
+    </Drawer.Content>
+  </Drawer.Portal>
+</Drawer.Root>

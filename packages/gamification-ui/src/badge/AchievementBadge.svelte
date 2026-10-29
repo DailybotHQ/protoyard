@@ -1,6 +1,9 @@
 <script lang="ts">
 import { Award } from '@lucide/svelte';
 import type { IconComponent } from '@protoyard/ui';
+import { Button } from 'texuli/button';
+import { Card } from 'texuli/card';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 /**
  * Achievement tile with an optional circular progress ring. `progress`/`goal`
@@ -46,7 +49,7 @@ const spoken = $derived(
         cy={size / 2}
         r={radius}
         fill="none"
-        stroke="var(--py-muted, hsl(var(--muted)))"
+        stroke="var(--tx-muted, hsl(var(--muted)))"
         stroke-width={stroke}
       />
       {#if ratio > 0}
@@ -55,7 +58,7 @@ const spoken = $derived(
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={earned ? 'var(--py-success, hsl(var(--success)))' : 'var(--py-primary, hsl(var(--primary)))'}
+          stroke={earned ? 'var(--tx-success, hsl(var(--success)))' : 'var(--tx-primary, hsl(var(--primary)))'}
           stroke-width={stroke}
           stroke-linecap="round"
           stroke-dasharray={circumference}
@@ -69,7 +72,7 @@ const spoken = $derived(
         ? 'bg-success/15 text-success'
         : 'bg-muted text-muted-foreground'}"
     >
-      <Icon class="size-4" aria-hidden="true" />
+      <LucideIcon icon={Icon} class="size-4" />
     </span>
   </span>
   <span class="line-clamp-2 text-center text-xs font-medium text-foreground">{name}</span>
@@ -82,24 +85,24 @@ const spoken = $derived(
 {/snippet}
 
 {#if onclick}
-  <button
-    type="button"
-    class="flex w-full flex-col items-center gap-1.5 rounded-xl border border-border bg-surface p-3 text-surface-foreground shadow-soft transition-colors hover:border-ring/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {className}"
+  <Button
+    variant="outline"
+    class="flex h-auto w-full flex-col items-center gap-1.5 rounded-xl p-3 text-surface-foreground shadow-soft transition-colors hover:border-ring/50 {className}"
     aria-label={spoken}
     {onclick}
     data-py-achievement-badge
     data-earned={earned ? 'true' : undefined}
   >
     {@render body()}
-  </button>
+  </Button>
 {:else}
-  <div
-    class="flex flex-col items-center gap-1.5 rounded-xl border border-border bg-surface p-3 text-surface-foreground shadow-soft {className}"
+  <Card
+    class="flex flex-col items-center gap-1.5 rounded-xl p-3 text-surface-foreground shadow-soft {className}"
     role="img"
     aria-label={spoken}
     data-py-achievement-badge
     data-earned={earned ? 'true' : undefined}
   >
     {@render body()}
-  </div>
+  </Card>
 {/if}

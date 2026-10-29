@@ -140,7 +140,7 @@ describe('DECK_LAYOUTS catalog', () => {
 
 describe('getDeckLayout with untrusted ids', () => {
   it('never resolves inherited prototype keys', async () => {
-    const { getDeckLayout } = await import('../src/layouts/catalog.ts');
+    const { getDeckLayout } = await import('../src/layouts/index.ts');
     for (const id of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
       expect(getDeckLayout(id), id).toBeUndefined();
     }

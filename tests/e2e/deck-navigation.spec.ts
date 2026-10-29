@@ -37,7 +37,8 @@ test.describe('deck navigation on a built catalog deck', () => {
     page,
   }) => {
     await page.goto(`${deckUrl}#/cover/0`);
-    await page.locator('[data-py-deck-slide="cover"]').click({ position: { x: 8, y: 8 } });
+    // The @texuli/slides stage marks each slide with data-tx-deck-slide.
+    await page.locator('[data-tx-deck-slide="cover"]').click({ position: { x: 8, y: 8 } });
     await expectLocation(page, 'divider', 0);
 
     await page.goto(`${deckUrl}#/quiz/0`);
@@ -64,29 +65,27 @@ test.describe('deck navigation on a built catalog deck', () => {
   test('overview selection and fullscreen escape stay on the chosen slide', async ({ page }) => {
     await page.goto(`${deckUrl}#/cover/0`);
     await page.keyboard.press('o');
-    await expect(page.getByRole('dialog', { name: 'Slide overview' })).toBeVisible();
-    await page.locator('[data-py-deck-overview-item="quiz"]').click();
+    // The stage's overview is a navigation landmark of slide cards.
+    const overview = page.getByRole('navigation', { name: 'Slides' });
+    await expect(overview).toBeVisible();
+    await page.locator('[data-tx-deck-overview-item="quiz"]').click();
     await expectLocation(page, 'quiz', 0);
-    await expect(page.getByRole('dialog', { name: 'Slide overview' })).toHaveCount(0);
+    await expect(overview).toHaveCount(0);
 
+    // Full screen holds the stage root (the deck, without the host page).
+    const stage = page.locator('.tx-deck-stage');
     await page.keyboard.press('f');
     await expect
-      .poll(() =>
-        page.locator('[data-py-deck-app]').evaluate((root) => document.fullscreenElement === root)
-      )
+      .poll(() => stage.evaluate((root) => document.fullscreenElement === root))
       .toBe(true);
     await page.keyboard.press('f');
-    await expect
-      .poll(() =>
-        page.locator('[data-py-deck-app]').evaluate(() => document.fullscreenElement === null)
-      )
-      .toBe(true);
+    await expect.poll(() => stage.evaluate(() => document.fullscreenElement === null)).toBe(true);
     await expectLocation(page, 'quiz', 0);
 
     await page.keyboard.press('?');
-    await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toHaveCount(0);
+    await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toHaveCount(0);
   });
 
   test('honors a reduced-motion browser preference without disabling navigation', async ({
@@ -98,16 +97,67 @@ test.describe('deck navigation on a built catalog deck', () => {
       .poll(() => page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches))
       .toBe(true);
 
+    await expect(page.locator('.tx-deck-stage')).toHaveAttribute('data-motion', 'reduce');
     await page.keyboard.press('ArrowRight');
     await expectLocation(page, 'divider', 0);
     await expect
       .poll(() =>
         page
-          .locator('[data-py-deck-slide="divider"]')
+          .locator('[data-tx-deck-slide="divider"]')
           .evaluate((slide) => getComputedStyle(slide).animationName)
       )
       .toBe('none');
   });
+
+  // Regression: the reduced-motion reset (`@protoyard/themes/base.css`) gave
+  // every element a 0.01ms transition of `all`, `visibility` included. A
+  // slide mounted hidden beside the current one, with its blocks already
+  // loaded, then revealed its subtree one nesting level per style update once
+  // it turned active: on a slow device its buttons stayed hidden for frames
+  // while the slide showed, so a screen reader (or axe) could meet a button
+  // whose label was not visible yet. This rebuilds that state in the real deck
+  // page (its stylesheet, reduced motion): content as deep as a deck block,
+  // mounted inside a hidden container that then turns visible.
+  for (const motion of ['media', 'toggle'] as const) {
+    test(`reduced motion (${motion}) shows hidden-mounted content in the same frame it turns visible`, async ({
+      page,
+    }) => {
+      if (motion === 'media') await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.goto(`${deckUrl}#/cover/0`);
+      await expectLocation(page, 'cover', 0);
+      const result = await page.evaluate(async (useToggle) => {
+        if (useToggle) document.documentElement.setAttribute('data-py-motion', 'reduce');
+        const frame = () => new Promise((done) => requestAnimationFrame(() => done(null)));
+        const container = document.createElement('div');
+        container.style.visibility = 'hidden';
+        let parent: HTMLElement = container;
+        for (let depth = 0; depth < 25; depth += 1) {
+          const child = document.createElement('div');
+          parent.append(child);
+          parent = child;
+        }
+        const button = document.createElement('button');
+        button.type = 'button';
+        const label = document.createElement('span');
+        label.textContent = 'Deep option';
+        button.append(label);
+        parent.append(button);
+        document.body.append(container);
+        await frame();
+        await frame();
+        const before = getComputedStyle(label).visibility;
+        container.style.visibility = 'visible';
+        await frame();
+        const after = getComputedStyle(label).visibility;
+        const duration = getComputedStyle(button).transitionDuration;
+        container.remove();
+        return { before, after, duration };
+      }, motion === 'toggle');
+      expect(result.before).toBe('hidden');
+      expect(result.after, 'the deepest label is visible on the next frame').toBe('visible');
+      expect(result.duration, 'no transition under reduced motion').toBe('0s');
+    });
+  }
 
   test('a horizontal touch swipe advances a slide on mobile', async ({ page }, testInfo) => {
     test.skip(
@@ -115,7 +165,8 @@ test.describe('deck navigation on a built catalog deck', () => {
       'Touch swipe is exercised in the mobile project.'
     );
     await page.goto(`${deckUrl}#/cover/0`);
-    const root = page.locator('[data-py-deck-app]');
+    // Swipes are read on the stage canvas.
+    const root = page.locator('[data-tx-deck-canvas]');
     await root.evaluate((element) => {
       element.dispatchEvent(
         new PointerEvent('pointerdown', {

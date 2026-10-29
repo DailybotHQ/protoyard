@@ -2,10 +2,10 @@ import type { PrototypeDefinition } from '@protoyard/core';
 import type { DocDocument, PageDocument } from '@protoyard/pages';
 import {
   type AnyContentBlueprint,
-  defineKindRuntime,
+  defineKindPrototype,
   KIND_DEFAULT_SCENARIO,
   KIND_GENERATOR_VERSION,
-  type KindRuntimeOptions,
+  type KindPrototypeOptions,
 } from './runtime.ts';
 
 /**
@@ -34,7 +34,9 @@ export const PAGES_GENERATOR_VERSION = KIND_GENERATOR_VERSION;
 
 /**
  * Builds the shared content-kind runtime for a page document body by wrapping
- * it as a `kind: "page"` blueprint and calling {@link defineKindRuntime}.
+ * it as a `kind: "page"` blueprint and calling {@link defineKindPrototype}.
+ * The wrapper has no `brand` (the default theme), so it never loads brand
+ * resolution or the palette generator a seed brand needs.
  * Lives in `@protoyard/blueprint/kinds` so `@protoyard/pages` stays free of a
  * blueprint dependency (no package cycle).
  */
@@ -42,7 +44,7 @@ export function definePrototypeFromPage(
   page: PageDocument,
   options: PageDocRuntimeOptions
 ): PrototypeDefinition {
-  return defineKindRuntime(pageBlueprint(page, options), toKindOptions(options));
+  return defineKindPrototype(pageBlueprint(page, options), toKindOptions(options));
 }
 
 /**
@@ -52,14 +54,16 @@ export function definePrototypeFromDoc(
   doc: DocDocument,
   options: PageDocRuntimeOptions
 ): PrototypeDefinition {
-  return defineKindRuntime(docBlueprint(doc, options), toKindOptions(options));
+  return defineKindPrototype(docBlueprint(doc, options), toKindOptions(options));
 }
 
-function toKindOptions(options: PageDocRuntimeOptions): KindRuntimeOptions {
+function toKindOptions(options: PageDocRuntimeOptions): KindPrototypeOptions {
   return {
     namespace: options.namespace,
     slug: options.slug,
     version: options.version,
+    defaultThemeId: null,
+    brandTheme: null,
   };
 }
 

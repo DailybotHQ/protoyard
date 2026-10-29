@@ -3,9 +3,11 @@ import { House, Settings } from '@lucide/svelte';
 import BottomNav from '../../src/components/bottom-nav/BottomNav.svelte';
 import MobileAppShell from '../../src/components/mobile-app-shell/MobileAppShell.svelte';
 import MobileHeader from '../../src/components/mobile-header/MobileHeader.svelte';
+
+let { class: className }: { class?: string } = $props();
 </script>
 
-<MobileAppShell>
+<MobileAppShell class={className}>
   {#snippet header()}
     <MobileHeader title="My app" />
   {/snippet}

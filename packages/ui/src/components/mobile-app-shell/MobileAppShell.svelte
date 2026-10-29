@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import { MobileAppFrame } from 'texuli/layouts/mobile';
 import { cn } from '../../lib/cn.ts';
 
 interface Props {
@@ -27,39 +28,28 @@ let {
   mainId = 'mobile-app-content',
   skipLabel = 'Skip to content',
 }: Props = $props();
-
-let mainElement: HTMLElement;
-
-$effect(() => {
-  const resetScroll = () => {
-    mainElement.scrollTop = 0;
-  };
-  window.addEventListener('hashchange', resetScroll);
-  return () => window.removeEventListener('hashchange', resetScroll);
-});
 </script>
 
-<div class={cn('flex h-app min-h-0 flex-col overflow-hidden bg-background text-foreground', className)}>
-  <a
-    href={`#${mainId}`}
-    class="sr-only z-[70] rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
-    onclick={(event) => {
-      event.preventDefault();
-      mainElement.focus();
-    }}
-  >
-    {skipLabel}
-  </a>
-
-  {@render header?.()}
-  <main
-    bind:this={mainElement}
-    id={mainId}
-    tabindex="-1"
-    class={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain outline-none', mainClass)}
-  >
-    {@render children()}
-  </main>
+<!--
+  The caller's footer renders as is, between the scroll region and the navigation. Texuli's own
+  stickyFooter wraps it in a padded, bordered strip that shows even when the snippet renders
+  nothing (screens publish their footer conditionally), so it goes in the frame's bottom slot.
+-->
+{#snippet bottom()}
   {@render stickyFooter?.()}
   {@render bottomNav?.()}
-</div>
+{/snippet}
+
+<!--
+  Texuli's frame fills --tx-app-height (the renderer maps it to --py-app-height) from
+  @layer tx.components, below Tailwind's utilities, so a caller's height class (h-[640px]) wins.
+-->
+<MobileAppFrame
+  {header}
+  bottomNav={stickyFooter || bottomNav ? bottom : undefined}
+  {children}
+  {mainId}
+  {skipLabel}
+  class={cn('ui-mobile-app-shell', className)}
+  {mainClass}
+/>

@@ -3,6 +3,7 @@ import { CalendarDays, ClipboardList, ShieldCheck, Stethoscope, Users } from '@l
 import { createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
 import { AppShell, Avatar, Badge, Header, Sidebar } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import SimulationBanner from './components/SimulationBanner.svelte';
 import { ROLE_LABELS } from './domain/policy.ts';
 import { provideClinic } from './lib/context.ts';
@@ -40,7 +41,7 @@ const clinicName = $derived(principal.current?.organization?.name ?? 'Clinic');
       {#snippet header()}
         <a href="#/" class="flex min-w-0 items-center gap-2.5 rounded-md px-1">
           <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm" aria-hidden="true">
-            <Stethoscope class="size-4" />
+            <LucideIcon icon={Stethoscope} class="size-4" />
           </span>
           <span class="truncate text-sm font-semibold">{clinicName}</span>
         </a>

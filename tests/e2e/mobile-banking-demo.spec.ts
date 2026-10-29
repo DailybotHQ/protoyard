@@ -181,8 +181,9 @@ test.describe('Lumen Bank (static build)', () => {
     // Document itself does not scroll — only the shell <main> does.
     const scroll = await page.evaluate(() => ({
       docTop: document.documentElement.scrollTop + document.body.scrollTop,
-      mainScrollable:
-        document.getElementById('main')?.classList.contains('overflow-y-auto') ?? false,
+      mainScrollable: ['auto', 'scroll'].includes(
+        getComputedStyle(document.getElementById('main') as HTMLElement).overflowY
+      ),
       shellOverflow: document.querySelector('[class*="overflow-hidden"]') !== null,
     }));
     expect(scroll.docTop).toBe(0);

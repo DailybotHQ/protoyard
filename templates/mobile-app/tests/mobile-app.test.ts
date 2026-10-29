@@ -121,15 +121,16 @@ describe('app shell', () => {
 
     // In flow: not fixed to the window, so no viewport preset or frame can push it off screen.
     expect(nav.className).not.toMatch(/\bfixed\b/);
-    expect(main?.className).toMatch(/\boverflow-y-auto\b/);
+    // texuli's mobile layout: <main> is the scroll region, the tab bar sits after it.
+    expect(main?.className).toContain('tx-mobile-layout__main');
     expect(main?.contains(nav)).toBe(false);
-    const tabBar = container.querySelector('[data-py-tab-bar]');
+    const tabBar = container.querySelector('[data-tx-mobile-tabs]');
     expect(main?.parentElement?.contains(tabBar)).toBe(true);
     expect(
       (main?.compareDocumentPosition(tabBar ?? nav) ?? 0) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    // The shell is exactly one app-height tall; no desktop card or md: frame remains.
-    expect(main?.parentElement?.className).toMatch(/\bh-app\b/);
+    // The shell is the mobile layout (one app-height tall: --tx-app-height); no desktop card remains.
+    expect(main?.closest('[data-tx-layout="mobile-tabs"]')).toBeTruthy();
     expect(container.querySelector('[data-py-layout-host]')?.getAttribute('data-layout')).toBe(
       'mobile-tabs'
     );

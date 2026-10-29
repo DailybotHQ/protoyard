@@ -214,7 +214,7 @@ its own lazy chunk through the `/onboarding` route.
 <WorkspaceSwitcher {runtime} />
 ```
 
-Dropdown (Bits UI) lists the signed-in persona's organizations, marks the
+Dropdown lists the signed-in persona's organizations, marks the
 active one, switches via `createWorkspaces(runtime).switchTo`, and opens a
 create dialog that calls `workspaces.create` (owner membership + switch).
 Requires the prototype policy to grant `workspaces:create` (or `*`).

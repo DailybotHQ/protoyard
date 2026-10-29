@@ -7,7 +7,7 @@ export type IconComponent = Component<LucideProps>;
 /** Adds a bindable `ref` to the underlying DOM element. */
 export type WithElementRef<T, E extends HTMLElement = HTMLElement> = T & { ref?: E | null };
 
-/** Props a trigger snippet must spread onto its interactive element (Bits UI `child` pattern). */
+/** Props a trigger snippet must spread onto its interactive element (the `child` snippet pattern). */
 export type TriggerSnippet = Snippet<[{ props: Record<string, unknown> }]>;
 
 /** A navigation entry rendered as a plain `<a href>` (prototypes use hash routing). */

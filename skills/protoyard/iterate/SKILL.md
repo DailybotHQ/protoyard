@@ -111,6 +111,12 @@ What regeneration does:
 Most product changes are owned code: a custom screen, a workflow, a
 validation rule in a service. Follow the repository's `AGENTS.md`:
 
+Build screen UI Texuli-first, using public `@protoyard/ui` exports for
+Protoyard host contracts. Follow the icon (`Icon`/`LucideIcon`), choice
+control (`Checkbox`/`RadioGroup`), DOM ref (`bind:ref`), and token (`--tx-*`)
+rules documented in `docs/TEXULI.md`. If a required API is missing, keep a
+minimal adapter and record the gap id.
+
 - **Mutations go through services.** UI → service → permission check →
   schema validation → transaction. Components never write tables directly,
   and every async action shows pending feedback.

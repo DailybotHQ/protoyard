@@ -228,6 +228,30 @@ pnpm vitest run packages/scenarios/tests/fixture-guard.test.ts
 pnpm vitest run packages/cli/tests/commands/validate.test.ts
 ```
 
+## Known residuals
+
+Open items from the security review, recorded so nobody mistakes them for
+covered:
+
+- **The gallery has no Content-Security-Policy yet.** The player's pages carry
+  a strict hash-based policy (above), but the Astro gallery and the static
+  site built from it send none: there is no CSP meta tag in
+  `apps/gallery/src` and no `_headers` file for it. Before the gallery is
+  hosted publicly, it needs the same treatment as the player: a hash-based
+  `script-src` for its inline scripts (no `unsafe-inline` for scripts), with
+  the header written for the host.
+- **`fast-uri` below 3.1.9 (build tooling only).** `pnpm audit --prod` reports
+  four advisories (two low, two moderate), all in `fast-uri`. It reaches the
+  tree only through the gallery's type checker: `@astrojs/check` →
+  `@astrojs/language-server` → `yaml-language-server` → `ajv` → `fast-uri`.
+  That chain runs during `astro check`; nothing from it is bundled into the
+  gallery, a prototype, the player or a package. It goes away when the
+  language server moves to `fast-uri` 3.1.9 or later.
+- **The public hygiene check** (`pnpm hygiene`) treats a whole `package.json`
+  dependency value that is a `link:` or `workspace:` path or a semver range as
+  a version, not a secret. A token-shaped value still fails, in `package.json`
+  and everywhere else ([`public-hygiene-secrets.test.ts`](../tests/scripts/public-hygiene-secrets.test.ts)).
+
 ## Rules for contributors and agents
 
 - Never commit secrets, tokens, `.env` files, real personal data, real

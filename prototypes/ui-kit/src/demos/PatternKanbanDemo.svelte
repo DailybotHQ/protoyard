@@ -1,5 +1,4 @@
 <script lang="ts">
-import { Plus } from '@lucide/svelte';
 import {
   AlertDialog,
   Avatar,
@@ -17,6 +16,7 @@ import {
   toast,
   UserPicker,
 } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
 import { sampleFace } from './faces.ts';
 import { PEOPLE } from './members.ts';
 
@@ -146,7 +146,7 @@ function remove(): void {
         }
       }}
     >
-      {#snippet trigger({ props })}<Button {...props} size="sm"><Plus aria-hidden="true" /> New task</Button>{/snippet}
+      {#snippet trigger({ props })}<Button {...props} size="sm"><Icon icon="plus" aria-hidden="true" /> New task</Button>{/snippet}
       <form id="pattern-kanban-new" class="py-1" novalidate onsubmit={create}>
         <FormField label="Title" required error={draftTouched ? titleError : undefined}>
           {#snippet children({ props })}<Input {...props} bind:value={draftTitle} />{/snippet}
@@ -171,8 +171,9 @@ function remove(): void {
       }}
     >
       {#snippet card(task)}
-        <button
+        <Button
           type="button"
+          variant="ghost"
           class="grid w-full gap-2 rounded-md text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           onclick={() => open(task)}
         >
@@ -181,7 +182,7 @@ function remove(): void {
             <Avatar name={nameOf(task.assignee)} {...sampleFace(nameOf(task.assignee))} size="xs" decorative />
             <Badge variant={priorityTone[task.priority]}>{task.priority}</Badge>
           </span>
-        </button>
+        </Button>
       {/snippet}
     </Kanban>
   </div>

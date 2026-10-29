@@ -253,7 +253,7 @@ describe('hostile markup in multiline fields renders as inert text', () => {
     value.deck.outline = { sections: [{ id: 's', slideIds: ['hostile', 'code'] }] };
     const target = await boot(value);
     await vi.waitFor(
-      () => expect(target.querySelector('[data-py-deck-slide="code"]')).not.toBeNull(),
+      () => expect(target.querySelector('[data-tx-deck-slide="code"]')).not.toBeNull(),
       {
         timeout: 15_000,
       }

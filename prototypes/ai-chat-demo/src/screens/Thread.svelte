@@ -11,6 +11,7 @@ import {
 import { Button, EmptyState, TypingIndicator } from '@protoyard/ui';
 import Dexie from 'dexie';
 import { tick } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import ChatComposer from '../components/ChatComposer.svelte';
 import ConversationMenu from '../components/ConversationMenu.svelte';
 import MessageThread from '../components/MessageThread.svelte';
@@ -159,7 +160,7 @@ async function sendStarter(prompt: string) {
         class="grid @3xl:hidden size-9 min-h-touch min-w-[44px] place-items-center rounded-md text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         aria-label="Back to conversations"
       >
-        <ArrowLeft class="size-5" aria-hidden="true" />
+        <LucideIcon icon={ArrowLeft} class="size-5" />
       </a>
       <div class="min-w-0 flex-1">
         <h1 bind:this={heading} tabindex="-1" class="truncate text-base font-semibold outline-none">{current.title}</h1>
@@ -173,12 +174,12 @@ async function sendStarter(prompt: string) {
 
     {#if !canSend}
       <div class="flex items-center gap-2 border-b border-border bg-info/10 px-4 py-2 text-sm" role="note">
-        <Eye class="size-4 shrink-0 text-info" aria-hidden="true" />
+        <LucideIcon icon={Eye} class="size-4 shrink-0 text-info" />
         <span>You have <span class="font-medium">read-only access</span> as a guest. Ask an admin for a member seat to post or invoke agents.</span>
       </div>
     {:else if archived}
       <div class="flex flex-wrap items-center gap-2 border-b border-border bg-muted px-4 py-2 text-sm" role="note">
-        <Archive class="size-4 shrink-0" aria-hidden="true" />
+        <LucideIcon icon={Archive} class="size-4 shrink-0" />
         <span class="flex-1">This conversation is archived.</span>
         {#if can(CAPABILITIES.manageConversation, current)}
           <Button size="sm" variant="outline" onclick={() => runService(() => services.archive(current.id, false), { success: 'Moved back to your inbox' })}>
@@ -197,13 +198,14 @@ async function sendStarter(prompt: string) {
           <ul class="flex max-w-lg flex-wrap justify-center gap-2">
             {#each STARTER_PROMPTS as prompt (prompt)}
               <li>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   class="rounded-full border border-border bg-surface px-3 py-1.5 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                   onclick={() => sendStarter(prompt)}
                 >
                   {prompt}
-                </button>
+                </Button>
               </li>
             {/each}
           </ul>
@@ -241,14 +243,15 @@ async function sendStarter(prompt: string) {
           <span>{replyHint}</span>
           {#if agents.length > 1}
             {#each agents as agent (agent.id)}
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 class="inline-flex min-h-touch items-center gap-1 rounded-full border border-border px-2 py-0.5 font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0"
                 onclick={() => mention(agent)}
                 aria-label={`Mention ${agent.name}`}
               >
                 <span class="size-2 rounded-full" style:background-color={agent.color} aria-hidden="true"></span>@{agent.handle}
-              </button>
+              </Button>
             {/each}
           {/if}
         </div>

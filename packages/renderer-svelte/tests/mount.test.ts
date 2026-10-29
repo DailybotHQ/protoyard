@@ -225,7 +225,7 @@ describe('mountPrototype', () => {
     expect(screen.getByTestId('mode').textContent).toBe('dark');
     await runtime.theme.setOverride({ density: 1.125 });
     flushSync();
-    expect(root.style.getPropertyValue('--py-density')).toBe('1.125');
+    expect(root.style.getPropertyValue('--tx-density')).toBe('1.125');
     const cached = JSON.parse(localStorage.getItem('protoyard.fake.appearance') ?? '{}');
     expect(cached.themeId).toBe('ocean');
   });
@@ -359,6 +359,16 @@ describe('liveQuery', () => {
     await view.rerender({ db, min: 5, mode: 'deps' });
     await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('1');
     view.unmount();
+    db.close();
+  });
+
+  it('publishes deferred query results on a separate task', async () => {
+    const db = await seed();
+    const view = render(LiveList, { db, min: 0, mode: 'deferred' });
+    expect(screen.getByText('loading')).toBeTruthy();
+    await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('2');
+    view.unmount();
+    await tick();
     db.close();
   });
 

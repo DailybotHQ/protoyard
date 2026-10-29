@@ -1,6 +1,7 @@
 <script lang="ts">
 import { isValidationError } from '@protoyard/renderer-svelte';
-import { AlertDialog, Button, cn } from '@protoyard/ui';
+import { AlertDialog, Button } from '@protoyard/ui';
+import { cx } from 'texuli/cx';
 import { guardHashNavigation } from './guard.ts';
 import type { FieldErrors } from './types.ts';
 
@@ -81,7 +82,7 @@ $effect(() => {
   <div
     role="region"
     aria-label="Unsaved changes"
-    class={cn(
+    class={cx(
       'sticky bottom-0 z-10 mt-6 flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-float sm:flex-row sm:items-center sm:justify-between',
       className
     )}

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-// Static imports: views with components pull in Svelte, bits-ui and the UI kit, which can take
+// Static imports: views with components pull in Svelte, Texuli and the UI kit, which can take
 // longer than a test timeout to transform on a busy machine; collection time has no such limit.
 import * as cohort from '../src/cohort/index.ts';
 import * as dateRange from '../src/date-range/index.ts';

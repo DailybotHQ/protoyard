@@ -1,6 +1,14 @@
 <script lang="ts">
 import { isValidationError, navigate, runService } from '@protoyard/renderer-svelte';
-import { Button, Dialog, FormField, Input, Textarea } from '@protoyard/ui';
+import {
+  Button,
+  Dialog,
+  FormField,
+  Input,
+  RadioGroup,
+  RadioGroupItem,
+  Textarea,
+} from '@protoyard/ui';
 import { PROJECT_COLORS, type Project, type ProjectColor } from '../database/schema.ts';
 import { PROJECT_COLOR_CLASSES } from '../domain/tasks.ts';
 import { useWorkspace } from '../lib/context.svelte.ts';
@@ -79,20 +87,14 @@ async function submit(event: SubmitEvent) {
     </FormField>
     <fieldset class="sm:col-span-2">
       <legend class="text-sm font-medium">Color</legend>
-      <div class="mt-2 flex flex-wrap gap-2">
+      <RadioGroup bind:value={color} name="project-color" aria-label="Color" orientation="horizontal" class="mt-2 flex flex-wrap gap-2">
         {#each PROJECT_COLORS as option (option)}
-          <label class="relative cursor-pointer">
-            <input type="radio" name="project-color" value={option} bind:group={color} class="peer sr-only" />
-            <span
-              class={[
-                'block size-8 rounded-full ring-offset-2 ring-offset-background peer-checked:ring-2 peer-checked:ring-ring peer-focus-visible:outline-2 peer-focus-visible:outline-ring',
-                PROJECT_COLOR_CLASSES[option].dot,
-              ]}
-            ></span>
-            <span class="sr-only">{option}</span>
-          </label>
+          <RadioGroupItem value={option} aria-label={option} class={[
+            'size-8 rounded-full border-2 border-transparent ring-offset-2 ring-offset-background focus-visible:outline-2 focus-visible:outline-ring data-[state=checked]:ring-2 data-[state=checked]:ring-ring',
+            PROJECT_COLOR_CLASSES[option].dot,
+          ]} />
         {/each}
-      </div>
+      </RadioGroup>
     </fieldset>
   </form>
   {#snippet footer()}

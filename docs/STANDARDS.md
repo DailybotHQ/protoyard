@@ -29,6 +29,43 @@ most of them: Biome, `tsc` / `svelte-check` / `astro check`,
   asynchronously.
 - Never use `{@html}` with user or snapshot data. Build elements instead.
 
+## Components and Texuli
+
+Protoyard's UI is Texuli-first ([TEXULI.md](TEXULI.md), [ADR-044](DECISIONS.md)).
+Start with Texuli's published component or kit, then use a public
+`@protoyard/*` export when it provides the host integration or stable Protoyard
+contract. Do not build a generic component that duplicates Texuli.
+
+- **Import public subpaths.** Use `texuli/<component>` and
+  `@texuli/<package>/<export>` only where a package adapter needs Texuli
+  directly. Never import package `src/` paths. Avoid the `@texuli/core` root
+  barrel and static imports of the `@texuli/tokens` root; the latter includes
+  the theme library in the initial chunk.
+- **Icons have one rendering path.** Import `Icon` from `texuli/icons` for its
+  ten built-in names. For any other glyph, import the glyph (for example
+  `Activity`) from `@lucide/svelte`, then render it with `LucideIcon` from
+  `texuli/icons/lucide`: `<LucideIcon icon={Activity} />`. Never render a raw
+  Lucide component in markup.
+- **Use the right choice control.** Use `Checkbox` or `RadioGroup`/
+  `RadioGroupItem` for choices. `Input` binds `value`; never use
+  `Input type="checkbox"` or `Input type="radio"`.
+- **Bind DOM refs with `bind:ref`.** When a Texuli or `@protoyard/ui`
+  component exposes an element ref, use `bind:ref` for DOM operations such as
+  focus, selection, measurement, or scrolling. `bind:this` captures the
+  component instance and is appropriate only when calling its component API.
+  If the needed DOM ref is absent, keep a minimal adapter and record the
+  Texuli gap; do not assume the component instance is an element.
+  Start every bound ref as `null` (`let field = $state<HTMLElement | null>(null)`):
+  Svelte throws at runtime on `bind:ref={undefined}` when the component's `ref`
+  has a fallback, which stops the whole island. The adoption check's
+  `ref-undefined` rule enforces it.
+- **Use `--tx-*` tokens for authored UI.** Existing `--py-*` aliases and
+  explicitly excepted frame geometry remain for compatibility; new UI reads
+  Texuli's `--tx-*` tokens. Use the theme utilities for semantic colors.
+- **Keep the gap loop honest.** The adoption check enforces eight rules;
+  tracked gaps may use minimal adapters listed in the pending files with a
+  `gap` id. See [the adoption check and exception policy](TEXULI.md#texuli-first-the-adoption-check).
+
 ## Prototype domain rules
 
 ```text
@@ -62,7 +99,7 @@ UI ─► service ─► session.assert(capability, record)  ─► zod validati
 | Capability | `resource:action` | `deals:update` |
 | Scenario id | kebab-case | `growing-team` |
 | Svelte components | PascalCase files | `DealDialog.svelte` |
-| CSS tokens | `--py-<token>` | `--py-primary-foreground` |
+| CSS tokens | `--tx-<token>` for authored UI | `--tx-primary-foreground` |
 
 ## Errors and feedback
 
@@ -108,8 +145,8 @@ controls, custom tab strips, toolbar toggles) share one keyboard helper in
 - **Tab order:** use `rovingTabIndex(value, entryValue, entries)` so only the
   selected option (or the first enabled one when empty) has `tabindex={0}`.
 
-Bits UI-backed `Tabs` and `RadioGroup` already implement roving focus; use this
-helper for hand-rolled groups. Wire it on each option:
+`Tabs` and `RadioGroup` (on `@texuli/primitives`) already implement roving
+focus; use this helper for hand-rolled groups. Wire it on each option:
 
 ```ts
 import { rovingKeydown, rovingTabIndex } from '@protoyard/ui';

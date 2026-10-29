@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseManifest } from '@protoyard/core';
@@ -7,7 +7,11 @@ import {
   defineProtoyardConfig,
   devFsAllow,
   envFlag,
+  isEagerModule,
+  linkedPackageRoots,
   resolveProtoyardSettings,
+  TEXULI_CSS_GROUP,
+  TEXULI_CSS_MODULE,
   VITE_MANIFEST_PATH,
 } from '../src/vite.ts';
 
@@ -148,13 +152,135 @@ describe('defineProtoyardConfig', () => {
 });
 
 describe('dev server file access', () => {
-  it('allows only the prototype, workspace packages and dependencies', () => {
+  it('allows only the prototype, workspace packages, dependencies and linked packages', () => {
     const workspace = resolve(import.meta.dirname, '../../..');
     const root = resolve(workspace, 'templates/blank');
     expect(devFsAllow(root)).toEqual([
       root,
       resolve(workspace, 'packages'),
       resolve(workspace, 'node_modules'),
+      ...linkedPackageRoots(workspace),
     ]);
+  });
+
+  it('adds the real folder of each link: dependency, and nothing for anything else', () => {
+    const base = mkdtempSync(join(tmpdir(), 'protoyard-links-'));
+    try {
+      const workspace = join(base, 'protoyard');
+      const linked = join(base, 'texuli', 'packages', 'core');
+      mkdirSync(workspace, { recursive: true });
+      mkdirSync(linked, { recursive: true });
+      writeFileSync(
+        join(workspace, 'package.json'),
+        JSON.stringify({
+          dependencies: { '@texuli/core': 'link:../texuli/packages/core', svelte: '^5.0.0' },
+          devDependencies: {
+            '@texuli/missing': 'link:../texuli/packages/missing',
+            '@protoyard/core': 'workspace:*',
+            '@texuli/again': 'link:../texuli/packages/core',
+          },
+        })
+      );
+      expect(linkedPackageRoots(workspace)).toEqual([realpathSync(linked)]);
+      writeFileSync(join(workspace, 'package.json'), '{ not json');
+      expect(linkedPackageRoots(workspace)).toEqual([]);
+      expect(linkedPackageRoots(join(base, 'nowhere'))).toEqual([]);
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
+
+  it('adds no extra roots for this workspace, which installs Texuli from npm', () => {
+    const workspace = resolve(import.meta.dirname, '../../..');
+    expect(linkedPackageRoots(workspace)).toEqual([]);
+  });
+});
+
+describe('Texuli CSS chunk group', () => {
+  it('matches CSS from texuli and @texuli/*, linked or installed, and nothing else', () => {
+    for (const id of [
+      '/w/texuli/packages/texuli/src/components/button/button.css',
+      '/w/texuli/packages/tokens/dist/tokens.css?inline',
+      '/p/node_modules/texuli/dist/styles.css',
+      '/p/node_modules/@texuli/charts/dist/charts.css',
+      'C:\\p\\node_modules\\@texuli\\data\\dist\\grid.css',
+      '/w/texuli/packages/texuli/src/Button.svelte?svelte&type=style&lang.css',
+    ]) {
+      expect(TEXULI_CSS_MODULE.test(id), id).toBe(true);
+    }
+    for (const id of [
+      '/w/texuli/packages/texuli/src/button.ts',
+      '/p/node_modules/@texuli/charts/dist/index.js',
+      '/p/packages/ui/src/app.css',
+      '/p/node_modules/texuli-like/dist/styles.css',
+      '/p/node_modules/@other/texuli/dist/styles.css',
+    ]) {
+      expect(TEXULI_CSS_MODULE.test(id), id).toBe(false);
+    }
+  });
+
+  it('adds one group to regular builds and none to the artifact target', () => {
+    const root = mkdtempSync(join(tmpdir(), 'protoyard-vite-'));
+    writeFileSync(join(root, 'protoyard.json'), JSON.stringify(manifest));
+    const env = {
+      command: 'build',
+      mode: 'production',
+      isSsrBuild: false,
+      isPreview: false,
+    } as const;
+    const groupsOf = () =>
+      (
+        defineProtoyardConfig({ root })(env).build?.rolldownOptions?.output as {
+          codeSplitting?: { groups?: unknown[] };
+        }
+      )?.codeSplitting?.groups ?? [];
+    expect(groupsOf()).toEqual([TEXULI_CSS_GROUP]);
+    const previous = process.env.PROTOYARD_TARGET;
+    process.env.PROTOYARD_TARGET = 'artifact';
+    try {
+      expect(groupsOf()).not.toContain(TEXULI_CSS_GROUP);
+    } finally {
+      if (previous === undefined) delete process.env.PROTOYARD_TARGET;
+      else process.env.PROTOYARD_TARGET = previous;
+    }
+  });
+
+  it('leaves Texuli CSS to the default split with texuliCssGroups: false', () => {
+    const root = mkdtempSync(join(tmpdir(), 'protoyard-vite-'));
+    writeFileSync(join(root, 'protoyard.json'), JSON.stringify(manifest));
+    const env = {
+      command: 'build',
+      mode: 'production',
+      isSsrBuild: false,
+      isPreview: false,
+    } as const;
+    const output = defineProtoyardConfig({ root, texuliCssGroups: false })(env).build
+      ?.rolldownOptions?.output as { codeSplitting?: { groups?: unknown[] } } | undefined;
+    expect(output?.codeSplitting?.groups ?? []).not.toContain(TEXULI_CSS_GROUP);
+  });
+
+  it('puts eager Texuli CSS in texuli-css and lazy family CSS in texuli-lazy-css', () => {
+    // entry -> shell.svelte -> shell style (eager); entry -> import() -> family.svelte
+    // -> family style (lazy); orphan has no importer at all.
+    const modules: Record<string, { isEntry: boolean; importers: string[] }> = {
+      entry: { isEntry: true, importers: [] },
+      'shell.svelte': { isEntry: false, importers: ['entry'] },
+      'shell.svelte?svelte&type=style&lang.css': { isEntry: false, importers: ['shell.svelte'] },
+      'family.svelte': { isEntry: false, importers: [] },
+      'family.svelte?svelte&type=style&lang.css': { isEntry: false, importers: ['family.svelte'] },
+      'cycle-a.css': { isEntry: false, importers: ['cycle-b.css'] },
+      'cycle-b.css': { isEntry: false, importers: ['cycle-a.css'] },
+    };
+    const graph = { getModuleInfo: (id: string) => modules[id] ?? null };
+    expect(isEagerModule('shell.svelte?svelte&type=style&lang.css', graph)).toBe(true);
+    expect(isEagerModule('family.svelte?svelte&type=style&lang.css', graph)).toBe(false);
+    expect(isEagerModule('cycle-a.css', graph)).toBe(false);
+    expect(isEagerModule('missing.css', graph)).toBe(false);
+    expect(TEXULI_CSS_GROUP.name('shell.svelte?svelte&type=style&lang.css', graph)).toBe(
+      'texuli-css'
+    );
+    expect(TEXULI_CSS_GROUP.name('family.svelte?svelte&type=style&lang.css', graph)).toBe(
+      'texuli-lazy-css'
+    );
   });
 });

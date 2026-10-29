@@ -1,7 +1,10 @@
 <script lang="ts">
-import { ImagePlus, X } from '@lucide/svelte';
 import { onDestroy } from 'svelte';
-import { cn } from '../../lib/cn.ts';
+import { Badge } from 'texuli/badge';
+import { Button } from 'texuli/button';
+import { cx } from 'texuli/cx';
+import { FileUpload } from 'texuli/file-upload';
+import { Icon } from 'texuli/icons';
 import {
   buildImagePreviews,
   DEFAULT_IMAGE_ACCEPT,
@@ -10,12 +13,14 @@ import {
 } from './preview.ts';
 
 /**
- * Labeled local image picker with object-URL previews.
+ * Labeled local image picker with object-URL previews, on Texuli's
+ * `FileUpload` (`texuli/file-upload`): the drop zone, the keyboard-reachable
+ * file input and the selected list with per-file remove are Texuli's.
  *
  * Persistence, upload and business validation stay in the caller's service.
- * Previews use `<img>` only for raster types; SVG/HTML are never rendered as
- * markup. Every object URL is revoked when the selection changes or the
- * component unmounts.
+ * The previews are this component's: `<img>` only for raster types, so SVG and
+ * HTML are never rendered (Texuli's own previews are off). Every object URL is
+ * revoked when the selection changes or the component unmounts.
  */
 
 interface Props {
@@ -26,16 +31,18 @@ interface Props {
   multiple?: boolean;
   required?: boolean;
   disabled?: boolean;
-  /** Stable id for the file input; auto-generated when omitted. */
+  /**
+   * @deprecated Texuli's FileUpload sets its own input id (Texuli gap N16);
+   * this value names the component's wrapper instead.
+   */
   inputId?: string;
   clearLabel?: string;
+  /** The browse control's text. */
   addLabel?: string;
-  /** Called with the raw `File` list after each pick or clear. */
+  /** Called with the whole selection (raw `File` objects) after each pick, removal or clear. */
   onFilesSelected?: (files: File[]) => void;
   class?: string;
 }
-
-const uid = $props.id();
 
 let {
   label = 'Photos',
@@ -51,112 +58,75 @@ let {
   class: className = '',
 }: Props = $props();
 
+let files = $state<File[]>([]);
 let previews = $state<ImagePreview[]>([]);
-let inputEl = $state<HTMLInputElement | null>(null);
 
-const resolvedInputId = $derived(inputId ?? `image-input-${uid}`);
-const labelId = $derived(`${resolvedInputId}-label`);
-const hintId = $derived(`${resolvedInputId}-hint`);
+const labels = $derived({ label, inputLabel: label, browse: addLabel, description: hint });
 
-function revokeCurrent(): void {
+function setFiles(next: File[]): void {
   revokeImagePreviews(previews);
-}
-
-function handleChange(event: Event): void {
-  const input = event.currentTarget as HTMLInputElement;
-  revokeCurrent();
-  const files = Array.from(input.files ?? []);
-  previews = buildImagePreviews(files);
-  onFilesSelected?.(files);
-}
-
-function clear(): void {
-  revokeCurrent();
-  previews = [];
-  onFilesSelected?.([]);
-  if (inputEl) inputEl.value = '';
+  files = next;
+  previews = buildImagePreviews(next);
+  onFilesSelected?.(next);
 }
 
 onDestroy(() => {
-  revokeCurrent();
+  revokeImagePreviews(previews);
 });
 </script>
 
 <div
-  class={cn('grid gap-2', className)}
+  id={inputId}
+  class={cx('grid gap-2', className)}
   data-image-input
   data-disabled={disabled ? 'true' : undefined}
 >
-  <div class="flex items-center justify-between gap-3">
-    <!-- Visible title only — the file input is the single labelled control. -->
-    <span id={labelId} class="text-sm font-semibold text-foreground">{label}</span>
-    {#if required}
-      <span
-        class="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary"
-        data-image-input-required
-      >
-        Required
-      </span>
-    {/if}
-  </div>
-
-  <div class="flex flex-wrap gap-2" data-image-input-previews>
-    {#each previews as preview (preview.url)}
-      <div
-        class="relative size-20 overflow-hidden rounded-lg border border-border bg-muted"
-        data-image-input-preview
-      >
-        <img
-          src={preview.url}
-          alt={preview.file.name}
-          class="size-full object-cover"
-          loading="lazy"
-          decoding="async"
-        />
-      </div>
-    {/each}
-
-    <label
-      for={resolvedInputId}
-      class={cn(
-        'grid size-20 cursor-pointer place-items-center rounded-lg border border-dashed border-border bg-muted/40 text-muted-foreground transition-colors',
-        'hover:border-primary/40 hover:bg-primary/5 hover:text-primary',
-        'focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2',
-        disabled && 'pointer-events-none cursor-not-allowed opacity-60'
-      )}
-      data-image-input-add
-      aria-label={addLabel}
-    >
-      <ImagePlus class="size-7" strokeWidth={1.75} aria-hidden="true" />
-      <input
-        bind:this={inputEl}
-        id={resolvedInputId}
-        class="sr-only"
-        type="file"
-        {accept}
-        multiple={multiple || undefined}
-        required={required || undefined}
-        disabled={disabled || undefined}
-        aria-labelledby={labelId}
-        aria-describedby={hintId}
-        onchange={handleChange}
-        data-image-input-control
-      />
-    </label>
-  </div>
-
-  {#if previews.length > 0}
-    <button
-      type="button"
-      class="inline-flex w-fit items-center gap-1 text-sm font-medium text-primary underline-offset-2 hover:underline disabled:pointer-events-none disabled:opacity-60"
-      onclick={clear}
-      disabled={disabled || undefined}
-      data-image-input-clear
-    >
-      <X class="size-3.5" aria-hidden="true" />
-      {clearLabel}
-    </button>
+  {#if required}
+    <Badge variant="info" class="w-fit" data-image-input-required>Required</Badge>
   {/if}
 
-  <p id={hintId} class="m-0 text-sm text-muted-foreground">{hint}</p>
+  {#if previews.length > 0}
+    <div class="flex flex-wrap gap-2" data-image-input-previews>
+      {#each previews as preview (preview.url)}
+        <div
+          class="relative size-20 overflow-hidden rounded-lg border border-border bg-muted"
+          data-image-input-preview
+        >
+          <img
+            src={preview.url}
+            alt={preview.file.name}
+            class="size-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      {/each}
+    </div>
+  {/if}
+
+  <FileUpload
+    bind:files={() => files, setFiles}
+    {accept}
+    {multiple}
+    {required}
+    {disabled}
+    variant="compact"
+    showPreviews={false}
+    {labels}
+    data-image-input-control=""
+  />
+
+  {#if files.length > 0}
+    <Button
+      variant="link"
+      size="sm"
+      class="w-fit"
+      {disabled}
+      onclick={() => setFiles([])}
+      data-image-input-clear=""
+    >
+      <Icon icon="close" size="sm" aria-hidden="true" />
+      {clearLabel}
+    </Button>
+  {/if}
 </div>

@@ -1,16 +1,23 @@
 <script lang="ts">
-import { TriangleAlert } from '@lucide/svelte';
-import { AlertDialog as AlertDialogPrimitive } from 'bits-ui';
+import * as AlertDialogPrimitive from '@texuli/primitives/alert-dialog';
 import type { Snippet } from 'svelte';
-import { cn } from '../../lib/cn.ts';
-import { overlayBackdrop } from '../../lib/overlay.ts';
+import { Button } from 'texuli/button';
+import {
+  alertDialogActionsClass,
+  alertDialogContentClass,
+  alertDialogErrorClass,
+  alertDialogIconClass,
+  dialogDescriptionClass,
+  dialogOverlayClass,
+  dialogTitleClass,
+} from 'texuli/dialog';
+import { Icon } from 'texuli/icons';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
-import Button from '../button/Button.svelte';
-import { isUndoToasterTarget } from '../overlay/focus-exempt.ts';
+import { overlayDismissHandler } from '../overlay/dismiss.ts';
 import { type OverlayStack, overlayStack } from '../overlay/overlay-stack.ts';
+import { installPopoverOrder } from '../overlay/popover-order.ts';
 import { useOverlayLayer } from '../overlay/use-overlay-layer.svelte.ts';
-import { undoToast } from '../toast/undo.svelte.ts';
 
 interface Props {
   open?: boolean;
@@ -47,9 +54,10 @@ let {
 }: Props = $props();
 
 const portal = useOverlayPortalTarget();
+// Popovers opened inside the overlay stay above Texuli's dialog backdrop (gap N30).
+installPopoverOrder();
 // svelte-ignore state_referenced_locally
 const layer = useOverlayLayer(() => open, { modal: () => true, stack });
-const trapFocus = $derived(undoToast.items.length === 0);
 
 let pending = $state(false);
 /** Cancel is the safe default: it receives focus when the dialog opens. */
@@ -77,89 +85,76 @@ function cancel(): void {
   open = false;
 }
 
-function blockWhilePending(event: Event): void {
-  if (pending) event.preventDefault();
-}
-
-function handleEscape(event: KeyboardEvent): void {
-  blockWhilePending(event);
-  if (event.defaultPrevented) return;
-  event.preventDefault();
-  if (!layer.stack.isTop(layer.entry)) return;
-  if (layer.stack.dismissLayerFor(event, cancelButton)) return;
-  cancel();
-}
-
-function handleInteractOutside(event: PointerEvent): void {
-  if (pending || isUndoToasterTarget(event.target) || !layer.stack.isTop(layer.entry)) {
-    event.preventDefault();
-  }
-}
+// Escape cancels (an alert never closes on an outside press); nothing closes it while pending.
+const handleDismiss = overlayDismissHandler({
+  layer,
+  element: () => cancelButton,
+  blocked: () => pending,
+});
 </script>
 
+<!--
+  A thin adapter over Texuli's alert dialog: the same primitive, parts and
+  classes as `AlertDialog` from `texuli/dialog`, on a root that takes the
+  framed-device `mode`/`container` and the shared overlay stack's dismiss and
+  focus rules, which the styled alert cannot take (Texuli gap N13). Cancel, the
+  safe default, takes focus when the alert opens; confirm shows a spinner while
+  `onConfirm` runs.
+-->
 <AlertDialogPrimitive.Root
-  open={open}
+  {open}
   onOpenChange={(isOpen) => {
     if (!isOpen) {
       error = null;
       if (pending) return;
+      if (open) onCancel?.();
     }
     open = isOpen;
   }}
+  mode={portal.mode}
+  container={portal.container}
+  initialFocus={() => cancelButton}
+  onDismissRequest={handleDismiss}
 >
   {#if trigger}
     <AlertDialogPrimitive.Trigger>
       {#snippet child({ props })}{@render trigger({ props })}{/snippet}
     </AlertDialogPrimitive.Trigger>
   {/if}
-  <AlertDialogPrimitive.Portal to={portal.current}>
-    <AlertDialogPrimitive.Overlay class={overlayBackdrop} style={`z-index:${layer.zIndex}`} />
+  <AlertDialogPrimitive.Portal>
+    <AlertDialogPrimitive.Overlay
+      class={dialogOverlayClass()}
+      data-tx-alert-dialog-overlay=""
+      style={`z-index:${layer.zIndex}`}
+    />
     <AlertDialogPrimitive.Content
-      trapFocus={trapFocus}
-      onEscapeKeydown={handleEscape}
-      onInteractOutside={handleInteractOutside}
-      onOpenAutoFocus={(event) => {
-        event.preventDefault();
-        cancelButton?.focus();
-      }}
       aria-busy={pending || undefined}
-      class={cn(
-        'fixed top-1/2 left-1/2 grid w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 sm:max-w-md',
-        'rounded-xl border border-border bg-elevated p-6 text-foreground shadow-float outline-none ui-anim-pop',
-        className
-      )}
+      class={alertDialogContentClass({ class: className })}
+      data-tx-alert-dialog=""
+      data-destructive={destructive ? 'true' : undefined}
+      data-state={open ? 'open' : 'closed'}
       style={`z-index:${layer.zIndex}`}
     >
-      <div class="flex gap-4">
+      <div class="tx-alert-dialog__row">
         {#if destructive}
-          <div
-            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive"
-            aria-hidden="true"
-          >
-            <TriangleAlert class="size-5" />
+          <div class={alertDialogIconClass()} aria-hidden="true" data-tx-alert-dialog-icon="">
+            <Icon icon="warning" aria-hidden="true" />
           </div>
         {/if}
-        <div class="grid gap-1.5">
-          <AlertDialogPrimitive.Title class="font-heading text-lg leading-tight font-semibold">
-            {title}
-          </AlertDialogPrimitive.Title>
+        <div class="tx-alert-dialog__copy">
+          <AlertDialogPrimitive.Title class={dialogTitleClass()}>{title}</AlertDialogPrimitive.Title>
           {#if description}
-            <AlertDialogPrimitive.Description class="text-sm text-muted-foreground">
+            <AlertDialogPrimitive.Description class={dialogDescriptionClass()}>
               {description}
             </AlertDialogPrimitive.Description>
           {/if}
-          {#if children}<div class="mt-1 text-sm">{@render children()}</div>{/if}
+          {#if children}<div class="tx-alert-dialog__extra">{@render children()}</div>{/if}
         </div>
       </div>
       {#if error}
-        <p
-          role="alert"
-          class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-foreground"
-        >
-          {error}
-        </p>
+        <p class={alertDialogErrorClass()} role="alert" data-tx-alert-dialog-error="">{error}</p>
       {/if}
-      <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <div class={alertDialogActionsClass()} data-tx-alert-dialog-actions="">
         <Button bind:ref={cancelButton} variant="outline" disabled={pending} onclick={cancel}
           >{cancelLabel}</Button
         >

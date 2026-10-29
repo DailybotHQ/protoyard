@@ -10,7 +10,7 @@
   font-optical-sizing: auto;
   font-weight: 400;
   --ink: #25252d;
-  --muted: #777783;
+  --muted: #666672;
   --line: #e8e8ed;
   --paper: #fff;
   --accent: #5b45d6;
@@ -96,7 +96,7 @@ select:focus-visible {
   font-size: 9px;
   font-weight: 750;
   letter-spacing: 1.2px;
-  color: #9a9aa5;
+  color: #62626e;
 }
 .nav-label {
   padding: 0 10px;
@@ -132,7 +132,7 @@ select:focus-visible {
 .count {
   margin-left: auto;
   font-size: 10px;
-  color: #8e8d9b;
+  color: #666672;
 }
 .sidebar .nav-label:nth-of-type(2) {
   margin-top: 25px;
@@ -188,7 +188,7 @@ select:focus-visible {
   font-size: 11px;
 }
 .crumb {
-  color: #93939d;
+  color: #666672;
 }
 .slash {
   padding: 0 10px;
@@ -201,7 +201,7 @@ select:focus-visible {
 }
 .local-tag {
   font-size: 10px;
-  color: #518767;
+  color: #35674a;
   background: #eef8f1;
   border: 1px solid #d9efdf;
   border-radius: 20px;
@@ -228,7 +228,7 @@ select:focus-visible {
 }
 .eyebrow {
   font-size: 9px;
-  color: #8276c2;
+  color: #5545a4;
   font-weight: 750;
   letter-spacing: 1.2px;
 }
@@ -333,7 +333,9 @@ select:focus-visible {
   font-size: 12px;
   font-weight: 650;
 }
-.swatch code,
+.swatch code {
+  font-size: 9px;
+}
 .swatch-meta small {
   font-size: 9px;
   opacity: 0.72;
@@ -362,7 +364,7 @@ select:focus-visible {
 }
 .guideline p {
   font-size: 10px;
-  color: #68766c;
+  color: #4c594f;
   margin: 5px 0 0;
   line-height: 1.5;
 }

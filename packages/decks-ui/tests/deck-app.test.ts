@@ -1,42 +1,15 @@
 import type { Deck } from '@protoyard/decks/schema';
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DeckApp } from '../src/app/index.ts';
 
-vi.mock('../src/layouts/index.ts', async () => {
-  const Mock = (await import('./fixtures/MockLayoutRenderer.svelte')).default;
-  return { DeckLayoutRenderer: Mock };
-});
-
-class ResizeObserverMock {
-  static instances: ResizeObserverMock[] = [];
-  private target: Element | undefined;
-  private readonly callback: ResizeObserverCallback;
-
-  constructor(callback: ResizeObserverCallback) {
-    this.callback = callback;
-    ResizeObserverMock.instances.push(this);
-  }
-
-  observe(target: Element) {
-    this.target = target;
-  }
-
-  unobserve() {}
-
-  disconnect() {
-    this.target = undefined;
-  }
-
-  resize(width: number, height: number) {
-    if (!this.target) return;
-    this.callback(
-      [{ target: this.target, contentRect: { width, height } } as ResizeObserverEntry],
-      this as unknown as ResizeObserver
-    );
-  }
-}
-
+/**
+ * DeckApp on the `@texuli/slides` stage. The stage's own behavior (keys,
+ * chrome, overview, presenter, print, fit) is covered by Texuli's stage
+ * tests; these check the Protoyard host: the deck shape migrates and paints,
+ * the host location attributes follow the stage, Protoyard free slides paint
+ * through `@protoyard/blocks-ui`, and the hash routes.
+ */
 function fixtureDeck(): Deck {
   return {
     style: { aspect: '16:9' },
@@ -74,142 +47,115 @@ function fixtureDeck(): Deck {
   };
 }
 
+beforeAll(async () => {
+  // The text family is a lazy chunk: load it once so the free slide paints at once.
+  await import('../../blocks-ui/src/text/index.ts');
+}, 60_000);
+
 afterEach(() => {
   cleanup();
-  ResizeObserverMock.instances = [];
-  vi.unstubAllGlobals();
-  if (typeof window !== 'undefined') {
-    window.location.hash = '';
-  }
+  window.location.hash = '';
 });
 
 beforeEach(() => {
-  vi.stubGlobal('ResizeObserver', ResizeObserverMock);
-  if (typeof window !== 'undefined') window.location.hash = '';
+  window.location.hash = '';
 });
 
 function mount(deck: Deck = fixtureDeck(), props: Record<string, unknown> = {}) {
   const view = render(DeckApp, { props: { deck, autofocus: true, ...props } });
-  const observer = ResizeObserverMock.instances[0];
-  observer?.resize(1280, 720);
-  return view;
+  const app = () => view.container.querySelector('[data-py-deck-app]') as HTMLElement;
+  const stage = () => view.container.querySelector('.tx-deck-stage') as HTMLElement;
+  return { view, app, stage };
 }
 
-describe('DeckApp', () => {
-  it('renders the canvas, chrome and aria-live region', async () => {
-    const view = mount();
-    const app = view.container.querySelector('[data-py-deck-app]');
-    expect(app).toBeTruthy();
-    expect(app?.getAttribute('role')).toBe('application');
-    expect(app?.getAttribute('aria-label')).toBe('Demo deck');
-    expect(view.container.querySelector('[data-testid="deck-canvas"]')).toBeTruthy();
-    expect(view.container.querySelector('[data-py-deck-progress]')).toBeTruthy();
-    expect(view.container.querySelector('[data-py-deck-slide-number]')?.textContent).toMatch(
-      /Slide 1 of 3/
+describe('DeckApp on the Texuli stage', () => {
+  it('presents a Protoyard deck on the stage, named by its outline title', async () => {
+    const { view, app, stage } = mount();
+    expect(app()).toBeTruthy();
+    await waitFor(() => expect(stage()).toBeTruthy());
+    expect(stage().getAttribute('data-tx-deck-invalid')).toBeNull();
+    expect(stage().getAttribute('aria-label')).toMatch(/Demo deck/);
+    await waitFor(() =>
+      expect(view.container.querySelector('[data-tx-deck-slide="intro"]')).toBeTruthy()
     );
-    const live = view.container.querySelector('[data-py-deck-live]');
-    expect(live?.getAttribute('aria-live')).toBe('polite');
-    await waitFor(() => expect(live?.textContent).toMatch(/Slide 1 of 3/));
+    const slide = view.container.querySelector('[data-tx-deck-slide="intro"]');
+    expect(slide?.getAttribute('aria-roledescription')).toBe('slide');
+    expect(app().getAttribute('data-slide-id')).toBe('intro');
+    expect(app().getAttribute('data-slide-step')).toBe('0');
   });
 
-  it('advances steps then slides with keyboard and announces progress', async () => {
-    const view = mount();
-    const app = view.container.querySelector('[data-py-deck-app]') as HTMLElement;
-    app.focus();
+  it('paints on the first render: the stage never waits for its lazy defaults', () => {
+    // DeckApp brings its own free renderer and block check with defaultRenderers={false}, and hands
+    // the stage a v2 deck, so the stage never waits for its lazy defaults, the built-in block chunk
+    // (Texuli G46) or the migration chunk: it validates and mounts the slides on the first render.
+    // (A slide's own layout renderer is a lazy chunk and may show its status inside the slide.)
+    const { view, stage } = mount();
+    expect(stage()).toBeTruthy();
+    expect(stage().getAttribute('aria-busy')).toBeNull();
+    expect(stage().querySelector(':scope > .tx-deck-stage__loading')).toBeNull();
+    expect(view.container.querySelector('[data-tx-deck-slide="intro"]')).toBeTruthy();
+  });
 
+  it('follows steps, then slides, with the keyboard; the host attributes follow the stage', async () => {
+    const { app, stage } = mount();
+    await waitFor(() => expect(stage()).toBeTruthy());
     // intro has 2 labelled steps → positions 0, 1, 2; the first two nexts stay on intro
-    await fireEvent.keyDown(app, { key: 'ArrowRight' });
-    await waitFor(() => expect(app.getAttribute('data-slide-id')).toBe('intro'));
-    expect(app.getAttribute('data-slide-step')).toBe('1');
-    await fireEvent.keyDown(app, { key: 'ArrowRight' });
-    await waitFor(() => expect(app.getAttribute('data-slide-step')).toBe('2'));
-    expect(app.getAttribute('data-slide-id')).toBe('intro');
+    await fireEvent.keyDown(stage(), { key: 'ArrowRight' });
+    await waitFor(() => expect(app().getAttribute('data-slide-step')).toBe('1'));
+    expect(app().getAttribute('data-slide-id')).toBe('intro');
+    await fireEvent.keyDown(stage(), { key: 'ArrowRight' });
+    await waitFor(() => expect(app().getAttribute('data-slide-step')).toBe('2'));
+    await fireEvent.keyDown(stage(), { key: 'ArrowRight' });
+    await waitFor(() => expect(app().getAttribute('data-slide-id')).toBe('body'));
+    expect(app().getAttribute('data-slide-step')).toBe('0');
 
-    // the third next moves to body
-    await fireEvent.keyDown(app, { key: 'ArrowRight' });
-    await waitFor(() => expect(app.getAttribute('data-slide-id')).toBe('body'));
-    expect(app.getAttribute('data-slide-step')).toBe('0');
+    await fireEvent.keyDown(stage(), { key: 'End' });
+    await waitFor(() => expect(app().getAttribute('data-slide-id')).toBe('close'));
+    await fireEvent.keyDown(stage(), { key: 'Home' });
+    await waitFor(() => expect(app().getAttribute('data-slide-id')).toBe('intro'));
+  });
 
-    const live = view.container.querySelector('[data-py-deck-live]');
-    await waitFor(() => expect(live?.textContent).toMatch(/Slide 2 of 3/));
-    expect(view.container.querySelector('[data-py-deck-slide-number]')?.textContent).toMatch(
-      /Slide 2 of 3/
+  it('paints a free slide through @protoyard/blocks-ui with its heading promoted', async () => {
+    window.location.hash = '#/body/0';
+    const { view } = mount();
+    await waitFor(() =>
+      expect(view.container.querySelector('[data-py-deck-free="body"]')).toBeTruthy()
     );
-
-    // slides expose aria-roledescription via DeckCanvas
-    const groups = view.container.querySelectorAll('[aria-roledescription="slide"]');
-    expect(groups.length).toBeGreaterThan(0);
+    const free = view.container.querySelector('[data-py-deck-free="body"]') as HTMLElement;
+    expect(free.querySelector('[data-slot="title"]')?.textContent).toBe('Body slide');
+    await waitFor(() => expect(free.textContent).toContain('Details go here.'));
+    expect(free.querySelector('[data-tx-deck-item="1"]')).toBeTruthy();
   });
 
-  it('goes previous with ArrowLeft and jumps with Home/End', async () => {
-    const view = mount();
-    const app = view.container.querySelector('[data-py-deck-app]') as HTMLElement;
-    app.focus();
-
-    await fireEvent.keyDown(app, { key: 'End' });
-    await waitFor(() => expect(app.getAttribute('data-slide-id')).toBe('close'));
-
-    await fireEvent.keyDown(app, { key: 'Home' });
-    await waitFor(() => expect(app.getAttribute('data-slide-id')).toBe('intro'));
-    expect(app.getAttribute('data-slide-step')).toBe('0');
-
-    await fireEvent.keyDown(app, { key: 'ArrowRight' });
-    await fireEvent.keyDown(app, { key: 'ArrowRight' });
-    await fireEvent.keyDown(app, { key: 'ArrowRight' });
-    await waitFor(() => expect(app.getAttribute('data-slide-id')).toBe('body'));
-
-    // Back lands on intro's last step (its second label).
-    await fireEvent.keyDown(app, { key: 'ArrowLeft' });
-    await waitFor(() => {
-      expect(app.getAttribute('data-slide-id')).toBe('intro');
-      expect(app.getAttribute('data-slide-step')).toBe('2');
-    });
-  });
-
-  it('advances on guarded click of the canvas background', async () => {
-    const view = mount();
-    const app = view.container.querySelector('[data-py-deck-app]') as HTMLElement;
-    const canvas = view.container.querySelector('[data-testid="deck-canvas"]') as HTMLElement;
-    await fireEvent.click(canvas);
-    await waitFor(() => expect(app.getAttribute('data-slide-step')).toBe('1'));
-  });
-
-  it('syncs the hash adapter and responds to hash changes', async () => {
-    const view = mount();
-    const app = view.container.querySelector('[data-py-deck-app]') as HTMLElement;
-
-    await fireEvent.keyDown(app, { key: 'End' });
+  it('keeps #/<slide>/<step> in the URL and follows hash changes', async () => {
+    const { app, stage } = mount();
+    await waitFor(() => expect(stage()).toBeTruthy());
+    await fireEvent.keyDown(stage(), { key: 'End' });
     await waitFor(() => expect(window.location.hash).toMatch(/#\/close\/0/));
 
     window.location.hash = '#/body/0';
     window.dispatchEvent(new HashChangeEvent('hashchange'));
-    await waitFor(() => expect(app.getAttribute('data-slide-id')).toBe('body'));
+    await waitFor(() => expect(app().getAttribute('data-slide-id')).toBe('body'));
   });
 
-  it('toggles blackout and overview overlays', async () => {
-    const view = mount();
-    const app = view.container.querySelector('[data-py-deck-app]') as HTMLElement;
+  it('leaves the hash alone when syncHash is off', async () => {
+    const { stage, app } = mount(fixtureDeck(), { syncHash: false });
+    await waitFor(() => expect(stage()).toBeTruthy());
+    await fireEvent.keyDown(stage(), { key: 'End' });
+    await waitFor(() => expect(app().getAttribute('data-slide-id')).toBe('close'));
+    expect(window.location.hash).toBe('');
+  });
 
-    await fireEvent.keyDown(app, { key: 'b' });
-    await waitFor(() =>
-      expect(view.container.querySelector('[data-py-deck-blackout]')).toBeTruthy()
-    );
-    expect(app.getAttribute('data-blackout')).toBe('true');
-
-    await fireEvent.keyDown(app, { key: 'Escape' });
-    await waitFor(() => expect(view.container.querySelector('[data-py-deck-blackout]')).toBeNull());
-
-    await fireEvent.keyDown(app, { key: 'o' });
-    await waitFor(() =>
-      expect(view.container.querySelector('[data-py-deck-overview]')).toBeTruthy()
-    );
-    await waitFor(() =>
-      expect(view.container.querySelector('[data-py-deck-overview-item="body"]')).toBeTruthy()
-    );
-    const item = view.container.querySelector(
-      '[data-py-deck-overview-item="body"]'
-    ) as HTMLButtonElement;
-    await fireEvent.click(item);
-    await waitFor(() => expect(app.getAttribute('data-slide-id')).toBe('body'));
+  it('asks the stage for the Protoyard theme key: a theme id, a palette seed or the default', async () => {
+    const themed = mount({ ...fixtureDeck(), style: { theme: 'ocean' } });
+    expect(themed.app().getAttribute('data-py-deck-theme')).toBe('ocean');
+    cleanup();
+    const seeded = mount({ ...fixtureDeck(), style: { paletteSeed: 0x12ab34 } });
+    expect(seeded.app().getAttribute('data-py-deck-theme')).toBe('seed-0012ab34');
+    await waitFor(() => expect(seeded.stage()).toBeTruthy());
+    expect(seeded.stage().getAttribute('data-tx-deck-invalid')).toBeNull();
+    cleanup();
+    const plain = mount();
+    expect(plain.app().getAttribute('data-py-deck-theme')).toBe('violet');
   });
 });

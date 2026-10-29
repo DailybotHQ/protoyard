@@ -40,8 +40,8 @@ onMount(() => {
   root.dataset.pyTheme = theme.id;
   root.classList.toggle('dark', mode === 'dark');
   root.style.colorScheme = mode;
-  root.style.background = vars['--py-background'] ?? '';
-  root.style.color = vars['--py-foreground'] ?? '';
+  root.style.background = vars['--tx-background'] ?? '';
+  root.style.color = vars['--tx-foreground'] ?? '';
 });
 </script>
 

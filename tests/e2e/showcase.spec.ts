@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { expect, type Frame, type FrameLocator, type Page, test } from '@playwright/test';
 import { type AnyBlueprint, encodeBlueprintShare } from '../../packages/blueprint/src/index.ts';
 import { expectAccessible } from './support/a11y.ts';
+import { chooseOption } from './support/select.ts';
 import { readShowcaseKindBlueprint, SHOWCASE_KIND_TARGETS } from './targets.ts';
 
 /**
@@ -308,7 +309,12 @@ test.describe('showcase site', () => {
     await expectAccessible(page, testInfo, { label: 'compare' });
 
     // Both frames on the SAME scenario, so only the sandbox separates them.
-    await page.getByTestId('compare-scenario-b').selectOption('growing-team');
+    // The default scenario's option reads "growing-team (default)".
+    await chooseOption(
+      page,
+      page.getByTestId('compare-scenario-b'),
+      /^growing-team( \(default\))?$/
+    );
     await expect(page).toHaveURL(/[?&]b=growing-team/);
     await ready(b);
 

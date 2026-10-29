@@ -111,6 +111,21 @@ Accessibility:
 - The cohort table has scoped headers, and its cell text is shown only where it reaches 4.5:1.
 - Toggles use `aria-pressed`.
 
+KPI tiles and rows adapt `texuli/stat` (`Kpi`, `KpiRow`); formatting helpers
+re-export that package, and sparklines come from `@texuli/charts/compact`.
+Cohort fills use `@texuli/charts/matrix` `heatmapFill`; the semantic cohort
+table stays Protoyard-owned to preserve its retention row/period headings,
+count/percent toggle and contrast-checked cell text. The remaining cohort
+adapter gap is Texuli's lack of a palette/token override that preserves its
+contrast guarantees (G51). `MonthGrid` uses `texuli/date` `Calendar` for the
+keyboard-accessible grid and maps the analytics range and simulated clock into
+it. `FilterBuilder` uses `@texuli/data/filter-builder` for nested groups; its
+`FilterGroupEditor` adapter supplies the analytics property catalog and
+operators because Texuli does not yet expose field/operator extension hooks
+(G49). `DashboardGrid` owns saved 12-column placement and service callbacks;
+Texuli's `AnalyticsGrid` is an auto-fit card layout and does not replace that
+saved editor.
+
 ## Build an analytics prototype
 
 ```bash
@@ -165,21 +180,6 @@ heavy shared load (load average 60–140): upper bounds.
 | Template initial JS (gzip) | 191.8 KB | ≤ 210 KB (plan), 250 KB |
 | Flagship initial JS (gzip) | 207.4 KB; 208.9 KB with review comments on (`budget`, 2026-10-20) | ≤ 210 KB (plan), 250 KB |
 | Flagship `enterprise-scale` dashboard, first visit (generate + render) | ~1.0 s, 0 long tasks | 0 long tasks > 200 ms |
-
-View sizes (esbuild, gzip, with `svelte`, `@protoyard/ui` and the engine
-treated as external):
-
-| View | Gzip |
-| --- | ---: |
-| KpiTile (with its Sparkline) | 5.1 KB |
-| LiveCounter | 1.3 KB |
-| FilterBuilder | 4.6 KB |
-| SegmentPicker | 2.0 KB |
-| Date range picker | 4.3 KB |
-| DashboardGrid + WidgetCard | 3.6 KB |
-| DrillDown | 1.3 KB |
-| CohortTable | 2.7 KB |
-| FunnelAnalysis | 2.0 KB |
 
 ## Limits (honest)
 

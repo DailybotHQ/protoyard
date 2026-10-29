@@ -4,29 +4,15 @@
  * structure, raw HTML, a link, or a Trojan Source reordering in the twin.
  */
 
-// C0 controls except tab and line feed, DEL, C1 controls; zero-width
-// characters and marks; bidi embeddings, overrides and isolates; word joiners
-// and the BOM. Built from code points so no literal invisible character ever
-// sits in this source file (Trojan Source).
-const INVISIBLE_RANGES: readonly (readonly [number, number])[] = [
-  [0x00, 0x08],
-  [0x0b, 0x1f],
-  [0x7f, 0x9f],
-  [0x200b, 0x200f],
-  [0x202a, 0x202e],
-  [0x2060, 0x2069],
-  [0xfeff, 0xfeff],
-];
+import { isInvisibleCodePoint } from './safe.ts';
 
-function isInvisible(code: number): boolean {
-  return INVISIBLE_RANGES.some(([from, to]) => code >= from && code <= to);
-}
+// The shared definition of invisible characters (Trojan Source): see safe.ts.
 
 /** Removes control, bidi and zero-width characters; normalizes line endings. */
 export function stripInvisible(text: string): string {
   let out = '';
   for (const char of text.replace(/\r\n?/g, '\n')) {
-    if (!isInvisible(char.codePointAt(0) ?? 0)) out += char;
+    if (!isInvisibleCodePoint(char.codePointAt(0) ?? 0)) out += char;
   }
   return out;
 }

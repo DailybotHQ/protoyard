@@ -45,7 +45,7 @@ describe('protoyard theme import from design tokens', () => {
       contrast: { light: { passed: true }, dark: { passed: true } },
     });
     const data = result.json<{ data: { css: string; tailwind: string } }>().data;
-    expect(data.css).toContain('--py-background:');
+    expect(data.css).toContain('--tx-background:');
     expect(data.tailwind).toContain('@theme {');
   });
 

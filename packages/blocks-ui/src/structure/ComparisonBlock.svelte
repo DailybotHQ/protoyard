@@ -1,6 +1,6 @@
 <script lang="ts">
-import { Check, X } from '@lucide/svelte';
 import type { ComparisonBlock as ComparisonBlockData } from '@protoyard/blocks';
+import { Icon } from 'texuli/icons';
 import { getBlockHost } from '../host.ts';
 
 let { block }: { block: ComparisonBlockData } = $props();
@@ -49,12 +49,12 @@ const slide = $derived(host.canvasMode === 'slide');
                 {#if typeof value === 'boolean'}
                   {#if value}
                     <span class="inline-flex items-center gap-1 text-success">
-                      <Check class="size-4" aria-hidden="true" />
+                      <Icon icon="check" class="size-4" aria-hidden="true"  />
                       <span class="sr-only">Yes</span>
                     </span>
                   {:else}
                     <span class="inline-flex items-center gap-1 text-muted-foreground">
-                      <X class="size-4" aria-hidden="true" />
+                      <Icon icon="close" class="size-4" aria-hidden="true"  />
                       <span class="sr-only">No</span>
                     </span>
                   {/if}

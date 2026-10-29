@@ -1,7 +1,9 @@
 <script lang="ts">
 import type { RetentionResult } from '@protoyard/analytics/cohort';
 import { rampScale } from '@protoyard/charts-ui/matrix';
+import { heatmapFill } from '@texuli/charts/matrix';
 import { untrack } from 'svelte';
+import { Toggle } from 'texuli/toggle';
 import {
   type CohortDisplay,
   type CohortPalette,
@@ -18,7 +20,7 @@ type Props = {
   /** Shown value; the toggle changes it (bind it to keep it in the route). */
   display?: CohortDisplay;
   ondisplaychange?: (display: CohortDisplay) => void;
-  /** Ramp hexes for the text-contrast check; default: read from the theme's `--py-seq-*`. */
+  /** Ramp hexes for the text-contrast check; default: read from Texuli sequential chart tokens. */
   palette?: CohortPalette | null;
   description?: string;
 };
@@ -48,7 +50,7 @@ $effect(() => {
     });
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-py-theme', 'data-py-mode', 'class', 'style'],
+      attributeFilter: ['data-tx-theme', 'data-tx-mode', 'class', 'style'],
     });
     return () => observer.disconnect();
   });
@@ -78,14 +80,14 @@ const show = (rate: number | null, value: number | null) =>
     <h3 id="{uid}-title" class="text-sm font-semibold">{title}</h3>
     <div role="group" aria-label="Show values as" class="inline-flex rounded-md border border-border p-0.5 text-xs">
       {#each [['percent', '%'], ['count', 'Count']] as const as [value, text] (value)}
-        <button
-          type="button"
-          aria-pressed={display === value}
+        <Toggle
+          bind:pressed={() => display === value, () => {}}
+          onPressedChange={(pressed) => pressed && setDisplay(value as CohortDisplay)}
           class="rounded px-2 py-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {display ===
           value
             ? 'bg-primary text-primary-foreground'
             : 'text-foreground hover:bg-muted'}"
-          onclick={() => setDisplay(value)}>{text}</button
+          >{text}</Toggle
         >
       {/each}
     </div>
@@ -127,7 +129,13 @@ const show = (rate: number | null, value: number | null) =>
                   data-period={cell.period}
                   data-incomplete={cell.incomplete || undefined}
                   class="rounded-sm px-2 py-1 text-right {cell.incomplete ? 'outline-1 outline-border outline-dashed' : ''}"
-                  style:background={cell.period > 0 ? ramp.fill(cell.rate) : undefined}
+                  style:background={
+                    cell.period > 0 && cell.rate !== null
+                      ? palette
+                        ? ramp.fill(cell.rate)
+                        : heatmapFill(cell.rate)
+                      : undefined
+                  }
                 >
                   <!-- Text sits on the fill only when it reaches 4.5:1; otherwise a surface chip keeps it readable. -->
                   <span

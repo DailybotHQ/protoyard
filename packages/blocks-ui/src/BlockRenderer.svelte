@@ -1,4 +1,5 @@
 <script lang="ts">
+import { cx } from 'texuli/cx';
 import { fragmentAttributes, getBlockHost } from './host.ts';
 import { resolveBlockRenderer } from './registry.ts';
 
@@ -13,7 +14,7 @@ let { blocks }: Props = $props();
 const host = getBlockHost();
 </script>
 
-<div class="grid gap-4" data-py-block-renderer>
+<div class={cx('grid gap-4')} data-py-block-renderer>
   {#each blocks as input, index (index)}
     {#await resolveBlockRenderer(input)}
       <div class="grid gap-3 rounded-md border border-border p-4" role="status" aria-label="Loading block">

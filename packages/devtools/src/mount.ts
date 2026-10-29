@@ -1,4 +1,5 @@
 import type { PrototypeRuntime, Theme } from '@protoyard/core';
+import { enableTexuliAppearance } from '@protoyard/themes/texuli';
 import type { Component } from 'svelte';
 import { mount, unmount } from 'svelte';
 import Panel from './Panel.svelte';
@@ -39,6 +40,8 @@ export function mountDevtools(options: MountDevtoolsOptions): DevtoolsHandle {
   const host = options.target ?? document.body.appendChild(document.createElement('div'));
   host.classList.add('py-devtools');
   host.dataset.protoyardDevtools = '';
+  // Panel controls render Texuli components; apply the current --tx-* appearance.
+  enableTexuliAppearance();
   // Svelte delegates `click` & co. to the element it mounts into and walks the
   // event path from there; it stops at the first `stopPropagation()`. The
   // isolation listeners must therefore sit on an ANCESTOR of the mount point:
@@ -68,7 +71,7 @@ export function mountDevtools(options: MountDevtoolsOptions): DevtoolsHandle {
 }
 
 /**
- * App modals (Bits UI dialogs, sheets, popovers) trap focus with a
+ * App modals (dialogs, sheets, popovers) trap focus with a
  * capture-phase `focusin` listener on `document` and dismiss on outside
  * pointer/focus events. DevTools must stay usable on top of them:
  *  - `focusin` from inside the panel is stopped at `window` (capture runs

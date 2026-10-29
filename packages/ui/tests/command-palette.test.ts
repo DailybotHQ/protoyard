@@ -47,13 +47,16 @@ describe('CommandPalette', () => {
     expect(screen.getByText('<b>Account</b>').tagName).toBe('SPAN');
     expect(screen.getByText('Actions')).toBeTruthy();
 
+    // The first result starts highlighted; ArrowDown moves to the next one.
+    const account = screen.getByRole('option', { name: '<b>Account</b>' });
+    expect(input.getAttribute('aria-activedescendant')).toBe(account.id);
     await fireEvent.keyDown(input, { key: 'ArrowDown' });
-    await fireEvent.keyDown(input, { key: 'ArrowDown' });
+    const invite = screen.getByRole('option', { name: 'Invite teammate' });
+    expect(input.getAttribute('aria-activedescendant')).toBe(invite.id);
     await fireEvent.keyDown(input, { key: 'Enter' });
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'invite' }));
-    await waitFor(() =>
-      expect(screen.getByRole('dialog').getAttribute('data-state')).toBe('closed')
-    );
+    // A closed palette leaves the page.
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('ignores stale async results when a newer query resolves first', async () => {

@@ -17,7 +17,18 @@ import {
   useEnvironment,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
-import { Button, Card, EmptyState, FormField, Input, Select, Skeleton } from '@protoyard/ui';
+import {
+  Button,
+  Card,
+  EmptyState,
+  FormField,
+  Input,
+  RadioGroup,
+  RadioGroupItem,
+  Select,
+  Skeleton,
+} from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageHeader from '../components/PageHeader.svelte';
 import { type Order, SHIPPING_METHODS, type ShippingMethod } from '../database/schema.ts';
 import { computeTotals, SHIPPING_RATES } from '../domain/catalog.ts';
@@ -106,7 +117,7 @@ function clearError(event: Event) {
 </script>
 
 <Button variant="ghost" size="sm" class="-ml-2" onclick={() => navigate('/cart')}>
-  <ArrowLeft class="size-4" aria-hidden="true" />Back to cart
+  <LucideIcon icon={ArrowLeft} class="size-4" />Back to cart
 </Button>
 <PageHeader title="Checkout" />
 
@@ -122,7 +133,7 @@ function clearError(event: Event) {
   </EmptyState>
 {:else}
   <div class="mb-6 flex gap-3 rounded-xl border-2 border-warning bg-warning/10 p-4" role="note" aria-label="Demo checkout notice">
-    <ShieldAlert class="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+    <LucideIcon icon={ShieldAlert} class="mt-0.5 size-5 shrink-0" />
     <div class="text-sm">
       <p class="font-semibold">Demo checkout — no real payment.</p>
       <p class="mt-0.5 text-muted-foreground">
@@ -133,7 +144,7 @@ function clearError(event: Event) {
 
   {#if offline}
     <div class="mb-6 flex gap-3 rounded-xl border border-destructive/50 bg-destructive/5 p-4 text-sm" role="status">
-      <WifiOff class="mt-0.5 size-5 shrink-0 text-destructive" aria-hidden="true" />
+      <LucideIcon icon={WifiOff} class="mt-0.5 size-5 shrink-0 text-destructive" />
       <p><span class="font-semibold">You are offline (simulated).</span> Placing the order will fail — nothing will be charged or saved, and your cart stays as it is.</p>
     </div>
   {/if}
@@ -169,19 +180,19 @@ function clearError(event: Event) {
       <Card class="p-5">
         <fieldset>
           <legend class="font-semibold">Delivery</legend>
-          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <RadioGroup bind:value={form.shippingMethod} name="shipping" aria-label="Delivery" orientation="horizontal" class="mt-4 grid gap-3 sm:grid-cols-2">
             {#each SHIPPING_METHODS as method (method)}
               {@const rate = SHIPPING_RATES[method]}
               {@const price = computeTotals((lines.current ?? []).map((l) => ({ unitPriceCents: l.product.priceCents, quantity: l.quantity })), method).shippingCents}
-              <label class={['flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors has-focus-visible:outline-2 has-focus-visible:outline-ring', form.shippingMethod === method ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted']}>
-                <input type="radio" name="shipping" value={method} bind:group={form.shippingMethod} class="mt-1 size-4 accent-primary" />
-                <span class="flex-1 text-sm">
-                  <span class="flex justify-between font-medium"><span>{rate.label}</span><span class="tabular-nums">{price ? money(price) : 'Free'}</span></span>
-                  <span class="text-muted-foreground">{rate.eta}</span>
-                </span>
-              </label>
+              <RadioGroupItem
+                value={method}
+                label={rate.label}
+                description={`${price ? money(price) : 'Free'} · ${rate.eta}`}
+                card
+                class="rounded-lg border border-border p-3 text-sm transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary/5 hover:bg-muted"
+              />
             {/each}
-          </div>
+          </RadioGroup>
         </fieldset>
       </Card>
     </div>
@@ -223,10 +234,10 @@ function clearError(event: Event) {
       {/if}
 
       <Button type="submit" size="lg" class="mt-5 w-full" loading={paying} loadingLabel="Placing order">
-        <Wallet class="size-4" aria-hidden="true" />Pay with demo wallet · {money(totals.totalCents)}
+        <LucideIcon icon={Wallet} class="size-4" />Pay with demo wallet · {money(totals.totalCents)}
       </Button>
       <p class="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-        <Lock class="size-3" aria-hidden="true" />Simulated payment — no card, no charge.
+        <LucideIcon icon={Lock} class="size-3" />Simulated payment — no card, no charge.
       </p>
     </Card>
   </form>

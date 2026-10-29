@@ -217,9 +217,9 @@ function onTocClick(id: string): void {
 
 <style>
   .doc-reading {
-    color: var(--py-foreground);
+    color: var(--tx-foreground);
     display: grid;
-    font-family: var(--py-font-sans, system-ui, sans-serif);
+    font-family: var(--tx-font-sans, system-ui, sans-serif);
     grid-template-columns: minmax(0, 1fr);
     gap: 2rem;
     margin-inline: auto;
@@ -236,13 +236,13 @@ function onTocClick(id: string): void {
   }
 
   .doc-reading__header {
-    border-bottom: 1px solid var(--py-border);
+    border-bottom: 1px solid var(--tx-border);
     margin-bottom: clamp(2rem, 5vw, 3.5rem);
     padding-bottom: clamp(1.5rem, 4vw, 2.5rem);
   }
 
   .doc-reading__eyebrow {
-    color: var(--py-primary);
+    color: var(--tx-primary);
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.12em;
@@ -251,8 +251,8 @@ function onTocClick(id: string): void {
   }
 
   .doc-reading__header h1 {
-    color: var(--py-foreground);
-    font-family: var(--py-font-heading, var(--py-font-sans, system-ui, sans-serif));
+    color: var(--tx-foreground);
+    font-family: var(--tx-font-heading, var(--tx-font-sans, system-ui, sans-serif));
     font-size: clamp(2.25rem, 5vw, 4rem);
     font-weight: 700;
     letter-spacing: -0.04em;
@@ -263,7 +263,7 @@ function onTocClick(id: string): void {
   }
 
   .doc-reading__subtitle {
-    color: var(--py-muted-foreground);
+    color: var(--tx-muted-foreground);
     font-size: clamp(1rem, 1.5vw, 1.2rem);
     line-height: 1.65;
     margin: 1rem 0 0;
@@ -292,8 +292,8 @@ function onTocClick(id: string): void {
   .doc-reading__block[data-py-doc-block='heading'] :global(h2),
   .doc-reading__block[data-py-doc-block='heading'] :global(h3),
   .doc-reading__block[data-py-doc-block='heading'] :global(h4) {
-    color: var(--py-foreground);
-    font-family: var(--py-font-heading, var(--py-font-sans, sans-serif));
+    color: var(--tx-foreground);
+    font-family: var(--tx-font-heading, var(--tx-font-sans, sans-serif));
     font-weight: 650;
     letter-spacing: -0.025em;
     line-height: 1.2;
@@ -320,19 +320,19 @@ function onTocClick(id: string): void {
   }
 
   .doc-reading__flow :global([data-py-block='stat'] dl > div) {
-    background: var(--py-surface, #fff);
-    border: 1px solid var(--py-border);
+    background: var(--tx-surface, #fff);
+    border: 1px solid var(--tx-border);
     border-radius: 0.75rem;
     padding: 1rem;
   }
 
   .doc-reading__flow :global([data-py-block='stat'] dt) {
-    color: var(--py-muted-foreground);
+    color: var(--tx-muted-foreground);
     font-size: 0.85rem;
   }
 
   .doc-reading__flow :global([data-py-block='stat'] dd) {
-    color: var(--py-foreground);
+    color: var(--tx-foreground);
     font-size: clamp(1.5rem, 3vw, 2rem);
     font-variant-numeric: tabular-nums;
     font-weight: 650;
@@ -340,11 +340,11 @@ function onTocClick(id: string): void {
   }
 
   .doc-reading__block[data-py-doc-block='callout'] :global(aside) {
-    background: color-mix(in srgb, var(--py-primary) 5%, var(--py-surface, #fff));
-    border: 1px solid var(--py-border);
-    border-left: 3px solid var(--py-primary);
+    background: color-mix(in srgb, var(--tx-primary) 5%, var(--tx-surface, #fff));
+    border: 1px solid var(--tx-border);
+    border-left: 3px solid var(--tx-primary);
     border-radius: 0.65rem;
-    color: var(--py-foreground);
+    color: var(--tx-foreground);
     padding: 1rem 1.25rem;
   }
 
@@ -355,7 +355,7 @@ function onTocClick(id: string): void {
   }
 
   .doc-reading__flow :global([data-py-block='table']) {
-    border: 1px solid var(--py-border);
+    border: 1px solid var(--tx-border);
     border-radius: 0.65rem;
     max-width: 100%;
     overflow-x: auto;
@@ -370,16 +370,16 @@ function onTocClick(id: string): void {
 
   .doc-reading__flow :global([data-py-block='table'] th),
   .doc-reading__flow :global([data-py-block='table'] td) {
-    border-bottom: 1px solid var(--py-border);
+    border-bottom: 1px solid var(--tx-border);
     padding: 0.65rem 0.8rem;
   }
 
   .doc-reading__flow :global([data-py-block='table'] thead) {
-    background: var(--py-muted);
+    background: var(--tx-muted);
   }
 
   .doc-reading__flow :global([data-block-type='timeline'] ol) {
-    border-left: 2px solid var(--py-border);
+    border-left: 2px solid var(--tx-border);
     display: grid;
     gap: 1.4rem;
     list-style: none;
@@ -397,10 +397,10 @@ function onTocClick(id: string): void {
 
   .doc-reading__flow :global([data-py-timeline-marker]) {
     align-items: center;
-    background: var(--py-primary);
-    border: 2px solid var(--py-background, #fff);
+    background: var(--tx-primary);
+    border: 2px solid var(--tx-background, #fff);
     border-radius: 50%;
-    color: var(--py-primary-foreground, #fff);
+    color: var(--tx-primary-foreground, #fff);
     display: grid;
     grid-column: 1;
     grid-row: span 3;
@@ -420,16 +420,16 @@ function onTocClick(id: string): void {
 
   .doc-reading__toc {
     align-self: start;
-    background: color-mix(in srgb, var(--py-background) 96%, transparent);
-    border: 1px solid var(--py-border);
+    background: color-mix(in srgb, var(--tx-background) 96%, transparent);
+    border: 1px solid var(--tx-border);
     border-radius: 0.8rem;
-    color: var(--py-muted-foreground);
+    color: var(--tx-muted-foreground);
     min-width: 0;
     padding: 0.9rem 1rem;
   }
 
   .doc-reading__toc-summary {
-    color: var(--py-foreground);
+    color: var(--tx-foreground);
     cursor: pointer;
     font-size: 0.875rem;
     font-weight: 650;
@@ -459,14 +459,14 @@ function onTocClick(id: string): void {
 
   .doc-reading__toc-list a:hover,
   .doc-reading__toc-list a:focus-visible {
-    background: var(--py-muted);
-    color: var(--py-foreground);
-    outline-color: var(--py-ring);
+    background: var(--tx-muted);
+    color: var(--tx-foreground);
+    outline-color: var(--tx-ring);
   }
 
   .doc-reading__toc-list a[aria-current='location'] {
-    background: color-mix(in srgb, var(--py-primary) 10%, transparent);
-    color: var(--py-primary);
+    background: color-mix(in srgb, var(--tx-primary) 10%, transparent);
+    color: var(--tx-primary);
     font-weight: 650;
   }
 
@@ -479,7 +479,7 @@ function onTocClick(id: string): void {
 
     .doc-reading__toc {
       border: 0;
-      border-left: 1px solid var(--py-border);
+      border-left: 1px solid var(--tx-border);
       border-radius: 0;
       position: sticky;
       top: 1.5rem;

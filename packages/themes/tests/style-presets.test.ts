@@ -108,9 +108,9 @@ describe('style presets', () => {
   it('renders the layered elevation as stacked shadows', () => {
     const theme = applyStylePresets(violetTheme, { elevation: 'layered' });
     const vars = themeVariables({ theme, resolvedMode: 'light' });
-    expect(vars['--py-elevation-style']).toBe('layered');
-    expect(vars['--py-shadow-soft']?.split('var(--py-shadow)')).toHaveLength(4);
-    expect(vars['--py-shadow-float']?.split('var(--py-shadow)')).toHaveLength(5);
+    expect(vars['--tx-elevation-style']).toBe('layered');
+    expect(vars['--tx-shadow-soft']?.split('var(--tx-shadow)')).toHaveLength(4);
+    expect(vars['--tx-shadow-float']?.split('var(--tx-shadow)')).toHaveLength(5);
     expect(themeComponentProfile(theme).card).toBeUndefined();
   });
 });

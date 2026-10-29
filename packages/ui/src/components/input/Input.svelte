@@ -1,13 +1,19 @@
 <script lang="ts">
 import type { HTMLInputAttributes } from 'svelte/elements';
-import { cn } from '../../lib/cn.ts';
+import { cx } from 'texuli/cx';
+import { Input as TexuliInput } from 'texuli/input';
 import type { WithElementRef } from '../../lib/types.ts';
-import { fieldClasses } from './input-classes.ts';
 
 type Props = WithElementRef<Omit<HTMLInputAttributes, 'files'>, HTMLInputElement> & {
   files?: FileList | null;
 };
 
+/**
+ * Texuli's `Input` (`texuli/input`), with this package's prop types (an
+ * `HTMLInputElement` ref). Texuli keeps `bind:value` in step when a caller
+ * passes `oninput`, and binds a number (`null` when empty) for number and
+ * range inputs, as Svelte's native `bind:value` does.
+ */
 let {
   class: className,
   type = 'text',
@@ -17,18 +23,17 @@ let {
   ...rest
 }: Props = $props();
 
-const classes = $derived(
-  cn(
-    fieldClasses,
-    'flex h-9 min-h-touch px-3 py-1 sm:min-h-0',
-    'file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground',
-    className
-  )
-);
+// An unset value reaches Texuli as empty: `''`, or `null` for number and range inputs.
+const empty = $derived(type === 'number' || type === 'range' ? null : '');
+// A plain record keeps the spread onto Texuli's Input a finite type.
+const forwarded = $derived(rest as Record<string, unknown>);
 </script>
 
-{#if type === 'file'}
-  <input bind:this={ref} type="file" bind:files class={cn('ui-input', classes)} {...rest} />
-{:else}
-  <input bind:this={ref} {type} bind:value class={cn('ui-input', classes)} {...rest} />
-{/if}
+<TexuliInput
+  bind:ref={() => ref, (node) => (ref = node as HTMLInputElement | null)}
+  bind:value={() => value ?? empty, (next) => (value = next)}
+  bind:files
+  {type}
+  class={cx('ui-input', className)}
+  {...forwarded}
+/>

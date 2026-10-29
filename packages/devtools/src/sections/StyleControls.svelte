@@ -6,8 +6,10 @@ import {
   MOTION_PRESETS,
   RADIUS_PRESETS,
 } from '@protoyard/themes';
+import { Slider } from 'texuli/slider';
 import Section from '../primitives/Section.svelte';
 import Segmented from '../primitives/Segmented.svelte';
+import SelectField from '../primitives/SelectField.svelte';
 import SourceBadge from '../primitives/SourceBadge.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
 
@@ -28,8 +30,9 @@ const applying = $derived(dt.isBusy('appearance'));
 const THEME = 'theme';
 type Patch = Parameters<typeof runtime.theme.setOverride>[0];
 
-function apply(key: string, patch: Patch) {
-  return dt.run(`appearance:style:${key}`, () => runtime.theme.setOverride(patch));
+async function apply(key: string, patch: Patch) {
+  await dt.run(`appearance:style:${key}`, () => runtime.theme.setOverride(patch));
+  return dt.errorFor('appearance') === null;
 }
 
 const withTheme = (presets: readonly { id: string; label: string }[]) => [
@@ -38,6 +41,28 @@ const withTheme = (presets: readonly { id: string; label: string }[]) => [
 ];
 
 const density = $derived(appearance.density?.value ?? 1);
+let densityDraft = $state(1);
+$effect(() => {
+  densityDraft = density;
+});
+let queuedDensity: number | undefined;
+let savingDensity = false;
+async function commitDensity(value: number) {
+  queuedDensity = value;
+  if (savingDensity) return;
+  savingDensity = true;
+  try {
+    while (queuedDensity !== undefined) {
+      while (applying) await new Promise((resolve) => setTimeout(resolve, 0));
+      const next = queuedDensity;
+      queuedDensity = undefined;
+      if (!(await apply('density', { density: next }))) densityDraft = density;
+    }
+  } finally {
+    savingDensity = false;
+    if (queuedDensity !== undefined) void commitDensity(queuedDensity);
+  }
+}
 /** The density preset that matches the current value, if any. */
 const densityPreset = $derived(
   appearance.density?.source === 'override'
@@ -62,19 +87,22 @@ const formatDensity = (value: number) =>
       }}
     />
     <label class="block text-[11px] text-muted-foreground">
-      <span class="flex justify-between"><span>Fine tune</span><span class="font-mono text-foreground">{formatDensity(density)}</span></span>
-      <input
-        type="range"
-        min="0.75"
-        max="1.25"
-        step="0.025"
+      <span class="flex justify-between"><span>Fine tune</span><span class="font-mono text-foreground">{formatDensity(densityDraft)}</span></span>
+      <Slider
+        min={0.75}
+        max={1.25}
+        step={0.025}
         class="mt-1 w-full accent-primary"
-        value={density}
-        disabled={applying}
+        value={densityDraft}
+        label="Density"
         aria-label="Density"
-        aria-valuetext={`${density} times`}
-        onchange={(event) =>
-          apply('density', { density: Number((event.currentTarget as HTMLInputElement).value) })}
+        getValueText={(value) => `${value} times`}
+        onValueChange={(value) => {
+          if (typeof value === 'number') densityDraft = value;
+        }}
+        onValueCommit={(value) => {
+          if (typeof value === 'number') void commitDensity(value);
+        }}
       />
     </label>
   </div>
@@ -108,21 +136,16 @@ const formatDensity = (value: number) =>
 
 <Section title="Font pairing" description="System-first font stacks; nothing is downloaded.">
   {#snippet actions()}{#if appearance.font}<SourceBadge source={appearance.font.source} />{/if}{/snippet}
-  <select
+  <SelectField
     class="h-8 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground disabled:opacity-60"
-    aria-label="Font pairing"
+    label="Font pairing"
     value={appearance.font?.value ?? THEME}
     disabled={applying}
-    onchange={(event) => {
-      const value = (event.currentTarget as HTMLSelectElement).value;
+    onchange={(value) => {
       apply('font', { font: value === THEME ? undefined : (value as Patch['font']) });
     }}
-  >
-    <option value={THEME}>Theme</option>
-    {#each FONT_PRESETS as preset (preset.id)}
-      <option value={preset.id}>{preset.label}</option>
-    {/each}
-  </select>
+    options={[{ value: THEME, label: 'Theme' }, ...FONT_PRESETS.map((preset) => ({ value: preset.id, label: preset.label }))]}
+  />
 </Section>
 
 <Section title="Motion" description="Transition speed and easing. Reduced motion still wins.">

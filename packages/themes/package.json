@@ -13,14 +13,17 @@
     "./presets": "./src/presets.ts",
     "./no-flash": "./src/no-flash.ts",
     "./library": "./src/library/index.ts",
+    "./library-full": "./src/library/full.ts",
     "./base.css": "./src/base.css",
-    "./fonts.css": "./src/fonts.css"
+    "./fonts.css": "./src/fonts.css",
+    "./texuli": "./src/texuli.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@protoyard/core": "workspace:*"
+    "@protoyard/core": "workspace:*",
+    "@texuli/tokens": "0.5.0"
   },
   "protoyard": {
     "build": {
@@ -60,6 +63,11 @@
         "import": "./dist/library/index.js",
         "default": "./dist/library/index.js"
       },
+      "./library-full": {
+        "types": "./dist/library/full.d.ts",
+        "import": "./dist/library/full.js",
+        "default": "./dist/library/full.js"
+      },
       "./base.css": {
         "types": "./dist/styles.d.ts",
         "default": "./dist/base.css"
@@ -67,6 +75,11 @@
       "./fonts.css": {
         "types": "./dist/styles.d.ts",
         "default": "./dist/fonts.css"
+      },
+      "./texuli": {
+        "types": "./dist/texuli.d.ts",
+        "import": "./dist/texuli.js",
+        "default": "./dist/texuli.js"
       }
     },
     "types": "./dist/index.d.ts",

@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import { CardGrid } from 'texuli/card';
 
 let {
   columns = 3,
@@ -12,6 +13,11 @@ let {
   columns?: 1 | 2 | 3 | 4;
   /** Minimum preferred item width in pixels; narrower containers use one column. */
   minItem?: number;
+  /**
+   * Space between items: `sm`, `md` or `lg`, or a CSS length mapped to the
+   * nearest of those (0.5, 1 or 1.5rem). Texuli's CardGrid takes its gap
+   * scale only (Texuli gap N22).
+   */
   gap?: string;
   /** Adds a named region landmark when the grid has a meaningful title. */
   label?: string;
@@ -21,50 +27,31 @@ let {
 
 const safeColumns = $derived(Math.min(4, Math.max(1, Math.floor(columns))));
 const safeMinItem = $derived(Math.max(120, Math.floor(minItem)));
+
+/** The CardGrid gap step closest to a CSS length (rem or px; 16px = 1rem). */
+function gapStep(value: string): 'sm' | 'md' | 'lg' {
+  if (value === 'sm' || value === 'md' || value === 'lg') return value;
+  const match = /^(\d*\.?\d+)(rem|px)$/.exec(value.trim());
+  if (!match) return 'md';
+  const rem = Number(match[1]) / (match[2] === 'px' ? 16 : 1);
+  return rem <= 0.75 ? 'sm' : rem >= 1.25 ? 'lg' : 'md';
+}
 </script>
 
-<div
-  class="page-grid @container min-w-0 {className}"
-  data-py-page-grid
-  data-columns={safeColumns}
+<!--
+  Texuli's CardGrid (`texuli/card`): auto-fill columns capped at `columns`.
+  Items may shrink below their content, so a wide child never overflows a
+  narrow column.
+-->
+<CardGrid
+  maxColumns={safeColumns}
+  minItemWidth={`${safeMinItem}px`}
+  gap={gapStep(gap)}
+  class={`min-w-0 [&>*]:min-w-0 ${className}`.trim()}
   role={label ? 'region' : undefined}
   aria-label={label}
-  style={`--py-page-grid-columns: ${safeColumns}; --py-page-grid-min: ${safeMinItem}px; --py-page-grid-gap: ${gap}`}
+  data-py-page-grid=""
+  data-columns={safeColumns}
 >
-  <div class="page-grid__items min-w-0">
-    {@render children()}
-  </div>
-</div>
-
-<style>
-  .page-grid {
-    min-width: 0;
-    container-type: inline-size;
-  }
-
-  .page-grid__items {
-    display: grid;
-    min-width: 0;
-    gap: var(--py-page-grid-gap, 1rem);
-    grid-template-columns: repeat(
-      auto-fit,
-      minmax(
-        min(
-          100%,
-          max(
-            var(--py-page-grid-min, 280px),
-            calc(
-              (100% - (var(--py-page-grid-columns, 3) - 1) * var(--py-page-grid-gap, 1rem)) /
-                var(--py-page-grid-columns, 3)
-            )
-          )
-        ),
-        1fr
-      )
-    );
-  }
-
-  .page-grid__items > :global(*) {
-    min-width: 0;
-  }
-</style>
+  {@render children()}
+</CardGrid>

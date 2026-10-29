@@ -66,6 +66,6 @@ async function remove(id: string) {
       <Button class="md:justify-self-end" disabled={busy} loading={busy} loadingLabel="Publishing listing">Publish listing</Button>
     </form>
     {#if message}<p role="status" class="text-sm text-muted-foreground">{message}</p>{/if}
-    <ul class="grid gap-3 sm:grid-cols-2">{#each listings.current ?? [] as listing (listing.id)}<li class="flex items-start justify-between gap-4 rounded-xl border border-border bg-surface p-4"><div><h2 class="font-semibold">{listing.title}</h2><p class="mt-1 text-sm text-muted-foreground">{listing.category} · ${(listing.priceCents / 100).toFixed(2)} · {listing.status}</p></div><Button variant="outline" size="sm" onclick={() => void remove(listing.id)}>Remove</Button></li>{/each}</ul>
+    <ul class="grid gap-3 sm:grid-cols-2">{#each listings.current ?? [] as listing (listing.id)}<li class="flex items-start justify-between gap-4 rounded-xl border border-border bg-surface p-4"><div><h2 class="font-semibold">{listing.title}</h2><p class="mt-1 text-sm text-muted-foreground">{listing.category} · ${(listing.priceCents / 100).toFixed(2)} · {listing.status}</p></div><Button variant="outline" size="sm" onclick={() => remove(listing.id)}>Remove</Button></li>{/each}</ul>
   </section>
 {/if}

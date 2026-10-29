@@ -4,8 +4,8 @@ import {
   parseInput,
   ValidationError,
 } from '@protoyard/core';
-import { RecurrenceRuleSchema } from '@protoyard/views/calendar';
-import { SavedViewSchema } from '@protoyard/views/grid';
+import { type RecurrenceRule, RecurrenceRuleSchema } from '@protoyard/views/calendar';
+import { type SavedView as GridSavedView, SavedViewSchema } from '@protoyard/views/grid';
 import { z } from 'zod';
 import {
   type Activity,
@@ -97,6 +97,34 @@ const ScheduleChangesSchema = z
   .max(200);
 
 const isoInstant = z.string().datetime({ offset: true });
+
+/**
+ * Bridge Texuli DataSchema (parse/safeParse only) into Zod so service inputs
+ * stay `parseInput`-compatible after T-adopt-views.
+ */
+function parseDataSchema<T>(
+  schema: {
+    safeParse(
+      input: unknown
+    ): { success: true; data: T } | { success: false; error: { message: string } };
+  },
+  input: unknown,
+  ctx: z.RefinementCtx,
+  label: string
+): T {
+  const result = schema.safeParse(input);
+  if (!result.success) {
+    ctx.addIssue({ code: 'custom', message: result.error.message || `Invalid ${label}` });
+    return z.NEVER;
+  }
+  return result.data;
+}
+
+const optionalRecurrenceRule = z.unknown().transform((input, ctx): RecurrenceRule | undefined => {
+  if (input === undefined || input === null) return undefined;
+  return parseDataSchema(RecurrenceRuleSchema, input, ctx, 'recurrence rule');
+});
+
 /** A calendar series write (`CalendarSeries` from @protoyard/views/calendar), as the calendar sends it. */
 const RitualWriteSchema = z.object({
   id: z.string().min(1).max(120),
@@ -104,7 +132,7 @@ const RitualWriteSchema = z.object({
   end: isoInstant,
   allDay: z.boolean().optional(),
   timeZone: z.string().max(64).optional(),
-  rule: RecurrenceRuleSchema.optional(),
+  rule: optionalRecurrenceRule.optional(),
   exdates: z.array(isoInstant).max(500).optional(),
   overrides: z
     .record(z.string(), z.object({ start: isoInstant.optional(), end: isoInstant.optional() }))
@@ -118,7 +146,21 @@ const RitualWritesSchema = z.object({
 export type RitualWrites = z.input<typeof RitualWritesSchema>;
 
 /** A grid view without its id and name (`GridViewState`), validated by the grid's own schema. */
-const ViewStateSchema = SavedViewSchema.omit({ id: true, name: true });
+type GridViewState = Omit<GridSavedView, 'id' | 'name'>;
+const ViewStateSchema = z.unknown().transform((input, ctx): GridViewState => {
+  const full = parseDataSchema(
+    SavedViewSchema,
+    {
+      id: 'tmp',
+      name: 'tmp',
+      ...(typeof input === 'object' && input !== null ? (input as Record<string, unknown>) : {}),
+    },
+    ctx,
+    'saved view state'
+  );
+  const { id: _id, name: _name, ...state } = full;
+  return state;
+});
 const ViewNameSchema = z
   .string()
   .trim()

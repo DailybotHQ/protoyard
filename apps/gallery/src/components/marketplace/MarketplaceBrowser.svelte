@@ -1,7 +1,10 @@
 <script lang="ts">
-import Search from '@lucide/svelte/icons/search';
 import X from '@lucide/svelte/icons/x';
+import { Button, Input } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
+import GallerySelect from '../GallerySelect.svelte';
 import MarketCard from './MarketCard.svelte';
 import {
   EMPTY_QUERY,
@@ -82,8 +85,8 @@ const sourceKinds = [
     <div class="flex flex-col gap-3 md:flex-row md:items-center">
       <label class="relative flex-1">
         <span class="sr-only">Search the marketplace</span>
-        <Search size={16} class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" aria-hidden="true" />
-        <input
+        <Icon icon="search" size={16} class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" aria-hidden="true" />
+        <Input
           type="search"
           placeholder="Search products, features, platforms…"
           autocomplete="off"
@@ -96,66 +99,52 @@ const sourceKinds = [
       </label>
       <div role="group" aria-label="Source type" class="flex flex-wrap rounded-lg border border-line bg-bg p-0.5">
         {#each sourceKinds as kind (kind.value)}
-          <button
+          <Button
             type="button"
+            variant="ghost"
             class="rounded-md px-3 py-1.5 text-sm text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
             aria-pressed={query.kind === kind.value}
             onclick={() => update({ kind: kind.value as MarketQuery['kind'] })}
           >
             {kind.label} <span class="text-xs">{kind.count}</span>
-          </button>
+          </Button>
         {/each}
       </div>
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <label class="flex items-center gap-1.5 text-sm text-muted">
         <span>Content type</span>
-        <select class={select} value={query.contentKind} onchange={(e) => update({ contentKind: e.currentTarget.value as MarketQuery['contentKind'] })} data-testid="market-content-kind">
-          <option value="">Any</option>
-          {#each facets.contentKind as [value, n] (value)}<option {value}>{label(value)} ({n})</option>{/each}
-        </select>
+        <GallerySelect class={select} value={query.contentKind} onValueChange={(value) => update({ contentKind: value as MarketQuery['contentKind'] })} data-testid="market-content-kind" items={[{ value: "", label: "Any" }, ...facets.contentKind.map(([value, n]) => ({ value, label: `${label(value)} (${n})` }))]} />
       </label>
       <label class="flex items-center gap-1.5 text-sm text-muted">
         <span>Category</span>
-        <select class={select} value={query.category} onchange={(e) => update({ category: e.currentTarget.value })} data-testid="market-category">
-          <option value="">Any</option>
-          {#each facets.category as [value, n] (value)}<option {value}>{label(value)} ({n})</option>{/each}
-        </select>
+        <GallerySelect class={select} value={query.category} onValueChange={(value) => update({ category: value })} data-testid="market-category" items={[{ value: "", label: "Any" }, ...facets.category.map(([value, n]) => ({ value, label: `${label(value)} (${n})` }))]} />
       </label>
       <label class="flex items-center gap-1.5 text-sm text-muted">
         <span>Runs on</span>
-        <select class={select} value={query.platform} onchange={(e) => update({ platform: e.currentTarget.value })}>
-          <option value="">Any</option>
-          {#each facets.platform as [value, n] (value)}<option {value}>{label(value)} ({n})</option>{/each}
-        </select>
+        <GallerySelect class={select} value={query.platform} onValueChange={(value) => update({ platform: value })} items={[{ value: "", label: "Any" }, ...facets.platform.map(([value, n]) => ({ value, label: `${label(value)} (${n})` }))]} />
       </label>
       <label class="flex items-center gap-1.5 text-sm text-muted">
         <span>Shell</span>
-        <select class={select} value={query.shell} onchange={(e) => update({ shell: e.currentTarget.value })}>
-          <option value="">Any</option>
-          {#each facets.shell as [value, n] (value)}<option {value}>{label(value)} ({n})</option>{/each}
-        </select>
+        <GallerySelect class={select} value={query.shell} onValueChange={(value) => update({ shell: value })} items={[{ value: "", label: "Any" }, ...facets.shell.map(([value, n]) => ({ value, label: `${label(value)} (${n})` }))]} />
       </label>
       {#if facets.collection.length}
         <label class="flex items-center gap-1.5 text-sm text-muted">
           <span>Theme</span>
-          <select class={select} value={query.collection} onchange={(e) => update({ collection: e.currentTarget.value })} data-testid="market-collection">
-            <option value="">Any</option>
-            {#each facets.collection as [value, n] (value)}<option {value}>{label(value)} ({n})</option>{/each}
-          </select>
+          <GallerySelect class={select} value={query.collection} onValueChange={(value) => update({ collection: value })} data-testid="market-collection" items={[{ value: "", label: "Any" }, ...facets.collection.map(([value, n]) => ({ value, label: `${label(value)} (${n})` }))]} />
         </label>
       {/if}
     </div>
     <div role="group" aria-label="Features" class="flex flex-wrap gap-1.5">
       {#each featureChips as [feature, n] (feature)}
-        <button
+        <Button variant="outline"
           type="button"
           class="rounded-full border border-line px-2.5 py-1 text-xs text-muted hover:text-fg aria-pressed:border-accent aria-pressed:bg-accent-soft aria-pressed:text-accent-fg"
           aria-pressed={query.features.includes(feature)}
           onclick={() => toggleFeature(feature)}
         >
           {feature} <span class="tabular-nums">{n}</span>
-        </button>
+        </Button>
       {/each}
     </div>
   </div>
@@ -166,9 +155,9 @@ const sourceKinds = [
         <p aria-live="polite" data-testid="market-count">
           {results.length === 0 ? 'No matches' : `${results.length} ${results.length === 1 ? 'result' : 'results'}`}
         </p>
-        <button type="button" class="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-surface-2 hover:text-fg" onclick={() => (query = { ...EMPTY_QUERY })}>
-          <X size={14} aria-hidden="true" /> Clear filters
-        </button>
+        <Button variant="ghost" type="button" class="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-surface-2 hover:text-fg" onclick={() => (query = { ...EMPTY_QUERY })}>
+          <LucideIcon icon={X} size={14} aria-hidden="true" /> Clear filters
+        </Button>
       </div>
       {#if results.length > 0}
         <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" data-testid="market-results">
@@ -180,9 +169,9 @@ const sourceKinds = [
         <div class="rounded-xl border border-dashed border-line p-10 text-center">
           <p class="font-medium">Nothing matches these filters</p>
           <p class="mt-1 text-sm text-muted">Try fewer features or another word.</p>
-          <button type="button" class="mt-4 rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-surface-2" onclick={() => (query = { ...EMPTY_QUERY })}>
+          <Button variant="outline" type="button" class="mt-4 rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-surface-2" onclick={() => (query = { ...EMPTY_QUERY })}>
             Show everything
-          </button>
+          </Button>
         </div>
       {/if}
     {:else}
@@ -194,9 +183,9 @@ const sourceKinds = [
               <h3 id={`rail-${category}`} class="text-lg font-semibold tracking-tight">
                 {label(category)} <span class="text-sm font-normal text-muted">{items.length}</span>
               </h3>
-              <button type="button" class="text-sm text-accent-fg underline-offset-2 hover:underline" onclick={() => showCategory(category)}>
+              <Button variant="link" type="button" class="text-sm text-accent-fg underline-offset-2 hover:underline" onclick={() => showCategory(category)}>
                 See all<span class="sr-only"> {label(category)}</span>
-              </button>
+              </Button>
             </div>
             <ul class="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
               {#each items as entry (entry.k + entry.s)}

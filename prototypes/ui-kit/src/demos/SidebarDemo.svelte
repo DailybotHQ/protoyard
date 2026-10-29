@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Calendar, FileText, House, Inbox, LifeBuoy, Users } from '@lucide/svelte';
-import { Avatar, Sidebar, type SidebarSection } from '@protoyard/ui';
+import { Avatar, Button, Sidebar, type SidebarSection } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { sampleFace } from './faces.ts';
 import { interceptDemoNav } from './nav.ts';
 
@@ -59,7 +60,7 @@ function navigate(href: string): void {
           class="flex h-9 items-center gap-3 rounded-md px-3 text-sm text-sidebar-foreground/80 hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {isCollapsed ? 'justify-center px-0' : ''}"
           aria-current={current === '#demo/side/help' ? 'page' : undefined}
         >
-          <LifeBuoy class="size-4" aria-hidden="true" />
+          <LucideIcon icon={LifeBuoy} class="size-4" />
           <span class={isCollapsed ? 'sr-only' : undefined}>Help center</span>
         </a>
       {/snippet}
@@ -73,12 +74,13 @@ function navigate(href: string): void {
     <div class="flex items-center gap-2 text-xs text-muted-foreground">
       <Avatar name="Jordan Example" {...sampleFace('Jordan Example')} size="xs" decorative /> Signed in as Jordan · {collapsed ? 'collapsed' : 'expanded'}
     </div>
-    <button
+    <Button
       type="button"
+      variant="link"
       class="justify-self-start text-xs font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       onclick={() => (unread += 1)}
     >
       Simulate a new inbox message
-    </button>
+    </Button>
   </div>
 </div>

@@ -164,8 +164,9 @@ $effect(() => {
       <div class="mt-2 flex flex-wrap gap-1.5">
         {#each TASK_LABELS as label (label)}
           {@const on = form.labels.includes(label)}
-          <button
+          <Button
             type="button"
+            variant="ghost"
             aria-pressed={on}
             onclick={() => toggleLabel(label)}
             class={[
@@ -174,7 +175,7 @@ $effect(() => {
             ]}
           >
             {LABEL_NAMES[label]}
-          </button>
+          </Button>
         {/each}
       </div>
       {#if errors.labels}<p class="mt-1.5 text-sm text-destructive" role="alert">{errors.labels}</p>{/if}

@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Duration } from '@protoyard/core';
+import { Input } from 'texuli/input';
 import { formatDateTime, formatOffset } from '../format.ts';
 import Btn from '../primitives/Btn.svelte';
 import Confirm from '../primitives/Confirm.svelte';
@@ -81,7 +82,7 @@ function previewAt() {
   </div>
   <div class="mt-2 flex gap-1.5">
     <label class="sr-only" for="py-dt-preview-at">Preview at (UTC)</label>
-    <input
+    <Input
       id="py-dt-preview-at"
       type="datetime-local"
       class="min-h-touch min-w-0 flex-1 rounded-md border border-input bg-surface px-2 text-xs text-surface-foreground sm:min-h-7"

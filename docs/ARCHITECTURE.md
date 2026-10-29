@@ -27,22 +27,22 @@ protoyard/
 │   ├── database/         Dexie/IndexedDB: per-prototype data + control DBs, world I/O, storage errors
 │   ├── scenarios/        generator SDK (seeded faker/rng/ids/time), presets, integrity, timeline
 │   ├── runtime/          createPrototypeRuntime(): composes everything into one PrototypeRuntime
-│   ├── themes/           six presets + a lazy 64-theme library, palette engine, fonts, no-flash script
-│   ├── ui/               Svelte 5 components (Bits UI + Tailwind 4 + Lucide), shell frames, LayoutHost + 12 layouts
-│   ├── devtools/         the in-browser control center (incl. Theme Studio)
+│   ├── themes/           six presets + a lazy 64-theme catalog (204 opt-in) with tokens from @texuli/tokens, palette engine, fonts, no-flash script
+│   ├── ui/               Svelte 5 kit: Texuli's styled components re-exported, wrappers on @texuli/primitives, shell frames, LayoutHost on texuli/layouts (12 layouts)
+│   ├── devtools/         the in-browser control center (incl. Theme Studio), built with Texuli components
 │   ├── renderer-svelte/  Vite config factory, mountPrototype(), ShellHost, reactive bindings, hash router
 │   ├── http/             optional fetch-compatible mock API over prototype services (no server, no service worker)
 │   ├── offline/          optional build-time service worker for exported prototypes (opt-in)
 │   ├── blueprint/        data-only blueprints: schema, screens, brief synthesizer, entity services (no Svelte)
 │   ├── crud/             EntityList/Detail/Form + lazy dashboard, board, calendar, timeline, map, analytics, settings screens
-│   ├── views/ views-ui/  rich view engines (no Svelte) / lazy Svelte views, one subpath each
-│   ├── charts/ charts-ui/        chart math (no Svelte) / Svelte charts, one lazy subpath per family
+│   ├── views/ views-ui/  rich view engines from @texuli/data (no Svelte) / thin adapters over its views, one lazy subpath each
+│   ├── charts/ charts-ui/        chart math from @texuli/charts (no Svelte) / Texuli's chart families with adapters, one lazy subpath per family
 │   ├── analytics/ analytics-ui/  events, metrics, funnels, cohorts (no Svelte) / KPI tiles, filters, dashboard grid
 │   ├── saas/ saas-ui/    simulated auth, OAuth, MFA, workspaces, billing / their screens and routes
 │   ├── ai/ ai-ui/        simulated assistants, agents, tools, voice / assistant workspace and widget
 │   ├── review/ review-ui/        review comments engine and adapters / lazy comment overlay
 │   ├── avatars/          175 fictional portraits (WebP) + verified manifest, data only
-│   ├── blocks/ blocks-ui/        content block schemas, limits, formulas (no Svelte) / lazy renderers, one subpath per family
+│   ├── blocks/ blocks-ui/        content block schemas and host, engines from @texuli/blocks (no Svelte) / Texuli's renderers with adapters, one subpath per family
 │   ├── decks/ decks-ui/          deck schema, 21-layout catalog, style, lint data / DeckApp, presenter, print, Deck Studio
 │   ├── pages/ pages-ui/          page and doc schemas, TOC, form responses / PageApp, DocApp, forms, print CSS
 │   ├── flows/ flows-ui/          serializable workflows and simulated runs / workflow editor and run panels
@@ -119,6 +119,28 @@ This graph describes workspace dependencies. For public package names,
 supported install paths, export subpaths, and the current npm release status,
 see [PACKAGES.md](PACKAGES.md). Workspace development stays source-first;
 published engine and Svelte packages map their exports to built `dist/` files.
+
+## Texuli underneath
+
+The experience and several kits build on [Texuli](TEXULI.md), a standalone
+Svelte 5 component library installed from npm at exact versions
+([ADR-044](DECISIONS.md), [ADR-045](DECISIONS.md)). Imports from Texuli,
+by package:
+
+| Package | Texuli packages it imports | How it resolves them |
+| --- | --- | --- |
+| `themes` | `@texuli/tokens` | declared, `link:` |
+| `ui` | `texuli`, `@texuli/primitives`, `@texuli/core` | the root links (not declared) |
+| `devtools` | `texuli`, `@texuli/primitives` | declared, `link:` |
+| `charts` / `charts-ui` | `@texuli/charts`, `@texuli/tokens` / `@texuli/charts` | declared, `link:` |
+| `views` / `views-ui` | `@texuli/data` / `@texuli/data`, `texuli` | declared, `link:` |
+| `blocks` / `blocks-ui` | `@texuli/blocks` / `@texuli/blocks`, `@texuli/charts`, `@texuli/data` | declared, `link:` |
+
+Texuli ships TypeScript and Svelte sources that Protoyard's Vite and Vitest
+compile like workspace code. Protoyard keeps the prototype-specific pieces:
+device frames and shells, the overlay stack, the `docs` layout, data and
+runtime packages, and the components whose APIs still differ. The details,
+verification and limits are in [TEXULI.md](TEXULI.md).
 
 ## The prototype contract
 

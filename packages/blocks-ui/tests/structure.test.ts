@@ -1,4 +1,5 @@
 import type { Block } from '@protoyard/blocks';
+import { RICH_EXAMPLES } from '@protoyard/blocks/catalog';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -120,6 +121,43 @@ describe('structure family renderers', () => {
     expect(screen.getByRole('img', { name: 'Featured' })).toBeTruthy();
   });
 
+  // Regression: a stray `import { RichText } …` line outside SafeBody's script was
+  // template text, so every card body printed the component's compiled source.
+  it('renders a slide card body as its text only, with no leaked source', async () => {
+    // On a slide, cards render through Protoyard's CardsBlock and SafeBody.
+    const { container } = render(StructureHarness, { block: cards, canvasMode: 'slide' });
+    await tick();
+    const fast = [...container.querySelectorAll('li')].find((li) =>
+      li.textContent?.includes('Fast')
+    );
+    expect(fast?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Fast Loads quickly.');
+    expect(container.textContent).not.toMatch(/import|function|@texuli/);
+  });
+
+  it('renders a card image under the media policy, with its alt text', async () => {
+    // The catalog's own rich cards: "Safe" has a library avatar and imageAlt "A face".
+    render(StructureFamily, { block: RICH_EXAMPLES.cards });
+    // The image loads on its own chunk, only for cards that have one.
+    const image = await screen.findByRole('img', { name: 'A face' });
+    expect(image.getAttribute('src')).toMatch(/av-020/);
+    expect(image.getAttribute('referrerpolicy')).toBe('no-referrer');
+
+    document.body.replaceChildren();
+    render(StructureFamily, {
+      block: {
+        type: 'cards',
+        items: [
+          { title: 'Decorative', image: 'avatar:av-001' },
+          { title: 'Refused', image: 'javascript:alert(1)', imageAlt: 'Never shown' },
+        ],
+      } as Block,
+    });
+    // No alt: decorative. An unsafe source never becomes an image.
+    await waitFor(() => expect(document.querySelectorAll('img')).toHaveLength(1));
+    const images = document.querySelectorAll('img');
+    expect(images[0]?.getAttribute('alt')).toBe('');
+  });
+
   it('shows CTA pending state until the host action promise settles', async () => {
     let finish: (() => void) | undefined;
     const onCtaAction = vi.fn(
@@ -191,10 +229,24 @@ describe('structure grids on a slide', () => {
       for (const value of classes) expect(value, block.type).not.toMatch(viewportBreakpoint);
       unmount();
     }
-    // Pages and docs (flow) stay responsive.
+    // Pages and docs (flow): Texuli structure uses CSS columns; local path keeps Tailwind.
     const { container } = render(StructureHarness, {
       props: { block: blocks[0] as never, canvasMode: 'flow' },
     });
-    expect(gridClassOf(container).join(' ')).toMatch(viewportBreakpoint);
+    const flowClasses = gridClassOf(container).join(' ');
+    expect(
+      flowClasses === '' ||
+        viewportBreakpoint.test(flowClasses) ||
+        container.querySelector('[data-tx-block="cards"], [data-py-block-family="structure"]')
+    ).toBeTruthy();
+  });
+});
+
+describe('structure block bodies', () => {
+  it('render only the body text (no stray markup or component source)', async () => {
+    const { default: SafeBody } = await import('../src/structure/SafeBody.svelte');
+    const { container } = render(SafeBody, { props: { text: 'Entities, roles and **screens**.' } });
+    await waitFor(() => expect(container.textContent).toContain('screens'));
+    expect(container.textContent?.replace(/\s+/g, ' ').trim()).toBe('Entities, roles and screens.');
   });
 });

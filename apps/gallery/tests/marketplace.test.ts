@@ -287,7 +287,8 @@ describe('content-kind marketplace UI', () => {
     ];
     render(MarketplaceBrowser, { entries, facets: facets(entries) });
 
-    await fireEvent.change(screen.getByLabelText('Content type'), { target: { value: 'deck' } });
+    await fireEvent.click(screen.getByLabelText('Content type'));
+    await fireEvent.click(await screen.findByRole('option', { name: /Deck \(/ }));
 
     await waitFor(() =>
       expect(screen.getByTestId('market-count').textContent).toContain('1 result')

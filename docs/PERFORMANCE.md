@@ -3,7 +3,87 @@
 All numbers on this page were **measured in this repository**, with the
 method stated. Nothing is extrapolated. Machine for every measurement below:
 Apple M1 Max MacBook Pro (10 cores, 64 GB, macOS 27.0), Node 26.11.1,
-pnpm 11.23.0. Each section states its date (2026-10-17 or 2026-10-18).
+pnpm 11.23.0. Sections state their measurement dates.
+
+Sections dated before the Texuli adoption ([ADR-044](DECISIONS.md),
+[TEXULI](TEXULI.md)) measured Protoyard's earlier components, charts,
+layouts, views and theme library. They are kept as history and labelled so;
+current prototype bundle numbers are in
+[After the Texuli adoption](#after-the-texuli-adoption-measured-2026-10-28).
+
+## After the Texuli adoption (measured 2026-10-28)
+
+Protoyard's charts, layouts, styled components, rich views and theme library
+use published Texuli `0.5.0` ([TEXULI](TEXULI.md)). Measured 2026-10-28 on
+the machine above with the workspace's npm dependencies installed. The build
+ran with other local build activity; the size check was repeated against the
+written manifests after the builds completed.
+
+**Prototype budgets.** `pnpm protoyard budget --all` builds every
+prototype and checks `protoyard.budgets.json` (exit 0). Then
+`pnpm protoyard budget --all --skip-build` rechecked the recorded sizes
+(exit 0). All 16 pass:
+
+| Prototype | Initial JS gzip on 0.5.0 | CSS 0.4.0 → 0.5.0 | CSS ceiling before → after |
+| --- | ---: | ---: | ---: |
+| `create-anything-deck` | 303.82 → 282.43 KB; ceiling 319.1 → 296.6 KB | 79.67 → 82.30 KB | 83.7 → 83.7 KB |
+| `helpdesk-demo` | 200.52 → 202.89 KB | 49.97 → 49.44 KB | 52.5 → 51.9 KB |
+| `lattice-saas-demo` | 197.45 → 198.81 KB | 27.00 → 26.10 KB | 30 → 30 KB |
+| `mobile-banking-demo` | 192.85 → 202.75 KB | 23.85 → 24.54 KB | 30 → 30 KB |
+| `ai-chat-demo` | 188.00 → 189.12 KB | 24.24 → 23.34 KB | 30 → 30 KB |
+| `nova-assistant-demo` | 189.11 → 194.07 KB | 30.89 → 30.60 KB | 32.5 → 32.2 KB |
+| `pebblestat-analytics-demo` | 181.35 → 184.19 KB | 38.38 → 37.54 KB | 40.3 → 39.5 KB |
+| `keel-projects-demo` | 178.73 → 180.06 KB | 45.47 → 45.17 KB | 47.8 → 47.5 KB |
+| `ui-kit` | 169.72 → 172.29 KB | 51.82 → 52.64 KB | 54.5 → 54.5 KB |
+| `crm-demo` | 154.67 → 158.69 KB | 29.93 → 29.17 KB | 30 → 30 KB |
+| `harbor-dispatch-demo` | 157.92 → 158.60 KB | 50.26 → 49.85 KB | 52.8 → 52.4 KB |
+| `pulse-revenue-demo` | 156.86 → 157.55 KB | 50.29 → 49.89 KB | 52.9 → 52.4 KB |
+| `cadence-studio-demo` | 156.49 → 157.17 KB | 50.26 → 49.85 KB | 52.8 → 52.4 KB |
+| `atlas-workspace-demo` | 157.24 → 158.56 KB | 38.64 → 37.95 KB | 40.6 → 39.9 KB |
+| `relay-chat-demo` | 153.65 → 156.39 KB | 23.79 → 22.70 KB | 30 → 30 KB |
+| `support-widget-demo` | 151.09 → 152.03 KB | 19.00 → 17.93 KB | 30 → 30 KB |
+
+- All prototypes pass both configured limits on Texuli 0.5.0. `create-anything-deck`
+  keeps its CSS cap because measured CSS +5% is higher, while its initial-JS
+  ceiling drops from 319.1 to 296.6 KB. The theme library and palette
+  generator remain outside its first chunk, guarded by
+  `packages/decks-ui/tests/themes-initial-graph.test.ts`. Budget overrides are recorded in
+  [versioned budgets](#versioned-budgets).
+
+**Player entries (Texuli 0.5.0, remeasured 2026-10-28).**
+`pnpm --filter @protoyard/player build`, then the budget and kind-budget tests:
+all 55 tests pass. All-CSS totals include lazy families reachable from each
+entry; their previous 0.4.0 ceilings were already below new measurements + 5%,
+so they remain unchanged.
+
+| Entry | Initial JS gzip | Initial CSS gzip (ceiling) | All reachable CSS | All-CSS ceiling |
+| --- | ---: | ---: | ---: | ---: |
+| `index.html` | 102,023 B | 16,207 B (17.0 KB; was 36 KB) | 134.454 KB (was 129.7 KB) | 136.2 KB |
+| `deck.html` | 101,910 B | 16,496 B (17.0 KB; was 36 KB) | 107.663 KB (was 105.6 KB) | 110.9 KB |
+| `page.html` | 101,909 B | 17,833 B (18.3 KB; was 36 KB) | 108.956 KB (was 106.9 KB) | 112.3 KB |
+| `doc.html` | 101,907 B | 17,833 B (18.3 KB; was 36 KB) | 108.956 KB (was 106.9 KB) | 112.3 KB |
+
+**Kits.** The Sparkline, views, deck, player and pages/doc budgets below were
+remeasured on npm Texuli `0.5.0`; older values are retained as before/after
+history.
+
+| Measure | Value | Ceiling | Command |
+| --- | ---: | ---: | --- |
+| Sparkline on a first screen (`sparkline-lite`) | 3,539 B (was 5,927 B on 0.3.0) | 3,716 B (was 6,250 B) | `pnpm vitest run packages/cli/tests/charts-bundle.test.ts` |
+| LineChart + BarChart view | 11,167 B (was 8,977 B) | 17,000 B | same |
+| Chart family subpaths | cartesian 13,466 B, part-whole 9,819 B, matrix 15,923 B, compact 7,213 B, canvas 1,647 B, geo 4,651 B | — | `pnpm exec tsx scripts/bench-charts.ts --skip-browser --check` |
+| Chart math, 10k / 100k points (Node, median total) | 0.86–0.97 ms / 5.44–25.11 ms | LTTB 10k < 2 ms (0.20–0.27 ms) | same |
+| `LayoutHost` initial delta | 3,497 B | 3,600 B | `pnpm vitest run packages/renderer-svelte/tests/bundle-hygiene.test.ts --silent=false` |
+| Layout chunks | 899–3,744 B each ([table](#layout-and-theme-payloads-measured-2026-10-19)) | — | same |
+| Theme library metadata / lazy builder | 8,463 B / 4,064 B | — | same |
+| Views over the shell | 8,066–20,116 B ([table](#views-kit)) | per view | `pnpm vitest run packages/cli/tests/views-bundle.test.ts --silent=false` |
+
+All gzip level 9. The machine is the Apple M1 Max above, Node 26.11.1.
+
+**Not re-measured:** chart render and hover times in Chromium (the bench's
+browser step no longer runs, see [Charts](#charts)), cold start, idea to
+running, DevTools switching, and the player ready times. Their sections keep
+their dates.
 
 ## Prototype bundles (production builds)
 
@@ -12,7 +92,10 @@ build records its sizes in `build-manifest.json` under `bundle`, gzip level 9
 per file: **initial JS** is the entry chunk plus everything it imports
 statically (what a first page load downloads), **lazy JS** is every chunk
 reached only through `import()`. `pnpm protoyard budget --all --skip-build`
-reads those numbers and checks them. Measured 2026-10-18, after the merge of the eighth prototype (Vite 8.3.4):
+reads those numbers and checks them. **History:** measured 2026-10-18, after
+the merge of the eighth prototype (Vite 8.3.4), before the Texuli adoption.
+Current values are in
+[After the Texuli adoption](#after-the-texuli-adoption-measured-2026-10-28).
 
 | Prototype | Initial JS (gzip) | CSS (gzip) | Lazy JS (gzip, all chunks) | Largest lazy chunk (Faker) | Whole `dist` (raw / gzip) |
 | --- | ---: | ---: | ---: | ---: | --- |
@@ -26,8 +109,8 @@ reads those numbers and checks them. Measured 2026-10-18, after the merge of the
 | `helpdesk-demo` | 200 KB | 16 KB | 231 KB (33 chunks) | 150 KB | 1,384 KB / 451 KB |
 | `ui-kit` | 182 KB | 16 KB | 375 KB (140 chunks) | 150 KB | 1,647 KB / 575 KB |
 
-Every prototype is inside the 250 KB initial-JS and 30 KB CSS budgets
-(`lattice-saas-demo` has the least headroom, about 52 KB). The table of
+On 2026-10-18 every prototype was inside the 250 KB initial-JS and 30 KB CSS
+budgets (`lattice-saas-demo` had the least headroom, about 52 KB). The table of
 2026-10-17 counted a 14 KB chunk as "shared initial"; the build analysis
 shows it is loaded through `import()`, so it is lazy. Earlier on 2026-10-18
 `crm-demo` measured 202 KB initial; it is 166 KB after its screens moved to
@@ -65,7 +148,7 @@ the 2026-10-18 rebuild in that section is the current measured value.
   never download it. Making it lazy cut the CRM's main chunk from 1,080 KB to
   666 KB raw.
 - The biggest remaining contributors to the initial chunk (sourcemap
-  analysis of the CRM build) are Svelte, zod, Bits UI, tailwind-variants and
+  analysis of the CRM build) are Svelte, zod, the overlay primitives, tailwind-variants and
   tailwind-merge, and Dexie, in that order.
 - Each artifact contains only its own prototype's code. `protoyard export`
   checks this.
@@ -156,8 +239,8 @@ player's kind tests do.
 | `kinds.<deck\|page\|doc>` field | Loader default (configured value) | Meaning |
 | --- | ---: | --- |
 | `initialJsGzipKb` | 150 KB | Initial JavaScript of the kind's minimal player entry, gzip |
-| `cssGzipKb` | 30 KB | CSS of the kind's player entry, gzip |
-| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,048 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (2 MiB per kind) in `packages/cli/src/lib/quick/single-file.ts`. Calibrated on 2026-10-22 from measured files of 1,606,842 B (deck), 1,607,557 B (page) and 1,606,788 B (doc). The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
+| `cssGzipKb` | deck 17.0 KB, page 18.3 KB, doc 18.3 KB (was 36 KB each) | Initial CSS of the kind's player entry, gzip; measured + 5%, rounded up on Texuli 0.5.0, including the sheet parts that `@protoyard/ui/styles.css` loads so published declarations carry no `.css` import |
+| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,560 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap remains `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (2,818,330 B per kind), measured on Texuli 0.5.0 at 2,681,755–2,689,852 B (2,656,649–2,684,123 B on 0.4.0). The app cap (`QUICK_SINGLE_FILE_BUDGET_BYTES`) stays 4,418,158 B after the maximum catalog file moved from 4,207,769 B on 0.4.0 to 4,284,417 B on 0.5.0; neither cap is raised because measured + 5% is higher. The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
 
 These budgets are **enforced**:
 
@@ -212,8 +295,8 @@ starter was **169.20 KB**, a **0.10 KB** difference. Both passed the 250 KB
 cap. The command also passed the tarball install, consumer scaffold/build,
 gallery command and gallery build steps.
 
-The bundle gate on this repository (2026-10-18, abridged to two of the eight
-prototypes):
+The bundle gate's output format (history: 2026-10-18, before the Texuli
+adoption, abridged to two of the eight prototypes):
 
 ```text
 $ pnpm protoyard budget --all
@@ -251,7 +334,53 @@ For one prototype, set only the values that differ:
 }
 ```
 
-The root file contains these defaults with an empty `overrides` object.
+The root file sets `initialJsGzipKb`, `cssGzipKb`, `coldStartMs`,
+`generateMs`, `indexColdMs` and `quickReadyMs` (5,000 ms); the other fields
+use the loader defaults above. Its `overrides` object carries the per-entry
+CSS budgets below.
+
+**CSS overrides for Texuli's component styles.**
+- **Why:** `@protoyard/ui` re-exports Texuli's styled components (see
+  [TEXULI.md](TEXULI.md)). Their stylesheets, and the CSS of Texuli's
+  layouts, charts and views (about 23 KB gzip), replace the former UI CSS.
+- **Shrinking first:** the Tailwind side already dropped what only the
+  deleted components used, and the renderer keeps lazy Texuli CSS out of
+  the initial load.
+- **Before → after on Texuli 0.5.0** (CSS gzip, `pnpm protoyard budget --all`):
+
+| Entry | CSS measured before → after | Ceiling before → after |
+| --- | ---: | ---: |
+| `create-anything-deck` | 79.67 → 82.30 KB | 83.7 → 83.7 KB |
+| `keel-projects-demo` | 45.47 → 45.17 KB | 47.8 → 47.5 KB |
+| `helpdesk-demo` | 49.97 → 49.44 KB | 52.5 → 51.9 KB |
+| `cadence-studio-demo` | 50.26 → 49.85 KB | 52.8 → 52.4 KB |
+| `harbor-dispatch-demo` | 50.26 → 49.85 KB | 52.8 → 52.4 KB |
+| `pulse-revenue-demo` | 50.29 → 49.89 KB | 52.9 → 52.4 KB |
+| `atlas-workspace-demo` | 38.64 → 37.95 KB | 40.6 → 39.9 KB |
+| `nova-assistant-demo` | 30.89 → 30.60 KB | 32.5 → 32.2 KB |
+| `pebblestat-analytics-demo` | 38.38 → 37.54 KB | 40.3 → 39.5 KB |
+| `player` initial CSS | 17.07–19.69 KB (historical 0.3) → 15.83 KB | 36 → 17.0 KB |
+
+Every other prototype uses the 30 KB default. The content-kind initial-CSS
+caps are 17.0 KB for deck and 18.3 KB for page and doc; all-stylesheet totals
+have separate measured guards.
+
+**Layout host overhead.**
+- `LAYOUT_BUNDLE_BUDGETS.hostInitialDelta` in
+  `packages/renderer-svelte/tests/bundle-hygiene.test.ts` caps what
+  `LayoutHost` adds to the initial app path.
+- The cap was 2,000 B gzip. It is now 3,600 B: measured 3,498 B plus under
+  5%.
+- **Reason:** Protoyard's host wraps texuli's. The initial path carries
+  texuli's host, catalog and host CSS next to Protoyard's catalog (for the
+  `docs` width rule), plus the `data-py-layout` mirror.
+- Every layout stays its own lazy chunk.
+- **pages-ui:** on Texuli 0.5.0 the page and doc all-stylesheet totals are
+  31,710 B and 32,290 B (previous 0.4.0: 30,844 B and 30,607 B); after the
+  Final Review fixes (Button variants, a plain section header) the page is
+  32,635 B. The caps are 34,267 B and 33,905 B, each measured + 5%. The default stays
+  20 KB. Initial entry CSS is 4,166 B and 4,414 B; other family CSS remains
+  lazy.
 Budgets stay out of `protoyard.json` so performance targets can evolve
 without changing the strict prototype manifest contract.
 
@@ -357,7 +486,7 @@ written under the ignored `tmp/` directory during measurement.
 | Preview ready with seeded data | 618 ms (607–619 ms) | 595 ms (592–606 ms) |
 | **Idea → running** | **39,020 ms (38,794–39,619 ms)** | **41,008 ms (36,950–42,699 ms)** |
 
-PLAN_003 Harborlight dogfood run on 2026-10-20 took **330,326 ms** from the
+The Harborlight dogfood run on 2026-10-20 took **330,326 ms** from the
 first brief review to the first passing production build. It ran on Darwin
 27.0.0 arm64 with Node 26.11.1. This is one manual end-to-end observation,
 including blueprint review/refinement, and it stops at build rather than the
@@ -478,6 +607,22 @@ pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check
 
 ## Views kit
 
+**Current (2026-10-28, views on `@texuli/data` 0.5.0).** The views bundle guard
+(`pnpm vitest run packages/cli/tests/views-bundle.test.ts`, method 1 below)
+measured what each view adds over the shell, gzip level 9:
+
+| View (subpath) | Texuli 0.4.0 → 0.5.0 | Ceiling before → after |
+| --- | ---: | ---: |
+| `BoardView` (`/board`) | 13,900 → 14,137 B | 14,595 → 14,595 B |
+| `CalendarView` (`/calendar`) | 15,801 → 15,847 B | 17,200 → 16,640 B |
+| `DataGrid` (`/grid`) | 19,297 → 20,116 B | 23,400 → 21,122 B |
+| `SimulatedMap` (`/map`) | 8,073 → 8,066 B | 12,400 → 8,470 B |
+| `MarkdownEditor` (`/editor`) | 9,484 → 9,508 B | 9,958 → 9,958 B |
+| `TimelineView` (`/timeline`) | 11,973 → 11,981 B | 12,572 → 12,572 B |
+
+The rest of this section is **history**: it measured Protoyard's own view
+components before they moved to Texuli.
+
 Measured on 2026-10-20 (Apple M1 Max, 10 cores, 64 GB, macOS 27.0, Node
 26.11.1, Vite 8 with Rolldown, gzip level 9; other lanes' builds and tests
 running at the same time). Two methods:
@@ -513,7 +658,7 @@ this change.
 
 What changed:
 
-- **Menus, popovers and dialogs load on first use.** Bits UI's floating,
+- **Menus, popovers and dialogs load on first use.** The floating,
   focus and dismiss layers were about 30 KB of every board, calendar and
   grid (an app importing only `BoardView` was 119.8 KB initial, 99.6 KB over
   a bare Svelte app).
@@ -543,7 +688,7 @@ What changed:
 
 Facet pickers, removable filter chips, saved-view "Modified / Save changes /
 Revert" and row selection with a bulk action bar joined `DataGrid`
-(PLAN_005 Task 102). Measured with the views bundle guard on the same machine
+(during the views bundle work). Measured with the views bundle guard on the same machine
 (other lanes' builds running), gzip level 9, what the grid adds over the
 shell:
 
@@ -605,6 +750,16 @@ Follow-ups (over target or regressed):
   already have (the second table).
 
 ## Themes: library, palette engine and Theme Studio
+
+**Current (2026-10-24, themes on `@texuli/tokens`).** The layout and theme
+hygiene test (`pnpm vitest run
+packages/renderer-svelte/tests/bundle-hygiene.test.ts --silent=false`)
+measured the theme library's metadata chunk at **8,463 B gzip** and its lazy
+builder chunk (`@texuli/tokens` `library-port/build.ts`) at **4,064 B**. It
+also checks that no palette or library module, from Protoyard or from
+`@texuli/tokens`, is in the initial graph. The rest of this section is
+**history**: it measured Protoyard's own palette engine and library before
+they wrapped `@texuli/tokens`.
 
 Budget: the theme work (palette engine, font catalog, 32-theme library,
 Theme Studio) may add at most **2 KB gzip** to any prototype's initial JS.
@@ -678,7 +833,32 @@ collection code: **3,808 B gzip before the v2 fields, 4,226 B after
 prototype the first time it is asked for a library theme; no prototype's
 initial JS contains it.
 
-## Layout and theme payloads (PLAN_003, measured 2026-10-19)
+## Layout and theme payloads (measured 2026-10-19)
+
+**Current (2026-10-24, layouts from `texuli/layouts`).** The same hygiene
+test (`pnpm vitest run packages/renderer-svelte/tests/bundle-hygiene.test.ts
+--silent=false`, which passed) measured the `LayoutHost` initial delta at
+**3,497 B** gzip (cap 3,600 B; see
+[Layout host overhead](#versioned-budgets)) and each layout's own lazy chunk:
+
+| Layout (component) | Chunk gzip |
+| --- | ---: |
+| `sidebar` (`SidebarLayout`) | 1,003 B |
+| `rail` (`RailLayout`) | 1,370 B |
+| `top-nav` (`TopNavLayout`) | 1,438 B |
+| `dual-sidebar` (`DualSidebarLayout`) | 1,208 B |
+| `master-detail` (`MasterDetailLayout`) | 1,691 B |
+| `dashboard-grid` (`DashboardGridLayout`) | 1,523 B |
+| `docs` (`DocsLayout`, still Protoyard's) | 1,584 B |
+| `marketing` (`MarketingLayout`) | 899 B |
+| `mobile-tabs` (`MobileTabsLayout`) | 3,744 B |
+| `mobile-drawer` (`MobileDrawerLayout`) | 3,594 B |
+| `wizard` (`WizardHostLayout`) | 3,070 B |
+| `auth-split` (`AuthSplitHostLayout`) | 1,367 B |
+
+Every layout is under the plan's 4 KB per-layout reference. The rest of this
+section is **history**: it measured Protoyard's own layouts (deleted since)
+and the earlier theme library.
 
 The layout measurement is a production Vite build in
 `packages/renderer-svelte/tests/bundle-hygiene.test.ts`, with sourcemaps and
@@ -1023,7 +1203,7 @@ Faker, DevTools, the theme library, the crud screen kits, the crud app shell
 generator, and the main-thread generation fallback. It also checks the content:
 no Faker data and no worker reference appear in initial JS.
 
-**App path after the kinds work (measured 2026-10-22).** PLAN_005 regressed the
+**App path after kind-specific entry changes (measured 2026-10-22).** This regressed the
 universal player's initial JS. Wiring the page and doc bodies statically
 added 13.8 KB. Later the brief synthesizer, the deck schema and layout
 catalog, and deck lint all entered the initial graph through the
@@ -1036,11 +1216,11 @@ bundler keep only what is used. The content-kind body schemas load through
 
 | Build | Initial JS (gzip -9) |
 | --- | ---: |
-| Before PLAN_005 | 188,442 B |
+| Before kind-specific entries | 188,442 B |
 | Page and doc bodies wired statically | 202,253 B |
 | `dev` before this fix (synthesizer 30.5 KB, decks schema 7.4 KB, barrel 25.2 KB) | 228,317 B |
 | After this fix | 116.2 KB |
-| Routing by kind (T-kinds-player-routing), before the chunk-group fix | 150.0 KB |
+| Routing by kind, before the chunk-group fix | 150.0 KB |
 | Routing by kind, with the `dexie` and `rolldown-runtime` chunk groups | **120.0 KB** |
 
 **Routing by kind and chunk placement.** With routing, two lazy boots (apps and
@@ -1066,7 +1246,7 @@ messages unique to each. It also caps the app path's initial JS at 125 KB
 
 **Per-kind player pages (measured 2026-10-22).** The player build adds
 `deck.html`, `page.html` and `doc.html` beside `index.html`
-(T-kinds-player-entries). `budget.test.ts` measures each page as the only
+`budget.test.ts` measures each page as the only
 entry of the Vite manifest:
 
 | Page | Initial JS (gzip -9) | Initial CSS | All CSS it can load |
@@ -1103,7 +1283,7 @@ Latest measured initial gzip bytes (2026-10-22):
 | `page.html` | 124,644 B | 18,688 B | 150 KB / 30 KB |
 | `doc.html` | 124,642 B | 18,688 B | 150 KB / 30 KB |
 
-**Kind pages: reachable graph and kind budgets (T-kinds-player-budget, measured
+**Kind pages: reachable graph and kind budgets (measured
 2026-10-22).** Each kind page's initial graph was clean, but its *reachable*
 graph (static plus dynamic imports) was not. The shared player loop
 (`run.ts`, `sources/start.ts`) defaulted its boot to `bootByKind`, so
@@ -1184,7 +1364,14 @@ All CSS reachable from `index.html` is 29.37 KiB, measured by
 minimal Svelte host that imports `@protoyard/decks-ui/app` and its stylesheet,
 then measures the entry's static imports and all emitted CSS with gzip level 9.
 The initial graph measured **80,887 B JS gzip** and all emitted CSS measured
-**2,882 B gzip** (2026-10-22), under the ceilings of 120 KB JS and 20 KB CSS. The paired hygiene test checks the built
+**2,882 B gzip** (2026-10-22), under the ceilings of 120 KB JS and 20 KB CSS.
+Since the block families and charts render with Texuli, all emitted CSS
+measures **23,663 B gzip** (re-measured 2026-10-24 against Texuli `dev`):
+each family's stylesheet sits in its own lazy chunk, the first screen loads one
+1,025 B stylesheet, and the same CSS joined into one file would gzip to
+15,010 B. This entry's CSS ceiling is 31,857 B (30,340 B measured on the npm Texuli 0.4.0 + 5 %), an
+override for this entry only; the 20 KB default is unchanged. A CSS diet is a
+follow-up. The paired hygiene test checks the built
 static graph for CRUD, Faker, the player and worker, syntax highlighting, and
 chart-family code. Layout families load on demand. Presenter and studio remain
 separate package subpaths and do not enter the app graph; the overview DOM is
@@ -1221,7 +1408,7 @@ host graph. The same test checks emitted module ids to keep
 | `PageApp` | **97,548 B** | 122,880 B | **1,353 B** | 20,480 B | Pass |
 | `DocApp` | **91,955 B** | 122,880 B | **2,572 B** | 20,480 B | Pass |
 
-**Landing page design (T-page-section-design, measured 2026-10-22).** The
+**Landing page design (measured 2026-10-22).** The
 `PageApp` entry grew from **91,599 B** to **97,551 B** of initial JS (+5.8 KB,
 CSS 1,164 → 1,353 B). The new hero, section header, stat row, pricing, steps
 and pull-quote patterns are what added it. `FormBlock` loads lazily: imported
@@ -1589,7 +1776,8 @@ the header strip and (past 150 ms) the app's global bar show it.
 
 **Bundle cost** of the pending system (runtime tracker, global indicator,
 `usePending`, Button auto-loading). Initial JS and CSS, gzip, from
-`pnpm protoyard budget --all` on the base commit and on this change:
+`pnpm protoyard budget --all` on the base commit and on this change
+(2026-10-19, before the Texuli adoption; history):
 
 | Prototype | Initial JS before | after | Δ | CSS before | after | Δ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -1607,96 +1795,70 @@ Every prototype stays under the 250 KB initial-JS budget.
 
 ## Charts
 
-Method: `pnpm exec tsx scripts/bench-charts.ts --runs <n> [--check]`.
-Build the gallery first with `pnpm protoyard build ui-kit`. Results, with
-the machine and every threshold, go to `tmp/bench-charts.json`. The bench
-has three parts:
+The charts are Texuli's (`@texuli/charts`), re-exported by
+`@protoyard/charts-ui` with thin adapters
+([CHARTS](CHARTS.md), [TEXULI](TEXULI.md#charts-from-texulicharts)).
+
+Method: `pnpm exec tsx scripts/bench-charts.ts --runs <n> [--check]
+[--skip-browser]`. Results, with the machine and every threshold, go to
+`tmp/bench-charts.json`. The bench has three parts:
 
 1. **Node:** `linearScale` maps the points, `largestTriangleThreeBuckets`
    reduces them to the threshold for an 800 px plot (1,600 points), and
-   `linePath` builds the path. Each is the median of `max(15, runs × 10)`
-   in-process iterations after three warm-ups.
-2. **Chromium:** the ui-kit stress demo (`#/c/chart-stress`, 10,000 points
-   from a fixed seed, one chart mounted at a time), served from
-   `artifacts/ui-kit/dist` on an OS-assigned port. It uses a fresh headless
-   context per run at 1280×900. Each renderer is switched to twice first, so
-   the Canvas chunk is already downloaded; then it is measured:
-   - **render:** from the renderer switch to the chart in the DOM and laid out. Polling uses MessageChannel turns, so no frame wait is added; Canvas includes its single draw frame, by design.
-   - **painted:** to the frame after that, which includes the display's vsync. Reported only.
-   - **hover:** a 200-step `pointermove` sweep across the plot, one step per animation frame. Latency is from dispatch to the DOM updated and laid out (Svelte flushes in a microtask), without the vsync wait. The sweep must show the tooltip, or the check fails.
-   - **long tasks:** `PerformanceObserver('longtask')` entries over 50 ms during the sweep.
+   `linePath` builds the path (all from `@protoyard/charts`, which
+   re-exports `@texuli/charts/math`). Each is the median of
+   `max(15, runs × 10)` in-process iterations after three warm-ups.
+2. **Chromium:** the ui-kit stress demo (`#/c/chart-stress`), served from
+   `artifacts/ui-kit/dist`. **It does not run today:** it waits for an
+   `svg[role="group"]` plot that Texuli's charts no longer render and times
+   out after 30 s. Use `--skip-browser`.
 3. **Bundles:** a real Vite 8 production build with one lazy `import()` per
-   charts-ui family subpath. Each family's size is what loading it downloads
-   beyond the app entry (gzip level 9, the whole subpath with every
-   component). A second build of the bundle-guard fixture measures the
-   LineChart + BarChart view and splits it by source area, using each
-   module's share of the minified chunk (an estimate).
+   charts-ui family subpath (`cartesian`, `part-whole`, `matrix`, `compact`,
+   `canvas`, `geo`; `flow` and `interaction` are not measured). Each
+   family's size is what loading it downloads beyond the app entry (gzip
+   level 9, the whole subpath with every component). A second build of the
+   bundle-guard fixture measures the LineChart + BarChart view.
 
 Thresholds (`THRESHOLDS` in the script):
 
 | Gate | Threshold |
 | --- | --- |
 | LTTB of 10k points | < 2 ms |
-| 10k-point render | < 50 ms per renderer |
-| Hover | p95 < 16 ms |
-| Long tasks during the sweep | 0 |
+| 10k-point render | < 50 ms per renderer (browser step, not running) |
+| Hover | p95 < 16 ms (browser step, not running) |
+| Long tasks during the sweep | 0 (browser step, not running) |
 | Line + bar view | ≤ 17,000 B (the bundle guard's ceiling) |
 
-Measured 2026-10-19 on the Apple M1 Max (10 cores, 64 GB), macOS 27.0,
-Node 26.11.1, headless Chromium 156.0.8078.4, with `--runs 3`. The machine
-was shared with other builds (load average 60–100), so treat these as
-upper bounds.
+Measured 2026-10-24 on the Apple M1 Max (10 cores, 64 GB), macOS 27.0,
+Node 26.11.1, with `--skip-browser --check` (passed). Two runs; the machine
+was shared with other builds, so treat the larger values as upper bounds.
 
 | Node (median) | Scale | LTTB → 1,600 | Path | Total |
 | --- | ---: | ---: | ---: | ---: |
-| 10,000 points | 0.43 ms | **0.25 ms** | 0.35 ms | 1.05 ms |
-| 100,000 points | 4.2 ms | 1.62 ms | 0.50 ms | 7.04 ms |
-
-| Chromium, 10k-point line | Render (median) | Painted (median) | Hover p50 / p95 | Long tasks |
-| --- | ---: | ---: | ---: | ---: |
-| SVG (LTTB) | **6.9 ms** | 26.4 ms | 1.3 / **1.5 ms** | **0** |
-| Canvas | **10.5 ms** | 30.1 ms | 1.3 / **1.5 ms** | **0** |
-
-The stress route itself was ready 334 ms after navigation start (app boot,
-scenario, lazy chunks; informational).
+| 10,000 points | 0.27–0.36 ms | **0.20–0.27 ms** | 0.31 ms | 0.86–0.97 ms |
+| 100,000 points | 3.14–9.89 ms | 1.39–1.42 ms | 0.39–0.45 ms | 5.44–25.11 ms |
 
 | Subpath (whole family, gzip) | Bytes |
 | --- | ---: |
-| `cartesian` | 20,704 |
-| `part-whole` | 19,016 |
-| `matrix` | 21,145 |
-| `compact` | 4,554 |
-| `canvas` | 2,493 |
-| `geo` | 14,056 |
+| `cartesian` | 13,466 |
+| `part-whole` | 9,819 |
+| `matrix` | 15,923 |
+| `compact` | 7,213 |
+| `canvas` | 1,647 |
+| `geo` | 4,651 |
 
-A prototype rarely loads a whole family: unused components are tree-shaken,
-as the line + bar view below shows.
+**Line + bar view: 8,977 B**, under the 17,000 B ceiling (and under the
+10 KB target the earlier chart code missed). The bench's breakdown puts
+7,712 B in its `charts: other` area, whose path pattern
+(`packages/charts/src/`) also matches Texuli's chart sources, 698 B in the
+Protoyard cartesian adapters, 546 B elsewhere and 21 B of Svelte runtime.
 
-**Line + bar view: 16,006 B** (target 10 KB, not met; 15,959 B before the tap-selection fix added 47 B). Estimated split, measured at 15,959 B:
-
-| Area | Approx. bytes |
-| --- | ---: |
-| cartesian (LineChart, BarChart, their shell, plots and model) | 5,169 |
-| interaction (InteractivePlot, Axis, Grid, Tooltip, model) | 3,727 |
-| frame | 2,015 |
-| scales | 1,897 |
-| downsample | 924 |
-| shapes | 885 |
-| palette tokens | 859 |
-| rest | about 480 |
-
-The structural options proposed for the 10 KB target cannot reach it on
-their own:
-- Removing the whole interaction layer would still leave about 12.2 KB.
-- A lighter InteractivePlot for single-series charts could save only part of
-  its 3.7 KB, while multi-series charts would keep the full one.
-- Merging Axis and Grid into the plot saves component boilerplate, not their
-  logic.
-
-These were not prototyped. Reaching 10 KB would mean cutting chart features
-(keyboard model, tooltip, axes formatting) or the scales and frame, and the
-plan's accessibility contract rules that out. 16,006 B is the honest number,
-held under 17,000 B by the guard.
+**History (2026-10-19, Protoyard's earlier chart code, replaced by
+Texuli's).** The same bench measured, in Chromium 156 with a 10k-point line,
+6.9 ms (SVG) and 10.5 ms (Canvas) to render, hover p95 1.5 ms and no long
+tasks. Whole families were cartesian 20,704 B, part-whole 19,016 B, matrix
+21,145 B, compact 4,554 B, canvas 2,493 B and geo 14,056 B, and the line +
+bar view 16,006 B. None of these describe the current charts.
 
 ## Charts and analytics kits
 
@@ -1707,37 +1869,31 @@ links a prototype. The app shows a Sparkline on its first screen and loads
 LineChart + BarChart through `import()`; a second entry without charts is the
 baseline. Sizes are gzip level 9 per chunk. "Line + bar view" is what opening
 the charts view downloads (the dynamic chunk and its static imports, minus the
-first screen's chunks); the table, the Canvas renderer and the palette
-fallback load later, only when needed. Measured 2026-10-19 on the Apple M1
-Max, Node 26.11.1.
+first screen's chunks).
 
-| Change | Sparkline initial delta | Line + bar view |
+Measured 2026-10-24 (Apple M1 Max, Node 26.11.1), with Texuli's charts:
+
+| Measure | Bytes | Ceiling (`CEILINGS` in the test) |
 | --- | ---: | ---: |
-| Before (palette builder, Legend and TableToggle eager) | 2,549 B | 17,833 B |
-| Palette builder loads only for themes without a chart block (`@protoyard/charts/palette/derive`) | 2,549 B | 16,650 B |
-| Legend and TableToggle load after the plot | 2,549 B | 16,148 B |
-| Unit formatters from one `Intl` table; Canvas pixel reduction moves into the lazy Canvas chunk | 2,549 B | 15,959 B |
-| Tap selection for touch (the current state) | 2,549 B | **16,006 B** |
+| Sparkline initial delta | 5,927 B on 0.3.0 → **3,539 B on 0.5.0** | 6,250 → 3,716 B |
+| Line + bar view | 8,977 B on 0.4.0 → **11,167 B on 0.5.0** | 17,000 B |
 
-The guard fails above 2,750 B and 17,000 B, when any module under
-`charts-ui/src/{cartesian,interaction,frame}` reaches initial JS, or when unused
-siblings (Gauge, RadialProgress) are bundled. The plan's 10 KB target for line +
-bar is not met: the remaining bytes are chart code (Svelte's runtime is only
-132 B of the view chunk, because the first screen already has it); see the
-breakdown in [Charts](#charts).
+The guard also fails when any module under
+`charts-ui/src/{cartesian,interaction,frame}` reaches initial JS, or when
+unused siblings (Gauge, RadialProgress) are bundled.
 
-**`sideEffects` and Svelte components.** A real Vite 8 build tree-shakes unused
-Svelte components re-exported from a barrel whether or not `package.json`
-lists `**/*.svelte` as side-effectful. With charts-ui set back to
-`["**/*.css", "**/*.svelte"]`, the fixture still dropped Gauge and RadialProgress
-and measured the same 2,767 B delta (in the development build used for that
-check). The same holds for the shared packages: an app importing only `Button`
-from `@protoyard/ui` measured 40,948 B gzip with either setting, and only
-`BoardView` from `@protoyard/views-ui/board` 165,782 B with either setting. The
-earlier difference (4,958 B against 1,903 B) came from an esbuild measurement,
-which keeps side-effectful re-exports. charts-ui and analytics-ui list only CSS,
+History: with Protoyard's earlier chart code (2026-10-19) the Sparkline
+delta was 2,549 B (ceiling 2,750 B) and the line + bar view 16,006 B.
+
+**`sideEffects` and Svelte components (2026-10-19, earlier chart code).** A
+real Vite 8 build tree-shook unused Svelte components re-exported from a
+barrel whether or not `package.json` listed `**/*.svelte` as side-effectful:
+with charts-ui set back to `["**/*.css", "**/*.svelte"]`, the fixture still
+dropped Gauge and RadialProgress. charts-ui and analytics-ui list only CSS,
 which is correct for components without module-level side effects, but it is
-not needed for Vite.
+not needed for Vite. The byte sizes from that check (for `Button` and
+`BoardView`) were measured on the earlier components and are not repeated
+here.
 
 ## Content block renderer chunks
 
@@ -1758,21 +1914,21 @@ Measured 2026-10-22 (Node 26.11.1, Vite 8.3.4):
 
 | Import | Gzip beyond entry | Ceiling | Result |
 | --- | ---: | ---: | --- |
-| Root dispatcher | 2.10 KB | 3 KB | Pass |
+| Root dispatcher | 2.82 KB (2,891 B, 2026-10-22) | 3 KB | Pass |
 | Text | 11.98 KB | 12.8 KB (estimate was 6 KB) | Pass |
 | Media | 2.93 KB | 4 KB | Pass |
-| Data | 3.96 KB | 5 KB | Pass |
-| Structure | 12.55 KB | 13.5 KB (estimate was 8 KB) | Pass |
+| Data | 4.64 KB (4,751 B; 4,999 B before the sort and filter controls moved to their own chunk) | 5 KB | Pass |
+| Structure | 13.12 KB (13,431 B, 2026-10-22; the card image is its own chunk) | 13.5 KB (estimate was 8 KB) | Pass |
 | Code | 3.94 KB | 6 KB | Pass |
 | Diagram | 4.81 KB | 6 KB | Pass |
-| Interactive | 19.06 KB | 20.4 KB (estimate was 10 KB) | Pass |
+| Interactive | 19.47 KB (19,933 B, 2026-10-22, with the quiz's inline formatter) | 20.4 KB (estimate was 10 KB) | Pass |
 | Map | 1.02 KB | 4 KB | Pass |
 | Embed | 2.17 KB | 2.4 KB (estimate was 2 KB) | Pass |
 
 The first ceilings were estimates made before any family existed. After measuring with the
 shell-relative method, the four families above were set to measured + 7 % (the same rule as the
 views kit) rather than left red. They remain targets to reduce: Lucide icons resolved per family
-instead of a shared icon map, Bits UI Tabs in the interactive family, and the markdown renderer in
+instead of a shared icon map, the tabs primitive in the interactive family, and the markdown renderer in
 the text family are the largest contributors. Every family stays a separate lazy chunk, and a whole
 deck entry (DeckApp with chrome) measured 80,887 B gzip against its 120 KB ceiling
 (`packages/decks-ui/tests/bundle-size.test.ts`).
@@ -1790,7 +1946,7 @@ shows text is led by `MdRenderer.svelte` and `TextFamilyRenderer.svelte`, plus
 the shared block icon map; structure is distributed across its cards, CTA,
 comparison, timeline, columns and steps renderers; interactive is led by the
 reducers and the chart-controls, quiz, calculator and poll renderers, with
-Bits UI Tabs as another contributor; embed is 166 B over its ceiling, led by
+the tabs primitive as another contributor; embed is 166 B over its ceiling, led by
 `EmbedApp.svelte`. Keep the recorded ceilings; these modules identify follow-up
 chunk reductions. The figures are measured additions over the shared shell,
 not full static closures.
@@ -1819,6 +1975,7 @@ Ranges over six runs (Node 26.11.1, happy-dom 21, vitest 5):
 | Slowest single step | 6.5–64 ms (garbage-collection pauses) | not gated |
 | Home / End jump | 0.38–11.9 ms | < 50 ms (single sample) |
 | Slides in the DOM | 2–3 | ≤ 3 after every step |
+| Full screen enter / leave (window mode) | 1.79–3.13 ms / 4.1–7.28 ms | < 50 ms each |
 
 Step times cover the synchronous update: the key decision, the navigator, the Svelte update and the
 DOM. A layout family's lazy chunk loads asynchronously the first time a slide of that family comes
@@ -1831,6 +1988,58 @@ sample can absorb a GC pause. A regression to rendering every slide fails the wi
 dropped the canvas window failed all three tests.
 
 Run it with `pnpm vitest run packages/decks-ui/tests/large-deck.perf.test.ts`.
+
+## Decks: entry and controls (measured 2026-10-22)
+
+The controls (toolbar redesign, tooltips, help, first-visit hint, full screen fix,
+debug panel and custom slides) grew the deck entry. Task 17 moved what first paint does not
+need onto lazy chunks and held every gate; no ceiling was raised. Gzip level 9, M1 Max,
+Node 26.11.1.
+
+| Measure | `main` 1ee2d352 | `dev` before | After | Command |
+| --- | ---: | ---: | ---: | --- |
+| `@protoyard/decks-ui/app` initial JS (probe) | 82,546 B | 95,837 B | 92,464 B | `pnpm vitest run packages/decks-ui/tests/bundle-size.test.ts` |
+| Same, all emitted CSS | — | 3,354 B | 3,284 B | same |
+| Player `deck.html` JS / CSS | — | 125,930 / 20,668 B | 125,328 / 20,349 B | `pnpm vitest run packages/player/tests/kind-budget.test.ts` |
+| Flagship `create-anything-deck` initial JS | — | 230.15 KB | 226.96 KB | `pnpm protoyard budget create-anything-deck` |
+| Flagship CSS (all files) | — | 30.54 KB (over the 30 KB cap) | 30.00 KB (pass, no headroom) | same |
+| Blocks data family | — | 4,999 B | 4,751 B | `pnpm exec tsx scripts/bench-blocks.ts` |
+
+The `main` figure is the same probe run on a checkout of 1ee2d352. The player and flagship
+could not be built from that archived tree, so they have no `main` column.
+
+Step by step on the probe: pure-annotating `DeckJsonSchema` 95,200 B, lazy custom-slide host
+94,403 B, lazy keyboard help and full screen overlay 93,158 B, first-visit hint loaded only
+when it will show 92,828 B, lazy More menu and slide list 92,350 B, idle prefetch 92,514 B
+(+164 B). Moving the table's sort and filter controls to their own chunk and using standard
+utility classes in the chrome recovered the CSS.
+
+**What stays lazy.** `tests/lazy-chrome.test.ts` builds the probe and fails if the keyboard
+help, the full screen overlay, the first-visit hint, the More menu, the slide list, the
+custom-slide host, the debug panel, the prefetcher or the interactive table controls enter the
+initial graph.
+
+**Idle prefetch.** While a slide is on screen, DeckApp waits for an idle moment
+(`requestIdleCallback`, 2 s timeout; a 200 ms timer elsewhere) and loads the layout and block
+family chunks of the next two slides beyond the window. Failed loads are ignored. Print mode
+does not prefetch.
+
+**Time to first slide** (`scripts/bench-player.ts --kinds deck`, median of 5, first content /
+cold): harbor-ops-pitch 187.5 → 167.2 ms / 163.6 → 140.9 ms; the 42-slide `everything` deck
+204.3 → 180.1 ms / 167.8 → 145.9 ms.
+
+**Steps on the 200-slide deck** (happy-dom, see the next section): next median 0.62 ms on
+`main`, 0.83–0.93 ms now (p95 1.27 → 1.56–1.68 ms); first render 116.8 ms on `main`, 68–78 ms
+now. Both remain far under a frame.
+
+**Not recovered.** The debug panel's lazy import still adds 3,086 B to the entry: Rolldown
+moves modules the entry shares with the debug chunk into common chunks, and the glue costs
+gzip. A manual `$initial` chunk group made the entry larger (95,416 B), so it was not kept.
+
+**Rolldown runtime and Dexie in prototypes.** Adding the player's `rolldown-runtime` and
+`dexie` chunk groups to `defineProtoyardConfig` changed nothing that matters
+(create-anything-deck 226.85 → 227.06 KB, crm-demo 180.28 → 180.17 KB): prototypes open their
+database at boot, so Dexie belongs on the first screen. The groups were not added.
 
 ## Generated CRUD screens
 

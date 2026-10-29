@@ -1,7 +1,7 @@
 <script lang="ts" generics="T">
 import { GripVertical, MoveRight } from '@lucide/svelte';
 import { runService } from '@protoyard/renderer-svelte';
-import { cn, DropdownMenu, type DropdownMenuEntry, Spinner, toast } from '@protoyard/ui';
+import { Button, DropdownMenu, type DropdownMenuEntry, Input, Spinner, toast } from '@protoyard/ui';
 import {
   buildTree,
   type FlatNode,
@@ -15,7 +15,10 @@ import {
   type TreeMoveResult,
   validParents,
 } from '@protoyard/views/tree';
+import { createPointerTracker } from '@texuli/drag/gesture';
 import { tick } from 'svelte';
+import { cx } from 'texuli/cx';
+import { LucideIcon } from 'texuli/icons/lucide';
 import QueryState from '../states/QueryState.svelte';
 import {
   type DropZone,
@@ -61,7 +64,7 @@ let {
   onMove: (move: TreeMove, item: T) => unknown;
   /** Backspace on an empty item deletes it when given. */
   onDelete?: (item: T) => unknown;
-  onRetry?: () => void | Promise<void>;
+  onRetry?: () => unknown;
   label?: string;
   placeholder?: string;
   class?: string;
@@ -242,9 +245,11 @@ interface Drag {
   over: { id: string; zone: DropZone } | null;
 }
 let drag = $state<Drag | null>(null);
+const pointerTracker = createPointerTracker({ threshold: TREE_DRAG_THRESHOLD_PX });
 
 function onGripDown(event: PointerEvent, node: FlatNode<T>) {
   if (event.button !== 0 || pending[node.id]) return;
+  if (!pointerTracker.down(event)) return;
   event.preventDefault();
   drag = {
     id: node.id,
@@ -259,11 +264,8 @@ function onGripDown(event: PointerEvent, node: FlatNode<T>) {
 
 function onPointerMove(event: PointerEvent) {
   if (!drag || event.pointerId !== drag.pointerId) return;
-  if (
-    !drag.active &&
-    Math.hypot(event.clientX - drag.x0, event.clientY - drag.y0) < TREE_DRAG_THRESHOLD_PX
-  )
-    return;
+  pointerTracker.move(event);
+  if (!drag.active && pointerTracker.phase !== 'dragging') return;
   const row = document
     .elementFromPoint(event.clientX, event.clientY)
     ?.closest<HTMLElement>(`[data-outline="${uid}"] [data-tree-row]`);
@@ -280,30 +282,36 @@ function onPointerMove(event: PointerEvent) {
 
 function onPointerUp(event: PointerEvent) {
   if (!drag || event.pointerId !== drag.pointerId) return;
+  pointerTracker.up(event);
   const finished = drag;
   drag = null;
   if (finished.active && finished.over && finished.over.id !== finished.id) {
     apply(dropMove(tree, finished.id, finished.over.id, finished.over.zone));
   }
 }
+
+function onPointerCancel(event: PointerEvent) {
+  pointerTracker.cancel(event);
+  drag = null;
+}
 </script>
 
-<svelte:window onpointermove={onPointerMove} onpointerup={onPointerUp} onpointercancel={() => (drag = null)} />
+<svelte:window onpointermove={onPointerMove} onpointerup={onPointerUp} onpointercancel={onPointerCancel} />
 
-<div class={cn('relative', className)} data-outline={uid}>
-  <QueryState {query} label={`Loading ${label.toLowerCase()}`} isEmpty={() => false} {onRetry}>
+<div class={cx('relative', className)} data-outline={uid}>
+  <QueryState {query} label={`Loading ${label.toLowerCase()}`} isEmpty={() => false} onRetry={onRetry ? () => { void onRetry(); } : undefined}>
     {#snippet children()}
       <ul aria-label={label} aria-describedby={`outline-${uid}-keys`} class="space-y-0.5">
         {#each flat as node (node.id)}
           {@const over = drag?.active && drag.over?.id === node.id ? drag.over.zone : null}
           <li
             data-tree-row={node.id}
-            class={cn(
+            class={cx(
               'group flex items-center gap-1 rounded-md pr-1',
               drag?.active && drag.id === node.id && 'opacity-40',
               over === 'inside' && 'bg-primary/10 ring-1 ring-primary',
-              over === 'before' && 'shadow-[inset_0_2px_0_0_var(--py-primary)]',
-              over === 'after' && 'shadow-[inset_0_-2px_0_0_var(--py-primary)]'
+              over === 'before' && 'shadow-[inset_0_2px_0_0_var(--tx-primary)]',
+              over === 'after' && 'shadow-[inset_0_-2px_0_0_var(--tx-primary)]'
             )}
             style:padding-left={`${(node.level - 1) * 1.5}rem`}
           >
@@ -313,10 +321,10 @@ function onPointerUp(event: PointerEvent) {
               class="inline-flex cursor-grab touch-none text-muted-foreground/60 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100"
               onpointerdown={(event) => onGripDown(event, node)}
             >
-              <GripVertical class="size-4" aria-hidden="true" />
+              <LucideIcon icon={GripVertical} class="size-4"  />
             </span>
             <span class="text-muted-foreground" aria-hidden="true">•</span>
-            <input
+            <Input
               id={`outline-${uid}-${node.id}`}
               value={titleOf(node)}
               {placeholder}
@@ -331,16 +339,17 @@ function onPointerUp(event: PointerEvent) {
             <span data-tree-menu class="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100">
               <DropdownMenu items={menuFor(node)} align="end">
                 {#snippet trigger({ props })}
-                  <button
+                  <Button
                     {...props}
                     type="button"
-                    tabindex="-1"
+                    variant="ghost"
+                    tabindex={-1}
                     disabled={pending[node.id]}
                     aria-label={`Move ${titleOf(node) || placeholder} to…`}
                     class="inline-flex size-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                   >
-                    <MoveRight class="size-3.5" aria-hidden="true" />
-                  </button>
+                    <LucideIcon icon={MoveRight} class="size-3.5"  />
+                  </Button>
                 {/snippet}
               </DropdownMenu>
             </span>
@@ -348,15 +357,16 @@ function onPointerUp(event: PointerEvent) {
         {/each}
       </ul>
       {#if flat.length === 0}
-        <button
+        <Button
           type="button"
+          variant="ghost"
           class="mt-1 rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           disabled={creating}
           aria-busy={creating || undefined}
           onclick={() => create(null)}
         >
           + Add the first item
-        </button>
+        </Button>
       {/if}
     {/snippet}
   </QueryState>

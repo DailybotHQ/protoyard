@@ -865,7 +865,7 @@ player, which splits level 1 from level 2.
   and 1.5 MiB for a deck single file. Measured numbers replace them in `protoyard.budgets.json`.
   *Outcome (2026-10-22):* the kind JS and CSS budgets stayed at 150 KB and 30 KB. The 1.5 MiB
   single file was not met (about 1.61 MB, because DevTools, Deck Studio and the theme tools
-  stay); the enforced cap is 2 MiB per kind (`QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` in
+  stay); the enforced cap is 2.5 MiB per kind (2 MiB until the npm Texuli 0.3.0, ADR-045) (`QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` in
   `packages/cli/src/lib/quick/single-file.ts`), and `kinds.*.singleFileKb` is recorded but not
   read by any gate. The player worker graph cap is one constant, `WORKER_GRAPH_GZIP_KB = 220`
   (`packages/player/tests/player-budgets.ts`).
@@ -954,3 +954,72 @@ because export isolation forbids importing across prototypes.
 **Consequences.** "Turn our design system into a kit, then prototype with it" becomes a first-class
 loop.
 **Reverse:** the template and commands are additive.
+
+## ADR-044 — Adopt Texuli as the component library
+
+**Context.** Protoyard's components, themes, charts, rich views, content blocks and layouts grew
+inside `@protoyard/*` packages. They were extracted into Texuli, a standalone MIT Svelte 5
+component library (sibling checkout `../texuli`), so the same owned components serve Protoyard
+and any other app. Keeping two copies would mean fixing every bug and accessibility gap twice.
+
+**Decision.**
+- **Linked, not copied.** The root `package.json` declares ten `link:` dev dependencies on
+  `../texuli/packages/*`. Packages import Texuli by name; texels come through their subpaths
+  (`@texuli/core/<texel>`), never the root barrel.
+- **What moved to Texuli** (details in [TEXULI.md](TEXULI.md)):
+  - theme tokens: `@protoyard/themes` wraps `@texuli/tokens`;
+  - generic styled components: `@protoyard/ui` re-exports them from `texuli`, and its simple,
+    floating and dialog-family controls are wrappers on `@texuli/primitives`;
+  - layouts: `LayoutHost` wraps `texuli/layouts`, which registers 11 of the 12 layouts;
+  - charts, rich views and content blocks: `@protoyard/charts`, `charts-ui`, `views`,
+    `views-ui`, `blocks` and `blocks-ui` re-export Texuli with thin adapters.
+- **What stays Protoyard's:** the prototype pieces (device frames and shells, `ScenarioSwitcher`,
+  honesty tags, actors), the overlay stack and undo toaster, the `docs` layout, the components
+  whose APIs still differ (listed in [TEXULI.md](TEXULI.md#follow-ups-components-that-stay-protoyard-wrappers)),
+  and the host-only view and block kits.
+- **Public APIs are kept.** Prototypes import from `@protoyard/*` as before; the look of the
+  re-exported components is Texuli's (`tx-*` classes on `--tx-*` variables, which the renderer
+  writes next to `--py-*`).
+
+**Consequences.**
+- Fixes and new components land once, in Texuli, and reach every prototype.
+- Installing Protoyard needs the Texuli checkout at `../texuli`, installed first. A fresh clone
+  of Protoyard alone cannot install until Texuli is published or vendored, which is a later
+  decision.
+- **The npm packages cannot be released yet.** Eight packages (`themes`, `devtools`, `charts`,
+  `charts-ui`, `views`, `views-ui`, `blocks`, `blocks-ui`) declare their Texuli dependencies as
+  `link:` specifiers, and `pnpm check:packages` refuses a packed manifest that carries one
+  (`LOCAL_DEPENDENCY`). `@protoyard/ui` resolves Texuli through the root links without declaring
+  it. Both change when Texuli is published.
+- Protoyard's typecheck covers its own code; Texuli's sources are checked by Texuli's gates.
+
+**Reverse:** the adoption lives on the `texuli-adoption` branch. Reverting its merges restores
+Protoyard's own copies; because the `@protoyard/*` APIs were kept, prototypes need no change.
+
+## ADR-045 — Install Texuli from npm
+
+**Context.** ADR-044 linked Texuli from a sibling checkout. Texuli is now published on npm
+(`texuli` and `@texuli/*` at 0.3.0). Under `link:`, a fresh clone could not install, packages
+with `link:` dependencies could not be packed, and `svelte-check` never type-checked the
+linked Texuli sources.
+
+**Decision.**
+- **npm only.** Every Texuli dependency is an exact npm version, the same for every package.
+  No manifest uses `link:` or `file:` for Texuli. A package declares the Texuli packages it
+  imports.
+- **Release-age guard.** `minimumReleaseAge` (3 days) still applies to every third-party
+  dependency. `texuli` and `@texuli/*` are excluded, because the same owner releases them and
+  Protoyard adopts each release the day it ships.
+- **Texuli first.** `scripts/check-texuli-adoption.ts` ratchets Protoyard toward Texuli and
+  blocks new duplicates ([TEXULI.md](TEXULI.md#texuli-first-the-adoption-check)). Lucide
+  stays the glyph source behind `texuli/icons`, which is Texuli's documented icon model.
+- **Gaps go upstream.** When Texuli lacks an API, Protoyard keeps a minimal adapter, records
+  the gap, and the Texuli maintainers fix it in a release.
+
+**Consequences.**
+- A fresh clone installs with `pnpm install` alone.
+- Protoyard type-checks against Texuli's published `.d.ts` files, which catches mismatches
+  the links hid. The charts `format` prop was one.
+- Each Texuli upgrade is one coordinated version bump across the workspace.
+- **How to reverse:** point the specifiers back at `link:` paths (ADR-044) and remove the
+  release-age exclusion.

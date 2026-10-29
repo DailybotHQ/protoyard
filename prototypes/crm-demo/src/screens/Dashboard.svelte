@@ -4,13 +4,14 @@ import {
   CircleCheck,
   CircleDollarSign,
   Handshake,
-  Plus,
   Target,
   TrendingUp,
   Trophy,
 } from '@lucide/svelte';
 import { can, Link, liveQuery, useClock, usePrincipal } from '@protoyard/renderer-svelte';
 import { Badge, Button, Card, EmptyState, StatCard } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import CompanyDialog from '../components/CompanyDialog.svelte';
 import DealDialog from '../components/DealDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
@@ -84,11 +85,11 @@ const checklist = $derived([
 <PageHeader title={`Good to see you, ${firstName}`} description="Your pipeline at a glance.">
   {#snippet actions()}
     {#if can(CAPABILITIES.companiesWrite)}
-      <Button variant="outline" onclick={() => (companyOpen = true)}><Building2 class="size-4" /> Company</Button>
+      <Button variant="outline" onclick={() => (companyOpen = true)}><LucideIcon icon={Building2} class="size-4" /> Company</Button>
     {/if}
     {#if can(CAPABILITIES.dealsCreate)}
       <Button onclick={() => (dealOpen = true)} disabled={services.isPaywalled() || (!companyCount.loading && companyCount.current === 0)}>
-        <Plus class="size-4" /> New deal
+        <Icon icon="plus" class="size-4" /> New deal
       </Button>
     {/if}
   {/snippet}
@@ -113,7 +114,7 @@ const checklist = $derived([
       {#snippet action()}
         {#if can(CAPABILITIES.companiesWrite)}
           <Button onclick={() => (companyOpen = true)} disabled={services.isPaywalled()}>
-            <Plus class="size-4" /> Add your first company
+            <Icon icon="plus" class="size-4" /> Add your first company
           </Button>
         {:else}
           <p class="text-sm text-muted-foreground">Ask an admin to add companies — your role is read-only.</p>
@@ -125,7 +126,7 @@ const checklist = $derived([
       <ol class="mt-4 space-y-3">
         {#each checklist as step (step.label)}
           <li class="flex items-center gap-3 text-sm">
-            <CircleCheck class={['size-5 shrink-0', step.done ? 'text-success' : 'text-muted-foreground/40']} aria-hidden="true" />
+            <LucideIcon icon={CircleCheck} class={['size-5 shrink-0', step.done ? 'text-success' : 'text-muted-foreground/40']} />
             <span class={step.done ? 'text-muted-foreground line-through' : ''}>{step.label}</span>
             <span class="sr-only">{step.done ? '(done)' : '(to do)'}</span>
           </li>

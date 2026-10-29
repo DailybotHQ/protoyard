@@ -261,7 +261,8 @@ describe('loadUntrustedDocument: embedded apps', () => {
     twoSlides.deck.outline.sections[0].slideIds.push('free-two');
     const result = await loadUntrustedDocument(twoSlides);
     expect(result.success).toBe(false);
-    const issue = result.issues.find((entry) => entry.message.includes('its own id'));
+    // The deck model reports the second use: `The block id "…" is already used at $.slides[0]…`.
+    const issue = result.issues.find((entry) => entry.message.includes('is already used'));
     expect(issue?.path.slice(-3)).toEqual(['blocks', 0, 'id']);
     expect(issue?.path).toContain(twoSlides.deck.slides.length - 1);
 

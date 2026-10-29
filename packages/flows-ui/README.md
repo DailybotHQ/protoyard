@@ -6,6 +6,14 @@ Accessible Svelte 5 workflow editing and simulation panels for
 use the deterministic local runtime and show proposed keeps and a masked
 outbox; they never contact people, tools or network services.
 
+The step-order canvas and read-only run traces use `WorkflowEditor` and
+`WorkflowViewer` from the published `@texuli/workflows` package. The graph
+adapter represents the flow's top-level step sequence; branch conditions and
+nested steps remain in the original `Flow` data and continue through its strict
+schema and operation validator. Dragging or reconnecting the sequence produces
+validated `move_step` operations. The run panels keep their Protoyard-specific
+result, keeps and masked delivery details around Texuli's graph view.
+
 ## Lazy imports
 
 Import only the screen you use so unrelated panels stay out of the initial

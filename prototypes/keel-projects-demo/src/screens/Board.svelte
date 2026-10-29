@@ -1,5 +1,6 @@
 <script lang="ts">
 import { liveQuery, type RouteProps, usePrincipal } from '@protoyard/renderer-svelte';
+import { Button } from '@protoyard/ui';
 import { BoardView } from '@protoyard/views-ui/board';
 import PageHeader from '../components/PageHeader.svelte';
 import TaskCard from '../components/TaskCard.svelte';
@@ -56,14 +57,15 @@ const LANE_OPTIONS: { value: LaneMode | null; label: string }[] = [
     {#snippet actions()}
       <div role="group" aria-label="Swimlanes" data-py-anchor="board-lanes" class="inline-flex rounded-lg border border-border bg-surface p-0.5">
         {#each LANE_OPTIONS as option (option.label)}
-          <button
+          <Button
             type="button"
-            class="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-sm"
+            variant="ghost"
+            class="rounded-md px-3 py-1.5 text-sm text-surface-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-sm"
             aria-pressed={laneMode === option.value}
             onclick={() => (laneMode = option.value)}
           >
             {option.label}
-          </button>
+          </Button>
         {/each}
       </div>
     {/snippet}

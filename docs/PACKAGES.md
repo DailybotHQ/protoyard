@@ -6,7 +6,9 @@ Protoyard is a pnpm workspace of small packages. Install only the pieces an app 
 
 The package manifests and tarball tooling are being prepared for the first npm release. **Protoyard packages are not yet available from the public npm registry.** The release workflow has an npm job (Trusted Publishing with provenance; see [PUBLISHING](PUBLISHING.md#releasing-the-packages-to-npm)), but no release has been published to npm yet: the first live publish awaits the developer's approval. The npm commands below are the supported consumer commands once that release is available; they do not install today's unpublished workspace packages.
 
-For repository development, clone the source and install its workspace dependencies:
+For repository development, clone the source and install its workspace dependencies.
+Protoyard installs its component library, [Texuli](TEXULI.md), from npm with the rest of
+its dependencies ([how it is linked](TEXULI.md#how-it-is-linked)).
 
 ```sh
 git clone https://github.com/DailybotHQ/protoyard.git
@@ -15,6 +17,41 @@ pnpm install
 pnpm protoyard doctor
 pnpm protoyard dev crm-demo
 ```
+
+Protoyard consumes the published Texuli `0.5.0` packages from npm at exact
+versions ([TEXULI](TEXULI.md)). The table shows direct workspace dependencies;
+transitive dependencies are omitted. Every template and prototype app also
+declares `texuli@0.5.0` for its Svelte UI. The root pins the complete Texuli
+family used by current and optional surfaces.
+
+| Protoyard package | Direct Texuli dependencies |
+| --- | --- |
+| `@protoyard/ai-ui` | `@texuli/chat`, `texuli` |
+| `@protoyard/analytics-ui` | `@texuli/charts`, `@texuli/data`, `@texuli/date`, `texuli` |
+| `@protoyard/blocks` | `@texuli/blocks` |
+| `@protoyard/blocks-ui` | `@texuli/blocks`, `@texuli/charts`, `@texuli/data`, `@texuli/editor`, `texuli` |
+| `@protoyard/charts` | `@texuli/charts`, `@texuli/tokens` |
+| `@protoyard/charts-ui` | `@texuli/charts`, `texuli` |
+| `@protoyard/crud` | `texuli` |
+| `@protoyard/decks` | `@texuli/deck` |
+| `@protoyard/decks-ui` | `@texuli/deck`, `@texuli/slides`, `texuli` |
+| `@protoyard/devtools` | `@texuli/primitives`, `texuli` |
+| `@protoyard/flows-ui` | `@texuli/workflows`, `texuli` |
+| `@protoyard/gamification-ui` | `texuli` |
+| `@protoyard/pages-ui` | `@texuli/blocks`, `texuli` |
+| `@protoyard/player` | `texuli` |
+| `@protoyard/renderer-svelte` | `texuli` |
+| `@protoyard/review-ui` | `texuli` |
+| `@protoyard/saas-ui` | `texuli` |
+| `@protoyard/themes` | `@texuli/tokens` |
+| `@protoyard/ui` | `@texuli/chat`, `@texuli/core`, `@texuli/data`, `@texuli/date`, `@texuli/primitives`, `texuli` |
+| `@protoyard/views` | `@texuli/data` |
+| `@protoyard/views-ui` | `@texuli/data`, `@texuli/drag`, `@texuli/editor`, `@texuli/primitives`, `texuli` |
+| `@protoyard/gallery` | `@texuli/astro`, `@texuli/tokens`, `texuli` |
+
+The workspace's `pnpm-workspace.yaml` release-age policy allows the Texuli
+maintainer's packages to be adopted when released. No Texuli dependency uses
+a local checkout, `link:`, or `file:` specifier.
 
 After the npm release, scaffold a workspace with either supported package manager:
 
@@ -106,6 +143,24 @@ Imports must use the package name and one of its declared export paths. `.` is t
 | `@protoyard/saas-ui` | Simulated SaaS screens | `.`, `./styles.css` |
 | `@protoyard/ai-ui` | Assistant and widget components | `.`, `./voice`, `./widget`, `./styles.css` |
 | `@protoyard/review-ui` | Lazy review UI and mount entry | `./overlay`, `./thread`, `./panel`, `./toolbar`, `./mount`, `./styles.css` |
+
+### Content kinds: decks, pages, docs and blocks
+
+| Package | Role | Export paths |
+| --- | --- | --- |
+| `@protoyard/blocks` | Content block engine: schemas, limits, untrusted-input guard, formula AST, catalog (no Svelte) | `.`, `./formula`, `./interactive`, `./code`, `./diagram`, `./catalog`, `./schema`, `./safety` |
+| `@protoyard/blocks-ui` | Svelte block renderers, one lazy subpath per family | `.`, `./text`, `./media`, `./data`, `./structure`, `./code`, `./diagram`, `./interactive`, `./map`, `./embed`, `./styles.css` |
+| `@protoyard/decks` | Slide deck engine: schema, 21-layout catalog, navigation, steps, controls registry, style, quality checks (no Svelte) | `.`, `./schema`, `./layouts`, `./style`, `./quality`, `./text`, `./presenter`, `./patch`, `./agent` |
+| `@protoyard/decks-ui` | `DeckApp` with the registry-driven toolbar, presenter, overview, print, Deck Studio and the Debug for agents panel | `.`, `./app`, `./layouts`, `./studio`, `./presenter`, `./print`, `./debug`, `./styles.css`, `./player.css` |
+| `@protoyard/pages` | Page and doc engine: schemas, limits, TOC helpers, form-response services (no Svelte) | `.`, `./fixtures` |
+| `@protoyard/pages-ui` | `PageApp` and `DocApp` hosts, forms and responses UI, print CSS | `.`, `./block-host`, `./page`, `./doc`, `./form`, `./print`, `./styles.css` |
+
+Two deck subpaths serve coding agents:
+
+- `@protoyard/decks/agent` ("Debug for agents") describes the slide on screen for an agent and reads a pasted reference back: `describeSlideForAgent`, `formatAgentReference` (a one-line `[slide-ref]`, a Markdown prompt or JSON), `parseAgentReference` and `safeAgentSource`, which keeps a reference's source only when it is a plain relative `.json` path, a prototype slug or a share id. It is pure TypeScript, kept off the deck entry so the lint rules never load with a deck. `protoyard deck inspect --ref` uses it ([DEVELOPMENT_COMMANDS](DEVELOPMENT_COMMANDS.md)).
+- `@protoyard/decks-ui/debug` holds the panel (`DeckDebugPanel`, `BlockOutline`) with `deckDebugAvailable`, `debugQueryOn`, `isDevBuild`, `inertJson`, `deckFileName` and `downloadText`. `DeckApp` loads it on its own lazy chunk only when the panel opens (`debug` prop: `auto`, `on` or `off`; `debugSource` names the source file).
+
+`@protoyard/decks/text` also exports the shared untrusted-text helpers `isInvisibleCodePoint`, `inertJson`, `isSafeDeckPath`, `isSafeShareId` and `SAFE_SLUG`. The root of `@protoyard/decks` exports the `DECK_CONTROLS` registry (with `deckControlFor`, `availableDeckControls` and `deckKeyBindings`), which the toolbar, the help dialog and `protoyard deck capabilities` all read. See [DECKS.md](DECKS.md) for how they are used.
 
 For example, import a specific chart family or view only where it is used:
 

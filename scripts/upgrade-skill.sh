@@ -188,7 +188,10 @@ if [ -n "$changes" ]; then
       }
       return out line
     }
-    { print "    " strip(strip($0, ENVIRON["STRIP_A"]), ENVIRON["STRIP_B"]) }'
+    { print "    " strip(strip($0, ENVIRON["STRIP_A"]), ENVIRON["STRIP_B"]) }' |
+    # GNU diff 3.10+ quotes a path holding shell metacharacters ('/tmp/a|b/x');
+    # once the prefixes are gone, drop that quoting so names read as in BSD diff.
+    sed -E "s/'([^']+)'/\1/g"
 fi
 
 # 5. The exact replacement, run only with --yes.

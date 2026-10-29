@@ -13,6 +13,9 @@
  */
 
 @import "./styles/variants.css";
+/* Sheet header, body and footer parts (Drawer, BottomSheet, DetailPanel). Loaded here, not
+   from the components, so their published .d.ts files carry no .css import. */
+@import "./components/overlay/sheet-parts.css";
 
 @source "./";
 
@@ -74,31 +77,6 @@
     transform: translateY(0.5rem) scale(0.98);
   }
 }
-@keyframes py-collapse-down {
-  from {
-    height: 0;
-  }
-  to {
-    height: var(--bits-accordion-content-height);
-  }
-}
-@keyframes py-collapse-up {
-  from {
-    height: var(--bits-accordion-content-height);
-  }
-  to {
-    height: 0;
-  }
-}
-@keyframes py-shimmer {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.55;
-  }
-}
 @keyframes py-typing {
   0%,
   60%,
@@ -111,15 +89,6 @@
     transform: translateY(-3px);
   }
 }
-@keyframes py-indeterminate {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(300%);
-  }
-}
-
 @media (prefers-reduced-motion: no-preference) {
   .ui-anim-fade[data-state="open"] {
     animation: py-fade-in 150ms ease-out;
@@ -164,30 +133,65 @@
     animation: py-toast-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .ui-anim-collapse[data-state="open"] {
-    animation: py-collapse-down 200ms ease-out;
-  }
-  .ui-anim-collapse[data-state="closed"] {
-    animation: py-collapse-up 160ms ease-in;
-  }
-
-  .ui-skeleton {
-    animation: py-shimmer 1.6s ease-in-out infinite;
-  }
-
   .ui-typing-dot {
     animation: py-typing 1.2s ease-in-out infinite;
   }
+}
 
-  .ui-progress-indeterminate {
-    animation: py-indeterminate 1.4s ease-in-out infinite;
+/*
+ * Texuli's layouts size themselves from --tx-app-height and --tx-safe-*.
+ * Declared on the layout host, Texuli's AppShell and its mobile app frame
+ * (MobileAppShell; all sit inside a device frame's screen), so they follow
+ * the frame's --py-app-height and --py-safe-* (and the page's own safe areas
+ * outside a frame).
+ */
+.tx-app-shell,
+.tx-mobile-frame,
+[data-py-layout-host] {
+  --tx-app-height: var(--py-app-height, 100dvh);
+  --tx-safe-top: max(env(safe-area-inset-top, 0px), var(--py-safe-top, 0px));
+  --tx-safe-right: max(env(safe-area-inset-right, 0px), var(--py-safe-right, 0px));
+  --tx-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--py-safe-bottom, 0px));
+  --tx-safe-left: max(env(safe-area-inset-left, 0px), var(--py-safe-left, 0px));
+}
+
+/*
+ * Texuli's Toaster stays inside the visible right edge the renderer
+ * publishes (--py-fixed-right-edge, for example beside the docked devtools
+ * panel). Unlayered, so it wins over Texuli's layered padding.
+ */
+[data-tx-toaster] .tx-toaster__viewport {
+  padding-right: calc(
+    var(--tx-toaster-edge, 1rem) +
+    env(safe-area-inset-right, 0px) +
+    var(--py-fixed-right-edge, 0px)
+  );
+}
+
+/*
+ * Texuli's Avatar keeps its <img> in the DOM with `hidden` until it loads, and
+ * relies on its own `display: block` to keep it rendered. Tailwind's preflight
+ * hides `[hidden]` with `!important` in `@layer base`, and a lazy image that is
+ * not rendered never loads, so every avatar stayed on its initials. In the same
+ * layer the more specific selector wins: render the loading image invisibly
+ * over the initials until Texuli marks it loaded.
+ */
+@layer base {
+  .tx-avatar [data-tx-avatar-image][hidden] {
+    display: block !important;
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
   }
 }
 
-/* Without motion the indeterminate bar still needs to read as "in progress". */
-@media (prefers-reduced-motion: reduce) {
-  .ui-progress-indeterminate {
-    width: 100%;
-    opacity: 0.6;
-  }
+/*
+ * Texuli's Board positions its visually hidden column labels absolutely with
+ * no positioned ancestor inside its horizontal scroller, so they escape its
+ * clipping and widen the page on phones (Texuli gap N31). The scroller is
+ * their containing block.
+ */
+.tx-board__scroller {
+  position: relative;
 }

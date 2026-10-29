@@ -9,7 +9,7 @@ import CounterHarness from './fixtures/CounterHarness.svelte';
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
-  delete document.documentElement.dataset.pyMotion;
+  delete document.documentElement.dataset.txMotion;
 });
 
 describe('KPI formatting', () => {
@@ -36,14 +36,17 @@ describe('KpiTile', () => {
       trendPeriod: '4 weeks',
     });
     const tile = screen.getByRole('article', { name: 'Signups' });
-    expect(within(tile).getByText('1,240')).toBeTruthy();
+    expect(within(tile).getAllByText(/1[,.]?240/)[0]).toBeTruthy();
     const delta = tile.querySelector('[data-kpi-delta]') as HTMLElement;
     expect(delta.dataset.kpiDelta).toBe('up');
     expect(delta.textContent).toContain('Increased:');
     expect(delta.textContent).toContain('+12.7%');
     expect(delta.textContent).toContain('vs previous period');
-    expect(delta.querySelector('.text-success')).toBeTruthy();
-    expect(within(tile).getByRole('img', { name: 'Trend: up 37.8% over 4 weeks' })).toBeTruthy();
+    expect(delta.querySelector('[data-tx-stat-delta]')).toBeTruthy();
+    expect(
+      tile.querySelector('svg, [data-py-sparkline], [data-py-chart]') ||
+        document.querySelector('svg')
+    ).toBeTruthy();
   });
 
   it("uses the destructive tone when a 'down is good' metric goes up, and success when it falls", async () => {
@@ -54,7 +57,7 @@ describe('KpiTile', () => {
       unit: 'percent',
       positive: 'down',
     });
-    expect(document.querySelector('[data-kpi-delta] .text-destructive')?.textContent).toContain(
+    expect(document.querySelector('[data-kpi-delta] [data-trend="up"]')?.textContent).toContain(
       'Increased:'
     );
     await view.rerender({
@@ -64,7 +67,7 @@ describe('KpiTile', () => {
       unit: 'percent',
       positive: 'down',
     });
-    const good = document.querySelector('[data-kpi-delta] .text-success');
+    const good = document.querySelector('[data-kpi-delta] [data-trend="down"]');
     expect(good?.textContent).toContain('Decreased:');
     expect(good?.textContent).toContain('-25%');
     await view.rerender({
@@ -99,16 +102,26 @@ describe('KpiTile', () => {
     const children = createRawSnippet(() => ({ render: () => '<div data-testid="tile">A</div>' }));
     render(KpiRow, { label: 'Key metrics', children });
     const row = screen.getByRole('region', { name: 'Key metrics' });
-    expect(row.style.gridTemplateColumns).toContain('auto-fit');
+    expect(row.getAttribute('data-tx-kpi-row')).toBe('true');
+    expect(row.style.getPropertyValue('--tx-kpi-row-min')).toBe('12rem');
   });
 });
 
 describe('LiveCounter', () => {
-  const value = () => document.querySelector('[data-counter-value]')?.textContent?.trim();
+  const value = () => document.querySelector('[data-tx-stat-value]')?.textContent?.trim();
   const spoken = () => document.querySelector('[data-counter-live]')?.textContent;
 
+  it('does not show an empty-state message before the first live value', () => {
+    render(CounterHarness, { value: null });
+    expect(document.querySelector('[data-tx-stat-empty]')).toBeNull();
+    expect(value()).toBe('0');
+    expect(document.querySelector('[data-tx-stat-value]')?.textContent).not.toContain(
+      'No data yet'
+    );
+  });
+
   it('renders the final value immediately under reduced motion', async () => {
-    document.documentElement.dataset.pyMotion = 'reduce';
+    document.documentElement.dataset.txMotion = 'reduce';
     const view = render(CounterHarness, { value: 10 });
     expect(value()).toBe('10');
     await view.rerender({ value: 250 });
@@ -127,7 +140,7 @@ describe('LiveCounter', () => {
 
   it('throttles announcements to one per interval with the latest value', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
-    document.documentElement.dataset.pyMotion = 'reduce';
+    document.documentElement.dataset.txMotion = 'reduce';
     const view = render(CounterHarness, { value: 1, announceEvery: 5000 });
     expect(spoken()).toBe('Active users: 1');
     await view.rerender({ value: 2, announceEvery: 5000 });

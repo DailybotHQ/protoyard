@@ -1,5 +1,5 @@
 <script lang="ts">
-import { House, Package, Plus, Search, User } from '@lucide/svelte';
+import { House, Package, Search, User } from '@lucide/svelte';
 import {
   Badge,
   type BadgeVariant,
@@ -11,6 +11,7 @@ import {
   type NavItem,
   toast,
 } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
 import { interceptDemoNav } from './nav.ts';
 
 type Status = 'Preparing' | 'Shipped' | 'Delivered';
@@ -95,7 +96,7 @@ function addOrder(): void {
       {#snippet actions()}
         {#if tab.endsWith('/orders')}
           <Button size="icon" variant="ghost" aria-label="New order" onclick={addOrder}>
-            <Plus aria-hidden="true" />
+            <Icon icon="plus" aria-hidden="true" />
           </Button>
         {/if}
       {/snippet}
@@ -104,8 +105,9 @@ function addOrder(): void {
       <ul class="divide-y divide-border">
         {#each orders as order (order.id)}
           <li>
-            <button
+            <Button
               type="button"
+              variant="ghost"
               class="flex min-h-touch w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
               onclick={() => openOrder(order.id)}
             >
@@ -114,7 +116,7 @@ function addOrder(): void {
                 <span class="text-xs text-muted-foreground">{order.id} · {order.items} item{order.items === 1 ? '' : 's'} · ${order.total}</span>
               </span>
               <Badge variant={tone[order.status]}>{order.status}</Badge>
-            </button>
+            </Button>
           </li>
         {/each}
       </ul>

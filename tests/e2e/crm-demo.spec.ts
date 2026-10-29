@@ -70,6 +70,28 @@ async function createCompany(page: Page, name: string) {
 }
 
 test.describe('Pipeline CRM (static build)', () => {
+  test('pipeline choice controls filter owned deals and reveal lost deals', async ({ page }) => {
+    await openApp(page, '#/pipeline');
+    const stages = page.getByRole('list', { name: 'Pipeline stages' });
+    // Each stage is a list item named "<stage>: <n> deals".
+    const totalDeals = async () =>
+      (
+        await stages
+          .getByRole('listitem')
+          .evaluateAll((items) => items.map((item) => item.getAttribute('aria-label') ?? ''))
+      ).reduce((sum, label) => {
+        const match = label.match(/(\d+) deals/);
+        return sum + Number(match?.[1] ?? 0);
+      }, 0);
+
+    await expect.poll(totalDeals).toBeGreaterThan(0);
+    const allDeals = await totalDeals();
+    await page.getByRole('checkbox', { name: 'Mine' }).check();
+    await expect.poll(totalDeals).toBeLessThan(allDeals);
+    await page.getByRole('checkbox', { name: 'Show lost' }).check();
+    await expect(stages.getByRole('listitem', { name: /^Lost:/ })).toBeVisible();
+  });
+
   test('section navigation and the role label are reachable on phones', async ({
     page,
     isMobile,
@@ -181,7 +203,7 @@ test.describe('Pipeline CRM (static build)', () => {
     await expect(html).toHaveAttribute('data-py-mode', 'light');
     const primary = () =>
       page.evaluate(() =>
-        getComputedStyle(document.documentElement).getPropertyValue('--py-primary').trim()
+        getComputedStyle(document.documentElement).getPropertyValue('--tx-primary').trim()
       );
     const theme = await html.getAttribute('data-py-theme');
     const lightPrimary = await primary();

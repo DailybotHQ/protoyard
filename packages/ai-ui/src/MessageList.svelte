@@ -1,15 +1,18 @@
 <script lang="ts">
 import { ArrowLeft, ArrowRight, ChevronUp, RefreshCw, ThumbsDown, ThumbsUp } from '@lucide/svelte';
+import { type ChatMessage, MessageList as TexuliMessageList } from '@texuli/chat';
+import { Badge } from 'texuli/badge';
+import { Button, IconButton } from 'texuli/button';
+import { LucideIcon } from 'texuli/icons/lucide';
 import RichAnswer from './components/RichAnswer.svelte';
-import type { AssistantMessage, FeedbackRating } from './types.ts';
 import {
-  calculateVirtualWindow,
   captureScrollAnchor,
+  clearScrollAnchor,
   loadScrollAnchor,
   restoreScrollAnchor,
-  type ScrollAnchor,
   saveScrollAnchor,
-} from './virtual.ts';
+} from './scroll-anchor.ts';
+import type { AssistantMessage, FeedbackRating } from './types.ts';
 
 interface Props {
   messages: readonly AssistantMessage[];
@@ -30,150 +33,157 @@ let {
   onBranchChange,
   onFeedback,
 }: Props = $props();
-let viewport = $state<HTMLDivElement | null>(null);
-let scrollTop = $state(0);
-let viewportHeight = $state(0);
-let measuredHeights = $state<Record<string, number>>({});
-let editingId = $state('');
-let editDraft = $state('');
-let anchor = $state<ScrollAnchor | null>(null);
-let stickToBottom = $state(true);
-let activeConversation = '';
 
-const heights = $derived(messages.map((message) => measuredHeights[message.id] ?? 0));
-const windowed = $derived(
-  calculateVirtualWindow(messages.length, scrollTop, viewportHeight, heights)
-);
+const USER = { id: 'user', name: 'You' };
+const ASSISTANT = { id: 'assistant', name: 'Assistant' };
+/** The reader is this close to the bottom: the conversation reopens at the latest message. */
+const BOTTOM_SLACK = 96;
+
+let root = $state<HTMLDivElement | null>(null);
 const lastAssistantId = $derived(
   [...messages].reverse().find((message) => message.role === 'assistant')?.id
 );
+const byId = $derived(new Map(messages.map((message) => [message.id, message])));
+const chatMessages = $derived(
+  messages.map(
+    (message): ChatMessage => ({
+      id: message.id,
+      author: message.role === 'user' ? USER : ASSISTANT,
+      body: message.content,
+      at: message.createdAt,
+      streaming: streaming && message.id === lastAssistantId,
+    })
+  )
+);
 const storageKey = $derived(`protoyard:ai-ui:scroll:${conversationId}`);
 
-$effect(() => {
-  const id = conversationId;
-  if (!viewport || !id || id === activeConversation) return;
-  activeConversation = id;
-  anchor = loadScrollAnchor(storageKey);
-  stickToBottom = !anchor;
-  requestAnimationFrame(() => {
-    if (!viewport) return;
-    viewport.scrollTop = anchor
-      ? restoreScrollAnchor(
-          messages.map((message) => message.id),
-          anchor,
-          heights
-        )
-      : viewport.scrollHeight;
-    scrollTop = viewport.scrollTop;
-    viewportHeight = viewport.clientHeight;
-  });
-});
+function viewportOf(element: HTMLElement | null): HTMLElement | null {
+  return element?.querySelector<HTMLElement>('[data-tx-chat-message-list]') ?? null;
+}
 
-$effect(() => {
-  const currentMessages = messages;
-  const currentHeights = heights;
-  const currentId = conversationId;
-  if (!viewport || !currentId || activeConversation !== currentId) return;
-  if (stickToBottom) {
-    viewport.scrollTop = viewport.scrollHeight;
-    scrollTop = viewport.scrollTop;
-    return;
-  }
-  if (anchor) {
-    const nextTop = restoreScrollAnchor(
-      currentMessages.map((message) => message.id),
-      anchor,
-      currentHeights
-    );
-    if (Math.abs(viewport.scrollTop - nextTop) > 1) viewport.scrollTop = nextTop;
-    scrollTop = viewport.scrollTop;
-  }
-});
+/** Frames the restored position must hold before the reader's own scrolling is remembered again. */
+const SETTLE_FRAMES = 3;
+/** Longest restore (about 1 s at 60 Hz): late content (a chart, an image) has landed by then. */
+const MAX_RESTORE_FRAMES = 60;
 
-function onScroll(): void {
+/*
+ * Texuli's MessageList follows the stream and offers jump-to-latest; the
+ * reading position per conversation stays Protoyard's. The list is keyed by
+ * conversation, so switching remounts it, and the saved anchor is restored
+ * once Texuli has made its first stick to the bottom.
+ *
+ * Until the reader scrolls, Texuli still sticks to the bottom whenever content
+ * resizes (a lazy chart answer, an image). So the restore keeps re-applying
+ * the anchor every frame until the position has held for a few frames, and
+ * scroll events in that time are the restore's, not the reader's: they never
+ * save or clear the anchor. A wheel, touch, key or pointer press is the
+ * reader taking over, which ends the restore at once.
+ */
+$effect(() => {
+  const key = storageKey;
+  const viewport = viewportOf(root);
   if (!viewport) return;
-  scrollTop = viewport.scrollTop;
-  viewportHeight = viewport.clientHeight;
-  stickToBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 48;
-  anchor = captureScrollAnchor(
-    messages.map((message) => message.id),
-    viewport.scrollTop,
-    heights
-  );
-  saveScrollAnchor(storageKey, anchor);
-}
-
-function observeMessage(node: HTMLElement, id: string) {
-  const observer =
-    typeof ResizeObserver === 'undefined'
-      ? null
-      : new ResizeObserver(([entry]) => {
-          if (!entry) return;
-          const height = entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height;
-          if (height > 0 && measuredHeights[id] !== height)
-            measuredHeights = { ...measuredHeights, [id]: height };
-        });
-  observer?.observe(node);
-  return { destroy: () => observer?.disconnect() };
-}
-
-function formatDate(date: string): string {
-  const value = new Date(date);
-  if (Number.isNaN(value.getTime())) return '';
-  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(value);
-}
-
-function saveEdit(message: AssistantMessage): void {
-  const content = editDraft.trim();
-  if (content) onEditMessage?.(message.id, content);
-  editingId = '';
-}
+  const anchor = loadScrollAnchor(key);
+  let frame = 0;
+  let restoring = anchor !== null;
+  const stopRestoring = () => {
+    restoring = false;
+    cancelAnimationFrame(frame);
+  };
+  if (anchor) {
+    // A miss (the row is outside the virtual window) moves to the raw position; a later
+    // frame places the row exactly once the window has re-rendered there.
+    let frames = 0;
+    let held = 0;
+    let last = Number.NaN;
+    const restore = () => {
+      if (!restoring) return;
+      frames += 1;
+      const placed = restoreScrollAnchor(viewport, anchor);
+      held = placed && Math.abs(viewport.scrollTop - last) < 1 ? held + 1 : 0;
+      last = viewport.scrollTop;
+      if (held >= SETTLE_FRAMES || frames >= MAX_RESTORE_FRAMES) restoring = false;
+      else frame = requestAnimationFrame(restore);
+    };
+    // Two frames first: after Texuli's own first stick to the bottom.
+    frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(restore);
+    });
+  }
+  const remember = () => {
+    if (restoring) return;
+    const atBottom =
+      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < BOTTOM_SLACK;
+    if (atBottom) clearScrollAnchor(key);
+    else saveScrollAnchor(key, captureScrollAnchor(viewport));
+  };
+  const intents = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
+  for (const type of intents) viewport.addEventListener(type, stopRestoring, { passive: true });
+  viewport.addEventListener('scroll', remember, { passive: true });
+  return () => {
+    cancelAnimationFrame(frame);
+    for (const type of intents) viewport.removeEventListener(type, stopRestoring);
+    viewport.removeEventListener('scroll', remember);
+  };
+});
 </script>
 
-<div
-  bind:this={viewport}
-  class="@container min-h-0 flex-1 overflow-y-auto px-4 py-5 @xl:px-8"
-  role="log"
-  aria-label="Conversation messages"
-  aria-live="polite"
-  tabindex="0"
-  onscroll={onScroll}
->
-  <div class="mx-auto max-w-3xl pb-6" style={`height:${windowed.totalSize}px;position:relative`}>
-    {#each windowed.items as item (messages[item.index]?.id)}
-      {@const message = messages[item.index]}
-      {#if message}
-        <article
-          use:observeMessage={message.id}
-          class={`group min-w-0 pb-8 ${message.role === 'user' ? 'ml-auto max-w-[92%] @xl:max-w-[85%]' : 'max-w-full'}`}
-          aria-label={message.role === 'user' ? 'Your message' : 'Assistant message'}
-          style={`position:absolute;top:${item.start}px;left:0;right:0`}
-        >
-          <div class="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-            <span class="font-medium text-foreground">{message.role === 'user' ? 'You' : 'Assistant'}</span>
-            {#if message.role === 'assistant'}<span class="rounded-full border border-border px-2 py-0.5 text-[0.62rem]">Simulated</span>{/if}
-            <time class="ml-auto" datetime={message.createdAt}>{formatDate(message.createdAt)}</time>
-          </div>
-          {#if editingId === message.id}
-            <form class="space-y-2" onsubmit={(event) => { event.preventDefault(); saveEdit(message); }}>
-              <label for={`edit-${message.id}`} class="sr-only">Edit your message</label>
-              <textarea id={`edit-${message.id}`} bind:value={editDraft} rows="4" class="w-full rounded-xl border border-border bg-surface p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"></textarea>
-              <div class="flex justify-end gap-2"><button type="button" class="min-h-10 rounded-lg px-3 text-xs hover:bg-muted" onclick={() => (editingId = '')}>Cancel</button><button type="submit" class="min-h-10 rounded-lg bg-primary px-3 text-xs text-primary-foreground disabled:opacity-40" disabled={!onEditMessage || !editDraft.trim()}>Save and resend</button></div>
-            </form>
-          {:else if message.role === 'user'}
-            <div class="rounded-2xl rounded-tr-sm bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground whitespace-pre-wrap">{message.content}</div>
-            {#if onEditMessage}<button type="button" class="mt-1 min-h-9 rounded-lg px-2 text-xs text-muted-foreground opacity-100 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring @xl:opacity-0 @xl:group-hover:opacity-100 @xl:focus-visible:opacity-100" aria-label="Edit your message" onclick={() => { editingId = message.id; editDraft = message.content; }}><span class="inline-flex items-center gap-1"><ChevronUp class="size-3" aria-hidden="true" /> Edit</span></button>{/if}
-          {:else}
-            <RichAnswer content={message.content} />
-            <div class="mt-2 flex flex-wrap items-center gap-1 text-xs text-muted-foreground opacity-100 @xl:opacity-0 @xl:group-hover:opacity-100 @xl:focus-within:opacity-100">
-              {#if onFeedback}<button type="button" class={`inline-flex min-h-9 items-center gap-1 rounded-lg px-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${message.feedback === 'up' ? 'text-primary' : ''}`} aria-label="Helpful response" aria-pressed={message.feedback === 'up'} onclick={() => onFeedback?.(message.id, 'up')}><ThumbsUp class="size-3.5" aria-hidden="true" />Helpful</button><button type="button" class={`inline-flex min-h-9 items-center gap-1 rounded-lg px-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${message.feedback === 'down' ? 'text-primary' : ''}`} aria-label="Not helpful response" aria-pressed={message.feedback === 'down'} onclick={() => onFeedback?.(message.id, 'down')}><ThumbsDown class="size-3.5" aria-hidden="true" />Not helpful</button>{/if}
-              {#if message.branchCount && message.branchCount > 1}<span class="ml-1 inline-flex items-center gap-1"><button type="button" class="inline-flex size-9 items-center justify-center rounded-md hover:bg-muted disabled:opacity-40" aria-label="Previous response version" disabled={message.branchIndex === 0 || !onBranchChange} onclick={() => onBranchChange?.(message.id, -1)}><ArrowLeft class="size-3.5" aria-hidden="true" /></button><span>{(message.branchIndex ?? 0) + 1} / {message.branchCount}</span><button type="button" class="inline-flex size-9 items-center justify-center rounded-md hover:bg-muted disabled:opacity-40" aria-label="Next response version" disabled={(message.branchIndex ?? 0) >= message.branchCount - 1 || !onBranchChange} onclick={() => onBranchChange?.(message.id, 1)}><ArrowRight class="size-3.5" aria-hidden="true" /></button></span>{/if}
-              {#if lastAssistantId === message.id && onRegenerate}<button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={streaming} aria-label="Regenerate response" onclick={onRegenerate}><RefreshCw class="size-3.5" aria-hidden="true" /> Regenerate</button>{/if}
-            </div>
+<!--
+  @texuli/chat's MessageList: virtual window, stream follow, jump to latest,
+  per-message actions and inline edit. ai-ui keeps its names ("Conversation
+  messages", "Your message", "Assistant message") that hosts and E2E address,
+  the rich answer body, and the per-conversation reading position. The group
+  row wraps so a day separator spans the list instead of sitting beside the
+  avatar (Texuli 0.5.0 places it inside the row; reported as a Texuli gap).
+-->
+<div bind:this={root} class="@container flex min-h-0 flex-1 flex-col overflow-hidden">
+  {#key conversationId}
+    <TexuliMessageList
+      messages={chatMessages}
+      currentUserId={USER.id}
+      label="Conversation messages"
+      emptyText="No messages yet. Ask the simulated assistant anything."
+      labels={{ editInput: 'Edit your message', saveEdit: 'Save and resend' }}
+      onEdit={onEditMessage ? (message, body) => onEditMessage(message.id, body) : undefined}
+      class="px-4 py-5 @xl:px-8 [&_.tx-chat-message-group]:flex-wrap [&_.tx-chat-message-list\_\_day]:basis-full"
+    >
+      {#snippet body(chat)}
+        {@const message = byId.get(chat.id)}
+        {#if message?.role === 'assistant'}
+          <article class="min-w-0 whitespace-normal" aria-label="Assistant message" data-message-role="assistant" data-py-message-id={chat.id}>
+            <Badge variant="outline" label="Simulated" class="mb-1" />
+            <RichAnswer content={chat.body} />
+            {#if chat.streaming}<p class="mt-2 text-xs text-muted-foreground">Writing…</p>{/if}
+          </article>
+        {:else}
+          <article class="min-w-0" aria-label="Your message" data-message-role="user" data-py-message-id={chat.id}>{chat.body}</article>
+        {/if}
+      {/snippet}
+      {#snippet actions(chat, controls)}
+        {@const message = byId.get(chat.id)}
+        {#if message?.role === 'user'}
+          {#if controls.canEdit}
+            <Button variant="ghost" size="sm" class="text-xs" aria-label="Edit your message" onclick={controls.edit}><LucideIcon icon={ChevronUp} size="xs" /> Edit</Button>
           {/if}
-          {#if message.role === 'assistant' && lastAssistantId === message.id && streaming}<p class="mt-2 text-xs text-muted-foreground" aria-live="polite">Writing…</p>{/if}
-        </article>
-      {/if}
-    {/each}
-  </div>
+        {:else if message}
+          <div class="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+            {#if onFeedback}
+              <Button variant="ghost" size="sm" class={message.feedback === 'up' ? 'text-primary' : ''} aria-label="Helpful response" aria-pressed={message.feedback === 'up'} onclick={() => onFeedback?.(message.id, 'up')}><LucideIcon icon={ThumbsUp} size="xs" />Helpful</Button>
+              <Button variant="ghost" size="sm" class={message.feedback === 'down' ? 'text-primary' : ''} aria-label="Not helpful response" aria-pressed={message.feedback === 'down'} onclick={() => onFeedback?.(message.id, 'down')}><LucideIcon icon={ThumbsDown} size="xs" />Not helpful</Button>
+            {/if}
+            {#if message.branchCount && message.branchCount > 1}
+              <span class="ml-1 inline-flex items-center gap-1">
+                <IconButton variant="ghost" size="sm" label="Previous response version" disabled={message.branchIndex === 0 || !onBranchChange} onclick={() => onBranchChange?.(message.id, -1)}><LucideIcon icon={ArrowLeft} size="xs" /></IconButton>
+                <span>{(message.branchIndex ?? 0) + 1} / {message.branchCount}</span>
+                <IconButton variant="ghost" size="sm" label="Next response version" disabled={(message.branchIndex ?? 0) >= message.branchCount - 1 || !onBranchChange} onclick={() => onBranchChange?.(message.id, 1)}><LucideIcon icon={ArrowRight} size="xs" /></IconButton>
+              </span>
+            {/if}
+            {#if lastAssistantId === message.id && onRegenerate}
+              <Button variant="ghost" size="sm" disabled={streaming} aria-label="Regenerate response" onclick={onRegenerate}><LucideIcon icon={RefreshCw} size="xs" /> Regenerate</Button>
+            {/if}
+          </div>
+        {/if}
+      {/snippet}
+    </TexuliMessageList>
+  {/key}
 </div>

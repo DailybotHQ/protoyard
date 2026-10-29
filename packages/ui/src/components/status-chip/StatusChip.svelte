@@ -1,16 +1,17 @@
 <script lang="ts">
-import { cn } from '../../lib/cn.ts';
+import { Badge } from 'texuli/badge';
+import { Icon } from 'texuli/icons';
 import type { IconComponent } from '../../lib/types.ts';
-import { STATUS_CHIP_TONE_CLASSES, type StatusChipTone } from './tones.ts';
+import type { StatusChipTone } from './tones.ts';
 
 /**
- * Status chip that always carries a word (never color alone). Tones map to
- * theme token pairs so small text stays readable.
+ * Status chip that always carries a word (never color alone): Texuli's
+ * `Badge` (`texuli/badge`) with Protoyard's tone names.
  */
 let {
   label,
   tone = 'neutral',
-  icon: Icon,
+  icon,
   class: className,
 }: {
   /** Required visible word — color is never the only signal. */
@@ -19,17 +20,18 @@ let {
   icon?: IconComponent;
   class?: string;
 } = $props();
+
+const VARIANT = {
+  neutral: 'neutral',
+  success: 'success',
+  warning: 'warning',
+  error: 'destructive',
+  info: 'info',
+  brand: 'default',
+} as const;
 </script>
 
-<span
-  class={cn(
-    'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold',
-    STATUS_CHIP_TONE_CLASSES[tone],
-    className
-  )}
-  data-py-status-chip
-  data-tone={tone}
->
-  {#if Icon}<Icon class="size-3.5 shrink-0" aria-hidden="true" />{/if}
+<Badge variant={VARIANT[tone]} class={className} data-py-status-chip="" data-tone={tone}>
+  {#if icon}<Icon {icon} size="xs" aria-hidden="true" />{/if}
   {label}
-</span>
+</Badge>

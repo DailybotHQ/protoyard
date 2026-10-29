@@ -195,7 +195,7 @@ describe('<Router> with overlay routes', () => {
     },
   ];
 
-  it('renders a sheet over the screen underneath on a narrow host and keeps its state', async () => {
+  it('opens a modal sheet over the screen underneath on a narrow host and keeps its state', async () => {
     const host = mountWide(390);
     location.hash = '#/deals';
     const router = createRouter(screens);

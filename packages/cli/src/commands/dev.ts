@@ -5,6 +5,12 @@ import { untilSignal } from '../lib/network.ts';
 import { mark } from '../lib/output.ts';
 import { parsePort } from '../lib/ports.ts';
 import { templateDemoNamespace } from '../lib/registry.ts';
+import {
+  refreshTemplateBrand,
+  TEMPLATE_BLUEPRINT_PATH,
+  type TemplateBrandResult,
+  watchTemplateBrand,
+} from '../lib/template-brand.ts';
 import { resolveTarget } from '../lib/workspace.ts';
 
 export const devCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
@@ -17,20 +23,52 @@ export const devCommand: Handler = async (ctx, args, options): Promise<CommandRe
       ? `Starting template demo ${ctx.out.c.bold(entry.slug)}…`
       : `Starting ${ctx.out.c.bold(entry.slug)}…`
   );
-  const server = await startDevServer({
-    root: ctx.root,
-    dir,
-    slug: entry.slug,
-    port: requested,
-    host: flag(options, 'host'),
-    // With --json, Vite's banner would corrupt stdout.
-    stdio: ctx.out.options.json ? 'pipe' : 'inherit',
-    ...(storageNamespace ? { storageNamespace } : {}),
-  });
+  // A deck made from the deck template: keep src/brand-theme.ts in step with the
+  // blueprint's brand while it is edited (Vite reloads the module). Template
+  // demos never write template files.
+  // Reported on stderr in every mode: with --json as one JSON line per event,
+  // so the stdout envelope stays clean.
+  const reportBrand = (result: TemplateBrandResult) => {
+    if (result.status === 'absent' || result.status === 'current') return;
+    if (ctx.out.options.json) {
+      process.stderr.write(`${JSON.stringify({ event: 'brand-theme', ...result })}\n`);
+      return;
+    }
+    if (result.status === 'refreshed') {
+      ctx.out.warn(
+        `${mark(ctx.out.c, 'pass')} Refreshed src/brand-theme.ts from the ${TEMPLATE_BLUEPRINT_PATH} brand${result.themeId ? ` (${result.themeId})` : ''}.`
+      );
+    } else if (result.status === 'invalid' || result.status === 'unsafe') {
+      ctx.out.warn(
+        `${mark(ctx.out.c, 'warn')} src/brand-theme.ts left as it was: ${result.message}`
+      );
+    }
+  };
+  let stopBrandWatch: (() => void) | null = null;
+  if (!isTemplateDemo) {
+    reportBrand(await refreshTemplateBrand(dir));
+    stopBrandWatch = watchTemplateBrand(dir, reportBrand);
+  }
+  let server: Awaited<ReturnType<typeof startDevServer>>;
+  try {
+    server = await startDevServer({
+      root: ctx.root,
+      dir,
+      slug: entry.slug,
+      port: requested,
+      host: flag(options, 'host'),
+      // With --json, Vite's banner would corrupt stdout.
+      stdio: ctx.out.options.json ? 'pipe' : 'inherit',
+      ...(storageNamespace ? { storageNamespace } : {}),
+    });
+  } catch (error) {
+    stopBrandWatch?.();
+    throw error;
+  }
   const stopped = Promise.race([
     server.exited.then(() => undefined),
     untilSignal(() => server.stop()),
-  ]);
+  ]).finally(() => stopBrandWatch?.());
   return {
     data: {
       slug: entry.slug,

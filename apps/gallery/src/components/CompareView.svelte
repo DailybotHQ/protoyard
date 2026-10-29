@@ -2,10 +2,12 @@
 import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 import Play from '@lucide/svelte/icons/play';
-import Plus from '@lucide/svelte/icons/plus';
 import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 import X from '@lucide/svelte/icons/x';
+import { Button, Input } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import {
   COMPARE_DEVICE_IDS,
   type CompareState,
@@ -20,6 +22,7 @@ import {
 import { control } from '@/lib/control.svelte';
 import { DEVICES, fitScale, frameFor, safePreviewUrl, withGalleryShellNone } from '@/lib/devices';
 import CommandBlock from './CommandBlock.svelte';
+import GallerySelect from './GallerySelect.svelte';
 
 interface Props {
   slug: string;
@@ -136,32 +139,28 @@ const select = 'h-9 rounded-lg border border-line bg-bg px-2.5 text-sm text-fg';
     <h2 id="compare-title" class="sr-only">Compare scenarios of {name}</h2>
     <label class="flex flex-col gap-1 text-xs text-muted">
       <span>Device (all frames)</span>
-      <select class={select} bind:value={state.device} data-testid="compare-device">
-        {#each DEVICES.filter((d) => d.id !== 'custom') as d (d.id)}
-          <option value={d.id}>{d.label} · {d.width}×{d.height}</option>
-        {/each}
-      </select>
+      <GallerySelect class={select} bind:value={state.device} data-testid="compare-device" items={DEVICES.filter((d) => d.id !== 'custom').map((d) => ({ value: d.id, label: `${d.label} · ${d.width}×${d.height}` }))} />
     </label>
-    <button type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={swap}>
-      <ArrowLeftRight size={14} aria-hidden="true" /> Swap A and B
-    </button>
+    <Button variant="outline" type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={swap}>
+      <LucideIcon icon={ArrowLeftRight} size={14} aria-hidden="true" /> Swap A and B
+    </Button>
     {#if state.scenarios.length < 3}
-      <button type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={addPane}>
-        <Plus size={14} aria-hidden="true" /> Add a third frame
-      </button>
+      <Button variant="outline" type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={addPane}>
+        <Icon icon="plus" size={14} aria-hidden="true" /> Add a third frame
+      </Button>
     {:else}
-      <button type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={removePane}>
-        <X size={14} aria-hidden="true" /> Remove frame C
-      </button>
+      <Button variant="outline" type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={removePane}>
+        <LucideIcon icon={X} size={14} aria-hidden="true" /> Remove frame C
+      </Button>
     {/if}
-    <button
+    <Button variant="outline"
       type="button"
       class="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2"
       onclick={resetSandboxes}
       data-testid="compare-reset"
     >
-      <RotateCcw size={14} aria-hidden="true" /> Reset sandboxes
-    </button>
+      <LucideIcon icon={RotateCcw} size={14} aria-hidden="true" /> Reset sandboxes
+    </Button>
   </div>
 
   <p class="text-xs text-muted">
@@ -174,17 +173,17 @@ const select = 'h-9 rounded-lg border border-line bg-bg px-2.5 text-sm text-fg';
     <div class="space-y-3 rounded-xl border border-line bg-surface p-4 text-sm" data-testid="compare-unavailable">
       {#if control.status === 'available'}
         <p>Start {name} to compare its scenarios side by side.</p>
-        <button
+        <Button
           type="button"
           class="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 font-medium text-on-accent hover:bg-accent-hover disabled:opacity-60"
           disabled={control.busy[slug] === 'starting'}
           onclick={() => control.start(slug)}
         >
-          {#if control.busy[slug] === 'starting'}<LoaderCircle size={14} class="animate-spin" aria-hidden="true" /> Starting…{:else}<Play size={14} aria-hidden="true" /> Start {name}{/if}
-        </button>
+          {#if control.busy[slug] === 'starting'}<LucideIcon icon={LoaderCircle} size={14} class="animate-spin" aria-hidden="true" /> Starting…{:else}<LucideIcon icon={Play} size={14} aria-hidden="true" /> Start {name}{/if}
+        </Button>
         {#if control.errors[slug]}<p class="text-xs text-danger" role="alert">{control.errors[slug]}</p>{/if}
       {:else if control.status === 'checking' || control.status === 'unknown'}
-        <p class="inline-flex items-center gap-1.5 text-muted"><LoaderCircle size={14} class="animate-spin" aria-hidden="true" /> Looking for the local control server…</p>
+        <p class="inline-flex items-center gap-1.5 text-muted"><LucideIcon icon={LoaderCircle} size={14} class="animate-spin" aria-hidden="true" /> Looking for the local control server…</p>
       {:else}
         <p class="text-muted">
           This gallery has no bundled build of {name} and no local control server, so it cannot run frames here.
@@ -196,9 +195,9 @@ const select = 'h-9 rounded-lg border border-line bg-bg px-2.5 text-sm text-fg';
         <form class="flex flex-wrap gap-2" onsubmit={usePasted}>
           <label class="min-w-56 flex-1">
             <span class="sr-only">Prototype URL</span>
-            <input type="url" inputmode="url" placeholder="http://localhost:5173/" class="h-9 w-full rounded-lg border border-line bg-bg px-3 font-mono text-xs" bind:value={manualUrl} />
+            <Input type="url" inputmode="url" placeholder="http://localhost:5173/" class="h-9 w-full rounded-lg border border-line bg-bg px-3 font-mono text-xs" bind:value={manualUrl} />
           </label>
-          <button type="submit" class="rounded-lg border border-line px-3 text-sm hover:bg-surface-2">Compare this URL</button>
+          <Button variant="outline" type="submit" class="rounded-lg border border-line px-3 text-sm hover:bg-surface-2">Compare this URL</Button>
         </form>
         {#if manualError}<p class="text-xs text-danger" role="alert">{manualError}</p>{/if}
       {/if}
@@ -212,14 +211,7 @@ const select = 'h-9 rounded-lg border border-line bg-bg px-2.5 text-sm text-fg';
           <span aria-hidden="true" class="grid size-6 place-items-center rounded-md bg-accent-soft text-xs font-semibold uppercase text-accent-fg">{pane.id}</span>
           <label class="flex min-w-0 flex-1 items-center gap-2 text-sm">
             <span class="sr-only">Scenario for frame {pane.id.toUpperCase()}</span>
-            <select
-              class={[select, 'min-w-0 flex-1']}
-              value={pane.scenario}
-              onchange={(e) => setScenario(index, e.currentTarget.value)}
-              data-testid={`compare-scenario-${pane.id}`}
-            >
-              {#each scenarios as id (id)}<option value={id}>{id}{id === defaultScenario ? ' (default)' : ''}</option>{/each}
-            </select>
+            <GallerySelect class={[select, 'min-w-0 flex-1']} value={pane.scenario} onValueChange={(value) => setScenario(index, value)} data-testid={`compare-scenario-${pane.id}`} items={scenarios.map((id) => ({ value: id, label: `${id}${id === defaultScenario ? ' (default)' : ''}` }))} />
           </label>
           {#if appUrl}
             <a

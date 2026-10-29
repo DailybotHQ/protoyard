@@ -1,7 +1,8 @@
 /*
  * Decks player page (deck.html): the shared chrome, the blocks every kind
- * renders, and this kind's renderer. No crud, views, charts or analytics
- * styles: a deck never mounts those kits (embedded apps run in index.html).
+ * renders, and this kind's renderer. No crud or analytics styles, and no app
+ * views: a deck never mounts those kits (embedded apps run in index.html).
+ * Chart and map blocks bring their kit styles through blocks-ui's stylesheet.
  */
 @import "@protoyard/renderer-svelte/app.css";
 @import "@protoyard/blocks-ui/styles.css";
@@ -19,6 +20,6 @@ body,
 body {
   margin: 0;
   /* Theme tokens (@protoyard/themes): a deck, page or doc sits on the body itself. */
-  background: var(--py-background);
-  color: var(--py-foreground);
+  background: var(--tx-background);
+  color: var(--tx-foreground);
 }

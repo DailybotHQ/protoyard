@@ -1,11 +1,13 @@
 <script lang="ts">
-import { LoaderCircle } from '@lucide/svelte';
 import { type ApprovalActor, mayDecide, type Suggestion } from '@protoyard/ai';
+import { Button } from 'texuli/button';
+import { Card } from 'texuli/card';
 import { modeNeedsApproval } from './labels.ts';
 
 /**
  * Compact chat-row approval for a pending suggestion. Same decision callbacks
- * as SuggestionCard; designed to sit inside a message list.
+ * as SuggestionCard; designed to sit inside a message list. Texuli card and
+ * buttons; a decision shows its pending state on its own button.
  */
 let {
   suggestion,
@@ -46,8 +48,8 @@ async function run(
 }
 </script>
 
-<div
-  class="grid gap-2 rounded-lg border border-border bg-elevated p-3 text-sm shadow-soft {className}"
+<Card
+  class="grid gap-2 p-3 text-sm {className}"
   data-py-chat-approval
   data-status={suggestion.status}
   role="group"
@@ -64,47 +66,41 @@ async function run(
   {#if waiting}
     <div class="flex flex-wrap gap-2" aria-label="Approval actions">
       {#if needsApproval && mayDecide(viewer, suggestion, 'approve') && onApprove}
-        <button
-          type="button"
-          class="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+        <Button
+          size="sm"
+          variant="default"
+          autoLoading={false}
+          loading={pending === 'approve'}
           disabled={pending !== null}
-          aria-busy={pending === 'approve' ? 'true' : undefined}
           onclick={() => run('approve', () => onApprove(suggestion))}
         >
-          {#if pending === 'approve'}
-            <LoaderCircle class="size-3.5 motion-safe:animate-spin" aria-hidden="true" />
-          {/if}
           Approve
-        </button>
+        </Button>
       {:else if !needsApproval && mayDecide(viewer, suggestion, 'confirm') && onConfirm}
-        <button
-          type="button"
-          class="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+        <Button
+          size="sm"
+          variant="default"
+          autoLoading={false}
+          loading={pending === 'confirm'}
           disabled={pending !== null}
-          aria-busy={pending === 'confirm' ? 'true' : undefined}
           onclick={() => run('confirm', () => onConfirm(suggestion))}
         >
-          {#if pending === 'confirm'}
-            <LoaderCircle class="size-3.5 motion-safe:animate-spin" aria-hidden="true" />
-          {/if}
           Confirm
-        </button>
+        </Button>
       {:else if needsApproval && !viewer.canApprove}
         <span class="text-xs text-muted-foreground" role="status">Waiting for an approver</span>
       {/if}
       {#if mayDecide(viewer, suggestion, 'dismiss') && onDismiss}
-        <button
-          type="button"
-          class="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium disabled:opacity-50"
+        <Button
+          size="sm"
+          variant="outline"
+          autoLoading={false}
+          loading={pending === 'dismiss'}
           disabled={pending !== null}
-          aria-busy={pending === 'dismiss' ? 'true' : undefined}
           onclick={() => run('dismiss', () => onDismiss(suggestion))}
         >
-          {#if pending === 'dismiss'}
-            <LoaderCircle class="size-3.5 motion-safe:animate-spin" aria-hidden="true" />
-          {/if}
           Dismiss
-        </button>
+        </Button>
       {/if}
     </div>
   {:else}
@@ -119,4 +115,4 @@ async function run(
   {#if error}
     <p class="m-0 text-xs text-destructive" role="alert">{error}</p>
   {/if}
-</div>
+</Card>

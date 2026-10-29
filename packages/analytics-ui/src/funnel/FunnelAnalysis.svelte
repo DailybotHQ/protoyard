@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { FunnelResult, FunnelStepResult } from '@protoyard/analytics/funnel';
 import { FunnelChart } from '@protoyard/charts-ui/part-whole';
+import { Toggle } from 'texuli/toggle';
 import { formatCount } from '../cohort/model.ts';
 import { formatConversion, formatDuration, funnelSeries } from './model.ts';
 
@@ -48,18 +49,17 @@ const choose = (key: string | null) => {
     {#if series.length > 1}
       <div role="group" aria-label={breakdownLabel} class="flex flex-wrap gap-1 text-xs">
         {#each series as s (s.key ?? '')}
-          <button
-            type="button"
-            aria-pressed={s.key === current.key}
+          <Toggle
+            bind:pressed={() => s.key === current.key, () => {}}
+            onPressedChange={(pressed) => pressed && choose(s.key)}
             class="rounded-md border px-2 py-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {s.key ===
             current.key
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border text-foreground hover:bg-muted'}"
-            onclick={() => choose(s.key)}
           >
             {s.label}
             <span class="opacity-80">· {formatConversion(s.steps.at(-1)?.conversion ?? null)}</span>
-          </button>
+          </Toggle>
         {/each}
       </div>
     {/if}

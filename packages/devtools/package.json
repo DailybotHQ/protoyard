@@ -1,7 +1,7 @@
 {
   "name": "@protoyard/devtools",
   "version": "1.0.0",
-  "description": "The Protoyard DevTools panel: scenarios, personas, lifecycle, data, environment, appearance and snapshots \u2014 in the browser.",
+  "description": "The Protoyard DevTools panel: scenarios, personas, lifecycle, data, environment, appearance and snapshots. Panel controls run on Texuli components; Theme Studio uses the Texuli-backed theme library.",
   "license": "MIT",
   "type": "module",
   "sideEffects": [
@@ -27,7 +27,8 @@
     "@protoyard/database": "workspace:*",
     "@protoyard/http": "workspace:*",
     "@protoyard/themes": "workspace:*",
-    "@protoyard/ui": "workspace:*"
+    "@texuli/primitives": "0.5.0",
+    "texuli": "0.5.0"
   },
   "devDependencies": {
     "svelte": "^5.57.2"

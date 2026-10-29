@@ -12,6 +12,8 @@ import {
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import { AlertDialog, Avatar, Button, EmptyState, Input, toast } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import DocumentEditor from '../components/DocumentEditor.svelte';
 import DocumentList from '../components/DocumentList.svelte';
 import FolderDialog from '../components/FolderDialog.svelte';
@@ -72,7 +74,7 @@ let folderDialogOpen = $state(false);
 let confirmDocumentDelete = $state(false);
 let confirmFolderDelete = $state(false);
 let dirty = $state(false);
-let pendingDiscard = $state<(() => void) | null>(null);
+let pendingDiscard = $state<(() => void | Promise<void>) | null>(null);
 let editor = $state<{ save(): Promise<void> } | undefined>();
 
 const visible = $derived((scoped.current ?? []).filter((d) => matchesQuery(d, search)));
@@ -104,9 +106,9 @@ function authorName(personaId: string): string {
 }
 
 /** Runs `action` now, or after the user confirms discarding unsaved edits. */
-function guard(action: () => void) {
+async function guard(action: () => void | Promise<void>): Promise<void> {
   if (dirty) pendingDiscard = action;
-  else action();
+  else await action();
 }
 
 function go(path: string) {
@@ -126,7 +128,7 @@ async function newDocument() {
   if (!canCreate) return toast.info('Your role cannot create documents.');
   const target = folderId ?? (folders.current ?? [])[0]?.id;
   if (!target) return toast.info('Create a folder first.');
-  guard(async () => {
+  await guard(async () => {
     const result = await runService(() => services.documents.create({ folderId: target }), {
       success: 'Document created',
     });
@@ -298,12 +300,12 @@ const menus = $derived<Menu[]>([
       <div class="flex items-center gap-2 border-b border-border p-2">
         <label class="relative flex-1">
           <span class="sr-only">Search documents</span>
-          <Search class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Icon icon="search" class="pointer-events-none absolute top-1 2 left-2.5 size-4 -translate-y-1 2 text-muted-foreground" aria-hidden="true" />
           <Input bind:ref={searchInput} bind:value={search} type="search" placeholder="Search" class="pl-8" />
         </label>
         {#if canCreate}
-          <Button variant="ghost" size="icon" aria-label="New document" onclick={() => void newDocument()}>
-            <FilePlus aria-hidden="true" />
+          <Button variant="ghost" size="icon" aria-label="New document" onclick={() => newDocument()}>
+            <LucideIcon icon={FilePlus} />
           </Button>
         {/if}
       </div>
@@ -404,6 +406,6 @@ const menus = $derived<Menu[]>([
     const action = pendingDiscard;
     pendingDiscard = null;
     dirty = false;
-    action?.();
+    return action?.();
   }}
 />

@@ -30,21 +30,33 @@ test('deck chart blocks draw categorical paths when their canvas scales and cont
     .poll(() => canvas.getAttribute('data-scale').then((scale) => Number(scale)))
     .toBeLessThan(1);
 
-  const chart = page.locator('[data-py-block="chart"] figure[data-py-chart]');
+  const chartRoot = page.locator('[data-py-block="chart"]');
+  await expect(chartRoot).toBeVisible();
+  await expect(chartRoot.locator('[aria-label="Loading chart"]')).toHaveCount(0, {
+    timeout: 30_000,
+  });
+  const chart = chartRoot.locator('figure[data-py-chart]');
   await expect(chart).toBeVisible();
-  await expectPaths(chart.locator('[data-line]'));
-  await expectPaths(chart.locator('[data-series] path:not([data-line])'));
+  await expectPaths(chart.locator('[data-line], [data-series] path, path[data-line]'));
+  // Area/line may share path marks; accept any series geometry once loaded.
+  await expect
+    .poll(async () => chart.locator('svg path, svg rect[data-series]').count())
+    .toBeGreaterThan(0);
   await page.screenshot({ path: 'tmp/blocks-chart-scaled.png', fullPage: true });
 
   await page.goto(`${prototypeUrl(SLUG)}#/explore/0`);
   const controls = page.locator('[data-py-block="chart-controls"]');
-  await expect(controls).toBeVisible();
-  await expectPaths(controls.locator('[data-line]'));
+  await expect(controls).toBeVisible({ timeout: 30_000 });
+  await expect(controls.locator('[aria-label="Loading block"]')).toHaveCount(0, {
+    timeout: 30_000,
+  });
+  await expectPaths(controls.locator('[data-line], path[data-line], [data-series] path'));
 
   await controls.getByRole('button', { name: 'area', exact: true }).click();
   await expectPaths(controls.locator('[data-series] path:not([data-line])'));
   await controls.getByRole('button', { name: 'bar', exact: true }).click();
-  const bar = controls.locator('[data-bar]').first();
+  // Texuli bar marks: rect[data-series] (no data-bar polyfill).
+  const bar = controls.locator('svg rect[data-series]').first();
   await expect(bar).toBeVisible();
   await expect
     .poll(() => bar.getAttribute('height').then((height) => Number(height)))

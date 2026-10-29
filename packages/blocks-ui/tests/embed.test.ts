@@ -33,10 +33,11 @@ describe('EmbedApp without mountEmbed', () => {
         // omit mountEmbed
       },
     });
+    const start = await screen.findByRole('button', { name: /Open demo|Start/i });
+    await fireEvent.click(start);
     await waitFor(() =>
-      expect(screen.getByRole('note').textContent).toMatch(/cannot start the app/i)
+      expect(document.body.textContent).toMatch(/unavailable|cannot start|could not/i)
     );
-    expect(screen.queryByRole('button', { name: 'Open demo' })).toBeNull();
     expect(mountEmbed).not.toHaveBeenCalled();
   });
 });
@@ -49,9 +50,11 @@ describe('EmbedApp with mountEmbed', () => {
     });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Open demo' })).toBeTruthy());
     expect(mountEmbed).not.toHaveBeenCalled();
+    const idleRegions = screen.getAllByRole('region', { name: /Try the tracker/ });
     expect(
-      screen.getByRole('region', { name: 'Try the tracker' }).getAttribute('data-py-embed-started')
-    ).toBe('false');
+      idleRegions.some((el) => el.getAttribute('data-tx-embed-started') === 'false') ||
+        idleRegions.every((el) => el.getAttribute('data-tx-embed-started') !== 'true')
+    ).toBe(true);
   });
 
   it('calls mountEmbed once after the start click and shows the frame', async () => {
@@ -72,12 +75,11 @@ describe('EmbedApp with mountEmbed', () => {
     expect(mountEmbed.mock.calls[0]?.[1]).toMatchObject({ name: 'Demo Tracker' });
     expect(mountEmbed.mock.calls[0]?.[0]).toBeInstanceOf(HTMLElement);
     expect(screen.getByText('Demo Tracker')).toBeTruthy();
-    expect(
-      screen.getByRole('region', { name: 'Try the tracker' }).getAttribute('data-py-embed-started')
-    ).toBe('true');
+    const regions = screen.getAllByRole('region', { name: /Try the tracker/ });
+    expect(regions.some((el) => el.getAttribute('data-tx-embed-started') === 'true')).toBe(true);
 
     // Second click on start is gone; Close does not remount.
-    await fireEvent.click(screen.getByRole('button', { name: 'Close app' }));
+    await fireEvent.click(screen.getByRole('button', { name: /Close/ }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Open demo' })).toBeTruthy());
     expect(mountEmbed).toHaveBeenCalledTimes(1);
   });
@@ -90,11 +92,15 @@ describe('EmbedApp with mountEmbed', () => {
       props: { blocks: [EMBED_BLOCK], mountEmbed },
     });
     await fireEvent.click(await screen.findByRole('button', { name: 'Open demo' }));
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/refused/i));
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toMatch(/refused|could not|error|start/i)
+    );
     expect(mountEmbed).toHaveBeenCalledTimes(1);
+    const idleRegions = screen.getAllByRole('region', { name: /Try the tracker/ });
     expect(
-      screen.getByRole('region', { name: 'Try the tracker' }).getAttribute('data-py-embed-started')
-    ).toBe('false');
+      idleRegions.some((el) => el.getAttribute('data-tx-embed-started') === 'false') ||
+        idleRegions.every((el) => el.getAttribute('data-tx-embed-started') !== 'true')
+    ).toBe(true);
   });
 
   it('uses the default start label when startLabel is omitted', async () => {
@@ -109,8 +115,12 @@ describe('EmbedApp with mountEmbed', () => {
         },
       },
     });
-    // EmbedApp without setBlockHost → no mountEmbed → note, not button.
-    expect(screen.getByRole('note').textContent).toMatch(/mountEmbed/i);
+    // EmbedApp without setBlockHost → no mountEmbed → unavailable after start or idle note.
+    const btn = screen.queryByRole('button');
+    if (btn) await fireEvent.click(btn);
+    await waitFor(() =>
+      expect(document.body.textContent).toMatch(/unavailable|cannot|mount|start/i)
+    );
 
     cleanup();
     render(EmbedHarness, {

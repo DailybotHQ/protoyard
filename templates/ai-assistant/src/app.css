@@ -2,3 +2,23 @@
 @import "@protoyard/renderer-svelte/app.css";
 
 @source "./";
+
+/* Only template-owned light surfaces override Texuli's dark-mode foreground. */
+html[data-py-mode="dark"] .ai-assistant-shell > aside .tx-button--ghost,
+html[data-py-mode="dark"] .ai-assistant-shell > main > header .tx-button--ghost,
+html[data-py-mode="dark"] .ai-assistant-shell [data-template-light-surface] .tx-button--ghost {
+  color: #242235;
+}
+
+/* Message actions sit on the chat transcript's intentionally light surface. */
+html[data-py-mode="dark"] .ai-assistant-shell [data-message-actions] .tx-button--ghost {
+  color: #242235;
+}
+
+html[data-py-mode="dark"] .ai-assistant-shell time {
+  color: #696579;
+}
+
+html[data-py-mode="dark"] .ai-assistant-shell .tx-chat-message-group__author {
+  color: #696579;
+}

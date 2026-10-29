@@ -1,5 +1,5 @@
 <script lang="ts">
-import { NotebookPen, Pin, Plus, Search } from '@lucide/svelte';
+import { NotebookPen, Pin, Search } from '@lucide/svelte';
 import {
   can,
   getRuntime,
@@ -9,6 +9,8 @@ import {
   useClock,
 } from '@protoyard/renderer-svelte';
 import { Badge, Button, EmptyState, Input, Skeleton } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import NoteEditor from '../components/NoteEditor.svelte';
 import type { BlankDatabase } from '../database/schema.ts';
 import { sortNotes } from '../domain/notes.ts';
@@ -45,13 +47,13 @@ const visible = $derived.by(() => {
     </p>
   </div>
   {#if canCreate}
-    <Button onclick={() => (editorOpen = true)}><Plus class="size-4" aria-hidden="true" />New note</Button>
+    <Button onclick={() => (editorOpen = true)}><Icon icon="plus" class="size-4" aria-hidden="true" />New note</Button>
   {/if}
 </div>
 
 {#if (notes.current?.length ?? 0) > 0}
   <div class="relative mt-6">
-    <Search class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+    <Icon icon="search" class="pointer-events-none absolute top-1 2 left-3 size-4 -translate-y-1 2 text-muted-foreground" aria-hidden="true" />
     <Input type="search" class="pl-9" placeholder="Search notes" aria-label="Search notes" bind:value={query} />
   </div>
 {/if}
@@ -75,7 +77,7 @@ const visible = $derived.by(() => {
     >
       {#snippet action()}
         {#if canCreate}
-          <Button onclick={() => (editorOpen = true)}><Plus class="size-4" aria-hidden="true" />Create a note</Button>
+          <Button onclick={() => (editorOpen = true)}><Icon icon="plus" class="size-4" aria-hidden="true" />Create a note</Button>
         {/if}
       {/snippet}
     </EmptyState>
@@ -91,7 +93,7 @@ const visible = $derived.by(() => {
                 <a href={`#/notes/${encodeURIComponent(note.id)}`} class="truncate after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none">
                   {note.title}
                 </a>
-                {#if note.pinned}<Badge variant="secondary"><Pin class="size-3" aria-hidden="true" />Pinned</Badge>{/if}
+                {#if note.pinned}<Badge variant="secondary"><LucideIcon icon={Pin} class="size-3" />Pinned</Badge>{/if}
               </h2>
               {#if note.body}
                 <p class="mt-1 line-clamp-2 text-sm text-muted-foreground">{note.body}</p>
@@ -109,7 +111,7 @@ const visible = $derived.by(() => {
                 aria-pressed={note.pinned}
                 onclick={() => runService(() => notesService().togglePin(note))}
               >
-                <Pin class={note.pinned ? 'size-4 fill-current text-primary' : 'size-4'} aria-hidden="true" />
+                <LucideIcon icon={Pin} class={note.pinned ? 'size-4 fill-current text-primary' : 'size-4'} />
               </Button>
             {/if}
           </div>

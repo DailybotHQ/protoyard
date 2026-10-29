@@ -1,7 +1,4 @@
-import { BUILTIN_THEMES, FONT_CATALOG, THEME_LIBRARY_META } from '@protoyard/themes';
-import { DECK_BACKGROUND_PRESET_IDS } from '../backgrounds/resolve.ts';
-import { DECK_ASPECTS } from '../canvas.ts';
-import { DECK_LAYOUTS } from '../layouts/catalog.ts';
+import { DECK_LAYOUTS } from '../layouts/index.ts';
 import { type Deck, type DeckSlide, type DeckStyle, safeParseDeck } from '../schema/index.ts';
 import { applyDeckPatch, type DeckPatchOperation } from './json-patch.ts';
 
@@ -45,22 +42,6 @@ export interface DeckStudioEdits {
   >;
 }
 
-/** Choices the panel offers, from the same registries the renderer resolves. */
-export function deckStudioOptions() {
-  return {
-    themes: [
-      ...BUILTIN_THEMES.map((theme) => ({ id: theme.id, label: theme.name })),
-      ...THEME_LIBRARY_META.map((meta) => ({ id: meta.id, label: meta.name })),
-    ],
-    fontPairs: FONT_CATALOG.map((pair) => ({ id: pair.id, label: pair.label })),
-    aspects: [...DECK_ASPECTS],
-    motions: ['full', 'subtle', 'none'] as const,
-    backgrounds: [...DECK_BACKGROUND_PRESET_IDS],
-    progress: ['none', 'top', 'bottom'] as const,
-    transitions: ['none', 'fade', 'slide', 'zoom', 'morph'] as const,
-  };
-}
-
 /**
  * Catalog layouts this slide's props already satisfy, so switching layout
  * never drops content. A free slide stays free. Checked with the deck schema
@@ -68,9 +49,13 @@ export function deckStudioOptions() {
  */
 export function compatibleLayouts(slide: DeckSlide): string[] {
   if (!('props' in slide)) return ['free'];
+  // A custom slide's props are a component id and its data, not catalog content.
+  if (slide.layout === 'custom') return ['custom'];
+  // Probe the slide alone and visible: a one-slide deck whose only slide is hidden is invalid.
+  const { hidden: _hidden, ...probe } = slide;
   return DECK_LAYOUTS.filter((layout) => layout.id !== 'free')
     .map((layout) => layout.id)
-    .filter((id) => safeParseDeck({ style: {}, slides: [{ ...slide, layout: id }] }).success);
+    .filter((id) => safeParseDeck({ style: {}, slides: [{ ...probe, layout: id }] }).success);
 }
 
 function setOrRemove(
@@ -116,7 +101,14 @@ export function deckEditsToPatch(source: Deck, edits: DeckStudioEdits): DeckPatc
     const slideOps: DeckPatchOperation[] = [];
     for (const key of DECK_STUDIO_SLIDE_KEYS) {
       const value = slideEdit[key];
-      if (key === 'layout' && (value === null || slide.layout === 'free' || value === 'free'))
+      if (
+        key === 'layout' &&
+        (value === null ||
+          slide.layout === 'free' ||
+          value === 'free' ||
+          slide.layout === 'custom' ||
+          value === 'custom')
+      )
         continue;
       setOrRemove(
         slideOps,

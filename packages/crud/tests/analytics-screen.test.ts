@@ -111,14 +111,16 @@ describe('AnalyticsScreen', () => {
 
     expect(await screen.findByRole('button', { name: 'Export CSV' })).toBeTruthy();
     expect(
-      await screen.findByRole('button', { name: 'View as table' }, { timeout: 10_000 })
+      await screen.findByRole('button', { name: 'Show data table' }, { timeout: 10_000 })
     ).toBeTruthy();
-    const measure = screen.getByLabelText('Measure');
-    await fireEvent.change(measure, { target: { value: '1' } });
+    const measure = screen.getByRole('combobox', { name: 'Measure' });
+    await fireEvent.click(measure);
+    await fireEvent.click(await screen.findByRole('option', { name: 'Gross amount' }));
     await waitFor(() => expect(location.hash).toContain('measure=1'));
 
     const breakdown = await screen.findByLabelText('Break down by');
-    await fireEvent.change(breakdown, { target: { value: 'status' } });
+    await fireEvent.click(breakdown);
+    await fireEvent.click(await screen.findByRole('option', { name: 'Status' }));
     await waitFor(() => expect(location.hash).toContain('dimension=status'));
     const reloaded = parseAnalyticsQuery(
       new URLSearchParams(location.hash.split('?')[1]),
@@ -126,14 +128,14 @@ describe('AnalyticsScreen', () => {
     );
     expect(reloaded.measure).toBe(1);
     expect(reloaded.dimension).toBe('status');
-    expect(screen.getByRole('heading', { name: 'Gross amount' })).toBeTruthy();
+    expect(screen.getAllByRole('heading', { name: 'Gross amount' }).length).toBeGreaterThan(0);
   });
 
   it('hides CSV export from a persona without export capability', async () => {
     const runtime = await harness.boot('viewer');
     show(runtime);
 
-    await screen.findByRole('button', { name: 'View as table' }, { timeout: 10_000 });
+    await screen.findByRole('button', { name: 'Show data table' }, { timeout: 10_000 });
     expect(screen.queryByRole('button', { name: 'Export CSV' })).toBeNull();
   });
 

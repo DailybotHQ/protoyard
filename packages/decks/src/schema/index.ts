@@ -1,16 +1,18 @@
-import {
-  BLOCK_REVEALS,
-  type Block,
-  BlockListSchema,
-  duplicateBlockIdIssues,
-  LinkHrefSchema,
-} from '@protoyard/blocks';
+import { type Block, BlockListSchema, LinkHrefSchema } from '@protoyard/blocks';
+import { DECK_TRANSITIONS } from '@texuli/deck/model';
 import { z } from 'zod';
 import { checkDeckMediaSrc } from '../backgrounds/media.ts';
+import { DeckBackgroundSchema } from '../backgrounds/schema.ts';
 import { DECK_ASPECTS } from '../canvas.ts';
-import { parseLayoutProps } from '../layouts/catalog.ts';
-import { stripStepMarkers } from '../layouts/props.ts';
-import { FRAGMENT_EFFECTS } from '../motion/effects.ts';
+import { checkProtoyardDeck } from '../texuli.ts';
+
+/*
+ * Protoyard's deck shape: the structure below (zod, for the blueprint
+ * envelope, the TypeScript types and `DeckJsonSchema`) plus Protoyard's own
+ * offline media and link policy. Everything else (each layout's props, step
+ * markers, ids, outline references, backgrounds and steps) is validated by
+ * `@texuli/deck`'s `parseDeck` on the migrated deck (`../texuli.ts`).
+ */
 
 /** Deck documents are intentionally capped before they reach a renderer. */
 export const DECK_LIMITS = Object.freeze({
@@ -30,23 +32,15 @@ export const DECK_LIMITS = Object.freeze({
 });
 
 const SlugSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
-const LayoutIdSchema = z.string().regex(/^(?!free$)[a-z0-9][a-z0-9-]{0,63}$/);
+/** Catalog layout ids: `free` and `custom` are slide kinds of their own. */
+const LayoutIdSchema = z.string().regex(/^(?!(?:free|custom)$)[a-z0-9][a-z0-9-]{0,63}$/);
 const LayoutPropKeySchema = z
   .string()
   .max(64)
   .regex(/^(?!__proto__$|constructor$|prototype$)[\s\S]*$/);
-const TransitionSchema = z.enum(['none', 'fade', 'slide', 'zoom', 'morph']);
+/** The deck model's transitions (`@texuli/deck`): none, fade, fade-up, slide, zoom, morph. */
+const TransitionSchema = z.enum(DECK_TRANSITIONS);
 const ProgressSchema = z.enum(['none', 'top', 'bottom']);
-const StepMarkerSchema = z
-  .strictObject({
-    step: z.number().int().min(0).max(1_000),
-    fragment: z.enum(FRAGMENT_EFFECTS).optional(),
-    reveal: z.enum(BLOCK_REVEALS).optional(),
-  })
-  .refine((marker) => !(marker.fragment !== undefined && marker.reveal !== undefined), {
-    message: 'A step marker may set fragment or reveal, not both.',
-  });
-
 export const DeckAspectSchema = z.enum(DECK_ASPECTS);
 export const DeckDensitySchema = z.enum(['compact', 'comfortable', 'spacious']);
 export const DeckRadiusSchema = z.enum(['none', 'small', 'medium', 'large', 'full']);
@@ -108,7 +102,12 @@ const LayoutPropsSchema = z
 const SlideBaseShape = {
   id: SlugSchema,
   title: z.string().max(DECK_LIMITS.slideTitle).optional(),
-  background: SlugSchema.optional(),
+  /**
+   * A preset id or a validated media spec. Any other slug still parses, as it
+   * did before media backgrounds: the slide renders `solid-color` and
+   * `checkDeckStatic` warns (`unknown-background`), so an older deck still opens.
+   */
+  background: z.union([DeckBackgroundSchema, SlugSchema]).optional(),
   transition: TransitionSchema.optional(),
   steps: z.array(z.string().max(DECK_LIMITS.stepLabel)).max(DECK_LIMITS.steps).optional(),
   notes: z.string().max(DECK_LIMITS.slideNotes).optional(),
@@ -129,7 +128,32 @@ export const FreeSlideSchema = z.strictObject({
 });
 export type FreeSlide = Omit<z.infer<typeof FreeSlideSchema>, 'blocks'> & { blocks: Block[] };
 
-export const DeckSlideSchema = z.union([CatalogSlideSchema, FreeSlideSchema]);
+/** The id a generated deck registers its own slide component under (`src/custom-slides.ts`). */
+export const CustomSlideComponentIdSchema = SlugSchema;
+
+/**
+ * A slide rendered by a component the generated prototype owns (level 2),
+ * registered under `props.component`. `data` is bounded JSON, capped like
+ * catalog props, and is all the component receives besides its own slide and
+ * step. The player (level 1) has no owned code and shows a labelled
+ * placeholder. Reveal steps come from the slide's `steps` labels.
+ */
+export const CustomSlideSchema = z.strictObject({
+  ...SlideBaseShape,
+  layout: z.literal('custom'),
+  props: z.strictObject({
+    component: CustomSlideComponentIdSchema,
+    data: LayoutPropsSchema.optional(),
+  }),
+});
+export type CustomSlide = z.infer<typeof CustomSlideSchema>;
+
+export const DeckSlideSchema = z.union([CatalogSlideSchema, FreeSlideSchema, CustomSlideSchema]);
+
+/** True for a `layout: "custom"` slide. */
+export function isCustomSlide(slide: { layout: string }): slide is CustomSlide {
+  return slide.layout === 'custom';
+}
 export type DeckSlide = z.infer<typeof DeckSlideSchema>;
 
 export const DeckSectionSchema = z.strictObject({
@@ -145,44 +169,6 @@ export const DeckOutlineSchema = z.strictObject({
 });
 export type DeckOutline = z.infer<typeof DeckOutlineSchema>;
 
-/** Validate step metadata before removing it from catalog content props. */
-function validateStepMarkers(
-  value: unknown,
-  path: (string | number)[],
-  ctx: z.RefinementCtx
-): void {
-  if (Array.isArray(value)) {
-    for (const [index, item] of value.entries()) {
-      validateStepMarkers(item, [...path, index], ctx);
-    }
-    return;
-  }
-  if (value === null || typeof value !== 'object') return;
-
-  const record = value as Record<string, unknown>;
-  if (Object.hasOwn(record, 'step')) {
-    const marker = Object.fromEntries(
-      ['step', 'fragment', 'reveal']
-        .filter((key) => Object.hasOwn(record, key))
-        .map((key) => [key, record[key]])
-    );
-    const parsedMarker = StepMarkerSchema.safeParse(marker);
-    if (!parsedMarker.success) {
-      for (const issue of parsedMarker.error.issues) {
-        ctx.addIssue({
-          code: 'custom',
-          path: [...path, ...issue.path],
-          message: issue.message,
-        });
-      }
-    }
-  }
-
-  for (const [key, item] of Object.entries(record)) {
-    validateStepMarkers(item, [...path, key], ctx);
-  }
-}
-
 /**
  * Media and links inside catalog props follow the deck policies: a `src` or
  * `poster` passes `checkDeckMediaSrc` (relative paths, bounded data: URIs,
@@ -190,15 +176,17 @@ function validateStepMarkers(
  * blocks link policy (http(s), mailto, #anchor or relative; never
  * `javascript:` or protocol-relative).
  */
+type UrlIssueSink = (path: (string | number)[], message: string) => void;
+
 function checkPropUrls(
   value: unknown,
   path: (string | number)[],
-  ctx: z.RefinementCtx,
+  report: UrlIssueSink,
   inVideo = false
 ): void {
   if (Array.isArray(value)) {
     for (const [index, item] of value.entries())
-      checkPropUrls(item, [...path, index], ctx, inVideo);
+      checkPropUrls(item, [...path, index], report, inVideo);
     return;
   }
   if (value === null || typeof value !== 'object') return;
@@ -206,19 +194,42 @@ function checkPropUrls(
     const here = [...path, key];
     if ((key === 'src' || key === 'poster') && typeof child === 'string') {
       const check = checkDeckMediaSrc(child, key === 'src' && inVideo ? 'video' : 'image');
-      if (!check.ok) ctx.addIssue({ code: 'custom', path: here, message: check.reason });
+      if (!check.ok) report(here, check.reason);
     } else if (key === 'href' && typeof child === 'string') {
       if (!LinkHrefSchema.safeParse(child).success) {
-        ctx.addIssue({
-          code: 'custom',
-          path: here,
-          message: 'Use an http(s), mailto, #anchor or relative link',
-        });
+        report(here, 'Use an http(s), mailto, #anchor or relative link');
       }
     } else {
-      checkPropUrls(child, here, ctx, inVideo || key === 'video');
+      checkPropUrls(child, here, report, inVideo || key === 'video');
     }
   }
+}
+
+/**
+ * A `fragment` or `reveal` without a `step` in catalog props is refused: it
+ * would reveal nothing, and the strict layout props do not take it as
+ * content. (`@texuli/deck` drops a lone effect key silently, so Protoyard
+ * keeps this check.)
+ */
+function checkSteplessEffects(value: unknown, path: (string | number)[], report: UrlIssueSink) {
+  if (Array.isArray(value)) {
+    for (const [index, item] of value.entries()) {
+      checkSteplessEffects(item, [...path, index], report);
+    }
+    return;
+  }
+  if (value === null || typeof value !== 'object') return;
+  const record = value as Record<string, unknown>;
+  if (!Object.hasOwn(record, 'step')) {
+    for (const key of ['fragment', 'reveal']) {
+      if (Object.hasOwn(record, key)) {
+        report(path, `\`${key}\` needs a \`step\`: add one, or remove \`${key}\`.`);
+        break;
+      }
+    }
+  }
+  for (const [key, child] of Object.entries(record))
+    checkSteplessEffects(child, [...path, key], report);
 }
 
 export const DeckSchema = z
@@ -228,87 +239,45 @@ export const DeckSchema = z
     outline: DeckOutlineSchema.optional(),
   })
   .superRefine((deck, ctx) => {
-    // Block ids key interactive state and embedded-app storage: unique across slides.
-    for (const issue of duplicateBlockIdIssues(
-      deck.slides.flatMap((slide, index) =>
-        'blocks' in slide
-          ? [{ path: ['slides', index, 'blocks'], blocks: slide.blocks as Block[] }]
-          : []
-      ),
-      { crossListOnly: true }
-    )) {
-      ctx.addIssue({ code: 'custom', ...issue });
-    }
-    const slidePaths = new Map<string, number>();
+    // Protoyard's offline media and link policy (Texuli checks URL syntax only).
+    const policy = new Set<string>();
+    const report: UrlIssueSink = (path, message) => {
+      policy.add(JSON.stringify(path));
+      ctx.addIssue({ code: 'custom', path, message });
+    };
     deck.slides.forEach((slide, index) => {
-      if ('props' in slide) {
-        validateStepMarkers(slide.props, ['slides', index, 'props'], ctx);
-        const props = stripStepMarkers(slide.props);
-        checkPropUrls(props, ['slides', index, 'props'], ctx);
-        const parsedProps = parseLayoutProps(slide.layout, props);
-        if (!parsedProps.success) {
-          for (const issue of parsedProps.issues) {
-            ctx.addIssue({
-              code: 'custom',
-              path:
-                issue.path[0] === 'layout'
-                  ? ['slides', index, 'layout']
-                  : ['slides', index, 'props', ...issue.path],
-              message: issue.message,
-            });
-          }
-        }
-      }
-
-      const first = slidePaths.get(slide.id);
-      if (first !== undefined) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['slides', index, 'id'],
-          message: `Duplicate slide id "${slide.id}" (first used at slides[${first}].id).`,
-        });
-      } else {
-        slidePaths.set(slide.id, index);
+      if (isCustomSlide(slide)) {
+        checkPropUrls(slide.props.data ?? {}, ['slides', index, 'props', 'data'], report);
+      } else if ('props' in slide) {
+        checkPropUrls(slide.props, ['slides', index, 'props'], report);
+        checkSteplessEffects(slide.props, ['slides', index, 'props'], report);
       }
     });
-
-    if (!deck.outline) return;
-    const sectionIds = new Set<string>();
-    deck.outline.sections.forEach((section, sectionIndex) => {
-      if (sectionIds.has(section.id)) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['outline', 'sections', sectionIndex, 'id'],
-          message: `Duplicate section id "${section.id}".`,
-        });
-      }
-      sectionIds.add(section.id);
-
-      const seenSlideIds = new Set<string>();
-      section.slideIds.forEach((slideId, slideIndex) => {
-        if (seenSlideIds.has(slideId)) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['outline', 'sections', sectionIndex, 'slideIds', slideIndex],
-            message: `Duplicate slide id "${slideId}" in section "${section.id}".`,
-          });
-        }
-        seenSlideIds.add(slideId);
-        if (!slidePaths.has(slideId)) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['outline', 'sections', sectionIndex, 'slideIds', slideIndex],
-            message: `Unknown slide id "${slideId}" in section "${section.id}".`,
-          });
-        }
+    // The deck model: layouts and their props, step markers, ids and outline references.
+    // A URL the policy already refused is reported once, with the policy's reason.
+    for (const issue of checkProtoyardDeck(deck).errors) {
+      if (policy.has(JSON.stringify(issue.path))) continue;
+      // Links follow Protoyard's policy (checked above for every `href` in props): it also
+      // allows http(s) and the deck's own `#/<slide-id>/<step>` routes, which the model refuses.
+      if (issue.path[issue.path.length - 1] === 'href') continue;
+      // The model's diagnostic code rides along (`safeParseDeck` reports it as the issue code).
+      ctx.addIssue({
+        code: 'custom',
+        path: [...issue.path],
+        message: issue.message,
+        params: { deckCode: issue.code },
       });
-    });
+    }
   });
 
 export type Deck = z.infer<typeof DeckSchema>;
 
-/** A JSON Schema document for agent prompts and editor integrations. */
-export const DeckJsonSchema = z.toJSONSchema(DeckSchema, {
+/**
+ * A JSON Schema document for agent prompts and editor integrations. Pure: a
+ * renderer that never reads it (DeckApp) leaves zod's JSON Schema converter out
+ * of its bundle.
+ */
+export const DeckJsonSchema = /* @__PURE__ */ z.toJSONSchema(DeckSchema, {
   io: 'input',
   target: 'draft-2020-12',
 });
@@ -384,7 +353,10 @@ export function safeParseDeck(input: unknown): DeckParseResult {
     success: false,
     deck: null,
     issues: result.error.issues.map((item) => ({
-      code: item.code,
+      code:
+        item.code === 'custom' && typeof item.params?.deckCode === 'string'
+          ? item.params.deckCode
+          : item.code,
       path: [...item.path] as (string | number)[],
       jsonPath: toJsonPath(item.path as (string | number)[]),
       message: item.message,

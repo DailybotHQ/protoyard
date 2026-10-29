@@ -1,6 +1,7 @@
 <script lang="ts" generics="T extends { id: string }">
-import { Check, ChevronRight } from '@lucide/svelte';
+import { Button } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
+import { Icon } from 'texuli/icons';
 
 /**
  * Large tappable options that pick-and-advance in one tap. They are
@@ -29,8 +30,9 @@ let {
   {#each items as item (item.id)}
     {@const reason = disabled?.(item) ?? null}
     <li>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         class={[
           'flex min-h-16 w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
           reason ? 'cursor-not-allowed opacity-60' : 'hover:bg-muted',
@@ -47,11 +49,11 @@ let {
           {#if reason}<span class="mt-0.5 block text-xs text-muted-foreground">{reason}</span>{/if}
         </span>
         {#if selected === item.id}
-          <Check class="size-5 shrink-0 text-primary" aria-hidden="true" />
+          <Icon icon="check" class="size-5 shrink-0 text-primary" aria-hidden="true" />
         {:else if !reason}
-          <ChevronRight class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <Icon icon="chevron-right" class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
         {/if}
-      </button>
+      </Button>
     </li>
   {/each}
 </ul>

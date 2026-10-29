@@ -2,6 +2,8 @@
 import { PackageSearch, Search, SlidersHorizontal, Star, Truck } from '@lucide/svelte';
 import { Link, liveQuery } from '@protoyard/renderer-svelte';
 import { Button, Checkbox, EmptyState, ErrorState, Input, Select, Skeleton } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import AddToCart from '../components/AddToCart.svelte';
 import Price from '../components/Price.svelte';
 import ProductArt from '../components/ProductArt.svelte';
@@ -77,8 +79,9 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
     {#if priceError}<p id="price-error" class="text-xs text-destructive" role="alert">{priceError}</p>{/if}
     <div class="flex flex-wrap gap-1.5">
       {#each [['', '25'], ['25', '50'], ['50', '100'], ['100', '']] as [lo, hi] (`${lo}-${hi}`)}
-        <button
+        <Button
           type="button"
+          variant="ghost"
           class="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
           onclick={() => {
             minPrice = lo ?? '';
@@ -86,7 +89,7 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
           }}
         >
           {lo ? (hi ? `$${lo}–$${hi}` : `$${lo}+`) : `Under $${hi}`}
-        </button>
+        </Button>
       {/each}
     </div>
   </fieldset>
@@ -104,14 +107,15 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
     Bags, desk companions and everyday gear from independent makers.
   </p>
   <p class="mt-4 inline-flex items-center gap-2 text-sm font-medium">
-    <Truck class="size-4 text-primary" aria-hidden="true" />Free standard shipping over {money(FREE_SHIPPING_THRESHOLD_CENTS)}
+    <LucideIcon icon={Truck} class="size-4 text-primary" />Free standard shipping over {money(FREE_SHIPPING_THRESHOLD_CENTS)}
   </p>
 </section>
 
 <div class="mb-5 flex flex-wrap gap-2" role="group" aria-label="Categories">
   {#each [{ id: '', name: 'All' } as Pick<Category, 'id' | 'name'>, ...(categories.current ?? [])] as category (category.id)}
-    <button
+    <Button
       type="button"
+      variant="ghost"
       aria-pressed={categoryId === category.id}
       onclick={() => (categoryId = category.id)}
       class={[
@@ -120,7 +124,7 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
       ]}
     >
       {category.name}
-    </button>
+    </Button>
   {/each}
 </div>
 
@@ -132,7 +136,7 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
   <div class="min-w-0">
     <div class="mb-4 flex flex-wrap items-center gap-2" role="search">
       <div class="relative min-w-0 flex-1 basis-56">
-        <Search class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+        <Icon icon="search" class="pointer-events-none absolute top-1 2 left-3 size-4 -translate-y-1 2 text-muted-foreground" aria-hidden="true" />
         <Input type="search" class="pl-9" placeholder="Search products…" aria-label="Search products" bind:value={query} />
       </div>
       <Select
@@ -142,7 +146,7 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
         bind:value={sort}
       />
       <Button variant="outline" class="lg:hidden" aria-expanded={filtersOpen} aria-controls="mobile-filters" onclick={() => (filtersOpen = !filtersOpen)}>
-        <SlidersHorizontal class="size-4" aria-hidden="true" />Filters{activeFilterCount ? ` (${activeFilterCount})` : ''}
+        <LucideIcon icon={SlidersHorizontal} class="size-4" />Filters{activeFilterCount ? ` (${activeFilterCount})` : ''}
       </Button>
     </div>
     {#if filtersOpen}
@@ -174,7 +178,7 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
                 <Link href={`/products/${product.id}`} class="after:absolute after:inset-0 hover:text-primary focus-visible:outline-none">{product.name}</Link>
               </h2>
               <p class="flex items-center gap-1 text-xs text-muted-foreground">
-                <Star class="size-3 fill-current text-warning" aria-hidden="true" />{product.rating.toFixed(1)}
+                <LucideIcon icon={Star} class="size-3 fill-current text-warning" />{product.rating.toFixed(1)}
                 <span>({product.reviewCount})</span>
               </p>
               <div class="mt-auto flex flex-wrap items-center gap-2 pt-1">

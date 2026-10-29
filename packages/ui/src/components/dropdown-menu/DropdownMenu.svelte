@@ -1,7 +1,7 @@
 <script lang="ts">
-import { DropdownMenu as MenuPrimitive } from 'bits-ui';
-import { cn } from '../../lib/cn.ts';
-import { floatingItem, floatingSurface } from '../../lib/overlay.ts';
+import * as MenuPrimitive from '@texuli/primitives/menu';
+import { Icon } from 'texuli/icons';
+import { MenuContent, MenuGroup, MenuItem, MenuLabel, MenuSeparator } from 'texuli/menus';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import type { DropdownMenuAction, DropdownMenuEntry, DropdownMenuSeparator } from './types.ts';
 
@@ -29,7 +29,7 @@ interface Section {
   entries: (DropdownMenuAction | DropdownMenuSeparator)[];
 }
 
-// Bits requires headings inside a Group, so each `label` entry starts a labelled group.
+// A heading names its group (aria-labelledby), so each `label` entry starts a labelled group.
 const sections = $derived.by(() => {
   const result: Section[] = [{ entries: [] }];
   for (const entry of items) {
@@ -40,29 +40,29 @@ const sections = $derived.by(() => {
 });
 </script>
 
+<!--
+  A thin adapter: Texuli's styled menu parts (`texuli/menus`), driven by an
+  `items` list. The trigger stays the caller's own element, so the root is the
+  primitive. A destructive entry takes MenuItem's own danger tone.
+-->
 {#snippet entryList(entries: Section['entries'])}
   {#each entries as entry, index (index)}
     {#if entry.type === 'separator'}
-      <MenuPrimitive.Separator class="-mx-1 my-1 h-px bg-border" />
+      <MenuSeparator />
     {:else}
-      <MenuPrimitive.Item
+      {#snippet entryIcon()}
+        {#if entry.icon}<Icon icon={entry.icon} size="sm" aria-hidden="true" />{/if}
+      {/snippet}
+      <MenuItem
         disabled={entry.disabled}
         textValue={entry.label}
         onSelect={() => entry.onSelect?.()}
-        class={cn(
-          floatingItem,
-          entry.destructive &&
-            'text-destructive data-highlighted:bg-destructive data-highlighted:text-destructive-foreground'
-        )}
+        shortcut={entry.shortcut}
+        icon={entry.icon ? entryIcon : undefined}
+        destructive={entry.destructive}
       >
-        {#if entry.icon}
-          <entry.icon aria-hidden="true" />
-        {/if}
-        <span class="flex-1 truncate">{entry.label}</span>
-        {#if entry.shortcut}
-          <span class="ml-4 text-xs tracking-wide text-muted-foreground">{entry.shortcut}</span>
-        {/if}
-      </MenuPrimitive.Item>
+        {entry.label}
+      </MenuItem>
     {/if}
   {/each}
 {/snippet}
@@ -71,27 +71,18 @@ const sections = $derived.by(() => {
   <MenuPrimitive.Trigger>
     {#snippet child({ props })}{@render trigger({ props })}{/snippet}
   </MenuPrimitive.Trigger>
-  <MenuPrimitive.Portal>
-    <MenuPrimitive.Content
-      {side}
-      {align}
-      sideOffset={4}
-      class={cn(floatingSurface, 'min-w-44 p-1', className)}
-    >
-      {#each sections as section, index (index)}
-        {#if section.heading !== undefined}
-          <MenuPrimitive.Group>
-            <MenuPrimitive.GroupHeading
-              class="px-2 py-1.5 text-xs font-medium text-muted-foreground"
-            >
-              {section.heading}
-            </MenuPrimitive.GroupHeading>
-            {@render entryList(section.entries)}
-          </MenuPrimitive.Group>
-        {:else}
+  <!-- The content shows in the top layer; no portal is needed. -->
+  <MenuContent {side} {align} sideOffset={4} class={className}>
+    {#each sections as section, index (index)}
+      {#if section.heading !== undefined}
+        <MenuGroup>
+          <MenuLabel>{section.heading}</MenuLabel>
           {@render entryList(section.entries)}
-        {/if}
-      {/each}
-    </MenuPrimitive.Content>
-  </MenuPrimitive.Portal>
+        </MenuGroup>
+      {:else}
+        {@render entryList(section.entries)}
+      {/if}
+    {/each}
+  </MenuContent>
 </MenuPrimitive.Root>
+

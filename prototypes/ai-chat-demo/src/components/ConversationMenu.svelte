@@ -10,6 +10,7 @@ import {
   FormField,
   Input,
 } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { Conversation } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { useChat } from '../lib/context.ts';
@@ -90,7 +91,7 @@ async function remove() {
   <DropdownMenu {items}>
     {#snippet trigger({ props })}
       <Button {...props} variant="ghost" size="icon" aria-label="Conversation options">
-        <Ellipsis aria-hidden="true" />
+        <LucideIcon icon={Ellipsis} />
       </Button>
     {/snippet}
   </DropdownMenu>

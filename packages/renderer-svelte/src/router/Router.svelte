@@ -64,8 +64,15 @@ function focusOutlet(node: HTMLElement): void {
   const path = routeKey;
   if (focusedPath === path) return;
   focusedPath = path;
-  queueMicrotask(() => {
-    if (document.activeElement === node) return;
+  // A shell link that navigated keeps focus across the remount: the outlet
+  // still takes it. Only focus that moves while this deferred focus waits (an
+  // overlay handing focus back to its opener, a user tabbing) is left alone.
+  const before = document.activeElement;
+  requestAnimationFrame(() => {
+    if (focusedPath !== path || !node.isConnected) return;
+    const active = document.activeElement;
+    if (active === node) return;
+    if (active !== before && active !== null && active !== document.body) return;
     node.focus({ preventScroll: true });
   });
 }

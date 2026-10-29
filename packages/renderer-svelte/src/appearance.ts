@@ -5,6 +5,7 @@ import {
   type Theme,
 } from '@protoyard/core';
 import { applyAppearance, cacheAppearance, getTheme } from '@protoyard/themes';
+import { enableTexuliAppearance } from '@protoyard/themes/texuli';
 
 type StylePresets = typeof import('./style-presets.ts');
 type StyleSelection = Parameters<StylePresets['styledTheme']>[1];
@@ -84,6 +85,9 @@ export function bindAppearance(
     else target.dataset.pyViewport = viewport;
     cacheAppearance(namespace, applied);
   };
+  // @protoyard/ui renders Texuli components: every appearance also writes their
+  // canonical --tx-* theme variables and their renderer-owned metadata.
+  enableTexuliAppearance([target]);
   apply();
   const unsubscribe = runtime.theme.subscribe(() => {
     apply();

@@ -254,13 +254,13 @@ export interface TransformedPage {
 /**
  * The page contract's color tokens: light values on `:root`, dark values under
  * `prefers-color-scheme` unless the page says light, and again for an explicit
- * dark theme. The app's own `--py-*` tokens win once the theme engine runs.
+ * dark theme. The app's own `--tx-*` tokens win once the theme engine runs.
  */
 export const ARTIFACT_PAGE_STYLE = [
-  ':root{--py-artifact-background:#fafafa;--py-artifact-foreground:#09090b;color-scheme:light dark}',
-  '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--py-artifact-background:#09090b;--py-artifact-foreground:#fafafa}}',
-  ':root[data-theme="dark"]{--py-artifact-background:#09090b;--py-artifact-foreground:#fafafa}',
-  'html,body{margin:0;background:var(--py-background,var(--py-artifact-background));color:var(--py-foreground,var(--py-artifact-foreground))}',
+  ':root{--tx-artifact-background:#fafafa;--tx-artifact-foreground:#09090b;color-scheme:light dark}',
+  '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--tx-artifact-background:#09090b;--tx-artifact-foreground:#fafafa}}',
+  ':root[data-theme="dark"]{--tx-artifact-background:#09090b;--tx-artifact-foreground:#fafafa}',
+  'html,body{margin:0;background:var(--tx-background,var(--tx-artifact-background));color:var(--tx-foreground,var(--tx-artifact-foreground))}',
 ].join('\n');
 
 const SERVICE_WORKER = /\bserviceWorker\s*\.\s*register\s*\(/;
@@ -325,6 +325,19 @@ function previousNonSpace(source: string, index: number): string {
   let cursor = index - 1;
   while (cursor >= 0 && /\s/.test(source[cursor] as string)) cursor -= 1;
   return source[cursor] ?? '';
+}
+
+/**
+ * The module sources to scan: a script file is one module; in an HTML page
+ * every `<script>` is its own module, so "top level" ends at its tag. Scanning
+ * the page as one text let brace matching run across hundreds of inlined
+ * chunks and flag an `await import()` inside a function.
+ */
+function moduleSources(path: string, text: string): string[] {
+  if (!/\.html$/i.test(path)) return [text];
+  return [...text.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)].map(
+    (match) => match[1] ?? ''
+  );
 }
 
 function topLevelAwaitDynamicImport(source: string): boolean {
@@ -599,7 +612,7 @@ export function checkTextAsset(path: string, text: string): PackIssue[] {
     }
   }
   if (/\.(?:m?js|html)$/i.test(path)) {
-    if (topLevelAwaitDynamicImport(text)) {
+    if (moduleSources(path, text).some(topLevelAwaitDynamicImport)) {
       issues.push({
         path,
         reason:

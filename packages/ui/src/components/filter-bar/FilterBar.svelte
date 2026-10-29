@@ -1,8 +1,10 @@
 <script lang="ts">
-import { Filter, X } from '@lucide/svelte';
-import { cn } from '../../lib/cn.ts';
-import { buttonVariants } from '../button/button-variants.ts';
-import Checkbox from '../checkbox/Checkbox.svelte';
+import Filter from '@lucide/svelte/icons/filter';
+import { Tag } from 'texuli/badge';
+import { Button } from 'texuli/button';
+import { Checkbox } from 'texuli/choice';
+import { cx } from 'texuli/cx';
+import { LucideIcon } from 'texuli/icons/lucide';
 import Input from '../input/Input.svelte';
 import Popover from '../popover/Popover.svelte';
 import Select from '../select/Select.svelte';
@@ -138,15 +140,19 @@ function controlActive(field: FilterField): boolean {
 }
 </script>
 
+<!--
+  Protoyard's filter model (apply-filters.ts) on Texuli controls: Select,
+  Popover, Checkbox, Input, Button and removable Tag chips.
+-->
 <div
-  class={cn('flex flex-col gap-2', className)}
+  class={cx('flex flex-col gap-2', className)}
   role="search"
   aria-label={label}
   data-filter-bar
 >
   <div class="flex flex-wrap items-center gap-2">
     <span class="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-      <Filter class="size-3.5" aria-hidden="true" />
+      <LucideIcon icon={Filter} size="xs" />
       {label}
     </span>
 
@@ -162,7 +168,7 @@ function controlActive(field: FilterField): boolean {
           onValueChange={(v) => onBooleanChange(field.id, v)}
           placeholder={field.label}
           aria-label={field.label}
-          class={cn('w-auto min-w-36', controlActive(field) && 'border-primary')}
+          class={cx('w-auto min-w-36', controlActive(field) && 'ui-filter--active')}
         />
       {:else if (field.kind === 'enum' || field.kind === 'relation') && !field.multiple}
         <Select
@@ -174,7 +180,7 @@ function controlActive(field: FilterField): boolean {
           onValueChange={(v) => onSingleListChange(field.id, v)}
           placeholder={field.label}
           aria-label={field.label}
-          class={cn('w-auto min-w-36', controlActive(field) && 'border-primary')}
+          class={cx('w-auto min-w-36', controlActive(field) && 'ui-filter--active')}
         />
       {:else if field.kind === 'enum' || field.kind === 'relation'}
         <Popover
@@ -183,18 +189,14 @@ function controlActive(field: FilterField): boolean {
           class="w-64 p-2"
         >
           {#snippet trigger({ props })}
-            <button
-              type="button"
-              class={cn(
-                buttonVariants({ variant: 'outline', size: 'md' }),
-                'max-w-56 justify-between gap-2 font-normal',
-                controlActive(field) && 'border-primary text-foreground'
-              )}
+            <Button
+              variant="outline"
+              class={cx('max-w-56 justify-between gap-2 font-normal', controlActive(field) && 'ui-filter--active')}
               aria-label={field.label}
               {...props}
             >
               <span class="truncate">{multiSummary(field)}</span>
-            </button>
+            </Button>
           {/snippet}
           <div class="grid gap-1" role="group" aria-label={field.label}>
             {#each field.options as option (option.value)}
@@ -209,13 +211,9 @@ function controlActive(field: FilterField): boolean {
       {:else if field.kind === 'date-range'}
         <Popover side="bottom" align="start" class="w-72 space-y-3 p-3">
           {#snippet trigger({ props })}
-            <button
-              type="button"
-              class={cn(
-                buttonVariants({ variant: 'outline', size: 'md' }),
-                'max-w-56 justify-between gap-2 font-normal',
-                controlActive(field) && 'border-primary text-foreground'
-              )}
+            <Button
+              variant="outline"
+              class={cx('max-w-56 justify-between gap-2 font-normal', controlActive(field) && 'ui-filter--active')}
               aria-label={field.label}
               {...props}
             >
@@ -230,7 +228,7 @@ function controlActive(field: FilterField): boolean {
                   {field.label}
                 {/if}
               </span>
-            </button>
+            </Button>
           {/snippet}
           <div class="grid gap-2">
             <label class="grid gap-1 text-xs font-medium text-foreground">
@@ -259,13 +257,7 @@ function controlActive(field: FilterField): boolean {
     {/each}
 
     {#if active}
-      <button
-        type="button"
-        class={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'text-muted-foreground')}
-        onclick={resetAll}
-      >
-        {resetLabel}
-      </button>
+      <Button variant="ghost" size="sm" onclick={resetAll}>{resetLabel}</Button>
     {/if}
   </div>
 
@@ -273,21 +265,21 @@ function controlActive(field: FilterField): boolean {
     <ul class="flex flex-wrap gap-1.5" aria-label="Active filters">
       {#each chips as chip (chip.key)}
         <li>
-          <button
-            type="button"
-            class={cn(
-              'inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1',
-              'text-xs font-medium text-foreground transition-colors hover:bg-muted/80',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-            )}
-            aria-label={`Remove filter ${chip.label}`}
-            onclick={() => removeChip(chip.fieldId, chip.value)}
-          >
-            <span class="truncate">{chip.label}</span>
-            <X class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          </button>
+          <Tag
+            label={chip.label}
+            removeLabel={(label) => `Remove filter: ${label}`}
+            onRemove={() => removeChip(chip.fieldId, chip.value)}
+          />
         </li>
       {/each}
     </ul>
   {/if}
 </div>
+
+<style>
+  /* An active filter control: the primary border, on Texuli's tokens. */
+  :global(.ui-filter--active) {
+    border-color: var(--tx-primary, Highlight);
+    color: var(--tx-foreground, CanvasText);
+  }
+</style>

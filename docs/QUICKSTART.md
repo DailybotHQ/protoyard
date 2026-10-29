@@ -5,6 +5,9 @@ about a minute of commands; the rest explains what you just did.
 
 ## The 60-second path
 
+Protoyard installs its component library, [Texuli](TEXULI.md), from npm with the rest of
+its dependencies ([how it is linked](TEXULI.md#how-it-is-linked)).
+
 ```bash
 git clone https://github.com/DailybotHQ/protoyard.git
 cd protoyard

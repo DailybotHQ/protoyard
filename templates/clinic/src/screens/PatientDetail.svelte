@@ -9,6 +9,7 @@ import {
   useClock,
 } from '@protoyard/renderer-svelte';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import AppointmentDialog from '../components/AppointmentDialog.svelte';
 import PatientDialog from '../components/PatientDialog.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -100,7 +101,7 @@ const sensitive = (field: SensitivePatientField) => (revealed ? revealed[field] 
 </script>
 
 <Link href="/patients" class="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-  <ArrowLeft class="size-4" aria-hidden="true" />Patients
+  <LucideIcon icon={ArrowLeft} class="size-4" />Patients
 </Link>
 
 {#if patient.current === undefined && patient.loading}
@@ -119,16 +120,16 @@ const sensitive = (field: SensitivePatientField) => (revealed ? revealed[field] 
     <div class="flex flex-wrap items-center gap-2">
       {#if can(CAPABILITIES.patientsReveal)}
         {#if revealed}
-          <Button variant="outline" onclick={() => (revealed = null)}><EyeOff class="size-4" aria-hidden="true" />Hide sensitive details</Button>
+          <Button variant="outline" onclick={() => (revealed = null)}><LucideIcon icon={EyeOff} class="size-4" />Hide sensitive details</Button>
         {:else}
-          <Button variant="outline" onclick={reveal}><Eye class="size-4" aria-hidden="true" />Reveal sensitive details</Button>
+          <Button variant="outline" onclick={reveal}><LucideIcon icon={Eye} class="size-4" />Reveal sensitive details</Button>
         {/if}
       {/if}
       {#if can(CAPABILITIES.patientsManage)}
-        <Button variant="outline" onclick={edit}><Pencil class="size-4" aria-hidden="true" />Edit</Button>
+        <Button variant="outline" onclick={edit}><LucideIcon icon={Pencil} class="size-4" />Edit</Button>
       {/if}
       {#if can(CAPABILITIES.appointmentsManage)}
-        <Button onclick={book}><CalendarPlus class="size-4" aria-hidden="true" />Book appointment</Button>
+        <Button onclick={book}><LucideIcon icon={CalendarPlus} class="size-4" />Book appointment</Button>
       {/if}
     </div>
   </header>

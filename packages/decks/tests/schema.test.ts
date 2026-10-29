@@ -52,7 +52,8 @@ describe('DeckSchema', () => {
     expect(duplicate).toMatchObject({ success: false });
     if (duplicate.success) throw new Error('expected duplicate slide id rejection');
     expect(duplicate.issues).toContainEqual(
-      expect.objectContaining({ code: 'custom', jsonPath: '$.slides[1].id' })
+      // The deck model's diagnostic code rides along (`duplicate-id`).
+      expect.objectContaining({ code: 'duplicate-id', jsonPath: '$.slides[1].id' })
     );
 
     const malformed = safeParseDeck({

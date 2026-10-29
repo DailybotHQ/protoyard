@@ -64,7 +64,7 @@ let {
   timeZone?: string;
   locale?: string;
   label?: string;
-  onRetry?: () => void | Promise<void>;
+  onRetry?: () => unknown;
 } = $props();
 
 const defaultEditorLoader: EditorLoader = () =>
@@ -209,7 +209,7 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
             <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() => (editing = comment.id)}>Edit</Button>
           {/if}
           {#if own && onDelete}
-            <!-- The confirmation's Bits UI code loads on the first Delete (the button shows it pending). -->
+            <!-- The confirmation's dialog code loads on the first Delete (the button shows it pending). -->
             <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() =>
               lazyDialog.load().then(() => {
                 deleting = comment;
@@ -257,7 +257,7 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
 {/snippet}
 
 <section aria-label={label} class="grid gap-4">
-  <QueryState {query} label={`Loading ${label.toLowerCase()}`} isEmpty={() => false} {onRetry}>
+  <QueryState {query} label={`Loading ${label.toLowerCase()}`} isEmpty={() => false} onRetry={onRetry ? () => { void onRetry(); } : undefined}>
     {#snippet children()}
       {#if threads.length === 0 && sending.length === 0}
         <p class="text-sm text-muted-foreground">No comments yet. Start the conversation.</p>

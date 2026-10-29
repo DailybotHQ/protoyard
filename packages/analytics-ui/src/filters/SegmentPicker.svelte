@@ -1,6 +1,9 @@
 <script lang="ts">
 import type { FilterGroup, Segment } from '@protoyard/analytics';
 import { Button } from '@protoyard/ui';
+import { untrack } from 'svelte';
+import { Input } from 'texuli/input';
+import { Toggle } from 'texuli/toggle';
 import { describeFilter, type FilterProperty, saveErrorOf } from './model.ts';
 
 type Props = {
@@ -19,13 +22,14 @@ type Props = {
   onsave?: (input: { name: string; filter: FilterGroup }) => unknown;
 };
 
-let { segments, activeId = null, onapply, properties, filter, onsave }: Props = $props();
+let { segments, activeId, onapply, properties, filter, onsave }: Props = $props();
 
 const uid = $props.id();
 let name = $state('');
 let nameError = $state('');
 let status = $state('');
 let failure = $state('');
+let selectedId = $state<string | null>(untrack(() => activeId ?? null));
 
 async function save() {
   nameError = '';
@@ -61,15 +65,20 @@ async function save() {
 <section class="grid gap-3" aria-label="Segments">
   <div role="group" aria-label="Saved segments" class="flex flex-wrap gap-1">
     {#each [null, ...segments] as segment (segment?.id ?? '__everyone')}
-      {@const active = (segment?.id ?? null) === activeId}
-      <button
-        type="button"
-        aria-pressed={active}
+      {@const segmentId = segment?.id ?? null}
+      {@const active = activeId !== undefined ? segmentId === activeId : segmentId === selectedId}
+      <Toggle
+        bind:pressed={() => active, () => {}}
+        onPressedChange={(pressed) => {
+          if (!pressed) return;
+          if (activeId === undefined) selectedId = segmentId;
+          onapply(segment);
+        }}
         title={segment ? describeFilter(segment.filter, properties) : 'No filter'}
         class="rounded-full border px-3 py-1 text-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {active
           ? 'border-primary bg-primary text-primary-foreground'
           : 'border-border text-foreground hover:bg-muted'}"
-        onclick={() => onapply(segment)}>{segment?.name ?? 'Everyone'}</button
+        >{segment?.name ?? 'Everyone'}</Toggle
       >
     {/each}
   </div>
@@ -83,11 +92,11 @@ async function save() {
     >
       <label for="{uid}-name" class="text-xs font-medium text-foreground">Save current filter as a segment</label>
       <div class="flex flex-wrap gap-2">
-        <input
+        <Input
           id="{uid}-name"
           class="h-8 min-w-0 flex-1 rounded-md border border-input bg-surface px-2 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-invalid:border-destructive"
           placeholder="e.g. Pro users in Europe"
-          maxlength="60"
+          maxlength={60}
           bind:value={name}
           aria-invalid={nameError ? 'true' : undefined}
           aria-describedby={nameError ? `${uid}-name-error` : undefined}

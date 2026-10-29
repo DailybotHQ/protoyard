@@ -9,9 +9,23 @@ import {
   type Step,
   type Trigger,
 } from '@protoyard/flows/model';
+import { WorkflowEditor } from '@texuli/workflows/editor';
+import type { WorkflowGraph } from '@texuli/workflows/model';
+import { untrack } from 'svelte';
+import { Button } from 'texuli/button';
+import { Checkbox, RadioGroup } from 'texuli/choice';
+import { Input, Textarea } from 'texuli/input';
 import ConditionEditor from './ConditionEditor.svelte';
 import StepDataEditor from './StepDataEditor.svelte';
 import TriggerDataEditor from './TriggerDataEditor.svelte';
+import {
+  flowStepRegistry,
+  graphForFlow,
+  graphInSync,
+  graphValidation,
+  orderedStepIds,
+  reorderOperations,
+} from './workflow-graph.ts';
 
 let {
   flow,
@@ -27,11 +41,24 @@ let current = $state.raw(flow);
 // svelte-ignore state_referenced_locally
 let nameDraft = $state(flow.name);
 let diagnostics = $state<FlowDiagnostic[]>([]);
+// Keep the editor graph stable between flow updates so Texuli can retain its history.
+// svelte-ignore state_referenced_locally
+let graphFlow = $state.raw(flow);
+// svelte-ignore state_referenced_locally
+let workflowGraph = $state.raw<WorkflowGraph>(graphForFlow(flow));
 
 $effect(() => {
   current = flow;
   nameDraft = flow.name;
   diagnostics = [];
+  // Untracked: `apply` records the flow it produced, which must not re-run this sync.
+  if (flow !== untrack(() => graphFlow)) {
+    graphFlow = flow;
+    workflowGraph = graphForFlow(
+      flow,
+      untrack(() => workflowGraph)
+    );
+  }
 });
 
 function apply(operations: FlowOperation[]): void {
@@ -39,7 +66,27 @@ function apply(operations: FlowOperation[]): void {
   diagnostics = result.diagnostics;
   if (!result.ok) return;
   current = result.flow;
+  // The graph follows local edits too, so an uncontrolled host (one that does not pass the
+  // changed flow back) keeps a graph that matches its steps. A reorder made in the graph
+  // leaves it as it is (Texuli keeps its history); a host that echoes this flow back as
+  // the prop does not rebuild it again.
+  if (!graphInSync(workflowGraph, result.flow)) {
+    workflowGraph = graphForFlow(result.flow, workflowGraph);
+  }
+  graphFlow = result.flow;
   onChange?.(result.flow, operations);
+}
+
+function onWorkflowChange(graph: WorkflowGraph): void {
+  workflowGraph = graph;
+  const order = orderedStepIds(graph, current);
+  if (!order) return;
+  const operations = reorderOperations(current, order);
+  if (operations.length) apply(operations);
+}
+
+function validateWorkflow(graph: WorkflowGraph) {
+  return graphValidation(graph, current);
 }
 
 function nextId(prefix: string): string {
@@ -106,73 +153,100 @@ function replaceStep(previous: Step, next: Step): void {
     <p class="m-0 text-sm text-muted-foreground">Edit simulated triggers, steps and data-only conditions.</p>
   </header>
 
+  <section class="grid gap-2" aria-labelledby="flow-order-heading">
+    <div>
+      <h3 id="flow-order-heading" class="m-0 text-base font-semibold">Step order</h3>
+      <p class="m-0 text-sm text-muted-foreground">Drag steps or reconnect them to change the top-level order. Branch contents stay in each step's configuration.</p>
+    </div>
+    <WorkflowEditor
+      graph={workflowGraph}
+      registry={flowStepRegistry}
+      palette={false}
+      inspector={false}
+      outline={false}
+      minimap={false}
+      validate={validateWorkflow}
+      onchange={(graph) => onWorkflowChange(graph)}
+      class="min-h-64"
+    />
+  </section>
+
   <div class="grid gap-4 sm:grid-cols-2">
     <label class="grid gap-1 text-sm font-medium" for="flow-name">Name
-      <input
+      <Input
         id="flow-name"
         class="min-h-10 rounded-md border border-border bg-background px-3 text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         value={nameDraft}
-        maxlength="80"
+        maxlength={80}
         aria-invalid={diagnostics.some((item) => item.severity === 'error') ? 'true' : undefined}
-        oninput={(event) => {
-          nameDraft = event.currentTarget.value;
+        onValueChange={(value) => {
+          nameDraft = value;
           apply([{ op: 'update_flow', patch: { name: nameDraft } }]);
         }}
       />
     </label>
-    <label class="grid gap-1 text-sm font-medium" for="flow-status">Status
-      <select
-        id="flow-status"
-        class="min-h-10 rounded-md border border-border bg-background px-3 text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+    <fieldset class="grid gap-1 text-sm font-medium">
+      <legend>Status</legend>
+      <RadioGroup
+        name="flow-status"
+        aria-label="Workflow status"
         value={current.status}
-        onchange={(event) => apply([{ op: 'set_status', status: event.currentTarget.value as Flow['status'] }])}
-      >
-        <option value="draft">Draft</option>
-        <option value="active">Active</option>
-        <option value="paused">Paused</option>
-      </select>
-    </label>
+        orientation="horizontal"
+        items={[{ value: 'draft', label: 'Draft' }, { value: 'active', label: 'Active' }, { value: 'paused', label: 'Paused' }]}
+        onValueChange={(value) => apply([{ op: 'set_status', status: value as Flow['status'] }])}
+      />
+    </fieldset>
   </div>
 
   <section class="grid gap-3" aria-labelledby="flow-triggers-heading">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <h3 id="flow-triggers-heading" class="m-0 text-base font-semibold">Triggers</h3>
-      <button type="button" class="min-h-9 rounded-md border border-border px-3 text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" onclick={addManualTrigger}>Add manual trigger</button>
+      <Button variant="outline" size="sm" onclick={addManualTrigger}>Add manual trigger</Button>
     </div>
     {#each current.triggers as trigger (trigger.id)}
       <fieldset class="grid gap-3 rounded-lg border border-border p-3">
         <legend class="px-1 text-sm font-medium">{trigger.type} · {trigger.id}</legend>
         {#if trigger.type === 'manual'}
           <label class="grid gap-1 text-sm" for="trigger-{trigger.id}-label">Button label
-            <input id="trigger-{trigger.id}-label" class="min-h-10 rounded-md border border-border bg-background px-3" value={trigger.label} maxlength="80" oninput={(event) => updateTrigger(trigger, { label: event.currentTarget.value })} />
+            <Input id="trigger-{trigger.id}-label" value={trigger.label} maxlength={80} onValueChange={(label) => updateTrigger(trigger, { label })} />
           </label>
         {:else if trigger.type === 'event'}
           <label class="grid gap-1 text-sm" for="trigger-{trigger.id}-event">Event name
-            <input id="trigger-{trigger.id}-event" class="min-h-10 rounded-md border border-border bg-background px-3" value={trigger.event} oninput={(event) => updateTrigger(trigger, { event: event.currentTarget.value })} />
+            <Input id="trigger-{trigger.id}-event" value={trigger.event} onValueChange={(event) => updateTrigger(trigger, { event })} />
           </label>
-          <label class="grid gap-1 text-sm" for="trigger-{trigger.id}-source">Source
-            <select id="trigger-{trigger.id}-source" class="min-h-10 rounded-md border border-border bg-background px-3" value={trigger.source ?? ''} onchange={(event) => updateTrigger(trigger, { source: (event.currentTarget.value || undefined) as typeof trigger.source })}>
-              <option value="">Any source</option><option value="records">Records</option><option value="people">People</option><option value="app">App</option><option value="integration">Integration</option>
-            </select>
-          </label>
+          <div class="grid gap-1 text-sm">
+            <span>Source</span>
+            <RadioGroup
+              name="trigger-{trigger.id}-source"
+              aria-label="Event source"
+              value={trigger.source ?? 'any'}
+              orientation="horizontal"
+              items={[{ value: 'any', label: 'Any source' }, { value: 'records', label: 'Records' }, { value: 'people', label: 'People' }, { value: 'app', label: 'App' }, { value: 'integration', label: 'Integration' }]}
+              onValueChange={(value) => updateTrigger(trigger, { source: (value === 'any' ? undefined : value) as typeof trigger.source })}
+            />
+          </div>
           <ConditionEditor fieldId="trigger-{trigger.id}-filter" label="Event filter condition (JSON)" condition={trigger.filter} onChange={(condition) => updateTrigger(trigger, { filter: condition })} onRemove={trigger.filter ? () => updateTrigger(trigger, { filter: undefined }) : undefined} />
         {:else if trigger.type === 'schedule'}
           <div class="grid gap-3 sm:grid-cols-2">
             <label class="grid gap-1 text-sm" for="trigger-{trigger.id}-time">Time
-              <input id="trigger-{trigger.id}-time" type="time" class="min-h-10 rounded-md border border-border bg-background px-3" value={trigger.time} oninput={(event) => updateTrigger(trigger, { time: event.currentTarget.value })} />
+              <Input id="trigger-{trigger.id}-time" type="time" value={trigger.time} onValueChange={(time) => updateTrigger(trigger, { time })} />
             </label>
             <label class="grid gap-1 text-sm" for="trigger-{trigger.id}-zone">Time zone
-              <input id="trigger-{trigger.id}-zone" class="min-h-10 rounded-md border border-border bg-background px-3" value={trigger.timezone} oninput={(event) => updateTrigger(trigger, { timezone: event.currentTarget.value })} />
+              <Input id="trigger-{trigger.id}-zone" value={trigger.timezone} onValueChange={(timezone) => updateTrigger(trigger, { timezone })} />
             </label>
           </div>
           <div class="flex flex-wrap gap-x-4 gap-y-2" aria-label="Schedule days">
             {#each ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as day}
-              <label class="inline-flex items-center gap-2 text-sm capitalize"><input type="checkbox" checked={trigger.days.includes(day as (typeof trigger.days)[number])} onchange={(event) => updateTrigger(trigger, { days: event.currentTarget.checked ? [...trigger.days, day as (typeof trigger.days)[number]] : trigger.days.filter((item) => item !== day) })} />{day}</label>
+              <Checkbox
+                checked={trigger.days.includes(day as (typeof trigger.days)[number])}
+                label={day}
+                onCheckedChange={(checked) => updateTrigger(trigger, { days: checked ? [...trigger.days, day as (typeof trigger.days)[number]] : trigger.days.filter((item) => item !== day) })}
+              />
             {/each}
           </div>
         {:else}
           <label class="grid gap-1 text-sm" for="trigger-{trigger.id}-type">Sample event type
-            <input id="trigger-{trigger.id}-type" class="min-h-10 rounded-md border border-border bg-background px-3" value={trigger.eventType} oninput={(event) => updateTrigger(trigger, { eventType: event.currentTarget.value })} />
+            <Input id="trigger-{trigger.id}-type" value={trigger.eventType} onValueChange={(eventType) => updateTrigger(trigger, { eventType })} />
           </label>
           <p class="m-0 text-xs text-muted-foreground">Webhook triggers run only against their declared sample payload. They never contact a network.</p>
         {/if}
@@ -182,7 +256,7 @@ function replaceStep(previous: Step, next: Step): void {
             <TriggerDataEditor fieldId="trigger-{trigger.id}-definition" {trigger} onChange={(next) => updateTrigger(trigger, next)} />
           </div>
         </details>
-        <button type="button" class="min-h-9 justify-self-start rounded-md border border-border px-3 text-sm text-destructive focus-visible:outline-2 focus-visible:outline-ring" onclick={() => apply([{ op: 'remove_trigger', triggerId: trigger.id }])}>Remove trigger</button>
+        <Button variant="destructive" size="sm" onclick={() => apply([{ op: 'remove_trigger', triggerId: trigger.id }])}>Remove trigger</Button>
       </fieldset>
     {/each}
   </section>
@@ -190,7 +264,7 @@ function replaceStep(previous: Step, next: Step): void {
   <section class="grid gap-3" aria-labelledby="flow-steps-heading">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <h3 id="flow-steps-heading" class="m-0 text-base font-semibold">Steps</h3>
-      <button type="button" class="min-h-9 rounded-md border border-border px-3 text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring" onclick={addReplyStep}>Add reply step</button>
+      <Button variant="outline" size="sm" onclick={addReplyStep}>Add reply step</Button>
     </div>
     {#if current.steps.length === 0}<p class="m-0 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">No steps yet. Add a reply step to begin.</p>{/if}
     {#each current.steps as step, index (step.id)}
@@ -198,32 +272,38 @@ function replaceStep(previous: Step, next: Step): void {
         <legend class="px-1 text-sm font-medium">Step {index + 1}: {step.type} · {step.id}</legend>
         <div class="grid gap-3 sm:grid-cols-2">
           <label class="grid gap-1 text-sm" for="step-{step.id}-label">Label
-            <input id="step-{step.id}-label" class="min-h-10 rounded-md border border-border bg-background px-3" value={step.label ?? ''} maxlength="120" oninput={(event) => updateStep(step, { label: event.currentTarget.value || undefined })} />
+            <Input id="step-{step.id}-label" value={step.label ?? ''} maxlength={120} onValueChange={(label) => updateStep(step, { label: label || undefined })} />
           </label>
-          <label class="inline-flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" checked={step.enabled !== false} onchange={(event) => updateStep(step, { enabled: event.currentTarget.checked })} />Step enabled</label>
+          <Checkbox checked={step.enabled !== false} label="Step enabled" onCheckedChange={(enabled) => updateStep(step, { enabled })} />
         </div>
         {#if step.type === 'reply' && typeof step.text === 'string'}
           <label class="grid gap-1 text-sm" for="step-{step.id}-text">Reply text
-            <textarea id="step-{step.id}-text" class="min-h-20 rounded-md border border-border bg-background p-2" value={step.text} maxlength="4000" oninput={(event) => updateStepText(step, event.currentTarget.value)}></textarea>
+            <Textarea id="step-{step.id}-text" class="min-h-20" value={step.text} maxlength={4000} onValueChange={updateStepText.bind(null, step)} />
           </label>
         {:else if step.type === 'message' && typeof step.text === 'string'}
           <div class="grid gap-3 sm:grid-cols-2">
-            <label class="grid gap-1 text-sm" for="step-{step.id}-channel">Channel
-              <select id="step-{step.id}-channel" class="min-h-10 rounded-md border border-border bg-background px-3" value={step.channel} onchange={(event) => updateStep(step, { channel: event.currentTarget.value })}>
-                <option value="chat">Chat</option><option value="email">Email</option><option value="inbox">Inbox</option><option value="notification">Notification</option>
-              </select>
-            </label>
+            <div class="grid gap-1 text-sm">
+              <span>Channel</span>
+              <RadioGroup
+                name="step-{step.id}-channel"
+                aria-label="Message channel"
+                value={step.channel}
+                orientation="horizontal"
+                items={[{ value: 'chat', label: 'Chat' }, { value: 'email', label: 'Email' }, { value: 'inbox', label: 'Inbox' }, { value: 'notification', label: 'Notification' }]}
+                onValueChange={(channel) => updateStep(step, { channel })}
+              />
+            </div>
             <label class="grid gap-1 text-sm" for="step-{step.id}-text">Message text
-              <textarea id="step-{step.id}-text" class="min-h-20 rounded-md border border-border bg-background p-2" value={step.text} maxlength="4000" oninput={(event) => updateStepText(step, event.currentTarget.value)}></textarea>
+              <Textarea id="step-{step.id}-text" class="min-h-20" value={step.text} maxlength={4000} onValueChange={updateStepText.bind(null, step)} />
             </label>
           </div>
         {:else if step.type === 'approval' && typeof step.prompt === 'string'}
           <label class="grid gap-1 text-sm" for="step-{step.id}-prompt">Approval prompt
-            <textarea id="step-{step.id}-prompt" class="min-h-20 rounded-md border border-border bg-background p-2" value={step.prompt} maxlength="4000" oninput={(event) => updateStepText(step, event.currentTarget.value)}></textarea>
+            <Textarea id="step-{step.id}-prompt" class="min-h-20" value={step.prompt} maxlength={4000} onValueChange={updateStepText.bind(null, step)} />
           </label>
         {:else if step.type === 'wait'}
           <label class="grid gap-1 text-sm" for="step-{step.id}-minutes">Wait duration in simulated minutes
-            <input id="step-{step.id}-minutes" type="number" min="1" max="525600" class="min-h-10 rounded-md border border-border bg-background px-3" value={step.minutes} oninput={(event) => updateStep(step, { minutes: Number(event.currentTarget.value) })} />
+            <Input id="step-{step.id}-minutes" type="number" min={1} max={525600} value={String(step.minutes)} onValueChange={(minutes) => updateStep(step, { minutes: Number(minutes) })} />
           </label>
         {/if}
         {#if step.type === 'branch'}
@@ -240,7 +320,7 @@ function replaceStep(previous: Step, next: Step): void {
             <StepDataEditor fieldId="step-{step.id}-definition" {step} onChange={(next) => replaceStep(step, next)} />
           </div>
         </details>
-        <button type="button" class="min-h-9 justify-self-start rounded-md border border-border px-3 text-sm text-destructive focus-visible:outline-2 focus-visible:outline-ring" onclick={() => apply([{ op: 'remove_step', stepId: step.id }])}>Remove step</button>
+        <Button variant="destructive" size="sm" onclick={() => apply([{ op: 'remove_step', stepId: step.id }])}>Remove step</Button>
       </fieldset>
     {/each}
   </section>

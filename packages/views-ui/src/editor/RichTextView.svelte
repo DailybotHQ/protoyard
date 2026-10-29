@@ -1,5 +1,5 @@
 <script lang="ts">
-import { cn } from '@protoyard/ui';
+import { Button } from '@protoyard/ui';
 import {
   type EditorBlock,
   type EditorDocument,
@@ -7,6 +7,8 @@ import {
   parseEditorDocument,
   safeHref,
 } from '@protoyard/views/editor';
+import { Checkbox } from 'texuli/choice';
+import { cx } from 'texuli/cx';
 
 /**
  * RichTextView — read-only renderer for the safe editor document model.
@@ -66,13 +68,14 @@ const external = (href: string) => /^https?:/i.test(href);
       <code class="rounded bg-muted px-1 py-0.5 font-mono text-[0.9em]">{node.text}</code>
     {:else if node.type === 'mention'}
       {#if onMentionClick}
-        <button
+        <Button
           type="button"
+          variant="ghost"
           class="rounded-md bg-muted px-1.5 py-0.5 text-sm font-medium text-foreground hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           onclick={() => onMentionClick({ id: node.id, label: node.label })}
         >
           @{node.label}
-        </button>
+        </Button>
       {:else}
         <span class="rounded-md bg-muted px-1.5 py-0.5 text-sm font-medium">@{node.label}</span>
       {/if}
@@ -118,15 +121,14 @@ const external = (href: string) => /^https?:/i.test(href);
     {:else if block.type === 'list'}
       <svelte:element
         this={block.ordered ? 'ol' : 'ul'}
-        class={cn('my-1 space-y-1 pl-6', block.ordered ? 'list-decimal' : 'list-disc')}
+        class={cx('my-1 space-y-1 pl-6', block.ordered ? 'list-decimal' : 'list-disc')}
         start={block.ordered ? block.start : undefined}
       >
         {#each block.items as item, j (j)}
           <li>
             {#if item.checked !== null}
-              <input
-                type="checkbox"
-                checked={item.checked}
+              <Checkbox
+                                checked={item.checked}
                 disabled
                 aria-label={item.checked ? 'Done' : 'Not done'}
                 class="mr-1.5 align-middle"
@@ -143,7 +145,7 @@ const external = (href: string) => /^https?:/i.test(href);
 <div
   role="region"
   aria-label={label}
-  class={cn('space-y-1 text-sm leading-6 break-words text-foreground', className)}
+  class={cx('space-y-1 text-sm leading-6 break-words text-foreground', className)}
 >
   {#if doc.blocks.length === 0}
     <p class="text-muted-foreground">{emptyText}</p>

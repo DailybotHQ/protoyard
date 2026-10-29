@@ -1,7 +1,7 @@
 <script lang="ts">
-import { Search } from '@lucide/svelte';
 import { navigate } from '@protoyard/renderer-svelte';
 import { Button, CommandPalette, type CommandPaletteItem } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
 import { useCrudApp } from '../lib/context.ts';
 
 const { services, blueprint } = useCrudApp();
@@ -69,7 +69,7 @@ function openShortcut(event: MouseEvent) {
 </script>
 
 <Button size="sm" variant="outline" onclick={openShortcut}>
-  <Search class="size-4" aria-hidden="true" />
+  <Icon icon="search" class="size-4" aria-hidden="true" />
   <!-- The name starts with the visible "Search" (WCAG 2.5.3); phones hide the word visually only. -->
   <span class="sr-only sm:not-sr-only">Search</span>
   <span class="sr-only">workspace (Command or Control K)</span>

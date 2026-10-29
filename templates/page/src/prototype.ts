@@ -6,7 +6,8 @@ import manifestJson from '../protoyard.json';
 
 /**
  * Content-kind runtime for this page template (ADR-040).
- * `definePrototypeFromPage` → `defineKindRuntime` (personas, policy, stores).
+ * `definePrototypeFromPage` → `defineKindPrototype` (personas, policy, stores;
+ * no brand, so no palette generator in the first chunk).
  * Form responses use `@protoyard/pages` createFormServices (FormResponse row).
  */
 const manifest = parseManifest(manifestJson);
@@ -25,7 +26,7 @@ export const definition = definePrototypeFromPage(page, {
   ...(manifest.icon ? { icon: manifest.icon } : {}),
 });
 
-// Template identity (defineKindRuntime defaults to kind: prototype).
+// Template identity (defineKindPrototype defaults to kind: prototype).
 definition.manifest.kind = 'template';
 definition.manifest.blueprintKind = 'page';
 if (manifest.catalog) definition.manifest.catalog = manifest.catalog;

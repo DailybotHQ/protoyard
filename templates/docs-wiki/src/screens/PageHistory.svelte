@@ -9,6 +9,7 @@ import {
   runService,
 } from '@protoyard/renderer-svelte';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import PageBody from '../components/PageBody.svelte';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { lineChanges } from '../domain/wiki.ts';
@@ -61,7 +62,7 @@ const restore = async (version: number) => {
 {:else}
   {@const { page, versions, names } = data.current}
   <Link href="/pages/{page.id}" class="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-    <ArrowLeft class="size-4" aria-hidden="true" />{page.title}
+    <LucideIcon icon={ArrowLeft} class="size-4" />{page.title}
   </Link>
   <h1 class="mb-1 text-2xl font-semibold tracking-tight">History</h1>
   <p class="mb-6 text-sm text-muted-foreground">{versions.length} versions. Restoring one adds it as a new version, so nothing is ever lost.</p>
@@ -73,9 +74,10 @@ const restore = async (version: number) => {
         {@const previous = versions[i + 1]}
         {@const delta = previous ? lineChanges(previous.body, v.body) : null}
         <li>
-          <button
+          <Button
             type="button"
-            class="w-full rounded-lg border p-3 text-left text-sm transition-colors hover:bg-muted/50 {shown?.id === v.id ? 'border-primary bg-muted/40' : 'border-border'}"
+            variant="ghost"
+            class="flex w-full flex-col items-stretch justify-start whitespace-normal rounded-lg border p-3 text-left text-sm transition-colors hover:bg-muted/50 {shown?.id === v.id ? 'border-primary bg-muted/40' : 'border-border'}"
             aria-pressed={shown?.id === v.id}
             aria-label="Version {v.version}, {v.note}, by {names.get(v.authorId) ?? v.authorId}"
             onclick={() => (picked = v.version)}
@@ -86,7 +88,7 @@ const restore = async (version: number) => {
             </span>
             <span class="mt-1 block text-xs text-muted-foreground">{names.get(v.authorId) ?? v.authorId} · {formatStamp(v.at)}</span>
             {#if delta}<span class="mt-1 block text-xs tabular-nums text-muted-foreground">+{delta.added} −{delta.removed} lines</span>{/if}
-          </button>
+          </Button>
         </li>
       {/each}
     </ol>
@@ -100,7 +102,7 @@ const restore = async (version: number) => {
           </div>
           {#if can(CAPABILITIES.pagesEdit) && shown.version !== page.version}
             {@const target = shown.version}
-            <Button onclick={() => restore(target)}><RotateCcw class="size-4" aria-hidden="true" />Restore version {target}</Button>
+            <Button onclick={() => restore(target)}><LucideIcon icon={RotateCcw} class="size-4" />Restore version {target}</Button>
           {/if}
         </div>
         <PageBody source={shown.body} label="Version {shown.version} content" />

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DECK_TEXT_MINIMUMS } from '../src/canvas.ts';
-import { DECK_LAYOUTS } from '../src/layouts/index.ts';
+import { DECK_LAYOUTS, getDeckLayout } from '../src/layouts/index.ts';
 import {
   checkDeckStatic,
   DECK_QUALITY,
@@ -144,6 +144,40 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
     expect(report.ok).toBe(false);
   });
 
+  it('custom-slide (warning): runs only in a generated deck, and its data is never read as props', () => {
+    const deck = rawDeck([
+      {
+        id: 'pricing',
+        layout: 'custom',
+        props: { component: 'pricing-configurator', data: { seats: 10, plan: { step: 'x' } } },
+        steps: ['Show the breakdown'],
+        notes: 'Walk through the configurator: change the seats and watch the total.',
+      },
+    ]);
+    const report = checkDeckStatic(deck);
+    // Its steps are its labels (the component reveals what it likes), so labels never count as empty.
+    expect(only(report.issues, 'empty-steps')).toEqual([]);
+    expect(only(report.issues, 'custom-slide')).toMatchObject([
+      { severity: 'warning', slideId: 'pricing', jsonPath: '$.slides[0].props.component' },
+    ]);
+    // Not an unknown catalog layout, and its data is the component's own.
+    expect(only(report.issues, 'unknown-layout')).toEqual([]);
+    expect(only(report.issues, 'layout-props')).toEqual([]);
+    expect(report.ok).toBe(true);
+  });
+
+  it('unknown-background (warning): an unknown slide background from an older deck still opens', () => {
+    const report = checkDeckStatic(
+      deck([
+        slide('a', 'big-stat', STAT, { background: 'gradient-rainbow' }),
+        slide('b', 'big-stat', STAT, { background: 'solid-surface' }),
+      ])
+    );
+    expect(only(report.issues, 'unknown-background')).toMatchObject([
+      { severity: 'warning', slideId: 'a', jsonPath: '$.slides[0].background' },
+    ]);
+  });
+
   it('layout-props (error): missing fields and over-limit arrays', () => {
     schemaRejectsAt(
       [slide('stat', 'big-stat', { label: 'no number' })],
@@ -225,9 +259,8 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
         jsonPath: '$.slides[1].blocks[0].columns[1][0].step',
       },
     ]);
-    expect(only(report.issues, 'step-order')[0]?.message).toMatch(
-      /\$\.slides\[0\]\.blocks\[0\]\.step \(step 2\)/
-    );
+    // The deck model's lint message (it names the rule, not the earlier element's path).
+    expect(only(report.issues, 'step-order')[0]?.message).toMatch(/revealed before an earlier/);
   });
 
   it('empty-steps (warning): more step labels than fragments', () => {
@@ -239,7 +272,28 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
       ])
     );
     expect(only(report.issues, 'empty-steps')).toMatchObject([
+      // The deck model's lint points at each label nothing reveals on.
       { severity: 'warning', jsonPath: '$.slides[0].steps[1]' },
+      { severity: 'warning', jsonPath: '$.slides[0].steps[2]' },
+    ]);
+  });
+
+  it('step-unrevealed (warning): a marker the layout does not reveal', () => {
+    const sample = structuredClone(getDeckLayout('chart')?.sample) as {
+      spec: { series: Record<string, unknown>[] };
+    };
+    const series = structuredClone(sample);
+    series.spec.series[0] = { ...series.spec.series[0], step: 1 };
+    const whole = structuredClone(sample) as Record<string, Record<string, unknown>>;
+    whole.spec = { ...whole.spec, step: 1 };
+    const report = checkDeckStatic(
+      deck([
+        { id: 'series', layout: 'chart', props: series },
+        { id: 'whole', layout: 'chart', props: whole },
+      ] as never)
+    );
+    expect(only(report.issues, 'step-unrevealed')).toMatchObject([
+      { severity: 'warning', slideId: 'series', jsonPath: '$.slides[0].props.spec.series[0]' },
     ]);
   });
 
@@ -254,12 +308,12 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
       {
         severity: 'warning',
         jsonPath: '$.slides[0].notes',
-        message: expect.stringMatching(/Add speaker notes/),
+        message: expect.stringMatching(/speaker notes/),
       },
       {
         severity: 'warning',
         jsonPath: '$.slides[1].notes',
-        message: expect.stringMatching(/10 characters/),
+        message: expect.stringMatching(/speaker notes/),
       },
     ]);
   });
@@ -279,7 +333,7 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
       {
         severity: 'warning',
         jsonPath: '$.slides[1].notes',
-        message: expect.stringMatching(/slide "a"/),
+        message: expect.stringMatching(/repeat slide 1/),
       },
     ]);
     expect(only(report.issues, 'notes-boilerplate')).toMatchObject([
@@ -304,12 +358,12 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
       {
         severity: 'warning',
         jsonPath: '$.slides[2].layout',
-        message: expect.stringMatching(/^3 slides in a row/),
+        message: expect.stringMatching(/repeats more than twice in a row/),
       },
       {
         severity: 'warning',
         jsonPath: '$.slides[3].layout',
-        message: expect.stringMatching(/^4 slides in a row/),
+        message: expect.stringMatching(/repeats more than twice in a row/),
       },
     ]);
   });
@@ -376,10 +430,13 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
     const covered = new Set<DeckQualityRuleId>([
       'unknown-layout',
       'layout-props',
+      'custom-slide',
+      'unknown-background',
       'image-alt',
       'image-size',
       'step-order',
       'empty-steps',
+      'step-unrevealed',
       'notes-missing',
       'notes-duplicate',
       'notes-boilerplate',

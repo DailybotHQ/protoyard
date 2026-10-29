@@ -1,109 +1,56 @@
 <script lang="ts">
-import type { Margin } from '@protoyard/charts';
-import type { Curve } from '@protoyard/charts/shapes';
-import type { Renderer } from '../canvas/model.ts';
-import type { ChartSelection } from '../interaction/model.ts';
-import ChartShell from './ChartShell.svelte';
-import LinePlot from './LinePlot.svelte';
-import {
-  type CartesianSeries,
-  chartFormatters,
-  defaultSummary,
-  tickFormatter,
-  type ValueUnit,
-  type XKind,
-} from './model.ts';
+/** Adapter: Protoyard LineChart → Texuli LineChart/AreaChart; forwards onselect. */
+import { AreaChart, LineChart as TexuliLine } from '@texuli/charts/cartesian';
+import ChartRoot from '../compat/ChartRoot.svelte';
+import { type CartesianSeries, toTexuliSeries } from '../compat/series.ts';
 
 type Props = {
   title: string;
   description?: string;
-  summary?: string;
   series: readonly CartesianSeries[];
-  xKind?: XKind;
-  unit?: ValueUnit;
-  currency?: string;
-  /** Fill under each line. */
-  area?: boolean;
-  /** Stack areas on top of each other (implies `area`). */
-  stacked?: boolean;
-  curve?: Curve;
-  /** `auto` (default) draws on Canvas above 5,000 visible points after downsampling. */
-  renderer?: Renderer;
-  height?: number;
-  margin?: Partial<Margin>;
-  xHeader?: string;
-  showLegend?: boolean;
-  showTable?: boolean;
-  loading?: boolean;
-  error?: string | null;
-  onretry?: () => unknown;
   emptyMessage?: string;
-  onselect?: (selection: ChartSelection) => void;
-  /** Series hidden through the legend (bindable). */
-  hidden?: Set<string>;
+  area?: boolean;
+  class?: string;
+  onselect?: (selection: {
+    seriesId: string;
+    index: number;
+    x: number | string;
+    y: number | null;
+  }) => void;
+  interactive?: boolean;
+  [key: string]: unknown;
 };
 
 let {
   title,
   description,
-  summary,
   series,
-  xKind = 'time',
-  unit = 'number',
-  currency,
-  area = false,
-  stacked = false,
-  curve = 'monotone-x',
-  renderer = 'auto',
-  height = 260,
-  margin,
-  xHeader,
-  showLegend,
-  showTable,
-  loading,
-  error,
-  onretry,
   emptyMessage,
+  area = false,
+  class: className,
   onselect,
-  hidden = $bindable(new Set<string>()),
+  interactive = true,
 }: Props = $props();
 
-const units = $derived({ unit, ...(currency ? { currency } : {}) });
-const formatters = $derived(chartFormatters(xKind, units));
-const tickFormat = $derived(tickFormatter(units));
+const desc = $derived(description ?? emptyMessage ?? `${title}.`);
+const mapped = $derived(toTexuliSeries(series));
+const empty = $derived(mapped.every((s) => s.points.length === 0));
 </script>
 
-<ChartShell
-  {title}
-  {description}
-  summary={summary ?? defaultSummary(series, xKind)}
-  {height}
-  margin={{ left: 48, ...margin }}
-  {loading}
-  {error}
-  {onretry}
-  {emptyMessage}
-  {series}
-  {formatters}
-  xHeader={xHeader ?? (xKind === 'time' ? 'Date' : 'Category')}
-  {showLegend}
-  {showTable}
-  bind:hidden
->
-  {#snippet plot(size)}
-    <LinePlot
-      label={title}
-      {series}
-      {hidden}
-      {xKind}
-      {...size}
-      {formatters}
-      {tickFormat}
-      {curve}
-      area={area || stacked}
-      {stacked}
-      {renderer}
-      {onselect}
-    />
-  {/snippet}
-</ChartShell>
+<ChartRoot {title}>
+  {#if empty}
+    <p class="empty" data-py-chart="" role="status">{emptyMessage ?? 'No data'}</p>
+  {:else if area}
+    <AreaChart {title} description={desc} series={mapped} class={className} {interactive} {onselect} />
+  {:else}
+    <TexuliLine {title} description={desc} series={mapped} class={className} {interactive} {onselect} />
+  {/if}
+</ChartRoot>
+
+<style>
+  .empty {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--tx-muted-foreground, CanvasText);
+  }
+</style>

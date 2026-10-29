@@ -148,9 +148,10 @@ describe('PageHost marketing design', () => {
     const actions = hero.querySelector('[data-py-page-actions="hero"]') as HTMLElement;
     const links = within(actions).getAllByRole('link');
     expect(links.map((link) => link.getAttribute('href'))).toEqual(['#waitlist', '#plans']);
-    expect(links[0]?.className).toContain('bg-primary');
-    expect(links[1]?.className).toContain('border');
-    expect(links[1]?.className).not.toContain('bg-primary ');
+    // Primary first, then an outline action (texuli's button classes).
+    expect(links[0]?.className).toContain('tx-button--default');
+    expect(links[1]?.className).toContain('tx-button--outline');
+    expect(links[1]?.className).not.toContain('tx-button--default');
     // Stacks full width on phones, sits in a row from `sm`.
     expect(actions.lastElementChild?.className).toContain('flex-col');
     expect(actions.lastElementChild?.className).toContain('sm:flex-row');
@@ -176,20 +177,32 @@ describe('PageHost marketing design', () => {
   it('renders the figures as one stat row that stacks on phones', () => {
     const view = render(PageHost, { props: { page: tidewater() } });
     const stats = view.container.querySelector('[data-py-page-stats]') as HTMLElement;
-    const list = stats.querySelector('dl') as HTMLElement;
+    // One Texuli Stat per figure, in a list that stacks on phones.
+    const list = stats.querySelector('ul') as HTMLElement;
     expect(list.className).toContain('sm:grid-cols-3');
     expect(list.className).not.toMatch(/(^|\s)grid-cols-/);
-    const terms = [...list.querySelectorAll('dt')].map((dt) => dt.textContent?.trim());
+    const terms = [...list.querySelectorAll('[data-tx-stat-label]')].map((label) =>
+      label.textContent?.trim()
+    );
     expect(terms).toEqual([
       'From roast to shipping',
       'Single origins this season',
       'Example taster rating',
     ]);
-    expect([...list.querySelectorAll('dd')].map((dd) => dd.textContent?.trim())).toEqual([
-      '48 h',
-      '12',
-      '4.8/5',
-    ]);
+    expect(
+      [...list.querySelectorAll('[data-tx-stat-value]')].map((value) => value.textContent?.trim())
+    ).toEqual(['48 h', '12', '4.8/5']);
+  });
+
+  it('a section heading adds no nested landmark or padding of its own', () => {
+    const view = render(PageHost, { props: { page: tidewater() } });
+    const headers = [...view.container.querySelectorAll('[data-py-page-section-header]')];
+    expect(headers.length).toBeGreaterThan(0);
+    for (const header of headers) {
+      expect(header.tagName).toBe('HEADER');
+      // The nearest region is the page section itself: no section wraps just the heading.
+      expect(header.closest('section')?.hasAttribute('data-py-page-section')).toBe(true);
+    }
   });
 
   it('renders plans as pricing columns with the middle plan highlighted', () => {

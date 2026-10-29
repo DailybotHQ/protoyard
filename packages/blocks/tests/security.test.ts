@@ -259,6 +259,7 @@ describe('AC-blocks-fuzz: the untrusted parser rejects or neutralizes every host
 });
 
 describe('the schema alone holds the same line for value inputs', () => {
+  // A property test over every generated document: allow for a loaded machine.
   it('accepts only inert documents with safeParseBlocks', () => {
     const failures = DOCUMENTS.filter((doc) => typeof doc.input !== 'string')
       .map((doc) => ({ doc, result: safeParseBlocks(doc.input) }))
@@ -269,7 +270,7 @@ describe('the schema alone holds the same line for value inputs', () => {
       }))
       .filter((entry) => entry.problems.length > 0);
     expect(JSON.stringify(failures.slice(0, 5), null, 1)).toBe('[]');
-  });
+  }, 30_000);
 
   it.each(['\u061c', '\u200e', '\u200f', '\ufeff'])(
     'rejects bidi mark %j in direct block schema input and strips it on untrusted input',

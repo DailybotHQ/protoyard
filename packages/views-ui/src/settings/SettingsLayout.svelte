@@ -1,8 +1,11 @@
 <script lang="ts">
 import { ChevronLeft, ChevronRight } from '@lucide/svelte';
-import { Button, cn } from '@protoyard/ui';
+import { Button } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
 import { tick } from 'svelte';
+import { cx } from 'texuli/cx';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import type { SettingsNavItem } from './types.ts';
 
 interface Props {
@@ -55,8 +58,8 @@ async function backToList() {
 }
 </script>
 
-<div class={cn('mx-auto grid w-full max-w-5xl gap-6 p-4 sm:p-8', className)}>
-  <header class={cn(listOpen ? 'block' : 'hidden', 'md:block')}>
+<div class={cx('mx-auto grid w-full max-w-5xl gap-6 p-4 sm:p-8', className)}>
+  <header class={cx(listOpen ? 'block' : 'hidden', 'md:block')}>
     <h1 class="text-2xl font-semibold">{title}</h1>
     {#if description}<p class="mt-1 text-sm text-muted-foreground">{description}</p>{/if}
   </header>
@@ -64,40 +67,41 @@ async function backToList() {
     <nav
       bind:this={nav}
       aria-label={`${title} sections`}
-      class={cn(listOpen ? 'block' : 'hidden', 'md:block')}
+      class={cx(listOpen ? 'block' : 'hidden', 'md:block')}
     >
       <ul class="flex flex-col gap-1">
         {#each sections as section (section.id)}
           {@const selected = section.id === current?.id}
           <li>
-            <button
+            <Button
               type="button"
+              variant="ghost"
               aria-current={selected ? 'page' : undefined}
-              class={cn(
-                'flex min-h-touch w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:min-h-0',
+              class={cx(
+                'flex min-h-touch w-full items-center justify-start gap-3 font-normal whitespace-normal rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:min-h-0',
                 selected && 'md:bg-muted md:font-medium'
               )}
               onclick={() => choose(section.id)}
             >
-              {#if section.icon}<section.icon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />{/if}
+              {#if section.icon}<section.icon class="size-4 shrink-0 text-muted-foreground" />{/if}
               <span class="min-w-0 flex-1">
                 <span class="block truncate">{section.label}</span>
                 {#if section.description}
                   <span class="block truncate text-xs text-muted-foreground md:hidden">{section.description}</span>
                 {/if}
               </span>
-              <ChevronRight class="size-4 shrink-0 text-muted-foreground md:hidden" aria-hidden="true" />
-            </button>
+              <Icon icon="chevron-right" class="size-4 shrink-0 text-muted-foreground md:hidden"  />
+            </Button>
           </li>
         {/each}
       </ul>
     </nav>
     <section
       aria-labelledby={`settings-${uid}-heading`}
-      class={cn(listOpen ? 'hidden' : 'block', 'min-w-0 md:block')}
+      class={cx(listOpen ? 'hidden' : 'block', 'min-w-0 md:block')}
     >
       <Button variant="ghost" size="sm" class="-ml-2 mb-2 md:hidden" onclick={() => backToList()}>
-        <ChevronLeft class="size-4" aria-hidden="true" />
+        <LucideIcon icon={ChevronLeft} class="size-4"  />
         {title}
       </Button>
       <h2

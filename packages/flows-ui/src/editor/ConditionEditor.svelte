@@ -1,5 +1,7 @@
 <script lang="ts">
 import { type Condition, ConditionSchema } from '@protoyard/flows/model';
+import { Button } from 'texuli/button';
+import { Textarea } from 'texuli/input';
 
 let {
   condition,
@@ -23,10 +25,8 @@ $effect(() => {
   error = '';
 });
 
-function edit(event: Event): void {
-  const target = event.currentTarget;
-  if (!(target instanceof HTMLTextAreaElement)) return;
-  source = target.value;
+function edit(value: string): void {
+  source = value;
   try {
     const parsed = ConditionSchema.safeParse(JSON.parse(source));
     if (!parsed.success) {
@@ -48,31 +48,29 @@ function addCondition(): void {
 <div class="grid gap-2">
   {#if condition}
     <label class="grid gap-1 text-sm font-medium text-foreground" for={fieldId}>{label}</label>
-    <textarea
+    <Textarea
       id={fieldId}
       class="min-h-28 w-full rounded-md border border-border bg-background p-2 font-mono text-xs text-foreground focus-visible:outline-2 focus-visible:outline-ring"
       value={source}
-      rows="5"
+      rows={5}
       spellcheck="false"
       aria-invalid={error ? 'true' : undefined}
       aria-describedby={error ? `${fieldId}-error` : undefined}
-      oninput={edit}
-    ></textarea>
+      onValueChange={edit}
+    />
     {#if error}
       <p id="{fieldId}-error" class="m-0 text-sm text-destructive" role="alert">{error}</p>
     {/if}
     {#if onRemove}
-      <button
-        type="button"
+      <Button
         class="min-h-9 justify-self-start rounded-md border border-border px-3 text-sm text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
         onclick={onRemove}
-      >Remove condition</button>
+      >Remove condition</Button>
     {/if}
   {:else}
-    <button
-      type="button"
+    <Button
       class="min-h-9 justify-self-start rounded-md border border-border px-3 text-sm text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
       onclick={addCondition}
-    >Add condition</button>
+    >Add condition</Button>
   {/if}
 </div>

@@ -1,42 +1,94 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
-import type { HTMLButtonAttributes } from 'svelte/elements';
+import { Button, type ButtonVariant } from 'texuli/button';
 
-/** Compact panel button; the app's `@protoyard/ui` Button is sized for products. */
+/**
+ * Compact panel button on Texuli's Button (size sm).
+ * Keeps the DevTools variant names (`primary` / `danger`) as a thin adapter.
+ * `autoLoading={false}` keeps a button enabled while its `onclick` promise
+ * settles: Texuli disables a pending button, and disabling the focused one
+ * drops focus to <body>, out of the panel (its Escape handler then misses).
+ */
 let {
   variant = 'outline',
   busy = false,
+  autoLoading = true,
   class: className = '',
   children,
-  ...rest
-}: HTMLButtonAttributes & {
+  ref = $bindable(null),
+  disabled = false,
+  type = 'button',
+  id,
+  title,
+  role,
+  tabindex,
+  onclick,
+  style,
+  'aria-label': ariaLabel,
+  'aria-expanded': ariaExpanded,
+  'aria-pressed': ariaPressed,
+  'aria-controls': ariaControls,
+  'aria-selected': ariaSelected,
+  'aria-checked': ariaChecked,
+  'aria-busy': ariaBusy,
+  'data-theme-id': dataThemeId,
+}: {
   variant?: 'primary' | 'outline' | 'ghost' | 'danger';
   busy?: boolean;
+  autoLoading?: boolean;
+  class?: string;
   children: Snippet;
+  ref?: HTMLElement | null;
+  disabled?: boolean;
+  type?: 'button' | 'submit' | 'reset';
+  id?: string;
+  title?: string;
+  role?: string;
+  tabindex?: number;
+  onclick?: (event: MouseEvent) => unknown;
+  style?: string;
+  'aria-label'?: string;
+  'aria-expanded'?: boolean | 'true' | 'false';
+  'aria-pressed'?: boolean | 'true' | 'false';
+  'aria-controls'?: string;
+  'aria-selected'?: boolean | 'true' | 'false';
+  'aria-checked'?: boolean | 'true' | 'false';
+  'aria-busy'?: boolean | 'true' | 'false';
+  'data-theme-id'?: string;
 } = $props();
 
-const variants = {
-  primary: 'bg-primary text-primary-foreground hover:bg-primary-hover',
-  outline: 'border border-border bg-surface text-surface-foreground hover:bg-muted',
-  ghost: 'text-foreground hover:bg-muted',
-  danger: 'bg-destructive text-destructive-foreground hover:bg-destructive-hover',
+const mapped: Record<string, ButtonVariant> = {
+  primary: 'default',
+  outline: 'outline',
+  ghost: 'ghost',
+  danger: 'destructive',
 };
 </script>
 
-<button
-  type="button"
-  {...rest}
-  class="inline-flex min-h-touch items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 sm:min-h-7 {variants[
-    variant
-  ]} {className}"
-  aria-busy={busy || undefined}
-  disabled={busy || rest.disabled}
+<Button
+  bind:ref
+  {disabled}
+  {type}
+  {id}
+  {title}
+  {role}
+  {tabindex}
+  {onclick}
+  {style}
+  aria-label={ariaLabel}
+  aria-expanded={ariaExpanded as never}
+  aria-pressed={ariaPressed as never}
+  aria-controls={ariaControls}
+  aria-selected={ariaSelected as never}
+  aria-checked={ariaChecked as never}
+  aria-busy={ariaBusy ?? (busy ? 'true' : undefined) as never}
+  data-theme-id={dataThemeId}
+  variant={mapped[variant] ?? 'outline'}
+  size="sm"
+  loading={busy}
+  {autoLoading}
+  class={className || undefined}
+  data-py-devtools-btn=""
 >
-  {#if busy}
-    <span
-      class="size-3 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none"
-      aria-hidden="true"
-    ></span>
-  {/if}
   {@render children()}
-</button>
+</Button>

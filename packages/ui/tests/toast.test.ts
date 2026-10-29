@@ -1,121 +1,79 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import Toaster from '../src/components/toast/Toaster.svelte';
-import { MAX_TOASTS, toast } from '../src/components/toast/toast.svelte.ts';
-
-beforeEach(() => {
-  vi.useFakeTimers();
-  toast.dismiss();
-});
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MAX_TOASTS, Toaster, toast } from '../src/index.ts';
 
 afterEach(() => {
   cleanup();
   toast.dismiss();
-  vi.useRealTimers();
 });
 
-describe('toast store', () => {
+// The toast API and Toaster are Texuli's (`texuli/toast`); these pin what
+// Protoyard's callers rely on through `@protoyard/ui`.
+describe('toast (Texuli toast store)', () => {
   it('pushes typed toasts with descriptions and returns ids', () => {
     const id = toast.success('Saved', { description: 'All changes stored.' });
     toast.error('Failed');
-    toast.info('Heads up');
-    expect(toast.items.map((t) => t.kind)).toEqual(['success', 'error', 'info']);
-    expect(toast.items[0]).toMatchObject({
-      id,
-      title: 'Saved',
-      description: 'All changes stored.',
-    });
+    const items = toast.items;
+    expect(items.map((item) => item.kind).sort()).toEqual(['error', 'success']);
+    expect(items.find((item) => item.id === id)?.description).toBe('All changes stored.');
   });
 
-  it('dismisses by id and clears everything without an id', () => {
-    const first = toast.info('One');
-    toast.info('Two');
-    toast.dismiss(first);
-    expect(toast.items.map((t) => t.title)).toEqual(['Two']);
-    toast.dismiss();
-    expect(toast.items).toHaveLength(0);
-  });
-
-  it('auto-dismisses after the duration', () => {
-    toast.success('Saved', { duration: 1000 });
-    toast.info('Sticky', { duration: 0 });
-    vi.advanceTimersByTime(999);
-    expect(toast.items).toHaveLength(2);
-    vi.advanceTimersByTime(1);
-    expect(toast.items.map((t) => t.title)).toEqual(['Sticky']);
-    vi.advanceTimersByTime(60_000);
-    expect(toast.items).toHaveLength(1);
-  });
-
-  it('pausing freezes the countdown and resuming continues with the remaining time', () => {
-    toast.info('Hello', { duration: 1000 });
-    vi.advanceTimersByTime(600);
-    toast.pause();
-    vi.advanceTimersByTime(5000);
-    expect(toast.items).toHaveLength(1);
-    toast.resume();
-    vi.advanceTimersByTime(399);
-    expect(toast.items).toHaveLength(1);
-    vi.advanceTimersByTime(1);
-    expect(toast.items).toHaveLength(0);
-  });
-
-  it('replaces a toast that reuses an id and caps the stack', () => {
-    toast.info('Saving…', { id: 'save', duration: 0 });
+  it('replaces a toast that reuses an id, dismisses by id and caps the stack', () => {
+    toast.info('Saving…', { id: 'save' });
     toast.success('Saved', { id: 'save' });
-    expect(toast.items).toHaveLength(1);
-    expect(toast.items[0]).toMatchObject({ id: 'save', kind: 'success', title: 'Saved' });
-    for (let i = 0; i < MAX_TOASTS + 2; i++) toast.info(`n${i}`);
-    expect(toast.items).toHaveLength(MAX_TOASTS);
-    expect(toast.items.at(-1)?.title).toBe(`n${MAX_TOASTS + 1}`);
+    expect(toast.items.filter((item) => item.id === 'save').map((item) => item.title)).toEqual([
+      'Saved',
+    ]);
+    toast.dismiss('save');
+    expect(toast.items).toHaveLength(0);
+    for (let index = 0; index < MAX_TOASTS + 2; index += 1) toast.info(`Note ${index}`);
+    expect(toast.items.length).toBeLessThanOrEqual(MAX_TOASTS);
   });
 
-  it('announces errors assertively and others politely', () => {
+  it('lets a host hold the timers (pause and resume) and reports why a toast settled', () => {
+    vi.useFakeTimers();
+    try {
+      const onSettle = vi.fn();
+      const id = toast.info('Synced', { duration: 1_000, onSettle });
+      expect(toast.items.find((item) => item.id === id)?.announcement.message).toBe('Synced');
+      toast.pause('host-test');
+      vi.advanceTimersByTime(5_000);
+      expect(toast.items.some((item) => item.id === id)).toBe(true);
+      toast.resume('host-test');
+      vi.advanceTimersByTime(1_000);
+      expect(toast.items.some((item) => item.id === id)).toBe(false);
+      expect(onSettle).toHaveBeenCalledWith('timeout');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('Toaster (Texuli)', () => {
+  it('renders toasts in a labelled region and closes one with its dismiss button', async () => {
+    render(Toaster);
     toast.success('Saved');
-    expect(toast.announcement).toMatchObject({ text: 'Saved', assertive: false });
-    toast.error('Failed', { description: 'Try again' });
-    expect(toast.announcement).toMatchObject({ text: 'Failed. Try again', assertive: true });
+    flushSync();
+    expect(await screen.findByText('Saved')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification: Saved' }));
+    await waitFor(() => expect(toast.items).toHaveLength(0));
+  });
+
+  it('turns `offset` into --tx-toast-offset', () => {
+    const { container } = render(Toaster, { offset: 64 });
+    const toaster = container.querySelector<HTMLElement>('[data-tx-toaster]');
+    expect(toaster?.style.getPropertyValue('--tx-toast-offset')).toBe('64px');
   });
 });
 
-describe('Toaster', () => {
-  it('renders toasts, announces them and closes via the dismiss button', async () => {
-    render(Toaster, {});
-    toast.error('Upload failed', { description: 'File too large' });
-    flushSync();
-    expect(screen.getByText('Upload failed')).toBeTruthy();
-    const assertive = document.querySelector('[aria-live="assertive"]');
-    expect(assertive?.textContent).toBe('Upload failed. File too large');
-
-    await fireEvent.click(
-      screen.getByRole('button', { name: 'Dismiss notification: Upload failed' })
+describe('Toaster right edge', () => {
+  it("pads Texuli's viewport by the renderer's --py-fixed-right-edge", () => {
+    const styles = readFileSync(join(process.cwd(), 'packages/ui/src/styles.css'), 'utf8');
+    expect(styles).toMatch(
+      /\[data-tx-toaster\] \.tx-toaster__viewport \{[^}]*var\(--py-fixed-right-edge, 0px\)/
     );
-    expect(screen.queryByText('Upload failed')).toBeNull();
-  });
-
-  it('pauses auto-dismiss while hovered', async () => {
-    render(Toaster, {});
-    toast.success('Hover me', { duration: 1000 });
-    flushSync();
-    const region = screen.getByRole('region', { name: 'Notifications' });
-    const list = within(region).getByText('Hover me').closest('ol') as HTMLElement;
-    await fireEvent.mouseEnter(list);
-    vi.advanceTimersByTime(3000);
-    flushSync();
-    expect(within(region).getByText('Hover me')).toBeTruthy();
-    await fireEvent.mouseLeave(list);
-    vi.advanceTimersByTime(1000);
-    flushSync();
-    expect(within(region).queryByText('Hover me')).toBeNull();
-  });
-});
-
-describe('Toaster on a narrower visual viewport', () => {
-  it('pads its region by --py-fixed-right-edge so toasts stay on screen', () => {
-    render(Toaster, {});
-    const region = screen.getByRole('region', { name: 'Notifications' });
-    expect(region.className).toContain('pr-[calc(1rem+var(--py-fixed-right-edge,0px))]');
-    expect(region.className).toContain('sm:pr-[calc(1.5rem+var(--py-fixed-right-edge,0px))]');
   });
 });

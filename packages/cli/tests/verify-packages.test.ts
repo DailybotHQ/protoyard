@@ -7,6 +7,7 @@ import {
   compareBudgetParity,
   harnessPackageManager,
   installArgs,
+  isTexuli,
   packageDirectories,
   parseArgs,
 } from '../../../scripts/verify-packages.ts';
@@ -70,5 +71,15 @@ describe('consumer install arguments', () => {
     expect(npm.some((arg) => arg.startsWith('--omit'))).toBe(false);
     // Only for the harness's `file:` folder dependencies (see installArgs).
     expect(npm).toContain('--ignore-scripts');
+  });
+});
+
+describe('isTexuli', () => {
+  it('names the Texuli packages handed to an offline pnpm consumer as file: folders', () => {
+    expect(isTexuli('texuli')).toBe(true);
+    expect(isTexuli('@texuli/chat')).toBe(true);
+    expect(isTexuli('@protoyard/ui')).toBe(false);
+    expect(isTexuli('texuli-extra')).toBe(false);
+    expect(isTexuli('svelte')).toBe(false);
   });
 });

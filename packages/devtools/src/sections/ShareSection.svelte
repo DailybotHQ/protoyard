@@ -1,7 +1,9 @@
 <script lang="ts">
-import { Check, Copy } from '@lucide/svelte';
+import { Copy } from '@lucide/svelte';
 import { copyText } from '../format.ts';
 import { reproducibleLink } from '../link.ts';
+import Btn from '../primitives/Btn.svelte';
+import Glyph from '../primitives/Glyph.svelte';
 import Section from '../primitives/Section.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
 
@@ -52,14 +54,14 @@ async function copy(key: string, text: string) {
     <p class="mb-1 text-[11px] text-muted-foreground">{label}</p>
     <div class="flex items-stretch gap-1">
       <code class="min-w-0 flex-1 truncate rounded-md border border-border bg-muted px-2 py-1.5 text-[11px] {mono ? 'font-mono' : ''}" title={text}>{text}</code>
-      <button
+      <Btn
         type="button"
         class="inline-flex min-h-touch w-9 shrink-0 items-center justify-center rounded-md border border-border hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0 sm:w-8"
         aria-label={`Copy: ${label}`}
         onclick={() => copy(key, text)}
       >
-        {#if copiedKey === key}<Check class="size-3.5 text-success" aria-hidden="true" />{:else}<Copy class="size-3.5" aria-hidden="true" />{/if}
-      </button>
+        {#if copiedKey === key}<Glyph icon="check" class="size-3.5 text-success" aria-hidden="true" />{:else}<Glyph icon={Copy} class="size-3.5" aria-hidden="true" />{/if}
+      </Btn>
     </div>
   </div>
 {/snippet}

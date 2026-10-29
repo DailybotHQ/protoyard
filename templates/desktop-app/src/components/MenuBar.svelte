@@ -1,5 +1,6 @@
 <script lang="ts" module>
 import type { DropdownMenuEntry } from '@protoyard/ui';
+import { Button } from '@protoyard/ui';
 
 export interface Menu {
   label: string;
@@ -18,13 +19,14 @@ let { menus }: { menus: Menu[] } = $props();
   {#each menus as menu (menu.label)}
     <DropdownMenu items={menu.items} align="start">
       {#snippet trigger({ props })}
-        <button
+        <Button
           {...props}
           type="button"
+          variant="ghost"
           class="rounded-md px-2.5 py-1 text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none data-[state=open]:bg-muted"
         >
           {menu.label}
-        </button>
+        </Button>
       {/snippet}
     </DropdownMenu>
   {/each}

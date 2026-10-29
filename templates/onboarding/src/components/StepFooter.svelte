@@ -1,6 +1,7 @@
 <script lang="ts">
 import { ArrowLeft, ArrowRight } from '@lucide/svelte';
 import { Button } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 /** Back · Skip · Next row shared by every step. `form` is the id of the step's <form>. */
 let {
@@ -20,7 +21,7 @@ let {
 
 <div class="mt-8 flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:items-center">
   {#if onBack}
-    <Button variant="ghost" disabled={busy} onclick={onBack}><ArrowLeft aria-hidden="true" />Back</Button>
+    <Button variant="ghost" disabled={busy} onclick={onBack}><LucideIcon icon={ArrowLeft} />Back</Button>
   {/if}
   <div class="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row">
     {#if onSkip}
@@ -28,7 +29,7 @@ let {
     {/if}
     <Button type="submit" {form} loading={busy}>
       {submitLabel}
-      {#if !busy}<ArrowRight aria-hidden="true" />{/if}
+      {#if !busy}<LucideIcon icon={ArrowRight} />{/if}
     </Button>
   </div>
 </div>

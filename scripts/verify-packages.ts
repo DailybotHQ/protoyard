@@ -285,9 +285,19 @@ function installedExternalDependencies(
   return Object.fromEntries(
     [...result].map(([name, value]) => [
       name,
-      pm === 'npm' ? `file:${value.directory}` : value.version,
+      pm === 'npm' || isTexuli(name) ? `file:${value.directory}` : value.version,
     ])
   );
+}
+
+/**
+ * Texuli is exempt from the workspace's `minimumReleaseAge`, so a frozen
+ * install never fetches its registry metadata, and an offline pnpm consumer
+ * cannot resolve `@texuli/x@<version>` (ERR_PNPM_NO_OFFLINE_META). Its packages
+ * are handed over as `file:` folders from the store, as npm gets every package.
+ */
+export function isTexuli(name: string): boolean {
+  return name === 'texuli' || name.startsWith('@texuli/');
 }
 
 function compareVersions(left: string, right: string): number {

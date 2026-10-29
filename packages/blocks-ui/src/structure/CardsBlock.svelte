@@ -38,6 +38,9 @@ const gridClass = $derived(
       <li
         class="grid gap-3 rounded-xl border bg-surface p-4 shadow-soft {toneBorder(card.tone)}"
       >
+        {#if card.image}
+          {#await import('./CardImage.svelte') then image}<image.default src={card.image} alt={card.imageAlt} />{/await}
+        {/if}
         {#if card.icon}
           <span class="grid size-10 place-items-center rounded-lg {toneIcon(card.tone)}" aria-hidden="true">
             <BlockIcon name={card.icon} class="size-5" />

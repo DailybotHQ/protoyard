@@ -1,3 +1,4 @@
+import type { CalendarSeries } from '../calendar/index.ts';
 import {
   addDays,
   dateIn,
@@ -6,8 +7,7 @@ import {
   toIso,
   weekdayOf,
   zonedInstant,
-} from '../calendar/dates.ts';
-import type { CalendarSeries } from '../calendar/recurrence.ts';
+} from '../calendar/index.ts';
 import {
   countFor,
   phrase,

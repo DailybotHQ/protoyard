@@ -10,6 +10,7 @@ import {
 } from '@protoyard/themes';
 import { Badge, Kbd } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { auditThemeContrast, auditThemesContrast } from '../lib/theme-lab.ts';
 
 const runtime = getRuntime();
@@ -107,7 +108,7 @@ const keys = [
     <span class="font-mono text-foreground">{audit.lowest.toFixed(2)}:1</span>.
   </p>
   {#if audit.failing.length === 0}
-    <p class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-success"><CircleCheck class="size-4" aria-hidden="true" />All pairs pass WCAG AA.</p>
+    <p class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-success"><LucideIcon icon={CircleCheck} class="size-4" />All pairs pass WCAG AA.</p>
   {:else}
     <ul class="mt-3 space-y-1">
       {#each audit.failing as f (`${f.fg}-${f.bg}`)}<li><Badge variant="destructive">{f.fg} on {f.bg}: {f.ratio.toFixed(2)}</Badge></li>{/each}
@@ -126,7 +127,7 @@ const keys = [
   {/if}
   {#if catalogAudit.failing.length === 0}
     <p class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-success">
-      <CircleCheck class="size-4" aria-hidden="true" />Every loaded theme passes text and UI contrast.
+      <LucideIcon icon={CircleCheck} class="size-4" />Every loaded theme passes text and UI contrast.
     </p>
   {:else}
     <ul class="mt-3 max-h-40 space-y-1 overflow-y-auto">

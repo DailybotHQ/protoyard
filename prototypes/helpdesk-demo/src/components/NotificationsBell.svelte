@@ -3,6 +3,7 @@ import { Bell } from '@lucide/svelte';
 import { createNotificationService } from '@protoyard/blueprint';
 import { liveQuery } from '@protoyard/renderer-svelte';
 import { Button } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { useCrudApp } from '../lib/context.ts';
 
 const { runtime } = useCrudApp();
@@ -28,7 +29,7 @@ const list = liveQuery(() => notifications.list(), {
     aria-expanded={open}
     onclick={() => (open = !open)}
   >
-    <Bell class="size-4" aria-hidden="true" />
+    <LucideIcon icon={Bell} class="size-4" />
     {#if (unread.current ?? 0) > 0}
       <span
         class="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[0.65rem] text-destructive-foreground"
@@ -49,7 +50,7 @@ const list = liveQuery(() => notifications.list(), {
           size="sm"
           variant="ghost"
           class="text-xs"
-          onclick={() => void notifications.markAllRead()}
+          onclick={() => notifications.markAllRead()}
         >
           Mark all read
         </Button>
@@ -57,14 +58,15 @@ const list = liveQuery(() => notifications.list(), {
       <ul class="max-h-64 space-y-1 overflow-y-auto text-sm">
         {#each list.current ?? [] as row (row.id)}
           <li class="rounded-md px-2 py-1.5 hover:bg-muted/50">
-            <button
+            <Button
               type="button"
-              class="w-full text-left"
-              onclick={() => void notifications.markRead(String(row.id))}
+              variant="ghost"
+              class="flex w-full flex-col items-start whitespace-normal text-left"
+              onclick={() => notifications.markRead(String(row.id))}
             >
               <p class="font-medium {row.readAt ? 'text-muted-foreground' : ''}">{String(row.title)}</p>
               <p class="text-[0.65rem] text-muted-foreground">{String(row.kind)}</p>
-            </button>
+            </Button>
           </li>
         {:else}
           <li class="px-2 py-3 text-xs text-muted-foreground">No notifications yet.</li>

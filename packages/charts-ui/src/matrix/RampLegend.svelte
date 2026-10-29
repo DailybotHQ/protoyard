@@ -1,38 +1,43 @@
 <script lang="ts">
-import { divergingColor, RAMP_STEPS, sequentialColor } from '@protoyard/charts/palette';
+/** Backward-compatible props for Texuli's accessible matrix color legend. */
+import { RampLegend as TexuliRampLegend } from '@texuli/charts/matrix';
+
+type Props = {
+  label?: string;
+  min?: number;
+  max?: number;
+  minLabel?: string;
+  maxLabel?: string;
+  ramp?: 'sequential' | 'diverging';
+  steps?: number;
+  formatValue?: (value: number) => string;
+  description?: string;
+  class?: string;
+};
 
 let {
+  label = 'Scale',
   min,
   max,
-  format,
-  diverging = false,
-  label = 'Scale',
-  emptyLabel,
-}: {
-  min: number;
-  max: number;
-  format: (value: number) => string;
-  diverging?: boolean;
-  label?: string;
-  /** Explains the swatch for missing values ("No data"); omitted when not needed. */
-  emptyLabel?: string;
-} = $props();
-
-const steps = Array.from({ length: RAMP_STEPS }, (_, i) => i / (RAMP_STEPS - 1));
+  minLabel,
+  maxLabel,
+  ramp,
+  steps,
+  formatValue,
+  description,
+  class: className,
+}: Props = $props();
 </script>
 
-<div class="flex flex-wrap items-center gap-3 text-xs text-muted-foreground" role="group" aria-label={label}>
-  <span class="tabular-nums" data-ramp-min="">{format(min)}</span>
-  <span class="inline-flex overflow-hidden rounded-sm" aria-hidden="true">
-    {#each steps as t (t)}
-      <span class="h-2.5 w-4" style:background={diverging ? divergingColor(t * 2 - 1) : sequentialColor(t)}></span>
-    {/each}
-  </span>
-  <span class="tabular-nums" data-ramp-max="">{format(max)}</span>
-  <span class="sr-only">Darker cells mean higher values{diverging ? '; the middle color is the midpoint' : ''}.</span>
-  {#if emptyLabel}
-    <span class="inline-flex items-center gap-1">
-      <span class="size-2.5 rounded-sm border border-dashed border-border" aria-hidden="true"></span>{emptyLabel}
-    </span>
-  {/if}
-</div>
+<TexuliRampLegend
+  {label}
+  {min}
+  {max}
+  {minLabel}
+  {maxLabel}
+  {ramp}
+  {steps}
+  {formatValue}
+  {description}
+  class={className}
+/>

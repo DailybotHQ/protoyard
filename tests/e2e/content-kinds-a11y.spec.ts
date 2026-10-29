@@ -122,18 +122,47 @@ async function checkScreen(page: Page, testInfo: TestInfo, label: string): Promi
 
 async function checkDeck(page: Page, testInfo: TestInfo, label: string): Promise<void> {
   const deck = page.locator(ROOT.deck);
-  // The deck is a labelled keyboard application, and every slide is announced.
-  await expect(deck).toHaveAttribute('role', 'application');
-  await expect(deck).toHaveAccessibleName(/\S/);
-  await expectVisibleFocus(page, label, ROOT.deck);
-  await deck.focus();
+  // The @texuli/slides stage is a labelled region driven by the keyboard, and every slide is announced.
+  const stage = deck.locator('.tx-deck-stage').first();
+  await expect(stage).toHaveAttribute('role', 'region');
+  await expect(stage).toHaveAccessibleName(/\S/);
+  // The stage takes the keys (the deck root only carries the position attributes).
+  await expectVisibleFocus(page, label, `${ROOT.deck} .tx-deck-stage`);
+  await stage.focus();
   const seen = new Set<string>();
   for (let guard = 0; guard < 400; guard++) {
     const at = `${await deck.getAttribute('data-slide-id')}/${await deck.getAttribute('data-slide-step')}`;
     if (seen.has(at)) break;
     seen.add(at);
     // Every slide (its first step) is checked; later steps reveal more of the same slide.
-    if (at.endsWith('/0')) await checkScreen(page, testInfo, `${label} ${at}`);
+    // Layout and block families are lazy chunks (Texuli's renderers): scan the
+    // slide once nothing on it is still loading, not halfway through a render.
+    if (at.endsWith('/0')) {
+      await expect(
+        page.locator(
+          '[data-tx-deck-slide][data-tx-deck-active="true"] :is([role="status"][aria-label^="Loading"], .tx-deck-stage__loading)'
+        ),
+        `${label} ${at}: slide finished loading`
+      ).toHaveCount(0, { timeout: 30_000 });
+      // The @texuli/slides stage keeps neighbor slides mounted: wait until one
+      // slide is active and drawn (not mid-swap, when it is still visibility-hidden).
+      await page.waitForFunction(
+        () => {
+          const active = [
+            ...document.querySelectorAll<HTMLElement>(
+              '[data-tx-deck-slide][data-tx-deck-active="true"]'
+            ),
+          ];
+          return (
+            active.length === 1 &&
+            active[0]?.checkVisibility({ opacityProperty: true, visibilityProperty: true }) === true
+          );
+        },
+        undefined,
+        { timeout: 10_000 }
+      );
+      await checkScreen(page, testInfo, `${label} ${at}`);
+    }
     await page.keyboard.press('ArrowRight');
     // The last step of the last slide stays put; the loop ends when nothing changes.
     await page.waitForTimeout(50);
@@ -203,3 +232,34 @@ for (const colorScheme of ['light', 'dark'] as const) {
     }
   });
 }
+
+// Two catalog block examples rendered wrong in the everything deck before
+// T-a11y-mobile: the quiz showed `**tone**` literally and a card dropped its
+// image. The player ships the avatar library, so the card's portrait loads here.
+test('the everything deck formats the quiz prompt and shows the card image', async ({ page }) => {
+  const everything = EXAMPLES.find((example) => example.name === 'everything');
+  expect(everything).toBeDefined();
+  if (!everything) return;
+  await openExample(page, everything);
+  const deck = page.locator(ROOT.deck);
+  const show = async (id: string) => {
+    await page.evaluate((slide) => {
+      window.location.hash = `#/${slide}/0`;
+    }, id);
+    await expect(deck).toHaveAttribute('data-slide-id', id);
+  };
+
+  await show('poll-quiz');
+  const legend = page.locator('[data-tx-deck-slide="poll-quiz"] legend', { hasText: 'tone' });
+  await expect(legend).toHaveText('What does a tone replace?', { timeout: 15_000 });
+  await expect(legend.locator('strong')).toHaveText('tone');
+
+  await show('structure-b');
+  const image = page
+    .locator('[data-tx-deck-slide="structure-b"]')
+    .getByRole('img', { name: 'A face' });
+  await expect(image).toBeVisible({ timeout: 15_000 });
+  await expect
+    .poll(() => image.evaluate((element) => (element as HTMLImageElement).naturalWidth))
+    .toBeGreaterThan(0);
+});

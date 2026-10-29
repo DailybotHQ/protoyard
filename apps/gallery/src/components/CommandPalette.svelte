@@ -1,6 +1,7 @@
 <script lang="ts">
-import Search from '@lucide/svelte/icons/search';
+import { Button, Dialog, Input } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { Icon } from 'texuli/icons';
 import {
   loadCompactIndex,
   type PaletteAction,
@@ -9,7 +10,7 @@ import {
 } from '@/lib/commands.ts';
 import { control } from '@/lib/control.svelte.ts';
 import { withBase } from '@/lib/format.ts';
-import { applyTheme, readThemeChoice } from '@/lib/theme.ts';
+import { applyThemeMode } from '@/lib/theme.ts';
 import type { CompactEntry } from '@/lib/types.ts';
 
 interface Props {
@@ -32,10 +33,9 @@ let status = $state('');
 let hydrated = $state(false);
 let indexLoaded = $state(false);
 let indexError = $state(false);
-let dialog: HTMLDialogElement;
-let input: HTMLInputElement;
+let input = $state<HTMLElement | null>(null);
 // $state: the own button only renders without an external trigger.
-let trigger = $state<HTMLButtonElement>();
+let trigger = $state<HTMLElement | null>(null);
 let returnFocusTo: HTMLElement | null = null;
 
 const commands = $derived(
@@ -69,7 +69,7 @@ onMount(() => {
       (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
-      if (dialog.open) close();
+      if (open) close();
       else show();
       return;
     }
@@ -78,35 +78,52 @@ onMount(() => {
       show();
     }
   };
+  const onEscape = (event: KeyboardEvent) => {
+    if (!open || event.key !== 'Escape') return;
+    event.preventDefault();
+    event.stopPropagation();
+    close();
+  };
   window.addEventListener('keydown', onShortcut);
+  window.addEventListener('keydown', onEscape, true);
   onReady?.({ show });
-  return () => window.removeEventListener('keydown', onShortcut);
+  return () => {
+    window.removeEventListener('keydown', onShortcut);
+    window.removeEventListener('keydown', onEscape, true);
+  };
 });
 
 function show(): void {
-  if (dialog.open) return;
+  if (open) return;
   const activeElement = document.activeElement;
   returnFocusTo =
     activeElement instanceof HTMLElement && activeElement !== document.body
       ? activeElement
-      : (externalTrigger ?? trigger ?? null);
+      : (externalTrigger ??
+        trigger ??
+        document.querySelector<HTMLElement>(
+          '[data-testid="command-palette"] button[aria-haspopup="dialog"]'
+        ));
   query = '';
   activeIndex = 0;
   status = '';
   open = true;
-  dialog.showModal();
-  requestAnimationFrame(() => input.focus());
+  requestAnimationFrame(() => input?.focus());
 }
 
 function close(): void {
-  if (dialog.open) dialog.close();
   open = false;
-  const target = returnFocusTo;
+  const target =
+    [returnFocusTo, externalTrigger, trigger].find(
+      (candidate): candidate is HTMLElement => candidate?.isConnected === true
+    ) ?? document.querySelector<HTMLElement>('header button[aria-haspopup="dialog"]');
   returnFocusTo = null;
-  // Let the browser finish native <dialog> focus restoration before overriding it.
-  requestAnimationFrame(() => {
-    if (target?.isConnected) target.focus({ preventScroll: true });
-  });
+  // The dialog focus trap releases focus after the closing transition.
+  setTimeout(() => {
+    if (target?.isConnected) {
+      target.focus({ preventScroll: true });
+    }
+  }, 250);
 }
 
 function handleInputKeydown(event: KeyboardEvent): void {
@@ -181,10 +198,8 @@ async function run(action: PaletteAction): Promise<void> {
     return;
   }
 
-  const current = document.documentElement.dataset.theme;
-  const preferred = readThemeChoice();
-  const dark = current === 'dark' || (current !== 'light' && preferred === 'dark');
-  applyTheme(dark ? 'light' : 'dark');
+  const dark = document.documentElement.dataset.txMode === 'dark';
+  applyThemeMode(dark ? 'light' : 'dark');
   status = `Switched to ${dark ? 'light' : 'dark'} theme.`;
 }
 </script>
@@ -195,37 +210,26 @@ async function run(action: PaletteAction): Promise<void> {
   data-hydrated={hydrated}
 >
   {#if !externalTrigger}
-  <button
-    bind:this={trigger}
+  <Button variant="outline"
+    bind:ref={trigger}
     type="button"
     class="inline-flex h-9 items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-sm text-muted hover:bg-surface-2 hover:text-fg sm:px-3"
     aria-haspopup="dialog"
     aria-label="Open command palette (Command or Control K)"
     onclick={show}
   >
-    <Search size={15} aria-hidden="true" />
+    <Icon icon="search" size={15} aria-hidden="true" />
     <span class="hidden sm:inline">Search</span>
     <kbd class="rounded border border-line bg-bg px-1.5 py-0.5 font-mono text-[10px] text-muted">⌘K</kbd>
-  </button>
+  </Button>
   {/if}
 
-  <dialog
-    bind:this={dialog}
-    aria-label="Command palette"
-    class="fixed top-[10vh] m-auto max-h-[80vh] w-[calc(100%-2rem)] max-w-xl overflow-hidden rounded-xl border border-line bg-surface p-0 text-fg shadow-2xl backdrop:bg-black/45"
-    oncancel={(event) => {
-      event.preventDefault();
-      close();
-    }}
-    onclose={() => (open = false)}
-    onclick={(event) => {
-      if (event.target === dialog) close();
-    }}
-  >
+  <Dialog bind:open title="Command palette" hideClose size="lg" onOpenChange={(nextOpen) => { if (!nextOpen) close(); }} class="fixed top-[10vh] m-auto max-h-[80vh] w-[calc(100%-2rem)] max-w-xl overflow-hidden rounded-xl border border-line bg-surface p-0 text-fg shadow-2xl">
+    {#snippet children()}
     <div class="flex items-center gap-3 border-b border-line px-4">
-      <Search size={18} class="shrink-0 text-muted" aria-hidden="true" />
-      <input
-        bind:this={input}
+      <Icon icon="search" size={18} class="shrink-0 text-muted" aria-hidden="true" />
+      <Input
+        bind:ref={input}
         id="gallery-command-input"
         type="text"
         role="combobox"
@@ -282,6 +286,7 @@ async function run(action: PaletteAction): Promise<void> {
       <span>↑ ↓ to navigate · Enter to run</span>
       <span>Searches prototypes and templates</span>
     </div>
-  </dialog>
+    {/snippet}
+  </Dialog>
   <span class="sr-only" role="status" aria-live="polite">{status}</span>
 </div>

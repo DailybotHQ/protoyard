@@ -1,345 +1,145 @@
 # @protoyard/decks-ui
 
-The Svelte 5 renderer for [`@protoyard/decks`](../decks/README.md)
-([ADR-038](../../docs/DECISIONS.md)). It ships one component, `DeckApp`. The
-player's deck entry and generated deck prototypes both mount it, so a deck
-renders the same at both levels. The presenting surfaces each have their own
-lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
+The deck host for Protoyard ([ADR-038](../../docs/DECISIONS.md)): `DeckApp`,
+the one deck component the player's deck entry and generated deck prototypes
+mount. Decks are presented by the [`@texuli/slides`](../../../texuli/packages/slides/README.md)
+stage (`DeckStage`, Texuli ADR-009): the fixed canvas, `#/<slide-id>/<step>`
+routes, keys, touch, the toolbar (below the slide at the inline end), slide
+list, overview, presenter view and window, blackout, laser, help, copy link,
+first-visit hint, full screen, transitions and print are the stage's.
+DeckApp adds what is Protoyard's own:
 
-> **Status:** the canvas, layout renderers, `DeckApp` (with overview, presenting tools,
-> print and lazy presenter), the print surface and Deck Studio are available. **S** / **P**
-> open the presenter (popup when allowed, otherwise an in-page split).
+- the Protoyard deck shape, migrated to the deck model and validated by
+  `@texuli/deck` (`checkProtoyardDeck`);
+- Protoyard themes, palette seeds and font pairings (`loadTheme` through
+  `@protoyard/decks/style`), and `mode` (`light`/`dark`) as the host
+  `data-tx-mode`;
+- free slides painted by `@protoyard/blocks-ui`, so interactive blocks keep
+  their state in the host's `stateHost`, `embed-app` mounts through the host's
+  `mountEmbed`, votes use the host's `viewerId`, and Protoyard-only blocks
+  (poll, quiz, calculator, form, flow, terminal, embed-app…) render;
+- the generated deck's custom slides (`customSlides`);
+- the "Debug for agents" panel (`D` and a toolbar button), Deck Studio, and the
+  print page for `?print=1` and the browser's own print (Ctrl/Cmd+P).
 
 ## Subpaths
 
-| Subpath | Exports | Status |
-| --- | --- | --- |
-| `@protoyard/decks-ui` | `fitDeckCanvas(container, canvas)` returns `{ scale, offsetX, offsetY }`: a letterboxed scale-to-fit, with scale 0 until the container has a size. Also the `DeckCanvasFit` type. | available |
-| `@protoyard/decks-ui/app` | `DeckApp`: canvas, layouts, hash navigation, guarded input, step chrome, presenting tools (blackout, full screen, laser, copy reference, keyboard help), print, aria-live, lazy overview (`O`), lazy presenter (`S`/`P`) | available |
-| `@protoyard/decks-ui/layouts` | `DeckLayoutRenderer` and `loadLayoutRenderer(layoutId)`: validated catalog rendering through lazy text, media, data and diagram families | available |
-| `@protoyard/decks-ui/presenter` | Presenter window over `BroadcastChannel`, with an in-page split fallback (notes, timers, next slide). Loaded only when opened. | available |
-| `@protoyard/decks-ui/print` | Print and PDF, one slide per page (`DeckPrint`, `PrintButton`, `print.css`) | available |
-| `@protoyard/decks-ui/studio` | Deck Studio: `createDeckStudio`, `deckStudioTab`, a lazy DevTools tab that edits the deck live and exports RFC 6902 patches | available |
-
-`DeckCanvas` is the internal slide viewport used by the app subpath. It keeps
-slide layout in virtual canvas pixels (1280×720, 1024×768, 720×1280 or
-1080×1080), scales the canvas to its container with `ResizeObserver`, and
-mounts only the active slide and its immediate neighbors. CSS centers the
-canvas, so image decoding does not change its alignment.
-
-`DeckLayoutRenderer` consumes one `@protoyard/decks` layout id and its props,
-validates the props against the layout's schema, and renders that layout's own
-slide composition from a lazy family chunk (text, media, data, diagram). Every
-composition is a `<section data-py-deck-layout data-py-deck-design>` on the
-slide stage. Plain props (titles, labels, numbers) render as text nodes.
-Markdown bodies, icons, images, video, avatars, code and charts go through
-validated `@protoyard/blocks` blocks, so media policy and safe Markdown stay in
-one place. Free slides render their blocks, with a leading heading promoted to
-the slide title. Interactive, data and code block roots carry the deck input
-guard attribute so their controls do not advance the presentation. See
-"Slide design" below and [docs/DECKS.md](../../docs/DECKS.md#slide-design).
-
-The root never statically imports a subpath; `tests/package-shape.test.ts`
-enforces it.
+| Import | What it provides |
+| --- | --- |
+| `@protoyard/decks-ui` | `fitDeckCanvas` (the engine's canvas fit) and its `DeckCanvasFit` type. |
+| `@protoyard/decks-ui/app` | `DeckApp` and the custom slide types (`CustomSlideProps`, `CustomSlideComponent`, `CustomSlideLoader`, `CustomSlideRegistry`). |
+| `@protoyard/decks-ui/layouts` | `CustomSlideHost`, `customSlideLoader`, `frozenCopy` and the custom slide types. The 20 catalog layouts render on the stage (`@texuli/slides/layouts`). |
+| `@protoyard/decks-ui/studio` | Deck Studio: `createDeckStudio`, `deckStudioTab`, `prefixDeckPatch`. |
+| `@protoyard/decks-ui/debug` | `DeckDebugPanel`, `BlockOutline`, `deckDebugAvailable`, `debugQueryOn`, `isDevBuild`, `deckFileName`, `downloadText`, `inertJson`. |
+| `@protoyard/decks-ui/styles.css`, `./player.css` | The blocks styles (Tailwind sources) for free slides, custom slides and the debug panel. DeckApp imports `@texuli/slides/styles.css` itself. |
 
 ## DeckApp
 
-```ts
-import { DeckApp } from '@protoyard/decks-ui/app';
-import type { Deck } from '@protoyard/decks';
+| Prop | Default | What it does |
+| --- | --- | --- |
+| `deck` | required | A deck that passed `DeckSchema` |
+| `syncHash` | `true` | Keep `#/<slide-id>/<step>` in the URL and follow it |
+| `autofocus` | `true` | Focus the active slide on mount |
+| `namespace` | `deck` | Presenter channel, view transitions and the first-visit hint |
+| `mode` | `light` | The deck theme's mode (decks default to light for stable exports) |
+| `fit` | `viewport` | `viewport` takes the app height (`h-app`); `container` fills a sized parent |
+| `debug` | `auto` | The debug panel: `auto` in dev builds or with `?debug=1`, `on`, `off` |
+| `debugSource` | `null` | Where the deck came from, for the agent reference |
+| `customSlides` | — | A generated deck's `src/custom-slides.ts` registry |
+| `resolveAvatar` | — | Library avatar id → URL (`avatarUrl` from `@protoyard/renderer-svelte`) |
 
-// player entry and generated deck prototypes both mount the same component
-```
+The wrapper keeps `data-py-deck-app`, `data-slide-id` and `data-slide-step`
+(they follow the stage's controller, including a deep link's first position),
+`data-presenter`, `data-py-deck-theme`, `data-py-deck-mode` and
+`data-py-deck-motion` for devtools and e2e. The stage uses the `developer` URL
+tier: every deck reaching DeckApp passed Protoyard's stricter offline media
+policy, which allows bounded `data:` images the untrusted tier refuses. A
+followed hash past a slide's last step is rewritten to that step.
 
-```svelte
-<script lang="ts">
-  import { DeckApp } from '@protoyard/decks-ui/app';
-  let { deck }: { deck: import('@protoyard/decks').Deck } = $props();
-</script>
+### Free slides
 
-<DeckApp {deck} />
-```
+The stage validates free-slide blocks with `@texuli/blocks`, which does not
+know Protoyard's block vocabulary, so DeckApp hands each free slide to the
+stage as a host (`custom`) slide with the same step count (its own step
+labels, then "Step n") and paints the original blocks with
+`@protoyard/blocks-ui` (`app/FreeSlide.svelte`). Reveals use the stage's step
+machinery (`createDeckStepContext` over the model's step table of the
+original slide), so fragments carry `data-tx-deck-fragment` and animate with
+the stage's styles; code highlights move per step. A leading unstepped
+heading is the slide title; the blocks zoom down to fit the canvas.
+The stage's `--tx-*` theme tokens feed Protoyard's blocks inside the slide, so
+blocks follow the deck theme and the background's text color.
 
-`DeckApp` takes a validated deck and composes:
+### Custom slides
 
-- `DeckCanvas` (virtual canvas + neighbor mount)
-- `DeckLayoutRenderer` per slide (catalog + free)
-- pure `createDeckNavigator` with `slidePositionCount` (step 0 plus every step, so the last one is reachable) and `#/<id>/<step>` hash sync
-- step reveals: stepped blocks and catalog items stay laid out but hidden, `inert` and `aria-hidden` until their step, then animate in; code highlights move per step (see [Steps on screen](#steps-on-screen))
-- guarded keyboard, click and swipe via `decideDeckInput` / `inputPathFrom`
-- progress bar and slide-number chrome (`data-py-deck-chrome`)
-- `aria-live` announcements (`Slide n of N`) and `aria-roledescription="slide"`
-- presenting tools: blackout, full screen, laser, copy slide reference and keyboard help (see below)
-- lazy overview grid (see below)
-- **S** / **P** opens the presenter (lazy chunk): popup when allowed, otherwise an in-page split with notes, timers and next slide
-- print: `?print=1` (optional `&notes=1`), chrome **Print** button, Ctrl/Cmd+P
-  / `beforeprint` swap to `DeckPrint` (one page per non-hidden slide, all steps
-  revealed, `@page` size = virtual canvas, `print-color-adjust: exact`)
-
-Root attribute: `data-py-deck-app`. Set `syncHash={false}` to own the hash yourself.
-
-### Steps on screen
-
-Each slide is wrapped in `SlideStepHost`, which gives its blocks the current
-step through the blocks-ui host (`fragment` and `codeHighlight` callbacks) and
-gives catalog layouts a `getPropSteps()` reader.
-
-- **Blocks:** `BlockRenderer` (and `columns`) wrap a block that has a `step`
-  in a `data-py-fragment="hidden|shown"` box. Hidden boxes are `invisible`,
-  `inert` and `aria-hidden`, so they keep their space and screen readers skip
-  them until their step. `fade-up` rises 0.6 em; `grow`, `highlight` and
-  `strike` switch on at their step.
-- **Catalog items:** cards, process steps, timeline events, comparison rows
-  and split sides carry `data-py-fragment-kind="prop"`; `SlideFrame` styles
-  them the same way. `DeckLayoutRenderer` strips `step`, `fragment` and
-  `reveal` from catalog props before the strict layout schema reads them.
-- **Code:** highlight `i` of a block at step `s` shows from authored step
-  `s + i`, mapped to the slide's dense steps.
-- **Motion:** 500 ms transitions, off under `prefers-reduced-motion` and when
-  the deck root has `data-py-deck-motion="none"` (`style.motion: none`).
-- **Whole-slide views:** overview thumbnails, print pages and the presenter's
-  next-slide preview render each slide at its last step; the slide before the
-  current one is mounted at its last step.
-- **Styles:** `@protoyard/decks-ui/styles.css` imports
-  `@protoyard/blocks-ui/styles.css`, so a deck that imports only the decks-ui
-  stylesheet still gets the block and reveal classes.
-  `@protoyard/decks-ui/player.css` keeps those block styles and scans only the
-  app, layout, chrome, style, overview and print sources; it omits Studio and
-  presenter-only utilities for compact deck player hosts.
-
-### Stage and chrome
-
-- **Height.** DeckApp is a column that takes the app height (`h-app`: the
-  window, or the device screen inside a shell frame). Pass `fit="container"`
-  to fill a parent the host has already sized instead.
-- **Stage.** The stage (`data-py-deck-stage`) takes the space the chrome row
-  leaves and letterboxes in the theme's `muted` token. The virtual canvas
-  (1280×720 for 16:9, 1024×768 for 4:3, 720×1280 for 9:16, 1080×1080 for
-  1:1) is out of the flow,
-  translated to the fitted offsets and scaled, so it is centered and fully
-  visible at every aspect (16:9, 4:3, 9:16, 1:1) and viewport. A
-  `ResizeObserver` refits it on resize and orientation changes, with no
-  transition.
-- **Chrome row.** Progress, the slide counter and the presenting tools are a
-  row of their own below the stage (`data-py-deck-chrome-root`). They never
-  cover a slide, and on phones the progress bar takes its own line. In full
-  screen the chrome is hidden and the stage takes the whole screen.
-- **DevTools offset.** While the deck owns the viewport it publishes the
-  chrome row's height as `--py-devtools-offset` on `:root`, so the DevTools
-  launcher sits above the deck's tools. The property is removed on unmount and
-  not set at all with `fit="container"`.
-- **Presenter preview.** `DeckSlidePreview` (`./canvas`) renders one slide
-  with the same renderer and frame, scaled to its width, inert and hidden from
-  assistive tech. The presenter's Next panel uses it.
-
-### Deck style
-
-`deck.style` is applied by `DeckStyleState` (`./style`), which DeckApp creates.
-It loads the **style kit** lazily (`style/kit.ts`, which holds the theme
-resolution, the palette engine, the library-theme catalog and the background
-resolver). The resolved theme variables go on the DeckApp root
-(`data-py-deck-theme`, `data-py-deck-mode`, `data-py-deck-style="pending|ready|error"`),
-never on `<html>`.
-
-- **Slide frames.** `DeckSlideFrame` paints each slide in the canvas, overview
-  and print views with `slide.background ?? style.background`, the text tokens
-  that keep it at AA, and the footer (slide number, logo, footer text).
-- **Base aliases.** `--font-heading`, `--color-border` and the other base-layer
-  aliases are re-declared on the deck root and on each frame, so headings,
-  body text and default borders follow the deck's theme.
-- **Standalone print.** `DeckPrint` resolves the style itself when it is used
-  without DeckApp.
-- **Mode.** `mode` is `light` by default, or `dark`.
-- **Warnings.** Unknown themes and font pairings fall back with a status note
-  (`data-py-deck-style-warning`).
+`layout: "custom"` slides run the generated deck's own component
+(`CustomSlideHost`): `{ slide, step, stepCount, data }` as frozen copies,
+errors kept on the slide, clicks never advance the deck. The player (no
+registry) and the stage's thumbnails, presenter previews and print show a
+labelled card and never run owned code.
 
 ### Keyboard shortcuts
 
-Generated from `DECK_KEY_BINDINGS`, the input guard's own table, which the in-app help dialog also
-reads:
+Generated from `DECK_KEY_BINDINGS` (the engine's registry, which the stage's
+help dialog also reads). With the debug panel available, `D` toggles it and
+`Esc` closes it first.
 
 <!-- key-bindings:start (generated by packages/decks/tests/readme-sync.test.ts) -->
 | Keys | Action | What it does |
 | --- | --- | --- |
-| `→`, `↓`, `Page Down`, `Space` | `next` | Next step or slide |
-| `←`, `↑`, `Page Up`, `Shift + Space` | `prev` | Previous step or slide |
+| `←`, `↑`, `Page Up`, `Shift + Space`, `Backspace` | `prev` | Previous step or slide |
+| `→`, `↓`, `Page Down`, `Space`, `Enter` | `next` | Next step or slide |
 | `Home` | `first` | First slide |
 | `End` | `last` | Last slide |
-| `O` | `overview` | Overview of all slides |
-| `S`, `P` | `presenter` | Presenter view |
+| `O`, `Esc` | `overview` | Overview of all slides |
 | `F` | `fullscreen` | Full screen |
-| `B`, `.` | `blackout` | Black out the screen |
-| `L` | `laser` | Laser pointer |
-| `?` | `help` | Keyboard shortcuts |
+| `Esc` | `fullscreen-exit` | Leave full screen |
+| `S`, `P` | `presenter` | Presenter view |
+| `B`, `.`, `Esc` | `blackout` | Black out the screen |
+| `L`, `Esc` | `laser` | Laser pointer |
 | `Ctrl + P`, `⌘ + P` | `print` | Print, one slide per page |
-| `Esc` | `overview` | Close the overview, help, blackout or laser |
+| `?`, `Esc` | `help` | Controls and shortcuts |
 <!-- key-bindings:end -->
 
-Clicking slide content advances. A touch or pen swipe left or right moves next or previous: at least
-50 px, mainly horizontal, under 800 ms. Clicks and swipes on links, controls, media, interactive blocks
-and the chrome never advance (see the input guard in `@protoyard/decks`). The `presenter` action
-(`S`, `P`) opens the lazy presenter host: a popup when allowed, otherwise an in-page split
-with notes, timers and the next slide (see `@protoyard/decks-ui/presenter`).
+### Debug for agents (`D`)
 
-### Overview grid (O)
+In dev builds, with `?debug=1` or `debug="on"`, the stage's toolbar gains a
+"Debug for agents" button (`data-py-deck-tool="debug"`) and `D` toggles the
+panel (`data-py-deck-debug`): the slide record, its checks, outlines, and
+copy/download actions. It loads on its own chunk (under 12 KB gzip,
+`tests/debug-panel.test.ts`).
 
-Press **O** to open a lazily loaded overview (`src/overview/`). Thumbnails use
-the same `DeckLayoutRenderer` with the final step visible so fragments are not
-hidden. The grid is windowed (only nearby thumbs mount) for large decks. Arrow
-keys move the selection, **Enter** / click opens that slide **once**, **Esc**
-closes without changing the slide. The input guard already ignores click-to-advance
-while the overview is open or closing, so a thumbnail never double-advances.
+## Print
 
-### Presenting tools
-
-Each tool is a key and a real, named button in the chrome toolbar (`src/chrome/`). Toggles
-report `aria-pressed`, and the help button reports `aria-expanded`:
-
-| Key | Button | What it does |
-| --- | --- | --- |
-| `B` or `.` | Black out the screen | A black screen over everything. The screen itself is a button: a click, `B` or `Esc` brings the slide back, and never advances the deck. |
-| `F` | Full screen | Puts the deck root in browser full screen with every piece of chrome hidden (progress, slide number, toolbar). `F` or `Esc` leaves. The button is not rendered where the browser has no Fullscreen API. |
-| `L` | Laser pointer | A red dot that follows the pointer (and replaces the cursor) until `L` or `Esc`. While it is on, clicks do not advance. |
-| — | Copy slide reference | Copies `<title> · <slide-id> · #/<id>/<step>`: the slide title (else the deck title) and the deep link to the exact step. Uses the Clipboard API with an `execCommand` fallback, and announces "Slide reference copied" or "Could not copy the slide reference". |
-| `?` | Keyboard shortcuts | A dialog generated from `DECK_KEY_BINDINGS` (the input guard's own table), so it can never drift from the keys. It focuses Close, and `Esc` or `?` closes it. |
-
-The level-1 entry calls the Fullscreen API directly. A level-2 prototype that also wants the
-renderer's frame handling can call `enterFullScreen` / `exitFullScreen` from the renderer. The
-helpers (`slideReference`, `copyText`, `toggleFullscreen`, `fullscreenAvailable`,
-`onFullscreenChange`) and the components live in `src/chrome/index.ts`. They add about 2.4 KB
-gzip to the DeckApp entry. With print and the lazy overview also merged, the entry measured
-78,501 B gzip on 2026-10-22: a Vite build of `@protoyard/decks-ui/app`, excluding CSS and
-themes. Overview, studio and presenter code is not in that first chunk.
-
-## Print (`./print`)
-
-```ts
-import { DeckPrint, PrintButton, parseDeckPrintFlags } from '@protoyard/decks-ui/print';
-```
-
-`DeckPrint` renders every non-hidden slide at `deckCanvasSize(aspect)` with
-`--py-deck-step` set to the final step so fragments are all visible. The
-stylesheet declares `@page { size: var(--py-deck-print-width) var(--py-deck-print-height) }`
-and `break-after: page`. Speaker notes render under each page when `notes` is
-true. Visual PDF QA belongs to SITE_QA; this package proves DOM and CSS structure
-(`pnpm vitest run packages/decks-ui/tests/print.test.ts`).
-
-## Untrusted content
-
-Deck strings (titles, props, notes) render as text. decks-ui has no `{@html}`, `innerHTML`,
-`insertAdjacentHTML`, `document.write`, `eval` or `new Function`. Load decks from outside with
-`loadUntrustedDeck` from `@protoyard/decks`. `tests/hostile-render.test.ts` renders script-, image-
-and iframe-shaped strings and checks that no element, event handler or request comes out of them.
+The stage's Print button opens `?print=1`, where DeckApp renders the stage's
+print view (`DeckPrintView` from `@texuli/slides/export`): one page per
+visible slide, notes with `&notes=1`. The browser's own print (Ctrl/Cmd+P)
+mounts the same view for paper (it loads while the browser is idle after the
+deck opens). PPTX export is available from `@texuli/slides/export`; no
+Protoyard UI calls it yet.
 
 ## Deck Studio
 
-```ts
-import { createDeckStudio, deckStudioTab } from '@protoyard/decks-ui/studio';
-
-const studio = createDeckStudio(deck);          // in-memory edits over the source deck
-// Render <DeckApp deck={studio.preview} /> so edits show live, then:
-await mountPrototype({ definition, App, target, devtoolsTabs: [deckStudioTab(studio)] });
-const stop = studio.followHash();               // slide controls follow #/<slide-id>/<step>
-```
-
-The **Deck** tab edits the following:
-
-- **Deck style:** theme or palette seed (choosing one removes the other), font pair, aspect, motion,
-  background preset, slide numbers and progress position.
-- **The current slide:** layout, background, transition and hidden.
-  - Layout choices are only the catalog layouts whose props schema already accepts the slide's
-    content (`compatibleLayouts`), so switching never drops content; a free slide stays free.
-
-**Export.** The panel shows the edits as an RFC 6902 JSON Patch for the **source** deck JSON
-(`studio.patch`), with **Copy patch** and **Download patch**. If the clipboard is blocked, as in some
-artifact sandboxes, the patch is selected so you can copy it yourself.
-
-- Every slide edit starts with a `test` on the slide id, so the patch refuses to apply to a deck
-  whose slides moved.
-- Applied to the source, the patch gives exactly `studio.preview`. That is validated with `DeckSchema`
-  and tested against the blueprint package's independent applier, so `quick iterate` can apply it.
-- Edits stay in memory: the studio never writes tables or files.
-
-**Bundle.** The panel is a lazy chunk, loaded only when the tab opens; it measured 3,141 B gzip on
-2026-10-22. `createDeckStudio` itself (the patch engine and the theme and font lists) loads with
-whatever creates it, so create the studio only when DevTools is on.
+A lazy DevTools tab that edits the deck style and the current slide with a
+live preview and exports RFC 6902 patches (`@protoyard/decks/patch`).
 
 ## Measured numbers
 
-All gzip level 9 (Node 26.11.1, Vite 8.3.4):
-
-| What | Measured | Gate | Where |
-| --- | --- | --- | --- |
-| `@protoyard/decks-ui/app` initial JS | 81,979 B (2026-10-22, with step reveals; 80,893 B before them) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
-| Deck style kit (lazy chunk: style resolution, library catalog, palette engine, backgrounds) | about 20 KB (2026-10-22) | not in the initial graph | `tests/budget.test.ts` |
-| All CSS emitted with it | 1,681 B (2026-10-22) | ≤ 20 KB | `tests/bundle-size.test.ts` |
-| Deck Studio panel (lazy chunk) | 3,141 B (2026-10-22) | — | measured with a Vite probe build |
-| 200-slide deck: parse + first render (happy-dom) | 50–142 ms over six runs | < 1 s | `tests/large-deck.perf.test.ts` |
-| 200-slide deck: one next or previous step, median | 0.27–0.39 ms over six runs | < 16 ms (median and p95) | `tests/large-deck.perf.test.ts` |
-| Slides in the DOM at once | 2–3 | ≤ 3 | `tests/large-deck.perf.test.ts` |
-
-- **Lazy surfaces:** layout families, the overview, print and studio code all stay out of the app's
-  first chunk; `tests/bundle-hygiene.test.ts` guards that.
-- **More detail:** `docs/PERFORMANCE.md` has the full deck sections.
+`tests/bundle-size.test.ts` builds the `./app` entry in production
+(2026-10-28): 129,079 B gzip initial JavaScript (cap 135,500 B; it was
+96,068 B with Protoyard's own stage), 6,921 B first-screen CSS (cap 7,300 B)
+and 72,999 B of all emitted CSS (cap 76,650 B), most of it lazy stylesheets of
+the stage's default component registry, which Protoyard decks never load.
+The debug panel chunk is 11,179 B gzip.
 
 ## Known limits
 
-- **Presenter popups may be blocked.** Artifact sandboxes and many browsers block `window.open`.
-  When the popup fails or `BroadcastChannel` is missing, `S` / `P` fall back to an in-page split
-  presenter (notes, timers, next slide) and never require the popup.
-- **No remote media at level 1.** Images and video come only from the deck (relative paths), bounded
-  `data:` URIs or library avatars, matching the player and artifact CSP. There are no iframe
-  backgrounds.
-- **Studio state is not lazy.** `createDeckStudio` loads with whatever creates it. Create it only when
-  DevTools is on.
-- **Some measurements are happy-dom only.** The 200-slide timings have no layout or paint; real
-  browser timings belong to the site's QA budgets.
-
-## Slide design
-
-The type scale (`src/layouts/design/scale.ts`) is in virtual-canvas pixels and
-follows the stage width through container query units. Every step clamps to the
-deck text minimums (24 px body, 18 px labels):
-
-| Step | On a 1280 px stage | Used for |
-| --- | --- | --- |
-| `display` | 96 px (56–112) | cover, divider and closing titles |
-| `stat` | 192 px (96–220) | the big-stat number |
-| `title` | 54 px (40–60) | content slide titles |
-| `quote` | 56 px (36–60) | pull quotes |
-| `lead` | 33 px (28–36) | subtitles, stat labels, card and step headings |
-| `body` | 27 px (24–28) | body copy |
-| `label` / `caption` | 19 px (18–20) | eyebrows and meta / captions, sources, credits |
-
-Compositions per layout:
-
-| Layout | Composition |
-| --- | --- |
-| `title-hero` | accent bar, display title, lead subtitle, meta label, soft primary glows |
-| `section-divider` | primary edge band and wash, eyebrow, display title, rule |
-| `two-column-split` | two cards (the second accented) with an arrow between; stacks on 9:16 |
-| `three-column-cards` | three equal cards with icon tiles; stacks on 9:16 |
-| `quote` | pull quote with a large decorative mark and a ruled citation |
-| `closing-cta` | centered display title, lead text, one large pill action, footnote |
-| `image-left` / `image-right`, `video-left` / `video-right` | media bleeds to one edge and crops (`object-fit: cover`); copy on the other side, in reading order |
-| `image-centered` / `video-centered` | framed media stage (`contain`) with title and caption |
-| `image-full-bleed` | cover image with a dark, light or no gradient overlay and its caption |
-| `team-avatars` | grid of centered cards with large ringed avatars (up to four per row) |
-| `big-stat` | dominant stat-scale number, label, context and source |
-| `comparison-table` | room-sized table; yes, no and empty cells as marks with screen reader text |
-| `chart` | chart on a card. Its data table stays behind the chart's own "View as table" toggle even with `showTable`, and a print-only copy goes on paper |
-| `code-with-callout` | code card (stepped highlights kept) beside an accented callout list |
-| `process-steps` | numbered markers joined by connectors (3–5 steps); vertical on 9:16 |
-| `timeline` | events on an axis with markers; six to eight events split into two axes |
-| `free` | the author's blocks under a promoted title |
-
-Content always fits the stage. Titles and copy have line clamps. `fitText`
-steps a title's size down to its floor when it would still hide text, and
-`fitContent` zooms a content area down to a floor of 0.72 when it would overflow
-(`src/layouts/design/fit.ts`). Layouts use theme tokens only (`bg-primary`,
-`bg-card`, `text-muted-foreground`…), so deck themes and dark mode apply, and
-their backgrounds stay transparent for deck backgrounds. Tests:
-`pnpm vitest run packages/decks-ui/tests/layout-design.test.ts`.
+- Free slides cannot use the deck model's masters, `math` blocks or component
+  items; component slides are not part of Protoyard's deck shape yet.
+- The stage always installs its default component registry, so its lazy
+  painter chunks and CSS are emitted into every deck build.
+- Layout strings for assistive tech (comparison "Yes"/"No", chart table
+  caption) are English only (the stage's limit).
 
 ## Install in a workspace prototype
 
@@ -355,8 +155,9 @@ import the styles after Tailwind and the theme/UI styles:
 ```bash
 pnpm vitest run packages/decks-ui
 pnpm vitest run packages/decks-ui/tests/deck-app.test.ts
-pnpm vitest run packages/decks-ui/tests/overview.test.ts
-pnpm vitest run packages/decks-ui/tests/large-deck.perf.test.ts
+pnpm vitest run packages/decks-ui/tests/fragments.test.ts
+pnpm vitest run packages/decks-ui/tests/custom-slides.test.ts
+pnpm vitest run packages/decks-ui/tests/bundle-size.test.ts
 pnpm vitest run packages/decks/tests/readme-sync.test.ts   # this README's keyboard table
 pnpm --filter @protoyard/decks-ui typecheck
 ```

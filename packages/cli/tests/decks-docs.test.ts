@@ -12,8 +12,8 @@ import {
 } from '../../blueprint/src/index.ts';
 import { DECK_BACKGROUND_PRESET_IDS } from '../../decks/src/backgrounds/index.ts';
 import { DECK_TEXT_MINIMUMS } from '../../decks/src/canvas.ts';
-import { DECK_LAYOUT_IDS } from '../../decks/src/layouts/catalog.ts';
-import { DECK_TRANSITIONS, MAX_MOTION_MS } from '../../decks/src/motion/transition.ts';
+import { DECK_LAYOUT_IDS } from '../../decks/src/layouts/index.ts';
+import { DECK_TRANSITIONS, MAX_MOTION_MS } from '../../decks/src/motion/index.ts';
 import { DECK_LIMITS } from '../../decks/src/schema/index.ts';
 import { QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES } from '../src/lib/quick/single-file.ts';
 import { createProgram } from '../src/program.ts';
@@ -56,7 +56,10 @@ describe('docs/DECKS.md', () => {
   });
 
   it('has an example deck that validates and lints without errors or warnings', async () => {
-    const block = /```json\n([\s\S]*?)\n```/.exec(text)?.[1];
+    // The whole example blueprint (the recipes are slides; docs-snippets.test.ts checks them).
+    const block = [...text.matchAll(/```json\n([\s\S]*?)\n```/g)]
+      .map((match) => match[1] ?? '')
+      .find((json) => json.includes('"kind": "deck"'));
     expect(block, 'the guide has a json example').toBeDefined();
     const loaded = await loadUntrustedDocument(block ?? '');
     expect(loaded.success, JSON.stringify(loaded.issues)).toBe(true);
@@ -94,8 +97,8 @@ describe('docs/DECKS.md', () => {
     expect(limits).toContain(
       `${DECK_TEXT_MINIMUMS.bodyPx} px body, ${DECK_TEXT_MINIMUMS.labelPx} px labels`
     );
-    expect(QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES.deck).toBe(2 * 1024 * 1024);
-    expect(limits).toContain('| 2 MiB |');
+    expect(QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES.deck).toBe(2_818_330);
+    expect(limits).toContain('| 2,818,330 B (about 2.69 MiB) |');
   });
 
   it('names every transition, the motion cap and the background count', () => {
@@ -112,8 +115,9 @@ describe('docs/DECKS.md', () => {
     const missing = section('What decks do not do yet');
     for (const topic of [
       // Step reveals and the last step shipped in T-deck-fragments; what remains is listed.
-      'Stepped catalog props outside the item lists do not hide',
-      'custom slide components',
+      'Steps inside a chart do not hide',
+      // Custom slides shipped in T-custom-slides; what remains is their level-1 placeholder.
+      'custom slides run only at level 2',
       'media backgrounds',
       'Heuristics are report-only',
     ]) {

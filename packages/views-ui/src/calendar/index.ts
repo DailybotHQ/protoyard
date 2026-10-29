@@ -1,17 +1,14 @@
 /**
- * `@protoyard/views-ui/calendar` — the calendar view: month, week, day and
- * agenda over `@protoyard/views/calendar` series (with recurrence), keyboard
- * and pointer moves, click-to-create and a recurrence scope dialog. Import
- * this subpath only from a lazy route screen.
+ * `@protoyard/views-ui/calendar` — thin host adapter over `@texuli/data/calendar/view`.
+ * Host types for service write contracts stay local.
  */
-export { default as CalendarView } from './CalendarView.svelte';
+
+export type { CalendarSeries, Occurrence } from '@protoyard/views/calendar';
 export {
-  applyMove,
+  type CalendarLabels,
   type CalendarMode,
-  HOUR_PX,
-  type Move,
-  occurrenceKey,
-  SLOT_MINUTES,
-  slotInstant,
-} from './model.ts';
+  CalendarView as TexuliCalendarView,
+  DEFAULT_CALENDAR_LABELS,
+} from '@texuli/data/calendar/view';
+export { default as CalendarView } from './CalendarView.svelte';
 export type { CalendarChange, CalendarItem, CalendarSlot, CalendarTone } from './types.ts';

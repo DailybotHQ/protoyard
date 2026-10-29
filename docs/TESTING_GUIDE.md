@@ -29,6 +29,8 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Type check one package | `pnpm --filter @protoyard/runtime typecheck` | scoped |
 | Type check one prototype | `pnpm --filter @prototype/crm-demo typecheck` | scoped |
 | All unit + integration tests | `pnpm test` | full |
+| All tests, fewer workers (a loaded machine; same tests) | `PROTOYARD_TEST_WORKERS=4 pnpm test` | full |
+| Wall-clock budgets, serialized (run on a quiet machine) | `pnpm test:perf` (`PROTOYARD_PERF=1`; today the code tokenizer's 50 ms per 20 KB pathological input) | perf |
 | One package or prototype | `pnpm vitest run packages/runtime` | scoped |
 | One file | `pnpm vitest run packages/core/tests/core.test.ts` | scoped |
 | By test name | `pnpm vitest run -t "idempotent"` | scoped |
@@ -39,6 +41,8 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Hosted player: app/deck/page/doc share links, kind-specific ready state, deck navigation and reload at root and base path; paste/share, scenario and persona switch, mutation, axe | `PROTOYARD_E2E_SHOWCASE=1 pnpm exec playwright test tests/e2e/showcase.spec.ts` (run with `PROTOYARD_E2E_SHOWCASE_BASE=/` and `/protoyard/`) | scoped |
 | Deck navigation on the built catalog fixture (hash/steps, keyboard, guarded clicks, overview, fullscreen, swipe, reduced motion; desktop + Pixel 7) | `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-navigation.spec.ts` (port `PROTOYARD_E2E_DECK_PORT`, default 4891) | scoped |
 | Deck presenter, presenting tools and print (popup sync, blocked-popup and no-BroadcastChannel fallback, notes, clock-driven timers, blackout, laser, `?print=1`, PDF one page per slide; desktop + Pixel 7) | `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-presenter.spec.ts` (same deck port) | scoped |
+| Deck chrome controls (full screen enter and leave, print, visible feedback, Debug for agents under `?debug=1`, tooltips and the registry toolbar; desktop + Pixel 7) | `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-controls.spec.ts` (same deck port; the flag is required, naming the spec does not start the server) | scoped |
+| The everything reference deck: every slide of `blueprints/decks/everything.json` under axe, light and dark, desktop + Pixel 7, every step walked, no console error | `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-everything.spec.ts` (same deck port; the flag is required) | scoped |
 | Claude artifact harness: packed app (`artifact-pack.spec.ts`) and packed deck (`deck-artifact.spec.ts`) in an isolated iframe viewer | `pnpm exec playwright test tests/e2e/artifact-pack.spec.ts tests/e2e/deck-artifact.spec.ts` (self-started harness; packs `relay-chat-demo` and `create-anything-deck`) | scoped |
 | Quick loop: brief → quick → serve → ready (axe), per-variant persistence and isolation, compare.html namespaces, a review comment → review/comments.json and REVIEW.md, quick iterate live reload with rows kept, a validation task → quick report, quick shot or its recorded skip (desktop + Pixel 7) | `PROTOYARD_E2E_QUICK=1 pnpm exec playwright test tests/e2e/quick.spec.ts` (ports `PROTOYARD_E2E_QUICK_PORT`, 4878, and the next; rebuilds the player once, `PROTOYARD_E2E_QUICK_PLAYER=prebuilt` skips it) | scoped |
 | Public guides: every allowlisted guide has a source, every link and anchor resolves; with `--built`, every /docs/ route and the search index; with `--sitemap`, every sitemap `<loc>` is a built page | `pnpm exec tsx scripts/check-public-docs.ts [--built apps/gallery/dist] [--sitemap artifacts/showcase]` (after `pnpm build:showcase`: `--built artifacts/showcase --sitemap artifacts/showcase`, which also refuses a noindex page in the sitemap) | scoped |
@@ -119,6 +123,20 @@ Test files join the `--run-tests` selection by name prefix, so an
 integration test with another prefix is not picked up. These files also run
 in `pnpm test`.
 
+### Wall-clock budgets and timeouts
+
+- **Millisecond budgets are perf-only.** An assertion against a millisecond
+  budget depends on machine load, not on code. Guard it with
+  `process.env.PROTOYARD_PERF === '1'` and keep everything else running in
+  the default suite: the code tokenizer still tokenizes every pathological
+  input and checks the output on every run.
+- **The perf run.** `pnpm test:perf` runs those budgets serialized
+  (`--no-file-parallelism`). Run it on a quiet machine, and add a new
+  budgeted file to its script.
+- **Per-test timeouts.** Tests that are slow by nature, but not timed, get a
+  realistic per-test timeout instead of the 5 s default. The block security
+  property test and the `setup.sh --verify` spawn tests use 30 s.
+
 ### CI performance job (`.github/workflows/ci.yml` → `perf`)
 
 On every pull request and push to `main`, the **performance budgets** job
@@ -146,18 +164,50 @@ targets are opt-in through environment variables:
 
 | Variable | Effect | Ports |
 | --- | --- | --- |
-| `PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo` | Build and serve the listed prototypes for prototype and viewport tests | One server per slug from `4401`, in list order |
-| `PROTOYARD_E2E_SHOWCASE=1` | Include the combined gallery + prototype showcase (hosted `/play/` for app, deck, page and doc share links) | `4501`; `PROTOYARD_E2E_SHOWCASE_BASE=/path/` sets its public base |
-| `PROTOYARD_E2E_DECK=1` | Build and serve the catalog deck fixture for `deck-navigation.spec.ts` and `deck-presenter.spec.ts` (also starts when either path is named on the Playwright argv) | `4891`; `PROTOYARD_E2E_DECK_PORT` overrides the port |
+| `PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo` | Build and serve the listed prototypes for prototype and viewport tests | One server per slug from `4401`, in list order (`PROTOYARD_E2E_PROTOTYPE_PORT_BASE` overrides it) |
+| `PROTOYARD_E2E_SHOWCASE=1` | Include the combined gallery + prototype showcase (hosted `/play/` for app, deck, page and doc share links) | `4501` (`PROTOYARD_E2E_SHOWCASE_PORT` overrides it); `PROTOYARD_E2E_SHOWCASE_BASE=/path/` sets its public base |
+| `PROTOYARD_E2E_DECK=1` | Build and serve the catalog deck fixture for `deck-navigation.spec.ts`, `deck-presenter.spec.ts`, `deck-controls.spec.ts` and `deck-everything.spec.ts` (it also starts when `deck-navigation`, `deck-presenter`, `deck-design`, `deck-fragments` or `interaction-sweep` is named on the Playwright argv; `deck-controls` and `deck-everything` need the flag) | `4891`; `PROTOYARD_E2E_DECK_PORT` overrides the port |
 | `PROTOYARD_E2E_DEVTOOLS_PROTOTYPES=mobile-banking-demo` | Also build the listed prototypes WITH DevTools into `tmp/e2e-devtools/<slug>` and serve them, for `tests/e2e/pending-feedback.spec.ts` (the standard builds stay DevTools-free) | One server per slug from `4451` (`PROTOYARD_E2E_DEVTOOLS_PORT_BASE` overrides it) |
 | `PROTOYARD_E2E_REVIEW=1` | Run the review-index page against the checked-in fixture ledger, with no deploy | `4502`; `PROTOYARD_E2E_REVIEW_PORT` overrides the port |
+| `PROTOYARD_E2E_PLAYER=1` | Build the player into `tmp/e2e-player` and serve it, plus the embedder fixture, for the player, marketplace, content-kinds and deck-design specs (also starts when one of those is named on the argv) | `4861` and `4862` (`PROTOYARD_E2E_PLAYER_PORT`, `PROTOYARD_E2E_PLAYER_EMBEDDER_PORT`); the deck-design level-2 prototype on `4892` (`PROTOYARD_E2E_DECK_PROTOTYPE_PORT`) |
 | `PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo` | Build the listed prototypes with `PROTOYARD_REVIEW=1` into `tmp/e2e-comments/<slug>` for `tests/e2e/review-comments.spec.ts`; the first one is also built with the `http` adapter and served with the comments handler on an in-memory store (two reviewers) | One server per slug from `4601` (`PROTOYARD_E2E_COMMENTS_PORT_BASE`); the shared server on `4651` (`PROTOYARD_E2E_COMMENTS_SHARED_PORT`) |
+| `PROTOYARD_E2E_TEMPLATES_A11Y=1` | Render every `templates/*` home screen and run axe in light and dark; serious and critical violations fail | Template Vite server is started and stopped per template on `5551` (`PROTOYARD_E2E_TEMPLATE_PORT` overrides it) |
 
-The gallery uses port `4329`. The standalone CLI `review-index --serve`
-defaults to `4520` (or the next free port); `--strict-port` makes a collision
-an error. Example E2E invocations, including the review-index target, are in
-[tests/e2e/README.md](../tests/e2e/README.md). Run **one E2E session per
-machine at a time** because these web servers use fixed ports.
+The gallery uses port `4329` (`PROTOYARD_E2E_GALLERY_PORT` overrides it). The
+standalone CLI `review-index --serve` defaults to `4520` (or the next free
+port); `--strict-port` makes a collision an error. Example E2E invocations,
+including the review-index target, are in
+[tests/e2e/README.md](../tests/e2e/README.md).
+
+Every web-server port has a `PROTOYARD_E2E_*_PORT` (or `*_PORT_BASE`) override
+with the defaults above; `playwright.config.ts` accepts only a whole number
+from 1024 to 65535. Outside CI, Playwright **reuses a server already listening
+on a port**, so two checkouts on the same defaults test each other's builds.
+To run beside another checkout (another agent or worktree), move every port and
+turn reuse off with `CI=1`:
+
+The opt-in all-template accessibility sweep is intentionally separate from the
+normal prototype audit because it starts a development server for every
+template. Run it with the lane's private gallery port and Chromium project:
+
+```bash
+PROTOYARD_E2E_TEMPLATES_A11Y=1 PROTOYARD_E2E_GALLERY_PORT=5529 \
+  PROTOYARD_E2E_TEMPLATE_PORT=5551 \
+  pnpm exec playwright test tests/e2e/template-a11y.spec.ts --project=chromium
+```
+
+```bash
+CI=1 PROTOYARD_E2E_GALLERY_PORT=5329 PROTOYARD_E2E_SHOWCASE_PORT=5501 \
+  PROTOYARD_E2E_PROTOTYPE_PORT_BASE=5401 PROTOYARD_E2E_DEVTOOLS_PORT_BASE=5451 \
+  PROTOYARD_E2E_REVIEW_PORT=5502 PROTOYARD_E2E_COMMENTS_PORT_BASE=5601 \
+  PROTOYARD_E2E_COMMENTS_SHARED_PORT=5651 PROTOYARD_E2E_PLAYER_PORT=5861 \
+  PROTOYARD_E2E_PLAYER_EMBEDDER_PORT=5862 PROTOYARD_E2E_DECK_PORT=5891 \
+  PROTOYARD_E2E_DECK_PROTOTYPE_PORT=5892 PROTOYARD_E2E_QUICK_PORT=5878 \
+  pnpm test:e2e
+```
+
+`CI=1` also turns on one retry, two workers and the HTML report. Without the
+overrides, run **one E2E session per machine at a time**.
 
 ### Verified scoped runs (evidence, re-measured at the end of the foundation build, 2026-10-17)
 
@@ -188,8 +238,22 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | Source | Tests | Layer |
 | --- | --- | --- |
 | `packages/<pkg>/src/**` | `packages/<pkg>/tests/*.test.ts` | unit / integration |
-| `packages/blocks/src/**`, `packages/blocks-ui/src/**` | `pnpm vitest run packages/blocks packages/blocks-ui` (`chart-paths.test.ts`, `timeline-layout.test.ts`, `security.test.ts`, `a11y-themes.test.ts`) + `npx tsx scripts/blocks-reference.ts --check` + `pnpm vitest run tests/scripts/blocks-reference.test.ts` | unit + render + generated reference |
-| `packages/decks/src/**`, `packages/decks-ui/src/**` | `pnpm vitest run packages/decks packages/decks-ui` (`style-apply.test.ts`, `layout-design.test.ts`, `budget.test.ts`, `presenter.test.ts`) + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test deck-navigation deck-presenter interaction-sweep` | unit + render + opt-in browser |
+| `packages/blocks/src/**`, `packages/blocks-ui/src/**` | `pnpm vitest run packages/blocks packages/blocks-ui` (`interactive-data.test.ts`, `chart-paths.test.ts`, `timeline-layout.test.ts`, `security.test.ts`, `a11y-themes.test.ts`) + `npx tsx scripts/blocks-reference.ts --check` + `pnpm vitest run tests/scripts/blocks-reference.test.ts` | unit + render + generated reference |
+| `packages/blocks-ui/src/data/**` (interactive table sort, filter and highlight; explorable chart) | `pnpm vitest run packages/blocks-ui/tests/interactive-data.test.ts` + `pnpm exec tsx scripts/bench-blocks.ts --check` (data family ≤ 5 KB gzip) | render + family chunk ceiling |
+| `packages/decks/src/**`, `packages/decks-ui/src/**` | `pnpm vitest run packages/decks packages/decks-ui` (`style-apply.test.ts`, `layout-design.test.ts`, `budget.test.ts`, `presenter.test.ts`) + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test deck-navigation deck-presenter deck-controls deck-everything interaction-sweep` | unit + render + opt-in browser |
+| `packages/decks/src/agent/**` (Debug for agents: describe, format and parse a slide reference) | `pnpm vitest run packages/decks/tests/agent-debug.test.ts` | unit |
+| `packages/decks/src/text/safe.ts` (invisible code points, `inertJson`, safe deck paths and share ids) | `pnpm vitest run packages/decks/tests/safe-text.test.ts packages/decks/tests/agent-debug.test.ts packages/player/tests/debug-source.test.ts packages/cli/tests/deck-command.test.ts` | unit + consumers (debug source, `deck inspect`) |
+| `packages/decks/src/input/{controls,decide}.ts` (`DECK_CONTROLS` registry, key decisions, Escape order) | `pnpm vitest run packages/decks/tests/controls.test.ts packages/decks/tests/input.test.ts packages/decks/tests/readme-sync.test.ts` + `pnpm vitest run packages/decks-ui/tests/help.test.ts packages/decks-ui/tests/toolbar.test.ts` | unit + generated README table + consumers |
+| `packages/decks/src/layouts/steppable.ts`, `packages/decks-ui/src/layouts/**` (steps on every catalog prop) | `pnpm vitest run packages/decks/tests/steps-everywhere.test.ts packages/decks-ui/tests/steps-everywhere.test.ts` | unit + render |
+| `packages/decks/src/backgrounds/**`, `packages/decks-ui/src/canvas/DeckMediaBackground.svelte` (image and video slide backgrounds) | `pnpm vitest run packages/decks/tests/media-backgrounds.test.ts packages/decks-ui/tests/media-backgrounds.test.ts` | unit + render |
+| `packages/decks/src/schema` (custom slides), `packages/decks-ui/src/layouts/{CustomSlideHost.svelte,custom-slides.ts}` | `pnpm vitest run packages/decks/tests/custom-slides.test.ts packages/decks-ui/tests/custom-slides.test.ts` + `pnpm protoyard validate create-anything-deck --build` (the flagship's pricing configurator) | unit + render + level-2 build |
+| `prototypes/create-anything-deck/src/slides/**` (the flagship's custom slides) | `pnpm vitest run prototypes/create-anything-deck` + `PROTOYARD_E2E_DECK=1 PROTOYARD_E2E_PROTOTYPES=create-anything-deck pnpm exec playwright test tests/e2e/deck-design.spec.ts` | unit + level-2 E2E |
+| `packages/decks-ui/src/chrome/**` (registry toolbar, More menu, slide jump list, tooltip, full screen, help and first-visit hint, toast, blackout, laser) | `pnpm vitest run packages/decks-ui/tests/toolbar.test.ts packages/decks-ui/tests/chrome.test.ts packages/decks-ui/tests/tooltip.test.ts packages/decks-ui/tests/tooltip-budget.test.ts packages/decks-ui/tests/fullscreen.test.ts packages/decks-ui/tests/help.test.ts packages/decks-ui/tests/feedback.test.ts packages/decks-ui/tests/lazy-chrome.test.ts` + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-controls.spec.ts tests/e2e/deck-presenter.spec.ts` | component + bundle guards + browser E2E |
+| `packages/decks-ui/src/debug/**` (Debug for agents panel, lazy chunk ≤ 12 KB gzip) | `pnpm vitest run packages/decks-ui/tests/debug-panel.test.ts` + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-controls.spec.ts` | component + bundle + browser E2E |
+| `packages/decks-ui/src/{app,chrome,layouts}/**` (first-paint size, idle prefetch) | `pnpm vitest run packages/decks-ui/tests/lazy-chrome.test.ts packages/decks-ui/tests/bundle-size.test.ts packages/decks-ui/tests/large-deck.perf.test.ts` | real-build initial graph + 200-slide timings |
+| `packages/cli/src/commands/deck.ts` (`protoyard deck`) | `pnpm vitest run packages/cli/tests/deck-command.test.ts packages/cli/tests/interface.test.ts packages/cli/tests/skill-cli-reference.test.ts` (a capability-id change also runs `packages/cli/tests/doctor-kinds.test.ts`) | CLI integration |
+| `docs/DECKS.md`, `skills/protoyard/references/decks.md` (agent loop and recipes) | `pnpm vitest run packages/decks/tests/docs-snippets.test.ts packages/cli/tests/decks-docs.test.ts` + `pnpm check:skill` | every recipe parses; skill integrity |
+| `blueprints/decks/everything.json` (the reference deck) | `pnpm vitest run packages/decks/tests/everything-deck.test.ts` + `pnpm protoyard deck lint blueprints/decks/everything.json` + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-everything.spec.ts` (it is also in `tests/e2e/content-kinds-a11y.spec.ts` on the player) | coverage of every layout, block, chart kind and steppable prop + browser walk |
 | `packages/pages/src/**`, `packages/pages-ui/src/**` | `pnpm vitest run packages/pages packages/pages-ui` (`page-design.test.ts`, `doc-design.test.ts`, `budget.test.ts`) | unit + render + bundle |
 | `packages/flows/src/**`, `packages/flows-ui/src/**`, `packages/gamification/src/**`, `packages/gamification-ui/src/**` | `pnpm vitest run packages/flows packages/flows-ui packages/gamification packages/gamification-ui` | unit + render |
 | `packages/blueprint/src/kinds/**` (kind union, untrusted loader, share links, `kinds/parse`) | `pnpm vitest run packages/blueprint/tests/kinds packages/blueprint/tests/identity-golden.test.ts packages/player/tests/kinds-parity.test.ts` | unit + both-level parity |
@@ -257,7 +321,7 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `scripts/bench-player.ts` (ready time by kind) | `pnpm vitest run scripts/tests/bench-player.test.ts`; browser sample: `pnpm --filter @protoyard/player build && pnpm exec tsx scripts/bench-player.ts --runs 3 --kinds app,deck,page,doc` | unit helpers + report-only browser bench (JSON under `tmp/`) |
 | `scripts/sweep-deck.ts`, `scripts/lib/deck-sweep.ts` | `pnpm vitest run scripts/tests/deck-sweep.test.ts`; browser: `pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json` | unit classification + opt-in browser fixture sweep |
 | `packages/decks-ui/src/**` (DeckApp, navigation, input) | `pnpm vitest run packages/decks-ui` + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-navigation.spec.ts` | component + built-catalog browser E2E |
-| `packages/decks-ui/src/{presenter,print,chrome}/**` | `pnpm vitest run packages/decks-ui` + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-presenter.spec.ts` | presenter, tools and print browser E2E |
+| `packages/decks-ui/src/{presenter,print,chrome}/**` | `pnpm vitest run packages/decks-ui` (including `tests/toolbar.test.ts`) + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-controls.spec.ts tests/e2e/deck-presenter.spec.ts` | registry controls, presenter, tools and print browser E2E |
 | `packages/cli` artifact export, packed `page.html` | `pnpm exec playwright test tests/e2e/artifact-pack.spec.ts tests/e2e/deck-artifact.spec.ts` (harness in `tests/e2e/support/artifact-harness.ts`) | opt-in artifact viewer harness (app + deck) |
 | Hosted `/play/` kind share links | `PROTOYARD_E2E_SHOWCASE=1 pnpm exec playwright test tests/e2e/showcase.spec.ts` (fixtures in `tests/e2e/targets.ts` `SHOWCASE_KIND_TARGETS`) | opt-in static showcase E2E for app, deck, page and doc |
 | `packages/cli/src/commands/quick/**`, `packages/cli/src/lib/quick/**` | `pnpm vitest run packages/cli/tests/quick` (every `quick*.test.ts`); focused: `quick-serve.test.ts`, `quick-variants.test.ts` + `quick.test.ts`, `quick-player-assets.test.ts` (its real-build case needs `pnpm --filter @protoyard/player build`) | CLI integration (temporary workspaces) |
@@ -395,6 +459,8 @@ selected by path or by their own harness.
 | Hosted kind showcase | `PROTOYARD_E2E_SHOWCASE=1`; also run with `PROTOYARD_E2E_SHOWCASE_BASE=/protoyard/` | `pnpm exec playwright test tests/e2e/showcase.spec.ts` |
 | Deck navigation | `PROTOYARD_E2E_DECK=1` (or name the spec on argv so the fixture server starts) | `pnpm exec playwright test tests/e2e/deck-navigation.spec.ts` |
 | Deck presenter and print | Same deck server as navigation | `pnpm exec playwright test tests/e2e/deck-presenter.spec.ts` |
+| Deck chrome controls and Debug for agents | `PROTOYARD_E2E_DECK=1` (required) | `pnpm exec playwright test tests/e2e/deck-controls.spec.ts` |
+| The everything reference deck (42 slides, axe, every step) | `PROTOYARD_E2E_DECK=1` (required) | `pnpm exec playwright test tests/e2e/deck-everything.spec.ts` |
 | Artifact harness (app) | Self-started; exports `relay-chat-demo` once under `artifacts/` | `pnpm exec playwright test tests/e2e/artifact-pack.spec.ts` |
 | Artifact harness (deck) | Self-started; exports `create-anything-deck` | `pnpm exec playwright test tests/e2e/deck-artifact.spec.ts` |
 | Deck visual QA sweep | Private loopback port (ephemeral or `--port`); never gallery 4321 / 4500 / 4501 | `pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json` |

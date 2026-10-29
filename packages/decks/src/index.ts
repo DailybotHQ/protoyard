@@ -1,5 +1,15 @@
+/**
+ * `@protoyard/decks`: Protoyard's deck engine, a thin layer over
+ * `@texuli/deck` (Texuli ADR-009). Protoyard keeps its deck shape (the
+ * `deck` body of a `kind: "deck"` blueprint), its offline media policy, its
+ * theme ids, the agent slide references, Deck Studio edits and the deck
+ * sweep; the model, validation, layout catalog, steps, navigation, controls,
+ * presenter protocol, lint and patches come from Texuli.
+ */
 export {
   checkDeckMediaSrc,
+  chooseInk,
+  compositeOver,
   DECK_BACKGROUND_PRESET_IDS,
   DECK_BACKGROUND_PRESETS,
   DECK_GRADIENT_IDS,
@@ -13,6 +23,8 @@ export {
   DeckBackgroundSpecSchema,
   type ResolvedDeckBackground,
   resolveDeckBackground,
+  sampleGradient,
+  worstContrast,
 } from './backgrounds/index.ts';
 export {
   DECK_ASPECTS,
@@ -24,18 +36,34 @@ export {
   isDeckAspect,
 } from './canvas.ts';
 export {
+  availableDeckControls,
   DECK_CHROME_ATTRIBUTE,
+  DECK_CONTROL_CAPABILITIES,
+  DECK_CONTROL_GROUPS,
+  DECK_CONTROL_ICONS,
+  DECK_CONTROLS,
+  DECK_ESCAPE_ORDER,
   DECK_INPUT_ACTIONS,
   DECK_INTERACTIVE_ATTRIBUTE,
   DECK_KEY_BINDINGS,
   DECK_SWIPE_AXIS_RATIO,
   DECK_SWIPE_MAX_DURATION_MS,
   DECK_SWIPE_MIN_DISTANCE,
+  DEFAULT_DECK_CONTROL_ENVIRONMENT,
+  type DeckControl,
+  type DeckControlCapability,
+  type DeckControlEnvironment,
+  type DeckControlGroup,
+  type DeckControlIcon,
+  type DeckControlKey,
   type DeckInputAction,
   type DeckInputEvent,
   type DeckInputState,
   type DeckInputTarget,
+  type DeckKeyBinding,
   decideDeckInput,
+  deckControlFor,
+  deckKeyBindings,
   inputPathFrom,
 } from './input/index.ts';
 export {
@@ -60,13 +88,9 @@ export {
   FRAGMENT_EFFECTS,
   type FragmentEffect,
   type FragmentPhase,
-  type FragmentSource,
   fragmentPhase,
-  isFragmentEffect,
   MAX_MOTION_MS,
-  type MotionContext,
   type MotionLevel,
-  prefersReducedMotion,
   REDUCED_FADE_MS,
   type ResolvedFragmentMotion,
   type ResolvedTransition,
@@ -89,29 +113,30 @@ export {
   type DeckLocation,
   type DeckNavigator,
   type DeckNavigatorOptions,
-  defaultSlideStepCount,
   formatDeckHash,
   parseDeckHash,
-  type SlideStepCountResolver,
+  parseDeckRoute,
   slidePositionCount,
 } from './navigation/index.ts';
 export {
   createBroadcastPresenterTransport,
   createMemoryPresenterTransport,
-  createPresenterLink,
   PRESENTER_MESSAGE_TYPES,
-  type PresenterLink,
-  type PresenterLinkOptions,
   type PresenterMessage,
-  PresenterMessageSchema,
   type PresenterMessageType,
-  type PresenterPosition,
   type PresenterTransport,
   parsePresenterMessage,
   presenterChannelName,
   presenterMessage,
   sanitizeNamespace,
 } from './presenter/index.ts';
+export {
+  checkProtoyardDeck,
+  type DeckDiagnostic,
+  type ProtoyardDeckCheck,
+  type TexuliDeck,
+  toTexuliDeck,
+} from './texuli.ts';
 export {
   DEFAULT_UNTRUSTED_DECK_LIMITS,
   loadUntrustedDeck,

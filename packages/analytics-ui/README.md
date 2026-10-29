@@ -2,7 +2,10 @@
 
 Svelte 5 analytics kit for Protoyard prototypes
 ([ADR-021](../../docs/DECISIONS.md)), built on
-[`@protoyard/analytics`](../analytics/README.md),
+[`@protoyard/analytics`](../analytics/README.md), Texuli 0.5.0 (`texuli/stat`,
+`texuli/date`, `texuli/select`, `texuli/toggle`,
+`@texuli/data/filter-builder`, `@texuli/charts/compact` and
+`@texuli/charts/matrix`),
 [`@protoyard/charts-ui`](../charts-ui/README.md) and `@protoyard/ui`. Each
 view has its own subpath, so a prototype pays only for the views its screens
 import. Nothing here is re-exported from the `@protoyard/ui` barrel.
@@ -57,7 +60,7 @@ entry; every view stays on its subpath.
 <LiveCounter label="Active users" query={activeUsers} />
 ```
 
-- **`KpiTile`** formats the value by unit (`number`, `compact`, `percent` ratios,
+- **`KpiTile`** adapts `texuli/stat` `Kpi` and `@texuli/charts/compact` `Sparkline`, formatting the value by unit (`number`, `compact`, `percent` ratios,
   `cents` = integer cents).
   - The delta comes from `previous`: a signed percentage, or the signed absolute
     change when the previous value is 0.
@@ -69,18 +72,18 @@ entry; every view stays on its subpath.
     tile a drill-down link named by the label and described by the value.
   - `loading` shows a skeleton with `aria-busy`; `empty` shows "—" and a
     message.
-- **`KpiRow`** wraps tiles to fit their container (`auto-fit`, minimum
-  `12rem`): one column in a phone shell, a row on a desktop.
+- **`KpiRow`** adapts `texuli/stat` `KpiRow`; `min` maps to `minItemWidth`
+  (default `12rem`) so the library owns responsive wrapping.
 - **`LiveCounter`** follows a liveQuery result (`query.current`) and never
   writes data; new values arrive from timeline events.
-  - It counts up visually over `duration`, or shows the value at once under
-    reduced motion.
+  - It renders through Texuli `Kpi`, counts up visually over `duration`, or
+    shows the value at once under reduced motion (`data-tx-motion="reduce"`).
   - Its polite live region speaks at most once per `announceEvery` (5 s),
     always with the latest value.
 
-Size (esbuild minify + gzip -9, `svelte` and `@protoyard/ui` external):
-KpiTile with its Sparkline and three Lucide icons is 5.1 KB, or 3.5 KB if
-Lucide is counted as shared with the UI kit. LiveCounter is 1.3 KB.
+KPI number formatting and trend calculation re-export `texuli/stat` directly.
+Lucide glyphs are rendered only through `texuli/icons/lucide`'s `LucideIcon`
+bridge; raw Lucide components are never placed in markup.
 
 ## Filters and segments (`./filters`)
 
@@ -98,7 +101,7 @@ const properties: FilterProperty[] = [
 
 - **`FilterBuilder`:** match All/Any, rows of property / operator / value,
   and nested groups up to three levels deep. Operators follow the property
-  type. Values use native inputs: number, date, true/false, a choice or a
+  type. Values include number, date, true/false, a choice or a
   multi-select for known options, comma-separated text for lists, two
   inputs for "between".
   - "Apply filters" validates against the catalog: unknown properties,
@@ -120,10 +123,14 @@ const properties: FilterProperty[] = [
 **Why not `@protoyard/ui` `FilterBar`?** FilterBar filters list rows by flat
 per-field values (`FilterValues`) for CRUD screens. Analytics filters are
 nested AND/OR trees that are saved as segments and validated against a
-property catalog, so they need this data-first builder. Use FilterBar for
-entity lists and FilterBuilder for analytics queries.
+property catalog, so they need this data-first builder. Texuli's 0.5.0
+`@texuli/data/filter-builder` provides nested groups and conditions, but does
+not yet expose field/operator extension hooks for an analytics property
+catalog (G49). `FilterGroupEditor` is the small Protoyard adapter that supplies
+that catalog and validates segments. Use FilterBar for entity lists and
+FilterBuilder for analytics queries.
 
-Size (esbuild minify + gzip -9; svelte, @protoyard/ui, @protoyard/analytics
+Pre-migration size estimates (esbuild minify + gzip -9; svelte, @protoyard/ui, @protoyard/analytics
 and zod external), each imported from the subpath: FilterBuilder 4.6 KB (5.5 KB
 with the analytics filter code it validates with), SegmentPicker 2.0 KB,
 BreakdownSelect 0.7 KB. Like charts-ui, analytics-ui marks only CSS as
@@ -149,11 +156,10 @@ follows the simulated clock:
   period", opening a `Popover`.
 - **Presets:** today through last month, as `aria-pressed` buttons. Picking
   one emits at once and closes the popover.
-- **Custom range:** a keyboard month grid (`role="grid"`, one tab stop):
-  arrows move by day and week, Home/End go to the week's edges, PageUp and
-  PageDown change month (with Shift, year). Enter picks. Two picks make a
-  span (swapped if picked backwards); "Apply range" emits it. Days after
-  `now` are `aria-disabled`.
+- **Custom range:** the month view is rendered by `texuli/date` `Calendar`.
+  The adapter supplies the simulated maximum and today, week start, selected
+  range highlighting, and the 3,660-day limit. Presets, comparison and Apply
+  behavior remain Protoyard-owned.
 - **Compare to** none, previous period or previous year, and **Group by**
   hour/day/week/month: segmented `aria-pressed` buttons. Granularities that
   do not fit the span (hourly over a year, monthly over a week) are
@@ -165,8 +171,9 @@ follows the simulated clock:
   `MAX_CUSTOM_RANGE_DAYS` (3,660 days), so a shared link cannot request more
   than `MAX_BUCKETS` buckets.
 
-Size (esbuild minify + gzip -9; svelte, @protoyard/ui and zod external):
-4.3 KB, or 4.8 KB with the analytics range code it uses.
+The date adapter consumes Texuli's keyboard-accessible range Calendar and
+keeps only Protoyard's analytics-specific preset, comparison and granularity
+controls around it.
 
 ## Dashboard grid (`./grid`)
 
@@ -205,7 +212,7 @@ inside whatever app shell the prototype uses, not a shell itself.
   feedback), and an Expand button that opens the same content in a large
   dialog (`children` receives `{ expanded }`).
 
-Size (esbuild minify + gzip -9, `svelte` and `@protoyard/ui` external since
+Pre-migration size estimate (esbuild minify + gzip -9, `svelte` and `@protoyard/ui` external since
 prototypes already ship them): `DashboardGrid` + `WidgetCard` 3.6 KB, or
 4.3 KB with the layout engine. Widgets load their chart chunks themselves.
 
@@ -233,9 +240,13 @@ prototypes already ship them): `DashboardGrid` + `WidgetCard` 3.6 KB, or
     steps after it.
 - **`CohortTable`**: a real `<table>` with a caption, `scope="col"` period
   headers, `scope="row"` cohort headers and an average row.
-  - Cells use the sequential ramp (`var(--py-seq-N)`). Text is colored on the
+  It uses `@texuli/charts/matrix` `heatmapFill` for cell fills; its semantic
+  row/period layout and contrast-checked text stay Protoyard-owned. Texuli's
+  cohort API does not yet expose a palette/token override with its contrast
+  guarantees (G51).
+  - Cells use the sequential ramp (`var(--tx-seq-N)`). Text is colored on the
     fill only when it reaches 4.5:1 against that step's hex, read from the
-    theme's `--py-seq-*` (or a `palette` prop). Otherwise the value sits on a
+    theme's `--tx-seq-*` (or a `palette` prop). Otherwise the value sits on a
     surface chip, so contrast never depends on a guess.
   - The % / Count toggle uses `aria-pressed` buttons and is bindable
     (`display`). Incomplete periods are outlined and marked with an asterisk
@@ -249,7 +260,7 @@ prototypes already ship them): `DashboardGrid` + `WidgetCard` 3.6 KB, or
     bindable, and `onstepselect` passes the clicked step on (for example, to
     a `DrillDown`).
 
-Size (esbuild minify + gzip -9; svelte, `@protoyard/ui`, charts and analytics
+Pre-migration size estimates (esbuild minify + gzip -9; svelte, `@protoyard/ui`, charts and analytics
 external): DrillDown 1.3 KB (2.7 KB with its filter code, zod external),
 CohortTable 2.7 KB, FunnelAnalysis 2.0 KB. All are under the 6 KB budget
 beyond the charts they use.

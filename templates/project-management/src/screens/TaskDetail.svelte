@@ -24,6 +24,7 @@ import {
   Skeleton,
   Textarea,
 } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import DueBadge from '../components/DueBadge.svelte';
 import LabelChip from '../components/LabelChip.svelte';
 import PriorityBadge from '../components/PriorityBadge.svelte';
@@ -118,7 +119,7 @@ async function removeComment() {
 </script>
 
 <Button variant="ghost" size="sm" class="-ml-2" onclick={() => back(task.current ? `/projects/${task.current.projectId}` : '/')}>
-  <ArrowLeft class="size-4" aria-hidden="true" />Back
+  <LucideIcon icon={ArrowLeft} class="size-4" />Back
 </Button>
 
 {#if task.loading}
@@ -144,11 +145,11 @@ async function removeComment() {
     {#if editable || deletable}
       <div class="flex shrink-0 gap-2">
         {#if editable}
-          <Button variant="outline" onclick={() => (editOpen = true)}><Pencil class="size-4" aria-hidden="true" />Edit</Button>
+          <Button variant="outline" onclick={() => (editOpen = true)}><LucideIcon icon={Pencil} class="size-4" />Edit</Button>
         {/if}
         {#if deletable}
           <Button variant="ghost" class="text-destructive hover:bg-destructive/10" onclick={() => (deleteOpen = true)}>
-            <Trash2 class="size-4" aria-hidden="true" />Delete
+            <LucideIcon icon={Trash2} class="size-4" />Delete
           </Button>
         {/if}
       </div>
@@ -164,7 +165,7 @@ async function removeComment() {
 
       <section aria-labelledby="comments-heading">
         <h2 id="comments-heading" class="mb-3 flex items-center gap-2 text-sm font-semibold">
-          <MessageSquare class="size-4" aria-hidden="true" />Comments <span class="font-normal text-muted-foreground">{comments.current?.length ?? 0}</span>
+          <LucideIcon icon={MessageSquare} class="size-4" />Comments <span class="font-normal text-muted-foreground">{comments.current?.length ?? 0}</span>
         </h2>
         {#if (comments.current?.length ?? 0) === 0}
           <p class="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">No comments yet.</p>
@@ -178,8 +179,9 @@ async function removeComment() {
                     <span class="font-medium">{name(comment.authorId)}</span>
                     <time class="text-xs text-muted-foreground" datetime={comment.createdAt}>{fromNow(comment.createdAt, clock.now)}</time>
                     {#if can(CAPABILITIES.commentsDelete, comment)}
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         class="ml-auto rounded text-xs text-muted-foreground hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
                         onclick={() => {
                           removingComment = comment;
@@ -187,7 +189,7 @@ async function removeComment() {
                         }}
                       >
                         Delete<span class="sr-only"> comment by {name(comment.authorId)}</span>
-                      </button>
+                      </Button>
                     {/if}
                   </p>
                   <p class="mt-1 text-sm whitespace-pre-wrap break-words">{comment.body}</p>

@@ -1,7 +1,6 @@
 /**
- * `@protoyard/views/files` — a file tree without a framework: children in
- * natural order, breadcrumbs, name and move checks, categories, sizes, and
- * deterministic SVG thumbnails from the id (no network, no blob).
+ * `@protoyard/views/files` — thin re-export of `@texuli/data/files/engine`
+ * (tree, breadcrumbs, names, deterministic thumbnails).
  */
 export {
   breadcrumbs,
@@ -12,8 +11,11 @@ export {
   type FileCategory,
   type FileEntry,
   formatSize,
+  hashId,
   moveProblem,
   nameProblem,
+  type ThumbnailOptions,
+  thumbnailSvg,
+  thumbnailUrl,
   uniqueName,
-} from './model.ts';
-export { hashId, type ThumbnailOptions, thumbnailSvg, thumbnailUrl } from './thumbnail.ts';
+} from '@texuli/data/files/engine';

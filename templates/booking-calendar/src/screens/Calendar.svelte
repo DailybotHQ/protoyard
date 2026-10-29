@@ -1,9 +1,9 @@
 <script lang="ts">
-import { Plus } from '@lucide/svelte';
 import { can, liveQuery, runService, useClock } from '@protoyard/renderer-svelte';
 import { Button, Select } from '@protoyard/ui';
 import type { CalendarSeries } from '@protoyard/views/calendar';
 import { type CalendarChange, type CalendarSlot, CalendarView } from '@protoyard/views-ui/calendar';
+import { Icon } from 'texuli/icons';
 import BookingDetails from '../components/BookingDetails.svelte';
 import BookingDialog from '../components/BookingDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
@@ -103,7 +103,7 @@ const toneOf = (b: Booking | undefined) =>
           const start = new Date(Math.ceil(clock.now.getTime() / 3_600_000) * 3_600_000 + 86_400_000).toISOString();
           draft = { start, end: new Date(Date.parse(start) + 3_600_000).toISOString(), ...(resourceId !== 'all' ? { resourceId } : {}) };
           createOpen = true;
-        }}><Plus class="size-4" aria-hidden="true" />New booking</Button
+        }}><Icon icon="plus" class="size-4" aria-hidden="true" />New booking</Button
       >
     {/if}
   {/snippet}

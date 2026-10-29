@@ -69,6 +69,6 @@ $effect(() => {
     {/if}
   </div>
   <div class="mt-3 flex gap-1" aria-hidden="true">
-    {#each [1, 2, 3, 4, 5] as i (i)}<span class="h-2 flex-1 rounded-full" style:background-color={`var(--py-chart${i})`}></span>{/each}
+    {#each [1, 2, 3, 4, 5] as i (i)}<span class="h-2 flex-1 rounded-full" style:background-color={`var(--tx-chart${i})`}></span>{/each}
   </div>
 </div>

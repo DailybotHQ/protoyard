@@ -2,12 +2,48 @@
 
 The views kit adds focused screens beyond CRUD: boards, calendars, plans,
 large tables, trees, maps, writing, collaboration, files, settings and common
-app states. The implemented engine helpers are framework-free; Svelte components live in
-separate lazy subpaths. Some engine subpaths reserve planned names but have no
-runtime exports yet. Import a view from a lazy route so unused views add
-nothing to initial JavaScript. See the detailed component and engine references
-in [`@protoyard/views-ui`](../packages/views-ui/README.md) and
+app states. Engines are framework-free; Svelte components live in separate
+lazy subpaths. Import a view from a lazy route so unused views add nothing to
+initial JavaScript. See the detailed component and engine references in
+[`@protoyard/views-ui`](../packages/views-ui/README.md) and
 [`@protoyard/views`](../packages/views/README.md).
+
+## Where the views come from
+
+Most rich views are rendered by Texuli's `@texuli/data` package (ADR-044).
+Protoyard keeps the parts that need its runtime:
+
+- **Engines** (`@protoyard/views/<subpath>`): board, calendar, timeline, grid,
+  tree, map, activity and files are thin re-exports of `@texuli/data` engine
+  subpaths. Editor, notifications, settings, states, commands and scenarios
+  stay Protoyard modules.
+- **Texuli view adapters** (`@protoyard/views-ui/<subpath>`): board, calendar, timeline,
+  grid, tree, map, files and activity are thin host adapters over the matching
+  `@texuli/data` component. An adapter maps a `liveQuery` result (`query`) to
+  the component's data prop, wraps it in `QueryState`, and runs mutation
+  callbacks through `runService`. The package also re-exports the matching
+  engines and `@texuli/data/virtual-list`; grid rendering selects
+  `@texuli/data/board`, `calendar/view`, `timeline`, `grid-core`,
+  `grid-editing`, `grid-virtual`, `tree-view`, `map`, `files` and `activity`.
+  Grid filters use `@texuli/data/filter-builder`.
+- **Protoyard-owned behavior:** editor, notifications, settings, states,
+  commands, `CommentThread`, `OutlineEditor` and the grid toolkit
+  (`FilterBuilder`, `SavedViews`, `FilterChips`, `FacetPicker`,
+  `ColumnChooser`, `BulkActionBar`) retain Protoyard's public state/service
+  contracts and use Texuli-backed controls. Markdown preview uses the safe
+  Protoyard Markdown parser; Texuli's `@texuli/blocks/text/renderers` handles
+  ordinary rich text. The source editor keeps Protoyard's mention, reference
+  and slash-command extensions because `@texuli/editor/markdown` does not yet
+  expose extension-node hooks (G48). The grid filter editor uses
+  `@texuli/data/filter-builder`; analytics adds a thin adapter for its
+  property catalog and operator set, which that API does not yet allow hosts
+  to extend (G49). `NotificationCenter` keeps its recipient-scoped rows and
+  mark-read service callbacks; the Texuli inbox API still needs a way to hide
+  mark-unread or accept a separate `onMarkUnread` callback (G50).
+
+Texuli view schemas use `DataSchema` (`parse` / `safeParse`), not zod. The
+mapping table and limits are in
+[TEXULI](TEXULI.md#views-from-texulidata).
 
 ## Choose a view
 
@@ -15,16 +51,14 @@ in [`@protoyard/views-ui`](../packages/views-ui/README.md) and
 | --- | --- | --- |
 | Move work across columns, optionally split by swimlane | `BoardView` from `board` | ranks, WIP limits, validated moves, keyboard drag state |
 | Browse dated events or bookings | `CalendarView` from `calendar` | calendar math, recurrence expansion and series splitting |
-| Plan task durations, links and critical path | `TimelineView` from `timeline` | working-day schedule, dependency validation, cascade and critical path; stable grouping, milestone focus, an unscheduled tray and explicit row truncation |
-| Explore and edit many records | `DataGrid`, `FilterBuilder`, `SavedViews` from `grid` | virtualization, sorting, grouping, filters and saved view state |
 | Plan task durations, links and critical path | `TimelineView` from `timeline` | working-day schedule, dependency validation, cascade and critical path |
-| Explore and edit many records | `DataGrid`, `FilterBuilder`, `SavedViews`, `FilterChips`, `FacetPicker`, `ColumnChooser`, `BulkActionBar` from `grid` | virtualization, sorting, grouping, composable filters (facets and chips), saved view state with change tracking, column choice, row selection and bulk actions |
+| Explore and edit many records | `DataGrid` from `grid`, plus the standalone `FilterBuilder`, `SavedViews`, `FilterChips`, `FacetPicker`, `ColumnChooser` and `BulkActionBar` | sorting, filters (facets and chips), saved view state with change tracking, column state, selection, virtual windows |
 | Browse a hierarchy or edit an outline | `TreeView`, `OutlineEditor` from `tree` | tree indexing, cycle-safe moves, ranks and outline operations |
 | Show locations in a fictional offline city | `SimulatedMap` from `map` | projection, markers, clustering, routes and geofences |
 | Write and preview safe Markdown | `MarkdownEditor`, `MarkdownPreview` from `editor` | text commands and mention token helpers |
 | Show comments, reactions and record history | `CommentThread`, `ActivityFeed` from `activity` | mentions, threads, day grouping and audit summaries |
 | Show recipient-scoped inbox items | `NotificationCenter` from `notifications` | — (rows belong to the prototype service) |
-| Browse folders, upload and preview files | `FileManager`, `FilePreview` from `files` | tree checks, names, paths and deterministic thumbnails |
+| Browse folders and preview files | `FileManager` from `files` | tree checks, names, paths and deterministic thumbnails |
 | Build preference screens and guarded forms | settings components from `settings` | — (patterns compose app-owned services) |
 | Render loading, empty, error, offline or denied state | `QueryState` from `states` | — (classifier is in views-ui) |
 | Add an app command dialog | `AppCommandPalette` from `commands` | — (registry is in views-ui) |
@@ -38,8 +72,8 @@ and loads each kit lazily through the screen-kind registry. See the
 Each package exposes one entry per subpath; neither package is re-exported by
 `@protoyard/ui`. `@protoyard/views` root is types-only. `views-ui` views may
 share `lib/` and `states/`; static imports between view folders are guarded.
-The `files` view reuses the tree view through its declared dependency. Dynamic
-imports can load another view subpath only when needed. More detail is in the
+Dynamic imports can load another view subpath only when needed (the activity
+thread loads the editor this way). More detail is in the
 [component reference](../packages/views-ui/README.md#one-subpath-per-view).
 
 ## Data and mutations
@@ -55,12 +89,13 @@ UI callback → service → session.assert → zod validation → environment.ru
 ```
 
 For example, `BoardView` calls `onMove(move, item)`, `CalendarView` calls
-`onChange(change)` / `onCreate(slot)`, `TimelineView` calls its schedule change
-callback, and `DataGrid` calls `onCommit(row, key, value)`. Services must
-revalidate invariants such as hard WIP limits, dependency acyclicity, and
-permission to edit. Async callbacks show pending feedback; failed optimistic
-moves roll back and announce the error. Read and write contracts for each
-component are in the package reference linked above.
+`onChange(change)` / `onCreate(slot)`, `TimelineView` calls
+`onReschedule(changes)`, and `DataGrid` calls `onCommit(row, key, value)`. The
+adapters run these through `runService`, so the global pending bar and error
+toasts apply. Services must revalidate invariants such as hard WIP limits,
+dependency acyclicity, and permission to edit. Read and write contracts for
+each component, including the props an adapter accepts but does not forward
+yet, are in the package reference linked above.
 
 For comment mentions, services use `mentionedIds(body)` from the activity
 engine to create recipient-scoped notification rows in the same transaction
@@ -76,112 +111,107 @@ its integrity checks.
 
 ## Grid filters, saved views and bulk actions
 
-`DataGrid` composes filters from three places, all editing one plain filter
-tree in the view state (`view.filter`):
+`DataGrid` renders rows, sorting, search, a filter, selection and inline
+editing. It does not draw the filter, saved-view or bulk-action chrome. Those
+are standalone Protoyard components you place around the grid, all editing
+plain engine state:
 
-- **Facet pickers** (`facets={['stage', 'active']}`): one keyboard picker per
-  column, OR within a column and AND with everything else ("Stage is any of
-  Lead or Won").
-- **Filter chips**: one removable chip per top-level condition, plus "Clear all".
-- **The filter builder** (Filters button): nested and/or groups for anything else.
+- **`FacetPicker`**: one keyboard picker per column, OR within a column and
+  AND with everything else ("Stage is any of Lead or Won").
+- **`FilterChips`**: one removable chip per top-level condition, plus "Clear all".
+- **`FilterBuilder`**: nested and/or groups for anything else.
+- **`SavedViews`**: pick, save, rename and delete views. With `current` and
+  `onUpdate`, a changed view shows "Modified", "Save changes" and "Revert".
+- **`ColumnChooser`** and **`BulkActionBar`**: column visibility and order, and
+  service-backed actions on selected rows.
 
-The engine (`@protoyard/views/grid`) keeps this deterministic:
+Pass the resulting `FilterNode` to `DataGrid`'s `filter` prop. The engine
+(`@protoyard/views/grid`) keeps this deterministic:
 
 - `serializeFilter` gives equal filters equal text, whatever order they were
   built in, and `parseSerializedFilter` reads it back as untrusted input.
 - `facetsFromFilter`, `setFacet` and `toggleFacetValue` change one facet and
   keep every other condition.
 - `describeFilter` and `removeFilterAt` back the chips.
-
-**Saved views.** With `onUpdateView`, a saved view that was changed on screen
-shows "Modified", "Save changes" and "Revert". Building the same filter in
-another order is not a change. `nextViewId(name, existing)` derives stable
-ids for new views.
-
-**Selection and bulk actions.** `bulkActions` turns on row selection:
-checkboxes in a sticky first column, Space on any cell, and a header checkbox
-for the shown rows. `selection` is the bindable list of ids, and rows that
-disappear leave it. Each action's `run(rows)` is a service call: it shows
-pending feedback, `confirm` asks before a destructive action, and the
-selection clears on success.
-
-`FilterChips`, `FacetPicker`, `ColumnChooser` and `BulkActionBar` are also
-exported on their own, for grids or lists of your own. The optional parts
-load lazily (see [PERFORMANCE](PERFORMANCE.md#grid-toolkit-2026-10-21)).
+- `isViewModified` ignores filters built in another order, and
+  `nextViewId(name, existing)` derives stable ids for new views.
 
 ## Keyboard and phone behavior
 
 | View | Keyboard model | Narrow-screen behavior |
 | --- | --- | --- |
-| Board | Space picks up and drops; arrows move; Shift + Up/Down changes lane; Escape cancels; Enter opens | One column per screen with snap scrolling; touch drag starts at the grip |
-| Calendar | Arrows move focus; Enter opens or creates; Space grabs; arrows reschedule; Enter saves; Escape cancels | Agenda is the default below `sm` |
-| Timeline | Tab reaches task bars, milestone focus, unscheduled items and group controls; Space picks up or Shift+Space resizes the end; ←/→ adjusts dates; Enter saves; Escape cancels | Date canvas is hidden; rows show compact schedule bars and dates |
-| Grid | Roving ARIA grid; arrows, Home/End, Ctrl+Home/End, PageUp/Down; header controls sort, pin, resize and reorder | Rows become cards; saved views, filters and density stay in the toolbar |
-| Timeline | Tab reaches task bars; Space picks up or Shift+Space resizes the end; ←/→ adjusts dates; Enter saves; Escape cancels | Date canvas is hidden; rows show compact schedule bars and dates |
-| Grid | Roving ARIA grid; arrows, Home/End, Ctrl+Home/End, PageUp/Down; header controls sort, pin, resize and reorder; with bulk actions Space selects a row and Shift+Space extends from the last one; facet pickers open with ↓ and take arrows, Enter/Space, typing and Escape | Rows become cards (with a checkbox when rows are selectable); saved views, filters and density stay in the toolbar |
-| Tree / outline | Tree arrows, Home/End, typeahead; Enter/Space select; outline Enter creates, Tab indents, Shift+Tab outdents | Tree scrolls within its view; touch row moves start at the grip |
-| Map | Arrow keys pan; + / − zoom; 0 fits all; Escape clears selection; marker list has roving focus | Map controls and the synchronized marker list remain available |
+| Board | Focus a card, Space or Enter picks it up; arrows choose a position (Shift + Up/Down changes lane); Space or Enter drops; Escape cancels; a per-card Move menu lists targets | Columns scroll horizontally |
+| Calendar | M / W / D / A switch views; Alt or Control + arrow moves a focused event; Space grabs, arrows move, Space or Enter drops, Escape cancels; Shift+F10 opens the Move menu; Enter opens or creates | Same views; pick Agenda for a list |
+| Timeline | Tab reaches task bars; Space picks up or Shift+Space resizes the end; ←/→ adjusts dates; Enter saves; Escape cancels | The date canvas scrolls horizontally |
+| Grid | One tab stop; arrows, Home/End, Ctrl+Home/End, PageUp/Down; Enter or Space on a header sorts (Shift adds a key); Space toggles a row when selectable; Enter or F2 edits an editable cell | Below `md`, rows become cards, 50 at a time with Show more |
+| Tree | Arrows move; Left/Right collapse or expand; Space toggles the row checkbox; Alt+Up/Down reorders; Tab indents; Shift+Tab outdents | Tree scrolls within its view; drag starts at the grip |
+| Outline | Enter creates; Tab indents; Shift+Tab outdents; Alt+↑/↓ moves; Escape reverts | Touch row moves start at the grip |
+| Map | Arrow keys pan; + / − zoom; 0 resets; Enter or Space picks the center point when `onPick` is set; the place list has its own focus | Place list sits below the map by default |
 | Editor | Textarea shortcuts; preview is keyboard reachable; Escape exits reply/edit context | Write and preview tabs can be used instead of split view |
-| Activity | Composer and reaction controls use labelled buttons; Escape cancels the active reply or edit | Thread and feed stack in the narrow view |
+| Activity | Feed: arrows, Home/End, Enter; thread composer and reactions use labelled buttons; Escape cancels the active reply or edit | Thread and feed stack in the narrow view |
 | Notifications | Trigger, list and row actions are keyboard reachable; activating a row opens its route | Opens as a bottom sheet on narrow screens and a popover at wider widths |
-| Files | Roving multi-select; arrows, Home/End, Space, Ctrl/⌘+A, F2, Delete, Enter | Select-multiple mode makes touch taps toggle selection |
+| Files | Arrows (grid-aware), Enter opens, Space selects, Backspace goes up a folder | Grid or list layout |
 | Settings | Standard labelled form controls; dialogs retain focus | Section list → detail, with a back button returning focus |
 | States / commands | Query state exposes retry where provided; command dialog filters and activates registered commands | State content and command dialog fit the available viewport |
 
-The component reference has each view's full shortcut list and callback
-behavior. These views respect reduced-motion preferences where they animate.
-
-`TimelineView` accepts `getGroup(task)` to provide a stable group id and label;
-group order follows the first task in each group and task order within each
-group is preserved. Items without both dates stay visible in the unscheduled
-tray and open through `onOpen`. The Milestones only control filters scheduled
-rows while retaining the tray. `maxRows` defaults to 500; when more rows are
-available the view announces the visible and total counts and can call
-the user to narrow the window. Undated items never enter dependency calculation
-or rescheduling until the owning service supplies dates.
+The component reference has each view's props and callback behavior.
 
 ## Bundle measurements
 
 All views are lazy-route candidates, so the initial JavaScript cost is 0 KB
-when the first route does not import them. Task 117 measured isolated Vite
-builds over a realistic Protoyard shell (Svelte, renderer, UI, services and
-runtime dependencies), gzip -9, on an M1 Max. These are the enforced view
-chunk figures (the grid re-measured on 2026-10-21 after the filter, saved-view and
-bulk-action toolkit); the table gives before/after for the overlay-lazy-loading
-change and its current ceiling:
+when the first route does not import them. The real-build guard builds a
+fixture app with Vite, one entry per view over a realistic shell (renderer
+services and live queries, the ui `Button` and toasts), and measures what each
+view adds to the first screen (gzip -9). It also checks that menus and the
+board and calendar Move menus stay lazy and that unused sibling views are
+shaken out.
 
-| View | Before | Current | Ceiling |
+Measured with `pnpm vitest run packages/cli/tests/views-bundle.test.ts
+--silent=false`, gzip level 9:
+
+| View | Texuli 0.4.0 | Texuli 0.5.0 | Ceiling before → after |
 | --- | ---: | ---: | ---: |
-| Board | 39,934 B | 11,966 B | 12,800 B |
-| Calendar | 43,942 B | 16,106 B | 17,200 B |
-| Grid | 60,243 B | 21,859 B | 23,400 B |
-| Map | — | 11,573 B | 12,400 B |
-| Editor | — | 6,452 B | 6,900 B |
-| Timeline | — | 9,100 B (8,458 B before grouped lanes, 2026-10-22) | 9,750 B |
+| Board | 13,900 B | 14,137 B | 14,595 → 14,595 B |
+| Calendar | 15,801 B | 15,847 B | 17,200 → 16,640 B |
+| Grid (`DataGrid` only) | 19,297 B | 20,116 B | 23,400 → 21,122 B |
+| Map | 8,073 B | 8,066 B | 12,400 → 8,470 B |
+| Editor | 9,484 B | 9,508 B | 9,958 → 9,958 B |
+| Timeline | 11,973 B | 11,981 B | 12,572 → 12,572 B |
 
-The other components have per-component gzip measurements in the
-[views-ui README](../packages/views-ui/README.md); those figures use a
-component-focused esbuild probe with framework and shared packages external,
-so compare them only within that method. The real-build guard is
-`pnpm vitest run packages/cli/tests/views-bundle.test.ts`; it verifies the
-isolated ceilings, lazy overlay chunks, and that unused sibling views are
-shaken out. Current known gaps: grid and calendar exceed the plan's tighter
-16 KB and 12 KB aims respectively while remaining below enforced ceilings;
-keel task detail downloads 74.7 KB with comments/editor; and first overlay use
-may fetch a small chunk. Details and methods are in
-[`PERFORMANCE.md`](PERFORMANCE.md#views-kit).
+Each lowered ceiling is the Texuli 0.5.0 measurement + 5%, rounded up. The
+previous ceiling stays where it is already lower than that threshold.
+
+The other subpaths have no current per-component measurement. A full
+prototype that uses several views, `keel-projects-demo`, measured with
+`pnpm protoyard budget keel-projects-demo`: initial JS 175.79 KB gzip (budget
+250 KB, pass) and CSS 41.31 KB gzip (budget 43.4 KB, a measured override for
+Texuli's component CSS, pass).
+Method notes are in [`PERFORMANCE.md`](PERFORMANCE.md#views-kit).
 
 ## Honest limits
 
 - The map draws a fictional Port Meridian SVG city. It has no real geography,
-  map tiles, geocoding or runtime network access.
+  map tiles, geocoding or runtime network access. Geofence editing is not
+  implemented: `editableFenceId` and `onFenceChange` are accepted but draw no
+  handles.
 - Calendar recurrence implements a documented RFC 5545 subset, not every
-  RRULE field. See the calendar engine reference for supported fields.
-- The 100,000-row grid measurement uses generated in-memory rows to measure
-  rendering and virtualization. Typical IndexedDB prototype worlds are much
-  smaller; the benchmark is not an IndexedDB throughput claim.
-- The editor is a textarea-based Markdown editor, not a WYSIWYG editor. Its
+  RRULE field. Events cannot be resized, and a moved repeating occurrence is
+  always saved as "this event" (no "following" or "all" prompt).
+- Several adapters accept props from the earlier Protoyard API that they do
+  not forward yet: `FileManager` writes (rename, move, delete, new folder,
+  upload, `getBlob`), timeline `getGroup`, `maxRows` and `onOpen`, tree
+  `onOpen` and virtualization props, activity `records`, `onOpenRecord` and
+  paging, and grid saved-view and aggregate props. The
+  [component reference](../packages/views-ui/README.md) lists them per view.
+- `DataGrid` has no grouping, column resizing, reordering or pinning UI, and
+  editing turns virtualization off.
+- `scripts/bench-grid.ts` currently fails ("rows never rendered") against the
+  ui-kit grid demo, so there is no current 100,000-row measurement.
+- The editor is a Texuli `Textarea`-based Markdown editor, not a WYSIWYG editor. Its
   preview renders a safe syntax tree as elements and never injects HTML.
+- `NotificationCenter` is Protoyard's service adapter around Texuli controls;
+  mark-read operations remain service callbacks. Texuli's inbox API currently
+  exposes a mark-unread action that this host cannot wire to its service (G50).
 - These packages provide simulated prototype behavior. They are not a
   production calendar, geographic information system, file backend or
   collaborative service.
@@ -195,7 +225,6 @@ pnpm vitest run packages/views packages/views-ui
 pnpm --filter @protoyard/views typecheck
 pnpm --filter @protoyard/views-ui typecheck
 pnpm vitest run packages/cli/tests/views-bundle.test.ts
-pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check
 ```
 
 The browser E2E row for this surface is in the

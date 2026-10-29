@@ -1,7 +1,7 @@
 {
   "name": "@protoyard/charts",
   "version": "1.0.0",
-  "description": "Framework-agnostic chart math for Protoyard prototypes: scales, shapes, downsampling, layouts and theme-token palettes (no Svelte, no third-party chart library).",
+  "description": "Chart math for Protoyard prototypes: thin re-exports of @texuli/charts/math (scales, shapes, layouts, downsampling) plus theme-token chart palettes.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -12,13 +12,15 @@
     "./downsample": "./src/downsample/index.ts",
     "./layout": "./src/layout/index.ts",
     "./palette": "./src/palette/index.ts",
-    "./palette/derive": "./src/palette/chart-palette.ts"
+    "./palette/derive": "./src/palette/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@protoyard/core": "workspace:*"
+    "@protoyard/core": "workspace:*",
+    "@texuli/charts": "0.5.0",
+    "@texuli/tokens": "0.5.0"
   },
   "protoyard": {
     "build": {
@@ -66,9 +68,9 @@
         "default": "./dist/palette/index.js"
       },
       "./palette/derive": {
-        "types": "./dist/palette/chart-palette.d.ts",
-        "import": "./dist/palette/chart-palette.js",
-        "default": "./dist/palette/chart-palette.js"
+        "types": "./dist/palette/index.d.ts",
+        "import": "./dist/palette/index.js",
+        "default": "./dist/palette/index.js"
       }
     },
     "types": "./dist/index.d.ts"

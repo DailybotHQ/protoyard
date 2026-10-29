@@ -10,6 +10,7 @@ import {
   generateThemeHarmonies,
 } from '../../themes/src/index.ts';
 import { type DevtoolsHandle, mountDevtools } from '../src/index.ts';
+import { selectOption } from './select-option.ts';
 
 /**
  * The Theme Studio inside the real DevTools panel, on a real runtime with an
@@ -77,12 +78,12 @@ describe('Theme Studio (DevTools)', () => {
       .value;
     expect(selectedSecondary).toBe(generateThemeHarmonies('#7c3aed')[0]?.secondary);
     expect(
-      (within(panel).getByLabelText('Use a secondary color') as HTMLInputElement).checked
-    ).toBe(true);
+      within(panel)
+        .getByRole('checkbox', { name: 'Use a secondary color' })
+        .getAttribute('aria-checked')
+    ).toBe('true');
 
-    await fireEvent.change(within(panel).getByLabelText('Start from a theme'), {
-      target: { value: 'library:health-clinic' },
-    });
+    await selectOption('Start from a theme', 'Library · Health Clinic');
     await settle();
     await fireEvent.click(within(panel).getByRole('button', { name: 'Load' }));
     await waitFor(() =>
@@ -95,14 +96,14 @@ describe('Theme Studio (DevTools)', () => {
     expect((within(studio).getByLabelText('Secondary color') as HTMLInputElement).value).toBe(
       '#0284c7'
     );
-    expect((within(studio).getByLabelText('Neutral family') as HTMLSelectElement).value).toBe(
-      'zinc'
+    expect(within(studio).getByRole('combobox', { name: 'Neutral family' }).textContent).toContain(
+      'Zinc'
     );
     expect(
-      within(panel).getByTestId('theme-studio-preview').style.getPropertyValue('--py-radius')
+      within(panel).getByTestId('theme-studio-preview').style.getPropertyValue('--tx-radius')
     ).toBe('0.75rem');
-    expect((within(studio).getByLabelText('Font pairing') as HTMLSelectElement).value).toBe(
-      'humanist'
+    expect(within(studio).getByRole('combobox', { name: 'Font pairing' }).textContent).toContain(
+      'Humanist'
     );
   });
 
@@ -124,10 +125,10 @@ describe('Theme Studio (DevTools)', () => {
       name: 'Sunset Brand',
       seed: '#e8590c',
     });
-    expect(preview.style.getPropertyValue('--py-primary')).toBe(expected.light.primary);
+    expect(preview.style.getPropertyValue('--tx-primary')).toBe(expected.light.primary);
     expect(preview.dataset.pyCardStyle).toBe('glass');
     expect(preview.dataset.pyFocusRingStyle).toBe('inset');
-    expect(document.documentElement.style.getPropertyValue('--py-primary')).not.toBe(
+    expect(document.documentElement.style.getPropertyValue('--tx-primary')).not.toBe(
       expected.light.primary
     );
     expect(within(panel).getByText(/meet WCAG AA in light and dark/)).toBeTruthy();
@@ -224,7 +225,7 @@ describe('Theme Studio (DevTools)', () => {
       read = true;
       return '';
     };
-    const input = within(panel).getByLabelText('Theme file to import') as HTMLInputElement;
+    const input = panel.querySelector('[data-devtools-file-input]') as HTMLInputElement;
     Object.defineProperty(input, 'files', { configurable: true, value: [file] });
     await fireEvent.change(input);
     await settle();

@@ -1,9 +1,10 @@
 ---
 import '@/styles/global.css';
+import { themeBootstrapScript } from '@texuli/astro';
+import { AppearanceSwitcher } from '@texuli/astro/appearance';
 import CommandPaletteTrigger from '@/components/CommandPaletteTrigger.svelte';
-import ThemeToggle from '@/components/ThemeToggle.svelte';
 import { withBase } from '@/lib/format';
-import { NO_FLASH_SCRIPT } from '@/lib/theme';
+import { APPEARANCE_MIGRATION_SCRIPT, APPEARANCE_NAMESPACE, THEME_ID } from '@/lib/theme';
 
 interface Props {
   title?: string;
@@ -53,7 +54,7 @@ const nav = [
 ---
 
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-tx-theme="gallery" data-tx-mode="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -83,7 +84,7 @@ const nav = [
     <link rel="apple-touch-icon" href={withBase('/apple-touch-icon.png')} sizes="180x180" />
     <link rel="manifest" href={withBase('/site.webmanifest')} />
     {Astro.site && <link rel="sitemap" href={withBase('/sitemap.xml')} />}
-    <script is:inline set:html={NO_FLASH_SCRIPT} />
+    <script is:inline set:html={APPEARANCE_MIGRATION_SCRIPT + themeBootstrapScript({ namespace: 'gallery' })} />
   </head>
   <body class="bg-bg text-fg">
     <a
@@ -115,7 +116,13 @@ const nav = [
         </nav>
         <div class="ml-auto flex items-center gap-2">
           <CommandPaletteTrigger client:idle homeUrl={withBase('/')} />
-          <ThemeToggle client:load />
+          <AppearanceSwitcher
+            client:load
+            namespace={APPEARANCE_NAMESPACE}
+            themeId={THEME_ID}
+            label="Color theme"
+            class="shrink-0 text-xs! leading-4!"
+          />
         </div>
       </div>
     </header>

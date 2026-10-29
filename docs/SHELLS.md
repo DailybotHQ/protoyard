@@ -83,8 +83,9 @@ components directly.
   with an in-app phone/desktop toggle). `force="auto"` is the default.
 - **Stacking:** `Dialog`, `AlertDialog`, `BottomSheet`, `DetailPanel` and `Drawer`
   register with `overlayStack`, so a dialog opened inside a drawer paints above
-  it and Escape closes only the top layer. `UndoToaster` stays above the stack
-  and remains keyboard-reachable outside a modal drawer's focus trap.
+  it and Escape closes only the top layer. `UndoToaster` stays above every overlay
+  and usable under a modal one; F6 moves focus to the newest Undo (Tab stays
+  inside a modal, per WAI-ARIA APG).
 
 Unit coverage: `packages/ui/tests/adaptive-overlay.test.ts`.
 
@@ -215,8 +216,11 @@ frame:
   cannot feedback-loop. When the visual viewport is smaller or offset, expanded bars pin
   to the visible left so every action stays on screen. Unit coverage:
   `packages/renderer-svelte/tests/floating.test.ts`.
-- **Overlays:** Bits UI dialogs and sheets portal into the device screen, so they stay
-  inside the frame.
+- **Overlays:** dialogs, sheets, drawers and the undo toaster open contained by the
+  device screen (Texuli's `contained` overlay mode), so they stay inside the frame.
+  The `@protoyard/ui` `Toaster` takes Texuli's toast region out of the page's top
+  layer while a frame is shown, so toasts paint inside the screen above contained
+  overlays; announcements are unchanged. Without a frame it stays in the top layer.
 - **Widget badge:** in `widget-host`, call `getWidgetHost().setUnread(n)` (exported by
   `@protoyard/renderer-svelte`) to drive the launcher's unread badge.
 

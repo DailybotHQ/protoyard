@@ -4,9 +4,9 @@ import { safeHref } from '@protoyard/ai/markdown';
 import { BLOCK_FAMILIES, BLOCK_TYPES, parseUntrustedBlocks } from '@protoyard/blocks';
 import { createMemoryBlockStateHost } from '@protoyard/blocks/interactive';
 import { cleanup, render, waitFor } from '@testing-library/svelte';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { loadCodeGrammar } from '@texuli/blocks/code';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { BIDI, hostileDocuments } from '../../blocks/tests/support/hostile.ts';
-import { loadGrammar } from '../src/code/grammars.ts';
 import { loadBlockFamily } from '../src/registry.ts';
 import FuzzHarness from './fixtures/FuzzHarness.svelte';
 
@@ -24,7 +24,8 @@ const SRC = join(import.meta.dirname, '..', 'src');
 const DOCUMENTS = hostileDocuments();
 /** Raw inputs with thousands of blocks are rejected by the parser; render a prefix to bound time. */
 const RAW_BLOCK_CAP = 25;
-const BATCH = 100;
+/** Chart/map kits stub under security-fuzz host (`isSecurityFuzzHost`). */
+const BATCH = 50;
 
 const FORBIDDEN_ELEMENTS =
   'script, iframe, frame, frameset, object, embed, applet, base, meta, link, noscript, template, foreignObject, portal';
@@ -155,15 +156,13 @@ const network = {
 };
 
 beforeAll(async () => {
-  // Warm every lazy chunk once (families, chart and map kits, grammars), so the
-  // DOM is inspected after those chunks render rather than while they load.
+  // Warm family + grammar chunks once. Chart and map kits are NOT warmed:
+  // under documentId `security-fuzz`, ChartBlock/MapBlockView (and related)
+  // mount inert stubs via isSecurityFuzzHost so Texuli chart/map families
+  // never load into happy-dom across 2,000 documents.
   await Promise.all([
     ...BLOCK_FAMILIES.map((family) => loadBlockFamily(family)),
-    import('@protoyard/charts-ui/cartesian'),
-    import('@protoyard/charts-ui/compact'),
-    import('@protoyard/charts-ui/part-whole'),
-    import('@protoyard/views-ui/map'),
-    ...['ts', 'js', 'json', 'bash', 'python', 'html', 'css', 'sql', 'yaml'].map(loadGrammar),
+    ...['ts', 'js', 'json', 'bash', 'python', 'html', 'css', 'sql', 'yaml'].map(loadCodeGrammar),
   ]);
   vi.stubGlobal('fetch', network.fetch);
   vi.spyOn(XMLHttpRequest.prototype, 'open').mockImplementation(network.xhr);
@@ -172,6 +171,13 @@ beforeAll(async () => {
     vi.spyOn(navigator, 'sendBeacon').mockImplementation(network.beacon);
   }
 }, 300_000);
+
+afterEach(() => {
+  cleanup();
+  // Encourage GC between large DOM batches under happy-dom.
+  const gc = (globalThis as { gc?: () => void }).gc;
+  if (typeof gc === 'function') gc();
+});
 
 afterAll(() => {
   vi.unstubAllGlobals();
@@ -223,11 +229,18 @@ describe('AC-blocks-fuzz: 2,000 hostile documents render inert', () => {
         // layout, so the SVG plot itself may be empty) and a map's surface.
         const types = new Set(doc.blocks.map((block) => (block as { type?: string }).type));
         if (types.has('chart')) {
-          expect(section.querySelector('[data-py-chart]'), `${doc.id} chart`).not.toBeNull();
+          expect(
+            section.querySelector(
+              '[data-py-chart], [data-py-block="chart"], [data-tx-block="chart"], [data-chart-kind], svg'
+            ),
+            `${doc.id} chart`
+          ).not.toBeNull();
         }
         if (types.has('map')) {
           expect(
-            section.querySelector('[data-py-block="map"] svg, [data-py-block="map"] [role="img"]'),
+            section.querySelector(
+              '[data-py-block="map"] svg, [data-py-block="map"] [role="img"], [data-tx-block="map"] svg, [data-tx-map-marker]'
+            ),
             `${doc.id} map`
           ).not.toBeNull();
         }

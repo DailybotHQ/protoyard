@@ -1,6 +1,11 @@
 <script lang="ts">
-import { Copy, Minus, Square, X } from '@lucide/svelte';
+import Copy from '@lucide/svelte/icons/copy';
+import Minus from '@lucide/svelte/icons/minus';
+import Square from '@lucide/svelte/icons/square';
+import X from '@lucide/svelte/icons/x';
 import type { Snippet } from 'svelte';
+import { Button } from 'texuli/button';
+import { Icon } from 'texuli/icons';
 import { cn } from '../../lib/cn.ts';
 import type { WindowChromeState, WindowChromeVariant } from './types.ts';
 
@@ -72,6 +77,12 @@ const trafficBase =
   'group inline-flex size-3 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:outline-none';
 </script>
 
+<!--
+  A fake desktop window (a legitimate Protoyard host chrome): the traffic
+  lights and caption buttons imitate an operating system on purpose, so they
+  stay native buttons; glyphs come through Texuli's Icon and the reopen action
+  is Texuli's Button.
+-->
 {#if state === 'minimized'}
   <div
     class={cn('flex items-end justify-center p-3', pillClass)}
@@ -111,15 +122,7 @@ const trafficBase =
     <p class="max-w-sm text-sm text-muted-foreground">
       {label} is closed. Reopen it to continue.
     </p>
-    <button
-      type="button"
-      class="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-      aria-label={`Reopen ${label}`}
-      onclick={reopen}
-      data-window-control="reopen"
-    >
-      Reopen
-    </button>
+    <Button aria-label={`Reopen ${label}`} onclick={reopen} data-window-control="reopen">Reopen</Button>
   </div>
 {:else}
   <div
@@ -149,7 +152,7 @@ const trafficBase =
             onclick={closeWindow}
             data-window-control="close"
           >
-            <X class="size-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true" />
+            <Icon icon={X} size="xs" class="size-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -158,7 +161,7 @@ const trafficBase =
             onclick={minimize}
             data-window-control="minimize"
           >
-            <Minus class="size-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true" />
+            <Icon icon={Minus} size="xs" class="size-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -169,9 +172,9 @@ const trafficBase =
             data-window-control="maximize"
           >
             {#if maximized}
-              <Copy class="size-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true" />
+              <Icon icon={Copy} size="xs" class="size-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true" />
             {:else}
-              <Square class="size-1.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true" />
+              <Icon icon={Square} size="xs" class="size-1.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true" />
             {/if}
           </button>
         </div>
@@ -194,7 +197,7 @@ const trafficBase =
             onclick={minimize}
             data-window-control="minimize"
           >
-            <Minus class="size-3.5" aria-hidden="true" />
+            <Icon icon={Minus} size="xs" class="size-3.5" aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -205,9 +208,9 @@ const trafficBase =
             data-window-control="maximize"
           >
             {#if maximized}
-              <Copy class="size-3.5" aria-hidden="true" />
+              <Icon icon={Copy} size="xs" class="size-3.5" aria-hidden="true" />
             {:else}
-              <Square class="size-3.5" aria-hidden="true" />
+              <Icon icon={Square} size="xs" class="size-3.5" aria-hidden="true" />
             {/if}
           </button>
           <button
@@ -217,7 +220,7 @@ const trafficBase =
             onclick={closeWindow}
             data-window-control="close"
           >
-            <X class="size-3.5" aria-hidden="true" />
+            <Icon icon={X} size="xs" class="size-3.5" aria-hidden="true" />
           </button>
         </div>
       {/if}

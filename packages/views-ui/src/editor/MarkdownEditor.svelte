@@ -12,7 +12,7 @@ import {
   SquareCode,
   Strikethrough,
 } from '@lucide/svelte';
-import { cn, type IconComponent } from '@protoyard/ui';
+import { Button, type IconComponent, Textarea } from '@protoyard/ui';
 import {
   applyCompletion,
   continueList,
@@ -26,6 +26,8 @@ import {
   triggerAt,
 } from '@protoyard/views/editor';
 import { type Component, onDestroy, tick } from 'svelte';
+import { cx } from 'texuli/cx';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { isMacPlatform, shortcutKeys, shortcutLabel } from '../lib/platform.ts';
 import { caretCoordinates } from './caret.ts';
 import {
@@ -83,7 +85,8 @@ let {
 
 const uid = $props.id();
 const isMac = isMacPlatform();
-let textarea = $state<HTMLTextAreaElement>();
+let textarea = $state<HTMLElement | null>(null);
+const textareaElement = () => textarea as HTMLTextAreaElement | undefined;
 let tab = $state<'write' | 'preview'>('write');
 let notice = $state('');
 
@@ -188,8 +191,8 @@ const TOOLS: Tool[] = [
 function selection(): TextState {
   return {
     text: value,
-    start: textarea?.selectionStart ?? value.length,
-    end: textarea?.selectionEnd ?? value.length,
+    start: textareaElement()?.selectionStart ?? value.length,
+    end: textareaElement()?.selectionEnd ?? value.length,
   };
 }
 
@@ -204,8 +207,8 @@ async function apply(transform: (state: TextState) => TextState | null): Promise
   value = next.text;
   onChange?.(next.text);
   await tick();
-  textarea?.focus();
-  textarea?.setSelectionRange(next.start, next.end);
+  textareaElement()?.focus();
+  textareaElement()?.setSelectionRange(next.start, next.end);
   updateSuggestions();
   return true;
 }
@@ -236,7 +239,7 @@ const slashListId = `editor-${uid}-slash`;
 
 function updateSuggestions() {
   // Only while writing: the preview tab has no caret.
-  if (!textarea || (layout === 'tabs' && tab !== 'write')) {
+  if (!textareaElement() || (layout === 'tabs' && tab !== 'write')) {
     match = null;
     slashMatch = null;
     return;
@@ -247,8 +250,9 @@ function updateSuggestions() {
     if (nextSlash.start !== slashMatch?.start || nextSlash.query !== slashMatch?.query) active = 0;
     slashMatch = nextSlash;
     match = null;
-    if (textarea) {
-      const at = caretCoordinates(textarea, nextSlash.start);
+    const input = textareaElement();
+    if (input) {
+      const at = caretCoordinates(input, nextSlash.start);
       anchor = { top: at.top + at.height, left: at.left };
     }
     return;
@@ -257,10 +261,18 @@ function updateSuggestions() {
   const next = triggerAt(state);
   if (next?.start !== match?.start || next?.query !== match?.query) active = 0;
   match = next;
-  if (next && textarea) {
-    const at = caretCoordinates(textarea, next.start);
+  const input = textareaElement();
+  if (next && input) {
+    const at = caretCoordinates(input, next.start);
     anchor = { top: at.top + at.height, left: at.left };
   }
+}
+
+function handleValueChange(next: string) {
+  value = next;
+  notice = '';
+  updateSuggestions();
+  scheduleDraft();
 }
 
 async function choose(index: number) {
@@ -394,31 +406,36 @@ function toolbarKey(event: KeyboardEvent, index: number) {
 }
 </script>
 
-<div class={cn('rounded-lg border border-border bg-surface', className)}>
+<div class={cx('rounded-lg border border-border bg-surface', className)}>
   <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border px-2 py-1.5">
     {#if layout === 'tabs'}
       <div role="tablist" aria-label={`${label} mode`} class="flex gap-1">
         {#each [['write', 'Write'], ['preview', 'Preview']] as [id, text] (id)}
-          <button
+          <Button
             type="button"
+            variant="ghost"
             role="tab"
             id={`editor-${uid}-tab-${id}`}
             aria-selected={tab === id}
             aria-controls={`editor-${uid}-panel-${id}`}
             tabindex={tab === id ? 0 : -1}
-            class={cn('rounded-md px-2.5 py-1 text-sm', tab === id ? 'bg-muted font-medium' : 'text-muted-foreground hover:bg-muted')}
+            class={cx(
+              'rounded-md px-2.5 py-1 text-sm text-surface-foreground',
+              tab === id ? 'bg-muted font-medium' : 'hover:bg-muted'
+            )}
             onclick={() => {
               tab = id as 'write' | 'preview';
               match = null;
             }}
-          >{text}</button>
+          >{text}</Button>
         {/each}
       </div>
     {/if}
-    <div role="toolbar" aria-label={`Formatting for ${label}`} aria-controls={`editor-${uid}-input`} class={cn('flex flex-wrap gap-0.5', layout === 'tabs' && tab === 'preview' && 'invisible')}>
+    <div role="toolbar" aria-label={`Formatting for ${label}`} aria-controls={`editor-${uid}-input`} class={cx('flex flex-wrap gap-0.5', layout === 'tabs' && tab === 'preview' && 'invisible')}>
       {#each TOOLS as tool, index (tool.id)}
-        <button
+        <Button
           type="button"
+          variant="ghost"
           aria-label={tool.label}
           title={tool.shortcut ? `${tool.label} (${shortcutKeys(tool.shortcut.hint, isMac).join(isMac ? '' : '+')})` : tool.label}
           aria-keyshortcuts={tool.shortcut ? shortcutLabel(tool.shortcut.hint, isMac).replace(/ /g, '+') : undefined}
@@ -428,21 +445,21 @@ function toolbarKey(event: KeyboardEvent, index: number) {
           onclick={() => apply(tool.apply)}
           onkeydown={(event) => toolbarKey(event, index)}
         >
-          <tool.icon class="size-4" aria-hidden="true" />
-        </button>
+          <LucideIcon icon={tool.icon} class="size-4" />
+        </Button>
       {/each}
     </div>
   </div>
 
-  <div class={cn(layout === 'split' && 'grid md:grid-cols-2 md:divide-x md:divide-border')}>
+  <div class={cx(layout === 'split' && 'grid md:grid-cols-2 md:divide-x md:divide-border')}>
     <div
       id={`editor-${uid}-panel-write`}
       role={layout === 'tabs' ? 'tabpanel' : undefined}
       aria-labelledby={layout === 'tabs' ? `editor-${uid}-tab-write` : undefined}
-      class={cn('relative', layout === 'tabs' && tab !== 'write' && 'hidden')}
+      class={cx('relative', layout === 'tabs' && tab !== 'write' && 'hidden')}
     >
-      <textarea
-        bind:this={textarea}
+      <Textarea
+        bind:ref={textarea}
         bind:value
         id={`editor-${uid}-input`}
         aria-label={label}
@@ -460,11 +477,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
         {disabled}
         maxlength={maxLength}
         class="block w-full resize-y bg-transparent px-3 py-2 font-mono text-sm outline-none placeholder:text-muted-foreground"
-        oninput={() => {
-          notice = '';
-          updateSuggestions();
-          scheduleDraft();
-        }}
+        onValueChange={handleValueChange}
         onclick={updateSuggestions}
         onkeyup={(event) => {
           if (event.key.startsWith('Arrow') && !open) updateSuggestions();
@@ -475,7 +488,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
           slashMatch = null;
           flushDraft();
         }}
-      ></textarea>
+      ></Textarea>
       {#if slashOpen && slashMatch}
         <ul
           id={slashListId}
@@ -490,7 +503,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
               id={`${slashListId}-${index}`}
               role="option"
               aria-selected={index === active}
-              class={cn(
+              class={cx(
                 'flex cursor-pointer items-center gap-2 rounded px-2 py-1.5',
                 index === active && 'bg-muted'
               )}
@@ -500,8 +513,9 @@ function toolbarKey(event: KeyboardEvent, index: number) {
               }}
             >
               <span
+                aria-hidden="true"
                 class="inline-flex min-w-8 justify-center rounded bg-muted px-1 font-mono text-xs text-muted-foreground"
-                aria-hidden="true">{item.glyph}</span
+               >{item.glyph}</span
               >
               <span class="font-medium">{item.label}</span>
             </li>
@@ -521,7 +535,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
               id={`${listId}-${index}`}
               role="option"
               aria-selected={index === active}
-              class={cn('cursor-pointer rounded px-2 py-1.5', index === active && 'bg-muted')}
+              class={cx('cursor-pointer rounded px-2 py-1.5', index === active && 'bg-muted')}
               onmousedown={(event) => {
                 // Keep focus (and the caret) in the textarea.
                 event.preventDefault();
@@ -540,7 +554,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
       id={`editor-${uid}-panel-preview`}
       role={layout === 'tabs' ? 'tabpanel' : undefined}
       aria-labelledby={layout === 'tabs' ? `editor-${uid}-tab-preview` : undefined}
-      class={cn('px-3 py-2', layout === 'tabs' && tab !== 'preview' && 'hidden')}
+      class={cx('px-3 py-2', layout === 'tabs' && tab !== 'preview' && 'hidden')}
     >
       {#if (layout === 'split' || tab === 'preview') && Preview}
         <Preview source={value} label={`${label} preview`} />
@@ -552,7 +566,7 @@ function toolbarKey(event: KeyboardEvent, index: number) {
 
   <div class="flex items-center justify-between gap-2 border-t border-border px-3 py-1 text-xs text-muted-foreground">
     <span>Markdown supported</span>
-    <span id={`editor-${uid}-count`} class={cn(nearLimit && 'text-foreground', remaining < 0 && 'text-destructive')}>
+    <span id={`editor-${uid}-count`} class={cx(nearLimit && 'text-foreground', remaining < 0 && 'text-destructive')}>
       {value.length.toLocaleString('en')} / {maxLength.toLocaleString('en')}
     </span>
   </div>

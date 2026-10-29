@@ -49,7 +49,9 @@ ready, export it as a static site that runs on any host.
 
 ## 60-second start
 
-You need Node.js 24.20 or newer and pnpm 11 (through Corepack).
+You need Node.js 24.20 or newer and pnpm 11 (through Corepack). Protoyard installs its
+component library, [Texuli](docs/TEXULI.md), from npm with the rest of its
+dependencies ([how it is linked](docs/TEXULI.md#how-it-is-linked)).
 
 ```bash
 git clone https://github.com/DailybotHQ/protoyard
@@ -143,8 +145,9 @@ Every capability below runs in the browser, with fictional data.
 
 | Capability | What you get | Read |
 | --- | --- | --- |
-| **Slide decks** | `quick "<topic>" --kind deck` writes a deck from a sentence. 21 designed layouts, per-deck themes, fonts and gradients, step-by-step reveals, a presenter view, an overview, print to PDF and Deck Studio. | [Decks](docs/DECKS.md) |
-| **Interactive blocks** | Polls, quizzes, a what-if calculator, explorable charts with a data table and a working app embedded in a slide, shared by decks, pages and documents. | [Blocks](docs/BLOCKS.md) |
+| **Slide decks** | `quick "<topic>" --kind deck` writes a deck from a sentence. 21 designed layouts, per-deck themes, fonts, gradients and image or video backgrounds, step-by-step reveals on any element, a presenter view, an overview, print to PDF and Deck Studio. Every control has a tooltip, and full screen always leaves with Esc. | [Decks](docs/DECKS.md) |
+| **Interactive blocks** | Polls, quizzes, a what-if calculator, sortable tables, explorable charts with a data table and a working app embedded in a slide, shared by decks, pages and documents. | [Blocks](docs/BLOCKS.md) |
+| **Decks for agents** | "Debug for agents" (`?debug=1`, then **D**) copies a reference to the exact slide; `protoyard deck schema`, `layouts`, `blocks`, `lint` and `inspect --ref` let an agent write, check and fix a deck; a generated deck can run its own Svelte components as slides. | [Decks: the agent loop](docs/DECKS.md#the-agent-loop) |
 | **Landing pages and documents** | A hero, pricing, steps and forms that store responses; documents with a reading layout and one table of contents. | [Pages](docs/PAGES.md) |
 | **Both levels** | Every kind opens instantly in the player from a share link, or generates a full prototype; links, single-file exports and private Claude artifacts work for all of them. | [Kinds](docs/KINDS.md) |
 
@@ -155,7 +158,7 @@ Every capability below runs in the browser, with fictional data.
 | **Themes** | Six AA-checked presets plus a 64-theme library in six collections (including high-contrast AAA and colorblind-safe), palettes from one brand color, a live **Theme Studio** and the `protoyard theme` CLI. No flash on load. | [Themes](docs/THEMES.md) |
 | **Layouts** | Twelve shared page layouts (sidebar, rail, top nav, master-detail, dashboard grid, docs, wizard, mobile tabs…), switchable live or with `?layout=`. | [Layouts](docs/LAYOUTS.md) |
 | **Shells** | The same app as a phone, tablet, desktop window, browser tab, widget on a fictional site, extension popup or side panel. They simulate a device; they do not emulate one. | [Shells](docs/SHELLS.md) |
-| **UI kit** | Svelte 5 + Bits UI + Tailwind 4 components and product patterns, all in one live catalog (`ui-kit`). | [ui](packages/ui/README.md) |
+| **UI kit** | Svelte 5 + Texuli + Tailwind 4 components and product patterns, all in one live catalog (`ui-kit`). | [ui](packages/ui/README.md) |
 
 ### Kits beyond CRUD
 

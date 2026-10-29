@@ -3,6 +3,7 @@ import { AlarmClock, ArrowLeft, ArrowRight, Flame, Inbox, TriangleAlert } from '
 import type { Persona } from '@protoyard/core';
 import { avatarImage, can, liveQuery, runService, useClock } from '@protoyard/renderer-svelte';
 import { Avatar, Badge, Button, EmptyState, Skeleton, StatCard } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { useCrudApp } from '../lib/context.ts';
 import {
   helpdeskMetrics,
@@ -108,12 +109,12 @@ function move(id: string, subject: string, status: TicketStatus) {
                         <span class="flex shrink-0 gap-1">
                           {#if left}
                             <Button variant="ghost" size="icon" class="size-7" aria-label={`Move “${ticket.subject}” to ${STATUS_LABELS[left]}`} onclick={() => move(String(ticket.id), String(ticket.subject), left)}>
-                              <ArrowLeft class="size-3.5" aria-hidden="true" />
+                              <LucideIcon icon={ArrowLeft} class="size-3.5" />
                             </Button>
                           {/if}
                           {#if right}
                             <Button variant="ghost" size="icon" class="size-7" aria-label={`Move “${ticket.subject}” to ${STATUS_LABELS[right]}`} onclick={() => move(String(ticket.id), String(ticket.subject), right)}>
-                              <ArrowRight class="size-3.5" aria-hidden="true" />
+                              <LucideIcon icon={ArrowRight} class="size-3.5" />
                             </Button>
                           {/if}
                         </span>

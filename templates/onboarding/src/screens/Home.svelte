@@ -9,6 +9,7 @@ import {
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import { Avatar, Badge, Button, Card, LoadingState } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import RestartOnboarding from '../components/RestartOnboarding.svelte';
 import { CAPABILITIES, ROLE_LABELS } from '../domain/policy.ts';
 import { useOnboarding } from '../lib/context.ts';
@@ -76,7 +77,7 @@ const firstName = $derived(
 
     <div class="mt-6 grid gap-6 md:grid-cols-2">
       <Card class="p-5">
-        <h2 class="flex items-center gap-2 text-sm font-semibold"><UserRound class="size-4 text-muted-foreground" aria-hidden="true" />Your profile</h2>
+        <h2 class="flex items-center gap-2 text-sm font-semibold"><LucideIcon icon={UserRound} class="size-4 text-muted-foreground" />Your profile</h2>
         {#if profile}
           <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
             <div><dt class="text-muted-foreground">Name</dt><dd class="font-medium">{profile.fullName}</dd></div>
@@ -90,7 +91,7 @@ const firstName = $derived(
       </Card>
 
       <Card class="p-5">
-        <h2 class="flex items-center gap-2 text-sm font-semibold"><Settings2 class="size-4 text-muted-foreground" aria-hidden="true" />Workspace</h2>
+        <h2 class="flex items-center gap-2 text-sm font-semibold"><LucideIcon icon={Settings2} class="size-4 text-muted-foreground" />Workspace</h2>
         {#if workspace.current}
           <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
             <div><dt class="text-muted-foreground">Name</dt><dd class="font-medium">{workspace.current.name}</dd></div>
@@ -102,7 +103,7 @@ const firstName = $derived(
       </Card>
 
       <Card class="p-5">
-        <h2 class="flex items-center gap-2 text-sm font-semibold"><Users class="size-4 text-muted-foreground" aria-hidden="true" />Team <span class="font-normal text-muted-foreground">{team.current?.members.length ?? 0}</span></h2>
+        <h2 class="flex items-center gap-2 text-sm font-semibold"><LucideIcon icon={Users} class="size-4 text-muted-foreground" />Team <span class="font-normal text-muted-foreground">{team.current?.members.length ?? 0}</span></h2>
         <ul class="mt-3 divide-y divide-border">
           {#each team.current?.members ?? [] as member (member.id)}
             <li class="flex items-center gap-3 py-2.5 text-sm">
@@ -117,7 +118,7 @@ const firstName = $derived(
       </Card>
 
       <Card class="p-5">
-        <h2 class="flex items-center gap-2 text-sm font-semibold"><MailPlus class="size-4 text-muted-foreground" aria-hidden="true" />Pending invitations <span class="font-normal text-muted-foreground">{team.current?.invitations.length ?? 0}</span></h2>
+        <h2 class="flex items-center gap-2 text-sm font-semibold"><LucideIcon icon={MailPlus} class="size-4 text-muted-foreground" />Pending invitations <span class="font-normal text-muted-foreground">{team.current?.invitations.length ?? 0}</span></h2>
         <ul class="mt-3 divide-y divide-border">
           {#each team.current?.invitations ?? [] as invitation (invitation.id)}
             <li class="flex items-center gap-3 py-2.5 text-sm">

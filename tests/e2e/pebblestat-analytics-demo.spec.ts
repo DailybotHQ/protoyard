@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
+import { chooseOption } from './support/select.ts';
 import { PEBBLESTAT_DEMO, PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
 
 /**
@@ -67,9 +68,9 @@ test.describe('Pebblestat Analytics (static build)', () => {
     const chart = plot(page, /^Events\./);
     await expect(chart).toBeVisible();
     // The default range compares with the previous period: a dashed series is drawn.
-    // Found by its caption: the plot (and so `chart`) is replaced while the table is shown.
+    // ChartRoot is [data-py-chart]; Texuli's figure/figcaption live inside it.
     const figure = page
-      .locator('figure[data-py-chart]')
+      .locator('[data-py-chart]')
       .filter({ has: page.locator('figcaption', { hasText: /^Events/ }) });
     await expect(figure.locator('[data-series="previous"]')).toHaveCount(1);
 
@@ -90,7 +91,13 @@ test.describe('Pebblestat Analytics (static build)', () => {
     await expect(panel.presets).toBeHidden();
     await expect(figure.locator('[data-series="previous"]')).toHaveCount(0);
 
-    await figure.getByRole('button', { name: 'View as table' }).click();
+    // Texuli disclosure: label swaps Show ↔ Hide; track via data-chart-table-toggle.
+    const tableToggle = figure.locator('[data-chart-table-toggle]');
+    await expect(tableToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(tableToggle).toHaveText('Show data table');
+    await tableToggle.click();
+    await expect(tableToggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(tableToggle).toHaveText('Hide data table');
     await expect(figure.getByRole('table')).toBeVisible();
     await expect(figure.getByRole('table').getByRole('row')).toHaveCount(8); // header + 7 days
     await expectAccessible(page, testInfo, { include: 'main', label: 'insights' });
@@ -100,11 +107,11 @@ test.describe('Pebblestat Analytics (static build)', () => {
     test.skip(isMobile, 'filter editing is covered on desktop');
     await openApp(page, '#/trends');
     await page.getByRole('button', { name: '+ Add condition' }).first().click();
-    await page.getByLabel('Property').last().selectOption({ label: 'Plan' });
+    await chooseOption(page, page.getByLabel('Property').last(), 'Plan');
     const value = page.getByLabel('Value').last();
-    if ((await value.evaluate((el) => el.tagName)) === 'SELECT')
-      await value.selectOption({ label: 'Team' });
-    else await value.fill('team');
+    const valueTag = await value.evaluate((el) => el.tagName);
+    if (valueTag === 'INPUT' || valueTag === 'TEXTAREA') await value.fill('team');
+    else await chooseOption(page, value, 'Team');
     await page.getByRole('button', { name: 'Apply filters' }).click();
     await page.getByLabel('Save current filter as a segment').fill('Team plan (e2e)');
     await page.getByRole('button', { name: 'Save segment' }).click();
@@ -128,15 +135,11 @@ test.describe('Pebblestat Analytics (static build)', () => {
     await openApp(page, '#/users');
     const chart = plot(page, /^Users by plan/);
     await expect(chart).toBeVisible();
-    if (isMobile) {
-      const box = await chart.boundingBox();
-      if (!box) throw new Error('no chart box');
-      await chart.tap({ position: { x: box.width * 0.15, y: box.height * 0.6 } });
-    } else {
-      await chart.focus();
-      await page.keyboard.press('Home');
-      await page.keyboard.press('Enter');
-    }
+    // Drill via a Texuli bar mark (data-series rect). The explorer overlay can
+    // intercept pointer events; force reaches the mark under the hit target.
+    const bar = page.locator('[data-py-chart] svg rect[data-series]').first();
+    await expect(bar).toBeVisible({ timeout: 15_000 });
+    await bar.click({ force: true });
     const crumbs = page.getByRole('navigation', { name: 'Drill path' });
     await expect(crumbs.locator('[aria-current="location"]')).toContainText('Plan:');
     await expect(page).toHaveURL(/#\/users\?drill=/);

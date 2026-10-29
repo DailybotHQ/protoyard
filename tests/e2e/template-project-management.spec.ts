@@ -16,29 +16,35 @@ test('board move persists after reload and the phone layout fits', async ({ page
   await projectLink.waitFor();
   const boardUrl = await projectLink.getAttribute('href');
   await projectLink.click();
-  const moveMenu = page.getByRole('button', { name: /^Move .+ to…$/ }).first();
+  // Texuli's Board names each card's move menu "Move <task>" and lists every column twice.
+  const moveMenu = page
+    .locator('[data-board-card]')
+    .first()
+    .getByRole('button', { name: /^Move / });
   await moveMenu.waitFor();
-  const taskName = (await moveMenu.getAttribute('aria-label'))
-    ?.replace(/^Move /, '')
-    .replace(/ to…$/, '');
+  const taskName = (await moveMenu.getAttribute('aria-label'))?.replace(/^Move /, '');
   await moveMenu.click();
-  await page.getByRole('menuitem', { name: 'Review', exact: true }).first().click();
+  await page.getByRole('menuitem', { name: 'Review — top', exact: true }).click();
   await expect(
-    page.locator('[data-column="review"] [data-card-id]').filter({ hasText: taskName ?? '' })
+    page
+      .locator('[data-board-cell][data-column-id="review"] [data-board-card]')
+      .filter({ hasText: taskName ?? '' })
   ).toBeVisible();
   await page.reload();
   await waitForPrototypeReady(page, { slug: 'project-management' });
   await expect(
-    page.locator('[data-column="review"] [data-card-id]').filter({ hasText: taskName ?? '' })
+    page
+      .locator('[data-board-cell][data-column-id="review"] [data-board-card]')
+      .filter({ hasText: taskName ?? '' })
   ).toBeVisible();
 
-  // The card is the control (role="button"): no nested links (axe:
-  // nested-interactive), and Enter opens the task.
-  await expect(page.locator('[data-card-id] a')).toHaveCount(0);
+  // The card body is one open button beside the drag handle: no nested links
+  // (axe: nested-interactive), and Enter opens the task.
+  await expect(page.locator('[data-board-card] a')).toHaveCount(0);
   const card = page
-    .locator('[data-column="review"] [data-card-id]')
+    .locator('[data-board-cell][data-column-id="review"] [data-board-card]')
     .filter({ hasText: taskName ?? '' })
-    .locator('[data-card-control]');
+    .locator('button[data-board-no-drag]');
   await card.focus();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/#\/tasks\/[^/]+$/);

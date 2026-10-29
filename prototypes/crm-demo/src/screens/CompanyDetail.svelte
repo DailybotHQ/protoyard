@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowLeft, Globe, MapPin, Pencil, Plus, Trash2, Users } from '@lucide/svelte';
+import { ArrowLeft, Globe, MapPin, Pencil, Trash2, Users } from '@lucide/svelte';
 import type { RouteProps } from '@protoyard/renderer-svelte';
 import {
   avatarImage,
@@ -11,6 +11,8 @@ import {
   runService,
 } from '@protoyard/renderer-svelte';
 import { AlertDialog, Avatar, Badge, Button, Card, EmptyState, LoadingState } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
 import CompanyDialog from '../components/CompanyDialog.svelte';
 import ContactDialog from '../components/ContactDialog.svelte';
 import DealDialog from '../components/DealDialog.svelte';
@@ -48,28 +50,28 @@ let deleteOpen = $state(false);
   </EmptyState>
 {:else}
   {@const c = company.current}
-  <button type="button" onclick={() => back('/companies')} class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-    <ArrowLeft class="size-4" /> Back
-  </button>
+  <Button type="button" variant="ghost" onclick={() => back('/companies')} class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+    <LucideIcon icon={ArrowLeft} class="size-4" /> Back
+  </Button>
   <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex items-center gap-4">
       <Avatar name={c.name} size="lg" />
       <div>
         <h1 class="text-2xl font-semibold tracking-tight">{c.name}</h1>
         <p class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-          <span class="inline-flex items-center gap-1"><Globe class="size-3.5" /> {c.domain}</span>
-          {#if c.city}<span class="inline-flex items-center gap-1"><MapPin class="size-3.5" /> {c.city}</span>{/if}
-          <span class="inline-flex items-center gap-1"><Users class="size-3.5" /> {c.employees.toLocaleString()} employees</span>
+          <span class="inline-flex items-center gap-1"><LucideIcon icon={Globe} class="size-3.5" /> {c.domain}</span>
+          {#if c.city}<span class="inline-flex items-center gap-1"><LucideIcon icon={MapPin} class="size-3.5" /> {c.city}</span>{/if}
+          <span class="inline-flex items-center gap-1"><LucideIcon icon={Users} class="size-3.5" /> {c.employees.toLocaleString()} employees</span>
           <Badge variant="secondary">{c.industry}</Badge>
         </p>
       </div>
     </div>
     <div class="flex flex-wrap gap-2">
       {#if can(CAPABILITIES.companiesWrite)}
-        <Button variant="outline" onclick={() => (editOpen = true)}><Pencil class="size-4" /> Edit</Button>
+        <Button variant="outline" onclick={() => (editOpen = true)}><LucideIcon icon={Pencil} class="size-4" /> Edit</Button>
       {/if}
       {#if can(CAPABILITIES.companiesDelete)}
-        <Button variant="outline" class="text-destructive" onclick={() => (deleteOpen = true)}><Trash2 class="size-4" /> Delete</Button>
+        <Button variant="outline" class="text-destructive" onclick={() => (deleteOpen = true)}><LucideIcon icon={Trash2} class="size-4" /> Delete</Button>
       {/if}
     </div>
   </div>
@@ -79,7 +81,7 @@ let deleteOpen = $state(false);
       <div class="flex items-center justify-between">
         <h2 class="text-sm font-semibold">Deals <span class="font-normal text-muted-foreground">{(deals.current ?? []).length}</span></h2>
         {#if can(CAPABILITIES.dealsCreate)}
-          <Button size="sm" variant="ghost" onclick={() => (dealOpen = true)} disabled={services.isPaywalled()}><Plus class="size-4" /> Deal</Button>
+          <Button size="sm" variant="ghost" onclick={() => (dealOpen = true)} disabled={services.isPaywalled()}><Icon icon="plus" class="size-4" /> Deal</Button>
         {/if}
       </div>
       <ul class="mt-3 divide-y divide-border">
@@ -100,7 +102,7 @@ let deleteOpen = $state(false);
       <div class="flex items-center justify-between">
         <h2 class="text-sm font-semibold">Contacts <span class="font-normal text-muted-foreground">{(contacts.current ?? []).length}</span></h2>
         {#if can(CAPABILITIES.contactsWrite)}
-          <Button size="sm" variant="ghost" onclick={() => (contactOpen = true)} disabled={services.isPaywalled()}><Plus class="size-4" /> Contact</Button>
+          <Button size="sm" variant="ghost" onclick={() => (contactOpen = true)} disabled={services.isPaywalled()}><Icon icon="plus" class="size-4" /> Contact</Button>
         {/if}
       </div>
       <ul class="mt-3 divide-y divide-border">

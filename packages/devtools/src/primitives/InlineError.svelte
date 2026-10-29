@@ -1,10 +1,12 @@
 <script lang="ts">
-/** A section's last failure, next to the control that caused it. */
+import { Alert } from 'texuli/alert';
+
+/** A section's last failure, next to the control that caused it (Texuli Alert). */
 let { message }: { message: string | null } = $props();
 </script>
 
 {#if message}
-  <p class="mt-2 rounded-md border border-destructive/40 bg-destructive/5 px-2 py-1.5 text-[11px] text-destructive" role="alert">
-    {message}
-  </p>
+  <div class="mt-2" data-py-devtools-inline-error="">
+    <Alert tone="error" text={message} hideIcon />
+  </div>
 {/if}

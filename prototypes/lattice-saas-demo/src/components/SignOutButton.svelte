@@ -3,6 +3,8 @@ import { LogOut } from '@lucide/svelte';
 import type { PrototypeRuntime } from '@protoyard/core';
 import { navigate, runService } from '@protoyard/renderer-svelte';
 import { createAuthServices } from '@protoyard/saas';
+import { Button } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 /**
  * Header sign-out for every signed-in persona. Signing yourself out needs no
@@ -31,15 +33,16 @@ async function signOut(): Promise<void> {
 </script>
 
 <span class="inline-flex items-center gap-2">
-  <button
+  <Button
     type="button"
+    variant="ghost"
     class="inline-flex min-h-10 items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-60"
     disabled={busy}
     aria-busy={busy || undefined}
-    onclick={() => void signOut()}
+    onclick={signOut}
   >
-    <LogOut class="size-4" aria-hidden="true" />
+    <LucideIcon icon={LogOut} class="size-4" />
     {busy ? 'Signing out…' : 'Sign out'}
-  </button>
+  </Button>
   {#if error}<span role="alert" class="text-xs text-destructive">{error}</span>{/if}
 </span>

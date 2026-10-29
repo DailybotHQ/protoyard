@@ -7,6 +7,7 @@ import { PASSWORD_RULES, passwordScore } from '../src/components/form/utilities/
 import TagEmailInput from '../src/components/form/utilities/TagEmailInput.svelte';
 import TextCounter from '../src/components/form/utilities/TextCounter.svelte';
 import * as barrel from '../src/index.ts';
+import EmojiFormHarness from './fixtures/EmojiFormHarness.svelte';
 
 afterEach(() => cleanup());
 
@@ -56,7 +57,10 @@ describe('TagEmailInput', () => {
       onValueChange: onBackspace,
     });
     const field = screen.getByRole('textbox', { name: 'Invite' });
+    // Backspace on the empty draft moves to the last tag; Backspace there removes it.
     await fireEvent.keyDown(field, { key: 'Backspace' });
+    expect(onBackspace).not.toHaveBeenCalled();
+    await fireEvent.keyDown(document.activeElement as Element, { key: 'Backspace' });
     expect(onBackspace).toHaveBeenCalledWith([]);
   });
 
@@ -90,6 +94,23 @@ describe('TagEmailInput', () => {
     await fireEvent.input(input, { target: { value: 'design' } });
     await fireEvent.keyDown(input, { key: ' ' });
     expect(onValueChange).toHaveBeenCalledWith(['design']);
+    await fireEvent.input(input, { target: { value: 'research' } });
+    await fireEvent.keyDown(input, { key: ';' });
+    expect(onValueChange).toHaveBeenLastCalledWith(['design', 'research']);
+  });
+
+  it('splits a pasted list on spaces, commas and semicolons', async () => {
+    const onValueChange = vi.fn();
+    render(TagEmailInput, { label: 'Invite', value: [], onValueChange });
+    const input = screen.getByRole('textbox', { name: 'Invite' });
+    await fireEvent.paste(input, {
+      clipboardData: { getData: () => 'ada@example.com, bob@example.com; cara@example.com' },
+    });
+    expect(onValueChange).toHaveBeenLastCalledWith([
+      'ada@example.com',
+      'bob@example.com',
+      'cara@example.com',
+    ]);
   });
 });
 
@@ -181,6 +202,18 @@ describe('TextCounter', () => {
     await fireEvent.input(field, { target: { value: 'abcdef' } });
     expect(onValueChange).toHaveBeenCalledWith('abcde');
   });
+
+  it('forwards extra attributes: data-* to the field, the rest to the wrapper', () => {
+    render(TextCounter, {
+      label: 'Handle',
+      value: '',
+      'data-testid': 'handle-field',
+      title: 'Your public handle',
+    } as never);
+    const field = screen.getByRole('textbox', { name: 'Handle' });
+    expect(field.dataset.testid).toBe('handle-field');
+    expect(screen.getByTitle('Your public handle').contains(field)).toBe(true);
+  });
 });
 
 describe('form utilities barrel', () => {
@@ -192,5 +225,18 @@ describe('form utilities barrel', () => {
     expect(typeof barrel.passwordScore).toBe('function');
     expect(typeof barrel.isEmailAddress).toBe('function');
     expect(barrel.EMOJI_GROUPS.length).toBeGreaterThan(0);
+  });
+});
+
+describe('EmojiPicker in a form', () => {
+  it("submits the emoji through Texuli's form bridge and is invalid while empty and required", async () => {
+    const { rerender } = render(EmojiFormHarness, { value: '' });
+    const form = screen.getByTestId('form') as HTMLFormElement;
+    const bridge = form.querySelector<HTMLInputElement>('input[name="reaction"]');
+    expect(bridge?.dataset.txFormBridge).toBe('');
+    expect(form.checkValidity()).toBe(false);
+    await rerender({ value: '👍' });
+    expect(new FormData(form).get('reaction')).toBe('👍');
+    expect(form.checkValidity()).toBe(true);
   });
 });

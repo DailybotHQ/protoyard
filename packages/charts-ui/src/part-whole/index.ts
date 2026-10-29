@@ -1,8 +1,9 @@
-// @protoyard/charts-ui/part-whole — pie, donut, funnel, treemap and sankey charts.
+// @protoyard/charts-ui/part-whole — Texuli part-whole + flow funnel/sankey adapters.
 import type { ChartFamily } from '../families.ts';
 
 export const FAMILY = 'part-whole' satisfies ChartFamily;
 
+export { SunburstChart, TreemapChart } from '@texuli/charts/part-whole';
 export { default as DonutChart } from './DonutChart.svelte';
 export { default as FunnelChart } from './FunnelChart.svelte';
 export {

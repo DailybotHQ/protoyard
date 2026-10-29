@@ -4,6 +4,7 @@ import { type BlueprintNotificationService, createNotificationService } from '@p
 import type { PrototypeRuntime, Row } from '@protoyard/core';
 import { liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { Button, Popover } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 
 /**
  * Header bell for blueprint notifications: unread badge, list, mark read / all.
@@ -93,7 +94,7 @@ function whenOf(row: Row): string {
           aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
           data-testid="notifications-bell-trigger"
         >
-          <Bell aria-hidden="true" />
+          <LucideIcon icon={Bell} />
           {#if unread > 0}
             <span
               class="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground"
@@ -131,23 +132,24 @@ function whenOf(row: Row): string {
           <ul class="divide-y divide-border">
             {#each items as row (String(row.id))}
               <li>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   class={[
-                    'flex w-full flex-col gap-0.5 px-3 py-2.5 text-left hover:bg-muted',
+                    'flex w-full flex-col items-start whitespace-normal break-words select-text gap-0.5 px-3 py-2.5 text-left hover:bg-muted',
                     isUnread(row) && 'bg-muted',
                   ]}
                   data-testid="notification-item"
                   data-notification-id={String(row.id)}
                   data-unread={isUnread(row) ? 'true' : 'false'}
-                  onclick={() => void markRead(String(row.id))}
+                  onclick={() => markRead(String(row.id))}
                 >
                   <span class="text-sm font-medium text-foreground">{titleOf(row)}</span>
                   <span class="text-xs text-muted-foreground">{whenOf(row)}</span>
                   {#if isUnread(row)}
                     <span class="sr-only">Unread. Activate to mark as read.</span>
                   {/if}
-                </button>
+                </Button>
               </li>
             {/each}
           </ul>

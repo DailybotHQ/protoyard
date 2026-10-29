@@ -1,11 +1,26 @@
 <script lang="ts" generics="T">
-import { ArrowDown, ArrowUp, ArrowUpDown, Search } from '@lucide/svelte';
+import ArrowDown from '@lucide/svelte/icons/arrow-down';
+import ArrowUp from '@lucide/svelte/icons/arrow-up';
+import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
 import type { Snippet } from 'svelte';
-import { cn } from '../../lib/cn.ts';
-import Checkbox from '../checkbox/Checkbox.svelte';
+import { Button } from 'texuli/button';
+import { Checkbox } from 'texuli/choice';
+import { cx } from 'texuli/cx';
+import { Skeleton } from 'texuli/feedback';
+import { Icon } from 'texuli/icons';
+import { LucideIcon } from 'texuli/icons/lucide';
+import { Input } from 'texuli/input';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from 'texuli/table';
 import EmptyState from '../empty-state/EmptyState.svelte';
 import Pagination from '../pagination/Pagination.svelte';
-import Skeleton from '../skeleton/Skeleton.svelte';
 import { formatValue, matchesQuery, readValue, sortRows } from './table-utils.ts';
 import type { DataTableBulkActionContext, DataTableColumn, DataTableSort } from './types.ts';
 
@@ -133,7 +148,7 @@ const hideClass = {
 };
 
 function cellClass(column: DataTableColumn<T>): string {
-  return cn(alignClass[column.align ?? 'left'], column.hideBelow && hideClass[column.hideBelow]);
+  return cx(alignClass[column.align ?? 'left'], column.hideBelow && hideClass[column.hideBelow]);
 }
 
 function toggleSort(key: string): void {
@@ -210,23 +225,28 @@ function togglePageSelection(checked: boolean | 'indeterminate'): void {
 }
 </script>
 
-<div class={cn('flex flex-col gap-3', className)}>
+<!--
+  Texuli's table parts (`texuli/table`), Input, Button and Checkbox. Texuli's
+  DataGrid (`@texuli/data/grid-core`) now has paging, row classes and the
+  toolbar, filter and bulk-action snippets, but it is an interactive ARIA grid
+  whose rows open only with Enter: this read-only list keeps table semantics
+  and opens a row on click, hides columns below a breakpoint (`hideBelow`) and
+  hands the empty state its query (Texuli gap N15).
+-->
+<div class={cx('flex flex-col gap-3', className)}>
   {#if searchable || filters || toolbar}
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
         {#if searchable}
-          <div class="relative w-full sm:max-w-xs">
-            <Search
-              class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <input
+          <div class="ui-table-search w-full sm:max-w-xs">
+            <Icon icon="search" size="sm" class="ui-table-search__icon" aria-hidden="true" />
+            <Input
               type="search"
               bind:value={search}
-              oninput={() => (page = 1)}
+              onValueChange={() => (page = 1)}
               placeholder={searchPlaceholder}
               aria-label={caption ? `Search ${caption}` : 'Search table'}
-              class="flex h-9 min-h-touch w-full rounded-md border border-input bg-surface py-1 pr-3 pl-9 text-base text-foreground shadow-soft outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 sm:min-h-0 sm:text-sm"
+              class="ui-table-search__input"
             />
           </div>
         {/if}
@@ -237,141 +257,120 @@ function togglePageSelection(checked: boolean | 'indeterminate'): void {
   {/if}
 
   {#if selectable && bulkActions && selection.size > 0}
-    <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
+    <div class="ui-table-bulk">
       {@render bulkActions({ selected: [...selected], rows: selectedRows })}
     </div>
   {/if}
 
-  <div class="overflow-x-auto rounded-xl border border-border bg-surface shadow-soft">
-    <table class="w-full border-collapse text-sm" aria-busy={loading || undefined}>
-      {#if caption}<caption class="sr-only">{caption}</caption>{/if}
-      <thead>
-        <tr class="border-b border-border bg-muted/50">
-          {#if selectable}
-            <th scope="col" class="w-10 px-3 text-left">
-              <Checkbox
-                checked={pageFullySelected}
-                indeterminate={pagePartiallySelected}
-                disabled={loading || visibleIds.length === 0}
-                onCheckedChange={togglePageSelection}
-                aria-label="Select all rows on this page"
-              />
-            </th>
-          {/if}
-          {#each columns as column (column.key)}
-            <th
-              scope="col"
-              aria-sort={column.sortable ? ariaSort(column.key) : undefined}
-              class={cn(
-                'h-10 px-4 text-xs font-medium tracking-wide whitespace-nowrap text-muted-foreground uppercase',
-                cellClass(column),
-                column.headerClass
-              )}
-            >
-              {#if column.sortable}
-                <button
-                  type="button"
-                  class={cn(
-                    '-mx-2 inline-flex min-h-touch items-center gap-1.5 rounded-md px-2 py-1 uppercase transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0',
-                    sort?.key === column.key && 'text-foreground'
-                  )}
-                  onclick={() => toggleSort(column.key)}
-                >
-                  {column.header}
-                  {#if sort?.key === column.key}
-                    {#if sort.direction === 'asc'}
-                      <ArrowUp class="size-3.5" aria-hidden="true" />
-                    {:else}
-                      <ArrowDown class="size-3.5" aria-hidden="true" />
-                    {/if}
-                  {:else}
-                    <ArrowUpDown class="size-3.5 opacity-50" aria-hidden="true" />
-                  {/if}
-                </button>
-              {:else}
-                {column.header}
-              {/if}
-            </th>
-          {/each}
-        </tr>
-      </thead>
-      <tbody>
-        {#if loading}
-          {#each { length: skeletonRows }, index (index)}
-            <tr class="border-b border-border last:border-b-0">
-              {#each columns as column (column.key)}
-                <td class={cn('px-4 py-3', cellClass(column))}>
-                  <Skeleton class="h-4 w-full max-w-40" />
-                </td>
-              {/each}
-            </tr>
-          {/each}
-        {:else if visible.length === 0}
-          <tr>
-            <td colspan={columns.length + (selectable ? 1 : 0)}>
-              {#if empty}
-                {@render empty({ query: search })}
-              {:else}
-                <EmptyState
-                  size="sm"
-                  title={emptyTitle}
-                  description={search.trim()
-                    ? `Nothing matches “${search.trim()}”.`
-                    : emptyDescription}
-                />
-              {/if}
-            </td>
-          </tr>
-        {:else}
-          {#each visible as row (getRowId(row, rows.indexOf(row)))}
-            <tr
-              class={cn(
-                'border-b border-border transition-colors last:border-b-0',
-                onRowClick &&
-                  'cursor-pointer hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
-                rowClass?.(row)
-              )}
-              tabindex={onRowClick ? 0 : undefined}
-              aria-label={onRowClick && rowLabel ? rowLabel(row) : undefined}
-              onclick={onRowClick ? (event) => handleRowClick(event, row) : undefined}
-              onkeydown={onRowClick ? (event) => handleRowKeydown(event, row) : undefined}
-            >
-              {#if selectable}
-                {@const id = getRowId(row, rows.indexOf(row))}
-                <td
-                  class="w-10 px-3 py-3 align-middle"
-                  onclickcapture={captureShiftKey}
-                  onkeydowncapture={captureShiftKey}
-                >
-                  <Checkbox
-                    checked={selection.has(id)}
-                    onCheckedChange={(checked) => {
-                      toggleRowSelection(id, checked, pendingShiftClick);
-                      pendingShiftClick = false;
-                    }}
-                    aria-label={`Select row ${rowLabel?.(row) ?? id}`}
-                  />
-                </td>
-              {/if}
-              {#each columns as column (column.key)}
-                <td class={cn('px-4 py-3 align-middle', cellClass(column), column.class)}>
-                  {#if column.cell}
-                    {@render column.cell(row)}
-                  {:else}
-                    {formatValue(readValue(row, column))}
-                  {/if}
-                </td>
-              {/each}
-            </tr>
-          {/each}
+  <Table busy={loading} label={caption}>
+    {#if caption}<TableCaption hidden>{caption}</TableCaption>{/if}
+    <TableHeader>
+      <TableRow>
+        {#if selectable}
+          <TableHead class="w-10">
+            <Checkbox
+              checked={pageFullySelected}
+              indeterminate={pagePartiallySelected}
+              disabled={loading || visibleIds.length === 0}
+              onCheckedChange={togglePageSelection}
+              aria-label="Select all rows on this page"
+            />
+          </TableHead>
         {/if}
-      </tbody>
-    </table>
-  </div>
+        {#each columns as column (column.key)}
+          <TableHead
+            aria-sort={column.sortable ? ariaSort(column.key) : undefined}
+            class={cx('whitespace-nowrap', cellClass(column), column.headerClass)}
+          >
+            {#if column.sortable}
+              <Button
+                variant="ghost"
+                size="sm"
+                class={cx('ui-table-sort', sort?.key === column.key && 'ui-table-sort--active')}
+                onclick={() => toggleSort(column.key)}
+              >
+                {column.header}
+                {#if sort?.key === column.key}
+                  <LucideIcon icon={sort.direction === 'asc' ? ArrowUp : ArrowDown} size="xs" />
+                {:else}
+                  <LucideIcon icon={ArrowUpDown} size="xs" class="ui-table-sort__idle" />
+                {/if}
+              </Button>
+            {:else}
+              {column.header}
+            {/if}
+          </TableHead>
+        {/each}
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      {#if loading}
+        {#each { length: skeletonRows }, index (index)}
+          <TableRow>
+            {#each columns as column (column.key)}
+              <TableCell class={cellClass(column)}>
+                <Skeleton class="h-4 w-full max-w-40" />
+              </TableCell>
+            {/each}
+          </TableRow>
+        {/each}
+      {:else if visible.length === 0}
+        <TableRow>
+          <TableCell colspan={columns.length + (selectable ? 1 : 0)}>
+            {#if empty}
+              {@render empty({ query: search })}
+            {:else}
+              <EmptyState
+                size="sm"
+                title={emptyTitle}
+                description={search.trim()
+                  ? `Nothing matches “${search.trim()}”.`
+                  : emptyDescription}
+              />
+            {/if}
+          </TableCell>
+        </TableRow>
+      {:else}
+        {#each visible as row (getRowId(row, rows.indexOf(row)))}
+          {@const id = getRowId(row, rows.indexOf(row))}
+          <TableRow
+            selected={selectable && selection.has(id)}
+            class={cx(onRowClick && 'ui-table-row--action', rowClass?.(row))}
+            tabindex={onRowClick ? 0 : undefined}
+            aria-label={onRowClick && rowLabel ? rowLabel(row) : undefined}
+            onclick={onRowClick ? (event) => handleRowClick(event, row) : undefined}
+            onkeydown={onRowClick ? (event) => handleRowKeydown(event, row) : undefined}
+          >
+            {#if selectable}
+              <TableCell class="w-10" onclickcapture={captureShiftKey} onkeydowncapture={captureShiftKey}>
+                <Checkbox
+                  checked={selection.has(id)}
+                  onCheckedChange={(checked) => {
+                    toggleRowSelection(id, checked, pendingShiftClick);
+                    pendingShiftClick = false;
+                  }}
+                  aria-label={`Select row ${rowLabel?.(row) ?? id}`}
+                />
+              </TableCell>
+            {/if}
+            {#each columns as column (column.key)}
+              <TableCell class={cx(cellClass(column), column.class)}>
+                {#if column.cell}
+                  {@render column.cell(row)}
+                {:else}
+                  {formatValue(readValue(row, column))}
+                {/if}
+              </TableCell>
+            {/each}
+          </TableRow>
+        {/each}
+      {/if}
+    </TableBody>
+  </Table>
 
   {#if !loading && (pageSize > 0 || searchable)}
     <div class="flex flex-col-reverse items-center justify-between gap-2 sm:flex-row">
-      <p class="text-xs text-muted-foreground tabular-nums" aria-live="polite">
+      <p class="ui-table-count" aria-live="polite">
         {#if sorted.length === 0}
           0 results
         {:else if pageSize > 0 && pageCount > 1}
@@ -386,3 +385,60 @@ function togglePageSelection(checked: boolean | 'indeterminate'): void {
     </div>
   {/if}
 </div>
+
+<style>
+  .ui-table-search {
+    position: relative;
+  }
+  .ui-table-search :global(.ui-table-search__icon) {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 0.75rem;
+    translate: 0 -50%;
+    color: var(--tx-muted-foreground, GrayText);
+    pointer-events: none;
+  }
+  .ui-table-search :global(.ui-table-search__input) {
+    padding-inline-start: 2.25rem;
+  }
+  .ui-table-bulk {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--tx-border, ButtonBorder);
+    border-radius: var(--tx-radius-lg, 0.5rem);
+    background: var(--tx-muted, Canvas);
+  }
+  :global(.ui-table-sort) {
+    margin-inline: -0.5rem;
+    color: inherit;
+    font: inherit;
+    text-transform: inherit;
+  }
+  :global(.ui-table-sort--active) {
+    color: var(--tx-foreground, CanvasText);
+  }
+  :global(.ui-table-sort__idle) {
+    opacity: 0.5;
+  }
+  :global(.ui-table-row--action) {
+    cursor: pointer;
+  }
+  :global(.ui-table-row--action:hover),
+  :global(.ui-table-row--action:focus-visible) {
+    background: var(--tx-muted, Canvas);
+  }
+  :global(.ui-table-row--action:focus-visible) {
+    outline: var(--tx-focus-ring-width, 2px) solid var(--tx-ring, Highlight);
+    outline-offset: -2px;
+  }
+  .ui-table-count {
+    margin: 0;
+    color: var(--tx-muted-foreground, GrayText);
+    font-size: var(--tx-font-size-xs, 0.75rem);
+    font-variant-numeric: tabular-nums;
+  }
+</style>

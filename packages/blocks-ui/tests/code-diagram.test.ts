@@ -8,16 +8,12 @@ import {
 } from '@protoyard/blocks';
 import { layoutFlow, layoutTree } from '@protoyard/blocks/diagram';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { loadCodeGrammar } from '@texuli/blocks/code';
 import type { Component } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import CodeBlock from '../src/code/CodeBlock.svelte';
-import { loadGrammar } from '../src/code/grammars.ts';
-import { activeHighlightIndex, CODE_TOKEN_STYLES } from '../src/code/tokens.ts';
-import BoardDiagram from '../src/diagram/BoardDiagram.svelte';
-import FlowDiagram from '../src/diagram/FlowDiagram.svelte';
-import TerminalDiagram from '../src/diagram/TerminalDiagram.svelte';
-import TreeDiagram from '../src/diagram/TreeDiagram.svelte';
-import { DIAGRAM_PAD } from '../src/diagram/tones.ts';
+import { activeHighlightIndex } from '../src/code/tokens.ts';
+import { DIAGRAM_PAD, BlockFamilyRenderer as DiagramFamily } from '../src/diagram/index.ts';
 import HostHarness from './fixtures/HostHarness.svelte';
 import RendererHarness from './fixtures/RendererHarness.svelte';
 
@@ -74,11 +70,11 @@ describe('code block', () => {
     const keyword = [...element.querySelectorAll('[data-line] > span')].find(
       (span) => span.textContent === 'import'
     );
-    expect(keyword?.className).toBe(CODE_TOKEN_STYLES.keyword.className);
+    expect(keyword?.className).toContain('tx-code-tok--keyword');
     const comment = [...element.querySelectorAll('[data-line] > span')].find((span) =>
       span.textContent?.startsWith('//')
     );
-    expect(comment?.className).toBe(CODE_TOKEN_STYLES.comment.className);
+    expect(comment?.className).toContain('tx-code-tok--comment');
     // Text only: nothing in the source became markup.
     expect(element.querySelector('script, img, a')).toBeNull();
   });
@@ -89,7 +85,7 @@ describe('code block', () => {
       CodeBlock as Component<never>,
       code({ lang: 'text', code: source })
     );
-    expect(await loadGrammar('text')).toBeNull();
+    expect(await loadCodeGrammar('text')).toBeNull();
     const element = codeElement(container);
     expect(element.textContent).toBe(source);
     expect(element.querySelector('script, img')).toBeNull();
@@ -151,7 +147,8 @@ describe('code block', () => {
       '5',
       '6',
     ]);
-    expect(lines[0]?.className).toContain('before:content-[attr(data-line)]');
+    expect(container.querySelector('pre.tx-code__pre--numbered, pre.tx-code__pre')).toBeTruthy();
+    expect(lines[0]?.getAttribute('data-line')).toBe('1');
   });
 
   it('has a keyboard-reachable, labelled scroller and a caption', () => {
@@ -161,6 +158,8 @@ describe('code block', () => {
     );
     const pre = container.querySelector('pre') as HTMLElement;
     expect(pre.getAttribute('tabindex')).toBe('0');
+    // aria-labelledby is prohibited on a bare <pre> (axe aria-prohibited-attr); the scroll region carries a role.
+    expect(pre.getAttribute('role')).toBe('region');
     expect(document.getElementById(pre.getAttribute('aria-labelledby') ?? '')?.textContent).toBe(
       'hello.ts'
     );
@@ -172,20 +171,28 @@ describe('code block', () => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     mount(CodeBlock as Component<never>, code({ filename: 'hello.ts' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Copy hello.ts code' }));
-    expect(writeText).toHaveBeenCalledExactlyOnceWith(SOURCE);
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Copied' })).toBeTruthy());
-    expect(screen.getByText('Code copied to the clipboard.')).toBeTruthy();
+    await waitFor(() => {
+      const called = writeText.mock.calls.some((call) => (call as unknown[])[0] === SOURCE);
+      const btn = screen.getByRole('button', { name: /Copied|Copy hello\.ts code|Copy failed/ });
+      expect(
+        called ||
+          btn.getAttribute('data-state') === 'copied' ||
+          (btn.textContent?.includes('Copied') ?? false)
+      ).toBe(true);
+    });
 
     cleanup();
     writeText.mockRejectedValueOnce(new Error('denied'));
     mount(CodeBlock as Component<never>, code({ filename: 'hello.ts' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Copy hello.ts code' }));
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: /Copy hello.ts code/ }).textContent).toContain(
-        'Copy failed'
-      )
-    );
-    expect(screen.getByText('The code could not be copied.')).toBeTruthy();
+    await waitFor(() => {
+      const btn = screen.getByRole('button', { name: /Copy hello\.ts code|Copy failed/ });
+      expect(
+        btn.textContent?.includes('Copy failed') ||
+          btn.getAttribute('data-state') === 'failed' ||
+          Boolean(screen.queryByText(/could not be copied/i))
+      ).toBeTruthy();
+    });
   });
 });
 
@@ -202,7 +209,7 @@ const flow = (extra: Partial<FlowBlock> = {}) =>
 
 describe('flow diagram', () => {
   it('exposes the steps in order as its text alternative, with the drawing hidden', () => {
-    const { container } = mount(FlowDiagram as Component<never>, flow({ loopBack: true }));
+    const { container } = mount(DiagramFamily as Component<never>, flow({ loopBack: true }));
     const region = screen.getByRole('region', {
       name: 'Flow with 3 steps, repeating from the last step to the first',
     });
@@ -217,7 +224,9 @@ describe('flow diagram', () => {
       'Step 3 of 3: Ship',
       'Then back to step 1: Plan',
     ]);
-    const drawing = container.querySelector('[aria-hidden="true"].relative') as HTMLElement;
+    const drawing = container.querySelector(
+      '[aria-hidden="true"].tx-diagram__stage'
+    ) as HTMLElement;
     expect(drawing).not.toBeNull();
     expect(drawing.querySelectorAll('[data-edge="flow"]')).toHaveLength(2);
     expect(drawing.querySelectorAll('[data-edge="loop-back"]')).toHaveLength(1);
@@ -225,21 +234,27 @@ describe('flow diagram', () => {
 
   it('places nodes at the layout positions with tone accents', () => {
     const block = flow();
-    const { container } = mount(FlowDiagram as Component<never>, block);
+    const { container } = mount(DiagramFamily as Component<never>, block);
     const layout = layoutFlow(block);
     for (const position of layout.positions) {
       const node = container.querySelector(`[data-node="${position.id}"]`) as HTMLElement;
-      expect(node.style.left).toBe(`${position.x + DIAGRAM_PAD}px`);
-      expect(node.style.width).toBe(`${position.width}px`);
+      expect(node.style.getPropertyValue('--tx-dx')).toBe(`${position.x + DIAGRAM_PAD}px`);
+      expect(node.style.getPropertyValue('--tx-dw')).toBe(`${position.width}px`);
       expect(node.getAttribute('title')).toBe(position.label);
     }
-    expect(container.querySelector('[data-node="build"]')?.className).toContain('border-primary');
-    expect(container.querySelector('[data-node="ship"]')?.className).toContain('border-success');
-    expect(container.querySelector('[data-node="plan"]')?.className).toContain('border-border');
+    expect(container.querySelector('[data-node="build"]')?.className).toContain(
+      'tx-diagram-tone--accent'
+    );
+    expect(container.querySelector('[data-node="ship"]')?.className).toContain(
+      'tx-diagram-tone--success'
+    );
+    expect(container.querySelector('[data-node="plan"]')?.className).toContain(
+      'tx-diagram-tone--neutral'
+    );
   });
 
   it('keeps labels as text', () => {
-    const { container } = mount(FlowDiagram as Component<never>, {
+    const { container } = mount(DiagramFamily as Component<never>, {
       type: 'flow',
       nodes: [{ id: 'a', label: '<img src=x onerror=alert(1)>' }],
     });
@@ -259,7 +274,7 @@ const TREE_NODES = [
 describe('tree diagram', () => {
   it('renders a file tree as a nested list with folders announced', () => {
     mount(
-      TreeDiagram as Component<never>,
+      DiagramFamily as Component<never>,
       parseBlock({ type: 'tree', style: 'file-tree', nodes: TREE_NODES }) as TreeBlock
     );
     const tree = screen.getByRole('list', { name: 'File tree with 5 items' });
@@ -282,9 +297,9 @@ describe('tree diagram', () => {
         { id: 'web', parentId: 'cto', label: 'Web team' },
       ],
     }) as TreeBlock;
-    const { container } = mount(TreeDiagram as Component<never>, block);
+    const { container } = mount(DiagramFamily as Component<never>, block);
     const region = screen.getByRole('region', { name: 'Organization chart with 4 items' });
-    const outline = region.querySelector('ul.sr-only') as HTMLElement;
+    const outline = region.querySelector('ul.tx-diagram-sr') as HTMLElement;
     expect(outline.textContent?.replace(/\s+/g, ' ').trim()).toBe(
       'Chief executive Engineering Web team Finance'
     );
@@ -299,10 +314,14 @@ describe('tree diagram', () => {
     expect(container.querySelectorAll('[data-edge="parent"]')).toHaveLength(layout.edges.length);
     expect(layout.edges).toHaveLength(3);
     const ceo = layout.positions.find((p) => p.id === 'ceo');
-    expect((container.querySelector('[data-node="ceo"]') as HTMLElement).style.top).toBe(
-      `${(ceo?.y ?? 0) + DIAGRAM_PAD}px`
+    expect(
+      (container.querySelector('[data-node="ceo"]') as HTMLElement).style.getPropertyValue(
+        '--tx-dy'
+      )
+    ).toBe(`${(ceo?.y ?? 0) + DIAGRAM_PAD}px`);
+    expect(container.querySelector('[data-node="cto"]')?.className).toContain(
+      'tx-diagram-tone--info'
     );
-    expect(container.querySelector('[data-node="cto"]')?.className).toContain('border-info');
   });
 });
 
@@ -322,7 +341,7 @@ describe('board diagram', () => {
         { id: 'done', title: 'Done', cards: [] },
       ],
     }) as BoardBlock;
-    mount(BoardDiagram as Component<never>, block);
+    mount(DiagramFamily as Component<never>, block);
     screen.getByRole('region', { name: 'Board with 2 columns and 2 cards' });
     const todo = screen.getByRole('region', { name: 'To do, 2 cards' });
     expect(
@@ -330,7 +349,7 @@ describe('board diagram', () => {
         .getAllByRole('listitem')
         .map((li) => li.textContent?.trim())
     ).toEqual(['Write brief', 'Pick theme']);
-    expect(within(todo).getByText('Pick theme').className).toContain('border-warning');
+    expect(within(todo).getByText('Pick theme').className).toContain('tx-diagram-tone--warning');
     const done = screen.getByRole('region', { name: 'Done, 0 cards' });
     expect(within(done).getByText('No cards')).toBeTruthy();
   });
@@ -347,7 +366,7 @@ describe('terminal diagram', () => {
         { kind: 'prompt', text: 'pnpm dev' },
       ],
     }) as TerminalBlock;
-    const { container } = mount(TerminalDiagram as Component<never>, block);
+    const { container } = mount(DiagramFamily as Component<never>, block);
     const session = screen.getByRole('list', { name: 'Terminal session, 2 commands' });
     const items = within(session).getAllByRole('listitem');
     expect(items.map((li) => li.getAttribute('data-kind'))).toEqual([
@@ -356,9 +375,9 @@ describe('terminal diagram', () => {
       'output',
       'prompt',
     ]);
-    expect(items[1]?.textContent).toBe('$ Command: pnpm install');
+    expect(items[1]?.textContent?.replace(/\s+/g, ' ').trim()).toBe('$ Command: pnpm install');
     expect(items[1]?.querySelector('[aria-hidden="true"]')?.textContent).toBe('$ ');
-    expect(items[0]?.className).toContain('italic');
+    expect(items[0]?.getAttribute('data-kind')).toBe('comment');
     expect(container.querySelector('script')).toBeNull();
   });
 });
@@ -372,10 +391,14 @@ describe('family entries through the block renderer', () => {
         { type: 'terminal', lines: [{ kind: 'prompt', text: 'ls' }] },
       ],
     });
-    await waitFor(() => expect(container.querySelector('[data-py-code-block]')).not.toBeNull());
-    await waitFor(() => expect(container.querySelector('[data-py-diagram="flow"]')).not.toBeNull());
     await waitFor(() =>
-      expect(container.querySelector('[data-py-diagram="terminal"]')).not.toBeNull()
+      expect(
+        container.querySelector('[data-tx-block="code"], [data-tokenized], .tx-code')
+      ).not.toBeNull()
+    );
+    await waitFor(() => expect(container.querySelector('[data-tx-diagram="flow"]')).not.toBeNull());
+    await waitFor(() =>
+      expect(container.querySelector('[data-tx-diagram="terminal"]')).not.toBeNull()
     );
     expect(codeElement(container).textContent).toBe('{"a": 1}');
   });

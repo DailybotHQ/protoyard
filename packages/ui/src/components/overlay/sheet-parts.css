@@ -1,0 +1,193 @@
+/*
+ * Header, body, footer and close of Protoyard's sheets (Drawer, DetailPanel,
+ * BottomSheet). The surfaces are Texuli's (`tx-sheet`, `tx-drawer`,
+ * `tx-detail-panel` from `texuli/sheet`). Texuli 0.5.0 also ships styled
+ * header, body, footer and close parts (`Sheet.Header`…); Protoyard's sheets
+ * still lay out their own with these rules, on `--tx-*` tokens (moving them to
+ * Texuli's parts is a follow-up). Same layer as Texuli's components, so
+ * consumer utilities still override.
+ */
+@layer tx.components {
+  .ui-sheet__header {
+    display: flex;
+    flex-shrink: 0;
+    gap: 1rem;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .ui-sheet__heading {
+    display: grid;
+    gap: 0.25rem;
+    min-inline-size: 0;
+  }
+
+  .ui-sheet__heading[data-hidden] {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .ui-sheet__title {
+    margin: 0;
+    font-family: var(--tx-font-heading, inherit);
+    font-size: var(--tx-font-size-lg, 1.125rem);
+    font-weight: var(--tx-font-weight-heading, 650);
+    line-height: 1.3;
+  }
+
+  .ui-sheet__description {
+    margin: 0;
+    color: var(--tx-muted-foreground, GrayText);
+  }
+
+  .ui-sheet__actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0.25rem;
+    align-items: center;
+    margin-inline-start: auto;
+  }
+
+  .ui-sheet__close {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    margin-block-start: -0.5rem;
+    margin-inline-end: -0.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--tx-radius-md, 0.375rem);
+    background: transparent;
+    color: var(--tx-muted-foreground, GrayText);
+    cursor: pointer;
+  }
+
+  .ui-sheet__close:hover {
+    background: var(--tx-muted, color-mix(in srgb, CanvasText 8%, transparent));
+    color: var(--tx-foreground, CanvasText);
+  }
+
+  .ui-sheet__close:focus-visible {
+    outline: var(--tx-focus-ring-width, 2px) solid var(--tx-ring, Highlight);
+    outline-offset: 2px;
+  }
+
+  @media (pointer: fine) {
+    .ui-sheet__close {
+      inline-size: 2.25rem;
+      block-size: 2.25rem;
+    }
+  }
+
+  .ui-sheet__sr-only {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .ui-sheet__body {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    overflow-y: auto;
+  }
+
+  .ui-sheet__footer {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+    padding-block-start: 1rem;
+    border-block-start: 1px solid var(--tx-border, ButtonBorder);
+  }
+
+  @media (min-width: 40rem) {
+    .ui-sheet__footer {
+      flex-direction: row;
+      justify-content: flex-end;
+    }
+  }
+
+  /* Protoyard's drawer size (a validated length) on Texuli's sheet surface. */
+  .tx-sheet.ui-sheet--sized[data-side="left"],
+  .tx-sheet.ui-sheet--sized[data-side="right"] {
+    inline-size: min(var(--ui-drawer-size), 100%);
+  }
+
+  .tx-sheet.ui-sheet--sized[data-side="top"],
+  .tx-sheet.ui-sheet--sized[data-side="bottom"] {
+    block-size: var(--ui-drawer-size);
+    max-block-size: 85%;
+  }
+
+  .tx-sheet[data-side="left"],
+  .tx-sheet[data-side="right"] {
+    padding-block-start: max(1.25rem, env(safe-area-inset-top));
+    padding-block-end: max(1.25rem, env(safe-area-inset-bottom));
+  }
+
+  .tx-sheet[data-side="top"] {
+    padding-block-start: max(1.25rem, env(safe-area-inset-top));
+    border-end-start-radius: var(--tx-radius-xl, 0.75rem);
+    border-end-end-radius: var(--tx-radius-xl, 0.75rem);
+  }
+
+  .tx-sheet[data-side="bottom"] {
+    padding-block-end: max(1.25rem, env(safe-area-inset-bottom));
+    border-start-start-radius: var(--tx-radius-xl, 0.75rem);
+    border-start-end-radius: var(--tx-radius-xl, 0.75rem);
+  }
+
+  /*
+   * Frame-relative heights: inside a framed device the surfaces are contained
+   * by the screen, so they size against it (100%) and never the viewport.
+   */
+  .tx-sheet[data-side],
+  .tx-detail-panel[data-side],
+  .tx-drawer[data-side] {
+    max-block-size: 100%;
+  }
+
+  /* The mobile bottom sheet: centered, at most 32rem wide, 90% of the frame tall. */
+  .tx-drawer.ui-bottom-sheet[data-side="bottom"] {
+    inset-inline: 0;
+    margin-inline: auto;
+    inline-size: 100%;
+    max-inline-size: 32rem;
+    block-size: auto;
+    max-block-size: 90%;
+    padding-block-start: 0.625rem;
+    padding-block-end: max(1rem, env(safe-area-inset-bottom));
+    border-block-end: 0;
+    border-start-start-radius: var(--tx-radius-xl, 1rem);
+    border-start-end-radius: var(--tx-radius-xl, 1rem);
+    touch-action: none;
+  }
+
+  .ui-bottom-sheet__heading {
+    text-align: center;
+  }
+
+  .ui-bottom-sheet .ui-sheet__body {
+    touch-action: pan-y;
+  }
+
+  .ui-bottom-sheet__footer {
+    flex-direction: column;
+  }
+}

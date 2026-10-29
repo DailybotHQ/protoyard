@@ -1,0 +1,127 @@
+import { defineTheme, type Theme } from '@protoyard/core';
+
+/**
+ * The brand of src/blueprint.json, resolved ahead so this deck's first chunk
+ * never loads the palette generator a seed brand needs. `protoyard new`,
+ * `dev` (on every blueprint change) and `validate` rewrite it: edit
+ * `brand` in src/blueprint.json, not this file.
+ */
+export const brandTheme: Theme | null = defineTheme({
+  id: 'lumen-notes',
+  name: 'Lumen Notes',
+  description: 'Generated from #7c3aed.',
+  fontFamily: 'var(--tx-font-stack-humanist-sans, "Trebuchet MS", "Segoe UI", sans-serif)',
+  fontFamilyHeading:
+    'var(--tx-font-stack-humanist-heading, "Trebuchet MS", "Segoe UI", sans-serif)',
+  fontFamilyMono:
+    'var(--tx-font-stack-humanist-mono, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace)',
+  radius: '0.75rem',
+  density: 1.05,
+  light: {
+    background: '#fbfbff',
+    foreground: '#15151b',
+    surface: '#ffffff',
+    surfaceForeground: '#15151b',
+    elevated: '#ffffff',
+    muted: '#f3f3f7',
+    mutedForeground: '#62626a',
+    border: '#e1e1e5',
+    input: '#86868a',
+    ring: '#7a46e0',
+    primary: '#7a46e0',
+    primaryForeground: '#ffffff',
+    secondary: '#e8e4ff',
+    secondaryForeground: '#1b172b',
+    accent: '#efecff',
+    accentForeground: '#1b172b',
+    destructive: '#cc2827',
+    destructiveForeground: '#ffffff',
+    success: '#007f38',
+    successForeground: '#ffffff',
+    warning: '#916600',
+    warningForeground: '#ffffff',
+    info: '#0871c1',
+    infoForeground: '#ffffff',
+    sidebar: '#f6f6fb',
+    sidebarForeground: '#23232a',
+    sidebarBorder: '#e1e1e5',
+    chart1: '#8063cf',
+    chart2: '#987cea',
+    chart3: '#c74a4b',
+    chart4: '#7b8100',
+    chart5: '#008b94',
+    shadow: 'rgb(15 23 42 / 0.1)',
+  },
+  dark: {
+    background: '#0b0b0e',
+    foreground: '#f4f4fd',
+    surface: '#161619',
+    surfaceForeground: '#f4f4fd',
+    elevated: '#212124',
+    muted: '#212124',
+    mutedForeground: '#a4a4ac',
+    border: '#323236',
+    input: '#717175',
+    ring: '#7a46e0',
+    primary: '#986fff',
+    primaryForeground: '#0a0a0a',
+    secondary: '#2e2a40',
+    secondaryForeground: '#efecff',
+    accent: '#282041',
+    accentForeground: '#efecff',
+    destructive: '#ff645a',
+    destructiveForeground: '#0a0a0a',
+    success: '#43b966',
+    successForeground: '#0a0a0a',
+    warning: '#cd9200',
+    warningForeground: '#0a0a0a',
+    info: '#4ba3f7',
+    infoForeground: '#0a0a0a',
+    sidebar: '#111114',
+    sidebarForeground: '#e7e7f0',
+    sidebarBorder: '#2d2d31',
+    chart1: '#aa8fff',
+    chart2: '#c1b1ff',
+    chart3: '#f97774',
+    chart4: '#a6ae03',
+    chart5: '#00bac6',
+    shadow: 'rgb(0 0 0 / 0.5)',
+  },
+  style: {
+    typography: {
+      scaleRatio: null,
+      weights: {
+        body: 400,
+        medium: 500,
+        heading: 600,
+        bold: 700,
+      },
+      tracking: {
+        body: '0',
+        heading: '0',
+      },
+    },
+    shape: {
+      radiusScale: 1.2,
+      borderWidth: '1px',
+    },
+    elevation: 'soft',
+    surface: 'solid',
+    motion: {
+      durations: {
+        fast: 150,
+        base: 200,
+        slow: 300,
+      },
+      easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    },
+    focusRing: {
+      style: 'ring',
+      width: '2px',
+      offset: '2px',
+    },
+  },
+});
+
+/** The theme the deck opens in: the brand theme, a library theme id, or null for the default. */
+export const defaultThemeId: string | null = 'lumen-notes';

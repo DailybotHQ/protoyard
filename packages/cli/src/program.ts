@@ -10,6 +10,15 @@ import {
   commentsImportCommand,
   commentsPullCommand,
 } from './commands/comments.ts';
+import {
+  deckBlocksCommand,
+  deckCapabilitiesCommand,
+  deckFromMarkdownCommand,
+  deckInspectCommand,
+  deckLayoutsCommand,
+  deckLintCommand,
+  deckSchemaCommand,
+} from './commands/deck.ts';
 import { devCommand } from './commands/dev.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { exportCommand } from './commands/export.ts';
@@ -255,6 +264,7 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--skip-typecheck', 'skip svelte-check')
     .option('--build', 'also run a production build')
     .option('--strict-spec', 'fail (not warn) when spec files are missing')
+    .option('--check', 'never write: fail on a stale src/brand-theme.ts (implied in CI)')
     .action(def('validate', validateCommand));
 
   const buildOptions = (cmd: Command) =>
@@ -417,6 +427,47 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--check', 'fail when median generation plus validation exceeds the budget')
     .option('--ci-factor <n>', 'multiply the generateMs budget on slower CI runners (default 1)')
     .action(def('scenario bench', scenarioBenchCommand));
+
+  const deck = program
+    .command('deck')
+    .description('learn, check and fix slide decks: schema, catalogs, lint, inspect');
+  deck
+    .command('schema')
+    .description('print the deck JSON Schema (draft 2020-12)')
+    .action(def('deck schema', deckSchemaCommand, true));
+  deck
+    .command('layouts')
+    .description('list the deck layouts with when to use them, limits and a valid sample')
+    .argument('[id]', 'one layout, with its props schema')
+    .action(def('deck layouts', deckLayoutsCommand, true));
+  deck
+    .command('blocks')
+    .description('list the content blocks for free slides with limits and examples')
+    .argument('[type]', 'one block type, with a rich example')
+    .action(def('deck blocks', deckBlocksCommand, true));
+  deck
+    .command('lint')
+    .description('check a deck file or deck prototype; findings carry JSON pointers and fixes')
+    .argument('<file|slug>', 'deck blueprint file, bare deck file or prototype slug')
+    .action(def('deck lint', deckLintCommand, true));
+  deck
+    .command('inspect')
+    .description('resolve a pasted slide reference or slide id to the file, JSON pointer and slide')
+    .argument('[file|slug]', 'deck file or prototype slug (default: the reference source)')
+    .option('--ref <reference>', 'a [slide-ref] line copied from the deck debug panel')
+    .option('--slide <id>', 'a slide id')
+    .action(def('deck inspect', deckInspectCommand, true));
+  deck
+    .command('from-markdown')
+    .description('turn a Markdown deck (@texuli/deck dialect) into a deck blueprint')
+    .argument('<file.md>', 'Markdown deck file')
+    .option('--out <file>', 'write the blueprint here (default: print it)')
+    .option('--force', 'replace an existing --out file')
+    .action(def('deck from-markdown', deckFromMarkdownCommand, true));
+  deck
+    .command('capabilities')
+    .description('list what decks support at level 1 (player) and level 2 (generate)')
+    .action(def('deck capabilities', deckCapabilitiesCommand, true));
 
   const theme = program
     .command('theme')

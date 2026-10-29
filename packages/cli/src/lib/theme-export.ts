@@ -42,7 +42,7 @@ export function exportTheme(theme: Theme, format: ThemeExportFormat): string {
     const dark = paletteEntries(theme, 'dark')
       .map(([key, value]) => `  ${tokenToCssVar(key)}: ${cssValue(value)};`)
       .join('\n');
-    return `:root {\n${light}\n  --py-radius: ${cssValue(theme.radius)};\n  --py-density: ${cssValue(theme.density)};\n  --py-font-family: ${cssValue(theme.fontFamily)};\n}\n\n.dark {\n${dark}\n}\n`;
+    return `:root {\n${light}\n  --tx-radius: ${cssValue(theme.radius)};\n  --tx-density: ${cssValue(theme.density)};\n  --tx-font-family: ${cssValue(theme.fontFamily)};\n}\n\n.dark {\n${dark}\n}\n`;
   }
 
   if (format === 'tailwind') {
@@ -51,7 +51,7 @@ export function exportTheme(theme: Theme, format: ThemeExportFormat): string {
       ([key]) =>
         `  --color-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}: var(${tokenToCssVar(key)});`
     );
-    lines.push('  --radius-theme: var(--py-radius);');
+    lines.push('  --radius-theme: var(--tx-radius);');
     return `@theme {\n${lines.join('\n')}\n}\n`;
   }
 

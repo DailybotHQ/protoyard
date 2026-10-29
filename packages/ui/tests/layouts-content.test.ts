@@ -1,11 +1,9 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import DashboardGridLayout from '../src/layouts/DashboardGridLayout.svelte';
+import { SplitView } from '../src/index.ts';
 import DocsLayout from '../src/layouts/DocsLayout.svelte';
-import MasterDetailLayout from '../src/layouts/MasterDetailLayout.svelte';
 import PageGrid from '../src/layouts/PageGrid.svelte';
-import SplitView from '../src/layouts/SplitView.svelte';
 
 afterEach(() => {
   cleanup();
@@ -15,73 +13,6 @@ afterEach(() => {
 function rawSnippet(html: string) {
   return createRawSnippet(() => ({ render: () => html }));
 }
-
-describe('MasterDetailLayout', () => {
-  it('resizes the list with keyboard controls and persists its width', async () => {
-    const storageKey = 'test-master-detail-width';
-    localStorage.removeItem(storageKey);
-    render(MasterDetailLayout, {
-      list: rawSnippet('<div>Long list</div>'),
-      detail: rawSnippet('<p>Selected detail</p>'),
-      storageKey,
-    });
-
-    const splitter = screen.getByRole('separator', { name: 'Resize list panel' });
-    expect(splitter.getAttribute('aria-valuenow')).toBe('360');
-    await fireEvent.keyDown(splitter, { key: 'Home' });
-    expect(splitter.getAttribute('aria-valuenow')).toBe('240');
-    expect(localStorage.getItem(storageKey)).toBe('240');
-    await fireEvent.keyDown(splitter, { key: 'End' });
-    expect(splitter.getAttribute('aria-valuenow')).toBe('640');
-    await fireEvent.keyDown(splitter, { key: 'ArrowLeft' });
-    expect(splitter.getAttribute('aria-valuenow')).toBe('624');
-    await fireEvent.pointerDown(splitter, { pointerId: 1, clientX: 400 });
-    await fireEvent.pointerMove(splitter, { pointerId: 1, clientX: 420, buttons: 1 });
-    expect(splitter.getAttribute('aria-valuenow')).toBe('420');
-    await fireEvent.pointerUp(splitter, { pointerId: 1, clientX: 420 });
-    expect(localStorage.getItem(storageKey)).toBe('420');
-  });
-
-  it('keeps the list DOM and scroll position when the route selects a detail', async () => {
-    const listSnippet = rawSnippet(
-      '<div data-testid="master-list-scroll" style="height:100px;overflow:auto">Items</div>'
-    );
-    const detailSnippet = rawSnippet('<p>Selected detail</p>');
-    const view = render(MasterDetailLayout, {
-      list: listSnippet,
-      detail: detailSnippet,
-      storageKey: 'test-master-detail-scroll',
-    });
-    const list = screen.getByTestId('master-list-scroll');
-    list.scrollTop = 80;
-
-    await view.rerender({
-      list: listSnippet,
-      detail: detailSnippet,
-      storageKey: 'test-master-detail-scroll',
-      detailActive: true,
-    });
-
-    expect(screen.getByTestId('master-list-scroll')).toBe(list);
-    expect(list.scrollTop).toBe(80);
-    expect(view.container.querySelector('[data-detail-active="true"]')).toBeTruthy();
-    expect(screen.getByText('Selected detail')).toBeTruthy();
-  });
-});
-
-describe('DashboardGridLayout', () => {
-  it('renders responsive widget slots with one-to-four column span hints', () => {
-    for (const span of [1, 2, 3, 4]) {
-      const view = render(DashboardGridLayout, {
-        children: rawSnippet(`<article data-span="${span}">Widget ${span}</article>`),
-      });
-      const grid = view.container.querySelector('[data-py-dashboard-grid]');
-      expect(grid?.querySelector(`[data-span="${span}"]`)?.textContent).toBe(`Widget ${span}`);
-      expect(view.container.querySelector('.dashboard-grid')).toBeTruthy();
-      view.unmount();
-    }
-  });
-});
 
 describe('PageGrid', () => {
   it('caps responsive columns, exposes an optional named region and prevents narrow child overflow', () => {
@@ -93,11 +24,14 @@ describe('PageGrid', () => {
       children: rawSnippet('<article data-testid="wide-card">Wide content</article>'),
     });
     const grid = screen.getByRole('region', { name: 'Project cards' });
-    const items = grid.querySelector('.page-grid__items');
+    // Texuli's CardGrid: auto-fill columns of at least 280px, capped at three.
+    expect(grid.hasAttribute('data-tx-card-grid')).toBe(true);
     expect(grid.getAttribute('data-columns')).toBe('3');
+    expect(grid.getAttribute('data-max-columns')).toBe('3');
+    expect(grid.style.gridTemplateColumns).toContain('280px');
+    expect(grid.className).toContain('tx-card-grid--gap-md');
     expect(grid.className).toContain('min-w-0');
-    expect(items?.className).toContain('min-w-0');
-    expect(grid.style.getPropertyValue('--py-page-grid-min')).toBe('280px');
+    expect(grid.className).toContain('[&>*]:min-w-0');
     const wideCard = grid.querySelector('[data-testid="wide-card"]');
     expect(wideCard).toBeTruthy();
   });
@@ -115,10 +49,6 @@ describe('SplitView', () => {
     expect(screen.getByRole('region', { name: 'Projects' })).toBeTruthy();
     expect(screen.getByRole('region', { name: 'Selected project' })).toBeTruthy();
     expect(view.container.querySelector('[data-detail-active="true"]')).toBeTruthy();
-    const panes = view.container.querySelector('.split-view__panes');
-    expect(panes?.className).toContain('min-w-0');
-    expect(screen.getByRole('region', { name: 'Projects' }).className).toContain('min-w-0');
-    expect(screen.getByRole('region', { name: 'Selected project' }).className).toContain('min-w-0');
 
     await view.rerender({
       list: rawSnippet('<ul><li>Projects</li></ul>'),

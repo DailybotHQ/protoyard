@@ -1,5 +1,6 @@
 <script lang="ts">
 import { untrack } from 'svelte';
+import { Kpi } from 'texuli/stat';
 import { formatKpi, type KpiUnit } from './format.ts';
 
 type Props = {
@@ -27,7 +28,7 @@ let {
 
 const reduced =
   typeof document !== 'undefined' &&
-  (document.documentElement.dataset.pyMotion === 'reduce' ||
+  (document.documentElement.dataset.txMotion === 'reduce' ||
     (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches));
 
 let shown = $state<number | null>(null);
@@ -87,10 +88,16 @@ $effect(() => () => {
 const isInteger = $derived(Number.isInteger(query.current ?? 0));
 </script>
 
-<div class="inline-flex flex-col {className}" data-live-counter="" data-motion={reduced ? 'reduce' : 'full'}>
-  <span class="text-xs text-muted-foreground">{label}</span>
-  <span class="font-heading text-2xl font-semibold tabular-nums" aria-hidden="true" data-counter-value="">
-    {shown === null ? '—' : formatKpi(isInteger ? Math.round(shown) : shown, unit, currency)}
-  </span>
+<div class={className} data-live-counter="" data-motion={reduced ? 'reduce' : 'full'}>
+  <Kpi
+    {label}
+    value={shown === null ? 0 : isInteger ? Math.round(shown) : shown}
+    {unit}
+    {currency}
+    variant="flat"
+    empty={false}
+    class="border-0 bg-transparent p-0 shadow-none"
+    aria-hidden="true"
+  />
   <span class="sr-only" aria-live="polite" data-counter-live="">{spoken}</span>
 </div>

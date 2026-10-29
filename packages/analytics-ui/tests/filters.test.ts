@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { compileFilter, type FilterGroup, FilterSchema, type Segment } from '@protoyard/analytics';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -118,17 +120,14 @@ describe('FilterBuilder', () => {
     render(FilterBuilder, { value: EMPTY, properties: PROPERTIES, onchange });
     await fireEvent.click(screen.getByRole('button', { name: '+ Add condition' }));
     // First property is Plan (with options): choose Pro.
-    await fireEvent.change(screen.getByRole('combobox', { name: 'Value' }), {
-      target: { value: 'pro' },
-    });
+    await fireEvent.click(screen.getByRole('combobox', { name: 'Value' }));
+    await fireEvent.click(await screen.findByRole('option', { name: 'Pro' }));
     await fireEvent.click(screen.getByRole('button', { name: '+ Add condition' }));
     const second = document.querySelectorAll('[data-condition]')[1] as HTMLElement;
-    await fireEvent.change(within(second).getByRole('combobox', { name: 'Property' }), {
-      target: { value: 'properties.seats' },
-    });
-    await fireEvent.change(within(second).getByRole('combobox', { name: 'Operator' }), {
-      target: { value: 'gte' },
-    });
+    await fireEvent.click(within(second).getByRole('combobox', { name: 'Property' }));
+    await fireEvent.click(await screen.findByRole('option', { name: 'Seats' }));
+    await fireEvent.click(within(second).getByRole('combobox', { name: 'Operator' }));
+    await fireEvent.click(await screen.findByRole('option', { name: 'at least' }));
     await fireEvent.input(within(second).getByRole('spinbutton', { name: 'Value' }), {
       target: { value: '5' },
     });
@@ -176,6 +175,20 @@ describe('FilterBuilder', () => {
     expect(document.querySelectorAll('[data-condition]')).toHaveLength(0);
   });
 
+  it('keeps restored property, operator and option labels visible on closed triggers', () => {
+    render(FilterBuilder, {
+      value: {
+        combinator: 'and',
+        conditions: [{ property: 'properties.plan', operator: 'eq', value: 'pro' }],
+      },
+      properties: PROPERTIES,
+      onchange: vi.fn(),
+    });
+    expect(screen.getByRole('combobox', { name: 'Property' }).textContent).toContain('Plan');
+    expect(screen.getByRole('combobox', { name: 'Operator' }).textContent).toContain('is');
+    expect(screen.getByRole('combobox', { name: 'Value' }).textContent).toContain('Pro');
+  });
+
   it('shows validation errors inline and does not apply', async () => {
     const onchange = vi.fn();
     render(FilterBuilder, {
@@ -214,14 +227,70 @@ describe('SegmentPicker', () => {
 
   it('applies saved segments and everyone', async () => {
     const onapply = vi.fn();
-    render(SegmentPicker, { segments, activeId: 'seg_1', onapply, properties: PROPERTIES, filter });
+    const view = render(SegmentPicker, {
+      segments,
+      activeId: 'seg_1',
+      onapply,
+      properties: PROPERTIES,
+      filter,
+    });
     const pro = screen.getByRole('button', { name: 'Pro users' });
     expect(pro.getAttribute('aria-pressed')).toBe('true');
     expect(pro.getAttribute('title')).toBe('Plan is Pro');
     await fireEvent.click(screen.getByRole('button', { name: 'Everyone' }));
     expect(onapply).toHaveBeenCalledWith(null);
+    expect(pro.getAttribute('aria-pressed')).toBe('true');
+    view.rerender({ segments, activeId: null, onapply, properties: PROPERTIES, filter });
     await fireEvent.click(pro);
     expect(onapply).toHaveBeenLastCalledWith(segments[0]);
+  });
+
+  it('keeps pressed state controlled by activeId and supports uncontrolled selection', async () => {
+    const onapply = vi.fn();
+    const view = render(SegmentPicker, {
+      segments,
+      activeId: 'seg_1',
+      onapply,
+      properties: PROPERTIES,
+      filter,
+    });
+    const pro = screen.getByRole('button', { name: 'Pro users' });
+    const everyone = screen.getByRole('button', { name: 'Everyone' });
+    expect(pro.getAttribute('aria-pressed')).toBe('true');
+    expect(everyone.getAttribute('aria-pressed')).toBe('false');
+    await fireEvent.click(everyone);
+    expect(everyone.getAttribute('aria-pressed')).toBe('false');
+    view.rerender({
+      segments,
+      activeId: null,
+      onapply,
+      properties: PROPERTIES,
+      filter,
+    });
+    expect(everyone.getAttribute('aria-pressed')).toBe('true');
+    view.unmount();
+
+    const uncontrolled = render(SegmentPicker, {
+      segments,
+      onapply,
+      properties: PROPERTIES,
+      filter,
+    });
+    const uncontrolledPro = within(uncontrolled.container).getByRole('button', {
+      name: 'Pro users',
+    });
+    await fireEvent.click(uncontrolledPro);
+    expect(uncontrolledPro.getAttribute('aria-pressed')).toBe('true');
+    uncontrolled.unmount();
+  });
+
+  it('handles Texuli keyboard activation through pressed-state changes', () => {
+    const source = readFileSync(
+      join(import.meta.dirname, '../src/filters/SegmentPicker.svelte'),
+      'utf8'
+    );
+    expect(source).toContain('onPressedChange={(pressed) =>');
+    expect(source).not.toContain('onclick={() => onapply');
   });
 
   it('saves through the service with pending feedback, then confirms', async () => {
@@ -284,19 +353,30 @@ describe('SegmentPicker', () => {
 });
 
 describe('BreakdownSelect', () => {
+  it('shows the selected label while closed', () => {
+    render(BreakdownSelect, {
+      properties: PROPERTIES,
+      value: 'properties.plan',
+      onchange: vi.fn(),
+    });
+    expect(screen.getByRole('combobox', { name: 'Break down by' }).textContent).toContain('Plan');
+  });
+
   it('offers category properties only and emits the chosen path', async () => {
     const onchange = vi.fn();
     render(BreakdownSelect, { properties: PROPERTIES, value: null, onchange });
-    const select = screen.getByLabelText('Break down by') as HTMLSelectElement;
-    expect([...select.options].map((o) => o.textContent)).toEqual([
+    const select = screen.getByRole('combobox', { name: 'Break down by' });
+    await fireEvent.click(select);
+    expect(screen.getAllByRole('option').map((o) => o.textContent?.trim())).toEqual([
       'None',
       'Plan',
       'Country',
       'On trial',
     ]);
-    await fireEvent.change(select, { target: { value: 'properties.plan' } });
+    await fireEvent.click(screen.getByRole('option', { name: 'Plan' }));
     expect(onchange).toHaveBeenLastCalledWith('properties.plan');
-    await fireEvent.change(select, { target: { value: '' } });
+    await fireEvent.click(select);
+    await fireEvent.click(screen.getByRole('option', { name: 'None' }));
     expect(onchange).toHaveBeenLastCalledWith(null);
   });
 });

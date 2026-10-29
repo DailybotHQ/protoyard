@@ -1,16 +1,18 @@
 <script lang="ts">
 import type { HeadingBlock } from '@protoyard/blocks';
 
-/** A section's opening heading at the marketing scale: eyebrow, title, lead. */
+/**
+ * A section's opening heading at the marketing scale: eyebrow, title, lead,
+ * with the page block's requested level and tone. A plain `<header>`: the
+ * page section around it (PageHost) is already the labelled landmark and sets
+ * the spacing, so no nested section or extra padding here.
+ */
 let { heading, inverted = false }: { heading: HeadingBlock; inverted?: boolean } = $props();
 const level = $derived(Math.min(4, Math.max(2, heading.level ?? 2)));
 const centered = $derived(heading.align !== 'start');
 </script>
 
-<header
-  class="grid max-w-3xl gap-4 {centered ? 'mx-auto justify-items-center text-center' : ''}"
-  data-py-page-section-header
->
+<header class="grid max-w-3xl gap-4 {centered ? 'mx-auto justify-items-center text-center' : ''}" data-py-page-section-header>
   {#if heading.eyebrow}
     <p class="text-sm font-semibold tracking-wide uppercase {inverted ? 'text-primary-foreground' : 'text-primary'}">
       {heading.eyebrow}

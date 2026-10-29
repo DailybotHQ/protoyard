@@ -1,7 +1,7 @@
 <script lang="ts">
-import { ChevronDown } from '@lucide/svelte';
 import { can, runService } from '@protoyard/renderer-svelte';
 import { Button, DropdownMenu } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
 import type { Order } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { ORDER_STATUS_LABELS, ORDER_TRANSITIONS } from '../domain/services.ts';
@@ -41,7 +41,7 @@ const items = $derived(
         aria-label={`Change status of ${order.reference} (currently ${ORDER_STATUS_LABELS[order.status]})`}
       >
         <StatusBadge status={order.status} />
-        <ChevronDown class="size-3.5 text-muted-foreground" aria-hidden="true" />
+        <Icon icon="chevron-down" class="size-3.5 text-muted-foreground" aria-hidden="true" />
       </Button>
     {/snippet}
   </DropdownMenu>

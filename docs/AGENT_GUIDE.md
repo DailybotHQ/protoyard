@@ -13,7 +13,7 @@ idea to a published static site in this repository. It assumes the
 | 2 | Choose a slug | Lowercase kebab-case, 2–48 chars, not reserved, not taken | `list --json` does not contain it |
 | 3 | Create | `pnpm protoyard new <slug> --template <t> --name "<Name>" --description "<one line>"` (or `--from <prototype>` to remix, `generate <slug> --blueprint <file>` for a blueprint-shaped product, or `blueprint new <file> --from-brief <brief\|->` to turn a product brief into a blueprint first) | `prototypes/<slug>/` exists and the command printed next steps |
 | 4 | Domain | `src/database/schema.ts` → `src/domain/policy.ts` → `src/domain/*.ts` services → `src/scenarios/index.ts` + `protoyard.json → scenarios` → `src/scenarios/generators.ts` → `integrity` in `src/prototype.ts` | `pnpm protoyard scenario validate <slug>` passes |
-| 5 | UI | `src/screens/`, `src/components/`, routes in `src/App.svelte`; components from `@protoyard/ui`, bindings from `@protoyard/renderer-svelte` | Every primary control does something real; empty, loading and error states exist |
+| 5 | UI | `src/screens/`, `src/components/`, routes in `src/App.svelte`; start with Texuli, use public `@protoyard/ui` exports for shared Protoyard contracts, bindings from `@protoyard/renderer-svelte` | Every primary control does something real; empty, loading and error states exist |
 | 6 | Tests | `prototypes/<slug>/tests/`: generator tests and service tests on the real runtime | `pnpm vitest run prototypes/<slug>` passes |
 | 7 | Spec + validate | `pnpm protoyard spec <slug> --write`, then `pnpm protoyard validate <slug> --build` | Exit code `0`, spec regions current |
 | 8 | Build / export | `pnpm protoyard export <slug>` | ZIP written, isolation check passed |
@@ -113,6 +113,19 @@ routes (`createRouter`, `<Router>`, `<Link>`). Style with theme tokens
 (`bg-primary`, `text-muted-foreground`), never raw palette colors (see
 [THEMES.md](THEMES.md)).
 
+**Texuli-first component rules.** Before writing a generic control, check
+Texuli and the public Protoyard UI exports. Use `Icon` from `texuli/icons`
+for its ten built-in names; for another glyph, import it from
+`@lucide/svelte` and render it with `LucideIcon` from
+`texuli/icons/lucide` (`<LucideIcon icon={Activity} />`). Never render a raw
+Lucide component. Use `Checkbox` or `RadioGroup` for choices, never
+`Input type="checkbox"` or `Input type="radio"`. Use `bind:ref` for a
+component's exposed DOM element; `bind:this` captures the component instance.
+New UI reads `--tx-*` tokens. If a needed Texuli behavior is missing, keep a
+minimal adapter and record its gap id in the adoption pending list. See
+[TEXULI.md](TEXULI.md#texuli-first-the-adoption-check) for all eight rules and
+the exception/gap process.
+
 **Tests.** Two kinds, both run by `pnpm vitest run prototypes/<slug>`:
 
 - Generator: deterministic (same scenario → deep-equal world), a different
@@ -144,6 +157,29 @@ private Claude artifact follows the same rule: `/share-artifact <slug>`
 (the `share-as-artifact` skill) prepares and checks the pack with
 `protoyard export <slug> --target artifact`, then asks for approval before
 the Artifact tool publishes it ([PUBLISHING.md](PUBLISHING.md#sharing-as-a-claude-artifact)).
+
+## Decks: from an idea to a presented deck
+
+A deck is a `kind: "deck"` JSON blueprint, not code. The loop is in
+[DECKS: The agent loop](DECKS.md#the-agent-loop):
+1. Learn the format with `pnpm protoyard deck schema`,
+   `pnpm protoyard deck layouts` and `pnpm protoyard deck blocks`.
+2. Write the JSON, check it with `pnpm protoyard deck lint <file>`, and play
+   it with `pnpm protoyard quick --blueprint <file>`.
+3. Open the player's "Debug for agents" panel (`?debug=1`, then **D**) and
+   copy the slide reference. Resolve it with
+   `pnpm protoyard deck inspect <file> --ref "<line>"`, fix the value at its
+   JSON pointer, and repeat.
+
+In a deck made from the deck template, change the brand in
+`src/blueprint.json` (`brand.seed`, `brand.libraryTheme`, …) and leave
+`src/brand-theme.ts` alone: `protoyard dev` and `protoyard validate` rewrite it
+from the blueprint ([KINDS: Editing a deck's brand](KINDS.md#editing-a-decks-brand)).
+
+[DECKS: Recipes](DECKS.md#recipes) has a valid chart story, comparison table,
+poll, calculator, embedded app and custom slide to start from. Generate a
+prototype (`pnpm protoyard generate <slug> --blueprint <file>`) only when a
+slide needs its own Svelte component.
 
 ## From a brief to a blueprint
 

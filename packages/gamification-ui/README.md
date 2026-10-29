@@ -3,7 +3,9 @@
 Svelte 5 UI for the pure [`@protoyard/gamification`](../gamification/README.md)
 engine: level, points and streak chips, achievement badges with a progress ring,
 mission cards (accept with pending feedback) and a privacy-aware leaderboard.
-Theme tokens only. Generic English labels — no product branding.
+Texuli components and `--tx-*` tokens provide the shared UI. Lucide glyphs are
+rendered through Texuli's `LucideIcon` bridge. Generic English labels — no
+product branding.
 
 ## Install
 

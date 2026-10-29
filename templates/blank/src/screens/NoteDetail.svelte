@@ -10,6 +10,7 @@ import {
   useClock,
 } from '@protoyard/renderer-svelte';
 import { AlertDialog, Badge, Button, EmptyState, Skeleton } from '@protoyard/ui';
+import { LucideIcon } from 'texuli/icons/lucide';
 import NoteEditor from '../components/NoteEditor.svelte';
 import type { BlankDatabase } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
@@ -38,7 +39,7 @@ async function remove() {
 </script>
 
 <Button variant="ghost" size="sm" class="-ml-2" onclick={() => back('/')}>
-  <ArrowLeft class="size-4" aria-hidden="true" />All notes
+  <LucideIcon icon={ArrowLeft} class="size-4" />All notes
 </Button>
 
 {#if note.loading}
@@ -57,17 +58,17 @@ async function remove() {
           Updated {timeAgo(current.updatedAt, clock.now)} · created {timeAgo(current.createdAt, clock.now)}
         </p>
       </div>
-      {#if current.pinned}<Badge variant="secondary"><Pin class="size-3" aria-hidden="true" />Pinned</Badge>{/if}
+      {#if current.pinned}<Badge variant="secondary"><LucideIcon icon={Pin} class="size-3" />Pinned</Badge>{/if}
     </header>
     <p class="mt-6 whitespace-pre-wrap text-surface-foreground">{current.body || 'No body.'}</p>
     {#if can(CAPABILITIES.update) || can(CAPABILITIES.delete)}
       <footer class="mt-8 flex flex-wrap gap-2 border-t border-border pt-5">
         {#if can(CAPABILITIES.update)}
-          <Button variant="outline" onclick={() => (editing = true)}><Pencil class="size-4" aria-hidden="true" />Edit</Button>
+          <Button variant="outline" onclick={() => (editing = true)}><LucideIcon icon={Pencil} class="size-4" />Edit</Button>
         {/if}
         {#if can(CAPABILITIES.delete)}
           <Button variant="ghost" class="text-destructive hover:bg-destructive/10" onclick={() => (confirmDelete = true)}>
-            <Trash2 class="size-4" aria-hidden="true" />Delete
+            <LucideIcon icon={Trash2} class="size-4" />Delete
           </Button>
         {/if}
       </footer>

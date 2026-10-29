@@ -1,10 +1,13 @@
 <script lang="ts">
-import { Check, Copy } from '@lucide/svelte';
+import { Copy } from '@lucide/svelte';
 import type { Scenario } from '@protoyard/core';
+import { Checkbox, Radio, RadioGroup } from 'texuli/choice';
+import { Input } from 'texuli/input';
 import { copyText, formatDateTime } from '../format.ts';
 import { reproducibleLink } from '../link.ts';
 import Btn from '../primitives/Btn.svelte';
 import Confirm from '../primitives/Confirm.svelte';
+import Glyph from '../primitives/Glyph.svelte';
 import InlineError from '../primitives/InlineError.svelte';
 import Section from '../primitives/Section.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
@@ -106,7 +109,7 @@ async function copyLink() {
           onconfirm={reset}
         />
         <Btn onclick={copyLink}>
-          {#if copied}<Check class="size-3.5" aria-hidden="true" />{:else}<Copy class="size-3.5" aria-hidden="true" />{/if}
+          {#if copied}<Glyph icon="check" class="size-3.5" aria-hidden="true" />{:else}<Glyph icon={Copy} class="size-3.5" aria-hidden="true" />{/if}
           Copy link
         </Btn>
       </div>
@@ -153,32 +156,22 @@ async function copyLink() {
       <fieldset disabled={loading} class="disabled:opacity-60">
         <legend class="mb-1 text-[11px] font-medium text-muted-foreground">{group}</legend>
         <div class="space-y-1">
+          <RadioGroup bind:value={selectedId} name="py-dt-scenario" disabled={loading} class="space-y-1">
           {#each scenarios as scenario (scenario.id)}
             {@const isActive = dt.active?.scenario.id === scenario.id}
-            <label
+            <Radio
+              value={scenario.id}
+              label={scenario.name}
+              description={scenario.description}
               class="flex cursor-pointer items-start gap-2.5 rounded-md border p-2 text-left transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring {selectedId ===
               scenario.id
                 ? 'border-primary/60 bg-primary/5'
                 : 'border-border hover:bg-muted/60'}"
             >
-              <input
-                type="radio"
-                name="py-dt-scenario"
-                class="mt-0.5 size-3.5 accent-primary"
-                value={scenario.id}
-                bind:group={selectedId}
-              />
-              <span class="min-w-0 flex-1">
-                <span class="flex items-center gap-1.5 text-xs font-medium">
-                  {scenario.name}
-                  {#if isActive}<span class="rounded bg-success px-1 text-[10px] font-medium text-success-foreground">active</span>{/if}
-                </span>
-                {#if scenario.description}
-                  <span class="mt-0.5 block text-[11px] leading-snug text-muted-foreground">{scenario.description}</span>
-                {/if}
-              </span>
-            </label>
+              {#if isActive}<span class="rounded bg-success px-1 text-[10px] font-medium text-success-foreground">Active</span>{/if}
+            </Radio>
           {/each}
+          </RadioGroup>
         </div>
       </fieldset>
     {/each}
@@ -186,7 +179,7 @@ async function copyLink() {
     <div class="grid grid-cols-[1fr_auto] items-end gap-2">
       <label class="block text-[11px] text-muted-foreground">
         Seed (optional)
-        <input
+        <Input
           type="text"
           inputmode="numeric"
           class="mt-1 block min-h-touch w-full rounded-md border border-input bg-surface px-2 font-mono text-xs text-surface-foreground sm:min-h-7"
@@ -195,10 +188,7 @@ async function copyLink() {
           bind:value={seedText}
         />
       </label>
-      <label class="inline-flex min-h-touch items-center gap-1.5 text-[11px] sm:min-h-7">
-        <input type="checkbox" class="size-3.5 accent-primary" bind:checked={snapshotFirst} />
-        Snapshot first
-      </label>
+      <Checkbox bind:checked={snapshotFirst} label="Snapshot first" class="text-[11px]" />
     </div>
     {#if !seedValid}<p class="text-[11px] text-destructive">Seed must be a whole number.</p>{/if}
 

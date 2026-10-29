@@ -264,12 +264,20 @@ messages. Send, stop, rename, pin, folder, feedback, branch, regenerate, edit
 and share are **callback props** — the component does not write tables. The
 parent owns streaming state and must route mutations through services.
 
-- `MessageList` virtualizes long threads (measured heights + overscan) and
-  restores scroll anchors from session storage (presentation only).
-- `AssistantComposer`: Enter send, Shift+Enter newline, Escape stop, model
-  picker, files, slash commands, @mentions.
+- `MessageList` is `@texuli/chat`'s `MessageList`: it virtualizes long
+  threads, follows a streaming reply, offers "Jump to latest" and edits a
+  message inline. ai-ui adds the rich answer body, the per-message actions
+  (feedback, branches, regenerate, edit) and the reading position per
+  conversation, restored from session storage (presentation only).
+- `AssistantComposer` is `@texuli/chat`'s `Composer` (Enter send,
+  Shift+Enter newline, Stop and Escape while streaming, pending and error
+  states) with ai-ui's model picker, files, slash commands and @mentions in its
+  snippets and keydown hook.
 - `RichAnswer` renders the markdown AST; `CanvasPanel` shows code or editable
   document text.
+- Built on Texuli 0.5.0: every control is a `texuli` component (buttons,
+  `CopyButton`, textarea, file input, select, menus, code, table, badges,
+  cards); Lucide glyphs render through `LucideIcon`.
 
 ### Chat message blocks (lazy `@protoyard/ai-ui/messages`)
 

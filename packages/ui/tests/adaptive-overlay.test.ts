@@ -4,19 +4,13 @@ import {
   ADAPTIVE_OVERLAY_BREAKPOINT,
   resolveAdaptiveOverlayPresentation,
 } from '../src/components/adaptive-overlay/resolve.ts';
-import {
-  installUndoToasterFocusExemption,
-  UNDO_TOASTER_ATTR,
-} from '../src/components/overlay/focus-exempt.ts';
+import { UNDO_TOASTER_ATTR } from '../src/components/overlay/focus-exempt.ts';
 import { overlayStack } from '../src/components/overlay/overlay-stack.ts';
 import { undoToast } from '../src/components/toast/undo.svelte.ts';
 import AdaptiveOverlayHarness from './fixtures/AdaptiveOverlayHarness.svelte';
 import DialogInDrawerHarness from './fixtures/DialogInDrawerHarness.svelte';
 
 const settle = () => new Promise((r) => setTimeout(r, 30));
-
-// Before any Bits focus scope mounts in this file.
-installUndoToasterFocusExemption();
 
 afterEach(() => {
   cleanup();
@@ -62,7 +56,8 @@ describe('AdaptiveOverlay', () => {
     await settle();
     const sheet = await screen.findByRole('dialog', { name: 'Filters' });
     expect(document.querySelector('[data-adaptive-overlay-presentation="sheet"]')).toBeTruthy();
-    expect(sheet.className).toMatch(/bottom-0/);
+    expect(sheet.classList.contains('tx-drawer')).toBe(true);
+    expect(sheet.dataset.side).toBe('bottom');
     await fireEvent.keyDown(sheet, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Filters' })).toBeNull());
   });
@@ -78,7 +73,7 @@ describe('AdaptiveOverlay', () => {
     await settle();
     const dialog = await screen.findByRole('dialog', { name: 'Filters' });
     expect(document.querySelector('[data-adaptive-overlay-presentation="dialog"]')).toBeTruthy();
-    expect(dialog.className).toMatch(/top-1\/2/);
+    expect(dialog.classList.contains('tx-dialog')).toBe(true);
     expect(within(dialog).getByText('Overlay body')).toBeTruthy();
   });
 
@@ -95,7 +90,7 @@ describe('AdaptiveOverlay', () => {
     expect(
       document.querySelector('[data-adaptive-overlay-presentation="side-panel"]')
     ).toBeTruthy();
-    expect(panel.className).toMatch(/sm:right-0/);
+    expect(panel.classList.contains('tx-detail-panel')).toBe(true);
   });
 
   it('force=dialog uses a dialog even on a narrow host', async () => {
@@ -136,29 +131,6 @@ describe('Dialog on the shared overlay stack', () => {
 
   it('keeps UndoToaster keyboard-reachable while a modal drawer traps focus', async () => {
     overlayStack.reset();
-    // Document-level exemption must be installed before Bits registers its trap.
-    installUndoToasterFocusExemption();
-
-    const host = document.body.appendChild(document.createElement('section'));
-    host.setAttribute(UNDO_TOASTER_ATTR, '');
-    const undoBtn = host.appendChild(document.createElement('button'));
-    undoBtn.textContent = 'Undo probe';
-
-    // A later capture listener mimics the Bits focus trap (registered after the exemption).
-    let trapPulled = false;
-    const trap = (event: FocusEvent) => {
-      if (host.contains(event.target as Node)) {
-        trapPulled = true;
-        document.body.appendChild(document.createElement('button')).focus();
-      }
-    };
-    document.addEventListener('focusin', trap, true);
-
-    undoBtn.focus();
-    expect(trapPulled).toBe(false);
-    expect(document.activeElement).toBe(undoBtn);
-    document.removeEventListener('focusin', trap, true);
-
     // Integration: toaster is marked, paints above the stack, and clicks do not close the drawer.
     render(DialogInDrawerHarness, {});
     await fireEvent.click(screen.getByRole('button', { name: 'Open drawer' }));
@@ -171,6 +143,10 @@ describe('Dialog on the shared overlay stack', () => {
     );
     const undo = within(region).getByRole('button', { name: /Undo/ });
     expect(undo.tabIndex).toBeGreaterThanOrEqual(0);
+    // The toaster is an inert exemption: the drawer's focus scope lets focus stay in it.
+    undo.focus();
+    await waitFor(() => expect(document.activeElement).toBe(undo));
+    expect(region.closest('[inert]')).toBeNull();
     await fireEvent.click(undo);
     expect(screen.getByRole('dialog', { name: 'Filters' })).toBeTruthy();
   });
