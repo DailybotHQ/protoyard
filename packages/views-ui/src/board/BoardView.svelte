@@ -97,6 +97,7 @@ const boardLabels = $derived<Partial<BoardLabels>>({
           {#if onOpen}
             <Button
               type="button"
+              variant="ghost"
               class="py-board-open"
               data-board-no-drag
               onclick={() => onOpen(item)}
@@ -113,7 +114,7 @@ const boardLabels = $derived<Partial<BoardLabels>>({
 </div>
 
 <style>
-  .py-board-open {
+  :global(.py-board-open) {
     display: block;
     inline-size: 100%;
     margin: 0;

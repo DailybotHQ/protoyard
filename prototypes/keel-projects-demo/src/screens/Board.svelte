@@ -59,7 +59,8 @@ const LANE_OPTIONS: { value: LaneMode | null; label: string }[] = [
         {#each LANE_OPTIONS as option (option.label)}
           <Button
             type="button"
-            class="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-sm"
+            variant="ghost"
+            class="rounded-md px-3 py-1.5 text-sm text-surface-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-sm"
             aria-pressed={laneMode === option.value}
             onclick={() => (laneMode = option.value)}
           >
