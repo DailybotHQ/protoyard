@@ -1,4 +1,6 @@
 <script lang="ts">
+import { Badge } from 'texuli/badge';
+
 /**
  * Outline mode: a box and the JSON pointer for each top-level block of the
  * slide on screen (a free slide), or for the slide's props (a catalog
@@ -32,8 +34,8 @@ let layer = $state<HTMLDivElement | undefined>();
 let boxes = $state<Box[]>([]);
 
 function slideElement(host: HTMLElement, id: string): HTMLElement | null {
-  for (const node of host.querySelectorAll<HTMLElement>('[data-py-deck-slide]')) {
-    if (node.dataset.pyDeckSlide === id) return node;
+  for (const node of host.querySelectorAll<HTMLElement>('[data-tx-deck-slide]')) {
+    if (node.dataset.txDeckSlide === id) return node;
   }
   return null;
 }
@@ -58,11 +60,15 @@ function measure(): void {
       height: rect.height,
     };
   };
-  const renderer = slide.querySelector('[data-py-block-renderer]');
-  if (!propsPointer && renderer) {
-    boxes = [...renderer.children].map((child, index) =>
-      box(child, `${slidePointer}/blocks/${index}`)
-    );
+  // A free slide: the promoted heading is block 0, every other block has a (box-less) item wrapper.
+  const free = slide.querySelector('[data-py-deck-free]');
+  if (!propsPointer && free) {
+    const heading = free.querySelector('[data-slot="heading"]');
+    const items = [...free.querySelectorAll<HTMLElement>('[data-tx-deck-item]')].flatMap((item) => {
+      const child = item.firstElementChild;
+      return child ? [box(child, `${slidePointer}/blocks/${item.dataset.txDeckItem}`)] : [];
+    });
+    boxes = heading ? [box(heading, `${slidePointer}/blocks/0`), ...items] : items;
   } else {
     boxes = [box(slide, propsPointer ?? slidePointer)];
   }
@@ -102,9 +108,10 @@ $effect(() => {
       style={`left:${item.x}px;top:${item.y}px;width:${item.width}px;height:${item.height}px`}
       data-py-deck-outline-box={item.pointer}
     >
-      <span class="absolute top-0 left-0 max-w-full truncate rounded-sm bg-primary px-1 font-mono text-[10px] leading-4 text-primary-foreground">
-        {item.pointer}
-      </span>
+      <Badge
+        class="absolute top-0 left-0 max-w-full truncate rounded-sm px-1 font-mono text-[10px] leading-4"
+        label={item.pointer}
+      />
     </div>
   {/each}
 </div>

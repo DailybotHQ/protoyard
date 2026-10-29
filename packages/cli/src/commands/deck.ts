@@ -1,5 +1,5 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
-import { isAbsolute, relative, resolve, sep } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { BLOCK_CATALOG_LIST, renderBlockCatalogMarkdown } from '@protoyard/blocks/catalog';
 import { lintDeckAssets, lintDeckContent } from '@protoyard/blueprint';
 import { DECK_CONTROLS, DEFAULT_UNTRUSTED_DECK_LIMITS, loadUntrustedDeck } from '@protoyard/decks';
@@ -13,10 +13,10 @@ import {
   parseAgentReference,
 } from '@protoyard/decks/agent';
 import { DECK_LAYOUTS, describeLayouts } from '@protoyard/decks/layouts';
+import { parseMarkdownDeck } from '@protoyard/decks/markdown';
 import { DECK_QUALITY_RULES } from '@protoyard/decks/quality';
 import { DECK_LIMITS, DeckJsonSchema } from '@protoyard/decks/schema';
 import { inertJson, isSafeDeckPath, SAFE_SLUG } from '@protoyard/decks/text';
-import { z } from 'zod';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { opt } from '../lib/command.ts';
 import { CliError } from '../lib/output.ts';
@@ -212,12 +212,9 @@ function layoutSummary(layout: (typeof DECK_LAYOUTS)[number]) {
   };
 }
 
+/** The layout's props JSON Schema (draft 2020-12), from the catalog itself. */
 function propsJsonSchema(layout: (typeof DECK_LAYOUTS)[number]): unknown {
-  try {
-    return z.toJSONSchema(layout.propsSchema, { io: 'input', unrepresentable: 'any' });
-  } catch {
-    return null;
-  }
+  return layout.propsSchema;
 }
 
 export const deckLayoutsCommand: Handler = async (_ctx, args): Promise<CommandResult> => {
@@ -604,6 +601,102 @@ export const deckCapabilitiesCommand: Handler = async (): Promise<CommandResult>
       out.always(
         `Limits: ${DECK_LIMITS.slides} slides, ${DECK_LIMITS.steps} steps per slide, ${DECK_LIMITS.slideNotes} characters of notes, ${data.limits.maxBytes} bytes of JSON.`
       );
+    },
+  };
+};
+
+// ── from-markdown ─────────────────────────────────────────────────────────
+
+/**
+ * `deck from-markdown <file.md> [--out <file>]`: a Markdown deck (the
+ * `@texuli/deck` dialect) to a deck blueprint. The Markdown is read as text,
+ * capped at the untrusted-deck size, parsed (every issue with its line and
+ * column), written in Protoyard's deck shape and validated like a JSON deck.
+ * Without `--out` it prints the blueprint; `--out` writes it (never over an
+ * existing file unless `--force`).
+ */
+export const deckFromMarkdownCommand: Handler = async (ctx, args, options) => {
+  const target = args[0];
+  if (!target) {
+    throw new CliError('usage', 'Missing <file.md>.', {
+      hint: 'Example: pnpm protoyard deck from-markdown talk.md --out tmp/talk.json',
+    });
+  }
+  const base = opt(options, 'cwd') ?? process.cwd();
+  const path = [resolve(base, target), resolve(ctx.root, target)].find(
+    (candidate) => existsSync(candidate) && statSync(candidate).isFile()
+  );
+  if (!path) {
+    throw new CliError('not_found', `No Markdown deck at "${inert(target)}".`, {
+      data: { target },
+    });
+  }
+  const file = displayPath(ctx.root, path);
+  const max = DEFAULT_UNTRUSTED_DECK_LIMITS.maxBytes;
+  if (statSync(path).size > max) {
+    throw new CliError('validation', `${file} is larger than ${max} bytes, the deck limit.`, {
+      data: { file },
+    });
+  }
+  const result = parseMarkdownDeck(readFileSync(path, 'utf8'));
+  const issues = result.issues.map((issue) => ({
+    ...issue,
+    message: inert(issue.message),
+  }));
+  const errors = issues.filter((issue) => issue.severity === 'error').length;
+  const blueprint =
+    result.ok && result.deck
+      ? {
+          formatVersion: 1,
+          kind: 'deck',
+          name: result.title.slice(0, 80),
+          description: (result.description ?? `A deck converted from ${file}.`).slice(0, 280),
+          deck: result.deck,
+        }
+      : null;
+  const out = opt(options, 'out');
+  let written: string | null = null;
+  if (blueprint && out) {
+    const destination = resolve(base, out);
+    if (existsSync(destination) && options.force !== true) {
+      throw new CliError('conflict', `${out} already exists.`, {
+        hint: 'Pass --force to replace it, or choose another --out path.',
+        data: { out },
+      });
+    }
+    mkdirSync(dirname(destination), { recursive: true });
+    writeFileSync(destination, `${JSON.stringify(blueprint, null, 2)}\n`, 'utf8');
+    written = displayPath(ctx.root, destination);
+  }
+  const where = (issue: (typeof issues)[number]) =>
+    issue.line === undefined
+      ? `/${issue.path.join('/')}`
+      : `${file}:${issue.line}:${issue.column ?? 1}`;
+  return {
+    data: { file, valid: blueprint !== null, errors, issues, out: written, blueprint },
+    ...(blueprint
+      ? {}
+      : {
+          failure: new CliError(
+            'validation',
+            `${file}: ${errors} error${errors === 1 ? '' : 's'}; no blueprint written.`,
+            { hint: 'Fix each line, then run deck from-markdown again.' }
+          ),
+        }),
+    render(output) {
+      for (const issue of issues) {
+        output.always(`${issue.severity}\t${issue.code}\t${where(issue)}`);
+        output.always(`  ${issue.message}`);
+      }
+      if (!blueprint) return;
+      if (written) {
+        output.always(`Wrote ${written} (${result.deck?.slides.length ?? 0} slides).`);
+        output.info(
+          `Next: pnpm protoyard deck lint ${written} · pnpm protoyard quick --blueprint ${written}`
+        );
+      } else {
+        output.always(JSON.stringify(blueprint, null, 2));
+      }
     },
   };
 };

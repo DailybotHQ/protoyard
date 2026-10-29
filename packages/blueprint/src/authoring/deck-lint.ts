@@ -62,6 +62,13 @@ function schemaDiagnosticCode(path: readonly (string | number)[]): string | null
   return null;
 }
 
+/** A hard capacity from the layout catalog: the deck model's `too-many` / `too-long`, or zod's "Too big". */
+function isCapacity(issue: { code?: string; message: string }): boolean {
+  return (
+    issue.message.startsWith('Too big:') || issue.code === 'too-many' || issue.code === 'too-long'
+  );
+}
+
 function schemaDiagnostics(
   issues: readonly {
     code: string;
@@ -75,7 +82,9 @@ function schemaDiagnostics(
         typeof segment === 'string' || typeof segment === 'number'
     );
     const isSlideId = path[0] === 'slides' && path.at(-1) === 'id';
-    const duplicate = issue.message.startsWith('Duplicate slide id');
+    const duplicate =
+      issue.message.startsWith('Duplicate slide id') ||
+      (isSlideId && issue.code === 'duplicate-id');
     const missing =
       (isSlideId || (path[0] === 'slides' && path.length === 2)) &&
       issue.code === 'invalid_type' &&
@@ -107,7 +116,7 @@ function schemaDiagnostics(
         'Fragment steps must be valid integers from 0 through 32.'
       );
     }
-    if (issue.message.startsWith('Too big:')) {
+    if (isCapacity(issue)) {
       return diagnostic(
         'layout-capacity',
         path,
@@ -351,9 +360,9 @@ export function lintDeckStructure(input: unknown): DeckLintResult {
             issue.path[0] === 'layout' ? layoutPath : ['slides', index, 'props', ...issue.path];
           diagnostics.push(
             diagnostic(
-              issue.message.startsWith('Too big:') ? 'layout-capacity' : 'invalid-layout-props',
+              isCapacity(issue) ? 'layout-capacity' : 'invalid-layout-props',
               issuePath,
-              issue.message.startsWith('Too big:')
+              isCapacity(issue)
                 ? 'This slide exceeds a hard capacity declared by its layout catalog entry.'
                 : 'Slide props do not match this layout.'
             )

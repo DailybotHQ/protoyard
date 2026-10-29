@@ -38,7 +38,7 @@ const KIND_PAGES = [
     page: 'deck.html',
     kind: 'deck' as const,
     fixture: 'minimal.deck.json',
-    content: '[data-py-deck-slide], [data-py-deck-app]',
+    content: '[data-tx-deck-slide], [data-py-deck-app]',
   },
   {
     page: 'page.html',

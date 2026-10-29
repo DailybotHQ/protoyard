@@ -1,10 +1,10 @@
 import type { Deck } from '@protoyard/decks/schema';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import CustomSlide from '../src/app/CustomSlide.svelte';
 import { DeckApp } from '../src/app/index.ts';
 import type { CustomSlideRegistry } from '../src/layouts/custom-slides.ts';
 import { customSlideLoader, frozenCopy } from '../src/layouts/custom-slides.ts';
-import DeckLayoutRenderer from '../src/layouts/DeckLayoutRenderer.svelte';
 
 /**
  * Owned custom slides (T-custom-slides, AC-custom-slides-unit): a
@@ -70,8 +70,9 @@ function mount(d: Deck, customSlides?: CustomSlideRegistry) {
     props: { deck: d, autofocus: true, ...(customSlides ? { customSlides } : {}) },
   });
   const app = view.container.querySelector('[data-py-deck-app]') as HTMLElement;
-  app.focus();
-  return { view, app };
+  // Keys go to the stage root, which the Texuli stage listens on.
+  const stage = () => view.container.querySelector('.tx-deck-stage') as HTMLElement;
+  return { view, app, stage };
 }
 
 async function goTo(app: HTMLElement, id: string) {
@@ -111,7 +112,7 @@ describe('a custom slide in a generated deck', () => {
   });
 
   it('passes its own slide, step, step count and data, never the deck', async () => {
-    const { app } = mount(
+    const { app, stage } = mount(
       deck({ component: 'probe', data: { seats: 12, plan: 'team' } }, { steps: ['one', 'two'] }),
       { probe }
     );
@@ -129,15 +130,15 @@ describe('a custom slide in a generated deck', () => {
       'id,layout,props,steps,title'
     );
 
-    await fireEvent.keyDown(app, { key: 'ArrowRight' });
+    await fireEvent.keyDown(stage(), { key: 'ArrowRight' });
     await waitFor(() =>
       expect(document.querySelector('[data-probe-step]')?.textContent).toBe('1/2')
     );
-    await fireEvent.keyDown(app, { key: 'ArrowRight' });
+    await fireEvent.keyDown(stage(), { key: 'ArrowRight' });
     await waitFor(() =>
       expect(document.querySelector('[data-probe-step]')?.textContent).toBe('2/2')
     );
-    await fireEvent.keyDown(app, { key: 'ArrowRight' });
+    await fireEvent.keyDown(stage(), { key: 'ArrowRight' });
     await waitFor(() => expect(app.dataset.slideId).toBe('after'));
   });
 
@@ -160,14 +161,16 @@ describe('a custom slide in a generated deck', () => {
   });
 
   it('keeps a component that throws on its own slide; the deck keeps navigating', async () => {
-    const { app } = mount(deck({ component: 'boom', data: { fail: true } }), { boom: throwing });
+    const { app, stage } = mount(deck({ component: 'boom', data: { fail: true } }), {
+      boom: throwing,
+    });
     await goTo(app, 'live');
     await waitFor(() =>
-      expect(document.querySelector('[data-py-deck-slide="live"]')?.textContent).toContain(
+      expect(document.querySelector('[data-tx-deck-slide="live"]')?.textContent).toContain(
         'This slide stopped working'
       )
     );
-    await fireEvent.keyDown(app, { key: 'ArrowRight' });
+    await fireEvent.keyDown(stage(), { key: 'ArrowRight' });
     await waitFor(() => expect(app.dataset.slideId).toBe('after'));
   });
 
@@ -176,7 +179,7 @@ describe('a custom slide in a generated deck', () => {
     const { app } = mount(deck({ component: 'gone' }), { gone: failing });
     await goTo(app, 'live');
     await waitFor(() =>
-      expect(document.querySelector('[data-py-deck-slide="live"]')?.textContent).toContain(
+      expect(document.querySelector('[data-tx-deck-slide="live"]')?.textContent).toContain(
         'This slide could not be loaded'
       )
     );
@@ -188,7 +191,7 @@ describe('without owned code', () => {
     const { app } = mount(deck({ component: 'probe' }));
     await goTo(app, 'live');
     const note = await waitFor(() => {
-      const node = document.querySelector('[data-py-deck-slide="live"] [role="note"]');
+      const node = document.querySelector('[data-tx-deck-slide="live"] [role="note"]');
       expect(node).not.toBeNull();
       return node as HTMLElement;
     });
@@ -197,11 +200,23 @@ describe('without owned code', () => {
   });
 
   it('thumbnails, print and previews show a card and never run the component', async () => {
-    const { container } = render(DeckLayoutRenderer, {
-      props: { layout: 'custom' as never, props: { component: 'probe' } },
-    });
-    // The custom-slide host is its own chunk.
-    await waitFor(() => expect(container.textContent).toContain('Interactive slide'));
-    expect(container.querySelector('[data-probe]')).toBeNull();
+    const step = { step: 0, count: 0 };
+    for (const marker of ['data-tx-deck-preview', 'class']) {
+      const frame = document.createElement('div');
+      if (marker === 'class') frame.className = 'tx-deck-print-view';
+      else frame.setAttribute(marker, 'live');
+      document.body.append(frame);
+      const view = render(CustomSlide, {
+        target: frame,
+        props: {
+          slide: { id: 'live', layout: 'custom', props: { component: 'probe' } } as never,
+          context: { step } as never,
+        },
+        context: new Map([[Symbol.for('@protoyard/decks-ui/host'), { customSlides: { probe } }]]),
+      });
+      await waitFor(() => expect(view.container.textContent).toContain('Interactive slide'));
+      expect(view.container.querySelector('[data-probe]')).toBeNull();
+      frame.remove();
+    }
   });
 });

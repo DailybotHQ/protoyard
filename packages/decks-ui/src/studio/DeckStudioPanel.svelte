@@ -1,4 +1,10 @@
 <script lang="ts">
+import { Button, buttonVariants } from 'texuli/button';
+import { Checkbox } from 'texuli/choice';
+import { cx } from 'texuli/cx';
+import { Field } from 'texuli/field';
+import { Input, Textarea } from 'texuli/input';
+import { SelectContent, SelectItem, SelectRoot, SelectTrigger, SelectValue } from 'texuli/select';
 import type { DeckStudio } from './studio.svelte.ts';
 
 /**
@@ -13,7 +19,7 @@ const style = $derived(studio.preview.style);
 const slide = $derived(studio.slide);
 let copying = $state(false);
 let status = $state('');
-let exportField = $state<HTMLTextAreaElement | undefined>();
+let exportField = $state<HTMLElement | null>(null);
 
 const seedHex = $derived(
   style.paletteSeed === undefined
@@ -25,8 +31,34 @@ const downloadHref = $derived(
 );
 const operationCount = $derived(studio.patch.length);
 
-/** `''` in a select means "use the default", which removes the field. */
-const orNull = (value: string) => (value === '' ? null : value);
+/** The "use the default" choice of a select, which removes the field. */
+const DEFAULT = '__default__';
+const orDefault = (value: string | undefined | null) => value ?? DEFAULT;
+const orNull = (value: string) => (value === DEFAULT ? null : value);
+
+interface Choice {
+  value: string;
+  label: string;
+}
+const withDefault = (label: string, values: readonly Choice[]): Choice[] => [
+  { value: DEFAULT, label },
+  ...values,
+];
+const plain = (values: readonly string[]): Choice[] =>
+  values.map((value) => ({ value, label: value }));
+/** A slide background authored as a spec object (not a preset) keeps a choice of its own. */
+const CUSTOM = '__custom__';
+const slideBackground = $derived(
+  slide?.background === undefined
+    ? DEFAULT
+    : typeof slide.background === 'string'
+      ? slide.background
+      : CUSTOM
+);
+const slideBackgrounds = $derived([
+  ...withDefault('Deck default', plain(options.backgrounds)),
+  ...(slideBackground === CUSTOM ? [{ value: CUSTOM, label: 'Custom (deck JSON)' }] : []),
+]);
 
 function setSeed(raw: string) {
   const match = /^#?([0-9a-f]{6})$/i.exec(raw.trim());
@@ -42,134 +74,136 @@ async function copyPatch() {
     await navigator.clipboard.writeText(studio.patchJson);
     status = 'Patch copied.';
   } catch {
-    exportField?.select();
+    (exportField as HTMLTextAreaElement | null)?.select();
     status = 'Copying is blocked here: the patch is selected, press Ctrl or ⌘ + C.';
   } finally {
     copying = false;
   }
 }
 
-const field = 'grid gap-1 text-[12px]';
-const control =
-  'h-8 rounded-md border border-border bg-surface px-2 text-[12px] text-surface-foreground focus-visible:outline-2 focus-visible:outline-ring';
-const button =
-  'inline-flex h-8 items-center justify-center rounded-md border border-border px-3 text-[12px] font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-60';
+// The download is a data: URL, which Texuli's Button href policy refuses: an anchor styled as one.
+const linkButton = cx(
+  buttonVariants({ variant: 'outline', size: 'sm' }),
+  'aria-disabled:pointer-events-none aria-disabled:opacity-60'
+);
 </script>
+
+{#snippet choice(
+  label: string,
+  value: string,
+  items: readonly Choice[],
+  onchange: (value: string) => void,
+  disabled = false
+)}
+  <Field {label} {disabled} class="gap-1 text-[12px]">
+    {#snippet children(control)}
+      <SelectRoot {value} items={[...items]} {disabled} onValueChange={(next) => onchange(next)}>
+        <SelectTrigger {...control.props} size="sm" class="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {#each items as item (item.value)}
+            <SelectItem value={item.value} label={item.label}>{item.label}</SelectItem>
+          {/each}
+        </SelectContent>
+      </SelectRoot>
+    {/snippet}
+  </Field>
+{/snippet}
 
 <div class="grid gap-4 p-3" data-py-deck-studio>
   <section class="grid gap-2" aria-labelledby="py-ds-style">
     <h3 id="py-ds-style" class="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Deck style</h3>
-    <label class={field}>
-      Theme
-      <select class={control} value={style.theme ?? ''} onchange={(e) => studio.setStyle('theme', orNull(e.currentTarget.value))}>
-        <option value="">Default</option>
-        {#each options.themes as theme (theme.id)}
-          <option value={theme.id}>{theme.label}</option>
-        {/each}
-      </select>
-    </label>
-    <label class={field}>
-      Palette seed (replaces the theme)
-      <input class={control} type="text" inputmode="text" placeholder="#2563eb" value={seedHex} onchange={(e) => setSeed(e.currentTarget.value)} />
-    </label>
-    <label class={field}>
-      Font pair
-      <select class={control} value={style.fontPair ?? ''} onchange={(e) => studio.setStyle('fontPair', orNull(e.currentTarget.value))}>
-        <option value="">Theme default</option>
-        {#each options.fontPairs as pair (pair.id)}
-          <option value={pair.id}>{pair.label}</option>
-        {/each}
-      </select>
-    </label>
+    {@render choice(
+      'Theme',
+      orDefault(style.theme),
+      withDefault('Default', options.themes.map((theme) => ({ value: theme.id, label: theme.label }))),
+      (value) => studio.setStyle('theme', orNull(value))
+    )}
+    <Field label="Palette seed (replaces the theme)" class="gap-1 text-[12px]">
+      {#snippet children(control)}
+        <Input
+          {...control.props}
+          type="text"
+          inputmode="text"
+          placeholder="#2563eb"
+          value={seedHex}
+          onchange={(e) => setSeed(e.currentTarget.value)}
+        />
+      {/snippet}
+    </Field>
+    {@render choice(
+      'Font pair',
+      orDefault(style.fontPair),
+      withDefault('Theme default', options.fontPairs.map((pair) => ({ value: pair.id, label: pair.label }))),
+      (value) => studio.setStyle('fontPair', orNull(value))
+    )}
     <div class="grid grid-cols-2 gap-2">
-      <label class={field}>
-        Aspect
-        <select class={control} value={style.aspect ?? '16:9'} onchange={(e) => studio.setStyle('aspect', e.currentTarget.value as never)}>
-          {#each options.aspects as aspect (aspect)}
-            <option value={aspect}>{aspect}</option>
-          {/each}
-        </select>
-      </label>
-      <label class={field}>
-        Motion
-        <select class={control} value={style.motion ?? 'full'} onchange={(e) => studio.setStyle('motion', e.currentTarget.value as never)}>
-          {#each options.motions as motion (motion)}
-            <option value={motion}>{motion}</option>
-          {/each}
-        </select>
-      </label>
-      <label class={field}>
-        Deck background
-        <select class={control} value={style.background ?? ''} onchange={(e) => studio.setStyle('background', orNull(e.currentTarget.value))}>
-          <option value="">Default</option>
-          {#each options.backgrounds as background (background)}
-            <option value={background}>{background}</option>
-          {/each}
-        </select>
-      </label>
-      <label class={field}>
-        Progress
-        <select class={control} value={style.progress ?? 'bottom'} onchange={(e) => studio.setStyle('progress', e.currentTarget.value as never)}>
-          {#each options.progress as position (position)}
-            <option value={position}>{position}</option>
-          {/each}
-        </select>
-      </label>
+      {@render choice('Aspect', style.aspect ?? '16:9', plain(options.aspects), (value) =>
+        studio.setStyle('aspect', value as never)
+      )}
+      {@render choice('Motion', style.motion ?? 'full', plain(options.motions), (value) =>
+        studio.setStyle('motion', value as never)
+      )}
+      {@render choice(
+        'Deck background',
+        orDefault(style.background),
+        withDefault('Default', plain(options.backgrounds)),
+        (value) => studio.setStyle('background', orNull(value))
+      )}
+      {@render choice('Progress', style.progress ?? 'bottom', plain(options.progress), (value) =>
+        studio.setStyle('progress', value as never)
+      )}
     </div>
-    <label class="inline-flex items-center gap-2 text-[12px]">
-      <input type="checkbox" checked={style.slideNumbers !== false} onchange={(e) => studio.setStyle('slideNumbers', e.currentTarget.checked ? null : false)} />
-      Slide numbers
-    </label>
+    <Checkbox
+      label="Slide numbers"
+      class="text-[12px]"
+      checked={style.slideNumbers !== false}
+      onCheckedChange={(checked) => studio.setStyle('slideNumbers', checked ? null : false)}
+    />
   </section>
 
   <section class="grid gap-2" aria-labelledby="py-ds-slide">
     <h3 id="py-ds-slide" class="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Slide</h3>
-    <label class={field}>
-      Edit slide
-      <select class={control} value={studio.slideId} onchange={(e) => studio.selectSlide(e.currentTarget.value)}>
-        {#each studio.preview.slides as item, index (item.id)}
-          <option value={item.id}>{index + 1}. {item.title ?? item.id}</option>
-        {/each}
-      </select>
-    </label>
+    {@render choice(
+      'Edit slide',
+      studio.slideId,
+      studio.preview.slides.map((item, index) => ({
+        value: item.id,
+        label: `${index + 1}. ${item.title ?? item.id}`,
+      })),
+      (value) => studio.selectSlide(value)
+    )}
     {#if slide}
-      <label class={field}>
-        Layout
-        <select
-          class={control}
-          value={slide.layout}
-          disabled={studio.layoutChoices.length < 2}
-          onchange={(e) => studio.setSlide('layout', e.currentTarget.value)}
-        >
-          {#each studio.layoutChoices as layout (layout)}
-            <option value={layout}>{layout}</option>
-          {/each}
-        </select>
-      </label>
+      {@render choice(
+        'Layout',
+        slide.layout,
+        plain(studio.layoutChoices),
+        (value) => studio.setSlide('layout', value),
+        studio.layoutChoices.length < 2
+      )}
       <div class="grid grid-cols-2 gap-2">
-        <label class={field}>
-          Slide background
-          <select class={control} value={slide.background ?? ''} onchange={(e) => studio.setSlide('background', orNull(e.currentTarget.value))}>
-            <option value="">Deck default</option>
-            {#each options.backgrounds as background (background)}
-              <option value={background}>{background}</option>
-            {/each}
-          </select>
-        </label>
-        <label class={field}>
-          Slide transition
-          <select class={control} value={slide.transition ?? ''} onchange={(e) => studio.setSlide('transition', orNull(e.currentTarget.value) as never)}>
-            <option value="">Deck default</option>
-            {#each options.transitions as transition (transition)}
-              <option value={transition}>{transition}</option>
-            {/each}
-          </select>
-        </label>
+        {@render choice(
+          'Slide background',
+          slideBackground,
+          slideBackgrounds,
+          (value) => {
+            if (value !== CUSTOM) studio.setSlide('background', orNull(value));
+          }
+        )}
+        {@render choice(
+          'Slide transition',
+          orDefault(slide.transition),
+          withDefault('Deck default', plain(options.transitions)),
+          (value) => studio.setSlide('transition', orNull(value) as never)
+        )}
       </div>
-      <label class="inline-flex items-center gap-2 text-[12px]">
-        <input type="checkbox" checked={slide.hidden === true} onchange={(e) => studio.setSlide('hidden', e.currentTarget.checked)} />
-        Hide this slide
-      </label>
+      <Checkbox
+        label="Hide this slide"
+        class="text-[12px]"
+        checked={slide.hidden === true}
+        onCheckedChange={(checked) => studio.setSlide('hidden', checked)}
+      />
     {/if}
   </section>
 
@@ -185,17 +219,27 @@ const button =
     <p class="text-[12px] text-muted-foreground">
       {operationCount === 0 ? 'No changes yet.' : `${operationCount} JSON Patch operation${operationCount === 1 ? '' : 's'} (RFC 6902) for the source deck.`}
     </p>
-    <textarea
-      bind:this={exportField}
-      class="h-32 rounded-md border border-border bg-surface p-2 font-mono text-[11px] text-surface-foreground"
+    <Textarea
+      bind:ref={exportField}
+      class="h-32 font-mono text-[11px]"
       readonly
-      aria-label="Deck patch (JSON)">{studio.patchJson}</textarea>
+      aria-label="Deck patch (JSON)"
+      value={studio.patchJson}
+    />
     <div class="flex flex-wrap gap-2">
-      <button type="button" class={button} disabled={copying || operationCount === 0} aria-busy={copying} onclick={copyPatch}>
-        {copying ? 'Copying…' : 'Copy patch'}
-      </button>
-      <a class={button} href={downloadHref} download="deck-studio.patch.json" aria-disabled={operationCount === 0}>Download patch</a>
-      <button type="button" class={button} disabled={operationCount === 0} onclick={() => studio.reset()}>Reset</button>
+      <Button
+        variant="outline"
+        size="sm"
+        loading={copying}
+        autoLoading={false}
+        loadingLabel="Copying…"
+        disabled={operationCount === 0}
+        onclick={copyPatch}
+      >
+        Copy patch
+      </Button>
+      <a class={linkButton} href={downloadHref} download="deck-studio.patch.json" aria-disabled={operationCount === 0}>Download patch</a>
+      <Button variant="outline" size="sm" disabled={operationCount === 0} onclick={() => studio.reset()}>Reset</Button>
     </div>
     <p class="min-h-4 text-[12px]" role="status" aria-live="polite">{status}</p>
   </section>

@@ -97,14 +97,17 @@ function importGraph(entry: string): string[] {
 
 /**
  * Ceilings on every stylesheet a player page can ever load, gzip KB: measured
- * + 5 %, rounded up. On the npm Texuli 0.4.0 with every kit migrated to Texuli
- * (PLAN_007, 2026-10-28): index.html 97.1 KB (it plays every kind and kit),
- * deck.html 63.7, page.html and doc.html 62.8. Earlier: 80.0 / 56.8 / 56.1 on
- * 0.3.0 before the kit migrations, 75.9 / 53.3 / 52.6 linked on 2026-10-24. The
- * growth is lazily loaded Texuli family CSS (gap G23); lower when it shrinks.
- * The 36 KB cssGzipKb budget applies to each entry's initial CSS (17-20 KB).
+ * + 5 %, rounded up. Re-measured 2026-10-28 on npm Texuli 0.4.0 with decks on
+ * the `@texuli/slides` stage: index.html 129.7 KB (it plays every kind and
+ * kit), deck.html 105.6, page.html and doc.html 106.9 (each can open a deck
+ * through the kind boot). Without the stage's unused component registry they
+ * measure 118.2, 82.4 and 83.7. All of it is lazy: the initial CSS of each
+ * entry stays under the 36 KB cssGzipKb budget (17-20 KB).
+ * npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default
+ * renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB
+ * of CSS and initial JS; lower when it ships.
  */
-const PLAYER_TOTAL_CSS_GZIP_KB = { index: 102, deck: 66.9, page: 66, doc: 66 } as const;
+const PLAYER_TOTAL_CSS_GZIP_KB = { index: 136.2, deck: 110.9, page: 112.3, doc: 112.3 } as const;
 
 /** Modules that must only ever load on demand, by manifest key. */
 const LAZY_MODULES: [string, RegExp][] = [
@@ -181,7 +184,7 @@ describe.skipIf(!built)(
       // Decision (FIX-texuli-css-split, 2026-10-24): for the player, cssGzipKb
       // is the INITIAL CSS of each entry. Every stylesheet index.html can ever
       // load (all kinds and kits, split by Rolldown) has its own ceiling at the
-      // measured 75.9 KB + 5 %, so the total cannot grow silently.
+      // measured total + 5 % (PLAYER_TOTAL_CSS_GZIP_KB), so it cannot grow silently.
       const allKb = sum(reachableCss(manifest, 'index.html')) / KB;
       expect(allKb, `all CSS ${allKb.toFixed(1)} KB gzip`).toBeLessThanOrEqual(
         PLAYER_TOTAL_CSS_GZIP_KB.index
@@ -450,7 +453,9 @@ describe.skipIf(!built)('the per-kind player pages (deck.html, page.html, doc.ht
       expect(typeof definition.generateWorld, `${file}: generateWorld`).toBe('function');
       expect(definition.timeline, `${file}: timeline`).toBeUndefined();
     }
-  });
+    // The first import transforms the blueprint schema and, through the deck
+    // schema, the @texuli/deck model: about 4 s cold, so the 5 s default flakes.
+  }, 30_000);
 
   it('reports the measurements', () => {
     console.info(`[player kind pages] ${JSON.stringify(measured)}`);

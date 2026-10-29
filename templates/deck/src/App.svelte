@@ -1,7 +1,7 @@
 <script lang="ts">
 import { setBlockHost } from '@protoyard/blocks-ui';
 import { DeckApp } from '@protoyard/decks-ui/app';
-import { getRuntime } from '@protoyard/renderer-svelte';
+import { avatarUrl, getRuntime } from '@protoyard/renderer-svelte';
 import { customSlides } from './custom-slides.ts';
 import { deckBlueprint } from './deck-blueprint.ts';
 import { getTemplateDeckStudio } from './deck-studio.ts';
@@ -21,5 +21,6 @@ const deck = $derived(studio?.preview ?? deckBlueprint.deck);
   {deck}
   namespace={runtime.manifest.storage.namespace}
   {customSlides}
+  resolveAvatar={(id) => avatarUrl(id)}
   debugSource={{ kind: 'prototype', value: runtime.manifest.slug }}
 />

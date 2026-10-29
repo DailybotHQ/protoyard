@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { CustomSlide } from '@protoyard/decks/schema';
+import { Button } from 'texuli/button';
 import { type CustomSlideRegistry, customSlideLoader, frozenCopy } from './custom-slides.ts';
 
 /**
@@ -72,7 +73,7 @@ const label = $derived(slide.title ?? id);
       {@const Slide = module.default}
       <svelte:boundary>
         <!-- The component owns its clicks: they never advance the deck. -->
-        <div class="size-full" data-py-deck-interactive>
+        <div class="size-full" data-tx-deck-interactive>
           <Slide slide={ownSlide} {step} {stepCount} {data} />
         </div>
         {#snippet failed(_error, reset)}
@@ -80,13 +81,7 @@ const label = $derived(slide.title ?? id);
             <div class="max-w-4xl rounded-2xl border-2 border-destructive bg-background p-8 text-center">
               <p class="text-3xl font-semibold text-destructive">This slide stopped working</p>
               <p class="mt-4 text-2xl text-muted-foreground">The "{id}" component failed. The rest of the deck still works.</p>
-              <button
-                type="button"
-                class="mt-6 min-h-11 rounded-md border border-border px-6 text-2xl font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                onclick={reset}
-              >
-                Try again
-              </button>
+              <Button variant="outline" size="lg" class="mt-6 text-2xl" onclick={reset}>Try again</Button>
             </div>
           </div>
         {/snippet}

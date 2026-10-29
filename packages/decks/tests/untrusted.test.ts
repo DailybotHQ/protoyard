@@ -97,7 +97,12 @@ describe('the schema enforces the layout catalog', () => {
     ).toEqual([1, 2, 3]);
     const counted = slideSteps(parsed as never);
     expect(counted.count).toBe(3);
-    expect(counted.steps.map((s) => s.fragments[0]?.effect)).toEqual(['fade-up', 'grow', 'in']);
+    // steps[0] is the initial state; steps 1…3 reveal one card each.
+    expect(counted.steps.slice(1).map((s) => s.fragments[0]?.effect)).toEqual([
+      'fade-up',
+      'grow',
+      'in',
+    ]);
   });
 
   it('rejects malformed markers at their paths', () => {
@@ -115,9 +120,9 @@ describe('the schema enforces the layout catalog', () => {
       '$.slides[0].props.cards[0].fragment',
     ]);
     expect(paths(bad({ step: 1, reveal: 'spin' }))).toEqual(['$.slides[0].props.cards[0].reveal']);
-    // Both effects at once is reported on the marker object itself.
+    // Both effects at once is refused at the second effect key (the Texuli deck model's path).
     expect(paths(bad({ step: 1, fragment: 'in', reveal: 'fade' }))).toEqual([
-      '$.slides[0].props.cards[0]',
+      '$.slides[0].props.cards[0].reveal',
     ]);
     // Without a step, `fragment` is plain content, which the strict card schema refuses.
     const stepless = bad({ fragment: 'in' });

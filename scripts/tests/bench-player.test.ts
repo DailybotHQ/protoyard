@@ -13,7 +13,7 @@ describe('player kind benchmark', () => {
 
   it('uses stable first-content targets for rendered content kinds', () => {
     expect(contentSelector('app')).toBeNull();
-    expect(contentSelector('deck')).toBe('[data-py-deck-slide]');
+    expect(contentSelector('deck')).toBe('[data-tx-deck-slide]');
     expect(contentSelector('page')).toBe('[data-py-page-section]');
     expect(contentSelector('doc')).toBe('[data-py-doc-block]');
   });

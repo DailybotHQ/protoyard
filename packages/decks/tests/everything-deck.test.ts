@@ -5,7 +5,7 @@ import { type Block, forEachBlock } from '@protoyard/blocks';
 import { BLOCK_CATALOG_LIST } from '@protoyard/blocks/catalog';
 import { describe, expect, it } from 'vitest';
 import { DECK_LAYOUT_STEPPABLE, DECK_LAYOUTS, steppablePattern } from '../src/layouts/index.ts';
-import { slideFragments, slideSteps } from '../src/motion/steps.ts';
+import { slideFragments, slideSteps } from '../src/motion/index.ts';
 import { checkDeckStatic } from '../src/quality/check.ts';
 import { type Deck, type DeckSlide, safeParseDeck } from '../src/schema/index.ts';
 
@@ -88,8 +88,8 @@ describe('the everything deck', () => {
     for (const slide of deck.slides) {
       for (const fragment of slideFragments(slideSteps(slide as DeckSlide))) {
         if (fragment.authored === 0) continue;
-        if (fragment.source.kind === 'prop') {
-          patterns.add(steppablePattern(fragment.source.path.slice(1)));
+        if (fragment.path[0] === 'props') {
+          patterns.add(steppablePattern(fragment.path.slice(1)));
         } else {
           blockSteps += 1;
         }

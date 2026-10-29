@@ -28,18 +28,24 @@ describe('decks-ui entry hygiene', () => {
     exports: Record<string, unknown>;
   };
 
-  it('keeps optional presentation surfaces on separate package subpaths', () => {
+  it('keeps optional host surfaces on separate package subpaths', () => {
     expect(pkg.exports['./app']).toBeDefined();
-    for (const subpath of ['./presenter', './print', './studio']) {
+    // The presenter, print and overview are the @texuli/slides stage's; Protoyard keeps none.
+    expect(pkg.exports['./presenter']).toBeUndefined();
+    expect(pkg.exports['./print']).toBeUndefined();
+    for (const subpath of ['./studio', './debug']) {
       expect(pkg.exports[subpath], subpath).toBeDefined();
       const entry = pkg.exports[subpath] as Record<string, string>;
       expect(entry.default, subpath).toMatch(new RegExp(`/src/${subpath.slice(2)}/index\\.ts$`));
     }
     const app = readFileSync(join(SRC, 'app/index.ts'), 'utf8');
-    expect(app).not.toMatch(/from\s*['"]\.\.\/(?:presenter|print|studio)\//);
-    expect(app).not.toMatch(/from\s*['"]@protoyard\/decks-ui\/(?:presenter|print|studio)['"]/);
+    expect(app).not.toMatch(/from\s*['"]\.\.\/(?:studio|debug)\//);
+    expect(app).not.toMatch(/from\s*['"]@protoyard\/decks-ui\/(?:studio|debug)['"]/);
     const deckApp = readFileSync(join(SRC, 'app/DeckApp.svelte'), 'utf8');
-    expect(deckApp).toContain("{#if inputState.overview === 'open'}");
+    expect(deckApp).toContain("from '@texuli/slides/stage'");
+    // The debug panel and the print page load on first use.
+    expect(deckApp).toContain("import('../debug/DeckDebugPanel.svelte')");
+    expect(deckApp).toContain("import('@texuli/slides/export')");
   });
 
   it('keeps heavy app packages out of the static deck app graph', () => {

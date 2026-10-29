@@ -1,10 +1,6 @@
-/* Styles for a deck player: app, slide layouts, navigation and overview. */
+/* Styles for a deck player: DeckApp, free and custom slides, the debug panel. The stage brings its own (`@texuli/slides/styles.css`). */
 @import "@protoyard/blocks-ui/styles.css";
 
 @source "./app";
 @source "./layouts";
-@source "./chrome";
-@source "./style";
-@source "./overview";
-@source "./print";
 @source "./debug";

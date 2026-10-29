@@ -48,7 +48,8 @@ describe('DECK_LAYOUT_STEPPABLE', () => {
     expect(Object.keys(DECK_LAYOUT_STEPPABLE).sort()).toEqual([...DECK_LAYOUT_IDS].sort());
     for (const id of DECK_LAYOUT_IDS) {
       if (id === 'free') expect(DECK_LAYOUT_STEPPABLE[id]).toEqual([]);
-      else expect(DECK_LAYOUT_STEPPABLE[id], id).toContain('');
+      else
+        expect(DECK_LAYOUT_STEPPABLE[id as keyof typeof DECK_LAYOUT_STEPPABLE], id).toContain('');
     }
   });
 

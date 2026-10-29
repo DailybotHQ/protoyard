@@ -1,12 +1,18 @@
+/**
+ * `@protoyard/decks` backgrounds: Protoyard's zod schema and offline media
+ * policy over the deck model's presets, resolver and contrast math
+ * (`@texuli/deck/model`).
+ */
 export {
   chooseInk,
   compositeOver,
   DECK_TEXT_CONTRAST_MIN,
   type InkChoice,
-  inkWithOverlay,
+  type ResolvedDeckBackground,
+  resolveDeckBackground,
   sampleGradient,
   worstContrast,
-} from './contrast.ts';
+} from '@texuli/deck/model';
 export {
   checkDeckMediaSrc,
   DECK_IMAGE_TYPES,
@@ -16,10 +22,6 @@ export {
   type DeckMediaCheck,
   type DeckMediaKind,
 } from './media.ts';
-export {
-  type ResolvedDeckBackground,
-  resolveDeckBackground,
-} from './resolve.ts';
 export {
   DECK_BACKGROUND_PRESET_IDS,
   DECK_BACKGROUND_PRESETS,

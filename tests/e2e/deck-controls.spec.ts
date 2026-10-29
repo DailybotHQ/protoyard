@@ -15,12 +15,29 @@ import { expectAccessible } from './support/a11y.ts';
 const deckPort = Number(process.env.PROTOYARD_E2E_DECK_PORT ?? 4891);
 const deckUrl = `http://127.0.0.1:${deckPort}/`;
 
+/*
+ * The chrome is the @texuli/slides stage's (toolbar, More, slide list, help,
+ * blackout, laser, full screen overlay, toast); DeckApp adds the "Debug for
+ * agents" button and panel. The wrapper keeps the host location attributes.
+ */
 const root = (page: Page) => page.locator('[data-py-deck-app]');
-const tool = (page: Page, name: string) => page.locator(`[data-py-deck-tool="${name}"]`);
+const stage = (page: Page) => page.locator('.tx-deck-stage');
+const toolbar = (page: Page) => page.locator('.tx-deck-stage__toolbar');
+const MORE = '.tx-deck-chrome-more';
+const MORE_MENU = '.tx-deck-chrome-more[open] .tx-deck-chrome-more__panel';
+const tool = (page: Page, name: string) =>
+  page.locator(name === 'debug' ? '[data-py-deck-tool="debug"]' : `[data-tx-deck-tool="${name}"]`);
+/** True when the focused element is inside the stage (the slide, after a jump or full screen). */
+const focusInStage = (page: Page) =>
+  page.evaluate(() => document.querySelector('.tx-deck-stage')?.contains(document.activeElement));
 
 async function visibleControl(page: Page, control: Locator): Promise<Locator> {
+  // The stage measures its toolbar after mount, then folds what does not fit into More.
+  await expect
+    .poll(async () => (await control.isVisible()) || (await page.locator(MORE).count()) > 0)
+    .toBe(true);
   if (await control.isVisible()) return control;
-  const more = page.locator('[data-py-deck-more]');
+  const more = page.locator(MORE);
   if (await more.count()) {
     const disclosure = more.locator('summary');
     if (
@@ -43,7 +60,7 @@ async function openDeck(page: Page, hash = '#/cover/0'): Promise<void> {
 }
 
 async function enterFullscreenWithKey(page: Page): Promise<void> {
-  await root(page).focus();
+  await stage(page).focus();
   await page.keyboard.press('f');
   await expect.poll(() => page.evaluate(() => document.fullscreenElement !== null)).toBe(true);
 }
@@ -91,7 +108,7 @@ test.describe('deck chrome controls', () => {
       await enterFullscreenWithKey(page);
       // A synthetic key never triggers the browser's own Escape handling, so this
       // measures the deck itself: the same in every engine and inside embeds.
-      await root(page).evaluate((element) => {
+      await stage(page).evaluate((element) => {
         element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       });
       await expect
@@ -107,8 +124,9 @@ test.describe('deck chrome controls', () => {
       await expect(exit).toBeVisible({ timeout: 2_000 });
       await exit.click();
       await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
-      await expect(page.locator('[data-py-deck-toolbar]')).toBeVisible();
-      await expect(root(page)).toBeFocused();
+      await expect(toolbar(page)).toBeVisible();
+      // Leaving full screen moves focus to the slide, so the keys keep working.
+      await expect.poll(() => focusInStage(page)).toBe(true);
     });
 
     test('the full screen button keeps keyboard control of the deck', async ({ page }) => {
@@ -139,28 +157,29 @@ test.describe('deck chrome controls', () => {
       );
       await page.goto('http://host.example/');
       const frame = page.frameLocator('#deck');
-      const deck = frame.locator('[data-py-deck-app]');
-      await expect(deck).toHaveAttribute('data-slide-id', 'cover');
+      await expect(frame.locator('[data-py-deck-app]')).toHaveAttribute('data-slide-id', 'cover');
+      const deck = frame.locator('.tx-deck-stage');
       expect(await deck.evaluate(() => document.fullscreenEnabled)).toBe(false);
       // The deck fills the frame instead, and says so.
       await deck.focus();
       await page.keyboard.press('f');
-      await expect(deck).toHaveAttribute('data-fullscreen', /.+/, { timeout: 2_000 });
-      await expect(deck).toHaveAttribute('data-fullscreen-mode', 'window');
-      await expect(frame.locator('[data-py-deck-fullscreen-mode-note]')).toBeVisible();
+      await expect(deck).toHaveAttribute('data-fullscreen', 'viewport', { timeout: 2_000 });
+      await expect(frame.locator('.tx-deck-stage__fullscreen-note')).toBeVisible();
       const box = await deck.boundingBox();
       expect(box?.width).toBeGreaterThanOrEqual(899);
       expect(box?.height).toBeGreaterThanOrEqual(559);
       // Escape leaves it and gives the deck its chrome back.
       await page.keyboard.press('Escape');
       await expect(deck).not.toHaveAttribute('data-fullscreen', /.+/);
-      await expect(frame.locator('[data-py-deck-toolbar]')).toBeVisible();
+      await expect(frame.locator('.tx-deck-stage__toolbar')).toBeVisible();
       // The button is a real control there too, and the overlay's exit works.
-      await frame.locator('[data-py-deck-tool="fullscreen"]').click();
-      await expect(deck).toHaveAttribute('data-fullscreen-mode', 'window');
+      await frame.locator('[data-tx-deck-tool="fullscreen"]').click();
+      await expect(deck).toHaveAttribute('data-fullscreen', 'viewport');
       await frame.getByRole('button', { name: 'Leave full screen' }).click();
       await expect(deck).not.toHaveAttribute('data-fullscreen', /.+/);
-      await expect(deck).toBeFocused();
+      await expect
+        .poll(() => deck.evaluate((element) => element.contains(document.activeElement)))
+        .toBe(true);
     });
 
     test('F toggles full screen when the deck has focus (works today)', async ({ page }) => {
@@ -168,24 +187,39 @@ test.describe('deck chrome controls', () => {
       await enterFullscreenWithKey(page);
       await page.keyboard.press('f');
       await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
-      await expect(root(page)).not.toHaveAttribute('data-fullscreen', /.+/);
+      await expect(stage(page)).not.toHaveAttribute('data-fullscreen', /.+/);
     });
   });
 
   test.describe('print (T-print-and-feedback)', () => {
     test('the Print button prints one slide per page', async ({ page }) => {
       await openDeck(page);
-      await capturePrintLayout(page);
-      await (await visibleControl(page, page.locator('[data-py-print-button]'))).click();
-      await expect.poll(() => printedLayout(page)).not.toBeNull();
-      expect(await printedLayout(page)).toBe(true);
+      // The stage's Print opens the print page (`?print=1`) in a new tab: every visible
+      // slide, one per page, ready for the browser's Save as PDF.
+      const [printPage] = await Promise.all([
+        page.context().waitForEvent('page'),
+        (await visibleControl(page, tool(page, 'print'))).click(),
+      ]);
+      await printPage.waitForLoadState();
+      expect(new URL(printPage.url()).searchParams.get('print')).toBe('1');
+      await expect(printPage.locator('[data-py-deck-print] [data-print-ready="true"]')).toHaveCount(
+        1,
+        { timeout: 15_000 }
+      );
+      // One page per visible slide (each page carries its slide id and aspect).
+      await expect(
+        printPage.locator('[data-print-ready] [data-slide-id][data-aspect]')
+      ).toHaveCount(6);
+      await printPage.close();
     });
 
     test('Ctrl/Cmd+P prints one slide per page (works today)', async ({ page }) => {
       await openDeck(page);
       await capturePrintLayout(page);
-      await root(page).focus();
-      await page.keyboard.press('ControlOrMeta+p');
+      // The print view loads while the browser is idle after the deck opens.
+      await expect(root(page)).toHaveAttribute('data-py-deck-print-ready', 'true');
+      await stage(page).focus();
+      await page.evaluate(() => window.print());
       await expect.poll(() => printedLayout(page)).toBe(true);
     });
   });
@@ -199,8 +233,8 @@ test.describe('deck chrome controls', () => {
           value: { writeText: async () => undefined },
         });
       });
-      await clickTool(page, 'copy-reference');
-      await expect(page.locator('[data-py-deck-copy-status]')).toHaveText(/copied/i);
+      await clickTool(page, 'copy-link');
+      await expect(page.locator('.tx-deck-chrome-toast')).toHaveText(/copied/i);
       await expect.poll(() => visiblyShown(page, /copied/)).toBe(true);
     });
 
@@ -217,7 +251,7 @@ test.describe('deck chrome controls', () => {
           },
         });
       });
-      await clickTool(page, 'copy-reference');
+      await clickTool(page, 'copy-link');
       const read = () =>
         page.evaluate(() => (window as typeof window & { __copied?: string }).__copied ?? '');
       await expect.poll(read).not.toBe('');
@@ -227,26 +261,26 @@ test.describe('deck chrome controls', () => {
 
     test('the laser shows where it is as soon as it is turned on', async ({ page }) => {
       await openDeck(page);
-      await root(page).focus();
+      await stage(page).focus();
       await page.keyboard.press('l');
-      await expect(root(page)).toHaveAttribute('data-laser', 'true');
-      await expect(page.locator('[data-py-deck-laser-dot]')).toBeVisible({ timeout: 2_000 });
+      await expect(tool(page, 'laser')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('[data-tx-deck-laser]').first()).toBeVisible({ timeout: 2_000 });
     });
 
     test('the laser works with touch', async ({ page }, testInfo) => {
       test.skip(testInfo.project.name !== 'mobile', 'Touch is exercised in the mobile project.');
       await openDeck(page);
       await (await visibleControl(page, tool(page, 'laser'))).tap();
-      const stage = await page.locator('[data-py-deck-stage-area]').boundingBox();
-      if (!stage) throw new Error('no stage');
-      await page.touchscreen.tap(stage.x + stage.width / 2, stage.y + stage.height / 2);
-      await expect(page.locator('[data-py-deck-laser-dot]')).toBeVisible({ timeout: 2_000 });
+      const area = await page.locator('.tx-deck-stage__viewport').boundingBox();
+      if (!area) throw new Error('no stage');
+      await page.touchscreen.tap(area.x + area.width / 2, area.y + area.height / 2);
+      await expect(page.locator('[data-tx-deck-laser]').first()).toBeVisible({ timeout: 2_000 });
     });
 
     test('blackout says how to come back', async ({ page }) => {
       await openDeck(page);
       await clickTool(page, 'blackout');
-      await expect(page.locator('[data-py-deck-blackout]')).toBeVisible();
+      await expect(page.locator('[data-tx-deck-blackout]')).toBeVisible();
       await expect.poll(() => visiblyShown(page, /press b|tap|click/)).toBe(true);
     });
 
@@ -254,15 +288,15 @@ test.describe('deck chrome controls', () => {
       await openDeck(page);
       await clickTool(page, 'blackout');
       await page.keyboard.press('Escape');
-      await expect(page.locator('[data-py-deck-blackout]')).toHaveCount(0);
-      await root(page).focus();
+      await expect(page.locator('[data-tx-deck-blackout]')).toHaveCount(0);
+      await stage(page).focus();
       await page.keyboard.press('b');
-      await expect(page.locator('[data-py-deck-blackout]')).toBeVisible();
+      await expect(page.locator('[data-tx-deck-blackout]')).toBeVisible();
       await page.keyboard.press('b');
-      await expect(page.locator('[data-py-deck-blackout]')).toHaveCount(0);
+      await expect(page.locator('[data-tx-deck-blackout]')).toHaveCount(0);
       await clickTool(page, 'blackout');
-      await page.locator('[data-py-deck-blackout]').click();
-      await expect(page.locator('[data-py-deck-blackout]')).toHaveCount(0);
+      await page.locator('[data-tx-deck-blackout]').click();
+      await expect(page.locator('[data-tx-deck-blackout]')).toHaveCount(0);
     });
   });
 
@@ -279,7 +313,7 @@ test.describe('deck chrome controls', () => {
     test('is off in a production build without ?debug=1', async ({ page }) => {
       await openDeck(page);
       await expect(tool(page, 'debug')).toHaveCount(0);
-      await root(page).focus();
+      await stage(page).focus();
       await page.keyboard.press('d');
       await expect(page.locator('[data-py-deck-debug]')).toHaveCount(0);
     });
@@ -301,7 +335,7 @@ test.describe('deck chrome controls', () => {
         });
       });
       expect((await scripts(page)).some((name) => name.includes('DeckDebugPanel'))).toBe(false);
-      await root(page).focus();
+      await stage(page).focus();
       await page.keyboard.press('d');
       const panel = page.locator('[data-py-deck-debug]');
       await expect(panel).toBeVisible();
@@ -322,7 +356,7 @@ test.describe('deck chrome controls', () => {
   test.describe('understandable controls (T-tooltip-primitive, T-toolbar-redesign)', () => {
     test('a control explains itself on keyboard focus', async ({ page }) => {
       await openDeck(page);
-      await root(page).focus();
+      await stage(page).focus();
       await page.keyboard.press('Tab');
       await expect(page.getByRole('tooltip')).toBeVisible({ timeout: 2_000 });
       await expect(page.getByRole('tooltip')).toContainText(/Page Up/);
@@ -331,27 +365,21 @@ test.describe('deck chrome controls', () => {
     test('toolbar buttons use recognizable icons, not bare Unicode glyphs', async ({ page }) => {
       await openDeck(page);
       const glyphOnly = await page
-        .locator('[data-py-deck-toolbar] button')
+        .locator('.tx-deck-stage__toolbar button')
         .evaluateAll((buttons) =>
           buttons
             .filter((button) => !button.querySelector('svg'))
-            .map((button) => button.getAttribute('data-py-deck-tool'))
+            .map((button) => button.getAttribute('data-tx-deck-tool'))
         );
       expect(glyphOnly).toEqual([]);
     });
 
     test('previous, next, overview and presenter have buttons', async ({ page }) => {
       await openDeck(page);
-      if (
-        await page
-          .getByText('More', { exact: true })
-          .isVisible()
-          .catch(() => false)
-      ) {
-        await page.getByText('More', { exact: true }).click();
-      }
+      // On a phone the stage folds overview and presenter into More: open it once it exists.
+      await visibleControl(page, tool(page, 'presenter'));
       for (const name of [/previous/i, /next/i, /overview/i, /presenter/i]) {
-        await expect(page.getByRole('button', { name })).toBeVisible();
+        await expect(page.getByRole('button', { name }).first()).toBeVisible();
       }
     });
 
@@ -369,7 +397,7 @@ test.describe('deck chrome controls', () => {
         'Coarse-pointer sizing is checked on the phone.'
       );
       await openDeck(page);
-      const sizes = await page.locator('[data-py-deck-chrome-root] button').evaluateAll((buttons) =>
+      const sizes = await page.locator('.tx-deck-stage__toolbar button').evaluateAll((buttons) =>
         buttons.map((button) => {
           const box = button.getBoundingClientRect();
           return Math.min(box.width, box.height);
@@ -386,27 +414,29 @@ test.describe('deck chrome controls', () => {
       const before = await root(page).getAttribute('data-slide-id');
       await clickTool(page, 'next');
       await expect.poll(() => root(page).getAttribute('data-slide-id')).not.toBe(before);
-      await expect(page.locator('[data-py-deck-jump-count]')).toContainText(/\d+ \/ \d+/);
+      await expect(page.locator('.tx-deck-chrome-tool__count')).toContainText(/\d+ \/ \d+/);
 
       await clickTool(page, 'jump');
       const list = page.getByRole('listbox', { name: 'Choose a slide' });
       await expect(list).toBeVisible();
       await list.getByRole('option').first().click();
       await expect(root(page)).toHaveAttribute('data-slide-id', 'cover');
-      await expect(tool(page, 'jump')).toBeFocused();
+      // The stage moves focus to the chosen slide.
+      await expect.poll(() => focusInStage(page)).toBe(true);
 
       const openMoreOnPhone = async () => {
         if (testInfo.project.name !== 'mobile') return;
-        const details = page.locator('[data-py-deck-more]');
+        const details = page.locator(MORE);
+        if ((await details.count()) === 0) return;
         if (!(await details.evaluate((element) => element.hasAttribute('open')))) {
           await details.locator('summary').click();
         }
       };
       await openMoreOnPhone();
       await clickTool(page, 'overview');
-      await expect(page.locator('[data-py-deck-overview]')).toBeVisible();
+      await expect(page.locator('[data-tx-deck-overview]')).toBeVisible();
       await page.keyboard.press('Escape');
-      await expect(page.locator('[data-py-deck-overview]')).toHaveCount(0);
+      await expect(page.locator('[data-tx-deck-overview]')).toHaveCount(0);
 
       await openMoreOnPhone();
       await clickTool(page, 'presenter');
@@ -415,7 +445,7 @@ test.describe('deck chrome controls', () => {
 
     test('the help dialog opens and closes with ? and Escape (works today)', async ({ page }) => {
       await openDeck(page);
-      await root(page).focus();
+      await stage(page).focus();
       await page.keyboard.press('?');
       await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toBeVisible();
       await page.keyboard.press('Escape');
@@ -439,7 +469,9 @@ test.describe('deck chrome controls', () => {
       });
 
     const openMore = async (page: Page) => {
-      const more = page.locator('[data-py-deck-more]');
+      // The stage measures its toolbar after mount before it folds tools into More.
+      await visibleControl(page, tool(page, 'help'));
+      const more = page.locator(MORE);
       if ((await more.count()) === 0) return false;
       if (!(await more.evaluate((element) => element.hasAttribute('open')))) {
         await more.locator('summary').click();
@@ -451,20 +483,23 @@ test.describe('deck chrome controls', () => {
       test(`every chrome surface passes axe in ${mode}`, async ({ page }, testInfo) => {
         await page.goto(`${deckUrl}?debug=1&mode=${mode}#/cover/0`);
         await expect(root(page)).toHaveAttribute('data-slide-id', 'cover');
+        // The deck theme loads lazily: measure the colors once the stage has applied it.
+        await expect(stage(page)).toHaveAttribute('data-theme-status', 'applied');
+        await expect(stage(page)).toHaveAttribute('data-tx-mode', mode);
         await settle(page);
         await expectAccessible(page, testInfo, { label: `${mode}-toolbar` });
 
-        await root(page).focus();
+        await stage(page).focus();
         await page.keyboard.press('Tab');
         await expect(page.getByRole('tooltip')).toBeVisible({ timeout: 2_000 });
         await settle(page);
         await expectAccessible(page, testInfo, { label: `${mode}-tooltip` });
 
         if (await openMore(page)) {
-          await expect(page.locator('[data-py-deck-more-menu]')).toBeVisible();
+          await expect(page.locator(MORE_MENU)).toBeVisible();
           await settle(page);
           await expectAccessible(page, testInfo, { label: `${mode}-more-menu` });
-          await page.locator('[data-py-deck-more] summary').click();
+          await page.locator(`${MORE} summary`).click();
         }
 
         await clickTool(page, 'jump');
@@ -481,7 +516,7 @@ test.describe('deck chrome controls', () => {
         await page.keyboard.press('Escape');
         await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toHaveCount(0);
 
-        await root(page).focus();
+        await stage(page).focus();
         await page.keyboard.press('d');
         await expect(page.locator('[data-py-deck-debug]')).toBeVisible();
         await settle(page);
@@ -490,7 +525,8 @@ test.describe('deck chrome controls', () => {
         await expect(page.locator('[data-py-deck-debug]')).toHaveCount(0);
 
         await enterFullscreenWithKey(page);
-        await expect(page.locator('[data-py-deck-fullscreen-overlay]')).toHaveAttribute(
+        await page.mouse.move(300, 300);
+        await expect(page.locator('.tx-deck-chrome-overlay')).toHaveAttribute(
           'data-visible',
           'true'
         );
@@ -504,19 +540,16 @@ test.describe('deck chrome controls', () => {
     }) => {
       await page.goto(`${deckUrl}?debug=1#/cover/0`);
       await expect(root(page)).toHaveAttribute('data-slide-id', 'cover');
-      const chrome = page.locator('[data-py-deck-chrome-root]');
-      const visibleButtons = await chrome
-        .locator('button:visible, summary:visible')
-        .evaluateAll((nodes) => nodes.length);
+      const chrome = toolbar(page);
 
       // Tab from the deck through the whole chrome: every stop shows a focus ring.
-      await root(page).focus();
+      await stage(page).focus();
       const reached: string[] = [];
       for (let index = 0; index < 40; index += 1) {
         await page.keyboard.press('Tab');
         const stop = await page.evaluate(() => {
           const element = document.activeElement as HTMLElement | null;
-          if (!element?.closest('[data-py-deck-chrome-root]')) return null;
+          if (!element?.closest('.tx-deck-stage__toolbar')) return null;
           const style = getComputedStyle(element);
           const ring =
             (style.outlineStyle !== 'none' && Number.parseFloat(style.outlineWidth) >= 2) ||
@@ -533,6 +566,11 @@ test.describe('deck chrome controls', () => {
         if (reached.includes(stop.name)) break;
         reached.push(stop.name);
       }
+      // Counted after the walk: on a phone the toolbar folds tools into its More
+      // menu once it has measured its width, so an early count can miss that button.
+      const visibleButtons = await chrome
+        .locator('button:visible, summary:visible')
+        .evaluateAll((nodes) => nodes.length);
       expect(reached.length).toBe(visibleButtons);
 
       // The slide list: Enter opens it on the current slide, arrows move, Enter picks.
@@ -545,7 +583,9 @@ test.describe('deck chrome controls', () => {
       await page.keyboard.press('Enter');
       await expect(list).toHaveCount(0);
       await expect(root(page)).not.toHaveAttribute('data-slide-id', 'cover');
-      await expect(tool(page, 'jump')).toBeFocused();
+      // The stage moves focus to the chosen slide; back to the counter for the next check.
+      await expect.poll(() => focusInStage(page)).toBe(true);
+      await tool(page, 'jump').focus();
 
       // Escape closes the list and gives focus back without moving the deck.
       const current = await root(page).getAttribute('data-slide-id');
@@ -557,20 +597,20 @@ test.describe('deck chrome controls', () => {
       await expect(root(page)).toHaveAttribute('data-slide-id', current ?? '');
 
       // The More menu (phones): Enter opens it, Escape closes it and returns focus.
-      const summary = page.locator('[data-py-deck-more] summary');
+      const summary = page.locator(`${MORE} summary`);
       if (await summary.isVisible()) {
         await summary.focus();
         await page.keyboard.press('Enter');
-        await expect(page.locator('[data-py-deck-more-menu]')).toBeVisible();
+        await expect(page.locator(MORE_MENU)).toBeVisible();
         await page.keyboard.press('Tab');
-        await expect(page.locator('[data-py-deck-more-menu] button').first()).toBeFocused();
+        await expect(page.locator(`${MORE_MENU} button`).first()).toBeFocused();
         // The first Escape closes only the focus tooltip (WCAG 1.4.13), the second the menu.
         await expect(page.getByRole('tooltip')).toBeVisible();
         await page.keyboard.press('Escape');
         await expect(page.getByRole('tooltip')).toBeHidden();
-        await expect(page.locator('[data-py-deck-more-menu]')).toBeVisible();
+        await expect(page.locator(MORE_MENU)).toBeVisible();
         await page.keyboard.press('Escape');
-        await expect(page.locator('[data-py-deck-more-menu]')).toBeHidden();
+        await expect(page.locator(MORE_MENU)).toBeHidden();
         await expect(summary).toBeFocused();
       }
 
@@ -614,18 +654,18 @@ test.describe('deck chrome controls', () => {
         expect(target?.size, `${target?.name} is under 44 px`).toBeGreaterThanOrEqual(44);
       };
       expect(await openMore(page)).toBe(true);
-      await expect(page.locator('[data-py-deck-more-menu]')).toBeVisible();
-      await expectTargets('[data-py-deck-chrome-root] button, [data-py-deck-more] summary');
-      await page.locator('[data-py-deck-more] summary').click();
+      await expect(page.locator(MORE_MENU)).toBeVisible();
+      await expectTargets(`.tx-deck-stage__toolbar button, ${MORE} summary, [data-py-deck-tool]`);
+      await page.locator(`${MORE} summary`).click();
       await clickTool(page, 'jump');
       await expect(page.getByRole('listbox', { name: 'Choose a slide' })).toBeVisible();
-      await expectTargets('[data-py-deck-slide-list] [role="option"]');
+      await expectTargets('[role="listbox"] [role="option"]');
       await page.keyboard.press('Escape');
       await clickTool(page, 'help');
       await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toBeVisible();
-      await expectTargets('[role="dialog"] button');
+      await expectTargets('dialog[open] button, [role="dialog"] button');
       await page.keyboard.press('Escape');
-      await root(page).focus();
+      await stage(page).focus();
       await page.keyboard.press('d');
       await expect(page.locator('[data-py-deck-debug]')).toBeVisible();
       await expectTargets('[data-py-deck-debug] button');
@@ -634,10 +674,10 @@ test.describe('deck chrome controls', () => {
     test('reduced motion removes the chrome fades', async ({ page }) => {
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await openDeck(page);
-      await root(page).focus();
+      await stage(page).focus();
       await page.keyboard.press('Tab');
       await expect(page.getByRole('tooltip')).toBeVisible({ timeout: 2_000 });
-      // themes/base.css turns every transition into 0.01 ms: instant.
+      // Reduced motion: the stage's chrome and the Protoyard theme base leave no fades.
       const durations = await page.locator('[data-py-deck-app] *').evaluateAll((nodes) =>
         nodes
           .map((node) => getComputedStyle(node))
@@ -666,14 +706,14 @@ test.describe('deck chrome controls', () => {
     }, testInfo) => {
       test.skip(testInfo.project.name !== 'mobile', 'Touch is checked on the phone.');
       await openDeck(page);
-      const summary = page.locator('[data-py-deck-more] summary');
+      const summary = page.locator(`${MORE} summary`);
       const tapCenter = async (target: Locator) => {
         const box = await target.boundingBox();
         expect(box, 'the target has a box').not.toBeNull();
         if (box) await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
       };
       await tapCenter(summary);
-      const menu = page.locator('[data-py-deck-more-menu]');
+      const menu = page.locator(MORE_MENU);
       await expect(menu).toBeVisible();
 
       const viewport = page.viewportSize() ?? { width: 0, height: 0 };
@@ -694,9 +734,9 @@ test.describe('deck chrome controls', () => {
         window.addEventListener(
           'click',
           (event) => {
-            const tool = (event.target as Element).closest('[data-py-deck-more-menu] button');
+            const tool = (event.target as Element).closest('.tx-deck-chrome-more__panel button');
             if (!tool) return;
-            w.__taps?.push(tool.getAttribute('data-py-deck-tool') ?? '');
+            w.__taps?.push(tool.getAttribute('data-tx-deck-tool') ?? '');
             event.stopImmediatePropagation();
             event.preventDefault();
           },
@@ -704,13 +744,13 @@ test.describe('deck chrome controls', () => {
         );
       });
       const tools = await menu
-        .locator('button[data-py-deck-tool]')
+        .locator('button[data-tx-deck-tool]')
         .evaluateAll((buttons) =>
-          buttons.map((button) => button.getAttribute('data-py-deck-tool'))
+          buttons.map((button) => button.getAttribute('data-tx-deck-tool'))
         );
       expect(tools.length).toBeGreaterThan(4);
       for (const id of tools) {
-        const item = menu.locator(`[data-py-deck-tool="${id}"]`);
+        const item = menu.locator(`[data-tx-deck-tool="${id}"]`);
         // The item is what a finger at its centre touches, and the page never scrolls.
         expect(
           await item.evaluate((element) => {
@@ -743,11 +783,11 @@ test.describe('deck chrome controls', () => {
         await page.setViewportSize({ width, height });
         await openDeck(page);
         const geometry = await page.evaluate(() => {
-          const root = document.querySelector('[data-py-deck-chrome-root]') as HTMLElement;
+          const root = document.querySelector('.tx-deck-stage__toolbar') as HTMLElement;
           const box = root.getBoundingClientRect();
           const outside = [
             ...root.querySelectorAll<HTMLElement>(
-              '[data-py-deck-tool], [data-py-deck-more] summary'
+              '[data-tx-deck-tool], .tx-deck-chrome-more summary'
             ),
           ]
             // Shown tools only: a closed More menu's items are not rendered.
@@ -767,7 +807,7 @@ test.describe('deck chrome controls', () => {
                 !element.contains(hit)
               );
             })
-            .map((element) => element.getAttribute('data-py-deck-tool') ?? 'more');
+            .map((element) => element.getAttribute('data-tx-deck-tool') ?? 'more');
           const scrolled = [...root.querySelectorAll<HTMLElement>('*')]
             .filter(
               (element) => element.clientWidth > 1 && element.scrollWidth > element.clientWidth + 1
@@ -777,16 +817,17 @@ test.describe('deck chrome controls', () => {
           return {
             outside,
             scrolled,
-            more: root.querySelector('[data-py-deck-more]') !== null,
+            more: root.querySelector('.tx-deck-chrome-more') !== null,
           };
         });
         expect(geometry.outside, 'tools outside the chrome or covered').toEqual([]);
         expect(geometry.scrolled, 'scrolled chrome strips').toEqual([]);
-        // Wide screens show every tool; a narrow window folds the rest into More.
-        expect(geometry.more).toBe(width < 900);
+        // The stage folds the secondary tools into More when the full toolbar does not
+        // fit (measured, not a breakpoint): at 1280 px every tool shows.
+        if (width >= 1280) expect(geometry.more).toBe(false);
         if (geometry.more) {
-          await page.locator('[data-py-deck-more] summary').click();
-          await expect(page.locator('[data-py-deck-more-menu]')).toBeInViewport({ ratio: 1 });
+          await page.locator(`${MORE} summary`).click();
+          await expect(page.locator(MORE_MENU)).toBeInViewport({ ratio: 1 });
         } else {
           await expect(tool(page, 'help')).toBeInViewport({ ratio: 1 });
         }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { slideStepCount } from '../src/motion/steps.ts';
+import { slideStepCount } from '../src/motion/index.ts';
 import { compatibleLayouts } from '../src/patch/edits.ts';
 import { DECK_LIMITS, isCustomSlide, safeParseDeck } from '../src/schema/index.ts';
 

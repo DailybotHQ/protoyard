@@ -71,7 +71,7 @@ function clearVote() {
         <Button
           type="button"
           variant="outline"
-          class="flex h-auto w-full flex-col items-start gap-1 rounded-md px-3 py-2 text-left text-sm
+          class="flex h-auto w-full flex-col items-stretch gap-1 rounded-md px-3 py-2 text-left text-sm
             {selected ? 'border-primary bg-primary/10 ring-1 ring-primary' : ''}"
           aria-pressed={selected}
           disabled={ctl.pending || (hasVoted && resultsMode === 'after-vote')}

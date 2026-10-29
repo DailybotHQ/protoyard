@@ -4,7 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { checkInvocation, cliTree, extractInvocations } from '../../../scripts/check-skill-cli.ts';
-import { DECK_LAYOUT_IDS } from '../../decks/src/layouts/catalog.ts';
+import { DECK_LAYOUT_IDS } from '../../decks/src/layouts/index.ts';
 import { createProgram } from '../src/program.ts';
 
 /**

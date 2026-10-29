@@ -6,8 +6,10 @@ import {
 } from '@protoyard/decks/agent';
 import { checkDeckStatic } from '@protoyard/decks/quality';
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
+import { copyDeckText as copyText } from '@texuli/slides/stage';
 import { onMount, tick } from 'svelte';
-import { copyText } from '../chrome/clipboard.ts';
+import { Badge } from 'texuli/badge';
+import { Button } from 'texuli/button';
 import BlockOutline from './BlockOutline.svelte';
 import { deckFileName, downloadText, inertJson } from './format.ts';
 
@@ -69,7 +71,7 @@ const otherSlides = $derived.by(() => {
 });
 
 let outline = $state(false);
-let closeButton = $state<HTMLButtonElement | undefined>();
+let closeButton = $state<HTMLElement | null>(null);
 let opener: HTMLElement | null = null;
 const uid = $props.id();
 const titleId = `py-deck-debug-${uid}`;
@@ -92,8 +94,8 @@ function download(): void {
   onnotify(ok ? 'Deck JSON downloaded' : 'Could not save the deck JSON', ok ? 'info' : 'error');
 }
 
-const buttonClass =
-  'inline-flex min-h-11 items-center justify-center rounded-md border border-border bg-background px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:min-h-9';
+/** Texuli outline buttons, kept at the 44 px touch target on phones (36 px from `sm`). */
+const buttonClass = 'min-h-11 sm:min-h-9';
 </script>
 
 {#if outline}
@@ -109,11 +111,11 @@ const buttonClass =
   class="absolute inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-border bg-background text-foreground shadow-xl"
   aria-labelledby={titleId}
   data-py-deck-debug
-  data-py-deck-chrome
+  data-tx-deck-chrome
 >
   <div class="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
     <h2 id={titleId} class="text-base font-semibold">Debug for agents</h2>
-    <button bind:this={closeButton} type="button" class={buttonClass} onclick={onclose}>Close</button>
+    <Button bind:ref={closeButton} variant="outline" class={buttonClass} onclick={onclose}>Close</Button>
   </div>
 
   <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 text-sm">
@@ -139,20 +141,20 @@ const buttonClass =
     </section>
 
     <section aria-label="Actions" class="grid gap-2 sm:grid-cols-2">
-      <button type="button" class={buttonClass} data-py-deck-debug-action="reference" onclick={() => copy(formatAgentReference(record, 'line'), 'Agent reference')}>Copy agent reference</button>
-      <button type="button" class={buttonClass} data-py-deck-debug-action="prompt" onclick={() => copy(formatAgentReference(record, 'markdown'), 'Agent prompt')}>Copy as agent prompt</button>
-      <button type="button" class={buttonClass} data-py-deck-debug-action="slide-json" onclick={() => copy(inertJson(rawSlide ?? null), 'Slide JSON')}>Copy slide JSON</button>
-      <button type="button" class={buttonClass} data-py-deck-debug-action="download" onclick={download}>Download deck JSON</button>
-      <button
-        type="button"
-        class={`${buttonClass} aria-pressed:border-primary aria-pressed:bg-primary/10`}
-        style="grid-column: 1 / -1"
+      <!-- The copy actions return their promise: Texuli's Button shows pending until it settles. -->
+      <Button variant="outline" class={buttonClass} data-py-deck-debug-action="reference" onclick={() => copy(formatAgentReference(record, 'line'), 'Agent reference')}>Copy agent reference</Button>
+      <Button variant="outline" class={buttonClass} data-py-deck-debug-action="prompt" onclick={() => copy(formatAgentReference(record, 'markdown'), 'Agent prompt')}>Copy as agent prompt</Button>
+      <Button variant="outline" class={buttonClass} data-py-deck-debug-action="slide-json" onclick={() => copy(inertJson(rawSlide ?? null), 'Slide JSON')}>Copy slide JSON</Button>
+      <Button variant="outline" class={buttonClass} data-py-deck-debug-action="download" onclick={download}>Download deck JSON</Button>
+      <Button
+        variant="outline"
+        class={`${buttonClass} col-span-full aria-pressed:border-primary aria-pressed:bg-primary/10`}
         aria-pressed={outline}
         data-py-deck-debug-action="outline"
         onclick={() => (outline = !outline)}
       >
         Outline blocks
-      </button>
+      </Button>
     </section>
 
     <section aria-labelledby={`${titleId}-findings`}>
@@ -163,7 +165,7 @@ const buttonClass =
         <ul class="space-y-2" data-py-deck-debug-findings>
           {#each record.findings as finding, index (`${finding.rule}:${finding.pointer}:${index}`)}
             <li class="rounded-md border border-border p-2">
-              <p><span class={finding.severity === 'error' ? 'font-semibold text-destructive' : 'font-semibold'}>{finding.severity}</span> <span class="font-mono">{finding.rule}</span></p>
+              <p class="flex flex-wrap items-center gap-2"><Badge variant={finding.severity === 'error' ? 'destructive' : 'warning'} label={finding.severity} /> <span class="font-mono">{finding.rule}</span></p>
               <p class="font-mono text-xs break-all text-muted-foreground">{finding.pointer}</p>
               <p>{finding.message}</p>
             </li>
@@ -175,9 +177,9 @@ const buttonClass =
         <ul class="flex flex-wrap gap-2">
           {#each otherSlides as other (other.id)}
             <li>
-              <button type="button" class={buttonClass} data-py-deck-debug-jump={other.id} onclick={() => onjump(other.id)}>
+              <Button variant="outline" class={buttonClass} data-py-deck-debug-jump={other.id} onclick={() => onjump(other.id)}>
                 {other.id} ({other.count})
-              </button>
+              </Button>
             </li>
           {/each}
         </ul>

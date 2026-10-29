@@ -1,54 +1,41 @@
 <script lang="ts">
-import type { PresenterPosition } from '@protoyard/decks';
-import {
-  createDeckNavigator,
-  type DeckControlEnvironment,
-  type DeckInputState,
-  type DeckLocation,
-  type DeckNavigator,
-  decideDeckInput,
-  formatDeckHash,
-  inputPathFrom,
-  slidePositionCount,
-  slideStepCount,
-} from '@protoyard/decks';
+import '@texuli/slides/styles.css';
+import { Bug } from '@lucide/svelte';
+import { checkProtoyardDeck } from '@protoyard/decks';
 import type { AgentReferenceSource } from '@protoyard/decks/agent';
-import { type Deck, type DeckSlide, isCustomSlide } from '@protoyard/decks/schema';
-import type { Component } from 'svelte';
-import { onMount, tick } from 'svelte';
-import DeckCanvas from '../canvas/DeckCanvas.svelte';
-// Direct imports, not the chrome barrel: the dialogs and overlays below load on their own chunks.
-import BlackoutScreen from '../chrome/BlackoutScreen.svelte';
-import ChromeToast from '../chrome/ChromeToast.svelte';
-import DeckToolbar from '../chrome/DeckToolbar.svelte';
-import { firstRunHintAllowed, firstRunHintSeen } from '../chrome/first-run.ts';
+import type { Deck } from '@protoyard/decks/schema';
+import type { DeckStyleWarning } from '@protoyard/decks/style';
+import { deckThemeKey } from '@protoyard/decks/style/key';
 import {
-  createDeckFullscreen,
-  type DeckFullscreen,
-  type DeckFullscreenMode,
-} from '../chrome/fullscreen.ts';
-import LaserPointer from '../chrome/LaserPointer.svelte';
-import type { DeckToolAction } from '../chrome/types.ts';
+  type DeckController,
+  formatDeckHash,
+  parseDeckHash,
+  parseDeckRoute,
+} from '@texuli/deck/engine';
+import { DeckProgress, DeckStage, type DeckThemeLoader, DeckToolbar } from '@texuli/slides/stage';
+import { flushSync, onMount, untrack } from 'svelte';
+import { IconButton } from 'texuli/button';
+import { LucideIcon } from 'texuli/icons/lucide';
 import { type DeckDebugSetting, deckDebugAvailable, isDevBuild } from '../debug/availability.ts';
 import type { CustomSlideRegistry } from '../layouts/custom-slides.ts';
-import { DeckLayoutRenderer } from '../layouts/index.ts';
-import { loadLayoutRenderer } from '../layouts/registry.ts';
-import SlideStepHost from '../layouts/SlideStepHost.svelte';
-import { DeckPrint, parseDeckPrintFlags } from '../print/index.ts';
-import { DeckSlideFrame, DeckStyleState, setDeckStyleContext } from '../style/index.ts';
+import { setDeckHostContext } from './context.ts';
+import { createProtoyardRenderers } from './renderers.ts';
+import { stageDeck as toStageDeck } from './stage-deck.ts';
 
 /**
- * The one deck component both the player deck entry and generated deck
- * prototypes mount (ADR-038). Composes canvas, layout renderers, navigation
- * (with `#/<id>/<step>` hash), guarded input, step progress chrome and
- * aria-live announcements. Print mode (`?print=1`, print button, Ctrl/Cmd+P)
- * swaps in the one-slide-per-page layout from `@protoyard/decks-ui/print`.
- * Presenter (S/P) loads `@protoyard/decks-ui/presenter` lazily.
+ * The one deck component the player's deck entry and generated deck
+ * prototypes mount (ADR-038), presented by the `@texuli/slides` stage
+ * (`DeckStage`, Texuli ADR-009). The stage owns the canvas, routing
+ * (`#/<slide-id>/<step>`), keys, touch, the toolbar, overview, presenter,
+ * blackout, laser, help, copy link, print and transitions. DeckApp adds what
+ * is Protoyard's own:
  *
- * `deck.style` (theme, palette seed, fonts, density, radius, motion, deck
- * and per-slide backgrounds, logo, footer, slide numbers) is resolved by a
- * lazy style kit and applied to this root only, never to `<html>`, so the
- * host and DevTools keep their own theme.
+ * - the Protoyard deck shape, migrated to the Texuli deck model;
+ * - Protoyard themes, palette seeds and font pairings (`@protoyard/themes`);
+ * - free slides through `@protoyard/blocks-ui` (persistent block state,
+ *   embedded apps, the viewer id) and the generated deck's custom slides;
+ * - the "Debug for agents" panel (D, or its toolbar button) and the print
+ *   page for `?print=1`.
  */
 let {
   deck,
@@ -61,15 +48,16 @@ let {
   debug = 'auto',
   debugSource = null,
   customSlides,
+  resolveAvatar,
 }: {
-  /** Validated deck document. */
+  /** Validated deck document (`DeckSchema`). */
   deck: Deck;
   class?: string;
-  /** When true (default), keep `location.hash` in sync with the navigator. */
+  /** When true (default), keep `location.hash` in sync with the slide and step. */
   syncHash?: boolean;
-  /** Focus the deck root on mount so keyboard navigation works immediately. */
+  /** Focus the active slide on mount so keyboard navigation works immediately. */
   autofocus?: boolean;
-  /** BroadcastChannel namespace for the presenter (defaults to "deck"). */
+  /** Presenter channel, view-transition and first-visit hint namespace. */
   namespace?: string;
   /** Appearance mode for the deck's theme. Decks default to light for stable exports. */
   mode?: 'light' | 'dark';
@@ -81,19 +69,44 @@ let {
   fit?: 'viewport' | 'container';
   /**
    * The "Debug for agents" panel: `auto` (default) in dev builds or with
-   * `?debug=1`; `on` always; `off` never. Exports, artifacts and the hosted
-   * player are production builds, so it is off there unless asked for.
+   * `?debug=1`; `on` always; `off` never.
    */
   debug?: DeckDebugSetting;
   /** Where the deck came from, for the agent reference (a blueprint path, a prototype slug). */
   debugSource?: AgentReferenceSource | null;
   /**
    * A generated deck's own slide components (`src/custom-slides.ts`), for
-   * `layout: "custom"` slides. Without it (the player) they show a labelled
-   * placeholder.
+   * `layout: "custom"` slides. Without it (the player) they show a labelled card.
    */
   customSlides?: CustomSlideRegistry;
+  /** Resolves a library avatar id (`av-012`) to its image URL (team and people slides). */
+  resolveAvatar?: (id: string) => string | undefined;
 } = $props();
+
+const stage = $derived(toStageDeck(deck));
+const renderers = $derived(createProtoyardRenderers(stage.freeSlides));
+
+setDeckHostContext({
+  get customSlides() {
+    return customSlides;
+  },
+  get freeSlides() {
+    return stage.freeSlides;
+  },
+});
+
+/** The deck the stage presents, migrated to the deck model and validated by `@texuli/deck`. */
+const checked = $derived(checkProtoyardDeck(stage.input));
+const stageDeck = $derived(checked.deck ?? stage.input);
+
+let styleWarnings = $state<DeckStyleWarning[]>([]);
+const loadTheme: DeckThemeLoader = async (id) => {
+  // The theme registry and the palette engine load with the first theme, off the deck entry.
+  const { loadDeckTheme } = await import('@protoyard/decks/style');
+  const loaded = await loadDeckTheme(id, deck.style?.fontPair);
+  styleWarnings = loaded.warnings;
+  return loaded.theme as unknown as Awaited<ReturnType<DeckThemeLoader>>;
+};
 
 const debugAvailable = $derived(
   deckDebugAvailable(debug, {
@@ -101,790 +114,316 @@ const debugAvailable = $derived(
     search: typeof window === 'undefined' ? '' : window.location.search,
   })
 );
-/** The debug panel is open (its chunk loads on first open). */
 let debugOpen = $state(false);
-
-const deckStyle = new DeckStyleState();
-setDeckStyleContext({
-  state: deckStyle,
-  get deckBackground() {
-    return deck.style?.background;
-  },
-});
-$effect(() => {
-  void deckStyle.resolve(deck.style, mode);
-});
-
-let rootEl = $state<HTMLDivElement | undefined>();
-let chromeEl = $state<HTMLDivElement | undefined>();
-let location = $state<DeckLocation | null>(null);
-let announce = $state('');
-let inputState = $state<DeckInputState>({
-  overview: 'closed',
-  blackout: false,
-  laser: false,
-  help: false,
-});
-/**
- * `native` while the deck root is the browser's full screen element, `window`
- * while it fills the page instead (the API is missing or refused); null
- * otherwise. The chrome row gives way to the full screen overlay.
- */
-let fullscreenMode = $state<DeckFullscreenMode | null>(null);
-const fullscreen = $derived(fullscreenMode !== null);
-/** What the full screen control will do here, for its tooltip. */
-let fullscreenPreferred = $state<DeckFullscreenMode>('native');
-let fullscreenControl: DeckFullscreen | null = null;
-const controlEnvironment = $derived<DeckControlEnvironment>({
-  // Always available: fill-the-window mode covers a missing or refused Fullscreen API.
-  fullscreen: true,
-  popup: typeof window !== 'undefined' && typeof window.open === 'function',
-  clipboard: true,
-  print: typeof window !== 'undefined' && typeof window.print === 'function',
-  debug: debugAvailable,
-});
-const uid = $props.id();
-const helpId = `deck-help-${uid}`;
-/** Stable navigator for the current deck; rebuilt only when the deck changes. */
-let nav = $state.raw<DeckNavigator | null>(null);
-
-/** URL print mode (`?print=1`) or temporary layout while the browser prints. */
-let printFlags = $state(parseDeckPrintFlags());
-let printing = $state(false);
-const showPrint = $derived(printFlags.print || printing);
-
-/** Presenter host loaded only when S/P opens it (lazy chunk). */
 let presenterOpen = $state(false);
-type PresenterHostProps = {
-  deck: Deck;
-  namespace?: string;
-  slideId: string;
-  step?: number;
-  open?: boolean;
-  onPosition?: (position: PresenterPosition) => void;
-  onNavigate?: (action: 'next' | 'prev' | 'first' | 'last') => void;
-  children?: import('svelte').Snippet;
-};
-let PresenterHostComp = $state.raw<Component<PresenterHostProps> | null>(null);
-let presenterLoadError = $state(false);
+let rootEl = $state<HTMLDivElement | undefined>();
+let controller = $state.raw<DeckController | null>(null);
+let slideId = $state(untrack(() => deck.slides[0]?.id ?? ''));
+let step = $state(0);
 
-/** True when this page may show the first-visit hint and this namespace has not shown it yet. */
-let hintWanted = $state(false);
+const route = typeof window === 'undefined' ? null : parseDeckRoute('', window.location.search);
+const printing = route?.flags.print === true;
+/** The browser's own print (Ctrl/Cmd+P): the one-slide-per-page view replaces the stage on paper. */
+let printSheet = $state(false);
+let exporter = $state.raw<typeof import('@texuli/slides/export') | null>(null);
+const printNotes = route?.flags.notes === true ? 'appendix' : 'none';
 
-/** The deck's one feedback toast (copy results). */
-let toast = $state<ReturnType<typeof ChromeToast> | undefined>();
-/** The last pointer position over the deck (client pixels): the laser starts there. */
-let lastPointer = $state.raw<{ x: number; y: number } | null>(null);
-
-// Pointer tracking for swipe decisions.
-let pointerDown: { x: number; y: number; t: number; id: number } | null = null;
-
-// Rebuild the navigator when the deck document changes.
+// The host attributes (`data-slide-id`, `data-slide-step`) and the debug panel follow the
+// stage's controller: its first position (a deep link) and every move after it.
 $effect(() => {
-  // Positions are the initial state plus one per advance (`slidePositionCount`),
-  // so the last step of every slide is reachable by keys and by `#/<id>/<step>`.
-  const next = createDeckNavigator(deck, { stepCount: slidePositionCount });
-  nav = next;
-  let loc = next.getLocation();
-  if (syncHash && typeof window !== 'undefined') {
-    const fromHash = next.applyHash(window.location.hash);
-    if (fromHash) loc = fromHash;
-    else writeHash(next);
-  }
-  location = loc;
-  announceSlide(loc, deck.slides.length, next.visibleSlides());
-});
-
-const activeStep = $derived(location?.step ?? 0);
-const activeStepCount = $derived(location?.stepCount ?? 1);
-const visible = $derived(location && nav ? nav.visibleSlides() : []);
-const visibleOrdinal = $derived.by(() => {
-  const id = location?.slideId;
-  if (!id) return 0;
-  const at = visible.findIndex((slide) => slide.id === id);
-  return at >= 0 ? at : 0;
-});
-/**
- * What the canvas mounts and counts: the visible slides, so the slide after the
- * current one (and its media preload) is the one navigation goes to next, never
- * a hidden slide in between. All slides until the first location exists.
- */
-const canvasSlides = $derived(visible.length > 0 ? visible : deck.slides);
-const progress = $derived(visible.length === 0 ? 0 : ((visibleOrdinal + 1) / visible.length) * 100);
-
-/** Slides whose code an idle moment loads ahead: the two past the mounted neighbour. */
-const ahead = $derived(visible.slice(visibleOrdinal + 2, visibleOrdinal + 4));
-$effect(() => {
-  const slides = ahead;
-  // Effects run only in a browser.
-  if (slides.length === 0 || showPrint) return;
-  const run = () => {
-    // The prefetch module is lazy too: it adds nothing to the deck entry.
-    void import('./prefetch.ts')
-      .then((module) => module.prefetchSlides(slides, loadLayoutRenderer))
-      .catch(() => undefined);
+  const stage = controller;
+  if (!stage) return;
+  const follow = (state: { slideId: string; step: number }) => {
+    slideId = state.slideId;
+    step = state.step;
   };
-  if ('requestIdleCallback' in window) {
-    const handle = window.requestIdleCallback(run, { timeout: 2_000 });
-    return () => window.cancelIdleCallback(handle);
-  }
-  const handle = setTimeout(run, 200);
-  return () => clearTimeout(handle);
+  follow(stage.getState());
+  return stage.subscribe((state) => follow(state));
 });
-const slideLabel = $derived(
-  visible.length === 0 ? 'No slides' : `Slide ${visibleOrdinal + 1} of ${visible.length}`
-);
 
-function writeHash(target: DeckNavigator): void {
-  if (!syncHash || typeof window === 'undefined' || typeof history === 'undefined') return;
-  const next = target.toHash();
-  if (window.location.hash === next) return;
-  history.replaceState(null, '', next);
+function toggleDebug(): void {
+  if (!debugAvailable) return;
+  debugOpen = !debugOpen;
 }
 
-function announceSlide(
-  loc: DeckLocation,
-  total: number,
-  visibleSlides: readonly DeckSlide[] = nav?.visibleSlides() ?? []
-): void {
-  const at = visibleSlides.findIndex((slide) => slide.id === loc.slideId);
-  const ordinal = at >= 0 ? at + 1 : loc.slideIndex + 1;
-  const n = visibleSlides.length > 0 ? visibleSlides.length : total;
-  announce = `Slide ${ordinal} of ${n}`;
+function jumpToSlide(id: string): void {
+  controller?.goTo(id);
 }
 
-/** Keep keyboard navigation on the deck root after overlays dismiss. */
-function focusDeckRoot(): void {
-  if (typeof document === 'undefined' || !rootEl) return;
-  const active = document.activeElement;
-  if (active === rootEl) return;
-  if (active === document.body || active === null || rootEl.contains(active)) {
-    rootEl.focus({ preventScroll: true });
-  }
+function isEditable(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    target.closest('input, textarea, select, [contenteditable="true"]') !== null
+  );
 }
 
-function applyLocation(next: DeckLocation): void {
-  location = next;
-  if (nav) writeHash(nav);
-  announceSlide(next, deck.slides.length);
-  // Move focus to the deck root so the live region and keyboard stay coupled.
-  focusDeckRoot();
-}
-
-function runAction(action: string): void {
-  const current = nav;
-  if (!current) return;
-  switch (action) {
-    case 'next':
-      applyLocation(current.next());
-      break;
-    case 'prev':
-      applyLocation(current.prev());
-      break;
-    case 'first':
-      applyLocation(current.first());
-      break;
-    case 'last':
-      applyLocation(current.last());
-      break;
-    case 'overview':
-      inputState = {
-        ...inputState,
-        overview: inputState.overview === 'open' ? 'closed' : 'open',
-        help: false,
-      };
-      break;
-    case 'blackout': {
-      const next = !inputState.blackout;
-      inputState = { ...inputState, blackout: next, help: false };
-      // Leaving blackout returns focus to the deck so B / arrows keep working.
-      if (!next) queueMicrotask(() => focusDeckRoot());
-      break;
-    }
-    case 'help':
-      inputState = { ...inputState, help: !inputState.help };
-      break;
-    case 'laser':
-      inputState = { ...inputState, laser: !inputState.laser };
-      // Laser is pointer-events: none, but a prior blackout button can leave focus adrift.
-      queueMicrotask(() => focusDeckRoot());
-      break;
-    case 'fullscreen':
-      void fullscreenControl?.toggle();
-      break;
-    case 'fullscreen-exit':
-      void fullscreenControl?.exit();
-      break;
-    case 'presenter':
-      presenterOpen = !presenterOpen;
-      if (presenterOpen) void ensurePresenterHost();
-      break;
-    case 'debug':
-      if (debugAvailable) debugOpen = !debugOpen;
-      if (!debugOpen) queueMicrotask(() => focusDeckRoot());
-      break;
-    case 'print':
-      // Enter print layout then open the browser dialog (also Ctrl/Cmd+P).
-      // The print layout is in the DOM before the dialog captures the page.
-      printing = true;
-      if (typeof window !== 'undefined' && typeof window.print === 'function') {
-        void tick().then(() => window.print());
-      }
-      break;
-    default:
-      break;
-  }
-}
-
-function eventPath(event: Event): ReturnType<typeof inputPathFrom> {
-  const path =
-    typeof event.composedPath === 'function'
-      ? event.composedPath()
-      : event.target
-        ? [event.target]
-        : [];
-  return inputPathFrom(path, rootEl);
-}
-
-/** The guard's view of the deck: overlays plus whether it is full screen. */
-function guardState(): DeckInputState {
-  // The presenter hides the debug panel: neither Esc nor D may act on a panel nobody sees.
-  const debugShown = debugAvailable && !presenterOpen;
-  return { ...inputState, fullscreen, debugAvailable: debugShown, debug: debugOpen && debugShown };
-}
-
+/** D toggles the debug panel (where it is available); Esc closes it first, before the stage's layers. */
 function onKeyDown(event: KeyboardEvent): void {
-  const action = decideDeckInput(
-    {
-      kind: 'key',
-      key: event.key,
-      shiftKey: event.shiftKey,
-      ctrlKey: event.ctrlKey,
-      metaKey: event.metaKey,
-      altKey: event.altKey,
-      repeat: event.repeat,
-      isComposing: event.isComposing,
-      path: eventPath(event),
-    },
-    guardState()
-  );
-  if (!action) return;
-  event.preventDefault();
-  runAction(action);
-}
-
-function onClick(event: MouseEvent): void {
-  const action = decideDeckInput(
-    {
-      kind: 'click',
-      button: event.button,
-      shiftKey: event.shiftKey,
-      ctrlKey: event.ctrlKey,
-      metaKey: event.metaKey,
-      altKey: event.altKey,
-      selectionLength:
-        typeof window !== 'undefined' ? (window.getSelection()?.toString().length ?? 0) : 0,
-      path: eventPath(event),
-    },
-    guardState()
-  );
-  if (!action) return;
-  event.preventDefault();
-  runAction(action);
-}
-
-function onPointerDown(event: PointerEvent): void {
-  lastPointer = { x: event.clientX, y: event.clientY };
-  if (event.pointerType === 'mouse' && event.button !== 0) return;
-  pointerDown = { x: event.clientX, y: event.clientY, t: event.timeStamp, id: event.pointerId };
-}
-
-function onPointerUp(event: PointerEvent): void {
-  const start = pointerDown;
-  pointerDown = null;
-  if (!start || start.id !== event.pointerId) return;
-  const dx = event.clientX - start.x;
-  const dy = event.clientY - start.y;
-  const durationMs = event.timeStamp - start.t;
-  const action = decideDeckInput(
-    {
-      kind: 'swipe',
-      dx,
-      dy,
-      durationMs,
-      pointerType:
-        event.pointerType === 'touch' || event.pointerType === 'pen' ? event.pointerType : 'mouse',
-      path: eventPath(event),
-    },
-    guardState()
-  );
-  if (!action) return;
-  event.preventDefault();
-  runAction(action);
-}
-
-function onHashChange(): void {
-  if (!syncHash || !nav) return;
-  const next = nav.applyHash(window.location.hash);
-  if (next) {
-    location = next;
-    // A clamped link (`#/<id>/99`) is rewritten to the step it shows.
-    writeHash(nav);
-    announceSlide(next, deck.slides.length);
+  if (!debugAvailable || presenterOpen) return;
+  if (event.ctrlKey || event.metaKey || event.altKey || isEditable(event.target)) return;
+  if (event.key === 'd' || event.key === 'D') {
+    event.preventDefault();
+    toggleDebug();
+  } else if (event.key === 'Escape' && debugOpen) {
+    // The panel is the innermost layer: Esc closes it before any stage layer.
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    debugOpen = false;
   }
 }
 
 /**
- * The step a mounted slide shows: the active one its current step, a
- * neighbour before it its last step (where going back lands), one after it
- * its initial state.
+ * A followed hash that names a step past the slide's last one (`#/loop/9`) shows
+ * the last step; write that position back so the address bar, a copied link
+ * and the presenter agree (the stage clamps the position but keeps the hash).
  */
-function stepOf(slide: DeckSlide): number {
-  if (location?.slideId === slide.id) return activeStep;
-  const at = numberOf(slide.id) ?? 0;
-  const here = location ? (numberOf(location.slideId) ?? 0) : 0;
-  return at < here ? slideStepCount(slide) : 0;
+function canonicalHash(): void {
+  const stage = controller;
+  if (!syncHash || !stage || typeof window === 'undefined') return;
+  const state = stage.getState();
+  const asked = parseDeckHash(window.location.hash);
+  // Only a step past the slide's last one, once the stage has followed the hash to that slide.
+  if (!asked || asked.slideId !== state.slideId || asked.step <= state.stepCount) return;
+  const canonical = formatDeckHash(state.slideId, state.step);
+  if (window.location.hash !== canonical) history.replaceState(history.state, '', canonical);
 }
 
-/** 1-based position of a slide among the visible slides (hidden slides have none). */
-function numberOf(slideId: string): number | undefined {
-  const at = visible.findIndex((slide) => slide.id === slideId);
-  return at >= 0 ? at + 1 : undefined;
-}
-
-function layoutPropsFor(slide: DeckSlide): { layout: string; props: unknown } {
-  if (slide.layout === 'free') {
-    return { layout: 'free', props: { blocks: 'blocks' in slide ? slide.blocks : [] } };
-  }
-  return {
-    layout: slide.layout,
-    props: 'props' in slide ? slide.props : {},
-  };
-}
-
-/** A plain link to the current slide and step: this page's URL with its `#/<id>/<step>` hash. */
-function currentLink(): string {
-  const id = location?.slideId ?? deck.slides[0]?.id ?? '';
-  const hash = formatDeckHash(id, location?.step ?? 0);
-  if (typeof window === 'undefined') return hash;
-  return `${window.location.href.split('#')[0]}${hash}`;
-}
-
-function onCopied(ok: boolean): void {
-  if (ok) toast?.show(`Link to slide ${visibleOrdinal + 1} copied`);
-  else toast?.show('Could not copy the link', 'error');
-}
-
-function onTool(action: DeckToolAction): void {
-  runAction(action);
-}
-
-function jumpToSlide(slideId: string): void {
-  if (!nav) return;
-  const next = nav.goTo(slideId, 0);
-  location = next;
-  writeHash(nav);
-  announceSlide(next, deck.slides.length);
-}
-
-function goOverview(slideId: string): void {
-  if (!nav) return;
-  // Close first so a bubbling click cannot double-advance while open/closing.
-  inputState = { ...inputState, overview: 'closed' };
-  applyLocation(nav.goTo(slideId, 0));
-}
-
-function closeOverview(): void {
-  inputState = { ...inputState, overview: 'closed' };
-}
-
-async function ensurePresenterHost(): Promise<void> {
-  if (PresenterHostComp) return;
-  presenterLoadError = false;
-  try {
-    const mod = await import('../presenter/index.ts');
-    PresenterHostComp = mod.PresenterHost as Component<PresenterHostProps>;
-  } catch {
-    presenterLoadError = true;
-    presenterOpen = false;
-  }
-}
-
-function onPresenterPosition(position: PresenterPosition): void {
-  if (!nav) return;
-  applyLocation(nav.goTo(position.slideId, position.step));
-}
-
-function onPresenterNavigate(action: 'next' | 'prev' | 'first' | 'last'): void {
-  runAction(action);
-}
-
-// While the deck owns the viewport, lift the DevTools launcher above the
-// chrome row (DevTools reads `--py-devtools-offset` from :root) so it never
-// covers the deck's own tools. Removed when the chrome goes away.
 $effect(() => {
-  const chrome = chromeEl;
-  if (fit !== 'viewport' || !chrome || typeof ResizeObserver === 'undefined') return;
-  const root = document.documentElement;
-  const apply = () =>
-    root.style.setProperty('--py-devtools-offset', `${Math.ceil(chrome.offsetHeight)}px`);
-  apply();
-  const observer = new ResizeObserver(apply);
-  observer.observe(chrome);
-  return () => {
-    observer.disconnect();
-    root.style.removeProperty('--py-devtools-offset');
-  };
+  if (!syncHash || !controller) return;
+  // After the stage's own hashchange handling (and a view transition's update).
+  const follow = () => setTimeout(canonicalHash, 50);
+  follow();
+  window.addEventListener('hashchange', follow);
+  return () => window.removeEventListener('hashchange', follow);
 });
+
+let toast = $state('');
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
+function notify(message: string): void {
+  toast = message;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast = '';
+  }, 2_500);
+}
 
 onMount(() => {
-  if (autofocus && !showPrint) rootEl?.focus({ preventScroll: true });
-  if (typeof window === 'undefined') return undefined;
-  hintWanted =
-    firstRunHintAllowed() &&
-    !firstRunHintSeen(namespace, () => (typeof localStorage === 'undefined' ? null : localStorage));
-  const fullscreenController = createDeckFullscreen({
-    element: () => rootEl,
-    onChange: (mode) => {
-      fullscreenMode = mode;
-      // The pressed button unmounts with the chrome: keep the keyboard on the deck.
-      queueMicrotask(() => focusDeckRoot());
-    },
-  });
-  fullscreenControl = fullscreenController;
-  fullscreenPreferred = fullscreenController.preferred;
-  const onPointerMove = (event: PointerEvent) => {
-    lastPointer = { x: event.clientX, y: event.clientY };
+  // The print view loads while the browser is idle, so Ctrl/Cmd+P finds it ready.
+  const warm = () => {
+    void import('@texuli/slides/export').then(
+      (module) => {
+        exporter = module;
+      },
+      () => undefined
+    );
   };
-  const pointerRoot = rootEl;
-  pointerRoot?.addEventListener('pointermove', onPointerMove, { passive: true });
-  const onBeforePrint = () => {
-    printing = true;
+  const hasIdle = 'requestIdleCallback' in window;
+  const idle = hasIdle
+    ? window.requestIdleCallback(warm, { timeout: 4_000 })
+    : window.setTimeout(warm, 1_500);
+  const beforePrint = () => {
+    printSheet = true;
+    // The pages must be in the document before the browser captures it.
+    flushSync();
   };
-  const onAfterPrint = () => {
-    // Stay in print layout when the URL asked for it.
-    if (!parseDeckPrintFlags().print) printing = false;
+  const afterPrint = () => {
+    printSheet = false;
   };
-  const onPopState = () => {
-    printFlags = parseDeckPrintFlags();
-  };
-  window.addEventListener('beforeprint', onBeforePrint);
-  window.addEventListener('afterprint', onAfterPrint);
-  window.addEventListener('popstate', onPopState);
-  if (syncHash) window.addEventListener('hashchange', onHashChange);
+  window.addEventListener('beforeprint', beforePrint);
+  window.addEventListener('afterprint', afterPrint);
+  // Capture: the debug panel answers before the stage's own key handling.
+  if (debugAvailable) window.addEventListener('keydown', onKeyDown, true);
   return () => {
-    pointerRoot?.removeEventListener('pointermove', onPointerMove);
-    fullscreenController.destroy();
-    fullscreenControl = null;
-    window.removeEventListener('beforeprint', onBeforePrint);
-    window.removeEventListener('afterprint', onAfterPrint);
-    window.removeEventListener('popstate', onPopState);
-    if (syncHash) window.removeEventListener('hashchange', onHashChange);
+    if (hasIdle) window.cancelIdleCallback(idle);
+    else window.clearTimeout(idle);
+    window.removeEventListener('beforeprint', beforePrint);
+    window.removeEventListener('afterprint', afterPrint);
+    window.removeEventListener('keydown', onKeyDown, true);
+    clearTimeout(toastTimer);
   };
 });
 </script>
 
-{#if showPrint}
-  <div
-    class="contents"
-    style={deckStyle.rootStyle}
-    data-py-deck-theme={deckStyle.resolution?.themeId}
-    data-py-deck-mode={deckStyle.resolution?.mode}
-  >
-    <DeckPrint deck={deck} notes={printFlags.notes} />
-  </div>
-{:else}
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<div
-  bind:this={rootEl}
-  class={`deck-app flex w-full min-h-0 flex-col overflow-hidden bg-background text-foreground outline-none ${fullscreenMode === 'window' ? 'fixed inset-0 z-[2147483000]' : `relative ${fit === 'container' ? 'h-full' : 'h-app'}`} ${className}`}
-  data-py-deck-fit={fit}
-  data-py-deck-app
-  data-slide-id={location?.slideId ?? ''}
-  data-slide-step={activeStep}
-  data-blackout={inputState.blackout ? 'true' : undefined}
-  data-laser={inputState.laser ? 'true' : undefined}
-  data-fullscreen={fullscreen ? 'true' : undefined}
-  data-fullscreen-mode={fullscreenMode ?? undefined}
-  data-presenter={presenterOpen ? 'true' : undefined}
-  data-py-deck-theme={deckStyle.resolution?.themeId}
-  data-py-deck-mode={deckStyle.resolution?.mode}
-  data-py-deck-style={deckStyle.status}
-  data-py-deck-motion={deck.style?.motion ?? 'default'}
-  style={deckStyle.rootStyle}
-  role="application"
-  aria-label={deck.outline?.title ?? 'Presentation'}
-  tabindex="0"
-  onkeydown={onKeyDown}
-  onclick={onClick}
-  onpointerdown={onPointerDown}
-  onpointerup={onPointerUp}
-  onpointercancel={() => {
-    pointerDown = null;
-  }}
->
-  {#snippet deckSurface()}
-    <!-- A column: the stage takes the space the chrome row leaves, so the chrome never covers a slide. -->
-    <div class="relative flex min-h-0 flex-1 flex-col" data-py-deck-surface>
-    <div class="relative min-h-0 flex-1" data-py-deck-stage-area>
-      <DeckCanvas
-        slides={canvasSlides}
-        activeIndex={visibleOrdinal}
-        aspect={deck.style?.aspect ?? '16:9'}
-        label={deck.outline?.title ?? 'Presentation'}
-      >
-        {#snippet children(slide: DeckSlide, _index: number)}
-          {@const layout = layoutPropsFor(slide)}
-          <div
-            class="deck-app__slide size-full"
-            data-py-deck-slide={slide.id}
-            data-step={stepOf(slide)}
-            data-step-count={location?.slideId === slide.id ? activeStepCount : 1}
-            style={location?.slideId === slide.id
-              ? `--py-deck-step:${activeStep};--py-deck-step-count:${activeStepCount}`
-              : undefined}
-          >
-            <DeckSlideFrame
-              background={slide.background}
-              mediaPreload={_index === visibleOrdinal || _index === visibleOrdinal + 1 ? 'auto' : 'none'}
-              number={numberOf(slide.id)}
-            >
-              <SlideStepHost {slide} step={stepOf(slide)}>
-                {#if isCustomSlide(slide)}
-                  <!-- Only decks with a custom slide load its host (its own chunk). -->
-                  {#await import('../layouts/CustomSlideHost.svelte') then host}
-                    <host.default
-                      {slide}
-                      step={stepOf(slide)}
-                      stepCount={slideStepCount(slide)}
-                      registry={customSlides}
-                    />
-                  {/await}
-                {:else}
-                  <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
-                {/if}
-              </SlideStepHost>
-            </DeckSlideFrame>
-          </div>
-        {/snippet}
-      </DeckCanvas>
+{#if printing}
+  <!-- `?print=1` (the stage's print button opens it): one slide per page, ready for Save as PDF. -->
+  {#await import('@texuli/slides/export') then exporter}
+    <div class="deck-app__print" data-py-deck-print data-tx-mode={mode}>
+      <exporter.DeckPrintView
+        deck={stageDeck as never}
+        notes={printNotes}
+        {renderers}
+        tier="developer"
+        {loadTheme}
+        {resolveAvatar}
+      />
     </div>
+  {/await}
+{:else}
+  <div
+    bind:this={rootEl}
+    class={`deck-app relative flex w-full min-h-0 flex-col overflow-hidden bg-background text-foreground ${fit === 'container' ? 'h-full' : 'h-app'} ${className}`}
+    data-py-deck-app
+    data-py-deck-fit={fit}
+    data-slide-id={slideId}
+    data-slide-step={step}
+    data-presenter={presenterOpen ? 'true' : undefined}
+    data-py-deck-print-ready={exporter ? 'true' : undefined}
+    data-py-deck-motion={deck.style?.motion ?? 'default'}
+    data-py-deck-theme={deckThemeKey(deck.style)}
+    data-py-deck-mode={mode}
+    data-tx-mode={mode}
+  >
+    <DeckStage
+      deck={stageDeck}
+      fit="container"
+      tier="developer"
+      trustBadge={false}
+      {syncHash}
+      {autofocus}
+      {namespace}
+      {loadTheme}
+      {resolveAvatar}
+      {renderers}
+      defaultRenderers={false}
+      presenterTimer
+      bind:presenter={presenterOpen}
+      bind:controller
+      chrome={debugAvailable ? debugChrome : undefined}
+    />
 
-    {#if !fullscreen && deckStyle.warnings.length > 0}
+    {#if styleWarnings.length > 0}
       <p
         class="shrink-0 border-t border-border bg-background px-3 py-1.5 text-xs text-muted-foreground"
         role="status"
         data-py-deck-style-warning
       >
-        {deckStyle.warnings.join(' ')}
+        {styleWarnings.map((warning) => warning.message).join(' ')}
       </p>
-    {/if}
-
-    <!-- Chrome: its own row below the stage (progress, slide number, presenting tools), guarded from advancing the deck. Hidden in full screen, where the stage takes the whole screen. -->
-    {#if !fullscreen}
-      <div
-        bind:this={chromeEl}
-        class="deck-app__chrome flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-t border-border bg-background px-3 py-2"
-        data-py-deck-chrome
-        data-py-deck-chrome-root
-      >
-        <div
-          class="pointer-events-auto order-first h-1.5 min-w-0 basis-full overflow-hidden rounded-full bg-muted sm:order-none sm:basis-auto sm:flex-1"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(progress)}
-          aria-label="Deck progress"
-          data-py-deck-progress
-        >
-          <div
-            class="h-full rounded-full bg-primary transition-[width] duration-200 ease-out"
-            style={`width:${progress}%`}
-          ></div>
-        </div>
-        <p
-          class="pointer-events-auto shrink-0 rounded-md bg-background/80 px-2 py-1 text-xs font-medium text-muted-foreground backdrop-blur"
-          data-py-deck-slide-number
-        >
-          {slideLabel}
-        </p>
-        <div class="pointer-events-auto ml-auto flex min-w-0 items-center gap-1" data-py-deck-chrome>
-          <DeckToolbar
-            blackout={inputState.blackout === true}
-            laser={inputState.laser === true}
-            help={inputState.help === true}
-            overview={inputState.overview === 'open'}
-            presenter={presenterOpen}
-            {fullscreen}
-            debug={debugOpen}
-            {fullscreenPreferred}
-            {helpId}
-            reference={currentLink}
-            slides={visible}
-            currentOrdinal={visibleOrdinal + 1}
-            environment={controlEnvironment}
-            onaction={onTool}
-            onjump={jumpToSlide}
-            oncopied={onCopied}
-          />
-        </div>
-      </div>
-    {/if}
-
-    {#if fullscreenMode}
-{#await import('../chrome/FullscreenOverlay.svelte') then overlay}
-              <overlay.default
-        mode={fullscreenMode}
-        counter={`${visibleOrdinal + 1} / ${visible.length}`}
-        container={rootEl}
-        suppressed={inputState.blackout === true || inputState.laser === true}
-        onaction={runAction}
-      />
-      {/await}
-    {/if}
-
-    {#if inputState.laser}
-      <LaserPointer container={rootEl} start={lastPointer} />
-    {/if}
-
-    {#if inputState.blackout}
-      <BlackoutScreen
-        onclose={() => {
-          runAction('blackout');
-          queueMicrotask(() => focusDeckRoot());
-        }}
-      />
-    {/if}
-
-    {#if inputState.overview === 'open'}
-      {#await import('../overview/index.ts')}
-        <div
-          class="absolute inset-0 z-30 grid place-items-center bg-background/95 backdrop-blur"
-          data-py-deck-overview
-          data-py-deck-overview-loading
-          role="status"
-          aria-label="Loading slide overview"
-        >
-          <span class="text-sm text-muted-foreground">Loading overview…</span>
-        </div>
-      {:then mod}
-        {@const Overview = mod.DeckOverview}
-        <Overview
-          slides={visible}
-          activeSlideId={location?.slideId ?? ''}
-          aspect={deck.style?.aspect ?? '16:9'}
-          onSelect={goOverview}
-          onClose={closeOverview}
-        />
-      {:catch}
-        <div
-          class="absolute inset-0 z-30 grid place-items-center bg-background/95 p-6 backdrop-blur"
-          data-py-deck-overview
-          role="alert"
-        >
-          <p class="text-sm text-destructive">The overview could not be loaded.</p>
-        </div>
-      {/await}
-    {/if}
-
-    {#if inputState.help}
-      {#await import('../chrome/KeyboardHelp.svelte') then help}
-        <help.default id={helpId} environment={controlEnvironment} onclose={() => runAction('help')} />
-      {/await}
     {/if}
 
     {#if debugOpen && debugAvailable && !presenterOpen}
       {#await import('../debug/DeckDebugPanel.svelte')}
-        <div class="absolute inset-y-0 right-0 z-40 grid w-full max-w-md place-items-center border-l border-border bg-background" role="status" data-py-deck-debug-loading data-py-deck-chrome>
+        <div class="absolute inset-y-0 right-0 z-40 grid w-full max-w-md place-items-center border-l border-border bg-background" role="status" data-py-deck-debug-loading data-tx-deck-chrome>
           <span class="text-sm text-muted-foreground">Loading the debug panel…</span>
         </div>
       {:then mod}
         <mod.default
           {deck}
-          slideId={location?.slideId ?? deck.slides[0]?.id ?? ''}
-          step={activeStep}
+          {slideId}
+          {step}
           root={rootEl}
           source={debugSource}
           onjump={jumpToSlide}
-          onclose={() => runAction('debug')}
-          onnotify={(message, tone) => toast?.show(message, tone)}
+          onclose={() => {
+            debugOpen = false;
+          }}
+          onnotify={(message) => notify(message)}
         />
       {:catch}
-        <div class="absolute inset-y-0 right-0 z-40 grid w-full max-w-md place-items-center border-l border-border bg-background p-6" role="alert" data-py-deck-chrome>
+        <div class="absolute inset-y-0 right-0 z-40 grid w-full max-w-md place-items-center border-l border-border bg-background p-6" role="alert" data-tx-deck-chrome>
           <p class="text-sm text-destructive">The debug panel could not be loaded.</p>
         </div>
       {/await}
     {/if}
 
-    <ChromeToast bind:this={toast} />
-
-    {#if hintWanted && !presenterOpen}
-      <!-- First visits only: the hint and its timers load on their own chunk. -->
-      {#await import('../chrome/FirstRunHint.svelte') then hint}
-        <hint.default {namespace} container={rootEl} />
-      {/await}
-    {/if}
-
-    <div class="sr-only" aria-live="polite" aria-atomic="true" data-py-deck-live>
-      {announce}
-    </div>
-    </div>
-  {/snippet}
-
-  {#if presenterOpen && PresenterHostComp}
-    {@const Host = PresenterHostComp}
-    <Host
-      {deck}
-      {namespace}
-      slideId={location?.slideId ?? deck.slides[0]?.id ?? 'intro'}
-      step={activeStep}
-      bind:open={presenterOpen}
-      onPosition={onPresenterPosition}
-      onNavigate={onPresenterNavigate}
-    >
-      {#snippet children()}
-        {@render deckSurface()}
-      {/snippet}
-    </Host>
-  {:else}
-    {@render deckSurface()}
-    {#if presenterOpen && !PresenterHostComp && !presenterLoadError}
-      <div
-        class="absolute inset-0 z-40 grid place-items-center bg-background/80 backdrop-blur"
-        data-py-deck-presenter-loading
-        role="status"
-        aria-label="Loading presenter"
-      >
-        <span class="text-sm text-muted-foreground">Loading presenter…</span>
+    {#if printSheet && exporter}
+      <!-- Paper only: every visible slide, one per page (the screen keeps the stage). -->
+      <div class="deck-app__print-sheet" data-py-deck-print data-tx-mode={mode}>
+        <exporter.DeckPrintView
+          deck={stageDeck as never}
+          {renderers}
+          tier="developer"
+          {loadTheme}
+          {resolveAvatar}
+        />
       </div>
     {/if}
-  {/if}
-</div>
+
+    <!-- The debug panel's copy and download results, visible and announced. -->
+    <p
+      class={`pointer-events-none absolute inset-x-0 bottom-20 z-50 mx-auto w-fit max-w-md rounded-md bg-foreground px-3 py-1.5 text-sm text-background ${toast ? '' : 'sr-only'}`}
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      data-py-deck-toast
+    >
+      {toast}
+    </p>
+  </div>
 {/if}
 
+{#snippet debugChrome()}
+  <!-- With the debug panel available, the stage toolbar gains its button (the rest is the stage's own). -->
+  <div class="deck-app__chrome" data-tx-deck-chrome>
+    <DeckProgress />
+    <div class="deck-app__tools">
+      <DeckToolbar />
+      <IconButton
+        variant="ghost"
+        class="deck-app__debug"
+        label="Debug for agents"
+        aria-pressed={debugOpen}
+        aria-keyshortcuts="D"
+        title="Debug for agents (D)"
+        data-py-deck-tool="debug"
+        onclick={toggleDebug}
+      >
+        <LucideIcon icon={Bug} size="sm" />
+      </IconButton>
+    </div>
+  </div>
+{/snippet}
+
 <style>
-  .deck-app :global([data-py-deck-slide]) {
-    view-transition-name: deck-slide;
+  .deck-app :global(.tx-deck-stage) {
+    flex: 1;
+    min-block-size: 0;
   }
 
-  /* The laser dot replaces the cursor while it is on. */
-  .deck-app[data-laser='true'] {
-    cursor: none;
+  .deck-app__chrome {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    inline-size: 100%;
   }
 
-  @supports not (view-transition-name: none) {
-    .deck-app :global([data-py-deck-slide]) {
-      animation: deck-app-fade 180ms ease-out;
-    }
+  .deck-app__tools {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.25rem;
   }
 
-  @keyframes deck-app-fade {
-    from {
-      opacity: 0.72;
-    }
-    to {
-      opacity: 1;
+  .deck-app__debug {
+    display: inline-grid;
+    place-items: center;
+    min-inline-size: 2.75rem;
+    min-block-size: 2.75rem;
+    border: 1px solid transparent;
+    border-radius: 0.375rem;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .deck-app__debug:hover,
+  .deck-app__debug[aria-pressed='true'] {
+    background: var(--tx-muted);
+  }
+
+  .deck-app__debug:focus-visible {
+    outline: 2px solid var(--tx-ring);
+    outline-offset: 2px;
+  }
+
+  .deck-app__print {
+    min-block-size: 100%;
+  }
+
+  @media screen {
+    .deck-app__print-sheet {
+      display: none;
     }
   }
 </style>

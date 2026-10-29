@@ -1,5 +1,4 @@
-import { createDeckNavigator } from '../navigation/navigator.ts';
-import { slidePositionCount } from '../navigation/steps.ts';
+import { createDeckNavigator } from '@texuli/deck/engine';
 import { checkDeckStatic, type DeckQualityIssue } from '../quality/check.ts';
 import type { Deck, DeckSlide } from '../schema/index.ts';
 import { isSafeDeckPath, isSafeShareId, SAFE_SLUG } from '../text/safe.ts';
@@ -311,12 +310,13 @@ export function describeSlideForAgent(
   location: DeckLocationInput,
   options: DescribeSlideOptions = {}
 ): AgentSlideReference {
-  const nav = createDeckNavigator(deck, { stepCount: slidePositionCount });
+  // The engine navigator: `stepCount` is the slide's last step (0 … stepCount are its positions).
+  const nav = createDeckNavigator(deck);
   const resolved = nav.goTo(location.slideId, location.step ?? 0);
   const index = resolved.slideIndex;
   const slide = deck.slides[index] as DeckSlide;
   const visible = nav.visibleSlides();
-  const visibleIndex = visible.findIndex((candidate) => candidate.id === slide.id);
+  const visibleIndex = visible.findIndex((candidate: { id: string }) => candidate.id === slide.id);
   const base = options.pointerBase ?? '/deck';
   const slidePath = ['slides', index];
   const pointer = jsonPointer(base, slidePath);
@@ -364,7 +364,7 @@ export function describeSlideForAgent(
       position: visibleIndex >= 0 ? visibleIndex + 1 : 0,
       total: visible.length,
       step: resolved.step,
-      steps: Math.max(0, resolved.stepCount - 1),
+      steps: resolved.stepCount,
       hidden: slide.hidden === true,
       pointer,
       propsPointer: 'props' in slide ? jsonPointer(pointer, ['props']) : null,

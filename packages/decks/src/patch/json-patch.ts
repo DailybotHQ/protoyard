@@ -1,10 +1,15 @@
 /**
- * The RFC 6902 subset Deck Studio emits and applies: `test`, `add`,
- * `replace` and `remove` on objects and arrays. Pointers follow RFC 6901
- * (`~0`, `~1`); prototype keys are refused. Applying works on a copy and
- * throws `DeckPatchError` naming the failing operation, so a patch never
- * half-applies.
+ * The RFC 6902 patches Deck Studio emits: `test`, `add`, `replace` and
+ * `remove`. Applying is `@texuli/deck`'s bounded RFC 6902 `applyDeckPatch`
+ * (RFC 6901 pointers, prototype keys refused, on a copy, so a patch never
+ * half-applies); this module keeps Protoyard's contract of returning the
+ * patched document and throwing `DeckPatchError` naming the failing
+ * operation.
  */
+import {
+  applyDeckPatch as applyModelPatch,
+  MAX_DECK_PATCH_OPERATIONS,
+} from '@texuli/deck/authoring';
 
 export type DeckPatchOperation =
   | { op: 'test'; path: string; value: unknown }
@@ -13,7 +18,7 @@ export type DeckPatchOperation =
   | { op: 'remove'; path: string };
 
 /** The same op cap as blueprint patches (`JSON_PATCH_MAX_OPS`). */
-export const DECK_PATCH_MAX_OPS = 1_000;
+export const DECK_PATCH_MAX_OPS = MAX_DECK_PATCH_OPERATIONS;
 
 export class DeckPatchError extends Error {
   readonly index: number;
@@ -23,8 +28,6 @@ export class DeckPatchError extends Error {
     this.index = index;
   }
 }
-
-const UNSAFE = new Set(['__proto__', 'constructor', 'prototype']);
 
 /** `/a/b~1c` → `['a', 'b/c']`. */
 export function parsePointer(pointer: string): string[] {
@@ -62,77 +65,20 @@ export function jsonEquals(a: unknown, b: unknown): boolean {
   );
 }
 
-type Container = Record<string, unknown> | unknown[];
-
-function resolveParent(
-  root: unknown,
-  tokens: string[],
-  index: number
-): { parent: Container; key: string } {
-  let node: unknown = root;
-  for (const token of tokens.slice(0, -1)) {
-    if (UNSAFE.has(token)) throw new DeckPatchError(`Unsafe pointer segment "${token}"`, index);
-    if (Array.isArray(node)) {
-      if (!/^(0|[1-9]\d*)$/.test(token) || Number(token) >= node.length) {
-        throw new DeckPatchError(`No array index ${token}`, index);
-      }
-      node = node[Number(token)];
-    } else if (node !== null && typeof node === 'object' && Object.hasOwn(node, token)) {
-      node = (node as Record<string, unknown>)[token];
-    } else {
-      throw new DeckPatchError(`Path not found at "${token}"`, index);
-    }
-  }
-  if (node === null || typeof node !== 'object')
-    throw new DeckPatchError('Path parent is not a container', index);
-  const key = tokens.at(-1) as string;
-  if (UNSAFE.has(key)) throw new DeckPatchError(`Unsafe pointer segment "${key}"`, index);
-  return { parent: node as Container, key };
-}
-
-/** Applies a patch to a deep copy of `document` and returns the copy. */
+/** Apply `operations` to a copy of `document`; throws `DeckPatchError` and leaves `document` untouched on failure. */
 export function applyDeckPatch<T>(document: T, operations: readonly DeckPatchOperation[]): T {
-  if (operations.length > DECK_PATCH_MAX_OPS) {
+  // Deck edits address a key or an item: Protoyard never lets a patch replace the whole document.
+  const root = operations.findIndex((operation) => operation?.path === '');
+  if (root >= 0 && operations.length <= DECK_PATCH_MAX_OPS) {
     throw new DeckPatchError(
-      `A patch holds at most ${DECK_PATCH_MAX_OPS} operations`,
-      DECK_PATCH_MAX_OPS
+      `Operation ${root}: a deck patch cannot target the document root.`,
+      root
     );
   }
-  const root = structuredClone(document) as unknown;
-  operations.forEach((operation, index) => {
-    const tokens = parsePointer(operation.path);
-    if (tokens.length === 0)
-      throw new DeckPatchError('Patching the document root is not supported', index);
-    const { parent, key } = resolveParent(root, tokens, index);
-    const isArray = Array.isArray(parent);
-    const at = isArray ? (key === '-' ? parent.length : Number(key)) : -1;
-    if (isArray && (!/^(0|[1-9]\d*|-)$/.test(key) || at > parent.length)) {
-      throw new DeckPatchError(`Bad array index "${key}"`, index);
-    }
-    const exists = isArray ? at < parent.length : Object.hasOwn(parent, key);
-    switch (operation.op) {
-      case 'test': {
-        const current = isArray ? parent[at] : (parent as Record<string, unknown>)[key];
-        if (!exists || !jsonEquals(current, operation.value)) {
-          throw new DeckPatchError(`Test failed at ${operation.path}`, index);
-        }
-        return;
-      }
-      case 'add':
-        if (isArray) parent.splice(at, 0, structuredClone(operation.value));
-        else (parent as Record<string, unknown>)[key] = structuredClone(operation.value);
-        return;
-      case 'replace':
-        if (!exists) throw new DeckPatchError(`Nothing to replace at ${operation.path}`, index);
-        if (isArray) parent[at] = structuredClone(operation.value);
-        else (parent as Record<string, unknown>)[key] = structuredClone(operation.value);
-        return;
-      case 'remove':
-        if (!exists) throw new DeckPatchError(`Nothing to remove at ${operation.path}`, index);
-        if (isArray) parent.splice(at, 1);
-        else delete (parent as Record<string, unknown>)[key];
-        return;
-    }
-  });
-  return root as T;
+  const result = applyModelPatch(document, operations);
+  if (!result.ok) {
+    const at = result.index >= 0 ? `Operation ${result.index}: ` : '';
+    throw new DeckPatchError(`${at}${result.reason}`, result.index);
+  }
+  return result.value as T;
 }

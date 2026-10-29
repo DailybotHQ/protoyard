@@ -68,6 +68,9 @@ importers:
       '@texuli/date':
         specifier: 0.4.0
         version: 0.4.0
+      '@texuli/deck':
+        specifier: 0.4.0
+        version: 0.4.0
       '@texuli/drag':
         specifier: 0.4.0
         version: 0.4.0
@@ -75,6 +78,9 @@ importers:
         specifier: 0.4.0
         version: 0.4.0(svelte@5.57.2)
       '@texuli/primitives':
+        specifier: 0.4.0
+        version: 0.4.0(svelte@5.57.2)
+      '@texuli/slides':
         specifier: 0.4.0
         version: 0.4.0(svelte@5.57.2)
       '@texuli/tokens':
@@ -525,12 +531,18 @@ importers:
       '@protoyard/themes':
         specifier: workspace:*
         version: link:../themes
+      '@texuli/deck':
+        specifier: 0.4.0
+        version: 0.4.0
       zod:
         specifier: ^4.6.7
         version: 4.6.7
 
   packages/decks-ui:
     dependencies:
+      '@lucide/svelte':
+        specifier: ^1.59.0
+        version: 1.59.0(svelte@5.57.2)
       '@protoyard/blocks':
         specifier: workspace:*
         version: link:../blocks
@@ -540,6 +552,12 @@ importers:
       '@protoyard/decks':
         specifier: workspace:*
         version: link:../decks
+      '@texuli/deck':
+        specifier: 0.4.0
+        version: 0.4.0
+      '@texuli/slides':
+        specifier: 0.4.0
+        version: 0.4.0(svelte@5.57.2)
       texuli:
         specifier: 0.4.0
         version: 0.4.0(svelte@5.57.2)
@@ -754,6 +772,9 @@ importers:
       '@protoyard/scenarios':
         specifier: workspace:*
         version: link:../scenarios
+      tailwindcss:
+        specifier: ^4.3.3
+        version: 4.3.3
 
   packages/protoyard:
     dependencies:
@@ -4015,6 +4036,9 @@ packages:
   '@texuli/date@0.4.0':
     resolution: {integrity: sha512-gmkRQkqj6ERrz1EQGMUSAlIpKLKT4Hr8PYyW7RvGdzlRexrsnm7oDyimXd37fAPLQfmu3h9XjCXg6U/7yqF8/g==}
 
+  '@texuli/deck@0.4.0':
+    resolution: {integrity: sha512-naj7+ivol3bI987hVL76wFFazE6ZwRX+gefVtozTl+EsxkmgcUb8KJGRSzpkZN7TSl20hFQXMtG2dKVHnUlbRQ==}
+
   '@texuli/drag@0.4.0':
     resolution: {integrity: sha512-w1inOG2HHOtXYiDbWMx4zWFdNF6HQYgBIvXNuAJMgEbD8Kpd7i0qnudbRKizVo5Ts2F5tNbOIgqF9Ma+DX0LWA==}
 
@@ -4023,8 +4047,18 @@ packages:
     peerDependencies:
       svelte: ^5.57.2
 
+  '@texuli/player@0.4.0':
+    resolution: {integrity: sha512-+csaW95FVjUyR73nyFjWx9iRaJmNQWGQKXl7hJ8IaLeXAroye3vE6jOHIS23N3ijCfkRV6cSIOsmkRtpCSH2Zw==}
+    peerDependencies:
+      svelte: ^5.57.2
+
   '@texuli/primitives@0.4.0':
     resolution: {integrity: sha512-kdLQmp8amw+8lfin8tVyk7t68BarEQjqBQgRFwMbSfOXMVcz5lrvy5bOEHj5Wrq/plFylGFgHhjj7WnbIQ05Vw==}
+    peerDependencies:
+      svelte: ^5.57.2
+
+  '@texuli/slides@0.4.0':
+    resolution: {integrity: sha512-1mZyPolhuD/XBhvepCMZfr4eMpelQQmHpxEBmdYo1M1Uqr7qbt10i+A4H1Kx6x4sy2UefkaqpCA5/0z5KOdGww==}
     peerDependencies:
       svelte: ^5.57.2
 
@@ -6659,6 +6693,8 @@ snapshots:
 
   '@texuli/date@0.4.0': {}
 
+  '@texuli/deck@0.4.0': {}
+
   '@texuli/drag@0.4.0': {}
 
   '@texuli/media@0.4.0(svelte@5.57.2)':
@@ -6669,11 +6705,35 @@ snapshots:
       svelte: 5.57.2
       texuli: 0.4.0(svelte@5.57.2)
 
+  '@texuli/player@0.4.0(svelte@5.57.2)':
+    dependencies:
+      '@texuli/blocks': 0.4.0(svelte@5.57.2)
+      '@texuli/catalog': 0.4.0(svelte@5.57.2)
+      '@texuli/charts': 0.4.0(svelte@5.57.2)
+      '@texuli/chat': 0.4.0(svelte@5.57.2)
+      '@texuli/data': 0.4.0(svelte@5.57.2)
+      '@texuli/media': 0.4.0(svelte@5.57.2)
+      '@texuli/primitives': 0.4.0(svelte@5.57.2)
+      '@texuli/spec': 0.4.0
+      '@texuli/workflows': 0.4.0(svelte@5.57.2)
+      svelte: 5.57.2
+      texuli: 0.4.0(svelte@5.57.2)
+
   '@texuli/primitives@0.4.0(svelte@5.57.2)':
     dependencies:
       '@texuli/core': 0.4.0
       '@texuli/date': 0.4.0
       '@texuli/drag': 0.4.0
+      svelte: 5.57.2
+
+  '@texuli/slides@0.4.0(svelte@5.57.2)':
+    dependencies:
+      '@texuli/blocks': 0.4.0(svelte@5.57.2)
+      '@texuli/catalog': 0.4.0(svelte@5.57.2)
+      '@texuli/deck': 0.4.0
+      '@texuli/media': 0.4.0(svelte@5.57.2)
+      '@texuli/player': 0.4.0(svelte@5.57.2)
+      '@texuli/tokens': 0.4.0
       svelte: 5.57.2
 
   '@texuli/spec@0.4.0': {}

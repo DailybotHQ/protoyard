@@ -238,13 +238,14 @@ up front.
 
 **Measured on 2026-10-20** over the 40 catalog blueprints: 3,245,592–3,246,497
 bytes, about 1.05 MB gzip. The player dominates, and the blueprint adds a few KB.
-The export refuses files over `QUICK_SINGLE_FILE_BUDGET_BYTES` (4 MiB).
+The export refuses files over `QUICK_SINGLE_FILE_BUDGET_BYTES` (4,418,158 bytes: the 4,206,872–4,207,769 bytes measured on 2026-10-28 with decks on the `@texuli/slides` stage, + 5 %; npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB of CSS and initial JS; lower when it ships).
 
 **Content kinds (measured 2026-10-22).** The catalog deck (Lumen launch), page
 and doc export at 1,606,788–1,607,557 bytes, against 3,051,751 bytes for the
 CRM app from the same player build.
-- **Budget:** a kind file is refused over 2.5 MiB
-  (`QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES`).
+- **Budget:** a kind file is refused over 2,818,330 bytes, about 2.69 MiB
+  (`QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES`: 2,656,649–2,684,123 bytes measured
+  on 2026-10-28 + 5 %; npm Texuli 0.4.0 with @texuli/deck and @texuli/slides; the unused default renderer registry (Texuli gaps G24/G25, planned for 0.5.0) adds about 23 KB of CSS and initial JS; lower when it ships).
 - **Not met:** the proposed 1.5 MiB deck budget. DevTools (with Deck Studio
   and the theme browser), review comments, device shells and the chart blocks
   are all reachable from a kind page, and they ship with it.

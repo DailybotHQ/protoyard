@@ -24,8 +24,10 @@ one workspace update.
 | `@texuli/core` | `ui` |
 | `@texuli/data` | `analytics-ui`, `blocks-ui`, `ui`, `views`, `views-ui` |
 | `@texuli/date` | `analytics-ui`, `ui` |
+| `@texuli/deck` | `decks`, `decks-ui` |
 | `@texuli/drag` | `views-ui` |
 | `@texuli/primitives` | `devtools`, `ui`, `views-ui` |
+| `@texuli/slides` | `decks-ui` |
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
@@ -86,6 +88,16 @@ Protoyard's product surface. `enableTexuliAppearance()` writes Texuli's
 compatibility and frame geometry. Import token subpaths such as
 `@texuli/tokens/css` and `@texuli/tokens/contract`; do not statically import
 the root barrel, which includes the theme library.
+
+## Decks run on `@texuli/deck` and `@texuli/slides`
+
+`@protoyard/decks` is a thin layer over `@texuli/deck` (the deck model,
+validation, catalog, steps, navigation, controls, presenter protocol, lint,
+patches and text twins), and `@protoyard/decks-ui`'s `DeckApp` presents decks
+on the `@texuli/slides` stage. Protoyard keeps its deck shape, offline media
+policy, themes, free slides through `@protoyard/blocks-ui`, custom slides, the
+debug panel and Deck Studio. Details and the migration note:
+[DECKS](DECKS.md#built-on-texuli-migration-note).
 
 ## Charts from `@texuli/charts`
 

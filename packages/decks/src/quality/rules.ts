@@ -1,5 +1,5 @@
+import type { LayoutPacing } from '@texuli/deck/model';
 import { DECK_TEXT_MINIMUMS } from '../canvas.ts';
-import type { LayoutPacing } from '../layouts/types.ts';
 
 /**
  * Deck quality thresholds as data (ADR-038), ported from the developer's

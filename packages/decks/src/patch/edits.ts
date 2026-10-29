@@ -1,7 +1,7 @@
 import { BUILTIN_THEMES, FONT_CATALOG, THEME_LIBRARY_META } from '@protoyard/themes';
 import { DECK_BACKGROUND_PRESET_IDS } from '../backgrounds/schema.ts';
 import { DECK_ASPECTS } from '../canvas.ts';
-import { DECK_LAYOUTS } from '../layouts/catalog.ts';
+import { DECK_LAYOUTS } from '../layouts/index.ts';
 import { type Deck, type DeckSlide, type DeckStyle, safeParseDeck } from '../schema/index.ts';
 import { applyDeckPatch, type DeckPatchOperation } from './json-patch.ts';
 
@@ -70,9 +70,11 @@ export function compatibleLayouts(slide: DeckSlide): string[] {
   if (!('props' in slide)) return ['free'];
   // A custom slide's props are a component id and its data, not catalog content.
   if (slide.layout === 'custom') return ['custom'];
+  // Probe the slide alone and visible: a one-slide deck whose only slide is hidden is invalid.
+  const { hidden: _hidden, ...probe } = slide;
   return DECK_LAYOUTS.filter((layout) => layout.id !== 'free')
     .map((layout) => layout.id)
-    .filter((id) => safeParseDeck({ style: {}, slides: [{ ...slide, layout: id }] }).success);
+    .filter((id) => safeParseDeck({ style: {}, slides: [{ ...probe, layout: id }] }).success);
 }
 
 function setOrRemove(
