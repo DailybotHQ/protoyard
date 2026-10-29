@@ -171,6 +171,11 @@ A deck is a `kind: "deck"` JSON blueprint, not code. The loop is in
    `pnpm protoyard deck inspect <file> --ref "<line>"`, fix the value at its
    JSON pointer, and repeat.
 
+In a deck made from the deck template, change the brand in
+`src/blueprint.json` (`brand.seed`, `brand.libraryTheme`, …) and leave
+`src/brand-theme.ts` alone: `protoyard dev` and `protoyard validate` rewrite it
+from the blueprint ([KINDS: Editing a deck's brand](KINDS.md#editing-a-decks-brand)).
+
 [DECKS: Recipes](DECKS.md#recipes) has a valid chart story, comparison table,
 poll, calculator, embedded app and custom slide to start from. Generate a
 prototype (`pnpm protoyard generate <slug> --blueprint <file>`) only when a
