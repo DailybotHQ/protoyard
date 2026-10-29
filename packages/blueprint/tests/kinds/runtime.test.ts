@@ -9,12 +9,15 @@ import { createHarness } from '../../../../tests/support/runtime.ts';
 import {
   type AnyContentBlueprint,
   createKindServices,
+  defineKindPrototype,
   defineKindRuntime,
   FormResponseError,
   findDocumentBlock,
   KIND_DEFAULT_SCENARIO,
   KIND_PERSONAS,
   KIND_STORES,
+  kindBrandTheme,
+  kindDefaultThemeId,
   kindWorld,
 } from '../../src/kinds/index.ts';
 
@@ -137,6 +140,20 @@ describe('defineKindRuntime', () => {
     });
     expect(library.themes).toBeUndefined();
     expect(library.manifest.defaultTheme).toBe('fintech-ledger');
+  });
+
+  it('matches defineKindPrototype given the brand resolved ahead (generated prototypes)', () => {
+    for (const brand of [undefined, { seed: '#2563eb' }, { libraryTheme: 'fintech-ledger' }]) {
+      const doc = deck(brand ? { brand } : {});
+      const ahead = defineKindPrototype(doc, {
+        namespace: NAMESPACE,
+        brandTheme: kindBrandTheme(doc),
+        defaultThemeId: kindDefaultThemeId(doc),
+      });
+      const resolved = defineKindRuntime(doc, { namespace: NAMESPACE });
+      expect(ahead.manifest).toEqual(resolved.manifest);
+      expect(ahead.themes).toEqual(resolved.themes);
+    }
   });
 
   it('builds the same world for the same scenario, from fixed data only', () => {

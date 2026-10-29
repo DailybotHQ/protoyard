@@ -827,7 +827,12 @@ blueprint module validates the full kind document synchronously
 (`parseDeckBlueprint`, `parsePageBlueprint` or `parseDocBlueprint` from
 `@protoyard/blueprint/kinds/parse`, never a top-level `await`, which would
 leave a Claude artifact export blank), and the runtime module calls
-`defineKindRuntime`. A deck also gets a generated `src/deck-blueprint.ts`, which
+`defineKindPrototype` with the brand resolved at generate time: a built
+`brand` (seed or preset) is written to `src/generated/brand-theme.ts` and
+registered, a library brand opens by id. The player resolves the same brand at
+runtime (`defineKindRuntime`), so both levels get the same definition, but a
+generated prototype's first chunk never loads the palette generator a seed
+needs. A deck also gets a generated `src/deck-blueprint.ts`, which
 points the template's App at the generated blueprint, and it does not copy the
 template's sample `src/blueprint.json`. They do not emit app entity schema, policy, services,
 world-generator modules or entity tests. The template's owned `App.svelte`
