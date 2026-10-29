@@ -74,37 +74,30 @@ function commit(next: string | string[]): void {
 }
 </script>
 
-<!--
-  The named, described group is this wrapper: Texuli's ToggleGroup takes no
-  id or aria-describedby yet (gap G5), and FormField points its description
-  and error at the field id.
--->
-<div
+<!-- Texuli's ToggleGroup is the named, described group FormField points at, and submits one entry per day. -->
+<ToggleGroup
+  type="multiple"
   {id}
-  role="group"
   aria-label={labelledBy ? undefined : label}
   aria-labelledby={labelledBy}
   aria-describedby={describedBy}
+  {name}
+  value={selected.map(String)}
+  onValueChange={commit}
+  {disabled}
+  wrap
   class={cx('ui-weekday-picker', className)}
   data-invalid={invalid ? '' : undefined}
 >
-  <ToggleGroup type="multiple" value={selected.map(String)} onValueChange={commit} {disabled} wrap>
-    {#each days as entry (entry.day)}
-      <ToggleGroupItem value={String(entry.day)} aria-label={entry.long} data-weekday={entry.day}>
-        {entry.text}
-      </ToggleGroupItem>
-    {/each}
-  </ToggleGroup>
-  <!-- Texuli's ToggleGroup takes no form `name` yet, so each selected day submits through a hidden input. -->
-  {#if name}
-    {#each selected as day (day)}
-      <input type="hidden" {name} value={day} />
-    {/each}
-  {/if}
-</div>
+  {#each days as entry (entry.day)}
+    <ToggleGroupItem value={String(entry.day)} aria-label={entry.long} data-weekday={entry.day}>
+      {entry.text}
+    </ToggleGroupItem>
+  {/each}
+</ToggleGroup>
 
 <style>
-  .ui-weekday-picker[data-invalid] :global([aria-pressed='false']) {
+  :global(.ui-weekday-picker[data-invalid] [aria-pressed='false']) {
     border-color: var(--tx-destructive, crimson);
   }
 </style>

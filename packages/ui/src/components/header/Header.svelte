@@ -36,7 +36,11 @@ const shell = getAppShellContext();
 const menuHandler = $derived(onMenuClick ?? shell?.openSidebar);
 </script>
 
-<!-- The page header: Texuli has no standalone one (gap G15), so this lays out Texuli's IconButton and Protoyard's slots. -->
+<!--
+  The app page header (menu trigger, leading slot, description). Texuli 0.5.0's standalone
+  MobileHeader (texuli/layouts/mobile, gap G15) is a phone stack header (Back, title, actions)
+  and backs @protoyard/ui's MobileHeader; this one lays out Texuli's IconButton and Protoyard's slots.
+-->
 <header
   class={cx(
     'z-30 flex min-h-14 shrink-0 items-center gap-3 border-b border-border bg-background/85 px-4 pt-safe backdrop-blur-md sm:px-6',

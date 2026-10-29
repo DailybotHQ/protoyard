@@ -144,7 +144,8 @@ onMount(() => {
 <!--
   A thin adapter over Texuli's command palette: the parts and classes of
   `CommandPalette` from `texuli/command`, on a dialog root that also takes the
-  framed-device portal, which Texuli's palette cannot take yet (gap G4).
+  framed-device `mode`/`container`, which Texuli's palette cannot take (gap
+  N13).
   Inside a framed device the palette is contained by its screen; otherwise it
   opens in the top layer.
 -->

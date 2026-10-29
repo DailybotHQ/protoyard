@@ -92,8 +92,9 @@ const handleDismiss = overlayDismissHandler({
 
 <!--
   A thin adapter over Texuli's alert dialog: the same primitive, parts and
-  classes as `AlertDialog` from `texuli/dialog`, plus the shared overlay stack
-  and the framed-device portal it cannot take yet (Texuli gap G4). Cancel, the
+  classes as `AlertDialog` from `texuli/dialog`, on a root that takes the
+  framed-device `mode`/`container` and the shared overlay stack's dismiss and
+  focus rules, which the styled alert cannot take (Texuli gap N13). Cancel, the
   safe default, takes focus when the alert opens; confirm shows a spinner while
   `onConfirm` runs.
 -->

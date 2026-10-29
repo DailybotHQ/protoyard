@@ -1,5 +1,4 @@
 import type { OverlayDismissEvent } from '@texuli/core/overlay';
-import { isUndoToasterTarget } from './focus-exempt.ts';
 import type { OverlayLayer } from './use-overlay-layer.svelte.ts';
 
 export interface OverlayDismissRules {
@@ -17,8 +16,9 @@ export interface OverlayDismissRules {
 /**
  * The close rules every Protoyard overlay applies on top of the primitive's
  * own (`onDismissRequest`): only the top overlay of the stack closes, a menu
- * or picker open inside it takes Escape first, the undo toaster never counts
- * as outside, and Escape and outside presses follow the overlay's options.
+ * or picker open inside it takes Escape first, and Escape and outside presses
+ * follow the overlay's options. Presses in the undo toaster never reach here:
+ * Texuli's overlays count inert exemptions (the toaster) as inside.
  */
 export function overlayDismissHandler(
   rules: OverlayDismissRules
@@ -36,8 +36,6 @@ export function overlayDismissHandler(
       if (handled || rules.escape?.() === false) event.preventDefault();
       return;
     }
-    if (isUndoToasterTarget(event.originalEvent.target) || rules.outside?.() === false) {
-      event.preventDefault();
-    }
+    if (rules.outside?.() === false) event.preventDefault();
   };
 }

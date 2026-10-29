@@ -57,7 +57,10 @@ describe('TagEmailInput', () => {
       onValueChange: onBackspace,
     });
     const field = screen.getByRole('textbox', { name: 'Invite' });
+    // Backspace on the empty draft moves to the last tag; Backspace there removes it.
     await fireEvent.keyDown(field, { key: 'Backspace' });
+    expect(onBackspace).not.toHaveBeenCalled();
+    await fireEvent.keyDown(document.activeElement as Element, { key: 'Backspace' });
     expect(onBackspace).toHaveBeenCalledWith([]);
   });
 
@@ -91,6 +94,23 @@ describe('TagEmailInput', () => {
     await fireEvent.input(input, { target: { value: 'design' } });
     await fireEvent.keyDown(input, { key: ' ' });
     expect(onValueChange).toHaveBeenCalledWith(['design']);
+    await fireEvent.input(input, { target: { value: 'research' } });
+    await fireEvent.keyDown(input, { key: ';' });
+    expect(onValueChange).toHaveBeenLastCalledWith(['design', 'research']);
+  });
+
+  it('splits a pasted list on spaces, commas and semicolons', async () => {
+    const onValueChange = vi.fn();
+    render(TagEmailInput, { label: 'Invite', value: [], onValueChange });
+    const input = screen.getByRole('textbox', { name: 'Invite' });
+    await fireEvent.paste(input, {
+      clipboardData: { getData: () => 'ada@example.com, bob@example.com; cara@example.com' },
+    });
+    expect(onValueChange).toHaveBeenLastCalledWith([
+      'ada@example.com',
+      'bob@example.com',
+      'cara@example.com',
+    ]);
   });
 });
 
@@ -181,6 +201,18 @@ describe('TextCounter', () => {
     const field = screen.getByRole('textbox', { name: 'Note' });
     await fireEvent.input(field, { target: { value: 'abcdef' } });
     expect(onValueChange).toHaveBeenCalledWith('abcde');
+  });
+
+  it('forwards extra attributes: data-* to the field, the rest to the wrapper', () => {
+    render(TextCounter, {
+      label: 'Handle',
+      value: '',
+      'data-testid': 'handle-field',
+      title: 'Your public handle',
+    } as never);
+    const field = screen.getByRole('textbox', { name: 'Handle' });
+    expect(field.dataset.testid).toBe('handle-field');
+    expect(screen.getByTitle('Your public handle').contains(field)).toBe(true);
   });
 });
 

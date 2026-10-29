@@ -1,5 +1,4 @@
 <script lang="ts">
-import { onMount } from 'svelte';
 import { labelClass } from 'texuli/field';
 import { PinInput } from 'texuli/number-pin';
 
@@ -47,8 +46,7 @@ let {
 const uid = $props.id();
 const fieldId = $derived(id ?? `otp-${uid}`);
 const cellCount = $derived(Math.min(12, Math.max(2, Math.floor(length) || 6)));
-// Texuli's styled PinInput.Root forwards `name` to its input but does not type it.
-const nameAttr = $derived<Record<string, unknown>>(name ? { name } : {});
+let input = $state<HTMLInputElement | null>(null);
 const regexp = $derived(pattern === 'alphanumeric' ? '^[a-zA-Z0-9]+$' : '^\\d+$');
 
 /** Last code that already fired onComplete, so a full code fires it once. */
@@ -72,9 +70,12 @@ function setValue(next: string): void {
   }
 }
 
-// Texuli's styled PinInput.Root does not forward `bind:inputRef`, so the field is found by id.
-onMount(() => {
-  if (autofocus && !disabled) document.getElementById(fieldId)?.focus();
+// Focus the real input once, when it first mounts.
+let focused = false;
+$effect(() => {
+  if (focused || !input) return;
+  focused = true;
+  if (autofocus && !disabled) input.focus();
 });
 </script>
 
@@ -87,7 +88,8 @@ onMount(() => {
     pattern={regexp}
     pasteTransformer={cleanPaste}
     {disabled}
-    {...nameAttr}
+    {name}
+    bind:inputRef={input}
   >
     {#snippet children({ cells })}
       {#each cells as cell, index (index)}

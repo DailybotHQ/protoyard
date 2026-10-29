@@ -1,14 +1,14 @@
 <script lang="ts">
-import { Undo2, X } from '@lucide/svelte';
+import Undo2 from '@lucide/svelte/icons/undo-2';
 import { getInertRegistry } from '@texuli/core/inert';
 import { OVERLAY_Z_BASE } from '@texuli/core/overlay-core';
 import { createPortal } from '@texuli/core/portal';
-import { onMount } from 'svelte';
 import type { Attachment } from 'svelte/attachments';
-import { Button } from 'texuli/button';
+import { Button, IconButton } from 'texuli/button';
+import { Icon } from 'texuli/icons';
 import { cn } from '../../lib/cn.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
-import { installUndoToasterFocusExemption, UNDO_TOASTER_ATTR } from '../overlay/focus-exempt.ts';
+import { UNDO_TOASTER_ATTR } from '../overlay/focus-exempt.ts';
 import { overlayStack } from '../overlay/overlay-stack.ts';
 import { useOverlayTopZIndex } from '../overlay/use-overlay-layer.svelte.ts';
 import { undoToast } from './undo.svelte.ts';
@@ -32,9 +32,6 @@ const zIndex = $derived(
   Math.max(60, topZ.current, openOverlays > 0 ? OVERLAY_Z_BASE + openOverlays + 1 : 0)
 );
 
-// Install before any modal opens when possible (app-root toaster mounts first).
-onMount(() => installUndoToasterFocusExemption());
-
 /** Moves the toaster into the framed device screen while a shell sets one, else to `body`. */
 const portalTo: Attachment<HTMLElement> = (node) => {
   const portalled = createPortal(node, { target: portal.current ?? null });
@@ -42,9 +39,9 @@ const portalTo: Attachment<HTMLElement> = (node) => {
 };
 
 /**
- * Keeps the region usable under a modal overlay: it is an inert exemption
- * (never made inert, never "outside" the modal), and in the top layer it
- * re-enters after each overlay that opens there, so it paints above it.
+ * Keeps the region usable under a modal overlay: it is an inert exemption,
+ * which Texuli's overlays treat as part of every modal (never inert, never
+ * "outside", Tab reaches it, and a top-layer overlay that opens re-raises it).
  */
 const aboveOverlays: Attachment<HTMLElement> = (node) => {
   let exemption: { release(): void } | null = null;
@@ -71,15 +68,7 @@ const aboveOverlays: Attachment<HTMLElement> = (node) => {
   };
   // Inside a device frame overlays are contained, ordered by z-index: no top layer.
   if (!portal.current) raise();
-  const onToggle = (event: Event) => {
-    if (portal.current || event.target === node || !(event.target instanceof Element)) return;
-    if ((event as Event & { newState?: string }).newState !== 'open') return;
-    if (inTopLayer()) raise();
-  };
-  const doc = node.ownerDocument;
-  doc.addEventListener('toggle', onToggle, true);
   return () => {
-    doc.removeEventListener('toggle', onToggle, true);
     exemption?.release();
     try {
       if (inTopLayer()) popover.hidePopover?.();
@@ -183,21 +172,22 @@ function handleKeydown(event: KeyboardEvent): void {
                 loadingLabel="Undoing"
                 onclick={() => undoToast.undo(item.id)}
               >
-                <Undo2 aria-hidden="true" />
+                <Icon icon={Undo2} size="sm" aria-hidden="true" />
                 {item.status === 'failed' ? `Retry ${item.undoLabel.toLowerCase()}` : item.undoLabel}
               </Button>
               <span id={hintId} class="sr-only">
                 Available for {Math.round(item.duration / 1000)} seconds. {item.message}.
               </span>
-              <button
-                type="button"
-                class="inline-flex size-8 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 sm:min-h-0 sm:min-w-0"
+              <IconButton
+                variant="ghost"
+                size="sm"
+                label={`Dismiss: ${item.message}`}
+                class="shrink-0 text-muted-foreground"
                 disabled={item.status === 'undoing'}
                 onclick={() => undoToast.dismiss(item.id)}
               >
-                <X class="size-4" aria-hidden="true" />
-                <span class="sr-only">Dismiss: {item.message}</span>
-              </button>
+                <Icon icon="close" size="sm" aria-hidden="true" />
+              </IconButton>
             </div>
             {#key item.revision}
               <div

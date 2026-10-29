@@ -73,11 +73,12 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
 
 <!--
   A thin adapter over Texuli's dialog: the same primitive, parts and classes as
-  `Dialog` from `texuli/dialog`, plus what that component cannot take yet
-  (Texuli gaps G4 and G5): the shared overlay stack (z-order and dismiss of the
-  top layer), the framed-device portal, `bind:ref` and rest attributes. Inside a
-  framed device the dialog is contained by its screen; otherwise it opens in the
-  top layer.
+  `Dialog` from `texuli/dialog`. That component takes `stack`, `portal`,
+  `bind:ref` and rest attributes, but not the primitive root's `mode`,
+  `container`, `onDismissRequest` or `onCloseAutoFocus` (Texuli gap N13), which
+  Protoyard needs: inside a framed device the dialog is contained by its screen
+  (otherwise it opens in the top layer), and the shared overlay stack sets the
+  z-order, dismisses only the top layer and returns focus.
 -->
 <DialogPrimitive.Root
   {open}

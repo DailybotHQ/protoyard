@@ -97,33 +97,33 @@ const status = $derived(
   )
 );
 
-/**
- * Texuli's FileUpload owns the File list; this keeps Protoyard's DropzoneFile
- * list (stable ids, progress, status) in step with it and reports additions
- * and removals, which FileUpload cannot report yet (Texuli gap G8).
- */
+/** Every listed file's Protoyard entry (stable id, progress, status), kept across list changes. */
+const entries = new WeakMap<File, DropzoneFile>();
+
+function entryFor(file: File): DropzoneFile {
+  const known = files.find((item) => item.file === file) ?? entries.get(file);
+  if (known) return known;
+  idSeq += 1;
+  const entry: DropzoneFile = { id: `dz-${uid}-${idSeq}`, file, progress: null, status: 'ready' };
+  entries.set(file, entry);
+  return entry;
+}
+
+/** Texuli's FileUpload owns the File list; Protoyard's list follows it with stable entries. */
 function syncFiles(next: File[]): void {
   if (disabled) return;
-  const byFile = new Map(files.map((item) => [item.file, item]));
-  const kept: DropzoneFile[] = [];
-  const added: File[] = [];
-  for (const file of next) {
-    const existing = byFile.get(file);
-    if (existing) {
-      kept.push(existing);
-      byFile.delete(file);
-    } else {
-      idSeq += 1;
-      kept.push({ id: `dz-${uid}-${idSeq}`, file, progress: null, status: 'ready' });
-      added.push(file);
-    }
-  }
-  files = kept;
-  for (const removed of byFile.values()) onRemove?.(removed);
-  if (added.length > 0) {
-    rejects = [];
-    onAdd?.(added);
-  }
+  // Remember the current entries (host-set ones too): Texuli reports a removal after the list changed.
+  for (const item of files) entries.set(item.file, item);
+  files = next.map(entryFor);
+}
+
+function handleAdd(added: File[]): void {
+  rejects = [];
+  onAdd?.(added);
+}
+
+function handleRemove(file: File): void {
+  onRemove?.(entryFor(file));
 }
 
 function syncRejects(next: FileDropRejection[]): void {
@@ -159,6 +159,8 @@ function syncRejects(next: FileDropRejection[]): void {
     {progress}
     {status}
     {labels}
+    onFilesAdd={handleAdd}
+    onFileRemove={handleRemove}
     aria-invalid={rejects.length > 0 ? 'true' : undefined}
     data-file-dropzone-input=""
   />

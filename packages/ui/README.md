@@ -86,34 +86,42 @@ standalone Svelte 5 component library, consumed from its published npm packages
   (`Alert`), `FileDropzone` (`FileUpload`), `CommandPalette`, `UserPicker`,
   `FilterBar`, `DataTable` (`texuli/table`) and the dialog family (`Dialog`,
   `AlertDialog`, `Drawer`, `DetailPanel`, `BottomSheet`). They keep their
-  Protoyard props and render Texuli's parts and classes. What stays in the
-  adapter is what the published Texuli cannot take yet, each tracked as a
-  Texuli gap: the shared overlay stack and the framed-device portal on
-  overlays (G4), `bind:ref` and rest attributes (G5), paging, row classes and
-  toolbar slots on a data grid (G7), add and remove callbacks on file upload
-  (G8), and styled sheet header, body and footer parts (`overlay/sheet-parts.css`).
-  Also thin adapters: `Input` (Texuli's `Input`; it keeps `bind:value` next
-  to a caller `oninput`, gap G26, and binds numbers for number inputs),
+  Protoyard props and render Texuli's parts and classes. The sheets use
+  Texuli's styled `Sheet`, `Drawer` and `DetailPanel` content (`texuli/sheet`);
+  every overlay adds the framed-device container (it opens `contained` inside
+  a device screen) and the shared overlay stack (z-order, top-layer dismiss,
+  focus return). What stays in an adapter is what Texuli 0.5.0 cannot take,
+  each tracked as a Texuli gap: the styled `Dialog`, `AlertDialog` and
+  `CommandPalette` take no `mode`/`container` (N13), so those three keep the
+  dialog primitive with Texuli's classes; `DataTable` keeps table semantics,
+  row clicks and `hideBelow`, which Texuli's interactive `DataGrid` has not
+  (N15); and the styled sheet header, body and footer parts
+  (`overlay/sheet-parts.css`).
+  Also thin adapters: `Input` (Texuli's `Input`, numbers for number inputs),
   `TextCounter`, `Spinner`, `StatCard` (`Stat`), `EmptyState`, `StarRating`
   (`Rating`), `NumberStepper` (`NumberField`), `OtpInput` (`PinInput`),
-  `ChipGroup` and `WeekdayPicker` (`ToggleGroup`), `Composer`
-  (`@texuli/chat`), `StatusChip` and the honesty tags (`Badge`), and `Avatar`
-  (Texuli's avatar classes, with a `srcset` until gap G10).
+  `ChipGroup` and `WeekdayPicker` (`ToggleGroup`, which submits one entry per
+  day), `Composer` (`@texuli/chat`), `StatusChip` and the honesty tags
+  (`Badge`), `Avatar` (Texuli's `Avatar`, with `srcset`), `TagEmailInput`
+  (`TagsInput`; Space and `;` also add a tag, gap N21), `ImageInput`
+  (`FileUpload`, with this package's raster-only previews), `PageGrid`
+  (`CardGrid` with `maxColumns`), `Calendar` (`texuli/date`), `DatePicker`,
+  `DateRangePicker` and `TimeInput` (Texuli's date-picker and time-field
+  parts with Texuli's field classes, so they fit `FormField`), `Kanban`
+  (`@texuli/data/board`), and `BottomNav`, `MobileHeader` and
+  `MobileAppShell` (`texuli/layouts/mobile`). `UndoToaster` draws its toasts
+  with Texuli's `Button`, `IconButton` and `Icon`; its undo store stays
+  Protoyard's because Texuli's toast closes after a failed action, where an
+  undo must stay open to retry (N17).
 - **Composed of Texuli parts:** `EmojiPicker` (Button, Input, popover surface,
   form bridge), `PasswordStrengthMeter` (a meter around Texuli's `Progress`),
   `Header` (Texuli's `IconButton`), `BrowserChrome` and `WindowChrome` (device
   chrome; the window's traffic lights and caption buttons stay native on
   purpose).
-- **Waiting on a Texuli gap** (still Protoyard's markup): `Calendar`,
-  `DatePicker`, `DateRangePicker` (G12: a simulated `today`, `weekStartsOn`,
-  range limits), `TimeInput` (G13), `TagEmailInput` (G11), `ImageInput` (G8),
-  `Kanban` (G14), `MobileHeader`, `BottomNav`, `MobileAppShell` (G15) and
-  `UndoToaster` (G9).
 - **Layouts:** `LayoutHost` wraps `texuli/layouts` ([below](#shared-layout-host)).
 - **Protoyard's own:** device frames and shells, `SafeArea`,
-  `ScenarioSwitcher`, actors, the overlay stack, `PageGrid` (a column cap
-  Texuli's `CardGrid` does not have) and the `docs` layout (its own
-  navigation contract and heading slugs).
+  `ScenarioSwitcher`, actors, the overlay stack and the `docs` layout (its
+  own navigation contract and heading slugs).
 
 ## Components
 
@@ -190,14 +198,14 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `DataTable` | `columns: { key, header, cell?, accessor?, sortable?, align?, hideBelow? }[]`, `rows`, `getRowId`, `bind:sort`, `bind:search`, `searchKeys`/`searchFn`, `pageSize` (0 = off), `bind:page`, `onRowClick` + `rowLabel`, `loading`, `empty`, `filters`, `toolbar`, `caption` |
 | `FilterBar` | `fields: { id, label, kind: enum·date-range·boolean·relation, options?, multiple?, key?, accessor? }[]`, `bind:values` (plain JSON for the hash query), chips + reset; pair with pure `applyFilters(rows, fields, values)` |
 | `Pagination` | `bind:page`, `pageCount` or `total` + `pageSize` |
-| `Kanban` | `columns: { id, title }[]`, `items`, `getColumn`, `getItemId`, `getItemLabel`, `onMove(item, columnId)` (async ok), `canMove`, `card` snippet; HTML5 drag and drop + a keyboard "Move to…" menu per card |
+| `Kanban` | `columns: { id, title }[]`, `items`, `getColumn`, `getItemId`, `getItemLabel`, `onMove(item, columnId)` (async ok; a throw puts the card back), `canMove`, `card` snippet, `columnFooter`, `headingLevel`; Texuli's `Board`: pointer drag, a keyboard drag handle (Space, arrows, Space) and a "Move to…" menu per card. Moves go between columns only |
 | `AppShell` | `sidebar`, `header`, `bottomNav`, children, `bind:sidebarOpen` (mobile drawer, auto-closes at `lg`), `sidebarClass`, `mainClass`, `mainId`, `mainElement` (`div` when nested in another `<main>`), skip link, plus Texuli's `commandBar` and `notifications` slots. It is Texuli's shell; it sizes from `--tx-app-height`, which `styles.css` maps to the frame's `--py-app-height`, so framed shells match the device screen |
 | `LayoutHost` | `layout: LayoutId`, routed screen snippet, `nav` (NavModel), `path`, `options`, `storageKey`, `aside` snippet, `class`; measures its own container, applies the core layout fallback below its breakpoint, and lazy-loads the registered module with a skeleton while loading. Layout modules call `mountScreen(target)` to place the stable routed-screen outlet without remounting its local state. Unregistered layouts leave the screen in the host's default content frame. |
 | `MobileAppShell` | Fixed `h-app` flex column with optional `header`, one focusable scrolling `<main>`, optional `stickyFooter`, and an in-flow `bottomNav` snippet. Compose the nav with `<BottomNav fixed={false}>` so it remains visible below the scroll region in any frame. Resets main scroll on hash navigation. |
 | `Sidebar` | `items` or `sections: { label?, items: { label, href, icon?, badge?, active? }[] }[]`, `bind:collapsed`, `header`/`footer({ collapsed })` |
 | `Header` | `title`, `titleAs` (default `h1`; use `p` when the page has its own `h1`), `description`, `leading`, `actions`, `onMenuClick` (defaults to the AppShell drawer), `sticky` |
 | `Breadcrumb` | `items: { label, href? }[]` |
-| `CardGrid` | `minItemWidth`, `gap`, `as` |
+| `CardGrid` | `minItemWidth`, `maxColumns`, `gap`, `as` |
 | `ChatThread` | `messages`, `currentUserId`, `typing: string[]`, `bind:draft`, `onSend`, `sending` |
 | `MessageList` / `groupMessages` | messages `{ id, author: { id, name }, body, at, status? }`, `role="log"`, auto-scroll |
 | `Composer` | `bind:value`, `onSubmit` (return `false`/reject to keep the draft), Enter sends, Shift+Enter newline |
@@ -322,18 +330,19 @@ value is plain JSON with no `Date` objects, so it validates with zod and persist
 | Component | Value | Behavior |
 | --- | --- | --- |
 | `TimeZoneSelect` | IANA zone (`'America/Bogota'`) | A searchable `Combobox` labelled `(GMT-05:00) America/Bogota`, sorted west to east. A search matches any part of the label or the zone name, and `_` matches a space. Offsets are those in force at `referenceDate`, so pass the scenario clock. `zones` narrows the list. |
-| `WeekdayPicker` | `IsoWeekday[]` (1 = Monday … 7 = Sunday, sorted) | Toggle buttons (`aria-pressed`) in one labelled group with a single tab stop. Arrows and Home/End move between days; Space or Enter toggles one. `weekStartsOn`, `locale`, `labelStyle`, and `name` (one hidden input per day). For a single day, use `Select` with `weekdayOptions()`. |
-| `TimeInput` | `'HH:mm'` (24-hour) or `null` | Native hour and minute selects, plus AM/PM in `format={12}`. `intervalMinutes` must divide 60, otherwise it falls back to 15. A minute that is off the step stays available as an option. The value is emitted only once both hour and minute are set. |
-| `DatePicker` | `'YYYY-MM-DD'` or `null` | A text field plus a `Calendar` popover; Alt+ArrowDown also opens it. Typed text is checked on change. An impossible date (`2026-02-30`), a date outside `min`/`max`, or one that `isDateDisabled` rejects shows an inline message linked through `aria-describedby`, calls `onInvalid(issue, text)`, and leaves the value unchanged. Clearing the field sets `null`. |
-| `DateRangePicker` | `{ start, end }` of `'YYYY-MM-DD' \| null` | Start and end fields plus a calendar that picks the range in two clicks; reversed ends are swapped. The value changes only to an empty range or to a complete, valid one. `maxDays`, `min`, `max` and `required` are enforced through `validateDateRange()`. |
-| `Calendar` | — | An ARIA grid with a single tab stop. Arrows move a day or a week, Home/End go to the start or end of the week, PageUp/PageDown change the month (with Shift, the year), and Enter or Space picks. Unavailable dates stay focusable with `aria-disabled`; today is marked `aria-current="date"`. The grid always shows six weeks, so its height never jumps. |
+| `WeekdayPicker` | `IsoWeekday[]` (1 = Monday … 7 = Sunday, sorted) | Toggle buttons (`aria-pressed`) in one labelled group with a single tab stop. Arrows and Home/End move between days; Space or Enter toggles one. `weekStartsOn`, `locale`, `labelStyle`, and `name` (one form entry per day). For a single day, use `Select` with `weekdayOptions()`. |
+| `TimeInput` | `'HH:mm'` (24-hour) or `null` | Texuli's time field: hour and minute segments, plus AM/PM in `format={12}`. `intervalMinutes` (the minute step) must divide 60, otherwise it falls back to 15. The value is emitted only once both hour and minute are set. |
+| `DatePicker` | `'YYYY-MM-DD'` or `null` | Texuli's date field (month, day and year segments) plus a calendar popover. A typed date commits when the field is left or on Enter; a calendar pick commits at once. An impossible date, a date outside `min`/`max`, or one that `isDateDisabled` rejects shows an inline message linked through `aria-describedby`, calls `onInvalid(issue, text)`, and leaves the value unchanged. Clearing the field sets `null`. |
+| `DateRangePicker` | `{ start, end }` of `'YYYY-MM-DD' \| null` | Texuli's range fields plus a calendar that picks the range in two clicks. The value changes only to an empty range or to a complete, valid one. `maxDays` (a longer calendar range is refused and announced), `min`, `max` and `required` are enforced. |
+| `Calendar` | — | Texuli's calendar: an ARIA grid with a single tab stop. Arrows move a day or a week, Home/End go to the start or end of the week, PageUp/PageDown change the month (with Shift, the year), and Enter or Space picks. Unavailable dates are disabled; today (the simulated `today`) is marked `aria-current="date"`. `range`, `maxDays` and `onInvalid` pick a range. |
 
 - **Deterministic dates.** Pass `today` (`isoDateFromInstant(runtime.clock.now(), zone)`) and
   `referenceDate` from the scenario clock. All arithmetic (`addDays`, `addMonths`, `monthGrid`, …)
   runs on UTC midnights, so the host time zone and DST never move a date. The calendar falls
   back to the real clock only when it is given no date at all.
-- **FormField.** Spread `control.props` onto any of them. The label targets the first segment
-  (the hour, or the start date), and `aria-required` is treated like `required`.
+- **FormField.** Spread `control.props` onto any of them. The label names the field's segment
+  group, which carries `aria-invalid` and `aria-describedby`; `aria-required` is treated like
+  `required`.
 - **Helpers:** `parseIsoDate`, `checkDateText`, `validateDateRange`, `parseTimeOfDay`,
   `timeOfDayLabel`, `minuteSteps`, `normalizeWeekdays`, `describeWeekdays`, `timeZoneOptions`,
   `timeZoneOffsetMinutes` and `isValidTimeZone`. They are pure functions, so a service can reuse

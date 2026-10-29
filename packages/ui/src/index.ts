@@ -218,12 +218,15 @@ export {
 export { default as Tabs } from './components/tabs/Tabs.svelte';
 export type { TabItem } from './components/tabs/types.ts';
 export {
+  DEFAULT_TOAST_DURATION,
   MAX_TOASTS,
+  resetToastStore,
   type ToastAction,
   type ToastAnnouncement,
   type ToastItem,
   type ToastKind,
   type ToastOptions,
+  type ToastSettleReason,
   type ToastStore,
   toast,
 } from './components/toast/toast.svelte.ts';

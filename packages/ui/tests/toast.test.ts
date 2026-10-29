@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MAX_TOASTS, Toaster, toast } from '../src/index.ts';
 
 afterEach(() => {
@@ -31,6 +31,24 @@ describe('toast (Texuli toast store)', () => {
     expect(toast.items).toHaveLength(0);
     for (let index = 0; index < MAX_TOASTS + 2; index += 1) toast.info(`Note ${index}`);
     expect(toast.items.length).toBeLessThanOrEqual(MAX_TOASTS);
+  });
+
+  it('lets a host hold the timers (pause and resume) and reports why a toast settled', () => {
+    vi.useFakeTimers();
+    try {
+      const onSettle = vi.fn();
+      const id = toast.info('Synced', { duration: 1_000, onSettle });
+      expect(toast.items.find((item) => item.id === id)?.announcement.message).toBe('Synced');
+      toast.pause('host-test');
+      vi.advanceTimersByTime(5_000);
+      expect(toast.items.some((item) => item.id === id)).toBe(true);
+      toast.resume('host-test');
+      vi.advanceTimersByTime(1_000);
+      expect(toast.items.some((item) => item.id === id)).toBe(false);
+      expect(onSettle).toHaveBeenCalledWith('timeout');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

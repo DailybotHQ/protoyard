@@ -1,10 +1,8 @@
 <script lang="ts">
 import * as DialogPrimitive from '@texuli/primitives/dialog';
-import { Panel } from '@texuli/primitives/sheet';
 import type { ComponentProps, Snippet } from 'svelte';
-import { cx } from 'texuli/cx';
 import { Icon } from 'texuli/icons';
-import { detailPanelContentClass } from 'texuli/sheet';
+import { DetailPanel as Panel } from 'texuli/sheet';
 import { refAttachment } from '../../lib/ref.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
@@ -66,12 +64,10 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
 </script>
 
 <!--
-  A thin adapter over Texuli's detail panel: the panel primitive with the
-  `tx-detail-panel` surface from `texuli/sheet` (an end-side panel, full width
-  on phones), plus what Texuli's styled panel cannot take yet (gap G4): the
-  shared overlay stack, the framed-device portal, `bind:ref` and rest
-  attributes. Inside a framed device the panel is contained by its screen;
-  otherwise it opens in the top layer.
+  Texuli's detail panel from `texuli/sheet` (an end-side panel, full width on
+  phones). Protoyard adds the framed-device container (its root opens
+  `contained` inside a device screen, otherwise in the top layer) and the
+  shared overlay stack (z-order, top-layer dismiss, focus return).
 -->
 <Panel.Root
   {open}
@@ -96,9 +92,8 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
     <Panel.Content
       {@attach refAttachment<HTMLElement>((node) => (ref = node))}
       side="end"
-      class={cx(detailPanelContentClass({ size }), className)}
-      data-tx-detail-panel=""
-      data-size={size}
+      {size}
+      class={className}
       {...rest}
       style={`z-index:${layer.zIndex}`}
     >

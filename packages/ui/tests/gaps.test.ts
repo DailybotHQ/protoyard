@@ -123,26 +123,47 @@ describe('BottomSheet swipe-to-dismiss', () => {
 });
 
 describe('Kanban drag and drop', () => {
-  it('moves a card when it is dropped on another column', async () => {
+  const column = (name: string) => screen.getByRole('list', { name });
+  const handle = (title: string) => screen.getByRole('button', { name: `Drag ${title}` });
+  const live = () => document.querySelector('[aria-live="polite"]')?.textContent ?? '';
+
+  async function keyboardMove(title: string, keys: string[]): Promise<void> {
+    handle(title).focus();
+    await fireEvent.keyDown(handle(title), { key: ' ' });
+    for (const key of keys) await fireEvent.keyDown(handle(title), { key });
+    await fireEvent.keyDown(handle(title), { key: ' ' });
+  }
+
+  it('moves a card to another column with the keyboard drag handle', async () => {
     const onMoved = vi.fn();
     render(KanbanHarness, { onMoved });
-    const card = within(screen.getByRole('region', { name: 'To do' }))
-      .getByText('Write brief')
-      .closest('[draggable="true"]') as HTMLElement;
-    const doneColumn = screen.getByRole('region', { name: 'Done' });
-    const store = new Map<string, string>();
-    const dataTransfer = {
-      setData: (type: string, value: string) => store.set(type, value),
-      getData: (type: string) => store.get(type) ?? '',
-      effectAllowed: 'all',
-      dropEffect: 'none',
-    };
-    await fireEvent.dragStart(card, { dataTransfer });
-    await fireEvent.dragOver(doneColumn, { dataTransfer });
-    await fireEvent.drop(doneColumn, { dataTransfer });
+    await keyboardMove('Write brief', ['ArrowRight', 'ArrowRight']);
     await waitFor(() => expect(onMoved).toHaveBeenCalledWith('t1', 'done'));
-    expect(
-      within(screen.getByRole('region', { name: 'Done' })).getByText('Write brief')
-    ).toBeTruthy();
+    await waitFor(() => expect(within(column('Done')).getByText('Write brief')).toBeTruthy());
+  });
+
+  it('never reorders inside a column and honors canMove', async () => {
+    const onMoved = vi.fn();
+    render(KanbanHarness, { onMoved });
+    await keyboardMove('Write brief', ['ArrowDown']);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(onMoved).not.toHaveBeenCalled();
+    expect(live()).toContain('Write brief is already in To do.');
+
+    // canMove(t3, 'done') is false in the harness.
+    await keyboardMove('Plan sprint', ['ArrowRight', 'ArrowRight']);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(onMoved).not.toHaveBeenCalledWith('t3', 'done');
+    expect(within(column('Done')).queryByText('Plan sprint')).toBeNull();
+  });
+
+  it('puts the card back and announces it when onMove throws', async () => {
+    render(KanbanHarness, { fail: true });
+    await keyboardMove('Write brief', ['ArrowRight']);
+    await waitFor(() =>
+      expect(live()).toBe('Write brief was not moved. It returned to its previous position.')
+    );
+    expect(within(column('To do')).getByText('Write brief')).toBeTruthy();
+    expect(within(column('In progress')).queryByText('Write brief')).toBeNull();
   });
 });
