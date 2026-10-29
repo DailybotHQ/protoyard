@@ -45,9 +45,13 @@ afterAll(async () => {
  * Re-measured 2026-10-28 on npm Texuli 0.5.0: initial JS
  * 106,340 B gzip (from 134,092 B: with DeckApp's own free renderer and block
  * check and `defaultRenderers={false}`, the stage no longer reaches its default
- * tables, the built-in block chunk or `migrateDeck` on the first screen),
- * first-screen CSS 8,479 B, all emitted CSS 79,410 B. Caps at +5 %: 111,657 B,
- * 8,903 B and 83,381 B.
+ * tables or the built-in block chunk on the first screen), first-screen CSS
+ * 8,479 B, all emitted CSS 79,410 B. Caps at +5 %: 111,657 B, 8,903 B and
+ * 83,381 B. `migrateDeck` stays on the entry by choice: DeckApp converts the
+ * Protoyard deck once (`checkProtoyardDeck`) and hands the stage a v2 deck, so
+ * the stage paints on the first render instead of showing its loading status
+ * while its lazy migration chunk loads (the stage then validates that deck
+ * again: Texuli takes no prepared deck).
  *
  * Note for the all-CSS cap: most of it (all CSS was 23,663 B before the stage)
  * is lazy stylesheets of the stage's default component registry
