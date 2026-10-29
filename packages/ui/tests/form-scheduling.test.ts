@@ -235,74 +235,87 @@ describe('time-zone helpers', () => {
   });
 });
 
+/** Types into one segment of a Texuli date or time field. */
+async function typeSegment(group: HTMLElement, name: string, value: string) {
+  const input = within(group).getByRole('spinbutton', { name }) as HTMLInputElement;
+  await fireEvent.input(input, { target: { value } });
+}
+
+/** Types a whole `YYYY-MM-DD` date into a segmented field group. */
+async function typeDate(group: HTMLElement, iso: string) {
+  const [year = '', month = '', day = ''] = iso.split('-');
+  await typeSegment(group, 'Year', String(Number(year)));
+  await typeSegment(group, 'Month', String(Number(month)));
+  await typeSegment(group, 'Day', String(Number(day)));
+}
+
+/** Leaves a field group (blur to the page), which commits typed text. */
+async function leave(group: HTMLElement) {
+  await fireEvent.focusOut(group, { relatedTarget: null });
+}
+
 describe('Calendar', () => {
-  it('renders a labelled grid that marks today and the selection', () => {
-    render(Calendar, { selected: '2026-03-10', today: '2026-03-04', locale: 'en-US' });
-    const grid = screen.getByRole('grid', { name: 'Choose a date, March 2026' });
-    expect(within(grid).getAllByRole('columnheader')).toHaveLength(7);
-    const today = within(grid).getByRole('button', { name: 'Wednesday, March 4, 2026' });
-    expect(today.getAttribute('aria-current')).toBe('date');
-    const selected = within(grid).getByRole('button', { name: 'Tuesday, March 10, 2026' });
-    expect(selected.closest('td')?.getAttribute('aria-selected')).toBe('true');
-    // One tab stop: the selected date.
-    expect(grid.querySelectorAll('button[tabindex="0"]')).toHaveLength(1);
-    expect(selected.getAttribute('tabindex')).toBe('0');
+  it('renders a labelled grid that marks the simulated today and the selection', () => {
+    // A clock far from the scenario's: the calendar must not read it.
+    vi.useFakeTimers({ now: Date.UTC(2031, 6, 1), toFake: ['Date'] });
+    try {
+      render(Calendar, { selected: '2026-03-10', today: '2026-03-04', locale: 'en-US' });
+      expect(screen.getByRole('group', { name: 'Choose a date' })).toBeTruthy();
+      const grid = screen.getByRole('grid', { name: 'March 2026' });
+      expect(within(grid).getAllByRole('columnheader')).toHaveLength(7);
+      const today = within(grid).getByRole('button', { name: 'Wednesday, March 4, 2026' });
+      expect(today.getAttribute('aria-current')).toBe('date');
+      expect(grid.querySelectorAll('[aria-current="date"]')).toHaveLength(1);
+      const selected = within(grid).getByRole('button', { name: 'Tuesday, March 10, 2026' });
+      expect(selected.closest('td')?.getAttribute('aria-selected')).toBe('true');
+      // One tab stop: the selected date.
+      expect(grid.querySelectorAll('button[tabindex="0"]')).toHaveLength(1);
+      expect(selected.getAttribute('tabindex')).toBe('0');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('moves focus with arrows, Home/End and PageUp/PageDown', async () => {
-    render(Calendar, { selected: '2026-03-31', locale: 'en-US' });
+    render(Calendar, { selected: '2026-03-31', today: '2026-03-04', locale: 'en-US' });
     const start = screen.getByRole('button', { name: 'Tuesday, March 31, 2026' });
     start.focus();
+    const focused = () => document.activeElement?.getAttribute('data-calendar-date');
     await fireEvent.keyDown(start, { key: 'ArrowRight' });
-    await waitFor(() =>
-      expect(document.activeElement?.getAttribute('data-date')).toBe('2026-04-01')
-    );
-    expect(screen.getByRole('grid').getAttribute('aria-label')).toContain('April 2026');
+    await waitFor(() => expect(focused()).toBe('2026-04-01'));
+    expect(screen.getByRole('grid', { name: 'April 2026' })).toBeTruthy();
     await fireEvent.keyDown(document.activeElement as Element, { key: 'ArrowDown' });
-    await waitFor(() =>
-      expect(document.activeElement?.getAttribute('data-date')).toBe('2026-04-08')
-    );
+    await waitFor(() => expect(focused()).toBe('2026-04-08'));
+    // Weeks start on Monday (ISO 1) by default.
     await fireEvent.keyDown(document.activeElement as Element, { key: 'Home' });
-    await waitFor(() =>
-      expect(document.activeElement?.getAttribute('data-date')).toBe('2026-04-06')
-    );
+    await waitFor(() => expect(focused()).toBe('2026-04-06'));
     await fireEvent.keyDown(document.activeElement as Element, { key: 'End' });
-    await waitFor(() =>
-      expect(document.activeElement?.getAttribute('data-date')).toBe('2026-04-12')
-    );
+    await waitFor(() => expect(focused()).toBe('2026-04-12'));
     await fireEvent.keyDown(document.activeElement as Element, { key: 'PageUp' });
-    await waitFor(() =>
-      expect(document.activeElement?.getAttribute('data-date')).toBe('2026-03-12')
-    );
+    await waitFor(() => expect(focused()).toBe('2026-03-12'));
     await fireEvent.keyDown(document.activeElement as Element, { key: 'PageDown', shiftKey: true });
-    await waitFor(() =>
-      expect(document.activeElement?.getAttribute('data-date')).toBe('2027-03-12')
-    );
+    await waitFor(() => expect(focused()).toBe('2027-03-12'));
     await fireEvent.keyDown(document.activeElement as Element, { key: 'ArrowUp' });
-    await waitFor(() =>
-      expect(document.activeElement?.getAttribute('data-date')).toBe('2027-03-05')
-    );
+    await waitFor(() => expect(focused()).toBe('2027-03-05'));
     await fireEvent.keyDown(document.activeElement as Element, { key: 'ArrowLeft' });
-    await waitFor(() =>
-      expect(document.activeElement?.getAttribute('data-date')).toBe('2027-03-04')
-    );
+    await waitFor(() => expect(focused()).toBe('2027-03-04'));
   });
 
   it('changes month from the header without picking', async () => {
     const onselect = vi.fn();
     render(Calendar, { selected: '2026-03-10', locale: 'en-US', onselect });
     await fireEvent.click(screen.getByRole('button', { name: 'Next month' }));
-    expect(screen.getByRole('grid').getAttribute('aria-label')).toContain('April 2026');
+    expect(screen.getByRole('grid', { name: 'April 2026' })).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'Previous month' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Previous month' }));
-    expect(screen.getByRole('grid').getAttribute('aria-label')).toContain('February 2026');
+    expect(screen.getByRole('grid', { name: 'February 2026' })).toBeTruthy();
     expect(onselect).not.toHaveBeenCalled();
   });
 
   it('picks available dates and refuses unavailable ones', async () => {
     const onselect = vi.fn();
     render(Calendar, {
-      focusDate: '2026-03-10',
+      today: '2026-03-10',
       min: '2026-03-05',
       isDateDisabled: (d: string) => d === '2026-03-12',
       locale: 'en-US',
@@ -320,57 +333,108 @@ describe('Calendar', () => {
   });
 
   it('starts the week on Sunday when asked', () => {
-    render(Calendar, { focusDate: '2026-03-10', weekStartsOn: 7, locale: 'en-US' });
+    render(Calendar, { today: '2026-03-10', weekStartsOn: 7, locale: 'en-US' });
     const headers = screen.getAllByRole('columnheader');
-    expect(headers[0]?.getAttribute('abbr')).toBe('Sunday');
+    expect(headers[0]?.getAttribute('aria-label')).toBe('Sunday');
+  });
+
+  it('highlights a range, picks a new one in two clicks and refuses one over maxDays', async () => {
+    const onselect = vi.fn();
+    const onRangeChange = vi.fn();
+    const onInvalid = vi.fn();
+    render(Calendar, {
+      range: { start: '2026-03-10', end: '2026-03-12' },
+      today: '2026-03-04',
+      maxDays: 7,
+      locale: 'en-US',
+      onselect,
+      onRangeChange,
+      onInvalid,
+    });
+    const grid = screen.getByRole('grid', { name: 'March 2026' });
+    expect(grid.getAttribute('aria-multiselectable')).toBe('true');
+    const chosen = Array.from(grid.querySelectorAll('td[aria-selected="true"] button'));
+    expect(chosen.map((b) => b.getAttribute('data-calendar-date'))).toEqual([
+      '2026-03-10',
+      '2026-03-11',
+      '2026-03-12',
+    ]);
+    const day = (name: string) => within(grid).getByRole('button', { name });
+    await fireEvent.click(day('Friday, March 20, 2026'));
+    expect(onRangeChange).toHaveBeenLastCalledWith({ start: '2026-03-20', end: null });
+    await fireEvent.click(day('Monday, March 16, 2026'));
+    expect(onRangeChange).toHaveBeenLastCalledWith({ start: '2026-03-16', end: '2026-03-20' });
+    expect(onselect.mock.calls.map((c) => c[0])).toEqual(['2026-03-20', '2026-03-16']);
+
+    await fireEvent.click(day('Sunday, March 1, 2026'));
+    await fireEvent.click(day('Monday, March 23, 2026'));
+    expect(onInvalid).toHaveBeenCalledExactlyOnceWith('2026-03-01/2026-03-23', 'too-long');
+    expect(onRangeChange).toHaveBeenLastCalledWith({ start: '2026-03-01', end: null });
   });
 });
 
 describe('DatePicker', () => {
-  it('commits a typed valid date as a typed value', async () => {
+  it('commits a typed date when the field is left, not on every keystroke', async () => {
     const onValueChange = vi.fn();
-    render(DatePicker, { 'aria-label': 'Due date', onValueChange });
-    const input = screen.getByRole('textbox', { name: 'Due date' });
-    await fireEvent.input(input, { target: { value: '2026-03-04' } });
-    await fireEvent.change(input);
+    render(DatePicker, { 'aria-label': 'Due date', locale: 'en-US', onValueChange });
+    const field = screen.getByRole('group', { name: 'Due date' });
+    // Segments in the locale's order: month, day, year.
+    expect(
+      within(field)
+        .getAllByRole('spinbutton')
+        .map((s) => s.getAttribute('aria-label'))
+    ).toEqual(['Month', 'Day', 'Year']);
+    await typeDate(field, '2026-03-04');
+    expect(onValueChange).not.toHaveBeenCalled();
+    await leave(field);
     expect(onValueChange).toHaveBeenCalledExactlyOnceWith('2026-03-04');
-    expect(input.getAttribute('aria-invalid')).toBeNull();
+    expect(field.getAttribute('aria-invalid')).toBeNull();
     expect(
       screen.getByRole('button', { name: /Choose a date, Wednesday, March 4, 2026/ })
     ).toBeTruthy();
   });
 
-  it('reports invalid and out-of-range dates and keeps the value', async () => {
+  it('reports invalid, out-of-range and unavailable dates and keeps the value', async () => {
     const onValueChange = vi.fn();
     const onInvalid = vi.fn();
     render(DatePicker, {
       value: '2026-03-10',
       max: '2026-03-31',
+      isDateDisabled: (d: string) => d === '2026-03-14',
       'aria-label': 'Due date',
+      locale: 'en-US',
       onValueChange,
       onInvalid,
     });
-    const input = screen.getByRole('textbox', { name: 'Due date' }) as HTMLInputElement;
-    expect(input.value).toBe('2026-03-10');
-    await fireEvent.input(input, { target: { value: '2026-02-30' } });
-    await fireEvent.change(input);
-    expect(input.getAttribute('aria-invalid')).toBe('true');
-    const message = screen.getByText('Enter a real date as YYYY-MM-DD.');
-    expect(input.getAttribute('aria-describedby')).toContain(message.id);
-    expect(onInvalid).toHaveBeenCalledWith('format', '2026-02-30');
+    const field = screen.getByRole('group', { name: 'Due date' });
+    const segment = (name: string) =>
+      (within(field).getByRole('spinbutton', { name }) as HTMLInputElement).value;
+    expect([segment('Month'), segment('Day'), segment('Year')]).toEqual(['3', '10', '2026']);
 
-    await fireEvent.input(input, { target: { value: '2026-04-02' } });
-    await fireEvent.change(input);
+    await typeDate(field, '2026-02-30');
+    await leave(field);
+    expect(field.getAttribute('aria-invalid')).toBe('true');
+    const message = screen.getByText('Enter a real date as YYYY-MM-DD.');
+    expect(field.getAttribute('aria-describedby')).toContain(message.id);
+    expect(onInvalid).toHaveBeenLastCalledWith('format', '2026-02-30');
+
+    await typeDate(field, '2026-04-02');
+    await leave(field);
     expect(screen.getByText('Choose 2026-03-31 or earlier.')).toBeTruthy();
+    expect(onInvalid).toHaveBeenLastCalledWith('after-max', '2026-04-02');
+
+    await typeDate(field, '2026-03-14');
+    await leave(field);
+    expect(onInvalid).toHaveBeenLastCalledWith('unavailable', '2026-03-14');
     expect(onValueChange).not.toHaveBeenCalled();
 
-    await fireEvent.input(input, { target: { value: '' } });
-    await fireEvent.change(input);
+    for (const name of ['Month', 'Day', 'Year']) await typeSegment(field, name, '');
+    await leave(field);
     expect(onValueChange).toHaveBeenCalledExactlyOnceWith(null);
-    expect(input.getAttribute('aria-invalid')).toBeNull();
+    expect(field.getAttribute('aria-invalid')).toBeNull();
   });
 
-  it('opens the calendar from the button and picks a date', async () => {
+  it('opens the calendar from the button and picks a date at once', async () => {
     const onValueChange = vi.fn();
     render(DatePicker, {
       value: '2026-03-10',
@@ -380,15 +444,22 @@ describe('DatePicker', () => {
       onValueChange,
     });
     await fireEvent.click(screen.getByRole('button', { name: /Choose a date/ }));
-    const grid = await screen.findByRole('grid');
+    const dialog = await screen.findByRole('dialog', { name: 'Choose a date' });
+    const grid = within(dialog).getByRole('grid', { name: 'March 2026' });
     await waitFor(() =>
-      expect(document.activeElement?.getAttribute('data-date')).toBe('2026-03-10')
+      expect(document.activeElement?.getAttribute('data-calendar-date')).toBe('2026-03-10')
     );
+    expect(
+      within(grid)
+        .getByRole('button', { name: 'Wednesday, March 4, 2026' })
+        .getAttribute('aria-current')
+    ).toBe('date');
     await fireEvent.click(within(grid).getByRole('button', { name: 'Friday, March 20, 2026' }));
     expect(onValueChange).toHaveBeenCalledExactlyOnceWith('2026-03-20');
     await waitFor(() => expect(screen.queryByRole('grid')).toBeNull());
-    expect((screen.getByRole('textbox', { name: 'Due date' }) as HTMLInputElement).value).toBe(
-      '2026-03-20'
+    const field = screen.getByRole('group', { name: 'Due date' });
+    expect((within(field).getByRole('spinbutton', { name: 'Day' }) as HTMLInputElement).value).toBe(
+      '20'
     );
   });
 });
@@ -396,16 +467,18 @@ describe('DatePicker', () => {
 describe('DateRangePicker', () => {
   it('commits a complete typed range', async () => {
     const onValueChange = vi.fn();
-    render(DateRangePicker, { onValueChange });
-    const start = screen.getByRole('textbox', { name: 'Start date' });
-    const end = screen.getByRole('textbox', { name: 'End date' });
-    await fireEvent.input(start, { target: { value: '2026-03-01' } });
-    await fireEvent.change(start);
+    render(DateRangePicker, { locale: 'en-US', onValueChange });
+    const range = screen.getByRole('group', { name: 'Date range' });
+    const start = within(range).getByRole('group', { name: 'Start date' });
+    const end = within(range).getByRole('group', { name: 'End date' });
+    await typeDate(start, '2026-03-01');
+    await leave(range);
     // A half-filled range waits quietly.
     expect(onValueChange).not.toHaveBeenCalled();
-    expect(start.getAttribute('aria-invalid')).toBeNull();
-    await fireEvent.input(end, { target: { value: '2026-03-07' } });
-    await fireEvent.change(end);
+    expect(range.getAttribute('aria-invalid')).toBeNull();
+    await typeDate(end, '2026-03-07');
+    expect(onValueChange).not.toHaveBeenCalled();
+    await leave(range);
     expect(onValueChange).toHaveBeenCalledExactlyOnceWith({
       start: '2026-03-01',
       end: '2026-03-07',
@@ -418,19 +491,22 @@ describe('DateRangePicker', () => {
     render(DateRangePicker, {
       value: { start: '2026-03-01', end: '2026-03-03' },
       maxDays: 7,
+      locale: 'en-US',
       onValueChange,
       onInvalid,
     });
-    const end = screen.getByRole('textbox', { name: 'End date' });
-    await fireEvent.input(end, { target: { value: '2026-02-31' } });
-    await fireEvent.change(end);
+    const range = screen.getByRole('group', { name: 'Date range' });
+    const end = within(range).getByRole('group', { name: 'End date' });
+    await typeSegment(end, 'Month', '2');
+    await typeSegment(end, 'Day', '31');
+    await leave(range);
     expect(screen.getByText('Enter the end date as YYYY-MM-DD.')).toBeTruthy();
-    expect(end.getAttribute('aria-invalid')).toBe('true');
-    await fireEvent.input(end, { target: { value: '2026-02-20' } });
-    await fireEvent.change(end);
+    expect(range.getAttribute('aria-invalid')).toBe('true');
+    await typeSegment(end, 'Day', '20');
+    await leave(range);
     expect(screen.getByText('The end date must be on or after the start date.')).toBeTruthy();
-    await fireEvent.input(end, { target: { value: '2026-03-20' } });
-    await fireEvent.change(end);
+    await typeSegment(end, 'Month', '3');
+    await leave(range);
     expect(screen.getByText('The range is longer than allowed.')).toBeTruthy();
     expect(onInvalid.mock.calls.map((c) => c[0])).toEqual([
       'invalid-end',
@@ -444,11 +520,12 @@ describe('DateRangePicker', () => {
     const onValueChange = vi.fn();
     render(DateRangePicker, {
       value: { start: '2026-03-10', end: '2026-03-12' },
+      today: '2026-03-04',
       locale: 'en-US',
       onValueChange,
     });
     await fireEvent.click(screen.getByRole('button', { name: /Choose a date range/ }));
-    const grid = await screen.findByRole('grid');
+    const grid = await screen.findByRole('grid', { name: 'March 2026' });
     await fireEvent.click(within(grid).getByRole('button', { name: 'Friday, March 20, 2026' }));
     expect(screen.getByText('Start 2026-03-20. Now choose the end date.')).toBeTruthy();
     expect(onValueChange).not.toHaveBeenCalled();
@@ -459,6 +536,27 @@ describe('DateRangePicker', () => {
     });
     await waitFor(() => expect(screen.queryByRole('grid')).toBeNull());
   });
+
+  it('refuses a calendar range over maxDays and keeps the dialog open', async () => {
+    const onValueChange = vi.fn();
+    const onInvalid = vi.fn();
+    render(DateRangePicker, {
+      value: { start: '2026-03-10', end: '2026-03-12' },
+      today: '2026-03-04',
+      maxDays: 7,
+      locale: 'en-US',
+      onValueChange,
+      onInvalid,
+    });
+    await fireEvent.click(screen.getByRole('button', { name: /Choose a date range/ }));
+    const grid = await screen.findByRole('grid', { name: 'March 2026' });
+    await fireEvent.click(within(grid).getByRole('button', { name: 'Sunday, March 1, 2026' }));
+    await fireEvent.click(within(grid).getByRole('button', { name: 'Monday, March 23, 2026' }));
+    expect(onInvalid).toHaveBeenCalledExactlyOnceWith('too-long');
+    expect(screen.getByText('The range is longer than allowed.')).toBeTruthy();
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('grid', { name: 'March 2026' })).toBeTruthy();
+  });
 });
 
 describe('TimeInput', () => {
@@ -466,36 +564,48 @@ describe('TimeInput', () => {
     const onValueChange = vi.fn();
     render(TimeInput, { value: '17:30', label: 'Send at', onValueChange });
     const group = screen.getByRole('group', { name: 'Send at' });
-    const hour = within(group).getByRole('combobox', { name: 'Hour' }) as HTMLSelectElement;
-    const minute = within(group).getByRole('combobox', { name: 'Minute' }) as HTMLSelectElement;
+    const hour = within(group).getByRole('spinbutton', { name: 'Hour' }) as HTMLInputElement;
+    const minute = within(group).getByRole('spinbutton', { name: 'Minute' }) as HTMLInputElement;
     const period = within(group).getByRole('combobox', { name: 'AM or PM' }) as HTMLSelectElement;
     expect([hour.value, minute.value, period.value]).toEqual(['5', '30', 'PM']);
     await fireEvent.change(period, { target: { value: 'AM' } });
     expect(onValueChange).toHaveBeenLastCalledWith('05:30');
-    await fireEvent.change(hour, { target: { value: '12' } });
+    await fireEvent.input(hour, { target: { value: '12' } });
     expect(onValueChange).toHaveBeenLastCalledWith('00:30');
   });
 
   it('waits for both hour and minute and steps minutes by the interval', async () => {
     const onValueChange = vi.fn();
     render(TimeInput, { format: 24, intervalMinutes: 30, onValueChange });
-    const hour = screen.getByRole('combobox', { name: 'Hour' }) as HTMLSelectElement;
-    const minute = screen.getByRole('combobox', { name: 'Minute' }) as HTMLSelectElement;
+    const hour = screen.getByRole('spinbutton', { name: 'Hour' }) as HTMLInputElement;
+    const minute = screen.getByRole('spinbutton', { name: 'Minute' }) as HTMLInputElement;
     expect(screen.queryByRole('combobox', { name: 'AM or PM' })).toBeNull();
-    expect(Array.from(minute.options).map((o) => o.value)).toEqual(['', '0', '30']);
-    await fireEvent.change(hour, { target: { value: '23' } });
+    expect(minute.step).toBe('30');
+    await fireEvent.input(hour, { target: { value: '23' } });
     expect(onValueChange).not.toHaveBeenCalled();
-    await fireEvent.change(minute, { target: { value: '30' } });
+    await fireEvent.input(minute, { target: { value: '30' } });
     expect(onValueChange).toHaveBeenCalledExactlyOnceWith('23:30');
+    await fireEvent.keyDown(minute, { key: 'ArrowUp' });
+    expect(onValueChange).toHaveBeenLastCalledWith('23:00');
   });
 
-  it('keeps an off-step minute and ignores an invalid value', () => {
-    render(TimeInput, { value: '08:07', format: 24 });
-    const minute = screen.getByRole('combobox', { name: 'Minute' }) as HTMLSelectElement;
+  it('keeps an off-step minute, ignores an invalid value and never emits an incomplete time', async () => {
+    const onValueChange = vi.fn();
+    render(TimeInput, { value: '08:07', format: 24, onValueChange });
+    const minute = screen.getByRole('spinbutton', { name: 'Minute' }) as HTMLInputElement;
     expect(minute.value).toBe('7');
+    await fireEvent.input(screen.getByRole('spinbutton', { name: 'Hour' }), {
+      target: { value: '' },
+    });
+    expect(onValueChange).not.toHaveBeenCalled();
     cleanup();
     render(TimeInput, { value: '25:00', format: 24 });
-    expect((screen.getByRole('combobox', { name: 'Hour' }) as HTMLSelectElement).value).toBe('');
+    expect((screen.getByRole('spinbutton', { name: 'Hour' }) as HTMLInputElement).value).toBe('');
+  });
+
+  it('submits the value under its name', () => {
+    const { container } = render(TimeInput, { value: '09:15', name: 'sendAt' });
+    expect(container.querySelector<HTMLInputElement>('input[name="sendAt"]')?.value).toBe('09:15');
   });
 });
 
@@ -537,7 +647,7 @@ describe('WeekdayPicker', () => {
     expect(screen.getByRole('button', { name: 'Sunday' }).getAttribute('tabindex')).toBe('0');
   });
 
-  it('submits the selection through hidden inputs and respects disabled', () => {
+  it('submits one form entry per selected day (ToggleGroup name) and respects disabled', () => {
     const { container } = render(WeekdayPicker, { value: [2, 4], name: 'days', disabled: true });
     const hidden = Array.from(container.querySelectorAll<HTMLInputElement>('input[name="days"]'));
     expect(hidden.map((i) => i.value)).toEqual(['2', '4']);
@@ -563,20 +673,25 @@ describe('TimeZoneSelect', () => {
 describe('FormField integration', () => {
   it('takes the field id, description, invalid and required flags', () => {
     render(SchedulingFormHarness, { error: 'Fix this field' });
-    const hour = screen.getByRole('combobox', { name: 'Hour' }) as HTMLSelectElement;
-    // The visible label targets the first segment of the time group.
+    // Texuli's time and date fields are groups of segments: the label targets the group.
+    const time = screen.getByRole('group', { name: 'Send at' });
     const label = screen.getByText('Send at', { selector: 'label' });
-    expect(label.getAttribute('for')).toBe(hour.id);
+    expect(label.getAttribute('for')).toBe(time.id);
+    const hour = within(time).getByRole('spinbutton', { name: 'Hour' }) as HTMLInputElement;
     expect(hour.required).toBe(true);
-    expect(hour.getAttribute('aria-invalid')).toBe('true');
-    expect(hour.getAttribute('aria-describedby')).toContain(`${hour.id}-description`);
+    expect(time.getAttribute('aria-invalid')).toBe('true');
+    expect(time.getAttribute('aria-describedby')).toContain(`${time.id}-description`);
 
     const days = screen.getByRole('group', { name: 'Repeat on' });
     expect(days.getAttribute('aria-describedby')).toContain(`${days.id}-error`);
 
-    const starts = screen.getByLabelText(/^Starts/, { selector: 'input' }) as HTMLInputElement;
-    expect(starts.required).toBe(true);
+    // DatePicker takes its name from FormField's `<label for>` (without the required marker).
+    const starts = screen.getByRole('group', { name: 'Starts' });
+    expect(screen.getByText('Starts', { selector: 'label' }).getAttribute('for')).toBe(starts.id);
+    const year = within(starts).getByRole('spinbutton', { name: 'Year' }) as HTMLInputElement;
+    expect(year.required).toBe(true);
     expect(starts.getAttribute('aria-invalid')).toBe('true');
+    expect(starts.getAttribute('aria-describedby')).toContain(`${starts.id}-error`);
   });
 });
 

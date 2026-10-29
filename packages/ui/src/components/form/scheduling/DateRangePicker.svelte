@@ -1,27 +1,36 @@
 <script lang="ts">
 import { CalendarDays } from '@lucide/svelte';
+import { type DateInvalidReason, DateRangePicker as Picker } from '@texuli/primitives/date-picker';
+import { dateCalendarClass, dateFieldClass } from 'texuli/date';
+import { Icon } from 'texuli/icons';
 import { cn } from '../../../lib/cn.ts';
-import { fieldClasses } from '../../input/input-classes.ts';
-import Popover from '../../popover/Popover.svelte';
-import Calendar from './Calendar.svelte';
 import {
-  checkDateText,
   DATE_RANGE_MESSAGES,
   type DateRange,
   type DateRangeIssue,
-  formatIsoDate,
   type IsoDate,
-  isWithinBounds,
-  normalizeDateRange,
   validateDateRange,
 } from './dates.ts';
+import {
+  segmentsEmpty,
+  segmentsPartial,
+  texuliUnavailable,
+  texuliWeekStart,
+  typedIsoText,
+} from './texuli-date.ts';
 import type { IsoWeekday } from './weekdays.ts';
 
 /**
- * DateRangePicker — start and end `YYYY-MM-DD` fields plus a calendar that
- * picks the range in two clicks (the second click before the first swaps the
- * ends). The bound value only changes to a complete, valid range or to an
- * empty one; any other entry is reported inline and leaves the value as it was.
+ * DateRangePicker — Texuli's date range picker
+ * (`@texuli/primitives/date-picker`, styled with the `texuli/date` recipes):
+ * segmented start and end fields, a calendar button, and a range calendar
+ * that picks the range in two clicks (a second click before the first swaps
+ * the ends; a range over `maxDays` is refused and announced). It composes the
+ * parts so it can sit inside FormField.
+ *
+ * The bound value only changes to a complete, valid range or to an empty
+ * one; any other entry is reported inline (when the fields are left, or at
+ * once for a calendar pick) and leaves the value as it was.
  */
 interface Props {
   value?: DateRange;
@@ -31,10 +40,11 @@ interface Props {
   maxDays?: number;
   required?: boolean;
   isDateDisabled?: (date: IsoDate) => boolean;
+  /** Today's date for the calendar marker; pass the scenario clock's date (the clock is then never read). */
   today?: IsoDate | null;
   weekStartsOn?: IsoWeekday;
   locale?: string;
-  /** Id of the start field, so a `<label for>` or FormField focuses it. */
+  /** Id of the field group, so a `<label for>` or FormField points at it. */
   id?: string;
   name?: string;
   disabled?: boolean;
@@ -84,38 +94,58 @@ let {
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
 
 const errorId = $derived(`${id}-issue`);
-let startText = $state('');
-let endText = $state('');
+/** What the fields show; it only becomes `value` once complete and valid. */
+let draft = $state<DateRange>({ start: null, end: null });
 let issue = $state<DateRangeIssue | null>(null);
+/** A refusal Texuli reported while typing, reported when the fields are left. */
+let typed = $state<DateRangeIssue | null>(null);
 let open = $state(false);
-let focusDate = $state<IsoDate | null>(null);
-/** First click of a calendar pick, waiting for the second. */
-let pending = $state<IsoDate | null>(null);
-let calendar = $state<ReturnType<typeof Calendar> | null>(null);
+/** A first calendar pick is waiting for the second. */
+let picking = $state(false);
+let control = $state<HTMLDivElement | null>(null);
+/** The date field (start or end) the last keystroke went to. */
+let typingIn: 'start' | 'end' = 'start';
 
 $effect(() => {
-  startText = value.start ?? '';
-  endText = value.end ?? '';
+  draft = { start: value.start, end: value.end };
   issue = null;
+  typed = null;
 });
 
-const invalid = $derived(issue !== null || ariaInvalid === true || ariaInvalid === 'true');
+// Closing the dialog with half a pick restores the committed range.
+$effect(() => {
+  if (open || !picking) return;
+  picking = false;
+  draft = { start: value.start, end: value.end };
+});
+
+const invalid = $derived(
+  issue !== null || typed !== null || ariaInvalid === true || ariaInvalid === 'true'
+);
 const describedByAll = $derived(
   [describedBy, issue ? errorId : null].filter(Boolean).join(' ') || undefined
 );
-const highlight = $derived<DateRange>(pending ? { start: pending, end: null } : value);
 const rules = $derived({ min, max, maxDays, required });
+
+function fields(): [Element | null, Element | null] {
+  const all = control?.querySelectorAll('[data-tx-date-field-root]') ?? [];
+  return [all[0] ?? null, all[1] ?? null];
+}
+
+function report(found: DateRangeIssue) {
+  issue = found;
+  onInvalid?.(found);
+}
 
 function apply(next: DateRange): boolean {
   const found = validateDateRange(next, rules);
   if (found) {
-    issue = found;
-    onInvalid?.(found);
+    report(found);
     return false;
   }
   issue = null;
-  startText = next.start ?? '';
-  endText = next.end ?? '';
+  typed = null;
+  draft = { start: next.start, end: next.end };
   if (next.start !== value.start || next.end !== value.end) {
     value = next;
     onValueChange?.(next);
@@ -123,135 +153,122 @@ function apply(next: DateRange): boolean {
   return true;
 }
 
-function commitText() {
-  const start = checkDateText(startText, { isDateDisabled });
-  const end = checkDateText(endText, { isDateDisabled });
-  if (start.issue) {
-    issue = 'invalid-start';
-    onInvalid?.(issue);
+function commit() {
+  if (typed) {
+    report(typed);
     return;
   }
-  if (end.issue) {
-    issue = 'invalid-end';
-    onInvalid?.(issue);
-    return;
-  }
+  const [startField, endField] = fields();
+  if (segmentsPartial(startField)) return report('invalid-start');
+  if (segmentsPartial(endField)) return report('invalid-end');
+  const next: DateRange = {
+    start: segmentsEmpty(startField) ? null : draft.start,
+    end: segmentsEmpty(endField) ? null : draft.end,
+  };
+  if (next.start === value.start && next.end === value.end) return;
   // A half-filled range waits for the other field without nagging.
-  if ((start.value === null) !== (end.value === null) && !required) {
+  if ((next.start === null) !== (next.end === null) && !required) {
     issue = null;
     return;
   }
-  apply({ start: start.value, end: end.value });
+  apply(next);
 }
 
-function pick(date: IsoDate) {
-  if (!pending) {
-    pending = date;
-    return;
+function texuliInvalid(text: string, reason: DateInvalidReason) {
+  let found: DateRangeIssue;
+  if (reason === 'too-long') found = 'too-long';
+  else if (reason === 'invalid') found = typingIn === 'start' ? 'invalid-start' : 'invalid-end';
+  else {
+    // Out of range: past the other end, or outside min/max.
+    const iso = typedIsoText(text, locale);
+    const reversed =
+      iso !== null &&
+      (typingIn === 'start'
+        ? draft.end !== null && iso > draft.end
+        : draft.start !== null && iso < draft.start);
+    found = reversed ? 'end-before-start' : 'out-of-bounds';
   }
-  const next = normalizeDateRange({ start: pending, end: date });
-  pending = null;
-  if (apply(next)) open = false;
+  // A refused calendar pick is reported at once; typing waits for blur or Enter.
+  if (open) report(found);
+  else typed = found;
 }
 
-const fieldClass = cn(
-  fieldClasses,
-  'ui-input flex h-9 min-h-touch px-3 py-1 tabular-nums sm:min-h-0'
-);
-const summary = $derived(
-  value.start && value.end
-    ? `${calendarLabel}, ${formatIsoDate(value.start, locale)} to ${formatIsoDate(value.end, locale)}`
-    : calendarLabel
+const hint = $derived(
+  picking && draft.start
+    ? `Start ${draft.start}. Now choose the end date.`
+    : 'Choose the start date.'
 );
 </script>
 
-<div class={cn('ui-date-range-picker grid gap-1', className)}>
-  <div
-    role="group"
-    aria-label={labelledBy ? undefined : label}
-    aria-labelledby={labelledBy}
-    class="flex flex-wrap items-center gap-2"
+<div
+  class={cn(dateFieldClass(), 'tx-date--range ui-date-range-picker', className)}
+  data-tx-date
+  data-invalid={invalid ? 'true' : undefined}
+  data-disabled={disabled ? 'true' : undefined}
+>
+  <Picker.Root
+    bind:value={draft}
+    bind:open
+    {...locale ? { locale } : {}}
+    {...min ? { minValue: min } : {}}
+    {...max ? { maxValue: max } : {}}
+    {...isDateDisabled ? { isDateUnavailable: texuliUnavailable(isDateDisabled) } : {}}
+    {...today ? { today } : {}}
+    weekStartsOn={texuliWeekStart(weekStartsOn)}
+    {...maxDays !== undefined ? { maxDays } : {}}
+    {disabled}
+    labels={{
+      trigger: calendarLabel,
+      triggerWithValue: `${calendarLabel}, {date}`,
+      dialog: calendarLabel,
+      start: startLabel,
+      end: endLabel,
+    }}
+    onInvalid={texuliInvalid}
+    onValueChange={(next) => {
+      if (!open) {
+        if (next.start !== null && next.end !== null) typed = null;
+        return;
+      }
+      // Calendar picks: the first sets the start, the second completes the range.
+      if (next.end === null) {
+        picking = true;
+        return;
+      }
+      picking = false;
+      apply(next);
+    }}
   >
-    <input
-      {id}
-      type="text"
-      inputmode="numeric"
-      autocomplete="off"
-      spellcheck="false"
-      maxlength={10}
-      placeholder="YYYY-MM-DD"
-      class={cn(fieldClass, 'w-36 flex-1')}
-      aria-label={startLabel}
-      aria-invalid={invalid || undefined}
-      aria-describedby={describedByAll}
-      {disabled}
-      required={required || undefined}
-      bind:value={startText}
-      onchange={commitText}
-    />
-    <span class="text-sm text-muted-foreground" aria-hidden="true">–</span>
-    <input
-      id={`${id}-end`}
-      type="text"
-      inputmode="numeric"
-      autocomplete="off"
-      spellcheck="false"
-      maxlength={10}
-      placeholder="YYYY-MM-DD"
-      class={cn(fieldClass, 'w-36 flex-1')}
-      aria-label={endLabel}
-      aria-invalid={invalid || undefined}
-      aria-describedby={describedByAll}
-      {disabled}
-      required={required || undefined}
-      bind:value={endText}
-      onchange={commitText}
-    />
-    <Popover
-      bind:open
-      align="end"
-      class="w-auto p-3"
-      onOpenChange={(isOpen) => {
-        pending = null;
-        if (isOpen) focusDate = value.start;
-      }}
-      initialFocus={() => calendar?.focusTarget() ?? null}
-    >
-      {#snippet trigger({ props })}
-        <button
-          {...props}
-          type="button"
-          {disabled}
-          aria-label={summary}
-          class="flex size-9 min-h-touch min-w-[44px] items-center justify-center rounded-md border border-input bg-surface text-muted-foreground shadow-soft outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:min-w-0"
-        >
-          <CalendarDays class="size-4" aria-hidden="true" />
-        </button>
-      {/snippet}
-      <Calendar
-        bind:this={calendar}
-        bind:focusDate
-        range={highlight}
-        {today}
-        {min}
-        {max}
-        isDateDisabled={(date) =>
-          Boolean(isDateDisabled?.(date)) || !isWithinBounds(date, { min, max })}
-        {weekStartsOn}
-        {locale}
-        label={calendarLabel}
-        onselect={pick}
+    <div bind:this={control} class="tx-date__control">
+      <Picker.Field
+        class="tx-date__field"
+        {id}
+        {label}
+        aria-labelledby={labelledBy}
+        aria-describedby={describedByAll}
+        aria-invalid={invalid || undefined}
+        {...name ? { startName: `${name}.start`, endName: `${name}.end` } : {}}
+        oninputcapture={(event) => {
+          const [startField] = fields();
+          typingIn = startField?.contains(event.target as Node) ? 'start' : 'end';
+        }}
+        onfocusout={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) commit();
+        }}
+        onkeydown={(event) => {
+          if (event.key === 'Enter') commit();
+        }}
       />
-      <p class="mt-2 text-xs text-muted-foreground" aria-live="polite">
-        {pending ? `Start ${pending}. Now choose the end date.` : 'Choose the start date.'}
-      </p>
-    </Popover>
-  </div>
+      <Picker.Trigger class="tx-date__trigger">
+        <Icon icon={CalendarDays} size="sm" aria-hidden="true" />
+      </Picker.Trigger>
+    </div>
+    <Picker.Content class="tx-date__panel">
+      <Picker.Calendar class={dateCalendarClass()} />
+      <p class="tx-date__description" aria-live="polite">{hint}</p>
+    </Picker.Content>
+  </Picker.Root>
   {#if issue}
-    <p id={errorId} class="text-xs font-medium text-destructive">{DATE_RANGE_MESSAGES[issue]}</p>
-  {/if}
-  {#if name}
-    <input type="hidden" name={`${name}.start`} value={value.start ?? ''} />
-    <input type="hidden" name={`${name}.end`} value={value.end ?? ''} />
+    <p id={errorId} class="tx-date__error">{DATE_RANGE_MESSAGES[issue]}</p>
   {/if}
 </div>
