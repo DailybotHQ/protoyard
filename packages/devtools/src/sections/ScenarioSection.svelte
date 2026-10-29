@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Check, Copy } from '@lucide/svelte';
+import { Copy } from '@lucide/svelte';
 import type { Scenario } from '@protoyard/core';
 import { Checkbox, Radio, RadioGroup } from 'texuli/choice';
 import { Input } from 'texuli/input';

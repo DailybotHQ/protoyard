@@ -126,6 +126,18 @@ describe('DevTools style controls', () => {
     expect(checked(panel, 'Density preset')).toEqual(['Theme']);
   });
 
+  it('restores the committed density when a slider save fails', async () => {
+    const { runtime, panel } = await openLook();
+    runtime.theme.setOverride = async () => {
+      throw new Error('save failed');
+    };
+    const slider = panel.getByRole('slider', { name: 'Density' });
+    await fireEvent.keyDown(slider, { key: 'ArrowRight' });
+    await fireEvent.keyUp(slider, { key: 'ArrowRight' });
+    await waitFor(() => expect(slider.getAttribute('aria-valuenow')).toBe('1'));
+    expect(panel.getByRole('alert').textContent).toContain('save failed');
+  });
+
   it('marks the controls busy while a change is applying', async () => {
     const { runtime, panel } = await openLook();
     let release: () => void = () => {};

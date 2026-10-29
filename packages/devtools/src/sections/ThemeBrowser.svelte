@@ -11,7 +11,6 @@ export function librarySwatches(meta: LibraryThemeMeta): string[] {
 import { Input } from 'texuli/input';
 
 import Btn from '../primitives/Btn.svelte';
-import { Check } from '@lucide/svelte';
 
 import Glyph from '../primitives/Glyph.svelte';
 
