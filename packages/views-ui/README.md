@@ -13,10 +13,13 @@ files, settings, states and an app command palette. The engines live in
   `@texuli/data/virtual-list`. The grid toolkit and settings rows keep their
   stable Protoyard props while composing Texuli controls; Lucide glyphs render
   through `Icon` or `LucideIcon` from `texuli/icons`.
-- **Protoyard host behavior:** comments, notifications, Markdown source and
-  outline editing retain Protoyard's callbacks, state and keyboard contracts.
-  Texuli 0.3.0 has no published editor/Markdown round-trip API (G17), recursive
-  filter authoring API (G18), or notification inbox/read-action API (G19).
+- **Protoyard host behavior:** comments, notification service callbacks,
+  Markdown source commands and outline editing retain Protoyard's callbacks,
+  state and keyboard contracts. The grid filter editor wraps Texuli's
+  `@texuli/data/filter-builder` while retaining Protoyard's nullable value
+  contract. The source editor keeps Protoyard's mention and slash-command
+  extensions; the Texuli Markdown codec is available for ordinary editor
+  documents, while those extensions remain host-owned.
 
 Some adapters still accept props from the earlier Protoyard API that they do
 not forward; each section below lists them. The mapping table is in
@@ -695,9 +698,9 @@ callbacks:
 - **`FilterBuilder`** edits the engine's filter AST as nested and/or
   fieldsets (`value` bindable, `onchange`). Every control is labelled and the
   operators match each column type. `completeFilter` drops conditions that
-  have no value yet. Texuli 0.3.0 consumes this AST in its grid but has no
-  recursive filter-authoring component (G18), so this remains the minimal AST
-  editor with Texuli controls.
+  have no value yet. The adapter maps Protoyard's `columns`, nullable `value`
+  and `onchange` props to Texuli's recursive filter editor. Analytics uses a
+  separate property-filter grammar in `@protoyard/analytics-ui`.
 - **`FacetPicker`**: a keyboard-first multi-select for one column (arrows,
   Home/End, Enter or Space toggle; typing searches; Escape closes).
   Picks are OR within the column and AND with everything else.
@@ -820,9 +823,10 @@ import { LucideIcon } from 'texuli/icons/lucide';
 
 Pass `onMuteChange` when the prototype has a per-type preference service; its
 callback receives the notification kind and the requested muted state.
-The panel composes Texuli controls while preserving the Protoyard service
-contract. Texuli 0.3.0's activity API has no inbox model for unread counts,
-mark-read persistence or per-item actions (G19).
+The panel preserves the Protoyard service contract, loading and error states,
+grouping, mute preferences, and responsive host surface. Texuli 0.5.0's inbox
+model supports controlled read and unread changes; this adapter has only a
+mark-read service contract today, so the write behavior remains Protoyard-owned.
 
 - **Loading:** import this subpath from a lazy route so the panel stays out of
   initial JavaScript.

@@ -12,8 +12,9 @@ import. Nothing here is re-exported from the `@protoyard/ui` barrel.
 `ChartRoot` is a compatibility wrapper around Texuli chart families: it keeps
 Protoyard's named-group focus target and `data-py-chart` marker while using
 Texuli's `cx` helper for its styling. `CellPlot` is a direct alias of the
-Texuli-backed `Heatmap` adapter. `RampLegend` remains a small local adapter
-while `@texuli/charts@0.3.0` has no rendered matrix ramp legend (open gap G3).
+Texuli-backed `Heatmap` adapter. `RampLegend` preserves its optional-label
+Protoyard prop while delegating rendering and accessibility to
+`@texuli/charts/matrix` from Texuli 0.5.0.
 
 ## Install in a workspace prototype
 

@@ -225,7 +225,7 @@ describe('Theme Studio (DevTools)', () => {
       read = true;
       return '';
     };
-    const input = within(panel).getByLabelText('Theme file to import') as HTMLInputElement;
+    const input = panel.querySelector('[data-devtools-file-input]') as HTMLInputElement;
     Object.defineProperty(input, 'files', { configurable: true, value: [file] });
     await fireEvent.change(input);
     await settle();
