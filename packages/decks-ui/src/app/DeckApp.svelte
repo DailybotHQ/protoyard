@@ -135,9 +135,13 @@ const printing = route?.flags.print === true;
 /**
  * The browser's own print (Ctrl/Cmd+P): the one-slide-per-page sheet replaces
  * the stage on paper (see the print CSS below), and the deck root is released
- * from its one-screen height so every page prints. The sheet mounts on
- * `beforeprint` once the print view has loaded (it warms while the browser is
- * idle); before that, the paper shows the stage as on screen.
+ * from its one-screen height so every page prints, but only once the sheet
+ * is ready (`data-print-ready`): until then the paper shows the stage as on
+ * screen, never a blank page. The browser captures the page right after
+ * `beforeprint`, and Texuli's print view loads its body and settles images
+ * and fonts asynchronously, so the first Ctrl/Cmd+P prints the current slide
+ * and says so. The sheet then stays mounted, laid out off-screen and hidden,
+ * so every later print has all the slides (Texuli gap: no print preload).
  *
  * Texuli's print view isolates printing with a global rule that hides every
  * element outside a `data-tx-print-isolate` target, and that rule applies as
@@ -146,6 +150,8 @@ const printing = route?.flags.print === true;
  * always a target, so the deck itself is what prints (Texuli gap).
  */
 let printSheet = $state(false);
+/** The print that just ran had only the stage: the sheet was not ready yet. */
+let printedStage = false;
 let exporter = $state.raw<typeof import('@texuli/slides/export') | null>(null);
 const printNotes = route?.flags.notes === true ? 'appendix' : 'none';
 
@@ -255,12 +261,17 @@ function notify(message: string): void {
 
 onMount(() => {
   // The print view loads while the browser is idle, so Ctrl/Cmd+P finds it ready.
+  let warming = false;
   const warm = () => {
+    if (warming) return;
+    warming = true;
     void import('@texuli/slides/export').then(
       (module) => {
         exporter = module;
       },
-      () => undefined
+      () => {
+        warming = false;
+      }
     );
   };
   const hasIdle = 'requestIdleCallback' in window;
@@ -269,11 +280,20 @@ onMount(() => {
     : window.setTimeout(warm, 1_500);
   const beforePrint = () => {
     printSheet = true;
+    warm();
     // The pages must be in the document before the browser captures it.
     flushSync();
+    printedStage = !rootEl?.querySelector(
+      ':scope > .deck-app__print-sheet [data-print-ready="true"]'
+    );
   };
   const afterPrint = () => {
-    printSheet = false;
+    if (printedStage) {
+      notify(
+        'Printed the current slide while the print view got ready. Print again for every slide.'
+      );
+    }
+    printedStage = false;
   };
   window.addEventListener('beforeprint', beforePrint);
   window.addEventListener('afterprint', afterPrint);
@@ -382,7 +402,8 @@ onMount(() => {
     {/if}
 
     {#if printSheet && exporter}
-      <!-- Paper only: every visible slide, one per page (the screen keeps the stage). -->
+      <!-- Paper only: every visible slide, one per page. On screen it is laid out off-screen and
+           hidden, so it settles (images, fonts, lazy families) before the next print. -->
       <div class="deck-app__print-sheet" data-py-deck-print data-tx-mode={mode}>
         <exporter.DeckPrintView
           deck={stageDeck as never}
@@ -487,34 +508,45 @@ onMount(() => {
     text-align: center;
   }
 
+  /* Laid out (not `display: none`), so the print view can measure and settle; never seen or focused. */
   @media screen {
     .deck-app__print-sheet {
-      display: none;
+      position: fixed;
+      inset-block-start: 0;
+      inset-inline-start: -200vw;
+      inline-size: 100vw;
+      visibility: hidden;
+      pointer-events: none;
     }
   }
 
   /*
-   * Ctrl/Cmd+P with the sheet mounted: the sheet alone goes on paper, and the
+   * Ctrl/Cmd+P with the sheet ready: the sheet alone goes on paper, and the
    * deck root (and a viewport preset's or frame's locked app column) is
-   * released from its one-screen height, so every page prints. Global
+   * released from its one-screen height, so every page prints. A sheet that is
+   * not ready yet stays off the paper and the stage prints instead. Global
    * selectors: Svelte's scoping would drop rules about the sheet's content.
    */
   @media print {
-    :global(.deck-app:has(> .deck-app__print-sheet)) {
+    :global(.deck-app__print-sheet:not(:has([data-print-ready='true']))) {
+      display: none !important;
+    }
+
+    :global(.deck-app:has(> .deck-app__print-sheet [data-print-ready='true'])) {
       display: block !important;
       block-size: auto !important;
       max-block-size: none !important;
       overflow: visible !important;
     }
 
-    :global(.deck-app:has(> .deck-app__print-sheet) > :not(.deck-app__print-sheet)) {
+    :global(.deck-app:has(> .deck-app__print-sheet [data-print-ready='true']) > :not(.deck-app__print-sheet)) {
       display: none !important;
     }
 
-    :global(html:has(.deck-app > .deck-app__print-sheet)),
-    :global(html:has(.deck-app > .deck-app__print-sheet) body),
-    :global(html:has(.deck-app > .deck-app__print-sheet) #app),
-    :global(html:has(.deck-app > .deck-app__print-sheet) [data-py-scroll-root]) {
+    :global(html:has(.deck-app > .deck-app__print-sheet [data-print-ready='true'])),
+    :global(html:has(.deck-app > .deck-app__print-sheet [data-print-ready='true']) body),
+    :global(html:has(.deck-app > .deck-app__print-sheet [data-print-ready='true']) #app),
+    :global(html:has(.deck-app > .deck-app__print-sheet [data-print-ready='true']) [data-py-scroll-root]) {
       block-size: auto !important;
       max-block-size: none !important;
       overflow: visible !important;

@@ -227,18 +227,53 @@ test.describe('deck chrome controls', () => {
       await expect.poll(() => printedLayout(page)).toBe(true);
     });
 
-    test('on paper, Ctrl/Cmd+P prints the sheet alone, every page unclipped', async ({ page }) => {
+    test('on paper, Ctrl/Cmd+P never prints blank, and prints every page unclipped once ready', async ({
+      page,
+    }) => {
       await openDeck(page);
       await expect(root(page)).toHaveAttribute('data-py-deck-print-ready', 'true');
-      await page.emulateMedia({ media: 'print' });
       const liveStage = page.locator('[data-py-deck-app] > .tx-deck-stage');
+      const sheet = page.locator('.deck-app__print-sheet');
+      const readySheet = sheet.locator('[data-print-ready="true"]');
+      await page.emulateMedia({ media: 'print' });
       // Before a print starts there is no sheet: the deck root keeps the stage on paper
       // (never the blank page Texuli's print isolation would give with no target).
       await expect(liveStage).toBeVisible();
+
+      // The first print: the browser captures the page right after `beforeprint`, before the
+      // sheet has loaded and settled. What is on paper at that moment is the stage.
+      const first = await page.evaluate(() => {
+        window.dispatchEvent(new Event('beforeprint'));
+        const stageEl = document.querySelector(
+          '[data-py-deck-app] > .tx-deck-stage'
+        ) as HTMLElement;
+        const box = stageEl.getBoundingClientRect();
+        return {
+          stageOnPaper: getComputedStyle(stageEl).display !== 'none' && box.height > 0,
+          sheetReady:
+            document.querySelector('.deck-app__print-sheet [data-print-ready="true"]') !== null,
+        };
+      });
+      expect(first, 'the first print shows the stage, not a blank page').toEqual({
+        stageOnPaper: true,
+        sheetReady: false,
+      });
+      await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+      await page.emulateMedia({ media: 'screen' });
+      await expect(
+        page.getByRole('status').filter({ hasText: 'Print again for every slide' })
+      ).toBeAttached();
+
+      // The sheet stays mounted, settling off-screen and never seen.
+      await expect(readySheet).toHaveCount(1, { timeout: 15_000 });
+      await expect(sheet).toBeHidden();
+      await expect(liveStage).toBeVisible();
+
+      // The next print has every slide at once: the sheet alone goes on paper.
+      await page.emulateMedia({ media: 'print' });
       await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
-      const sheet = page.locator('.deck-app__print-sheet');
-      await expect(sheet.locator('[data-print-ready="true"]')).toHaveCount(1, { timeout: 15_000 });
       await expect(liveStage).toBeHidden();
+      await expect(readySheet).toBeVisible();
       const paper = await page.evaluate(() => {
         const app = document.querySelector('[data-py-deck-app]') as HTMLElement;
         const sheetEl = app.querySelector(':scope > .deck-app__print-sheet') as HTMLElement;
@@ -266,9 +301,9 @@ test.describe('deck chrome controls', () => {
         'the last page is inside the released deck root'
       ).toBeLessThanOrEqual(paper.appBottom + 1);
       expect(paper.clipped, 'no ancestor clips the sheet').toEqual([]);
-      await page.emulateMedia({ media: 'screen' });
       await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
-      await expect(sheet).toHaveCount(0);
+      await page.emulateMedia({ media: 'screen' });
+      await expect(sheet).toBeHidden();
       await expect(liveStage).toBeVisible();
     });
   });
