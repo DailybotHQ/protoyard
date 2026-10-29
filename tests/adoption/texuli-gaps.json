@@ -6,227 +6,227 @@
   },
   {
     "id": "G2",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/charts compact: a formatValue(value) => string callback (units such as % on Gauge); 0.3.0 accepts only a ChartFormatSpec"
   },
   {
     "id": "G3",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/charts matrix: rendered sequential ramp/scale legend (RampLegend)"
   },
   {
     "id": "G4",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/dialog, texuli/sheet + @texuli/core: overlay stack/layer option; a documented focus-exempt region (undo toaster)"
   },
   {
     "id": "G5",
-    "status": "open",
+    "status": "fixed",
     "summary": "Dialog, Tabs, TextCounter: ref = $bindable() and rest spread (data-*, aria-*)"
   },
   {
     "id": "G6",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/sheet ResponsiveModal: force?: 'auto'|'dialog'|'sheet' and container/host width"
   },
   {
     "id": "G7",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/data/grid-core DataGrid: client paging, rowClass(row), toolbar/filters/bulk-action snippets"
   },
   {
     "id": "G8",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/file-upload: onFilesAdd, onFileRemove callbacks"
   },
   {
     "id": "G9",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/toast: onSettle(reason: 'timeout'|'dismiss'|'action') for undo"
   },
   {
     "id": "G10",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/avatar: srcset/sizes under the URL trust policy"
   },
   {
     "id": "G11",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/tags-color TagsInput: onInvalid(reason) and bindable draft input"
   },
   {
     "id": "G12",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/date pickers: today (simulated clock \u2014 determinism), weekStartsOn, range highlight, maxDays, onInvalid"
   },
   {
     "id": "G13",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli: styled TimeField"
   },
   {
     "id": "G14",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/data/board: columnFooter(column) snippet, heading level"
   },
   {
     "id": "G15",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/layouts/mobile: standalone BottomNav, MobileHeader, mobile app frame components"
   },
   {
     "id": "G16",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/astro: appearance switcher island (nice to have)"
   },
   {
     "id": "G17",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/editor: not published (private 0.0.0); views-ui OutlineEditor/MarkdownEditor need it, plus Markdown round-trip"
   },
   {
     "id": "G18",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/data: nested filter builder (and/or groups, field operators)"
   },
   {
     "id": "G19",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/data/activity: notification inbox: unread, mark read, per-item actions"
   },
   {
     "id": "G20",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/charts: cohort retention table semantics (row/period headers, table a11y)"
   },
   {
     "id": "G21",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/blocks renderers: fields Protoyard blocks use: heading/text align, text size, list check/icon, quote role/avatar, callout icon, divider label/variant, card icon, stat title/source/trend"
   },
   {
     "id": "G22",
-    "status": "open",
+    "status": "fixed",
     "summary": "npm dist/ packaging: single-file deck export: 2,149,984 B with Texuli 0.3.0 sources linked vs 2,395,746 B from the npm 0.3.0 tarballs (+11 %, spread across every chunk; extra media and Checkbox chunks only in the npm build)"
   },
   {
     "id": "G23",
-    "status": "open",
+    "status": "fixed",
     "summary": "Texuli component CSS weight: deck/page/doc CSS 27.2\u201328.0 KB gzip on 0.3.0 (23.7\u201324.5 KB on e134ffcb); Sparkline first-screen cost 5,927 B (3,211 B before)"
   },
   {
     "id": "G24",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/slides DeckStage: default renderer tables imported statically even with defaultRenderers={false}; create-anything-deck initial JS 315 KB gz (budget 250)"
   },
   {
     "id": "G25",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/slides print: print imports the default renderer tables statically"
   },
   {
     "id": "G26",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/input Input (BUG): a caller's oninput replaces the internal handler, so bind:value stops updating"
   },
   {
     "id": "G27",
-    "status": "open",
+    "status": "fixed",
     "summary": "styled sheets: header/body/footer/close parts"
   },
   {
     "id": "G28",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/menus MenuItem: destructive tone"
   },
   {
     "id": "G29",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/tabs-accordion TabItem: icon"
   },
   {
     "id": "G30",
-    "status": "open",
+    "status": "fixed",
     "summary": "Pagination: stable-count tokens"
   },
   {
     "id": "G31",
-    "status": "open",
+    "status": "fixed",
     "summary": "AppShell docs: document --tx-app-height"
   },
   {
     "id": "G32",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/chat Composer: stop/cancel while streaming, keydown hook, actions slot"
   },
   {
     "id": "G33",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/chat MessageList: per-message actions, inline edit, stream scroll anchor + jump-to-latest"
   },
   {
     "id": "G34",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/card: anchor attrs (target, rel, download) with href"
   },
   {
     "id": "G35",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/blocks code: wrapper/slot for header and toolbar"
   },
   {
     "id": "G36",
-    "status": "open",
+    "status": "fixed",
     "summary": "CopyButton: oncopy / onerror callbacks"
   },
   {
     "id": "G37",
-    "status": "open",
+    "status": "fixed",
     "summary": "Tag: customizable remove-button name"
   },
   {
     "id": "G38",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/input (file): null default value"
   },
   {
     "id": "G39",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/layouts/content ContentLayout: TOC from given entries or existing ids, heading-level choice, declarative content slot"
   },
   {
     "id": "G40",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/toggle ToggleGroup: form name (one entry per pressed value)"
   },
   {
     "id": "G41",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/toggle ToggleGroup: id and aria-describedby (rest attributes); roving tab stop starts on the first pressed item"
   },
   {
     "id": "G42",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/number-pin PinInput.Root: typed name and input attributes; bindable inputRef through the styled root"
   },
   {
     "id": "G43",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/card CardGrid: maxColumns"
   },
   {
     "id": "G44",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/input Input: number binding for number and range inputs"
   },
   {
     "id": "G45",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/toast: pause/resume and announcement access for hosts (nice to have)"
   },
   {
     "id": "G46",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/slides stage: default validateDeckBlock and free renderer (@texuli/blocks/core) on the first paint"
   },
   {

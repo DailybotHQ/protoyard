@@ -27,12 +27,12 @@
     "@protoyard/themes": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
-    "@texuli/astro": "0.4.0",
-    "@texuli/tokens": "0.4.0",
+    "@texuli/astro": "0.5.0",
+    "@texuli/tokens": "0.5.0",
     "astro": "^7.4.0",
     "svelte": "^5.57.2",
     "tailwindcss": "^4.3.3",
-    "texuli": "0.4.0"
+    "texuli": "0.5.0"
   },
   "devDependencies": {
     "axe-core": "^4.14.0"
