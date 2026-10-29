@@ -166,6 +166,7 @@ const status = $derived(
       {#each tags as tag (tag.id)}
         <Button
           type="button"
+          variant="ghost"
           class="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary disabled:cursor-default"
           aria-pressed={tagIds.includes(tag.id)}
           disabled={!canEdit}

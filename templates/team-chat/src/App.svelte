@@ -357,7 +357,8 @@ function closeToolsOnEscape(event: KeyboardEvent) {
       {#each channels.current ?? [] as ch (ch.id)}
         <Button
           type="button"
-          class="flex min-h-touch w-full items-center gap-1 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted md:min-h-0 {channelId ===
+          variant="ghost"
+          class="flex min-h-touch w-full items-center justify-start gap-1 whitespace-normal rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted md:min-h-0 {channelId ===
           ch.id
             ? 'bg-muted font-medium'
             : ''}"
@@ -454,6 +455,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
         <Button
           bind:ref={toolsTrigger}
           type="button"
+          variant="ghost"
           class="inline-flex size-9 min-h-touch min-w-[44px] items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:hidden"
           aria-label="More actions"
           aria-expanded={toolsOpen}
@@ -618,7 +620,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
                     disabled={!canReact}
                     title={canReact ? `Toggle ${chip.emoji}` : readOnlyReason}
                     aria-label={`${chip.emoji} ${chip.count}${chip.mine ? ', you reacted' : ''}`}
-                    onclick={() => void react(msg.id, chip.emoji)}
+                    onclick={() => react(msg.id, chip.emoji)}
                   >
                     {chip.emoji}
                     <span class="ml-0.5 tabular-nums">{chip.count}</span>
@@ -629,17 +631,19 @@ function closeToolsOnEscape(event: KeyboardEvent) {
             <div class="mt-1 flex gap-2">
               <Button
                 type="button"
+                variant="ghost"
                 class="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
                 aria-label="React with thumbs up"
                 disabled={!canReact}
                 title={canReact ? 'React with thumbs up' : readOnlyReason}
-                onclick={() => void react(msg.id)}
+                onclick={() => react(msg.id)}
               >
                 👍 React
               </Button>
               {#if !msg.threadId}
                 <Button
                   type="button"
+                  variant="ghost"
                   class="text-xs text-muted-foreground hover:text-foreground"
                   aria-label="Reply in thread"
                   data-thread-trigger=""

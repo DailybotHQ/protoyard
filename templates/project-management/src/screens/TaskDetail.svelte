@@ -181,6 +181,7 @@ async function removeComment() {
                     {#if can(CAPABILITIES.commentsDelete, comment)}
                       <Button
                         type="button"
+                        variant="ghost"
                         class="ml-auto rounded text-xs text-muted-foreground hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
                         onclick={() => {
                           removingComment = comment;

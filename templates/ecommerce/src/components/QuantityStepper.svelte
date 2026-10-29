@@ -26,7 +26,7 @@ const buttonClass =
 </script>
 
 <div class="inline-flex items-center overflow-hidden rounded-md border border-input bg-surface" role="group" aria-label={label}>
-  <Button type="button" class={buttonClass} aria-label="Decrease quantity" disabled={disabled || value <= min} onclick={() => onchange(clamp(value - 1))}>
+  <Button type="button" variant="ghost" class={buttonClass} aria-label="Decrease quantity" disabled={disabled || value <= min} onclick={() => onchange(clamp(value - 1))}>
     <Icon icon="minus" class="size-4" aria-hidden="true" />
   </Button>
   <Input
@@ -45,7 +45,7 @@ const buttonClass =
       if (clamped !== value) onchange(clamped);
     }}
   />
-  <Button type="button" class={buttonClass} aria-label="Increase quantity" disabled={disabled || value >= max} onclick={() => onchange(clamp(value + 1))}>
+  <Button type="button" variant="ghost" class={buttonClass} aria-label="Increase quantity" disabled={disabled || value >= max} onclick={() => onchange(clamp(value + 1))}>
     <Icon icon="plus" class="size-4" aria-hidden="true" />
   </Button>
 </div>

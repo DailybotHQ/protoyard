@@ -22,6 +22,7 @@ let { menus }: { menus: Menu[] } = $props();
         <Button
           {...props}
           type="button"
+          variant="ghost"
           class="rounded-md px-2.5 py-1 text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none data-[state=open]:bg-muted"
         >
           {menu.label}

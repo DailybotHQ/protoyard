@@ -81,6 +81,7 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
       {#each [['', '25'], ['25', '50'], ['50', '100'], ['100', '']] as [lo, hi] (`${lo}-${hi}`)}
         <Button
           type="button"
+          variant="ghost"
           class="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
           onclick={() => {
             minPrice = lo ?? '';
@@ -114,6 +115,7 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
   {#each [{ id: '', name: 'All' } as Pick<Category, 'id' | 'name'>, ...(categories.current ?? [])] as category (category.id)}
     <Button
       type="button"
+      variant="ghost"
       aria-pressed={categoryId === category.id}
       onclick={() => (categoryId = category.id)}
       class={[

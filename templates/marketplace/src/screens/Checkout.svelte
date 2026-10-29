@@ -50,5 +50,5 @@ async function checkout(event: SubmitEvent) {
       <Button disabled={busy} loading={busy} loadingLabel="Processing simulation">Place simulated order</Button>
     </form>
   {/if}
-  {#if message}<p role="status" class="mt-4 rounded-md bg-primary/5 p-3 text-sm">{message} <Button class="ml-2 underline" onclick={() => navigate('/orders')}>View orders</Button></p>{/if}
+  {#if message}<p role="status" class="mt-4 rounded-md bg-primary/5 p-3 text-sm">{message} <Button variant="link" class="ml-2 underline" onclick={() => navigate('/orders')}>View orders</Button></p>{/if}
 </section>

@@ -130,7 +130,7 @@ $effect(() => {
                     {#if isLive(message.id)}
                       {message.body ? 'Writing…' : 'Thinking…'}
                       {#if canSend}
-                        <Button type="button" class="inline-flex min-h-touch items-center gap-1 rounded px-1.5 font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0" onclick={() => onStop(message.id)}>
+                        <Button type="button" variant="ghost" class="inline-flex min-h-touch items-center gap-1 rounded px-1.5 font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0" onclick={() => onStop(message.id)}>
                           <LucideIcon icon={Square} class="size-3 fill-current" /> Stop
                         </Button>
                       {/if}
