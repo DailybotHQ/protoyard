@@ -84,6 +84,18 @@ describe('DeckApp on the Texuli stage', () => {
     expect(app().getAttribute('data-slide-step')).toBe('0');
   });
 
+  it('paints on the first render: the stage never waits for its lazy defaults', () => {
+    // DeckApp brings its own free renderer and block check with defaultRenderers={false}, and hands
+    // the stage a v2 deck, so the stage never waits for its lazy defaults, the built-in block chunk
+    // (Texuli G46) or the migration chunk: it validates and mounts the slides on the first render.
+    // (A slide's own layout renderer is a lazy chunk and may show its status inside the slide.)
+    const { view, stage } = mount();
+    expect(stage()).toBeTruthy();
+    expect(stage().getAttribute('aria-busy')).toBeNull();
+    expect(stage().querySelector(':scope > .tx-deck-stage__loading')).toBeNull();
+    expect(view.container.querySelector('[data-tx-deck-slide="intro"]')).toBeTruthy();
+  });
+
   it('follows steps, then slides, with the keyboard; the host attributes follow the stage', async () => {
     const { app, stage } = mount();
     await waitFor(() => expect(stage()).toBeTruthy());
