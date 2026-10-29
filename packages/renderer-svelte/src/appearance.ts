@@ -86,7 +86,7 @@ export function bindAppearance(
     cacheAppearance(namespace, applied);
   };
   // @protoyard/ui renders Texuli components: every appearance also writes their
-  // --tx-* variables (each --py-* name stays an alias with the same value).
+  // canonical --tx-* theme variables and their renderer-owned metadata.
   enableTexuliAppearance([target]);
   apply();
   const unsubscribe = runtime.theme.subscribe(() => {

@@ -6,8 +6,7 @@
  *   @import '@protoyard/themes/base.css';
  *
  * Tokens are `--tx-*` custom properties written by `applyAppearance()`.
- * Deprecated `--py-*` aliases remain available for exported prototypes. The
- * defaults below (Violet) make the first paint correct before runtime boot;
+ * The defaults below (Violet) make the first paint correct before runtime boot;
  * `noFlashScript()` replays the last real appearance.
  */
 
@@ -114,189 +113,99 @@
 @layer base {
   :root {
     --tx-background: #fafafa;
-    --py-background: var(--tx-background);
     --tx-foreground: #09090b;
-    --py-foreground: var(--tx-foreground);
     --tx-surface: #ffffff;
-    --py-surface: var(--tx-surface);
     --tx-surface-foreground: #09090b;
-    --py-surface-foreground: var(--tx-surface-foreground);
     --tx-elevated: #ffffff;
-    --py-elevated: var(--tx-elevated);
     --tx-muted: #f4f4f5;
-    --py-muted: var(--tx-muted);
     --tx-muted-foreground: #52525b;
-    --py-muted-foreground: var(--tx-muted-foreground);
     --tx-border: #e4e4e7;
-    --py-border: var(--tx-border);
     --tx-input: #d4d4d8;
-    --py-input: var(--tx-input);
     --tx-ring: #8b5cf6;
-    --py-ring: var(--tx-ring);
     --tx-primary: #7c3aed;
-    --py-primary: var(--tx-primary);
     --tx-primary-foreground: #ffffff;
-    --py-primary-foreground: var(--tx-primary-foreground);
     --tx-link: #7c3aed;
-    --py-link: var(--tx-link);
     --tx-link-hover: #5f2eb5;
-    --py-link-hover: var(--tx-link-hover);
     --tx-link-active: #4e2693;
-    --py-link-active: var(--tx-link-active);
     --tx-link-focus: #5f2eb5;
-    --py-link-focus: var(--tx-link-focus);
     --tx-link-disabled: #52525b;
-    --py-link-disabled: var(--tx-link-disabled);
     --tx-link-visited: #7c3aed;
-    --py-link-visited: var(--tx-link-visited);
     --tx-secondary: #f4f4f5;
-    --py-secondary: var(--tx-secondary);
     --tx-secondary-foreground: #18181b;
-    --py-secondary-foreground: var(--tx-secondary-foreground);
     --tx-accent: #f5f3ff;
-    --py-accent: var(--tx-accent);
     --tx-accent-foreground: #4c1d95;
-    --py-accent-foreground: var(--tx-accent-foreground);
     --tx-destructive: #b91c1c;
-    --py-destructive: var(--tx-destructive);
     --tx-destructive-foreground: #ffffff;
-    --py-destructive-foreground: var(--tx-destructive-foreground);
     --tx-success: #15803d;
-    --py-success: var(--tx-success);
     --tx-success-foreground: #ffffff;
-    --py-success-foreground: var(--tx-success-foreground);
     --tx-warning: #fbbf24;
-    --py-warning: var(--tx-warning);
     --tx-warning-foreground: #451a03;
-    --py-warning-foreground: var(--tx-warning-foreground);
     --tx-info: #0369a1;
-    --py-info: var(--tx-info);
     --tx-info-foreground: #ffffff;
-    --py-info-foreground: var(--tx-info-foreground);
     --tx-sidebar: #f4f4f5;
-    --py-sidebar: var(--tx-sidebar);
     --tx-sidebar-foreground: #27272a;
-    --py-sidebar-foreground: var(--tx-sidebar-foreground);
     --tx-sidebar-border: #e4e4e7;
-    --py-sidebar-border: var(--tx-sidebar-border);
     --tx-chart1: #7c3aed;
-    --py-chart1: var(--tx-chart1);
     --tx-chart2: #0284c7;
-    --py-chart2: var(--tx-chart2);
     --tx-chart3: #27a094;
-    --py-chart3: var(--tx-chart3);
     --tx-chart4: #c88000;
-    --py-chart4: var(--tx-chart4);
     --tx-chart5: #f43f5e;
-    --py-chart5: var(--tx-chart5);
     --tx-chart-grid: var(--tx-border);
-    --py-chart-grid: var(--tx-chart-grid);
     --tx-chart-axis: var(--tx-muted-foreground);
-    --py-chart-axis: var(--tx-chart-axis);
     --tx-shadow: rgb(15 23 42 / 0.08);
-    --py-shadow: var(--tx-shadow);
     --tx-primary-hover: #6b32cc;
-    --py-primary-hover: var(--tx-primary-hover);
     --tx-destructive-hover: #9f1818;
-    --py-destructive-hover: var(--tx-destructive-hover);
     --tx-radius: 0.625rem;
-    --py-radius: var(--tx-radius);
     --py-app-height: 100dvh;
     --tx-font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
-    --py-font-sans: var(--tx-font-sans);
     --tx-font-heading: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
-    --py-font-heading: var(--tx-font-heading);
     --tx-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-    --py-font-mono: var(--tx-font-mono);
     --tx-density: 1;
-    --py-density: var(--tx-density);
     --tx-motion: 1;
-    --py-motion: var(--tx-motion);
   }
   :root.dark,
   .dark {
     --tx-background: #09090b;
-    --py-background: var(--tx-background);
     --tx-foreground: #fafafa;
-    --py-foreground: var(--tx-foreground);
     --tx-surface: #18181b;
-    --py-surface: var(--tx-surface);
     --tx-surface-foreground: #fafafa;
-    --py-surface-foreground: var(--tx-surface-foreground);
     --tx-elevated: #27272a;
-    --py-elevated: var(--tx-elevated);
     --tx-muted: #27272a;
-    --py-muted: var(--tx-muted);
     --tx-muted-foreground: #a1a1aa;
-    --py-muted-foreground: var(--tx-muted-foreground);
     --tx-border: rgb(255 255 255 / 0.1);
-    --py-border: var(--tx-border);
     --tx-input: rgb(255 255 255 / 0.16);
-    --py-input: var(--tx-input);
     --tx-ring: #a78bfa;
-    --py-ring: var(--tx-ring);
     --tx-primary: #a78bfa;
-    --py-primary: var(--tx-primary);
     --tx-primary-foreground: #2e1065;
-    --py-primary-foreground: var(--tx-primary-foreground);
     --tx-link: #a78bfa;
-    --py-link: var(--tx-link);
     --tx-link-hover: #bca7fa;
-    --py-link-hover: var(--tx-link-hover);
     --tx-link-active: #c8b7fa;
-    --py-link-active: var(--tx-link-active);
     --tx-link-focus: #bca7fa;
-    --py-link-focus: var(--tx-link-focus);
     --tx-link-disabled: #a1a1aa;
-    --py-link-disabled: var(--tx-link-disabled);
     --tx-link-visited: #a78bfa;
-    --py-link-visited: var(--tx-link-visited);
     --tx-secondary: #27272a;
-    --py-secondary: var(--tx-secondary);
     --tx-secondary-foreground: #fafafa;
-    --py-secondary-foreground: var(--tx-secondary-foreground);
     --tx-accent: #2e1065;
-    --py-accent: var(--tx-accent);
     --tx-accent-foreground: #ede9fe;
-    --py-accent-foreground: var(--tx-accent-foreground);
     --tx-destructive: #f87171;
-    --py-destructive: var(--tx-destructive);
     --tx-destructive-foreground: #450a0a;
-    --py-destructive-foreground: var(--tx-destructive-foreground);
     --tx-success: #4ade80;
-    --py-success: var(--tx-success);
     --tx-success-foreground: #052e16;
-    --py-success-foreground: var(--tx-success-foreground);
     --tx-warning: #fbbf24;
-    --py-warning: var(--tx-warning);
     --tx-warning-foreground: #451a03;
-    --py-warning-foreground: var(--tx-warning-foreground);
     --tx-info: #38bdf8;
-    --py-info: var(--tx-info);
     --tx-info-foreground: #082f49;
-    --py-info-foreground: var(--tx-info-foreground);
     --tx-sidebar: #18181b;
-    --py-sidebar: var(--tx-sidebar);
     --tx-sidebar-foreground: #e4e4e7;
-    --py-sidebar-foreground: var(--tx-sidebar-foreground);
     --tx-sidebar-border: rgb(255 255 255 / 0.08);
-    --py-sidebar-border: var(--tx-sidebar-border);
     --tx-chart1: #a78bfa;
-    --py-chart1: var(--tx-chart1);
     --tx-chart2: #38bdf8;
-    --py-chart2: var(--tx-chart2);
     --tx-chart3: #42e1cc;
-    --py-chart3: var(--tx-chart3);
     --tx-chart4: #fbbf24;
-    --py-chart4: var(--tx-chart4);
     --tx-chart5: #fb7185;
-    --py-chart5: var(--tx-chart5);
     --tx-shadow: rgb(0 0 0 / 0.45);
-    --py-shadow: var(--tx-shadow);
     --tx-primary-hover: #b39bfb;
-    --py-primary-hover: var(--tx-primary-hover);
     --tx-destructive-hover: #f98585;
-    --py-destructive-hover: var(--tx-destructive-hover);
   }
 
   *,
@@ -371,10 +280,6 @@
     --tx-motion-base: 0ms !important;
     --tx-motion-slow: 0ms !important;
     --tx-motion-easing: linear !important;
-    --py-motion-fast: var(--tx-motion-fast) !important;
-    --py-motion-base: var(--tx-motion-base) !important;
-    --py-motion-slow: var(--tx-motion-slow) !important;
-    --py-motion-easing: var(--tx-motion-easing) !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     /*
@@ -410,13 +315,11 @@
       var(--tx-surface) var(--tx-glass-opacity, 82%),
       transparent
     );
-    --py-surface-fill: var(--tx-surface-fill);
     --tx-elevated-fill: color-mix(
       in srgb,
       var(--tx-elevated) var(--tx-glass-opacity, 82%),
       transparent
     );
-    --py-elevated-fill: var(--tx-elevated-fill);
   }
 
   [data-py-surface="glass"] :is(.bg-surface, .bg-elevated) {

@@ -198,7 +198,7 @@ test.describe('Pipeline CRM (static build)', () => {
     await expect(html).toHaveAttribute('data-py-mode', 'light');
     const primary = () =>
       page.evaluate(() =>
-        getComputedStyle(document.documentElement).getPropertyValue('--py-primary').trim()
+        getComputedStyle(document.documentElement).getPropertyValue('--tx-primary').trim()
       );
     const theme = await html.getAttribute('data-py-theme');
     const lightPrimary = await primary();

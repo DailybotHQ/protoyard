@@ -21,7 +21,7 @@
           if (cached?.v !== 1 || !cached.vars) return;
           root = document.documentElement;
           for (key in cached.vars) {
-            if (/^--py-[a-z0-9-]+$/.test(key) && typeof cached.vars[key] === 'string') {
+            if (/^--tx-[a-z0-9-]+$/.test(key) && typeof cached.vars[key] === 'string') {
               root.style.setProperty(key, cached.vars[key]);
             }
           }

@@ -44,9 +44,8 @@ A theme is a `Theme` (`packages/core/src/theme.ts`, validated by
 
 `applyAppearance()` writes each palette token of the resolved mode as a
 canonical `--tx-*` custom property (`primaryForeground` →
-`--tx-primary-foreground`) and also writes its deprecated `--py-*` alias for
-already exported prototypes. New CSS and Tailwind mappings use only the
-canonical name. `@protoyard/themes/base.css` maps them into the Tailwind 4
+`--tx-primary-foreground`). Theme-token `--py-*` aliases have been removed.
+`@protoyard/themes/base.css` maps the canonical names into the Tailwind 4
 theme, so you style with ordinary utilities:
 
 | Palette token | CSS variable | Tailwind utilities |
@@ -69,14 +68,13 @@ theme, so you style with ordinary utilities:
 The two hover fills are computed per theme and mode by `hoverFill()`: a
 visible step darker or lighter that keeps the button text at 4.5:1 or more.
 
-### Deprecated `--py-*` aliases
+### Renderer geometry variables
 
-`--py-*` names remain writable for compatibility with exported prototypes
-and existing custom CSS. They are deprecated: new styles should use
-`--tx-*`. `applyAppearance()` writes both names from the same value in light
-and dark mode, and values that refer to other tokens use their own prefix
-(`--tx-shadow-soft` refers to `var(--tx-shadow)`; its alias refers to
-`var(--py-shadow)`).
+Theme tokens use only `--tx-*`. Renderer-owned geometry keeps its existing
+`--py-*` names: `--py-fixed-right-edge`, `--py-side-panel-width`,
+`--py-safe-*`, `--py-device-radius` and `--py-app-height`. These values
+describe the visible viewport and simulated device frames; they are not theme
+tokens. Deck-stage styling uses separate `--tx-deck-*` properties.
 
 ### Texuli's extended appearance metadata
 
@@ -84,14 +82,10 @@ On a page that calls `enableTexuliAppearance()` from
 `@protoyard/themes/texuli`, the package uses `@texuli/tokens` to write its
 extended semantic roles and `data-tx-theme`, `data-tx-mode`,
 `data-tx-motion` and `data-tx-surface` attributes. The core `--tx-*` token
-set and deprecated `--py-*` aliases are written by `applyAppearance()` on
-every page.
+set is written by `applyAppearance()` on every page.
 
-- **Equal values.** Every palette role and style token has the same resolved
-  value under both names: `--tx-primary` = `--py-primary`. Values that
-  reference other tokens point at their own family's names, so
-  `--tx-shadow-soft` uses `var(--tx-shadow)` and `--py-shadow-soft` uses
-  `var(--py-shadow)`.
+- **Canonical tokens.** Both the default writer and the opt-in Texuli writer
+  write `--tx-*`; neither emits theme-token `--py-*` aliases.
 - **The extra roles.** Texuli has 16 roles Protoyard's palette lacks: soft
   tones, `link`, `linkVisited`, `selection`, `canvas`, `borderStrong`,
   `elevatedForeground`, `subtle`, `overlay`, `scrim`, `sidebarPrimary`.
@@ -104,12 +98,12 @@ every page.
   restyle every prototype, so it is a separate decision.
 - **Opt-in metadata, on in every prototype.** Enabling the Texuli bridge
   re-applies the current appearance and later calls write the extended roles
-  and `data-tx-*` attributes. Canonical tokens and deprecated aliases reach
-  the no-flash cache in either case.
+  and `data-tx-*` attributes. Canonical tokens reach the no-flash cache in
+  either case.
   - The renderer's `bindAppearance` calls `enableTexuliAppearance()`, because
     `@protoyard/ui` renders Texuli components; DevTools' `mountDevtools`
     calls it too. A page that never imports `@protoyard/themes/texuli` still
-    writes core `--tx-*` tokens and deprecated `--py-*` aliases.
+    writes core `--tx-*` tokens.
   - The subpath imports `@texuli/tokens/css` and `@texuli/tokens/contract`,
     never the package root, whose barrel re-exports the whole theme library
     ([TEXULI.md](TEXULI.md#themes-come-from-texulitokens)).
@@ -908,28 +902,26 @@ crypto-ledger	Crypto Ledger	library
 ```
 
 **Export** a built-in or library theme (library themes are built on the fly
-with `loadLibraryTheme`). `css` keeps the deprecated `--py-*` names in its
-output for compatibility with exported prototypes. For new styles, use the
-canonical `--tx-*` names documented above:
+with `loadLibraryTheme`). `css` prints canonical `--tx-*` theme-token names:
 
 ```text
 $ pnpm protoyard theme export fintech-ledger --format css
 :root {
-  --py-background: #fafafa;
-  --py-foreground: #111827;
+  --tx-background: #fafafa;
+  --tx-foreground: #111827;
   …
-  --py-primary: #007a71;
-  --py-primary-foreground: #ffffff;
+  --tx-primary: #007a71;
+  --tx-primary-foreground: #ffffff;
   …
-  --py-radius: 0.5rem;
-  --py-density: 0.95;
-  --py-font-family: var(--py-font-stack-grotesk-sans, "Helvetica Neue", Helvetica, Arial, sans-serif);
+  --tx-radius: 0.5rem;
+  --tx-density: 0.95;
+  --tx-font-family: var(--tx-font-stack-grotesk-sans, "Helvetica Neue", Helvetica, Arial, sans-serif);
 }
 
 .dark {
   …
-  --py-primary: #00a296;
-  --py-primary-foreground: #09090b;
+  --tx-primary: #00a296;
+  --tx-primary-foreground: #09090b;
   …
 }
 ```
@@ -1040,13 +1032,13 @@ the default colors and then switch. Two things prevent that:
 2. `defineProtoyardConfig()` injects `noFlashScript(namespace)` as the first
    `<head>` script. It replays the last applied appearance from
    `localStorage` (`protoyard.<namespace>.appearance`) before first paint:
-   the `--py-*` aliases and canonical `--tx-*` variables, mode class, theme id, motion,
+   canonical `--tx-*` variables, mode class, theme id, motion,
    `data-py-surface`, their `data-tx-*` twins, and the allowlisted component
    profile attributes. Without a cache it still honors
    `prefers-color-scheme`.
 
 The renderer refreshes that cache every time the appearance changes. The
-script only replays `--py-*` and `--tx-*` names with string values and known
+script only replays `--tx-*` names with string values and known
 profile
 values, and every storage access is wrapped in `try`, so private mode or a
 tampered cache cannot break the page or inject markup.

@@ -28,7 +28,7 @@ Layout-only helpers (`Section`, `Spinner`, `Initials`) stay local.
 ## Mount
 
 `mountDevtools()` calls `enableTexuliAppearance()` so `--tx-*` tokens stay
-aligned with Protoyard `--py-*` while the panel is open.
+aligned with Protoyard's canonical `--tx-*` theme tokens while the panel is open.
 
 ## Dependency
 

@@ -3,7 +3,7 @@ import { z } from 'zod';
 /**
  * Theme identity (Violet, Ocean…) is separate from color mode
  * (light/dark/system). A theme defines tokens for both modes; the runtime
- * writes them as `--py-*` CSS custom properties on the prototype root.
+ * writes them as `--tx-*` CSS custom properties on the prototype root.
  */
 
 /*
@@ -317,5 +317,5 @@ export function defineTheme(theme: ThemeInput): Theme {
 }
 
 export function tokenToCssVar(token: string): string {
-  return `--py-${token.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}`;
+  return `--tx-${token.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}`;
 }

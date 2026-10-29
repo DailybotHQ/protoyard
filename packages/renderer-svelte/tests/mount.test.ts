@@ -225,7 +225,7 @@ describe('mountPrototype', () => {
     expect(screen.getByTestId('mode').textContent).toBe('dark');
     await runtime.theme.setOverride({ density: 1.125 });
     flushSync();
-    expect(root.style.getPropertyValue('--py-density')).toBe('1.125');
+    expect(root.style.getPropertyValue('--tx-density')).toBe('1.125');
     const cached = JSON.parse(localStorage.getItem('protoyard.fake.appearance') ?? '{}');
     expect(cached.themeId).toBe('ocean');
   });

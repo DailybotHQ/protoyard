@@ -6,8 +6,7 @@ CSS-variable application and a no-flash boot script.
 
 It wraps `@texuli/tokens` ([docs/TEXULI.md](../../docs/TEXULI.md#themes-come-from-texulitokens)):
 library tokens and seed palettes are built by Texuli and converted with
-`fromTexuliTheme`. `applyAppearance()` writes canonical `--tx-*` tokens and
-deprecated `--py-*` aliases; pages that call `enableTexuliAppearance()` also
+`fromTexuliTheme`. `applyAppearance()` writes canonical `--tx-*` tokens; pages that call `enableTexuliAppearance()` also
 get Texuli's extended roles and `data-tx-*` attributes. The 140-theme expanded set
 (204 in all) is opt-in through `enableFullThemeLibrary()`.
 
@@ -32,7 +31,7 @@ applyAppearance(document.documentElement, {
 | `FONT_CATALOG`, `getFontPairing`, `loadVariableFont` | System-first font pairings (no network) |
 | `getTheme(id, extra?)` / `findTheme` / `mergeThemes` | Lookup with Violet fallback; prototype themes override by id |
 | `resolveMode(mode, matchMedia?)` | `system` → `light`/`dark` |
-| `applyAppearance(el, input)` / `clearAppearance(el)` | Writes canonical `--tx-*` vars and deprecated `--py-*` aliases (including focus-ring tokens and Texuli's link family, `--tx-link` with its `-hover`, `-active`, `-focus`, `-disabled` and `-visited` states, derived by `linkStates(palette)`: the primary when it reads at 4.5:1 on background, surface, muted and elevated, else the foreground), `data-py-theme`, `data-py-mode`, `data-py-motion`, `data-py-surface`, the `@protoyard/ui` component profiles from `themeComponentProfile`, the `dark` class and `color-scheme`; with `enableTexuliAppearance()` also Texuli's extended roles and `data-tx-*` attributes |
+| `applyAppearance(el, input)` / `clearAppearance(el)` | Writes canonical `--tx-*` vars (including focus-ring tokens and Texuli's link family, `--tx-link` with its `-hover`, `-active`, `-focus`, `-disabled` and `-visited` states, derived by `linkStates(palette)`: the primary when it reads at 4.5:1 on background, surface, muted and elevated, else the foreground), `data-py-theme`, `data-py-mode`, `data-py-motion`, `data-py-surface`, the `@protoyard/ui` component profiles from `themeComponentProfile`, the `dark` class and `color-scheme`; with `enableTexuliAppearance()` also Texuli's extended roles and `data-tx-*` attributes |
 | `themeComponentProfile(theme)` | The `data-py-*-style` profiles a theme's style implies, only where it departs from today's look: a non-default focus ring → `focus-ring`, `surface: glass` → `card: glass`, `elevation: flat` → `card: bordered`, radius 0 → `button: square`, radius ≥ 999px → `button: pill`. Input and navigation profiles have no theme field and stay consumer-set. The button and card profiles style `.ui-button` / `.ui-card`; the Texuli `Button` and `Card` that `@protoyard/ui` re-exports follow the `--tx-*` tokens instead. The no-flash script replays these (allowlisted values only) |
 | `themeVariables(input)` | The same variables as a plain object |
 | `cacheAppearance(namespace, applied)` / `readCachedAppearance` | localStorage cache at `protoyard.<namespace>.appearance` (try/catch) |

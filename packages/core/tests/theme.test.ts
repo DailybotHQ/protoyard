@@ -150,7 +150,7 @@ describe('theme value injection guards', () => {
       'oklab(0.5 -0.1 0.1 / 50%)',
       'color(display-p3 1 0 0)',
       'color-mix(in oklab, #7c3aed 25%, transparent)',
-      'color-mix(in oklab, var(--py-primary) 20%, white)',
+      'color-mix(in oklab, var(--tx-primary) 20%, white)',
     ]) {
       expect(isSafeCssColor(value), value).toBe(true);
     }
@@ -167,7 +167,7 @@ describe('theme value injection guards', () => {
   it('accepts font stacks with quotes and var() fallbacks', () => {
     for (const value of [
       "'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif",
-      'var(--py-font-stack-system-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif)',
+      'var(--tx-font-stack-system-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif)',
       '"Iowan Old Style", "Palatino Linotype", Georgia, serif',
       'ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace',
     ]) {

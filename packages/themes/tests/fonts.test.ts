@@ -29,8 +29,9 @@ describe('font catalog', () => {
     expect(css).toContain('--tx-font-stack-editorial-heading:');
     expect(css).toContain('--tx-font-stack-condensed-sans:');
     expect(css).toContain(
-      '--py-font-stack-editorial-heading: var(--tx-font-stack-editorial-heading);'
+      '--tx-font-stack-editorial-heading:\n    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;'
     );
+    expect(css).not.toMatch(/^\s*--py-font-stack-/m);
     expect(css).not.toMatch(/https?:\/\//);
     expect(css).not.toContain('@import');
   });

@@ -174,20 +174,20 @@ describe('chart tokens in the schema and the CSS variables', () => {
     const theme = createThemeFromSeed({ id: 'x', name: 'X', seed: '#2563eb' });
     const vars = themeVariables({ theme, resolvedMode: 'dark' });
     const charts = theme.charts?.dark;
-    expect(vars['--py-chart8']).toBe(charts?.categorical[7]);
-    expect(vars['--py-chart1']).toBe(theme.dark.chart1);
-    expect(vars['--py-seq-9']).toBe(charts?.sequential[8]);
-    expect(vars['--py-div-5']).toBe(charts?.diverging[4]);
-    expect(vars['--py-chart-grid']).toBe(theme.dark.border);
-    expect(vars['--py-chart-axis']).toBe(theme.dark.mutedForeground);
+    expect(vars['--tx-chart8']).toBe(charts?.categorical[7]);
+    expect(vars['--tx-chart1']).toBe(theme.dark.chart1);
+    expect(vars['--tx-seq-9']).toBe(charts?.sequential[8]);
+    expect(vars['--tx-div-5']).toBe(charts?.diverging[4]);
+    expect(vars['--tx-chart-grid']).toBe(theme.dark.border);
+    expect(vars['--tx-chart-axis']).toBe(theme.dark.mutedForeground);
     for (const name of CHART_EXTENSION_VARIABLES)
       expect(vars[name], name).toMatch(/^#[0-9a-f]{6}$/);
   });
 
   it('writes only grid and axis without a charts block and clears stale series and ramps', () => {
     const vars = themeVariables({ theme: violetTheme, resolvedMode: 'light' });
-    expect(vars['--py-chart-grid']).toBe(violetTheme.light.border);
-    expect(vars['--py-chart-axis']).toBe(violetTheme.light.mutedForeground);
+    expect(vars['--tx-chart-grid']).toBe(violetTheme.light.border);
+    expect(vars['--tx-chart-axis']).toBe(violetTheme.light.mutedForeground);
     expect(CHART_EXTENSION_VARIABLES.some((name) => name in vars)).toBe(false);
 
     const element = document.createElement('div');
@@ -195,17 +195,17 @@ describe('chart tokens in the schema and the CSS variables', () => {
       theme: createThemeFromSeed({ id: 'x', name: 'X', seed: '#2563eb' }),
       resolvedMode: 'light',
     });
-    expect(element.style.getPropertyValue('--py-seq-1')).not.toBe('');
+    expect(element.style.getPropertyValue('--tx-seq-1')).not.toBe('');
     applyAppearance(element, { theme: violetTheme, resolvedMode: 'light' });
-    expect(element.style.getPropertyValue('--py-seq-1')).toBe('');
-    expect(element.style.getPropertyValue('--py-chart6')).toBe('');
-    expect(element.style.getPropertyValue('--py-chart-grid')).toBe(violetTheme.light.border);
+    expect(element.style.getPropertyValue('--tx-seq-1')).toBe('');
+    expect(element.style.getPropertyValue('--tx-chart6')).toBe('');
+    expect(element.style.getPropertyValue('--tx-chart-grid')).toBe(violetTheme.light.border);
     applyAppearance(element, {
       theme: createThemeFromSeed({ id: 'x', name: 'X', seed: '#2563eb' }),
       resolvedMode: 'dark',
     });
     clearAppearance(element);
-    expect(element.style.getPropertyValue('--py-div-9')).toBe('');
-    expect(element.style.getPropertyValue('--py-chart-axis')).toBe('');
+    expect(element.style.getPropertyValue('--tx-div-9')).toBe('');
+    expect(element.style.getPropertyValue('--tx-chart-axis')).toBe('');
   });
 });

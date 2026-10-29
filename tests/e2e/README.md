@@ -17,7 +17,7 @@ PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo pnpm test:e2e tes
 Builds exclude DevTools, as shipped. Setup steps that the standalone build has no UI for
 (switching persona, a theme override, snapshots, looking up an id) use the runtime handle the
 renderer exposes (`window.__protoyard`). Assertions always go through the UI or the DOM
-attributes the renderer sets (`data-py-ready`, `data-py-mode`, `data-py-theme`, `--py-primary`).
+attributes the renderer sets (`data-py-ready`, `data-py-mode`, `data-py-theme`, `--tx-primary`).
 
 ## Required flows (product spec) → specs
 
@@ -28,7 +28,7 @@ attributes the renderer sets (`data-py-ready`, `data-py-mode`, `data-py-theme`, 
 | 3 | New-user scenario → onboarding/empty state | `crm-demo.spec.ts` · *flow 3* (`new-company`) |
 | 4 | Established scenario → populated records | `crm-demo.spec.ts` · *flow 4* (`growing-team`) |
 | 5 | Admin → viewer without reset → actions blocked, records unchanged | `crm-demo.spec.ts` · *flow 5*; `mobile-banking-demo.spec.ts` · *a view-only persona is blocked without wiping data* |
-| 6 | Dark/light and theme preset → `data-py-mode` / `--py-primary` change, records persist | `crm-demo.spec.ts` · *flow 6* |
+| 6 | Dark/light and theme preset → `data-py-mode` / `--tx-primary` change, records persist | `crm-demo.spec.ts` · *flow 6* |
 | 7 | Save snapshot → create record → restore → exact state | `crm-demo.spec.ts` · *flow 7* (table counts compared before/after) |
 | 8 | Mobile demo transfer → balances/ledger updated → refresh persists | `mobile-banking-demo.spec.ts` · *a transfer moves money and survives a reload* (both projects, including Pixel 7) |
 | 9 | Standalone CRM build → static server → works without a dev server | `crm-demo.spec.ts` · *flow 9* (no `@vite/client`), with every CRM flow running on that build |

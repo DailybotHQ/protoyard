@@ -123,7 +123,7 @@ export function themeVariables(input: AppearanceInput): Record<string, string> {
     input.resolvedMode === 'dark' ? input.theme.dark : input.theme.light;
   const vars: Record<string, string> = {};
   for (const [token, value] of Object.entries(palette)) {
-    vars[tokenToCssVar(token).replace('--py-', '--tx-')] = value;
+    vars[tokenToCssVar(token)] = value;
   }
   vars['--tx-primary-hover'] = hoverFill(palette.primary, palette.primaryForeground);
   vars['--tx-destructive-hover'] = hoverFill(palette.destructive, palette.destructiveForeground);
@@ -168,22 +168,11 @@ export function themeVariables(input: AppearanceInput): Record<string, string> {
   vars['--tx-focus-ring-width'] = style.focusRing.width;
   vars['--tx-focus-ring-offset'] = style.focusRing.offset;
   Object.assign(vars, chartVariables(input.theme, input.resolvedMode, palette));
-  return withDeprecatedPyAliases(vars);
-}
-
-/** Keep exported prototypes working while making --tx-* the source of truth. */
-function withDeprecatedPyAliases(txVars: Record<string, string>): Record<string, string> {
-  const pyVars = Object.fromEntries(
-    Object.entries(txVars).map(([name, value]) => [
-      name.replace('--tx-', '--py-'),
-      value.replaceAll('--tx-', '--py-'),
-    ])
-  );
-  return { ...txVars, ...pyVars };
+  return vars;
 }
 
 /**
- * The chart variables a theme block sets beyond `--py-chart1…5`: series 6–8
+ * The chart variables a theme block sets beyond `--tx-chart1…5`: series 6–8
  * and the 9-step sequential and diverging ramps (the names the charts kit
  * reads). Cleared when the next theme has no `charts` block.
  */
@@ -193,10 +182,7 @@ const TX_CHART_EXTENSION_VARIABLES: readonly string[] = [
   ...Array.from({ length: 9 }, (_, i) => `--tx-div-${i + 1}`),
 ];
 
-export const CHART_EXTENSION_VARIABLES: readonly string[] = [
-  ...TX_CHART_EXTENSION_VARIABLES,
-  ...TX_CHART_EXTENSION_VARIABLES.map((name) => name.replace('--tx-', '--py-')),
-];
+export const CHART_EXTENSION_VARIABLES: readonly string[] = [...TX_CHART_EXTENSION_VARIABLES];
 
 /** Chart grid and axis colors always; the full series and ramps when the theme carries them. */
 function chartVariables(
@@ -302,8 +288,8 @@ const lastInputs = new WeakMap<HTMLElement, AppearanceInput>();
 
 /**
  * Turns Texuli's variables on (or off, with `undefined`): `--tx-*` and the
- * `data-tx-*` attributes, with the `--py-*` names as their aliases. Pages that
- * render Texuli components call `enableTexuliAppearance()` from
+ * `data-tx-*` attributes. Pages that render Texuli components call
+ * `enableTexuliAppearance()` from
  * `@protoyard/themes/texuli`, which installs the `@texuli/tokens` writer, so
  * pages that do not pay nothing for it. Re-applies the last appearance of each
  * given target.

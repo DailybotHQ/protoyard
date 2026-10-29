@@ -38,6 +38,5 @@ function placement(node: HTMLElement): void {
   /* The deck's radius choice reaches the custom slide's Texuli components (see FreeSlide). */
   .py-deck-custom {
     --tx-radius: var(--tx-deck-radius);
-    --py-radius: var(--tx-radius);
   }
 </style>

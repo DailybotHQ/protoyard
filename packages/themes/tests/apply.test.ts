@@ -77,28 +77,30 @@ describe('applyAppearance', () => {
     expect(root.dataset.pyMotion).toBe('reduce');
     expect(root.classList.contains('dark')).toBe(true);
     expect(root.style.colorScheme).toBe('dark');
-    expect(root.style.getPropertyValue('--py-density')).toBe('0.875');
+    expect(root.style.getPropertyValue('--tx-density')).toBe('0.875');
     expect(applied.density).toBe(0.875);
 
     applyAppearance(root, { theme: oceanTheme, resolvedMode: 'light' });
     expect(root.classList.contains('dark')).toBe(false);
-    expect(root.style.getPropertyValue('--py-primary')).toBe(oceanTheme.light.primary);
+    expect(root.style.getPropertyValue('--tx-primary')).toBe(oceanTheme.light.primary);
     expect(root.dataset.pyMotion).toBe('full');
   });
 
-  it('keeps deprecated aliases equivalent to canonical tokens in light and dark mode', () => {
+  it('writes only canonical theme variables in light and dark mode', () => {
     for (const mode of ['light', 'dark'] as const) {
       const applied = applyAppearance(root, { theme: oceanTheme, resolvedMode: mode });
-      for (const [name, value] of Object.entries(applied.vars)) {
-        if (!name.startsWith('--tx-')) continue;
-        const legacyName = name.replace('--tx-', '--py-');
-        const legacyValue = applied.vars[legacyName];
-        expect(legacyValue, `${mode}/${name} alias exists`).toBeDefined();
-        expect(legacyValue?.replaceAll('--py-', '--tx-'), `${mode}/${name}`).toBe(value);
-      }
-      for (const token of ['background', 'foreground', 'primary', 'primary-foreground', 'chart1']) {
-        expect(root.style.getPropertyValue(`--py-${token}`), `${mode}/${token}`).toBe(
-          root.style.getPropertyValue(`--tx-${token}`)
+      expect(Object.keys(applied.vars).every((name) => name.startsWith('--tx-'))).toBe(true);
+      const tokens = {
+        background: oceanTheme[mode].background,
+        foreground: oceanTheme[mode].foreground,
+        primary: oceanTheme[mode].primary,
+        'primary-foreground': oceanTheme[mode].primaryForeground,
+        chart1: oceanTheme[mode].chart1,
+      };
+      for (const [token, value] of Object.entries(tokens)) {
+        expect(root.style.getPropertyValue(`--tx-${token}`), `${mode}/${token}`).toBe(value);
+        expect(root.style.getPropertyValue(`--py-${token}`), `${mode}/${token} legacy token`).toBe(
+          ''
         );
       }
     }
@@ -109,11 +111,11 @@ describe('applyAppearance', () => {
     document.body.append(preview);
     applyAppearance(preview, { theme: violetTheme, resolvedMode: 'dark' });
     expect(preview.classList.contains('dark')).toBe(true);
-    expect(preview.style.getPropertyValue('--py-background')).toBe(violetTheme.dark.background);
+    expect(preview.style.getPropertyValue('--tx-background')).toBe(violetTheme.dark.background);
     expect(root.classList.contains('dark')).toBe(false);
-    expect(root.style.getPropertyValue('--py-background')).toBe('');
+    expect(root.style.getPropertyValue('--tx-background')).toBe('');
     clearAppearance(preview);
-    expect(preview.style.getPropertyValue('--py-background')).toBe('');
+    expect(preview.style.getPropertyValue('--tx-background')).toBe('');
     expect(preview.dataset.pyTheme).toBeUndefined();
     preview.remove();
   });
@@ -136,26 +138,26 @@ describe('applyAppearance', () => {
     const vars = themeVariables({ theme: styledTheme, resolvedMode: 'light' });
 
     expect(vars).toMatchObject({
-      '--py-font-size-base': '1rem',
-      '--py-font-size-lg': '1.25rem',
-      '--py-font-weight-body': '450',
-      '--py-font-weight-heading': '650',
-      '--py-letter-spacing-body': '0.01em',
-      '--py-radius-scale': '1.5',
-      '--py-border-width': '2px',
-      '--py-elevation-style': 'glow',
-      '--py-shadow-soft': '0 0 12px color-mix(in oklab, var(--py-primary) 24%, transparent)',
-      '--py-surface-style': 'glass',
-      '--py-motion-fast': '100ms',
-      '--py-motion-base': '250ms',
-      '--py-motion-easing': 'ease-out',
+      '--tx-font-size-base': '1rem',
+      '--tx-font-size-lg': '1.25rem',
+      '--tx-font-weight-body': '450',
+      '--tx-font-weight-heading': '650',
+      '--tx-letter-spacing-body': '0.01em',
+      '--tx-radius-scale': '1.5',
+      '--tx-border-width': '2px',
+      '--tx-elevation-style': 'glow',
+      '--tx-shadow-soft': '0 0 12px color-mix(in oklab, var(--tx-primary) 24%, transparent)',
+      '--tx-surface-style': 'glass',
+      '--tx-motion-fast': '100ms',
+      '--tx-motion-base': '250ms',
+      '--tx-motion-easing': 'ease-out',
     });
 
     const applied = applyAppearance(root, { theme: styledTheme, resolvedMode: 'light' });
     expect(root.dataset.pySurface).toBe('glass');
-    expect(applied.vars['--py-font-size-lg']).toBe('1.25rem');
+    expect(applied.vars['--tx-font-size-lg']).toBe('1.25rem');
     clearAppearance(root);
-    expect(root.style.getPropertyValue('--py-font-size-lg')).toBe('');
+    expect(root.style.getPropertyValue('--tx-font-size-lg')).toBe('');
     expect(root.dataset.pySurface).toBeUndefined();
   });
 
@@ -165,18 +167,18 @@ describe('applyAppearance', () => {
       style: { motion: { durations: { fast: 100, base: 250, slow: 500 }, easing: 'ease-out' } },
     });
     expect(themeVariables({ theme: styleTheme, resolvedMode: 'light' })).toMatchObject({
-      '--py-motion-fast': '100ms',
-      '--py-motion-base': '250ms',
-      '--py-motion-slow': '500ms',
-      '--py-motion-easing': 'ease-out',
+      '--tx-motion-fast': '100ms',
+      '--tx-motion-base': '250ms',
+      '--tx-motion-slow': '500ms',
+      '--tx-motion-easing': 'ease-out',
     });
     expect(
       themeVariables({ theme: styleTheme, resolvedMode: 'light', reducedMotion: true })
     ).toMatchObject({
-      '--py-motion-fast': '0ms',
-      '--py-motion-base': '0ms',
-      '--py-motion-slow': '0ms',
-      '--py-motion-easing': 'linear',
+      '--tx-motion-fast': '0ms',
+      '--tx-motion-base': '0ms',
+      '--tx-motion-slow': '0ms',
+      '--tx-motion-easing': 'linear',
     });
   });
 });
@@ -216,17 +218,22 @@ describe('no-flash cache', () => {
     expect(root.classList.contains('dark')).toBe(true);
     expect(root.dataset.pyTheme).toBe('ocean');
     expect(root.dataset.pySurface).toBe('glass');
-    expect(root.style.getPropertyValue('--py-primary')).toBe(oceanTheme.dark.primary);
+    expect(root.style.getPropertyValue('--tx-primary')).toBe(oceanTheme.dark.primary);
   });
 
   it('ignores injected property names from a tampered cache', () => {
     localStorage.setItem(
       appearanceCacheKey('x'),
-      JSON.stringify({ v: 1, mode: 'light', vars: { color: 'red', '--py-primary': '#123456' } })
+      JSON.stringify({
+        v: 1,
+        mode: 'light',
+        vars: { color: 'red', '--py-primary': '#123456', '--tx-bad;name': 'x' },
+      })
     );
     new Function(noFlashScript('x'))();
     expect(root.style.getPropertyValue('color')).toBe('');
-    expect(root.style.getPropertyValue('--py-primary')).toBe('#123456');
+    expect(root.style.getPropertyValue('--py-primary')).toBe('');
+    expect(root.style.getPropertyValue('--tx-bad;name')).toBe('');
   });
 });
 
@@ -254,21 +261,21 @@ describe('style preset overrides', () => {
     });
     const editorial = getFontPairing('editorial');
     expect(root.dataset.pyTheme).toBe('violet');
-    expect(root.style.getPropertyValue('--py-radius')).toBe('9999px');
-    expect(root.style.getPropertyValue('--py-elevation-style')).toBe('flat');
-    expect(root.style.getPropertyValue('--py-shadow-soft')).toBe('none');
-    expect(root.style.getPropertyValue('--py-font-heading')).toBe(
-      editorial?.fontFamilyHeading.replaceAll('--tx-', '--py-')
+    expect(root.style.getPropertyValue('--tx-radius')).toBe('9999px');
+    expect(root.style.getPropertyValue('--tx-elevation-style')).toBe('flat');
+    expect(root.style.getPropertyValue('--tx-shadow-soft')).toBe('none');
+    expect(root.style.getPropertyValue('--tx-font-heading')).toBe(
+      editorial?.fontFamilyHeading.replaceAll('--tx-', '--tx-')
     );
-    expect(root.style.getPropertyValue('--py-motion-base')).toBe('300ms');
-    expect(root.style.getPropertyValue('--py-motion-easing')).toBe(
+    expect(root.style.getPropertyValue('--tx-motion-base')).toBe('300ms');
+    expect(root.style.getPropertyValue('--tx-motion-easing')).toBe(
       'cubic-bezier(0.34, 1.56, 0.64, 1)'
     );
     // Component profiles follow the merged theme (pill buttons, bordered flat cards).
     expect(applied.components).toEqual({ button: 'pill', card: 'bordered' });
     expect(root.dataset.pyButtonStyle).toBe('pill');
     // The theme's colors are untouched.
-    expect(root.style.getPropertyValue('--py-primary')).toBe(violetTheme.light.primary);
+    expect(root.style.getPropertyValue('--tx-primary')).toBe(violetTheme.light.primary);
   });
 
   it('keeps reduced motion and the density override above the presets', () => {
@@ -278,8 +285,8 @@ describe('style preset overrides', () => {
       reducedMotion: true,
       density: 0.75,
     });
-    expect(root.style.getPropertyValue('--py-motion-base')).toBe('0ms');
-    expect(root.style.getPropertyValue('--py-density')).toBe('0.75');
+    expect(root.style.getPropertyValue('--tx-motion-base')).toBe('0ms');
+    expect(root.style.getPropertyValue('--tx-density')).toBe('0.75');
   });
 
   it('writes exactly the theme variables for an empty selection and reverts when cleared', () => {
@@ -293,8 +300,8 @@ describe('style preset overrides', () => {
     });
     expect(root.dataset.pyButtonStyle).toBe('square');
     applyAppearance(root, { theme: violetTheme, resolvedMode: 'light' });
-    expect(root.style.getPropertyValue('--py-radius')).toBe(plain['--py-radius']);
-    expect(root.style.getPropertyValue('--py-shadow-float')).toBe(plain['--py-shadow-float']);
+    expect(root.style.getPropertyValue('--tx-radius')).toBe(plain['--tx-radius']);
+    expect(root.style.getPropertyValue('--tx-shadow-float')).toBe(plain['--tx-shadow-float']);
     expect(root.dataset.pyButtonStyle).toBeUndefined();
   });
 
@@ -306,8 +313,8 @@ describe('style preset overrides', () => {
     cacheAppearance('styled', applied);
     resetRootStyleOnly();
     new Function(noFlashScript('styled'))();
-    expect(root.style.getPropertyValue('--py-radius')).toBe('9999px');
-    expect(root.style.getPropertyValue('--py-shadow-soft')).toBe('none');
+    expect(root.style.getPropertyValue('--tx-radius')).toBe('9999px');
+    expect(root.style.getPropertyValue('--tx-shadow-soft')).toBe('none');
     expect(root.dataset.pyButtonStyle).toBe('pill');
     expect(root.dataset.pyCardStyle).toBe('bordered');
   });
@@ -323,7 +330,7 @@ describe('base.css', () => {
 
   it('maps every palette token into the Tailwind theme', () => {
     for (const token of Object.keys(violetTheme.light)) {
-      const cssVar = tokenToCssVar(token).replace('--py-', '--tx-');
+      const cssVar = tokenToCssVar(token);
       const twName = cssVar.replace('--tx-', '').replace(/^chart(\d)$/, 'chart-$1');
       const mapping =
         token === 'surface'
@@ -338,7 +345,7 @@ describe('base.css', () => {
 
   it('ships Violet defaults that match the preset (first paint before boot)', () => {
     for (const [token, value] of Object.entries(violetTheme.light)) {
-      expect(css).toContain(`${tokenToCssVar(token).replace('--py-', '--tx-')}: ${value};`);
+      expect(css).toContain(`${tokenToCssVar(token)}: ${value};`);
     }
     const lightVars = themeVariables({ theme: violetTheme, resolvedMode: 'light' });
     const darkVars = themeVariables({ theme: violetTheme, resolvedMode: 'dark' });
@@ -348,7 +355,7 @@ describe('base.css', () => {
     }
     const darkBlock = css.slice(css.indexOf(':root.dark'));
     for (const [token, value] of Object.entries(violetTheme.dark)) {
-      expect(darkBlock).toContain(`${tokenToCssVar(token).replace('--py-', '--tx-')}: ${value};`);
+      expect(darkBlock).toContain(`${tokenToCssVar(token)}: ${value};`);
     }
   });
 
@@ -392,7 +399,7 @@ describe('base.css', () => {
       expect(css).toContain(token);
     }
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(css).toContain('--py-motion-fast: var(--tx-motion-fast) !important;');
+    expect(css).not.toMatch(/^\s*--py-(?!app-height\b)[a-z0-9-]+\s*:/m);
     expect(css).toContain('[data-py-surface="glass"]');
     expect(css).toContain(
       '@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))'
@@ -400,40 +407,40 @@ describe('base.css', () => {
   });
 
   it('keeps the original appearance variables byte-identical for every built-in preset', () => {
-    const legacyNames = [
+    const canonicalNames = [
       ...Object.keys(violetTheme.light).map(tokenToCssVar),
-      '--py-primary-hover',
-      '--py-destructive-hover',
-      '--py-radius',
-      '--py-font-sans',
-      '--py-font-heading',
-      '--py-font-mono',
-      '--py-density',
-      '--py-motion',
+      '--tx-primary-hover',
+      '--tx-destructive-hover',
+      '--tx-radius',
+      '--tx-font-sans',
+      '--tx-font-heading',
+      '--tx-font-mono',
+      '--tx-density',
+      '--tx-motion',
     ];
     const snapshots = BUILTIN_THEMES.flatMap((theme) =>
       (['light', 'dark'] as const).map((resolvedMode) => {
         const variables = themeVariables({ theme, resolvedMode });
         return `${theme.id}/${resolvedMode}: ${JSON.stringify(
-          Object.fromEntries(legacyNames.map((name) => [name, variables[name]]))
+          Object.fromEntries(canonicalNames.map((name) => [name, variables[name]]))
         )}`;
       })
     );
     // chart2…chart5 moved deliberately (PLAN_003 Task 57): they now pass the chart rules in tests/charts.test.ts.
     expect(snapshots).toMatchInlineSnapshot(`
       [
-        "violet/light: {"--py-background":"#fafafa","--py-foreground":"#09090b","--py-surface":"#ffffff","--py-surface-foreground":"#09090b","--py-elevated":"#ffffff","--py-muted":"#f4f4f5","--py-muted-foreground":"#52525b","--py-border":"#e4e4e7","--py-input":"#d4d4d8","--py-ring":"#8b5cf6","--py-primary":"#7c3aed","--py-primary-foreground":"#ffffff","--py-secondary":"#f4f4f5","--py-secondary-foreground":"#18181b","--py-accent":"#f5f3ff","--py-accent-foreground":"#4c1d95","--py-destructive":"#b91c1c","--py-destructive-foreground":"#ffffff","--py-success":"#15803d","--py-success-foreground":"#ffffff","--py-warning":"#fbbf24","--py-warning-foreground":"#451a03","--py-info":"#0369a1","--py-info-foreground":"#ffffff","--py-sidebar":"#f4f4f5","--py-sidebar-foreground":"#27272a","--py-sidebar-border":"#e4e4e7","--py-chart1":"#7c3aed","--py-chart2":"#0284c7","--py-chart3":"#27a094","--py-chart4":"#c88000","--py-chart5":"#f43f5e","--py-shadow":"rgb(15 23 42 / 0.08)","--py-primary-hover":"#6b32cc","--py-destructive-hover":"#9f1818","--py-radius":"0.625rem","--py-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--py-density":"1","--py-motion":"1"}",
-        "violet/dark: {"--py-background":"#09090b","--py-foreground":"#fafafa","--py-surface":"#18181b","--py-surface-foreground":"#fafafa","--py-elevated":"#27272a","--py-muted":"#27272a","--py-muted-foreground":"#a1a1aa","--py-border":"rgb(255 255 255 / 0.1)","--py-input":"rgb(255 255 255 / 0.16)","--py-ring":"#a78bfa","--py-primary":"#a78bfa","--py-primary-foreground":"#2e1065","--py-secondary":"#27272a","--py-secondary-foreground":"#fafafa","--py-accent":"#2e1065","--py-accent-foreground":"#ede9fe","--py-destructive":"#f87171","--py-destructive-foreground":"#450a0a","--py-success":"#4ade80","--py-success-foreground":"#052e16","--py-warning":"#fbbf24","--py-warning-foreground":"#451a03","--py-info":"#38bdf8","--py-info-foreground":"#082f49","--py-sidebar":"#18181b","--py-sidebar-foreground":"#e4e4e7","--py-sidebar-border":"rgb(255 255 255 / 0.08)","--py-chart1":"#a78bfa","--py-chart2":"#38bdf8","--py-chart3":"#42e1cc","--py-chart4":"#fbbf24","--py-chart5":"#fb7185","--py-shadow":"rgb(0 0 0 / 0.45)","--py-primary-hover":"#b39bfb","--py-destructive-hover":"#f98585","--py-radius":"0.625rem","--py-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--py-density":"1","--py-motion":"1"}",
-        "ocean/light: {"--py-background":"#f8fafc","--py-foreground":"#020617","--py-surface":"#ffffff","--py-surface-foreground":"#020617","--py-elevated":"#ffffff","--py-muted":"#f1f5f9","--py-muted-foreground":"#475569","--py-border":"#e2e8f0","--py-input":"#cbd5e1","--py-ring":"#3b82f6","--py-primary":"#2563eb","--py-primary-foreground":"#ffffff","--py-secondary":"#f1f5f9","--py-secondary-foreground":"#0f172a","--py-accent":"#eff6ff","--py-accent-foreground":"#1e3a8a","--py-destructive":"#b91c1c","--py-destructive-foreground":"#ffffff","--py-success":"#15803d","--py-success-foreground":"#ffffff","--py-warning":"#fbbf24","--py-warning-foreground":"#451a03","--py-info":"#0369a1","--py-info-foreground":"#ffffff","--py-sidebar":"#f1f5f9","--py-sidebar-foreground":"#1e293b","--py-sidebar-border":"#e2e8f0","--py-chart1":"#2563eb","--py-chart2":"#0891b2","--py-chart3":"#4637d7","--py-chart4":"#00885f","--py-chart5":"#c88000","--py-shadow":"rgb(15 23 42 / 0.08)","--py-primary-hover":"#2055ca","--py-destructive-hover":"#9f1818","--py-radius":"0.625rem","--py-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--py-density":"1","--py-motion":"1"}",
-        "ocean/dark: {"--py-background":"#020617","--py-foreground":"#f8fafc","--py-surface":"#0f172a","--py-surface-foreground":"#f8fafc","--py-elevated":"#1e293b","--py-muted":"#1e293b","--py-muted-foreground":"#94a3b8","--py-border":"rgb(255 255 255 / 0.1)","--py-input":"rgb(255 255 255 / 0.16)","--py-ring":"#60a5fa","--py-primary":"#60a5fa","--py-primary-foreground":"#172554","--py-secondary":"#1e293b","--py-secondary-foreground":"#f8fafc","--py-accent":"#172554","--py-accent-foreground":"#dbeafe","--py-destructive":"#f87171","--py-destructive-foreground":"#450a0a","--py-success":"#4ade80","--py-success-foreground":"#052e16","--py-warning":"#fbbf24","--py-warning-foreground":"#451a03","--py-info":"#38bdf8","--py-info-foreground":"#082f49","--py-sidebar":"#0f172a","--py-sidebar-foreground":"#e2e8f0","--py-sidebar-border":"rgb(255 255 255 / 0.08)","--py-chart1":"#60a5fa","--py-chart2":"#22d3ee","--py-chart3":"#767fea","--py-chart4":"#34d399","--py-chart5":"#fbbf24","--py-shadow":"rgb(0 0 0 / 0.45)","--py-primary-hover":"#76b2fb","--py-destructive-hover":"#f98585","--py-radius":"0.625rem","--py-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--py-density":"1","--py-motion":"1"}",
-        "emerald/light: {"--py-background":"#f9fafb","--py-foreground":"#030712","--py-surface":"#ffffff","--py-surface-foreground":"#030712","--py-elevated":"#ffffff","--py-muted":"#f3f4f6","--py-muted-foreground":"#4b5563","--py-border":"#e5e7eb","--py-input":"#d1d5db","--py-ring":"#059669","--py-primary":"#047857","--py-primary-foreground":"#ffffff","--py-secondary":"#f3f4f6","--py-secondary-foreground":"#111827","--py-accent":"#ecfdf5","--py-accent-foreground":"#064e3b","--py-destructive":"#b91c1c","--py-destructive-foreground":"#ffffff","--py-success":"#15803d","--py-success-foreground":"#ffffff","--py-warning":"#fbbf24","--py-warning-foreground":"#451a03","--py-info":"#0369a1","--py-info-foreground":"#ffffff","--py-sidebar":"#f3f4f6","--py-sidebar-foreground":"#1f2937","--py-sidebar-border":"#e5e7eb","--py-chart1":"#059669","--py-chart2":"#007a70","--py-chart3":"#2090d4","--py-chart4":"#62a003","--py-chart5":"#a86b00","--py-shadow":"rgb(15 23 42 / 0.08)","--py-primary-hover":"#03674b","--py-destructive-hover":"#9f1818","--py-radius":"0.625rem","--py-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--py-density":"1","--py-motion":"1"}",
-        "emerald/dark: {"--py-background":"#030712","--py-foreground":"#f9fafb","--py-surface":"#111827","--py-surface-foreground":"#f9fafb","--py-elevated":"#1f2937","--py-muted":"#1f2937","--py-muted-foreground":"#9ca3af","--py-border":"rgb(255 255 255 / 0.1)","--py-input":"rgb(255 255 255 / 0.16)","--py-ring":"#34d399","--py-primary":"#34d399","--py-primary-foreground":"#022c22","--py-secondary":"#1f2937","--py-secondary-foreground":"#f9fafb","--py-accent":"#022c22","--py-accent-foreground":"#d1fae5","--py-destructive":"#f87171","--py-destructive-foreground":"#450a0a","--py-success":"#4ade80","--py-success-foreground":"#052e16","--py-warning":"#fbbf24","--py-warning-foreground":"#451a03","--py-info":"#38bdf8","--py-info-foreground":"#082f49","--py-sidebar":"#111827","--py-sidebar-foreground":"#e5e7eb","--py-sidebar-border":"rgb(255 255 255 / 0.08)","--py-chart1":"#34d399","--py-chart2":"#54efd9","--py-chart3":"#23b0ea","--py-chart4":"#a3e635","--py-chart5":"#edb200","--py-shadow":"rgb(0 0 0 / 0.45)","--py-primary-hover":"#50d9a7","--py-destructive-hover":"#f98585","--py-radius":"0.625rem","--py-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--py-density":"1","--py-motion":"1"}",
-        "rose/light: {"--py-background":"#fafaf9","--py-foreground":"#0c0a09","--py-surface":"#ffffff","--py-surface-foreground":"#0c0a09","--py-elevated":"#ffffff","--py-muted":"#f5f5f4","--py-muted-foreground":"#57534e","--py-border":"#e7e5e4","--py-input":"#d6d3d1","--py-ring":"#f43f5e","--py-primary":"#be123c","--py-primary-foreground":"#ffffff","--py-secondary":"#f5f5f4","--py-secondary-foreground":"#1c1917","--py-accent":"#fff1f2","--py-accent-foreground":"#881337","--py-destructive":"#b91c1c","--py-destructive-foreground":"#ffffff","--py-success":"#15803d","--py-success-foreground":"#ffffff","--py-warning":"#fbbf24","--py-warning-foreground":"#451a03","--py-info":"#0369a1","--py-info-foreground":"#ffffff","--py-sidebar":"#f5f5f4","--py-sidebar-foreground":"#292524","--py-sidebar-border":"#e7e5e4","--py-chart1":"#e11d48","--py-chart2":"#ea3983","--py-chart3":"#ea6730","--py-chart4":"#7c3aed","--py-chart5":"#986000","--py-shadow":"rgb(15 23 42 / 0.08)","--py-primary-hover":"#a30f34","--py-destructive-hover":"#9f1818","--py-radius":"0.875rem","--py-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--py-density":"1","--py-motion":"1"}",
-        "rose/dark: {"--py-background":"#0c0a09","--py-foreground":"#fafaf9","--py-surface":"#1c1917","--py-surface-foreground":"#fafaf9","--py-elevated":"#292524","--py-muted":"#292524","--py-muted-foreground":"#a8a29e","--py-border":"rgb(255 255 255 / 0.1)","--py-input":"rgb(255 255 255 / 0.16)","--py-ring":"#fb7185","--py-primary":"#fb7185","--py-primary-foreground":"#4c0519","--py-secondary":"#292524","--py-secondary-foreground":"#fafaf9","--py-accent":"#4c0519","--py-accent-foreground":"#ffe4e6","--py-destructive":"#f87171","--py-destructive-foreground":"#450a0a","--py-success":"#4ade80","--py-success-foreground":"#052e16","--py-warning":"#fbbf24","--py-warning-foreground":"#451a03","--py-info":"#38bdf8","--py-info-foreground":"#082f49","--py-sidebar":"#1c1917","--py-sidebar-foreground":"#e7e5e4","--py-sidebar-border":"rgb(255 255 255 / 0.08)","--py-chart1":"#fb7185","--py-chart2":"#ff82c2","--py-chart3":"#ffa461","--py-chart4":"#a78bfa","--py-chart5":"#fbbf24","--py-shadow":"rgb(0 0 0 / 0.45)","--py-primary-hover":"#fc8596","--py-destructive-hover":"#f98585","--py-radius":"0.875rem","--py-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--py-density":"1","--py-motion":"1"}",
-        "amber/light: {"--py-background":"#fafaf9","--py-foreground":"#0c0a09","--py-surface":"#ffffff","--py-surface-foreground":"#0c0a09","--py-elevated":"#ffffff","--py-muted":"#f5f5f4","--py-muted-foreground":"#57534e","--py-border":"#e7e5e4","--py-input":"#d6d3d1","--py-ring":"#d97706","--py-primary":"#b45309","--py-primary-foreground":"#ffffff","--py-secondary":"#f5f5f4","--py-secondary-foreground":"#1c1917","--py-accent":"#fffbeb","--py-accent-foreground":"#78350f","--py-destructive":"#b91c1c","--py-destructive-foreground":"#ffffff","--py-success":"#15803d","--py-success-foreground":"#ffffff","--py-warning":"#fbbf24","--py-warning-foreground":"#451a03","--py-info":"#0369a1","--py-info-foreground":"#ffffff","--py-sidebar":"#f5f5f4","--py-sidebar-foreground":"#292524","--py-sidebar-border":"#e7e5e4","--py-chart1":"#d97706","--py-chart2":"#d84e00","--py-chart3":"#bd0037","--py-chart4":"#059669","--py-chart5":"#2090d4","--py-shadow":"rgb(15 23 42 / 0.08)","--py-primary-hover":"#9b4708","--py-destructive-hover":"#9f1818","--py-radius":"0.625rem","--py-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--py-density":"1","--py-motion":"1"}",
-        "amber/dark: {"--py-background":"#0c0a09","--py-foreground":"#fafaf9","--py-surface":"#1c1917","--py-surface-foreground":"#fafaf9","--py-elevated":"#292524","--py-muted":"#292524","--py-muted-foreground":"#a8a29e","--py-border":"rgb(255 255 255 / 0.1)","--py-input":"rgb(255 255 255 / 0.16)","--py-ring":"#fbbf24","--py-primary":"#fbbf24","--py-primary-foreground":"#451a03","--py-secondary":"#292524","--py-secondary-foreground":"#fafaf9","--py-accent":"#451a03","--py-accent-foreground":"#fef3c7","--py-destructive":"#f87171","--py-destructive-foreground":"#450a0a","--py-success":"#4ade80","--py-success-foreground":"#052e16","--py-warning":"#fbbf24","--py-warning-foreground":"#451a03","--py-info":"#38bdf8","--py-info-foreground":"#082f49","--py-sidebar":"#1c1917","--py-sidebar-foreground":"#e7e5e4","--py-sidebar-border":"rgb(255 255 255 / 0.08)","--py-chart1":"#fbbf24","--py-chart2":"#fb923c","--py-chart3":"#fb7185","--py-chart4":"#34d399","--py-chart5":"#23b0ea","--py-shadow":"rgb(0 0 0 / 0.45)","--py-primary-hover":"#fcc843","--py-destructive-hover":"#f98585","--py-radius":"0.625rem","--py-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--py-density":"1","--py-motion":"1"}",
-        "monochrome/light: {"--py-background":"#fafafa","--py-foreground":"#09090b","--py-surface":"#ffffff","--py-surface-foreground":"#09090b","--py-elevated":"#ffffff","--py-muted":"#f4f4f5","--py-muted-foreground":"#52525b","--py-border":"#e4e4e7","--py-input":"#d4d4d8","--py-ring":"#71717a","--py-primary":"#18181b","--py-primary-foreground":"#fafafa","--py-secondary":"#f4f4f5","--py-secondary-foreground":"#18181b","--py-accent":"#e4e4e7","--py-accent-foreground":"#18181b","--py-destructive":"#b91c1c","--py-destructive-foreground":"#ffffff","--py-success":"#15803d","--py-success-foreground":"#ffffff","--py-warning":"#fbbf24","--py-warning-foreground":"#451a03","--py-info":"#0369a1","--py-info-foreground":"#ffffff","--py-sidebar":"#f4f4f5","--py-sidebar-foreground":"#27272a","--py-sidebar-border":"#e4e4e7","--py-chart1":"#18181b","--py-chart2":"#3f3f46","--py-chart3":"#71717a","--py-chart4":"#8f8f97","--py-chart5":"#555559","--py-shadow":"rgb(15 23 42 / 0.08)","--py-primary-hover":"#38383b","--py-destructive-hover":"#9f1818","--py-radius":"0.375rem","--py-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--py-density":"1","--py-motion":"1"}",
-        "monochrome/dark: {"--py-background":"#09090b","--py-foreground":"#fafafa","--py-surface":"#18181b","--py-surface-foreground":"#fafafa","--py-elevated":"#27272a","--py-muted":"#27272a","--py-muted-foreground":"#a1a1aa","--py-border":"rgb(255 255 255 / 0.1)","--py-input":"rgb(255 255 255 / 0.16)","--py-ring":"#a1a1aa","--py-primary":"#fafafa","--py-primary-foreground":"#18181b","--py-secondary":"#27272a","--py-secondary-foreground":"#fafafa","--py-accent":"#27272a","--py-accent-foreground":"#f4f4f5","--py-destructive":"#f87171","--py-destructive-foreground":"#450a0a","--py-success":"#4ade80","--py-success-foreground":"#052e16","--py-warning":"#fbbf24","--py-warning-foreground":"#451a03","--py-info":"#38bdf8","--py-info-foreground":"#082f49","--py-sidebar":"#18181b","--py-sidebar-foreground":"#e4e4e7","--py-sidebar-border":"rgb(255 255 255 / 0.08)","--py-chart1":"#fafafa","--py-chart2":"#d2d2d6","--py-chart3":"#888891","--py-chart4":"#65656e","--py-chart5":"#acacb7","--py-shadow":"rgb(0 0 0 / 0.45)","--py-primary-hover":"#d7d7d7","--py-destructive-hover":"#f98585","--py-radius":"0.375rem","--py-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--py-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--py-density":"1","--py-motion":"1"}",
+        "violet/light: {"--tx-background":"#fafafa","--tx-foreground":"#09090b","--tx-surface":"#ffffff","--tx-surface-foreground":"#09090b","--tx-elevated":"#ffffff","--tx-muted":"#f4f4f5","--tx-muted-foreground":"#52525b","--tx-border":"#e4e4e7","--tx-input":"#d4d4d8","--tx-ring":"#8b5cf6","--tx-primary":"#7c3aed","--tx-primary-foreground":"#ffffff","--tx-secondary":"#f4f4f5","--tx-secondary-foreground":"#18181b","--tx-accent":"#f5f3ff","--tx-accent-foreground":"#4c1d95","--tx-destructive":"#b91c1c","--tx-destructive-foreground":"#ffffff","--tx-success":"#15803d","--tx-success-foreground":"#ffffff","--tx-warning":"#fbbf24","--tx-warning-foreground":"#451a03","--tx-info":"#0369a1","--tx-info-foreground":"#ffffff","--tx-sidebar":"#f4f4f5","--tx-sidebar-foreground":"#27272a","--tx-sidebar-border":"#e4e4e7","--tx-chart1":"#7c3aed","--tx-chart2":"#0284c7","--tx-chart3":"#27a094","--tx-chart4":"#c88000","--tx-chart5":"#f43f5e","--tx-shadow":"rgb(15 23 42 / 0.08)","--tx-primary-hover":"#6b32cc","--tx-destructive-hover":"#9f1818","--tx-radius":"0.625rem","--tx-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--tx-density":"1","--tx-motion":"1"}",
+        "violet/dark: {"--tx-background":"#09090b","--tx-foreground":"#fafafa","--tx-surface":"#18181b","--tx-surface-foreground":"#fafafa","--tx-elevated":"#27272a","--tx-muted":"#27272a","--tx-muted-foreground":"#a1a1aa","--tx-border":"rgb(255 255 255 / 0.1)","--tx-input":"rgb(255 255 255 / 0.16)","--tx-ring":"#a78bfa","--tx-primary":"#a78bfa","--tx-primary-foreground":"#2e1065","--tx-secondary":"#27272a","--tx-secondary-foreground":"#fafafa","--tx-accent":"#2e1065","--tx-accent-foreground":"#ede9fe","--tx-destructive":"#f87171","--tx-destructive-foreground":"#450a0a","--tx-success":"#4ade80","--tx-success-foreground":"#052e16","--tx-warning":"#fbbf24","--tx-warning-foreground":"#451a03","--tx-info":"#38bdf8","--tx-info-foreground":"#082f49","--tx-sidebar":"#18181b","--tx-sidebar-foreground":"#e4e4e7","--tx-sidebar-border":"rgb(255 255 255 / 0.08)","--tx-chart1":"#a78bfa","--tx-chart2":"#38bdf8","--tx-chart3":"#42e1cc","--tx-chart4":"#fbbf24","--tx-chart5":"#fb7185","--tx-shadow":"rgb(0 0 0 / 0.45)","--tx-primary-hover":"#b39bfb","--tx-destructive-hover":"#f98585","--tx-radius":"0.625rem","--tx-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--tx-density":"1","--tx-motion":"1"}",
+        "ocean/light: {"--tx-background":"#f8fafc","--tx-foreground":"#020617","--tx-surface":"#ffffff","--tx-surface-foreground":"#020617","--tx-elevated":"#ffffff","--tx-muted":"#f1f5f9","--tx-muted-foreground":"#475569","--tx-border":"#e2e8f0","--tx-input":"#cbd5e1","--tx-ring":"#3b82f6","--tx-primary":"#2563eb","--tx-primary-foreground":"#ffffff","--tx-secondary":"#f1f5f9","--tx-secondary-foreground":"#0f172a","--tx-accent":"#eff6ff","--tx-accent-foreground":"#1e3a8a","--tx-destructive":"#b91c1c","--tx-destructive-foreground":"#ffffff","--tx-success":"#15803d","--tx-success-foreground":"#ffffff","--tx-warning":"#fbbf24","--tx-warning-foreground":"#451a03","--tx-info":"#0369a1","--tx-info-foreground":"#ffffff","--tx-sidebar":"#f1f5f9","--tx-sidebar-foreground":"#1e293b","--tx-sidebar-border":"#e2e8f0","--tx-chart1":"#2563eb","--tx-chart2":"#0891b2","--tx-chart3":"#4637d7","--tx-chart4":"#00885f","--tx-chart5":"#c88000","--tx-shadow":"rgb(15 23 42 / 0.08)","--tx-primary-hover":"#2055ca","--tx-destructive-hover":"#9f1818","--tx-radius":"0.625rem","--tx-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--tx-density":"1","--tx-motion":"1"}",
+        "ocean/dark: {"--tx-background":"#020617","--tx-foreground":"#f8fafc","--tx-surface":"#0f172a","--tx-surface-foreground":"#f8fafc","--tx-elevated":"#1e293b","--tx-muted":"#1e293b","--tx-muted-foreground":"#94a3b8","--tx-border":"rgb(255 255 255 / 0.1)","--tx-input":"rgb(255 255 255 / 0.16)","--tx-ring":"#60a5fa","--tx-primary":"#60a5fa","--tx-primary-foreground":"#172554","--tx-secondary":"#1e293b","--tx-secondary-foreground":"#f8fafc","--tx-accent":"#172554","--tx-accent-foreground":"#dbeafe","--tx-destructive":"#f87171","--tx-destructive-foreground":"#450a0a","--tx-success":"#4ade80","--tx-success-foreground":"#052e16","--tx-warning":"#fbbf24","--tx-warning-foreground":"#451a03","--tx-info":"#38bdf8","--tx-info-foreground":"#082f49","--tx-sidebar":"#0f172a","--tx-sidebar-foreground":"#e2e8f0","--tx-sidebar-border":"rgb(255 255 255 / 0.08)","--tx-chart1":"#60a5fa","--tx-chart2":"#22d3ee","--tx-chart3":"#767fea","--tx-chart4":"#34d399","--tx-chart5":"#fbbf24","--tx-shadow":"rgb(0 0 0 / 0.45)","--tx-primary-hover":"#76b2fb","--tx-destructive-hover":"#f98585","--tx-radius":"0.625rem","--tx-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--tx-density":"1","--tx-motion":"1"}",
+        "emerald/light: {"--tx-background":"#f9fafb","--tx-foreground":"#030712","--tx-surface":"#ffffff","--tx-surface-foreground":"#030712","--tx-elevated":"#ffffff","--tx-muted":"#f3f4f6","--tx-muted-foreground":"#4b5563","--tx-border":"#e5e7eb","--tx-input":"#d1d5db","--tx-ring":"#059669","--tx-primary":"#047857","--tx-primary-foreground":"#ffffff","--tx-secondary":"#f3f4f6","--tx-secondary-foreground":"#111827","--tx-accent":"#ecfdf5","--tx-accent-foreground":"#064e3b","--tx-destructive":"#b91c1c","--tx-destructive-foreground":"#ffffff","--tx-success":"#15803d","--tx-success-foreground":"#ffffff","--tx-warning":"#fbbf24","--tx-warning-foreground":"#451a03","--tx-info":"#0369a1","--tx-info-foreground":"#ffffff","--tx-sidebar":"#f3f4f6","--tx-sidebar-foreground":"#1f2937","--tx-sidebar-border":"#e5e7eb","--tx-chart1":"#059669","--tx-chart2":"#007a70","--tx-chart3":"#2090d4","--tx-chart4":"#62a003","--tx-chart5":"#a86b00","--tx-shadow":"rgb(15 23 42 / 0.08)","--tx-primary-hover":"#03674b","--tx-destructive-hover":"#9f1818","--tx-radius":"0.625rem","--tx-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--tx-density":"1","--tx-motion":"1"}",
+        "emerald/dark: {"--tx-background":"#030712","--tx-foreground":"#f9fafb","--tx-surface":"#111827","--tx-surface-foreground":"#f9fafb","--tx-elevated":"#1f2937","--tx-muted":"#1f2937","--tx-muted-foreground":"#9ca3af","--tx-border":"rgb(255 255 255 / 0.1)","--tx-input":"rgb(255 255 255 / 0.16)","--tx-ring":"#34d399","--tx-primary":"#34d399","--tx-primary-foreground":"#022c22","--tx-secondary":"#1f2937","--tx-secondary-foreground":"#f9fafb","--tx-accent":"#022c22","--tx-accent-foreground":"#d1fae5","--tx-destructive":"#f87171","--tx-destructive-foreground":"#450a0a","--tx-success":"#4ade80","--tx-success-foreground":"#052e16","--tx-warning":"#fbbf24","--tx-warning-foreground":"#451a03","--tx-info":"#38bdf8","--tx-info-foreground":"#082f49","--tx-sidebar":"#111827","--tx-sidebar-foreground":"#e5e7eb","--tx-sidebar-border":"rgb(255 255 255 / 0.08)","--tx-chart1":"#34d399","--tx-chart2":"#54efd9","--tx-chart3":"#23b0ea","--tx-chart4":"#a3e635","--tx-chart5":"#edb200","--tx-shadow":"rgb(0 0 0 / 0.45)","--tx-primary-hover":"#50d9a7","--tx-destructive-hover":"#f98585","--tx-radius":"0.625rem","--tx-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--tx-density":"1","--tx-motion":"1"}",
+        "rose/light: {"--tx-background":"#fafaf9","--tx-foreground":"#0c0a09","--tx-surface":"#ffffff","--tx-surface-foreground":"#0c0a09","--tx-elevated":"#ffffff","--tx-muted":"#f5f5f4","--tx-muted-foreground":"#57534e","--tx-border":"#e7e5e4","--tx-input":"#d6d3d1","--tx-ring":"#f43f5e","--tx-primary":"#be123c","--tx-primary-foreground":"#ffffff","--tx-secondary":"#f5f5f4","--tx-secondary-foreground":"#1c1917","--tx-accent":"#fff1f2","--tx-accent-foreground":"#881337","--tx-destructive":"#b91c1c","--tx-destructive-foreground":"#ffffff","--tx-success":"#15803d","--tx-success-foreground":"#ffffff","--tx-warning":"#fbbf24","--tx-warning-foreground":"#451a03","--tx-info":"#0369a1","--tx-info-foreground":"#ffffff","--tx-sidebar":"#f5f5f4","--tx-sidebar-foreground":"#292524","--tx-sidebar-border":"#e7e5e4","--tx-chart1":"#e11d48","--tx-chart2":"#ea3983","--tx-chart3":"#ea6730","--tx-chart4":"#7c3aed","--tx-chart5":"#986000","--tx-shadow":"rgb(15 23 42 / 0.08)","--tx-primary-hover":"#a30f34","--tx-destructive-hover":"#9f1818","--tx-radius":"0.875rem","--tx-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--tx-density":"1","--tx-motion":"1"}",
+        "rose/dark: {"--tx-background":"#0c0a09","--tx-foreground":"#fafaf9","--tx-surface":"#1c1917","--tx-surface-foreground":"#fafaf9","--tx-elevated":"#292524","--tx-muted":"#292524","--tx-muted-foreground":"#a8a29e","--tx-border":"rgb(255 255 255 / 0.1)","--tx-input":"rgb(255 255 255 / 0.16)","--tx-ring":"#fb7185","--tx-primary":"#fb7185","--tx-primary-foreground":"#4c0519","--tx-secondary":"#292524","--tx-secondary-foreground":"#fafaf9","--tx-accent":"#4c0519","--tx-accent-foreground":"#ffe4e6","--tx-destructive":"#f87171","--tx-destructive-foreground":"#450a0a","--tx-success":"#4ade80","--tx-success-foreground":"#052e16","--tx-warning":"#fbbf24","--tx-warning-foreground":"#451a03","--tx-info":"#38bdf8","--tx-info-foreground":"#082f49","--tx-sidebar":"#1c1917","--tx-sidebar-foreground":"#e7e5e4","--tx-sidebar-border":"rgb(255 255 255 / 0.08)","--tx-chart1":"#fb7185","--tx-chart2":"#ff82c2","--tx-chart3":"#ffa461","--tx-chart4":"#a78bfa","--tx-chart5":"#fbbf24","--tx-shadow":"rgb(0 0 0 / 0.45)","--tx-primary-hover":"#fc8596","--tx-destructive-hover":"#f98585","--tx-radius":"0.875rem","--tx-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--tx-density":"1","--tx-motion":"1"}",
+        "amber/light: {"--tx-background":"#fafaf9","--tx-foreground":"#0c0a09","--tx-surface":"#ffffff","--tx-surface-foreground":"#0c0a09","--tx-elevated":"#ffffff","--tx-muted":"#f5f5f4","--tx-muted-foreground":"#57534e","--tx-border":"#e7e5e4","--tx-input":"#d6d3d1","--tx-ring":"#d97706","--tx-primary":"#b45309","--tx-primary-foreground":"#ffffff","--tx-secondary":"#f5f5f4","--tx-secondary-foreground":"#1c1917","--tx-accent":"#fffbeb","--tx-accent-foreground":"#78350f","--tx-destructive":"#b91c1c","--tx-destructive-foreground":"#ffffff","--tx-success":"#15803d","--tx-success-foreground":"#ffffff","--tx-warning":"#fbbf24","--tx-warning-foreground":"#451a03","--tx-info":"#0369a1","--tx-info-foreground":"#ffffff","--tx-sidebar":"#f5f5f4","--tx-sidebar-foreground":"#292524","--tx-sidebar-border":"#e7e5e4","--tx-chart1":"#d97706","--tx-chart2":"#d84e00","--tx-chart3":"#bd0037","--tx-chart4":"#059669","--tx-chart5":"#2090d4","--tx-shadow":"rgb(15 23 42 / 0.08)","--tx-primary-hover":"#9b4708","--tx-destructive-hover":"#9f1818","--tx-radius":"0.625rem","--tx-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--tx-density":"1","--tx-motion":"1"}",
+        "amber/dark: {"--tx-background":"#0c0a09","--tx-foreground":"#fafaf9","--tx-surface":"#1c1917","--tx-surface-foreground":"#fafaf9","--tx-elevated":"#292524","--tx-muted":"#292524","--tx-muted-foreground":"#a8a29e","--tx-border":"rgb(255 255 255 / 0.1)","--tx-input":"rgb(255 255 255 / 0.16)","--tx-ring":"#fbbf24","--tx-primary":"#fbbf24","--tx-primary-foreground":"#451a03","--tx-secondary":"#292524","--tx-secondary-foreground":"#fafaf9","--tx-accent":"#451a03","--tx-accent-foreground":"#fef3c7","--tx-destructive":"#f87171","--tx-destructive-foreground":"#450a0a","--tx-success":"#4ade80","--tx-success-foreground":"#052e16","--tx-warning":"#fbbf24","--tx-warning-foreground":"#451a03","--tx-info":"#38bdf8","--tx-info-foreground":"#082f49","--tx-sidebar":"#1c1917","--tx-sidebar-foreground":"#e7e5e4","--tx-sidebar-border":"rgb(255 255 255 / 0.08)","--tx-chart1":"#fbbf24","--tx-chart2":"#fb923c","--tx-chart3":"#fb7185","--tx-chart4":"#34d399","--tx-chart5":"#23b0ea","--tx-shadow":"rgb(0 0 0 / 0.45)","--tx-primary-hover":"#fcc843","--tx-destructive-hover":"#f98585","--tx-radius":"0.625rem","--tx-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--tx-density":"1","--tx-motion":"1"}",
+        "monochrome/light: {"--tx-background":"#fafafa","--tx-foreground":"#09090b","--tx-surface":"#ffffff","--tx-surface-foreground":"#09090b","--tx-elevated":"#ffffff","--tx-muted":"#f4f4f5","--tx-muted-foreground":"#52525b","--tx-border":"#e4e4e7","--tx-input":"#d4d4d8","--tx-ring":"#71717a","--tx-primary":"#18181b","--tx-primary-foreground":"#fafafa","--tx-secondary":"#f4f4f5","--tx-secondary-foreground":"#18181b","--tx-accent":"#e4e4e7","--tx-accent-foreground":"#18181b","--tx-destructive":"#b91c1c","--tx-destructive-foreground":"#ffffff","--tx-success":"#15803d","--tx-success-foreground":"#ffffff","--tx-warning":"#fbbf24","--tx-warning-foreground":"#451a03","--tx-info":"#0369a1","--tx-info-foreground":"#ffffff","--tx-sidebar":"#f4f4f5","--tx-sidebar-foreground":"#27272a","--tx-sidebar-border":"#e4e4e7","--tx-chart1":"#18181b","--tx-chart2":"#3f3f46","--tx-chart3":"#71717a","--tx-chart4":"#8f8f97","--tx-chart5":"#555559","--tx-shadow":"rgb(15 23 42 / 0.08)","--tx-primary-hover":"#38383b","--tx-destructive-hover":"#9f1818","--tx-radius":"0.375rem","--tx-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--tx-density":"1","--tx-motion":"1"}",
+        "monochrome/dark: {"--tx-background":"#09090b","--tx-foreground":"#fafafa","--tx-surface":"#18181b","--tx-surface-foreground":"#fafafa","--tx-elevated":"#27272a","--tx-muted":"#27272a","--tx-muted-foreground":"#a1a1aa","--tx-border":"rgb(255 255 255 / 0.1)","--tx-input":"rgb(255 255 255 / 0.16)","--tx-ring":"#a1a1aa","--tx-primary":"#fafafa","--tx-primary-foreground":"#18181b","--tx-secondary":"#27272a","--tx-secondary-foreground":"#fafafa","--tx-accent":"#27272a","--tx-accent-foreground":"#f4f4f5","--tx-destructive":"#f87171","--tx-destructive-foreground":"#450a0a","--tx-success":"#4ade80","--tx-success-foreground":"#052e16","--tx-warning":"#fbbf24","--tx-warning-foreground":"#451a03","--tx-info":"#38bdf8","--tx-info-foreground":"#082f49","--tx-sidebar":"#18181b","--tx-sidebar-foreground":"#e4e4e7","--tx-sidebar-border":"rgb(255 255 255 / 0.08)","--tx-chart1":"#fafafa","--tx-chart2":"#d2d2d6","--tx-chart3":"#888891","--tx-chart4":"#65656e","--tx-chart5":"#acacb7","--tx-shadow":"rgb(0 0 0 / 0.45)","--tx-primary-hover":"#d7d7d7","--tx-destructive-hover":"#f98585","--tx-radius":"0.375rem","--tx-font-sans":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-heading":"'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif","--tx-font-mono":"'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace","--tx-density":"1","--tx-motion":"1"}",
       ]
     `);
   });

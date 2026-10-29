@@ -18,9 +18,8 @@ import { fitContent } from './fit.ts';
  * `validateBlock`, see `renderers.ts`), with a leading unstepped heading
  * promoted to the slide title. Reveals use the stage's step machinery: the
  * deck model's step table of the original slide, at the stage's step. The blocks zoom down (to a floor) when they would not fit
- * the canvas. Protoyard's `--py-*` theme tokens are aliased to the stage's
- * `--tx-*` tokens here, so blocks follow the deck theme, the slide theme and
- * the background's text color.
+ * the canvas. Texuli's `--tx-*` tokens feed Protoyard's blocks, so they follow the deck
+ * theme, the slide theme and the background's text color.
  */
 let { slide, context }: DeckSlideRendererProps<FreeSlide> = $props();
 const host = getDeckHostContext();
@@ -61,43 +60,14 @@ const start = $derived(lead ? 1 : 0);
 
 <style>
   .py-deck-free {
-    /* Protoyard tokens follow the stage theme (every shared --py-<role> equals --tx-<role>). */
-    --py-background: var(--tx-background);
     /* Text on the slide follows the background's ink (`--tx-deck-bg-text`). */
     --deck-free-foreground: var(--tx-deck-bg-text, var(--tx-foreground));
-    --py-foreground: var(--deck-free-foreground);
-    --py-surface: var(--tx-surface);
-    --py-surface-foreground: var(--tx-surface-foreground);
-    --py-elevated: var(--tx-elevated);
-    --py-muted: var(--tx-muted);
-    --py-muted-foreground: var(--tx-muted-foreground);
-    --py-border: var(--tx-border);
-    --py-input: var(--tx-input);
-    --py-ring: var(--tx-ring);
-    --py-primary: var(--tx-primary);
-    --py-primary-foreground: var(--tx-primary-foreground);
-    --py-secondary: var(--tx-secondary);
-    --py-secondary-foreground: var(--tx-secondary-foreground);
-    --py-accent: var(--tx-accent);
-    --py-accent-foreground: var(--tx-accent-foreground);
-    --py-destructive: var(--tx-destructive);
-    --py-destructive-foreground: var(--tx-destructive-foreground);
-    --py-success: var(--tx-success);
-    --py-success-foreground: var(--tx-success-foreground);
-    --py-warning: var(--tx-warning);
-    --py-warning-foreground: var(--tx-warning-foreground);
-    --py-info: var(--tx-info);
-    --py-info-foreground: var(--tx-info-foreground);
-    --py-font-sans: var(--tx-font-sans);
-    --py-font-heading: var(--tx-font-heading);
-    --py-font-mono: var(--tx-font-mono);
     /*
      * The deck's radius choice: the stage writes it to --tx-deck-radius only,
      * so Texuli components on the slide (buttons, cards, inputs) would keep the
-     * theme radius. --py-radius stays the alias Protoyard CSS reads.
+     * theme radius.
      */
     --tx-radius: var(--tx-deck-radius);
-    --py-radius: var(--tx-radius);
     --color-foreground: var(--deck-free-foreground);
     --color-border: var(--tx-border);
     --color-primary: var(--tx-primary);

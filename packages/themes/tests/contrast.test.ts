@@ -82,8 +82,8 @@ describe('hover fills', () => {
         const vars = themeVariables({ theme, resolvedMode: mode });
         const palette = theme[mode];
         for (const [fill, text, hover] of [
-          [palette.primary, palette.primaryForeground, vars['--py-primary-hover']],
-          [palette.destructive, palette.destructiveForeground, vars['--py-destructive-hover']],
+          [palette.primary, palette.primaryForeground, vars['--tx-primary-hover']],
+          [palette.destructive, palette.destructiveForeground, vars['--tx-destructive-hover']],
         ] as const) {
           expect(hover).toBeDefined();
           expect(contrastRatio(hover as string, text)).toBeGreaterThanOrEqual(4.5);

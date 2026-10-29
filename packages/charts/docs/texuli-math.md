@@ -2,4 +2,4 @@
 
 - **Math:** scales, shapes, layout, downsample re-export `@texuli/charts/math`.
 - **Palette:** `deriveChartTokens` from `@texuli/tokens/palette` (no local engine).
-  CSS helpers (`seriesColor`, `chartPaletteVariables`) keep `--py-chart*` names.
+  CSS helpers (`seriesColor`, `chartPaletteVariables`) use `--tx-chart*` names.
