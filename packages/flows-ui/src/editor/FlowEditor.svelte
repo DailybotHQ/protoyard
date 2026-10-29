@@ -11,6 +11,7 @@ import {
 } from '@protoyard/flows/model';
 import { WorkflowEditor } from '@texuli/workflows/editor';
 import type { WorkflowGraph } from '@texuli/workflows/model';
+import { untrack } from 'svelte';
 import { Button } from 'texuli/button';
 import { Checkbox, RadioGroup } from 'texuli/choice';
 import { Input, Textarea } from 'texuli/input';
@@ -20,6 +21,7 @@ import TriggerDataEditor from './TriggerDataEditor.svelte';
 import {
   flowStepRegistry,
   graphForFlow,
+  graphInSync,
   graphValidation,
   orderedStepIds,
   reorderOperations,
@@ -49,9 +51,13 @@ $effect(() => {
   current = flow;
   nameDraft = flow.name;
   diagnostics = [];
-  if (flow !== graphFlow) {
+  // Untracked: `apply` records the flow it produced, which must not re-run this sync.
+  if (flow !== untrack(() => graphFlow)) {
     graphFlow = flow;
-    workflowGraph = graphForFlow(flow, workflowGraph);
+    workflowGraph = graphForFlow(
+      flow,
+      untrack(() => workflowGraph)
+    );
   }
 });
 
@@ -60,6 +66,14 @@ function apply(operations: FlowOperation[]): void {
   diagnostics = result.diagnostics;
   if (!result.ok) return;
   current = result.flow;
+  // The graph follows local edits too, so an uncontrolled host (one that does not pass the
+  // changed flow back) keeps a graph that matches its steps. A reorder made in the graph
+  // leaves it as it is (Texuli keeps its history); a host that echoes this flow back as
+  // the prop does not rebuild it again.
+  if (!graphInSync(workflowGraph, result.flow)) {
+    workflowGraph = graphForFlow(result.flow, workflowGraph);
+  }
+  graphFlow = result.flow;
   onChange?.(result.flow, operations);
 }
 

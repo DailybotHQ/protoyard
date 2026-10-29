@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   flowStepRegistry,
   graphForFlow,
+  graphInSync,
   graphValidation,
   orderedStepIds,
   reorderOperations,
@@ -60,5 +61,20 @@ describe('workflow graph adapter', () => {
       orderedStepIds({ ...graph, nodes: graph.nodes.slice(0, 1), edges: [] }, flow)
     ).toBeNull();
     expect(flowStepRegistry.has('protoyard_flow_step')).toBe(true);
+  });
+
+  it('knows when the graph no longer shows the flow steps', () => {
+    const graph = graphForFlow(flow);
+    expect(graphInSync(graph, flow)).toBe(true);
+    // A reorder is the graph's own edit: still in sync.
+    const reversed = { ...flow, steps: [...flow.steps].reverse() };
+    expect(graphInSync(graph, reversed)).toBe(true);
+    // A step added, removed or renamed is not.
+    expect(graphInSync(graph, { ...flow, steps: flow.steps.slice(0, 1) })).toBe(false);
+    const renamed = {
+      ...flow,
+      steps: flow.steps.map((step, index) => (index === 0 ? { ...step, label: 'Store it' } : step)),
+    };
+    expect(graphInSync(graph, renamed)).toBe(false);
   });
 });

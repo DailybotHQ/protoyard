@@ -54,6 +54,23 @@ export function graphForFlow(flow: Flow, previous?: WorkflowGraph): WorkflowGrap
   return { ...graph, nodes, edges };
 }
 
+/**
+ * True when the graph shows exactly the flow's top-level steps, with the
+ * labels the steps name themselves (in any order: a reorder is the graph's
+ * own edit, and an unlabelled step's numbered name follows its position). A
+ * step added, removed or renamed in the editor means the graph needs a rebuild.
+ */
+export function graphInSync(graph: WorkflowGraph, flow: Flow): boolean {
+  if (graph.nodes.length !== flow.steps.length) return false;
+  const labels = new Map(graph.nodes.map((node) => [node.id, node.label]));
+  return flow.steps.every((step) => {
+    const id = graphNodeId(step.id);
+    if (!labels.has(id)) return false;
+    const own = step.label?.trim();
+    return !own || labels.get(id) === own;
+  });
+}
+
 /** Only accept a single path containing every current top-level step once. */
 export function orderedStepIds(graph: WorkflowGraph, flow: Flow): string[] | null {
   const ids = new Set(flow.steps.map((step) => graphNodeId(step.id)));
