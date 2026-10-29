@@ -936,6 +936,9 @@ describe('browser frame', () => {
     expect(screen?.style.getPropertyValue('--py-safe-bottom')).toBe('21px');
     expect(screen?.style.getPropertyValue('--py-safe-left')).toBe('0px');
     expect(screen?.style.getPropertyValue('--py-safe-right')).toBe('0px');
+    // The safe-area utilities (pt-safe…) and the pending bar read --tx-safe-*.
+    expect(screen?.style.getPropertyValue('--tx-safe-top')).toBe('54px');
+    expect(screen?.style.getPropertyValue('--tx-safe-bottom')).toBe('21px');
   });
 
   it('registers the browser shell frame and frames it when the window fits', () => {
