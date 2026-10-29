@@ -58,6 +58,8 @@ describe('Texuli-backed floating controls', () => {
     const menu = await screen.findByRole('menu');
     expect(within(menu).getByRole('group', { name: 'Deal' })).toBeTruthy();
     expect(within(menu).getByRole('separator')).toBeTruthy();
+    // A destructive entry takes Texuli MenuItem's own danger tone.
+    expect(within(menu).getByRole('menuitem', { name: 'Delete' }).dataset.tone).toBe('destructive');
     await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Delete' }));
     expect(onSelected).toHaveBeenCalledWith('Delete');
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());

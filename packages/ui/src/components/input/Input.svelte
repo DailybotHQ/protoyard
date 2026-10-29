@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { HTMLInputAttributes } from 'svelte/elements';
+import { cx } from 'texuli/cx';
 import { Input as TexuliInput } from 'texuli/input';
 import type { WithElementRef } from '../../lib/types.ts';
 
@@ -33,6 +34,6 @@ const forwarded = $derived(rest as Record<string, unknown>);
   bind:value={() => value ?? empty, (next) => (value = next)}
   bind:files
   {type}
-  class={className ?? undefined}
+  class={cx('ui-input', className)}
   {...forwarded}
 />

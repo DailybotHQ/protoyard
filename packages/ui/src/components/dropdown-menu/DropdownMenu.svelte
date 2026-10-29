@@ -43,7 +43,7 @@ const sections = $derived.by(() => {
 <!--
   A thin adapter: Texuli's styled menu parts (`texuli/menus`), driven by an
   `items` list. The trigger stays the caller's own element, so the root is the
-  primitive. Texuli's MenuItem has no destructive tone yet, so it is set here.
+  primitive. A destructive entry takes MenuItem's own danger tone.
 -->
 {#snippet entryList(entries: Section['entries'])}
   {#each entries as entry, index (index)}
@@ -59,7 +59,7 @@ const sections = $derived.by(() => {
         onSelect={() => entry.onSelect?.()}
         shortcut={entry.shortcut}
         icon={entry.icon ? entryIcon : undefined}
-        data-destructive={entry.destructive ? '' : undefined}
+        destructive={entry.destructive}
       >
         {entry.label}
       </MenuItem>
@@ -86,12 +86,3 @@ const sections = $derived.by(() => {
   </MenuContent>
 </MenuPrimitive.Root>
 
-<style>
-  :global(.tx-menu-item[data-destructive]) {
-    color: var(--tx-destructive, crimson);
-  }
-  :global(.tx-menu-item[data-destructive][data-highlighted]) {
-    background: var(--tx-destructive, crimson);
-    color: var(--tx-destructive-foreground, white);
-  }
-</style>

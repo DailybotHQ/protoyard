@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { ComponentProps } from 'svelte';
-import { Select as TexuliSelect } from 'texuli/select';
+import { selectValueClass, Select as TexuliSelect } from 'texuli/select';
 import { refAttachment } from '../../lib/ref.ts';
 import type { SelectOption } from './types.ts';
 
@@ -67,7 +67,11 @@ const describedBy = $derived(
     {...rest}
     aria-describedby={describedBy}
   >
-    <span id={valueId} class="tx-select-value" data-placeholder={selected ? undefined : ''}>
+    <span
+      id={valueId}
+      class={selectValueClass({ placeholder: !selected })}
+      data-placeholder={selected ? undefined : ''}
+    >
       {selected?.label ?? placeholder}
     </span>
   </TexuliSelect.Trigger>

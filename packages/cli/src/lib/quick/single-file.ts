@@ -38,8 +38,9 @@ import { entryGraph } from './chunk-graph.ts';
  * Cap on the exported file (UTF-8 bytes, uncompressed). Measured on the 40
  * catalog blueprints at 3,245,592–3,246,497 bytes (2026-10-20),
  * 4,206,872–4,207,769 bytes (Texuli 0.4.0, 2026-10-28), and at a maximum of
- * 4,284,417 bytes on Texuli 0.5.0. Keep the existing 4,418,158-byte cap:
- * 0.5.0's measured maximum + 5 % is higher, and this task never raises a cap.
+ * 4,284,417 bytes on Texuli 0.5.0. The cap was raised to 4,418,158 bytes in
+ * d360235f (approved) and is unchanged for 0.5.0, even though 0.5.0's measured
+ * maximum + 5 % is higher.
  */
 export const QUICK_SINGLE_FILE_BUDGET_BYTES = 4_418_158;
 
@@ -50,9 +51,9 @@ export type SingleFileEntry = 'index' | 'deck' | 'page' | 'doc';
  * Cap per entry. A deck, page or doc exported from its own page embeds only
  * that page's graph: measured at 1,606,788–1,607,557 bytes (2026-10-22),
  * 2,656,649–2,684,123 bytes (Texuli 0.4.0, 2026-10-28), and
- * 2,681,755–2,689,852 bytes on Texuli 0.5.0. Keep the existing 2,818,330-byte
- * cap (about 2.69 MiB): 0.5.0's measured maximum + 5 % is higher, and this
- * task never raises a cap.
+ * 2,681,755–2,689,852 bytes on Texuli 0.5.0. The cap was raised to 2,818,330
+ * bytes (about 2.69 MiB) in d360235f (approved) and is unchanged for 0.5.0,
+ * even though 0.5.0's measured maximum + 5 % is higher.
  * The proposed 1.5 MiB deck budget (ADR-040, `kinds.deck.singleFileKb`) is
  * not met: DevTools (Deck Studio, themes), review comments, device shells and
  * chart blocks are all reachable from a kind page and ship with it.

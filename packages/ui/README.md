@@ -66,7 +66,7 @@ cn('flex', isOpen && 'gap-2', { hidden: !visible }); // → "flex gap-2"
 
 `@protoyard/ui` is Protoyard's kit on top of [Texuli](../../docs/TEXULI.md), the
 standalone Svelte 5 component library, consumed from its published npm packages
-(`texuli`, `@texuli/*` at `0.3.0`):
+(`texuli`, `@texuli/*` at `0.5.0`):
 
 - **Re-exported from `texuli`:** the generic styled components (`Button`,
   `Badge`, `Card…`, `Checkbox`, `Switch`, `RadioGroup`, `Label`, `Textarea`,
