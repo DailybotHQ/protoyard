@@ -98,17 +98,18 @@ test.describe('deck controls and focus restore', () => {
     const after = await takeSnapshot(page);
     expect(after.markers !== before.markers || after.bodyText !== before.bodyText).toBe(true);
 
-    // Blackout click must return focus so arrows keep working (presenter follow-up).
-    await page.locator('[data-py-deck-app]').focus();
+    // Blackout (the @texuli/slides stage's tool): a click dismisses it and returns focus to
+    // the slide, so the arrows keep working (presenter follow-up).
+    const stage = page.locator('[data-py-deck-app] > .tx-deck-stage');
+    const blackout = page.locator('[data-tx-deck-blackout]');
+    await stage.focus();
     await page.keyboard.press('b');
-    await expect(page.locator('[data-py-deck-blackout]')).toBeVisible();
-    await page.locator('[data-py-deck-blackout]').click();
-    await expect(page.locator('[data-py-deck-blackout]')).toHaveCount(0);
+    await expect(blackout).toBeVisible();
+    await blackout.click();
+    await expect(blackout).toHaveCount(0);
 
     await expect
-      .poll(async () =>
-        page.locator('[data-py-deck-app]').evaluate((el) => document.activeElement === el)
-      )
+      .poll(async () => stage.evaluate((el) => el.contains(document.activeElement)))
       .toBe(true);
 
     const slideBefore = await page.locator('[data-py-deck-app]').getAttribute('data-slide-id');
@@ -117,19 +118,16 @@ test.describe('deck controls and focus restore', () => {
       .poll(async () => page.locator('[data-py-deck-app]').getAttribute('data-slide-id'))
       .not.toBe(slideBefore);
 
-    // Laser toggle should leave the root focusable for the next key.
+    // Laser toggle should leave the deck focused for the next key.
+    const laser = page.locator('[data-tx-deck-tool="laser"]');
     await page.keyboard.press('l');
-    await expect(page.locator('[data-py-deck-app]')).toHaveAttribute('data-laser', 'true');
+    await expect(laser).toHaveAttribute('aria-pressed', 'true');
     await page.locator('[data-py-deck-app]').click({ position: { x: 20, y: 20 } });
     await expect
-      .poll(async () =>
-        page
-          .locator('[data-py-deck-app]')
-          .evaluate((el) => document.activeElement === el || el.contains(document.activeElement))
-      )
+      .poll(async () => stage.evaluate((el) => el.contains(document.activeElement)))
       .toBe(true);
     await page.keyboard.press('l');
-    await expect(page.locator('[data-py-deck-app]')).not.toHaveAttribute('data-laser', 'true');
+    await expect(laser).toHaveAttribute('aria-pressed', 'false');
 
     await expectAccessible(page, testInfo, {
       include: '[data-py-deck-app]',
@@ -138,29 +136,29 @@ test.describe('deck controls and focus restore', () => {
   });
 
   test('presenter split shows fallback reason and timer pause/reset', async ({ page }) => {
+    // The stage's presenter view sits beside the slides: a desktop-sized window.
+    await page.setViewportSize({ width: 1280, height: 900 });
     await page.addInitScript(() => {
       window.open = () => null;
     });
     await page.goto(`${deckUrl}#/cover/0`);
-    await page.locator('[data-py-deck-app]').focus();
+    await page.locator('[data-py-deck-app] > .tx-deck-stage').focus();
     await page.keyboard.press('s');
-    await expect(page.getByRole('dialog', { name: 'Presenter view' })).toBeVisible();
-    await expect(page.locator('[data-py-presenter-fallback-reason]')).toBeVisible();
-    await expect(page.locator('[data-py-presenter-fallback-reason]')).toContainText(
-      /popup was blocked/i
-    );
+    const view = page.getByRole('group', { name: 'Presenter view' });
+    await expect(view).toBeVisible();
+    await expect(page.locator('[data-py-deck-app]')).toHaveAttribute('data-presenter', 'true');
+    await view.getByRole('button', { name: 'Open presenter window', exact: true }).click();
+    const reason = view.locator('[data-tx-deck-presenter-reason="popup-blocked"]');
+    await expect(reason).toBeVisible();
+    await expect(reason).toContainText(/blocked the presenter window/i);
 
-    const elapsed = page.locator('[data-py-presenter-elapsed]');
-    const first = await elapsed.textContent();
-    await page.locator('[data-py-presenter-timer-pause]').click();
-    await expect(page.locator('[data-py-presenter-timer-pause]')).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
-    await page.waitForTimeout(400);
+    const elapsed = view.locator('[data-tx-deck-timer="elapsed"]');
+    await view.getByRole('button', { name: 'Pause timers', exact: true }).click();
+    await expect(view.getByRole('button', { name: 'Start timers', exact: true })).toBeVisible();
     const paused = await elapsed.textContent();
-    expect(paused).toBe(first);
-    await page.locator('[data-py-presenter-timer-reset]').click();
-    await expect(elapsed).toHaveText('00:00');
+    await page.waitForTimeout(1_200);
+    expect(await elapsed.textContent()).toBe(paused);
+    await view.getByRole('button', { name: 'Reset timers', exact: true }).click();
+    await expect(elapsed).toHaveText('0:00');
   });
 });
