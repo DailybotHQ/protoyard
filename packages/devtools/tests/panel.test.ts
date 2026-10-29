@@ -138,6 +138,39 @@ describe('DevTools panel', () => {
     expect(launcher.getAttribute('aria-label')).toContain(visible);
   });
 
+  it('keeps a clicked tab enabled and focused while it loads, so Escape still closes', async () => {
+    // A tab's onclick returns selectTab's promise. Texuli's Button disables a
+    // pending button by default, and a browser drops focus from a disabled
+    // button to <body>, outside the panel's Escape handler.
+    const runtime = createFakeRuntime();
+    await runtime.scenarios.ensureSeeded();
+    let finish: (view: typeof ScenarioSection) => void = () => {};
+    const load = vi.fn(() => new Promise<typeof ScenarioSection>((r) => (finish = r)));
+    handle = mountDevtools({
+      runtime,
+      themes: BUILTIN_THEMES,
+      extraTabs: [{ id: 'comments', label: 'Comments', icon: MessageCircle, load }],
+    });
+    flushSync();
+    await fireEvent.keyDown(window, { key: '.', ctrlKey: true });
+    await settle();
+    const panel = screen.getByRole('complementary', { name: 'Protoyard DevTools' });
+    const tab = within(panel).getByRole('tab', { name: 'Comments' }) as HTMLButtonElement;
+    tab.focus();
+    await fireEvent.click(tab);
+    flushSync();
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(within(panel).getByText('Loading Comments…')).toBeTruthy();
+    expect(tab.disabled).toBe(false);
+    expect(document.activeElement).toBe(tab);
+
+    await fireEvent.keyDown(tab, { key: 'Escape' });
+    await settle();
+    expect(screen.queryByRole('complementary')).toBeNull();
+    finish(ScenarioSection);
+    await settle();
+  });
+
   it('opens and closes when the pointer lands on a button icon, not the button box', async () => {
     // Real clicks on an icon-only button target the inner <svg>/<path>. The host's
     // app-layer isolation must not stop Svelte's delegated handler from seeing them.
