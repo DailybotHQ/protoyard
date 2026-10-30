@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { CanvasRendererMode } from '@texuli/charts/canvas';
 /** Adapter: Protoyard BarChart → Texuli BarChart; maps onselect to include datum. */
 import { StackedBarChart, BarChart as TexuliBar } from '@texuli/charts/cartesian';
 import ChartRoot from '../compat/ChartRoot.svelte';
@@ -20,6 +21,8 @@ type Props = {
   }) => void;
   /** When false, skip Texuli interaction chunk (static marks). Default true for table toggle. */
   interactive?: boolean;
+  /** `auto` (default: canvas from 5,000 points), `svg` or `canvas`. */
+  renderer?: CanvasRendererMode;
   [key: string]: unknown;
 };
 
@@ -32,6 +35,7 @@ let {
   class: className,
   onselect,
   interactive = true,
+  renderer = 'auto',
 }: Props = $props();
 
 const desc = $derived(description ?? emptyMessage ?? `${title}.`);
@@ -61,6 +65,7 @@ function handleSelect(sel: {
       series={mapped}
       class={className}
       {interactive}
+      {renderer}
       onselect={handleSelect}
     />
   {:else}
@@ -70,6 +75,7 @@ function handleSelect(sel: {
       series={mapped}
       class={className}
       {interactive}
+      {renderer}
       onselect={handleSelect}
     />
   {/if}
