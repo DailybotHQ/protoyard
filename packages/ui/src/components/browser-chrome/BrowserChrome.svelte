@@ -5,20 +5,30 @@ import Globe2 from '@lucide/svelte/icons/globe-2';
 import RotateCw from '@lucide/svelte/icons/rotate-cw';
 import type { Snippet } from 'svelte';
 import { onMount } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import { IconButton } from 'texuli/button';
 import { cx } from 'texuli/cx';
 import { Icon } from 'texuli/icons';
 import Input from '../input/Input.svelte';
 import { formatAddress, parseAddress } from './address.ts';
 
-interface Props {
+type Props = Omit<HTMLAttributes<HTMLElement>, 'title' | 'class' | 'children'> & {
   origin: string;
   title?: string;
   class?: string;
   children?: Snippet;
-}
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
+};
 
-let { origin, title = 'Prototype', class: className, children }: Props = $props();
+let {
+  origin,
+  title = 'Prototype',
+  class: className,
+  children,
+  ref = $bindable(null),
+  ...rest
+}: Props = $props();
 
 let addressValue = $state('');
 let routeHistory = $state<string[]>([]);
@@ -98,7 +108,7 @@ onMount(() => {
 </script>
 
 <!-- A fake browser frame (a legitimate Protoyard host chrome) built from Texuli's IconButton, Input and Icon. -->
-<section class={cx('flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-background text-foreground shadow-soft', className)}>
+<section {...rest} bind:this={ref} class={cx('flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-background text-foreground shadow-soft', className)}>
   <div class="flex h-10 shrink-0 items-end gap-1 border-b border-border bg-muted/70 px-2 pt-1" role="tablist" aria-label="Browser tabs">
     <div class="flex h-9 max-w-64 min-w-36 items-center gap-2 rounded-t-lg border border-border border-b-background bg-background px-3 text-sm" role="tab" aria-selected="true" tabindex="0">
       <Icon icon={Globe2} size="sm" class="shrink-0 text-muted-foreground" aria-hidden="true" />

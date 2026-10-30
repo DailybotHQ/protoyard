@@ -1,15 +1,9 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import { CardGrid } from 'texuli/card';
 
-let {
-  columns = 3,
-  minItem = 280,
-  gap = '1rem',
-  label,
-  children,
-  class: className = '',
-}: {
+type Props = Omit<HTMLAttributes<HTMLElement>, 'class' | 'children'> & {
   columns?: 1 | 2 | 3 | 4;
   /** Minimum preferred item width in pixels; narrower containers use one column. */
   minItem?: number;
@@ -23,7 +17,20 @@ let {
   label?: string;
   children: Snippet;
   class?: string;
-} = $props();
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
+};
+
+let {
+  columns = 3,
+  minItem = 280,
+  gap = '1rem',
+  label,
+  children,
+  class: className = '',
+  ref = $bindable(null),
+  ...rest
+}: Props = $props();
 
 const safeColumns = $derived(Math.min(4, Math.max(1, Math.floor(columns))));
 const safeMinItem = $derived(Math.max(120, Math.floor(minItem)));
@@ -35,12 +42,14 @@ const safeMinItem = $derived(Math.max(120, Math.floor(minItem)));
   narrow column.
 -->
 <CardGrid
+  {...rest}
+  bind:ref
   maxColumns={safeColumns}
   minItemWidth={`${safeMinItem}px`}
   {gap}
   class={`min-w-0 [&>*]:min-w-0 ${className}`.trim()}
-  role={label ? 'region' : undefined}
-  aria-label={label}
+  role={label ? 'region' : rest.role}
+  aria-label={label ?? rest['aria-label']}
   data-py-page-grid=""
   data-columns={safeColumns}
 >

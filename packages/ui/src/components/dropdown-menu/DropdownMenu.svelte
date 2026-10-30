@@ -1,11 +1,14 @@
 <script lang="ts">
 import * as MenuPrimitive from '@texuli/primitives/menu';
+import type { HTMLAttributes } from 'svelte/elements';
 import { Icon } from 'texuli/icons';
 import { MenuContent, MenuGroup, MenuItem, MenuLabel, MenuSeparator } from 'texuli/menus';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import type { DropdownMenuAction, DropdownMenuEntry, DropdownMenuSeparator } from './types.ts';
 
-interface Props {
+interface OwnProps {
+  /** The menu content element (bindable). */
+  ref?: HTMLElement | null;
   items: DropdownMenuEntry[];
   /** Spread `props` onto the trigger: `{#snippet trigger({ props })}<Button {...props}>…` */
   trigger: TriggerSnippet;
@@ -15,6 +18,9 @@ interface Props {
   class?: string;
 }
 
+/** Extra attributes (`data-*`, `aria-*`, `id`, handlers…) land on the menu content element. */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps>;
+
 let {
   items,
   trigger,
@@ -22,6 +28,8 @@ let {
   side = 'bottom',
   align = 'end',
   class: className,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 interface Section {
@@ -72,7 +80,7 @@ const sections = $derived.by(() => {
     {#snippet child({ props })}{@render trigger({ props })}{/snippet}
   </MenuPrimitive.Trigger>
   <!-- The content shows in the top layer; no portal is needed. -->
-  <MenuContent {side} {align} sideOffset={4} class={className}>
+  <MenuContent {...rest} bind:ref {side} {align} sideOffset={4} class={className}>
     {#each sections as section, index (index)}
       {#if section.heading !== undefined}
         <MenuGroup>

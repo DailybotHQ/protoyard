@@ -4,12 +4,13 @@ import Minus from '@lucide/svelte/icons/minus';
 import Square from '@lucide/svelte/icons/square';
 import X from '@lucide/svelte/icons/x';
 import type { Snippet } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import { Button } from 'texuli/button';
 import { Icon } from 'texuli/icons';
 import { cn } from '../../lib/cn.ts';
 import type { WindowChromeState, WindowChromeVariant } from './types.ts';
 
-interface Props {
+type Props = Omit<HTMLAttributes<HTMLDivElement>, 'title' | 'class' | 'children'> & {
   /** Window title shown in the title bar and on the minimized pill. */
   title?: string;
   /** Visual chrome style (`mac-like` traffic lights, `windows-like` caption buttons). */
@@ -27,7 +28,9 @@ interface Props {
   contentClass?: string;
   /** Classes for the minimized dock/taskbar pill host. */
   pillClass?: string;
-}
+  /** The rendered root element of the current state (bindable). */
+  ref?: HTMLElement | null;
+};
 
 let {
   title = 'App',
@@ -40,6 +43,8 @@ let {
   class: className,
   contentClass,
   pillClass,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const label = $derived(title.trim() || appLabel || 'App');
@@ -85,8 +90,10 @@ const trafficBase =
 -->
 {#if state === 'minimized'}
   <div
+    {...rest}
+    bind:this={ref}
     class={cn('flex items-end justify-center p-3', pillClass)}
-    data-window-chrome
+    data-window-chrome=""
     data-variant={variant}
     data-state="minimized"
     data-maximized={maximized ? 'true' : 'false'}
@@ -107,12 +114,14 @@ const trafficBase =
   </div>
 {:else if state === 'closed'}
   <div
+    {...rest}
+    bind:this={ref}
     class={cn(
       'flex flex-col items-center justify-center gap-3 border border-dashed border-border bg-muted/40 px-6 py-12 text-center',
       maximized ? 'h-full w-full rounded-none' : 'min-h-48 rounded-xl',
       className
     )}
-    data-window-chrome
+    data-window-chrome=""
     data-variant={variant}
     data-state="closed"
     data-maximized={maximized ? 'true' : 'false'}
@@ -126,12 +135,14 @@ const trafficBase =
   </div>
 {:else}
   <div
+    {...rest}
+    bind:this={ref}
     class={cn(
       'flex flex-col overflow-hidden border border-border bg-background text-foreground shadow-float',
       maximized ? 'h-full w-full rounded-none' : 'h-full w-full rounded-xl',
       className
     )}
-    data-window-chrome
+    data-window-chrome=""
     data-variant={variant}
     data-state="open"
     data-maximized={maximized ? 'true' : 'false'}

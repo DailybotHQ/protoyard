@@ -4,6 +4,7 @@ import { getInertRegistry } from '@texuli/core/inert';
 import { OVERLAY_Z_BASE } from '@texuli/core/overlay-core';
 import { createPortal } from '@texuli/core/portal';
 import type { Attachment } from 'svelte/attachments';
+import type { HTMLAttributes } from 'svelte/elements';
 import { Button, IconButton } from 'texuli/button';
 import { Icon } from 'texuli/icons';
 import { cn } from '../../lib/cn.ts';
@@ -13,13 +14,24 @@ import { overlayStack } from '../overlay/overlay-stack.ts';
 import { useOverlayTopZIndex } from '../overlay/use-overlay-layer.svelte.ts';
 import { undoToast } from './undo.svelte.ts';
 
-interface Props {
+interface OwnProps {
+  /** The toaster's region (`<section>`) element (bindable). */
+  ref?: HTMLElement | null;
   class?: string;
   /** Landmark label for the region. */
   label?: string;
 }
 
-let { class: className, label = 'Undo notifications' }: Props = $props();
+/** Extra attributes (`data-*`, `aria-*`, `id`, handlers…) land on the region element. */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLElement>, keyof OwnProps | 'popover'>;
+
+let {
+  class: className,
+  label = 'Undo notifications',
+  ref = $bindable(null),
+  style,
+  ...rest
+}: Props = $props();
 
 const portal = useOverlayPortalTarget();
 // Above every open drawer, so an undo offered from inside one stays visible.
@@ -122,11 +134,13 @@ function handleKeydown(event: KeyboardEvent): void {
   <div class="sr-only" aria-live="assertive" aria-atomic="true">{assertiveText}</div>
 
   <section
+    {...rest}
+    bind:this={ref}
     aria-label={label}
     {...{ [UNDO_TOASTER_ATTR]: '' }}
     popover="manual"
     {@attach aboveOverlays}
-    style={`z-index:${zIndex}`}
+    style={`${style ? `${style};` : ''}z-index:${zIndex}`}
     class={cn(
       // Reset the popover defaults (centered box, border, padding, background).
       'top-auto m-0 h-auto max-h-none w-auto max-w-none overflow-visible border-0 bg-transparent pt-0',

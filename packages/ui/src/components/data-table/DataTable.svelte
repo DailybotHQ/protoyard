@@ -3,6 +3,7 @@ import ArrowDown from '@lucide/svelte/icons/arrow-down';
 import ArrowUp from '@lucide/svelte/icons/arrow-up';
 import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
 import type { Snippet } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import { Button } from 'texuli/button';
 import { Checkbox } from 'texuli/choice';
 import { cx } from 'texuli/cx';
@@ -24,7 +25,9 @@ import Pagination from '../pagination/Pagination.svelte';
 import { formatValue, matchesQuery, readValue, sortRows } from './table-utils.ts';
 import type { DataTableBulkActionContext, DataTableColumn, DataTableSort } from './types.ts';
 
-interface Props {
+interface OwnProps {
+  /** The table's root element (toolbar, table and pager wrapper; bindable). */
+  ref?: HTMLElement | null;
   columns: DataTableColumn<T>[];
   rows: T[];
   getRowId: (row: T, index: number) => string;
@@ -63,6 +66,9 @@ interface Props {
   class?: string;
 }
 
+/** Extra attributes (`data-*`, `aria-*`, `id`, handlers…) land on the root element. */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps>;
+
 let {
   columns,
   rows,
@@ -88,6 +94,8 @@ let {
   bulkActions,
   caption,
   class: className,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const searchable = $derived(Boolean(searchFn) || (searchKeys?.length ?? 0) > 0);
@@ -236,7 +244,7 @@ function togglePageSelection(checked: boolean | 'indeterminate'): void {
   (not numbered pages), loading is a text row (not skeleton rows) and its
   sort is a multi-key list (not `{ key, direction } | null`).
 -->
-<div class={cx('flex flex-col gap-3', className)}>
+<div {...rest} bind:this={ref} class={cx('flex flex-col gap-3', className)}>
   {#if searchable || filters || toolbar}
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">

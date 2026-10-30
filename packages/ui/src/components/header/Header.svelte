@@ -1,11 +1,14 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import { IconButton } from 'texuli/button';
 import { cx } from 'texuli/cx';
 import { Icon } from 'texuli/icons';
 import { getAppShellContext } from '../app-shell/context.ts';
 
-interface Props {
+interface OwnProps {
+  /** The `<header>` root element (bindable). */
+  ref?: HTMLElement | null;
   title?: string;
   /** Element for the title; use `p`/`div` when the page renders its own `<h1>`. */
   titleAs?: 'h1' | 'h2' | 'p' | 'div';
@@ -20,6 +23,9 @@ interface Props {
   class?: string;
 }
 
+/** Extra attributes (`data-*`, `aria-*`, `id`, handlers…) land on the `<header>` root. */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLElement>, keyof OwnProps>;
+
 let {
   title,
   titleAs = 'h1',
@@ -30,6 +36,8 @@ let {
   menuLabel = 'Open navigation',
   sticky = true,
   class: className,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const shell = getAppShellContext();
@@ -42,6 +50,8 @@ const menuHandler = $derived(onMenuClick ?? shell?.openSidebar);
   and backs @protoyard/ui's MobileHeader; this one lays out Texuli's IconButton and Protoyard's slots.
 -->
 <header
+  {...rest}
+  bind:this={ref}
   class={cx(
     'z-30 flex min-h-14 shrink-0 items-center gap-3 border-b border-border bg-background/85 px-4 pt-safe backdrop-blur-md sm:px-6',
     sticky && 'sticky top-0',

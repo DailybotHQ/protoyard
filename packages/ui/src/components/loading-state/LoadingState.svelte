@@ -9,6 +9,8 @@ type Props = HTMLAttributes<HTMLDivElement> & {
   variant?: 'spinner' | 'skeleton';
   /** Skeleton line count. */
   rows?: number;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 };
 
 let {
@@ -16,11 +18,12 @@ let {
   variant = 'spinner',
   rows = 3,
   class: className,
+  ref = $bindable(null),
   ...rest
 }: Props = $props();
 </script>
 
-<div role="status" aria-live="polite" class={cn('w-full', className)} {...rest}>
+<div bind:this={ref} role="status" aria-live="polite" class={cn('w-full', className)} {...rest}>
   {#if variant === 'skeleton'}
     <span class="sr-only">{label}</span>
     <div class="grid gap-3 py-2">

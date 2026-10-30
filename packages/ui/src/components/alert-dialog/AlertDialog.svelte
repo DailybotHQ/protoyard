@@ -1,5 +1,5 @@
 <script lang="ts">
-import { type Snippet, untrack } from 'svelte';
+import { type ComponentProps, type Snippet, untrack } from 'svelte';
 import { AlertDialog as TexuliAlertDialog } from 'texuli/dialog';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
@@ -7,7 +7,37 @@ import { overlayDismissHandler } from '../overlay/dismiss.ts';
 import { type OverlayStack, overlayStack } from '../overlay/overlay-stack.ts';
 import { useOverlayLayer } from '../overlay/use-overlay-layer.svelte.ts';
 
-interface Props {
+type TexuliProps = ComponentProps<typeof TexuliAlertDialog>;
+
+/**
+ * Extra attributes (`data-*`, `aria-*`, `id`, handlers…) land on the alert
+ * dialog content element, as in Texuli; `bind:ref` gives that element while
+ * open (`null` while closed).
+ */
+type Props = Omit<
+  TexuliProps,
+  | 'open'
+  | 'title'
+  | 'description'
+  | 'confirmLabel'
+  | 'cancelLabel'
+  | 'destructive'
+  | 'onConfirm'
+  | 'onCancel'
+  | 'trigger'
+  | 'children'
+  | 'class'
+  | 'stack'
+  | 'mode'
+  | 'container'
+  | 'portal'
+  | 'onOpenChange'
+  | 'onDismissRequest'
+  | 'onCloseAutoFocus'
+  | 'ref'
+> & {
+  /** The alert dialog content element while open, `null` while closed (bindable). */
+  ref?: HTMLElement | null;
   open?: boolean;
   title: string;
   description?: string;
@@ -24,7 +54,7 @@ interface Props {
   class?: string;
   /** Defaults to the shared stack; pass one to isolate a subtree (tests). Read once at mount. */
   stack?: OverlayStack;
-}
+};
 
 let {
   open = $bindable(false),
@@ -39,13 +69,15 @@ let {
   children,
   class: className,
   stack = overlayStack,
+  style,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const portal = useOverlayPortalTarget();
 // svelte-ignore state_referenced_locally
 const layer = useOverlayLayer(() => open, { modal: () => true, stack });
 
-let content = $state<HTMLElement | null>(null);
 /** Set when this close was a confirm or the Cancel button, so `onCancel` runs once. */
 let settled = false;
 
@@ -80,11 +112,11 @@ $effect.pre(() => {
 });
 
 // Only the top overlay closes, and a menu open inside the alert takes Escape first.
-const handleDismiss = overlayDismissHandler({ layer, element: () => content });
+const handleDismiss = overlayDismissHandler({ layer, element: () => ref });
 
 function handleCloseAutoFocus(event: { preventDefault(): void }): void {
   event.preventDefault();
-  layer.restoreFocus(content);
+  layer.restoreFocus(ref);
 }
 </script>
 
@@ -95,7 +127,8 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
   device screen, and the shared overlay stack orders it and returns focus.
 -->
 <TexuliAlertDialog
-  bind:ref={content}
+  {...rest}
+  bind:ref
   bind:open={shown}
   {title}
   {description}
@@ -111,5 +144,5 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
   container={portal.container}
   onDismissRequest={handleDismiss}
   onCloseAutoFocus={handleCloseAutoFocus}
-  style={`z-index:${layer.zIndex}`}
+  style={`${style ? `${style};` : ''}z-index:${layer.zIndex}`}
 />

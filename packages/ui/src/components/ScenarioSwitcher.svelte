@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import { Badge } from 'texuli/badge';
 import { Button } from 'texuli/button';
 import { cn } from '../lib/cn.ts';
@@ -33,7 +34,9 @@ export interface ScenarioSwitcherGroup {
   scenarios: ScenarioSwitcherScenario[];
 }
 
-interface Props {
+interface OwnProps {
+  /** The switcher's root `<section>` element (bindable). */
+  ref?: HTMLElement | null;
   /** Scenarios to list (grouped by `group` when `groups` is omitted). */
   scenarios?: readonly ScenarioSwitcherScenario[];
   /** Pre-built groups; wins over `scenarios` when provided. */
@@ -64,6 +67,9 @@ interface Props {
   class?: string;
 }
 
+/** Extra attributes (`data-*`, `aria-*`, `id`, handlers…) land on the root `<section>`. */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLElement>, keyof OwnProps>;
+
 let {
   scenarios = [],
   groups: groupsProp,
@@ -86,6 +92,8 @@ let {
   emptyDescription = 'This build has no registered scenarios.',
   header,
   class: className = '',
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const groups = $derived.by((): ScenarioSwitcherGroup[] => {
@@ -113,6 +121,8 @@ function viewAs(id: string): void | Promise<void> {
 </script>
 
 <section
+  {...rest}
+  bind:this={ref}
   class={cn('flex flex-col gap-4', className)}
   data-scenario-switcher
   aria-labelledby="scenario-switcher-title"

@@ -5,9 +5,11 @@ import {
   type DateInvalidReason,
   DateRangePicker as Picker,
 } from '@texuli/primitives/date-picker';
+import type { HTMLAttributes } from 'svelte/elements';
 import { dateCalendarClass, dateFieldClass } from 'texuli/date';
 import { Icon } from 'texuli/icons';
 import { cn } from '../../../lib/cn.ts';
+import { chainHandlers, composeHandlers } from '../../../lib/handlers.ts';
 import {
   DATE_RANGE_MESSAGES,
   type DateRange,
@@ -39,7 +41,7 @@ import type { IsoWeekday } from './weekdays.ts';
  * one; any other entry is reported inline (when the fields are left, or at
  * once for a calendar pick) and leaves the value as it was.
  */
-interface Props {
+interface OwnProps {
   value?: DateRange;
   min?: IsoDate | null;
   max?: IsoDate | null;
@@ -68,7 +70,17 @@ interface Props {
   class?: string;
   onValueChange?: (value: DateRange) => void;
   onInvalid?: (issue: DateRangeIssue) => void;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 }
+
+/**
+ * Extra attributes (`data-*`, `aria-label`, handlers…) land on the group of
+ * the two date fields, the control inside the root. A caller `onfocusout` or
+ * `onkeydown` runs first; the fields' own commit on leaving always runs, and
+ * their Enter commit is skipped only when the caller calls `preventDefault()`.
+ */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps | 'children'>;
 
 const uid = $props.id();
 
@@ -96,6 +108,10 @@ let {
   class: className,
   onValueChange,
   onInvalid,
+  ref = $bindable(null),
+  onfocusout: callerFocusOut,
+  onkeydown: callerKeyDown,
+  ...rest
 }: Props = $props();
 
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
@@ -216,6 +232,7 @@ const hint = $derived(
 </script>
 
 <div
+  bind:this={ref}
   class={cn(dateFieldClass(), 'tx-date--range ui-date-range-picker', className)}
   data-tx-date
   data-invalid={invalid ? 'true' : undefined}
@@ -256,6 +273,7 @@ const hint = $derived(
   >
     <div bind:this={control} class="tx-date__control ui-input">
       <Picker.Field
+        {...rest}
         class="tx-date__field"
         inputId={id}
         {label}
@@ -264,12 +282,12 @@ const hint = $derived(
         aria-invalid={invalid || undefined}
         {...name ? { startName: `${name}.start`, endName: `${name}.end` } : {}}
         {required}
-        onfocusout={(event) => {
+        onfocusout={chainHandlers(callerFocusOut, (event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) commit();
-        }}
-        onkeydown={(event) => {
+        })}
+        onkeydown={composeHandlers(callerKeyDown, (event) => {
           if (event.key === 'Enter') commit();
-        }}
+        })}
       />
       <Picker.Trigger class="tx-date__trigger">
         <Icon icon={CalendarDays} size="sm" aria-hidden="true" />

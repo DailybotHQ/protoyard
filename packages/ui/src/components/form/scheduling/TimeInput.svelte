@@ -1,5 +1,6 @@
 <script lang="ts">
 import { TimeField } from '@texuli/primitives/date-field';
+import type { HTMLAttributes } from 'svelte/elements';
 import { dateFieldClass } from 'texuli/date';
 import { cn } from '../../../lib/cn.ts';
 import { groupLabelFor } from './texuli-date.ts';
@@ -22,7 +23,7 @@ import { isTimeOfDay, minuteSteps, type TimeFormat, type TimeOfDay } from './tim
  * chosen; an incomplete entry leaves the value as it was. A value off the
  * minute step shows its own minute.
  */
-interface Props {
+interface OwnProps {
   value?: TimeOfDay | null;
   format?: TimeFormat;
   /** Minute step of the arrow keys; must divide 60, otherwise 15. */
@@ -43,7 +44,15 @@ interface Props {
   'aria-labelledby'?: string;
   class?: string;
   onValueChange?: (value: TimeOfDay) => void;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 }
+
+/**
+ * Extra attributes (`data-*`, `aria-label`, handlers…) land on the time group,
+ * the control inside the root.
+ */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps | 'children'>;
 
 const uid = $props.id();
 
@@ -63,6 +72,8 @@ let {
   'aria-labelledby': labelledBy,
   class: className,
   onValueChange,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
@@ -91,6 +102,7 @@ function change(next: string | null) {
 </script>
 
 <div
+  bind:this={ref}
   class={cn(dateFieldClass(), 'tx-date--time ui-time-input', className)}
   data-tx-time
   data-invalid={invalid ? 'true' : undefined}
@@ -98,6 +110,7 @@ function change(next: string | null) {
 >
   <div bind:this={control} class="tx-date__control">
     <TimeField.Root
+      {...rest}
       class="tx-date__field"
       bind:value={draft}
       inputId={id}

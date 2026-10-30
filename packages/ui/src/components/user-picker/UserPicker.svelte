@@ -1,5 +1,6 @@
 <script lang="ts">
 import * as PopoverPrimitive from '@texuli/primitives/popover';
+import type { HTMLAttributes } from 'svelte/elements';
 import { cardClass } from 'texuli/card';
 import { cx } from 'texuli/cx';
 import { Icon } from 'texuli/icons';
@@ -9,7 +10,12 @@ import Avatar from '../avatar/Avatar.svelte';
 import type { PickerUser } from './types.ts';
 import UserList from './UserList.svelte';
 
-interface Props {
+interface OwnProps {
+  /**
+   * The picker's root element (bindable): the trigger button for `popover`,
+   * the list card for `inline`.
+   */
+  ref?: HTMLElement | null;
   users: PickerUser[];
   /** Selected user id. */
   value?: string;
@@ -27,6 +33,14 @@ interface Props {
   class?: string;
 }
 
+/**
+ * Extra attributes (`data-*`, `aria-*`, handlers…) land on the root: the
+ * trigger button (`popover`, where it is the focusable control) or the list
+ * card (`inline`). A caller `onclick` on the trigger runs first; calling
+ * `preventDefault()` keeps the list closed.
+ */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLElement>, keyof OwnProps>;
+
 let {
   users,
   value = $bindable(''),
@@ -41,6 +55,8 @@ let {
   open = $bindable(false),
   id,
   class: className,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const selected = $derived(users.find((user) => user.id === value));
@@ -57,7 +73,12 @@ function pick(user: PickerUser): void {
   (`texuli/select` classes), Texuli's popover surface and command list.
 -->
 {#if variant === 'inline'}
-  <div class={cardClass({ class: cx('ui-user-picker--inline', className) })} data-tx-card="">
+  <div
+    {...rest}
+    bind:this={ref}
+    class={cardClass({ class: cx('ui-user-picker--inline', className) })}
+    data-tx-card=""
+  >
     <UserList
       {users}
       selectedId={value}
@@ -71,6 +92,8 @@ function pick(user: PickerUser): void {
 {:else}
   <PopoverPrimitive.Root bind:open sideOffset={4} align="start">
     <PopoverPrimitive.Trigger
+      {...rest}
+      bind:ref
       {id}
       {disabled}
       aria-label={selected ? `${label}: ${selected.name}` : label}

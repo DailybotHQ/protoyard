@@ -1,9 +1,11 @@
 <script lang="ts">
 import { CalendarDays } from '@lucide/svelte';
 import { type DateInvalidReason, DatePicker as Picker } from '@texuli/primitives/date-picker';
+import type { HTMLAttributes } from 'svelte/elements';
 import { dateCalendarClass, dateFieldClass } from 'texuli/date';
 import { Icon } from 'texuli/icons';
 import { cn } from '../../../lib/cn.ts';
+import { chainHandlers, composeHandlers } from '../../../lib/handlers.ts';
 import { checkDateText, type DateInputIssue, dateInputMessage, type IsoDate } from './dates.ts';
 import {
   groupLabelFor,
@@ -30,7 +32,7 @@ import type { IsoWeekday } from './weekdays.ts';
  * is reported inline and the bound value is left unchanged. A calendar pick
  * commits at once. Clearing every segment sets `null`.
  */
-interface Props {
+interface OwnProps {
   value?: IsoDate | null;
   min?: IsoDate | null;
   max?: IsoDate | null;
@@ -58,7 +60,17 @@ interface Props {
   onValueChange?: (value: IsoDate | null) => void;
   /** Called when typed text is rejected (`text` as `YYYY-MM-DD`). */
   onInvalid?: (issue: DateInputIssue, text: string) => void;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 }
+
+/**
+ * Extra attributes (`data-*`, handlers…) land on the segmented date group, the
+ * control inside the root. A caller `onfocusout` or `onkeydown` runs first;
+ * the field's own commit on leaving always runs, and its Enter and Alt+Down
+ * handling is skipped only when the caller calls `preventDefault()`.
+ */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps | 'children'>;
 
 const uid = $props.id();
 
@@ -84,6 +96,10 @@ let {
   class: className,
   onValueChange,
   onInvalid,
+  ref = $bindable(null),
+  onfocusout: callerFocusOut,
+  onkeydown: callerKeyDown,
+  ...rest
 }: Props = $props();
 
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
@@ -163,6 +179,7 @@ function typedInvalid(text: string, reason: DateInvalidReason) {
 </script>
 
 <div
+  bind:this={ref}
   class={cn(dateFieldClass(), 'ui-date-picker', className)}
   data-tx-date
   data-invalid={invalid ? 'true' : undefined}
@@ -192,6 +209,7 @@ function typedInvalid(text: string, reason: DateInvalidReason) {
   >
     <div bind:this={control} class="tx-date__control ui-input">
       <Picker.Field
+        {...rest}
         class="tx-date__field"
         inputId={id}
         label={groupLabel}
@@ -200,16 +218,16 @@ function typedInvalid(text: string, reason: DateInvalidReason) {
         aria-invalid={invalid || undefined}
         {...name ? { name } : {}}
         {required}
-        onfocusout={(event) => {
+        onfocusout={chainHandlers(callerFocusOut, (event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) commit();
-        }}
-        onkeydown={(event) => {
+        })}
+        onkeydown={composeHandlers(callerKeyDown, (event) => {
           if (event.key === 'Enter') commit();
           if (event.key === 'ArrowDown' && event.altKey) {
             event.preventDefault();
             open = true;
           }
-        }}
+        })}
       />
       <Picker.Trigger class="tx-date__trigger">
         <Icon icon={CalendarDays} size="sm" aria-hidden="true" />

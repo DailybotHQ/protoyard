@@ -1,11 +1,12 @@
 <script lang="ts">
 import type { FileDropRejection } from '@texuli/primitives/file-drop';
 import type { Snippet } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import { FileUpload } from 'texuli/file-upload';
 import { formatBytes } from './accept.ts';
 import type { DropzoneFile, DropzoneReject } from './types.ts';
 
-interface Props {
+interface OwnProps {
   /** Same syntax as `<input accept>` (e.g. `image/*,.pdf`). */
   accept?: string;
   /** Max bytes per file. */
@@ -35,7 +36,16 @@ interface Props {
   class?: string;
   /** @deprecated Texuli's FileUpload styles its own list; this class is ignored. */
   listClass?: string;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 }
+
+/**
+ * Extra attributes go to Texuli's FileUpload inside the root: `aria-*`,
+ * `data-*`, `onfocus` and `onblur` reach the file input (the focusable
+ * control), handlers and other attributes its wrapper, after its own handling.
+ */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps>;
 
 const uid = $props.id();
 
@@ -55,6 +65,9 @@ let {
   onRemove,
   children,
   class: className,
+  listClass: _listClass,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 let idSeq = 0;
@@ -149,9 +162,10 @@ function syncRejects(next: FileDropRejection[]): void {
   (object URLs, revoked on remove and destroy), per-file progress and inline
   rejection messages are Texuli's.
 -->
-<div class={className} data-file-dropzone data-disabled={disabled ? 'true' : 'false'}>
+<div bind:this={ref} class={className} data-file-dropzone data-disabled={disabled ? 'true' : 'false'}>
   {@render children?.()}
   <FileUpload
+    {...rest}
     bind:files={() => files.map((item) => item.file), syncFiles}
     bind:rejects={() => texuliRejects, syncRejects}
     {accept}
@@ -165,7 +179,7 @@ function syncRejects(next: FileDropRejection[]): void {
     {labels}
     onFilesAdd={handleAdd}
     onFileRemove={handleRemove}
-    aria-invalid={rejects.length > 0 ? 'true' : undefined}
+    aria-invalid={rejects.length > 0 ? 'true' : rest['aria-invalid']}
     data-file-dropzone-input=""
   />
 </div>

@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import { cx } from 'texuli/cx';
 import { Icon } from 'texuli/icons';
 import { Sheet } from 'texuli/sheet';
@@ -18,7 +19,7 @@ import { useOverlayLayer } from './use-overlay-layer.svelte.ts';
  * drawers paint in open order, Escape closes only the top one, and focus
  * returns to whatever opened it.
  */
-interface Props {
+interface OwnProps {
   open?: boolean;
   title: string;
   description?: string;
@@ -42,8 +43,12 @@ interface Props {
   /** Defaults to the shared stack; pass one to isolate a subtree (tests, embedded apps). Read once at mount. */
   stack?: OverlayStack;
   class?: string;
+  /** The drawer's content element while open, `null` while closed (bindable). */
   ref?: HTMLElement | null;
 }
+
+/** Extra attributes (`data-*`, `aria-*`, `id`, handlers…) land on the drawer's content element. */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps>;
 
 let {
   open = $bindable(false),
@@ -64,6 +69,8 @@ let {
   stack = overlayStack,
   class: className,
   ref = $bindable(null),
+  style,
+  ...rest
 }: Props = $props();
 
 const portal = useOverlayPortalTarget();
@@ -138,6 +145,7 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
     <!-- Non-modal by default: no inert page, focus trap or scroll lock. Read once, at open. -->
     {#key modal}
       <Sheet.Content
+        {...rest}
         {@attach refAttachment<HTMLElement>((node) => (ref = node))}
         side={edge}
         {modal}
@@ -146,7 +154,7 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
         data-placement={edge}
         data-modal={modal ? 'true' : 'false'}
         class={cx('ui-sheet--sized', className)}
-        style={`--ui-drawer-size:${resolvedSize};z-index:${layer.zIndex}`}
+        style={`${style ? `${style};` : ''}--ui-drawer-size:${resolvedSize};z-index:${layer.zIndex}`}
       >
         {#if edge === 'bottom'}
           <div data-drawer-handle aria-hidden="true"></div>

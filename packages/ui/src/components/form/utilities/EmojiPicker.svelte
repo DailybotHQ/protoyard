@@ -1,11 +1,13 @@
 <script lang="ts">
 import { createFormBridge, type FormBridge } from '@texuli/core/form-bridge';
 import { tick, untrack } from 'svelte';
+import type { HTMLButtonAttributes } from 'svelte/elements';
 import { Button } from 'texuli/button';
 import { cx } from 'texuli/cx';
 import { labelClass } from 'texuli/field';
 import { Icon } from 'texuli/icons';
 import { popoverContentClass } from 'texuli/popover';
+import { composeHandlers } from '../../../lib/handlers.ts';
 import Input from '../../input/Input.svelte';
 import { EMOJI_GROUPS } from './emojis.ts';
 
@@ -15,7 +17,7 @@ import { EMOJI_GROUPS } from './emojis.ts';
  * Texuli has no emoji picker, so this composes Texuli's Button, Input, Icon
  * and popover surface around Protoyard's emoji data.
  */
-interface Props {
+interface OwnProps {
   value?: string;
   id?: string;
   name?: string;
@@ -30,7 +32,17 @@ interface Props {
   'aria-label'?: string;
   class?: string;
   onValueChange?: (emoji: string) => void;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 }
+
+/**
+ * Extra attributes (`data-*`, handlers…) land on the trigger button, the
+ * focusable control inside the root. A caller `onclick` runs first; calling
+ * `preventDefault()` in it keeps the picker from opening or closing.
+ */
+type Props = OwnProps &
+  Omit<HTMLButtonAttributes, keyof OwnProps | 'children' | 'type' | 'form' | 'formaction'>;
 
 let {
   value = $bindable(''),
@@ -47,7 +59,13 @@ let {
   'aria-label': ariaLabel,
   class: className,
   onValueChange,
+  ref = $bindable(null),
+  onclick: callerClick,
+  ...rest
 }: Props = $props();
+
+// A plain record keeps the spread onto Texuli's Button a finite type.
+const forwarded = $derived(rest as Record<string, unknown>);
 
 const uid = $props.id();
 const fieldId = $derived(id ?? `emoji-${uid}`);
@@ -83,6 +101,14 @@ async function toggle() {
     root?.querySelector<HTMLInputElement>('[data-emoji-search]')?.focus();
   }
 }
+
+/** The caller's click runs first; its `preventDefault()` keeps the picker as it is. */
+const onTriggerClick = $derived(
+  composeHandlers<MouseEvent>(
+    callerClick as ((event: MouseEvent) => unknown) | null | undefined,
+    toggle
+  )
+);
 
 function pick(emoji: string) {
   value = emoji;
@@ -164,13 +190,14 @@ $effect(() => {
 });
 </script>
 
-<div class={cx('ui-emoji-picker', className)}>
+<div bind:this={ref} class={cx('ui-emoji-picker', className)}>
   {#if label}
     <span class={labelClass()} id={`${fieldId}-label`}>{label}</span>
   {/if}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div bind:this={root} class="ui-emoji-picker__anchor" onkeydown={onRootKey}>
     <Button
+      {...forwarded}
       bind:ref={trigger}
       variant="outline"
       id={fieldId}
@@ -178,13 +205,13 @@ $effect(() => {
       aria-haspopup="dialog"
       aria-expanded={open}
       aria-controls={`${fieldId}-picker`}
-      aria-labelledby={label ? `${fieldId}-label` : undefined}
+      aria-labelledby={rest['aria-labelledby'] ?? (label ? `${fieldId}-label` : undefined)}
       aria-label={ariaLabel ?? (label || placeholder)}
       aria-describedby={describedBy}
       data-invalid={invalid || undefined}
       disabled={disabled || undefined}
       aria-disabled={readonly || undefined}
-      onclick={toggle}
+      onclick={onTriggerClick}
     >
       {#if value}
         <span class="ui-emoji-picker__value" aria-hidden="true">{value}</span>
