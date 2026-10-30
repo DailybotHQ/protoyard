@@ -23,6 +23,9 @@ afterEach(() => {
   screenEl.remove();
 });
 
+const nextFrame = () =>
+  new Promise<void>((resolve) => requestAnimationFrame(() => resolve())).then(() => flushSync());
+
 const viewport = () => document.querySelector<HTMLElement>('[data-tx-toast-viewport]');
 
 describe('Toaster inside a framed screen', () => {
@@ -35,11 +38,15 @@ describe('Toaster inside a framed screen', () => {
     expect(screenEl.contains(viewport())).toBe(false);
   });
 
-  it('leaves the top layer while a frame sets the portal target, and returns without one', () => {
+  it('leaves the top layer while a frame sets the portal target, and returns without one', async () => {
     setOverlayPortalTarget(screenEl);
     render(Toaster);
     toast.success('Saved');
     flushSync();
+    // Contained one frame after mount (Texuli reads the container's position as it
+    // contains the stack, which would force a layout during the app's first render).
+    expect(viewport()?.getAttribute('data-mode')).not.toBe('contained');
+    await nextFrame();
     const region = viewport();
     expect(region?.hasAttribute('popover')).toBe(false);
     expect(region?.getAttribute('data-mode')).toBe('contained');
@@ -56,11 +63,11 @@ describe('Toaster inside a framed screen', () => {
     expect(screenEl.contains(viewport())).toBe(true);
   });
 
-  it('keeps the named region and its toasts while contained, so toasts are announced', () => {
+  it('keeps the named region and its toasts while contained, so toasts are announced', async () => {
     setOverlayPortalTarget(screenEl);
     render(Toaster, { label: 'Prototype notifications' });
     toast.success('Saved', { description: 'All changes stored.' });
-    flushSync();
+    await nextFrame();
     const region = screen.getByRole('region', { name: 'Prototype notifications' });
     expect(region).toBe(viewport());
     expect(region.textContent).toContain('Saved');
