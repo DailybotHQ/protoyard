@@ -40,7 +40,9 @@ type Props = OwnProps &
   Omit<HTMLInputAttributes, keyof OwnProps | 'children' | 'maxlength' | 'type' | 'size'>;
 
 let {
-  value = $bindable(''),
+  // No fallback: a caller may bind a value that starts undefined (a map entry);
+  // a `$bindable('')` would throw (props_invalid_value). Read as ''.
+  value = $bindable(),
   label,
   length = 6,
   pattern = 'digits',
@@ -95,7 +97,7 @@ $effect(() => {
   <label for={fieldId} class={labelClass()}>{label}</label>
   <PinInput.Root
     {...rest}
-    bind:value={() => value, setValue}
+    bind:value={() => value ?? '', setValue}
     inputId={fieldId}
     maxlength={cellCount}
     pattern={regexp}

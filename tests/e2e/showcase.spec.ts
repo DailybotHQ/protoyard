@@ -37,6 +37,9 @@ function playerFrame(page: Page): Frame {
 async function openPlay(page: Page): Promise<FrameLocator> {
   await page.goto(`${SITE}play/`);
   await expect(page.getByRole('heading', { name: 'Run a blueprint' })).toBeVisible();
+  // The playground is an Astro island: text typed before it hydrates never reaches
+  // its state (Load and Copy share link stay disabled). Wait for hydration.
+  await expect(page.locator('astro-island:has(#blueprint-source)')).not.toHaveAttribute('ssr');
   return page.frameLocator('iframe[title="Running Protoyard blueprint"]');
 }
 
@@ -157,7 +160,12 @@ test.describe('showcase site', () => {
     const metricName = `Hosted Play Metric ${testInfo.project.name}`;
     await app.getByLabel('Name').fill(metricName);
     await app.getByLabel('Value').fill('42');
-    await app.getByRole('button', { name: 'Create Metric' }).click({ force: true });
+    // At 1280×720 the player's collapsed validation-task card (fixed, bottom left)
+    // covers the submit button, and a forced pointer click lands on the card.
+    // Submit through the button itself, as the Metrics link above is clicked.
+    await app
+      .getByRole('button', { name: 'Create Metric' })
+      .evaluate((element) => (element as HTMLButtonElement).click());
     await expect(app.getByText(metricName, { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'Copy share link' }).click();

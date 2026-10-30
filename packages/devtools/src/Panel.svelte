@@ -119,7 +119,9 @@ onMount(() => {
 
 /**
  * Keep the launcher out of the app's way: sit above a fixed bottom nav
- * (`data-py-bottom-nav`, set by @protoyard/ui BottomNav) and dock to the
+ * (`data-py-bottom-nav` from @protoyard/ui BottomNav, `data-tx-bottom-nav` and
+ * `data-tx-mobile-tabs` from Texuli's BottomNav and mobile-tabs layout; the
+ * same list as @protoyard/ui's BOTTOM_NAV_SELECTOR) and dock to the
  * screen edge while an app modal is open. Prototypes can set
  * `--py-devtools-offset` on :root for anything else pinned to the bottom.
  */
@@ -143,7 +145,9 @@ $effect(() => {
           .getPropertyValue('--py-devtools-offset')
           .trim() || '0px';
       let offset = 0;
-      for (const nav of document.querySelectorAll<HTMLElement>('[data-py-bottom-nav]')) {
+      for (const nav of document.querySelectorAll<HTMLElement>(
+        '[data-py-bottom-nav], [data-tx-bottom-nav], [data-tx-mobile-tabs]'
+      )) {
         const rect = nav.getBoundingClientRect();
         const fixed = getComputedStyle(nav).position === 'fixed';
         if (fixed && rect.height > 0 && rect.bottom >= window.innerHeight - 1) {

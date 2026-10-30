@@ -13,6 +13,7 @@
  * and, when it is smaller than the layout viewport, pins with explicit visual
  * coordinates.
  */
+import { BOTTOM_NAV_SELECTOR } from '@protoyard/ui';
 import {
   type BadgeCorner,
   CONTROL_COST,
@@ -210,7 +211,7 @@ export function placeFloating(
     }
     // Phone / narrow frames: keep clear of the app's bottom tab bar.
     if (container.width <= 767) {
-      const footer = document.querySelector('[data-py-bottom-nav]');
+      const footer = document.querySelector(BOTTOM_NAV_SELECTOR);
       if (footer) {
         const r = footer.getBoundingClientRect();
         if (r.width && r.height)
