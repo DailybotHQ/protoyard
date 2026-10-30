@@ -53,6 +53,7 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Player per-kind entry budgets (`index`/`deck`/`page`/`doc.html`; content-kind graph exclusions; skipped without a build) | `pnpm --filter @protoyard/player build && pnpm vitest run packages/player/tests/kind-budget.test.ts` | scoped |
 | Player ready-time bench by kind (report-only; no threshold) | `pnpm --filter @protoyard/player build && pnpm exec tsx scripts/bench-player.ts --runs 3 --kinds app,deck,page,doc` (writes `tmp/bench-player-*.json`) | scoped |
 | Player bench helpers (unit) | `pnpm vitest run scripts/tests/bench-player.test.ts` | scoped |
+| Texuli pin guard (unit + repository) | `pnpm vitest run scripts/tests/texuli-latest.test.ts` | scoped |
 | Brief synthesis by kind (report-only) | `pnpm exec tsx scripts/bench-brief-kinds.ts --runs 3` (writes `tmp/bench-brief-kinds-*.json`) | scoped |
 | Brief-kinds bench helpers (unit) | `pnpm vitest run tests/scripts/bench-brief-kinds.test.ts` | scoped |
 | Block family chunk bench | `pnpm exec tsx scripts/bench-blocks.ts --check` + `pnpm vitest run tests/scripts/bench-blocks.test.ts` | scoped |
@@ -319,6 +320,7 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `packages/player/src/**` | `pnpm vitest run packages/player` (`boot.test.ts` first), plus `pnpm --filter @protoyard/player build` | player unit and integration |
 | `packages/player/**`, `packages/player/vite.config.ts` (size) | `pnpm --filter @protoyard/player build && pnpm vitest run packages/player/tests/budget.test.ts packages/player/tests/kind-budget.test.ts` (dist suites are skipped without a build) | app and per-kind initial JS/CSS budgets; content-kind static graphs exclude Faker, world worker, CRUD and DevTools |
 | `scripts/bench-player.ts` (ready time by kind) | `pnpm vitest run scripts/tests/bench-player.test.ts`; browser sample: `pnpm --filter @protoyard/player build && pnpm exec tsx scripts/bench-player.ts --runs 3 --kinds app,deck,page,doc` | unit helpers + report-only browser bench (JSON under `tmp/`) |
+| `scripts/check-texuli-latest.ts` | `pnpm vitest run scripts/tests/texuli-latest.test.ts`; registry: `pnpm exec tsx scripts/check-texuli-latest.ts --registry` | unit + offline repository check; registry check needs the network |
 | `scripts/sweep-deck.ts`, `scripts/lib/deck-sweep.ts` | `pnpm vitest run scripts/tests/deck-sweep.test.ts`; browser: `pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json` | unit classification + opt-in browser fixture sweep |
 | `packages/decks-ui/src/**` (DeckApp, navigation, input) | `pnpm vitest run packages/decks-ui` + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-navigation.spec.ts` | component + built-catalog browser E2E |
 | `packages/decks-ui/src/{presenter,print,chrome}/**` | `pnpm vitest run packages/decks-ui` (including `tests/toolbar.test.ts`) + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-controls.spec.ts tests/e2e/deck-presenter.spec.ts` | registry controls, presenter, tools and print browser E2E |

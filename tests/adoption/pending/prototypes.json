@@ -1,4 +1,15 @@
 {
   "unit": "prototypes",
-  "entries": []
+  "entries": [
+    {
+      "file": "prototypes/ai-chat-demo/src/components/MessageThread.svelte",
+      "rule": "local-motion",
+      "count": 1
+    },
+    {
+      "file": "prototypes/mobile-banking-demo/src/screens/Transfer.svelte",
+      "rule": "local-motion",
+      "count": 1
+    }
+  ]
 }

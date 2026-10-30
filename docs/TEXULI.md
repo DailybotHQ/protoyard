@@ -4,7 +4,8 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to npm `0.5.0` in this workspace.
+Protoyard. Every Texuli dependency is pinned to its npm `latest` in this
+workspace (`0.8.0`; `@texuli/slides` `0.8.1`).
 
 ## How it is linked
 
@@ -13,6 +14,14 @@ a Texuli checkout or use `link:`/`file:` dependencies for Texuli. The release
 age guard exempts Texuli packages so Protoyard can adopt the release from its
 maintainer as it ships. Dependency changes and the lockfile are maintained as
 one workspace update.
+
+`pnpm exec tsx scripts/check-texuli-latest.ts` keeps it that way: it fails
+when a Texuli dependency is not an exact npm version (`link:`, `file:`,
+`workspace:`, a tag or a range) or when two manifests pin one package
+differently. `pnpm test` runs it offline through
+`scripts/tests/texuli-latest.test.ts`. `--registry` also compares every pin
+with that package's npm `latest` dist-tag; run it before a release (the npm
+CDN can lag a few minutes after a Texuli publish).
 
 | Package family | Direct Protoyard consumers |
 | --- | --- |
@@ -32,7 +41,9 @@ one workspace update.
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-`texuli` and all listed `@texuli/*` packages are `0.5.0`. The root manifest
+`texuli` and all listed `@texuli/*` packages are `0.8.0`, except
+`@texuli/slides` at `0.8.1`. Texuli pins its own internal dependencies
+exactly, so the family moves together. The root manifest
 also pins the published Texuli package family used by optional and future
 workspace surfaces. `docs/PACKAGES.md` lists the package graph and direct
 dependencies.
@@ -53,7 +64,7 @@ those steps for the new release and replace the folder; never edit it in place.
 
 ## Texuli first: the adoption check
 
-Run `pnpm exec tsx scripts/check-texuli-adoption.ts` to enforce the eight
+Run `pnpm exec tsx scripts/check-texuli-adoption.ts` to enforce the nine
 workspace rules. `pnpm test` (which CI runs) includes
 `tests/adoption/texuli-adoption.test.ts`, which runs this default ratchet over
 the whole repository. Scoped strict checks (`--scope <path> --strict`, with
@@ -69,6 +80,7 @@ run them by hand for the surface a task migrates.
 | `input-as-choice` | Using `Input` with `type="checkbox"` or `type="radio"` | Use `Checkbox` or `RadioGroup`/`RadioGroupItem`. Texuli `Input` binds its `value`; it is not a choice control. |
 | `own-component` | A leaf UI component that draws a generic control without using Texuli or Protoyard UI | Compose Texuli, or use a documented Protoyard exception where the behavior is product-specific. |
 | `component-bind-this` | Capturing a Texuli/Protoyard UI component with `bind:this` and then using it as a DOM element | Use `bind:ref` when the component exposes a DOM ref. If it does not, keep a minimal adapter and report the missing ref as a gap. `bind:this` remains valid for component APIs, not DOM operations. |
+| `local-motion` | An import from `svelte/transition` or `svelte/animate`, or an `@keyframes` rule, in a UI package (`ui`, `*-ui`, `devtools`, `crud`, `player`, `renderer-svelte`), the gallery, a template or a prototype | Use Texuli motion: the `motion` prop or `MotionProvider` from `texuli/motion`, the `@texuli/core/motion` texels, and the `--tx-motion-*` tokens. They honor reduced motion by construction. |
 | `ref-undefined` | `bind:ref={x}` where `x` does not start as `null` (for example `$state<HTMLElement \| null>()` or a declaration with no initializer). Svelte throws at runtime on `bind:ref={undefined}` against a `ref` with a fallback, which stops the whole island | Start refs as `$state<HTMLElement \| null>(null)`, `$state(null)` or `= null`. The check reads the initializer, not the type. |
 
 ### Exceptions and the gap loop
@@ -228,7 +240,8 @@ of truth for current behavior. Useful checks include:
 
 | Command | What it proves |
 | --- | --- |
-| `pnpm exec tsx scripts/check-texuli-adoption.ts` | The eight adoption rules and pending/gap ratchet |
+| `pnpm exec tsx scripts/check-texuli-adoption.ts` | The nine adoption rules and pending/gap ratchet |
+| `pnpm exec tsx scripts/check-texuli-latest.ts [--registry]` | Exact, consistent Texuli pins from npm; with `--registry`, equal to npm `latest` |
 | `pnpm vitest run tests/adoption` | Rule matching, strict mode, gap allowances, exception records and pending cleanup |
 | `pnpm vitest run packages/ui` | The shared Texuli-backed component API and Protoyard wrapper contracts |
 | `pnpm check:packages --filter @protoyard/ui` | The packed public component exports and declarations |

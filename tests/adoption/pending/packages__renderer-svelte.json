@@ -1,4 +1,10 @@
 {
   "unit": "packages__renderer-svelte",
-  "entries": []
+  "entries": [
+    {
+      "file": "packages/renderer-svelte/src/shell/PendingIndicator.svelte",
+      "rule": "local-motion",
+      "count": 1
+    }
+  ]
 }

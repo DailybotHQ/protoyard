@@ -14,6 +14,28 @@ const rules = (file: string, source: string) =>
   Object.fromEntries(scanSource(file, source).map((v) => [v.rule, v.count]));
 
 describe('scanSource', () => {
+  it('flags local motion in UI units: svelte/transition, svelte/animate and @keyframes', () => {
+    const svelte = `<script lang="ts">import { fade } from 'svelte/transition';\nimport { flip } from 'svelte/animate';</script>\n<div transition:fade>x</div>\n<style>@keyframes spin { to { rotate: 1turn; } }</style>`;
+    expect(rules('packages/ui/src/A.svelte', svelte)['local-motion']).toBe(3);
+    expect(
+      rules('templates/x/src/app.css', '@keyframes pulse { 50% { opacity: .5; } }')['local-motion']
+    ).toBe(1);
+    expect(
+      rules(
+        'prototypes/x/src/A.svelte',
+        `<script>import { fly } from "svelte/transition";</script>`
+      )['local-motion']
+    ).toBe(1);
+  });
+
+  it('leaves motion outside UI units and comments alone', () => {
+    expect(rules('packages/core/src/a.css', '@keyframes pulse { 50% { opacity: .5; } }')).toEqual(
+      {}
+    );
+    expect(rules('packages/ui/src/a.css', '/* @keyframes pulse */')).toEqual({});
+    expect(rules('packages/ui/src/a.ts', "import { cubicOut } from 'svelte/easing';")).toEqual({});
+  });
+
   it('flags clsx, tailwind-merge and tailwind-variants imports', () => {
     expect(
       rules(
