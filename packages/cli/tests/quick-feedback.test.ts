@@ -1,9 +1,11 @@
 // @vitest-environment node
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { blueprintIdentity, parseBlueprint } from '@protoyard/blueprint';
 import type { ReviewComment } from '@protoyard/core/review';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { ensurePlayerBuild } from '../../player/tests/support/serve-dist.ts';
 import { setQuickPlayerLocator } from '../src/commands/quick/index.ts';
 import { setQuickServeOpener, setQuickServeStop } from '../src/commands/quick/serve.ts';
 import { launchChromium } from '../src/lib/capture/index.ts';
@@ -14,6 +16,8 @@ import {
   readPlayerAssetsManifest,
 } from '../src/lib/quick/player-assets.ts';
 import { cli, createWorkspace, type TempWorkspace } from './helpers.ts';
+
+const REPO = fileURLToPath(new URL('../../../', import.meta.url));
 
 const ANALYTICS = join(import.meta.dirname, '../../../blueprints/quick/analytics.json');
 
@@ -340,7 +344,9 @@ describe('comments on a served exploration, in Chromium', async () => {
   it.skipIf(!probe.ok)(
     'posts a comment through the review UI to quick serve, then reports it',
     async () => {
-      // The real player build that @protoyard/cli depends on.
+      // The real player build that @protoyard/cli depends on: built once, under the
+      // shared lock, when this file runs before the tests that used to build it.
+      ensurePlayerBuild(REPO);
       const { dir } = await explore();
       let release = () => {};
       const released = new Promise<void>((resolve) => {

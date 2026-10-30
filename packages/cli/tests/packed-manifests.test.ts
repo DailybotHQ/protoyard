@@ -35,6 +35,11 @@ function builtGroup(group: string): {
 const HAS_DIST = ['core', 'ui', 'player'].every((name) =>
   existsSync(join(ROOT, 'packages', name, 'dist'))
 );
+// Other suites build single packages (and the player) while this file loads, so a
+// few dist folders can exist without a full `pnpm build:packages`. Each group runs
+// only when every package it selects is built; the packages job builds all first.
+const HAS_ENGINE_DIST = HAS_DIST && builtGroup('engine').ok;
+const HAS_SVELTE_DIST = HAS_DIST && builtGroup('svelte').ok;
 
 type ExportTarget = string | Record<string, string>;
 interface Manifest {
@@ -73,7 +78,7 @@ function targets(exportValue: ExportTarget): string[] {
   return typeof exportValue === 'string' ? [exportValue] : Object.values(exportValue);
 }
 
-describe.skipIf(!HAS_DIST)('packed engine manifests (after pnpm build:packages)', () => {
+describe.skipIf(!HAS_ENGINE_DIST)('packed engine manifests (after pnpm build:packages)', () => {
   it('uses dist exports after pnpm pack for every engine package', async () => {
     const built = builtGroup('engine');
     expect(built.ok, JSON.stringify(built.packages.filter((item) => item.status !== 'built'))).toBe(
@@ -140,7 +145,7 @@ describe.skipIf(!HAS_DIST)('packed engine manifests (after pnpm build:packages)'
   }, 600_000);
 });
 
-describe.skipIf(!HAS_DIST)('packed svelte manifests (after pnpm build:packages)', () => {
+describe.skipIf(!HAS_SVELTE_DIST)('packed svelte manifests (after pnpm build:packages)', () => {
   it('uses typed dist exports after pnpm pack for every Svelte package', async () => {
     const built = builtGroup('svelte');
     expect(built.ok, JSON.stringify(built.packages.filter((item) => item.status !== 'built'))).toBe(
