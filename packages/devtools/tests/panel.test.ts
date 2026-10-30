@@ -36,6 +36,29 @@ describe('DevTools panel', () => {
     return { runtime, panel };
   }
 
+  it('announces its launcher to other fixed chrome when it mounts, opens and closes', async () => {
+    // The renderer's floating chrome (review toolbar, demo badge) re-checks its spot on this event.
+    const announced = vi.fn();
+    window.addEventListener('protoyard:floating', announced);
+    try {
+      const runtime = createFakeRuntime();
+      await runtime.scenarios.ensureSeeded();
+      handle = mountDevtools({ runtime, themes: BUILTIN_THEMES });
+      flushSync();
+      expect(announced).toHaveBeenCalled();
+      const afterMount = announced.mock.calls.length;
+      await fireEvent.keyDown(window, { key: '.', ctrlKey: true });
+      await settle();
+      expect(announced.mock.calls.length).toBeGreaterThan(afterMount);
+      const afterOpen = announced.mock.calls.length;
+      await fireEvent.keyDown(window, { key: '.', ctrlKey: true });
+      await settle();
+      expect(announced.mock.calls.length).toBeGreaterThan(afterOpen);
+    } finally {
+      window.removeEventListener('protoyard:floating', announced);
+    }
+  });
+
   it('toggles with Ctrl+. and remembers open state and tab', async () => {
     const { panel } = await open();
     expect(within(panel).getByText('Active scenario')).toBeTruthy();

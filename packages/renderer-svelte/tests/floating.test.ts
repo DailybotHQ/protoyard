@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CONTROL_COST, type Rect } from '../src/shell/badge-placement.ts';
 import {
@@ -511,5 +513,45 @@ describe('demo badge containing block', () => {
       container: app,
       origin: { left: 100, top: 20 },
     });
+  });
+});
+
+describe('fixed chrome that appears after placement', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.replaceChildren();
+  });
+
+  it('moves out from under a DevTools launcher that mounts later and announces itself', () => {
+    vi.useFakeTimers();
+    const element = document.body.appendChild(document.createElement('nav'));
+    const handle = element.appendChild(document.createElement('button'));
+    stubHandle(handle);
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    let launcher: HTMLElement | null = null;
+    Object.defineProperty(document, 'elementsFromPoint', {
+      configurable: true,
+      value: (x: number, y: number) =>
+        launcher && x > W - 160 && y > H - 80 ? [handle, launcher] : [handle],
+    });
+    const placement = placeFloating(element, { handle: () => handle });
+    vi.advanceTimersByTime(1200);
+    // Nothing in the corner yet: the review toolbar takes the bottom right.
+    expect(`${element.dataset.pyFloatX}-${element.dataset.pyFloatY}`).toBe('right-bottom');
+
+    // DevTools mounts its launcher in its own host, outside #app, in that corner.
+    const host = document.body.appendChild(document.createElement('div'));
+    launcher = host.appendChild(document.createElement('button'));
+    launcher.setAttribute('aria-label', 'Open Protoyard DevTools');
+    window.dispatchEvent(new Event(FLOATING_EVENT));
+    vi.advanceTimersByTime(1200);
+    expect(`${element.dataset.pyFloatX}-${element.dataset.pyFloatY}`).not.toBe('right-bottom');
+    placement.destroy();
+  });
+
+  it('DevTools announces its launcher with the same event name (it does not depend on this package)', () => {
+    const panel = readFileSync(resolve(__dirname, '../../devtools/src/Panel.svelte'), 'utf8');
+    expect(panel).toContain(`new Event('${FLOATING_EVENT}')`);
   });
 });
