@@ -238,5 +238,50 @@
     "id": "G86",
     "status": "open",
     "summary": "Texuli 0.8.0 grew @texuli/data views over the shell (board +16.5 %, grid +13.3 %, timeline +9 %, calendar +6.9 %) and some CSS (decks first screen, player pages, LayoutHost delta); Protoyard ceilings raised to measured + 5 %/1 % until fixed"
+  },
+  {
+    "id": "G87",
+    "status": "open",
+    "summary": "texuli/dialog Dialog and AlertDialog skip onOpenChange(false) on an inside close (Close button, Escape)"
+  },
+  {
+    "id": "G88",
+    "status": "open",
+    "summary": "texuli/command CommandPalette never shows its Searching status: loading does not reach CommandRoot"
+  },
+  {
+    "id": "G89",
+    "status": "open",
+    "summary": "texuli/date DatePicker and DateRangePicker have no class hook on the bordered control (controlClass)"
+  },
+  {
+    "id": "G90",
+    "status": "open",
+    "summary": "texuli/date styled date controls show no invalid state from a Field's aria-invalid"
+  },
+  {
+    "id": "G91",
+    "status": "open",
+    "summary": "texuli/field does not export its label context (getFieldLabelContext/useFieldLabel)"
+  },
+  {
+    "id": "G92",
+    "status": "open",
+    "summary": "@texuli/data DataGrid mode=table has no keyboard row activation (plus search, numbered pager, skeleton rows for DataTable adoption)"
+  },
+  {
+    "id": "G93",
+    "status": "open",
+    "summary": "Uniform contract holes: no ref on AppShell, SplitView, ChatThread, TypingIndicator, BottomNav, MobileHeader; no rest on MessageList; neither on chat Composer, Board, MobileAppFrame"
+  },
+  {
+    "id": "G94",
+    "status": "open",
+    "summary": "texuli/button pending (autoLoading) sets native disabled, so a focused button drops focus to body"
+  },
+  {
+    "id": "G95",
+    "status": "open",
+    "summary": "Nice to have: MobileAppFrame unstyled stickyFooter; public composeHandlers/chainHandlers"
   }
 ]
