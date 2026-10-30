@@ -70,7 +70,7 @@ const prototypeTargets = prototypes()
             <p class="text-sm font-semibold" style="font-family:var(--tx-font-heading);font-weight:var(--tx-font-weight-heading)">A clear, readable interface</p>
             <p class="mt-1 text-xs text-[color:var(--tx-muted-foreground)]">Palette surfaces and chart colors</p>
             <div class="mt-3 flex gap-2" role="img" aria-label="Chart palette preview">
-              {theme.chartColors.map((_, index) => <span class="size-5 rounded-full border border-black/10" style={`background:var(--tx-chart${index + 1})`} aria-hidden="true"></span>)}
+              {theme.chartColors.map((_, index) => <span class="size-5 rounded-full border border-black/10" style={`background:var(--tx-chart-${index + 1})`} aria-hidden="true"></span>)}
             </div>
           </div>
         </div>
@@ -80,7 +80,7 @@ const prototypeTargets = prototypes()
             <p class="text-sm font-semibold" style="font-family:var(--tx-font-heading);font-weight:var(--tx-font-weight-heading)">A clear, readable interface</p>
             <p class="mt-1 text-xs text-[color:var(--tx-muted-foreground)]">Palette surfaces and chart colors</p>
             <div class="mt-3 flex gap-2" role="img" aria-label="Chart palette preview">
-              {theme.chartColors.map((_, index) => <span class="size-5 rounded-full border border-white/10" style={`background:var(--tx-chart${index + 1})`} aria-hidden="true"></span>)}
+              {theme.chartColors.map((_, index) => <span class="size-5 rounded-full border border-white/10" style={`background:var(--tx-chart-${index + 1})`} aria-hidden="true"></span>)}
             </div>
           </div>
         </div>

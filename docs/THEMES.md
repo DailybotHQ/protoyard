@@ -60,8 +60,8 @@ theme, so you style with ordinary utilities:
 | `accent` / `accentForeground` | `--tx-accent` / … | `bg-accent`, `text-accent-foreground` |
 | `destructive`, `success`, `warning`, `info` (+ `…Foreground`) | `--tx-destructive` … | `bg-destructive`, `text-success`, `bg-warning text-warning-foreground`… |
 | `sidebar`, `sidebarForeground`, `sidebarBorder` | `--tx-sidebar` … | `bg-sidebar`, `text-sidebar-foreground`, `border-sidebar-border` |
-| `chart1` … `chart5` | `--tx-chart1` … `--tx-chart5` | `bg-chart-1` … `bg-chart-5`, `text-chart-1`… |
-| [Chart palette](#chart-palettes) (optional `theme.charts`) | `--tx-chart6` … `--tx-chart8`, `--tx-seq-1` … `--tx-seq-9`, `--tx-div-1` … `--tx-div-9`, `--tx-chart-grid`, `--tx-chart-axis` | `bg-chart-6` … `bg-chart-8` (fall back to series 1–3), `stroke-chart-grid`, `text-chart-axis` |
+| `chart1` … `chart5` | `--tx-chart-1` … `--tx-chart-5` | `bg-chart-1` … `bg-chart-5`, `text-chart-1`… |
+| [Chart palette](#chart-palettes) (optional `theme.charts`) | `--tx-chart-6` … `--tx-chart-8`, `--tx-chart-sequential-1` … `--tx-chart-sequential-9`, `--tx-chart-diverging-1` … `--tx-chart-diverging-9`, `--tx-chart-grid`, `--tx-chart-axis` | `bg-chart-6` … `bg-chart-8` (fall back to series 1–3), `stroke-chart-grid`, `text-chart-axis` |
 | `shadow` | `--tx-shadow` | used inside `shadow-soft`, `shadow-float` |
 | (computed) | `--tx-primary-hover`, `--tx-destructive-hover` | `bg-primary-hover`, `bg-destructive-hover` |
 
@@ -414,9 +414,9 @@ the three derived series colors may also shift hue a little.
 
 | Field | Content | CSS variables |
 | --- | --- | --- |
-| `categorical` | 8 series colors; the first five are `chart1` … `chart5` | `--tx-chart1` … `--tx-chart8` |
-| `sequential` | 9 steps, low → high values | `--tx-seq-1` … `--tx-seq-9` |
-| `diverging` | 9 steps, negative end → neutral midpoint (step 5) → positive end | `--tx-div-1` … `--tx-div-9` |
+| `categorical` | 8 series colors; the first five are `chart1` … `chart5` | `--tx-chart-1` … `--tx-chart-8` |
+| `sequential` | 9 steps, low → high values | `--tx-chart-sequential-1` … `--tx-chart-sequential-9` |
+| `diverging` | 9 steps, negative end → neutral midpoint (step 5) → positive end | `--tx-chart-diverging-1` … `--tx-chart-diverging-9` |
 | `grid`, `axis` | The palette's `border` and `mutedForeground` | `--tx-chart-grid`, `--tx-chart-axis` |
 
 Where the colors come from:

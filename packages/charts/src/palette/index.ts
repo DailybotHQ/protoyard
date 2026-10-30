@@ -37,21 +37,21 @@ import {
   validateChartTokens,
 } from '@texuli/tokens/palette';
 
-/** Slot color as a CSS variable (`--tx-chart1` …). Slots past theme chart5 fall back. */
+/** Slot color as Texuli's CSS variable (`--tx-chart-1` …). Slots past theme chart5 fall back. */
 export function seriesColor(index: number): string {
   const n = CHART_CATEGORICAL_COUNT;
   const slot = ((Math.trunc(index) % n) + n) % n;
   const primary = slot + 1;
-  if (primary <= 5) return `var(--tx-chart${primary})`;
+  if (primary <= 5) return `var(--tx-chart-${primary})`;
   const fallback = ((slot - 5) % 5) + 1;
-  return `var(--tx-chart${primary}, var(--tx-chart${fallback}))`;
+  return `var(--tx-chart-${primary}, var(--tx-chart-${fallback}))`;
 }
 
 /** Sequential ramp CSS variable for t in 0…1. */
 export function sequentialColor(t: number): string {
   const steps = CHART_RAMP_STEPS;
   const step = Math.round(Math.min(1, Math.max(0, Number.isFinite(t) ? t : 0)) * (steps - 1));
-  return `var(--tx-seq-${step + 1})`;
+  return `var(--tx-chart-sequential-${step + 1})`;
 }
 
 /** Diverging ramp CSS variable for t in −1…1. */
@@ -59,7 +59,7 @@ export function divergingColor(t: number): string {
   const steps = CHART_RAMP_STEPS;
   const clamped = Math.min(1, Math.max(-1, Number.isFinite(t) ? t : 0));
   const step = Math.round(((clamped + 1) / 2) * (steps - 1));
-  return `var(--tx-div-${step + 1})`;
+  return `var(--tx-chart-diverging-${step + 1})`;
 }
 
 /** Writes derived chart tokens as canonical `--tx-*` custom properties. */
@@ -68,13 +68,13 @@ export function chartPaletteVariables(palette: ChartTokens): Record<string, stri
   vars['--tx-chart-grid'] = palette.grid;
   vars['--tx-chart-axis'] = palette.axis;
   palette.categorical.forEach((color, i) => {
-    vars[`--tx-chart${i + 1}`] = color;
+    vars[`--tx-chart-${i + 1}`] = color;
   });
   palette.sequential.forEach((color, i) => {
-    vars[`--tx-seq-${i + 1}`] = color;
+    vars[`--tx-chart-sequential-${i + 1}`] = color;
   });
   palette.diverging.forEach((color, i) => {
-    vars[`--tx-div-${i + 1}`] = color;
+    vars[`--tx-chart-diverging-${i + 1}`] = color;
   });
   return vars;
 }

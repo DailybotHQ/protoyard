@@ -52,7 +52,7 @@ function cardFromTheme(
 ): ThemeCardData {
   const lightStyle = styleAttr(theme, 'light');
   const darkStyle = styleAttr(theme, 'dark');
-  const chartColors = [...lightStyle.matchAll(/--tx-chart([1-8]):([^;]+)/g)]
+  const chartColors = [...lightStyle.matchAll(/--tx-chart-([1-8]):([^;]+)/g)]
     .sort((a, b) => Number(a[1]) - Number(b[1]))
     .map((match) => match[2] ?? '')
     .filter(Boolean);

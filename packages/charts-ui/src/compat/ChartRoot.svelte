@@ -6,7 +6,6 @@
  */
 import type { Snippet } from 'svelte';
 import { cx } from 'texuli/cx';
-import { TEXULI_CHART_TOKENS } from './theme-tokens.ts';
 
 type Props = {
   title: string;
@@ -40,7 +39,6 @@ function forwardFocus(node: HTMLElement) {
 <div
   class={cx('py-chart-root', 'grid min-w-0')}
   data-py-chart=""
-  style={TEXULI_CHART_TOKENS}
   role="group"
   aria-label={label}
   tabindex="0"
@@ -55,7 +53,7 @@ function forwardFocus(node: HTMLElement) {
     outline-offset: 2px;
   }
   /*
-   * Texuli gap: a cartesian chart lays its plot out at most 640 px wide (the
+   * Texuli gap G96: a cartesian chart lays its plot out at most 640 px wide (the
    * plot carries an inline max-inline-size), but its canvas layer fills the
    * whole figure (absolute, inset 0). In a wider figure the canvas marks
    * stretch past the axes and the pointer explorer. Hold the canvas layer to
