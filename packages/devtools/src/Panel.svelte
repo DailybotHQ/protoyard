@@ -185,6 +185,15 @@ $effect(() => {
   return () => dt.destroy();
 });
 
+// Other fixed chrome (the renderer's placeFloating: the review toolbar, the
+// demo badge) keeps clear of this launcher, but cannot see it appear or move:
+// this host lives outside #app. Announce every change after it renders, with
+// the event @protoyard/renderer-svelte names FLOATING_EVENT (no dependency).
+$effect(() => {
+  void [open, narrow, appModalOpen, navOffset, fixedRightEdge, devtoolsOffset];
+  window.dispatchEvent(new Event('protoyard:floating'));
+});
+
 function setOpen(next: boolean, focus = true) {
   open = next;
   if (!focus) return;
