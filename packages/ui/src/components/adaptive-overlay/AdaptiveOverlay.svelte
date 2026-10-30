@@ -7,6 +7,7 @@
  */
 import type { Snippet } from 'svelte';
 import { onMount } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import BottomSheet from '../bottom-sheet/BottomSheet.svelte';
 import DetailPanel from '../detail-panel/DetailPanel.svelte';
@@ -19,7 +20,9 @@ import {
   resolveAdaptiveOverlayPresentation,
 } from './resolve.ts';
 
-interface Props {
+interface OwnProps {
+  /** The open overlay's content element (sheet, dialog or panel), `null` while closed (bindable). */
+  ref?: HTMLElement | null;
   open?: boolean;
   title: string;
   description?: string;
@@ -49,6 +52,9 @@ interface Props {
   class?: string;
 }
 
+/** Extra attributes (`data-*`, `aria-*`, `id`, handlers…) land on the open overlay's content element. */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps>;
+
 let {
   open = $bindable(false),
   title,
@@ -66,6 +72,8 @@ let {
   children,
   onOpenChange,
   class: className,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 let measuredWidth = $state(0);
@@ -116,6 +124,8 @@ onMount(() => {
 
 {#if presentation === 'sheet'}
   <BottomSheet
+    {...rest}
+    bind:ref
     bind:open
     {title}
     {description}
@@ -129,6 +139,8 @@ onMount(() => {
   </BottomSheet>
 {:else if presentation === 'side-panel'}
   <DetailPanel
+    {...rest}
+    bind:ref
     bind:open
     {title}
     {description}
@@ -143,6 +155,8 @@ onMount(() => {
   </DetailPanel>
 {:else}
   <Dialog
+    {...rest}
+    bind:ref
     bind:open
     {title}
     {description}

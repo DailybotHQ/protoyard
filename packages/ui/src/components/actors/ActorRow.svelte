@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { HTMLAttributes } from 'svelte/elements';
 import { Badge } from 'texuli/badge';
 import { cn } from '../../lib/cn.ts';
 import Avatar from '../avatar/Avatar.svelte';
@@ -15,20 +16,24 @@ export interface ActorIdentity {
   avatarSrcset?: string;
 }
 
-interface Props {
+type Props = Omit<HTMLAttributes<HTMLElement>, 'class' | 'children'> & {
   actor: ActorIdentity;
   /** Optional actor credited with handling this item. */
   handledBy?: ActorIdentity;
   class?: string;
-}
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
+};
 
-let { actor, handledBy, class: className }: Props = $props();
+let { actor, handledBy, class: className, ref = $bindable(null), ...rest }: Props = $props();
 const accessibleName = $derived(
   `${actor.name}${actor.role ? `, ${actor.role}` : ''}, ${actor.kind === 'agent' ? 'simulated agent' : 'person'}`
 );
 </script>
 
 <article
+  {...rest}
+  bind:this={ref}
   aria-label={accessibleName}
   class={cn(
     'flex min-w-0 flex-wrap items-center gap-3 rounded-lg border border-border bg-surface p-3 text-foreground',

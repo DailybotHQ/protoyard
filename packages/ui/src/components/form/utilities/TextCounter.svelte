@@ -6,7 +6,8 @@ import { TextCounter as TexuliTextCounter } from 'texuli/input';
  * TextCounter — input or textarea with a remaining-character countdown that
  * appears while focused once fewer than `showAfter` characters are left.
  * Texuli's `TextCounter` (`texuli/input`): extra attributes reach the input
- * or textarea (`aria-*`, `data-*`, handlers) or the wrapper (the rest).
+ * or textarea (`aria-*`, `data-*`, handlers) or the wrapper (the rest);
+ * `ref` binds the wrapper root.
  */
 type Props = {
   value?: string;
@@ -28,6 +29,8 @@ type Props = {
   'aria-label'?: string;
   class?: string;
   onValueChange?: (value: string) => void;
+  /** The rendered root element, the wrapper (bindable). */
+  ref?: HTMLElement | null;
 } & Omit<
   HTMLInputAttributes & HTMLTextareaAttributes,
   | 'value'
@@ -63,6 +66,7 @@ let {
   'aria-label': ariaLabel,
   class: className,
   onValueChange,
+  ref = $bindable(null),
   ...rest
 }: Props = $props();
 
@@ -71,6 +75,7 @@ const forwarded = $derived(rest as Record<string, unknown>);
 </script>
 
 <TexuliTextCounter
+  bind:ref
   bind:value
   {tag}
   {type}

@@ -1,15 +1,18 @@
 <script lang="ts">
+import type { HTMLAttributes } from 'svelte/elements';
 import { Spinner as TexuliSpinner } from 'texuli/feedback';
 
-interface Props {
+type Props = Omit<HTMLAttributes<HTMLSpanElement>, 'class' | 'children'> & {
   class?: string;
   /** When set, the spinner is announced; otherwise it is decorative. */
   label?: string;
   /** Pixels (16 by default) or Texuli's `sm` / `md` / `lg`. */
   size?: number | string;
-}
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
+};
 
-let { class: className, label, size }: Props = $props();
+let { class: className, label, size, ref = $bindable(null), ...rest }: Props = $props();
 
 // Protoyard sizes are pixels; Texuli's spinner comes in three steps.
 const texuliSize = $derived.by((): 'sm' | 'md' | 'lg' => {
@@ -21,4 +24,4 @@ const texuliSize = $derived.by((): 'sm' | 'md' | 'lg' => {
 </script>
 
 <!-- A thin adapter over Texuli's Spinner (`texuli/feedback`). -->
-<TexuliSpinner {label} size={texuliSize} class={className} />
+<TexuliSpinner {...rest} bind:ref {label} size={texuliSize} class={className} />

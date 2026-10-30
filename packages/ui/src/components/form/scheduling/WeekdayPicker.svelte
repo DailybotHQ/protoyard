@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { HTMLAttributes } from 'svelte/elements';
 import { cx } from 'texuli/cx';
 import { ToggleGroup, ToggleGroupItem } from 'texuli/toggle';
 import {
@@ -17,7 +18,7 @@ import {
  * (1 = Monday … 7 = Sunday). For a single weekday use `Select` with
  * `weekdayOptions()`.
  */
-interface Props {
+interface OwnProps {
   value?: IsoWeekday[];
   weekStartsOn?: IsoWeekday;
   locale?: string;
@@ -35,7 +36,15 @@ interface Props {
   'aria-labelledby'?: string;
   class?: string;
   onValueChange?: (value: IsoWeekday[]) => void;
+  /** The rendered root element, the toggle group (bindable). */
+  ref?: HTMLElement | null;
 }
+
+/**
+ * Extra attributes (`data-*`, `aria-label`, handlers…) land on the toggle
+ * group, the root. A caller `aria-label` replaces `label` as its name.
+ */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps | 'role' | 'children'>;
 
 const uid = $props.id();
 
@@ -55,6 +64,8 @@ let {
   'aria-labelledby': labelledBy,
   class: className,
   onValueChange,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const days = $derived(
@@ -76,9 +87,11 @@ function commit(next: string | string[]): void {
 
 <!-- Texuli's ToggleGroup is the named, described group FormField points at, and submits one entry per day. -->
 <ToggleGroup
+  {...rest}
+  bind:ref
   type="multiple"
   {id}
-  aria-label={labelledBy ? undefined : label}
+  aria-label={labelledBy ? undefined : (rest['aria-label'] ?? label)}
   aria-labelledby={labelledBy}
   aria-describedby={describedBy}
   {name}

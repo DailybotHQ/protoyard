@@ -252,6 +252,18 @@ describe('Kanban', () => {
     expect(screen.getByTestId('footer-done').textContent).toBe('Add to Done');
     expect(screen.getByText('Limit: 3')).toBeTruthy();
   });
+
+  // Texuli's Board takes a column description (G67): it is back in the column
+  // header and describes the column's list, not the first line of its footer.
+  it('shows a column description in its header and describes the column list with it', () => {
+    render(KanbanHarness, { withFooter: true });
+    const description = screen.getByText('Limit: 3');
+    expect(description.closest('header')).not.toBeNull();
+    expect(description.closest('header')?.textContent).toContain('In progress');
+    expect(column('In progress').getAttribute('aria-describedby')).toBe(description.id);
+    expect(screen.getByTestId('footer-doing').parentElement?.textContent).not.toContain('Limit: 3');
+    expect(column('To do').hasAttribute('aria-describedby')).toBe(false);
+  });
 });
 
 describe('Wizard', () => {

@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { HTMLAttributes } from 'svelte/elements';
 import { cx } from 'texuli/cx';
 import { Progress } from 'texuli/feedback';
 import { PASSWORD_SCORE_LEVELS, PASSWORD_SCORE_WORDS, passwordScore } from './password-score.ts';
@@ -9,7 +10,7 @@ import { PASSWORD_SCORE_LEVELS, PASSWORD_SCORE_WORDS, passwordScore } from './pa
  * or transmits the value. Pair with a real Input type="password"; this meter
  * is display-only.
  */
-interface Props {
+interface OwnProps {
   /** Password text to rate. Not persisted by this component. */
   value?: string;
   /** Prefer rule keys over human messages in onFeedback. */
@@ -18,7 +19,23 @@ interface Props {
   class?: string;
   onScore?: (score: number) => void;
   onFeedback?: (feedback: string[]) => void;
+  /** The meter element (bindable). The rule messages, when shown, follow it as a sibling. */
+  ref?: HTMLElement | null;
 }
+
+/** Extra attributes (`data-*`, `aria-describedby`, handlers…) land on the meter element. */
+type Props = OwnProps &
+  Omit<
+    HTMLAttributes<HTMLDivElement>,
+    | keyof OwnProps
+    | 'children'
+    | 'role'
+    | 'aria-label'
+    | 'aria-valuemin'
+    | 'aria-valuemax'
+    | 'aria-valuenow'
+    | 'aria-valuetext'
+  >;
 
 let {
   value = '',
@@ -27,6 +44,8 @@ let {
   class: className,
   onScore,
   onFeedback,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const result = $derived(passwordScore(value));
@@ -53,6 +72,8 @@ $effect(() => {
 
 <!-- A meter (the score is a measurement, not progress); the bar inside is Texuli's Progress, hidden from assistive tech. -->
 <div
+  {...rest}
+  bind:this={ref}
   class={cx('ui-password-meter', className)}
   role="meter"
   aria-label={label}

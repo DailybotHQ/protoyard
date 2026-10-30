@@ -16,11 +16,13 @@ type Props = HTMLAttributes<HTMLElement> & {
   positive?: 'up' | 'down';
   hint?: string;
   icon?: IconComponent;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 };
 
-let { icon, ...rest }: Props = $props();
+let { icon, ref = $bindable(null), ...rest }: Props = $props();
 // A plain record keeps the spread onto Texuli's Stat a finite type.
-const forwarded = $derived(rest as Omit<Props, 'icon'> & Record<string, unknown>);
+const forwarded = $derived(rest as Omit<Props, 'icon' | 'ref'> & Record<string, unknown>);
 </script>
 
 <!-- A thin adapter over Texuli's Stat (`texuli/stat`) that takes an icon component. -->
@@ -28,4 +30,4 @@ const forwarded = $derived(rest as Omit<Props, 'icon'> & Record<string, unknown>
   {#if icon}<Icon {icon} aria-hidden="true" />{/if}
 {/snippet}
 
-<Stat icon={icon ? statIcon : undefined} {...forwarded} />
+<Stat bind:ref icon={icon ? statIcon : undefined} {...forwarded} />

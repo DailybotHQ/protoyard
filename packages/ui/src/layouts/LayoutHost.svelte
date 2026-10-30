@@ -1,6 +1,7 @@
 <script lang="ts">
 import { type LayoutId, type LayoutOptions, layoutForWidth } from '@protoyard/core';
 import type { Snippet } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import { LayoutHost as TexuliLayoutHost } from 'texuli/layouts/host';
 import type { NavModel } from './nav-model.ts';
 import { registerProtoyardLayouts } from './register.ts';
@@ -14,7 +15,7 @@ import { registerProtoyardLayouts } from './register.ts';
  * tests read.
  */
 
-interface Props {
+type Props = Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'children'> & {
   layout: LayoutId;
   children: Snippet;
   /** Navigation the layout renders (`navFromSidebar(nav)` migrates a Sidebar list). */
@@ -27,13 +28,25 @@ interface Props {
   /** Context panel for layouts that have one (dual-sidebar). */
   aside?: Snippet;
   class?: string;
-}
+  /** The host's root element, the one that carries `data-py-layout-host` (bindable). */
+  ref?: HTMLElement | null;
+};
 
-let { layout, children, nav, path, options, storageKey, aside, class: className }: Props = $props();
+let {
+  layout,
+  children,
+  nav,
+  path,
+  options,
+  storageKey,
+  aside,
+  class: className,
+  ref = $bindable(null),
+  ...rest
+}: Props = $props();
 
 registerProtoyardLayouts();
 
-let host: HTMLDivElement | undefined = $state();
 let width = $state(typeof window === 'undefined' ? 0 : window.innerWidth);
 const effectiveLayout = $derived(layoutForWidth(layout, width));
 
@@ -41,7 +54,7 @@ const effectiveLayout = $derived(layoutForWidth(layout, width));
 // `data-py-layout` (set only once that layout is on screen).
 let shown = $state<string | undefined>();
 $effect(() => {
-  const node = host;
+  const node = ref;
   if (!node || typeof MutationObserver === 'undefined') return;
   const read = () => {
     const inner = node.querySelector('[data-tx-layout-host]');
@@ -60,19 +73,21 @@ $effect(() => {
 });
 
 $effect(() => {
-  if (!host || typeof ResizeObserver === 'undefined') return;
+  const node = ref;
+  if (!node || typeof ResizeObserver === 'undefined') return;
   const observer = new ResizeObserver(([item]) => {
     if (item) width = item.contentRect.width;
   });
-  observer.observe(host);
+  observer.observe(node);
   return () => observer.disconnect();
 });
 </script>
 
 <div
-  bind:this={host}
-  class="relative min-w-0 {className ?? ''}"
-  data-py-layout-host
+  {...rest}
+  bind:this={ref}
+  class={['relative min-w-0', className]}
+  data-py-layout-host=""
   data-layout={effectiveLayout}
   data-py-layout={shown}
   style:container-type="inline-size"

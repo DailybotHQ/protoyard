@@ -1,5 +1,6 @@
 <script lang="ts">
 import { onDestroy } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import { Badge } from 'texuli/badge';
 import { Button } from 'texuli/button';
 import { cx } from 'texuli/cx';
@@ -23,7 +24,7 @@ import {
  * revoked when the selection changes or the component unmounts.
  */
 
-interface Props {
+interface OwnProps {
   label?: string;
   hint?: string;
   /** Same syntax as `<input accept>`. Defaults to common raster image types. */
@@ -31,10 +32,7 @@ interface Props {
   multiple?: boolean;
   required?: boolean;
   disabled?: boolean;
-  /**
-   * @deprecated Texuli's FileUpload sets its own input id (Texuli gap N16);
-   * this value names the component's wrapper instead.
-   */
+  /** Id of the file input, so a `<label for>` or a FormField names the focusable control. */
   inputId?: string;
   clearLabel?: string;
   /** The browse control's text. */
@@ -42,7 +40,16 @@ interface Props {
   /** Called with the whole selection (raw `File` objects) after each pick, removal or clear. */
   onFilesSelected?: (files: File[]) => void;
   class?: string;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 }
+
+/**
+ * Extra attributes go to Texuli's FileUpload inside the root: `aria-*`,
+ * `data-*`, `onfocus` and `onblur` reach the file input (the focusable
+ * control), handlers and other attributes its wrapper, after its own handling.
+ */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps | 'children'>;
 
 let {
   label = 'Photos',
@@ -56,7 +63,12 @@ let {
   addLabel = 'Add images',
   onFilesSelected,
   class: className = '',
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
+
+// A plain record keeps the spread onto Texuli's FileUpload a finite type.
+const forwarded = $derived(rest as Record<string, unknown>);
 
 let files = $state<File[]>([]);
 let previews = $state<ImagePreview[]>([]);
@@ -76,7 +88,7 @@ onDestroy(() => {
 </script>
 
 <div
-  id={inputId}
+  bind:this={ref}
   class={cx('grid gap-2', className)}
   data-image-input
   data-disabled={disabled ? 'true' : undefined}
@@ -105,11 +117,13 @@ onDestroy(() => {
   {/if}
 
   <FileUpload
+    {...forwarded}
     bind:files={() => files, setFiles}
     {accept}
     {multiple}
     {required}
     {disabled}
+    {...inputId ? { inputId } : {}}
     variant="compact"
     showPreviews={false}
     {labels}

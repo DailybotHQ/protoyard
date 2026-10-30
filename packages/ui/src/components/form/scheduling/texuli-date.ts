@@ -48,26 +48,23 @@ export function segmentsEmpty(group: Element | null | undefined): boolean {
   return segments(group).every((input) => input.value === '');
 }
 
-/** Whether some, but not all, date segments of a field group are filled. */
-export function segmentsPartial(group: Element | null | undefined): boolean {
-  const all = segments(group);
-  const filled = all.filter((input) => input.value !== '').length;
-  return filled > 0 && filled < all.length;
-}
-
 /**
- * The text of the `<label for={id}>` that names a field (FormField renders
- * one), without its decorative required marker. Texuli's segmented fields
- * are groups, which a `<label for>` cannot name, so the group takes this
- * text as its `aria-label`.
+ * How the `<label for={id}>` that points at a field's first segment names the
+ * field group: by its id (FormField's label has one), for `aria-labelledby`,
+ * else by its text without the decorative required marker, for `aria-label`.
+ * The segments keep their own names (Month, Day, Year), so without this the
+ * group would not carry the label at all. Texuli's Field keeps its label
+ * context internal (Texuli gap G91), so the label is read from the DOM.
  */
-export function labelTextFor(node: Element | null | undefined, id: string): string | undefined {
-  const doc = node?.ownerDocument;
-  if (!doc) return undefined;
-  const label = doc.querySelector(`label[for="${CSS.escape(id)}"]`);
-  if (!label) return undefined;
+export function groupLabelFor(
+  node: Element | null | undefined,
+  id: string
+): { id?: string; text?: string } {
+  const label = node?.ownerDocument?.querySelector(`label[for="${CSS.escape(id)}"]`);
+  if (!label) return {};
+  if (label.id) return { id: label.id };
   const copy = label.cloneNode(true) as Element;
   for (const hidden of Array.from(copy.querySelectorAll('[aria-hidden="true"]'))) hidden.remove();
   const text = copy.textContent?.trim();
-  return text || undefined;
+  return text ? { text } : {};
 }

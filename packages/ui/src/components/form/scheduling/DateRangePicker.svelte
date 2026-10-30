@@ -1,9 +1,15 @@
 <script lang="ts">
 import { CalendarDays } from '@lucide/svelte';
-import { type DateInvalidReason, DateRangePicker as Picker } from '@texuli/primitives/date-picker';
+import {
+  type DateInvalidDetail,
+  type DateInvalidReason,
+  DateRangePicker as Picker,
+} from '@texuli/primitives/date-picker';
+import type { HTMLAttributes } from 'svelte/elements';
 import { dateCalendarClass, dateFieldClass } from 'texuli/date';
 import { Icon } from 'texuli/icons';
 import { cn } from '../../../lib/cn.ts';
+import { chainHandlers, composeHandlers } from '../../../lib/handlers.ts';
 import {
   DATE_RANGE_MESSAGES,
   type DateRange,
@@ -12,8 +18,8 @@ import {
   validateDateRange,
 } from './dates.ts';
 import {
+  groupLabelFor,
   segmentsEmpty,
-  segmentsPartial,
   texuliUnavailable,
   texuliWeekStart,
   typedIsoText,
@@ -25,14 +31,18 @@ import type { IsoWeekday } from './weekdays.ts';
  * (`@texuli/primitives/date-picker`, styled with the `texuli/date` recipes):
  * segmented start and end fields, a calendar button, and a range calendar
  * that picks the range in two clicks (a second click before the first swaps
- * the ends; a range over `maxDays` is refused and announced). It composes the
- * parts so it can sit inside FormField.
+ * the ends; a range over `maxDays` is refused and announced). `id` lands on
+ * the start date's first segment, `aria-describedby`/`aria-invalid` on every
+ * segment and `required` on both dates, so it sits inside FormField. It
+ * composes the parts rather than the styled `texuli/date` `DateRangePicker`
+ * only for the `ui-input` hook on the bordered control (see DatePicker; Texuli
+ * gap G89).
  *
  * The bound value only changes to a complete, valid range or to an empty
  * one; any other entry is reported inline (when the fields are left, or at
  * once for a calendar pick) and leaves the value as it was.
  */
-interface Props {
+interface OwnProps {
   value?: DateRange;
   min?: IsoDate | null;
   max?: IsoDate | null;
@@ -44,7 +54,7 @@ interface Props {
   today?: IsoDate | null;
   weekStartsOn?: IsoWeekday;
   locale?: string;
-  /** Id of the field group, so a `<label for>` or FormField points at it. */
+  /** Id of the start date's first segment, so a `<label for>` or FormField reaches the focusable control. */
   id?: string;
   name?: string;
   disabled?: boolean;
@@ -61,7 +71,17 @@ interface Props {
   class?: string;
   onValueChange?: (value: DateRange) => void;
   onInvalid?: (issue: DateRangeIssue) => void;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 }
+
+/**
+ * Extra attributes (`data-*`, `aria-label`, handlers…) land on the group of
+ * the two date fields, the control inside the root. A caller `onfocusout` or
+ * `onkeydown` runs first; the fields' own commit on leaving always runs, and
+ * their Enter commit is skipped only when the caller calls `preventDefault()`.
+ */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps | 'children'>;
 
 const uid = $props.id();
 
@@ -89,6 +109,10 @@ let {
   class: className,
   onValueChange,
   onInvalid,
+  ref = $bindable(null),
+  onfocusout: callerFocusOut,
+  onkeydown: callerKeyDown,
+  ...rest
 }: Props = $props();
 
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
@@ -103,13 +127,17 @@ let open = $state(false);
 /** A first calendar pick is waiting for the second. */
 let picking = $state(false);
 let control = $state<HTMLDivElement | null>(null);
-/** The date field (start or end) the last keystroke went to. */
-let typingIn: 'start' | 'end' = 'start';
+let fieldLabelId = $state<string | undefined>(undefined);
 
 $effect(() => {
   draft = { start: value.start, end: value.end };
   issue = null;
   typed = null;
+});
+
+// FormField's `<label for={id}>` names the start's first segment; it names the group too.
+$effect(() => {
+  fieldLabelId = groupLabelFor(control, id).id;
 });
 
 // Closing the dialog with half a pick restores the committed range.
@@ -159,11 +187,14 @@ function commit() {
     return;
   }
   const [startField, endField] = fields();
-  if (segmentsPartial(startField)) return report('invalid-start');
-  if (segmentsPartial(endField)) return report('invalid-end');
+  const startEmpty = segmentsEmpty(startField);
+  const endEmpty = segmentsEmpty(endField);
+  // Filled segments with no date: a missing segment or a year under four digits.
+  if (!startEmpty && draft.start === null) return report('invalid-start');
+  if (!endEmpty && draft.end === null) return report('invalid-end');
   const next: DateRange = {
-    start: segmentsEmpty(startField) ? null : draft.start,
-    end: segmentsEmpty(endField) ? null : draft.end,
+    start: startEmpty ? null : draft.start,
+    end: endEmpty ? null : draft.end,
   };
   if (next.start === value.start && next.end === value.end) return;
   // A half-filled range waits for the other field without nagging.
@@ -174,16 +205,17 @@ function commit() {
   apply(next);
 }
 
-function texuliInvalid(text: string, reason: DateInvalidReason) {
+function texuliInvalid(text: string, reason: DateInvalidReason, detail?: DateInvalidDetail) {
+  const side = detail?.side ?? 'start';
   let found: DateRangeIssue;
   if (reason === 'too-long') found = 'too-long';
-  else if (reason === 'invalid') found = typingIn === 'start' ? 'invalid-start' : 'invalid-end';
+  else if (reason === 'invalid') found = side === 'start' ? 'invalid-start' : 'invalid-end';
   else {
     // Out of range: past the other end, or outside min/max.
     const iso = typedIsoText(text, locale);
     const reversed =
       iso !== null &&
-      (typingIn === 'start'
+      (side === 'start'
         ? draft.end !== null && iso > draft.end
         : draft.start !== null && iso < draft.start);
     found = reversed ? 'end-before-start' : 'out-of-bounds';
@@ -201,6 +233,7 @@ const hint = $derived(
 </script>
 
 <div
+  bind:this={ref}
   class={cn(dateFieldClass(), 'tx-date--range ui-date-range-picker', className)}
   data-tx-date
   data-invalid={invalid ? 'true' : undefined}
@@ -241,23 +274,21 @@ const hint = $derived(
   >
     <div bind:this={control} class="tx-date__control ui-input">
       <Picker.Field
+        {...rest}
         class="tx-date__field"
-        {id}
+        inputId={id}
         {label}
-        aria-labelledby={labelledBy}
+        aria-labelledby={labelledBy ?? fieldLabelId}
         aria-describedby={describedByAll}
         aria-invalid={invalid || undefined}
         {...name ? { startName: `${name}.start`, endName: `${name}.end` } : {}}
-        oninputcapture={(event) => {
-          const [startField] = fields();
-          typingIn = startField?.contains(event.target as Node) ? 'start' : 'end';
-        }}
-        onfocusout={(event) => {
+        {required}
+        onfocusout={chainHandlers(callerFocusOut, (event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) commit();
-        }}
-        onkeydown={(event) => {
+        })}
+        onkeydown={composeHandlers(callerKeyDown, (event) => {
           if (event.key === 'Enter') commit();
-        }}
+        })}
       />
       <Picker.Trigger class="tx-date__trigger">
         <Icon icon={CalendarDays} size="sm" aria-hidden="true" />

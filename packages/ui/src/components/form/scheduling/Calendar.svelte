@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { DateInvalidHandler } from '@texuli/primitives/date-picker';
 import { tick } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import { Calendar as TexuliCalendar } from 'texuli/date';
 import { cn } from '../../../lib/cn.ts';
 import type { DateRange, IsoDate } from './dates.ts';
@@ -15,15 +16,16 @@ import type { IsoWeekday } from './weekdays.ts';
  * disabled. Pass `today` (the scenario clock's date) and the clock is never
  * read. With `range`, the span is highlighted and two picks choose a range.
  */
-interface Props {
+interface OwnProps {
   /** The picked date (single mode). */
   selected?: IsoDate | null;
   /** A range to highlight (range mode). */
   range?: DateRange | null;
   /**
-   * The focused date. Read back as focus moves; on mount, the calendar opens
-   * on `selected` (or the range start, else `today`). Texuli's Calendar takes
-   * no separate starting month.
+   * The focused date (bindable), which sets the month shown: setting it moves
+   * the calendar, and arrows, paging and the month buttons write it back.
+   * When empty, the calendar opens on `selected` (or the range start, else
+   * `today`).
    */
   focusDate?: IsoDate | null;
   /** Marks today; pass the scenario clock's date for a deterministic prototype. */
@@ -44,7 +46,15 @@ interface Props {
   class?: string;
   /** The date picked (in range mode, the day of each of the two picks). */
   onselect?: (date: IsoDate) => void;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 }
+
+/**
+ * Extra attributes (`aria-*`, `data-*`, handlers…) land on Texuli's calendar
+ * region inside the root.
+ */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps | 'children'>;
 
 let {
   selected = null,
@@ -62,19 +72,19 @@ let {
   onRangeChange,
   class: className,
   onselect,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
-
-let root = $state<HTMLDivElement | null>(null);
 /** The start chosen by the first of two range picks, to tell which day the second chose. */
 let pendingStart: IsoDate | null = null;
 
 function dayButton(date: IsoDate): HTMLButtonElement | null {
-  return root?.querySelector<HTMLButtonElement>(`[data-calendar-date="${date}"]`) ?? null;
+  return ref?.querySelector<HTMLButtonElement>(`[data-calendar-date="${date}"]`) ?? null;
 }
 
 /** The day that holds the grid's tab stop, where focus belongs when the calendar opens. */
 export function focusTarget(): HTMLButtonElement | null {
-  return root?.querySelector<HTMLButtonElement>('[data-calendar-date][tabindex="0"]') ?? null;
+  return ref?.querySelector<HTMLButtonElement>('[data-calendar-date][tabindex="0"]') ?? null;
 }
 
 /** Moves keyboard focus to `date` when it is shown, else to the grid's tab stop. */
@@ -93,16 +103,11 @@ function rangePicked(next: DateRange) {
 }
 </script>
 
-<div
-  bind:this={root}
-  class={cn('ui-calendar w-full max-w-[20rem] select-none', className)}
-  onfocusin={(event) => {
-    const date = (event.target as HTMLElement | null)?.dataset?.calendarDate;
-    if (date) focusDate = date;
-  }}
->
+<div bind:this={ref} class={cn('ui-calendar w-full max-w-[20rem] select-none', className)}>
   <TexuliCalendar
+    {...rest}
     value={range ? null : selected}
+    bind:focusedValue={() => focusDate ?? undefined, (next) => (focusDate = next ?? null)}
     {...range ? { range: { start: range.start, end: range.end } } : {}}
     {...locale ? { locale } : {}}
     {...min ? { minValue: min } : {}}

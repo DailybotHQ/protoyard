@@ -48,6 +48,7 @@ import {
   weekdayOptions,
 } from '../src/components/form/scheduling/weekdays.ts';
 import * as barrel from '../src/index.ts';
+import CalendarFocusHarness from './fixtures/CalendarFocusHarness.svelte';
 import SchedulingFormHarness from './fixtures/SchedulingFormHarness.svelte';
 
 afterEach(() => cleanup());
@@ -683,27 +684,110 @@ describe('TimeZoneSelect', () => {
 });
 
 describe('FormField integration', () => {
+  /** The FormField label and the control its `for` points at. */
+  function labelled(text: string) {
+    const label = screen.getByText(text, { selector: 'label' });
+    const control = document.getElementById(label.getAttribute('for') ?? '');
+    return { label, control };
+  }
+
   it('takes the field id, description, invalid and required flags', () => {
     render(SchedulingFormHarness, { error: 'Fix this field' });
-    // Texuli's time and date fields are groups of segments: the label targets the group.
+    // Texuli's time and date fields are groups of segments: the label targets the
+    // first segment (G63) and names the group through aria-labelledby.
     const time = screen.getByRole('group', { name: 'Send at' });
-    const label = screen.getByText('Send at', { selector: 'label' });
-    expect(label.getAttribute('for')).toBe(time.id);
+    const sendAt = labelled('Send at');
     const hour = within(time).getByRole('spinbutton', { name: 'Hour' }) as HTMLInputElement;
+    expect(sendAt.control).toBe(hour);
+    expect(time.getAttribute('aria-labelledby')).toBe(sendAt.label.id);
     expect(hour.required).toBe(true);
-    expect(time.getAttribute('aria-invalid')).toBe('true');
-    expect(time.getAttribute('aria-describedby')).toContain(`${time.id}-description`);
+    for (const segment of within(time).getAllByRole('spinbutton')) {
+      expect(segment.getAttribute('aria-invalid')).toBe('true');
+      expect(segment.getAttribute('aria-describedby')).toContain(`${hour.id}-description`);
+    }
+    expect(time.closest('[data-tx-time]')?.getAttribute('data-invalid')).toBe('true');
 
     const days = screen.getByRole('group', { name: 'Repeat on' });
     expect(days.getAttribute('aria-describedby')).toContain(`${days.id}-error`);
 
-    // DatePicker takes its name from FormField's `<label for>` (without the required marker).
+    // DatePicker: named by the FormField label (without the required marker).
     const starts = screen.getByRole('group', { name: 'Starts' });
-    expect(screen.getByText('Starts', { selector: 'label' }).getAttribute('for')).toBe(starts.id);
+    const startsLabel = labelled('Starts');
+    const month = within(starts).getByRole('spinbutton', { name: 'Month' });
+    expect(startsLabel.control).toBe(month);
+    expect(starts.getAttribute('aria-labelledby')).toBe(startsLabel.label.id);
     const year = within(starts).getByRole('spinbutton', { name: 'Year' }) as HTMLInputElement;
     expect(year.required).toBe(true);
     expect(starts.getAttribute('aria-invalid')).toBe('true');
-    expect(starts.getAttribute('aria-describedby')).toContain(`${starts.id}-error`);
+    for (const segment of within(starts).getAllByRole('spinbutton')) {
+      expect(segment.getAttribute('aria-invalid')).toBe('true');
+      expect(segment.getAttribute('aria-describedby')).toContain(`${month.id}-error`);
+    }
+  });
+
+  it('wires a required DateRangePicker: both dates required, every segment described (G63, G66)', () => {
+    render(SchedulingFormHarness, { error: 'Pick your dates' });
+    const stay = screen.getByRole('group', { name: 'Stay' });
+    const stayLabel = labelled('Stay');
+    const start = within(stay).getByRole('group', { name: 'Start date' });
+    const end = within(stay).getByRole('group', { name: 'End date' });
+    expect(stayLabel.control).toBe(within(start).getByRole('spinbutton', { name: 'Month' }));
+    expect(stay.getAttribute('aria-labelledby')).toBe(stayLabel.label.id);
+    const segments = [
+      ...within(start).getAllByRole('spinbutton'),
+      ...within(end).getAllByRole('spinbutton'),
+    ] as HTMLInputElement[];
+    expect(segments).toHaveLength(6);
+    for (const segment of segments) {
+      expect(segment.required).toBe(true);
+      expect(segment.getAttribute('aria-invalid')).toBe('true');
+      expect(segment.getAttribute('aria-describedby')).toContain(`${stayLabel.control?.id}-error`);
+    }
+  });
+});
+
+describe('Texuli date gaps now covered', () => {
+  it('Calendar: bind:focusDate sets the month shown and follows the month buttons (G64)', async () => {
+    render(CalendarFocusHarness, { start: '2026-07-15' });
+    const shown = () => document.querySelector('[data-focus-date]')?.textContent;
+    expect(screen.getByRole('grid', { name: 'July 2026' })).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Jump to September' }));
+    expect(screen.getByRole('grid', { name: 'September 2026' })).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Next month' }));
+    expect(screen.getByRole('grid', { name: 'October 2026' })).toBeTruthy();
+    expect(shown()).toMatch(/^2026-10-/);
+  });
+
+  it('DatePicker: a year under four digits is not a date (G65)', async () => {
+    const onValueChange = vi.fn();
+    const onInvalid = vi.fn();
+    render(DatePicker, { 'aria-label': 'Due date', locale: 'en-US', onValueChange, onInvalid });
+    const field = screen.getByRole('group', { name: 'Due date' });
+    await typeSegment(field, 'Month', '3');
+    await typeSegment(field, 'Day', '4');
+    await typeSegment(field, 'Year', '20');
+    await leave(field);
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(onInvalid).toHaveBeenLastCalledWith('format', '');
+    await typeSegment(field, 'Year', '2026');
+    await leave(field);
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith('2026-03-04');
+  });
+
+  it("DateRangePicker: a refused start is reported as the start, from Texuli's side (G66)", async () => {
+    const onInvalid = vi.fn();
+    render(DateRangePicker, {
+      value: { start: '2026-03-01', end: '2026-03-03' },
+      locale: 'en-US',
+      onInvalid,
+    });
+    const range = screen.getByRole('group', { name: 'Date range' });
+    const start = within(range).getByRole('group', { name: 'Start date' });
+    await typeSegment(start, 'Day', '31');
+    await typeSegment(start, 'Month', '2');
+    await leave(range);
+    expect(onInvalid).toHaveBeenLastCalledWith('invalid-start');
+    expect(screen.getByText('Enter the start date as YYYY-MM-DD.')).toBeTruthy();
   });
 });
 

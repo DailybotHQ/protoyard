@@ -3,6 +3,7 @@ import { MessageList } from '@texuli/chat';
 import { afterEach, describe, expect, it } from 'vitest';
 import Avatar from '../src/components/avatar/Avatar.svelte';
 import UserPicker from '../src/components/user-picker/UserPicker.svelte';
+import type { ChatAuthor } from '../src/index.ts';
 
 afterEach(() => cleanup());
 
@@ -84,6 +85,25 @@ describe('Avatar image', () => {
     expect(img?.getAttribute('srcset') ?? '').not.toContain('javascript');
   });
 
+  // Texuli 0.6 (G79): the loading image is hidden by style, never [hidden], so
+  // a host `[hidden] { display: none !important }` reset can't stop it loading.
+  it('keeps the loading image rendered but invisible, never [hidden]', () => {
+    const { container } = render(Avatar, { name: 'Grace Hopper', src: SRC });
+    const img = container.querySelector('img') as HTMLImageElement;
+    expect(img.hasAttribute('hidden')).toBe(false);
+    expect(img.style.opacity).toBe('0');
+    expect(img.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  // Texuli 0.6 (G58): the root's data-avatar follows a failed image.
+  it('marks the root as initials after the image fails to load', async () => {
+    const { container } = render(Avatar, { name: 'Grace Hopper', src: SRC });
+    const root = screen.getByRole('img', { name: 'Grace Hopper' });
+    expect(root.dataset.avatar).toBe('image');
+    await fireEvent.error(container.querySelector('img') as HTMLImageElement);
+    expect(root.dataset.avatar).toBe('initials');
+  });
+
   it('falls back to initials when the image fails, and retries a new src', async () => {
     const { container, rerender } = render(Avatar, { name: 'Grace Hopper', src: SRC });
     const img = container.querySelector('img');
@@ -97,9 +117,20 @@ describe('Avatar image', () => {
 });
 
 describe('kit components pass faces through', () => {
-  // Texuli's MessageList renders `avatarUrl` only; the 2x `srcset` returns
-  // when @texuli/chat passes the author's to its avatar (gap N19).
-  it.todo('MessageList passes the author photo srcset (Texuli gap N19)');
+  // @texuli/chat passes the author's avatarSrcset to its avatar (G59).
+  it('MessageList passes the author photo srcset and drops unsafe candidates', () => {
+    const ada: ChatAuthor = {
+      id: 'u1',
+      name: 'Ada Lovelace',
+      avatarUrl: SRC,
+      avatarSrcset: `${SRCSET}, javascript:alert(1) 3x`,
+    };
+    const { container } = render(MessageList, {
+      messages: [{ id: 'm1', author: ada, body: 'Hi', at: '2026-01-01T10:00:00Z' }],
+      currentUserId: 'u3',
+    });
+    expect(container.querySelector('img')?.getAttribute('srcset')).toBe(SRCSET);
+  });
 
   it('MessageList shows the author photo, decorative, and initials otherwise', () => {
     const ada = { id: 'u1', name: 'Ada Lovelace', avatarUrl: SRC, avatarSrcset: SRCSET };

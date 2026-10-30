@@ -4,8 +4,6 @@ import {
   type BoardColumnDef,
   type BoardLabelOverrides,
   type BoardMove,
-  placementsOf,
-  rankSequence,
 } from '@texuli/data/board';
 import type { Snippet } from 'svelte';
 import type { KanbanColumn } from './types.ts';
@@ -46,25 +44,6 @@ let {
   class: className,
 }: Props = $props();
 
-/*
- * Texuli's Board orders each column by a rank. Kanban items carry none, so the
- * rank follows the order of `items`. A moved card keeps the rank Board gave it
- * while it stays in the column it was moved to, so it does not jump after the
- * host saves the new column.
- */
-const baseRanks = $derived.by(() => {
-  const ranks = rankSequence(items.length);
-  return new Map(items.map((item, index) => [getItemId(item), ranks[index] ?? '']));
-});
-let movedRanks = $state<Record<string, { columnId: string; rank: string }>>({});
-
-function getRank(item: T): string {
-  const id = getItemId(item);
-  const moved = movedRanks[id];
-  if (moved && moved.columnId === getColumn(item)) return moved.rank;
-  return baseRanks.get(id) ?? '';
-}
-
 function titleOf(columnId: string): string {
   return columns.find((column) => column.id === columnId)?.title ?? columnId;
 }
@@ -77,20 +56,22 @@ function allowMove(item: T, target: { columnId: string }): boolean | string {
   return canMove(item, target.columnId);
 }
 
+/*
+ * No `getRank`: Texuli's Board runs column-only, so cards keep the order of
+ * `items` and only move between columns. A throw from `onMove` reaches Board,
+ * which puts the card back and announces it.
+ */
 async function move(boardMove: BoardMove, item: T): Promise<void> {
-  // A throw reaches Board, which puts the card back and announces it.
   await onMove(item, boardMove.columnId);
-  const next = { ...movedRanks };
-  for (const [id, placement] of Object.entries(placementsOf(boardMove))) {
-    next[id] = { columnId: placement.columnId, rank: placement.rank };
-  }
-  movedRanks = next;
 }
 
 const boardColumns = $derived<BoardColumnDef[]>(
-  columns.map((column) => ({ id: column.id, title: column.title }))
+  columns.map((column) => ({
+    id: column.id,
+    title: column.title,
+    ...(column.description ? { description: column.description } : {}),
+  }))
 );
-const hasDescriptions = $derived(columns.some((column) => column.description));
 const labels = $derived<BoardLabelOverrides>({
   board: label,
   emptyCell: emptyColumnText,
@@ -103,10 +84,9 @@ const labels = $derived<BoardLabelOverrides>({
   {@render card(item)}
 {/snippet}
 
-<!-- Board's column header has no description slot, so a column description leads the column footer. -->
+<!-- columnFooter receives the caller's column (Board's description sits in its column header). -->
 {#snippet footer(column: BoardColumnDef)}
   {@const source = columns.find((candidate) => candidate.id === column.id)}
-  {#if source?.description}<p class="text-xs text-muted-foreground">{source.description}</p>{/if}
   {#if source && columnFooter}{@render columnFooter(source)}{/if}
 {/snippet}
 
@@ -115,10 +95,9 @@ const labels = $derived<BoardLabelOverrides>({
   {items}
   getId={getItemId}
   {getColumn}
-  {getRank}
   getLabel={getItemLabel}
   card={boardCard}
-  columnFooter={columnFooter || hasDescriptions ? footer : undefined}
+  columnFooter={columnFooter ? footer : undefined}
   {headingLevel}
   onMove={move}
   canMove={allowMove}
