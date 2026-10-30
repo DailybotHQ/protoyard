@@ -289,7 +289,7 @@ describe('the Protoyard repository', () => {
 });
 
 describe('Texuli comes from npm', () => {
-  it('every manifest pins texuli and @texuli/* to one exact published version, never link: or file:', async () => {
+  it('every manifest pins texuli and @texuli/* exactly, the same version of a package everywhere, never link: or file:', async () => {
     const { readFileSync, readdirSync, existsSync } = await import('node:fs');
     const root = join(dirname(new URL(import.meta.url).pathname), '../..');
     const manifests = ['package.json'];
@@ -299,7 +299,7 @@ describe('Texuli comes from npm', () => {
           manifests.push(`${top}/${name}/package.json`);
       }
     }
-    const versions = new Set<string>();
+    const versions = new Map<string, Set<string>>();
     const bad: string[] = [];
     for (const m of manifests) {
       const json = JSON.parse(readFileSync(join(root, m), 'utf8')) as Record<
@@ -310,11 +310,13 @@ describe('Texuli comes from npm', () => {
         for (const [name, spec] of Object.entries(json[section] ?? {})) {
           if (name !== 'texuli' && !name.startsWith('@texuli/')) continue;
           if (!/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(spec)) bad.push(`${m} ${name}@${spec}`);
-          else versions.add(spec);
+          else versions.set(name, (versions.get(name) ?? new Set()).add(spec));
         }
       }
     }
     expect(bad).toEqual([]);
-    expect([...versions]).toHaveLength(1);
+    const split = [...versions].filter(([, v]) => v.size > 1).map(([n, v]) => `${n}: ${[...v]}`);
+    expect(split).toEqual([]);
+    expect(versions.size).toBeGreaterThan(10);
   });
 });

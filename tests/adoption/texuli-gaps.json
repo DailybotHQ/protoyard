@@ -233,5 +233,10 @@
     "id": "G47",
     "status": "wontfix",
     "summary": "Deck first-chunk theme generator and library: not a Texuli defect; @protoyard/themes imports them statically"
+  },
+  {
+    "id": "G86",
+    "status": "open",
+    "summary": "Texuli 0.8.0 grew @texuli/data views over the shell (board +16.5 %, grid +13.3 %, timeline +9 %, calendar +6.9 %) and some CSS (decks first screen, player pages, LayoutHost delta); Protoyard ceilings raised to measured + 5 %/1 % until fixed"
   }
 ]

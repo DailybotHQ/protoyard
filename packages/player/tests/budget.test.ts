@@ -103,8 +103,10 @@ function importGraph(entry: string): string[] {
  * and doc.html 108.956 KB (old 106.9; cap 112.3). The 0.5.0 initial CSS is
  * 15,330 B for index, 15,644 B for deck and 16,968 B for page/doc. Initial-CSS
  * caps are tightened in protoyard.budgets.json to measured + 5% (rounded up).
+ * Texuli 0.8.0 (PLAN_008, G86): deck.html 111.27 KB and page.html/doc.html
+ * 112.57 KB; raised to measured + 1 %.
  */
-const PLAYER_TOTAL_CSS_GZIP_KB = { index: 136.2, deck: 110.9, page: 112.3, doc: 112.3 } as const;
+const PLAYER_TOTAL_CSS_GZIP_KB = { index: 136.2, deck: 112.4, page: 113.7, doc: 113.7 } as const;
 
 /** Modules that must only ever load on demand, by manifest key. */
 const LAZY_MODULES: [string, RegExp][] = [

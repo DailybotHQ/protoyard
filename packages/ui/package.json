@@ -34,12 +34,12 @@
   },
   "dependencies": {
     "@lucide/svelte": "^1.61.0",
-    "@texuli/chat": "0.5.0",
-    "@texuli/core": "0.5.0",
-    "@texuli/data": "0.5.0",
-    "@texuli/date": "0.5.0",
-    "@texuli/primitives": "0.5.0",
-    "texuli": "0.5.0"
+    "@texuli/chat": "0.8.0",
+    "@texuli/core": "0.8.0",
+    "@texuli/data": "0.8.0",
+    "@texuli/date": "0.8.0",
+    "@texuli/primitives": "0.8.0",
+    "texuli": "0.8.0"
   },
   "devDependencies": {
     "svelte": "^5.57.2"

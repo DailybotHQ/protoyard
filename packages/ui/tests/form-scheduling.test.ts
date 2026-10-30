@@ -368,7 +368,9 @@ describe('Calendar', () => {
 
     await fireEvent.click(day('Sunday, March 1, 2026'));
     await fireEvent.click(day('Monday, March 23, 2026'));
-    expect(onInvalid).toHaveBeenCalledExactlyOnceWith('2026-03-01/2026-03-23', 'too-long');
+    expect(onInvalid).toHaveBeenCalledExactlyOnceWith('2026-03-01/2026-03-23', 'too-long', {
+      side: 'end',
+    });
     expect(onRangeChange).toHaveBeenLastCalledWith({ start: '2026-03-01', end: null });
   });
 });

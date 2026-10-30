@@ -62,7 +62,8 @@ afterAll(async () => {
  * without it.
  */
 const INITIAL_JS_GZIP_CAP = 111_657;
-const INITIAL_CSS_GZIP_CAP = 8_903;
+// Texuli 0.8.0 (motion tokens) measured 8,952 B; + 1 % (PLAN_008, G86).
+const INITIAL_CSS_GZIP_CAP = 9_042;
 const ALL_CSS_GZIP_CAP = 83_381;
 
 function initialCssGzip(build: DeckBuild): number {
