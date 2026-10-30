@@ -48,7 +48,9 @@ type Props = {
 >;
 
 let {
-  value = $bindable(''),
+  // No fallback: a caller may bind a value that starts undefined (a map entry);
+  // a `$bindable('')` would throw (props_invalid_value). Read as ''.
+  value = $bindable(),
   tag = 'input',
   type = 'text',
   id,
@@ -76,7 +78,7 @@ const forwarded = $derived(rest as Record<string, unknown>);
 
 <TexuliTextCounter
   bind:ref
-  bind:value
+  bind:value={() => value ?? '', (next) => (value = next)}
   {tag}
   {type}
   {id}

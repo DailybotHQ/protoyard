@@ -43,7 +43,9 @@ type Props = OwnProps & Omit<HTMLAttributes<HTMLElement>, keyof OwnProps>;
 
 let {
   users,
-  value = $bindable(''),
+  // No fallback: a caller may bind a value that starts undefined (a map entry);
+  // a `$bindable('')` would throw (props_invalid_value). Read as ''.
+  value = $bindable(),
   onValueChange,
   variant = 'popover',
   searchable = true,
@@ -81,7 +83,7 @@ function pick(user: PickerUser): void {
   >
     <UserList
       {users}
-      selectedId={value}
+      selectedId={value ?? ''}
       onPick={pick}
       {searchable}
       {searchPlaceholder}
@@ -114,7 +116,7 @@ function pick(user: PickerUser): void {
     <PopoverContent arrow={false} class="ui-user-picker__content">
       <UserList
         {users}
-        selectedId={value}
+        selectedId={value ?? ''}
         onPick={pick}
         {searchable}
         {searchPlaceholder}

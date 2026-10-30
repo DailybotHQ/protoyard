@@ -24,7 +24,9 @@ type Props = InputProps & {
 
 let {
   items,
-  value = $bindable(''),
+  // No fallback: a caller may bind a value that starts undefined (a map entry);
+  // a `$bindable('')` would throw (props_invalid_value). Read as ''.
+  value = $bindable(),
   open = $bindable(false),
   placeholder = 'Search…',
   emptyText = 'No results',
@@ -59,7 +61,7 @@ const matches = (item: SelectOption, query: string): boolean =>
 
 <!-- A thin adapter: Texuli's styled Combobox, driven by an `items` list. -->
 <TexuliCombobox.Root
-  bind:value={() => value, (next) => (value = typeof next === 'string' ? next : '')}
+  bind:value={() => value ?? '', (next) => (value = typeof next === 'string' ? next : '')}
   bind:open
   bind:inputValue={inputText}
   {items}
