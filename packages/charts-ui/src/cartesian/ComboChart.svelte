@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { CanvasRendererMode } from '@texuli/charts/canvas';
 /** Adapter: Protoyard ComboChart → Texuli ComboChart. */
 import { ComboChart as TexuliCombo } from '@texuli/charts/cartesian';
 import ChartRoot from '../compat/ChartRoot.svelte';
@@ -11,10 +12,20 @@ type Props = {
   emptyMessage?: string;
   class?: string;
   onselect?: (selection: unknown) => void;
+  /** `auto` (default: canvas from 5,000 points), `svg` or `canvas`. */
+  renderer?: CanvasRendererMode;
   [key: string]: unknown;
 };
 
-let { title, description, series, emptyMessage, class: className, onselect }: Props = $props();
+let {
+  title,
+  description,
+  series,
+  emptyMessage,
+  class: className,
+  onselect,
+  renderer = 'auto',
+}: Props = $props();
 const desc = $derived(description ?? emptyMessage ?? `${title}.`);
 const mapped = $derived(toTexuliSeries(series));
 const interactive = $derived(true); // Texuli table toggle + keyboard; ChartAnswer opts out
@@ -30,6 +41,7 @@ const interactive = $derived(true); // Texuli table toggle + keyboard; ChartAnsw
       series={mapped}
       class={className}
       {interactive}
+      {renderer}
       {onselect}
     />
   {/if}

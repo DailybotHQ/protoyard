@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { CanvasRendererMode } from '@texuli/charts/canvas';
 /** Adapter: Protoyard LineChart → Texuli LineChart/AreaChart; forwards onselect. */
 import { AreaChart, LineChart as TexuliLine } from '@texuli/charts/cartesian';
 import ChartRoot from '../compat/ChartRoot.svelte';
@@ -18,6 +19,8 @@ type Props = {
     y: number | null;
   }) => void;
   interactive?: boolean;
+  /** `auto` (default: canvas from 5,000 points), `svg` or `canvas`. */
+  renderer?: CanvasRendererMode;
   [key: string]: unknown;
 };
 
@@ -30,6 +33,7 @@ let {
   class: className,
   onselect,
   interactive = true,
+  renderer = 'auto',
 }: Props = $props();
 
 const desc = $derived(description ?? emptyMessage ?? `${title}.`);
@@ -41,9 +45,9 @@ const empty = $derived(mapped.every((s) => s.points.length === 0));
   {#if empty}
     <p class="empty" data-py-chart="" role="status">{emptyMessage ?? 'No data'}</p>
   {:else if area}
-    <AreaChart {title} description={desc} series={mapped} class={className} {interactive} {onselect} />
+    <AreaChart {title} description={desc} series={mapped} class={className} {interactive} {renderer} {onselect} />
   {:else}
-    <TexuliLine {title} description={desc} series={mapped} class={className} {interactive} {onselect} />
+    <TexuliLine {title} description={desc} series={mapped} class={className} {interactive} {renderer} {onselect} />
   {/if}
 </ChartRoot>
 
