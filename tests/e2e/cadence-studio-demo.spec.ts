@@ -69,7 +69,8 @@ test.describe('Cadence Studio booking flow (static build)', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${prototypeUrl(SLUG)}?scenario=active#/bookings/calendar`);
     await waitForPrototypeReady(page, { slug: SLUG });
-    await expect(page.locator('[data-py-bottom-nav]')).toBeVisible();
+    // The manifest's mobile-tabs layout is Texuli's, which marks its tab bar data-tx-mobile-tabs.
+    await expect(page.locator('[data-tx-mobile-tabs]')).toBeVisible();
     await expect(page.locator('section[data-calendar]')).toBeVisible();
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth

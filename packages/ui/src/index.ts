@@ -34,6 +34,7 @@ export {
 export { default as Avatar } from './components/avatar/Avatar.svelte';
 // Mobile
 export { default as BottomNav } from './components/bottom-nav/BottomNav.svelte';
+export { BOTTOM_NAV_SELECTOR } from './components/bottom-nav/selector.ts';
 export { default as BottomSheet } from './components/bottom-sheet/BottomSheet.svelte';
 export { formatAddress, parseAddress } from './components/browser-chrome/address.ts';
 export { default as BrowserChrome } from './components/browser-chrome/BrowserChrome.svelte';
