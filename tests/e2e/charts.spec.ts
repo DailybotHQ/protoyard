@@ -144,11 +144,49 @@ test.describe('charts-ui demos (ui-kit static build)', () => {
     await expectAccessible(page, testInfo, { include: 'main', label: 'chart-cartesian-dark' });
   });
 
+  test('a Texuli chart outside ChartRoot follows the theme in light and dark', async ({ page }) => {
+    await openDemo(page, 'chart-cartesian');
+    // Move a rendered Texuli figure out of charts-ui's ChartRoot: nothing but the
+    // theme on the document root now feeds its --tx-chart-N series colors.
+    const figure = page.locator('body > [data-outside-chart-root] figure');
+    await page.evaluate(() => {
+      const root = [...document.querySelectorAll('[data-py-chart]')].find((el) =>
+        el.textContent?.includes('Revenue by region')
+      );
+      const fig = root?.querySelector('figure');
+      if (!fig) throw new Error('no chart figure');
+      const host = document.createElement('div');
+      host.setAttribute('data-outside-chart-root', '');
+      host.append(fig);
+      document.body.append(host);
+    });
+    const bar = figure.locator('svg rect[data-series]').first();
+    const state = () =>
+      bar.evaluate((el) => ({
+        fill: getComputedStyle(el).fill,
+        theme: (() => {
+          const probe = document.createElement('i');
+          probe.style.color = 'var(--tx-chart-1)';
+          document.body.append(probe);
+          const color = getComputedStyle(probe).color;
+          probe.remove();
+          return color;
+        })(),
+      }));
+    const light = await state();
+    expect(light.fill).toBe(light.theme);
+    await page.evaluate(() => window.__protoyard?.theme.setOverride({ mode: 'dark' }));
+    await expect(page.locator('html')).toHaveAttribute('data-py-mode', 'dark');
+    await expect.poll(async () => (await state()).fill).not.toBe(light.fill);
+    const dark = await state();
+    expect(dark.fill).toBe(dark.theme);
+  });
+
   test('reduced motion removes chart transitions', async ({ page }) => {
     await openDemo(page, 'chart-cartesian');
     await page.evaluate(() => window.__protoyard?.theme.setOverride({ reducedMotion: true }));
     // The prototype's reduced-motion toggle (Texuli charts mark only the OS preference
-    // with data-reduced-motion on the plot; reported as a Texuli gap).
+    // with data-reduced-motion on the plot, Texuli gap G98).
     await expect(page.locator('html')).toHaveAttribute('data-py-motion', 'reduce');
     // Every animated part of the charts: marks, the hover dot and the active ring.
     const parts = page.locator(

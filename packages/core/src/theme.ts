@@ -316,6 +316,14 @@ export function defineTheme(theme: ThemeInput): Theme {
   return ThemeSchema.parse(theme);
 }
 
+/**
+ * A palette token as its `--tx-*` custom property, in Texuli's canonical
+ * spelling: camelCase and letter-digit boundaries become hyphens
+ * (`primaryForeground` → `--tx-primary-foreground`, `chart1` → `--tx-chart-1`).
+ */
 export function tokenToCssVar(token: string): string {
-  return `--tx-${token.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}`;
+  return `--tx-${token
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/([a-z])([0-9])/g, '$1-$2')
+    .toLowerCase()}`;
 }

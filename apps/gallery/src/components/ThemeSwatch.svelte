@@ -118,12 +118,12 @@ const darkHref = $derived(previewUrl ? withThemeParam(previewUrl, theme.id, 'dar
       </span>
       <span
         class="inline-flex size-3 rounded-full"
-        style="background: var(--tx-chart1);"
+        style="background: var(--tx-chart-1);"
         aria-hidden="true"
       ></span>
       <span
         class="inline-flex size-3 rounded-full"
-        style="background: var(--tx-chart2);"
+        style="background: var(--tx-chart-2);"
         aria-hidden="true"
       ></span>
       <span

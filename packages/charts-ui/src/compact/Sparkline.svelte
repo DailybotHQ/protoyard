@@ -1,7 +1,6 @@
 <script lang="ts">
 /** Adapter: Protoyard Sparkline → Texuli Sparkline (showLast off for KPI tiles). */
 import { type ChartFormatSpec, Sparkline as TexuliSparkline } from '@texuli/charts/sparkline-lite';
-import { TEXULI_CHART_TOKENS } from '../compat/theme-tokens.ts';
 import { trendLabel } from './trend.ts';
 
 type Props = {
@@ -42,7 +41,7 @@ const accessible = $derived(label ?? trendLabel(series, period, format));
   role="img" SVG. Hiding the wrapper while the SVG stays focusable fails
   axe aria-hidden-focus (WCAG). The sparkline carries its own accessible name.
 -->
-<div data-py-chart="" data-py-sparkline="" style={TEXULI_CHART_TOKENS}>
+<div data-py-chart="" data-py-sparkline="">
   <TexuliSparkline
     values={series}
     label={accessible}

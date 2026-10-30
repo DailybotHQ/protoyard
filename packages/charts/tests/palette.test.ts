@@ -43,18 +43,18 @@ describe('chart palettes from @texuli/tokens/palette', () => {
     const input = themeToChartInput(BUILTIN_THEMES[0]!.light as Record<string, string>);
     const palette = chartPalette(input, 'light');
     const vars = chartPaletteVariables(palette);
-    expect(vars['--tx-chart1']).toBe(palette.categorical[0]);
-    expect(vars['--tx-seq-1']).toBe(palette.sequential[0]);
-    expect(vars['--tx-div-5']).toBeTruthy();
+    expect(vars['--tx-chart-1']).toBe(palette.categorical[0]);
+    expect(vars['--tx-chart-sequential-1']).toBe(palette.sequential[0]);
+    expect(vars['--tx-chart-diverging-5']).toBeTruthy();
     expect(Object.keys(vars).every((name) => name.startsWith('--tx-'))).toBe(true);
     expect(vars).not.toHaveProperty('--py-chart1');
   });
 
   it('seriesColor and ramp helpers return CSS variables', () => {
-    expect(seriesColor(0)).toBe('var(--tx-chart1)');
-    expect(seriesColor(8)).toBe('var(--tx-chart1)');
-    expect(sequentialColor(0)).toMatch(/^var\(--tx-seq-/);
-    expect(divergingColor(0)).toMatch(/^var\(--tx-div-/);
+    expect(seriesColor(0)).toBe('var(--tx-chart-1)');
+    expect(seriesColor(8)).toBe('var(--tx-chart-1)');
+    expect(sequentialColor(0)).toMatch(/^var\(--tx-chart-sequential-/);
+    expect(divergingColor(0)).toMatch(/^var\(--tx-chart-diverging-/);
   });
 
   it('validateChartTokens returns an array of issues', () => {

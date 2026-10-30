@@ -1,10 +1,12 @@
 import { cleanup, render } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
+import { applyAppearance, BUILTIN_THEMES, clearAppearance } from '../../themes/src/index.ts';
 import { LineChart } from '../src/cartesian/index.ts';
-import { Sparkline } from '../src/compact/index.ts';
-import { TEXULI_CHART_TOKENS } from '../src/compat/theme-tokens.ts';
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  clearAppearance(document.documentElement);
+});
 
 const series = [
   {
@@ -19,17 +21,18 @@ const series = [
 ];
 
 describe('charts-ui on Texuli 0.8', () => {
-  it('maps the theme series colors onto the --tx-chart-N names Texuli charts read', () => {
-    // Protoyard themes write --tx-chart1…8; Texuli charts read --tx-chart-1…8.
-    expect(TEXULI_CHART_TOKENS).toContain('--tx-chart-1:var(--tx-chart1)');
-    expect(TEXULI_CHART_TOKENS).toContain('--tx-chart-8:var(--tx-chart8, var(--tx-chart3))');
+  it('needs no local color map: the theme writes the --tx-chart-N names Texuli charts read', () => {
+    const theme = BUILTIN_THEMES.find((t) => t.id === 'ocean') ?? BUILTIN_THEMES[0];
+    if (!theme) throw new Error('no built-in theme');
+    applyAppearance(document.documentElement, { theme, resolvedMode: 'dark' });
+    const root = document.documentElement.style;
+    expect(root.getPropertyValue('--tx-chart-1')).toBe(theme.dark.chart1);
+    expect(root.getPropertyValue('--tx-chart-5')).toBe(theme.dark.chart5);
+    expect(root.getPropertyValue('--tx-chart1')).toBe('');
     const { container } = render(LineChart, { title: 'Signups', series });
-    const root = container.querySelector<HTMLElement>('[data-py-chart]');
-    expect(root?.style.getPropertyValue('--tx-chart-1').trim()).toBe('var(--tx-chart1)');
-    expect(root?.style.getPropertyValue('--tx-chart-5').trim()).toBe('var(--tx-chart5)');
-    cleanup();
-    const spark = render(Sparkline, { values: [1, 3, 2], label: 'Trend' });
-    const sparkRoot = spark.container.querySelector<HTMLElement>('[data-py-sparkline]');
-    expect(sparkRoot?.style.getPropertyValue('--tx-chart-1').trim()).toBe('var(--tx-chart1)');
+    const chart = container.querySelector<HTMLElement>('[data-py-chart]');
+    expect(chart).not.toBeNull();
+    // Nothing between the theme and Texuli's chart redefines the series colors.
+    expect(chart?.getAttribute('style') ?? '').not.toContain('--tx-chart');
   });
 });
