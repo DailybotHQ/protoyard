@@ -238,7 +238,7 @@ function togglePageSelection(checked: boolean | 'indeterminate'): void {
   DataGrid (`@texuli/data/grid-core`, 0.8) covers table semantics
   (`mode="table"`), click activation, `hideBelow` and the empty query, but
   adopting it would change what consumers get: in table mode a row has no
-  keyboard path of its own (this one is a tab stop named by `rowLabel` that
+  keyboard path of its own (Texuli gap G92; this one is a tab stop named by `rowLabel` that
   opens with Enter or Space), its search reads columns only (no `searchFn`,
   row keys outside the columns or placeholder), its pager is previous/next
   (not numbered pages), loading is a text row (not skeleton rows) and its

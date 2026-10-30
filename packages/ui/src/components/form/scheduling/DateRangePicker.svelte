@@ -35,7 +35,8 @@ import type { IsoWeekday } from './weekdays.ts';
  * the start date's first segment, `aria-describedby`/`aria-invalid` on every
  * segment and `required` on both dates, so it sits inside FormField. It
  * composes the parts rather than the styled `texuli/date` `DateRangePicker`
- * only for the `ui-input` hook on the bordered control (see DatePicker).
+ * only for the `ui-input` hook on the bordered control (see DatePicker; Texuli
+ * gap G89).
  *
  * The bound value only changes to a complete, valid range or to an empty
  * one; any other entry is reported inline (when the fields are left, or at

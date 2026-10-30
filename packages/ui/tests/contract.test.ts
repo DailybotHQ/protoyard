@@ -14,7 +14,7 @@ import ContractHarness from './fixtures/ContractHarness.svelte';
  *
  * Every component export needs a row below, so a new export cannot skip the
  * contract. A row with `texuliGap` names a Texuli component that does not
- * take the contract yet: its test is expected to fail until Texuli ships the
+ * take the contract yet (Texuli gap G93): its test is expected to fail until Texuli ships the
  * fix, and then it must be removed.
  */
 
@@ -187,7 +187,7 @@ describe('@protoyard/ui component contract', () => {
   for (const [name, component] of components) {
     const row = CASES[name] ?? {};
     const test = row.texuliGap ? it.fails : it;
-    const suffix = row.texuliGap ? ` (Texuli gap: ${row.texuliGap})` : '';
+    const suffix = row.texuliGap ? ` (Texuli gap G93: ${row.texuliGap})` : '';
     test(`${name}: bind:ref names the root, rest attributes and caller handlers land on it${suffix}`, async () => {
       const onclick = vi.fn();
       let ref: unknown = null;

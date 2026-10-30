@@ -92,12 +92,12 @@ standalone Svelte 5 component library, consumed from its published npm packages
   a device screen) and the shared overlay stack (z-order, top-layer dismiss,
   focus return). `Dialog` and `AlertDialog` are Texuli's styled components
   (their only adapter watches the bound `open`, because Texuli's styled
-  dialogs skip `onOpenChange` when they close from inside, a tracked Texuli
-  gap); `CommandPalette` keeps Texuli's command parts on a dialog root with
+  dialogs skip `onOpenChange` when they close from inside, Texuli gap
+  G87); `CommandPalette` keeps Texuli's command parts on a dialog root with
   its own search, because Texuli's palette never shows its "Searching…"
-  status (gap); `DataTable` stays on Texuli's table
+  status (G88); `DataTable` stays on Texuli's table
   parts: `DataGrid`'s `mode="table"` gives a row no keyboard path, and its
-  search, pager, loading rows and sort shape differ from this API; and the
+  search, pager, loading rows and sort shape differ from this API (G92); and the
   styled sheet header, body and footer parts (`overlay/sheet-parts.css`).
   Also thin adapters: `Input` (Texuli's `Input`, numbers for number inputs),
   `TextCounter`, `Spinner`, `StatCard` (`Stat`), `EmptyState`, `StarRating`
@@ -112,7 +112,7 @@ standalone Svelte 5 component library, consumed from its published npm packages
   `DateRangePicker` and `TimeInput` (Texuli's date-picker and time-field
   parts with Texuli's field classes, so they fit `FormField`; the styled
   `texuli/date` components give no hook on the bordered control and show no
-  invalid state from a Field, both tracked Texuli gaps), `Kanban`
+  invalid state from a Field, Texuli gaps G89 and G90), `Kanban`
   (`@texuli/data/board`), and `BottomNav`, `MobileHeader` and
   `MobileAppShell` (`texuli/layouts/mobile`). `Toaster` is Texuli's
   `texuli/toast` Toaster (same props); while a shell frame sets the overlay
@@ -232,7 +232,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
   open content) and spreads the remaining attributes onto that root, or onto the focusable control
   inside it for form controls. Your handlers run there first and never replace the component's own
   (`preventDefault()` skips its default where it has one). `tests/contract.test.ts` checks every
-  component export. Still missing, as open Texuli gaps: `ref` on `AppShell`, `SplitView`,
+  component export. Still missing, as open Texuli gap G93: `ref` on `AppShell`, `SplitView`,
   `ChatThread`, `TypingIndicator`, `MobileAppShell`, `Kanban` and `Composer`, and rest attributes
   on `MessageList`, `MobileAppShell`, `Kanban` and `Composer`.
 - Two-way state uses `bind:`: `bind:value`, `bind:open`, `bind:checked`, `bind:page`,

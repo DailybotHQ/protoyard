@@ -1,5 +1,6 @@
 <script lang="ts">
 import { AdaptiveOverlay, Button, Spinner } from '@protoyard/ui';
+import { untrack } from 'svelte';
 import { chromeMessages } from '../messages.ts';
 import type { RouteMatch, Router } from './hash-router.svelte.ts';
 import { routeOverlay } from './hash-router.svelte.ts';
@@ -18,12 +19,22 @@ let {
   rest = {},
 }: { router: Router; match: RouteMatch; rest?: Record<string, unknown> } = $props();
 
+// The Router drops this outlet when the overlay route closes, but the overlay's
+// exit motion keeps it on screen a moment longer (Texuli keeps closing
+// overlays mounted until their exit ends): keep rendering the last route
+// instead of reading a match that is already gone.
+let lastMatch: RouteMatch = untrack(() => match);
+const current = $derived.by(() => {
+  if (match) lastMatch = match;
+  return match ?? lastMatch;
+});
+
 let attempt = $state(0);
-const options = $derived(routeOverlay(match.route) ?? {});
-const title = $derived(match.route?.title ?? match.route?.name ?? 'Details');
+const options = $derived(routeOverlay(current.route) ?? {});
+const title = $derived(current.route?.title ?? current.route?.name ?? 'Details');
 const page = $derived.by(() => {
   void attempt;
-  return match.route ? router.resolve(match.route) : null;
+  return current.route ? router.resolve(current.route) : null;
 });
 const close = () => router.closeOverlay();
 
@@ -44,7 +55,7 @@ $effect(() => {
 const messages = chromeMessages().router;
 
 function retry() {
-  if (match.route) router.invalidate(match.route);
+  if (current.route) router.invalidate(current.route);
   attempt += 1;
 }
 </script>
@@ -58,12 +69,12 @@ function retry() {
     if (!next) close();
   }}
 >
-  <div data-py-overlay-route={match.route?.path ?? ''}>
+  <div data-py-overlay-route={current.route?.path ?? ''}>
     {#if page instanceof Promise}
       {#await page}
         <p class="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground" role="status"><Spinner class="size-4" />{messages.loadingScreen}…</p>
       {:then Page}
-        <Page params={match.params} query={match.query} path={match.path} {close} {...rest} />
+        <Page params={current.params} query={current.query} path={current.path} {close} {...rest} />
       {:catch error}
         <div class="grid justify-items-start gap-2 py-4" role="alert">
           <p class="font-medium">{messages.loadFailedTitle}</p>
@@ -73,7 +84,7 @@ function retry() {
       {/await}
     {:else if page}
       {@const Page = page}
-      <Page params={match.params} query={match.query} path={match.path} {close} {...rest} />
+      <Page params={current.params} query={current.query} path={current.path} {close} {...rest} />
     {/if}
   </div>
 </AdaptiveOverlay>

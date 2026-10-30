@@ -17,7 +17,7 @@ import { isTimeOfDay, minuteSteps, type TimeFormat, type TimeOfDay } from './tim
  *
  * It composes the primitive rather than the styled `texuli/date` `TimeField`
  * only because that one marks its bordered control invalid from its own
- * `error` text, not from a FormField's `aria-invalid`.
+ * `error` text, not from a FormField's `aria-invalid` (Texuli gap G90).
  *
  * The value is always 24-hour `HH:mm`, or `null` until hour and minute are
  * chosen; an incomplete entry leaves the value as it was. A value off the

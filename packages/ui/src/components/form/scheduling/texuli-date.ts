@@ -53,7 +53,8 @@ export function segmentsEmpty(group: Element | null | undefined): boolean {
  * field group: by its id (FormField's label has one), for `aria-labelledby`,
  * else by its text without the decorative required marker, for `aria-label`.
  * The segments keep their own names (Month, Day, Year), so without this the
- * group would not carry the label at all.
+ * group would not carry the label at all. Texuli's Field keeps its label
+ * context internal (Texuli gap G91), so the label is read from the DOM.
  */
 export function groupLabelFor(
   node: Element | null | undefined,

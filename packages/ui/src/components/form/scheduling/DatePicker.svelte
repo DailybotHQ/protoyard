@@ -25,7 +25,8 @@ import type { IsoWeekday } from './weekdays.ts';
  *
  * It composes the parts rather than the styled `texuli/date` `DatePicker`
  * only because that one takes no class on its bordered control, where the
- * `ui-input` hook (filled and underline input styles) must go.
+ * `ui-input` hook (filled and underline input styles) must go (Texuli gap
+ * G89).
  *
  * Typed dates are checked when the field is left (blur or Enter): an
  * impossible date, one outside `min`/`max`, or one `isDateDisabled` rejects

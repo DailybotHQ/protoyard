@@ -57,7 +57,7 @@ const layer = useOverlayLayer(() => open, { modal: () => true, stack });
 // `onOpenChange` (the value already changed), so a close from inside (Close,
 // Escape, an outside press) never reaches the caller. Watch the bound value
 // instead: `shown` follows the parent, and a change Texuli makes is reported
-// once (Texuli gap: styled dialog onOpenChange on close).
+// once (Texuli gap G87).
 // svelte-ignore state_referenced_locally
 let shown = $state(open);
 $effect.pre(() => {

@@ -92,8 +92,8 @@ function cancel(): void {
 }
 
 // Texuli's AlertDialog binds `open` to its root and then skips its own
-// `onOpenChange`, so a close from inside never reaches the caller (Texuli gap:
-// styled dialog onOpenChange on close). `shown` follows the parent; a close
+// `onOpenChange`, so a close from inside never reaches the caller (Texuli gap
+// G87). `shown` follows the parent; a close
 // Texuli makes is reported here, and Escape (an alert never closes on an
 // outside press) counts as a cancel.
 // svelte-ignore state_referenced_locally

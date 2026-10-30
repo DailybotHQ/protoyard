@@ -167,7 +167,7 @@ onMount(() => {
   device or the top layer. Texuli's own `CommandPalette` (which also takes
   `mode`/`container` now) runs the search itself but never shows its
   "Searching…" status while a search is pending, so this palette keeps its own
-  search and status (Texuli gap: command palette loading status).
+  search and status (Texuli gap G88).
 -->
 <DialogPrimitive.Root
   bind:open

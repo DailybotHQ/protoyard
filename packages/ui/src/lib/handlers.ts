@@ -1,8 +1,8 @@
 /**
  * Caller handlers on an element a component also listens on, with Texuli's
  * uniform-contract rule: the caller's handler runs first and never replaces
- * the component's own. (Texuli keeps its helpers internal, so this package
- * states the same two rules here.)
+ * the component's own. (Texuli keeps its helpers internal, Texuli gap G95,
+ * so this package states the same two rules here.)
  */
 
 type Handler<E extends Event> = ((event: E) => unknown) | null | undefined;

@@ -34,7 +34,7 @@ let {
   The caller's footer renders as is, between the scroll region and the navigation, so it goes
   in the frame's bottom slot. Texuli's own stickyFooter (0.8) hides itself when the snippet
   renders nothing, but still wraps a footer in its padded, bordered strip; callers style
-  their own strip (mobile-banking-demo), which would then show doubled.
+  their own strip (mobile-banking-demo), which would then show doubled (Texuli gap G95).
 -->
 {#snippet bottom()}
   {@render stickyFooter?.()}

@@ -31,7 +31,7 @@ describe('CommandPalette', () => {
 
   it('announces "Searching…" while a search is pending', async () => {
     // Why this palette keeps its own search: Texuli's CommandPalette never shows
-    // its loading status (its CommandRoot gets no onSearch).
+    // its loading status (its CommandRoot gets no onSearch; Texuli gap G88).
     let finish: (items: CommandPaletteItem[]) => void = () => {};
     const search = vi.fn(() => new Promise<CommandPaletteItem[]>((r) => (finish = r)));
     render(CommandPalette, { search, onSelect: vi.fn(), recentItems, debounceMs: 0 });
