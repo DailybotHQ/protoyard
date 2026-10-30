@@ -18,6 +18,8 @@ interface Props {
   files?: DropzoneFile[];
   /** Last batch of rejected files (bindable, cleared on the next successful pick). */
   rejects?: DropzoneReject[];
+  /** Id of the file input, so a `<label for>` or a FormField names the focusable control. */
+  id?: string;
   label?: string;
   description?: string;
   browseLabel?: string;
@@ -45,6 +47,7 @@ let {
   disabled = false,
   files = $bindable<DropzoneFile[]>([]),
   rejects = $bindable<DropzoneReject[]>([]),
+  id,
   label = 'Upload files',
   description,
   browseLabel = 'Browse files',
@@ -156,6 +159,7 @@ function syncRejects(next: FileDropRejection[]): void {
     {maxFiles}
     {multiple}
     {disabled}
+    {...id ? { id } : {}}
     {progress}
     {status}
     {labels}

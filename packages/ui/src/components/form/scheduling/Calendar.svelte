@@ -21,9 +21,10 @@ interface Props {
   /** A range to highlight (range mode). */
   range?: DateRange | null;
   /**
-   * The focused date. Read back as focus moves; on mount, the calendar opens
-   * on `selected` (or the range start, else `today`). Texuli's Calendar takes
-   * no separate starting month.
+   * The focused date (bindable), which sets the month shown: setting it moves
+   * the calendar, and arrows, paging and the month buttons write it back.
+   * When empty, the calendar opens on `selected` (or the range start, else
+   * `today`).
    */
   focusDate?: IsoDate | null;
   /** Marks today; pass the scenario clock's date for a deterministic prototype. */
@@ -93,16 +94,10 @@ function rangePicked(next: DateRange) {
 }
 </script>
 
-<div
-  bind:this={root}
-  class={cn('ui-calendar w-full max-w-[20rem] select-none', className)}
-  onfocusin={(event) => {
-    const date = (event.target as HTMLElement | null)?.dataset?.calendarDate;
-    if (date) focusDate = date;
-  }}
->
+<div bind:this={root} class={cn('ui-calendar w-full max-w-[20rem] select-none', className)}>
   <TexuliCalendar
     value={range ? null : selected}
+    bind:focusedValue={() => focusDate ?? undefined, (next) => (focusDate = next ?? null)}
     {...range ? { range: { start: range.start, end: range.end } } : {}}
     {...locale ? { locale } : {}}
     {...min ? { minValue: min } : {}}

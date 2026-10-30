@@ -6,9 +6,8 @@ import { Icon } from 'texuli/icons';
 import { cn } from '../../../lib/cn.ts';
 import { checkDateText, type DateInputIssue, dateInputMessage, type IsoDate } from './dates.ts';
 import {
-  labelTextFor,
+  groupLabelFor,
   segmentsEmpty,
-  segmentsPartial,
   texuliUnavailable,
   texuliWeekStart,
   typedIsoText,
@@ -18,9 +17,13 @@ import type { IsoWeekday } from './weekdays.ts';
 /**
  * DatePicker — Texuli's date picker (`@texuli/primitives/date-picker`, styled
  * with the `texuli/date` recipes): a segmented date field (month, day, year in
- * the locale's order), a calendar button and a calendar dialog. It composes
- * the parts instead of the styled `DatePicker` so it can sit inside FormField
- * (`id`, `aria-describedby`, `aria-invalid`, no second visible label).
+ * the locale's order), a calendar button and a calendar dialog. `id` lands on
+ * the first segment and `aria-describedby`/`aria-invalid` on every segment, so
+ * it sits inside FormField like any input; the FormField label names the group.
+ *
+ * It composes the parts rather than the styled `texuli/date` `DatePicker`
+ * only because that one takes no class on its bordered control, where the
+ * `ui-input` hook (filled and underline input styles) must go.
  *
  * Typed dates are checked when the field is left (blur or Enter): an
  * impossible date, one outside `min`/`max`, or one `isDateDisabled` rejects
@@ -36,7 +39,7 @@ interface Props {
   today?: IsoDate | null;
   weekStartsOn?: IsoWeekday;
   locale?: string;
-  /** Id of the field group, so a FormField `<label for>` names it. */
+  /** Id of the first date segment, so a `<label for>` or FormField reaches the focusable control. */
   id?: string;
   name?: string;
   /** Kept for compatibility: the segmented field shows no placeholder. */
@@ -93,7 +96,7 @@ let issue = $state<DateInputIssue | null>(null);
 let typed = $state<{ issue: DateInputIssue; text: string } | null>(null);
 let open = $state(false);
 let control = $state<HTMLDivElement | null>(null);
-let labelText = $state<string | undefined>(undefined);
+let fieldLabel = $state<{ id?: string; text?: string }>({});
 
 // An outside change (a reset, a scenario load) replaces the field and clears the issue.
 $effect(() => {
@@ -102,9 +105,9 @@ $effect(() => {
   typed = null;
 });
 
-// A FormField `<label for={id}>` cannot name a group: the group takes its text.
+// The `<label for={id}>` (FormField's) names the first segment; it names the group too.
 $effect(() => {
-  labelText = labelTextFor(control, id);
+  fieldLabel = groupLabelFor(control, id);
 });
 
 const invalid = $derived(
@@ -113,7 +116,7 @@ const invalid = $derived(
 const describedByAll = $derived(
   [describedBy, issue ? errorId : null].filter(Boolean).join(' ') || undefined
 );
-const groupLabel = $derived(ariaLabel ?? labelText ?? 'Date');
+const groupLabel = $derived(ariaLabel ?? fieldLabel.text ?? 'Date');
 
 function set(next: IsoDate | null) {
   issue = null;
@@ -138,13 +141,14 @@ function commit() {
     report(typed.issue, typed.text);
     return;
   }
-  const partial = segmentsPartial(control);
-  // Leaving an untouched field (or opening the calendar) commits nothing.
-  if (draft === value && !partial) return;
-  if (draft === null || partial) {
-    report('format', draft ?? '');
+  // Some segments are filled but Texuli reports no date: a missing segment
+  // or a year under four digits.
+  if (draft === null) {
+    report('format', '');
     return;
   }
+  // Leaving an untouched field (or opening the calendar) commits nothing.
+  if (draft === value) return;
   const result = checkDateText(draft, { min, max, isDateDisabled });
   if (result.issue) report(result.issue, draft);
   else set(result.value);
@@ -189,9 +193,9 @@ function typedInvalid(text: string, reason: DateInvalidReason) {
     <div bind:this={control} class="tx-date__control ui-input">
       <Picker.Field
         class="tx-date__field"
-        {id}
+        inputId={id}
         label={groupLabel}
-        aria-labelledby={labelledBy}
+        aria-labelledby={labelledBy ?? (ariaLabel ? undefined : fieldLabel.id)}
         aria-describedby={describedByAll}
         aria-invalid={invalid || undefined}
         {...name ? { name } : {}}

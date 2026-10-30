@@ -31,10 +31,7 @@ interface Props {
   multiple?: boolean;
   required?: boolean;
   disabled?: boolean;
-  /**
-   * @deprecated Texuli's FileUpload sets its own input id (Texuli gap N16);
-   * this value names the component's wrapper instead.
-   */
+  /** Id of the file input, so a `<label for>` or a FormField names the focusable control. */
   inputId?: string;
   clearLabel?: string;
   /** The browse control's text. */
@@ -76,7 +73,6 @@ onDestroy(() => {
 </script>
 
 <div
-  id={inputId}
   class={cx('grid gap-2', className)}
   data-image-input
   data-disabled={disabled ? 'true' : undefined}
@@ -110,6 +106,7 @@ onDestroy(() => {
     {multiple}
     {required}
     {disabled}
+    {...inputId ? { inputId } : {}}
     variant="compact"
     showPreviews={false}
     {labels}

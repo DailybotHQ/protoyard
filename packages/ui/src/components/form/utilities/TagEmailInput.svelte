@@ -28,7 +28,7 @@ interface Props {
   invalidMessage?: string;
   duplicateMessage?: string;
   disabled?: boolean;
-  /** Read-only behaves as disabled: Texuli's TagsInput has no read-only state (gap N20). */
+  /** The addresses stay visible and focusable, but none can be added or removed. */
   readonly?: boolean;
   required?: boolean;
   'aria-describedby'?: string;
@@ -62,6 +62,13 @@ let {
   onDraftChange,
   onDuplicate,
 }: Props = $props();
+
+/**
+ * Whitespace, comma and semicolon: typing one of them adds the draft like
+ * Enter (Texuli's TagsInput treats a one-character RegExp match as a
+ * delimiter key), and pasted text splits on any run of them.
+ */
+const DELIMITER = /[\s,;]+/;
 
 const uid = $props.id();
 const fieldId = $derived(id ?? `tag-email-${uid}`);
@@ -99,30 +106,13 @@ function handleDraft(text: string): void {
   onDraftChange?.(text);
 }
 
-/**
- * Space, comma and semicolon add the typed address like Enter. Texuli's
- * TagsInput takes one delimiter key (gap N21), so they become Enter here,
- * before the input sees them; the RegExp delimiter still splits pasted text.
- */
-function handleKeydown(event: KeyboardEvent): void {
-  if (![' ', ',', ';'].includes(event.key)) return;
-  const field = event.target;
-  if (!(field instanceof HTMLInputElement) || !field.matches('[data-tx-tags-field]')) return;
-  event.preventDefault();
-  event.stopPropagation();
-  if (!field.value.trim()) return;
-  field.dispatchEvent(
-    new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
-  );
-}
-
 function handleValue(next: string[]): void {
   localError = '';
   onValueChange?.(next);
 }
 </script>
 
-<div class={cx('grid gap-1.5', className)} onkeydowncapture={handleKeydown}>
+<div class={cx('grid gap-1.5', className)}>
   {#if label}
     <span id={labelId} class={labelClass()}>{label}</span>
   {/if}
@@ -132,8 +122,9 @@ function handleValue(next: string[]): void {
     id={fieldId}
     {name}
     {required}
-    disabled={disabled || readonly}
-    delimiter={/[\s,;]+/}
+    {disabled}
+    {readonly}
+    delimiter={DELIMITER}
     addOnBlur
     {validate}
     label={label ? `${label}: added` : 'Added tags'}

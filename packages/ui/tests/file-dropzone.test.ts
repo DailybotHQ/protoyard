@@ -230,3 +230,21 @@ describe('FileDropzone', () => {
     expect(screen.queryByText('nope.txt')).toBeNull();
   });
 });
+
+describe('FileDropzone input id (Texuli G56)', () => {
+  it('puts id on the file input, so a <label for> or FormField names the focusable control', () => {
+    render(FileDropzone, { id: 'contract-files', label: 'Contracts' });
+    const input = getInput();
+    expect(input.id).toBe('contract-files');
+    expect(input.type).toBe('file');
+    const label = document.createElement('label');
+    label.htmlFor = 'contract-files';
+    label.textContent = 'Signed contracts';
+    document.body.append(label);
+    try {
+      expect(screen.getByLabelText('Signed contracts', { selector: 'input' })).toBe(input);
+    } finally {
+      label.remove();
+    }
+  });
+});
