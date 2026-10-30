@@ -79,7 +79,6 @@ const restore = async (version: number) => {
             variant="ghost"
             class="flex w-full flex-col items-stretch justify-start whitespace-normal rounded-lg border p-3 text-left text-sm transition-colors hover:bg-muted/50 {shown?.id === v.id ? 'border-primary bg-muted/40' : 'border-border'}"
             aria-pressed={shown?.id === v.id}
-            aria-label="Version {v.version}, {v.note}, by {names.get(v.authorId) ?? v.authorId}"
             onclick={() => (picked = v.version)}
           >
             <span class="flex items-center justify-between gap-2">
