@@ -298,5 +298,10 @@
     "id": "G98",
     "status": "open",
     "summary": "@texuli/charts/interaction InteractivePlot reads only the OS reduced-motion preference, not MotionProvider"
+  },
+  {
+    "id": "G99",
+    "status": "open",
+    "summary": "@texuli/primitives/toast contained Viewport reads getComputedStyle(container) synchronously on mount (ensurePositioned), forcing a layout during the first render"
   }
 ]
