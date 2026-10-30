@@ -51,7 +51,7 @@
     "@protoyard/pages": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "@texuli/blocks": "0.8.0",
+    "@texuli/blocks": "0.8.1",
     "texuli": "0.8.0"
   },
   "devDependencies": {

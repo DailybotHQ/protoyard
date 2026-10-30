@@ -30,7 +30,7 @@ export const LAYOUT_BUNDLE_BUDGETS = {
    * next to Protoyard's catalog): measured 3,498 B, cap 3,600 B
    * (T-adopt-layouts; docs/PERFORMANCE.md).
    */
-  // Texuli 0.8.0 measured 3,710 B (PLAN_008, G86); + 2.5 %.
+  // Texuli 0.8.0 measured 3,710 B (PLAN_008: Texuli 0.8 layouts); + 2.5 %.
   hostInitialDelta: 3_800,
 };
 

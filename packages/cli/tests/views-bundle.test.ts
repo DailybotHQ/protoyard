@@ -41,13 +41,15 @@ type View = (typeof VIEWS)[number];
  * Exception, PLAN_008 (2026-10-30): npm Texuli 0.8.0 grew the views over the
  * shell (board 16,471, calendar 16,940, grid 22,792, map 8,026, editor 9,669,
  * timeline 13,056). Board, calendar, grid and timeline are raised to measured
- * + 5 % while Texuli gap G86 (view size regression since 0.5.0) is open; lower
- * them again when it is fixed.
+ * + 5 %. G86 (eager list motion) is fixed in @texuli/data 0.8.1: board 16,065
+ * and grid 22,562, lowered to measured + 5 %. The rest of the growth since
+ * 0.5.0 is Texuli features (row activation, static table mode, column
+ * descriptions and header snippets, the shared drag engine, localized labels).
  */
 export const CEILINGS: Record<View, number> = {
-  board: 17_295,
+  board: 16_869,
   calendar: 17_787,
-  grid: 23_932,
+  grid: 23_691,
   map: 8_470,
   // Measured 9,484 gzip over shell on Texuli 0.4.0 (MarkdownEditor on Texuli Textarea); +5 %.
   editor: 9_958,

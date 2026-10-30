@@ -236,8 +236,8 @@
   },
   {
     "id": "G86",
-    "status": "open",
-    "summary": "Texuli 0.8.0 grew @texuli/data views over the shell (board +16.5 %, grid +13.3 %, timeline +9 %, calendar +6.9 %) and some CSS (decks first screen, player pages, LayoutHost delta); Protoyard ceilings raised to measured + 5 %/1 % until fixed"
+    "status": "fixed",
+    "summary": "Texuli 0.8.0 loaded the list-motion runtime eagerly in Board, DataGrid and Dashboard; fixed in @texuli/data 0.8.1 (lazy on first animated change). Remaining 0.5\u21920.8 growth is features and is kept"
   },
   {
     "id": "G87",

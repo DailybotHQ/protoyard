@@ -5,7 +5,7 @@ published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
 Protoyard. Every Texuli dependency is pinned to its npm `latest` in this
-workspace (`0.8.0`; `@texuli/slides` `0.8.1`).
+workspace (`0.8.0` or `0.8.1`; `@texuli/slides` `0.8.2`).
 
 ## How it is linked
 
@@ -41,8 +41,8 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-`texuli` and all listed `@texuli/*` packages are `0.8.0`, except
-`@texuli/slides` at `0.8.1`. Texuli pins its own internal dependencies
+`texuli` and most `@texuli/*` packages are `0.8.0`; `@texuli/data`, `blocks`,
+`catalog` and `astro` are `0.8.1` and `@texuli/slides` is `0.8.2`. Texuli pins its own internal dependencies
 exactly, so the family moves together. The root manifest
 also pins the published Texuli package family used by optional and future
 workspace surfaces. `docs/PACKAGES.md` lists the package graph and direct

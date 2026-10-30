@@ -62,7 +62,7 @@ afterAll(async () => {
  * without it.
  */
 const INITIAL_JS_GZIP_CAP = 111_657;
-// Texuli 0.8.0 (motion tokens) measured 8,952 B; + 1 % (PLAN_008, G86).
+// Texuli 0.8.0 (motion tokens) measured 8,952 B; + 1 % (PLAN_008: motion tokens and focus/forced-colors rules, kept by Texuli).
 const INITIAL_CSS_GZIP_CAP = 9_042;
 const ALL_CSS_GZIP_CAP = 83_381;
 

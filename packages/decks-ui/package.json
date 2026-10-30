@@ -48,7 +48,7 @@
     "@protoyard/blocks-ui": "workspace:*",
     "@protoyard/decks": "workspace:*",
     "@texuli/deck": "0.8.0",
-    "@texuli/slides": "0.8.1",
+    "@texuli/slides": "0.8.2",
     "texuli": "0.8.0"
   },
   "devDependencies": {

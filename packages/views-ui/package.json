@@ -98,7 +98,7 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
-    "@texuli/data": "0.8.0",
+    "@texuli/data": "0.8.1",
     "@texuli/drag": "0.8.0",
     "@texuli/editor": "0.8.0",
     "@texuli/primitives": "0.8.0",
