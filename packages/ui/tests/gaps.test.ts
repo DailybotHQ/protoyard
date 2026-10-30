@@ -157,6 +157,22 @@ describe('Kanban drag and drop', () => {
     expect(within(column('Done')).queryByText('Plan sprint')).toBeNull();
   });
 
+  // Texuli's column-only Board (no getRank, G69): a moved card settles in the
+  // order of `items`, the same order a reload shows, with no local rank map.
+  it('orders a moved card by the items order once the host saves its column', async () => {
+    const onMoved = vi.fn();
+    render(KanbanHarness, { onMoved });
+    await keyboardMove('Ship kit', ['ArrowLeft']);
+    await waitFor(() => expect(onMoved).toHaveBeenCalledWith('t2', 'todo'));
+    await waitFor(() =>
+      expect(
+        within(column('To do'))
+          .getAllByRole('listitem')
+          .map((item) => item.textContent?.match(/Write brief|Ship kit|Plan sprint/)?.[0])
+      ).toEqual(['Write brief', 'Ship kit', 'Plan sprint'])
+    );
+  });
+
   it('puts the card back and announces it when onMove throws', async () => {
     render(KanbanHarness, { fail: true });
     await keyboardMove('Write brief', ['ArrowRight']);

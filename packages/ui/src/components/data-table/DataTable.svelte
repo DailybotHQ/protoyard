@@ -227,11 +227,14 @@ function togglePageSelection(checked: boolean | 'indeterminate'): void {
 
 <!--
   Texuli's table parts (`texuli/table`), Input, Button and Checkbox. Texuli's
-  DataGrid (`@texuli/data/grid-core`) now has paging, row classes and the
-  toolbar, filter and bulk-action snippets, but it is an interactive ARIA grid
-  whose rows open only with Enter: this read-only list keeps table semantics
-  and opens a row on click, hides columns below a breakpoint (`hideBelow`) and
-  hands the empty state its query (Texuli gap N15).
+  DataGrid (`@texuli/data/grid-core`, 0.8) covers table semantics
+  (`mode="table"`), click activation, `hideBelow` and the empty query, but
+  adopting it would change what consumers get: in table mode a row has no
+  keyboard path of its own (this one is a tab stop named by `rowLabel` that
+  opens with Enter or Space), its search reads columns only (no `searchFn`,
+  row keys outside the columns or placeholder), its pager is previous/next
+  (not numbered pages), loading is a text row (not skeleton rows) and its
+  sort is a multi-key list (not `{ key, direction } | null`).
 -->
 <div class={cx('flex flex-col gap-3', className)}>
   {#if searchable || filters || toolbar}

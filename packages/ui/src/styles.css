@@ -167,31 +167,3 @@
     var(--py-fixed-right-edge, 0px)
   );
 }
-
-/*
- * Texuli's Avatar keeps its <img> in the DOM with `hidden` until it loads, and
- * relies on its own `display: block` to keep it rendered. Tailwind's preflight
- * hides `[hidden]` with `!important` in `@layer base`, and a lazy image that is
- * not rendered never loads, so every avatar stayed on its initials. In the same
- * layer the more specific selector wins: render the loading image invisibly
- * over the initials until Texuli marks it loaded.
- */
-@layer base {
-  .tx-avatar [data-tx-avatar-image][hidden] {
-    display: block !important;
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    pointer-events: none;
-  }
-}
-
-/*
- * Texuli's Board positions its visually hidden column labels absolutely with
- * no positioned ancestor inside its horizontal scroller, so they escape its
- * clipping and widen the page on phones (Texuli gap N31). The scroller is
- * their containing block.
- */
-.tx-board__scroller {
-  position: relative;
-}

@@ -90,32 +90,37 @@ standalone Svelte 5 component library, consumed from its published npm packages
   Texuli's styled `Sheet`, `Drawer` and `DetailPanel` content (`texuli/sheet`);
   every overlay adds the framed-device container (it opens `contained` inside
   a device screen) and the shared overlay stack (z-order, top-layer dismiss,
-  focus return). What stays in an adapter is what Texuli 0.5.0 cannot take,
-  each tracked as a Texuli gap: the styled `Dialog`, `AlertDialog` and
-  `CommandPalette` take no `mode`/`container` (N13), so those three keep the
-  dialog primitive with Texuli's classes; `DataTable` keeps table semantics,
-  row clicks and `hideBelow`, which Texuli's interactive `DataGrid` has not
-  (N15); and the styled sheet header, body and footer parts
-  (`overlay/sheet-parts.css`).
+  focus return). `Dialog` and `AlertDialog` are Texuli's styled components
+  (their only adapter watches the bound `open`, because Texuli's styled
+  dialogs skip `onOpenChange` when they close from inside, a tracked Texuli
+  gap); `CommandPalette` keeps Texuli's command parts on a dialog root with
+  its own search, because Texuli's palette never shows its "Searching…"
+  status (gap); `DataTable` stays on Texuli's table
+  parts: `DataGrid`'s `mode="table"` gives a row no keyboard path, and its
+  search, pager, loading rows and sort shape differ from this API; and the
+  styled sheet header, body and footer parts (`overlay/sheet-parts.css`).
   Also thin adapters: `Input` (Texuli's `Input`, numbers for number inputs),
   `TextCounter`, `Spinner`, `StatCard` (`Stat`), `EmptyState`, `StarRating`
   (`Rating`), `NumberStepper` (`NumberField`), `OtpInput` (`PinInput`),
   `ChipGroup` and `WeekdayPicker` (`ToggleGroup`, which submits one entry per
   day), `Composer` (`@texuli/chat`), `StatusChip` and the honesty tags
   (`Badge`), `Avatar` (Texuli's `Avatar`, with `srcset`), `TagEmailInput`
-  (`TagsInput`; Space and `;` also add a tag, gap N21), `ImageInput`
+  (`TagsInput`; Space, `,` and `;` also add a tag), `ImageInput`
   (`FileUpload`, with this package's raster-only previews), `PageGrid`
-  (`CardGrid` with `maxColumns`), `Calendar` (`texuli/date`), `DatePicker`,
+  (`CardGrid` with `maxColumns` and the caller's `gap`), `Calendar`
+  (`texuli/date`), `DatePicker`,
   `DateRangePicker` and `TimeInput` (Texuli's date-picker and time-field
-  parts with Texuli's field classes, so they fit `FormField`), `Kanban`
+  parts with Texuli's field classes, so they fit `FormField`; the styled
+  `texuli/date` components give no hook on the bordered control and show no
+  invalid state from a Field, both tracked Texuli gaps), `Kanban`
   (`@texuli/data/board`), and `BottomNav`, `MobileHeader` and
   `MobileAppShell` (`texuli/layouts/mobile`). `Toaster` is Texuli's
-  `texuli/toast` Toaster (same props) that leaves the page's top layer while a
-  shell frame sets the overlay portal target, so toasts stay inside the framed
-  screen (Texuli gap N32). `UndoToaster` draws its toasts
-  with Texuli's `Button`, `IconButton` and `Icon`; its undo store stays
-  Protoyard's because Texuli's toast closes after a failed action, where an
-  undo must stay open to retry (N17).
+  `texuli/toast` Toaster (same props); while a shell frame sets the overlay
+  portal target it renders `contained` in the framed screen. `UndoToaster`
+  draws its toasts with Texuli's `Button`, `IconButton` and `Icon`; its undo
+  store stays Protoyard's for the undo pattern Texuli's toast does not carry:
+  a countdown bar, F6 to reach Undo from a modal, a "Retry" label after a
+  failed undo, at most three pending undos and `replaced`/`evicted` settles.
 - **Composed of Texuli parts:** `EmojiPicker` (Button, Input, popover surface,
   form bridge), `PasswordStrengthMeter` (a meter around Texuli's `Progress`),
   `Header` (Texuli's `IconButton`), `BrowserChrome` and `WindowChrome` (device
@@ -182,7 +187,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `DropdownMenu` | `items: (action \| { type: 'separator' } \| { type: 'label' })[]` with `label`, `icon`, `onSelect`, `destructive`, `disabled`; `trigger` |
 | `Popover` | `bind:open`, `trigger`, `side`, `align`, children |
 | `Tooltip` | `content` (string or snippet), `children` is the trigger, `side`, `delayDuration` |
-| `Tabs` | `items: { value, label, icon?, badge?, disabled? }[]`, `bind:value`, `content(item)` snippet, `variant`, `label` |
+| `Tabs` | `items: { value, label, icon?, badge?, badgeLabel?, disabled? }[]` (the badge, or `badgeLabel`, is part of the tab's name), `bind:value`, `content(item)` snippet, `variant`, `label` |
 | `Carousel` | `items: { id, label }[]`, `bind:index`, `label`, `children(item, index)` snippet, `showControls`, `showDots`, `loop`, `swipeThreshold`; region with `aria-roledescription="carousel"`, arrow keys, swipe, reduced motion |
 | `Accordion` | `items: { value, title, content?, disabled? }[]`, `type` single·multiple, `bind:value`, `content(item)` snippet, `headingLevel` |
 | `Toaster` / `toast` | see *Toasts* below |
@@ -193,7 +198,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `SimulatedTag` / `ProposalTag` | Honesty labels (default "Simulated" / "Proposal under review"); always a word, never color alone; optional `title` |
 | `StatusChip` | Required `label` word, `tone` neutral·success·warning·error·info·brand, optional `icon` |
 | `Badge` | `variant` default·secondary·outline·success·warning·destructive·info |
-| `Avatar` | `name` (initials + deterministic color), `src?`, `srcset?`, `size` xs·sm·md·lg, `decorative`. The image is lazy, async-decoded and fixed-size; an unsafe `src` (any scheme but https, `//host`) or a load error shows the initials. Persona faces: `<Avatar name={p.name} {...avatarImage(p.avatar)} />` (`avatarImage` from `@protoyard/renderer-svelte`) |
+| `Avatar` | `name` (initials + deterministic color), `src?`, `srcset?`, `size` xs·sm·md·lg, `decorative`. The image is lazy, async-decoded and fixed-size; an unsafe `src` (any scheme but https, `//host`) or a load error shows the initials (and sets `data-avatar="initials"`); a loading image is hidden by style, never `[hidden]`. Persona faces: `<Avatar name={p.name} {...avatarImage(p.avatar)} />` (`avatarImage` from `@protoyard/renderer-svelte`) |
 | `ActorRow` | `actor: { name, kind: 'person'·'agent', role?, avatarUrl?, avatarSrcset? }`, optional `handledBy` with the same shape, `class`. Displays an accessible identity, a visible Person or Agent · simulated label, and an optional “Handled by …” badge. Resolve fictional avatar ids with `avatarImage()` from `@protoyard/renderer-svelte` before passing the image fields. |
 | `Card` + parts | `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` |
 | `Separator` / `Kbd` | `orientation` / children |
@@ -201,10 +206,10 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `DataTable` | `columns: { key, header, cell?, accessor?, sortable?, align?, hideBelow? }[]`, `rows`, `getRowId`, `bind:sort`, `bind:search`, `searchKeys`/`searchFn`, `pageSize` (0 = off), `bind:page`, `onRowClick` + `rowLabel`, `loading`, `empty`, `filters`, `toolbar`, `caption` |
 | `FilterBar` | `fields: { id, label, kind: enum·date-range·boolean·relation, options?, multiple?, key?, accessor? }[]`, `bind:values` (plain JSON for the hash query), chips + reset; pair with pure `applyFilters(rows, fields, values)` |
 | `Pagination` | `bind:page`, `pageCount` or `total` + `pageSize` |
-| `Kanban` | `columns: { id, title }[]`, `items`, `getColumn`, `getItemId`, `getItemLabel`, `onMove(item, columnId)` (async ok; a throw puts the card back), `canMove`, `card` snippet, `columnFooter`, `headingLevel`; Texuli's `Board`: pointer drag, a keyboard drag handle (Space, arrows, Space) and a "Move to…" menu per card. Moves go between columns only |
+| `Kanban` | `columns: { id, title, description? }[]` (the description sits in the column header and describes its list), `items`, `getColumn`, `getItemId`, `getItemLabel`, `onMove(item, columnId)` (async ok; a throw puts the card back), `canMove`, `card` snippet, `columnFooter`, `headingLevel`; Texuli's `Board`: pointer drag, a keyboard drag handle (Space, arrows, Space) and a "Move to…" menu per card. Moves go between columns only; cards keep the order of `items` |
 | `AppShell` | `sidebar`, `header`, `bottomNav`, children, `bind:sidebarOpen` (mobile drawer, auto-closes at `lg`), `sidebarClass`, `mainClass`, `mainId`, `mainElement` (`div` when nested in another `<main>`), skip link, plus Texuli's `commandBar` and `notifications` slots. It is Texuli's shell; it sizes from `--tx-app-height`, which `styles.css` maps to the frame's `--py-app-height`, so framed shells match the device screen |
 | `LayoutHost` | `layout: LayoutId`, routed screen snippet, `nav` (NavModel), `path`, `options`, `storageKey`, `aside` snippet, `class`; measures its own container, applies the core layout fallback below its breakpoint, and lazy-loads the registered module with a skeleton while loading. Layout modules call `mountScreen(target)` to place the stable routed-screen outlet without remounting its local state. Unregistered layouts leave the screen in the host's default content frame. |
-| `MobileAppShell` | Fixed `h-app` flex column with optional `header`, one focusable scrolling `<main>`, optional `stickyFooter`, and an in-flow `bottomNav` snippet. Compose the nav with `<BottomNav fixed={false}>` so it remains visible below the scroll region in any frame. Resets main scroll on hash navigation. |
+| `MobileAppShell` | Fixed `h-app` flex column with optional `header`, one focusable scrolling `<main>`, optional `stickyFooter` (rendered as is, with no strip of its own), and an in-flow `bottomNav` snippet. Compose the nav with `<BottomNav fixed={false}>` so it remains visible below the scroll region in any frame. Resets main scroll on hash navigation. |
 | `Sidebar` | `items` or `sections: { label?, items: { label, href, icon?, badge?, active? }[] }[]`, `bind:collapsed`, `header`/`footer({ collapsed })` |
 | `Header` | `title`, `titleAs` (default `h1`; use `p` when the page has its own `h1`), `description`, `leading`, `actions`, `onMenuClick` (defaults to the AppShell drawer), `sticky` |
 | `Breadcrumb` | `items: { label, href? }[]` |

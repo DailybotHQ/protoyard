@@ -113,6 +113,23 @@ describe('the selected item is the tab stop (APG radio group and tabs)', () => {
     expect(screen.getByRole('tab', { name: 'Activity' }).tabIndex).toBe(0);
     expect(screen.getByRole('tab', { name: 'Overview' }).tabIndex).toBe(-1);
   });
+
+  // Texuli 0.6 (G54): a tab's badge is part of its accessible name, or
+  // `badgeLabel` names it; the visible badge stays hidden from the name twice.
+  it('names a tab with its badge, or with badgeLabel', async () => {
+    render(Tabs, {
+      label: 'Sections',
+      items: [
+        { value: 'members', label: 'Members', badge: 12 },
+        { value: 'inbox', label: 'Inbox', badge: 3, badgeLabel: '3 unread' },
+        { value: 'settings', label: 'Settings' },
+      ],
+    });
+    await tick();
+    expect(screen.getByRole('tab', { name: 'Members 12' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Inbox 3 unread' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Settings' })).toBeTruthy();
+  });
 });
 
 describe('Separator and Progress on Texuli', () => {
