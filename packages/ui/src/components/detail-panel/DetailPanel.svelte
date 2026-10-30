@@ -8,7 +8,6 @@ import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import { overlayDismissHandler } from '../overlay/dismiss.ts';
 import { type OverlayStack, overlayStack } from '../overlay/overlay-stack.ts';
-import { installPopoverOrder } from '../overlay/popover-order.ts';
 import { useOverlayLayer } from '../overlay/use-overlay-layer.svelte.ts';
 
 type Props = Omit<ComponentProps<typeof Panel.Content>, 'children' | 'title'> & {
@@ -46,8 +45,6 @@ let {
 }: Props = $props();
 
 const portal = useOverlayPortalTarget();
-// Popovers opened inside the overlay stay above Texuli's dialog backdrop (gap N30).
-installPopoverOrder();
 // svelte-ignore state_referenced_locally
 const layer = useOverlayLayer(() => open, { modal: () => true, stack });
 

@@ -15,7 +15,6 @@ import {
 } from 'texuli/command';
 import { cx } from 'texuli/cx';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
-import { installPopoverOrder } from '../overlay/popover-order.ts';
 import type { CommandPaletteItem, CommandPaletteSearch, CommandPaletteSelect } from './types.ts';
 
 interface Props {
@@ -37,8 +36,6 @@ let {
 }: Props = $props();
 
 const portal = useOverlayPortalTarget();
-// Popovers opened inside the overlay stay above Texuli's dialog backdrop (gap N30).
-installPopoverOrder();
 
 let open = $state(false);
 let query = $state('');
@@ -145,12 +142,11 @@ onMount(() => {
 </script>
 
 <!--
-  A thin adapter over Texuli's command palette: the parts and classes of
-  `CommandPalette` from `texuli/command`, on a dialog root that also takes the
-  framed-device `mode`/`container`, which Texuli's palette cannot take (gap
-  N13).
-  Inside a framed device the palette is contained by its screen; otherwise it
-  opens in the top layer.
+  Texuli's command palette parts and classes on a dialog root inside a framed
+  device or the top layer. Texuli's own `CommandPalette` (which also takes
+  `mode`/`container` now) runs the search itself but never shows its
+  "Searching…" status while a search is pending, so this palette keeps its own
+  search and status (Texuli gap: command palette loading status).
 -->
 <DialogPrimitive.Root
   bind:open
