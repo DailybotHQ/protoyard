@@ -291,7 +291,9 @@ test.describe('Review comments on PROTOYARD_REVIEW=1 builds', () => {
     await expect(
       panel.getByRole('button', { name: /Wrong owner on this account.*Orphaned/ })
     ).toBeVisible();
-    await panel.getByLabel('Filter by anchor status').selectOption('orphaned');
+    // The filter is Texuli's Select (a combobox with a listbox), not a native <select>.
+    await panel.getByRole('combobox', { name: 'Filter by anchor status' }).click();
+    await page.getByRole('option', { name: 'Orphaned' }).click();
     await expect(
       panel.getByRole('list', { name: 'Comment threads' }).getByRole('listitem')
     ).toHaveCount(1);

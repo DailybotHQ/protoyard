@@ -16,7 +16,8 @@ test('shows the offline device map and telemetry chart', async ({ page }) => {
   const deviceList = page.getByRole('region', { name: 'Field monitoring devices' });
   await expect(deviceList.getByRole('list')).toBeVisible();
   await expect(page.getByRole('figure', { name: /telemetry/ })).toBeVisible();
-  await expect(page.locator('figure[data-py-chart]')).toBeVisible();
+  // charts-ui's chart root carries data-py-chart; Texuli's <figure> sits inside it.
+  await expect(page.locator('[data-py-chart] figure').first()).toBeVisible();
 });
 
 test('acknowledges an alert and shows its incident state', async ({ page }) => {

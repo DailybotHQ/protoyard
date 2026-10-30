@@ -64,11 +64,11 @@ export const DESIGN_THRESHOLDS = Object.freeze({
 
 /** Theme tokens the theme engine sets on `<html>`; empty ones mean no theme ran. */
 export const REQUIRED_THEME_TOKENS = [
-  '--py-background',
-  '--py-foreground',
-  '--py-primary',
-  '--py-font-sans',
-  '--py-font-heading',
+  '--tx-background',
+  '--tx-foreground',
+  '--tx-primary',
+  '--tx-font-sans',
+  '--tx-font-heading',
 ] as const;
 
 export interface Box {
@@ -154,7 +154,7 @@ export function checkDesignFacts(facts: DesignFacts): DesignIssue[] {
       `Body text uses the browser default font (${facts.bodyFontFamily}): no stylesheet.`
     );
   } else {
-    const families = [facts.tokens['--py-font-sans'], facts.tokens['--py-font-heading']]
+    const families = [facts.tokens['--tx-font-sans'], facts.tokens['--tx-font-heading']]
       .filter((value): value is string => Boolean(value))
       .map(firstFamily);
     if (families.length > 0 && !families.includes(firstFamily(facts.bodyFontFamily))) {
