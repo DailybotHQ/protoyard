@@ -1,6 +1,7 @@
 <script lang="ts">
 import { rotate } from '@protoyard/core';
 import { getRuntime } from '../../context.ts';
+import { frameEnter } from './frame-motion.ts';
 import HomeIndicator from './HomeIndicator.svelte';
 import type { FrameProps } from './registry.ts';
 import StatusBar from './StatusBar.svelte';
@@ -11,6 +12,8 @@ import StatusBar from './StatusBar.svelte';
  * cutout are decorative; the home indicator is a real control (go `#/`).
  */
 let { spec, shell }: FrameProps = $props();
+
+const enterBezel = frameEnter();
 
 const bezel = 12;
 /** Gap between the bezel and the rotate control, which sits outside the device. */
@@ -46,6 +49,7 @@ async function toggleOrientation(): Promise<void> {
     <!-- The bezel is the border ring only: a fill here would paint over the app's screen. -->
     <div
       data-py-frame-decoration
+      {@attach enterBezel}
       class="absolute border-solid border-zinc-800 bg-transparent shadow-[0_0_0_1px_rgb(39_39_42),0_28px_70px_-24px_rgb(0_0_0/0.55)] dark:border-zinc-950 dark:shadow-[0_0_0_1px_rgb(24_24_27),0_28px_70px_-24px_rgb(0_0_0/0.75)]"
       style:inset="-{bezel}px"
       style:border-width="{bezel}px"
@@ -135,10 +139,3 @@ async function toggleOrientation(): Promise<void> {
   </button>
 </div>
 
-<style>
-  @media (prefers-reduced-motion: no-preference) {
-    [data-py-frame-decoration] {
-      animation: py-pop-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-  }
-</style>

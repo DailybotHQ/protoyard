@@ -7,11 +7,13 @@ import type { Attachment } from 'svelte/attachments';
 import type { HTMLAttributes } from 'svelte/elements';
 import { Button, IconButton } from 'texuli/button';
 import { Icon } from 'texuli/icons';
+import { getMotionSettings } from 'texuli/motion';
 import { cn } from '../../lib/cn.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import { UNDO_TOASTER_ATTR } from '../overlay/focus-exempt.ts';
 import { overlayStack } from '../overlay/overlay-stack.ts';
 import { useOverlayTopZIndex } from '../overlay/use-overlay-layer.svelte.ts';
+import { enterToast, preloadToastMotion } from './toast-motion.ts';
 import { undoToast } from './undo.svelte.ts';
 
 interface OwnProps {
@@ -43,6 +45,16 @@ $effect(() => overlayStack.subscribe((size) => (openOverlays = size)));
 const zIndex = $derived(
   Math.max(60, topZ.current, openOverlays > 0 ? OVERLAY_Z_BASE + openOverlays + 1 : 0)
 );
+
+// Read once at init: a MotionProvider above sets the level and reduced motion.
+const motionSettings = getMotionSettings();
+
+/** Each toast enters with Texuli motion on the --tx-motion-* tokens (instant under reduced motion). */
+const enter: Attachment<HTMLElement> = (node) => {
+  const hold = enterToast(node, motionSettings);
+  return () => hold?.cancel();
+};
+$effect(preloadToastMotion);
 
 /** Moves the toaster into the framed device screen while a shell sets one, else to `body`. */
 const portalTo: Attachment<HTMLElement> = (node) => {
@@ -166,7 +178,8 @@ function handleKeydown(event: KeyboardEvent): void {
           <li
             data-undo-id={item.id}
             data-status={item.status}
-            class="pointer-events-auto relative overflow-hidden rounded-lg border border-border bg-elevated text-foreground shadow-float ui-anim-toast"
+            class="pointer-events-auto relative overflow-hidden rounded-lg border border-border bg-elevated text-foreground shadow-float"
+            {@attach enter}
           >
             <div class="flex items-center gap-2 p-3 pr-2">
               <div class="grid min-w-0 flex-1 gap-0.5">
@@ -218,6 +231,13 @@ function handleKeydown(event: KeyboardEvent): void {
 </div>
 
 <style>
+  /*
+   * The countdown is a progress indicator, not decoration: it shows how much of
+   * the 1–60 s undo window is left, and pauses with the toasts. Texuli's motion
+   * caps a run at 1 s (MAX_MOTION_MS), so this one linear bar stays a keyframe
+   * (a reasoned exception in tests/adoption/texuli-exceptions.json). It is hidden
+   * under reduced motion; the hint text carries the window then.
+   */
   .ui-undo-countdown {
     animation-name: ui-undo-countdown;
     animation-timing-function: linear;

@@ -83,5 +83,10 @@
     "path": "templates/plugin-panel/src/app.css",
     "rules": ["py-token"],
     "reason": "Its root sits outside the renderer's layout host, where --tx-app-height is not set, so it reads the renderer-written --py-app-height frame geometry to fit inside device and browser frames; not a semantic design token."
+  },
+  {
+    "path": "packages/ui/src/components/toast/UndoToaster.svelte",
+    "rules": ["local-motion"],
+    "reason": "The undo countdown bar is a progress indicator, not decoration: one linear scaleX keyframe shows how much of the 1–60 s undo window is left and pauses with the toasts (animation-play-state). Texuli's motion caps a run at 1 s (MAX_MOTION_MS) and has no timer primitive. The bar is hidden under prefers-reduced-motion and the prototype's reduced-motion toggle, where the sr-only hint carries the window. The toast entrance itself uses texuli/motion createPresenceMotion."
   }
 ]
