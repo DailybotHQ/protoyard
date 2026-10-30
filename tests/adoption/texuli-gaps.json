@@ -283,5 +283,20 @@
     "id": "G95",
     "status": "open",
     "summary": "Nice to have: MobileAppFrame unstyled stickyFooter; public composeHandlers/chainHandlers"
+  },
+  {
+    "id": "G96",
+    "status": "open",
+    "summary": "@texuli/charts/cartesian CartesianChart: the canvas layer is inset over the whole figure while the plot is capped at 640 px, so canvas marks stretch past the axes"
+  },
+  {
+    "id": "G97",
+    "status": "open",
+    "summary": "@texuli/charts/cartesian has no time x-axis (xKind or formatX): epoch-ms x values are announced and shown raw"
+  },
+  {
+    "id": "G98",
+    "status": "open",
+    "summary": "@texuli/charts/interaction InteractivePlot reads only the OS reduced-motion preference, not MotionProvider"
   }
 ]
