@@ -155,9 +155,13 @@ test.describe('DevTools switching feedback (Lumen Bank, DevTools build)', () => 
     await page.getByLabel(/Full name/).fill('Robin Vale');
     await page.getByLabel(/Bank/).fill('Seabright Mutual');
     await page.getByLabel(/Last 4/).fill('4242');
-    const save = page.getByRole('button', { name: 'Save payee' });
+    // The submit button keeps its element but takes its loading label ("Saving…")
+    // as its name while pending, so find it by its role in the form.
+    const save = page.getByRole('dialog', { name: 'Add a payee' }).locator('button[type="submit"]');
+    await expect(save).toHaveAccessibleName('Save payee');
     await save.click();
     await expect(save).toHaveAttribute('aria-busy', 'true', { timeout: 500 });
+    await expect(save).toHaveAccessibleName('Saving…');
     await expect(page.locator('[data-py-pending-bar]')).toBeVisible({ timeout: 1_000 });
     await expect(page.locator('[data-py-scroll-root]')).toHaveAttribute('aria-busy', 'true');
     // Settles: the payee exists, and every pending signal clears.
