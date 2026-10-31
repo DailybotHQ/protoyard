@@ -46,6 +46,7 @@ protoyard blueprint validate my-idea.blueprint.json
 | `notifications` | no | Rules that write notification rows when records change |
 | `screens` | no | `list`, `detail`, `form`, `board`, `calendar`, `timeline`, `map`, `analytics`, `dashboard` and `settings` screens |
 | `brand` | no | A seed color or preset that becomes an accessible theme, or a theme library id |
+| `motion` | no | `{ "level": "full" }`, `subtle` or `none`: how much the prototype animates (every kind; reduced motion still wins) |
 | `layout` | no | The app shell layout (`id`, plus an optional `mobile` layout) |
 | `archetype` | no | `assistant`, `team-chat`, `saas-onboarding` or `analytics`: wires that kit into the first experience |
 | `validation` | no | 1–20 usability tasks with a route or data success condition (quick explorations) |
