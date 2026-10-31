@@ -45,7 +45,8 @@ describe('templates/page level-2 form', () => {
 
     // Required fields are checked before anything is saved.
     await fireEvent.click(submit);
-    await within(form).findByText(/Email is required/);
+    // The field's own message (the error summary repeats it as a link: "Email: Email is required.").
+    await within(form).findByText('Email is required.');
     expect(await responses(runtime)).toHaveLength(0);
 
     await fireEvent.input(email, { target: { value: 'ada@example.com' } });
