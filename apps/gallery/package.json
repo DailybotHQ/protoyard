@@ -20,7 +20,7 @@
   "dependencies": {
     "@astrojs/check": "^0.9.12",
     "@astrojs/svelte": "^9.1.1",
-    "@lucide/svelte": "^1.61.0",
+    "@lucide/svelte": "^1.62.0",
     "@protoyard/blueprint": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/player": "workspace:*",
@@ -30,7 +30,7 @@
     "@texuli/astro": "0.8.1",
     "@texuli/tokens": "0.8.0",
     "astro": "^7.4.2",
-    "svelte": "^5.57.2",
+    "svelte": "^5.57.3",
     "tailwindcss": "^4.3.3",
     "texuli": "0.8.0"
   },
