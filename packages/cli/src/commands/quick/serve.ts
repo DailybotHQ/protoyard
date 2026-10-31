@@ -250,8 +250,14 @@ export const quickServeCommand: Handler = async (ctx, args, options): Promise<Co
       reviewSlugs.add(change.namespace);
       hub?.publish(change);
     },
+    // Progressive painting: what has arrived of a deck, page or doc still being written.
+    onDraft: (draft) => hub?.publishDraft(draft),
   });
-  hub = createQuickEventHub({ current: () => watcher.current(), commentsPath: '/api/comments' });
+  hub = createQuickEventHub({
+    current: () => watcher.current(),
+    commentsPath: '/api/comments',
+    draft: (id) => watcher.draft(id),
+  });
   const events = hub;
   try {
     server = await serveStatic({
