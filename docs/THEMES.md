@@ -473,16 +473,37 @@ It has two tiers:
     no copy of them. `tests/library.test.ts` proves the port is field-identical
     to the 64 definitions Protoyard used to own, kept as a test fixture
     (`packages/themes/tests/fixtures/library-definitions.ts`).
-- **The full library** adds Texuli's expanded set: 140 more themes, for 204
-  in all.
-  - It's opt-in: call `enableFullThemeLibrary()` from
-    `@protoyard/themes/library-full`.
-  - It's opt-in because single-file exports inline everything reachable, so
-    every such export would carry the expanded set's metadata and
-    definitions.
+- **The full library** adds Texuli's expanded set
+  (`@texuli/tokens/library-expand`): 140 more themes, for 204 in all on Texuli
+  0.9.0. It's on by default, everywhere: the `theme` CLI, the DevTools theme
+  browser and Theme Studio, Deck Studio, the player's settings screen, the
+  gallery Themes page, and every theme id a manifest, scenario, blueprint,
+  deck, page, doc or share link names.
+  - Only a dynamic import reaches it. Its metadata (about 42 KB raw) loads the
+    first time a picker shows the whole library (`loadFullLibraryMeta`), and
+    each theme's definition is its own small chunk that loads when the theme
+    is used. No initial chunk carries it.
+  - Checking an id needs no load: `ALL_LIBRARY_THEME_IDS` and
+    `isLibraryThemeId` cover all 204 synchronously (an ids-only list,
+    about 1 KB gzip, kept equal to Texuli's by `tests/library.test.ts`).
+  - Single-file exports keep only what they use: a blueprint on a built-in or
+    catalog theme embeds none of the expanded set, and one on an expanded
+    theme embeds that theme with the metadata it needs, not the other 139
+    (`singleFileThemeExclusions` in
+    `packages/cli/src/lib/quick/single-file.ts`). In such a file, pickers
+    list the built-ins and the catalog (or the whole library when an
+    expanded theme is in use, where choosing another expanded theme reports
+    that it could not load and keeps the current one).
+  - Where the expanded set cannot load at all, the full library is the
+    catalog: `loadFullLibraryMeta` resolves to it and tries again on the
+    next call, and a deck on an expanded theme opens in the default theme
+    with a `theme-unavailable` warning.
   - The expanded set also carries Protoyard's six built-ins. The library
     leaves them out so no picker shows an id twice; they stay
     `BUILTIN_THEMES`.
+  - `enableFullThemeLibrary()` (`@protoyard/themes/library-full`) is kept for
+    compatibility and restores the default; `disableFullThemeLibrary()`
+    limits a page to the catalog.
 
 Each entry is data only: id, name, description, category, tags, collection,
 mood, a seed and secondary color, a neutral family, a font pairing id,
@@ -612,8 +633,10 @@ Optional metadata uses the defaults above when a definition omits it.
 - the density range
 - the style profile, through core's `ThemeStyleSchema`
 
-With the full library enabled, it also runs these checks over all 204, and
-checks that metadata matches each definition. One known Texuli gap is
+It also runs these checks over all 204, and checks that metadata matches
+each definition. `tests/contrast.test.ts` holds all 204 to WCAG AA text and
+UI pairs in light and dark, `tests/link.test.ts` their link states and
+`tests/charts.test.ts` their chart palettes. One known Texuli gap is
 tolerated: the expanded set's metadata omits the `neutral` family its
 definitions use (nothing reads `meta.neutral` at runtime).
 
@@ -622,12 +645,16 @@ root barrel):
 
 | Export | What it does |
 | --- | --- |
-| `THEME_LIBRARY_META` | Eager metadata only (id, name, description, category, tags, collection, mood, darkFirst, contrastLevel, seed, secondary, neutral), no palette tokens. Optional definition fields arrive with their defaults. |
-| `listThemeLibrary({ category?, tag?, collection?, mood? })` | Filters the metadata |
-| `searchThemeLibrary(query)` | Case-insensitive search over name, id, tags, mood, category, collection and description. Every word must match; results rank name and id matches first (3), then tags, mood, category and collection (2), then the description (1), with ties in library order. An empty query returns the whole library. |
-| `listCollections()` | Every collection in a fixed order with its theme count |
+| `THEME_LIBRARY_META` | The catalog's eager metadata only (id, name, description, category, tags, collection, mood, darkFirst, contrastLevel, seed, secondary, neutral), no palette tokens. Optional definition fields arrive with their defaults. |
+| `ALL_LIBRARY_THEME_IDS`, `EXPANDED_LIBRARY_THEME_IDS`, `LIBRARY_THEME_IDS` | Synchronous id lists: all 204, the expanded 140, the catalog 64 |
+| `isLibraryThemeId(id)`, `isCatalogThemeId(id)`, `isExpandedLibraryThemeId(id)` | Synchronous id checks (any library theme, catalog, expanded) |
+| `listThemeLibrary({ category?, tag?, collection?, mood? })` | Filters the catalog's metadata |
+| `searchThemeLibrary(query)` | Case-insensitive search over the catalog: name, id, tags, mood, category, collection and description. Every word must match; results rank name and id matches first (3), then tags, mood, category and collection (2), then the description (1), with ties in library order. An empty query returns the whole list. |
+| `listCollections()` | Every collection in a fixed order with its catalog theme count |
 | `getLibraryThemeMeta(id)` | Catalog lookup (metadata) |
-| `loadFullLibraryMeta()`, `findLibraryThemeMeta(id)` | Async. The full library's metadata, catalog first (the catalog alone until `enableFullThemeLibrary()`) |
+| `loadFullLibraryMeta()`, `findLibraryThemeMeta(id)` | Async. Every library theme's metadata, catalog first (the catalog when the expanded set cannot load or after `disableFullThemeLibrary()`) |
+| `listFullThemeLibrary(filter?)`, `searchFullThemeLibrary(query)`, `listFullCollections()` | Async. The same filter, search and counts over all 204 |
+| `searchThemeMeta(list, query)`, `countThemeCollections(list)` | The same search and counts over a list a picker already holds |
 | `loadLibraryThemeDefinition(id)` | Async. Any library theme's definition, from Texuli's port |
 | `loadLibraryTheme(id)` | Async. Loads any library theme's tokens and chart tokens from `@texuli/tokens` (dynamic imports only), converts them with `fromTexuliTheme`, and caches the result. Unknown ids, built-in ids included, reject with the list of known ids. |
 | `loadAllFullLibraryThemes()` | Loads every theme of the full library |
@@ -664,7 +691,7 @@ because the runtime falls back instead of failing.
 The gallery's Themes page (`apps/gallery/src/pages/themes.astro`),
 the UI Kit prototype's Theme Lab and the CLI list them too.
 
-The gallery Themes page renders 70 cards (64 catalog themes and six built-ins) as static HTML with
+The gallery Themes page renders 210 cards (the 204 library themes and six built-ins) as static HTML with
 precomputed light and dark CSS variables, then hydrates a small filter island.
 Search, collection and mood filters stay in `?q=`, `?collection=` and `?mood=`;
 the page mode toggle changes every card's palette and the `?theme=<id>` link
@@ -677,8 +704,11 @@ page.
 prototype's own themes, the built-in presets and saved custom themes, with
 the whole library collapsed behind **Browse N more themes**:
 
+- **The library** is every library theme: the 64 catalog themes show at
+  once, and the expanded set joins them (with a "Loading 140 more library
+  themes…" status) the first time the library shows.
 - **Search** matches name, id, description, tags, mood, category and
-  collection across every group (`searchThemeLibrary` for the library). A
+  collection across every group (`searchThemeMeta` for the library). A
   status line announces how many themes match. Searching or filtering shows
   library matches without expanding it.
 - **Collection chips** (industry, brand-like, high-contrast,
@@ -821,6 +851,7 @@ lazy chunk: its code loads only when you press **Open studio**.
 
 | Area | What you can do |
 | --- | --- |
+| Start from | **Start from a theme** lists the built-ins and every library theme (the catalog at once, all 204 once the library's metadata loads); **Load** copies its seed, secondary, neutral family, font, radius, density and style into the draft. |
 | Build | Name the theme; pick a seed color (color picker or hex field) and, optionally, a secondary color; choose a font pairing from `FONT_CATALOG`, a corner radius and motion from the [style presets](#style-presets) (Square, Sharp, Default, Round, Pill; None, Subtle, Standard, Expressive), elevation (`flat`, `soft`, `crisp`, `glow`, `layered`), surface (Solid, Glass), focus ring (`ring`, `outline`, `glow`, `inset`) and density (0.75–1.25 in 0.125 steps). The draft is built with `createThemeFromSeed`. |
 | Harmony | Choose a neutral family and a contrast-safe secondary-color suggestion (complementary, analogous, triadic, split-complementary or monochrome). Suggestions use deterministic OKLCH harmonies and are filtered for valid light and dark palettes. |
 | Preview | A sample card, buttons, badge and input themed by the draft only (scoped with `applyAppearance` on the preview box, cleared on close), with its own Light / Dark toggle. |
@@ -861,7 +892,7 @@ Every command also takes `--json`.
 
 | Command | Options | Writes files |
 | --- | --- | --- |
-| `theme list` | `--collection <collection>`, `--search <query>` (library names, ids, tags, moods and descriptions; built-in presets are not searched) | no |
+| `theme list` | `--collection <collection>`, `--mood <mood>`, `--search <query>` (every library theme's names, ids, tags, moods and descriptions; built-in presets are not searched) | no |
 | `theme show <theme-id>` | — (light and dark swatches and contrast checks) | no |
 | `theme use <slug> <theme-id>` | `--dry-run` | `prototypes/<slug>/protoyard.json` (`defaultTheme`) |
 | `theme export [id]` | `--from <file>` (instead of an id), `--format css\|tailwind\|tokens` (default `css`) | no |
@@ -885,7 +916,8 @@ without writing files; `--json` also includes CSS custom properties and
 Tailwind `@theme` tokens. A failed AA pair exits with a validation error and
 lists each failing mode and token pair; adjust the source tokens and retry.
 
-**List** the six presets and the 64 catalog themes:
+**List** the six presets and all 204 library themes (the 64 catalog themes,
+then Texuli's expanded set):
 
 ```text
 $ pnpm protoyard theme list
@@ -898,8 +930,9 @@ monochrome	Monochrome	builtin
 fintech-ledger	Fintech Ledger	library
 health-clinic	Health Clinic	library
 …
-climate-earth	Climate Earth	library
-crypto-ledger	Crypto Ledger	library
+…
+volt-green	Volt Green	library
+wheat-barn	Wheat Barn	library
 ```
 
 **Export** a built-in or library theme (library themes are built on the fly

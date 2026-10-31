@@ -132,8 +132,9 @@ tests and build output are excluded.
 ## Themes come from `@texuli/tokens`
 
 `@protoyard/themes` builds and adapts Protoyard's appearance model using
-`@texuli/tokens`. The 64-theme catalog and opt-in 204-theme library remain
-Protoyard's product surface. Theme writers now emit only Texuli's `--tx-*`
+`@texuli/tokens`. The 204-theme library (the 64-theme catalog and the
+expanded set from `@texuli/tokens/library-expand`, on by default and loaded on
+demand) remains Protoyard's product surface. Theme writers now emit only Texuli's `--tx-*`
 variables. The deprecated `--py-*` theme aliases are removed; renderer-owned
 geometry remains under `--py-*`, while deck-stage properties use `--tx-deck-*`. Import token
 subpaths such as `@texuli/tokens/css` and `@texuli/tokens/contract`; do not

@@ -37,7 +37,7 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Quick CLI | [QUICK](docs/QUICK.md) | Disposable `protoyard quick` explorations, variants, loopback serving, report and feedback scope |
 | Player | [PLAYER](docs/PLAYER.md) | No-install player for app, deck, page and doc blueprints: per-kind entries, hosted `/play/`, share links, storage, worlds, parity, browser limits |
 | Texuli | [TEXULI](docs/TEXULI.md) | How Protoyard links and uses the Texuli component library: which packages wrap or re-export it, what stays Protoyard's, verification and limits |
-| Themes | [THEMES](docs/THEMES.md) | Style model, palette engine, 64-theme library, Theme Studio, `theme` CLI, brand blocks, measured bundle impact |
+| Themes | [THEMES](docs/THEMES.md) | Style model, palette engine, 204-theme library, Theme Studio, `theme` CLI, brand blocks, measured bundle impact |
 | Layouts | [LAYOUTS](docs/LAYOUTS.md) | Shared layout catalog, manifest setup, responsive fallbacks, shell composition, authoring and tests |
 | Shells | [SHELLS](docs/SHELLS.md) | Device and host shells, manifest preview fields, `?shell=`, layout inside frames |
 | Views | [VIEWS](docs/VIEWS.md) | Choose a rich view, service callbacks, keyboard and phone behavior, scenario fragments, bundle measurements and limits |
@@ -75,7 +75,7 @@ protoyard/
 │   ├── database/          Dexie: per-prototype data + control DBs, world I/O, storage errors       (README)
 │   ├── scenarios/         generator SDK, presets, integrity, timeline, series/schedule/event/geo helpers (README)
 │   ├── runtime/           createPrototypeRuntime() — composes the engine                          (README)
-│   ├── themes/            6 built-ins + 64-theme library (lazy) on @texuli/tokens, palette engine, style presets, fonts, no-flash (README)
+│   ├── themes/            6 built-ins + 204-theme library (lazy) on @texuli/tokens, palette engine, style presets, fonts, no-flash (README)
 │   ├── ui/                Svelte 5 components: Texuli's styled components re-exported, wrappers on @texuli/primitives, shell frames, LayoutHost on texuli/layouts (12 lazy layouts) (README)
 │   ├── devtools/          in-browser control center (shell and layout pickers, theme browser, Theme Studio), built with Texuli components (README)
 │   ├── renderer-svelte/   Vite config factory, mountPrototype, ShellHost, bindings, hash router    (README)
