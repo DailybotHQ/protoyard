@@ -181,7 +181,7 @@ the required columns below describe an **app** blueprint. A content kind
 | `entities` | yes (apps) | One or more entities (see below). Forbidden on content kinds. |
 | `roles` | yes (apps) | One or more roles with permissions. Forbidden on content kinds. |
 | `notifications` | no | Notification rules. |
-| `screens` | no (apps) | Route declarations for generated `list`, `detail`, `form`, `board`, `calendar`, `timeline`, `map`, `analytics`, `dashboard` and `settings` screens. Forbidden on content kinds. |
+| `screens` | no (apps) | Route declarations for generated `list`, `detail`, `form`, `board`, `calendar`, `timeline`, `map`, `analytics`, `sheet`, `dashboard` and `settings` screens. Forbidden on content kinds. |
 | `brand` | no | A seed color or preset that `generate` turns into a WCAG AA theme, or a `libraryTheme` id it uses as-is. |
 | `catalog`, `tags`, `icon`, `category` | no | Catalog metadata for files under `blueprints/`. |
 | `history` | no | Written by `generate`; never edit it by hand (see [Migrations](#regeneration-and-migrations)). |
@@ -413,7 +413,7 @@ this is still a simulation, not security. The crud-app scenarios use the roles
 
 - `screens`: `list` (with `columns`), `detail` (optional `tabs`), `form`,
   `board` (`groupBy` an enum field), `calendar`, `timeline`, `map`,
-  `analytics`, `dashboard` (`widgets` of kind `kpi`, `chart`, `list` and
+  `analytics`, `sheet` (records as a spreadsheet: `columns`, `totals`), `dashboard` (`widgets` of kind `kpi`, `chart`, `list` and
   `board-summary`; the older `metrics` list still parses) and `settings`. The
   full option list and every cross-reference check are in the
   [`@protoyard/blueprint` README](../packages/blueprint/README.md). Each screen
