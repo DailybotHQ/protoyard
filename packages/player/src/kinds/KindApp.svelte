@@ -15,9 +15,9 @@ import { kindApp } from './state.ts';
  * blocks-ui host: interactive block state persisted through the kind services
  * (`createKindServices`: session.assert → reducer → environment.run →
  * db.transaction) and `mountEmbed` for embed-app blocks. Each renderer loads
- * as its own chunk.
+ * as its own chunk, loaded through the booting page's own loader.
  */
-const { blueprint, namespace, mountEmbed, studio, draft } = kindApp();
+const { blueprint, namespace, mountEmbed, studio, draft, loadRenderer } = kindApp();
 const runtime = getRuntime();
 /**
  * The blueprint's `motion.level` caps every Texuli animation below, and a
@@ -44,21 +44,11 @@ setBlockHost({
 });
 
 let attempt = $state(0);
+// The page that booted this document hands over its own renderer only (renderers.ts):
+// importing all three here would put every kind's renderer in every kind's single file.
 const view = $derived.by(() => {
   void attempt;
-  if (blueprint.kind === 'deck') {
-    return Promise.all([import('./content.css'), import('@protoyard/decks-ui/app')]).then(
-      ([, module]) => module
-    );
-  }
-  if (blueprint.kind === 'page') {
-    return Promise.all([import('./content.css'), import('@protoyard/pages-ui/page')]).then(
-      ([, module]) => module
-    );
-  }
-  return Promise.all([import('./content.css'), import('@protoyard/pages-ui/doc')]).then(
-    ([, module]) => module
-  );
+  return loadRenderer();
 });
 const deck = $derived(
   blueprint.kind === 'deck'

@@ -1,6 +1,7 @@
 import { type AnyBlueprint, isAppBlueprint } from '@protoyard/blueprint';
 import { mount, unmount } from 'svelte';
 import type { BootedPlayer } from '../boot.ts';
+import type { KindLoaders } from '../kinds/renderers.ts';
 import { type BootExtras, type RunningPlayer, runPlayer } from '../run.ts';
 import { loadKindBoot } from '../sources/kind-boot.ts';
 import KindMismatch from './KindMismatch.svelte';
@@ -69,6 +70,8 @@ async function showMismatch(
 
 export interface KindEntryOptions {
   kind: EntryKind;
+  /** This page's renderer loaders, from its own `kinds/renderer-<kind>.ts` (see `renderers.ts`). */
+  loaders: KindLoaders;
   window: Window;
   target: HTMLElement;
   /** Injected for tests (defaults to run.ts). */
@@ -79,7 +82,7 @@ export interface KindEntryOptions {
 
 /** Boots `blueprint` when it is this page's kind; otherwise shows where it runs. */
 export function kindEntryBoot(
-  options: Pick<KindEntryOptions, 'kind' | 'window' | 'loadBoot'>
+  options: Pick<KindEntryOptions, 'kind' | 'window' | 'loadBoot' | 'loaders'>
 ): (blueprint: AnyBlueprint, target: HTMLElement, extras?: BootExtras) => Promise<BootedPlayer> {
   const load = options.loadBoot ?? loadKindBoot;
   return async (blueprint, target, extras = {}) => {
@@ -87,7 +90,7 @@ export function kindEntryBoot(
       return showMismatch(options.kind, blueprint, target, options.window.location);
     }
     const { bootKind } = await load();
-    return bootKind({ blueprint, target, ...extras });
+    return bootKind({ blueprint, target, ...extras, loaders: options.loaders });
   };
 }
 

@@ -192,18 +192,24 @@ describe.skipIf(!built)(
       );
     });
 
-    it('keeps the shared kind utility sheet out of initial CSS and on the kind boot path', () => {
-      const bootFile = manifest['src/boot-kind.ts']?.file;
-      expect(bootFile, 'the shared kind boot').toBeDefined();
-      const bootCode = readFileSync(join(DIST, bootFile ?? ''), 'utf8');
+    it('keeps the shared kind utility sheet out of initial CSS and on each kind renderer path', () => {
+      // Each kind page hands the kind boot its own renderer loader (kinds/renderers.ts), so the
+      // sheet is requested by the deck, page and doc loader chunks, never the shared boot.
+      const loaders = Object.entries(full).filter(([key]) =>
+        /^_renderer-(?:deck|page|doc)-/.test(key)
+      );
+      expect(loaders.map(([key]) => key.split('-')[1]).sort()).toEqual(['deck', 'doc', 'page']);
       for (const key of ['src/kinds/content.css']) {
         const style = manifest[key]?.file;
         expect(style, `${key} is a built stylesheet`).toMatch(/\.css$/);
         if (!style) continue;
         expect(classes.initialCss, `${key} is not in initial CSS`).not.toContain(style);
-        expect(bootCode, `${key} is requested by the lazy kind renderer`).toContain(
-          basename(style)
-        );
+        for (const [loader, chunk] of loaders) {
+          expect(
+            readFileSync(join(DIST, chunk.file), 'utf8'),
+            `${key} is requested lazily by ${loader}`
+          ).toContain(basename(style));
+        }
       }
     });
 
