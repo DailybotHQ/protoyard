@@ -41,8 +41,8 @@
   },
   "dependencies": {
     "@protoyard/flows": "workspace:*",
-    "@texuli/workflows": "0.9.0",
-    "texuli": "0.9.0"
+    "@texuli/workflows": "0.10.0",
+    "texuli": "0.10.0"
   },
   "devDependencies": {
     "svelte": "^5.57.2"
