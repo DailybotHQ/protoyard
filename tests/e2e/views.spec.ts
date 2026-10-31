@@ -114,8 +114,12 @@ test.describe('views kit (ui-kit)', () => {
     await page.keyboard.press('Space');
     await expect(keyed).toHaveAttribute('aria-pressed', 'true');
     await page.keyboard.press('ArrowLeft');
-    await page.keyboard.press('Space');
     await expect(column('doing').getByText('Ship the empty state')).toBeVisible();
+    // The held card moved to another column (a new node): Texuli puts focus back on its
+    // handle a frame later, and a user drops once the handle shows focus again.
+    await expect(handle('Ship the empty state')).toBeFocused();
+    await page.keyboard.press('Space');
+    await expect(handle('Ship the empty state')).not.toHaveAttribute('aria-pressed', 'true');
     await expect(board.locator('[aria-live="polite"]')).toContainText(
       'Dropped Ship the empty state in In progress'
     );
@@ -173,7 +177,8 @@ test.describe('views kit (ui-kit)', () => {
   }) => {
     await openDemo(page, 'timeline');
     const timeline = page.locator('section[data-timeline]');
-    await expect(timeline.getByRole('treegrid')).toBeVisible();
+    // Texuli 0.8's task table is a read-only `table` (rows carry no focus or hierarchy).
+    await expect(timeline.getByRole('table')).toBeVisible();
     if (isMobile) {
       // Below md the canvas is hidden on purpose: the task table carries the plan.
       await expect(timeline.locator('.canvas-scroll')).toBeHidden();
