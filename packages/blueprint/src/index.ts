@@ -271,6 +271,17 @@ export {
   type UpgradeOp,
 } from './migrations.ts';
 export {
+  BLUEPRINT_MOTION_LEVELS,
+  type BlueprintMotion,
+  type BlueprintMotionLevel,
+  BlueprintMotionSchema,
+  blueprintMotionLevel,
+  DEFAULT_BLUEPRINT_MOTION_LEVEL,
+  deckWithMotionCeiling,
+  isBlueprintMotionLevel,
+  lowerMotionLevel,
+} from './motion.ts';
+export {
   type BlueprintNotificationService,
   createNotificationService,
   createNotificationWriter,
@@ -410,6 +421,12 @@ export {
   relationProperty,
   storeIndexForField,
 } from './storage.ts';
+export {
+  MAX_STREAM_CANDIDATES,
+  paintStreamedBlueprint,
+  type StreamedBlueprint,
+  truncatedJsonCandidates,
+} from './stream.ts';
 export {
   DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS,
   loadUntrustedBlueprint,

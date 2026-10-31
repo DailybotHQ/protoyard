@@ -13,6 +13,11 @@ export interface KindAppState {
   mountEmbed: MountEmbed;
   /** Deck Studio, only for a deck with DevTools on: the deck renders its live preview. */
   studio?: DeckStudio;
+  /**
+   * The part of a blueprint that has arrived while `quick serve` streams it
+   * (progressive painting): the app says so until the whole blueprint lands.
+   */
+  draft?: boolean;
 }
 
 /**

@@ -2,7 +2,7 @@ import { type FSWatcher, watch } from 'node:fs';
 import { lstat, readFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
-import { blueprintIdentity } from '@protoyard/blueprint';
+import { blueprintIdentity, paintStreamedBlueprint } from '@protoyard/blueprint';
 import { parseQuickBlueprint } from './blueprint-kind.ts';
 import { historyBlueprints } from './history.ts';
 
@@ -20,6 +20,16 @@ import { historyBlueprints } from './history.ts';
  *   current identity of every watched blueprint; each change is ONE
  *   `blueprint` event `{ file, path, sha256, previous }` after the writes
  *   settle (debounced), and only when the identity really changed.
+ * - While a deck, page or doc blueprint is still being written (its JSON is
+ *   truncated), the server finds the part that has arrived and already
+ *   validates (`paintStreamedBlueprint`), serves that JSON at
+ *   `/__protoyard/drafts/<file id>.json`, and sends a `draft` event
+ *   `{ file, path, sha256, base }` with that path, so a player can paint it
+ *   progressively. The player reads the draft as untrusted input like any
+ *   blueprint and checks its identity. `base` is the last complete identity it
+ *   grows from; the `blueprint` event that follows still has that complete
+ *   identity as `previous`. A burst of writes yields at most one read per
+ *   {@link QUICK_DRAFT_INTERVAL_MS}.
  *
  * The server binds 127.0.0.1 and checks the Host header (quick serve), and
  * these routes also refuse a cross-origin request.
@@ -28,8 +38,12 @@ import { historyBlueprints } from './history.ts';
 export const QUICK_EVENTS_PROTOCOL = 1;
 export const QUICK_EVENTS_PATH = '/__protoyard/events';
 export const QUICK_SERVE_INFO_PATH = '/__protoyard/serve.json';
+/** Where the current draft of a watched file is served (`<prefix><file id>.json`). */
+export const QUICK_DRAFTS_PREFIX = '/__protoyard/drafts/';
 /** Writes that land within this window are one change. */
 export const QUICK_EVENTS_DEBOUNCE_MS = 150;
+/** While writes keep coming (a streamed blueprint), the file is still read this often. */
+export const QUICK_DRAFT_INTERVAL_MS = 400;
 /** A comment line keeps idle connections open through proxies and sleep. */
 const HEARTBEAT_MS = 25_000;
 const MAX_CLIENTS = 32;
@@ -53,6 +67,41 @@ export interface BlueprintChange {
   previous: string | null;
   /** The new blueprint's storage namespace (`bp-…`), for the comments allowlist. */
   namespace: string;
+}
+
+/** A partial blueprint the watcher announced: what has arrived of a streamed deck, page or doc. */
+export interface BlueprintDraft {
+  file: string;
+  /** Same-origin path of the draft JSON (`/__protoyard/drafts/<file id>.json`). */
+  path: string;
+  /** Identity of the part that has arrived (the player recomputes it from the file). */
+  sha256: string;
+  /** The last complete identity of this file, which the draft grows from. */
+  base: string | null;
+}
+
+async function readBlueprintText(file: string): Promise<string | null> {
+  const info = await lstat(file).catch(() => undefined);
+  if (!info?.isFile() || info.isSymbolicLink() || info.size > MAX_BLUEPRINT_BYTES) return null;
+  return readFile(file, 'utf8').catch(() => null);
+}
+
+/**
+ * The part of a truncated deck, page or doc blueprint that already validates
+ * (its JSON and identity), or null (complete, an app, nothing paintable yet).
+ */
+export async function readBlueprintDraft(
+  file: string
+): Promise<{ sha256: string; json: string } | null> {
+  const text = await readBlueprintText(file);
+  if (text === null) return null;
+  try {
+    const painted = await paintStreamedBlueprint(text);
+    if (!painted || painted.complete) return null;
+    return { sha256: (await blueprintIdentity(painted.blueprint)).sha256, json: painted.json };
+  } catch {
+    return null;
+  }
 }
 
 /** Reads one blueprint file and returns its identity, or null when it is missing or invalid. */
@@ -84,6 +133,8 @@ export async function historyNamespaces(dir: string, limit = 64): Promise<string
 export interface BlueprintWatcher {
   /** The latest identity per watched file id. */
   current(): Record<string, string | null>;
+  /** The JSON of a file's current draft, or null when it has none (complete, or never drafted). */
+  draft(id: string): string | null;
   close(): void;
 }
 
@@ -95,11 +146,19 @@ export interface BlueprintWatcher {
 export async function watchBlueprints(options: {
   files: readonly WatchedBlueprint[];
   onChange: (change: BlueprintChange) => void;
+  /** A streamed deck, page or doc grew: the part that has arrived validates (progressive painting). */
+  onDraft?: (draft: BlueprintDraft) => void;
   debounceMs?: number;
+  /** Longest wait while writes keep coming (default {@link QUICK_DRAFT_INTERVAL_MS}). */
+  maxWaitMs?: number;
+  /** Injected for tests; defaults to `Date.now`. */
+  now?: () => number;
   /** Injected for tests; defaults to `fs.watch`. */
   watchDir?: (dir: string, listener: (name: string | null) => void) => { close(): void };
 }): Promise<BlueprintWatcher> {
   const debounceMs = options.debounceMs ?? QUICK_EVENTS_DEBOUNCE_MS;
+  const maxWaitMs = Math.max(options.maxWaitMs ?? QUICK_DRAFT_INTERVAL_MS, debounceMs);
+  const now = options.now ?? Date.now;
   const watchDir =
     options.watchDir ??
     ((dir: string, listener: (name: string | null) => void) => {
@@ -113,27 +172,51 @@ export async function watchBlueprints(options: {
   for (const entry of options.files) {
     state.set(entry.id, (await readBlueprintIdentity(entry.file))?.sha256 ?? null);
   }
+  /** The last draft announced per file (cleared once the file is complete again). */
+  const drafts = new Map<string, { sha256: string; json: string }>();
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
+  /** When the oldest unread write of a file arrived (bounds the debounce while writes keep coming). */
+  const pendingSince = new Map<string, number>();
+  const read = async (entry: WatchedBlueprint) => {
+    const identity = await readBlueprintIdentity(entry.file);
+    const previous = state.get(entry.id) ?? null;
+    if (identity) {
+      // A complete blueprint that matches the last one still replaces a draft on screen.
+      if (identity.sha256 === previous && !drafts.has(entry.id)) return;
+      drafts.delete(entry.id);
+      state.set(entry.id, identity.sha256);
+      options.onChange({
+        file: entry.id,
+        path: entry.path,
+        sha256: identity.sha256,
+        previous,
+        namespace: identity.namespace,
+      });
+      return;
+    }
+    if (!options.onDraft) return;
+    const draft = await readBlueprintDraft(entry.file);
+    if (!draft || drafts.get(entry.id)?.sha256 === draft.sha256) return;
+    drafts.set(entry.id, draft);
+    options.onDraft({
+      file: entry.id,
+      path: `${QUICK_DRAFTS_PREFIX}${encodeURIComponent(entry.id)}.json`,
+      sha256: draft.sha256,
+      base: previous,
+    });
+  };
   const settle = (entry: WatchedBlueprint) => {
     clearTimeout(timers.get(entry.id));
+    const since = pendingSince.get(entry.id) ?? now();
+    pendingSince.set(entry.id, since);
+    const delay = Math.max(0, Math.min(debounceMs, since + maxWaitMs - now()));
     timers.set(
       entry.id,
       setTimeout(() => {
         timers.delete(entry.id);
-        void readBlueprintIdentity(entry.file).then((identity) => {
-          if (!identity) return;
-          const previous = state.get(entry.id) ?? null;
-          if (identity.sha256 === previous) return;
-          state.set(entry.id, identity.sha256);
-          options.onChange({
-            file: entry.id,
-            path: entry.path,
-            sha256: identity.sha256,
-            previous,
-            namespace: identity.namespace,
-          });
-        });
-      }, debounceMs)
+        pendingSince.delete(entry.id);
+        void read(entry);
+      }, delay)
     );
   };
   const byDir = new Map<string, WatchedBlueprint[]>();
@@ -153,6 +236,7 @@ export async function watchBlueprints(options: {
   );
   return {
     current: () => Object.fromEntries(state),
+    draft: (id) => drafts.get(id)?.json ?? null,
     close() {
       for (const timer of timers.values()) clearTimeout(timer);
       timers.clear();
@@ -178,6 +262,8 @@ export interface QuickEventHub {
   route(request: IncomingMessage, response: ServerResponse, pathname: string): boolean;
   /** Sends one `blueprint` event to every open stream. */
   publish(change: BlueprintChange): void;
+  /** Sends one `draft` event (a streamed blueprint grew) to every open stream. */
+  publishDraft(draft: BlueprintDraft): void;
   clients(): number;
   close(): void;
 }
@@ -187,6 +273,8 @@ export function createQuickEventHub(options: {
   current: () => Record<string, string | null>;
   /** The comments API base the player should use. */
   commentsPath: string;
+  /** The JSON of a watched file's current draft (progressive painting); none without it. */
+  draft?: (id: string) => string | null;
 }): QuickEventHub {
   const streams = new Set<ServerResponse>();
   const heartbeat = setInterval(() => {
@@ -219,6 +307,20 @@ export function createQuickEventHub(options: {
         );
         return true;
       }
+      if (pathname.startsWith(QUICK_DRAFTS_PREFIX)) {
+        const id = /^([a-z0-9-]{1,40})\.json$/.exec(
+          pathname.slice(QUICK_DRAFTS_PREFIX.length)
+        )?.[1];
+        const json = id ? (options.draft?.(id) ?? null) : null;
+        if (json === null) return refuse(404, 'No draft.');
+        response.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff',
+        });
+        response.end(request.method === 'HEAD' ? undefined : json);
+        return true;
+      }
       if (pathname !== QUICK_EVENTS_PATH) return refuse(404, 'Not found.');
       if (streams.size >= MAX_CLIENTS) return refuse(503, 'Too many live-reload connections.');
       response.writeHead(200, {
@@ -242,6 +344,15 @@ export function createQuickEventHub(options: {
         path: change.path,
         sha256: change.sha256,
         previous: change.previous,
+      });
+      for (const stream of streams) stream.write(frame);
+    },
+    publishDraft(draft) {
+      const frame = sseFrame('draft', {
+        file: draft.file,
+        path: draft.path,
+        sha256: draft.sha256,
+        base: draft.base,
       });
       for (const stream of streams) stream.write(frame);
     },

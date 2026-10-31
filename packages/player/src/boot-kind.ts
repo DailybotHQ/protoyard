@@ -40,6 +40,11 @@ export interface BootKindOptions {
   generatorVersion?: number;
   /** Review comments through `quick serve`'s same-origin comments API. */
   review?: boolean;
+  /**
+   * The blueprint is the part of a streamed one that has arrived so far
+   * (progressive painting under `quick serve`): the document says so.
+   */
+  draft?: boolean;
   /** Force DevTools on or off (defaults to the build flag and `?devtools=0`, like mountPrototype). */
   devtools?: boolean;
 }
@@ -116,6 +121,7 @@ export async function bootKind(options: BootKindOptions): Promise<BootedPlayer> 
     namespace: storage.namespace,
     mountEmbed: createMountEmbed(),
     ...(studio ? { studio } : {}),
+    ...(options.draft ? { draft: true } : {}),
   });
   const mounted = await mountPrototype({
     definition,

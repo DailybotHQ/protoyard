@@ -174,7 +174,7 @@ describe('validateBlueprintForAuthoring across kinds', () => {
     expect(diagnostic).toMatchObject({ code: 'unknown-key', path: [], jsonPath: '$' });
     expect(diagnostic?.message).toMatch(/entities/);
     expect(diagnostic?.hint).toBe(
-      'A page blueprint accepts only $schema, formatVersion, name, description, catalog, tags, icon, category, brand, kind, page. App keys such as entities, roles and screens belong to app blueprints: remove them, or drop "kind" to author an app.'
+      'A page blueprint accepts only $schema, formatVersion, name, description, catalog, tags, icon, category, brand, motion, kind, page. App keys such as entities, roles and screens belong to app blueprints: remove them, or drop "kind" to author an app.'
     );
   });
 

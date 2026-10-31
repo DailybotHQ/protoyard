@@ -2,6 +2,7 @@ import { CatalogSchema, LayoutIdSchema } from '@protoyard/core';
 import { GEO_REGIONS, type GeoRegionId } from '@protoyard/scenarios';
 import { z } from 'zod';
 import { ArchetypeSchema } from './archetypes/schema.ts';
+import { BlueprintMotionSchema } from './motion.ts';
 import { sheetScreenIssues, sheetScreenSchema } from './sheet-screen.ts';
 import { ValidationSchema, validationIssues } from './validation-tasks.ts';
 
@@ -788,6 +789,8 @@ export const BLUEPRINT_BASE_SHAPE = {
   category: z.string().min(1).max(40).optional(),
   /** Optional brand → generated on-brand theme for `protoyard generate`. */
   brand: BlueprintBrandSchema.optional(),
+  /** Optional motion ceiling (`full`, `subtle`, `none`) rendered by `texuli/motion` (motion.ts). */
+  motion: BlueprintMotionSchema.optional(),
 };
 
 /** @internal Shared app input shape used by the generated kind-union schema. */
