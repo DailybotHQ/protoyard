@@ -60,6 +60,13 @@ const metadata = {
     propsAdapter: 'screen',
     codegenWrapper: true,
   },
+  canvas: {
+    kind: 'canvas',
+    subpath: '@protoyard/crud/screens/canvas',
+    exportName: 'CanvasScreen',
+    propsAdapter: 'screen',
+    codegenWrapper: true,
+  },
   sheet: {
     kind: 'sheet',
     subpath: '@protoyard/crud/screens/sheet',
