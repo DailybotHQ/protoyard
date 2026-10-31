@@ -221,7 +221,8 @@ describe('EntityList', () => {
     const restore = screen.getByRole('button', { name: 'Restore 1' }) as HTMLButtonElement;
     await fireEvent.click(restore);
     expect(restore.getAttribute('aria-busy')).toBe('true');
-    expect(restore.disabled).toBe(true);
+    // Texuli 0.9: a pending button is aria-disabled (it keeps focus), not natively disabled.
+    expect(restore.getAttribute('aria-disabled')).toBe('true');
     release();
     await waitFor(async () => expect(await services.customer!.get(customer.id)).toBeTruthy());
   });
