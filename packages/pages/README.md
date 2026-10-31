@@ -57,6 +57,19 @@ object is capped at 8 KiB and 32 entries. The Dexie indexes also include
 Responses use the non-reserved `formResponses` feature table. The kind runtime
 includes it in its database and snapshot data.
 
+## Saved doc edits
+
+`createDocEditServices(runtime, { documentId? })` saves a doc's applied edits
+in the `docEdits` table (`DOC_EDITS_TABLE`, indexes
+`DOC_EDITS_STORE_STRING`), one row per doc and world: `load(doc)` returns
+`none`, `saved` (the doc with the edits), `stale` (made on an earlier version
+of the doc) or `invalid` (a stored row that fails validation, never painted).
+`save(doc, edited)` and `reset(doc)` assert `DOC_CAPABILITIES.edit` and run
+through `environment.run` and a Dexie transaction. Only the edited `blocks`
+are stored; the rest of the doc comes from the blueprint, and every load
+re-validates the result with `DocDocumentSchema` and the doc limits. Details:
+[docs/PAGES.md](../../docs/PAGES.md#saved-edits).
+
 ## Form response services
 
 Build the response services with the active runtime and the form blocks from
