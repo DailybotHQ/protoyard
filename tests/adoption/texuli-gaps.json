@@ -358,5 +358,15 @@
     "id": "G110",
     "status": "open",
     "summary": "@texuli/tokens ships the system token defaults components need only inside base.css with its reset and motion tables; no tokens-only stylesheet for hosts with their own reset"
+  },
+  {
+    "id": "G111",
+    "status": "open",
+    "summary": "@texuli/pages PageReader and PageEditor have no renderBlock seam, so host-owned wrapped blocks (forms, charts, tables) are refused"
+  },
+  {
+    "id": "G112",
+    "status": "open",
+    "summary": "@texuli/document documentToMarkdown drops wrapped blocks, tables included, where the DOCX and PDF writers print them"
   }
 ]
