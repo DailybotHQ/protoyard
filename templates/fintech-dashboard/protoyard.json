@@ -14,12 +14,13 @@
     "category": "finance",
     "productType": "Personal finance dashboard",
     "platforms": ["web", "mobile"],
-    "features": ["accounts", "transactions", "cash-flow", "budgets", "transfers"],
+    "features": ["accounts", "transactions", "cash-flow", "budgets", "transfers", "spreadsheet"],
     "highlights": [
       "Checking and savings balances with generated payday history",
       "Cash-flow and categorized spending charts loaded on demand",
       "Monthly category budgets with threshold alerts",
-      "Permission-checked transfers with insufficient-funds and offline states"
+      "Permission-checked transfers with insufficient-funds and offline states",
+      "Transactions as a read-only spreadsheet with a net total and CSV download"
     ],
     "difficulty": "intermediate"
   },
