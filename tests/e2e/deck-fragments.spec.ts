@@ -32,6 +32,47 @@ async function highlighted(scope: Locator): Promise<string[]> {
     .evaluateAll((els) => els.map((el) => el.getAttribute('data-line') ?? ''));
 }
 
+/**
+ * Fragments animate through the stage's motion runtime (`@texuli/core/motion`, Web
+ * Animations with `fill: "none"`), not CSS transitions: the stylesheet holds only the end
+ * states. Record every animation started on a fragment (or the block inside a box-less
+ * fragment wrapper), so a spec can tell what a step change played.
+ */
+async function recordFragmentAnimations(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const played: number[] = [];
+    (window as unknown as { __fragmentAnimations: number[] }).__fragmentAnimations = played;
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function (this: Element, ...args: Parameters<Element['animate']>) {
+      const animation = animate.apply(this, args);
+      if (this.matches('[data-tx-deck-fragment], [data-tx-deck-fragment] > *')) {
+        const duration = animation.effect?.getTiming().duration;
+        played.push(typeof duration === 'number' ? duration : 0);
+      }
+      return animation;
+    };
+  });
+}
+
+/** Step once on the slide (its first fragment reveals) and return the fragment animations it played. */
+async function revealDurations(page: Page, slideId: string): Promise<number[]> {
+  await expectLocation(page, slideId, 0);
+  // Let the slide settle (lazy families, the motion chunk) before the step.
+  await expect(slide(page, slideId).getByText('Loading block')).toHaveCount(0);
+  await page.waitForTimeout(300);
+  await page.evaluate(() => {
+    (window as unknown as { __fragmentAnimations: number[] }).__fragmentAnimations.length = 0;
+  });
+  await page.keyboard.press('ArrowRight');
+  await expectLocation(page, slideId, 1);
+  await expect.poll(() => fragmentStates(slide(page, slideId))).toContain('visible');
+  // An animation starts in the frame after the step: give it a few frames.
+  await page.waitForTimeout(200);
+  return page.evaluate(() => [
+    ...(window as unknown as { __fragmentAnimations: number[] }).__fragmentAnimations,
+  ]);
+}
+
 test.describe('deck fragments on the flagship deck', () => {
   test.skip(
     process.env.PROTOYARD_E2E_DECK !== '1',
@@ -116,58 +157,41 @@ test.describe('deck fragments on the flagship deck', () => {
   });
 
   test('reduced motion and motion: none drop the reveal animation', async ({ page }) => {
-    const duration = (page: Page) =>
-      revealed(slide(page, 'loop'))
-        .first()
-        .evaluate((el) => {
-          const style = getComputedStyle(el);
-          // Seconds of reveal motion; none when transitions are off.
-          return style.transitionProperty === 'none'
-            ? 0
-            : Number.parseFloat(style.transitionDuration);
-        });
+    await recordFragmentAnimations(page);
 
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(`${flagship}#/loop/0`);
-    await expect.poll(() => duration(page)).toBeLessThan(0.01);
+    expect(await revealDurations(page, 'loop')).toEqual([]);
 
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(`${flagship}#/loop/0`);
     await page.reload();
-    await expect.poll(() => duration(page)).toBeCloseTo(0.5, 2);
+    // The stage's motion runtime animates the revealed block from its hidden style (500 ms at full).
+    expect(await revealDurations(page, 'loop')).toEqual([500]);
 
     await page.goto(`${flagship}&motion=none#/loop/0`);
     await page.reload();
     await expect(app(page)).toHaveAttribute('data-py-deck-motion', 'none');
-    await expect.poll(() => duration(page)).toBeLessThan(0.01);
+    expect(await revealDurations(page, 'loop')).toEqual([]);
   });
 
   test('a stepped catalog prop animates unless motion is off', async ({ page }) => {
-    // The fixture steps one timeline event; the stage's fragment styles own its transition.
-    const propDuration = (p: Page) =>
-      slide(p, 'timeline')
-        .locator('[data-tx-deck-fragment]')
-        .first()
-        .evaluate((el) => {
-          const style = getComputedStyle(el);
-          return style.transitionProperty === 'none'
-            ? 0
-            : Number.parseFloat(style.transitionDuration);
-        });
+    // The fixture steps one timeline event; the stage's motion runtime animates its reveal.
+    await recordFragmentAnimations(page);
 
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(`${flagship}#/timeline/0`);
-    await expect.poll(() => propDuration(page)).toBeCloseTo(0.5, 2);
+    expect(await revealDurations(page, 'timeline')).toEqual([500]);
 
     await page.goto(`${flagship}&motion=none#/timeline/0`);
     await page.reload();
     await expect(app(page)).toHaveAttribute('data-py-deck-motion', 'none');
-    await expect.poll(() => propDuration(page)).toBeLessThan(0.01);
+    expect(await revealDurations(page, 'timeline')).toEqual([]);
 
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(`${flagship}#/timeline/0`);
     await page.reload();
-    await expect.poll(() => propDuration(page)).toBeLessThan(0.01);
+    expect(await revealDurations(page, 'timeline')).toEqual([]);
   });
 
   test('print and the overview show every step', async ({ page }) => {
