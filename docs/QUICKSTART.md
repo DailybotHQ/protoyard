@@ -212,7 +212,7 @@ Other ways to start:
 
 ```bash
 pnpm protoyard new my-bank --from mobile-banking-demo          # remix a prototype (fresh id and storage)
-pnpm protoyard list --kind blueprint                           # the 40 product blueprints
+pnpm protoyard list --kind blueprint                           # the 43 product blueprints
 pnpm protoyard generate my-crm --blueprint blueprints/crm.json  # an app from a data-only blueprint
 echo "A salon that books appointments" \
   | pnpm protoyard blueprint new tmp/salon.json --from-brief - --generate salon-demo   # from a prose brief

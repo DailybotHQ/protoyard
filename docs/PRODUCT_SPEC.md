@@ -57,7 +57,7 @@ Around the single app, the workspace offers:
   and agents, and 175 fictional avatar portraits.
 - **A generator.** A data-only `blueprint.json` becomes a working prototype
   (`protoyard generate`), and a prose brief becomes a blueprint offline
-  (`protoyard blueprint new --from-brief`). 40 blueprints ship in the
+  (`protoyard blueprint new --from-brief`). 43 blueprints ship in the
   repository.
 - **Review comments.** Opt-in comments pinned to screens of a built
   prototype, pulled into a `REVIEW.md` an agent can plan from.
