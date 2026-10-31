@@ -934,6 +934,8 @@ only parses or generates never bundles them:
 | Outlines and bounds | `synthesizeDeckOutline`, `chooseDeckOutline`, `DECK_OUTLINES`, `buildPageOutline`, `buildDocOutline`, `selectPageOutline`, `selectDocOutline`, `boundBriefInput`, `prepareBriefForSynthesis`, `checkOutlineBounds`, `applyOutlineBounds`, `OUTLINE_LIMITS` |
 | Deck layouts and lint | `selectDeckLayouts`, `propsForSelectedLayout`, `lintDeckStructure`, `lintDeckContent`, `lintDeckAssets`; catalog types `DeckLayoutEntry`, `DeckLayoutId`, `LayoutPacing` (type-only) |
 | Validation | `validateBlueprintForAuthoring`, `parseAnyBlueprint`, `safeParseAnyBlueprint` |
+| Entity forms on `@texuli/forms` | `entityFormModel` (a one-page Texuli `FormSchema` as plain data, with value conversion both ways), `HOSTED_FORM_KINDS` (relation, datetime, geo, avatar, file: painted by Protoyard controls), `UNASSIGNED_OPTION` |
+| Streamed blueprints | `paintStreamedBlueprint`, `truncatedJsonCandidates`, `MAX_STREAM_CANDIDATES`: the valid part of a truncated deck, page or doc, checked like a complete one (`quick serve` drafts) |
 | Lazy, for browsers | `loadAuthoringApis()` |
 
 `loadAuthoringApis()` resolves to brief synthesis, kind detection, outlines, deck lint, layout
