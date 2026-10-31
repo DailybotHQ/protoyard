@@ -30,7 +30,11 @@ const doc: DocDocument = {
 
 function runtimeThatCan(capabilities: readonly string[]): PrototypeRuntime {
   return {
-    session: { can: (capability: string) => capabilities.includes(capability) },
+    // `subscribe` is part of the session contract: DocApp re-checks on a persona switch.
+    session: {
+      can: (capability: string) => capabilities.includes(capability),
+      subscribe: () => () => {},
+    },
     manifest: { storage: { namespace: 'tools-doc' } },
   } as unknown as PrototypeRuntime;
 }
