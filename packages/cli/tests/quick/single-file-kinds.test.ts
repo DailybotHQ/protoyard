@@ -12,6 +12,8 @@ import {
   QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES,
   type SingleFileEntry,
   singleFileEntryFor,
+  singleFileThemeExclusions,
+  singleFileThemeIds,
 } from '../../src/lib/quick/single-file.ts';
 
 /**
@@ -201,6 +203,106 @@ describe('buildSingleFile with an entry page', () => {
   });
 });
 
+const EXPAND =
+  '../../node_modules/.pnpm/@texuli+tokens@0.9.0/node_modules/@texuli/tokens/dist/library-expand';
+
+describe('expanded library themes in a single file', () => {
+  it('reads the theme ids a blueprint opens in', () => {
+    expect(singleFileThemeIds({ name: 'App' })).toEqual([]);
+    expect(singleFileThemeIds({ brand: { libraryTheme: 'ash-plain' } })).toEqual(['ash-plain']);
+    expect(
+      singleFileThemeIds({
+        kind: 'deck',
+        deck: { style: { theme: 'wheat-barn' } },
+        brand: { seed: '#123456' },
+      })
+    ).toEqual(['wheat-barn']);
+    expect(
+      singleFileThemeIds({ brand: { libraryTheme: '../x' }, deck: { style: { theme: 7 } } })
+    ).toEqual([]);
+  });
+
+  it('cuts the whole expanded set without an expanded theme, else every other expanded theme', () => {
+    const entry = `${EXPAND}/index.js`;
+    const theme = (id: string) => `${EXPAND}/themes/${id}.js`;
+    const none = singleFileThemeExclusions(['fintech-ledger', 'ocean']);
+    expect(none.some((pattern) => pattern.test(entry))).toBe(true);
+    expect(none.some((pattern) => pattern.test(theme('ash-plain')))).toBe(false);
+
+    const one = singleFileThemeExclusions(['ash-plain']);
+    expect(one.some((pattern) => pattern.test(entry))).toBe(false);
+    expect(one.some((pattern) => pattern.test(theme('ash-plain')))).toBe(false);
+    expect(one.some((pattern) => pattern.test(theme('wheat-barn')))).toBe(true);
+    // The six built-ins Texuli also carries never load from the expanded set.
+    expect(one.some((pattern) => pattern.test(theme('violet')))).toBe(true);
+    expect(one.some((pattern) => pattern.test(theme('ash-plain-two')))).toBe(true);
+  });
+
+  /** A player whose deck page reaches Texuli's expanded set through a lazy loader. */
+  function expandPlayer(): string {
+    const dir = mkdtempSync(join(tmpdir(), 'py-sf-expand-'));
+    temps.push(dir);
+    mkdirSync(join(dir, 'assets'));
+    mkdirSync(join(dir, '.vite'));
+    writeFileSync(
+      join(dir, 'deck.html'),
+      '<!doctype html><html lang="en"><head><script type="module" src="./assets/deck-D.js"></script></head><body></body></html>'
+    );
+    const files: Record<string, string> = {
+      'deck-D.js': 'export const x=()=>import("./library-expand-E.js");',
+      'library-expand-E.js': 'export const l=()=>import("./loaders-L.js");',
+      'loaders-L.js':
+        'export const a=()=>import("./ash-plain-A.js"),w=()=>import("./wheat-barn-W.js");',
+      'ash-plain-A.js': 'export default {id:"ash-plain"};',
+      'wheat-barn-W.js': 'export default {id:"wheat-barn"};',
+    };
+    for (const [name, text] of Object.entries(files))
+      writeFileSync(join(dir, 'assets', name), text);
+    writeFileSync(
+      join(dir, '.vite', 'manifest.json'),
+      JSON.stringify({
+        'deck.html': {
+          file: 'assets/deck-D.js',
+          isEntry: true,
+          dynamicImports: [`${EXPAND}/index.js`],
+        },
+        [`${EXPAND}/index.js`]: {
+          file: 'assets/library-expand-E.js',
+          isDynamicEntry: true,
+          dynamicImports: [`${EXPAND}/loaders.js`],
+        },
+        [`${EXPAND}/loaders.js`]: {
+          file: 'assets/loaders-L.js',
+          isDynamicEntry: true,
+          dynamicImports: [`${EXPAND}/themes/ash-plain.js`, `${EXPAND}/themes/wheat-barn.js`],
+        },
+        [`${EXPAND}/themes/ash-plain.js`]: { file: 'assets/ash-plain-A.js', isDynamicEntry: true },
+        [`${EXPAND}/themes/wheat-barn.js`]: {
+          file: 'assets/wheat-barn-W.js',
+          isDynamicEntry: true,
+        },
+      })
+    );
+    return dir;
+  }
+
+  it('embeds only the expanded theme the blueprint uses, or none of the set', async () => {
+    const playerDir = expandPlayer();
+    const build = (style: object) =>
+      buildSingleFile({
+        playerDir,
+        blueprintJson: JSON.stringify({ kind: 'deck', deck: { style } }),
+        title: 'Deck',
+        entry: 'deck',
+      });
+    expect(chunkNames((await build({})).html)).toEqual(['deck-D.js']);
+    expect(chunkNames((await build({ theme: 'fintech-ledger' })).html)).toEqual(['deck-D.js']);
+    expect(chunkNames((await build({ theme: 'ash-plain' })).html).sort()).toEqual(
+      ['ash-plain-A.js', 'deck-D.js', 'library-expand-E.js', 'loaders-L.js'].sort()
+    );
+  });
+});
+
 describe('single files from the real player build', () => {
   // The player's shared helper: a production build, rebuilt when any kind page is missing.
   const ensureBuild = () => {
@@ -311,6 +413,121 @@ describe('single files from the real player build', () => {
     expect(filesOf(/@faker-js\/faker/).some((name) => embedded.has(name))).toBe(true);
     expect(result.bytes).toBeLessThanOrEqual(QUICK_SINGLE_FILE_BUDGET_BYTES);
   }, 300_000);
+
+  /** Expanded-set chunks a file embeds: the entry and its theme modules, by manifest key. */
+  const expandedIn = (html: string) => {
+    const embedded = new Set(chunkNames(html));
+    const manifest = JSON.parse(
+      readFileSync(join(PLAYER, '.vite', 'manifest.json'), 'utf8')
+    ) as Record<string, { file: string }>;
+    const keys = Object.entries(manifest)
+      .filter(
+        ([key, chunk]) =>
+          /library-expand\//.test(key) && embedded.has(chunk.file.replace(/^assets\//, ''))
+      )
+      .map(([key]) => key.replace(/^.*library-expand\//, ''));
+    return {
+      entry: keys.includes('index.js'),
+      themes: keys.filter((key) => key.startsWith('themes/')).sort(),
+    };
+  };
+
+  it.each([
+    ['deck', 'blueprints/decks/lumen-launch.json'],
+    ['index', 'blueprints/crm.json'],
+  ] as const)(
+    'a %s file embeds no expanded library theme unless the blueprint uses one, and then only that one',
+    async (entry, file) => {
+      ensureBuild();
+      const source = JSON.parse(readFileSync(join(REPO, file), 'utf8'));
+      // The build can reach the expanded set (the library's on-demand loader).
+      expect(filesOf(/library-expand\/themes\//).length).toBeGreaterThanOrEqual(140);
+      const plain = await buildSingleFile({
+        playerDir: PLAYER,
+        blueprintJson: JSON.stringify(source),
+        title: 'Plain',
+        entry,
+      });
+      expect(expandedIn(plain.html)).toEqual({ entry: false, themes: [] });
+
+      const themed =
+        entry === 'deck'
+          ? {
+              ...source,
+              deck: { ...source.deck, style: { ...source.deck.style, theme: 'ash-plain' } },
+            }
+          : { ...source, brand: { libraryTheme: 'ash-plain' } };
+      const result = await buildSingleFile({
+        playerDir: PLAYER,
+        blueprintJson: JSON.stringify(themed),
+        title: 'Themed',
+        entry,
+      });
+      expect(expandedIn(result.html)).toEqual({ entry: true, themes: ['themes/ash-plain.js'] });
+      expect(result.bytes).toBeLessThanOrEqual(QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES[entry]);
+    },
+    300_000
+  );
+
+  it('a deck single file on an expanded library theme paints that theme from file://', async () => {
+    ensureBuild();
+    let chromium: typeof import('@playwright/test').chromium;
+    try {
+      ({ chromium } = await import('@playwright/test'));
+    } catch (error) {
+      console.warn(
+        `single-file-kinds: Playwright unavailable (${String(error)}); browser check skipped`
+      );
+      return;
+    }
+    const { loadLibraryTheme } = await import('@protoyard/themes');
+    const blueprint = JSON.parse(
+      readFileSync(join(REPO, 'blueprints/decks/lumen-launch.json'), 'utf8')
+    );
+    blueprint.brand = undefined;
+    blueprint.deck.style.theme = 'ash-plain';
+    const { html } = await buildSingleFile({
+      playerDir: PLAYER,
+      blueprintJson: JSON.stringify(blueprint),
+      title: 'Ash',
+      entry: 'deck',
+    });
+    const out = resolve(REPO, 'tmp', `single-file-deck-ash-${process.pid}.html`);
+    mkdirSync(join(REPO, 'tmp'), { recursive: true });
+    writeFileSync(out, html);
+    let browser: Awaited<ReturnType<typeof chromium.launch>>;
+    try {
+      browser = await chromium.launch();
+    } catch (error) {
+      console.warn(
+        `single-file-kinds: Chromium unavailable (${String(error).split('\n')[0]}); browser check skipped`
+      );
+      return;
+    }
+    try {
+      const page = await browser.newPage({ colorScheme: 'light' });
+      const problems: string[] = [];
+      page.on('pageerror', (error) => problems.push(error.message));
+      await page.goto(pathToFileURL(out).href);
+      await page.waitForSelector('[data-py-deck-app]', { timeout: 60_000 });
+      const expected = (await loadLibraryTheme('ash-plain')).light.primary;
+      await expect
+        .poll(() =>
+          page
+            // The stage applies the deck theme on its own element, inside the app.
+            .locator('[data-py-deck-app] [style*="--tx-primary"]')
+            .first()
+            .evaluate((element) =>
+              getComputedStyle(element).getPropertyValue('--tx-primary').trim()
+            )
+        )
+        .toBe(expected);
+      expect(problems).toEqual([]);
+    } finally {
+      await browser.close();
+      rmSync(out, { force: true });
+    }
+  }, 120_000);
 
   it('a deck single file opens from file:// and shows the deck with no network', async () => {
     ensureBuild();
