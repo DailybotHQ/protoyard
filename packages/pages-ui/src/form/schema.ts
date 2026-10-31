@@ -48,8 +48,15 @@ function mapField(field: BlockField): FormField {
     case 'phone':
       return { ...base, ...placeholder, ...maxLength, type: 'text', autocomplete: 'tel' };
     case 'url':
-      // Texuli's `url` type insists on https://; the response service also accepts http.
-      return { ...base, ...placeholder, ...maxLength, type: 'text', autocomplete: 'url' };
+      // The response service accepts http and https (G121).
+      return {
+        ...base,
+        ...placeholder,
+        ...maxLength,
+        type: 'url',
+        protocols: ['http', 'https'],
+        autocomplete: 'url',
+      };
     case 'number':
       return {
         ...base,
@@ -82,8 +89,8 @@ function mapField(field: BlockField): FormField {
 
 /**
  * The schema for one form block. A block without a title gets its submit
- * label as the form's name (the host hides the heading and keeps it as the
- * accessible name).
+ * label as the form's name (the host hides the heading visually, G114, and it
+ * keeps naming the form).
  */
 export function formBlockSchema(form: FormBlock): FormSchema {
   return {

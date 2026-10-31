@@ -152,8 +152,11 @@ describe('FormBlock', () => {
     const { title: _title, ...untitled } = fixtureForm();
     const view = render(FormBlock, { props: { form: untitled, services: fakeServices() } });
     const form = view.container.querySelector('form[data-py-form="contact-form"]');
-    expect(form?.getAttribute('aria-label')).toBe('Send message');
+    expect(view.getByRole('form', { name: 'Send message' })).toBe(form);
     expect(form?.hasAttribute('data-py-form-untitled')).toBe(true);
+    // Texuli hides the title visually and keeps it as the name (G114).
+    const heading = form?.querySelector('.tx-forms__title') as HTMLElement;
+    expect(heading.className).toMatch(/sr-only|visually-hidden/);
   });
 
   it('maps every field type to Texuli and the response back to service values', async () => {
@@ -186,7 +189,7 @@ describe('FormBlock', () => {
     expect(schema.fields?.map((field) => [field.name, field.type])).toEqual([
       ['name', 'text'],
       ['email', 'email'],
-      ['site', 'text'],
+      ['site', 'url'],
       ['phone', 'text'],
       ['seats', 'number'],
       ['agree', 'checkbox'],
@@ -198,6 +201,7 @@ describe('FormBlock', () => {
     expect(schema.fields?.[1]).toMatchObject({ description: 'We reply here' });
     expect(schema.fields?.[4]).toMatchObject({ min: 1, max: 9 });
     expect(schema.fields?.[7]).toMatchObject({ maxItems: 3 });
+    expect(schema.fields?.[2]).toMatchObject({ protocols: ['http', 'https'] });
     expect(
       formBlockResponse(form, {
         name: 'Ada',
