@@ -146,7 +146,7 @@ export function parseSweepArgs(argv: readonly string[]): SweepArgs {
   return args;
 }
 
-/** The library metadata the theme selection needs (`THEME_LIBRARY_META` entries). */
+/** The library metadata the theme selection needs (`loadFullLibraryMeta()` entries). */
 export interface LibraryThemeRef {
   id: string;
   collection: string;
