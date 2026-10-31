@@ -88,5 +88,10 @@
     "path": "packages/ui/src/components/toast/UndoToaster.svelte",
     "rules": ["local-motion"],
     "reason": "The undo countdown bar is a progress indicator, not decoration: one linear scaleX keyframe shows how much of the 1–60 s undo window is left and pauses with the toasts (animation-play-state). Texuli's motion caps a run at 1 s (MAX_MOTION_MS) and has no timer primitive. The bar is hidden under prefers-reduced-motion and the prototype's reduced-motion toggle, where the sr-only hint carries the window. The toast entrance itself uses texuli/motion createPresenceMotion."
+  },
+  {
+    "path": "packages/ai-ui/src/voice/VoiceMode.svelte",
+    "rules": ["local-motion"],
+    "reason": "The voice orb's bars are a live state indicator, not decoration: one scaleY keyframe loops for as long as the simulated session is listening, transcribing or speaking, and stops on interrupt. Texuli's motion caps a run at 1 s (MAX_MOTION_MS) and has no looping or level-meter preset. The bars stand still under prefers-reduced-motion and the prototype's reduced-motion toggle; the button labels carry the state."
   }
 ]

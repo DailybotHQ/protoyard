@@ -1,10 +1,4 @@
 {
   "unit": "packages__ai-ui",
-  "entries": [
-    {
-      "file": "packages/ai-ui/src/voice/VoiceMode.svelte",
-      "rule": "local-motion",
-      "count": 1
-    }
-  ]
+  "entries": []
 }

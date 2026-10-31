@@ -1,10 +1,4 @@
 {
   "unit": "apps__gallery",
-  "entries": [
-    {
-      "file": "apps/gallery/src/styles/global.css",
-      "rule": "local-motion",
-      "count": 1
-    }
-  ]
+  "entries": []
 }

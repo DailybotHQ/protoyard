@@ -36,7 +36,7 @@ async function apply() {
   const result = validateFilter($state.snapshot(draft) as FilterGroup, properties);
   errors = result.errors;
   if (!result.ok || !result.data) {
-    status = `Fix ${count === 1 ? 'the highlighted field' : `${count} highlighted fields`} to apply`;
+    status = `Fix ${count === 1 ? 'the listed field' : `${count} listed fields`} to apply`;
     return;
   }
   status = '';
@@ -45,7 +45,13 @@ async function apply() {
 </script>
 
 <section class="grid gap-3" aria-label={label}>
-  <FilterGroupEditor group={draft} {properties} {errors} onchange={(next) => (draft = next)} />
+  <FilterGroupEditor
+    group={draft}
+    {properties}
+    {errors}
+    label="{label}: conditions"
+    onchange={(next) => (draft = next)}
+  />
   <div class="flex flex-wrap items-center justify-between gap-2">
     <p class="m-0 text-xs text-muted-foreground" data-filter-summary="">{summary}</p>
     <div class="flex gap-2">

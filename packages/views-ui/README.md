@@ -17,12 +17,14 @@ files, settings, states and an app command palette. The engines live in
   Markdown source commands and outline editing retain Protoyard's callbacks,
   state and keyboard contracts. The grid filter editor wraps Texuli's
   `@texuli/data/filter-builder` while retaining Protoyard's nullable value
-  contract. Texuli's `@texuli/editor/markdown` codec handles ordinary
-  Markdown, but does not expose extension-node hooks for mentions and
-  references; those source-editor extensions remain Protoyard-owned (G48).
-  `NotificationCenter` keeps recipient-scoped rows and service callbacks; the
-  Texuli inbox API still needs a way to hide mark-unread or accept a separate
-  callback (G50).
+  contract. Texuli's `@texuli/editor/markdown` codec now reads host inline
+  extensions in the `@{id|label}` form `@protoyard/views/editor` stores
+  mentions in (G48, pinned by `tests/editor-texuli-codec.test.ts`). The
+  editor still parses with `@protoyard/views/editor`, because Texuli's codec
+  does not read the `\@` escape that stored text uses for a literal `@`.
+  `NotificationCenter` renders Texuli's `@texuli/data/activity/inbox` with
+  `allowMarkUnread={false}` (G50) and keeps recipient-scoped rows and the
+  mark-read service callbacks.
 
 Some adapters still accept props from the earlier Protoyard API that they do
 not forward; each section below lists them. The mapping table is in
@@ -826,10 +828,14 @@ import { LucideIcon } from 'texuli/icons/lucide';
 
 Pass `onMuteChange` when the prototype has a per-type preference service; its
 callback receives the notification kind and the requested muted state.
-The panel preserves the Protoyard service contract, loading and error states,
-grouping, mute preferences, and responsive host surface. Texuli 0.5.0's inbox
-model supports controlled read and unread changes; this adapter has only a
-mark-read service contract today, so the write behavior remains Protoyard-owned.
+The list is Texuli's `NotificationInbox` (all/unread view, opening on the
+Unread view, relative time labels, "Mark as read" per row, "Mark all as read",
+and a polite announcement for new arrivals). Read items offer no "Mark as
+unread" (`allowMarkUnread={false}`, G50), because the service contract is
+mark-read only. The adapter keeps the Protoyard service contract (optimistic
+read state, rolled back when the service fails or returns `false`), loading
+and error states, mute preferences in each row's actions, and the responsive
+host surface.
 
 - **Loading:** import this subpath from a lazy route so the panel stays out of
   initial JavaScript.

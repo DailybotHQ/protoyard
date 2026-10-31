@@ -99,4 +99,33 @@ describe('CalendarView (Texuli host adapter)', () => {
     const buttons = screen.getAllByRole('button');
     expect(buttons.length).toBeGreaterThan(0);
   });
+
+  // Texuli gap (the lead assigns its id): @texuli/data/calendar EventButton names a timed
+  // event "Title, <long date>, <time>, press Enter to open", but its visible text is
+  // "Title <time>". The date splits the visible text, so axe flags
+  // label-content-name-mismatch (WCAG 2.5.3) wherever the time shows (the phone agenda in
+  // cadence-studio-demo). Expected: the visible text leads the name in order, e.g.
+  // "Title, <time>, <long date>, press Enter to open". Flip to `it` when Texuli ships it.
+  it.fails('a timed agenda event names itself starting with its visible text in order', async () => {
+    render(CalendarView<Data>, {
+      query: query(),
+      view: 'agenda',
+      timeZone: 'UTC',
+      now: '2026-10-20T08:00:00.000Z',
+      getTitle: (o) => (o as { data?: Data }).data?.title ?? 'Event',
+    });
+    const event = await waitFor(() => {
+      const node = document.querySelector<HTMLElement>('[data-calendar-event]');
+      if (!node?.textContent?.includes('Standup')) throw new Error('not rendered');
+      return node;
+    });
+    const words = (text: string) =>
+      text
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .trim();
+    const visible = words([...event.children].map((child) => child.textContent ?? '').join(' '));
+    expect(visible).toMatch(/standup \d/);
+    expect(words(event.getAttribute('aria-label') ?? '')).toContain(visible);
+  });
 });
