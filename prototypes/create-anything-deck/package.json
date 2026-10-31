@@ -20,7 +20,7 @@
     "@protoyard/player": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "svelte": "^5.57.2",
+    "svelte": "^5.57.3",
     "texuli": "0.8.0"
   }
 }

@@ -55,7 +55,7 @@
     "texuli": "0.8.0"
   },
   "devDependencies": {
-    "svelte": "^5.57.2"
+    "svelte": "^5.57.3"
   },
   "peerDependencies": {
     "svelte": "^5.57.0"
