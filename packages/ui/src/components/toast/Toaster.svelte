@@ -10,7 +10,9 @@ import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
  * without a frame it is Texuli's top-layer viewport. A caller's `mode` and
  * `container` still win.
  */
-type Props = ComponentProps<typeof TexuliToaster>;
+// `ref` is declared here: Texuli types it with an interface from a path it does
+// not export, so a declaration that names it cannot be emitted.
+type Props = Omit<ComponentProps<typeof TexuliToaster>, 'ref'> & { ref?: HTMLElement | null };
 
 let { ref = $bindable(null), ...props }: Props = $props();
 
