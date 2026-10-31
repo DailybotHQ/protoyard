@@ -31,7 +31,8 @@ export const LAYOUT_BUNDLE_BUDGETS = {
    * (T-adopt-layouts; docs/PERFORMANCE.md).
    */
   // Texuli 0.8.0 measured 3,710 B (PLAN_008: Texuli 0.8 layouts); + 2.5 %.
-  hostInitialDelta: 3_800,
+  // Texuli 0.9.0 measured 3,802 B (token contract v2 component CSS); + 2.5 %.
+  hostInitialDelta: 3_900,
 };
 
 function sourceFiles(dir: string, out: string[] = []): string[] {

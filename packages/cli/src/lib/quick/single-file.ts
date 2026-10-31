@@ -42,7 +42,9 @@ import { entryGraph } from './chunk-graph.ts';
  * d360235f (approved) and is unchanged for 0.5.0, even though 0.5.0's measured
  * maximum + 5 % is higher.
  */
-export const QUICK_SINGLE_FILE_BUDGET_BYTES = 4_418_158;
+// Texuli 0.9.0: a maximum of 4,466,115 bytes over the catalog (token contract
+// v2 component CSS plus @texuli/tokens/base.css, gap G110); + 2.5 % (PLAN_008).
+export const QUICK_SINGLE_FILE_BUDGET_BYTES = 4_577_768;
 
 /** The player page a single file starts from (deck.html, page.html, doc.html or index.html). */
 export type SingleFileEntry = 'index' | 'deck' | 'page' | 'doc';

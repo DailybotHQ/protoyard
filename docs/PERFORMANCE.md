@@ -11,6 +11,31 @@ layouts, views and theme library. They are kept as history and labelled so;
 current prototype bundle numbers are in
 [After the Texuli adoption](#after-the-texuli-adoption-measured-2026-10-28).
 
+## Texuli 0.9.0 ceilings (measured 2026-10-31)
+
+Texuli 0.9.0's components read their system tokens (`--tx-size-*`,
+`--tx-space-*`, `--tx-shape-*`) with no fallback. Only
+`@texuli/tokens/base.css` declares those tokens, so `@protoyard/themes` now
+loads it. That file and the 0.9 component CSS grew these first-screen sizes.
+Each ceiling below is the measurement from `pnpm check` (after
+`pnpm build:packages` and the player build) plus 2.5 %.
+
+Texuli gap G110 asks for a tokens-only stylesheet. When Texuli ships it, a
+re-measure lowers these ceilings again.
+
+| Ceiling | Measured on 0.9.0 | Before → after |
+| --- | ---: | ---: |
+| Player `index.html` initial CSS (`protoyard.budgets.json` player override) | 18,013 B (17.59 KB) | 17.0 → 18.1 KB |
+| Player `deck.html` initial CSS (kind budget) | 18,346 B (17.92 KB) | 17.0 → 18.4 KB |
+| Player `page.html` / `doc.html` initial CSS (kind budgets) | 19,650 B (19.19 KB) | 18.3 → 19.7 KB |
+| decks-ui first-screen CSS gzip | 10,153–10,225 B | 9,042 → 10,481 B |
+| pages-ui page / doc CSS gzip | 34,560 / 35,026 B | 34,267 / 33,905 → 35,424 / 35,902 B |
+| Views kit editor over the shell | 10,531 B | 9,958 → 10,795 B |
+| Player all CSS: index / deck / page and doc | 142.85 / 117.02 / 118.30 KB | 136.2 / 112.4 / 113.7 → 146.5 / 120.0 / 121.3 KB |
+| decks-ui all emitted CSS gzip | 85,945 B | 83,381 → 88,094 B |
+| renderer LayoutHost initial delta | 3,802 B | 3,800 → 3,900 B |
+| Quick single-file export (largest catalog blueprint) | 4,466,115 B | 4,418,158 → 4,577,768 B |
+
 ## After the Texuli adoption (measured 2026-10-28)
 
 Protoyard's charts, layouts, styled components, rich views and theme library

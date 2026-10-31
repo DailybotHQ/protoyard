@@ -27,7 +27,9 @@ const JS_GZIP_BUDGET = 120 * 1024;
 // lazy block and chart families, with no repeated rule beyond `.tx-sr-only`.
 // Final Review (2026-10-29): page 32,635 B after the review fixes (Button
 // variants, the plain section header), so its cap is measured + 5 %.
-const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 34_267, doc: 33_905 };
+// Texuli 0.9.0 measured page 34,560 B and doc 35,026 B (token contract v2
+// component CSS plus @texuli/tokens/base.css, gap G110); + 2.5 %.
+const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 35_424, doc: 35_902 };
 
 interface HostBuild {
   chunks: Rollup.OutputChunk[];
