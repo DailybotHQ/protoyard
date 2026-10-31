@@ -1,6 +1,7 @@
 <script lang="ts">
 import * as DialogPrimitive from '@texuli/primitives/dialog';
 import { onMount } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import {
   CommandEmpty,
   CommandGroup,
@@ -15,10 +16,13 @@ import {
 } from 'texuli/command';
 import { cx } from 'texuli/cx';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
-import { installPopoverOrder } from '../overlay/popover-order.ts';
 import type { CommandPaletteItem, CommandPaletteSearch, CommandPaletteSelect } from './types.ts';
 
-interface Props {
+interface OwnProps {
+  /** The palette's content element while open, `null` while closed (bindable). */
+  ref?: HTMLElement | null;
+  /** Open state (bindable). ⌘K / Ctrl+K toggles it as well. */
+  open?: boolean;
   search: CommandPaletteSearch;
   onSelect: CommandPaletteSelect;
   recentItems?: CommandPaletteItem[];
@@ -27,6 +31,9 @@ interface Props {
   class?: string;
 }
 
+/** Extra attributes (`data-*`, `aria-*`, `id`, handlers…) land on the palette's content element. */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps>;
+
 let {
   search,
   onSelect,
@@ -34,13 +41,13 @@ let {
   debounceMs = 150,
   placeholder = 'Search pages, people, and actions…',
   class: className,
+  ref = $bindable(null),
+  open = $bindable(false),
+  ...rest
 }: Props = $props();
 
 const portal = useOverlayPortalTarget();
-// Popovers opened inside the overlay stay above Texuli's dialog backdrop (gap N30).
-installPopoverOrder();
 
-let open = $state(false);
 let query = $state('');
 let results = $state<CommandPaletteItem[]>([]);
 let loading = $state(false);
@@ -138,6 +145,17 @@ $effect(() => {
   return () => clearTimeout(timer);
 });
 
+// Opened by the caller (`open` set to true) rather than ⌘K: remember the
+// element focus returns to, as the shortcut does.
+let wasOpen = false;
+$effect.pre(() => {
+  const isOpen = open;
+  if (isOpen && !wasOpen && !returnFocusTo && typeof document !== 'undefined') {
+    returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }
+  wasOpen = isOpen;
+});
+
 onMount(() => {
   window.addEventListener('keydown', handleShortcut);
   return () => window.removeEventListener('keydown', handleShortcut);
@@ -145,12 +163,11 @@ onMount(() => {
 </script>
 
 <!--
-  A thin adapter over Texuli's command palette: the parts and classes of
-  `CommandPalette` from `texuli/command`, on a dialog root that also takes the
-  framed-device `mode`/`container`, which Texuli's palette cannot take (gap
-  N13).
-  Inside a framed device the palette is contained by its screen; otherwise it
-  opens in the top layer.
+  Texuli's command palette parts and classes on a dialog root inside a framed
+  device or the top layer. Texuli's own `CommandPalette` (which also takes
+  `mode`/`container` now) runs the search itself but never shows its
+  "Searching…" status while a search is pending, so this palette keeps its own
+  search and status (Texuli gap G88).
 -->
 <DialogPrimitive.Root
   bind:open
@@ -165,6 +182,8 @@ onMount(() => {
   <DialogPrimitive.Portal>
     <DialogPrimitive.Overlay class="tx-command-palette__overlay" data-tx-command-palette-overlay="" />
     <DialogPrimitive.Content
+      {...rest}
+      bind:ref
       class={cx('tx-command-palette__content', commandPaletteClass({ size: 'md' }), className)}
       data-tx-command-palette=""
       data-size="md"

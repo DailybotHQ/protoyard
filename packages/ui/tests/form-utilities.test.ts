@@ -114,6 +114,55 @@ describe('TagEmailInput', () => {
   });
 });
 
+describe('TagEmailInput on Texuli TagsInput (G60, G61)', () => {
+  it('is read-only, not disabled: tags stay focusable, nothing is added or removed', async () => {
+    const onValueChange = vi.fn();
+    render(TagEmailInput, {
+      label: 'Invite',
+      value: ['ada@example.com'],
+      readonly: true,
+      onValueChange,
+    });
+    const input = screen.getByRole('textbox', { name: 'Invite' }) as HTMLInputElement;
+    expect(input.disabled).toBe(false);
+    expect(input.readOnly).toBe(true);
+    const remove = screen.getByRole('button', { name: 'Remove ada@example.com' });
+    expect((remove as HTMLButtonElement).disabled).toBe(true);
+    await fireEvent.input(input, { target: { value: 'bob@example.com' } });
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    await fireEvent.click(remove);
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(screen.getByText('ada@example.com')).toBeTruthy();
+  });
+
+  it('puts id on the text input, so a <label for> reaches it', () => {
+    render(TagEmailInput, { id: 'invitees', 'aria-label': 'Invitees' });
+    const input = screen.getByRole('textbox', { name: 'Invitees' });
+    expect(input.id).toBe('invitees');
+  });
+
+  it('adds the draft on comma, semicolon and space, and ignores them on an empty draft', async () => {
+    const onValueChange = vi.fn();
+    render(TagEmailInput, { label: 'Invite', value: [], onValueChange });
+    const input = screen.getByRole('textbox', { name: 'Invite' });
+    await fireEvent.input(input, { target: { value: 'ada@example.com' } });
+    expect(await fireEvent.keyDown(input, { key: ',' })).toBe(false);
+    expect(onValueChange).toHaveBeenLastCalledWith(['ada@example.com']);
+    await fireEvent.input(input, { target: { value: 'bob@example.com' } });
+    await fireEvent.keyDown(input, { key: ';' });
+    await fireEvent.input(input, { target: { value: 'cara@example.com' } });
+    await fireEvent.keyDown(input, { key: ' ' });
+    expect(onValueChange).toHaveBeenLastCalledWith([
+      'ada@example.com',
+      'bob@example.com',
+      'cara@example.com',
+    ]);
+    // A delimiter on an empty draft types nothing and adds nothing.
+    expect(await fireEvent.keyDown(input, { key: ' ' })).toBe(false);
+    expect(onValueChange).toHaveBeenCalledTimes(3);
+  });
+});
+
 describe('EmojiPicker', () => {
   it('opens, searches, picks with the keyboard and closes on Escape', async () => {
     const onValueChange = vi.fn();

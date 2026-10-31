@@ -99,15 +99,21 @@ const properties: FilterProperty[] = [
 ];
 ```
 
-- **`FilterBuilder`:** match All/Any, rows of property / operator / value,
-  and nested groups up to three levels deep. Operators follow the property
-  type. Values include number, date, true/false, a choice or a
-  multi-select for known options, comma-separated text for lists, two
-  inputs for "between".
+- **`FilterBuilder`:** Texuli's `@texuli/data/filter-builder` with the
+  property catalog: match all/any, rows of field / operator / value as
+  native controls, and nested groups up to three levels deep. Operators
+  follow the property type, in `OPERATORS_BY_TYPE` order; the ones Texuli
+  does not ship (greater/less than, at least/most, does not contain, starts
+  with, is none of, on or after/before) are catalog operators
+  (`BUILDER_OPERATORS`). Values include number, date, Yes/No, a choice or
+  a multi-select for known options (shown by label), comma-separated text
+  for lists, two inputs for "between".
   - "Apply filters" validates against the catalog: unknown properties,
-    operators that do not fit the type and missing values show inline next
-    to the field (`aria-invalid` and `aria-describedby`). Only valid data
-    reaches `onchange`.
+    operators that do not fit the type and missing values are listed under
+    the builder by condition ("Condition 1: Enter a value"). Only valid data
+    reaches `onchange`. Texuli's builder marks values that do not fit a
+    field itself; it takes no host issues, so Protoyard's are listed
+    instead of marked on the control (a Texuli gap; the lead assigns its id).
   - A one-line summary reads "Plan is Pro and Seats at least 5".
 - **`SegmentPicker`:** saved segments as `aria-pressed` chips ("Everyone"
   clears) and a "Save current filter as a segment" form.
@@ -123,12 +129,13 @@ const properties: FilterProperty[] = [
 **Why not `@protoyard/ui` `FilterBar`?** FilterBar filters list rows by flat
 per-field values (`FilterValues`) for CRUD screens. Analytics filters are
 nested AND/OR trees that are saved as segments and validated against a
-property catalog, so they need this data-first builder. Texuli's 0.5.0
-`@texuli/data/filter-builder` provides nested groups and conditions, but does
-not yet expose field/operator extension hooks for an analytics property
-catalog (G49). `FilterGroupEditor` is the small Protoyard adapter that supplies
-that catalog and validates segments. Use FilterBar for entity lists and
-FilterBuilder for analytics queries.
+property catalog, so they need this data-first builder. `FilterGroupEditor`
+renders Texuli's `@texuli/data/filter-builder` with that catalog (fields,
+per-type operator lists and catalog operators, G49) and converts its model
+to and from `@protoyard/analytics` `FilterGroup` (`toBuilderFilter`,
+`fromBuilderFilter`); validation and the compiled predicate stay
+`@protoyard/analytics`. Use FilterBar for entity lists and FilterBuilder for
+analytics queries.
 
 Pre-migration size estimates (esbuild minify + gzip -9; svelte, @protoyard/ui, @protoyard/analytics
 and zod external), each imported from the subpath: FilterBuilder 4.6 KB (5.5 KB
@@ -240,14 +247,14 @@ prototypes already ship them): `DashboardGrid` + `WidgetCard` 3.6 KB, or
     steps after it.
 - **`CohortTable`**: a real `<table>` with a caption, `scope="col"` period
   headers, `scope="row"` cohort headers and an average row.
-  It uses `@texuli/charts/matrix` `heatmapFill` for cell fills; its semantic
-  row/period layout and contrast-checked text stay Protoyard-owned. Texuli's
-  cohort API does not yet expose a palette/token override with its contrast
-  guarantees (G51).
-  - Cells use the sequential ramp (`var(--tx-seq-N)`). Text is colored on the
-    fill only when it reaches 4.5:1 against that step's hex, read from the
-    theme's `--tx-seq-*` (or a `palette` prop). Otherwise the value sits on a
-    surface chip, so contrast never depends on a guess.
+  Its fills and text colors come from `@texuli/data/cohort`
+  `resolveHeatScale` and `heatLevel` (G51); the semantic row/period layout,
+  the %/count toggle and the incomplete marks stay Protoyard-owned.
+  - Cells use the theme's sequential ramp (`--tx-chart-sequential-*`, or a
+    `palette` prop). Texuli checks each hex step and pairs it with the text
+    color that reaches 4.5:1 on it, so every number sits on its fill. Without
+    a hex ramp (or one Texuli refuses) cells keep the token fill and the value
+    sits on a surface chip, so contrast never depends on a guess.
   - The % / Count toggle uses `aria-pressed` buttons and is bindable
     (`display`). Incomplete periods are outlined and marked with an asterisk
     and "(incomplete)" for screen readers. Period 0 is unfilled because it is

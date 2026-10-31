@@ -20,6 +20,11 @@ export interface CartesianSeries<D = unknown> {
   type?: 'bar' | 'line';
 }
 
+/**
+ * The x scale a caller means. Kept for API stability: Texuli's cartesian
+ * charts take no x kind or x formatter yet, so a `time` series is labelled and
+ * announced as raw epoch milliseconds (Texuli gap G97).
+ */
 export type XKind = 'time' | 'linear' | 'category';
 export type BarMode = 'grouped' | 'stacked' | 'expanded';
 export type ValueUnit = 'number' | 'compact' | 'cents' | 'percent';

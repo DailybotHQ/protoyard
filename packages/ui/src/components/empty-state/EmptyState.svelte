@@ -13,9 +13,11 @@ type Props = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
   icon?: IconComponent;
   action?: Snippet;
   size?: 'sm' | 'md';
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 };
 
-let { icon = Inbox, size = 'md', ...rest }: Props = $props();
+let { icon = Inbox, size = 'md', ref = $bindable(null), ...rest }: Props = $props();
 </script>
 
 <!-- A thin adapter over Texuli's EmptyState (`texuli/empty`) that takes an icon component. -->
@@ -23,4 +25,4 @@ let { icon = Inbox, size = 'md', ...rest }: Props = $props();
   <Icon {icon} size={size === 'sm' ? 'md' : 'lg'} aria-hidden="true" />
 {/snippet}
 
-<TexuliEmptyState {illustration} {size} {...rest} />
+<TexuliEmptyState bind:ref {illustration} {size} {...rest} />

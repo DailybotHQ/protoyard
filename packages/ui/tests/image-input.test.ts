@@ -170,3 +170,22 @@ describe('ImageInput', () => {
     expect(fileInput('Cover').required).toBe(true);
   });
 });
+
+describe('ImageInput input id (Texuli G56)', () => {
+  it('puts inputId on the file input, so a <label for> names the focusable control', () => {
+    render(ImageInput, { label: 'Photos', inputId: 'evidence-photos' });
+    const input = document.getElementById('evidence-photos') as HTMLInputElement | null;
+    expect(input?.tagName).toBe('INPUT');
+    expect(input?.type).toBe('file');
+    const label = document.createElement('label');
+    label.htmlFor = 'evidence-photos';
+    label.textContent = 'Site photos';
+    document.body.append(label);
+    try {
+      expect(Array.from(input?.labels ?? [])).toContain(label);
+      expect(screen.getByLabelText('Site photos', { selector: 'input' })).toBe(input);
+    } finally {
+      label.remove();
+    }
+  });
+});

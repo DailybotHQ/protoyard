@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SplitView } from '../src/index.ts';
@@ -34,6 +34,38 @@ describe('PageGrid', () => {
     expect(grid.className).toContain('[&>*]:min-w-0');
     const wideCard = grid.querySelector('[data-testid="wide-card"]');
     expect(wideCard).toBeTruthy();
+  });
+
+  // Texuli's CardGrid takes the real gap (G62); it was rounded to sm/md/lg before.
+  it.each([
+    ['0.75rem', '0.75rem'],
+    ['12px', '12px'],
+    ['--page-gutter', 'var(--page-gutter)'],
+  ])('passes the gap %s through as the grid gap, not the nearest step', (gap, value) => {
+    render(PageGrid, { gap, label: 'Cards', children: rawSnippet('<article>Card</article>') });
+    const grid = screen.getByRole('region', { name: 'Cards' });
+    expect(grid.style.getPropertyValue('--tx-card-grid-gap')).toBe(value);
+    expect(grid.style.gridTemplateColumns).toContain('280px');
+  });
+
+  it('keeps step names as Texuli gap steps and drops unsafe values', () => {
+    render(PageGrid, {
+      gap: 'lg',
+      label: 'Steps',
+      children: rawSnippet('<article>Card</article>'),
+    });
+    const stepped = screen.getByRole('region', { name: 'Steps' });
+    expect(stepped.className).toContain('tx-card-grid--gap-lg');
+    expect(stepped.style.getPropertyValue('--tx-card-grid-gap')).toBe('');
+    cleanup();
+    render(PageGrid, {
+      gap: '1rem; color: red',
+      label: 'Unsafe',
+      children: rawSnippet('<article>Card</article>'),
+    });
+    const unsafe = screen.getByRole('region', { name: 'Unsafe' });
+    expect(unsafe.className).toContain('tx-card-grid--gap-md');
+    expect(unsafe.getAttribute('style') ?? '').not.toContain('color');
   });
 });
 

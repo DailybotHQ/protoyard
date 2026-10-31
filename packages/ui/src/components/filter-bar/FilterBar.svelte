@@ -1,5 +1,6 @@
 <script lang="ts">
 import Filter from '@lucide/svelte/icons/filter';
+import type { HTMLAttributes } from 'svelte/elements';
 import { Tag } from 'texuli/badge';
 import { Button } from 'texuli/button';
 import { Checkbox } from 'texuli/choice';
@@ -18,7 +19,9 @@ import {
 } from './apply-filters.ts';
 import type { DateRangeFilterValue, FilterField, FilterValue, FilterValues } from './types.ts';
 
-interface Props {
+interface OwnProps {
+  /** The filter bar's root element (bindable). */
+  ref?: HTMLElement | null;
   /** Column filter definitions (enum, date-range, boolean, relation). */
   fields: FilterField[];
   /** Active values keyed by field id — plain data safe for the hash query. */
@@ -30,6 +33,9 @@ interface Props {
   class?: string;
 }
 
+/** Extra attributes (`data-*`, `aria-*`, `id`, handlers…) land on the root `role="search"` element. */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps>;
+
 let {
   fields,
   values = $bindable({}),
@@ -37,6 +43,8 @@ let {
   label = 'Filters',
   resetLabel = 'Reset filters',
   class: className,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const chips = $derived(buildFilterChips(fields, values));
@@ -145,6 +153,8 @@ function controlActive(field: FilterField): boolean {
   Popover, Checkbox, Input, Button and removable Tag chips.
 -->
 <div
+  {...rest}
+  bind:this={ref}
   class={cx('flex flex-col gap-2', className)}
   role="search"
   aria-label={label}

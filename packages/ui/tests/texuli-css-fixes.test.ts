@@ -3,35 +3,39 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
- * CSS @protoyard/ui adds around Texuli 0.5.0 components. The browser effects
- * are proven end to end (lattice-saas-demo avatars, project-management phone
- * board); these pin the rules, which jsdom cannot lay out.
+ * CSS @protoyard/ui adds around Texuli components, and proof that the 0.5
+ * workarounds Texuli now ships itself are gone. The browser effects are proven
+ * end to end (lattice-saas-demo avatars, project-management phone board);
+ * these pin the rules, which jsdom cannot lay out.
  */
 const styles = readFileSync(join(import.meta.dirname, '../src/styles.css'), 'utf8');
 
-/** The declaration block of the first rule whose selector is `selector`. */
-function rule(selector: string): string {
-  const start = styles.indexOf(`${selector} {`);
-  expect(start, selector).toBeGreaterThanOrEqual(0);
-  return styles.slice(start, styles.indexOf('}', start));
-}
-
 describe('Texuli CSS fixes', () => {
-  it('renders a loading avatar image (Tailwind hides [hidden] with !important), invisibly', () => {
-    const block = rule('  .tx-avatar [data-tx-avatar-image][hidden]');
-    expect(block).toMatch(/display:\s*block\s*!important/);
-    expect(block).toMatch(/opacity:\s*0/);
-    expect(block).toMatch(/pointer-events:\s*none/);
-    // Same layer as Tailwind's preflight, where the more specific selector wins.
-    const layer = styles.lastIndexOf(
-      '@layer base {',
-      styles.indexOf('[data-tx-avatar-image][hidden]')
+  // Texuli 0.6 hides a loading avatar image by style, never [hidden] (G79), so
+  // Tailwind's `[hidden] { display: none !important }` no longer stops it loading.
+  it('adds no avatar [hidden] override: Texuli never hides the loading image with [hidden]', () => {
+    expect(styles).not.toContain('[data-tx-avatar-image]');
+    const image = readFileSync(
+      join(
+        import.meta.dirname,
+        '../node_modules/@texuli/primitives/dist/avatar/AvatarImage.svelte'
+      ),
+      'utf8'
     );
-    expect(layer).toBeGreaterThanOrEqual(0);
+    expect(image).not.toMatch(/\shidden=/);
+    expect(image).toMatch(/opacity:0/);
   });
 
-  it("contains the Board's absolutely positioned labels in its scroller", () => {
-    expect(rule('.tx-board__scroller')).toMatch(/position:\s*relative/);
+  // Texuli 0.6 positions the Board scroller itself (G76).
+  it("adds no Board scroller rule: Texuli's scroller contains its screen-reader labels", () => {
+    expect(styles).not.toContain('.tx-board__scroller');
+    const board = readFileSync(
+      join(import.meta.dirname, '../node_modules/@texuli/data/dist/board/Board.svelte'),
+      'utf8'
+    );
+    const start = board.indexOf('.tx-board__scroller {');
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(board.slice(start, board.indexOf('}', start))).toMatch(/position:\s*relative/);
   });
 
   it('sizes the mobile app frame from the device screen height', () => {

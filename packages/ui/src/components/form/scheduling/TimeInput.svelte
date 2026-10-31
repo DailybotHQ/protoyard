@@ -1,7 +1,9 @@
 <script lang="ts">
 import { TimeField } from '@texuli/primitives/date-field';
+import type { HTMLAttributes } from 'svelte/elements';
 import { dateFieldClass } from 'texuli/date';
 import { cn } from '../../../lib/cn.ts';
+import { groupLabelFor } from './texuli-date.ts';
 import { isTimeOfDay, minuteSteps, type TimeFormat, type TimeOfDay } from './time.ts';
 
 /**
@@ -9,22 +11,26 @@ import { isTimeOfDay, minuteSteps, type TimeFormat, type TimeOfDay } from './tim
  * `TimeField`, styled with the `texuli/date` recipe): hour and minute
  * spinbuttons and, in the 12-hour format, an AM/PM select, in one labelled
  * group. ArrowUp/ArrowDown spin a segment (the minute by `intervalMinutes`),
- * Home/End jump to the ends, digits type a value. It composes the primitive
- * instead of the styled `TimeField` so it can sit inside FormField (`id`,
- * `aria-describedby`, `aria-invalid`, no second visible label).
+ * Home/End jump to the ends, digits type a value. `id` lands on the first
+ * segment and `aria-describedby`/`aria-invalid` on every segment, so it sits
+ * inside FormField like any input; the FormField label names the group.
+ *
+ * It composes the primitive rather than the styled `texuli/date` `TimeField`
+ * only because that one marks its bordered control invalid from its own
+ * `error` text, not from a FormField's `aria-invalid` (Texuli gap G90).
  *
  * The value is always 24-hour `HH:mm`, or `null` until hour and minute are
  * chosen; an incomplete entry leaves the value as it was. A value off the
  * minute step shows its own minute.
  */
-interface Props {
+interface OwnProps {
   value?: TimeOfDay | null;
   format?: TimeFormat;
   /** Minute step of the arrow keys; must divide 60, otherwise 15. */
   intervalMinutes?: number;
-  /** Id of the field group, so a `<label for>` or FormField points at it. */
+  /** Id of the first segment, so a `<label for>` or FormField reaches the focusable control. */
   id?: string;
-  /** Group name for assistive tech (FormField's label is linked through `aria-labelledby`). */
+  /** Group name for assistive tech (inside FormField, the FormField label names the group). */
   label?: string;
   name?: string;
   disabled?: boolean;
@@ -38,7 +44,15 @@ interface Props {
   'aria-labelledby'?: string;
   class?: string;
   onValueChange?: (value: TimeOfDay) => void;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 }
+
+/**
+ * Extra attributes (`data-*`, `aria-label`, handlers…) land on the time group,
+ * the control inside the root.
+ */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps | 'children'>;
 
 const uid = $props.id();
 
@@ -58,12 +72,21 @@ let {
   'aria-labelledby': labelledBy,
   class: className,
   onValueChange,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
 const invalid = $derived(ariaInvalid === true || ariaInvalid === 'true');
 /** `minuteSteps` falls back to 15 when the interval does not divide 60. */
 const minuteStep = $derived(minuteSteps(intervalMinutes)[1] ?? 60);
+
+let control = $state<HTMLDivElement | null>(null);
+let fieldLabelId = $state<string | undefined>(undefined);
+// FormField's `<label for={id}>` names the first segment; it names the group too.
+$effect(() => {
+  fieldLabelId = groupLabelFor(control, id).id;
+});
 
 /** What the field shows; an incomplete entry never reaches `value`. */
 let draft = $state<TimeOfDay | null>(null);
@@ -79,16 +102,18 @@ function change(next: string | null) {
 </script>
 
 <div
+  bind:this={ref}
   class={cn(dateFieldClass(), 'tx-date--time ui-time-input', className)}
   data-tx-time
   data-invalid={invalid ? 'true' : undefined}
   data-disabled={disabled ? 'true' : undefined}
 >
-  <div class="tx-date__control">
+  <div bind:this={control} class="tx-date__control">
     <TimeField.Root
+      {...rest}
       class="tx-date__field"
       bind:value={draft}
-      {id}
+      inputId={id}
       {label}
       {locale}
       hourCycle={format}
@@ -96,7 +121,7 @@ function change(next: string | null) {
       {disabled}
       {required}
       {...name ? { name } : {}}
-      aria-labelledby={labelledBy}
+      aria-labelledby={labelledBy ?? fieldLabelId}
       aria-describedby={describedBy}
       aria-invalid={invalid || undefined}
       onValueChange={change}

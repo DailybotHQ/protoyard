@@ -43,7 +43,15 @@ test.describe('build isolation', () => {
   for (const slug of others) {
     test(`${slug} bundles no CRM code or data`, () => {
       chromiumOnly();
-      const dist = join(process.cwd(), 'artifacts', slug, 'dist');
+      // Templates build to artifacts/templates/<name>/dist, prototypes to artifacts/<slug>/dist.
+      const isTemplate = existsSync(join(process.cwd(), 'templates', slug, 'protoyard.json'));
+      const dist = join(
+        process.cwd(),
+        'artifacts',
+        ...(isTemplate ? ['templates'] : []),
+        slug,
+        'dist'
+      );
       expect(existsSync(join(dist, 'index.html')), `${slug} was built`).toBe(true);
       const hits: string[] = [];
       for (const file of files(dist).filter((f) => /\.(m?js|css|html|json)$/.test(f))) {

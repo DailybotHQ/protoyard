@@ -7,7 +7,8 @@ import { Button, type ButtonVariant } from 'texuli/button';
  * Keeps the DevTools variant names (`primary` / `danger`) as a thin adapter.
  * `autoLoading={false}` keeps a button enabled while its `onclick` promise
  * settles: Texuli disables a pending button, and disabling the focused one
- * drops focus to <body>, out of the panel (its Escape handler then misses).
+ * drops focus to <body>, out of the panel (its Escape handler then misses;
+ * Texuli gap G94).
  */
 let {
   variant = 'outline',

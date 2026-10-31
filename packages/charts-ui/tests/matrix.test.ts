@@ -7,7 +7,7 @@ afterEach(() => cleanup());
 describe('matrix adapters over @texuli/charts', () => {
   it('rampScale returns fill CSS variables when no palette hexes', () => {
     const scale = rampScale([0, 5, 10], null);
-    expect(scale.fill(5)).toMatch(/^var\(--tx-seq-/);
+    expect(scale.fill(5)).toMatch(/^var\(--tx-chart-sequential-/);
     expect(scale.min).toBe(0);
     expect(scale.max).toBe(10);
   });

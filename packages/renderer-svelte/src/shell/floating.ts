@@ -13,6 +13,7 @@
  * and, when it is smaller than the layout viewport, pins with explicit visual
  * coordinates.
  */
+import { BOTTOM_NAV_SELECTOR } from '@protoyard/ui';
 import {
   type BadgeCorner,
   CONTROL_COST,
@@ -210,7 +211,7 @@ export function placeFloating(
     }
     // Phone / narrow frames: keep clear of the app's bottom tab bar.
     if (container.width <= 767) {
-      const footer = document.querySelector('[data-py-bottom-nav]');
+      const footer = document.querySelector(BOTTOM_NAV_SELECTOR);
       if (footer) {
         const r = footer.getBoundingClientRect();
         if (r.width && r.height)
@@ -369,6 +370,11 @@ export function placeFloating(
 
   window.addEventListener('resize', schedule);
   window.addEventListener('hashchange', schedule);
+  // Other fixed chrome announces itself: the DevTools launcher mounts in its own
+  // host outside #app (often after this element was placed) and moves when it
+  // docks or opens. Re-check, or this element can stay under it. Its own event
+  // re-checks once and finds the same spot, so two placements never loop.
+  window.addEventListener(FLOATING_EVENT, schedule);
   const vv = window.visualViewport;
   vv?.addEventListener('resize', schedule);
   vv?.addEventListener('scroll', schedule);
@@ -386,6 +392,7 @@ export function placeFloating(
       observer?.disconnect();
       window.removeEventListener('resize', schedule);
       window.removeEventListener('hashchange', schedule);
+      window.removeEventListener(FLOATING_EVENT, schedule);
       vv?.removeEventListener('resize', schedule);
       vv?.removeEventListener('scroll', schedule);
     },

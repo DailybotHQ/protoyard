@@ -1,25 +1,43 @@
 <script lang="ts">
-import * as AlertDialogPrimitive from '@texuli/primitives/alert-dialog';
-import type { Snippet } from 'svelte';
-import { Button } from 'texuli/button';
-import {
-  alertDialogActionsClass,
-  alertDialogContentClass,
-  alertDialogErrorClass,
-  alertDialogIconClass,
-  dialogDescriptionClass,
-  dialogOverlayClass,
-  dialogTitleClass,
-} from 'texuli/dialog';
-import { Icon } from 'texuli/icons';
+import { type ComponentProps, type Snippet, untrack } from 'svelte';
+import { AlertDialog as TexuliAlertDialog } from 'texuli/dialog';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import { overlayDismissHandler } from '../overlay/dismiss.ts';
 import { type OverlayStack, overlayStack } from '../overlay/overlay-stack.ts';
-import { installPopoverOrder } from '../overlay/popover-order.ts';
 import { useOverlayLayer } from '../overlay/use-overlay-layer.svelte.ts';
 
-interface Props {
+type TexuliProps = ComponentProps<typeof TexuliAlertDialog>;
+
+/**
+ * Extra attributes (`data-*`, `aria-*`, `id`, handlers…) land on the alert
+ * dialog content element, as in Texuli; `bind:ref` gives that element while
+ * open (`null` while closed).
+ */
+type Props = Omit<
+  TexuliProps,
+  | 'open'
+  | 'title'
+  | 'description'
+  | 'confirmLabel'
+  | 'cancelLabel'
+  | 'destructive'
+  | 'onConfirm'
+  | 'onCancel'
+  | 'trigger'
+  | 'children'
+  | 'class'
+  | 'stack'
+  | 'mode'
+  | 'container'
+  | 'portal'
+  | 'onOpenChange'
+  | 'onDismissRequest'
+  | 'onCloseAutoFocus'
+  | 'ref'
+> & {
+  /** The alert dialog content element while open, `null` while closed (bindable). */
+  ref?: HTMLElement | null;
   open?: boolean;
   title: string;
   description?: string;
@@ -36,7 +54,7 @@ interface Props {
   class?: string;
   /** Defaults to the shared stack; pass one to isolate a subtree (tests). Read once at mount. */
   stack?: OverlayStack;
-}
+};
 
 let {
   open = $bindable(false),
@@ -51,121 +69,85 @@ let {
   children,
   class: className,
   stack = overlayStack,
+  style,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const portal = useOverlayPortalTarget();
-// Popovers opened inside the overlay stay above Texuli's dialog backdrop (gap N30).
-installPopoverOrder();
 // svelte-ignore state_referenced_locally
 const layer = useOverlayLayer(() => open, { modal: () => true, stack });
 
-let pending = $state(false);
-/** Cancel is the safe default: it receives focus when the dialog opens. */
-let cancelButton = $state<HTMLElement | null>(null);
-let error = $state<string | null>(null);
+/** Set when this close was a confirm or the Cancel button, so `onCancel` runs once. */
+let settled = false;
 
 async function confirm(): Promise<void> {
-  if (pending) return;
-  error = null;
-  pending = true;
-  try {
-    await onConfirm?.();
-    open = false;
-  } catch (cause) {
-    // Keep the dialog open so the user can retry or cancel with context.
-    error = cause instanceof Error ? cause.message : 'The action failed. Please try again.';
-  } finally {
-    pending = false;
-  }
+  await onConfirm?.();
+  // A caller that closed the alert in onConfirm gets no Texuli close to settle.
+  if (open) settled = true;
 }
 
 function cancel(): void {
-  if (pending) return;
+  settled = true;
   onCancel?.();
-  open = false;
 }
 
-// Escape cancels (an alert never closes on an outside press); nothing closes it while pending.
-const handleDismiss = overlayDismissHandler({
-  layer,
-  element: () => cancelButton,
-  blocked: () => pending,
+// Texuli's AlertDialog binds `open` to its root and then skips its own
+// `onOpenChange`, so a close from inside never reaches the caller (Texuli gap
+// G87). `shown` follows the parent; a close
+// Texuli makes is reported here, and Escape (an alert never closes on an
+// outside press) counts as a cancel.
+// svelte-ignore state_referenced_locally
+let shown = $state(open);
+$effect.pre(() => {
+  shown = open;
 });
+$effect.pre(() => {
+  const next = shown;
+  untrack(() => {
+    if (next === open) {
+      // The caller closed it: nothing is left to settle for the next close.
+      if (!next) settled = false;
+      return;
+    }
+    if (!next && !settled) onCancel?.();
+    settled = false;
+    open = next;
+  });
+});
+
+// Only the top overlay closes, and a menu open inside the alert takes Escape first.
+const handleDismiss = overlayDismissHandler({ layer, element: () => ref });
+
+function handleCloseAutoFocus(event: { preventDefault(): void }): void {
+  event.preventDefault();
+  layer.restoreFocus(ref);
+}
 </script>
 
 <!--
-  A thin adapter over Texuli's alert dialog: the same primitive, parts and
-  classes as `AlertDialog` from `texuli/dialog`, on a root that takes the
-  framed-device `mode`/`container` and the shared overlay stack's dismiss and
-  focus rules, which the styled alert cannot take (Texuli gap N13). Cancel, the
-  safe default, takes focus when the alert opens; confirm shows a spinner while
-  `onConfirm` runs.
+  Texuli's styled `AlertDialog`: Cancel, the safe default, takes focus when it
+  opens, confirm shows a spinner while `onConfirm` runs and a rejection keeps
+  the alert open with the error. Inside a framed device it is contained by the
+  device screen, and the shared overlay stack orders it and returns focus.
 -->
-<AlertDialogPrimitive.Root
-  {open}
-  onOpenChange={(isOpen) => {
-    if (!isOpen) {
-      error = null;
-      if (pending) return;
-      if (open) onCancel?.();
-    }
-    open = isOpen;
-  }}
+<TexuliAlertDialog
+  {...rest}
+  bind:ref
+  bind:open={shown}
+  {title}
+  {description}
+  {confirmLabel}
+  {cancelLabel}
+  {destructive}
+  {trigger}
+  {children}
+  class={className}
+  onConfirm={confirm}
+  onCancel={cancel}
   mode={portal.mode}
   container={portal.container}
-  initialFocus={() => cancelButton}
   onDismissRequest={handleDismiss}
->
-  {#if trigger}
-    <AlertDialogPrimitive.Trigger>
-      {#snippet child({ props })}{@render trigger({ props })}{/snippet}
-    </AlertDialogPrimitive.Trigger>
-  {/if}
-  <AlertDialogPrimitive.Portal>
-    <AlertDialogPrimitive.Overlay
-      class={dialogOverlayClass()}
-      data-tx-alert-dialog-overlay=""
-      style={`z-index:${layer.zIndex}`}
-    />
-    <AlertDialogPrimitive.Content
-      aria-busy={pending || undefined}
-      class={alertDialogContentClass({ class: className })}
-      data-tx-alert-dialog=""
-      data-destructive={destructive ? 'true' : undefined}
-      data-state={open ? 'open' : 'closed'}
-      style={`z-index:${layer.zIndex}`}
-    >
-      <div class="tx-alert-dialog__row">
-        {#if destructive}
-          <div class={alertDialogIconClass()} aria-hidden="true" data-tx-alert-dialog-icon="">
-            <Icon icon="warning" aria-hidden="true" />
-          </div>
-        {/if}
-        <div class="tx-alert-dialog__copy">
-          <AlertDialogPrimitive.Title class={dialogTitleClass()}>{title}</AlertDialogPrimitive.Title>
-          {#if description}
-            <AlertDialogPrimitive.Description class={dialogDescriptionClass()}>
-              {description}
-            </AlertDialogPrimitive.Description>
-          {/if}
-          {#if children}<div class="tx-alert-dialog__extra">{@render children()}</div>{/if}
-        </div>
-      </div>
-      {#if error}
-        <p class={alertDialogErrorClass()} role="alert" data-tx-alert-dialog-error="">{error}</p>
-      {/if}
-      <div class={alertDialogActionsClass()} data-tx-alert-dialog-actions="">
-        <Button bind:ref={cancelButton} variant="outline" disabled={pending} onclick={cancel}
-          >{cancelLabel}</Button
-        >
-        <Button
-          variant={destructive ? 'destructive' : 'default'}
-          loading={pending}
-          onclick={confirm}
-        >
-          {confirmLabel}
-        </Button>
-      </div>
-    </AlertDialogPrimitive.Content>
-  </AlertDialogPrimitive.Portal>
-</AlertDialogPrimitive.Root>
+  onCloseAutoFocus={handleCloseAutoFocus}
+  style={`${style ? `${style};` : ''}z-index:${layer.zIndex}`}
+/>

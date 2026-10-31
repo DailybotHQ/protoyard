@@ -1,10 +1,11 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import { Sidebar as TexuliSidebar } from 'texuli/sidebar';
 import { isInDrawer } from '../app-shell/context.ts';
 import type { SidebarItem, SidebarSection } from './types.ts';
 
-interface Props {
+type Props = Omit<HTMLAttributes<HTMLElement>, 'class' | 'children'> & {
   /** Flat item list; use `sections` for grouped navigation. */
   items?: SidebarItem[];
   sections?: SidebarSection[];
@@ -16,7 +17,9 @@ interface Props {
   footer?: Snippet<[{ collapsed: boolean }]>;
   label?: string;
   class?: string;
-}
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
+};
 
 let {
   items,
@@ -27,6 +30,8 @@ let {
   footer,
   label = 'Main',
   class: className,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 // Inside the AppShell drawer copy (Texuli's DrawerScope) the sidebar is full width with no rail.
@@ -35,6 +40,8 @@ const drawer = isInDrawer();
 
 <!-- A thin adapter: Texuli's styled Sidebar (`texuli/sidebar`), told when it sits in the AppShell drawer. -->
 <TexuliSidebar
+  {...rest}
+  bind:ref
   {items}
   {sections}
   bind:collapsed

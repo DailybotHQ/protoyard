@@ -16,9 +16,19 @@ type Props = Omit<HTMLAttributes<HTMLSpanElement>, 'children'> & {
   size?: 'xs' | 'sm' | 'md' | 'lg';
   /** Decorative avatars (next to a visible name) are hidden from assistive tech. */
   decorative?: boolean;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 };
 
-let { name, src, srcset, size = 'md', decorative = false, ...rest }: Props = $props();
+let {
+  name,
+  src,
+  srcset,
+  size = 'md',
+  decorative = false,
+  ref = $bindable(null),
+  ...rest
+}: Props = $props();
 
 // A plain record keeps the spread onto Texuli's Avatar a finite type.
 const forwarded = $derived(rest as Record<string, unknown>);
@@ -29,4 +39,4 @@ const forwarded = $derived(rest as Record<string, unknown>);
   image (with `srcset`) that passes Texuli's image URL policy for untrusted
   data (https or a relative path), falling back to the initials when it fails.
 -->
-<TexuliAvatar {name} {src} {srcset} {size} {decorative} {...forwarded} />
+<TexuliAvatar bind:ref {name} {src} {srcset} {size} {decorative} {...forwarded} />

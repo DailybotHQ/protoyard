@@ -1,7 +1,7 @@
 import type { FreeSlide } from '@protoyard/decks/schema';
 import { createDiagnostic, type DeckDiagnostic, type PathSegment } from '@texuli/deck/schema';
 import { layoutRenderers } from '@texuli/slides/layouts';
-import type { DeckRenderers } from '@texuli/slides/stage';
+import type { DeckRenderers } from '@texuli/slides/stage-core';
 
 /**
  * Protoyard's renderer table for the `@texuli/slides` stage, which DeckApp

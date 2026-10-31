@@ -24,7 +24,7 @@ const INTER = '"Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif';
 const tokens = Object.fromEntries(
   REQUIRED_THEME_TOKENS.map((token) => [
     token,
-    token.startsWith('--py-font') ? INTER : token === '--py-primary' ? '#7c3aed' : '#fafafa',
+    token.startsWith('--tx-font') ? INTER : token === '--tx-primary' ? '#7c3aed' : '#fafafa',
   ])
 );
 
@@ -96,7 +96,7 @@ describe('checkDesignFacts', () => {
   });
 
   it('flags missing theme tokens and a body font that is not the theme’s', () => {
-    expect(checks(docFacts({ tokens: { ...tokens, '--py-primary': '' } }))).toEqual(['theme']);
+    expect(checks(docFacts({ tokens: { ...tokens, '--tx-primary': '' } }))).toEqual(['theme']);
     expect(checks(docFacts({ bodyFontFamily: 'Georgia, serif' }))).toEqual(['theme']);
   });
 

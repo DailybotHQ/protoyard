@@ -106,9 +106,10 @@ test.describe('Pebblestat Analytics (static build)', () => {
   test('a saved segment persists across a reload', async ({ page, isMobile }) => {
     test.skip(isMobile, 'filter editing is covered on desktop');
     await openApp(page, '#/trends');
-    await page.getByRole('button', { name: '+ Add condition' }).first().click();
-    await chooseOption(page, page.getByLabel('Property').last(), 'Plan');
-    const value = page.getByLabel('Value').last();
+    // The filter builder is Texuli's (native selects; Plan shows its option labels).
+    await page.getByRole('button', { name: 'Add condition' }).first().click();
+    await chooseOption(page, page.getByLabel('Field', { exact: true }).last(), 'Plan');
+    const value = page.getByLabel('Value', { exact: true }).last();
     const valueTag = await value.evaluate((el) => el.tagName);
     if (valueTag === 'INPUT' || valueTag === 'TEXTAREA') await value.fill('team');
     else await chooseOption(page, value, 'Team');
@@ -130,7 +131,6 @@ test.describe('Pebblestat Analytics (static build)', () => {
 
   test('Users: a bar drills into the table, the hash keeps the path, a user opens', async ({
     page,
-    isMobile,
   }) => {
     await openApp(page, '#/users');
     const chart = plot(page, /^Users by plan/);

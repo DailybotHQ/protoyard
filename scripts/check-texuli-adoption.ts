@@ -23,6 +23,10 @@
  * - `ref-undefined`: `bind:ref={x}` where `x` does not start as `null`. Svelte
  *   throws at runtime on `bind:ref={undefined}` against a `ref` with a fallback,
  *   which stops the whole island; start refs as `$state<HTMLElement | null>(null)`.
+ * - `local-motion`: an import from `svelte/transition` or `svelte/animate`, or
+ *   an `@keyframes` rule, in a UI package, template or prototype. Motion comes
+ *   from Texuli (`texuli/motion`, `@texuli/core/motion`, `--tx-motion-*`
+ *   tokens), which honors reduced motion by construction.
  *
  * Known violations live per unit in `tests/adoption/pending/<unit>.json`
  * (unit = `packages__<name>`, `apps__<name>`, `templates` or `prototypes`).
@@ -65,7 +69,8 @@ export type Rule =
   | 'input-as-choice'
   | 'own-component'
   | 'component-bind-this'
-  | 'ref-undefined';
+  | 'ref-undefined'
+  | 'local-motion';
 export const RULES: readonly Rule[] = [
   'legacy-import',
   'raw-lucide',
@@ -75,6 +80,7 @@ export const RULES: readonly Rule[] = [
   'own-component',
   'component-bind-this',
   'ref-undefined',
+  'local-motion',
 ];
 
 export interface Violation {
@@ -118,6 +124,10 @@ export interface AdoptionOptions {
 const LEGACY_IMPORT =
   /(?:from\s+|import\s*\(\s*|import\s+)['"](clsx|tailwind-merge|tailwind-variants)(?:\/[^'"]*)?['"]/g;
 const PY_TOKEN = /var\(\s*--py-/g;
+const SVELTE_MOTION = /(?:from\s+|import\s*\(\s*)['"]svelte\/(?:transition|animate)['"]/g;
+const KEYFRAMES = /@keyframes\s/g;
+const MOTION_UNIT =
+  /^(packages\/(ui|[a-z-]+-ui|devtools|crud|player|renderer-svelte)|apps\/gallery|templates|prototypes)\//;
 const RAW_CONTROL = /<(button|input|select|textarea|dialog)(?=[\s/>])/g;
 const UI_UNIT = /^(packages\/(ui|[a-z-]+-ui|devtools|crud|player)|apps\/gallery)\//;
 const COMPOSES =
@@ -331,6 +341,8 @@ export function scanSource(file: string, source: string): Violation[] {
   };
   add('legacy-import', count(text, LEGACY_IMPORT));
   add('py-token', count(text, PY_TOKEN));
+  if (MOTION_UNIT.test(file))
+    add('local-motion', count(text, SVELTE_MOTION) + count(text, KEYFRAMES));
   if (file.endsWith('.svelte')) {
     const markup = markupOf(text);
     add('raw-control', count(markup, RAW_CONTROL));

@@ -1,6 +1,7 @@
 <script lang="ts">
 import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 import ChevronRight from '@lucide/svelte/icons/chevron-right';
+import type { HTMLAttributes } from 'svelte/elements';
 import { LucideIcon } from 'texuli/icons/lucide';
 import {
   paginationItemClass,
@@ -9,7 +10,7 @@ import {
 } from 'texuli/navigation';
 import { getPageTokens } from './pages.ts';
 
-interface Props {
+type Props = Omit<HTMLAttributes<HTMLElement>, 'class' | 'children'> & {
   /** 1-based current page. */
   page?: number;
   /** Total pages; alternatively pass `total` and `pageSize`. */
@@ -22,7 +23,9 @@ interface Props {
   /** Hide numbered pages (prev/next only), e.g. in tight toolbars. */
   compact?: boolean;
   class?: string;
-}
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
+};
 
 let {
   page = $bindable(1),
@@ -34,6 +37,8 @@ let {
   label = 'Pagination',
   compact = false,
   class: className,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 </script>
 
@@ -44,6 +49,8 @@ let {
   keeps the token count stable so the control never shifts under the pointer.
 -->
 <TexuliPagination.Root
+  {...rest}
+  bind:ref
   bind:page
   {pageCount}
   {total}

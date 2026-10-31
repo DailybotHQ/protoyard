@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { ComponentProps } from 'svelte';
 import Combobox from '../../combobox/Combobox.svelte';
 import type { SelectOption } from '../../select/types.ts';
 import { listTimeZones, matchesTimeZone, timeZoneOptions } from './timezones.ts';
@@ -10,7 +11,7 @@ import { listTimeZones, matchesTimeZone, timeZoneOptions } from './timezones.ts'
  * force at `referenceDate`; pass the scenario clock so a prototype stays
  * deterministic.
  */
-interface Props {
+interface OwnProps {
   /** IANA zone name. */
   value?: string;
   referenceDate?: Date | number;
@@ -29,7 +30,12 @@ interface Props {
   'aria-label'?: string;
   class?: string;
   onValueChange?: (zone: string) => void;
+  /** The search input, the combobox's focusable control (bindable). */
+  ref?: HTMLInputElement | null;
 }
+
+/** Extra attributes (`data-*`, handlers…) reach the search input, as with Combobox. */
+type Props = OwnProps & Omit<ComponentProps<typeof Combobox>, keyof OwnProps | 'items' | 'filter'>;
 
 let {
   value = $bindable('UTC'),
@@ -47,6 +53,8 @@ let {
   'aria-label': ariaLabel,
   class: className,
   onValueChange,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
@@ -60,6 +68,8 @@ const items: SelectOption[] = $derived(
 </script>
 
 <Combobox
+  {...rest}
+  bind:ref
   bind:value
   {items}
   {id}

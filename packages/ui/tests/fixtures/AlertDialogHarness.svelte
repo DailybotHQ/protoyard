@@ -4,10 +4,20 @@ import AlertDialog from '../../src/components/alert-dialog/AlertDialog.svelte';
 interface Props {
   onConfirm?: () => void | Promise<void>;
   onCancel?: () => void;
+  /** The caller closes the alert itself inside onConfirm. */
+  closeInConfirm?: boolean;
 }
 
-let { onConfirm, onCancel }: Props = $props();
+let { onConfirm, onCancel, closeInConfirm = false }: Props = $props();
 let open = $state(false);
+const confirmed = $derived(
+  closeInConfirm
+    ? async () => {
+        await onConfirm?.();
+        open = false;
+      }
+    : onConfirm
+);
 </script>
 
 <button type="button" onclick={() => (open = true)}>Delete project</button>
@@ -18,6 +28,6 @@ let open = $state(false);
   description="This permanently removes the project."
   confirmLabel="Delete"
   destructive
-  {onConfirm}
+  onConfirm={confirmed}
   {onCancel}
 />

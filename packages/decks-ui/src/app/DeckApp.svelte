@@ -1,7 +1,6 @@
 <script lang="ts">
 import '@texuli/slides/styles.css';
 import { Bug } from '@lucide/svelte';
-import { checkProtoyardDeck } from '@protoyard/decks';
 import type { AgentReferenceSource } from '@protoyard/decks/agent';
 import type { Deck } from '@protoyard/decks/schema';
 import type { DeckStyleWarning } from '@protoyard/decks/style';
@@ -12,31 +11,39 @@ import {
   parseDeckHash,
   parseDeckRoute,
 } from '@texuli/deck/engine';
-import { DeckProgress, DeckStage, type DeckThemeLoader, DeckToolbar } from '@texuli/slides/stage';
+import { DeckStageCore, type DeckThemeLoader } from '@texuli/slides/stage-core';
 import { flushSync, onMount, untrack } from 'svelte';
-import type { Attachment } from 'svelte/attachments';
 import { Button, IconButton } from 'texuli/button';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { type DeckDebugSetting, deckDebugAvailable, isDevBuild } from '../debug/availability.ts';
 import type { CustomSlideRegistry } from '../layouts/custom-slides.ts';
 import { setDeckHostContext } from './context.ts';
 import { createProtoyardRenderers } from './renderers.ts';
-import { stageThemeKey, themeKeyOf, stageDeck as toStageDeck } from './stage-deck.ts';
+import {
+  prepareStageDeck,
+  stageThemeKey,
+  themeKeyOf,
+  stageDeck as toStageDeck,
+} from './stage-deck.ts';
 
 /**
  * The one deck component the player's deck entry and generated deck
- * prototypes mount (ADR-038), presented by the `@texuli/slides` stage
- * (`DeckStage`, Texuli ADR-009). The stage owns the canvas, routing
+ * prototypes mount (ADR-038), presented by the `@texuli/slides` stage core
+ * (`DeckStageCore`, Texuli ADR-009): the stage without its default renderer
+ * tables, which a Protoyard deck never uses, so the build emits none of
+ * their chunks or CSS. The stage owns the canvas, routing
  * (`#/<slide-id>/<step>`), keys, touch, the toolbar, overview, presenter,
  * blackout, laser, help, copy link, print and transitions. DeckApp adds what
  * is Protoyard's own:
  *
- * - the Protoyard deck shape, migrated to the Texuli deck model;
+ * - the Protoyard deck shape, migrated to the Texuli deck model and prepared
+ *   once (`prepareDeckV2` with Protoyard's block check), so the stage paints
+ *   it on its first render without validating it again;
  * - Protoyard themes, palette seeds and font pairings (`@protoyard/themes`);
  * - free slides through `@protoyard/blocks-ui` (persistent block state,
  *   embedded apps, the viewer id) and the generated deck's custom slides;
- * - the "Debug for agents" panel (D, or its toolbar button) and the print
- *   page for `?print=1`.
+ * - the "Debug for agents" panel (D, or its button in the stage toolbar's
+ *   host tools) and the print page for `?print=1`.
  */
 let {
   deck,
@@ -96,9 +103,16 @@ setDeckHostContext({
   },
 });
 
-/** The deck the stage presents, migrated to the deck model and validated by `@texuli/deck`. */
-const checked = $derived(checkProtoyardDeck(stage.input));
-const stageDeck = $derived(checked.deck ?? stage.input);
+/**
+ * The deck the stage presents: migrated to the deck model and validated once with
+ * Protoyard's block check. A prepared deck at the `developer` tier paints on the
+ * stage's first render, with no migration or validation chunk. A deck that does not
+ * prepare goes to the stage as it is, which shows its diagnostics instead of slides.
+ */
+const prepared = $derived(prepareStageDeck(stage.input));
+const stageDeck = $derived(prepared.ok ? prepared : stage.input);
+/** What the print view paints: the prepared model v2 deck. */
+const printDeck = $derived(prepared.ok ? prepared.deck : stage.input);
 
 /**
  * Style warnings per stage theme key. The stage caches loaded themes by key
@@ -137,17 +151,20 @@ const printing = route?.flags.print === true;
  * the stage on paper (see the print CSS below), and the deck root is released
  * from its one-screen height so every page prints, but only once the sheet
  * is ready (`data-print-ready`): until then the paper shows the stage as on
- * screen, never a blank page. The browser captures the page right after
- * `beforeprint`, and Texuli's print view loads its body and settles images
- * and fonts asynchronously, so the first Ctrl/Cmd+P prints the current slide
- * and says so. The sheet then stays mounted, laid out off-screen and hidden,
- * so every later print has all the slides (Texuli gap: no print preload).
+ * screen, never a blank page. The print view's code is preloaded while the
+ * browser is idle (`preloadDeckPrintView`), so the sheet mounted on
+ * `beforeprint` renders its pages at once; it still settles themes, images
+ * and fonts asynchronously after the browser has captured the page, so the
+ * first Ctrl/Cmd+P prints the current slide and says so. The sheet then stays
+ * mounted, laid out off-screen and hidden, so every later print has all the
+ * slides. It is mounted on the first print only: mounting every slide (and
+ * its embedded apps) a second time on load would cost every reader.
  *
- * Texuli's print view isolates printing with a global rule that hides every
- * element outside a `data-tx-print-isolate` target, and that rule applies as
- * soon as its stylesheet has loaded (with the shared lazy Texuli CSS), even
- * when no target exists: a page with none prints blank. The deck root is
- * always a target, so the deck itself is what prints (Texuli gap).
+ * The deck root is a print isolation target (`data-tx-print-isolate`) as well
+ * as the sheet: while the sheet is mounted, Texuli's isolation hides
+ * everything outside its targets, and the stage must stay printable until the
+ * sheet is ready. Outside the deck root (a host page, a shell frame) nothing
+ * prints.
  */
 let printSheet = $state(false);
 /** The print that just ran had only the stage: the sheet was not ready yet. */
@@ -201,30 +218,6 @@ function onKeyDown(event: KeyboardEvent): void {
 }
 
 /**
- * The debug chrome replaces the stage's toolbar and progress bar (Texuli has
- * no slot for one more tool). The stage paints its progress bar on the edge
- * of the slide viewport (`style.progress`: top or bottom); this moves the
- * chrome's bar there too, following the viewport the stage re-creates after
- * the overview, so the debug build shows it where production does.
- */
-const intoSlideViewport: Attachment<HTMLElement> = (host) => {
-  const main = host.closest('.tx-deck-stage')?.querySelector('.tx-deck-stage__main');
-  if (!main) return;
-  const place = () => {
-    const viewport = main.querySelector(':scope > .tx-deck-stage__viewport');
-    if (viewport && host.parentElement !== viewport) viewport.prepend(host);
-  };
-  place();
-  const observer = new MutationObserver(place);
-  observer.observe(main, { childList: true });
-  return () => {
-    observer.disconnect();
-    // Moved out of the chrome, so Svelte would not remove it with the chrome.
-    host.remove();
-  };
-};
-
-/**
  * A followed hash that names a step past the slide's last one (`#/loop/9`) shows
  * the last step; write that position back so the address bar, a copied link
  * and the presenter agree (the stage clamps the position but keeps the hash).
@@ -249,6 +242,17 @@ $effect(() => {
   return () => window.removeEventListener('hashchange', follow);
 });
 
+/**
+ * The print view module with everything it imports on first use (its body and slide
+ * painter, G81), so a view mounted after it renders its pages on the first render.
+ * DeckApp paints with its own renderer tables only, as the stage does.
+ */
+async function loadPrintView(): Promise<typeof import('@texuli/slides/export')> {
+  const module = await import('@texuli/slides/export');
+  await module.preloadDeckPrintView({ defaultRenderers: false });
+  return module;
+}
+
 let toast = $state('');
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 function notify(message: string): void {
@@ -265,7 +269,7 @@ onMount(() => {
   const warm = () => {
     if (warming) return;
     warming = true;
-    void import('@texuli/slides/export').then(
+    void loadPrintView().then(
       (module) => {
         exporter = module;
       },
@@ -313,14 +317,15 @@ onMount(() => {
 
 {#if printing}
   <!-- `?print=1` (the stage's print button opens it): one slide per page, ready for Save as PDF. -->
-  {#await import('@texuli/slides/export')}
+  {#await loadPrintView()}
     <p class="deck-app__print-status" role="status" data-py-deck-print-loading>Preparing the slides for printing…</p>
   {:then exporter}
     <div class="deck-app__print" data-py-deck-print data-tx-mode={mode}>
       <exporter.DeckPrintView
-        deck={stageDeck as never}
+        deck={printDeck as never}
         notes={printNotes}
         {renderers}
+        defaultRenderers={false}
         tier="developer"
         {loadTheme}
         {resolveAvatar}
@@ -348,7 +353,7 @@ onMount(() => {
     data-py-deck-mode={mode}
     data-tx-mode={mode}
   >
-    <DeckStage
+    <DeckStageCore
       deck={stageDeck}
       fit="container"
       tier="developer"
@@ -363,7 +368,7 @@ onMount(() => {
       presenterTimer
       bind:presenter={presenterOpen}
       bind:controller
-      chrome={debugAvailable ? debugChrome : undefined}
+      tools={debugAvailable ? debugTool : undefined}
     />
 
     {#if styleWarnings.length > 0}
@@ -406,8 +411,9 @@ onMount(() => {
            hidden, so it settles (images, fonts, lazy families) before the next print. -->
       <div class="deck-app__print-sheet" data-py-deck-print data-tx-mode={mode}>
         <exporter.DeckPrintView
-          deck={stageDeck as never}
+          deck={printDeck as never}
           {renderers}
+          defaultRenderers={false}
           tier="developer"
           {loadTheme}
           {resolveAvatar}
@@ -428,28 +434,20 @@ onMount(() => {
   </div>
 {/if}
 
-{#snippet debugChrome()}
-  <!-- With the debug panel available, the stage toolbar gains its button (the rest is the stage's own). -->
-  <div class="deck-app__chrome" data-tx-deck-chrome>
-    <div style="display: contents" data-py-deck-progress-host {@attach intoSlideViewport}>
-      <DeckProgress />
-    </div>
-    <div class="deck-app__tools">
-      <DeckToolbar />
-      <IconButton
-        variant="ghost"
-        class="deck-app__debug"
-        label="Debug for agents"
-        aria-pressed={debugOpen}
-        aria-keyshortcuts="D"
-        title="Debug for agents (D)"
-        data-py-deck-tool="debug"
-        onclick={toggleDebug}
-      >
-        <LucideIcon icon={Bug} size="sm" />
-      </IconButton>
-    </div>
-  </div>
+{#snippet debugTool()}
+  <!-- With the debug panel available, the stage toolbar gains its button as a host tool (G82). -->
+  <IconButton
+    variant="ghost"
+    class="deck-app__debug"
+    label="Debug for agents"
+    aria-pressed={debugOpen}
+    aria-keyshortcuts="D"
+    title="Debug for agents (D)"
+    data-py-deck-tool="debug"
+    onclick={toggleDebug}
+  >
+    <LucideIcon icon={Bug} size="sm" />
+  </IconButton>
 {/snippet}
 
 <style>
@@ -458,40 +456,13 @@ onMount(() => {
     min-block-size: 0;
   }
 
-  .deck-app__chrome {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    inline-size: 100%;
-  }
-
-  .deck-app__tools {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.25rem;
-  }
-
-  .deck-app__debug {
-    display: inline-grid;
-    place-items: center;
-    min-inline-size: 2.75rem;
-    min-block-size: 2.75rem;
-    border: 1px solid transparent;
-    border-radius: 0.375rem;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-  }
-
-  .deck-app__debug:hover,
-  .deck-app__debug[aria-pressed='true'] {
+  /*
+   * The debug button is a Texuli IconButton (its own size, hover and focus ring) in the
+   * stage toolbar; the pressed state shows while the panel is open. Global: the class
+   * lands on the IconButton's element, outside this component's scope.
+   */
+  .deck-app :global(.deck-app__debug[aria-pressed='true']) {
     background: var(--tx-muted);
-  }
-
-  .deck-app__debug:focus-visible {
-    outline: 2px solid var(--tx-ring);
-    outline-offset: 2px;
   }
 
   .deck-app__print {

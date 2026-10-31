@@ -6,12 +6,13 @@
  */
 import Minus from '@lucide/svelte/icons/minus';
 import Plus from '@lucide/svelte/icons/plus';
+import type { HTMLInputAttributes } from 'svelte/elements';
 import { cx } from 'texuli/cx';
 import { labelClass } from 'texuli/field';
 import { Icon } from 'texuli/icons';
 import { NumberField } from 'texuli/number-pin';
 
-interface Props {
+interface OwnProps {
   /** Accessible name (and visible label unless `hideLabel`). */
   label: string;
   value?: number;
@@ -24,7 +25,20 @@ interface Props {
   unit?: string;
   class?: string;
   onchange?: (value: number) => void;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 }
+
+/**
+ * Extra attributes (`aria-*`, `data-*`, handlers…) land on the number input,
+ * the focusable control inside the root; its own handlers still run. A caller
+ * `aria-label` or `aria-labelledby` replaces the visible label as its name.
+ */
+type Props = OwnProps &
+  Omit<
+    HTMLInputAttributes,
+    keyof OwnProps | 'type' | 'children' | 'name' | 'form' | 'readonly' | 'defaultValue'
+  >;
 
 let {
   label,
@@ -37,14 +51,19 @@ let {
   unit,
   class: className,
   onchange,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const uid = $props.id();
 const labelId = `stepper-label-${uid}`;
 const safeStep = $derived(step > 0 ? step : 1);
+const inputLabelledby = $derived(
+  rest['aria-labelledby'] ?? (rest['aria-label'] === undefined ? labelId : undefined)
+);
 </script>
 
-<div class={cx('ui-number-stepper', className)}>
+<div bind:this={ref} class={cx('ui-number-stepper', className)}>
   <span id={labelId} class={labelClass({ class: hideLabel ? 'tx-sr-only' : undefined })}>{label}</span>
   <NumberField.Root
     bind:value={() => value, (next) => (value = next ?? min)}
@@ -59,7 +78,7 @@ const safeStep = $derived(step > 0 ? step : 1);
     }}
   >
     <NumberField.Decrement><Icon icon={Minus} size="sm" aria-hidden="true" /></NumberField.Decrement>
-    <NumberField.Input aria-labelledby={labelId} />
+    <NumberField.Input {...rest} aria-labelledby={inputLabelledby} />
     {#if unit}<span class="ui-number-stepper__unit">{unit}</span>{/if}
     <NumberField.Increment><Icon icon={Plus} size="sm" aria-hidden="true" /></NumberField.Increment>
   </NumberField.Root>

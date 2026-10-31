@@ -173,9 +173,8 @@ describe('views-ui quiet buttons are never primary-filled', () => {
       onMarkAllRead: vi.fn(async () => 1),
     });
     await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));
-    const row = screen.getByRole('button', { name: /^Open Marta mentioned you/ });
-    expectQuiet(row);
-    expect(row.className).toMatch(/\bwhitespace-normal\b/);
+    // Rows are Texuli's inbox (G50); the mute action stays a quiet ghost Button.
+    expectQuiet(screen.getByRole('button', { name: 'Mute mention' }));
     cleanup();
     const { createRawSnippet } = await import('svelte');
     render(SettingsLayout, {

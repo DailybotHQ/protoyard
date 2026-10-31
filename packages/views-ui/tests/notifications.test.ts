@@ -47,18 +47,42 @@ describe('NotificationCenter', () => {
     expect(trigger.getAttribute('aria-label')).toBe(`${visible} unread, Notifications`);
   });
 
-  it('opens to unread notifications, switches to all, and groups by day', async () => {
+  it("opens to unread notifications in Texuli's inbox and switches to all", async () => {
     center();
     await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));
+    expect(document.querySelector('[data-tx-inbox]')).toBeTruthy();
     expect(screen.getByText('Marta mentioned you')).toBeTruthy();
     expect(screen.queryByText('A task was assigned')).toBeNull();
-    await fireEvent.click(screen.getByRole('tab', { name: 'All' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    expect(screen.getByRole('button', { name: 'All' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByText('A task was assigned')).toBeTruthy();
-    expect(screen.getByText('Today')).toBeTruthy();
-    expect(screen.getByText('Yesterday')).toBeTruthy();
+    // Each row carries its own machine-readable time from `at` or `createdAt`.
+    const times = [...document.querySelectorAll('time')].map((t) => t.getAttribute('datetime'));
+    expect(times).toEqual(['2026-10-19T10:00:00.000Z', '2026-10-18T10:00:00.000Z']);
   });
 
-  it('marks all read after the service resolves and rolls optimistic state back on failure', async () => {
+  it('marks one row read through onMarkRead and never offers mark unread (G50)', async () => {
+    const { onMarkRead } = center();
+    await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));
+    await fireEvent.click(
+      screen.getByRole('button', { name: 'Mark as read: Marta mentioned you' })
+    );
+    await waitFor(() => expect(onMarkRead).toHaveBeenCalledWith('n1'));
+    await fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    expect(screen.queryByRole('button', { name: /^Mark as unread/ })).toBeNull();
+  });
+
+  it('opens a row: marks it read and navigates to its subject', async () => {
+    const { onMarkRead } = center({
+      hrefFor: (item: NotificationItem) => `#/tasks/${item.subjectId}`,
+    });
+    await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Marta mentioned you' }));
+    await waitFor(() => expect(onMarkRead).toHaveBeenCalledWith('n1'));
+    expect(location.hash).toBe('#/tasks/task-1');
+  });
+
+  it('marks all read through the service and rolls optimistic state back on failure', async () => {
     let finish: (value: boolean) => void = () => {};
     const onMarkAllRead = vi.fn(
       () =>
@@ -66,15 +90,49 @@ describe('NotificationCenter', () => {
           finish = resolve;
         })
     );
-    center({ onMarkAllRead });
+    const rows = [...ROWS, { ...ROWS[0], id: 'n3', title: 'Second unread' } as NotificationItem];
+    center({ onMarkAllRead, query: { current: rows, loading: false, error: undefined } });
     await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));
-    const markAll = screen.getByRole('button', { name: /Mark all read/ });
+    const markAll = screen.getByRole('button', { name: 'Mark all as read' });
     await fireEvent.click(markAll);
-    expect(markAll.hasAttribute('disabled')).toBe(true);
+    // Optimistic: nothing unread is left while the service runs.
+    expect(markAll.getAttribute('aria-disabled')).toBe('true');
     finish(false);
-    await waitFor(() => expect(screen.getByText('Marta mentioned you')).toBeTruthy());
-    expect(screen.getByRole('tab', { name: /Unread/ }).getAttribute('aria-selected')).toBe('true');
+    await waitFor(() => expect(markAll.getAttribute('aria-disabled')).toBe('false'));
+    expect(screen.getByRole('button', { name: 'Unread' }).getAttribute('aria-pressed')).toBe(
+      'true'
+    );
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
+  });
+
+  it('"Mark all as read" with a single unread row still calls onMarkAllRead (G106)', async () => {
+    const { onMarkAllRead, onMarkRead } = center();
+    await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Mark all as read' }));
+    await waitFor(() => expect(onMarkAllRead).toHaveBeenCalledTimes(1));
+    expect(onMarkRead).not.toHaveBeenCalled();
+  });
+
+  it('shows a visible pending status while a read is saved', async () => {
+    let finish: (value: boolean) => void = () => {};
+    const onMarkRead = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finish = resolve;
+        })
+    );
+    center({ onMarkRead });
+    await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));
+    await fireEvent.click(
+      screen.getByRole('button', { name: 'Mark as read: Marta mentioned you' })
+    );
+    await waitFor(() =>
+      expect(document.querySelector('[data-notifications-pending]')?.textContent).toBe(
+        'Marking as read…'
+      )
+    );
+    finish(true);
+    await waitFor(() => expect(document.querySelector('[data-notifications-pending]')).toBeNull());
   });
 
   it('updates mute preferences through the supplied service callback', async () => {

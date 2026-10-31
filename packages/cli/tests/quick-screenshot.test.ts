@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { ensurePlayerBuild } from '../../player/tests/support/serve-dist.ts';
 import { setQuickPlayerLocator } from '../src/commands/quick/index.ts';
 import {
   QUICK_SHOT_BUDGET_BYTES,
@@ -20,6 +22,8 @@ import {
   readPlayerAssetsManifest,
 } from '../src/lib/quick/player-assets.ts';
 import { cli, createWorkspace, type TempWorkspace } from './helpers.ts';
+
+const REPO = fileURLToPath(new URL('../../../', import.meta.url));
 
 const ANALYTICS = join(import.meta.dirname, '../../../blueprints/quick/analytics.json');
 
@@ -139,7 +143,9 @@ describe('quick screenshots in Chromium', async () => {
   it.skipIf(!probe.ok)(
     'captures each variant at 1280x800 and the phone size, deterministically, within budget',
     async () => {
-      // The real player build that @protoyard/cli depends on.
+      // The real player build that @protoyard/cli depends on: built once, under the
+      // shared lock, when this file runs before the tests that used to build it.
+      ensurePlayerBuild(REPO);
       const created = await run(
         '--blueprint',
         ANALYTICS,

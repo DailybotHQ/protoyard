@@ -19,7 +19,9 @@ interface Props {
 }
 
 let {
-  value = $bindable(''),
+  // No fallback: a caller may bind a value that starts undefined (a map entry);
+  // a `$bindable('')` would throw (props_invalid_value). Read as ''.
+  value = $bindable(),
   placeholder = 'Write a message…',
   label = 'Message',
   actions,
@@ -28,4 +30,4 @@ let {
 </script>
 
 <!-- A thin adapter over Texuli's Composer (`@texuli/chat`): Protoyard's `placeholder`, `label` and `actions`. -->
-<TexuliComposer bind:value labels={{ placeholder, input: label }} attachments={actions} {...rest} />
+<TexuliComposer bind:value={() => value ?? '', (next) => (value = next)} labels={{ placeholder, input: label }} attachments={actions} {...rest} />

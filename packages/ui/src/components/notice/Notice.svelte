@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import { Alert } from 'texuli/alert';
 import { Icon } from 'texuli/icons';
 import type { IconComponent } from '../../lib/types.ts';
@@ -11,17 +12,7 @@ import type { NoticeTone } from './tones.ts';
  * role="alert"; other tones use role="status". The optional action returns a
  * promise through Button for pending feedback.
  */
-let {
-  tone = 'info',
-  title,
-  text,
-  icon,
-  actionLabel,
-  actionHref,
-  onAction,
-  children,
-  class: className,
-}: {
+type Props = Omit<HTMLAttributes<HTMLDivElement>, 'title' | 'class' | 'children'> & {
   tone?: NoticeTone;
   title?: string;
   text?: string;
@@ -33,7 +24,23 @@ let {
   onAction?: () => unknown | Promise<unknown>;
   children?: Snippet;
   class?: string;
-} = $props();
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
+};
+
+let {
+  tone = 'info',
+  title,
+  text,
+  icon,
+  actionLabel,
+  actionHref,
+  onAction,
+  children,
+  class: className,
+  ref = $bindable(null),
+  ...rest
+}: Props = $props();
 </script>
 
 {#snippet customIcon()}
@@ -41,6 +48,8 @@ let {
 {/snippet}
 
 <Alert
+  {...rest}
+  bind:ref
   {tone}
   {title}
   {text}

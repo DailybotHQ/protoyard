@@ -1,8 +1,9 @@
 <script lang="ts">
-import { Bell, CheckCheck, Volume2, VolumeX } from '@lucide/svelte';
+import { Bell, Volume2, VolumeX } from '@lucide/svelte';
 import { navigate, runService } from '@protoyard/renderer-svelte';
 import type { TriggerSnippet } from '@protoyard/ui';
 import { BottomSheet, Button, Popover } from '@protoyard/ui';
+import { type InboxFilter, NotificationInbox } from '@texuli/data/activity/inbox';
 import { onMount } from 'svelte';
 import { LucideIcon } from 'texuli/icons/lucide';
 
@@ -44,47 +45,38 @@ let {
   label = 'Notifications',
 }: Props = $props();
 
+type InboxRow = {
+  id: string;
+  title: string;
+  body?: string;
+  at: string;
+  read: boolean;
+  source: NotificationItem;
+};
+
 let mobile = $state(false);
-let unreadOnly = $state(true);
+let filter = $state<InboxFilter>('unread');
 let pendingAll = $state(false);
 let pendingIds = $state(new Set<string>());
 let pendingMutes = $state(new Set<string>());
 let readOverrides = $state<Record<string, string | null>>({});
 let localMutes = $state<string[]>([]);
 const rows = $derived(query.current ?? []);
-const unreadCount = $derived(
-  rows.filter((row) => (readOverrides[row.id] ?? row.readAt) == null).length
-);
-const muted = (kind: string) => localMutes.includes(kind) || mutedKinds.includes(kind);
-const hrefDate = (row: NotificationItem) => row.at ?? row.createdAt ?? '';
 const isRead = (row: NotificationItem) => (readOverrides[row.id] ?? row.readAt) != null;
-const shown = $derived(rows.filter((row) => !unreadOnly || !isRead(row)));
-const today = $derived(new Date(now).toISOString().slice(0, 10));
-const groups = $derived.by(() => {
-  const byDay = new Map<string, NotificationItem[]>();
-  for (const row of shown) {
-    const day = hrefDate(row).slice(0, 10) || 'unknown';
-    byDay.set(day, [...(byDay.get(day) ?? []), row]);
-  }
-  return [...byDay]
-    .sort(([a], [b]) => b.localeCompare(a))
-    .map(([day, items]) => ({
-      day,
-      label:
-        day === today
-          ? 'Today'
-          : day === new Date(new Date(today).getTime() - 86400000).toISOString().slice(0, 10)
-            ? 'Yesterday'
-            : day === 'unknown'
-              ? 'Earlier'
-              : new Date(`${day}T12:00:00`).toLocaleDateString(undefined, {
-                  weekday: 'long',
-                  month: 'short',
-                  day: 'numeric',
-                }),
-      items,
-    }));
-});
+const unreadCount = $derived(rows.filter((row) => !isRead(row)).length);
+const muted = (kind: string) => localMutes.includes(kind) || mutedKinds.includes(kind);
+// Texuli's inbox (G50) owns the list, the all/unread view, time labels and the
+// read toggles; the read state and its persistence stay this host's services.
+const items = $derived<InboxRow[]>(
+  rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    ...(row.body ? { body: row.body } : {}),
+    at: row.at ?? row.createdAt ?? '',
+    read: isRead(row),
+    source: row,
+  }))
+);
 
 onMount(() => {
   const media = window.matchMedia('(max-width: 639px)');
@@ -94,36 +86,48 @@ onMount(() => {
   return () => media.removeEventListener('change', update);
 });
 
-async function markRead(row: NotificationItem) {
-  if (isRead(row) || pendingIds.has(row.id)) return;
-  const previous = readOverrides[row.id];
-  pendingIds = new Set(pendingIds).add(row.id);
-  readOverrides = { ...readOverrides, [row.id]: new Date(now).toISOString() };
-  const result = await runService(() => onMarkRead(row.id));
-  if (!result.ok || result.value === false) {
-    const next = { ...readOverrides };
-    if (previous === undefined) delete next[row.id];
-    else next[row.id] = previous;
-    readOverrides = next;
-  }
-  const nextPending = new Set(pendingIds);
-  nextPending.delete(row.id);
-  pendingIds = nextPending;
+/** Optimistic read state for `ids`, rolled back when the service fails or returns false. */
+async function persistRead(ids: string[], service: () => unknown): Promise<void> {
+  const previous = { ...readOverrides };
+  const at = new Date(now).toISOString();
+  readOverrides = { ...readOverrides, ...Object.fromEntries(ids.map((id) => [id, at])) };
+  const result = await runService(service);
+  if (!result.ok || result.value === false) readOverrides = previous;
 }
 
-async function markAllRead() {
-  if (pendingAll || unreadCount === 0) return;
-  const previous = { ...readOverrides };
+async function markRead(id: string) {
+  if (pendingAll || pendingIds.has(id)) return;
+  pendingIds = new Set(pendingIds).add(id);
+  await persistRead([id], () => onMarkRead(id));
+  const next = new Set(pendingIds);
+  next.delete(id);
+  pendingIds = next;
+}
+
+async function markAllRead(ids: string[]) {
+  if (pendingAll) return;
   pendingAll = true;
-  readOverrides = {
-    ...readOverrides,
-    ...Object.fromEntries(
-      rows.filter((row) => !isRead(row)).map((row) => [row.id, new Date(now).toISOString()])
-    ),
-  };
-  const result = await runService(onMarkAllRead);
-  if (!result.ok || result.value === false) readOverrides = previous;
+  await persistRead(ids, onMarkAllRead);
   pendingAll = false;
+}
+
+// Texuli's inbox reports "Mark all as read" and a row toggle through the same
+// `(ids, read)` callback, and the callback cannot return a promise (G106). Its
+// "Mark all" click is seen in the capture phase, before the inbox calls back,
+// so it always reaches onMarkAllRead, even with a single unread row.
+let markAllRequested = false;
+function noteMarkAll(event: MouseEvent) {
+  const target = event.target instanceof Element ? event.target : null;
+  markAllRequested = target?.closest('[data-tx-inbox] > header .tx-inbox__button') != null;
+}
+
+function onReadChange(ids: string[], read: boolean) {
+  const all = markAllRequested;
+  markAllRequested = false;
+  if (!read) return;
+  // The pending state shows through the status line in the panel.
+  if (all) void markAllRead(ids);
+  else if (ids[0]) void markRead(ids[0]);
 }
 
 async function toggleMute(kind: string) {
@@ -141,9 +145,8 @@ async function toggleMute(kind: string) {
   pendingMutes = next;
 }
 
-function openItem(item: NotificationItem) {
-  if (!isRead(item)) void markRead(item);
-  const path = hrefFor(item);
+function openItem(row: InboxRow) {
+  const path = hrefFor(row.source);
   if (path.startsWith('#/')) location.hash = path.slice(1);
   else navigate(path);
 }
@@ -157,37 +160,29 @@ function openItem(item: NotificationItem) {
   </Button>
 {/snippet}
 
+{#snippet muteAction(row: InboxRow)}
+  {@const kind = row.source.kind}
+  <Button size="icon" variant="ghost" aria-label={`${muted(kind) ? 'Unmute' : 'Mute'} ${kind}`} aria-pressed={muted(kind)} disabled={!onMuteChange || pendingMutes.has(kind)} loading={pendingMutes.has(kind)} onclick={() => toggleMute(kind)}>{#if muted(kind)}<LucideIcon icon={VolumeX} class="size-[15px]"  />{:else}<LucideIcon icon={Volume2} class="size-[15px]"  />{/if}</Button>
+{/snippet}
+
 {#snippet panel()}
-  <section aria-label={label} class="grid max-h-[min(70vh,36rem)] min-h-48 gap-3 overflow-y-auto">
-    <header class="flex items-center justify-between gap-2">
-      <h2 class="font-semibold">{label}</h2>
-      <Button size="sm" variant="ghost" disabled={pendingAll || unreadCount === 0} loading={pendingAll} onclick={markAllRead}><LucideIcon icon={CheckCheck} class="size-[15px]"  /> Mark all read</Button>
-    </header>
-    <div role="tablist" aria-label="Notification filter" class="flex gap-1 border-b border-border">
-      <Button role="tab" aria-selected={unreadOnly} variant={unreadOnly ? 'secondary' : 'ghost'} size="sm" onclick={() => (unreadOnly = true)}>Unread <span aria-live="polite" class="ml-1 tabular-nums">{unreadCount}</span></Button>
-      <Button role="tab" aria-selected={!unreadOnly} variant={!unreadOnly ? 'secondary' : 'ghost'} size="sm" onclick={() => (unreadOnly = false)}>All</Button>
-    </div>
+  <div class="grid max-h-[min(70vh,36rem)] min-h-48 overflow-y-auto" aria-busy={pendingAll || pendingIds.size > 0} onclickcapture={noteMarkAll}>
+    {#if pendingAll || pendingIds.size > 0}<p role="status" class="text-xs text-muted-foreground" data-notifications-pending>{pendingAll ? 'Marking all as read…' : 'Marking as read…'}</p>{/if}
     {#if query.loading && !query.current}<p role="status" class="py-6 text-center text-muted-foreground">Loading notifications…</p>
     {:else if query.error}<p role="alert" class="py-6 text-center text-destructive">Could not load notifications.</p>
-    {:else if shown.length === 0}<p class="py-8 text-center text-sm text-muted-foreground">{unreadOnly ? 'You’re all caught up.' : 'No notifications yet.'}</p>
     {:else}
-      {#each groups as group (group.day)}
-        <div class="grid gap-1"><h3 class="px-1 text-xs font-semibold text-muted-foreground">{group.label}</h3>
-          {#each group.items as item (item.id)}
-            <article class="flex items-start gap-2 rounded-md p-2" class:bg-muted={!isRead(item)}>
-              <Button type="button" variant="ghost" class="block h-auto min-w-0 flex-1 px-0 text-left font-normal whitespace-normal break-words select-text hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" aria-label={`Open ${item.title}`} onclick={() => openItem(item)}>
-                <span class="block font-medium">{item.title}</span>
-                {#if item.body}<span class="mt-0.5 block text-xs text-muted-foreground">{item.body}</span>{/if}
-                <time class="mt-1 block text-xs text-muted-foreground" datetime={hrefDate(item)}>{new Date(hrefDate(item)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</time>
-              </Button>
-              {#if !isRead(item)}<Button size="icon" variant="ghost" aria-label={`Mark ${item.title} read`} disabled={pendingIds.has(item.id)} loading={pendingIds.has(item.id)} onclick={() => markRead(item)}><LucideIcon icon={CheckCheck} class="size-[15px]"  /></Button>{/if}
-              <Button size="icon" variant="ghost" aria-label={`${muted(item.kind) ? 'Unmute' : 'Mute'} ${item.kind}`} aria-pressed={muted(item.kind)} disabled={!onMuteChange || pendingMutes.has(item.kind)} loading={pendingMutes.has(item.kind)} onclick={() => toggleMute(item.kind)}>{#if muted(item.kind)}<LucideIcon icon={VolumeX} class="size-[15px]"  />{:else}<LucideIcon icon={Volume2} class="size-[15px]"  />{/if}</Button>
-            </article>
-          {/each}
-        </div>
-      {/each}
+      <NotificationInbox
+        {items}
+        {now}
+        bind:filter
+        {onReadChange}
+        allowMarkUnread={false}
+        onOpen={openItem}
+        actions={muteAction}
+        labels={{ title: label }}
+      />
     {/if}
-  </section>
+  </div>
 {/snippet}
 
 {#if mobile}

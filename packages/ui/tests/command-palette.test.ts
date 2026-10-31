@@ -29,6 +29,23 @@ describe('CommandPalette', () => {
     expect(screen.getByRole('option', { name: /Projects Browse projects/ })).toBeTruthy();
   });
 
+  it('announces "Searching…" while a search is pending', async () => {
+    // Why this palette keeps its own search: Texuli's CommandPalette never shows
+    // its loading status (its CommandRoot gets no onSearch; Texuli gap G88).
+    let finish: (items: CommandPaletteItem[]) => void = () => {};
+    const search = vi.fn(() => new Promise<CommandPaletteItem[]>((r) => (finish = r)));
+    render(CommandPalette, { search, onSelect: vi.fn(), recentItems, debounceMs: 0 });
+    await fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    const input = await screen.findByRole('combobox');
+    await fireEvent.input(input, { target: { value: 'acc' } });
+    expect((await screen.findByRole('status')).textContent).toContain('Searching…');
+    await waitFor(() => expect(search).toHaveBeenCalledWith('acc'));
+    expect(screen.getByRole('status').textContent).toContain('Searching…');
+    finish([{ id: 'account', label: 'Account', group: 'Records' }]);
+    expect(await screen.findByRole('option', { name: 'Account' })).toBeTruthy();
+    expect(screen.queryByText('Searching…')).toBeNull();
+  });
+
   it('debounces async search, groups plain-text results, and selects with the keyboard', async () => {
     const search = vi.fn().mockResolvedValue([
       { id: 'account', label: '<b>Account</b>', group: 'Records' },

@@ -52,4 +52,15 @@ function forwardFocus(node: HTMLElement) {
     outline: 2px solid var(--tx-ring, Highlight);
     outline-offset: 2px;
   }
+  /*
+   * Texuli gap G96: a cartesian chart lays its plot out at most 640 px wide (the
+   * plot carries an inline max-inline-size), but its canvas layer fills the
+   * whole figure (absolute, inset 0). In a wider figure the canvas marks
+   * stretch past the axes and the pointer explorer. Hold the canvas layer to
+   * the plot's box: the plot starts at the inline start, up to 640 px.
+   */
+  .py-chart-root :global(.plot > .canvas-layer) {
+    inset-inline-end: auto;
+    inline-size: min(100%, 640px);
+  }
 </style>

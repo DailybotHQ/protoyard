@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { HTMLInputAttributes } from 'svelte/elements';
 import { labelClass } from 'texuli/field';
 import { PinInput } from 'texuli/number-pin';
 
@@ -9,7 +10,7 @@ import { PinInput } from 'texuli/number-pin';
  * sends SMS, verifies codes or authenticates anyone. Wire `onComplete` to a
  * prototype service that decides what the filled code means.
  */
-interface Props {
+interface OwnProps {
   /** Bound code string (digits or allowed characters only). */
   value?: string;
   /** Accessible label of the code field. */
@@ -27,10 +28,21 @@ interface Props {
   /** Fires once when the code first becomes complete (exact-once per fill). */
   onComplete?: (code: string) => void;
   onValueChange?: (code: string) => void;
+  /** The rendered root element (bindable). */
+  ref?: HTMLElement | null;
 }
 
+/**
+ * Extra attributes (`aria-*`, `data-*`, `autocomplete`, handlers…) reach the
+ * one real input inside the root, as with Texuli's PinInput.
+ */
+type Props = OwnProps &
+  Omit<HTMLInputAttributes, keyof OwnProps | 'children' | 'maxlength' | 'type' | 'size'>;
+
 let {
-  value = $bindable(''),
+  // No fallback: a caller may bind a value that starts undefined (a map entry);
+  // a `$bindable('')` would throw (props_invalid_value). Read as ''.
+  value = $bindable(),
   label,
   length = 6,
   pattern = 'digits',
@@ -41,6 +53,8 @@ let {
   class: className,
   onComplete,
   onValueChange,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 const uid = $props.id();
@@ -79,10 +93,11 @@ $effect(() => {
 });
 </script>
 
-<div class={className} data-py-otp="">
+<div bind:this={ref} class={className} data-py-otp="">
   <label for={fieldId} class={labelClass()}>{label}</label>
   <PinInput.Root
-    bind:value={() => value, setValue}
+    {...rest}
+    bind:value={() => value ?? '', setValue}
     inputId={fieldId}
     maxlength={cellCount}
     pattern={regexp}

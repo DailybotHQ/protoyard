@@ -172,12 +172,25 @@ export function themeVariables(input: AppearanceInput): Record<string, string> {
 }
 
 /**
- * The chart variables a theme block sets beyond `--tx-chart1…5`: series 6–8
- * and the 9-step sequential and diverging ramps (the names the charts kit
- * reads). Cleared when the next theme has no `charts` block.
+ * The chart variables a theme block sets beyond `--tx-chart-1…5`: series 6–8
+ * and the 9-step sequential and diverging ramps, in Texuli's canonical names
+ * (what Texuli's charts and `@texuli/tokens` read and write). Cleared when the
+ * next theme has no `charts` block.
  */
 const TX_CHART_EXTENSION_VARIABLES: readonly string[] = [
-  ...[6, 7, 8].map((n) => `--tx-chart${n}`),
+  ...[6, 7, 8].map((n) => `--tx-chart-${n}`),
+  ...Array.from({ length: 9 }, (_, i) => `--tx-chart-sequential-${i + 1}`),
+  ...Array.from({ length: 9 }, (_, i) => `--tx-chart-diverging-${i + 1}`),
+];
+
+/**
+ * The chart names Protoyard wrote before Texuli's canonical ones (`--tx-chart1`,
+ * `--tx-seq-1`, `--tx-div-1`). Nothing reads them; an exported prototype's
+ * no-flash cache can still replay them onto the root, so they are removed on
+ * the next apply. One release only.
+ */
+export const LEGACY_CHART_VARIABLES: readonly string[] = [
+  ...Array.from({ length: 8 }, (_, i) => `--tx-chart${i + 1}`),
   ...Array.from({ length: 9 }, (_, i) => `--tx-seq-${i + 1}`),
   ...Array.from({ length: 9 }, (_, i) => `--tx-div-${i + 1}`),
 ];
@@ -197,13 +210,13 @@ function chartVariables(
   };
   if (!charts) return vars;
   charts.categorical.forEach((color, i) => {
-    vars[`--tx-chart${i + 1}`] = color;
+    vars[`--tx-chart-${i + 1}`] = color;
   });
   charts.sequential.forEach((color, i) => {
-    vars[`--tx-seq-${i + 1}`] = color;
+    vars[`--tx-chart-sequential-${i + 1}`] = color;
   });
   charts.diverging.forEach((color, i) => {
-    vars[`--tx-div-${i + 1}`] = color;
+    vars[`--tx-chart-diverging-${i + 1}`] = color;
   });
   return vars;
 }
@@ -337,6 +350,7 @@ export function applyAppearance(target: HTMLElement, input: AppearanceInput): Ap
   for (const name of CHART_EXTENSION_VARIABLES) {
     if (!(name in vars)) target.style.removeProperty(name);
   }
+  for (const name of LEGACY_CHART_VARIABLES) target.style.removeProperty(name);
   for (const [name, value] of Object.entries(vars)) target.style.setProperty(name, value);
   const reducedMotion = input.reducedMotion ?? false;
   target.dataset.pyTheme = input.theme.id;
@@ -371,6 +385,7 @@ export function clearAppearance(target: HTMLElement): void {
     target.style.removeProperty(name);
   }
   for (const name of CHART_EXTENSION_VARIABLES) target.style.removeProperty(name);
+  for (const name of LEGACY_CHART_VARIABLES) target.style.removeProperty(name);
   delete target.dataset.pyTheme;
   delete target.dataset.pyMode;
   delete target.dataset.pyMotion;

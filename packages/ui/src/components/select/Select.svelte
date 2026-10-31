@@ -23,7 +23,9 @@ type Props = TriggerProps & {
 
 let {
   items,
-  value = $bindable(''),
+  // No fallback: a caller may bind a value that starts undefined (a map entry);
+  // a `$bindable('')` would throw (props_invalid_value). Read as ''.
+  value = $bindable(),
   open = $bindable(false),
   placeholder = 'Select an option',
   disabled = false,
@@ -38,7 +40,7 @@ let {
   ...rest
 }: Props = $props();
 
-const selected = $derived(items.find((item) => item.value === value));
+const selected = $derived(items.find((item) => item.value === (value ?? '')));
 const uid = $props.id();
 const valueId = `select-value-${uid}`;
 // The accessible name stays the field label (aria-label / <label for>); the
@@ -53,7 +55,7 @@ const describedBy = $derived(
 <!-- A thin adapter: Texuli's styled Select, driven by an `items` list. -->
 <TexuliSelect.Root
   type="single"
-  bind:value
+  bind:value={() => value ?? '', (next) => (value = next)}
   bind:open
   {items}
   {disabled}

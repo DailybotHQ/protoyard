@@ -69,10 +69,10 @@ test.describe('Docs wiki template (static build)', () => {
     await expect(page.getByRole('region', { name: 'Page content' })).toContainText('two approvals');
 
     await page.getByRole('link', { name: 'History' }).click();
-    await page.getByRole('button', { name: new RegExp(`^Version ${v},`) }).click();
+    await page.getByRole('button', { name: new RegExp(`^Version ${v} `) }).click();
     await page.getByRole('button', { name: `Restore version ${v}` }).click();
     await expect(
-      page.getByRole('button', { name: new RegExp(`^Version ${v + 2}, Restored v${v}`) })
+      page.getByRole('button', { name: new RegExp(`^Version ${v + 2} Current `) })
     ).toBeVisible();
     await expectAccessible(page, testInfo, { include: 'main', label: 'history' });
 
