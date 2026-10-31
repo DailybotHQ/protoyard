@@ -1,9 +1,9 @@
 import type { Deck, FreeSlide } from '@protoyard/decks/schema';
 import type { DeckSlide } from '@texuli/deck/model';
-import { deckValidationHooks, prepareDeck } from '@texuli/slides/stage';
+import { deckValidationHooks, isPreparedDeck, prepareDeck } from '@texuli/slides/stage';
 import { describe, expect, it } from 'vitest';
 import { createProtoyardRenderers, validateProtoyardBlock } from '../src/app/renderers.ts';
-import { stageDeck } from '../src/app/stage-deck.ts';
+import { prepareStageDeck, stageDeck } from '../src/app/stage-deck.ts';
 
 /**
  * Protoyard's renderer table for the `@texuli/slides` stage (DeckApp mounts it
@@ -114,6 +114,48 @@ describe('the stage prepares a Protoyard deck with this table', () => {
     );
     // The deck model refuses it (an untyped item never reaches the block hook).
     expect(prepared.ok).toBe(false);
+    expect(
+      prepared.issues.some((issue) => issue.path.join('.').startsWith('slides.1.blocks.2'))
+    ).toBe(true);
+  });
+});
+
+describe('prepareStageDeck: DeckApp hands the stage a prepared deck (Texuli G83)', () => {
+  it('returns a prepared deck the stage paints without validating again', () => {
+    const stage = stageDeck(deck());
+    const prepared = prepareStageDeck(stage.input);
+    expect(prepared.ok, JSON.stringify(prepared.issues)).toBe(true);
+    expect(isPreparedDeck(prepared)).toBe(true);
+    if (!prepared.ok) return;
+    expect(prepared.deck.formatVersion).toBe(2);
+    expect(prepared.deck.slides.map((slide) => slide.layout)).toEqual([
+      'title-hero',
+      'free',
+      'custom',
+    ]);
+    expect(prepared.deck.slides[1]?.title).toBe('Vote now');
+    // The same result as the stage's own preparation with this table.
+    const own = prepareDeck(
+      stage.input,
+      deckValidationHooks([createProtoyardRenderers(stage.freeSlides)])
+    );
+    expect(own.ok && own.deck).toEqual(prepared.deck);
+  });
+
+  it('accepts Protoyard-only blocks through its own check, not @texuli/blocks', () => {
+    const stage = stageDeck(deck());
+    const prepared = prepareStageDeck(stage.input);
+    expect(prepared.ok).toBe(true);
+    // A JSON copy is not a prepared deck: the stage would validate it again.
+    expect(isPreparedDeck(JSON.parse(JSON.stringify(prepared)))).toBe(false);
+  });
+
+  it('refuses an invalid deck with its issues, and the result is not prepared', () => {
+    const bad = deck();
+    (bad.slides[1] as FreeSlide).blocks[2] = { id: 'p1' } as never;
+    const prepared = prepareStageDeck(stageDeck(bad).input);
+    expect(prepared.ok).toBe(false);
+    expect(isPreparedDeck(prepared)).toBe(false);
     expect(
       prepared.issues.some((issue) => issue.path.join('.').startsWith('slides.1.blocks.2'))
     ).toBe(true);

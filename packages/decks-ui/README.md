@@ -3,14 +3,17 @@
 The deck host for Protoyard ([ADR-038](../../docs/DECISIONS.md)): `DeckApp`,
 the one deck component the player's deck entry and generated deck prototypes
 mount. Decks are presented by the [`@texuli/slides`](../../../texuli/packages/slides/README.md)
-stage (`DeckStage`, Texuli ADR-009): the fixed canvas, `#/<slide-id>/<step>`
+stage core (`DeckStageCore` from `@texuli/slides/stage-core`, Texuli ADR-009),
+the stage without its default renderer tables, which a Protoyard deck never
+uses: the fixed canvas, `#/<slide-id>/<step>`
 routes, keys, touch, the toolbar (below the slide at the inline end), slide
 list, overview, presenter view and window, blackout, laser, help, copy link,
 first-visit hint, full screen, transitions and print are the stage's.
 DeckApp adds what is Protoyard's own:
 
-- the Protoyard deck shape, migrated to the deck model and validated by
-  `@texuli/deck` (`checkProtoyardDeck`);
+- the Protoyard deck shape, migrated to the deck model and prepared once with
+  Protoyard's block check (`prepareDeckV2`), so the stage paints it on its
+  first render without validating it again;
 - Protoyard themes, palette seeds and font pairings (`loadTheme` through
   `@protoyard/decks/style`), and `mode` (`light`/`dark`) as the host
   `data-tx-mode`;
@@ -104,7 +107,8 @@ help dialog also reads). With the debug panel available, `D` toggles it and
 ### Debug for agents (`D`)
 
 In dev builds, with `?debug=1` or `debug="on"`, the stage's toolbar gains a
-"Debug for agents" button (`data-py-deck-tool="debug"`) and `D` toggles the
+"Debug for agents" button (`data-py-deck-tool="debug"`) as its last group,
+"More tools" (the stage's `tools` snippet), and `D` toggles the
 panel (`data-py-deck-debug`): the slide record, its checks, outlines, and
 copy/download actions. It loads on its own chunk (under 12 KB gzip,
 `tests/debug-panel.test.ts`).
@@ -114,8 +118,11 @@ copy/download actions. It loads on its own chunk (under 12 KB gzip,
 The stage's Print button opens `?print=1`, where DeckApp renders the stage's
 print view (`DeckPrintView` from `@texuli/slides/export`): one page per
 visible slide, notes with `&notes=1`. The browser's own print (Ctrl/Cmd+P)
-mounts the same view for paper (it loads while the browser is idle after the
-deck opens). PPTX export is available from `@texuli/slides/export`; no
+mounts the same view for paper: its code is preloaded while the browser is
+idle after the deck opens (`preloadDeckPrintView`), and the view is mounted on
+the first print. That first print captures the page before the view has
+settled its themes, images and fonts, so it prints the current slide and says
+so; every later print has all the slides. PPTX export is available from `@texuli/slides/export`; no
 Protoyard UI calls it yet.
 
 ## Deck Studio
@@ -126,10 +133,12 @@ live preview and exports RFC 6902 patches (`@protoyard/decks/patch`).
 ## Measured numbers
 
 `tests/bundle-size.test.ts` builds the `./app` entry in production
-(2026-10-28): 129,079 B gzip initial JavaScript (cap 135,500 B; it was
-96,068 B with Protoyard's own stage), 6,921 B first-screen CSS (cap 7,300 B)
-and 72,999 B of all emitted CSS (cap 76,650 B), most of it lazy stylesheets of
-the stage's default component registry, which Protoyard decks never load.
+(2026-10-30, npm `@texuli/slides` 0.8.2): 107,246 B gzip initial JavaScript
+(cap 111,657 B), 8,914 B first-screen CSS (cap 9,042 B) and 82,210 B of all
+emitted CSS (cap 83,381 B). About 27 KB of that CSS is lazy stylesheets of the
+stage's default component registry, which Protoyard decks never load: the
+print view (`@texuli/slides/export`) still references the default tables, so
+the build emits them (reported to Texuli).
 The debug panel chunk is 11,179 B gzip.
 
 ## Known limits

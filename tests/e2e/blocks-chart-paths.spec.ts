@@ -24,18 +24,27 @@ test('deck chart blocks draw categorical paths when their canvas scales and cont
   await page.goto(`${prototypeUrl(SLUG)}#/chart/0`);
   await waitForPrototypeReady(page, { slug: SLUG });
 
-  const canvas = page.locator('[data-testid="deck-canvas"]');
+  // The @texuli/slides stage canvas: a fixed 1280 x 720 canvas scaled by --tx-deck-scale.
+  const canvas = page.locator('[data-tx-deck-canvas]');
   await expect(canvas).toBeVisible();
+  await expect(canvas).toHaveAttribute('data-width', '1280');
   await expect
-    .poll(() => canvas.getAttribute('data-scale').then((scale) => Number(scale)))
+    .poll(() =>
+      canvas.evaluate((el) =>
+        Number.parseFloat(getComputedStyle(el).getPropertyValue('--tx-deck-scale'))
+      )
+    )
     .toBeLessThan(1);
 
-  const chartRoot = page.locator('[data-py-block="chart"]');
+  // The `chart` layout is the stage's own (@texuli/slides), painting a Texuli chart block.
+  const chartRoot = page.locator(
+    '[data-tx-deck-slide="chart"][data-tx-deck-active="true"] [data-tx-block="chart"]'
+  );
   await expect(chartRoot).toBeVisible();
   await expect(chartRoot.locator('[aria-label="Loading chart"]')).toHaveCount(0, {
     timeout: 30_000,
   });
-  const chart = chartRoot.locator('figure[data-py-chart]');
+  const chart = chartRoot.locator('figure');
   await expect(chart).toBeVisible();
   await expectPaths(chart.locator('[data-line], [data-series] path, path[data-line]'));
   // Area/line may share path marks; accept any series geometry once loaded.
@@ -45,7 +54,10 @@ test('deck chart blocks draw categorical paths when their canvas scales and cont
   await page.screenshot({ path: 'tmp/blocks-chart-scaled.png', fullPage: true });
 
   await page.goto(`${prototypeUrl(SLUG)}#/explore/0`);
-  const controls = page.locator('[data-py-block="chart-controls"]');
+  // A Protoyard chart-controls block on a free slide (its section, inside the block wrapper).
+  const controls = page.locator(
+    '[data-tx-deck-slide="explore"][data-tx-deck-active="true"] section[data-py-block="chart-controls"]'
+  );
   await expect(controls).toBeVisible({ timeout: 30_000 });
   await expect(controls.locator('[aria-label="Loading block"]')).toHaveCount(0, {
     timeout: 30_000,

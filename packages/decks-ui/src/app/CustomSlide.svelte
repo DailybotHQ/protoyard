@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { CustomSlide as Slide } from '@protoyard/decks/schema';
 import type { CustomSlide as CustomSlideModel } from '@texuli/deck/model';
-import { type DeckSlideRendererProps, getDeckStepContext } from '@texuli/slides/stage';
+import { type DeckSlideRendererProps, getDeckStepContext } from '@texuli/slides/stage-core';
 import CustomSlideHost from '../layouts/CustomSlideHost.svelte';
 import { getDeckHostContext } from './context.ts';
 

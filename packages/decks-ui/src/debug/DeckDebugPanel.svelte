@@ -6,7 +6,7 @@ import {
 } from '@protoyard/decks/agent';
 import { checkDeckStatic } from '@protoyard/decks/quality';
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
-import { copyDeckText as copyText } from '@texuli/slides/stage';
+import { copyDeckText as copyText } from '@texuli/slides/stage-core';
 import { onMount, tick } from 'svelte';
 import { Badge } from 'texuli/badge';
 import { Button } from 'texuli/button';
