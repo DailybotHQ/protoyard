@@ -12,21 +12,21 @@ let {
   onCancel,
 }: {
   doc: DocDocument;
-  onApply: (next: DocDocument, notes: DocConversionNote[]) => void;
+  onApply: (next: DocDocument, notes: DocConversionNote[]) => void | Promise<void>;
   onCancel: () => void;
 } = $props();
 
-function apply(): void {
+function apply(): void | Promise<void> {
   const blocks = doc.blocks.map((block) =>
     block.type === 'text' ? { ...block, markdown: 'Edited in the editor.' } : block
   );
-  onApply({ ...doc, blocks }, [
+  return onApply({ ...doc, blocks }, [
     { id: 'n4', code: 'dropped', message: 'The link to the page "Child" was left out.' },
   ]);
 }
 </script>
 
 <div data-py-mock-doc-editor>
-  <button type="button" onclick={apply}>Mock apply</button>
+  <button type="button" onclick={() => void apply()}>Mock apply</button>
   <button type="button" onclick={onCancel}>Mock cancel</button>
 </div>
