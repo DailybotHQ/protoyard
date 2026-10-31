@@ -63,8 +63,11 @@ export const THRESHOLDS = {
   hoverP95Ms: 16,
   /** Chromium: long tasks during the hover sweep, per renderer (max over runs). */
   longTasks: 0,
-  /** LineChart + BarChart view, gzip bytes: the bundle guard's ceiling (charts-bundle.test.ts). */
-  lineBarLazyBytes: 17_000,
+  /**
+   * LineChart + BarChart view, gzip bytes: the bundle guard's ceiling (charts-bundle.test.ts),
+   * measured 12,718 B on Texuli 0.9.0 + 5 % (PLAN_008 T-remeasure; was 17,000).
+   */
+  lineBarLazyBytes: 13_354,
 } as const;
 
 const FAMILIES = ['cartesian', 'part-whole', 'matrix', 'compact', 'canvas', 'geo'] as const;
