@@ -188,15 +188,20 @@ describe('CalendarScreen', () => {
     await waitFor(() => expect(document.querySelector('[data-slot][data-focused]')).toBeTruthy());
     await fireEvent.click(document.querySelector('[data-slot][data-focused]') as HTMLElement);
 
-    const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('New booking')).toBeTruthy();
-    const form = dialog.querySelector('[data-entity-form="booking"]') as HTMLFormElement;
-    const inputs = form.querySelectorAll('input');
-    // Title, then the prefilled start (09:00 on today) and end (10:00).
-    expect((inputs[1] as HTMLInputElement).value).toBe('2026-06-01T09:00');
-    expect((inputs[2] as HTMLInputElement).value).toBe('2026-06-01T10:00');
-    await fireEvent.input(inputs[0] as HTMLInputElement, { target: { value: 'Morning kayak' } });
-    await fireEvent.submit(form);
+    const dialog = await screen.findByRole('dialog', { name: 'New booking' });
+    const form = dialog.querySelector('[data-entity-form="booking"]') as HTMLElement;
+    // The dialog names the form, so its own title is not shown twice.
+    expect(form.hasAttribute('data-hide-title')).toBe(true);
+    // The title is a Texuli field; the prefilled start (09:00 on today) and
+    // end (10:00) are hosted date-and-time controls.
+    const title = within(form).getByRole('textbox', { name: /^Title/ }) as HTMLInputElement;
+    const hosted = form.querySelectorAll<HTMLInputElement>(
+      '[data-entity-form-hosted] input[type="datetime-local"]'
+    );
+    expect(hosted[0]?.value).toBe('2026-06-01T09:00');
+    expect(hosted[1]?.value).toBe('2026-06-01T10:00');
+    await fireEvent.input(title, { target: { value: 'Morning kayak' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
 
     await waitFor(async () => {
       const rows = await table(runtime, 'bookings').toArray();

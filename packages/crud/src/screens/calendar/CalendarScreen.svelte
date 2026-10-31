@@ -177,6 +177,7 @@ function open(row: Row) {
       {blueprint}
       {services}
       submitLabel="Create"
+      showTitle={false}
       onSubmit={create}
       onCancel={() => (formOpen = false)}
     />

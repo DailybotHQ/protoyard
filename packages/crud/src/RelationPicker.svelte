@@ -204,6 +204,7 @@ async function created(row: unknown) {
         <EntityForm
           entity={target}
           mode="create"
+          showTitle={false}
           {runtime}
           {blueprint}
           {services}

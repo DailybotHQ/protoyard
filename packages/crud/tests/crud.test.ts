@@ -343,7 +343,13 @@ describe('EntityForm', () => {
     });
 
     await fireEvent.click(screen.getByRole('button', { name: /Create customer/i }));
-    await waitFor(() => expect(screen.getByText(/at least 2 characters|required/i)).toBeTruthy());
+    // @texuli/forms checks the required name before the service runs: inline
+    // under the field and in the focused error summary.
+    await waitFor(() =>
+      expect(screen.getAllByText(/Name is required/i).length).toBeGreaterThanOrEqual(1)
+    );
+    expect(document.querySelector('.tx-forms__summary')).toBeTruthy();
+    expect(screen.queryByTestId('created-id')).toBeNull();
 
     const nameInput = screen.getByRole('textbox', { name: /name/i });
     await fireEvent.input(nameInput, { target: { value: 'Northwind Co' } });
