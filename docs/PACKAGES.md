@@ -18,35 +18,36 @@ pnpm protoyard doctor
 pnpm protoyard dev crm-demo
 ```
 
-Protoyard consumes the published Texuli `0.5.0` packages from npm at exact
-versions ([TEXULI](TEXULI.md)). The table shows direct workspace dependencies;
-transitive dependencies are omitted. Every template and prototype app also
-declares `texuli@0.5.0` for its Svelte UI. The root pins the complete Texuli
-family used by current and optional surfaces.
+Protoyard consumes the published Texuli `0.9.0` packages from npm at exact
+versions ([TEXULI](TEXULI.md)). The table shows direct workspace dependencies
+(including peer dependencies); transitive dependencies are omitted. Every
+template and prototype app also declares `texuli@0.9.0` for its Svelte UI. The
+root pins the complete Texuli family used by current and optional surfaces.
 
 | Protoyard package | Direct Texuli dependencies |
 | --- | --- |
 | `@protoyard/ai-ui` | `@texuli/chat`, `texuli` |
 | `@protoyard/analytics-ui` | `@texuli/charts`, `@texuli/data`, `@texuli/date`, `texuli` |
-| `@protoyard/blocks` | `@texuli/blocks` |
 | `@protoyard/blocks-ui` | `@texuli/blocks`, `@texuli/charts`, `@texuli/data`, `@texuli/editor`, `texuli` |
-| `@protoyard/charts` | `@texuli/charts`, `@texuli/tokens` |
+| `@protoyard/blocks` | `@texuli/blocks` |
 | `@protoyard/charts-ui` | `@texuli/charts`, `texuli` |
-| `@protoyard/crud` | `texuli` |
-| `@protoyard/decks` | `@texuli/deck` |
+| `@protoyard/charts` | `@texuli/charts`, `@texuli/tokens` |
+| `@protoyard/crud` | `@texuli/canvas`, `@texuli/forms`, `@texuli/sheets`, `texuli` |
 | `@protoyard/decks-ui` | `@texuli/deck`, `@texuli/slides`, `texuli` |
+| `@protoyard/decks` | `@texuli/deck` |
 | `@protoyard/devtools` | `@texuli/primitives`, `texuli` |
 | `@protoyard/flows-ui` | `@texuli/workflows`, `texuli` |
 | `@protoyard/gamification-ui` | `texuli` |
-| `@protoyard/pages-ui` | `@texuli/blocks`, `texuli` |
+| `@protoyard/pages-ui` | `@texuli/blocks`, `@texuli/document`, `@texuli/forms`, `@texuli/pages`, `texuli` |
+| `@protoyard/pages` | `@texuli/document` |
 | `@protoyard/player` | `texuli` |
 | `@protoyard/renderer-svelte` | `texuli` |
 | `@protoyard/review-ui` | `texuli` |
-| `@protoyard/saas-ui` | `texuli` |
+| `@protoyard/saas-ui` | `@texuli/forms`, `texuli` |
 | `@protoyard/themes` | `@texuli/tokens` |
 | `@protoyard/ui` | `@texuli/chat`, `@texuli/core`, `@texuli/data`, `@texuli/date`, `@texuli/primitives`, `texuli` |
+| `@protoyard/views-ui` | `@texuli/canvas`, `@texuli/data`, `@texuli/drag`, `@texuli/editor`, `@texuli/primitives`, `@texuli/sheets`, `texuli` |
 | `@protoyard/views` | `@texuli/data` |
-| `@protoyard/views-ui` | `@texuli/data`, `@texuli/drag`, `@texuli/editor`, `@texuli/primitives`, `texuli` |
 | `@protoyard/gallery` | `@texuli/astro`, `@texuli/tokens`, `texuli` |
 
 The workspace's `pnpm-workspace.yaml` release-age policy allows the Texuli
@@ -136,10 +137,10 @@ Imports must use the package name and one of its declared export paths. `.` is t
 | `@protoyard/renderer-svelte` | Svelte/Vite renderer and runtime bindings | `.`, `./vite`, `./avatars-plugin`, `./app.css`, `./env` |
 | `@protoyard/ui` | Shared primitives, layouts and style sheet | `.`, `./styles.css` |
 | `@protoyard/devtools` | In-browser control panel | `.`, `./styles.css` |
-| `@protoyard/crud` | Blueprint CRUD app and lazy screens | `.`, `./registry-meta`, `./app`, `./screens/list`, `./screens/form`, `./screens/settings`, `./screens/calendar`, `./screens/map`, `./screens/board`, `./screens/dashboard`, `./screens/analytics`, `./screens/timeline`, `./styles.css` |
+| `@protoyard/crud` | Blueprint CRUD app and lazy screens | `.`, `./registry-meta`, `./app`, `./screens/list`, `./screens/form`, `./screens/settings`, `./screens/calendar`, `./screens/map`, `./screens/board`, `./screens/dashboard`, `./screens/analytics`, `./screens/timeline`, `./screens/sheet`, `./screens/canvas`, `./styles.css` |
 | `@protoyard/charts-ui` | Lazy Svelte chart families | `.`, `./cartesian`, `./part-whole`, `./matrix`, `./compact`, `./canvas`, `./geo`, `./styles.css` |
 | `@protoyard/analytics-ui` | Lazy analytics views | `.`, `./date-range`, `./filters`, `./cohort`, `./funnel`, `./grid`, `./drill`, `./styles.css` |
-| `@protoyard/views-ui` | Lazy rich-view components | `./board`, `./calendar`, `./timeline`, `./grid`, `./tree`, `./map`, `./editor`, `./activity`, `./notifications`, `./files`, `./settings`, `./states`, `./commands`, `./scenarios`, `./styles.css` |
+| `@protoyard/views-ui` | Lazy rich-view components | `./board`, `./calendar`, `./timeline`, `./grid`, `./tree`, `./map`, `./editor`, `./sheet`, `./canvas`, `./activity`, `./notifications`, `./files`, `./settings`, `./states`, `./commands`, `./scenarios`, `./virtual-list`, `./styles.css`, `./blocks.css`, `./player.css` |
 | `@protoyard/saas-ui` | Simulated SaaS screens | `.`, `./styles.css` |
 | `@protoyard/ai-ui` | Assistant and widget components | `.`, `./voice`, `./widget`, `./styles.css` |
 | `@protoyard/review-ui` | Lazy review UI and mount entry | `./overlay`, `./thread`, `./panel`, `./toolbar`, `./mount`, `./styles.css` |
