@@ -49,7 +49,10 @@ import { entryGraph } from './chunk-graph.ts';
  */
 // Texuli 0.9.0: a maximum of 4,466,115 bytes over the catalog (token contract
 // v2 component CSS plus @texuli/tokens/base.css, gap G110); + 2.5 % (PLAN_008).
-export const QUICK_SINGLE_FILE_BUDGET_BYTES = 4_577_768;
+// PLAN_008 T-remeasure (2026-10-31): an app file now leaves out the kind
+// renderers it never runs (T-bundle-fix); the 43 catalog blueprints measure
+// 3,870,232–3,871,615 bytes, so the cap is lowered to that maximum + 5 %.
+export const QUICK_SINGLE_FILE_BUDGET_BYTES = 4_065_196;
 
 /** The player page a single file starts from (deck.html, page.html, doc.html or index.html). */
 export type SingleFileEntry = 'index' | 'deck' | 'page' | 'doc';
@@ -67,8 +70,11 @@ export type SingleFileEntry = 'index' | 'deck' | 'page' | 'doc';
  */
 export const QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES: Record<SingleFileEntry, number> = {
   index: QUICK_SINGLE_FILE_BUDGET_BYTES,
-  deck: 2_818_330,
-  page: 2_818_330,
+  // PLAN_008 T-remeasure (2026-10-31), each kind file holding only its own
+  // renderer: the 7 example decks measure 2,640,768–2,668,245 bytes and the
+  // page (tidewater) 2,347,132 bytes; each cap is that maximum + 5 %.
+  deck: 2_801_658,
+  page: 2_464_489,
   // PLAN_008 T-documents: a doc file now carries the @texuli/pages editor and the
   // Word/PDF writers it runs (edit, then download). Measured 3,056,939 bytes
   // (northwind) once each kind file stopped embedding the other kinds'

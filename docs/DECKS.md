@@ -975,8 +975,9 @@ Measured 2026-10-22: that pack is 177 files plus the page (2,193,470 B), with
 one 548,131 B gzip script. A quick deck exported as one file measured
 1.53 MB then. On npm Texuli 0.5.0, catalog deck, page and doc single-file
 exports measure 2,681,755–2,689,852 B (the 0.4.0 range was 2,656,649–2,684,123
-B). The existing 2,818,330-byte cap stays because it is already below the
-0.5.0 maximum plus 5%.
+B). On Texuli 0.9.0 (PLAN_008, 2026-10-31), with each kind file holding only
+its own renderer, the 7 example decks measure 2,640,768–2,668,245 B, and the
+cap is lowered from 2,818,330 B to that maximum plus 5%: 2,801,658 B.
 
 ## Limits
 
@@ -992,7 +993,7 @@ B). The existing 2,818,330-byte cap stays because it is already below the
 | Slide title | 160 characters | `DECK_LIMITS.slideTitle` |
 | Rendered text minimum | 24 px body, 18 px labels, in canvas pixels | `DECK_TEXT_MINIMUMS` |
 | Slides mounted at once | the active slide and its neighbors (2–3) | `DeckCanvas` |
-| Single-file export of a deck page | 2,818,330 B (about 2.69 MiB) | `quick export --single-file` |
+| Single-file export of a deck page | 2,801,658 B (about 2.67 MiB) | `quick export --single-file` |
 
 Media come only from the deck itself: relative paths without `..`, bounded
 base64 `data:` URIs of raster images and mp4/webm video, or library avatars
