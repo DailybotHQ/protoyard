@@ -33,7 +33,7 @@
   },
   "storage": {
     "namespace": "create-anything-deck",
-    "schemaVersion": 1
+    "schemaVersion": 2
   },
   "build": {
     "includeDevtools": true,
@@ -43,6 +43,6 @@
   "scenarios": ["default"],
   "template": "deck",
   "createdAt": "2026-10-22T04:53:20.311Z",
-  "updatedAt": "2026-10-22T04:53:20.311Z",
+  "updatedAt": "2026-10-31T10:45:03.114Z",
   "thumbnail": "public/thumbnail.png"
 }
