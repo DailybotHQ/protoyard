@@ -11,6 +11,36 @@ layouts, views and theme library. They are kept as history and labelled so;
 current prototype bundle numbers are in
 [After the Texuli adoption](#after-the-texuli-adoption-measured-2026-10-28).
 
+## Texuli 0.10.0 adoption (measured 2026-10-31)
+
+Texuli 0.10.0 closed the gaps behind several adapters. Three of the changes
+shrink what Protoyard builds:
+
+- `@protoyard/themes` loads `@texuli/tokens/system.css` (the system token
+  defaults alone, G110) instead of `base.css`.
+- DeckApp prints through `@texuli/slides/export-core` (G105), so the build no
+  longer emits the stage's default component registry.
+- The doc editor is `@texuli/pages/editor-core` with no player loader (G123),
+  so the doc build has no `@texuli/player` chunks.
+
+The "before" column is the same 0.10.0 install before these changes, except
+the prototype CSS, whose "before" is the PLAN_008 wave 2 measurement on 0.9.0
+below. No ceiling was changed.
+
+| Measurement | Before | After |
+| --- | ---: | ---: |
+| decks-ui initial JS / first-screen CSS / all emitted CSS (gzip) | 109,538 / 10,152 / 86,765 B | 105,816 / 9,404 / 57,011 B |
+| pages-ui doc: all emitted CSS (gzip) | 78,560 B | 48,919 B |
+| Player initial CSS: index / deck / page and doc | 17,938 / 18,310 / 19,614 B | 16,876 / 17,259 / 18,568 B |
+| Player all CSS: deck / page / doc | 114.80 / 69.98 / 103.03 KB | 84.44 / 68.84 / 72.68 KB |
+| Doc single-file export (northwind) | 3,056,939 B (0.9.0) | 2,748,674 B |
+| create-anything-deck initial JS / CSS | 299.04 / 91.42 KB (0.9.0) | 295.83 / 84.91 KB |
+| crm-demo / ui-kit / keel-projects-demo CSS | 32.00 / 57.30 / 49.19 KB (0.9.0) | 30.97 / 56.50 / 48.44 KB |
+
+`pnpm protoyard budget --all` passes all 17 prototypes (exit 0). The
+pages-ui page fixture's all-CSS sum (42,069 B) is over its 40,023 B cap; it
+already measured 42,087 B on the 0.10.0 install before these changes.
+
 ## Texuli 0.9.0 ceilings (measured 2026-10-31)
 
 Texuli 0.9.0's components read their system tokens (`--tx-size-*`,
@@ -20,8 +50,8 @@ loads it. That file and the 0.9 component CSS grew these first-screen sizes.
 Each ceiling below is the measurement from `pnpm check` (after
 `pnpm build:packages` and the player build) plus 2.5 %.
 
-Texuli gap G110 asks for a tokens-only stylesheet. When Texuli ships it, a
-re-measure lowers these ceilings again.
+Texuli gap G110 asked for a tokens-only stylesheet; Texuli 0.10.0 ships it
+(see the section above).
 
 | Ceiling | Measured on 0.9.0 | Before → after |
 | --- | ---: | ---: |
