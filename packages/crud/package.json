@@ -72,6 +72,11 @@
       "types": "./src/screens/sheet/index.ts",
       "svelte": "./src/screens/sheet/index.ts",
       "default": "./src/screens/sheet/index.ts"
+    },
+    "./screens/canvas": {
+      "types": "./src/screens/canvas/index.ts",
+      "svelte": "./src/screens/canvas/index.ts",
+      "default": "./src/screens/canvas/index.ts"
     }
   },
   "scripts": {
@@ -183,6 +188,11 @@
         "types": "./dist/screens/sheet/index.d.ts",
         "svelte": "./dist/screens/sheet/index.js",
         "default": "./dist/screens/sheet/index.js"
+      },
+      "./screens/canvas": {
+        "types": "./dist/screens/canvas/index.d.ts",
+        "svelte": "./dist/screens/canvas/index.js",
+        "default": "./dist/screens/canvas/index.js"
       }
     },
     "files": [

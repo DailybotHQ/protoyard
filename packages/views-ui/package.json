@@ -82,6 +82,11 @@
       "svelte": "./src/sheet/index.ts",
       "default": "./src/sheet/index.ts"
     },
+    "./canvas": {
+      "types": "./src/canvas/index.ts",
+      "svelte": "./src/canvas/index.ts",
+      "default": "./src/canvas/index.ts"
+    },
     "./tree": {
       "types": "./src/tree/index.ts",
       "svelte": "./src/tree/index.ts",
@@ -217,6 +222,11 @@
         "types": "./dist/sheet/index.d.ts",
         "svelte": "./dist/sheet/index.js",
         "default": "./dist/sheet/index.js"
+      },
+      "./canvas": {
+        "types": "./dist/canvas/index.d.ts",
+        "svelte": "./dist/canvas/index.js",
+        "default": "./dist/canvas/index.js"
       },
       "./tree": {
         "types": "./dist/tree/index.d.ts",
