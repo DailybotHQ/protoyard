@@ -561,7 +561,8 @@ context with the thumbnails' readiness wait (`packages/cli/src/lib/capture/page.
   are decoded by `packages/cli/src/lib/capture/png.ts`, no image dependency), `new` or
   `resized`.
 
-**Theme review.** `--themes all` (every library theme) or a collection
+**Theme review.** `--themes all` (every library theme: the 64-theme catalog
+and Texuli's expanded set, 204 in all) or a collection
 (`industry`, `brand-like`, `high-contrast`, `colorblind-safe`, `seasonal`,
 `mono`; entries combine with explicit ids, `--themes high-contrast,violet`)
 captures one representative screen per target instead of the full matrix:
@@ -574,7 +575,7 @@ unknown id) is flagged `theme-fallback (<applied id>)`. The contact sheet's
 theme filter narrows the review.
 
 ```bash
-pnpm visual:sweep --only ui-kit --themes all --shells none              # 2 × 64 shots
+pnpm visual:sweep --only ui-kit --themes all --shells none              # 2 × 204 shots
 pnpm visual:sweep --only crm-demo --themes high-contrast --route /settings --no-axe
 ```
 

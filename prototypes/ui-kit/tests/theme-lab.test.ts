@@ -3,6 +3,8 @@ import type { ThemeControllerExtras } from '@protoyard/runtime';
 import {
   BUILTIN_THEMES,
   createThemeFromSeed,
+  isCatalogThemeId,
+  loadFullLibraryMeta,
   loadLibraryTheme,
   THEME_LIBRARY_META,
 } from '@protoyard/themes';
@@ -35,6 +37,20 @@ describe('theme lab catalog', () => {
       )
     ).toBe(true);
     expect(filterLibraryThemes(THEME_LIBRARY_META, 'all')).toEqual(THEME_LIBRARY_META);
+  });
+
+  it('offers every library theme: the expanded set adds categories and loads like the catalog', async () => {
+    const full = await loadFullLibraryMeta();
+    expect(full.length).toBeGreaterThan(THEME_LIBRARY_META.length);
+    expect(listThemeCategories(full).length).toBeGreaterThan(
+      listThemeCategories(THEME_LIBRARY_META).length
+    );
+    const expanded = full.find((meta) => !isCatalogThemeId(meta.id));
+    if (!expanded) throw new Error('no expanded library theme');
+    expect(filterLibraryThemes(full, expanded.category)).toContainEqual(expanded);
+    const theme = await loadLibraryTheme(expanded.id);
+    expect(theme.id).toBe(expanded.id);
+    expect(theme.light.primary).toMatch(/^#/);
   });
 
   it('uses the runtime export path, with a compatible envelope for lazy library themes', () => {

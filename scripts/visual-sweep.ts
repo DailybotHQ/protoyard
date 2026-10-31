@@ -55,7 +55,7 @@ import {
   screenshot,
   withReadyPage,
 } from '../packages/cli/src/lib/capture/index.ts';
-import { THEME_LIBRARY_META } from '../packages/themes/src/library/registry.ts';
+import { loadFullLibraryMeta } from '../packages/themes/src/library/registry.ts';
 import { THEME_COLLECTIONS } from '../packages/themes/src/library/types.ts';
 import { type StaticServer, serveDirectory } from './lib/static-server.ts';
 import {
@@ -306,7 +306,8 @@ async function main() {
   const args = parseSweepArgs(process.argv.slice(2));
   const targets = discover(args);
   const outDir = prepareOut(args.out, args.compare);
-  const themes = resolveThemes(args.themes, THEME_LIBRARY_META, THEME_COLLECTIONS);
+  // `all` and a collection mean every library theme: the catalog and Texuli's expanded set.
+  const themes = resolveThemes(args.themes, await loadFullLibraryMeta(), THEME_COLLECTIONS);
   const shots = buildMatrix(targets, { ...args, themes: themes.ids, review: themes.review });
   console.log(
     `Visual sweep${themes.review ? ` (theme review, ${themes.ids.length} themes)` : ''}: ${targets.length} target(s), ${shots.length} shot(s) → ${relative(ROOT, outDir)}`

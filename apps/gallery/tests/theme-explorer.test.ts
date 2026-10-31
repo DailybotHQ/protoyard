@@ -121,8 +121,8 @@ describe('theme explorer catalog data', () => {
     ]);
     const expanded = themes.find((theme) => theme.id === 'ash-plain');
     expect(expanded).toMatchObject({ source: 'library', collection: 'mono' });
-    expect(expanded?.lightStyle).toContain('--tx-primary:');
-    expect(expanded?.darkStyle).toContain('--tx-background:');
+    expect(expanded?.lightStyle).toContain('--tx-background:');
+    expect(expanded?.darkStyle).toContain('--tx-chart-1:');
   });
 
   it('includes collection, mood, and precomputed chart colors in static cards', async () => {

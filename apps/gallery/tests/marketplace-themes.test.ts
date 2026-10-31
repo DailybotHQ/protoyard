@@ -1,4 +1,10 @@
-import { THEME_COLLECTIONS, THEME_LIBRARY_META } from '@protoyard/themes';
+import {
+  EXPANDED_LIBRARY_THEME_IDS,
+  isCatalogThemeId,
+  loadFullLibraryMeta,
+  THEME_COLLECTIONS,
+  THEME_LIBRARY_META,
+} from '@protoyard/themes';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import MarketCard from '../src/components/marketplace/MarketCard.svelte';
@@ -64,10 +70,26 @@ describe('default theme mapping (build time)', () => {
     expect(marketTheme(undefined)).toBeNull();
   });
 
-  it('offers one try-in-theme choice per library collection, minus the card default', () => {
+  it('maps a theme from the expanded library like a catalog one, not as custom', async () => {
+    const full = await loadFullLibraryMeta();
+    const id = EXPANDED_LIBRARY_THEME_IDS.find(
+      (candidate) => !isCatalogThemeId(candidate) && full.some((meta) => meta.id === candidate)
+    );
+    const meta = full.find((entry) => entry.id === id);
+    if (!id || !meta) throw new Error('no expanded library theme');
+    expect(marketTheme(id)).toEqual({
+      i: id,
+      n: meta.name,
+      c: meta.collection,
+      s: [meta.seed, ...(meta.secondary ? [meta.secondary] : [])],
+    });
+  });
+
+  it('offers one try-in-theme choice per library collection, minus the card default', async () => {
+    const full = await loadFullLibraryMeta();
     const choices = themeChoices();
     expect(choices.map((theme) => theme.c)).toEqual(
-      THEME_COLLECTIONS.filter((c) => THEME_LIBRARY_META.some((meta) => meta.collection === c))
+      THEME_COLLECTIONS.filter((c) => full.some((meta) => meta.collection === c))
     );
     const first = choices[0] as NonNullable<(typeof choices)[0]>;
     const own = card('x', first.i);
