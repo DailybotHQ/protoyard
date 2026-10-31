@@ -2,6 +2,7 @@ import { CatalogSchema, LayoutIdSchema } from '@protoyard/core';
 import { GEO_REGIONS, type GeoRegionId } from '@protoyard/scenarios';
 import { z } from 'zod';
 import { ArchetypeSchema } from './archetypes/schema.ts';
+import { sheetScreenIssues, sheetScreenSchema } from './sheet-screen.ts';
 import { ValidationSchema, validationIssues } from './validation-tasks.ts';
 
 /**
@@ -533,6 +534,7 @@ export const ScreenSchema = z.discriminatedUnion('type', [
     metrics: z.array(LegacyMetricSchema).optional(),
     widgets: z.array(DashboardWidgetSchema).default([]),
   }),
+  sheetScreenSchema(screenBase, fieldName),
   z.strictObject({
     ...screenBase,
     type: z.literal('settings'),
@@ -556,6 +558,7 @@ export const SCREEN_TYPES = [
   'analytics',
   'dashboard',
   'settings',
+  'sheet',
 ] as const satisfies readonly ScreenType[];
 
 /** A dashboard's widgets with its legacy `metrics` first, as `kpi` widgets. */
@@ -575,6 +578,7 @@ const VIEW_SEGMENT: Partial<Record<ScreenType, string>> = {
   timeline: 'timeline',
   map: 'map',
   analytics: 'analytics',
+  sheet: 'sheet',
 };
 
 /**
@@ -1387,6 +1391,9 @@ function checkScreens(blueprint: Shape, add: Add) {
         });
         break;
       case 'form':
+        break;
+      case 'sheet':
+        sheetScreenIssues(entity, screen, path, add);
         break;
     }
   });

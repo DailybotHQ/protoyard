@@ -30,6 +30,7 @@ const VIEWS = [
   'notifications',
   'scenarios',
   'settings',
+  'sheet',
   'states',
   'timeline',
   'tree',

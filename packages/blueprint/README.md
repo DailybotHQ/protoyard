@@ -285,7 +285,10 @@ team-chat screen, so the player still needs an adapter or a future UI entry for 
   `activity`, `files`, `audit`), `form`, `board` (`groupBy` an enum, `cardFields`, `sumField`),
   `calendar` (`dateField`, `endField`, `colorBy`, `view`), `timeline` (`startField`,
   `endField`, `groupBy`, `zoom`), `map` (`geoField`, `colorBy`), `analytics` (`dateField`,
-  `measures`, `dimensions`), `dashboard` (`widgets`: `kpi`, `chart` line/area/bar/donut,
+  `measures`, `dimensions`), `sheet` (records as a spreadsheet: `columns` of text, number,
+  money, boolean, date, enum and contact fields, plus read-only datetime, relation, persona and
+  tags; `totals` sums number, integer or money columns; at most 26 columns; schema in
+  `src/sheet-screen.ts`), `dashboard` (`widgets`: `kpi`, `chart` line/area/bar/donut,
   `list`, `board-summary`, each with `aggregate` count/sum/avg/min/max, optional `field`,
   `groupBy`, date `bucket` and `filter`; the formatVersion 1 `metrics` still parse) and
   `settings` (`sections`). Every screen takes `path`, `title` and `nav` (`label`, a Lucide

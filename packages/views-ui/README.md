@@ -64,7 +64,7 @@ view stays its own chunk and adds 0 KB to a prototype's initial JS:
 // src/screens/Board.svelte imports from '@protoyard/views-ui/board'
 ```
 
-Subpaths: `./board`, `./calendar`, `./timeline`, `./grid`, `./tree`, `./map`,
+Subpaths: `./board`, `./calendar`, `./timeline`, `./sheet`, `./grid`, `./tree`, `./map`,
 `./editor`, `./activity`, `./notifications`, `./files`, `./settings`,
 `./states`, `./commands`, `./scenarios`, `./virtual-list`, `./player.css`,
 `./blocks.css` and `./styles.css`. Views are never re-exported from
@@ -585,6 +585,37 @@ timeline is read-only.
 
 ```bash
 pnpm vitest run packages/views-ui/tests/timeline.test.ts
+```
+
+## Sheet (`@protoyard/views-ui/sheet`)
+
+`SheetView` is a thin host adapter over `@texuli/sheets/view`: an accessible spreadsheet (one tab
+stop, arrow keys, Enter or F2 to edit, undo and redo, TSV copy and paste) with a formula bar and
+Texuli's closed, bounded formula language (54 functions; cycles show `#CYCLE!`, overruns
+`#LIMIT!`, nothing throws or hangs).
+
+```svelte
+<SheetView query={workbook} onChange={(sheet) => services.budget.save(sheet)} {runtime} />
+```
+
+- `query` is a liveQuery of one stored workbook (Texuli's `SheetDocument` JSON). It is untrusted:
+  `validateSheet` checks it first, and an invalid one shows an alert instead of the grid.
+- `onChange` is the service that persists every edit (pending feedback through `runService`); a
+  refused save (`false` or a throw) puts the stored workbook back. Without it the sheet is
+  read-only. An edit that comes back unchanged through the query keeps the view's workbook, so
+  undo history and focus survive the round trip.
+- `TODAY()` and `NOW()` read the runtime's simulated clock (or `now`), never the system clock.
+- `csv` (default on): "Download CSV" exports the active sheet's computed values with formula
+  injection neutralized; "Import CSV" (editable only) adds a CSV file as a new sheet, with `=`
+  fields kept as text.
+- Also exported: `validateSheet`, `createSheet`, `createWorkbook`, `displayValue`, `SHEET_LIMITS`,
+  `csvToSheet` and `sheetToCsv` from `@texuli/sheets`.
+- Scenario data: `generateSheetWorkbook(ctx, { level })` from `@protoyard/views/scenarios` (a
+  fictional yearly budget; `empty`, `typical`, `dense` with 2,000 lines, or `edge` with a
+  division by zero, a cycle and a cross-sheet summary), and `viewsFragments.sheet(level)`.
+
+```bash
+pnpm vitest run packages/views-ui/tests/sheet.test.ts
 ```
 
 ## Tree (`@protoyard/views-ui/tree`)

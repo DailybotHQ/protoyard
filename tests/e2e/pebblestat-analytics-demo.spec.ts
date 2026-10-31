@@ -168,7 +168,11 @@ test.describe('Pebblestat Analytics (static build)', () => {
     await actAs(page, ANALYST);
     await page.getByRole('button', { name: 'Edit layout' }).click();
     // Events by type sits at the right edge (x 8, w 4): it can narrow, not widen.
-    await page.getByRole('button', { name: 'Narrower: Events by type' }).click();
+    // A click on its resize handle picks it up and shows the arrange toolbar (no drag needed).
+    await page.getByRole('button', { name: 'Resize Events by type' }).click();
+    const arrange = page.getByRole('group', { name: 'Arrange Events by type' });
+    await arrange.getByRole('button', { name: 'Narrower' }).click();
+    await arrange.getByRole('button', { name: 'Done' }).click();
     // Saving goes through the service; the grid stays busy until it settles.
     await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
     await expect.poll(() => mixWidth(page)).toBe(3);

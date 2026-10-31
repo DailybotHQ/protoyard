@@ -172,9 +172,10 @@ const widgets = (bp: Mutable) => screen(bp, 'dashboard').widgets as Array<Record
 describe('blueprint screens', () => {
   it('parses one screen of every kind and applies defaults', () => {
     const bp = parseBlueprint(fixture());
-    // Every kind but map: its geoField needs the `geo` field kind (T-gen-blueprint-geo-field).
+    // Every kind but map (its geoField needs the `geo` field kind, T-gen-blueprint-geo-field)
+    // and sheet (appended by the "sheet screens" tests, so other screens keep their index).
     expect(bp.screens.map((s) => s.type).sort()).toEqual(
-      SCREEN_TYPES.filter((type) => type !== 'map').sort()
+      SCREEN_TYPES.filter((type) => type !== 'map' && type !== 'sheet').sort()
     );
     const byType = Object.fromEntries(bp.screens.map((s) => [s.type, s])) as {
       [K in BlueprintScreen['type']]: Extract<BlueprintScreen, { type: K }>;
@@ -255,6 +256,7 @@ describe('screenPath', () => {
     [{ type: 'timeline', entity: 'project' }, '/projects/timeline'],
     [{ type: 'map', entity: 'project' }, '/projects/map'],
     [{ type: 'analytics', entity: 'project' }, '/projects/analytics'],
+    [{ type: 'sheet', entity: 'project' }, '/projects/sheet'],
     [{ type: 'dashboard' }, '/dashboard'],
     [{ type: 'settings' }, '/settings'],
     [{ type: 'board', entity: 'project', path: '/pipeline' }, '/pipeline'],
@@ -597,6 +599,36 @@ describe('screen cross-reference checks', () => {
       screen(bp, 'calendar').startField = 'startOn';
     });
     expect(issues).toContain('screens.4: Unrecognized key: "startField"');
+  });
+});
+
+describe('sheet screens', () => {
+  it('names columns of kinds a sheet can show, and sums only shown number columns', () => {
+    expect(
+      issuesAfter((bp) => {
+        bp.screens.push({
+          type: 'sheet',
+          entity: 'project',
+          columns: ['title', 'location', 'title', 'ghost'],
+          totals: ['stage', 'hours'],
+        });
+      })
+    ).toEqual([
+      'screens.9.columns.1: a json field cannot be a sheet column ("location")',
+      'screens.9.columns.2: duplicate column "title"',
+      'screens.9.columns.3: unknown field "ghost" on "project"',
+      'screens.9.totals.0: totals "stage" must be a number, integer or money field',
+      'screens.9.totals.1: totals "hours" is not one of the sheet\'s columns',
+    ]);
+  });
+
+  it('shows every column a sheet can show when none are listed', () => {
+    const input = { type: 'sheet', entity: 'project', totals: ['budget'] };
+    expect(issuesAfter((bp) => bp.screens.push(input))).toEqual([]);
+    const bp = fixture() as unknown as Mutable;
+    bp.screens.push(input);
+    const parsed = parseBlueprint(bp as never).screens.find((s) => s.type === 'sheet');
+    expect(parsed?.type === 'sheet' && parsed.columns).toBeUndefined();
   });
 });
 
