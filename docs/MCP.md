@@ -106,6 +106,26 @@ Call `quick` with a bounded brief:
 
 The server returns the command's JSON envelope in the tool result's text content. The CLI also remains usable directly without MCP; see the [CLI guide](../packages/cli/README.md).
 
+## Texuli's MCP server alongside
+
+Protoyard screens are built Texuli-first, so an agent often needs Texuli's component props, themes or blueprint rules. Texuli publishes its own read-only MCP server for that, `@texuli/mcp` (new in Texuli 0.9.0). Register it as a second server next to `protoyard`; the two stay separate processes and Protoyard does not bundle or proxy it:
+
+```json
+{
+  "mcpServers": {
+    "protoyard": { "command": "protoyard", "args": ["mcp"] },
+    "texuli": { "command": "npx", "args": ["-y", "@texuli/mcp@0.9.0"] }
+  }
+}
+```
+
+- `npx -y` downloads the package from npm on first use, so that start uses the network. Pin the version Protoyard installs (`0.9.0` today) so the server describes the same Texuli as your workspace.
+- Its tools are read-only `group.verb` operations (`catalog.search`, `component.get`, `theme.search`, `blueprint.validate`, `document.run` and others). Checked with `@texuli/mcp` 0.9.0: `initialize` with `2025-11-25` succeeds and `tools/list` returns 20 tools (13 operations plus 7 older names that Texuli deprecates until 0.10.0).
+- It speaks the `2025-11-25` initialize handshake and earlier revisions, not Protoyard's stateless `2026-07-28` revision: a client that only sends `server/discover` gets `-32601` from it. Use the initialize flow for this server.
+- Texuli's remote endpoint (`https://texuli.com/mcp`) serves the same read-only operations plus site search. Use it only if sending queries to texuli.com is acceptable.
+
+Protoyard's own tools, envelopes and limits above are unchanged; nothing on this page depends on the Texuli server.
+
 ## Keeping this page true
 
 `pnpm exec tsx scripts/validate-integrations.ts` checks this page against the server's own tool registry
