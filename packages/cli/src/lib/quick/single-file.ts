@@ -82,14 +82,33 @@ export const SINGLE_FILE_EXCLUDED_MODULES: readonly RegExp[] = [
 
 /**
  * Modules a content kind can reach but never runs, also left out of deck,
- * page and doc files. Faker is reachable through the scenarios package's lazy
- * loader, which only a generated world calls; the kind runtime
- * (`defineKindRuntime`) supplies `generateWorld` and no timeline, so it never
- * generates.
+ * page and doc files:
+ * - Faker, reachable through the scenarios package's lazy loader, which only
+ *   a generated world calls; the kind runtime (`defineKindRuntime`) supplies
+ *   `generateWorld` and no timeline, so it never generates.
+ * - `@texuli/player`'s painters and data sources. The doc editor
+ *   (`@texuli/pages` `PageEditor`) loads the whole player for a live embed,
+ *   but Protoyard's embeds carry only a `protoyard-block/<key>` ref and the
+ *   editor gets no `resolveEmbed`, so every embed is refused and the player
+ *   never paints (a Texuli gap: the host cannot opt out of that import).
  */
 export const SINGLE_FILE_KIND_EXCLUDED_MODULES: readonly RegExp[] = [
   ...SINGLE_FILE_EXCLUDED_MODULES,
   /[\\/]@faker-js[\\/]faker[\\/]/,
+  /[\\/]@texuli[\\/]player[\\/](?:src|dist)[\\/](?:painters|sources)[\\/]/,
+];
+
+/**
+ * Left out of an app's file (built from index.html, which can boot every
+ * kind): the deck, page and doc renderers and Deck Studio. An app file only
+ * ever boots its own app; index.html reaches them only through the kind
+ * renderer loaders (`player/src/kinds/renderers.ts`). A content blueprint
+ * that falls back to index.html (a player without per-kind pages) keeps them.
+ */
+export const SINGLE_FILE_APP_EXCLUDED_MODULES: readonly RegExp[] = [
+  ...SINGLE_FILE_EXCLUDED_MODULES,
+  /[\\/](?:@protoyard[\\/])?decks-ui[\\/](?:src|dist)[\\/](?:app|studio)[\\/]index\.(?:ts|js)$/,
+  /[\\/](?:@protoyard[\\/])?pages-ui[\\/](?:src|dist)[\\/](?:page|doc)[\\/]index\.(?:ts|js)$/,
 ];
 
 interface ManifestChunk {
@@ -275,11 +294,16 @@ export async function buildSingleFile(input: SingleFileInput): Promise<SingleFil
   // Only what this page can load: its entry chunk and every chunk and
   // stylesheet reachable from it. The world-generation worker never starts
   // from a blob base: leave it out. Every page leaves out what it never runs
-  // (the stage's component registry); a kind page also leaves out Faker.
+  // (the stage's component registry); a kind page also leaves out Faker and
+  // the embed player's painters, and an app's file the kind renderers.
   const neverRun = await neverRunFiles(
     input.playerDir,
     `${page}.html`,
-    page === 'index' ? SINGLE_FILE_EXCLUDED_MODULES : SINGLE_FILE_KIND_EXCLUDED_MODULES
+    page !== 'index'
+      ? SINGLE_FILE_KIND_EXCLUDED_MODULES
+      : requested === 'index'
+        ? SINGLE_FILE_APP_EXCLUDED_MODULES
+        : SINGLE_FILE_EXCLUDED_MODULES
   );
   const graph = await entryGraph({
     html: indexHtml,

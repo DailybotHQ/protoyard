@@ -256,18 +256,53 @@ describe('single files from the real player build', () => {
     300_000
   );
 
+  /**
+   * What each kind's file must never embed (T-bundle-fix): another kind's
+   * renderer. Lazy chunks are still embedded when reachable, so the player's
+   * shared kind boot must not import every renderer (`kinds/renderers.ts`).
+   * A deck never edits documents, fills forms or calculates sheets.
+   */
+  const NOT_IN: Record<SingleFileEntry, RegExp> = {
+    deck: /\/pages-ui\/src\/|@texuli[+/]document@|@texuli[+/]pages@|@texuli[+/]forms@|@texuli[+/]sheets@|SchemaForm|\/views-ui\/src\/sheet\//,
+    page: /\/decks-ui\/src\/app\/|\/pages-ui\/src\/doc\/|@texuli[+/]document@|@texuli[+/]sheets@/,
+    doc: /\/decks-ui\/src\/app\/|\/pages-ui\/src\/page\/|@texuli[+/]sheets@/,
+    index: /(?!)/,
+  };
+
+  it.each(kinds)(
+    'a %s export embeds no other kind’s renderer (no doc editor, forms or sheets in a deck)',
+    async (kind, file) => {
+      ensureBuild();
+      const result = await buildSingleFile({
+        playerDir: PLAYER,
+        blueprintJson: readFileSync(join(REPO, file), 'utf8'),
+        title: kind,
+        entry: kind,
+      });
+      const embedded = new Set(chunkNames(result.html));
+      const foreign = filesOf(NOT_IN[kind]);
+      expect(foreign.length, 'the build has other kinds’ chunks to compare with').toBeGreaterThan(
+        0
+      );
+      expect(foreign.filter((name) => embedded.has(name))).toEqual([]);
+    },
+    300_000
+  );
+
   it('an app export still carries its lazy screens and Faker (AC)', async () => {
     ensureBuild();
     const blueprintJson = readFileSync(join(REPO, 'blueprints/crm.json'), 'utf8');
     const result = await buildSingleFile({ playerDir: PLAYER, blueprintJson, title: 'CRM' });
     expect(result.entry).toBe('index');
     sizes.app = result.bytes;
-    // A kind file is well under an app file: the kind graph only. Measured
-    // 2026-10-28 at 0.64 of the app file (the deck stage ships with both).
-    for (const kind of ['deck', 'page', 'doc']) {
-      if (sizes[kind] !== undefined) expect(sizes[kind]).toBeLessThan(result.bytes * 0.67);
-    }
     const embedded = new Set(chunkNames(result.html));
+    // An app file never boots a deck, page or doc: no kind renderer or Deck Studio.
+    // (This replaces a kind-to-app size ratio that relied on the app file carrying them.)
+    const kindRenderers = filesOf(
+      /\/decks-ui\/src\/(?:app|studio)\/|\/pages-ui\/src\/(?:page|doc)\//
+    );
+    expect(kindRenderers.length).toBeGreaterThan(0);
+    expect(kindRenderers.filter((name) => embedded.has(name))).toEqual([]);
     const screens = filesOf(/\/crud\/src\/screens\//);
     expect(screens.length).toBeGreaterThan(0);
     expect(screens.filter((name) => !embedded.has(name))).toEqual([]);
