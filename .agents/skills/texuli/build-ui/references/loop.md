@@ -11,7 +11,8 @@ schema, tier, and emit rights.
 | --- | --- |
 | Build CLI | `pnpm exec tsx packages/catalog/src/build/cli.ts --json` → writes `catalog-<sha256>.json` under `packages/catalog/dist/` (git-ignored) |
 | Programmatic | `discoverManifestGroups()` + `buildCatalog(groups)` from `@texuli/catalog/build` / `build/node` |
-| MCP | Local tools MCP tool name **`catalog`**, argument `{ "query": "<text>" }` — search metadata offline (stdio server in `packages/tools`) |
+| CLI | `npx texuli catalog search --json '{"query":"<text>"}'` (the `texuli` bin of `@texuli/tools`; `texuli help` lists every operation) |
+| MCP | `catalog.search { "query": "<text>" }` on the local server (`npx -y @texuli/mcp`, stdio, offline once installed; [`../../router/hosts.md`](../../router/hosts.md#mcp)), then `component.get { "id": "<id>" }` |
 
 Read each candidate entry:
 

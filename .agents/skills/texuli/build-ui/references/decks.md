@@ -5,7 +5,7 @@ as Markdown, presented by the `@texuli/slides` stage and exported to print,
 PDF and PPTX.
 
 **Status: in development, on npm from `0.4.0`.** `@texuli/deck` (the L0
-engine) is first published in `0.4.0`. The `@texuli/slides` `0.4.0` stage is
+engine) is first published in `0.4.0`. The `@texuli/slides` v2 stage (from `0.4.0`) is
 built on it (L8); `@texuli/slides` `0.3.0` carries the previous model (the v1
 recipe in [`recipes.md`](recipes.md) section 4). Spec `0.4.0`, which encodes
 deck model v2, ships in `@texuli/spec` `0.4.0`. A consumer app installs
@@ -267,18 +267,18 @@ if (prepared.ok) {
 
 ## 5. Agent tooling
 
-From a Texuli checkout, the `deck` command of the `texuli` CLI (also the
-`texuli-deck` bin of `@texuli/tools`, new in `0.4.0`) prints JSON and exits
-1 when a deck is invalid:
+With `@texuli/tools` installed, the `deck` command of the `texuli` bin (also
+the `texuli-deck` bin, new in `0.4.0`) prints JSON and exits 1 when a deck
+is invalid:
 
 ```bash
-pnpm exec tsx packages/tools/src/cli/texuli.ts deck capabilities
-pnpm exec tsx packages/tools/src/cli/texuli.ts deck schema
-pnpm exec tsx packages/tools/src/cli/texuli.ts deck layouts
-pnpm exec tsx packages/tools/src/cli/texuli.ts deck lint --file <deck.json>
-pnpm exec tsx packages/tools/src/cli/texuli.ts deck inspect --file <deck.json>
-pnpm exec tsx packages/tools/src/cli/texuli.ts deck from-markdown --file <deck.md>
-pnpm exec tsx packages/tools/src/cli/texuli.ts deck to-markdown --file <deck.json>
+npx texuli deck capabilities
+npx texuli deck schema
+npx texuli deck layouts
+npx texuli deck lint --file <deck.json>
+npx texuli deck inspect --file <deck.json>
+npx texuli deck from-markdown --file <deck.md>
+npx texuli deck to-markdown --file <deck.json>
 ```
 
 `capabilities` lists the format version, commands, layout ids, outlines and
@@ -289,10 +289,11 @@ repetition, too many words, unrevealed steps) to the model errors;
 `inspect` summarizes slides and the outline. `--text <source>` or stdin
 replace `--file`.
 
-The local MCP stdio server in `packages/tools/src/mcp` (repository source,
-no published command) has the same read-only **`deck`** tool:
-`{ "command": "lint", "deck": { … } }` or
-`{ "command": "from-markdown", "markdown": "…" }`.
+The MCP servers (`npx -y @texuli/mcp`, new in `0.9.0`; see
+[`../../router/hosts.md`](../../router/hosts.md#mcp)) run the same commands
+as the read-only `deck.run` tool: `deck.run { "command": "lint", "deck": {} }`
+or `deck.run { "command": "from-markdown", "markdown": "…" }`. From `0.9.0`
+the router also takes that JSON: `npx texuli deck run --file <input.json>`.
 
 Agent loop: `capabilities` → pick layouts below → write JSON or Markdown →
 `lint` until 0 errors → hand the deck to the developer, who paints it with

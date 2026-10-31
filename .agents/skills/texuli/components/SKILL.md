@@ -1,7 +1,7 @@
 ---
 name: texuli-components
 description: Install Texuli packages or copy styled component source with texuli add, customize with tokens and component hooks, keep provenance, and update copies with texuli update. Offline; every command and snippet here is checked.
-version: "0.2.3"
+version: "0.3.4"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
@@ -15,16 +15,19 @@ consume the packages, or copy a styled component's source into the app and
 own it, then theme it, adjust it and keep it updatable.
 
 The copy path is **local**: its commands run from a Texuli monorepo checkout
-against folders on disk. 19 packages are on npm as
-`0.4.0`, a pre-1.0 release (`latest` and `next` both point to it; 1.0.0 will
+against folders on disk. All 26 published packages are on npm in
+the 0.9 line (see docs/RELEASE.md), a pre-1.0 line (`latest` and `next` point to the newest; 1.0.0 will
 be the first stable release). Install them plainly (`pnpm add texuli`), pin
-the exact version or `^0.4.0` (for 0.x it accepts only 0.4.x, since a new
+the exact version or `^0.9.0` (for 0.x it accepts only 0.9.x, since a new
 minor may break), and never suggest a download URL. `@texuli/drag`,
-`@texuli/workflows` and `@texuli/deck` are in development and on npm as
-`0.4.0`; `@texuli/editor` is in development and not on npm, so never tell a
-consumer app to install it from npm. Features such as
-`@texuli/primitives/sortable` and spec 0.3.0 and 0.4.0 need `0.4.0`; they
-are not in `0.3.0`.
+`@texuli/workflows`, `@texuli/deck`, `@texuli/editor` (first published
+in `0.5.0`), `@texuli/document` and `@texuli/pages` (both first published
+in `0.7.0`), `@texuli/forms`, `@texuli/canvas` and `@texuli/sheets` (all
+three first published in `0.8.0`) and `@texuli/mcp` (first published in
+`0.9.0`) are in development and on npm as `0.9.0`. Features such as
+`@texuli/primitives/sortable` and spec 0.3.0 and 0.4.0 need `0.4.0` or
+later (they are not in `0.3.0`); the `0.9.0`, `0.8.0`, `0.7.0`, `0.6.0` and `0.5.0` breaking changes
+are in [`../upgrade/SKILL.md`](../upgrade/SKILL.md).
 
 ## Choose a path
 
@@ -76,7 +79,7 @@ pnpm exec tsx packages/tools/src/cli-init/cli.ts theme apply ocean --cwd ../my-a
 
 # Path D: see and apply a newer Texuli, keeping local edits
 pnpm exec tsx packages/tools/src/cli-update/cli.ts diff button --cwd ../my-app --source-root . --base-root ../texuli-0.1.0
-pnpm exec tsx packages/tools/src/cli-update/cli.ts update button --cwd ../my-app --source-root . --base-root ../texuli-0.1.0 --version 0.4.0 --dry-run
+pnpm exec tsx packages/tools/src/cli-update/cli.ts update button --cwd ../my-app --source-root . --base-root ../texuli-0.1.0 --version 0.8.0 --dry-run
 ```
 
 Each command prints `--help`. Add `--json` for machine-readable results.

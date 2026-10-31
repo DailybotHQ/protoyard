@@ -1,7 +1,7 @@
 ---
 name: texuli
 description: Build accessible, themed interfaces with Texuli by routing requests to local sub-skills for components, themes, media, installation, and contributions.
-version: "0.2.3"
+version: "0.3.4"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob
@@ -40,16 +40,45 @@ agent config, or publish packages without explicit consent (see
    Installing the skill does **not** install Texuli packages or a CLI.
 2. Confirm the workspace has Texuli (workspace packages `texuli`,
    `@texuli/core`, `@texuli/tokens`, …) before promising package imports.
-   All 19 published packages are on npm as `0.4.0` (published by CI with
-   provenance; `latest` and `next` both point to it; pre-1.0, so a new minor
-   may break and 1.0.0 will be the first stable release), so install them
-   plainly (`pnpm add texuli`) and pin `0.4.0` or `^0.4.0`; the workspace packages
-   stay `private: true`. `@texuli/drag` (the drag engine),
-   `@texuli/workflows` (the workflow editor) and `@texuli/deck` (the deck
-   engine behind the deck generator, first published in `0.4.0`) are in
-   development but on npm as `0.4.0`. `@texuli/editor` (the rich text
-   editor) is in development and not on npm: only a Texuli workspace can
-   import it. `0.4.0` ships spec 0.4.0, the new catalog groups,
+   All 26 published packages are on npm in the 0.9 line, every one at
+   `0.9.0` (published by CI with provenance; `latest` and `next` both point
+   to it; pre-1.0, so a new minor may break and 1.0.0 will be the first
+   stable release), so install them plainly (`pnpm add texuli`) and pin
+   `0.9.0` or `^0.9.0`; the workspace packages stay `private: true`.
+   `@texuli/drag` (the drag engine),
+   `@texuli/workflows` (the workflow editor), `@texuli/deck` (the deck
+   engine behind the deck generator, first published in `0.4.0`),
+   `@texuli/editor` (the rich text editor, first published in `0.5.0`),
+   `@texuli/document` (the block document engine) and `@texuli/pages` (the
+   block document editor and reader; both first published in `0.7.0`),
+   `@texuli/forms` (schema-driven forms), `@texuli/canvas` (the infinite
+   canvas) and `@texuli/sheets` (spreadsheets; all three first published in
+   `0.8.0`), and `@texuli/mcp` (the local MCP server, first published in
+   `0.9.0`) are in development but on npm as `0.9.0`. The APIs marked "new
+   in `0.9.0`" in the package index (the operations registry
+   `@texuli/tools/ops`, the MCP protocol layer `@texuli/tools/mcp` and
+   `@texuli/mcp`, token contract v2 in `@texuli/tokens/system`,
+   `@texuli/tokens/components` and `texuli/defaults`, scoped portals, and
+   the Protoyard gap props) are not in the 0.8 line, and `0.9.0` changes
+   some behavior (spec `0.9.0` stamps, a new catalog hash, MCP tool aliases
+   deprecated, a pending Button is `aria-disabled`; see
+   [`upgrade/SKILL.md`](upgrade/SKILL.md)). `0.8.0` added `@texuli/forms`,
+   `@texuli/canvas` and `@texuli/sheets`, spec 0.8.0 data-source bindings
+   and the `schema-form`, `canvas`, `spreadsheet` and dashboard ids,
+   `@texuli/core/expression`, `@texuli/core/data-source`,
+   `@texuli/core/i18n`, `@texuli/data/dashboard`, `@texuli/tools/email`
+   and `@texuli/tools/print`, and the player's form, canvas and sheet hosts
+   (see
+   [`upgrade/SKILL.md`](upgrade/SKILL.md)). `0.7.0` added both document
+   packages, spec 0.7.0 node keys and the `document` id, `patchDocument`,
+   the player's `documentHost` and `@texuli/tools/document`. `0.6.0` added
+   motion, the one API contract, streamed blueprints and spec 0.6.0,
+   `@texuli/slides/stage-core`, `@texuli/core/markup` and `@texuli/core/zip`,
+   and the G48 to G85 additions, and changed some behavior (Field ids,
+   caller handlers on more parts, reduced motion at `0s`). `0.5.0` added
+   spec 0.5.0, the filter builder, notification inbox and cohort table,
+   `sparkline-lite`, `texuli/layouts/content`, `@texuli/astro/appearance`
+   and `@texuli/editor/markdown`. `0.4.0` shipped spec 0.4.0, the new catalog groups,
    `@texuli/primitives/sortable`, the data drag migrations, the player's
    interaction and the `@texuli/slides` v2 stage on `@texuli/deck`;
    `0.3.0` predates them all. The

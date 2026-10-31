@@ -1,7 +1,7 @@
 ---
 name: texuli-blueprints
 description: Validate, wrap, edit, paint and hand off untrusted agent blueprints offline — validateDraft, the envelope and its lifecycle, edit history, the player, the agent service, the spec contract, and spec 0.3.0 interaction as data (state, bindings, closed actions, reorder, workflow-graph, migrations). Agents draft, validation gates, the owner activates.
-version: "0.2.3"
+version: "0.3.4"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
@@ -32,6 +32,7 @@ replay provider; there is no real model provider and no key.
 | Run the agent service locally, or read its contract | **E** — service |
 | Keep the cross-language contract in step | **F** — spec |
 | Send a whole working screen as JSON: state, bindings, actions, drag, workflows | **G** — interaction |
+| Write or patch a document (a brief, report or notes) as data | **I** — documents |
 
 Building screens by hand stays in [`../build-ui/SKILL.md`](../build-ui/SKILL.md).
 Package entries and layers: [`../router/packages.md`](../router/packages.md).
@@ -105,7 +106,8 @@ Doc: `packages/catalog/docs/envelope.md`.
 ## C — Edit (`@texuli/catalog/edit`)
 
 - **Ops:** a closed op set (`insert`, `remove`, `move`, `setProp`,
-  `unsetProp`, `replace`, `replaceAll`) addressed by child-index paths.
+  `unsetProp`, `replace`, `replaceAll`) addressed by child-index paths, and
+  from spec 0.7.0 `patchDocument` (stage I), addressed by path or node `key`.
 - **Guarantees:** ops apply all or none, copy-on-write, with exact inverse ops.
 - **History:** `createEditHistory` adds undo and redo.
 - **Gate:** pass `draftCommitGate` from `@texuli/catalog/validate` so an edit
@@ -162,8 +164,13 @@ pnpm --filter @texuli/agent typecheck
 Its tests run with the app's own Vitest config: from `apps/agent`, run
 `pnpm exec vitest run` (the root config does not collect app tests yet).
 
-There is no real provider, no key and no deployment. Choosing a provider and
-deploying are developer decisions.
+From `0.6.0` the service has a provider interface with fetch-based
+Anthropic Messages and OpenAI-compatible adapters (every setting, the key
+included, comes from constructor options) and can stream validated drafts
+over server-sent events (`stream: true`). The adapters are tested only
+against recorded bytes: no key is configured, no adapter has called a
+provider, and nothing is deployed. Choosing a provider and deploying are
+developer decisions.
 
 ## F — Spec contract (`@texuli/spec`, L0)
 
@@ -175,7 +182,7 @@ deploying are developer decisions.
   subpaths: `@texuli/spec/workflow` (`validateWorkflowGraph`),
   `@texuli/spec/migrate` (`migrateBlueprint`) and `@texuli/spec/surface`
   (the state surface rules every validator shares).
-- **Goldens:** `fixtures/golden/` holds nine blueprints that must validate
+- **Goldens:** `fixtures/golden/` holds ten blueprints that must validate
   and paint; a new golden moves the spec digest, so it needs a
   `versions.json` pin and refreshed native traces.
 
@@ -214,4 +221,91 @@ validated example: [`references/interaction.md`](references/interaction.md).
 ```bash
 pnpm vitest run packages/player/tests/golden.test.ts
 pnpm vitest run packages/player/tests/lego.test.ts
+```
+
+## H — Motion and streaming (spec 0.6.0)
+
+New in the `0.6.0` packages; `0.5.0` predates it.
+
+- **Motion is data, never CSS.** A node may carry `motion` with `enter` and
+  `exit` presets (`fade`, `rise`, `scale`, `slide-start`, `slide-end`),
+  `layout: true`, `stagger` (`none`, `fast`, `base`) and `duration`
+  (`fast`, `base`, `slow`); the envelope may set `motion.level` (`full`,
+  `subtle`, `none`). Raw CSS, keyframes, milliseconds and unknown names are
+  refused (`invalid-motion`); the node still paints, without motion. The
+  player plays it through `@texuli/core/motion`, never on the server or on
+  hydration, instant under reduced motion; a host caps it with
+  `motionLevel`.
+- **Streams add speed, not trust.** `<Player stream={source}>` paints each
+  node once its shell (everything but `children`) has arrived and passed
+  `validateStreamNode`; actions stay disarmed until `validateDraft`
+  accepts the complete draft, which stays the only verdict. Write streamed
+  nodes with `children` last (`STREAM_NODE_ORDER` in `@texuli/spec/stream`).
+
+```bash
+pnpm vitest run packages/catalog/tests/validate-motion.test.ts
+pnpm vitest run packages/player/tests/streaming.test.ts
+```
+
+## I — Documents (spec 0.7.0)
+
+New in the `0.7.0` packages, the first release of `@texuli/document` and
+`@texuli/pages`; `0.6.0` predates it. Detail and the commands:
+[`references/documents.md`](references/documents.md).
+
+- **A document is one node.** The root `{"key": "brief", "id": "document",
+  "props": {"doc": …}}` carries a Texuli document (`format:
+  "texuli-document"`, `formatVersion: 1`, `meta.title`, `blocks`). Its
+  blocks reuse the catalog: a `block` wraps a `@texuli/blocks` block
+  (`family`, `block`, `props`), checked as `blocks-<family>`; an `embed` of
+  kind `component` holds one catalog node (`inline: {id, props}`), checked
+  as that id at the same tier. A document never embeds a document.
+- **No validator, no document.** `validateDraft` refuses every `document`
+  node unless the host passes `checkDocument` (`document-unchecked`);
+  `checkDocumentDraft` from `@texuli/pages/host` is the one to pass. The
+  player paints a document only through `documentHost`
+  (`createDocumentPlayerHost()` from `@texuli/pages/host`).
+- **Edit with patches, not rewrites.** `patchDocument` carries at most
+  1,000 RFC 6902 operations for the node's `doc`, addressed by `key`; put a
+  `test` first so a stale patch fails instead of overwriting.
+- **Keys** (`^[A-Za-z0-9._:-]{1,64}$`) are unique in the tree
+  (`duplicate-key`); streaming and patches address nodes by them.
+
+```bash
+pnpm vitest run packages/catalog/tests/validate-document.test.ts
+pnpm vitest run packages/catalog/tests/edit-document.test.ts
+pnpm vitest run packages/tools/tests/document.test.ts
+```
+
+## J — Forms, canvases, sheets, dashboards and data sources (spec 0.8.0)
+
+New in the `0.8.0` packages, the first release of `@texuli/forms`,
+`@texuli/canvas` and `@texuli/sheets`; `0.7.0` predates it. Each shape is
+documented in its package (`packages/forms/docs/`, `packages/canvas/docs/`,
+`packages/sheets/docs/`, `packages/data/docs/data-dashboard.md`,
+`packages/spec/docs/source.md`).
+
+- **One node each.** A `schema-form` node's `schema` is a closed form
+  schema (named formats only, never a pattern; conditions and rules are
+  `@texuli/core/expression` trees); a `canvas` node's `canvas` prop and a
+  `spreadsheet` node's `sheet` prop carry their package's format (the id is
+  `spreadsheet`: `sheet` is the texuli drawer); a `data-dashboard` holds
+  `data-dashboard-widget` children only (unique `widgetId`, at most 200).
+- **No validator, no node.** `validateDraft` refuses `schema-form`,
+  `canvas` and `spreadsheet` nodes unless the host passes `checkForm`,
+  `checkCanvas` and `checkSheet` (`form-unchecked`, `canvas-unchecked`,
+  `sheet-unchecked`); the player paints them only through `formHost`,
+  `canvasHost` and `sheetHost` (`createFormPlayerHost()`,
+  `createCanvasPlayerHost()`, `createSheetPlayerHost()`).
+- **Data is named, never fetched.** A sourceable prop may read
+  `{"$source": name, "query": {...}}` from a source the host registered;
+  without the host's sources every binding is refused (`source`,
+  `unknown-source`). Never put a URL or code in a blueprint.
+
+```bash
+pnpm vitest run packages/catalog/tests/validate-form.test.ts
+pnpm vitest run packages/catalog/tests/validate-canvas.test.ts
+pnpm vitest run packages/catalog/tests/validate-sheet.test.ts
+pnpm vitest run packages/catalog/tests/validate-dashboard.test.ts
+pnpm vitest run packages/catalog/tests/validate-source.test.ts
 ```
