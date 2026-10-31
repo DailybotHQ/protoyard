@@ -14,11 +14,12 @@
     "category": "design",
     "productType": "Design system",
     "platforms": ["web"],
-    "features": ["component-catalog", "design-foundations", "review-notes"],
+    "features": ["component-catalog", "design-foundations", "review-notes", "canvas"],
     "highlights": [
       "Searchable component and pattern catalog",
       "Color, type, shape, motion and icon foundations",
-      "Phone and desktop demos with persisted review notes"
+      "Phone and desktop demos with persisted review notes",
+      "Screen sketches on an infinite canvas, saved per change"
     ],
     "difficulty": "beginner"
   },
@@ -28,7 +29,7 @@
   "defaultTheme": "violet",
   "defaultMode": "system",
   "preview": { "viewport": "desktop" },
-  "storage": { "namespace": "template-design-kit", "schemaVersion": 1 },
+  "storage": { "namespace": "template-design-kit", "schemaVersion": 2 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
   "scenarios": ["default", "reviewer"],
   "thumbnail": "public/thumbnail.png"

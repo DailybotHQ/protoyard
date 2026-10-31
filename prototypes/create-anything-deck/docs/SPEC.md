@@ -46,7 +46,7 @@ TODO: for each prototype piece (schema, services, policy, personas, environment 
 | default scenario | `default` |
 | default theme | `violet` |
 | storage namespace | `create-anything-deck` |
-| schema version | 1 |
+| schema version | 2 |
 | generator version | 1 |
 | timeline | no |
 | themes | built-in presets only |

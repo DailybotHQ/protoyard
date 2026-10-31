@@ -12,7 +12,7 @@ import {
   type DocEditsState,
   type FormServices,
 } from '@protoyard/pages';
-import { liveQuery } from '@protoyard/renderer-svelte';
+import { can, liveQuery } from '@protoyard/renderer-svelte';
 import { ErrorState, LoadingState } from '@protoyard/ui';
 import { untrack } from 'svelte';
 import { setFormServices } from '../form/context.ts';
@@ -116,7 +116,8 @@ const unusable = $derived(
 const loadFailed = $derived(editStore !== null && saved.error !== undefined);
 // The first read of the store: hold the reading view so saved edits never flash the original.
 const reading = $derived(editStore !== null && saved.current === undefined && !loadFailed);
-const canEdit = $derived(runtime ? runtime.session.can(DOC_CAPABILITIES.edit) : true);
+// Reactive: a persona switch (DevTools) takes Edit and Reset away without a reload.
+const canEdit = $derived(runtime ? can(DOC_CAPABILITIES.edit, undefined, runtime) : true);
 
 async function applyEdits(next: DocDocument, conversionNotes: DocConversionNote[]): Promise<void> {
   const result = editStore ? (await editStore.save(doc, next)).doc : next;

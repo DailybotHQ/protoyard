@@ -45,7 +45,8 @@ describe('templates/doc level-2 form', () => {
     const submit = within(form).getByRole('button', { name: /Send feedback/ });
 
     await fireEvent.click(submit);
-    await within(form).findByText(/Email is required/);
+    // The field's own message (the error summary repeats it as a link: "Email: Email is required.").
+    await within(form).findByText('Email is required.');
     expect(await responses(runtime)).toHaveLength(0);
 
     await fireEvent.input(email, { target: { value: 'jordan@example.com' } });

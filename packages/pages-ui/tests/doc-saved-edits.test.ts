@@ -125,6 +125,18 @@ describe('DocApp saved edits', () => {
     expect(await shownBody(viewer)).toBe('Edited in the editor.');
   });
 
+  it('takes Edit and Reset away as soon as the persona switches to a viewer', async () => {
+    const runtime = await harness.boot();
+    const view = render(DocApp, { props: { doc, runtime } });
+    await applyEdit(view);
+    await view.findByRole('button', { name: 'Reset to the original' });
+
+    // Same mounted app: the permission check follows the principal.
+    await runtime.session.switchActor(KIND_PERSONAS.viewer);
+    await waitFor(() => expect(view.queryByRole('button', { name: 'Edit' })).toBeNull());
+    expect(view.queryByRole('button', { name: 'Reset to the original' })).toBeNull();
+  });
+
   it('does not show edits saved on an earlier version of the doc', async () => {
     let runtime = await harness.boot();
     const view = render(DocApp, { props: { doc, runtime } });

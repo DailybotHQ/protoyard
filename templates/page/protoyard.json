@@ -29,7 +29,7 @@
   "defaultTheme": "violet",
   "defaultMode": "system",
   "preview": { "viewport": "desktop" },
-  "storage": { "namespace": "template-page", "schemaVersion": 1 },
+  "storage": { "namespace": "template-page", "schemaVersion": 2 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
   "scenarios": ["default"],
   "thumbnail": "public/thumbnail.png"

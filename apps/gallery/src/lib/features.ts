@@ -73,7 +73,7 @@ export const FEATURE_AREAS: readonly FeatureArea[] = [
     points: [
       'Two levels: the player runs a blueprint with no build or generated code; `protoyard generate` writes a full app in prototypes/<slug>/ with its own code and tests.',
       'Both render the blueprint through the same app model, so moving between levels keeps entities, screens and scenarios. `quick promote` moves an exploration up; Open in player on a gallery entry moves it down.',
-      '`blueprint new --from-brief` turns prose into a validated blueprint offline, with no model call; 27 templates and 40 catalog blueprints are ready to start from.',
+      '`blueprint new --from-brief` turns prose into a validated blueprint offline, with no model call; 27 templates and 43 catalog blueprints are ready to start from.',
       'Every prototype carries an AGENTS.md and docs/ spec whose generated regions stay in sync with the code.',
     ],
     guides: [
