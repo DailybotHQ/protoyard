@@ -5,7 +5,7 @@ import {
   parseManifest,
 } from '@protoyard/core';
 import type { ProtoyardRuntime } from '@protoyard/runtime';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import {
@@ -592,9 +592,14 @@ describe('kit forms on @texuli/forms', () => {
     render(AuthHarness, { props: { runtime, screen: 'settings', tab: 'notifications' } });
     expect(await screen.findByText(/cannot edit notification preferences/)).toBeTruthy();
     const product = (await screen.findByLabelText(/Product updates/)) as HTMLElement;
-    // `when.enable` is never true for this role, so Texuli paints the control disabled.
+    // The whole form is disabled for this role (SchemaForm `disabled`, G116).
     expect((product as HTMLInputElement).disabled).toBe(true);
-    const form = document.querySelector('form[data-py-saas-form="notifications"]');
-    expect(form?.hasAttribute('inert')).toBe(true);
+    const form = document.querySelector('form[data-py-saas-form="notifications"]') as HTMLElement;
+    const save = within(form).getByRole('button', {
+      name: 'Save preferences',
+    }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    // The section heading names the form; its own title is only visually hidden (G114).
+    expect(screen.getByRole('form', { name: 'Notification preferences' })).toBe(form);
   });
 });

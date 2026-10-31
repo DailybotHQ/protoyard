@@ -8,7 +8,7 @@ import { createFormController, type FormSubmission } from '@texuli/forms/model';
 import { onMount } from 'svelte';
 import { SelectContent, SelectItem, SelectRoot, SelectTrigger, SelectValue } from 'texuli/select';
 import { getSaas } from '../../context.ts';
-import { compileKitForm, editableFields, kitSubmitResult } from '../../lib/schema-form.ts';
+import { compileKitForm, kitSubmitResult } from '../../lib/schema-form.ts';
 
 const { runtime } = getSaas();
 const invitations = createInvitationServices(
@@ -49,26 +49,23 @@ const inviteForm = $derived(
   compileKitForm({
     title: 'Invite someone',
     submitLabel: 'Invite',
-    fields: editableFields(
-      [
-        {
-          name: 'email',
-          type: 'email',
-          label: 'Invite email',
-          placeholder: 'name@example.com',
-          required: true,
-        },
-        {
-          name: 'role',
-          type: 'select',
-          label: 'Role',
-          placeholder: 'Select a role',
-          required: true,
-          options: roles.map((candidate) => ({ value: candidate, label: candidate })),
-        },
-      ],
-      canInvite
-    ),
+    fields: [
+      {
+        name: 'email',
+        type: 'email',
+        label: 'Invite email',
+        placeholder: 'name@example.com',
+        required: true,
+      },
+      {
+        name: 'role',
+        type: 'select',
+        label: 'Role',
+        placeholder: 'Select a role',
+        required: true,
+        options: roles.map((candidate) => ({ value: candidate, label: candidate })),
+      },
+    ],
   })
 );
 
@@ -157,7 +154,8 @@ onMount(() => {
     aria-label="Invite someone"
     class="py-saas-form"
     data-py-saas-form="invite"
-    inert={canInvite ? undefined : true}
+    disabled={!canInvite}
+    hideTitle
   />
   <div class="grid gap-2">
     <h3 class="font-medium">Current members</h3>
@@ -228,9 +226,3 @@ onMount(() => {
   onCancel={() => (revoking = null)}
 />
 
-<style>
-  /* The section heading names the form; SchemaForm's own title stays its aria-label only. */
-  :global(.py-saas-form .tx-forms__title) {
-    display: none;
-  }
-</style>

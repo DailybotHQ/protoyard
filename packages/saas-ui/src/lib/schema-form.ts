@@ -1,7 +1,6 @@
 import { isValidationError, type ServiceResult } from '@protoyard/renderer-svelte';
 import {
   type CompiledForm,
-  type FormField,
   type FormSchema,
   type FormSubmitResult,
   validateFormSchema,
@@ -13,14 +12,6 @@ import {
  * then the submission goes through `runService` and the service's zod issues
  * come back as Texuli field errors.
  */
-
-/** `when.enable` that is never true: the field shows disabled (a role that cannot edit). */
-const NEVER = { op: 'bool', value: false } as const;
-
-/** The same fields, disabled unless `editable`. */
-export function editableFields(fields: readonly FormField[], editable: boolean): FormField[] {
-  return editable ? [...fields] : fields.map((field) => ({ ...field, when: { enable: NEVER } }));
-}
 
 /** Compile a kit-authored schema; a mistake in it is a bug, so it throws with the issues. */
 export function compileKitForm(schema: FormSchema): CompiledForm {
