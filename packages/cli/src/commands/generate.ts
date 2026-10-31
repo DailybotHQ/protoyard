@@ -9,6 +9,7 @@ import {
   safeParseAnyBlueprint,
   screenPath,
 } from '@protoyard/blueprint';
+import { KIND_SCHEMA_VERSION } from '@protoyard/blueprint/kinds';
 import { MANIFEST_FILENAME } from '@protoyard/core';
 import {
   brandDefaultThemeId,
@@ -221,7 +222,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     {
       path: SNAPSHOT_PATH,
       content: snapshotText({
-        schemaVersion: 1,
+        schemaVersion: isAppBlueprint(blueprint) ? 1 : KIND_SCHEMA_VERSION,
         blueprint: withoutHistory(raw),
         codegenFormat: CODEGEN_FORMAT_VERSION,
       }),
@@ -304,10 +305,15 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
           opt(options, 'description') ?? blueprint.description ?? template.description ?? '',
         now: new Date().toISOString(),
       });
-      // The generated schema starts at version 1; scenarios come from the template.
+      // An app's generated schema starts at version 1; a deck, page or doc uses the kind
+      // runtime's database (KIND_SCHEMA_VERSION). Scenarios come from the template.
       const manifestPath = join(staging, MANIFEST_FILENAME);
       const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Record<string, unknown>;
-      manifest.storage = { ...(manifest.storage as object), namespace: slug, schemaVersion: 1 };
+      manifest.storage = {
+        ...(manifest.storage as object),
+        namespace: slug,
+        schemaVersion: isAppBlueprint(blueprint) ? 1 : KIND_SCHEMA_VERSION,
+      };
       // Standalone builds of the crud-app template render blank inside the
       // "browser" preview shell, so generated prototypes open full-page.
       const preview = { ...((manifest.preview as Record<string, unknown> | undefined) ?? {}) };
