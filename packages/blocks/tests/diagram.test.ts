@@ -9,6 +9,7 @@ import {
   parseDiagram,
   TerminalDiagramSchema,
   TreeDiagramSchema,
+  toTexuliTree,
 } from '../src/diagram/index.ts';
 
 const flow = {
@@ -139,6 +140,15 @@ describe('@protoyard/blocks/diagram', () => {
         all.slice(index + 1).every((other) => !overlaps(node, other))
       )
     ).toBe(true);
+  });
+
+  it('a tree block keeps `style`; Texuli lays it out by `variant` (0.9)', () => {
+    expect(toTexuliTree({ ...tree, style: 'file-tree' })).toMatchObject({ variant: 'file-tree' });
+    expect('style' in toTexuliTree({ ...tree, style: 'org' })).toBe(false);
+    // The two styles reach Texuli as different variants, so they lay out differently.
+    expect(layoutTree({ ...tree, style: 'file-tree' })).not.toEqual(
+      layoutTree({ ...tree, style: 'org' })
+    );
   });
 
   it('lays out file and org trees without node overlap', () => {
