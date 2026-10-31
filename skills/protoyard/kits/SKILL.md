@@ -58,7 +58,11 @@ the reference for props and APIs: open the linked guide instead of guessing.
    `Input type="checkbox"`/`"radio"`. Use `bind:ref` for exposed DOM elements,
    `bind:this` only for component APIs, and `--tx-*` tokens for new UI. If an
    API is missing, retain a minimal adapter and record its gap id in the
-   adoption pending list (see the repository's `docs/TEXULI.md`).
+   adoption pending list (see the repository's `docs/TEXULI.md`). To look up
+   a Texuli component's props or a theme, use the Texuli skill when the host
+   has it, or Texuli's read-only MCP server (`npx -y @texuli/mcp@<installed
+   texuli version>`, registered next to `protoyard mcp`). Its first start
+   downloads the package from npm, so ask the developer before adding it.
 7. **Keep the data path.** Kits render and collect input; writes still go
    through the prototype's services (`session.assert` → zod →
    `environment.run` → `db.transaction`). Wire every async action to a

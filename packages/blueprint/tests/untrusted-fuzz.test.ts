@@ -280,8 +280,8 @@ function check(result: UntrustedBlueprintResult, label: string): string {
 }
 
 describe('untrusted loader fuzzing', () => {
-  it('fuzzes from the 40 catalog blueprints', () => {
-    expect(CATALOG.length).toBeGreaterThanOrEqual(40);
+  it('fuzzes from the 43 catalog blueprints', () => {
+    expect(CATALOG.length).toBeGreaterThanOrEqual(43);
   });
 
   it('builds the same corpus from the same seed', () => {

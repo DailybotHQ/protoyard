@@ -1,7 +1,7 @@
 ---
 name: texuli-build-ui
 description: Turn an idea into a Texuli interface offline — read the catalog (MCP or catalog.json), pick components by useWhen/dontUseWhen, compose, validate, render, iterate; recipes for dashboard, landing, form, slide, media story.
-version: "0.2.3"
+version: "0.3.4"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
@@ -74,9 +74,13 @@ idea → catalog (MCP or catalog-*.json) → pick by useWhen
 # Content-addressed catalog file (offline)
 pnpm exec tsx packages/catalog/src/build/cli.ts --json
 
-# MCP stdio (local tools server): tool "catalog" with { "query": "card" }
-# See packages/tools MCP tests for the envelope shape.
+# The same search through the texuli bin of @texuli/tools (or the MCP tool)
+npx texuli catalog search --json '{"query":"card","limit":10}'
 ```
+
+Over MCP (`npx -y @texuli/mcp`, see [`../router/hosts.md`](../router/hosts.md#mcp)),
+call `catalog.search { "query": "card" }`, then `component.get { "id": "card" }`,
+and check the tree with `blueprint.validate { "draft": {} }`.
 
 TypeScript:
 
@@ -168,8 +172,10 @@ Full checklists: [`references/recipes.md`](references/recipes.md).
 | Form flow | `texuli/input`, field, button, stepper; forms manifests |
 | Slide / deck | Deck v2 from JSON or Markdown: `@texuli/deck` (model, markdown, authoring, templates; in development, on npm from `0.4.0`) presented by `@texuli/slides/stage` `DeckStage`, exported by `@texuli/slides/export`; 21 layout ids, `deck` CLI and MCP tool: [`references/decks.md`](references/decks.md). `@texuli/slides` `0.3.0` is the v1 model |
 | Media story | [`../media/SKILL.md`](../media/SKILL.md) + content card |
-| Drag and drop (lists, groups, boards, trees) | `@texuli/primitives/sortable`, `@texuli/data/board`, `@texuli/data/tree-view`; engine `@texuli/drag` (in development, on npm as `0.4.0`; `sortable` and the data drag migrations are new in `0.4.0`) |
-| Workflow editor or diagram | `@texuli/workflows` editor, viewer, inspector, model, layout (in development, on npm as `0.4.0`) |
+| Drag and drop (lists, groups, boards, trees) | `@texuli/primitives/sortable`, `@texuli/data/board`, `@texuli/data/tree-view`; engine `@texuli/drag` (in development, on npm as `0.9.0`; `sortable` and the data drag migrations are new in `0.4.0`) |
+| Workflow editor or diagram | `@texuli/workflows` editor, viewer, inspector, model, layout (in development, on npm as `0.9.0`) |
+| Block document editor, reader, pages, export, collaboration | `@texuli/pages` (`editor`, `reader`, `paged`, `export`, `collab`, `host`) on `@texuli/document` (in development, both new in `0.7.0`); an agent writes documents as data: [`../blueprints/SKILL.md`](../blueprints/SKILL.md) stage **I** |
+| Schema-driven form, infinite canvas, spreadsheet, dashboard | `@texuli/forms` (`SchemaForm`), `@texuli/canvas` (`editor`, `viewer`), `@texuli/sheets` (`view`), `@texuli/data/dashboard` (in development, all new in `0.8.0`); agents send them as `schema-form`, `canvas`, `spreadsheet` and `data-dashboard` nodes painted through the player's host seams: [`references/imports.md`](references/imports.md) |
 | A whole stateful screen as JSON (an agent sends it) | [`../blueprints/SKILL.md`](../blueprints/SKILL.md) stage **G** |
 
 ## Offline gates for this skill pack
@@ -182,7 +188,21 @@ pnpm vitest run scripts/tests/skill.test.ts
 
 ## Imports cheat sheet
 
-See [`references/imports.md`](references/imports.md).
+See [`references/imports.md`](references/imports.md), including the APIs
+new in `0.9.0` (design-system tokens and defaults, scoped portals, the
+operations registry) and in `0.8.0` (not in `0.7.0`): `@texuli/forms`, `@texuli/canvas`,
+`@texuli/sheets`, `@texuli/data/dashboard`, `@texuli/core/expression`,
+`@texuli/core/data-source`, `@texuli/core/i18n`, `@texuli/tools/email`
+and `@texuli/tools/print`, and the player's form, canvas and sheet hosts;
+those new in `0.7.0` (not in `0.6.0`): `@texuli/document`, `@texuli/pages`, node
+keys and documents in blueprints, `patchDocument`, the player's
+`documentHost` and `@texuli/tools/document`; those new in `0.6.0`: the
+`motion` prop and `MotionProvider`,
+`@texuli/core/motion`, the one component contract (`bind:ref`, rest
+attributes, composed handlers), `<Player stream>`, `DeckStageCore`,
+`@texuli/core/markup` and `@texuli/core/zip`, and those new in `0.5.0`:
+composer streaming and `onStop`, `DataGrid` paging, toast `onSettle`,
+`TimeField`, date `today`, the light `Sparkline` and editor Markdown.
 
 ## Local references
 

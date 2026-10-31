@@ -7,6 +7,7 @@ import {
   type Seasonality,
   timeSeries,
 } from '@protoyard/scenarios';
+import { canvasFieldsByEntity, seedCanvas } from './canvas-seed.ts';
 import { blueprintGeneratorVersion } from './generator-version.ts';
 import type { Blueprint, BlueprintEntity, BlueprintField } from './schema.ts';
 import { dateWindowDays, entityTable } from './schema.ts';
@@ -433,6 +434,7 @@ export function createBlueprintGenerator(blueprint: Blueprint): BlueprintGenerat
   const order = topologicalEntities(blueprint);
   const byName = new Map(blueprint.entities.map((e) => [e.name, e]));
   const generatorVersion = blueprintGeneratorVersion(blueprint);
+  const canvasFields = canvasFieldsByEntity(blueprint);
 
   const generate = (ctx: GenerateContext): WorldSeed => {
     const team = generateTeam(ctx);
@@ -484,6 +486,11 @@ export function createBlueprintGenerator(blueprint: Blueprint): BlueprintGenerat
           ? [{ prop: inputProperty(field), byDay: trendByDay(field, entity, ctx, orgCreatedAt) }]
           : []
       );
+      // A canvas screen's json field gets a seeded planning board, not the generic json value.
+      const canvases = entity.fields.flatMap((field) =>
+        canvasFields.get(entity.name)?.has(field.name) ? [inputProperty(field)] : []
+      );
+      const titleProp = entity.fields.find((field) => field.name === entity.titleField);
       for (let i = 0; i < count; i++) {
         const fieldCtx: GenerateContext = {
           ...ctx,
@@ -508,6 +515,13 @@ export function createBlueprintGenerator(blueprint: Blueprint): BlueprintGenerat
               : null;
         }
         for (const { prop, ids } of avatars) values[prop] = ids[i] ?? null;
+        for (const prop of canvases) {
+          const title = titleProp ? values[inputProperty(titleProp)] : undefined;
+          values[prop] = seedCanvas(
+            ctx.rng.fork(`blueprint:canvas:${entity.name}.${prop}:${i}`),
+            typeof title === 'string' ? title : ''
+          );
+        }
         const stamps = stampRow(fieldCtx, orgCreatedAt);
         for (const { prop, byDay } of trends) {
           values[prop] = byDay.get(stamps.createdAt.slice(0, 10)) ?? values[prop];

@@ -122,7 +122,7 @@ protoyard/
 │                          lattice-saas-demo, mobile-banking-demo, nova-assistant-demo,
 │                          pebblestat-analytics-demo, pulse-revenue-demo*, relay-chat-demo,
 │                          support-widget-demo, ui-kit, …yours   (* generated from a blueprint)
-├── blueprints/            40 app blueprints + deck, page and doc examples (decks/, pages/, docs/; decks/everything.json is the reference deck) for the player and `protoyard generate` (README)
+├── blueprints/            43 app blueprints + deck, page and doc examples (decks/, pages/, docs/; decks/everything.json is the reference deck) for the player and `protoyard generate` (README)
 ├── integrations/deepworkplan/protoyard/  DWP addon packet: addon.json, SPEC.md, SKILL.md, UPSTREAM.md, templates/
 ├── skills/protoyard/      the distributable agent skill: SKILL.md router, sub-skills, setup.sh   (docs/SKILL.md)
 ├── tests/                 support/ (runtime + generator harness), e2e/ (Playwright + axe), setup/

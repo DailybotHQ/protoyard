@@ -65,8 +65,8 @@ describe('canonicalJson', () => {
 });
 
 describe('blueprintIdentity', () => {
-  it('reads the 40 catalog blueprints', () => {
-    expect(files.length).toBeGreaterThanOrEqual(40);
+  it('reads the 43 catalog blueprints', () => {
+    expect(files.length).toBeGreaterThanOrEqual(43);
   });
 
   it('is the SHA-256 of the canonical JSON, without $schema', async () => {

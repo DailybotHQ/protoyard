@@ -15,6 +15,153 @@ the pack, and leaves an empty `## [Unreleased]` block on top.
 
 ## [Unreleased]
 
+## [0.3.4] — 2026-10-30
+
+### Changes
+
+- chore(skill): the skill pack says 0.9.0 is published
+- docs(skill): add the MCP hosts section and cite registry operations and published bins
+
+- The packages move to `0.9.0`: 26 published packages, `@texuli/mcp`
+  published for the first time. The router, components, install and
+  build-ui references say "on npm as `0.9.0`" and pin `^0.9.0`; the
+  "0.9.0 is in development" install note is gone.
+- `router/packages.md` gains a "New in `0.9.0`" paragraph and marks the new
+  entries (`@texuli/tools/ops`, `@texuli/tools/mcp`,
+  `@texuli/catalog/manifests/all`, the token contract v2 subpaths of
+  `@texuli/tokens`, `texuli/defaults`) and an L9 row for `@texuli/mcp`;
+  `router/hosts.md` states that both MCP servers are live from `0.9.0`.
+- `build-ui/references/imports.md` gains a "New in 0.9.0" table (component
+  and system tokens on a scope, `setDesignDefaults`, scoped portals, the
+  chart time axis, keyboard rows in table grids, `useFieldLabel`,
+  `composeHandlers`, the operations registry).
+- `upgrade/SKILL.md` lists the `0.9.0` breaking changes an app checks
+  before moving from `^0.8.0` (spec 0.9.0 stamps, the new catalog hash, the
+  MCP tool aliases deprecated until `0.10.0` and `-32600` before
+  `initialize`, token contract v2, the `aria-disabled` pending Button,
+  `aria-invalid` on date controls, the tree block `variant`).
+
+## [0.3.3] — 2026-10-30
+
+### Changes
+
+- chore(deps): patch releases for G86 (data 0.8.1 and its exact-pin dependents)
+- fix(data): load list motion lazily, release @texuli/data 0.8.1
+
+## [0.3.2] — 2026-10-30
+
+### Changes
+
+- chore(slides): release @texuli/slides 0.8.1 with the trust badge row fix
+
+## [0.3.1] — 2026-10-30
+
+### Changes
+
+- chore(deps): release 0.8.0 of all 25 packages, @texuli/forms, @texuli/canvas and @texuli/sheets for the first time
+
+- The packages move to `0.8.0`: 25 published packages, `@texuli/forms`,
+  `@texuli/canvas` and `@texuli/sheets` published for the first time. The
+  router, components, build-ui and recipes say "on npm as `0.8.0`" and pin
+  `^0.8.0`; `build-ui/references/imports.md` gains a "New in 0.8.0" table
+  (forms, the canvas, sheets, dashboards, host data sources, the expression
+  language, the message catalog, email and PDF, and the player's form,
+  canvas and sheet hosts), the build-ui table gains a forms, canvas, sheets
+  and dashboard row, the package index lists `@texuli/forms` and
+  `@texuli/canvas` (L4) and `@texuli/sheets` (L5) and marks spec 0.8.0 and
+  the new subpaths as new in `0.8.0` (and the deck, drag, editor and
+  workflows rows name `0.8.0` instead of `0.6.0`), and the layer map lists
+  the three packages.
+- `upgrade/SKILL.md` lists the `0.8.0` breaking changes an app checks
+  before moving from `^0.7.0` (spec 0.8.0 stamps, the new catalog hash,
+  `aria-required` only on supporting roles, labels from one catalog).
+- `blueprints/SKILL.md` gains stage J: forms, canvases, sheets, dashboards
+  and data sources as agent data (spec 0.8.0), refused without the host's
+  check.
+
+## [0.3.0] — 2026-10-29
+
+### Changes
+
+- chore(deps): release 0.7.0 of all 22 packages, @texuli/document and @texuli/pages for the first time
+- feat(catalog): documents as agent data — a document catalog id, host-validated documents, bounded document patches addressed by node key, a player document host, and texuli document CLI and MCP tools (spec 0.7.0)
+
+## [0.2.5] — 2026-10-29
+
+### Changes
+
+- chore(deps): release 0.6.0 of all 20 packages
+
+### Content
+
+- The packages move to `0.7.0`: 22 published packages, `@texuli/document`
+  and `@texuli/pages` published for the first time. The router, components,
+  build-ui and blueprints references say "on npm as `0.7.0`" and pin
+  `^0.7.0`; `build-ui/references/imports.md` gains a "New in 0.7.0" table
+  and a block documents row (`@texuli/pages` editor, reader, paged view,
+  export, collaboration and host on the `@texuli/document` engine), the
+  build-ui recipes name the document editor, the package index lists
+  `@texuli/document` (L1) and `@texuli/pages` (L8) with their entries and
+  marks spec 0.7.0, the `document` id, `patchDocument`, the player's
+  `documentHost` and `@texuli/tools/document` as new in `0.7.0`, and the
+  layer map drops "in the repository only".
+- `upgrade/SKILL.md` lists the `0.7.0` breaking changes an app checks
+  before moving from `^0.6.0` (spec 0.7.0 stamps, the new catalog hash,
+  `patchDocument` in `EditOp`).
+- Documents for agents (spec 0.7.0, new in `0.7.0`): `blueprints/SKILL.md` gains stage I (a `document` node whose
+  `doc` is a Texuli document, `checkDocument` and the player's
+  `documentHost` from `@texuli/pages/host`, `patchDocument` edits with a
+  bounded RFC 6902 patch, node keys) and stage C names `patchDocument`;
+  the new `blueprints/references/documents.md` has an example, the patch
+  shape and the document commands of the `texuli` CLI.
+- The packages move to `0.6.0`: the same 20 published packages as `0.5.0`;
+  `@texuli/document` and `@texuli/pages` stay in the repository only (not
+  on npm, first release planned for `0.7.0`). `0.6.0` ships PLAN_010 so
+  far: `build-ui/references/imports.md` gains a "New in 0.6.0" table (the
+  `motion` prop and `MotionProvider`, `@texuli/core/motion` and its
+  springs, the motion tokens, the one component API contract,
+  `<Player stream>` and `validateStreamNode`, spec 0.6.0 motion,
+  `DeckStageCore`, prepared decks, `@texuli/core/markup` and
+  `@texuli/core/zip`, editor inline extensions and the G48 to G85
+  additions); the package index marks the new subpaths, spec 0.6.0 and the
+  streaming player as new in `0.6.0`; `blueprints/SKILL.md` gains stage H
+  (motion as data and streaming) and states the agent service's provider
+  adapters (tested on recorded bytes, never called, not deployed); the
+  layer map lists `@texuli/document` and `@texuli/pages`. The router,
+  components, blueprints and build-ui references say "on npm as `0.6.0`"
+  and pin `^0.6.0`.
+- `upgrade/SKILL.md` lists the `0.6.0` breaking changes an app checks
+  before moving from `^0.5.0` (Field ids on the focusable control,
+  `InputGroup` attributes, caller handlers on more parts, avatar initials,
+  four-digit years, reduced motion at `0s`, motion instead of CSS keyframes,
+  the empty `Toaster`, chat day separators, widened filter operators, spec
+  0.6.0 stamps).
+
+## [0.2.4] — 2026-10-29
+
+### Changes
+
+- chore(deps): release 0.5.0 of all 20 packages, @texuli/editor for the first time
+- docs: 0.5.0 release notes with every closed Protoyard gap, the 0.4.0 drag helper correction, new subpaths and the skill
+
+### Content
+
+- The packages move to `0.5.0`: all 20 packable packages, including the
+  first publication of `@texuli/editor`. `0.5.0` ships PLAN_009 (the
+  Protoyard adoption gaps): `build-ui/references/imports.md` gains a "New in
+  0.5.0" table (composer `streaming` and `onStop`, message actions and
+  inline edit, `DataGrid` paging and snippets, toast `onSettle`,
+  `TimeField`, date pickers' `today`, `@texuli/charts/sparkline-lite`,
+  `@texuli/editor/markdown`, the filter builder, notification inbox and
+  cohort table, `texuli/layouts/content`), and the package index marks
+  those entries, spec 0.5.0 and the 162-id catalog as new in `0.5.0`. The
+  router, components, blueprints and build-ui references say "on npm as
+  `0.5.0`" and pin `^0.5.0`.
+- `upgrade/SKILL.md` lists the `0.5.0` breaking changes an app checks
+  before moving from `^0.4.0` (numeric and file inputs, composed caller
+  handlers, the `Tag` remove label, toast timers, the lazy `DeckStage`
+  defaults, wider TOC levels, camelCase callbacks).
+
 ## [0.2.3] — 2026-10-28
 
 ### Changes
