@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type BootedPlayer, bootPlayer } from '../src/boot.ts';
 import { bootKind } from '../src/boot-kind.ts';
 import demo from '../src/fixtures/demo.blueprint.json';
+import { loadersFor } from '../src/kinds/renderers.ts';
 import { motionProbe } from './support/motion-probe.ts';
 
 configure({ asyncUtilTimeout: 10_000 });
@@ -60,6 +61,7 @@ describe('blueprint motion in the player', () => {
     const indexedDB = new IDBFactory();
     booted = await bootKind({
       blueprint,
+      loaders: loadersFor((blueprint as { kind: 'deck' | 'page' | 'doc' }).kind),
       target,
       search: '',
       indexFactory: indexedDB,
@@ -95,6 +97,7 @@ describe('blueprint motion in the player', () => {
     const indexedDB = new IDBFactory();
     booted = await bootKind({
       blueprint: await kind('landing.page.json', { motion: { level: 'subtle' } }),
+      loaders: loadersFor('page'),
       target,
       search: '',
       indexFactory: indexedDB,

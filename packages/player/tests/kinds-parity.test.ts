@@ -16,6 +16,7 @@ import {
 } from '../../cli/src/lib/codegen/emit.ts';
 import type { BootedPlayer } from '../src/boot.ts';
 import { bootKind } from '../src/boot-kind.ts';
+import { loadersFor } from '../src/kinds/renderers.ts';
 
 configure({ asyncUtilTimeout: 15_000 });
 
@@ -235,6 +236,7 @@ describe.each(['deck', 'page', 'doc'] as const)(
       const playerTarget = document.body.appendChild(document.createElement('div'));
       const player: BootedPlayer = await bootKind({
         blueprint,
+        loaders: loadersFor((blueprint as { kind: 'deck' | 'page' | 'doc' }).kind),
         target: playerTarget,
         search: '',
         indexFactory: new IDBFactory(),

@@ -19,6 +19,7 @@ import {
   runKindEntry,
 } from '../src/entries/run-kind.ts';
 import demo from '../src/fixtures/demo.blueprint.json';
+import { loadersFor } from '../src/kinds/renderers.ts';
 import { kindApp } from '../src/kinds/state.ts';
 import { inlineScripts, insertCspMeta, PLAYER_HTML_ENTRIES, playerCsp } from '../vite.config.ts';
 
@@ -85,6 +86,7 @@ describe('kind entry boot', () => {
     const bootKindFake = vi.fn(async () => booted('bp-deck'));
     const boot = kindEntryBoot({
       kind: 'deck',
+      loaders: loadersFor('deck'),
       window: fakeWindow,
       loadBoot: async () => ({ bootKind: bootKindFake as never }),
     });
@@ -92,12 +94,23 @@ describe('kind entry boot', () => {
     const target = document.createElement('div');
     const result = await boot(deck, target, { review: true });
     expect(result.namespace).toBe('bp-deck');
-    expect(bootKindFake).toHaveBeenCalledWith({ blueprint: deck, target, review: true });
+    // The page hands the kind boot its own renderer loaders, never every kind's.
+    expect(bootKindFake).toHaveBeenCalledWith({
+      blueprint: deck,
+      target,
+      review: true,
+      loaders: loadersFor('deck'),
+    });
   });
 
   it('shows a clear error with a link to index.html for an app, and never boots it (AC)', async () => {
     const load = vi.fn(async () => ({ bootKind: vi.fn() as never }));
-    const boot = kindEntryBoot({ kind: 'deck', window: fakeWindow, loadBoot: load });
+    const boot = kindEntryBoot({
+      kind: 'deck',
+      loaders: loadersFor('deck'),
+      window: fakeWindow,
+      loadBoot: load,
+    });
     const target = document.body.appendChild(document.createElement('div'));
     const shown = await boot(app, target);
     flushSync();
@@ -119,6 +132,7 @@ describe('kind entry boot', () => {
   it('sends another content kind to its own page', async () => {
     const boot = kindEntryBoot({
       kind: 'doc',
+      loaders: loadersFor('doc'),
       window: fakeWindow,
       loadBoot: vi.fn(),
     });
@@ -132,7 +146,12 @@ describe('kind entry boot', () => {
   });
 
   it('renders the blueprint name as text only', async () => {
-    const boot = kindEntryBoot({ kind: 'page', window: fakeWindow, loadBoot: vi.fn() });
+    const boot = kindEntryBoot({
+      kind: 'page',
+      loaders: loadersFor('page'),
+      window: fakeWindow,
+      loadBoot: vi.fn(),
+    });
     const target = document.body.appendChild(document.createElement('div'));
     await boot({ ...app, name: '<img src=x onerror=alert(1)>' }, target);
     flushSync();
@@ -156,7 +175,14 @@ describe('kind entry boot', () => {
     const loadBoot = vi.fn(async () => ({ bootKind: vi.fn() as never }));
     const run = vi.fn(async () => ({ started: {} as never, embed: null, live: null }));
     const target = document.createElement('div');
-    await runKindEntry({ kind: 'page', window: fakeWindow, target, run, loadBoot });
+    await runKindEntry({
+      kind: 'page',
+      loaders: loadersFor('page'),
+      window: fakeWindow,
+      target,
+      run,
+      loadBoot,
+    });
     expect(loadBoot).toHaveBeenCalledTimes(1);
     expect(run).toHaveBeenCalledWith(
       expect.objectContaining({ window: fakeWindow, target, boot: expect.any(Function) })
@@ -168,6 +194,7 @@ describe('Deck Studio in the kind boot', () => {
   const boot = (blueprint: AnyBlueprint, devtools: boolean) =>
     bootKind({
       blueprint,
+      loaders: loadersFor((blueprint as { kind: 'deck' | 'page' | 'doc' }).kind),
       target: document.createElement('div'),
       search: '',
       indexFactory: new IDBFactory(),

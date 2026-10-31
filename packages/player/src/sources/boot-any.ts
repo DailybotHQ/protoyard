@@ -1,6 +1,7 @@
 import { type AnyBlueprint, type Blueprint, isAppBlueprint } from '@protoyard/blueprint';
 import type { BootedPlayer, BootPlayerOptions } from '../boot.ts';
 import type { BootKindOptions } from '../boot-kind.ts';
+import { loadersFor } from '../kinds/renderers.ts';
 import { loadKindBoot } from './kind-boot.ts';
 
 /**
@@ -37,6 +38,12 @@ export async function bootByKind(
     return bootPlayer({ blueprint: blueprint as Blueprint, target, ...appExtras });
   }
   const { bootKind } = await loadKindBoot();
-  const options: BootKindOptions = { blueprint, target, ...extras };
+  // index.html runs every kind, so it alone imports all the renderer loaders.
+  const options: BootKindOptions = {
+    blueprint,
+    target,
+    ...extras,
+    loaders: loadersFor(blueprint.kind),
+  };
   return bootKind(options);
 }
