@@ -453,5 +453,10 @@
     "id": "G129",
     "status": "open",
     "summary": "@texuli/forms password fields accept only current-password or new-password autocomplete, so a simulation that must keep browsers from saving fake passwords (autocomplete=\"off\") cannot use the password type"
+  },
+  {
+    "id": "G130",
+    "status": "open",
+    "summary": "@texuli/slides stage design-system resolver (@texuli/tokens/design-system loadLibraryBase) imports library-expand/registry.js directly, so every deck build reaches all 146 expanded theme modules, even with no texuli: design-system ref"
   }
 ]

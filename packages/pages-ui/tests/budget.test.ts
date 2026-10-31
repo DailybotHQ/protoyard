@@ -43,6 +43,11 @@ const INITIAL_CSS_GZIP_BUDGETS: Record<Host, number> = { page: 7_357, doc: 7_349
 // form block, so only the all-CSS sums grow: page 39,046 B, doc 74,692 B; the
 // first screen is unchanged. + 2.5 %. SchemaForm imports every control type
 // up front (Texuli gap G119); a lazier SchemaForm lowers these again.
+// Texuli 0.10.0 (PLAN_008, 2026-10-31): the doc editor is @texuli/pages/editor-core
+// with no player loader (G123) and SchemaForm loads its controls per type (G119):
+// doc all CSS 78,560 -> 48,919 B. The page all-CSS sum measured 42,087 B on the
+// 0.10.0 bump before any adapter change (42,069 B after), over its 40,023 B cap:
+// left for the lead, not raised here.
 const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 40_023, doc: 76_560 };
 
 interface HostBuild {

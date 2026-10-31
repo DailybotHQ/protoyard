@@ -113,6 +113,10 @@ function importGraph(entry: string): string[] {
 // CSS reachable only through the editor embed path (5.5 KB, gap G123): measured
 // 149.9 KB; + 2.5 %. Each kind page is under its 0.9.0 cap (deck 114.0, page
 // 69.2, doc 101.5 KB) since kind pages load only their own renderer.
+// Texuli 0.10.0 (PLAN_008, 2026-10-31): system.css instead of base.css (G110), the
+// deck print view on export-core (G105) and the doc editor on editor-core (G123):
+// all CSS deck 114.80 -> 84.44 KB, page 69.98 -> 68.84 KB, doc 103.03 -> 72.68 KB;
+// initial CSS 1.0–1.1 KB lower on every page. The caps are not lowered here.
 const PLAYER_TOTAL_CSS_GZIP_KB = { index: 153.7, deck: 120.0, page: 121.3, doc: 121.3 } as const;
 
 /** Modules that must only ever load on demand, by manifest key. */
