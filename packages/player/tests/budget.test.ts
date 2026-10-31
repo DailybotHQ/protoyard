@@ -108,7 +108,12 @@ function importGraph(entry: string): string[] {
  */
 // Texuli 0.9.0 measured index 142.85, deck 117.02, page and doc 118.30 KB
 // (token contract v2 component CSS plus @texuli/tokens/base.css, gap G110); + 2.5 %.
-const PLAYER_TOTAL_CSS_GZIP_KB = { index: 146.5, deck: 120.0, page: 121.3, doc: 121.3 } as const;
+// index.html reaches every kind and kit by design; PLAN_008 wave 2 adds pages-ui
+// (5.2 KB), forms (2.2 KB, gap G119), the sheets view (1.7 KB) and @texuli/player
+// CSS reachable only through the editor embed path (5.5 KB, gap G123): measured
+// 149.9 KB; + 2.5 %. Each kind page is under its 0.9.0 cap (deck 114.0, page
+// 69.2, doc 101.5 KB) since kind pages load only their own renderer.
+const PLAYER_TOTAL_CSS_GZIP_KB = { index: 153.7, deck: 120.0, page: 121.3, doc: 121.3 } as const;
 
 /** Modules that must only ever load on demand, by manifest key. */
 const LAZY_MODULES: [string, RegExp][] = [

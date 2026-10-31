@@ -36,6 +36,35 @@ re-measure lowers these ceilings again.
 | renderer LayoutHost initial delta | 3,802 B | 3,800 → 3,900 B |
 | Quick single-file export (largest catalog blueprint) | 4,466,115 B | 4,418,158 → 4,577,768 B |
 
+### PLAN_008 wave 2 (measured 2026-10-31)
+
+Wave 2 adds Texuli document and pages (doc editing and Word/PDF/Markdown
+export), forms (entity, page and SaaS forms), sheets (a sheet view and screen)
+and the data dashboard grid.
+
+Before measuring, each kind page was fixed to load only its own renderer, and
+each single-file export was fixed to leave out what its kind never runs. Before
+that fix, every deck file carried the doc editor and forms code (4,105,884
+bytes); after it, a deck file is 2,738,213 bytes and a page file is 2,336,640
+bytes, both under their 2,818,330-byte cap.
+
+What still grew is each kind's own code, plus @texuli/forms, which imports
+every control up front (gap G119). `pnpm protoyard budget --all` (exit 4: 12 of
+16 over) gave these numbers. Each ceiling is the measurement plus 2.5 %, and
+`pnpm protoyard budget --all --skip-build` then passes all 16.
+
+| Ceiling | Measured | Before → after |
+| --- | ---: | ---: |
+| Doc single-file export (northwind) | 3,056,939 B | 2,818,330 → 3,133,363 B |
+| Player `index.html` all CSS (reaches every kind) | 149.9 KB | 146.5 → 153.7 KB |
+| helpdesk, cadence, harbor, pulse CSS (generated apps) | 57.58–58.60 KB | 51.9–52.4 → 59.1–60.1 KB |
+| ui-kit CSS | 57.30 KB | 54.5 → 58.8 KB |
+| keel-projects-demo CSS | 49.19 KB | 47.5 → 50.5 KB |
+| atlas-workspace-demo / pebblestat-analytics-demo CSS | 41.02 / 41.54 KB | 39.9 / 39.5 → 42.1 / 42.6 KB |
+| nova-assistant-demo CSS | 33.06 KB | 32.2 → 33.9 KB |
+| crm-demo / lattice-saas-demo CSS (default 30 KB) | 32.00 / 32.59 KB | 30 → 32.8 / 33.5 KB |
+| create-anything-deck initial JS / CSS | 299.04 / 91.42 KB | 296.6 / 83.7 → 306.6 / 93.8 KB |
+
 ## After the Texuli adoption (measured 2026-10-28)
 
 Protoyard's charts, layouts, styled components, rich views and theme library

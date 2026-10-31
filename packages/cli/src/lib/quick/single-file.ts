@@ -64,7 +64,11 @@ export const QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES: Record<SingleFileEntry, numbe
   index: QUICK_SINGLE_FILE_BUDGET_BYTES,
   deck: 2_818_330,
   page: 2_818_330,
-  doc: 2_818_330,
+  // PLAN_008 T-documents: a doc file now carries the @texuli/pages editor and the
+  // Word/PDF writers it runs (edit, then download). Measured 3,056,939 bytes
+  // (northwind) once each kind file stopped embedding the other kinds'
+  // renderers and @texuli/player (gap G123); + 2.5 %.
+  doc: 3_133_363,
 };
 
 /**

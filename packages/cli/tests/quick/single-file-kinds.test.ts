@@ -192,9 +192,11 @@ describe('buildSingleFile with an entry page', () => {
     expect(singleFileEntryFor({ kind: 'page' })).toBe('page');
     expect(singleFileEntryFor({ kind: 'doc' })).toBe('doc');
     expect(singleFileEntryFor({ kind: '../index' })).toBe('index');
-    for (const kind of ['deck', 'page', 'doc'] as const) {
+    for (const kind of ['deck', 'page'] as const) {
       expect(QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES[kind]).toBe(2_818_330);
     }
+    // A doc file also carries the editor and the Word/PDF writers (PLAN_008 T-documents).
+    expect(QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES.doc).toBe(3_133_363);
     expect(QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES.index).toBe(QUICK_SINGLE_FILE_BUDGET_BYTES);
   });
 });
