@@ -4,7 +4,7 @@ import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 import Play from '@lucide/svelte/icons/play';
 import RotateCw from '@lucide/svelte/icons/rotate-cw';
 import Square from '@lucide/svelte/icons/square';
-import { Button, Input } from '@protoyard/ui';
+import { Button, Input, Skeleton } from '@protoyard/ui';
 import { onMount } from 'svelte';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { control } from '@/lib/control.svelte';
@@ -417,12 +417,12 @@ async function openManual(event: SubmitEvent) {
                 data-testid="preview-skeleton"
               >
                 <div class="flex flex-1 flex-col gap-3 p-4">
-                  <div class="py-skeleton h-3 w-1/3 rounded-md"></div>
-                  <div class="py-skeleton h-8 w-2/3 rounded-md"></div>
-                  <div class="py-skeleton mt-2 h-24 w-full flex-1 rounded-lg"></div>
+                  <Skeleton class="h-3 w-1/3 rounded-md" />
+                  <Skeleton class="h-8 w-2/3 rounded-md" />
+                  <Skeleton class="mt-2 h-24 w-full flex-1 rounded-lg" />
                   <div class="flex gap-2">
-                    <div class="py-skeleton h-9 flex-1 rounded-md"></div>
-                    <div class="py-skeleton h-9 flex-1 rounded-md"></div>
+                    <Skeleton class="h-9 flex-1 rounded-md" />
+                    <Skeleton class="h-9 flex-1 rounded-md" />
                   </div>
                 </div>
                 <p class="px-4 pb-3 text-center text-xs text-muted">

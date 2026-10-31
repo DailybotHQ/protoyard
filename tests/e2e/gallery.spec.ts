@@ -171,6 +171,28 @@ test.describe('gallery', () => {
       .toBeNull();
   });
 
+  test('the command palette mode toggle keeps the header switcher in sync (same tab)', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const switcher = page.getByRole('radiogroup', { name: 'Color theme' });
+    await expect(switcher).toHaveAttribute('data-tx-appearance', 'system');
+    await expect(page.getByTestId('command-palette')).toHaveAttribute('data-hydrated', 'true');
+    const dark = (await page.locator('html').getAttribute('data-tx-mode')) === 'dark';
+    await page.keyboard.press('Control+k');
+    const dialog = page.getByRole('dialog', { name: 'Command palette' });
+    await dialog
+      .getByRole('combobox', { name: 'Search prototypes, templates, and actions' })
+      .fill('Toggle color theme');
+    await page.keyboard.press('Enter');
+    const next = dark ? 'light' : 'dark';
+    await expect(page.locator('html')).toHaveAttribute('data-tx-mode', next);
+    // Texuli's APPEARANCE_CHANGE_EVENT (G74) moves the header's radio without a reload.
+    await expect(
+      switcher.getByRole('radio', { name: next === 'dark' ? 'Dark' : 'Light' })
+    ).toBeChecked();
+  });
+
   test('migrates the previous saved mode into Texuli appearance storage once', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('protoyard.gallery.theme', 'dark'));
     await page.goto('/');
