@@ -63,7 +63,7 @@ async function remove() {
     </div>
     {#if can(CAPABILITIES.delete)}
       <Button variant="ghost" class="text-destructive hover:bg-destructive/10" onclick={() => (confirmDelete = true)}>
-        <LucideIcon icon={Trash2} class="size-4" />Delete
+        <LucideIcon icon={Trash2} class="size-4" />Delete board
       </Button>
     {/if}
   </header>

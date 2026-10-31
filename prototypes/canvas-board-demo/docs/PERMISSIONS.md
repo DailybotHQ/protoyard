@@ -8,7 +8,7 @@ Simulated permissions: UX only, not security. Services enforce them with
 <!-- protoyard:generated:capability-matrix -->
 | Capability | `owner` | `viewer` |
 | --- | --- | --- |
-| `notes:read` | ✓ | ✓ |
+| `boards:read` | ✓ | ✓ |
 
 `owner` holds every capability (`*`), including ones this table cannot list because no role names them.
 <!-- /protoyard:generated:capability-matrix -->
@@ -19,7 +19,7 @@ Simulated permissions: UX only, not security. Services enforce them with
 _No record-level rules._
 <!-- /protoyard:generated:rules -->
 
-TODO: what each rule means (rules are functions, so only their names are generated).
+There are no record-level rules: any role with a capability may use it on every board.
 
 ## Personas
 

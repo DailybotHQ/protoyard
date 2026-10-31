@@ -2,14 +2,17 @@
 
 ## Overview
 
-TODO: the domain in words, and why the model looks this way.
+A workspace holds boards. Each board is one row whose `canvas` field is a
+whole Texuli canvas document (`CanvasDocument`): its shapes, frames and
+connectors. The canvas is stored as one document because the editor saves
+the whole canvas after each change.
 
 ## Tables
 
 <!-- protoyard:generated:tables -->
 | Table | Primary key | Indexes |
 | --- | --- | --- |
-| `notes` | `id` (unique) | `authorId`, `pinned`, `updatedAt` |
+| `boards` | `id` (unique) | `ownerId`, `updatedAt` |
 <!-- /protoyard:generated:tables -->
 
 ## Diagram
@@ -17,10 +20,9 @@ TODO: the domain in words, and why the model looks this way.
 <!-- protoyard:generated:er-diagram -->
 ```mermaid
 erDiagram
-  notes {
+  boards {
     string id PK
-    string authorId
-    string pinned
+    string ownerId
     string updatedAt
   }
 ```
@@ -30,20 +32,23 @@ _Indexed fields only. Relations are inferred from indexed `…Id` fields that ma
 
 ## Relations
 
-TODO: foreign keys and cardinalities the diagram cannot infer.
+`boards.ownerId` → a persona id (`user_0001` in the scenarios); there is no
+people table.
 
 ## Field notes
 
-TODO: units (integer cents, ISO dates), enums and invariants.
+- `createdAt` and `updatedAt` are ISO dates; `updatedAt` changes on every save.
+- `title` is 1 to 80 characters and is also the canvas's `meta.title`.
+- `canvas` always passes `validateCanvas`: the services refuse anything else.
 
 ## Schema history
 
 <!-- protoyard:generated:versions -->
 | Version | Adds | Changes indexes | Deletes |
 | --- | --- | --- | --- |
-| 1 | `notes` | — | — |
+| 1 | `boards` | — | — |
 <!-- /protoyard:generated:versions -->
 
 ## Migrations
 
-TODO: what each `upgrade` does to existing rows.
+None yet: version 1 is the first schema.

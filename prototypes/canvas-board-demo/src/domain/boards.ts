@@ -72,7 +72,9 @@ export function createBoardServices(runtime: PrototypeRuntime<CanvasBoardDatabas
         db.transaction('rw', db.boards, async () => {
           const current = await db.boards.get(id);
           if (!current) throw new Error('This board no longer exists.');
-          await db.boards.update(id, {
+          // `put` of the whole row: Dexie's update() key paths recurse on the canvas type.
+          await db.boards.put({
+            ...current,
             title,
             canvas: { ...current.canvas, meta: { ...current.canvas.meta, title } },
             updatedAt: now(),
@@ -85,10 +87,13 @@ export function createBoardServices(runtime: PrototypeRuntime<CanvasBoardDatabas
     async saveCanvas(id: string, canvas: unknown): Promise<void> {
       session.assert(CAPABILITIES.update);
       const checked = checkCanvas(canvas);
-      await environment.run('boards.update', async () => {
-        const changed = await db.boards.update(id, { canvas: checked, updatedAt: now() });
-        if (changed === 0) throw new Error('This board no longer exists.');
-      });
+      await environment.run('boards.update', () =>
+        db.transaction('rw', db.boards, async () => {
+          const current = await db.boards.get(id);
+          if (!current) throw new Error('This board no longer exists.');
+          await db.boards.put({ ...current, canvas: checked, updatedAt: now() });
+        })
+      );
     },
 
     async remove(id: string): Promise<void> {

@@ -14,7 +14,12 @@ live in the root [AGENTS.md](../../AGENTS.md); the spec standard is
 
 ## Rules for this prototype
 
-TODO: only what is specific to this prototype (units, invariants, ownership rules). Do not copy the root rules.
+- A board's `canvas` is untrusted on import and on read: services validate it
+  with `validateCanvas`, and `CanvasView` checks it again before painting.
+- Use `put` of the whole row for board writes: Dexie's `update()` key paths
+  recurse on the canvas type and fail the typecheck.
+- Board content comes from `generateCanvasBoard` in `@protoyard/views/scenarios`;
+  bump `generatorVersion` when its output changes.
 
 ## Quick commands
 
