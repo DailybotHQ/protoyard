@@ -6,12 +6,16 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { createPrototypeRuntime, type ProtoyardRuntime } from '../../runtime/src/index.ts';
 import { createTasksDefinition } from '../../runtime/tests/fixtures/tasks-prototype.ts';
 import { BUILTIN_THEMES, oceanTheme } from '../../themes/src/index.ts';
+import { disableFullThemeLibrary, enableFullThemeLibrary } from '../../themes/src/library/full.ts';
 import {
+  ALL_LIBRARY_THEME_IDS,
   clearLibraryThemeCache,
+  EXPANDED_LIBRARY_THEME_IDS,
+  findLibraryThemeMeta,
   getLibraryThemeMeta,
-  listThemeLibrary,
+  listFullThemeLibrary,
   loadLibraryTheme,
-  searchThemeLibrary,
+  searchFullThemeLibrary,
   THEME_LIBRARY_META,
 } from '../../themes/src/library/index.ts';
 import { type DevtoolsHandle, mountDevtools } from '../src/index.ts';
@@ -57,7 +61,7 @@ async function open(options: { gate?: Promise<void> } = {}) {
       sleep: async () => {},
       resolveTheme: async (id) => {
         await options.gate;
-        return getLibraryThemeMeta(id) ? loadLibraryTheme(id) : undefined;
+        return (await findLibraryThemeMeta(id)) ? loadLibraryTheme(id) : undefined;
       },
     }
   );
@@ -78,6 +82,14 @@ const radioNames = (group: HTMLElement) =>
     .getAllByRole('radio')
     .map((radio) => radio.getAttribute('data-theme-id'));
 
+/** The library radios once the expanded set's metadata has loaded. */
+async function libraryRadios(browser: ReturnType<typeof within>, expected: readonly string[]) {
+  await waitFor(() =>
+    expect(radioNames(browser.getByRole('radiogroup', { name: 'Theme library' }))).toEqual(expected)
+  );
+  await waitFor(() => expect(browser.queryByText(/more library themes…/)).toBeNull());
+}
+
 describe('DevTools theme browser', () => {
   it('groups the prototype’s own, built-in and custom themes, with the library collapsed', async () => {
     const { runtime, browser } = await open();
@@ -97,25 +109,51 @@ describe('DevTools theme browser', () => {
     await settle();
     expect(radioNames(browser.getByRole('radiogroup', { name: 'Custom' }))).toEqual(['my-blue']);
 
-    await fireEvent.click(
-      browser.getByRole('button', { name: `Browse ${THEME_LIBRARY_META.length} more themes` })
-    );
+    await fireEvent.click(browser.getByRole('button', { name: 'Browse 204 more themes' }));
     await settle();
-    expect(radioNames(browser.getByRole('radiogroup', { name: 'Theme library' }))).toHaveLength(
-      THEME_LIBRARY_META.length
+    // Every library theme: the catalog, then Texuli's expanded set once it loads.
+    await libraryRadios(browser, ALL_LIBRARY_THEME_IDS);
+  });
+
+  it('keeps the catalog when the expanded set cannot load', async () => {
+    disableFullThemeLibrary();
+    try {
+      const { browser } = await open();
+      await fireEvent.click(browser.getByRole('button', { name: /Browse \d+ more themes/ }));
+      await settle();
+      await libraryRadios(
+        browser,
+        THEME_LIBRARY_META.map((meta) => meta.id)
+      );
+    } finally {
+      enableFullThemeLibrary();
+    }
+  });
+
+  it('applies an expanded library theme by id', async () => {
+    const id = EXPANDED_LIBRARY_THEME_IDS[0] as string;
+    const meta = await findLibraryThemeMeta(id);
+    if (!meta) throw new Error(`${id} is missing`);
+    const { runtime, browser } = await open();
+    await fireEvent.input(browser.getByLabelText('Search themes'), { target: { value: meta.id } });
+    await settle();
+    await libraryRadios(
+      browser,
+      (await searchFullThemeLibrary(meta.id)).map((entry) => entry.id)
     );
+    await fireEvent.click(browser.getByRole('radio', { name: new RegExp(meta.name) }));
+    await waitFor(() => expect(runtime.theme.appearance().theme.value).toBe(id));
+    expect(getLibraryThemeMeta(id)).toBeUndefined();
   });
 
   it('searches every group and the library, and announces the count', async () => {
     const { browser } = await open();
     await fireEvent.input(browser.getByLabelText('Search themes'), { target: { value: 'okabe' } });
     await settle();
-    const expected = searchThemeLibrary('okabe').map((meta) => meta.id);
+    const expected = (await searchFullThemeLibrary('okabe')).map((meta) => meta.id);
     expect(expected.length).toBeGreaterThanOrEqual(2);
+    await libraryRadios(browser, expected);
     expect(browser.getByRole('status').textContent).toBe(`${expected.length} themes match`);
-    expect(radioNames(browser.getByRole('radiogroup', { name: 'Theme library' }))).toEqual(
-      expected
-    );
     expect(browser.queryByRole('radiogroup', { name: 'Built-in' })).toBeNull();
 
     await fireEvent.input(browser.getByLabelText('Search themes'), { target: { value: 'ocean' } });
@@ -127,9 +165,12 @@ describe('DevTools theme browser', () => {
     const { browser } = await open();
     await fireEvent.click(browser.getByRole('button', { name: /Browse \d+ more themes/ }));
     await settle();
+    await libraryRadios(browser, ALL_LIBRARY_THEME_IDS);
     await fireEvent.click(browser.getByRole('button', { name: /^high-contrast/ }));
     await settle();
-    const highContrast = listThemeLibrary({ collection: 'high-contrast' }).map((meta) => meta.id);
+    const highContrast = (await listFullThemeLibrary({ collection: 'high-contrast' })).map(
+      (meta) => meta.id
+    );
     expect(radioNames(browser.getByRole('radiogroup', { name: 'Theme library' }))).toEqual(
       highContrast
     );
@@ -141,7 +182,7 @@ describe('DevTools theme browser', () => {
     await selectOption('Filter by tag', 'neon');
     await settle();
     expect(radioNames(browser.getByRole('radiogroup', { name: 'Theme library' }))).toEqual(
-      listThemeLibrary({ tag: 'neon' }).map((meta) => meta.id)
+      (await listFullThemeLibrary({ tag: 'neon' })).map((meta) => meta.id)
     );
   });
 
@@ -155,6 +196,7 @@ describe('DevTools theme browser', () => {
       target: { value: 'fintech ledger' },
     });
     await settle();
+    await waitFor(() => expect(browser.queryByText(/more library themes…/)).toBeNull());
     const card = browser.getByRole('radio', { name: /Fintech Ledger/ });
     const meta = getLibraryThemeMeta('fintech-ledger');
     if (!meta) throw new Error('fintech-ledger is missing');
@@ -186,6 +228,7 @@ describe('DevTools theme browser', () => {
       target: { value: 'harbor teal' },
     });
     await settle();
+    await waitFor(() => expect(browser.queryByText(/more library themes…/)).toBeNull());
     await fireEvent.click(browser.getByRole('radio', { name: /Harbor Teal/ }));
     await waitFor(() => expect(runtime.theme.appearance().theme.value).toBe('harbor-teal'));
     expect(runtime.theme.appearance().theme.source).toBe('preference');
