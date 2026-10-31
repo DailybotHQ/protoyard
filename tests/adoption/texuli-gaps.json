@@ -428,5 +428,20 @@
     "id": "G124",
     "status": "open",
     "summary": "@texuli/tools/mcp createMcpHandler does not speak the stateless MCP 2026-07-28 revision (server/discover returns -32601), so Protoyard keeps its own MCP protocol layer"
+  },
+  {
+    "id": "G125",
+    "status": "open",
+    "summary": "@texuli/tokens has no ids-only entry for the whole library (port + expand), so a host that validates ids on its boot path mirrors the 140 expanded ids"
+  },
+  {
+    "id": "G126",
+    "status": "open",
+    "summary": "@texuli/tokens/library-expand metadata cuts descriptions at 48 characters, mid-sentence"
+  },
+  {
+    "id": "G127",
+    "status": "open",
+    "summary": "@texuli/slides stage loadDeckLibraryTheme always reaches the whole expanded theme set, even when the host passes a resolved theme"
   }
 ]
