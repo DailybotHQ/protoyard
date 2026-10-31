@@ -22,7 +22,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const FIXTURE = join(ROOT, 'tests/fixtures/views-prototype');
-const VIEWS = ['board', 'calendar', 'grid', 'map', 'editor', 'timeline'] as const;
+const VIEWS = ['board', 'calendar', 'grid', 'map', 'editor', 'timeline', 'sheet'] as const;
 type View = (typeof VIEWS)[number];
 
 /**
@@ -56,6 +56,9 @@ export const CEILINGS: Record<View, number> = {
   editor: 10_795,
   // Measured 11,973 gzip over shell on Texuli 0.4.0 (TimelineView + QueryState/empty); +5 %.
   timeline: 13_709,
+  // PLAN_008 T-sheets: a new view (@texuli/sheets: formula engine, workbook, CSV, SheetView over
+  // the data grid editing layer). Measured 49,436 gzip over shell on Texuli 0.9.0; +5 %.
+  sheet: 51_908,
 };
 
 let dir = '';
@@ -107,6 +110,14 @@ beforeAll(async () => {
     join(dir, 'node_modules/@texuli/core'),
     'dir'
   );
+  // The sheet view: @texuli/sheets and the date functions it evaluates with.
+  for (const name of ['sheets', 'date']) {
+    await symlink(
+      join(ROOT, 'node_modules/@texuli', name),
+      join(dir, 'node_modules/@texuli', name),
+      'dir'
+    );
+  }
   // Vitest runs with NODE_ENV=test; prototypes ship production builds.
   const previousEnv = process.env.NODE_ENV;
   process.env.NODE_ENV = 'production';
