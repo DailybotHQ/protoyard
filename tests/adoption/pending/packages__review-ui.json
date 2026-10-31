@@ -1,10 +1,4 @@
 {
   "unit": "packages__review-ui",
-  "entries": [
-    {
-      "file": "packages/review-ui/src/overlay/index.ts",
-      "rule": "local-motion",
-      "count": 1
-    }
-  ]
+  "entries": []
 }

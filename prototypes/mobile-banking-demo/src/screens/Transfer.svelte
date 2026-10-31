@@ -6,13 +6,13 @@ import {
   liveQuery,
   navigate,
   type RouteProps,
-  useAppearance,
   useClock,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import { Avatar, Button, EmptyState, FormField, Input, Skeleton, toast } from '@protoyard/ui';
-import { fly } from 'svelte/transition';
+import type { Attachment } from 'svelte/attachments';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { createPresenceMotion, getMotionSettings, loadMotionRuntime } from 'texuli/motion';
 import ChoiceList from '../components/ChoiceList.svelte';
 import { ACCOUNT_ICONS } from '../components/icons.ts';
 import Notice from '../components/Notice.svelte';
@@ -47,7 +47,6 @@ const STEPS: { id: Exclude<Step, 'done'>; label: string }[] = [
 
 const { db, services } = useBank();
 const clock = useClock();
-const appearance = useAppearance();
 const principal = usePrincipal();
 const shellLayout = useShellLayout();
 const pinPrimaryAction = $derived(shellLayout !== null);
@@ -93,7 +92,21 @@ const amount = $derived(parseAmount(amountText));
 const amountCents = $derived(amount === null ? 0 : Math.round(amount * 100));
 const isMember = $derived(principal.current?.role === 'member');
 const canSend = $derived(can(CAPABILITIES.transfersCreate));
-const reduced = $derived(appearance.current.reducedMotion.value);
+// Each wizard step slides in from the inline end with Texuli's motion, on the
+// --tx-motion-* tokens. The renderer's MotionProvider carries the prototype's
+// reduced-motion setting, which makes the step appear at once.
+const stepMotion = createPresenceMotion({
+  motion: () => undefined,
+  defaults: { enter: 'slide-end', duration: 'fast' },
+  settings: getMotionSettings(),
+});
+$effect(() => {
+  void loadMotionRuntime();
+});
+const enterStep: Attachment<HTMLElement> = (node) => {
+  const hold = stepMotion.enter(node);
+  return () => hold?.cancel();
+};
 const stepIndex = $derived(STEPS.findIndex((s) => s.id === step));
 
 const amountError = $derived(
@@ -253,7 +266,7 @@ $effect(() => {
     {/if}
 
     {#key step}
-      <section class="flex flex-col gap-4" in:fly={{ x: 24, duration: reduced ? 0 : 180 }}>
+      <section class="flex flex-col gap-4" {@attach enterStep}>
         {#if step === 'from'}
           <h2 class="text-lg font-semibold">Send from</h2>
           {#if accountList.length === 0}

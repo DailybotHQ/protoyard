@@ -106,7 +106,9 @@ function importGraph(entry: string): string[] {
  * Texuli 0.8.0 (PLAN_008: motion tokens and focus/forced-colors CSS): deck.html 111.27 KB and page.html/doc.html
  * 112.57 KB; raised to measured + 1 %.
  */
-const PLAYER_TOTAL_CSS_GZIP_KB = { index: 136.2, deck: 112.4, page: 113.7, doc: 113.7 } as const;
+// Texuli 0.9.0 measured index 142.85, deck 117.02, page and doc 118.30 KB
+// (token contract v2 component CSS plus @texuli/tokens/base.css, gap G110); + 2.5 %.
+const PLAYER_TOTAL_CSS_GZIP_KB = { index: 146.5, deck: 120.0, page: 121.3, doc: 121.3 } as const;
 
 /** Modules that must only ever load on demand, by manifest key. */
 const LAZY_MODULES: [string, RegExp][] = [

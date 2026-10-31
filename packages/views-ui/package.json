@@ -77,6 +77,11 @@
       "svelte": "./src/timeline/index.ts",
       "default": "./src/timeline/index.ts"
     },
+    "./sheet": {
+      "types": "./src/sheet/index.ts",
+      "svelte": "./src/sheet/index.ts",
+      "default": "./src/sheet/index.ts"
+    },
     "./tree": {
       "types": "./src/tree/index.ts",
       "svelte": "./src/tree/index.ts",
@@ -207,6 +212,11 @@
         "types": "./dist/timeline/index.d.ts",
         "svelte": "./dist/timeline/index.js",
         "default": "./dist/timeline/index.js"
+      },
+      "./sheet": {
+        "types": "./dist/sheet/index.d.ts",
+        "svelte": "./dist/sheet/index.js",
+        "default": "./dist/sheet/index.js"
       },
       "./tree": {
         "types": "./dist/tree/index.d.ts",

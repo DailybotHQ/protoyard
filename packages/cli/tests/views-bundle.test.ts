@@ -52,7 +52,8 @@ export const CEILINGS: Record<View, number> = {
   grid: 23_691,
   map: 8_470,
   // Measured 9,484 gzip over shell on Texuli 0.4.0 (MarkdownEditor on Texuli Textarea); +5 %.
-  editor: 9_958,
+  // Texuli 0.9.0 measured 10,531 (token contract v2 component CSS); + 2.5 %.
+  editor: 10_795,
   // Measured 11,973 gzip over shell on Texuli 0.4.0 (TimelineView + QueryState/empty); +5 %.
   timeline: 13_709,
 };

@@ -50,6 +50,9 @@ importers:
       '@texuli/blocks':
         specifier: 0.9.0
         version: 0.9.0(svelte@5.57.2)
+      '@texuli/canvas':
+        specifier: 0.9.0
+        version: 0.9.0(svelte@5.57.2)
       '@texuli/catalog':
         specifier: 0.9.0
         version: 0.9.0(svelte@5.57.2)
@@ -71,16 +74,28 @@ importers:
       '@texuli/deck':
         specifier: 0.9.0
         version: 0.9.0
+      '@texuli/document':
+        specifier: 0.9.0
+        version: 0.9.0
       '@texuli/drag':
         specifier: 0.9.0
         version: 0.9.0
       '@texuli/editor':
         specifier: 0.9.0
         version: 0.9.0(svelte@5.57.2)
+      '@texuli/forms':
+        specifier: 0.9.0
+        version: 0.9.0(svelte@5.57.2)
       '@texuli/media':
         specifier: 0.9.0
         version: 0.9.0(svelte@5.57.2)
+      '@texuli/pages':
+        specifier: 0.9.0
+        version: 0.9.0(svelte@5.57.2)
       '@texuli/primitives':
+        specifier: 0.9.0
+        version: 0.9.0(svelte@5.57.2)
+      '@texuli/sheets':
         specifier: 0.9.0
         version: 0.9.0(svelte@5.57.2)
       '@texuli/slides':

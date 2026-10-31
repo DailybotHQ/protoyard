@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { LoadProgress, PrototypeRuntime } from '@protoyard/core';
+import { Progress } from 'texuli/feedback';
 import { usePending } from '../bindings.svelte.ts';
 import { chromeMessages } from '../messages.ts';
 import { describeLoadProgress } from '../progress.ts';
@@ -10,7 +11,9 @@ import { describeLoadProgress } from '../progress.ts';
  * once runtime work (`runtime.pending`, or a scenario load) has run longer
  * than `delayMs`, so instant operations never flicker. Work that takes longer
  * than `announceAfterMs` is announced once through a polite live region.
- * The bar is fixed and pointer-transparent: it never shifts layout.
+ * The bar is fixed and pointer-transparent: it never shifts layout. It is
+ * Texuli's `Progress` (indeterminate while there is no fraction), so its
+ * motion and its reduced-motion still state are Texuli's.
  */
 let {
   runtime,
@@ -53,72 +56,28 @@ const message = $derived.by(() => {
 </script>
 
 {#if shown}
-  <div
+  <Progress
     class="py-pending-bar"
     data-py-pending-bar
-    role="progressbar"
-    aria-label={message}
-    aria-valuemin={fraction === null ? undefined : 0}
-    aria-valuemax={fraction === null ? undefined : 100}
-    aria-valuenow={fraction === null ? undefined : Math.round(fraction * 100)}
-  >
-    {#if fraction === null}
-      <div class="py-pending-bar__indeterminate"></div>
-    {:else}
-      <div class="py-pending-bar__value" style:width={`${Math.round(fraction * 100)}%`}></div>
-    {/if}
-  </div>
+    size="sm"
+    value={fraction === null ? null : Math.round(fraction * 100)}
+    ariaLabel={message}
+  />
 {/if}
 <p class="sr-only" aria-live="polite" aria-atomic="true" data-py-pending-status>{announce ? message : ''}</p>
 
 <style>
-  .py-pending-bar {
+  /* A slim strip across the top of the app screen: under a device's status bar when framed. */
+  :global(.py-pending-bar) {
     position: fixed;
     inset-inline: 0;
-    /* The top of the app screen: under a device's status bar when framed. */
     top: var(--tx-safe-top, 0px);
     z-index: 70;
-    height: 3px;
-    overflow: hidden;
     pointer-events: none;
-    background: color-mix(in oklab, var(--color-primary, currentColor) 18%, transparent);
+    --tx-progress-track-height-sm: 3px;
+    --tx-progress-radius: 0;
   }
-  .py-pending-bar__value {
-    height: 100%;
-    background: var(--color-primary, currentColor);
-    transition: width 200ms ease-out;
-  }
-  .py-pending-bar__indeterminate {
-    height: 100%;
-    width: 40%;
-    background: var(--color-primary, currentColor);
-    animation: py-pending-slide 1.1s ease-in-out infinite;
-  }
-  @keyframes py-pending-slide {
-    from {
-      transform: translateX(-100%);
-    }
-    to {
-      transform: translateX(250%);
-    }
-  }
-  /* Reduced motion (OS setting or the prototype toggle): a still, full-width bar. */
-  @media (prefers-reduced-motion: reduce) {
-    .py-pending-bar__indeterminate {
-      width: 100%;
-      animation: none;
-      opacity: 0.7;
-    }
-    .py-pending-bar__value {
-      transition: none;
-    }
-  }
-  :global([data-py-motion='reduce']) .py-pending-bar__indeterminate {
-    width: 100%;
-    animation: none;
-    opacity: 0.7;
-  }
-  :global([data-py-motion='reduce']) .py-pending-bar__value {
-    transition: none;
+  :global(.py-pending-bar [data-tx-progress-track]) {
+    background: color-mix(in oklab, var(--tx-primary, currentColor) 18%, transparent);
   }
 </style>

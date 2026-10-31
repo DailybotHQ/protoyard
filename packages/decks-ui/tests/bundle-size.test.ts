@@ -74,8 +74,12 @@ afterAll(async () => {
  */
 const INITIAL_JS_GZIP_CAP = 111_657;
 // Texuli 0.8.0 (motion tokens) measured 8,952 B; + 1 % (PLAN_008: motion tokens and focus/forced-colors rules, kept by Texuli).
-const INITIAL_CSS_GZIP_CAP = 9_042;
-const ALL_CSS_GZIP_CAP = 83_381;
+// Texuli 0.9.0 measured 10,153–10,225 B: token contract v2 component CSS plus
+// @texuli/tokens/base.css, which declares the system tokens it reads (Texuli
+// gap G110 asks for a tokens-only sheet); + 2.5 % of the higher run.
+const INITIAL_CSS_GZIP_CAP = 10_481;
+// Texuli 0.9.0 measured 85,945 B (contract v2 component CSS, gap G110); + 2.5 %.
+const ALL_CSS_GZIP_CAP = 88_094;
 
 function initialCssGzip(build: DeckBuild): number {
   const imported = new Set(
