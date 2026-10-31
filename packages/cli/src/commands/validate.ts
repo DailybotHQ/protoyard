@@ -8,7 +8,7 @@ import {
   type ScanFixtureFileInput,
   scanFixtureFiles,
 } from '@protoyard/scenarios';
-import { BUILTIN_THEMES, THEME_LIBRARY_META } from '@protoyard/themes';
+import { ALL_LIBRARY_THEME_IDS, BUILTIN_THEMES } from '@protoyard/themes';
 import { buildPrototype } from '../lib/build.ts';
 import { checkBlueprintDrift, SNAPSHOT_PATH } from '../lib/codegen/regenerate.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
@@ -318,11 +318,7 @@ export function checkThemes(manifest: PrototypeManifest, inspection: Inspection 
   const label = 'Theme ids';
   const own = inspection?.spec?.themes.map((t) => t.id) ?? [];
   const known = [
-    ...new Set([
-      ...own,
-      ...BUILTIN_THEMES.map((t) => t.id),
-      ...THEME_LIBRARY_META.map((m) => m.id),
-    ]),
+    ...new Set([...own, ...BUILTIN_THEMES.map((t) => t.id), ...ALL_LIBRARY_THEME_IDS]),
   ];
   const requested: { id: string; where: string }[] = [
     { id: manifest.defaultTheme, where: 'defaultTheme' },

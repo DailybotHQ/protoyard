@@ -2,7 +2,13 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrototypeManifestSchema } from '@protoyard/core';
-import { listThemeLibrary, violetTheme } from '@protoyard/themes';
+import {
+  ALL_LIBRARY_THEME_IDS,
+  BUILTIN_THEMES,
+  EXPANDED_LIBRARY_THEME_IDS,
+  listThemeLibrary,
+  violetTheme,
+} from '@protoyard/themes';
 import { afterEach, describe, expect, it } from 'vitest';
 import { addPrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
@@ -31,6 +37,75 @@ describe('protoyard theme list, show and use', () => {
       searched.json<{ data: { themes: Array<{ id: string }> } }>().data.themes.map(({ id }) => id)
     ).toContain('fintech-ledger');
     expect(listThemeLibrary().length).toBeGreaterThan(seasonalThemes.length);
+  });
+
+  it('lists every library theme by default: the built-ins, the catalog and the expanded set', async () => {
+    const result = await cli(['--json', 'theme', 'list']);
+    expect(result.code).toBe(0);
+    const data = result.json<{
+      data: { count: number; themes: Array<{ id: string; source: string }> };
+    }>().data;
+    const ids = data.themes.map(({ id }) => id);
+    expect(ids).toEqual([...BUILTIN_THEMES.map(({ id }) => id), ...ALL_LIBRARY_THEME_IDS]);
+    expect(data.count).toBe(BUILTIN_THEMES.length + 204);
+    // Search and the collection filter reach expanded themes too.
+    const expanded = EXPANDED_LIBRARY_THEME_IDS[0] as string;
+    const searched = await cli(['--json', 'theme', 'list', '--search', expanded]);
+    expect(searched.json<{ data: { themes: Array<{ id: string }> } }>().data.themes[0]?.id).toBe(
+      expanded
+    );
+    const mono = await cli(['--json', 'theme', 'list', '--collection', 'mono']);
+    const monoIds = mono
+      .json<{ data: { themes: Array<{ id: string }> } }>()
+      .data.themes.map(({ id }) => id);
+    expect(monoIds.length).toBeGreaterThan(listThemeLibrary({ collection: 'mono' }).length);
+    expect(monoIds.some((id) => EXPANDED_LIBRARY_THEME_IDS.includes(id))).toBe(true);
+  });
+
+  it('filters by mood and rejects an unknown mood', async () => {
+    const calm = await cli(['--json', 'theme', 'list', '--mood', 'calm']);
+    expect(calm.code).toBe(0);
+    const data = calm.json<{
+      data: { mood: string; themes: Array<{ id: string; source: string; mood: string[] }> };
+    }>().data;
+    expect(data.mood).toBe('calm');
+    expect(data.themes.length).toBeGreaterThan(listThemeLibrary({ mood: 'calm' }).length);
+    expect(
+      data.themes.every((theme) => theme.source === 'library' && theme.mood.includes('calm'))
+    ).toBe(true);
+    const bad = await cli(['--json', 'theme', 'list', '--mood', 'grumpy']);
+    expect(bad.code).toBe(2);
+    expect(bad.json<{ error: { code: string } }>().error.code).toBe('usage');
+  });
+
+  it('shows, exports and applies an expanded library theme', async () => {
+    const expanded = EXPANDED_LIBRARY_THEME_IDS.at(-1) as string;
+    const shown = await cli(['--json', 'theme', 'show', expanded]);
+    expect(shown.code).toBe(0);
+    expect(shown.json<{ data: { id: string; source: string } }>().data).toMatchObject({
+      id: expanded,
+      source: 'library',
+    });
+    const exported = await cli(['--json', 'theme', 'export', expanded, '--format', 'css']);
+    expect(exported.code).toBe(0);
+    expect(exported.json<{ data: { content: string } }>().data.content).toContain('--tx-primary:');
+
+    ws = createWorkspace();
+    addPrototype(ws, 'theme-expanded');
+    const applied = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'theme',
+      'use',
+      'theme-expanded',
+      expanded,
+    ]);
+    expect(applied.code).toBe(0);
+    const manifest = JSON.parse(
+      readFileSync(join(ws.root, 'prototypes/theme-expanded/protoyard.json'), 'utf8')
+    ) as Record<string, unknown>;
+    expect(manifest.defaultTheme).toBe(expanded);
   });
 
   it('shows light and dark swatches with text and UI contrast results', async () => {
