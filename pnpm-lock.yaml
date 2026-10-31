@@ -1222,6 +1222,46 @@ importers:
         specifier: workspace:*
         version: link:../../packages/scenarios
 
+  prototypes/canvas-board-demo:
+    dependencies:
+      '@lucide/svelte':
+        specifier: ^1.61.0
+        version: 1.61.0(svelte@5.57.2)
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../../packages/renderer-svelte
+      '@protoyard/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@protoyard/views':
+        specifier: workspace:*
+        version: link:../../packages/views
+      '@protoyard/views-ui':
+        specifier: workspace:*
+        version: link:../../packages/views-ui
+      '@texuli/canvas':
+        specifier: 0.9.0
+        version: 0.9.0(svelte@5.57.2)
+      dexie:
+        specifier: ^4.4.7
+        version: 4.4.7
+      svelte:
+        specifier: ^5.57.2
+        version: 5.57.2
+      texuli:
+        specifier: 0.9.0
+        version: 0.9.0(svelte@5.57.2)
+    devDependencies:
+      '@protoyard/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@protoyard/scenarios':
+        specifier: workspace:*
+        version: link:../../packages/scenarios
+
   prototypes/create-anything-deck:
     dependencies:
       '@protoyard/blocks-ui':
