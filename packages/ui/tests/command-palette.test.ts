@@ -30,15 +30,17 @@ describe('CommandPalette', () => {
   });
 
   it('announces "Searching…" while a search is pending', async () => {
-    // Why this palette keeps its own search: Texuli's CommandPalette never shows
-    // its loading status (its CommandRoot gets no onSearch; Texuli gap G88).
+    // The pending search reaches Texuli's CommandRoot as `loading`, and its
+    // CommandLoading part is the status (G88).
     let finish: (items: CommandPaletteItem[]) => void = () => {};
     const search = vi.fn(() => new Promise<CommandPaletteItem[]>((r) => (finish = r)));
     render(CommandPalette, { search, onSelect: vi.fn(), recentItems, debounceMs: 0 });
     await fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
     const input = await screen.findByRole('combobox');
     await fireEvent.input(input, { target: { value: 'acc' } });
-    expect((await screen.findByRole('status')).textContent).toContain('Searching…');
+    const status = await screen.findByRole('status');
+    expect(status.textContent).toContain('Searching…');
+    expect(status.hasAttribute('data-tx-command-loading')).toBe(true);
     await waitFor(() => expect(search).toHaveBeenCalledWith('acc'));
     expect(screen.getByRole('status').textContent).toContain('Searching…');
     finish([{ id: 'account', label: 'Account', group: 'Records' }]);

@@ -47,24 +47,3 @@ function segments(group: Element | null | undefined): HTMLInputElement[] {
 export function segmentsEmpty(group: Element | null | undefined): boolean {
   return segments(group).every((input) => input.value === '');
 }
-
-/**
- * How the `<label for={id}>` that points at a field's first segment names the
- * field group: by its id (FormField's label has one), for `aria-labelledby`,
- * else by its text without the decorative required marker, for `aria-label`.
- * The segments keep their own names (Month, Day, Year), so without this the
- * group would not carry the label at all. Texuli's Field keeps its label
- * context internal (Texuli gap G91), so the label is read from the DOM.
- */
-export function groupLabelFor(
-  node: Element | null | undefined,
-  id: string
-): { id?: string; text?: string } {
-  const label = node?.ownerDocument?.querySelector(`label[for="${CSS.escape(id)}"]`);
-  if (!label) return {};
-  if (label.id) return { id: label.id };
-  const copy = label.cloneNode(true) as Element;
-  for (const hidden of Array.from(copy.querySelectorAll('[aria-hidden="true"]'))) hidden.remove();
-  const text = copy.textContent?.trim();
-  return text ? { text } : {};
-}

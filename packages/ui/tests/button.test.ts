@@ -29,11 +29,14 @@ describe('Button', () => {
     expect(onclick).toHaveBeenCalledTimes(1);
   });
 
-  it('loading disables the button, sets aria-busy and blocks clicks', async () => {
+  it('loading marks the button aria-disabled (it keeps focus), sets aria-busy and blocks clicks', async () => {
     const onclick = vi.fn();
     render(ButtonHarness, { loading: true, onclick });
     const button = screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
+    // Texuli 0.9 (G94): a pending button is aria-disabled, never natively disabled,
+    // so a focused button keeps focus instead of dropping it to <body>.
+    expect(button.disabled).toBe(false);
+    expect(button.getAttribute('aria-disabled')).toBe('true');
     expect(button.getAttribute('aria-busy')).toBe('true');
     expect(button.querySelector('[data-tx-button-spinner]')).not.toBeNull();
     await fireEvent.click(button);
@@ -74,16 +77,18 @@ describe('Button pending feedback', () => {
     const onclick = vi.fn(() => work.promise);
     render(ButtonHarness, { onclick });
     const button = screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement;
+    button.focus();
     await fireEvent.click(button);
     expect(button.getAttribute('aria-busy')).toBe('true');
-    expect(button.disabled).toBe(true);
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    expect(document.activeElement).toBe(button);
     expect(button.querySelector('[data-tx-button-spinner]')).not.toBeNull();
     await fireEvent.click(button);
     expect(onclick).toHaveBeenCalledTimes(1);
     work.resolve();
     await settle();
     expect(button.hasAttribute('aria-busy')).toBe(false);
-    expect(button.disabled).toBe(false);
+    expect(button.hasAttribute('aria-disabled')).toBe(false);
     expect(button.querySelector('[data-tx-button-spinner]')).toBeNull();
   });
 
@@ -92,10 +97,10 @@ describe('Button pending feedback', () => {
     render(ButtonHarness, { onclick: () => work.promise.catch(() => undefined) });
     const button = screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement;
     await fireEvent.click(button);
-    expect(button.disabled).toBe(true);
+    expect(button.getAttribute('aria-disabled')).toBe('true');
     work.reject(new Error('nope'));
     await settle();
-    expect(button.disabled).toBe(false);
+    expect(button.hasAttribute('aria-disabled')).toBe(false);
   });
 
   it('keeps the label in place while loading, so the width cannot change', () => {

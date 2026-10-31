@@ -3,11 +3,10 @@ import { createFormBridge, type FormBridge } from '@texuli/core/form-bridge';
 import { tick, untrack } from 'svelte';
 import type { HTMLButtonAttributes } from 'svelte/elements';
 import { Button } from 'texuli/button';
-import { cx } from 'texuli/cx';
+import { composeHandlers, cx } from 'texuli/cx';
 import { labelClass } from 'texuli/field';
 import { Icon } from 'texuli/icons';
 import { popoverContentClass } from 'texuli/popover';
-import { composeHandlers } from '../../../lib/handlers.ts';
 import Input from '../../input/Input.svelte';
 import { EMOJI_GROUPS } from './emojis.ts';
 

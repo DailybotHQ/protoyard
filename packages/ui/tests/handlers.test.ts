@@ -12,7 +12,7 @@ describe('handler composition helpers', () => {
     expect(order).toEqual(['caller', 'own']);
 
     const taken = composeHandlers<Event>(
-      (event) => event.preventDefault(),
+      (event: Event) => event.preventDefault(),
       () => order.push('own again')
     );
     taken(new Event('click', { cancelable: true }));
@@ -22,7 +22,7 @@ describe('handler composition helpers', () => {
   it('chainHandlers always runs the own handler, and tolerates no caller', () => {
     const order: string[] = [];
     chainHandlers<Event>(
-      (event) => {
+      (event: Event) => {
         event.preventDefault();
         order.push('caller');
       },

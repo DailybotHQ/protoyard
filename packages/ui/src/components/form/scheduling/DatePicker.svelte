@@ -1,32 +1,22 @@
 <script lang="ts">
-import { CalendarDays } from '@lucide/svelte';
-import { type DateInvalidReason, DatePicker as Picker } from '@texuli/primitives/date-picker';
+import type { DateInvalidReason } from '@texuli/primitives/date-picker';
 import type { HTMLAttributes } from 'svelte/elements';
-import { dateCalendarClass, dateFieldClass } from 'texuli/date';
-import { Icon } from 'texuli/icons';
+import { DatePicker as TexuliDatePicker } from 'texuli/date';
 import { cn } from '../../../lib/cn.ts';
 import { chainHandlers, composeHandlers } from '../../../lib/handlers.ts';
 import { checkDateText, type DateInputIssue, dateInputMessage, type IsoDate } from './dates.ts';
-import {
-  groupLabelFor,
-  segmentsEmpty,
-  texuliUnavailable,
-  texuliWeekStart,
-  typedIsoText,
-} from './texuli-date.ts';
+import { segmentsEmpty, texuliUnavailable, texuliWeekStart, typedIsoText } from './texuli-date.ts';
 import type { IsoWeekday } from './weekdays.ts';
 
 /**
- * DatePicker — Texuli's date picker (`@texuli/primitives/date-picker`, styled
- * with the `texuli/date` recipes): a segmented date field (month, day, year in
- * the locale's order), a calendar button and a calendar dialog. `id` lands on
- * the first segment and `aria-describedby`/`aria-invalid` on every segment, so
- * it sits inside FormField like any input; the FormField label names the group.
- *
- * It composes the parts rather than the styled `texuli/date` `DatePicker`
- * only because that one takes no class on its bordered control, where the
- * `ui-input` hook (filled and underline input styles) must go (Texuli gap
- * G89).
+ * DatePicker — Texuli's styled `texuli/date` `DatePicker`: a segmented date
+ * field (month, day, year in the locale's order), a calendar button and a
+ * calendar dialog. `id` lands on the first segment and
+ * `aria-describedby`/`aria-invalid` on every segment, so it sits inside
+ * FormField like any input; inside a FormField (Texuli's `Field`) the Field
+ * label names the group through Texuli's label context (G91). The `ui-input`
+ * hook (filled and underline input styles) goes on the bordered control
+ * through `controlClass` (G89).
  *
  * Typed dates are checked when the field is left (blur or Enter): an
  * impossible date, one outside `min`/`max`, or one `isDateDisabled` rejects
@@ -105,15 +95,12 @@ let {
 
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
 
-const errorId = $derived(`${id}-issue`);
 /** What the field shows; it only becomes `value` once committed. */
 let draft = $state<IsoDate | null>(null);
 let issue = $state<DateInputIssue | null>(null);
 /** A refusal Texuli reported while typing, reported again when the field is left. */
 let typed = $state<{ issue: DateInputIssue; text: string } | null>(null);
 let open = $state(false);
-let control = $state<HTMLDivElement | null>(null);
-let fieldLabel = $state<{ id?: string; text?: string }>({});
 
 // An outside change (a reset, a scenario load) replaces the field and clears the issue.
 $effect(() => {
@@ -122,18 +109,10 @@ $effect(() => {
   typed = null;
 });
 
-// The `<label for={id}>` (FormField's) names the first segment; it names the group too.
-$effect(() => {
-  fieldLabel = groupLabelFor(control, id);
-});
-
-const invalid = $derived(
-  issue !== null || typed !== null || ariaInvalid === true || ariaInvalid === 'true'
-);
-const describedByAll = $derived(
-  [describedBy, issue ? errorId : null].filter(Boolean).join(' ') || undefined
-);
-const groupLabel = $derived(ariaLabel ?? fieldLabel.text ?? 'Date');
+// Texuli marks the field invalid from its `error` text or from `aria-invalid`
+// (a FormField error, G90); a refused typed date marks it before it is left.
+const invalid = $derived(typed !== null || ariaInvalid === true || ariaInvalid === 'true');
+const message = $derived(issue ? dateInputMessage(issue, { min, max }) : undefined);
 
 function set(next: IsoDate | null) {
   issue = null;
@@ -150,7 +129,7 @@ function report(found: DateInputIssue, text: string) {
 }
 
 function commit() {
-  if (segmentsEmpty(control)) {
+  if (segmentsEmpty(ref)) {
     set(null);
     return;
   }
@@ -179,66 +158,48 @@ function typedInvalid(text: string, reason: DateInvalidReason) {
 }
 </script>
 
-<div
-  bind:this={ref}
-  class={cn(dateFieldClass(), 'ui-date-picker', className)}
-  data-tx-date
-  data-invalid={invalid ? 'true' : undefined}
-  data-disabled={disabled ? 'true' : undefined}
->
-  <Picker.Root
-    bind:value={draft}
-    bind:open
-    {...locale ? { locale } : {}}
-    {...min ? { minValue: min } : {}}
-    {...max ? { maxValue: max } : {}}
-    {...isDateDisabled ? { isDateUnavailable: texuliUnavailable(isDateDisabled) } : {}}
-    {...today ? { today } : {}}
-    weekStartsOn={texuliWeekStart(weekStartsOn)}
-    {disabled}
-    labels={{
-      trigger: calendarLabel,
-      triggerWithValue: `${calendarLabel}, {date}`,
-      dialog: calendarLabel,
-    }}
-    onInvalid={typedInvalid}
-    onValueChange={(next) => {
-      if (next !== null) typed = null;
-      // A calendar pick (the dialog is open) commits at once; typing waits for blur or Enter.
-      if (open) set(next);
-    }}
-  >
-    <div bind:this={control} class="tx-date__control ui-input">
-      <Picker.Field
-        {...rest}
-        class="tx-date__field"
-        inputId={id}
-        label={groupLabel}
-        aria-labelledby={labelledBy ?? (ariaLabel ? undefined : fieldLabel.id)}
-        aria-describedby={describedByAll}
-        aria-invalid={invalid || undefined}
-        {...name ? { name } : {}}
-        {required}
-        onfocusout={chainHandlers(callerFocusOut, (event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) commit();
-        })}
-        onkeydown={composeHandlers(callerKeyDown, (event) => {
-          if (event.key === 'Enter') commit();
-          if (event.key === 'ArrowDown' && event.altKey) {
-            event.preventDefault();
-            open = true;
-          }
-        })}
-      />
-      <Picker.Trigger class="tx-date__trigger">
-        <Icon icon={CalendarDays} size="sm" aria-hidden="true" />
-      </Picker.Trigger>
-    </div>
-    <Picker.Content class="tx-date__panel">
-      <Picker.Calendar class={dateCalendarClass()} />
-    </Picker.Content>
-  </Picker.Root>
-  {#if issue}
-    <p id={errorId} class="tx-date__error">{dateInputMessage(issue, { min, max })}</p>
-  {/if}
-</div>
+<TexuliDatePicker
+  {...rest}
+  bind:ref
+  bind:value={draft}
+  bind:open
+  label={ariaLabel ?? 'Date'}
+  hideLabel
+  {id}
+  class={cn('ui-date-picker', className)}
+  controlClass="ui-input"
+  {...locale ? { locale } : {}}
+  {...min ? { minValue: min } : {}}
+  {...max ? { maxValue: max } : {}}
+  {...isDateDisabled ? { isDateUnavailable: texuliUnavailable(isDateDisabled) } : {}}
+  {...today ? { today } : {}}
+  weekStartsOn={texuliWeekStart(weekStartsOn)}
+  {disabled}
+  {required}
+  {...name ? { name } : {}}
+  {...message ? { error: message } : {}}
+  labels={{
+    trigger: calendarLabel,
+    triggerWithValue: `${calendarLabel}, {date}`,
+    dialog: calendarLabel,
+  }}
+  aria-labelledby={labelledBy}
+  aria-describedby={describedBy}
+  aria-invalid={invalid ? 'true' : undefined}
+  onInvalid={typedInvalid}
+  onValueChange={(next: IsoDate | null) => {
+    if (next !== null) typed = null;
+    // A calendar pick (the dialog is open) commits at once; typing waits for blur or Enter.
+    if (open) set(next);
+  }}
+  onfocusout={chainHandlers(callerFocusOut, (event: FocusEvent & { currentTarget: HTMLElement }) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) commit();
+  })}
+  onkeydown={composeHandlers(callerKeyDown, (event: KeyboardEvent) => {
+    if (event.key === 'Enter') commit();
+    if (event.key === 'ArrowDown' && event.altKey) {
+      event.preventDefault();
+      open = true;
+    }
+  })}
+/>

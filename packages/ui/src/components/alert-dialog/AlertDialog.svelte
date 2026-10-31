@@ -1,5 +1,5 @@
 <script lang="ts">
-import { type ComponentProps, type Snippet, untrack } from 'svelte';
+import type { ComponentProps, Snippet } from 'svelte';
 import { AlertDialog as TexuliAlertDialog } from 'texuli/dialog';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
@@ -91,25 +91,14 @@ function cancel(): void {
   onCancel?.();
 }
 
-// Texuli's AlertDialog binds `open` to its root and then skips its own
-// `onOpenChange`, so a close from inside never reaches the caller (Texuli gap
-// G87). `shown` follows the parent; a close
-// Texuli makes is reported here, and Escape (an alert never closes on an
-// outside press) counts as a cancel.
-// svelte-ignore state_referenced_locally
-let shown = $state(open);
-$effect.pre(() => {
-  shown = open;
-});
-$effect.pre(() => {
-  const next = shown;
-  untrack(() => {
-    if (next === open) return;
-    if (!next && !settled) onCancel?.();
-    settled = false;
-    open = next;
-  });
-});
+/**
+ * Texuli reports every open-state change, an inside close included (G87).
+ * Escape (an alert never closes on an outside press) counts as a cancel.
+ */
+function handleOpenChange(next: boolean): void {
+  if (!next && !settled) onCancel?.();
+  settled = false;
+}
 
 // Only the top overlay closes, and a menu open inside the alert takes Escape first.
 const handleDismiss = overlayDismissHandler({ layer, element: () => ref });
@@ -129,7 +118,8 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
 <TexuliAlertDialog
   {...rest}
   bind:ref
-  bind:open={shown}
+  bind:open
+  onOpenChange={handleOpenChange}
   {title}
   {description}
   {confirmLabel}
