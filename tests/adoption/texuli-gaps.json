@@ -413,5 +413,10 @@
     "id": "G121",
     "status": "open",
     "summary": "@texuli/forms url fields accept https only, with no protocols option"
+  },
+  {
+    "id": "G122",
+    "status": "open",
+    "summary": "@texuli/data/dashboard/engine nudgeItem refuses a keyboard step that moves a widget past a wider widget below it, though moveItem can place it there"
   }
 ]

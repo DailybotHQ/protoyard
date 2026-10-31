@@ -160,7 +160,7 @@ describe('DashboardGrid (Texuli dashboard)', () => {
 
   // Texuli gap (the lead assigns its id): `nudgeItem` (the keyboard step) refuses to move
   // a widget down past a wider widget below it ("edge"), though `moveItem` places it there
-  // and Protoyard's own grid swapped them. Flip to `it` when Texuli ships the fix.
+  // and Protoyard's own grid swapped them (Texuli gap G122). Flip to `it` when Texuli ships the fix.
   it.fails('a widget moves down past a wider widget below it with the keyboard', async () => {
     const { nudgeItem } = await import('@texuli/data/dashboard/engine');
     const layout = LAYOUT.map(({ id, x, y, w: width, h }) => ({ id, x, y, w: width, h }));
