@@ -19,9 +19,11 @@ files, settings, states and an app command palette. The engines live in
   `@texuli/data/filter-builder` while retaining Protoyard's nullable value
   contract. Texuli's `@texuli/editor/markdown` codec now reads host inline
   extensions in the `@{id|label}` form `@protoyard/views/editor` stores
-  mentions in (G48, pinned by `tests/editor-texuli-codec.test.ts`). The
-  editor still parses with `@protoyard/views/editor`, because Texuli's codec
-  does not read the `\@` escape that stored text uses for a literal `@`.
+  mentions in (G48), and reads the `\@` escape stored text uses for a literal
+  `@` (G100, Texuli 0.10.0); both are pinned by
+  `tests/editor-texuli-codec.test.ts`. The editor still parses with
+  `@protoyard/views/editor`, because its document model and source commands
+  are a public Protoyard API.
   `NotificationCenter` renders Texuli's `@texuli/data/activity/inbox` with
   `allowMarkUnread={false}` (G50) and keeps recipient-scoped rows and the
   mark-read service callbacks.
