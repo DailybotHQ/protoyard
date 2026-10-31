@@ -328,5 +328,10 @@
     "id": "G104",
     "status": "open",
     "summary": "@texuli/data/calendar EventButton accessible name puts the date between title and time, breaking label-in-name (WCAG 2.5.3) for timed events"
+  },
+  {
+    "id": "G105",
+    "status": "open",
+    "summary": "@texuli/slides/export DeckPrintView and preloadDeckPrintView dynamically import the stage default renderer tables even with defaultRenderers: false, so stage-core hosts emit about 300 KB of never-loaded chunks"
   }
 ]
