@@ -1,156 +1,87 @@
 import { cleanup, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import MessageList from '../src/MessageList.svelte';
-import {
-  captureScrollAnchor,
-  loadScrollAnchor,
-  restoreScrollAnchor,
-  saveScrollAnchor,
-} from '../src/scroll-anchor.ts';
+import { loadReadingAnchor, readingAnchorKey, saveReadingAnchor } from '../src/scroll-anchor.ts';
+import type { AssistantMessage } from '../src/types.ts';
 
 afterEach(() => {
   cleanup();
   sessionStorage.clear();
+  vi.useRealTimers();
 });
 
-/** A viewport whose messages sit at fixed offsets (jsdom has no layout). */
-function viewportWith(rows: { id: string; top: number; height: number }[], scrollTop = 0) {
-  const viewport = document.createElement('div');
-  viewport.scrollTop = scrollTop;
-  const viewportTop = 100;
-  viewport.getBoundingClientRect = () => ({ top: viewportTop }) as DOMRect;
-  for (const row of rows) {
-    const element = document.createElement('article');
-    element.setAttribute('data-py-message-id', row.id);
-    element.getBoundingClientRect = () => {
-      const top = viewportTop - viewport.scrollTop + row.top;
-      return { top, bottom: top + row.height } as DOMRect;
+const messages: AssistantMessage[] = [
+  { id: 'u1', role: 'user' as const, content: 'Hi', createdAt: '2026-10-17T12:00:00.000Z' },
+  { id: 'a1', role: 'assistant' as const, content: 'Hello', createdAt: '2026-10-17T12:00:01.000Z' },
+];
+
+/** jsdom has no layout: rows sit 300 px apart in a 400 px tall, scrolled log. */
+function layOut(log: HTMLElement) {
+  Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 2000 });
+  Object.defineProperty(log, 'clientHeight', { configurable: true, value: 400 });
+  log.getBoundingClientRect = () => ({ top: 100 }) as DOMRect;
+  for (const [index, row] of [
+    ...log.querySelectorAll<HTMLElement>('[data-message-id]'),
+  ].entries()) {
+    row.getBoundingClientRect = () => {
+      const top = 100 - log.scrollTop + index * 300;
+      return { top, bottom: top + 300 } as DOMRect;
     };
-    viewport.append(element);
   }
-  return viewport;
 }
 
-describe('conversation scroll anchor', () => {
-  it('captures the first message still in view and its offset', () => {
-    const viewport = viewportWith(
-      [
-        { id: 'one', top: 0, height: 40 },
-        { id: 'two', top: 40, height: 50 },
-        { id: 'three', top: 90, height: 60 },
-      ],
-      145
-    );
-    expect(captureScrollAnchor(viewport)).toEqual({
-      messageId: 'three',
-      offset: 55,
-      scrollTop: 145,
-    });
-  });
-
-  it('restores against the rendered position after earlier messages grew', () => {
-    const rows = [
-      { id: 'one', top: 0, height: 75 },
-      { id: 'two', top: 75, height: 80 },
-      { id: 'three', top: 155, height: 60 },
-    ];
-    const viewport = viewportWith(rows);
-    expect(restoreScrollAnchor(viewport, { messageId: 'three', offset: 55 })).toBe(true);
-    expect(viewport.scrollTop).toBe(210);
-  });
-
-  it('leaves the position alone when the anchored message is not rendered', () => {
-    const viewport = viewportWith([{ id: 'replacement', top: 0, height: 40 }], 30);
-    expect(restoreScrollAnchor(viewport, { messageId: 'removed', offset: 20 })).toBe(false);
-    expect(viewport.scrollTop).toBe(30);
-  });
-
-  it('a message outside the virtual window moves to the saved raw position first', () => {
-    const viewport = viewportWith([{ id: 'latest', top: 4000, height: 40 }], 3900);
-    const anchor = { messageId: 'older', offset: 10, scrollTop: 1200 };
-    expect(restoreScrollAnchor(viewport, anchor)).toBe(false);
-    expect(viewport.scrollTop).toBe(1200);
-  });
-
-  it('round-trips through sessionStorage and ignores malformed state', () => {
-    saveScrollAnchor('k', { messageId: 'two', offset: 12, scrollTop: 400 });
-    expect(loadScrollAnchor('k')).toEqual({ messageId: 'two', offset: 12, scrollTop: 400 });
-    saveScrollAnchor('old', { messageId: 'two', offset: 12 });
-    expect(loadScrollAnchor('old')).toEqual({ messageId: 'two', offset: 12 });
+describe('conversation reading position (Texuli anchor, G71)', () => {
+  it('round-trips through sessionStorage, drops positions at the latest message and malformed state', () => {
+    saveReadingAnchor('k', { messageId: 'two', offset: -12, atLatest: false });
+    expect(loadReadingAnchor('k')).toEqual({ messageId: 'two', offset: -12, atLatest: false });
+    saveReadingAnchor('k', { messageId: 'two', offset: 0, atLatest: true });
+    expect(loadReadingAnchor('k')).toBeNull();
     sessionStorage.setItem('bad', '{"messageId":3}');
-    expect(loadScrollAnchor('bad')).toBeNull();
+    expect(loadReadingAnchor('bad')).toBeNull();
     sessionStorage.setItem('broken', '{');
-    expect(loadScrollAnchor('broken')).toBeNull();
+    expect(loadReadingAnchor('broken')).toBeNull();
   });
 
-  it('MessageList saves the reading position per conversation and clears it at the bottom', async () => {
-    const messages = [
-      { id: 'u1', role: 'user' as const, content: 'Hi', createdAt: '2026-10-17T12:00:00.000Z' },
-      {
-        id: 'a1',
-        role: 'assistant' as const,
-        content: 'Hello',
-        createdAt: '2026-10-17T12:00:01.000Z',
-      },
-    ];
+  it('MessageList stores the reader position per conversation and clears it at the bottom', async () => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
     render(MessageList, { messages, conversationId: 'c9' });
     const log = screen.getByRole('log', { name: 'Conversation messages' });
-    expect(log.querySelectorAll('[data-py-message-id]').length).toBe(2);
-    Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 2000 });
-    Object.defineProperty(log, 'clientHeight', { configurable: true, value: 400 });
-    log.scrollTop = 300;
+    layOut(log);
+    log.scrollTop = 340;
     log.dispatchEvent(new Event('scroll'));
-    expect(loadScrollAnchor('protoyard:ai-ui:scroll:c9')?.messageId).toBeTypeOf('string');
+    vi.advanceTimersToNextFrame();
+    // a1 crosses the top edge: its top is 40 px above the view.
+    expect(loadReadingAnchor(readingAnchorKey('c9'))).toEqual({
+      messageId: 'a1',
+      offset: -40,
+      atLatest: false,
+    });
     log.scrollTop = 1600;
     log.dispatchEvent(new Event('scroll'));
-    expect(loadScrollAnchor('protoyard:ai-ui:scroll:c9')).toBeNull();
+    vi.advanceTimersToNextFrame();
+    expect(loadReadingAnchor(readingAnchorKey('c9'))).toBeNull();
   });
 
-  it('a snap to the bottom during the restore keeps the anchor and is undone; the reader then takes over', async () => {
-    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame'] });
-    try {
-      const key = 'protoyard:ai-ui:scroll:c7';
-      saveScrollAnchor(key, { messageId: 'u1', offset: 40, scrollTop: 40 });
-      const messages = [
-        { id: 'u1', role: 'user' as const, content: 'Hi', createdAt: '2026-10-17T12:00:00.000Z' },
-        {
-          id: 'a1',
-          role: 'assistant' as const,
-          content: 'Hello',
-          createdAt: '2026-10-17T12:00:01.000Z',
-        },
-      ];
-      render(MessageList, { messages, conversationId: 'c7' });
-      const log = screen.getByRole('log', { name: 'Conversation messages' });
-      Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 2000 });
-      Object.defineProperty(log, 'clientHeight', { configurable: true, value: 400 });
-      // jsdom has no layout: rows sit at fixed offsets in the scrolled log.
-      log.getBoundingClientRect = () => ({ top: 100 }) as DOMRect;
-      for (const [index, row] of [
-        ...log.querySelectorAll<HTMLElement>('[data-py-message-id]'),
-      ].entries()) {
-        row.getBoundingClientRect = () => {
-          const top = 100 - log.scrollTop + index * 300;
-          return { top, bottom: top + 300 } as DOMRect;
-        };
-      }
-      // Two frames to the first restore (after Texuli's own first stick).
-      vi.advanceTimersToNextFrame();
-      vi.advanceTimersToNextFrame();
-      expect(log.scrollTop).toBe(40);
-      // Late content resizes and Texuli snaps to the bottom before the reader did anything.
-      log.scrollTop = 1600;
-      log.dispatchEvent(new Event('scroll'));
-      expect(loadScrollAnchor(key)?.messageId, 'the restore never clears the anchor').toBe('u1');
-      vi.advanceTimersToNextFrame();
-      expect(log.scrollTop, 'the next frame puts the reader back').toBe(40);
-      // The reader scrolls: their position is remembered again (the bottom clears the anchor).
-      log.dispatchEvent(new Event('wheel'));
-      log.scrollTop = 1600;
-      log.dispatchEvent(new Event('scroll'));
-      expect(loadScrollAnchor(key)).toBeNull();
-    } finally {
-      vi.useRealTimers();
-    }
+  it('reopening a conversation hands its saved anchor to Texuli, which scrolls back to it', async () => {
+    saveReadingAnchor(readingAnchorKey('c7'), { messageId: 'a1', offset: -40, atLatest: false });
+    const view = render(MessageList, { messages, conversationId: 'c7' });
+    const log = screen.getByRole('log', { name: 'Conversation messages' });
+    layOut(log);
+    // Re-render with a fresh messages array: Texuli restores a pending anchor once rows exist.
+    await view.rerender({ messages: [...messages], conversationId: 'c7' });
+    await vi.waitFor(() => expect(log.scrollTop).toBe(340));
+  });
+
+  it("day separators are Texuli's own full-width rows, outside the avatar row (G70)", () => {
+    render(MessageList, {
+      messages: messages.map((m, i) =>
+        i === 0 ? { ...m, createdAt: '2026-10-16T12:00:00.000Z' } : m
+      ),
+      conversationId: 'c3',
+    });
+    const separators = document.querySelectorAll('[role="separator"].tx-chat-message-list__day');
+    expect(separators.length).toBe(2);
+    for (const separator of separators)
+      expect(separator.closest('.tx-chat-message-group__row')).toBeNull();
   });
 });

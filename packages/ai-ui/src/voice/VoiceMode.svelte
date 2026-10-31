@@ -226,4 +226,5 @@ onDestroy(() => {
   .voice-orb.interrupted { color: var(--color-destructive); box-shadow: none; }
   @keyframes voice-wave { to { transform: scaleY(1.8); } }
   @media (prefers-reduced-motion: reduce) { .voice-orb span { animation: none !important; } }
+  :global([data-py-motion='reduce']) .voice-orb span { animation: none !important; }
 </style>
