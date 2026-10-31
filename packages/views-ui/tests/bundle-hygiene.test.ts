@@ -22,6 +22,7 @@ const VIEWS = [
   'activity',
   'board',
   'calendar',
+  'canvas',
   'commands',
   'editor',
   'files',

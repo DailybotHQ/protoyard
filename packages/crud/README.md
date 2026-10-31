@@ -297,6 +297,25 @@ import { TimelineScreen } from '@protoyard/crud/screens/timeline';
 - Prototypes using the screen import `@protoyard/views-ui/styles.css` and add its source path with
   `@source` so Tailwind sees the view classes.
 
+## Canvas screen (`@protoyard/crud/screens/canvas`)
+
+A blueprint `canvas` screen (`entity`, `field`: a `json` field) gives each record of the entity
+one infinite canvas, with `CanvasView` from `@protoyard/views-ui/canvas`, in its own lazy entry:
+
+```svelte
+<script lang="ts">
+import { CanvasScreen } from '@protoyard/crud/screens/canvas';
+</script>
+
+<CanvasScreen {runtime} {blueprint} {services} screen={canvasScreen} />
+```
+
+- A picker chooses the record (by its title field); an empty field opens as a blank canvas.
+- Every change saves the field through the entity's update service (permission, schema and
+  transaction, like any other edit). A role without `update` sees the canvas read-only.
+- A stored value that is not a valid canvas is never repaired silently: the screen says so and
+  offers the owner "Start over with a blank canvas".
+
 ## Sheet screen (`@protoyard/crud/screens/sheet`)
 
 A blueprint `sheet` screen (`entity`, optional `columns` and `totals`) shows the entity's records

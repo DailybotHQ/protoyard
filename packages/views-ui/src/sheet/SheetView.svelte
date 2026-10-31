@@ -60,6 +60,8 @@ let shownJson = '';
 let invalid = $state<string | null>(null);
 let importing = $state(false);
 let importError = $state<string | null>(null);
+/** Bumped after each pick: the upload zone starts empty again, so another file can be chosen. */
+let attempt = $state(0);
 
 $effect.pre(() => {
   const stored = query.current;
@@ -161,13 +163,18 @@ async function importCsv(files: File[]): Promise<void> {
             {/if}
           </div>
           {#if editable && importing}
-            <FileUpload
-              variant="compact"
-              accept=".csv,text/csv"
-              maxFiles={1}
-              labels={{ label: 'Import CSV', description: 'The file becomes a new sheet. Formulas in it stay text.' }}
-              onFilesAdd={(files) => void importCsv(files)}
-            />
+            {#key attempt}
+              <FileUpload
+                variant="compact"
+                accept=".csv,text/csv"
+                maxFiles={1}
+                labels={{ label: 'Import CSV', description: 'The file becomes a new sheet. Formulas in it stay text.' }}
+                onFilesAdd={(picked) => {
+                  attempt += 1;
+                  void importCsv(picked);
+                }}
+              />
+            {/key}
             {#if importError}<p role="alert" class="text-sm text-destructive">{importError}</p>{/if}
           {/if}
         {/if}

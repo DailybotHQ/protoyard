@@ -64,7 +64,7 @@ view stays its own chunk and adds 0 KB to a prototype's initial JS:
 // src/screens/Board.svelte imports from '@protoyard/views-ui/board'
 ```
 
-Subpaths: `./board`, `./calendar`, `./timeline`, `./sheet`, `./grid`, `./tree`, `./map`,
+Subpaths: `./board`, `./calendar`, `./timeline`, `./sheet`, `./canvas`, `./grid`, `./tree`, `./map`,
 `./editor`, `./activity`, `./notifications`, `./files`, `./settings`,
 `./states`, `./commands`, `./scenarios`, `./virtual-list`, `./player.css`,
 `./blocks.css` and `./styles.css`. Views are never re-exported from
@@ -585,6 +585,37 @@ timeline is read-only.
 
 ```bash
 pnpm vitest run packages/views-ui/tests/timeline.test.ts
+```
+
+## Canvas (`@protoyard/views-ui/canvas`)
+
+`CanvasView` is a thin host adapter over `@texuli/canvas/editor`: an infinite canvas of shapes,
+text, sticky notes, frames and connectors with snapping and guides, a JSON clipboard, undo, a
+minimap and a shape tree for screen readers. The surface is one `role="application"`: Tab moves
+between shapes in reading order, arrow keys move them, Enter edits text.
+
+```svelte
+<CanvasView query={board} onChange={(canvas) => services.boards.saveCanvas(id, canvas)} />
+```
+
+- `query` is a liveQuery of one stored canvas (Texuli's `CanvasDocument` JSON). It is untrusted:
+  `validateCanvas` checks it first (closed shapes and palette, limits; text paints as SVG text,
+  never markup), and an invalid one shows an alert instead of the editor.
+- `onChange` is the service that persists every change (`runService`); a refused save (`false`
+  or a throw) puts the stored canvas back. Without it the canvas is read-only. A change that
+  comes back unchanged through the query keeps the editor's canvas, so undo survives.
+- `files` (default on): "Download SVG" exports the canvas with escaped text; "Import JSON"
+  (editable only) replaces the canvas with a file that passes `loadUntrustedCanvas`.
+- `resolveImage(ref)` turns an image shape's ref into a URL, which still passes Texuli's URL policy.
+- Also exported: `validateCanvas`, `loadUntrustedCanvas`, `createCanvas`, `CANVAS_LIMITS` and
+  `canvasToSvg`.
+- Scenario data: `generateCanvasBoard(ctx, { level })` from `@protoyard/views/scenarios` (a
+  fictional planning board: `empty`, `typical`, `dense` with 1,500 notes, or `edge` with nested
+  frames, a rotated and a locked note and free and frame-to-frame connectors), and
+  `viewsFragments.canvas(level)`.
+
+```bash
+pnpm vitest run packages/views-ui/tests/canvas.test.ts
 ```
 
 ## Sheet (`@protoyard/views-ui/sheet`)

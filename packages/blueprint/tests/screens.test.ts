@@ -173,9 +173,9 @@ describe('blueprint screens', () => {
   it('parses one screen of every kind and applies defaults', () => {
     const bp = parseBlueprint(fixture());
     // Every kind but map (its geoField needs the `geo` field kind, T-gen-blueprint-geo-field)
-    // and sheet (appended by the "sheet screens" tests, so other screens keep their index).
+    // and sheet and canvas (appended by their own tests, so other screens keep their index).
     expect(bp.screens.map((s) => s.type).sort()).toEqual(
-      SCREEN_TYPES.filter((type) => type !== 'map' && type !== 'sheet').sort()
+      SCREEN_TYPES.filter((type) => type !== 'map' && type !== 'sheet' && type !== 'canvas').sort()
     );
     const byType = Object.fromEntries(bp.screens.map((s) => [s.type, s])) as {
       [K in BlueprintScreen['type']]: Extract<BlueprintScreen, { type: K }>;
@@ -257,6 +257,7 @@ describe('screenPath', () => {
     [{ type: 'map', entity: 'project' }, '/projects/map'],
     [{ type: 'analytics', entity: 'project' }, '/projects/analytics'],
     [{ type: 'sheet', entity: 'project' }, '/projects/sheet'],
+    [{ type: 'canvas', entity: 'project' }, '/projects/canvas'],
     [{ type: 'dashboard' }, '/dashboard'],
     [{ type: 'settings' }, '/settings'],
     [{ type: 'board', entity: 'project', path: '/pipeline' }, '/pipeline'],
@@ -629,6 +630,20 @@ describe('sheet screens', () => {
     bp.screens.push(input);
     const parsed = parseBlueprint(bp as never).screens.find((s) => s.type === 'sheet');
     expect(parsed?.type === 'sheet' && parsed.columns).toBeUndefined();
+  });
+});
+
+describe('canvas screens', () => {
+  it("stores each record's canvas in a json field of the entity", () => {
+    expect(
+      issuesAfter((bp) => bp.screens.push({ type: 'canvas', entity: 'project', field: 'location' }))
+    ).toEqual([]);
+    expect(
+      issuesAfter((bp) => bp.screens.push({ type: 'canvas', entity: 'project', field: 'title' }))
+    ).toEqual(['screens.9.field: field "title" must be a json field of "project"']);
+    expect(
+      issuesAfter((bp) => bp.screens.push({ type: 'canvas', entity: 'project', field: 'ghost' }))
+    ).toEqual(['screens.9.field: unknown field "ghost" on "project"']);
   });
 });
 

@@ -22,7 +22,16 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const FIXTURE = join(ROOT, 'tests/fixtures/views-prototype');
-const VIEWS = ['board', 'calendar', 'grid', 'map', 'editor', 'timeline', 'sheet'] as const;
+const VIEWS = [
+  'board',
+  'calendar',
+  'grid',
+  'map',
+  'editor',
+  'timeline',
+  'sheet',
+  'canvas',
+] as const;
 type View = (typeof VIEWS)[number];
 
 /**
@@ -59,6 +68,9 @@ export const CEILINGS: Record<View, number> = {
   // PLAN_008 T-sheets: a new view (@texuli/sheets: formula engine, workbook, CSV, SheetView over
   // the data grid editing layer). Measured 49,436 gzip over shell on Texuli 0.9.0; +5 %.
   sheet: 51_908,
+  // PLAN_008 T-canvas: a new view (@texuli/canvas editor: shapes, connectors, frames, snapping,
+  // clipboard, minimap, shape tree; SVG export). Measured 50,488 gzip over shell on Texuli 0.9.0; +5 %.
+  canvas: 53_013,
 };
 
 let dir = '';
@@ -110,8 +122,9 @@ beforeAll(async () => {
     join(dir, 'node_modules/@texuli/core'),
     'dir'
   );
-  // The sheet view: @texuli/sheets and the date functions it evaluates with.
-  for (const name of ['sheets', 'date']) {
+  // The sheet view (@texuli/sheets, the date functions it evaluates with) and the canvas view
+  // (@texuli/canvas and the packages it builds on).
+  for (const name of ['sheets', 'date', 'canvas', 'deck', 'document', 'drag']) {
     await symlink(
       join(ROOT, 'node_modules/@texuli', name),
       join(dir, 'node_modules/@texuli', name),
