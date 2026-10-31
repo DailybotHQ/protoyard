@@ -53,6 +53,17 @@ afterAll(async () => {
  * while its lazy migration chunk loads (the stage then validates that deck
  * again: Texuli takes no prepared deck).
  *
+ * Re-measured 2026-10-30 (PLAN_008 T-decks-latest, npm @texuli/slides 0.8.2):
+ * DeckApp on `DeckStageCore` (G72) with a prepared deck (`prepareDeckV2`, G83),
+ * the debug button as a stage host tool (G82) and the print view preloaded on
+ * idle (G81). Initial JS 107,246 B gzip (109,406 B before the task), first-screen
+ * CSS 8,914 B (8,952 B), all emitted CSS 82,210 B (82,248 B). The caps stay.
+ * All emitted CSS barely moves: the stage core no longer reaches the default
+ * tables, but `@texuli/slides/export` (the print view and its preload) still
+ * imports `stage/defaults.js` dynamically even with `defaultRenderers: false`,
+ * so the build still emits their lazy chunks: about 27 KB of CSS and 275 KB of
+ * JS gzip a Protoyard deck never loads (reported as a Texuli gap).
+ *
  * Note for the all-CSS cap: most of it (all CSS was 23,663 B before the stage)
  * is lazy stylesheets of the stage's default component registry
  * (`@texuli/player` painters, data views, workflow editor) that DeckApp never

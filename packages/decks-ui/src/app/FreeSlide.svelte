@@ -7,7 +7,7 @@ import {
   type DeckSlideRendererProps,
   deckSlideSteps,
   getDeckStepContext,
-} from '@texuli/slides/stage';
+} from '@texuli/slides/stage-core';
 import { getDeckHostContext } from './context.ts';
 import FreeBlock from './FreeBlock.svelte';
 import { fitContent } from './fit.ts';

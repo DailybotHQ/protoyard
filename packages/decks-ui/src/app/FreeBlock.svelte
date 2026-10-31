@@ -2,7 +2,7 @@
 import type { Block } from '@protoyard/blocks';
 import { BlockRenderer, getBlockHost, setBlockHost } from '@protoyard/blocks-ui';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '@texuli/deck/engine';
-import type { DeckStepContext } from '@texuli/slides/stage';
+import type { DeckStepContext } from '@texuli/slides/stage-core';
 import { containsDeckControl } from './interactive.ts';
 
 /**

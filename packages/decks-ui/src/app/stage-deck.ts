@@ -1,5 +1,8 @@
+import { toTexuliDeck } from '@protoyard/decks';
 import type { Deck, FreeSlide } from '@protoyard/decks/schema';
 import { deckThemeKey } from '@protoyard/decks/style/key';
+import { type PreparedDeck, prepareDeckV2 } from '@texuli/slides/stage-core';
+import { validateProtoyardBlock } from './renderers.ts';
 
 /**
  * The deck DeckApp hands the `@texuli/slides` stage.
@@ -57,4 +60,15 @@ export function stageDeck(deck: Deck): StageDeck {
     input: { ...deck, style: { ...style, theme: stageThemeKey(deck.style) }, slides },
     freeSlides,
   };
+}
+
+/**
+ * Migrate a stage input (`stageDeck(deck).input`) to the deck model and validate it
+ * once with Protoyard's block check (`prepareDeckV2`, Texuli G83). An `ok` result is a
+ * prepared deck: at the `developer` tier the stage paints it on its first render
+ * without migrating or validating it again, and loads no validation chunk for it.
+ * Never throws: a deck that does not validate comes back with its issues.
+ */
+export function prepareStageDeck(input: Record<string, unknown>): PreparedDeck {
+  return prepareDeckV2(toTexuliDeck(input), { validateBlock: validateProtoyardBlock });
 }

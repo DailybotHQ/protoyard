@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -42,10 +42,22 @@ describe('decks-ui entry hygiene', () => {
     expect(app).not.toMatch(/from\s*['"]\.\.\/(?:studio|debug)\//);
     expect(app).not.toMatch(/from\s*['"]@protoyard\/decks-ui\/(?:studio|debug)['"]/);
     const deckApp = readFileSync(join(SRC, 'app/DeckApp.svelte'), 'utf8');
-    expect(deckApp).toContain("from '@texuli/slides/stage'");
+    // The stage core: no reference to the stage's default renderer tables (Texuli G72).
+    expect(deckApp).toContain("from '@texuli/slides/stage-core'");
     // The debug panel and the print page load on first use.
     expect(deckApp).toContain("import('../debug/DeckDebugPanel.svelte')");
     expect(deckApp).toContain("import('@texuli/slides/export')");
+  });
+
+  it('imports the @texuli/slides stage only through its core', () => {
+    const sources = readdirSync(SRC, { recursive: true, encoding: 'utf8' }).filter((file) =>
+      /\.(?:ts|svelte)$/.test(file)
+    );
+    expect(sources.length).toBeGreaterThan(10);
+    const full = sources.filter((file) =>
+      /from\s*['"]@texuli\/slides\/stage['"]/.test(readFileSync(join(SRC, file), 'utf8'))
+    );
+    expect(full).toEqual([]);
   });
 
   it('keeps heavy app packages out of the static deck app graph', () => {

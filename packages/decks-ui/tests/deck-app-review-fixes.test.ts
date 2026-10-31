@@ -7,7 +7,7 @@ import { stageDeck, stageThemeKey, themeKeyOf } from '../src/app/stage-deck.ts';
 /**
  * DeckApp behaviors fixed after the PLAN_007 Final Review (FR-review-2): the
  * font pair reaches the stage's theme key, the print page shows its loading
- * state, the debug chrome keeps the progress bar on the slide viewport, and
+ * state, the debug tool joins the stage toolbar (its host tools) and
  * the D key follows the `debug` prop after mount.
  */
 class ResizeObserverMock {
@@ -70,8 +70,8 @@ describe('the print page (W15)', () => {
   });
 });
 
-describe('the debug chrome (I2, I3)', () => {
-  it('keeps the progress bar on the slide viewport, where the stage paints it', async () => {
+describe('the debug tool (I2, I3, G82)', () => {
+  it('joins the stage toolbar as a host tool and leaves the progress bar to the stage', async () => {
     const view = render(DeckApp, {
       props: { deck: fixtureDeck({ aspect: '16:9', progress: 'top' }), debug: 'on' },
     });
@@ -81,11 +81,23 @@ describe('the debug chrome (I2, I3)', () => {
     const bar = view.container.querySelector('[data-tx-deck-progress]') as HTMLElement;
     expect(bar.getAttribute('data-tx-deck-progress')).toBe('top');
     expect(bar.closest('.tx-deck-stage__viewport')).not.toBeNull();
-    expect(bar.closest('.deck-app__chrome')).toBeNull();
-    // The debug button stays in the toolbar row.
-    expect(
-      screen.getByRole('button', { name: 'Debug for agents' }).closest('.deck-app__chrome')
-    ).not.toBeNull();
+    // The button is the last group of the stage's own toolbar, after its tools.
+    const button = screen.getByRole('button', { name: 'Debug for agents' });
+    const group = button.closest('[data-tx-deck-host-tools]');
+    expect(group).not.toBeNull();
+    expect(group?.getAttribute('role')).toBe('group');
+    const toolbar = view.container.querySelector('.tx-deck-stage__toolbar');
+    expect(toolbar?.contains(button)).toBe(true);
+    expect(toolbar?.querySelector('[data-tx-deck-tool="next"]')).not.toBeNull();
+  });
+
+  it('adds no host tools group when the panel is off', async () => {
+    const view = render(DeckApp, { props: { deck: fixtureDeck(), debug: 'off' } });
+    await waitFor(() =>
+      expect(view.container.querySelector('[data-tx-deck-tool="next"]')).not.toBeNull()
+    );
+    expect(view.container.querySelector('[data-tx-deck-host-tools]')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Debug for agents' })).toBeNull();
   });
 
   it('D opens the panel when debug turns on after mount', async () => {
