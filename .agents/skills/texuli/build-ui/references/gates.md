@@ -56,13 +56,17 @@ TEXULI_E2E_PORT=<port> pnpm visual:update -g <example-id>
 `-g` is a substring match: an id that prefixes other ids rebaselines them
 too, so check `git status` and keep only your own PNGs.
 
-## MCP catalog (local stdio)
+## Blueprint gate (CLI or MCP)
 
 ```bash
-pnpm vitest run packages/tools/tests/mcp.test.ts
+npx texuli blueprint validate --file <draft.json>
 ```
 
-Tool **`catalog`**: query component metadata offline. No network.
+The same check is the `blueprint.validate { "draft": {}, "tier": "untrusted" }`
+MCP tool on `npx -y @texuli/mcp`. It prints `valid`, `status` and
+diagnostics with the catalog's codes; iterate until `valid` is true. No
+network. In a Texuli checkout, `pnpm vitest run packages/tools/tests/ops.test.ts`
+covers it.
 
 ## Perf
 

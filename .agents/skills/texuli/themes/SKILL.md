@@ -1,7 +1,7 @@
 ---
 name: texuli-themes
 description: Pick, generate, apply and AA-check Texuli themes offline — library search, seed/mood/image generation, light dark high-contrast and system modes, CLI and MCP. No network; WCAG 2.x AA only (not APCA).
-version: "0.2.3"
+version: "0.3.4"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
@@ -46,7 +46,7 @@ References: [`references/`](references/).
 | Apply mode (light / dark / high-contrast / system) | **C** |
 | Run AA gate on a theme or the library | **D** |
 | Wire CSS + no-flash in an app (`init` / `theme apply`) | **E** |
-| MCP theme tool | **F** |
+| MCP theme tools | **F** |
 
 ## Rules
 
@@ -247,27 +247,27 @@ developer already approved writes. Never invent deploy URLs.
 
 ---
 
-## Stage F — MCP theme tool
+## Stage F — MCP theme tools
 
-**Server:** `packages/tools/src/mcp/server.ts` (stdio MCP; read-only theme tool)
+**Server:** `npx -y @texuli/mcp` (stdio, every operation; new in `0.9.0`),
+or the remote server for the edge operations
+([`../router/hosts.md`](../router/hosts.md#mcp)). Read-only.
 
-Tool name: **`theme`**
+| Tool | Arguments | Returns |
+| --- | --- | --- |
+| `theme.search` | `query`, `category`, `collection`, `mood`, `tag`, `limit` | Theme metadata |
+| `theme.preview` | `id` (required), `mode` | Key tokens and the AA report for both modes |
+| `theme.get` | `id` (required) | The full light and dark definition |
 
-| Argument | Meaning |
-| --- | --- |
-| (search) `query` / filters | List matching theme **metadata** |
-| `id` | Load the **full** theme definition for one id |
-
-Behavior: search/filter library meta, or `loadFullLibraryTheme(id)`. **No file
-writes, no network.** Prefer the monorepo MCP wiring the developer already uses
-(`pnpm` / tools package docs); do not invent remote MCP endpoints.
+The 0.8 name `theme` stays as a deprecated alias until `0.10.0`.
 
 Example agent flow:
 
-1. Call `theme` with a search string (e.g. `teal`).
+1. Call `theme.search { "query": "teal" }`.
 2. Pick an `id` from the result.
-3. Call `theme` with that `id` to get full tokens.
-4. Optionally run `runAaGateOnTheme` in-process or `theme preview <id>` via CLI.
+3. Call `theme.preview { "id": "violet" }` and keep a theme whose AA report passes.
+4. Call `theme.get { "id": "violet" }` for the full tokens, or run
+   `texuli theme preview <id>` from a shell.
 
 ---
 

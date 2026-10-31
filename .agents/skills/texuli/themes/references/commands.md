@@ -39,5 +39,8 @@ pnpm --filter @texuli/tokens typecheck
 
 ## MCP
 
-Tool **`theme`** on the local tools MCP server: search metadata or load one
-theme by `id`. Read-only.
+`theme.search`, `theme.preview` and `theme.get` on the Texuli MCP server
+(`npx -y @texuli/mcp`; [`../../router/hosts.md`](../../router/hosts.md#mcp)):
+search metadata, preview one theme with its AA report, or load one by `id`.
+Read-only. From a shell, `texuli theme search --json '{"query":"teal"}'` runs
+the same operation.
