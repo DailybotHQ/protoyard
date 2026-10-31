@@ -231,8 +231,8 @@ builds (numbers move with the load):
 | Brief → ready (`quick` CLI + player ready, no build) | 1,527 ms median (1,515–1,583 ms) |
 | Second exploration (shared player reused) | 987 ms |
 | Player initial JS | 178.8 KB gzip in 27 files |
-| `quick export --single-file` over the 40 catalog blueprints | max 4,284,417 B on Texuli 0.5.0 (was 4,207,769 B on 0.4.0); cap remains 4,418,158 B |
-| `quick export --single-file`, catalog deck, page and doc | 2,681,755–2,689,852 B on Texuli 0.5.0 (was 2,656,649–2,684,123 B on 0.4.0); cap remains 2,818,330 B |
+| `quick export --single-file` over the catalog blueprints | max 3,871,615 B over 43 on Texuli 0.9.0, 2026-10-31 (was 4,284,417 B over 40 on 0.5.0); cap 4,065,196 B (max + 5 %) |
+| `quick export --single-file`, example deck, page and doc | Texuli 0.9.0, 2026-10-31: deck 2,640,768–2,668,245 B (cap 2,801,658 B), page 2,347,132 B (cap 2,464,489 B), doc 3,070,546 B (cap 3,133,363 B); 2,681,755–2,689,852 B on 0.5.0 |
 | `quick shot` PNG, quick blueprints | 38–97 KB each (150 KB budget) |
 
 

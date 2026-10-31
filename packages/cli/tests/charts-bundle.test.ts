@@ -33,9 +33,11 @@ const FIXTURE = join(ROOT, 'tests/fixtures/charts-prototype');
  */
 export const CEILINGS = {
   /** What Sparkline adds to the first screen's JS, over the same app without charts. */
-  sparklineInitialDelta: 3_716,
+  // PLAN_008 T-remeasure (2026-10-31, Texuli 0.9.0): measured 3,520 B; + 5 % (was 3,716 from 0.5.0).
+  sparklineInitialDelta: 3_696,
   /** LineChart + BarChart: what opening the charts view downloads (table and Canvas excluded, they load later). */
-  lineBarLazy: 17_000,
+  // PLAN_008 T-remeasure (2026-10-31, Texuli 0.9.0): measured 12,718 B; + 5 % (was 17,000).
+  lineBarLazy: 13_354,
 };
 
 let dir = '';
