@@ -3,6 +3,7 @@ import {
   type AppModel,
   type AppRoute,
   type Blueprint,
+  blueprintMotionLevel,
   createEntityServices,
   deriveAppModel,
   type EntityServices,
@@ -19,6 +20,7 @@ import {
 } from '@protoyard/renderer-svelte';
 import { LayoutHost, navFromSidebar } from '@protoyard/ui';
 import { type Component, onDestroy, onMount, type Snippet } from 'svelte';
+import { MotionProvider } from 'texuli/motion';
 import NotificationsBell from '../NotificationsBell.svelte';
 import AppSearch from './AppSearch.svelte';
 import {
@@ -165,20 +167,24 @@ const layoutNav = $derived(
       : {}),
   })
 );
+/** The blueprint's `motion.level` caps every Texuli animation in the app (reduced motion still wins). */
+const motionLevel = blueprintMotionLevel(blueprint);
 </script>
 
-<LayoutHost layout={activeLayout} nav={layoutNav} storageKey={runtime.manifest.storage.namespace}>
-  <div class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8">
-    <div class="mb-4 flex justify-end gap-2">
-      {#if actions}
-        {@render actions()}
-      {:else}
-        <AppSearch />
-        {#if bell}
-          <NotificationsBell {runtime} />
+<MotionProvider level={motionLevel}>
+  <LayoutHost layout={activeLayout} nav={layoutNav} storageKey={runtime.manifest.storage.namespace}>
+    <div class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8">
+      <div class="mb-4 flex justify-end gap-2">
+        {#if actions}
+          {@render actions()}
+        {:else}
+          <AppSearch />
+          {#if bell}
+            <NotificationsBell {runtime} />
+          {/if}
         {/if}
-      {/if}
+      </div>
+      <Router {router} />
     </div>
-    <Router {router} />
-  </div>
-</LayoutHost>
+  </LayoutHost>
+</MotionProvider>
