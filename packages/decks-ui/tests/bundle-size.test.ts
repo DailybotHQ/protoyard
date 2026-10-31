@@ -72,6 +72,12 @@ afterAll(async () => {
  * the defaults (reported as a Texuli gap); lower when the stage can be built
  * without it.
  */
+// Texuli 0.10.0 (PLAN_008, 2026-10-31): the print view comes from
+// `@texuli/slides/export-core` (G105), so the build no longer emits the stage's
+// default tables, and @protoyard/themes loads `@texuli/tokens/system.css` instead
+// of base.css (G110). Measured initial JS 105,816 B (109,538 B on 0.10.0 before),
+// first-screen CSS 9,404 B (10,152 B), all emitted CSS 57,011 B (86,765 B). The
+// caps are not lowered here; the lead decides.
 const INITIAL_JS_GZIP_CAP = 111_657;
 // Texuli 0.8.0 (motion tokens) measured 8,952 B; + 1 % (PLAN_008: motion tokens and focus/forced-colors rules, kept by Texuli).
 // Texuli 0.9.0 measured 10,153–10,225 B: token contract v2 component CSS plus

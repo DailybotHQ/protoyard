@@ -116,10 +116,11 @@ copy/download actions. It loads on its own chunk (under 12 KB gzip,
 ## Print
 
 The stage's Print button opens `?print=1`, where DeckApp renders the stage's
-print view (`DeckPrintView` from `@texuli/slides/export`): one page per
+print view (`DeckPrintViewCore` from `@texuli/slides/export-core`, painted
+with DeckApp's own renderer tables): one page per
 visible slide, notes with `&notes=1`. The browser's own print (Ctrl/Cmd+P)
 mounts the same view for paper: its code is preloaded while the browser is
-idle after the deck opens (`preloadDeckPrintView`), and the view is mounted on
+idle after the deck opens (`preloadDeckPrintViewCore`), and the view is mounted on
 the first print. That first print captures the page before the view has
 settled its themes, images and fonts, so it prints the current slide and says
 so; every later print has all the slides. PPTX export is available from `@texuli/slides/export`; no
@@ -133,12 +134,12 @@ live preview and exports RFC 6902 patches (`@protoyard/decks/patch`).
 ## Measured numbers
 
 `tests/bundle-size.test.ts` builds the `./app` entry in production
-(2026-10-30, npm `@texuli/slides` 0.8.2): 107,246 B gzip initial JavaScript
-(cap 111,657 B), 8,914 B first-screen CSS (cap 9,042 B) and 82,210 B of all
-emitted CSS (cap 83,381 B). About 27 KB of that CSS is lazy stylesheets of the
-stage's default component registry, which Protoyard decks never load: the
-print view (`@texuli/slides/export`) still references the default tables, so
-the build emits them (reported to Texuli).
+(2026-10-31, npm Texuli 0.10.0): 105,816 B gzip initial JavaScript (cap
+111,657 B), 9,404 B first-screen CSS (cap 10,481 B) and 57,011 B of all
+emitted CSS (cap 88,094 B). The print view comes from
+`@texuli/slides/export-core` (G105), so the build no longer emits the stage's
+default component registry that decks never load (86,765 B of all emitted CSS
+before, on the same Texuli).
 The debug panel chunk is 11,179 B gzip.
 
 ## Known limits
