@@ -114,14 +114,14 @@ Protoyard screens are built Texuli-first, so an agent often needs Texuli's compo
 {
   "mcpServers": {
     "protoyard": { "command": "protoyard", "args": ["mcp"] },
-    "texuli": { "command": "npx", "args": ["-y", "@texuli/mcp@0.9.0"] }
+    "texuli": { "command": "npx", "args": ["-y", "@texuli/mcp@0.10.0"] }
   }
 }
 ```
 
-- `npx -y` downloads the package from npm on first use, so that start uses the network. Pin the version Protoyard installs (`0.9.0` today) so the server describes the same Texuli as your workspace.
-- Its tools are read-only `group.verb` operations (`catalog.search`, `component.get`, `theme.search`, `blueprint.validate`, `document.run` and others). Checked with `@texuli/mcp` 0.9.0: `initialize` with `2025-11-25` succeeds and `tools/list` returns 20 tools (13 operations plus 7 older names that Texuli deprecates until 0.10.0).
-- It speaks the `2025-11-25` initialize handshake and earlier revisions, not Protoyard's stateless `2026-07-28` revision: a client that only sends `server/discover` gets `-32601` from it. Use the initialize flow for this server.
+- `npx -y` downloads the package from npm on first use, so that start uses the network. Pin the version Protoyard installs (`0.10.0` today) so the server describes the same Texuli as your workspace.
+- Its tools are read-only `group.verb` operations (`catalog.search`, `component.get`, `catalog.validate`, `example.search`, `theme.get`, `theme.search`, `deck.run`, `document.run`, `document.export` and others). Texuli 0.10.0 removed the seven 0.8 names (`deck`, `document`, `catalog`, `component`, `validate`, `example`, `theme`); call the `group.verb` names.
+- Checked with `@texuli/mcp` 0.9.0: it spoke the `2025-11-25` initialize handshake and earlier revisions, and a client that only sent `server/discover` got `-32601`. Texuli's 0.10.0 release notes add the stateless `2026-07-28` revision per request (gap G124); that has not been re-checked from Protoyard, so the initialize flow remains the safe choice for this server.
 - Texuli's remote endpoint (`https://texuli.com/mcp`) serves the same read-only operations plus site search. Use it only if sending queries to texuli.com is acceptable.
 
 Protoyard's own tools, envelopes and limits above are unchanged; nothing on this page depends on the Texuli server.
