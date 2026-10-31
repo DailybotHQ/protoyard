@@ -7,6 +7,7 @@ import {
 } from '@protoyard/core';
 import { hoverFill, linkStates } from './contrast.ts';
 import { BUILTIN_THEMES, DEFAULT_THEME_ID } from './presets.ts';
+import { radiusLength } from './radius.ts';
 
 export type ResolvedMode = 'light' | 'dark';
 export type Density = 'compact' | 'default' | 'comfortable' | number;
@@ -135,7 +136,7 @@ export function themeVariables(input: AppearanceInput): Record<string, string> {
   vars['--tx-link-focus'] = link.focus;
   vars['--tx-link-disabled'] = link.disabled;
   vars['--tx-link-visited'] = link.visited;
-  vars['--tx-radius'] = input.theme.radius;
+  vars['--tx-radius'] = radiusLength(input.theme.radius);
   vars['--tx-font-sans'] = input.theme.fontFamily;
   vars['--tx-font-heading'] = input.theme.fontFamilyHeading ?? input.theme.fontFamily;
   vars['--tx-font-mono'] = input.theme.fontFamilyMono;

@@ -11,15 +11,17 @@
  */
 
 /*
- * Texuli's base layer (`tx.base`): since token contract v2 (Texuli 0.9) it is
- * where the system tokens (space, size, type roles, shape, elevation…) get
- * their defaults on every token scope. Texuli's components read them with no
- * fallback, so without this file a checkbox has no size. Its reset (box
- * sizing, borders, body type, scrollbars, reduced motion) mirrors the rules
- * below; in `tx.base` it sits above Tailwind's preflight and below every
- * utility class (renderer-svelte/app.css orders the layers).
+ * Texuli's system token defaults (space, size, type roles, shape,
+ * elevation…) on every token scope, in Texuli's `tx.base` layer. Texuli's
+ * components read them with no fallback, so without this file a checkbox has
+ * no size. Since Texuli 0.10.0 (G110) they ship alone as `system.css`, without
+ * `base.css`'s reset, motion and focus-ring tables: Protoyard brings its own
+ * reset (below), reduced motion (`data-py-motion`), glass surfaces
+ * (`data-py-surface`) and focus-ring styles (`@protoyard/ui`). `tx.base` sits
+ * above Tailwind's preflight and below every utility class
+ * (renderer-svelte/app.css orders the layers).
  */
-@import "@texuli/tokens/base.css";
+@import "@texuli/tokens/system.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -225,6 +227,15 @@
     border-color: var(--color-border);
   }
 
+  /* A subtree pinned to one mode (a deck's print sheet) gets native controls to match. */
+  [data-tx-mode="light"] {
+    color-scheme: light;
+  }
+
+  [data-tx-mode="dark"] {
+    color-scheme: dark;
+  }
+
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -285,9 +296,10 @@
 /*
  * Reduced motion: the OS setting, or the prototype's own toggle.
  *
- * In Texuli's own layer, `tx.base`: Texuli 0.5.0's `@texuli/tokens/base.css`
- * sets `transition-duration: 0.01ms !important` on `*` there, and an
- * `!important` declaration in a layer beats an unlayered one. In the same
+ * In Texuli's own layer, `tx.base`: an `!important` declaration in an
+ * earlier layer beats one in a later layer (`tx.components`) or an unlayered
+ * one, so no component transition outlives the setting. A host that also
+ * loads `@texuli/tokens/base.css` gets its `*` rules there too; in the same
  * layer the more specific selector wins whatever order the stylesheets load
  * in: `html *` (0,0,1) over `*` (0,0,0), `html ::before` over `*::before`.
  */
