@@ -2,8 +2,8 @@ import {
   createThemeFromSeed,
   findTheme,
   getFontPairing,
-  getLibraryThemeMeta,
   getTheme,
+  isLibraryThemeId,
   loadLibraryTheme,
 } from '@protoyard/themes';
 import type { toTexuliTheme } from '@protoyard/themes/texuli';
@@ -16,7 +16,7 @@ export { DEFAULT_DECK_THEME_ID, deckThemeKey } from './key.ts';
  * `@texuli/slides` stage paints with. The stage applies the theme, density,
  * radius, motion, backgrounds, logo, footer, numbering and progress itself
  * (`@texuli/deck` style resolution); Protoyard resolves only its own theme
- * ids (the six built-ins, the 64-theme library and palette seeds) and font
+ * ids (the six built-ins, every library theme and palette seeds) and font
  * pairings, through `@protoyard/themes`, so a deck looks the same in the
  * player and in a generated prototype.
  */
@@ -27,7 +27,7 @@ type Theme = ReturnType<typeof getTheme>;
 /** A Texuli theme (`@texuli/tokens/contract`), as `toTexuliTheme` returns it. */
 export type DeckTexuliTheme = ReturnType<typeof toTexuliTheme>;
 
-export type DeckStyleWarningCode = 'unknown-theme' | 'unknown-font-pair';
+export type DeckStyleWarningCode = 'unknown-theme' | 'theme-unavailable' | 'unknown-font-pair';
 
 export interface DeckStyleWarning {
   code: DeckStyleWarningCode;
@@ -48,7 +48,20 @@ async function resolveTheme(key: string, warnings: DeckStyleWarning[]): Promise<
   }
   const builtin = findTheme(key);
   if (builtin) return builtin;
-  if (getLibraryThemeMeta(key)) return loadLibraryTheme(key);
+  if (isLibraryThemeId(key)) {
+    try {
+      return await loadLibraryTheme(key);
+    } catch (error) {
+      // A library theme whose tokens cannot load here (a single file that left
+      // the expanded set out, a failed chunk): the deck still opens.
+      warnings.push({
+        code: 'theme-unavailable',
+        value: key,
+        message: `Theme "${key}" could not load (${error instanceof Error ? error.message : String(error)}); using the default theme.`,
+      });
+      return getTheme(undefined);
+    }
+  }
   warnings.push({
     code: 'unknown-theme',
     value: key,

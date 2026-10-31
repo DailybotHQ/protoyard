@@ -10,6 +10,7 @@ import {
   deckEditsToPatch,
   deckStudioOptions,
   formatPointer,
+  loadDeckStudioThemes,
   parsePointer,
 } from '../src/patch/index.ts';
 import { type Deck, DeckSchema } from '../src/schema/index.ts';
@@ -151,6 +152,14 @@ describe('compatible layouts', () => {
     expect(options.fontPairs.map((pair) => pair.id)).toContain('humanist');
     expect(options.aspects).toEqual(['16:9', '4:3', '9:16', '1:1']);
     expect(options.backgrounds).toContain('gradient-dusk');
+  });
+
+  it('offers every library theme once the full list loads', async () => {
+    const themes = await loadDeckStudioThemes();
+    expect(themes.slice(0, deckStudioOptions().themes.length)).toEqual(deckStudioOptions().themes);
+    expect(themes.length).toBe(6 + 204);
+    expect(themes.map((theme) => theme.id)).toContain('ash-plain');
+    expect(new Set(themes.map((theme) => theme.id)).size).toBe(themes.length);
   });
 });
 
