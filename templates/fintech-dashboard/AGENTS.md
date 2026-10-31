@@ -17,7 +17,8 @@ uses the per-prototype spec harness in [docs/SPECS.md](../../docs/SPECS.md).
 - Store money in integer cents. Do not describe this simulation as a bank or as financial advice.
 - Account, transaction and snapshot writes belong in `src/domain/services.ts`; transfer writes update both accounts and paired ledger rows atomically.
 - Generators use `timeSeries()` and deterministic context only. Every account balance must reconcile with its opening balance and signed transactions.
-- Keep `@protoyard/charts-ui/cartesian` behind the screen's dynamic import; do not add chart components to the `@protoyard/ui` barrel.
+- Keep `@protoyard/charts-ui/cartesian` and `@protoyard/views-ui/sheet` behind the screen's dynamic imports; do not add chart or sheet components to the `@protoyard/ui` barrel.
+- The transactions sheet is built by `src/domain/ledger-sheet.ts` as plain data; keep its text escaping (a leading `'` on `=` or `'` text) when you change its columns.
 - Personas and permissions are UI simulation, not authentication or account security.
 
 <!-- protoyard:generated:commands -->
