@@ -303,5 +303,30 @@
     "id": "G99",
     "status": "open",
     "summary": "@texuli/primitives/toast contained Viewport reads getComputedStyle(container) synchronously on mount (ensurePositioned), forcing a layout during the first render"
+  },
+  {
+    "id": "G100",
+    "status": "open",
+    "summary": "@texuli/editor/markdown markdownToDocument does not treat \\@ as an escape, so an escaped sigil still opens an extension and leaves a stray backslash"
+  },
+  {
+    "id": "G101",
+    "status": "open",
+    "summary": "@texuli/data/filter-builder FilterBuilder has no host issues prop (apply-time validation cannot mark a condition), and enum options lack a { value, label } form"
+  },
+  {
+    "id": "G102",
+    "status": "open",
+    "summary": "texuli/layouts/content tracks the active heading only inside ContentLayout's full chrome; no standalone tracker for hosts with their own reading shell"
+  },
+  {
+    "id": "G103",
+    "status": "open",
+    "summary": "@texuli/data/board Board loses focus for a frame after a keyboard move into another column, so an immediate Space lands on body"
+  },
+  {
+    "id": "G104",
+    "status": "open",
+    "summary": "@texuli/data/calendar EventButton accessible name puts the date between title and time, breaking label-in-name (WCAG 2.5.3) for timed events"
   }
 ]
