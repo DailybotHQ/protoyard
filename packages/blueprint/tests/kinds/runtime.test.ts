@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { BlockSchema } from '@protoyard/blocks';
 import { BlockActionError, pollResults, stateKey } from '@protoyard/blocks/interactive';
 import { definePrototype, PermissionDeniedError, type PrototypeRuntime } from '@protoyard/core';
+import { DOC_EDITS_STORE_STRING } from '@protoyard/pages';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../../tests/support/runtime.ts';
 import {
@@ -114,10 +115,18 @@ describe('defineKindRuntime', () => {
       icon: '🎤',
       defaultScenario: KIND_DEFAULT_SCENARIO,
       defaultTheme: 'violet',
-      storage: { namespace: NAMESPACE, schemaVersion: 1 },
+      storage: { namespace: NAMESPACE, schemaVersion: 2 },
       scenarios: ['default'],
     });
-    expect(definition.database.versions).toEqual([{ version: 1, stores: { ...KIND_STORES } }]);
+    // Version 2 adds docEdits; version 1 keeps the stores older browsers hold.
+    expect(definition.database.versions).toEqual([
+      {
+        version: 1,
+        stores: { blockStates: KIND_STORES.blockStates, formResponses: KIND_STORES.formResponses },
+      },
+      { version: 2, stores: { ...KIND_STORES } },
+    ]);
+    expect(KIND_STORES.docEdits).toBe(DOC_EDITS_STORE_STRING);
     expect(definition.scenarios.map((s) => s.id)).toEqual(['default']);
     expect(Object.keys(definition.policy?.roles ?? {}).sort()).toEqual([
       'audience',
@@ -166,7 +175,7 @@ describe('defineKindRuntime', () => {
     expect(a.personas.map((p) => p.id)).toEqual(['presenter', 'audience', 'viewer']);
     expect(a.personas.every((p) => p.email?.endsWith('@example.com'))).toBe(true);
     expect(a.memberships.map((m) => m.role)).toEqual(['presenter', 'audience', 'viewer']);
-    expect(a.tables).toEqual({ blockStates: [], formResponses: [] });
+    expect(a.tables).toEqual({ blockStates: [], formResponses: [], docEdits: [] });
   });
 
   it('keeps the blueprint world generator and Faker out of its import graph', () => {
