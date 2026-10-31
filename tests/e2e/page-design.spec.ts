@@ -179,7 +179,8 @@ for (const level of ['player', 'generated'] as const) {
           await expect(email).toBeEnabled();
           await email.fill('reader@example.com');
           await form.getByRole('button', { name: 'Join the waitlist' }).click();
-          await expect(page.locator('[data-py-form-success]')).toBeVisible();
+          // @texuli/forms paints the block; its confirmation is the success message.
+          await expect(form.locator('.tx-forms__done')).toBeVisible();
           await expect.poll(() => formResponses(page)).toBe(1);
 
           await page.reload();
