@@ -14,6 +14,7 @@ pnpm protoyard dev my-kit
 - Foundation pages for color, typography, shape, motion, icons, brand and responsive behavior. Color swatches choose dark or light foreground ink from their luminance.
 - Searchable component entries grouped by purpose. Each preview is loaded on demand, with desktop and phone frames shown together.
 - Prop rows are extracted from `@prop name: type — description` comments in each demo's Svelte source. Add those comments to keep the table next to the component implementation.
+- Screen sketches: wireframe a screen with the kit's parts on an infinite canvas and pin review notes to them. The canvas editor loads only when Sketches opens, and every change saves through a permission checked sketch service.
 - Review status and notes are saved per entry and active persona in IndexedDB. Review writes go through a permission checked service and remain local to this prototype.
 - No remote media, font downloads or runtime network requests. Replace the sample palette and components with your own system.
 

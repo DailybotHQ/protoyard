@@ -6,6 +6,7 @@ import type {
   WorldSeed,
 } from '@protoyard/core';
 import { createAvatarPool } from '@protoyard/scenarios';
+import { generateSettingsSketch } from './sketches.ts';
 
 export function generateDesignKitWorld(ctx: GenerateContext): WorldSeed {
   const { scenario, time } = ctx;
@@ -52,5 +53,19 @@ export function generateDesignKitWorld(ctx: GenerateContext): WorldSeed {
     joinedAt: personas[index]?.joinedAt ?? time.iso(time.now),
     capabilities: [],
   }));
-  return { organizations: [organization], personas, memberships, tables: { reviews: [] } };
+  const sketches = [
+    {
+      id: 'sketch-settings',
+      title: 'Settings screen',
+      canvas: generateSettingsSketch(ctx),
+      updatedBy: 'user_0001',
+      updatedAt: time.iso(time.daysAgo(2)),
+    },
+  ];
+  return {
+    organizations: [organization],
+    personas,
+    memberships,
+    tables: { reviews: [], sketches },
+  };
 }

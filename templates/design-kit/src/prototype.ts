@@ -12,9 +12,10 @@ export const definition = definePrototype({
   scenarios,
   policy,
   generate: generateDesignKitWorld,
-  generatorVersion: 1,
+  // 2: worlds include a seeded screen sketch.
+  generatorVersion: 2,
   integrity: {
-    relations: { reviews: { personaId: 'py_personas' } },
-    timestamps: { reviews: ['updatedAt'] },
+    relations: { reviews: { personaId: 'py_personas' }, sketches: { updatedBy: 'py_personas' } },
+    timestamps: { reviews: ['updatedAt'], sketches: ['updatedAt'] },
   },
 });
