@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { RetentionResult } from '@protoyard/analytics/cohort';
-import { rampScale } from '@protoyard/charts-ui/matrix';
 import { heatmapFill } from '@texuli/charts/matrix';
+import { heatLevel, resolveHeatScale } from '@texuli/data/cohort';
 import { untrack } from 'svelte';
 import { Toggle } from 'texuli/toggle';
 import {
@@ -57,16 +57,30 @@ $effect(() => {
 });
 
 const periods = $derived(result.average.length);
-// Period 0 is always 100%: the ramp spans the later periods so their differences show.
-const ramp = $derived(
-  rampScale(
-    result.cohorts.flatMap((c) =>
-      c.cells.filter((cell) => cell.period > 0).map((cell) => cell.rate)
-    ),
-    palette === undefined ? themed : palette,
-    { min: 0 }
+// Period 0 is always 100%: the scale spans the later periods so their differences show.
+const top = $derived(
+  Math.max(
+    0,
+    ...result.cohorts.flatMap((c) =>
+      c.cells.filter((cell) => cell.period > 0 && cell.rate !== null).map((cell) => cell.rate ?? 0)
+    )
   )
 );
+/**
+ * Texuli's contrast-checked heat scale (G51): each hex step of the theme's
+ * sequential ramp carries the text color that reaches 4.5:1 on it. Without a
+ * hex ramp (or one Texuli refuses) cells keep the token fill and a surface chip.
+ */
+const scale = $derived.by(() => {
+  const ramp = (palette === undefined ? themed : palette)?.sequential ?? [];
+  const resolved = ramp.length >= 2 ? resolveHeatScale(ramp.slice(0, 10)) : null;
+  return resolved?.ok ? resolved.steps : null;
+});
+const heat = (rate: number | null) => {
+  if (!scale || rate === null) return null;
+  const level = heatLevel(rate, top || 1, scale.length);
+  return level === null ? null : (scale[level] ?? null);
+};
 const setDisplay = (next: CohortDisplay) => {
   display = next;
   ondisplaychange?.(next);
@@ -124,25 +138,21 @@ const show = (rate: number | null, value: number | null) =>
               >
               <td class="px-2 py-1 text-right">{formatCount(cohort.size)}</td>
               {#each cohort.cells as cell (cell.period)}
-                {@const text = cell.period > 0 ? ramp.text(cell.rate) : null}
+                {@const step = cell.period > 0 ? heat(cell.rate) : null}
                 <td
                   data-period={cell.period}
                   data-incomplete={cell.incomplete || undefined}
                   class="rounded-sm px-2 py-1 text-right {cell.incomplete ? 'outline-1 outline-border outline-dashed' : ''}"
                   style:background={
-                    cell.period > 0 && cell.rate !== null
-                      ? palette
-                        ? ramp.fill(cell.rate)
-                        : heatmapFill(cell.rate)
-                      : undefined
+                    step ? step.background : cell.period > 0 && cell.rate !== null ? heatmapFill(cell.rate) : undefined
                   }
                 >
-                  <!-- Text sits on the fill only when it reaches 4.5:1; otherwise a surface chip keeps it readable. -->
+                  <!-- Text sits on a checked step (4.5:1); otherwise a surface chip keeps it readable. -->
                   <span
-                    class={text || cell.rate === null || cell.period === 0
+                    class={step || cell.rate === null || cell.period === 0
                       ? ''
                       : 'rounded-sm bg-surface/90 px-1 text-foreground'}
-                    style:color={text}
+                    style:color={step?.color}
                     >{show(cell.rate, cell.count)}{#if cell.incomplete && cell.rate !== null}<span aria-hidden="true"
                         >*</span
                       ><span class="sr-only"> (incomplete)</span>{/if}</span

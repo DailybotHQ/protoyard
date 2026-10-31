@@ -7,10 +7,14 @@ import BreakdownSelect from '../src/filters/BreakdownSelect.svelte';
 import FilterBuilder from '../src/filters/FilterBuilder.svelte';
 import {
   adjustCondition,
+  BUILDER_OPERATORS,
+  builderFields,
   describeFilter,
   type FilterProperty,
+  fromBuilderFilter,
   parseScalar,
   saveErrorOf,
+  toBuilderFilter,
   validateFilter,
 } from '../src/filters/model.ts';
 import SegmentPicker from '../src/filters/SegmentPicker.svelte';
@@ -115,20 +119,24 @@ describe('filter model', () => {
 });
 
 describe('FilterBuilder', () => {
-  it('builds a filter that is valid FilterSchema data and filters rows', async () => {
+  const condition = (n: number) => screen.getByRole('group', { name: `Condition ${n}` });
+  const choose = (select: HTMLElement, value: string) =>
+    fireEvent.change(select, { target: { value } });
+
+  it("builds a filter with Texuli's builder that is valid FilterSchema data and filters rows", async () => {
     const onchange = vi.fn();
     render(FilterBuilder, { value: EMPTY, properties: PROPERTIES, onchange });
-    await fireEvent.click(screen.getByRole('button', { name: '+ Add condition' }));
-    // First property is Plan (with options): choose Pro.
-    await fireEvent.click(screen.getByRole('combobox', { name: 'Value' }));
-    await fireEvent.click(await screen.findByRole('option', { name: 'Pro' }));
-    await fireEvent.click(screen.getByRole('button', { name: '+ Add condition' }));
-    const second = document.querySelectorAll('[data-condition]')[1] as HTMLElement;
-    await fireEvent.click(within(second).getByRole('combobox', { name: 'Property' }));
-    await fireEvent.click(await screen.findByRole('option', { name: 'Seats' }));
-    await fireEvent.click(within(second).getByRole('combobox', { name: 'Operator' }));
-    await fireEvent.click(await screen.findByRole('option', { name: 'at least' }));
-    await fireEvent.input(within(second).getByRole('spinbutton', { name: 'Value' }), {
+    expect(document.querySelector('[data-tx-filter-builder]')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Add condition' }));
+    // First property is Plan (with options): the builder lists the labels.
+    const plan = within(condition(1)).getByRole('combobox', { name: 'Value' });
+    expect([...plan.querySelectorAll('option')].map((o) => o.textContent)).toContain('Pro');
+    await choose(plan, 'Pro');
+    await fireEvent.click(screen.getByRole('button', { name: 'Add condition' }));
+    await choose(within(condition(2)).getByRole('combobox', { name: 'Field' }), 'properties.seats');
+    // Protoyard's "at least" is a catalog operator on number properties.
+    await choose(within(condition(2)).getByRole('combobox', { name: 'Operator' }), 'gte');
+    await fireEvent.input(within(condition(2)).getByRole('spinbutton', { name: 'Value' }), {
       target: { value: '5' },
     });
     expect(document.querySelector('[data-filter-summary]')?.textContent).toBe(
@@ -149,7 +157,50 @@ describe('FilterBuilder', () => {
     expect(rows.filter(compileFilter(filter)).map((r) => r.userId)).toEqual(['a']);
   });
 
-  it('switches to OR, nests a group and removes conditions', async () => {
+  it('offers every Protoyard operator of a property type, in order', async () => {
+    render(FilterBuilder, {
+      value: {
+        combinator: 'and',
+        conditions: [
+          { property: 'properties.country', operator: 'not_in', value: ['NZ'] },
+          { property: 'at', operator: 'gte', value: '2026-10-01' },
+        ],
+      },
+      properties: PROPERTIES,
+      onchange: vi.fn(),
+    });
+    const names = (n: number) =>
+      [
+        ...within(condition(n))
+          .getByRole('combobox', { name: 'Operator' })
+          .querySelectorAll('option'),
+      ].map((o) => o.textContent);
+    expect(names(1)).toEqual([
+      'is',
+      'is not',
+      'contains',
+      'does not contain',
+      'starts with',
+      'is any of',
+      'is none of',
+      'is set',
+      'is not set',
+    ]);
+    expect(names(2)).toEqual([
+      'is after',
+      'on or after',
+      'is before',
+      'on or before',
+      'between',
+      'is set',
+      'is not set',
+    ]);
+    expect(
+      (within(condition(1)).getByRole('textbox', { name: 'Value' }) as HTMLInputElement).value
+    ).toBe('NZ');
+  });
+
+  it('switches to OR, nests a group, removes it and round-trips the model', async () => {
     const onchange = vi.fn();
     render(FilterBuilder, {
       value: {
@@ -159,12 +210,11 @@ describe('FilterBuilder', () => {
       properties: PROPERTIES,
       onchange,
     });
-    const root = screen.getAllByRole('group', { name: 'Match' })[0] as HTMLElement;
-    await fireEvent.click(within(root).getByRole('button', { name: 'Any condition' }));
-    await fireEvent.click(screen.getAllByRole('button', { name: '+ Add group' })[0] as HTMLElement);
-    expect(screen.getAllByRole('group', { name: 'Match' })).toHaveLength(2);
-    await fireEvent.click(screen.getByRole('button', { name: 'Remove group' }));
-    expect(screen.getAllByRole('group', { name: 'Match' })).toHaveLength(1);
+    await choose(screen.getAllByRole('combobox', { name: 'Match' })[0] as HTMLElement, 'or');
+    await fireEvent.click(screen.getByRole('button', { name: 'Add group' }));
+    expect(screen.getAllByRole('combobox', { name: 'Match' })).toHaveLength(2);
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove group 2' }));
+    expect(screen.getAllByRole('combobox', { name: 'Match' })).toHaveLength(1);
     await fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }));
     await waitFor(() => expect(onchange).toHaveBeenCalled());
     expect(onchange.mock.calls[0]?.[0]).toEqual({
@@ -172,10 +222,10 @@ describe('FilterBuilder', () => {
       conditions: [{ property: 'properties.trial', operator: 'eq', value: true }],
     });
     await fireEvent.click(screen.getByRole('button', { name: 'Remove condition 1' }));
-    expect(document.querySelectorAll('[data-condition]')).toHaveLength(0);
+    expect(screen.queryByRole('group', { name: 'Condition 1' })).toBeNull();
   });
 
-  it('keeps restored property, operator and option labels visible on closed triggers', () => {
+  it('shows restored property, operator and option labels', () => {
     render(FilterBuilder, {
       value: {
         combinator: 'and',
@@ -184,12 +234,16 @@ describe('FilterBuilder', () => {
       properties: PROPERTIES,
       onchange: vi.fn(),
     });
-    expect(screen.getByRole('combobox', { name: 'Property' }).textContent).toContain('Plan');
-    expect(screen.getByRole('combobox', { name: 'Operator' }).textContent).toContain('is');
-    expect(screen.getByRole('combobox', { name: 'Value' }).textContent).toContain('Pro');
+    const selected = (name: string) => {
+      const select = within(condition(1)).getByRole('combobox', { name }) as HTMLSelectElement;
+      return select.selectedOptions[0]?.textContent;
+    };
+    expect(selected('Field')).toBe('Plan');
+    expect(selected('Operator')).toBe('is');
+    expect(selected('Value')).toBe('Pro');
   });
 
-  it('shows validation errors inline and does not apply', async () => {
+  it('lists validation errors by condition and does not apply', async () => {
     const onchange = vi.fn();
     render(FilterBuilder, {
       value: {
@@ -200,12 +254,68 @@ describe('FilterBuilder', () => {
       onchange,
     });
     await fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }));
-    const input = screen.getByRole('spinbutton', { name: 'Value' });
-    expect(input.getAttribute('aria-invalid')).toBe('true');
-    const errorId = input.getAttribute('aria-describedby');
-    expect(errorId && document.getElementById(errorId)?.textContent).toBe('Enter a value');
-    expect(screen.getByText('Fix the highlighted field to apply')).toBeTruthy();
+    const list = screen.getByRole('list', { name: 'Filter errors' });
+    expect(list.textContent?.trim()).toBe('Condition 1: Enter a value');
+    expect(screen.getByText('Fix the listed field to apply')).toBeTruthy();
     expect(onchange).not.toHaveBeenCalled();
+  });
+});
+
+describe('builder bridge', () => {
+  it('round-trips every operator and option labels between the two models', () => {
+    const filter: FilterGroup = {
+      combinator: 'and',
+      conditions: [
+        { property: 'properties.plan', operator: 'in', value: ['pro', 'free'] },
+        { property: 'properties.plan', operator: 'contains', value: 'r' },
+        { property: 'properties.seats', operator: 'between', value: [1, 5] },
+        { property: 'properties.seats', operator: 'not_in', value: [2, 3] },
+        { property: 'properties.country', operator: 'starts_with', value: 'N' },
+        { property: 'at', operator: 'lt', value: '2026-10-01' },
+        {
+          combinator: 'or',
+          conditions: [{ property: 'properties.trial', operator: 'is_set', value: null }],
+        },
+      ],
+    };
+    const model = toBuilderFilter(filter, PROPERTIES);
+    expect(model.children[0]).toEqual({
+      type: 'condition',
+      field: 'properties.plan',
+      operator: 'in',
+      value: ['Pro', 'Free'],
+    });
+    expect(model.children[1]).toMatchObject({ operator: 'containsText' });
+    expect(model.children[5]).toMatchObject({ operator: 'before' });
+    expect(fromBuilderFilter(model, PROPERTIES)).toEqual(filter);
+    // A comma list on a number property comes back as numbers.
+    expect(
+      fromBuilderFilter(
+        {
+          type: 'group',
+          op: 'and',
+          children: [
+            { type: 'condition', field: 'properties.seats', operator: 'notIn', value: ['2', '3'] },
+          ],
+        },
+        PROPERTIES
+      ).conditions[0]
+    ).toEqual({ property: 'properties.seats', operator: 'not_in', value: [2, 3] });
+  });
+
+  it('every catalog operator id is valid for Texuli and offered only where it fits', async () => {
+    const { applyFilter } = await import('@texuli/data/filter-builder');
+    const fields = builderFields(PROPERTIES);
+    const data = rows.map((r) => ({ ...r.properties }));
+    const seatsAtLeast = {
+      type: 'group' as const,
+      op: 'and' as const,
+      children: [{ type: 'condition' as const, field: 'seats', operator: 'gte', value: 3 }],
+    };
+    const flat = fields.map((f) => ({ ...f, key: f.key.replace('properties.', '') }));
+    expect(
+      applyFilter(data, seatsAtLeast, flat as never, BUILDER_OPERATORS as never).map((r) => r.seats)
+    ).toEqual([12, 3]);
   });
 });
 

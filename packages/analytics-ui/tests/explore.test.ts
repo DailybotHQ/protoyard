@@ -196,6 +196,37 @@ describe('CohortTable', () => {
     const chip = document.querySelector('tbody tr [data-period="1"] span') as HTMLElement;
     expect(chip.className).toContain('bg-surface');
   });
+
+  it('every heat cell carries the text color Texuli checked at 4.5:1 for its step (G51)', async () => {
+    const { resolveHeatScale } = await import('@texuli/data/cohort');
+    // A mid-tone ramp: under the old per-step check some steps fell back to chips.
+    const sequential = ['#e0e0e0', '#a0a0a0', '#808080', '#767676', '#505050'];
+    const steps = resolveHeatScale(sequential);
+    if (!steps.ok) throw new Error(steps.error);
+    render(CohortTable, {
+      title: 'Weekly retention',
+      result,
+      palette: {
+        categorical: [],
+        sequential,
+        diverging: [],
+        grid: 'transparent',
+        axis: 'currentColor',
+      },
+    });
+    const cells = [...document.querySelectorAll<HTMLElement>('tbody td[data-period]')].filter(
+      (td) => td.dataset.period !== '0' && td.style.background
+    );
+    expect(cells.length).toBeGreaterThan(0);
+    for (const td of cells) {
+      const span = td.firstElementChild as HTMLElement;
+      expect(span.className).not.toContain('bg-surface');
+      const step = steps.steps.find(
+        (s) => td.style.background.length > 0 && s.color === span.style.color
+      );
+      expect(step?.ratio ?? 0).toBeGreaterThanOrEqual(4.5);
+    }
+  });
 });
 
 describe('FunnelAnalysis', () => {
