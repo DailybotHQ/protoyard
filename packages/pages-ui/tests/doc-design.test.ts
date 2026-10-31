@@ -129,7 +129,9 @@ describe('document reading design', () => {
     await waitFor(() =>
       expect(submit).toHaveBeenCalledWith('contact-form', { email: 'ada@example.com' })
     );
-    expect((await view.findByRole('status')).textContent).toContain(
+    // The doc tool bar has its own (empty) download status region.
+    const statuses = await view.findAllByRole('status');
+    expect(statuses.map((status) => status.textContent ?? '').join(' ')).toContain(
       'Thanks. We received your message.'
     );
   });
