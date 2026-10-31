@@ -205,6 +205,17 @@ export {
   FileUploadError,
   type FileUploadProgress,
 } from './files.ts';
+export {
+  type EntityFormField,
+  type EntityFormFieldType,
+  type EntityFormModel,
+  type EntityFormOption,
+  type EntityFormSchema,
+  type EntityFormSchemaOptions,
+  entityFormModel,
+  HOSTED_FORM_KINDS,
+  UNASSIGNED_OPTION,
+} from './form-schema.ts';
 export { BLUEPRINT_GENERATOR_SDK, blueprintGeneratorVersion } from './generator-version.ts';
 export {
   BLUEPRINT_NAMESPACE_PREFIX,

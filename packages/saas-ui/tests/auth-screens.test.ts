@@ -553,3 +553,48 @@ describe('auth screens', () => {
     );
   });
 });
+
+describe('kit forms on @texuli/forms', () => {
+  it('puts the invitation service issue on the email field, then clears it after a sent invite', async () => {
+    const runtime = await boot();
+    await signInFixture(runtime);
+    render(AuthHarness, { props: { runtime, screen: 'settings', tab: 'members' } });
+    const form = document.querySelector('form[data-py-saas-form="invite"]') as HTMLFormElement;
+    expect(form.classList.contains('tx-forms')).toBe(true);
+    await type('Invite email', 'someone@real-company.test');
+    await submit('Invite');
+    const emailField = form.querySelector('[data-tx-forms-field="email"]') as HTMLElement;
+    await waitFor(() => expect(emailField.textContent).toMatch(/example\.com/));
+    expect(
+      await runtime.db
+        .rows('saas_invitations')
+        .where('email')
+        .equals('someone@real-company.test')
+        .count()
+    ).toBe(0);
+
+    await type('Invite email', 'second@example.com');
+    await submit('Invite');
+    await screen.findByText(/second@example.com · member/);
+    await waitFor(() =>
+      expect((screen.getByLabelText(/^Invite email/) as HTMLInputElement).value).toBe('')
+    );
+  });
+
+  it('shows notification preferences disabled for a role that cannot edit them', async () => {
+    const runtime = await boot();
+    await signInFixture(runtime);
+    const viewer = runtime.members
+      .list()
+      .find(({ membership }) => membership.role !== 'owner' && membership.role !== 'admin');
+    if (!viewer) throw new Error('The fixture needs a member without settings rights');
+    await runtime.session.signIn(viewer.persona.id);
+    render(AuthHarness, { props: { runtime, screen: 'settings', tab: 'notifications' } });
+    expect(await screen.findByText(/cannot edit notification preferences/)).toBeTruthy();
+    const product = (await screen.findByLabelText(/Product updates/)) as HTMLElement;
+    // `when.enable` is never true for this role, so Texuli paints the control disabled.
+    expect((product as HTMLInputElement).disabled).toBe(true);
+    const form = document.querySelector('form[data-py-saas-form="notifications"]');
+    expect(form?.hasAttribute('inert')).toBe(true);
+  });
+});

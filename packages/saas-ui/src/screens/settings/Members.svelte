@@ -1,11 +1,14 @@
 <script lang="ts">
 import { MEMBER_CAPABILITIES, type Member, OWNER_ROLE } from '@protoyard/core';
-import { avatarImage } from '@protoyard/renderer-svelte';
+import { avatarImage, runService } from '@protoyard/renderer-svelte';
 import { createInvitationServices, type SaasInvitation } from '@protoyard/saas';
-import { AlertDialog, Avatar, Button, FormField, Input } from '@protoyard/ui';
+import { AlertDialog, Avatar, Button } from '@protoyard/ui';
+import { SchemaForm } from '@texuli/forms';
+import { createFormController, type FormSubmission } from '@texuli/forms/model';
 import { onMount } from 'svelte';
 import { SelectContent, SelectItem, SelectRoot, SelectTrigger, SelectValue } from 'texuli/select';
 import { getSaas } from '../../context.ts';
+import { compileKitForm, editableFields, kitSubmitResult } from '../../lib/schema-form.ts';
 
 const { runtime } = getSaas();
 const invitations = createInvitationServices(
@@ -15,8 +18,7 @@ const organizationId = runtime.session.principal()?.organization?.id;
 const roles = Object.keys(runtime.policy.definition.roles);
 let members = $state<Member[]>([]);
 let pending = $state<SaasInvitation[]>([]);
-let email = $state('');
-let role = $state('member');
+const defaultRole = roles.includes('member') ? 'member' : (roles[0] ?? '');
 let busy = $state(false);
 let message = $state('');
 // Destructive actions confirm first: the button only picks the target.
@@ -41,21 +43,63 @@ async function refresh(): Promise<void> {
   }
 }
 
-async function invite(): Promise<void> {
-  if (!canInvite || busy) return;
+// The invite form is painted by @texuli/forms; the invitation service
+// validates (zod, fictional addresses only) and stores the invitation.
+const inviteForm = $derived(
+  compileKitForm({
+    title: 'Invite someone',
+    submitLabel: 'Invite',
+    fields: editableFields(
+      [
+        {
+          name: 'email',
+          type: 'email',
+          label: 'Invite email',
+          placeholder: 'name@example.com',
+          required: true,
+        },
+        {
+          name: 'role',
+          type: 'select',
+          label: 'Role',
+          placeholder: 'Select a role',
+          required: true,
+          options: roles.map((candidate) => ({ value: candidate, label: candidate })),
+        },
+      ],
+      canInvite
+    ),
+  })
+);
+
+async function invite({ values }: FormSubmission) {
   busy = true;
   message = '';
-  try {
-    await invitations.create({ email, role });
-    email = '';
+  const result = await runService(() =>
+    invitations.create({ email: String(values.email ?? ''), role: String(values.role ?? '') })
+  );
+  busy = false;
+  if (result.ok) {
     message = 'Invitation added to the simulated inbox.';
     await refresh();
-  } catch (error) {
-    message = error instanceof Error ? error.message : 'Could not create the invitation.';
-  } finally {
-    busy = false;
   }
+  return kitSubmitResult(result, inviteForm, 'Could not create the invitation.');
 }
+
+// Our own controller, so a sent invitation clears the email for the next one.
+const inviteController = $derived(
+  createFormController(inviteForm, { values: { role: defaultRole }, onSubmit: invite })
+);
+$effect(() => {
+  const controller = inviteController;
+  const stop = controller.subscribe((state) => {
+    if (state.status === 'submitted') controller.reset({ role: defaultRole });
+  });
+  return () => {
+    stop();
+    controller.destroy();
+  };
+});
 
 async function changeRole(member: Member, nextRole: string): Promise<void> {
   if (!canUpdate || busy) return;
@@ -106,26 +150,15 @@ onMount(() => {
 
 <section class="grid gap-5" aria-labelledby="settings-members-title" data-testid="settings-members">
   <div><h2 id="settings-members-title" class="text-lg font-semibold">Members</h2><p class="text-sm text-muted-foreground">Manage simulated roles and invitations for this workspace.</p></div>
-  <form class="grid max-w-xl gap-3 sm:grid-cols-[1fr_10rem_auto] sm:items-end" onsubmit={(event) => { event.preventDefault(); void invite(); }}>
-    <FormField label="Invite email" required>
-      {#snippet children(control)}<Input {...control.props} bind:value={email} type="email" placeholder="name@example.com" required disabled={!canInvite || busy} />{/snippet}
-    </FormField>
-    <FormField label="Role" required>
-      {#snippet children(control)}
-        <SelectRoot type="single" bind:value={role} disabled={!canInvite || busy}>
-          <SelectTrigger {...control.props} class="w-full" disabled={!canInvite || busy}>
-            <SelectValue placeholder="Select a role" />
-          </SelectTrigger>
-          <SelectContent>
-            {#each roles as candidate (candidate)}
-              <SelectItem value={candidate} label={candidate} />
-            {/each}
-          </SelectContent>
-        </SelectRoot>
-      {/snippet}
-    </FormField>
-    <Button type="submit" disabled={!canInvite || busy}>Invite</Button>
-  </form>
+  <SchemaForm
+    form={inviteForm}
+    controller={inviteController}
+    labels={{ submitted: 'Invitation added to the simulated inbox.', submitting: 'Sending invitation' }}
+    aria-label="Invite someone"
+    class="py-saas-form"
+    data-py-saas-form="invite"
+    inert={canInvite ? undefined : true}
+  />
   <div class="grid gap-2">
     <h3 class="font-medium">Current members</h3>
     <ul class="divide-y divide-border rounded-md border border-border">
@@ -194,3 +227,10 @@ onMount(() => {
   }}
   onCancel={() => (revoking = null)}
 />
+
+<style>
+  /* The section heading names the form; SchemaForm's own title stays its aria-label only. */
+  :global(.py-saas-form .tx-forms__title) {
+    display: none;
+  }
+</style>

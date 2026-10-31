@@ -95,6 +95,7 @@ async function create(input: EntityInput) {
           {blueprint}
           services={filteredServices}
           {initial}
+          showTitle={false}
           onSubmit={create}
           onCancel={() => (createOpen = false)}
         />
