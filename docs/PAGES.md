@@ -165,8 +165,38 @@ browser database and namespace.
   the slash menu (`/` in an empty line), block reordering by drag or
   `Alt`+arrow keys, and undo and redo on the `@texuli/document` op log.
 - **Apply changes** converts the edited document back to the doc body, and the
-  reading view shows it with forms and interactive blocks still working.
-  **Reset to the original** drops the edits.
+  reading view shows it with forms and interactive blocks still working. With
+  a runtime (the player, generated doc prototypes and the doc template), the
+  edits are saved in the browser's IndexedDB for this doc and world, so they
+  survive a reload. **Reset to the original** deletes them.
+
+### Saved edits
+
+`createDocEditServices(runtime)` from `@protoyard/pages` owns the saved edits.
+The content-kind runtime declares their `docEdits` store from database
+version 2 (`KIND_DATABASE_VERSIONS`); a browser that holds version 1 data
+upgrades in place and keeps its block states and form responses.
+
+- **What is stored:** one row per doc and world, keyed by the storage
+  namespace and the doc id, holding the edited doc's `blocks`, a fingerprint
+  of the doc they were made on, the time and the simulated persona. The doc's
+  title, TOC and print settings always come from the blueprint.
+- **Writes** follow the service contract: `save` and `reset` assert
+  `DOC_CAPABILITIES.edit` (viewers can read saved edits but not save or reset
+  them), validate, then run through `environment.run` and a Dexie
+  transaction. Apply and Reset stay pending until the write settles; a
+  refused save is named in the editor, which stays open.
+- **Loading re-validates** every row as untrusted: the row shape, then the doc
+  it makes through `DocDocumentSchema` and the doc limits. A row that fails is
+  never painted; the doc shows its original text with a notice and a Reset.
+- **A changed doc** (the blueprint was edited, so the fingerprint differs)
+  does not show older edits. A notice says they are for an earlier version,
+  and Reset clears them.
+- **A world reset or scenario load** clears saved edits with the rest of the
+  world. They are not part of the blueprint or its share link: to keep or
+  share an edited doc, download it.
+- `DocApp` without a runtime (a bare reading view) keeps edits in the tab only,
+  and says so.
 
 The doc body in the blueprint stays the stored and shared format, so every
 blueprint and share link keeps validating. `docToTexuliDocument` and
@@ -187,8 +217,9 @@ them.
 
 Honest limits:
 
-- **Edits live in this tab.** The kind runtime has no doc store yet, so a
-  reload drops them. Download to keep a copy.
+- **Saved edits stay in this browser and world.** They are not written back
+  to the blueprint, a share link or another browser. Download to keep or send
+  a copy.
 - A placeholder's content (a chart's data, a form's fields) is edited in the
   blueprint, not in the editor.
 - Heading eyebrows and subtitles, quote citations and list icons are kept but

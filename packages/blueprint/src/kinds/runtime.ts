@@ -11,7 +11,11 @@ import {
   type Theme,
   type WorldSeed,
 } from '@protoyard/core';
-import { FORM_CAPABILITIES, FORM_RESPONSES_STORE_STRING } from '@protoyard/pages';
+import {
+  DOC_EDITS_STORE_STRING,
+  FORM_CAPABILITIES,
+  FORM_RESPONSES_STORE_STRING,
+} from '@protoyard/pages';
 import type { ContentBlueprint } from './envelope.ts';
 import type { ContentKind } from './kind.ts';
 
@@ -21,10 +25,11 @@ import type { ContentKind } from './kind.ts';
  * entity derivations. Both the player and generated kind prototypes use it,
  * so a deck behaves the same at both levels.
  *
- * - **Storage:** one Dexie version with two stores: `blockStates`
- *   (interactive block state, keyed by `stateKey(documentId, blockId)`) and
- *   `formResponses` (submitted form blocks). Writes go through the services
- *   in `services.ts`, never components.
+ * - **Storage:** three stores: `blockStates` (interactive block state, keyed
+ *   by `stateKey(documentId, blockId)`), `formResponses` (submitted form
+ *   blocks) and, from database version 2, `docEdits` (a doc's saved edits,
+ *   `@protoyard/pages` `createDocEditServices`). Writes go through services,
+ *   never components.
  * - **World:** one `default` scenario and three simulated personas, a
  *   presenter, an audience member and a viewer, built from fixed data (no
  *   world generator, no Faker). `generateWorld` makes the runtime skip the
@@ -49,7 +54,28 @@ export const KIND_STORES = Object.freeze({
    * `@protoyard/pages` `FORM_RESPONSES_STORE_STRING` (lead form contract).
    */
   formResponses: FORM_RESPONSES_STORE_STRING,
+  /**
+   * Saved doc edits, one row per doc and world — same row contract as
+   * `@protoyard/pages` `DOC_EDITS_STORE_STRING` (PLAN_008 decision D3).
+   */
+  docEdits: DOC_EDITS_STORE_STRING,
 });
+
+/**
+ * The database versions of a content-kind prototype. Version 1 had no
+ * `docEdits`; version 2 adds it, so a browser that holds version 1 data
+ * upgrades in place and keeps its block states and form responses.
+ */
+export const KIND_DATABASE_VERSIONS = Object.freeze([
+  {
+    version: 1,
+    stores: { blockStates: KIND_STORES.blockStates, formResponses: KIND_STORES.formResponses },
+  },
+  { version: 2, stores: { ...KIND_STORES } },
+]);
+
+/** The latest kind database version (the manifest's `storage.schemaVersion`). */
+export const KIND_SCHEMA_VERSION = 2;
 
 /**
  * Capabilities the kind services assert (simulated policy, not security).
@@ -188,7 +214,7 @@ export function kindWorld(scenario: Pick<Scenario, 'referenceTime' | 'organizati
     organizations: [organization],
     personas,
     memberships,
-    tables: { blockStates: [], formResponses: [] },
+    tables: { blockStates: [], formResponses: [], docEdits: [] },
   };
 }
 
@@ -218,12 +244,17 @@ export function defineKindPrototype(
     defaultScenario: KIND_DEFAULT_SCENARIO,
     defaultTheme: options.defaultThemeId ?? 'violet',
     preview: { viewport: 'desktop' },
-    storage: { namespace: options.namespace, schemaVersion: 1 },
+    storage: { namespace: options.namespace, schemaVersion: KIND_SCHEMA_VERSION },
     scenarios: scenarios.map((scenario) => scenario.id),
   });
   return definePrototype({
     manifest,
-    database: { versions: [{ version: 1, stores: { ...KIND_STORES } }] },
+    database: {
+      versions: KIND_DATABASE_VERSIONS.map((entry) => ({
+        version: entry.version,
+        stores: { ...entry.stores },
+      })),
+    },
     scenarios,
     policy: kindPolicy(),
     ...(theme ? { themes: [theme] } : {}),

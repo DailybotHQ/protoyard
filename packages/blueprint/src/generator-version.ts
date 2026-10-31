@@ -13,6 +13,12 @@ export const BLUEPRINT_GENERATOR_SDK = 6;
 
 /** Stable hash of a blueprint's generative surface (entities, fields, features). */
 export function hashBlueprint(blueprint: Blueprint): number {
+  // Json fields a canvas screen stores boards in seed a canvas instead of the generic value.
+  const canvasFields = new Set(
+    blueprint.screens.flatMap((screen) =>
+      screen.type === 'canvas' ? [`${screen.entity}.${screen.field}`] : []
+    )
+  );
   const payload = {
     name: blueprint.name,
     entities: blueprint.entities.map((entity) => ({
@@ -39,6 +45,7 @@ export function hashBlueprint(blueprint: Blueprint): number {
         ...('window' in field ? { window: field.window ?? null } : {}),
         ...('trend' in field ? { trend: field.trend ?? null } : {}),
         ...('default' in field ? { default: field.default ?? null } : {}),
+        ...(canvasFields.has(`${entity.name}.${field.name}`) ? { canvas: true } : {}),
       })),
     })),
   };

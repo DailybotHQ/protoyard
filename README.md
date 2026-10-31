@@ -249,7 +249,7 @@ roles, scenarios, tests and a spec, and runs as a live demo with
 </table>
 </details>
 
-**40 product blueprints** in [`blueprints/`](blueprints/README.md), from CRM
+**43 product blueprints** in [`blueprints/`](blueprints/README.md), from CRM
 and inventory to veterinary clinics and utility outages, each one command away
 from a working prototype, plus deck, page and doc examples in `decks/`,
 `pages/` and `docs/`. The gallery's Marketplace (`/marketplace/`) lists

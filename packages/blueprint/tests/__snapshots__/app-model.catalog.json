@@ -4267,6 +4267,292 @@
       "settings"
     ]
   },
+  "blueprints/home-renovation.json": {
+    "routes": [
+      {
+        "name": "home",
+        "description": "Overview with a count per entity",
+        "path": "/",
+        "title": "Home",
+        "view": "home"
+      },
+      {
+        "name": "screen-ListProject",
+        "description": "List screen for Projects",
+        "path": "/projects",
+        "title": "Projects",
+        "view": "entity",
+        "entity": "project",
+        "screenIndex": 1,
+        "screenType": "list"
+      },
+      {
+        "name": "project-detail",
+        "description": "One project: edit form",
+        "path": "/projects/:id",
+        "title": "Projects",
+        "view": "entity",
+        "entity": "project"
+      },
+      {
+        "name": "screen-ListRoom",
+        "description": "List screen for Rooms",
+        "path": "/rooms",
+        "title": "Rooms",
+        "view": "entity",
+        "entity": "room",
+        "screenIndex": 3,
+        "screenType": "list"
+      },
+      {
+        "name": "room-detail",
+        "description": "One room: edit form",
+        "path": "/rooms/:id",
+        "title": "Rooms",
+        "view": "entity",
+        "entity": "room"
+      },
+      {
+        "name": "screen-ListMaterial",
+        "description": "List screen for Materials",
+        "path": "/materials",
+        "title": "Materials",
+        "view": "entity",
+        "entity": "material",
+        "screenIndex": 5,
+        "screenType": "list"
+      },
+      {
+        "name": "material-detail",
+        "description": "One material: edit form",
+        "path": "/materials/:id",
+        "title": "Materials",
+        "view": "entity",
+        "entity": "material"
+      },
+      {
+        "name": "screen-ListContractor",
+        "description": "List screen for Contractors",
+        "path": "/contractors",
+        "title": "Contractors",
+        "view": "entity",
+        "entity": "contractor",
+        "screenIndex": 7,
+        "screenType": "list"
+      },
+      {
+        "name": "contractor-detail",
+        "description": "One contractor: edit form",
+        "path": "/contractors/:id",
+        "title": "Contractors",
+        "view": "entity",
+        "entity": "contractor"
+      },
+      {
+        "name": "screen-Dashboard1",
+        "description": "Dashboard screen",
+        "path": "/dashboard",
+        "title": "Overview",
+        "view": "screen",
+        "screenIndex": 0,
+        "screenType": "dashboard",
+        "component": "Dashboard1Screen"
+      },
+      {
+        "name": "screen-FormProject",
+        "description": "Form screen for Projects",
+        "path": "/projects/new",
+        "title": "Projects form",
+        "view": "entity",
+        "entity": "project",
+        "screenIndex": 2,
+        "screenType": "form"
+      },
+      {
+        "name": "screen-FormRoom",
+        "description": "Form screen for Rooms",
+        "path": "/rooms/new",
+        "title": "Rooms form",
+        "view": "entity",
+        "entity": "room",
+        "screenIndex": 4,
+        "screenType": "form"
+      },
+      {
+        "name": "screen-FormMaterial",
+        "description": "Form screen for Materials",
+        "path": "/materials/new",
+        "title": "Materials form",
+        "view": "entity",
+        "entity": "material",
+        "screenIndex": 6,
+        "screenType": "form"
+      },
+      {
+        "name": "screen-FormContractor",
+        "description": "Form screen for Contractors",
+        "path": "/contractors/new",
+        "title": "Contractors form",
+        "view": "entity",
+        "entity": "contractor",
+        "screenIndex": 8,
+        "screenType": "form"
+      },
+      {
+        "name": "screen-SheetMaterial",
+        "description": "Sheet screen for Materials",
+        "path": "/materials/sheet",
+        "title": "Budget sheet",
+        "view": "screen",
+        "screenIndex": 9,
+        "screenType": "sheet",
+        "component": "SheetMaterialScreen",
+        "entity": "material"
+      },
+      {
+        "name": "screen-CanvasProject",
+        "description": "Canvas screen for Projects",
+        "path": "/projects/canvas",
+        "title": "Floor plans",
+        "view": "screen",
+        "screenIndex": 10,
+        "screenType": "canvas",
+        "component": "CanvasProjectScreen",
+        "entity": "project"
+      },
+      {
+        "name": "screen-TimelineProject",
+        "description": "Timeline screen for Projects",
+        "path": "/projects/timeline",
+        "title": "Schedule",
+        "view": "screen",
+        "screenIndex": 11,
+        "screenType": "timeline",
+        "component": "TimelineProjectScreen",
+        "entity": "project"
+      },
+      {
+        "name": "screen-Settings",
+        "description": "Settings screen",
+        "path": "/settings",
+        "title": "Settings",
+        "view": "screen",
+        "screenIndex": 12,
+        "screenType": "settings",
+        "component": "SettingsScreen"
+      },
+      {
+        "name": "members",
+        "description": "Workspace people and their simulated roles",
+        "path": "/members",
+        "title": "Members",
+        "view": "members"
+      }
+    ],
+    "nav": [
+      {
+        "path": "/",
+        "label": "Home",
+        "icon": "layout-dashboard",
+        "exact": true
+      },
+      {
+        "path": "/dashboard",
+        "label": "Overview",
+        "icon": "layout-dashboard"
+      },
+      {
+        "path": "/materials/sheet",
+        "label": "Budget sheet",
+        "icon": "table"
+      },
+      {
+        "path": "/projects/canvas",
+        "label": "Floor plans",
+        "icon": "house"
+      },
+      {
+        "path": "/projects/timeline",
+        "label": "Schedule",
+        "icon": "chart-gantt"
+      },
+      {
+        "path": "/settings",
+        "label": "Settings",
+        "icon": "settings"
+      },
+      {
+        "path": "/projects",
+        "label": "Projects",
+        "icon": "database"
+      },
+      {
+        "path": "/rooms",
+        "label": "Rooms",
+        "icon": "database"
+      },
+      {
+        "path": "/materials",
+        "label": "Materials",
+        "icon": "database"
+      },
+      {
+        "path": "/contractors",
+        "label": "Contractors",
+        "icon": "database"
+      },
+      {
+        "path": "/members",
+        "label": "Members",
+        "icon": "users"
+      }
+    ],
+    "navGroups": [
+      {
+        "label": "Overview",
+        "paths": [
+          "/"
+        ]
+      },
+      {
+        "label": "Records",
+        "paths": [
+          "/projects",
+          "/rooms",
+          "/materials",
+          "/contractors"
+        ]
+      },
+      {
+        "label": "Views",
+        "paths": [
+          "/dashboard",
+          "/materials/sheet",
+          "/projects/canvas",
+          "/projects/timeline"
+        ]
+      },
+      {
+        "label": "Workspace",
+        "paths": [
+          "/members",
+          "/settings"
+        ]
+      }
+    ],
+    "layout": {
+      "id": "sidebar"
+    },
+    "icons": [
+      "database",
+      "users",
+      "layout-dashboard",
+      "table",
+      "house",
+      "chart-gantt",
+      "settings"
+    ]
+  },
   "blueprints/incident-management.json": {
     "routes": [
       {
@@ -5505,6 +5791,292 @@
       "users",
       "layout-dashboard",
       "clock",
+      "settings"
+    ]
+  },
+  "blueprints/lesson-planning.json": {
+    "routes": [
+      {
+        "name": "home",
+        "description": "Overview with a count per entity",
+        "path": "/",
+        "title": "Home",
+        "view": "home"
+      },
+      {
+        "name": "screen-ListUnit",
+        "description": "List screen for Units",
+        "path": "/units",
+        "title": "Units",
+        "view": "entity",
+        "entity": "unit",
+        "screenIndex": 1,
+        "screenType": "list"
+      },
+      {
+        "name": "unit-detail",
+        "description": "One unit: edit form",
+        "path": "/units/:id",
+        "title": "Units",
+        "view": "entity",
+        "entity": "unit"
+      },
+      {
+        "name": "screen-ListLesson",
+        "description": "List screen for Lessons",
+        "path": "/lessons",
+        "title": "Lessons",
+        "view": "entity",
+        "entity": "lesson",
+        "screenIndex": 3,
+        "screenType": "list"
+      },
+      {
+        "name": "lesson-detail",
+        "description": "One lesson: edit form",
+        "path": "/lessons/:id",
+        "title": "Lessons",
+        "view": "entity",
+        "entity": "lesson"
+      },
+      {
+        "name": "screen-ListStudent",
+        "description": "List screen for Students",
+        "path": "/students",
+        "title": "Students",
+        "view": "entity",
+        "entity": "student",
+        "screenIndex": 5,
+        "screenType": "list"
+      },
+      {
+        "name": "student-detail",
+        "description": "One student: edit form",
+        "path": "/students/:id",
+        "title": "Students",
+        "view": "entity",
+        "entity": "student"
+      },
+      {
+        "name": "screen-ListScore",
+        "description": "List screen for Scores",
+        "path": "/scores",
+        "title": "Scores",
+        "view": "entity",
+        "entity": "score",
+        "screenIndex": 7,
+        "screenType": "list"
+      },
+      {
+        "name": "score-detail",
+        "description": "One score: edit form",
+        "path": "/scores/:id",
+        "title": "Scores",
+        "view": "entity",
+        "entity": "score"
+      },
+      {
+        "name": "screen-Dashboard1",
+        "description": "Dashboard screen",
+        "path": "/dashboard",
+        "title": "Overview",
+        "view": "screen",
+        "screenIndex": 0,
+        "screenType": "dashboard",
+        "component": "Dashboard1Screen"
+      },
+      {
+        "name": "screen-FormUnit",
+        "description": "Form screen for Units",
+        "path": "/units/new",
+        "title": "Units form",
+        "view": "entity",
+        "entity": "unit",
+        "screenIndex": 2,
+        "screenType": "form"
+      },
+      {
+        "name": "screen-FormLesson",
+        "description": "Form screen for Lessons",
+        "path": "/lessons/new",
+        "title": "Lessons form",
+        "view": "entity",
+        "entity": "lesson",
+        "screenIndex": 4,
+        "screenType": "form"
+      },
+      {
+        "name": "screen-FormStudent",
+        "description": "Form screen for Students",
+        "path": "/students/new",
+        "title": "Students form",
+        "view": "entity",
+        "entity": "student",
+        "screenIndex": 6,
+        "screenType": "form"
+      },
+      {
+        "name": "screen-FormScore",
+        "description": "Form screen for Scores",
+        "path": "/scores/new",
+        "title": "Scores form",
+        "view": "entity",
+        "entity": "score",
+        "screenIndex": 8,
+        "screenType": "form"
+      },
+      {
+        "name": "screen-SheetScore",
+        "description": "Sheet screen for Scores",
+        "path": "/scores/sheet",
+        "title": "Gradebook",
+        "view": "screen",
+        "screenIndex": 9,
+        "screenType": "sheet",
+        "component": "SheetScoreScreen",
+        "entity": "score"
+      },
+      {
+        "name": "screen-CanvasUnit",
+        "description": "Canvas screen for Units",
+        "path": "/units/canvas",
+        "title": "Planning boards",
+        "view": "screen",
+        "screenIndex": 10,
+        "screenType": "canvas",
+        "component": "CanvasUnitScreen",
+        "entity": "unit"
+      },
+      {
+        "name": "screen-CalendarLesson",
+        "description": "Calendar screen for Lessons",
+        "path": "/lessons/calendar",
+        "title": "Calendar",
+        "view": "screen",
+        "screenIndex": 11,
+        "screenType": "calendar",
+        "component": "CalendarLessonScreen",
+        "entity": "lesson"
+      },
+      {
+        "name": "screen-Settings",
+        "description": "Settings screen",
+        "path": "/settings",
+        "title": "Settings",
+        "view": "screen",
+        "screenIndex": 12,
+        "screenType": "settings",
+        "component": "SettingsScreen"
+      },
+      {
+        "name": "members",
+        "description": "Workspace people and their simulated roles",
+        "path": "/members",
+        "title": "Members",
+        "view": "members"
+      }
+    ],
+    "nav": [
+      {
+        "path": "/",
+        "label": "Home",
+        "icon": "layout-dashboard",
+        "exact": true
+      },
+      {
+        "path": "/dashboard",
+        "label": "Overview",
+        "icon": "layout-dashboard"
+      },
+      {
+        "path": "/scores/sheet",
+        "label": "Gradebook",
+        "icon": "table"
+      },
+      {
+        "path": "/units/canvas",
+        "label": "Planning boards",
+        "icon": "graduation-cap"
+      },
+      {
+        "path": "/lessons/calendar",
+        "label": "Calendar",
+        "icon": "calendar"
+      },
+      {
+        "path": "/settings",
+        "label": "Settings",
+        "icon": "settings"
+      },
+      {
+        "path": "/units",
+        "label": "Units",
+        "icon": "database"
+      },
+      {
+        "path": "/lessons",
+        "label": "Lessons",
+        "icon": "database"
+      },
+      {
+        "path": "/students",
+        "label": "Students",
+        "icon": "database"
+      },
+      {
+        "path": "/scores",
+        "label": "Scores",
+        "icon": "database"
+      },
+      {
+        "path": "/members",
+        "label": "Members",
+        "icon": "users"
+      }
+    ],
+    "navGroups": [
+      {
+        "label": "Overview",
+        "paths": [
+          "/"
+        ]
+      },
+      {
+        "label": "Records",
+        "paths": [
+          "/units",
+          "/lessons",
+          "/students",
+          "/scores"
+        ]
+      },
+      {
+        "label": "Views",
+        "paths": [
+          "/dashboard",
+          "/scores/sheet",
+          "/units/canvas",
+          "/lessons/calendar"
+        ]
+      },
+      {
+        "label": "Workspace",
+        "paths": [
+          "/members",
+          "/settings"
+        ]
+      }
+    ],
+    "layout": {
+      "id": "sidebar"
+    },
+    "icons": [
+      "database",
+      "users",
+      "layout-dashboard",
+      "table",
+      "graduation-cap",
+      "calendar",
       "settings"
     ]
   },
@@ -7758,6 +8330,291 @@
       "users",
       "layout-dashboard",
       "calendar-days",
+      "settings"
+    ]
+  },
+  "blueprints/product-discovery.json": {
+    "routes": [
+      {
+        "name": "home",
+        "description": "Overview with a count per entity",
+        "path": "/",
+        "title": "Home",
+        "view": "home"
+      },
+      {
+        "name": "screen-ListInitiative",
+        "description": "List screen for Initiatives",
+        "path": "/initiatives",
+        "title": "Initiatives",
+        "view": "entity",
+        "entity": "initiative",
+        "screenIndex": 1,
+        "screenType": "list"
+      },
+      {
+        "name": "initiative-detail",
+        "description": "One initiative: edit form",
+        "path": "/initiatives/:id",
+        "title": "Initiatives",
+        "view": "entity",
+        "entity": "initiative"
+      },
+      {
+        "name": "screen-ListFeature",
+        "description": "List screen for Features",
+        "path": "/features",
+        "title": "Features",
+        "view": "entity",
+        "entity": "feature",
+        "screenIndex": 3,
+        "screenType": "list"
+      },
+      {
+        "name": "feature-detail",
+        "description": "One feature: edit form",
+        "path": "/features/:id",
+        "title": "Features",
+        "view": "entity",
+        "entity": "feature"
+      },
+      {
+        "name": "screen-ListInterview",
+        "description": "List screen for Interviews",
+        "path": "/interviews",
+        "title": "Interviews",
+        "view": "entity",
+        "entity": "interview",
+        "screenIndex": 5,
+        "screenType": "list"
+      },
+      {
+        "name": "interview-detail",
+        "description": "One interview: edit form",
+        "path": "/interviews/:id",
+        "title": "Interviews",
+        "view": "entity",
+        "entity": "interview"
+      },
+      {
+        "name": "screen-ListSquad",
+        "description": "List screen for Squads",
+        "path": "/squads",
+        "title": "Squads",
+        "view": "entity",
+        "entity": "squad",
+        "screenIndex": 7,
+        "screenType": "list"
+      },
+      {
+        "name": "squad-detail",
+        "description": "One squad: edit form",
+        "path": "/squads/:id",
+        "title": "Squads",
+        "view": "entity",
+        "entity": "squad"
+      },
+      {
+        "name": "screen-Dashboard1",
+        "description": "Dashboard screen",
+        "path": "/dashboard",
+        "title": "Overview",
+        "view": "screen",
+        "screenIndex": 0,
+        "screenType": "dashboard",
+        "component": "Dashboard1Screen"
+      },
+      {
+        "name": "screen-FormInitiative",
+        "description": "Form screen for Initiatives",
+        "path": "/initiatives/new",
+        "title": "Initiatives form",
+        "view": "entity",
+        "entity": "initiative",
+        "screenIndex": 2,
+        "screenType": "form"
+      },
+      {
+        "name": "screen-FormFeature",
+        "description": "Form screen for Features",
+        "path": "/features/new",
+        "title": "Features form",
+        "view": "entity",
+        "entity": "feature",
+        "screenIndex": 4,
+        "screenType": "form"
+      },
+      {
+        "name": "screen-FormInterview",
+        "description": "Form screen for Interviews",
+        "path": "/interviews/new",
+        "title": "Interviews form",
+        "view": "entity",
+        "entity": "interview",
+        "screenIndex": 6,
+        "screenType": "form"
+      },
+      {
+        "name": "screen-FormSquad",
+        "description": "Form screen for Squads",
+        "path": "/squads/new",
+        "title": "Squads form",
+        "view": "entity",
+        "entity": "squad",
+        "screenIndex": 8,
+        "screenType": "form"
+      },
+      {
+        "name": "screen-SheetFeature",
+        "description": "Sheet screen for Features",
+        "path": "/features/sheet",
+        "title": "Sizing sheet",
+        "view": "screen",
+        "screenIndex": 9,
+        "screenType": "sheet",
+        "component": "SheetFeatureScreen",
+        "entity": "feature"
+      },
+      {
+        "name": "screen-CanvasInitiative",
+        "description": "Canvas screen for Initiatives",
+        "path": "/initiatives/canvas",
+        "title": "Opportunity maps",
+        "view": "screen",
+        "screenIndex": 10,
+        "screenType": "canvas",
+        "component": "CanvasInitiativeScreen",
+        "entity": "initiative"
+      },
+      {
+        "name": "screen-BoardFeature",
+        "description": "Board screen for Features",
+        "path": "/features/board",
+        "title": "Board",
+        "view": "screen",
+        "screenIndex": 11,
+        "screenType": "board",
+        "component": "BoardFeatureScreen",
+        "entity": "feature"
+      },
+      {
+        "name": "screen-Settings",
+        "description": "Settings screen",
+        "path": "/settings",
+        "title": "Settings",
+        "view": "screen",
+        "screenIndex": 12,
+        "screenType": "settings",
+        "component": "SettingsScreen"
+      },
+      {
+        "name": "members",
+        "description": "Workspace people and their simulated roles",
+        "path": "/members",
+        "title": "Members",
+        "view": "members"
+      }
+    ],
+    "nav": [
+      {
+        "path": "/",
+        "label": "Home",
+        "icon": "layout-dashboard",
+        "exact": true
+      },
+      {
+        "path": "/dashboard",
+        "label": "Overview",
+        "icon": "layout-dashboard"
+      },
+      {
+        "path": "/features/sheet",
+        "label": "Sizing sheet",
+        "icon": "table"
+      },
+      {
+        "path": "/initiatives/canvas",
+        "label": "Opportunity maps",
+        "icon": "layout-dashboard"
+      },
+      {
+        "path": "/features/board",
+        "label": "Board",
+        "icon": "kanban"
+      },
+      {
+        "path": "/settings",
+        "label": "Settings",
+        "icon": "settings"
+      },
+      {
+        "path": "/initiatives",
+        "label": "Initiatives",
+        "icon": "database"
+      },
+      {
+        "path": "/features",
+        "label": "Features",
+        "icon": "database"
+      },
+      {
+        "path": "/interviews",
+        "label": "Interviews",
+        "icon": "database"
+      },
+      {
+        "path": "/squads",
+        "label": "Squads",
+        "icon": "database"
+      },
+      {
+        "path": "/members",
+        "label": "Members",
+        "icon": "users"
+      }
+    ],
+    "navGroups": [
+      {
+        "label": "Overview",
+        "paths": [
+          "/"
+        ]
+      },
+      {
+        "label": "Records",
+        "paths": [
+          "/initiatives",
+          "/features",
+          "/interviews",
+          "/squads"
+        ]
+      },
+      {
+        "label": "Views",
+        "paths": [
+          "/dashboard",
+          "/features/sheet",
+          "/initiatives/canvas",
+          "/features/board"
+        ]
+      },
+      {
+        "label": "Workspace",
+        "paths": [
+          "/members",
+          "/settings"
+        ]
+      }
+    ],
+    "layout": {
+      "id": "sidebar"
+    },
+    "icons": [
+      "database",
+      "users",
+      "layout-dashboard",
+      "table",
+      "kanban",
       "settings"
     ]
   },

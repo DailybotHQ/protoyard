@@ -126,9 +126,9 @@ Package and app references live next to the code: each `packages/*/README.md`,
 | [create-protoyard](../packages/create-protoyard/README.md) | The workspace scaffolder behind `npm create protoyard` (once published) |
 
 Product blueprints for `protoyard generate` live in
-[blueprints/](../blueprints/README.md): 40 app blueprints plus deck, page and
+[blueprints/](../blueprints/README.md): 43 app blueprints plus deck, page and
 doc examples in `decks/`, `pages/` and `docs/` (`pnpm protoyard list --kind
-blueprint` lists all 47). `create-anything-deck` is generated from the
+blueprint` lists all 51). `create-anything-deck` is generated from the
 flagship deck blueprint. `helpdesk-demo` (Beacon Help Desk)
 is the first `protoyard generate` flagship: `blueprint.json` → CRUD + SLA
 dashboard + ticket workspace ([README](../prototypes/helpdesk-demo/README.md)).

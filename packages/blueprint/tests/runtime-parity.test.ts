@@ -125,8 +125,8 @@ const SCENARIO = parseScenario({
 });
 
 describe('runtime and codegen parity over the catalog', () => {
-  it('covers the 40 catalog blueprints', () => {
-    expect(CATALOG.length).toBeGreaterThanOrEqual(40);
+  it('covers the 43 catalog blueprints', () => {
+    expect(CATALOG.length).toBeGreaterThanOrEqual(43);
   });
 
   it.each(CATALOG)(

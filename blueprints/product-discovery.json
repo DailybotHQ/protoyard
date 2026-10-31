@@ -1,0 +1,345 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Brightloom Discovery",
+  "description": "Opportunity maps, a feature sizing sheet and customer interviews for a fictional product team deciding what to build next.",
+  "icon": "🧭",
+  "category": "productivity",
+  "tags": ["product", "roadmap", "discovery", "prioritization"],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Product discovery",
+    "features": ["opportunity-mapping", "feature-sizing"],
+    "highlights": ["Opportunity map canvas", "Feature sizing sheet", "Delivery board"],
+    "platforms": ["web"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "product-discovery-brand",
+    "name": "Brightloom Discovery",
+    "seed": "#5b4fc4",
+    "styleProfile": "rounded",
+    "font": "geometric"
+  },
+  "entities": [
+    {
+      "name": "initiative",
+      "plural": "initiatives",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "stage",
+          "kind": "enum",
+          "values": ["exploring", "validating", "committed", "shipped"],
+          "default": "exploring",
+          "required": true,
+          "weights": [3, 3, 2, 1]
+        },
+        {
+          "name": "impact",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "default": "medium",
+          "required": true,
+          "weights": [2, 3, 2]
+        },
+        {
+          "name": "owner",
+          "kind": "persona"
+        },
+        {
+          "name": "targetDate",
+          "kind": "date",
+          "window": "future"
+        },
+        {
+          "name": "opportunityMap",
+          "kind": "json"
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "feature",
+      "plural": "features",
+      "titleField": "title",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "initiative",
+          "kind": "relation",
+          "to": "initiative",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["idea", "sized", "building", "released"],
+          "default": "idea",
+          "required": true,
+          "weights": [3, 3, 2, 1]
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["p1", "p2", "p3"],
+          "default": "p2",
+          "required": true,
+          "weights": [1, 2, 2]
+        },
+        {
+          "name": "estimateDays",
+          "kind": "integer",
+          "min": 1,
+          "max": 40
+        },
+        {
+          "name": "reach",
+          "kind": "integer",
+          "min": 50,
+          "max": 20000,
+          "trend": "growth"
+        },
+        {
+          "name": "confidence",
+          "kind": "number",
+          "min": 0.1,
+          "max": 1
+        }
+      ],
+      "searchable": ["title"]
+    },
+    {
+      "name": "interview",
+      "plural": "interviews",
+      "titleField": "summary",
+      "fields": [
+        {
+          "name": "summary",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "participant",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        {
+          "name": "initiative",
+          "kind": "relation",
+          "to": "initiative",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "sentiment",
+          "kind": "enum",
+          "values": ["frustrated", "neutral", "excited"],
+          "default": "neutral",
+          "required": true,
+          "weights": [2, 3, 2]
+        },
+        {
+          "name": "heldAt",
+          "kind": "datetime",
+          "window": "past"
+        }
+      ],
+      "searchable": ["summary", "participant"]
+    },
+    {
+      "name": "squad",
+      "plural": "squads",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "focusArea",
+          "kind": "text"
+        },
+        {
+          "name": "engineers",
+          "kind": "integer",
+          "min": 2,
+          "max": 12
+        }
+      ],
+      "searchable": ["name"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Brightloom Discovery overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total features",
+          "entity": "feature",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "features over time",
+          "entity": "feature",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        },
+        {
+          "kind": "board-summary",
+          "label": "features by status",
+          "entity": "feature",
+          "groupBy": "status",
+          "span": 2
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "initiative",
+      "columns": ["name", "stage", "impact"]
+    },
+    {
+      "type": "form",
+      "entity": "initiative"
+    },
+    {
+      "type": "list",
+      "entity": "feature",
+      "columns": ["title", "initiative", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "feature"
+    },
+    {
+      "type": "list",
+      "entity": "interview",
+      "columns": ["summary", "participant", "sentiment"]
+    },
+    {
+      "type": "form",
+      "entity": "interview"
+    },
+    {
+      "type": "list",
+      "entity": "squad",
+      "columns": ["name", "focusArea", "engineers"]
+    },
+    {
+      "type": "form",
+      "entity": "squad"
+    },
+    {
+      "type": "sheet",
+      "entity": "feature",
+      "columns": [
+        "title",
+        "initiative",
+        "status",
+        "priority",
+        "estimateDays",
+        "reach",
+        "confidence"
+      ],
+      "totals": ["estimateDays", "reach"],
+      "path": "/features/sheet",
+      "title": "Feature sizing",
+      "nav": {
+        "label": "Sizing sheet",
+        "icon": "table",
+        "order": 20
+      }
+    },
+    {
+      "type": "canvas",
+      "entity": "initiative",
+      "field": "opportunityMap",
+      "path": "/initiatives/canvas",
+      "title": "Opportunity maps",
+      "nav": {
+        "label": "Opportunity maps",
+        "icon": "layout-dashboard",
+        "order": 21
+      }
+    },
+    {
+      "type": "board",
+      "entity": "feature",
+      "groupBy": "status",
+      "cardFields": ["title", "priority", "estimateDays"],
+      "sumField": "estimateDays",
+      "path": "/features/board",
+      "title": "Delivery board",
+      "nav": {
+        "label": "Board",
+        "icon": "kanban",
+        "order": 22
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "workspace", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

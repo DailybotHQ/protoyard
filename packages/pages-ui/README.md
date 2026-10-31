@@ -157,8 +157,11 @@ rail on wide screens. Its active link follows the visible section. The
 Markdown. Edit loads `DocEditor` (the `@texuli/pages` `PageEditor`) on first
 use; downloads load `doc-export.ts` (`@texuli/pages/export` over the
 `@texuli/document` writers) on first click. Neither is in the doc entry's
-static graph (`tests/budget.test.ts` forbids it). Edits stay in the tab until
-reload or **Reset to the original**. Details and limits:
+static graph (`tests/budget.test.ts` forbids it). With a runtime, Apply saves
+the edits for this doc and world through `createDocEditServices` (the kind
+runtime's `docEdits` store), so they survive a reload; **Reset to the
+original** deletes them. Without a runtime, edits stay in the tab. Details and
+limits:
 [docs/PAGES.md](../../docs/PAGES.md#edit-and-download-a-doc).
 
 ## Forms and responses

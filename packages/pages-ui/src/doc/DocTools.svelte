@@ -13,16 +13,25 @@ let {
   doc,
   canEdit = true,
   edited = false,
+  saved = false,
+  canReset,
   onEdit,
   onReset,
 }: {
   doc: DocDocument;
   canEdit?: boolean;
-  /** The doc holds edits made in this tab. */
+  /** The doc shows edits instead of its original body. */
   edited?: boolean;
+  /** Edits are saved for this world (a kind runtime store), not only held in the tab. */
+  saved?: boolean;
+  /** Show Reset (default: when the doc is edited). */
+  canReset?: boolean;
   onEdit?: () => void;
-  onReset?: () => void;
+  /** Returning a promise keeps the Reset button pending until it settles. */
+  onReset?: () => void | Promise<unknown>;
 } = $props();
+
+const showReset = $derived(canReset ?? edited);
 
 const FORMATS: readonly { format: DocExportFormat; label: string }[] = [
   { format: 'docx', label: 'Word' },
@@ -54,8 +63,8 @@ async function download(format: DocExportFormat): Promise<void> {
     {#if canEdit && onEdit}
       <Button variant="outline" size="sm" data-py-doc-edit onclick={onEdit}>Edit</Button>
     {/if}
-    {#if edited && onReset}
-      <Button variant="ghost" size="sm" data-py-doc-reset onclick={onReset}>
+    {#if showReset && onReset}
+      <Button variant="ghost" size="sm" data-py-doc-reset onclick={() => onReset()}>
         Reset to the original
       </Button>
     {/if}
@@ -76,7 +85,9 @@ async function download(format: DocExportFormat): Promise<void> {
   </div>
   {#if edited}
     <p class="doc-tools__hint" data-py-doc-edited>
-      Edits stay in this tab until you reload or reset. Download to keep a copy.
+      {saved
+        ? 'Edits are saved in this browser for this world. Reset to go back to the original.'
+        : 'Edits stay in this tab until you reload or reset. Download to keep a copy.'}
     </p>
   {/if}
   <p class="doc-tools__status" role="status" data-py-doc-export-status>

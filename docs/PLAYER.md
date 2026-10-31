@@ -215,7 +215,7 @@ Generated worlds are cached by content address in `protoyard.player.worlds`:
 
 ## Parity with generated prototypes
 
-Level 1 and level 2 are one app (ADR-029). For each of the 40 catalog
+Level 1 and level 2 are one app (ADR-029). For each of the 43 catalog
 blueprints, `packages/blueprint/tests/runtime-parity.test.ts` generates a real
 prototype with the CLI and compares it with the player's runtime definition:
 - database versions, policy, integrity and scenarios;

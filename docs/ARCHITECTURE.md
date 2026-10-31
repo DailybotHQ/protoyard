@@ -227,8 +227,9 @@ generated kind prototypes (and the `templates/deck`, `templates/page`,
 
 ```text
 defineKindRuntime(doc)
-  ├─ database   one version: blockStates (key = stateKey(documentId, blockId)),
-  │             formResponses (same row contract as @protoyard/pages FormResponse)
+  ├─ database   v1: blockStates (key = stateKey(documentId, blockId)),
+  │             formResponses (same row contract as @protoyard/pages FormResponse);
+  │             v2 adds docEdits (saved doc edits, @protoyard/pages createDocEditServices)
   ├─ scenarios  `default` only
   ├─ world      generateWorld(scenario): one organization + presenter, audience, viewer personas
   │             (fixed data; no generation context, no Faker, no blueprint generator)

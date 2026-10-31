@@ -48,8 +48,8 @@ function load(file: string) {
 describe('marketplace blueprint catalog', () => {
   const files = listCatalogFiles();
 
-  it('ships at least 40 catalog blueprints', () => {
-    expect(files.length).toBeGreaterThanOrEqual(40);
+  it('ships at least 43 catalog blueprints', () => {
+    expect(files.length).toBeGreaterThanOrEqual(43);
   });
 
   it('parses every blueprint with brand + catalog and derives stores/policy/inputs', () => {
@@ -102,11 +102,7 @@ describe('marketplace blueprint catalog', () => {
         coverage.set(screen.type, (coverage.get(screen.type) ?? 0) + 1);
       }
     }
-    // `sheet` and `canvas` are exempt (PLAN_008 decision D4): adding them to a shipped catalog
-    // blueprint would change that blueprint's identity (identity-golden.test.ts, ADR-030) and
-    // orphan saved player worlds. T-templates-prototypes removes these exemptions once three new
-    // catalog blueprints with each screen ship.
-    for (const kind of SCREEN_TYPES.filter((type) => type !== 'sheet' && type !== 'canvas')) {
+    for (const kind of SCREEN_TYPES) {
       expect(
         coverage.get(kind) ?? 0,
         `${kind} appears in at least three blueprints`

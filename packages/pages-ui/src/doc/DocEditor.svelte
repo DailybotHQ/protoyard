@@ -17,7 +17,8 @@ import { untrack } from 'svelte';
  * blocks (charts, tables, forms, embedded apps…) show as labelled
  * placeholders that can be moved or removed; their content stays in the
  * blueprint. Applying converts the Texuli document back to the doc body
- * (`texuliDocumentToDoc`), so forms and interactive blocks keep working.
+ * (`texuliDocumentToDoc`), so forms and interactive blocks keep working,
+ * and hands it to DocApp, which saves it when the doc has a runtime.
  * Loaded on first use (its own chunk).
  */
 let {
@@ -26,8 +27,8 @@ let {
   onCancel,
 }: {
   doc: DocDocument;
-  /** The edited doc and what the conversion could not keep. */
-  onApply: (next: DocDocument, notes: DocConversionNote[]) => void;
+  /** The edited doc and what the conversion could not keep; a promise keeps Apply pending. */
+  onApply: (next: DocDocument, notes: DocConversionNote[]) => void | Promise<void>;
   onCancel: () => void;
 } = $props();
 
@@ -43,14 +44,26 @@ const labels: Partial<PagesLabels> = {
     'Shown in the reading view. Move or remove it here; change its content in the blueprint.',
 };
 
-function apply(): void {
+async function apply(): Promise<void> {
   const result = texuliDocumentToDoc(draft, doc);
   if (!result.ok) {
     issues = result.issues.slice(0, 5);
     return;
   }
   issues = [];
-  onApply(result.doc, result.notes);
+  try {
+    await onApply(result.doc, result.notes);
+  } catch (error) {
+    issues = [errorText(error)];
+  }
+}
+
+/** A refused save in plain words: the service's field messages, else its message. */
+function errorText(error: unknown): string {
+  const fields = (error as { issues?: Record<string, string> } | null)?.issues;
+  const first = fields ? Object.values(fields).find((text) => typeof text === 'string') : undefined;
+  if (first) return first;
+  return error instanceof Error && error.message ? error.message : 'The edits could not be saved.';
 }
 </script>
 
@@ -62,7 +75,7 @@ function apply(): void {
     </p>
     <div class="doc-editor__actions">
       <Button variant="ghost" size="sm" data-py-doc-editor-cancel onclick={onCancel}>Discard</Button>
-      <Button size="sm" data-py-doc-editor-apply disabled={!changed} onclick={apply}>
+      <Button size="sm" data-py-doc-editor-apply disabled={!changed} onclick={() => apply()}>
         Apply changes
       </Button>
     </div>

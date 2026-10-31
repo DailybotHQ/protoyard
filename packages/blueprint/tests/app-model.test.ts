@@ -129,8 +129,8 @@ const EDGES: { label: string; raw: BlueprintInput }[] = [
 ];
 
 describe('deriveAppModel', () => {
-  it('reads the 40 catalog blueprints', () => {
-    expect(catalog.length).toBeGreaterThanOrEqual(40);
+  it('reads the 43 catalog blueprints', () => {
+    expect(catalog.length).toBeGreaterThanOrEqual(43);
   });
 
   it('keeps every catalog, generated-prototype and edge-case model pinned', async () => {

@@ -261,7 +261,7 @@ pnpm protoyard list --kind template
 - **Unknown kinds:** fail closed with an upgrade message; do not invent a
   renderer.
 - **App vs content storage:** apps use entity tables; content kinds use
-  `blockStates` and `formResponses` only. Switching kind identity changes the
+  `blockStates`, `formResponses` and (database version 2) `docEdits` only. Switching kind identity changes the
   world namespace story — see [Player](PLAYER.md) storage notes.
 
 ## Related guides

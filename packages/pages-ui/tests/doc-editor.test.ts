@@ -68,6 +68,33 @@ describe('DocEditor (real @texuli/pages editor)', () => {
     );
   });
 
+  it('names a refused save and stays open', async () => {
+    const onApply = vi.fn().mockRejectedValue(
+      Object.assign(new Error('Validation failed'), {
+        issues: { document: 'These edits belong to another doc.' },
+      })
+    );
+    const view = render(DocEditor, { props: { doc, onApply, onCancel: vi.fn() } });
+    const handles = await waitFor(() => {
+      const found = view.container.querySelectorAll<HTMLElement>(
+        '[data-py-doc-editor] [aria-roledescription], [data-py-doc-editor] .tx-pages-handle'
+      );
+      expect(found.length).toBeGreaterThan(2);
+      return found;
+    });
+    const handle = handles[1] as HTMLElement;
+    handle.focus();
+    await fireEvent.keyDown(handle, { key: 'ArrowDown', altKey: true });
+    await waitFor(() =>
+      expect(
+        (view.getByRole('button', { name: 'Apply changes' }) as HTMLButtonElement).disabled
+      ).toBe(false)
+    );
+    await fireEvent.click(view.getByRole('button', { name: 'Apply changes' }));
+    expect(await view.findByText('These edits belong to another doc.')).toBeTruthy();
+    expect(view.container.querySelector('[data-py-doc-editor]')).toBeTruthy();
+  });
+
   it('discards through onCancel', async () => {
     const onCancel = vi.fn();
     const view = render(DocEditor, { props: { doc, onApply: vi.fn(), onCancel } });

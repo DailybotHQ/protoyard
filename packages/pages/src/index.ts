@@ -5,7 +5,8 @@
  * `docToTexuliDocument` and `texuliDocumentToDoc` bridge a doc body and a
  * `@texuli/document` document: the editor, reader tools and the DOCX, PDF
  * and Markdown writers work on Texuli's model, the blueprint stays the
- * stored format.
+ * stored format. `createDocEditServices` saves an applied edit per doc and
+ * world in the kind runtime's `docEdits` store.
  *
  * Document schemas validate the payload bodies after KINDS parses the kind
  * union. Limits are published for the untrusted loader (KINDS wires them).
@@ -13,6 +14,18 @@
  */
 
 export { DOC_CAPABILITIES } from './doc-capabilities.ts';
+export {
+  type CreateDocEditServicesOptions,
+  createDocEditServices,
+  DOC_EDITS_STORE_STRING,
+  DOC_EDITS_TABLE,
+  type DocEditRow,
+  type DocEditServices,
+  type DocEditsState,
+  docEditKey,
+  docFingerprint,
+  type SavedDocEdits,
+} from './doc-edits.ts';
 export {
   FORM_RESPONSE_LIMITS,
   FORM_RESPONSES_STORE_STRING,

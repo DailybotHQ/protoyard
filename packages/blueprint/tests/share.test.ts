@@ -42,8 +42,8 @@ function firstCode(result: ShareDecodeResult): string {
 }
 
 describe('blueprint share links', () => {
-  it('reads the 40 catalog blueprints', () => {
-    expect(catalog.length).toBeGreaterThanOrEqual(40);
+  it('reads the 43 catalog blueprints', () => {
+    expect(catalog.length).toBeGreaterThanOrEqual(43);
   });
 
   it('round-trips every catalog blueprint and stays far below the link cap', async () => {
@@ -63,9 +63,9 @@ describe('blueprint share links', () => {
       sizes.push({ name, json: JSON.stringify(raw).length, encoded: encoded.length });
     }
     const largest = sizes.reduce((max, size) => (size.encoded > max.encoded ? size : max));
-    // Reported size: the largest catalog link is ats-recruiting.json, measured at 1,945
-    // characters with Node's zlib (median 1,773, smallest 1,657), from about 3.9 KB of JSON.
-    expect(largest.name).toBe('ats-recruiting.json');
+    // Reported size: the largest catalog link is home-renovation.json, measured at 2,206
+    // characters with Node's zlib (median 1,776, smallest 1,657), from about 4.9 KB of JSON.
+    expect(largest.name).toBe('home-renovation.json');
     expect(largest.encoded).toBeLessThan(2_500);
     expect(largest.encoded).toBeLessThan(MAX_SHARE_ENCODED_LENGTH / 4);
     for (const size of sizes) expect(size.encoded, size.name).toBeLessThan(size.json);

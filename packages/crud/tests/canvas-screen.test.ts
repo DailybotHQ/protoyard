@@ -1,12 +1,18 @@
+import { readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import {
   type Blueprint,
   createEntityServices,
   deriveIntegrity,
   derivePolicy,
   deriveStores,
+  entityTable,
   parseBlueprint,
 } from '@protoyard/blueprint';
 import { createBlueprintGenerator } from '@protoyard/blueprint/generator';
+import { parseScenario } from '@protoyard/core';
+import { createGenerateContext } from '@protoyard/scenarios';
+import { validateCanvas } from '@protoyard/views-ui/canvas';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createBlueprintDefinition } from '../../../tests/fixtures/blueprint-prototype.ts';
@@ -164,5 +170,41 @@ describe('CanvasScreen', () => {
     expect(await screen.findByText(/can read this canvas but not edit it/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Import JSON' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Start over with a blank canvas' })).toBeNull();
+  });
+});
+
+describe('catalog canvas seeds', () => {
+  const catalog = ['home-renovation', 'product-discovery', 'lesson-planning'];
+
+  it.each(catalog)('%s seeds every canvas field with a canvas the view accepts', async (slug) => {
+    const raw = JSON.parse(
+      readFileSync(
+        join(resolve(import.meta.dirname, '../../..'), 'blueprints', `${slug}.json`),
+        'utf8'
+      )
+    );
+    const parsed = parseBlueprint(raw);
+    const scenario = parseScenario({
+      id: `canvas-${slug}`,
+      name: 'Canvas catalog',
+      seed: 9_001,
+      referenceTime: '2026-06-15T12:00:00.000Z',
+      density: 'normal',
+      organization: { id: 'org_canvas', name: 'Canvas Org', size: 6, ageDays: 90 },
+    });
+    const world = await createBlueprintGenerator(parsed).generate(createGenerateContext(scenario));
+    let checked = 0;
+    for (const canvasScreen of parsed.screens) {
+      if (canvasScreen.type !== 'canvas') continue;
+      const owner = parsed.entities.find((candidate) => candidate.name === canvasScreen.entity)!;
+      const rows = world.tables[entityTable(owner)] ?? [];
+      expect(rows.length, slug).toBeGreaterThan(0);
+      for (const row of rows) {
+        const result = validateCanvas(row[canvasScreen.field]);
+        expect(result.ok, `${slug} ${String(row.id)}: ${JSON.stringify(result)}`).toBe(true);
+        checked += 1;
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 });
