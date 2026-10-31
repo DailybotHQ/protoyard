@@ -418,5 +418,10 @@
     "id": "G122",
     "status": "open",
     "summary": "@texuli/data/dashboard/engine nudgeItem refuses a keyboard step that moves a widget past a wider widget below it, though moveItem can place it there"
+  },
+  {
+    "id": "G123",
+    "status": "open",
+    "summary": "@texuli/pages PageEditor and PageReader always reach the whole @texuli/player through EmbedView, with no opt-out for hosts that use only ref embeds"
   }
 ]
