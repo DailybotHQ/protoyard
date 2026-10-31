@@ -194,6 +194,7 @@ export {
   synthesizeDocFromBrief,
   synthesizePageFromBrief,
 } from './brief/index.ts';
+export { canvasScreenIssues } from './canvas-screen.ts';
 export { guardCsvFormula, needsCsvFormulaGuard, unguardCsvFormula } from './csv-guard.ts';
 export {
   type BlueprintFile,

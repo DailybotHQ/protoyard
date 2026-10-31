@@ -2,6 +2,7 @@ import { CatalogSchema, LayoutIdSchema } from '@protoyard/core';
 import { GEO_REGIONS, type GeoRegionId } from '@protoyard/scenarios';
 import { z } from 'zod';
 import { ArchetypeSchema } from './archetypes/schema.ts';
+import { canvasScreenIssues, canvasScreenSchema } from './canvas-screen.ts';
 import { BlueprintMotionSchema } from './motion.ts';
 import { sheetScreenIssues, sheetScreenSchema } from './sheet-screen.ts';
 import { ValidationSchema, validationIssues } from './validation-tasks.ts';
@@ -536,6 +537,7 @@ export const ScreenSchema = z.discriminatedUnion('type', [
     widgets: z.array(DashboardWidgetSchema).default([]),
   }),
   sheetScreenSchema(screenBase, fieldName),
+  canvasScreenSchema(screenBase, fieldName),
   z.strictObject({
     ...screenBase,
     type: z.literal('settings'),
@@ -560,6 +562,7 @@ export const SCREEN_TYPES = [
   'dashboard',
   'settings',
   'sheet',
+  'canvas',
 ] as const satisfies readonly ScreenType[];
 
 /** A dashboard's widgets with its legacy `metrics` first, as `kpi` widgets. */
@@ -580,6 +583,7 @@ const VIEW_SEGMENT: Partial<Record<ScreenType, string>> = {
   map: 'map',
   analytics: 'analytics',
   sheet: 'sheet',
+  canvas: 'canvas',
 };
 
 /**
@@ -1397,6 +1401,9 @@ function checkScreens(blueprint: Shape, add: Add) {
         break;
       case 'sheet':
         sheetScreenIssues(entity, screen, path, add);
+        break;
+      case 'canvas':
+        canvasScreenIssues(entity, screen, path, add);
         break;
     }
   });
