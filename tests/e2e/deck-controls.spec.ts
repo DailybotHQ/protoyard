@@ -180,6 +180,9 @@ test.describe('deck chrome controls', () => {
       await expect
         .poll(() => deck.evaluate((element) => element.contains(document.activeElement)))
         .toBe(true);
+      // A lazy chunk (the toolbar tooltip) can still be in flight through the proxy:
+      // drop the routes so its fetch never outlives the test as a stray error.
+      await page.unrouteAll({ behavior: 'ignoreErrors' });
     });
 
     test('F toggles full screen when the deck has focus (works today)', async ({ page }) => {
