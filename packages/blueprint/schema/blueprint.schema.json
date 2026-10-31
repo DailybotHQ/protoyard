@@ -6735,6 +6735,113 @@
                   },
                   "type": {
                     "type": "string",
+                    "const": "sheet"
+                  },
+                  "entity": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "columns": {
+                    "minItems": 1,
+                    "maxItems": 26,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    }
+                  },
+                  "totals": {
+                    "maxItems": 26,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    }
+                  }
+                },
+                "required": ["type", "entity"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "pattern": "^\\/[a-z0-9/:-]*$"
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "nav": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                      },
+                      "icon": {
+                        "type": "string",
+                        "enum": [
+                          "activity",
+                          "bell",
+                          "book-open",
+                          "briefcase",
+                          "building",
+                          "calendar",
+                          "calendar-days",
+                          "chart-bar",
+                          "chart-gantt",
+                          "chart-line",
+                          "chart-pie",
+                          "clock",
+                          "cpu",
+                          "database",
+                          "dollar-sign",
+                          "file-text",
+                          "folder",
+                          "globe",
+                          "graduation-cap",
+                          "heart-pulse",
+                          "house",
+                          "inbox",
+                          "kanban",
+                          "layout-dashboard",
+                          "list",
+                          "map",
+                          "map-pin",
+                          "message-square",
+                          "package",
+                          "receipt",
+                          "settings",
+                          "shopping-cart",
+                          "star",
+                          "table",
+                          "tag",
+                          "ticket",
+                          "truck",
+                          "users",
+                          "wallet",
+                          "wrench",
+                          "zap"
+                        ]
+                      },
+                      "order": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 999
+                      },
+                      "hidden": {
+                        "default": false,
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "type": {
+                    "type": "string",
                     "const": "settings"
                   },
                   "sections": {

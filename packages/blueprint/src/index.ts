@@ -382,6 +382,15 @@ export {
   supportsShareLinks,
 } from './share.ts';
 export {
+  SHEET_COLUMN_KINDS,
+  SHEET_EDITABLE_KINDS,
+  SHEET_MAX_COLUMNS,
+  SHEET_READONLY_KINDS,
+  SHEET_TOTAL_KINDS,
+  sheetColumns,
+  sheetScreenIssues,
+} from './sheet-screen.ts';
+export {
   deriveIntegrity,
   deriveStores,
   entityStoreString,

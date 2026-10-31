@@ -25,6 +25,7 @@ const VIEW_COMPONENT_KINDS: readonly ScreenType[] = [
   'timeline',
   'dashboard',
   'settings',
+  'sheet',
 ];
 
 /** Kinds listed under the "Views" navigation group. */
@@ -35,6 +36,7 @@ const VIEW_GROUP_KINDS: readonly ScreenType[] = [
   'map',
   'analytics',
   'dashboard',
+  'sheet',
 ];
 
 const DEFAULT_ICONS: Partial<Record<ScreenType, ScreenNavIcon>> = {
@@ -45,6 +47,7 @@ const DEFAULT_ICONS: Partial<Record<ScreenType, ScreenNavIcon>> = {
   timeline: 'chart-gantt',
   map: 'map',
   analytics: 'chart-line',
+  sheet: 'table',
 };
 
 interface AppRouteBase {

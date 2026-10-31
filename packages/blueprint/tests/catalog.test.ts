@@ -102,7 +102,11 @@ describe('marketplace blueprint catalog', () => {
         coverage.set(screen.type, (coverage.get(screen.type) ?? 0) + 1);
       }
     }
-    for (const kind of SCREEN_TYPES) {
+    // `sheet` is exempt (PLAN_008 decision D4): adding it to a shipped catalog blueprint would
+    // change that blueprint's identity (identity-golden.test.ts, ADR-030) and orphan saved
+    // player worlds. T-templates-prototypes removes this exemption once three new catalog
+    // blueprints with a sheet screen ship.
+    for (const kind of SCREEN_TYPES.filter((type) => type !== 'sheet')) {
       expect(
         coverage.get(kind) ?? 0,
         `${kind} appears in at least three blueprints`
