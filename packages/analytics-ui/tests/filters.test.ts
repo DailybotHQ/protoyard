@@ -9,6 +9,7 @@ import {
   adjustCondition,
   BUILDER_OPERATORS,
   builderFields,
+  builderIssues,
   describeFilter,
   type FilterProperty,
   fromBuilderFilter,
@@ -128,10 +129,11 @@ describe('FilterBuilder', () => {
     render(FilterBuilder, { value: EMPTY, properties: PROPERTIES, onchange });
     expect(document.querySelector('[data-tx-filter-builder]')).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'Add condition' }));
-    // First property is Plan (with options): the builder lists the labels.
+    // First property is Plan (with options): the builder lists the labels over stored values.
     const plan = within(condition(1)).getByRole('combobox', { name: 'Value' });
-    expect([...plan.querySelectorAll('option')].map((o) => o.textContent)).toContain('Pro');
-    await choose(plan, 'Pro');
+    const pro = [...plan.querySelectorAll('option')].find((o) => o.textContent === 'Pro');
+    expect(pro?.value).toBe('pro');
+    await choose(plan, 'pro');
     await fireEvent.click(screen.getByRole('button', { name: 'Add condition' }));
     await choose(within(condition(2)).getByRole('combobox', { name: 'Field' }), 'properties.seats');
     // Protoyard's "at least" is a catalog operator on number properties.
@@ -243,7 +245,7 @@ describe('FilterBuilder', () => {
     expect(selected('Value')).toBe('Pro');
   });
 
-  it('lists validation errors by condition and does not apply', async () => {
+  it('marks a validation error on its condition (G101) and does not apply', async () => {
     const onchange = vi.fn();
     render(FilterBuilder, {
       value: {
@@ -254,9 +256,15 @@ describe('FilterBuilder', () => {
       onchange,
     });
     await fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }));
-    const list = screen.getByRole('list', { name: 'Filter errors' });
-    expect(list.textContent?.trim()).toBe('Condition 1: Enter a value');
-    expect(screen.getByText('Fix the listed field to apply')).toBeTruthy();
+    // The catalog error goes to the builder as a host issue on condition 1's value.
+    const value = within(condition(1)).getByRole('spinbutton', { name: 'Value' });
+    expect(value.getAttribute('aria-invalid')).toBe('true');
+    const described = (value.getAttribute('aria-describedby') ?? '')
+      .split(' ')
+      .map((id) => document.getElementById(id)?.textContent?.trim());
+    expect(described).toContain('Enter a value');
+    expect(screen.queryByRole('list', { name: 'Filter errors' })).toBeNull();
+    expect(screen.getByText('Fix the marked field to apply')).toBeTruthy();
     expect(onchange).not.toHaveBeenCalled();
   });
 });
@@ -283,8 +291,13 @@ describe('builder bridge', () => {
       type: 'condition',
       field: 'properties.plan',
       operator: 'in',
-      value: ['Pro', 'Free'],
+      value: ['pro', 'free'],
     });
+    // Enum options carry their labels; the model stores values (G101).
+    expect(builderFields(PROPERTIES)[0]?.options).toEqual([
+      { value: 'free', label: 'Free' },
+      { value: 'pro', label: 'Pro' },
+    ]);
     expect(model.children[1]).toMatchObject({ operator: 'containsText' });
     expect(model.children[5]).toMatchObject({ operator: 'before' });
     expect(fromBuilderFilter(model, PROPERTIES)).toEqual(filter);
@@ -301,6 +314,24 @@ describe('builder bridge', () => {
         PROPERTIES
       ).conditions[0]
     ).toEqual({ property: 'properties.seats', operator: 'not_in', value: [2, 3] });
+  });
+
+  it('splits validation errors into builder issues by condition path and group messages', () => {
+    expect(
+      builderIssues({
+        'conditions.0.value': 'Enter a value',
+        'conditions.1.conditions.2.operator': 'Pick an operator',
+        'conditions.3.value.1': 'Enter the upper bound',
+        conditions: 'Too many conditions',
+      })
+    ).toEqual({
+      issues: [
+        { path: [0], message: 'Enter a value' },
+        { path: [1, 2], message: 'Pick an operator' },
+        { path: [3], message: 'Enter the upper bound' },
+      ],
+      other: [{ key: 'conditions', name: 'Filter', message: 'Too many conditions' }],
+    });
   });
 
   it('every catalog operator id is valid for Texuli and offered only where it fits', async () => {

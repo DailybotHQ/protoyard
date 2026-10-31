@@ -168,7 +168,8 @@ export interface BuilderField {
   key: string;
   header: string;
   type: 'text' | 'number' | 'date' | 'boolean' | 'enum';
-  options?: readonly string[];
+  /** Enum options: the menus show `label`, the model stores `value` (G101). */
+  options?: readonly { value: string; label: string }[];
   operators: readonly string[];
 }
 
@@ -322,27 +323,9 @@ export const BUILDER_OPERATOR_LABELS = {
   after: 'is after',
 } as const;
 
-/**
- * Builder enum options are plain strings it also shows, so an option-backed
- * property lists its labels and the bridge maps them back to values. Labels
- * that repeat would be ambiguous, so such a property shows its values.
- */
-function optionMap(
-  property: FilterProperty
-): { toShown: Map<string, string>; toValue: Map<string, string> } | null {
-  const options = property.options ?? [];
-  if (options.length === 0 || new Set(options.map((o) => o.label)).size !== options.length)
-    return null;
-  return {
-    toShown: new Map(options.map((o) => [o.value, o.label])),
-    toValue: new Map(options.map((o) => [o.label, o.value])),
-  };
-}
-
 /** The builder fields for a property catalog, each offering Protoyard's operators for its type. */
 export function builderFields(properties: readonly FilterProperty[]): BuilderField[] {
   return properties.map((property) => {
-    const shown = optionMap(property);
     const type: BuilderField['type'] =
       property.type === 'string' ? (property.options?.length ? 'enum' : 'text') : property.type;
     return {
@@ -350,7 +333,7 @@ export function builderFields(properties: readonly FilterProperty[]): BuilderFie
       header: property.label,
       type,
       ...(property.options?.length
-        ? { options: property.options.map((o) => (shown ? o.label : o.value)) }
+        ? { options: property.options.map(({ value, label }) => ({ value, label })) }
         : {}),
       operators: OPERATORS_BY_TYPE[property.type].map((op) => builderOperator(op, property)),
     };
@@ -359,9 +342,8 @@ export function builderFields(properties: readonly FilterProperty[]): BuilderFie
 
 type Scalar = string | number | boolean | null;
 
-function scalarTo(value: unknown, map: Map<string, string> | undefined): Scalar {
+function scalarTo(value: unknown): Scalar {
   if (value === undefined || value === null) return null;
-  if (typeof value === 'string') return map?.get(value) ?? value;
   return value as Scalar;
 }
 
@@ -377,12 +359,11 @@ export function toBuilderFilter(
     children: node.conditions.map((c) => {
       if ('combinator' in c) return convert(c);
       const property = byPath.get(c.property);
-      const map = property ? optionMap(property)?.toShown : undefined;
       const value = Array.isArray(c.value)
-        ? c.value.map((v) => scalarTo(v, map))
+        ? c.value.map((v) => scalarTo(v))
         : c.value === undefined || c.value === null
           ? undefined
-          : scalarTo(c.value, map);
+          : scalarTo(c.value);
       return {
         type: 'condition',
         field: c.property,
@@ -402,10 +383,8 @@ export function fromBuilderFilter(
   const byPath = new Map(properties.map((p) => [p.path, p]));
   const scalar = (v: unknown, property: FilterProperty | undefined): Scalar => {
     if (v === undefined || v === null || v === '') return null;
-    const shown = property ? optionMap(property)?.toValue : undefined;
     if (typeof v === 'string') {
-      const value = shown?.get(v) ?? v;
-      return property && property.type !== 'string' ? parseScalar(value, property.type) : value;
+      return property && property.type !== 'string' ? parseScalar(v, property.type) : v;
     }
     return v as Scalar;
   };
@@ -424,6 +403,35 @@ export function fromBuilderFilter(
     }),
   });
   return convert(group);
+}
+
+/**
+ * Validation errors split for the builder (G101): those on a condition become
+ * builder issues at its child-index path (`conditions.1.conditions.0.value` →
+ * `[1, 0]`), marked on the condition's control; the rest (on a group) are
+ * listed by name. `prefix` is the group's own path ('' for the root).
+ */
+export function builderIssues(
+  errors: Record<string, string>,
+  prefix = ''
+): {
+  issues: { path: number[]; message: string }[];
+  other: { key: string; name: string; message: string }[];
+} {
+  const issues: { path: number[]; message: string }[] = [];
+  const other: { key: string; name: string; message: string }[] = [];
+  for (const [key, message] of Object.entries(errors)) {
+    if (!key.startsWith(prefix)) continue;
+    const rest = key.slice(prefix.length);
+    const match = /^((?:conditions\.\d+\.?)+)(property|operator|value)?(?:\.\d+)?$/.exec(rest);
+    if (match?.[2]) {
+      const path = [...(match[1] ?? '').matchAll(/conditions\.(\d+)/g)].map((m) => Number(m[1]));
+      issues.push({ path, message });
+    } else {
+      other.push({ key, name: conditionNameOf(rest), message });
+    }
+  }
+  return { issues, other };
 }
 
 /** "Condition 2.1" for a validation path such as `conditions.1.conditions.0.value`. */

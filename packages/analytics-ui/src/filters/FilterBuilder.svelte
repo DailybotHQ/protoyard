@@ -36,7 +36,7 @@ async function apply() {
   const result = validateFilter($state.snapshot(draft) as FilterGroup, properties);
   errors = result.errors;
   if (!result.ok || !result.data) {
-    status = `Fix ${count === 1 ? 'the listed field' : `${count} listed fields`} to apply`;
+    status = `Fix ${count === 1 ? 'the marked field' : `${count} marked fields`} to apply`;
     return;
   }
   status = '';
