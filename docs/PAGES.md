@@ -125,6 +125,15 @@ browser's IndexedDB `formResponses` feature table through the runtime service
 and a database transaction. The table is part of the kind runtime's feature
 stores, so its rows participate in that runtime's snapshot data.
 
+`FormBlock` paints the form with Texuli's `SchemaForm` (`@texuli/forms`):
+Texuli runs the required and range checks and shows its error summary before
+anything is saved, then the submission goes through the same services. A
+service's field issues show inline on their fields, and a successful
+submission shows Texuli's confirmation. Fields with unsafe or reserved names
+(`__proto__`, `constructor`, `prototype` and Texuli's reserved form names) are
+left out. An untitled block hides the heading and keeps its submit label as
+the form's accessible name.
+
 The service methods have simulated capability requirements:
 
 | Operation | Capability |

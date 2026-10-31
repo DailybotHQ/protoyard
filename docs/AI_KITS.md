@@ -268,7 +268,10 @@ parent owns streaming state and must route mutations through services.
   threads, follows a streaming reply, offers "Jump to latest" and edits a
   message inline. ai-ui adds the rich answer body, the per-message actions
   (feedback, branches, regenerate, edit) and the reading position per
-  conversation, restored from session storage (presentation only).
+  conversation, restored from session storage (presentation only). Since
+  Texuli 0.8 the list keeps that position itself (its `anchor` and
+  `onAnchorChange`), and ai-ui only stores the anchor; Texuli also draws the
+  day separators as their own rows.
 - `AssistantComposer` is `@texuli/chat`'s `Composer` (Enter send,
   Shift+Enter newline, Stop and Escape while streaming, pending and error
   states) with ai-ui's model picker, files, slash commands and @mentions in its

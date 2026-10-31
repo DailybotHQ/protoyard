@@ -717,7 +717,12 @@ Four tests pin this:
 
 The manifest gets id `local.<slug>`, namespace `<slug>`, `storage.schemaVersion: 1`,
 the template's scenarios (`empty`, `active`, `viewer`, `massive`) and the
-blueprint name and description. All written files are already in the
+blueprint name and description. A deck, page or doc prototype records the kind
+runtime's storage schema instead (`KIND_SCHEMA_VERSION` from
+`@protoyard/blueprint/kinds`, now 2: version 2 added the `docEdits` store), in
+the manifest and the generation snapshot. Regenerating one made at version 1
+upgrades both, and `validate` reports a content-kind manifest that is behind
+with the `generate` command that fixes it. All written files are already in the
 repository's Biome style, so `pnpm lint` passes and `biome check --write` never
 rewrites them.
 
