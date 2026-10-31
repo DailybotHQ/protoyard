@@ -49,8 +49,9 @@ export interface DocToTexuliOptions {
   mode?: DocConversionMode;
   /**
    * Export mode: `block` (default) writes tables as wrapped `@texuli/blocks`
-   * tables (DOCX and PDF print them as tables); `list` writes a caption and
-   * one bullet per row, for Markdown, whose writer leaves wrapped blocks out.
+   * tables, which DOCX and PDF print as tables and Markdown as GFM tables
+   * (since Texuli 0.10.0, G112); `list` writes a caption and one bullet per
+   * row, for a reader that wants plain lines.
    */
   tables?: 'block' | 'list';
 }

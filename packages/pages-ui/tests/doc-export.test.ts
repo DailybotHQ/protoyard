@@ -45,7 +45,7 @@ describe('exportDoc (Texuli writers)', () => {
     expect(outcome.pageCount).toBeGreaterThanOrEqual(1);
   });
 
-  it('writes Markdown with the headings, tables as text and form titles', async () => {
+  it('writes Markdown with the headings, GFM tables (G112) and form titles', async () => {
     const { outcome, bytes } = await write('markdown');
     const text = new TextDecoder().decode(bytes);
     expect(outcome.filename).toMatch(/\.md$/);
@@ -54,6 +54,10 @@ describe('exportDoc (Texuli writers)', () => {
       if (heading.type === 'heading') expect(text).toContain(heading.text);
     }
     expect(text).toContain('Tickets by channel, Q3 2026 (fictional)');
+    // The table is a GFM table: a header row, a delimiter row and one row per record.
+    expect(text).toMatch(/\|\s*Channel\s*\|\s*Tickets\s*\|\s*Median first response\s*\|/);
+    expect(text).toMatch(/\|\s*:?-{3,}:?\s*\|/);
+    expect(text).toMatch(/\|\s*Chat\s*\|\s*1,288\s*\|\s*6 min\s*\|/);
     expect(text).toContain('Reader feedback');
     expect(text).not.toMatch(/<script|javascript:/i);
   });
