@@ -1040,6 +1040,15 @@ Since PLAN_008 (2026-10-28), Protoyard decks run on Texuli's deck library:
   stage, chrome, overview, presenter view and window, print and layout
   renderers are `@texuli/slides`'. Protoyard's own copies were deleted with
   their tests; Texuli's tests cover them.
+- **The stage core (PLAN_008, 2026-10-30).** Every decks-ui module imports
+  `@texuli/slides/stage-core`, never the full `@texuli/slides/stage` (a
+  hygiene test enforces it). `DeckApp` hands the stage a deck already prepared
+  with `prepareDeckV2` (`prepareStageDeck`), so the stage paints without
+  validating again; a deck that does not prepare still reaches the stage,
+  which shows its diagnostics. The Debug for agents button is the stage's
+  host tool, in the toolbar's last group. Print preloads its view without
+  Texuli's default renderers, so it paints Protoyard's tables like the stage.
+  Fragments animate through Texuli's motion runtime (`@texuli/core/motion`).
 - **What Protoyard keeps.** The deck JSON a blueprint stores (unchanged: no
   conversion of existing decks), its offline media and link policy, theme ids
   and font pairings, free slides painted by `@protoyard/blocks-ui` (persistent

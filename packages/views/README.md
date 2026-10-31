@@ -344,6 +344,14 @@ const events = generateCalendarEvents(ctx, { people, timeZone: 'America/Bogota' 
 const { tasks, dependencies } = generateTaskPlan(ctx, { people });
 ```
 
+`generateSheetWorkbook(ctx, options)` and `generateCanvasBoard(ctx, { level })`
+return plain-data documents in Texuli's sheet and canvas formats (this package
+never imports `@texuli/sheets` or `@texuli/canvas`); `@protoyard/views-ui`
+validates them as untrusted input before it paints. `generateCanvasBoard` draws
+a fictional planning board at `empty`, `typical`, `dense` (1,500 notes) or
+`edge` (nested frames, rotated and locked notes, free and frame-to-frame
+connectors).
+
 | Generator | Rows | Integrity |
 | --- | --- | --- |
 | `generateCalendarEvents` | `CalendarSeries` (calendar engine): weekly stand-ups with one cancelled and one moved day, a biweekly retro, a monthly first-Tuesday review, one-off meetings, an all-day off-site | rules pass `RecurrenceRuleSchema`; EXDATE and override keys are real occurrences; one-offs on working days; wall time kept in `timeZone` |

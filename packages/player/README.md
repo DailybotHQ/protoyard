@@ -96,6 +96,13 @@ or principal persona:
 pnpm vitest run packages/player/tests/kinds-parity.test.ts
 ```
 
+Every blueprint's optional `motion.level` (`full`, `subtle` or `none`) wraps the
+app or kind renderer in Texuli's `MotionProvider` and caps a deck's own
+transitions; reduced motion still wins. Under `quick serve`, a deck, page or
+doc that is still being written paints the part that has arrived (a `draft`
+event; see docs/PLAYER.md). The settings screen lists every library theme (204),
+loading the expanded set only when it opens.
+
 ## Where the blueprint comes from
 
 `src/main.ts` calls `runPlayer` (`src/run.ts`), which starts `startPlayer`

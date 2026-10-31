@@ -4,10 +4,11 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to an exact npm version in this
-workspace (`0.8.0` or `0.8.1`; `@texuli/slides` `0.8.2`), and every workspace
-package uses the same pin; `check-texuli-latest.ts --registry` compares the pins
-with npm `latest` before a release.
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.9.0`
+in this workspace, and every workspace package uses the same pin;
+`check-texuli-latest.ts --registry` compares the pins with npm `latest` before
+a release. What 0.10.0 will change is under [Next: Texuli 0.10.0](#next-texuli-0100);
+none of it ships in Protoyard yet.
 
 ## How it is linked
 
@@ -30,25 +31,30 @@ CDN can lag a few minutes after a Texuli publish).
 | `texuli` | `ai-ui`, `analytics-ui`, `blocks-ui`, `charts-ui`, `crud`, `decks-ui`, `devtools`, `flows-ui`, `gamification-ui`, `pages-ui`, `player`, `renderer-svelte`, `review-ui`, `saas-ui`, `ui`, `views-ui`, gallery; every template and prototype app |
 | `@texuli/astro` | gallery |
 | `@texuli/blocks` | `blocks`, `blocks-ui`, `pages-ui` |
-| `@texuli/charts` | `analytics-ui`, `blocks-ui`, `charts`, `charts-ui`, `ui` |
+| `@texuli/canvas` | `views-ui` (`./canvas`), `crud` (`./screens/canvas`) |
+| `@texuli/charts` | `analytics-ui`, `blocks-ui`, `charts`, `charts-ui` |
 | `@texuli/chat` | `ai-ui`, `ui` |
 | `@texuli/core` | `ui` |
 | `@texuli/data` | `analytics-ui`, `blocks-ui`, `ui`, `views`, `views-ui` |
 | `@texuli/date` | `analytics-ui`, `ui` |
 | `@texuli/deck` | `decks`, `decks-ui` |
+| `@texuli/document` | `pages`, `pages-ui` |
 | `@texuli/drag` | `views-ui` |
 | `@texuli/editor` | `blocks-ui`, `views-ui` |
+| `@texuli/forms` | `crud`, `pages-ui`, `saas-ui` |
+| `@texuli/pages` | `pages-ui` |
 | `@texuli/primitives` | `devtools`, `ui`, `views-ui` |
+| `@texuli/sheets` | `views-ui` (`./sheet`), `crud` (`./screens/sheet`) |
 | `@texuli/slides` | `decks-ui` |
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-`texuli` and most `@texuli/*` packages are `0.8.0`; `@texuli/data`, `blocks`,
-`catalog` and `astro` are `0.8.1` and `@texuli/slides` is `0.8.2`. Texuli pins its own internal dependencies
-exactly, so the family moves together. The root manifest
-also pins the published Texuli package family used by optional and future
-workspace surfaces. `docs/PACKAGES.md` lists the package graph and direct
-dependencies.
+Every package is `0.9.0`. Texuli pins its own internal dependencies exactly,
+so the family moves together. The root manifest also pins the published
+family used by optional and future workspace surfaces (for example
+`@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
+graph and direct dependencies. `@texuli/mcp` is not a dependency: it runs as
+a companion MCP server next to `protoyard mcp` ([MCP](MCP.md)).
 
 Protoyard typechecks against the published package declarations in
 `node_modules`; Texuli's own source is covered by the Texuli maintainers'
@@ -65,6 +71,19 @@ against the release's `SHA256SUMS` and running
 tokens, icons, layouts, themes, documents and MCP hosts, and how to report a
 missing API. To upgrade, repeat
 those steps for the new release and replace the folder; never edit it in place.
+
+## The uniform component contract
+
+Since Texuli 0.8, every styled component follows one contract: `bind:ref`
+gives its root element (an overlay's open content), the rest attributes land
+on that root or on the focusable control inside it, and a caller's handler
+(`onclick`, `onkeydown`…) runs first, with the component's own behavior kept.
+`@protoyard/ui` applies the same contract to all 90 of its component exports.
+`packages/ui/tests/contract.test.ts` checks every export through one harness,
+so a new export without a contract row fails. The rows Texuli still blocks are
+`it.fails` tests that name their gap and turn red when the fix ships. The
+additions were all additive: `ref` and rest props everywhere, `CommandPalette`
+`bind:open`, `FileDropzone` `id` and `TabItem.badgeLabel`.
 
 ## Texuli first: the adoption check
 
@@ -145,10 +164,51 @@ statically import the root barrel, which includes the theme library.
 `@protoyard/decks` is a thin layer over `@texuli/deck` (the deck model,
 validation, catalog, steps, navigation, controls, presenter protocol, lint,
 patches and text twins), and `@protoyard/decks-ui`'s `DeckApp` presents decks
-on the `@texuli/slides` stage. Protoyard keeps its deck shape, offline media
+on the `@texuli/slides` stage. Every decks-ui module imports the leaner
+`@texuli/slides/stage-core` (a hygiene test fails on `@texuli/slides/stage`),
+and `DeckApp` hands the stage a deck already prepared by `prepareDeckV2`, so
+the stage paints without validating again. The Debug for agents button sits in
+the stage toolbar's host-tools group, and print preloads its view without
+Texuli's default renderers. Protoyard keeps its deck shape, offline media
 policy, themes, free slides through `@protoyard/blocks-ui`, custom slides, the
 debug panel and Deck Studio. Details and the migration note:
 [DECKS](DECKS.md#built-on-texuli-migration-note).
+
+## Forms from `@texuli/forms`
+
+Generated entity forms, page and doc form blocks, and the SaaS kit's
+notification preferences and member invite render through Texuli's
+`SchemaForm`. `@protoyard/blueprint` maps entity fields to a Texuli
+`FormSchema` as plain data (`entityFormModel`); `@protoyard/crud`'s
+`EntityForm` paints the mapped fields with `SchemaForm` and keeps Protoyard
+controls for the kinds Texuli has no control for (relation, datetime, geo,
+avatar, file). Every submission still goes through the entity, form-response
+or SaaS service, and the service's issues come back inline. Auth screens,
+the profile color picker and the onboarding wizard stay on Protoyard
+controls (gaps G117 and G120). Details: [GENERATOR](GENERATOR.md#entity-forms)
+and [PAGES](PAGES.md).
+
+## Documents from `@texuli/pages` and `@texuli/document`
+
+A doc can be edited in Texuli's `PageEditor` (slash menu, drag or
+Alt+arrow reordering, undo) and downloaded as Word, PDF or Markdown through
+`@texuli/document`. `@protoyard/pages` converts a doc body to a Texuli
+document and back; untouched blocks return byte-identical, and Protoyard's
+own blocks travel as placeholders. Applied edits are saved per doc and world
+in the content-kind runtime's `docEdits` store (its storage schema version 2)
+and survive a reload; Reset removes them. The reading view stays Protoyard's
+`DocHost`, because Texuli's `PageReader` has no seam for host-owned blocks
+(gap G111). Details: [PAGES](PAGES.md) and [KINDS](KINDS.md).
+
+## Spreadsheets and the infinite canvas
+
+`@protoyard/views-ui/sheet` (`SheetView`, over `@texuli/sheets`) and
+`@protoyard/views-ui/canvas` (`CanvasView`, over `@texuli/canvas`) are lazy
+views that persist through a service callback and validate stored data as
+untrusted input. Blueprints gain `sheet` and `canvas` screen types, painted by
+`@protoyard/crud/screens/sheet` and `@protoyard/crud/screens/canvas`. Used by
+the `canvas-board-demo` prototype, the fintech-dashboard ledger and the
+design-kit sketches. Details: [VIEWS](VIEWS.md).
 
 ## Charts from `@texuli/charts`
 
@@ -210,14 +270,14 @@ behavior and host contracts remain Protoyard-owned:
 | --- | --- | --- |
 | `ui` | Styled components and primitives, navigation, choice, field, input, feedback, and layout exports | Shells, device frames, overlays, scenario and honesty controls, stable public API |
 | `devtools` | Texuli components and tokens for the control center | Prototype runtime controls, inspectors, theme studio workflows |
-| `crud` | Texuli UI and lazy layout/screen composition | Blueprint CRUD behavior and screen registry |
+| `crud` | Texuli UI and lazy layout/screen composition; `@texuli/forms` `SchemaForm` in `EntityForm`; sheet and canvas screens | Blueprint CRUD behavior, services and screen registry |
 | `charts-ui` | Texuli chart families through lazy adapters | Protoyard prop/data compatibility |
 | `analytics-ui` | Texuli KPI, date, filter and chart components | Analytics dashboard composition and Protoyard engine integration |
-| `views-ui` | Texuli rich-view renderers and primitives | Service callbacks, view host APIs, and extensions where Texuli gaps remain |
+| `views-ui` | Texuli rich-view renderers and primitives, `@texuli/sheets` and `@texuli/canvas` | Service callbacks, view host APIs, and extensions where Texuli gaps remain |
 | `blocks-ui` | Texuli block-family renderers | Protoyard-only block renderers and extensions |
-| `decks-ui` | Texuli controls and styled UI | Deck authoring, presenter, print, and prototype-specific behavior |
-| `pages-ui` | Texuli controls and block renderers | Page/doc hosts, forms, response UX, and print behavior |
-| `saas-ui` | Texuli controls and styled components | Simulated SaaS screen flows and route guards |
+| `decks-ui` | The `@texuli/slides` stage core, Texuli controls and styled UI | Deck authoring, presenter, print, and prototype-specific behavior |
+| `pages-ui` | Texuli controls and block renderers, the `@texuli/pages` editor, `@texuli/document` exports, `@texuli/forms` form blocks | Page/doc hosts, form-response and saved-edit services, and print behavior |
+| `saas-ui` | Texuli controls and styled components; `@texuli/forms` for notification preferences and member invites | Simulated SaaS screen flows and route guards |
 | `ai-ui` | Texuli chat components and styled UI | Assistant state, safe rich answers, tool orchestration and widget modes |
 | `flows-ui` | Texuli workflow editor and run-panel components | Protoyard workflow contract and deterministic simulation |
 | `review-ui` | Texuli controls and styled UI | Review thread, anchor, and mount integration |
@@ -289,3 +349,44 @@ differs. The grid filter/saved-view toolkit, tree outline editor, map routes
 and fences, and other host-only behavior remain Protoyard extensions while
 the relevant APIs are gaps. Consult `tests/adoption/texuli-gaps.json` and the
 package pending list for current gap ids and affected files.
+
+## Open gaps (Texuli 0.9.0)
+
+`tests/adoption/texuli-gaps.json` is the authoritative list. These are open
+on 0.9.0, each with a minimal adapter or a documented limit in Protoyard:
+
+| Gap | Package | What is missing |
+| --- | --- | --- |
+| G100 | `@texuli/editor/markdown` | `\@` is not read as an escape, so an escaped mention sigil still opens a mention |
+| G101 | `@texuli/data/filter-builder` | No host `issues` prop to mark a condition invalid |
+| G102 | `texuli/layouts/content` | The active-heading tracker works only inside `ContentLayout`'s full chrome |
+| G103 | `@texuli/data/board` | Focus is lost for a frame after a keyboard move into another column |
+| G104 | `@texuli/data/calendar` | The event button's accessible name breaks label-in-name (axe) |
+| G105 | `@texuli/slides/export` | Print preload always imports the stage's default renderer table |
+| G106 | `@texuli/data/activity/inbox` | "Mark all as read" and a row toggle share one callback |
+| G107 | `@texuli/data/grid-core` | `DataGrid mode="table"` lacks ref and rest, loading rows and per-column parts |
+| G108 | `texuli/command` | `CommandPalette` names the dialog and its search with the same title |
+| G109 | `texuli/date` | `DateRangePicker` has no content slot and does not announce the pending end date |
+| G110 | `@texuli/tokens` | System token defaults ship only inside `base.css`, with its reset |
+| G111 | `@texuli/pages` | `PageReader` and `PageEditor` have no `renderBlock` seam for host blocks |
+| G112 | `@texuli/document` | `documentToMarkdown` drops wrapped blocks, tables included |
+| G113–G121 | `@texuli/forms` | No host-painted field, title or action-row control, form-level disabled, password/OTP/color/datetime types, clearing an optional select, per-type loading, per-step submit, or `url` protocols |
+| G122 | `@texuli/data/dashboard/engine` | A keyboard nudge cannot move a widget past a wider one below |
+| G123 | `@texuli/pages` | The editor and reader always reach the whole `@texuli/player` |
+| G124 | `@texuli/tools/mcp` | `createMcpHandler` does not speak the stateless MCP 2026-07-28 revision |
+| G125 | `@texuli/tokens` | No ids-only entry for the whole library |
+| G126 | `@texuli/tokens/library-expand` | Descriptions are cut at 48 characters |
+| G127 | `@texuli/slides` | The stage's theme loader always reaches the whole expanded theme set |
+
+## Next: Texuli 0.10.0
+
+Texuli 0.10.0 is published, and its adoption is in progress on its own branch;
+nothing below ships in Protoyard yet. It brings design systems and the fixes
+for G100–G124: for example `@texuli/tokens/system.css` (system tokens without
+the reset, G110), `CommandPalette` `searchLabel` (G108), the date range
+picker's pending-end announcement (G109), the inbox's own mark-all callback
+(G106), `FilterBuilder` host issues (G101), and the board and calendar fixes
+(G103, G104). It also removes the tree block's `style` alias and the old MCP
+tool-name aliases. Once Protoyard moves to it, these adapters and their
+`it.fails` pins are removed, and this page and the gap list are updated.
+

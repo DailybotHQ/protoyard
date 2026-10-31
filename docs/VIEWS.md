@@ -187,7 +187,12 @@ costs nothing until a route that shows a sheet opens. The canvas view
 (also Texuli 0.9.0) measures 50,488 B over the shell (ceiling 53,013 B): the
 canvas editor, its model and operations, routing, the minimap and shape
 tree, and SVG export. The `canvas-board-demo` prototype opens it on a lazy
-route.
+route. Two templates use these views: `fintech-dashboard` shows its
+transactions as a read-only sheet (with a `Net` total and CSV download), and
+`design-kit` has a Sketches section on the canvas, saved through its own
+service. On the PLAN_008 re-measure (2026-10-31) the calendar and map ceilings
+were lowered to 17,768 B and 8,442 B; every view's numbers are in
+[Performance](PERFORMANCE.md#plan008-re-measure-measured-2026-10-31).
 
 Each lowered ceiling is the Texuli 0.5.0 measurement + 5%, rounded up. The
 previous ceiling stays where it is already lower than that threshold.

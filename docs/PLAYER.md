@@ -20,12 +20,15 @@ prototype with no build and no install. Routing follows blueprint `kind`
   write (`session.assert` → zod → `environment.run` → `db.transaction`).
   Scenarios are the template set (`empty`, `active`, `viewer`, `massive`).
 - **Deck, page or doc** (`kind: "deck"`, `kind: "page"`, `kind: "doc"`):
-  `defineKindRuntime` and the matching `DeckApp` / `PageApp` / `DocApp`. One
-  Dexie version for block state and form responses, the `default` scenario, and
+  `defineKindRuntime` and the matching `DeckApp` / `PageApp` / `DocApp`. Block
+  state, form responses and (database version 2) saved doc edits, the
+  `default` scenario, and
   presenter / audience / viewer personas. No CRUD shell, Faker or world worker
   on the kind boot path.
 - Shared chrome for every kind: IndexedDB namespaces, themes (including a brand
-  theme), layouts, device shells, and DevTools (hide them with `?devtools=0`).
+  theme; the settings screen and `?theme=` reach all 204 library themes, the
+  140 beyond the catalog loading on demand), layouts, device shells, and
+  DevTools (hide them with `?devtools=0`).
 
 Everything is simulated, and every page shows the "Prototype · simulated data"
 badge. Promote an **app** exploration to level 2 with `protoyard generate`, or

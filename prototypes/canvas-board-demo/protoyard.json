@@ -42,5 +42,6 @@
   "scenarios": ["empty", "active", "crowded", "awkward", "viewer"],
   "template": "blank",
   "createdAt": "2026-10-31T07:12:46.158Z",
-  "updatedAt": "2026-10-31T07:12:46.158Z"
+  "updatedAt": "2026-10-31T07:12:46.158Z",
+  "thumbnail": "public/thumbnail.png"
 }
