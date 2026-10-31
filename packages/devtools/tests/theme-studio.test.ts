@@ -7,7 +7,10 @@ import { createTasksDefinition } from '../../runtime/tests/fixtures/tasks-protot
 import {
   BUILTIN_THEMES,
   createThemeFromSeed,
+  EXPANDED_LIBRARY_THEME_IDS,
+  findLibraryThemeMeta,
   generateThemeHarmonies,
+  loadLibraryThemeDefinition,
 } from '../../themes/src/index.ts';
 import { type DevtoolsHandle, mountDevtools } from '../src/index.ts';
 import { selectOption } from './select-option.ts';
@@ -105,6 +108,24 @@ describe('Theme Studio (DevTools)', () => {
     expect(within(studio).getByRole('combobox', { name: 'Font pairing' }).textContent).toContain(
       'Humanist'
     );
+  });
+
+  it('starts from an expanded library theme too', async () => {
+    const id = EXPANDED_LIBRARY_THEME_IDS[0] as string;
+    const meta = await findLibraryThemeMeta(id);
+    const definition = await loadLibraryThemeDefinition(id);
+    if (!meta) throw new Error(`${id} is missing`);
+    const runtime = await storage()();
+    const panel = await openStudio(runtime);
+    await selectOption('Start from a theme', `Library · ${meta.name}`);
+    await settle();
+    await fireEvent.click(within(panel).getByRole('button', { name: 'Load' }));
+    await waitFor(() =>
+      expect((within(panel).getByLabelText('Seed color') as HTMLInputElement).value).toBe(
+        definition.seed
+      )
+    );
+    expect((within(panel).getByLabelText('Theme name') as HTMLInputElement).value).toBe(meta.name);
   });
 
   it('builds a theme from a seed, previews it, saves it and keeps it across a reload', async () => {

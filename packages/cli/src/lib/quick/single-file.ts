@@ -1,5 +1,6 @@
 import { access, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { isExpandedLibraryThemeId } from '@protoyard/themes';
 import { checkTextAsset } from '../artifact-pack.ts';
 import { entryGraph } from './chunk-graph.ts';
 
@@ -23,6 +24,10 @@ import { entryGraph } from './chunk-graph.ts';
  * - only the chunks the chosen page can reach (static and dynamic imports,
  *   chunk-graph.ts) are embedded: `deck.html`, `page.html` or `doc.html` for a
  *   content kind (no CRUD shell, Faker or app kits), `index.html` for an app;
+ * - of Texuli's expanded theme set (140 library themes, each its own chunk,
+ *   with about 42 KB of metadata), only the theme the blueprint uses is
+ *   embedded, with the metadata it needs to load; a blueprint on a built-in
+ *   or catalog theme embeds none of it (`singleFileThemeExclusions`);
  * - every stylesheet those chunks can load is inlined up front, so lazy
  *   screens are styled without their CSS preloads;
  * - the world-generation worker cannot start from a blob base, so the player
@@ -114,6 +119,48 @@ export const SINGLE_FILE_APP_EXCLUDED_MODULES: readonly RegExp[] = [
   /[\\/](?:@protoyard[\\/])?decks-ui[\\/](?:src|dist)[\\/](?:app|studio)[\\/]index\.(?:ts|js)$/,
   /[\\/](?:@protoyard[\\/])?pages-ui[\\/](?:src|dist)[\\/](?:page|doc)[\\/]index\.(?:ts|js)$/,
 ];
+
+/** Texuli's expanded theme set entry (`@texuli/tokens/library-expand`), as a Vite manifest key. */
+const EXPANDED_LIBRARY_ENTRY =
+  /[\\/]@?texuli[\\/](?:packages[\\/])?tokens[\\/](?:dist|src)[\\/]library-expand[\\/]index\.(?:js|ts)$/;
+
+/**
+ * Library theme ids a blueprint opens in: `brand.libraryTheme` (any kind) and
+ * a deck's `deck.style.theme`. Read defensively: the blueprint was validated
+ * by the caller, but this only needs the two strings.
+ */
+export function singleFileThemeIds(blueprint: unknown): string[] {
+  const record = (value: unknown): Record<string, unknown> | undefined =>
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
+  const root = record(blueprint);
+  const candidates = [record(root?.brand)?.libraryTheme, record(record(root?.deck)?.style)?.theme];
+  return [
+    ...new Set(
+      candidates.filter(
+        (id): id is string => typeof id === 'string' && /^[a-z][a-z0-9-]*$/.test(id)
+      )
+    ),
+  ];
+}
+
+/**
+ * Modules of Texuli's expanded theme set a single file leaves out. With no
+ * expanded theme in use, the set's entry (and so its metadata, loaders and
+ * every theme module) is cut: the file's pickers then offer the built-ins and
+ * the catalog, which are always embedded. With one in use, only the other
+ * themes' modules are cut, so that theme loads from the file.
+ */
+export function singleFileThemeExclusions(themeIds: readonly string[]): RegExp[] {
+  const expanded = themeIds.filter((id) => isExpandedLibraryThemeId(id));
+  if (expanded.length === 0) return [EXPANDED_LIBRARY_ENTRY];
+  return [
+    new RegExp(
+      `[\\\\/]@?texuli[\\\\/](?:packages[\\\\/])?tokens[\\\\/](?:dist|src)[\\\\/]library-expand[\\\\/]themes[\\\\/](?!(?:${expanded.join('|')})\\.(?:js|ts)$)[a-z0-9-]+\\.(?:js|ts)$`
+    ),
+  ];
+}
 
 interface ManifestChunk {
   file?: unknown;
@@ -300,15 +347,15 @@ export async function buildSingleFile(input: SingleFileInput): Promise<SingleFil
   // from a blob base: leave it out. Every page leaves out what it never runs
   // (the stage's component registry); a kind page also leaves out Faker and
   // the embed player's painters, and an app's file the kind renderers.
-  const neverRun = await neverRunFiles(
-    input.playerDir,
-    `${page}.html`,
-    page !== 'index'
+  // Every file also leaves out the expanded library themes it does not use.
+  const neverRun = await neverRunFiles(input.playerDir, `${page}.html`, [
+    ...(page !== 'index'
       ? SINGLE_FILE_KIND_EXCLUDED_MODULES
       : requested === 'index'
         ? SINGLE_FILE_APP_EXCLUDED_MODULES
-        : SINGLE_FILE_EXCLUDED_MODULES
-  );
+        : SINGLE_FILE_EXCLUDED_MODULES),
+    ...singleFileThemeExclusions(singleFileThemeIds(JSON.parse(input.blueprintJson))),
+  ]);
   const graph = await entryGraph({
     html: indexHtml,
     files,

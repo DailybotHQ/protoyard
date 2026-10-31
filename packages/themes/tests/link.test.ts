@@ -1,9 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { themeVariables } from '../src/apply.ts';
 import { contrastRatio, LINK_SURFACES, linkStates } from '../src/contrast.ts';
-import { disableFullThemeLibrary, enableFullThemeLibrary } from '../src/library/full.ts';
 import { loadAllFullLibraryThemes } from '../src/library/index.ts';
 import { BUILTIN_THEMES, DEFAULT_THEME_ID } from '../src/presets.ts';
 import { toTexuliTheme } from '../src/texuli.ts';
@@ -13,8 +12,6 @@ import { toTexuliTheme } from '../src/texuli.ts';
  * states, and `--tx-link-visited`): every theme writes it, derived from its
  * palette, at AA on the surfaces Texuli's gate checks link text on.
  */
-beforeAll(() => enableFullThemeLibrary());
-afterAll(() => disableFullThemeLibrary());
 
 const LINK_VARS = [
   '--tx-link',

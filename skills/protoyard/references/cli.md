@@ -117,7 +117,7 @@ deploy.
 | `protoyard scenario validate <slug>` | `-s, --scenario <id>` | run the generator for every scenario and check referential integrity (runs local code) | Released (1.0.0) |
 | `protoyard scenario bench <slug>` | `-s, --scenario <id>`, `--runs <count>`, `--check`, `--ci-factor <n>` | benchmark generation and integrity validation for one or all scenarios | Released (1.0.0) |
 | `protoyard theme` | — | search, inspect, apply, create, export and import themes | Released (1.0.0) |
-| `protoyard theme list` | `--collection <collection>`, `--search <query>` | list built-in and library themes, optionally filtered by collection or search | Released (1.0.0) |
+| `protoyard theme list` | `--collection <collection>`, `--mood <mood>`, `--search <query>` | list built-in and library themes, optionally filtered by collection, mood or search | Released (1.0.0); `--mood` unreleased |
 | `protoyard theme show <theme-id>` | — | show a theme’s light and dark swatches and contrast checks | Released (1.0.0) |
 | `protoyard theme use <slug> <theme-id>` | `--dry-run` | set a prototype manifest’s default theme to a built-in or library theme | Released (1.0.0) |
 | `protoyard theme create <slug>` | `--id <id>`, `--name <name>`, `--seed <hex>`, `--secondary <hex>`, `--from <file>`, `--force`, `--dry-run` | write a typed theme into a prototype from a seed or JSON file | Released (1.0.0) |

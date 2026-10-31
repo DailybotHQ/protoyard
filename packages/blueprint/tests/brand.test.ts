@@ -1,7 +1,12 @@
 // @vitest-environment node
 
 import type { Theme } from '@protoyard/core';
-import { contrastRatio, TEXT_CONTRAST_PAIRS, UI_CONTRAST_PAIRS } from '@protoyard/themes';
+import {
+  contrastRatio,
+  EXPANDED_LIBRARY_THEME_IDS,
+  TEXT_CONTRAST_PAIRS,
+  UI_CONTRAST_PAIRS,
+} from '@protoyard/themes';
 import { describe, expect, it } from 'vitest';
 import {
   BrandThemeError,
@@ -189,6 +194,16 @@ describe('blueprint brand libraryTheme', () => {
     expect(brandLibraryThemeId(brand)).toBe('fintech-ledger');
     expect(brandThemeId(brand, blueprint.name)).toBe('fintech-ledger');
     expect(() => resolveBlueprintBrand(brand)).toThrow(BrandThemeError);
+  });
+
+  it('accepts every expanded library id, synchronously, and suggests them for typos', () => {
+    for (const id of EXPANDED_LIBRARY_THEME_IDS) {
+      const brand = parseBlueprint({ ...baseBlueprint, brand: { libraryTheme: id } }).brand;
+      expect(brandLibraryThemeId(brand as NonNullable<typeof brand>), id).toBe(id);
+    }
+    const typo = parseBlueprint({ ...baseBlueprint, brand: { libraryTheme: 'ash-plian' } })
+      .brand as NonNullable<ReturnType<typeof parseBlueprint>['brand']>;
+    expect(() => brandLibraryThemeId(typo)).toThrow(/closest: ash-plain/);
   });
 
   it('rejects an unknown library id with the closest ids', () => {

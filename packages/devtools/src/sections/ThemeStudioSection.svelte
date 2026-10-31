@@ -34,6 +34,8 @@ import {
   UI_CONTRAST_PAIRS,
 } from '@protoyard/themes';
 import {
+  type LibraryThemeMeta,
+  loadFullLibraryMeta,
   loadLibraryTheme,
   loadLibraryThemeDefinition,
   THEME_LIBRARY_META,
@@ -81,6 +83,8 @@ let useSecondary = $state(false);
 let secondary = $state('#0ea5e9');
 let neutral = $state<NeutralFamily>('tinted');
 let startFrom = $state('');
+/** "Start from" library choices: the catalog, then every library theme once the full list loads. */
+let libraryChoices = $state<readonly LibraryThemeMeta[]>(THEME_LIBRARY_META);
 let loadingStart = $state(false);
 let startError = $state<string | null>(null);
 let fontId = $state<string>(FONT_CATALOG[0]?.id ?? 'system');
@@ -107,6 +111,16 @@ let sharing = $state(false);
 let revision = $state(0);
 
 const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+onMount(() => {
+  let active = true;
+  void loadFullLibraryMeta().then((list) => {
+    if (active) libraryChoices = list;
+  });
+  return () => {
+    active = false;
+  };
+});
 
 onMount(() => {
   const value = getThemeShareValue(location.search, location.hash);
@@ -431,7 +445,7 @@ const inputClass =
             options={[
               { value: '', label: 'Choose a built-in or library theme' },
               ...BUILTIN_THEMES.map((theme) => ({ value: `builtin:${theme.id}`, label: `Built-in · ${theme.name}` })),
-              ...THEME_LIBRARY_META.map((theme) => ({ value: `library:${theme.id}`, label: `Library · ${theme.name}` })),
+              ...libraryChoices.map((theme) => ({ value: `library:${theme.id}`, label: `Library · ${theme.name}` })),
             ]}
           />
         </label>

@@ -6,6 +6,7 @@ import {
   THEME_LIBRARY_META as TEXULI_LIBRARY_META,
 } from '@texuli/tokens/library';
 import { fromTexuliTheme } from '../from-texuli.ts';
+import { ALL_LIBRARY_THEME_IDS, isLibraryThemeId } from './ids.ts';
 import {
   type LibraryThemeDefinition,
   type LibraryThemeMeta,
@@ -15,7 +16,9 @@ import {
 } from './types.ts';
 
 /**
- * The theme library: Texuli's port, `@texuli/tokens/library`.
+ * The theme library: Texuli's port, `@texuli/tokens/library`, plus its
+ * expanded set, `@texuli/tokens/library-expand`. All 204 library themes (on
+ * Texuli 0.9.0) can be listed, searched and loaded by id, by default.
  *
  * - The **catalog** (`THEME_LIBRARY_META` and the synchronous lookups) is
  *   Texuli's 64-theme metadata, imported statically: `@texuli/tokens`
@@ -24,12 +27,14 @@ import {
  *   time. Protoyard keeps no copy of the definitions; a test proves the port
  *   is field-identical to the 64 Protoyard used to define.
  * - The **full library** adds Texuli's expanded set (140 more, without the six
- *   Protoyard built-ins it also carries: they stay `BUILTIN_THEMES`) once a
- *   page calls `enableFullThemeLibrary()` (`@protoyard/themes/library-full`).
- *   Its metadata then loads on demand (`loadFullLibraryMeta`), and
- *   `loadLibraryTheme` accepts every id of it: all 204 by id. It is opt-in
- *   because single-file exports inline everything reachable, so the whole
- *   set would land in each one.
+ *   Protoyard built-ins it also carries: they stay `BUILTIN_THEMES`). Its
+ *   metadata loads on demand (`loadFullLibraryMeta`, `searchFullThemeLibrary`,
+ *   `listFullThemeLibrary`), and each theme's tokens load on their own when
+ *   `loadLibraryTheme` asks for it. Only a dynamic import reaches the
+ *   expanded set, so no initial chunk carries it. Single-file exports, which
+ *   inline every reachable chunk, leave out every expanded theme but the one
+ *   the blueprint uses (`protoyard quick export --single-file`); where the
+ *   expanded set cannot load, the full library is the catalog.
  */
 
 /** The synchronous catalog for pickers (metadata only, no palette tokens). */
@@ -38,19 +43,30 @@ export const THEME_LIBRARY_META: readonly LibraryThemeMeta[] =
 
 const catalogIds = new Set(THEME_LIBRARY_META.map((meta) => meta.id));
 
-export function listThemeLibrary(filter?: {
+/** Filters of `listThemeLibrary` and `listFullThemeLibrary`. */
+export interface LibraryFilter {
   category?: string;
   tag?: string;
   collection?: ThemeCollection;
   mood?: ThemeMood;
-}): readonly LibraryThemeMeta[] {
-  return THEME_LIBRARY_META.filter((meta) => {
+}
+
+function filterLibrary(
+  list: readonly LibraryThemeMeta[],
+  filter?: LibraryFilter
+): readonly LibraryThemeMeta[] {
+  return list.filter((meta) => {
     if (filter?.category && meta.category !== filter.category) return false;
     if (filter?.tag && !meta.tags.includes(filter.tag)) return false;
     if (filter?.collection && meta.collection !== filter.collection) return false;
     if (filter?.mood && !meta.mood.includes(filter.mood)) return false;
     return true;
   });
+}
+
+/** The 64 catalog themes, filtered (synchronous; `listFullThemeLibrary` covers all of them). */
+export function listThemeLibrary(filter?: LibraryFilter): readonly LibraryThemeMeta[] {
+  return filterLibrary(THEME_LIBRARY_META, filter);
 }
 
 /** Where a query word matched, by weight: the name or id counts most, the description least. */
@@ -68,16 +84,18 @@ function fieldScore(meta: LibraryThemeMeta, word: string): number {
 }
 
 /**
- * Case-insensitive search over name, id, tags, mood, category, collection and
- * description. Every word of the query must match somewhere; results are
- * ordered by score (name matches first), then by library order, so the same
- * query always returns the same list. An empty query returns the whole library.
+ * The library search over any list of theme metadata (a picker that already
+ * holds the full list searches it synchronously). Same rules as
+ * `searchThemeLibrary`.
  */
-export function searchThemeLibrary(query: string): readonly LibraryThemeMeta[] {
+export function searchThemeMeta(
+  list: readonly LibraryThemeMeta[],
+  query: string
+): readonly LibraryThemeMeta[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  if (!words.length) return THEME_LIBRARY_META;
+  if (!words.length) return list;
   const scored: { meta: LibraryThemeMeta; score: number; index: number }[] = [];
-  THEME_LIBRARY_META.forEach((meta, index) => {
+  list.forEach((meta, index) => {
     let score = 0;
     for (const word of words) {
       const value = fieldScore(meta, word);
@@ -89,12 +107,30 @@ export function searchThemeLibrary(query: string): readonly LibraryThemeMeta[] {
   return scored.sort((a, b) => b.score - a.score || a.index - b.index).map((entry) => entry.meta);
 }
 
-/** Every collection in a fixed order, with how many catalog themes it holds. */
-export function listCollections(): readonly { id: ThemeCollection; count: number }[] {
+/**
+ * Case-insensitive search over name, id, tags, mood, category, collection and
+ * description of the 64 catalog themes (`searchFullThemeLibrary` covers all
+ * of them). Every word of the query must match somewhere; results are
+ * ordered by score (name matches first), then by library order, so the same
+ * query always returns the same list. An empty query returns the whole list.
+ */
+export function searchThemeLibrary(query: string): readonly LibraryThemeMeta[] {
+  return searchThemeMeta(THEME_LIBRARY_META, query);
+}
+
+/** Every collection in a fixed order, with how many themes of `list` it holds. */
+export function countThemeCollections(
+  list: readonly LibraryThemeMeta[]
+): readonly { id: ThemeCollection; count: number }[] {
   return THEME_COLLECTIONS.map((id) => ({
     id,
-    count: THEME_LIBRARY_META.filter((meta) => meta.collection === id).length,
+    count: list.filter((meta) => meta.collection === id).length,
   }));
+}
+
+/** Every collection in a fixed order, with how many catalog themes it holds. */
+export function listCollections(): readonly { id: ThemeCollection; count: number }[] {
+  return countThemeCollections(THEME_LIBRARY_META);
 }
 
 export function getLibraryThemeMeta(id: string): LibraryThemeMeta | undefined {
@@ -104,16 +140,18 @@ export function getLibraryThemeMeta(id: string): LibraryThemeMeta | undefined {
 /** Texuli's expanded library module (`@texuli/tokens/library-expand`). */
 export type ExpandedLibraryModule = typeof import('@texuli/tokens/library-expand');
 type ExpandModule = ExpandedLibraryModule;
-let expandLoader: (() => Promise<ExpandModule>) | undefined;
+
+/** The default loader of Texuli's expanded set: a dynamic import, never part of an initial chunk. */
+const defaultExpandLoader = (): Promise<ExpandModule> => import('@texuli/tokens/library-expand');
+
+let expandLoader: (() => Promise<ExpandModule>) | undefined = defaultExpandLoader;
 let expandModule: Promise<ExpandModule> | undefined;
 let fullMeta: Promise<readonly LibraryThemeMeta[]> | undefined;
 
 /**
- * Installs (or, with `undefined`, removes) the loader of Texuli's expanded
- * set. `enableFullThemeLibrary()` (`@protoyard/themes/library-full`) calls it.
- * Without it, the full library is the catalog: the expanded set is not
- * reachable from this module, so default bundles and single-file exports
- * never carry it.
+ * Replaces the loader of Texuli's expanded set (tests, hosts that serve it
+ * another way). `undefined` removes it: the full library is then the
+ * catalog. `resetExpandedLibraryLoader()` restores the default.
  */
 export function setExpandedLibraryLoader(loader: (() => Promise<ExpandModule>) | undefined): void {
   expandLoader = loader;
@@ -121,39 +159,93 @@ export function setExpandedLibraryLoader(loader: (() => Promise<ExpandModule>) |
   fullMeta = undefined;
 }
 
+/** Restores the default loader of the expanded set (a dynamic import of `@texuli/tokens/library-expand`). */
+export function resetExpandedLibraryLoader(): void {
+  setExpandedLibraryLoader(defaultExpandLoader);
+}
+
+/** The expanded module, or `undefined` without a loader. A failed load is retried on the next call. */
 function loadExpand(): Promise<ExpandModule> | undefined {
   if (!expandLoader) return undefined;
-  expandModule ??= expandLoader();
+  if (!expandModule) {
+    const pending = expandLoader();
+    expandModule = pending;
+    pending.catch(() => {
+      if (expandModule === pending) expandModule = undefined;
+    });
+  }
   return expandModule;
+}
+
+/** Catalog first, then the expanded themes without the built-ins and catalog ids. */
+function mergeFullMeta(expand: ExpandModule): readonly LibraryThemeMeta[] {
+  const skip = new Set<string>([...expand.BUILTIN_PRESET_IDS, ...catalogIds]);
+  return Object.freeze([
+    ...THEME_LIBRARY_META,
+    ...(expand.EXPAND_THEME_LIBRARY_META as readonly LibraryThemeMeta[]).filter(
+      (meta) => !skip.has(meta.id)
+    ),
+  ]);
 }
 
 /**
  * Every library theme's metadata, the catalog first: Texuli's expanded themes
- * follow, without the six Protoyard built-ins. Loads on first use.
+ * follow, without the six Protoyard built-ins. Loads on first use. When the
+ * expanded set cannot load (no loader, or a single-file export that left it
+ * out), it resolves to the catalog, and a later call tries again.
  */
 export function loadFullLibraryMeta(): Promise<readonly LibraryThemeMeta[]> {
+  if (fullMeta) return fullMeta;
   const expanded = loadExpand();
   if (!expanded) return Promise.resolve(THEME_LIBRARY_META);
-  fullMeta ??= expanded.then((expand) => {
-    const skip = new Set<string>([...expand.BUILTIN_PRESET_IDS, ...catalogIds]);
-    return Object.freeze([
-      ...THEME_LIBRARY_META,
-      ...(expand.EXPAND_THEME_LIBRARY_META as readonly LibraryThemeMeta[]).filter(
-        (meta) => !skip.has(meta.id)
-      ),
-    ]);
+  const pending = expanded.then(mergeFullMeta);
+  fullMeta = pending;
+  return pending.catch(() => {
+    if (fullMeta === pending) fullMeta = undefined;
+    return THEME_LIBRARY_META;
   });
-  return fullMeta;
+}
+
+/** Every library theme (catalog and expanded), filtered like `listThemeLibrary`. */
+export async function listFullThemeLibrary(
+  filter?: LibraryFilter
+): Promise<readonly LibraryThemeMeta[]> {
+  return filterLibrary(await loadFullLibraryMeta(), filter);
+}
+
+/** `searchThemeLibrary` over every library theme (catalog and expanded), same order rules. */
+export async function searchFullThemeLibrary(query: string): Promise<readonly LibraryThemeMeta[]> {
+  return searchThemeMeta(await loadFullLibraryMeta(), query);
+}
+
+/** Every collection in a fixed order, with how many library themes (catalog and expanded) it holds. */
+export async function listFullCollections(): Promise<
+  readonly { id: ThemeCollection; count: number }[]
+> {
+  return countThemeCollections(await loadFullLibraryMeta());
 }
 
 /** Metadata of any library theme (catalog or expanded), or `undefined`. */
 export async function findLibraryThemeMeta(id: string): Promise<LibraryThemeMeta | undefined> {
-  return getLibraryThemeMeta(id) ?? (await loadFullLibraryMeta()).find((meta) => meta.id === id);
+  const catalog = getLibraryThemeMeta(id);
+  if (catalog || !isLibraryThemeId(id)) return catalog;
+  return (await loadFullLibraryMeta()).find((meta) => meta.id === id);
 }
 
-async function unknownTheme(id: string): Promise<Error> {
-  const known = (await loadFullLibraryMeta()).map((meta) => meta.id);
-  return new Error(`Unknown library theme "${id}". Known ids: ${known.join(', ')}`);
+function unknownTheme(id: string): Error {
+  return new Error(`Unknown library theme "${id}". Known ids: ${ALL_LIBRARY_THEME_IDS.join(', ')}`);
+}
+
+/** Texuli's expanded module for an expanded id; rejects for unknown ids or when it cannot load. */
+async function expandFor(id: string): Promise<ExpandModule> {
+  if (!isLibraryThemeId(id)) throw unknownTheme(id);
+  const expanded = loadExpand();
+  if (!expanded) {
+    throw new Error(
+      `Library theme "${id}" is in Texuli's expanded set, which this page cannot load.`
+    );
+  }
+  return expanded;
 }
 
 /** Any library theme's definition (seed, neutral family, fonts, style). */
@@ -161,9 +253,8 @@ export async function loadLibraryThemeDefinition(id: string): Promise<LibraryThe
   if (catalogIds.has(id)) {
     return (await loadTexuliLibraryThemeDefinition(id)) as LibraryThemeDefinition;
   }
-  const expand = loadExpand();
-  if (!expand || !(await findLibraryThemeMeta(id))) throw await unknownTheme(id);
-  return (await expand).loadExpandThemeDefinition(id) as Promise<LibraryThemeDefinition>;
+  const expand = await expandFor(id);
+  return (await expand.loadExpandThemeDefinition(id)) as LibraryThemeDefinition;
 }
 
 async function loadTheme(id: string): Promise<Theme> {
@@ -174,9 +265,7 @@ async function loadTheme(id: string): Promise<Theme> {
     ]);
     return fromTexuliTheme(theme, charts);
   }
-  const expanded = loadExpand();
-  if (!expanded || !(await findLibraryThemeMeta(id))) throw await unknownTheme(id);
-  const expand = await expanded;
+  const expand = await expandFor(id);
   const [theme, charts] = await Promise.all([
     expand.loadExpandTheme(id),
     expand.loadFullLibraryThemeCharts(id),
@@ -205,7 +294,7 @@ export async function loadAllLibraryThemes(): Promise<readonly Theme[]> {
   return Promise.all(THEME_LIBRARY_META.map((meta) => loadLibraryTheme(meta.id)));
 }
 
-/** Eager load every theme of the full library, expanded set included. */
+/** Eager load every theme of the full library, expanded set included (tests, the gallery build). */
 export async function loadAllFullLibraryThemes(): Promise<readonly Theme[]> {
   return Promise.all((await loadFullLibraryMeta()).map((meta) => loadLibraryTheme(meta.id)));
 }

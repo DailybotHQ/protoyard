@@ -1,3 +1,4 @@
+import { ALL_LIBRARY_THEME_IDS, BUILTIN_THEMES } from '@protoyard/themes';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import axe from 'axe-core';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -112,6 +113,18 @@ describe('ThemeExplorer', () => {
 });
 
 describe('theme explorer catalog data', () => {
+  it('has a static card for every built-in and every library theme, expanded set included', async () => {
+    const themes = await buildThemeCatalog();
+    expect(themes.map((theme) => theme.id)).toEqual([
+      ...BUILTIN_THEMES.map((theme) => theme.id),
+      ...ALL_LIBRARY_THEME_IDS,
+    ]);
+    const expanded = themes.find((theme) => theme.id === 'ash-plain');
+    expect(expanded).toMatchObject({ source: 'library', collection: 'mono' });
+    expect(expanded?.lightStyle).toContain('--tx-primary:');
+    expect(expanded?.darkStyle).toContain('--tx-background:');
+  });
+
   it('includes collection, mood, and precomputed chart colors in static cards', async () => {
     const themes = await buildThemeCatalog();
     const health = themes.find((theme) => theme.id === 'health-clinic');

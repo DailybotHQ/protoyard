@@ -12,7 +12,6 @@ import {
   oceanTheme,
   violetTheme,
 } from '../src/index.ts';
-import { disableFullThemeLibrary, enableFullThemeLibrary } from '../src/library/full.ts';
 import {
   loadAllFullLibraryThemes,
   loadFullLibraryMeta,
@@ -30,8 +29,6 @@ import {
 import { writeTexuliAppearance } from '../src/texuli-apply.ts';
 
 // These suites cover the full library (204 themes); the default is the catalog.
-beforeAll(() => enableFullThemeLibrary());
-afterAll(() => disableFullThemeLibrary());
 
 const root = document.documentElement;
 
