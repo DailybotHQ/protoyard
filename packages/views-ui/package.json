@@ -98,10 +98,12 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
+    "@texuli/canvas": "0.9.0",
     "@texuli/data": "0.9.0",
     "@texuli/drag": "0.9.0",
     "@texuli/editor": "0.9.0",
     "@texuli/primitives": "0.9.0",
+    "@texuli/sheets": "0.9.0",
     "texuli": "0.9.0"
   },
   "devDependencies": {

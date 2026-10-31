@@ -13,9 +13,10 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@protoyard/blocks": "workspace:*",
     "@protoyard/core": "workspace:*",
-    "zod": "^4.6.7",
-    "@protoyard/blocks": "workspace:*"
+    "@texuli/document": "0.9.0",
+    "zod": "^4.6.7"
   },
   "protoyard": {
     "build": {
