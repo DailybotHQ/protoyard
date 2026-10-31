@@ -1,5 +1,6 @@
 <script lang="ts">
-import { deckStudioOptions } from '@protoyard/decks/patch';
+import { deckStudioOptions, loadDeckStudioThemes } from '@protoyard/decks/patch';
+import { onMount } from 'svelte';
 import { Button, buttonVariants } from 'texuli/button';
 import { Checkbox } from 'texuli/choice';
 import { cx } from 'texuli/cx';
@@ -15,8 +16,20 @@ import type { DeckStudio } from './studio.svelte.ts';
  */
 let { studio }: { studio: DeckStudio; [key: string]: unknown } = $props();
 
-// The choices load with this lazy panel: the theme list includes the library catalog.
+// The choices load with this lazy panel: the theme list starts with the
+// built-ins and the library catalog, and grows to the whole library (Texuli's
+// expanded set) once its metadata loads.
 const options = deckStudioOptions();
+let themes = $state(options.themes);
+onMount(() => {
+  let active = true;
+  void loadDeckStudioThemes().then((all) => {
+    if (active) themes = [...all];
+  });
+  return () => {
+    active = false;
+  };
+});
 const style = $derived(studio.preview.style);
 const slide = $derived(studio.slide);
 let copying = $state(false);
@@ -119,7 +132,7 @@ const linkButton = cx(
     {@render choice(
       'Theme',
       orDefault(style.theme),
-      withDefault('Default', options.themes.map((theme) => ({ value: theme.id, label: theme.label }))),
+      withDefault('Default', themes.map((theme) => ({ value: theme.id, label: theme.label }))),
       (value) => studio.setStyle('theme', orNull(value))
     )}
     <Field label="Palette seed (replaces the theme)" class="gap-1 text-[12px]">
