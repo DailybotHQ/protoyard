@@ -285,6 +285,42 @@ rows under the target entity's plural label. This is the v1 inverse contract:
 it adds no duplicate foreign key or persisted metadata, so legacy relation
 fields keep their parsed defaults and database stores without migration.
 
+### Entity forms
+
+Create and edit forms (`EntityForm` in `@protoyard/crud`) are painted by
+`@texuli/forms`. `entityFormModel(entity, options)` in `@protoyard/blueprint`
+maps the fields once, as plain data, to a Texuli form schema:
+
+| Field kind | Texuli field |
+| --- | --- |
+| `text`, `phone` | `text` (`text` keeps `minLength` and `maxLength`) |
+| `url` | `text` (Texuli's `url` type accepts only `https://`; the service also accepts `http://`) |
+| `longText` | `textarea` with its length bounds |
+| `json` | `textarea` (the service parses the text and reports invalid JSON on the field) |
+| `number`, `integer` | `number` with `min` and `max` (`integer` adds `step: 1`) |
+| `money` | `number` in major units with `step: 0.01`; submitted as integer cents |
+| `boolean` | `checkbox` (never "must be checked") |
+| `date` | `date` |
+| `enum` | `select` with the value labels |
+| `email` | `email` |
+| `tags` | `tags` with `maxItems` |
+| `persona` | `select` over the workspace members, with an `Unassigned` choice when optional |
+
+`relation`, `datetime`, `geo`, `avatar` and `file` have no Texuli control, so
+the form paints them with Protoyard's own controls (the paged relation picker,
+the date-and-time input, the geo picker, the face picker) after the Texuli
+fields. One submit button serves both. Texuli checks its closed rules
+(required, lengths, ranges, steps, options, tag count) and shows the error
+summary first; the merged input then goes through the entity service
+(`session.assert` → zod → `environment.run` → `db.transaction`), which stays
+the source of truth, and its issues land on the field that caused them. The
+button shows pending feedback while the service runs. A `disabled` form paints
+every Texuli field disabled through a constant `when.enable` condition.
+
+The blueprint format has no form layout yet: no sections, steps, conditions or
+drafts per entity. Every existing blueprint keeps validating unchanged, and no
+`formatVersion` migration is involved.
+
 ### Generation hints
 
 The generic world generator (generator SDK 5) reads these hints. They change
