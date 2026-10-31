@@ -206,7 +206,7 @@ test.describe('Review comments on PROTOYARD_REVIEW=1 builds', () => {
     const panel = page.getByRole('region', { name: 'Review comments' });
     await panel.getByRole('button', { name: /Add an export/ }).click();
     await expect(page).toHaveURL(/#\/companies$/);
-    await expect(page.locator('[data-py-review-pin][data-pulsing]')).toHaveCount(1);
+    await expect(page.locator('[data-py-review-pin][aria-current="true"]')).toHaveCount(1);
   });
 
   test('resolving hides the pin and reopening brings it back', async ({ page }) => {

@@ -100,7 +100,7 @@ hidden until the comments list shows them.
 - **Comments** in the toolbar (or the **Comments** tab in DevTools) lists every
   thread. You can filter by state, screen, author and anchor (**Anchored** or
   **Orphaned**), and search.
-  - Choosing a thread opens its screen and pulses its pin.
+  - Choosing a thread opens its screen and marks its pin (`aria-current`, a still double ring).
   - When the thread was written in another scenario, the list asks before
     switching, and it saves a safety snapshot first.
   - **Restore saved shell, theme and persona** reproduces the view the
