@@ -1,0 +1,4 @@
+@import "@protoyard/renderer-svelte/app.css";
+
+/* Let Tailwind see this prototype's own markup. */
+@source "./";

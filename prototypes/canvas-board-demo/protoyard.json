@@ -1,0 +1,46 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "local.canvas-board-demo",
+  "slug": "canvas-board-demo",
+  "kind": "prototype",
+  "name": "Canvas Board",
+  "description": "Planning boards on an infinite canvas: frames, sticky notes, shapes and connectors with snapping, a JSON clipboard and undo, saved per board in IndexedDB, with owner and viewer personas and seeded scenarios.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "productivity",
+  "tags": ["canvas", "whiteboard", "planning", "texuli"],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Whiteboard",
+    "platforms": ["web"],
+    "features": ["crud", "roles"],
+    "highlights": [
+      "Boards of frames, sticky notes and connectors on an infinite canvas",
+      "Every edit saves through a permission-checked service",
+      "A 1,500-note board and an awkward-shapes board to stress the editor"
+    ],
+    "difficulty": "intermediate"
+  },
+  "status": "ready",
+  "icon": "🗂️",
+  "defaultScenario": "active",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop"
+  },
+  "storage": {
+    "namespace": "canvas-board-demo",
+    "schemaVersion": 1
+  },
+  "build": {
+    "includeDevtools": false,
+    "demoBadge": true,
+    "base": "./"
+  },
+  "scenarios": ["empty", "active", "crowded", "awkward", "viewer"],
+  "template": "blank",
+  "createdAt": "2026-10-31T07:12:46.158Z",
+  "updatedAt": "2026-10-31T07:12:46.158Z"
+}
