@@ -93,6 +93,11 @@ export const screenKinds: Record<string, ScreenKindRegistration> = {
     () => import('./screens/timeline/index.ts').then((module) => module.TimelineScreen),
     screenProps
   ),
+  sheet: registration(
+    'sheet',
+    () => import('./screens/sheet/index.ts').then((module) => module.SheetScreen),
+    screenProps
+  ),
   map: registration(
     'map',
     () => import('./screens/map/index.ts').then((module) => module.MapScreen),
