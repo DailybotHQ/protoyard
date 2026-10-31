@@ -6,6 +6,8 @@ import { prototypes } from '@/lib/registry';
 import { buildThemeCatalog, withThemeParam } from '@/lib/theme-catalog';
 
 const themes = await buildThemeCatalog();
+const libraryCount = themes.filter((theme) => theme.source === 'library').length;
+const builtinCount = themes.length - libraryCount;
 const collections = [...new Set(themes.map((theme) => theme.collection))];
 const moods = [...new Set(themes.flatMap((theme) => theme.mood))].sort();
 const prototypeTargets = prototypes()
@@ -28,7 +30,7 @@ const prototypeTargets = prototypes()
       Themes
     </h1>
     <p class="mt-3 text-muted">
-      Explore the 64-theme library and six built-in palettes by collection, mood, or search. Compare
+      Explore all {libraryCount} library themes and {builtinCount} built-in palettes by collection, mood, or search. Compare
       chart colors in either mode, then open a prototype with
       <code class="font-mono text-sm">?theme=&lt;id&gt;</code>.
     </p>

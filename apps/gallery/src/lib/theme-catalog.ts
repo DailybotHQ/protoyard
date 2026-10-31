@@ -1,8 +1,8 @@
 import type { Theme } from '@protoyard/core';
 import {
   BUILTIN_THEMES,
-  loadAllLibraryThemes,
-  THEME_LIBRARY_META,
+  loadAllFullLibraryThemes,
+  loadFullLibraryMeta,
   themeVariables,
 } from '@protoyard/themes';
 
@@ -72,10 +72,14 @@ function cardFromTheme(
   };
 }
 
-/** Built-ins + library presets with live light/dark token styles. */
+/**
+ * Built-ins + every library theme (the 64-theme catalog and Texuli's
+ * expanded set, 204 on Texuli 0.9.0) with live light/dark token styles,
+ * computed at build time: the page ships static cards, no theme code.
+ */
 export async function buildThemeCatalog(): Promise<ThemeCardData[]> {
-  const library = await loadAllLibraryThemes();
-  const metaById = new Map(THEME_LIBRARY_META.map((meta) => [meta.id, meta]));
+  const [library, meta] = await Promise.all([loadAllFullLibraryThemes(), loadFullLibraryMeta()]);
+  const metaById = new Map(meta.map((entry) => [entry.id, entry]));
   const cards: ThemeCardData[] = BUILTIN_THEMES.map((theme) =>
     cardFromTheme(theme, 'builtin', 'builtin', 'builtin', [], ['builtin', 'core'])
   );
