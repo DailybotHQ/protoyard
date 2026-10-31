@@ -25,19 +25,55 @@ export interface ThemeCardData {
   seed?: string;
 }
 
+/**
+ * The tokens a Themes page card reads (themes.astro): its surface, text,
+ * border, radius, heading font and the chart swatches. Only these are
+ * inlined, with whatever they reference: 210 cards × 2 modes of every token
+ * made the page 2.3 MB.
+ */
+const CARD_TOKENS = [
+  '--tx-background',
+  '--tx-foreground',
+  '--tx-muted-foreground',
+  '--tx-border',
+  '--tx-radius',
+  '--tx-font-heading',
+  '--tx-font-weight-heading',
+];
+const CHART_TOKEN = /^--tx-chart-[1-8]$/;
+const VAR_REFERENCE = /var\((--tx-[a-z0-9-]+)/g;
+
 function styleAttr(theme: Theme, mode: 'light' | 'dark'): string {
-  const vars = Object.entries(themeVariables({ theme, resolvedMode: mode, reducedMotion: true }));
+  const raw = Object.entries(themeVariables({ theme, resolvedMode: mode, reducedMotion: true }));
+  // Protoyard's `--py-*` names win over the `--tx-*` name they alias.
   const overridden = new Set(
-    vars
-      .filter(([name]) => name.startsWith('--py-'))
-      .map(([name]) => name.replace('--py-', '--tx-'))
+    raw.filter(([name]) => name.startsWith('--py-')).map(([name]) => name.replace('--py-', '--tx-'))
   );
-  return vars
-    .filter(([name]) => !name.startsWith('--tx-') || !overridden.has(name))
-    .map(
-      ([name, value]) =>
-        `${name.replaceAll('--py-', '--tx-')}:${value.replaceAll('--py-', '--tx-')}`
-    )
+  const vars = new Map(
+    raw
+      .filter(([name]) => !name.startsWith('--tx-') || !overridden.has(name))
+      .map(([name, value]) => [
+        name.replaceAll('--py-', '--tx-'),
+        value.replaceAll('--py-', '--tx-'),
+      ])
+  );
+  // The card's tokens, then every token their values reference.
+  const keep = new Set([
+    ...CARD_TOKENS,
+    ...[...vars.keys()].filter((name) => CHART_TOKEN.test(name)),
+  ]);
+  const pending = [...keep];
+  for (let name = pending.pop(); name !== undefined; name = pending.pop()) {
+    for (const [, referenced] of (vars.get(name) ?? '').matchAll(VAR_REFERENCE)) {
+      if (referenced && vars.has(referenced) && !keep.has(referenced)) {
+        keep.add(referenced);
+        pending.push(referenced);
+      }
+    }
+  }
+  return [...vars]
+    .filter(([name]) => keep.has(name))
+    .map(([name, value]) => `${name}:${value}`)
     .join(';');
 }
 

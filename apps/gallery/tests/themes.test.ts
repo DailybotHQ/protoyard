@@ -20,10 +20,19 @@ describe('theme-catalog helpers', () => {
     expect(new Set(cards.map((c) => c.id)).size).toBe(cards.length);
     expect(cards.some((c) => c.source === 'builtin' && c.id === 'violet')).toBe(true);
     expect(cards.some((c) => c.source === 'library')).toBe(true);
+    // Only the tokens a card reads are inlined (and whatever they reference).
+    const tokens = (style: string) => style.split(';').map((entry) => entry.split(':')[0]);
     for (const card of cards) {
-      expect(card.lightStyle).toContain('--tx-background:');
-      expect(card.lightStyle).toContain('--tx-primary:');
-      expect(card.darkStyle).toContain('--tx-background:');
+      for (const style of [card.lightStyle, card.darkStyle]) {
+        for (const token of ['--tx-background', '--tx-foreground', '--tx-border', '--tx-radius']) {
+          expect(tokens(style)).toContain(token);
+        }
+        expect(tokens(style)).not.toContain('--tx-primary-foreground');
+        for (const [, referenced] of style.matchAll(/var\((--tx-[a-z0-9-]+)/g)) {
+          expect(tokens(style), `${card.id} references ${referenced}`).toContain(referenced);
+        }
+      }
+      expect(card.chartColors.length).toBeGreaterThan(0);
       expect(card.category.length).toBeGreaterThan(0);
     }
     expect(themeCategories(cards)[0]).toBe('builtin');
