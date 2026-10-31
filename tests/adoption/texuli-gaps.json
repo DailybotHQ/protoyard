@@ -368,5 +368,50 @@
     "id": "G112",
     "status": "open",
     "summary": "@texuli/document documentToMarkdown drops wrapped blocks, tables included, where the DOCX and PDF writers print them"
+  },
+  {
+    "id": "G113",
+    "status": "open",
+    "summary": "@texuli/forms SchemaForm has no host-painted field (snippet or custom type), so host pickers fall outside the form, summary and validation"
+  },
+  {
+    "id": "G114",
+    "status": "open",
+    "summary": "@texuli/forms SchemaForm always paints its title; no prop to hide it while keeping the accessible name"
+  },
+  {
+    "id": "G115",
+    "status": "open",
+    "summary": "@texuli/forms SchemaForm has no custom or headless action row (actions snippet or actions={false})"
+  },
+  {
+    "id": "G116",
+    "status": "open",
+    "summary": "@texuli/forms SchemaForm and createFormController have no form-level disabled or readOnly"
+  },
+  {
+    "id": "G117",
+    "status": "open",
+    "summary": "@texuli/forms lacks password, one-time code, color and datetime field types"
+  },
+  {
+    "id": "G118",
+    "status": "open",
+    "summary": "@texuli/forms an optional select cannot be cleared back to empty"
+  },
+  {
+    "id": "G119",
+    "status": "open",
+    "summary": "@texuli/forms SchemaForm statically imports every control type, so unused types still cost about 6 KB gzip of CSS"
+  },
+  {
+    "id": "G120",
+    "status": "open",
+    "summary": "@texuli/forms multi-step forms have no per-step submit hook (onStep) to save a step through a service"
+  },
+  {
+    "id": "G121",
+    "status": "open",
+    "summary": "@texuli/forms url fields accept https only, with no protocols option"
   }
 ]
