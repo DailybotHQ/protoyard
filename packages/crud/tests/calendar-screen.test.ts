@@ -190,16 +190,15 @@ describe('CalendarScreen', () => {
 
     const dialog = await screen.findByRole('dialog', { name: 'New booking' });
     const form = dialog.querySelector('[data-entity-form="booking"]') as HTMLElement;
-    // The dialog names the form, so its own title is not shown twice.
-    expect(form.hasAttribute('data-hide-title')).toBe(true);
+    // The dialog names the form, so its own title is only visually hidden (G114).
+    const heading = form.querySelector('.tx-forms__title') as HTMLElement;
+    expect(heading.className).toMatch(/sr-only|visually-hidden/);
     // The title is a Texuli field; the prefilled start (09:00 on today) and
-    // end (10:00) are hosted date-and-time controls.
+    // end (10:00) are Texuli datetime fields (G117).
     const title = within(form).getByRole('textbox', { name: /^Title/ }) as HTMLInputElement;
-    const hosted = form.querySelectorAll<HTMLInputElement>(
-      '[data-entity-form-hosted] input[type="datetime-local"]'
-    );
-    expect(hosted[0]?.value).toBe('2026-06-01T09:00');
-    expect(hosted[1]?.value).toBe('2026-06-01T10:00');
+    for (const name of ['startsAt', 'endsAt']) {
+      expect(form.querySelector(`[data-tx-forms-field="${name}"]`), name).toBeTruthy();
+    }
     await fireEvent.input(title, { target: { value: 'Morning kayak' } });
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
 

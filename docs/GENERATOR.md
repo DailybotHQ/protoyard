@@ -296,28 +296,31 @@ maps the fields once, as plain data, to a Texuli form schema:
 | Field kind | Texuli field |
 | --- | --- |
 | `text`, `phone` | `text` (`text` keeps `minLength` and `maxLength`) |
-| `url` | `text` (Texuli's `url` type accepts only `https://`; the service also accepts `http://`) |
+| `url` | `url` with `protocols: ['http', 'https']`, as the service accepts |
 | `longText` | `textarea` with its length bounds |
 | `json` | `textarea` (the service parses the text and reports invalid JSON on the field) |
 | `number`, `integer` | `number` with `min` and `max` (`integer` adds `step: 1`) |
 | `money` | `number` in major units with `step: 0.01`; submitted as integer cents |
 | `boolean` | `checkbox` (never "must be checked") |
 | `date` | `date` |
+| `datetime` | `datetime` (the stored instant's UTC wall time, submitted back as UTC) |
 | `enum` | `select` with the value labels |
 | `email` | `email` |
 | `tags` | `tags` with `maxItems` |
-| `persona` | `select` over the workspace members, with an `Unassigned` choice when optional |
+| `persona` | `select` over the workspace members; Texuli adds its empty "None" choice when optional |
 
-`relation`, `datetime`, `geo`, `avatar` and `file` have no Texuli control, so
-the form paints them with Protoyard's own controls (the paged relation picker,
-the date-and-time input, the geo picker, the face picker) after the Texuli
-fields. One submit button serves both. Texuli checks its closed rules
-(required, lengths, ranges, steps, options, tag count) and shows the error
-summary first; the merged input then goes through the entity service
-(`session.assert` → zod → `environment.run` → `db.transaction`), which stays
-the source of truth, and its issues land on the field that caused them. The
-button shows pending feedback while the service runs. A `disabled` form paints
-every Texuli field disabled through a constant `when.enable` condition.
+`relation`, `geo`, `avatar` and `file` have no Texuli control. They are Texuli
+`custom` fields of the same form (`kind` is the blueprint kind), painted with
+Protoyard's own controls (the paged relation picker, the geo picker, the face
+picker), so Texuli labels them, checks `required` and lists them in its error
+summary like any other field. A persona without members to pick and an enum
+past Texuli's 200-option cap are hosted the same way. Texuli checks its closed
+rules (required, lengths, ranges, steps, options, tag count) first; the input
+then goes through the entity service (`session.assert` → zod →
+`environment.run` → `db.transaction`), which stays the source of truth, and
+its issues land on the field that caused them. The submit button is
+Protoyard's `Button` in Texuli's action row and shows pending feedback while
+the service runs. A `disabled` form uses SchemaForm's own `disabled`.
 
 The blueprint format has no form layout yet: no sections, steps, conditions or
 drafts per entity. Every existing blueprint keeps validating unchanged, and no
