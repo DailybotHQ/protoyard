@@ -131,7 +131,6 @@ test.describe('Pebblestat Analytics (static build)', () => {
 
   test('Users: a bar drills into the table, the hash keeps the path, a user opens', async ({
     page,
-    isMobile,
   }) => {
     await openApp(page, '#/users');
     const chart = plot(page, /^Users by plan/);

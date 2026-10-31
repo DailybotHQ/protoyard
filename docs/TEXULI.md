@@ -4,8 +4,10 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to its npm `latest` in this
-workspace (`0.8.0` or `0.8.1`; `@texuli/slides` `0.8.2`).
+Protoyard. Every Texuli dependency is pinned to an exact npm version in this
+workspace (`0.8.0` or `0.8.1`; `@texuli/slides` `0.8.2`), and every workspace
+package uses the same pin; `check-texuli-latest.ts --registry` compares the pins
+with npm `latest` before a release.
 
 ## How it is linked
 

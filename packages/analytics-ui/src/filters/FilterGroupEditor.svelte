@@ -57,7 +57,7 @@ const model = $derived(toBuilderFilter(group, properties) as FilterModel);
 /**
  * The builder shows its own issues (values that do not fit a field); the
  * catalog checks run on Apply and are listed here, named by condition, since
- * the builder takes no host issues (a Texuli gap; the lead assigns its id).
+ * the builder takes no host issues (Texuli gap G101).
  */
 const issues = $derived(
   Object.entries(errors)

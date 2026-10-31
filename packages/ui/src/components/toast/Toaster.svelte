@@ -16,7 +16,7 @@ let { ref = $bindable(null), ...props }: Props = $props();
 
 const portal = useOverlayPortalTarget();
 
-// Texuli gap: a contained viewport reads its container's computed position
+// Texuli gap G99: a contained viewport reads its container's computed position
 // while it mounts, which forces a synchronous layout of the whole app on its
 // first render (a 36 ms long task on a 5,000-message screen). Contain it one
 // frame later, when layout is clean and the read is cheap; until then (no
