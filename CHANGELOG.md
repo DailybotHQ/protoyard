@@ -6,6 +6,85 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+Protoyard on Texuli 0.9.0 from npm (PLAN_008), with Texuli's documents, forms,
+sheets, canvas, motion and full theme library adopted where they replace
+Protoyard code or add real value. Texuli 0.10.0 is not adopted yet.
+
+### Added
+
+- **Spreadsheets and an infinite canvas.** `@protoyard/views-ui/sheet`
+  (formulas, totals, CSV download and import) and `@protoyard/views-ui/canvas`
+  (frames, sticky notes, shapes, connectors, SVG export), each a lazy view that
+  saves through a service and validates stored data as untrusted input.
+  Blueprints gain `sheet` and `canvas` screen types; `@protoyard/views/scenarios`
+  gains `generateSheetWorkbook` and `generateCanvasBoard`.
+- **The `canvas-board-demo` prototype**: planning boards on the canvas, with
+  owner and viewer personas and five scenarios (including 1,500 notes).
+- **Three catalog blueprints** with sheet and canvas screens
+  (home renovation, product discovery and lesson planning): 43 in all.
+- **Doc editing and downloads.** Docs open in Texuli's `PageEditor` and download
+  as Word, PDF or Markdown. Applied edits are saved per doc and world in the new
+  `docEdits` store (content-kind database version 2) and survive a reload;
+  "Reset to the original" removes them.
+- **Blueprint motion.** An optional, closed `motion: { level }` on every kind
+  caps every Texuli animation and a deck's own transitions.
+- **Streamed drafts under `quick serve`.** A deck, page or doc paints the part of
+  its file that has arrived while an agent is still writing it.
+- **Every library theme by default**: 204 library themes (the 64-theme catalog
+  and Texuli's expanded set) in the `theme` CLI, DevTools, Deck Studio, the
+  player and generated-app settings, the gallery and every theme id.
+- **Templates.** `fintech-dashboard` shows its transactions as a read-only
+  spreadsheet with a net total and CSV download; `design-kit` has a Sketches
+  section on the canvas.
+- **Texuli agent tooling.** The vendored Texuli skill is `skill-v0.3.4`, and
+  `docs/MCP.md` shows how to run `@texuli/mcp` as a companion server next to
+  `protoyard mcp`.
+
+### Changed
+
+- **Texuli 0.9.0.** Every Texuli dependency is pinned to `0.9.0` from npm, and
+  every `@protoyard/ui` component takes Texuli's uniform contract (`bind:ref`,
+  rest attributes, caller handlers first). Additive props: `ref` and rest
+  everywhere, `CommandPalette` `bind:open`, `FileDropzone` `id`,
+  `TabItem.badgeLabel`.
+- **Forms render through Texuli's `SchemaForm`**: generated entity forms, page
+  and doc form blocks, and the SaaS notification preferences and member invite.
+  Required and range errors now show before the service runs; field order can
+  differ, because Protoyard-painted fields (relation, datetime, geo, avatar,
+  file) follow the Texuli ones.
+- **Chart variables use Texuli's names**: `--tx-chart-1…8`,
+  `--tx-chart-sequential-1…9` and `--tx-chart-diverging-1…9` (were
+  `--tx-chart1`, `--tx-seq-N`, `--tx-div-N`). Update custom CSS that read the old
+  names.
+- **Motion comes from Texuli** (`MotionProvider`, the `motion` prop and the
+  `--tx-motion-*` tokens); the prototype's reduced-motion setting turns every
+  animation into an instant change.
+- **Decks run on `@texuli/slides/stage-core`** with a prepared deck; the Debug
+  for agents button is in the stage toolbar's host-tools group.
+- **Kits on Texuli**: the notification inbox, analytics filters
+  (`FilterBuilder`), cohort heat cells, the analytics dashboard grid and the AI
+  message list's reading position and day rows.
+- **Generated decks, pages and docs** record the content-kind storage schema
+  (version 2); regenerating an older one upgrades it.
+- **Bundles and budgets.** Each player kind page and single-file export carries
+  only its own kind's code (a deck file no longer carries the doc editor and
+  forms). Ceilings raised for earlier Texuli versions are lowered to measured
+  + 5 % where the measurements allow; see `docs/PERFORMANCE.md`.
+
+### Fixed
+
+- A doc's Edit and Reset follow a persona switch without a reload.
+- The sheet view's "Import CSV" accepts a second file after the first.
+- Kanban column descriptions are back in the header, and cards settle in
+  `items` order after a move; date fields report a typed short year as invalid;
+  a read-only tags-and-email input stays focusable.
+
+### Removed
+
+- Most adapters for the Texuli gaps that 0.8 and 0.9 fixed (G53–G99); the few
+  kept on purpose (for example `DataTable` on Texuli's table parts) say why in
+  their package README. Also the charts-ui color map.
+
 ## [1.0.0] - 2026-10-20
 
 The first stable release: Protoyard grows from a prototype runtime into a
