@@ -85,6 +85,20 @@ run them by hand for the surface a task migrates.
 | `local-motion` | An import from `svelte/transition` or `svelte/animate`, or an `@keyframes` rule, in a UI package (`ui`, `*-ui`, `devtools`, `crud`, `player`, `renderer-svelte`), the gallery, a template or a prototype | Use Texuli motion: the `motion` prop or `MotionProvider` from `texuli/motion`, the `@texuli/core/motion` texels, and the `--tx-motion-*` tokens. They honor reduced motion by construction. |
 | `ref-undefined` | `bind:ref={x}` where `x` does not start as `null` (for example `$state<HTMLElement \| null>()` or a declaration with no initializer). Svelte throws at runtime on `bind:ref={undefined}` against a `ref` with a fallback, which stops the whole island | Start refs as `$state<HTMLElement \| null>(null)`, `$state(null)` or `= null`. The check reads the initializer, not the type. |
 
+### Motion
+
+Motion comes from Texuli: component `motion` props, the `texuli/motion`
+factories (`createPresenceMotion`, `createListMotion`…) and the
+`--tx-motion-*` tokens. A theme's motion (fast, base and slow durations and
+an easing; Theme Studio's motion preset) reaches Texuli's variables, with the
+`slower` step Texuli derives. The renderer wraps every prototype in a
+`MotionProvider` with the prototype's resolved reduced-motion setting, so the
+DevTools toggle, a scenario or the reader's preference turns every Texuli
+animation into an instant state change. The global pending bar is Texuli's
+`Progress`. Two looping indicators stay local keyframes, each a reasoned
+entry in `tests/adoption/texuli-exceptions.json`: the undo countdown bar and
+the voice orb (Texuli's motion caps one run at 1 s).
+
 ### Exceptions and the gap loop
 
 `tests/adoption/texuli-exceptions.json` is the reviewed exception list. It

@@ -1,10 +1,4 @@
 {
   "unit": "templates",
-  "entries": [
-    {
-      "file": "templates/plugin-panel/src/app.css",
-      "rule": "local-motion",
-      "count": 1
-    }
-  ]
+  "entries": []
 }

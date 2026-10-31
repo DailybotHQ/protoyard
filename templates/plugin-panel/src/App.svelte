@@ -4,7 +4,6 @@ import {
   CircleHelp,
   Cloud,
   Link2,
-  LoaderCircle,
   Pencil,
   RefreshCw,
   Settings2,
@@ -196,7 +195,7 @@ async function addConnection(event: SubmitEvent) {
       <label>Choose a service<Select bind:value={connectProvider} items={PROVIDERS.map((provider) => ({ value: provider, label: provider }))} /></label>
       <label>Fictional account email<Input bind:value={connectEmail} type="email" required /></label>
       <div class="simulation-banner"><span class="simulation-dot"></span><span><strong>Simulation only</strong><small>No OAuth redirect, credentials, or network request.</small></span></div>
-      <Button variant="default" class="primary-button consent-submit" disabled={busy || !canManage} onclick={connect}>{#if busy}<LucideIcon icon={LoaderCircle} class="size-[16px] spin" /> Connecting…{:else}<LucideIcon icon={ArrowRight} class="size-[16px]" /> Approve simulated connection{/if}</Button>
+      <Button variant="default" class="primary-button consent-submit" disabled={!canManage} loading={busy} loadingLabel="Connecting…" onclick={connect}><LucideIcon icon={ArrowRight} class="size-[16px]" /> Approve simulated connection</Button>
       <Button class="quiet-button cancel-consent" onclick={() => (consentOpen = false)}>Cancel</Button>
   {/snippet}
 </Dialog>

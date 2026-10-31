@@ -1,6 +1,6 @@
 <script lang="ts">
 import { ArrowDown, CircleAlert, RotateCcw, Square } from '@lucide/svelte';
-import { Button } from '@protoyard/ui';
+import { Button, Spinner } from '@protoyard/ui';
 import { tick } from 'svelte';
 import { LucideIcon } from 'texuli/icons/lucide';
 import type { AgentRun, Message } from '../database/schema.ts';
@@ -195,7 +195,7 @@ $effect(() => {
                     {/if}
                     {#if live}
                       <div class="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                        <span class="relay-caret" aria-hidden="true"></span>
+                        <Spinner class="text-primary" />
                         <span>{message.body ? 'Writing…' : 'Thinking…'}</span>
                         {#if canInvoke && message.runId}
                           <Button
@@ -247,23 +247,3 @@ $effect(() => {
 
   <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</div>
 </div>
-
-<style>
-  .relay-caret {
-    display: inline-block;
-    width: 0.5rem;
-    height: 0.9rem;
-    border-radius: 1px;
-    background: var(--color-primary);
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    .relay-caret {
-      animation: relay-blink 1s steps(2, start) infinite;
-    }
-  }
-  @keyframes relay-blink {
-    to {
-      visibility: hidden;
-    }
-  }
-</style>
