@@ -1,17 +1,31 @@
-export { isLibraryThemeId, LIBRARY_THEME_IDS } from './ids.ts';
+export {
+  ALL_LIBRARY_THEME_IDS,
+  EXPANDED_LIBRARY_THEME_IDS,
+  isCatalogThemeId,
+  isExpandedLibraryThemeId,
+  isLibraryThemeId,
+  LIBRARY_THEME_IDS,
+} from './ids.ts';
 export {
   clearLibraryThemeCache,
+  countThemeCollections,
   type ExpandedLibraryModule,
   findLibraryThemeMeta,
   getLibraryThemeMeta,
+  type LibraryFilter,
   listCollections,
+  listFullCollections,
+  listFullThemeLibrary,
   listThemeLibrary,
   loadAllFullLibraryThemes,
   loadAllLibraryThemes,
   loadFullLibraryMeta,
   loadLibraryTheme,
   loadLibraryThemeDefinition,
+  resetExpandedLibraryLoader,
+  searchFullThemeLibrary,
   searchThemeLibrary,
+  searchThemeMeta,
   setExpandedLibraryLoader,
   THEME_LIBRARY_META,
 } from './registry.ts';
