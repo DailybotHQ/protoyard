@@ -70,9 +70,12 @@ Each subpath re-exports Texuli's charts, through an adapter where Protoyard's
 props differ ([docs/texuli-charts.md](docs/texuli-charts.md)):
 
 - **`./cartesian`:** LineChart, AreaChart, BarChart and ComboChart pass
-  `emptyMessage` and `description` to Texuli's `description` and drop
-  Protoyard-only series fields; ScatterChart maps `series[]` to Texuli's
-  matrix `points[]`.
+  `emptyMessage` and `description` to Texuli's `description`, drop
+  Protoyard-only series fields, and forward `xKind`, `formatX` and `locale`:
+  `xKind="time"` reads epoch milliseconds as UTC dates on the axis, live
+  region, tooltip and table. A `time` or `linear` kind on string x keeps
+  Texuli's inferred axis instead of throwing. ScatterChart maps `series[]`
+  to Texuli's matrix `points[]`.
 - **`./part-whole`:** Pie and Donut default the table `labels` and map
   `height` to `size`; FunnelChart maps `count` to `value`; Texuli's
   TreemapChart and SunburstChart are re-exported as they are.

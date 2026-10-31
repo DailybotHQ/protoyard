@@ -75,6 +75,9 @@ test.describe('charts-ui demos (ui-kit static build)', () => {
     const live = figure.locator('[data-chart-live]');
     await expect(live).not.toHaveText('');
     const first = await live.textContent();
+    // xKind="time" reaches Texuli (G97): x reads as a date, never as raw epoch milliseconds.
+    expect(first).toMatch(/2026/);
+    expect(first).not.toMatch(/\d{1,3}(,\d{3}){4}|\d{13}/);
     await page.keyboard.press('ArrowRight');
     await expect(live).not.toHaveText(first ?? '');
     await page.keyboard.press('End');
@@ -185,9 +188,12 @@ test.describe('charts-ui demos (ui-kit static build)', () => {
   test('reduced motion removes chart transitions', async ({ page }) => {
     await openDemo(page, 'chart-cartesian');
     await page.evaluate(() => window.__protoyard?.theme.setOverride({ reducedMotion: true }));
-    // The prototype's reduced-motion toggle (Texuli charts mark only the OS preference
-    // with data-reduced-motion on the plot, Texuli gap G98).
+    // The prototype's reduced-motion toggle. The renderer passes it to Texuli through a
+    // texuli/motion MotionProvider, and Texuli 0.9's plots follow it (G98).
     await expect(page.locator('html')).toHaveAttribute('data-py-motion', 'reduce');
+    await expect(
+      page.locator('[data-py-chart] [data-reduced-motion="true"]').first()
+    ).toBeAttached();
     // Every animated part of the charts: marks, the hover dot and the active ring.
     const parts = page.locator(
       '[data-py-chart] svg rect[data-series], [data-py-chart] .tx-chart-hover-dot, [data-py-chart] .tx-chart-active-ring'
@@ -203,6 +209,20 @@ test.describe('charts-ui demos (ui-kit static build)', () => {
     // The theme's reduced-motion rule clamps every transition to 0.01 ms (1e-05s): effectively none.
     const ms = (part: string) => Number.parseFloat(part) * (part.trim().endsWith('ms') ? 1 : 1000);
     expect(durations.every((d) => d.split(',').every((part) => ms(part) <= 0.01))).toBe(true);
+  });
+
+  test("the reader's reduced-motion preference marks Texuli's plots", async ({ page }) => {
+    const plots = page.locator('[data-py-chart] [aria-roledescription="chart"]');
+    const marked = page.locator('[data-py-chart] [data-reduced-motion="true"]');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await openDemo(page, 'chart-cartesian');
+    await expect(plots.first()).toBeVisible();
+    await expect(marked).toHaveCount(0);
+    // InteractivePlot reads its MotionProvider first and falls back to prefers-reduced-motion.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.reload();
+    await expect(plots.first()).toBeVisible();
+    await expect(marked.first()).toBeAttached();
   });
 
   test('the renderer choice reaches Texuli: SVG draws 10k points as SVG, Canvas on a canvas', async ({

@@ -3,7 +3,13 @@ import type { CanvasRendererMode } from '@texuli/charts/canvas';
 /** Adapter: Protoyard BarChart → Texuli BarChart; maps onselect to include datum. */
 import { StackedBarChart, BarChart as TexuliBar } from '@texuli/charts/cartesian';
 import ChartRoot from '../compat/ChartRoot.svelte';
-import { type CartesianSeries, toTexuliSeries } from '../compat/series.ts';
+import {
+  type CartesianSeries,
+  texuliXProps,
+  toTexuliSeries,
+  type XFormatter,
+  type XKind,
+} from '../compat/series.ts';
 
 type Props = {
   title: string;
@@ -23,6 +29,12 @@ type Props = {
   interactive?: boolean;
   /** `auto` (default: canvas from 5,000 points), `svg` or `canvas`. */
   renderer?: CanvasRendererMode;
+  /** `time` (epoch ms shown as dates), `linear` or `category`; omitted: inferred by Texuli. */
+  xKind?: XKind;
+  /** Formats x values on the axis, live region, tooltip and data table. */
+  formatX?: XFormatter;
+  /** BCP 47 tag for dates and announced values (default: the runtime's locale). */
+  locale?: string;
   [key: string]: unknown;
 };
 
@@ -36,10 +48,14 @@ let {
   onselect,
   interactive = true,
   renderer = 'auto',
+  xKind,
+  formatX,
+  locale,
 }: Props = $props();
 
 const desc = $derived(description ?? emptyMessage ?? `${title}.`);
 const mapped = $derived(toTexuliSeries(series));
+const xProps = $derived(texuliXProps(mapped, { xKind, formatX, locale }));
 const empty = $derived(mapped.every((s) => s.points.length === 0));
 
 function handleSelect(sel: {
@@ -60,6 +76,7 @@ function handleSelect(sel: {
     <p class="empty" data-py-chart="" role="status">{emptyMessage ?? 'No data'}</p>
   {:else if mode === 'stacked' || mode === 'expanded'}
     <StackedBarChart
+      {...xProps}
       {title}
       description={desc}
       series={mapped}
@@ -70,6 +87,7 @@ function handleSelect(sel: {
     />
   {:else}
     <TexuliBar
+      {...xProps}
       {title}
       description={desc}
       series={mapped}
