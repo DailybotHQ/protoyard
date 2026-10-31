@@ -105,7 +105,7 @@ export const FEATURE_AREAS: readonly FeatureArea[] = [
     summary:
       'Themes, layouts and device shells, plus rich views, charts, analytics, SaaS flows and scripted AI assistants.',
     points: [
-      'A 64-theme library on top of six built-in themes, twelve shared page layouts, and device and host shells.',
+      'A 204-theme library on top of six built-in themes, twelve shared page layouts, and device and host shells.',
       'Rich views: board, calendar, timeline, a virtualized data grid, trees, an offline map, files and activity.',
       'Charts and an analytics kit with KPIs, funnels, cohorts and an editable dashboard over deterministic events.',
       'Simulated SaaS flows (sign-in, phone sign-up, SSO, MFA, onboarding, billing), scripted AI assistants and agents with no model API, and 175 portraits of fictional people.',
