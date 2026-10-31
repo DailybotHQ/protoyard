@@ -2363,6 +2363,9 @@ importers:
       '@protoyard/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@protoyard/views-ui':
+        specifier: workspace:*
+        version: link:../../packages/views-ui
       dexie:
         specifier: ^4.4.7
         version: 4.4.7
@@ -2560,6 +2563,9 @@ importers:
       '@protoyard/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@protoyard/views-ui':
+        specifier: workspace:*
+        version: link:../../packages/views-ui
       dexie:
         specifier: ^4.4.7
         version: 4.4.7
