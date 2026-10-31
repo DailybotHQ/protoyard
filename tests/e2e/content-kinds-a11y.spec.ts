@@ -60,10 +60,16 @@ async function expectNoHorizontalOverflow(page: Page, label: string): Promise<vo
   expect(overflow, `${label}: horizontal overflow`).toBeLessThanOrEqual(0);
 }
 
-/** Every visible form control has an accessible name (a label, aria-label or labelledby). */
+/**
+ * Every visible form control has an accessible name (a label, aria-label or
+ * labelledby). Controls outside the accessibility tree are not asked for one:
+ * `@texuli/forms` keeps a native bridge input (`aria-hidden`, `tabindex="-1"`)
+ * next to custom controls such as Select so the form still submits natively.
+ */
 async function expectLabelledControls(page: Page, label: string): Promise<void> {
+  const exposed = ':not([aria-hidden="true"]):visible';
   const controls = page.locator(
-    'input:not([type="hidden"]):visible, select:visible, textarea:visible'
+    `input:not([type="hidden"])${exposed}, select${exposed}, textarea${exposed}`
   );
   for (let i = 0; i < (await controls.count()); i++) {
     await expect(controls.nth(i), `${label}: form control ${i} needs a label`).toHaveAccessibleName(
