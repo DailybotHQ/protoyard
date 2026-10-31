@@ -3868,6 +3868,17 @@
           },
           "additionalProperties": false
         },
+        "motion": {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": ["full", "subtle", "none"]
+            }
+          },
+          "required": ["level"],
+          "additionalProperties": false
+        },
         "kind": {
           "type": "string",
           "const": "app"
@@ -7118,6 +7129,17 @@
           },
           "additionalProperties": false
         },
+        "motion": {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": ["full", "subtle", "none"]
+            }
+          },
+          "required": ["level"],
+          "additionalProperties": false
+        },
         "kind": {
           "type": "string",
           "const": "deck"
@@ -9573,6 +9595,17 @@
           },
           "additionalProperties": false
         },
+        "motion": {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": ["full", "subtle", "none"]
+            }
+          },
+          "required": ["level"],
+          "additionalProperties": false
+        },
         "kind": {
           "type": "string",
           "const": "page"
@@ -9870,6 +9903,17 @@
               "pattern": "^[a-z][a-z0-9-]*$"
             }
           },
+          "additionalProperties": false
+        },
+        "motion": {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": ["full", "subtle", "none"]
+            }
+          },
+          "required": ["level"],
           "additionalProperties": false
         },
         "kind": {
