@@ -338,5 +338,25 @@
     "id": "G106",
     "status": "open",
     "summary": "@texuli/data/activity/inbox NotificationInbox reports \"Mark all as read\" and a row toggle through the same onReadChange(ids, read), and the callback cannot return a promise, so a host cannot tell them apart or show pending feedback on the controls"
+  },
+  {
+    "id": "G107",
+    "status": "open",
+    "summary": "@texuli/data/grid-core DataGrid mode=\"table\" lacks ref and rest on the root, skeleton loading rows, per-column class/headerClass, and requires type on every column, so it is not a drop-in for a host data table"
+  },
+  {
+    "id": "G108",
+    "status": "open",
+    "summary": "texuli/command CommandPalette names both the dialog and its search combobox with title; no separate searchLabel"
+  },
+  {
+    "id": "G109",
+    "status": "open",
+    "summary": "texuli/date DateRangePicker has no content slot inside its calendar dialog and does not announce that the end date is still needed after the first pick"
+  },
+  {
+    "id": "G110",
+    "status": "open",
+    "summary": "@texuli/tokens ships the system token defaults components need only inside base.css with its reset and motion tables; no tokens-only stylesheet for hosts with their own reset"
   }
 ]
