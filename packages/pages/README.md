@@ -95,6 +95,24 @@ Unknown keys fail. Over-limit arrays fail. Section ids, anchors, nav fragments
 and form refs are cross-checked.
 
 
+## Texuli documents
+
+The doc body stays the blueprint format; editing and downloads work on a
+`@texuli/document` document built from it:
+
+```ts
+import { docToTexuliDocument, texuliDocumentToDoc } from '@protoyard/pages';
+
+const { document } = docToTexuliDocument(doc); // edit mode: Protoyard blocks become titled refs
+const file = docToTexuliDocument(doc, { mode: 'export' }); // tables, charts, stats as file content
+const back = texuliDocumentToDoc(editedDocument, doc); // { ok, doc, notes } or { ok: false, issues }
+```
+
+Both validate with `validateDocument` at the untrusted tier, are
+deterministic, and keep untouched blocks exactly. `DOC_CAPABILITIES.edit`
+(`blocks:interact`) names who may edit. See
+[docs/PAGES.md](../../docs/PAGES.md#edit-and-download-a-doc).
+
 ## Limits (untrusted and authoring)
 
 | Export | Role |

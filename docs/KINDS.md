@@ -134,6 +134,9 @@ optional TOC and print preferences.
 - **UI:** `DocHost` / `DocApp` with docs layout chrome and heading TOC
   ([Pages](PAGES.md)).
 - **Print:** continuous flow print CSS (not deck slide-per-page).
+- **Edit and download:** the `@texuli/pages` editor (in-tab edits) and Word,
+  PDF and Markdown downloads with the `@texuli/document` writers
+  ([Pages](PAGES.md#edit-and-download-a-doc)).
 - **Catalog:** `blueprints/docs/`.
 - **Honest limits:** not a full wiki or CMS; versioning and multi-author
   editing are product stories you model with app kinds if needed.

@@ -151,6 +151,16 @@ rail on wide screens. Its active link follows the visible section. The
 `showNav` prop remains available to hide the outline. Content stays within a
 72-character reading measure, and the TOC is omitted from print output.
 
+### Doc tool bar: edit and download
+
+`DocApp` (default `tools={true}`) adds Edit, Download as Word, PDF and
+Markdown. Edit loads `DocEditor` (the `@texuli/pages` `PageEditor`) on first
+use; downloads load `doc-export.ts` (`@texuli/pages/export` over the
+`@texuli/document` writers) on first click. Neither is in the doc entry's
+static graph (`tests/budget.test.ts` forbids it). Edits stay in the tab until
+reload or **Reset to the original**. Details and limits:
+[docs/PAGES.md](../../docs/PAGES.md#edit-and-download-a-doc).
+
 ## Forms and responses
 
 The `form` subpath exports `FormBlock` for rendering a validated form block

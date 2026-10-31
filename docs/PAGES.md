@@ -14,7 +14,8 @@ blueprint runner, and [Generator](GENERATOR.md) covers generated prototypes.
 ## Current support
 
 The engine schemas, limit checks, TOC helpers, local form-response services,
-Svelte hosts, form UI and print stylesheet are implemented in
+Svelte hosts, form UI, print stylesheet, doc editing on `@texuli/pages` and
+Word/PDF/Markdown downloads with `@texuli/document` are implemented in
 `@protoyard/pages` and `@protoyard/pages-ui`. The CLI can validate page and doc
 blueprint bodies. The shared `PageApp` and `DocApp` are designed to be mounted
 by both the player and generated prototypes.
@@ -148,6 +149,52 @@ not a retention policy.
 It can be rendered alongside a form by an integrating app; it is not
 automatically added to every page or doc. The list is local to the current
 browser database and namespace.
+
+## Edit and download a doc
+
+`DocApp` shows a tool bar above the reading view (turn it off with
+`tools={false}`). It builds on Texuli's document packages from npm:
+
+- **Download** writes the doc as Word (`.docx`), PDF or Markdown with the
+  owned writers of `@texuli/document` (through `exportDocument` from
+  `@texuli/pages/export`). Nothing leaves the browser: the file is a `blob:`
+  download. The export module and each writer load on the first click.
+- **Edit** opens the `@texuli/pages` editor (its own lazy chunk) for personas
+  with `DOC_CAPABILITIES.edit` (the kind runtime's `blocks:interact`:
+  presenters and audience members; viewers only read and download). It has
+  the slash menu (`/` in an empty line), block reordering by drag or
+  `Alt`+arrow keys, and undo and redo on the `@texuli/document` op log.
+- **Apply changes** converts the edited document back to the doc body, and the
+  reading view shows it with forms and interactive blocks still working.
+  **Reset to the original** drops the edits.
+
+The doc body in the blueprint stays the stored and shared format, so every
+blueprint and share link keeps validating. `docToTexuliDocument` and
+`texuliDocumentToDoc` from `@protoyard/pages` convert between it and a
+Texuli document, validated by `validateDocument` at the untrusted tier:
+
+| Doc block | In the editor | In a downloaded file |
+| --- | --- | --- |
+| heading, text, list, quote, callout, divider, code | Native Texuli blocks you can edit | The same text, headings and lists |
+| table; chart with labels and series | A labelled Protoyard block placeholder (move or remove it) | A table (DOCX, PDF) or a caption and one bullet per row (Markdown) |
+| stat, timeline, steps | Placeholder | A list |
+| form, embedded app, map and other interactive blocks | Placeholder | The block's title, with a note under the buttons |
+
+Blocks the editor leaves untouched come back exactly as they were (eyebrows,
+icons, tones, citations). Editor blocks with no doc equivalent (a nested page,
+an image without a size, a catalog component) are left out, and a notice names
+them.
+
+Honest limits:
+
+- **Edits live in this tab.** The kind runtime has no doc store yet, so a
+  reload drops them. Download to keep a copy.
+- A placeholder's content (a chart's data, a form's fields) is edited in the
+  blueprint, not in the editor.
+- Heading eyebrows and subtitles, quote citations and list icons are kept but
+  not editable in the editor.
+- PDF uses the standard 14 fonts: characters outside them are replaced, and
+  the download status says so.
 
 ## Print
 

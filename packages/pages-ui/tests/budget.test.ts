@@ -26,10 +26,20 @@ const JS_GZIP_BUDGET = 120 * 1024;
 // screen loads only the entry one (page 4,166 B, doc 4,414 B); the rest are
 // lazy block and chart families, with no repeated rule beyond `.tx-sr-only`.
 // Final Review (2026-10-29): page 32,635 B after the review fixes (Button
-// variants, the plain section header), so its cap is measured + 5 %.
-// Texuli 0.9.0 measured page 34,560 B and doc 35,026 B (token contract v2
-// component CSS plus @texuli/tokens/base.css, gap G110); + 2.5 %.
-const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 35_424, doc: 35_902 };
+// variants, the plain section header), so its cap was measured + 5 %.
+//
+// Texuli 0.9.0 measured page 34,560 B and doc 35,026 B for every stylesheet
+// (token contract v2 component CSS plus @texuli/tokens/base.css, gap G110).
+//
+// PLAN_008 T-documents (2026-10-31, Texuli 0.9.0): the doc gained the lazy
+// `@texuli/pages` editor and the Word/PDF/Markdown export, whose CSS (editor,
+// embeds, player) is emitted as lazy stylesheets. The caps now split: the
+// stylesheets the first screen loads (imported by the static chunks) and the
+// sum of every emitted stylesheet. Measured: page 7,007 B initial / 34,560 B
+// all; doc 6,999 B initial / 70,239 B all (35,026 B before the editor).
+// Caps are measured + 5 % (the page all-CSS cap stays at the 0.9.0 + 2.5 %).
+const INITIAL_CSS_GZIP_BUDGETS: Record<Host, number> = { page: 7_357, doc: 7_349 };
+const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 35_424, doc: 73_751 };
 
 interface HostBuild {
   chunks: Rollup.OutputChunk[];
@@ -149,21 +159,37 @@ describe('page and doc entry budgets (real production Vite builds)', () => {
     const cssBytes = (output?.assets ?? [])
       .filter((asset) => asset.fileName.endsWith('.css'))
       .reduce((total, asset) => total + gzip(asset.source), 0);
+    const initialCss = new Set(
+      initial.flatMap((chunk) => [...(chunk.viteMetadata?.importedCss ?? [])])
+    );
+    const initialCssBytes = (output?.assets ?? [])
+      .filter((asset) => initialCss.has(asset.fileName))
+      .reduce((total, asset) => total + gzip(asset.source), 0);
     const modules = initial
       .flatMap((chunk) => chunk.moduleIds)
       .map((id) => id.replaceAll('\\', '/'));
 
     console.info(
-      `${host} entry: ${jsBytes} B JS gzip, ${cssBytes} B CSS gzip (static import graph)`
+      `${host} entry: ${jsBytes} B JS gzip, ${initialCssBytes} B initial CSS gzip, ${cssBytes} B CSS gzip in every stylesheet`
     );
     expect(initial.length, `${host} static JS chunks`).toBeGreaterThan(0);
     expect(jsBytes, `${host} initial JS gzip`).toBeLessThanOrEqual(JS_GZIP_BUDGET);
-    expect(cssBytes, `${host} initial CSS gzip`).toBeLessThanOrEqual(CSS_GZIP_BUDGETS[host]);
+    expect(initialCssBytes, `${host} initial CSS gzip`).toBeGreaterThan(0);
+    expect(initialCssBytes, `${host} initial CSS gzip`).toBeLessThanOrEqual(
+      INITIAL_CSS_GZIP_BUDGETS[host]
+    );
+    expect(cssBytes, `${host} CSS gzip, every stylesheet`).toBeLessThanOrEqual(
+      CSS_GZIP_BUDGETS[host]
+    );
 
     const forbidden = [
       ['crud/app', /\/crud\/src\/(?:app|screens)\//],
       ['Faker', /@faker-js\/faker/],
       ['player worker', /\/player\/src\/.*worker|generate-world.*worker/],
+      // The doc editor and the document writers load on first use only.
+      ['@texuli/pages', /@texuli\/pages\//],
+      ['@texuli/document', /@texuli\/document\//],
+      ['doc editor', /\/pages-ui\/src\/doc\/(?:DocEditor\.svelte|doc-export\.ts)/],
     ] as const;
     for (const [label, pattern] of forbidden) {
       expect(
