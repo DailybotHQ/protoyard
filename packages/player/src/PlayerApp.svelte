@@ -1,8 +1,12 @@
 <script lang="ts">
+import { blueprintMotionLevel } from '@protoyard/blueprint';
 import { ErrorState, LoadingState } from '@protoyard/ui';
+import { MotionProvider } from 'texuli/motion';
 import { playerBlueprint } from './player-blueprint.ts';
 
 const { blueprint, model } = playerBlueprint();
+/** The blueprint's `motion.level` caps every Texuli animation below (reduced motion still wins). */
+const motionLevel = blueprintMotionLevel(blueprint);
 
 /**
  * The app shell (entity pages, data tables, forms, navigation) loads as its
@@ -35,49 +39,51 @@ async function themeLibrary() {
 }
 </script>
 
-{#await shell}
-  <LoadingState label="Loading the prototype" class="py-16" />
-{:then { BlueprintApp }}
-  {#if business !== null}
-    {#await business then kit}
-      {#if 'SaasApp' in kit}
-        <kit.SaasApp {blueprint} {model} {themeLibrary} {BlueprintApp} />
-      {:else}
-        <kit.AnalyticsApp {blueprint} {model} {themeLibrary} {BlueprintApp} />
-      {/if}
-    {:catch error}
-      <ErrorState
-        title="The archetype could not be loaded"
-        message={error instanceof Error ? error.message : String(error)}
-        onRetry={() => {
-          attempt += 1;
-        }}
-        retryLabel="Try again"
-      />
-    {/await}
-  {:else if conversational === null}
-    <BlueprintApp {blueprint} {model} {themeLibrary} />
-  {:else}
-    {#await conversational then { ConversationalApp }}
-      <ConversationalApp {blueprint} />
-    {:catch error}
-      <ErrorState
-        title="The conversational archetype could not be loaded"
-        message={error instanceof Error ? error.message : String(error)}
-        onRetry={() => {
-          attempt += 1;
-        }}
-        retryLabel="Try again"
-      />
-    {/await}
-  {/if}
-{:catch error}
-  <ErrorState
-    title="The prototype could not be loaded"
-    message={error instanceof Error ? error.message : String(error)}
-    onRetry={() => {
-      attempt += 1;
-    }}
-    retryLabel="Try again"
-  />
-{/await}
+<MotionProvider level={motionLevel}>
+  {#await shell}
+    <LoadingState label="Loading the prototype" class="py-16" />
+  {:then { BlueprintApp }}
+    {#if business !== null}
+      {#await business then kit}
+        {#if 'SaasApp' in kit}
+          <kit.SaasApp {blueprint} {model} {themeLibrary} {BlueprintApp} />
+        {:else}
+          <kit.AnalyticsApp {blueprint} {model} {themeLibrary} {BlueprintApp} />
+        {/if}
+      {:catch error}
+        <ErrorState
+          title="The archetype could not be loaded"
+          message={error instanceof Error ? error.message : String(error)}
+          onRetry={() => {
+            attempt += 1;
+          }}
+          retryLabel="Try again"
+        />
+      {/await}
+    {:else if conversational === null}
+      <BlueprintApp {blueprint} {model} {themeLibrary} />
+    {:else}
+      {#await conversational then { ConversationalApp }}
+        <ConversationalApp {blueprint} />
+      {:catch error}
+        <ErrorState
+          title="The conversational archetype could not be loaded"
+          message={error instanceof Error ? error.message : String(error)}
+          onRetry={() => {
+            attempt += 1;
+          }}
+          retryLabel="Try again"
+        />
+      {/await}
+    {/if}
+  {:catch error}
+    <ErrorState
+      title="The prototype could not be loaded"
+      message={error instanceof Error ? error.message : String(error)}
+      onRetry={() => {
+        attempt += 1;
+      }}
+      retryLabel="Try again"
+    />
+  {/await}
+</MotionProvider>

@@ -85,7 +85,7 @@ export async function runPlayer(options: RunPlayerOptions): Promise<RunningPlaye
     queue = next.catch(() => undefined);
     return next;
   };
-  const bootInto = async (blueprint: AnyBlueprint, world?: LiveWorld) => {
+  const bootInto = async (blueprint: AnyBlueprint, world?: LiveWorld, draft?: { base: string }) => {
     const info = await served;
     if (!info) {
       current = await boot(blueprint, target);
@@ -100,6 +100,7 @@ export async function runPlayer(options: RunPlayerOptions): Promise<RunningPlaye
       ...(kept ? { namespace: kept.namespace } : {}),
       ...(kept?.generatorVersion !== undefined ? { generatorVersion: kept.generatorVersion } : {}),
       review: true,
+      ...(draft ? { draft: true } : {}),
     });
     shown = {
       blueprint,
@@ -108,17 +109,23 @@ export async function runPlayer(options: RunPlayerOptions): Promise<RunningPlaye
       ...(current.generatorVersion !== undefined
         ? { generatorVersion: current.generatorVersion }
         : {}),
+      ...(draft ? { base: draft.base } : {}),
     };
     return current;
   };
   /** Tears down what runs (and `before`, e.g. the picker), then boots `blueprint`. */
-  const replace = (blueprint: AnyBlueprint, world?: LiveWorld, before?: () => Promise<void>) =>
+  const replace = (
+    blueprint: AnyBlueprint,
+    world?: LiveWorld,
+    before?: () => Promise<void>,
+    draft?: { base: string }
+  ) =>
     swap(async () => {
       const previous = current;
       current = null;
       await previous?.destroy();
       await before?.();
-      return bootInto(blueprint, world);
+      return bootInto(blueprint, world, draft);
     });
   const start = options.start ?? startPlayer;
   const started = await start({
@@ -140,12 +147,25 @@ export async function runPlayer(options: RunPlayerOptions): Promise<RunningPlaye
         const before = shown;
         try {
           // After a failed change the error screen is up: clear it before booting.
-          await replace(change.blueprint, change.world ?? undefined, () => started.clearScreen());
+          await replace(
+            change.blueprint,
+            change.world ?? undefined,
+            () => started.clearScreen(),
+            change.draft
+          );
         } catch (error) {
           // Never a blank page: the error screen explains the change that failed.
           // The next change to the blueprint (its `previous` is this one) still
           // applies, into the same world.
-          if (before) shown = { ...before, blueprint: change.blueprint, sha256: change.sha256 };
+          if (before) {
+            const { base: _base, ...rest } = before;
+            shown = {
+              ...rest,
+              blueprint: change.blueprint,
+              sha256: change.sha256,
+              ...(change.draft ? { base: change.draft.base } : {}),
+            };
+          }
           await started.showBootError(error, change.blueprint.name);
           throw error;
         }

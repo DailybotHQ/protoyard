@@ -34,6 +34,14 @@ export { blueprintIdentity };
  * The tab remembers which namespace a re-derived blueprint uses
  * (sessionStorage), so a reload keeps the same world, and it keeps the tab's
  * saved share link current, so a reload shows the new blueprint.
+ *
+ * **Progressive painting.** While a deck, page or doc is still being written,
+ * a `draft` event names the identity of the part that has arrived and the
+ * same-origin path the server serves it at. The player reads it as untrusted
+ * input (the same loader and limits as any blueprint), checks its identity,
+ * kind and world, and paints it in the same world, marked as still arriving. A draft never touches the share link or the
+ * remembered worlds, and the next `blueprint` event (whose `previous` is the
+ * last complete identity, the draft's `base`) replaces it.
  */
 
 export const QUICK_SERVE_INFO_PATH = '/__protoyard/serve.json';
@@ -211,6 +219,16 @@ export interface LiveBlueprint {
   namespace: string;
   /** The generator version its world was built with (kept across safe changes). */
   generatorVersion?: number;
+  /**
+   * Set while `blueprint` is a draft (the part of a streamed blueprint that
+   * has arrived): the last complete identity it grows from.
+   */
+  base?: string;
+}
+
+/** The complete identity on screen: a draft's base, else what is shown. */
+export function committedIdentity(shown: LiveBlueprint): string {
+  return shown.base ?? shown.sha256;
 }
 
 export interface LiveChange {
@@ -219,6 +237,8 @@ export interface LiveChange {
   sha256: string;
   /** For a safe change, the world to re-derive into (the current one); null starts fresh. */
   world: LiveWorld | null;
+  /** Present when `blueprint` is a draft: the complete identity it grows from. */
+  draft?: { base: string };
 }
 
 interface EventSourceLike {
@@ -263,26 +283,39 @@ export function startLiveReload(options: StartLiveReloadOptions): LiveReload {
   // One change at a time, in order: a burst of writes never interleaves boots.
   let queue = Promise.resolve();
 
-  const handle = async (data: string) => {
+  /**
+   * One `blueprint` event (`previous` must be the complete identity on
+   * screen), or one `draft` event (`base` must be): a draft is best effort
+   * (a failure is skipped, the complete blueprint's event follows), paints
+   * only a deck, page or doc into the world on screen, and never touches the
+   * share link or the remembered worlds.
+   */
+  const handle = async (data: string, draft: boolean) => {
     const event = JSON.parse(data) as { path?: unknown; sha256?: unknown; previous?: unknown };
     const shown = options.current();
-    if (!shown || event.previous !== shown.sha256) return; // Another file of the exploration.
+    const from = draft ? (event as { base?: unknown }).base : event.previous;
+    if (!shown || from !== committedIdentity(shown)) return; // Another file of the exploration.
     if (typeof event.sha256 !== 'string' || !SHA256.test(event.sha256)) return;
+    if (draft && event.sha256 === shown.sha256) return; // Already painted.
     if (typeof event.path !== 'string' || !SAME_ORIGIN_JSON.test(event.path)) return;
+    const fail = (message: string) => {
+      if (!draft) throw new Error(message);
+    };
     const response = await fetchImpl(new URL(event.path, options.origin).href, {
       cache: 'no-store',
       credentials: 'omit',
     });
-    if (!response.ok)
-      throw new Error(`The changed blueprint could not be read (${response.status}).`);
+    if (!response.ok) return fail(`The changed blueprint could not be read (${response.status}).`);
     const text = await response.text();
-    if (text.length > MAX_BLUEPRINT_BYTES) throw new Error('The changed blueprint is too large.');
+    if (text.length > MAX_BLUEPRINT_BYTES) return fail('The changed blueprint is too large.');
     const loaded = await loadUntrustedDocument(text);
-    if (!loaded.success) throw new Error('The changed blueprint is not valid; keeping this one.');
+    if (!loaded.success) return fail('The changed blueprint is not valid; keeping this one.');
     const identity = await blueprintIdentity(loaded.blueprint);
     // A newer write already replaced it: its own event follows.
     if (identity.sha256 !== event.sha256) return;
     const kind = classifyBlueprintChange(shown.blueprint, loaded.blueprint);
+    // Only a deck, page or doc draft that opens in the world on screen.
+    if (draft && (kind !== 'safe' || isAppBlueprint(loaded.blueprint))) return;
     const world: LiveWorld | null =
       kind === 'safe'
         ? {
@@ -292,17 +325,29 @@ export function startLiveReload(options: StartLiveReloadOptions): LiveReload {
               : {}),
           }
         : null;
-    if (world) rememberLiveWorld(identity.sha256, world, session);
-    try {
-      session?.setItem(options.shareSessionKey, await encodeBlueprintShare(loaded.blueprint));
-    } catch {
-      // Too large for a link, or storage blocked: a reload falls back to the launcher.
+    if (!draft) {
+      if (world) rememberLiveWorld(identity.sha256, world, session);
+      try {
+        session?.setItem(options.shareSessionKey, await encodeBlueprintShare(loaded.blueprint));
+      } catch {
+        // Too large for a link, or storage blocked: a reload falls back to the launcher.
+      }
     }
-    await options.apply({ kind, blueprint: loaded.blueprint, sha256: identity.sha256, world });
+    await options.apply({
+      kind,
+      blueprint: loaded.blueprint,
+      sha256: identity.sha256,
+      world,
+      ...(draft ? { draft: { base: from as string } } : {}),
+    });
   };
 
-  source.addEventListener('blueprint', (message) => {
-    queue = queue.then(() => handle(message.data)).catch((error) => options.onError?.(error));
-  });
+  for (const type of ['blueprint', 'draft']) {
+    source.addEventListener(type, (message) => {
+      queue = queue
+        .then(() => handle(message.data, type === 'draft'))
+        .catch((error) => options.onError?.(error));
+    });
+  }
   return { close: () => source.close() };
 }

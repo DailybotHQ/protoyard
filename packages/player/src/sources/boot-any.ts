@@ -14,7 +14,8 @@ import { loadKindBoot } from './kind-boot.ts';
  */
 
 /** Per-boot settings shared by both paths (live reload, review comments). */
-export type BootExtras = Pick<BootPlayerOptions, 'namespace' | 'generatorVersion' | 'review'>;
+export type BootExtras = Pick<BootPlayerOptions, 'namespace' | 'generatorVersion' | 'review'> &
+  Pick<BootKindOptions, 'draft'>;
 
 export const loadAppBoot = () => import('../boot.ts');
 export { loadKindBoot };
@@ -30,8 +31,10 @@ export async function bootByKind(
   extras: BootExtras = {}
 ): Promise<BootedPlayer> {
   if (isAppBlueprint(blueprint)) {
+    // Apps never paint a partial blueprint (progressive painting is content kinds only).
+    const { draft: _draft, ...appExtras } = extras;
     const { bootPlayer } = await loadAppBoot();
-    return bootPlayer({ blueprint: blueprint as Blueprint, target, ...extras });
+    return bootPlayer({ blueprint: blueprint as Blueprint, target, ...appExtras });
   }
   const { bootKind } = await loadKindBoot();
   const options: BootKindOptions = { blueprint, target, ...extras };
