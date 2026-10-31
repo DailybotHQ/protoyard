@@ -423,5 +423,10 @@
     "id": "G123",
     "status": "open",
     "summary": "@texuli/pages PageEditor and PageReader always reach the whole @texuli/player through EmbedView, with no opt-out for hosts that use only ref embeds"
+  },
+  {
+    "id": "G124",
+    "status": "open",
+    "summary": "@texuli/tools/mcp createMcpHandler does not speak the stateless MCP 2026-07-28 revision (server/discover returns -32601), so Protoyard keeps its own MCP protocol layer"
   }
 ]
