@@ -21,11 +21,37 @@ export interface CartesianSeries<D = unknown> {
 }
 
 /**
- * The x scale a caller means. Kept for API stability: Texuli's cartesian
- * charts take no x kind or x formatter yet, so a `time` series is labelled and
- * announced as raw epoch milliseconds (Texuli gap G97).
+ * The x scale a caller means, forwarded to Texuli's cartesian charts: `time`
+ * reads epoch milliseconds as UTC dates in the chart's locale on the axis,
+ * live region, tooltip and table; `linear` is a continuous number scale.
  */
 export type XKind = 'time' | 'linear' | 'category';
+
+/** Formats x values on every surface of a cartesian chart (axis, live region, tooltip, table). */
+export type XFormatter = (value: number | string) => string;
+
+/**
+ * The x props a Protoyard cartesian adapter hands Texuli. A `time` or
+ * `linear` kind needs numeric x everywhere (Texuli throws otherwise), so a
+ * series with string x keeps Texuli's inferred category axis instead of
+ * breaking the screen.
+ */
+export function texuliXProps(
+  series: readonly { points: readonly { x: number | string }[] }[],
+  options: {
+    xKind?: XKind | undefined;
+    formatX?: XFormatter | undefined;
+    locale?: string | undefined;
+  }
+): { xKind?: XKind; formatX?: XFormatter; locale?: string } {
+  const { xKind, formatX, locale } = options;
+  const numeric = series.every((s) => s.points.every((p) => typeof p.x === 'number'));
+  return {
+    ...(xKind && (xKind === 'category' || numeric) ? { xKind } : {}),
+    ...(formatX ? { formatX } : {}),
+    ...(locale ? { locale } : {}),
+  };
+}
 export type BarMode = 'grouped' | 'stacked' | 'expanded';
 export type ValueUnit = 'number' | 'compact' | 'cents' | 'percent';
 

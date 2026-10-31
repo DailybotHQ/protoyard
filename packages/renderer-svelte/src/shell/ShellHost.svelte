@@ -2,6 +2,7 @@
 import { getDevice, orient, type PrototypeRuntime } from '@protoyard/core';
 import { setOverlayPortalTarget } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
+import { MotionProvider } from 'texuli/motion';
 import { useAppearance } from '../bindings.svelte.ts';
 import FullScreenExit from './FullScreenExit.svelte';
 import FullScreenToggle from './FullScreenToggle.svelte';
@@ -200,7 +201,15 @@ $effect(() => {
         style:--tx-safe-bottom={box && insets && sizedScreen ? `${insets.bottom}px` : undefined}
         style:--tx-safe-left={box && insets && sizedScreen ? `${insets.left}px` : undefined}
       >
-        {@render children()}
+        <!--
+          The prototype's reduced-motion setting (toggle, scenario or reader preference,
+          resolved by the runtime) reaches every Texuli component through texuli/motion:
+          charts' interactive plots included (G98). Only `true` is passed, so without the
+          setting Texuli still follows the reader's own preference.
+        -->
+        <MotionProvider reducedMotion={appearance.current.reducedMotion.value ? true : undefined}>
+          {@render children()}
+        </MotionProvider>
       </div>
       {#if box && Frame && spec}
         <Frame

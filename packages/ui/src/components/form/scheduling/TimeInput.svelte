@@ -1,23 +1,17 @@
 <script lang="ts">
-import { TimeField } from '@texuli/primitives/date-field';
 import type { HTMLAttributes } from 'svelte/elements';
-import { dateFieldClass } from 'texuli/date';
+import { TimeField } from 'texuli/date';
 import { cn } from '../../../lib/cn.ts';
-import { groupLabelFor } from './texuli-date.ts';
 import { isTimeOfDay, minuteSteps, type TimeFormat, type TimeOfDay } from './time.ts';
 
 /**
- * TimeInput — Texuli's time field (`@texuli/primitives/date-field`
- * `TimeField`, styled with the `texuli/date` recipe): hour and minute
+ * TimeInput — Texuli's styled `texuli/date` `TimeField`: hour and minute
  * spinbuttons and, in the 12-hour format, an AM/PM select, in one labelled
  * group. ArrowUp/ArrowDown spin a segment (the minute by `intervalMinutes`),
  * Home/End jump to the ends, digits type a value. `id` lands on the first
  * segment and `aria-describedby`/`aria-invalid` on every segment, so it sits
- * inside FormField like any input; the FormField label names the group.
- *
- * It composes the primitive rather than the styled `texuli/date` `TimeField`
- * only because that one marks its bordered control invalid from its own
- * `error` text, not from a FormField's `aria-invalid` (Texuli gap G90).
+ * inside FormField like any input: the FormField (Texuli `Field`) label names
+ * the group (G91) and its error marks the control invalid (G90).
  *
  * The value is always 24-hour `HH:mm`, or `null` until hour and minute are
  * chosen; an incomplete entry leaves the value as it was. A value off the
@@ -81,13 +75,6 @@ const invalid = $derived(ariaInvalid === true || ariaInvalid === 'true');
 /** `minuteSteps` falls back to 15 when the interval does not divide 60. */
 const minuteStep = $derived(minuteSteps(intervalMinutes)[1] ?? 60);
 
-let control = $state<HTMLDivElement | null>(null);
-let fieldLabelId = $state<string | undefined>(undefined);
-// FormField's `<label for={id}>` names the first segment; it names the group too.
-$effect(() => {
-  fieldLabelId = groupLabelFor(control, id).id;
-});
-
 /** What the field shows; an incomplete entry never reaches `value`. */
 let draft = $state<TimeOfDay | null>(null);
 $effect(() => {
@@ -101,30 +88,22 @@ function change(next: string | null) {
 }
 </script>
 
-<div
-  bind:this={ref}
-  class={cn(dateFieldClass(), 'tx-date--time ui-time-input', className)}
-  data-tx-time
-  data-invalid={invalid ? 'true' : undefined}
-  data-disabled={disabled ? 'true' : undefined}
->
-  <div bind:this={control} class="tx-date__control">
-    <TimeField.Root
-      {...rest}
-      class="tx-date__field"
-      bind:value={draft}
-      inputId={id}
-      {label}
-      {locale}
-      hourCycle={format}
-      {minuteStep}
-      {disabled}
-      {required}
-      {...name ? { name } : {}}
-      aria-labelledby={labelledBy ?? fieldLabelId}
-      aria-describedby={describedBy}
-      aria-invalid={invalid || undefined}
-      onValueChange={change}
-    />
-  </div>
-</div>
+<TimeField
+  {...rest}
+  bind:ref
+  bind:value={draft}
+  class={cn('ui-time-input', className)}
+  {id}
+  {label}
+  hideLabel
+  {locale}
+  hourCycle={format}
+  {minuteStep}
+  {disabled}
+  {required}
+  {...name ? { name } : {}}
+  aria-labelledby={labelledBy}
+  aria-describedby={describedBy}
+  aria-invalid={invalid ? 'true' : undefined}
+  onValueChange={change}
+/>

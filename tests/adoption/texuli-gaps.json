@@ -241,67 +241,67 @@
   },
   {
     "id": "G87",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/dialog Dialog and AlertDialog skip onOpenChange(false) on an inside close (Close button, Escape)"
   },
   {
     "id": "G88",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/command CommandPalette never shows its Searching status: loading does not reach CommandRoot"
   },
   {
     "id": "G89",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/date DatePicker and DateRangePicker have no class hook on the bordered control (controlClass)"
   },
   {
     "id": "G90",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/date styled date controls show no invalid state from a Field's aria-invalid"
   },
   {
     "id": "G91",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/field does not export its label context (getFieldLabelContext/useFieldLabel)"
   },
   {
     "id": "G92",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/data DataGrid mode=table has no keyboard row activation (plus search, numbered pager, skeleton rows for DataTable adoption)"
   },
   {
     "id": "G93",
-    "status": "open",
+    "status": "fixed",
     "summary": "Uniform contract holes: no ref on AppShell, SplitView, ChatThread, TypingIndicator, BottomNav, MobileHeader; no rest on MessageList; neither on chat Composer, Board, MobileAppFrame"
   },
   {
     "id": "G94",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/button pending (autoLoading) sets native disabled, so a focused button drops focus to body"
   },
   {
     "id": "G95",
-    "status": "open",
+    "status": "fixed",
     "summary": "Nice to have: MobileAppFrame unstyled stickyFooter; public composeHandlers/chainHandlers"
   },
   {
     "id": "G96",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/charts/cartesian CartesianChart: the canvas layer is inset over the whole figure while the plot is capped at 640 px, so canvas marks stretch past the axes"
   },
   {
     "id": "G97",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/charts/cartesian has no time x-axis (xKind or formatX): epoch-ms x values are announced and shown raw"
   },
   {
     "id": "G98",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/charts/interaction InteractivePlot reads only the OS reduced-motion preference, not MotionProvider"
   },
   {
     "id": "G99",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/primitives/toast contained Viewport reads getComputedStyle(container) synchronously on mount (ensurePositioned), forcing a layout during the first render"
   },
   {

@@ -1,30 +1,8 @@
 /**
- * Caller handlers on an element a component also listens on, with Texuli's
- * uniform-contract rule: the caller's handler runs first and never replaces
- * the component's own. (Texuli keeps its helpers internal, Texuli gap G95,
- * so this package states the same two rules here.)
+ * Caller handlers on an element a component also listens on: Texuli's
+ * uniform-contract helpers, public from `texuli/cx` since 0.9 (G95). The
+ * caller's handler runs first and never replaces the component's own;
+ * `composeHandlers` skips the component's after `preventDefault()`,
+ * `chainHandlers` always runs it.
  */
-
-type Handler<E extends Event> = ((event: E) => unknown) | null | undefined;
-
-/** The component's handler runs unless the caller called `preventDefault()`. */
-export function composeHandlers<E extends Event>(
-  caller: Handler<E>,
-  own: (event: E) => unknown
-): (event: E) => void {
-  return (event) => {
-    caller?.(event);
-    if (!event.defaultPrevented) own(event);
-  };
-}
-
-/** The component's handler always runs (bookkeeping that must not be skipped). */
-export function chainHandlers<E extends Event>(
-  caller: Handler<E>,
-  own: (event: E) => unknown
-): (event: E) => void {
-  return (event) => {
-    caller?.(event);
-    own(event);
-  };
-}
+export { chainHandlers, composeHandlers } from 'texuli/cx';

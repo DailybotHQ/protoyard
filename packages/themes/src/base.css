@@ -10,6 +10,17 @@
  * `noFlashScript()` replays the last real appearance.
  */
 
+/*
+ * Texuli's base layer (`tx.base`): since token contract v2 (Texuli 0.9) it is
+ * where the system tokens (space, size, type roles, shape, elevation…) get
+ * their defaults on every token scope. Texuli's components read them with no
+ * fallback, so without this file a checkbox has no size. Its reset (box
+ * sizing, borders, body type, scrollbars, reduced motion) mirrors the rules
+ * below; in `tx.base` it sits above Tailwind's preflight and below every
+ * utility class (renderer-svelte/app.css orders the layers).
+ */
+@import "@texuli/tokens/base.css";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {

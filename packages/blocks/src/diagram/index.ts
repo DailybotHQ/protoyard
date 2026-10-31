@@ -10,6 +10,8 @@ export {
   layoutFlow,
   layoutTerminal,
   layoutTree,
+  toTexuliDiagram,
+  toTexuliTree,
 } from './layout.ts';
 export {
   type BoardDiagram,

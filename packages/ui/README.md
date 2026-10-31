@@ -91,14 +91,15 @@ standalone Svelte 5 component library, consumed from its published npm packages
   every overlay adds the framed-device container (it opens `contained` inside
   a device screen) and the shared overlay stack (z-order, top-layer dismiss,
   focus return). `Dialog` and `AlertDialog` are Texuli's styled components
-  (their only adapter watches the bound `open`, because Texuli's styled
-  dialogs skip `onOpenChange` when they close from inside, Texuli gap
-  G87); `CommandPalette` keeps Texuli's command parts on a dialog root with
-  its own search, because Texuli's palette never shows its "Searching…"
-  status (G88); `DataTable` stays on Texuli's table
-  parts: `DataGrid`'s `mode="table"` gives a row no keyboard path, and its
-  search, pager, loading rows and sort shape differ from this API (G92); and the
-  styled sheet header, body and footer parts (`overlay/sheet-parts.css`).
+  and report every open-state change through `onOpenChange`, an inside close
+  included (G87); `CommandPalette` keeps Texuli's command parts on a dialog
+  root with Texuli's `CommandLoading` status while a search is pending (G88),
+  and keeps "Search commands" as its search box name (Texuli's palette names
+  it with its dialog title); `DataTable` stays on Texuli's table parts:
+  Texuli 0.9's `DataGrid` has focusable rows, a custom search rule and a
+  numbered pager (G92), but no `ref` or extra attributes, skeleton loading
+  rows, per-column classes or optional column types yet (a Texuli gap); and
+  the styled sheet header, body and footer parts (`overlay/sheet-parts.css`).
   Also thin adapters: `Input` (Texuli's `Input`, numbers for number inputs),
   `TextCounter`, `Spinner`, `StatCard` (`Stat`), `EmptyState`, `StarRating`
   (`Rating`), `NumberStepper` (`NumberField`), `OtpInput` (`PinInput`),
@@ -108,15 +109,19 @@ standalone Svelte 5 component library, consumed from its published npm packages
   (`TagsInput`; Space, `,` and `;` also add a tag), `ImageInput`
   (`FileUpload`, with this package's raster-only previews), `PageGrid`
   (`CardGrid` with `maxColumns` and the caller's `gap`), `Calendar`
-  (`texuli/date`), `DatePicker`,
-  `DateRangePicker` and `TimeInput` (Texuli's date-picker and time-field
-  parts with Texuli's field classes, so they fit `FormField`; the styled
-  `texuli/date` components give no hook on the bordered control and show no
-  invalid state from a Field, Texuli gaps G89 and G90), `Kanban`
+  (`texuli/date`), `DatePicker` and `TimeInput` (Texuli's styled
+  `texuli/date` `DatePicker` and `TimeField`: the `ui-input` hook goes on the
+  bordered control through `controlClass` (G89), and a FormField error marks
+  the control invalid (G90)), `DateRangePicker` (it composes
+  `@texuli/primitives/date-picker` only to keep its in-dialog hint, "Start
+  <date>. Now choose the end date.", because the styled range picker takes no
+  dialog content: a Texuli gap); inside a FormField all three are named by the
+  Field label through Texuli's label context (G91), `Kanban`
   (`@texuli/data/board`), and `BottomNav`, `MobileHeader` and
   `MobileAppShell` (`texuli/layouts/mobile`). `Toaster` is Texuli's
   `texuli/toast` Toaster (same props); while a shell frame sets the overlay
-  portal target it renders `contained` in the framed screen. `UndoToaster`
+  portal target it renders `contained` in the framed screen, declared
+  `positioned` so Texuli never reads the screen's computed style (G99). `UndoToaster`
   draws its toasts with Texuli's `Button`, `IconButton` and `Icon`; its undo
   store stays Protoyard's for the undo pattern Texuli's toast does not carry:
   a countdown bar, F6 to reach Undo from a modal, a "Retry" label after a
@@ -209,7 +214,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Kanban` | `columns: { id, title, description? }[]` (the description sits in the column header and describes its list), `items`, `getColumn`, `getItemId`, `getItemLabel`, `onMove(item, columnId)` (async ok; a throw puts the card back), `canMove`, `card` snippet, `columnFooter`, `headingLevel`; Texuli's `Board`: pointer drag, a keyboard drag handle (Space, arrows, Space) and a "Move to…" menu per card. Moves go between columns only; cards keep the order of `items` |
 | `AppShell` | `sidebar`, `header`, `bottomNav`, children, `bind:sidebarOpen` (mobile drawer, auto-closes at `lg`), `sidebarClass`, `mainClass`, `mainId`, `mainElement` (`div` when nested in another `<main>`), skip link, plus Texuli's `commandBar` and `notifications` slots. It is Texuli's shell; it sizes from `--tx-app-height`, which `styles.css` maps to the frame's `--py-app-height`, so framed shells match the device screen |
 | `LayoutHost` | `layout: LayoutId`, routed screen snippet, `nav` (NavModel), `path`, `options`, `storageKey`, `aside` snippet, `class`; measures its own container, applies the core layout fallback below its breakpoint, and lazy-loads the registered module with a skeleton while loading. Layout modules call `mountScreen(target)` to place the stable routed-screen outlet without remounting its local state. Unregistered layouts leave the screen in the host's default content frame. |
-| `MobileAppShell` | Fixed `h-app` flex column with optional `header`, one focusable scrolling `<main>`, optional `stickyFooter` (rendered as is, with no strip of its own), and an in-flow `bottomNav` snippet. Compose the nav with `<BottomNav fixed={false}>` so it remains visible below the scroll region in any frame. Resets main scroll on hash navigation. |
+| `MobileAppShell` | Fixed `h-app` flex column with optional `header`, one focusable scrolling `<main>`, optional `stickyFooter` (Texuli's footer strip, unstyled (G95): the snippet draws its own), and an in-flow `bottomNav` snippet. Compose the nav with `<BottomNav fixed={false}>` so it remains visible below the scroll region in any frame. Resets main scroll on hash navigation. |
 | `Sidebar` | `items` or `sections: { label?, items: { label, href, icon?, badge?, active? }[] }[]`, `bind:collapsed`, `header`/`footer({ collapsed })` |
 | `Header` | `title`, `titleAs` (default `h1`; use `p` when the page has its own `h1`), `description`, `leading`, `actions`, `onMenuClick` (defaults to the AppShell drawer), `sticky` |
 | `Breadcrumb` | `items: { label, href? }[]` |
@@ -232,9 +237,9 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
   open content) and spreads the remaining attributes onto that root, or onto the focusable control
   inside it for form controls. Your handlers run there first and never replace the component's own
   (`preventDefault()` skips its default where it has one). `tests/contract.test.ts` checks every
-  component export. Still missing, as open Texuli gap G93: `ref` on `AppShell`, `SplitView`,
-  `ChatThread`, `TypingIndicator`, `MobileAppShell`, `Kanban` and `Composer`, and rest attributes
-  on `MessageList`, `MobileAppShell`, `Kanban` and `Composer`.
+  component export, with no exceptions since Texuli 0.9 (G93). A pending `Button` (a
+  `loading` prop or an `onclick` promise) is `aria-disabled`, not natively disabled, so it
+  keeps focus (G94). `composeHandlers` and `chainHandlers` are Texuli's (`texuli/cx`, G95).
 - Two-way state uses `bind:`: `bind:value`, `bind:open`, `bind:checked`, `bind:page`,
   `bind:collapsed`, `bind:sidebarOpen`.
 - **Triggers** (`Dialog`, `AlertDialog`, `DetailPanel`, `BottomSheet`, `Popover`, `DropdownMenu`,

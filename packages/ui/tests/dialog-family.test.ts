@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { getInertRegistry } from '@texuli/core/inert';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import Dialog from '../src/components/dialog/Dialog.svelte';
 import { overlayStack } from '../src/components/overlay/overlay-stack.ts';
 import { undoToast } from '../src/components/toast/undo.svelte.ts';
 import { setOverlayPortalTarget } from '../src/lib/overlay-portal.ts';
@@ -73,5 +74,20 @@ describe('dialog family on Texuli', () => {
     await fireEvent.keyDown(alert, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it('reports an inside close once through onOpenChange (Texuli 0.9, G87)', async () => {
+    for (const close of ['button', 'escape'] as const) {
+      const onOpenChange = vi.fn();
+      const view = render(Dialog, { title: 'Edit deal', open: true, onOpenChange });
+      const dialog = await screen.findByRole('dialog', { name: 'Edit deal' });
+      if (close === 'button')
+        await fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+      else await fireEvent.keyDown(dialog, { key: 'Escape' });
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      expect(onOpenChange.mock.calls).toEqual([[false]]);
+      view.unmount();
+      overlayStack.reset();
+    }
   });
 });

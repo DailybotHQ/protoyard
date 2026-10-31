@@ -6,9 +6,10 @@ import {
   type BoardMove,
 } from '@texuli/data/board';
 import type { Snippet } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import type { KanbanColumn } from './types.ts';
 
-interface Props {
+interface OwnProps {
   columns: KanbanColumn[];
   items: T[];
   getColumn: (item: T) => string;
@@ -26,7 +27,12 @@ interface Props {
   /** Column heading level; pick the one that follows your page outline (default 3). */
   headingLevel?: 2 | 3 | 4;
   class?: string;
+  /** The board's root element (bindable). */
+  ref?: HTMLElement | null;
 }
+
+/** Extra attributes (`data-*`, `id`, handlers) land on the board's root (Texuli's contract). */
+type Props = OwnProps & Omit<HTMLAttributes<HTMLElement>, keyof OwnProps | 'children'>;
 
 let {
   columns,
@@ -42,6 +48,8 @@ let {
   label = 'Board',
   headingLevel = 3,
   class: className,
+  ref = $bindable(null),
+  ...rest
 }: Props = $props();
 
 function titleOf(columnId: string): string {
@@ -103,4 +111,6 @@ const labels = $derived<BoardLabelOverrides>({
   canMove={allowMove}
   {labels}
   class={className}
+  {...rest as Record<string, unknown>}
+  bind:ref
 />

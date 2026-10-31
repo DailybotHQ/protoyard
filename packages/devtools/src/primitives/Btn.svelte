@@ -5,10 +5,8 @@ import { Button, type ButtonVariant } from 'texuli/button';
 /**
  * Compact panel button on Texuli's Button (size sm).
  * Keeps the DevTools variant names (`primary` / `danger`) as a thin adapter.
- * `autoLoading={false}` keeps a button enabled while its `onclick` promise
- * settles: Texuli disables a pending button, and disabling the focused one
- * drops focus to <body>, out of the panel (its Escape handler then misses;
- * Texuli gap G94).
+ * A pending button (its `onclick` promise) is `aria-disabled` and keeps focus
+ * (Texuli 0.9, G94), so the panel's Escape handler still hears the keyboard.
  */
 let {
   variant = 'outline',

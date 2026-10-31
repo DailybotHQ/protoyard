@@ -234,15 +234,16 @@ function togglePageSelection(checked: boolean | 'indeterminate'): void {
 </script>
 
 <!--
-  Texuli's table parts (`texuli/table`), Input, Button and Checkbox. Texuli's
-  DataGrid (`@texuli/data/grid-core`, 0.8) covers table semantics
-  (`mode="table"`), click activation, `hideBelow` and the empty query, but
-  adopting it would change what consumers get: in table mode a row has no
-  keyboard path of its own (Texuli gap G92; this one is a tab stop named by `rowLabel` that
-  opens with Enter or Space), its search reads columns only (no `searchFn`,
-  row keys outside the columns or placeholder), its pager is previous/next
-  (not numbered pages), loading is a text row (not skeleton rows) and its
-  sort is a multi-key list (not `{ key, direction } | null`).
+  Texuli's table parts (`texuli/table`), Input, Button and Checkbox. Texuli
+  0.9's DataGrid (`@texuli/data/grid-core`, `mode="table"`) now has what G92
+  asked for: focusable rows that activate with Enter or Space (`rowFocusable`,
+  `onRowActivate`), a custom search rule (`searchPredicate`) and a numbered
+  pager. Moving this table onto it would still change what consumers get: the
+  grid takes no `ref` or extra attributes on its root, shows a text row while
+  loading (not skeleton rows), has no per-column cell or header class, needs a
+  value `type` on every column and sorts by a key list (not
+  `{ key, direction } | null`). Those are reported as a Texuli gap; until then
+  this table keeps its own rows, search and pager on Texuli's parts.
 -->
 <div {...rest} bind:this={ref} class={cx('flex flex-col gap-3', className)}>
   {#if searchable || filters || toolbar}

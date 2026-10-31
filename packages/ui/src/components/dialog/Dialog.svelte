@@ -1,5 +1,5 @@
 <script lang="ts">
-import { type ComponentProps, type Snippet, untrack } from 'svelte';
+import type { ComponentProps, Snippet } from 'svelte';
 import { Dialog as TexuliDialog } from 'texuli/dialog';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
@@ -53,25 +53,6 @@ const portal = useOverlayPortalTarget();
 // svelte-ignore state_referenced_locally
 const layer = useOverlayLayer(() => open, { modal: () => true, stack });
 
-// Texuli's Dialog binds `open` to its root and then skips its own
-// `onOpenChange` (the value already changed), so a close from inside (Close,
-// Escape, an outside press) never reaches the caller. Watch the bound value
-// instead: `shown` follows the parent, and a change Texuli makes is reported
-// once (Texuli gap G87).
-// svelte-ignore state_referenced_locally
-let shown = $state(open);
-$effect.pre(() => {
-  shown = open;
-});
-$effect.pre(() => {
-  const next = shown;
-  untrack(() => {
-    if (next === open) return;
-    open = next;
-    onOpenChange?.(next);
-  });
-});
-
 const handleDismiss = overlayDismissHandler({ layer, element: () => ref });
 
 function handleCloseAutoFocus(event: { preventDefault(): void }): void {
@@ -88,7 +69,8 @@ function handleCloseAutoFocus(event: { preventDefault(): void }): void {
 <TexuliDialog
   {...rest}
   bind:ref
-  bind:open={shown}
+  bind:open
+  {onOpenChange}
   {closeLabel}
   mode={portal.mode}
   container={portal.container}

@@ -14,10 +14,12 @@ export {
   comboRoles,
   defaultSummary,
   seriesFromRows,
+  texuliXProps,
   tickFormatter,
   toTexuliSeries,
   type ValueUnit,
   valueFormatter,
+  type XFormatter,
   type XKind,
 } from '../compat/series.ts';
 export { default as AreaChart } from './AreaChart.svelte';

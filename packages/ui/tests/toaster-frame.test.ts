@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setOverlayPortalTarget, Toaster, toast } from '../src/index.ts';
 
 /**
@@ -41,12 +41,15 @@ describe('Toaster inside a framed screen', () => {
   it('leaves the top layer while a frame sets the portal target, and returns without one', async () => {
     setOverlayPortalTarget(screenEl);
     render(Toaster);
+    const read = vi.spyOn(window, 'getComputedStyle');
     toast.success('Saved');
     flushSync();
-    // Contained one frame after mount (Texuli reads the container's position as it
-    // contains the stack, which would force a layout during the app's first render).
-    expect(viewport()?.getAttribute('data-mode')).not.toBe('contained');
+    // Contained from the first render: the framed screen is declared positioned (G99),
+    // so Texuli never reads its computed style, not even a frame later.
+    expect(viewport()?.getAttribute('data-mode')).toBe('contained');
     await nextFrame();
+    expect(read.mock.calls.some(([el]) => el === screenEl)).toBe(false);
+    read.mockRestore();
     const region = viewport();
     expect(region?.hasAttribute('popover')).toBe(false);
     expect(region?.getAttribute('data-mode')).toBe('contained');

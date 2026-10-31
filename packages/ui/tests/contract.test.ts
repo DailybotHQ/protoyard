@@ -13,9 +13,7 @@ import ContractHarness from './fixtures/ContractHarness.svelte';
  * component's own (caller first, as in Texuli).
  *
  * Every component export needs a row below, so a new export cannot skip the
- * contract. A row with `texuliGap` names a Texuli component that does not
- * take the contract yet (Texuli gap G93): its test is expected to fail until Texuli ships the
- * fix, and then it must be removed.
+ * contract. Since Texuli 0.9 (G93) every re-exported Texuli root takes it too.
  */
 
 const text = (value: string) => createRawSnippet(() => ({ render: () => `<span>${value}</span>` }));
@@ -25,8 +23,6 @@ interface Case {
   /** Props that receive a generic snippet (a button spreading trigger props). */
   snippets?: readonly string[];
   inRadioGroup?: boolean;
-  /** An open Texuli gap: the re-exported Texuli component lacks the contract. */
-  texuliGap?: string;
 }
 
 const user = { id: 'u1', name: 'Ada Example' };
@@ -39,7 +35,6 @@ const CASES: Record<string, Case> = {
   AlertDialog: { props: { open: true, title: 'Delete record?' } },
   AppShell: {
     props: { children: text('Main') },
-    texuliGap: 'texuli/layouts/shells AppShell has no ref',
   },
   Avatar: { props: { name: 'Ada Example' } },
   Badge: { props: { children: text('New') } },
@@ -60,14 +55,13 @@ const CASES: Record<string, Case> = {
     props: { items: [{ id: 'a', label: 'Slide A' }], label: 'Gallery' },
     snippets: ['children'],
   },
-  ChatThread: { props: { messages: [] }, texuliGap: '@texuli/chat ChatThread has no ref' },
+  ChatThread: { props: { messages: [] } },
   Checkbox: { props: { label: 'Accept' } },
   ChipGroup: { props: { items: [option], label: 'Kind' } },
   Combobox: { props: { items: [option], label: 'Kind' } },
   CommandPalette: { props: { open: true, search: async () => [], onSelect: () => {} } },
   Composer: {
     props: { onSubmit: () => {} },
-    texuliGap: '@texuli/chat Composer has no ref and drops rest attributes',
   },
   DataTable: {
     props: {
@@ -107,7 +101,6 @@ const CASES: Record<string, Case> = {
       onMove: () => {},
     },
     snippets: ['card'],
-    texuliGap: '@texuli/data/board Board has no ref and drops rest attributes',
   },
   Kbd: { props: { children: text('K') } },
   Label: { props: { children: text('Name') } },
@@ -115,11 +108,9 @@ const CASES: Record<string, Case> = {
   LoadingState: {},
   MessageList: {
     props: { messages: [] },
-    texuliGap: '@texuli/chat MessageList drops rest attributes',
   },
   MobileAppShell: {
     props: { children: text('Screen') },
-    texuliGap: 'texuli/layouts/mobile MobileAppFrame has no ref or rest',
   },
   MobileHeader: { props: { title: 'Inbox' } },
   Notice: { props: { title: 'Heads up', children: text('Body') } },
@@ -141,7 +132,7 @@ const CASES: Record<string, Case> = {
   SimulatedTag: {},
   Skeleton: {},
   Spinner: {},
-  SplitView: { snippets: ['list', 'detail'], texuliGap: 'texuli/layouts/app SplitView has no ref' },
+  SplitView: { snippets: ['list', 'detail'] },
   StarRating: { props: { label: 'Rating', value: 3 } },
   StatCard: { props: { label: 'Revenue', value: '$1,000' } },
   StatusChip: { props: { label: 'Active' } },
@@ -157,7 +148,6 @@ const CASES: Record<string, Case> = {
   Tooltip: { props: { content: 'Hint', open: true }, snippets: ['children'] },
   TypingIndicator: {
     props: { names: ['Ada'] },
-    texuliGap: '@texuli/chat TypingIndicator has no ref',
   },
   UndoToaster: {},
   UserPicker: { props: { users: [user], label: 'Assignee' } },
@@ -186,9 +176,7 @@ describe('@protoyard/ui component contract', () => {
 
   for (const [name, component] of components) {
     const row = CASES[name] ?? {};
-    const test = row.texuliGap ? it.fails : it;
-    const suffix = row.texuliGap ? ` (Texuli gap G93: ${row.texuliGap})` : '';
-    test(`${name}: bind:ref names the root, rest attributes and caller handlers land on it${suffix}`, async () => {
+    it(`${name}: bind:ref names the root, rest attributes and caller handlers land on it`, async () => {
       const onclick = vi.fn();
       let ref: unknown = null;
       render(ContractHarness, {
