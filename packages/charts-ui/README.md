@@ -56,8 +56,8 @@ Sizes, measured by `pnpm exec tsx scripts/bench-charts.ts --skip-browser
 --check` (a real Vite build with one lazy import per family; gzip level 9 of
 the chunks each family downloads beyond the app entry): cartesian 13,466 B,
 part-whole 9,819 B, matrix 15,923 B, compact 7,213 B, canvas 1,647 B, geo
-4,651 B. A LineChart + BarChart view is 8,977 B, within the bench's 17,000 B
-guard.
+4,651 B. A LineChart + BarChart view is 8,977 B (12,718 B on Texuli 0.9.0),
+within the bench's 13,354 B guard.
 
 The platform guide with every chart's props, the data contracts and the
 measured numbers is [docs/CHARTS.md](../../docs/CHARTS.md). `sideEffects` lists only CSS,

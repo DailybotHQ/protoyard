@@ -11,6 +11,84 @@ layouts, views and theme library. They are kept as history and labelled so;
 current prototype bundle numbers are in
 [After the Texuli adoption](#after-the-texuli-adoption-measured-2026-10-28).
 
+## PLAN_008 re-measure (measured 2026-10-31)
+
+Every budget and ceiling, re-measured on Texuli 0.9.0 after all of PLAN_008
+wave 2 (documents, forms, sheets, canvas, the full theme library), from a clean
+build: `rm -rf packages/*/dist && pnpm build:packages`, then
+`pnpm --filter @protoyard/player build`. Commands:
+
+```bash
+pnpm protoyard budget --all                      # exit 0: 17 of 17 pass
+pnpm protoyard budget fintech-dashboard          # a template: exit 4 before its override, 0 after
+pnpm vitest run packages/cli/tests/views-bundle.test.ts packages/cli/tests/charts-bundle.test.ts \
+  packages/cli/tests/quick/single-file-kinds.test.ts packages/decks-ui/tests/bundle-size.test.ts \
+  packages/pages-ui/tests/budget.test.ts packages/player/tests/kind-budget.test.ts \
+  packages/player/tests/budget.test.ts packages/player/tests/worker-bundle.test.ts \
+  packages/renderer-svelte/tests/bundle-hygiene.test.ts --silent=false
+pnpm bench:index --runs 3 --check
+pnpm protoyard scenario bench <slug> --check --ci-factor 3   # every prototype
+pnpm exec tsx scripts/bench-charts.ts --skip-browser --check
+```
+
+Single files were measured over every blueprint with the same
+`buildSingleFile` the tests use (43 catalog apps, 7 example decks, 1 page,
+1 doc). The player's per-page initial and all-CSS sizes and the worker graph
+were measured with the budget test's own helpers (`asEntry`,
+`classifyChunks`, `reachableCss`) against `packages/player/dist/app`.
+
+**Lowered.** These ceilings were raised or set for an earlier Texuli version
+and now have more than 5 % headroom, so each is the measurement + 5 %.
+
+| Ceiling | Measured | Before → after | Why it fell |
+| --- | ---: | ---: | --- |
+| Quick single-file, app (max over 43 catalog blueprints) | 3,870,232–3,871,615 B | 4,577,768 → 4,065,196 B | An app file leaves out the kind renderers (T-bundle-fix) |
+| Quick single-file, deck (max over 7 example decks) | 2,640,768–2,668,245 B | 2,818,330 → 2,801,658 B | Each kind file holds only its own renderer |
+| Quick single-file, page (tidewater) | 2,347,132 B | 2,818,330 → 2,464,489 B | same |
+| Player `index.html` initial JS | 108,098 B (105.6 KB) | 130 → 110.9 KB | Raised for the Texuli charts-ui link (127.4 KB then) |
+| Player `deck` / `page` / `doc.html` initial JS | 103.1 / 102.9 / 102.7 KB | 130 → 108.3 KB | same |
+| Player `deck.html` all CSS | 113.99 KB | 120.0 → 119.7 KB | Kind pages load only their own renderer |
+| Player `page.html` all CSS | 69.23 KB | 121.3 → 72.7 KB | same |
+| Player `doc.html` all CSS | 101.47 KB | 121.3 → 106.6 KB | same |
+| Views kit calendar over the shell | 16,921 B | 17,787 → 17,768 B | Raised for Texuli 0.8.0 |
+| Views kit map over the shell | 8,040 B | 8,470 → 8,442 B | Set on Texuli 0.5.0 |
+| Sparkline initial delta | 3,520 B | 3,716 → 3,696 B | Set on Texuli 0.5.0 |
+| LineChart + BarChart view (test and `bench-charts`) | 12,718 B | 17,000 → 13,354 B | Set before Texuli charts 0.5.0 |
+
+**Kept**, each with its reason:
+
+| Ceiling | Measured | Ceiling | Reason |
+| --- | ---: | ---: | --- |
+| Prototype CSS overrides (atlas, cadence, harbor, pulse, helpdesk, keel, lattice, nova, pebblestat, crm, ui-kit) | 32.00–59.90 KB | 32.8–60.1 KB | 0.3–2.8 % headroom (set at + 2.5 % for 0.9.0, gaps G110 and G119) |
+| create-anything-deck initial JS / CSS | 299.59 / 92.55 KB | 306.6 / 93.8 KB | 2.3 % / 1.4 % headroom |
+| App defaults (initial JS / CSS) | up to 213.05 KB JS; the default-budget prototypes up to 27.15 KB CSS | 250 / 30 KB | Defaults, never raised for Texuli |
+| Player `index.html` initial CSS (`player` override) | 17,938 B | 18.1 KB | 3.3 % headroom |
+| Player kind initial CSS (`kinds` deck / page and doc) | 18,310 / 19,614 B | 18.4 / 19.7 KB | 2.9 % / 2.8 % headroom |
+| Player `index.html` all CSS | 151.88 KB | 153.7 KB | 1.2 % headroom (reaches every kind and kit by design) |
+| Player kind initial JS (`kinds.*.initialJsGzipKb`) | 102.7–103.1 KB | 150 KB | The ADR-040 provisional default, never raised; the tighter 108.3 KB test cap above now guards it |
+| Player app initial JS "near the pre-kinds baseline" | 108,098 B | 196,000 B | A PLAN_005 baseline, not Texuli; the 110.9 KB cap is tighter |
+| World-generation worker graph | 201,433 B (196.7 KB) | 220 KB | Faker and the generators, not Texuli |
+| Quick single-file, doc (northwind) | 3,070,546 B | 3,133,363 B | 2.0 % headroom |
+| decks-ui initial JS / first-screen CSS / all CSS | 107,588 / 10,153 / 85,945 B | 111,657 / 10,481 / 88,094 B | 3.8 / 3.2 / 2.5 % headroom |
+| pages-ui initial JS (page / doc) | 88,714 / 120,061 B | 120 KB (122,880 B) | One cap for both hosts; the doc has 2.3 % headroom |
+| pages-ui initial CSS (page / doc) | 7,007 / 6,999 B | 7,357 / 7,349 B | Exactly + 5 % |
+| pages-ui all CSS (page / doc) | 39,046 / 74,692 B | 40,023 / 76,560 B | 2.5 % headroom |
+| Views kit board, grid, editor, timeline, sheet, canvas | 16,164 / 23,113 / 10,531 / 13,108 / 49,457 / 50,488 B | 16,869 / 23,691 / 10,795 / 13,709 / 51,908 / 53,013 B | 2.5–5.0 % headroom |
+| `LayoutHost` initial delta | 3,798 B | 3,900 B | 2.7 % headroom |
+
+**Template.** `budget --all` checks prototypes only. `fintech-dashboard`
+measured 39.22 KB CSS against the 30 KB default (36.54 KB before its lazy
+transactions sheet, which adds 2.68 KB). `budget <slug>` reads overrides for
+templates too, so it gets one at + 2.5 % (40.3 KB), like the other 0.9.0
+overrides, until gap G110 ships.
+
+**Benches.** `bench:index` 1,000 manifests: cold 52.16 ms median (budget 100 ms,
+× 3 in CI), incremental 27.04 ms. Scenario generation: 87 scenarios over the
+17 prototypes pass, the slowest `keel-projects-demo` `massive` at 72.95 ms
+(10,279 rows) against 150 ms. `bench-charts`: LTTB 10k 0.12 ms median; family
+subpaths cartesian 21,548 B, part-whole 13,256 B, matrix 24,769 B, compact
+8,075 B, canvas 1,797 B, geo 4,909 B.
+
 ## Texuli 0.9.0 ceilings (measured 2026-10-31)
 
 Texuli 0.9.0's components read their system tokens (`--tx-size-*`,
@@ -123,8 +201,8 @@ history.
 
 | Measure | Value | Ceiling | Command |
 | --- | ---: | ---: | --- |
-| Sparkline on a first screen (`sparkline-lite`) | 3,539 B (was 5,927 B on 0.3.0) | 3,716 B (was 6,250 B) | `pnpm vitest run packages/cli/tests/charts-bundle.test.ts` |
-| LineChart + BarChart view | 11,167 B (was 8,977 B) | 17,000 B | same |
+| Sparkline on a first screen (`sparkline-lite`) | 3,520 B on 0.9.0 (3,539 B on 0.5.0, 5,927 B on 0.3.0) | 3,696 B (was 3,716 B; 6,250 B before) | `pnpm vitest run packages/cli/tests/charts-bundle.test.ts` |
+| LineChart + BarChart view | 12,718 B on 0.9.0 (11,167 B on 0.5.0) | 13,354 B (was 17,000 B) | same |
 | Chart family subpaths | cartesian 13,466 B, part-whole 9,819 B, matrix 15,923 B, compact 7,213 B, canvas 1,647 B, geo 4,651 B | — | `pnpm exec tsx scripts/bench-charts.ts --skip-browser --check` |
 | Chart math, 10k / 100k points (Node, median total) | 0.86–0.97 ms / 5.44–25.11 ms | LTTB 10k < 2 ms (0.20–0.27 ms) | same |
 | `LayoutHost` initial delta | 3,497 B | 3,600 B | `pnpm vitest run packages/renderer-svelte/tests/bundle-hygiene.test.ts --silent=false` |
@@ -294,7 +372,7 @@ player's kind tests do.
 | --- | ---: | --- |
 | `initialJsGzipKb` | 150 KB | Initial JavaScript of the kind's minimal player entry, gzip |
 | `cssGzipKb` | deck 17.0 KB, page 18.3 KB, doc 18.3 KB (was 36 KB each) | Initial CSS of the kind's player entry, gzip; measured + 5%, rounded up on Texuli 0.5.0, including the sheet parts that `@protoyard/ui/styles.css` loads so published declarations carry no `.css` import |
-| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,560 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap remains `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (2,818,330 B per kind), measured on Texuli 0.5.0 at 2,681,755–2,689,852 B (2,656,649–2,684,123 B on 0.4.0). The app cap (`QUICK_SINGLE_FILE_BUDGET_BYTES`) stays 4,418,158 B after the maximum catalog file moved from 4,207,769 B on 0.4.0 to 4,284,417 B on 0.5.0; neither cap is raised because measured + 5% is higher. The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
+| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,560 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (deck 2,801,658 B, page 2,464,489 B, doc 3,133,363 B since the PLAN_008 re-measure; it was 2,818,330 B per kind), measured on Texuli 0.5.0 at 2,681,755–2,689,852 B (2,656,649–2,684,123 B on 0.4.0). The app cap (`QUICK_SINGLE_FILE_BUDGET_BYTES`) stays 4,418,158 B after the maximum catalog file moved from 4,207,769 B on 0.4.0 to 4,284,417 B on 0.5.0; neither cap is raised because measured + 5% is higher. The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
 
 These budgets are **enforced**:
 
