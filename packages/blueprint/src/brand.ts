@@ -8,12 +8,12 @@
 
 import { defineTheme, type Theme, type ThemeStyleInput } from '@protoyard/core';
 import {
+  ALL_LIBRARY_THEME_IDS,
   BUILTIN_THEMES,
   contrastRatio,
   createThemeFromSeed,
   getFontPairing,
   isLibraryThemeId,
-  LIBRARY_THEME_IDS,
   TEXT_CONTRAST_PAIRS,
   UI_CONTRAST_PAIRS,
 } from '@protoyard/themes';
@@ -163,7 +163,7 @@ export function closestIds(id: string, known: readonly string[], limit = 3): str
 export function brandLibraryThemeId(brand: BlueprintBrand): string | undefined {
   const id = brand.libraryTheme;
   if (id === undefined || isLibraryThemeId(id)) return id;
-  const near = closestIds(id, LIBRARY_THEME_IDS);
+  const near = closestIds(id, ALL_LIBRARY_THEME_IDS);
   throw new BrandThemeError(
     `Unknown library theme "${id}"${near.length > 0 ? ` (closest: ${near.join(', ')})` : ''}.`
   );

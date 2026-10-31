@@ -730,7 +730,8 @@ export const BlueprintBrandSchema = z
     /** Spacing multiplier 0.75–1.25. */
     density: z.number().min(0.75).max(1.25).optional(),
     /**
-     * `THEME_LIBRARY_META` id (`fintech-ledger`, `health-clinic`, …) used as-is.
+     * Library theme id (`fintech-ledger`, `health-clinic`, … any of the 204
+     * in `ALL_LIBRARY_THEME_IDS`, catalog or expanded) used as-is.
      * Its palette, fonts, radius and density come from the library (AA-tested
      * there), so it excludes `id`, `seed`, `secondary`, `preset`,
      * `styleProfile`, `font`, `radius` and `density`. The id is checked against
