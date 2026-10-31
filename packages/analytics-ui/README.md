@@ -198,30 +198,41 @@ inside whatever app shell the prototype uses, not a shell itself.
 </DashboardGrid>
 ```
 
-- **Layout:** 12 columns, `rowHeight` per row unit (default 80 px), `gap`.
-  Below `collapseBelow` container width (default 640 px), measured with
-  `ResizeObserver` so it also works inside a phone shell, the grid becomes
-  one column in reading order (row, then column). The DOM is always in
-  reading order.
-- **Editing:** each widget gets a toolbar: a handle button that takes arrow
-  keys (move) and Shift + arrow keys (resize), plus move, wider/narrower and
-  taller/shorter buttons. Up and down swap with the nearest widget in the
-  same columns; left and right shift one column; neighbours make room and
-  everything compacts upward. Focus stays on the moved widget's handle and a
-  polite live region announces the new position.
-- **Saving:** every edit calls `onchange(layout)`. Return the service
-  promise: the grid shows the change at once, is `aria-busy` with its
-  buttons in their loading state until the promise settles, and restores
-  the previous layout if it rejects. When the saved `layout` prop changes
-  (liveQuery, scenario load), the grid follows it.
+It renders Texuli's dashboard (`@texuli/data/dashboard`); this package keeps
+the saved layout format and its persistence.
+
+- **Layout:** 12 columns, `rowHeight` per row unit (default 80 px), `gap`
+  (pixels, mapped to Texuli's gap steps). Below `collapseBelow` container
+  width (default 640 px) the grid stacks into one column in reading order
+  (row, then column). The DOM is always in reading order, and each widget's
+  title is its heading.
+- **Editing:** Texuli's handles on every widget. A pointer drags the move
+  handle or the resize handle, snapping to cells. On the keyboard, Space or
+  Enter picks a handle up, arrow keys move or resize one step, Space or
+  Enter drops, Escape cancels. A click (or Enter) on a handle shows an
+  arrange toolbar (Move left/right/up/down or Narrower/Wider/Shorter/Taller,
+  Done, Cancel), so no drag is needed (WCAG 2.5.7). Neighbours make room and
+  everything compacts upward; focus stays on the handle and a polite live
+  region announces each step. Known limit (a Texuli gap): the keyboard step
+  cannot move a widget down past a wider widget below it; move the wider one
+  up instead, or drag.
+- **Saving:** an edit on the 12-column grid calls `onchange(layout)` with the
+  layout in `DashboardLayoutSchema` form (widget keys and titles kept).
+  Return the service promise: the grid is `aria-busy` until it settles and
+  restores the previous layout if it rejects (announced politely). An
+  arrangement on the stacked phone grid lasts for the session only. When
+  the saved `layout` prop changes (liveQuery, scenario load), the grid
+  follows it.
 - **WidgetCard:** a titled `section` with an optional actions menu
   (`DropdownMenu`), loading/empty/error states (retry with pending
   feedback), and an Expand button that opens the same content in a large
-  dialog (`children` receives `{ expanded }`).
+  dialog (`children` receives `{ expanded }`). Inside `DashboardGrid` it
+  draws no card chrome or heading of its own (the dashboard widget does) and
+  is named by its title.
 
-Pre-migration size estimate (esbuild minify + gzip -9, `svelte` and `@protoyard/ui` external since
-prototypes already ship them): `DashboardGrid` + `WidgetCard` 3.6 KB, or
-4.3 KB with the layout engine. Widgets load their chart chunks themselves.
+Measured on pebblestat-analytics-demo (`protoyard budget`, gzip): moving the
+grid onto Texuli's dashboard costs about 0.13 KB of initial JS and 0.66 KB of
+CSS. Widgets load their chart chunks themselves.
 
 ## Explore: drill-down, cohorts, funnels (`./drill`, `./cohort`, `./funnel`)
 

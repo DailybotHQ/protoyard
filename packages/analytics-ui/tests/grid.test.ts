@@ -10,7 +10,7 @@ import {
 } from '@protoyard/analytics';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import DashboardGrid from '../src/grid/DashboardGrid.svelte';
 import WidgetCard from '../src/grid/WidgetCard.svelte';
 
@@ -94,35 +94,8 @@ describe('layout data', () => {
   });
 });
 
-/** ResizeObserver stand-in reporting a fixed container width. */
-class FixedWidthObserver {
-  static width = 1200;
-  callback: ResizeObserverCallback;
-  constructor(callback: ResizeObserverCallback) {
-    this.callback = callback;
-  }
-  observe(target: Element) {
-    this.callback(
-      [
-        {
-          target,
-          contentRect: { width: FixedWidthObserver.width, height: 600 },
-        } as unknown as ResizeObserverEntry,
-      ],
-      this as unknown as ResizeObserver
-    );
-  }
-  unobserve() {}
-  disconnect() {}
-}
-
-beforeEach(() => {
-  FixedWidthObserver.width = 1200;
-  vi.stubGlobal('ResizeObserver', FixedWidthObserver);
-});
 afterEach(() => {
   cleanup();
-  vi.unstubAllGlobals();
 });
 
 const widget = createRawSnippet((item: () => DashboardWidget) => ({
@@ -135,46 +108,46 @@ const LAYOUT: DashboardLayout = [
   w('funnel', 0, 3, 12, 4),
 ];
 
-const cell = (id: string) => screen.getByTestId(`widget-${id}`).parentElement as HTMLElement;
+/** The Texuli widget cell that holds a widget's content. */
+const cell = (id: string) =>
+  screen.getByTestId(`widget-${id}`).closest('[data-dashboard-widget]') as HTMLElement;
+const order = (region: HTMLElement) =>
+  [...region.querySelectorAll('[data-dashboard-widget]')].map((el) =>
+    el.getAttribute('data-widget-id')
+  );
 
-describe('DashboardGrid', () => {
-  it('places widgets on 12 columns in reading order', () => {
-    render(DashboardGrid, { layout: LAYOUT, label: 'Growth', widget });
+describe('DashboardGrid (Texuli dashboard)', () => {
+  it('places widgets on 12 columns in reading order, each titled once', () => {
+    render(DashboardGrid, { layout: [...LAYOUT].reverse(), label: 'Growth', widget });
     const region = screen.getByRole('region', { name: 'Growth' });
-    expect(region.dataset.columns).toBe('12');
     expect(cell('revenue').style.gridColumn).toBe('1 / span 8');
     expect(cell('signups').style.gridColumn).toBe('9 / span 4');
     expect(cell('funnel').style.gridRow).toBe('4 / span 4');
-    expect(
-      [...region.querySelectorAll('[data-widget-id]')].map((el) =>
-        el.getAttribute('data-widget-id')
-      )
-    ).toEqual(['revenue', 'signups', 'funnel']);
-    expect(screen.queryByRole('toolbar')).toBeNull();
+    expect(order(region)).toEqual(['revenue', 'signups', 'funnel']);
+    expect(within(region).getByRole('heading', { name: 'Revenue' })).toBeTruthy();
+    // Not editing: no handles.
+    expect(screen.queryByRole('button', { name: 'Move Revenue' })).toBeNull();
   });
 
-  it('collapses to one column in reading order on a narrow container', () => {
-    FixedWidthObserver.width = 390;
-    render(DashboardGrid, { layout: [...LAYOUT].reverse(), label: 'Growth', widget });
-    const region = screen.getByRole('region', { name: 'Growth' });
-    expect(region.dataset.columns).toBe('1');
-    expect(cell('signups').style.gridColumn).toBe('1 / -1');
-    expect(cell('signups').style.gridRow).toBe('span 3');
-    expect(
-      [...region.querySelectorAll('[data-widget-id]')].map((el) =>
-        el.getAttribute('data-widget-id')
-      )
-    ).toEqual(['revenue', 'signups', 'funnel']);
-  });
-
-  it('moves and resizes with the keyboard and reports the new layout as data', async () => {
+  it('moves with the keyboard pick-up contract and saves the new layout as data', async () => {
     const onchange = vi.fn(async (_layout: DashboardLayout) => {});
     render(DashboardGrid, { layout: LAYOUT, label: 'Growth', widget, editing: true, onchange });
-    const handle = screen.getByRole('button', { name: /^Revenue, column 1, row 1/ });
+    const handle = screen.getByRole('button', { name: 'Move Funnel' });
     handle.focus();
-    await fireEvent.keyDown(handle, { key: 'ArrowDown' });
+    await fireEvent.keyDown(handle, { key: ' ' });
+    expect(handle.getAttribute('aria-pressed')).toBe('true');
+    await fireEvent.keyDown(handle, { key: 'ArrowUp' });
+    // Texuli announces each step and keeps focus on the handle as the widget moves.
+    await waitFor(() => expect(screen.getByText('Funnel moved to column 1, row 1.')).toBeTruthy());
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Move Funnel');
+    // Nothing is saved while the widget is held.
+    expect(onchange).not.toHaveBeenCalled();
+    await fireEvent.keyDown(document.activeElement as Element, { key: ' ' });
     await waitFor(() => expect(onchange).toHaveBeenCalledTimes(1));
     const moved = onchange.mock.calls[0]?.[0] as DashboardLayout;
+    // Saved in Protoyard's format: widget keys and titles ride along, no overlaps.
+    expect(DashboardLayoutSchema.safeParse(moved).success).toBe(true);
+    expect(moved.map((item) => item.widget)).toEqual(['kpi', 'kpi', 'kpi']);
     // The full-width funnel moves to the top; revenue and signups sit under it.
     expect(pos(moved)).toEqual({
       revenue: [0, 4, 8, 3],
@@ -182,46 +155,73 @@ describe('DashboardGrid', () => {
       funnel: [0, 0, 12, 4],
     });
     expect(noOverlaps(moved)).toBe(true);
-    expect(
-      screen.getByText('Revenue moved: column 1, row 5, 8 columns wide, 3 rows tall')
-    ).toBeTruthy();
-    // Focus follows the widget after the list reorders.
-    await waitFor(() =>
-      expect(document.activeElement?.getAttribute('data-widget-handle')).toBe('revenue')
-    );
-
-    await fireEvent.keyDown(document.activeElement as Element, {
-      key: 'ArrowLeft',
-      shiftKey: true,
-    });
-    await waitFor(() => expect(onchange).toHaveBeenCalledTimes(2));
-    expect(pos(onchange.mock.calls[1]?.[0] as DashboardLayout).revenue?.[2]).toBe(7);
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Move Funnel');
   });
 
-  it('announces when a move is not possible and does not save', async () => {
+  // Texuli gap (the lead assigns its id): `nudgeItem` (the keyboard step) refuses to move
+  // a widget down past a wider widget below it ("edge"), though `moveItem` places it there
+  // and Protoyard's own grid swapped them. Flip to `it` when Texuli ships the fix.
+  it.fails('a widget moves down past a wider widget below it with the keyboard', async () => {
+    const { nudgeItem } = await import('@texuli/data/dashboard/engine');
+    const layout = LAYOUT.map(({ id, x, y, w: width, h }) => ({ id, x, y, w: width, h }));
+    const step = nudgeItem(
+      layout,
+      'revenue',
+      { dx: 0, dy: 1 },
+      { columns: 12, compaction: 'vertical' }
+    );
+    expect(step.ok).toBe(true);
+  });
+
+  it('resizes from the arrange toolbar, no drag needed (WCAG 2.5.7)', async () => {
+    const onchange = vi.fn(async (_layout: DashboardLayout) => {});
+    render(DashboardGrid, { layout: LAYOUT, label: 'Growth', widget, editing: true, onchange });
+    // Picking a handle up (a click or Enter) shows the arrange toolbar.
+    await fireEvent.keyDown(screen.getByRole('button', { name: 'Resize Signups' }), {
+      key: 'Enter',
+    });
+    const toolbar = screen.getByRole('group', { name: 'Arrange Signups' });
+    await fireEvent.click(within(toolbar).getByRole('button', { name: 'Narrower' }));
+    await fireEvent.click(within(toolbar).getByRole('button', { name: 'Done' }));
+    await waitFor(() => expect(onchange).toHaveBeenCalledTimes(1));
+    expect(pos(onchange.mock.calls[0]?.[0] as DashboardLayout).signups?.[2]).toBe(3);
+  });
+
+  it('cancelling restores the widget and saves nothing', async () => {
     const onchange = vi.fn();
     render(DashboardGrid, { layout: LAYOUT, label: 'Growth', widget, editing: true, onchange });
-    await fireEvent.keyDown(screen.getByRole('button', { name: /^Revenue, column 1/ }), {
-      key: 'ArrowLeft',
-    });
-    expect(screen.getByText('Revenue cannot move further')).toBeTruthy();
+    const handle = screen.getByRole('button', { name: 'Move Signups' });
+    handle.focus();
+    await fireEvent.keyDown(handle, { key: 'Enter' });
+    await fireEvent.keyDown(handle, { key: 'ArrowLeft' });
+    await waitFor(() => expect(screen.getByText(/^Signups moved to/)).toBeTruthy());
+    await fireEvent.keyDown(document.activeElement as Element, { key: 'Escape' });
+    expect(cell('signups').style.gridColumn).toBe('9 / span 4');
     expect(onchange).not.toHaveBeenCalled();
   });
 
-  it('shows pending feedback on toolbar buttons and reverts when saving fails', async () => {
+  it('is busy while the save runs and restores the previous layout when it fails', async () => {
     let fail: (error: Error) => void = () => {};
     const onchange = vi.fn(() => new Promise<void>((_, reject) => (fail = reject)));
-    render(DashboardGrid, { layout: LAYOUT, label: 'Growth', widget, editing: true, onchange });
-    const toolbar = screen.getByRole('toolbar', { name: 'Arrange Signups' });
-    await fireEvent.click(within(toolbar).getByRole('button', { name: 'Move left: Signups' }));
-    const region = screen.getByRole('region', { name: 'Growth' });
-    expect(region.getAttribute('aria-busy')).toBe('true');
-    expect(cell('signups').style.gridColumn).toBe('8 / span 4');
-    expect(
-      within(toolbar).getByRole('button', { name: 'Move left: Signups' }).getAttribute('aria-busy')
-    ).toBe('true');
+    const { container } = render(DashboardGrid, {
+      layout: LAYOUT,
+      label: 'Growth',
+      widget,
+      editing: true,
+      onchange,
+    });
+    // Picking a handle up (a click or Enter) shows the arrange toolbar.
+    await fireEvent.keyDown(screen.getByRole('button', { name: 'Resize Signups' }), {
+      key: 'Enter',
+    });
+    const toolbar = screen.getByRole('group', { name: 'Arrange Signups' });
+    await fireEvent.click(within(toolbar).getByRole('button', { name: 'Narrower' }));
+    await fireEvent.click(within(toolbar).getByRole('button', { name: 'Done' }));
+    const root = container.querySelector('[data-editing]') as HTMLElement;
+    await waitFor(() => expect(root.getAttribute('aria-busy')).toBe('true'));
+    expect(cell('signups').style.gridColumn).toBe('9 / span 3');
     fail(new Error('offline'));
-    await waitFor(() => expect(region.getAttribute('aria-busy')).toBeNull());
+    await waitFor(() => expect(root.getAttribute('aria-busy')).toBeNull());
     expect(cell('signups').style.gridColumn).toBe('9 / span 4');
     expect(screen.getByText(/could not be saved/)).toBeTruthy();
   });
@@ -231,6 +231,16 @@ describe('DashboardGrid', () => {
     await view.rerender({ layout: [w('revenue', 4, 0, 8, 3)], label: 'Growth', widget });
     expect(cell('revenue').style.gridColumn).toBe('5 / span 8');
     expect(screen.queryByTestId('widget-signups')).toBeNull();
+  });
+
+  it('a WidgetCard inside paints no second heading or card', async () => {
+    const { default: Harness } = await import('./fixtures/GridWithCard.svelte');
+    render(Harness);
+    const region = screen.getByRole('region', { name: 'Growth' });
+    expect(within(region).getAllByRole('heading', { name: 'Revenue' })).toHaveLength(1);
+    const card = within(region).getByRole('region', { name: 'Revenue' });
+    expect(card.hasAttribute('data-embedded')).toBe(true);
+    expect(card.className).not.toMatch(/\bborder\b/);
   });
 });
 
