@@ -92,13 +92,13 @@ standalone Svelte 5 component library, consumed from its published npm packages
   a device screen) and the shared overlay stack (z-order, top-layer dismiss,
   focus return). `Dialog` and `AlertDialog` are Texuli's styled components
   and report every open-state change through `onOpenChange`, an inside close
-  included (G87); `CommandPalette` keeps Texuli's command parts on a dialog
-  root with Texuli's `CommandLoading` status while a search is pending (G88),
-  and keeps "Search commands" as its search box name (Texuli's palette names
-  it with its dialog title); `DataTable` stays on Texuli's table parts:
-  Texuli 0.9's `DataGrid` has focusable rows, a custom search rule and a
-  numbered pager (G92), but no `ref` or extra attributes, skeleton loading
-  rows, per-column classes or optional column types yet (a Texuli gap); and
+  included (G87); `CommandPalette` is Texuli's styled `CommandPalette`
+  (framed-preview portal, "Searching…" status while a search is pending,
+  G88) with "Search commands" as its search box name apart from the dialog
+  title (`searchLabel`, G108); `DataTable` stays on Texuli's table parts:
+  Texuli 0.10's `DataGrid` has everything G92 and G107 asked for, but moving
+  onto it rewrites a public component (its sort is a key list where
+  `DataTable` binds `{ key, direction } | null`), recorded as follow-up; and
   the styled sheet header, body and footer parts (`overlay/sheet-parts.css`).
   Also thin adapters: `Input` (Texuli's `Input`, numbers for number inputs),
   `TextCounter`, `Spinner`, `StatCard` (`Stat`), `EmptyState`, `StarRating`
@@ -112,10 +112,10 @@ standalone Svelte 5 component library, consumed from its published npm packages
   (`texuli/date`), `DatePicker` and `TimeInput` (Texuli's styled
   `texuli/date` `DatePicker` and `TimeField`: the `ui-input` hook goes on the
   bordered control through `controlClass` (G89), and a FormField error marks
-  the control invalid (G90)), `DateRangePicker` (it composes
-  `@texuli/primitives/date-picker` only to keep its in-dialog hint, "Start
-  <date>. Now choose the end date.", because the styled range picker takes no
-  dialog content: a Texuli gap); inside a FormField all three are named by the
+  the control invalid (G90)), `DateRangePicker` (Texuli's styled range
+  picker; Texuli announces "Start date <date>. Now choose the end date." after
+  the first pick and the dialog's `panel` shows the same hint, G109); inside a
+  FormField all three are named by the
   Field label through Texuli's label context (G91), `Kanban`
   (`@texuli/data/board`), and `BottomNav`, `MobileHeader` and
   `MobileAppShell` (`texuli/layouts/mobile`). `Toaster` is Texuli's

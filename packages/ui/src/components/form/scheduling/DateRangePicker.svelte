@@ -1,14 +1,7 @@
 <script lang="ts">
-import { CalendarDays } from '@lucide/svelte';
-import {
-  type DateInvalidDetail,
-  type DateInvalidReason,
-  DateRangePicker as Picker,
-} from '@texuli/primitives/date-picker';
+import type { DateInvalidDetail, DateInvalidReason } from '@texuli/primitives/date-picker';
 import type { HTMLAttributes } from 'svelte/elements';
-import { dateCalendarClass, dateFieldClass } from 'texuli/date';
-import { useFieldLabel } from 'texuli/field';
-import { Icon } from 'texuli/icons';
+import { DateRangePicker as Picker } from 'texuli/date';
 import { cn } from '../../../lib/cn.ts';
 import { chainHandlers, composeHandlers } from '../../../lib/handlers.ts';
 import {
@@ -22,18 +15,16 @@ import { segmentsEmpty, texuliUnavailable, texuliWeekStart, typedIsoText } from 
 import type { IsoWeekday } from './weekdays.ts';
 
 /**
- * DateRangePicker — Texuli's date range picker
- * (`@texuli/primitives/date-picker`, styled with the `texuli/date` recipes):
+ * DateRangePicker — Texuli's styled `texuli/date` DateRangePicker:
  * segmented start and end fields, a calendar button, and a range calendar
  * that picks the range in two clicks (a second click before the first swaps
  * the ends; a range over `maxDays` is refused and announced). `id` lands on
  * the start date's first segment, `aria-describedby`/`aria-invalid` on every
  * segment and `required` on both dates, so it sits inside FormField; the
  * FormField (Texuli `Field`) label names the group through Texuli's label
- * context (G91). It composes the parts rather than the styled `texuli/date`
- * `DateRangePicker` only for the live hint inside the calendar dialog ("Start
- * <date>. Now choose the end date."): the styled picker takes no content in
- * its dialog and announces no half-picked range (reported as a Texuli gap).
+ * context (G91). After the first calendar pick Texuli announces "Start
+ * <date>. Now choose the end date." (`labels.pickEnd`), and the dialog's
+ * `panel` shows the same hint (G109).
  *
  * The bound value only changes to a complete, valid range or to an empty
  * one; any other entry is reported inline (when the fields are left, or at
@@ -114,7 +105,6 @@ let {
 
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
 
-const errorId = $derived(`${id}-issue`);
 /** What the fields show; it only becomes `value` once complete and valid. */
 let draft = $state<DateRange>({ start: null, end: null });
 let issue = $state<DateRangeIssue | null>(null);
@@ -123,9 +113,6 @@ let typed = $state<DateRangeIssue | null>(null);
 let open = $state(false);
 /** A first calendar pick is waiting for the second. */
 let picking = $state(false);
-let control = $state<HTMLDivElement | null>(null);
-/** The enclosing FormField (Texuli `Field`): its label names the group. */
-const field = useFieldLabel();
 
 $effect(() => {
   draft = { start: value.start, end: value.end };
@@ -143,13 +130,10 @@ $effect(() => {
 const invalid = $derived(
   issue !== null || typed !== null || ariaInvalid === true || ariaInvalid === 'true'
 );
-const describedByAll = $derived(
-  [describedBy, issue ? errorId : null].filter(Boolean).join(' ') || undefined
-);
 const rules = $derived({ min, max, maxDays, required });
 
 function fields(): [Element | null, Element | null] {
-  const all = control?.querySelectorAll('[data-tx-date-field-root]') ?? [];
+  const all = ref?.querySelectorAll('[data-tx-date-field-root]') ?? [];
   return [all[0] ?? null, all[1] ?? null];
 }
 
@@ -225,74 +209,59 @@ const hint = $derived(
 );
 </script>
 
-<div
-  bind:this={ref}
-  class={cn(dateFieldClass(), 'tx-date--range ui-date-range-picker', className)}
-  data-tx-date
-  data-invalid={invalid ? 'true' : undefined}
-  data-disabled={disabled ? 'true' : undefined}
+<Picker
+  {...rest}
+  bind:ref
+  bind:value={draft}
+  bind:open
+  class={cn('ui-date-range-picker', className)}
+  controlClass="ui-input"
+  {label}
+  hideLabel
+  {id}
+  {...locale ? { locale } : {}}
+  {...min ? { minValue: min } : {}}
+  {...max ? { maxValue: max } : {}}
+  {...isDateDisabled ? { isDateUnavailable: texuliUnavailable(isDateDisabled) } : {}}
+  {...today ? { today } : {}}
+  weekStartsOn={texuliWeekStart(weekStartsOn)}
+  {...maxDays !== undefined ? { maxDays } : {}}
+  {disabled}
+  {required}
+  {...name ? { startName: `${name}.start`, endName: `${name}.end` } : {}}
+  error={issue ? DATE_RANGE_MESSAGES[issue] : undefined}
+  aria-labelledby={labelledBy}
+  aria-describedby={describedBy}
+  aria-invalid={invalid || undefined}
+  labels={{
+    trigger: calendarLabel,
+    triggerWithValue: `${calendarLabel}, {date}`,
+    dialog: calendarLabel,
+    start: startLabel,
+    end: endLabel,
+  }}
+  onInvalid={texuliInvalid}
+  onValueChange={(next) => {
+    if (!open) {
+      if (next.start !== null && next.end !== null) typed = null;
+      return;
+    }
+    // Calendar picks: the first sets the start, the second completes the range.
+    if (next.end === null) {
+      picking = true;
+      return;
+    }
+    picking = false;
+    apply(next);
+  }}
+  onfocusout={chainHandlers(callerFocusOut, (event) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) commit();
+  })}
+  onkeydown={composeHandlers(callerKeyDown, (event) => {
+    if (event.key === 'Enter') commit();
+  })}
 >
-  <Picker.Root
-    bind:value={draft}
-    bind:open
-    {...locale ? { locale } : {}}
-    {...min ? { minValue: min } : {}}
-    {...max ? { maxValue: max } : {}}
-    {...isDateDisabled ? { isDateUnavailable: texuliUnavailable(isDateDisabled) } : {}}
-    {...today ? { today } : {}}
-    weekStartsOn={texuliWeekStart(weekStartsOn)}
-    {...maxDays !== undefined ? { maxDays } : {}}
-    {disabled}
-    labels={{
-      trigger: calendarLabel,
-      triggerWithValue: `${calendarLabel}, {date}`,
-      dialog: calendarLabel,
-      start: startLabel,
-      end: endLabel,
-    }}
-    onInvalid={texuliInvalid}
-    onValueChange={(next) => {
-      if (!open) {
-        if (next.start !== null && next.end !== null) typed = null;
-        return;
-      }
-      // Calendar picks: the first sets the start, the second completes the range.
-      if (next.end === null) {
-        picking = true;
-        return;
-      }
-      picking = false;
-      apply(next);
-    }}
-  >
-    <div bind:this={control} class="tx-date__control ui-input">
-      <Picker.Field
-        {...rest}
-        class="tx-date__field"
-        inputId={id}
-        {label}
-        aria-labelledby={labelledBy ?? field?.labelId}
-        aria-describedby={describedByAll}
-        aria-invalid={invalid || undefined}
-        {...name ? { startName: `${name}.start`, endName: `${name}.end` } : {}}
-        {required}
-        onfocusout={chainHandlers(callerFocusOut, (event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) commit();
-        })}
-        onkeydown={composeHandlers(callerKeyDown, (event) => {
-          if (event.key === 'Enter') commit();
-        })}
-      />
-      <Picker.Trigger class="tx-date__trigger">
-        <Icon icon={CalendarDays} size="sm" aria-hidden="true" />
-      </Picker.Trigger>
-    </div>
-    <Picker.Content class="tx-date__panel">
-      <Picker.Calendar class={dateCalendarClass()} />
-      <p class="tx-date__description" aria-live="polite">{hint}</p>
-    </Picker.Content>
-  </Picker.Root>
-  {#if issue}
-    <p id={errorId} class="tx-date__error">{DATE_RANGE_MESSAGES[issue]}</p>
-  {/if}
-</div>
+  {#snippet panel()}
+    <p class="tx-date__description">{hint}</p>
+  {/snippet}
+</Picker>
