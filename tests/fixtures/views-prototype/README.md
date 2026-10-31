@@ -10,7 +10,7 @@ chunks.
 - `shell.html` → `src/shell.ts`: a realistic first screen (`runService`,
   `liveQuery`, the ui `Button` and toasts), the floor every view is measured on.
 - `board.html`, `calendar.html`, `grid.html`, `map.html`, `editor.html`,
-  `timeline.html`, `sheet.html`, `activity.html`: the shell plus one view on the first
+  `timeline.html`, `sheet.html`, `canvas.html`, `activity.html`: the shell plus one view on the first
   screen, so the test can measure what each view adds to initial JS.
 - `baseline.html` (Svelte only) and `button.html` (the ui Button only) are
   reference points.
