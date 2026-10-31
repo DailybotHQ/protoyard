@@ -63,6 +63,19 @@ describe('AlertDialog', () => {
     await waitFor(() => expect(screen.getByTestId('state').textContent).toBe('closed'));
   });
 
+  it('a caller that closes it in onConfirm still gets onCancel on the next Escape', async () => {
+    const onCancel = vi.fn();
+    render(AlertDialogHarness, { onCancel, closeInConfirm: true });
+    await openDialog();
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(screen.getByTestId('state').textContent).toBe('closed'));
+    expect(onCancel).not.toHaveBeenCalled();
+    const dialog = await openDialog();
+    await fireEvent.keyDown(dialog, { key: 'Escape' });
+    await waitFor(() => expect(screen.getByTestId('state').textContent).toBe('closed'));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
   it('stays open and shows the error when onConfirm rejects', async () => {
     const onConfirm = vi.fn(async () => {
       throw new Error('Network is offline');

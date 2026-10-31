@@ -83,7 +83,8 @@ let settled = false;
 
 async function confirm(): Promise<void> {
   await onConfirm?.();
-  settled = true;
+  // A caller that closed the alert in onConfirm gets no Texuli close to settle.
+  if (open) settled = true;
 }
 
 function cancel(): void {
@@ -104,7 +105,11 @@ $effect.pre(() => {
 $effect.pre(() => {
   const next = shown;
   untrack(() => {
-    if (next === open) return;
+    if (next === open) {
+      // The caller closed it: nothing is left to settle for the next close.
+      if (!next) settled = false;
+      return;
+    }
     if (!next && !settled) onCancel?.();
     settled = false;
     open = next;
