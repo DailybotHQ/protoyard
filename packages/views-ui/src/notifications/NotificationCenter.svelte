@@ -111,10 +111,22 @@ async function markAllRead(ids: string[]) {
   pendingAll = false;
 }
 
-/** The inbox reports one id for a row (toggle or open) and every unread id for "Mark all". */
+// Texuli's inbox reports "Mark all as read" and a row toggle through the same
+// `(ids, read)` callback, and the callback cannot return a promise (G106). Its
+// "Mark all" click is seen in the capture phase, before the inbox calls back,
+// so it always reaches onMarkAllRead, even with a single unread row.
+let markAllRequested = false;
+function noteMarkAll(event: MouseEvent) {
+  const target = event.target instanceof Element ? event.target : null;
+  markAllRequested = target?.closest('[data-tx-inbox] > header .tx-inbox__button') != null;
+}
+
 function onReadChange(ids: string[], read: boolean) {
+  const all = markAllRequested;
+  markAllRequested = false;
   if (!read) return;
-  if (ids.length > 1) void markAllRead(ids);
+  // The pending state shows through the status line in the panel.
+  if (all) void markAllRead(ids);
   else if (ids[0]) void markRead(ids[0]);
 }
 
@@ -154,7 +166,8 @@ function openItem(row: InboxRow) {
 {/snippet}
 
 {#snippet panel()}
-  <div class="grid max-h-[min(70vh,36rem)] min-h-48 overflow-y-auto" aria-busy={pendingAll || pendingIds.size > 0}>
+  <div class="grid max-h-[min(70vh,36rem)] min-h-48 overflow-y-auto" aria-busy={pendingAll || pendingIds.size > 0} onclickcapture={noteMarkAll}>
+    {#if pendingAll || pendingIds.size > 0}<p role="status" class="text-xs text-muted-foreground" data-notifications-pending>{pendingAll ? 'Marking all as read…' : 'Marking as read…'}</p>{/if}
     {#if query.loading && !query.current}<p role="status" class="py-6 text-center text-muted-foreground">Loading notifications…</p>
     {:else if query.error}<p role="alert" class="py-6 text-center text-destructive">Could not load notifications.</p>
     {:else}

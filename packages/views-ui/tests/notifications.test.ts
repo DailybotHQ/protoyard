@@ -105,6 +105,36 @@ describe('NotificationCenter', () => {
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
   });
 
+  it('"Mark all as read" with a single unread row still calls onMarkAllRead (G106)', async () => {
+    const { onMarkAllRead, onMarkRead } = center();
+    await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Mark all as read' }));
+    await waitFor(() => expect(onMarkAllRead).toHaveBeenCalledTimes(1));
+    expect(onMarkRead).not.toHaveBeenCalled();
+  });
+
+  it('shows a visible pending status while a read is saved', async () => {
+    let finish: (value: boolean) => void = () => {};
+    const onMarkRead = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finish = resolve;
+        })
+    );
+    center({ onMarkRead });
+    await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));
+    await fireEvent.click(
+      screen.getByRole('button', { name: 'Mark as read: Marta mentioned you' })
+    );
+    await waitFor(() =>
+      expect(document.querySelector('[data-notifications-pending]')?.textContent).toBe(
+        'Marking as read…'
+      )
+    );
+    finish(true);
+    await waitFor(() => expect(document.querySelector('[data-notifications-pending]')).toBeNull());
+  });
+
   it('updates mute preferences through the supplied service callback', async () => {
     const { onMuteChange } = center();
     await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));

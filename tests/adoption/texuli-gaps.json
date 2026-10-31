@@ -333,5 +333,10 @@
     "id": "G105",
     "status": "open",
     "summary": "@texuli/slides/export DeckPrintView and preloadDeckPrintView dynamically import the stage default renderer tables even with defaultRenderers: false, so stage-core hosts emit about 300 KB of never-loaded chunks"
+  },
+  {
+    "id": "G106",
+    "status": "open",
+    "summary": "@texuli/data/activity/inbox NotificationInbox reports \"Mark all as read\" and a row toggle through the same onReadChange(ids, read), and the callback cannot return a promise, so a host cannot tell them apart or show pending feedback on the controls"
   }
 ]
