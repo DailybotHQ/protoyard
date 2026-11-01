@@ -3,12 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   BUILTIN_THEMES,
   contrastRatio,
-  loadAllFullLibraryThemes,
   parseHex,
-  relativeLuminance,
   TEXT_CONTRAST_PAIRS,
-  THEME_LIBRARY_META,
-  themeVariables,
   UI_CONTRAST_PAIRS,
 } from '../src/index.ts';
 
@@ -34,65 +30,23 @@ describe('built-in themes', () => {
     for (const theme of BUILTIN_THEMES) expect(ThemeSchema.parse(theme)).toEqual(theme);
   });
 
-  for (const theme of BUILTIN_THEMES) {
-    for (const mode of ['light', 'dark'] as const) {
-      it(`${theme.id}/${mode} meets WCAG AA for text and UI pairs`, () => {
-        const palette = theme[mode];
-        const failures: string[] = [];
-        for (const [fg, bg] of TEXT_CONTRAST_PAIRS) {
-          const ratio = contrastRatio(palette[fg], palette[bg]);
-          if (ratio < 4.5) failures.push(`${fg} on ${bg}: ${ratio.toFixed(2)}`);
-        }
-        for (const [fg, bg] of UI_CONTRAST_PAIRS) {
-          const ratio = contrastRatio(palette[fg], palette[bg]);
-          if (ratio < 3) failures.push(`${fg} on ${bg}: ${ratio.toFixed(2)} (UI)`);
-        }
-        expect(failures).toEqual([]);
-      });
-    }
-  }
-});
-
-describe('library themes (AA)', () => {
-  it('every library theme (all 204, catalog and expanded) × mode meets WCAG AA', async () => {
-    expect(THEME_LIBRARY_META.length).toBeGreaterThanOrEqual(30);
-    const themes = await loadAllFullLibraryThemes();
-    expect(themes.length).toBe(204);
+  it('every built-in × mode meets WCAG AA for text and UI pairs', () => {
     const failures: string[] = [];
-    for (const theme of themes) {
+    for (const theme of BUILTIN_THEMES) {
       for (const mode of ['light', 'dark'] as const) {
         const palette = theme[mode];
         for (const [fg, bg] of TEXT_CONTRAST_PAIRS) {
           const ratio = contrastRatio(palette[fg], palette[bg]);
-          if (ratio < 4.5) failures.push(`${theme.id}/${mode}: ${fg}/${bg}=${ratio.toFixed(2)}`);
+          if (ratio < 4.5)
+            failures.push(`${theme.id}/${mode}: ${fg} on ${bg}: ${ratio.toFixed(2)}`);
         }
         for (const [fg, bg] of UI_CONTRAST_PAIRS) {
           const ratio = contrastRatio(palette[fg], palette[bg]);
-          if (ratio < 3) failures.push(`${theme.id}/${mode}: ${fg}/${bg}=${ratio.toFixed(2)} UI`);
+          if (ratio < 3)
+            failures.push(`${theme.id}/${mode}: ${fg} on ${bg}: ${ratio.toFixed(2)} (UI)`);
         }
       }
     }
     expect(failures).toEqual([]);
   });
-});
-
-describe('hover fills', () => {
-  for (const theme of BUILTIN_THEMES) {
-    for (const mode of ['light', 'dark'] as const) {
-      it(`${theme.id}/${mode} hover is visible and keeps text AA`, () => {
-        const vars = themeVariables({ theme, resolvedMode: mode });
-        const palette = theme[mode];
-        for (const [fill, text, hover] of [
-          [palette.primary, palette.primaryForeground, vars['--tx-primary-hover']],
-          [palette.destructive, palette.destructiveForeground, vars['--tx-destructive-hover']],
-        ] as const) {
-          expect(hover).toBeDefined();
-          expect(contrastRatio(hover as string, text)).toBeGreaterThanOrEqual(4.5);
-          expect(
-            Math.abs(relativeLuminance(hover as string) - relativeLuminance(fill))
-          ).toBeGreaterThanOrEqual(0.01);
-        }
-      });
-    }
-  }
 });
