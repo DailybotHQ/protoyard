@@ -148,10 +148,13 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
+  // Project tags: a test tagged `@desktop` runs only on chromium, `@mobile` only on the
+  // phone project; untagged tests run on both. Filtering here (not with a runtime skip)
+  // keeps one-project tests out of `--list` for the other project.
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', grepInvert: /@mobile\b/, use: { ...devices['Desktop Chrome'] } },
     // Chromium with a phone viewport + touch: CI only installs Chromium.
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    { name: 'mobile', grepInvert: /@desktop\b/, use: { ...devices['Pixel 7'] } },
   ],
   webServer: [
     {
