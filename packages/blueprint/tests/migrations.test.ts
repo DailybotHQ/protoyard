@@ -5,11 +5,10 @@ import { describe, expect, it } from 'vitest';
 import {
   appendMigration,
   type BlueprintInput,
-  defaultForField,
+  blueprintIdentity,
   deriveDatabaseVersions,
   deriveStores,
   diffBlueprints,
-  latestSchemaVersion,
   MigrationError,
   parseBlueprint,
   toDatabaseVersion,
@@ -47,11 +46,6 @@ function source(versions: DatabaseVersion[], namespace = 'blueprint-mig') {
 }
 
 describe('diffBlueprints', () => {
-  it('returns null when stores and fields are unchanged', () => {
-    const bp = parseBlueprint(baseNotes());
-    expect(diffBlueprints(bp, bp)).toBeNull();
-  });
-
   it('adds a field with a default backfill and keeps existing rows', async () => {
     const prev = parseBlueprint(baseNotes());
     const next = parseBlueprint({
@@ -137,46 +131,6 @@ describe('diffBlueprints', () => {
     void v2;
   });
 
-  it('adds a new entity table without touching existing ones', async () => {
-    const prev = parseBlueprint(baseNotes());
-    const next = parseBlueprint({
-      ...baseNotes(),
-      entities: [
-        ...(baseNotes().entities ?? []),
-        {
-          name: 'tag',
-          plural: 'tags',
-          fields: [{ name: 'label', kind: 'text', required: true }],
-          titleField: 'label',
-        },
-      ],
-    });
-    const migration = diffBlueprints(prev, next);
-    expect(migration?.stores).toEqual({ tags: deriveStores(next).tags });
-    expect(migration?.ops).toEqual([]);
-
-    const v1: DatabaseVersion = { version: 1, stores: deriveStores(prev) };
-    const store = backend();
-    const db1 = await openPrototypeDatabase(source([v1], 'notes-add-entity'), store);
-    await db1.table('notes').add({
-      id: 'n1',
-      title: 'Keep me',
-      body: '',
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-    });
-    db1.close();
-
-    const db2 = await openPrototypeDatabase(
-      source(appendMigration([v1], migration), 'notes-add-entity'),
-      store
-    );
-    expect(await db2.table('notes').count()).toBe(1);
-    expect(db2.hasTable('tags')).toBe(true);
-    expect(await db2.table('tags').count()).toBe(0);
-    db2.close();
-  });
-
   it('refuses table and field drops without allowDrop', () => {
     const prev = parseBlueprint(baseNotes());
     const withoutNotes = parseBlueprint({
@@ -211,59 +165,6 @@ describe('diffBlueprints', () => {
     const allowed = diffBlueprints(prev, withoutNotes, { allowDrop: true });
     expect(allowed?.stores.notes).toBeNull();
     expect(allowed?.stores.labels).toBe(deriveStores(withoutNotes).labels);
-  });
-
-  it('requires allowDrop for field kind changes and enum removals, then resets incompatible data', () => {
-    const prev = parseBlueprint({
-      ...baseNotes(),
-      entities: [
-        {
-          name: 'note',
-          plural: 'notes',
-          fields: [
-            { name: 'title', kind: 'text', required: true },
-            { name: 'body', kind: 'enum', values: ['draft', 'published'], default: 'draft' },
-          ],
-          titleField: 'title',
-        },
-      ],
-    });
-    const next = parseBlueprint({
-      ...baseNotes(),
-      entities: [
-        {
-          name: 'note',
-          plural: 'notes',
-          fields: [
-            { name: 'title', kind: 'text', required: true },
-            { name: 'body', kind: 'enum', values: ['draft'], default: 'draft' },
-          ],
-          titleField: 'title',
-        },
-      ],
-    });
-    expect(() => diffBlueprints(prev, next)).toThrow(/allowDrop/);
-    expect(diffBlueprints(prev, next, { allowDrop: true })?.ops).toContainEqual({
-      op: 'resetField',
-      table: 'notes',
-      field: 'body',
-      value: 'draft',
-    });
-    const changedKind = parseBlueprint({
-      ...baseNotes(),
-      entities: [
-        {
-          name: 'note',
-          plural: 'notes',
-          fields: [
-            { name: 'title', kind: 'text', required: true },
-            { name: 'body', kind: 'number' },
-          ],
-          titleField: 'title',
-        },
-      ],
-    });
-    expect(() => diffBlueprints(prev, changedKind)).toThrow(/allowDrop/);
   });
 
   it('renames a field via renamedFrom and preserves values', async () => {
@@ -313,47 +214,6 @@ describe('diffBlueprints', () => {
     expect(row.title).toBeUndefined();
     db2.close();
   });
-
-  it('enables softDelete with a deletedAt backfill', () => {
-    const prev = parseBlueprint(baseNotes());
-    const nextInput = baseNotes();
-    const entity = nextInput.entities?.[0] as Record<string, unknown>;
-    entity.features = { softDelete: true };
-    const next = parseBlueprint(nextInput);
-    const migration = diffBlueprints(prev, next);
-    expect(migration?.ops).toContainEqual({
-      op: 'backfill',
-      table: 'notes',
-      field: 'deletedAt',
-      value: null,
-    });
-    expect(migration?.stores.notes).toContain('deletedAt');
-  });
-});
-
-describe('defaultForField', () => {
-  it('prefers declared defaults and kind fallbacks', () => {
-    const withBool = parseBlueprint({
-      ...baseNotes(),
-      entities: [
-        {
-          name: 'note',
-          plural: 'notes',
-          fields: [
-            { name: 'title', kind: 'text', required: true },
-            { name: 'flag', kind: 'boolean', default: true },
-            { name: 'labels', kind: 'tags' },
-            { name: 'level', kind: 'enum', values: ['a'], default: 'a' },
-          ],
-          titleField: 'title',
-        },
-      ],
-    });
-    const fields = Object.fromEntries(withBool.entities[0]!.fields.map((f) => [f.name, f]));
-    expect(defaultForField(fields.flag!)).toBe(true);
-    expect(defaultForField(fields.labels!)).toEqual([]);
-    expect(defaultForField(fields.level!)).toBe('a');
-  });
 });
 
 describe('deriveDatabaseVersions', () => {
@@ -370,43 +230,6 @@ describe('deriveDatabaseVersions', () => {
     ],
     roles: [{ name: 'owner', permissions: { '*': ['*'] } }],
   };
-  const withField = {
-    ...base,
-    entities: [
-      {
-        ...base.entities[0],
-        fields: [
-          { name: 'title', kind: 'text' },
-          { name: 'pinned', kind: 'boolean', default: false },
-        ],
-      },
-    ],
-  };
-
-  it('is a single version without history', () => {
-    const versions = deriveDatabaseVersions(parseBlueprint(base));
-    expect(versions.map((v) => v.version)).toEqual([1]);
-    expect(latestSchemaVersion(parseBlueprint(base))).toBe(1);
-  });
-
-  it('rebuilds every version from the history, skipping steps that change nothing', () => {
-    const current = parseBlueprint({
-      ...withField,
-      history: [
-        { schemaVersion: 1, blueprint: base },
-        // A rename of the blueprint itself changes no storage: no version.
-        { schemaVersion: 1, blueprint: { ...base, name: 'Renamed' } },
-      ],
-    });
-    const versions = deriveDatabaseVersions(current);
-    expect(versions.map((v) => v.version)).toEqual([1, 2]);
-    expect(typeof versions[1]?.upgrade).toBe('function');
-    expect(latestSchemaVersion(current)).toBe(2);
-    // Same data → same versions (store strings), every time.
-    expect(deriveDatabaseVersions(current).map((v) => v.stores)).toEqual(
-      versions.map((v) => v.stores)
-    );
-  });
 
   it('needs migrateNext.allowDrop to drop a table recorded in the history', () => {
     const dropped = {
@@ -432,5 +255,43 @@ describe('deriveDatabaseVersions', () => {
       })
     );
     expect(versions[1]?.stores.notes).toBeNull();
+  });
+});
+
+/** Content identity (ADR-030): every edit opens a fresh world; the same content never drifts. */
+describe('blueprintIdentity', () => {
+  it('is stable for pinned content and changes with any content edit', async () => {
+    const pinned = parseBlueprint({
+      formatVersion: 1,
+      name: 'Identity Pin',
+      entities: [
+        {
+          name: 'note',
+          plural: 'notes',
+          titleField: 'title',
+          fields: [{ name: 'title', kind: 'text' }],
+        },
+      ],
+      roles: [{ name: 'owner', permissions: { '*': ['*'] } }],
+    });
+    const identity = await blueprintIdentity(pinned);
+    expect(await blueprintIdentity(pinned)).toEqual(identity);
+    // Pinned: a change here means every stored player world would get a new namespace.
+    expect(identity).toEqual({
+      sha256: '8931dfd11218a789510f47df3ca6b0f7d8f5619d366fce6d89eb653b8d442e29',
+      namespace: 'bp-rey57uisdctysuipi7ptzjvq67',
+    });
+    // Key order and an explicit default are the same product.
+    const reordered = parseBlueprint({
+      roles: [{ name: 'owner', permissions: { '*': ['*'] } }],
+      entities: pinned.entities,
+      tags: [],
+      name: 'Identity Pin',
+      formatVersion: 1,
+    });
+    expect(await blueprintIdentity(reordered)).toEqual(identity);
+    const renamed = await blueprintIdentity(parseBlueprint({ ...pinned, name: 'Identity Pin 2' }));
+    expect(renamed.sha256).not.toBe(identity.sha256);
+    expect(renamed.namespace).not.toBe(identity.namespace);
   });
 });

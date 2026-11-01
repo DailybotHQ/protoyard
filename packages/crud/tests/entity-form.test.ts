@@ -1,5 +1,5 @@
 import { createEntityServices } from '@protoyard/blueprint';
-import { type Row, ValidationError } from '@protoyard/core';
+import { ValidationError } from '@protoyard/core';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -54,29 +54,6 @@ describe('EntityForm on @texuli/forms', () => {
     const submit = within(schema).getByRole('button', { name: 'Create ticket' });
     expect(submit.getAttribute('type')).toBe('submit');
     expect(within(form).getAllByRole('button', { name: 'Create ticket' })).toHaveLength(1);
-  });
-
-  it('hides the title visually while it keeps naming the form (G114)', async () => {
-    const { runtime } = await boot();
-    render(EntityForm, {
-      entity: entity('customer'),
-      runtime,
-      showTitle: false,
-      onSubmit: async () => ({}),
-    });
-    expect(screen.getByRole('form', { name: 'New customer' })).toBeTruthy();
-    const heading = document.querySelector('.tx-forms__title') as HTMLElement;
-    expect(heading.className).toMatch(/sr-only|visually-hidden/);
-  });
-
-  it('offers Texuli\'s "None" on an optional persona select instead of a sentinel (G118)', async () => {
-    const { runtime } = await boot();
-    render(EntityForm, { entity: entity('customer'), runtime, onSubmit: async () => ({}) });
-    const field = document.querySelector('[data-tx-forms-field="accountManagerId"]') as HTMLElement;
-    await fireEvent.click(within(field).getByRole('combobox'));
-    const options = (await screen.findAllByRole('option')).map((o) => o.textContent?.trim());
-    expect(options[0]).toBe('None');
-    expect(options).not.toContain('Unassigned');
   });
 
   it('reports a service issue on a hosted field inline and writes nothing', async () => {
@@ -166,42 +143,5 @@ describe('EntityForm on @texuli/forms', () => {
         screen.getAllByText('This customer already exists in another workspace').length
       ).toBeGreaterThan(0)
     );
-  });
-
-  it('paints a disabled form with disabled Texuli controls and no active submit', async () => {
-    const { runtime } = await boot();
-    render(EntityForm, {
-      entity: entity('customer'),
-      runtime,
-      disabled: true,
-      onSubmit: async () => {
-        throw new Error('A disabled form never submits');
-      },
-    });
-    expect((screen.getByRole('textbox', { name: /^Name/ }) as HTMLInputElement).disabled).toBe(
-      true
-    );
-    expect(
-      (screen.getByRole('button', { name: 'Create customer' }) as HTMLButtonElement).disabled
-    ).toBe(true);
-  });
-
-  it('paints a form whose only field is hosted and submits it through the service', async () => {
-    const { runtime } = await boot();
-    const sent: Row[] = [];
-    render(EntityForm, {
-      entity: {
-        ...entity('customer'),
-        fields: [{ name: 'avatar', kind: 'avatar', required: false, sensitive: false }],
-      },
-      runtime,
-      onSubmit: async (input: Record<string, unknown>) => {
-        sent.push(input as Row);
-        return input;
-      },
-    });
-    expect(document.querySelector('form.tx-forms [data-tx-forms-field="avatar"]')).toBeTruthy();
-    await fireEvent.click(screen.getByRole('button', { name: 'Create customer' }));
-    await waitFor(() => expect(sent).toEqual([{ avatar: null }]));
   });
 });

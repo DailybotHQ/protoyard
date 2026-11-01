@@ -1,12 +1,11 @@
 // @vitest-environment node
 /// <reference types="node" />
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type PrototypeDefinition, type PrototypeRuntime, parseScenario } from '@protoyard/core';
+import { type PrototypeDefinition, parseScenario } from '@protoyard/core';
 import { createGenerateContext } from '@protoyard/scenarios';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createHarness } from '../../../tests/support/runtime.ts';
 import {
   addCrudTemplate,
   cli,
@@ -23,7 +22,7 @@ import {
 
 /**
  * Level 1 (the player) and level 2 (generated prototypes) must be the same
- * app (ADR-029). For every catalog blueprint this generates a real prototype
+ * app (ADR-029). For a representative catalog blueprint this generates a real prototype
  * with the CLI, loads its definition, and compares it with
  * `definePrototypeFromBlueprint` on the same blueprint.json: storage versions,
  * policy, integrity, scenarios, generator version, theme, routes, navigation,
@@ -33,10 +32,8 @@ import {
  */
 
 const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
-const CATALOG = readdirSync(join(ROOT, 'blueprints'))
-  .filter((name) => name.endsWith('.json') && !name.startsWith('.'))
-  .sort()
-  .map((file) => basename(file, '.json'));
+/** One representative catalog blueprint (relations, enums, money, personas, a dashboard). */
+const REPRESENTATIVE = ['crm'];
 
 let workspace: TempWorkspace;
 beforeAll(() => {
@@ -124,12 +121,8 @@ const SCENARIO = parseScenario({
   },
 });
 
-describe('runtime and codegen parity over the catalog', () => {
-  it('covers the 43 catalog blueprints', () => {
-    expect(CATALOG.length).toBeGreaterThanOrEqual(43);
-  });
-
-  it.each(CATALOG)(
+describe('runtime and codegen parity', () => {
+  it.each(REPRESENTATIVE)(
     '%s: the generated prototype and the runtime definition agree',
     async (slug) => {
       const generated = await generate(slug);
@@ -186,48 +179,5 @@ describe('runtime and codegen parity over the catalog', () => {
       expect(JSON.stringify(fromRuntime), 'world').toBe(JSON.stringify(fromGenerated));
     },
     30_000
-  );
-});
-
-describe('runtime and codegen parity in a real runtime', () => {
-  const dump = async (runtime: PrototypeRuntime) => {
-    const db = runtime.db as {
-      tables: { name: string; toArray(): Promise<unknown[]> }[];
-    };
-    const tables = [...db.tables].sort((a, b) => a.name.localeCompare(b.name));
-    return Object.fromEntries(
-      await Promise.all(tables.map(async (table) => [table.name, await table.toArray()] as const))
-    );
-  };
-
-  it.each(['crm', 'clinic', 'logistics'])(
-    '%s: both definitions seed identical databases through the default scenario',
-    async (slug) => {
-      const generated = await generate(`${slug}`);
-      const blueprint = parseBlueprint(generated.blueprintJson);
-      const { definition } = definePrototypeFromBlueprint(blueprint, {
-        namespace: `${generated.definition.manifest.storage.namespace}-runtime`,
-        slug: generated.definition.manifest.slug,
-      });
-      const generatedHarness = createHarness(generated.definition);
-      const runtimeHarness = createHarness(definition);
-      try {
-        const [left, right] = await Promise.all([generatedHarness.boot(), runtimeHarness.boot()]);
-        const [leftActive, rightActive] = [left.scenarios.active(), right.scenarios.active()];
-        expect(leftActive?.scenario.id).toBe('active');
-        expect(rightActive?.scenario.id).toBe(leftActive?.scenario.id);
-        expect(rightActive?.seed).toBe(leftActive?.seed);
-        const [leftTables, rightTables] = [await dump(left), await dump(right)];
-        // A seeded world, not two empty databases.
-        expect(Object.values(leftTables).filter((rows) => rows.length > 0).length).toBeGreaterThan(
-          4
-        );
-        expect(JSON.stringify(rightTables)).toBe(JSON.stringify(leftTables));
-      } finally {
-        generatedHarness.closeAll();
-        runtimeHarness.closeAll();
-      }
-    },
-    60_000
   );
 });

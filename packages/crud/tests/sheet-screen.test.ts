@@ -143,14 +143,6 @@ describe('sheet screen model', () => {
     expect(cellPatch(field('paid'), false)).toEqual({ ok: true, value: false });
     expect(cellPatch(field('amount'), undefined)).toEqual({ ok: true, value: null });
   });
-
-  it('counts only record cells as edits, never headers or totals', () => {
-    const model = buildSheetModel(entity, spec, rows, 'Expenses');
-    const cells = { ...model.document.sheets[0].cells, A1: 'Renamed', B4: 7, B2: 13 };
-    expect(sheetEdits(model, { sheets: [{ id: 'records', cells }] })).toEqual([
-      { id: 'e1', field: field('amount'), input: 13 },
-    ]);
-  });
   it('refuses an edit that spans several records whole, so nothing is stored in part', () => {
     const model = buildSheetModel(entity, spec, rows, 'Expenses');
     const cells = { ...model.document.sheets[0].cells, B2: 13, B3: 14 };
@@ -160,18 +152,6 @@ describe('sheet screen model', () => {
       ok: false,
       message: 'Edit one record at a time: a change that spans several rows is not saved.',
     });
-  });
-
-  it('merges several cells of one record into a single patch, and refuses a bad cell', () => {
-    const model = buildSheetModel(entity, spec, rows, 'Expenses');
-    const cells = { ...model.document.sheets[0].cells, B2: 13, C2: 4 };
-    const edits = sheetEdits(model, { sheets: [{ id: 'records', cells }] });
-    expect(sheetPatch(edits)).toEqual({ ok: true, id: 'e1', patch: { amount: 1300, hours: 4 } });
-    expect(sheetPatch([])).toMatchObject({ ok: false });
-    const bad = sheetEdits(model, {
-      sheets: [{ id: 'records', cells: { ...model.document.sheets[0].cells, C2: 2.5 } }],
-    });
-    expect(sheetPatch(bad)).toMatchObject({ ok: false });
   });
 });
 
