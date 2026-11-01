@@ -1,7 +1,7 @@
 ---
 name: texuli-design-systems
 description: Author, validate, repair, apply and export a Texuli design system (one closed JSON document for a whole brand) — importers, the ds.* MCP operations, texuli ds, stable error codes, blueprint designSystem. New in 0.10.0.
-version: "0.3.9"
+version: "0.3.10"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write

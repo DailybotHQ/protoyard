@@ -1,7 +1,7 @@
 ---
 name: texuli-blueprints
 description: Validate, wrap, edit, paint and hand off untrusted agent blueprints offline — validateDraft, the envelope and its lifecycle, edit history, the player, the agent service, the spec contract, and spec 0.3.0 interaction as data (state, bindings, closed actions, reorder, workflow-graph, migrations). Agents draft, validation gates, the owner activates.
-version: "0.3.9"
+version: "0.3.10"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
