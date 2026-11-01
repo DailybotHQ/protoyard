@@ -13,7 +13,7 @@ subagents for templates, demo UIs, docs and the agent kit. See
 
 **Evidence commands are historical.** Each bracketed command proved its item
 when the item was checked. PLAN_009 (2026-11-01) then cut the suite to its
-essential cases (8,892 → 923 Vitest tests, 1,016 → 89 listed Playwright
+essential cases (8,892 → 954 Vitest tests, 1,016 → 89 listed Playwright
 cases), so many test files named below no longer exist. For commands that work today, use
 [TESTING_GUIDE.md](TESTING_GUIDE.md).
 

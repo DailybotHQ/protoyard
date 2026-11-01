@@ -6,8 +6,9 @@ suite is kept to its **essential** cases (PLAN_009, 2026-11-01): fast unit and
 integration tests on the real engine (with an in-memory IndexedDB), plus a
 small set of browser end-to-end journeys on real static builds.
 
-**Size today (measured 2026-11-01):** Vitest selects **923 tests in 159
-files** (`pnpm test`; 915 pass and 8 skip without a package build). PLAN_009
+**Size today (measured 2026-11-01):** Vitest selects **954 tests in 190
+files** (`pnpm test`; 946 pass and 8 skip without a package build), including
+one self-contained smoke test per template that every new prototype inherits. PLAN_009
 cut it from 8,892 tests in 829 files. The plan measured about 60 s for a full
 local run on a quiet machine; a run on this machine under parallel load took
 125 s. Playwright lists **89 cases in 23 spec files** with CI's prototype
@@ -63,8 +64,8 @@ them).
 | G2 | `packages/blueprint`, `packages/crud` | 150 | 25 | 138 tests, 21 files |
 | G3 | `ui`, `renderer-svelte`, `devtools`, `themes`, `views`, `views-ui`, `charts`, `charts-ui`, `analytics`, `analytics-ui` | 170 | 40 | 146 tests, 34 files |
 | G4 | the other engine and content-kind packages (`core` … `gamification-ui`, `templates`) | 330 | 60 | 338 tests, 44 files |
-| G5 | `prototypes/*`, `templates/*`, `apps/gallery` | 160 | 35 | 72 tests, 19 files |
-| **Total** | | **1,000** (accepted 900–1,100) | **200** | **923 tests, 159 files** |
+| G5 | `prototypes/*`, `templates/*`, `apps/gallery` | 160 | 35 | 103 tests, 50 files (31 are the one-test template smoke files) |
+| **Total** | | **1,000** (accepted 900–1,100) | **200** | **954 tests, 190 files** |
 
 G1 and G4 sit slightly over their group budgets; the total is inside the
 accepted range. E2E: about 100 cases (accepted 80–120) in the CI selection,
@@ -107,7 +108,7 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Type check everything | `pnpm typecheck` | full |
 | Type check one package | `pnpm --filter @protoyard/runtime typecheck` | scoped |
 | Type check one prototype | `pnpm --filter @prototype/crm-demo typecheck` | scoped |
-| All unit + integration tests | `pnpm test` (159 files, 923 tests) | full |
+| All unit + integration tests | `pnpm test` (190 files, 954 tests) | full |
 | All tests, fewer workers (a loaded machine; same tests) | `PROTOYARD_TEST_WORKERS=4 pnpm test` | full |
 | One CI shard | `pnpm vitest run --shard=1/2` (and `--shard=2/2`) | full, split |
 | Wall-clock budgets, serialized (run on a quiet machine) | `pnpm test:perf` (`PROTOYARD_PERF=1`; today the code tokenizer's pathological-input budget) | perf |
@@ -270,7 +271,7 @@ overrides, run **one E2E session per machine at a time**.
 
 | Command | Selected → result |
 | --- | --- |
-| `pnpm test` (full) | 159 files, 915 passed + 8 skipped (the player budgets, dist parity and the perf-only tokenizer budget, without a package build) |
+| `pnpm test` (full) | 190 files, 946 passed + 8 skipped (the player budgets, dist parity and the perf-only tokenizer budget, without a package build) |
 | `pnpm vitest run packages/runtime` | 1 file, 14 passed |
 | `pnpm vitest run prototypes/crm-demo` | 1 file, 5 passed |
 | `pnpm vitest run prototypes` | 17 files, 58 passed |
