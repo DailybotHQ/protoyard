@@ -6,8 +6,9 @@ name: ci
 # the essential unit suite in two shards; Playwright E2E in two shards against
 # real static builds; the performance budgets (bundle, index and scenario
 # generation; cold-start reported only); and the packages job (build, lint and
-# install the publishable packages from their tarballs; the npm consumer
-# variant runs on main only). The pnpm store and the built packages are cached.
+# lint the publishable packages; on main, two parallel jobs also install the
+# tarballs in a clean pnpm and npm consumer). The pnpm store and the built
+# packages are cached.
 
 on:
   push:
@@ -367,7 +368,7 @@ jobs:
   # consumer. The pnpm store and the built dist are cached; dist is keyed on
   # every build input, so a cache hit skips only an identical rebuild.
   packages:
-    name: packages (build, lint; tarball install on main)
+    name: packages (build, lint)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -406,11 +407,6 @@ jobs:
           set -o pipefail
           mkdir -p artifacts/packages
           pnpm --silent check:packages --require-all --json | tee artifacts/packages/check-packages.json
-      - name: Install the tarballs in a clean consumer (pnpm, main only)
-        # About 3.5 minutes; it runs on every push to main and again in
-        # release.yml before anything is published, so pull requests skip it.
-        if: github.event_name == 'push'
-        run: pnpm verify:packages
       - name: Upload the package check report
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -420,12 +416,17 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  # The same tarball install with npm (default peer handling), on main only:
-  # it adds about two minutes and rarely differs from pnpm on a pull request.
-  packages-npm:
-    name: packages (npm consumer)
+  # The tarballs installed in a clean consumer, with pnpm and with npm
+  # (default peer handling). Main only, about four minutes each, in parallel
+  # with the packages job; release.yml runs the pnpm one again before anything
+  # is published, so pull requests skip both.
+  packages-consumer:
+    name: packages (${{ matrix.pm }} consumer)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: packages
+    strategy:
+      fail-fast: false
+      matrix:
+        pm: [pnpm, npm]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -457,16 +458,16 @@ jobs:
       - name: Build the packages
         if: steps.dist.outputs.cache-hit != 'true'
         run: pnpm build:packages
-      - name: Install the tarballs in a clean consumer (npm)
+      - name: Install the tarballs in a clean consumer (${{ matrix.pm }})
         run: |
           set -o pipefail
           mkdir -p artifacts/packages
-          pnpm verify:packages --pm npm 2>&1 | tee artifacts/packages/verify-npm.txt
-      - name: Upload the npm consumer report
+          pnpm verify:packages --pm ${{ matrix.pm }} 2>&1 | tee artifacts/packages/verify-${{ matrix.pm }}.txt
+      - name: Upload the consumer report
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: package-npm-report
+          name: package-${{ matrix.pm }}-report
           path: artifacts/packages/
           if-no-files-found: warn
           retention-days: 7
