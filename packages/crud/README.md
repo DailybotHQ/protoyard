@@ -363,10 +363,7 @@ identity writer, which refreshes the session). Runtimes without an identity writ
 profile and workspace read-only. Roles here are a simulation, not security.
 
 ```bash
-pnpm vitest run packages/crud
-pnpm vitest run packages/crud/tests/settings-screen.test.ts
-pnpm vitest run packages/crud/tests/map-screen.test.ts
-pnpm vitest run packages/crud/tests/board-screen.test.ts
+pnpm vitest run packages/crud   # entity form, sheet and canvas screens, screen registry, app shell
 pnpm --filter @protoyard/crud typecheck
 ```
 

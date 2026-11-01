@@ -40,14 +40,8 @@ body:
 
 ## Status
 
-`pnpm vitest run packages/blueprint/tests/page-doc-catalog.test.ts` checks every
-example:
-
-- its kind, its root keys, and the absence of app-only keys;
-- every block against `@protoyard/blocks`;
-- section ids, anchors and in-page links;
-- that the data is fictional;
-- that it passes the kind union with a provisional body in the documented shape.
+`pnpm vitest run packages/blueprint/tests/kinds/envelope.test.ts -t "every deck, page and doc example"` parses every example with its kind schema (one test since PLAN_009);
+`pnpm protoyard blueprint validate <file>` checks one file.
 
 `pnpm protoyard blueprint validate blueprints/pages/tidewater-roasters-landing.json` validates
 the page body from `@protoyard/pages` and prints a kind-specific summary.
@@ -60,7 +54,7 @@ the page body from `@protoyard/pages` and prints a kind-specific summary.
    returns placeholder sections to replace with real content. The
    `protoyard blueprint new --from-brief` command makes app blueprints only.
 2. Validate with `pnpm protoyard blueprint validate <file>`.
-3. Run `pnpm vitest run packages/blueprint/tests/page-doc-catalog.test.ts`.
+3. Run `pnpm vitest run packages/blueprint/tests/kinds/envelope.test.ts -t "every deck, page and doc example"`.
 
 To turn an example into a full prototype (level 2), generate it. The page template is
 picked from the blueprint's kind:

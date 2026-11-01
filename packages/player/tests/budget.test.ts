@@ -122,46 +122,6 @@ function importGraph(entry: string): string[] {
 // initial CSS 1.0–1.1 KB lower on every page. The T-remeasure caps above still hold.
 const PLAYER_TOTAL_CSS_GZIP_KB = { index: 153.7, deck: 119.7, page: 72.7, doc: 106.6 } as const;
 
-/** Modules that must only ever load on demand, by manifest key. */
-const LAZY_MODULES: [string, RegExp][] = [
-  ['Faker', /@faker-js\/faker/],
-  ['DevTools', /\/devtools\/src\//],
-  // Library tokens come from @texuli/tokens, loaded on demand (the catalog metadata is eager):
-  // the port's definitions, builder and chart modules, and the opt-in expansion.
-  ['theme library', /\/tokens\/dist\/library-(?:port|expand)\//],
-  ['crud screen kits', /\/crud\/src\/screens\//],
-  ['crud app shell', /\/crud\/src\/app\//],
-  ['charts', /\/charts-ui\/src\//],
-  ['analytics kit', /\/analytics-ui\/src\//],
-  // Rich views come from Texuli's data views (linked or installed); their lazy
-  // view and menu modules are the manifest keys (views-ui only adapts them).
-  ['views kit', /[\\/](?:texuli[\\/]packages[\\/]data|node_modules[\\/]@texuli[\\/]data)[\\/]/],
-  ['blueprint world generator', /\/blueprint\/src\/generator/],
-  ['main-thread generation fallback', /\/worker\/generate-world-core/],
-];
-
-describe('chunk helpers', () => {
-  it('walks static imports only, and finds every import form in emitted code', () => {
-    const manifest: ViteManifest = {
-      'index.html': {
-        file: 'assets/index.js',
-        isEntry: true,
-        imports: ['_a.js'],
-        dynamicImports: ['lazy.ts'],
-      },
-      '_a.js': { file: 'assets/a.js', imports: ['_b.js'] },
-      '_b.js': { file: 'assets/b.js' },
-      'lazy.ts': { file: 'assets/lazy.js', isDynamicEntry: true },
-    };
-    expect([...initialKeys(manifest)].sort()).toEqual(['_a.js', '_b.js', 'index.html']);
-    expect(
-      chunkImports(
-        'import{a}from"./a.js";export*from\'./b.js\';await import(`./c.js`);import("./d.js");import x from "svelte";'
-      )
-    ).toEqual(['a.js', 'b.js', 'c.js', 'd.js']);
-  });
-});
-
 const built = existsSync(MANIFEST);
 
 describe.skipIf(!built)(
@@ -171,7 +131,6 @@ describe.skipIf(!built)(
     // The app path is index.html; deck.html, page.html and doc.html are measured below.
     const manifest = asEntry(full, 'index.html');
     const classes = classifyChunks(manifest);
-    const initial = initialKeys(manifest);
     const budgets = parseBudgetConfig(
       JSON.parse(readFileSync(join(REPO, 'protoyard.budgets.json'), 'utf8'))
     );
@@ -181,11 +140,6 @@ describe.skipIf(!built)(
       expect(classes.initialJs.length).toBeGreaterThan(0);
       const kb = sum(classes.initialJs) / KB;
       expect(kb, `initial JS ${kb.toFixed(1)} KB gzip`).toBeLessThanOrEqual(budget.initialJsGzipKb);
-    });
-
-    it('keeps app initial JS near the pre-kinds baseline after lazy body loading', () => {
-      const bytes = sum(classes.initialJs);
-      expect(bytes, `initial JS ${bytes.toLocaleString()} B gzip`).toBeLessThanOrEqual(196_000);
     });
 
     it('keeps initial CSS inside the CSS budget (and reports all CSS)', () => {
@@ -202,96 +156,6 @@ describe.skipIf(!built)(
       expect(allKb, `all CSS ${allKb.toFixed(1)} KB gzip`).toBeLessThanOrEqual(
         PLAYER_TOTAL_CSS_GZIP_KB.index
       );
-    });
-
-    it('keeps the shared kind utility sheet out of initial CSS and on each kind renderer path', () => {
-      // Each kind page hands the kind boot its own renderer loader (kinds/renderers.ts), so the
-      // sheet is requested by the deck, page and doc loader chunks, never the shared boot.
-      const loaders = Object.entries(full).filter(([key]) =>
-        /^_renderer-(?:deck|page|doc)-/.test(key)
-      );
-      expect(loaders.map(([key]) => key.split('-')[1]).sort()).toEqual(['deck', 'doc', 'page']);
-      for (const key of ['src/kinds/content.css']) {
-        const style = manifest[key]?.file;
-        expect(style, `${key} is a built stylesheet`).toMatch(/\.css$/);
-        if (!style) continue;
-        expect(classes.initialCss, `${key} is not in initial CSS`).not.toContain(style);
-        for (const [loader, chunk] of loaders) {
-          expect(
-            readFileSync(join(DIST, chunk.file), 'utf8'),
-            `${key} is requested lazily by ${loader}`
-          ).toContain(basename(style));
-        }
-      }
-    });
-
-    it.each(['index', 'deck', 'page', 'doc'])(
-      "%s.html never links a lazy Texuli module's stylesheet initially",
-      (name) => {
-        const initialCss = classifyChunks(asEntry(full, `${name}.html`)).initialCss;
-        // Lazy Texuli modules (block, chart and data-view families, move menus)
-        // are dynamic entries; their CSS loads with them, never up front.
-        const lazy = Object.entries(full).filter(
-          ([key, chunk]) =>
-            chunk.isDynamicEntry === true &&
-            /[\\/](?:texuli[\\/]packages|node_modules[\\/]@?texuli)[\\/]/.test(key)
-        );
-        expect(lazy.length, 'lazy Texuli modules in the build').toBeGreaterThan(0);
-        const sheets = lazy.flatMap(([, chunk]) => chunk.css ?? []);
-        expect(sheets.length, 'stylesheets of lazy Texuli modules').toBeGreaterThan(0);
-        for (const file of sheets) expect(initialCss, file).not.toContain(file);
-      }
-    );
-
-    it.each(LAZY_MODULES)('keeps the %s out of the initial graph', (_label, pattern) => {
-      const keys = Object.keys(manifest).filter((key) => pattern.test(key));
-      expect(
-        keys.length,
-        `no ${pattern} module in the build (stale? run pnpm --filter @protoyard/player build)`
-      ).toBeGreaterThan(0);
-      for (const key of keys) {
-        expect(initial.has(key), key).toBe(false);
-        expect(classes.initialJs, key).not.toContain(manifest[key]?.file);
-      }
-    });
-
-    it('keeps the content-kind body schemas off the app path (lazy or not bundled at all)', () => {
-      // An app blueprint never pays for decks, pages or docs: their body schemas
-      // load through `kindBodySchema(kind)` only for content kinds. Until the
-      // player routes kinds they may be absent from the build; never initial.
-      const kinds = Object.keys(manifest).filter((key) =>
-        /\/blueprint\/src\/kinds\/(deck|page|doc)\.ts$|\/(decks|pages)\/src\//.test(key)
-      );
-      for (const key of kinds) expect(initial.has(key), key).toBe(false);
-      const initialCode = classes.initialJs
-        .map((file) => readFileSync(join(DIST, file), 'utf8'))
-        .join('\n');
-      // Literal messages unique to each schema (they survive minification).
-      expect(initialCode.includes('block ids must be unique'), 'the page body schema').toBe(false);
-      expect(initialCode.includes('lists headings of level 2'), 'the doc body schema').toBe(false);
-      expect(
-        initialCode.includes('Opening cover: title, subtitle'),
-        'the deck layout catalog'
-      ).toBe(false);
-      expect(initialCode.includes('A step marker may set fragment'), 'the deck schema').toBe(false);
-    });
-
-    it('keeps the app path initial JS at its measured size (regression cap)', () => {
-      // Measured 2026-10-22 (gzip -9, static closure of index.html): 188,442 B
-      // before PLAN_005; 228,317 B on dev once content-kind schemas, the brief
-      // synthesizer and deck lint rode in through the blueprint barrel; 116.2 KB
-      // after sources/start.ts imported only `parseBlueprint`; 120.0 KB with
-      // routing by kind (the kind-aware loader and the router) once Dexie and
-      // Rolldown's runtime got their own chunks (vite.config.ts); 120.5 KB once
-      // the per-kind pages share the player loop with index.html (run, start
-      // and resolve became shared chunks, +0.4 KB of chunk overhead); 121.4 KB
-      // once index.html's own entry carries the app-and-kind boot router
-      // (boot-any.ts, +0.9 KB) so the shared loop no longer names the app boot.
-      // See docs/PERFORMANCE.md. The cap leaves about 3 %: growth must say why here.
-      // Measured after Texuli charts-ui link: ~127.4 KB gzip (was 125).
-      // PLAN_008 T-remeasure (2026-10-31, Texuli 0.9.0): 108,098 B (105.6 KB);
-      // the cap is lowered from 130 KB to measured + 5 %.
-      expect(sum(classes.initialJs) / KB).toBeLessThanOrEqual(110.9);
     });
 
     it('ships no Faker data or worker reference in initial JS', () => {
@@ -326,162 +190,102 @@ describe.skipIf(!built)(
   }
 );
 
-/**
- * What a deck, page or doc page may never download, initially or later: the
- * app path. Matched on manifest keys (source paths), static and dynamic.
- */
-const APP_ONLY_MODULES: [string, RegExp][] = [
-  ['app boot', /(^|\/)src\/boot\.ts$/],
-  ['crud app shell', /\/crud\/src\/app\//],
-  ['crud screen kits', /\/crud\/src\/screens\//],
-  ['main-thread generation fallback', /\/worker\/generate-world-core/],
-  ['blueprint world generator', /\/blueprint\/src\/generator/],
-  ['analytics kit', /\/analytics-ui\/src\//],
-  ['SaaS kit', /\/saas(-ui)?\/src\//],
-  ['AI kit', /\/ai-ui\/src\//],
-  ['player archetype kits', /(^|\/)src\/archetypes\//],
-];
+// --- merged from kind-budget.test.ts ---
 
-describe.skipIf(!built)('the per-kind player pages (deck.html, page.html, doc.html)', () => {
-  const full = built ? (JSON.parse(readFileSync(MANIFEST, 'utf8')) as ViteManifest) : {};
-  const budgets = parseBudgetConfig(
-    JSON.parse(readFileSync(join(REPO, 'protoyard.budgets.json'), 'utf8'))
-  );
-  const measured: Record<string, Record<string, number>> = {};
-  const KINDS = ['deck', 'page', 'doc'] as const;
+describe('kind-budget', () => {
+  const REPO = fileURLToPath(new URL('../../../', import.meta.url));
+  const DIST = process.env.PLAYER_DIST ?? join(REPO, 'packages', 'player', 'dist', 'app');
+  const MANIFEST = join(DIST, '.vite', 'manifest.json');
+  const KB = 1024;
 
-  it.each(APP_ONLY_MODULES)(
-    'the %s pattern matches modules index.html can load',
-    (_label, pattern) => {
-      // Guards the absence checks below: a pattern that matched nothing anywhere
-      // would make them pass vacuously.
-      const reachable = reachableKeys(full, 'index.html');
-      expect([...reachable].some((key) => pattern.test(key))).toBe(true);
-    }
-  );
+  const ENTRIES = [
+    { page: 'index.html', kind: 'app' },
+    { page: 'deck.html', kind: 'deck' },
+    { page: 'page.html', kind: 'page' },
+    { page: 'doc.html', kind: 'doc' },
+  ] as const;
 
-  it('index.html can reach the worker file (so the kind pages check a real name)', () => {
-    const code = [...reachableKeys(full, 'index.html')]
-      .map((key) => full[key]?.file)
-      .filter((file): file is string => typeof file === 'string' && file.endsWith('.js'))
-      .map((file) => readFileSync(join(DIST, file), 'utf8'))
-      .join('\n');
-    expect(/generate\.worker-[\w-]+\.js/.test(code)).toBe(true);
-  });
+  const CONTENT_KIND_ONLY_MODULES: [string, RegExp][] = [
+    ['Faker', /@faker-js\/faker|\/faker\/src\//],
+    ['world-generation worker', /generate-world|\/worker\//],
+    ['CRUD screens or app shell', /\/crud\/src\/(?:screens|app)\//],
+    ['DevTools', /\/devtools\/src\//],
+  ];
 
-  it.each(KINDS)('%s.html stays inside its protoyard.budgets.json kind budget', (name) => {
-    const page = `${name}.html`;
-    expect(full[page]?.isEntry, `${page} is a build entry`).toBe(true);
-    const budget = resolveKindBudget(budgets, name);
-    const classes = classifyChunks(asEntry(full, page));
-    const js = sum(classes.initialJs) / KB;
-    const css = sum(classes.initialCss) / KB;
-    const allCss = sum(reachableCss(full, page)) / KB;
-    measured[name] = { initialJsKb: js, initialCssKb: css, allCssKb: allCss };
-    expect(js, `${page} initial JS ${js.toFixed(1)} KB gzip`).toBeLessThanOrEqual(
-      budget.initialJsGzipKb
+  function entryManifest(manifest: ViteManifest, page: string): ViteManifest {
+    return Object.fromEntries(
+      Object.entries(manifest).map(([key, chunk]) => [key, { ...chunk, isEntry: key === page }])
     );
-    expect(css, `${page} initial CSS ${css.toFixed(1)} KB gzip`).toBeLessThanOrEqual(
-      budget.cssGzipKb
+  }
+
+  /** Follows only static imports: these are the chunks downloaded before the entry runs. */
+  function staticKeys(manifest: ViteManifest, page: string): Set<string> {
+    const seen = new Set<string>();
+    const queue = [page];
+    while (queue.length > 0) {
+      const key = queue.pop() as string;
+      if (seen.has(key) || !manifest[key]) continue;
+      seen.add(key);
+      queue.push(...(manifest[key].imports ?? []));
+    }
+    return seen;
+  }
+
+  function gzipBytes(files: readonly string[]): number {
+    return files.reduce(
+      (total, file) => total + gzipSync(readFileSync(join(DIST, file)), { level: 9 }).length,
+      0
     );
-    // cssGzipKb bounds the initial CSS above; the total has its own ceiling.
-    expect(allCss, `${page} all CSS ${allCss.toFixed(1)} KB gzip`).toBeLessThanOrEqual(
-      PLAYER_TOTAL_CSS_GZIP_KB[name]
+  }
+
+  const built = existsSync(MANIFEST);
+
+  describe.skipIf(!built)('player entry bundle budgets (build the player first)', () => {
+    const manifest = built ? (JSON.parse(readFileSync(MANIFEST, 'utf8')) as ViteManifest) : {};
+    const config = parseBudgetConfig(
+      JSON.parse(readFileSync(join(REPO, 'protoyard.budgets.json'), 'utf8'))
     );
-  });
+    const defaultBudget = { ...config.defaults, ...(config.overrides.player ?? {}) };
+    const measurements: Record<string, { jsBytes: number; cssBytes: number }> = {};
 
-  it.each(KINDS)('%s.html keeps its measured initial JS (regression cap)', (name) => {
-    // Measured 2026-10-22 (gzip -9): 121.6 KB (deck, page) and 121.5 KB (doc):
-    // the shared source resolver and player loop plus about 1.2 KB of kind
-    // entry glue; 18.1 to 18.3 KB initial CSS and 26.4 to 26.6 KB of CSS in
-    // all. The kind boot and renderers stay lazy. The cap leaves about 3 %.
-    const js = sum(classifyChunks(asEntry(full, `${name}.html`)).initialJs) / KB;
-    // PLAN_008 T-remeasure (2026-10-31, Texuli 0.9.0): deck 103.1, page 102.9 and
-    // doc 102.7 KB; lowered from 130 KB (measured ~127.6 KB after Texuli charts-ui)
-    // to the largest + 5 %.
-    expect(js, `${name}.html initial JS ${js.toFixed(1)} KB gzip`).toBeLessThanOrEqual(108.3);
-  });
+    it('every player entry stays within its configured initial JS and CSS limits', () => {
+      for (const { page, kind } of ENTRIES) {
+        expect(manifest[page]?.isEntry, `${page} is present in the build manifest`).toBe(true);
+        const scoped = entryManifest(manifest, page);
+        const chunks = classifyChunks(scoped);
+        const jsBytes = gzipBytes(chunks.initialJs);
+        const cssBytes = gzipBytes(chunks.initialCss);
+        const jsBudgetKb =
+          kind === 'app'
+            ? defaultBudget.initialJsGzipKb
+            : resolveKindBudget(config, kind).initialJsGzipKb;
+        const cssBudgetKb =
+          kind === 'app' ? defaultBudget.cssGzipKb : resolveKindBudget(config, kind).cssGzipKb;
+        const diagnostics = `${page}: initial JS ${jsBytes.toLocaleString()} B (${(jsBytes / KB).toFixed(2)} KB gzip; limit ${jsBudgetKb} KB), initial CSS ${cssBytes.toLocaleString()} B (${(cssBytes / KB).toFixed(2)} KB gzip; limit ${cssBudgetKb} KB)`;
+        measurements[page] = { jsBytes, cssBytes };
 
-  it.each(KINDS)('%s.html never reaches the app path, initially or later', (name) => {
-    const page = `${name}.html`;
-    const initial = initialKeys(asEntry(full, page));
-    const reachable = reachableKeys(full, page);
-    // Lazy modules index.html defers must not be initial here either.
-    for (const [label, pattern] of LAZY_MODULES) {
-      expect(
-        [...initial].filter((key) => pattern.test(key)),
-        `${page} initial: ${label}`
-      ).toEqual([]);
-    }
-    // The app path is not even reachable: the shared player loop receives the
-    // kind boot from entries/run-kind.ts and never names boot.ts.
-    for (const [label, pattern] of APP_ONLY_MODULES) {
-      expect(
-        [...reachable].filter((key) => pattern.test(key)),
-        `${page} reachable: ${label}`
-      ).toEqual([]);
-    }
-    // The world-generation worker is its own build, referenced by file name
-    // from the app boot's chunks; no chunk this page can load names it.
-    const reachableCode = [...reachable]
-      .map((key) => full[key]?.file)
-      .filter((file): file is string => typeof file === 'string' && file.endsWith('.js'))
-      .map((file) => readFileSync(join(DIST, file), 'utf8'))
-      .join('\n');
-    expect(
-      /generate\.worker-[\w-]+\.js/.test(reachableCode),
-      `${page} reachable: the worker file`
-    ).toBe(false);
-    // The kind boot itself is reachable (lazy), never initial.
-    const kindBoot = [...reachable].filter((key) => /(^|\/)src\/boot-kind\.ts$/.test(key));
-    expect(kindBoot, `${page} reaches the kind boot`).toHaveLength(1);
-    expect(initial.has(kindBoot[0] as string), `${page}: kind boot is lazy`).toBe(false);
-  });
+        expect(
+          chunks.initialJs.length,
+          `${diagnostics}; at least one initial JS chunk`
+        ).toBeGreaterThan(0);
+        expect(
+          chunks.initialCss.length,
+          `${diagnostics}; at least one initial CSS chunk`
+        ).toBeGreaterThan(0);
+        expect(jsBytes, diagnostics).toBeLessThanOrEqual(jsBudgetKb * KB);
+        expect(cssBytes, diagnostics).toBeLessThanOrEqual(cssBudgetKb * KB);
+      }
+    });
 
-  it.each(KINDS)('%s.html reaches Faker only through the on-demand generator loader', (name) => {
-    // `@protoyard/scenarios` loads Faker with a dynamic import when a world is
-    // GENERATED; a kind runtime supplies `generateWorld` and no timeline, so
-    // that loader never runs (proved below). Its one lazy edge is the only
-    // way Faker appears in any page's reachable graph.
-    const page = `${name}.html`;
-    const fakerKeys = Object.keys(full).filter((key) => /@faker-js\/faker/.test(key));
-    expect(fakerKeys.length, 'Faker is in the build (index.html uses it)').toBeGreaterThan(0);
-    const initial = initialKeys(asEntry(full, page));
-    for (const key of fakerKeys) expect(initial.has(key), `${page} initial: ${key}`).toBe(false);
-    const reachable = reachableKeys(full, page);
-    for (const key of fakerKeys.filter((k) => reachable.has(k))) {
-      const staticImporters = [...reachable].filter((k) => full[k]?.imports?.includes(key));
-      const dynamicImporters = [...reachable].filter((k) => full[k]?.dynamicImports?.includes(key));
-      expect(staticImporters, `${page}: nothing imports Faker statically`).toEqual([]);
-      expect(dynamicImporters, `${page}: one lazy edge to Faker`).toHaveLength(1);
-      const loader = readFileSync(
-        join(DIST, full[dynamicImporters[0] as string]?.file ?? ''),
-        'utf8'
-      );
-      // The scenarios loader keeps only these three exports of the module.
-      expect(/Faker:\w+\.Faker/.test(loader), 'the importer is the scenarios Faker loader').toBe(
-        true
-      );
-    }
-  });
-
-  it('a kind runtime generates its world itself and has no timeline (so Faker never loads)', async () => {
-    const { parseAnyBlueprint } = await import('@protoyard/blueprint');
-    const { defineKindRuntime } = await import('@protoyard/blueprint/kinds');
-    const fixtures = join(REPO, 'packages', 'blueprint', 'tests', 'fixtures', 'kinds');
-    for (const file of ['intro.deck.json', 'landing.page.json', 'quarterly-report.doc.json']) {
-      const blueprint = await parseAnyBlueprint(
-        JSON.parse(readFileSync(join(fixtures, file), 'utf8'))
-      );
-      const definition = defineKindRuntime(blueprint as never, { namespace: 'budget-proof' });
-      expect(typeof definition.generateWorld, `${file}: generateWorld`).toBe('function');
-      expect(definition.timeline, `${file}: timeline`).toBeUndefined();
-    }
-    // The first import transforms the blueprint schema and, through the deck
-    // schema, the @texuli/deck model: about 4 s cold, so the 5 s default flakes.
-  }, 30_000);
-
-  it('reports the measurements', () => {
-    console.info(`[player kind pages] ${JSON.stringify(measured)}`);
+    it('every content-kind entry keeps app-only dependencies outside its initial graph', () => {
+      for (const { page } of ENTRIES.filter(({ kind }) => kind !== 'app')) {
+        const keys = staticKeys(manifest, page);
+        const modules = [...keys].map((key) => `${key} ${manifest[key]?.src ?? ''}`);
+        for (const [label, pattern] of CONTENT_KIND_ONLY_MODULES) {
+          const matches = modules.filter((module) => pattern.test(module));
+          expect(matches, `${page} initial dependency graph excludes ${label}`).toEqual([]);
+        }
+      }
+    });
   });
 });

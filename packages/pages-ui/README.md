@@ -82,9 +82,8 @@ last heading past a reading line at 30% of the viewport, one
 IntersectionObserver), so the doc keeps its own reading design, print rules
 and `data-py-doc-*` hooks without Texuli's `ContentLayout` chrome. Form services
 also remain supplied by the Protoyard host.
-`packages/blocks-ui/tests/comparison-render.test.ts` proves that every catalog
-block type resolves to a renderer through this host and through blocks-ui's
-registry.
+`packages/blocks-ui/tests/families.test.ts` proves that every catalog block
+type routes to and renders through its real family.
 
 ```svelte
 <script lang="ts">
@@ -137,8 +136,9 @@ decisions are pure functions in `src/page/design.ts`:
 
 All text is rendered as text nodes. Short markdown in these patterns is
 reduced to plain paragraphs, and links pass a second `safePageHref` check.
-`tests/page-design.test.ts` covers the decisions against the example
-`blueprints/pages/tidewater-roasters-landing.json`.
+The test that covered these decisions against the example landing page
+(`page-design.test.ts`) was removed in PLAN_009; `tests/security.test.ts` keeps
+the raw-HTML, unsafe-CTA and form-pollution refusals.
 
 `DocHost` derives heading ids and TOC entries from `buildDocToc` in
 `@protoyard/pages`. When the first block is an `h1`, its eyebrow and subtitle

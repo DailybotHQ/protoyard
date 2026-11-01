@@ -31,7 +31,7 @@ Content lives in `blueprint.json` (kind doc body).
 
 ```bash
 pnpm protoyard dev doc
-pnpm vitest run templates/doc
+pnpm vitest run tests/integration/templates.test.ts -t doc
 pnpm protoyard validate doc --build
 pnpm protoyard export doc
 ```

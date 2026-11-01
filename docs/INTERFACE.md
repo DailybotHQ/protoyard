@@ -147,8 +147,9 @@ It returns:
 Ids are compared exactly (`Quick` is not `quick`), and duplicates collapse.
 The reader does not change `doctor`'s exit codes: a failed required check
 still exits 1, and a run outside a workspace still exits 3.
-`packages/cli/tests/interface-compat.test.ts` covers every row against
-fixtures and the real `--version --json` and `doctor --json` output.
+`packages/cli/tests/interface.test.ts` checks the real `--version --json` and
+`doctor --json` output (the interface major and the kind capability); the
+per-row compatibility fixtures were removed in PLAN_009.
 
 ## Stability policy
 
@@ -337,7 +338,6 @@ DeepWorkPlan addon packet are checked against the real CLI:
 
 ```bash
 pnpm exec tsx scripts/validate-integrations.ts
-pnpm vitest run packages/cli/tests/integration-command-drift.test.ts
 ```
 
 The check reads the command tree that `protoyard --help` prints. Every

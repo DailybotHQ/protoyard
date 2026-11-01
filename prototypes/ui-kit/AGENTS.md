@@ -20,8 +20,8 @@ live in the root [AGENTS.md](../../AGENTS.md); the spec standard is
 - Every catalog entry needs three things that must agree: metadata in
   `src/catalog/entries.ts` (no Svelte imports, the generator uses it), a
   `src/demos/<Name>Demo.svelte`, and its `DEMOS` record (lazy `load`,
-  usage `snippet`, `a11y` notes) in `src/catalog/registry.ts`. The test in
-  `tests/demos.test.ts` fails when the two lists disagree.
+  usage `snippet`, `a11y` notes) in `src/catalog/registry.ts`. `tests/ui-kit.test.ts`
+  fails when the two lists disagree.
 - The only domain data is `favorites`: one row per persona and catalog
   entry id, written only through `createFavoriteServices`
   (`src/domain/favorites.ts`), which needs `favorites:manage`. Viewers see

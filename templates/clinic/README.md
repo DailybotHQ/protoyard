@@ -78,8 +78,7 @@ src/scenarios/index.ts       five scenarios from @protoyard/scenarios presets
 src/scenarios/generators.ts  generate(ctx) with schedule(); the appointment.ended timeline
 src/screens/*.svelte         FrontDesk, Schedule, Patients, PatientDetail, Visit, Audit (lazy routes)
 src/components/*.svelte      SimulationBanner, AppointmentDialog, PatientDialog, StatusBadge, PageHeader
-tests/generators.test.ts     determinism, integrity, no double-booking, fictional data, statuses, no secrets in the audit, rules, timeline
-tests/services.test.ts       book and check in across reloads, refusals, redacted audit, notes, roles, offline, time advance
+tests/                       none: tests/integration/templates.test.ts generates, validates and boots this template
 ```
 
 ## Docs

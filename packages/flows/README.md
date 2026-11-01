@@ -128,7 +128,6 @@ local results from the task + seed. Nothing is sent to a network.
 ## Tests
 
 ```bash
-pnpm vitest run packages/flows/tests/model.test.ts
-pnpm vitest run packages/flows/tests/runtime.test.ts
+pnpm vitest run packages/flows/tests/model.test.ts   # untrusted input refusals and run determinism
 pnpm --filter @protoyard/flows typecheck
 ```

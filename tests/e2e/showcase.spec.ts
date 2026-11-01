@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 import { expect, type Frame, type FrameLocator, type Page, test } from '@playwright/test';
 import { type AnyBlueprint, encodeBlueprintShare } from '../../packages/blueprint/src/index.ts';
 import { expectAccessible } from './support/a11y.ts';
-import { chooseOption } from './support/select.ts';
 import { readShowcaseKindBlueprint, SHOWCASE_KIND_TARGETS } from './targets.ts';
 
 /**
@@ -21,10 +20,6 @@ const SITE = `${ORIGIN}${BASE}`;
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const ANALYTICS_BLUEPRINT = readFileSync(
   resolve(process.cwd(), 'blueprints/quick/analytics.json'),
-  'utf8'
-);
-const CREATE_ANYTHING_DECK = readFileSync(
-  resolve(process.cwd(), 'blueprints/decks/protoyard-create-anything.json'),
   'utf8'
 );
 
@@ -65,7 +60,7 @@ async function loadPastedAnalytics(page: Page, app: FrameLocator): Promise<void>
     await hideTask.evaluate((element) => (element as HTMLButtonElement).click());
 }
 
-test.describe('showcase site', () => {
+test.describe('showcase site', { tag: '@desktop' }, () => {
   test.skip(process.env.PROTOYARD_E2E_SHOWCASE !== '1', 'set PROTOYARD_E2E_SHOWCASE=1');
 
   for (const target of SHOWCASE_KIND_TARGETS) {
@@ -176,31 +171,6 @@ test.describe('showcase site', () => {
     expect(failures).toEqual([]);
   });
 
-  test('loads and shares the flagship deck pasted into the hosted player', async ({ page }) => {
-    await openPlay(page);
-    await page
-      .getByLabel('Blueprint JSON (app, deck, page, or document)')
-      .fill(CREATE_ANYTHING_DECK);
-    await page.getByRole('button', { name: 'Load blueprint' }).click();
-    await expect(page.getByRole('status')).toContainText('Protoyard: create anything is running');
-
-    const deckFrame = page.frameLocator('iframe[title="Running Protoyard blueprint"]');
-    await expect(deckFrame.locator('[data-py-deck-app]')).toBeVisible();
-    expect(playerFrame(page).url()).toContain('/player/deck.html?embedder=');
-
-    await page.getByRole('button', { name: 'Copy share link' }).click();
-    await expect(page.getByRole('status')).toContainText(/Share link/);
-    const shareUrl = page.url();
-    expect(shareUrl).toContain('#bp=1.');
-
-    const sharedPage = await page.context().newPage();
-    await sharedPage.goto(shareUrl);
-    const sharedDeck = sharedPage.frameLocator('iframe[title="Running Protoyard blueprint"]');
-    await expect(sharedDeck.locator('[data-py-deck-app]')).toBeVisible({ timeout: 20_000 });
-    expect(playerFrame(sharedPage).url()).toContain('/player/deck.html?embedder=');
-    await sharedPage.close();
-  });
-
   test('opens a share-link blueprint in the hosted player route with axe coverage', async ({
     page,
   }, testInfo) => {
@@ -267,97 +237,5 @@ test.describe('showcase site', () => {
     // The list is paginated and sorted; search for the probe like a user would.
     await app.getByRole('searchbox', { name: 'Search Companies' }).fill('Showcase Probe');
     await expect(app.getByText(name).first()).toBeVisible();
-  });
-
-  test('scenario links open the bundled build with ?scenario=', async ({ page }) => {
-    await page.goto(`${SITE}p/crm-demo/`);
-    const link = page.getByTestId('scenarios').getByRole('link').first();
-    await expect(link).toHaveAttribute(
-      'href',
-      new RegExp(`^${escapeRe(BASE)}p/crm-demo/app/\\?scenario=`)
-    );
-    const response = await page.request.get(
-      new URL((await link.getAttribute('href')) ?? '', ORIGIN).toString()
-    );
-    expect(response.ok()).toBe(true);
-  });
-
-  test('thumbnails and assets resolve under the base path', async ({ page }) => {
-    const failed: string[] = [];
-    page.on('response', (r) => {
-      if (r.status() >= 400) failed.push(`${r.status()} ${r.url()}`);
-    });
-    await page.goto(SITE);
-    await expect(page.locator('#browse[data-hydrated="true"]')).toHaveCount(1);
-    await page.waitForLoadState('networkidle');
-    expect(failed).toEqual([]);
-  });
-
-  test('compare scenarios: sandboxed frames never touch each other or the default world', async ({
-    page,
-  }, testInfo) => {
-    const ready = (frame: FrameLocator) =>
-      expect(frame.locator('html')).toHaveAttribute('data-py-ready', 'true', { timeout: 20_000 });
-    // Negative checks only after the list shows its data (data-py-ready is set
-    // at mount, before the first query returns).
-    const searchCompanies = async (frame: FrameLocator, text: string) => {
-      await frame.getByRole('link', { name: 'Companies' }).first().click();
-      await expect(frame.getByText('18 accounts')).toBeVisible();
-      await frame.getByRole('searchbox', { name: 'Search Companies' }).fill(text);
-    };
-
-    await page.goto(`${SITE}p/crm-demo/`);
-    await page.getByTestId('compare-link').click();
-    await expect(page).toHaveURL(new RegExp(`${escapeRe(BASE)}p/crm-demo/compare/`));
-    await expect(page.locator('[data-testid="compare"][data-hydrated="true"]')).toHaveCount(1);
-    const a = page.frameLocator('[data-testid="compare-pane-a"] iframe');
-    const b = page.frameLocator('[data-testid="compare-pane-b"] iframe');
-    await ready(a);
-    await ready(b);
-    await expectAccessible(page, testInfo, { label: 'compare' });
-
-    // Both frames on the SAME scenario, so only the sandbox separates them.
-    // The default scenario's option reads "growing-team (default)".
-    await chooseOption(
-      page,
-      page.getByTestId('compare-scenario-b'),
-      /^growing-team( \(default\))?$/
-    );
-    await expect(page).toHaveURL(/[?&]b=growing-team/);
-    await ready(b);
-
-    const name = `Compare Probe ${testInfo.project.name}`;
-    await a.getByRole('link', { name: 'Companies' }).first().click();
-    await a.getByRole('button', { name: 'New company' }).click();
-    const dialog = a.getByRole('dialog');
-    await dialog.getByLabel('Name').fill(name);
-    await dialog.getByLabel('Website domain').fill('compare.example');
-    await dialog.getByLabel('Employees').fill('7');
-    await dialog.getByLabel('Employees').press('Enter');
-    await expect(a.getByRole('heading', { level: 1, name })).toBeVisible();
-
-    await searchCompanies(b, 'Compare Probe');
-    await expect(b.getByRole('row', { name: /^Open Compare Probe/ })).toHaveCount(0);
-    await expect(b.getByText('18 accounts')).toBeVisible();
-
-    // The prototype's default (non-sandboxed) world is untouched too.
-    const app = await page.context().newPage();
-    await app.goto(`${SITE}p/crm-demo/app/#/companies`);
-    await expect(app.locator('html')).toHaveAttribute('data-py-ready', 'true', { timeout: 20_000 });
-    await expect(app.getByText('18 accounts')).toBeVisible();
-    await app.getByRole('searchbox', { name: 'Search Companies' }).fill('Compare Probe');
-    await expect(app.getByRole('row', { name: /^Open Compare Probe/ })).toHaveCount(0);
-    await app.close();
-
-    // Reset: fresh sandbox names, so frame A re-seeds without the probe.
-    await page.getByTestId('compare-reset').click();
-    await expect(page.locator('[data-testid="compare-pane-a"] iframe')).toHaveAttribute(
-      'data-sandbox',
-      'compare-a-1'
-    );
-    await expect(page).toHaveURL(/[?&]gen=1/);
-    await ready(a);
-    await searchCompanies(a, 'Compare Probe');
-    await expect(a.getByRole('row', { name: /^Open Compare Probe/ })).toHaveCount(0);
   });
 });

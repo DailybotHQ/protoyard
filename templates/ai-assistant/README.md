@@ -5,7 +5,7 @@ A reusable assistant-product starter with project-scoped conversation history, s
 ```bash
 pnpm protoyard new my-assistant --template ai-assistant
 pnpm protoyard dev my-assistant
-pnpm vitest run prototypes/my-assistant
+pnpm protoyard validate my-assistant --build   # the template ships no tests; add your own (docs/TESTING_GUIDE.md)
 pnpm --filter @prototype/my-assistant typecheck
 ```
 

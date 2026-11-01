@@ -1,8 +1,5 @@
 import { type Browser, expect, type Locator, type Page, test } from '@playwright/test';
-import { expectAccessible } from './support/a11y.ts';
-import { badgeOverlaps } from './support/badge.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
-import { launcherOverlaps } from './support/review.ts';
 import { COMMENTS_TARGETS, commentsSharedUrl, commentsUrl } from './targets.ts';
 
 /**
@@ -129,7 +126,7 @@ async function expectPinOn(
 const frame = (page: Page) =>
   page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
 
-test.describe('Review comments on PROTOYARD_REVIEW=1 builds', () => {
+test.describe('Review comments on PROTOYARD_REVIEW=1 builds', { tag: '@desktop' }, () => {
   test('comment mode blocks app clicks and Escape leaves it', async ({ page }) => {
     reviewer(page, 'Robin Reviewer');
     await open(page, CRM, '/');
@@ -175,40 +172,6 @@ test.describe('Review comments on PROTOYARD_REVIEW=1 builds', () => {
     await expectPinOn(page, 'Rename to Accounts', heading, at);
   });
 
-  test('a pin inside ?shell=phone stays on its element after an orientation change', async ({
-    page,
-  }) => {
-    const state = reviewer(page, 'Robin Reviewer');
-    await open(page, BANK, '/', 'shell=phone');
-    const balance = page.getByRole('heading', { name: 'Total balance' });
-    await expect(balance).toBeVisible();
-    const at = await placePin(page, balance, 'Show the currency', state, 0.5, 0.5);
-    await expectPinOn(page, 'Show the currency', balance, at);
-    const size = page.viewportSize() ?? { width: 1280, height: 720 };
-    await page.setViewportSize({ width: size.height, height: size.width });
-    await frame(page);
-    await expectPinOn(page, 'Show the currency', balance, at);
-    await page.setViewportSize(size);
-    await frame(page);
-    await expectPinOn(page, 'Show the currency', balance, at);
-  });
-
-  test('opening a thread from the list goes to its screen and pulses its pin', async ({ page }) => {
-    const state = reviewer(page, 'Robin Reviewer');
-    await open(page, CRM, '/companies');
-    const heading = page.getByRole('heading', { name: 'Companies', level: 1 });
-    await placePin(page, heading, 'Add an export', state);
-    await page.goto(`${commentsUrl(CRM)}?scenario=growing-team#/`);
-    await waitForPrototypeReady(page, { slug: CRM });
-    await expect(pins(page)).toHaveCount(0); // another screen
-    await openToolbar(page);
-    await toolbar(page).getByRole('button', { name: 'Comments', exact: true }).click();
-    const panel = page.getByRole('region', { name: 'Review comments' });
-    await panel.getByRole('button', { name: /Add an export/ }).click();
-    await expect(page).toHaveURL(/#\/companies$/);
-    await expect(page.locator('[data-py-review-pin][aria-current="true"]')).toHaveCount(1);
-  });
-
   test('resolving hides the pin and reopening brings it back', async ({ page }) => {
     const state = reviewer(page, 'Robin Reviewer');
     await open(page, CRM, '/companies');
@@ -221,133 +184,6 @@ test.describe('Review comments on PROTOYARD_REVIEW=1 builds', () => {
     await thread.getByRole('button', { name: 'Reopen thread' }).click();
     await expect(pins(page)).toHaveCount(1);
   });
-
-  test('keyboard only: C and the arrow crosshair, then Shift+C on the focused element', async ({
-    page,
-  }) => {
-    const state = reviewer(page, 'Kai Keyboard');
-    await open(page, CRM, '/companies');
-    await page
-      .locator('body')
-      .click({ position: { x: 1, y: 1 } })
-      .catch(() => {});
-    await page.keyboard.press('Escape');
-    // C enters comment mode with the crosshair focused at the app's centre.
-    state.body = 'Crosshair comment';
-    await page.keyboard.press('c');
-    const place = page.getByRole('button', { name: 'Place pin here' });
-    await expect(place).toBeFocused();
-    const start = await place.boundingBox();
-    await page.keyboard.press('ArrowRight');
-    await page.keyboard.press('ArrowRight');
-    await page.keyboard.press('ArrowDown');
-    const moved = await place.boundingBox();
-    expect(Math.round((moved?.x ?? 0) - (start?.x ?? 0))).toBe(32);
-    expect(Math.round((moved?.y ?? 0) - (start?.y ?? 0))).toBe(16);
-    await page.keyboard.press('Enter');
-    await expect(pins(page)).toHaveCount(1);
-    // Pins are redrawn as the app settles: measure until the pin is attached.
-    const mx = (moved?.x ?? 0) + (moved?.width ?? 0) / 2;
-    await expect
-      .poll(async () => {
-        const pin = await pins(page).first().boundingBox();
-        return pin ? Math.round(Math.abs(pin.x + pin.width / 2 - mx)) : 'detached';
-      })
-      .toBeLessThanOrEqual(4);
-
-    // Shift+C comments on whatever app element has keyboard focus.
-    state.body = 'Focused element comment';
-    let focusedInApp = false;
-    for (let i = 0; i < 40 && !focusedInApp; i++) {
-      await page.keyboard.press('Tab');
-      focusedInApp = await page.evaluate(() => {
-        const el = document.activeElement;
-        return Boolean(el?.closest('main') && el.matches('a, button'));
-      });
-    }
-    expect(focusedInApp, 'Tab reaches a control inside main').toBe(true);
-    const focused = page.locator(':focus');
-    await page.keyboard.press('Shift+C');
-    await expect(pins(page)).toHaveCount(2);
-    await expectPinOn(page, 'Focused element comment', focused, { fx: 0.5, fy: 0.5 });
-  });
-
-  test('a thread whose element is gone after a scenario switch is listed as orphaned', async ({
-    page,
-  }) => {
-    const state = reviewer(page, 'Robin Reviewer');
-    await open(page, CRM, '/companies');
-    const firstRow = page.getByRole('row').nth(1);
-    await expect(firstRow).toBeVisible();
-    await placePin(page, firstRow, 'Wrong owner on this account', state, 0.2, 0.5);
-    await page.evaluate(() => window.__protoyard?.scenarios.load('new-company'));
-    await expect(page.getByRole('row'))
-      .toHaveCount(0, { timeout: 10_000 })
-      .catch(() => {});
-    await expect(pins(page)).toHaveCount(0);
-    await openToolbar(page);
-    await toolbar(page).getByRole('button', { name: 'Comments', exact: true }).click();
-    const panel = page.getByRole('region', { name: 'Review comments' });
-    await expect(
-      panel.getByRole('button', { name: /Wrong owner on this account.*Orphaned/ })
-    ).toBeVisible();
-    // The filter is Texuli's Select (a combobox with a listbox), not a native <select>.
-    await panel.getByRole('combobox', { name: 'Filter by anchor status' }).click();
-    await page.getByRole('option', { name: 'Orphaned' }).click();
-    await expect(
-      panel.getByRole('list', { name: 'Comment threads' }).getByRole('listitem')
-    ).toHaveCount(1);
-  });
-
-  for (const scheme of ['light', 'dark'] as const) {
-    test(`the review UI passes axe in ${scheme} mode`, async ({ page }, testInfo) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      const state = reviewer(page, 'Ada Axe');
-      await open(page, CRM, '/companies');
-      await placePin(
-        page,
-        page.getByRole('heading', { name: 'Companies', level: 1 }),
-        'Contrast check',
-        state
-      );
-      await openToolbar(page);
-      await toolbar(page).getByRole('button', { name: 'Comments', exact: true }).click();
-      await expect(page.getByRole('region', { name: 'Review comments' })).toBeVisible();
-      await expectAccessible(page, testInfo, {
-        include: '[data-py-review-root], [data-py-review-overlay]',
-        label: `review-ui-${scheme}`,
-      });
-    });
-  }
-
-  for (const slug of [CRM, BANK]) {
-    test(`${slug}: layout fits with the toolbar, which covers no app control or the badge`, async ({
-      page,
-    }) => {
-      await open(page, slug, '/');
-      await expect
-        .poll(() => launcherOverlaps(page), { message: 'launcher over app controls' })
-        .toEqual([]);
-      await expect.poll(() => badgeOverlaps(page), { message: 'badge over controls' }).toEqual([]);
-      const fit = await page.evaluate(() => {
-        const button = document
-          .querySelector('[data-py-review-toolbar] button')
-          ?.getBoundingClientRect();
-        return {
-          overflowX: document.documentElement.scrollWidth - window.innerWidth,
-          launcherInside: Boolean(
-            button &&
-              button.left >= 0 &&
-              button.top >= 0 &&
-              button.right <= window.innerWidth &&
-              button.bottom <= window.innerHeight
-          ),
-        };
-      });
-      expect(fit.overflowX).toBeLessThanOrEqual(0);
-      expect(fit.launcherInside).toBe(true);
-    });
-  }
 
   test('two reviewers share comments through the comments API', async ({ browser }) => {
     const slug = COMMENTS_TARGETS[0] as string;

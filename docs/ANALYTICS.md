@@ -132,7 +132,7 @@ and its service callback, with a busy state and a rollback when the save fails.
 ```bash
 pnpm protoyard new my-analytics --template analytics
 pnpm protoyard dev my-analytics
-pnpm vitest run prototypes/my-analytics
+pnpm protoyard validate my-analytics --build   # templates ship no tests; add your own (TESTING_GUIDE)
 pnpm protoyard scenario bench my-analytics --check
 pnpm protoyard budget my-analytics
 ```
@@ -199,9 +199,8 @@ heavy shared load (load average 60–140): upper bounds.
 
 ```bash
 pnpm vitest run packages/analytics packages/analytics-ui
-PROTOYARD_BENCH=1 pnpm vitest run packages/analytics/tests/generators.test.ts   # opt-in generation budget
-pnpm vitest run templates/analytics prototypes/pebblestat-analytics-demo
-PROTOYARD_E2E_PROTOTYPES=pebblestat-analytics-demo,analytics pnpm test:e2e tests/e2e/pebblestat-analytics-demo.spec.ts tests/e2e/layout-fit.spec.ts
+pnpm vitest run prototypes/pebblestat-analytics-demo
+pnpm vitest run tests/integration/templates.test.ts -t analytics   # the template's generate, integrity and boot case
 ```
 
 ## For agents

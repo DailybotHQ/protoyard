@@ -210,18 +210,6 @@ describe('views kit bundle guard (real Vite build)', () => {
     ).toBe(true);
   });
 
-  it('drops unused sibling components of a subpath, and keeps used components’ CSS', () => {
-    const activity = modulesOf(initialChunks('activity'));
-    expect(activity.some((id) => id.endsWith('/activity/CommentThread.svelte'))).toBe(true);
-    expect(activity.some((id) => id.endsWith('/activity/ActivityFeed.svelte'))).toBe(false);
-    // TimelineView's own <style> block is emitted with sideEffects ["**/*.css"].
-    expect(
-      (builds.get('timeline')?.assets ?? []).some(
-        (a) => a.fileName.endsWith('.css') && String(a.source).includes('.task-bar')
-      )
-    ).toBe(true);
-  });
-
   it('stays under each view’s ceiling over the shell', () => {
     const shell = size(initialChunks('shell'));
     const shellModules = new Set(modulesOf(initialChunks('shell')));

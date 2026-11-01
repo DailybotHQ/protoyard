@@ -53,7 +53,7 @@ const policy = createPermissionPolicy({
   Contracts are shared by all packages and prototypes.
 - Erasable TypeScript only (`erasableSyntaxOnly`): no parameter properties,
   enums or namespaces. Vite loads configs through Node's type stripping.
-- Tests live in `tests/*.test.ts` (`core.test.ts`, `devices.test.ts`, `monotonic-time.test.ts`, `review.test.ts`, `session-auth.test.ts`, `theme.test.ts`, `validation.test.ts`). Run them with
+- Tests live in `tests/core.test.ts` (one file since PLAN_009). Run them with
   `pnpm vitest run packages/core` and type-check with
   `pnpm --filter @protoyard/core typecheck`.
 

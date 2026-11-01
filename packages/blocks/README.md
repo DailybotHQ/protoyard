@@ -30,8 +30,8 @@ npx tsx scripts/blocks-reference.ts          # rewrite the region after a catalo
 npx tsx scripts/blocks-reference.ts --check  # exit 1 when the docs drifted
 ```
 
-`packages/blocks/tests/catalog-docs.test.ts` and
-`tests/scripts/blocks-reference.test.ts` fail when the region drifts.
+The `--check` run fails when the region drifts (the two unit tests that also
+checked it were removed in PLAN_009).
 
 ```ts
 import {
@@ -215,9 +215,8 @@ pnpm exec tsx -e 'import { writeFileSync } from "node:fs"; import { blocksJsonSc
 npx biome format --write packages/blocks/schema/blocks.schema.json
 ```
 
-`pnpm vitest run packages/blocks/tests/json-schema.test.ts` verifies the
-committed file stays in sync and every catalog example matches the generated
-schema's structural constraints.
+No test checks that the committed file stays in sync since PLAN_009 removed
+`json-schema.test.ts`; regenerate it whenever a schema changes.
 
 ### Diagram models (`@protoyard/blocks/diagram`)
 

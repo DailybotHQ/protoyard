@@ -24,12 +24,9 @@ pnpm vitest run prototypes/crm-demo
 
 ## Tests
 
-- `tests/generators.test.ts`: determinism, referential integrity and time
-  bounds for every scenario, and scenario semantics.
-- `tests/services.test.ts`: runs on the **real runtime** with an in-memory
-  IndexedDB. Covers CRUD across reloads, persona switches with service-level
-  permissions, overrides that never touch records, offline failures, snapshot
-  restore, scenario reload determinism, idempotent time advance (7×1 day
-  equals 1×7 days) and `lostReason` / `closedAt` consistency.
-- `tests/enterprise-scale.test.ts`: the `enterprise-scale` world is large,
-  deterministic and referentially valid.
+- `tests/services.test.ts` (the only file since PLAN_009): runs on the **real
+  runtime** with an in-memory IndexedDB. The boot smoke checks determinism and
+  integrity for every scenario (the massive one for integrity only), then the
+  file covers deal CRUD across reloads, persona switches with service-level
+  permissions, overrides that never touch records with honest offline
+  failures, and snapshot restore.

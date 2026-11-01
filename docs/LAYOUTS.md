@@ -207,8 +207,9 @@ belongs in Texuli ([TEXULI.md](TEXULI.md#layouts-come-from-texulilayouts)).
 For a new id, or a layout Protoyard owns:
 
 1. Add the data-only id, platform support, minimum width and fallback in
-   `packages/core/src/layouts.ts`; keep `LAYOUT_IDS` and `LAYOUTS` aligned and
-   extend `packages/core/tests/layouts.test.ts`.
+   `packages/core/src/layouts.ts`; keep `LAYOUT_IDS` and `LAYOUTS` aligned (the
+   catalog test was removed in PLAN_009, so `pnpm --filter @protoyard/core
+   typecheck` is the check).
 2. Implement the layout against Texuli's `LayoutProps` (exported from
    `texuli/layouts/host`): mount the outlet with `mountScreen(target)`,
    preserve the supplied route content, and cover focus, narrow containers,
@@ -218,14 +219,18 @@ For a new id, or a layout Protoyard owns:
    (`packages/ui/src/layouts/register.ts`), the way `docs` is registered
    with `registerLayout`. Do not export the layout through the
    `@protoyard/ui` barrel; unused layout code must stay off the initial path.
-4. Add or extend the UI layout tests and verify a production bundle. Run the
-   layout-fit E2E checks on the app's desktop and phone contexts when its
-   dimensions or scrolling behavior change.
+4. Verify a production bundle: `packages/renderer-svelte/tests/bundle-hygiene.test.ts`
+   builds a custom-layout fixture and fails when layouts stop being lazy. Check
+   the app's desktop and phone contexts by hand (or with `pnpm visual:sweep`)
+   when its dimensions or scrolling behavior change; the layout-fit E2E sweep
+   was removed in PLAN_009, and `tests/e2e/shell-layout.spec.ts` keeps one
+   responsive fallback.
 
 Useful scoped checks:
 
 ```bash
-pnpm vitest run packages/core/tests/layouts.test.ts packages/ui/tests/layout-host.test.ts
+pnpm vitest run packages/renderer-svelte/tests/bundle-hygiene.test.ts
+pnpm --filter @protoyard/core typecheck
 pnpm --filter @protoyard/ui typecheck
 ```
 

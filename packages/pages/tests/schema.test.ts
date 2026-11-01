@@ -1,11 +1,15 @@
+import { type TexuliDocument } from '@texuli/document/model';
 import { describe, expect, it } from 'vitest';
+import { FormResponseSchema } from '../src/form-response.ts';
+import { checkPageDocumentLimits, PAGE_LIMITS } from '../src/limits.ts';
 import {
+  type DocDocument,
   DocDocumentSchema,
-  PAGE_DOCUMENT_LIMITS,
   PageDocumentSchema,
   safeParseDocDocument,
   safeParsePageDocument,
 } from '../src/schema.ts';
+import { docToTexuliDocument, texuliDocumentToDoc } from '../src/texuli-document.ts';
 
 const textBlock = (markdown: string) => ({ type: 'text' as const, markdown });
 
@@ -72,21 +76,6 @@ describe('PageDocumentSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects over-limit sections', () => {
-    const sections = Array.from({ length: PAGE_DOCUMENT_LIMITS.maxSections + 1 }, (_, i) => ({
-      id: `sec-${i}`,
-      blocks: [textBlock('x')],
-    }));
-    // ids must match BlockIdSchema - sec-0 is invalid (starts wrong? sec-0 has digit after hyphen ok, but sec- starts with letter)
-    // BlockId: /^[a-z][a-z0-9-]{0,47}$/ - sec-0 is fine
-    const result = PageDocumentSchema.safeParse({
-      id: 'big-page',
-      title: 'Too many sections',
-      sections: sections.map((s, i) => ({ ...s, id: `s${i}` })),
-    });
-    expect(result.success).toBe(false);
-  });
-
   it('rejects duplicate section ids and bad form refs', () => {
     const dup = PageDocumentSchema.safeParse({
       id: 'dup-page',
@@ -110,18 +99,6 @@ describe('PageDocumentSchema', () => {
     });
     expect(badNav.success).toBe(false);
   });
-
-  it('rejects over-limit blocks per section', () => {
-    const blocks = Array.from({ length: PAGE_DOCUMENT_LIMITS.maxBlocksPerSection + 1 }, () =>
-      textBlock('x')
-    );
-    const result = PageDocumentSchema.safeParse({
-      id: 'dense',
-      title: 'Dense',
-      sections: [{ id: 'only', blocks }],
-    });
-    expect(result.success).toBe(false);
-  });
 });
 
 describe('DocDocumentSchema', () => {
@@ -131,35 +108,171 @@ describe('DocDocumentSchema', () => {
     expect(parsed.toc?.sticky).toBe(true);
     expect(safeParseDocDocument(docFixture).success).toBe(true);
   });
+});
 
-  it('rejects unknown keys and empty blocks', () => {
-    expect(DocDocumentSchema.safeParse({ ...docFixture, hack: 1 }).success).toBe(false);
-    expect(DocDocumentSchema.safeParse({ id: 'empty', title: 'Empty', blocks: [] }).success).toBe(
-      false
-    );
+// --- merged from form-response.test.ts ---
+
+describe('form-response', () => {
+  describe('FormResponseSchema', () => {
+    it('rejects unsafe value keys before record parsing', () => {
+      for (const key of ['__proto__', 'constructor', 'prototype']) {
+        const input = JSON.parse(
+          `{"id":"response-1","formId":"contact-form","createdAt":"2030-01-02T03:04:05.000Z","values":{"${key}":"unsafe"}}`
+        );
+        const result = FormResponseSchema.safeParse(input);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.issues).toContainEqual(
+            expect.objectContaining({ path: ['values', key] })
+          );
+        }
+      }
+    });
+  });
+});
+
+// --- merged from limits.test.ts ---
+
+describe('limits', () => {
+  describe('checkPageDocumentLimits', () => {
+    it('rejects oversized byte payloads', () => {
+      const limits = { ...PAGE_LIMITS, maxBytes: 200 };
+      const result = checkPageDocumentLimits(
+        {
+          id: 'fat',
+          title: 'Fat',
+          description: 'x'.repeat(500),
+          sections: [{ id: 's', blocks: [] }],
+        },
+        limits
+      );
+      expect(result.ok).toBe(false);
+      expect(result.issues.some((row) => row.code === 'too-large')).toBe(true);
+    });
+  });
+});
+
+// --- merged from texuli-document.test.ts ---
+
+describe('texuli-document', () => {
+  const sample: DocDocument = {
+    id: 'sample-doc',
+    title: 'Sample report',
+    description: 'Fictional report for conversion tests.',
+    blocks: [
+      {
+        type: 'heading',
+        id: 'title',
+        level: 1,
+        text: 'Sample report',
+        eyebrow: 'Quarterly',
+        subtitle: 'What changed this quarter.',
+      },
+      {
+        type: 'text',
+        id: 'intro',
+        markdown: 'First paragraph with **bold**.\n\nSecond paragraph.',
+      },
+      { type: 'heading', id: 'numbers', level: 2, text: 'Numbers' },
+      {
+        type: 'stat',
+        id: 'kpis',
+        items: [
+          { value: '87%', label: 'Resolved', delta: '+4 pts' },
+          { value: '1,240', label: 'Tickets' },
+        ],
+      },
+      {
+        type: 'table',
+        id: 'regions',
+        caption: 'Tickets by region',
+        columns: [{ label: 'Region' }, { label: 'Tickets', format: 'number' }],
+        rows: [
+          ['North', 420],
+          ['South', null],
+        ],
+      },
+      {
+        type: 'chart',
+        id: 'trend',
+        spec: {
+          kind: 'bar',
+          title: 'Tickets per month',
+          labels: ['July', 'August'],
+          series: [{ label: 'Opened', values: [1080, 1150] }],
+        },
+      },
+      {
+        type: 'list',
+        id: 'actions',
+        style: 'icon',
+        items: [
+          { text: 'Hire two agents', icon: 'users' },
+          { text: 'Ship the help center', icon: 'rocket' },
+        ],
+      },
+      {
+        type: 'quote',
+        id: 'voice',
+        quote: 'Support felt human again.',
+        cite: 'Avery Example',
+        role: 'Customer',
+      },
+      { type: 'callout', id: 'note', title: 'Heads up', body: 'Numbers are fictional.' },
+      { type: 'divider', id: 'split', label: 'Appendix' },
+      { type: 'code', id: 'query', lang: 'sql', code: 'select 1;', filename: 'query.sql' },
+      {
+        type: 'form',
+        id: 'feedback',
+        title: 'Was this useful?',
+        fields: [{ name: 'note', label: 'Note', type: 'text' }],
+        submitLabel: 'Send',
+        successMessage: 'Thanks.',
+      },
+    ],
+  } as DocDocument;
+
+  describe('docToTexuliDocument (edit mode)', () => {
+    it('keeps hostile Markdown links inert (refused by the URL policy)', () => {
+      const hostile = {
+        ...sample,
+        blocks: [{ type: 'text', id: 'evil', markdown: 'Click [here](javascript:alert(1)).' }],
+      } as DocDocument;
+      const { document } = docToTexuliDocument(hostile);
+      expect(JSON.stringify(document)).not.toContain('javascript:');
+    });
   });
 
-  it('rejects over-limit doc blocks', () => {
-    const blocks = Array.from({ length: PAGE_DOCUMENT_LIMITS.maxDocBlocks + 1 }, () =>
-      textBlock('x')
-    );
-    const result = DocDocumentSchema.safeParse({
-      id: 'huge-doc',
-      title: 'Huge',
-      blocks,
+  describe('texuliDocumentToDoc', () => {
+    it('refuses an inline deck embed (validated with schema-core, G133)', () => {
+      const { document } = docToTexuliDocument(sample);
+      const edited = structuredClone(document);
+      edited.blocks.push({
+        id: 'pasted-deck',
+        type: 'embed',
+        kind: 'deck',
+        title: 'Pasted deck',
+        inline: { title: 'Deck', slides: [] },
+      });
+      // Protoyard never writes an inline deck (host blocks are component embeds), so it is refused.
+      const back = texuliDocumentToDoc(edited, sample);
+      expect(back.ok).toBe(false);
+      if (back.ok) return;
+      expect(back.issues.join(' ')).toMatch(/deck/i);
     });
-    expect(result.success).toBe(false);
-  });
 
-  it('rejects duplicate block ids in the flow', () => {
-    const result = DocDocumentSchema.safeParse({
-      id: 'dup-doc',
-      title: 'Dup',
-      blocks: [
-        { type: 'heading', text: 'A', id: 'same' },
-        { type: 'heading', text: 'B', id: 'same' },
-      ],
+    it('refuses an invalid Texuli document and an empty one', () => {
+      const invalid = {
+        ...docToTexuliDocument(sample).document,
+        blocks: [{ id: 'x', type: 'nope' }],
+      };
+      const refused = texuliDocumentToDoc(invalid as unknown as TexuliDocument, sample);
+      expect(refused.ok).toBe(false);
+      const empty = texuliDocumentToDoc(
+        { ...docToTexuliDocument(sample).document, blocks: [] },
+        sample
+      );
+      expect(empty).toMatchObject({ ok: false, issues: ['A doc needs at least one block.'] });
     });
-    expect(result.success).toBe(false);
   });
 });

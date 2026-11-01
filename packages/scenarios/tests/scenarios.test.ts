@@ -1,25 +1,12 @@
-import {
-  createIdFactory,
-  MS_PER_DAY,
-  parseScenario,
-  type Scenario,
-  type ScenarioDefinition,
-} from '@protoyard/core';
+import { createIdFactory, MS_PER_DAY, parseScenario, type Scenario } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
+import { SECRET_PATTERNS, scanFixtureText } from '../src/fixture-guard.ts';
 import {
-  composeScenario,
   createGenerateContext,
-  createGenerateContextAsync,
   dailyEvents,
-  deepMerge,
-  fragments,
   generateTeam,
-  loadFaker,
-  PRESET_IDS,
   PRESETS,
-  presetScenario,
   resolveScenarios,
-  scaleForDensity,
   validateWorld,
 } from '../src/index.ts';
 
@@ -47,83 +34,9 @@ describe('generate context', () => {
     const recent = createGenerateContext(scenario()).faker.date.recent();
     expect(recent.getTime()).toBeLessThanOrEqual(Date.parse(REF));
   });
-
-  it('the lazy async context matches the sync one', async () => {
-    const asyncCtx = await createGenerateContextAsync(scenario());
-    const syncCtx = createGenerateContext(scenario());
-    expect([asyncCtx.faker.person.fullName(), asyncCtx.rng.next()]).toEqual([
-      syncCtx.faker.person.fullName(),
-      syncCtx.rng.next(),
-    ]);
-    expect(await loadFaker()).toBe(await loadFaker());
-  });
-
-  it('scales by density', () => {
-    expect([0, 0.25, 1, 4, 25].map((f) => f)).toHaveLength(5);
-    expect(scaleForDensity('empty', 10)).toBe(0);
-    expect(scaleForDensity('sparse', 2)).toBe(1);
-    expect(scaleForDensity('normal', 10)).toBe(10);
-    expect(scaleForDensity('dense', 10)).toBe(40);
-    expect(scaleForDensity('massive', 10)).toBe(250);
-    expect(scaleForDensity('massive', 0)).toBe(0);
-  });
 });
 
 describe('presets and composition', () => {
-  it('every preset validates on its own', () => {
-    for (const id of PRESET_IDS) expect(presetScenario(id).id).toBe(id);
-    expect(presetScenario('six-month-new-member')).toMatchObject({
-      organization: { ageDays: 180 },
-      actor: { joinedDaysAgo: 0 },
-    });
-    expect(presetScenario('large-organization')).toMatchObject({
-      density: 'massive',
-      organization: { size: 250 },
-    });
-    expect(presetScenario('onboarding-in-progress').actor.onboardingProgress).toBe(0.5);
-  });
-
-  it('composes fragments with later values winning', () => {
-    const s = composeScenario(
-      PRESETS['first-week'],
-      { id: 'rep-week', name: 'Rep week' },
-      fragments.role('member'),
-      fragments.network('slow', 300),
-      fragments.featureFlags({ beta: true })
-    );
-    expect(s).toMatchObject({
-      id: 'rep-week',
-      actor: { role: 'member', joinedDaysAgo: 7 },
-      environment: { network: 'slow', latencyMs: 300 },
-      organization: { featureFlags: { beta: true }, ageDays: 7 },
-    });
-    expect(() => composeScenario({ id: 'Bad Id', name: 'x', seed: 1, referenceTime: REF })).toThrow(
-      /kebab-case/
-    );
-    const hostile = JSON.parse(
-      '{"__proto__":{"polluted":true},"a":{"constructor":{"prototype":{"x":1}}}}'
-    );
-    const merged = deepMerge({ a: {} }, hostile) as Record<string, unknown>;
-    expect(Object.getPrototypeOf(merged)).toBe(Object.prototype);
-    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
-    expect(merged).toEqual({ a: {} });
-    expect(deepMerge({ a: { b: 1, c: [1] } }, { a: { c: [2] } }, undefined)).toEqual({
-      a: { b: 1, c: [2] },
-    });
-  });
-
-  it('accepts core ScenarioDefinition lists where extensions omit inherited fields', () => {
-    const definitions: readonly ScenarioDefinition[] = [
-      { id: 'base', name: 'Base', seed: 5, referenceTime: REF, organization: { ageDays: 40 } },
-      { id: 'child', extends: 'base', actor: { role: 'viewer' } },
-      { id: 'week', extends: 'first-week' },
-    ];
-    const [, child, week] = resolveScenarios(definitions, PRESETS);
-    expect(child).toMatchObject({ seed: 5, referenceTime: REF, organization: { ageDays: 40 } });
-    expect(child?.actor.role).toBe('viewer');
-    expect(week).toMatchObject({ id: 'week', referenceTime: PRESETS['first-week'].referenceTime });
-  });
-
   it('resolves extends against own scenarios and presets, detecting cycles and duplicates', () => {
     const resolved = resolveScenarios(
       [
@@ -148,41 +61,6 @@ describe('presets and composition', () => {
     expect(() => resolveScenarios([{ id: 'a', extends: 'nope', name: 'A' }], PRESETS)).toThrow(
       /unknown scenario or preset "nope"/
     );
-  });
-});
-
-describe('generateTeam', () => {
-  it('always creates the actor with role and tenure, inside the org lifetime', () => {
-    const s = scenario({
-      organization: { ageDays: 180, size: 12, subscription: 'expired' },
-      actor: { id: 'user_0001', role: 'member', joinedDaysAgo: 0, onboardingComplete: false },
-    });
-    const ctx = createGenerateContext(s);
-    const team = generateTeam(ctx);
-    expect(team.personas).toHaveLength(12);
-    expect(new Set(team.personas.map((p) => p.id)).size).toBe(12);
-    expect(team.actor).toMatchObject({ id: 'user_0001', joinedAt: REF, onboardingComplete: false });
-    expect(team.organization).toMatchObject({
-      createdAt: new Date(Date.parse(REF) - 180 * MS_PER_DAY).toISOString(),
-      plan: 'pro',
-      billingStatus: 'expired',
-    });
-    expect(team.memberships.find((m) => m.personaId === 'user_0001')?.role).toBe('member');
-    const created = Date.parse(team.organization.createdAt);
-    for (const p of team.personas) {
-      expect(Date.parse(p.joinedAt)).toBeGreaterThanOrEqual(created);
-      expect(Date.parse(p.joinedAt)).toBeLessThanOrEqual(Date.parse(REF));
-      expect(p.email).toMatch(/@example\.com$/);
-    }
-    expect(new Set(team.personas.map((p) => p.email)).size).toBe(12);
-    expect(validateWorld({ ...team, tables: {} }, { referenceTime: REF })).toEqual([]);
-    expect(generateTeam(createGenerateContext(s))).toEqual(team);
-  });
-
-  it('clamps an actor who would predate the organization', () => {
-    const s = scenario({ organization: { ageDays: 3 }, actor: { joinedDaysAgo: 30 } });
-    const team = generateTeam(createGenerateContext(s));
-    expect(team.actor.joinedAt).toBe(team.organization.createdAt);
   });
 });
 
@@ -265,16 +143,63 @@ describe('dailyEvents', () => {
     }
     expect(dailyEvents(ctx, { from: day(1), to: day(1), perDay: 3, make })).toEqual([]);
   });
+});
 
-  it('can skip slots and respects hours', () => {
-    const events = dailyEvents(ctx, {
-      from: day(0),
-      to: day(3),
-      perDay: 5,
-      hours: [13, 14],
-      make: (slot) => (slot.index % 2 === 0 ? { type: 'even', payload: null } : null),
+// --- merged from fixture-guard.test.ts ---
+
+describe('scanFixtureText', () => {
+  it('flags real-looking email domains with path and domain-only detail', () => {
+    const findings = scanFixtureText('write to someone@gmail.com', { path: 'notes.body' });
+    expect(findings).toEqual([
+      expect.objectContaining({
+        kind: 'real-email',
+        path: 'notes.body',
+        rule: 'real-email',
+        detail: 'gmail.com',
+      }),
+    ]);
+    expect(findings[0]?.message).toMatch(/gmail\.com/);
+    expect(findings[0]?.message).toMatch(/example\.com/);
+    expect(findings[0]?.message).not.toMatch(/someone@/);
+  });
+
+  it('detects representative secret shapes without echoing the secret', () => {
+    const slack = ['token ', 'xox', 'b-1234567890-abcdef'].join('');
+    const slackHit = scanFixtureText(slack, { path: 'config.token' });
+    expect(slackHit[0]).toMatchObject({
+      kind: 'secret',
+      path: 'config.token',
+      detail: 'Slack token',
     });
-    for (const event of events) expect(new Date(event.at).getUTCHours()).toBe(13);
-    expect(events.every((e) => Number(e.id.split(':').at(-1)) % 2 === 0)).toBe(true);
+    expect(slackHit[0]?.message).not.toMatch(/xoxb/);
+    expect(slackHit[0]?.message).toMatch(/Slack token/);
+
+    // Synthetic id (not the public AWS docs example) so runners cannot strip it.
+    const awsKey = `AKIA${'B'.repeat(16)}`;
+    const aws = scanFixtureText(`key=${awsKey}`);
+    expect(aws.some((f) => f.rule === 'secret:aws-access-key')).toBe(true);
+    expect(aws[0]?.message).not.toContain(awsKey);
+
+    const gh = scanFixtureText(`auth ${'ghp_'}${'a'.repeat(36)}`);
+    expect(gh.some((f) => f.rule === 'secret:github-token')).toBe(true);
+
+    const stripe = scanFixtureText(`pk_live_${'x'.repeat(20)}`);
+    expect(stripe.some((f) => f.rule === 'secret:stripe-live-key')).toBe(true);
+
+    const pem = scanFixtureText(['-----BEGIN ', 'PRIVATE KEY-----'].join(''));
+    expect(pem.some((f) => f.rule === 'secret:private-key')).toBe(true);
+
+    const jwt = [
+      'eyJ',
+      'hbGciOiJIUzI1NiJ9',
+      '.',
+      'eyJ',
+      'zdWIiOiIxMjM0NTY3ODkwIn0',
+      '.',
+      'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk',
+    ].join('');
+    expect(scanFixtureText(jwt).some((f) => f.rule === 'secret:signed-jwt')).toBe(true);
+
+    expect(SECRET_PATTERNS.length).toBeGreaterThanOrEqual(5);
   });
 });

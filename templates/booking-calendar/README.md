@@ -77,8 +77,7 @@ src/scenarios/index.ts       five scenarios from @protoyard/scenarios presets
 src/scenarios/generators.ts  generate(ctx) with schedule(); the booking.ended timeline
 src/screens/*.svelte         Calendar, Bookings, BookOnline, Resources (lazy routes)
 src/components/*.svelte      BookingDialog, BookingDetails, StatusBadge, PageHeader
-tests/generators.test.ts     determinism, integrity, no double-booking, statuses, rules, timeline window independence
-tests/services.test.ts       overlap refusal, reschedule and cancel across reloads, rules, roles, offline, time advance
+tests/                       none: tests/integration/templates.test.ts generates, validates and boots this template
 ```
 
 ## Docs

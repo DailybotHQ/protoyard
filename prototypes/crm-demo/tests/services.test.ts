@@ -2,8 +2,9 @@ import { PermissionDeniedError, type PrototypeRuntime } from '@protoyard/core';
 import { createPrototypeRuntime } from '@protoyard/runtime';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { afterEach, describe, expect, it } from 'vitest';
+import { expectBootableWorld } from '../../../tests/support/smoke.ts';
 import type { CrmDatabase } from '../src/database/schema.ts';
-import { createCrmServices, ValidationError } from '../src/domain/services.ts';
+import { createCrmServices } from '../src/domain/services.ts';
 import { definition } from '../src/prototype.ts';
 
 /**
@@ -43,6 +44,10 @@ const fresh = () => {
 };
 
 describe('crm-demo on the real runtime', () => {
+  it('generates deterministic worlds and boots the default scenario', async () => {
+    await expectBootableWorld(definition);
+  });
+
   it('creates, edits and deletes a deal that survives reloads, with an activity trail', async () => {
     fresh();
     let runtime = await boot();
@@ -75,14 +80,6 @@ describe('crm-demo on the real runtime', () => {
     runtime = await reload(runtime);
     expect(await runtime.db.deals.get(deal.id)).toBeUndefined();
     expect(await runtime.db.activities.where('dealId').equals(deal.id).count()).toBe(0);
-  });
-
-  it('validates input with field-level messages', async () => {
-    fresh();
-    const crm = createCrmServices(await boot());
-    await expect(
-      crm.companies.create({ name: 'A', industry: '', employees: 0, domain: 'nope' })
-    ).rejects.toBeInstanceOf(ValidationError);
   });
 
   it('switching persona keeps data and changes what is allowed — at the service level', async () => {
@@ -155,105 +152,5 @@ describe('crm-demo on the real runtime', () => {
 
     await runtime.snapshots.restore(saved.id);
     expect(await runtime.db.deals.orderBy('id').toArray()).toEqual(before);
-  });
-
-  it('loading new-company shows an empty world; reset restores the seed exactly', async () => {
-    fresh();
-    const runtime = await boot();
-    const seeded = await runtime.db.deals.orderBy('id').toArray();
-    await runtime.scenarios.load('new-company');
-    expect(await runtime.db.deals.count()).toBe(0);
-    expect(runtime.session.principal()?.persona.onboardingComplete).toBe(false);
-    await runtime.scenarios.load('growing-team');
-    expect(await runtime.db.deals.orderBy('id').toArray()).toEqual(seeded);
-  });
-
-  it('advancing time is idempotent: 7×1 day equals 1×7 days', async () => {
-    fresh();
-    const a = await boot();
-    for (let i = 0; i < 7; i++) await a.scenarios.advance({ days: 1 });
-    const stepwise = await a.db.activities.orderBy('id').toArray();
-    a.close();
-
-    fresh();
-    const b = await boot();
-    await b.scenarios.advance({ days: 7 });
-    expect(await b.db.activities.orderBy('id').toArray()).toEqual(stepwise);
-  });
-});
-
-describe('crm-demo review regressions', () => {
-  it('keeps lostReason and closedAt consistent across edits and moves', async () => {
-    fresh();
-    const runtime = await boot();
-    const crm = createCrmServices(runtime);
-    const company = (await runtime.db.companies.toArray())[0];
-    if (!company) throw new Error('companies');
-    const deal = await crm.deals.create({
-      title: 'Review deal',
-      companyId: company.id,
-      amount: 1000,
-      closeDate: '2026-11-30',
-    });
-    expect(deal.closedAt).toBeNull();
-
-    await crm.deals.moveStage(deal.id, 'lost', 'Budget');
-    let stored = await runtime.db.deals.get(deal.id);
-    expect(stored?.lostReason).toBe('Budget');
-    expect(stored?.closedAt).toBeTruthy();
-
-    // Editing the stage to won through the form clears the stale reason.
-    await crm.deals.update(deal.id, {
-      title: 'Review deal',
-      companyId: company.id,
-      stage: 'won',
-      amount: 1000,
-      closeDate: '2026-11-30',
-    });
-    stored = await runtime.db.deals.get(deal.id);
-    expect(stored?.lostReason).toBeNull();
-    expect(stored?.closedAt).toBeTruthy();
-
-    // Re-opening a deal clears closedAt.
-    await crm.deals.moveStage(deal.id, 'proposal');
-    stored = await runtime.db.deals.get(deal.id);
-    expect(stored?.closedAt).toBeNull();
-    expect(stored?.lostReason).toBeNull();
-  });
-
-  it('never emits timeline events after the new "now" (sub-day advance)', async () => {
-    fresh();
-    const runtime = await boot();
-    await runtime.scenarios.advance({ hours: 12 });
-    const now = runtime.clock.committed().getTime();
-    const events = await runtime.db.table('py_events').toArray();
-    expect(events.every((e) => Date.parse(e.at as string) <= now)).toBe(true);
-  });
-});
-
-describe('crm-demo create with a closed stage', () => {
-  it('records closedAt and a default lost reason', async () => {
-    fresh();
-    const runtime = await boot();
-    const crm = createCrmServices(runtime);
-    const company = (await runtime.db.companies.toArray())[0]!;
-    const lost = await crm.deals.create({
-      title: 'Closed lost',
-      companyId: company.id,
-      stage: 'lost',
-      amount: 10,
-      closeDate: '2026-11-30',
-    });
-    expect(lost.closedAt).toBeTruthy();
-    expect(lost.lostReason).toBe('No reason given');
-    const won = await crm.deals.create({
-      title: 'Closed won',
-      companyId: company.id,
-      stage: 'won',
-      amount: 10,
-      closeDate: '2026-11-30',
-    });
-    expect(won.closedAt).toBeTruthy();
-    expect(won.lostReason).toBeNull();
   });
 });

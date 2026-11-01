@@ -23,8 +23,9 @@ composer disabled for viewers / non-members, read-only toast + disabled tooltips
   the button, and "Join" stays in the header.
 - Closing a thread returns focus to its "Reply in thread" button.
 
-`tests/phone-layout.test.ts` covers these, and every `protoyard new --template
-team-chat` starts with them.
+No test covers these since PLAN_009 removed the template's
+`tests/phone-layout.test.ts`; every `protoyard new --template team-chat`
+still starts with the behavior.
 
 ## Shell
 

@@ -25,7 +25,7 @@ Both levels are wired:
 - **Level 1.** The player opens page and doc blueprints through its kind boot. It also has dedicated `page.html` and `doc.html` entries.
 - **Level 2.** `protoyard generate <slug> --blueprint <file>` picks the `templates/page` or `templates/doc` template from the blueprint's kind.
 
-`packages/player/tests/kinds-parity.test.ts` checks that both levels render the same content. The examples under `blueprints/pages/` and `blueprints/docs/` are the reference data, and each one generates into a prototype.
+The test that checked both levels render the same content (`kinds-parity.test.ts`) was removed in PLAN_009. The examples under `blueprints/pages/` and `blueprints/docs/` are the reference data, and each one generates into a prototype.
 
 ## Page or doc?
 
@@ -308,64 +308,32 @@ boundary; then parse with the corresponding document or blueprint schema.
 
 The player's `page.html` and `doc.html` entries have ceilings of 150 KB
 initial JS gzip and 30 KB CSS gzip each (`protoyard.budgets.json` `kinds`),
-enforced by `packages/player/tests/kind-budget.test.ts`; `budget.test.ts` adds
-a tighter 125 KB regression cap. Both measure about 122 KB of initial JS
+enforced by `packages/player/tests/budget.test.ts`, which also holds a tighter
+125 KB regression cap. Both measure about 122 KB of initial JS
 (2026-10-22). See [Performance](PERFORMANCE.md#versioned-budgets) for the
 budget contract and the current measurements.
 
-## Design gate in a real browser
+## Design checks in a real browser
 
-Unit and component tests cannot see a page that ships unstyled, with a
-disabled form or with a doubled table of contents. An opt-in Playwright gate
-checks the example landing page
-([`tidewater-roasters-landing.json`](../blueprints/pages/tidewater-roasters-landing.json))
-and the example report
-([`northwind-quarterly-report.json`](../blueprints/docs/northwind-quarterly-report.json)).
-It opens each one in the built player (`page.html` and `doc.html`, level 1)
-and as a prototype generated and built by the real CLI (level 2), on the
-desktop and Pixel 7 projects:
+An opt-in Playwright design gate (`page-design.spec.ts`, rules in
+[`scripts/lib/page-design.ts`](../scripts/lib/page-design.ts)) used to open the
+example landing page and report at both levels and check theme fonts, display
+scale, one table of contents, overflow, timeline markers, the form and a clean
+console. PLAN_009 removed that spec and the unit tests of its rules to keep the
+suite essential; the rules file stays, but nothing runs it today. What runs
+instead, in CI:
 
-```sh
-PROTOYARD_E2E_PAGE=1 pnpm exec playwright test page-design
-pnpm vitest run scripts/tests/page-design.test.ts
-```
+- `tests/e2e/content-kinds-a11y.spec.ts` renders the example page and doc in
+  the built player, in light and dark on desktop and Pixel 7, under axe, and
+  checks that a page form response is still there after a reload;
+- `tests/e2e/doc-edits.spec.ts` applies a doc edit, reloads and resets it
+  (needs the `doc` target in `PROTOYARD_E2E_PROTOTYPES`).
 
-The gate asserts:
 
-- **Theme:** the theme tokens are set, and the body and title use the
-  theme's fonts, never the browser's default serif.
-- **Display scale:** the hero and document titles reach at least 40 px and
-  2.25× the body size on desktop, or 30 px and 1.75× on phones. Each title
-  appears once.
-- **Navigation:** a doc has exactly one table of contents. Nav, CTA and
-  table-of-contents links scroll their section into view.
-- **Layout:** nothing overflows horizontally, and timeline markers never
-  overlap their labels.
-- **Forms:** the page form accepts input, and its response is still there
-  after a reload.
-- **Clean run:** there are no console errors, failed requests or HTTP
-  errors.
-
-A second group injects each defect into a working page (no stylesheet, a
-doubled title, a second table of contents, a marker over its label, a
-3,000 px element) and expects the gate to report it.
-
-The spec builds everything itself under `tmp/page-design/`: the player, plus
-a scratch workspace where `protoyard generate` and `protoyard build` run with
-`--root`. It serves the builds on ephemeral loopback ports and saves a
-full-page screenshot and the measured facts of every view in
-`tmp/page-design/shots/`. A cold run takes about 7 minutes.
-`PROTOYARD_E2E_PAGE_REUSE=1` keeps a finished build between runs. Playwright
-workers share one build through a lock in that folder, and a lock left by a
-crashed run is taken over.
-
-Measured on 2026-10-22, at both levels:
-- **Desktop (1280 px):** a 60 px page hero and a 64 px doc title.
-- **Phone (412 px):** both titles at 36 px.
-- **Both:** a 16 px Inter body and no horizontal scroll.
-
-The gate checks the two examples only. It does not judge visual taste, and
-it skips overflow inside scroll containers (wide tables, the phone nav strip).
+The last gate run, on 2026-10-22, measured at both levels a 60 px page hero
+and a 64 px doc title on desktop (1280 px), both titles at 36 px on a phone
+(412 px), a 16 px Inter body and no horizontal scroll. Those numbers are
+history now, not a check.
 
 ## Packages and development
 
@@ -389,7 +357,7 @@ Local checks:
 pnpm --filter @protoyard/pages typecheck
 pnpm --filter @protoyard/pages-ui typecheck
 pnpm vitest run packages/pages packages/pages-ui
-pnpm vitest run packages/blueprint/tests/kinds/page-doc-runtime.test.ts
+pnpm vitest run packages/blueprint/tests/kinds/runtime.test.ts
 ```
 
 Related guides: [Blocks](BLOCKS.md), [Decks](DECKS.md), [Layouts](LAYOUTS.md),

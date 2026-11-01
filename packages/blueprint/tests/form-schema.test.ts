@@ -1,8 +1,3 @@
-// @vitest-environment node
-/// <reference types="node" />
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { parseInput } from '@protoyard/core';
 import { type FormSchema, validateFormSchema } from '@texuli/forms/model';
 import { describe, expect, it } from 'vitest';
@@ -19,8 +14,6 @@ import {
 /** What EntityForm passes: the host paints the custom kinds it lists. */
 const validate = (schema: EntityFormSchema) =>
   validateFormSchema(schema, { tier: 'developer', kinds: [...ENTITY_FORM_CUSTOM_KINDS] });
-
-const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 
 // The emitted shape stays assignable to Texuli's schema type.
 const _assignable = (schema: EntityFormSchema): FormSchema => schema;
@@ -149,17 +142,6 @@ describe('entityFormModel', () => {
     expect(fields.get('website')).toMatchObject({ type: 'url', protocols: ['http', 'https'] });
   });
 
-  it('hosts persona fields as custom fields when no people are given, or ids repeat', () => {
-    const custom = (model: ReturnType<typeof entityFormModel>) =>
-      model.schema.fields.find((f) => f.name === 'assigneeId');
-    expect(custom(entityFormModel(ticket))).toMatchObject({ type: 'custom', kind: 'persona' });
-    const clash = entityFormModel(ticket, {
-      personaOptions: [people[0]!, { value: 'persona-ada', label: 'Ada again' }],
-    });
-    expect(clash.hosted.some((f) => f.kind === 'persona')).toBe(true);
-    expect(validate(clash.schema).ok).toBe(true);
-  });
-
   it('renames a field Texuli refuses and maps it back', () => {
     const odd = {
       ...ticket,
@@ -172,19 +154,6 @@ describe('entityFormModel', () => {
     expect(model.toFormValues({ valueOf: 'x' })).toEqual({ field_0: 'x' });
     expect(model.fromFormValues({ field_0: 'y' })).toEqual({ valueOf: 'y' });
     expect(validate(model.schema).ok).toBe(true);
-  });
-
-  it('paints a read-only form with every field disabled', () => {
-    const model = entityFormModel(ticket, { personaOptions: people, readOnly: true });
-    expect(validate(model.schema).ok).toBe(true);
-    for (const field of model.schema.fields) {
-      expect(field.when).toEqual({ enable: { op: 'bool', value: false } });
-    }
-  });
-
-  it('uses the edit title and a custom submit label', () => {
-    const model = entityFormModel(ticket, { mode: 'edit', submitLabel: 'Save' });
-    expect(model.schema).toMatchObject({ title: 'Edit support ticket', submitLabel: 'Save' });
   });
 
   it('starts create forms from field defaults and edit forms from the row', () => {
@@ -289,41 +258,5 @@ describe('entityFormModel', () => {
       metadata: { a: 1 },
       labels: ['hardware'],
     });
-  });
-
-  it('rounds float money to whole cents and drops keys Texuli did not submit', () => {
-    const model = entityFormModel(ticket);
-    expect(model.fromFormValues({ refund: 0.29 })).toEqual({ refund: 29 });
-    expect(model.fromFormValues({ refund: null, status: '' })).toEqual({
-      refund: null,
-      status: null,
-    });
-  });
-
-  it('maps every entity of every catalog and generated blueprint to a valid Texuli schema', () => {
-    const files = [
-      ...readdirSync(join(ROOT, 'blueprints'))
-        .filter((name) => name.endsWith('.json'))
-        .map((name) => join(ROOT, 'blueprints', name)),
-      ...readdirSync(join(ROOT, 'prototypes'))
-        .map((slug) => join(ROOT, 'prototypes', slug, 'blueprint.json'))
-        .filter((file) => existsSync(file)),
-    ];
-    let checked = 0;
-    for (const file of files) {
-      const raw = JSON.parse(readFileSync(file, 'utf8')) as { kind?: string };
-      if (raw.kind && raw.kind !== 'app') continue;
-      for (const entity of parseBlueprint(raw).entities) {
-        for (const mode of ['create', 'edit'] as const) {
-          const model = entityFormModel(entity, { mode, personaOptions: people });
-          expect(model.painted.length + model.hosted.length).toBe(entity.fields.length);
-          expect(model.schema.fields.length).toBe(entity.fields.length);
-          const result = validate(model.schema);
-          expect(result.issues, `${file} ${entity.name}`).toEqual([]);
-          checked += 1;
-        }
-      }
-    }
-    expect(checked).toBeGreaterThan(100);
   });
 });

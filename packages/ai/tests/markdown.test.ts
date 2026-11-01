@@ -1,6 +1,6 @@
 import { createRng } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
-import { CHART_SPEC_MAX_LENGTH, chartBlock, parseChartSpec } from '../src/chart.ts';
+import { parseChartSpec } from '../src/chart.ts';
 import {
   inlineText,
   MARKDOWN_MAX_LENGTH,
@@ -11,7 +11,14 @@ import {
   safeHref,
   safeImageSrc,
 } from '../src/markdown.ts';
-import type { AiChartSpec } from '../src/types.ts';
+import {
+  attachmentUrlIssue,
+  isSafeLinkUrl,
+  MESSAGE_FORMAT,
+  MESSAGE_LIMITS,
+  parseChatMessage,
+} from '../src/messages/index.ts';
+import { type AiChartSpec } from '../src/types.ts';
 
 const blocks = (md: string) => parseMarkdown(md).blocks;
 const inlines = (md: string) => {
@@ -98,164 +105,26 @@ function renderToDom(doc: MdDocument): HTMLElement {
   return root;
 }
 
-describe('parseMarkdown — blocks', () => {
-  it('parses headings, paragraphs, rules and quotes', () => {
-    const doc = blocks('# Plan\n\nFirst line\nsecond line\n\n---\n\n> quoted\n> # inside');
-    expect(doc.map((b) => b.type)).toEqual(['heading', 'paragraph', 'rule', 'quote']);
-    expect(doc[0]).toEqual({
-      type: 'heading',
-      level: 1,
-      children: [{ type: 'text', text: 'Plan' }],
-    });
-    expect(doc[1]).toEqual({
-      type: 'paragraph',
-      children: [{ type: 'text', text: 'First line second line' }],
-    });
-    const quote = doc[3] as Extract<MdBlock, { type: 'quote' }>;
-    expect(quote.children.map((b) => b.type)).toEqual(['paragraph', 'heading']);
-  });
-
-  it('keeps fenced code verbatim and marks unterminated fences while streaming', () => {
-    const [closed] = blocks('```TS\nconst a = 1;\n<script>alert(1)</script>\n```\nafter');
-    expect(closed).toEqual({
-      type: 'code',
-      lang: 'ts',
-      text: 'const a = 1;\n<script>alert(1)</script>',
-      closed: true,
-    });
-    const [open] = blocks('```python\nprint("partial');
-    expect(open).toMatchObject({ type: 'code', lang: 'python', closed: false });
-  });
-
-  it('parses ordered, unordered, nested and task lists', () => {
-    const [list, ordered] = blocks(
-      '- [x] ship it\n- [ ] test it\n  - nested **bold**\n- plain\n\n3. three\n4. four'
-    );
-    expect(list).toMatchObject({ type: 'list', ordered: false });
-    const items = (list as Extract<MdBlock, { type: 'list' }>).items;
-    expect(items.map((item) => item.checked)).toEqual([true, false, null]);
-    expect(items[1]?.children.map((b) => b.type)).toEqual(['paragraph', 'list']);
-    expect(ordered).toMatchObject({ type: 'list', ordered: true, start: 3 });
-  });
-
-  it('parses tables with alignment, escaped pipes and ragged rows', () => {
-    const [table] = blocks(
-      '| Plan | Seats | Price |\n|:-----|:----:|-----:|\n| Pro | 5 | $10 \\| mo |\n| Team |'
-    );
-    expect(table).toMatchObject({ type: 'table', align: ['left', 'center', 'right'] });
-    const t = table as Extract<MdBlock, { type: 'table' }>;
-    expect(t.rows).toHaveLength(2);
-    expect(t.rows[0]?.map(inlineText)).toEqual(['Pro', '5', '$10 | mo']);
-    expect(t.rows[1]?.map(inlineText)).toEqual(['Team', '', '']);
-  });
-});
-
-describe('parseMarkdown — inline', () => {
-  it('parses emphasis, strong, strikethrough, code and escapes', () => {
-    expect(inlines('**bold** *em* ~~gone~~ `a < b` \\*literal\\* snake_case_name')).toEqual([
-      { type: 'strong', children: [{ type: 'text', text: 'bold' }] },
-      { type: 'text', text: ' ' },
-      { type: 'em', children: [{ type: 'text', text: 'em' }] },
-      { type: 'text', text: ' ' },
-      { type: 'del', children: [{ type: 'text', text: 'gone' }] },
-      { type: 'text', text: ' ' },
-      { type: 'code', text: 'a < b' },
-      { type: 'text', text: ' *literal* snake_case_name' },
-    ]);
-  });
-
-  it('parses links, bare URLs and hard breaks', () => {
-    expect(
-      inlines('See [docs](https://example.com/docs "Docs") or https://example.org/a.')
-    ).toEqual([
-      { type: 'text', text: 'See ' },
-      {
-        type: 'link',
-        href: 'https://example.com/docs',
-        children: [{ type: 'text', text: 'docs' }],
-      },
-      { type: 'text', text: ' or ' },
-      {
-        type: 'link',
-        href: 'https://example.org/a',
-        children: [{ type: 'text', text: 'https://example.org/a' }],
-      },
-      { type: 'text', text: '.' },
-    ]);
-    expect(inlines('one  \ntwo').map((n) => n.type)).toEqual(['text', 'break', 'text']);
-  });
-
-  it('accepts images only from the prototype and attachment references', () => {
-    expect(inlines('![Chart](./assets/chart.png) ![Q3](attachment:file_0003)')).toEqual([
-      { type: 'image', alt: 'Chart', src: './assets/chart.png', attachmentId: null },
-      { type: 'text', text: ' ' },
-      { type: 'image', alt: 'Q3', src: null, attachmentId: 'file_0003' },
-    ]);
-    // Remote and data: images fall back to their alt text.
-    expect(
-      inlines('![tracker](https://example.com/p.gif) ![x](data:image/png;base64,AAA)')
-    ).toEqual([{ type: 'text', text: 'tracker x' }]);
-    expect(inlines('Open [the brief](attachment:file_0001)')).toEqual([
-      { type: 'text', text: 'Open ' },
-      { type: 'attachment', id: 'file_0001', label: 'the brief' },
-    ]);
-  });
-
-  it('numbers citations by source definition and leaves unknown ones as text', () => {
-    const doc = parseMarkdown(
-      'Revenue grew[^b] and churn fell[^a][^zz].\n\n[^a]: Churn report — https://example.com/churn\n[^b]: [Q3 deck](https://example.org/q3)\n[^c]: Internal note'
-    );
-    expect(doc.sources).toEqual([
-      { id: 'a', index: 1, title: 'Churn report', href: 'https://example.com/churn' },
-      { id: 'b', index: 2, title: 'Q3 deck', href: 'https://example.org/q3' },
-      { id: 'c', index: 3, title: 'Internal note', href: null },
-    ]);
-    const [paragraph] = doc.blocks;
-    expect(paragraph).toEqual({
-      type: 'paragraph',
-      children: [
-        { type: 'text', text: 'Revenue grew' },
-        { type: 'citation', id: 'b', index: 2 },
-        { type: 'text', text: ' and churn fell' },
-        { type: 'citation', id: 'a', index: 1 },
-        { type: 'text', text: '[^zz].' },
-      ],
-    });
-    expect(doc.blocks).toHaveLength(1);
-  });
-});
-
 describe('sanitization', () => {
-  it.each([
-    'javascript:alert(1)',
-    'JaVaScRiPt:alert(1)',
-    ' javascript:alert(1)',
-    'java\tscript:alert(1)',
-    'java\nscript:alert(1)',
-    '\u0000javascript:alert(1)',
-    'vbscript:msgbox(1)',
-    'data:text/html,<script>alert(1)</script>',
-    'file:///etc/hosts',
-    '//evil.example',
-    '/\\evil.example',
-    '\\/evil.example',
-    '\\\\evil.example',
-  ])('rejects the link target %j', (url) => {
-    expect(safeHref(url)).toBeNull();
-    expect(safeImageSrc(url)).toBeNull();
-  });
-
-  it('allows https, mailto and same-document fragments while keeping relative images local', () => {
-    expect(safeHref('https://example.com/a?b=1#c')).toBe('https://example.com/a?b=1#c');
-    expect(safeHref('mailto:team@example.com')).toBe('mailto:team@example.com');
-    expect(safeHref('http://example.com')).toBeNull();
-    // Same-document fragments never leave the page: in-app routes and section anchors.
-    expect(safeHref('#/deals/42')).toBe('#/deals/42');
-    expect(safeHref('#plans')).toBe('#plans');
-    expect(safeHref('#"><script>')).toBeNull();
-    expect(safeHref('./notes.md')).toBeNull();
-    expect(safeImageSrc('./assets/chart.png')).toBe('./assets/chart.png');
-    expect(safeImageSrc('https://example.com/a.png')).toBeNull();
+  it('rejects every unsafe link target', () => {
+    for (const url of [
+      'javascript:alert(1)',
+      'JaVaScRiPt:alert(1)',
+      ' javascript:alert(1)',
+      'java\tscript:alert(1)',
+      'java\nscript:alert(1)',
+      '\u0000javascript:alert(1)',
+      'vbscript:msgbox(1)',
+      'data:text/html,<script>alert(1)</script>',
+      'file:///etc/hosts',
+      '//evil.example',
+      '/\\evil.example',
+      '\\/evil.example',
+      '\\\\evil.example',
+    ]) {
+      expect(safeHref(url)).toBeNull();
+      expect(safeImageSrc(url)).toBeNull();
+    }
   });
 
   it('keeps raw HTML as literal text and drops unsafe links to their label', () => {
@@ -354,41 +223,6 @@ describe('chart answers', () => {
     series: [{ label: 'Signups', values: [12, null, 30] }],
   };
 
-  it('keeps a chart fence as a code block unless charts are enabled', () => {
-    const md = `Here you go:\n\n${chartBlock(spec)}\n\nAnything else?`;
-    expect(parseMarkdown(md).blocks[1]).toMatchObject({ type: 'code', lang: 'chart' });
-    const chart = parseMarkdown(md, { charts: true }).blocks[1];
-    expect(chart).toMatchObject({ type: 'chart', closed: true });
-    // The block carries raw text only; validation happens in the renderer.
-    expect(parseChartSpec((chart as { text: string }).text)).toEqual({ ok: true, spec });
-  });
-
-  it('marks a chart fence that is still streaming as open', () => {
-    const doc = parseMarkdown('```chart\n{"kind":"bar"', { charts: true });
-    expect(doc.blocks[0]).toEqual({ type: 'chart', text: '{"kind":"bar"', closed: false });
-  });
-
-  it('rejects malformed, oversized, unknown-key and inconsistent specs with a short message', () => {
-    expect(parseChartSpec('{nope')).toEqual({
-      ok: false,
-      error: 'The chart data is not valid JSON',
-    });
-    expect(parseChartSpec(' '.repeat(CHART_SPEC_MAX_LENGTH + 1))).toMatchObject({ ok: false });
-    const bad = (patch: object) => parseChartSpec(JSON.stringify({ ...spec, ...patch }));
-    expect(bad({ kind: 'script' })).toMatchObject({ ok: false });
-    expect(bad({ onload: 'alert(1)' })).toMatchObject({ ok: false });
-    expect(bad({ series: [{ label: 'A', values: [1] }] })).toEqual({
-      ok: false,
-      error: 'series.0.values: Needs one value per label (3)',
-    });
-    expect(bad({ kind: 'donut', series: [{ label: 'A', values: [1, -2, 3] }] })).toMatchObject({
-      ok: false,
-      error: expect.stringContaining('non-negative'),
-    });
-    expect(bad({ currency: 'usd' })).toMatchObject({ ok: false });
-    expect(() => chartBlock({ ...spec, labels: [] })).toThrow();
-  });
-
   it('rejects control and bidi characters in chart labels and series labels', () => {
     expect(
       parseChartSpec(JSON.stringify({ ...spec, labels: ['Mon\u200e', 'Tue', 'Wed'] }))
@@ -406,11 +240,227 @@ describe('chart answers', () => {
       ok: false,
     });
   });
+});
 
-  it('treats markup in spec strings as data', () => {
-    const result = parseChartSpec(
-      JSON.stringify({ ...spec, title: '<img src=x onerror=alert(1)>' })
-    );
-    expect(result).toMatchObject({ ok: true, spec: { title: '<img src=x onerror=alert(1)>' } });
+// --- merged from messages.test.ts ---
+
+describe('messages', () => {
+  /** A `protoyard.message@1` envelope around `blocks`. */
+  function message_(blocks: unknown[], extra: Record<string, unknown> = {}) {
+    return { format: MESSAGE_FORMAT, blocks, ...extra };
+  }
+
+  function ok(input: unknown) {
+    const result = parseChatMessage(input);
+    if (!result.success) throw new Error(JSON.stringify(result.issues, null, 2));
+    return result;
+  }
+
+  function issues(input: unknown) {
+    const result = parseChatMessage(input);
+    expect(result.success).toBe(false);
+    return result.issues;
+  }
+
+  describe('unknown blocks', () => {
+    it('never carries markup or unsafe text from an unknown block into the fallback', () => {
+      const { message: parsed } = ok(
+        message_([
+          { type: 'widget', fallback: '<img src=x onerror=alert(1)>' },
+          { type: '<script>alert(1)</script>', fallback: 'x'.repeat(500) },
+        ])
+      );
+      expect(parsed.blocks[0]).toMatchObject({
+        text: 'This message has content this app cannot show ("widget").',
+      });
+      expect(parsed.blocks[1]).toEqual({
+        type: 'text',
+        format: 'plain',
+        text: 'This message has content this app cannot show.',
+        replaces: 'unknown',
+      });
+      expect(JSON.stringify(parsed)).not.toContain('<img');
+    });
+  });
+
+  describe('unsafe links', () => {
+    const unsafe = [
+      'javascript:alert(1)',
+      'JaVaScRiPt:alert(1)',
+      ' javascript:alert(1)',
+      'java\tscript:alert(1)',
+      'data:text/html,<b>x</b>',
+      'vbscript:msgbox(1)',
+      'file:///etc/passwd',
+      '//evil.example.com',
+      '/\\evil.example.com',
+      'https://user:pass@example.com/',
+      'https://exa\u202emple.com',
+      'relative/path',
+      'http://example.com',
+      'mailto:',
+    ];
+
+    it('rejects every unsafe button or preview URL', () => {
+      for (const url of unsafe) {
+        expect(isSafeLinkUrl(url)).toBe(false);
+        expect(
+          issues(message_([{ type: 'buttons', buttons: [{ label: 'Go', url }] }])).length
+        ).toBeGreaterThan(0);
+        expect(issues(message_([{ type: 'link_preview', url }])).length).toBeGreaterThan(0);
+      }
+    });
+
+    it('never lets a link preview load a remote image', () => {
+      const preview = (image: string) =>
+        message_([{ type: 'link_preview', url: 'https://example.com', image }]);
+      expect(issues(preview('https://cdn.example.com/a.png'))[0]?.path).toEqual([
+        'blocks',
+        0,
+        'image',
+      ]);
+      expect(issues(preview('data:image/svg+xml;base64,PHN2Zz4='))[0]?.path).toEqual([
+        'blocks',
+        0,
+        'image',
+      ]);
+      ok(preview('attachment:hero'));
+    });
+  });
+
+  describe('markup payloads', () => {
+    const markup = [
+      '<script>alert(1)</script>',
+      'Hello <b>there</b>',
+      '<img src=x onerror=alert(1)>',
+      '<!-- hidden -->',
+      '<svg/onload=alert(1)>',
+      '</div>',
+      '<!DOCTYPE html>',
+      '<?xml version="1.0"?>',
+      // Unclosed: browsers still parse it as a tag.
+      '<img src=x onerror=alert(1)',
+    ];
+
+    it('rejects every markup payload in text, labels, cells and options', () => {
+      for (const payload of markup) {
+        const where = [
+          message_([{ type: 'text', text: payload }]),
+          message_([{ type: 'buttons', buttons: [{ label: payload, action: 'go' }] }]),
+          message_([
+            { type: 'table', columns: [{ key: 'a', header: 'A' }], rows: [{ a: payload }] },
+          ]),
+          message_([
+            {
+              type: 'select',
+              action: 'a',
+              placeholder: 'p',
+              options: [{ value: 'v', label: payload }],
+            },
+          ]),
+          message_([{ type: 'link_preview', url: 'https://example.com', description: payload }]),
+        ];
+        for (const input of where) {
+          expect(issues(input)[0]?.message).toMatch(/Markup is not allowed/);
+        }
+      }
+    });
+  });
+
+  describe('limits', () => {
+    it('caps the message size, nesting and block count before validating blocks', () => {
+      const big = message_([{ type: 'text', text: 'x'.repeat(MESSAGE_LIMITS.maxBytes) }]);
+      expect(issues(big)[0]?.code).toBe('too-large');
+      expect(issues(JSON.stringify(big))[0]?.code).toBe('too-large');
+
+      let deep: unknown = 'leaf';
+      for (let i = 0; i < MESSAGE_LIMITS.maxDepth + 1; i += 1) deep = { nested: deep };
+      expect(issues(message_([{ type: 'text', text: 'x', extra: deep }]))[0]?.code).toBe(
+        'too-deep'
+      );
+
+      const many = Array.from({ length: MESSAGE_LIMITS.maxBlocks + 1 }, () => ({
+        type: 'text',
+        text: 'x',
+      }));
+      expect(issues(message_(many))[0]).toMatchObject({
+        code: 'too-many',
+        jsonPath: '$["blocks"]',
+      });
+      ok(message_(many.slice(0, MESSAGE_LIMITS.maxBlocks)));
+    });
+  });
+
+  describe('attachments', () => {
+    const attachment = (extra: Record<string, unknown>) =>
+      message_([{ type: 'text', text: 'See attached.' }], {
+        attachments: [
+          {
+            id: 'a1',
+            name: 'brief.pdf',
+            mime: 'application/pdf',
+            size: 1200,
+            url: 'files/brief.pdf',
+            ...extra,
+          },
+        ],
+      });
+
+    it('refuses every unsafe attachment', () => {
+      for (const [url, reason] of [
+        ['https://cdn.example.com/brief.pdf', 'remote'],
+        ['//cdn.example.com/brief.pdf', 'remote'],
+        ['javascript:alert(1)', 'scheme'],
+        ['blob:https://example.com/1', 'scheme'],
+        ['file:///tmp/brief.pdf', 'scheme'],
+        ['data:text/html;base64,PGI+', 'data-uri-type'],
+        ['data:image/svg+xml;base64,PHN2Zz4=', 'data-uri-type'],
+        ['files/../../secrets.pdf', 'traversal'],
+        ['files/%2e%2e/secrets.pdf', 'traversal'],
+        ['files\\brief.pdf', 'unsafe-characters'],
+        ['files/brief\u0000.pdf', 'unsafe-characters'],
+      ]) {
+        expect(attachmentUrlIssue(url)).toBe(reason);
+        expect(issues(attachment({ url }))[0]?.path).toEqual(['attachments', 0, 'url']);
+      }
+    });
+  });
+
+  describe('envelope', () => {
+    it('refuses prototype keys, non-JSON values and cycles', () => {
+      expect(
+        issues(JSON.parse('{"format":"protoyard.message@1","blocks":[],"__proto__":{"x":1}}'))[0]
+          ?.code
+      ).toBe('unsafe-key');
+      expect(issues(message_([{ type: 'text', text: 'x', at: new Date(0) }]))[0]?.code).toBe(
+        'invalid-input'
+      );
+      expect(issues(message_([{ type: 'text', text: 'x', n: Number.NaN }]))[0]?.code).toBe(
+        'invalid-input'
+      );
+      const cyclic: Record<string, unknown> = { format: MESSAGE_FORMAT, blocks: [] };
+      cyclic.self = cyclic;
+      expect(issues(cyclic)[0]?.code).toBe('invalid-input');
+      expect(issues(null)[0]?.code).toBe('invalid-input');
+      expect(issues([1, 2])[0]?.code).toBe('invalid-input');
+    });
+  });
+});
+
+// --- merged from markdown-subpath.test.ts ---
+
+describe('markdown-subpath', () => {
+  /**
+   * `@protoyard/ai/markdown` lets other kits (the views editor, review comments)
+   * reuse the one audited safe-markdown parser without the AI engine (ADR-022).
+   * Resolve it by its package specifier, exactly as a consumer would.
+   */
+  describe('@protoyard/ai/markdown subpath', () => {
+    it('keeps unsafe links inert through the subpath', async () => {
+      const { parseMarkdown, safeHref } = await import('@protoyard/ai/markdown');
+      expect(safeHref('javascript:alert(1)')).toBeNull();
+      const doc = parseMarkdown('<script>alert(1)</script> [x](javascript:alert(1))');
+      expect(JSON.stringify(doc)).not.toContain('javascript:');
+    });
   });
 });

@@ -288,8 +288,8 @@ its own folder with `@source "./"`. A stylesheet that needs another package's
 classes imports that package's stylesheet by name
 (`@import "@protoyard/charts-ui/styles.css";`), never with a path into its folder.
 The same CSS then works from this repository, from packed packages and from a
-consumer's `node_modules`. `packages/cli/tests/package-boundaries.test.ts`
-rejects any cross-package `@source` or `@import` path in `packages/*/src`.
+consumer's `node_modules`. (The test that rejected a cross-package `@source`
+or `@import` path, `package-boundaries.test.ts`, was removed in PLAN_009.)
 
 **Use tokens, not raw colors.** `bg-primary text-primary-foreground` follows
 every theme and both modes; `bg-violet-600` does not.
@@ -376,9 +376,8 @@ export const paperTheme = createThemeFromSeed({
 ```
 
 The result is then held to the same WCAG pairs as the presets (see
-[Contrast checks](#contrast-checks)). `packages/themes/tests/palette.test.ts`
-checks every text and UI pair in both modes for 500 deterministic seeds,
-without a family (zinc) and with every neutral family.
+[Contrast checks](#contrast-checks)). The 500-seed palette test was removed in
+PLAN_009; Theme Studio and `theme create` still refuse a failing result.
 
 ```ts
 import { createThemeFromSeed } from '@protoyard/themes';
@@ -435,9 +434,8 @@ Where the colors come from:
 `applyAppearance` always writes `--tx-chart-grid` and `--tx-chart-axis`, and
 writes the series 1–8 and the ramps when the theme has a `charts` block. It
 removes series 6–8 and the ramps again when the next theme has none.
-`packages/themes/tests/charts.test.ts` checks every preset and library theme
-in both modes, 120 generated themes, and that the charts kit has nothing left
-to repair.
+The chart-palette sweep over every theme (`packages/themes/tests/charts.test.ts`)
+was removed in PLAN_009.
 
 ## Built-in presets and the theme library
 
@@ -470,9 +468,9 @@ It has two tiers:
     deck or picker that checks an id needs no load.
   - Its definitions and tokens load on demand from the same port, one theme at
     a time (`loadLibraryThemeDefinition`, `loadLibraryTheme`). Protoyard keeps
-    no copy of them. `tests/library.test.ts` proves the port is field-identical
-    to the 64 definitions Protoyard used to own, kept as a test fixture
-    (`packages/themes/tests/fixtures/library-definitions.ts`).
+    no copy of them. `tests/library.test.ts` checks the library ids come from
+    Texuli (the field-identity check against the 64 former definitions and its
+    fixture were removed in PLAN_009).
 - **The full library** adds Texuli's expanded set
   (`@texuli/tokens/library-expand`): 140 more themes, for 204 in all on Texuli
   0.9.0. It's on by default, everywhere: the `theme` CLI, the DevTools theme
@@ -623,20 +621,20 @@ Each definition can also set catalog metadata (`packages/themes/src/library/type
 | `collection` | `industry`, `brand-like`, `high-contrast`, `colorblind-safe`, `seasonal`, `mono` (`THEME_COLLECTIONS`) | `industry` |
 | `mood` | any of `calm`, `bold`, `playful`, `corporate`, `editorial`, `technical`, `warm`, `fresh`, `luxurious`, `minimal` (`THEME_MOODS`) | none |
 | `darkFirst` | `true` when the theme is meant to be shown in dark mode first | `false` |
-| `contrastLevel` | `AA` (text 4.5:1) or `AAA` (text 7:1, enforced by `tests/library.test.ts`) | `AA` |
+| `contrastLevel` | `AA` (text 4.5:1) or `AAA` (text 7:1; its library test was removed in PLAN_009) | `AA` |
 | `neutral` | a [neutral family](#neutral-families) | the builder's `zinc` |
 
 Optional metadata uses the defaults above when a definition omits it.
-`tests/library.test.ts` checks every definition against these rules:
+The definition rules (a library test checked each one until PLAN_009) are:
 - unique kebab-case ids and `#rrggbb` seeds
 - known fonts, neutrals, collections, moods and contrast levels
 - the density range
 - the style profile, through core's `ThemeStyleSchema`
 
-It also runs these checks over all 204, and checks that metadata matches
-each definition. `tests/contrast.test.ts` holds all 204 to WCAG AA text and
-UI pairs in light and dark, `tests/link.test.ts` their link states and
-`tests/charts.test.ts` their chart palettes. One known Texuli gap is
+Since PLAN_009 the library-wide sweeps are gone: `tests/library.test.ts`
+keeps the ids, the boot-path lists and lazy loading, and `tests/contrast.test.ts`
+holds the six built-ins (not the 204 library themes) to WCAG AA. The link and
+chart-palette sweeps were removed. One known Texuli gap is
 tolerated: the expanded set's metadata omits the `neutral` family its
 definitions use (nothing reads `meta.neutral` at runtime).
 
@@ -1184,9 +1182,7 @@ contrast (`TEXT_CONTRAST_PAIRS` and `UI_CONTRAST_PAIRS` in
 
 | Where the pairs are enforced | How |
 | --- | --- |
-| `packages/themes/tests/contrast.test.ts` | Every built-in preset and every library theme, both modes; built-in hover fills stay visible and keep text at AA |
-| `packages/themes/tests/library.test.ts` | Every library theme, both modes |
-| `packages/themes/tests/palette.test.ts` | `createThemeFromSeed` across 500 deterministic seeds, both modes, without a family and with every neutral family; every shared role equals Texuli's generator |
+| `packages/themes/tests/contrast.test.ts` | The WCAG math and every built-in preset, both modes (the library-wide, hover-fill and 500-seed sweeps were removed in PLAN_009) |
 | Theme Studio | Live warnings before saving |
 | `theme create` / `theme import` | Refuses to write a failing theme |
 | `generate` with a `brand` | Refuses to generate a failing brand theme |

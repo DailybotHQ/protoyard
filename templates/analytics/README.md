@@ -60,9 +60,7 @@ src/scenarios/generators.ts  generate(ctx) → WorldSeed; traffic shape (launch 
 src/scenarios/seeds.ts       the default dashboard layout and two saved segments
 src/widgets/*.svelte         dashboard widgets, one lazy chunk each (WIDGET_LOADERS)
 src/screens/*.svelte         Overview, Trends, Funnels, Retention, Live, Segments (lazy routes)
-tests/generators.test.ts     determinism, integrity per scenario, scale, funnel, traffic shape, timeline
-tests/services.test.ts       persistence across reload, field errors, roles and ownership, offline writes nothing
-tests/metrics.test.ts        KPIs, buckets and breakdowns, counts, segment filters
+tests/                       none: tests/integration/templates.test.ts generates, validates and boots this template
 ```
 
 ## How the data flows

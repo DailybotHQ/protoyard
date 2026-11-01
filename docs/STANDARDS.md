@@ -156,7 +156,7 @@ tabindex={rovingTabIndex(value, option.value, options)}
 // each option: data-value={option.value}
 ```
 
-Covered by `pnpm vitest run packages/ui/tests/roving.test.ts`.
+Its unit test (`roving.test.ts`) was removed in PLAN_009; Texuli's own suite covers the primitive.
 
 ## Commits
 

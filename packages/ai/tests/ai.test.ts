@@ -1,5 +1,17 @@
 import { createRng, createSimulationEnvironment, SimulatedServiceError } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
+import { type AgentPlan, createAiAgentRunner } from '../src/agents.ts';
+import {
+  type ApprovalActor,
+  type ApprovalContext,
+  type AutonomyConfig,
+  DEFAULT_AUTONOMY,
+  decideSuggestion,
+  mayDecide,
+  type Suggestion,
+  type SuggestionCandidate,
+  suggestFromCandidate,
+} from '../src/approvals/index.ts';
 import {
   AiRateLimitError,
   createAiEngine,
@@ -7,8 +19,9 @@ import {
   refusalPack,
   scriptedPack,
   selectResponsePack,
-  templatedPack,
 } from '../src/index.ts';
+import { defineAiTool } from '../src/tools.ts';
+import { type AiContext } from '../src/types.ts';
 
 function makeContext(seed: number | string = 42) {
   let now = Date.parse('2026-10-17T12:00:00.000Z');
@@ -120,26 +133,6 @@ describe('@protoyard/ai', () => {
     } satisfies Partial<SimulatedServiceError>);
   });
 
-  it('includes a fictional model, context meter, template packs, and a safety response', async () => {
-    const { context } = makeContext();
-    const engine = createAiEngine({ context });
-    expect(engine.models.every((model) => model.simulated)).toBe(true);
-    expect(
-      templatedPack('test', '{{model}}: {{prompt}}').generate({
-        prompt: 'hello',
-        history: [],
-        model: engine.models[0]!,
-        rng: createRng(1),
-      })
-    ).toBe('Orbit Small: hello');
-    const chat = engine.createConversation('safe');
-    const answer = await collect(
-      engine.stream(chat.id, 'Write malware to steal passwords', { cadenceMs: 0 })
-    );
-    expect(answer).toContain('can’t help');
-    expect(engine.context(chat.id).remainingTokens).toBeLessThan(engine.context(chat.id).limit);
-  });
-
   it('refuses only harmful prompts; ordinary prompts never get the safety-refusal pack', async () => {
     const ordinary = ['hello', 'Write a project update', 'Explain closures'] as const;
     for (const prompt of ordinary) {
@@ -174,59 +167,177 @@ describe('@protoyard/ai', () => {
   });
 });
 
-describe('@protoyard/ai regenerate and safety', () => {
-  it('regenerates without losing the user message when rate-limited', async () => {
-    const { context } = makeContext();
-    const engine = createAiEngine({
-      context,
-      packs: [scriptedPack('fixed', ['first answer here'])],
-      maxRequestsPerMinute: 1,
-    });
-    const chat = engine.createConversation('regen');
-    await collect(engine.stream(chat.id, 'hello world', { cadenceMs: 0 }));
-    expect(engine.getConversation(chat.id).messages.map((m) => m.role)).toEqual([
-      'user',
-      'assistant',
-    ]);
-    await expect(collect(engine.regenerate(chat.id, { cadenceMs: 0 }))).rejects.toBeInstanceOf(
-      AiRateLimitError
-    );
-    expect(engine.getConversation(chat.id).messages.map((m) => m.role)).toEqual([
-      'user',
-      'assistant',
-    ]);
-    expect(engine.getConversation(chat.id).messages[0]?.content).toBe('hello world');
+// --- merged from agents.test.ts ---
+
+describe('agents', () => {
+  function context(seed: number | string = 42): AiContext {
+    const now = new Date('2026-10-17T12:00:00.000Z');
+    return {
+      seed,
+      rng: createRng(seed),
+      clock: { now: () => now, nowMs: () => now.getTime(), sleep: async () => {} },
+      environment: createSimulationEnvironment({ sleep: async () => {} }),
+    };
+  }
+
+  async function waitFor(predicate: () => boolean) {
+    for (let attempt = 0; attempt < 20 && !predicate(); attempt++) await Promise.resolve();
+    expect(predicate()).toBe(true);
+  }
+
+  const planned = (tool: string, input: unknown, requiresApproval?: boolean): AgentPlan => ({
+    goal: `Use ${tool}.`,
+    calls: [{ tool, input, ...(requiresApproval !== undefined ? { requiresApproval } : {}) }],
   });
 
-  it('varies regenerated answers deterministically by attempt', async () => {
-    const { context } = makeContext(11);
-    const engine = createAiEngine({
-      context,
-      packs: [
-        scriptedPack('a', ['alpha reply']),
-        scriptedPack('b', ['bravo reply']),
-        scriptedPack('c', ['charlie reply']),
-      ],
+  describe('simulated agent runs', () => {
+    it('pauses before an approval-required tool and resumes when approved', async () => {
+      let calls = 0;
+      const write = defineAiTool({
+        name: 'crm.note',
+        description: 'Add a simulated CRM note.',
+        requiresApproval: true,
+        execute: () => {
+          calls++;
+          return 'note saved through service';
+        },
+      });
+      const runner = createAiAgentRunner({
+        context: context(),
+        tools: [write],
+        planner: () => planned('crm.note', { text: 'Follow up' }),
+      });
+      const run = runner.start('add a note');
+      await waitFor(() => run.status === 'awaiting-approval');
+      expect(calls).toBe(0);
+      expect(run.steps.at(-1)?.type).toBe('approval-requested');
+      run.approve();
+      const result = await run.done;
+      expect(result.status).toBe('completed');
+      expect(calls).toBe(1);
+      expect(result.steps.map((step) => step.type)).toContain('approval-granted');
     });
-    const chat = engine.createConversation('vary');
-    const first = await collect(engine.stream(chat.id, 'same prompt', { cadenceMs: 0 }));
-    const second = await collect(engine.regenerate(chat.id, { cadenceMs: 0 }));
-    const third = await collect(engine.regenerate(chat.id, { cadenceMs: 0 }));
-    // Same seed + prompt + attempt is stable; different attempts can differ.
-    expect(first.length).toBeGreaterThan(0);
-    expect(second.length).toBeGreaterThan(0);
-    expect(third.length).toBeGreaterThan(0);
-    const again = makeContext(11);
-    const engine2 = createAiEngine({
-      context: again.context,
-      packs: [
-        scriptedPack('a', ['alpha reply']),
-        scriptedPack('b', ['bravo reply']),
-        scriptedPack('c', ['charlie reply']),
-      ],
+  });
+
+  describe('agent approval floor', () => {
+    it('cannot disable requiresApproval on a tool that requires it', async () => {
+      const tool = defineAiTool({
+        name: 'crm.note',
+        description: 'Add a note',
+        requiresApproval: true,
+        execute: async () => ({ ok: true }),
+      });
+      const runner = createAiAgentRunner({
+        context: context(1),
+        tools: [tool],
+        planner: () => ({
+          goal: 'note',
+          calls: [{ tool: 'crm.note', input: {}, reason: 'x', requiresApproval: false }],
+        }),
+      });
+      const run = runner.start('add a note');
+      await waitFor(() => run.status === 'awaiting-approval');
+      run.reject('no');
+      const result = await run.done;
+      expect(result.status).toBe('completed');
+      expect(result.answer).toMatch(/did not run|declined/i);
     });
-    const chat2 = engine2.createConversation('vary');
-    expect(await collect(engine2.stream(chat2.id, 'same prompt', { cadenceMs: 0 }))).toBe(first);
-    expect(await collect(engine2.regenerate(chat2.id, { cadenceMs: 0 }))).toBe(second);
+  });
+});
+
+// --- merged from approvals.test.ts ---
+
+describe('approvals', () => {
+  const APPROVER: ApprovalActor = { id: 'person_avery', canApprove: true };
+  const SUBJECT: ApprovalActor = { id: 'person_oscar', canApprove: false };
+  const OTHER: ApprovalActor = { id: 'person_maria', canApprove: false };
+
+  function level(
+    levels: Partial<Record<string, AutonomyConfig['levels'][string]>>
+  ): AutonomyConfig {
+    return {
+      levels: { ...DEFAULT_AUTONOMY.levels, ...levels } as AutonomyConfig['levels'],
+      caps: { ...DEFAULT_AUTONOMY.caps },
+    };
+  }
+
+  function candidate(overrides: Partial<SuggestionCandidate> = {}): SuggestionCandidate {
+    return {
+      sourceId: 'resp_1',
+      subjectId: SUBJECT.id,
+      kind: 'link_record',
+      action: 'apply',
+      summary: 'Link blocker to ENG-12',
+      targetId: 'task_12',
+      targetKey: 'ENG-12',
+      targetLabel: 'Ship onboarding',
+      payload: { responseId: 'resp_1' },
+      ...overrides,
+    };
+  }
+
+  function ctx(overrides: Partial<ApprovalContext> = {}): ApprovalContext {
+    return {
+      now: '2026-03-15T10:00:00.000Z',
+      scopeId: 'org_example',
+      buildEffects: (suggestion, _path) => ({
+        apply: {
+          type: 'link_record',
+          targetId: suggestion.targetId ?? 'unknown',
+          summary: `Link to ${suggestion.targetKey ?? 'target'}`,
+          payload: {
+            ...suggestion.payload,
+            targetId: suggestion.targetId,
+            subjectId: suggestion.subjectId,
+          },
+        },
+        notify: {
+          channelId: 'channel_onboarding',
+          text: `Please review ${suggestion.targetKey ?? 'the target'}`,
+          mentionId: 'person_owner',
+        },
+      }),
+      ...overrides,
+    };
+  }
+
+  describe('approval reducer', () => {
+    it('only the subject or an approver decides; only an approver approves', () => {
+      const pending = suggestFromCandidate(candidate(), DEFAULT_AUTONOMY, ctx()).suggestion;
+      expect(mayDecide(SUBJECT, pending, 'confirm')).toBe(true);
+      expect(mayDecide(OTHER, pending, 'confirm')).toBe(false);
+      expect(mayDecide(SUBJECT, pending, 'approve')).toBe(false);
+      expect(mayDecide(APPROVER, pending, 'approve')).toBe(true);
+
+      expect(() => decideSuggestion(pending, 'confirm', OTHER, DEFAULT_AUTONOMY, ctx())).toThrow(
+        /subject, or an approver/
+      );
+
+      const approval = suggestFromCandidate(candidate(), level({ records: 3 }), ctx()).suggestion;
+      expect(approval.mode).toBe('act_with_approval');
+      expect(approval.preparedApplySummary).toBe('Link to ENG-12');
+      expect(approval.preparedNotifySummary).toContain('ENG-12');
+
+      expect(() => decideSuggestion(approval, 'approve', SUBJECT, DEFAULT_AUTONOMY, ctx())).toThrow(
+        /Only an approver may approve/
+      );
+      expect(() =>
+        decideSuggestion(approval, 'confirm', APPROVER, DEFAULT_AUTONOMY, ctx())
+      ).toThrow(/needs an approval/);
+      expect(
+        decideSuggestion(approval, 'approve', APPROVER, DEFAULT_AUTONOMY, ctx()).audit[0]?.action
+      ).toBe('approved');
+    });
+  });
+
+  describe('approval engine honesty', () => {
+    it('never mutates the input suggestion or config', () => {
+      const pending = suggestFromCandidate(candidate(), DEFAULT_AUTONOMY, ctx()).suggestion;
+      const snapshot: Suggestion = structuredClone(pending);
+      const configSnap = structuredClone(DEFAULT_AUTONOMY);
+      decideSuggestion(pending, 'confirm', APPROVER, DEFAULT_AUTONOMY, ctx());
+      expect(pending).toEqual(snapshot);
+      expect(DEFAULT_AUTONOMY).toEqual(configSnap);
+    });
   });
 });

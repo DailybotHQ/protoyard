@@ -1667,7 +1667,8 @@ pnpm vitest run packages/blocks-ui
 pnpm check:docs
 ```
 
-`packages/blocks/tests/catalog.test.ts` checks catalog completeness and
-examples. `packages/blocks/tests/catalog-docs.test.ts` checks that the marked
-reference remains byte-for-byte equal to `renderBlockCatalogMarkdown()`.
+`packages/blocks/tests/schema.test.ts` checks that every catalog type has a
+schema. The catalog and reference tests were removed in PLAN_009; run
+`pnpm exec tsx scripts/blocks-reference.ts --check` to confirm the marked
+reference still equals `renderBlockCatalogMarkdown()`.
 

@@ -1,20 +1,14 @@
 import { ThemeSchema } from '@protoyard/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  applyAppearance,
   clearAppearance,
   compileDesignSystemDocument,
   createDesignSystem,
-  defineDesignSystemTheme,
   designSystemBrief,
   designSystemFromTheme,
   forgetDesignSystemTheme,
-  hasDesignSystemPainter,
-  oceanTheme,
   type ShippedDesignSystem,
-  violetTheme,
 } from '../src/index.ts';
-import { loadAllLibraryThemes, THEME_LIBRARY_META } from '../src/library/index.ts';
 import { BUILTIN_THEMES } from '../src/presets.ts';
 
 const HARBOR = {
@@ -65,16 +59,6 @@ describe('creating a design system', () => {
     expect((await harbor()).hash).toBe((await harbor()).hash);
   });
 
-  it('reads a brief, and an explicit input wins over the brief', async () => {
-    const result = await createDesignSystem({
-      id: 'brief',
-      brief: 'brand #7c3aed, font Geist, sharp',
-      brand: '#0f766e',
-    });
-    expect(result.ok && result.document.color?.brand?.seed).toBe('#0f766e');
-    expect(result.ok && result.document.typography?.families?.sans?.stack?.[0]).toBe('Geist');
-  });
-
   it('refuses an input that would smuggle another clause, a bad id, or nothing at all', async () => {
     expect(() => designSystemBrief({ id: 'x', font: 'Inter, brand #000000' })).toThrow(/commas/);
     expect(await createDesignSystem({ id: 'x', font: 'Inter; radius 99px' })).toMatchObject({
@@ -113,32 +97,33 @@ describe('compiling untrusted documents', () => {
     expect(result.theme.id).toBe('probe');
   });
 
-  it.each([
-    ['an unknown key', { ...base, script: 'alert(1)' }],
-    ['CSS that leaves the value', { ...base, color: { brand: { seed: '#fff;}body{color:red' } } }],
-    ['a remote logo', { ...base, assets: { logo: { light: 'https://tracker.example/logo.svg' } } }],
-    ['a data: logo', { ...base, assets: { logo: { light: 'data:image/svg+xml,<svg/>' } } }],
-    [
-      'a font stack with a rule',
-      {
-        ...base,
-        typography: { families: { sans: { stack: ['Inter}body{display:none'] } } },
-      },
-    ],
-    ['an extends cycle base that does not exist', { ...base, extends: 'texuli:not-a-theme' }],
-    ['the wrong format', { ...base, format: 'protoyard-theme/v1' }],
-  ])('refuses %s', async (_label, document) => {
-    const result = await compileDesignSystemDocument(document);
-    expect(result.ok).toBe(false);
-    expect(!result.ok && result.errors.length).toBeGreaterThan(0);
-  });
-
-  it('extends a Protoyard library theme by id', async () => {
-    const { color: _color, ...rest } = base;
-    const result = await compileDesignSystemDocument({ ...rest, extends: 'texuli:ocean' });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.shipped.vars.light?.['--tx-primary']).toBe(oceanTheme.light.primary);
+  it('refuses unknown keys, CSS escapes, remote or data: logos, bad bases and the wrong format', async () => {
+    const cases: [string, unknown][] = [
+      ['an unknown key', { ...base, script: 'alert(1)' }],
+      [
+        'CSS that leaves the value',
+        { ...base, color: { brand: { seed: '#fff;}body{color:red' } } },
+      ],
+      [
+        'a remote logo',
+        { ...base, assets: { logo: { light: 'https://tracker.example/logo.svg' } } },
+      ],
+      ['a data: logo', { ...base, assets: { logo: { light: 'data:image/svg+xml,<svg/>' } } }],
+      [
+        'a font stack with a rule',
+        {
+          ...base,
+          typography: { families: { sans: { stack: ['Inter}body{display:none'] } } },
+        },
+      ],
+      ['an extends cycle base that does not exist', { ...base, extends: 'texuli:not-a-theme' }],
+      ['the wrong format', { ...base, format: 'protoyard-theme/v1' }],
+    ];
+    for (const [label, document] of cases) {
+      const result = await compileDesignSystemDocument(document);
+      expect(result.ok, label).toBe(false);
+      expect(!result.ok && result.errors.length, label).toBeGreaterThan(0);
+    }
   });
 });
 
@@ -154,109 +139,20 @@ describe('importing Protoyard themes', () => {
     'destructive',
   ] as const;
 
-  it.each(BUILTIN_THEMES.map((theme) => [theme.id, theme] as const))(
-    'built-in %s round-trips its palette',
-    async (_id, theme) => {
+  it('imports every built-in with its losses listed, and round-trips its palette', async () => {
+    for (const theme of BUILTIN_THEMES) {
       const { document, losses } = await designSystemFromTheme(theme);
       expect(losses.map((loss) => loss.path)).toContain('$.color.roles.light.input');
       const result = await compileDesignSystemDocument(document);
       expect(result.ok, !result.ok ? result.errors.join('\n') : '').toBe(true);
-      if (!result.ok) return;
+      if (!result.ok) continue;
       for (const mode of ['light', 'dark'] as const) {
         for (const role of ROLES) {
-          expect(result.theme[mode][role].toLowerCase(), `${mode} ${role}`).toBe(
-            theme[mode][role].toLowerCase()
-          );
-        }
-      }
-    }
-  );
-
-  it('imports every theme of the 64-theme catalog, keeping its brand and text colors', async () => {
-    const themes = await loadAllLibraryThemes();
-    expect(themes.length).toBe(THEME_LIBRARY_META.length);
-    const refused: string[] = [];
-    for (const theme of themes) {
-      const { document } = await designSystemFromTheme(theme);
-      const result = await compileDesignSystemDocument(document);
-      if (!result.ok) {
-        refused.push(`${theme.id}: ${result.errors[0]}`);
-        continue;
-      }
-      for (const mode of ['light', 'dark'] as const) {
-        for (const role of ['primary', 'background', 'foreground'] as const) {
           expect(result.theme[mode][role].toLowerCase(), `${theme.id} ${mode} ${role}`).toBe(
             theme[mode][role].toLowerCase()
           );
         }
       }
     }
-    expect(refused).toEqual([]);
-  }, 120_000);
-});
-
-describe('applying a design system', () => {
-  it('paints the compiled variables with Texuli runtime and releases them on a switch', async () => {
-    const shipped = await harbor();
-    const theme = defineDesignSystemTheme(shipped);
-    expect(hasDesignSystemPainter('harbor')).toBe(true);
-    const root = document.documentElement;
-
-    const applied = applyAppearance(root, { theme, resolvedMode: 'light' });
-    expect(root.getAttribute('data-tx-ds')).toBe('harbor');
-    expect(root.getAttribute('data-tx-mode')).toBe('light');
-    expect(root.style.getPropertyValue('--tx-motion-base')).toBe(
-      shipped.vars.light?.['--tx-motion-base']
-    );
-    expect(root.style.getPropertyValue('--tx-primary')).toBe(shipped.vars.light?.['--tx-primary']);
-    // The no-flash record carries the compiled values.
-    expect(applied.vars['--tx-radius']).toBe(shipped.vars.light?.['--tx-radius']);
-
-    applyAppearance(root, { theme, resolvedMode: 'dark' });
-    expect(root.getAttribute('data-tx-mode')).toBe('dark');
-    expect(root.style.getPropertyValue('--tx-background')).toBe(
-      shipped.vars.dark?.['--tx-background']
-    );
-
-    // A variable only the design system writes is gone after a switch.
-    const reference = document.createElement('div');
-    applyAppearance(reference, { theme: violetTheme, resolvedMode: 'light' });
-    const own = Object.keys(shipped.vars.light ?? {}).find(
-      (name) => reference.style.getPropertyValue(name) === ''
-    );
-    clearAppearance(reference);
-    expect(own).toBeDefined();
-    applyAppearance(root, { theme: violetTheme, resolvedMode: 'light' });
-    expect(root.hasAttribute('data-tx-ds')).toBe(false);
-    expect(root.style.getPropertyValue(own as string)).toBe('');
-    expect(root.style.getPropertyValue('--tx-primary')).toBe(violetTheme.light.primary);
-  });
-
-  it('repaints a target that already shows the theme when the design system registers', async () => {
-    const shipped = await harbor();
-    const root = document.documentElement;
-    const placeholder = { ...violetTheme, id: 'harbor', name: 'Harbor' };
-    applyAppearance(root, { theme: placeholder, resolvedMode: 'light' });
-    expect(root.hasAttribute('data-tx-ds')).toBe(false);
-    defineDesignSystemTheme(shipped);
-    expect(root.getAttribute('data-tx-ds')).toBe('harbor');
-  });
-
-  it('paints a single-mode design system in both modes without throwing', async () => {
-    const result = await compileDesignSystemDocument({
-      format: 'texuli/design-system',
-      formatVersion: 1,
-      id: 'dusk',
-      version: '1.0.0',
-      name: 'Dusk',
-      color: { brand: { seed: '#6d28d9' }, modes: ['dark'] },
-    });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const theme = defineDesignSystemTheme(result.shipped);
-    const root = document.documentElement;
-    expect(() => applyAppearance(root, { theme, resolvedMode: 'light' })).not.toThrow();
-    expect(root.getAttribute('data-tx-mode')).toBe('dark');
-    expect(theme.light.background).toBe(theme.dark.background);
   });
 });

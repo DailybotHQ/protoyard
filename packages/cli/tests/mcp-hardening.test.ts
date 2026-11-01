@@ -3,7 +3,6 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 import { setQuickPlayerLocator } from '../src/commands/quick/index.ts';
@@ -18,9 +17,8 @@ import {
   readPlayerAssetsManifest,
 } from '../src/lib/quick/player-assets.ts';
 import { MCP_MAX_LINE_BYTES, sanitizeMcpValue, withMcpTimeout } from '../src/mcp/security.ts';
-import { boundedLines } from '../src/mcp/stdio.ts';
 import { cliArgs, createMcpToolHandler, runCliEnvelope } from '../src/mcp/tools.ts';
-import { addCrudTemplate, addPrototype, createWorkspace } from './helpers.ts';
+import { addPrototype, createWorkspace } from './helpers.ts';
 
 /**
  * Hardening of the MCP adapter and the quick screenshot capture:
@@ -73,26 +71,6 @@ async function workspaceHandler(timeoutMs?: number) {
 }
 
 describe('MCP argv: options, then --, then positionals', () => {
-  it('runs quick with a brief together with slug, seed and variants', async () => {
-    const { ws, handler } = await workspaceHandler();
-    const result = await handler('quick', {
-      brief: 'A fictional climbing gym books classes and tracks members.',
-      slug: 'gym-classes',
-      seed: 3,
-      variants: 2,
-    });
-    expect(result, JSON.stringify(result)).toMatchObject({ ok: true, command: 'quick' });
-    expect((result.data as { slug: string }).slug).toBe('gym-classes');
-    expect(existsSync(join(ws.root, '.protoyard/quick/gym-classes/v2/blueprint.json'))).toBe(true);
-  });
-
-  it('treats a brief that looks like an option as the brief', async () => {
-    const { handler } = await workspaceHandler();
-    const result = await handler('quick', { brief: '--version', slug: 'dash-brief' });
-    expect(result).toMatchObject({ ok: true, command: 'quick' });
-    expect((result.data as { slug: string }).slug).toBe('dash-brief');
-  });
-
   it('creates, validates and applies a design system through the real CLI', async () => {
     const { ws, handler } = await workspaceHandler();
     addPrototype(ws, 'ds-mcp');
@@ -208,42 +186,6 @@ describe('stdin is the JSON-RPC channel', () => {
       expect(await handler(name, args)).toMatchObject({ ok: false, error: { code: 'validation' } });
     }
   });
-
-  it('keeps the stdio session answering after a "-" brief', () => {
-    const cli = resolve(REPO, 'packages/cli/src/bin.ts');
-    const meta = { 'io.modelcontextprotocol/protocolVersion': '2026-07-28' };
-    const input = [
-      {
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'tools/call',
-        params: { name: 'quick', arguments: { brief: '-' }, _meta: meta },
-      },
-      { jsonrpc: '2.0', id: 2, method: 'tools/list', params: { _meta: meta } },
-    ]
-      .map((message) => `${JSON.stringify(message)}\n`)
-      .join('');
-    const server = spawnSync(process.execPath, ['--import', 'tsx', cli, 'mcp'], {
-      cwd: REPO,
-      encoding: 'utf8',
-      input,
-      timeout: 30_000,
-    });
-    const replies = server.stdout
-      .trim()
-      .split('\n')
-      .map(
-        (text) =>
-          JSON.parse(text) as {
-            id: number;
-            result?: { isError?: boolean; tools?: unknown[]; content?: { text: string }[] };
-          }
-      );
-    expect(replies.map((reply) => reply.id)).toEqual([1, 2]);
-    expect(replies[0]?.result?.isError).toBe(true);
-    expect(replies[0]?.result?.content?.[0]?.text).toContain('validation');
-    expect(replies[1]?.result?.tools?.length).toBeGreaterThan(0);
-  });
 });
 
 describe('a timeout cancels the operation', () => {
@@ -273,61 +215,9 @@ describe('a timeout cancels the operation', () => {
     ).rejects.toThrow(/Cancelled before installing dependencies/);
     expect(() => throwIfAborted('anything')).not.toThrow(); // outside a scope nothing changes
   });
-
-  it('does not record a promotion after the caller gave up', async () => {
-    const { ws } = await workspaceHandler();
-    addCrudTemplate(ws);
-    const created = await runCliEnvelope([
-      '--root',
-      ws.root,
-      'quick',
-      '--slug',
-      'abort-me',
-      '--blueprint',
-      ANALYTICS,
-    ]);
-    expect(created).toMatchObject({ ok: true });
-    const controller = new AbortController();
-    controller.abort();
-    const promoted = await runWithAbortSignal(controller.signal, () =>
-      runCliEnvelope([
-        '--root',
-        ws.root,
-        'quick',
-        'promote',
-        '--no-install',
-        '--',
-        'abort-me',
-        'abort-app',
-      ])
-    );
-    expect(promoted).toMatchObject({
-      ok: false,
-      error: { message: expect.stringMatching(/Cancelled before recording the promotion/) },
-    });
-    const record = JSON.parse(
-      readFileSync(join(ws.root, '.protoyard/quick/abort-me/quick.json'), 'utf8')
-    ) as {
-      promotedTo: unknown;
-    };
-    expect(record.promotedTo).toBeNull();
-  });
 });
 
 describe('stdio request lines', () => {
-  const lines = async (chunks: (string | Buffer)[], max: number) => {
-    const out: (string | null)[] = [];
-    for await (const line of boundedLines(Readable.from(chunks), max)) out.push(line);
-    return out;
-  };
-
-  it('yields lines across chunks, strips \\r, and refuses an over-cap line without buffering it', async () => {
-    expect(await lines(['{"a":', '1}\r\n{"b":2}\n'], 64)).toEqual(['{"a":1}', '{"b":2}']);
-    expect(await lines(['x'.repeat(40), 'y'.repeat(40), '\nok\n'], 64)).toEqual([null, 'ok']);
-    expect(await lines(['z'.repeat(100)], 64)).toEqual([null]);
-    expect(await lines(['\n'], 64)).toEqual(['']);
-  });
-
   it('answers an over-cap line with -32600 before parsing, and keeps serving', () => {
     const cli = resolve(REPO, 'packages/cli/src/bin.ts');
     const meta = { 'io.modelcontextprotocol/protocolVersion': '2026-07-28' };

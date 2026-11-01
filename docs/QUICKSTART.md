@@ -307,7 +307,7 @@ pnpm protoyard validate my-idea --build    # …plus a production build
 pnpm protoyard build my-idea               # → artifacts/my-idea/dist + build-manifest.json
 pnpm protoyard export my-idea              # build + isolation check + ZIP
 pnpm protoyard preview my-idea             # http://127.0.0.1:4173/, like a static host
-pnpm vitest run prototypes/my-idea         # the prototype's own tests
+pnpm vitest run prototypes/my-idea         # the prototype's own tests (a template-made prototype has none until you add one)
 ```
 
 Real output for the CRM demo, captured on 2026-10-20 (sizes, counts and

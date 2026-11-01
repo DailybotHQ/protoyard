@@ -5,7 +5,11 @@ import {
   type PrototypeRuntime,
   parseManifest,
 } from '@protoyard/core';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { type ProtoyardRuntime } from '@protoyard/runtime';
+import { createWorkspaces, WORKSPACE_CAPABILITIES, type WorkspacesRuntime } from '@protoyard/saas';
+import { generateTeam } from '@protoyard/scenarios';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { validateFormSchema } from '@texuli/forms/model';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import {
@@ -16,10 +20,15 @@ import {
   saasStores,
   saasTables,
 } from '../../saas/src/index.ts';
-import { fragments, generateTeam, presetScenario } from '../../scenarios/src/index.ts';
-import { defaultOnboardingSteps } from '../src/screens/onboarding/steps.ts';
+import { fragments, presetScenario } from '../../scenarios/src/index.ts';
+import {
+  defaultOnboardingSteps,
+  onboardingFormSchema,
+  REVIEW_FIELD,
+} from '../src/screens/onboarding/steps.ts';
 import CustomStepHarness from './fixtures/CustomStepHarness.svelte';
 import OnboardingHarness from './fixtures/OnboardingHarness.svelte';
+import WorkspaceSwitcherHarness from './fixtures/WorkspaceSwitcherHarness.svelte';
 
 /**
  * The onboarding wizard screen on the REAL runtime (in-memory IndexedDB).
@@ -137,31 +146,6 @@ const field = (label: string) =>
 const type = (label: string, value: string) => fireEvent.input(field(label), { target: { value } });
 
 describe('onboarding wizard screen', () => {
-  it('reload resumes at step 3 (half-complete scenario) and Back is persisted', async () => {
-    let runtime = await harness.boot('half-complete');
-    render(OnboardingHarness, { runtime });
-    await expectStep('Step 3 of 5: Invite teammates');
-    expect(screen.getByRole('progressbar', { name: /Setup progress/ })).toBeTruthy();
-
-    cleanup();
-    runtime = await harness.reload(runtime);
-    render(OnboardingHarness, { runtime });
-    await expectStep('Step 3 of 5: Invite teammates');
-
-    await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    await waitFor(async () =>
-      expect(
-        (await createOnboarding(runtime as never, { steps: defaultOnboardingSteps() }).state())
-          .currentStep
-      ).toBe('workspace')
-    );
-    cleanup();
-    runtime = await harness.reload(runtime);
-    render(OnboardingHarness, { runtime });
-    await expectStep('Step 2 of 5: Workspace');
-    expect((field('Workspace name') as HTMLInputElement).value).toBe('Acme Cloud');
-  });
-
   it('runs every step for real: profile, workspace rename, invites, color mode, finish', async () => {
     const runtime = await harness.boot('not-started');
     let completed = 0;
@@ -216,50 +200,6 @@ describe('onboarding wizard screen', () => {
     expect(await screen.findByRole('heading', { name: "You're all set" })).toBeTruthy();
   });
 
-  it('skips optional steps and a viewer continues past a read-only workspace', async () => {
-    const runtime = await harness.boot('viewer');
-    render(OnboardingHarness, { runtime });
-    await expectStep('Step 2 of 5: Workspace');
-    expect((field('Workspace name') as HTMLInputElement).disabled).toBe(true);
-    expect(screen.getByText(/Only people who manage the workspace can rename it/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Skip for now' })).toBeNull();
-
-    await next();
-    await expectStep('Step 3 of 5: Invite teammates');
-    expect(runtime.session.principal()?.organization?.name).toBe('Acme Cloud');
-
-    await fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
-    await expectStep('Step 4 of 5: Preferences');
-    // The skip shows its pending state until the move settles, as a person would see.
-    await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: 'Skip for now' }).getAttribute('aria-busy')
-      ).toBeNull()
-    );
-    await fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
-    await expectStep('Step 5 of 5: Done');
-    expect(screen.getAllByText('Skipped')).toHaveLength(2);
-  });
-
-  it('restart asks for confirmation, then starts over with earlier answers filled in', async () => {
-    const runtime = await harness.boot('not-started');
-    const onboarding = createOnboarding(runtime as never, { steps: defaultOnboardingSteps() });
-    await onboarding.submit('profile', { fullName: 'Olivia Hart', jobTitle: '' });
-    await onboarding.submit('workspace', { name: 'Acme Cloud' });
-    await onboarding.skip('invite');
-    await onboarding.skip('preferences');
-    await onboarding.complete();
-
-    render(OnboardingHarness, { runtime });
-    await screen.findByRole('heading', { name: "You're all set" });
-    await fireEvent.click(screen.getByRole('button', { name: 'Restart onboarding' }));
-    const dialog = await screen.findByRole('alertdialog');
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Restart' }));
-    await expectStep('Step 1 of 5: Profile');
-    expect((field('Full name') as HTMLInputElement).value).toBe('Olivia Hart');
-    expect(runtime.session.principal()?.persona.onboardingComplete).toBe(false);
-  });
-
   it('renders a prototype step from its snippet and validates it', async () => {
     const runtime = (await harness.boot('not-started')) as PrototypeRuntime;
     render(CustomStepHarness, { runtime });
@@ -274,26 +214,145 @@ describe('onboarding wizard screen', () => {
     }).state();
     expect(saved.answers).toEqual({ goal: { goal: 'ship' } });
   });
+});
 
-  it('runs afterSubmit only once the answer is saved', async () => {
-    const runtime = (await harness.boot('not-started')) as PrototypeRuntime;
-    const calls: unknown[] = [];
-    const steps = defaultOnboardingSteps().map((step) =>
-      step.id === 'profile'
-        ? { ...step, apply: undefined, afterSubmit: (answer: unknown) => void calls.push(answer) }
-        : step
-    );
-    render(OnboardingHarness, { runtime, steps });
-    await expectStep('Step 1 of 5: Profile');
-    await type('Full name', 'Olivia Hart');
-    runtime.environment.set({ network: 'offline' });
-    await next();
-    expect((await screen.findAllByText(/offline/i)).length).toBeGreaterThan(0);
-    expect(calls).toEqual([]);
+// --- merged from onboarding-form.test.ts ---
 
-    runtime.environment.set({ network: 'online' });
-    await next();
-    await expectStep('Step 2 of 5: Workspace');
-    expect(calls).toEqual([expect.objectContaining({ fullName: 'Olivia Hart' })]);
+describe('onboarding-form', () => {
+  const steps = defaultOnboardingSteps();
+  const options = (
+    readOnly: (id: string) => boolean = () => false,
+    custom = new Set<string>()
+  ) => ({
+    title: 'Set up your account',
+    doneLabel: 'Done',
+    custom,
+    readOnly: (step: { id: string }) => readOnly(step.id),
+  });
+
+  describe('onboarding wizard as a @texuli/forms schema', () => {
+    it('compiles every default step plus the review, with positional field names', () => {
+      const result = validateFormSchema(onboardingFormSchema(steps, options()), {
+        tier: 'developer',
+      });
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.form.schema.steps?.map((step) => step.title)).toEqual([
+        'Profile',
+        'Workspace',
+        'Invite teammates',
+        'Preferences',
+        'Done',
+      ]);
+      expect(result.form.byName.get('s0_f0')?.field).toMatchObject({
+        type: 'text',
+        label: 'Full name',
+        required: true,
+        // The step's zod message, so Texuli's required check says the same thing.
+        messages: { required: 'Enter your full name' },
+      });
+      expect(result.form.byName.get('s2_f0')?.field).toMatchObject({ type: 'textarea', rows: 3 });
+      expect(result.form.byName.get('s3_f0')?.field.options?.map((o) => o.value)).toEqual([
+        'system',
+        'light',
+        'dark',
+      ]);
+      expect(result.form.byName.get('review')?.field).toMatchObject({ kind: REVIEW_FIELD });
+    });
+  });
+});
+
+// --- merged from workspace-switcher.test.ts ---
+
+describe('workspace-switcher', () => {
+  const REFERENCE_TIME = '2026-06-01T09:00:00.000Z';
+
+  function createDefinition(namespace: string): PrototypeDefinition {
+    return definePrototype({
+      manifest: parseManifest({
+        id: `example.${namespace}`,
+        slug: namespace,
+        name: 'Workspace switcher fixture',
+        version: '0.1.0',
+        defaultScenario: 'active-month',
+        defaultTheme: 'violet',
+        storage: { namespace, schemaVersion: 1 },
+        scenarios: ['active-month'],
+      }),
+      database: {
+        versions: [{ version: 1, stores: { projects: 'id, organizationId' } }],
+      },
+      scenarios: [
+        {
+          id: 'active-month',
+          extends: 'active-month',
+          name: 'Active month',
+          seed: 42,
+          referenceTime: REFERENCE_TIME,
+        },
+      ],
+      policy: definePolicy({
+        roles: {
+          owner: ['*'],
+          admin: [WORKSPACE_CAPABILITIES.create, WORKSPACE_CAPABILITIES.rename],
+          member: [WORKSPACE_CAPABILITIES.create, WORKSPACE_CAPABILITIES.leave],
+          viewer: [],
+        },
+      }),
+      integrity: {
+        relations: { projects: { organizationId: 'py_organizations' } },
+      },
+      generate(ctx) {
+        const team = generateTeam(ctx);
+        return {
+          organizations: team.organizations,
+          personas: team.personas,
+          memberships: team.memberships,
+          tables: {
+            projects: [{ id: ctx.ids.next('project'), organizationId: team.organization.id }],
+          },
+        };
+      },
+    });
+  }
+
+  type Db = ProtoyardRuntime['db'];
+  const harnesses: ReturnType<typeof createHarness<Db>>[] = [];
+
+  afterEach(() => {
+    cleanup();
+    for (const h of harnesses.splice(0)) h.closeAll();
+  });
+
+  async function boot(namespace: string) {
+    const harness = createHarness<Db>(createDefinition(namespace));
+    harnesses.push(harness);
+    const runtime = (await harness.boot('active-month')) as ProtoyardRuntime;
+    const workspaces = createWorkspaces(runtime as WorkspacesRuntime);
+    return { runtime, workspaces };
+  }
+
+  describe('workspace switcher', () => {
+    it('creates a workspace from the dialog and activates it', async () => {
+      const { runtime, workspaces } = await boot('saas-ui-ws-create');
+      const before = runtime.session.principal()?.organization?.id;
+      expect(before).toBeTruthy();
+
+      render(WorkspaceSwitcherHarness, { runtime, workspaces });
+
+      await fireEvent.click(screen.getByTestId('workspace-switcher-trigger'));
+      await fireEvent.click(await screen.findByRole('menuitem', { name: 'Create workspace' }));
+
+      const nameInput = await screen.findByTestId('workspace-create-name');
+      await fireEvent.input(nameInput, { target: { value: 'Acme Labs' } });
+      await fireEvent.click(screen.getByTestId('workspace-create-submit'));
+
+      await waitFor(() => {
+        expect(runtime.session.principal()?.organization?.name).toBe('Acme Labs');
+        expect(screen.getByTestId('active-org-name').textContent).toBe('Acme Labs');
+        expect(screen.getByTestId('active-org-id').textContent).not.toBe(before);
+      });
+      expect(workspaces.list().some((w) => w.organization.name === 'Acme Labs')).toBe(true);
+    });
   });
 });

@@ -52,6 +52,8 @@ function envPort(name: string, fallback: number): number {
 }
 
 const GALLERY_PORT = envPort('PROTOYARD_E2E_GALLERY_PORT', 4329);
+/** The gallery server runs unless PROTOYARD_E2E_GALLERY=0. */
+const gallery = process.env.PROTOYARD_E2E_GALLERY !== '0';
 // Both values end up in shell webServer commands: accept only safe shapes.
 const SLUG = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const prototypes = (process.env.PROTOYARD_E2E_PROTOTYPES ?? '')
@@ -148,22 +150,32 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
+  // Project tags: a test tagged `@desktop` runs only on chromium, `@mobile` only on the
+  // phone project; untagged tests run on both. Filtering here (not with a runtime skip)
+  // keeps one-project tests out of `--list` for the other project.
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', grepInvert: /@mobile\b/, use: { ...devices['Desktop Chrome'] } },
     // Chromium with a phone viewport + touch: CI only installs Chromium.
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    { name: 'mobile', grepInvert: /@desktop\b/, use: { ...devices['Pixel 7'] } },
   ],
   webServer: [
-    {
-      command: `pnpm protoyard index --quiet && pnpm --filter @protoyard/gallery exec astro build && pnpm --filter @protoyard/gallery exec astro preview --ignore-lock --host 127.0.0.1 --port ${GALLERY_PORT}`,
-      url: `http://127.0.0.1:${GALLERY_PORT}/`,
-      reuseExistingServer: !ci,
-      timeout: 180_000,
-    },
+    // PROTOYARD_E2E_GALLERY=0 skips the gallery build, for a run that only needs
+    // other servers (CI splits the suite by the servers each group builds).
+    ...(gallery
+      ? [
+          {
+            command: `pnpm protoyard index --quiet && pnpm --filter @protoyard/gallery exec astro build && pnpm --filter @protoyard/gallery exec astro preview --ignore-lock --host 127.0.0.1 --port ${GALLERY_PORT}`,
+            url: `http://127.0.0.1:${GALLERY_PORT}/`,
+            reuseExistingServer: !ci,
+            timeout: 180_000,
+          },
+        ]
+      : []),
     ...(showcase
       ? [
           {
-            command: `pnpm protoyard showcase --base ${showcaseBase} --serve --port ${SHOWCASE_PORT} --strict-port`,
+            // No template demos: no spec opens them, and they are most of the build.
+            command: `pnpm protoyard showcase --base ${showcaseBase} --no-templates --serve --port ${SHOWCASE_PORT} --strict-port`,
             url: `http://127.0.0.1:${SHOWCASE_PORT}${showcaseBase}`,
             reuseExistingServer: !ci,
             timeout: 600_000,

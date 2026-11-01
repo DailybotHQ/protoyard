@@ -183,8 +183,8 @@ Measured 2026-10-24 on the Apple M1 Max (10 cores, 64 GB), macOS 27.0, Node
 | LTTB, 10,000 points → 1,600 (Node, median) | 0.20–0.27 ms | < 2 ms | `pnpm exec tsx scripts/bench-charts.ts --skip-browser --check` (two runs) |
 | Scale + LTTB + path, 10,000 points (Node, median) | 0.86–0.97 ms | — | same |
 | Scale + LTTB + path, 100,000 points (Node, median) | 5.44–25.11 ms | — | same (machine shared with other builds) |
-| Sparkline added to a first screen (Vite build, gzip, `sparkline-lite`) | 3,520 B on Texuli 0.9.0 (3,539 B on 0.5.0, 5,927 B on 0.3.0) | ≤ 3,696 B (was 3,716 B) | `pnpm vitest run packages/cli/tests/charts-bundle.test.ts` |
-| LineChart + BarChart view (lazy, gzip) | 12,718 B on Texuli 0.9.0 (11,167 B on 0.5.0) | ≤ 13,354 B (was 17,000 B) | same |
+| Sparkline added to a first screen (Vite build, gzip, `sparkline-lite`) | 3,520 B on Texuli 0.9.0 (3,539 B on 0.5.0, 5,927 B on 0.3.0) | none since PLAN_009 (was ≤ 3,696 B, guarded by the removed `charts-bundle.test.ts`) | — |
+| LineChart + BarChart view (lazy, gzip) | 12,718 B on Texuli 0.9.0 (11,167 B on 0.5.0) | ≤ 13,354 B (was 17,000 B) | `pnpm exec tsx scripts/bench-charts.ts --skip-browser --check` |
 
 Whole family subpaths (every component, gzip level 9, beyond the app entry),
 from the same bench: cartesian 13,466 B, part-whole 9,819 B, matrix 15,923 B,
@@ -216,8 +216,7 @@ chart code and are kept there as history only.
 
 ```bash
 pnpm vitest run packages/charts packages/charts-ui                # unit (happy-dom)
-pnpm vitest run packages/cli/tests/charts-bundle.test.ts          # real Vite build, size ceilings
-pnpm exec tsx scripts/bench-charts.ts --skip-browser --check      # Node math and family sizes
+pnpm exec tsx scripts/bench-charts.ts --skip-browser --check      # Node math, family sizes, line + bar ceiling
 PROTOYARD_E2E_PROTOTYPES=ui-kit pnpm test:e2e tests/e2e/charts.spec.ts
 ```
 

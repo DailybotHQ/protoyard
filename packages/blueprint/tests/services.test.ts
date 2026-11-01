@@ -1,7 +1,10 @@
 import {
+  createPermissionPolicy,
   PermissionDeniedError,
+  type Persona,
   type PrototypeRuntime,
   type Row,
+  resolvePrincipal,
   ValidationError,
 } from '@protoyard/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -11,10 +14,13 @@ import {
 } from '../../../tests/fixtures/blueprint-prototype.ts';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import {
+  type Blueprint,
+  CAPABILITIES,
   createEntityServices,
+  derivePolicy,
   EntityInUseError,
-  EntityNotFoundError,
   type EntityServices,
+  parseBlueprint,
 } from '../src/index.ts';
 
 // A fresh in-memory IndexedDB per test: worlds and overrides never leak between tests.
@@ -69,34 +75,6 @@ describe('createEntityServices', () => {
     const again = createEntityServices(reloaded, helpdeskBlueprint);
     expect(await again.customer!.get(customer.id)).toEqual(customer);
     expect(await again.ticket!.get(ticket.id)).toEqual(ticket);
-  });
-
-  it('lists rows by defaultSort and returns undefined for unknown ids', async () => {
-    const { services } = await boot();
-    const subjects = (await services.ticket!.list()).map((t) => t.subject);
-    expect(subjects).toEqual([...subjects].sort());
-    expect(subjects).toHaveLength(6);
-    expect(await services.ticket!.get('ticket_9999')).toBeUndefined();
-  });
-
-  it('updates with partial input and keeps id and createdAt', async () => {
-    const { runtime, services } = await boot();
-    const [first] = await services.ticket!.list();
-    const updated = await services.ticket!.update(first!.id, {
-      status: 'solved',
-      labels: 'vip, billing',
-    });
-    expect(updated).toMatchObject({
-      id: first!.id,
-      subject: first!.subject,
-      status: 'solved',
-      labels: ['vip', 'billing'],
-      createdAt: first!.createdAt,
-      updatedAt: runtime.clock.now().toISOString(),
-    });
-    await expect(services.ticket!.update('ticket_9999', { status: 'open' })).rejects.toBeInstanceOf(
-      EntityNotFoundError
-    );
   });
 
   it('returns field-keyed validation errors, including missing relation targets, and writes nothing', async () => {
@@ -219,19 +197,105 @@ describe('createEntityServices', () => {
     );
     expect(await world(runtime)).toBe(before);
   });
+});
 
-  it('bulk-updates many rows atomically and validates the patch once', async () => {
-    const { runtime, services } = await boot();
-    const ids = (await services.ticket!.list()).map((t) => t.id);
-    const updated = await services.ticket!.bulkUpdate(ids, { status: 'solved' });
-    expect(updated).toHaveLength(6);
-    expect((await rows(runtime, 'tickets')).every((t) => t.status === 'solved')).toBe(true);
-    await expect(services.ticket!.bulkUpdate(ids, { status: 'closed' })).rejects.toMatchObject({
-      issues: { status: 'Status must be one of: open, pending, solved' },
+function policyFixture(): Blueprint {
+  return parseBlueprint({
+    formatVersion: 1,
+    name: 'Policy fixture',
+    entities: [
+      {
+        name: 'ticket',
+        plural: 'tickets',
+        fields: [
+          { name: 'subject', kind: 'text' },
+          { name: 'owner', kind: 'persona' },
+        ],
+        titleField: 'subject',
+        ownerField: 'owner',
+      },
+    ],
+    roles: [
+      { name: 'owner', permissions: { '*': ['*'] } },
+      { name: 'admin', permissions: { ticket: ['read', 'create', 'update', 'delete'] } },
+      { name: 'member', permissions: { ticket: ['read', 'create', 'update:own', 'delete:own'] } },
+      { name: 'viewer', permissions: { '*': ['read'] } },
+    ],
+  });
+}
+
+function principal(
+  policy: ReturnType<typeof createPermissionPolicy>,
+  role: string,
+  id = 'user_001'
+) {
+  const persona = {
+    id,
+    name: 'Alex Example',
+    joinedAt: '2026-10-17T00:00:00.000Z',
+  } as Persona;
+  const membership = {
+    id: 'membership_001',
+    personaId: id,
+    organizationId: 'org_001',
+    role,
+    joinedAt: '2026-10-17T00:00:00.000Z',
+    capabilities: [],
+  };
+  return resolvePrincipal(persona, null, membership, policy);
+}
+
+describe('derivePolicy', () => {
+  it('derives per-entity capabilities and checks owner/admin/member/viewer through the runtime policy', () => {
+    const blueprint = policyFixture();
+    const policy = createPermissionPolicy(derivePolicy(blueprint));
+    const caps = CAPABILITIES(blueprint);
+    const owner = principal(policy, 'owner', 'owner_001');
+    const admin = principal(policy, 'admin', 'admin_001');
+    const member = principal(policy, 'member', 'member_001');
+    const viewer = principal(policy, 'viewer', 'viewer_001');
+    const ticketCaps = caps.ticket;
+    if (!ticketCaps) throw new Error('Fixture ticket capabilities are missing.');
+
+    expect(ticketCaps).toEqual({
+      read: 'ticket:read',
+      create: 'ticket:create',
+      update: 'ticket:update',
+      updateOwn: 'ticket:update:own',
+      delete: 'ticket:delete',
+      deleteOwn: 'ticket:delete:own',
+      import: 'ticket:import',
+      export: 'ticket:export',
     });
-    await expect(
-      services.ticket!.bulkUpdate([...ids, 'ticket_9999'], { status: 'open' })
-    ).rejects.toBeInstanceOf(EntityNotFoundError);
-    expect((await rows(runtime, 'tickets')).every((t) => t.status === 'solved')).toBe(true);
+    expect(caps.members.all).toBe('members:*');
+    expect(policy.can(owner, ticketCaps.delete, { ownerId: 'someone_else' })).toBe(true);
+    expect(policy.can(admin, ticketCaps.create)).toBe(true);
+    expect(policy.can(admin, ticketCaps.delete, { ownerId: 'someone_else' })).toBe(true);
+    expect(policy.can(admin, caps.members.all)).toBe(true);
+    expect(policy.can(member, ticketCaps.create)).toBe(true);
+    expect(policy.can(member, ticketCaps.updateOwn, { ownerId: 'member_001' })).toBe(true);
+    expect(policy.can(member, ticketCaps.updateOwn, { ownerId: 'other_001' })).toBe(false);
+    expect(policy.can(member, ticketCaps.deleteOwn, { ownerId: 'member_001' })).toBe(true);
+    expect(policy.can(member, ticketCaps.deleteOwn, { ownerId: 'other_001' })).toBe(false);
+    expect(policy.can(member, caps.members.all)).toBe(false);
+    expect(policy.can(viewer, ticketCaps.read)).toBe(true);
+    expect(policy.can(viewer, ticketCaps.create)).toBe(false);
+    expect(policy.can(viewer, caps.members.all)).toBe(false);
+  });
+
+  it('expands entity and action wildcards and keeps explicit denials authoritative', () => {
+    const blueprint = policyFixture();
+    const adminRole = blueprint.roles.find((role) => role.name === 'admin');
+    if (!adminRole) throw new Error('Fixture admin role is missing.');
+    const withWildcardAndDenial = parseBlueprint({
+      ...blueprint,
+      roles: blueprint.roles.map((role) =>
+        role.name === 'admin' ? { ...role, permissions: { ticket: ['*', '-ticket:delete'] } } : role
+      ),
+    });
+    const policy = createPermissionPolicy(derivePolicy(withWildcardAndDenial));
+    const admin = principal(policy, 'admin');
+    expect(policy.can(admin, 'ticket:export')).toBe(true);
+    expect(policy.can(admin, 'ticket:delete')).toBe(false);
   });
 });

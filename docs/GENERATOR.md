@@ -196,9 +196,9 @@ before kinds existed is an app. Content kinds are first-class for validate, gene
 player and `protoyard quick`.
 
 - `kind: "app"` is accepted and removed when the blueprint is parsed, so an app with and without it
-  has one content identity (share links, player namespaces and world caches do not change). A
-  golden file, `packages/blueprint/tests/fixtures/identity-golden.json`, freezes the identity of
-  every shipped blueprint.
+  has one content identity (share links, player namespaces and world caches do not change).
+  `packages/blueprint/tests/migrations.test.ts` pins the identity of a representative blueprint
+  (the per-blueprint golden file was removed in PLAN_009).
 - `kind: "deck"`, `kind: "page"` and `kind: "doc"` are content kinds. They share the root keys
   `formatVersion`, `name`, `description`, `catalog`, `tags`, `icon`, `category`, `brand` and
   `motion`,
@@ -660,8 +660,9 @@ has the same identity and derives the same database versions. Only when every
 check passes does it record `promotedTo` (`slug`, `variant`, `at`) in
 `quick.json`. A failing check exits 4 and leaves `quick.json` as it was. Since
 both paths build from the same blueprint, the generated prototype seeds the
-same world as the player for the same scenario; `packages/cli/tests/quick-promote.test.ts`
-proves it on a real promotion. Then continue with the usual loop:
+same world as the player for the same scenario (the test that proved it on a real promotion was
+removed in PLAN_009; `packages/blueprint/tests/runtime-parity.test.ts` still compares a generated
+prototype with the player). Then continue with the usual loop:
 `pnpm vitest run prototypes/my-idea` and `pnpm protoyard validate my-idea --build`.
 
 ## What `generate` writes
@@ -707,16 +708,12 @@ optional props:
 
 The help desk below uses all four.
 
-Four tests pin this:
-- `packages/blueprint/tests/app-model.test.ts` pins the model of every catalog
-  blueprint (`__snapshots__/app-model.catalog.json`).
-- `packages/cli/tests/codegen-model.test.ts` checks that the generator emits no
-  route-shaped files and that every generated prototype matches what it emits.
-- `packages/blueprint/tests/runtime-parity.test.ts` proves a generated prototype
-  and the player agree on storage, policy, scenarios, generator version, routes,
-  navigation, layout and the seeded world.
-- `templates/crud-app/tests/app.test.ts` drives the template app in a browser
-  environment.
+Since PLAN_009 one test pins this:
+`packages/blueprint/tests/runtime-parity.test.ts` generates the CRM blueprint with
+the CLI and proves the generated prototype and the player agree on definitions,
+policy, routes, layout and the seeded world, byte for byte. The per-blueprint
+model snapshots, the codegen-model test and the crud-app template's own test
+were removed.
 
 The manifest gets id `local.<slug>`, namespace `<slug>`, `storage.schemaVersion: 1`,
 the template's scenarios (`empty`, `active`, `viewer`, `massive`) and the
@@ -853,8 +850,8 @@ The hand-written owned files add what makes it a real help desk:
 | `src/scenarios/helpdesk.ts` | Realistic seeded tickets (support subjects, weighted statuses and priorities, SLA due by priority) |
 | `src/components/AppSearch.svelte` | ⌘K search across every entity |
 
-Its tests run the generated services on the real runtime, and
-`tests/e2e/helpdesk-demo.spec.ts` drives the static build on desktop and mobile.
+Its tests run the generated services on the real runtime (boot smoke, a ticket move with its
+audit row after a reload, viewer read-only). Its browser spec was removed in PLAN_009.
 The measured bundle and load numbers are in [PERFORMANCE.md](PERFORMANCE.md).
 
 ## Prompt for agents

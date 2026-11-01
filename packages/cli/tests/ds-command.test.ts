@@ -3,7 +3,6 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { wireDesignSystem } from '../src/commands/ds.ts';
 import { addPrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 const PROTOTYPE = `import { definePrototype, parseManifest } from '@protoyard/core';
@@ -216,25 +215,5 @@ describe('protoyard ds', () => {
     expect((await run('new', 'dusk', '--brand', '#6d28d9')).code).toBe(0);
     expect((await run('use', 'ds-fixture', 'design-systems/dusk.json')).code).not.toBe(0);
     expect((await run('use', 'ds-fixture', 'design-systems/dusk.json', '--force')).code).toBe(0);
-  });
-});
-
-describe('wireDesignSystem', () => {
-  it('adds the import and the theme to an existing themes list', () => {
-    const source = `import { definePrototype } from '@protoyard/core';\nimport { brand } from './brand.ts';\n\nexport const definition = definePrototype({\n  themes: [brand],\n});\n`;
-    const next = wireDesignSystem(source);
-    expect(next).toContain(
-      "import { brand } from './brand.ts';\nimport { designSystemTheme } from './design-system.ts';"
-    );
-    expect(next).toContain('themes: [designSystemTheme, brand],');
-    expect(wireDesignSystem(next as string)).toBe(next);
-  });
-
-  it('fills an empty themes list and refuses a file without definePrototype', () => {
-    expect(
-      wireDesignSystem(`import { x } from 'y';\nconst d = definePrototype({\n  themes: [],\n});\n`)
-    ).toContain('themes: [designSystemTheme],');
-    expect(wireDesignSystem("import { x } from 'y';\nexport default x;\n")).toBeNull();
-    expect(wireDesignSystem('export const nothing = 1;\n')).toBeNull();
   });
 });

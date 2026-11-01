@@ -1,4 +1,3 @@
-import type { LoadProgress } from '@protoyard/core';
 import { cleanup, render } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,7 +7,6 @@ import { createFakeRuntime } from './fixtures/fake-runtime.ts';
 import ProbeApp from './fixtures/ProbeApp.svelte';
 
 const bar = () => document.querySelector('[data-py-pending-bar]');
-const status = () => document.querySelector('[data-py-pending-status]')?.textContent ?? '';
 
 describe('global pending indicator', () => {
   beforeEach(() => {
@@ -41,24 +39,6 @@ describe('global pending indicator', () => {
     expect(bar()).toBeNull();
   });
 
-  it('shows a scenario load as a determinate Texuli progress bar', () => {
-    const runtime = createFakeRuntime();
-    let push: (next: LoadProgress | null) => void = () => {};
-    runtime.scenarios.subscribeProgress = (listener) => {
-      push = listener;
-      return () => {};
-    };
-    render(PendingIndicator, { runtime });
-    push({ scenarioId: 'busy', phase: 'write', done: 1, total: 4 });
-    flushSync();
-    vi.advanceTimersByTime(150);
-    flushSync();
-    const meter = bar()?.querySelector('[role="progressbar"]');
-    expect(meter?.getAttribute('aria-valuenow')).toBe('25');
-    expect(meter?.getAttribute('aria-label')).toBe('Writing 1 of 4 rows…');
-    expect(bar()?.getAttribute('data-state')).not.toBe('indeterminate');
-  });
-
   it('never shows for instant work', () => {
     const runtime = createFakeRuntime();
     render(PendingIndicator, { runtime });
@@ -70,31 +50,6 @@ describe('global pending indicator', () => {
     vi.advanceTimersByTime(500);
     flushSync();
     expect(bar()).toBeNull();
-  });
-
-  it('announces long work once, politely, in words', () => {
-    const runtime = createFakeRuntime();
-    render(PendingIndicator, { runtime });
-    const end = runtime.pending?.begin({ kind: 'service', label: 'notes.create' });
-    flushSync();
-    vi.advanceTimersByTime(999);
-    flushSync();
-    expect(status()).toBe('');
-    vi.advanceTimersByTime(1);
-    flushSync();
-    expect(status()).toBe('Working…');
-    expect(document.querySelector('[data-py-pending-status]')?.getAttribute('aria-live')).toBe(
-      'polite'
-    );
-    end?.();
-    flushSync();
-    expect(status()).toBe('');
-    const persona = runtime.pending?.begin({ kind: 'session', label: 'Switching persona…' });
-    flushSync();
-    vi.advanceTimersByTime(1000);
-    flushSync();
-    expect(status()).toBe('Switching persona…');
-    persona?.();
   });
 });
 

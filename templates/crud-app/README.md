@@ -22,7 +22,7 @@ and the notifications bell when an entity enables notifications.
 ```bash
 pnpm protoyard new my-app --template crud-app
 pnpm protoyard dev my-app
-pnpm vitest run templates/crud-app
+pnpm vitest run tests/integration/templates.test.ts -t crud-app
 pnpm protoyard validate crud-app --build
 ```
 

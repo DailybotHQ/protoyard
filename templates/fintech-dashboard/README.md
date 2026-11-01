@@ -25,7 +25,7 @@ financial provider integrations are used.
 ## Checks
 
 ```bash
-pnpm vitest run templates/fintech-dashboard
+pnpm vitest run tests/integration/templates.test.ts -t fintech-dashboard
 pnpm --filter @protoyard-template/fintech-dashboard typecheck
 pnpm protoyard validate fintech-dashboard --strict-spec --build
 pnpm protoyard budget fintech-dashboard

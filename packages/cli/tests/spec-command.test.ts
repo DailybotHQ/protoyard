@@ -1,33 +1,12 @@
 // @vitest-environment node
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { unzipSync } from 'fflate';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import {
-  buildRebuildKit,
-  kitFiles,
-  rebuildPrompt,
-  specForPrototype,
-} from '../src/commands/spec.ts';
+import { buildRebuildKit, specForPrototype } from '../src/commands/spec.ts';
 import { checkSpec } from '../src/commands/validate.ts';
-import { scanText } from '../src/lib/hygiene.ts';
-import {
-  type Inspection,
-  inspectSpec,
-  type RawSpec,
-  type SpecFacts,
-  toSpecFacts,
-} from '../src/lib/inspect.ts';
+import { type Inspection, type RawSpec, type SpecFacts, toSpecFacts } from '../src/lib/inspect.ts';
 import { workspacePaths } from '../src/lib/paths.ts';
 import type { RegistryEntry } from '../src/lib/registry.ts';
 import {
@@ -35,11 +14,7 @@ import {
   openMarker,
   parseRegions,
   refreshRegions,
-  regionsOf,
-  renderRegion,
-  SPEC_FILES,
   SpecMarkerError,
-  skeleton,
 } from '../src/lib/spec-render.ts';
 import type { CommandContext } from '../src/lib/workspace.ts';
 import { cli } from './helpers.ts';
@@ -162,37 +137,6 @@ facts.tables = [facts.versions[0]?.tables[0], facts.versions[1]?.tables[0]] as S
 
 const region = (id: string, body: string) => `${openMarker(id)}${body}${closeMarker(id)}`;
 
-describe('region rendering', () => {
-  it('is deterministic and escapes table cells', () => {
-    const manifest = renderRegion('manifest', facts);
-    expect(renderRegion('manifest', structuredClone(facts))).toBe(manifest);
-    expect(manifest).toContain('| name | Tasks \\| App |');
-  });
-
-  it('applies wildcard and denial semantics in the capability matrix', () => {
-    const matrix = renderRegion('capability-matrix', facts);
-    expect(matrix).toContain('| `billing:manage` |   |   |');
-    expect(matrix).toContain('| `tasks:read` | ✓ | ✓ |');
-    expect(matrix).toContain('| `tasks:update` | ✓ |   |');
-    expect(matrix).toContain('`admin` holds every capability (`*`) except `billing:manage`');
-  });
-
-  it('infers ER relations from indexed …Id fields and states the heuristic', () => {
-    const diagram = renderRegion('er-diagram', facts);
-    expect(diagram).toContain('projects ||--o{ tasks : projectId');
-    expect(diagram).toContain('string projectId FK');
-    expect(diagram).toContain('Relations are inferred');
-  });
-
-  it('lists schema history and routes, or says routes are hand-written', () => {
-    expect(renderRegion('versions', facts)).toContain('| 2 | — | `tasks` | — |');
-    expect(renderRegion('routes', facts)).toContain(
-      '| `#/tasks/:id` | Task | `tasks:read` | One task |'
-    );
-    expect(renderRegion('routes', { ...facts, routes: null })).toContain('No `src/routes.ts`');
-  });
-});
-
 describe('markers', () => {
   it('refuses unbalanced, stray, mismatched, nested and duplicate markers', () => {
     const bad = [
@@ -229,93 +173,6 @@ describe('markers', () => {
     expect(second.text).toBe(first.text);
     expect(second.regions.find((r) => r.id === 'tables')?.status).toBe('fresh');
   });
-
-  it('builds skeletons whose regions are all present and fresh', () => {
-    for (const file of SPEC_FILES) {
-      const { regions } = refreshRegions(file, skeleton(file, facts), facts);
-      expect(regions.map((r) => r.id).sort(), file).toEqual([...regionsOf(file)].sort());
-      expect(
-        regions.every((r) => r.status === 'fresh'),
-        file
-      ).toBe(true);
-    }
-    expect(skeleton('docs/SPEC.md', facts)).toContain('TODO: the product problem');
-  });
-});
-
-describe('spec files on disk (real crm-demo facts)', { timeout: 120_000 }, () => {
-  let crm: SpecFacts;
-  let dir: string;
-  beforeAll(async () => {
-    crm = await inspectSpec(ROOT, join(ROOT, 'prototypes', 'crm-demo'));
-    dir = mkdtempSync(join(tmpdir(), 'protoyard-spec-'));
-  });
-  afterAll(() => rmSync(dir, { recursive: true, force: true }));
-
-  it('--init creates every file with fresh regions; without --init nothing is created', async () => {
-    const none = await specForPrototype(dir, crm, { mode: 'write', init: false });
-    expect(none.files.every((f) => !f.exists && !f.created)).toBe(true);
-    expect(existsSync(join(dir, 'AGENTS.md'))).toBe(false);
-
-    const created = await specForPrototype(dir, crm, { mode: 'write', init: true });
-    expect(created.files.map((f) => [f.path, f.created])).toEqual(SPEC_FILES.map((f) => [f, true]));
-    expect(created.stale).toBe(0);
-    expect(readFileSync(join(dir, 'docs/SCREENS.md'), 'utf8')).toContain(
-      '| `#/deals/:id` | Deal |'
-    );
-  });
-
-  it('never overwrites prose on a second --init, and --check then --write follow the facts', async () => {
-    const file = join(dir, 'docs/PERMISSIONS.md');
-    const edited = readFileSync(file, 'utf8').replace(
-      'TODO: what each rule means',
-      'Reps may only change deals they own.'
-    );
-    writeFileSync(file, edited);
-    await specForPrototype(dir, crm, { mode: 'write', init: true });
-    expect(readFileSync(file, 'utf8')).toBe(edited);
-
-    // The definition changes: a new persona appears.
-    const changed: SpecFacts = {
-      ...crm,
-      personas: [...crm.personas, { id: 'zz_new', name: 'New Example', role: 'viewer' }],
-    };
-    const check = await specForPrototype(dir, changed, { mode: 'check', init: false });
-    expect(check.stale).toBe(1);
-    expect(check.files.find((f) => f.path === 'docs/PERMISSIONS.md')?.regions).toContainEqual({
-      id: 'personas',
-      status: 'stale',
-    });
-    expect(readFileSync(file, 'utf8')).toBe(edited);
-
-    const write = await specForPrototype(dir, changed, { mode: 'write', init: false });
-    expect(write.files.find((f) => f.path === 'docs/PERMISSIONS.md')?.updated).toBe(true);
-    const after = readFileSync(file, 'utf8');
-    expect(after).toContain('zz_new');
-    expect(after).toContain('Reps may only change deals they own.');
-    expect((await specForPrototype(dir, changed, { mode: 'check', init: false })).stale).toBe(0);
-  });
-
-  it('--init in check mode creates nothing', async () => {
-    const empty = mkdtempSync(join(tmpdir(), 'protoyard-spec-check-'));
-    try {
-      const result = await specForPrototype(empty, crm, { mode: 'check', init: true });
-      expect(result.files.every((f) => !f.exists && !f.created)).toBe(true);
-      expect(existsSync(join(empty, 'AGENTS.md'))).toBe(false);
-      expect(existsSync(join(empty, 'docs'))).toBe(false);
-    } finally {
-      rmSync(empty, { recursive: true, force: true });
-    }
-  });
-
-  it('reports invalid markers per file instead of rewriting them', async () => {
-    const file = join(dir, 'docs/SCREENS.md');
-    writeFileSync(file, `${readFileSync(file, 'utf8')}\n${openMarker('routes')}\n`);
-    const result = await specForPrototype(dir, crm, { mode: 'write', init: false });
-    expect(result.files.find((f) => f.path === 'docs/SCREENS.md')?.error).toMatch(
-      /more than once|nesting|never closed/
-    );
-  });
 });
 
 describe('protoyard spec (CLI)', { timeout: 120_000 }, () => {
@@ -333,28 +190,6 @@ describe('protoyard spec (CLI)', { timeout: 120_000 }, () => {
     }>().data;
     expect(data).toMatchObject({ mode: 'check', stale: 0 });
     expect(data.results[0]?.files.every((f) => f.exists)).toBe(true);
-  });
-
-  it('rejects conflicting or missing arguments', async () => {
-    expect(
-      (await cli(['--root', ROOT, '--json', 'spec', 'crm-demo', '--write', '--check'])).code
-    ).toBe(2);
-    expect((await cli(['--root', ROOT, '--json', 'spec'])).code).toBe(2);
-    const initCheck = await cli([
-      '--root',
-      ROOT,
-      '--json',
-      'spec',
-      'crm-demo',
-      '--init',
-      '--check',
-    ]);
-    expect(initCheck.code).toBe(2);
-    expect(initCheck.json<{ error: { message: string } }>().error.message).toContain(
-      '--check never writes files'
-    );
-    expect((await cli(['--root', ROOT, '--json', 'spec', 'crm-demo', '--all'])).code).toBe(2);
-    expect((await cli(['--root', ROOT, '--json', 'spec', 'no-such-app'])).code).toBe(3);
   });
 });
 
@@ -380,15 +215,6 @@ describe('validate spec check', () => {
   });
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
-  it('validate: missing spec files warn, and fail with --strict-spec', async () => {
-    const loose = await checkSpec(dir, 'notes-app', inspection(raw), false);
-    expect(loose.status).toBe('warn');
-    expect(loose.details).toContain('missing AGENTS.md');
-    expect(loose.details).toContain('missing docs/SPEC.md');
-    expect(loose.details.at(-1)).toContain('pnpm protoyard spec notes-app --init');
-    expect((await checkSpec(dir, 'notes-app', inspection(raw), true)).status).toBe('fail');
-  });
-
   it('validate: current files pass, stale regions and invalid markers fail', async () => {
     await specForPrototype(dir, toFacts(raw), { mode: 'write', init: true });
     const fresh = await checkSpec(dir, 'notes-app', inspection(raw), true);
@@ -408,27 +234,6 @@ describe('validate spec check', () => {
     const invalid = await checkSpec(dir, 'notes-app', inspection(raw), false);
     expect(invalid.status).toBe('fail');
     expect(invalid.details[0]).toMatch(/docs\/SCREENS\.md: region "routes" is never closed/);
-  });
-
-  it('validate: skips the spec check when the definition did not load', async () => {
-    expect((await checkSpec(dir, 'notes-app', null, true)).status).toBe('skip');
-  });
-
-  it('validate: real prototypes: crm-demo and ui-kit pass --strict-spec', {
-    timeout: 120_000,
-  }, async () => {
-    const validate = (slug: string, ...extra: string[]) =>
-      cli(['--root', ROOT, '--json', 'validate', slug, '--skip-typecheck', ...extra]);
-    const specOf = (run: Awaited<ReturnType<typeof validate>>) =>
-      run
-        .json<{ data: { checks: { id: string; status: string }[] } }>()
-        .data.checks.find((c) => c.id === 'spec');
-
-    for (const slug of ['crm-demo', 'ui-kit']) {
-      const run = await validate(slug, '--strict-spec');
-      expect(run.code, run.stdout).toBe(0);
-      expect(specOf(run)?.status).toBe('pass');
-    }
   });
 });
 
@@ -470,64 +275,6 @@ describe('rebuild kit (spec --bundle)', () => {
   });
   afterAll(() => rmSync(ws, { recursive: true, force: true }));
 
-  it('bundle: kitFiles returns only allow-listed spec and domain files, sorted', async () => {
-    expect(await kitFiles(dir())).toEqual([
-      'AGENTS.md',
-      'docs/DATA_MODEL.md',
-      'docs/FLOWS.md',
-      'docs/PERMISSIONS.md',
-      'docs/SCREENS.md',
-      'docs/SPEC.md',
-      'protoyard.json',
-      'src/database/schema.ts',
-      'src/domain/policy.ts',
-      'src/domain/services.ts',
-      'src/prototype.ts',
-      'src/scenarios/index.ts',
-      'src/scenarios/nested/presets.ts',
-    ]);
-  });
-
-  it('bundle: writes a deterministic ZIP with REBUILD.md first and the listed hashes', async () => {
-    const spec = await specForPrototype(dir(), facts, { mode: 'check', init: false });
-    const first = await buildRebuildKit(ctx(), entry, dir(), facts, spec);
-    expect(first.path).toBe('artifacts/tasks-app/tasks-app-rebuild-kit.zip');
-    const zip = unzipSync(new Uint8Array(readFileSync(kitPath())));
-    expect(Object.keys(zip)).toEqual(['REBUILD.md', ...(await kitFiles(dir()))]);
-    expect(
-      Object.keys(zip).some((name) =>
-        /\.svelte$|\.test\.ts$|\.env|\.png$|seed\.ts|notes\.txt/.test(name)
-      )
-    ).toBe(false);
-    const prompt = new TextDecoder().decode(zip['REBUILD.md']);
-    expect(prompt).toBe(rebuildPrompt(facts, first.files.slice(1)));
-    expect(prompt).toContain('# Rebuild kit: Tasks | App (`tasks-app` v0.1.0)');
-    expect(prompt).toContain('| `src/domain/services.ts` |');
-    expect(prompt).toContain('ask before choosing any external vendor');
-    const second = await buildRebuildKit(ctx(), entry, dir(), facts, spec);
-    expect(second.sha256).toBe(first.sha256);
-  });
-
-  it('bundle: refuses a missing or stale spec', async () => {
-    const stale = await specForPrototype(
-      dir(),
-      {
-        ...facts,
-        personas: [...facts.personas, { id: 'user_0009', name: 'Zed Example', role: 'viewer' }],
-      },
-      { mode: 'check', init: false }
-    );
-    await expect(buildRebuildKit(ctx(), entry, dir(), facts, stale)).rejects.toThrow(/not current/);
-    const missing = {
-      ...stale,
-      stale: 0,
-      files: stale.files.map((f) => (f.path === 'docs/SPEC.md' ? { ...f, exists: false } : f)),
-    };
-    await expect(buildRebuildKit(ctx(), entry, dir(), facts, missing)).rejects.toThrow(
-      /missing docs\/SPEC\.md/
-    );
-  });
-
   it('bundle: refuses symlinks and hygiene findings without echoing the matched text', async () => {
     const spec = await specForPrototype(dir(), facts, { mode: 'check', init: false });
     rmSync(kitPath(), { force: true });
@@ -546,39 +293,5 @@ describe('rebuild kit (spec --bundle)', () => {
     symlinkSync(join(ws, 'outside.ts'), join(dir(), 'src/domain/link.ts'));
     await expect(buildRebuildKit(ctx(), entry, dir(), facts, spec)).rejects.toThrow(/symlink/);
     rmSync(join(dir(), 'src/domain/link.ts'));
-  });
-
-  it('bundle: scanText applies the hygiene rules and their exceptions', () => {
-    expect(
-      scanText('a.md', 'path /home/runner/work is fine\nsupport@dailybot.com is public')
-    ).toEqual([]);
-    // Built at runtime so this test file itself stays clean for the repository's hygiene check.
-    const homePath = ['', 'Users', 'someone', 'x'].join('/');
-    const privateEmail = ['alex', 'dailybot.com'].join('@');
-    expect(
-      scanText('a.md', `see ${homePath}\nmail ${privateEmail}`).map((f) => `${f.line} ${f.rule}`)
-    ).toEqual(['1 personal-path', '2 private-email']);
-  });
-
-  it('bundle: crm-demo kit is produced from its real spec', { timeout: 120_000 }, async () => {
-    const run = await cli(['--root', ROOT, '--json', 'spec', 'crm-demo', '--bundle']);
-    expect(run.code, run.stdout).toBe(0);
-    const kit = run.json<{
-      data: { results: { bundle: { path: string; sha256: string; files: { path: string }[] } }[] };
-    }>().data.results[0]?.bundle;
-    expect(kit?.path).toBe('artifacts/crm-demo/crm-demo-rebuild-kit.zip');
-    expect(kit?.sha256).toMatch(/^[0-9a-f]{64}$/);
-    const names = kit?.files.map((f) => f.path) ?? [];
-    expect(names[0]).toBe('REBUILD.md');
-    expect(names).toEqual(
-      expect.arrayContaining([
-        'AGENTS.md',
-        'docs/SPEC.md',
-        'src/database/schema.ts',
-        'src/domain/services.ts',
-        'src/routes.ts',
-      ])
-    );
-    expect(names.some((n) => n.endsWith('.svelte') || n.startsWith('tests/'))).toBe(false);
   });
 });

@@ -29,7 +29,5 @@ browser that already has data, Relay asks before it replaces that data.
 
 ## Tests
 
-- `tests/generators.test.ts`: determinism and integrity of every scenario, scripted replies and lossless chunking.
-- `tests/services.test.ts`: streaming replies, outages with retry, role rules and archived conversations, on the real runtime with an in-memory IndexedDB.
-- `tests/read-state.test.ts`: `markRead` after a frozen clock, distinct timestamps for concurrent replies, run liveness and cancelling a run orphaned by a reload.
-- `tests/ui-helpers.test.ts`: the safe Markdown parser, @mention detection and insertion, conversation sorting and message grouping.
+- `tests/services.test.ts` (the only file since PLAN_009): the boot smoke (determinism and integrity of every scenario, then a real-runtime boot), a message that persists and streams the scripted reply, the guest and member role rules, and markup-looking text kept as plain text. It runs on the real runtime with an in-memory IndexedDB.
+- `tests/e2e/ai-chat-demo.spec.ts`: a streamed reply with safe Markdown, and an outage with Retry.

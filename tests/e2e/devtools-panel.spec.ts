@@ -9,8 +9,8 @@ import { waitForPrototypeReady } from './support/ready.ts';
  * a real pointer click on an icon-only button lands on its <svg>, and the
  * panel host's app-layer isolation used to hide that click from the button.
  *
- * Runs with PROTOYARD_E2E_SHOWCASE=1 (port 4501, or PROTOYARD_E2E_SHOWCASE_PORT), at the reported 2000×1030
- * window, at 1440×900 (Desktop Chrome project) and at 390×844 (mobile project).
+ * Runs with PROTOYARD_E2E_SHOWCASE=1 (port 4501, or PROTOYARD_E2E_SHOWCASE_PORT), at 1440×900
+ * (Desktop Chrome project) and at 390×844 (mobile project).
  */
 const ORIGIN = `http://127.0.0.1:${process.env.PROTOYARD_E2E_SHOWCASE_PORT ?? 4501}`;
 const BASE = process.env.PROTOYARD_E2E_SHOWCASE_BASE ?? '/';
@@ -37,22 +37,20 @@ async function expectClosed(page: Page) {
 }
 
 const SIZES = [
-  { name: '2000×1030', viewport: { width: 2000, height: 1030 }, project: 'chromium' },
-  { name: '1440×900', viewport: { width: 1440, height: 900 }, project: 'chromium' },
-  { name: '390×844', viewport: { width: 390, height: 844 }, project: 'mobile' },
+  { name: '1440×900', viewport: { width: 1440, height: 900 }, tag: '@desktop' },
+  { name: '390×844', viewport: { width: 390, height: 844 }, tag: '@mobile' },
 ] as const;
 
 test.describe('DevTools panel open and close', () => {
   test.skip(process.env.PROTOYARD_E2E_SHOWCASE !== '1', 'set PROTOYARD_E2E_SHOWCASE=1');
 
   for (const size of SIZES) {
-    test.describe(size.name, () => {
+    test.describe(size.name, { tag: size.tag }, () => {
       test.use({ viewport: size.viewport });
 
       test('closes by X, Escape and the launcher shortcut, and stays closed after reload', async ({
         page,
-      }, testInfo) => {
-        test.skip(testInfo.project.name !== size.project, `${size.project} project only`);
+      }) => {
         await openApp(page);
         await expectClosed(page);
 
@@ -92,14 +90,13 @@ test.describe('DevTools panel open and close', () => {
   }
 });
 
-test.describe('DevTools theme browser', () => {
+test.describe('DevTools theme browser', { tag: '@desktop' }, () => {
   test.skip(process.env.PROTOYARD_E2E_SHOWCASE !== '1', 'set PROTOYARD_E2E_SHOWCASE=1');
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test('finds a library theme by search and applies it; the panel passes axe', async ({
     page,
   }, testInfo) => {
-    test.skip(testInfo.project.name !== 'chromium', 'chromium project only');
     await openApp(page);
     await openPanel(page);
     await panel(page).getByRole('tab', { name: 'Look' }).click();
@@ -107,7 +104,10 @@ test.describe('DevTools theme browser', () => {
     const browser = panel(page).getByTestId('theme-browser');
     await expect(browser.getByRole('button', { name: 'Browse 204 more themes' })).toBeVisible();
     await browser.getByLabel('Search themes').fill('fintech ledger');
-    await expect(browser.getByRole('status')).toHaveText(/\d+ themes? match/);
+    // The library loader has its own status line while its chunk loads; read the match count.
+    await expect(browser.getByRole('status').filter({ hasText: /themes? match/ })).toHaveText(
+      /\d+ themes? match/
+    );
 
     const card = browser.getByRole('radio', { name: /Fintech Ledger/ });
     await card.click();

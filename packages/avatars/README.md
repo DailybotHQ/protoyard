@@ -98,13 +98,13 @@ The manifest records the encoder versions it was made with.
 
 ## Tests
 
-`tests/manifest.test.ts` checks that there are 175 unique ids in source order,
-that every file exists with its recorded bytes and sha256, and that dimensions
-parsed from the WebP header are right. It also checks that there are no stray
-files, enforces the budgets (64 px ≤ 4 KB, 128 px ≤ 12 KB per file, 128 px
-average ≤ 6 KB, all assets ≤ 1.2 MB), and covers `avatarFile`, `isAvatarId` and
-`isAvatarSize`. `tests/pick.test.ts` covers seeded assignment (determinism, no repeats
-within 175, valid ids).
+`tests/manifest.test.ts` checks that there are 175 unique ids in source order
+that match the exports, that every file exists with its recorded bytes, sha256
+and dimensions, that `avatarFile` refuses unknown ids and sizes, and that
+seeded picks give the same sequence for the same seed. PLAN_009 removed the
+stray-file check, the size budgets (64 px ≤ 4 KB, 128 px ≤ 12 KB per file,
+128 px average ≤ 6 KB, all assets ≤ 1.2 MB) and the no-repeat pick cases, so
+those limits are no longer enforced by a test.
 
 ## Package output
 

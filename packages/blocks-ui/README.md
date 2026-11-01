@@ -156,7 +156,7 @@ setBlockHost({
 });
 ```
 
-Covered by `packages/blocks-ui/tests/structure.test.ts`.
+Covered by the structure case in `packages/blocks-ui/tests/families.test.ts`.
 
 ## Interactive family (`./interactive`)
 
@@ -199,10 +199,9 @@ Map blocks render Texuli's `MapBlockView` from `./map` (not from the
 interactive chunk). The map and embed family roots do not set
 `data-py-deck-interactive` themselves; on a slide, the deck's block wrapper
 (`deckInputGuardAttributes` in `@protoyard/decks-ui`) sets it around them.
-`tests/deck-interactive.test.ts` renders all ten types (poll, quiz,
-calculator, counter, tabs, reveal, chart-controls, form, map, embed-app), but
-its check also passes when any element in the harness carries the attribute,
-so it does not prove that each root is marked.
+No test checks the attribute since PLAN_009 removed
+`tests/deck-interactive.test.ts` (whose check could pass when any element in
+the harness carried it).
 
 ## Embed-app (`./embed`)
 
@@ -297,8 +296,8 @@ ends with a real newline, so a copied selection matches. It also provides:
 
 - **Colors** (`CODE_TOKEN_STYLES`, exported here). Each token kind maps to a theme token that
   reaches WCAG AA (4.5:1) on the code surface (`surface`) and on a highlighted
-  line (`muted`), in every built-in theme and mode
-  (`tests/code-contrast.test.ts`). Keywords and tags are also bold and comments
+  line (`muted`), in every built-in theme and mode (measured by
+  `tests/code-contrast.test.ts` until PLAN_009 removed it). Keywords and tags are also bold and comments
   italic, so meaning never rests on color alone.
 - **Stepped highlights.** `highlights` holds one line spec per step. With a
   host `step`, the block shows `highlights[step - block.step]`, clamped to the
@@ -339,17 +338,16 @@ measured table above.
 
 `src/lib/tones.ts` maps every `BlockTone` to theme-token Tailwind classes
 (icon chips, borders, indicators) for Protoyard's own renderers and documents
-the palette pairs that must reach WCAG AA. `packages/blocks-ui/tests/a11y-themes.test.ts` renders every
-`RICH_EXAMPLES` catalog fixture, checks heading order, image `alt`, named
-focusable controls with `focus-visible` rings, and AA contrast of those tone
-pairs across all **6 built-in themes × light/dark**. Failures name the block,
-theme and mode. The interactive family root also sets
+the palette pairs that must reach WCAG AA. The renderer test that checked
+those pairs across the 6 built-in themes in light and dark
+(`a11y-themes.test.ts`) was removed in PLAN_009; axe on a deck, a page and a
+doc in light and dark now runs in `tests/e2e/content-kinds-a11y.spec.ts`. The interactive family root also sets
 `data-py-deck-interactive` so deck navigation ignores clicks inside it. The
 form block remains a placeholder until the pages `FormBlock` owns
 responses through the host.
 
 ```bash
-pnpm vitest run packages/blocks-ui/tests/a11y-themes.test.ts
+PROTOYARD_E2E_PLAYER=1 pnpm exec playwright test tests/e2e/content-kinds-a11y.spec.ts
 ```
 
 ## Security
@@ -381,11 +379,9 @@ name. `map` is imported as `MapIcon` so it never shadows the global `Map`.
 There are no dynamic icon lookups and no namespace import, and only block
 family chunks import the module, so icons never reach an entry.
 
-`tests/icons.test.ts` checks that:
-- every id resolves to the real Lucide export;
-- the map has no extra keys;
-- the blueprint's `SCREEN_NAV_ICONS` are included;
-- the imports stay named.
+The icon map's rules (every id resolves to the real Lucide export, no extra
+keys, the blueprint's `SCREEN_NAV_ICONS` included, named imports) lost their
+test, `tests/icons.test.ts`, in PLAN_009.
 
 ## Styles
 

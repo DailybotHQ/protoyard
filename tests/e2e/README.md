@@ -3,166 +3,99 @@
 Playwright runs against real static builds. The gallery is served by `astro preview`, prototypes
 by `protoyard preview` from `artifacts/<slug>/dist`, and the showcase by `protoyard showcase
 --serve`. Each test runs in a fresh browser context, so IndexedDB and localStorage never leak
-between tests. There are two projects: `chromium` (Desktop Chrome) and `mobile` (Pixel 7, touch).
+between tests.
+
+The suite is kept to the essential journeys (PLAN_009): about 90 listed cases with CI's
+environment. Add a case only when it guards a product flow, a security fix, a public contract or
+an accessibility smoke check that no unit test can cover.
+
+## Projects and tags
+
+There are two projects: `chromium` (Desktop Chrome) and `mobile` (Pixel 7, touch). A test runs on
+both unless it is tagged:
+
+- `{ tag: '@desktop' }` runs on `chromium` only;
+- `{ tag: '@mobile' }` runs on `mobile` only.
+
+The filter lives in `playwright.config.ts` (`grepInvert` per project), so a one-project test is
+not even listed for the other project. Keep the phone project for cases where the phone layout is
+the point (Lumen Bank, shells, deck touch and chrome, content-kind axe, crm-demo axe).
 
 ```bash
 pnpm test:e2e                                                        # gallery only
-PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo,ai-chat-demo pnpm test:e2e   # what CI runs
-PROTOYARD_E2E_SHOWCASE=1 PROTOYARD_E2E_SHOWCASE_BASE=/protoyard/ pnpm test:e2e    # + the one-site showcase
-PROTOYARD_E2E_SHOWCASE=1 pnpm test:e2e tests/e2e/showcase.spec.ts                  # hosted /play/ paste/share and axe
-PROTOYARD_E2E_REVIEW=1 pnpm test:e2e tests/e2e/review-index.spec.ts              # the team review index (port 4502)
-PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo pnpm test:e2e tests/e2e/review-comments.spec.ts   # review comments (ports 4601+, 4651)
+PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo,ai-chat-demo \
+PROTOYARD_E2E_SHOWCASE=1 PROTOYARD_E2E_DEVTOOLS_PROTOTYPES=mobile-banking-demo \
+pnpm test:e2e                                                        # the CI selection today
 ```
+
+`pnpm exec playwright test --list` with that environment lists 89 cases in 23 files (81 with no
+environment). Listing does not depend on the deck, player, quick or comments flags, because those
+specs skip at run time; it does depend on `PROTOYARD_E2E_PROTOTYPES`, since `a11y.spec.ts` adds an
+axe case per target in light and dark. To run every case instead of skipping some, also set
+`PROTOYARD_E2E_DECK=1 PROTOYARD_E2E_PLAYER=1 PROTOYARD_E2E_QUICK=1
+PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo` and add `lattice-saas-demo`,
+`ui-kit` and `doc` to the targets (that lists 101 cases: the 12 extra are axe cases for the three
+new targets).
 
 Builds exclude DevTools, as shipped. Setup steps that the standalone build has no UI for
 (switching persona, a theme override, snapshots, looking up an id) use the runtime handle the
-renderer exposes (`window.__protoyard`). Assertions always go through the UI or the DOM
-attributes the renderer sets (`data-py-ready`, `data-py-mode`, `data-py-theme`, `--tx-primary`).
+renderer exposes (`window.__protoyard`). Assertions go through the UI or the DOM attributes the
+renderer sets (`data-py-ready`, `data-py-mode`, `data-py-theme`, `--tx-primary`).
 
-## Required flows (product spec) → specs
+## Specs
 
-| # | Flow | Spec · test |
+| Spec | Covers | Needs |
 | --- | --- | --- |
-| 1 | Open gallery → list prototypes → open target | `gallery.spec.ts` · *lists every prototype…*, *searches, filters and opens a detail page*; `showcase.spec.ts` · *opens a card, previews the bundled CRM…* |
-| 2 | CRM create/edit/delete → refresh → persisted | `crm-demo.spec.ts` · *flow 2* |
-| 3 | New-user scenario → onboarding/empty state | `crm-demo.spec.ts` · *flow 3* (`new-company`) |
-| 4 | Established scenario → populated records | `crm-demo.spec.ts` · *flow 4* (`growing-team`) |
-| 5 | Admin → viewer without reset → actions blocked, records unchanged | `crm-demo.spec.ts` · *flow 5*; `mobile-banking-demo.spec.ts` · *a view-only persona is blocked without wiping data* |
-| 6 | Dark/light and theme preset → `data-py-mode` / `--tx-primary` change, records persist | `crm-demo.spec.ts` · *flow 6* |
-| 7 | Save snapshot → create record → restore → exact state | `crm-demo.spec.ts` · *flow 7* (table counts compared before/after) |
-| 8 | Mobile demo transfer → balances/ledger updated → refresh persists | `mobile-banking-demo.spec.ts` · *a transfer moves money and survives a reload* (both projects, including Pixel 7) |
-| 9 | Standalone CRM build → static server → works without a dev server | `crm-demo.spec.ts` · *flow 9* (no `@vite/client`), with every CRM flow running on that build |
-| 10 | Another prototype's build contains no CRM data/code | `isolation.spec.ts` (scans each non-CRM `dist`; a positive control proves the patterns match the CRM build) |
-| 11 | Back navigation and a direct refresh of a nested route (`#/deals/:id`) | `crm-demo.spec.ts` · *flow 11* |
-| 12 | Error/slow/offline flow with visible feedback | `crm-demo.spec.ts` · *flow 12* (offline save → "You are offline" toast, nothing saved); `ai-chat-demo.spec.ts` (agent outage → "Reply failed." → Retry recovers) |
-| 13 | Hosted player paste/share → scenario/persona switch → mutation → share-route reload and axe | `showcase.spec.ts` · *runs a pasted blueprint through a mutation and persona/scenario switch*; *opens a share-link blueprint in the hosted player route with axe coverage* |
+| `gallery.spec.ts` | home lists the registry; search, filter and an accessible detail page | — |
+| `marketplace.spec.ts` | a detail page for a prototype, a template and a blueprint | — |
+| `a11y.spec.ts` | axe on the gallery home, the marketplace and each target's main screen, light and dark | targets |
+| `docs.spec.ts` | the docs index passes axe | — |
+| `crm-demo.spec.ts` | create, edit, delete with reloads; a viewer is refused; snapshot restore; offline save | `crm-demo` |
+| `mobile-banking-demo.spec.ts` | payee CRUD; a transfer (both projects); view-only persona; the phone layout | `mobile-banking-demo` |
+| `ai-chat-demo.spec.ts` | a streamed reply with safe Markdown (markup stays text); outage, Retry | `ai-chat-demo` |
+| `lattice-saas-demo.spec.ts` | sign-up and onboarding resume, SSO consent, magic link, MFA | `lattice-saas-demo` |
+| `devtools-panel.spec.ts` | the panel closes by X, Escape and shortcut; theme browser applies a library theme | showcase |
+| `pending-feedback.spec.ts` | persona switch speed, latency spinners and the global bar, a slow create | DevTools build |
+| `design-system.spec.ts` | create, apply, reload a design system with axe; a CSS-injection document is refused | DevTools build |
+| `deck-navigation.spec.ts` | slide and step links, arrows and space; touch swipe on the phone | deck |
+| `deck-fragments.spec.ts` | stepped blocks reveal in order and hide going back | deck |
+| `deck-presenter.spec.ts` | the presenter window syncs over BroadcastChannel; `?print=1` layout | deck |
+| `deck-controls.spec.ts` | Debug for agents, toolbar controls, chrome axe light and dark, the phone More menu | deck |
+| `content-kinds-a11y.spec.ts` | a deck, a page and a doc pass axe in light and dark; a page form response persists | player |
+| `doc-edits.spec.ts` | a doc edit applies, survives a reload, and Reset clears it | `doc` |
+| `showcase.spec.ts` | hosted player per kind, a pasted blueprint journey, a share link with axe, the bundled CRM | showcase |
+| `quick.spec.ts` | a brief becomes a served exploration whose player is ready and accessible | `PROTOYARD_E2E_QUICK=1` |
+| `review-comments.spec.ts` | comment mode, a persisted pin, resolve and reopen, two reviewers over HTTP | comments builds |
+| `charts.spec.ts` | the cartesian chart passes axe and re-reads its palette in dark mode | `ui-kit` |
+| `views.spec.ts` | a board drag (both projects) and a calendar event drag | `ui-kit` |
+| `shell-layout.spec.ts` | the viewport preset, the phone frame on desktop, full-bleed fallback on a phone | `mobile-banking-demo` |
 
-Also covered: `prototypes.spec.ts` (every target boots without errors and persists across
-reloads), `gallery.spec.ts` (favorites, device frames, theme toggle, the create builder, no
-horizontal overflow on phones) and `showcase.spec.ts` (live demo iframe write survives a reload,
-scenario links, hosted player paste/share/reload journeys, no 404s under a sub-path), and `devtools-panel.spec.ts` (with the showcase: the
-DevTools panel closes by X, Escape and Ctrl/⌘ + ., and stays closed after a reload).
+"Needs" names what turns a spec on; without it the spec skips itself:
+
+- a slug: add it to `PROTOYARD_E2E_PROTOTYPES` (`prototypeUrl(slug)` in `targets.ts`);
+- showcase: `PROTOYARD_E2E_SHOWCASE=1` (port 4501, `PROTOYARD_E2E_SHOWCASE_BASE=/protoyard/` for a
+  sub-path);
+- DevTools build: `PROTOYARD_E2E_DEVTOOLS_PROTOTYPES=mobile-banking-demo` (port 4451,
+  `devtoolsPrototypeUrl(slug)`);
+- deck: `PROTOYARD_E2E_DECK=1`, or name a deck spec on the command line (port 4891);
+- player: `PROTOYARD_E2E_PLAYER=1`, or name `content-kinds-a11y` (ports 4861 and 4862);
+- comments builds: `PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo` (ports 4601+
+  and 4651 for the shared HTTP adapter, `support/serve-comments.ts`).
+
+Every fixed port has a `PROTOYARD_E2E_*_PORT` override (see `playwright.config.ts`), so several
+checkouts can run the suite side by side.
 
 ## Accessibility
 
-`a11y.spec.ts` runs axe (`@axe-core/playwright`, tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`)
-on the gallery home, a gallery detail page and each target's main screen. It runs in light and
-dark mode on both projects. Serious and critical violations fail the test. Every result is
-attached to the report as `axe-<screen>.json`. The helper is `support/a11y.ts`
-(`expectAccessible(page, testInfo)`), so a domain spec can audit any screen, including one with an
-open dialog.
-
-## Shell layout matrix
-
-`shell-layout.spec.ts` opens the static Lumen Bank build (`mobile-banking-demo`) once per shell
-with `?shell=` (`phone`, `tablet`, `desktop-window`, `browser`, `widget-host`, `extension-popup`,
-`side-panel`).
-
-- **Desktop project, at 1440×900** (the panel shells need the 1280 px laptop device plus a
-  gutter): the shell's frame is drawn, the screen fits in the window, the bottom nav and the Home
-  quick action are inside the screen, every `position: fixed` element stays in the screen box, the
-  document does not scroll, and axe passes. Reduced motion is emulated, so axe measures the settled
-  page, not a panel mid-fade. The widget is opened through its launcher first.
-- **Mobile project (Pixel 7)**: the window is narrower than any device, so `auto` and every
-  explicit shell render full-bleed with no frame, and the actions stay inside the viewport.
-
-```bash
-PROTOYARD_E2E_PROTOTYPES=mobile-banking-demo pnpm test:e2e tests/e2e/shell-layout.spec.ts
-```
-
-## Pending feedback
-
-`pending-feedback.spec.ts` checks that DevTools switches react at once and
-show progress (timed in the page from `pointerdown` to the first frame with
-the result), and that slow simulated operations show the Button spinner, the
-global `[data-py-pending-bar]` and `aria-busy` on the app root, then clear.
-The DevTools tests need a DevTools build, which
-`PROTOYARD_E2E_DEVTOOLS_PROTOTYPES` adds next to the standard build (served
-from port 4451; `devtoolsPrototypeUrl(slug)` in `targets.ts`):
-
-```bash
-PROTOYARD_E2E_PROTOTYPES=mobile-banking-demo,crm-demo,helpdesk-demo \
-PROTOYARD_E2E_DEVTOOLS_PROTOTYPES=mobile-banking-demo \
-pnpm test:e2e tests/e2e/pending-feedback.spec.ts
-```
-
-## Rich views kit
-
-`views.spec.ts` runs on the ui-kit build (desktop and Pixel 7, a fresh context
-per test) with real mouse moves and the keyboard, never synthetic drag events:
-
-- **Board:** a mouse drag across columns on desktop (a reorder inside the one
-  visible column on Pixel 7), then a keyboard move (Space, arrow, Space) with
-  its live-region message.
-- **Calendar:** a mouse drag moves a week-view event one hour later. A
-  repeating event confirms with Save.
-- **Timeline:** the end handle of a bar is dragged three days longer on
-  desktop. On Pixel 7 the canvas is hidden on purpose, and the test asserts the
-  task table instead.
-- **Grid:** Enter edits a cell. The editor's box must be inside the viewport;
-  `fill()` would scroll it into view and prove nothing. Then 100,000 rows
-  scroll to `Record 100000` with at most 80 DOM rows. On Pixel 7 it checks the
-  capped card list.
-- **Map:** pan by drag, zoom by button and wheel, and 5,000 places painted
-  under 100 ms (measured in the page). A cluster opens, and the virtualized
-  place list reaches the last of 5,000 places with End.
-- **Axe:** every view demo in light and dark.
-
-```bash
-PROTOYARD_E2E_PROTOTYPES=ui-kit pnpm test:e2e tests/e2e/views.spec.ts
-```
-
-## Review comments
-
-`review-comments.spec.ts` runs on builds made with `PROTOYARD_REVIEW=1` (local
-adapter, no DevTools). They are listed in `PROTOYARD_E2E_COMMENTS_PROTOTYPES`
-and served from `tmp/e2e-comments/<slug>` on their own ports
-(`PROTOYARD_E2E_COMMENTS_PORT_BASE`, default 4601), separate from the ordinary
-builds. `PROTOYARD_E2E_REVIEW` is not used here: it serves the publish review
-index. Each test uses a fresh context with real mouse and keyboard input, and
-answers the review prompts (the reviewer's name, then the comment).
-
-- **Comment mode:** a click lands on the capture layer, so the app does not
-  navigate. Escape leaves comment mode, and the same link then works.
-- **Pin position:**
-  - Full-bleed (crm-demo) and inside `?shell=phone` (Lumen Bank), the pin's
-    centre must sit inside its element and within 4 px of the stored offset.
-  - This holds after a viewport resize (checked one animation frame later) and
-    after an orientation change.
-  - It also holds after a reload, which proves local persistence.
-- **List to pin:** a thread opened from the panel goes to its screen, and its
-  pin pulses.
-- **Resolve and reopen:** resolving hides the pin, and reopening shows it again.
-- **Keyboard only:** C and the arrow crosshair, then Enter; then Shift+C on the
-  element that has keyboard focus.
-- **Orphans:** after a scenario switch removes the anchored row, the panel lists
-  the thread as Orphaned (and filters by it).
-- **Axe:** the toolbar, panel and pins, in light and dark.
-- **Layout fit with review on:** no horizontal overflow, the launcher inside the
-  viewport, and neither the launcher nor the demo badge over an app control.
-- **Two reviewers:** the first target is also built with
-  `PROTOYARD_REVIEW_ADAPTER=http PROTOYARD_REVIEW_ENDPOINT=/api/comments` and
-  served with `handleCommentsRequest` on an in-memory store
-  (`support/serve-comments.ts`, `PROTOYARD_E2E_COMMENTS_SHARED_PORT`, default
-  4651). Two browser contexts comment and reply to each other.
-
-The web servers for these builds go in `playwright.config.ts`, next to the
-DevTools builds. The exact entries are in the T-review-e2e report
-(`tmp/plan003/outbox/T-review-e2e.md`).
-
-## Known gaps
-
-- `views.spec.ts`: the timeline cannot be rescheduled below `md` (its canvas is hidden; only
-  the task table shows), and the grid cannot be edited there (its card list is read-only in
-  the ui-kit demo). Both are asserted as layouts, not as missing tests.
-- `ai-chat-demo`'s outage flow runs on desktop only, because its Home pane is hidden at `#/` on
-  phones.
-- E2E found and got fixed: crm-demo had no phone navigation (`f52cd89`; now asserted by *section
-  navigation and the role label are reachable on phones*), and Lumen Bank's account screen ignored
-  a changed `:id` because `liveQuery` lacked `deps` (`00b7a30`; now covered by the balance test).
+`support/a11y.ts` (`expectAccessible(page, testInfo)`) runs axe (`@axe-core/playwright`, tags
+`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`). Serious and critical violations fail the test, and
+every result is attached to the report as `axe-<screen>.json`. A domain spec can audit any screen,
+including one with an open dialog.
 
 ## Adding a spec
 
-Use one file per prototype (`<slug>.spec.ts`). Skip unless the slug is in
-`PROTOYARD_E2E_PROTOTYPES`, open `prototypeUrl(slug)` with `?scenario=<id>`, and wait for
-`html[data-protoyard-ready="1"]` (and the older `data-py-ready="true"`). Use `waitForPrototypeReady(page, { slug })` from `tests/e2e/support/ready.ts` instead of ad-hoc selector polls. Viewport layout is guarded by `tests/e2e/viewport-fit.spec.ts` (desktop 1280×800 + Pixel 7) and, for every target, by `tests/e2e/layout-fit.spec.ts` (1920×1080 + 390×844: no document scroll for full-viewport apps, primary inputs on screen, the main region scrolls). Add a new target to its `FIT_TARGETS` with its densest scenario and its layout (`viewport` or `document`); mark a chat composer with `data-py-composer`. Never put `data-py-scroll-root` on app markup: it is the renderer's own wrapper, and its layout rules flatten any element that carries it. See the `write-e2e` skill for the full pattern.
+Prefer a case in an existing spec over a new file. Skip unless the slug is in
+`PROTOYARD_E2E_PROTOTYPES`, open `prototypeUrl(slug)` with `?scenario=<id>`, and wait with
+`waitForPrototypeReady(page, { slug })` from `support/ready.ts` instead of ad-hoc selector polls.
+Tag desktop-only cases `@desktop`. Never put `data-py-scroll-root` on app markup: it is the
+renderer's own wrapper. See the `write-e2e` skill for the full pattern.

@@ -236,13 +236,13 @@ To **add** faces (generated, fictional people only, see above):
 
 | Test | What it checks |
 | --- | --- |
-| `packages/avatars/tests/manifest.test.ts` | 175 unique ids in source order. Every file exists with its recorded bytes and sha256. WebP header dimensions. No stray files. The size budgets. `avatarFile`, `isAvatarId`, `isAvatarSize`. |
-| `packages/avatars/tests/pick.test.ts` | Seeded assignment: determinism, no repeats within 175, valid ids, `avoid`. |
-| `packages/core/tests/persona-avatar.test.ts` | `PersonaAvatarSchema` and `isPersonaAvatar`: accepted and refused forms. |
-| `packages/renderer-svelte/tests/avatars.test.ts`, `avatar-image.test.ts`, `avatars-build.test.ts` | URL and `srcset` resolution, `avatarImage`, the id rules in sync with the library, images emitted into builds. |
-| `packages/renderer-svelte/tests/avatars-resolution.test.ts` | The library is found by package resolution in the monorepo, in pnpm (symlinked) and npm (flat) consumer `node_modules` with dist-only exports, and an uninstalled package fails with the fix. |
-| `packages/ui/tests/avatar.test.ts` | Lazy fixed-size `<img>` with `srcset`, unsafe sources falling back to initials, retry after an error. |
-| `packages/blueprint/tests/avatar.test.ts` | The avatar field, seeded faces and `shuffleAvatar` / `nextAvatar`. |
+| `packages/avatars/tests/manifest.test.ts` | 175 unique ids in source order that match the exports. Every file exists with its recorded bytes, sha256 and dimensions. `avatarFile` refuses unknown ids and sizes. Seeded picks give the same sequence for the same seed. |
+| `packages/runtime/tests/runtime.test.ts` | An unsafe persona avatar is refused before anything is written (the `PersonaAvatarSchema` path, end to end). |
+| `packages/renderer-svelte/tests/security.test.ts` | `avatarUrl` and `avatarImage` give nothing for unsafe or unknown values, since snapshots are untrusted. |
+| `packages/ui/tests/security.test.ts` | The ui `Avatar` falls back to initials for an unsafe `src` and drops unsafe `srcset` candidates. |
 
-`pnpm vitest run packages/avatars` selects 2 files and 13 tests. Together with
-the other files in the table it is 8 files and 95 tests (2026-10-19).
+PLAN_009 cut the rest to keep the suite essential: the size budgets and the
+stray-file check, picks without repeats and `avoid`, the build emission and
+package-resolution tests, the `Avatar` retry and lazy-loading cases, and the
+blueprint avatar field. `pnpm vitest run packages/avatars` selects 1 file and
+4 tests; with the two security files it is 3 files and 11 tests (2026-11-01).

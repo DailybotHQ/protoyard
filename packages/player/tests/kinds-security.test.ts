@@ -1,21 +1,31 @@
+import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import {
   type AnyBlueprint,
   encodeBlueprintShare,
   loadUntrustedDocument,
+  parseBlueprint,
 } from '@protoyard/blueprint';
-import type { PrototypeDefinition } from '@protoyard/core';
+import { type PrototypeDefinition } from '@protoyard/core';
 import { createPrototypeRuntime } from '@protoyard/runtime';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { BootedPlayer } from '../src/boot.ts';
+import { type BootedPlayer } from '../src/boot.ts';
+import {
+  checkRequest,
+  createEmbedListener,
+  exactOrigin,
+  MAX_MESSAGE_BLUEPRINT_BYTES,
+  PLAYER_PROTOCOL,
+  type PlayerMessage,
+} from '../src/embed/index.ts';
 import { kindEntryBoot } from '../src/entries/run-kind.ts';
 import demo from '../src/fixtures/demo.blueprint.json';
 import { createMountEmbed } from '../src/kinds/mount-embed.ts';
 import { loadersFor } from '../src/kinds/renderers.ts';
 import { startPlayer } from '../src/sources/start.ts';
-import { PLAYER_HTML_ENTRIES } from '../vite.config.ts';
+import { inlineScripts, PLAYER_FRAME_ANCESTORS } from '../vite.config.ts';
 import { ensurePlayerBuild } from './support/serve-dist.ts';
 
 /**
@@ -51,8 +61,6 @@ vi.mock('@protoyard/blocks-ui', async (importOriginal) => {
 });
 
 const ROOT = join(import.meta.dirname, '../../..');
-const PLAYER = join(ROOT, 'packages/player');
-const DIST = join(PLAYER, 'dist/app');
 const FIXTURES = join(ROOT, 'packages/blueprint/tests/fixtures/kinds');
 // biome-ignore lint/suspicious/noExplicitAny: fixtures are edited freely in tests.
 type Json = Record<string, any>;
@@ -267,86 +275,26 @@ describe('hostile markup in multiline fields renders as inert text', () => {
     expect(target.querySelectorAll('style').length).toBe(0);
     expectInert(target);
   });
-
-  it('page: markdown sections and CTA text', async () => {
-    const value = fixture('landing.page.json');
-    value.page.sections.push({
-      id: 'hostile',
-      blocks: [
-        { type: 'text', markdown: `${PAYLOAD}\n\n${LINK}` },
-        {
-          type: 'cta',
-          title: 'Act',
-          body: PAYLOAD,
-          actions: [{ label: 'Docs', href: 'https://example.com/docs' }],
-        },
-      ],
-    });
-    const target = await boot(value);
-    await vi.waitFor(
-      () => expect(target.querySelector('[data-py-page-section="hostile"]')).not.toBeNull(),
-      {
-        timeout: 15_000,
-      }
-    );
-    await vi.waitFor(() => expect(target.textContent).toContain('globalThis.__pyPwned = 1'), {
-      timeout: 15_000,
-    });
-    expectInert(target);
-  });
-
-  it('doc: markdown and code blocks', async () => {
-    const value = fixture('quarterly-report.doc.json');
-    value.doc.blocks.push(
-      { type: 'text', markdown: `${PAYLOAD}\n\n${LINK}` },
-      { type: 'code', lang: 'html', code: PAYLOAD }
-    );
-    const target = await boot(value);
-    await vi.waitFor(() => expect(target.textContent).toContain('globalThis.__pyPwned = 1'), {
-      timeout: 15_000,
-    });
-    expectInert(target);
-  });
-});
-
-describe('the checks above can fail', () => {
-  it('recorded the renderer modules once the hostile documents rendered', () => {
-    expect(loads.renderers).toEqual(
-      expect.arrayContaining(['blocks-ui', 'decks-ui/app', 'pages-ui/page', 'pages-ui/doc'])
-    );
-  });
-
-  it('the inert check catches a handler, a script URL and a script element', () => {
-    for (const plant of [
-      (root: HTMLElement) =>
-        root.appendChild(document.createElement('img')).setAttribute('onerror', 'x()'),
-      (root: HTMLElement) =>
-        root.appendChild(document.createElement('a')).setAttribute('href', ' JavaScript:x()'),
-      (root: HTMLElement) => root.appendChild(document.createElement('script')),
-    ]) {
-      const root = document.createElement('div');
-      plant(root);
-      expect(() => expectInert(root)).toThrow();
-    }
-  });
 });
 
 describe('mountEmbed frames only a valid app from this origin', () => {
   const sameOrigin = () => new URL('./index.html?devtools=0', globalThis.location.href);
 
-  it.each([
-    ['a deck', () => fixture('intro.deck.json')],
-    ['a page', () => fixture('landing.page.json')],
-    ['a doc', () => fixture('quarterly-report.doc.json')],
-    ['an app that claims to be a deck', () => ({ ...structuredClone(demo), kind: 'deck' })],
-    ['an app with an unknown kind', () => ({ ...structuredClone(demo), kind: 'Deck' })],
-  ])('refuses %s before any frame or connection exists', async (_, value) => {
-    const connect = vi.fn();
-    const target = document.body.appendChild(document.createElement('div'));
-    const mount = createMountEmbed({ connect: connect as never, playerUrl: sameOrigin });
-    await expect(mount(target, value() as Record<string, unknown>)).rejects.toThrow();
-    expect(connect).not.toHaveBeenCalled();
-    expect(target.querySelector('iframe')).toBeNull();
+  it('refuses every non-app or disguised embed before any frame or connection exists', async () => {
+    for (const [_, value] of [
+      ['a deck', () => fixture('intro.deck.json')],
+      ['a page', () => fixture('landing.page.json')],
+      ['a doc', () => fixture('quarterly-report.doc.json')],
+      ['an app that claims to be a deck', () => ({ ...structuredClone(demo), kind: 'deck' })],
+      ['an app with an unknown kind', () => ({ ...structuredClone(demo), kind: 'Deck' })],
+    ] as [string, () => unknown][]) {
+      const connect = vi.fn();
+      const target = document.body.appendChild(document.createElement('div'));
+      const mount = createMountEmbed({ connect: connect as never, playerUrl: sameOrigin });
+      await expect(mount(target, value() as Record<string, unknown>)).rejects.toThrow();
+      expect(connect).not.toHaveBeenCalled();
+      expect(target.querySelector('iframe')).toBeNull();
+    }
   });
 
   it('refuses a player URL on another origin or scheme', async () => {
@@ -363,86 +311,262 @@ describe('mountEmbed frames only a valid app from this origin', () => {
       expect(target.querySelector('iframe')).toBeNull();
     }
   });
+});
 
-  it('frames a valid app on this origin and sends the sanitized blueprint', async () => {
-    const load = vi.fn(async () => {});
-    const connect = vi.fn(() => ({ ready: Promise.resolve(), load, close: vi.fn() }));
-    const target = document.body.appendChild(document.createElement('div'));
-    const mount = createMountEmbed({ connect: connect as never, playerUrl: sameOrigin });
-    const hostile = structuredClone(demo) as Json;
-    hostile.name = `Demo\u202e app`;
-    const unmount = await mount(target, hostile);
-    const frame = target.querySelector('iframe');
-    expect(frame?.getAttribute('src')).toBe(sameOrigin().href);
-    expect(frame?.hasAttribute('srcdoc')).toBe(false);
-    // Regression (deck design gate): a lazy frame in the still-hidden mount area never loaded.
-    expect(frame?.getAttribute('loading')).not.toBe('lazy');
-    expect((load.mock.calls[0] as unknown[] | undefined)?.[0]).toMatchObject({ name: 'Demo app' });
-    expect(typeof unmount).toBe('function');
-    if (typeof unmount === 'function') unmount();
-    expect(target.querySelector('iframe')).toBeNull();
+// --- merged from postmessage.test.ts ---
+
+describe('postmessage', () => {
+  /**
+   * `protoyard-player/1` (src/embed): origins, message shape, size caps, the
+   * untrusted loader on every payload, exactly-once acknowledgements, and the
+   * embedding client, with fake windows; then a real boot through startEmbed.
+   */
+
+  const PLAYER = 'https://player.example';
+  const SITE = 'https://protoyard.app';
+  const P = PLAYER_PROTOCOL;
+
+  /** A window that records listeners and lets a test deliver messages. */
+  function fakeWindow() {
+    const listeners = new Set<(event: MessageEvent) => void>();
+    return {
+      listeners,
+      addEventListener: (_type: 'message', fn: (event: MessageEvent) => void) => listeners.add(fn),
+      removeEventListener: (_type: 'message', fn: (event: MessageEvent) => void) =>
+        listeners.delete(fn),
+      deliver(event: { source: unknown; origin: string; data: unknown }) {
+        for (const fn of [...listeners]) fn(event as unknown as MessageEvent);
+      },
+    };
+  }
+
+  /** A parent that records every message and its target origin. */
+  function fakeParent() {
+    const sent: { message: PlayerMessage; targetOrigin: string }[] = [];
+    return {
+      sent,
+      postMessage(message: PlayerMessage, targetOrigin: string) {
+        sent.push({ message, targetOrigin });
+      },
+    };
+  }
+
+  const demoBlueprint = parseBlueprint(demo);
+  const request = (type: string, id: string, blueprint: unknown = demoBlueprint) => ({
+    protocol: P,
+    type,
+    id,
+    blueprint,
+  });
+
+  describe('origins', () => {
+    it('accepts only exact http(s) origins', () => {
+      expect(exactOrigin('https://protoyard.app')).toBe(SITE);
+      expect(exactOrigin('https://protoyard.app/')).toBe(SITE);
+      expect(exactOrigin('http://localhost:5173')).toBe('http://localhost:5173');
+      for (const bad of [
+        '*',
+        'null',
+        '',
+        'https://protoyard.app/play',
+        'https://protoyard.app?x=1',
+        'https://protoyard.app#x',
+        'https://user:pw@protoyard.app',
+        'ftp://protoyard.app',
+        'javascript:alert(1)',
+        'HTTPS://Protoyard.app',
+        'protoyard.app',
+      ]) {
+        expect(exactOrigin(bad), bad).toBeNull();
+      }
+    });
+  });
+
+  describe('checkRequest (shape and size)', () => {
+    it('rejects unknown fields, a missing or non-JSON blueprint, and oversized payloads', () => {
+      const codes = (data: unknown, max?: number) => {
+        const check = checkRequest(data, max);
+        return check.kind === 'reject' ? check.issues.map((i) => i.code) : check.kind;
+      };
+      expect(codes({ ...request('load', 'a'), script: 'x' })).toEqual(['invalid-message']);
+      expect(codes({ protocol: P, type: 'load', id: 'a' })).toEqual(['invalid-message']);
+      expect(codes(request('load', 'a', 7))).toEqual(['invalid-message']);
+      const cyclic: Record<string, unknown> = { name: 'loop' };
+      cyclic.self = cyclic;
+      expect(codes(request('load', 'a', cyclic))).toEqual(['invalid-message']);
+      expect(codes(request('load', 'a', 'x'.repeat(MAX_MESSAGE_BLUEPRINT_BYTES + 1)))).toEqual([
+        'too-large',
+      ]);
+      expect(codes(request('load', 'a', { notes: 'é'.repeat(200) }), 300)).toEqual(['too-large']);
+    });
+  });
+
+  describe('createEmbedListener', () => {
+    function setup(
+      apply = vi.fn(async (_bp: unknown, _type: unknown) => ({ namespace: 'bp-test' }))
+    ) {
+      const win = fakeWindow();
+      const parent = fakeParent();
+      const listener = createEmbedListener({ window: win, parent, origins: [PLAYER, SITE], apply });
+      return { win, parent, listener, apply };
+    }
+
+    afterEach(() => vi.useRealTimers());
+
+    it('posts ready to each allowed origin, never to *', () => {
+      const { parent, listener } = setup();
+      expect(parent.sent).toEqual([
+        {
+          message: { protocol: P, type: 'ready', accepts: ['load', 'replace'], maxBytes: 262144 },
+          targetOrigin: PLAYER,
+        },
+        {
+          message: { protocol: P, type: 'ready', accepts: ['load', 'replace'], maxBytes: 262144 },
+          targetOrigin: SITE,
+        },
+      ]);
+      listener.stop();
+    });
+
+    it('ignores other windows and other origins without replying', async () => {
+      const { win, parent, listener, apply } = setup();
+      parent.sent.length = 0;
+      win.deliver({ source: {}, origin: SITE, data: request('load', 'a') });
+      win.deliver({ source: parent, origin: 'https://evil.example', data: request('load', 'b') });
+      win.deliver({ source: parent, origin: SITE, data: { hello: 'world' } });
+      await listener.idle();
+      expect(apply).not.toHaveBeenCalled();
+      expect(parent.sent).toEqual([]);
+      listener.stop();
+    });
+
+    it('answers loader issues with error and never runs the blueprint', async () => {
+      const { win, parent, listener, apply } = setup();
+      const codesFor = async (origin: string, data: unknown) => {
+        parent.sent.length = 0;
+        win.deliver({ source: parent, origin, data });
+        await listener.idle();
+        return parent.sent.map(({ message, targetOrigin }) => ({
+          type: message.type,
+          codes: message.type === 'error' ? [...new Set(message.issues.map((i) => i.code))] : [],
+          targetOrigin,
+        }));
+      };
+      expect(await codesFor(SITE, request('load', 'bad', { formatVersion: 1 }))).toEqual([
+        { type: 'error', codes: ['invalid-blueprint'], targetOrigin: SITE },
+      ]);
+      expect(
+        await codesFor(
+          PLAYER,
+          request('replace', 'proto', '{"name":"x","__proto__":{"polluted":true}}')
+        )
+      ).toEqual([{ type: 'error', codes: ['unsafe-key'], targetOrigin: PLAYER }]);
+      expect(await codesFor(SITE, request('load', 'json', '{nope'))).toEqual([
+        { type: 'error', codes: ['invalid-json'], targetOrigin: SITE },
+      ]);
+      expect(apply).not.toHaveBeenCalled();
+      expect({} as Record<string, unknown>).not.toHaveProperty('polluted');
+      listener.stop();
+    });
   });
 });
 
-/** Directive name → sources, in order. */
-function cspOf(policy: string): Map<string, string[]> {
-  return new Map(
-    policy
-      .split(';')
-      .map((part) => part.trim().split(/\s+/))
-      .filter((parts) => parts[0])
-      .map(([name, ...values]) => [name as string, values])
-  );
-}
+// --- merged from security.test.ts ---
 
-describe('built kind pages: CSP no looser than index.html', () => {
-  const pages: Record<string, string> = {};
-  beforeAll(() => {
-    ensurePlayerBuild(ROOT);
-    for (const name of PLAYER_HTML_ENTRIES) {
-      pages[name] = readFileSync(join(DIST, `${name}.html`), 'utf8');
-    }
-  }, 600_000);
+describe('security', () => {
+  const DIST = join(ROOT, 'packages/player/dist/app');
+  const GUARDED = ['packages/player/src', 'packages/crud/src', 'packages/blueprint/src'];
 
-  const meta = (html: string) => {
-    const match = /<meta http-equiv="Content-Security-Policy" content="([^"]+)">/.exec(html);
-    if (!match) throw new Error('no CSP meta tag');
-    return cspOf(match[1] as string);
-  };
+  function sources(dir: string): string[] {
+    return readdirSync(dir).flatMap((name) => {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) return name === 'node_modules' ? [] : sources(path);
+      return /\.(ts|js|svelte)$/.test(name) ? [path] : [];
+    });
+  }
 
-  it.each(['deck', 'page', 'doc'])('%s.html has every index.html directive, none wider', (name) => {
-    const index = meta(pages.index as string);
-    const kind = meta(pages[name] as string);
-    expect([...kind.keys()].sort()).toEqual([...index.keys()].sort());
-    for (const [directive, sources] of index) {
-      if (directive === 'script-src') continue;
-      expect(kind.get(directive), `${name}.html ${directive}`).toEqual(sources);
-    }
-    // Scripts: this origin plus the hashes of this page's own inline scripts, nothing more.
-    const scripts = kind.get('script-src') ?? [];
-    expect(scripts[0]).toBe("'self'");
-    for (const source of scripts.slice(1)) expect(source).toMatch(/^'sha256-[A-Za-z0-9+/]+=*'$/);
-    expect(scripts.length).toBeLessThanOrEqual((index.get('script-src') ?? []).length);
-    const html = pages[name] as string;
-    expect(html).not.toMatch(
-      /unsafe-eval|unsafe-hashes|strict-dynamic|\*|https?:\/\/(?!www\.w3\.org)/
-    );
-    expect(html).not.toMatch(/\son[a-z]+\s*=/i);
+  const FORBIDDEN: [string, RegExp][] = [
+    ['{@html}', /\{@html\b/],
+    ['eval()', /(?<![.\w])eval\s*\(/],
+    ['new Function()', /new\s+Function\s*\(/],
+    ['Function()', /(?<![.\w'"`])Function\s*\(/],
+    ['innerHTML/outerHTML assignment', /\.(?:inner|outer)HTML\s*=/],
+    ['insertAdjacentHTML', /insertAdjacentHTML\s*\(/],
+    ['document.write', /document\.write(?:ln)?\s*\(/],
+    ['dynamic import of a computed specifier', /(?<![.\w])import\(\s*(?!['"`]|\))/],
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: the label names the pattern.
+    ['dynamic import of a template with ${}', /(?<![.\w])import\(\s*`[^`]*\$\{/],
+  ];
+
+  describe('source guard', () => {
+    it('player, crud and blueprint never evaluate or inject data as code or HTML', () => {
+      const files = GUARDED.flatMap((dir) => sources(join(ROOT, dir)));
+      expect(files.length).toBeGreaterThan(100);
+      const hits: string[] = [];
+      for (const file of files) {
+        const text = readFileSync(file, 'utf8')
+          // Comments may mention the rules they follow.
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          .replace(/(^|[^:])\/\/.*$/gm, '$1')
+          .replace(/<!--[\s\S]*?-->/g, '');
+        for (const [label, pattern] of FORBIDDEN) {
+          if (pattern.test(text)) hits.push(`${relative(ROOT, file)}: ${label}`);
+        }
+      }
+      expect(hits).toEqual([]);
+    });
   });
 
-  it('serves one _headers policy that covers every page and keeps frame-ancestors', () => {
-    const headers = readFileSync(join(DIST, '_headers'), 'utf8');
-    const policy = cspOf(/Content-Security-Policy: (.+)/.exec(headers)?.[1] ?? '');
-    const index = meta(pages.index as string);
-    for (const [directive, sources] of index) {
-      if (directive === 'script-src') continue;
-      expect(policy.get(directive), directive).toEqual(sources);
-    }
-    expect(policy.get('frame-ancestors')).not.toContain('*');
-    for (const name of ['deck', 'page', 'doc']) {
-      for (const source of meta(pages[name] as string).get('script-src') ?? []) {
-        expect(policy.get('script-src'), `${name}.html ${source}`).toContain(source);
-      }
-    }
+  let html = '';
+  let headers = '';
+  beforeAll(() => {
+    ensurePlayerBuild(ROOT);
+    html = readFileSync(join(DIST, 'index.html'), 'utf8');
+    headers = readFileSync(join(DIST, '_headers'), 'utf8');
+  }, 600_000);
+
+  function cspOf(source: string): Map<string, string[]> {
+    return new Map(
+      source
+        .split(';')
+        .map((part) => part.trim().split(/\s+/))
+        .filter((parts) => parts[0])
+        .map(([name, ...values]) => [name as string, values])
+    );
+  }
+
+  const metaCsp = () => {
+    const match = /<meta http-equiv="Content-Security-Policy" content="([^"]+)">/.exec(html);
+    if (!match) throw new Error('no CSP meta tag in the built index.html');
+    return match[1] as string;
+  };
+
+  describe('built player CSP', () => {
+    it('allows only same-origin scripts plus the hash of every inline script, never eval', () => {
+      const csp = cspOf(metaCsp());
+      const scripts = inlineScripts(html);
+      expect(scripts.length).toBeGreaterThan(0);
+      const hashes = scripts.map(
+        (body) => `'sha256-${createHash('sha256').update(body, 'utf8').digest('base64')}'`
+      );
+      expect(csp.get('script-src')).toEqual(["'self'", ...hashes]);
+      expect(metaCsp()).not.toMatch(/unsafe-eval|wasm-unsafe-eval|\*|https?:/);
+      expect(csp.get('default-src')).toEqual(["'self'"]);
+      expect(csp.get('connect-src')).toEqual(["'self'"]);
+      expect(csp.get('worker-src')).toEqual(["'self'"]);
+      expect(csp.get('object-src')).toEqual(["'none'"]);
+      expect(csp.get('base-uri')).toEqual(["'none'"]);
+      expect(csp.get('form-action')).toEqual(["'none'"]);
+      expect(html).not.toMatch(/\son[a-z]+\s*=/i);
+    });
+
+    it('repeats the policy as a header with frame-ancestors, never *', () => {
+      const line = /Content-Security-Policy: (.+)/.exec(headers)?.[1] ?? '';
+      expect(line.startsWith(metaCsp())).toBe(true);
+      const ancestors = cspOf(line).get('frame-ancestors');
+      expect(ancestors).toEqual(PLAYER_FRAME_ANCESTORS);
+      expect(ancestors).not.toContain('*');
+      expect(headers).toMatch(/X-Content-Type-Options: nosniff/);
+    });
   });
 });

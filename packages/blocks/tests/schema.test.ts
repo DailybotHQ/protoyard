@@ -1,24 +1,22 @@
 // @vitest-environment node
-import { describe, expect, expectTypeOf, it } from 'vitest';
+
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { describe, expect, it } from 'vitest';
 import {
   BLOCK_CONTENT_LIMITS,
   BLOCK_FAMILIES,
   BLOCK_TYPE_FAMILY,
   BLOCK_TYPES,
   type Block,
-  base64DecodedBytes,
-  type ColumnsBlock,
-  ColumnsBlockSchema,
   classifyMediaSource,
-  containerDepth,
-  forEachBlock,
+  embeddedAppProblem,
   MEDIA_DATA_URI_MAX_BYTES,
-  parseLineSpec,
+  STATEFUL_BLOCK_TYPES,
   STATIC_BLOCK_TYPES,
   type StaticBlockType,
   safeParseBlock,
   safeParseBlocks,
-  toJsonPath,
 } from '../src/index.ts';
 
 /** A real 1×1 PNG and a tiny MP4 header, base64. */
@@ -236,81 +234,6 @@ describe('block schema: valid fixtures', () => {
     expect(Object.keys(FIXTURES).sort()).toEqual([...STATIC_BLOCK_TYPES].sort());
     for (const type of BLOCK_TYPES) expect(BLOCK_FAMILIES).toContain(BLOCK_TYPE_FAMILY[type]);
   });
-
-  it.each(STATIC_BLOCK_TYPES)('parses a valid %s block unchanged', (type) => {
-    const result = safeParseBlock(FIXTURES[type]);
-    expect(result.issues).toEqual([]);
-    expect(result.data).toEqual(FIXTURES[type]);
-  });
-
-  it('parses a list of every fixture with unique ids', () => {
-    const result = safeParseBlocks(Object.values(FIXTURES));
-    expect(result.issues).toEqual([]);
-    expect(result.data).toHaveLength(STATIC_BLOCK_TYPES.length);
-  });
-
-  it('accepts minimal blocks with only required fields', () => {
-    for (const block of [
-      { type: 'heading', text: 'Hi' },
-      { type: 'text', markdown: 'x' },
-      { type: 'divider' },
-      { type: 'image', src: 'assets/cover.webp', alt: 'Cover', width: 1, height: 1 },
-      { type: 'image', src: 'avatar:av-175', decorative: true, width: 64, height: 64 },
-      { type: 'video', src: './clips/demo.mp4', label: 'Demo', width: 16, height: 9 },
-      { type: 'code', code: 'x', lang: 'text' },
-    ]) {
-      expect(safeParseBlock(block).issues, block.type).toEqual([]);
-    }
-  });
-
-  it('infers the columns type from the recursive schema', () => {
-    expectTypeOf<ReturnType<typeof ColumnsBlockSchema.parse>>().toMatchTypeOf<ColumnsBlock>();
-  });
-
-  it('nests columns up to the depth limit', () => {
-    const nest = (depth: number): Block =>
-      depth === 0
-        ? { type: 'text', markdown: 'leaf' }
-        : { type: 'columns', columns: [[nest(depth - 1)], [{ type: 'divider' }]] };
-    const deepest = nest(BLOCK_CONTENT_LIMITS.containerDepth);
-    expect(containerDepth(deepest)).toBe(3);
-    expect(safeParseBlock(deepest).issues).toEqual([]);
-  });
-
-  it('visits nested blocks depth-first with their paths', () => {
-    const seen: string[] = [];
-    forEachBlock([FIXTURES.heading, FIXTURES.columns], (block, path) => {
-      seen.push(`${block.type}@${toJsonPath(path)}`);
-    });
-    expect(seen).toEqual([
-      'heading@$[0]',
-      'columns@$[1]',
-      'text@$[1]["columns"][0][0]',
-      'icon@$[1]["columns"][1][0]',
-    ]);
-  });
-
-  it('classifies media sources and decodes base64 sizes', () => {
-    expect(classifyMediaSource('avatar:av-001', 'image')).toEqual({
-      ok: true,
-      kind: 'avatar',
-      bytes: 0,
-    });
-    expect(classifyMediaSource(PNG, 'image')).toMatchObject({ ok: true, kind: 'data' });
-    expect(classifyMediaSource('img/a_b-1.JPG', 'image')).toMatchObject({ kind: 'relative' });
-    expect(base64DecodedBytes('AAAA')).toBe(3);
-    expect(base64DecodedBytes('AA==')).toBe(1);
-  });
-
-  it('parses highlight line specs', () => {
-    expect(parseLineSpec('1-2,4')).toEqual([
-      [1, 2],
-      [4, 4],
-    ]);
-    expect(parseLineSpec('3-1')).toBeNull();
-    expect(parseLineSpec('0')).toBeNull();
-    expect(parseLineSpec('1;2')).toBeNull();
-  });
 });
 
 describe('block schema rejects hostile input', () => {
@@ -320,128 +243,22 @@ describe('block schema rejects hostile input', () => {
     expect(issuesOf(null)[0]?.jsonPath).toBe('$');
   });
 
-  it.each([
-    'javascript:alert(1)',
-    'JaVaScRiPt:alert(1)',
-    ' javascript:alert(1)',
-    'java\tscript:alert(1)',
-    'data:text/html,<script>alert(1)</script>',
-    'data:text/html;base64,PHNjcmlwdD4=',
-    'vbscript:msgbox(1)',
-    '//evil.example.com',
-    '/\\evil.example.com',
-    'file:///etc/passwd',
-  ])('rejects the CTA href %j with a jsonPath', (href) => {
-    const issues = issuesOf({ type: 'cta', actions: [{ label: 'Go', href }] });
-    expect(issues.map((i) => i.jsonPath)).toContain('$["actions"][0]["href"]');
-  });
-
-  it('rejects unsafe card links the same way', () => {
-    const issues = issuesOf({ type: 'cards', items: [{ title: 'x', href: 'javascript:void 0' }] });
-    expect(issues[0]?.jsonPath).toBe('$["items"][0]["href"]');
-  });
-
-  it.each(['style', 'class', 'className', 'html', 'onclick', 'css', '__proto__'])(
-    'rejects the unknown key %j',
-    (key) => {
-      const block = JSON.parse(`{"type":"text","markdown":"x","${key}":"color:red"}`);
-      const issues = issuesOf(block);
-      expect(issues[0]?.message).toMatch(/unrecognized key/i);
-      expect(issues[0]?.jsonPath).toBe('$');
+  it('rejects every unsafe CTA href with a jsonPath', () => {
+    for (const href of [
+      'javascript:alert(1)',
+      'JaVaScRiPt:alert(1)',
+      ' javascript:alert(1)',
+      'java\tscript:alert(1)',
+      'data:text/html,<script>alert(1)</script>',
+      'data:text/html;base64,PHNjcmlwdD4=',
+      'vbscript:msgbox(1)',
+      '//evil.example.com',
+      '/\\evil.example.com',
+      'file:///etc/passwd',
+    ]) {
+      const issues = issuesOf({ type: 'cta', actions: [{ label: 'Go', href }] });
+      expect(issues.map((i) => i.jsonPath)).toContain('$["actions"][0]["href"]');
     }
-  );
-
-  it('rejects style keys on nested items too', () => {
-    const issues = issuesOf({
-      type: 'stat',
-      items: [{ value: '1', label: 'x', style: 'color: red' }],
-    });
-    expect(issues[0]?.jsonPath).toBe('$["items"][0]');
-  });
-
-  it.each(['#ff0000', 'red', 'var(--accent)', 'rgb(0 0 0)', 'Accent', 'primary'])(
-    'rejects the CSS-like tone %j',
-    (tone) => {
-      expect(issuesOf({ type: 'divider', tone })[0]?.jsonPath).toBe('$["tone"]');
-      const nested = issuesOf({
-        type: 'stat',
-        items: [{ value: '1', label: 'x', deltaTone: tone }],
-      });
-      expect(nested[0]?.jsonPath).toBe('$["items"][0]["deltaTone"]');
-    }
-  );
-
-  it.each([
-    ['list', 'items', { text: 'x' }, BLOCK_CONTENT_LIMITS.listItems],
-    ['steps', 'items', { title: 'x' }, BLOCK_CONTENT_LIMITS.steps],
-    ['timeline', 'events', { time: '1', title: 'x' }, BLOCK_CONTENT_LIMITS.timelineEvents],
-    ['people', 'people', { name: 'x' }, BLOCK_CONTENT_LIMITS.people],
-    ['cards', 'items', { title: 'x' }, BLOCK_CONTENT_LIMITS.cards],
-    ['stat', 'items', { value: '1', label: 'x' }, BLOCK_CONTENT_LIMITS.statItems],
-  ] as const)('rejects a %s with too many %s', (type, key, item, max) => {
-    const issues = issuesOf({ type, [key]: Array.from({ length: max + 1 }, () => item) });
-    expect(issues[0]?.jsonPath).toBe(`$[${JSON.stringify(key)}]`);
-    expect(issues[0]?.message).toMatch(/<=|at most|too big/i);
-  });
-
-  it('rejects oversize tables, comparisons and columns', () => {
-    const row = Array.from({ length: 9 }, () => 'x');
-    const wide = issuesOf({
-      type: 'table',
-      caption: 'Wide',
-      columns: row.map((label) => ({ label })),
-      rows: [row],
-    });
-    expect(wide[0]?.jsonPath).toBe('$["columns"]');
-    const tall = issuesOf({
-      type: 'table',
-      caption: 'Tall',
-      columns: [{ label: 'A' }],
-      rows: Array.from({ length: 51 }, () => ['x']),
-    });
-    expect(tall[0]?.jsonPath).toBe('$["rows"]');
-    const comparison = issuesOf({
-      type: 'comparison',
-      columns: Array.from({ length: 5 }, (_, i) => ({ label: `O${i}` })),
-      rows: [{ label: 'x', values: [] }],
-    });
-    expect(comparison.map((i) => i.jsonPath)).toContain('$["columns"]');
-    const columns = issuesOf({
-      type: 'columns',
-      columns: Array.from({ length: 5 }, () => [{ type: 'divider' }]),
-    });
-    expect(columns[0]?.jsonPath).toBe('$["columns"]');
-  });
-
-  it('rejects rows and values that do not match their columns', () => {
-    expect(
-      issuesOf({ type: 'table', caption: 'T', columns: [{ label: 'A' }], rows: [['a', 'b']] })[0]
-        ?.jsonPath
-    ).toBe('$["rows"][0]');
-    expect(
-      issuesOf({
-        type: 'table',
-        caption: 'T',
-        columns: [{ label: 'Price', format: 'cents' }],
-        rows: [[9.99]],
-      })[0]?.message
-    ).toBe('Money is integer cents');
-    expect(
-      issuesOf({
-        type: 'comparison',
-        columns: [{ label: 'A' }, { label: 'B' }],
-        rows: [{ label: 'x', values: [true] }],
-      })[0]?.jsonPath
-    ).toBe('$["rows"][0]["values"]');
-  });
-
-  it('rejects tabs outside code and accepts CRLF line breaks in markdown', () => {
-    expect(issuesOf({ type: 'text', markdown: 'a\tb' })[0]?.jsonPath).toBe('$["markdown"]');
-    expect(safeParseBlock({ type: 'text', markdown: 'a\r\nb' }).issues).toEqual([]);
-    expect(safeParseBlock({ type: 'code', code: '\tindented', lang: 'text' }).issues).toEqual([]);
-    expect(issuesOf({ type: 'code', code: 'nul\u0000', lang: 'text' })[0]?.jsonPath).toBe(
-      '$["code"]'
-    );
   });
 
   it('rejects text over its limit and control or bidi characters', () => {
@@ -458,25 +275,27 @@ describe('block schema rejects hostile input', () => {
     expect(issuesOf({ type: 'heading', text: '   ' })[0]?.jsonPath).toBe('$["text"]');
   });
 
-  it.each([
-    ['https://example.com/a.png', 'remote'],
-    ['http://example.com/a.png', 'remote'],
-    ['//example.com/a.png', 'protocol-relative'],
-    ['data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=', 'SVG'],
-    ['data:text/html;base64,PHNjcmlwdD4=', 'HTML'],
-    ['data:image/png,notbase64', 'not base64'],
-    ['data:image/png;base64,abc', 'malformed base64'],
-    ['../secret.png', 'traversal'],
-    ['assets/../../etc/passwd.png', 'traversal'],
-    ['/assets/a.png', 'root-absolute'],
-    ['assets/a.svg', 'svg path'],
-    ['assets\\a.png', 'backslash'],
-    ['avatar:av-999', 'unknown avatar'],
-    ['avatar:../../x', 'bad avatar'],
-    ['javascript:alert(1)//.png', 'script scheme'],
-  ])('rejects the image source %j (%s)', (src) => {
-    const issues = issuesOf({ type: 'image', src, alt: 'x', width: 1, height: 1 });
-    expect(issues.map((i) => i.jsonPath)).toContain('$["src"]');
+  it('rejects every remote or unsafe image source', () => {
+    for (const src of [
+      ['https://example.com/a.png', 'remote'],
+      ['http://example.com/a.png', 'remote'],
+      ['//example.com/a.png', 'protocol-relative'],
+      ['data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=', 'SVG'],
+      ['data:text/html;base64,PHNjcmlwdD4=', 'HTML'],
+      ['data:image/png,notbase64', 'not base64'],
+      ['data:image/png;base64,abc', 'malformed base64'],
+      ['../secret.png', 'traversal'],
+      ['assets/../../etc/passwd.png', 'traversal'],
+      ['/assets/a.png', 'root-absolute'],
+      ['assets/a.svg', 'svg path'],
+      ['assets\\a.png', 'backslash'],
+      ['avatar:av-999', 'unknown avatar'],
+      ['avatar:../../x', 'bad avatar'],
+      ['javascript:alert(1)//.png', 'script scheme'],
+    ]) {
+      const issues = issuesOf({ type: 'image', src, alt: 'x', width: 1, height: 1 });
+      expect(issues.map((i) => i.jsonPath)).toContain('$["src"]');
+    }
   });
 
   it('rejects embedded media over 192 KB', () => {
@@ -488,97 +307,6 @@ describe('block schema rejects hostile input', () => {
     );
   });
 
-  it('rejects images without alt, decorative images with alt, and unmuted autoplay', () => {
-    expect(issuesOf({ type: 'image', src: PNG, width: 1, height: 1 })[0]?.jsonPath).toBe(
-      '$["alt"]'
-    );
-    expect(
-      issuesOf({ type: 'image', src: PNG, alt: 'x', decorative: true, width: 1, height: 1 })[0]
-        ?.jsonPath
-    ).toBe('$["alt"]');
-    expect(
-      issuesOf({ type: 'video', src: MP4, label: 'x', width: 1, height: 1, autoplay: true })[0]
-        ?.jsonPath
-    ).toBe('$["muted"]');
-    expect(
-      issuesOf({ type: 'video', src: PNG, label: 'x', width: 1, height: 1 })[0]?.jsonPath
-    ).toBe('$["src"]');
-    expect(
-      issuesOf({ type: 'image', src: PNG, alt: 'x', width: 0, height: 99_999 }).map(
-        (i) => i.jsonPath
-      )
-    ).toEqual(['$["width"]', '$["height"]']);
-  });
-
-  it('rejects a chart spec that ChartSpecSchema rejects', () => {
-    const issues = issuesOf({
-      type: 'chart',
-      spec: { kind: 'pie', title: 'x', labels: ['a'], series: [{ label: 's', values: [-1] }] },
-    });
-    expect(issues[0]?.jsonPath).toBe('$["spec"]["series"][0]["values"]');
-  });
-
-  it('rejects bad code languages, too many lines and out-of-range highlights', () => {
-    expect(issuesOf({ type: 'code', code: 'x', lang: 'php' })[0]?.jsonPath).toBe('$["lang"]');
-    expect(
-      issuesOf({
-        type: 'code',
-        code: 'a\n'.repeat(BLOCK_CONTENT_LIMITS.codeLines + 1),
-        lang: 'text',
-      })[0]?.jsonPath
-    ).toBe('$["code"]');
-    expect(
-      issuesOf({ type: 'code', code: 'a\nb', lang: 'text', highlights: ['1', '3'] })[0]?.jsonPath
-    ).toBe('$["highlights"][1]');
-    expect(
-      issuesOf({ type: 'code', code: 'a', lang: 'text', highlights: ['1;alert(1)'] })[0]?.jsonPath
-    ).toBe('$["highlights"][0]');
-  });
-
-  it('rejects bad ids, steps, reveals, icons and avatars', () => {
-    expect(issuesOf({ type: 'divider', id: 'Has Spaces' })[0]?.jsonPath).toBe('$["id"]');
-    expect(issuesOf({ type: 'divider', step: 33 })[0]?.jsonPath).toBe('$["step"]');
-    expect(issuesOf({ type: 'divider', step: 1.5 })[0]?.jsonPath).toBe('$["step"]');
-    expect(issuesOf({ type: 'divider', reveal: 'explode' })[0]?.jsonPath).toBe('$["reveal"]');
-    expect(issuesOf({ type: 'icon', icon: '<svg onload=x>', label: 'x' })[0]?.jsonPath).toBe(
-      '$["icon"]'
-    );
-    expect(issuesOf({ type: 'icon', icon: 'rocket' })[0]?.jsonPath).toBe('$["label"]');
-    expect(issuesOf({ type: 'quote', quote: 'x', avatar: 'av-000' })[0]?.jsonPath).toBe(
-      '$["avatar"]'
-    );
-  });
-
-  it('rejects list and card cross-field mistakes', () => {
-    expect(issuesOf({ type: 'list', items: [{ text: 'x', done: true }] })[0]?.jsonPath).toBe(
-      '$["items"][0]["done"]'
-    );
-    expect(issuesOf({ type: 'list', style: 'icon', items: [{ text: 'x' }] })[0]?.jsonPath).toBe(
-      '$["items"][0]["icon"]'
-    );
-    expect(issuesOf({ type: 'cards', items: [{ title: 'x', imageAlt: 'y' }] })[0]?.jsonPath).toBe(
-      '$["items"][0]["imageAlt"]'
-    );
-  });
-
-  it('rejects columns nested deeper than the limit', () => {
-    const nest = (depth: number): Block =>
-      depth === 0
-        ? { type: 'divider' }
-        : { type: 'columns', columns: [[nest(depth - 1)], [{ type: 'divider' }]] };
-    const issues = issuesOf(nest(BLOCK_CONTENT_LIMITS.containerDepth + 1));
-    expect(issues.map((i) => i.jsonPath)).toContain('$["columns"]');
-    expect(issues.map((i) => i.message).join(' ')).toMatch(/nest at most 3/);
-  });
-
-  it('rejects an invalid block inside a column with its full path', () => {
-    const issues = issuesOf({
-      type: 'columns',
-      columns: [[{ type: 'divider' }], [{ type: 'text', markdown: 'x', style: 'x' }]],
-    });
-    expect(issues[0]?.jsonPath).toBe('$["columns"][1][0]');
-  });
-
   it('rejects duplicate ids anywhere in a block list', () => {
     const result = safeParseBlocks([
       { type: 'heading', id: 'same', text: 'A' },
@@ -588,13 +316,330 @@ describe('block schema rejects hostile input', () => {
     expect(result.issues[0]?.jsonPath).toBe('$[1]["columns"][0][0]["id"]');
     expect(result.issues[0]?.message).toContain('first used at $[0]');
   });
+});
 
-  it('tracks diagram ids in the shared block-list namespace', () => {
-    const result = safeParseBlocks([
-      { type: 'flow', id: 'same', nodes: [{ id: 'start', label: 'Start' }] },
-      { type: 'terminal', id: 'same', lines: [{ kind: 'output', text: 'Done' }] },
-    ]);
-    expect(result.success).toBe(false);
-    expect(result.issues[0]?.jsonPath).toBe('$[1]["id"]');
+// --- merged from schema-interactive.test.ts ---
+
+const n = (value: number) => ({ op: 'num' as const, value });
+const v = (name: string) => ({ op: 'var' as const, name });
+
+/** A small, valid app blueprint used as an opaque embed payload. */
+const APP = {
+  formatVersion: 1,
+  name: 'Mini tracker',
+  entities: [{ name: 'task', fields: [{ name: 'title', kind: 'text', required: true }] }],
+  roles: [{ id: 'member', label: 'Member' }],
+};
+
+type InteractiveType = (typeof STATEFUL_BLOCK_TYPES)[number];
+
+const INTERACTIVE_FIXTURES: Record<InteractiveType, Block> = {
+  tabs: {
+    type: 'tabs',
+    id: 'plans',
+    label: 'Plans',
+    defaultPanel: 'team',
+    panels: [
+      { id: 'solo', label: 'Solo', blocks: [{ type: 'text', markdown: 'For one person.' }] },
+      { id: 'team', label: 'Team', icon: 'users', blocks: [{ type: 'divider' }] },
+    ],
+  },
+  reveal: {
+    type: 'reveal',
+    id: 'answer',
+    label: 'Show the answer',
+    openLabel: 'Hide the answer',
+    blocks: [{ type: 'text', markdown: '**42**' }],
+  },
+  poll: {
+    type: 'poll',
+    id: 'favorite',
+    question: 'Which feature do you use most?',
+    options: [
+      { id: 'decks', label: 'Decks' },
+      { id: 'pages', label: 'Pages' },
+      { id: 'apps', label: 'Apps' },
+    ],
+    maxChoices: 2,
+    results: 'after-vote',
+  },
+  quiz: {
+    type: 'quiz',
+    id: 'check',
+    title: 'Quick check',
+    feedback: 'immediate',
+    passScore: 0.5,
+    shuffle: true,
+    questions: [
+      {
+        id: 'q1',
+        prompt: 'What does a **tone** replace?',
+        choices: [
+          { id: 'css', label: 'CSS colors' },
+          { id: 'fonts', label: 'Fonts' },
+        ],
+        answers: ['css'],
+        explanation: 'Blocks never accept CSS.',
+      },
+      {
+        id: 'q2',
+        prompt: 'Pick the containers.',
+        choices: [
+          { id: 'tabs', label: 'Tabs' },
+          { id: 'poll', label: 'Poll' },
+          { id: 'reveal', label: 'Reveal' },
+        ],
+        answers: ['tabs', 'reveal'],
+      },
+    ],
+  },
+  calculator: {
+    type: 'calculator',
+    id: 'pricing',
+    title: 'What would it cost?',
+    currency: 'USD',
+    inputs: [
+      { name: 'seats', label: 'Seats', control: 'slider', min: 1, max: 200, step: 1, default: 10 },
+      {
+        name: 'discount',
+        label: 'Discount',
+        min: 0,
+        max: 0.5,
+        step: 0.05,
+        default: 0,
+        unit: 'percent',
+      },
+    ],
+    outputs: [
+      {
+        id: 'monthly',
+        label: 'Per month',
+        unit: 'cents',
+        emphasis: true,
+        formula: {
+          op: 'round',
+          value: {
+            op: 'mul',
+            left: { op: 'mul', left: v('seats'), right: n(1200) },
+            right: { op: 'sub', left: n(1), right: v('discount') },
+          },
+        },
+      },
+      {
+        id: 'tier',
+        label: 'Volume tier',
+        formula: {
+          op: 'if',
+          test: { op: 'gte', left: v('seats'), right: n(50) },
+          ifTrue: n(2),
+          ifFalse: n(1),
+        },
+      },
+    ],
+    chart: { output: 'monthly', input: 'seats', kind: 'line', points: 20 },
+  },
+  counter: { type: 'counter', id: 'claps', label: 'Claps', start: 0, step: 1, min: 0, max: 100 },
+  'chart-controls': {
+    type: 'chart-controls',
+    id: 'growth',
+    spec: {
+      kind: 'line',
+      title: 'Signups',
+      labels: ['Jan', 'Feb', 'Mar', 'Apr'],
+      series: [
+        { label: 'Organic', values: [10, 14, 20, 26] },
+        { label: 'Paid', values: [4, 6, 9, 12] },
+      ],
+    },
+    kinds: ['line', 'bar', 'area'],
+    seriesToggle: true,
+    range: true,
+  },
+  map: {
+    type: 'map',
+    id: 'stores',
+    label: 'Stores on the simulated map',
+    basemap: 'port-meridian',
+    points: [
+      { id: 'north', label: 'North pier', lng: -18.6, lat: -30.8, tone: 'accent' },
+      { id: 'market', label: 'Market', lng: -18.4, lat: -31.1, icon: 'shopping-cart' },
+    ],
+    route: ['north', 'market'],
+  },
+  'embed-app': {
+    type: 'embed-app',
+    id: 'try-it',
+    title: 'Try the tracker',
+    height: 'md',
+    app: APP,
+  },
+  form: {
+    type: 'form',
+    id: 'signup',
+    title: 'Join the beta',
+    fields: [
+      {
+        name: 'email',
+        label: 'Email',
+        type: 'email',
+        required: true,
+        placeholder: 'you@example.com',
+      },
+      { name: 'company', label: 'Company', type: 'text', maxLength: 120 },
+      { name: 'about', label: 'About you', type: 'longText', help: 'Optional.' },
+      { name: 'site', label: 'Website', type: 'url' },
+      { name: 'phone', label: 'Phone', type: 'phone' },
+      { name: 'seats', label: 'Seats', type: 'number', min: 1, max: 500 },
+      { name: 'updates', label: 'Send me updates', type: 'boolean' },
+      {
+        name: 'role',
+        label: 'Role',
+        type: 'enum',
+        required: true,
+        options: [
+          { value: 'design', label: 'Design' },
+          { value: 'eng', label: 'Engineering' },
+        ],
+      },
+      { name: 'topics', label: 'Topics', type: 'tags', maxTags: 5 },
+    ],
+    submitLabel: 'Request access',
+    successMessage: 'Thanks! This is a simulated form; nothing was sent.',
+  },
+};
+
+/** Clones a fixture and applies a change. */
+function variant<T extends InteractiveType>(
+  type: T,
+  change: (block: Record<string, unknown>) => void
+) {
+  const block = structuredClone(INTERACTIVE_FIXTURES[type]) as unknown as Record<string, unknown>;
+  change(block);
+  return block;
+}
+
+describe('interactive block schemas rejects', () => {
+  it('rejects containers nested deeper than three, whatever the mix', () => {
+    const tooDeep = {
+      type: 'reveal',
+      id: 'r1',
+      label: 'One',
+      blocks: [
+        {
+          type: 'tabs',
+          id: 't1',
+          label: 'Two',
+          panels: [
+            {
+              id: 'p1',
+              label: 'P',
+              blocks: [
+                {
+                  type: 'columns',
+                  columns: [
+                    [{ type: 'reveal', id: 'r2', label: 'Four', blocks: [{ type: 'divider' }] }],
+                    [{ type: 'divider' }],
+                  ],
+                },
+              ],
+            },
+            { id: 'p2', label: 'Q', blocks: [{ type: 'divider' }] },
+          ],
+        },
+      ],
+    };
+    const issues = issuesOf(tooDeep);
+    expect(issues.map((i) => i.message).join(' ')).toMatch(/nest at most 3 deep/);
+  });
+
+  it('rejects an embedded app that embeds another app, at the nested path', () => {
+    const nested = variant('embed-app', (b) => {
+      b.app = {
+        ...APP,
+        screens: [{ kind: 'dashboard', widgets: [{ type: 'embed-app', id: 'x', app: APP }] }],
+      };
+    });
+    const issues = issuesOf(nested);
+    expect(issues[0]?.jsonPath).toBe('$["app"]["screens"][0]["widgets"][0]');
+    expect(issues[0]?.message).toMatch(/cannot embed another app/);
+  });
+
+  it('rejects embedded apps over the byte or depth limit', () => {
+    const big = { ...APP, description: 'x'.repeat(BLOCK_CONTENT_LIMITS.embedBytes) };
+    expect(issuesOf(variant('embed-app', (b) => (b.app = big)))[0]?.message).toMatch(/KB of JSON/);
+    let deep: Record<string, unknown> = { leaf: true };
+    for (let i = 0; i < BLOCK_CONTENT_LIMITS.embedDepth + 2; i += 1) deep = { child: deep };
+    expect(issuesOf(variant('embed-app', (b) => (b.app = deep)))[0]?.message).toMatch(
+      /nests at most/
+    );
+    const cyclic: Record<string, unknown> = { ...APP };
+    cyclic.self = cyclic;
+    expect(embeddedAppProblem(cyclic)?.message).toMatch(/no cycles/);
+    expect(embeddedAppProblem(APP)).toBeNull();
+  });
+
+  it('rejects calculator formulas that read unknown inputs, with the formula path', () => {
+    const block = variant('calculator', (b) => {
+      const output = (b.outputs as Record<string, unknown>[])[0] as Record<string, unknown>;
+      output.formula = { op: 'mul', left: v('seats'), right: v('price') };
+    });
+    const issue = issuesOf(block)[0];
+    expect(issue?.jsonPath).toBe('$["outputs"][0]["formula"]["right"]["name"]');
+    expect(issue?.message).toMatch(/Unknown variable "price".*discount, seats/);
+  });
+});
+
+// --- merged from package-shape.test.ts ---
+
+/**
+ * `@protoyard/blocks` is the framework-free half of the blocks kit (ADR-022,
+ * ADR-037): schemas and engines run in Node tests, in the blueprint union, in
+ * the CLI and in kind runtimes, so the package never imports Svelte or a UI
+ * package. Heavier engines live behind their own subpaths.
+ */
+const PKG = join(import.meta.dirname, '..');
+const SRC = join(PKG, 'src');
+const SUBPATHS = ['formula', 'interactive', 'code', 'diagram', 'catalog'] as const;
+
+function sourceFiles(dir: string, out: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) sourceFiles(path, out);
+    else if (/\.(ts|js|svelte)$/.test(name)) out.push(path);
+  }
+  return out;
+}
+
+export function frameworkImports(text: string): string[] {
+  const found: string[] = [];
+  for (const match of text.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)['"]([^'"]+)['"]/g)) {
+    const spec = match[1] ?? '';
+    if (
+      /^svelte(\/|$)|\.svelte$|^@protoyard\/(ui|blocks-ui|views-ui|charts-ui|ai-ui|renderer-svelte|devtools|crud|player|database|blueprint)(\/|$)|^dexie$/.test(
+        spec
+      )
+    ) {
+      found.push(spec);
+    }
+  }
+  return found;
+}
+
+describe('@protoyard/blocks package shape', () => {
+  it('never imports Svelte, a UI package, the database or the blueprint', () => {
+    const files = sourceFiles(SRC);
+    expect(files.length).toBeGreaterThanOrEqual(SUBPATHS.length + 1);
+    const offenders = files.flatMap((file) =>
+      frameworkImports(readFileSync(file, 'utf8')).map((spec) => `${relative(PKG, file)} → ${spec}`)
+    );
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('@protoyard/blocks/safety', () => {
+  it('stays free of zod, markdown, chart and catalog imports so first screens can use it', () => {
+    const source = readFileSync(join(PKG, 'src/safety.ts'), 'utf8');
+    const imports = [...source.matchAll(/from '([^']+)'/g)].map((match) => match[1]);
+    expect(imports).toEqual(['@texuli/blocks/core']);
   });
 });

@@ -29,7 +29,7 @@ src/domain/notes.ts       services: assert → validate → environment.run → 
 src/scenarios/index.ts    scenario definitions (seed, referenceTime, actor, density…)
 src/scenarios/generators.ts  generate(ctx) → WorldSeed (deterministic)
 src/screens/*.svelte      routed screens   src/components/*.svelte  pieces
-tests/blank.test.ts       generator + service tests (vitest, fake IndexedDB)
+tests/                    none: tests/integration/templates.test.ts generates, validates and boots this template
 ```
 
 ## Add a table
@@ -66,7 +66,7 @@ Append to `src/scenarios/index.ts` **and** list its id in
 ## Checks
 
 ```bash
-pnpm vitest run templates/blank
+pnpm vitest run tests/integration/templates.test.ts -t blank
 pnpm --filter @protoyard-template/blank typecheck
 pnpm --filter @protoyard-template/blank build
 ```

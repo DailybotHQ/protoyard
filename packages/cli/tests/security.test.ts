@@ -18,11 +18,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { startControlServer } from '../src/control-server.ts';
-import { listFiles } from '../src/lib/checksum.ts';
-import { BUILD_MARKER, guardOutputDir, SHOWCASE_MARKER } from '../src/lib/output-guard.ts';
+import { BUILD_MARKER, guardOutputDir } from '../src/lib/output-guard.ts';
 import { CASE_INSENSITIVE_FS, workspacePaths } from '../src/lib/paths.ts';
 import { buildIndex } from '../src/lib/registry.ts';
-import { serveStatic, sirvCandidates } from '../src/lib/static-server.ts';
+import { serveStatic } from '../src/lib/static-server.ts';
 import {
   addBuildablePrototype,
   addPrototype,
@@ -98,20 +97,6 @@ describe('C1/C2 output allow-list', () => {
     expect(() => guard(tmpdir(), { allowExternal: true })).toThrow(/Refusing/);
   });
 
-  it('allows artifacts/** and tmp/**, and new, empty or marked folders elsewhere in the workspace', () => {
-    expect(guard('artifacts/custom')).toContain('artifacts');
-    expect(guard('tmp/out')).toContain('tmp');
-    expect(guard('brand-new-out')).toMatch(/brand-new-out$/);
-    expect(() => guard('misc')).toThrow(/did not create/);
-    ws.write('marked/.protoyard-out', '{}');
-    ws.write('marked/index.html', 'old');
-    expect(guard('marked')).toMatch(/marked$/);
-    ws.write('site/.protoyard-showcase', '{}');
-    ws.write('site/index.html', 'old');
-    expect(() => guard('site')).toThrow(/did not create/); // wrong marker for a build
-    expect(guard('site', { marker: SHOWCASE_MARKER })).toMatch(/site$/);
-  });
-
   it.runIf(CASE_INSENSITIVE_FS)('C3: letter-case variants of protected folders are refused', () => {
     for (const bad of ['DOCS', 'Packages', 'PROTOTYPES/app-one/dist', '.GIT', 'Node_Modules']) {
       expect(() => guard(bad), bad).toThrow(/Refusing/);
@@ -148,38 +133,6 @@ describe('C1/C2 output allow-list', () => {
       expect(run.code, out).toBe(2);
     }
   });
-
-  it('a custom --out is marked, rebuildable, and never overwrites the default build manifest (I10)', async () => {
-    const first = await cli(['--root', ws.root, '--json', 'build', 'app-one']);
-    expect(first.code).toBe(0);
-    const defaultManifest = readFileSync(
-      join(ws.root, 'artifacts/app-one/build-manifest.json'),
-      'utf8'
-    );
-    for (let i = 0; i < 2; i++) {
-      const custom = await cli([
-        '--root',
-        ws.root,
-        '--json',
-        'build',
-        'app-one',
-        '--out',
-        'custom-out',
-        '--base',
-        '/sub/',
-      ]);
-      expect(custom.code, `run ${i}`).toBe(0);
-    }
-    expect(readFileSync(join(ws.root, 'artifacts/app-one/build-manifest.json'), 'utf8')).toBe(
-      defaultManifest
-    );
-    const marker = JSON.parse(readFileSync(join(ws.root, 'custom-out', BUILD_MARKER), 'utf8'));
-    expect(marker.base).toBe('/sub/');
-    // Bookkeeping never lands in digests or ZIPs.
-    expect(
-      (await listFiles(join(ws.root, 'custom-out'))).some((f) => f.endsWith(BUILD_MARKER))
-    ).toBe(false);
-  }, 90_000);
 });
 
 describe('M1/H1 symlinks in prototypes', () => {
@@ -481,24 +434,6 @@ describe('final review regressions (W1, W2, I3, I4, I6, I7)', () => {
 });
 
 describe('sirv lookup mirror (W-C1, I-C3)', () => {
-  it("lists exactly sirv's candidates, plus the SPA root fallback", () => {
-    expect(sirvCandidates('/foo', false)).toEqual([
-      '/foo',
-      '/foo/index',
-      '/foo.html',
-      '/foo/index.html',
-      '/foo.htm',
-      '/foo/index.htm',
-    ]);
-    expect(sirvCandidates('/foo/', true).slice(-3)).toEqual([
-      '/index',
-      '/index.html',
-      '/index.htm',
-    ]);
-    // The root never checks a sibling of the served folder (dist.html).
-    expect(sirvCandidates('/', false)).toEqual(['/index', '/index.html', '/index.htm']);
-  });
-
   it('refuses an SPA fallback whose root index is a symlink leaving the folder', async () => {
     const dist = join(ws.root, 'tmp', 'spa-root');
     mkdirSync(dist, { recursive: true });

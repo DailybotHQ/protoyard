@@ -147,69 +147,56 @@ afterAll(async () => {
 });
 
 describe('page and doc entry budgets (real production Vite builds)', () => {
-  it('walks static imports without including dynamic imports', () => {
-    const entry = {
-      type: 'chunk',
-      fileName: 'entry.js',
-      imports: ['shell.js'],
-      dynamicImports: ['lazy.js'],
-    } as Rollup.OutputChunk;
-    const shell = { ...entry, fileName: 'shell.js', imports: [], dynamicImports: [] };
-    const lazy = { ...entry, fileName: 'lazy.js', imports: [], dynamicImports: [] };
-    expect(staticChunks([entry, shell, lazy], 'entry.js').map((chunk) => chunk.fileName)).toEqual([
-      'entry.js',
-      'shell.js',
-    ]);
-  });
+  it('keeps the page and doc initial JS and CSS inside their budgets', () => {
+    for (const host of HOSTS) {
+      const output = builds.get(host);
+      expect(output, `${host} production build`).toBeDefined();
+      const chunks = output?.chunks ?? [];
+      const entry = chunks.find((chunk) => chunk.isEntry);
+      expect(entry, `${host} entry chunk`).toBeDefined();
+      const initial = staticChunks(chunks, entry?.fileName ?? '');
+      const jsBytes = initial.reduce((total, chunk) => total + gzip(chunk.code), 0);
+      const cssBytes = (output?.assets ?? [])
+        .filter((asset) => asset.fileName.endsWith('.css'))
+        .reduce((total, asset) => total + gzip(asset.source), 0);
+      const initialCss = new Set(
+        initial.flatMap((chunk) => [...(chunk.viteMetadata?.importedCss ?? [])])
+      );
+      const initialCssBytes = (output?.assets ?? [])
+        .filter((asset) => initialCss.has(asset.fileName))
+        .reduce((total, asset) => total + gzip(asset.source), 0);
+      const modules = initial
+        .flatMap((chunk) => chunk.moduleIds)
+        .map((id) => id.replaceAll('\\', '/'));
 
-  it.each(HOSTS)('keeps the %s initial JS and CSS inside their budgets', (host) => {
-    const output = builds.get(host);
-    expect(output, `${host} production build`).toBeDefined();
-    const chunks = output?.chunks ?? [];
-    const entry = chunks.find((chunk) => chunk.isEntry);
-    expect(entry, `${host} entry chunk`).toBeDefined();
-    const initial = staticChunks(chunks, entry?.fileName ?? '');
-    const jsBytes = initial.reduce((total, chunk) => total + gzip(chunk.code), 0);
-    const cssBytes = (output?.assets ?? [])
-      .filter((asset) => asset.fileName.endsWith('.css'))
-      .reduce((total, asset) => total + gzip(asset.source), 0);
-    const initialCss = new Set(
-      initial.flatMap((chunk) => [...(chunk.viteMetadata?.importedCss ?? [])])
-    );
-    const initialCssBytes = (output?.assets ?? [])
-      .filter((asset) => initialCss.has(asset.fileName))
-      .reduce((total, asset) => total + gzip(asset.source), 0);
-    const modules = initial
-      .flatMap((chunk) => chunk.moduleIds)
-      .map((id) => id.replaceAll('\\', '/'));
+      console.info(
+        `${host} entry: ${jsBytes} B JS gzip, ${initialCssBytes} B initial CSS gzip, ${cssBytes} B CSS gzip in every stylesheet`
+      );
+      expect(initial.length, `${host} static JS chunks`).toBeGreaterThan(0);
+      expect(jsBytes, `${host} initial JS gzip`).toBeLessThanOrEqual(JS_GZIP_BUDGET);
+      expect(initialCssBytes, `${host} initial CSS gzip`).toBeGreaterThan(0);
+      expect(initialCssBytes, `${host} initial CSS gzip`).toBeLessThanOrEqual(
+        INITIAL_CSS_GZIP_BUDGETS[host]
+      );
+      expect(cssBytes, `${host} CSS gzip, every stylesheet`).toBeLessThanOrEqual(
+        CSS_GZIP_BUDGETS[host]
+      );
 
-    console.info(
-      `${host} entry: ${jsBytes} B JS gzip, ${initialCssBytes} B initial CSS gzip, ${cssBytes} B CSS gzip in every stylesheet`
-    );
-    expect(initial.length, `${host} static JS chunks`).toBeGreaterThan(0);
-    expect(jsBytes, `${host} initial JS gzip`).toBeLessThanOrEqual(JS_GZIP_BUDGET);
-    expect(initialCssBytes, `${host} initial CSS gzip`).toBeGreaterThan(0);
-    expect(initialCssBytes, `${host} initial CSS gzip`).toBeLessThanOrEqual(
-      INITIAL_CSS_GZIP_BUDGETS[host]
-    );
-    expect(cssBytes, `${host} CSS gzip, every stylesheet`).toBeLessThanOrEqual(
-      CSS_GZIP_BUDGETS[host]
-    );
-
-    const forbidden = [
-      ['crud/app', /\/crud\/src\/(?:app|screens)\//],
-      ['Faker', /@faker-js\/faker/],
-      ['player worker', /\/player\/src\/.*worker|generate-world.*worker/],
-      // The doc editor and the document writers load on first use only.
-      ['@texuli/pages', /@texuli\/pages\//],
-      ['@texuli/document', /@texuli\/document\//],
-      ['doc editor', /\/pages-ui\/src\/doc\/(?:DocEditor\.svelte|doc-export\.ts)/],
-    ] as const;
-    for (const [label, pattern] of forbidden) {
-      expect(
-        modules.filter((id) => pattern.test(id)),
-        `${host} excludes ${label}`
-      ).toEqual([]);
+      const forbidden = [
+        ['crud/app', /\/crud\/src\/(?:app|screens)\//],
+        ['Faker', /@faker-js\/faker/],
+        ['player worker', /\/player\/src\/.*worker|generate-world.*worker/],
+        // The doc editor and the document writers load on first use only.
+        ['@texuli/pages', /@texuli\/pages\//],
+        ['@texuli/document', /@texuli\/document\//],
+        ['doc editor', /\/pages-ui\/src\/doc\/(?:DocEditor\.svelte|doc-export\.ts)/],
+      ] as const;
+      for (const [label, pattern] of forbidden) {
+        expect(
+          modules.filter((id) => pattern.test(id)),
+          `${host} excludes ${label}`
+        ).toEqual([]);
+      }
     }
   });
 });
