@@ -60,7 +60,7 @@ export function createBoardServices(runtime: PrototypeRuntime<CanvasBoardDatabas
           createdAt: at,
           updatedAt: at,
         };
-        await db.boards.add(board);
+        await db.transaction('rw', db.boards, () => db.boards.add(board));
         return board;
       });
     },
@@ -98,7 +98,9 @@ export function createBoardServices(runtime: PrototypeRuntime<CanvasBoardDatabas
 
     async remove(id: string): Promise<void> {
       session.assert(CAPABILITIES.delete);
-      await environment.run('boards.delete', () => db.boards.delete(id));
+      await environment.run('boards.delete', () =>
+        db.transaction('rw', db.boards, () => db.boards.delete(id))
+      );
     },
   };
 }
