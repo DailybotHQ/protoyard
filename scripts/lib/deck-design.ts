@@ -1,7 +1,8 @@
 /**
- * Deck design gate (tests/e2e/deck-design.spec.ts): what a well-designed slide
- * must measure in a real browser, as pure functions over measurements the
- * spec collects with `page.evaluate`. The visual sweep (deck-sweep.ts) checks
+ * Deck design rules: what a well-designed slide must measure in a real
+ * browser, as pure functions over measurements collected with `page.evaluate`.
+ * The browser gate that ran them (tests/e2e/deck-design.spec.ts) and their unit
+ * tests were removed in PLAN_009; nothing runs these rules today. The visual sweep (deck-sweep.ts) checks
  * overflow and browser noise; this gate adds the things a passing sweep
  * missed on the flagship deck: the deck theme and slide backgrounds actually
  * applied, display-size titles on cover, divider and big-stat slides, chart

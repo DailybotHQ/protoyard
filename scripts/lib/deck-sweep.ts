@@ -1,7 +1,7 @@
 /**
  * Pure half of the deck visual QA sweep (`scripts/sweep-deck.ts`):
  * arguments, issue classification, report shape and contact sheet.
- * No browser and no file system — unit-tested in `scripts/tests/deck-sweep.test.ts`.
+ * No browser and no file system (its unit test was removed in PLAN_009).
  *
  * Deterministic failures (exit 1): overflow, missing image alt/dimensions,
  * broken images, navigation failures, console/page/request errors.
