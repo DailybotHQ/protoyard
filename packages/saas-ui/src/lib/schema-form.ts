@@ -1,8 +1,10 @@
 import { isValidationError, type ServiceResult } from '@protoyard/renderer-svelte';
 import {
   type CompiledForm,
+  type FormField,
   type FormSchema,
   type FormSubmitResult,
+  type FormValues,
   validateFormSchema,
 } from '@texuli/forms/model';
 
@@ -12,6 +14,24 @@ import {
  * then the submission goes through `runService` and the service's zod issues
  * come back as Texuli field errors.
  */
+
+/** The custom kind the auth forms' password fields use (painted by `SimulatedPassword`). */
+export const SIMULATED_PASSWORD_KIND = 'simulated-password';
+
+/**
+ * A password field of a kit auth form. Simulation only: the value is kept as
+ * plain text, so browsers must never offer to save it (`autocomplete="off"`).
+ * G129: a custom field until Texuli allows `autocomplete: 'off'` on `password`.
+ */
+export function passwordField(name: string, label: string): FormField {
+  return { name, type: 'custom', kind: SIMULATED_PASSWORD_KIND, label, required: true };
+}
+
+/** A submitted text answer (`''` when empty). */
+export function text(values: FormValues, name: string): string {
+  const value = values[name];
+  return typeof value === 'string' ? value : '';
+}
 
 /** Compile a kit-authored schema; a mistake in it is a bug, so it throws with the issues. */
 export function compileKitForm(schema: FormSchema): CompiledForm {

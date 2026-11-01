@@ -9,62 +9,81 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  FormField,
-  Input,
 } from '@protoyard/ui';
+import { SchemaForm, type SchemaFormSubmission } from '@texuli/forms';
 import { onMount } from 'svelte';
-import { applyServiceError, authServices, hashParam, routeHref } from './helpers.ts';
+import SimulatedPassword from '../../lib/SimulatedPassword.svelte';
+import {
+  compileKitForm,
+  kitSubmitResult,
+  passwordField,
+  SIMULATED_PASSWORD_KIND,
+  text,
+} from '../../lib/schema-form.ts';
+import { authServices, hashParam, routeHref } from './helpers.ts';
 
 const { runtime, config } = authServices();
 const reset = createPasswordResetServices(runtime);
-let email = $state('');
 let tokenId = $state('');
-let password = $state('');
-let confirmPassword = $state('');
-let showPassword = $state(false);
-let busy = $state(false);
 let complete = $state(false);
-let issues = $state<Record<string, string>>({});
 let message = $state('');
+const customFields = { [SIMULATED_PASSWORD_KIND]: { component: SimulatedPassword } };
 
-async function request() {
-  busy = true;
-  issues = {};
-  message = '';
-  const result = await runService(() => reset.request({ email }));
-  busy = false;
+// Painted by @texuli/forms; the password reset service validates both steps.
+const requestForm = compileKitForm({
+  title: 'Request a reset link',
+  submitLabel: 'Send reset link',
+  fields: [
+    {
+      name: 'email',
+      type: 'email',
+      label: 'Email',
+      required: true,
+      autocomplete: 'email',
+      description: 'Use an address at example.com.',
+    },
+  ],
+});
+const consumeForm = compileKitForm({
+  title: 'Finish the reset',
+  submitLabel: 'Save new password',
+  fields: [
+    passwordField('password', 'New password'),
+    passwordField('confirmPassword', 'Confirm password'),
+  ],
+  rules: [
+    {
+      id: 'passwords-match',
+      field: 'confirmPassword',
+      message: 'Passwords do not match.',
+      test: {
+        op: 'eq',
+        left: { op: 'field', name: 'confirmPassword' },
+        right: { op: 'field', name: 'password' },
+      },
+    },
+  ],
+});
+
+async function request({ values }: SchemaFormSubmission) {
+  const result = await runService(() => reset.request({ email: text(values, 'email') }));
   if (!result.ok) {
-    applyServiceError(
-      result.error,
-      (next) => (issues = next),
-      (next) => (message = next)
-    );
-    return;
+    return kitSubmitResult(result, requestForm, 'The simulated request failed. Try again.');
   }
   complete = true;
+  return { ok: true } as const;
 }
 
-async function consume() {
-  busy = true;
-  issues = {};
-  message = '';
-  if (password !== confirmPassword) {
-    issues.confirmPassword = 'Passwords do not match.';
-    busy = false;
-    return;
-  }
-  const result = await runService(() => reset.consume({ tokenId, password }));
-  busy = false;
+async function consume({ values }: SchemaFormSubmission) {
+  const result = await runService(() =>
+    reset.consume({ tokenId, password: text(values, 'password') })
+  );
   if (!result.ok) {
-    applyServiceError(
-      result.error,
-      (next) => (issues = next),
-      (next) => (message = next)
-    );
-    return;
+    return kitSubmitResult(result, consumeForm, 'The simulated request failed. Try again.');
   }
-  complete = true;
   message = 'Your simulated password was updated. You can sign in now.';
+  complete = true;
+  return { ok: true } as const;
 }
 
 onMount(() => {
@@ -85,31 +104,24 @@ onMount(() => {
           {#if tokenId}<Button href={routeHref(config.signInPath)}>Go to sign in</Button>{/if}
         </div>
       {:else if tokenId}
-        <form class="grid gap-4" onsubmit={(event) => { event.preventDefault(); void consume(); }}>
-          <FormField label="New password" required error={issues.password}>
-            {#snippet children(control)}
-              <Input {...control.props} type={showPassword ? 'text' : 'password'} autocomplete="off" bind:value={password} required />
-            {/snippet}
-          </FormField>
-          <FormField label="Confirm password" required error={issues.confirmPassword}>
-            {#snippet children(control)}
-              <Input {...control.props} type={showPassword ? 'text' : 'password'} autocomplete="off" bind:value={confirmPassword} required />
-            {/snippet}
-          </FormField>
-          <Button variant="ghost" size="sm" onclick={() => (showPassword = !showPassword)} aria-pressed={showPassword}>{showPassword ? 'Hide password' : 'Show password'}</Button>
-          {#if message}<p role="alert" class="text-sm text-destructive">{message}</p>{/if}
-          <Button type="submit" loading={busy} loadingLabel="Updating password" disabled={busy}>Save new password</Button>
-        </form>
+        <SchemaForm
+          form={consumeForm}
+          onSubmit={consume}
+          {customFields}
+          labels={{ submitting: 'Updating password', submitted: 'Password updated.' }}
+          class="py-saas-form"
+          data-py-saas-form="reset-password"
+          hideTitle
+        />
       {:else}
-        <form class="grid gap-4" onsubmit={(event) => { event.preventDefault(); void request(); }}>
-          <FormField label="Email" required error={issues.email} description="Use an address at example.com.">
-            {#snippet children(control)}
-              <Input {...control.props} type="email" autocomplete="email" bind:value={email} required />
-            {/snippet}
-          </FormField>
-          {#if message}<p role="alert" class="text-sm text-destructive">{message}</p>{/if}
-          <Button type="submit" loading={busy} loadingLabel="Sending request" disabled={busy}>Send reset link</Button>
-        </form>
+        <SchemaForm
+          form={requestForm}
+          onSubmit={request}
+          labels={{ submitting: 'Sending request', submitted: 'Reset link sent.' }}
+          class="py-saas-form"
+          data-py-saas-form="reset-request"
+          hideTitle
+        />
       {/if}
     </CardContent>
     <CardFooter><Button href={routeHref(config.signInPath)} variant="ghost">Back to sign in</Button></CardFooter>

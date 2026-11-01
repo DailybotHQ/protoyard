@@ -1,5 +1,5 @@
 <script lang="ts">
-import { navigate, runService } from '@protoyard/renderer-svelte';
+import { runService } from '@protoyard/renderer-svelte';
 import { createAuthServices } from '@protoyard/saas';
 import {
   Button,
@@ -9,40 +9,52 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  FormField,
-  Input,
 } from '@protoyard/ui';
+import { SchemaForm, type SchemaFormSubmission } from '@texuli/forms';
 import SsoButtons from '../../components/SsoButtons.svelte';
-import { applyServiceError, authServices, routeHref } from './helpers.ts';
+import SimulatedPassword from '../../lib/SimulatedPassword.svelte';
+import {
+  compileKitForm,
+  kitSubmitResult,
+  passwordField,
+  SIMULATED_PASSWORD_KIND,
+  text,
+} from '../../lib/schema-form.ts';
+import { authServices, routeHref } from './helpers.ts';
 
 const { runtime, config } = authServices();
 const auth = createAuthServices(runtime);
-let name = $state('');
 let email = $state('');
-let password = $state('');
-let showPassword = $state(false);
-let busy = $state(false);
 let complete = $state(false);
 let created = $state<{ id: string; email: string } | null>(null);
-let issues = $state<Record<string, string>>({});
-let message = $state('');
 
-async function submit() {
-  busy = true;
-  issues = {};
-  message = '';
-  const result = await runService(() => auth.signUp({ name, email, password }));
-  busy = false;
-  if (!result.ok) {
-    applyServiceError(
-      result.error,
-      (next) => (issues = next),
-      (next) => (message = next)
-    );
-    return;
-  }
+// Painted by @texuli/forms; the auth service validates and creates the account.
+const form = compileKitForm({
+  title: 'Create your account',
+  submitLabel: 'Create account',
+  fields: [
+    { name: 'name', type: 'text', label: 'Name', required: true, autocomplete: 'name' },
+    {
+      name: 'email',
+      type: 'email',
+      label: 'Email',
+      required: true,
+      autocomplete: 'email',
+      description: 'Use an address at example.com.',
+    },
+    passwordField('password', 'Password'),
+  ],
+});
+
+async function submit({ values }: SchemaFormSubmission) {
+  email = text(values, 'email');
+  const result = await runService(() =>
+    auth.signUp({ name: text(values, 'name'), email, password: text(values, 'password') })
+  );
+  if (!result.ok) return kitSubmitResult(result, form, 'The simulated request failed. Try again.');
   created = { id: result.value.account.id, email: result.value.account.email };
   complete = true;
+  return { ok: true } as const;
 }
 </script>
 
@@ -65,28 +77,15 @@ async function submit() {
           {/if}
         </div>
       {:else}
-        <form class="grid gap-4" onsubmit={(event) => { event.preventDefault(); void submit(); }}>
-          <FormField label="Name" required error={issues.name}>
-            {#snippet children(control)}
-              <Input {...control.props} autocomplete="name" bind:value={name} required />
-            {/snippet}
-          </FormField>
-          <FormField label="Email" required error={issues.email} description="Use an address at example.com.">
-            {#snippet children(control)}
-              <Input {...control.props} type="email" autocomplete="email" bind:value={email} required />
-            {/snippet}
-          </FormField>
-          <FormField label="Password" required error={issues.password}>
-            {#snippet children(control)}
-              <Input {...control.props} type={showPassword ? 'text' : 'password'} autocomplete="off" bind:value={password} required />
-            {/snippet}
-          </FormField>
-          <Button variant="ghost" size="sm" onclick={() => (showPassword = !showPassword)} aria-pressed={showPassword}>
-            {showPassword ? 'Hide password' : 'Show password'}
-          </Button>
-          {#if message}<p role="alert" class="text-sm text-destructive">{message}</p>{/if}
-          <Button type="submit" loading={busy} loadingLabel="Creating account" disabled={busy}>Create account</Button>
-        </form>
+        <SchemaForm
+          {form}
+          onSubmit={submit}
+          customFields={{ [SIMULATED_PASSWORD_KIND]: { component: SimulatedPassword } }}
+          labels={{ submitting: 'Creating account', submitted: 'Account created.' }}
+          class="py-saas-form"
+          data-py-saas-form="sign-up"
+          hideTitle
+        />
         {#if config.ssoProviders.length > 0}
           <div class="mt-6 grid gap-3" data-testid="auth-sso">
             <p class="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true"><span class="h-px flex-1 bg-border"></span>or<span class="h-px flex-1 bg-border"></span></p>

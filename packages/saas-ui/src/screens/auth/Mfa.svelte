@@ -9,53 +9,78 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  FormField,
-  Input,
 } from '@protoyard/ui';
+import { SchemaForm, type SchemaFormSubmission } from '@texuli/forms';
 import { onMount } from 'svelte';
-import { applyServiceError, authServices, hashParam, routeHref } from './helpers.ts';
+import { compileKitForm, kitSubmitResult, text } from '../../lib/schema-form.ts';
+import { authServices, hashParam, routeHref } from './helpers.ts';
 
 const { runtime, config } = authServices();
 const mfa = createMfaServices(runtime);
 let challengeId = $state('');
 let challengeEmail = $state('');
-let code = $state('');
 let recovery = $state(false);
 let simulatedCode = $state('');
-let busy = $state(false);
-let issues = $state<Record<string, string>>({});
 let message = $state('');
 
-async function complete() {
-  issues = {};
-  message = '';
-  const schema = recovery ? RecoveryCodeInputSchema : MfaCodeSchema;
-  const parsed = schema.safeParse(code);
+// Painted by @texuli/forms (a one-time code, or a recovery code); the MFA service decides.
+const codeForm = compileKitForm({
+  title: 'Verify with the simulated authenticator',
+  submitLabel: 'Verify and sign in',
+  fields: [
+    {
+      name: 'code',
+      type: 'otp',
+      label: 'Authenticator code',
+      required: true,
+      length: 6,
+      messages: { format: 'Enter the 6-digit simulated code' },
+    },
+  ],
+});
+const recoveryForm = compileKitForm({
+  title: 'Verify with a recovery code',
+  submitLabel: 'Verify and sign in',
+  fields: [
+    {
+      name: 'recoveryCode',
+      type: 'text',
+      label: 'Recovery code',
+      required: true,
+      autocomplete: 'off',
+      minLength: 6,
+      maxLength: 32,
+      messages: { required: 'Enter a recovery code', minLength: 'Enter a recovery code' },
+    },
+  ],
+});
+const form = $derived(recovery ? recoveryForm : codeForm);
+
+async function complete({ values }: SchemaFormSubmission) {
+  const field = recovery ? 'recoveryCode' : 'code';
+  // The kit's own schemas stay the rule; Texuli's checks only catch it earlier.
+  const parsed = (recovery ? RecoveryCodeInputSchema : MfaCodeSchema).safeParse(
+    text(values, field)
+  );
   if (!parsed.success) {
-    issues[recovery ? 'recoveryCode' : 'code'] =
-      parsed.error.issues[0]?.message ?? 'Enter a valid code.';
-    return;
+    return {
+      ok: false,
+      errors: { [field]: parsed.error.issues[0]?.message ?? 'Enter a valid code.' },
+    } as const;
   }
   if (!challengeId) {
-    message = 'Open this challenge from a password, magic-link or SSO sign-in.';
-    return;
+    return {
+      ok: false,
+      message: 'Open this challenge from a password, magic-link or SSO sign-in.',
+    } as const;
   }
-  busy = true;
   const result = await runService(() =>
     mfa.completeChallenge(
       challengeId,
       recovery ? { recoveryCode: parsed.data } : { code: parsed.data }
     )
   );
-  busy = false;
-  if (!result.ok) {
-    applyServiceError(
-      result.error,
-      (next) => (issues = next),
-      (next) => (message = next)
-    );
-    return;
-  }
+  if (!result.ok) return kitSubmitResult(result, form, 'The simulated request failed. Try again.');
   navigate(nextPath(new URLSearchParams(location.hash.split('?')[1] ?? ''), config.homePath));
 }
 
@@ -100,15 +125,19 @@ onMount(() => {
           <p class="text-xs text-muted-foreground">Simulation only — this is not a real TOTP code.</p>
         </div>
       {/if}
-      <form class="grid gap-4" onsubmit={(event) => { event.preventDefault(); void complete(); }}>
-        <FormField label={recovery ? 'Recovery code' : 'Authenticator code'} required error={issues[recovery ? 'recoveryCode' : 'code']}>
-          {#snippet children(control)}
-            <Input {...control.props} inputmode={recovery ? 'text' : 'numeric'} autocomplete="one-time-code" bind:value={code} required />
-          {/snippet}
-        </FormField>
-        <Button type="submit" loading={busy} loadingLabel="Verifying code" disabled={busy || !challengeId}>Verify and sign in</Button>
-      </form>
-      <Button variant="ghost" onclick={() => { recovery = !recovery; code = ''; issues = {}; }}>
+      <!-- G132: SchemaForm reads a starting `disabled` once, so it remounts when the challenge loads. -->
+      {#key `${recovery}:${challengeId}`}
+        <SchemaForm
+          {form}
+          onSubmit={complete}
+          labels={{ submitting: 'Verifying code', submitted: 'Verified. Signing you in…' }}
+          class="py-saas-form"
+          data-py-saas-form="mfa"
+          disabled={!challengeId}
+          hideTitle
+        />
+      {/key}
+      <Button variant="ghost" onclick={() => (recovery = !recovery)}>
         {recovery ? 'Use an authenticator code' : 'Use a recovery code'}
       </Button>
       {#if message}<p role="alert" class="text-sm text-destructive">{message}</p>{/if}

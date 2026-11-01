@@ -2,31 +2,54 @@
 import type { PrototypeRuntime } from '@protoyard/core';
 import { avatarImage, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { createSettingsServices } from '@protoyard/saas';
-import { Avatar, Button, FormField, Input } from '@protoyard/ui';
+import { Avatar } from '@protoyard/ui';
+import { SchemaForm, type SchemaFormSubmission } from '@texuli/forms';
 import { getSaas } from '../../context.ts';
+import { compileKitForm, kitSubmitResult, text } from '../../lib/schema-form.ts';
 
 const runtime = getSaas().runtime as Parameters<typeof createSettingsServices>[0];
 const settings = createSettingsServices(runtime);
 const principal = usePrincipal(runtime as PrototypeRuntime);
-let name = $state(principal.current?.persona.name ?? '');
-let timezone = $state(principal.current?.persona.timezone ?? 'UTC');
-let avatarColor = $state(principal.current?.persona.avatarColor ?? '#6366f1');
-let busy = $state(false);
-let message = $state('');
-
 const allowed = $derived(runtime.session.can('profile:update'));
 
-async function save(): Promise<void> {
-  if (busy) return;
-  busy = true;
-  message = '';
-  const result = await runService(() => settings.updateProfile({ name, timezone, avatarColor }));
-  busy = false;
-  message = result.ok
-    ? 'Profile saved.'
-    : result.error instanceof Error
-      ? result.error.message
-      : 'Could not save the profile.';
+// Painted by @texuli/forms (the avatar color is its color picker); the settings service validates and saves.
+const form = compileKitForm({
+  title: 'Profile',
+  submitLabel: 'Save profile',
+  fields: [
+    { name: 'name', type: 'text', label: 'Display name', required: true, autocomplete: 'name' },
+    {
+      name: 'avatarColor',
+      type: 'color',
+      label: 'Avatar color',
+      description: 'A solid color used by this profile.',
+    },
+    {
+      name: 'timezone',
+      type: 'text',
+      label: 'Time zone',
+      required: true,
+      placeholder: 'America/Bogota',
+      description: 'Used for local dates and reminders.',
+    },
+  ],
+});
+// Read once: the form starts from the saved profile and keeps what is typed.
+const values = {
+  name: principal.current?.persona.name ?? '',
+  avatarColor: principal.current?.persona.avatarColor ?? '#6366f1',
+  timezone: principal.current?.persona.timezone ?? 'UTC',
+};
+
+async function save({ values: answer }: SchemaFormSubmission) {
+  const result = await runService(() =>
+    settings.updateProfile({
+      name: text(answer, 'name'),
+      timezone: text(answer, 'timezone'),
+      avatarColor: text(answer, 'avatarColor') || values.avatarColor,
+    })
+  );
+  return kitSubmitResult(result, form, 'Could not save the profile.');
 }
 </script>
 
@@ -40,18 +63,16 @@ async function save(): Promise<void> {
       <p class="text-sm text-muted-foreground">Update the simulated profile used in this prototype.</p>
     </div>
   </div>
-  <form class="grid max-w-xl gap-4" onsubmit={(event) => { event.preventDefault(); void save(); }}>
-    <FormField label="Display name" required>
-      {#snippet children(control)}<Input {...control.props} bind:value={name} autocomplete="name" required disabled={!allowed || busy} />{/snippet}
-    </FormField>
-    <FormField label="Avatar color" description="A solid color used by this profile.">
-      {#snippet children(control)}<Input {...control.props} type="color" bind:value={avatarColor} disabled={!allowed || busy} />{/snippet}
-    </FormField>
-    <FormField label="Time zone" required description="Used for local dates and reminders.">
-      {#snippet children(control)}<Input {...control.props} bind:value={timezone} placeholder="America/Bogota" required disabled={!allowed || busy} />{/snippet}
-    </FormField>
-    {#if !allowed}<p class="text-sm text-muted-foreground">Your simulated role cannot edit profile settings.</p>{/if}
-    {#if message}<p role="status" class="text-sm text-muted-foreground">{message}</p>{/if}
-    <Button type="submit" disabled={!allowed || busy} loading={busy} loadingLabel="Saving profile">Save profile</Button>
-  </form>
+  {#if !allowed}<p class="text-sm text-muted-foreground">Your simulated role cannot edit profile settings.</p>{/if}
+  <SchemaForm
+    {form}
+    {values}
+    onSubmit={save}
+    labels={{ submitted: 'Profile saved.', submitting: 'Saving profile' }}
+    aria-label="Profile settings"
+    class="max-w-xl py-saas-form"
+    data-py-saas-form="profile"
+    disabled={!allowed}
+    hideTitle
+  />
 </section>
