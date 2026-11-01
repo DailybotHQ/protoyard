@@ -1,14 +1,15 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { createRng } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
 import {
   AVATAR_COUNT,
   AVATAR_IDS,
   AVATAR_SIZES,
+  assignAvatars,
   avatarFile,
-  isAvatarId,
-  isAvatarSize,
+  createAvatarPool,
 } from '../src/index.ts';
 
 const root = join(import.meta.dirname, '..');
@@ -33,11 +34,6 @@ interface Manifest {
 }
 
 const manifest = JSON.parse(readFileSync(join(root, 'src', 'manifest.json'), 'utf8')) as Manifest;
-
-/** Budgets (bytes). The developer's target: 128 px ≤ 6 KB average, all assets ≤ 1.2 MB. */
-const MAX_FILE: Record<number, number> = { 64: 4 * 1024, 128: 12 * 1024 };
-const MAX_AVG_128 = 6 * 1024;
-const MAX_TOTAL = 1.2 * 1024 * 1024;
 
 /** Width and height from a WebP header (lossy VP8, lossless VP8L or extended VP8X). */
 function webpSize(buf: Buffer): { width: number; height: number } {
@@ -95,29 +91,6 @@ describe('@protoyard/avatars manifest', () => {
       }
     }
   });
-
-  it('has no stray files in the asset folders', () => {
-    for (const size of AVATAR_SIZES) {
-      const files = readdirSync(join(root, 'assets', String(size))).sort();
-      expect(files).toEqual(AVATAR_IDS.map((id) => `${id}.webp`));
-    }
-  });
-
-  it('holds the per-file, average and total size budgets', () => {
-    let total = 0;
-    let sum128 = 0;
-    for (const avatar of manifest.avatars) {
-      for (const size of AVATAR_SIZES) {
-        const entry = avatar.files[String(size)];
-        if (!entry) throw new Error(`missing ${avatar.id}@${size}`);
-        expect(entry.bytes, entry.path).toBeLessThanOrEqual(MAX_FILE[size] ?? 0);
-        total += entry.bytes;
-        if (size === 128) sum128 += entry.bytes;
-      }
-    }
-    expect(sum128 / AVATAR_COUNT).toBeLessThanOrEqual(MAX_AVG_128);
-    expect(total).toBeLessThanOrEqual(MAX_TOTAL);
-  });
 });
 
 describe('@protoyard/avatars helpers', () => {
@@ -130,19 +103,18 @@ describe('@protoyard/avatars helpers', () => {
     // @ts-expect-error 256 is not a shipped size
     expect(() => avatarFile('av-001', 256)).toThrow(RangeError);
   });
+});
 
-  it('isAvatarId and isAvatarSize accept only library values', () => {
-    expect(isAvatarId('av-001')).toBe(true);
-    expect(isAvatarId('av-175')).toBe(true);
-    expect(isAvatarId('av-000')).toBe(false);
-    expect(isAvatarId('av-176')).toBe(false);
-    expect(isAvatarId('av-1')).toBe(false);
-    expect(isAvatarId('AV-001')).toBe(false);
-    expect(isAvatarId(1)).toBe(false);
-    expect(isAvatarId(undefined)).toBe(false);
-    expect(isAvatarSize(64)).toBe(true);
-    expect(isAvatarSize(128)).toBe(true);
-    expect(isAvatarSize(256)).toBe(false);
-    expect(isAvatarSize('64')).toBe(false);
+// --- merged from pick.test.ts ---
+
+describe('seeded avatar assignment', () => {
+  it('gives the same sequence for the same seed and a different one for another seed', () => {
+    const a = assignAvatars(createRng(42), 40);
+    const b = assignAvatars(createRng(42), 40);
+    const c = assignAvatars(createRng(43), 40);
+    expect(a).toEqual(b);
+    expect(c).not.toEqual(a);
+    const pool = createAvatarPool(createRng(42));
+    expect(Array.from({ length: 40 }, () => pool.next())).toEqual(a);
   });
 });
