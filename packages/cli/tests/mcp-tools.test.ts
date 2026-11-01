@@ -14,6 +14,10 @@ describe('MCP tool catalog and strict input contracts', () => {
     expect(MCP_TOOLS.map((tool) => tool.name)).toEqual([
       'blueprint_schema',
       'doctor',
+      'ds_create',
+      'ds_export',
+      'ds_use',
+      'ds_validate',
       'iterate',
       'promote',
       'quick',
@@ -87,6 +91,41 @@ describe('MCP tool catalog and strict input contracts', () => {
         ],
       },
       { name: 'doctor', args: {}, cli: ['doctor', '--offline'] },
+      {
+        name: 'ds_create',
+        args: {
+          id: 'harbor',
+          brand: '#0f766e',
+          headingFont: 'Fraunces',
+          density: 'compact',
+          dryRun: true,
+        },
+        cli: [
+          'ds',
+          'new',
+          '--brand=#0f766e',
+          '--heading-font=Fraunces',
+          '--density=compact',
+          '--dry-run',
+          '--',
+          'harbor',
+        ],
+      },
+      {
+        name: 'ds_validate',
+        args: { file: 'design-systems/harbor.json' },
+        cli: ['ds', 'validate', '--', at('design-systems/harbor.json')],
+      },
+      {
+        name: 'ds_export',
+        args: { file: 'design-systems/harbor.json', format: 'tailwind' },
+        cli: ['ds', 'export', '--format=tailwind', '--', at('design-systems/harbor.json')],
+      },
+      {
+        name: 'ds_use',
+        args: { slug: 'crm-demo', file: 'design-systems/harbor.json', dryRun: true },
+        cli: ['ds', 'use', '--dry-run', '--', 'crm-demo', at('design-systems/harbor.json')],
+      },
     ];
 
     for (const item of cases) {

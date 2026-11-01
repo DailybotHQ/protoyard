@@ -21,6 +21,7 @@ import {
 } from './commands/deck.ts';
 import { devCommand } from './commands/dev.ts';
 import { doctorCommand } from './commands/doctor.ts';
+import { dsExportCommand, dsNewCommand, dsUseCommand, dsValidateCommand } from './commands/ds.ts';
 import { exportCommand } from './commands/export.ts';
 import { generateCommand } from './commands/generate.ts';
 import { indexCommand } from './commands/index-cmd.ts';
@@ -525,6 +526,69 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--force', 'overwrite src/theme.ts')
     .option('--dry-run', 'show the generated file without writing')
     .action(def('theme import', themeImportCommand));
+
+  const ds = program
+    .command('ds')
+    .description('create, validate, export and apply Texuli design systems');
+  ds.command('new')
+    .description(
+      'create a design system from a brief, a few inputs or a theme; writes design-systems/<id>.json'
+    )
+    .argument('<id>', 'design system id (lowercase kebab-case; also its theme id)')
+    .option('--name <name>', 'display name')
+    .option('--brief <text>', 'brand one-liner, e.g. "brand #4f46e5, font Inter, rounded, compact"')
+    .option('--brand <hex>', 'brand seed color')
+    .option('--secondary <hex>', 'secondary brand color')
+    .option('--accent <hex>', 'accent color')
+    .option('--font <name>', 'body font family')
+    .option('--heading-font <name>', 'heading font family')
+    .option('--mono-font <name>', 'monospace font family')
+    .addOption(new Option('--shape <shape>', 'corner shape').choices(['sharp', 'rounded', 'pill']))
+    .option('--radius <px>', 'corner radius in pixels (0-64)')
+    .addOption(
+      new Option('--density <density>', 'spacing density').choices([
+        'dense',
+        'compact',
+        'comfortable',
+        'spacious',
+      ])
+    )
+    .addOption(
+      new Option('--motion <motion>', 'motion personality').choices([
+        'none',
+        'subtle',
+        'standard',
+        'expressive',
+      ])
+    )
+    .addOption(new Option('--contrast <target>', 'contrast target').choices(['AA', 'AAA']))
+    .option('--from-theme <theme-id>', 'import a built-in or library theme instead')
+    .option('--out <file>', 'output file (default design-systems/<id>.json)')
+    .option('--force', 'replace an existing file')
+    .option('--dry-run', 'validate and compile without writing')
+    .action(def('ds new', dsNewCommand));
+  ds.command('validate')
+    .description('validate an untrusted design-system document and compile it')
+    .argument('<file>', 'design-system JSON file')
+    .action(def('ds validate', dsValidateCommand));
+  ds.command('export')
+    .description('export a design system as CSS variables, a Tailwind preset or compiled JSON')
+    .argument('<file>', 'design-system JSON file')
+    .addOption(
+      new Option('--format <format>', 'css, tailwind or json')
+        .choices(['css', 'tailwind', 'json'])
+        .default('css')
+    )
+    .action(def('ds export', dsExportCommand));
+  ds.command('use')
+    .description(
+      'apply a design system to a prototype: src/design-system.ts, its themes and defaultTheme'
+    )
+    .argument('<slug>', 'prototype slug')
+    .argument('<file>', 'design-system JSON file')
+    .option('--force', 'replace another design system in src/design-system.ts')
+    .option('--dry-run', 'show what would change without writing')
+    .action(def('ds use', dsUseCommand));
 
   const kit = program
     .command('kit')
