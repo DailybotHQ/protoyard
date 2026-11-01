@@ -103,7 +103,12 @@ export interface Exception {
 
 export interface Gap {
   id: string;
-  status: 'open' | 'fixed' | 'wontfix';
+  /**
+   * `deferred`: planned by Texuli for a later release, size or polish only,
+   * with no adapter in Protoyard and no behavior change (the developer's call
+   * to release with it, recorded in the plan). Only `open` blocks entries.
+   */
+  status: 'open' | 'fixed' | 'wontfix' | 'deferred';
   summary: string;
 }
 
