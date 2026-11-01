@@ -161,10 +161,17 @@ simulation does not protect data from the browser user or same-origin scripts.
 | Magic links and inbox | Single-use simulated tokens and local plain-text messages with in-app hash links. |
 | Phone sign-up | A phone-first persona flow with a deterministic local code, resend cooldown, expiry and attempt limit. No SMS is sent. |
 | MFA | A deterministic simulated authenticator code and recovery codes; no real TOTP device. |
-| Onboarding | A persisted, resumable wizard whose default steps can update a profile, workspace, invitations and preferences. |
+| Onboarding | A persisted, resumable wizard (one multi-step `@texuli/forms` form) whose default steps can update a profile, workspace, invitations and preferences. |
 | Workspaces and members | Workspace creation and switching, member roles, invitation management and settings UI. |
 | Billing | Plans, trials, simulated checkout outcomes, subscriptions and integer-cent invoices. No card fields or charge. |
 | Scenario fragments | Reproducible states for signed-out, unverified, MFA, invitations, trial, past-due, multiple workspaces and linked providers. |
+
+The kit's forms (auth, MFA, phone, profile, settings, invites and onboarding)
+are Texuli `SchemaForm`s, and each submit still goes through the kit
+service. Password fields are Texuli password fields with
+`autocomplete="off"`, so browsers never offer to save a fake password.
+The phone number keeps `type="tel"` (gap G131). See the
+[`@protoyard/saas-ui` README](../packages/saas-ui/README.md).
 
 ### Invitation acceptance
 

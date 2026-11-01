@@ -175,17 +175,26 @@ debug panel and Deck Studio. Details and the migration note:
 
 ## Forms from `@texuli/forms`
 
-Generated entity forms, page and doc form blocks, and the SaaS kit's
-notification preferences and member invite render through Texuli's
-`SchemaForm`. `@protoyard/blueprint` maps entity fields to a Texuli
+Generated entity forms, page and doc form blocks, and the SaaS kit's forms
+(sign-in, sign-up, password reset, magic link, phone sign-in and code, MFA,
+profile, notification preferences, member invite and the onboarding wizard)
+render through Texuli's `SchemaForm`. `@protoyard/blueprint` maps entity fields to a Texuli
 `FormSchema` as plain data (`entityFormModel`); `@protoyard/crud`'s
 `EntityForm` paints the mapped fields with `SchemaForm` and keeps Protoyard
 controls for the kinds Texuli has no control for (relation, datetime, geo,
 avatar, file). Every submission still goes through the entity, form-response
-or SaaS service, and the service's issues come back inline. Auth screens,
-the profile color picker and the onboarding wizard stay on Protoyard
-controls (gaps G117 and G120). Details: [GENERATOR](GENERATOR.md#entity-forms)
-and [PAGES](PAGES.md).
+or SaaS service, and the service's issues come back inline. The SaaS kit
+uses Texuli's `otp` field for the MFA and phone codes and its `color` field
+for the profile's avatar color. The onboarding wizard is one multi-step form
+on `createFormController`, whose `onStep` saves each answer through the
+onboarding service. Password fields use Texuli's `password` type with
+`autocomplete: 'off'` (accepted since 0.11.2, G129), so browsers never offer
+to save a fake password. One SaaS field is still painted by Protoyard as a
+custom field: the phone number, which keeps `type="tel"` and the telephone
+keypad, because Texuli forms has no telephone field (G131).
+
+Details: [GENERATOR](GENERATOR.md#entity-forms), [PAGES](PAGES.md) and
+[SAAS_KITS](SAAS_KITS.md).
 
 ## Documents from `@texuli/pages` and `@texuli/document`
 
@@ -291,7 +300,7 @@ behavior and host contracts remain Protoyard-owned:
 | `blocks-ui` | Texuli block-family renderers | Protoyard-only block renderers and extensions |
 | `decks-ui` | The `@texuli/slides` stage core, Texuli controls and styled UI | Deck authoring, presenter, print, and prototype-specific behavior |
 | `pages-ui` | Texuli controls and block renderers, the `@texuli/pages` editor, `@texuli/document` exports, `@texuli/forms` form blocks | Page/doc hosts, form-response and saved-edit services, and print behavior |
-| `saas-ui` | Texuli controls and styled components; `@texuli/forms` for notification preferences and member invites | Simulated SaaS screen flows and route guards |
+| `saas-ui` | Texuli controls and styled components; `@texuli/forms` for the auth, profile, settings and invite forms and the onboarding wizard | Simulated SaaS screen flows, route guards, the telephone field (G131) |
 | `ai-ui` | Texuli chat components and styled UI | Assistant state, safe rich answers, tool orchestration and widget modes |
 | `flows-ui` | Texuli workflow editor and run-panel components | Protoyard workflow contract and deterministic simulation |
 | `review-ui` | Texuli controls and styled UI | Review thread, anchor, and mount integration |
@@ -381,14 +390,17 @@ fixed G100–G124 and 0.11.0 fixed G125–G127 and G130, so their adapters and
 - Deck print goes through `@texuli/slides/export-core` (G105).
 - `@protoyard/themes` reads its theme id lists from `@texuli/tokens/library-ids` (G125).
 
-G128 (a square theme radius written as unitless `0`) is fixed in 0.11.2, and
+G128 (a square theme radius written as unitless `0`) and G129 (password
+fields could not ask for `autocomplete: 'off'`) are fixed in 0.11.2. The SaaS
+kit's password fields use Texuli's type with `off`, and
 `@protoyard/themes` keeps writing any custom theme's zero radius as `0px`.
 
 Open on 0.11.2, each with a minimal adapter or a documented limit:
 
 | Gap | Package | What is missing | In Protoyard |
 | --- | --- | --- | --- |
-| G129 | `@texuli/forms` | Password fields accept only `current-password` or `new-password` autocomplete, not `off` (fixed in 0.11.2; adoption in progress) | Simulated password inputs keep Protoyard's control |
+| G131 | `@texuli/forms` | No telephone field: a `phone`-format text field renders `type="text"` with no `inputmode` | The phone sign-in paints its number with Protoyard's `TelInput` as a custom field |
+| G134 | `@texuli/forms` | A `SchemaForm` that mounts with `disabled` stays disabled when the prop turns false | The MFA form remounts when its challenge loads |
 | G132 | `@texuli/pages/reader-core` | Heading anchors come only from the text; a host cannot keep its own anchor ids | The doc reading view stays `DocHost` |
 | G133 | `@texuli/document/schema` | `validateDocument` always imports `@texuli/deck`'s model and schema, even for a document with no deck | same |
 

@@ -9,34 +9,38 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  FormField,
-  Input,
   toast,
 } from '@protoyard/ui';
-import { applyServiceError, authServices, routeHref } from './auth/helpers.ts';
+import { SchemaForm, type SchemaFormSubmission } from '@texuli/forms';
+import { compileKitForm, kitSubmitResult, text } from '../lib/schema-form.ts';
+import TelInput from '../lib/TelInput.svelte';
+import { authServices, routeHref } from './auth/helpers.ts';
 
 const { runtime, config } = authServices();
 const phone = createPhoneServices(runtime);
-let name = $state('');
-let phoneNumber = $state('');
-let busy = $state(false);
-let issues = $state<Record<string, string>>({});
-let message = $state('');
 
-async function submit() {
-  busy = true;
-  issues = {};
-  message = '';
-  const result = await runService(() => phone.sendCode({ phone: phoneNumber, name }));
-  busy = false;
-  if (!result.ok) {
-    applyServiceError(
-      result.error,
-      (next) => (issues = next),
-      (next) => (message = next)
-    );
-    return;
-  }
+// Painted by @texuli/forms; the phone service validates the number (one rule, one place).
+const form = compileKitForm({
+  title: 'Phone details',
+  submitLabel: 'Send simulated code',
+  fields: [
+    { name: 'name', type: 'text', label: 'Name', required: true, autocomplete: 'name' },
+    {
+      name: 'phone',
+      type: 'custom',
+      kind: 'tel',
+      label: 'Phone number',
+      required: true,
+      description: 'Use an international number, for example +1 202 555 0100.',
+    },
+  ],
+});
+
+async function submit({ values }: SchemaFormSubmission) {
+  const result = await runService(() =>
+    phone.sendCode({ phone: text(values, 'phone'), name: text(values, 'name') })
+  );
+  if (!result.ok) return kitSubmitResult(result, form, 'The simulated request failed. Try again.');
   toast.info('Simulated SMS code', {
     id: PHONE_CODE_TOAST_ID,
     duration: 0,
@@ -56,20 +60,15 @@ async function submit() {
       <CardDescription>Enter a name and phone number to start or return to a simulated phone account.</CardDescription>
     </CardHeader>
     <CardContent>
-      <form class="grid gap-4" onsubmit={async (event) => { event.preventDefault(); await submit(); }}>
-        <FormField label="Name" required error={issues.name}>
-          {#snippet children(control)}
-            <Input {...control.props} autocomplete="name" bind:value={name} required />
-          {/snippet}
-        </FormField>
-        <FormField label="Phone number" required error={issues.phone} description="Use an international number, for example +1 202 555 0100.">
-          {#snippet children(control)}
-            <Input {...control.props} type="tel" inputmode="tel" autocomplete="tel" bind:value={phoneNumber} required />
-          {/snippet}
-        </FormField>
-        {#if message}<p role="alert" class="text-sm text-destructive">{message}</p>{/if}
-        <Button type="submit" loading={busy} loadingLabel="Sending code" disabled={busy}>Send simulated code</Button>
-      </form>
+      <SchemaForm
+        {form}
+        onSubmit={submit}
+        customFields={{ tel: { component: TelInput } }}
+        labels={{ submitting: 'Sending code', submitted: 'Code sent.' }}
+        class="py-saas-form"
+        data-py-saas-form="phone-sign-in"
+        hideTitle
+      />
     </CardContent>
     <CardFooter class="justify-between gap-2">
       <Button href={routeHref(config.signInPath)} variant="ghost">Back to sign in</Button>

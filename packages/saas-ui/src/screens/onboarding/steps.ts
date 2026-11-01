@@ -1,5 +1,6 @@
 import { type ColorMode, isExampleEmail, type PrototypeRuntime } from '@protoyard/core';
 import { createWorkspaces, type OnboardingStepDefinition, ValidationError } from '@protoyard/saas';
+import type { FormField, FormSchema, FormValue, FormValues } from '@texuli/forms/model';
 import { z } from 'zod';
 
 /**
@@ -96,6 +97,151 @@ export function stepValues(
     else if (value !== undefined && value !== null) values[field.name] = String(value);
   }
   return values;
+}
+
+/** The kind of the last step's custom field, which paints the answer summary. */
+export const REVIEW_FIELD = 'onboarding-review';
+
+/**
+ * Form field names: `s<step>_f<field>` (or `s<step>_custom` for a step a
+ * prototype paints). Texuli field names are one closed pattern, so names are
+ * positional rather than the step's own (two steps may both have `name`).
+ */
+const fieldName = (stepIndex: number, fieldIndex: number) => `s${stepIndex}_f${fieldIndex}`;
+const customName = (stepIndex: number) => `s${stepIndex}_custom`;
+
+/**
+ * The step schema's own message for an empty required field, so Texuli's
+ * required check says what the zod schema would (`Enter your full name`).
+ */
+function requiredMessage(step: OnboardingUiStep, field: OnboardingField): string | undefined {
+  if (!step.schema) return undefined;
+  const parsed = step.schema.safeParse(stepInput(step, { [field.name]: '' }));
+  if (parsed.success) return undefined;
+  return parsed.error.issues.find((issue) => issue.path[0] === field.name)?.message;
+}
+
+function formField(
+  step: OnboardingUiStep,
+  stepIndex: number,
+  field: OnboardingField,
+  fieldIndex: number,
+  locked: boolean
+): FormField {
+  const message = field.required ? requiredMessage(step, field) : undefined;
+  return {
+    name: fieldName(stepIndex, fieldIndex),
+    label: field.label,
+    ...(field.kind === 'emails'
+      ? { type: 'textarea', rows: 3 }
+      : field.kind === 'select'
+        ? { type: 'select', options: field.options ?? [] }
+        : { type: 'text' }),
+    ...(field.required ? { required: true } : {}),
+    ...(message ? { messages: { required: message } } : {}),
+    ...(field.placeholder && field.kind !== 'select' ? { placeholder: field.placeholder } : {}),
+    ...(field.description ? { description: field.description } : {}),
+    // A read-only step shows its values without editing them; onStep still reads them.
+    ...(locked ? { when: { enable: { op: 'bool', value: false } } } : {}),
+  };
+}
+
+export interface OnboardingFormOptions {
+  title: string;
+  /** The last step's title (the engine's `done` label). */
+  doneLabel: string;
+  /** Step ids a prototype paints with a snippet. */
+  custom: ReadonlySet<string>;
+  readOnly: (step: OnboardingUiStep) => boolean;
+}
+
+/** The wizard as one multi-step `@texuli/forms` schema: every answer step, then the review. */
+export function onboardingFormSchema(
+  steps: readonly OnboardingUiStep[],
+  options: OnboardingFormOptions
+): FormSchema {
+  return {
+    title: options.title,
+    submitLabel: 'Finish setup',
+    steps: [
+      ...steps.map((step, stepIndex) => {
+        const locked = options.readOnly(step);
+        const description = [step.intro, locked ? step.readOnlyNote : undefined]
+          .filter(Boolean)
+          .join(' ');
+        const fields: FormField[] = options.custom.has(step.id)
+          ? [
+              {
+                name: customName(stepIndex),
+                type: 'custom',
+                kind: 'onboarding-step',
+                label: step.label,
+                config: { step: step.id },
+              },
+            ]
+          : (step.fields ?? []).map((field, fieldIndex) =>
+              formField(step, stepIndex, field, fieldIndex, locked)
+            );
+        return {
+          id: `step-${stepIndex}`,
+          title: step.label,
+          ...(description ? { description } : {}),
+          fields,
+        };
+      }),
+      {
+        id: 'review',
+        title: options.doneLabel,
+        description: 'Check your answers, then finish setup.',
+        fields: [{ name: 'review', type: 'custom', kind: REVIEW_FIELD, label: 'Your answers' }],
+      },
+    ],
+  };
+}
+
+/** Saved answers (strings by the step's field names) → the form's starting values. */
+export function stepFormValues(
+  steps: readonly OnboardingUiStep[],
+  answers: Readonly<Record<string, Record<string, string>>>,
+  custom: ReadonlySet<string>
+): Record<string, FormValue> {
+  const values: Record<string, FormValue> = {};
+  steps.forEach((step, stepIndex) => {
+    const saved = answers[step.id] ?? {};
+    if (custom.has(step.id)) {
+      values[customName(stepIndex)] = { ...saved };
+      return;
+    }
+    (step.fields ?? []).forEach((field, fieldIndex) => {
+      const value = saved[field.name];
+      if (value !== undefined && value !== '') values[fieldName(stepIndex, fieldIndex)] = value;
+    });
+  });
+  return values;
+}
+
+/** The form's values → one step's strings by its own field names (what `stepInput` takes). */
+export function stepValuesFromForm(
+  step: OnboardingUiStep,
+  stepIndex: number,
+  values: FormValues,
+  custom: ReadonlySet<string>
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (custom.has(step.id)) {
+    const value = values[customName(stepIndex)];
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      for (const [key, entry] of Object.entries(value)) {
+        if (typeof entry === 'string') out[key] = entry;
+      }
+    }
+    return out;
+  }
+  (step.fields ?? []).forEach((field, fieldIndex) => {
+    const value = values[fieldName(stepIndex, fieldIndex)];
+    out[field.name] = typeof value === 'string' ? value : '';
+  });
+  return out;
 }
 
 const ProfileSchema = z.object({
