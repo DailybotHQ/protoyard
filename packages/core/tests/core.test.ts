@@ -12,11 +12,14 @@ import {
   ReviewBuildSchema,
   safeParseManifest,
   slugify,
+  ThemePaletteSchema,
+  ThemeSchema,
   utf8ByteLengthExceeds,
   ValidationError,
   validateSnapshot,
 } from '../src/index.ts';
 import { ReviewCommentSchema, safeParseReviewComment } from '../src/review.ts';
+import { isSafeCssColor, isSafeFontFamily } from '../src/theme.ts';
 
 describe('slugs', () => {
   it('accepts kebab-case and rejects traversal, reserved and malformed input', () => {
@@ -316,5 +319,30 @@ describe('parseInput', () => {
       email: 'Enter a valid email address',
     });
     expect(error.message).toBe('Name must have at least 2 characters');
+  });
+});
+
+describe('theme CSS safety', () => {
+  it('ThemeSchema refuses colors and font families that could inject CSS', () => {
+    const palette = Object.fromEntries(
+      Object.keys(ThemePaletteSchema.shape).map((key) => [key, '#123456'])
+    );
+    const theme = { id: 'safe', name: 'Safe', light: palette, dark: palette };
+    expect(ThemeSchema.safeParse(theme).success).toBe(true);
+    const injections = [
+      'red; background: url(https://evil.example/x)',
+      'red}body{display:none',
+      'url(https://evil.example/x.png)',
+      'expression(alert(1))',
+    ];
+    for (const value of injections) {
+      expect(isSafeCssColor(value), value).toBe(false);
+      expect(isSafeFontFamily(value), value).toBe(false);
+      const color = { ...theme, light: { ...palette, primary: value } };
+      expect(ThemeSchema.safeParse(color).success, value).toBe(false);
+      expect(ThemeSchema.safeParse({ ...theme, fontFamily: value }).success, value).toBe(false);
+    }
+    expect(isSafeCssColor('oklch(0.7 0.1 200)')).toBe(true);
+    expect(isSafeFontFamily("'Inter', var(--font, sans-serif)")).toBe(true);
   });
 });
