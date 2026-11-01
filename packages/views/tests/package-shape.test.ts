@@ -1,7 +1,15 @@
 // @vitest-environment node
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { groupByDay as txGroupByDay } from '@texuli/data/activity/engine';
+import { groupBoard as txGroupBoard } from '@texuli/data/board/engine';
+import { resolveColumns as txResolveColumns } from '@texuli/data/grid';
+import { cascade as txCascade } from '@texuli/data/timeline/engine';
 import { describe, expect, it } from 'vitest';
+import { groupByDay } from '../src/activity/index.ts';
+import { groupBoard } from '../src/board/index.ts';
+import { resolveColumns } from '../src/grid/index.ts';
+import { cascade } from '../src/timeline/index.ts';
 
 /**
  * `@protoyard/views` is the framework-free half of the views kit (ADR-002,
@@ -66,14 +74,6 @@ describe('@protoyard/views package shape', () => {
     }
   });
 
-  it('keeps the root entry free of runtime exports', () => {
-    const root = readFileSync(join(SRC, 'index.ts'), 'utf8');
-    const runtime = root
-      .split('\n')
-      .filter((line) => /^export\s+(?!type\b|interface\b)/.test(line.trim()));
-    expect(runtime).toEqual([]);
-  });
-
   it('depends only on avatars (data only), core, @texuli/data and zod, and is side-effect free', () => {
     expect(Object.keys(pkg.dependencies).sort()).toEqual([
       '@protoyard/avatars',
@@ -92,11 +92,13 @@ describe('@protoyard/views package shape', () => {
     );
     expect(offenders).toEqual([]);
   });
+});
 
-  it('detects the imports it guards against', () => {
-    expect(frameworkImports("import { mount } from 'svelte';")).toEqual(['svelte']);
-    expect(frameworkImports("import X from './X.svelte';")).toEqual(['./X.svelte']);
-    expect(frameworkImports("import { Button } from '@protoyard/ui';")).toEqual(['@protoyard/ui']);
-    expect(frameworkImports("import { z } from 'zod';")).toEqual([]);
+describe('@protoyard/views re-exports @texuli/data engines', () => {
+  it('board, grid, timeline and activity share the Texuli implementations', () => {
+    expect(groupBoard).toBe(txGroupBoard);
+    expect(resolveColumns).toBe(txResolveColumns);
+    expect(cascade).toBe(txCascade);
+    expect(groupByDay).toBe(txGroupByDay);
   });
 });

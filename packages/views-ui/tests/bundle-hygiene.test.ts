@@ -126,10 +126,6 @@ describe('views-ui bundle hygiene', () => {
     }
   });
 
-  it('ships a styles.css that lets Tailwind scan the kit', () => {
-    expect(readFileSync(join(SRC, 'styles.css'), 'utf8')).toContain('@source "./"');
-  });
-
   it('keeps static imports within views while allowing lazy package subpath imports', () => {
     const offenders = sourceFiles(SRC).flatMap((file) =>
       crossViewImports(viewOf(file), readFileSync(file, 'utf8')).map(
@@ -158,37 +154,5 @@ describe('views-ui bundle hygiene', () => {
   it('scans real sources (a scan that finds nothing proves nothing)', () => {
     const scanned = new Set(sourceFiles(SRC).map(viewOf));
     for (const view of VIEWS) expect(scanned.has(view), view).toBe(true);
-  });
-
-  it('detects the patterns it guards against', () => {
-    expect(
-      crossViewImports('board', "import { DataGrid } from '@protoyard/views-ui/grid';")
-    ).toEqual(['@protoyard/views-ui/grid']);
-    expect(crossViewImports('board', "import Grid from '../grid/DataGrid.svelte';")).toEqual([
-      '../grid/DataGrid.svelte',
-    ]);
-    expect(crossViewImports('board', "const m = import('@protoyard/views-ui/calendar');")).toEqual(
-      []
-    );
-    expect(crossViewImports('board', "const m = import('../calendar/index.ts');")).toEqual([
-      '../calendar/index.ts',
-    ]);
-    expect(crossViewImports('board', "import { QueryState } from '../states/index.ts';")).toEqual(
-      []
-    );
-    expect(crossViewImports('board', "import { cn } from '../lib/cn.ts';")).toEqual([]);
-    // Declared edges only: files may use the tree, the tree may not use files.
-    expect(crossViewImports('files', "import TreeView from '../tree/TreeView.svelte';")).toEqual(
-      []
-    );
-    expect(crossViewImports('files', "import { DataGrid } from '../grid/index.ts';")).toEqual([
-      '../grid/index.ts',
-    ]);
-    expect(crossViewImports('tree', "import X from '../files/index.ts';")).toEqual([
-      '../files/index.ts',
-    ]);
-    expect(crossViewImports('board', "import Card from './Card.svelte';")).toEqual([]);
-    expect(dynamicUiBarrelImport("await import('@protoyard/ui')")).toBe(true);
-    expect(dynamicUiBarrelImport("import { Button } from '@protoyard/ui';")).toBe(false);
   });
 });

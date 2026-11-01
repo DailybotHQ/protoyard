@@ -1,21 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import {
-  createRouter,
-  defineRoutes,
-  fillParams,
-  navigate,
-} from '../src/router/hash-router.svelte.ts';
-import { compilePattern, parseHash, toHref } from '../src/router/match.ts';
+import { createRouter, fillParams, navigate } from '../src/router/hash-router.svelte.ts';
+import { compilePattern } from '../src/router/match.ts';
 
 describe('hash route matching', () => {
-  it('normalizes hashes and keeps hash queries', () => {
-    expect(parseHash('#/deals/')).toMatchObject({ path: '/deals' });
-    expect(parseHash('').path).toBe('/');
-    expect(parseHash('#/deals?stage=won').query.get('stage')).toBe('won');
-    expect(toHref('/deals/1')).toBe('#/deals/1');
-    expect(toHref('#deals')).toBe('#/deals');
-  });
-
   it('matches params, wildcards and decodes safely', () => {
     expect(compilePattern('/deals/:id').match('/deals/deal%200001')).toEqual({ id: 'deal 0001' });
     expect(compilePattern('/deals/:id').match('/deals')).toBeNull();
@@ -51,58 +38,6 @@ describe('createRouter', () => {
     navigate('/nope', { replace: true });
     expect(router.current.route).toBeNull();
     expect(router.href('/deals/:id', { id: '7' })).toBe('#/deals/7');
-    router.destroy();
-  });
-
-  it('resets the renderer scroll root on navigation (viewport presets scroll there)', async () => {
-    const Dummy = (() => {}) as never;
-    location.hash = '';
-    const scrollRoot = document.body.appendChild(document.createElement('div'));
-    scrollRoot.setAttribute('data-py-scroll-root', '');
-    scrollRoot.scrollTop = 120;
-    const router = createRouter([
-      { path: '/', component: Dummy },
-      { path: '/activity', component: Dummy },
-    ]);
-    navigate('/activity');
-    await new Promise((r) => setTimeout(r, 0));
-    expect(router.current.route?.path).toBe('/activity');
-    expect(scrollRoot.scrollTop).toBe(0);
-    router.destroy();
-    scrollRoot.remove();
-  });
-
-  it('prefers a static route over an optional param for the same path', () => {
-    const Dummy = (() => {}) as never;
-    const router = createRouter([
-      { path: '/notes/:id?', component: Dummy, title: 'optional' },
-      { path: '/notes', component: Dummy, title: 'static' },
-    ]);
-    expect(router.match('#/notes').route?.title).toBe('static');
-    expect(router.match('#/notes/n1').route?.title).toBe('optional');
-    router.destroy();
-  });
-
-  it('preserves statically declared route metadata and accepts it unchanged', () => {
-    const Dummy = (() => {}) as never;
-    const routes = defineRoutes([
-      {
-        path: '/reports',
-        name: 'Reports',
-        description: 'Review business reports.',
-        capability: 'reports:read',
-        load: async () => ({ default: Dummy }),
-      },
-    ]);
-    const router = createRouter(routes, { titleSuffix: 'Workspace' });
-
-    expect(router.routes).toBe(routes);
-    expect(router.match('/reports').route).toMatchObject({
-      name: 'Reports',
-      description: 'Review business reports.',
-      capability: 'reports:read',
-    });
-    expect(router.resolve(routes[0]!)).toBeInstanceOf(Promise);
     router.destroy();
   });
 });

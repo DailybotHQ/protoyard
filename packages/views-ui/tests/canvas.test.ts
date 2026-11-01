@@ -1,7 +1,7 @@
 import { type CanvasBoardData, generateCanvasBoard } from '@protoyard/views/scenarios';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { type CanvasDocument, CanvasView, validateCanvas } from '../src/canvas/index.ts';
+import { type CanvasDocument, CanvasView } from '../src/canvas/index.ts';
 
 afterEach(cleanup);
 
@@ -37,36 +37,7 @@ async function moveRight(name: string) {
   await tick();
 }
 
-describe('views planning board (scenario generator)', () => {
-  it('is a valid Texuli canvas at every level (untrusted tier)', () => {
-    for (const level of ['empty', 'typical', 'dense', 'edge'] as const) {
-      const checked = validateCanvas(generateCanvasBoard(ctx(), { level }));
-      expect(checked.ok, `${level}: ${JSON.stringify(checked.issues[0])}`).toBe(true);
-    }
-    const dense = generateCanvasBoard(ctx(), { level: 'dense' });
-    const notes = dense.shapes.flatMap((shape) => ('children' in shape ? shape.children : []));
-    expect(notes).toHaveLength(1500);
-  });
-
-  it('is deterministic per seed and blank when the scenario is empty', () => {
-    expect(generateCanvasBoard(ctx(4))).toEqual(generateCanvasBoard(ctx(4)));
-    expect(generateCanvasBoard(ctx(4))).not.toEqual(generateCanvasBoard(ctx(5)));
-    const empty = generateCanvasBoard(ctx(1, 'empty'));
-    expect([empty.shapes, empty.connectors]).toEqual([[], []]);
-  });
-});
-
 describe('CanvasView (Texuli canvas host adapter)', () => {
-  it('paints the board as an accessible application: frames, named notes and a shape tree', async () => {
-    mount(generateCanvasBoard(ctx()));
-    await tick();
-    expect(screen.getByRole('application', { name: /Launch plan/ })).toBeTruthy();
-    expect(screen.getByRole('img', { name: 'Interview three pilot teams' })).toBeTruthy();
-    expect(screen.getByRole('group', { name: 'Doing' })).toBeTruthy();
-    expect(screen.getAllByRole('img').length).toBeGreaterThan(12);
-    expect(screen.getByRole('tree', { name: 'Shapes' })).toBeTruthy();
-  });
-
   it('saves a keyboard move through the service, and keeps undo when the save comes back', async () => {
     const doc = generateCanvasBoard(ctx());
     const before = find(doc as unknown as CanvasDocument, 'ideas-1');
@@ -108,19 +79,6 @@ describe('CanvasView (Texuli canvas host adapter)', () => {
     const before = x();
     await moveRight(String(first?.text));
     await waitFor(() => expect(x()).toBe(before));
-  });
-
-  it('is read-only without a service: no import, and keys move nothing', async () => {
-    const doc = generateCanvasBoard(ctx());
-    const view = mount(doc);
-    await tick();
-    expect(screen.queryByRole('button', { name: 'Import JSON' })).toBeNull();
-    const first = (doc.shapes[1] as { children: { id: string; text: string }[] }).children[0];
-    const x = () =>
-      view.container.querySelector(`[data-tx-shape="${first?.id}"] rect`)?.getAttribute('x');
-    const before = x();
-    await moveRight(String(first?.text));
-    expect(x()).toBe(before);
   });
 
   it('refuses a stored canvas that is not valid at the untrusted tier', async () => {

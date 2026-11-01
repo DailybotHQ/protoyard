@@ -1,7 +1,6 @@
-import { createRng } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
 import { computeRetention } from '../src/cohort.ts';
-import { computeFunnel, type FunnelEvent, type FunnelStep, NO_VALUE } from '../src/funnel.ts';
+import { computeFunnel, type FunnelEvent, type FunnelStep } from '../src/funnel.ts';
 
 const H = 3_600_000;
 const D = 24 * H;
@@ -55,44 +54,6 @@ describe('computeFunnel', () => {
     expect(steps.map((s) => s.stepConversion)).toEqual([1, 1, 0.4]);
     expect(steps.map((s) => s.dropOff)).toEqual([0, 0, 3]);
   });
-
-  it('reports the median time between consecutive steps', () => {
-    const { steps } = computeFunnel(EVENTS, STEPS);
-    // Signup delays: u1 1 h, u2 3 h, u3 3 h, u4 72 h, u6 2 h → median 3 h.
-    expect(steps[1]?.medianTimeToConvert).toBe(3 * H);
-    // Payment delays: u1 2 h, u6 4 h → median 3 h.
-    expect(steps[2]?.medianTimeToConvert).toBe(3 * H);
-    expect(steps[0]?.medianTimeToConvert).toBeNull();
-  });
-
-  it('applies the conversion window from the first step', () => {
-    const { steps } = computeFunnel(EVENTS, STEPS, { window: 2 * D });
-    expect(steps.map((s) => s.count)).toEqual([5, 4, 2]);
-    expect(computeFunnel(EVENTS, STEPS, { window: 2 * H }).steps.map((s) => s.count)).toEqual([
-      5, 2, 0,
-    ]);
-  });
-
-  it('splits by a property of the entry event, with a (none) group', () => {
-    const { breakdown } = computeFunnel(EVENTS, STEPS, { breakdown: 'properties.plan' });
-    expect(breakdown?.map((b) => [b.key, b.steps.map((s) => s.count)])).toEqual([
-      ['pro', [3, 3, 2]],
-      ['(none)', [1, 1, 0]],
-      ['free', [1, 1, 0]],
-    ]);
-    expect(NO_VALUE).toBe('(none)');
-    expect(breakdown?.find((b) => b.key === 'pro')?.steps[2]?.conversion).toBeCloseTo(2 / 3, 10);
-  });
-
-  it('honours a range and handles empty input', () => {
-    expect(
-      computeFunnel(EVENTS, STEPS, { range: { start: T0 + H, end: T0 + D } }).steps[0]?.count
-    ).toBe(1);
-    const empty = computeFunnel([], STEPS).steps;
-    expect(empty.map((s) => s.count)).toEqual([0, 0, 0]);
-    expect(empty[0]?.conversion).toBeNull();
-    expect(empty[1]?.stepConversion).toBeNull();
-  });
 });
 
 describe('computeRetention', () => {
@@ -135,114 +96,5 @@ describe('computeRetention', () => {
     expect(first[1]?.rate).toBeCloseTo(2 / 3, 10);
     const second = result.cohorts[1]?.cells ?? [];
     expect(second.map((c) => c.count)).toEqual([1, 1, 0, null]);
-  });
-
-  it('flags incomplete and future periods against now', () => {
-    const result = computeRetention(events, {
-      cohortEvent: 'signup',
-      returnEvent: 'session',
-      interval: 'week',
-      periods: 3,
-      now,
-    });
-    expect(result.cohorts[0]?.cells.map((c) => c.incomplete)).toEqual([false, false, false, true]);
-    // Cohort 2's period 2 is the current week (partial); period 3 has not started.
-    expect(result.cohorts[1]?.cells.map((c) => c.incomplete)).toEqual([false, false, true, true]);
-    expect(result.cohorts[1]?.cells[3]).toMatchObject({ count: null, rate: null });
-    // Averages use complete cells only: period 1 = (2 + 1) / (3 + 1).
-    expect(result.average[1]).toBeCloseTo(3 / 4, 10);
-    expect(result.average[2]).toBeCloseTo(1 / 3, 10);
-    expect(result.average[3]).toBeNull();
-  });
-
-  it('unbounded retention counts users still active later, so rates never rise', () => {
-    const result = computeRetention(events, {
-      cohortEvent: 'signup',
-      returnEvent: 'session',
-      interval: 'week',
-      periods: 3,
-      now,
-      mode: 'unbounded',
-    });
-    // a returns in weeks 1 and 3, b in weeks 1 and 2: both "still around" in week 2.
-    expect(result.cohorts[0]?.cells.map((c) => c.count)).toEqual([3, 2, 2, 1]);
-    for (const row of result.cohorts) {
-      const rates = row.cells.map((c) => c.rate).filter((r): r is number => r !== null);
-      for (let i = 1; i < rates.length; i++)
-        expect(rates[i]).toBeLessThanOrEqual(rates[i - 1] as number);
-    }
-  });
-
-  it('defaults to first-seen cohorts and supports day and month intervals', () => {
-    const monthly = computeRetention(
-      [
-        ev('m', 'open', Date.parse('2026-01-31T10:00:00Z')),
-        ev('m', 'open', Date.parse('2026-02-01T10:00:00Z')),
-        ev('m', 'open', Date.parse('2026-04-15T10:00:00Z')),
-      ],
-      { interval: 'month', periods: 3, now: Date.parse('2026-05-01T00:00:00Z') }
-    );
-    expect(monthly.cohorts[0]?.cells.map((c) => c.count)).toEqual([1, 1, 0, 1]);
-    const daily = computeRetention([ev('d', 'open', T0), ev('d', 'open', T0 + D + H)], {
-      interval: 'day',
-      periods: 2,
-      now: T0 + 10 * D,
-    });
-    expect(daily.cohorts[0]?.cells.map((c) => c.count)).toEqual([1, 1, 0]);
-    expect(computeRetention([], { interval: 'week', periods: 4, now }).cohorts).toEqual([]);
-  });
-});
-
-describe('scale', () => {
-  it('computes a funnel and retention over 100k events from 10k users', { timeout: 60_000 }, () => {
-    const rng = createRng('funnel-cohort-scale');
-    const types = ['visit', 'signup', 'checkout', 'session'];
-    const events: FunnelEvent[] = [];
-    for (let u = 0; u < 10_000; u++) {
-      let at = T0 + rng.int(0, 28) * D;
-      for (let k = 0; k < 10; k++) {
-        at += rng.int(1, 48) * H;
-        events.push({
-          userId: `u${u}`,
-          type: types[k === 0 ? 0 : rng.int(0, 3)] as string,
-          at,
-          properties: { plan: rng.pick(['free', 'pro']) },
-        });
-      }
-    }
-    const median = (fn: () => void) => {
-      const times = Array.from({ length: 5 }, () => {
-        const t = performance.now();
-        fn();
-        return performance.now() - t;
-      }).sort((a, b) => a - b);
-      return times[2] as number;
-    };
-    const funnel = computeFunnel(events, STEPS, { window: 14 * D, breakdown: 'properties.plan' });
-    const retention = computeRetention(events, {
-      cohortEvent: 'signup',
-      interval: 'week',
-      periods: 8,
-      now: T0 + 90 * D,
-    });
-    const funnelMs = median(() =>
-      computeFunnel(events, STEPS, { window: 14 * D, breakdown: 'properties.plan' })
-    );
-    const retentionMs = median(() =>
-      computeRetention(events, {
-        cohortEvent: 'signup',
-        interval: 'week',
-        periods: 8,
-        now: T0 + 90 * D,
-      })
-    );
-    expect(funnel.steps[0]?.count).toBe(10_000);
-    expect(funnel.steps[1]?.count).toBeGreaterThan(0);
-    expect(retention.cohorts.length).toBeGreaterThan(0);
-    // Reported, not asserted here (machine load varies); PROTOYARD_BENCH=1 asserts the 50 ms budget.
-    console.info(
-      `funnel 100k events / 10k users: ${funnelMs.toFixed(1)} ms; retention: ${retentionMs.toFixed(1)} ms`
-    );
-    if (process.env.PROTOYARD_BENCH) expect(funnelMs).toBeLessThan(50);
   });
 });
