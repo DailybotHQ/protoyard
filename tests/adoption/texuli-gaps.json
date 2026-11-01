@@ -458,5 +458,15 @@
     "id": "G130",
     "status": "fixed",
     "summary": "@texuli/slides stage design-system resolver (@texuli/tokens/design-system loadLibraryBase) imports library-expand/registry.js directly, so every deck build reaches all 146 expanded theme modules, even with no texuli: design-system ref. Fixed in Texuli 0.11.0 (with G127): a stage-core host reaches the theme library only through the loaders it injects"
+  },
+  {
+    "id": "G131",
+    "status": "open",
+    "summary": "@texuli/forms has no telephone field: a text field with format 'phone' renders type=\"text\" with no inputmode, so phones open the full keyboard (expected a 'tel' type, or type=\"tel\" inputmode=\"tel\" when format is 'phone')"
+  },
+  {
+    "id": "G132",
+    "status": "open",
+    "summary": "@texuli/forms SchemaForm copies a starting disabled={true} into its internal controller once, so a form that mounts disabled stays disabled after the prop turns false (formDisabled = prop || controller state); expected prop changes to call controller.setDisabled (same for readOnly)"
   }
 ]
