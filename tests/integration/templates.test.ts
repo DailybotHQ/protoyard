@@ -3,6 +3,8 @@ import { join } from 'node:path';
 import type { PrototypeDefinition } from '@protoyard/core';
 import { cleanup, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
+import type { BlankDatabase } from '../../templates/blank/src/database/schema.ts';
+import { createNoteServices, NoteValidationError } from '../../templates/blank/src/domain/notes.ts';
 import { authorOf as chatAuthorOf } from '../../templates/chat/src/lib/context.ts';
 import { authorOf as widgetAuthorOf } from '../../templates/chat-widget/src/lib/context.ts';
 import PageBody from '../../templates/docs-wiki/src/components/PageBody.svelte';
@@ -80,5 +82,21 @@ describe('template untrusted-input guards', () => {
     ]);
     expect(authorOf(people, 'p1').image).toMatchObject({ src: './avatars/64/av-021.webp' });
     expect(authorOf(people, 'p2').image).toEqual({});
+  });
+
+  it('blank: the domain service refuses an invalid write and leaves no row', async () => {
+    const { definition } = modules['../../templates/blank/src/prototype.ts']!;
+    const harness = createHarness<BlankDatabase>(definition);
+    harnesses.push(harness);
+    const runtime = await harness.boot();
+    const notes = createNoteServices(runtime);
+    const before = await runtime.db.notes.count();
+    await expect(notes.create({ title: '   ', body: 'x' })).rejects.toBeInstanceOf(
+      NoteValidationError
+    );
+    await expect(notes.create({ title: 'Ok', body: 'x'.repeat(5001) })).rejects.toBeInstanceOf(
+      NoteValidationError
+    );
+    expect(await runtime.db.notes.count()).toBe(before);
   });
 });
