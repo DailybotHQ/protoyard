@@ -1,7 +1,7 @@
 ---
 name: texuli-components
 description: Install Texuli packages or copy styled component source with texuli add, customize with tokens and component hooks, keep provenance, and update copies with texuli update. Offline; every command and snippet here is checked.
-version: "0.3.7"
+version: "0.3.8"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
@@ -24,7 +24,7 @@ minor may break), and never suggest a download URL. `@texuli/drag`,
 in `0.5.0`), `@texuli/document` and `@texuli/pages` (both first published
 in `0.7.0`), `@texuli/forms`, `@texuli/canvas` and `@texuli/sheets` (all
 three first published in `0.8.0`) and `@texuli/mcp` (first published in
-`0.9.0`) are in development and on npm as `0.11.1`. Features such as
+`0.9.0`) are in development and on npm as `0.11.2`. Features such as
 `@texuli/primitives/sortable` and spec 0.3.0 and 0.4.0 need `0.4.0` or
 later (they are not in `0.3.0`); the `0.11.0`, `0.10.0`, `0.9.0`, `0.8.0`, `0.7.0`, `0.6.0` and `0.5.0` breaking changes
 are in [`../upgrade/SKILL.md`](../upgrade/SKILL.md).

@@ -1,7 +1,7 @@
 ---
 name: texuli-contribute
 description: Contribute a Texuli texel, primitive (with its behavior scenario), styled component, catalog manifest, examples and website page using the repository gates offline.
-version: "0.3.7"
+version: "0.3.8"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write

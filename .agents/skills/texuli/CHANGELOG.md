@@ -15,6 +15,17 @@ the pack, and leaves an empty `## [Unreleased]` block on top.
 
 ## [Unreleased]
 
+## [0.3.8] — 2026-11-01
+
+### Changes
+
+- chore(skill): packages on npm at 0.11.2
+
+- The packages are on npm in the 0.11 line, every one at `0.11.2`, a patch
+  (a square theme radius keeps `0px`, so radius `calc()` steps stay valid; a
+  password field may take `autocomplete` `off`). The skill, install and
+  router references read `0.11.2`; installs still pin `^0.11.0`.
+
 ## [0.3.7] — 2026-11-01
 
 ### Changes

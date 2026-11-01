@@ -62,11 +62,11 @@ checks.
 ## The Texuli agent skill
 
 Agents working in this repository have the Texuli skill at
-`.agents/skills/texuli` (version 0.3.7, the skill release that matches the
-Texuli 0.11 packages Protoyard installs). It is the pinned `skill-v0.3.7`
+`.agents/skills/texuli` (version 0.3.8, the skill release that matches the
+Texuli 0.11 packages Protoyard installs). It is the pinned `skill-v0.3.8`
 release, installed from its archive after checking the archive and every file
 against the release's `SHA256SUMS` and running
-`setup.sh --verify --expect-version 0.3.7`. It explains Texuli's components,
+`setup.sh --verify --expect-version 0.3.8`. It explains Texuli's components,
 tokens, icons, layouts, themes, documents and MCP hosts, and how to report a
 missing API. To upgrade, repeat
 those steps for the new release and replace the folder; never edit it in place.
