@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.11.5`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.12.0`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.11.5`. Texuli pins its own internal dependencies exactly,
+Every package is `0.12.0`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -62,11 +62,11 @@ checks.
 ## The Texuli agent skill
 
 Agents working in this repository have the Texuli skill at
-`.agents/skills/texuli` (version 0.3.11, the skill release that matches the
-Texuli 0.11 packages Protoyard installs). It is the pinned `skill-v0.3.11`
+`.agents/skills/texuli` (version 0.3.12, the skill release that matches the
+Texuli 0.12 packages Protoyard installs). It is the pinned `skill-v0.3.12`
 release, installed from its archive after checking the archive and every file
 against the release's `SHA256SUMS` and running
-`setup.sh --verify --expect-version 0.3.11`. It explains Texuli's components,
+`setup.sh --verify --expect-version 0.3.12`. It explains Texuli's components,
 tokens, icons, layouts, themes, documents and MCP hosts, and how to report a
 missing API. To upgrade, repeat
 those steps for the new release and replace the folder; never edit it in place.
@@ -418,12 +418,10 @@ G135 (`fromTheme` could return a document the compiler refused) is fixed in
 0.11.4, and `designSystemFromTheme` calls Texuli's `fromThemeWithReport`
 directly.
 
-Deferred, by the developer's decision (PLAN_008, 2026-11-01): G136. The
-document part is fixed in 0.11.5 (`@texuli/document/ops-core`; Protoyard does
-not call the operations directly). The pages part waits for Texuli 0.12.0:
-`PageEditorCore` and the document host still use the full `@texuli/document/ops`,
-so the lazy editor chunk carries the deck model. It affects size only, needs no
-adapter and changes no behavior.
+G136 is fixed in 0.12.0: the `@texuli/pages` core entries no longer carry the
+deck model. `DocEditor` passes no `validateDeck`, because Protoyard docs never
+hold inline decks, so the slash menu offers no inline deck that a save would
+refuse.
 
 Won't fix: G137. Texuli keeps `@texuli/deck/schema` as the validator's schema
 kit (8.77 KiB gzip). Moving it would save no bytes, and Texuli's layer rule

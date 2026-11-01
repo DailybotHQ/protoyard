@@ -1,7 +1,7 @@
 ---
 name: texuli
 description: Build accessible, themed interfaces with Texuli by routing requests to local sub-skills for components, themes, media, installation, and contributions.
-version: "0.3.11"
+version: "0.3.12"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob
@@ -40,11 +40,11 @@ agent config, or publish packages without explicit consent (see
    Installing the skill does **not** install Texuli packages or a CLI.
 2. Confirm the workspace has Texuli (workspace packages `texuli`,
    `@texuli/core`, `@texuli/tokens`, …) before promising package imports.
-   All 26 published packages are on npm in the 0.11 line, every one at
-   `0.11.5` (published by CI
+   All 26 published packages are on npm in the 0.12 line, every one at
+   `0.12.0` (published by CI
    with provenance; `latest` and `next` point to the newest; pre-1.0, so a
    new minor may break and 1.0.0 will be the first stable release), so
-   install them plainly (`pnpm add texuli`) and pin `^0.11.0`; the workspace packages stay `private: true`.
+   install them plainly (`pnpm add texuli`) and pin `^0.12.0`; the workspace packages stay `private: true`.
    `@texuli/drag` (the drag engine),
    `@texuli/workflows` (the workflow editor), `@texuli/deck` (the deck
    engine behind the deck generator, first published in `0.4.0`),
@@ -54,11 +54,14 @@ agent config, or publish packages without explicit consent (see
    `@texuli/forms` (schema-driven forms), `@texuli/canvas` (the infinite
    canvas) and `@texuli/sheets` (spreadsheets; all three first published in
    `0.8.0`), and `@texuli/mcp` (the local MCP server, first published in
-   `0.9.0`) are in development but on npm as `0.11.5`. `0.11.0` adds
+   `0.9.0`) are in development but on npm as `0.12.0`. `0.11.0` adds
    `@texuli/tokens/library-ids` and the core design-system entries
    (`@texuli/tokens/design-system/compile-core`,
    `@texuli/player/design-system-core`), and the slides and pages core
-   entries stop loading the theme library by default (see
+   entries stop loading the theme library by default; `0.12.0` moves the
+   `@texuli/pages` core entries off the deck model, so `PageEditorCore`,
+   `CollabEditorCore` and `createDocumentPlayerHostCore` need
+   `validateDeck` for inline decks (see
    [`upgrade/SKILL.md`](upgrade/SKILL.md)). The APIs marked "new
    in `0.10.0`" in the package index (design systems: `@texuli/spec/design-system`,
    `@texuli/tokens/design-system/*`, `texuli/design-system`,

@@ -11,9 +11,9 @@ layouts, views and theme library. They are kept as history and labelled so;
 current prototype bundle numbers are in
 [After the Texuli adoption](#after-the-texuli-adoption-measured-2026-10-28).
 
-## Texuli 0.11.5 re-measure (measured 2026-11-01)
+## Texuli 0.12.0 re-measure (measured 2026-11-01)
 
-Measured on Texuli 0.11.5 with all of PLAN_008 merged (design systems, SaaS
+Measured on Texuli 0.12.0 with all of PLAN_008 merged (design systems, SaaS
 forms on `SchemaForm`, doc validation on `schema-core`). Every package and the
 player were rebuilt from clean first: `rm -rf packages/*/dist && pnpm build:packages
 && pnpm --filter @protoyard/player build`. Then:
@@ -25,16 +25,20 @@ pnpm bench:index --runs 3 --check    # exit 0
 pnpm exec tsx scripts/bench-charts.ts --skip-browser --check   # exit 0
 ```
 
-No ceiling changed in this pass: every measurement is under its cap.
+No ceiling changed in this pass: every measurement is under its cap. The
+bundle, index and charts numbers were measured on Texuli 0.11.5 and the bundle
+ones again on 0.12.0, where the first-screen numbers moved by a few bytes. The
+0.12.0 gain is on the lazy doc editor: Texuli measures `@texuli/pages/editor-core`
+at 76,670 B gzip (about 92.8 KB before, G136).
 
 | Measurement | Value |
 | --- | ---: |
 | Prototype initial JS gzip (17 prototypes) | 156.61–213.55 KB (cap 250 KB) |
-| Player initial JS: index / deck / page / doc | 108,915 / 106,338 / 106,172 / 106,007 B |
+| Player initial JS: index / deck / page / doc | 108,917 / 106,344 / 106,172 / 106,013 B |
 | Player initial CSS: index / deck / page and doc | 16,876 / 17,259 / 18,568 B |
-| Player all CSS: deck / page | 84.35 / 68.75 KB |
-| pages-ui page entry: JS / initial CSS / all CSS | 88,853 / 7,008 / 42,067 B |
-| pages-ui doc entry: JS / initial CSS / all CSS | 120,627 / 7,201 / 48,915 B |
+| Player all CSS: deck / page / doc | 84.34 / 68.75 / 72.58 KB |
+| pages-ui page entry: JS / initial CSS / all CSS | 88,846 / 7,003 / 42,069 B |
+| pages-ui doc entry: JS / initial CSS / all CSS | 120,629 / 7,201 / 48,920 B |
 | Views over the shell: board, calendar, grid, map, editor, timeline, sheet, canvas | 16,208 / 16,969 / 23,702 / 8,041 / 10,531 / 13,111 / 50,081 / 50,823 B |
 | `bench:index` 1,000 manifests: cold / incremental | 60.07 / 30.29 ms median (budget 100 ms × 3 in CI) |
 | `bench-charts` LTTB 10k | 0.12 ms median (limit 2 ms) |

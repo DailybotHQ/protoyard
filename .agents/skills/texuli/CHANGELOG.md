@@ -15,6 +15,20 @@ the pack, and leaves an empty `## [Unreleased]` block on top.
 
 ## [Unreleased]
 
+## [0.3.12] — 2026-11-01
+
+### Changes
+
+- chore(skill): 0.12.0 published, with the 0.11 to 0.12 upgrade notes
+
+- The packages are on npm in the 0.12 line, every one at `0.12.0`, and
+  installs pin `^0.12.0`. `0.12.0` moves the `@texuli/pages` core entries
+  off the deck model (Protoyard G136): `PageEditorCore`,
+  `CollabEditorCore`, `new PagesEditor(...)` and
+  `createDocumentPlayerHostCore` take `validateDeck` with no default. The
+  upgrade sub-skill has a "0.11 → 0.12: breaking changes" section with the
+  one-line migrations.
+
 ## [0.3.11] — 2026-11-01
 
 ### Changes

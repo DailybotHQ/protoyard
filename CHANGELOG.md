@@ -6,7 +6,7 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
-Protoyard on Texuli 0.11.5 from npm (PLAN_008), with Texuli's design systems,
+Protoyard on Texuli 0.12.0 from npm (PLAN_008), with Texuli's design systems,
 documents, forms, sheets, canvas, motion and full theme library adopted where
 they replace Protoyard code or add real value.
 
@@ -48,7 +48,7 @@ they replace Protoyard code or add real value.
 
 ### Changed
 
-- **Texuli 0.11.5.** Every Texuli dependency is pinned to `0.11.5` from npm, and
+- **Texuli 0.12.0.** Every Texuli dependency is pinned to `0.12.0` from npm, and
   every `@protoyard/ui` component takes Texuli's uniform contract (`bind:ref`,
   rest attributes, caller handlers first). Additive props: `ref` and rest
   everywhere, `CommandPalette` `bind:open`, `FileDropzone` `id`,
@@ -89,7 +89,7 @@ they replace Protoyard code or add real value.
 
 ### Removed
 
-- Most adapters for the Texuli gaps that 0.8 to 0.11 fixed (G53–G135); the few
+- Most adapters for the Texuli gaps that 0.8 to 0.12 fixed (G53–G136); the few
   kept on purpose (for example `DataTable` on Texuli's table parts) say why in
   their package README. Also the charts-ui color map.
 

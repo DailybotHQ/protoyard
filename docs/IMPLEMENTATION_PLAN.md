@@ -378,7 +378,6 @@ or command named on each item.
   - The painter registry is per page, not per runtime.
   - Quick single-file exports carry the Design system panel.
 - **Form seams, follow-up:** a `fieldRenderers` prop on `EntityForm` and extra fields on the SaaS kit screens, so a prototype can add or repaint a field without forking. Datetime fields save as UTC and edit the UTC wall time; label them or convert with the simulated clock's zone.
-- **Texuli G136** (pages editor on `@texuli/document/ops-core`) waits for Texuli 0.12.0. It affects size only.
 
 - **Live provider deploys** were not run: there are no credentials, and real publishing needs the owner's explicit authorization.
 - **Claude artifact share** (PLAN_003): `relay-chat-demo` was published once as a *private* artifact with `--comments` and recorded in the local share ledger (`artifacts/share/ledger.jsonl`, not tracked). Verified: the export checks, the publish, the ledger record, and an ArtifactData list of `review/relay-chat-demo/threads` as the owner and at `view` level (empty, no test comments were written). Not verified: boot, routing and DevTools inside the claude.ai viewer, writing a real comment, other viewers, and Commenter-level behavior.

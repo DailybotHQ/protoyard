@@ -486,8 +486,8 @@
   },
   {
     "id": "G136",
-    "status": "deferred",
-    "summary": "@texuli/pages document-host-core imports the full @texuli/document/schema, so the PageEditorCore chunk still carries @texuli/deck/model; expected schema-core with an optional validateDeck. Document part fixed in Texuli 0.11.5 (@texuli/document/ops-core; Protoyard does not call ops directly). Deferred: the pages editor moves to ops-core in Texuli 0.12.0 (size only, no adapter, no behavior change)"
+    "status": "fixed",
+    "summary": "@texuli/pages document-host-core imports the full @texuli/document/schema, so the PageEditorCore chunk still carries @texuli/deck/model; expected schema-core with an optional validateDeck. Document part fixed in Texuli 0.11.5 (@texuli/document/ops-core; Protoyard does not call ops directly). Pages part fixed in Texuli 0.12.0: the @texuli/pages core entries no longer carry @texuli/deck/model; DocEditor passes no validateDeck (Protoyard docs never hold inline decks)"
   },
   {
     "id": "G137",

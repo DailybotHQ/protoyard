@@ -70,8 +70,8 @@ Never `@texuli/core` root barrel for app code.
 | Astro sites | `@texuli/astro` (`texuli()` integration), `@texuli/astro/styles.css`, `@texuli/astro/site` (`defineSite`, `sitePageMeta`, `siteSitemap`), `@texuli/astro/layouts/ContentLayout`, `@texuli/astro/appearance` (`AppearanceSwitcher`; new in `0.5.0`) |
 | Paint a validated blueprint | `@texuli/player` (+ `@texuli/player/styles.css`) |
 | Drag and drop (Svelte) | `@texuli/primitives/sortable` (`Sortable`); views: `@texuli/data/board`, `@texuli/data/tree-view` |
-| Drag engine (framework-free) | `@texuli/drag/sortable`, `@texuli/drag/gesture`, `@texuli/drag/spatial`, `@texuli/drag/graph`, `@texuli/drag/messages`; in development, on npm as `0.11.5` |
-| Workflows | `@texuli/workflows/editor`, `@texuli/workflows/viewer`, `@texuli/workflows/inspector`, `@texuli/workflows/model`, `@texuli/workflows/layout`, `@texuli/workflows/spec-adapter`; in development, on npm as `0.11.5` |
+| Drag engine (framework-free) | `@texuli/drag/sortable`, `@texuli/drag/gesture`, `@texuli/drag/spatial`, `@texuli/drag/graph`, `@texuli/drag/messages`; in development, on npm as `0.12.0` |
+| Workflows | `@texuli/workflows/editor`, `@texuli/workflows/viewer`, `@texuli/workflows/inspector`, `@texuli/workflows/model`, `@texuli/workflows/layout`, `@texuli/workflows/spec-adapter`; in development, on npm as `0.12.0` |
 | Block documents | `@texuli/pages/editor` (`PageEditor`), `@texuli/pages/reader` (`PageReader`), `@texuli/pages/paged` (`PagedView`), `@texuli/pages/export` (`exportDocument`, `downloadBlob`), `@texuli/pages/collab` (`CollabEditor`, `createCollabSession`; lazy), `@texuli/pages/host` (`createDocumentPlayerHost`, `checkDocumentDraft`); the engine `@texuli/document/*` (`model`, `schema`, `ops`, `markdown`, `paged`, `docx`, `pdf`, `sync`, `collab`); in development, new in `0.7.0` |
 | Dates | `@texuli/date` (`CalendarDate`, Gregorian only) |
 | Class helpers from those packages | `texuli/cx` only |
@@ -97,7 +97,7 @@ end in [`../../design-systems/SKILL.md`](../../design-systems/SKILL.md).
 ## New in 0.11.0
 
 These APIs ship in `0.11.0`; the 0.10 line does not have them. Use them
-with `^0.11.0`.
+with `^0.12.0`.
 
 | Need | Use |
 | --- | --- |
