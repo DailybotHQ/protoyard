@@ -45,13 +45,17 @@ function runSmoke(tag: string, root: ReturnType<typeof fixture>) {
 describe('tagged skill release smoke script', () => {
   it('installs the exact source URL in an isolated fixture and checks the pack', () => {
     const root = fixture();
-    const result = runSmoke('v1.0.0', root);
+    // The skill is stamped with the release version, so smoke the current one.
+    const { version } = JSON.parse(readFileSync(join(REPO, 'package.json'), 'utf8')) as {
+      version: string;
+    };
+    const result = runSmoke(`v${version}`, root);
     expect(result.status, result.stderr).toBe(0);
-    expect(result.stdout).toContain('Smoke install passed: Protoyard skill 1.0.0');
+    expect(result.stdout).toContain(`Smoke install passed: Protoyard skill ${version}`);
     const args = readFileSync(root.callLog, 'utf8');
     // The skills CLI is pinned to an exact npm version, never a floating tag.
     expect(args).toMatch(/^--yes skills@\d+\.\d+\.\d+ add /);
-    expect(args).toContain('https://github.com/DailybotHQ/protoyard/tree/v1.0.0');
+    expect(args).toContain(`https://github.com/DailybotHQ/protoyard/tree/v${version}`);
     expect(args).toContain('--skill protoyard --global --agent codex --copy --yes');
   });
 

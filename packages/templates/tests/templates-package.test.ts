@@ -158,7 +158,10 @@ describe('the packed tarball', () => {
       encoding: 'utf8',
     });
     expect(result.status, result.stderr).toBe(0);
-    const tarballPath = join(destination, 'protoyard-templates-1.0.0.tgz');
+    const { version } = JSON.parse(readFileSync(join(PACKAGE_DIR, 'package.json'), 'utf8')) as {
+      version: string;
+    };
+    const tarballPath = join(destination, `protoyard-templates-${version}.tgz`);
     expect(existsSync(tarballPath)).toBe(true);
     // postpack removed the copy: nothing lingers in the repository.
     expect(existsSync(join(PACKAGE_DIR, 'templates'))).toBe(false);

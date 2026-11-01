@@ -1,7 +1,7 @@
 ---
 name: protoyard-kits
 description: Choose Protoyard's reusable kits (layouts, shells, views, charts, analytics, SaaS, AI, avatars and UI components) before writing a screen by hand, load them lazily, and respect each kit's limits. Use when a prototype needs a board, calendar, grid, map, chart, dashboard, sign-in or onboarding flow, assistant or chat, device frame, or page layout.
-version: "1.0.0"
+version: "1.1.0"
 documentation_url: https://protoyard.app/docs/
 user-invocable: true
 metadata:

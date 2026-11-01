@@ -1,7 +1,7 @@
 ---
 name: protoyard-quick
 description: Create disposable Protoyard explorations from a brief or blueprint, compare ideas, and promote useful results.
-version: "1.0.0"
+version: "1.1.0"
 documentation_url: https://protoyard.app/docs/
 user-invocable: true
 metadata:
