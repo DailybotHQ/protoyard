@@ -44,7 +44,7 @@ and now have more than 5 % headroom, so each is the measurement + 5 %.
 | --- | ---: | ---: | --- |
 | Quick single-file, app (max over 43 catalog blueprints) | 3,870,232–3,871,615 B | 4,577,768 → 4,065,196 B | An app file leaves out the kind renderers (T-bundle-fix) |
 | Quick single-file, deck (max over 7 example decks) | 2,640,768–2,668,245 B | 2,818,330 → 2,801,658 B | Each kind file holds only its own renderer |
-| Quick single-file, page (tidewater) | 2,347,132 B | 2,818,330 → 2,464,489 B | same |
+| Quick single-file, page (tidewater) | 2,347,132 B (2,466,761 B with design systems in Theme Studio, Texuli 0.11.2) | 2,818,330 → 2,464,489 → 2,528,431 B | same |
 | Player `index.html` initial JS | 108,098 B (105.6 KB) | 130 → 110.9 KB | Raised for the Texuli charts-ui link (127.4 KB then) |
 | Player `deck` / `page` / `doc.html` initial JS | 103.1 / 102.9 / 102.7 KB | 130 → 108.3 KB | same |
 | Player `deck.html` all CSS | 113.99 KB | 120.0 → 119.7 KB | Kind pages load only their own renderer |
@@ -402,7 +402,7 @@ player's kind tests do.
 | --- | ---: | --- |
 | `initialJsGzipKb` | 150 KB | Initial JavaScript of the kind's minimal player entry, gzip |
 | `cssGzipKb` | deck 17.0 KB, page 18.3 KB, doc 18.3 KB (was 36 KB each) | Initial CSS of the kind's player entry, gzip; measured + 5%, rounded up on Texuli 0.5.0, including the sheet parts that `@protoyard/ui/styles.css` loads so published declarations carry no `.css` import |
-| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,560 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (deck 2,801,658 B, page 2,464,489 B, doc 3,133,363 B since the PLAN_008 re-measure; it was 2,818,330 B per kind), measured on Texuli 0.5.0 at 2,681,755–2,689,852 B (2,656,649–2,684,123 B on 0.4.0). The app cap (`QUICK_SINGLE_FILE_BUDGET_BYTES`) stays 4,418,158 B after the maximum catalog file moved from 4,207,769 B on 0.4.0 to 4,284,417 B on 0.5.0; neither cap is raised because measured + 5% is higher. The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
+| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,560 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (deck 2,801,658 B, page 2,528,431 B, doc 3,133,363 B since the PLAN_008 re-measure and design systems; it was 2,818,330 B per kind), measured on Texuli 0.5.0 at 2,681,755–2,689,852 B (2,656,649–2,684,123 B on 0.4.0). The app cap (`QUICK_SINGLE_FILE_BUDGET_BYTES`) stays 4,418,158 B after the maximum catalog file moved from 4,207,769 B on 0.4.0 to 4,284,417 B on 0.5.0; neither cap is raised because measured + 5% is higher. The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
 
 These budgets are **enforced**:
 
