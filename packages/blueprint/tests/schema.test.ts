@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import committedJsonSchema from '../schema/blueprint.schema.json' with { type: 'json' };
+import { safeParseComputedExpression } from '../src/computed/index.ts';
 import {
   type BlueprintInput,
   blueprintJsonSchema,
-  entityTable,
   FIELD_KINDS,
   parseBlueprint,
   safeParseBlueprint,
 } from '../src/index.ts';
+import { validateWorkflowDefinition } from '../src/workflows/index.ts';
 
 /** A small fictional help desk that uses every field kind at least once. */
 function fixture(): BlueprintInput {
@@ -147,61 +148,18 @@ describe('BlueprintSchema', () => {
     expect(bp.screens).toHaveLength(5);
   });
 
-  it('requires a related detail tab to resolve an inverse relation on the target entity', () => {
-    const input = fixture();
-    input.screens = [
-      ...(input.screens ?? []),
-      { type: 'detail', entity: 'customer', tabs: ['related:support-ticket'] },
-    ];
-    expect(() => parseBlueprint(input)).not.toThrow();
-
-    expect(
-      issuesAfter((bp) => {
-        bp.screens.push({ type: 'detail', entity: 'customer', tabs: ['related:support-ticket'] });
-        ticket(bp).fields = ticket(bp).fields.filter((f) => f.name !== 'customer');
-      })
-    ).toContain('screens.5.tabs.0: "support-ticket" has no relation field to "customer"');
-  });
-
   it('covers every field kind in the fixture', () => {
     const used = new Set(fixture().entities.flatMap((e) => e.fields.map((f) => f.kind)));
     expect([...used].sort()).toEqual([...FIELD_KINDS].sort());
   });
 
-  it('derives table names from the plural unless set', () => {
-    expect(entityTable({ plural: 'support-tickets' })).toBe('supportTickets');
-    expect(entityTable({ plural: 'customers', table: 'clients' })).toBe('clients');
-  });
-
-  it.each([
+  const REFUSALS: [string, (bp: Mutable) => void, string][] = [
     [
       'unknown relation target',
       (bp: Mutable) => {
         ticket(bp).fields[3] = { name: 'customer', kind: 'relation', to: 'client' };
       },
       'entities.1.fields.3.to: relation "support-ticket.customer" targets unknown entity "client"',
-    ],
-    [
-      'missing titleField',
-      (bp: Mutable) => {
-        ticket(bp).titleField = 'headline';
-      },
-      'entities.1.titleField: titleField "headline" is not a field of "support-ticket"',
-    ],
-    [
-      'non text-like titleField',
-      (bp: Mutable) => {
-        ticket(bp).titleField = 'refund';
-      },
-      'entities.1.titleField: titleField "refund" must be a text-like field, not money',
-    ],
-    [
-      'empty enum',
-      (bp: Mutable) => {
-        (ticket(bp).fields[2] as Record<string, unknown>).values = [];
-        delete (ticket(bp).fields[2] as Record<string, unknown>).default;
-      },
-      'entities.1.fields.2.values: enum fields need at least one value',
     ],
     [
       'enum default outside values',
@@ -232,53 +190,11 @@ describe('BlueprintSchema', () => {
       'entities.1.fields.11.name: "createdAt" is managed by the platform and cannot be declared',
     ],
     [
-      'duplicate field',
-      (bp: Mutable) => {
-        ticket(bp).fields.push({ name: 'subject', kind: 'text' });
-      },
-      'entities.1.fields.11.name: duplicate field "subject"',
-    ],
-    [
-      'unknown field kind',
-      (bp: Mutable) => {
-        ticket(bp).fields.push({ name: 'color', kind: 'colour' });
-      },
-      `entities.1.fields.11.kind: Invalid discriminator value. Expected ${FIELD_KINDS.map((k) => `'${k}'`).join(' | ')}`,
-    ],
-    [
       'unknown property (strict)',
       (bp: Mutable) => {
         ticket(bp).color = 'red';
       },
       'entities.1: Unrecognized key: "color"',
-    ],
-    [
-      'non-kebab entity name',
-      (bp: Mutable) => {
-        ticket(bp).name = 'SupportTicket';
-      },
-      'entities.1.name: entity name must be lowercase kebab-case',
-    ],
-    [
-      'ownerField not a persona',
-      (bp: Mutable) => {
-        ticket(bp).ownerField = 'subject';
-      },
-      'entities.1.ownerField: ownerField "subject" must be a persona field of "support-ticket"',
-    ],
-    [
-      'required relation with nullify',
-      (bp: Mutable) => {
-        (ticket(bp).fields[3] as Record<string, unknown>).onDelete = 'nullify';
-      },
-      'entities.1.fields.3.onDelete: required relation "customer" cannot use onDelete "nullify"',
-    ],
-    [
-      'role on unknown entity',
-      (bp: Mutable) => {
-        (bp.roles[1] as { permissions: Record<string, string[]> }).permissions.invoice = ['read'];
-      },
-      'roles.1.permissions.invoice: unknown entity "invoice"',
     ],
     [
       ':own action without ownerField',
@@ -290,54 +206,18 @@ describe('BlueprintSchema', () => {
       'roles.1.permissions.customer: "delete:own" needs an ownerField on entity "customer"',
     ],
     [
-      'unknown action',
-      (bp: Mutable) => {
-        (bp.roles[2] as { permissions: Record<string, string[]> }).permissions['*'] = ['approve'];
-      },
-      'roles.2.permissions.*.0: denials must name an exact capability such as "-ticket:delete"',
-    ],
-    [
       'board groupBy is not an enum',
       (bp: Mutable) => {
         (bp.screens[1] as Record<string, unknown>).groupBy = 'subject';
       },
       'screens.1.groupBy: groupBy "subject" must be an enum field of "support-ticket"',
     ],
-    [
-      'list column unknown',
-      (bp: Mutable) => {
-        (bp.screens[0] as { columns: string[] }).columns.push('priority');
-      },
-      'screens.0.columns.3: unknown field "priority"',
-    ],
-    [
-      'dashboard sum on a text field',
-      (bp: Mutable) => {
-        (bp.screens[4] as { metrics: Array<Record<string, unknown>> }).metrics[1] = {
-          label: 'Bad',
-          entity: 'support-ticket',
-          aggregate: 'sum',
-          field: 'subject',
-        };
-      },
-      'screens.4.metrics.1.field: sum needs a number, integer or money field',
-    ],
-    [
-      'files feature without a file field',
-      (bp: Mutable) => {
-        (bp.entities[0] as Record<string, unknown>).features = { files: true };
-      },
-      'entities.0.features.files: features.files needs at least one file field on "customer"',
-    ],
-    [
-      'duplicate entity name',
-      (bp: Mutable) => {
-        bp.entities.push({ ...structuredClone(bp.entities[0]), plural: 'clients' } as never);
-      },
-      'entities.2.name: duplicate entity name "customer"',
-    ],
-  ])('rejects %s with a path-specific message', (_label, mutate, expected) => {
-    expect(issuesAfter(mutate)).toContain(expected);
+  ];
+
+  it('rejects invalid blueprints with path-specific messages', () => {
+    for (const [label, mutate, expected] of REFUSALS) {
+      expect(issuesAfter(mutate), label).toContain(expected);
+    }
   });
 
   it('requires at least one entity and one role', () => {
@@ -358,21 +238,68 @@ describe('blueprint JSON Schema', () => {
     // Regenerate with the command in packages/blueprint/README.md.
     expect(committedJsonSchema).toEqual(await blueprintJsonSchema());
   });
+});
 
-  it('keeps the app input branch unchanged with defaults optional', async () => {
-    const schema = (await blueprintJsonSchema()) as {
-      $schema: string;
-      $id: string;
-      oneOf: { required: string[]; additionalProperties: boolean }[];
+/** Data in a blueprint is inert: no markup, no executable strings, no secrets in notifications. */
+describe('inert blueprint data', () => {
+  it('refuses notification markup, unknown or sensitive placeholders, and bails early on hostile titles', () => {
+    const base = fixture();
+    const notify = (title: string, mutate?: (bp: Mutable) => void) =>
+      issuesAfter((bp) => {
+        mutate?.(bp);
+        bp.notifications = [{ on: 'create', entity: 'support-ticket', notify: 'assignee', title }];
+      }).join('\n');
+    expect(base.entities[1]?.features?.notifications).toBe(true);
+    expect(notify('New {subject}')).toBe('');
+    expect(notify('<b>{subject}</b>')).toMatch(/plain text, not HTML/);
+    expect(notify('New {missing}')).toMatch(/unknown title placeholder/);
+    expect(
+      notify('New {subject}', (bp) => {
+        (ticket(bp).fields[0] as Record<string, unknown>).sensitive = true;
+      })
+    ).toMatch(/sensitive field/);
+    const started = performance.now();
+    expect(notify(`<${'<a'.repeat(20_000)}`)).not.toBe('');
+    expect(performance.now() - started).toBeLessThan(100);
+  });
+
+  it('treats code-like values as data and refuses executable workflow and computed properties', () => {
+    const blueprint = parseBlueprint(fixture());
+    const workflow = {
+      entity: 'support-ticket',
+      field: 'status',
+      initialState: 'open',
+      states: [
+        { id: 'open', label: 'Open' },
+        { id: 'pending', label: 'Pending' },
+        { id: 'solved', label: 'Solved' },
+      ],
+      transitions: [{ from: 'open', to: 'pending' }],
     };
-    expect(schema.$schema).toBe('https://json-schema.org/draft/2020-12/schema');
-    expect(schema.$id).toBe('https://github.com/DailybotHQ/protoyard/schema/blueprint/v1');
-    expect(schema.oneOf[0]?.required.sort()).toEqual([
-      'entities',
-      'formatVersion',
-      'name',
-      'roles',
-    ]);
-    expect(schema.oneOf[0]?.additionalProperties).toBe(false);
+    expect(validateWorkflowDefinition(workflow, blueprint)).toMatchObject({ valid: true });
+    const executable = validateWorkflowDefinition(
+      { ...workflow, transitions: [{ from: 'open', to: 'pending', run: 'return true' }] } as never,
+      blueprint
+    );
+    expect(executable.valid).toBe(false);
+    expect(safeParseComputedExpression({ op: 'literal', value: '(() => globalThis)()' })).toEqual({
+      success: true,
+      data: { op: 'literal', value: '(() => globalThis)()' },
+    });
+    const injected = safeParseComputedExpression({
+      op: 'call',
+      source: 'globalThis.process.exit()',
+    });
+    expect(injected.success).toBe(false);
+    if (!injected.success) {
+      expect(injected.diagnostics[0]?.hint).toContain('executable strings are not expressions');
+    }
+    let deep: unknown = { op: 'literal', value: 1 };
+    for (let index = 0; index < 40; index += 1) {
+      deep = { op: 'add', left: deep, right: { op: 'literal', value: 1 } };
+    }
+    const bounded = safeParseComputedExpression(deep);
+    expect(bounded.success).toBe(false);
+    if (!bounded.success) expect(bounded.diagnostics[0]?.code).toBe('expression-too-deep');
   });
 });

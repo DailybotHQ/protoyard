@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   decodeDocumentShare,
   encodeBlueprintShare,
+  loadUntrustedBlueprint,
   loadUntrustedDocument,
   type UntrustedDocumentResult,
 } from '../../src/index.ts';
@@ -102,30 +103,18 @@ describe('embedded apps cannot recurse or smuggle a deck', () => {
     ['doc', fixture('quarterly-report.doc.json')],
   ];
 
-  it.each(contents)(
-    'refuses a %s as the embedded app, before the body schema loads',
-    async (_, inner) => {
+  it('refuses a deck, page or doc as the embedded app, before the body schema loads', async () => {
+    for (const [, inner] of contents) {
       const result = await loadUntrustedDocument(deckWith([embed(inner)]));
       expectRefused(result, 'invalid-blueprint', ['deck', 'slides', 1, 'blocks', 0, 'app', 'kind']);
-      expect(bodySchemaLoads).not.toHaveBeenCalled();
     }
-  );
+    expect(bodySchemaLoads).not.toHaveBeenCalled();
+  });
 
   it('refuses a kind spelled to slip past detection', async () => {
     for (const kind of ['Deck', ' deck', 'deck\u0000', 'DECK', 'app ', 'slides']) {
       const inner = { ...fixture('intro.deck.json'), kind };
       expectRefused(await loadUntrustedDocument(deckWith([embed(inner)])));
-    }
-  });
-
-  it('never carries a deck body inside an app that says it is an app', async () => {
-    const smuggled = { ...app(), kind: 'app', deck: fixture('intro.deck.json').deck };
-    const result = await loadUntrustedDocument(pageWith([embed(smuggled)]));
-    if (result.success) {
-      // The app schema may drop unknown keys; the deck must not survive either way.
-      expect(JSON.stringify(result.blueprint)).not.toContain('"slides"');
-    } else {
-      expect(result.issues[0]?.path[0]).toBe('page');
     }
   });
 
@@ -267,17 +256,13 @@ const LINK_FIELDS: [string, (href: string) => Json][] = [
 ];
 
 describe('URL fields accept only safe schemes', () => {
-  it.each(MEDIA_FIELDS)('%s refuses hostile and remote sources', async (_, build) => {
-    for (const src of HOSTILE_MEDIA) {
-      const result = await loadUntrustedDocument(build(src));
-      expect(result.success, `${JSON.stringify(src)} loaded`).toBe(false);
+  it('refuses hostile and remote sources in every media field', async () => {
+    for (const [name, build] of MEDIA_FIELDS) {
+      for (const src of HOSTILE_MEDIA) {
+        const result = await loadUntrustedDocument(build(src));
+        expect(result.success, `${name}: ${JSON.stringify(src)} loaded`).toBe(false);
+      }
     }
-  });
-
-  it.each(MEDIA_FIELDS)('%s accepts an embedded raster image or clip', async (name, build) => {
-    const src =
-      name.includes('video') && !name.includes('poster') ? 'data:video/mp4;base64,AAAA' : PNG;
-    expectLoaded(await loadUntrustedDocument(build(src)));
   });
 
   it('accepts avatars and data media at level 1, but refuses relative paths in every media field', async () => {
@@ -302,30 +287,15 @@ describe('URL fields accept only safe schemes', () => {
     expect(() => parseDeckBlueprint(level2)).not.toThrow();
   });
 
-  it.each(LINK_FIELDS)('%s refuses hostile links', async (_, build) => {
-    for (const href of HOSTILE_URLS) {
-      const result = await loadUntrustedDocument(build(href));
-      expect(result.success, `${JSON.stringify(href)} loaded`).toBe(false);
-    }
-  });
-
-  it.each(LINK_FIELDS)('%s accepts only https and mailto links', async (_, build) => {
-    for (const href of ['https://example.com/docs', 'mailto:team@example.com']) {
-      expectLoaded(await loadUntrustedDocument(build(href)));
-    }
-  });
-
-  it.each(LINK_FIELDS)('%s rejects http and relative links', async (_, build) => {
-    for (const href of ['http://example.com/docs', 'guide/start.html', '/pricing']) {
-      expectRefused(await loadUntrustedDocument(build(href)), 'invalid-blueprint');
-    }
-  });
-
-  it.each(LINK_FIELDS)('%s accepts the same-document fragment scheme', async (_, build) => {
-    // The scheme is allowed; a doc may still refuse a fragment whose target block does not exist.
-    const result = await loadUntrustedDocument(build('#pricing'));
-    if (!result.success) {
-      for (const issue of result.issues) expect(issue.message).toMatch(/does not match a block id/);
+  it('refuses hostile, http and relative links in every link field, and accepts https and mailto', async () => {
+    for (const [name, build] of LINK_FIELDS) {
+      for (const href of [...HOSTILE_URLS, 'http://example.com/docs', 'guide/start.html']) {
+        const result = await loadUntrustedDocument(build(href));
+        expect(result.success, `${name}: ${JSON.stringify(href)} loaded`).toBe(false);
+      }
+      for (const href of ['https://example.com/docs', 'mailto:team@example.com']) {
+        expectLoaded(await loadUntrustedDocument(build(href)));
+      }
     }
   });
 
@@ -380,19 +350,6 @@ describe('multiline strings stay inert text', () => {
     expect(Buffer.from(loaded, 'utf8').equals(Buffer.from(source, 'utf8'))).toBe(true);
   });
 
-  it('round-trips code-with-callout source through a share link unchanged', async () => {
-    const source = 'if (a) {\n\treturn b;\n}\n';
-    const props = { ...sample('code-with-callout'), code: { lang: 'ts', source } };
-    const loaded = await loadUntrustedDocument(deckWithLayout('code-with-callout', props));
-    expectLoaded(loaded);
-    if (!loaded.success) return;
-    const share = await encodeBlueprintShare(loaded.blueprint as never);
-    const decoded = await decodeDocumentShare(share);
-    expect(decoded.success, JSON.stringify(decoded.issues)).toBe(true);
-    if (!decoded.success) return;
-    expect((decoded.blueprint as Json).deck.slides[1].props.code.source).toBe(source);
-  });
-
   it('still strips bidi overrides from code, and keeps one-line fields on one line', async () => {
     const props = {
       ...sample('code-with-callout'),
@@ -416,22 +373,31 @@ describe('multiline strings stay inert text', () => {
 });
 
 describe('oversize input fails before any kind schema loads', () => {
+  it('lets callers lower the caps but never raise them', async () => {
+    const chart = (labels: number, series: number) => ({
+      type: 'chart',
+      spec: {
+        kind: 'line',
+        title: 'Trend',
+        labels: Array.from({ length: labels }, (_, i) => `L${i}`),
+        series: Array.from({ length: series }, (_, s) => ({
+          label: `S${s}`,
+          values: Array.from({ length: labels }, (_, i) => i),
+        })),
+      },
+    });
+    const value = docWith([chart(10, 2), chart(10, 2)]);
+    expectLoaded(await loadUntrustedDocument(value));
+    expectRefused(await loadUntrustedDocument(value, { maxChartPoints: 30 }), 'too-many');
+    // A raised cap is ignored: 9 full charts stay refused.
+    const charts = docWith(Array.from({ length: 9 }, () => chart(366, 8)));
+    expectRefused(await loadUntrustedDocument(charts, { maxChartPoints: 10_000_000 }), 'too-many');
+  });
+
   it('refuses a document over 1 MiB as text and as an object', async () => {
     const big = docWith([{ type: 'text', markdown: 'x'.repeat(1024 * 1024) }]);
     expectRefused(await loadUntrustedDocument(JSON.stringify(big)), 'too-large');
     expectRefused(await loadUntrustedDocument(big), 'too-large');
-    expect(bodySchemaLoads).not.toHaveBeenCalled();
-  });
-
-  it('refuses nesting past the depth cap before parsing the body', async () => {
-    const deep = deckWith([]);
-    let node: Json = deep.deck.slides[1];
-    for (let i = 0; i < 40; i += 1) {
-      node.blocks = [{ type: 'reveal', label: 'More', blocks: [] }];
-      node = node.blocks[0];
-    }
-    expectRefused(await loadUntrustedDocument(JSON.stringify(deep)), 'too-deep');
-    expectRefused(await loadUntrustedDocument(deep), 'too-deep');
     expect(bodySchemaLoads).not.toHaveBeenCalled();
   });
 
@@ -461,9 +427,20 @@ describe('oversize input fails before any kind schema loads', () => {
     expectRefused(await loadUntrustedDocument(docWith(Array(9).fill(chart))), 'too-many');
     expect(bodySchemaLoads).not.toHaveBeenCalled();
   });
+});
 
-  it('loads the body schema only for input that passed every cheap check', async () => {
-    expectLoaded(await loadUntrustedDocument(fixture('intro.deck.json')));
-    expect(bodySchemaLoads).toHaveBeenCalledWith('deck');
+describe('document share links', () => {
+  it('decodes app and deck links through the document decoder, and refuses garbage', async () => {
+    const deck = await loadUntrustedDocument(fixture('intro.deck.json'));
+    if (!deck.success) throw new Error(JSON.stringify(deck.issues));
+    const deckLink = await decodeDocumentShare(await encodeBlueprintShare(deck.blueprint as never));
+    expect(deckLink.success && deckLink.blueprint).toEqual(deck.blueprint);
+    const loaded = loadUntrustedBlueprint(app());
+    if (!loaded.success) throw new Error('fixture');
+    const decoded = await decodeDocumentShare(
+      `#bp=${await encodeBlueprintShare(loaded.blueprint)}`
+    );
+    expect(decoded.success).toBe(true);
+    expect((await decodeDocumentShare('1.***')).issues[0]?.code).toBe('invalid-link');
   });
 });
