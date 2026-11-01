@@ -1,5 +1,6 @@
 // @vitest-environment node
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { wireDesignSystem } from '../src/commands/ds.ts';
@@ -124,6 +125,30 @@ describe('protoyard ds', () => {
     expect(envelope.ok).toBe(false);
     expect(envelope.error?.code).toBe('validation');
     expect((await run('validate', '../outside.json')).code).not.toBe(0);
+  });
+
+  it('refuses a path with a line break and a path through a symlinked folder that leaves the workspace', async () => {
+    ws = createWorkspace();
+    const injected = await run(
+      'new',
+      'nl',
+      '--brand',
+      '#4f46e5',
+      '--out',
+      'design-systems/a\nimport x.json'
+    );
+    expect(injected.code).not.toBe(0);
+    expect(injected.json<Envelope<unknown>>().error?.code).toBe('unsafe_path');
+    const outside = mkdtempSync(join(tmpdir(), 'protoyard-ds-outside-'));
+    try {
+      writeFileSync(join(outside, 'x.json'), '{}');
+      symlinkSync(outside, join(ws.root, 'linked'), 'dir');
+      const escaped = await run('validate', 'linked/x.json');
+      expect(escaped.code).not.toBe(0);
+      expect(escaped.json<Envelope<unknown>>().error?.code).toBe('unsafe_path');
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
   });
 
   it('applies a design system to a prototype: src/design-system.ts, themes and defaultTheme', async () => {

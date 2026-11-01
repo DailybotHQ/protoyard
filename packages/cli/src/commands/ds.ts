@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { PrototypeManifestSchema } from '@protoyard/core';
 import {
   BUILTIN_THEMES,
@@ -18,6 +18,7 @@ import { GENERATED_MARKER } from '../lib/codegen/header.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { CliError } from '../lib/output.ts';
+import { isInside } from '../lib/paths.ts';
 import { resolveTarget } from '../lib/workspace.ts';
 
 /**
@@ -67,11 +68,20 @@ function relativeTo(root: string, file: string): string {
   return file.startsWith(`${root}${sep}`) ? file.slice(root.length + 1) : basename(file);
 }
 
-/** A path inside the workspace, never through a symlink. */
+/** Control characters and line separators (U+2028/2029 end a `//` comment) never belong in a path Protoyard writes or quotes. */
+const CONTROL = /[\u0000-\u001f\u007f\u2028\u2029]/;
+
+/**
+ * A path inside the workspace, resolved through every symlink (parents
+ * included, as the other commands do with `canonicalPath`/`isInside`), never a
+ * symlink itself, and free of control characters.
+ */
 function workspaceFile(root: string, file: string): string {
+  if (CONTROL.test(file)) {
+    throw new CliError('unsafe_path', 'The path contains a control character.');
+  }
   const absolute = resolve(root, file);
-  const inside = relative(root, absolute);
-  if (inside.startsWith('..') || resolve(root, inside) !== absolute) {
+  if (!isInside(root, absolute)) {
     throw new CliError('unsafe_path', `${file} is outside the workspace.`);
   }
   if (existsSync(absolute) && lstatSync(absolute).isSymbolicLink()) {
@@ -368,7 +378,7 @@ export const dsUseCommand: Handler = async (ctx, args, options): Promise<Command
       );
     }
   }
-  const source = `// Written by \`protoyard ds use\` from ${relativeTo(ctx.root, resolve(ctx.root, file))} (hash ${result.compiled.hash.slice(0, 12)}).
+  const source = `// Written by \`protoyard ds use\` from ${JSON.stringify(relativeTo(ctx.root, resolve(ctx.root, file)))} (hash ${result.compiled.hash.slice(0, 12)}).
 // Re-run the command to update it; edit the design-system document, not this file.
 import { defineDesignSystemTheme, type ShippedDesignSystem } from '@protoyard/runtime';
 

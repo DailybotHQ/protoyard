@@ -100,6 +100,12 @@ const dsText = (max: number) =>
     .min(1)
     .max(max)
     .refine((value) => !/[\r\n]/.test(value), 'Use one line.');
+/** A workspace path: no control characters or line separators (they could end a generated comment). */
+const dsPath = z
+  .string()
+  .min(1)
+  .max(2048)
+  .refine((value) => !/[\u0000-\u001f\u007f\u2028\u2029]/.test(value), 'Use a plain path.');
 const dsId = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/, 'Use a lowercase kebab-case id.');
 const dsCreateArgs = z
   .object({
@@ -118,22 +124,22 @@ const dsCreateArgs = z
     motion: z.enum(['none', 'subtle', 'standard', 'expressive']).optional(),
     contrast: z.enum(['AA', 'AAA']).optional(),
     fromTheme: dsId.optional(),
-    out: z.string().min(1).max(2048).optional(),
+    out: dsPath.optional(),
     force: z.boolean().optional(),
     dryRun: z.boolean().optional(),
   })
   .strict();
-const dsFileArgs = z.object({ file: z.string().min(1).max(2048) }).strict();
+const dsFileArgs = z.object({ file: dsPath }).strict();
 const dsExportArgs = z
   .object({
-    file: z.string().min(1).max(2048),
+    file: dsPath,
     format: z.enum(['css', 'tailwind', 'json']).optional(),
   })
   .strict();
 const dsUseArgs = z
   .object({
     slug: slugArg,
-    file: z.string().min(1).max(2048),
+    file: dsPath,
     force: z.boolean().optional(),
     dryRun: z.boolean().optional(),
   })

@@ -125,6 +125,13 @@ describe('MCP argv: options, then --, then positionals', () => {
     expect(await handler('ds_validate', { file: 'design-systems/harbor.json' })).toMatchObject({
       ok: true,
     });
+    // A path with a line break could end the comment `ds use` writes: refused at the schema.
+    for (const [tool, args] of [
+      ['ds_create', { id: 'nl', brand: '#4f46e5', out: 'design-systems/a\nimport x.json' }],
+      ['ds_use', { slug: 'ds-mcp', file: 'design-systems/a\u2028b.json' }],
+    ] as const) {
+      expect(await handler(tool, args)).toMatchObject({ ok: false, error: { code: 'validation' } });
+    }
     const applied = await handler('ds_use', { slug: 'ds-mcp', file: 'design-systems/harbor.json' });
     expect(applied).toMatchObject({
       ok: true,
