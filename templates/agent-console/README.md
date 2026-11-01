@@ -60,7 +60,7 @@ Roles are a simulation for UX, not security.
 ## Tests
 
 ```bash
-pnpm vitest run templates/agent-console
+pnpm vitest run tests/integration/templates.test.ts -t agent-console
 pnpm --filter @protoyard-template/agent-console typecheck
 pnpm protoyard validate agent-console --build
 ```

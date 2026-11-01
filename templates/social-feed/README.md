@@ -45,7 +45,7 @@ inbox and on your posts.
     6,000 rows.
 - **Layout:** the app is bound to the window height (`h-app`). The feed list
   is the scroll region and the document never scrolls, so the composer
-  (`[data-py-composer]`) stays on screen at 390×844. layout-fit checks this.
+  (`[data-py-composer]`) stays on screen at 390×844 (`pnpm visual:sweep` flags it when not).
 - **Services** (assert → zod → `environment.run` → transaction):
   - posts are 1–500 characters of plain text, with blank lines collapsed;
   - `@handle` mentions notify those people;
@@ -68,7 +68,7 @@ src/domain/services.ts       posts.create / remove, reactions.toggle, comments.a
 src/scenarios/generators.ts  eventStream() history, activityStream() + notificationFor(), the timeline
 src/components/              VirtualFeed, PostCard, Composer, MediaPlaceholder, FollowButton
 src/screens/                 Feed, Notifications, People, Profile (lazy routes)
-tests/                       generators (determinism, integrity, 5k+ massive, windowing, timeline), services (real runtime)
+tests/                       none: tests/integration/templates.test.ts generates, validates and boots this template
 ```
 
 ## Docs

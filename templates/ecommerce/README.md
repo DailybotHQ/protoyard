@@ -67,13 +67,13 @@ src/domain/services.ts     cart, checkout (atomic), orders, products — assert 
 src/domain/catalog.ts      pure money/pricing/filter helpers
 src/scenarios/             scenarios (presets) + deterministic generator
 src/screens/               Shop, ProductDetail, Cart, Checkout, Orders, OrderDetail, Admin
-tests/                     generator determinism/integrity + checkout atomicity on the real runtime
+tests/                     none: tests/integration/templates.test.ts generates, validates and boots this template
 ```
 
 ## Checks
 
 ```bash
-pnpm vitest run templates/ecommerce
+pnpm vitest run tests/integration/templates.test.ts -t ecommerce
 pnpm --filter @protoyard-template/ecommerce typecheck
 pnpm --filter @protoyard-template/ecommerce build
 ```

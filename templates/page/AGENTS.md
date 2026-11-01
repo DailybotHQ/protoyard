@@ -34,7 +34,7 @@ over hand-written screens.
 
 ```bash
 pnpm protoyard dev page
-pnpm vitest run templates/page
+pnpm vitest run tests/integration/templates.test.ts -t page
 pnpm protoyard validate page --build
 pnpm protoyard export page
 ```

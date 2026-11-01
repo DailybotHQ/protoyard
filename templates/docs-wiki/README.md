@@ -39,7 +39,7 @@ Open DevTools with **Ctrl/⌘ + .** to switch persona or go offline.
   `MarkdownPreview` over the shared parser in `@protoyard/ai/markdown`. It
   builds elements and text, never HTML. `<script>`, `onerror=` and
   `javascript:` links show as literal text (see the "Markdown safety check"
-  page and `tests/safe-render.test.ts`). Search highlights are text segments.
+  page; `tests/integration/templates.test.ts` checks the hostile Markdown case). Search highlights are text segments.
 - **Versions:** `pages.create`, `pages.save` and `pages.restore` write the page
   and its new `versions` row in one transaction, so offline or failed saves
   leave neither. Restoring adds a new version (`Restored v3`); history is never
@@ -64,9 +64,7 @@ src/scenarios/index.ts       four scenarios from @protoyard/scenarios presets
 src/scenarios/generators.ts  curated trees per space, extra pages for `large`, versions, HOSTILE_BODY
 src/screens/*.svelte         Home, Search, SpaceHome, PageView, PageEdit, PageHistory (lazy routes)
 src/components/*.svelte      PageBody (safe preview), PageTree, NewPageDialog, SearchForm, Highlighted, PageHeader
-tests/generators.test.ts     per-scenario determinism and integrity, trees, history invariant, scale, search and tree rules
-tests/safe-render.test.ts    hostile Markdown renders as inert text; structure renders as elements
-tests/services.test.ts       versions, conflicts, restore, moves, deletes, validation, permissions, offline, determinism
+tests/                       none: tests/integration/templates.test.ts generates, validates and boots this template
 ```
 
 ## Docs

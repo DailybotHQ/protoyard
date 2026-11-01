@@ -16,7 +16,7 @@ live in the root [AGENTS.md](../../AGENTS.md); the spec standard is
 
 - **Plain text only.** Post and comment text is rendered as text (`whitespace-pre-wrap`), never with `{@html}`, and validated to 500 and 300 characters. Media are generated gradient placeholders (`MediaPlaceholder`): never fetch or upload files.
 - **The feed is windowed.** Render lists of posts through `VirtualFeed` (measured row heights, `feedWindow()` math). Do not map thousands of rows into the DOM.
-- **Viewport layout.** The app is bound to the window height (`h-app`); each screen's list is the scroll region. The composer (`[data-py-composer]`) must stay on screen at 390×844 (layout-fit).
+- **Viewport layout.** The app is bound to the window height (`h-app`); each screen's list is the scroll region. The composer (`[data-py-composer]`) must stay on screen at 390×844 (`pnpm visual:sweep` flags it when not).
 - **Counts are denormalized.** `posts.reactionCounts` and `commentCount` change in the same transaction as the reaction or comment rows; keep them in sync in every service and in `applyEvent`.
 - **Activity comes from `eventStream()`.** The seeded inbox and the timeline share `activityStream()` and `notificationFor()`; ids depend only on the day. Bump `SOCIAL_GENERATOR_VERSION` when output can change.
 

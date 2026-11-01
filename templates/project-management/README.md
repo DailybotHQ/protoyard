@@ -34,7 +34,7 @@ The seeded schedule uses `@protoyard/scenarios` `schedule()` with the scenario s
 ## Checks
 
 ```bash
-pnpm vitest run templates/project-management
+pnpm vitest run tests/integration/templates.test.ts -t project-management
 pnpm --filter @protoyard-template/project-management typecheck
 pnpm --filter @protoyard-template/project-management build
 pnpm protoyard validate project-management --strict-spec --build

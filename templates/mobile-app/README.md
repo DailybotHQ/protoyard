@@ -7,7 +7,7 @@ A mobile-first Protoyard starter: a bottom navigation, a sticky mobile header, a
 ```bash
 pnpm protoyard new my-phone --template mobile-app   # create a prototype from this template
 pnpm protoyard dev my-phone                          # run it
-pnpm vitest run prototypes/my-phone                  # tests
+pnpm protoyard validate my-phone --build   # the template ships no tests; add your own (docs/TESTING_GUIDE.md)
 pnpm --filter @prototype/my-phone typecheck
 ```
 

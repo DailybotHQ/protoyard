@@ -23,7 +23,7 @@ deterministic packs; huddles use local captions (and optional `speechSynthesis`)
 ```bash
 pnpm protoyard new my-team --template team-chat
 pnpm protoyard dev my-team
-pnpm vitest run templates/team-chat
+pnpm vitest run tests/integration/templates.test.ts -t team-chat
 pnpm --filter @protoyard-template/team-chat typecheck
 ```
 

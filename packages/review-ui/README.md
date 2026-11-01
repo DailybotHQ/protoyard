@@ -115,7 +115,7 @@ Measured on 2026-10-19 (gzip, `crm-demo` with `PROTOYARD_REVIEW=1`):
 
 ```bash
 pnpm --filter @protoyard/review-ui typecheck
-pnpm vitest run packages/review-ui/tests/bundle-hygiene.test.ts
+pnpm vitest run packages/review-ui   # bodies as text, own-comment actions, pending feedback, anchor capture, bundle rules
 ```
 
 ## Package output

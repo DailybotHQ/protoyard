@@ -36,16 +36,12 @@ live in the root [AGENTS.md](../../AGENTS.md); the spec standard is
 
 ## Tests
 
-- `tests/services.test.ts`, `tests/generators.test.ts`: ledger, atomicity,
-  roles, offline, deterministic generation.
-- `tests/ui-logic.test.ts`: read models (spending, month groups, filters,
-  amount parsing), error descriptions, payroll simulation on the real runtime.
-- `tests/timeline.test.ts`: 7×1 = 1×7 days, replays apply nothing, payroll,
-  rent and auto-save land on their days, locked accounts never move, no
-  overdrafts, all-or-nothing multi-leg events.
-- `tests/transfer-flow.test.ts`: the transfer screen with
-  `@testing-library/svelte` on the real runtime (receipt and balanced ledger,
-  inline insufficient funds, the member cap, the viewer explanation).
+- `tests/services.test.ts` (the only file since PLAN_009): the boot smoke
+  (deterministic generation and integrity), an atomic transfer whose ledger
+  stays balanced after a reload, locked-account, viewer and member-cap
+  refusals, and the timeline rule (7×1 = 1×7 days, replays apply nothing).
+- `tests/e2e/mobile-banking-demo.spec.ts`: payee CRUD, a transfer through the
+  UI, the view-only persona and the phone layout.
 
 ## Quick commands
 

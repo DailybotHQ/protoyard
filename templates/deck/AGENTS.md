@@ -13,7 +13,7 @@ Repository-wide instructions live in the root [AGENTS.md](../../AGENTS.md).
 ## Checks
 
 ```bash
-pnpm vitest run templates/deck
+pnpm vitest run tests/integration/templates.test.ts -t deck
 pnpm --filter @protoyard-template/deck typecheck
 pnpm protoyard validate deck --build
 pnpm protoyard budget deck

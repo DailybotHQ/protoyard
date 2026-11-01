@@ -31,7 +31,7 @@ pnpm protoyard dev my-academy
 ## Checks
 
 ```bash
-pnpm vitest run templates/course-lms
+pnpm vitest run tests/integration/templates.test.ts -t course-lms
 pnpm --filter @protoyard-template/course-lms typecheck
 pnpm protoyard validate course-lms --strict-spec --build
 pnpm protoyard budget course-lms

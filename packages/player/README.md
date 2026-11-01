@@ -86,15 +86,9 @@ go to `boot.ts`, while decks, pages and docs go to `src/boot-kind.ts`. That
 path builds the same `defineKindRuntime` definition a generated kind prototype
 exports from its `src/prototype.ts`, and mounts `DeckApp`, `PageApp` or `DocApp`
 through `src/kinds/KindApp.svelte`. Each path is its own lazy chunk.
-`tests/kinds-parity.test.ts` renders one deck, page and doc both ways (the
-player's `bootKind`, and the kind template with the real
-`emitContentKindPrototype` files on top). It fails if the two differ in slide
-or section order, stores, scenarios, policy, generator version, active theme
-or principal persona:
-
-```sh
-pnpm vitest run packages/player/tests/kinds-parity.test.ts
-```
+The test that rendered one deck, page and doc both ways and compared them
+(`kinds-parity.test.ts`) was removed in PLAN_009, so that parity is no longer
+asserted automatically.
 
 Every blueprint's optional `motion.level` (`full`, `subtle` or `none`) wraps the
 app or kind renderer in Texuli's `MotionProvider` and caps a deck's own
@@ -232,9 +226,7 @@ for such blueprints, so others download none of it (a 3.5 KB gzip lazy chunk).
   **Download metrics** saves a `protoyard-validation-metrics` v1 JSON file for
   `protoyard quick report`.
 
-```bash
-pnpm vitest run packages/player/tests/validation.test.ts
-```
+(Its unit test, `validation.test.ts`, was removed in PLAN_009.)
 
 ## Served by `quick serve`: live reload and review comments
 
@@ -265,9 +257,8 @@ nor loads the module.
     and updates its saved share link. A page reload then keeps the same world and shows the
     new blueprint.
 
-```bash
-pnpm vitest run packages/player/tests/live-reload.test.ts
-```
+(Its unit test, `live-reload.test.ts`, was removed in PLAN_009;
+`packages/cli/tests/quick-live-reload.test.ts` keeps the CLI side.)
 
 ## Security
 
@@ -279,7 +270,7 @@ error screen's "Reset prototype data" delete the blueprint's data, control and v
 databases, and nothing else on the origin.
 
 ```bash
-pnpm --filter @protoyard/player build && pnpm vitest run packages/player/tests/security.test.ts
+pnpm --filter @protoyard/player build && pnpm vitest run packages/player/tests/kinds-security.test.ts
 ```
 
 ## Build settings
@@ -291,11 +282,11 @@ The player builds like a prototype with `defineProtoyardConfig`. Its own
 - the demo badge;
 - offline support, which emits a service worker and precaches the complete build;
 - module workers (`worker: { format: 'es' }`), so the world-generation worker
-  tree-shakes Faker to English (`tests/worker-bundle.test.ts` budgets it at 250 KB
-  gzip);
+  tree-shakes Faker to English (`tests/budget.test.ts` budgets the worker graph
+  with `WORKER_GRAPH_GZIP_KB`);
 - `<meta name="robots" content="noindex">` in `index.html`: the standalone player
-  is an app, not a landing page (`/play/` is). `tests/indexing.test.ts` checks the
-  built HTML.
+  is an app, not a landing page (`/play/` is). Its test (`indexing.test.ts`) was
+  removed in PLAN_009.
 
 Its `storage.namespace` (`player`) is never used for a blueprint's data.
 `src/app.css` registers the crud, views, charts and analytics sources with
@@ -305,9 +296,7 @@ Tailwind, so every screen kind is styled.
 pnpm --filter @protoyard/player build     # → packages/player/dist/app (static, base ./)
 pnpm --filter @protoyard/player dev
 pnpm --filter @protoyard/player preview
-pnpm vitest run packages/player/tests/boot.test.ts
-pnpm vitest run packages/player/tests/postmessage.test.ts packages/player/tests/run.test.ts
-pnpm vitest run packages/player/tests/offline.test.ts
+pnpm vitest run packages/player   # sources and share links, kind security and postMessage, budgets (need the build)
 ```
 
 The built player is installable from a secure origin. The first visit must be
@@ -332,8 +321,7 @@ Measured with `pnpm --filter @protoyard/player build` (2026-10-20):
 - **World-generation worker graph:** 200.2 KB gzip (Faker `en` 153 KB plus the
   blueprint generator), against 250 KB.
 
-`tests/budget.test.ts` enforces the initial budgets and `tests/worker-bundle.test.ts`
-the worker's. Load timings are in [PLAYER](../../docs/PLAYER.md#measured-size-and-speed).
+`tests/budget.test.ts` enforces the initial budgets and the worker's. Load timings are in [PLAYER](../../docs/PLAYER.md#measured-size-and-speed).
 
 ## Honest limits
 

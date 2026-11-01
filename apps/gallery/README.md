@@ -176,9 +176,9 @@ frame never appear in another, and the prototype's normal (non-sandboxed) data i
   local control server is available (*Start* runs it); otherwise the page explains what to run and
   accepts a pasted prototype URL, which is framed with an iframe `sandbox` (it may be any origin).
   A read-only hosted gallery never runs code on its own.
-- **Tested:** `tests/e2e/showcase.spec.ts` creates a record in frame A, then checks that frame B
-  (same scenario) and the app's default world do not have it, and that *Reset sandboxes* starts
-  frame A fresh. The page is also covered by the axe checks.
+- **Tested:** not automatically since PLAN_009. The showcase E2E case that created a record in
+  frame A and checked that frame B, the default world and *Reset sandboxes* kept it isolated was
+  removed, and the compare page is no longer in the axe checks.
 
 ## Accessibility
 
@@ -193,11 +193,13 @@ bootstrap migration moves the prior `protoyard.gallery.theme` choice and removes
 - Keyboard: `/` focuses search, and every control is reachable and visible on `:focus-visible`.
 - Light and dark tokens meet WCAG AA for body text. Status is never shown by color alone (text or
   icon too). `prefers-reduced-motion` is honored.
-- No horizontal overflow at phone widths (covered by E2E on a Pixel 7 viewport).
+- No horizontal overflow at phone widths (the Pixel 7 overflow E2E case was removed in PLAN_009; check by hand).
 
 ## Tests
 
-- Unit: `apps/gallery/tests/*.test.ts` (search, URL sync, commands, device helpers), run by the
-  root `pnpm test`.
+- Unit: `apps/gallery/tests/gallery.test.ts` (the marketplace create-flow guard, preview and dev
+  URLs, docs escaping, search-index hrefs, sitemap slugs) and `registry-plugin.test.ts` (registry
+  kinds, malformed records, traversal and symlink refusals, thumbnails), run by the root
+  `pnpm test`.
 - E2E: `tests/e2e/gallery.spec.ts` and `tests/e2e/showcase.spec.ts` (`PROTOYARD_E2E_SHOWCASE=1`)
   run against real static builds, in Chromium desktop and mobile projects.

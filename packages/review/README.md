@@ -29,11 +29,12 @@ limits are in [docs/REVIEW_COMMENTS.md](../../docs/REVIEW_COMMENTS.md).
 - Reviewer names are self-declared and a review key only keeps casual
   visitors out: **this is not authentication**.
 
-`packages/review-ui/tests/bundle-hygiene.test.ts` enforces these rules.
+`packages/review-ui/tests/review-ui.test.ts` enforces the first two (the
+handler on Web APIs only, the engine free of Svelte and UI packages).
 
 ```bash
 pnpm --filter @protoyard/review typecheck
-pnpm vitest run packages/review-ui/tests/bundle-hygiene.test.ts
+pnpm vitest run packages/review packages/review-ui
 ```
 
 ## Local adapter (`@protoyard/review/adapters/local`)
@@ -74,9 +75,10 @@ Comments are validated by `validateReviewComment` (also exported), a
 dependency-free mirror of `ReviewCommentSchema`. The module imports only types
 from `@protoyard/core/review`, so the Cloudflare worker that
 `protoyard publish --comments` bundles stays under 20 KB raw (about 15 KB;
-with zod and the core schemas it was 109 KB). `tests/server-validate.test.ts`
-runs both validators on about 850 valid and invalid documents and requires the
-same verdict and the same parsed value. Change the schema and the validator
+with zod and the core schemas it was 109 KB). `tests/server.test.ts`
+runs both validators on a corpus of valid and invalid documents (one test that
+loops every document since PLAN_009) and requires the same verdict and the same
+parsed value. Change the schema and the validator
 together.
 
 **The handler does not check authorship.** Anyone who can reach it (with

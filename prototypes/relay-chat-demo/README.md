@@ -33,5 +33,4 @@ Post in the composer, "👍 React" and "Reply in thread" on a message, ask
 pnpm vitest run prototypes/relay-chat-demo
 pnpm protoyard validate relay-chat-demo --build
 pnpm protoyard budget relay-chat-demo
-PROTOYARD_E2E_PROTOTYPES=relay-chat-demo pnpm test:e2e tests/e2e/relay-chat-demo.spec.ts
 ```

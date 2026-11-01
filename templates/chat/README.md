@@ -10,7 +10,7 @@ scenarios. Built to be extended.
 ```bash
 pnpm protoyard new my-chat --template chat   # create a prototype from this template
 pnpm protoyard dev my-chat                   # run it
-pnpm vitest run prototypes/my-chat           # tests
+pnpm protoyard validate my-chat --build   # the template ships no tests; add your own (docs/TESTING_GUIDE.md)
 pnpm --filter @prototype/my-chat typecheck
 ```
 

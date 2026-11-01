@@ -45,8 +45,9 @@ Funnels and retention, precisely:
 
 Speed: a funnel over 100k events from 10k users (with a breakdown) takes a
 median of 27–45 ms, and weekly retention over the same events 30–32 ms, in
-Node on the Apple M1 Max under heavy machine load. `PROTOYARD_BENCH=1`
-asserts the 50 ms funnel budget. Size: `computeFunnel` 1.9 KB,
+Node on the Apple M1 Max under heavy machine load. (The opt-in
+`PROTOYARD_BENCH=1` case that asserted the 50 ms funnel budget was removed in
+PLAN_009.) Size: `computeFunnel` 1.9 KB,
 `computeRetention` 1.6 KB gzip (zod external).
 
 Semantics worth knowing:

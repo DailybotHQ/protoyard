@@ -36,7 +36,7 @@ regeneration, drift checks) is in [docs/GENERATOR.md](../../docs/GENERATOR.md).
 | sqlite-schema | bounded SQLite `CREATE TABLE` DDL inference into reviewable entity drafts | `./import/sqlite-schema` (lazy authoring) |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
 | search | ranked, policy-filtered record search across `searchable` fields (the CRUD search palette) | `./search` |
-| identity | content sha256 and `bp-…` storage namespace (`blueprintIdentity`); every shipped blueprint's identity is frozen in `tests/fixtures/identity-golden.json` | `.` |
+| identity | content sha256 and `bp-…` storage namespace (`blueprintIdentity`); `tests/migrations.test.ts` pins the identity of representative content | `.` |
 | deck authoring lint | structural diagnostics for slide ids, layout props, outline order, fragments and internal links | `.` |
 
 ## The schema
@@ -111,7 +111,7 @@ checks:
 - every `#fragment` link points at a block id in the doc.
 
 Fixtures: `tests/fixtures/kinds/landing.page.json` and `tests/fixtures/kinds/quarterly-report.doc.json`
-(`pnpm vitest run packages/blueprint/tests/kinds/page-doc.test.ts`).
+(parsed by `tests/kinds/envelope.test.ts` and `tests/kinds/security.test.ts`).
 
 Deck bodies validate unique slide ids, outline references, known layout ids, catalog props and
 bounded step markers. The layout catalog validates props after temporarily removing animation
@@ -253,11 +253,11 @@ regeneration loop.
   }
   ```
 
-The integration contract is checked against each kit's public package export map in
-`tests/archetypes/kit-contract.test.ts`: AI archetypes target the AI engine and workspace,
-SaaS onboarding uses `saasRoutes`' lazy loader, and analytics selects only the grid and
-date-range UI subpaths it declares. The test also checks their callback and simulation
-contracts. The blueprint package keeps kit names as validated data and does not depend on
+The integration contract: AI archetypes target the AI engine and workspace, SaaS onboarding
+uses `saasRoutes`' lazy loader, and analytics selects only the grid and date-range UI subpaths
+it declares. The test that checked it against each kit's export map (`kit-contract.test.ts`)
+was removed in PLAN_009; `tests/archetypes/archetypes.test.ts` keeps the four archetypes and
+their refusals. The blueprint package keeps kit names as validated data and does not depend on
 or import the kits. The player's route registry is responsible for loading the selected
 screen lazily. `@protoyard/ai-ui` currently exports an assistant workspace but no dedicated
 team-chat screen, so the player still needs an adapter or a future UI entry for that screen.
@@ -692,17 +692,16 @@ const committed = await services.ticket.importCsv(text, {
 
 ## Brief to blueprint
 
-Kind synthesis fixtures live in `tests/fixtures/briefs/kinds.json` and are exercised by
-`tests/brief-kinds.test.ts` (all four kinds, cue conflicts, explicit overrides, empty and
-maximum-length input, content-only requests). The historical app set in
-`tests/fixtures/briefs/briefs.json` stays the regression baseline
-(`pnpm vitest run packages/blueprint/tests/brief-kinds.test.ts packages/blueprint/tests/brief.test.ts`).
+`tests/brief.test.ts` covers kind dispatch (deck, page and doc cues, an explicit kind, an
+unknown kind), empty and very long briefs, and the historical app set in
+`tests/fixtures/briefs/briefs.json`, which stays the regression baseline
+(`pnpm vitest run packages/blueprint/tests/brief.test.ts`). The kind fixture sweep was removed
+in PLAN_009.
 
-Generated kind JSON Schema (from the live Zod unions via `z.toJSONSchema`) is checked against
-catalog fixtures in `tests/kind-json-schema.test.ts`. That suite also locks synthesizer drafts:
-every bench brief (`scripts/bench-brief-kinds.ts`) must detect the expected kind and pass
-`safeParseAnyBlueprint` (page/doc bodies include `id` + `title`; deck body is `style` + `slides`
-only). Cross-reference and lint rules still require the package validator — JSON Schema alone is
+The generated JSON Schema (from the live Zod unions via `z.toJSONSchema`) is checked to be up to
+date with the zod schema in `tests/schema.test.ts`. The suite that also matched it against
+catalog fixtures and locked the bench briefs' drafts (`kind-json-schema.test.ts`) was removed in
+PLAN_009. Cross-reference and lint rules still require the package validator — JSON Schema alone is
 not enough.
 
 `blueprintFromBrief(brief, { archetype?, name?, kind? })` turns a short product brief into a
@@ -944,8 +943,8 @@ selection, authoring validation and the deck layout catalog (`deckLayouts`, `get
 and fetch authoring only when the author opens it. The functions are the same ones the root
 exports. Server tools (CLI, MCP) can simply import the named exports.
 
-Measured on 2026-10-22 with a real Vite build of the linked package (minified, gzip level 9; asserted in
-`tests/authoring-exports.test.ts`):
+Measured on 2026-10-22 with a real Vite build of the linked package (minified, gzip level 9; asserted
+by `authoring-exports.test.ts` until PLAN_009 removed it):
 
 | Entry imports | Initial JS |
 | --- | --- |
@@ -1067,7 +1066,7 @@ const revenue = liveQuery(
 - Soft-deleted rows are always skipped. Keys (`<bucket|*>|<group|*>`) are stable.
 
 Measured: 10,000 rows grouped by status and bucketed by day in 10.7 ms in Vitest while the
-machine was under heavy load (`pnpm vitest run packages/blueprint/tests/aggregate.test.ts`).
+machine was under heavy load (in `aggregate.test.ts`, removed in PLAN_009).
 
 ## App model
 
@@ -1094,10 +1093,9 @@ A later route on the same path replaces an earlier one in place, so a screen can
 claim an entity's default list or detail route. `screenNavIcon`, `screenHasOwnView`
 and `entityLabel` expose the per-screen rules. Generated prototypes and the player
 both render this model through `BlueprintApp` (`@protoyard/crud/app`), so the
-generator emits no route or layout files. `tests/app-model.test.ts` pins the model of
-every catalog blueprint in `tests/__snapshots__/app-model.catalog.json`. The snapshot
-was taken when the model was proven byte-identical to the generator's former
-`routes.ts` and `layout.ts`, so a change is always a reviewed diff.
+generator emits no route or layout files. Since PLAN_009, `tests/runtime-parity.test.ts`
+checks routes, navigation and layout for one representative blueprint against a CLI-generated
+prototype; the per-blueprint model snapshot was removed.
 
 `blueprintGeneratorVersion(blueprint)` (synchronous, no Faker) is the world
 generator's version. Generated prototypes declare it as `generatorVersion`, and so
@@ -1126,9 +1124,9 @@ so the player can run a blueprint with no build. It returns
 Measured with Vite 8 (minified, gzip -9) on an entry that imports
 `definePrototypeFromBlueprint` from the package entry: about 20.0 KB entry plus a
 40.5 KB shared chunk at start, and the generator as a separate 5.5 KB lazy chunk.
-`tests/runtime-definition.test.ts` boots the definition on the real runtime
-(fake IndexedDB): it seeds every default scenario, keeps created rows across a
-reload, and seeds the same world twice for the same seed.
+`tests/runtime-parity.test.ts` compares that definition with a CLI-generated
+prototype, worlds included (the separate `runtime-definition.test.ts` was
+removed in PLAN_009).
 
 ## Tests
 
@@ -1138,10 +1136,8 @@ all derived from its blueprint.
 
 ```bash
 pnpm vitest run packages/blueprint
-pnpm vitest run packages/blueprint/tests/authoring-docs.test.ts
-pnpm vitest run packages/blueprint/tests/brief-kinds.test.ts
-pnpm vitest run packages/blueprint/tests/deck-lint.test.ts
-pnpm vitest run packages/blueprint/tests/select-deck-layouts.test.ts
+pnpm vitest run packages/blueprint/tests/brief.test.ts
+pnpm vitest run packages/blueprint/tests/kinds
 pnpm --filter @protoyard/blueprint typecheck
 ```
 

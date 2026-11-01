@@ -20,8 +20,7 @@ files, settings, states and an app command palette. The engines live in
   contract. Texuli's `@texuli/editor/markdown` codec now reads host inline
   extensions in the `@{id|label}` form `@protoyard/views/editor` stores
   mentions in (G48), and reads the `\@` escape stored text uses for a literal
-  `@` (G100, Texuli 0.10.0); both are pinned by
-  `tests/editor-texuli-codec.test.ts`. The editor still parses with
+  `@` (G100, Texuli 0.10.0); their codec test was removed in PLAN_009. The editor still parses with
   `@protoyard/views/editor`, because its document model and source commands
   are a public Protoyard API.
   `NotificationCenter` renders Texuli's `@texuli/data/activity/inbox` with
@@ -224,9 +223,8 @@ no network, no real geography.
 - **Geofence editing is not implemented.** `editableFenceId` and
   `onFenceChange` are accepted and forwarded, but no handles are drawn.
 
-```bash
-pnpm vitest run packages/views-ui/tests/map.test.ts
-```
+No unit test covers this view since PLAN_009 kept host-adapter tests for
+board, calendar, grid, sheet and canvas only.
 
 ## Settings (`@protoyard/views-ui/settings`)
 
@@ -461,8 +459,7 @@ functions of `@protoyard/views/editor`. Values leave through typed callbacks
   preview sits inside a page. `MarkdownPreview` is also exported for showing
   saved Markdown. Scrollable fenced-code `<pre>` blocks use `tabindex="0"` and
   an accessible name (axe `scrollable-region-focusable`), matching ui-kit
-  `CodeBlock`; covered with the ai-ui surfaces in
-  `packages/ai-ui/tests/scroll-regions.test.ts`.
+  `CodeBlock` (its unit test was removed in PLAN_009).
 - **RichTextView:** read-only renderer over `parseEditorDocument` /
   `EditorDocument` from `@protoyard/views/editor`. Mentions (`@{id|label}`),
   marks, lists, quotes and code fences become elements; unsafe `href` values
@@ -585,9 +582,8 @@ timeline is read-only.
   `onOpen` but does not pass them on. Rows are not grouped, Texuli's default
   limit of 500 rows applies, and items in the unscheduled tray do not open.
 
-```bash
-pnpm vitest run packages/views-ui/tests/timeline.test.ts
-```
+No unit test covers this view since PLAN_009 kept host-adapter tests for
+board, calendar, grid, sheet and canvas only.
 
 ## Canvas (`@protoyard/views-ui/canvas`)
 
@@ -703,9 +699,8 @@ Two components over `{ id, parentId, rank }` rows and the
   this component remains the Protoyard host adapter and composes Texuli
   controls.
 
-```bash
-pnpm vitest run packages/views-ui/tests/tree.test.ts
-```
+No unit test covers this view since PLAN_009 kept host-adapter tests for
+board, calendar, grid, sheet and canvas only.
 
 ## Grid (`@protoyard/views-ui/grid`)
 
@@ -855,9 +850,8 @@ comments as `kind: 'comment'` items with their `body`).
     While it loads, Texuli's `Textarea` is used: ⌘/Ctrl+Enter
     sends, and Escape cancels a reply or an edit.
 
-```bash
-pnpm vitest run packages/views-ui/tests/activity.test.ts
-```
+No unit test covers this view since PLAN_009 kept host-adapter tests for
+board, calendar, grid, sheet and canvas only.
 
 ## Notifications (`@protoyard/views-ui/notifications`)
 
@@ -947,9 +941,8 @@ rows on the `@protoyard/views/files` engine.
   for services. Storage caveats for uploaded files are in docs/DATABASE.md
   (Uploaded files).
 
-```bash
-pnpm vitest run packages/views-ui/tests/files.test.ts
-```
+No unit test covers this view since PLAN_009 kept host-adapter tests for
+board, calendar, grid, sheet and canvas only.
 
 ## Package output
 

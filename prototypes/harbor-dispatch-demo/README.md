@@ -22,12 +22,9 @@ changing those files by hand.
 - `src/scenarios/generators.ts` wraps the generated world with deterministic
   harbor names, tracking references, delivery states, assignments and ordered
   schedule windows.
-- `tests/generators.test.ts` checks deterministic generation, referential
-  integrity and believable dispatch records.
-- `../../tests/e2e/harbor-dispatch-demo.spec.ts` covers dispatch persistence,
-  map-list access, timeline rescheduling and axe checks for the main screens.
-- `../../tests/e2e/layout-fit.spec.ts` exercises the generated prototype's
-  default layout at desktop and phone sizes when this slug is selected.
+- `tests/services.test.ts` holds the boot smoke (deterministic generation and
+  referential integrity), a shipment move that survives a reload, and a viewer
+  refusal. Its browser specs were removed in PLAN_009.
 - `docs/SCREENS.md` describes the generated screen routes and offline map
   boundary.
 

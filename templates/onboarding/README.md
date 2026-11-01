@@ -53,8 +53,7 @@ src/screens/Onboarding.svelte  the wizard (Stepper + the current step, keyed on 
 src/screens/Home.svelte      post-onboarding home (redirects to the wizard until finished)
 src/steps/*.svelte           one component per step
 src/components/*.svelte      header, step heading/footer, restart confirmation
-tests/generators.test.ts     determinism, integrity, progress → step mapping
-tests/services.test.ts       step persistence across reloads, resume, validation, roles, offline
+tests/                       none: tests/integration/templates.test.ts generates, validates and boots this template
 ```
 
 ## Add a step
@@ -119,7 +118,7 @@ produce a different world.
 ## Checks
 
 ```bash
-pnpm vitest run prototypes/my-setup
+pnpm protoyard validate my-setup --build   # the template ships no tests; add your own (docs/TESTING_GUIDE.md)
 pnpm --filter @prototype/my-setup typecheck
 pnpm protoyard build my-setup
 ```

@@ -98,7 +98,6 @@ reader behavior, the palette and the renderers are documented in
 ```bash
 pnpm vitest run packages/charts-ui
 pnpm --filter @protoyard/charts-ui typecheck
-pnpm vitest run packages/cli/tests/charts-bundle.test.ts      # real Vite build, size ceilings
 pnpm exec tsx scripts/bench-charts.ts --skip-browser --check        # Node math + real Vite bundle sizes
 ```
 

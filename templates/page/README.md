@@ -5,7 +5,8 @@ Landing-page **kind** starter (`blueprintKind: "page"`). Renders
 `defineKindRuntime`. Includes a waitlist form whose responses persist in
 IndexedDB via `@protoyard/pages` form services: `PageApp` provides them from
 the kind runtime, so the form validates and saves exactly as in the player
-(`tests/page-form.test.ts`).
+(the page form E2E case in `tests/e2e/content-kinds-a11y.spec.ts` checks it in
+the player).
 
 `src/app.css` loads the same base as the player
 (`@protoyard/renderer-svelte/app.css`: Tailwind, theme tokens and
@@ -18,6 +19,6 @@ this prototype's markup. `src/App.svelte` imports the template's own
 
 ```bash
 pnpm protoyard dev page
-pnpm vitest run templates/page
+pnpm vitest run tests/integration/templates.test.ts -t page
 pnpm protoyard validate page --build
 ```
