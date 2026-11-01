@@ -247,6 +247,23 @@ describe('texuliDocumentToDoc', () => {
     expect(back).toEqual({ ok: true, doc, notes: [] });
   });
 
+  it('refuses an inline deck embed (validated with schema-core, G133)', () => {
+    const { document } = docToTexuliDocument(sample);
+    const edited = structuredClone(document);
+    edited.blocks.push({
+      id: 'pasted-deck',
+      type: 'embed',
+      kind: 'deck',
+      title: 'Pasted deck',
+      inline: { title: 'Deck', slides: [] },
+    });
+    // Protoyard never writes an inline deck (host blocks are component embeds), so it is refused.
+    const back = texuliDocumentToDoc(edited, sample);
+    expect(back.ok).toBe(false);
+    if (back.ok) return;
+    expect(back.issues.join(' ')).toMatch(/deck/i);
+  });
+
   it('round-trips the sample and the shared fixture unchanged', () => {
     for (const doc of [sample, loadOnePagerDocFixture()]) {
       const back = texuliDocumentToDoc(docToTexuliDocument(doc).document, doc);
