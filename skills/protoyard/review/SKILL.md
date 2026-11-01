@@ -1,7 +1,7 @@
 ---
 name: protoyard-review
 description: Check that a Protoyard prototype works and gather feedback on it locally — validate it, run its focused tests, build and preview it, inspect scenarios, personas, themes, shells and layouts, and turn review comments into a REVIEW.md. Use when the developer asks to test, validate, preview, QA or review a prototype. Publishing is a separate, approved step.
-version: "1.0.0"
+version: "1.1.0"
 documentation_url: https://protoyard.app/docs/
 user-invocable: true
 metadata:

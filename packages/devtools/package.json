@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/devtools",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "The Protoyard DevTools panel: scenarios, personas, lifecycle, data, environment, appearance and snapshots. Panel controls run on Texuli components; Theme Studio uses the Texuli-backed theme library.",
   "license": "MIT",
   "type": "module",

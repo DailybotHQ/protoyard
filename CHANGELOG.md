@@ -6,6 +6,8 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-01
+
 Protoyard on Texuli 0.12.0 from npm (PLAN_008), with Texuli's design systems,
 documents, forms, sheets, canvas, motion and full theme library adopted where
 they replace Protoyard code or add real value.
@@ -267,6 +269,7 @@ static site.
 - The gallery no longer ignores input typed before hydration and does not overflow
   horizontally on phones.
 
-[Unreleased]: https://github.com/DailybotHQ/protoyard/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/DailybotHQ/protoyard/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/DailybotHQ/protoyard/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/DailybotHQ/protoyard/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/DailybotHQ/protoyard/releases/tag/v0.1.0

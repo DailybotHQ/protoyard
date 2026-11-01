@@ -1,7 +1,7 @@
 ---
 name: protoyard-upgrade
 description: Check whether a newer Protoyard skill release exists and, only after the developer explicitly confirms, replace the installed skill with an exact pinned release tag, keeping host configuration intact, verifying the new version, and rolling back on failure. Use when the developer asks to upgrade, update or refresh the Protoyard agent skill. Never follows a floating branch or runs a remote shell installer.
-version: "1.0.0"
+version: "1.1.0"
 documentation_url: https://protoyard.app/docs/
 user-invocable: true
 metadata:
