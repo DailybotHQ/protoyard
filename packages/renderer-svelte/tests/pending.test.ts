@@ -7,7 +7,6 @@ import { createFakeRuntime } from './fixtures/fake-runtime.ts';
 import ProbeApp from './fixtures/ProbeApp.svelte';
 
 const bar = () => document.querySelector('[data-py-pending-bar]');
-const _status = () => document.querySelector('[data-py-pending-status]')?.textContent ?? '';
 
 describe('global pending indicator', () => {
   beforeEach(() => {
