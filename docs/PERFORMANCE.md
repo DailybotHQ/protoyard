@@ -11,6 +11,43 @@ layouts, views and theme library. They are kept as history and labelled so;
 current prototype bundle numbers are in
 [After the Texuli adoption](#after-the-texuli-adoption-measured-2026-10-28).
 
+## Texuli 0.11.5 re-measure (measured 2026-11-01)
+
+Measured on Texuli 0.11.5 with all of PLAN_008 merged (design systems, SaaS
+forms on `SchemaForm`, doc validation on `schema-core`). Every package and the
+player were rebuilt from clean first: `rm -rf packages/*/dist && pnpm build:packages
+&& pnpm --filter @protoyard/player build`. Then:
+
+```bash
+pnpm protoyard budget --all          # exit 0: 17 of 17 prototypes pass
+pnpm vitest run <the ten bundle tests listed in the section below> --silent=false   # 102 passed
+pnpm bench:index --runs 3 --check    # exit 0
+pnpm exec tsx scripts/bench-charts.ts --skip-browser --check   # exit 0
+```
+
+No ceiling changed in this pass: every measurement is under its cap.
+
+| Measurement | Value |
+| --- | ---: |
+| Prototype initial JS gzip (17 prototypes) | 156.61–213.55 KB (cap 250 KB) |
+| Player initial JS: index / deck / page / doc | 108,915 / 106,338 / 106,172 / 106,007 B |
+| Player initial CSS: index / deck / page and doc | 16,876 / 17,259 / 18,568 B |
+| Player all CSS: deck / page | 84.35 / 68.75 KB |
+| pages-ui page entry: JS / initial CSS / all CSS | 88,853 / 7,008 / 42,067 B |
+| pages-ui doc entry: JS / initial CSS / all CSS | 120,627 / 7,201 / 48,915 B |
+| Views over the shell: board, calendar, grid, map, editor, timeline, sheet, canvas | 16,208 / 16,969 / 23,702 / 8,041 / 10,531 / 13,111 / 50,081 / 50,823 B |
+| `bench:index` 1,000 manifests: cold / incremental | 60.07 / 30.29 ms median (budget 100 ms × 3 in CI) |
+| `bench-charts` LTTB 10k | 0.12 ms median (limit 2 ms) |
+
+Two ceilings were raised earlier in PLAN_008. Both are measured + 2.5 %, with
+the reason in their test:
+- the pages-ui page all-CSS sum, because each lazy forms control stylesheet
+  pays its own gzip overhead (G119 split them);
+- the views grid ceiling, because of DataGrid's table additions (G107).
+
+The per-prototype scenario benches were not re-run in this pass; their last
+run is in the section below.
+
 ## PLAN_008 re-measure (measured 2026-10-31)
 
 Every budget and ceiling, re-measured on Texuli 0.9.0 after all of PLAN_008
