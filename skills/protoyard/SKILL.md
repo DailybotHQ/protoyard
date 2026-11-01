@@ -46,6 +46,7 @@ skill, so routing does not require a network connection.
 | Make a slide deck, presentation, pitch or keynote, or fix a slide from a pasted `[slide-ref]` | [`references/decks.md`](references/decks.md) |
 | Change a prototype, regenerate blueprint-owned code, or continue an exploration | [`iterate/SKILL.md`](iterate/SKILL.md) |
 | Choose a layout, shell, view, chart, analytics, SaaS, AI, or other reusable kit | [`kits/SKILL.md`](kits/SKILL.md) |
+| Create a design system (brand color, fonts, shape, density, motion) or apply one to a prototype | [`references/design-systems.md`](references/design-systems.md) |
 | Validate, test, preview, or gather local review feedback | [`review/SKILL.md`](review/SKILL.md) |
 | Export or publish a prototype | [`ship/SKILL.md`](ship/SKILL.md) |
 | Check for a newer skill release or replace this installation | [`upgrade/SKILL.md`](upgrade/SKILL.md) |

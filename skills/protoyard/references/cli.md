@@ -123,6 +123,11 @@ deploy.
 | `protoyard theme create <slug>` | `--id <id>`, `--name <name>`, `--seed <hex>`, `--secondary <hex>`, `--from <file>`, `--force`, `--dry-run` | write a typed theme into a prototype from a seed or JSON file | Released (1.0.0) |
 | `protoyard theme export [id]` | `--from <file>`, `--format <format>` | export a theme as CSS variables, Tailwind tokens or W3C design tokens | Released (1.0.0) |
 | `protoyard theme import <slug-or-file> [file]` | `--name`, `--force`, `--dry-run` | write a validated JSON theme into a prototype; or, with a design-token file and `--name`, build a validated theme with a contrast report (`--json` prints the theme, CSS and Tailwind tokens) | Released (1.0.0); token import unreleased |
+| `protoyard ds` | — | create, validate, export and apply Texuli design systems | Unreleased |
+| `protoyard ds new <id>` | `--name <name>`, `--brief <text>`, `--brand <hex>`, `--secondary <hex>`, `--accent <hex>`, `--font <name>`, `--heading-font <name>`, `--mono-font <name>`, `--shape <shape>`, `--radius <px>`, `--density <density>`, `--motion <motion>`, `--contrast <target>`, `--from-theme <theme-id>`, `--out <file>`, `--force`, `--dry-run` | create a design system from a brief, a few inputs or a theme; validates and compiles it and writes `design-systems/<id>.json` | Unreleased |
+| `protoyard ds validate <file>` | — | validate an untrusted design-system document and compile it (contrast per mode, hash) | Unreleased |
+| `protoyard ds export <file>` | `--format <format>` | export a design system as CSS variables, a Tailwind preset or compiled JSON | Unreleased |
+| `protoyard ds use <slug> <file>` | `--force`, `--dry-run` | apply a design system to a prototype: `src/design-system.ts`, `definePrototype({ themes })` and `defaultTheme` | Unreleased |
 | `protoyard snapshot` | — | snapshot files committed with a prototype | Released (1.0.0) |
 | `protoyard snapshot list <slug>` | — |  | Released (1.0.0) |
 | `protoyard spec [slug]` | `--all`, `--write`, `--check`, `--init`, `--bundle` | keep a prototype's AGENTS.md and docs/ generated regions in sync with its definition (runs local code) | Released (1.0.0) |
