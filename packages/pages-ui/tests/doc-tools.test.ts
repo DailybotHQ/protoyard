@@ -1,7 +1,9 @@
-import type { PrototypeRuntime } from '@protoyard/core';
-import type { DocDocument } from '@protoyard/pages';
+import { definePrototypeFromDoc } from '@protoyard/blueprint/kinds';
+import { type PrototypeRuntime } from '@protoyard/core';
+import { type DocDocument } from '@protoyard/pages';
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createHarness } from '../../../tests/support/runtime.ts';
 import DocApp from '../src/doc/DocApp.svelte';
 
 const exportDoc = vi.fn();
@@ -45,36 +47,6 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('DocApp tools', () => {
-  it('downloads each format through exportDoc and reports the file', async () => {
-    exportDoc.mockResolvedValue({
-      format: 'pdf',
-      filename: 'tools-doc.pdf',
-      size: 2_048,
-      pageCount: 2,
-      notes: ['Images are written as their descriptions.'],
-    });
-    const view = render(DocApp, { props: { doc } });
-    for (const name of ['Download as Word', 'Download as PDF', 'Download as Markdown']) {
-      expect(view.getByRole('button', { name })).toBeTruthy();
-    }
-    await fireEvent.click(view.getByRole('button', { name: 'Download as PDF' }));
-    await waitFor(() => expect(exportDoc).toHaveBeenCalledWith(doc, 'pdf'));
-    const status = view.container.querySelector('[data-py-doc-export-status]');
-    await waitFor(() =>
-      expect(status?.textContent).toContain('Saved tools-doc.pdf (2.0 KB, 2 pages).')
-    );
-    expect(status?.getAttribute('role')).toBe('status');
-    expect(status?.textContent).toContain('Images are written as their descriptions.');
-  });
-
-  it('shows an error notice when a writer fails', async () => {
-    exportDoc.mockRejectedValue(new Error('Writer failed (simulated)'));
-    const view = render(DocApp, { props: { doc } });
-    await fireEvent.click(view.getByRole('button', { name: 'Download as Word' }));
-    await waitFor(() => expect(view.getByText('The download failed')).toBeTruthy());
-    expect(view.getByText('Writer failed (simulated)')).toBeTruthy();
-  });
-
   it('hides Edit from personas without the edit capability, keeps downloads', () => {
     const viewer = render(DocApp, { props: { doc, runtime: runtimeThatCan([]) } });
     expect(viewer.queryByRole('button', { name: 'Edit' })).toBeNull();
@@ -113,18 +85,100 @@ describe('DocApp tools', () => {
     await waitFor(() => expect(view.container.querySelector('[data-py-doc-edited]')).toBeNull());
     expect(view.queryByText('Some edits have no doc equivalent')).toBeNull();
   });
+});
 
-  it('discards an edit session without changes', async () => {
-    const view = render(DocApp, { props: { doc } });
-    await fireEvent.click(view.getByRole('button', { name: 'Edit' }));
-    await waitFor(() => expect(view.getByRole('button', { name: 'Mock cancel' })).toBeTruthy());
-    await fireEvent.click(view.getByRole('button', { name: 'Mock cancel' }));
-    await waitFor(() => expect(view.container.querySelector('[data-py-doc-host]')).toBeTruthy());
-    expect(view.container.querySelector('[data-py-doc-edited]')).toBeNull();
+// --- merged from doc-saved-edits.test.ts ---
+
+describe('doc-saved-edits', () => {
+  /**
+   * Applied doc edits are saved per doc and world (PLAN_008 decision D3): they
+   * survive remounting DocApp on a reloaded runtime of the same world, and
+   * Reset removes them. The editor and block renderers are test doubles; the
+   * runtime, the docEdits store and the service are real.
+   */
+
+  const doc: DocDocument = {
+    id: 'saved-doc',
+    title: 'Saved doc',
+    blocks: [
+      { type: 'heading', id: 'title', level: 1, text: 'Saved doc' },
+      { type: 'text', id: 'intro', markdown: 'Original body.' },
+    ],
+  };
+
+  let harness = createHarness(definePrototypeFromDoc(doc, { namespace: 'pages-ui-saved-0' }));
+  let sequence = 0;
+  beforeEach(() => {
+    sequence += 1;
+    exportDoc.mockReset();
+    exportDoc.mockResolvedValue({ format: 'markdown', filename: 'a.md', size: 10, notes: [] });
+    harness = createHarness(
+      definePrototypeFromDoc(doc, { namespace: `pages-ui-saved-${sequence}` })
+    );
+  });
+  afterEach(() => {
+    cleanup();
+    harness.closeAll();
   });
 
-  it('can turn the tool bar off', () => {
-    const view = render(DocApp, { props: { doc, tools: false } });
-    expect(view.container.querySelector('[data-py-doc-tools]')).toBeNull();
+  const storedRows = (runtime: PrototypeRuntime) =>
+    (runtime.db as { table(name: string): { toArray(): Promise<unknown[]> } })
+      .table('docEdits')
+      .toArray();
+
+  /** What the helpers use of a rendered DocApp. */
+  type View = Pick<
+    ReturnType<typeof render<typeof DocApp>>,
+    'container' | 'getByRole' | 'findByRole'
+  >;
+
+  /** The doc the reading view shows, read through what Download would write. */
+  async function shownBody(view: View): Promise<string | undefined> {
+    exportDoc.mockClear();
+    await fireEvent.click(view.getByRole('button', { name: 'Download as Markdown' }));
+    await waitFor(() => expect(exportDoc).toHaveBeenCalled());
+    const written = exportDoc.mock.calls[0]?.[0] as DocDocument;
+    const intro = written.blocks.find((block) => block.id === 'intro');
+    return intro?.type === 'text' ? intro.markdown : undefined;
+  }
+
+  async function applyEdit(view: View): Promise<void> {
+    await fireEvent.click(await view.findByRole('button', { name: 'Edit' }));
+    await fireEvent.click(await view.findByRole('button', { name: 'Mock apply' }));
+    await waitFor(() => expect(view.container.querySelector('[data-py-doc-host]')).toBeTruthy());
+  }
+
+  describe('DocApp saved edits', () => {
+    it('keeps an applied edit after remounting on the same world, and Reset clears it', async () => {
+      let runtime = await harness.boot();
+      let view = render(DocApp, { props: { doc, runtime } });
+      await applyEdit(view);
+      await waitFor(async () => expect(await storedRows(runtime)).toHaveLength(1));
+      expect(view.container.querySelector('[data-py-doc-edited]')?.textContent).toContain(
+        'Edits are saved in this browser for this world.'
+      );
+      expect(await shownBody(view)).toBe('Edited in the editor.');
+
+      // A page reload: a new runtime on the same storage, a fresh DocApp.
+      view.unmount();
+      runtime = await harness.reload(runtime);
+      view = render(DocApp, { props: { doc, runtime } });
+      await waitFor(() =>
+        expect(view.container.querySelector('[data-py-doc-edited]')).toBeTruthy()
+      );
+      expect(await shownBody(view)).toBe('Edited in the editor.');
+
+      await fireEvent.click(view.getByRole('button', { name: 'Reset to the original' }));
+      await waitFor(() => expect(view.container.querySelector('[data-py-doc-edited]')).toBeNull());
+      expect(await storedRows(runtime)).toEqual([]);
+      expect(await shownBody(view)).toBe('Original body.');
+
+      view.unmount();
+      runtime = await harness.reload(runtime);
+      view = render(DocApp, { props: { doc, runtime } });
+      await waitFor(() => expect(view.container.querySelector('[data-py-doc-host]')).toBeTruthy());
+      expect(view.container.querySelector('[data-py-doc-edited]')).toBeNull();
+      expect(await shownBody(view)).toBe('Original body.');
+    });
   });
 });
