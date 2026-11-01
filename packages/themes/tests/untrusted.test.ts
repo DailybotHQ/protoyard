@@ -42,11 +42,11 @@ describe('theme share links', () => {
   });
 
   it('strip control and bidi characters from a shared theme name', () => {
-    const disguised = 'Harbor‮ thgil\u0007 ';
+    const disguised = 'Harbor\u202E thgil\u0007 ';
     expect(cleanThemeShareName(disguised)).toBe('Harbor thgil');
     expect(decodeThemeShare(encode({ ...definition, name: disguised })).name).toBe('Harbor thgil');
     // Nothing left after cleaning is not a name.
-    expect(() => decodeThemeShare(encode({ ...definition, name: '‮\u0000' }))).toThrow();
+    expect(() => decodeThemeShare(encode({ ...definition, name: '\u202E\u0000' }))).toThrow();
   });
 });
 
