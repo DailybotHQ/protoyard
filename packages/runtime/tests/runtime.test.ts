@@ -5,9 +5,11 @@ import {
   type PrototypeRuntime,
   parseScenario,
   ThemePaletteSchema,
+  ValidationError,
 } from '@protoyard/core';
 import { dumpTables, type PrototypeDatabase } from '@protoyard/database';
 import { createGenerateContext, GENERATOR_SDK_VERSION, PRESETS } from '@protoyard/scenarios';
+import { createThemeFromSeed } from '@protoyard/themes';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
@@ -20,6 +22,7 @@ import {
   SNAPSHOT_MAX_ROWS,
   SnapshotImportError,
 } from '../src/index.ts';
+import { loadCustomThemes } from '../src/theme.ts';
 import { createTasksDefinition, REFERENCE_TIME, type Task } from './fixtures/tasks-prototype.ts';
 
 const palette = Object.fromEntries(
@@ -421,6 +424,63 @@ describe('runtime identity writes', () => {
   });
 });
 
+describe('untrusted themes and style overrides', () => {
+  const sunset = () => createThemeFromSeed({ id: 'sunset', name: 'Sunset', seed: '#e8590c' });
+  const issuesOf = async (promise: Promise<unknown>) => {
+    const error = await promise.catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ValidationError);
+    return (error as ValidationError).issues;
+  };
+
+  it('importTheme refuses malformed JSON, files over the size cap and CSS injection', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    expect(await issuesOf(runtime.theme.importTheme('{nope'))).toEqual({
+      form: 'That is not valid JSON.',
+    });
+    expect((await issuesOf(runtime.theme.importTheme(' '.repeat(70_000)))).form).toMatch(
+      /too large/
+    );
+    const injected = { ...sunset(), style: { shape: { borderWidth: '1px; color: red' } } };
+    expect(await issuesOf(runtime.theme.importTheme(JSON.stringify(injected)))).toHaveProperty([
+      'style.shape.borderWidth',
+    ]);
+    expect(await issuesOf(runtime.theme.saveCustom({ ...sunset(), id: 'violet' }))).toHaveProperty(
+      'id'
+    );
+    expect(runtime.theme.customThemes()).toEqual([]);
+  });
+
+  it('loadCustomThemes skips malformed, injected and clashing stored themes', () => {
+    const errors: unknown[] = [];
+    const list = [...themes];
+    const ids = loadCustomThemes(
+      [
+        sunset(),
+        { ...sunset(), id: 'violet' },
+        { id: 'broken', name: 'Broken' },
+        { ...sunset(), id: 'evil', style: { shape: { borderWidth: '1px; color: red' } } },
+      ],
+      list,
+      (error) => errors.push(error)
+    );
+    expect([...ids]).toEqual(['sunset']);
+    expect(list.filter((t) => t.id === 'violet')).toHaveLength(1);
+    expect(errors).toHaveLength(3);
+    expect(loadCustomThemes('not a list', [], (e) => errors.push(e)).size).toBe(0);
+  });
+
+  it('refuses style ids outside the presets (never free CSS)', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await expect(runtime.overrides.set({ radius: '3px' as never })).rejects.toThrow();
+    await expect(runtime.theme.setOverride({ elevation: 'neon' as never })).rejects.toThrow();
+    await expect(runtime.theme.setOverride({ font: 'Comic Sans' as never })).rejects.toThrow();
+    await expect(
+      runtime.theme.setOverride({ motion: 'cubic-bezier(0,0,1,1)' as never })
+    ).rejects.toThrow();
+    expect(runtime.overrides.get()).toEqual({});
+  });
+});
+
 // --- merged from snapshot-redaction.test.ts ---
 
 /**
@@ -462,6 +522,17 @@ describe('snapshot export redacts simulated passwords', () => {
     expect(row).toBeDefined();
     expect(row?.simulatedPassword).toBeNull();
     // The live record is untouched.
+    expect((await runtime.db.rows<Row>('tasks').get(taskId))?.simulatedPassword).toBe(SECRET);
+  });
+
+  it('blanks it when exporting a saved snapshot, which keeps it locally', async () => {
+    const { runtime, taskId } = await bootWithPassword();
+    const saved = await runtime.snapshots.save({ name: 'With a password' });
+    const { json } = await runtime.snapshots.exportJson(saved.id);
+    expect(json).not.toContain(SECRET);
+    expect(exportedRow(json, taskId)?.simulatedPassword).toBeNull();
+    await runtime.db.rows<Row>('tasks').update(taskId, { simulatedPassword: 'changed' });
+    await runtime.snapshots.restore(saved.id);
     expect((await runtime.db.rows<Row>('tasks').get(taskId))?.simulatedPassword).toBe(SECRET);
   });
 });
