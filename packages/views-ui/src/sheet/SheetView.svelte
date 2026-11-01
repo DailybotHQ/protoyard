@@ -27,6 +27,7 @@ let {
   now,
   readonly = false,
   csv = true,
+  csvImport = true,
   activeSheet = $bindable(),
   class: className,
 }: {
@@ -45,6 +46,12 @@ let {
   readonly?: boolean;
   /** Offer "Download CSV" (and "Import CSV" when editable). */
   csv?: boolean;
+  /**
+   * Offer "Import CSV" when `csv` is on and the sheet is editable (default true).
+   * Turn it off when `onChange` saves only cells of existing sheets and would
+   * refuse a new imported sheet.
+   */
+  csvImport?: boolean;
   activeSheet?: string;
   class?: string;
 } = $props();
@@ -78,8 +85,9 @@ $effect.pre(() => {
   shownJson = json;
 });
 
-async function persist(next: SheetDocument): Promise<void> {
-  if (!onChange) return;
+/** Saves an edit; resolves false when the save is refused and the stored workbook is back. */
+async function persist(next: SheetDocument): Promise<boolean> {
+  if (!onChange) return false;
   const previous = shown;
   const previousJson = shownJson;
   shown = next;
@@ -89,7 +97,9 @@ async function persist(next: SheetDocument): Promise<void> {
   if (!result.ok || result.value === false) {
     shown = previous;
     shownJson = previousJson;
+    return false;
   }
+  return true;
 }
 
 function download(): void {
@@ -128,9 +138,11 @@ async function importCsv(files: File[]): Promise<void> {
     importError = next.issues[0]?.message ?? 'The workbook would be too large.';
     return;
   }
+  const previousSheet = activeSheet;
   activeSheet = id;
   importing = false;
-  await persist(next.sheet);
+  // A refused import must not leave the view pointing at a sheet that was never stored.
+  if (!(await persist(next.sheet))) activeSheet = previousSheet;
 }
 </script>
 
@@ -150,7 +162,7 @@ async function importCsv(files: File[]): Promise<void> {
         {#if csv}
           <div class="flex flex-wrap items-center gap-2" role="group" aria-label="{label} file actions">
             <Button variant="outline" size="sm" onclick={download}>Download CSV</Button>
-            {#if editable}
+            {#if editable && csvImport}
               <Button
                 variant="ghost"
                 size="sm"
@@ -162,7 +174,7 @@ async function importCsv(files: File[]): Promise<void> {
               >
             {/if}
           </div>
-          {#if editable && importing}
+          {#if editable && csvImport && importing}
             {#key attempt}
               <FileUpload
                 variant="compact"

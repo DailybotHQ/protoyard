@@ -638,7 +638,8 @@ Texuli's closed, bounded formula language (54 functions; cycles show `#CYCLE!`, 
 - `TODAY()` and `NOW()` read the runtime's simulated clock (or `now`), never the system clock.
 - `csv` (default on): "Download CSV" exports the active sheet's computed values with formula
   injection neutralized; "Import CSV" (editable only) adds a CSV file as a new sheet, with `=`
-  fields kept as text.
+  fields kept as text. `csvImport={false}` hides the import when `onChange` saves only existing
+  sheets; a refused import puts the shown sheet back.
 - Also exported: `validateSheet`, `createSheet`, `createWorkbook`, `displayValue`, `SHEET_LIMITS`,
   `csvToSheet` and `sheetToCsv` from `@texuli/sheets`.
 - Scenario data: `generateSheetWorkbook(ctx, { level })` from `@protoyard/views/scenarios` (a

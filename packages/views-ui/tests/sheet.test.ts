@@ -190,6 +190,44 @@ describe('SheetView (Texuli sheets host adapter)', () => {
     expect(imported?.cells?.B3).toBe("'=1+1");
   });
 
+  it('puts the shown sheet back when the service refuses an imported sheet', async () => {
+    const doc = generateSheetWorkbook(ctx());
+    const stored = String(doc.sheets[0]?.cells.B2);
+    const onChange = vi.fn((_sheet: SheetDocument) => false);
+    const view = mount(doc, { onChange });
+    await tick();
+    await fireEvent.click(screen.getByRole('button', { name: 'Import CSV' }));
+    const input = view.container.querySelector<HTMLInputElement>(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    const file = new File(['Item,Cost\nPaper,12\n'], 'supplies.csv', { type: 'text/csv' });
+    await fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+    await tick();
+    await waitFor(() => expect(view.cell(2, 2)?.textContent).toBe(stored));
+    expect(screen.queryByRole('tab', { name: 'supplies' })).toBeNull();
+    // The active sheet is the stored one again: a download exports it, not the refused import.
+    let blob: Blob | undefined;
+    const create = vi.spyOn(URL, 'createObjectURL').mockImplementation((value) => {
+      blob = value as Blob;
+      return 'blob:sheet';
+    });
+    const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    await fireEvent.click(screen.getByRole('button', { name: 'Download CSV' }));
+    expect((await (blob as Blob).text()).split(/\r\n/)[0]).toBe('Line,Q1,Q2,Q3,Q4,Year,Share');
+    create.mockRestore();
+    revoke.mockRestore();
+    click.mockRestore();
+  });
+
+  it('hides Import CSV with csvImport={false} and keeps Download CSV', async () => {
+    mount(generateSheetWorkbook(ctx()), { onChange: () => true, csvImport: false });
+    await tick();
+    expect(screen.getByRole('button', { name: 'Download CSV' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Import CSV' })).toBeNull();
+  });
+
   it('reads TODAY() from the host clock, never the system clock', async () => {
     const doc = {
       format: 'texuli-sheet',
