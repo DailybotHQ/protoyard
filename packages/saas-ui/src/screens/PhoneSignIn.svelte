@@ -21,7 +21,7 @@ const phone = createPhoneServices(runtime);
 
 // Painted by @texuli/forms; the phone service validates the number (one rule, one place).
 const form = compileKitForm({
-  title: 'Continue with your phone',
+  title: 'Phone details',
   submitLabel: 'Send simulated code',
   fields: [
     { name: 'name', type: 'text', label: 'Name', required: true, autocomplete: 'name' },

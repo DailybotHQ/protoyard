@@ -14,7 +14,7 @@ const allowed = $derived(runtime.session.can('profile:update'));
 
 // Painted by @texuli/forms (the avatar color is its color picker); the settings service validates and saves.
 const form = compileKitForm({
-  title: 'Profile',
+  title: 'Profile details',
   submitLabel: 'Save profile',
   fields: [
     { name: 'name', type: 'text', label: 'Display name', required: true, autocomplete: 'name' },

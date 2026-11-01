@@ -30,7 +30,7 @@ let created = $state<{ id: string; email: string } | null>(null);
 
 // Painted by @texuli/forms; the auth service validates and creates the account.
 const form = compileKitForm({
-  title: 'Create your account',
+  title: 'Account details',
   submitLabel: 'Create account',
   fields: [
     { name: 'name', type: 'text', label: 'Name', required: true, autocomplete: 'name' },

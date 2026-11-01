@@ -130,7 +130,8 @@ async function start(row: SaasOnboarding) {
   form = null;
   const compiled = compileKitForm(
     onboardingFormSchema(definedSteps, {
-      title,
+      // Not the page title: the form's visually hidden heading must not repeat the h1.
+      title: 'Setup steps',
       doneLabel: flow.label(DONE_STEP),
       custom: customSteps,
       readOnly,

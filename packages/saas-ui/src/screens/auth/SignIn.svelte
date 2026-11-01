@@ -27,7 +27,7 @@ const mfa = createMfaServices(runtime);
 
 // Painted by @texuli/forms; the MFA service checks the simulated credentials.
 const form = compileKitForm({
-  title: 'Sign in',
+  title: 'Account sign-in',
   submitLabel: 'Sign in',
   fields: [
     { name: 'email', type: 'email', label: 'Email', required: true, autocomplete: 'email' },
