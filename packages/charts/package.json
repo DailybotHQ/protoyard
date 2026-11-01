@@ -19,8 +19,8 @@
   },
   "dependencies": {
     "@protoyard/core": "workspace:*",
-    "@texuli/charts": "0.11.2",
-    "@texuli/tokens": "0.11.2"
+    "@texuli/charts": "0.11.3",
+    "@texuli/tokens": "0.11.3"
   },
   "protoyard": {
     "build": {
