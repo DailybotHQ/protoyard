@@ -6,12 +6,18 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
-Protoyard on Texuli 0.9.0 from npm (PLAN_008), with Texuli's documents, forms,
-sheets, canvas, motion and full theme library adopted where they replace
-Protoyard code or add real value. Texuli 0.10.0 is not adopted yet.
+Protoyard on Texuli 0.11.3 from npm (PLAN_008), with Texuli's design systems,
+documents, forms, sheets, canvas, motion and full theme library adopted where
+they replace Protoyard code or add real value.
 
 ### Added
 
+- **Design systems.** Create a Texuli design system from a brief or a few
+  inputs (brand colors, fonts, shape, density, motion, contrast), or import any
+  Protoyard theme. Then apply it to a prototype from Theme Studio's Design system
+  panel, `protoyard ds new|validate|export|use`, or `protoyard mcp`
+  (`ds_create`, `ds_validate`, `ds_export`, `ds_use`). Documents from agents or
+  share links are validated as untrusted. The compiler loads only on demand.
 - **Spreadsheets and an infinite canvas.** `@protoyard/views-ui/sheet`
   (formulas, totals, CSV download and import) and `@protoyard/views-ui/canvas`
   (frames, sticky notes, shapes, connectors, SVG export), each a lazy view that
@@ -42,16 +48,18 @@ Protoyard code or add real value. Texuli 0.10.0 is not adopted yet.
 
 ### Changed
 
-- **Texuli 0.9.0.** Every Texuli dependency is pinned to `0.9.0` from npm, and
+- **Texuli 0.11.3.** Every Texuli dependency is pinned to `0.11.3` from npm, and
   every `@protoyard/ui` component takes Texuli's uniform contract (`bind:ref`,
   rest attributes, caller handlers first). Additive props: `ref` and rest
   everywhere, `CommandPalette` `bind:open`, `FileDropzone` `id`,
   `TabItem.badgeLabel`.
 - **Forms render through Texuli's `SchemaForm`**: generated entity forms, page
-  and doc form blocks, and the SaaS notification preferences and member invite.
-  Required and range errors now show before the service runs; field order can
-  differ, because Protoyard-painted fields (relation, datetime, geo, avatar,
-  file) follow the Texuli ones.
+  and doc form blocks, and every SaaS kit form (sign-in, sign-up, password
+  reset, magic link, phone, MFA, profile, preferences, invite, and the
+  onboarding wizard as one multi-step form).
+  Required and range errors now show before the service runs. Relation,
+  persona, geo, avatar and file pickers are Texuli `custom` fields painted with
+  Protoyard's controls.
 - **Chart variables use Texuli's names**: `--tx-chart-1…8`,
   `--tx-chart-sequential-1…9` and `--tx-chart-diverging-1…9` (were
   `--tx-chart1`, `--tx-seq-N`, `--tx-div-N`). Update custom CSS that read the old
@@ -81,7 +89,7 @@ Protoyard code or add real value. Texuli 0.10.0 is not adopted yet.
 
 ### Removed
 
-- Most adapters for the Texuli gaps that 0.8 and 0.9 fixed (G53–G99); the few
+- Most adapters for the Texuli gaps that 0.8 to 0.11 fixed (G53–G134); the few
   kept on purpose (for example `DataTable` on Texuli's table parts) say why in
   their package README. Also the charts-ui color map.
 
