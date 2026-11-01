@@ -115,7 +115,10 @@ describe('the protoyard package', () => {
       encoding: 'utf8',
     });
     expect(result.status, result.stderr).toBe(0);
-    const files = readTarball(readFileSync(join(destination, 'protoyard-1.0.0.tgz')));
+    const { version } = JSON.parse(readFileSync(join(PACKAGE, 'package.json'), 'utf8')) as {
+      version: string;
+    };
+    const files = readTarball(readFileSync(join(destination, `protoyard-${version}.tgz`)));
     expect([...files.keys()].sort()).toEqual([
       'LICENSE',
       'README.md',

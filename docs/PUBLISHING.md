@@ -1112,9 +1112,10 @@ data (ADR-028).
 All public packages share one version through one Changesets `fixed` group,
 and the root `package.json` carries the same version.
 
-- **Current state.** Every manifest says `1.0.0`. There are no `0.0.0`
-  placeholders left to replace, but `1.0.0` has never been published: the
-  first release is the version the first `pnpm version-packages` produces.
+- **Current state.** Every manifest says `1.1.0`, the version `pnpm
+  version-packages` produced for the PLAN_008 release. `1.0.0` was tagged and
+  released on GitHub but never published to npm; `1.1.0` is the first version
+  the release workflow publishes.
 - **The check.** `pnpm version-packages --check` exits 1 when any public
   package or the root drifts off the lockstep version.
 
