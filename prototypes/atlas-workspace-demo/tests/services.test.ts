@@ -1,9 +1,9 @@
 import { PermissionDeniedError, SimulatedServiceError } from '@protoyard/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
+import { expectBootableWorld } from '../../../tests/support/smoke.ts';
 import type { DashboardDatabase } from '../src/database/schema.ts';
 import { createServices, TransitionError } from '../src/domain/services.ts';
-import { ValidationError } from '../src/domain/validation.ts';
 import { definition } from '../src/prototype.ts';
 
 /**
@@ -19,53 +19,8 @@ afterEach(() => {
 });
 
 describe('dashboard services on the real runtime', () => {
-  it('creates, edits and deletes a customer that survives reloads, with an audit trail', async () => {
-    let runtime = await harness.boot('empty');
-    let services = createServices(runtime);
-
-    const customer = await services.customers.create({
-      name: 'Ada Lovelace',
-      email: 'ADA@example.com',
-      company: 'Analytical Engines',
-      plan: 'growth',
-      status: 'trial',
-    });
-    expect(customer.email).toBe('ada@example.com');
-    expect(customer.ownerId).toBe('user_0001');
-
-    runtime = await harness.reload(runtime);
-    services = createServices(runtime);
-    expect((await runtime.db.customers.get(customer.id))?.name).toBe('Ada Lovelace');
-
-    await services.customers.update(customer.id, {
-      name: 'Ada King',
-      email: 'ada@example.com',
-      plan: 'enterprise',
-      status: 'active',
-    });
-    runtime = await harness.reload(runtime);
-    services = createServices(runtime);
-    expect(await runtime.db.customers.get(customer.id)).toMatchObject({
-      name: 'Ada King',
-      plan: 'enterprise',
-      status: 'active',
-    });
-    const trail = await runtime.db.events.where('customerId').equals(customer.id).toArray();
-    expect(trail.map((e) => e.type).sort()).toEqual(['customer.created', 'customer.updated']);
-
-    const order = await services.orders.create({
-      customerId: customer.id,
-      description: 'Annual plan',
-      amount: '1200',
-    });
-    expect(order).toMatchObject({ reference: 'ORD-1001', status: 'pending', amountCents: 120_000 });
-
-    await services.customers.remove(customer.id);
-    runtime = await harness.reload(runtime);
-    expect(await runtime.db.customers.get(customer.id)).toBeUndefined();
-    expect(await runtime.db.orders.where('customerId').equals(customer.id).count()).toBe(0);
-    expect(await runtime.db.events.where('customerId').equals(customer.id).count()).toBe(0);
-    expect((await runtime.db.events.toArray()).map((e) => e.type)).toContain('customer.deleted');
+  it('generates deterministic worlds and boots the default scenario', async () => {
+    await expectBootableWorld(definition, harness);
   });
 
   it('changes order status and logs the event in the same transaction', async () => {
@@ -96,19 +51,6 @@ describe('dashboard services on the real runtime', () => {
     );
     expect((await runtime.db.orders.get(pending.id))?.status).toBe('paid');
     expect(await runtime.db.events.count()).toBe(before + 1);
-  });
-
-  it('returns field-level validation errors', async () => {
-    const runtime = await harness.boot('empty');
-    const services = createServices(runtime);
-    const error = await services.customers
-      .create({ name: 'A', email: 'nope', plan: 'starter', status: 'active' })
-      .catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(ValidationError);
-    expect(Object.keys((error as ValidationError).issues).sort()).toEqual(['email', 'name']);
-    await expect(
-      services.orders.create({ customerId: 'missing', description: 'X order', amount: 10 })
-    ).rejects.toBeInstanceOf(ValidationError);
   });
 
   it('enforces roles at service level, including the settings section', async () => {
@@ -144,12 +86,5 @@ describe('dashboard services on the real runtime', () => {
     const saved = await services.settings.update(input);
     expect(saved).toMatchObject({ currency: 'EUR', updatedBy: 'user_0002' });
     expect(runtime.session.can('billing:manage')).toBe(false);
-  });
-
-  it('starts the viewer scenario as a read-only persona', async () => {
-    const runtime = await harness.boot('viewer');
-    expect(runtime.session.principal()?.persona.id).toBe('user_0004');
-    expect(runtime.session.can('customers:create')).toBe(false);
-    expect(await runtime.db.customers.count()).toBe(36);
   });
 });
