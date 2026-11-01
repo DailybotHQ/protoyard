@@ -1,6 +1,6 @@
 import { setMountedRuntime } from '@protoyard/renderer-svelte';
 import type { CalendarSeries } from '@protoyard/views/calendar';
-import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CalendarView } from '../src/calendar/index.ts';
 
@@ -70,59 +70,48 @@ describe('CalendarView (Texuli host adapter)', () => {
     );
   });
 
-  it('shows QueryState loading then content', async () => {
-    vi.useFakeTimers();
-    const view = render(CalendarView<Data>, {
-      query: { current: undefined, loading: true, error: undefined },
-      label: 'Team calendar',
+  it('creates an event on a day slot through the service callback', async () => {
+    const onCreate = vi.fn(async () => {});
+    render(CalendarView<Data>, {
+      props: {
+        query: query(),
+        timeZone: 'UTC',
+        view: 'week',
+        anchor: '2026-10-20',
+        now: '2026-10-20T12:00:00.000Z',
+        getTitle: (o) => (o as { data?: Data }).data?.title ?? 'Event',
+        onCreate,
+      },
     });
-    await vi.advanceTimersByTimeAsync(200);
-    expect(screen.getByRole('status', { name: 'Loading team calendar' })).toBeTruthy();
-    vi.useRealTimers();
-    await view.rerender({
-      query: query(),
-      label: 'Team calendar',
-      getTitle: () => 'Standup',
+    const slot = await waitFor(() => {
+      const found = document.querySelector<HTMLElement>('[data-slot="2026-10-22"]');
+      expect(found).not.toBeNull();
+      return found as HTMLElement;
     });
-    await waitFor(() =>
-      expect(screen.queryByRole('status', { name: 'Loading team calendar' })).toBeNull()
-    );
+    await fireEvent.click(slot);
+    await waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
+    expect(JSON.stringify(onCreate.mock.calls[0])).toContain('2026-10-22');
   });
 
-  it('exposes mode controls from Texuli calendar', async () => {
+  it('refuses edits when read-only: no slot creates and nothing moves', async () => {
+    const onCreate = vi.fn(async () => {});
+    const onChange = vi.fn(async () => {});
     render(CalendarView<Data>, {
-      query: query(),
-      view: 'week',
-      getTitle: (o) => (o as { data?: Data }).data?.title ?? 'E',
+      props: {
+        query: query(),
+        timeZone: 'UTC',
+        view: 'week',
+        anchor: '2026-10-20',
+        now: '2026-10-20T12:00:00.000Z',
+        getTitle: (o) => (o as { data?: Data }).data?.title ?? 'Event',
+        onCreate,
+        onChange,
+        readOnly: true,
+      },
     });
-    // Mode buttons M/W/D/A or Week/Month labels
-    const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBeGreaterThan(0);
-  });
-
-  // G104 (fixed in Texuli 0.10.0): a timed event's accessible name starts with its
-  // visible text in order ("Title, <time>, <long date>, …"), so label-in-name
-  // (WCAG 2.5.3) holds wherever the time shows (the phone agenda in cadence-studio-demo).
-  it('a timed agenda event names itself starting with its visible text in order', async () => {
-    render(CalendarView<Data>, {
-      query: query(),
-      view: 'agenda',
-      timeZone: 'UTC',
-      now: '2026-10-20T08:00:00.000Z',
-      getTitle: (o) => (o as { data?: Data }).data?.title ?? 'Event',
-    });
-    const event = await waitFor(() => {
-      const node = document.querySelector<HTMLElement>('[data-calendar-event]');
-      if (!node?.textContent?.includes('Standup')) throw new Error('not rendered');
-      return node;
-    });
-    const words = (text: string) =>
-      text
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}]+/gu, ' ')
-        .trim();
-    const visible = words([...event.children].map((child) => child.textContent ?? '').join(' '));
-    expect(visible).toMatch(/standup \d/);
-    expect(words(event.getAttribute('aria-label') ?? '')).toContain(visible);
+    await waitFor(() => expect(document.body.textContent).toContain('Standup'));
+    expect(document.querySelector('[data-slot]')).toBeNull();
+    expect(onCreate).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

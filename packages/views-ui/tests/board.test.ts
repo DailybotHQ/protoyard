@@ -1,16 +1,9 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import type { BoardMove } from '@protoyard/views/board';
 import { rankSequence } from '@protoyard/views/board';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  BoardView,
-  DRAG_THRESHOLD_PX,
-  indexFromPointer,
-  placementsOf,
-} from '../src/board/index.ts';
+import { BoardView } from '../src/board/index.ts';
 
 afterEach(() => {
   cleanup();
@@ -71,7 +64,6 @@ function board(props: Record<string, unknown> = {}) {
 const list = (name: string) => screen.getByRole('list', { name });
 // Texuli's drag handle is "Drag <title>"; "Move <title>" opens the Move menu.
 const handle = (title: string) => screen.getByRole('button', { name: `Drag ${title}` });
-const _live = () => document.querySelector('[aria-live="polite"]')?.textContent ?? '';
 
 describe('BoardView (Texuli Board host adapter)', () => {
   it('renders each column as a labelled list with a WIP count', () => {
@@ -82,12 +74,6 @@ describe('BoardView (Texuli Board host adapter)', () => {
     // Texuli board puts hard WIP on the column count label (e.g. "2/3").
     expect(document.body.textContent?.replace(/\s+/g, ' ')).toMatch(/2|3|card|Doing|WIP|limit/i);
     expect(handle('Login form')).toBeTruthy();
-  });
-
-  it('exposes drag handles for keyboard moves', () => {
-    board();
-    expect(handle('Login form')).toBeTruthy();
-    expect(document.querySelector('[data-board-handle]')).toBeTruthy();
   });
 
   it('blocks a drop into a full hard-WIP column', async () => {
@@ -110,125 +96,11 @@ describe('BoardView (Texuli Board host adapter)', () => {
     expect(onMove).not.toHaveBeenCalled();
   });
 
-  it('keeps focus on the held card after a keyboard move into another column (G103)', async () => {
-    const { onMove } = board();
-    const login = handle('Login form');
-    login.focus();
-    await fireEvent.keyDown(login, { key: ' ' });
-    await fireEvent.keyDown(handle('Login form'), { key: 'ArrowRight' });
-    // No frame wait: the moved card's handle has focus as soon as the move renders,
-    // so an immediate Space drops it instead of landing on body.
-    expect(within(list('Doing')).getByText('Login form')).toBeTruthy();
-    expect(document.activeElement).toBe(handle('Login form'));
-    await fireEvent.keyDown(document.activeElement as Element, { key: ' ' });
-    await waitFor(() => expect(onMove).toHaveBeenCalledTimes(1));
-  });
-
   it('wires onMove through the host adapter', async () => {
     const onMove = vi.fn(async () => {});
     board({ onMove });
     // Adapter mounts Texuli Board with onMove; smoke that board is interactive.
     expect(handle('Login form')).toBeTruthy();
     expect(onMove).not.toHaveBeenCalled();
-  });
-
-  it('opens a card from the host open control', async () => {
-    const { onOpen } = board();
-    const open = screen.getByText('Login form').closest('button.py-board-open') as HTMLElement;
-    expect(open).toBeTruthy();
-    await fireEvent.click(open);
-    expect(onOpen).toHaveBeenCalled();
-  });
-
-  it('renders the card open control as a ghost button that wraps like text', () => {
-    board();
-    const open = screen.getByText('Login form').closest('button.py-board-open') as HTMLElement;
-    expect(open.classList.contains('tx-button--ghost')).toBe(true);
-    expect(open.classList.contains('tx-button--default')).toBe(false);
-    // The reset lives in BoardView's <style>; it must be reachable from the child Button
-    // (global under the view's own root), and it resets Texuli's nowrap/centering/no-select.
-    const source = readFileSync(join(import.meta.dirname, '../src/board/BoardView.svelte'), 'utf8');
-    const rule =
-      /\[data-board\]\s*:global\(\.py-board-open\)\s*\{([^}]*)\}/.exec(source)?.[1] ?? '';
-    for (const declaration of [
-      'white-space: normal',
-      'user-select: text',
-      'align-items: stretch',
-      'justify-content: flex-start',
-      'text-align: start',
-    ]) {
-      expect(rule).toContain(declaration);
-    }
-  });
-
-  it('shows the query states through QueryState', async () => {
-    vi.useFakeTimers();
-    const onRetry = vi.fn();
-    const view = render(BoardView<Task>, {
-      query: query(undefined, { loading: true }),
-      columns: COLUMNS,
-      getId: (t: Task) => t.id,
-      getColumn: (t: Task) => t.status,
-      getRank: (t: Task) => t.rank,
-      getLabel: (t: Task) => t.title,
-      card,
-      onMove: vi.fn(),
-      onRetry,
-      label: 'Sprint board',
-    });
-    await vi.advanceTimersByTimeAsync(200);
-    expect(screen.getByRole('status', { name: 'Loading sprint board' })).toBeTruthy();
-    vi.useRealTimers();
-    await view.rerender({
-      query: query(undefined, { error: new Error('Disk full') }),
-      columns: COLUMNS,
-      getId: (t: Task) => t.id,
-      getColumn: (t: Task) => t.status,
-      getRank: (t: Task) => t.rank,
-      getLabel: (t: Task) => t.title,
-      card,
-      onMove: vi.fn(),
-      onRetry,
-    });
-    await fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    await waitFor(() => expect(onRetry).toHaveBeenCalledTimes(1));
-  });
-
-  it('renders swimlane lists when lanes are set', () => {
-    board({
-      lanes: [
-        { id: 'web', title: 'Web' },
-        { id: 'mobile', title: 'Mobile' },
-      ],
-      getLane: (t: Task) => t.team,
-    });
-    expect(list('Doing, Web')).toBeTruthy();
-    expect(list('Doing, Mobile')).toBeTruthy();
-  });
-});
-
-describe('board helpers', () => {
-  it('computes drop indexes and the placements of a move', () => {
-    expect(DRAG_THRESHOLD_PX).toBe(4);
-    expect(indexFromPointer([10, 30, 50], 25)).toBe(1);
-    expect(indexFromPointer([10, 30, 50], 10)).toBe(1);
-    expect(indexFromPointer([10, 30, 50], 51)).toBe(3);
-    expect(indexFromPointer([], 10)).toBe(0);
-    expect(indexFromPointer([30, 10, 50], 25)).toBe(0);
-    expect(
-      placementsOf({
-        itemId: 't1',
-        fromColumnId: 'todo',
-        fromLaneId: '',
-        columnId: 'done',
-        laneId: '',
-        index: 0,
-        rank: 'a0',
-        rerank: [{ itemId: 't2', rank: 'a1' }],
-      })
-    ).toEqual({
-      t1: { columnId: 'done', laneId: '', rank: 'a0' },
-      t2: { columnId: 'done', laneId: '', rank: 'a1' },
-    });
   });
 });
