@@ -112,12 +112,11 @@ and asks for confirmation before linking a matching existing account.
 persona profile, simulated password and MFA, team membership and invitations,
 linked providers, and inbox notification preferences. Controls are disabled
 when the current simulated role lacks their capability; services enforce the
-same checks. The notification preferences and the member invite are Texuli
-`SchemaForm`s (`@texuli/forms`): the service's issues show inline on their
-fields, and a sent invite resets the email field. Sign-in, security, profile
-and the onboarding wizard keep Protoyard controls, because Texuli forms has no
-password, one-time code or color field and no per-step submit hook (gaps G117
-and G120). Members, pending invitations, the profile header and the
+same checks. The profile, the notification preferences and the member invite
+are Texuli `SchemaForm`s (`@texuli/forms`): the service's issues show inline
+on their fields, and a sent invite resets the email field. The profile's
+avatar color uses Texuli's color picker. The security tab keeps its Protoyard
+password controls. Members, pending invitations, the profile header and the
 invite accept card show each person's `avatar` photo through the renderer's
 `avatarImage` (initials when there is none, it is unsafe or it fails to load).
 
@@ -130,6 +129,24 @@ sign-up confirmation; the host serves that route for the signed-out,
 unverified account (the kit's own `/inbox` route requires a session). The
 auth screens' links ("Create account", "Forgot password?", "Back to sign in")
 are `#/…` hrefs, so they stay inside the hash router.
+
+The auth screens' forms are Texuli `SchemaForm`s too: sign-in, sign-up,
+password reset (request and new password), magic link, phone sign-in, the
+phone code and MFA. Each submit goes through its kit service. A field issue
+from the service shows inline on that field, and anything else shows in
+Texuli's error summary, which takes focus. The submit button shows a pending
+state while the service runs. The MFA and phone codes use Texuli's `otp`
+field, and a complete phone code submits by itself. Two fields are painted
+by the kit as Texuli custom fields:
+
+- **Passwords** (`SimulatedPassword`) keep `autocomplete="off"` and a
+  show/hide toggle, so a browser never offers to save a fake password. This
+  stays until Texuli's `password` type accepts `off` (G129).
+- **The phone number** (`TelInput`) keeps `type="tel"` for the telephone
+  keypad (G131).
+
+The MFA form remounts when its challenge loads, because a `SchemaForm` that
+mounts disabled does not enable again (G132).
 
 Render `SsoButtons` on a sign-in or sign-up screen to start the simulated
 provider flow. It accepts an optional provider list, `sign-in` / `sign-up` /
@@ -145,13 +162,15 @@ provider flow. It accepts an optional provider list, `sign-in` / `sign-up` /
 
 ## Onboarding wizard
 
-`/onboarding` renders `OnboardingWizard`: `@protoyard/ui` `Wizard` on the
-`@protoyard/saas` engine (`createOnboarding`), rows in `saas_onboarding`. Add
+`/onboarding` renders `OnboardingWizard`: one multi-step `@texuli/forms`
+form (`createFormController` + `SchemaForm`) on the `@protoyard/saas` engine
+(`createOnboarding`), rows in `saas_onboarding`. Add
 the table with `saasStores(1, { tables: ['saas_onboarding', …] })` and grant
 `onboarding:progress` in your policy.
 
-- **Persisted:** Next saves the answer and the position in one transaction; Back
-  and **Skip for now** (optional steps) are saved too. A reload resumes at the
+- **Persisted:** Next runs the form's `onStep`, which applies the answer and
+  saves it with the position in one transaction. Back and **Skip for now**
+  (optional steps) are saved too. A reload resumes at the
   stored step, with earlier answers filled in.
 - **Real changes:** the default steps apply their answers before saving:
   - *Profile* updates the persona's name and title (`runtime.identity`).
@@ -164,9 +183,11 @@ the table with `saasStores(1, { tables: ['saas_onboarding', …] })` and grant
   kit's home path (or calls `onComplete`). The finished view lists the answers and
   offers **Restart onboarding** behind a confirmation dialog. Restarting keeps the
   answers as defaults; people already invited stay in the workspace.
-- **Progress:** a progress bar (`flow.progressOf`) plus the Wizard stepper.
-- Field errors from zod show inline under each field. Errors from `apply` keep
-  the person on the step.
+- **Progress:** a progress bar (`flow.progressOf`) plus Texuli's step
+  progress. The last step reviews the answers before **Finish setup**.
+- Field errors from zod show inline under each field and in Texuli's error
+  summary. A required field says the step schema's own message. Errors from
+  `apply` keep the person on the step.
 - **Atomic steps:** the default steps' `apply` runs before, and outside, the
   wizard's save. For a step whose data changes must commit with its answer,
   drop `apply` and give the step an engine `effect` (it runs in the save's
@@ -194,7 +215,9 @@ Configure it by passing your own steps, and render any step yourself with a snip
 <OnboardingWizard {steps} snippets={{ goal }} />
 ```
 
-A step without a snippet renders its `fields` (`text`, `emails`, `select`).
+A step without a snippet renders its `fields` (`text`, `emails`, `select`) as
+Texuli fields. A snippet step is painted inside the form as one custom field,
+and its `issues` are the step's own field names.
 `defaults`, `readOnly`/`readOnlyNote`, `apply` and `afterSubmit` are optional. The screen is
 its own lazy chunk through the `/onboarding` route.
 
