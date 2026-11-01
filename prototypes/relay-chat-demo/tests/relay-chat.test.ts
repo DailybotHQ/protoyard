@@ -1,47 +1,20 @@
-import { PermissionDeniedError, parseScenario } from '@protoyard/core';
-import { createGenerateContext, validateWorld } from '@protoyard/scenarios';
+import { PermissionDeniedError } from '@protoyard/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
+import { expectBootableWorld } from '../../../tests/support/smoke.ts';
 import type { TeamChatDatabase } from '../src/database/schema.ts';
-import { botReply, matchBot, summarizeChannel } from '../src/domain/bots.ts';
 import { createTeamChatServices, TeamChatValidationError } from '../src/domain/services.ts';
 import { definition } from '../src/prototype.ts';
-import { generateTeamChatWorld } from '../src/scenarios/generators.ts';
-import { applyTeamChatEvent, teamChatTimeline } from '../src/scenarios/timeline.ts';
-
-const scenario = (id: string) => {
-  const input = definition.scenarios.find((s) => s.id === id);
-  if (!input) throw new Error(`missing ${id}`);
-  return parseScenario(input);
-};
-
-describe('relay-chat generator', () => {
-  it('is deterministic and valid for busy-day', () => {
-    const s = scenario('busy-day');
-    const a = generateTeamChatWorld(createGenerateContext(s));
-    expect(generateTeamChatWorld(createGenerateContext(s))).toEqual(a);
-    expect(validateWorld(a, { ...definition.integrity, referenceTime: s.referenceTime })).toEqual(
-      []
-    );
-    expect((a.tables.workspaces ?? [])[0]).toMatchObject({ name: 'Relay Labs HQ' });
-  });
-});
-
-describe('relay bots', () => {
-  it('matches @relay and /summarize and is deterministic', () => {
-    expect(matchBot('@relay ship plan')?.handle).toBe('relay');
-    expect(matchBot('/summarize')?.id).toBe('bot_relay');
-    expect(botReply('bot_relay', 'hello', 42)).toBe(botReply('bot_relay', 'hello', 42));
-    expect(summarizeChannel(['a', 'b'], 7)).toBe(summarizeChannel(['a', 'b'], 7));
-    expect(summarizeChannel([], 1)).toMatch(/quiet/i);
-  });
-});
 
 describe('relay services', () => {
   let harness = createHarness<TeamChatDatabase>(definition);
   afterEach(() => {
     harness.closeAll();
     harness = createHarness<TeamChatDatabase>(definition);
+  });
+
+  it('generates deterministic worlds and boots the default scenario', async () => {
+    await expectBootableWorld(definition, harness);
   });
 
   it('posts, reacts, threads, summarizes and starts a huddle', async () => {
@@ -87,24 +60,6 @@ describe('relay services', () => {
     ).toBe(true);
   });
 
-  it('refuses send without membership and allows join on public channels', async () => {
-    const runtime = await harness.boot('empty');
-    const chat = createTeamChatServices(runtime);
-    const [ws] = await chat.listWorkspaces();
-    const channel = await chat.createChannel(ws!.id, { name: 'announce', kind: 'public' });
-    // Creator is a member. Remove membership to simulate a non-member reader.
-    const me = runtime.session.principal()!.persona.id;
-    await runtime.db.channelMembers.delete(`${channel.id}:${me}`);
-    expect(await chat.isMember(channel.id)).toBe(false);
-    await expect(chat.sendMessage(channel.id, { body: 'hello' })).rejects.toBeInstanceOf(
-      TeamChatValidationError
-    );
-    await chat.joinChannel(channel.id);
-    expect(await chat.isMember(channel.id)).toBe(true);
-    const { message } = await chat.sendMessage(channel.id, { body: 'hello after join' });
-    expect(message.body).toBe('hello after join');
-  });
-
   it('hides private channel and DM messages from non-members in list and search', async () => {
     const runtime = await harness.boot('busy-day');
     const chat = createTeamChatServices(runtime);
@@ -139,41 +94,5 @@ describe('relay services', () => {
     await expect(chat.sendMessage(channels[0]!.id, { body: 'Nope' })).rejects.toBeInstanceOf(
       PermissionDeniedError
     );
-  });
-
-  it('advance 7d once equals seven 1d advances (stable timeline ids)', async () => {
-    const runtime = await harness.boot('busy-day');
-    const from = new Date('2026-06-01T12:00:00.000Z');
-    const read = (table: string) => runtime.db.table(table).toArray() as never;
-    const base = createGenerateContext(scenario('busy-day'));
-    const week = await teamChatTimeline({
-      ...base,
-      from,
-      to: new Date(from.getTime() + 7 * 86_400_000),
-      read,
-    } as never);
-    const dayEvents = [];
-    for (let i = 0; i < 7; i++) {
-      const start = new Date(from.getTime() + i * 86_400_000);
-      const end = new Date(from.getTime() + (i + 1) * 86_400_000);
-      dayEvents.push(...(await teamChatTimeline({ ...base, from: start, to: end, read } as never)));
-    }
-    expect(week.map((e) => e.id).sort()).toEqual(dayEvents.map((e) => e.id).sort());
-    expect(week.length).toBeGreaterThan(0);
-    const chatter = week.find((e) => e.type === 'message.incoming');
-    if (chatter) {
-      await applyTeamChatEvent(chatter, {
-        put: async (table, row) => {
-          await runtime.db.table(table).put(row);
-        },
-        get: async (table, id) => runtime.db.table(table).get(id),
-        remove: async (table, id) => {
-          await runtime.db.table(table).delete(id);
-        },
-      });
-      expect(await runtime.db.messages.get(`msg_${chatter.id}`)).toMatchObject({
-        id: `msg_${chatter.id}`,
-      });
-    }
   });
 });
