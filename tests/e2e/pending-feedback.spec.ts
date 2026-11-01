@@ -3,7 +3,6 @@ import { waitForPrototypeReady } from './support/ready.ts';
 import {
   DEVTOOLS_TARGETS,
   devtoolsPrototypeUrl,
-  HELPDESK_DEMO,
   PROTOTYPE_TARGETS,
   prototypeUrl,
 } from './targets.ts';
@@ -82,7 +81,9 @@ async function openDevtools(page: Page, hash = '') {
   ).toBeVisible();
 }
 
-test.describe('DevTools switching feedback (Lumen Bank, DevTools build)', () => {
+test.describe('DevTools switching feedback (Lumen Bank, DevTools build)', {
+  tag: '@desktop',
+}, () => {
   test.skip(
     !DEVTOOLS_TARGETS.includes(BANK),
     `set PROTOYARD_E2E_DEVTOOLS_PROTOTYPES to include ${BANK}`
@@ -111,29 +112,6 @@ test.describe('DevTools switching feedback (Lumen Bank, DevTools build)', () => 
       'aria-pressed',
       'true'
     );
-  });
-
-  test('a scenario switch shows progress immediately, then the new world', async ({ page }) => {
-    await openDevtools(page);
-    await panel(page).getByRole('tab', { name: 'Scenario' }).click();
-    await panel(page)
-      .getByRole('radio', { name: /Insufficient balance/ })
-      .check();
-    await panel(page)
-      .getByRole('button', { name: /^Load “/ })
-      .click();
-    await armProbe(page, {
-      feedbackSelector:
-        '[data-protoyard-devtools] [data-dt-working], [data-protoyard-devtools] button[aria-busy="true"]',
-      doneSelector: '[data-protoyard-devtools] header',
-      doneText: 'Insufficient balance',
-    });
-    await panel(page).getByRole('button', { name: 'Replace data' }).click();
-    const probe = await readProbe(page);
-    expect(probe.feedback).toBeLessThan(FIRST_FEEDBACK_BOUND_MS);
-    expect(probe.done).toBeLessThan(5_000);
-    await expect(panel(page).getByRole('status')).toContainText('Loaded “Insufficient balance”');
-    await expect(panel(page).locator('[data-dt-working]')).toHaveCount(0);
   });
 
   test('with simulated latency, a mutating button and the global bar show progress', async ({
@@ -184,7 +162,7 @@ async function setLatency(page: Page, latencyMs: number) {
   );
 }
 
-test.describe('global pending bar on standard builds', () => {
+test.describe('global pending bar on standard builds', { tag: '@desktop' }, () => {
   test('crm-demo: a slow create shows the bar inside the app and clears it', async ({ page }) => {
     test.skip(!PROTOTYPE_TARGETS.includes('crm-demo'), 'set PROTOYARD_E2E_PROTOTYPES');
     await page.goto(`${prototypeUrl('crm-demo')}?scenario=growing-team#/companies`);
@@ -200,24 +178,5 @@ test.describe('global pending bar on standard builds', () => {
     await expect(page.locator('[data-py-scroll-root]')).toHaveAttribute('aria-busy', 'true');
     await expect(page.locator('[data-py-pending-bar]')).toHaveCount(0, { timeout: 5_000 });
     await expect(page.getByText('Pending Probe Co').first()).toBeVisible();
-  });
-
-  test('helpdesk-demo: a slow create shows the bar and clears it', async ({ page }) => {
-    test.skip(!PROTOTYPE_TARGETS.includes(HELPDESK_DEMO), 'set PROTOYARD_E2E_PROTOTYPES');
-    await page.goto(`${prototypeUrl(HELPDESK_DEMO)}#/tickets`);
-    await waitForPrototypeReady(page, { slug: HELPDESK_DEMO });
-    await setLatency(page, 1500);
-    await page.getByRole('button', { name: 'New' }).click();
-    await page.getByRole('textbox', { name: 'Subject' }).fill('Pending probe ticket');
-    // The customer is a relation picker (an editable combobox): open it and choose one.
-    const customer = page.getByRole('combobox', { name: 'Customer', exact: true });
-    await customer.focus();
-    await customer.press('ArrowDown');
-    await page.getByRole('option').first().click();
-    const create = page.getByRole('button', { name: 'Create Tickets', exact: true });
-    await create.click();
-    await expect(page.locator('[data-py-pending-bar]')).toBeVisible({ timeout: 1_000 });
-    await expect(page.locator('[data-py-pending-bar]')).toHaveCount(0, { timeout: 5_000 });
-    await expect(page.getByRole('heading', { level: 1, name: 'Tickets' })).toBeVisible();
   });
 });

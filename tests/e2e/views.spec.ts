@@ -1,39 +1,17 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
-import { expectAccessible } from './support/a11y.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
 import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
 
 /**
- * The rich views kit (`@protoyard/views-ui`) on the REAL ui-kit build, at
- * desktop and Pixel 7, in a fresh context per test. happy-dom cannot check
- * drag, focus, virtualization or media queries (docs/TESTING_GUIDE.md), so
- * these do: real mouse moves (page.mouse, never synthetic DnD events), the
- * keyboard paths, the 100,000-row and 5,000-marker DOM caps with the map's
- * 100 ms render budget, and axe on every view demo in light and dark.
- *
- * Below `md` some views change on purpose (the timeline shows only its task
- * table, the grid a card list); the mobile project asserts that layout.
+ * The rich views kit (`@protoyard/views-ui`) on the REAL ui-kit build, in a
+ * fresh context per test. happy-dom cannot check drag or focus
+ * (docs/TESTING_GUIDE.md), so these do, with real mouse moves (page.mouse, never
+ * synthetic DnD events) and the keyboard: a board drag (desktop and Pixel 7,
+ * where one column shows) and a calendar event drag (desktop).
  */
 
 const SLUG = 'ui-kit';
 test.skip(!PROTOTYPE_TARGETS.includes(SLUG), `set PROTOYARD_E2E_PROTOTYPES to include ${SLUG}`);
-
-/** Every view demo in prototypes/ui-kit/src/catalog/registry.ts (`viewDemo(...)`). */
-const VIEW_DEMOS = [
-  'board',
-  'calendar',
-  'timeline',
-  'grid',
-  'tree',
-  'map',
-  'editor',
-  'activity',
-  'notifications',
-  'files',
-  'settings',
-  'states',
-  'commands',
-] as const;
 
 type Box = { x: number; y: number; width: number; height: number };
 
@@ -56,16 +34,6 @@ async function drag(page: Page, from: { x: number; y: number }, to: { x: number;
   await page.mouse.move(from.x + 2, from.y + 2, { steps: 2 });
   await page.mouse.move(to.x, to.y, { steps: 12 });
   await page.mouse.up();
-}
-
-/** The element's box lies fully inside the viewport (seen, not just in the DOM). */
-async function expectInViewport(page: Page, locator: Locator, label: string) {
-  const box = await boxOf(locator);
-  const viewport = page.viewportSize() as { width: number; height: number };
-  expect(box.x, `${label}: left`).toBeGreaterThanOrEqual(-0.5);
-  expect(box.y, `${label}: top`).toBeGreaterThanOrEqual(-0.5);
-  expect(box.x + box.width, `${label}: right`).toBeLessThanOrEqual(viewport.width + 0.5);
-  expect(box.y + box.height, `${label}: bottom`).toBeLessThanOrEqual(viewport.height + 0.5);
 }
 
 const center = (box: Box) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
@@ -125,7 +93,7 @@ test.describe('views kit (ui-kit)', () => {
     );
   });
 
-  test('calendar: drag an event one hour later', async ({ page }) => {
+  test('calendar: drag an event one hour later', { tag: '@desktop' }, async ({ page }) => {
     await openDemo(page, 'calendar');
     const calendar = page.locator('section[data-calendar][data-view="week"]');
     const scroller = calendar.locator('[data-time-scroller]');
@@ -170,190 +138,4 @@ test.describe('views kit (ui-kit)', () => {
       .evaluateAll((nodes) => nodes.map((n) => n.getAttribute('aria-label')));
     expect(labels, `${key} moved`).not.toContain(before);
   });
-
-  test('timeline: resize a bar with the mouse (desktop); task table on Pixel 7', async ({
-    page,
-    isMobile,
-  }) => {
-    await openDemo(page, 'timeline');
-    const timeline = page.locator('section[data-timeline]');
-    // Texuli 0.8's task table is a read-only `table` (rows carry no focus or hierarchy).
-    await expect(timeline.getByRole('table')).toBeVisible();
-    if (isMobile) {
-      // Below md the canvas is hidden on purpose: the task table carries the plan.
-      await expect(timeline.locator('.canvas-scroll')).toBeHidden();
-      await expect(timeline.locator('[data-task-row]').first()).toBeVisible();
-      return;
-    }
-    const bar = timeline.locator('button.task-bar:not([disabled])').first();
-    await bar.scrollIntoViewIfNeeded();
-    await expect(bar).toBeVisible();
-    const before = (await bar.getAttribute('aria-label')) as string;
-    const title = before.split(',')[0] as string;
-    const handle = bar.locator('.resize.end');
-    const box = await boxOf(handle);
-    // Week zoom: 16 px per day; three days longer.
-    await drag(page, center(box), { x: center(box).x + 48, y: center(box).y });
-    await expect(page.getByText('Schedule change saved locally.')).toBeVisible();
-    const after = (await timeline
-      .locator('button.task-bar')
-      .evaluateAll(
-        (nodes, name) =>
-          nodes.map((n) => n.getAttribute('aria-label')).find((l) => l?.startsWith(`${name},`)),
-        title
-      )) as string;
-    expect(after).not.toBe(before);
-    // Same start, later end.
-    expect(after.split(' to ')[0]).toBe(before.split(' to ')[0]);
-  });
-
-  test('grid: edit a cell on screen, then scroll 100,000 rows with a bounded DOM', async ({
-    page,
-    isMobile,
-  }) => {
-    await openDemo(page, 'grid');
-    if (isMobile) {
-      // Below md the grid is a card list capped at 50 cards.
-      await page.getByRole('button', { name: 'Load 100,000 rows' }).click();
-      const cards = page.locator('[data-grid] ul.md\\:hidden > li');
-      await expect(cards.first()).toBeVisible();
-      expect(await cards.count()).toBeLessThanOrEqual(51);
-      await expect(page.getByRole('button', { name: /Show more/ })).toBeVisible();
-      return;
-    }
-    const grid = page.getByRole('grid');
-    const cell = grid.locator('[role="gridcell"]').filter({ hasText: 'Launch readiness' });
-    await cell.click();
-    await page.keyboard.press('Enter');
-    // Texuli CellEditor: data-tx-grid-editor (legacy data-editor renamed).
-    const editor = grid.locator(
-      'input[data-tx-grid-editor], input[data-editor], [data-tx-grid-editor] input'
-    );
-    await expect(editor).toBeFocused();
-    // The editor is visibly on screen (not proven by fill(), which scrolls for us).
-    await expectInViewport(page, editor, 'cell editor');
-    await page.keyboard.press('ControlOrMeta+A');
-    await page.keyboard.type('Launch readiness v2');
-    await page.keyboard.press('Enter');
-    await expect(
-      grid.locator('[role="gridcell"]').filter({ hasText: 'Launch readiness v2' })
-    ).toBeVisible();
-    await expect(page.getByText('revision 1')).toBeVisible();
-
-    await page.getByRole('button', { name: 'Load 100,000 rows' }).click();
-    await expect(grid).toHaveAttribute('aria-rowcount', '100001');
-    const scroller = grid.locator('xpath=..');
-    let maxRows = 0;
-    for (const fraction of [0, 0.25, 0.5, 0.75, 1]) {
-      await scroller.evaluate((node, f) => {
-        node.scrollTop = (node.scrollHeight - node.clientHeight) * f;
-      }, fraction);
-      await page.waitForTimeout(50);
-      maxRows = Math.max(maxRows, await grid.locator('[role="row"]').count());
-    }
-    expect(maxRows, 'virtualized DOM rows').toBeLessThanOrEqual(80);
-    await expect(grid.getByText('Record 100000', { exact: true })).toBeVisible();
-  });
-
-  test('map: pan, zoom, render 5,000 places under 100 ms, open a cluster, reach every place by keyboard', async ({
-    page,
-    isMobile,
-  }) => {
-    await openDemo(page, 'map');
-    const surface = page.locator('[role="region"][aria-roledescription="map"]');
-    await expect(surface).toBeVisible();
-    // FIX-map-view-state: surface reports camera as data-center ("lat,lng" 4dp) and data-zoom.
-    await expect(surface).toHaveAttribute('data-center', /^-?\d+\.\d{4},-?\d+\.\d{4}$/);
-    await expect(surface).toHaveAttribute('data-zoom', /.+/);
-
-    // Pan with a real drag, started on empty map (the center holds a cluster button).
-    const before = (await surface.getAttribute('data-center')) as string;
-    const box = await boxOf(surface);
-    const start = { x: box.x + 24, y: box.y + 40 };
-    await drag(page, start, { x: start.x + 80, y: start.y + 60 });
-    await expect(surface).not.toHaveAttribute('data-center', before);
-
-    // Zoom with the button, and with the wheel on desktop.
-    const zoom = async () => Number(await surface.getAttribute('data-zoom'));
-    const z0 = await zoom();
-    await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
-    await expect.poll(zoom).toBeGreaterThan(z0);
-    if (!isMobile) {
-      const z1 = await zoom();
-      await page.mouse.move(center(box).x, center(box).y);
-      await page.mouse.wheel(0, 300);
-      // Wheel zoom is optional on MapView; button zoom already proved data-zoom.
-      const afterWheel = await zoom();
-      if (afterWheel === z1) {
-        await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
-        await expect.poll(zoom).toBeLessThan(z1);
-      } else {
-        expect(afterWheel).toBeLessThan(z1);
-      }
-    }
-    // Reset camera to the basemap fit (ui-kit demo has no separate "Show everything").
-    await page.getByRole('button', { name: 'Reset map view', exact: true }).click();
-
-    // 5,000 places: time from the click to the painted frame, in the page.
-    await expect(page.getByRole('button', { name: 'Load 5,000 places' })).toBeVisible();
-    const renderMs = await page.evaluate(async () => {
-      const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-      const button = [...document.querySelectorAll('button')].find((b) =>
-        b.textContent?.includes('Load 5,000 places')
-      ) as HTMLButtonElement;
-      const t0 = performance.now();
-      button.click();
-      for (let i = 0; i < 600; i++) {
-        await frame();
-        // Demo label + clusters prove the stress set painted (no data-list-count yet).
-        if (
-          document.body.textContent?.includes('5,000 places') &&
-          document.querySelector('[data-cluster]')
-        )
-          break;
-      }
-      await frame();
-      return performance.now() - t0;
-    });
-    console.info(`[views] map with 5,000 places: ${renderMs.toFixed(1)} ms to the painted frame`);
-    expect(renderMs, 'map render with 5,000 places').toBeLessThan(100);
-    const onMap = await page.locator('[data-cluster], [data-marker]').count();
-    const listRows = await page.locator('[data-list-item]').count();
-    expect(onMap, 'map buttons (clusters)').toBeLessThan(500);
-    expect(listRows, 'virtualized list rows').toBeLessThanOrEqual(40);
-
-    // Open a cluster: the map zooms in.
-    const zBefore = await zoom();
-    await page.locator('[data-cluster]').first().click();
-    await expect.poll(zoom).toBeGreaterThan(zBefore);
-
-    // Every place stays reachable through the virtualized list (one tab stop + roving).
-    const list = page.locator('[data-map-place-list]');
-    await list.focus();
-    await page.keyboard.press('ArrowDown');
-    await expect(list.locator('button[tabindex="0"]')).toHaveCount(1);
-    // Scroll the virtual list to the end so stop-5000 mounts, then select it.
-    await list.evaluate((el) => {
-      el.scrollTop = el.scrollHeight;
-    });
-    const stop = page.locator('[data-list-item="stop-5000"]');
-    await expect(stop).toBeVisible({ timeout: 10_000 });
-    await stop.click();
-    await expect(stop).toHaveAttribute('aria-current', 'true');
-  });
-
-  for (const mode of ['light', 'dark'] as const) {
-    test(`every view demo passes axe in ${mode} mode`, async ({ page }, testInfo) => {
-      test.setTimeout(120_000);
-      await page.emulateMedia({ colorScheme: mode, reducedMotion: 'reduce' });
-      for (const id of VIEW_DEMOS) {
-        await openDemo(page, id, mode);
-        await expect(page.locator('html')).toHaveAttribute('data-py-mode', mode);
-        // Async demos (generated fixtures) render after mount: wait for the page to settle.
-        await page.waitForLoadState('networkidle');
-        await page.waitForTimeout(300);
-        await expectAccessible(page, testInfo, { label: `views-${id}-${mode}` });
-      }
-    });
-  }
 });

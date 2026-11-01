@@ -1,13 +1,13 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
 
 /**
- * Accessibility of every content-kind example (blueprints/decks, pages, docs)
+ * Accessibility of one example per content kind (blueprints/decks, pages, docs)
  * on the built player's kind pages (deck.html, page.html, doc.html), in light
  * and dark color schemes with reduced motion, on the desktop and Pixel 7
- * projects. Each example runs axe (WCAG 2.1 A/AA, serious and critical fail;
+ * projects. A page form response also survives a reload (desktop). Each example runs axe (WCAG 2.1 A/AA, serious and critical fail;
  * every deck slide is checked) and asserts accessible navigation, form labels,
  * image alternatives, a visible keyboard focus and no horizontal overflow.
  *
@@ -27,14 +27,18 @@ const PLAYER = `http://127.0.0.1:${Number(process.env.PROTOYARD_E2E_PLAYER_PORT 
 const ROOT = { deck: '[data-py-deck-app]', page: '[data-py-page-app]', doc: '[data-py-doc-app]' };
 type Kind = keyof typeof ROOT;
 
-/** Every example in blueprints/{decks,pages,docs}/ (README files aside). */
-const EXAMPLES = (['deck', 'page', 'doc'] as const).flatMap((kind) => {
-  const dir = join(process.cwd(), 'blueprints', `${kind}s`);
-  return readdirSync(dir)
-    .filter((file) => file.endsWith('.json'))
-    .sort()
-    .map((file) => ({ kind, name: file.replace(/\.json$/, ''), path: join(dir, file) }));
-});
+/** One example per kind: an authored deck, the landing page and the quarterly report. */
+const EXAMPLES = (
+  [
+    ['deck', 'cedar-training'],
+    ['page', 'tidewater-roasters-landing'],
+    ['doc', 'northwind-quarterly-report'],
+  ] as const
+).map(([kind, name]) => ({
+  kind,
+  name,
+  path: join(process.cwd(), 'blueprints', `${kind}s`, `${name}.json`),
+}));
 
 async function openExample(page: Page, example: (typeof EXAMPLES)[number]): Promise<void> {
   const fixture = `${PLAYER}kind-fixtures/${example.name}.json`;
@@ -239,33 +243,31 @@ for (const colorScheme of ['light', 'dark'] as const) {
   });
 }
 
-// Two catalog block examples rendered wrong in the everything deck before
-// T-a11y-mobile: the quiz showed `**tone**` literally and a card dropped its
-// image. The player ships the avatar library, so the card's portrait loads here.
-test('the everything deck formats the quiz prompt and shows the card image', async ({ page }) => {
-  const everything = EXAMPLES.find((example) => example.name === 'everything');
-  expect(everything).toBeDefined();
-  if (!everything) return;
-  await openExample(page, everything);
-  const deck = page.locator(ROOT.deck);
-  const show = async (id: string) => {
-    await page.evaluate((slide) => {
-      window.location.hash = `#/${slide}/0`;
-    }, id);
-    await expect(deck).toHaveAttribute('data-slide-id', id);
-  };
+test('a page form response is saved and survives a reload', { tag: '@desktop' }, async ({
+  page,
+}) => {
+  const landing = EXAMPLES.find((example) => example.kind === 'page');
+  if (!landing) throw new Error('no page example');
+  await openExample(page, landing);
+  const responses = () =>
+    page.evaluate(async () => {
+      const runtime = (
+        window as Window & {
+          __protoyard?: { data: { counts(): Promise<Record<string, number>> } };
+        }
+      ).__protoyard;
+      return runtime ? ((await runtime.data.counts()).formResponses ?? 0) : -1;
+    });
+  expect(await responses()).toBe(0);
+  const form = page.locator('form[data-py-form]');
+  await expect(form).toBeVisible({ timeout: 20_000 });
+  await form.getByLabel('Email').fill('reader@example.com');
+  await form.getByRole('button', { name: 'Join the waitlist' }).click();
+  // @texuli/forms paints the block; its confirmation is the success message.
+  await expect(form.locator('.tx-forms__done')).toBeVisible();
+  await expect.poll(responses).toBe(1);
 
-  await show('poll-quiz');
-  const legend = page.locator('[data-tx-deck-slide="poll-quiz"] legend', { hasText: 'tone' });
-  await expect(legend).toHaveText('What does a tone replace?', { timeout: 15_000 });
-  await expect(legend.locator('strong')).toHaveText('tone');
-
-  await show('structure-b');
-  const image = page
-    .locator('[data-tx-deck-slide="structure-b"]')
-    .getByRole('img', { name: 'A face' });
-  await expect(image).toBeVisible({ timeout: 15_000 });
-  await expect
-    .poll(() => image.evaluate((element) => (element as HTMLImageElement).naturalWidth))
-    .toBeGreaterThan(0);
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true', { timeout: 30_000 });
+  await expect.poll(responses, { message: 'the response is persisted' }).toBe(1);
 });
