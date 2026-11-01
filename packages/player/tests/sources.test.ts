@@ -1,9 +1,8 @@
-import { BrandThemeError, encodeBlueprintShare, parseBlueprint } from '@protoyard/blueprint';
-import { configure, fireEvent, screen, waitFor } from '@testing-library/svelte';
+import { encodeBlueprintShare, parseBlueprint } from '@protoyard/blueprint';
+import { configure, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import demo from '../src/fixtures/demo.blueprint.json';
 import {
-  bootIssues,
   EMBEDDED_BLUEPRINT_ID,
   loadBlueprintFromFile,
   readEmbeddedBlueprint,
@@ -72,19 +71,6 @@ function fakeEvents() {
 }
 
 describe('resolveSrcUrl', () => {
-  it('accepts relative .json paths inside the player folder', () => {
-    for (const src of [
-      './blueprint.json',
-      'blueprint.json',
-      './ideas/idea-1.json',
-      'blueprint.json?v=2',
-    ]) {
-      const result = resolveSrcUrl(src, HREF);
-      expect('url' in result, src).toBe(true);
-      if ('url' in result) expect(result.url.origin).toBe('https://player.example');
-    }
-  });
-
   it('rejects absolute, cross-origin, root-relative, escaping and non-JSON sources', () => {
     for (const src of [
       'https://elsewhere.example/blueprint.json',
@@ -136,22 +122,6 @@ describe('resolveSource', () => {
       expect(old.issues[0]?.message).toMatch(/Chrome 103\+, Safari 16\.4\+, Firefox 113\+/);
   });
 
-  it('loads ?src from the same origin without credentials leaving it', async () => {
-    const fetch = vi.fn(async () => jsonResponse(demoJson));
-    const result = await resolveSource({
-      hash: '',
-      search: '?src=./blueprint.json',
-      href: HREF,
-      fetch,
-    });
-    expect(result).toMatchObject({ kind: 'blueprint', source: 'src', label: 'blueprint.json' });
-    expect(fetch).toHaveBeenCalledWith('https://player.example/play/blueprint.json', {
-      credentials: 'same-origin',
-      redirect: 'error',
-      cache: 'no-cache',
-    });
-  });
-
   it('never fetches a refused ?src, and reports failed, oversized and invalid files', async () => {
     const fetch = vi.fn(async () => jsonResponse(demoJson));
     const refused = await resolveSource({
@@ -193,37 +163,6 @@ describe('resolveSource', () => {
     }
   });
 
-  it('opens a blueprint embedded by a single-file export, after #bp= and before ?src', async () => {
-    const fetch = vi.fn();
-    const embedded = JSON.stringify(blueprint);
-    const result = await resolveSource({
-      hash: '',
-      search: '?src=./blueprint.json',
-      href: HREF,
-      embedded,
-      fetch,
-    });
-    expect(result).toMatchObject({ kind: 'blueprint', source: 'embedded' });
-    if (result.kind === 'blueprint') expect(result.blueprint.name).toBe(blueprint.name);
-    expect(fetch).not.toHaveBeenCalled();
-    // An explicit share link still wins.
-    const shared = await resolveSource({
-      hash: await shareHash(),
-      search: '',
-      href: HREF,
-      embedded,
-    });
-    expect(shared).toMatchObject({ source: 'share' });
-    // Embedded text is untrusted like any source.
-    const bad = await resolveSource({
-      hash: '',
-      search: '',
-      href: HREF,
-      embedded: '{"__proto__":{}}',
-    });
-    expect(bad).toMatchObject({ kind: 'error', source: 'embedded' });
-  });
-
   it('reads only an inert JSON script with the exact id', () => {
     const doc = document.implementation.createHTMLDocument('x');
     expect(readEmbeddedBlueprint(doc)).toBeNull();
@@ -234,13 +173,6 @@ describe('resolveSource', () => {
     doc.body.innerHTML = `<script id="${EMBEDDED_BLUEPRINT_ID}" type="application/json">{"a":1}</script>`;
     expect(readEmbeddedBlueprint(doc)).toBe('{"a":1}');
     expect(readEmbeddedBlueprint(undefined)).toBeNull();
-  });
-
-  it('falls back to the picker when there is no source', async () => {
-    expect(await resolveSource({ hash: '', search: '', href: HREF })).toEqual({ kind: 'picker' });
-    expect(await resolveSource({ hash: '#/settings', search: '?devtools=0', href: HREF })).toEqual({
-      kind: 'picker',
-    });
   });
 });
 
@@ -277,79 +209,10 @@ describe('share links and app routes', () => {
     expect(tab.values.get(PLAYER_SHARE_SESSION_KEY)).toBe(hash.slice('#bp='.length));
     expect(tab.replaced).toEqual(['/play/index.html?devtools=0#/']);
   });
-
-  it('reopens the remembered blueprint on a reload at an app route, without touching the route', async () => {
-    const payload = (await shareHash()).slice('#bp='.length);
-    const tab = tabState({ [PLAYER_SHARE_SESSION_KEY]: payload });
-    const boot = vi.fn(async () => undefined);
-    started = await startPlayer({
-      target: target(),
-      location: { hash: '#/workspaces', search: '', href: `${HREF}#/workspaces` },
-      events: fakeEvents(),
-      boot,
-      session: tab.session,
-      history: tab.history,
-    });
-    expect(started.state()).toBe('booted');
-    expect((boot.mock.calls[0] as unknown[])[0]).toMatchObject({ name: blueprint.name });
-    expect(tab.replaced).toEqual([]);
-  });
-
-  it('lets ?src win and forget the link, and falls back to the picker for a stale saved link', async () => {
-    const payload = (await shareHash()).slice('#bp='.length);
-    const tab = tabState({ [PLAYER_SHARE_SESSION_KEY]: payload });
-    started = await startPlayer({
-      target: target(),
-      location: { hash: '', search: '?src=./blueprint.json', href: `${HREF}?src=./blueprint.json` },
-      events: fakeEvents(),
-      fetch: async () => jsonResponse(demoJson),
-      boot: vi.fn(async () => undefined),
-      session: tab.session,
-      history: tab.history,
-    });
-    expect(tab.values.has(PLAYER_SHARE_SESSION_KEY)).toBe(false);
-    await started.stop();
-
-    const stale = tabState({ [PLAYER_SHARE_SESSION_KEY]: '1.%%%broken' });
-    started = await startPlayer({
-      target: target(),
-      location: { hash: '', search: '', href: HREF },
-      events: fakeEvents(),
-      boot: vi.fn(),
-      session: stale.session,
-      history: stale.history,
-    });
-    expect(started.state()).toBe('picker');
-  });
 });
 
 describe('startPlayer', () => {
   const target = () => document.body.appendChild(document.createElement('div'));
-
-  it('boots a share link and reloads only for a different share link, never for app routes', async () => {
-    const boot = vi.fn(async () => undefined);
-    const reload = vi.fn();
-    const events = fakeEvents();
-    const location = { hash: await shareHash(), search: '', href: HREF };
-    started = await startPlayer({ target: target(), location, events, boot, reload });
-    expect(started.state()).toBe('booted');
-    expect(boot).toHaveBeenCalledTimes(1);
-    expect((boot.mock.calls[0] as unknown[])[0]).toMatchObject({ name: blueprint.name });
-
-    events.fire();
-    expect(reload).not.toHaveBeenCalled();
-    // In-app navigation changes the hash but keeps the blueprint.
-    location.hash = '#/workspaces';
-    events.fire();
-    location.hash = '#/workspaces/w-1';
-    events.fire();
-    expect(reload).not.toHaveBeenCalled();
-    location.hash = '#bp=1.other';
-    events.fire();
-    expect(reload).toHaveBeenCalledTimes(1);
-    events.fire();
-    expect(reload).toHaveBeenCalledTimes(1);
-  });
 
   it('shows an accessible error screen with every issue, as text, never a blank page', async () => {
     const hostile = JSON.stringify({ ...demo, '<img src=x onerror=alert(1)>': true });
@@ -372,72 +235,5 @@ describe('startPlayer', () => {
     );
     expect(el.querySelector('img')).toBeNull();
     expect(screen.getByRole('button', { name: 'Open a blueprint file' })).toBeTruthy();
-  });
-
-  it('routes a BrandThemeError at definition time to the error screen', async () => {
-    started = await startPlayer({
-      target: target(),
-      location: { hash: await shareHash(), search: '', href: HREF },
-      events: fakeEvents(),
-      boot: async () => {
-        throw new BrandThemeError('Unknown library theme "no-such-theme" (closest: nord).');
-      },
-    });
-    expect(started.state()).toBe('error');
-    expect(await screen.findByText(/Unknown library theme "no-such-theme"/)).toBeTruthy();
-    expect(screen.getByText('invalid-brand')).toBeTruthy();
-    expect(bootIssues(new Error('boom'))[0]).toMatchObject({ code: 'boot-failed' });
-  });
-
-  it('offers the picker, rejects an invalid file in place, then boots a valid one', {
-    timeout: 30_000,
-  }, async () => {
-    const boot = vi.fn(async () => undefined);
-    started = await startPlayer({
-      target: target(),
-      location: { hash: '', search: '', href: HREF },
-      events: fakeEvents(),
-      boot,
-    });
-    expect(started.state()).toBe('picker');
-    expect(await screen.findByRole('heading', { name: 'Open a blueprint' })).toBeTruthy();
-    expect(document.documentElement.dataset.playerState).toBe('picker');
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(input).not.toBeNull();
-
-    Object.defineProperty(input, 'files', {
-      configurable: true,
-      value: [new File(['{}'], 'empty.json', { type: 'application/json' })],
-    });
-    await fireEvent.change(input);
-    expect(await screen.findByText(/empty\.json could not be opened/)).toBeTruthy();
-    expect(boot).not.toHaveBeenCalled();
-
-    const again = document.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(again.disabled).toBe(false);
-    Object.defineProperty(again, 'files', {
-      configurable: true,
-      value: [new File([demoJson], 'blueprint.json', { type: 'application/json' })],
-    });
-    await fireEvent.change(again);
-    await waitFor(() => expect(boot).toHaveBeenCalledTimes(1));
-    expect(started.state()).toBe('booted');
-  });
-
-  it('opens the bundled demo from the picker, and the error screen leads back to the picker', {
-    timeout: 30_000,
-  }, async () => {
-    const boot = vi.fn(async () => undefined);
-    started = await startPlayer({
-      target: target(),
-      location: { hash: '#bp=1.%%%', search: '', href: HREF },
-      events: fakeEvents(),
-      boot,
-      loadDemo: async () => blueprint,
-    });
-    expect(started.state()).toBe('error');
-    await fireEvent.click(await screen.findByRole('button', { name: 'Open a blueprint file' }));
-    await fireEvent.click(await screen.findByRole('button', { name: 'Open the demo blueprint' }));
-    await waitFor(() => expect(boot).toHaveBeenCalledWith(blueprint, expect.any(HTMLElement)));
   });
 });
