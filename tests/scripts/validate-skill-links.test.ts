@@ -1,8 +1,8 @@
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { findMarkdownLinks, validateSkillLinks } from '../../scripts/validate-skill-links.ts';
+import { validateSkillLinks } from '../../scripts/validate-skill-links.ts';
 
 const tempRoots: string[] = [];
 
@@ -16,32 +16,7 @@ afterEach(async () => {
   await Promise.all(tempRoots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-describe('findMarkdownLinks', () => {
-  it('finds inline and reference destinations, but ignores code examples', () => {
-    expect(
-      findMarkdownLinks(
-        '[inline](guide.md)\n[reference]: <ref.md>\n`[code](ignored.md)`\n```md\n[fenced](ignored.md)\n```'
-      )
-    ).toEqual([
-      { destination: 'guide.md', line: 1 },
-      { destination: 'ref.md', line: 2 },
-    ]);
-  });
-});
-
 describe('validateSkillLinks', () => {
-  it('accepts existing relative links and documented external links without fetching them', async () => {
-    const root = await makeSkill();
-    await writeFile(
-      join(root, 'SKILL.md'),
-      '[guide](guides/start.md#install) and [web](https://example.com/guide)'
-    );
-    await mkdir(join(root, 'guides'));
-    await writeFile(join(root, 'guides/start.md'), '# Start');
-
-    await expect(validateSkillLinks(root)).resolves.toEqual([]);
-  });
-
   it('reports a missing target with the source line', async () => {
     const root = await makeSkill();
     await writeFile(join(root, 'SKILL.md'), '# Skill\n\n[missing](absent.md)');

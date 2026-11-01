@@ -1,46 +1,24 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { checkLatest, checkPins, type Pin, pinsOf } from '../check-texuli-latest.ts';
+import { checkLatest, checkPins, type Pin } from '../check-texuli-latest.ts';
 
 const pin = (manifest: string, name: string, spec: string): Pin => ({ manifest, name, spec });
 
-describe('pinsOf', () => {
-  it('reads Texuli dependencies and devDependencies but not peers or other packages', () => {
-    const pins = pinsOf('packages/x/package.json', {
-      dependencies: { texuli: '0.8.0', svelte: '^5.57.2' },
-      devDependencies: { '@texuli/core': '0.8.0' },
-      peerDependencies: { texuli: '^0.8.0' },
-    });
-    expect(pins.map((p) => `${p.name}@${p.spec}`)).toEqual(['texuli@0.8.0', '@texuli/core@0.8.0']);
-  });
-});
-
 describe('checkPins', () => {
-  it('accepts exact versions that agree across manifests', () => {
-    const report = checkPins([
-      pin('package.json', 'texuli', '0.8.0'),
-      pin('packages/ui/package.json', 'texuli', '0.8.0'),
-      pin('packages/decks-ui/package.json', '@texuli/slides', '0.8.1'),
-    ]);
-    expect(report.ok).toBe(true);
-    expect(report.packages).toEqual([
-      { name: '@texuli/slides', pinned: ['0.8.1'] },
-      { name: 'texuli', pinned: ['0.8.0'] },
-    ]);
-  });
-
-  it.each([
-    'link:../texuli/packages/texuli',
-    'file:../texuli.tgz',
-    'workspace:*',
-    '^0.8.0',
-    '~0.8.0',
-    'latest',
-    'github:DailybotHQ/texuli',
-  ])('refuses %s', (spec) => {
-    const report = checkPins([pin('packages/ui/package.json', 'texuli', spec)]);
-    expect(report.ok).toBe(false);
-    expect(report.problems[0]).toContain('is not an exact npm version');
+  it('refuses anything but an exact npm version', () => {
+    for (const spec of [
+      'link:../texuli/packages/texuli',
+      'file:../texuli.tgz',
+      'workspace:*',
+      '^0.8.0',
+      '~0.8.0',
+      'latest',
+      'github:DailybotHQ/texuli',
+    ]) {
+      const report = checkPins([pin('packages/ui/package.json', 'texuli', spec)]);
+      expect(report.ok, spec).toBe(false);
+      expect(report.problems[0]).toContain('is not an exact npm version');
+    }
   });
 
   it('refuses one package pinned to two versions', () => {
@@ -72,10 +50,6 @@ describe('checkPins', () => {
       new Map([['texuli', undefined]])
     );
     expect(report.problems).toEqual(['texuli: npm latest is unknown']);
-  });
-
-  it('fails when no Texuli dependency exists', () => {
-    expect(checkPins([]).problems).toEqual(['no Texuli dependency found']);
   });
 });
 

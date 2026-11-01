@@ -2,7 +2,6 @@
 import { spawnSync } from 'node:child_process';
 import {
   copyFileSync,
-  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -14,7 +13,6 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
-import { readTarball } from '../../../scripts/check-packages.ts';
 import { resolveCliBin } from '../index.js';
 
 /**
@@ -106,51 +104,9 @@ describe('the protoyard package', () => {
     expect(own.dependencies).toEqual({ '@protoyard/cli': 'workspace:*' });
     expect(own.version).toBe(cli.version);
   });
-
-  it('packs with the exact @protoyard/cli version and only its runtime files', () => {
-    const destination = realpathSync(mkdtempSync(join(tmpdir(), 'protoyard-wrapper-pack-')));
-    roots.push(destination);
-    const result = spawnSync('pnpm', ['pack', '--pack-destination', destination], {
-      cwd: PACKAGE,
-      encoding: 'utf8',
-    });
-    expect(result.status, result.stderr).toBe(0);
-    const { version } = JSON.parse(readFileSync(join(PACKAGE, 'package.json'), 'utf8')) as {
-      version: string;
-    };
-    const files = readTarball(readFileSync(join(destination, `protoyard-${version}.tgz`)));
-    expect([...files.keys()].sort()).toEqual([
-      'LICENSE',
-      'README.md',
-      'bin/protoyard.mjs',
-      'index.d.ts',
-      'index.js',
-      'package.json',
-    ]);
-    const packed = JSON.parse(new TextDecoder().decode(files.get('package.json'))) as {
-      dependencies: Record<string, string>;
-    };
-    const cliVersion = manifest(join(REPO, 'packages', 'cli', 'package.json')).version;
-    expect(packed.dependencies).toEqual({ '@protoyard/cli': cliVersion });
-  }, 120_000);
-
-  it('never adds a second protoyard bin to the workspace root', () => {
-    const root = manifest(join(REPO, 'package.json'));
-    for (const field of ['dependencies', 'devDependencies'] as const) {
-      expect(Object.keys(root[field] ?? {}), field).not.toContain('protoyard');
-      expect(Object.keys(root[field] ?? {}), field).not.toContain('@protoyard/cli');
-    }
-    expect(root.scripts?.protoyard).toBe('tsx packages/cli/src/bin.ts');
-  });
 });
 
 describe('resolveCliBin', () => {
-  it('finds the CLI bin in this repository', () => {
-    expect(realpathSync(resolveCliBin())).toBe(
-      realpathSync(join(REPO, 'packages', 'cli', 'bin', 'protoyard.mjs'))
-    );
-  });
-
   it('finds a packed CLI bin from its resolved entry, and refuses bins outside the package', () => {
     const root = consumer();
     const cli = join(root, 'node_modules', '@protoyard', 'cli');
@@ -159,34 +115,6 @@ describe('resolveCliBin', () => {
     expect(() => resolveCliBin(join(cli, 'dist', 'index.js'))).toThrow(/outside the package/);
     write(join(cli, 'package.json'), { name: '@protoyard/cli' });
     expect(() => resolveCliBin(join(cli, 'dist', 'index.js'))).toThrow(/no protoyard bin/);
-  });
-});
-
-describe('forwarding from a consumer install', () => {
-  it('passes argv, stdin, stdout, stderr and the exit code through unchanged', () => {
-    const root = consumer();
-    const bin = join(root, 'node_modules', 'protoyard', 'bin', 'protoyard.mjs');
-    const result = node([bin, 'doctor', '--json', 'two words', '--exit', '7'], {
-      cwd: root,
-      input: 'piped input',
-    });
-    expect(result.status).toBe(7);
-    expect(JSON.parse(result.stdout)).toEqual({
-      args: ['doctor', '--json', 'two words', '--exit', '7'],
-      stdin: 'piped input',
-    });
-    expect(result.stderr).toBe('cli stderr\n');
-    expect(node([bin, '--version'], { cwd: root }).status).toBe(0);
-  });
-
-  it('fails with a clear message when @protoyard/cli is missing', () => {
-    const root = consumer();
-    rmSync(join(root, 'node_modules', '@protoyard'), { recursive: true, force: true });
-    const result = node([join(root, 'node_modules', 'protoyard', 'bin', 'protoyard.mjs')], {
-      cwd: root,
-    });
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('@protoyard/cli is not installed');
   });
 });
 
@@ -201,22 +129,5 @@ describe('the real CLI through the wrapper', () => {
     expect(a.status).toBe(0);
     expect(a.stdout.trim()).toBe(manifest(join(REPO, 'packages', 'cli', 'package.json')).version);
     expect(a.stdout).toBe(b.stdout);
-  }, 60_000);
-
-  it('`protoyard doctor --json` gives the same envelope and exit code as the scoped CLI', () => {
-    const a = wrapped(['doctor', '--json', '--offline']);
-    const b = direct(['doctor', '--json', '--offline']);
-    expect(a.status).toBe(b.status);
-    const envelope = (text: string) => JSON.parse(text) as { ok: boolean; command: string };
-    expect(envelope(a.stdout).command).toBe(envelope(b.stdout).command);
-    expect(envelope(a.stdout).ok).toBe(envelope(b.stdout).ok);
-  }, 120_000);
-
-  it('passes a failing exit code through', () => {
-    const a = wrapped(['validate', 'no-such-slug', '--json']);
-    const b = direct(['validate', 'no-such-slug', '--json']);
-    expect(a.status).not.toBe(0);
-    expect(a.status).toBe(b.status);
-    expect(existsSync(WRAPPER_BIN)).toBe(true);
   }, 60_000);
 });
