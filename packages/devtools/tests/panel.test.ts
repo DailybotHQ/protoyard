@@ -7,8 +7,6 @@ import { type DevtoolsHandle, mountDevtools, reproducibleLink } from '../src/ind
 import { loadPrefs } from '../src/persist.ts';
 import { selectOption } from './select-option.ts';
 
-const _STYLE_KEYS = ['radius', 'elevation', 'font', 'motion'];
-
 const settle = async () => {
   for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
   flushSync();
