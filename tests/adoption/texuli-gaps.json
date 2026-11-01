@@ -451,8 +451,8 @@
   },
   {
     "id": "G129",
-    "status": "open",
-    "summary": "@texuli/forms password fields accept only current-password or new-password autocomplete, so a simulation that must keep browsers from saving fake passwords (autocomplete=\"off\") cannot use the password type"
+    "status": "fixed",
+    "summary": "@texuli/forms password fields accept only current-password or new-password autocomplete, so a simulation that must keep browsers from saving fake passwords (autocomplete=\"off\") cannot use the password type. Fixed in Texuli 0.11.2: a password field may ask for autocomplete \"off\"; the SaaS kit auth forms use it"
   },
   {
     "id": "G130",

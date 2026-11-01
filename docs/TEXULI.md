@@ -187,14 +187,11 @@ or SaaS service, and the service's issues come back inline. The SaaS kit
 uses Texuli's `otp` field for the MFA and phone codes and its `color` field
 for the profile's avatar color. The onboarding wizard is one multi-step form
 on `createFormController`, whose `onStep` saves each answer through the
-onboarding service. Two SaaS fields are still painted by Protoyard as custom
-fields:
-
-- **Passwords** keep `autocomplete="off"`, so browsers never offer to save a
-  fake password. Texuli's `password` type allows only `current-password` and
-  `new-password` (G129, fixed in 0.11.2).
-- **The phone number** keeps `type="tel"` and the telephone keypad. Texuli
-  forms has no telephone field (G131).
+onboarding service. Password fields use Texuli's `password` type with
+`autocomplete: 'off'` (accepted since 0.11.2, G129), so browsers never offer
+to save a fake password. One SaaS field is still painted by Protoyard as a
+custom field: the phone number, which keeps `type="tel"` and the telephone
+keypad, because Texuli forms has no telephone field (G131).
 
 Details: [GENERATOR](GENERATOR.md#entity-forms), [PAGES](PAGES.md) and
 [SAAS_KITS](SAAS_KITS.md).
@@ -288,7 +285,7 @@ behavior and host contracts remain Protoyard-owned:
 | `blocks-ui` | Texuli block-family renderers | Protoyard-only block renderers and extensions |
 | `decks-ui` | The `@texuli/slides` stage core, Texuli controls and styled UI | Deck authoring, presenter, print, and prototype-specific behavior |
 | `pages-ui` | Texuli controls and block renderers, the `@texuli/pages` editor, `@texuli/document` exports, `@texuli/forms` form blocks | Page/doc hosts, form-response and saved-edit services, and print behavior |
-| `saas-ui` | Texuli controls and styled components; `@texuli/forms` for the auth, profile, settings and invite forms and the onboarding wizard | Simulated SaaS screen flows, route guards, the simulated-password and telephone fields (G129, G131) |
+| `saas-ui` | Texuli controls and styled components; `@texuli/forms` for the auth, profile, settings and invite forms and the onboarding wizard | Simulated SaaS screen flows, route guards, the telephone field (G131) |
 | `ai-ui` | Texuli chat components and styled UI | Assistant state, safe rich answers, tool orchestration and widget modes |
 | `flows-ui` | Texuli workflow editor and run-panel components | Protoyard workflow contract and deterministic simulation |
 | `review-ui` | Texuli controls and styled UI | Review thread, anchor, and mount integration |

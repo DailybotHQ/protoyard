@@ -12,14 +12,7 @@ import {
 } from '@protoyard/ui';
 import { SchemaForm, type SchemaFormSubmission } from '@texuli/forms';
 import SsoButtons from '../../components/SsoButtons.svelte';
-import SimulatedPassword from '../../lib/SimulatedPassword.svelte';
-import {
-  compileKitForm,
-  kitSubmitResult,
-  passwordField,
-  SIMULATED_PASSWORD_KIND,
-  text,
-} from '../../lib/schema-form.ts';
+import { compileKitForm, kitSubmitResult, passwordField, text } from '../../lib/schema-form.ts';
 import { authServices, routeHref } from './helpers.ts';
 
 const { runtime, config } = authServices();
@@ -61,7 +54,6 @@ async function submit({ values }: SchemaFormSubmission) {
       <SchemaForm
         {form}
         onSubmit={submit}
-        customFields={{ [SIMULATED_PASSWORD_KIND]: { component: SimulatedPassword } }}
         labels={{ submitting: 'Signing in', submitted: 'Signed in. Opening your app…' }}
         class="py-saas-form"
         data-py-saas-form="sign-in"

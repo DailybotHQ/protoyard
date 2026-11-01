@@ -136,14 +136,11 @@ phone code and MFA. Each submit goes through its kit service. A field issue
 from the service shows inline on that field, and anything else shows in
 Texuli's error summary, which takes focus. The submit button shows a pending
 state while the service runs. The MFA and phone codes use Texuli's `otp`
-field, and a complete phone code submits by itself. Two fields are painted
-by the kit as Texuli custom fields:
-
-- **Passwords** (`SimulatedPassword`) keep `autocomplete="off"` and a
-  show/hide toggle, so a browser never offers to save a fake password. This
-  stays until Texuli's `password` type accepts `off` (G129).
-- **The phone number** (`TelInput`) keeps `type="tel"` for the telephone
-  keypad (G131).
+field, and a complete phone code submits by itself. Passwords use Texuli's
+`password` field with `autocomplete="off"` and its show-password toggle, so a
+browser never offers to save a fake password. The phone number is painted by
+the kit as a Texuli custom field (`TelInput`) to keep `type="tel"` and the
+telephone keypad (G131).
 
 The MFA form remounts when its challenge loads, because a `SchemaForm` that
 mounts disabled does not enable again (G132).

@@ -168,9 +168,9 @@ simulation does not protect data from the browser user or same-origin scripts.
 
 The kit's forms (auth, MFA, phone, profile, settings, invites and onboarding)
 are Texuli `SchemaForm`s, and each submit still goes through the kit
-service. Password fields are a kit-painted custom field with
-`autocomplete="off"`, so browsers never offer to save a fake password (Texuli
-gap G129). The phone number keeps `type="tel"` (gap G131). See the
+service. Password fields are Texuli password fields with
+`autocomplete="off"`, so browsers never offer to save a fake password.
+The phone number keeps `type="tel"` (gap G131). See the
 [`@protoyard/saas-ui` README](../packages/saas-ui/README.md).
 
 ### Invitation acceptance

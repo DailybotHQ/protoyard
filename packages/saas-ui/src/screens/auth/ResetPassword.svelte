@@ -12,14 +12,7 @@ import {
 } from '@protoyard/ui';
 import { SchemaForm, type SchemaFormSubmission } from '@texuli/forms';
 import { onMount } from 'svelte';
-import SimulatedPassword from '../../lib/SimulatedPassword.svelte';
-import {
-  compileKitForm,
-  kitSubmitResult,
-  passwordField,
-  SIMULATED_PASSWORD_KIND,
-  text,
-} from '../../lib/schema-form.ts';
+import { compileKitForm, kitSubmitResult, passwordField, text } from '../../lib/schema-form.ts';
 import { authServices, hashParam, routeHref } from './helpers.ts';
 
 const { runtime, config } = authServices();
@@ -27,7 +20,6 @@ const reset = createPasswordResetServices(runtime);
 let tokenId = $state('');
 let complete = $state(false);
 let message = $state('');
-const customFields = { [SIMULATED_PASSWORD_KIND]: { component: SimulatedPassword } };
 
 // Painted by @texuli/forms; the password reset service validates both steps.
 const requestForm = compileKitForm({
@@ -107,7 +99,6 @@ onMount(() => {
         <SchemaForm
           form={consumeForm}
           onSubmit={consume}
-          {customFields}
           labels={{ submitting: 'Updating password', submitted: 'Password updated.' }}
           class="py-saas-form"
           data-py-saas-form="reset-password"
