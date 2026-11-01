@@ -156,6 +156,9 @@ describe('protoyard ds', () => {
       unknown
     >;
     expect(manifest.defaultTheme).toBe('harbor');
+    expect(applied.json<Envelope<{ next: string[] }>>().data.next[0]).toBe(
+      'pnpm protoyard spec ds-fixture --write'
+    );
 
     // Idempotent: a second run leaves prototype.ts alone.
     expect((await run('use', 'ds-fixture', 'design-systems/harbor.json')).code).toBe(0);

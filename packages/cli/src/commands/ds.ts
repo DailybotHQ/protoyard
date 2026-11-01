@@ -386,6 +386,11 @@ export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
     bytes: Buffer.byteLength(source),
     dryRun,
     written: !dryRun,
+    // The manifest changed, so the generated spec regions are stale until refreshed.
+    next: [
+      `pnpm protoyard spec ${entry.slug} --write`,
+      `pnpm protoyard validate ${entry.slug} --build`,
+    ],
   };
   return {
     data,
@@ -394,6 +399,7 @@ export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
         `${dryRun ? 'Would apply' : 'Applied'} ${data.name} (${data.id}) to ${entry.slug}: ${files.join(', ')}`
       );
       renderSummary(o, data);
+      if (!dryRun) o.always(`Next: ${data.next.join(' && ')}`);
     },
   };
 };
