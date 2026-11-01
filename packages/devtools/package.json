@@ -27,8 +27,8 @@
     "@protoyard/database": "workspace:*",
     "@protoyard/http": "workspace:*",
     "@protoyard/themes": "workspace:*",
-    "@texuli/primitives": "0.11.4",
-    "texuli": "0.11.4"
+    "@texuli/primitives": "0.11.5",
+    "texuli": "0.11.5"
   },
   "devDependencies": {
     "svelte": "^5.57.2"
