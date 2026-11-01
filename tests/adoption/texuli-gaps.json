@@ -487,11 +487,11 @@
   {
     "id": "G136",
     "status": "deferred",
-    "summary": "@texuli/pages document-host-core imports the full @texuli/document/schema, so the PageEditorCore chunk still carries @texuli/deck/model; expected schema-core with an optional validateDeck. Deferred: planned by Texuli after 0.11.4 (size only, no adapter, no behavior change)"
+    "summary": "@texuli/pages document-host-core imports the full @texuli/document/schema, so the PageEditorCore chunk still carries @texuli/deck/model; expected schema-core with an optional validateDeck. Document part fixed in Texuli 0.11.5 (@texuli/document/ops-core; Protoyard does not call ops directly). Deferred: the pages editor moves to ops-core in Texuli 0.12.0 (size only, no adapter, no behavior change)"
   },
   {
     "id": "G137",
-    "status": "deferred",
-    "summary": "@texuli/document/schema-core depends on @texuli/deck/schema's validation toolkit (about 9.3 KB gzip); expected a shared toolkit (for example in @texuli/core). Deferred: planned by Texuli after 0.11.4 (size only, no adapter, no behavior change)"
+    "status": "wontfix",
+    "summary": "@texuli/document/schema-core depends on @texuli/deck/schema's validation toolkit (about 9.3 KB gzip); expected a shared toolkit (for example in @texuli/core). Won't fix (Texuli, 0.11.5): @texuli/deck/schema is only the schema kit (8.77 KiB gzip) that the validator needs; moving it saves no bytes and breaks Texuli's layer rule"
   }
 ]

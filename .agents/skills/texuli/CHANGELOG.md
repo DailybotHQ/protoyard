@@ -15,6 +15,17 @@ the pack, and leaves an empty `## [Unreleased]` block on top.
 
 ## [Unreleased]
 
+## [0.3.11] — 2026-11-01
+
+### Changes
+
+- chore(skill): packages on npm at 0.11.5
+
+- The packages are on npm in the 0.11 line, every one at `0.11.5`, a patch
+  with `@texuli/document/ops-core` (Protoyard G136): document operations
+  validated without the deck model. The router lists it; installs still pin
+  `^0.11.0`.
+
 ## [0.3.10] — 2026-11-01
 
 ### Changes

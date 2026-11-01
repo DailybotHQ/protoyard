@@ -1,7 +1,7 @@
 ---
 name: texuli-evals
 description: Score whether an agent following the Texuli skill builds valid, sink-free, axe-clean interface trees for the 30 golden tasks, offline with the golden scorer; model runs are report-only.
-version: "0.3.10"
+version: "0.3.11"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob
