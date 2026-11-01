@@ -62,8 +62,8 @@
   },
   "dependencies": {
     "@protoyard/charts": "workspace:*",
-    "@texuli/charts": "0.9.0",
-    "texuli": "0.9.0"
+    "@texuli/charts": "0.11.1",
+    "texuli": "0.11.1"
   },
   "devDependencies": {
     "svelte": "^5.57.2"
