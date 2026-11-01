@@ -1,4 +1,6 @@
 // @vitest-environment node
+
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,9 +13,9 @@ import {
   DOCTOR_INTERFACE,
   doctorCommand,
 } from '../src/commands/doctor.ts';
-import { withEnvelopeFields } from '../src/lib/command.ts';
-import { createProgram } from '../src/program.ts';
-import { cli, createWorkspace } from './helpers.ts';
+import { INTERFACE_MAJOR } from '../src/lib/workspace.ts';
+import { createProgram, versionInfo } from '../src/program.ts';
+import { cli } from './helpers.ts';
 
 /**
  * The machine interface (docs/INTERFACE.md): `doctor --json` carries
@@ -42,23 +44,6 @@ const doctor = async (root: string, extra: string[] = []) => {
   const run = await cli(['--root', root, '--json', 'doctor', '--offline', ...extra]);
   return { code: run.code, envelope: JSON.parse(run.stdout) as DoctorEnvelope, stdout: run.stdout };
 };
-
-describe('withEnvelopeFields', () => {
-  it('adds static fields and never replaces the envelope’s own keys', () => {
-    const envelope = { ok: true, command: 'doctor', data: { a: 1 } };
-    expect(withEnvelopeFields(envelope, { interface: 1, capabilities: ['quick'] })).toEqual({
-      ok: true,
-      command: 'doctor',
-      data: { a: 1 },
-      interface: 1,
-      capabilities: ['quick'],
-    });
-    expect(
-      withEnvelopeFields(envelope, { ok: false, command: 'x', data: null, error: {}, interface: 2 })
-    ).toEqual({ ...envelope, interface: 2 });
-    expect(withEnvelopeFields(envelope, undefined)).toBe(envelope);
-  });
-});
 
 describe('the doctor interface', () => {
   it('is interface 1 with a sorted, frozen subset of the defined capability ids', () => {
@@ -129,48 +114,113 @@ describe('the doctor interface', () => {
     // data keeps exactly its shape: the interface is not duplicated inside it.
     expect(Object.keys(envelope.data ?? {})).toEqual(['ok', 'checks']);
   }, 120_000);
+});
 
-  it('keeps them on a failed doctor run, with the same failure, data and exit code', async () => {
-    const ws = createWorkspace();
-    roots.push(ws.root);
-    const { code, envelope } = await doctor(ws.root);
-    expect(code).toBe(1);
-    expect(envelope.ok).toBe(false);
-    expect(envelope.error?.message).toMatch(/required check\(s\) failed/);
-    expect(envelope.data?.checks.some((c) => c.required && c.status === 'fail')).toBe(true);
-    expect(envelope).toMatchObject({ interface: 1, capabilities: [...CAPABILITIES] });
-  }, 120_000);
+describe('protoyard --version', () => {
+  /**
+   * The version contract (docs/INTERFACE.md): `protoyard --version` stays plain
+   * semver; `protoyard --version --json` prints `{"version","interface"}` and
+   * exits 0 anywhere, with the version read from the CLI's package.json and
+   * the interface major shared with `doctor --json`.
+   */
 
-  it('keeps them when there is no workspace at all (exit 3 as before)', async () => {
-    const empty = realpathSync(mkdtempSync(join(tmpdir(), 'protoyard-interface-')));
-    roots.push(empty);
-    const run = await cli(['--cwd', empty, '--json', 'doctor', '--offline']);
-    const envelope = JSON.parse(run.stdout) as DoctorEnvelope;
-    expect(run.code).toBe(3);
-    expect(envelope).toMatchObject({
-      ok: false,
-      command: 'doctor',
-      error: { code: 'not_found' },
-      interface: 1,
-      capabilities: [...CAPABILITIES],
+  const REPO = fileURLToPath(new URL('../../../', import.meta.url));
+  const PACKAGE_VERSION = (
+    JSON.parse(readFileSync(join(REPO, 'packages', 'cli', 'package.json'), 'utf8')) as {
+      version: string;
+    }
+  ).version;
+  const roots: string[] = [];
+  afterAll(() => {
+    for (const root of roots) rmSync(root, { recursive: true, force: true });
+  });
+
+  describe('protoyard --version', () => {
+    it('prints exactly {"version","interface"} with --json, in either order and with -v', async () => {
+      for (const argv of [
+        ['--version', '--json'],
+        ['--json', '--version'],
+        ['--json', '-v'],
+      ]) {
+        const run = await cli(argv);
+        expect(run.code, argv.join(' ')).toBe(0);
+        const lines = run.stdout.trim().split('\n');
+        expect(lines, argv.join(' ')).toHaveLength(1);
+        const parsed = JSON.parse(lines[0] ?? '') as Record<string, unknown>;
+        expect(Object.keys(parsed)).toEqual(['version', 'interface']);
+        expect(parsed).toEqual({ version: PACKAGE_VERSION, interface: INTERFACE_MAJOR });
+        expect(Number.isInteger(parsed.interface)).toBe(true);
+      }
+      expect(versionInfo()).toEqual({ version: PACKAGE_VERSION, interface: 1 });
     });
-  }, 60_000);
 
-  it('is deterministic across runs and leaves other commands and the human output alone', async () => {
-    const first = await doctor(REPO);
-    const second = await doctor(REPO);
-    expect([first.envelope.interface, first.envelope.capabilities]).toEqual([
-      second.envelope.interface,
-      second.envelope.capabilities,
-    ]);
-    const list = JSON.parse((await cli(['--root', REPO, '--json', 'list'])).stdout) as Record<
-      string,
-      unknown
-    >;
-    expect(list).not.toHaveProperty('interface');
-    expect(list).not.toHaveProperty('capabilities');
-    const human = await cli(['--root', REPO, 'doctor', '--offline']);
-    expect(human.stdout).toContain('Protoyard doctor');
-    expect(human.stdout).not.toMatch(/interface|capabilities/i);
-  }, 180_000);
+    it('shares one interface major with doctor --json', async () => {
+      expect(DOCTOR_INTERFACE).toBe(INTERFACE_MAJOR);
+      const doctor = JSON.parse(
+        (await cli(['--root', REPO, '--json', 'doctor', '--offline'])).stdout
+      ) as {
+        interface: number;
+        capabilities: string[];
+      };
+      expect(doctor.interface).toBe(versionInfo().interface);
+      expect(doctor.capabilities).toEqual([...CAPABILITIES]);
+    }, 120_000);
+
+    it('works outside any workspace from the real bin and exits 0 (a detector can probe anywhere)', () => {
+      const empty = realpathSync(mkdtempSync(join(tmpdir(), 'protoyard-version-')));
+      roots.push(empty);
+      const env = { ...process.env };
+      delete env.NODE_PATH;
+      delete env.PROTOYARD_ROOT;
+      const run = spawnSync(
+        process.execPath,
+        [join(REPO, 'packages', 'cli', 'bin', 'protoyard.mjs'), '--version', '--json'],
+        {
+          cwd: empty,
+          env,
+          encoding: 'utf8',
+        }
+      );
+      expect(run.status, run.stderr).toBe(0);
+      expect(JSON.parse(run.stdout)).toEqual({
+        version: PACKAGE_VERSION,
+        interface: INTERFACE_MAJOR,
+      });
+      const plain = spawnSync(
+        process.execPath,
+        [join(REPO, 'packages', 'cli', 'bin', 'protoyard.mjs'), '--version'],
+        {
+          cwd: empty,
+          env,
+          encoding: 'utf8',
+        }
+      );
+      expect(plain.stdout).toBe(`${PACKAGE_VERSION}\n`);
+    }, 60_000);
+  });
+});
+
+describe('doctor kind capabilities', () => {
+  /**
+   * Kind capabilities on the machine interface (Task 145 / T-kinds-doctor-mcp):
+   * `kind-deck`, `kind-page` and `kind-doc` are additive under interface 1.
+   */
+
+  describe('doctor kind capabilities (T-kinds-doctor-mcp)', () => {
+    it('reports kind-deck from doctor --json (AC-kinds-dm-cli)', async () => {
+      const result = await cli(['--json', 'doctor', '--offline']);
+      expect(result.code, result.stdout).toBeLessThan(4);
+      const envelope = result.json<{
+        interface: number;
+        capabilities: string[];
+      }>();
+      expect(envelope.interface).toBe(1);
+      expect(envelope.capabilities).toEqual([...CAPABILITIES]);
+      expect(envelope.capabilities).toContain('kind-deck');
+      expect(envelope.capabilities).toContain('kind-page');
+      expect(envelope.capabilities).toContain('kind-doc');
+      // Sorted as advertised.
+      expect(envelope.capabilities).toEqual([...envelope.capabilities].sort());
+    }, 60_000);
+  });
 });

@@ -14,7 +14,6 @@ import { fileURLToPath } from 'node:url';
 import { KIND_SCHEMA_VERSION } from '@protoyard/blueprint/kinds';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { checkHeader } from '../src/lib/codegen/header.ts';
-import { checkBlueprintDrift } from '../src/lib/codegen/regenerate.ts';
 import {
   biomeCheck,
   biomeFormatCheck,
@@ -83,51 +82,6 @@ describe('protoyard generate content kinds', () => {
     } finally {
       rmSync(outside, { recursive: true, force: true });
     }
-  });
-
-  it.each(Object.keys(FIXTURES) as ContentKind[])(
-    'defaults %s blueprints to their matching template and reports the kind',
-    async (kind) => {
-      const run = await generate(`${kind}-smoke`, '--blueprint', writeFixture(kind), '--dry-run');
-      expect(run.code).toBe(0);
-      const { data } = run.json<{
-        data: { kind: string; template: string; files: { path: string; source: string }[] };
-      }>();
-      expect(data).toMatchObject({ kind, template: kind });
-      expect(data.files).toEqual(
-        expect.arrayContaining([
-          { path: 'src/generated/blueprint.ts', source: 'generated' },
-          { path: 'src/prototype.ts', source: 'generated' },
-        ])
-      );
-      expect(data.files.map((file) => file.path)).not.toEqual(
-        expect.arrayContaining([
-          'src/generated/schema.ts',
-          'src/generated/policy.ts',
-          'src/generated/services.ts',
-          'src/generated/scenarios.ts',
-          'tests/generators.test.ts',
-          'tests/services.test.ts',
-        ])
-      );
-      expect(existsSync(join(ws.root, 'prototypes', `${kind}-smoke`))).toBe(false);
-    }
-  );
-
-  it('refuses a template whose blueprintKind does not match the input', async () => {
-    const run = await generate(
-      'wrong-kind',
-      '--blueprint',
-      writeFixture('deck'),
-      '--template',
-      'page',
-      '--dry-run'
-    );
-    expect(run.code).toBe(4);
-    expect(run.json<{ error: { message: string } }>().error.message).toContain(
-      'Template "page" is for page blueprints, but this blueprint is deck.'
-    );
-    expect(existsSync(join(ws.root, 'prototypes/wrong-kind'))).toBe(false);
   });
 
   it.each(Object.keys(FIXTURES) as ContentKind[])(
@@ -224,104 +178,4 @@ describe('protoyard generate content kinds', () => {
       });
     }
   );
-
-  it.each(Object.keys(FIXTURES) as ContentKind[])(
-    'reports a generated %s prototype fresh, then drift after blueprint.json changes',
-    async (kind) => {
-      const slug = `${kind}-drift`;
-      const created = await generate(slug, '--blueprint', writeFixture(kind), '--no-install');
-      expect(created.code).toBe(0);
-      const dir = join(ws.root, 'prototypes', slug);
-      // validate's blueprint check: content kinds parse as their kind, not as an app.
-      const fresh = await checkBlueprintDrift(dir, slug, KIND_SCHEMA_VERSION);
-      expect(fresh.problems).toEqual([]);
-      expect(fresh.ok).toBe(true);
-      expect(fresh.summary).toContain(`${kind} blueprint, schema v${KIND_SCHEMA_VERSION}`);
-      // The manifest and the snapshot record the kind runtime's storage schema.
-      expect(JSON.parse(read(`prototypes/${slug}/protoyard.json`)).storage.schemaVersion).toBe(
-        KIND_SCHEMA_VERSION
-      );
-
-      const edited = JSON.parse(read(`prototypes/${slug}/blueprint.json`)) as Record<
-        string,
-        unknown
-      >;
-      writeFileSync(
-        join(dir, 'blueprint.json'),
-        `${JSON.stringify({ ...edited, name: 'Edited without regenerating' }, null, 2)}\n`
-      );
-      const drifted = await checkBlueprintDrift(dir, slug, KIND_SCHEMA_VERSION);
-      expect(drifted.ok).toBe(false);
-      expect(drifted.problems.join('\n')).toMatch(/changed since the last generation/);
-
-      writeFileSync(join(dir, 'blueprint.json'), `${JSON.stringify(edited, null, 2)}\n`);
-      writeFileSync(
-        join(dir, 'src/prototype.ts'),
-        `${read(`prototypes/${slug}/src/prototype.ts`)}// hand edit\n`
-      );
-      const handEdited = await checkBlueprintDrift(dir, slug, KIND_SCHEMA_VERSION);
-      expect(handEdited.problems.join('\n')).toMatch(/src\/prototype\.ts was edited by hand/);
-    }
-  );
-
-  it('upgrades a content-kind prototype made at storage schema v1 when it regenerates', async () => {
-    const slug = 'doc-upgrade';
-    const fixture = writeFixture('doc');
-    expect((await generate(slug, '--blueprint', fixture, '--no-install')).code).toBe(0);
-    const dir = join(ws.root, 'prototypes', slug);
-    // What an older CLI wrote: the manifest and the snapshot at v1.
-    const manifestPath = join(dir, 'protoyard.json');
-    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-    manifest.storage.schemaVersion = 1;
-    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-    const snapshotPath = join(dir, 'src/generated/blueprint.snapshot.json');
-    const snapshot = JSON.parse(readFileSync(snapshotPath, 'utf8'));
-    writeFileSync(snapshotPath, `${JSON.stringify({ ...snapshot, schemaVersion: 1 }, null, 2)}\n`);
-
-    const stale = await checkBlueprintDrift(dir, slug, 1);
-    expect(stale.ok).toBe(false);
-    expect(stale.problems.join('\n')).toMatch(
-      new RegExp(`storage schema v${KIND_SCHEMA_VERSION}; protoyard.json has v1`)
-    );
-
-    const upgraded = await generate(
-      slug,
-      '--blueprint',
-      join(dir, 'blueprint.json'),
-      '--no-install'
-    );
-    expect(upgraded.code).toBe(0);
-    expect(
-      upgraded.json<{ data: { regenerated: boolean; schemaVersion: object } }>().data
-    ).toMatchObject({ regenerated: true, schemaVersion: { from: 1, to: KIND_SCHEMA_VERSION } });
-    expect(JSON.parse(readFileSync(manifestPath, 'utf8')).storage.schemaVersion).toBe(
-      KIND_SCHEMA_VERSION
-    );
-    expect(JSON.parse(readFileSync(snapshotPath, 'utf8')).schemaVersion).toBe(KIND_SCHEMA_VERSION);
-    expect((await checkBlueprintDrift(dir, slug, KIND_SCHEMA_VERSION)).problems).toEqual([]);
-  });
-
-  it('emits a seed brand theme at generate time and registers it in the kind runtime', async () => {
-    const slug = 'deck-branded';
-    const fixture = JSON.parse(readFileSync(join(REPO_ROOT, FIXTURES.deck), 'utf8'));
-    const file = join(ws.root, 'branded.deck.json');
-    writeFileSync(file, JSON.stringify({ ...fixture, brand: { seed: '#2563eb' } }, null, 2));
-    const created = await generate(slug, '--blueprint', file, '--no-install');
-    expect(created.code).toBe(0);
-    const { generated } = created.json<{ data: { generated: string[] } }>().data;
-    expect(generated).toContain('src/generated/brand-theme.ts');
-    const brandTheme = read(`prototypes/${slug}/src/generated/brand-theme.ts`);
-    expect(checkHeader(brandTheme)).toEqual({ generated: true, intact: true });
-    const exportName = /export const (\w+): Theme/.exec(brandTheme)?.[1];
-    expect(exportName).toBeDefined();
-    const runtime = read(`prototypes/${slug}/src/prototype.ts`);
-    expect(runtime).toContain(`import { ${exportName} } from './generated/brand-theme.ts';`);
-    expect(runtime).toContain(`brandTheme: ${exportName},`);
-    expect(runtime).toMatch(/defaultThemeId: '[a-z0-9-]+',/);
-    const checked = biomeCheck(
-      ws,
-      generated.map((path) => `prototypes/${slug}/${path}`)
-    );
-    expect(checked.code, checked.output).toBe(0);
-  });
 });

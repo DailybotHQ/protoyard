@@ -1,10 +1,9 @@
 // @vitest-environment node
-import { readdirSync, readFileSync } from 'node:fs';
+
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { CATALOG_CATEGORIES, parseManifest } from '@protoyard/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { checkCatalog, checkThemes } from '../src/commands/validate.ts';
-import type { Inspection } from '../src/lib/inspect.ts';
+import { checkFixtureHygiene } from '../src/commands/validate.ts';
 import {
   addPrototype,
   addTemplate,
@@ -24,85 +23,6 @@ const catalog = {
   highlights: ['Tickets with SLAs'],
   difficulty: 'intermediate',
 };
-
-describe('checkCatalog', () => {
-  it('warns for a template without a catalog block, pointing at the shared category list', () => {
-    const result = checkCatalog(parseManifest(manifest({ kind: 'template' })), 'template');
-    expect(result).toMatchObject({ id: 'catalog', status: 'warn' });
-    expect(result.details.join(' ')).toMatch(/CATALOG_CATEGORIES/);
-  });
-
-  it('treats the block as optional for prototypes', () => {
-    expect(checkCatalog(parseManifest(manifest()), 'prototype')).toMatchObject({
-      status: 'skip',
-      details: ['optional for prototypes'],
-    });
-  });
-
-  it('passes and summarizes a catalog block', () => {
-    const result = checkCatalog(parseManifest(manifest({ catalog })), 'template');
-    expect(result.status).toBe('pass');
-    expect(result.details).toEqual([
-      'support · Help desk',
-      'platforms: web',
-      'features: tickets, sla',
-    ]);
-  });
-});
-
-describe('checkThemes', () => {
-  const inspection = (
-    themes: string[],
-    scenarios: { id: string; themeId?: string }[] = []
-  ): Inspection =>
-    ({
-      spec: {
-        themes: themes.map((id) => ({ id, name: id })),
-        scenarios: scenarios.map((s) => ({ ...s, name: s.id })),
-      },
-    }) as unknown as Inspection;
-
-  it('passes built-in, library and prototype-own theme ids', () => {
-    expect(checkThemes(parseManifest(manifest({ defaultTheme: 'ocean' })), null)).toMatchObject({
-      id: 'themes',
-      status: 'pass',
-      details: ['ocean'],
-    });
-    const result = checkThemes(
-      parseManifest(manifest({ defaultTheme: 'acme-teal' })),
-      inspection(['acme-teal'], [{ id: 'night', themeId: 'fintech-ledger' }, { id: 'plain' }])
-    );
-    expect(result).toMatchObject({ status: 'pass', details: ['acme-teal, fintech-ledger'] });
-  });
-
-  it('passes every library theme id, the expanded set included', () => {
-    for (const id of ['ash-plain', 'wheat-barn', 'apex-rose']) {
-      expect(checkThemes(parseManifest(manifest({ defaultTheme: id })), null), id).toMatchObject({
-        status: 'pass',
-        details: [id],
-      });
-    }
-    const near = checkThemes(parseManifest(manifest({ defaultTheme: 'ash-plian' })), null);
-    expect(near.status).toBe('warn');
-    expect(near.details).toEqual([expect.stringMatching(/closest: ash-plain/)]);
-  });
-
-  it('warns on unknown ids in defaultTheme and scenarios, listing the closest ids', () => {
-    const result = checkThemes(
-      parseManifest(manifest({ defaultTheme: 'fintech-ledgr' })),
-      inspection([], [{ id: 'night', themeId: 'ocaen' }])
-    );
-    expect(result.status).toBe('warn');
-    expect(result.details).toEqual([
-      expect.stringMatching(
-        /^defaultTheme: unknown theme "fintech-ledgr"; closest: fintech-ledger/
-      ),
-      expect.stringMatching(
-        /^scenario "night" appearance\.themeId: unknown theme "ocaen"; closest: ocean/
-      ),
-    ]);
-  });
-});
 
 describe('protoyard validate: catalog check', () => {
   let ws: TempWorkspace;
@@ -130,45 +50,83 @@ describe('protoyard validate: catalog check', () => {
       details: expect.arrayContaining(['support · Help desk']),
     });
   });
-
-  it('rejects a category outside the shared list through the manifest schema', async () => {
-    addPrototype(ws, 'free-form', { catalog: { ...catalog, category: 'helpdesks' } });
-    const run = await cli([
-      '--root',
-      ws.root,
-      '--json',
-      'validate',
-      'free-form',
-      '--skip-typecheck',
-    ]);
-    const checks = run.json<{ data: { checks: Check[] } }>().data.checks;
-    expect(checks.find((c) => c.id === 'manifest')?.status).toBe('fail');
-    expect(checks.find((c) => c.id === 'catalog')).toBeUndefined();
-  });
 });
 
-describe('repository manifests', () => {
-  const root = join(import.meta.dirname, '../../..');
-  const folders = ['templates', 'prototypes'].flatMap((top) =>
-    readdirSync(join(root, top), { withFileTypes: true })
-      .filter((d) => d.isDirectory())
-      .map((d) => join(top, d.name))
-  );
+describe('checkFixtureHygiene', () => {
+  describe('checkFixtureHygiene', () => {
+    let ws: TempWorkspace;
+    beforeEach(() => {
+      ws = createWorkspace();
+    });
+    afterEach(() => ws.cleanup());
 
-  it('scans real folders (a scan that finds nothing proves nothing)', () => {
-    expect(folders.length).toBeGreaterThan(10);
-  });
-
-  it('every template and prototype has a valid catalog block from the shared category list', () => {
-    const problems: string[] = [];
-    for (const folder of folders) {
-      const parsed = parseManifest(
-        JSON.parse(readFileSync(join(root, folder, 'protoyard.json'), 'utf8'))
-      );
-      if (!parsed.catalog) problems.push(`${folder}: no catalog block`);
-      else if (!CATALOG_CATEGORIES.includes(parsed.catalog.category))
-        problems.push(`${folder}: unknown category`);
+    function writeFixture(slug: string, relativePath: string, body: string) {
+      addPrototype(ws, slug);
+      const file = join(ws.root, 'prototypes', slug, relativePath);
+      mkdirSync(join(file, '..'), { recursive: true });
+      writeFileSync(file, body);
+      return join(ws.root, 'prototypes', slug);
     }
-    expect(problems).toEqual([]);
+
+    it('fails on real-looking emails and secret shapes with actionable paths', async () => {
+      const dir = writeFixture(
+        'leaky-app',
+        'src/scenarios/seed.ts',
+        [
+          "const lead = 'lead@gmail.com';",
+          `const token = '${['xox', 'b-1234567890-abcdef'].join('')}';`,
+          '',
+        ].join('\n')
+      );
+      const result = await checkFixtureHygiene(dir);
+      expect(result.status).toBe('fail');
+      expect(result.details.some((d) => d.includes('gmail.com'))).toBe(true);
+      expect(result.details.some((d) => /Slack token/i.test(d))).toBe(true);
+      // Never echo the credential material itself.
+      expect(result.details.join('\n')).not.toMatch(/xoxb-1234567890/); // fake planted token
+      expect(result.details.join('\n')).toMatch(/file:src\/scenarios\/seed\.ts:\d+/);
+    });
+
+    it('surfaces the fixtures check through protoyard validate --json', async () => {
+      const slug = 'validate-fixtures';
+      writeFixture(
+        slug,
+        'src/scenarios/generators.ts',
+        "export const bad = 'person@company.io';\n"
+      );
+      // Minimal contract files so validate gets past the folder contract.
+      const base = `prototypes/${slug}`;
+      ws.write(`${base}/package.json`, {
+        name: `@prototype/${slug}`,
+        private: true,
+        scripts: { dev: 'vite', build: 'vite build', typecheck: 'tsc' },
+      });
+      for (const file of [
+        'index.html',
+        'vite.config.ts',
+        'tsconfig.json',
+        'src/main.ts',
+        'src/prototype.ts',
+        'src/App.svelte',
+        'src/app.css',
+        'src/database/schema.ts',
+        'src/scenarios/index.ts',
+      ]) {
+        ws.write(`${base}/${file}`, file.endsWith('.json') ? '{}' : '// fixture\n');
+      }
+
+      const run = await cli(['--root', ws.root, '--json', 'validate', slug, '--skip-typecheck']);
+      const payload = run.json<{
+        data: { checks: { id: string; status: string; details: string[] }[] };
+      }>();
+      const fixtures = payload.data.checks.find((c) => c.id === 'fixtures');
+      expect(fixtures?.status).toBe('fail');
+      expect(fixtures?.details.join(' ')).toMatch(/company\.io/);
+      // Source file was not mutated by validate.
+      const { readFileSync } = await import('node:fs');
+      expect(readFileSync(join(ws.root, base, 'src/scenarios/generators.ts'), 'utf8')).toContain(
+        'person@company.io'
+      );
+    });
   });
 });

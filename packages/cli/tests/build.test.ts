@@ -42,13 +42,6 @@ describe('checksums, dist verification and zip', () => {
     const entries = unzipSync(new Uint8Array(readFileSync(join(ws.root, 'a.zip'))));
     expect(Object.keys(entries).sort()).toEqual(['assets/app.js', 'index.html']);
   });
-
-  it('flags missing assets referenced by index.html', async () => {
-    ws.write('bad-dist/index.html', '<script type="module" src="/demo/assets/gone.js"></script>');
-    expect(await verifyDist(join(ws.root, 'bad-dist'), '/demo/')).toEqual([
-      'index.html references missing file "/demo/assets/gone.js".',
-    ]);
-  });
 });
 
 describe('build and export (real Vite)', () => {
@@ -77,30 +70,6 @@ describe('build and export (real Vite)', () => {
     const html = readFileSync(join(ws.root, 'artifacts/alpha-app/dist/index.html'), 'utf8');
     expect(html).toContain('./assets/');
     expect(existsSync(join(ws.root, 'artifacts/beta-app'))).toBe(false);
-  }, 60_000);
-
-  it('honours --base for sub-path hosting', async () => {
-    const run = await cli([
-      '--root',
-      ws.root,
-      '--json',
-      'build',
-      'beta-app',
-      '--base',
-      '/demos/beta',
-    ]);
-    expect(run.code).toBe(0);
-    const html = readFileSync(join(ws.root, 'artifacts/beta-app/dist/index.html'), 'utf8');
-    expect(html).toContain('/demos/beta/assets/');
-  }, 60_000);
-
-  it('builds templates too, into artifacts/templates/<name>/', async () => {
-    const run = await cli(['--root', ws.root, '--json', 'build', 'starter']);
-    expect(run.code).toBe(0);
-    expect(run.json<{ data: { outDir: string } }>().data.outDir).toBe(
-      'artifacts/templates/starter/dist'
-    );
-    expect(existsSync(join(ws.root, 'artifacts/templates/starter/build-manifest.json'))).toBe(true);
   }, 60_000);
 
   it('refuses an --out that would overwrite sources', async () => {

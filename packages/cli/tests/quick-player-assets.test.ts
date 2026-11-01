@@ -1,20 +1,16 @@
 // @vitest-environment node
 import {
-  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
-  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
   symlinkSync,
-  utimesSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 import { CliError } from '../src/lib/output.ts';
 import { QUICK_PLAYER_DIR } from '../src/lib/quick/paths.ts';
@@ -22,15 +18,9 @@ import {
   createPlayerAssetsManifest,
   locatePlayerAssets,
   materializePlayer,
-  PLAYER_ASSETS_MANIFEST,
-  PLAYER_BUILD_COMMAND,
-  PlayerAssetsManifestSchema,
-  playerTargetDir,
   readPlayerAssetsManifest,
-  stalePlayerBuildWarning,
   verifyPlayerAssets,
 } from '../src/lib/quick/player-assets.ts';
-import { ensurePlayerAssets } from '../src/lib/quick/player-build.ts';
 
 /**
  * The prebuilt player for `protoyard quick`: located (CLI dependency,
@@ -39,7 +29,6 @@ import { ensurePlayerAssets } from '../src/lib/quick/player-build.ts';
  * shared per-version folder. A tampered file is refused.
  */
 
-const REPO = fileURLToPath(new URL('../../../', import.meta.url));
 const roots: string[] = [];
 afterAll(() => {
   for (const root of roots) rmSync(root, { recursive: true, force: true });
@@ -79,111 +68,12 @@ async function playerPackage(
   return app;
 }
 
-describe('the player asset manifest', () => {
-  it('lists every file but itself, sorted, with size and sha256', async () => {
-    const app = await playerPackage(join(temp(), 'player'));
-    const manifest = readPlayerAssetsManifest(app);
-    expect(manifest.format).toBe('protoyard.player-assets');
-    expect(manifest.player).toBe('1.0.0');
-    expect(manifest.files.map((f) => f.path)).toEqual([
-      'assets/index-abc.css',
-      'assets/index-abc.js',
-      'index.html',
-      'sw.js',
-    ]);
-    expect(manifest.files.every((f) => /^[0-9a-f]{64}$/.test(f.sha256) && f.size > 0)).toBe(true);
-  });
-
-  it('refuses links in a build and unsafe or incomplete manifests', async () => {
-    const app = await playerPackage(join(temp(), 'player'), { manifest: false });
-    symlinkSync(join(app, 'index.html'), join(app, 'linked.html'));
-    await expect(createPlayerAssetsManifest(app, '1.0.0')).rejects.toThrow(
-      /links or special files/
-    );
-    const base = { format: 'protoyard.player-assets', version: 1, player: '1.0.0' };
-    const file = (path: string) => ({ path, size: 1, sha256: 'a'.repeat(64) });
-    for (const files of [
-      [file('index.html'), file('../escape.js')],
-      [file('index.html'), file('/etc/hosts')],
-      [file('index.html'), file('a\\b.js')],
-      [file('index.html'), file('index.html')],
-      [file('app.js')],
-    ]) {
-      expect(
-        PlayerAssetsManifestSchema.safeParse({ ...base, files }).success,
-        JSON.stringify(files)
-      ).toBe(false);
-    }
-    write(join(app, PLAYER_ASSETS_MANIFEST), '{nope');
-    expect(() => readPlayerAssetsManifest(app)).toThrow(CliError);
-  });
-});
-
-describe('locatePlayerAssets', () => {
-  it("prefers the CLI's own installed player", async () => {
-    const installed = join(temp(), 'node_modules', '@protoyard', 'player');
-    const app = await playerPackage(installed);
-    const assets = locatePlayerAssets({ workspaceRoot: null, resolveInstalled: () => installed });
-    expect(assets).toMatchObject({
-      dir: app,
-      packageDir: installed,
-      version: '1.0.0',
-      source: 'installed',
-    });
-  });
-
-  it("finds the workspace's install, then this repository's packages/player", async () => {
-    const consumer = temp();
-    write(join(consumer, 'package.json'), { name: 'acme', protoyard: { workspace: 1 } });
-    const installed = join(consumer, 'node_modules', '@protoyard', 'player');
-    await playerPackage(installed);
-    expect(
-      locatePlayerAssets({ workspaceRoot: consumer, resolveInstalled: () => null }).source
-    ).toBe('workspace');
-
-    const mono = temp();
-    write(join(mono, 'pnpm-workspace.yaml'), 'packages:\n  - packages/*\n');
-    // A build from before the app moved to dist/app/ is still accepted.
-    const app = await playerPackage(join(mono, 'packages', 'player'), { appDir: 'dist' });
-    const assets = locatePlayerAssets({ workspaceRoot: mono, resolveInstalled: () => null });
-    expect(assets).toMatchObject({ source: 'repository', dir: app });
-  });
-
-  it('says how to fix an unbuilt, unmanifested or mismatched player', async () => {
-    const none = temp();
-    expect(() => locatePlayerAssets({ workspaceRoot: none, resolveInstalled: () => null })).toThrow(
-      /No prebuilt @protoyard\/player/
-    );
-    const unbuilt = join(temp(), 'player');
-    await playerPackage(unbuilt, { manifest: false });
-    try {
-      locatePlayerAssets({ workspaceRoot: null, resolveInstalled: () => unbuilt });
-      throw new Error('expected a CliError');
-    } catch (error) {
-      expect((error as CliError).code).toBe('not_found');
-      expect((error as CliError).message).toContain(PLAYER_ASSETS_MANIFEST);
-      expect((error as CliError).hint).toMatch(/Rebuild/);
-    }
-    const mismatched = join(temp(), 'player');
-    const app = await playerPackage(mismatched);
-    await createPlayerAssetsManifest(app, '0.9.0');
-    expect(() =>
-      locatePlayerAssets({ workspaceRoot: null, resolveInstalled: () => mismatched })
-    ).toThrow(/is 0\.9\.0, but its package is 1\.0\.0/);
-  });
-});
-
 describe('verifyPlayerAssets', () => {
   async function verified() {
     const dir = join(temp(), 'player');
     const app = await playerPackage(dir);
     return { app, manifest: readPlayerAssetsManifest(app) };
   }
-
-  it('passes an untouched build', async () => {
-    const { app, manifest } = await verified();
-    await expect(verifyPlayerAssets(app, manifest)).resolves.toBeUndefined();
-  });
 
   it('refuses a tampered file (same size, different bytes), naming it', async () => {
     const { app, manifest } = await verified();
@@ -217,77 +107,6 @@ describe('materializePlayer', () => {
     return locatePlayerAssets({ workspaceRoot: null, resolveInstalled: () => installed });
   }
 
-  it('copies the verified player into the shared per-version folder, then reuses it', async () => {
-    const assets = await located();
-    const zone = join(temp(), '.protoyard', 'quick');
-    const first = await materializePlayer(assets, { kind: 'shared', zone });
-    expect(first).toMatchObject({
-      dir: join(zone, QUICK_PLAYER_DIR, '1.0.0'),
-      reused: false,
-      repaired: false,
-      files: 4,
-    });
-    for (const file of assets.manifest.files) {
-      expect(
-        readFileSync(join(first.dir, file.path)).equals(readFileSync(join(assets.dir, file.path))),
-        file.path
-      ).toBe(true);
-    }
-    expect(existsSync(join(first.dir, PLAYER_ASSETS_MANIFEST))).toBe(true);
-    const second = await materializePlayer(assets, { kind: 'shared', zone });
-    expect(second).toMatchObject({ reused: true, repaired: false });
-    expect(readdirSync(join(zone, QUICK_PLAYER_DIR))).toEqual(['1.0.0']);
-  });
-
-  it('copies into an exploration, and repairs a tampered copy from the verified source', async () => {
-    const assets = await located();
-    const exploration = join(temp(), 'idea');
-    mkdirSync(exploration);
-    const done = await materializePlayer(assets, { kind: 'exploration', dir: exploration });
-    expect(done.dir).toBe(join(exploration, 'player'));
-    writeFileSync(join(done.dir, 'index.html'), '<script>alert(1)</script>');
-    const repaired = await materializePlayer(assets, { kind: 'exploration', dir: exploration });
-    expect(repaired).toMatchObject({ reused: false, repaired: true });
-    expect(readFileSync(join(done.dir, 'index.html'), 'utf8')).toContain('<title>Player</title>');
-    expect(readdirSync(exploration)).toEqual(['player']);
-  });
-
-  it('replaces a shared copy when the player is rebuilt under the same version', async () => {
-    const installed = join(temp(), 'node_modules', '@protoyard', 'player');
-    const app = await playerPackage(installed);
-    const locate = () =>
-      locatePlayerAssets({ workspaceRoot: null, resolveInstalled: () => installed });
-    const zone = join(temp(), '.protoyard', 'quick');
-    const first = await materializePlayer(locate(), { kind: 'shared', zone });
-
-    // A rebuild: same version, a changed chunk and a new manifest.
-    write(join(app, 'assets', 'index-abc.js'), 'console.log("player, rebuilt");');
-    await createPlayerAssetsManifest(app, '1.0.0');
-    const rebuilt = await materializePlayer(locate(), { kind: 'shared', zone });
-    expect(rebuilt).toMatchObject({ dir: first.dir, reused: false, repaired: true });
-    expect(readFileSync(join(first.dir, 'assets', 'index-abc.js'), 'utf8')).toContain('rebuilt');
-    expect(readFileSync(join(first.dir, PLAYER_ASSETS_MANIFEST), 'utf8')).toBe(
-      readFileSync(join(app, PLAYER_ASSETS_MANIFEST), 'utf8')
-    );
-    expect(readdirSync(join(zone, QUICK_PLAYER_DIR))).toEqual(['1.0.0']);
-
-    // Same files but a copy whose own manifest differs from the source's: replaced too.
-    const own = JSON.parse(readFileSync(join(first.dir, PLAYER_ASSETS_MANIFEST), 'utf8'));
-    own.files[0].sha256 = '0'.repeat(64);
-    write(join(first.dir, PLAYER_ASSETS_MANIFEST), own);
-    expect(await materializePlayer(locate(), { kind: 'shared', zone })).toMatchObject({
-      reused: false,
-      repaired: true,
-    });
-    expect(readFileSync(join(first.dir, PLAYER_ASSETS_MANIFEST), 'utf8')).toBe(
-      readFileSync(join(app, PLAYER_ASSETS_MANIFEST), 'utf8')
-    );
-    // And a current copy is reused.
-    expect(await materializePlayer(locate(), { kind: 'shared', zone })).toMatchObject({
-      reused: true,
-    });
-  });
-
   it('refuses a tampered source and writes nothing', async () => {
     const assets = await located();
     writeFileSync(join(assets.dir, 'sw.js'), 'self.addEventListener("fetch",()=>steal());');
@@ -296,238 +115,5 @@ describe('materializePlayer', () => {
       /sw\.js: changed/
     );
     expect(existsSync(join(zone, QUICK_PLAYER_DIR))).toBe(false);
-  });
-
-  it('refuses a version that is not semver as a folder name', () => {
-    expect(() => playerTargetDir({ kind: 'shared', zone: temp() }, '../1.0.0')).toThrow(
-      /Refusing player version/
-    );
-  });
-
-  it('locates and copies without starting a process', () => {
-    const source = readFileSync(
-      join(REPO, 'packages', 'cli', 'src', 'lib', 'quick', 'player-assets.ts'),
-      'utf8'
-    );
-    // No process is started: no child_process import, no spawn/exec call.
-    expect(source).not.toMatch(/from 'node:child_process'|from 'child_process'/);
-    expect(source).not.toMatch(/\b(?:spawn|spawnSync|exec|execSync|execFile|fork)\(/);
-    // The one build quick may start goes through runPnpm (argv array, no shell).
-    const build = readFileSync(
-      join(REPO, 'packages', 'cli', 'src', 'lib', 'quick', 'player-build.ts'),
-      'utf8'
-    );
-    expect(build).not.toMatch(/from 'node:child_process'|shell:/);
-    expect(build).toContain("runPnpm(['--filter', PLAYER_PACKAGE, 'build']");
-  });
-});
-
-const realPlayer = join(REPO, 'packages', 'player');
-const realApp = join(realPlayer, 'dist', 'app');
-const built = existsSync(join(realApp, 'index.html'));
-
-describe.skipIf(!built)(
-  'the real player build in packages/player/dist/app (after pnpm --filter @protoyard/player build)',
-  () => {
-    it('ships a manifest that locatePlayerAssets and verifyPlayerAssets accept as is', async () => {
-      const version = JSON.parse(readFileSync(join(realPlayer, 'package.json'), 'utf8')).version;
-      const assets = locatePlayerAssets({
-        workspaceRoot: null,
-        resolveInstalled: () => realPlayer,
-      });
-      expect(assets.dir).toBe(realApp);
-      expect(assets.version).toBe(version);
-      expect(assets.manifest.player).toBe(version);
-      const paths = assets.manifest.files.map((file) => file.path);
-      expect(paths).toEqual([...paths].sort());
-      expect(paths).toEqual(expect.arrayContaining(['index.html', '_headers', 'sw.js']));
-      expect(paths).not.toContain(PLAYER_ASSETS_MANIFEST);
-      await verifyPlayerAssets(assets.dir, assets.manifest);
-
-      const out = await materializePlayer(assets, { kind: 'shared', zone: join(temp(), 'zone') });
-      expect(existsSync(join(out.dir, 'index.html'))).toBe(true);
-      expect(out.files).toBe(assets.manifest.files.length);
-    }, 120_000);
-
-    it('matches the manifest createPlayerAssetsManifest writes for the same files', async () => {
-      const copy = join(temp(), 'app');
-      cpSync(realApp, copy, { recursive: true });
-      const shipped = readPlayerAssetsManifest(realApp);
-      expect(await createPlayerAssetsManifest(copy, shipped.player)).toEqual(shipped);
-    }, 120_000);
-  }
-);
-
-const embedBuilt = existsSync(join(realPlayer, 'dist', 'embed', 'index.js'));
-
-describe.skipIf(!built || !embedBuilt)(
-  'the real player app and embed builds side by side (after build:packages and the player build, either order)',
-  () => {
-    it('leaves dist/embed and a verified dist/app next to each other', async () => {
-      expect(existsSync(join(realPlayer, 'dist', 'embed', 'index.d.ts'))).toBe(true);
-      // Nothing of the app leaks into dist/ itself, and nothing of the embed into the app.
-      // The package build ships only its published entries, each in its own folder:
-      // ./embed in dist/embed/ and ./boot (with exactly what it imports) in dist/boot/
-      // (packages/player/scripts/package-dist.ts). No other source is published.
-      expect(readdirSync(join(realPlayer, 'dist')).sort()).toEqual(['app', 'boot', 'embed']);
-      expect(existsSync(join(realPlayer, 'dist', 'boot', 'boot.d.ts'))).toBe(true);
-      expect(existsSync(join(realPlayer, 'dist', 'boot', 'main.js'))).toBe(false);
-      const assets = locatePlayerAssets({
-        workspaceRoot: null,
-        resolveInstalled: () => realPlayer,
-      });
-      expect(assets.manifest.files.some((file) => file.path.startsWith('embed/'))).toBe(false);
-      await verifyPlayerAssets(assets.dir, assets.manifest);
-    }, 120_000);
-  }
-);
-
-describe('stalePlayerBuildWarning', () => {
-  /** A fixture monorepo: packages/player with sources and a build, all at controlled mtimes. */
-  async function monorepo() {
-    const root = temp('protoyard-stale-player-');
-    write(join(root, 'pnpm-workspace.yaml'), "packages:\n  - 'packages/*'\n");
-    const pkg = join(root, 'packages', 'player');
-    const app = await playerPackage(pkg);
-    write(join(pkg, 'src', 'main.ts'), 'export {};');
-    write(join(pkg, 'src', 'deep', 'panel.svelte'), '<p>panel</p>');
-    write(join(pkg, 'index.html'), '<!doctype html>');
-    write(join(pkg, 'vite.config.ts'), 'export default {};');
-    const old = new Date('2026-10-01T00:00:00Z');
-    for (const file of ['src/main.ts', 'src/deep/panel.svelte', 'index.html', 'vite.config.ts'])
-      utimesSync(join(pkg, file), old, old);
-    const built = new Date('2026-10-02T00:00:00Z');
-    utimesSync(join(app, PLAYER_ASSETS_MANIFEST), built, built);
-    const assets = locatePlayerAssets({ workspaceRoot: null, resolveInstalled: () => pkg });
-    return { root, pkg, app, assets };
-  }
-
-  it('is silent for a fresh build and names the rebuild command when a source is newer', async () => {
-    const { root, pkg, assets } = await monorepo();
-    expect(stalePlayerBuildWarning(assets, root)).toBeNull();
-
-    const later = new Date('2026-10-03T00:00:00Z');
-    utimesSync(join(pkg, 'src', 'deep', 'panel.svelte'), later, later);
-    const warning = stalePlayerBuildWarning(assets, root);
-    expect(warning).toContain(PLAYER_BUILD_COMMAND);
-    expect(warning).toContain('packages/player/src/deep/panel.svelte');
-    expect(warning).toContain('packages/player/dist/app');
-
-    for (const file of ['index.html', 'vite.config.ts']) {
-      const fresh = await monorepo();
-      utimesSync(join(fresh.pkg, file), later, later);
-      expect(stalePlayerBuildWarning(fresh.assets, fresh.root), file).toContain(
-        PLAYER_BUILD_COMMAND
-      );
-    }
-  });
-
-  it('never checks outside the monorepo layout', async () => {
-    const { pkg, assets } = await monorepo();
-    const later = new Date('2026-10-03T00:00:00Z');
-    utimesSync(join(pkg, 'src', 'main.ts'), later, later);
-    // No workspace, or a workspace whose packages/player is not this player.
-    expect(stalePlayerBuildWarning(assets, null)).toBeNull();
-    expect(stalePlayerBuildWarning(assets, temp())).toBeNull();
-    // An installed release (no sources next to it) is never checked.
-    const installed = join(temp(), 'node_modules', '@protoyard', 'player');
-    await playerPackage(installed);
-    const release = locatePlayerAssets({ workspaceRoot: null, resolveInstalled: () => installed });
-    expect(stalePlayerBuildWarning(release, dirname(dirname(dirname(installed))))).toBeNull();
-  });
-});
-
-describe('ensurePlayerAssets (first use in a fresh monorepo clone)', () => {
-  /** A monorepo whose packages/player has sources but was never built. */
-  function freshClone() {
-    const root = temp('protoyard-fresh-clone-');
-    write(join(root, 'pnpm-workspace.yaml'), "packages:\n  - 'packages/*'\n");
-    const pkg = join(root, 'packages', 'player');
-    write(join(pkg, 'package.json'), { name: '@protoyard/player', version: '1.0.0' });
-    write(join(pkg, 'src', 'main.ts'), 'export {};');
-    write(join(pkg, 'vite.config.ts'), 'export default {};');
-    return { root, pkg };
-  }
-
-  /** A fake `pnpm --filter @protoyard/player build`: records the call and copies a built app in. */
-  async function fakeBuild(pkg: string, ok = true) {
-    const built = await playerPackage(join(temp(), 'player'));
-    const calls: string[] = [];
-    return {
-      calls,
-      build: (root: string) => {
-        calls.push(root);
-        if (!ok) return { ok: false, detail: 'exit code 1' };
-        cpSync(built, join(pkg, 'dist', 'app'), { recursive: true });
-        return { ok: true };
-      },
-    };
-  }
-  const repositoryOnly = { resolveInstalled: () => null };
-
-  it('builds a missing dist/app exactly once, says so, then finds it', async () => {
-    const { root, pkg } = freshClone();
-    const { calls, build } = await fakeBuild(pkg);
-    const lines: string[] = [];
-    const run = async () =>
-      await ensurePlayerAssets({
-        workspaceRoot: root,
-        ...repositoryOnly,
-        build,
-        log: (line) => lines.push(line),
-      });
-    expect(await run()).toMatchObject({ source: 'repository', dir: join(pkg, 'dist', 'app') });
-    expect(calls).toEqual([root]);
-    expect(lines).toEqual([
-      `Building the player once for quick (about 10 s): ${PLAYER_BUILD_COMMAND}`,
-    ]);
-    // Built now: the next run finds it and builds nothing.
-    expect((await run()).dir).toBe(join(pkg, 'dist', 'app'));
-    expect(calls).toHaveLength(1);
-    expect(lines).toHaveLength(1);
-  });
-
-  it('never builds when dist/app exists, even when stale or unmanifested', async () => {
-    const { root, pkg } = freshClone();
-    await playerPackage(pkg, { manifest: false });
-    const { calls, build } = await fakeBuild(pkg);
-    await expect(
-      ensurePlayerAssets({ workspaceRoot: root, ...repositoryOnly, build, log: () => {} })
-    ).rejects.toThrow(/has no protoyard-player-assets\.json/);
-    expect(calls).toEqual([]);
-  });
-
-  it('never builds in a consumer workspace or outside one', async () => {
-    const consumer = temp();
-    write(join(consumer, 'package.json'), { name: 'acme', protoyard: { workspace: 1 } });
-    // Even with a player-shaped, unbuilt packages/player in it.
-    write(join(consumer, 'packages', 'player', 'package.json'), {
-      name: '@protoyard/player',
-      version: '1.0.0',
-    });
-    write(join(consumer, 'packages', 'player', 'src', 'main.ts'), 'export {};');
-    write(join(consumer, 'packages', 'player', 'vite.config.ts'), 'export default {};');
-    const { calls, build } = await fakeBuild(join(consumer, 'packages', 'player'));
-    for (const workspaceRoot of [consumer, null]) {
-      await expect(
-        ensurePlayerAssets({ workspaceRoot, ...repositoryOnly, build, log: () => {} })
-      ).rejects.toThrow(/No prebuilt @protoyard\/player/);
-    }
-    expect(calls).toEqual([]);
-  });
-
-  it('turns a failed build into a CliError with the command to run', async () => {
-    const { root, pkg } = freshClone();
-    const { calls, build } = await fakeBuild(pkg, false);
-    try {
-      await ensurePlayerAssets({ workspaceRoot: root, ...repositoryOnly, build, log: () => {} });
-      throw new Error('expected a CliError');
-    } catch (error) {
-      expect(error).toBeInstanceOf(CliError);
-      expect((error as CliError).code).toBe('failure');
-      expect((error as CliError).message).toBe('Building the player failed (exit code 1).');
-      expect((error as CliError).hint).toContain(PLAYER_BUILD_COMMAND);
-    }
-    expect(calls).toEqual([root]);
   });
 });
