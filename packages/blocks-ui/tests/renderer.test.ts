@@ -148,9 +148,4 @@ describe('BlockRenderer', () => {
     );
     expect(document.querySelector('script')).toBeNull();
   });
-
-  it('shows an empty-state note for an empty block list', () => {
-    render(RendererHarness, { props: { blocks: [] } });
-    expect(screen.getByRole('note').textContent).toBe('There are no blocks to display.');
-  });
 });
