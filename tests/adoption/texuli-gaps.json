@@ -431,18 +431,18 @@
   },
   {
     "id": "G125",
-    "status": "open",
-    "summary": "@texuli/tokens has no ids-only entry for the whole library (port + expand), so a host that validates ids on its boot path mirrors the 140 expanded ids"
+    "status": "fixed",
+    "summary": "@texuli/tokens has no ids-only entry for the whole library (port + expand), so a host that validates ids on its boot path mirrors the 140 expanded ids. Fixed in Texuli 0.11.0: @texuli/tokens/library-ids; @protoyard/themes reads its id lists from it"
   },
   {
     "id": "G126",
-    "status": "open",
-    "summary": "@texuli/tokens/library-expand metadata cuts descriptions at 48 characters, mid-sentence"
+    "status": "fixed",
+    "summary": "@texuli/tokens/library-expand metadata cuts descriptions at 48 characters, mid-sentence. Fixed in Texuli 0.11.0: complete descriptions"
   },
   {
     "id": "G127",
-    "status": "open",
-    "summary": "@texuli/slides stage loadDeckLibraryTheme always reaches the whole expanded theme set, even when the host passes a resolved theme"
+    "status": "fixed",
+    "summary": "@texuli/slides stage loadDeckLibraryTheme always reaches the whole expanded theme set, even when the host passes a resolved theme. Fixed in Texuli 0.11.0: DeckStageCore and DeckPrintViewCore have no default library loaders; DeckApp injects its own loadTheme"
   },
   {
     "id": "G128",
@@ -456,7 +456,7 @@
   },
   {
     "id": "G130",
-    "status": "open",
-    "summary": "@texuli/slides stage design-system resolver (@texuli/tokens/design-system loadLibraryBase) imports library-expand/registry.js directly, so every deck build reaches all 146 expanded theme modules, even with no texuli: design-system ref"
+    "status": "fixed",
+    "summary": "@texuli/slides stage design-system resolver (@texuli/tokens/design-system loadLibraryBase) imports library-expand/registry.js directly, so every deck build reaches all 146 expanded theme modules, even with no texuli: design-system ref. Fixed in Texuli 0.11.0 (with G127): a stage-core host reaches the theme library only through the loaders it injects"
   }
 ]

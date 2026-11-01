@@ -123,9 +123,9 @@ export const SINGLE_FILE_APP_EXCLUDED_MODULES: readonly RegExp[] = [
 
 /**
  * Texuli's expanded theme set entry (`@texuli/tokens/library-expand`) and its
- * registry, as Vite manifest keys. Texuli 0.10's deck design-system resolver
- * (`@texuli/tokens/design-system` `loadLibraryBase`, reached from the slides
- * stage) imports the registry directly, not through the entry (gap G130).
+ * registry, as Vite manifest keys. The registry is matched too: Texuli 0.10's
+ * deck design-system resolver imported it directly (gap G130, fixed in 0.11.0
+ * for stage-core hosts like DeckApp); other hosts of it may still do so.
  */
 const EXPANDED_LIBRARY_ENTRY =
   /[\\/]@?texuli[\\/](?:packages[\\/])?tokens[\\/](?:dist|src)[\\/]library-expand[\\/](?:index|registry)\.(?:js|ts)$/;
