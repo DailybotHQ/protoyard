@@ -5,8 +5,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { bindAppearance } from '../../renderer-svelte/src/appearance.ts';
 import { createPrototypeRuntime, type ProtoyardRuntime } from '../../runtime/src/index.ts';
 import { createTasksDefinition } from '../../runtime/tests/fixtures/tasks-prototype.ts';
-import { BUILTIN_THEMES, hasDesignSystemPainter } from '../../themes/src/index.ts';
-import { forgetDesignSystemTheme } from '../../themes/src/texuli.ts';
+import {
+  BUILTIN_THEMES,
+  forgetDesignSystemTheme,
+  hasDesignSystemPainter,
+} from '../../themes/src/index.ts';
 import {
   readStoredDesignSystems,
   restoreDesignSystems,

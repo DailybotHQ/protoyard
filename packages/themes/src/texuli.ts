@@ -10,24 +10,6 @@ import {
 import { contrastRatio, hoverFill, linkStates } from './contrast.ts';
 import { SHARED_PALETTE_ROLES } from './from-texuli.ts';
 
-export {
-  compileDesignSystemDocument,
-  createDesignSystem,
-  type DesignSystem,
-  type DesignSystemCompileResult,
-  type DesignSystemDocumentResult,
-  type DesignSystemExportFormat,
-  type DesignSystemInput,
-  defineDesignSystemTheme,
-  designSystemBrief,
-  designSystemContrast,
-  designSystemFromTheme,
-  designSystemTheme,
-  exportDesignSystem,
-  forgetDesignSystemTheme,
-  type ShippedDesignSystem,
-  shipDesignSystem,
-} from './design-system.ts';
 export { fromTexuliTheme, SHARED_PALETTE_ROLES } from './from-texuli.ts';
 export {
   disableTexuliAppearance,

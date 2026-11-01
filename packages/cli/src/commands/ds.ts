@@ -1,8 +1,8 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { PrototypeManifestSchema } from '@protoyard/core';
-import { BUILTIN_THEMES, findLibraryThemeMeta, loadLibraryTheme } from '@protoyard/themes';
 import {
+  BUILTIN_THEMES,
   compileDesignSystemDocument,
   createDesignSystem,
   type DesignSystem,
@@ -11,7 +11,9 @@ import {
   designSystemContrast,
   designSystemFromTheme,
   exportDesignSystem,
-} from '@protoyard/themes/texuli';
+  findLibraryThemeMeta,
+  loadLibraryTheme,
+} from '@protoyard/themes';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { CliError } from '../lib/output.ts';

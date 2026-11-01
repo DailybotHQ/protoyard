@@ -1,5 +1,9 @@
 import type { PrototypeRuntime, Theme } from '@protoyard/core';
-import type { DesignSystem } from '@protoyard/themes/texuli';
+import {
+  compileDesignSystemDocument,
+  type DesignSystem,
+  defineDesignSystemTheme,
+} from '@protoyard/themes';
 
 /**
  * Design systems made in Theme Studio, per prototype (its storage namespace)
@@ -93,9 +97,6 @@ export async function restoreDesignSystems(runtime: PrototypeRuntime): Promise<s
   const ids = Object.keys(documents);
   if (ids.length === 0) return [];
   const saved = savedThemeIds(runtime);
-  const { compileDesignSystemDocument, defineDesignSystemTheme } = await import(
-    '@protoyard/themes/texuli'
-  );
   const restored: string[] = [];
   for (const id of ids) {
     if (!saved.has(id)) {

@@ -3,21 +3,19 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   applyAppearance,
   clearAppearance,
-  hasDesignSystemPainter,
-  oceanTheme,
-  violetTheme,
-} from '../src/index.ts';
-import { loadAllLibraryThemes, THEME_LIBRARY_META } from '../src/library/index.ts';
-import { BUILTIN_THEMES } from '../src/presets.ts';
-import {
   compileDesignSystemDocument,
   createDesignSystem,
   defineDesignSystemTheme,
   designSystemBrief,
   designSystemFromTheme,
   forgetDesignSystemTheme,
+  hasDesignSystemPainter,
+  oceanTheme,
   type ShippedDesignSystem,
-} from '../src/texuli.ts';
+  violetTheme,
+} from '../src/index.ts';
+import { loadAllLibraryThemes, THEME_LIBRARY_META } from '../src/library/index.ts';
+import { BUILTIN_THEMES } from '../src/presets.ts';
 
 const HARBOR = {
   id: 'harbor',

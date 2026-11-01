@@ -7,6 +7,7 @@ import type {
 } from '@texuli/tokens/design-system/compile-core';
 import type { DesignSystem, DesignSystemImportWarning } from '@texuli/tokens/design-system/import';
 import { getTheme, type ResolvedMode, registerDesignSystemPainter } from './apply.ts';
+import { toTexuliTheme } from './texuli.ts';
 
 /**
  * Design systems (PLAN_008 T-design-systems): Texuli's design-system document
@@ -170,10 +171,9 @@ export async function designSystemFromTheme(
   theme: Theme,
   options: { id?: string; name?: string } = {}
 ): Promise<{ document: DesignSystem; losses: FromThemeLoss[] }> {
-  const [{ compileDesignSystem, fromThemeWithReport }, { toTexuliTheme }] = await Promise.all([
-    import('@texuli/tokens/design-system/compile-core'),
-    import('./texuli.ts'),
-  ]);
+  const { compileDesignSystem, fromThemeWithReport } = await import(
+    '@texuli/tokens/design-system/compile-core'
+  );
   const texuliTheme = toTexuliTheme(theme);
   const report = fromThemeWithReport(texuliTheme, { id: options.id ?? theme.id });
   const document = structuredClone(report.document) as DesignSystem & {
@@ -279,8 +279,6 @@ export function shipDesignSystem(compiled: CompiledDesignSystem): ShippedDesignS
   };
 }
 
-const PALETTE_KEYS = Object.keys(getTheme(undefined).light) as (keyof ThemePalette)[];
-
 /**
  * The Protoyard theme a compiled design system paints as: every palette role
  * from the compiled `--tx-*` variable of the same name, the fonts, radius and
@@ -288,12 +286,14 @@ const PALETTE_KEYS = Object.keys(getTheme(undefined).light) as (keyof ThemePalet
  * paints for it. Roles the compiler does not emit keep the default theme's.
  */
 export function designSystemTheme(compiled: ShippedDesignSystem): Theme {
+  // Inside the function: a module-level call would keep this module in every bundle.
   const fallback = getTheme(undefined);
+  const keys = Object.keys(fallback.light) as (keyof ThemePalette)[];
   const varsOf = (mode: ResolvedMode) => compiled.vars[pickDesignSystemMode(compiled, mode)] ?? {};
   const palette = (mode: ResolvedMode): ThemePalette => {
     const vars = varsOf(mode) as Record<string, string>;
     return Object.fromEntries(
-      PALETTE_KEYS.map((key) => [key, vars[tokenToCssVar(key)] ?? fallback[mode][key]])
+      keys.map((key) => [key, vars[tokenToCssVar(key)] ?? fallback[mode][key]])
     ) as ThemePalette;
   };
   const light = varsOf('light') as Record<string, string>;

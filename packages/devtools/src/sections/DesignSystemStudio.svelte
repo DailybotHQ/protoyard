@@ -1,6 +1,5 @@
 <script lang="ts">
 import type { Theme, ThemeInput } from '@protoyard/core';
-import { getTheme } from '@protoyard/themes';
 import {
   compileDesignSystemDocument,
   createDesignSystem,
@@ -10,7 +9,8 @@ import {
   defineDesignSystemTheme,
   designSystemContrast,
   designSystemFromTheme,
-} from '@protoyard/themes/texuli';
+  getTheme,
+} from '@protoyard/themes';
 import { Input, Textarea } from 'texuli/input';
 import { storeDesignSystem } from '../design-systems.ts';
 import Btn from '../primitives/Btn.svelte';
