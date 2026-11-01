@@ -51,6 +51,7 @@ import {
 import { rgbToOklch } from '../src/oklch.ts';
 import { NEUTRAL_FAMILIES } from '../src/palette.ts';
 import { BUILTIN_THEMES } from '../src/presets.ts';
+import { radiusLength } from '../src/radius.ts';
 import { SHARED_PALETTE_ROLES } from '../src/texuli.ts';
 import { LIBRARY_THEME_DEFINITIONS } from './fixtures/library-definitions.ts';
 
@@ -92,11 +93,37 @@ describe('the library comes from @texuli/tokens', () => {
     expect(LIBRARY_THEME_DEFINITIONS.map((definition) => definition.id)).toEqual(
       TEXULI_PORTED_META.map((meta) => meta.id)
     );
+    // Protoyard's last copy wrote velvet-shop's square radius as `'0'` and Texuli's
+    // port writes `'0px'` (G128, fixed in 0.11.2): compare radii as lengths.
+    const asLength = <T extends { radius?: string }>(definition: T): T =>
+      definition.radius === undefined
+        ? definition
+        : { ...definition, radius: radiusLength(definition.radius) };
     for (const definition of LIBRARY_THEME_DEFINITIONS) {
-      expect(await loadTexuliPortedDefinition(definition.id), definition.id).toEqual(definition);
-      expect(await loadLibraryThemeDefinition(definition.id), definition.id).toEqual(definition);
+      expect(asLength(await loadTexuliPortedDefinition(definition.id)), definition.id).toEqual(
+        asLength(definition)
+      );
+      expect(asLength(await loadLibraryThemeDefinition(definition.id)), definition.id).toEqual(
+        asLength(definition)
+      );
     }
     expect(THEME_LIBRARY_META).toBe(TEXULI_PORTED_META);
+  });
+
+  // Texuli gap G128, fixed in 0.11.2: a square theme's radius is a length, so
+  // `calc(var(--tx-radius) + 4px)` stays valid.
+  it('ports a square theme radius as a CSS length (G128)', async () => {
+    for (const id of ['brutalist-block', 'velvet-shop']) {
+      expect((await loadTexuliPortedDefinition(id)).radius, id).toBe('0px');
+    }
+  });
+
+  it('writes a unitless zero radius as a length so the radius scale stays valid', () => {
+    expect(radiusLength('0')).toBe('0px');
+    expect(radiusLength('0.0')).toBe('0px');
+    expect(radiusLength('0px')).toBe('0px');
+    expect(radiusLength('0.625rem')).toBe('0.625rem');
+    expect(radiusLength('10px')).toBe('10px');
   });
 
   it('keeps the boot-path id lists equal, in order, to the catalog and expanded set Texuli ships', () => {

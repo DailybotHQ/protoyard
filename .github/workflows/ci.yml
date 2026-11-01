@@ -132,6 +132,9 @@ jobs:
         run: pnpm test:e2e
         env:
           PROTOYARD_E2E_SHOWCASE: '1'
+          # A DevTools build of one prototype, so the Theme Studio and design-system
+          # specs run instead of skipping.
+          PROTOYARD_E2E_DEVTOOLS_PROTOTYPES: mobile-banking-demo
       - name: Upload the Playwright report
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

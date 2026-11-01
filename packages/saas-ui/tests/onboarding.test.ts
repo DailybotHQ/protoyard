@@ -118,11 +118,22 @@ afterEach(() => {
   location.hash = '';
 });
 
-const activeStep = () => screen.getByRole('region', { name: /^Step \d of 5/ });
+/**
+ * "Step 3 of 5: Invite teammates": the Texuli form shows that step's heading,
+ * and its panel is the third of five (the last one is the review).
+ */
 const expectStep = (label: string) =>
-  waitFor(() => expect(activeStep().getAttribute('aria-label')).toBe(label));
+  waitFor(() => {
+    const [, position, total, title] = /^Step (\d+) of (\d+): (.+)$/.exec(label) ?? [];
+    const panel = document.querySelector('[data-py-saas-form="onboarding"] .tx-forms__step');
+    expect(panel?.querySelector('.tx-forms__step-title')?.textContent).toBe(title);
+    expect(panel?.getAttribute('data-step')).toBe(
+      position === total ? 'review' : `step-${Number(position) - 1}`
+    );
+  });
 const next = () => fireEvent.click(screen.getByRole('button', { name: /^(Next|Finish setup)/ }));
-const field = (label: string) => screen.getByLabelText(new RegExp(`^${label}`));
+const field = (label: string) =>
+  screen.getByLabelText(new RegExp(`^${label}`), { selector: 'input, textarea, button' });
 const type = (label: string, value: string) => fireEvent.input(field(label), { target: { value } });
 
 describe('onboarding wizard screen', () => {
@@ -160,7 +171,8 @@ describe('onboarding wizard screen', () => {
     // Field errors come back inline and nothing moves.
     await type('Full name', 'O');
     await next();
-    expect(await screen.findByText('Enter your full name')).toBeTruthy();
+    // Inline under the field and in the Texuli error summary.
+    expect((await screen.findAllByText('Enter your full name')).length).toBeGreaterThan(0);
     await expectStep('Step 1 of 5: Profile');
 
     await type('Full name', 'Olivia Hart');
@@ -179,7 +191,9 @@ describe('onboarding wizard screen', () => {
 
     await type('Email addresses', 'real.person@gmail.com');
     await next();
-    expect(await screen.findByText('Use fictional addresses at example.com')).toBeTruthy();
+    expect(
+      (await screen.findAllByText('Use fictional addresses at example.com')).length
+    ).toBeGreaterThan(0);
     await type('Email addresses', 'sam.lee@example.com, kai@example.com');
     await next();
     await expectStep('Step 4 of 5: Preferences');
@@ -216,6 +230,12 @@ describe('onboarding wizard screen', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
     await expectStep('Step 4 of 5: Preferences');
+    // The skip shows its pending state until the move settles, as a person would see.
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Skip for now' }).getAttribute('aria-busy')
+      ).toBeNull()
+    );
     await fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
     await expectStep('Step 5 of 5: Done');
     expect(screen.getAllByText('Skipped')).toHaveLength(2);
@@ -243,16 +263,12 @@ describe('onboarding wizard screen', () => {
   it('renders a prototype step from its snippet and validates it', async () => {
     const runtime = (await harness.boot('not-started')) as PrototypeRuntime;
     render(CustomStepHarness, { runtime });
-    await waitFor(() =>
-      expect(screen.getByRole('region', { name: 'Step 1 of 2: Your goal' })).toBeTruthy()
-    );
+    await expectStep('Step 1 of 2: Your goal');
     await fireEvent.click(screen.getByRole('button', { name: /^Next/ }));
     expect(await screen.findByTestId('goal-error')).toBeTruthy();
     await fireEvent.click(screen.getByLabelText(/Ship faster/));
     await fireEvent.click(screen.getByRole('button', { name: /^Next/ }));
-    await waitFor(() =>
-      expect(screen.getByRole('region', { name: 'Step 2 of 2: Done' })).toBeTruthy()
-    );
+    await expectStep('Step 2 of 2: Done');
     const saved = await createOnboarding(runtime as never, {
       steps: [{ id: 'goal', label: 'Your goal' }],
     }).state();
@@ -272,7 +288,7 @@ describe('onboarding wizard screen', () => {
     await type('Full name', 'Olivia Hart');
     runtime.environment.set({ network: 'offline' });
     await next();
-    expect(await screen.findByText(/offline/i)).toBeTruthy();
+    expect((await screen.findAllByText(/offline/i)).length).toBeGreaterThan(0);
     expect(calls).toEqual([]);
 
     runtime.environment.set({ network: 'online' });

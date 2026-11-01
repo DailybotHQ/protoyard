@@ -1,7 +1,7 @@
 ---
 name: texuli-build-ui
 description: Turn an idea into a Texuli interface offline — read the catalog (MCP or catalog.json), pick components by useWhen/dontUseWhen, compose, validate, render, iterate; recipes for dashboard, landing, form, slide, media story.
-version: "0.3.4"
+version: "0.3.12"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
@@ -172,8 +172,8 @@ Full checklists: [`references/recipes.md`](references/recipes.md).
 | Form flow | `texuli/input`, field, button, stepper; forms manifests |
 | Slide / deck | Deck v2 from JSON or Markdown: `@texuli/deck` (model, markdown, authoring, templates; in development, on npm from `0.4.0`) presented by `@texuli/slides/stage` `DeckStage`, exported by `@texuli/slides/export`; 21 layout ids, `deck` CLI and MCP tool: [`references/decks.md`](references/decks.md). `@texuli/slides` `0.3.0` is the v1 model |
 | Media story | [`../media/SKILL.md`](../media/SKILL.md) + content card |
-| Drag and drop (lists, groups, boards, trees) | `@texuli/primitives/sortable`, `@texuli/data/board`, `@texuli/data/tree-view`; engine `@texuli/drag` (in development, on npm as `0.9.0`; `sortable` and the data drag migrations are new in `0.4.0`) |
-| Workflow editor or diagram | `@texuli/workflows` editor, viewer, inspector, model, layout (in development, on npm as `0.9.0`) |
+| Drag and drop (lists, groups, boards, trees) | `@texuli/primitives/sortable`, `@texuli/data/board`, `@texuli/data/tree-view`; engine `@texuli/drag` (in development, on npm as `0.12.0`; `sortable` and the data drag migrations are new in `0.4.0`) |
+| Workflow editor or diagram | `@texuli/workflows` editor, viewer, inspector, model, layout (in development, on npm as `0.12.0`) |
 | Block document editor, reader, pages, export, collaboration | `@texuli/pages` (`editor`, `reader`, `paged`, `export`, `collab`, `host`) on `@texuli/document` (in development, both new in `0.7.0`); an agent writes documents as data: [`../blueprints/SKILL.md`](../blueprints/SKILL.md) stage **I** |
 | Schema-driven form, infinite canvas, spreadsheet, dashboard | `@texuli/forms` (`SchemaForm`), `@texuli/canvas` (`editor`, `viewer`), `@texuli/sheets` (`view`), `@texuli/data/dashboard` (in development, all new in `0.8.0`); agents send them as `schema-form`, `canvas`, `spreadsheet` and `data-dashboard` nodes painted through the player's host seams: [`references/imports.md`](references/imports.md) |
 | A whole stateful screen as JSON (an agent sends it) | [`../blueprints/SKILL.md`](../blueprints/SKILL.md) stage **G** |
@@ -189,7 +189,10 @@ pnpm vitest run scripts/tests/skill.test.ts
 ## Imports cheat sheet
 
 See [`references/imports.md`](references/imports.md), including the APIs
-new in `0.9.0` (design-system tokens and defaults, scoped portals, the
+new in `0.11.0` (`@texuli/tokens/library-ids`, the design-system
+`compile-core` entries), in `0.10.0` (design systems, `@texuli/slides/export-core`, the
+`@texuli/pages` `*-core` entries, `@texuli/forms/controls`), in `0.9.0`
+(component and system tokens, design defaults, scoped portals, the
 operations registry) and in `0.8.0` (not in `0.7.0`): `@texuli/forms`, `@texuli/canvas`,
 `@texuli/sheets`, `@texuli/data/dashboard`, `@texuli/core/expression`,
 `@texuli/core/data-source`, `@texuli/core/i18n`, `@texuli/tools/email`

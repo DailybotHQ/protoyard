@@ -49,7 +49,7 @@ The server supports only those two revisions. A request that negotiates or names
 
 ## Tools
 
-`tools/list` returns these seven tools. Their input objects are strict: unknown fields are rejected. String lengths and numeric ranges are checked before dispatch.
+`tools/list` returns these eleven tools. Their input objects are strict: unknown fields are rejected. String lengths and numeric ranges are checked before dispatch.
 
 | Tool | Arguments | Behavior |
 | --- | --- | --- |
@@ -60,6 +60,10 @@ The server supports only those two revisions. A request that negotiates or names
 | `screenshot` | Required `dir` (workspace path, 1–2,048 characters) | Capture screenshots for an existing quick exploration. |
 | `promote` | Required `dir` (workspace path, 1–2,048 characters) and `slug` (1–80); optional `variant` (`v1`–`v8`) and `noInstall` (boolean) | Promote a quick exploration to a full prototype. |
 | `doctor` | Optional `offline` (boolean) | Check the local CLI environment and machine interface. Offline checking is the default. |
+| `ds_create` | Required `id` (lowercase kebab-case, at most 64 characters); optional single-line `name` (1–80), `brief` (1–2,048), `brand`, `secondary`, `accent` (1–64 each), `font`, `headingFont`, `monoFont` (1–120 each), `shape` (sharp, rounded, pill), `radius` (0–64), `density` (dense, compact, comfortable, spacious), `motion` (none, subtle, standard, expressive), `contrast` (AA, AAA), `fromTheme` (theme id), `out` (workspace path), `force`, `dryRun` (booleans) | `ds new`: create a Texuli design system from a brief, inputs or a theme, validate and compile it, and write `design-systems/<id>.json`. Values reach the CLI as `--flag=value`, so one that starts with `-` stays a value. |
+| `ds_validate` | Required `file` (workspace path, 1–2,048 characters) | `ds validate`: validate an untrusted design-system document with Texuli and compile it; the envelope carries the contrast result per mode and the hash. |
+| `ds_export` | Required `file` (workspace path); optional `format` (css, tailwind, json) | `ds export`: CSS variables, a Tailwind preset or compiled JSON. |
+| `ds_use` | Required `slug` (1–80) and `file` (workspace path); optional `force`, `dryRun` (booleans) | `ds use`: write `src/design-system.ts`, add it to `definePrototype({ themes })`, set `defaultTheme`; `data.next` names the spec refresh and validate steps. |
 
 Tool calls use the same command implementations and defaults as the CLI. They do not provide an arbitrary shell or general command execution tool.
 
@@ -114,14 +118,14 @@ Protoyard screens are built Texuli-first, so an agent often needs Texuli's compo
 {
   "mcpServers": {
     "protoyard": { "command": "protoyard", "args": ["mcp"] },
-    "texuli": { "command": "npx", "args": ["-y", "@texuli/mcp@0.9.0"] }
+    "texuli": { "command": "npx", "args": ["-y", "@texuli/mcp@0.12.0"] }
   }
 }
 ```
 
-- `npx -y` downloads the package from npm on first use, so that start uses the network. Pin the version Protoyard installs (`0.9.0` today) so the server describes the same Texuli as your workspace.
-- Its tools are read-only `group.verb` operations (`catalog.search`, `component.get`, `theme.search`, `blueprint.validate`, `document.run` and others). Checked with `@texuli/mcp` 0.9.0: `initialize` with `2025-11-25` succeeds and `tools/list` returns 20 tools (13 operations plus 7 older names that Texuli deprecates until 0.10.0).
-- It speaks the `2025-11-25` initialize handshake and earlier revisions, not Protoyard's stateless `2026-07-28` revision: a client that only sends `server/discover` gets `-32601` from it. Use the initialize flow for this server.
+- `npx -y` downloads the package from npm on first use, so that start uses the network. Pin the version Protoyard installs (`0.12.0` today) so the server describes the same Texuli as your workspace.
+- Its tools are read-only `group.verb` operations (`catalog.search`, `component.get`, `catalog.validate`, `example.search`, `theme.get`, `theme.search`, `deck.run`, `document.run`, `document.export` and others). Texuli 0.10.0 removed the seven 0.8 names (`deck`, `document`, `catalog`, `component`, `validate`, `example`, `theme`); call the `group.verb` names.
+- Checked with `@texuli/mcp` 0.11.1 (2026-11-01): over stdio, a client that only sent `server/discover` got `-32600` ("Server not initialized: send initialize, then notifications/initialized, before other requests"). Texuli 0.10 added the stateless `2026-07-28` revision to `createMcpHandler` (gap G124), but the stdio companion still needs the initialize handshake, so the initialize flow remains the choice for this server too.
 - Texuli's remote endpoint (`https://texuli.com/mcp`) serves the same read-only operations plus site search. Use it only if sending queries to texuli.com is acceptable.
 
 Protoyard's own tools, envelopes and limits above are unchanged; nothing on this page depends on the Texuli server.

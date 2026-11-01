@@ -70,16 +70,48 @@ Never `@texuli/core` root barrel for app code.
 | Astro sites | `@texuli/astro` (`texuli()` integration), `@texuli/astro/styles.css`, `@texuli/astro/site` (`defineSite`, `sitePageMeta`, `siteSitemap`), `@texuli/astro/layouts/ContentLayout`, `@texuli/astro/appearance` (`AppearanceSwitcher`; new in `0.5.0`) |
 | Paint a validated blueprint | `@texuli/player` (+ `@texuli/player/styles.css`) |
 | Drag and drop (Svelte) | `@texuli/primitives/sortable` (`Sortable`); views: `@texuli/data/board`, `@texuli/data/tree-view` |
-| Drag engine (framework-free) | `@texuli/drag/sortable`, `@texuli/drag/gesture`, `@texuli/drag/spatial`, `@texuli/drag/graph`, `@texuli/drag/messages`; in development, on npm as `0.8.0` |
-| Workflows | `@texuli/workflows/editor`, `@texuli/workflows/viewer`, `@texuli/workflows/inspector`, `@texuli/workflows/model`, `@texuli/workflows/layout`, `@texuli/workflows/spec-adapter`; in development, on npm as `0.8.0` |
+| Drag engine (framework-free) | `@texuli/drag/sortable`, `@texuli/drag/gesture`, `@texuli/drag/spatial`, `@texuli/drag/graph`, `@texuli/drag/messages`; in development, on npm as `0.12.0` |
+| Workflows | `@texuli/workflows/editor`, `@texuli/workflows/viewer`, `@texuli/workflows/inspector`, `@texuli/workflows/model`, `@texuli/workflows/layout`, `@texuli/workflows/spec-adapter`; in development, on npm as `0.12.0` |
 | Block documents | `@texuli/pages/editor` (`PageEditor`), `@texuli/pages/reader` (`PageReader`), `@texuli/pages/paged` (`PagedView`), `@texuli/pages/export` (`exportDocument`, `downloadBlob`), `@texuli/pages/collab` (`CollabEditor`, `createCollabSession`; lazy), `@texuli/pages/host` (`createDocumentPlayerHost`, `checkDocumentDraft`); the engine `@texuli/document/*` (`model`, `schema`, `ops`, `markdown`, `paged`, `docx`, `pdf`, `sync`, `collab`); in development, new in `0.7.0` |
 | Dates | `@texuli/date` (`CalendarDate`, Gregorian only) |
 | Class helpers from those packages | `texuli/cx` only |
 
+## New in 0.10.0
+
+These APIs ship in `0.10.0`, the design-system release; the 0.9 line does
+not have them. Use them with `^0.10.0` or later. Design systems are covered end to
+end in [`../../design-systems/SKILL.md`](../../design-systems/SKILL.md).
+
+| Need | Use |
+| --- | --- |
+| Validate or patch a design-system document | `validateDesignSystem`, `applyDesignSystemPatch`, `migrateDesignSystem`, `checkDesignSystemReference` (`@texuli/spec/design-system`, also re-exported by `@texuli/tokens/design-system/validate`) |
+| Compile a design system to `--tx-*` variables | `compileDesignSystem` and `fromTheme` (`@texuli/tokens/design-system/compile`) |
+| Apply a design system to a page or a subtree | `DesignSystemProvider`, `applyDesignSystem` (`texuli/design-system`); `designSystemStyle` for server HTML (`@texuli/tokens/design-system/apply`); the `designSystem` option of `texuli()` (`@texuli/astro`; helpers in `@texuli/astro/design-system`) |
+| Import or export a brand | `importDtcg`, `importTokensStudio`, `importBrand`, `importTheme`, `importLogoPixels` (`@texuli/tokens/design-system/import`); `emitCss`, `emitTailwindPreset`, `emitDtcg`, `emitTokensStudio` (`@texuli/tokens/design-system/emit`); `diffDesignSystems` (`@texuli/tokens/design-system/diff`) |
+| A blueprint painted in a brand | The envelope's `designSystem` and the player's `designSystems` (`@texuli/player`, helpers in `@texuli/player/design-system`) |
+| Check a design system in CI | `texuli ds check <file>` and `@texuli/tools/ds-check` |
+| Print a deck without the default renderer tables | `DeckPrintViewCore` and `preloadDeckPrintViewCore` (`@texuli/slides/export-core`), with the host's renderers like `DeckStageCore` |
+| Block documents without bundling the player | `PageEditorCore`, `PageReaderCore`, `PagedViewCore`, `CollabEditorCore`, `createDocumentPlayerHostCore` (`@texuli/pages/editor-core`, `reader-core`, `paged-core`, `collab-core`, `host-core`); pass `loadPlayer` (for example `() => import('@texuli/player')`) for live embeds |
+| Paint every form control at once (server rendering) | `SCHEMA_FORM_CONTROLS` from `@texuli/forms/controls` as `SchemaForm`'s `controls`; without it, the date, time, datetime, slider, tags, file, color and radio controls and the step progress load on first use |
+
+## New in 0.11.0
+
+These APIs ship in `0.11.0`; the 0.10 line does not have them. Use them
+with `^0.12.0`.
+
+| Need | Use |
+| --- | --- |
+| The library theme ids without the library | `LIBRARY_THEME_IDS`, `isLibraryThemeId`, `libraryThemeSet` (`@texuli/tokens/library-ids`) |
+| Compile a design system without the theme library | `@texuli/tokens/design-system/compile-core` (`resolveDesignSystemCore` with an injected `loadLibraryBase`), `loadDesignSystemCompilerCore()` (`texuli/design-system`), `@texuli/player/design-system-core` |
+
+Behavior changes to expect in `0.11.0` and `0.10.0` are in
+[`../../upgrade/SKILL.md`](../../upgrade/SKILL.md) and `docs/RELEASE.md` in
+the Texuli repository ("0.11.0", "0.10.0").
+
 ## New in 0.9.0
 
 These APIs ship in `0.9.0`, the first release of `@texuli/mcp`; the 0.8
-line does not have them. Use them with `^0.9.0`.
+line does not have them. Use them with `^0.9.0` or later.
 
 | Need | Use |
 | --- | --- |

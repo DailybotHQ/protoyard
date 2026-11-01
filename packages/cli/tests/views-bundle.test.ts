@@ -59,7 +59,11 @@ export const CEILINGS: Record<View, number> = {
   board: 16_869,
   // PLAN_008 T-remeasure (2026-10-31, Texuli 0.9.0): measured 16,921; + 5 % (was 17,787 from 0.8.0).
   calendar: 17_768,
-  grid: 23_691,
+  // PLAN_008 T-doc-reader (2026-10-31, Texuli 0.11.1): measured 23,701, 10 B over 23,691 (0.8.1 + 5 %).
+  // @texuli/data 0.10/0.11 DataGrid grew for G107: skeleton loading rows (markup, CSS and the pulse
+  // keyframes), a bindable `ref` with rest attributes, per-column `headerClass`, and column type
+  // inference (`resolveDataGridColumns`); grid-core source gzip 12,120 -> 13,461 B. + 2.5 %.
+  grid: 24_294,
   // PLAN_008 T-remeasure (2026-10-31, Texuli 0.9.0): measured 8,040; + 5 % (was 8,470 from 0.5.0).
   map: 8_442,
   // Measured 9,484 gzip over shell on Texuli 0.4.0 (MarkdownEditor on Texuli Textarea); +5 %.

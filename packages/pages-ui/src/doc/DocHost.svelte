@@ -5,6 +5,7 @@ import { getBlockHost, setBlockHost } from '@protoyard/blocks-ui';
 import { allocateHeadingId, buildDocToc, type DocDocument } from '@protoyard/pages';
 import { LoadingState } from '@protoyard/ui';
 import { onMount, untrack } from 'svelte';
+import { trackActiveHeading } from 'texuli/layouts/content';
 import { BlockHost } from '../block-host/index.ts';
 import { getFormServices } from '../form/context.ts';
 
@@ -89,19 +90,25 @@ $effect(() => {
   const blocks = bodyBlocks;
   if (!root) return;
 
-  const syncActiveHeading = (): void => {
-    const headings = Array.from(root.querySelectorAll<HTMLElement>(HEADING_BLOCKS));
-    const activationLine = window.innerHeight * 0.3;
-    let candidate = headings[0]?.id ?? '';
-    for (const heading of headings) {
-      const rect = heading.getBoundingClientRect();
-      if (rect.height === 0) continue;
-      if (rect.top > activationLine) break;
-      candidate = heading.id;
-    }
-    if (candidate) activeId = candidate;
+  let stopTracking = (): void => {};
+  /**
+   * Texuli's standalone tracker (G102): the TOC heading is the last one whose
+   * top passed the reading line (30% of the viewport), reported through one
+   * IntersectionObserver. Restarted when the heading elements change.
+   */
+  const track = (ids: readonly string[]): void => {
+    stopTracking();
+    if (!activeId && ids[0]) activeId = ids[0];
+    stopTracking = trackActiveHeading(root, ids, {
+      onChange: (id) => {
+        activeId = id;
+      },
+      activeId: () => activeId,
+    });
   };
 
+  let tracked: HTMLElement[] = [];
+  let trackedIds: string[] = [];
   const applyIds = (): void => {
     const expected = expectedHeadings(blocks);
     const nodes = Array.from(root.querySelectorAll<HTMLElement>(HEADING_BLOCKS));
@@ -112,23 +119,20 @@ $effect(() => {
       if (!node || !item) continue;
       if (node.id !== item.id) node.id = item.id;
     }
-
-    syncActiveHeading();
+    // Same heading elements with the same ids: the running tracker still fits.
+    const same = nodes.length === tracked.length && nodes.every((node, i) => node === tracked[i]);
+    if (same && nodes.every((node, i) => node.id === trackedIds[i])) return;
+    tracked = nodes;
+    trackedIds = nodes.map((node) => node.id);
+    track(trackedIds.filter(Boolean));
   };
 
   applyIds();
   const mutation = new MutationObserver(applyIds);
   mutation.observe(root, { childList: true, subtree: true, characterData: true });
-  window.addEventListener('scroll', syncActiveHeading, { passive: true });
-  document.addEventListener('scroll', syncActiveHeading, true);
-  window.addEventListener('resize', syncActiveHeading);
-  window.addEventListener('hashchange', syncActiveHeading);
   return () => {
     mutation.disconnect();
-    window.removeEventListener('scroll', syncActiveHeading);
-    document.removeEventListener('scroll', syncActiveHeading, true);
-    window.removeEventListener('resize', syncActiveHeading);
-    window.removeEventListener('hashchange', syncActiveHeading);
+    stopTracking();
   };
 });
 

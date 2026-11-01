@@ -4,6 +4,7 @@ import { Readable } from 'node:stream';
 import { checkSlug } from '@protoyard/core';
 import { z } from 'zod';
 import { CliError, type Envelope, errorEnvelope } from '../lib/output.ts';
+import { hasControlCharacter } from '../lib/paths.ts';
 import {
   assertMcpOutputSize,
   assertMcpRequestSize,
@@ -21,7 +22,11 @@ export type ToolName =
   | 'blueprint_schema'
   | 'screenshot'
   | 'promote'
-  | 'doctor';
+  | 'doctor'
+  | 'ds_create'
+  | 'ds_validate'
+  | 'ds_export'
+  | 'ds_use';
 
 /** A prototype or exploration slug, checked like the CLI checks it (never an option-like `-…`). */
 const slugArg = z
@@ -88,6 +93,85 @@ const promoteArgs = z
   })
   .strict();
 const doctorArgs = z.object({ offline: z.boolean().optional() }).strict();
+
+/** One `ds new` input: a single line, so it cannot become another brand clause or option. */
+const dsText = (max: number) =>
+  z
+    .string()
+    .min(1)
+    .max(max)
+    .refine((value) => !/[\r\n]/.test(value), 'Use one line.');
+/** A workspace path: no control characters or line separators (they could end a generated comment). */
+const dsPath = z
+  .string()
+  .min(1)
+  .max(2048)
+  .refine((value) => !hasControlCharacter(value), 'Use a plain path.');
+const dsId = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/, 'Use a lowercase kebab-case id.');
+const dsCreateArgs = z
+  .object({
+    id: dsId,
+    name: dsText(80).optional(),
+    brief: dsText(2048).optional(),
+    brand: dsText(64).optional(),
+    secondary: dsText(64).optional(),
+    accent: dsText(64).optional(),
+    font: dsText(120).optional(),
+    headingFont: dsText(120).optional(),
+    monoFont: dsText(120).optional(),
+    shape: z.enum(['sharp', 'rounded', 'pill']).optional(),
+    radius: z.number().min(0).max(64).optional(),
+    density: z.enum(['dense', 'compact', 'comfortable', 'spacious']).optional(),
+    motion: z.enum(['none', 'subtle', 'standard', 'expressive']).optional(),
+    contrast: z.enum(['AA', 'AAA']).optional(),
+    fromTheme: dsId.optional(),
+    out: dsPath.optional(),
+    force: z.boolean().optional(),
+    dryRun: z.boolean().optional(),
+  })
+  .strict();
+const dsFileArgs = z.object({ file: dsPath }).strict();
+const dsExportArgs = z
+  .object({
+    file: dsPath,
+    format: z.enum(['css', 'tailwind', 'json']).optional(),
+  })
+  .strict();
+const dsUseArgs = z
+  .object({
+    slug: slugArg,
+    file: dsPath,
+    force: z.boolean().optional(),
+    dryRun: z.boolean().optional(),
+  })
+  .strict();
+const DS_CREATE_TEXT = {
+  name: 80,
+  brief: 2048,
+  brand: 64,
+  secondary: 64,
+  accent: 64,
+  font: 120,
+  headingFont: 120,
+  monoFont: 120,
+} as const;
+const DS_FLAGS: Record<string, string> = {
+  name: '--name',
+  brief: '--brief',
+  brand: '--brand',
+  secondary: '--secondary',
+  accent: '--accent',
+  font: '--font',
+  headingFont: '--heading-font',
+  monoFont: '--mono-font',
+  shape: '--shape',
+  radius: '--radius',
+  density: '--density',
+  motion: '--motion',
+  contrast: '--contrast',
+  fromTheme: '--from-theme',
+  out: '--out',
+};
 
 const toolSchemas: Record<ToolName, McpTool> = {
   quick: {
@@ -166,6 +250,74 @@ const toolSchemas: Record<ToolName, McpTool> = {
       additionalProperties: false,
     },
   },
+  ds_create: {
+    name: 'ds_create',
+    description:
+      'Create a Texuli design system from a brief, a few inputs (brand color, fonts, shape, density, motion) or a Protoyard theme; validates, compiles and writes design-systems/<id>.json.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,63}$' },
+        ...Object.fromEntries(
+          Object.entries(DS_CREATE_TEXT).map(([key, max]) => [
+            key,
+            { type: 'string', minLength: 1, maxLength: max },
+          ])
+        ),
+        shape: { type: 'string', enum: ['sharp', 'rounded', 'pill'] },
+        radius: { type: 'number', minimum: 0, maximum: 64 },
+        density: { type: 'string', enum: ['dense', 'compact', 'comfortable', 'spacious'] },
+        motion: { type: 'string', enum: ['none', 'subtle', 'standard', 'expressive'] },
+        contrast: { type: 'string', enum: ['AA', 'AAA'] },
+        fromTheme: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,63}$' },
+        out: { type: 'string', minLength: 1, maxLength: 2048 },
+        force: { type: 'boolean' },
+        dryRun: { type: 'boolean' },
+      },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+  ds_validate: {
+    name: 'ds_validate',
+    description:
+      'Validate an untrusted Texuli design-system document and compile it (contrast report, hash).',
+    inputSchema: {
+      type: 'object',
+      properties: { file: { type: 'string', minLength: 1, maxLength: 2048 } },
+      required: ['file'],
+      additionalProperties: false,
+    },
+  },
+  ds_export: {
+    name: 'ds_export',
+    description: 'Export a design system as CSS variables, a Tailwind preset or compiled JSON.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', minLength: 1, maxLength: 2048 },
+        format: { type: 'string', enum: ['css', 'tailwind', 'json'] },
+      },
+      required: ['file'],
+      additionalProperties: false,
+    },
+  },
+  ds_use: {
+    name: 'ds_use',
+    description:
+      'Apply a design system to a prototype: writes src/design-system.ts, adds it to definePrototype({ themes }) and sets defaultTheme.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', minLength: 1, maxLength: 80 },
+        file: { type: 'string', minLength: 1, maxLength: 2048 },
+        force: { type: 'boolean' },
+        dryRun: { type: 'boolean' },
+      },
+      required: ['slug', 'file'],
+      additionalProperties: false,
+    },
+  },
   doctor: {
     name: 'doctor',
     description: 'Check the local Protoyard CLI environment and interface.',
@@ -189,12 +341,18 @@ const validators: Record<ToolName, z.ZodType> = {
   screenshot: screenshotArgs,
   promote: promoteArgs,
   doctor: doctorArgs,
+  ds_create: dsCreateArgs,
+  ds_validate: dsFileArgs,
+  ds_export: dsExportArgs,
+  ds_use: dsUseArgs,
 };
 
 function commandForTool(name: string): string {
   if (name === 'validate_blueprint') return 'blueprint validate';
   if (name === 'blueprint_schema') return 'blueprint_schema';
   if (name === 'iterate' || name === 'promote' || name === 'screenshot') return 'quick';
+  if (name === 'ds_create') return 'ds new';
+  if (name.startsWith('ds_')) return `ds ${name.slice(3)}`;
   return name;
 }
 
@@ -252,6 +410,28 @@ export function cliArgs(name: ToolName, value: Record<string, unknown>): string[
         ...(value.noInstall ? ['--no-install'] : []),
       ],
       [String(value.dir), String(value.slug)]
+    );
+  }
+  if (name === 'ds_create') {
+    // `--flag=value`, so a value that starts with `-` stays the option's value.
+    const options = Object.entries(DS_FLAGS).flatMap(([key, flag]) =>
+      value[key] === undefined ? [] : [`${flag}=${String(value[key])}`]
+    );
+    if (value.force) options.push('--force');
+    if (value.dryRun) options.push('--dry-run');
+    return command(['ds', 'new'], options, [String(value.id)]);
+  }
+  if (name === 'ds_validate') return command(['ds', 'validate'], [], [String(value.file)]);
+  if (name === 'ds_export') {
+    return command(['ds', 'export'], value.format ? [`--format=${String(value.format)}`] : [], [
+      String(value.file),
+    ]);
+  }
+  if (name === 'ds_use') {
+    return command(
+      ['ds', 'use'],
+      [...(value.force ? ['--force'] : []), ...(value.dryRun ? ['--dry-run'] : [])],
+      [String(value.slug), String(value.file)]
     );
   }
   return ['doctor', '--offline'];
@@ -368,6 +548,10 @@ export function createMcpToolHandler(options: McpToolHandlerOptions = {}) {
       if (toolName === 'iterate') data.patchFile = canonical(data.patchFile);
       if (toolName === 'validate_blueprint') data.file = canonical(data.file);
       if (toolName === 'quick' && data.blueprint) data.blueprint = canonical(data.blueprint);
+      if (toolName === 'ds_validate' || toolName === 'ds_export' || toolName === 'ds_use') {
+        data.file = canonical(data.file);
+      }
+      if (toolName === 'ds_create' && data.out) data.out = canonical(data.out);
     } catch (error) {
       return errorEnvelope(commandForTool(name), error);
     }

@@ -69,7 +69,8 @@ function board(props: Record<string, unknown> = {}) {
 }
 
 const list = (name: string) => screen.getByRole('list', { name });
-const handle = (title: string) => screen.getByRole('button', { name: `Move ${title}` });
+// Texuli's drag handle is "Drag <title>"; "Move <title>" opens the Move menu.
+const handle = (title: string) => screen.getByRole('button', { name: `Drag ${title}` });
 const _live = () => document.querySelector('[aria-live="polite"]')?.textContent ?? '';
 
 describe('BoardView (Texuli Board host adapter)', () => {
@@ -107,6 +108,20 @@ describe('BoardView (Texuli Board host adapter)', () => {
     // Hard WIP rejects; onMove must not fire for the blocked drop.
     await new Promise((r) => setTimeout(r, 50));
     expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it('keeps focus on the held card after a keyboard move into another column (G103)', async () => {
+    const { onMove } = board();
+    const login = handle('Login form');
+    login.focus();
+    await fireEvent.keyDown(login, { key: ' ' });
+    await fireEvent.keyDown(handle('Login form'), { key: 'ArrowRight' });
+    // No frame wait: the moved card's handle has focus as soon as the move renders,
+    // so an immediate Space drops it instead of landing on body.
+    expect(within(list('Doing')).getByText('Login form')).toBeTruthy();
+    expect(document.activeElement).toBe(handle('Login form'));
+    await fireEvent.keyDown(document.activeElement as Element, { key: ' ' });
+    await waitFor(() => expect(onMove).toHaveBeenCalledTimes(1));
   });
 
   it('wires onMove through the host adapter', async () => {

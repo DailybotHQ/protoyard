@@ -16,7 +16,9 @@ import {
   type ListItem,
   type TexuliDocument,
 } from '@texuli/document/model';
-import { type DocumentDiagnostic, validateDocument } from '@texuli/document/schema';
+// schema-core: the same validator without @texuli/deck (G133). Protoyard never writes an inline
+// deck into a document (non-text blocks are `component` embeds), so an inline deck is refused.
+import { type DocumentDiagnostic, validateDocument } from '@texuli/document/schema-core';
 import { type DocDocument, DocDocumentSchema, PAGE_DOCUMENT_LIMITS } from './schema.ts';
 
 /**
@@ -49,8 +51,9 @@ export interface DocToTexuliOptions {
   mode?: DocConversionMode;
   /**
    * Export mode: `block` (default) writes tables as wrapped `@texuli/blocks`
-   * tables (DOCX and PDF print them as tables); `list` writes a caption and
-   * one bullet per row, for Markdown, whose writer leaves wrapped blocks out.
+   * tables, which DOCX and PDF print as tables and Markdown as GFM tables
+   * (since Texuli 0.10.0, G112); `list` writes a caption and one bullet per
+   * row, for a reader that wants plain lines.
    */
   tables?: 'block' | 'list';
 }

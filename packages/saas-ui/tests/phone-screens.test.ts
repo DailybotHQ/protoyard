@@ -74,6 +74,11 @@ describe('simulated phone sign-in screens', () => {
     const runtime = await boot();
     location.hash = '#/auth/phone?next=%2Fworkspace';
     render(AuthHarness, { props: { runtime, screen: 'phone-sign-in' } });
+    // The number opens the telephone keypad (Texuli's phone format, G131).
+    const number = screen.getByLabelText(/^Phone number/, { selector: 'input' });
+    expect(number.getAttribute('type')).toBe('tel');
+    expect(number.getAttribute('inputmode')).toBe('tel');
+    expect(number.getAttribute('autocomplete')).toBe('tel');
     await type('Name', 'Jordan Example');
     await type('Phone number', '+1 202 555 0104');
     await fireEvent.click(screen.getByRole('button', { name: 'Send simulated code' }));
@@ -86,7 +91,7 @@ describe('simulated phone sign-in screens', () => {
     expect(runtime.session.isSignedIn()).toBe(false);
   });
 
-  it('verifies through OtpInput, opens a session and closes the code toast', async () => {
+  it('verifies the Texuli one-time code field, opens a session and closes the code toast', async () => {
     const runtime = await boot();
     const phone = createPhoneServices(runtime);
     const issued = await phone.sendCode({ phone: '+1 202 555 0105', name: 'Morgan Example' });
@@ -99,7 +104,7 @@ describe('simulated phone sign-in screens', () => {
     render(AuthHarness, { props: { runtime, screen: 'phone-code' } });
 
     expect(await screen.findByTestId('auth-simulated-phone-code')).toBeTruthy();
-    await fireEvent.input(screen.getByLabelText('Six-digit phone code'), {
+    await fireEvent.input(screen.getByLabelText(/^Six-digit phone code/, { selector: 'input' }), {
       target: { value: issued.code },
     });
     await waitFor(() => expect(runtime.session.isSignedIn()).toBe(true));

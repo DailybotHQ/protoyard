@@ -372,6 +372,13 @@ or command named on each item.
 
 ## Deferred and known gaps
 
+- **Design systems, follow-ups** (PLAN_008 architecture review, 2026-11-01):
+  - A saved design system is repainted only when DevTools mounts. A host without DevTools paints the approximated theme: palette only, no shape, motion or component tokens.
+  - Blueprints cannot carry a design system yet: `ds use` writes TypeScript and refuses generated prototypes. The planned fix is a data-only `brand.designSystem` reference compiled by `generate`, plus an ADR.
+  - The painter registry is per page, not per runtime.
+  - Quick single-file exports carry the Design system panel.
+- **Form seams, follow-up:** a `fieldRenderers` prop on `EntityForm` and extra fields on the SaaS kit screens, so a prototype can add or repaint a field without forking. Datetime fields save as UTC and edit the UTC wall time; label them or convert with the simulated clock's zone.
+
 - **Live provider deploys** were not run: there are no credentials, and real publishing needs the owner's explicit authorization.
 - **Claude artifact share** (PLAN_003): `relay-chat-demo` was published once as a *private* artifact with `--comments` and recorded in the local share ledger (`artifacts/share/ledger.jsonl`, not tracked). Verified: the export checks, the publish, the ledger record, and an ArtifactData list of `review/relay-chat-demo/threads` as the owner and at `view` level (empty, no test comments were written). Not verified: boot, routing and DevTools inside the claude.ai viewer, writing a real comment, other viewers, and Commenter-level behavior.
 - **Visual regression snapshots** are not set up.

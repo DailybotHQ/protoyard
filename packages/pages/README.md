@@ -121,7 +121,10 @@ const file = docToTexuliDocument(doc, { mode: 'export' }); // tables, charts, st
 const back = texuliDocumentToDoc(editedDocument, doc); // { ok, doc, notes } or { ok: false, issues }
 ```
 
-Both validate with `validateDocument` at the untrusted tier, are
+Both validate with `validateDocument` from `@texuli/document/schema-core` at
+the untrusted tier. That is the validator without the deck model, so an inline
+deck embed is refused; Protoyard writes none, because its own blocks are
+`component` embeds. Both are
 deterministic, and keep untouched blocks exactly. `DOC_CAPABILITIES.edit`
 (`blocks:interact`) names who may edit. See
 [docs/PAGES.md](../../docs/PAGES.md#edit-and-download-a-doc).

@@ -4,6 +4,7 @@ import {
   type FormField,
   type FormSchema,
   type FormSubmitResult,
+  type FormValues,
   validateFormSchema,
 } from '@texuli/forms/model';
 
@@ -14,12 +15,19 @@ import {
  * come back as Texuli field errors.
  */
 
-/** `when.enable` that is never true: the field shows disabled (a role that cannot edit). */
-const NEVER = { op: 'bool', value: false } as const;
+/**
+ * A password field of a kit auth form. Simulation only: the value is kept as
+ * plain text, so browsers must never offer to save it (`autocomplete="off"`,
+ * accepted by Texuli's password type since 0.11.2, G129).
+ */
+export function passwordField(name: string, label: string): FormField {
+  return { name, type: 'password', label, required: true, autocomplete: 'off' };
+}
 
-/** The same fields, disabled unless `editable`. */
-export function editableFields(fields: readonly FormField[], editable: boolean): FormField[] {
-  return editable ? [...fields] : fields.map((field) => ({ ...field, when: { enable: NEVER } }));
+/** A submitted text answer (`''` when empty). */
+export function text(values: FormValues, name: string): string {
+  const value = values[name];
+  return typeof value === 'string' ? value : '';
 }
 
 /** Compile a kit-authored schema; a mistake in it is a bug, so it throws with the issues. */

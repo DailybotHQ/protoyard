@@ -95,8 +95,10 @@ describe('NotificationCenter', () => {
     await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));
     const markAll = screen.getByRole('button', { name: 'Mark all as read' });
     await fireEvent.click(markAll);
-    // Optimistic: nothing unread is left while the service runs.
+    // Optimistic: nothing unread is left while the service runs, and the returned
+    // promise keeps the button pending until it settles (G106).
     expect(markAll.getAttribute('aria-disabled')).toBe('true');
+    await waitFor(() => expect(markAll.getAttribute('aria-busy')).toBe('true'));
     finish(false);
     await waitFor(() => expect(markAll.getAttribute('aria-disabled')).toBe('false'));
     expect(screen.getByRole('button', { name: 'Unread' }).getAttribute('aria-pressed')).toBe(

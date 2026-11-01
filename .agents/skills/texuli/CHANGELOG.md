@@ -15,6 +15,148 @@ the pack, and leaves an empty `## [Unreleased]` block on top.
 
 ## [Unreleased]
 
+## [0.3.12] — 2026-11-01
+
+### Changes
+
+- chore(skill): 0.12.0 published, with the 0.11 to 0.12 upgrade notes
+
+- The packages are on npm in the 0.12 line, every one at `0.12.0`, and
+  installs pin `^0.12.0`. `0.12.0` moves the `@texuli/pages` core entries
+  off the deck model (Protoyard G136): `PageEditorCore`,
+  `CollabEditorCore`, `new PagesEditor(...)` and
+  `createDocumentPlayerHostCore` take `validateDeck` with no default. The
+  upgrade sub-skill has a "0.11 → 0.12: breaking changes" section with the
+  one-line migrations.
+
+## [0.3.11] — 2026-11-01
+
+### Changes
+
+- chore(skill): packages on npm at 0.11.5
+
+- The packages are on npm in the 0.11 line, every one at `0.11.5`, a patch
+  with `@texuli/document/ops-core` (Protoyard G136): document operations
+  validated without the deck model. The router lists it; installs still pin
+  `^0.11.0`.
+
+## [0.3.10] — 2026-11-01
+
+### Changes
+
+- chore(skill): packages on npm at 0.11.4
+
+- The packages are on npm in the 0.11 line, every one at `0.11.4`, a patch
+  with Protoyard G135: `fromTheme` from the compile entries always returns a
+  document that compiles, listing the role pins it dropped. Installs still
+  pin `^0.11.0`.
+
+## [0.3.9] — 2026-11-01
+
+### Changes
+
+- chore(skill): packages on npm at 0.11.3
+
+- The packages are on npm in the 0.11 line, every one at `0.11.3`, a patch
+  with Protoyard G131–G134: telephone inputs for phone-format fields, host
+  heading anchors (`anchorFor`) in the pages reader,
+  `@texuli/document/schema-core` (the document validator without the deck
+  model), and `SchemaForm` following `disabled` and `readOnly`. The router
+  lists `@texuli/document/schema-core`; installs still pin `^0.11.0`.
+
+## [0.3.8] — 2026-11-01
+
+### Changes
+
+- chore(skill): packages on npm at 0.11.2
+
+- The packages are on npm in the 0.11 line, every one at `0.11.2`, a patch
+  (a square theme radius keeps `0px`, so radius `calc()` steps stay valid; a
+  password field may take `autocomplete` `off`). The skill, install and
+  router references read `0.11.2`; installs still pin `^0.11.0`.
+
+## [0.3.7] — 2026-11-01
+
+### Changes
+
+- chore(skill): packages on npm at 0.11.1
+
+- The packages are on npm in the 0.11 line, every one at `0.11.1`, a patch
+  (forms: concurrent `next()` calls share one move; `applyDesignSystem`
+  refuses a variant on a base compile). The skill, install and router
+  references and the in-development packages read `0.11.1`; installs still
+  pin `^0.11.0`, and the "new in `0.11.0`" notes stay.
+
+## [0.3.6] — 2026-10-31
+
+### Changes
+
+- chore(skill): the skill pack says 0.11.0 is published - T-final-review of PLAN_011_mcp_and_design_systems
+- chore(skill): the skill pack names the 0.10.1 patch releases - T-gaps-125-127 of PLAN_011_mcp_and_design_systems
+
+- The packages are on npm in the 0.11 line, every one at `0.11.0`. The
+  router, components, install and build-ui references say so and pin
+  `^0.11.0`; the in-development packages read "on npm as `0.11.0`".
+- `router/packages.md` gains a "New in `0.11.0`" paragraph, and it and
+  `build-ui/references/imports.md` list the `0.11.0` entries
+  (`@texuli/tokens/library-ids`,
+  `@texuli/tokens/design-system/compile-core`,
+  `@texuli/player/design-system-core`, `loadDesignSystemCompilerCore`).
+- `upgrade/SKILL.md` gains "0.10 → 0.11: breaking changes": the
+  `stage-core`, `export-core`, `reader-core` and `host-core` loader
+  migrations, single-mode design systems that never throw,
+  `design-system-refused` from the player and pages cores, and
+  `DesignSystemProvider`'s `onapplyerror`.
+
+## [0.3.5] — 2026-10-31
+
+### Changes
+
+- docs(docs): apply is 2,040 B after the shared value check; ds.save path codes in the skill - T-final-review of PLAN_011_mcp_and_design_systems
+- chore(skill): the skill pack says 0.10.0 is published - T-release-0100 of PLAN_011_mcp_and_design_systems
+- docs(skill): a host loads base.css or system.css; system.css in the tokens router entry - T-gaps-107-110 of PLAN_011_mcp_and_design_systems
+- docs(skill): the 0.8 tool names and the tree style key are removed in 0.10.0 - T-release-0100 of PLAN_011_mcp_and_design_systems
+- docs(skill): a design-systems sub-skill with the codes and MCP references - T-ds-docs-skill of PLAN_011_mcp_and_design_systems
+- docs(skill): blueprint.theme and the ds operations in the blueprints skill; ds.save is local only - T-ds-agent-tools of PLAN_011_mcp_and_design_systems
+- docs(skill): the blueprints skill explains designSystem (validate with checkDesignSystem, paint with designSystems) - T-ds-blueprint of PLAN_011_mcp_and_design_systems
+
+- New `design-systems/SKILL.md` sub-skill, with `references/codes.md`
+  (every design-system code and its fix) and `references/mcp.md` (the
+  `ds.*` tools, `blueprint.theme`, the `create-design-system` prompt and
+  `texuli://design-system/{id}`): author, validate and repair, apply to a
+  blueprint and export a design system, released in `0.10.0`. The router
+  and `router/routes.md` route to it.
+- `themes/SKILL.md` and `upgrade/SKILL.md`: the seven 0.8 MCP tool names
+  and the tree block's `style` key are removed in `0.10.0`; a call or a
+  block that uses them is refused with the name to use instead.
+- `blueprints/SKILL.md` gains "K — Design systems (spec 0.10.0)": the
+  envelope's `designSystem` (`ref` or `inline`), `validateDraft`'s
+  `checkDesignSystem` and the player's `designSystems` resolver, new in
+  `0.10.0`.
+- The packages move to `0.10.0`: all 26 published packages on npm in the
+  0.10 line. The router, components, install and build-ui references say
+  "on npm as `0.10.0`" and pin `^0.10.0`; the "0.10.0 is in development"
+  install note is gone, and the design-systems sub-skill is no longer
+  marked in development.
+- `router/packages.md` gains a "New in `0.10.0`" paragraph, marks the new
+  entries (`@texuli/spec/design-system`, the `@texuli/tokens/design-system/*`
+  subpaths, `texuli/design-system`, `@texuli/player/design-system`,
+  `@texuli/astro/design-system`, `@texuli/tools/ds-check`,
+  `@texuli/slides/export-core`, the `@texuli/pages` `*-core` entries,
+  `@texuli/forms/controls`) and checks their imports; `router/hosts.md`
+  names the `ds.*` tools on both MCP servers.
+- `build-ui/references/imports.md` gains a "New in 0.10.0" table (design
+  systems: validate, compile, apply, import and export, blueprints, CI
+  checks; `DeckPrintViewCore`, the pages core entries with `loadPlayer`,
+  `SCHEMA_FORM_CONTROLS`).
+- `upgrade/SKILL.md` lists the `0.10.0` breaking changes an app checks
+  before moving from `^0.9.0` (the seven 0.8 MCP tool aliases and the tree
+  block's `style` removed, spec 0.10.0 stamps, the forms "None" choice and
+  lazy controls, the lazy sheets cell editor, the pages core entries'
+  `loadPlayer`). The `0.8.0` to `0.5.0` sections move to
+  `upgrade/references/packages.md` to keep `upgrade/SKILL.md` within its
+  budget.
+
 ## [0.3.4] — 2026-10-30
 
 ### Changes

@@ -21,6 +21,6 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "svelte": "^5.57.2",
-    "texuli": "0.9.0"
+    "texuli": "0.12.0"
   }
 }

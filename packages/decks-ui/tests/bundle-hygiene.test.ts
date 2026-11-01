@@ -46,7 +46,9 @@ describe('decks-ui entry hygiene', () => {
     expect(deckApp).toContain("from '@texuli/slides/stage-core'");
     // The debug panel and the print page load on first use.
     expect(deckApp).toContain("import('../debug/DeckDebugPanel.svelte')");
-    expect(deckApp).toContain("import('@texuli/slides/export')");
+    expect(deckApp).toContain("import('@texuli/slides/export-core')");
+    // The core print view (G105): no reference to the stage's default renderer tables.
+    expect(deckApp).not.toContain("import('@texuli/slides/export')");
   });
 
   it('imports the @texuli/slides stage only through its core', () => {

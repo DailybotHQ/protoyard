@@ -1,5 +1,23 @@
 export * from './apply.ts';
 export * from './contrast.ts';
+export {
+  compileDesignSystemDocument,
+  createDesignSystem,
+  type DesignSystem,
+  type DesignSystemCompileResult,
+  type DesignSystemDocumentResult,
+  type DesignSystemExportFormat,
+  type DesignSystemInput,
+  defineDesignSystemTheme,
+  designSystemBrief,
+  designSystemContrast,
+  designSystemFromTheme,
+  designSystemTheme,
+  exportDesignSystem,
+  forgetDesignSystemTheme,
+  type ShippedDesignSystem,
+  shipDesignSystem,
+} from './design-system.ts';
 export * from './fonts.ts';
 export * from './harmony.ts';
 export * from './import-tokens.ts';

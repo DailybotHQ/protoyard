@@ -20,7 +20,7 @@ import {
 import { MCP_MAX_LINE_BYTES, sanitizeMcpValue, withMcpTimeout } from '../src/mcp/security.ts';
 import { boundedLines } from '../src/mcp/stdio.ts';
 import { cliArgs, createMcpToolHandler, runCliEnvelope } from '../src/mcp/tools.ts';
-import { addCrudTemplate, createWorkspace } from './helpers.ts';
+import { addCrudTemplate, addPrototype, createWorkspace } from './helpers.ts';
 
 /**
  * Hardening of the MCP adapter and the quick screenshot capture:
@@ -93,6 +93,57 @@ describe('MCP argv: options, then --, then positionals', () => {
     expect((result.data as { slug: string }).slug).toBe('dash-brief');
   });
 
+  it('creates, validates and applies a design system through the real CLI', async () => {
+    const { ws, handler } = await workspaceHandler();
+    addPrototype(ws, 'ds-mcp');
+    ws.write('prototypes/ds-mcp/package.json', {
+      name: 'ds-mcp',
+      private: true,
+      dependencies: { '@protoyard/runtime': 'workspace:*' },
+    });
+    ws.write(
+      'prototypes/ds-mcp/src/prototype.ts',
+      "import { definePrototype } from '@protoyard/core';\n\nexport const definition = definePrototype({\n  manifest: {} as never,\n});\n"
+    );
+    const created = await handler('ds_create', {
+      id: 'harbor',
+      brand: '#0f766e',
+      font: 'Inter',
+      shape: 'rounded',
+      motion: 'subtle',
+    });
+    expect(created).toMatchObject({ ok: true, command: 'ds new' });
+    expect(existsSync(join(ws.root, 'design-systems/harbor.json'))).toBe(true);
+    // A brief that looks like an option stays the brief (and is read as brand words).
+    expect(
+      await handler('ds_create', { id: 'dash', brief: '--version', brand: '#4f46e5', dryRun: true })
+    ).toMatchObject({ ok: true });
+    expect(await handler('ds_create', { id: 'x', brand: '#000000\nfont Evil' })).toMatchObject({
+      ok: false,
+      error: { code: 'validation' },
+    });
+    expect(await handler('ds_validate', { file: 'design-systems/harbor.json' })).toMatchObject({
+      ok: true,
+    });
+    // A path with a line break could end the comment `ds use` writes: refused at the schema.
+    for (const [tool, args] of [
+      ['ds_create', { id: 'nl', brand: '#4f46e5', out: 'design-systems/a\nimport x.json' }],
+      ['ds_use', { slug: 'ds-mcp', file: 'design-systems/a\u2028b.json' }],
+    ] as const) {
+      expect(await handler(tool, args)).toMatchObject({ ok: false, error: { code: 'validation' } });
+    }
+    const applied = await handler('ds_use', { slug: 'ds-mcp', file: 'design-systems/harbor.json' });
+    expect(applied).toMatchObject({
+      ok: true,
+      command: 'ds use',
+      data: { defaultTheme: 'harbor' },
+    });
+    expect(readFileSync(join(ws.root, 'prototypes/ds-mcp/src/prototype.ts'), 'utf8')).toContain(
+      'themes: [designSystemTheme],'
+    );
+    expect(await handler('ds_validate', { file: '../outside.json' })).toMatchObject({ ok: false });
+  });
+
   it('puts a single -- before the positionals, never before an option', () => {
     for (const [name, value] of [
       ['quick', { brief: 'x', slug: 's', seed: 1, standalone: true }],
@@ -100,6 +151,10 @@ describe('MCP argv: options, then --, then positionals', () => {
       ['validate_blueprint', { file: '/w/b.json' }],
       ['screenshot', { dir: '/w/d' }],
       ['promote', { dir: '/w/d', slug: 's', variant: 'v1', noInstall: true }],
+      ['ds_create', { id: 'x', brief: '--version', font: '-Inter', force: true }],
+      ['ds_validate', { file: '/w/x.json' }],
+      ['ds_export', { file: '/w/x.json', format: 'css' }],
+      ['ds_use', { slug: 's', file: '/w/x.json', force: true }],
     ] as const) {
       const argv = cliArgs(name, value as Record<string, unknown>);
       const separator = argv.indexOf('--');

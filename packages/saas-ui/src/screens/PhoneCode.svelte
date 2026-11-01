@@ -14,10 +14,11 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  OtpInput,
   toast,
 } from '@protoyard/ui';
+import { SchemaForm, type SchemaFormSubmission } from '@texuli/forms';
 import { onMount } from 'svelte';
+import { compileKitForm, kitSubmitResult, text } from '../lib/schema-form.ts';
 import { applyServiceError, authServices, hashParam, routeHref } from './auth/helpers.ts';
 
 const { runtime, config } = authServices();
@@ -26,10 +27,25 @@ let challenge = $state<PhoneChallengeView | null>(null);
 let simulatedNow = $state(runtime.clock.now());
 let loading = $state(true);
 let busy = $state(false);
-let code = $state('');
-let issues = $state<Record<string, string>>({});
 let message = $state('');
 let challengeId = $state('');
+let codeForm = $state<{ requestSubmit(): Promise<void> } | null>(null);
+
+// Painted by @texuli/forms (a one-time code); the phone service checks it.
+const form = compileKitForm({
+  title: 'Phone code verification',
+  submitLabel: 'Verify',
+  fields: [
+    {
+      name: 'code',
+      type: 'otp',
+      label: 'Six-digit phone code',
+      required: true,
+      length: 6,
+      messages: { format: 'Enter the six-digit code' },
+    },
+  ],
+});
 
 const remaining = $derived(
   challenge ? phoneResendSecondsRemaining(simulatedNow.getTime(), challenge.sentAt) : 0
@@ -62,36 +78,34 @@ async function loadChallenge() {
   }
 }
 
-async function verify() {
-  if (busy || !challenge || code.length !== 6) return;
-  busy = true;
-  issues = {};
+async function verify({ values }: SchemaFormSubmission) {
+  if (!challenge) return { ok: false, message: 'This code request is no longer active.' } as const;
   message = '';
-  const result = await runService(() => phone.verifyCode({ challengeId, code }));
-  busy = false;
-  if (!result.ok) {
-    applyServiceError(
-      result.error,
-      (nextIssues) => (issues = nextIssues),
-      (nextMessage) => (message = nextMessage)
-    );
-    return;
-  }
+  const result = await runService(() =>
+    phone.verifyCode({ challengeId, code: text(values, 'code') })
+  );
+  if (!result.ok) return kitSubmitResult(result, form, 'The simulated request failed. Try again.');
   toast.dismiss(PHONE_CODE_TOAST_ID);
   navigate(next());
+}
+
+/** A full code submits at once, as the OTP input did. */
+function onCodeChange(name: string, value: unknown) {
+  if (name === 'code' && typeof value === 'string' && /^\d{6}$/.test(value)) {
+    void codeForm?.requestSubmit();
+  }
 }
 
 async function resend() {
   if (busy || !challenge || remaining > 0) return;
   busy = true;
-  issues = {};
   message = '';
   const result = await runService(() => phone.resendCode(challengeId));
   busy = false;
   if (!result.ok) {
     applyServiceError(
       result.error,
-      (nextIssues) => (issues = nextIssues),
+      () => {},
       (nextMessage) => (message = nextMessage)
     );
     return;
@@ -100,8 +114,8 @@ async function resend() {
   navigate(
     `/auth/phone/code?challenge=${encodeURIComponent(challengeId)}&next=${encodeURIComponent(next())}`
   );
+  // The keyed form below starts empty for the new challenge.
   challenge = await phone.describeChallenge(challengeId);
-  code = '';
   if (challenge) showSimulatedCode(challenge);
 }
 
@@ -129,8 +143,20 @@ $effect(() => runtime.clock.subscribe(() => (simulatedNow = runtime.clock.now())
           <p class="font-mono text-lg tracking-widest">{challenge.code}</p>
           <p class="text-xs text-muted-foreground">Simulation only — this code is not sent by SMS.</p>
         </div>
-        <OtpInput bind:value={code} label="Six-digit phone code" disabled={busy} autofocus={false} onComplete={() => verify()} />
-        {#if issues.code || message}<p role="alert" class="text-sm text-destructive">{issues.code ?? message}</p>{/if}
+        {#key challengeId}
+          <SchemaForm
+            bind:this={codeForm}
+            {form}
+            onSubmit={verify}
+            onValueChange={onCodeChange}
+            labels={{ submitting: 'Verifying', submitted: 'Verified. Signing you in…' }}
+            class="py-saas-form"
+            data-py-saas-form="phone-code"
+            disabled={busy}
+            hideTitle
+          />
+        {/key}
+        {#if message}<p role="alert" class="text-sm text-destructive">{message}</p>{/if}
         <p class="text-sm text-muted-foreground" aria-live="polite">
           {remaining > 0 ? `You can request another code in ${remaining} seconds.` : 'You can request another code now.'}
         </p>
@@ -142,7 +168,6 @@ $effect(() => runtime.clock.subscribe(() => (simulatedNow = runtime.clock.now())
       <Button href={routeHref('/auth/phone')} variant="ghost">Change phone number</Button>
       {#if challenge}
         <Button onclick={resend} loading={busy} loadingLabel="Sending code" disabled={busy || remaining > 0}>Resend code</Button>
-        <Button onclick={verify} loading={busy} loadingLabel="Verifying" disabled={busy || code.length !== 6}>Verify</Button>
       {/if}
     </CardFooter>
   </Card>

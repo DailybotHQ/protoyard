@@ -23,15 +23,22 @@ const doc: DocDocument = {
 };
 
 describe('DocEditor (real @texuli/pages editor)', () => {
-  it('paints the doc in the Texuli editor with host blocks as labelled placeholders', async () => {
+  it('paints the doc in the Texuli editor with Protoyard blocks painted by the host (G111)', async () => {
     const view = render(DocEditor, { props: { doc, onApply: vi.fn(), onCancel: vi.fn() } });
     const root = view.container.querySelector('[data-py-doc-editor]');
     expect(root?.getAttribute('aria-label')).toBe('Edit Editor doc');
     await waitFor(() => expect(root?.textContent).toContain('Body text.'));
     expect(root?.textContent).toContain('Closing text.');
-    expect(root?.textContent).toContain('Numbers by region');
-    expect(root?.textContent).toContain('Protoyard block');
-    expect(root?.textContent).toContain('Shown in the reading view');
+    // Texuli hands the protoyard-block embed to the host's renderBlock, which
+    // paints the real block read-only, not a refused placeholder.
+    const host = await waitFor(() => {
+      const found = root?.querySelector('[data-py-doc-editor-host-block]');
+      if (!found) throw new Error('host block not painted yet');
+      return found;
+    });
+    expect(host.hasAttribute('inert')).toBe(true);
+    await waitFor(() => expect(host.textContent).toContain('Numbers by region'));
+    expect(root?.textContent).not.toContain('Shown in the reading view');
     const apply = view.getByRole('button', { name: 'Apply changes' });
     expect(apply.hasAttribute('disabled') || apply.getAttribute('aria-disabled') === 'true').toBe(
       true

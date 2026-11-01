@@ -9,36 +9,40 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  FormField,
-  Input,
 } from '@protoyard/ui';
+import { SchemaForm, type SchemaFormSubmission } from '@texuli/forms';
 import { onMount } from 'svelte';
+import { compileKitForm, kitSubmitResult, text } from '../../lib/schema-form.ts';
 import { applyServiceError, authServices, hashParam, routeHref } from './helpers.ts';
 
 const { runtime, config } = authServices();
 const magic = createMagicLinkServices(runtime);
-let email = $state('');
 let tokenId = $state('');
 let busy = $state(false);
 let complete = $state(false);
-let issues = $state<Record<string, string>>({});
 let message = $state('');
 
-async function submit() {
-  busy = true;
-  issues = {};
-  message = '';
-  const result = await runService(() => magic.issue({ email }));
-  busy = false;
-  if (!result.ok) {
-    applyServiceError(
-      result.error,
-      (next) => (issues = next),
-      (next) => (message = next)
-    );
-    return;
-  }
+// Painted by @texuli/forms; the magic-link service validates and issues the link.
+const form = compileKitForm({
+  title: 'Request a sign-in link',
+  submitLabel: 'Send sign-in link',
+  fields: [
+    {
+      name: 'email',
+      type: 'email',
+      label: 'Email',
+      required: true,
+      autocomplete: 'email',
+      description: 'Use an address at example.com.',
+    },
+  ],
+});
+
+async function submit({ values }: SchemaFormSubmission) {
+  const result = await runService(() => magic.issue({ email: text(values, 'email') }));
+  if (!result.ok) return kitSubmitResult(result, form, 'The simulated request failed. Try again.');
   complete = true;
+  return { ok: true } as const;
 }
 
 async function consume(token: string) {
@@ -48,7 +52,7 @@ async function consume(token: string) {
   if (!result.ok) {
     applyServiceError(
       result.error,
-      (next) => (issues = next),
+      () => {},
       (next) => (message = next)
     );
     return;
@@ -83,15 +87,14 @@ onMount(() => {
         {#if message}<p role="alert" class="text-sm text-destructive">{message}</p>{/if}
         <Button onclick={() => consume(tokenId)}>Try this link again</Button>
       {:else}
-        <form class="grid gap-4" onsubmit={(event) => { event.preventDefault(); void submit(); }}>
-          <FormField label="Email" required error={issues.email} description="Use an address at example.com.">
-            {#snippet children(control)}
-              <Input {...control.props} type="email" autocomplete="email" bind:value={email} required />
-            {/snippet}
-          </FormField>
-          {#if message}<p role="alert" class="text-sm text-destructive">{message}</p>{/if}
-          <Button type="submit" loading={busy} loadingLabel="Sending link" disabled={busy}>Send sign-in link</Button>
-        </form>
+        <SchemaForm
+          {form}
+          onSubmit={submit}
+          labels={{ submitting: 'Sending link', submitted: 'Sign-in link sent.' }}
+          class="py-saas-form"
+          data-py-saas-form="magic-link"
+          hideTitle
+        />
       {/if}
     </CardContent>
     <CardFooter><Button href={routeHref(config.signInPath)} variant="ghost">Back to sign in</Button></CardFooter>

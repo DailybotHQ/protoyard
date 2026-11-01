@@ -6,13 +6,15 @@ import type {
   EntityInput,
   EntityServices,
 } from '@protoyard/blueprint';
-import { entityFormModel, fieldLabel, inputProperty } from '@protoyard/blueprint';
+import { ENTITY_FORM_CUSTOM_KINDS, entityFormModel, inputProperty } from '@protoyard/blueprint';
 import type { PrototypeRuntime, Row } from '@protoyard/core';
 import { isValidationError, runService } from '@protoyard/renderer-svelte';
-import { Button, FormField } from '@protoyard/ui';
+import { Button } from '@protoyard/ui';
 import {
   type FormSubmitResult,
   SchemaForm,
+  type SchemaFormActions,
+  type SchemaFormCustomField,
   type SchemaFormSubmission,
   validateFormSchema,
 } from '@texuli/forms';
@@ -20,14 +22,16 @@ import FieldControl from './fields/FieldControl.svelte';
 import RelationPicker from './RelationPicker.svelte';
 
 /**
- * Blueprint-driven create/edit form. The fields `@texuli/forms` has a control
- * for are painted by its `SchemaForm` from `entityFormModel` (blueprint →
- * Texuli schema); the rest (relation pickers, date and time, map points,
- * faces, uploads) are painted here, after them. One submit button drives
- * both: Texuli checks its fields, then the merged input goes through
- * `onSubmit` (usually an entity service create/update: session.assert → zod
- * → environment.run → db.transaction) via `runService`, and the service's
- * zod issues land inline on whichever side owns the field.
+ * Blueprint-driven create/edit form, one Texuli `SchemaForm` painted from
+ * `entityFormModel` (blueprint → Texuli schema). Kinds Texuli has a control
+ * for are Texuli's; the rest (relation pickers, map points, faces, uploads)
+ * are Texuli `custom` fields painted here with Protoyard's controls (G113),
+ * so Texuli labels, validates, summarizes and submits every field. The
+ * action row is Protoyard's `Button`s (G115), the title can be hidden while
+ * it keeps naming the form (G114), and `disabled` disables the whole form
+ * (G116). The input goes through `onSubmit` (usually an entity service
+ * create/update: session.assert → zod → environment.run → db.transaction)
+ * via `runService`, and the service's zod issues land inline on their fields.
  */
 let {
   entity,
@@ -76,43 +80,17 @@ const personaOptions = $derived(
 const model = $derived(
   entityFormModel(entity, {
     mode,
-    readOnly: disabled,
+    submitLabel: buttonLabel,
     ...(title ? { title } : {}),
     ...(personaOptions ? { personaOptions } : {}),
   })
 );
-/** The compiled Texuli form, or null when no field maps (everything is then hosted). */
-const compiled = $derived.by(() => {
-  if (model.schema.fields.length === 0) return null;
-  const result = validateFormSchema(model.schema, { tier: 'developer' });
-  return result.ok ? result.form : null;
-});
-const hostedFields = $derived(compiled ? model.hosted : entity.fields);
-const paintedKeys = $derived(
-  new Set(compiled ? model.painted.map((field) => inputProperty(field)) : [])
+/** The compiled Texuli form; a schema Texuli refuses is reported, never painted half. */
+const compiled = $derived(
+  validateFormSchema(model.schema, { tier: 'developer', kinds: [...ENTITY_FORM_CUSTOM_KINDS] })
 );
 
-function buildHosted(
-  fields: readonly BlueprintField[],
-  row: Row | null | undefined,
-  formMode: 'create' | 'edit'
-): Record<string, unknown> {
-  const next: Record<string, unknown> = {};
-  for (const field of fields) {
-    const key = inputProperty(field);
-    if (row && key in row) next[key] = row[key] ?? null;
-    else if (formMode === 'create' && 'default' in field && field.default !== undefined)
-      next[key] = field.default;
-    else next[key] = field.kind === 'boolean' ? false : field.kind === 'tags' ? [] : null;
-  }
-  return next;
-}
-
 const seedKey = $derived(`${entity.name}:${mode}:${String(initial?.id ?? '')}`);
-// svelte-ignore state_referenced_locally
-let hosted = $state<Record<string, unknown>>(buildHosted(hostedFields, initial, mode));
-let errors = $state<Record<string, string>>({});
-let formError = $state<string | null>(null);
 let busy = $state(false);
 // svelte-ignore state_referenced_locally
 let seededFor = $state(seedKey);
@@ -122,10 +100,7 @@ let startValues = $state(model.toFormValues(initial));
 $effect(() => {
   const key = seedKey;
   if (key === seededFor) return;
-  hosted = buildHosted(hostedFields, initial, mode);
   startValues = model.toFormValues(initial);
-  errors = {};
-  formError = null;
   seededFor = key;
 });
 
@@ -149,148 +124,115 @@ function shuffleFor(field: BlueprintField): (() => Promise<string | null | undef
   };
 }
 
-/** Run the service; split its zod issues between Texuli's fields and the hosted ones. */
-async function send(input: EntityInput): Promise<FormSubmitResult> {
+/** Run the service; its zod issues go back to Texuli by schema field name. */
+async function submit({ values }: SchemaFormSubmission): Promise<FormSubmitResult> {
+  if (disabled) return { ok: false, message: 'This form is read-only.' };
   busy = true;
-  formError = null;
-  errors = {};
-  const result = await runService(() => onSubmit(input), {
+  const result = await runService(() => onSubmit(model.fromFormValues(values)), {
     errorTitle: mode === 'create' ? 'Could not create' : 'Could not save',
   });
   busy = false;
   if (result.ok) return { ok: true };
   const err = result.error;
   if (isValidationError(err)) {
-    const painted: Record<string, string> = {};
-    const own: Record<string, string> = {};
+    const errors: Record<string, string> = {};
+    // An issue on no form field (a record-level rule, a field the form leaves
+    // out) has nowhere to show inline, so it becomes the form's message.
+    const unplaced: string[] = [];
     for (const [path, message] of Object.entries(err.issues)) {
-      const key = path.split('.')[0] ?? path;
-      const target = paintedKeys.has(key) ? painted : own;
-      target[key] ??= message;
+      const name = model.names.get(path.split('.')[0] ?? path);
+      if (name) errors[name] ??= message;
+      else unplaced.push(message);
     }
-    errors = own;
-    return Object.keys(painted).length > 0
-      ? { ok: false, errors: painted }
-      : { ok: false, message: 'Check the highlighted fields.' };
+    const message = unplaced.length > 0 ? unplaced.join(' ') : undefined;
+    if (Object.keys(errors).length > 0)
+      return { ok: false, errors, ...(message ? { message } : {}) };
+    return { ok: false, message: message ?? 'Check the highlighted fields.' };
   }
-  const message = err instanceof Error ? err.message : 'Something went wrong.';
-  formError = compiled ? null : message;
-  return { ok: false, message };
-}
-
-function submitSchema({ values }: SchemaFormSubmission): Promise<FormSubmitResult> {
-  return send({ ...model.fromFormValues(values), ...hosted });
-}
-
-async function submitHosted(event: SubmitEvent) {
-  event.preventDefault();
-  if (busy || disabled) return;
-  await send({ ...hosted });
+  return { ok: false, message: err instanceof Error ? err.message : 'Something went wrong.' };
 }
 </script>
 
-{#snippet hostedControls()}
-  {#each hostedFields as field (field.name)}
-    {@const key = inputProperty(field)}
-    <FormField
-      label={fieldLabel(field)}
-      description={field.description}
-      error={errors[key]}
-      required={field.required}
+<!-- A hosted (custom) field: Texuli paints its label, description and error around it. -->
+{#snippet hostedField(custom: SchemaFormCustomField)}
+  {@const field = model.fieldFor(custom.name)}
+  {@const locked = custom.disabled || custom.readOnly || busy}
+  {#if field}
+    <div
+      class="grid"
+      data-entity-form-hosted={field.name}
+      onfocusout={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) custom.blur();
+      }}
     >
-      {#snippet children({ props })}
-        {#if (field.kind === 'relation' || field.kind === 'persona') && runtime && blueprint && services}
-          <RelationPicker
-            {runtime}
-            {blueprint}
-            {services}
-            {field}
-            bind:value={hosted[key]}
-            disabled={disabled || busy}
-            id={props.id}
-          />
-        {:else}
-          <FieldControl
-            {field}
-            bind:value={hosted[key]}
-            error={errors[key]}
-            disabled={disabled || busy}
-            id={props.id}
-            shuffleKey={`${entity.name}:${String(initial?.id ?? 'new')}:${field.name}`}
-            onShuffle={field.kind === 'avatar' ? shuffleFor(field) : undefined}
-          />
-        {/if}
-      {/snippet}
-    </FormField>
-  {/each}
+      {#if (field.kind === 'relation' || field.kind === 'persona') && runtime && blueprint && services}
+        <RelationPicker
+          {runtime}
+          {blueprint}
+          {services}
+          {field}
+          bind:value={() => custom.value, (next) => custom.setValue(next ?? null)}
+          disabled={locked}
+          id={custom.id}
+        />
+      {:else}
+        <FieldControl
+          {field}
+          bind:value={() => custom.value, (next) => custom.setValue(next ?? null)}
+          error={custom.error}
+          disabled={locked}
+          id={custom.id}
+          shuffleKey={`${entity.name}:${String(initial?.id ?? 'new')}:${field.name}`}
+          onShuffle={field.kind === 'avatar' ? shuffleFor(field) : undefined}
+        />
+      {/if}
+    </div>
+  {/if}
 {/snippet}
 
-<div
-  class="py-entity-form grid gap-4"
-  data-entity-form={entity.name}
-  data-mode={mode}
-  data-hide-title={showTitle ? undefined : ''}
->
-  {#if compiled}
+{#snippet actionRow(state: SchemaFormActions)}
+  <div class="flex flex-wrap gap-2">
+    <Button
+      type="submit"
+      loading={state.submitting}
+      disabled={state.disabled || state.readOnly}
+    >
+      {state.submitLabel}
+    </Button>
+    {#if onCancel}
+      <Button type="button" variant="outline" disabled={state.submitting} onclick={onCancel}>Cancel</Button>
+    {/if}
+  </div>
+{/snippet}
+
+<div class="py-entity-form grid gap-4" data-entity-form={entity.name} data-mode={mode}>
+  {#if compiled.ok}
     {#key seededFor}
       <SchemaForm
         id={formId}
-        form={compiled}
+        form={compiled.form}
         values={startValues}
-        onSubmit={submitSchema}
+        onSubmit={submit}
+        field={hostedField}
+        actions={actionRow}
+        {disabled}
+        hideTitle={!showTitle}
         labels={{
           submitted: mode === 'create' ? 'Created.' : 'Changes saved.',
         }}
         headingLevel={2}
-        aria-label={showTitle ? undefined : model.schema.title}
         data-py-schema-form
       />
     {/key}
-    {#if hostedFields.length > 0}
-      <div class="grid gap-4" data-entity-form-hosted>
-        {@render hostedControls()}
-      </div>
-    {/if}
   {:else}
-    <form
-      id={formId}
-      class="grid gap-4"
-      aria-label={model.schema.title}
-      onsubmit={submitHosted}
-      novalidate
-    >
-      {@render hostedControls()}
-    </form>
+    <p class="text-sm text-destructive" role="alert" data-entity-form-invalid>
+      This form cannot be shown: {compiled.issues[0]?.message ?? 'its schema is invalid'}.
+    </p>
   {/if}
-
-  {#if formError}
-    <p class="text-sm text-destructive" role="alert">{formError}</p>
-  {/if}
-
-  <div class="flex flex-wrap gap-2">
-    <Button type="submit" form={formId} loading={busy} {disabled}>
-      {buttonLabel}
-    </Button>
-    {#if onCancel}
-      <Button type="button" variant="outline" disabled={busy} onclick={onCancel}>Cancel</Button>
-    {/if}
-  </div>
 </div>
 
 <style>
-  /*
-   * One submit button serves the Texuli fields and the hosted ones below
-   * them, so SchemaForm's own action row (a documented styling hook) is not
-   * shown; its submit still runs on Enter inside a Texuli field.
-   */
-  .py-entity-form :global(.tx-forms__actions) {
-    display: none;
-  }
   .py-entity-form {
     --tx-forms-max-inline-size: none;
-  }
-  /* SchemaForm always paints its title; the form keeps it as its aria-label. */
-  .py-entity-form[data-hide-title] :global(.tx-forms__title) {
-    display: none;
   }
 </style>

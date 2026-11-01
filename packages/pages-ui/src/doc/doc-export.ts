@@ -61,11 +61,9 @@ export async function exportDoc(
   format: DocExportFormat,
   options: ExportDocOptions = {}
 ): Promise<DocExportOutcome> {
-  // Markdown has no wrapped-block form in Texuli's writer, so tables go as lists there.
-  const { document } = docToTexuliDocument(doc, {
-    mode: 'export',
-    tables: format === 'markdown' ? 'list' : 'block',
-  });
+  // Tables are wrapped @texuli/blocks tables in every format: DOCX and PDF print
+  // them as tables, Markdown as GFM tables (G112).
+  const { document } = docToTexuliDocument(doc, { mode: 'export', tables: 'block' });
   const result = await exportDocument(document, format, {
     markdown: { title: false, embeds: 'title' },
   });

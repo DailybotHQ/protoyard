@@ -278,7 +278,7 @@ parent owns streaming state and must route mutations through services.
   snippets and keydown hook.
 - `RichAnswer` renders the markdown AST; `CanvasPanel` shows code or editable
   document text.
-- Built on Texuli 0.9.0: every control is a `texuli` component (buttons,
+- Built on Texuli: every control is a `texuli` component (buttons,
   `CopyButton`, textarea, file input, select, menus, code, table, badges,
   cards); Lucide glyphs render through `LucideIcon`.
 

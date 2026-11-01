@@ -4,11 +4,10 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.9.0`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.12.0`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
-a release. What 0.10.0 will change is under [Next: Texuli 0.10.0](#next-texuli-0100);
-none of it ships in Protoyard yet.
+a release.
 
 ## How it is linked
 
@@ -49,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.9.0`. Texuli pins its own internal dependencies exactly,
+Every package is `0.12.0`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -63,11 +62,11 @@ checks.
 ## The Texuli agent skill
 
 Agents working in this repository have the Texuli skill at
-`.agents/skills/texuli` (version 0.3.4, the skill release that matches the
-Texuli 0.9.0 packages Protoyard installs). It is the pinned `skill-v0.3.4`
+`.agents/skills/texuli` (version 0.3.12, the skill release that matches the
+Texuli 0.12 packages Protoyard installs). It is the pinned `skill-v0.3.12`
 release, installed from its archive after checking the archive and every file
 against the release's `SHA256SUMS` and running
-`setup.sh --verify --expect-version 0.3.4`. It explains Texuli's components,
+`setup.sh --verify --expect-version 0.3.12`. It explains Texuli's components,
 tokens, icons, layouts, themes, documents and MCP hosts, and how to report a
 missing API. To upgrade, repeat
 those steps for the new release and replace the folder; never edit it in place.
@@ -176,17 +175,26 @@ debug panel and Deck Studio. Details and the migration note:
 
 ## Forms from `@texuli/forms`
 
-Generated entity forms, page and doc form blocks, and the SaaS kit's
-notification preferences and member invite render through Texuli's
-`SchemaForm`. `@protoyard/blueprint` maps entity fields to a Texuli
+Generated entity forms, page and doc form blocks, and the SaaS kit's forms
+(sign-in, sign-up, password reset, magic link, phone sign-in and code, MFA,
+profile, notification preferences, member invite and the onboarding wizard)
+render through Texuli's `SchemaForm`. `@protoyard/blueprint` maps entity fields to a Texuli
 `FormSchema` as plain data (`entityFormModel`); `@protoyard/crud`'s
 `EntityForm` paints the mapped fields with `SchemaForm` and keeps Protoyard
 controls for the kinds Texuli has no control for (relation, datetime, geo,
 avatar, file). Every submission still goes through the entity, form-response
-or SaaS service, and the service's issues come back inline. Auth screens,
-the profile color picker and the onboarding wizard stay on Protoyard
-controls (gaps G117 and G120). Details: [GENERATOR](GENERATOR.md#entity-forms)
-and [PAGES](PAGES.md).
+or SaaS service, and the service's issues come back inline. The SaaS kit
+uses Texuli's `otp` field for the MFA and phone codes and its `color` field
+for the profile's avatar color. The onboarding wizard is one multi-step form
+on `createFormController`, whose `onStep` saves each answer through the
+onboarding service. Password fields use Texuli's `password` type with
+`autocomplete: 'off'` (accepted since 0.11.2, G129), so browsers never offer
+to save a fake password. The phone number is a `phone`-format text field,
+which Texuli paints as `type="tel"` with the telephone keypad (since 0.11.3,
+G131).
+
+Details: [GENERATOR](GENERATOR.md#entity-forms), [PAGES](PAGES.md) and
+[SAAS_KITS](SAAS_KITS.md).
 
 ## Documents from `@texuli/pages` and `@texuli/document`
 
@@ -197,8 +205,33 @@ document and back; untouched blocks return byte-identical, and Protoyard's
 own blocks travel as placeholders. Applied edits are saved per doc and world
 in the content-kind runtime's `docEdits` store (its storage schema version 2)
 and survive a reload; Reset removes them. The reading view stays Protoyard's
-`DocHost`, because Texuli's `PageReader` has no seam for host-owned blocks
-(gap G111). Details: [PAGES](PAGES.md) and [KINDS](KINDS.md).
+`DocHost`. Texuli 0.10–0.11 added the `renderBlock` seam (G111),
+`@texuli/pages/reader-core`, host heading anchors (`anchorFor`, G132) and a
+validator without the deck model (`@texuli/document/schema-core`, G133).
+Protoyard's blocks paint through the seam, and `anchorFor={(block) => block.id}`
+keeps every `#<block-id>` link and the TOC ids. One thing still blocks the
+switch, measured 2026-11-01 on Texuli 0.11.3 with `budget.test.ts`'s Vite
+production build:
+
+- **Size.** The reader needs the doc → Texuli conversion on the first screen.
+  Today's doc entry plus that conversion alone measures 147,659 B of initial
+  JS gzip, against 120,623 B today and a 122,880 B budget. That is before the
+  reader is added. The conversion's largest parts are the Markdown codec
+  (`@texuli/core/editor`, about 15 KB), because Protoyard's text blocks are
+  Markdown, and the schema toolkit `schema-core` still validates with
+  (`@texuli/deck/schema`, about 9 KB). On 0.11.1 the conversion cost
+  30,854 B; `schema-core` saves about 3.8 KB of that and keeps the deck model
+  out.
+
+The edit-mode conversion also drops some content a reading view must keep:
+heading eyebrows and subtitles, quote citations and callout icons.
+`@protoyard/pages` validates converted documents with `schema-core`, which
+refuses inline decks (Protoyard writes none). That shrinks the shared chunk
+behind the Word, PDF and Markdown downloads from 19,283 B to 3,907 B gzip.
+
+`PageApp` renders page sections (hero, pricing, steps…), not a document, so
+the reader does not apply to it. Details: [PAGES](PAGES.md#reading-view-and-texulis-reader)
+and [KINDS](KINDS.md).
 
 ## Spreadsheets and the infinite canvas
 
@@ -277,7 +310,7 @@ behavior and host contracts remain Protoyard-owned:
 | `blocks-ui` | Texuli block-family renderers | Protoyard-only block renderers and extensions |
 | `decks-ui` | The `@texuli/slides` stage core, Texuli controls and styled UI | Deck authoring, presenter, print, and prototype-specific behavior |
 | `pages-ui` | Texuli controls and block renderers, the `@texuli/pages` editor, `@texuli/document` exports, `@texuli/forms` form blocks | Page/doc hosts, form-response and saved-edit services, and print behavior |
-| `saas-ui` | Texuli controls and styled components; `@texuli/forms` for notification preferences and member invites | Simulated SaaS screen flows and route guards |
+| `saas-ui` | Texuli controls and styled components; `@texuli/forms` for the auth, profile, settings and invite forms and the onboarding wizard | Simulated SaaS screen flows and route guards |
 | `ai-ui` | Texuli chat components and styled UI | Assistant state, safe rich answers, tool orchestration and widget modes |
 | `flows-ui` | Texuli workflow editor and run-panel components | Protoyard workflow contract and deterministic simulation |
 | `review-ui` | Texuli controls and styled UI | Review thread, anchor, and mount integration |
@@ -350,43 +383,55 @@ and fences, and other host-only behavior remain Protoyard extensions while
 the relevant APIs are gaps. Consult `tests/adoption/texuli-gaps.json` and the
 package pending list for current gap ids and affected files.
 
-## Open gaps (Texuli 0.9.0)
+## Texuli gaps
 
-`tests/adoption/texuli-gaps.json` is the authoritative list. These are open
-on 0.9.0, each with a minimal adapter or a documented limit in Protoyard:
+`tests/adoption/texuli-gaps.json` is the authoritative list. Texuli 0.10.0
+fixed G100–G124 and 0.11.0 fixed G125–G127 and G130, so their adapters and
+`it.fails` pins are gone. Each of these changed Protoyard code:
 
-| Gap | Package | What is missing |
-| --- | --- | --- |
-| G100 | `@texuli/editor/markdown` | `\@` is not read as an escape, so an escaped mention sigil still opens a mention |
-| G101 | `@texuli/data/filter-builder` | No host `issues` prop to mark a condition invalid |
-| G102 | `texuli/layouts/content` | The active-heading tracker works only inside `ContentLayout`'s full chrome |
-| G103 | `@texuli/data/board` | Focus is lost for a frame after a keyboard move into another column |
-| G104 | `@texuli/data/calendar` | The event button's accessible name breaks label-in-name (axe) |
-| G105 | `@texuli/slides/export` | Print preload always imports the stage's default renderer table |
-| G106 | `@texuli/data/activity/inbox` | "Mark all as read" and a row toggle share one callback |
-| G107 | `@texuli/data/grid-core` | `DataGrid mode="table"` lacks ref and rest, loading rows and per-column parts |
-| G108 | `texuli/command` | `CommandPalette` names the dialog and its search with the same title |
-| G109 | `texuli/date` | `DateRangePicker` has no content slot and does not announce the pending end date |
-| G110 | `@texuli/tokens` | System token defaults ship only inside `base.css`, with its reset |
-| G111 | `@texuli/pages` | `PageReader` and `PageEditor` have no `renderBlock` seam for host blocks |
-| G112 | `@texuli/document` | `documentToMarkdown` drops wrapped blocks, tables included |
-| G113–G121 | `@texuli/forms` | No host-painted field, title or action-row control, form-level disabled, password/OTP/color/datetime types, clearing an optional select, per-type loading, per-step submit, or `url` protocols |
-| G122 | `@texuli/data/dashboard/engine` | A keyboard nudge cannot move a widget past a wider one below |
-| G123 | `@texuli/pages` | The editor and reader always reach the whole `@texuli/player` |
-| G124 | `@texuli/tools/mcp` | `createMcpHandler` does not speak the stateless MCP 2026-07-28 revision |
-| G125 | `@texuli/tokens` | No ids-only entry for the whole library |
-| G126 | `@texuli/tokens/library-expand` | Descriptions are cut at 48 characters |
-| G127 | `@texuli/slides` | The stage's theme loader always reaches the whole expanded theme set |
+- `@texuli/tokens/system.css` (system tokens without the reset, G110) replaces `base.css`.
+- `CommandPalette` has a `searchLabel` (G108).
+- The date range picker announces the pending end date (G109).
+- The inbox has its own mark-all callback (G106).
+- `FilterBuilder` takes host issues (G101).
+- The board and calendar fixes (G103, G104).
+- Entity forms are one `SchemaForm` with hosted custom fields (G113–G121).
+- The doc editor is `@texuli/pages/editor-core` with host-painted blocks (G111, G123).
+- Deck print goes through `@texuli/slides/export-core` (G105).
+- `@protoyard/themes` reads its theme id lists from `@texuli/tokens/library-ids` (G125).
 
-## Next: Texuli 0.10.0
+G128 (a square theme radius written as unitless `0`) and G129 (password
+fields could not ask for `autocomplete: 'off'`) are fixed in 0.11.2. The SaaS
+kit's password fields use Texuli's type with `off`, and
+`@protoyard/themes` keeps writing any custom theme's zero radius as `0px`.
 
-Texuli 0.10.0 is published, and its adoption is in progress on its own branch;
-nothing below ships in Protoyard yet. It brings design systems and the fixes
-for G100–G124: for example `@texuli/tokens/system.css` (system tokens without
-the reset, G110), `CommandPalette` `searchLabel` (G108), the date range
-picker's pending-end announcement (G109), the inbox's own mark-all callback
-(G106), `FilterBuilder` host issues (G101), and the board and calendar fixes
-(G103, G104). It also removes the tree block's `style` alias and the old MCP
-tool-name aliases. Once Protoyard moves to it, these adapters and their
-`it.fails` pins are removed, and this page and the gap list are updated.
+G131–G134 are fixed in 0.11.3 and adopted:
 
+- A `phone`-format text field is a telephone input (G131), so the phone
+  sign-in no longer needs `TelInput`.
+- `anchorFor` keeps host heading ids (G132).
+- `@texuli/document/schema-core` validates without the deck model (G133).
+- `SchemaForm` follows `disabled` and `readOnly` after mount (G134), so the
+  MFA form no longer remounts.
+
+G135 (`fromTheme` could return a document the compiler refused) is fixed in
+0.11.4, and `designSystemFromTheme` calls Texuli's `fromThemeWithReport`
+directly.
+
+G136 is fixed in 0.12.0: the `@texuli/pages` core entries no longer carry the
+deck model. `DocEditor` passes no `validateDeck`, because Protoyard docs never
+hold inline decks, so the slash menu offers no inline deck that a save would
+refuse.
+
+Won't fix: G137. Texuli keeps `@texuli/deck/schema` as the validator's schema
+kit (8.77 KiB gzip). Moving it would save no bytes, and Texuli's layer rule
+forbids it.
+
+No gap is open.
+
+The doc reading view stays `DocHost` for size, because Protoyard's Markdown
+text blocks need the codec; see Documents above.
+
+Texuli 0.10.0 also removed the tree block's `style` alias (Protoyard's
+blocks-ui adapter passes `variant`) and the 0.8 MCP tool names, which Protoyard
+never used.

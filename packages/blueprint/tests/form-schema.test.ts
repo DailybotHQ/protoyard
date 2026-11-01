@@ -8,12 +8,17 @@ import { type FormSchema, validateFormSchema } from '@texuli/forms/model';
 import { describe, expect, it } from 'vitest';
 import {
   deriveInputSchemas,
+  ENTITY_FORM_CUSTOM_KINDS,
   type EntityFormSchema,
   entityFormModel,
   HOSTED_FORM_KINDS,
   parseBlueprint,
   UNASSIGNED_OPTION,
 } from '../src/index.ts';
+
+/** What EntityForm passes: the host paints the custom kinds it lists. */
+const validate = (schema: EntityFormSchema) =>
+  validateFormSchema(schema, { tier: 'developer', kinds: [...ENTITY_FORM_CUSTOM_KINDS] });
 
 const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 
@@ -74,9 +79,9 @@ const people = [
 ];
 
 describe('entityFormModel', () => {
-  it('maps every paintable kind to a Texuli field that validateFormSchema accepts', () => {
+  it('maps every kind to a Texuli field that validateFormSchema accepts, hosted kinds as custom fields', () => {
     const model = entityFormModel(ticket, { personaOptions: people });
-    const result = validateFormSchema(model.schema);
+    const result = validate(model.schema);
     expect(result.issues).toEqual([]);
     expect(result.ok).toBe(true);
     expect(model.schema.title).toBe('New support ticket');
@@ -88,22 +93,36 @@ describe('entityFormModel', () => {
       refund: 'number',
       urgent: 'checkbox',
       dueOn: 'date',
+      firstReplyAt: 'datetime',
       status: 'select',
       contactEmail: 'email',
-      website: 'text',
+      website: 'url',
       phone: 'text',
       labels: 'tags',
+      customerId: 'custom',
       assigneeId: 'select',
+      attachmentsIds: 'custom',
       metadata: 'textarea',
+      location: 'custom',
+      face: 'custom',
     });
     expect(model.hosted.map((f) => f.name)).toEqual([
-      'firstReplyAt',
       'customer',
       'attachments',
       'location',
       'face',
     ]);
     for (const field of model.hosted) expect(HOSTED_FORM_KINDS.has(field.kind)).toBe(true);
+    // A hosted field is a custom field of its blueprint kind (G113), in blueprint order.
+    expect(model.schema.fields.find((f) => f.name === 'customerId')).toEqual({
+      name: 'customerId',
+      type: 'custom',
+      kind: 'relation',
+      label: 'Customer',
+      required: true,
+    });
+    expect(model.fieldFor('customerId')?.name).toBe('customer');
+    expect(model.names.get('customerId')).toBe('customerId');
   });
 
   it('carries the rules the service agrees with', () => {
@@ -123,23 +142,41 @@ describe('entityFormModel', () => {
       { value: 'solved', label: 'Solved' },
     ]);
     expect(fields.get('labels')).toMatchObject({ maxItems: 3 });
-    expect(fields.get('assigneeId')?.options?.[0]).toEqual({
-      value: UNASSIGNED_OPTION,
-      label: 'Unassigned',
-    });
+    // An optional persona lists only people: Texuli's select adds "None" (G118).
+    expect(fields.get('assigneeId')?.options).toEqual(people);
+    expect(fields.get('assigneeId')?.required).toBeUndefined();
+    // Urls accept http as the service does (G121).
+    expect(fields.get('website')).toMatchObject({ type: 'url', protocols: ['http', 'https'] });
   });
 
-  it('hosts persona fields when no people are given, or when an id collides with the sentinel', () => {
-    expect(entityFormModel(ticket).hosted.some((f) => f.kind === 'persona')).toBe(true);
+  it('hosts persona fields as custom fields when no people are given, or ids repeat', () => {
+    const custom = (model: ReturnType<typeof entityFormModel>) =>
+      model.schema.fields.find((f) => f.name === 'assigneeId');
+    expect(custom(entityFormModel(ticket))).toMatchObject({ type: 'custom', kind: 'persona' });
     const clash = entityFormModel(ticket, {
-      personaOptions: [{ value: UNASSIGNED_OPTION, label: 'Odd' }],
+      personaOptions: [people[0]!, { value: 'persona-ada', label: 'Ada again' }],
     });
     expect(clash.hosted.some((f) => f.kind === 'persona')).toBe(true);
+    expect(validate(clash.schema).ok).toBe(true);
+  });
+
+  it('renames a field Texuli refuses and maps it back', () => {
+    const odd = {
+      ...ticket,
+      fields: [{ name: 'valueOf', kind: 'text', required: false, maxLength: 20, sensitive: false }],
+    } as typeof ticket;
+    const model = entityFormModel(odd);
+    expect(model.schema.fields.map((f) => f.name)).toEqual(['field_0']);
+    expect(model.names.get('valueOf')).toBe('field_0');
+    expect(model.fieldFor('field_0')?.name).toBe('valueOf');
+    expect(model.toFormValues({ valueOf: 'x' })).toEqual({ field_0: 'x' });
+    expect(model.fromFormValues({ field_0: 'y' })).toEqual({ valueOf: 'y' });
+    expect(validate(model.schema).ok).toBe(true);
   });
 
   it('paints a read-only form with every field disabled', () => {
     const model = entityFormModel(ticket, { personaOptions: people, readOnly: true });
-    expect(validateFormSchema(model.schema).ok).toBe(true);
+    expect(validate(model.schema).ok).toBe(true);
     for (const field of model.schema.fields) {
       expect(field.when).toEqual({ enable: { op: 'bool', value: false } });
     }
@@ -159,8 +196,11 @@ describe('entityFormModel', () => {
       urgent: false,
       labels: [],
       refund: null,
-      assigneeId: UNASSIGNED_OPTION,
+      assigneeId: null,
       metadata: '',
+      // Hosted fields start empty for their host control.
+      customerId: null,
+      location: null,
     });
     expect(
       model.toFormValues({
@@ -171,11 +211,17 @@ describe('entityFormModel', () => {
         assigneeId: 'persona-bo',
         metadata: { a: 1 },
         labels: ['x', 3],
+        firstReplyAt: '2026-03-02T09:30:00.000Z',
+        customerId: 'cus_1',
+        location: { lat: 1, lng: 2 },
       })
     ).toMatchObject({
       subject: 'Printer',
       refund: 12.34,
       dueOn: '2026-03-02',
+      firstReplyAt: '2026-03-02T09:30',
+      customerId: 'cus_1',
+      location: { lat: 1, lng: 2 },
       status: null,
       assigneeId: 'persona-bo',
       metadata: '{\n  "a": 1\n}',
@@ -208,10 +254,31 @@ describe('entityFormModel', () => {
       website: '',
       phone: '+1 555 0100',
       labels: ['hardware'],
-      assigneeId: UNASSIGNED_OPTION,
+      assigneeId: null,
       metadata: '{"a":1}',
+      firstReplyAt: '',
+      location: { lat: 1, lng: 2 },
     });
-    expect(input).toMatchObject({ refund: 1234, assigneeId: null, metadata: '{"a":1}' });
+    expect(input).toMatchObject({
+      refund: 1234,
+      assigneeId: null,
+      metadata: '{"a":1}',
+      firstReplyAt: null,
+      location: { lat: 1, lng: 2 },
+    });
+    // A hosted value passes through; an empty one becomes null for the service to judge.
+    expect(model.fromFormValues({ customerId: 'cus_1', face: undefined })).toEqual({
+      customerId: 'cus_1',
+      face: null,
+    });
+    // A datetime round-trips as UTC wall time, whatever the machine's time zone.
+    const at = model.toFormValues({ firstReplyAt: '2026-06-01T09:00:00.000Z' }).firstReplyAt;
+    expect(at).toBe('2026-06-01T09:00');
+    expect(model.fromFormValues({ firstReplyAt: at })).toEqual({
+      firstReplyAt: '2026-06-01T09:00:00.000Z',
+    });
+    // A value saved before Texuli 0.10 with the old sentinel still reads as unassigned.
+    expect(model.fromFormValues({ assigneeId: UNASSIGNED_OPTION })).toEqual({ assigneeId: null });
     const parsed = parseInput(deriveInputSchemas(ticket).update, input);
     expect(parsed).toMatchObject({
       subject: 'Printer queue',
@@ -250,8 +317,8 @@ describe('entityFormModel', () => {
         for (const mode of ['create', 'edit'] as const) {
           const model = entityFormModel(entity, { mode, personaOptions: people });
           expect(model.painted.length + model.hosted.length).toBe(entity.fields.length);
-          if (model.schema.fields.length === 0) continue;
-          const result = validateFormSchema(model.schema);
+          expect(model.schema.fields.length).toBe(entity.fields.length);
+          const result = validate(model.schema);
           expect(result.issues, `${file} ${entity.name}`).toEqual([]);
           checked += 1;
         }

@@ -86,7 +86,28 @@ describe('document reading design', () => {
     );
   });
 
-  it('tracks the heading intersecting the reading viewport', async () => {
+  it('tracks the heading past the reading line with Texuli trackActiveHeading (G102)', async () => {
+    // A controllable IntersectionObserver: Texuli's tracker reads positions when it reports.
+    const observers: { callback: () => void; targets: Element[] }[] = [];
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        targets: Element[] = [];
+        constructor(callback: () => void) {
+          observers.push({ callback, targets: this.targets });
+        }
+        observe(target: Element) {
+          this.targets.push(target);
+        }
+        disconnect() {
+          this.targets.length = 0;
+        }
+        unobserve() {}
+        takeRecords() {
+          return [];
+        }
+      }
+    );
     const view = render(DocHost, { props: { doc: report() } });
     await waitFor(() => expect(view.container.querySelector('#outlook')).toBeTruthy());
     const outlook = document.getElementById('outlook');
@@ -96,7 +117,9 @@ describe('document reading design', () => {
         top: 20,
         height: 24,
       } as DOMRect);
-      window.dispatchEvent(new Event('scroll'));
+      const live = observers.filter((o) => o.targets.includes(outlook));
+      expect(live.length).toBeGreaterThan(0);
+      for (const observer of live) observer.callback();
     }
 
     await waitFor(() => {

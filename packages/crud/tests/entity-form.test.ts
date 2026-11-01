@@ -27,7 +27,7 @@ async function boot() {
 const entity = (name: string) => helpdeskBlueprint.entities.find((e) => e.name === name)!;
 
 describe('EntityForm on @texuli/forms', () => {
-  it('paints mapped fields with SchemaForm and hosted ones with Protoyard controls', async () => {
+  it('paints every field in one SchemaForm, hosted ones as custom fields with Protoyard controls', async () => {
     const { runtime, services } = await boot();
     render(CrudHarness, {
       runtime,
@@ -43,13 +43,40 @@ describe('EntityForm on @texuli/forms', () => {
     for (const name of ['subject', 'status', 'assigneeId', 'labels']) {
       expect(schema.querySelector(`[data-tx-forms-field="${name}"]`), name).toBeTruthy();
     }
-    // The relation picker is hosted after the Texuli fields, outside its form.
-    const hosted = form.querySelector('[data-entity-form-hosted]') as HTMLElement;
+    // The relation picker is a Texuli custom field (G113) inside the same form.
+    const hosted = schema.querySelector('[data-entity-form-hosted="customer"]') as HTMLElement;
     expect(hosted.querySelector('[data-relation-picker="customer"]')).toBeTruthy();
-    expect(schema.contains(hosted)).toBe(false);
-    // One visible submit drives both, bound to the Texuli form.
-    const submit = within(form).getByRole('button', { name: 'Create ticket' });
-    expect(submit.getAttribute('form')).toBe(schema.id);
+    // Texuli paints its label; the picker's control carries the field id.
+    const customField = schema.querySelector('[data-tx-forms-field="customerId"]') as HTMLElement;
+    expect(customField.contains(hosted)).toBe(true);
+    expect(within(customField).getByText(/^Customer/)).toBeTruthy();
+    // The action row is Protoyard's Button inside the form (G115), no hidden Texuli row.
+    const submit = within(schema).getByRole('button', { name: 'Create ticket' });
+    expect(submit.getAttribute('type')).toBe('submit');
+    expect(within(form).getAllByRole('button', { name: 'Create ticket' })).toHaveLength(1);
+  });
+
+  it('hides the title visually while it keeps naming the form (G114)', async () => {
+    const { runtime } = await boot();
+    render(EntityForm, {
+      entity: entity('customer'),
+      runtime,
+      showTitle: false,
+      onSubmit: async () => ({}),
+    });
+    expect(screen.getByRole('form', { name: 'New customer' })).toBeTruthy();
+    const heading = document.querySelector('.tx-forms__title') as HTMLElement;
+    expect(heading.className).toMatch(/sr-only|visually-hidden/);
+  });
+
+  it('offers Texuli\'s "None" on an optional persona select instead of a sentinel (G118)', async () => {
+    const { runtime } = await boot();
+    render(EntityForm, { entity: entity('customer'), runtime, onSubmit: async () => ({}) });
+    const field = document.querySelector('[data-tx-forms-field="accountManagerId"]') as HTMLElement;
+    await fireEvent.click(within(field).getByRole('combobox'));
+    const options = (await screen.findAllByRole('option')).map((o) => o.textContent?.trim());
+    expect(options[0]).toBe('None');
+    expect(options).not.toContain('Unassigned');
   });
 
   it('reports a service issue on a hosted field inline and writes nothing', async () => {
@@ -66,8 +93,9 @@ describe('EntityForm on @texuli/forms', () => {
       target: { value: 'Printer queue stuck' },
     });
     await fireEvent.click(screen.getByRole('button', { name: 'Create ticket' }));
-    const hosted = document.querySelector('[data-entity-form-hosted]') as HTMLElement;
-    await waitFor(() => expect(within(hosted).getByText(/Customer is required/)).toBeTruthy());
+    // Texuli validates the hosted (custom) field with the rest and marks it inline.
+    const field = document.querySelector('[data-tx-forms-field="customerId"]') as HTMLElement;
+    await waitFor(() => expect(within(field).getByText(/Customer is required/)).toBeTruthy());
     expect(screen.queryByTestId('created-id')).toBeNull();
     expect((await services.ticket!.list()).length).toBe(before);
   });
@@ -120,6 +148,26 @@ describe('EntityForm on @texuli/forms', () => {
     expect(calls).toEqual([{ name: 'Northwind', email: '', accountManagerId: null }]);
   });
 
+  it('shows a service issue that matches no form field as the form message', async () => {
+    const { runtime } = await boot();
+    render(EntityForm, {
+      entity: entity('customer'),
+      runtime,
+      onSubmit: async () => {
+        throw new ValidationError({ _record: 'This customer already exists in another workspace' });
+      },
+    });
+    await fireEvent.input(screen.getByRole('textbox', { name: /^Name/ }), {
+      target: { value: 'Northwind' },
+    });
+    await fireEvent.click(screen.getByRole('button', { name: 'Create customer' }));
+    await waitFor(() =>
+      expect(
+        screen.getAllByText('This customer already exists in another workspace').length
+      ).toBeGreaterThan(0)
+    );
+  });
+
   it('paints a disabled form with disabled Texuli controls and no active submit', async () => {
     const { runtime } = await boot();
     render(EntityForm, {
@@ -138,7 +186,7 @@ describe('EntityForm on @texuli/forms', () => {
     ).toBe(true);
   });
 
-  it('falls back to Protoyard controls when no field maps to Texuli', async () => {
+  it('paints a form whose only field is hosted and submits it through the service', async () => {
     const { runtime } = await boot();
     const sent: Row[] = [];
     render(EntityForm, {
@@ -152,7 +200,7 @@ describe('EntityForm on @texuli/forms', () => {
         return input;
       },
     });
-    expect(document.querySelector('form.tx-forms')).toBeNull();
+    expect(document.querySelector('form.tx-forms [data-tx-forms-field="avatar"]')).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'Create customer' }));
     await waitFor(() => expect(sent).toEqual([{ avatar: null }]));
   });

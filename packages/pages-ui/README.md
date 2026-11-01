@@ -76,14 +76,11 @@ Texuli `Stat` cards, the hero eyebrow a `Badge`, quote attributions an
 closed Markdown subset: text and safe links, never HTML) and an unknown block
 is a `Callout`. Styles read `--tx-*` tokens. `SectionHeader` keeps
 page-specific type scale and inverted-section styling around Texuli's
-`MarketingSection`. `DocHost` owns the reading shell, TOC and active-heading
-tracking. Texuli's `ContentLayout` tracks the active heading since 0.6.0
-(`activeId`, `onActiveHeadingChange`, `aria-current="location"`, G52), but
-only inside its whole page chrome (its own header, `<main>`, `<h1>` and TOC
-aside), which would replace the doc reading design, its print rules and the
-`data-py-doc-*` hooks the page-design gate reads. The tracker is not exported
-on its own, so DocHost keeps its small one (the same reading line, 30% of the
-viewport) until Texuli exposes it (reported as a Texuli gap). Form services
+`MarketingSection`. `DocHost` owns the reading shell and TOC; the active heading comes from
+Texuli's standalone `trackActiveHeading` (`texuli/layouts/content`, G102: the
+last heading past a reading line at 30% of the viewport, one
+IntersectionObserver), so the doc keeps its own reading design, print rules
+and `data-py-doc-*` hooks without Texuli's `ContentLayout` chrome. Form services
 also remain supplied by the Protoyard host.
 `packages/blocks-ui/tests/comparison-render.test.ts` proves that every catalog
 block type resolves to a renderer through this host and through blocks-ui's
@@ -150,6 +147,12 @@ second time. A single disclosure is a collapsible TOC on phones and a sticky
 rail on wide screens. Its active link follows the visible section. The
 `showNav` prop remains available to hide the outline. Content stays within a
 72-character reading measure, and the TOC is omitted from print output.
+
+The reading view stays `DocHost` rather than Texuli's `PageReaderCore`. On
+Texuli 0.11.3 the reader keeps `#<block-id>` anchors (`anchorFor`), but the
+doc → Texuli conversion it needs would put the doc entry over its initial JS
+budget, mostly through the Markdown codec. See
+[docs/PAGES.md](../../docs/PAGES.md#reading-view-and-texulis-reader).
 
 ### Doc tool bar: edit and download
 

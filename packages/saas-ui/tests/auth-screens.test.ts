@@ -5,7 +5,7 @@ import {
   parseManifest,
 } from '@protoyard/core';
 import type { ProtoyardRuntime } from '@protoyard/runtime';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import {
@@ -98,8 +98,11 @@ async function signInFixture(runtime: ProtoyardRuntime): Promise<SaasAccount> {
   await runtime.session.signIn(account.personaId);
   return account;
 }
+// Controls only: a Texuli form is named by its title, which can start with the same word.
 const type = (label: string, value: string) =>
-  fireEvent.input(screen.getByLabelText(new RegExp(`^${label}`)), { target: { value } });
+  fireEvent.input(screen.getByLabelText(new RegExp(`^${label}`), { selector: 'input, textarea' }), {
+    target: { value },
+  });
 const submit = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
 
 describe('auth screens', () => {
@@ -109,11 +112,12 @@ describe('auth screens', () => {
     render(AuthHarness, { props: { runtime, screen: 'settings', tab: 'profile' } });
     await type('Display name', 'Ada Byron');
     await type('Time zone', 'America/Bogota');
-    await fireEvent.input(screen.getByLabelText('Avatar color'), { target: { value: '#123456' } });
+    // The avatar color is Texuli's color picker (loaded on first use); a preset swatch picks Blue.
+    await fireEvent.click(await screen.findByRole('button', { name: /^Blue/ }));
     await submit('Save profile');
     await waitFor(() => expect(runtime.session.principal()?.persona.name).toBe('Ada Byron'));
     expect(runtime.session.principal()?.persona.timezone).toBe('America/Bogota');
-    expect(runtime.session.principal()?.persona.avatarColor).toBe('#123456');
+    expect(runtime.session.principal()?.persona.avatarColor).toBe('#3b82f6');
   });
 
   it('settings security tab changes a password through the settings service', async () => {
@@ -294,7 +298,16 @@ describe('auth screens', () => {
     await type('Email', 'olivia@gmail.com');
     await type('Password', 'throwaway password');
     await submit('Create account');
-    expect(await screen.findByText(/Use a fictional address/)).toBeTruthy();
+    // The service issue lands inline on the email field (and in the error summary).
+    await waitFor(() => {
+      const email = screen.getByLabelText(/^Email/, { selector: 'input' });
+      expect(email.getAttribute('aria-invalid')).toBe('true');
+      const described = (email.getAttribute('aria-describedby') ?? '')
+        .split(' ')
+        .map((id) => document.getElementById(id)?.textContent ?? '')
+        .join(' ');
+      expect(described).toMatch(/Use a fictional address/);
+    });
     expect(
       await runtime.db
         .rows<SaasAccount>('saas_accounts')
@@ -467,7 +480,8 @@ describe('auth screens', () => {
     await type('Email', 'olivia@example.com');
     await type('Password', 'throwaway password');
     await submit('Create account');
-    expect((await screen.findByRole('alert')).textContent).toMatch(/offline/i);
+    // The Texuli error summary takes focus and lists the service message.
+    expect((await screen.findByText(/offline/i)).closest('.tx-forms__summary')).toBeTruthy();
     expect(
       await runtime.db
         .rows<SaasAccount>('saas_accounts')
@@ -592,9 +606,14 @@ describe('kit forms on @texuli/forms', () => {
     render(AuthHarness, { props: { runtime, screen: 'settings', tab: 'notifications' } });
     expect(await screen.findByText(/cannot edit notification preferences/)).toBeTruthy();
     const product = (await screen.findByLabelText(/Product updates/)) as HTMLElement;
-    // `when.enable` is never true for this role, so Texuli paints the control disabled.
+    // The whole form is disabled for this role (SchemaForm `disabled`, G116).
     expect((product as HTMLInputElement).disabled).toBe(true);
-    const form = document.querySelector('form[data-py-saas-form="notifications"]');
-    expect(form?.hasAttribute('inert')).toBe(true);
+    const form = document.querySelector('form[data-py-saas-form="notifications"]') as HTMLElement;
+    const save = within(form).getByRole('button', {
+      name: 'Save preferences',
+    }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    // The section heading names the form; its own title is only visually hidden (G114).
+    expect(screen.getByRole('form', { name: 'Notification preferences' })).toBe(form);
   });
 });

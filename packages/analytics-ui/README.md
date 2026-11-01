@@ -109,11 +109,13 @@ const properties: FilterProperty[] = [
   a multi-select for known options (shown by label), comma-separated text
   for lists, two inputs for "between".
   - "Apply filters" validates against the catalog: unknown properties,
-    operators that do not fit the type and missing values are listed under
-    the builder by condition ("Condition 1: Enter a value"). Only valid data
-    reaches `onchange`. Texuli's builder marks values that do not fit a
-    field itself; it takes no host issues, so Protoyard's are listed
-    instead of marked on the control (a Texuli gap; the lead assigns its id).
+    operators that do not fit the type and missing values show on the
+    condition's control: the builder shows the message under it and
+    sets `aria-invalid` and `aria-describedby` (Texuli's host `issues`,
+    G101). Errors on a whole group are listed under the builder. Only
+    valid data reaches `onchange`. Option-backed properties pass
+    `{ value, label }` options, so menus show labels and the model stores
+    values.
   - A one-line summary reads "Plan is Pro and Seats at least 5".
 - **`SegmentPicker`:** saved segments as `aria-pressed` chips ("Everyone"
   clears) and a "Save current filter as a segment" form.
@@ -213,9 +215,8 @@ the saved layout format and its persistence.
   arrange toolbar (Move left/right/up/down or Narrower/Wider/Shorter/Taller,
   Done, Cancel), so no drag is needed (WCAG 2.5.7). Neighbours make room and
   everything compacts upward; focus stays on the handle and a polite live
-  region announces each step. Known limit (a Texuli gap): the keyboard step
-  cannot move a widget down past a wider widget below it; move the wider one
-  up instead, or drag.
+  region announces each step. The keyboard step can move a widget down past
+  a wider widget below it (G122, Texuli 0.10.0).
 - **Saving:** an edit on the 12-column grid calls `onchange(layout)` with the
   layout in `DashboardLayoutSchema` form (widget keys and titles kept).
   Return the service promise: the grid is `aria-busy` until it settles and

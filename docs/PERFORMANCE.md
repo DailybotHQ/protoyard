@@ -11,6 +11,51 @@ layouts, views and theme library. They are kept as history and labelled so;
 current prototype bundle numbers are in
 [After the Texuli adoption](#after-the-texuli-adoption-measured-2026-10-28).
 
+## Texuli 0.12.0 re-measure (measured 2026-11-01)
+
+Measured on Texuli 0.12.0 with all of PLAN_008 merged (design systems, SaaS
+forms on `SchemaForm`, doc validation on `schema-core`). Every package and the
+player were rebuilt from clean first: `rm -rf packages/*/dist && pnpm build:packages
+&& pnpm --filter @protoyard/player build`. Then:
+
+```bash
+pnpm protoyard budget --all          # exit 0: 17 of 17 prototypes pass
+pnpm vitest run <the ten bundle tests listed in the section below> --silent=false   # 102 passed
+pnpm bench:index --runs 3 --check    # exit 0
+pnpm exec tsx scripts/bench-charts.ts --skip-browser --check   # exit 0
+```
+
+No ceiling changed in this pass: every measurement is under its cap. The
+bundle, index and charts numbers were measured on Texuli 0.11.5 and the bundle
+ones again on 0.12.0, where the first-screen numbers moved by a few bytes. The
+0.12.0 gain is on the lazy doc editor: Texuli measures `@texuli/pages/editor-core`
+at 76,670 B gzip (about 92.8 KB before, G136).
+
+| Measurement | Value |
+| --- | ---: |
+| Prototype initial JS gzip (17 prototypes) | 156.61–213.55 KB (cap 250 KB) |
+| Player initial JS: index / deck / page / doc | 108,917 / 106,344 / 106,172 / 106,013 B |
+| Player initial CSS: index / deck / page and doc | 16,876 / 17,259 / 18,568 B |
+| Player all CSS: deck / page / doc | 84.34 / 68.75 / 72.58 KB |
+| pages-ui page entry: JS / initial CSS / all CSS | 88,846 / 7,003 / 42,069 B |
+| pages-ui doc entry: JS / initial CSS / all CSS | 120,629 / 7,201 / 48,920 B |
+| Views over the shell: board, calendar, grid, map, editor, timeline, sheet, canvas | 16,208 / 16,969 / 23,702 / 8,041 / 10,531 / 13,111 / 50,081 / 50,823 B |
+| `bench:index` 1,000 manifests: cold / incremental | 60.07 / 30.29 ms median (budget 100 ms × 3 in CI) |
+| `bench-charts` LTTB 10k | 0.12 ms median (limit 2 ms) |
+
+Two ceilings were raised earlier in PLAN_008. Both are measured + 2.5 %, with
+the reason in their test:
+- the pages-ui page all-CSS sum, because each lazy forms control stylesheet
+  pays its own gzip overhead (G119 split them);
+- the views grid ceiling, because of DataGrid's table additions (G107).
+
+On 0.12.0, the deck Debug for agents panel's lazy chunk measured 12,249 B gzip
+locally and 12,321 B in CI, over its 12 KB cap. It carries Texuli's deck lint
+and Badge, and its cap is now 12,630 B (the CI measurement + 2.5 %).
+
+The per-prototype scenario benches were not re-run in this pass; their last
+run is in the section below.
+
 ## PLAN_008 re-measure (measured 2026-10-31)
 
 Every budget and ceiling, re-measured on Texuli 0.9.0 after all of PLAN_008
@@ -44,7 +89,7 @@ and now have more than 5 % headroom, so each is the measurement + 5 %.
 | --- | ---: | ---: | --- |
 | Quick single-file, app (max over 43 catalog blueprints) | 3,870,232–3,871,615 B | 4,577,768 → 4,065,196 B | An app file leaves out the kind renderers (T-bundle-fix) |
 | Quick single-file, deck (max over 7 example decks) | 2,640,768–2,668,245 B | 2,818,330 → 2,801,658 B | Each kind file holds only its own renderer |
-| Quick single-file, page (tidewater) | 2,347,132 B | 2,818,330 → 2,464,489 B | same |
+| Quick single-file, page (tidewater) | 2,347,132 B (2,466,761 B with design systems in Theme Studio, Texuli 0.11.2) | 2,818,330 → 2,464,489 → 2,528,431 B | same |
 | Player `index.html` initial JS | 108,098 B (105.6 KB) | 130 → 110.9 KB | Raised for the Texuli charts-ui link (127.4 KB then) |
 | Player `deck` / `page` / `doc.html` initial JS | 103.1 / 102.9 / 102.7 KB | 130 → 108.3 KB | same |
 | Player `deck.html` all CSS | 113.99 KB | 120.0 → 119.7 KB | Kind pages load only their own renderer |
@@ -89,6 +134,36 @@ overrides, until gap G110 ships.
 subpaths cartesian 21,548 B, part-whole 13,256 B, matrix 24,769 B, compact
 8,075 B, canvas 1,797 B, geo 4,909 B.
 
+## Texuli 0.10.0 adoption (measured 2026-10-31)
+
+Texuli 0.10.0 closed the gaps behind several adapters. Three of the changes
+shrink what Protoyard builds:
+
+- `@protoyard/themes` loads `@texuli/tokens/system.css` (the system token
+  defaults alone, G110) instead of `base.css`.
+- DeckApp prints through `@texuli/slides/export-core` (G105), so the build no
+  longer emits the stage's default component registry.
+- The doc editor is `@texuli/pages/editor-core` with no player loader (G123),
+  so the doc build has no `@texuli/player` chunks.
+
+The "before" column is the same 0.10.0 install before these changes, except
+the prototype CSS, whose "before" is the PLAN_008 wave 2 measurement on 0.9.0
+below. No ceiling was changed.
+
+| Measurement | Before | After |
+| --- | ---: | ---: |
+| decks-ui initial JS / first-screen CSS / all emitted CSS (gzip) | 109,538 / 10,152 / 86,765 B | 105,816 / 9,404 / 57,011 B |
+| pages-ui doc: all emitted CSS (gzip) | 78,560 B | 48,919 B |
+| Player initial CSS: index / deck / page and doc | 17,938 / 18,310 / 19,614 B | 16,876 / 17,259 / 18,568 B |
+| Player all CSS: deck / page / doc | 114.80 / 69.98 / 103.03 KB | 84.44 / 68.84 / 72.68 KB |
+| Doc single-file export (northwind) | 3,056,939 B (0.9.0) | 2,748,674 B |
+| create-anything-deck initial JS / CSS | 299.04 / 91.42 KB (0.9.0) | 295.83 / 84.91 KB |
+| crm-demo / ui-kit / keel-projects-demo CSS | 32.00 / 57.30 / 49.19 KB (0.9.0) | 30.97 / 56.50 / 48.44 KB |
+
+`pnpm protoyard budget --all` passes all 17 prototypes (exit 0). The
+pages-ui page fixture's all-CSS sum (42,069 B) is over its 40,023 B cap; it
+already measured 42,087 B on the 0.10.0 install before these changes.
+
 ## Texuli 0.9.0 ceilings (measured 2026-10-31)
 
 Texuli 0.9.0's components read their system tokens (`--tx-size-*`,
@@ -98,8 +173,8 @@ loads it. That file and the 0.9 component CSS grew these first-screen sizes.
 Each ceiling below is the measurement from `pnpm check` (after
 `pnpm build:packages` and the player build) plus 2.5 %.
 
-Texuli gap G110 asks for a tokens-only stylesheet. When Texuli ships it, a
-re-measure lowers these ceilings again.
+Texuli gap G110 asked for a tokens-only stylesheet; Texuli 0.10.0 ships it
+(see the section above).
 
 | Ceiling | Measured on 0.9.0 | Before → after |
 | --- | ---: | ---: |
@@ -372,7 +447,7 @@ player's kind tests do.
 | --- | ---: | --- |
 | `initialJsGzipKb` | 150 KB | Initial JavaScript of the kind's minimal player entry, gzip |
 | `cssGzipKb` | deck 17.0 KB, page 18.3 KB, doc 18.3 KB (was 36 KB each) | Initial CSS of the kind's player entry, gzip; measured + 5%, rounded up on Texuli 0.5.0, including the sheet parts that `@protoyard/ui/styles.css` loads so published declarations carry no `.css` import |
-| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,560 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (deck 2,801,658 B, page 2,464,489 B, doc 3,133,363 B since the PLAN_008 re-measure; it was 2,818,330 B per kind), measured on Texuli 0.5.0 at 2,681,755–2,689,852 B (2,656,649–2,684,123 B on 0.4.0). The app cap (`QUICK_SINGLE_FILE_BUDGET_BYTES`) stays 4,418,158 B after the maximum catalog file moved from 4,207,769 B on 0.4.0 to 4,284,417 B on 0.5.0; neither cap is raised because measured + 5% is higher. The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
+| `singleFileKb` | 1,536 KB deck, none for page and doc (configured: 2,560 KB each) | Raw size of the kind's single-file export. Informational: no gate reads it; the enforced cap is `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` (deck 2,801,658 B, page 2,528,431 B, doc 3,133,363 B since the PLAN_008 re-measure and design systems; it was 2,818,330 B per kind), measured on Texuli 0.5.0 at 2,681,755–2,689,852 B (2,656,649–2,684,123 B on 0.4.0). The app cap (`QUICK_SINGLE_FILE_BUDGET_BYTES`) stays 4,418,158 B after the maximum catalog file moved from 4,207,769 B on 0.4.0 to 4,284,417 B on 0.5.0; neither cap is raised because measured + 5% is higher. The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
 
 These budgets are **enforced**:
 
