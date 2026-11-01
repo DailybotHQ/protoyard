@@ -2,6 +2,7 @@ import { CAPABILITIES } from '@protoyard/blueprint';
 import { PermissionDeniedError } from '@protoyard/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
+import { expectBootableWorld } from '../../../tests/support/smoke.ts';
 import { blueprint } from '../src/generated/blueprint.ts';
 import { createServices } from '../src/generated/services.ts';
 import { definition } from '../src/prototype.ts';
@@ -13,11 +14,8 @@ describe('generated services', () => {
     harness = createHarness(definition);
   });
 
-  it('lists every entity for the owner', async () => {
-    const services = createServices(await harness.boot('active'));
-    for (const entity of blueprint.entities) {
-      expect(Array.isArray(await services[entity.name]!.list()), entity.name).toBe(true);
-    }
+  it('generates deterministic worlds and boots the default scenario', async () => {
+    await expectBootableWorld(definition, harness);
   });
 
   it('denies a viewer from creating in the service layer', async () => {
