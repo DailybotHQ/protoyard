@@ -885,6 +885,84 @@ import` or `theme create --from`. The runtime's `exportTheme(id)` API returns
 the versioned wrapper; the Studio unwraps that response for its JSON download.
 The versioned wrapper is also accepted by Studio import.
 
+## Design systems
+
+A **design system** is Texuli's design-system document
+(`format: "texuli/design-system"`, from `@texuli/tokens/design-system/*`):
+brand colors, typography, shape, density, motion, focus, elevation and
+component tokens in one closed JSON file. It is a superset of a theme.
+Protoyard validates it with Texuli as **untrusted** input, compiles it with
+`@texuli/tokens/design-system/compile-core` to concrete `--tx-*` variables for
+light and dark, and paints them with Texuli's runtime (`applyDesignSystem`).
+The same inputs give the same document, the same variables and the same hash.
+
+| Way | What it does |
+| --- | --- |
+| `pnpm protoyard ds new <id>` | A document from a few inputs (`--brand`, `--secondary`, `--accent`, `--font`, `--heading-font`, `--mono-font`, `--shape`, `--radius`, `--density`, `--motion`, `--contrast`), a one-line `--brief` (Texuli's `importBrand`: `brand #4f46e5, font Inter, rounded, compact`; explicit inputs win), or a theme (`--from-theme <theme-id>`). Writes `design-systems/<id>.json` after it compiles. |
+| `pnpm protoyard ds validate <file>` | Checks an untrusted document and compiles it: contrast per mode and the hash. |
+| `pnpm protoyard ds export <file>` | `--format css` (default), `tailwind` (a preset as JSON) or `json` (the compiled design system). |
+| `pnpm protoyard ds use <slug> <file>` | Writes `src/design-system.ts` (the compiled variables, no report), adds `designSystemTheme` to `definePrototype({ themes })` in `src/prototype.ts`, and sets `defaultTheme`. Then run `spec <slug> --write` and `validate <slug> --build`. |
+| Theme Studio → **Design system** | The same from a form, from the current theme, or from pasted JSON; **Save and apply** paints it at once. |
+| `protoyard mcp` | `ds_create`, `ds_validate`, `ds_export` and `ds_use` run the commands above ([MCP](MCP.md#tools)). |
+
+In code, `@protoyard/themes` exports `createDesignSystem(input)`,
+`designSystemFromTheme(theme)`, `compileDesignSystemDocument(document)` (all
+three load Texuli's importer or compiler with `import()`),
+`defineDesignSystemTheme(compiled)` (also re-exported by `@protoyard/runtime`,
+which every app prototype depends on) and `exportDesignSystem(compiled, format)`.
+
+**How it paints.** `defineDesignSystemTheme` returns a Protoyard `Theme`
+derived from the compiled variables (palette, fonts, radius, density: what
+pickers, Protoyard's own variables and the no-flash cache read) and registers
+a painter for its id. Every `applyAppearance` of that theme writes the theme
+first and then the compiled variables with `applyDesignSystem`, which also sets
+`data-tx-ds`, `data-tx-mode` and `data-tx-scope`; before the next write the
+painter is disposed, so switching to another theme leaves nothing behind. The
+no-flash cache stores the compiled values. A design system compiled for one
+mode paints that mode under both.
+
+**Safety.** Every document is validated at `trust: 'untrusted'` before it is
+compiled, written or applied: closed keys, CSS-safe values, no remote or
+`data:` URLs (logos, fonts), `extends` depth and cycles checked. The runtime
+filters every value again before it writes it. `extends: "texuli:<id>"` loads
+the base from Protoyard's theme library (built-ins first). Theme Studio keeps
+the **document** per prototype and browser (local storage,
+`protoyard:design-systems:<namespace>`, at most 12) next to the saved theme,
+and compiles it again on every load, never trusting a stored compiled copy; a
+document Texuli refuses, or whose theme was deleted, is dropped.
+
+**Importing Protoyard themes.** `designSystemFromTheme` (and `ds new
+--from-theme`) uses Texuli's `fromTheme`, with an adapter for Texuli gap G135:
+`fromTheme` leaves out roles it expects the seed generator to reproduce (for
+ocean it does not reproduce `surface`), and the compiler holds `input` and
+`borderStrong` to 3:1 while never moving a pinned role, so a plain `fromTheme`
+document of most Protoyard themes is refused. Protoyard pins every role of the
+theme, and drops the pins the compiler refuses, which the compiler then
+recomputes to pass. The dropped pins are returned as `losses` (`ds new` prints
+them as notes). Tested: all 64 catalog themes and the six built-ins import and
+compile, keeping `primary`, `background` and `foreground` in both modes (the
+built-ins keep `surface`, `ring`, `muted` and `destructive` too); `input` and
+dark `borderStrong` change, and dark `border` changes notation only.
+
+**Measured** (gzip -9, 2026-10-31, Texuli 0.11.2, `mobile-banking-demo` unless named):
+
+| Build | Before | After |
+| --- | --- | --- |
+| Production prototype, no design system: initial JS / CSS | 213,487 / 26,384 B | 213,299 / 26,384 B |
+| `create-anything-deck`: initial JS | 301,588 B | 302,156 B (+568 B: Texuli's semantic-role list becomes its own shared chunk) |
+| The same prototype after `ds use` (one design system, both modes): initial JS / CSS | 213,299 / 26,384 B | 218,946 / 26,422 B |
+| DevTools build, lazy only | — | 4,324 B on DevTools mount (storage, restore, runtime); Studio panel 3,344 B; compiler 12,049 B and importer 4,288 B on the first create or restore |
+
+**Limits.**
+- Component defaults (`components.<name>.defaults`) are compiled but not
+  applied; tokens are.
+- Level-1 player blueprints (and deck prototypes, which have no
+  `definePrototype` call) do not carry a design system yet: `ds use` refuses
+  them. Generated app prototypes take one.
+- A design system made in Theme Studio stays in that browser. Download the JSON
+  and run `ds use` to put it in the repository.
+- `ds use` refuses a prototype that does not depend on `@protoyard/runtime`.
+
 ## The CLI
 
 `pnpm protoyard theme <command>` (`packages/cli/src/commands/theme.ts`).

@@ -102,6 +102,14 @@ summarizes the format, the brief archetypes, how an exploration and the
 prototype generated from it share one blueprint, and what regeneration may
 change.
 
+## Make a design system
+
+Ask the agent for a design system from a brand color, fonts, shape, density
+and motion, or from an existing theme, and to apply it to a prototype. The
+router sends it to `references/design-systems.md`, which runs
+`pnpm protoyard ds new <id>`, `ds validate` and `ds use <slug> <file>` (or the
+`ds_*` tools of `protoyard mcp`). Details: [THEMES](THEMES.md#design-systems).
+
 ## Make a slide deck
 
 Deck requests (a deck, slides, a presentation, a pitch or a keynote) route to

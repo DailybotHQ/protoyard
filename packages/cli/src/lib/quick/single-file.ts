@@ -74,7 +74,13 @@ export const QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES: Record<SingleFileEntry, numbe
   // renderer: the 7 example decks measure 2,640,768–2,668,245 bytes and the
   // page (tidewater) 2,347,132 bytes; each cap is that maximum + 5 %.
   deck: 2_801_658,
-  page: 2_464_489,
+  // PLAN_008 T-design-systems (2026-10-31, Texuli 0.11.2): DevTools' Theme Studio
+  // gains design systems, so every kind file carries their lazy chunks (the
+  // compile-core compiler, Texuli's design-system validator and importer, the
+  // Studio panel and the restore step: about 88.5 KB raw). Measured page 2,372,888
+  // -> 2,466,761 bytes (deck 2,666,208 -> 2,700,531, doc 2,741,729 -> 2,835,602,
+  // both under their caps); the page cap is that measure + 2.5 %.
+  page: 2_528_431,
   // PLAN_008 T-documents: a doc file now carries the @texuli/pages editor and the
   // Word/PDF writers it runs (edit, then download). Measured 3,056,939 bytes
   // (northwind) once each kind file stopped embedding the other kinds'

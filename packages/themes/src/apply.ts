@@ -301,6 +301,53 @@ let texuliWriter: TexuliAppearanceWriter | undefined;
 const lastInputs = new WeakMap<HTMLElement, AppearanceInput>();
 
 /**
+ * Paints a compiled design system on `target` for one mode (Texuli's
+ * `applyDesignSystem`), returning the variables it wrote and its dispose.
+ */
+export type DesignSystemPainter = (
+  target: HTMLElement,
+  mode: ResolvedMode
+) => { vars: Record<string, string>; dispose: () => void };
+
+const designSystemPainters = new Map<string, DesignSystemPainter>();
+/** The dispose of the design system painted on each target, run before the next write. */
+const paintedDesignSystems = new WeakMap<HTMLElement, () => void>();
+/** Targets with an appearance, so a design system registered later repaints them. */
+const appearanceTargets = new Set<HTMLElement>();
+
+/**
+ * Backs the theme `themeId` with a compiled design system (or removes it, with
+ * `undefined`): every later {@link applyAppearance} of that theme paints the
+ * compiled `--tx-*` variables through `painter` after the theme's own, so the
+ * design system's shape, type, motion and component tokens win. Targets that
+ * already show `themeId` are repainted. Only code that registers a painter
+ * loads Texuli's design-system runtime.
+ */
+export function registerDesignSystemPainter(
+  themeId: string,
+  painter: DesignSystemPainter | undefined
+): void {
+  if (painter) designSystemPainters.set(themeId, painter);
+  else designSystemPainters.delete(themeId);
+  for (const target of appearanceTargets) {
+    const input = lastInputs.get(target);
+    if (input?.theme.id === themeId) applyAppearance(target, input);
+  }
+}
+
+/** True when `themeId` is painted by a registered design system. */
+export function hasDesignSystemPainter(themeId: string): boolean {
+  return designSystemPainters.has(themeId);
+}
+
+function releaseDesignSystem(target: HTMLElement): void {
+  const dispose = paintedDesignSystems.get(target);
+  if (!dispose) return;
+  paintedDesignSystems.delete(target);
+  dispose();
+}
+
+/**
  * Turns Texuli's variables on (or off, with `undefined`): `--tx-*` and the
  * `data-tx-*` attributes. Pages that render Texuli components call
  * `enableTexuliAppearance()` from
@@ -319,13 +366,23 @@ export function setTexuliAppearanceWriter(
   }
 }
 
-function writeTexuli(target: HTMLElement, input: AppearanceInput): Record<string, string> {
-  if (!texuliWriter) return {};
+/** What the Texuli writer wrote, and what a design system painted over everything. */
+function writeTexuli(
+  target: HTMLElement,
+  input: AppearanceInput
+): { written: Record<string, string>; painted: Record<string, string> } {
+  const painter = designSystemPainters.get(input.theme.id);
+  if (!texuliWriter && !painter) return { written: {}, painted: {} };
   target.dataset.txTheme = input.theme.id;
   target.dataset.txMode = input.resolvedMode;
   target.dataset.txMotion = input.reducedMotion ? 'reduce' : 'full';
   target.dataset.txSurface = input.theme.style.surface;
-  return texuliWriter(target, input);
+  const written = texuliWriter ? texuliWriter(target, input) : {};
+  if (!painter) return { written, painted: {} };
+  // Last, so the compiled variables win; disposed before the next write.
+  const painted = painter(target, input.resolvedMode);
+  paintedDesignSystems.set(target, painted.dispose);
+  return { written, painted: painted.vars };
 }
 
 function clearTexuli(target: HTMLElement): void {
@@ -347,6 +404,9 @@ function clearTexuli(target: HTMLElement): void {
  * scopes the theme to that subtree (used for previews).
  */
 export function applyAppearance(target: HTMLElement, input: AppearanceInput): AppliedAppearance {
+  // A design system restores what it overwrote when disposed: release it first.
+  releaseDesignSystem(target);
+  appearanceTargets.add(target);
   const vars = themeVariables(input);
   for (const name of CHART_EXTENSION_VARIABLES) {
     if (!(name in vars)) target.style.removeProperty(name);
@@ -372,12 +432,14 @@ export function applyAppearance(target: HTMLElement, input: AppearanceInput): Ap
     density: Number(vars['--tx-density']),
     surface: input.theme.style.surface,
     components,
-    vars: { ...texuli, ...vars },
+    vars: { ...texuli.written, ...vars, ...texuli.painted },
   };
 }
 
 /** Removes everything {@link applyAppearance} wrote (scoped previews unmount cleanly). */
 export function clearAppearance(target: HTMLElement): void {
+  releaseDesignSystem(target);
+  appearanceTargets.delete(target);
   lastInputs.delete(target);
   clearTexuli(target);
   for (const name of Object.keys(

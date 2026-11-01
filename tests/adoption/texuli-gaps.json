@@ -478,5 +478,10 @@
     "id": "G134",
     "status": "open",
     "summary": "@texuli/forms SchemaForm copies a starting disabled={true} into its internal controller once, so a form that mounts disabled stays disabled after the prop turns false (formDisabled = prop || controller state); expected prop changes to call controller.setDisabled (same for readOnly)"
+  },
+  {
+    "id": "G135",
+    "status": "open",
+    "summary": "@texuli/tokens/design-system/compile-core fromTheme/fromThemeWithReport: the document it returns for a Theme that passes validateTheme is refused by compileDesignSystem: it leaves out roles it expects the seed generator to reproduce (Protoyard ocean's surface: foreground on surface 1.04:1) and keeps input/borderStrong pins under the compiler's 3:1, which pinned roles never move; no loss is reported. Expected: fromTheme output always compiles (losses list what moved)"
   }
 ]
