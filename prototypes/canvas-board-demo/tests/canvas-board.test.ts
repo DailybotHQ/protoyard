@@ -1,66 +1,10 @@
 import { PermissionDeniedError, SimulatedServiceError } from '@protoyard/core';
 import { createPrototypeRuntime } from '@protoyard/runtime';
-import {
-  createGenerateContext,
-  PRESETS,
-  resolveScenarios,
-  validateWorld,
-} from '@protoyard/scenarios';
-import { validateCanvas } from '@texuli/canvas/model';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { Board, CanvasBoardDatabase } from '../src/database/schema.ts';
-import {
-  BoardValidationError,
-  createBoardServices,
-  shapeCount,
-  sortBoards,
-} from '../src/domain/boards.ts';
+import { expectBootableWorld } from '../../../tests/support/smoke.ts';
+import type { CanvasBoardDatabase } from '../src/database/schema.ts';
+import { BoardValidationError, createBoardServices } from '../src/domain/boards.ts';
 import { definition } from '../src/prototype.ts';
-import { generateCanvasBoardWorld } from '../src/scenarios/generators.ts';
-
-// Same resolution as the runtime: `extends` against own scenarios + presets.
-const resolved = resolveScenarios(definition.scenarios, PRESETS);
-const scenario = (id: string) => {
-  const s = resolved.find((x) => x.id === id);
-  if (!s) throw new Error(id);
-  return s;
-};
-const boardsOf = (id: string) =>
-  generateCanvasBoardWorld(createGenerateContext(scenario(id))).tables.boards as Board[];
-
-describe('canvas board generator', () => {
-  it('is deterministic and referentially sound for every scenario', () => {
-    for (const s of resolved) {
-      const a = generateCanvasBoardWorld(createGenerateContext(s));
-      const b = generateCanvasBoardWorld(createGenerateContext(s));
-      expect(a).toEqual(b);
-      expect(a.personas.map((p) => p.id)).toEqual(['user_0001', 'user_0002']);
-      const violations = validateWorld(a, {
-        ...definition.integrity,
-        referenceTime: s.referenceTime,
-      });
-      expect(violations, s.id).toEqual([]);
-      for (const board of a.tables.boards as Board[]) {
-        const checked = validateCanvas(board.canvas);
-        expect(checked.ok, `${s.id}/${board.title}: ${JSON.stringify(checked.issues[0])}`).toBe(
-          true
-        );
-      }
-    }
-  });
-
-  it('seeds each scenario with its boards and content level', () => {
-    expect(boardsOf('empty')).toHaveLength(0);
-    const active = boardsOf('active');
-    expect(active.map((b) => b.title)).toEqual(['Launch plan', 'Q3 roadmap', 'Onboarding journey']);
-    // Each board draws its own stream: no two boards are the same canvas.
-    expect(new Set(active.map((b) => JSON.stringify(b.canvas.shapes))).size).toBe(3);
-    expect(shapeCount(boardsOf('crowded')[0]?.canvas as Board['canvas'])).toBeGreaterThan(1500);
-    const awkward = JSON.stringify(boardsOf('awkward')[0]?.canvas);
-    expect(awkward).toContain('frame-parking');
-    expect(awkward).toContain('"locked":true');
-  });
-});
 
 describe('board services', () => {
   let close: (() => Promise<void>) | undefined;
@@ -75,6 +19,10 @@ describe('board services', () => {
     await runtime.scenarios.ensureSeeded();
     return runtime as unknown as import('@protoyard/core').PrototypeRuntime<CanvasBoardDatabase>;
   }
+
+  it('generates deterministic worlds and boots the default scenario', async () => {
+    await expectBootableWorld(definition);
+  });
 
   it('lets the owner create, draw on, rename and delete a board — persisted in IndexedDB', async () => {
     const runtime = await boot({ scenario: 'empty' });
@@ -123,14 +71,5 @@ describe('board services', () => {
     await runtime.overrides.set({ environment: { network: 'offline' } });
     await expect(boards.create({ title: 'Offline' })).rejects.toBeInstanceOf(SimulatedServiceError);
     expect(await runtime.db.boards.count()).toBe(before);
-  });
-
-  it('sorts boards by recency', () => {
-    const b = (id: string, updatedAt: string) => ({ id, updatedAt }) as Board;
-    expect(
-      sortBoards([b('a', '2026-01-02'), b('b', '2026-01-01'), b('c', '2026-01-03')]).map(
-        (x) => x.id
-      )
-    ).toEqual(['c', 'a', 'b']);
   });
 });

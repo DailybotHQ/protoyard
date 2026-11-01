@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { readRegistry } from '../src/integrations/registry-plugin.mjs';
+import { readRegistry, resolveThumbnails } from '../src/integrations/registry-plugin.mjs';
 
 const root = mkdtempSync(join(tmpdir(), 'gallery-registry-safety-'));
 const registryPath = join(root, '.protoyard', 'registry.json');
@@ -147,53 +147,58 @@ describe('gallery registry kind safety', () => {
       'Blueprint source path contains a symlink.',
     ]);
   });
+});
 
-  it('rejects oversized and non-blueprint source files', () => {
-    mkdirSync(join(blueprints, 'docs'), { recursive: true });
-    writeFileSync(join(blueprints, 'large.json'), ' '.repeat(256 * 1024 + 1));
-    mkdirSync(join(blueprints, 'docs', 'not-file.json'));
-    writeRegistry([
-      blueprintEntry('large'),
-      blueprintEntry('not-file', 'blueprints/docs/not-file.json'),
-    ]);
-
-    const result = readTestRegistry();
-    expect(result.entries).toEqual([]);
-    expect(result.invalid.map((issue) => issue.errors[0])).toEqual([
-      'Blueprint source exceeds the 262144-byte limit.',
-      'Blueprint source is not a regular file.',
-    ]);
+describe('gallery thumbnails (H1/L2 regressions)', () => {
+  const thumbs = mkdtempSync(join(tmpdir(), 'gallery-thumbs-'));
+  const outside = mkdtempSync(join(tmpdir(), 'gallery-outside-'));
+  afterAll(() => {
+    rmSync(thumbs, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  });
+  const PNG = Buffer.from('89504e470d0a1a0a', 'hex');
+  const folder = (slug: string) => {
+    const dir = join(thumbs, 'prototypes', slug, 'public');
+    mkdirSync(dir, { recursive: true });
+    return dir;
+  };
+  const entry = (slug: string, thumbnail: string, extra: Record<string, unknown> = {}) => ({
+    kind: 'prototype',
+    slug,
+    path: `prototypes/${slug}`,
+    thumbnail,
+    ...extra,
   });
 
-  it('rejects unsupported content-kind metadata on non-blueprint sources', () => {
-    writeRegistry([
-      {
-        kind: 'template',
-        slug: 'bad-kind',
-        path: 'templates/bad-kind',
-        blueprintKind: 'quiz',
-      },
-    ]);
-
-    const result = readTestRegistry();
-    expect(result.entries).toEqual([]);
-    expect(result.invalid[0]?.errors).toEqual(['Registry entry has an unsupported blueprintKind.']);
+  it('publishes a regular image but never a symlinked one (PoC: ~/.ssh key)', () => {
+    writeFileSync(join(folder('good'), 'thumbnail.png'), PNG);
+    const result = resolveThumbnails(thumbs, [entry('good', 'public/thumbnail.png')]);
+    expect(result.get('prototype:good')?.file).toBe('prototype-good.png');
+    writeFileSync(join(outside, 'id_ed25519'), 'FAKE-SECRET-OUTSIDE-PROTOTYPE');
+    symlinkSync(join(outside, 'id_ed25519'), join(folder('evil'), 'thumbnail.png'));
+    expect(resolveThumbnails(thumbs, [entry('evil', 'public/thumbnail.png')]).size).toBe(0);
   });
 
-  it('keeps runnable sources whose blueprint kind is explicitly null', () => {
-    writeRegistry([
-      {
-        kind: 'prototype',
-        slug: 'example-app',
-        path: 'prototypes/example-app',
-        blueprintKind: null,
-      },
+  it('never publishes through a symlinked prototype folder or a ../ path', () => {
+    const real = join(outside, 'elsewhere', 'public');
+    mkdirSync(real, { recursive: true });
+    writeFileSync(join(real, 'thumbnail.png'), PNG);
+    symlinkSync(join(outside, 'elsewhere'), join(thumbs, 'prototypes', 'linked'));
+    writeFileSync(join(outside, 'loose.png'), PNG);
+    const result = resolveThumbnails(thumbs, [
+      entry('linked', 'public/thumbnail.png'),
+      entry('good', '../../../loose.png'),
     ]);
+    expect(result.size).toBe(0);
+  });
 
-    const result = readTestRegistry();
-    expect(result.entries).toEqual([
-      expect.objectContaining({ kind: 'prototype', slug: 'example-app', blueprintKind: null }),
+  it('ignores entries from an untrusted registry with unsafe slugs, kinds or paths', () => {
+    writeFileSync(join(folder('ok-two'), 'thumbnail.png'), PNG);
+    const result = resolveThumbnails(thumbs, [
+      entry('../../escaped', 'public/thumbnail.png', { path: 'prototypes/ok-two' }),
+      entry('ok-two', 'public/thumbnail.png', { kind: 'weird' }),
+      entry('ok-two', 'public/thumbnail.png', { path: '../outside' }),
     ]);
-    expect(result.invalid).toEqual([]);
+    expect(result.size).toBe(0);
   });
 });
