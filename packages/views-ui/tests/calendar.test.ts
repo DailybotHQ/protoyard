@@ -100,13 +100,10 @@ describe('CalendarView (Texuli host adapter)', () => {
     expect(buttons.length).toBeGreaterThan(0);
   });
 
-  // Texuli gap (the lead assigns its id): @texuli/data/calendar EventButton names a timed
-  // event "Title, <long date>, <time>, press Enter to open", but its visible text is
-  // "Title <time>". The date splits the visible text, so axe flags
-  // label-content-name-mismatch (WCAG 2.5.3) wherever the time shows (the phone agenda in
-  // cadence-studio-demo). Expected: the visible text leads the name in order, e.g.
-  // "Title, <time>, <long date>, press Enter to open". Flip to `it` when Texuli ships it.
-  it.fails('a timed agenda event names itself starting with its visible text in order', async () => {
+  // Texuli gap G104, fixed in Texuli 0.10.0: a timed event's accessible name starts with
+  // its visible text in order ("Title, <time>, <long date>, press Enter to open"), so axe's
+  // label-content-name-mismatch (WCAG 2.5.3) holds in the phone agenda.
+  it('a timed agenda event names itself starting with its visible text in order', async () => {
     render(CalendarView<Data>, {
       query: query(),
       view: 'agenda',

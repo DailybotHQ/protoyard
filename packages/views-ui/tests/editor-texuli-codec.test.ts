@@ -31,10 +31,9 @@ describe("stored editor text through Texuli's Markdown codec (G48)", () => {
     expect(mention?.marks).toContainEqual({ type: 'extension', name: 'mention', id: 'priya.nair' });
   });
 
-  // Texuli gap (reported with T-kits-gaps): `\@` is not read as an escape, so stored
-  // text with a literal `@` would show a stray backslash. CommonMark escapes every
-  // ASCII punctuation character; Texuli already does for `*`, `#` and `!`.
-  it.fails('reads the stored escape of a literal @ as plain text', () => {
+  // Texuli gap G100, fixed in Texuli 0.10.0: `\@` reads as an escape, so stored text with
+  // a literal `@` shows no stray backslash (CommonMark escapes every ASCII punctuation mark).
+  it('reads the stored escape of a literal @ as plain text', () => {
     const stored = serializeEditorDocument(parseEditorDocument('Write to team\\@example.com'));
     expect(stored).toBe('Write to team\\@example.com');
     expect(
