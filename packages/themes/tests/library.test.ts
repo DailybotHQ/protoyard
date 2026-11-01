@@ -27,9 +27,6 @@ afterEach(() => {
   clearLibraryThemeCache();
 });
 
-const _loadDefinitions = async () =>
-  Promise.all((await loadFullLibraryMeta()).map((meta) => loadLibraryThemeDefinition(meta.id)));
-
 describe('the library comes from @texuli/tokens', () => {
   it('holds every Texuli library theme except the six Protoyard built-ins, each once', async () => {
     const builtins = new Set<string>(BUILTIN_PRESET_IDS);
