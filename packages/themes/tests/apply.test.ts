@@ -86,6 +86,13 @@ describe('applyAppearance', () => {
     expect(root.dataset.pyMotion).toBe('full');
   });
 
+  it('writes a square theme radius as a length, so calc() radius steps stay valid (G128)', () => {
+    applyAppearance(root, { theme: { ...oceanTheme, radius: '0' }, resolvedMode: 'light' });
+    expect(root.style.getPropertyValue('--tx-radius')).toBe('0px');
+    applyAppearance(root, { theme: oceanTheme, resolvedMode: 'light' });
+    expect(root.style.getPropertyValue('--tx-radius')).toBe(oceanTheme.radius);
+  });
+
   it('writes only canonical theme variables in light and dark mode', () => {
     for (const mode of ['light', 'dark'] as const) {
       const applied = applyAppearance(root, { theme: oceanTheme, resolvedMode: mode });

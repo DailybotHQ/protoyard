@@ -306,127 +306,127 @@
   },
   {
     "id": "G100",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/editor/markdown markdownToDocument does not treat \\@ as an escape, so an escaped sigil still opens an extension and leaves a stray backslash"
   },
   {
     "id": "G101",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/data/filter-builder FilterBuilder has no host issues prop (apply-time validation cannot mark a condition), and enum options lack a { value, label } form"
   },
   {
     "id": "G102",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/layouts/content tracks the active heading only inside ContentLayout's full chrome; no standalone tracker for hosts with their own reading shell"
   },
   {
     "id": "G103",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/data/board Board loses focus for a frame after a keyboard move into another column, so an immediate Space lands on body"
   },
   {
     "id": "G104",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/data/calendar EventButton accessible name puts the date between title and time, breaking label-in-name (WCAG 2.5.3) for timed events"
   },
   {
     "id": "G105",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/slides/export DeckPrintView and preloadDeckPrintView dynamically import the stage default renderer tables even with defaultRenderers: false, so stage-core hosts emit about 300 KB of never-loaded chunks"
   },
   {
     "id": "G106",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/data/activity/inbox NotificationInbox reports \"Mark all as read\" and a row toggle through the same onReadChange(ids, read), and the callback cannot return a promise, so a host cannot tell them apart or show pending feedback on the controls"
   },
   {
     "id": "G107",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/data/grid-core DataGrid mode=\"table\" lacks ref and rest on the root, skeleton loading rows, per-column class/headerClass, and requires type on every column, so it is not a drop-in for a host data table"
   },
   {
     "id": "G108",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/command CommandPalette names both the dialog and its search combobox with title; no separate searchLabel"
   },
   {
     "id": "G109",
-    "status": "open",
+    "status": "fixed",
     "summary": "texuli/date DateRangePicker has no content slot inside its calendar dialog and does not announce that the end date is still needed after the first pick"
   },
   {
     "id": "G110",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/tokens ships the system token defaults components need only inside base.css with its reset and motion tables; no tokens-only stylesheet for hosts with their own reset"
   },
   {
     "id": "G111",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/pages PageReader and PageEditor have no renderBlock seam, so host-owned wrapped blocks (forms, charts, tables) are refused"
   },
   {
     "id": "G112",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/document documentToMarkdown drops wrapped blocks, tables included, where the DOCX and PDF writers print them"
   },
   {
     "id": "G113",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/forms SchemaForm has no host-painted field (snippet or custom type), so host pickers fall outside the form, summary and validation"
   },
   {
     "id": "G114",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/forms SchemaForm always paints its title; no prop to hide it while keeping the accessible name"
   },
   {
     "id": "G115",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/forms SchemaForm has no custom or headless action row (actions snippet or actions={false})"
   },
   {
     "id": "G116",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/forms SchemaForm and createFormController have no form-level disabled or readOnly"
   },
   {
     "id": "G117",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/forms lacks password, one-time code, color and datetime field types"
   },
   {
     "id": "G118",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/forms an optional select cannot be cleared back to empty"
   },
   {
     "id": "G119",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/forms SchemaForm statically imports every control type, so unused types still cost about 6 KB gzip of CSS"
   },
   {
     "id": "G120",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/forms multi-step forms have no per-step submit hook (onStep) to save a step through a service"
   },
   {
     "id": "G121",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/forms url fields accept https only, with no protocols option"
   },
   {
     "id": "G122",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/data/dashboard/engine nudgeItem refuses a keyboard step that moves a widget past a wider widget below it, though moveItem can place it there"
   },
   {
     "id": "G123",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/pages PageEditor and PageReader always reach the whole @texuli/player through EmbedView, with no opt-out for hosts that use only ref embeds"
   },
   {
     "id": "G124",
-    "status": "open",
+    "status": "fixed",
     "summary": "@texuli/tools/mcp createMcpHandler does not speak the stateless MCP 2026-07-28 revision (server/discover returns -32601), so Protoyard keeps its own MCP protocol layer"
   },
   {
@@ -443,5 +443,20 @@
     "id": "G127",
     "status": "open",
     "summary": "@texuli/slides stage loadDeckLibraryTheme always reaches the whole expanded theme set, even when the host passes a resolved theme"
+  },
+  {
+    "id": "G128",
+    "status": "open",
+    "summary": "@texuli/tokens/library-port writes a square theme radius as a unitless '0' (brutalist-block, velvet-shop), so calc(var(--tx-radius) + <length>) radius steps are invalid at computed-value time"
+  },
+  {
+    "id": "G129",
+    "status": "open",
+    "summary": "@texuli/forms password fields accept only current-password or new-password autocomplete, so a simulation that must keep browsers from saving fake passwords (autocomplete=\"off\") cannot use the password type"
+  },
+  {
+    "id": "G130",
+    "status": "open",
+    "summary": "@texuli/slides stage design-system resolver (@texuli/tokens/design-system loadLibraryBase) imports library-expand/registry.js directly, so every deck build reaches all 146 expanded theme modules, even with no texuli: design-system ref"
   }
 ]

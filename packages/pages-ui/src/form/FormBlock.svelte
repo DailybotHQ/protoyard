@@ -56,7 +56,7 @@ async function submit({ values }: SchemaFormSubmission): Promise<FormSubmitResul
     onSubmit={submit}
     labels={{ submitted: form.successMessage }}
     headingLevel={2}
-    aria-label={form.title ? undefined : compiled.schema.title}
+    hideTitle={!form.title}
     class={['py-form-block', className]}
     data-py-form={form.id}
     data-py-form-untitled={form.title ? undefined : ''}
@@ -68,10 +68,6 @@ async function submit({ values }: SchemaFormSubmission): Promise<FormSubmitResul
 {/if}
 
 <style>
-  /* An untitled block keeps its submit label as the form's accessible name only. */
-  :global(.py-form-block[data-py-form-untitled] .tx-forms__title) {
-    display: none;
-  }
   :global(.py-form-block) {
     --tx-forms-max-inline-size: none;
   }

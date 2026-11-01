@@ -19,9 +19,11 @@ files, settings, states and an app command palette. The engines live in
   `@texuli/data/filter-builder` while retaining Protoyard's nullable value
   contract. Texuli's `@texuli/editor/markdown` codec now reads host inline
   extensions in the `@{id|label}` form `@protoyard/views/editor` stores
-  mentions in (G48, pinned by `tests/editor-texuli-codec.test.ts`). The
-  editor still parses with `@protoyard/views/editor`, because Texuli's codec
-  does not read the `\@` escape that stored text uses for a literal `@`.
+  mentions in (G48), and reads the `\@` escape stored text uses for a literal
+  `@` (G100, Texuli 0.10.0); both are pinned by
+  `tests/editor-texuli-codec.test.ts`. The editor still parses with
+  `@protoyard/views/editor`, because its document model and source commands
+  are a public Protoyard API.
   `NotificationCenter` renders Texuli's `@texuli/data/activity/inbox` with
   `allowMarkUnread={false}` (G50) and keeps recipient-scoped rows and the
   mark-read service callbacks.
@@ -895,7 +897,10 @@ The list is Texuli's `NotificationInbox` (all/unread view, opening on the
 Unread view, relative time labels, "Mark as read" per row, "Mark all as read",
 and a polite announcement for new arrivals). Read items offer no "Mark as
 unread" (`allowMarkUnread={false}`, G50), because the service contract is
-mark-read only. The adapter keeps the Protoyard service contract (optimistic
+mark-read only. "Mark all as read" goes to Texuli's own `onMarkAllRead`, and
+each save returns its promise, so the control that started it stays pending
+(`aria-disabled`, `aria-busy`) until it settles (G106). The adapter keeps the
+Protoyard service contract (optimistic
 read state, rolled back when the service fails or returns `false`), loading
 and error states, mute preferences in each row's actions, and the responsive
 host surface.

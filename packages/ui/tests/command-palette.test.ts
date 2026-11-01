@@ -43,6 +43,9 @@ describe('CommandPalette', () => {
     expect(status.hasAttribute('data-tx-command-loading')).toBe(true);
     await waitFor(() => expect(search).toHaveBeenCalledWith('acc'));
     expect(screen.getByRole('status').textContent).toContain('Searching…');
+    // The search box keeps its own name, apart from the dialog title (G108).
+    expect(screen.getByRole('combobox', { name: 'Search commands' })).toBe(input);
+    expect(screen.queryByText('No results found.')).toBeNull();
     finish([{ id: 'account', label: 'Account', group: 'Records' }]);
     expect(await screen.findByRole('option', { name: 'Account' })).toBeTruthy();
     expect(screen.queryByText('Searching…')).toBeNull();

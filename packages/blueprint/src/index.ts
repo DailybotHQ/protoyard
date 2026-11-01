@@ -207,6 +207,7 @@ export {
   type FileUploadProgress,
 } from './files.ts';
 export {
+  ENTITY_FORM_CUSTOM_KINDS,
   type EntityFormField,
   type EntityFormFieldType,
   type EntityFormModel,

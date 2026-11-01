@@ -78,39 +78,34 @@ export const QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES: Record<SingleFileEntry, numbe
   // PLAN_008 T-documents: a doc file now carries the @texuli/pages editor and the
   // Word/PDF writers it runs (edit, then download). Measured 3,056,939 bytes
   // (northwind) once each kind file stopped embedding the other kinds'
-  // renderers and @texuli/player (gap G123); + 2.5 %.
+  // renderers and @texuli/player (gap G123); + 2.5 %. Texuli 0.10.0 (editor-core,
+  // G123): 2,748,674 bytes; the cap is not lowered here.
   doc: 3_133_363,
 };
 
 /**
  * Modules a player page can reach but never runs, left out of every single
- * file: the `@texuli/slides` component registry's renderers (whole-slide
- * components, component items and its catalog-aware free slide, which pull in
- * every `@texuli/player` painter). They are reachable because `DeckStage`
- * imports its default tables statically, but DeckApp mounts the stage with
- * `defaultRenderers={false}` (Protoyard's own table paints free slides), so
- * they never load.
+ * file. Empty since Texuli 0.10.0: DeckApp mounts the stage from
+ * `@texuli/slides/stage-core` (G72) and prints through
+ * `@texuli/slides/export-core` (G105), so the build no longer emits the
+ * stage's default renderer tables (whole-slide components, component items
+ * and the catalog-aware free slide). Kept as the base list the per-page lists
+ * extend.
  */
-export const SINGLE_FILE_EXCLUDED_MODULES: readonly RegExp[] = [
-  /texuli[\\/](?:packages[\\/])?slides[\\/](?:src|dist)[\\/]components[\\/](?:ComponentSlide|ComponentItem|FreeSlide)\.(?:svelte|js)$/,
-];
+export const SINGLE_FILE_EXCLUDED_MODULES: readonly RegExp[] = [];
 
 /**
  * Modules a content kind can reach but never runs, also left out of deck,
- * page and doc files:
- * - Faker, reachable through the scenarios package's lazy loader, which only
- *   a generated world calls; the kind runtime (`defineKindRuntime`) supplies
- *   `generateWorld` and no timeline, so it never generates.
- * - `@texuli/player`'s painters and data sources. The doc editor
- *   (`@texuli/pages` `PageEditor`) loads the whole player for a live embed,
- *   but Protoyard's embeds carry only a `protoyard-block/<key>` ref and the
- *   editor gets no `resolveEmbed`, so every embed is refused and the player
- *   never paints (a Texuli gap: the host cannot opt out of that import).
+ * page and doc files: Faker, reachable through the scenarios package's lazy
+ * loader, which only a generated world calls; the kind runtime
+ * (`defineKindRuntime`) supplies `generateWorld` and no timeline, so it never
+ * generates. (`@texuli/player`'s painters and sources need no entry since
+ * Texuli 0.10.0: the doc editor is `@texuli/pages/editor-core` with no player
+ * loader, G123, so the player build emits no painter or source chunk.)
  */
 export const SINGLE_FILE_KIND_EXCLUDED_MODULES: readonly RegExp[] = [
   ...SINGLE_FILE_EXCLUDED_MODULES,
   /[\\/]@faker-js[\\/]faker[\\/]/,
-  /[\\/]@texuli[\\/]player[\\/](?:src|dist)[\\/](?:painters|sources)[\\/]/,
 ];
 
 /**
@@ -126,9 +121,14 @@ export const SINGLE_FILE_APP_EXCLUDED_MODULES: readonly RegExp[] = [
   /[\\/](?:@protoyard[\\/])?pages-ui[\\/](?:src|dist)[\\/](?:page|doc)[\\/]index\.(?:ts|js)$/,
 ];
 
-/** Texuli's expanded theme set entry (`@texuli/tokens/library-expand`), as a Vite manifest key. */
+/**
+ * Texuli's expanded theme set entry (`@texuli/tokens/library-expand`) and its
+ * registry, as Vite manifest keys. Texuli 0.10's deck design-system resolver
+ * (`@texuli/tokens/design-system` `loadLibraryBase`, reached from the slides
+ * stage) imports the registry directly, not through the entry (gap G130).
+ */
 const EXPANDED_LIBRARY_ENTRY =
-  /[\\/]@?texuli[\\/](?:packages[\\/])?tokens[\\/](?:dist|src)[\\/]library-expand[\\/]index\.(?:js|ts)$/;
+  /[\\/]@?texuli[\\/](?:packages[\\/])?tokens[\\/](?:dist|src)[\\/]library-expand[\\/](?:index|registry)\.(?:js|ts)$/;
 
 /**
  * Library theme ids a blueprint opens in: `brand.libraryTheme` (any kind) and

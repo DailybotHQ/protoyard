@@ -3,20 +3,30 @@ import {
   type DocConversionNote,
   type DocDocument,
   docToTexuliDocument,
+  HOST_BLOCK_REF_PREFIX,
   texuliDocumentToDoc,
 } from '@protoyard/pages';
 import { Button, Notice } from '@protoyard/ui';
 import type { TexuliDocument } from '@texuli/document/model';
-import { PageEditor, type PagesLabels } from '@texuli/pages/editor';
+import {
+  PageEditorCore,
+  type PagesBlockHost,
+  type PagesHostNode,
+  type PagesLabels,
+} from '@texuli/pages/editor-core';
 import { untrack } from 'svelte';
+import { BlockHost } from '../block-host/index.ts';
 
 /**
  * Edits a doc with the `@texuli/pages` editor: text through
  * `@texuli/editor`, the slash menu, block reordering by pointer or
  * keyboard, and undo and redo on the `@texuli/document` op log. Protoyard
- * blocks (charts, tables, forms, embedded apps…) show as labelled
- * placeholders that can be moved or removed; their content stays in the
- * blueprint. Applying converts the Texuli document back to the doc body
+ * blocks (charts, tables, forms, embedded apps…) are painted read-only by
+ * Protoyard's block host inside the editor (Texuli's `renderBlock` seam,
+ * G111) and can be moved or removed; their content stays in the blueprint.
+ * The editor comes from `@texuli/pages/editor-core` with no player loader
+ * (G123): Protoyard's embeds are host blocks, so `@texuli/player` is never
+ * in the build. Applying converts the Texuli document back to the doc body
  * (`texuliDocumentToDoc`), so forms and interactive blocks keep working,
  * and hands it to DocApp, which saves it when the doc has a runtime.
  * Loaded on first use (its own chunk).
@@ -32,7 +42,19 @@ let {
   onCancel: () => void;
 } = $props();
 
-const start = untrack(() => docToTexuliDocument(doc, { mode: 'edit' }).document);
+const converted = untrack(() => docToTexuliDocument(doc, { mode: 'edit' }));
+const start = converted.document;
+
+/** The Protoyard block behind a `protoyard-block/<key>` embed, if the node is one. */
+function hostBlockOf(node: PagesHostNode) {
+  if (node.type !== 'embed' || !node.ref?.startsWith(HOST_BLOCK_REF_PREFIX)) return undefined;
+  return converted.hostBlocks.get(node.ref.slice(HOST_BLOCK_REF_PREFIX.length));
+}
+
+/** Protoyard's own embeds are painted here; Texuli paints everything else. */
+const blockHost: PagesBlockHost = {
+  claim: (node) => (hostBlockOf(node) ? 'host' : 'library'),
+};
 let draft = $state.raw<TexuliDocument>(start);
 let changed = $state(false);
 let issues = $state<string[]>([]);
@@ -90,11 +112,23 @@ function errorText(error: unknown): string {
     />
   {/if}
 
-  <PageEditor
+  {#snippet hostBlock(node: PagesHostNode)}
+    {@const block = hostBlockOf(node)}
+    {#if block}
+      <div class="doc-editor__host-block" data-py-doc-editor-host-block={block.type} inert>
+        <BlockHost {block} />
+      </div>
+    {/if}
+  {/snippet}
+
+  <PageEditorCore
     document={start}
     label={`${doc.title} (editing)`}
     {labels}
     components={[]}
+    {blockHost}
+    renderBlock={hostBlock}
+    loadPlayer={null}
     onChange={(next) => {
       draft = next;
       changed = true;

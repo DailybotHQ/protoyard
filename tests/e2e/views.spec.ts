@@ -115,8 +115,8 @@ test.describe('views kit (ui-kit)', () => {
     await expect(keyed).toHaveAttribute('aria-pressed', 'true');
     await page.keyboard.press('ArrowLeft');
     await expect(column('doing').getByText('Ship the empty state')).toBeVisible();
-    // The held card moved to another column (a new node): Texuli puts focus back on its
-    // handle a frame later, and a user drops once the handle shows focus again.
+    // The held card moved to another column: Texuli keeps focus on its handle (G103),
+    // so the next Space drops it.
     await expect(handle('Ship the empty state')).toBeFocused();
     await page.keyboard.press('Space');
     await expect(handle('Ship the empty state')).not.toHaveAttribute('aria-pressed', 'true');

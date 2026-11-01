@@ -8,7 +8,7 @@ import {
 import { SchemaForm, type SchemaFormSubmission } from '@texuli/forms';
 import { onMount } from 'svelte';
 import { getSaas } from '../../context.ts';
-import { compileKitForm, editableFields, kitSubmitResult } from '../../lib/schema-form.ts';
+import { compileKitForm, kitSubmitResult } from '../../lib/schema-form.ts';
 
 const runtime = getSaas().runtime as Parameters<typeof createSettingsServices>[0];
 const service = createSettingsServices(runtime);
@@ -23,29 +23,26 @@ const form = $derived(
   compileKitForm({
     title: 'Notification preferences',
     submitLabel: 'Save preferences',
-    fields: editableFields(
-      [
-        {
-          name: 'productUpdates',
-          type: 'checkbox',
-          label: 'Product updates',
-          description: 'Occasional product news in the simulated inbox.',
-        },
-        {
-          name: 'securityAlerts',
-          type: 'checkbox',
-          label: 'Security alerts',
-          description: 'Sign-in and account changes in the simulated inbox.',
-        },
-        {
-          name: 'workspaceActivity',
-          type: 'checkbox',
-          label: 'Workspace activity',
-          description: 'Invitations and workspace updates in the simulated inbox.',
-        },
-      ],
-      allowed
-    ),
+    fields: [
+      {
+        name: 'productUpdates',
+        type: 'checkbox',
+        label: 'Product updates',
+        description: 'Occasional product news in the simulated inbox.',
+      },
+      {
+        name: 'securityAlerts',
+        type: 'checkbox',
+        label: 'Security alerts',
+        description: 'Sign-in and account changes in the simulated inbox.',
+      },
+      {
+        name: 'workspaceActivity',
+        type: 'checkbox',
+        label: 'Workspace activity',
+        description: 'Invitations and workspace updates in the simulated inbox.',
+      },
+    ],
   })
 );
 
@@ -91,14 +88,9 @@ async function save({ values }: SchemaFormSubmission) {
       aria-label="Notification preferences"
       class="py-saas-form"
       data-py-saas-form="notifications"
-      inert={allowed ? undefined : true}
+      disabled={!allowed}
+    hideTitle
     />
   {/key}
 </section>
 
-<style>
-  /* The section heading names the form; SchemaForm's own title stays its aria-label only. */
-  :global(.py-saas-form .tx-forms__title) {
-    display: none;
-  }
-</style>

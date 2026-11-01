@@ -116,6 +116,10 @@ function importGraph(entry: string): string[] {
 // PLAN_008 T-remeasure (2026-10-31): deck 113.99, page 69.23, doc 101.47 KB,
 // so the kind caps are lowered to measured + 5 % (were 120.0 / 121.3 / 121.3).
 // index.html measured 151.88 KB stays under its 153.7 KB cap.
+// Texuli 0.10.0 (PLAN_008, 2026-10-31): system.css instead of base.css (G110), the
+// deck print view on export-core (G105) and the doc editor on editor-core (G123):
+// all CSS deck 114.80 -> 84.44 KB, page 69.98 -> 68.84 KB, doc 103.03 -> 72.68 KB;
+// initial CSS 1.0–1.1 KB lower on every page. The T-remeasure caps above still hold.
 const PLAYER_TOTAL_CSS_GZIP_KB = { index: 153.7, deck: 119.7, page: 72.7, doc: 106.6 } as const;
 
 /** Modules that must only ever load on demand, by manifest key. */

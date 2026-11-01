@@ -12,7 +12,7 @@ import {
   BUILDER_OPERATORS,
   type BuilderGroup,
   builderFields,
-  conditionNameOf,
+  builderIssues,
   type FilterProperty,
   fromBuilderFilter,
   toBuilderFilter,
@@ -55,15 +55,12 @@ const fields = $derived(builderFields(properties) as unknown as FilterField[]);
 const operators = BUILDER_OPERATORS as unknown as FilterOperatorDef[];
 const model = $derived(toBuilderFilter(group, properties) as FilterModel);
 /**
- * The builder shows its own issues (values that do not fit a field); the
- * catalog checks run on Apply and are listed here, named by condition, since
- * the builder takes no host issues (Texuli gap G101).
+ * The catalog checks run on Apply. Errors on a condition go to the builder as
+ * host issues (G101), which marks that condition's control; errors on a group
+ * are listed under the builder by name.
  */
-const issues = $derived(
-  Object.entries(errors)
-    .filter(([key]) => key.startsWith(path))
-    .map(([key, message]) => ({ key, name: conditionNameOf(key.slice(path.length)), message }))
-);
+const split = $derived(builderIssues(errors, path));
+const issues = $derived(split.other);
 </script>
 
 <div class="grid gap-2" data-py-filter-group={path || 'root'}>
@@ -73,6 +70,7 @@ const issues = $derived(
     value={model}
     onValueChange={(next) => onchange(fromBuilderFilter(next as BuilderGroup, properties))}
     maxDepth={Math.max(1, maxDepth - depth + 1)}
+    issues={split.issues}
     labels={{ builder: label, operators: BUILDER_OPERATOR_LABELS }}
   />
   {#if issues.length}

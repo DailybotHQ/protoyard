@@ -152,7 +152,7 @@ const printing = route?.flags.print === true;
  * from its one-screen height so every page prints, but only once the sheet
  * is ready (`data-print-ready`): until then the paper shows the stage as on
  * screen, never a blank page. The print view's code is preloaded while the
- * browser is idle (`preloadDeckPrintView`), so the sheet mounted on
+ * browser is idle (`preloadDeckPrintViewCore`), so the sheet mounted on
  * `beforeprint` renders its pages at once; it still settles themes, images
  * and fonts asynchronously after the browser has captured the page, so the
  * first Ctrl/Cmd+P prints the current slide and says so. The sheet then stays
@@ -169,7 +169,7 @@ const printing = route?.flags.print === true;
 let printSheet = $state(false);
 /** The print that just ran had only the stage: the sheet was not ready yet. */
 let printedStage = false;
-let exporter = $state.raw<typeof import('@texuli/slides/export') | null>(null);
+let exporter = $state.raw<typeof import('@texuli/slides/export-core') | null>(null);
 const printNotes = route?.flags.notes === true ? 'appendix' : 'none';
 
 // The host attributes (`data-slide-id`, `data-slide-step`) and the debug panel follow the
@@ -245,11 +245,13 @@ $effect(() => {
 /**
  * The print view module with everything it imports on first use (its body and slide
  * painter, G81), so a view mounted after it renders its pages on the first render.
- * DeckApp paints with its own renderer tables only, as the stage does.
+ * DeckApp paints with its own renderer tables only, as the stage does: the core
+ * entry (G105) never references the stage's default tables, so the build emits
+ * none of their chunks or CSS.
  */
-async function loadPrintView(): Promise<typeof import('@texuli/slides/export')> {
-  const module = await import('@texuli/slides/export');
-  await module.preloadDeckPrintView({ defaultRenderers: false });
+async function loadPrintView(): Promise<typeof import('@texuli/slides/export-core')> {
+  const module = await import('@texuli/slides/export-core');
+  await module.preloadDeckPrintViewCore();
   return module;
 }
 
@@ -321,11 +323,10 @@ onMount(() => {
     <p class="deck-app__print-status" role="status" data-py-deck-print-loading>Preparing the slides for printing…</p>
   {:then exporter}
     <div class="deck-app__print" data-py-deck-print data-tx-mode={mode}>
-      <exporter.DeckPrintView
+      <exporter.DeckPrintViewCore
         deck={printDeck as never}
         notes={printNotes}
         {renderers}
-        defaultRenderers={false}
         tier="developer"
         {loadTheme}
         {resolveAvatar}
@@ -410,10 +411,9 @@ onMount(() => {
       <!-- Paper only: every visible slide, one per page. On screen it is laid out off-screen and
            hidden, so it settles (images, fonts, lazy families) before the next print. -->
       <div class="deck-app__print-sheet" data-py-deck-print data-tx-mode={mode}>
-        <exporter.DeckPrintView
+        <exporter.DeckPrintViewCore
           deck={printDeck as never}
           {renderers}
-          defaultRenderers={false}
           tier="developer"
           {loadTheme}
           {resolveAvatar}

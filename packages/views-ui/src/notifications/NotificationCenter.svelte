@@ -111,23 +111,12 @@ async function markAllRead(ids: string[]) {
   pendingAll = false;
 }
 
-// Texuli's inbox reports "Mark all as read" and a row toggle through the same
-// `(ids, read)` callback, and the callback cannot return a promise (G106). Its
-// "Mark all" click is seen in the capture phase, before the inbox calls back,
-// so it always reaches onMarkAllRead, even with a single unread row.
-let markAllRequested = false;
-function noteMarkAll(event: MouseEvent) {
-  const target = event.target instanceof Element ? event.target : null;
-  markAllRequested = target?.closest('[data-tx-inbox] > header .tx-inbox__button') != null;
-}
-
-function onReadChange(ids: string[], read: boolean) {
-  const all = markAllRequested;
-  markAllRequested = false;
-  if (!read) return;
-  // The pending state shows through the status line in the panel.
-  if (all) void markAllRead(ids);
-  else if (ids[0]) void markRead(ids[0]);
+// Texuli's inbox (G106) routes "Mark all as read" to `onMarkAllRead` and a row
+// toggle or open to `onReadChange`; each returns the save's promise, so the
+// control that started it shows as pending (aria-disabled) until it settles.
+function onReadChange(ids: string[], read: boolean): Promise<void> | undefined {
+  if (!read || !ids[0]) return undefined;
+  return markRead(ids[0]);
 }
 
 async function toggleMute(kind: string) {
@@ -166,7 +155,7 @@ function openItem(row: InboxRow) {
 {/snippet}
 
 {#snippet panel()}
-  <div class="grid max-h-[min(70vh,36rem)] min-h-48 overflow-y-auto" aria-busy={pendingAll || pendingIds.size > 0} onclickcapture={noteMarkAll}>
+  <div class="grid max-h-[min(70vh,36rem)] min-h-48 overflow-y-auto" aria-busy={pendingAll || pendingIds.size > 0}>
     {#if pendingAll || pendingIds.size > 0}<p role="status" class="text-xs text-muted-foreground" data-notifications-pending>{pendingAll ? 'Marking all as read…' : 'Marking as read…'}</p>{/if}
     {#if query.loading && !query.current}<p role="status" class="py-6 text-center text-muted-foreground">Loading notifications…</p>
     {:else if query.error}<p role="alert" class="py-6 text-center text-destructive">Could not load notifications.</p>
@@ -176,6 +165,7 @@ function openItem(row: InboxRow) {
         {now}
         bind:filter
         {onReadChange}
+        onMarkAllRead={markAllRead}
         allowMarkUnread={false}
         onOpen={openItem}
         actions={muteAction}

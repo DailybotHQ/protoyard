@@ -158,8 +158,8 @@ describe('DashboardGrid (Texuli dashboard)', () => {
     expect(document.activeElement?.getAttribute('aria-label')).toBe('Move Funnel');
   });
 
-  // Texuli gap G122, fixed in Texuli 0.10.0: the keyboard step moves a widget past a
-  // wider widget below it, as `moveItem` and Protoyard's own grid did.
+  // G122 (fixed in Texuli 0.10.0): `nudgeItem` (the keyboard step) moves a widget down
+  // past a wider widget below it, as `moveItem` and Protoyard's old grid did.
   it('a widget moves down past a wider widget below it with the keyboard', async () => {
     const { nudgeItem } = await import('@texuli/data/dashboard/engine');
     const layout = LAYOUT.map(({ id, x, y, w: width, h }) => ({ id, x, y, w: width, h }));

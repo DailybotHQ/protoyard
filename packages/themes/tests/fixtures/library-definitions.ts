@@ -362,8 +362,7 @@ const CORE_DEFINITIONS: readonly LibraryThemeDefinition[] = [
     secondary: '#f59e0b',
     neutral: 'zinc',
     font: 'grotesk',
-    // Texuli's port writes a zero radius unitless (changed after 0.9.0): the same CSS value as '0px'.
-    radius: '0',
+    radius: '0px',
     density: 1,
     style: {
       elevation: 'flat',
