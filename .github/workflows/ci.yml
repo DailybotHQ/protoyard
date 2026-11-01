@@ -355,7 +355,7 @@ jobs:
   # consumer. The pnpm store and the built dist are cached; dist is keyed on
   # every build input, so a cache hit skips only an identical rebuild.
   packages:
-    name: packages (build, lint, tarball install)
+    name: packages (build, lint; tarball install on main)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -394,7 +394,10 @@ jobs:
           set -o pipefail
           mkdir -p artifacts/packages
           pnpm --silent check:packages --require-all --json | tee artifacts/packages/check-packages.json
-      - name: Install the tarballs in a clean consumer (pnpm)
+      - name: Install the tarballs in a clean consumer (pnpm, main only)
+        # About 3.5 minutes; it runs on every push to main and again in
+        # release.yml before anything is published, so pull requests skip it.
+        if: github.event_name == 'push'
         run: pnpm verify:packages
       - name: Upload the package check report
         if: failure()
