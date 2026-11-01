@@ -174,9 +174,11 @@ describe('@protoyard/ui component contract', () => {
     expect(Object.keys(CASES).sort()).toEqual(exported);
   });
 
-  for (const [name, component] of components) {
-    const row = CASES[name] ?? {};
-    it(`${name}: bind:ref names the root, rest attributes and caller handlers land on it`, async () => {
+  // One test walks every export (the contract is uniform, so one case per
+  // component would only multiply the setup cost).
+  it('every component: bind:ref names the root, rest attributes and caller handlers land on it', async () => {
+    for (const [name, component] of components) {
+      const row = CASES[name] ?? {};
       const onclick = vi.fn();
       let ref: unknown = null;
       render(ContractHarness, {
@@ -193,18 +195,20 @@ describe('@protoyard/ui component contract', () => {
       flushSync();
       await tick();
 
-      expect(ref, 'bind:ref gives an element').toBeInstanceOf(HTMLElement);
+      expect(ref, `${name}: bind:ref gives an element`).toBeInstanceOf(HTMLElement);
       const root = ref as HTMLElement;
       const target = document.querySelector<HTMLElement>(`[data-contract="${name}"]`);
-      expect(target, 'rest attributes reach the DOM').not.toBeNull();
+      expect(target, `${name}: rest attributes reach the DOM`).not.toBeNull();
       expect(
         target === root || root.contains(target),
-        'rest attributes land on the ref or the control inside it'
+        `${name}: rest attributes land on the ref or the control inside it`
       ).toBe(true);
       await fireEvent.click(target as HTMLElement);
-      expect(onclick, 'the caller handler runs there').toHaveBeenCalledTimes(1);
-    });
-  }
+      expect(onclick, `${name}: the caller handler runs there`).toHaveBeenCalledTimes(1);
+      cleanup();
+      document.body.replaceChildren();
+    }
+  });
 });
 
 describe('handler composition', () => {
