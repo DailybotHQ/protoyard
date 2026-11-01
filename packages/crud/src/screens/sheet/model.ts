@@ -227,3 +227,36 @@ export function sheetEdits(
   });
   return edits;
 }
+
+export type SheetPatch =
+  | { ok: true; id: string; patch: Record<string, unknown> }
+  | { ok: false; message: string };
+
+/**
+ * The one record patch an edit makes, or why it is refused. Each record saves
+ * through its own service call and transaction, so an edit that spans several
+ * records (a pasted range) is refused whole instead of being stored in part.
+ */
+export function sheetPatch(edits: readonly SheetEdit[]): SheetPatch {
+  if (edits.length === 0) {
+    return {
+      ok: false,
+      message: 'Only record cells can be edited here; headers and totals follow the records.',
+    };
+  }
+  const ids = new Set(edits.map((edit) => edit.id));
+  const [id] = ids;
+  if (id === undefined || ids.size > 1) {
+    return {
+      ok: false,
+      message: 'Edit one record at a time: a change that spans several rows is not saved.',
+    };
+  }
+  const patch: Record<string, unknown> = {};
+  for (const edit of edits) {
+    const value = cellPatch(edit.field, edit.input);
+    if (!value.ok) return value;
+    patch[edit.field.name] = value.value;
+  }
+  return { ok: true, id, patch };
+}

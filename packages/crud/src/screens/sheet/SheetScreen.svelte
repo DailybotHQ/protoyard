@@ -13,7 +13,7 @@ import { can, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
 import { type SheetDocument, SheetView } from '@protoyard/views-ui/sheet';
 import { type EntityListDisplayNames, loadEntityListDisplayNames } from '../../columns.ts';
 import { formatEntityHeading } from '../../format.ts';
-import { buildSheetModel, cellPatch, type SheetScreenSpec, sheetEdits } from './model.ts';
+import { buildSheetModel, type SheetScreenSpec, sheetEdits, sheetPatch } from './model.ts';
 
 let {
   runtime,
@@ -92,22 +92,13 @@ let refused = $state('');
 /** Saves the record cells an edit changed; anything else is not record data and is put back. */
 async function save(next: SheetDocument): Promise<boolean> {
   refused = '';
-  const edits = sheetEdits(model, next);
-  if (edits.length === 0) {
-    refused = 'Only record cells can be edited here; headers and totals follow the records.';
+  const edit = sheetPatch(sheetEdits(model, next));
+  if (!edit.ok) {
+    refused = edit.message;
     return false;
   }
-  const patches = new Map<string, Record<string, unknown>>();
-  for (const edit of edits) {
-    const patch = cellPatch(edit.field, edit.input);
-    if (!patch.ok) {
-      refused = patch.message;
-      return false;
-    }
-    patches.set(edit.id, { ...(patches.get(edit.id) ?? {}), [edit.field.name]: patch.value });
-  }
   try {
-    for (const [id, patch] of patches) await service.update(id, patch as EntityInput);
+    await service.update(edit.id, edit.patch as EntityInput);
   } catch (error) {
     // Schema issues are the record's own rules (required, min, max…): say them here.
     const issues = (error as { issues?: unknown }).issues;
@@ -134,6 +125,7 @@ async function save(next: SheetDocument): Promise<boolean> {
     {runtime}
     {label}
     onChange={canUpdate ? save : undefined}
+    csvImport={false}
     onRetry={() => (attempt += 1)}
   />
 </section>

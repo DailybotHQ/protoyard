@@ -8,9 +8,11 @@ export {
   type SheetCellInput,
   type SheetColumn,
   type SheetEdit,
+  type SheetPatch,
   type SheetScreenModel,
   type SheetScreenSpec,
   sheetEdits,
   sheetLayout,
+  sheetPatch,
 } from './model.ts';
 export { default as SheetScreen } from './SheetScreen.svelte';

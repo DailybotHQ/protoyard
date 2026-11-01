@@ -239,8 +239,9 @@ Method notes are in [`PERFORMANCE.md`](PERFORMANCE.md#views-kit).
   Texuli's closed, bounded language: no references built from text, no
   external data, and `TODAY()`/`NOW()` read the prototype's simulated clock.
   An imported CSV becomes a new sheet with `=` fields kept as text. The
-  blueprint `sheet` screen edits record fields only; a formula never reaches a
-  record.
+  blueprint `sheet` screen edits record fields only, one record per edit (a
+  change across several rows is refused whole, never stored in part), offers
+  no CSV import, and a formula never reaches a record.
 - These packages provide simulated prototype behavior. They are not a
   production calendar, geographic information system, file backend or
   collaborative service.

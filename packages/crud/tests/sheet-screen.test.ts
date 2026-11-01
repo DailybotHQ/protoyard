@@ -18,6 +18,7 @@ import {
   SheetScreen,
   type SheetScreenSpec,
   sheetEdits,
+  sheetPatch,
 } from '../src/screens/sheet/index.ts';
 
 const blueprint: Blueprint = parseBlueprint({
@@ -150,6 +151,28 @@ describe('sheet screen model', () => {
       { id: 'e1', field: field('amount'), input: 13 },
     ]);
   });
+  it('refuses an edit that spans several records whole, so nothing is stored in part', () => {
+    const model = buildSheetModel(entity, spec, rows, 'Expenses');
+    const cells = { ...model.document.sheets[0].cells, B2: 13, B3: 14 };
+    const edits = sheetEdits(model, { sheets: [{ id: 'records', cells }] });
+    expect(edits.map((edit) => edit.id)).toEqual(['e1', 'e2']);
+    expect(sheetPatch(edits)).toEqual({
+      ok: false,
+      message: 'Edit one record at a time: a change that spans several rows is not saved.',
+    });
+  });
+
+  it('merges several cells of one record into a single patch, and refuses a bad cell', () => {
+    const model = buildSheetModel(entity, spec, rows, 'Expenses');
+    const cells = { ...model.document.sheets[0].cells, B2: 13, C2: 4 };
+    const edits = sheetEdits(model, { sheets: [{ id: 'records', cells }] });
+    expect(sheetPatch(edits)).toEqual({ ok: true, id: 'e1', patch: { amount: 1300, hours: 4 } });
+    expect(sheetPatch([])).toMatchObject({ ok: false });
+    const bad = sheetEdits(model, {
+      sheets: [{ id: 'records', cells: { ...model.document.sheets[0].cells, C2: 2.5 } }],
+    });
+    expect(sheetPatch(bad)).toMatchObject({ ok: false });
+  });
 });
 
 describe('SheetScreen', () => {
@@ -183,6 +206,14 @@ describe('SheetScreen', () => {
     const [stored] = await services.expense!.list();
     expect(stored?.amount).toBe(100);
     await waitFor(() => expect(cellText(2, 2)).toBe('1'));
+  });
+
+  it('offers Download CSV but no Import CSV, since an imported sheet is not record data', async () => {
+    const { runtime, services } = await bootEmpty('owner');
+    await services.expense!.create({ title: 'Train', amount: 1250 });
+    render(SheetScreen, { runtime, blueprint, services, screen: spec });
+    expect(await screen.findByRole('button', { name: 'Download CSV' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Import CSV' })).toBeNull();
   });
 
   it('is read-only for a role that cannot update the entity', async () => {
