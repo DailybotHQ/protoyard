@@ -28,6 +28,7 @@ import {
   parseHex,
   RADIUS_PRESETS,
   type RadiusPresetId,
+  registerDesignSystemPainter,
   stylePresetInput,
   TEXT_CONTRAST_PAIRS,
   type ThemeShareDefinition,
@@ -44,6 +45,7 @@ import { onMount, untrack } from 'svelte';
 import { Checkbox } from 'texuli/choice';
 import { Input, Textarea } from 'texuli/input';
 import { Slider } from 'texuli/slider';
+import { forgetStoredDesignSystem } from '../design-systems.ts';
 import { copyText } from '../format.ts';
 import { themeShareLink } from '../link.ts';
 import Btn from '../primitives/Btn.svelte';
@@ -366,7 +368,16 @@ async function copyShareLink() {
 
 async function remove(theme: Theme) {
   if (!api) return;
-  await dt.run('theme-studio', () => api.removeCustom(theme.id), `Deleted “${theme.name}”`);
+  await dt.run(
+    'theme-studio',
+    async () => {
+      await api.removeCustom(theme.id);
+      // A design system's theme takes its document and painter with it.
+      forgetStoredDesignSystem(runtime.manifest.storage.namespace, theme.id);
+      registerDesignSystemPainter(theme.id, undefined);
+    },
+    `Deleted “${theme.name}”`
+  );
   if (exported?.id === theme.id) exported = null;
   revision++;
 }
@@ -639,6 +650,14 @@ const inputClass =
       <p class="mt-1 text-[11px] text-muted-foreground">Saved as <code class="font-mono">{draft.theme.id}</code>. Saving again with the same name replaces it.</p>
     {/if}
   </Section>
+
+  {#await import('./DesignSystemStudio.svelte') then { default: DesignSystemStudio }}
+    <DesignSystemStudio {dt} {api} onSaved={() => revision++} />
+  {:catch}
+    <Section title="Design system">
+      <p class="text-xs text-destructive" role="alert">The design-system tools could not be loaded. Check the connection and reopen Theme Studio.</p>
+    </Section>
+  {/await}
 
   <Section title="Custom themes" description="Pick them in the theme grid above. Export shares a JSON file; import validates it first.">
     {#if saved.length === 0}

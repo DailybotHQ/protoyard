@@ -42,6 +42,10 @@ export function mountDevtools(options: MountDevtoolsOptions): DevtoolsHandle {
   host.dataset.protoyardDevtools = '';
   // Panel controls render Texuli components; apply the current --tx-* appearance.
   enableTexuliAppearance();
+  // Design systems saved in Theme Studio paint again with Texuli's runtime.
+  import('./design-systems.ts')
+    .then(({ restoreDesignSystems }) => restoreDesignSystems(options.runtime))
+    .catch((error: unknown) => console.error('[protoyard/devtools] design systems', error));
   // Svelte delegates `click` & co. to the element it mounts into and walks the
   // event path from there; it stops at the first `stopPropagation()`. The
   // isolation listeners must therefore sit on an ANCESTOR of the mount point:
