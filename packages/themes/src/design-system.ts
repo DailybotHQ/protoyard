@@ -153,60 +153,25 @@ export async function createDesignSystem(
   return { ok: true, document: result.document, warnings: result.warnings.map(importWarning) };
 }
 
-/** Texuli role pins the compiler may refuse on an import, and how many passes to drop them. */
-const ROLE_PIN = /^\$\.color\.roles\.(light|dark)\.([A-Za-z0-9]+)$/;
-const IMPORT_PASSES = 6;
-
 /**
- * A Protoyard theme as a design-system document (Texuli's `fromTheme`), with
- * what the document could not carry exactly. Adapter for Texuli gap G135:
- * `fromTheme` leaves out roles it expects the seed generator to reproduce
- * (for some seeds it does not: ocean's `surface`), and the compiler holds
- * `input` and `borderStrong` to 3:1, which most Protoyard themes do not
- * meet, while pinned roles are never moved. So every role of the theme is
- * pinned, and a pin the compiler refuses is dropped (the solver then picks a
- * value that passes) and listed in `losses`.
+ * A Protoyard theme as a design-system document (Texuli's `fromThemeWithReport`),
+ * with what the document could not carry exactly. Since Texuli 0.11.4 (G135)
+ * the document always compiles: a role pin below the compiler's contrast
+ * guarantee is dropped, the compiler derives that role, and the drop is listed
+ * in `losses` (for the six built-ins: light `input`, dark `borderStrong` and
+ * dark `input`).
  */
 export async function designSystemFromTheme(
   theme: Theme,
   options: { id?: string; name?: string } = {}
 ): Promise<{ document: DesignSystem; losses: FromThemeLoss[] }> {
-  const { compileDesignSystem, fromThemeWithReport } = await import(
-    '@texuli/tokens/design-system/compile-core'
-  );
-  const texuliTheme = toTexuliTheme(theme);
-  const report = fromThemeWithReport(texuliTheme, { id: options.id ?? theme.id });
-  const document = structuredClone(report.document) as DesignSystem & {
-    color: { roles: Record<ResolvedMode, Record<string, string>> };
+  const { fromThemeWithReport } = await import('@texuli/tokens/design-system/compile-core');
+  const report = fromThemeWithReport(toTexuliTheme(theme), { id: options.id ?? theme.id });
+  const document = report.document as DesignSystem;
+  return {
+    document: options.name ? { ...document, name: options.name } : document,
+    losses: [...report.losses],
   };
-  const losses = [...report.losses];
-  document.color = { ...document.color, roles: { ...document.color?.roles } } as never;
-  for (const mode of ['light', 'dark'] as const) {
-    const roles: Record<string, string> = { ...document.color.roles[mode] };
-    for (const [role, value] of Object.entries(texuliTheme[mode])) {
-      const color = typeof value === 'string' ? value : value?.default;
-      if (!(role in roles) && typeof color === 'string') roles[role] = color;
-    }
-    document.color.roles[mode] = roles;
-  }
-  for (let pass = 0; pass < IMPORT_PASSES; pass += 1) {
-    const compiled = compileDesignSystem(document, { trust: 'untrusted' });
-    if (compiled.ok) break;
-    const refused = refusals(compiled.errors).flatMap((issue) => {
-      const match = ROLE_PIN.exec(issue.path ?? '');
-      return match ? [{ mode: match[1] as ResolvedMode, role: match[2] as string, issue }] : [];
-    });
-    if (refused.length === 0) break;
-    for (const { mode, role, issue } of refused) {
-      if (!(role in document.color.roles[mode])) continue;
-      delete document.color.roles[mode][role];
-      losses.push({
-        path: `$.color.roles.${mode}.${role}`,
-        reason: `Recomputed by Texuli: ${issue.message}`,
-      });
-    }
-  }
-  return { document: options.name ? { ...document, name: options.name } : document, losses };
 }
 
 /** Loads a `texuli:<id>` base from Protoyard's theme library (built-ins first). */
@@ -217,8 +182,8 @@ async function loadProtoyardBase(ref: string): Promise<unknown> {
     import('./presets.ts'),
     import('./library/index.ts'),
   ]);
-  // A document, not a Theme: Texuli would import a Theme base with plain
-  // `fromTheme`, which refuses most Protoyard themes (G135).
+  // A document, not a Theme: the resolver imports a raw Theme base with the
+  // plain bridge, which keeps a theme's low-contrast pins (Texuli 0.11.4 notes).
   const builtin = BUILTIN_THEMES.find((theme) => theme.id === id);
   if (builtin) return (await designSystemFromTheme(builtin)).document;
   if (!(await library.findLibraryThemeMeta(id))) return undefined;

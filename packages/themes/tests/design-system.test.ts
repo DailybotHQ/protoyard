@@ -143,7 +143,7 @@ describe('compiling untrusted documents', () => {
 });
 
 describe('importing Protoyard themes', () => {
-  // `input` and dark `borderStrong` are recomputed to 3:1 (G135); dark `border` changes notation only.
+  // Texuli derives `input` and dark `borderStrong` at 3:1 and lists them as losses (G135, fixed in 0.11.4); dark `border` changes notation only.
   const ROLES = [
     'primary',
     'background',
