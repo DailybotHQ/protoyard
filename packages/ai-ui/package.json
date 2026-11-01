@@ -45,8 +45,8 @@
     "@lucide/svelte": "^1.61.0",
     "@protoyard/ai": "workspace:*",
     "@protoyard/charts-ui": "workspace:*",
-    "@texuli/chat": "0.11.2",
-    "texuli": "0.11.2"
+    "@texuli/chat": "0.11.3",
+    "texuli": "0.11.3"
   },
   "devDependencies": {
     "axe-core": "^4.14.0",
