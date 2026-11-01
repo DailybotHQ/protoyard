@@ -7,18 +7,17 @@ import {
   validateWorld,
 } from '@protoyard/scenarios';
 import { afterEach, describe, expect, it } from 'vitest';
-import { CATALOG, CATALOG_IDS } from '../src/catalog/entries.ts';
+import { CATALOG_IDS } from '../src/catalog/entries.ts';
+import { DEMOS } from '../src/catalog/registry.ts';
 import type { UiKitDatabase } from '../src/database/schema.ts';
 import { createFavoriteServices } from '../src/domain/favorites.ts';
 import { definition } from '../src/prototype.ts';
 import { generateUiKitWorld } from '../src/scenarios/generators.ts';
 
 describe('catalog', () => {
-  it('has unique kebab-case ids covering every group', () => {
+  it('has unique ids and exactly one demo per catalog id', () => {
     expect(new Set(CATALOG_IDS).size).toBe(CATALOG_IDS.length);
-    for (const id of CATALOG_IDS) expect(id).toMatch(/^[a-z0-9-]+$/);
-    expect(new Set(CATALOG.map((e) => e.group)).size).toBe(13);
-    expect(CATALOG.filter((entry) => entry.group === 'views')).toHaveLength(13);
+    expect(Object.keys(DEMOS).sort()).toEqual([...CATALOG_IDS].sort());
   });
 });
 
