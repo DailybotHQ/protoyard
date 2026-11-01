@@ -1,7 +1,12 @@
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { PrototypeDefinition } from '@protoyard/core';
+import { cleanup, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
+import { authorOf as chatAuthorOf } from '../../templates/chat/src/lib/context.ts';
+import { authorOf as widgetAuthorOf } from '../../templates/chat-widget/src/lib/context.ts';
+import PageBody from '../../templates/docs-wiki/src/components/PageBody.svelte';
+import { HOSTILE_BODY } from '../../templates/docs-wiki/src/scenarios/generators.ts';
 import { createHarness } from '../support/runtime.ts';
 import { expectBootableWorld } from '../support/smoke.ts';
 
@@ -11,8 +16,11 @@ import { expectBootableWorld } from '../support/smoke.ts';
  * and the default scenario boots on the real runtime. Template-specific
  * untrusted-input guards (Markdown, avatar URLs) live at the bottom.
  */
+// Eager: every template module is transformed while the file is collected, so a
+// cold transform on a loaded machine never counts against a test's timeout.
 const modules = import.meta.glob<{ definition: PrototypeDefinition }>(
-  '../../templates/*/src/prototype.ts'
+  '../../templates/*/src/prototype.ts',
+  { eager: true }
 );
 const names = Object.keys(modules)
   .map((path) => path.split('/')[3] as string)
@@ -35,7 +43,7 @@ describe('every template generates and validates', () => {
   });
 
   it.each(names)('%s', async (name) => {
-    const { definition } = await modules[`../../templates/${name}/src/prototype.ts`]!();
+    const { definition } = modules[`../../templates/${name}/src/prototype.ts`]!;
     expect(definition.manifest.slug).toBe(name);
     const harness = createHarness(definition);
     harnesses.push(harness);
@@ -44,12 +52,7 @@ describe('every template generates and validates', () => {
 });
 
 describe('template untrusted-input guards', () => {
-  it('docs-wiki shows hostile Markdown as text: no script, handler, frame or unsafe link', async () => {
-    const { cleanup, render, screen } = await import('@testing-library/svelte');
-    const { default: PageBody } = await import(
-      '../../templates/docs-wiki/src/components/PageBody.svelte'
-    );
-    const { HOSTILE_BODY } = await import('../../templates/docs-wiki/src/scenarios/generators.ts');
+  it('docs-wiki shows hostile Markdown as text: no script, handler, frame or unsafe link', () => {
     try {
       render(PageBody, { source: HOSTILE_BODY });
       const region = screen.getByRole('region', { name: 'Page content' });
@@ -65,21 +68,17 @@ describe('template untrusted-input guards', () => {
     }
   });
 
-  it.each(['chat', 'chat-widget'])(
-    '%s never turns an unsafe persona avatar into an image',
-    async (name) => {
-      const contexts = import.meta.glob<{
-        authorOf: (people: Map<string, never>, id: string) => { image: Record<string, string> };
-      }>('../../templates/{chat,chat-widget}/src/lib/context.ts');
-      const { authorOf } = await contexts[`../../templates/${name}/src/lib/context.ts`]!();
-      const person = (id: string, avatar: string) =>
-        ({ id, name: `Person ${id}`, avatarColor: '#2563eb', avatar }) as never;
-      const people = new Map([
-        ['p1', person('p1', 'av-021')],
-        ['p2', person('p2', 'javascript:alert(1)')],
-      ]);
-      expect(authorOf(people, 'p1').image.src).toBe('./avatars/64/av-021.webp');
-      expect(authorOf(people, 'p2').image).toEqual({});
-    }
-  );
+  it.each([
+    ['chat', chatAuthorOf],
+    ['chat-widget', widgetAuthorOf],
+  ] as const)('%s never turns an unsafe persona avatar into an image', (_name, authorOf) => {
+    const person = (id: string, avatar: string) =>
+      ({ id, name: `Person ${id}`, avatarColor: '#2563eb', avatar }) as never;
+    const people = new Map([
+      ['p1', person('p1', 'av-021')],
+      ['p2', person('p2', 'javascript:alert(1)')],
+    ]);
+    expect(authorOf(people, 'p1').image).toMatchObject({ src: './avatars/64/av-021.webp' });
+    expect(authorOf(people, 'p2').image).toEqual({});
+  });
 });
