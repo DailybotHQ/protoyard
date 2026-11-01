@@ -285,6 +285,22 @@ export function wireDesignSystem(source: string): string | null {
   return `${next.slice(0, at)}  themes: [${EXPORT_NAME}],\n${next.slice(at)}`;
 }
 
+/** True when the prototype's package.json lists @protoyard/runtime (a dependency or a devDependency). */
+function dependsOnRuntime(dir: string): boolean {
+  try {
+    const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    return Boolean(
+      manifest.dependencies?.['@protoyard/runtime'] ??
+        manifest.devDependencies?.['@protoyard/runtime']
+    );
+  } catch {
+    return false;
+  }
+}
+
 export const dsUseCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const slug = args[0];
   const file = args[1];
@@ -312,6 +328,13 @@ export const dsUseCommand: Handler = async (ctx, args, options): Promise<Command
       `Invalid ${entry.path}/protoyard.json; refusing to update it.`
     );
   }
+  if (!dependsOnRuntime(dir)) {
+    throw new CliError(
+      'validation',
+      `${entry.path} does not depend on @protoyard/runtime, which src/design-system.ts imports.`,
+      { hint: 'Add "@protoyard/runtime": "workspace:*" to its package.json and run pnpm install.' }
+    );
+  }
   const prototypeSource = readFileSync(prototypeFile, 'utf8');
   const wired = wireDesignSystem(prototypeSource);
   if (wired === null) {
@@ -337,7 +360,7 @@ export const dsUseCommand: Handler = async (ctx, args, options): Promise<Command
   }
   const source = `// Written by \`protoyard ds use\` from ${relativeTo(ctx.root, resolve(ctx.root, file))} (hash ${result.compiled.hash.slice(0, 12)}).
 // Re-run the command to update it; edit the design-system document, not this file.
-import { defineDesignSystemTheme, type ShippedDesignSystem } from '@protoyard/renderer-svelte';
+import { defineDesignSystemTheme, type ShippedDesignSystem } from '@protoyard/runtime';
 
 const compiled: ShippedDesignSystem = ${JSON.stringify(result.shipped, null, 2)};
 

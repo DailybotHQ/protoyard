@@ -130,6 +130,11 @@ describe('protoyard ds', () => {
     ws = createWorkspace();
     addPrototype(ws, 'ds-fixture');
     ws.write('prototypes/ds-fixture/src/prototype.ts', PROTOTYPE);
+    ws.write('prototypes/ds-fixture/package.json', {
+      name: 'ds-fixture',
+      private: true,
+      devDependencies: { '@protoyard/runtime': 'workspace:*' },
+    });
     expect((await run('new', 'harbor', '--brand', '#0f766e')).code).toBe(0);
 
     const dry = await run('use', 'ds-fixture', 'design-systems/harbor.json', '--dry-run');
@@ -140,7 +145,7 @@ describe('protoyard ds', () => {
     expect(applied.code, applied.stdout).toBe(0);
     const dir = join(ws.root, 'prototypes/ds-fixture');
     const source = readFileSync(join(dir, 'src/design-system.ts'), 'utf8');
-    expect(source).toContain("from '@protoyard/renderer-svelte'");
+    expect(source).toContain("from '@protoyard/runtime'");
     expect(source).toContain('export const designSystemTheme = defineDesignSystemTheme(compiled);');
     expect(source).not.toContain('"report"');
     const prototype = readFileSync(join(dir, 'src/prototype.ts'), 'utf8');
@@ -155,6 +160,14 @@ describe('protoyard ds', () => {
     // Idempotent: a second run leaves prototype.ts alone.
     expect((await run('use', 'ds-fixture', 'design-systems/harbor.json')).code).toBe(0);
     expect(readFileSync(join(dir, 'src/prototype.ts'), 'utf8')).toBe(prototype);
+
+    // A prototype without @protoyard/runtime is refused before anything is written.
+    addPrototype(ws, 'no-runtime');
+    ws.write('prototypes/no-runtime/src/prototype.ts', PROTOTYPE);
+    const refused = await run('use', 'no-runtime', 'design-systems/harbor.json');
+    expect(refused.code).not.toBe(0);
+    expect(refused.json<Envelope<unknown>>().error?.message).toMatch(/@protoyard\/runtime/);
+    expect(existsSync(join(ws.root, 'prototypes/no-runtime/src/design-system.ts'))).toBe(false);
 
     // Another design system needs --force.
     expect((await run('new', 'dusk', '--brand', '#6d28d9')).code).toBe(0);

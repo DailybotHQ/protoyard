@@ -96,6 +96,11 @@ describe('MCP argv: options, then --, then positionals', () => {
   it('creates, validates and applies a design system through the real CLI', async () => {
     const { ws, handler } = await workspaceHandler();
     addPrototype(ws, 'ds-mcp');
+    ws.write('prototypes/ds-mcp/package.json', {
+      name: 'ds-mcp',
+      private: true,
+      dependencies: { '@protoyard/runtime': 'workspace:*' },
+    });
     ws.write(
       'prototypes/ds-mcp/src/prototype.ts',
       "import { definePrototype } from '@protoyard/core';\n\nexport const definition = definePrototype({\n  manifest: {} as never,\n});\n"

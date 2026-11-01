@@ -1,3 +1,7 @@
+// A compiled design system as a prototype theme (written by `protoyard ds use`):
+// re-exported because prototypes depend on the runtime, not on @protoyard/themes,
+// and src/prototype.ts must load in Node (validate, spec), so not from the renderer.
+export { defineDesignSystemTheme, type ShippedDesignSystem } from '@protoyard/themes';
 export {
   createPrototypeRuntime,
   MAX_INSPECTOR_PAGE,
