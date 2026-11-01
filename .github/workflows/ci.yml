@@ -178,21 +178,31 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - group: showcase
+            gallery: '0'
+            site: ''
+            showcase: '1'
+            prototypes: ''
+            devtools: ''
+            comments: ''
           - group: site
             gallery: '1'
             site: '1'
+            showcase: ''
             prototypes: ''
             devtools: ''
             comments: ''
           - group: apps 1
             gallery: '1'
             site: ''
+            showcase: ''
             prototypes: crm-demo,mobile-banking-demo,ai-chat-demo
             devtools: mobile-banking-demo
             comments: ''
           - group: apps 2
             gallery: '0'
             site: ''
+            showcase: ''
             prototypes: lattice-saas-demo,ui-kit,doc
             devtools: ''
             comments: crm-demo,mobile-banking-demo
@@ -245,7 +255,7 @@ jobs:
         run: pnpm test:e2e
         env:
           PROTOYARD_E2E_GALLERY: ${{ matrix.gallery }}
-          PROTOYARD_E2E_SHOWCASE: ${{ matrix.site }}
+          PROTOYARD_E2E_SHOWCASE: ${{ matrix.showcase }}
           PROTOYARD_E2E_DECK: ${{ matrix.site }}
           PROTOYARD_E2E_PLAYER: ${{ matrix.site }}
           PROTOYARD_E2E_QUICK: ${{ matrix.site || matrix.devtools && '1' || '' }}

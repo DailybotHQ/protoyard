@@ -174,7 +174,8 @@ export default defineConfig({
     ...(showcase
       ? [
           {
-            command: `pnpm protoyard showcase --base ${showcaseBase} --serve --port ${SHOWCASE_PORT} --strict-port`,
+            // No template demos: no spec opens them, and they are most of the build.
+            command: `pnpm protoyard showcase --base ${showcaseBase} --no-templates --serve --port ${SHOWCASE_PORT} --strict-port`,
             url: `http://127.0.0.1:${SHOWCASE_PORT}${showcaseBase}`,
             reuseExistingServer: !ci,
             timeout: 600_000,
