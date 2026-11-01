@@ -2,6 +2,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /** Same order and ports as playwright.config.ts. */
+/** The gallery server runs unless PROTOYARD_E2E_GALLERY=0 (see playwright.config.ts). */
+export const GALLERY_ENABLED = process.env.PROTOYARD_E2E_GALLERY !== '0';
+
 export const PROTOTYPE_TARGETS = (process.env.PROTOYARD_E2E_PROTOTYPES ?? '')
   .split(',')
   .map((s) => s.trim())

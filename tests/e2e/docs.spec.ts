@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
+import { GALLERY_ENABLED } from './targets.ts';
+
+test.skip(!GALLERY_ENABLED, 'the gallery server is off (PROTOYARD_E2E_GALLERY=0)');
 
 /** The published guides on the served gallery build: the /docs/ index passes axe. */
 

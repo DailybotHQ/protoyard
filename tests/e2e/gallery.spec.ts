@@ -1,6 +1,8 @@
 import { expect, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
-import { readRegistry } from './targets.ts';
+import { GALLERY_ENABLED, readRegistry } from './targets.ts';
+
+test.skip(!GALLERY_ENABLED, 'the gallery server is off (PROTOYARD_E2E_GALLERY=0)');
 
 const registry = readRegistry();
 const prototypes = registry?.entries.filter((e) => e.kind === 'prototype') ?? [];

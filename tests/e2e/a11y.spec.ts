@@ -1,6 +1,8 @@
 import { expect, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
-import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
+import { GALLERY_ENABLED, PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
+
+test.skip(!GALLERY_ENABLED, 'the gallery server is off (PROTOYARD_E2E_GALLERY=0)');
 
 /**
  * Automated accessibility audit (axe-core, WCAG 2.0/2.1 A + AA) of the gallery

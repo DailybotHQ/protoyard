@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
-import { readRegistry } from './targets.ts';
+import { GALLERY_ENABLED, readRegistry } from './targets.ts';
+
+test.skip(!GALLERY_ENABLED, 'the gallery server is off (PROTOYARD_E2E_GALLERY=0)');
 
 /**
  * The gallery marketplace on its REAL static build (`astro preview`, no control
