@@ -18,7 +18,7 @@ import { GENERATED_MARKER } from '../lib/codegen/header.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { CliError } from '../lib/output.ts';
-import { isInside } from '../lib/paths.ts';
+import { hasControlCharacter, isInside } from '../lib/paths.ts';
 import { resolveTarget } from '../lib/workspace.ts';
 
 /**
@@ -68,16 +68,13 @@ function relativeTo(root: string, file: string): string {
   return file.startsWith(`${root}${sep}`) ? file.slice(root.length + 1) : basename(file);
 }
 
-/** Control characters and line separators (U+2028/2029 end a `//` comment) never belong in a path Protoyard writes or quotes. */
-const CONTROL = /[\u0000-\u001f\u007f\u2028\u2029]/;
-
 /**
  * A path inside the workspace, resolved through every symlink (parents
  * included, as the other commands do with `canonicalPath`/`isInside`), never a
  * symlink itself, and free of control characters.
  */
 function workspaceFile(root: string, file: string): string {
-  if (CONTROL.test(file)) {
+  if (hasControlCharacter(file)) {
     throw new CliError('unsafe_path', 'The path contains a control character.');
   }
   const absolute = resolve(root, file);

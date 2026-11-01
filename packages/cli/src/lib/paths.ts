@@ -49,6 +49,19 @@ function hasConsumerMarker(pkg: WorkspacePackage | null): boolean {
 }
 
 /** Returns the supported workspace layout at an already-resolved root. */
+/**
+ * Whether `text` holds a C0 control character, DEL, or a line or paragraph
+ * separator (U+2028/2029 end a `//` comment in JavaScript source). Such a
+ * character never belongs in a path Protoyard writes, quotes or accepts.
+ */
+export function hasControlCharacter(text: string): boolean {
+  for (let index = 0; index < text.length; index += 1) {
+    const code = text.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f || code === 0x2028 || code === 0x2029) return true;
+  }
+  return false;
+}
+
 export function workspaceLayout(root: string): WorkspaceLayout | null {
   const pkg = readWorkspacePackage(root);
   // Only the dedicated `protoyard.workspace` marker identifies a consumer.

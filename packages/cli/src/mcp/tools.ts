@@ -4,6 +4,7 @@ import { Readable } from 'node:stream';
 import { checkSlug } from '@protoyard/core';
 import { z } from 'zod';
 import { CliError, type Envelope, errorEnvelope } from '../lib/output.ts';
+import { hasControlCharacter } from '../lib/paths.ts';
 import {
   assertMcpOutputSize,
   assertMcpRequestSize,
@@ -105,7 +106,7 @@ const dsPath = z
   .string()
   .min(1)
   .max(2048)
-  .refine((value) => !/[\u0000-\u001f\u007f\u2028\u2029]/.test(value), 'Use a plain path.');
+  .refine((value) => !hasControlCharacter(value), 'Use a plain path.');
 const dsId = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/, 'Use a lowercase kebab-case id.');
 const dsCreateArgs = z
   .object({
