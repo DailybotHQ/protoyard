@@ -14,6 +14,7 @@ import {
   findLibraryThemeMeta,
   loadLibraryTheme,
 } from '@protoyard/themes';
+import { GENERATED_MARKER } from '../lib/codegen/header.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { CliError } from '../lib/output.ts';
@@ -336,6 +337,15 @@ export const dsUseCommand: Handler = async (ctx, args, options): Promise<Command
     );
   }
   const prototypeSource = readFileSync(prototypeFile, 'utf8');
+  if (prototypeSource.includes(GENERATED_MARKER)) {
+    throw new CliError(
+      'validation',
+      `${entry.path}/${PROTOTYPE_FILE} is written by \`protoyard generate\`; regeneration would drop the design system.`,
+      {
+        hint: "Set the blueprint's brand block instead, or apply the design system to an app prototype.",
+      }
+    );
+  }
   const wired = wireDesignSystem(prototypeSource);
   if (wired === null) {
     throw new CliError(
