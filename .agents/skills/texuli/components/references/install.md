@@ -4,17 +4,17 @@ Back to [`../SKILL.md`](../SKILL.md).
 
 ## A. Use the packages
 
-The packages are on npm as `0.9.0`, a pre-1.0 release (`latest` and `next`
-both point to it; 1.0.0 will be the first stable release). An app outside a
+The packages are on npm in the 0.11 line, every one at `0.11.1`, a pre-1.0 line
+(`latest` and `next` point to the newest; 1.0.0 will be the first stable release). An app outside a
 Texuli checkout installs them plainly, for example
-`pnpm add texuli @texuli/tokens`, and pins the exact version or `^0.9.0`
-(for 0.x it accepts only 0.9.x, since a new minor may break) (the developer
+`pnpm add texuli @texuli/tokens`, and pins the exact version or `^0.11.0`
+(for 0.x it accepts only 0.11.x, since a new minor may break) (the developer
 runs the install; it uses the network). `@texuli/drag`,
 `@texuli/workflows`, `@texuli/deck`, `@texuli/editor` (first published
 in `0.5.0`), `@texuli/document` and `@texuli/pages` (both first published
 in `0.7.0`), `@texuli/forms`, `@texuli/canvas` and `@texuli/sheets` (all
 three first published in `0.8.0`) and `@texuli/mcp` (first published in
-`0.9.0`) are in development and on npm as `0.9.0`.
+`0.9.0`) are in development and on npm as `0.11.1`.
 Inside this monorepo, an app depends on the workspace packages:
 
 ```json
@@ -53,6 +53,14 @@ URL, and `siteSitemap` writes the sitemap from the same model
 (`packages/astro/docs/site.md`). `@texuli/astro/content` parses a closed set
 of content blocks (`parseTexuliBlocks`), so page content never reaches an
 HTML sink.
+
+**Always load `@texuli/tokens/base.css`** (once, before any component). Since
+`0.9.0` component CSS reads the system tokens (the space unit, control and
+icon sizes, shape radii and type roles of `@texuli/tokens/system`) with no
+fallback, and a theme does not declare them: an app with its own reset that skips `base.css`
+renders controls with no size. From `0.10.0`, such an app can
+load `@texuli/tokens/system.css` instead: the system token defaults alone,
+with no reset.
 
 Import each component through its subpath:
 
