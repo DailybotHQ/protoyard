@@ -125,8 +125,7 @@ onMount(() => {
           <p class="text-xs text-muted-foreground">Simulation only — this is not a real TOTP code.</p>
         </div>
       {/if}
-      <!-- G134: SchemaForm reads a starting `disabled` once, so it remounts when the challenge loads. -->
-      {#key `${recovery}:${challengeId}`}
+      {#key recovery}
         <SchemaForm
           {form}
           onSubmit={complete}
