@@ -325,3 +325,36 @@ export function defineDesignSystemTheme(compiled: ShippedDesignSystem): Theme {
 export function forgetDesignSystemTheme(themeId: string): void {
   registerDesignSystemPainter(themeId, undefined);
 }
+
+export type DesignSystemExportFormat = 'css' | 'tailwind' | 'json';
+
+/** A compiled design system as CSS variables, a Tailwind preset (JSON) or compiled JSON (Texuli's emitters). */
+export async function exportDesignSystem(
+  compiled: CompiledDesignSystem,
+  format: DesignSystemExportFormat
+): Promise<string> {
+  const emit = await import('@texuli/tokens/design-system/emit');
+  if (format === 'tailwind') return emit.emitTailwindPresetJson(compiled);
+  if (format === 'json') return emit.emitCompiledJson(compiled);
+  return emit.emitCss(compiled);
+}
+
+/** Per compiled mode: how many of the compiler's contrast pairs passed, and the failures. */
+export function designSystemContrast(
+  compiled: CompiledDesignSystem
+): Partial<Record<ResolvedMode, { passed: number; total: number; failures: string[] }>> {
+  const summary: Partial<
+    Record<ResolvedMode, { passed: number; total: number; failures: string[] }>
+  > = {};
+  for (const mode of compiled.modes) {
+    const pairs = compiled.report.contrast[mode] ?? [];
+    summary[mode] = {
+      passed: pairs.filter((pair) => pair.pass).length,
+      total: pairs.length,
+      failures: pairs
+        .filter((pair) => !pair.pass)
+        .map((pair) => `${pair.foreground} on ${pair.background}: ${pair.ratio}:1`),
+    };
+  }
+  return summary;
+}
