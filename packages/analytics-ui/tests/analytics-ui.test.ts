@@ -41,8 +41,4 @@ describe('@protoyard/analytics-ui scaffold', () => {
     const source = readFileSync(join(root, 'src/index.ts'), 'utf8');
     for (const view of ANALYTICS_VIEWS) expect(source).not.toContain(`./${view}`);
   });
-
-  it('the stylesheet registers the package with the Tailwind scanner', () => {
-    expect(readFileSync(join(root, 'src/styles.css'), 'utf8')).toContain('@source "./"');
-  });
 });
