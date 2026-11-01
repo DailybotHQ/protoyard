@@ -414,8 +414,16 @@ G131–G134 are fixed in 0.11.3 and adopted:
 - `SchemaForm` follows `disabled` and `readOnly` after mount (G134), so the
   MFA form no longer remounts.
 
-No gap is open on 0.11.3. The doc reading view stays `DocHost` for size,
-because Protoyard's Markdown text blocks need the codec; see Documents above.
+Open on 0.11.3:
+
+| Gap | Package | What is missing | In Protoyard |
+| --- | --- | --- | --- |
+| G135 | `@texuli/tokens/design-system/compile-core` | `fromTheme` can return a document `compileDesignSystem` refuses (a low-contrast pin moves the page colors around it), with no loss reported | `designSystemFromTheme` pins every role and drops refused pins as reported losses |
+| G136 | `@texuli/pages` | `document-host-core` imports the full `@texuli/document/schema`, so the lazy editor chunk still carries the deck model | None needed: size only, on the lazy editor path |
+| G137 | `@texuli/document/schema-core` | Depends on `@texuli/deck/schema`'s validation toolkit (about 9.3 KB gzip) | None needed: size only |
+
+The doc reading view stays `DocHost` for size, because Protoyard's Markdown
+text blocks need the codec; see Documents above.
 
 Texuli 0.10.0 also removed the tree block's `style` alias (Protoyard's
 blocks-ui adapter passes `variant`) and the 0.8 MCP tool names, which Protoyard
