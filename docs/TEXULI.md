@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.11.1`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.11.2`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.11.1`. Texuli pins its own internal dependencies exactly,
+Every package is `0.11.2`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -63,7 +63,7 @@ checks.
 
 Agents working in this repository have the Texuli skill at
 `.agents/skills/texuli` (version 0.3.7, the skill release that matches the
-Texuli 0.11.1 packages Protoyard installs). It is the pinned `skill-v0.3.7`
+Texuli 0.11 packages Protoyard installs). It is the pinned `skill-v0.3.7`
 release, installed from its archive after checking the archive and every file
 against the release's `SHA256SUMS` and running
 `setup.sh --verify --expect-version 0.3.7`. It explains Texuli's components,
@@ -196,8 +196,23 @@ document and back; untouched blocks return byte-identical, and Protoyard's
 own blocks travel as placeholders. Applied edits are saved per doc and world
 in the content-kind runtime's `docEdits` store (its storage schema version 2)
 and survive a reload; Reset removes them. The reading view stays Protoyard's
-`DocHost`, because Texuli's `PageReader` has no seam for host-owned blocks
-(gap G111). Details: [PAGES](PAGES.md) and [KINDS](KINDS.md).
+`DocHost`. Texuli 0.10–0.11 added the `renderBlock` seam (G111) and
+`@texuli/pages/reader-core`, and Protoyard's blocks paint through it, but two
+things still block the switch (measured 2026-10-31 on Texuli 0.11.1):
+
+- **Size.** The doc entry's initial JS grows from 120,622 B to 162,013 B gzip
+  (+34 %), over its 122,880 B budget. The reader itself adds about 1 KB; the
+  rest is the conversion a reader needs, mainly `validateDocument`, which
+  statically imports `@texuli/deck`'s model and schema (gap G133), plus the
+  Markdown codec.
+- **Deep links.** The reader anchors every heading from its text
+  (`documentOutline`), with no host anchor. `DocHost` keeps an authored
+  heading block id as its anchor, so existing `#<block-id>` links would break
+  (gap G132).
+
+`PageApp` renders page sections (hero, pricing, steps…), not a document, so
+the reader does not apply to it. Details: [PAGES](PAGES.md#reading-view-and-texulis-reader)
+and [KINDS](KINDS.md).
 
 ## Spreadsheets and the infinite canvas
 
@@ -366,14 +381,16 @@ fixed G100–G124 and 0.11.0 fixed G125–G127 and G130, so their adapters and
 - Deck print goes through `@texuli/slides/export-core` (G105).
 - `@protoyard/themes` reads its theme id lists from `@texuli/tokens/library-ids` (G125).
 
-Open on 0.11.1, each with a minimal adapter:
+G128 (a square theme radius written as unitless `0`) is fixed in 0.11.2, and
+`@protoyard/themes` keeps writing any custom theme's zero radius as `0px`.
 
-| Gap | Package | What is missing | Adapter |
+Open on 0.11.2, each with a minimal adapter or a documented limit:
+
+| Gap | Package | What is missing | In Protoyard |
 | --- | --- | --- | --- |
-| G128 | `@texuli/tokens/library-port` | A square theme radius is written as unitless `0` (brutalist-block, velvet-shop), so `calc(var(--tx-radius) + <length>)` steps are invalid | `@protoyard/themes` writes a zero radius as `0px` (`src/radius.ts`) |
-| G129 | `@texuli/forms` | Password fields accept only `current-password` or `new-password` autocomplete, not `off` | Simulated password inputs keep Protoyard's control |
-
-Both are fixed in Texuli 0.11.2.
+| G129 | `@texuli/forms` | Password fields accept only `current-password` or `new-password` autocomplete, not `off` (fixed in 0.11.2; adoption in progress) | Simulated password inputs keep Protoyard's control |
+| G132 | `@texuli/pages/reader-core` | Heading anchors come only from the text; a host cannot keep its own anchor ids | The doc reading view stays `DocHost` |
+| G133 | `@texuli/document/schema` | `validateDocument` always imports `@texuli/deck`'s model and schema, even for a document with no deck | same |
 
 Texuli 0.10.0 also removed the tree block's `style` alias (Protoyard's
 blocks-ui adapter passes `variant`) and the 0.8 MCP tool names, which Protoyard

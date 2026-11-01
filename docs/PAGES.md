@@ -112,6 +112,26 @@ visible section. The article uses a 72-character measure and the TOC is hidden
 when printing. A requested TOC must have at least one heading within its
 configured depth.
 
+### Reading view and Texuli's reader
+
+The doc reading view is `DocHost`, not `@texuli/pages/reader-core`'s
+`PageReaderCore`. A spike on Texuli 0.11.1 (2026-10-31) painted Protoyard's
+blocks through the reader's `renderBlock` seam with forms still interactive.
+It was not adopted because:
+
+| Check | `DocHost` | `PageReaderCore` |
+| --- | --- | --- |
+| Doc initial JS gzip (`budget.test.ts`, cap 122,880 B) | 120,622 B | 162,013 B |
+| Heading anchors | Authored block id, else a slug | Always a slug of the text (G132) |
+| Heading eyebrow and subtitle, quote citation, callout icon | Shown | Dropped by the edit-mode conversion |
+| Headings inside a text block's Markdown | Not TOC entries | Outline entries |
+
+Of the +41,391 B, the reader adds about 1 KB. The rest is the doc → Texuli
+conversion: `validateDocument` statically imports `@texuli/deck`'s model and
+schema (G133), plus the Markdown codec. A switch needs G132 and G133 fixed and
+a reading conversion mode that keeps every field. The editor and the
+downloads already use the conversion, on their own lazy chunks.
+
 Vertical timeline blocks use a dedicated marker column beside the event labels
 so dates and titles remain readable at narrow widths. The shared renderer
 applies this layout in decks, pages and docs.

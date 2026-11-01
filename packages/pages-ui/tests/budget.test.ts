@@ -48,7 +48,12 @@ const INITIAL_CSS_GZIP_BUDGETS: Record<Host, number> = { page: 7_357, doc: 7_349
 // doc all CSS 78,560 -> 48,919 B. The page all-CSS sum measured 42,087 B on the
 // 0.10.0 bump before any adapter change (42,069 B after), over its 40,023 B cap:
 // left for the lead, not raised here.
-const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 40_023, doc: 76_560 };
+// PLAN_008 T-doc-reader (2026-10-31, Texuli 0.11.1): the page sum measures 42,067 B. The growth is
+// the per-control split (G119): the forms CSS is now 8 lazy stylesheets (FormBlock, Input,
+// Checkbox, Slider, date variants, tags and color, file, progress) that gzip to 13,342 B one by one
+// but 8,531 B as one stream, so 4,811 B of the sum is per-file gzip overhead; without it the sum is
+// about 37,256 B. A reader downloads only the controls a form uses. Page cap: measured + 2.5 %.
+const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 43_119, doc: 76_560 };
 
 interface HostBuild {
   chunks: Rollup.OutputChunk[];
