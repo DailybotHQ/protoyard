@@ -108,9 +108,9 @@ test.describe('Design systems in Theme Studio (DevTools build)', () => {
     await expectAccessibleIn(page, 'dark', 'reloaded');
   });
 
-  test('refuses a pasted design system with CSS injection and leaves the page as it was', async ({
-    page,
-  }) => {
+  test('refuses a pasted design system with CSS injection and leaves the page as it was', {
+    tag: '@desktop',
+  }, async ({ page }) => {
     await page.goto(devtoolsPrototypeUrl(SLUG));
     await waitForPrototypeReady(page, { slug: SLUG });
     const { studio } = await openStudio(page);

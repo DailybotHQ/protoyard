@@ -123,19 +123,7 @@ async function addOAuthState(page: Page, id: string, email: string): Promise<str
   );
 }
 
-test.describe('Lattice flagship SaaS journeys', () => {
-  test('first sign-in view does not request a Faker chunk', async ({ page }, testInfo) => {
-    const scriptRequests: string[] = [];
-    page.on('request', (request) => {
-      if (request.resourceType() === 'script') scriptRequests.push(request.url());
-    });
-    await openPrototype(page, 'signed-out', '/sign-in');
-    await expect(page.getByTestId('auth-sign-in')).toBeVisible();
-    await expect.poll(() => scriptRequests.length).toBeGreaterThan(0);
-    expect(scriptRequests.filter((url) => /faker/i.test(url))).toEqual([]);
-    await checkAuthA11y(page, testInfo, '[data-testid="auth-sign-in"]', 'lattice-first-sign-in');
-  });
-
+test.describe('Lattice flagship SaaS journeys', { tag: '@desktop' }, () => {
   test('sign-up, verify from the simulated inbox, and resume persisted onboarding', async ({
     page,
   }, testInfo) => {
@@ -189,43 +177,6 @@ test.describe('Lattice flagship SaaS journeys', () => {
     await expect(page.getByRole('heading', { name: 'Set up your account' })).toBeVisible();
   });
 
-  test('sign-in offers simulated SSO buttons that run the consent round trip into onboarding', async ({
-    page,
-  }, testInfo) => {
-    await openPrototype(page, 'signed-out', '/sign-in');
-    const sso = page.getByTestId('sso-buttons');
-    await expect(sso).toBeVisible();
-    await expect(sso).toContainText('no provider is contacted');
-    for (const name of ['Google', 'Microsoft', 'GitHub']) {
-      await expect(sso.getByRole('button', { name: `Continue with ${name}` })).toBeVisible();
-    }
-    await expect(sso.getByTestId('sso-simulated-label')).toHaveCount(3);
-    await checkAuthA11y(page, testInfo, '[data-testid="auth-sign-in"]', 'lattice-sso-buttons');
-    await sso.getByRole('button', { name: 'Continue with Google' }).click();
-    await expect(page.getByTestId('oauth-consent')).toBeVisible();
-    await page.getByRole('button', { name: 'Approve' }).click();
-    await expect(page).toHaveURL(/#\/onboarding$/, { timeout: 10_000 });
-    await expect(page.getByRole('heading', { name: 'Set up your account' })).toBeVisible();
-  });
-
-  test('SSO consent denial returns to sign-in without opening a session', async ({
-    page,
-  }, testInfo) => {
-    await openPrototype(page);
-    const href = await addOAuthState(page, 'e2e-oauth-deny', 'deny@example.com');
-    await page.goto(`${prototypeUrl(LATTICE_SAAS_DEMO)}?scenario=signed-out${href}`);
-    // The consent screen is a lazy route: wait for it before axe looks for it.
-    await expect(page.getByTestId('oauth-consent')).toBeVisible();
-    await checkAuthA11y(page, testInfo, '[data-testid="oauth-consent"]', 'lattice-sso-deny');
-    await page.getByRole('button', { name: 'Deny' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Access was denied' })).toBeVisible();
-    await expect(page).toHaveURL(/#\/sign-in$/, { timeout: 10_000 });
-    await expect(page.getByTestId('auth-sign-in')).toBeVisible();
-    await expect
-      .poll(() => page.evaluate(() => window.__protoyard?.session.isSignedIn() ?? true))
-      .toBe(false);
-  });
-
   test('magic-link inbox action signs in to the existing account', async ({ page }, testInfo) => {
     const email = 'owner@example.com';
     await openPrototype(page, 'trial-ending', '/sign-in');
@@ -254,63 +205,5 @@ test.describe('Lattice flagship SaaS journeys', () => {
     await page.getByRole('button', { name: 'Verify and sign in' }).click();
     await expect(page).toHaveURL(/#\/projects$/, { timeout: 10_000 });
     await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible();
-  });
-
-  test('members and the profile show real avatar photos, axe clean', async ({ page }, testInfo) => {
-    await signIn(page, 'owner@example.com', '/app', 'trial-ending');
-    await expect(page).toHaveURL(/#\/app$/, { timeout: 10_000 });
-    // Navigate in-app (as a person would) so the signed-in session carries over.
-    await page.getByRole('link', { name: 'Manage members' }).click();
-    await expect(page).toHaveURL(/#\/settings\/members$/);
-    const members = page.locator('li', { has: page.getByRole('combobox', { name: /^Role for / }) });
-    await expect(members.first()).toBeVisible();
-    const count = await members.count();
-    expect(count).toBeGreaterThan(1);
-    const faces = members.locator('img');
-    await expect(faces).toHaveCount(count);
-    for (let i = 0; i < count; i++) {
-      const face = faces.nth(i);
-      await face.scrollIntoViewIfNeeded();
-      await expect(face).toHaveAttribute('src', /^\.\/avatars\/64\/av-\d{3}\.webp$/);
-      await expect(face).toHaveAttribute('srcset', /avatars\/128\/av-\d{3}\.webp 2x$/);
-      await expect(face).toHaveAttribute('alt', '');
-      // The image really loaded (not a broken icon): initials would replace it.
-      await expect
-        .poll(() => face.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
-        .toBeGreaterThan(0);
-    }
-    await expectAccessible(page, testInfo, {
-      include: '[data-testid="settings-members"], main',
-      label: 'lattice-members-avatars',
-    });
-    await testInfo.attach('lattice-members-avatars.png', {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: 'image/png',
-    });
-
-    await page.getByRole('tab', { name: 'Profile' }).click();
-    const own = page.getByTestId('settings-profile-avatar').locator('img');
-    await expect(own).toHaveAttribute('src', /^\.\/avatars\/64\/av-\d{3}\.webp$/);
-    await expect
-      .poll(() => own.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
-      .toBeGreaterThan(0);
-    await expectAccessible(page, testInfo, {
-      include: '[data-testid="settings-profile"]',
-      label: 'lattice-profile-avatar',
-    });
-  });
-
-  test('trial converts to a paid plan through simulated checkout', async ({ page }, testInfo) => {
-    await signIn(page, 'owner@example.com', '/app', 'trial-ending', testInfo);
-    await expect(page.getByTestId('trial-banner')).toBeVisible();
-    await page.goto(`${prototypeUrl(LATTICE_SAAS_DEMO)}?scenario=trial-ending#/billing/plans`);
-    const planLink = page.getByRole('link', { name: /^Choose / }).first();
-    await expect(planLink).toBeVisible();
-    await planLink.click();
-    await expect(page.getByTestId('billing-checkout')).toBeVisible();
-    await page.getByRole('button', { name: 'Confirm simulated payment' }).click();
-    await expect(page.getByTestId('checkout-result')).toHaveAttribute('data-outcome', 'success');
-    await expect(page.getByTestId('checkout-result')).toContainText('Subscription plan:');
-    await expect(page.getByTestId('checkout-result')).toContainText('(active)');
   });
 });

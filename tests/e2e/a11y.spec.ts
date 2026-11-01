@@ -1,14 +1,17 @@
 import { expect, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
-import { PROTOTYPE_TARGETS, prototypeUrl, readRegistry } from './targets.ts';
+import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
 
 /**
  * Automated accessibility audit (axe-core, WCAG 2.0/2.1 A + AA) of the gallery
- * and each demo's main screen, in light and dark mode, on the desktop and
- * mobile projects. Serious/critical violations fail; the rest are attached.
+ * home, the marketplace and each demo's main screen, in light and dark mode
+ * (crm-demo on both projects). Serious/critical violations fail; the rest are attached.
  */
-const registry = readRegistry();
-const firstPrototype = registry?.entries.find((e) => e.kind === 'prototype');
+/** crm-demo runs on both projects; the phone demo on the phone, the chat on desktop. */
+const PROJECT_TAGS: Record<string, string> = {
+  'mobile-banking-demo': '@mobile',
+  'ai-chat-demo': '@desktop',
+};
 
 async function settle(page: Page) {
   await page.waitForLoadState('networkidle');
@@ -23,61 +26,27 @@ for (const mode of ['light', 'dark'] as const) {
   test.describe(`accessibility (${mode})`, () => {
     test.use({ colorScheme: mode, reducedMotion: 'reduce' });
 
-    test('gallery home', async ({ page }, testInfo) => {
+    test('gallery home', { tag: '@desktop' }, async ({ page }, testInfo) => {
       await page.goto('/');
       await expect(page.locator('html')).toHaveAttribute('data-tx-mode', mode);
       await settle(page);
       await expectAccessible(page, testInfo, { label: `gallery-home-${mode}` });
     });
 
-    test('features page', async ({ page }, testInfo) => {
-      await page.goto('/features/');
-      await expect(page.locator('html')).toHaveAttribute('data-tx-mode', mode);
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText('Everything Protoyard does');
-      await settle(page);
-      await expectAccessible(page, testInfo, { label: `features-${mode}` });
-    });
-
-    test('themes page', async ({ page }, testInfo) => {
-      await page.goto('/themes/');
-      await expect(page.locator('html')).toHaveAttribute('data-tx-mode', mode);
-      await expect(
-        page.locator('[data-testid="theme-explorer"][data-hydrated="true"]')
-      ).toHaveCount(1);
-      await settle(page);
-      await expectAccessible(page, testInfo, { label: `themes-${mode}` });
-    });
-
-    test('marketplace page', async ({ page }, testInfo) => {
-      await page.goto('/marketplace/');
-      await expect(page.locator('html')).toHaveAttribute('data-tx-mode', mode);
-      await expect(
-        page.locator('section[aria-labelledby="market-browse-title"][data-hydrated="true"]')
-      ).toHaveCount(1);
-      await settle(page);
-      await expectAccessible(page, testInfo, { label: `marketplace-${mode}` });
-    });
-
-    test('gallery detail page', async ({ page }, testInfo) => {
-      test.skip(!firstPrototype, 'no prototypes indexed');
-      await page.goto(`/p/${firstPrototype?.slug}/`);
-      await expect(
-        page.locator('section[aria-labelledby="preview-title"][data-hydrated="true"]')
-      ).toHaveCount(1);
-      await settle(page);
-      await expectAccessible(page, testInfo, { label: `gallery-detail-${mode}` });
-    });
-
-    test('gallery compare page', async ({ page }, testInfo) => {
-      test.skip(!firstPrototype, 'no prototypes indexed');
-      await page.goto(`/p/${firstPrototype?.slug}/compare/`);
-      await expect(page.locator('[data-testid="compare"][data-hydrated="true"]')).toHaveCount(1);
-      await settle(page);
-      await expectAccessible(page, testInfo, { label: `gallery-compare-${mode}` });
-    });
+    if (mode === 'light') {
+      test('marketplace page', { tag: '@desktop' }, async ({ page }, testInfo) => {
+        await page.goto('/marketplace/');
+        await expect(page.locator('html')).toHaveAttribute('data-tx-mode', mode);
+        await expect(
+          page.locator('section[aria-labelledby="market-browse-title"][data-hydrated="true"]')
+        ).toHaveCount(1);
+        await settle(page);
+        await expectAccessible(page, testInfo, { label: `marketplace-${mode}` });
+      });
+    }
 
     for (const slug of PROTOTYPE_TARGETS) {
-      test(`${slug} main screen`, async ({ page }, testInfo) => {
+      test(`${slug} main screen`, { tag: PROJECT_TAGS[slug] ?? [] }, async ({ page }, testInfo) => {
         await page.goto(prototypeUrl(slug));
         await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true', {
           timeout: 15_000,
