@@ -119,3 +119,6 @@ export {
   tryGetWidgetHost,
   type WidgetHostApi,
 } from './shell/frames/widget-api.ts';
+// A compiled design system as a prototype theme (written by `protoyard ds use`):
+// re-exported because every prototype depends on the renderer, not on @protoyard/themes.
+export { defineDesignSystemTheme, type ShippedDesignSystem } from '@protoyard/themes/texuli';
