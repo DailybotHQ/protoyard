@@ -194,6 +194,7 @@ export {
   synthesizeDocFromBrief,
   synthesizePageFromBrief,
 } from './brief/index.ts';
+export { canvasScreenIssues } from './canvas-screen.ts';
 export { guardCsvFormula, needsCsvFormulaGuard, unguardCsvFormula } from './csv-guard.ts';
 export {
   type BlueprintFile,
@@ -205,6 +206,17 @@ export {
   FileUploadError,
   type FileUploadProgress,
 } from './files.ts';
+export {
+  type EntityFormField,
+  type EntityFormFieldType,
+  type EntityFormModel,
+  type EntityFormOption,
+  type EntityFormSchema,
+  type EntityFormSchemaOptions,
+  entityFormModel,
+  HOSTED_FORM_KINDS,
+  UNASSIGNED_OPTION,
+} from './form-schema.ts';
 export { BLUEPRINT_GENERATOR_SDK, blueprintGeneratorVersion } from './generator-version.ts';
 export {
   BLUEPRINT_NAMESPACE_PREFIX,
@@ -259,6 +271,17 @@ export {
   toDatabaseVersion,
   type UpgradeOp,
 } from './migrations.ts';
+export {
+  BLUEPRINT_MOTION_LEVELS,
+  type BlueprintMotion,
+  type BlueprintMotionLevel,
+  BlueprintMotionSchema,
+  blueprintMotionLevel,
+  DEFAULT_BLUEPRINT_MOTION_LEVEL,
+  deckWithMotionCeiling,
+  isBlueprintMotionLevel,
+  lowerMotionLevel,
+} from './motion.ts';
 export {
   type BlueprintNotificationService,
   createNotificationService,
@@ -382,6 +405,15 @@ export {
   supportsShareLinks,
 } from './share.ts';
 export {
+  SHEET_COLUMN_KINDS,
+  SHEET_EDITABLE_KINDS,
+  SHEET_MAX_COLUMNS,
+  SHEET_READONLY_KINDS,
+  SHEET_TOTAL_KINDS,
+  sheetColumns,
+  sheetScreenIssues,
+} from './sheet-screen.ts';
+export {
   deriveIntegrity,
   deriveStores,
   entityStoreString,
@@ -390,6 +422,12 @@ export {
   relationProperty,
   storeIndexForField,
 } from './storage.ts';
+export {
+  MAX_STREAM_CANDIDATES,
+  paintStreamedBlueprint,
+  type StreamedBlueprint,
+  truncatedJsonCandidates,
+} from './stream.ts';
 export {
   DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS,
   loadUntrustedBlueprint,

@@ -23,6 +23,8 @@ export const VIEWS_KITS = [
   'activity',
   'notifications',
   'files',
+  'sheet',
+  'canvas',
 ] as const;
 export type ViewsKit = (typeof VIEWS_KITS)[number];
 

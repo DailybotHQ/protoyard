@@ -221,7 +221,8 @@ describe('EntityList', () => {
     const restore = screen.getByRole('button', { name: 'Restore 1' }) as HTMLButtonElement;
     await fireEvent.click(restore);
     expect(restore.getAttribute('aria-busy')).toBe('true');
-    expect(restore.disabled).toBe(true);
+    // Texuli 0.9: a pending Button is aria-disabled and keeps focus (G94).
+    expect(restore.getAttribute('aria-disabled')).toBe('true');
     release();
     await waitFor(async () => expect(await services.customer!.get(customer.id)).toBeTruthy());
   });
@@ -343,7 +344,13 @@ describe('EntityForm', () => {
     });
 
     await fireEvent.click(screen.getByRole('button', { name: /Create customer/i }));
-    await waitFor(() => expect(screen.getByText(/at least 2 characters|required/i)).toBeTruthy());
+    // @texuli/forms checks the required name before the service runs: inline
+    // under the field and in the focused error summary.
+    await waitFor(() =>
+      expect(screen.getAllByText(/Name is required/i).length).toBeGreaterThanOrEqual(1)
+    );
+    expect(document.querySelector('.tx-forms__summary')).toBeTruthy();
+    expect(screen.queryByTestId('created-id')).toBeNull();
 
     const nameInput = screen.getByRole('textbox', { name: /name/i });
     await fireEvent.input(nameInput, { target: { value: 'Northwind Co' } });

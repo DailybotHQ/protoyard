@@ -769,7 +769,8 @@ Everything a deck sets in `deck.style` is visible in every view that shows
 slides: the canvas, the overview thumbnails, the presenter's deck surface and
 print pages.
 
-- **Theme.** `theme` (a built-in or one of the 64 library themes) or
+- **Theme.** `theme` (a built-in or any of the 204 library themes; Deck
+  Studio lists them all) or
   `paletteSeed` (a generated palette), resolved by `@protoyard/themes` and
   applied by the stage to the deck only, so the host page and DevTools keep
   their own theme. Themes load lazily.
@@ -974,8 +975,9 @@ Measured 2026-10-22: that pack is 177 files plus the page (2,193,470 B), with
 one 548,131 B gzip script. A quick deck exported as one file measured
 1.53 MB then. On npm Texuli 0.5.0, catalog deck, page and doc single-file
 exports measure 2,681,755–2,689,852 B (the 0.4.0 range was 2,656,649–2,684,123
-B). The existing 2,818,330-byte cap stays because it is already below the
-0.5.0 maximum plus 5%.
+B). On Texuli 0.9.0 (PLAN_008, 2026-10-31), with each kind file holding only
+its own renderer, the 7 example decks measure 2,640,768–2,668,245 B, and the
+cap is lowered from 2,818,330 B to that maximum plus 5%: 2,801,658 B.
 
 ## Limits
 
@@ -991,7 +993,7 @@ B). The existing 2,818,330-byte cap stays because it is already below the
 | Slide title | 160 characters | `DECK_LIMITS.slideTitle` |
 | Rendered text minimum | 24 px body, 18 px labels, in canvas pixels | `DECK_TEXT_MINIMUMS` |
 | Slides mounted at once | the active slide and its neighbors (2–3) | `DeckCanvas` |
-| Single-file export of a deck page | 2,818,330 B (about 2.69 MiB) | `quick export --single-file` |
+| Single-file export of a deck page | 2,801,658 B (about 2.67 MiB) | `quick export --single-file` |
 
 Media come only from the deck itself: relative paths without `..`, bounded
 base64 `data:` URIs of raster images and mp4/webm video, or library avatars
@@ -1038,6 +1040,15 @@ Since PLAN_008 (2026-10-28), Protoyard decks run on Texuli's deck library:
   stage, chrome, overview, presenter view and window, print and layout
   renderers are `@texuli/slides`'. Protoyard's own copies were deleted with
   their tests; Texuli's tests cover them.
+- **The stage core (PLAN_008, 2026-10-30).** Every decks-ui module imports
+  `@texuli/slides/stage-core`, never the full `@texuli/slides/stage` (a
+  hygiene test enforces it). `DeckApp` hands the stage a deck already prepared
+  with `prepareDeckV2` (`prepareStageDeck`), so the stage paints without
+  validating again; a deck that does not prepare still reaches the stage,
+  which shows its diagnostics. The Debug for agents button is the stage's
+  host tool, in the toolbar's last group. Print preloads its view without
+  Texuli's default renderers, so it paints Protoyard's tables like the stage.
+  Fragments animate through Texuli's motion runtime (`@texuli/core/motion`).
 - **What Protoyard keeps.** The deck JSON a blueprint stores (unchanged: no
   conversion of existing decks), its offline media and link policy, theme ids
   and font pairings, free slides painted by `@protoyard/blocks-ui` (persistent

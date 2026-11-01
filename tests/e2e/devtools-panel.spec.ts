@@ -105,7 +105,7 @@ test.describe('DevTools theme browser', () => {
     await panel(page).getByRole('tab', { name: 'Look' }).click();
 
     const browser = panel(page).getByTestId('theme-browser');
-    await expect(browser.getByRole('button', { name: /^Browse \d+ more themes$/ })).toBeVisible();
+    await expect(browser.getByRole('button', { name: 'Browse 204 more themes' })).toBeVisible();
     await browser.getByLabel('Search themes').fill('fintech ledger');
     await expect(browser.getByRole('status')).toHaveText(/\d+ themes? match/);
 
@@ -114,6 +114,14 @@ test.describe('DevTools theme browser', () => {
     // The library chunk and the theme builder load on first use, then the page switches.
     await expect(page.locator('html')).toHaveAttribute('data-py-theme', 'fintech-ledger');
     await expect(card).toHaveAttribute('aria-checked', 'true');
+
+    // Texuli's expanded set is in the library too (204 themes): its metadata and
+    // the chosen theme's definition load on demand.
+    await browser.getByLabel('Search themes').fill('ash plain');
+    const expanded = browser.getByRole('radio', { name: /Ash Plain/ });
+    await expanded.click();
+    await expect(page.locator('html')).toHaveAttribute('data-py-theme', 'ash-plain');
+    await expect(expanded).toHaveAttribute('aria-checked', 'true');
 
     await expectAccessible(page, testInfo, { include: '.py-devtools', label: 'devtools-look' });
   });

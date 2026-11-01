@@ -15,7 +15,8 @@ import {
   clearAppearance,
   themeVariables,
 } from '../src/apply.ts';
-import { loadAllLibraryThemes, THEME_LIBRARY_META } from '../src/library/registry.ts';
+import { ALL_LIBRARY_THEME_IDS } from '../src/library/ids.ts';
+import { loadAllFullLibraryThemes } from '../src/library/registry.ts';
 import { createThemeFromSeed } from '../src/palette.ts';
 import { BUILTIN_THEMES, violetTheme } from '../src/presets.ts';
 
@@ -27,7 +28,7 @@ const SEEDS = Array.from({ length: 120 }, (_, index) => {
 
 let themes: Theme[] = [];
 beforeAll(async () => {
-  themes = [...BUILTIN_THEMES, ...(await loadAllLibraryThemes())];
+  themes = [...BUILTIN_THEMES, ...(await loadAllFullLibraryThemes())];
 });
 
 const chartTokens = (palette: Theme['light']) => [
@@ -40,7 +41,7 @@ const chartTokens = (palette: Theme['light']) => [
 
 describe('theme chart palettes', () => {
   it('pass contrast, separation, color-vision and ramp checks for every preset and library theme', () => {
-    expect(themes.length).toBe(BUILTIN_THEMES.length + THEME_LIBRARY_META.length);
+    expect(themes.length).toBe(BUILTIN_THEMES.length + ALL_LIBRARY_THEME_IDS.length);
     const failures: string[] = [];
     for (const theme of themes) {
       for (const mode of MODES) {

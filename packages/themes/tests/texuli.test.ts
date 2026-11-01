@@ -1,4 +1,4 @@
-import { ThemeSchema } from '@protoyard/core';
+import { defineTheme, ThemeSchema } from '@protoyard/core';
 import { SEMANTIC_ROLES, validateTheme } from '@texuli/tokens';
 import { runAaGateOnContractTheme } from '@texuli/tokens/aa-gate';
 import { loadFullLibraryTheme, loadFullLibraryThemeCharts } from '@texuli/tokens/library-expand';
@@ -12,7 +12,6 @@ import {
   oceanTheme,
   violetTheme,
 } from '../src/index.ts';
-import { disableFullThemeLibrary, enableFullThemeLibrary } from '../src/library/full.ts';
 import {
   loadAllFullLibraryThemes,
   loadFullLibraryMeta,
@@ -27,10 +26,9 @@ import {
   SHARED_PALETTE_ROLES,
   toTexuliTheme,
 } from '../src/texuli.ts';
+import { writeTexuliAppearance } from '../src/texuli-apply.ts';
 
 // These suites cover the full library (204 themes); the default is the catalog.
-beforeAll(() => enableFullThemeLibrary());
-afterAll(() => disableFullThemeLibrary());
 
 const root = document.documentElement;
 
@@ -264,6 +262,45 @@ describe('Texuli-only appearance metadata is opt-in per page', () => {
     clearAppearance(root);
     enableTexuliAppearance();
     expect(txVars(root)).toEqual([]);
+  });
+});
+
+describe('a theme’s motion reaches Texuli', () => {
+  // Texuli's theme contract carries motion (fast, base and slow durations and
+  // an easing) like Protoyard's style; Theme Studio's motion preset sets them.
+  const moving = defineTheme({
+    ...oceanTheme,
+    style: { motion: { durations: { fast: 100, base: 250, slow: 500 }, easing: 'ease-out' } },
+  });
+  const motionVars = (vars: Record<string, string>) =>
+    Object.fromEntries(Object.entries(vars).filter(([key]) => key.startsWith('--tx-motion')));
+
+  it('writes the theme’s durations and easing, with the slower step Texuli derives', () => {
+    const vars = writeTexuliAppearance(root, { theme: moving, resolvedMode: 'light' });
+    expect(motionVars(vars)).toEqual({
+      '--tx-motion': '1',
+      '--tx-motion-fast': '100ms',
+      '--tx-motion-base': '250ms',
+      '--tx-motion-slow': '500ms',
+      '--tx-motion-slower': '833ms',
+      '--tx-motion-easing': 'ease-out',
+    });
+  });
+
+  it('reduced motion turns every duration to zero (an instant state change)', () => {
+    const vars = writeTexuliAppearance(root, {
+      theme: moving,
+      resolvedMode: 'light',
+      reducedMotion: true,
+    });
+    expect(motionVars(vars)).toEqual({
+      '--tx-motion': '0',
+      '--tx-motion-fast': '0ms',
+      '--tx-motion-base': '0ms',
+      '--tx-motion-slow': '0ms',
+      '--tx-motion-slower': '0ms',
+      '--tx-motion-easing': 'linear',
+    });
   });
 });
 

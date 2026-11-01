@@ -18,8 +18,12 @@ import Glyph from '../primitives/Glyph.svelte';
 import type { Theme } from '@protoyard/core';
 import { BUILTIN_THEMES } from '@protoyard/themes';
 import {
-  listCollections,
-  searchThemeLibrary,
+  ALL_LIBRARY_THEME_IDS,
+  countThemeCollections,
+  isLibraryThemeId,
+  type LibraryThemeMeta as Meta,
+  loadFullLibraryMeta,
+  searchThemeMeta,
   THEME_LIBRARY_META,
   type ThemeCollection,
 } from '@protoyard/themes/library';
@@ -29,11 +33,15 @@ import type { DevtoolsState } from '../state.svelte.ts';
 
 /**
  * Every theme a prototype can use, grouped: its own, the built-in presets,
- * saved custom themes and the whole theme library (searchable, by collection
- * and tag, collapsed behind "Browse N more themes"). Choosing a library theme
- * goes through the runtime's resolver, which loads its tokens on first use;
- * the card shows the pending spinner meanwhile. DevTools is its own chunk,
- * so prototypes without DevTools never ship this or the library metadata.
+ * saved custom themes and the whole theme library, all 204 themes on Texuli
+ * 0.9.0 (searchable, by collection and tag, collapsed behind "Browse N more
+ * themes"). The 64-theme catalog shows at once; Texuli's expanded set joins
+ * it when the library first opens (its metadata loads on demand, and where it
+ * cannot load, as in a single file that left it out, the catalog stays).
+ * Choosing a library theme goes through the runtime's resolver, which loads
+ * its tokens on first use; the card shows the pending spinner meanwhile.
+ * DevTools is its own chunk, so prototypes without DevTools never ship this
+ * or the library metadata.
  */
 
 interface Props {
@@ -59,9 +67,13 @@ let tag = $state('');
 let libraryOpen = $state(false);
 
 const BUILTIN_IDS = new Set(BUILTIN_THEMES.map((theme) => theme.id));
-const LIBRARY_IDS = new Set(THEME_LIBRARY_META.map((meta) => meta.id));
-const COLLECTIONS = listCollections().filter((entry) => entry.count > 0);
-const TAGS = [...new Set(THEME_LIBRARY_META.flatMap((meta) => meta.tags))].sort();
+
+/** The library's metadata: the catalog until the full list loads. */
+let libraryMeta = $state<readonly Meta[]>(THEME_LIBRARY_META);
+let loadingFull = $state(false);
+let fullRequested = false;
+const COLLECTIONS = $derived(countThemeCollections(libraryMeta).filter((entry) => entry.count > 0));
+const TAGS = $derived([...new Set(libraryMeta.flatMap((meta) => meta.tags))].sort());
 
 const words = $derived(query.toLowerCase().split(/\s+/).filter(Boolean));
 const filtering = $derived(words.length > 0 || collection !== '' || tag !== '');
@@ -76,7 +88,7 @@ const own = $derived(
   themes.filter(
     (theme) =>
       !BUILTIN_IDS.has(theme.id) &&
-      !LIBRARY_IDS.has(theme.id) &&
+      !isLibraryThemeId(theme.id) &&
       !origins.isCustom?.(theme.id) &&
       !origins.isLibrary?.(theme.id)
   )
@@ -84,7 +96,7 @@ const own = $derived(
 const builtin = $derived(themes.filter((theme) => BUILTIN_IDS.has(theme.id)));
 const custom = $derived(themes.filter((theme) => origins.isCustom?.(theme.id)));
 const library = $derived(
-  searchThemeLibrary(query).filter(
+  searchThemeMeta(libraryMeta, query).filter(
     (meta) =>
       (collection === '' || meta.collection === collection) &&
       (tag === '' || meta.tags.includes(tag))
@@ -98,6 +110,20 @@ const groups = $derived(
   ].filter((group) => group.themes.length > 0)
 );
 const libraryVisible = $derived(libraryOpen || filtering);
+
+// The expanded set's metadata loads the first time the library shows.
+$effect(() => {
+  if (!libraryVisible || fullRequested) return;
+  fullRequested = true;
+  loadingFull = true;
+  void loadFullLibraryMeta()
+    .then((list) => {
+      libraryMeta = list;
+    })
+    .finally(() => {
+      loadingFull = false;
+    });
+});
 const matchCount = $derived(
   groups.reduce((sum, group) => sum + group.themes.length, 0) + library.length
 );
@@ -211,7 +237,7 @@ function tabStop(ids: readonly string[], id: string): 0 | -1 {
         aria-expanded="false"
         onclick={() => (libraryOpen = true)}
       >
-        Browse {THEME_LIBRARY_META.length} more themes
+        Browse {ALL_LIBRARY_THEME_IDS.length} more themes
       </Btn>
     {:else}
       <div class="flex items-center justify-between gap-2">
@@ -257,6 +283,11 @@ function tabStop(ids: readonly string[], id: string): 0 | -1 {
           options={[{ value: '', label: 'Any tag' }, ...TAGS.map((value) => ({ value, label: value }))]}
         />
       </label>
+      {#if loadingFull}
+        <p class="flex items-center gap-1.5 text-[11px] text-muted-foreground" role="status">
+          <Spinner class="text-primary" /> Loading {ALL_LIBRARY_THEME_IDS.length - THEME_LIBRARY_META.length} more library themes…
+        </p>
+      {/if}
       {#if library.length === 0}
         <p class="text-xs text-muted-foreground">No library theme matches.</p>
       {:else}

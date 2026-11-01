@@ -128,10 +128,10 @@ const shell = $derived.by(() => {
   return import('@protoyard/crud/app');
 });
 
-/** Theme library choices for the settings screen, loaded only when it opens. */
+/** Every library theme for the settings screen, loaded only when it opens. */
 async function themeLibrary() {
-  const { THEME_LIBRARY_META } = await import('@protoyard/themes/library');
-  return THEME_LIBRARY_META.map(({ id, name }) => ({ id, name }));
+  const { loadFullLibraryMeta } = await import('@protoyard/themes/library');
+  return (await loadFullLibraryMeta()).map(({ id, name }) => ({ id, name }));
 }
 </script>
 

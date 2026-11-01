@@ -148,14 +148,14 @@ Every capability below runs in the browser, with fictional data.
 | **Slide decks** | `quick "<topic>" --kind deck` writes a deck from a sentence. 21 designed layouts, per-deck themes, fonts, gradients and image or video backgrounds, step-by-step reveals on any element, a presenter view, an overview, print to PDF and Deck Studio. Every control has a tooltip, and full screen always leaves with Esc. | [Decks](docs/DECKS.md) |
 | **Interactive blocks** | Polls, quizzes, a what-if calculator, sortable tables, explorable charts with a data table and a working app embedded in a slide, shared by decks, pages and documents. | [Blocks](docs/BLOCKS.md) |
 | **Decks for agents** | "Debug for agents" (`?debug=1`, then **D**) copies a reference to the exact slide; `protoyard deck schema`, `layouts`, `blocks`, `lint` and `inspect --ref` let an agent write, check and fix a deck; a generated deck can run its own Svelte components as slides. | [Decks: the agent loop](docs/DECKS.md#the-agent-loop) |
-| **Landing pages and documents** | A hero, pricing, steps and forms that store responses; documents with a reading layout and one table of contents. | [Pages](docs/PAGES.md) |
+| **Landing pages and documents** | A hero, pricing, steps and forms that store responses; documents with a reading layout and one table of contents, edited in place (saved in the browser) and downloaded as Word, PDF or Markdown. | [Pages](docs/PAGES.md) |
 | **Both levels** | Every kind opens instantly in the player from a share link, or generates a full prototype; links, single-file exports and private Claude artifacts work for all of them. | [Kinds](docs/KINDS.md) |
 
 ### Look and feel
 
 | Capability | What you get | Read |
 | --- | --- | --- |
-| **Themes** | Six AA-checked presets plus a 64-theme library in six collections (including high-contrast AAA and colorblind-safe), palettes from one brand color, a live **Theme Studio** and the `protoyard theme` CLI. No flash on load. | [Themes](docs/THEMES.md) |
+| **Themes** | Six AA-checked presets plus a 204-theme library in six collections (including high-contrast AAA and colorblind-safe), palettes from one brand color, a live **Theme Studio** and the `protoyard theme` CLI. No flash on load. | [Themes](docs/THEMES.md) |
 | **Layouts** | Twelve shared page layouts (sidebar, rail, top nav, master-detail, dashboard grid, docs, wizard, mobile tabs…), switchable live or with `?layout=`. | [Layouts](docs/LAYOUTS.md) |
 | **Shells** | The same app as a phone, tablet, desktop window, browser tab, widget on a fictional site, extension popup or side panel. They simulate a device; they do not emulate one. | [Shells](docs/SHELLS.md) |
 | **UI kit** | Svelte 5 + Texuli + Tailwind 4 components and product patterns, all in one live catalog (`ui-kit`). | [ui](packages/ui/README.md) |
@@ -164,7 +164,7 @@ Every capability below runs in the browser, with fictional data.
 
 | Kit | What you get | Read |
 | --- | --- | --- |
-| **Rich views** | Board with WIP limits, calendar with recurrence, Gantt timeline with dependencies, a virtualized data grid, trees, an offline fictional map, a Markdown editor, activity, files and a command palette. Each loads lazily. | [Views](docs/VIEWS.md) |
+| **Rich views** | Board with WIP limits, calendar with recurrence, Gantt timeline with dependencies, a virtualized data grid, trees, an offline fictional map, a Markdown editor, a spreadsheet with formulas and CSV, an infinite canvas of shapes and sticky notes, activity, files and a command palette. Each loads lazily. | [Views](docs/VIEWS.md) |
 | **Charts** | Protoyard's own chart kit (no third-party chart library): cartesian, part-whole, matrix, compact, Canvas and geo families with keyboard access and table fallbacks. | [Charts](docs/CHARTS.md) |
 | **Analytics** | KPIs, date ranges, filters and segments, funnels, cohorts and an editable dashboard grid over deterministic simulated events. | [Analytics](docs/ANALYTICS.md) |
 | **SaaS kits** | Simulated sign-up and sign-in, SSO with a fake OAuth round trip, magic links, MFA, invitations, workspaces, onboarding, plans, checkout and invoices, with an in-app inbox for the "emails". | [SaaS kits](docs/SAAS_KITS.md) |
@@ -175,7 +175,7 @@ Every capability below runs in the browser, with fictional data.
 
 | Capability | What you get | Read |
 | --- | --- | --- |
-| **Blueprint generator** | Describe a product as a data-only `blueprint.json` and `protoyard generate` builds a working prototype: list, detail and form screens plus dashboard, board, calendar, timeline, map, analytics and settings screens. Edit the blueprint and regenerate. | [Generator](docs/GENERATOR.md) |
+| **Blueprint generator** | Describe a product as a data-only `blueprint.json` and `protoyard generate` builds a working prototype: list, detail and form screens plus dashboard, board, calendar, timeline, map, analytics, sheet, canvas and settings screens. Edit the blueprint and regenerate. | [Generator](docs/GENERATOR.md) |
 | **Brief to prototype** | `protoyard blueprint new --from-brief` turns a prose brief into a validated blueprint offline, with no model call, ready to review and generate. | [Brief to prototype](docs/BRIEF_TO_PROTOTYPE.md) |
 | **Specs** | Every prototype carries an `AGENTS.md` and `docs/` spec whose generated regions stay in sync with the code, plus a rebuild kit for turning it into a real app. | [Specs](docs/SPECS.md) |
 | **Review comments** | Opt-in comments pinned to screens of a built prototype, stored locally, on Cloudflare Pages, on your own endpoint or in a Claude artifact. `comments pull` turns them into a `REVIEW.md` an agent can plan from. | [Review comments](docs/REVIEW_COMMENTS.md) |
@@ -185,7 +185,7 @@ Every capability below runs in the browser, with fictional data.
 
 ## The showcase
 
-16 prototypes live in `prototypes/`, all with fictional data. Each has its
+17 prototypes live in `prototypes/`, all with fictional data. Each has its
 own README, `AGENTS.md` and `docs/` spec.
 
 | | Prototype | Demonstrates |
@@ -206,6 +206,7 @@ own README, `AGENTS.md` and `docs/` spec.
 | <img src="prototypes/cadence-studio-demo/public/thumbnail.png" alt="Cadence Studio" width="240"> | **Cadence Studio** · `cadence-studio-demo` | Generated from a blueprint: studio bookings on a weekly calendar |
 | <img src="prototypes/pulse-revenue-demo/public/thumbnail.png" alt="Pulse Revenue" width="240"> | **Pulse Revenue** · `pulse-revenue-demo` | Generated from a blueprint: revenue dashboard, explorer and lifecycle board |
 | <img src="prototypes/create-anything-deck/public/thumbnail.png" alt="Protoyard: create anything" width="240"> | **Protoyard: create anything** · `create-anything-deck` | Generated from a deck blueprint: every layout family, live charts, interactive blocks and an embedded app |
+| <img src="prototypes/canvas-board-demo/public/thumbnail.png" alt="Canvas Board" width="240"> | **Canvas Board** · `canvas-board-demo` | Planning boards on an infinite canvas: frames, sticky notes and connectors, saved after every change |
 
 All of them run live at **[protoyard.app](https://protoyard.app)**.
 `pnpm build:showcase` builds that site: the gallery, the marketplace and a
@@ -249,7 +250,7 @@ roles, scenarios, tests and a spec, and runs as a live demo with
 </table>
 </details>
 
-**40 product blueprints** in [`blueprints/`](blueprints/README.md), from CRM
+**43 product blueprints** in [`blueprints/`](blueprints/README.md), from CRM
 and inventory to veterinary clinics and utility outages, each one command away
 from a working prototype, plus deck, page and doc examples in `decks/`,
 `pages/` and `docs/`. The gallery's Marketplace (`/marketplace/`) lists
@@ -339,10 +340,10 @@ date (one Apple M1 Max, often under load; numbers move with the machine):
 | What | Measured |
 | --- | --- |
 | Brief → playable exploration (`quick` CLI + player ready, no build) | 1,527 ms median |
-| Player initial JS (app entry; deck, page and doc entries about 121.5 KB each) | 121.4 KB gzip |
+| Player initial JS (app entry; deck, page and doc entries 102.7–103.1 KB each; 2026-10-31) | 105.6 KB gzip |
 | Player first visit from a share link (`crm` blueprint) | 190 ms to ready |
 | Built prototype, first screen in a fresh browser (`crm-demo`) | 115 ms median |
-| Cold metadata index of 1,000 manifests | 40.6 ms median |
+| Cold metadata index of 1,000 manifests (2026-10-31) | 52.16 ms median |
 | Loading a 16,075-row `crm-demo` world in Chromium | 628 ms, 0 long tasks |
 | Data grid with 100,000 rows: first render | 94 ms median, at most 17 DOM rows, 0 dropped frames in a 5 s scroll |
 | Initial JS budget per prototype | 250 KB gzip, checked by `pnpm protoyard budget --all` |

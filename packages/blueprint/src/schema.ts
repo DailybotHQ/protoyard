@@ -2,6 +2,9 @@ import { CatalogSchema, LayoutIdSchema } from '@protoyard/core';
 import { GEO_REGIONS, type GeoRegionId } from '@protoyard/scenarios';
 import { z } from 'zod';
 import { ArchetypeSchema } from './archetypes/schema.ts';
+import { canvasScreenIssues, canvasScreenSchema } from './canvas-screen.ts';
+import { BlueprintMotionSchema } from './motion.ts';
+import { sheetScreenIssues, sheetScreenSchema } from './sheet-screen.ts';
 import { ValidationSchema, validationIssues } from './validation-tasks.ts';
 
 /**
@@ -533,6 +536,8 @@ export const ScreenSchema = z.discriminatedUnion('type', [
     metrics: z.array(LegacyMetricSchema).optional(),
     widgets: z.array(DashboardWidgetSchema).default([]),
   }),
+  sheetScreenSchema(screenBase, fieldName),
+  canvasScreenSchema(screenBase, fieldName),
   z.strictObject({
     ...screenBase,
     type: z.literal('settings'),
@@ -556,6 +561,8 @@ export const SCREEN_TYPES = [
   'analytics',
   'dashboard',
   'settings',
+  'sheet',
+  'canvas',
 ] as const satisfies readonly ScreenType[];
 
 /** A dashboard's widgets with its legacy `metrics` first, as `kpi` widgets. */
@@ -575,6 +582,8 @@ const VIEW_SEGMENT: Partial<Record<ScreenType, string>> = {
   timeline: 'timeline',
   map: 'map',
   analytics: 'analytics',
+  sheet: 'sheet',
+  canvas: 'canvas',
 };
 
 /**
@@ -721,7 +730,8 @@ export const BlueprintBrandSchema = z
     /** Spacing multiplier 0.75–1.25. */
     density: z.number().min(0.75).max(1.25).optional(),
     /**
-     * `THEME_LIBRARY_META` id (`fintech-ledger`, `health-clinic`, …) used as-is.
+     * Library theme id (`fintech-ledger`, `health-clinic`, … any of the 204
+     * in `ALL_LIBRARY_THEME_IDS`, catalog or expanded) used as-is.
      * Its palette, fonts, radius and density come from the library (AA-tested
      * there), so it excludes `id`, `seed`, `secondary`, `preset`,
      * `styleProfile`, `font`, `radius` and `density`. The id is checked against
@@ -784,6 +794,8 @@ export const BLUEPRINT_BASE_SHAPE = {
   category: z.string().min(1).max(40).optional(),
   /** Optional brand → generated on-brand theme for `protoyard generate`. */
   brand: BlueprintBrandSchema.optional(),
+  /** Optional motion ceiling (`full`, `subtle`, `none`) rendered by `texuli/motion` (motion.ts). */
+  motion: BlueprintMotionSchema.optional(),
 };
 
 /** @internal Shared app input shape used by the generated kind-union schema. */
@@ -1387,6 +1399,12 @@ function checkScreens(blueprint: Shape, add: Add) {
         });
         break;
       case 'form':
+        break;
+      case 'sheet':
+        sheetScreenIssues(entity, screen, path, add);
+        break;
+      case 'canvas':
+        canvasScreenIssues(entity, screen, path, add);
         break;
     }
   });

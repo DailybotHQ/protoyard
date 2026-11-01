@@ -112,7 +112,12 @@ and asks for confirmation before linking a matching existing account.
 persona profile, simulated password and MFA, team membership and invitations,
 linked providers, and inbox notification preferences. Controls are disabled
 when the current simulated role lacks their capability; services enforce the
-same checks. Members, pending invitations, the profile header and the
+same checks. The notification preferences and the member invite are Texuli
+`SchemaForm`s (`@texuli/forms`): the service's issues show inline on their
+fields, and a sent invite resets the email field. Sign-in, security, profile
+and the onboarding wizard keep Protoyard controls, because Texuli forms has no
+password, one-time code or color field and no per-step submit hook (gaps G117
+and G120). Members, pending invitations, the profile header and the
 invite accept card show each person's `avatar` photo through the renderer's
 `avatarImage` (initials when there is none, it is unsafe or it fails to load).
 

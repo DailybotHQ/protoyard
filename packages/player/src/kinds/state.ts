@@ -1,6 +1,7 @@
 import type { MountEmbed } from '@protoyard/blocks-ui';
 import type { DeckBlueprint, DocBlueprint, PageBlueprint } from '@protoyard/blueprint';
 import type { DeckStudio } from '@protoyard/decks-ui/studio';
+import type { KindRendererModule } from './renderers.ts';
 
 /** A content-kind blueprint the player renders (deck, page or doc). */
 export type KindDocument = DeckBlueprint | PageBlueprint | DocBlueprint;
@@ -11,8 +12,15 @@ export interface KindAppState {
   namespace: string;
   /** Starts an embedded app block (framed player, app kind only). */
   mountEmbed: MountEmbed;
+  /** Loads this kind's renderer (given by the page that boots it; see `renderers.ts`). */
+  loadRenderer: () => Promise<KindRendererModule>;
   /** Deck Studio, only for a deck with DevTools on: the deck renders its live preview. */
   studio?: DeckStudio;
+  /**
+   * The part of a blueprint that has arrived while `quick serve` streams it
+   * (progressive painting): the app says so until the whole blueprint lands.
+   */
+  draft?: boolean;
 }
 
 /**

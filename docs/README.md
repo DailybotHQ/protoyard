@@ -88,7 +88,7 @@ Package and app references live next to the code: each `packages/*/README.md`,
 | [database](../packages/database/README.md) | Dexie: per-prototype data and control databases, world I/O, storage errors |
 | [scenarios](../packages/scenarios/README.md) | Generator SDK, presets, integrity, timeline, series, schedule, event and geo helpers |
 | [runtime](../packages/runtime/README.md) | `createPrototypeRuntime()`: composes the engine |
-| [themes](../packages/themes/README.md) | Built-in presets, the lazy 64-theme library (204 opt-in; tokens from `@texuli/tokens`), palette engine, fonts, no-flash script |
+| [themes](../packages/themes/README.md) | Built-in presets, the lazy 204-theme library (tokens from `@texuli/tokens`), palette engine, fonts, no-flash script |
 | [ui](../packages/ui/README.md) | Svelte 5 components, shell frames, `LayoutHost` and the 12 layouts |
 | [devtools](../packages/devtools/README.md) | The in-browser control center, theme browser and Theme Studio |
 | [renderer-svelte](../packages/renderer-svelte/README.md) | Vite config factory, `mountPrototype`, `ShellHost`, bindings, hash router |
@@ -126,9 +126,9 @@ Package and app references live next to the code: each `packages/*/README.md`,
 | [create-protoyard](../packages/create-protoyard/README.md) | The workspace scaffolder behind `npm create protoyard` (once published) |
 
 Product blueprints for `protoyard generate` live in
-[blueprints/](../blueprints/README.md): 40 app blueprints plus deck, page and
+[blueprints/](../blueprints/README.md): 43 app blueprints plus deck, page and
 doc examples in `decks/`, `pages/` and `docs/` (`pnpm protoyard list --kind
-blueprint` lists all 47). `create-anything-deck` is generated from the
+blueprint` lists all 51). `create-anything-deck` is generated from the
 flagship deck blueprint. `helpdesk-demo` (Beacon Help Desk)
 is the first `protoyard generate` flagship: `blueprint.json` → CRUD + SLA
 dashboard + ticket workspace ([README](../prototypes/helpdesk-demo/README.md)).

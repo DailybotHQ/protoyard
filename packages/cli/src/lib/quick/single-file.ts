@@ -1,5 +1,6 @@
 import { access, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { isExpandedLibraryThemeId } from '@protoyard/themes';
 import { checkTextAsset } from '../artifact-pack.ts';
 import { entryGraph } from './chunk-graph.ts';
 
@@ -23,6 +24,10 @@ import { entryGraph } from './chunk-graph.ts';
  * - only the chunks the chosen page can reach (static and dynamic imports,
  *   chunk-graph.ts) are embedded: `deck.html`, `page.html` or `doc.html` for a
  *   content kind (no CRUD shell, Faker or app kits), `index.html` for an app;
+ * - of Texuli's expanded theme set (140 library themes, each its own chunk,
+ *   with about 42 KB of metadata), only the theme the blueprint uses is
+ *   embedded, with the metadata it needs to load; a blueprint on a built-in
+ *   or catalog theme embeds none of it (`singleFileThemeExclusions`);
  * - every stylesheet those chunks can load is inlined up front, so lazy
  *   screens are styled without their CSS preloads;
  * - the world-generation worker cannot start from a blob base, so the player
@@ -42,7 +47,12 @@ import { entryGraph } from './chunk-graph.ts';
  * d360235f (approved) and is unchanged for 0.5.0, even though 0.5.0's measured
  * maximum + 5 % is higher.
  */
-export const QUICK_SINGLE_FILE_BUDGET_BYTES = 4_418_158;
+// Texuli 0.9.0: a maximum of 4,466,115 bytes over the catalog (token contract
+// v2 component CSS plus @texuli/tokens/base.css, gap G110); + 2.5 % (PLAN_008).
+// PLAN_008 T-remeasure (2026-10-31): an app file now leaves out the kind
+// renderers it never runs (T-bundle-fix); the 43 catalog blueprints measure
+// 3,870,232–3,871,615 bytes, so the cap is lowered to that maximum + 5 %.
+export const QUICK_SINGLE_FILE_BUDGET_BYTES = 4_065_196;
 
 /** The player page a single file starts from (deck.html, page.html, doc.html or index.html). */
 export type SingleFileEntry = 'index' | 'deck' | 'page' | 'doc';
@@ -60,9 +70,16 @@ export type SingleFileEntry = 'index' | 'deck' | 'page' | 'doc';
  */
 export const QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES: Record<SingleFileEntry, number> = {
   index: QUICK_SINGLE_FILE_BUDGET_BYTES,
-  deck: 2_818_330,
-  page: 2_818_330,
-  doc: 2_818_330,
+  // PLAN_008 T-remeasure (2026-10-31), each kind file holding only its own
+  // renderer: the 7 example decks measure 2,640,768–2,668,245 bytes and the
+  // page (tidewater) 2,347,132 bytes; each cap is that maximum + 5 %.
+  deck: 2_801_658,
+  page: 2_464_489,
+  // PLAN_008 T-documents: a doc file now carries the @texuli/pages editor and the
+  // Word/PDF writers it runs (edit, then download). Measured 3,056,939 bytes
+  // (northwind) once each kind file stopped embedding the other kinds'
+  // renderers and @texuli/player (gap G123); + 2.5 %.
+  doc: 3_133_363,
 };
 
 /**
@@ -80,15 +97,76 @@ export const SINGLE_FILE_EXCLUDED_MODULES: readonly RegExp[] = [
 
 /**
  * Modules a content kind can reach but never runs, also left out of deck,
- * page and doc files. Faker is reachable through the scenarios package's lazy
- * loader, which only a generated world calls; the kind runtime
- * (`defineKindRuntime`) supplies `generateWorld` and no timeline, so it never
- * generates.
+ * page and doc files:
+ * - Faker, reachable through the scenarios package's lazy loader, which only
+ *   a generated world calls; the kind runtime (`defineKindRuntime`) supplies
+ *   `generateWorld` and no timeline, so it never generates.
+ * - `@texuli/player`'s painters and data sources. The doc editor
+ *   (`@texuli/pages` `PageEditor`) loads the whole player for a live embed,
+ *   but Protoyard's embeds carry only a `protoyard-block/<key>` ref and the
+ *   editor gets no `resolveEmbed`, so every embed is refused and the player
+ *   never paints (a Texuli gap: the host cannot opt out of that import).
  */
 export const SINGLE_FILE_KIND_EXCLUDED_MODULES: readonly RegExp[] = [
   ...SINGLE_FILE_EXCLUDED_MODULES,
   /[\\/]@faker-js[\\/]faker[\\/]/,
+  /[\\/]@texuli[\\/]player[\\/](?:src|dist)[\\/](?:painters|sources)[\\/]/,
 ];
+
+/**
+ * Left out of an app's file (built from index.html, which can boot every
+ * kind): the deck, page and doc renderers and Deck Studio. An app file only
+ * ever boots its own app; index.html reaches them only through the kind
+ * renderer loaders (`player/src/kinds/renderers.ts`). A content blueprint
+ * that falls back to index.html (a player without per-kind pages) keeps them.
+ */
+export const SINGLE_FILE_APP_EXCLUDED_MODULES: readonly RegExp[] = [
+  ...SINGLE_FILE_EXCLUDED_MODULES,
+  /[\\/](?:@protoyard[\\/])?decks-ui[\\/](?:src|dist)[\\/](?:app|studio)[\\/]index\.(?:ts|js)$/,
+  /[\\/](?:@protoyard[\\/])?pages-ui[\\/](?:src|dist)[\\/](?:page|doc)[\\/]index\.(?:ts|js)$/,
+];
+
+/** Texuli's expanded theme set entry (`@texuli/tokens/library-expand`), as a Vite manifest key. */
+const EXPANDED_LIBRARY_ENTRY =
+  /[\\/]@?texuli[\\/](?:packages[\\/])?tokens[\\/](?:dist|src)[\\/]library-expand[\\/]index\.(?:js|ts)$/;
+
+/**
+ * Library theme ids a blueprint opens in: `brand.libraryTheme` (any kind) and
+ * a deck's `deck.style.theme`. Read defensively: the blueprint was validated
+ * by the caller, but this only needs the two strings.
+ */
+export function singleFileThemeIds(blueprint: unknown): string[] {
+  const record = (value: unknown): Record<string, unknown> | undefined =>
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
+  const root = record(blueprint);
+  const candidates = [record(root?.brand)?.libraryTheme, record(record(root?.deck)?.style)?.theme];
+  return [
+    ...new Set(
+      candidates.filter(
+        (id): id is string => typeof id === 'string' && /^[a-z][a-z0-9-]*$/.test(id)
+      )
+    ),
+  ];
+}
+
+/**
+ * Modules of Texuli's expanded theme set a single file leaves out. With no
+ * expanded theme in use, the set's entry (and so its metadata, loaders and
+ * every theme module) is cut: the file's pickers then offer the built-ins and
+ * the catalog, which are always embedded. With one in use, only the other
+ * themes' modules are cut, so that theme loads from the file.
+ */
+export function singleFileThemeExclusions(themeIds: readonly string[]): RegExp[] {
+  const expanded = themeIds.filter((id) => isExpandedLibraryThemeId(id));
+  if (expanded.length === 0) return [EXPANDED_LIBRARY_ENTRY];
+  return [
+    new RegExp(
+      `[\\\\/]@?texuli[\\\\/](?:packages[\\\\/])?tokens[\\\\/](?:dist|src)[\\\\/]library-expand[\\\\/]themes[\\\\/](?!(?:${expanded.join('|')})\\.(?:js|ts)$)[a-z0-9-]+\\.(?:js|ts)$`
+    ),
+  ];
+}
 
 interface ManifestChunk {
   file?: unknown;
@@ -273,12 +351,17 @@ export async function buildSingleFile(input: SingleFileInput): Promise<SingleFil
   // Only what this page can load: its entry chunk and every chunk and
   // stylesheet reachable from it. The world-generation worker never starts
   // from a blob base: leave it out. Every page leaves out what it never runs
-  // (the stage's component registry); a kind page also leaves out Faker.
-  const neverRun = await neverRunFiles(
-    input.playerDir,
-    `${page}.html`,
-    page === 'index' ? SINGLE_FILE_EXCLUDED_MODULES : SINGLE_FILE_KIND_EXCLUDED_MODULES
-  );
+  // (the stage's component registry); a kind page also leaves out Faker and
+  // the embed player's painters, and an app's file the kind renderers.
+  // Every file also leaves out the expanded library themes it does not use.
+  const neverRun = await neverRunFiles(input.playerDir, `${page}.html`, [
+    ...(page !== 'index'
+      ? SINGLE_FILE_KIND_EXCLUDED_MODULES
+      : requested === 'index'
+        ? SINGLE_FILE_APP_EXCLUDED_MODULES
+        : SINGLE_FILE_EXCLUDED_MODULES),
+    ...singleFileThemeExclusions(singleFileThemeIds(JSON.parse(input.blueprintJson))),
+  ]);
   const graph = await entryGraph({
     html: indexHtml,
     files,

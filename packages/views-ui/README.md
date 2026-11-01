@@ -64,7 +64,7 @@ view stays its own chunk and adds 0 KB to a prototype's initial JS:
 // src/screens/Board.svelte imports from '@protoyard/views-ui/board'
 ```
 
-Subpaths: `./board`, `./calendar`, `./timeline`, `./grid`, `./tree`, `./map`,
+Subpaths: `./board`, `./calendar`, `./timeline`, `./sheet`, `./canvas`, `./grid`, `./tree`, `./map`,
 `./editor`, `./activity`, `./notifications`, `./files`, `./settings`,
 `./states`, `./commands`, `./scenarios`, `./virtual-list`, `./player.css`,
 `./blocks.css` and `./styles.css`. Views are never re-exported from
@@ -585,6 +585,69 @@ timeline is read-only.
 
 ```bash
 pnpm vitest run packages/views-ui/tests/timeline.test.ts
+```
+
+## Canvas (`@protoyard/views-ui/canvas`)
+
+`CanvasView` is a thin host adapter over `@texuli/canvas/editor`: an infinite canvas of shapes,
+text, sticky notes, frames and connectors with snapping and guides, a JSON clipboard, undo, a
+minimap and a shape tree for screen readers. The surface is one `role="application"`: Tab moves
+between shapes in reading order, arrow keys move them, Enter edits text.
+
+```svelte
+<CanvasView query={board} onChange={(canvas) => services.boards.saveCanvas(id, canvas)} />
+```
+
+- `query` is a liveQuery of one stored canvas (Texuli's `CanvasDocument` JSON). It is untrusted:
+  `validateCanvas` checks it first (closed shapes and palette, limits; text paints as SVG text,
+  never markup), and an invalid one shows an alert instead of the editor.
+- `onChange` is the service that persists every change (`runService`); a refused save (`false`
+  or a throw) puts the stored canvas back. Without it the canvas is read-only. A change that
+  comes back unchanged through the query keeps the editor's canvas, so undo survives.
+- `files` (default on): "Download SVG" exports the canvas with escaped text; "Import JSON"
+  (editable only) replaces the canvas with a file that passes `loadUntrustedCanvas`.
+- `resolveImage(ref)` turns an image shape's ref into a URL, which still passes Texuli's URL policy.
+- Also exported: `validateCanvas`, `loadUntrustedCanvas`, `createCanvas`, `CANVAS_LIMITS` and
+  `canvasToSvg`.
+- Scenario data: `generateCanvasBoard(ctx, { level })` from `@protoyard/views/scenarios` (a
+  fictional planning board: `empty`, `typical`, `dense` with 1,500 notes, or `edge` with nested
+  frames, a rotated and a locked note and free and frame-to-frame connectors), and
+  `viewsFragments.canvas(level)`.
+
+```bash
+pnpm vitest run packages/views-ui/tests/canvas.test.ts
+```
+
+## Sheet (`@protoyard/views-ui/sheet`)
+
+`SheetView` is a thin host adapter over `@texuli/sheets/view`: an accessible spreadsheet (one tab
+stop, arrow keys, Enter or F2 to edit, undo and redo, TSV copy and paste) with a formula bar and
+Texuli's closed, bounded formula language (54 functions; cycles show `#CYCLE!`, overruns
+`#LIMIT!`, nothing throws or hangs).
+
+```svelte
+<SheetView query={workbook} onChange={(sheet) => services.budget.save(sheet)} {runtime} />
+```
+
+- `query` is a liveQuery of one stored workbook (Texuli's `SheetDocument` JSON). It is untrusted:
+  `validateSheet` checks it first, and an invalid one shows an alert instead of the grid.
+- `onChange` is the service that persists every edit (pending feedback through `runService`); a
+  refused save (`false` or a throw) puts the stored workbook back. Without it the sheet is
+  read-only. An edit that comes back unchanged through the query keeps the view's workbook, so
+  undo history and focus survive the round trip.
+- `TODAY()` and `NOW()` read the runtime's simulated clock (or `now`), never the system clock.
+- `csv` (default on): "Download CSV" exports the active sheet's computed values with formula
+  injection neutralized; "Import CSV" (editable only) adds a CSV file as a new sheet, with `=`
+  fields kept as text. `csvImport={false}` hides the import when `onChange` saves only existing
+  sheets; a refused import puts the shown sheet back.
+- Also exported: `validateSheet`, `createSheet`, `createWorkbook`, `displayValue`, `SHEET_LIMITS`,
+  `csvToSheet` and `sheetToCsv` from `@texuli/sheets`.
+- Scenario data: `generateSheetWorkbook(ctx, { level })` from `@protoyard/views/scenarios` (a
+  fictional yearly budget; `empty`, `typical`, `dense` with 2,000 lines, or `edge` with a
+  division by zero, a cycle and a cross-sheet summary), and `viewsFragments.sheet(level)`.
+
+```bash
+pnpm vitest run packages/views-ui/tests/sheet.test.ts
 ```
 
 ## Tree (`@protoyard/views-ui/tree`)

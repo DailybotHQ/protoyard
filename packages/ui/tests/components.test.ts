@@ -128,9 +128,10 @@ describe('MobileAppShell', () => {
     // Texuli's MobileAppFrame: the screen region is the only scroller.
     expect(main.hasAttribute('data-tx-mobile-frame-main')).toBe(true);
     const save = screen.getByRole('button', { name: 'Save changes' });
-    // The caller's footer sits between the screen and the navigation, unwrapped.
+    // The caller's footer sits between the screen and the navigation, in Texuli's
+    // footer strip without its padding, border and background (G95).
     expect(main.contains(save)).toBe(false);
-    expect(save.closest('[data-tx-mobile-frame-footer]')).toBeNull();
+    expect(save.closest('[data-tx-mobile-frame-footer]')?.hasAttribute('data-unstyled')).toBe(true);
     expect(main.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
       save.compareDocumentPosition(navigation) & Node.DOCUMENT_POSITION_FOLLOWING

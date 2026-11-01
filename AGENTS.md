@@ -37,7 +37,7 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Quick CLI | [QUICK](docs/QUICK.md) | Disposable `protoyard quick` explorations, variants, loopback serving, report and feedback scope |
 | Player | [PLAYER](docs/PLAYER.md) | No-install player for app, deck, page and doc blueprints: per-kind entries, hosted `/play/`, share links, storage, worlds, parity, browser limits |
 | Texuli | [TEXULI](docs/TEXULI.md) | How Protoyard links and uses the Texuli component library: which packages wrap or re-export it, what stays Protoyard's, verification and limits |
-| Themes | [THEMES](docs/THEMES.md) | Style model, palette engine, 64-theme library, Theme Studio, `theme` CLI, brand blocks, measured bundle impact |
+| Themes | [THEMES](docs/THEMES.md) | Style model, palette engine, 204-theme library, Theme Studio, `theme` CLI, brand blocks, measured bundle impact |
 | Layouts | [LAYOUTS](docs/LAYOUTS.md) | Shared layout catalog, manifest setup, responsive fallbacks, shell composition, authoring and tests |
 | Shells | [SHELLS](docs/SHELLS.md) | Device and host shells, manifest preview fields, `?shell=`, layout inside frames |
 | Views | [VIEWS](docs/VIEWS.md) | Choose a rich view, service callbacks, keyboard and phone behavior, scenario fragments, bundle measurements and limits |
@@ -75,14 +75,14 @@ protoyard/
 │   ├── database/          Dexie: per-prototype data + control DBs, world I/O, storage errors       (README)
 │   ├── scenarios/         generator SDK, presets, integrity, timeline, series/schedule/event/geo helpers (README)
 │   ├── runtime/           createPrototypeRuntime() — composes the engine                          (README)
-│   ├── themes/            6 built-ins + 64-theme library (lazy) on @texuli/tokens, palette engine, style presets, fonts, no-flash (README)
+│   ├── themes/            6 built-ins + 204-theme library (lazy) on @texuli/tokens, palette engine, style presets, fonts, no-flash (README)
 │   ├── ui/                Svelte 5 components: Texuli's styled components re-exported, wrappers on @texuli/primitives, shell frames, LayoutHost on texuli/layouts (12 lazy layouts) (README)
 │   ├── devtools/          in-browser control center (shell and layout pickers, theme browser, Theme Studio), built with Texuli components (README)
 │   ├── renderer-svelte/   Vite config factory, mountPrototype, ShellHost, bindings, hash router    (README)
 │   ├── http/              optional mock HTTP layer (fetch-compatible, no service worker)           (README)
 │   ├── offline/           optional service worker for exported prototypes (opt-in)                (README)
 │   ├── blueprint/         data-only blueprints: schema, archetypes, app model, screens, aggregates, default scenarios, brief synthesizer, share links, variants, patches, entity services (no Svelte) (README)
-│   ├── crud/              blueprint EntityList/Detail/Form + typed lazy screen registry, lazy @protoyard/crud/app shell, dashboard, board, calendar, timeline, map, analytics, settings screens (README)
+│   ├── crud/              blueprint EntityList/Detail/Form (on @texuli/forms) + typed lazy screen registry, lazy @protoyard/crud/app shell, dashboard, board, calendar, timeline, map, analytics, sheet, canvas, settings screens (README)
 │   ├── saas/              simulated SaaS engine: auth, OAuth, MFA, inbox, onboarding, workspaces, billing (README)
 │   ├── saas-ui/           Svelte SaaS kit screens + saasRoutes/guards (simulation UX)              (README)
 │   ├── ai/                simulated AI engine: streaming, agents and tools, voice, safe markdown, chart answers (README)
@@ -92,7 +92,7 @@ protoyard/
 │   ├── analytics/         analytics engine: events, metrics, date ranges, funnels, cohorts, deterministic generators (no Svelte) (README)
 │   ├── analytics-ui/      Svelte analytics kit: KPI tiles, date range, filters/segments, drill-down, cohort, funnel, dashboard grid (README)
 │   ├── views/             rich view engines re-exported from @texuli/data (board, calendar, timeline, grid, tree, geo, activity, files) + Protoyard's scenario fragments (no Svelte) (README)
-│   ├── views-ui/          rich views: thin adapters over @texuli/data, one lazy subpath per view (never in the ui barrel) (README)
+│   ├── views-ui/          rich views: thin adapters over @texuli/data, sheets and canvas, one lazy subpath per view (never in the ui barrel) (README)
 │   ├── review/            review comments engine: anchors, adapter contract, local/http/artifact adapters, server handler (no Svelte) (README)
 │   ├── review-ui/         Svelte review UI: comment mode and pins, threads, panel, toolbar, lazy mount (README)
 │   ├── avatars/           175 fictional portraits (WebP 64/128 px) + verified manifest, data only   (README)
@@ -101,7 +101,7 @@ protoyard/
 │   ├── decks/             slide deck engine: schema, 21-layout catalog, navigation, steps, controls registry, style, quality checks, agent slide references (no Svelte) (README)
 │   ├── decks-ui/          Svelte DeckApp with registry-driven controls, presenter, overview, print, Deck Studio and the Debug for agents panel, each on its own lazy chunk (README)
 │   ├── pages/             page and doc engine: schemas, limits, TOC helpers, form-response services (no Svelte) (README)
-│   ├── pages-ui/          Svelte PageApp and DocApp hosts, forms and responses UI, print CSS (README)
+│   ├── pages-ui/          Svelte PageApp and DocApp hosts, doc editing (@texuli/pages) and Word/PDF/Markdown export, forms and responses UI, print CSS (README)
 │   ├── flows/             workflow engine: serializable flows, triggers, steps, data-only conditions, simulated runs (no Svelte) (README)
 │   ├── flows-ui/          Svelte workflow editor and simulated run panels (README)
 │   ├── gamification/      points ledger, levels, badges, missions and streaks (no Svelte) (README)
@@ -117,12 +117,12 @@ protoyard/
 │                          dashboard, deck, design-kit, desktop-app, doc, docs-wiki, ecommerce, fintech-dashboard,
 │                          iot-monitoring, logistics-map, marketplace, mobile-app, onboarding,
 │                          page, plugin-panel, project-management, social-feed, task-manager, team-chat
-├── prototypes/<slug>/     ai-chat-demo, atlas-workspace-demo, cadence-studio-demo*, create-anything-deck*, crm-demo,
+├── prototypes/<slug>/     ai-chat-demo, atlas-workspace-demo, cadence-studio-demo*, canvas-board-demo, create-anything-deck*, crm-demo,
 │                          harbor-dispatch-demo*, helpdesk-demo*, keel-projects-demo,
 │                          lattice-saas-demo, mobile-banking-demo, nova-assistant-demo,
 │                          pebblestat-analytics-demo, pulse-revenue-demo*, relay-chat-demo,
 │                          support-widget-demo, ui-kit, …yours   (* generated from a blueprint)
-├── blueprints/            40 app blueprints + deck, page and doc examples (decks/, pages/, docs/; decks/everything.json is the reference deck) for the player and `protoyard generate` (README)
+├── blueprints/            43 app blueprints + deck, page and doc examples (decks/, pages/, docs/; decks/everything.json is the reference deck) for the player and `protoyard generate` (README)
 ├── integrations/deepworkplan/protoyard/  DWP addon packet: addon.json, SPEC.md, SKILL.md, UPSTREAM.md, templates/
 ├── skills/protoyard/      the distributable agent skill: SKILL.md router, sub-skills, setup.sh   (docs/SKILL.md)
 ├── tests/                 support/ (runtime + generator harness), e2e/ (Playwright + axe), setup/

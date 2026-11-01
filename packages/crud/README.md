@@ -115,7 +115,7 @@ blueprint's entity services and `runtime.members` (`session.assert` → zod →
 | Component | What it does |
 | --- | --- |
 | `EntityList` | `DataTable` with search, sort, pagination, row selection and bulk delete; Trash and an **Undo** toast for `softDelete` entities; CSV export and import when `features.csv` is on (the codec loads lazily). Related records and personas are shown by name; money is formatted from integer cents with the blueprint currency. |
-| `EntityForm` | A `FormField` per blueprint field with inline zod errors through `runService`. Pass `runtime`, `blueprint` and `services` to edit relation and persona fields with pickers. `avatar` fields use a lazy picker chunk: Choose face opens a searchable grid of thumbnails (arrow keys, Home and End move; Enter or Space picks) and Shuffle face picks the next face. In edit mode with `services`, Shuffle face calls `shuffleAvatar` and saves at once (the button shows pending feedback); otherwise it changes the draft only. |
+| `EntityForm` | The blueprint's fields as a Texuli `SchemaForm` (`@texuli/forms`, mapped by `entityFormModel` from `@protoyard/blueprint`): Texuli checks required and range rules and shows its error summary first, then the input goes through `runService` to the entity service, whose zod issues come back inline. Relation, datetime, geo, avatar and file fields keep Protoyard controls after the Texuli ones, and one submit button drives both. Optional `title` and `showTitle` (default true). Pass `runtime`, `blueprint` and `services` to edit relation and persona fields with pickers. `avatar` fields use a lazy picker chunk: Choose face opens a searchable grid of thumbnails (arrow keys, Home and End move; Enter or Space picks) and Shuffle face picks the next face. In edit mode with `services`, Shuffle face calls `shuffleAvatar` and saves at once (the button shows pending feedback); otherwise it changes the draft only. |
 | `EntityDetail` | A record with its fields, indexed related records, attachments and audit history. Uses an `h2` heading by default; set `headingLevel` when embedding it under another page heading. |
 | `BoardScreen` | Enum columns with filtered counts and optional sums; drag, keyboard and **Move to…** call the entity service, show pending state, roll back on failure and offer Undo. Viewers get a read-only board. |
 | `RecordAvatar` | A record's face from an `avatar` field: a lazy library image (64 px at 1x, 128 px at 2x) with initials as the fallback. `EntityList` and `BoardScreen` cards show it next to the title, and `EntityDetail` in the header and the field. |
@@ -297,6 +297,45 @@ import { TimelineScreen } from '@protoyard/crud/screens/timeline';
 - Prototypes using the screen import `@protoyard/views-ui/styles.css` and add its source path with
   `@source` so Tailwind sees the view classes.
 
+## Canvas screen (`@protoyard/crud/screens/canvas`)
+
+A blueprint `canvas` screen (`entity`, `field`: a `json` field) gives each record of the entity
+one infinite canvas, with `CanvasView` from `@protoyard/views-ui/canvas`, in its own lazy entry:
+
+```svelte
+<script lang="ts">
+import { CanvasScreen } from '@protoyard/crud/screens/canvas';
+</script>
+
+<CanvasScreen {runtime} {blueprint} {services} screen={canvasScreen} />
+```
+
+- A picker chooses the record (by its title field); an empty field opens as a blank canvas.
+- Every change saves the field through the entity's update service (permission, schema and
+  transaction, like any other edit). A role without `update` sees the canvas read-only.
+- A stored value that is not a valid canvas is never repaired silently: the screen says so and
+  offers the owner "Start over with a blank canvas".
+
+## Sheet screen (`@protoyard/crud/screens/sheet`)
+
+A blueprint `sheet` screen (`entity`, optional `columns` and `totals`) shows the entity's records
+as a spreadsheet with `SheetView` from `@protoyard/views-ui/sheet`, in its own lazy entry:
+
+```svelte
+<script lang="ts">
+import { SheetScreen } from '@protoyard/crud/screens/sheet';
+</script>
+
+<SheetScreen {runtime} {blueprint} {services} screen={sheetScreen} />
+```
+
+- One row per record and one column per field, headed by the field label. Money shows in currency
+  units and saves as integer cents; relations and personas show their names (read-only).
+- A totals row sums the `totals` columns with Texuli formulas, so it follows every edit.
+- Editing a cell saves that field through the entity's update service (permission, schema and
+  transaction, like any other edit). A refused value puts the cell back and says why in an alert.
+  A formula never reaches a record, and record text that looks like a formula shows as text.
+- A role without `update` sees the sheet read-only. "Download CSV" exports the computed values.
 ## Settings screen (`@protoyard/crud/screens/settings`)
 
 A separate entry, so the screen loads only with its route. Sections come from a blueprint

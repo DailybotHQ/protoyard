@@ -1,0 +1,21 @@
+import { definePrototype, parseManifest } from '@protoyard/core';
+import manifestJson from '../protoyard.json';
+import { database } from './database/schema.ts';
+import { policy } from './domain/policy.ts';
+import { generateCanvasBoardWorld } from './scenarios/generators.ts';
+import { scenarios } from './scenarios/index.ts';
+
+/** Wires protoyard.json to this prototype's schema, policy, scenarios and generator. */
+export const definition = definePrototype({
+  manifest: parseManifest(manifestJson),
+  database,
+  scenarios,
+  policy,
+  generate: generateCanvasBoardWorld,
+  /** v2: personas carry library avatars (`av-NNN`), shown as photos. (v1 was implicit.) */
+  generatorVersion: 2,
+  integrity: {
+    relations: { boards: { ownerId: 'py_personas' } },
+    timestamps: { boards: ['createdAt', 'updatedAt'] },
+  },
+});

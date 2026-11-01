@@ -13,6 +13,7 @@ import type { BootedPlayer } from '../src/boot.ts';
 import { kindEntryBoot } from '../src/entries/run-kind.ts';
 import demo from '../src/fixtures/demo.blueprint.json';
 import { createMountEmbed } from '../src/kinds/mount-embed.ts';
+import { loadersFor } from '../src/kinds/renderers.ts';
 import { startPlayer } from '../src/sources/start.ts';
 import { PLAYER_HTML_ENTRIES } from '../vite.config.ts';
 import { ensurePlayerBuild } from './support/serve-dist.ts';
@@ -79,7 +80,7 @@ async function startDeckPage(options: { search?: string; hash?: string; fetch?: 
     target,
     location: location(options.search ?? '', options.hash ?? ''),
     ...(options.fetch ? { fetch: options.fetch } : {}),
-    boot: kindEntryBoot({ kind: 'deck', window, loadBoot }),
+    boot: kindEntryBoot({ kind: 'deck', window, loadBoot, loaders: loadersFor('deck') }),
     session: null,
     embedded: null,
     reload: () => {},
@@ -198,6 +199,7 @@ async function boot(json: Json): Promise<HTMLElement> {
   const { bootKind } = await import('../src/boot-kind.ts');
   const player: BootedPlayer = await bootKind({
     blueprint: loaded.blueprint,
+    loaders: loadersFor((loaded.blueprint as { kind: 'deck' | 'page' | 'doc' }).kind),
     target,
     search: '',
     indexFactory: new IDBFactory(),

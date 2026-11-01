@@ -28,7 +28,7 @@ the installed packages before using them.
 | An assistant workspace, agents and tools, streaming answers, voice, an embeddable chat widget | `@protoyard/ai` (engine) and `@protoyard/ai-ui`, `@protoyard/ai-ui/voice`, `@protoyard/ai-ui/widget` | `docs/AI_KITS.md` |
 | Faces for seeded people | `@protoyard/avatars`, shown through the `@protoyard/ui` `Avatar` | `docs/AVATARS.md` |
 | Buttons, forms, tables, dialogs, toasts, badges, cards, stat cards | `@protoyard/ui` | `packages/ui/README.md` |
-| Colors, fonts, density and a brand theme | `@protoyard/themes` (64-theme library, Theme Studio, `protoyard theme`) | `docs/THEMES.md` |
+| Colors, fonts, density and a brand theme | `@protoyard/themes` (204-theme library, Theme Studio, `protoyard theme`) | `docs/THEMES.md` |
 
 ## Families
 

@@ -72,9 +72,177 @@ export const LIBRARY_THEME_IDS: readonly string[] = Object.freeze([
   'sepia-print',
 ]);
 
-const ids = new Set(LIBRARY_THEME_IDS);
+/**
+ * The 140 ids of Texuli's expanded set (`@texuli/tokens/library-expand`),
+ * without the six Protoyard built-ins it also carries, in Texuli's metadata
+ * order. Ids only, for the same reason as the catalog list: the expanded
+ * metadata module is about 42 KB and loads on demand. `tests/library.test.ts`
+ * keeps this list equal, in order, to Texuli's (Texuli ships no ids-only
+ * entry for the expanded set).
+ */
+export const EXPANDED_LIBRARY_THEME_IDS: readonly string[] = Object.freeze([
+  'apex-rose',
+  'aqua-foam',
+  'arctic-console',
+  'ash-plain',
+  'atlas-indigo',
+  'azure-grid',
+  'bark-trail',
+  'beacon-red',
+  'blaze-amber',
+  'blush-petal',
+  'brick-lane',
+  'burgundy-page',
+  'butter-cream',
+  'byte-orange',
+  'cedar-cabin',
+  'chalk-line',
+  'charcoal-type',
+  'chroma-teal',
+  'cinnamon-bar',
+  'cipher-slate',
+  'clay-river',
+  'clay-workshop',
+  'cloud-ledger',
+  'cobalt-lab',
+  'console-violet',
+  'copper-byline',
+  'copper-kiln',
+  'coral-market',
+  'crimson-spread',
+  'crt-cyan',
+  'cyan-dock',
+  'debug-rose',
+  'denim-suite',
+  'dove-note',
+  'electric-lime',
+  'ember-lounge',
+  'emerald-essay',
+  'fern-glade',
+  'flare-yellow',
+  'fog-studio',
+  'forest-floor',
+  'forest-op-ed',
+  'forge-lime',
+  'frost-panel',
+  'glacier-bay',
+  'gold-serif',
+  'graphite-desk',
+  'hc-amber-black',
+  'hc-black-yellow',
+  'hc-blue-white',
+  'hc-cyan-black',
+  'hc-green-black',
+  'hc-ink-paper',
+  'hc-lime-black',
+  'hc-navy-yellow',
+  'hc-orange-black',
+  'hc-paper-ink',
+  'hc-rose-black',
+  'hc-teal-black',
+  'hc-violet-black',
+  'hc-white-blue',
+  'heap-pink',
+  'honey-desk',
+  'horizon-cyan',
+  'hot-fuchsia',
+  'ice-signal',
+  'indigo-harbor',
+  'indigo-review',
+  'ink-folio',
+  'iron-wire',
+  'ivory-press',
+  'kernel-teal',
+  'laser-violet',
+  'lavender-room',
+  'leaf-canopy',
+  'ledger-teal',
+  'lemon-air',
+  'lilac-mist',
+  'loam-field',
+  'marine-ops',
+  'maroon-hall',
+  'matrix-green',
+  'mint-breeze',
+  'mist-panel',
+  'moss-path',
+  'navy-bridge',
+  'navy-column',
+  'neon-magenta',
+  'nexus-pink',
+  'northstar-blue',
+  'ochre-field',
+  'olive-grove',
+  'orbit-orange',
+  'orchid-note',
+  'peach-foam',
+  'peach-studio',
+  'pewter-grid',
+  'phosphor-amber',
+  'pine-ridge',
+  'pipe-slate',
+  'pistachio-tile',
+  'plasma-pink',
+  'plum-chapter',
+  'polar-dash',
+  'powder-blue',
+  'prime-amber',
+  'prompt-blue',
+  'pulse-orange',
+  'pulse-violet',
+  'quartz-mute',
+  'rocket-red',
+  'root-red',
+  'rosewater-desk',
+  'rust-archive',
+  'saffron-stall',
+  'sage-veil',
+  'sandstone-wall',
+  'sepia-margin',
+  'shell-lime',
+  'signal-cyan',
+  'silver-rail',
+  'sky-soft',
+  'skyline-app',
+  'slate-board',
+  'slate-masthead',
+  'smoke-frame',
+  'soil-brown',
+  'spark-blue',
+  'stack-yellow',
+  'steel-card',
+  'summit-green',
+  'sunset-pier',
+  'teal-current',
+  'terracotta-hearth',
+  'trace-indigo',
+  'ultra-indigo',
+  'umber-studio',
+  'vector-sky',
+  'volt-green',
+  'wheat-barn',
+]);
 
-/** Whether `id` names a catalog theme (not a built-in, not the opt-in expanded set). */
+/** Every library theme id: the catalog first, then the expanded set (204 on Texuli 0.9.0). */
+export const ALL_LIBRARY_THEME_IDS: readonly string[] = Object.freeze([
+  ...LIBRARY_THEME_IDS,
+  ...EXPANDED_LIBRARY_THEME_IDS,
+]);
+
+const catalog = new Set(LIBRARY_THEME_IDS);
+const all = new Set(ALL_LIBRARY_THEME_IDS);
+
+/** Whether `id` names any library theme, catalog or expanded (not a built-in). */
 export function isLibraryThemeId(id: string): boolean {
-  return ids.has(id);
+  return all.has(id);
+}
+
+/** Whether `id` names one of the 64 catalog themes (metadata available synchronously). */
+export function isCatalogThemeId(id: string): boolean {
+  return catalog.has(id);
+}
+
+/** Whether `id` names one of the expanded set's themes (metadata and tokens load on demand). */
+export function isExpandedLibraryThemeId(id: string): boolean {
+  return all.has(id) && !catalog.has(id);
 }

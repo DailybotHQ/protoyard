@@ -1,14 +1,15 @@
 # @protoyard/themes
 
-Theme engine for Protoyard prototypes: six AA-checked built-in presets, a 64-theme
-product-category **theme library**, light/dark/system resolution, scoped
+Theme engine for Protoyard prototypes: six AA-checked built-in presets, a 204-theme
+**theme library** (Texuli's 64-theme catalog and its expanded set), light/dark/system resolution, scoped
 CSS-variable application and a no-flash boot script.
 
 It wraps `@texuli/tokens` ([docs/TEXULI.md](../../docs/TEXULI.md#themes-come-from-texulitokens)):
 library tokens and seed palettes are built by Texuli and converted with
 `fromTexuliTheme`. `applyAppearance()` writes canonical `--tx-*` tokens; pages that call `enableTexuliAppearance()` also
 get Texuli's extended roles and `data-tx-*` attributes. The 140-theme expanded set
-(204 in all) is opt-in through `enableFullThemeLibrary()`.
+(204 in all) is on by default: it loads only through a dynamic import (metadata when
+a picker shows the whole library, each theme's definition when the theme is used).
 
 ```ts
 import { applyAppearance, BUILTIN_THEMES, getTheme, resolveMode } from '@protoyard/themes';
@@ -24,7 +25,10 @@ applyAppearance(document.documentElement, {
 | Export | Purpose |
 | --- | --- |
 | `BUILTIN_THEMES`, `violetTheme` … `monochromeTheme` | Core six presets (every token for light and dark) |
-| `THEME_LIBRARY_META`, `listThemeLibrary`, `searchThemeLibrary`, `listCollections`, `loadLibraryTheme(id)` | 64 category and curated themes: eager metadata (`@texuli/tokens/library`) and lazy tokens built by `@texuli/tokens`, converted with `fromTexuliTheme` |
+| `THEME_LIBRARY_META`, `listThemeLibrary`, `searchThemeLibrary`, `listCollections` | The 64-theme catalog: eager metadata (`@texuli/tokens/library`) |
+| `loadFullLibraryMeta`, `listFullThemeLibrary`, `searchFullThemeLibrary`, `listFullCollections`, `findLibraryThemeMeta` | Async, all 204 library themes (the catalog, then `@texuli/tokens/library-expand`, loaded on demand; the catalog where it cannot load) |
+| `ALL_LIBRARY_THEME_IDS`, `isLibraryThemeId`, `isCatalogThemeId`, `isExpandedLibraryThemeId` | Synchronous id checks over all 204 (no metadata load) |
+| `loadLibraryTheme(id)`, `loadLibraryThemeDefinition(id)` | Any library theme's tokens (built by `@texuli/tokens`, converted with `fromTexuliTheme`) or definition, one lazy chunk per theme |
 | `createThemeFromSeed({ id, name, seed, secondary?, neutral?, style? })` | Build an AA light/dark theme from brand hex colors with `@texuli/tokens`' generator; `neutral` picks a family from `NEUTRAL_FAMILIES` (`zinc`, `slate`, `stone`, `gray`, `warm`, `cool`, `tinted`) |
 | `generateThemeHarmonies(seed, neutral?)` | Deterministic OKLCH complementary, analogous, triadic, split-complementary and monochrome secondary suggestions, filtered to AA-safe light/dark themes |
 | `DENSITY_PRESETS`, `RADIUS_PRESETS`, `ELEVATION_PRESETS`, `FONT_PRESETS`, `MOTION_PRESETS`, `stylePresetInput(selection)`, `applyStylePresets(theme, selection)` | Named density, radius, elevation, font and motion presets as data, resolved to validated theme fields |
@@ -46,7 +50,7 @@ variables), plus:
 
 | Subpath | Exports |
 | --- | --- |
-| `@protoyard/themes/library-full` | `enableFullThemeLibrary()` / `disableFullThemeLibrary()`: add Texuli's expanded set to the library (204 themes), loaded on demand |
+| `@protoyard/themes/library-full` | `disableFullThemeLibrary()` limits a page to the 64-theme catalog; `enableFullThemeLibrary()` restores the default (all 204), kept for compatibility |
 | `@protoyard/themes/texuli` | `enableTexuliAppearance()` / `disableTexuliAppearance()` (from then on `applyAppearance` also writes Texuli's extended roles and `data-tx-*`), `writeTexuliAppearance`, `toTexuliTheme`, `deriveTexuliRoles`, `fromTexuliTheme`, `SHARED_PALETTE_ROLES`. It imports `@texuli/tokens/css` and `@texuli/tokens/contract`, never the package root. The renderer enables it in `bindAppearance` |
 
 ## CSS

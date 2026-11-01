@@ -220,6 +220,11 @@ test.describe('gallery', () => {
     await expectAccessible(page, testInfo, { label: 'gallery-theme-explorer' });
 
     const search = page.getByTestId('theme-search');
+    // Every library theme has a static card, Texuli's expanded set included.
+    await expect(page.locator('[data-theme-card]')).toHaveCount(210);
+    await search.fill('ash-plain');
+    await expect(page.getByTestId('theme-count')).toContainText('Showing 1 of 210');
+    await expect(page.locator('[data-theme-card][data-theme-id="ash-plain"]')).toBeVisible();
     await search.fill('health-clinic');
     await expect(page.getByTestId('theme-count')).toContainText('Showing 1 of');
     await expect(page).toHaveURL(/[?&]q=health-clinic/);

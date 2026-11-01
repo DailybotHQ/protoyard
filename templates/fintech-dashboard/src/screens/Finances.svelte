@@ -3,7 +3,7 @@ import type { CartesianSeries } from '@protoyard/charts-ui/cartesian';
 import { can, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { Button, Card, EmptyState, ErrorState, Input, Select, Skeleton } from '@protoyard/ui';
 import { onMount } from 'svelte';
-import type { Transaction } from '../database/schema.ts';
+import { LEDGER_SHEET_ROWS, ledgerSheet } from '../domain/ledger-sheet.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import {
   readAccounts,
@@ -30,11 +30,36 @@ type LazyLineChart = typeof import('@protoyard/charts-ui/cartesian').LineChart;
 type LazyBarChart = typeof import('@protoyard/charts-ui/cartesian').BarChart;
 let LineChart = $state<LazyLineChart | null>(null);
 let BarChart = $state<LazyBarChart | null>(null);
+// The spreadsheet is its own lazy chunk, like the charts.
+type LazySheetView = typeof import('@protoyard/views-ui/sheet').SheetView;
+let SheetView = $state<LazySheetView | null>(null);
+let sheetError = $state<string | null>(null);
+function loadSheet() {
+  sheetError = null;
+  return import('@protoyard/views-ui/sheet').then(
+    (module) => {
+      SheetView = module.SheetView;
+    },
+    (error: unknown) => {
+      sheetError = error instanceof Error ? error.message : String(error);
+    }
+  );
+}
 onMount(() => {
   void import('@protoyard/charts-ui/cartesian').then((module) => {
     LineChart = module.LineChart;
     BarChart = module.BarChart;
   });
+  void loadSheet();
+});
+/** The ledger as a read-only sheet, rebuilt whenever a transaction or account changes. */
+const ledger = $derived({
+  current:
+    transactions.current === undefined
+      ? undefined
+      : ledgerSheet(transactions.current, accounts.current ?? []),
+  loading: transactions.current === undefined,
+  error: transactions.error,
 });
 
 const totalCents = $derived(
@@ -83,12 +108,6 @@ function budgetSpent(category: string) {
   return expenseRows
     .filter((row) => row.category === category && row.occurredAt.slice(0, 7) === currentMonth)
     .reduce((sum, row) => sum + row.amountCents, 0);
-}
-function rowEffect(row: Transaction) {
-  if (row.type === 'income' || (row.type === 'transfer' && row.direction === 'in')) {
-    return `+${money(row.amountCents)}`;
-  }
-  return `−${money(row.amountCents)}`;
 }
 async function submitTransfer() {
   transferMessage = '';
@@ -156,15 +175,15 @@ async function submitTransfer() {
 
   <div class="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.8fr)]">
     <Card class="space-y-4 p-5">
-      <div class="flex items-end justify-between gap-2"><div><h2 class="text-lg font-semibold">Recent transactions</h2><p class="text-sm text-muted-foreground">Latest categorized account activity.</p></div><span class="text-xs text-muted-foreground">{transactions.current.length} records</span></div>
+      <div class="flex items-end justify-between gap-2"><div><h2 class="text-lg font-semibold">Transactions</h2><p class="text-sm text-muted-foreground">Every categorized movement, newest first, with a net total. Download it as CSV.</p></div><span class="text-xs text-muted-foreground">{transactions.current.length > LEDGER_SHEET_ROWS ? `Latest ${LEDGER_SHEET_ROWS.toLocaleString('en-US')} of ${transactions.current.length.toLocaleString('en-US')}` : `${transactions.current.length} records`}</span></div>
       {#if transactions.current.length === 0}
         <EmptyState title="No transactions yet" description="Your account activity will appear here as it is generated or recorded." />
+      {:else if sheetError}
+        <ErrorState title="Could not load the spreadsheet" message={sheetError} onRetry={loadSheet} retryLabel="Try again" />
+      {:else if SheetView}
+        <div class="h-96 min-h-0"><SheetView query={ledger} label="Transactions" readonly {runtime} class="h-full" /></div>
       {:else}
-        <div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead><tr class="border-b border-border text-muted-foreground"><th class="py-2 pr-3 font-medium">Description</th><th class="py-2 pr-3 font-medium">Category</th><th class="py-2 pr-3 font-medium">Date</th><th class="py-2 text-right font-medium">Amount</th></tr></thead><tbody>
-          {#each transactions.current.slice(0, 10) as row (row.id)}
-            <tr class="border-b border-border last:border-0"><td class="py-3 pr-3"><span class="font-medium">{row.description}</span><span class="block text-xs text-muted-foreground">{accounts.current.find((account) => account.id === row.accountId)?.name ?? 'Account'}</span></td><td class="py-3 pr-3">{row.category}</td><td class="py-3 pr-3 whitespace-nowrap">{new Date(row.occurredAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td><td class="py-3 text-right font-medium tabular-nums">{rowEffect(row)}</td></tr>
-          {/each}
-        </tbody></table></div>
+        <Skeleton class="h-96 w-full" />
       {/if}
     </Card>
 

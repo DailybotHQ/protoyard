@@ -1,4 +1,9 @@
-import { BUILTIN_THEMES, FONT_CATALOG, THEME_LIBRARY_META } from '@protoyard/themes';
+import {
+  BUILTIN_THEMES,
+  FONT_CATALOG,
+  loadFullLibraryMeta,
+  THEME_LIBRARY_META,
+} from '@protoyard/themes';
 import { DECK_BACKGROUND_PRESET_IDS } from '../backgrounds/schema.ts';
 import { DECK_ASPECTS } from '../canvas.ts';
 
@@ -21,4 +26,24 @@ export function deckStudioOptions() {
     progress: ['none', 'top', 'bottom'] as const,
     transitions: ['none', 'fade', 'slide', 'zoom', 'morph'] as const,
   };
+}
+
+/** A theme choice of the panel. */
+export interface DeckStudioThemeOption {
+  id: string;
+  label: string;
+}
+
+/**
+ * Every theme the panel can offer: the built-ins and the whole library
+ * (catalog and Texuli's expanded set, 204 on Texuli 0.9.0). The expanded
+ * metadata loads on demand; where it cannot load (a single file that left it
+ * out), the list is `deckStudioOptions().themes`.
+ */
+export async function loadDeckStudioThemes(): Promise<readonly DeckStudioThemeOption[]> {
+  const library = await loadFullLibraryMeta();
+  return [
+    ...BUILTIN_THEMES.map((theme) => ({ id: theme.id, label: theme.name })),
+    ...library.map((meta) => ({ id: meta.id, label: meta.name })),
+  ];
 }

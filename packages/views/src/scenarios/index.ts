@@ -1,7 +1,7 @@
 /**
  * `@protoyard/views/scenarios` — deterministic generators for view-shaped
  * data (calendar series, task plans, Port Meridian geo, outlines, comments,
- * activity, notifications, file trees) and the scenario fragments that set
+ * activity, notifications, file trees, a budget workbook, a planning board) and the scenario fragments that set
  * each kit's level. Driven only by the scenario seed, `ctx.ids` and
  * `ctx.time`; import it from a lazy generator module.
  */
@@ -10,6 +10,14 @@ export {
   type CalendarEventsOptions,
   generateCalendarEvents,
 } from './calendar.ts';
+export {
+  type CanvasBoardData,
+  type CanvasBoardOptions,
+  type CanvasColorName,
+  type CanvasConnectorData,
+  type CanvasShapeData,
+  generateCanvasBoard,
+} from './canvas.ts';
 export { type FileEntry, type FileTreeOptions, generateFileTree } from './files.ts';
 export {
   type GeoRoute,
@@ -41,6 +49,12 @@ export {
   viewsLevel,
   viewsRng,
 } from './shared.ts';
+export {
+  generateSheetWorkbook,
+  type SheetTabData,
+  type SheetWorkbookData,
+  type SheetWorkbookOptions,
+} from './sheet.ts';
 export {
   type ActivityRow,
   type ActivityVerb,

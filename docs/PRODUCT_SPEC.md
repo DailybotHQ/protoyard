@@ -37,7 +37,7 @@ small web app with:
   without losing data. Forbidden actions are actually blocked.
 - **Simulated time and conditions.** Preview the app next month, go offline,
   add latency or make requests fail, and see how the product copes.
-- **Themes.** Light, dark or system mode, six presets and a 64-theme library (204 opt-in, from Texuli),
+- **Themes.** Light, dark or system mode, six presets and a 204-theme library (from Texuli),
   palettes generated from a brand color and a live Theme Studio, each
   prototype styled separately.
 - **Layouts and shells.** Twelve shared page layouts, and frames that present
@@ -57,7 +57,7 @@ Around the single app, the workspace offers:
   and agents, and 175 fictional avatar portraits.
 - **A generator.** A data-only `blueprint.json` becomes a working prototype
   (`protoyard generate`), and a prose brief becomes a blueprint offline
-  (`protoyard blueprint new --from-brief`). 40 blueprints ship in the
+  (`protoyard blueprint new --from-brief`). 43 blueprints ship in the
   repository.
 - **Review comments.** Opt-in comments pinned to screens of a built
   prototype, pulled into a `REVIEW.md` an agent can plan from.

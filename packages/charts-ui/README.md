@@ -56,8 +56,8 @@ Sizes, measured by `pnpm exec tsx scripts/bench-charts.ts --skip-browser
 --check` (a real Vite build with one lazy import per family; gzip level 9 of
 the chunks each family downloads beyond the app entry): cartesian 13,466 B,
 part-whole 9,819 B, matrix 15,923 B, compact 7,213 B, canvas 1,647 B, geo
-4,651 B. A LineChart + BarChart view is 8,977 B, within the bench's 17,000 B
-guard.
+4,651 B. A LineChart + BarChart view is 8,977 B (12,718 B on Texuli 0.9.0),
+within the bench's 13,354 B guard.
 
 The platform guide with every chart's props, the data contracts and the
 measured numbers is [docs/CHARTS.md](../../docs/CHARTS.md). `sideEffects` lists only CSS,
@@ -70,9 +70,12 @@ Each subpath re-exports Texuli's charts, through an adapter where Protoyard's
 props differ ([docs/texuli-charts.md](docs/texuli-charts.md)):
 
 - **`./cartesian`:** LineChart, AreaChart, BarChart and ComboChart pass
-  `emptyMessage` and `description` to Texuli's `description` and drop
-  Protoyard-only series fields; ScatterChart maps `series[]` to Texuli's
-  matrix `points[]`.
+  `emptyMessage` and `description` to Texuli's `description`, drop
+  Protoyard-only series fields, and forward `xKind`, `formatX` and `locale`:
+  `xKind="time"` reads epoch milliseconds as UTC dates on the axis, live
+  region, tooltip and table. A `time` or `linear` kind on string x keeps
+  Texuli's inferred axis instead of throwing. ScatterChart maps `series[]`
+  to Texuli's matrix `points[]`.
 - **`./part-whole`:** Pie and Donut default the table `labels` and map
   `height` to `size`; FunnelChart maps `count` to `value`; Texuli's
   TreemapChart and SunburstChart are re-exported as they are.

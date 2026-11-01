@@ -1,16 +1,15 @@
-import { setExpandedLibraryLoader } from './registry.ts';
+import { resetExpandedLibraryLoader, setExpandedLibraryLoader } from './registry.ts';
 
 /**
- * Makes Texuli's expanded theme set part of the library: `loadFullLibraryMeta`
- * lists all 204 themes and `loadLibraryTheme` loads any of them by id (each on
- * demand). Call it once from a page that should offer the full library; pages
- * that do not never reach the expanded set.
+ * Kept for compatibility: the full library (all 204 themes on Texuli 0.9.0)
+ * is on by default since PLAN_008, so this only restores the default loader
+ * after `disableFullThemeLibrary()`.
  */
 export function enableFullThemeLibrary(): void {
-  setExpandedLibraryLoader(() => import('@texuli/tokens/library-expand'));
+  resetExpandedLibraryLoader();
 }
 
-/** Back to the catalog only (tests). */
+/** Back to the catalog only (tests, or a host that must not load the expanded set). */
 export function disableFullThemeLibrary(): void {
   setExpandedLibraryLoader(undefined);
 }

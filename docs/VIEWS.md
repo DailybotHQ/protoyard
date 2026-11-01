@@ -52,6 +52,8 @@ mapping table and limits are in
 | Move work across columns, optionally split by swimlane | `BoardView` from `board` | ranks, WIP limits, validated moves, keyboard drag state |
 | Browse dated events or bookings | `CalendarView` from `calendar` | calendar math, recurrence expansion and series splitting |
 | Plan task durations, links and critical path | `TimelineView` from `timeline` | working-day schedule, dependency validation, cascade and critical path |
+| Draw on an infinite canvas: shapes, sticky notes, frames and connectors | `CanvasView` from `canvas` | `@texuli/canvas` (format, validation, ops, SVG export) re-exported from `canvas`; `generateCanvasBoard` in `scenarios` |
+| Calculate in a spreadsheet: formulas, totals, CSV in and out | `SheetView` from `sheet` | `@texuli/sheets` (bounded formulas, workbook, CSV) re-exported from `sheet`; `generateSheetWorkbook` in `scenarios` |
 | Explore and edit many records | `DataGrid` from `grid`, plus the standalone `FilterBuilder`, `SavedViews`, `FilterChips`, `FacetPicker`, `ColumnChooser` and `BulkActionBar` | sorting, filters (facets and chips), saved view state with change tracking, column state, selection, virtual windows |
 | Browse a hierarchy or edit an outline | `TreeView`, `OutlineEditor` from `tree` | tree indexing, cycle-safe moves, ranks and outline operations |
 | Show locations in a fictional offline city | `SimulatedMap` from `map` | projection, markers, clustering, routes and geofences |
@@ -65,7 +67,7 @@ mapping table and limits are in
 
 To run a whole blueprint-described app rather than one view, use `BlueprintApp` from
 `@protoyard/crud/app`. It wires the blueprint screen kinds (board, calendar, timeline, map,
-analytics, dashboard, settings and tabbed detail) to the routes of the shared app model,
+analytics, dashboard, settings, sheet, canvas and tabbed detail) to the routes of the shared app model,
 and loads each kit lazily through the screen-kind registry. See the
 [crud README](../packages/crud/README.md#blueprint-app-shell-protoyardcrudapp).
 
@@ -178,6 +180,20 @@ Measured with `pnpm vitest run packages/cli/tests/views-bundle.test.ts
 | Editor | 9,484 B | 9,508 B | 9,958 → 9,958 B |
 | Timeline | 11,973 B | 11,981 B | 12,572 → 12,572 B |
 
+The sheet view (added on Texuli 0.9.0) measures 49,436 B over the shell
+(ceiling 51,908 B): the formula engine, workbook model, CSV, date functions
+and the data grid's editing layer. Like every view it is a lazy chunk, so it
+costs nothing until a route that shows a sheet opens. The canvas view
+(also Texuli 0.9.0) measures 50,488 B over the shell (ceiling 53,013 B): the
+canvas editor, its model and operations, routing, the minimap and shape
+tree, and SVG export. The `canvas-board-demo` prototype opens it on a lazy
+route. Two templates use these views: `fintech-dashboard` shows its
+transactions as a read-only sheet (with a `Net` total and CSV download), and
+`design-kit` has a Sketches section on the canvas, saved through its own
+service. On the PLAN_008 re-measure (2026-10-31) the calendar and map ceilings
+were lowered to 17,768 B and 8,442 B; every view's numbers are in
+[Performance](PERFORMANCE.md#plan008-re-measure-measured-2026-10-31).
+
 Each lowered ceiling is the Texuli 0.5.0 measurement + 5%, rounded up. The
 previous ceiling stays where it is already lower than that threshold.
 
@@ -209,9 +225,23 @@ Method notes are in [`PERFORMANCE.md`](PERFORMANCE.md#views-kit).
   ui-kit grid demo, so there is no current 100,000-row measurement.
 - The editor is a Texuli `Textarea`-based Markdown editor, not a WYSIWYG editor. Its
   preview renders a safe syntax tree as elements and never injects HTML.
-- `NotificationCenter` is Protoyard's service adapter around Texuli controls;
-  mark-read operations remain service callbacks. Texuli's inbox API currently
-  exposes a mark-unread action that this host cannot wire to its service (G50).
+- `NotificationCenter` renders Texuli's inbox with mark-unread hidden;
+  mark-read operations remain service callbacks.
+- `CanvasView` stores one canvas per query and saves the whole canvas after
+  each change (no collaboration: Texuli's `@texuli/canvas/sync` is not wired
+  up). A stored or imported canvas is validated at Texuli's untrusted tier
+  (closed shapes and palette, limits, no markup); export is SVG only, and
+  image shapes paint only what the host's `resolveImage` returns through
+  Texuli's URL policy. The blueprint `canvas` screen stores one canvas per
+  record in a `json` field.
+- `SheetView` stores one workbook document per query and saves the whole
+  document on every edit (no cell-level merge, no collaboration). Formulas are
+  Texuli's closed, bounded language: no references built from text, no
+  external data, and `TODAY()`/`NOW()` read the prototype's simulated clock.
+  An imported CSV becomes a new sheet with `=` fields kept as text. The
+  blueprint `sheet` screen edits record fields only, one record per edit (a
+  change across several rows is refused whole, never stored in part), offers
+  no CSV import, and a formula never reaches a record.
 - These packages provide simulated prototype behavior. They are not a
   production calendar, geographic information system, file backend or
   collaborative service.

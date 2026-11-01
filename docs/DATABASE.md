@@ -187,6 +187,11 @@ writes only through the `formResponses` feature table. `submit` asserts
 transaction. Exported CSV cells are quoted per RFC 4180 and formula-like text
 is prefixed so spreadsheet software displays it as text.
 
+Saved doc edits follow the same pattern: `createDocEditServices` from
+`@protoyard/pages` writes the content-kind runtime's `docEdits` table, `save`
+and `reset` assert `DOC_CAPABILITIES.edit`, and `load` re-validates every
+stored row as untrusted ([PAGES](PAGES.md#saved-edits)).
+
 Those capabilities are simulated policy checks, not authentication or data
 protection. They must be granted by the runtime's policy to the intended
 simulated roles. The page/doc minimal runtime currently has an empty world and

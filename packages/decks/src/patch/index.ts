@@ -18,4 +18,8 @@ export {
   jsonEquals,
   parsePointer,
 } from './json-patch.ts';
-export { deckStudioOptions } from './options.ts';
+export {
+  type DeckStudioThemeOption,
+  deckStudioOptions,
+  loadDeckStudioThemes,
+} from './options.ts';

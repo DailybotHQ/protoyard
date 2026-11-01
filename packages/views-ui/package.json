@@ -77,6 +77,16 @@
       "svelte": "./src/timeline/index.ts",
       "default": "./src/timeline/index.ts"
     },
+    "./sheet": {
+      "types": "./src/sheet/index.ts",
+      "svelte": "./src/sheet/index.ts",
+      "default": "./src/sheet/index.ts"
+    },
+    "./canvas": {
+      "types": "./src/canvas/index.ts",
+      "svelte": "./src/canvas/index.ts",
+      "default": "./src/canvas/index.ts"
+    },
     "./tree": {
       "types": "./src/tree/index.ts",
       "svelte": "./src/tree/index.ts",
@@ -98,11 +108,13 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
-    "@texuli/data": "0.8.1",
-    "@texuli/drag": "0.8.0",
-    "@texuli/editor": "0.8.0",
-    "@texuli/primitives": "0.8.0",
-    "texuli": "0.8.0"
+    "@texuli/canvas": "0.9.0",
+    "@texuli/data": "0.9.0",
+    "@texuli/drag": "0.9.0",
+    "@texuli/editor": "0.9.0",
+    "@texuli/primitives": "0.9.0",
+    "@texuli/sheets": "0.9.0",
+    "texuli": "0.9.0"
   },
   "devDependencies": {
     "svelte": "^5.57.2"
@@ -205,6 +217,16 @@
         "types": "./dist/timeline/index.d.ts",
         "svelte": "./dist/timeline/index.js",
         "default": "./dist/timeline/index.js"
+      },
+      "./sheet": {
+        "types": "./dist/sheet/index.d.ts",
+        "svelte": "./dist/sheet/index.js",
+        "default": "./dist/sheet/index.js"
+      },
+      "./canvas": {
+        "types": "./dist/canvas/index.d.ts",
+        "svelte": "./dist/canvas/index.js",
+        "default": "./dist/canvas/index.js"
       },
       "./tree": {
         "types": "./dist/tree/index.d.ts",

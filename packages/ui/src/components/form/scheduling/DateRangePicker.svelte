@@ -7,6 +7,7 @@ import {
 } from '@texuli/primitives/date-picker';
 import type { HTMLAttributes } from 'svelte/elements';
 import { dateCalendarClass, dateFieldClass } from 'texuli/date';
+import { useFieldLabel } from 'texuli/field';
 import { Icon } from 'texuli/icons';
 import { cn } from '../../../lib/cn.ts';
 import { chainHandlers, composeHandlers } from '../../../lib/handlers.ts';
@@ -17,13 +18,7 @@ import {
   type IsoDate,
   validateDateRange,
 } from './dates.ts';
-import {
-  groupLabelFor,
-  segmentsEmpty,
-  texuliUnavailable,
-  texuliWeekStart,
-  typedIsoText,
-} from './texuli-date.ts';
+import { segmentsEmpty, texuliUnavailable, texuliWeekStart, typedIsoText } from './texuli-date.ts';
 import type { IsoWeekday } from './weekdays.ts';
 
 /**
@@ -33,10 +28,12 @@ import type { IsoWeekday } from './weekdays.ts';
  * that picks the range in two clicks (a second click before the first swaps
  * the ends; a range over `maxDays` is refused and announced). `id` lands on
  * the start date's first segment, `aria-describedby`/`aria-invalid` on every
- * segment and `required` on both dates, so it sits inside FormField. It
- * composes the parts rather than the styled `texuli/date` `DateRangePicker`
- * only for the `ui-input` hook on the bordered control (see DatePicker; Texuli
- * gap G89).
+ * segment and `required` on both dates, so it sits inside FormField; the
+ * FormField (Texuli `Field`) label names the group through Texuli's label
+ * context (G91). It composes the parts rather than the styled `texuli/date`
+ * `DateRangePicker` only for the live hint inside the calendar dialog ("Start
+ * <date>. Now choose the end date."): the styled picker takes no content in
+ * its dialog and announces no half-picked range (reported as a Texuli gap).
  *
  * The bound value only changes to a complete, valid range or to an empty
  * one; any other entry is reported inline (when the fields are left, or at
@@ -127,17 +124,13 @@ let open = $state(false);
 /** A first calendar pick is waiting for the second. */
 let picking = $state(false);
 let control = $state<HTMLDivElement | null>(null);
-let fieldLabelId = $state<string | undefined>(undefined);
+/** The enclosing FormField (Texuli `Field`): its label names the group. */
+const field = useFieldLabel();
 
 $effect(() => {
   draft = { start: value.start, end: value.end };
   issue = null;
   typed = null;
-});
-
-// FormField's `<label for={id}>` names the start's first segment; it names the group too.
-$effect(() => {
-  fieldLabelId = groupLabelFor(control, id).id;
 });
 
 // Closing the dialog with half a pick restores the committed range.
@@ -278,7 +271,7 @@ const hint = $derived(
         class="tx-date__field"
         inputId={id}
         {label}
-        aria-labelledby={labelledBy ?? fieldLabelId}
+        aria-labelledby={labelledBy ?? field?.labelId}
         aria-describedby={describedByAll}
         aria-invalid={invalid || undefined}
         {...name ? { startName: `${name}.start`, endName: `${name}.end` } : {}}

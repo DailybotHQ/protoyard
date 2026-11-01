@@ -67,6 +67,18 @@ describe('library themes in every prototype', () => {
     expect(primary()).toBe(expected.dark.primary);
   });
 
+  it('applies ?theme=<expanded library id> by default (all 204 library themes)', async () => {
+    expect((await resolveLibraryTheme('ash-plain'))?.id).toBe('ash-plain');
+    const expected = await loadLibraryTheme('wheat-barn');
+    const app = await boot('?theme=wheat-barn&mode=light', 'library-expanded-link');
+    expect(app.error).toBeNull();
+    expect(app.runtime?.theme.appearance().theme).toMatchObject({
+      value: 'wheat-barn',
+      source: 'override',
+    });
+    expect(primary()).toBe(expected.light.primary);
+  });
+
   it('caches the library look for the no-flash script, which replays it before the next boot', async () => {
     const expected = await loadLibraryTheme('fintech-ledger');
     await boot('?theme=fintech-ledger&mode=light', 'library-cache');

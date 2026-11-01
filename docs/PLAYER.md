@@ -20,12 +20,15 @@ prototype with no build and no install. Routing follows blueprint `kind`
   write (`session.assert` → zod → `environment.run` → `db.transaction`).
   Scenarios are the template set (`empty`, `active`, `viewer`, `massive`).
 - **Deck, page or doc** (`kind: "deck"`, `kind: "page"`, `kind: "doc"`):
-  `defineKindRuntime` and the matching `DeckApp` / `PageApp` / `DocApp`. One
-  Dexie version for block state and form responses, the `default` scenario, and
+  `defineKindRuntime` and the matching `DeckApp` / `PageApp` / `DocApp`. Block
+  state, form responses and (database version 2) saved doc edits, the
+  `default` scenario, and
   presenter / audience / viewer personas. No CRUD shell, Faker or world worker
   on the kind boot path.
 - Shared chrome for every kind: IndexedDB namespaces, themes (including a brand
-  theme), layouts, device shells, and DevTools (hide them with `?devtools=0`).
+  theme; the settings screen and `?theme=` reach all 204 library themes, the
+  140 beyond the catalog loading on demand), layouts, device shells, and
+  DevTools (hide them with `?devtools=0`).
 
 Everything is simulated, and every page shows the "Prototype · simulated data"
 badge. Promote an **app** exploration to level 2 with `protoyard generate`, or
@@ -215,7 +218,7 @@ Generated worlds are cached by content address in `protoyard.player.worlds`:
 
 ## Parity with generated prototypes
 
-Level 1 and level 2 are one app (ADR-029). For each of the 40 catalog
+Level 1 and level 2 are one app (ADR-029). For each of the 43 catalog
 blueprints, `packages/blueprint/tests/runtime-parity.test.ts` generates a real
 prototype with the CLI and compares it with the player's runtime definition:
 - database versions, policy, integrity and scenarios;
@@ -415,6 +418,60 @@ store and capabilities as the kind services layer.
 `replace` messages accept any kind, and each swap tears the running document
 or app down exactly once. A change between two content kinds keeps the world
 (they share one store layout). A change to or from an app starts a fresh one.
+
+### Motion
+
+A blueprint's optional `motion.level` (`full`, `subtle` or `none`; see
+[GENERATOR](GENERATOR.md#motion)) reaches every Texuli component through a
+`texuli/motion` `MotionProvider`: `PlayerApp` wraps apps (the conversational
+and business archetypes included), `KindApp` wraps decks, pages and docs, and a
+deck's own `style.motion` is capped at the same level. Without `motion` the
+player plays at `full`, as before. The reader's `prefers-reduced-motion` and the
+prototype's reduced-motion setting still win.
+
+### Progressive painting under quick serve
+
+When an agent is still writing a deck, page or doc that `quick serve` serves
+(the file grows, or a tool streams it), the player paints the part that has
+arrived instead of waiting for the last byte:
+
+1. The server's watcher reads the file at most every 400 ms while writes keep
+   coming (`QUICK_DRAFT_INTERVAL_MS`), and 150 ms after they settle. When the
+   JSON is truncated, `paintStreamedBlueprint` (`@protoyard/blueprint`) cuts it
+   after the last value that closed and closes the open containers. It tries
+   the deepest such candidate first, then shallower ones, each dropping the
+   member still arriving. The first candidate the ordinary untrusted loader
+   accepts (same limits, same schema and cross-reference checks) is the draft.
+2. The server serves that JSON at `/__protoyard/drafts/<file id>.json`
+   (same origin, `no-store`) and sends a `draft` event
+   `{ file, path, sha256, base }`: an identity and that path, never content.
+   `base` is the last complete identity the draft grows from.
+3. The player fetches the draft, reads it as untrusted input like any
+   blueprint, checks that it is a deck, page or doc with that identity and that
+   it opens in the world on screen, and paints it there. While a draft is on
+   screen a status notice reads "Receiving the deck: showing the part that has
+   arrived so far."
+4. When the file is complete and valid, the usual `blueprint` event (with the
+   complete identity before the stream as `previous`) replaces the draft, even
+   if the finished blueprint equals the one before it.
+
+The limits:
+
+- Only content kinds paint partially. An app's entities shape its database, so
+  half an app would open and migrate worlds that the finished one drops: an
+  app paints when its JSON is complete and valid, as before.
+- A partial part that fails validation is not painted. A deck that writes its
+  `outline` before its slides paints nothing until every slide the outline
+  names has arrived, and a blueprint whose `kind` comes after its body paints
+  nothing until it is complete. Writing `kind` first and the body in reading
+  order paints best.
+- A draft never updates the tab's share link or its remembered worlds: a
+  reload while a blueprint streams opens the last complete one.
+- Drafts are best effort. A failed fetch or a draft that more text has already
+  replaced is skipped, and the next event applies.
+- This is Protoyard's own streaming over its blueprint files. It does not use
+  `@texuli/spec/stream` or the Texuli player's `stream` prop, which read Texuli
+  spec documents (an interface tree), not Protoyard blueprints.
 
 ### Per-kind pages: deck.html, page.html and doc.html
 

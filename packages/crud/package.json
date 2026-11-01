@@ -67,6 +67,16 @@
       "types": "./src/screens/timeline/index.ts",
       "svelte": "./src/screens/timeline/index.ts",
       "default": "./src/screens/timeline/index.ts"
+    },
+    "./screens/sheet": {
+      "types": "./src/screens/sheet/index.ts",
+      "svelte": "./src/screens/sheet/index.ts",
+      "default": "./src/screens/sheet/index.ts"
+    },
+    "./screens/canvas": {
+      "types": "./src/screens/canvas/index.ts",
+      "svelte": "./src/screens/canvas/index.ts",
+      "default": "./src/screens/canvas/index.ts"
     }
   },
   "scripts": {
@@ -83,7 +93,10 @@
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
     "@protoyard/views-ui": "workspace:*",
-    "texuli": "0.8.0",
+    "@texuli/canvas": "0.9.0",
+    "@texuli/forms": "0.9.0",
+    "@texuli/sheets": "0.9.0",
+    "texuli": "0.9.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -170,6 +183,16 @@
         "types": "./dist/screens/timeline/index.d.ts",
         "svelte": "./dist/screens/timeline/index.js",
         "default": "./dist/screens/timeline/index.js"
+      },
+      "./screens/sheet": {
+        "types": "./dist/screens/sheet/index.d.ts",
+        "svelte": "./dist/screens/sheet/index.js",
+        "default": "./dist/screens/sheet/index.js"
+      },
+      "./screens/canvas": {
+        "types": "./dist/screens/canvas/index.d.ts",
+        "svelte": "./dist/screens/canvas/index.js",
+        "default": "./dist/screens/canvas/index.js"
       }
     },
     "files": [

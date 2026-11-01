@@ -1,7 +1,11 @@
 import { deflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { changedPixels, decodePng, optimizePng } from '../../packages/cli/src/lib/capture/png.ts';
-import { THEME_COLLECTIONS, THEME_LIBRARY_META } from '../../packages/themes/src/library/index.ts';
+import {
+  loadFullLibraryMeta,
+  THEME_COLLECTIONS,
+  THEME_LIBRARY_META,
+} from '../../packages/themes/src/library/index.ts';
 import {
   axeRuleViolations,
   buildMatrix,
@@ -217,13 +221,18 @@ describe('theme review', () => {
     );
   });
 
-  it('covers the real library: all is every theme, every collection is non-empty', () => {
-    const all = resolveThemes(['all'], THEME_LIBRARY_META, THEME_COLLECTIONS);
-    expect(all.ids).toHaveLength(THEME_LIBRARY_META.length);
-    expect(THEME_LIBRARY_META.length).toBeGreaterThanOrEqual(64);
+  it('covers the real library: all is every theme, every collection is non-empty', async () => {
+    // What the script passes: the catalog and Texuli's expanded set.
+    const full = await loadFullLibraryMeta();
+    const all = resolveThemes(['all'], full, THEME_COLLECTIONS);
+    expect(all.ids).toHaveLength(full.length);
+    expect(full.length).toBeGreaterThan(THEME_LIBRARY_META.length);
+    expect(all.ids.slice(0, THEME_LIBRARY_META.length)).toEqual(
+      THEME_LIBRARY_META.map((meta) => meta.id)
+    );
     for (const collection of THEME_COLLECTIONS) {
-      expect(resolveThemes([collection], THEME_LIBRARY_META, THEME_COLLECTIONS).ids.length).toBe(
-        THEME_LIBRARY_META.filter((meta) => meta.collection === collection).length
+      expect(resolveThemes([collection], full, THEME_COLLECTIONS).ids.length).toBe(
+        full.filter((meta) => meta.collection === collection).length
       );
     }
   });

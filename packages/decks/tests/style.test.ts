@@ -1,4 +1,11 @@
-import { DEFAULT_THEME_ID, FONT_CATALOG, THEME_LIBRARY_META } from '@protoyard/themes';
+import {
+  DEFAULT_THEME_ID,
+  EXPANDED_LIBRARY_THEME_IDS,
+  FONT_CATALOG,
+  resetExpandedLibraryLoader,
+  setExpandedLibraryLoader,
+  THEME_LIBRARY_META,
+} from '@protoyard/themes';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_DECK_THEME_ID, deckThemeKey, loadDeckTheme } from '../src/style/index.ts';
 
@@ -28,6 +35,25 @@ describe('loadDeckTheme', () => {
     const loaded = await loadDeckTheme(library.id);
     expect(loaded.warnings).toEqual([]);
     expect(loaded.theme.dark.background.default).toMatch(/^#[0-9a-f]{6}$/i);
+  });
+
+  it('resolves an expanded library theme, and falls back with a warning when it cannot load', async () => {
+    const id = EXPANDED_LIBRARY_THEME_IDS[0] as string;
+    const loaded = await loadDeckTheme(id);
+    expect(loaded.warnings).toEqual([]);
+    expect(loaded.theme.light.primary.default).toMatch(/^#[0-9a-f]{6}$/i);
+
+    const other = EXPANDED_LIBRARY_THEME_IDS[1] as string;
+    setExpandedLibraryLoader(() => Promise.reject(new Error('left out of this file')));
+    try {
+      const fallback = await loadDeckTheme(other);
+      expect(fallback.warnings).toEqual([
+        expect.objectContaining({ code: 'theme-unavailable', value: other }),
+      ]);
+      expect(fallback.theme).toEqual((await loadDeckTheme(DEFAULT_THEME_ID)).theme);
+    } finally {
+      resetExpandedLibraryLoader();
+    }
   });
 
   it('creates deterministic palette themes from unsigned seeds', async () => {

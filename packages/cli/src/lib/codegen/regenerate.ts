@@ -12,6 +12,7 @@ import {
   safeParseAnyBlueprint,
   safeParseBlueprint,
 } from '@protoyard/blueprint';
+import { KIND_SCHEMA_VERSION } from '@protoyard/blueprint/kinds';
 import { CliError } from '../output.ts';
 import { type EmittedFile, emitContentKindPrototype, emitPrototype } from './emit.ts';
 import { formatJson } from './format.ts';
@@ -267,18 +268,25 @@ export async function planContentKindRegeneration(input: {
   if (blueprintKind(snapshotBlueprint) !== blueprintKind(blueprint)) {
     throw new CliError('validation', `${SNAPSHOT_PATH} has a different content kind.`);
   }
-  if (manifestSchemaVersion !== 1 || snapshot.schemaVersion !== 1) {
-    throw new CliError(
-      'validation',
-      `Content-kind prototypes use storage schema v1; found manifest v${manifestSchemaVersion} and snapshot v${snapshot.schemaVersion}.`
-    );
+  // The kind runtime owns the storage schema (KIND_SCHEMA_VERSION): an older
+  // prototype is upgraded by this regeneration; a newer one came from a newer CLI.
+  for (const [what, version] of [
+    ['manifest', manifestSchemaVersion],
+    ['snapshot', snapshot.schemaVersion],
+  ] as const) {
+    if (!Number.isInteger(version) || version < 1 || version > KIND_SCHEMA_VERSION) {
+      throw new CliError(
+        'validation',
+        `Content-kind prototypes use storage schema v1 to v${KIND_SCHEMA_VERSION}; the ${what} has v${version}.`
+      );
+    }
   }
 
   const blueprintText = formatJson(withoutHistory(inputRaw));
   const emitted = emitContentKindPrototype(blueprint, blueprintText);
   const files = await planGeneratedFiles(dest, emitted);
   const nextSnapshot: Snapshot = {
-    schemaVersion: 1,
+    schemaVersion: KIND_SCHEMA_VERSION,
     blueprint: withoutHistory(inputRaw),
     codegenFormat: CODEGEN_FORMAT_VERSION,
   };
@@ -302,8 +310,8 @@ export async function planContentKindRegeneration(input: {
   return {
     blueprint,
     blueprintText,
-    fromVersion: 1,
-    toVersion: 1,
+    fromVersion: manifestSchemaVersion,
+    toVersion: KIND_SCHEMA_VERSION,
     ops: [],
     files,
   };
@@ -535,9 +543,9 @@ async function checkContentKindDrift(
   const blueprint = parsed.data;
   const problems: string[] = [];
   const regenerate = `run \`pnpm protoyard generate ${slug} --blueprint prototypes/${slug}/blueprint.json\``;
-  if (manifestSchemaVersion !== 1) {
+  if (manifestSchemaVersion !== KIND_SCHEMA_VERSION) {
     problems.push(
-      `content-kind prototypes use storage schema v1; protoyard.json has v${manifestSchemaVersion}`
+      `content-kind prototypes use the kind runtime's storage schema v${KIND_SCHEMA_VERSION}; protoyard.json has v${manifestSchemaVersion}: ${regenerate}`
     );
   }
   const snapshot = await readSnapshot(dir).catch((error: Error) => {
@@ -567,6 +575,6 @@ async function checkContentKindDrift(
   return {
     ok: problems.length === 0,
     problems,
-    summary: `${blueprint.kind} blueprint, schema v1, ${fresh} generated files fresh`,
+    summary: `${blueprint.kind} blueprint, schema v${manifestSchemaVersion}, ${fresh} generated files fresh`,
   };
 }

@@ -73,7 +73,7 @@ export const FEATURE_AREAS: readonly FeatureArea[] = [
     points: [
       'Two levels: the player runs a blueprint with no build or generated code; `protoyard generate` writes a full app in prototypes/<slug>/ with its own code and tests.',
       'Both render the blueprint through the same app model, so moving between levels keeps entities, screens and scenarios. `quick promote` moves an exploration up; Open in player on a gallery entry moves it down.',
-      '`blueprint new --from-brief` turns prose into a validated blueprint offline, with no model call; 27 templates and 40 catalog blueprints are ready to start from.',
+      '`blueprint new --from-brief` turns prose into a validated blueprint offline, with no model call; 27 templates and 43 catalog blueprints are ready to start from.',
       'Every prototype carries an AGENTS.md and docs/ spec whose generated regions stay in sync with the code.',
     ],
     guides: [
@@ -105,7 +105,7 @@ export const FEATURE_AREAS: readonly FeatureArea[] = [
     summary:
       'Themes, layouts and device shells, plus rich views, charts, analytics, SaaS flows and scripted AI assistants.',
     points: [
-      'A 64-theme library on top of six built-in themes, twelve shared page layouts, and device and host shells.',
+      'A 204-theme library on top of six built-in themes, twelve shared page layouts, and device and host shells.',
       'Rich views: board, calendar, timeline, a virtualized data grid, trees, an offline map, files and activity.',
       'Charts and an analytics kit with KPIs, funnels, cohorts and an editable dashboard over deterministic events.',
       'Simulated SaaS flows (sign-in, phone sign-up, SSO, MFA, onboarding, billing), scripted AI assistants and agents with no model API, and 175 portraits of fictional people.',

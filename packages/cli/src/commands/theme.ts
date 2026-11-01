@@ -2,17 +2,20 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'n
 import { basename, join, resolve, sep } from 'node:path';
 import { PrototypeManifestSchema, type Theme, ThemeSchema } from '@protoyard/core';
 import {
+  ALL_LIBRARY_THEME_IDS,
   BUILTIN_THEMES,
   contrastRatio,
   createThemeFromSeed,
-  getLibraryThemeMeta,
+  findLibraryThemeMeta,
   importThemeTokens,
-  listCollections,
-  listThemeLibrary,
+  listFullThemeLibrary,
   loadLibraryTheme,
-  searchThemeLibrary,
+  searchFullThemeLibrary,
   TEXT_CONTRAST_PAIRS,
   THEME_COLLECTIONS,
+  THEME_MOODS,
+  type ThemeCollection,
+  type ThemeMood,
   ThemeTokenContrastError,
   UI_CONTRAST_PAIRS,
 } from '@protoyard/themes';
@@ -24,20 +27,34 @@ import { resolveTarget } from '../lib/workspace.ts';
 
 const THEME_FILE = 'src/theme.ts';
 
+/**
+ * `theme list`: the six built-ins and every library theme (the 64-theme
+ * catalog and Texuli's expanded set, 204 on Texuli 0.9.0), optionally
+ * narrowed by collection, mood or a search. Built-ins show only in the
+ * unfiltered list.
+ */
 export const themeListCommand: Handler = async (_ctx, _args, options): Promise<CommandResult> => {
   const collection = opt(options, 'collection');
+  const mood = opt(options, 'mood');
   const search = opt(options, 'search')?.trim();
-  if (collection && !THEME_COLLECTIONS.includes(collection as (typeof THEME_COLLECTIONS)[number])) {
+  if (collection && !THEME_COLLECTIONS.includes(collection as ThemeCollection)) {
     throw new CliError('usage', `Unknown theme collection "${collection}".`, {
-      hint: `Choose from: ${listCollections()
-        .map(({ id }) => id)
-        .join(', ')}.`,
+      hint: `Choose from: ${THEME_COLLECTIONS.join(', ')}.`,
     });
   }
-  const library = search ? searchThemeLibrary(search) : listThemeLibrary();
-  const filteredLibrary = library.filter((theme) => !collection || theme.collection === collection);
+  if (mood && !THEME_MOODS.includes(mood as ThemeMood)) {
+    throw new CliError('usage', `Unknown theme mood "${mood}".`, {
+      hint: `Choose from: ${THEME_MOODS.join(', ')}.`,
+    });
+  }
+  const library = search ? await searchFullThemeLibrary(search) : await listFullThemeLibrary();
+  const filteredLibrary = library.filter(
+    (theme) =>
+      (!collection || theme.collection === collection) &&
+      (!mood || theme.mood.includes(mood as ThemeMood))
+  );
   const themes = [
-    ...(!collection && !search
+    ...(!collection && !mood && !search
       ? BUILTIN_THEMES.map((theme) => ({ id: theme.id, name: theme.name, source: 'builtin' }))
       : []),
     ...filteredLibrary.map((theme) => ({ ...theme, source: 'library' })),
@@ -47,6 +64,7 @@ export const themeListCommand: Handler = async (_ctx, _args, options): Promise<C
       count: themes.length,
       themes,
       ...(collection ? { collection } : {}),
+      ...(mood ? { mood } : {}),
       ...(search ? { search } : {}),
     },
     render(out) {
@@ -156,12 +174,16 @@ export const themeUseCommand: Handler = async (ctx, args, options): Promise<Comm
   };
 };
 
+/** Every theme id the CLI accepts: the built-ins, then the whole library. */
+const knownThemeIds = () => [...BUILTIN_THEMES.map(({ id }) => id), ...ALL_LIBRARY_THEME_IDS];
+
 async function resolveTheme(id: string): Promise<{ theme: Theme; source: 'builtin' | 'library' }> {
   const builtin = BUILTIN_THEMES.find((candidate) => candidate.id === id);
   if (builtin) return { theme: builtin, source: 'builtin' };
-  if (getLibraryThemeMeta(id)) return { theme: await loadLibraryTheme(id), source: 'library' };
+  if (await findLibraryThemeMeta(id))
+    return { theme: await loadLibraryTheme(id), source: 'library' };
   throw new CliError('not_found', `Unknown theme "${id}".`, {
-    hint: `Known themes: ${[...BUILTIN_THEMES.map(({ id: themeId }) => themeId), ...listThemeLibrary().map(({ id: themeId }) => themeId)].join(', ')}`,
+    hint: `Known themes: ${knownThemeIds().join(', ')}`,
   });
 }
 
@@ -269,15 +291,7 @@ export const themeExportCommand: Handler = async (ctx, args, options): Promise<C
   if (sourceFile) {
     theme = readTheme(resolve(ctx.root, sourceFile));
   } else {
-    const themeId = id as string;
-    const builtin = BUILTIN_THEMES.find((candidate) => candidate.id === themeId);
-    const library = getLibraryThemeMeta(themeId);
-    if (!builtin && !library) {
-      throw new CliError('not_found', `Unknown theme "${themeId}".`, {
-        hint: `Known themes: ${[...BUILTIN_THEMES.map((candidate) => candidate.id), ...listThemeLibrary().map((candidate) => candidate.id)].join(', ')}`,
-      });
-    }
-    theme = builtin ?? (await loadLibraryTheme(themeId));
+    theme = (await resolveTheme(id as string)).theme;
   }
   const format = (opt(options, 'format') ?? 'css') as ThemeExportFormat;
   const content = exportTheme(theme, format);

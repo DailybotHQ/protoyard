@@ -48,8 +48,8 @@ function load(file: string) {
 describe('marketplace blueprint catalog', () => {
   const files = listCatalogFiles();
 
-  it('ships at least 40 catalog blueprints', () => {
-    expect(files.length).toBeGreaterThanOrEqual(40);
+  it('ships at least 43 catalog blueprints', () => {
+    expect(files.length).toBeGreaterThanOrEqual(43);
   });
 
   it('parses every blueprint with brand + catalog and derives stores/policy/inputs', () => {

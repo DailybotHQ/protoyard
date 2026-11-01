@@ -27,6 +27,13 @@ let error = $state('');
 let copied = $state(false);
 let copying = $state(false);
 let copyError = $state('');
+// The sketches section carries the canvas editor, so it loads only when opened.
+type SketchesModule = typeof import('./Sketches.svelte');
+let sketchesModule = $state<Promise<SketchesModule> | null>(null);
+function openSketches() {
+  section = 'Sketches';
+  sketchesModule ??= import('./Sketches.svelte');
+}
 
 const selected = $derived(
   ENTRIES.find((entry) => entry.id === selectedId) ?? {
@@ -140,6 +147,7 @@ function contrastInk(hex: string) {
     <p class="nav-label">LIBRARY</p>
     <Button class={`nav-item ${section === 'Foundations' ? 'active' : ''}`} onclick={() => section = 'Foundations'}><span>◈</span> Foundations</Button>
     <Button class={`nav-item ${section === 'Catalog' ? 'active' : ''}`} onclick={() => section = 'Catalog'}><span>▦</span> Components <span class="count">{ENTRIES.length}</span></Button>
+    <Button class={`nav-item ${section === 'Sketches' ? 'active' : ''}`} onclick={openSketches}><span>✎</span> Sketches</Button>
     <p class="nav-label">FOUNDATIONS</p>
     {#each foundations as item}
       <Button class={`nav-sub ${foundation === item ? 'sub-active' : ''}`} onclick={() => { section = 'Foundations'; foundation = item; }}>{item}</Button>
@@ -148,8 +156,16 @@ function contrastInk(hex: string) {
   </aside>
 
   <main class="main">
-    <header class="topbar"><div><span class="crumb">Workspace</span><span class="slash">/</span><strong>{section === 'Foundations' ? foundation : 'Component catalog'}</strong></div><div class="top-actions"><span class="local-tag">● Local preview</span><Button class="avatar small" aria-label="Current persona AC">AC</Button></div></header>
-    {#if section === 'Foundations'}
+    <header class="topbar"><div><span class="crumb">Workspace</span><span class="slash">/</span><strong>{section === 'Foundations' ? foundation : section === 'Sketches' ? 'Screen sketches' : 'Component catalog'}</strong></div><div class="top-actions"><span class="local-tag">● Local preview</span><Button class="avatar small" aria-label="Current persona AC">AC</Button></div></header>
+    {#if section === 'Sketches'}
+      {#await sketchesModule}
+        <section class="content"><span class="loading">Loading sketches…</span></section>
+      {:then module}
+        {#if module}<module.default />{/if}
+      {:catch loadError}
+        <section class="content"><p class="error" role="alert">The sketches could not be loaded: {loadError instanceof Error ? loadError.message : String(loadError)}</p><Button onclick={() => { sketchesModule = import('./Sketches.svelte'); }}>Try again</Button></section>
+      {/await}
+    {:else if section === 'Foundations'}
       <section class="content">
         <div class="page-heading"><div><p class="eyebrow">FOUNDATION / {foundation.toUpperCase()}</p><h1>{foundation} foundations</h1><p class="lede">A practical starting point for a coherent, accessible product language.</p></div><span class="version-pill">v1.0 · Draft</span></div>
         {#if foundation === 'Color'}

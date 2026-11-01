@@ -256,6 +256,8 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `docs/DECKS.md`, `skills/protoyard/references/decks.md` (agent loop and recipes) | `pnpm vitest run packages/decks/tests/docs-snippets.test.ts packages/cli/tests/decks-docs.test.ts` + `pnpm check:skill` | every recipe parses; skill integrity |
 | `blueprints/decks/everything.json` (the reference deck) | `pnpm vitest run packages/decks/tests/everything-deck.test.ts` + `pnpm protoyard deck lint blueprints/decks/everything.json` + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-everything.spec.ts` (it is also in `tests/e2e/content-kinds-a11y.spec.ts` on the player) | coverage of every layout, block, chart kind and steppable prop + browser walk |
 | `packages/pages/src/**`, `packages/pages-ui/src/**` | `pnpm vitest run packages/pages packages/pages-ui` (`page-design.test.ts`, `doc-design.test.ts`, `budget.test.ts`) | unit + render + bundle |
+| `packages/pages/src/{texuli-document,doc-edits}.ts`, `packages/pages-ui/src/doc/**` (doc editing, Word/PDF/Markdown export, saved edits) | `pnpm vitest run packages/pages/tests/doc-edits.test.ts packages/pages-ui/tests/doc-editor.test.ts packages/pages-ui/tests/doc-export.test.ts packages/pages-ui/tests/doc-saved-edits.test.ts packages/pages-ui/tests/doc-tools.test.ts` + `PROTOYARD_E2E_PROTOTYPES=doc pnpm exec playwright test tests/e2e/doc-edits.spec.ts` | unit + render + E2E |
+| `packages/pages-ui/src/form/**`, `packages/crud/src/EntityForm.svelte`, `packages/saas-ui/src/lib/schema-form.ts` (forms on `@texuli/forms`) | `pnpm vitest run packages/pages-ui/tests/form-block.test.ts packages/crud/tests/entity-form.test.ts packages/saas-ui` | render + integration |
 | `packages/flows/src/**`, `packages/flows-ui/src/**`, `packages/gamification/src/**`, `packages/gamification-ui/src/**` | `pnpm vitest run packages/flows packages/flows-ui packages/gamification packages/gamification-ui` | unit + render |
 | `packages/blueprint/src/kinds/**` (kind union, untrusted loader, share links, `kinds/parse`) | `pnpm vitest run packages/blueprint/tests/kinds packages/blueprint/tests/identity-golden.test.ts packages/player/tests/kinds-parity.test.ts` | unit + both-level parity |
 | `packages/cli/src/lib/codegen/{emit,regenerate}.ts` (content kinds), `templates/{deck,page,doc,design-kit}/**` | `pnpm vitest run packages/cli/tests/generate-kinds.test.ts packages/cli/tests/embed-level2.test.ts packages/cli/tests/content-templates.test.ts templates/deck templates/page templates/doc templates/design-kit` | CLI integration (generation, drift, lint-clean output, embedded apps) |
@@ -295,6 +297,8 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `packages/analytics-ui/src/**` | `pnpm vitest run packages/analytics-ui`; consumers `templates/analytics` and `prototypes/pebblestat-analytics-demo` | component (happy-dom) |
 | `packages/views/src/**` | `pnpm vitest run packages/views` | unit (pure engines and deterministic scenario fragments) |
 | `packages/views-ui/src/**` | `pnpm vitest run packages/views-ui` + `pnpm vitest run packages/cli/tests/views-bundle.test.ts` | component + real-build chunk ceilings and lazy overlay guard |
+| `packages/views-ui/src/{sheet,canvas}/**`, `packages/crud/src/screens/{sheet,canvas}/**` | `pnpm vitest run packages/views-ui/tests/sheet.test.ts packages/views-ui/tests/canvas.test.ts packages/crud/tests/sheet-screen.test.ts packages/crud/tests/canvas-screen.test.ts` + `PROTOYARD_E2E_PROTOTYPES=canvas-board-demo,fintech-dashboard,design-kit pnpm exec playwright test tests/e2e/canvas-board-demo.spec.ts tests/e2e/template-fintech-dashboard.spec.ts tests/e2e/template-design-kit.spec.ts` | component + E2E |
+| `packages/cli/src/lib/quick/single-file.ts`, `packages/player/src/kinds/**` (each kind file carries only its own renderer) | `pnpm vitest run packages/cli/tests/quick/single-file-kinds.test.ts` (after `pnpm --filter @protoyard/player build`) | real player build |
 | `prototypes/ui-kit/src/demos/views/**` or views UI behavior | `PROTOYARD_E2E_PROTOTYPES=ui-kit pnpm test:e2e tests/e2e/views.spec.ts` | E2E on desktop and Pixel 7: keyboard, pointer, phone layout, axe, and large-data cases |
 | 100k-row DataGrid performance | `pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check` | browser performance gate (in-memory rows, not an IndexedDB world) |
 | Chart performance (any of the four packages above, or the ui-kit chart demos) | `pnpm protoyard build ui-kit && pnpm exec tsx scripts/bench-charts.ts --runs 3 --check` (Node LTTB, Chromium 10k render, hover p95, long tasks, subpath sizes; writes `tmp/bench-charts.json`) | perf gate |
@@ -309,7 +313,7 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `packages/avatars/**`, `scripts/import-avatars.ts` | `pnpm vitest run packages/avatars`; `--check` needs `--src` or `PROTOYARD_AVATARS_SRC` (owner only) | manifest and deterministic picks |
 | `packages/blueprint/src/app-model.ts`, `packages/cli/src/lib/codegen/emit.ts` (routes, layout) | `pnpm vitest run packages/blueprint/tests/app-model.test.ts packages/cli/tests/codegen-model.test.ts` | app model and the codegen that renders it |
 | `packages/blueprint/src/runtime-definition.ts` | `pnpm vitest run packages/blueprint/tests/runtime-definition.test.ts` | runtime prototype definition from a blueprint |
-| `runtime-definition.ts`, `app-model.ts`, codegen `emit.ts`, `templates/crud-app/src/**` | `pnpm vitest run packages/blueprint/tests/runtime-parity.test.ts`: the 40 catalog blueprints generated with the CLI and compared with `definePrototypeFromBlueprint`, including byte-identical worlds (about 1-3 s per blueprint) | level 1 / level 2 parity |
+| `runtime-definition.ts`, `app-model.ts`, codegen `emit.ts`, `templates/crud-app/src/**` | `pnpm vitest run packages/blueprint/tests/runtime-parity.test.ts`: the 43 catalog blueprints generated with the CLI and compared with `definePrototypeFromBlueprint`, including byte-identical worlds (about 1-3 s per blueprint) | level 1 / level 2 parity |
 | `packages/blueprint/src/identity.ts`, `share.ts` | `pnpm vitest run packages/blueprint/tests/identity.test.ts packages/blueprint/tests/share.test.ts` | content hash, storage identity, share-link codec |
 | `packages/blueprint/src/untrusted.ts` | `pnpm vitest run packages/blueprint/tests/untrusted.test.ts packages/blueprint/tests/untrusted-fuzz.test.ts` | untrusted loader and deterministic fuzzing |
 | `packages/blueprint/src/variants.ts`, `patch.ts` | `pnpm vitest run packages/blueprint/tests/variants.test.ts packages/blueprint/tests/patch.test.ts` | deterministic variants, RFC 6902 patches |
@@ -561,7 +565,8 @@ context with the thumbnails' readiness wait (`packages/cli/src/lib/capture/page.
   are decoded by `packages/cli/src/lib/capture/png.ts`, no image dependency), `new` or
   `resized`.
 
-**Theme review.** `--themes all` (every library theme) or a collection
+**Theme review.** `--themes all` (every library theme: the 64-theme catalog
+and Texuli's expanded set, 204 in all) or a collection
 (`industry`, `brand-like`, `high-contrast`, `colorblind-safe`, `seasonal`,
 `mono`; entries combine with explicit ids, `--themes high-contrast,violet`)
 captures one representative screen per target instead of the full matrix:
@@ -574,7 +579,7 @@ unknown id) is flagged `theme-fallback (<applied id>)`. The contact sheet's
 theme filter narrows the review.
 
 ```bash
-pnpm visual:sweep --only ui-kit --themes all --shells none              # 2 × 64 shots
+pnpm visual:sweep --only ui-kit --themes all --shells none              # 2 × 204 shots
 pnpm visual:sweep --only crm-demo --themes high-contrast --route /settings --no-axe
 ```
 

@@ -474,8 +474,11 @@ export function createProgram(env: RunnerEnv): Command {
     .description('search, inspect, apply, create, export and import themes');
   theme
     .command('list')
-    .description('list built-in and library themes, optionally filtered by collection or search')
+    .description(
+      'list built-in and library themes, optionally filtered by collection, mood or search'
+    )
     .option('--collection <collection>', 'filter by library collection')
+    .option('--mood <mood>', 'filter by library mood (calm, bold, playful, …)')
     .option('--search <query>', 'search library theme names, ids, tags, moods and descriptions')
     .action(def('theme list', themeListCommand));
   theme

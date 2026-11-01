@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BUILTIN_THEMES,
   contrastRatio,
-  loadAllLibraryThemes,
+  loadAllFullLibraryThemes,
   parseHex,
   relativeLuminance,
   TEXT_CONTRAST_PAIRS,
@@ -54,9 +54,10 @@ describe('built-in themes', () => {
 });
 
 describe('library themes (AA)', () => {
-  it('every library preset × mode meets WCAG AA', async () => {
+  it('every library theme (all 204, catalog and expanded) × mode meets WCAG AA', async () => {
     expect(THEME_LIBRARY_META.length).toBeGreaterThanOrEqual(30);
-    const themes = await loadAllLibraryThemes();
+    const themes = await loadAllFullLibraryThemes();
+    expect(themes.length).toBe(204);
     const failures: string[] = [];
     for (const theme of themes) {
       for (const mode of ['light', 'dark'] as const) {

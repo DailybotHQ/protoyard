@@ -17,6 +17,7 @@ import { PLAYER_PROTOCOL } from '../src/embed/protocol.ts';
 import demo from '../src/fixtures/demo.blueprint.json';
 import { createDeferredStateHost } from '../src/kinds/deferred-host.ts';
 import { createMountEmbed } from '../src/kinds/mount-embed.ts';
+import { loadersFor } from '../src/kinds/renderers.ts';
 import { classifyBlueprintChange, type StartLiveReloadOptions } from '../src/live-reload.ts';
 import { runPlayer } from '../src/run.ts';
 import { bootByKind } from '../src/sources/boot-any.ts';
@@ -305,6 +306,7 @@ describe('bootKind (real) on fake IndexedDB', () => {
     const indexedDB = new IDBFactory();
     booted = await bootKind({
       blueprint,
+      loaders: loadersFor((blueprint as { kind: 'deck' | 'page' | 'doc' }).kind),
       target,
       search: '',
       indexFactory: indexedDB,

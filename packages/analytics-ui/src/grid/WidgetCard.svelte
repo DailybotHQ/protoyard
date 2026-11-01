@@ -1,8 +1,9 @@
 <script lang="ts">
 import { Ellipsis, Maximize2 } from '@lucide/svelte';
 import { Button, Dialog, DropdownMenu, type DropdownMenuEntry } from '@protoyard/ui';
-import type { Snippet } from 'svelte';
+import { getContext, type Snippet } from 'svelte';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { WIDGET_CARD_EMBEDDED } from './context.ts';
 
 type Props = {
   title: string;
@@ -38,6 +39,9 @@ let {
 
 const uid = $props.id();
 let expanded = $state(false);
+// Inside DashboardGrid the Texuli widget draws the card and the title heading;
+// this card keeps its description, actions, states and full-screen view.
+const embedded = getContext<boolean | undefined>(WIDGET_CARD_EMBEDDED) === true;
 const emptyMessage = $derived(typeof empty === 'string' ? empty : 'No data yet');
 </script>
 
@@ -66,13 +70,17 @@ const emptyMessage = $derived(typeof empty === 'string' ? empty : 'No data yet')
 {/snippet}
 
 <section
-  aria-labelledby="{uid}-title"
+  aria-labelledby={embedded ? undefined : `${uid}-title`}
+  aria-label={embedded ? title : undefined}
   aria-busy={loading ? 'true' : undefined}
-  class="flex h-full min-h-0 min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 text-surface-foreground shadow-soft {className}"
+  data-embedded={embedded ? '' : undefined}
+  class="flex h-full min-h-0 min-w-0 flex-col gap-3 {embedded
+    ? ''
+    : 'rounded-xl border border-border bg-surface p-4 text-surface-foreground shadow-soft'} {className}"
 >
   <header class="flex items-start justify-between gap-2">
     <div class="grid min-w-0 gap-0.5">
-      <h3 id="{uid}-title" class="truncate font-heading text-sm font-semibold">{title}</h3>
+      {#if !embedded}<h3 id="{uid}-title" class="truncate font-heading text-sm font-semibold">{title}</h3>{/if}
       {#if description}<p class="truncate text-xs text-muted-foreground">{description}</p>{/if}
     </div>
     <div class="flex shrink-0 items-center gap-1">

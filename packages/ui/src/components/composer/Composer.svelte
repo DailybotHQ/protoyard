@@ -1,8 +1,9 @@
 <script lang="ts">
 import { Composer as TexuliComposer } from '@texuli/chat';
 import type { Snippet } from 'svelte';
+import type { HTMLFormAttributes } from 'svelte/elements';
 
-interface Props {
+interface OwnProps {
   value?: string;
   /** Return `false` (or reject) to keep the draft, e.g. on validation failure. */
   onSubmit: (value: string) => unknown;
@@ -16,7 +17,12 @@ interface Props {
   /** Extra controls beside the send button (attach, emoji…). */
   actions?: Snippet;
   class?: string;
+  /** The composer's form (bindable). */
+  ref?: HTMLFormElement | null;
 }
+
+/** Extra attributes (`data-*`, `id`, handlers) land on the composer's form (Texuli's contract). */
+type Props = OwnProps & Omit<HTMLFormAttributes, keyof OwnProps | 'children'>;
 
 let {
   // No fallback: a caller may bind a value that starts undefined (a map entry);
@@ -25,9 +31,11 @@ let {
   placeholder = 'Write a message…',
   label = 'Message',
   actions,
+  onSubmit,
+  ref = $bindable(null),
   ...rest
 }: Props = $props();
 </script>
 
 <!-- A thin adapter over Texuli's Composer (`@texuli/chat`): Protoyard's `placeholder`, `label` and `actions`. -->
-<TexuliComposer bind:value={() => value ?? '', (next) => (value = next)} labels={{ placeholder, input: label }} attachments={actions} {...rest} />
+<TexuliComposer bind:value={() => value ?? '', (next) => (value = next)} labels={{ placeholder, input: label }} attachments={actions} {onSubmit} {...rest as Record<string, unknown>} bind:ref />

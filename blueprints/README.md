@@ -9,7 +9,10 @@ with a required **brand** and **catalog** block so the gallery can list it and
 on-brand prototype. The catalog spans four or more related entities per
 blueprint, scenario distribution hints (enum weights, date windows and numeric
 trends), a dashboard, and at least one domain-specific board, calendar,
-timeline, map or analytics screen. The catalog test checks that every supported
+timeline, map or analytics screen. Three of them (home renovation, product
+discovery and lesson planning) also show a `sheet` (an entity as a
+spreadsheet with totals) and a `canvas` (one infinite canvas per record,
+seeded with a small planning board). The catalog test checks that every supported
 screen kind is represented in at least three blueprints and dry-runs generation
 for every file.
 
@@ -24,7 +27,7 @@ catalog, so an agent can pick a starting point without mixing apps and content.
 
 | Kind | Catalog | Examples | Start from it when |
 | --- | --- | --- | --- |
-| `app` | [Marketplace catalog](#catalog) (`blueprints/*.json`) and [quick examples](./quick/README.md) (`blueprints/quick/`) | 40 + 4 | The idea is a product with data: entities, roles, screens and scenarios |
+| `app` | [Marketplace catalog](#catalog) (`blueprints/*.json`) and [quick examples](./quick/README.md) (`blueprints/quick/`) | 43 + 4 | The idea is a product with data: entities, roles, screens and scenarios |
 | `deck` | [Deck examples](./decks/README.md) (`blueprints/decks/`) | 7 | The idea is a presentation: a pitch, review, launch or training (plus the flagship deck, the everything reference deck and a minimal visual-QA deck) |
 | `page` | [Page examples](./pages/README.md) (`blueprints/pages/`) | 1 | The idea is a single scrolling marketing or waitlist page |
 | `doc` | [Doc examples](./docs/README.md) (`blueprints/docs/`) | 1 | The idea is a report, one-pager or data story to read and print |
@@ -102,7 +105,7 @@ no credentials or provider. Validate the examples with
 
 ## Catalog
 
-The catalog contains 40 blueprints across operations, services, business, people, content, and other product areas. The gallery count is derived from the indexed blueprint registry.
+The catalog contains 43 blueprints across operations, services, business, people, content, and other product areas. The gallery count is derived from the indexed blueprint registry.
 
 | Blueprint | Category | Screens |
 | --- | --- | --- |
@@ -123,11 +126,13 @@ The catalog contains 40 blueprints across operations, services, business, people
 | [Northstar Fleet Care](./fleet-maintenance.json) | operations | dashboard, list, form, calendar, settings |
 | [Dashdish Delivery Ops](./food-delivery.json) | commerce | dashboard, list, form, map, board, settings |
 | [Openfield Grant Desk](./grant-management.json) | finance | dashboard, list, form, board, settings |
+| [Hearthline Renovations](./home-renovation.json) | operations | dashboard, list, form, sheet, canvas, timeline, settings |
 | [Signalpath Incident Desk](./incident-management.json) | developer-tools | dashboard, list, form, timeline, board, settings |
 | [Brightcover Claims](./insurance-claims.json) | finance | dashboard, list, form, board, settings |
 | [Stockroom Inventory](./inventory.json) | operations | dashboard, list, form, timeline, detail, settings |
 | [Fleetpulse IoT](./iot-fleet.json) | operations | dashboard, list, form, map, detail, settings |
 | [Casebook Legal](./legal-matters.json) | internal-tools | dashboard, list, form, timeline, detail, settings |
+| [Chalkline Lesson Studio](./lesson-planning.json) | education | dashboard, list, form, sheet, canvas, calendar, settings |
 | [Campus LMS](./lms.json) | education | dashboard, list, form, board, detail, settings |
 | [Routeline Logistics](./logistics.json) | operations | dashboard, list, form, map, detail, settings |
 | [Forgewell Manufacturing](./manufacturing-work-orders.json) | operations | dashboard, list, form, board, analytics, settings |
@@ -137,6 +142,7 @@ The catalog contains 40 blueprints across operations, services, business, people
 | [Northstar Goals](./okr-goals.json) | productivity | dashboard, list, form, analytics, settings |
 | [Ledgerly Finance](./personal-finance.json) | finance | dashboard, list, form, analytics, detail, settings |
 | [Tandem Podcast Studio](./podcast-studio.json) | media | dashboard, list, form, calendar, settings |
+| [Brightloom Discovery](./product-discovery.json) | productivity | dashboard, list, form, sheet, canvas, board, settings |
 | [Launchpad Projects](./project-management.json) | productivity | dashboard, list, form, board, detail, settings |
 | [Lotline Realty](./real-estate.json) | real-estate | dashboard, list, form, map, detail, settings |
 | [Tablefire POS](./restaurant-pos.json) | commerce | dashboard, list, form, board, detail, settings |

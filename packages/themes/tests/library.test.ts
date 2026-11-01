@@ -10,7 +10,7 @@ import {
   loadFullLibraryTheme,
   loadFullLibraryThemeCharts,
 } from '@texuli/tokens/library-expand';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   contrastRatio,
   parseHex,
@@ -20,20 +20,29 @@ import {
 import { FONT_CATALOG } from '../src/fonts.ts';
 import { disableFullThemeLibrary, enableFullThemeLibrary } from '../src/library/full.ts';
 import {
+  ALL_LIBRARY_THEME_IDS,
   clearLibraryThemeCache,
+  EXPANDED_LIBRARY_THEME_IDS,
   findLibraryThemeMeta,
   getLibraryThemeMeta,
+  isCatalogThemeId,
+  isExpandedLibraryThemeId,
   isLibraryThemeId,
   LIBRARY_THEME_IDS,
   type LibraryThemeDefinition,
   listCollections,
+  listFullCollections,
+  listFullThemeLibrary,
   listThemeLibrary,
   loadAllFullLibraryThemes,
   loadAllLibraryThemes,
   loadFullLibraryMeta,
   loadLibraryTheme,
   loadLibraryThemeDefinition,
+  resetExpandedLibraryLoader,
+  searchFullThemeLibrary,
   searchThemeLibrary,
+  setExpandedLibraryLoader,
   THEME_COLLECTIONS,
   THEME_CONTRAST_LEVELS,
   THEME_LIBRARY_META,
@@ -45,10 +54,7 @@ import { BUILTIN_THEMES } from '../src/presets.ts';
 import { SHARED_PALETTE_ROLES } from '../src/texuli.ts';
 import { LIBRARY_THEME_DEFINITIONS } from './fixtures/library-definitions.ts';
 
-// These suites cover the full library (204 themes); the default is the catalog.
-beforeAll(() => enableFullThemeLibrary());
-afterAll(() => disableFullThemeLibrary());
-
+// These suites cover the full library (204 themes), which is the default.
 afterEach(() => {
   clearLibraryThemeCache();
 });
@@ -93,30 +99,92 @@ describe('the library comes from @texuli/tokens', () => {
     expect(THEME_LIBRARY_META).toBe(TEXULI_PORTED_META);
   });
 
-  it('keeps the boot-path id list equal, in order, to the catalog Texuli ports', () => {
+  it('keeps the boot-path id lists equal, in order, to the catalog and expanded set Texuli ships', () => {
+    const builtins = new Set<string>(BUILTIN_PRESET_IDS);
     expect(LIBRARY_THEME_IDS).toEqual(TEXULI_PORTED_META.map((meta) => meta.id));
-    for (const meta of THEME_LIBRARY_META) expect(isLibraryThemeId(meta.id), meta.id).toBe(true);
+    expect(EXPANDED_LIBRARY_THEME_IDS).toEqual(
+      EXPAND_THEME_LIBRARY_META.map((meta) => meta.id).filter((id) => !builtins.has(id))
+    );
+    expect(ALL_LIBRARY_THEME_IDS).toEqual([...LIBRARY_THEME_IDS, ...EXPANDED_LIBRARY_THEME_IDS]);
+    expect(ALL_LIBRARY_THEME_IDS).toHaveLength(204);
+    for (const meta of THEME_LIBRARY_META) {
+      expect(isLibraryThemeId(meta.id), meta.id).toBe(true);
+      expect(isCatalogThemeId(meta.id), meta.id).toBe(true);
+      expect(isExpandedLibraryThemeId(meta.id), meta.id).toBe(false);
+    }
+    for (const id of EXPANDED_LIBRARY_THEME_IDS) {
+      expect(isLibraryThemeId(id), id).toBe(true);
+      expect(isCatalogThemeId(id), id).toBe(false);
+      expect(isExpandedLibraryThemeId(id), id).toBe(true);
+    }
     for (const theme of BUILTIN_THEMES) expect(isLibraryThemeId(theme.id), theme.id).toBe(false);
     expect(isLibraryThemeId('no-such-theme')).toBe(false);
   });
 
-  it('offers only the catalog until a page enables the full library', async () => {
+  it('offers the full library by default and lists, searches and counts it', async () => {
+    const full = await loadFullLibraryMeta();
+    expect(full.map((meta) => meta.id)).toEqual(ALL_LIBRARY_THEME_IDS);
+    expect(await listFullThemeLibrary()).toEqual(full);
+    const mono = await listFullThemeLibrary({ collection: 'mono' });
+    expect(mono.length).toBeGreaterThan(listThemeLibrary({ collection: 'mono' }).length);
+    expect(mono.every((meta) => meta.collection === 'mono')).toBe(true);
+    const calm = await listFullThemeLibrary({ mood: 'calm' });
+    expect(calm.length).toBeGreaterThan(listThemeLibrary({ mood: 'calm' }).length);
+    expect(calm.every((meta) => meta.mood.includes('calm'))).toBe(true);
+    // Search ranks the same way over the whole library, and finds expanded themes by name.
+    const expanded = full[THEME_LIBRARY_META.length] as (typeof full)[number];
+    expect((await searchFullThemeLibrary(expanded.name))[0]?.id).toBe(expanded.id);
+    expect(searchThemeLibrary(expanded.name).some((meta) => meta.id === expanded.id)).toBe(false);
+    expect(await searchFullThemeLibrary('')).toEqual(full);
+    expect(await searchFullThemeLibrary('zz-no-such-theme')).toEqual([]);
+    const collections = await listFullCollections();
+    expect(collections.map((entry) => entry.id)).toEqual([...THEME_COLLECTIONS]);
+    expect(collections.reduce((sum, entry) => sum + entry.count, 0)).toBe(full.length);
+  });
+
+  it('falls back to the catalog when the expanded set is off or cannot load, and retries', async () => {
+    const expandedId = EXPANDED_LIBRARY_THEME_IDS[0] as string;
     disableFullThemeLibrary();
     clearLibraryThemeCache();
     try {
-      const expandedId = EXPAND_THEME_LIBRARY_META.find(
-        (meta) => !(BUILTIN_PRESET_IDS as readonly string[]).includes(meta.id)
-      )?.id as string;
       expect(await loadFullLibraryMeta()).toBe(THEME_LIBRARY_META);
       expect(await findLibraryThemeMeta(expandedId)).toBeUndefined();
-      await expect(loadLibraryTheme(expandedId)).rejects.toThrow(/Unknown library theme/);
-      await expect(loadLibraryThemeDefinition(expandedId)).rejects.toThrow(/Unknown library theme/);
+      await expect(loadLibraryTheme(expandedId)).rejects.toThrow(/expanded set/);
+      await expect(loadLibraryThemeDefinition(expandedId)).rejects.toThrow(/expanded set/);
+      await expect(loadLibraryTheme('no-such-theme')).rejects.toThrow(/Unknown library theme/);
       // Catalog themes load as always, with tokens from @texuli/tokens.
       expect((await loadLibraryTheme('fintech-ledger')).id).toBe('fintech-ledger');
+
+      // A single-file export that left the expanded set out: the import rejects.
+      let fail = true;
+      const loader = vi.fn(() =>
+        fail
+          ? Promise.reject(new Error('Failed to fetch dynamically imported module'))
+          : import('@texuli/tokens/library-expand')
+      );
+      setExpandedLibraryLoader(loader);
+      // A second caller during the failing load resolves to the catalog too, never rejects.
+      const [first, second] = await Promise.all([loadFullLibraryMeta(), loadFullLibraryMeta()]);
+      expect(first).toBe(THEME_LIBRARY_META);
+      expect(second).toBe(THEME_LIBRARY_META);
+      expect(await loadFullLibraryMeta()).toBe(THEME_LIBRARY_META);
+      await expect(loadLibraryTheme(expandedId)).rejects.toThrow(/dynamically imported/);
+      // Unknown ids never touch the expanded set.
+      const calls = loader.mock.calls.length;
+      expect(await findLibraryThemeMeta('no-such-theme')).toBeUndefined();
+      expect(loader.mock.calls.length).toBe(calls);
+      // A later call tries again.
+      fail = false;
+      expect((await loadFullLibraryMeta()).length).toBe(ALL_LIBRARY_THEME_IDS.length);
+      expect((await loadLibraryTheme(expandedId)).id).toBe(expandedId);
     } finally {
-      enableFullThemeLibrary();
+      resetExpandedLibraryLoader();
       clearLibraryThemeCache();
     }
+    // enableFullThemeLibrary() is kept and restores the default.
+    disableFullThemeLibrary();
+    enableFullThemeLibrary();
+    expect((await loadFullLibraryMeta()).length).toBe(ALL_LIBRARY_THEME_IDS.length);
   });
 
   it('finds and loads expanded themes on demand, by id', async () => {

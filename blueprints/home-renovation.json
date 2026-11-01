@@ -1,0 +1,353 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Hearthline Renovations",
+  "description": "Renovation projects with room-by-room floor plans, a materials budget sheet and a build schedule for a fictional design-build studio.",
+  "icon": "🛠️",
+  "category": "operations",
+  "tags": ["renovation", "construction", "budget", "floor-plan"],
+  "catalog": {
+    "category": "operations",
+    "productType": "Renovation planning",
+    "features": ["materials-budget", "floor-plans"],
+    "highlights": ["Materials budget sheet", "Floor plan canvas", "Build schedule"],
+    "platforms": ["web"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "home-renovation-brand",
+    "name": "Hearthline Renovations",
+    "seed": "#b4532a",
+    "secondary": "#2f6f5e",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "project",
+      "plural": "projects",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "client",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planning", "design", "in-progress", "punch-list", "done"],
+          "default": "planning",
+          "required": true,
+          "weights": [2, 2, 4, 1, 2]
+        },
+        {
+          "name": "budget",
+          "kind": "money",
+          "min": 1500000,
+          "max": 25000000,
+          "trend": "growth"
+        },
+        {
+          "name": "startsAt",
+          "kind": "date",
+          "window": "past"
+        },
+        {
+          "name": "endsAt",
+          "kind": "date",
+          "window": {
+            "from": 7,
+            "to": 120
+          }
+        },
+        {
+          "name": "floorPlan",
+          "kind": "json"
+        }
+      ],
+      "searchable": ["name", "client"]
+    },
+    {
+      "name": "room",
+      "plural": "rooms",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "project",
+          "kind": "relation",
+          "to": "project",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "roomType",
+          "kind": "enum",
+          "values": ["kitchen", "bathroom", "bedroom", "living", "exterior"],
+          "default": "kitchen",
+          "required": true,
+          "weights": [3, 3, 2, 2, 1]
+        },
+        {
+          "name": "areaSqft",
+          "kind": "integer",
+          "min": 40,
+          "max": 600
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "material",
+      "plural": "materials",
+      "titleField": "item",
+      "fields": [
+        {
+          "name": "item",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "project",
+          "kind": "relation",
+          "to": "project",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "category",
+          "kind": "enum",
+          "values": ["lumber", "tile", "fixtures", "paint", "electrical", "plumbing"],
+          "default": "lumber",
+          "required": true,
+          "weights": [3, 2, 2, 2, 1, 1]
+        },
+        {
+          "name": "quantity",
+          "kind": "integer",
+          "min": 1,
+          "max": 200
+        },
+        {
+          "name": "unitCost",
+          "kind": "money",
+          "min": 500,
+          "max": 90000
+        },
+        {
+          "name": "lineTotal",
+          "kind": "money",
+          "min": 2000,
+          "max": 1500000,
+          "trend": "seasonal"
+        },
+        {
+          "name": "ordered",
+          "kind": "boolean"
+        }
+      ],
+      "searchable": ["item"]
+    },
+    {
+      "name": "contractor",
+      "plural": "contractors",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true,
+          "fake": "company.name"
+        },
+        {
+          "name": "trade",
+          "kind": "enum",
+          "values": ["carpentry", "electrical", "plumbing", "tiling", "painting"],
+          "default": "carpentry",
+          "required": true,
+          "weights": [3, 2, 2, 2, 1]
+        },
+        {
+          "name": "email",
+          "kind": "email"
+        },
+        {
+          "name": "phone",
+          "kind": "phone"
+        },
+        {
+          "name": "dayRate",
+          "kind": "money",
+          "min": 20000,
+          "max": 120000
+        }
+      ],
+      "searchable": ["name"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Hearthline Renovations overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total projects",
+          "entity": "project",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "projects over time",
+          "entity": "project",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        },
+        {
+          "kind": "kpi",
+          "label": "Materials budget",
+          "entity": "material",
+          "aggregate": "sum",
+          "field": "lineTotal",
+          "span": 1
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "project",
+      "columns": ["name", "client", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "project"
+    },
+    {
+      "type": "list",
+      "entity": "room",
+      "columns": ["name", "project", "roomType"]
+    },
+    {
+      "type": "form",
+      "entity": "room"
+    },
+    {
+      "type": "list",
+      "entity": "material",
+      "columns": ["item", "project", "category"]
+    },
+    {
+      "type": "form",
+      "entity": "material"
+    },
+    {
+      "type": "list",
+      "entity": "contractor",
+      "columns": ["name", "trade", "dayRate"]
+    },
+    {
+      "type": "form",
+      "entity": "contractor"
+    },
+    {
+      "type": "sheet",
+      "entity": "material",
+      "columns": ["item", "project", "category", "quantity", "unitCost", "lineTotal", "ordered"],
+      "totals": ["quantity", "lineTotal"],
+      "path": "/materials/sheet",
+      "title": "Materials budget",
+      "nav": {
+        "label": "Budget sheet",
+        "icon": "table",
+        "order": 20
+      }
+    },
+    {
+      "type": "canvas",
+      "entity": "project",
+      "field": "floorPlan",
+      "path": "/projects/canvas",
+      "title": "Floor plans",
+      "nav": {
+        "label": "Floor plans",
+        "icon": "house",
+        "order": 21
+      }
+    },
+    {
+      "type": "timeline",
+      "entity": "project",
+      "startField": "startsAt",
+      "endField": "endsAt",
+      "groupBy": "status",
+      "zoom": "month",
+      "path": "/projects/timeline",
+      "title": "Build schedule",
+      "nav": {
+        "label": "Schedule",
+        "icon": "chart-gantt",
+        "order": 22
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "workspace", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

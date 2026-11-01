@@ -268,14 +268,17 @@ parent owns streaming state and must route mutations through services.
   threads, follows a streaming reply, offers "Jump to latest" and edits a
   message inline. ai-ui adds the rich answer body, the per-message actions
   (feedback, branches, regenerate, edit) and the reading position per
-  conversation, restored from session storage (presentation only).
+  conversation, restored from session storage (presentation only). Since
+  Texuli 0.8 the list keeps that position itself (its `anchor` and
+  `onAnchorChange`), and ai-ui only stores the anchor; Texuli also draws the
+  day separators as their own rows.
 - `AssistantComposer` is `@texuli/chat`'s `Composer` (Enter send,
   Shift+Enter newline, Stop and Escape while streaming, pending and error
   states) with ai-ui's model picker, files, slash commands and @mentions in its
   snippets and keydown hook.
 - `RichAnswer` renders the markdown AST; `CanvasPanel` shows code or editable
   document text.
-- Built on Texuli 0.5.0: every control is a `texuli` component (buttons,
+- Built on Texuli 0.9.0: every control is a `texuli` component (buttons,
   `CopyButton`, textarea, file input, select, menus, code, table, badges,
   cards); Lucide glyphs render through `LucideIcon`.
 
@@ -388,6 +391,28 @@ When a product demo needs a “connected model” story, keep the boundary in th
 UI (“Simulated · no provider”) and drive behavior with packs, environment
 failures and agent approvals instead of a network stub that pretends to be
 live.
+
+## Texuli's agent tooling and the AI kit
+
+Texuli 0.9.0 also ships agent tooling in `@texuli/tools` (A2UI conversion,
+`llms.txt` from its catalog, document commands, custom elements) and
+streamed-blueprint parsing in `@texuli/spec/stream`. The AI kit uses none of
+them, on purpose:
+
+- **A2UI, custom elements, `llms.txt`.** They work on Texuli catalog trees
+  (interface trees). The kit's answers are a safe markdown AST and its chat
+  messages are `protoyard.message@1` blocks, so there is no tree to convert or
+  paint, and adding one would be a second message format.
+- **Streaming.** A simulated reply streams text tokens, and the markdown parser
+  already reads unfinished text (an open fence is `closed: false`).
+  `@texuli/spec/stream` parses streamed JSON blueprints, which the kit never
+  receives.
+- **Document commands.** `@texuli/tools/document` wraps `@texuli/document`,
+  which Protoyard's doc kind uses directly ([PAGES.md](PAGES.md)).
+
+For Texuli component lookups while building an AI screen, agents can run
+Texuli's read-only MCP server next to Protoyard's
+([MCP.md](MCP.md#texulis-mcp-server-alongside)).
 
 ## Related docs
 

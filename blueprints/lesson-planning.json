@@ -1,0 +1,332 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Chalkline Lesson Studio",
+  "description": "Unit planning boards, a gradebook sheet and a lesson calendar for a fictional middle-school teaching team.",
+  "icon": "📐",
+  "category": "education",
+  "tags": ["teaching", "lesson-plans", "gradebook", "school"],
+  "catalog": {
+    "category": "education",
+    "productType": "Lesson planning",
+    "features": ["unit-planning", "gradebook"],
+    "highlights": ["Unit planning canvas", "Gradebook sheet", "Lesson calendar"],
+    "platforms": ["web"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "lesson-planning-brand",
+    "name": "Chalkline Lesson Studio",
+    "seed": "#2b7a4b",
+    "secondary": "#c2410c",
+    "styleProfile": "flat",
+    "font": "rounded"
+  },
+  "entities": [
+    {
+      "name": "unit",
+      "plural": "units",
+      "titleField": "title",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "subject",
+          "kind": "enum",
+          "values": ["math", "science", "history", "language-arts"],
+          "default": "math",
+          "required": true,
+          "weights": [3, 3, 2, 2]
+        },
+        {
+          "name": "gradeLevel",
+          "kind": "enum",
+          "values": ["grade-6", "grade-7", "grade-8"],
+          "default": "grade-7",
+          "required": true,
+          "weights": [1, 1, 1]
+        },
+        {
+          "name": "startsAt",
+          "kind": "date",
+          "window": "around"
+        },
+        {
+          "name": "planBoard",
+          "kind": "json"
+        }
+      ],
+      "searchable": ["title"]
+    },
+    {
+      "name": "lesson",
+      "plural": "lessons",
+      "titleField": "title",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "unit",
+          "kind": "relation",
+          "to": "unit",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "scheduledAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "durationMinutes",
+          "kind": "integer",
+          "min": 30,
+          "max": 90
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "ready", "taught"],
+          "default": "draft",
+          "required": true,
+          "weights": [2, 3, 2]
+        }
+      ],
+      "searchable": ["title"]
+    },
+    {
+      "name": "student",
+      "plural": "students",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        {
+          "name": "gradeLevel",
+          "kind": "enum",
+          "values": ["grade-6", "grade-7", "grade-8"],
+          "default": "grade-7",
+          "required": true,
+          "weights": [1, 1, 1]
+        },
+        {
+          "name": "guardianEmail",
+          "kind": "email"
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "score",
+      "plural": "scores",
+      "titleField": "assignment",
+      "fields": [
+        {
+          "name": "assignment",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "student",
+          "kind": "relation",
+          "to": "student",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "lesson",
+          "kind": "relation",
+          "to": "lesson",
+          "required": false,
+          "onDelete": "nullify"
+        },
+        {
+          "name": "points",
+          "kind": "integer",
+          "min": 0,
+          "max": 100,
+          "trend": "growth"
+        },
+        {
+          "name": "possible",
+          "kind": "integer",
+          "min": 100,
+          "max": 100
+        },
+        {
+          "name": "late",
+          "kind": "boolean"
+        },
+        {
+          "name": "gradedAt",
+          "kind": "date",
+          "window": "past"
+        }
+      ],
+      "searchable": ["assignment"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Chalkline Lesson Studio overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total lessons",
+          "entity": "lesson",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "lessons over time",
+          "entity": "lesson",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        },
+        {
+          "kind": "kpi",
+          "label": "Average score",
+          "entity": "score",
+          "aggregate": "avg",
+          "field": "points",
+          "span": 1
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "unit",
+      "columns": ["title", "subject", "gradeLevel"]
+    },
+    {
+      "type": "form",
+      "entity": "unit"
+    },
+    {
+      "type": "list",
+      "entity": "lesson",
+      "columns": ["title", "unit", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "lesson"
+    },
+    {
+      "type": "list",
+      "entity": "student",
+      "columns": ["name", "gradeLevel", "guardianEmail"]
+    },
+    {
+      "type": "form",
+      "entity": "student"
+    },
+    {
+      "type": "list",
+      "entity": "score",
+      "columns": ["assignment", "student", "points"]
+    },
+    {
+      "type": "form",
+      "entity": "score"
+    },
+    {
+      "type": "sheet",
+      "entity": "score",
+      "columns": ["assignment", "student", "lesson", "points", "possible", "late", "gradedAt"],
+      "totals": ["points", "possible"],
+      "path": "/scores/sheet",
+      "title": "Gradebook",
+      "nav": {
+        "label": "Gradebook",
+        "icon": "table",
+        "order": 20
+      }
+    },
+    {
+      "type": "canvas",
+      "entity": "unit",
+      "field": "planBoard",
+      "path": "/units/canvas",
+      "title": "Unit planning boards",
+      "nav": {
+        "label": "Planning boards",
+        "icon": "graduation-cap",
+        "order": 21
+      }
+    },
+    {
+      "type": "calendar",
+      "entity": "lesson",
+      "dateField": "scheduledAt",
+      "colorBy": "status",
+      "view": "month",
+      "path": "/lessons/calendar",
+      "title": "Lesson calendar",
+      "nav": {
+        "label": "Calendar",
+        "icon": "calendar",
+        "order": 22
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "workspace", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

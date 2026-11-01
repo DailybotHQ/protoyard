@@ -285,7 +285,11 @@ team-chat screen, so the player still needs an adapter or a future UI entry for 
   `activity`, `files`, `audit`), `form`, `board` (`groupBy` an enum, `cardFields`, `sumField`),
   `calendar` (`dateField`, `endField`, `colorBy`, `view`), `timeline` (`startField`,
   `endField`, `groupBy`, `zoom`), `map` (`geoField`, `colorBy`), `analytics` (`dateField`,
-  `measures`, `dimensions`), `dashboard` (`widgets`: `kpi`, `chart` line/area/bar/donut,
+  `measures`, `dimensions`), `sheet` (records as a spreadsheet: `columns` of text, number,
+  money, boolean, date, enum and contact fields, plus read-only datetime, relation, persona and
+  tags; `totals` sums number, integer or money columns; at most 26 columns; schema in
+  `src/sheet-screen.ts`), `canvas` (one infinite canvas per record, stored in the `json`
+  `field` it names; schema in `src/canvas-screen.ts`), `dashboard` (`widgets`: `kpi`, `chart` line/area/bar/donut,
   `list`, `board-summary`, each with `aggregate` count/sum/avg/min/max, optional `field`,
   `groupBy`, date `bucket` and `filter`; the formatVersion 1 `metrics` still parse) and
   `settings` (`sections`). Every screen takes `path`, `title` and `nav` (`label`, a Lucide
@@ -930,6 +934,8 @@ only parses or generates never bundles them:
 | Outlines and bounds | `synthesizeDeckOutline`, `chooseDeckOutline`, `DECK_OUTLINES`, `buildPageOutline`, `buildDocOutline`, `selectPageOutline`, `selectDocOutline`, `boundBriefInput`, `prepareBriefForSynthesis`, `checkOutlineBounds`, `applyOutlineBounds`, `OUTLINE_LIMITS` |
 | Deck layouts and lint | `selectDeckLayouts`, `propsForSelectedLayout`, `lintDeckStructure`, `lintDeckContent`, `lintDeckAssets`; catalog types `DeckLayoutEntry`, `DeckLayoutId`, `LayoutPacing` (type-only) |
 | Validation | `validateBlueprintForAuthoring`, `parseAnyBlueprint`, `safeParseAnyBlueprint` |
+| Entity forms on `@texuli/forms` | `entityFormModel` (a one-page Texuli `FormSchema` as plain data, with value conversion both ways), `HOSTED_FORM_KINDS` (relation, datetime, geo, avatar, file: painted by Protoyard controls), `UNASSIGNED_OPTION` |
+| Streamed blueprints | `paintStreamedBlueprint`, `truncatedJsonCandidates`, `MAX_STREAM_CANDIDATES`: the valid part of a truncated deck, page or doc, checked like a complete one (`quick serve` drafts) |
 | Lazy, for browsers | `loadAuthoringApis()` |
 
 `loadAuthoringApis()` resolves to brief synthesis, kind detection, outlines, deck lint, layout

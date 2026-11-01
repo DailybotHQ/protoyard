@@ -134,6 +134,11 @@ optional TOC and print preferences.
 - **UI:** `DocHost` / `DocApp` with docs layout chrome and heading TOC
   ([Pages](PAGES.md)).
 - **Print:** continuous flow print CSS (not deck slide-per-page).
+- **Edit and download:** the `@texuli/pages` editor and Word, PDF and
+  Markdown downloads with the `@texuli/document` writers
+  ([Pages](PAGES.md#edit-and-download-a-doc)). Applied edits are saved per doc
+  and world in the kind runtime's `docEdits` store and survive a reload; Reset
+  removes them, and a viewer persona cannot edit.
 - **Catalog:** `blueprints/docs/`.
 - **Honest limits:** not a full wiki or CMS; versioning and multi-author
   editing are product stories you model with app kinds if needed.
@@ -165,6 +170,15 @@ pnpm protoyard blueprint validate .protoyard/quick/<slug>/blueprint.json
 # Plan a generated prototype
 pnpm protoyard generate q3-report --blueprint .protoyard/quick/<slug>/blueprint.json --dry-run
 ```
+
+Every kind also takes an optional, closed `motion` key
+(`{ "level": "full" | "subtle" | "none" }`): a ceiling on every Texuli
+animation in the rendered prototype, and on a deck's own transitions. Reduced
+motion still wins. See [Generator](GENERATOR.md) and [Player](PLAYER.md).
+
+A generated deck, page or doc prototype records the kind runtime's storage
+schema (`KIND_SCHEMA_VERSION`, now 2) in `protoyard.json`; regenerating an
+older one upgrades it from 1 to 2.
 
 Shared content primitives for deck/page/doc are documented in
 [Blocks](BLOCKS.md). Deck-only structure lint and layouts are in
@@ -258,7 +272,7 @@ pnpm protoyard list --kind template
 - **Unknown kinds:** fail closed with an upgrade message; do not invent a
   renderer.
 - **App vs content storage:** apps use entity tables; content kinds use
-  `blockStates` and `formResponses` only. Switching kind identity changes the
+  `blockStates`, `formResponses` and (database version 2) `docEdits` only. Switching kind identity changes the
   world namespace story — see [Player](PLAYER.md) storage notes.
 
 ## Related guides

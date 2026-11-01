@@ -106,7 +106,17 @@ function importGraph(entry: string): string[] {
  * Texuli 0.8.0 (PLAN_008: motion tokens and focus/forced-colors CSS): deck.html 111.27 KB and page.html/doc.html
  * 112.57 KB; raised to measured + 1 %.
  */
-const PLAYER_TOTAL_CSS_GZIP_KB = { index: 136.2, deck: 112.4, page: 113.7, doc: 113.7 } as const;
+// Texuli 0.9.0 measured index 142.85, deck 117.02, page and doc 118.30 KB
+// (token contract v2 component CSS plus @texuli/tokens/base.css, gap G110); + 2.5 %.
+// index.html reaches every kind and kit by design; PLAN_008 wave 2 adds pages-ui
+// (5.2 KB), forms (2.2 KB, gap G119), the sheets view (1.7 KB) and @texuli/player
+// CSS reachable only through the editor embed path (5.5 KB, gap G123): measured
+// 149.9 KB; + 2.5 %. Each kind page is under its 0.9.0 cap (deck 114.0, page
+// 69.2, doc 101.5 KB) since kind pages load only their own renderer.
+// PLAN_008 T-remeasure (2026-10-31): deck 113.99, page 69.23, doc 101.47 KB,
+// so the kind caps are lowered to measured + 5 % (were 120.0 / 121.3 / 121.3).
+// index.html measured 151.88 KB stays under its 153.7 KB cap.
+const PLAYER_TOTAL_CSS_GZIP_KB = { index: 153.7, deck: 119.7, page: 72.7, doc: 106.6 } as const;
 
 /** Modules that must only ever load on demand, by manifest key. */
 const LAZY_MODULES: [string, RegExp][] = [
@@ -190,18 +200,24 @@ describe.skipIf(!built)(
       );
     });
 
-    it('keeps the shared kind utility sheet out of initial CSS and on the kind boot path', () => {
-      const bootFile = manifest['src/boot-kind.ts']?.file;
-      expect(bootFile, 'the shared kind boot').toBeDefined();
-      const bootCode = readFileSync(join(DIST, bootFile ?? ''), 'utf8');
+    it('keeps the shared kind utility sheet out of initial CSS and on each kind renderer path', () => {
+      // Each kind page hands the kind boot its own renderer loader (kinds/renderers.ts), so the
+      // sheet is requested by the deck, page and doc loader chunks, never the shared boot.
+      const loaders = Object.entries(full).filter(([key]) =>
+        /^_renderer-(?:deck|page|doc)-/.test(key)
+      );
+      expect(loaders.map(([key]) => key.split('-')[1]).sort()).toEqual(['deck', 'doc', 'page']);
       for (const key of ['src/kinds/content.css']) {
         const style = manifest[key]?.file;
         expect(style, `${key} is a built stylesheet`).toMatch(/\.css$/);
         if (!style) continue;
         expect(classes.initialCss, `${key} is not in initial CSS`).not.toContain(style);
-        expect(bootCode, `${key} is requested by the lazy kind renderer`).toContain(
-          basename(style)
-        );
+        for (const [loader, chunk] of loaders) {
+          expect(
+            readFileSync(join(DIST, chunk.file), 'utf8'),
+            `${key} is requested lazily by ${loader}`
+          ).toContain(basename(style));
+        }
       }
     });
 
@@ -269,7 +285,9 @@ describe.skipIf(!built)(
       // (boot-any.ts, +0.9 KB) so the shared loop no longer names the app boot.
       // See docs/PERFORMANCE.md. The cap leaves about 3 %: growth must say why here.
       // Measured after Texuli charts-ui link: ~127.4 KB gzip (was 125).
-      expect(sum(classes.initialJs) / KB).toBeLessThanOrEqual(130);
+      // PLAN_008 T-remeasure (2026-10-31, Texuli 0.9.0): 108,098 B (105.6 KB);
+      // the cap is lowered from 130 KB to measured + 5 %.
+      expect(sum(classes.initialJs) / KB).toBeLessThanOrEqual(110.9);
     });
 
     it('ships no Faker data or worker reference in initial JS', () => {
@@ -374,7 +392,10 @@ describe.skipIf(!built)('the per-kind player pages (deck.html, page.html, doc.ht
     // entry glue; 18.1 to 18.3 KB initial CSS and 26.4 to 26.6 KB of CSS in
     // all. The kind boot and renderers stay lazy. The cap leaves about 3 %.
     const js = sum(classifyChunks(asEntry(full, `${name}.html`)).initialJs) / KB;
-    expect(js, `${name}.html initial JS ${js.toFixed(1)} KB gzip`).toBeLessThanOrEqual(130); // measured ~127.6 KB after Texuli charts-ui
+    // PLAN_008 T-remeasure (2026-10-31, Texuli 0.9.0): deck 103.1, page 102.9 and
+    // doc 102.7 KB; lowered from 130 KB (measured ~127.6 KB after Texuli charts-ui)
+    // to the largest + 5 %.
+    expect(js, `${name}.html initial JS ${js.toFixed(1)} KB gzip`).toBeLessThanOrEqual(108.3);
   });
 
   it.each(KINDS)('%s.html never reaches the app path, initially or later', (name) => {

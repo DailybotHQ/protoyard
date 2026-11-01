@@ -235,12 +235,12 @@ describe('review comment overlay', () => {
       false
     );
     handle.focusThread(first.id);
-    expect(
-      document
-        .querySelector(`[data-py-review-pin][data-thread-id="${first.id}"]`)
-        ?.getAttribute('data-pulsing')
-    ).toBe('');
-    expect(document.querySelector('style')?.textContent).toContain('prefers-reduced-motion:reduce');
+    const current = document.querySelector(`[data-py-review-pin][data-thread-id="${first.id}"]`);
+    expect(current?.getAttribute('data-current')).toBe('');
+    expect(current?.getAttribute('aria-current')).toBe('true');
+    // A still ring marks it: the overlay styles hold no animation at all.
+    const css = document.querySelector('style')?.textContent ?? '';
+    expect(css).not.toMatch(/@keyframes|animation:/);
   });
 
   it('keeps the low-confidence pin border visible and dashed', () => {

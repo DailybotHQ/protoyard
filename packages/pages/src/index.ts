@@ -2,11 +2,30 @@
  * `@protoyard/pages` — engine for `kind: "page"` and `kind: "doc"` blueprints
  * (ADR-036, ADR-039). Svelte hosts live in `@protoyard/pages-ui`.
  *
+ * `docToTexuliDocument` and `texuliDocumentToDoc` bridge a doc body and a
+ * `@texuli/document` document: the editor, reader tools and the DOCX, PDF
+ * and Markdown writers work on Texuli's model, the blueprint stays the
+ * stored format. `createDocEditServices` saves an applied edit per doc and
+ * world in the kind runtime's `docEdits` store.
+ *
  * Document schemas validate the payload bodies after KINDS parses the kind
  * union. Limits are published for the untrusted loader (KINDS wires them).
- * union. TOC builders are pure (no DOM) so deep links work before paint.
+ * TOC builders are pure (no DOM) so deep links work before paint.
  */
 
+export { DOC_CAPABILITIES } from './doc-capabilities.ts';
+export {
+  type CreateDocEditServicesOptions,
+  createDocEditServices,
+  DOC_EDITS_STORE_STRING,
+  DOC_EDITS_TABLE,
+  type DocEditRow,
+  type DocEditServices,
+  type DocEditsState,
+  docEditKey,
+  docFingerprint,
+  type SavedDocEdits,
+} from './doc-edits.ts';
 export {
   FORM_RESPONSE_LIMITS,
   FORM_RESPONSES_STORE_STRING,
@@ -59,6 +78,18 @@ export {
   safeParseDocDocument,
   safeParsePageDocument,
 } from './schema.ts';
+export {
+  DocConversionError,
+  type DocConversionMode,
+  type DocConversionNote,
+  type DocToTexuliOptions,
+  type DocToTexuliResult,
+  docToTexuliDocument,
+  HOST_BLOCK_REF_PREFIX,
+  hostBlockTitle,
+  type TexuliToDocResult,
+  texuliDocumentToDoc,
+} from './texuli-document.ts';
 export {
   allocateHeadingId,
   type BuildDocTocOptions,

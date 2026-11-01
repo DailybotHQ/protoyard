@@ -162,9 +162,9 @@ describe('DevTools panel', () => {
   });
 
   it('keeps a clicked tab enabled and focused while it loads, so Escape still closes', async () => {
-    // A tab's onclick returns selectTab's promise. Texuli's Button disables a
-    // pending button by default, and a browser drops focus from a disabled
-    // button to <body>, outside the panel's Escape handler.
+    // A tab's onclick returns selectTab's promise. Texuli's pending Button is
+    // aria-disabled, never natively disabled (0.9, G94), so focus stays on the
+    // tab and the panel's Escape handler still hears the key.
     const runtime = createFakeRuntime();
     await runtime.scenarios.ensureSeeded();
     let finish: (view: typeof ScenarioSection) => void = () => {};
@@ -185,6 +185,7 @@ describe('DevTools panel', () => {
     expect(load).toHaveBeenCalledTimes(1);
     expect(within(panel).getByText('Loading Comments…')).toBeTruthy();
     expect(tab.disabled).toBe(false);
+    expect(tab.getAttribute('aria-disabled')).toBe('true');
     expect(document.activeElement).toBe(tab);
 
     await fireEvent.keyDown(tab, { key: 'Escape' });

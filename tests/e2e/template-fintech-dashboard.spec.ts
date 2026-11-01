@@ -13,6 +13,10 @@ test('a transfer updates both accounts and persists paired ledger entries', asyn
 
   await expect(page.getByRole('heading', { name: 'Money overview' })).toBeVisible();
   await expect(page.getByRole('figure', { name: 'Checking balance over time' })).toBeVisible();
+  // The ledger is a read-only spreadsheet: download, never import.
+  await expect(page.getByRole('button', { name: 'Download CSV' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Import CSV' })).toHaveCount(0);
+  await expect(page.getByText('Net', { exact: true })).toBeVisible();
   const transferButton = page.getByRole('button', { name: 'Transfer funds' });
   await expect(transferButton).toHaveCount(1);
   await page.getByLabel('Amount (USD)').fill('100.00');

@@ -75,6 +75,18 @@ describe('checkThemes', () => {
     expect(result).toMatchObject({ status: 'pass', details: ['acme-teal, fintech-ledger'] });
   });
 
+  it('passes every library theme id, the expanded set included', () => {
+    for (const id of ['ash-plain', 'wheat-barn', 'apex-rose']) {
+      expect(checkThemes(parseManifest(manifest({ defaultTheme: id })), null), id).toMatchObject({
+        status: 'pass',
+        details: [id],
+      });
+    }
+    const near = checkThemes(parseManifest(manifest({ defaultTheme: 'ash-plian' })), null);
+    expect(near.status).toBe('warn');
+    expect(near.details).toEqual([expect.stringMatching(/closest: ash-plain/)]);
+  });
+
   it('warns on unknown ids in defaultTheme and scenarios, listing the closest ids', () => {
     const result = checkThemes(
       parseManifest(manifest({ defaultTheme: 'fintech-ledgr' })),

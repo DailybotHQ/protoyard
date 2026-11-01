@@ -246,10 +246,12 @@ cap is lower than the 0.5.0 maximum plus 5% and is retained.
 **Content kinds (measured 2026-10-22).** The catalog deck (Lumen launch), page
 and doc export at 1,606,788–1,607,557 bytes, against 3,051,751 bytes for the
 CRM app from the same player build.
-- **Budget:** on npm Texuli 0.5.0, the catalog deck, page and doc measured
-  2,681,755–2,689,852 bytes (the 0.4.0 range was 2,656,649–2,684,123 B).
-  `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` remains 2,818,330 bytes (about
-  2.69 MiB), already lower than the current maximum plus 5%.
+- **Budget:** `QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES` caps each kind at its
+  measured maximum plus 5% on Texuli 0.9.0 (2026-10-31): deck 2,801,658 B
+  (7 example decks, 2,640,768–2,668,245 B), page 2,464,489 B (2,347,132 B)
+  and doc 3,133,363 B (3,070,546 B; the doc file carries the editor and the
+  Word/PDF writers). On Texuli 0.5.0 all three measured 2,681,755–2,689,852 B
+  under one 2,818,330 B cap.
 - **Not met:** the proposed 1.5 MiB deck budget. DevTools (with Deck Studio
   and the theme browser), review comments, device shells and the chart blocks
   are all reachable from a kind page, and they ship with it.

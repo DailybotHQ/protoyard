@@ -7,6 +7,8 @@ import {
   contrastRatio,
   createThemeFromSeed,
   FONT_CATALOG,
+  type LibraryThemeMeta,
+  loadFullLibraryMeta,
   loadLibraryTheme,
   parseHex,
   TEXT_CONTRAST_PAIRS,
@@ -42,8 +44,19 @@ let copyStatus = $state('');
 let copyText = $state('');
 let libraryError = $state('');
 let themeRevision = $state(0);
+/** The library's metadata: the catalog at first, then every library theme once it loads. */
+let libraryMeta = $state.raw<readonly LibraryThemeMeta[]>(THEME_LIBRARY_META);
+$effect(() => {
+  let active = true;
+  void loadFullLibraryMeta().then((full) => {
+    if (active) libraryMeta = full;
+  });
+  return () => {
+    active = false;
+  };
+});
 
-const productCategories = $derived(listThemeCategories(THEME_LIBRARY_META));
+const productCategories = $derived(listThemeCategories(libraryMeta));
 const categoryItems = $derived([
   { value: ALL_THEME_CATEGORIES, label: 'All themes' },
   { value: 'Built-in', label: 'Built-in presets' },
@@ -52,7 +65,7 @@ const categoryItems = $derived([
 ]);
 const visibleMetadata = $derived(
   category === ALL_THEME_CATEGORIES || !['Built-in', 'Custom'].includes(category)
-    ? filterLibraryThemes(THEME_LIBRARY_META, category)
+    ? filterLibraryThemes(libraryMeta, category)
     : []
 );
 const customThemes = $derived.by(() => {
@@ -124,7 +137,7 @@ function changeCategory(next: string) {
   else if (next === 'Custom')
     selectedId = customThemes[0]?.id ?? BUILTIN_THEMES[0]?.id ?? selectedId;
   else if (next !== ALL_THEME_CATEGORIES)
-    selectedId = THEME_LIBRARY_META.find((entry) => entry.category === next)?.id ?? selectedId;
+    selectedId = libraryMeta.find((entry) => entry.category === next)?.id ?? selectedId;
 }
 
 $effect(() => {
@@ -207,7 +220,7 @@ async function copyTokens(theme: Theme) {
     <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
       <div>
         <h2 id="gallery-title" class="text-lg font-semibold">Theme library</h2>
-        <p class="text-sm text-muted-foreground">{visibleThemes.length} loaded · {THEME_LIBRARY_META.length} library presets</p>
+        <p class="text-sm text-muted-foreground">{visibleThemes.length} loaded · {libraryMeta.length} library presets</p>
       </div>
       <label class="grid gap-1 text-sm">
         <span class="font-medium">Category</span>

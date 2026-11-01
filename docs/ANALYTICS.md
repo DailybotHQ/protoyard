@@ -122,9 +122,10 @@ keyboard-accessible grid and maps the analytics range and simulated clock into
 it. `FilterBuilder` uses `@texuli/data/filter-builder` for nested groups; its
 `FilterGroupEditor` adapter supplies the analytics property catalog and
 operators because Texuli does not yet expose field/operator extension hooks
-(G49). `DashboardGrid` owns saved 12-column placement and service callbacks;
-Texuli's `AnalyticsGrid` is an auto-fit card layout and does not replace that
-saved editor.
+(G49). `DashboardGrid` renders Texuli's dashboard (`@texuli/data/dashboard`:
+pointer drag and resize, the keyboard pick-up contract, an arrange toolbar,
+layout motion and the stacked phone grid) and keeps the saved 12-column layout
+and its service callback, with a busy state and a rollback when the save fails.
 
 ## Build an analytics prototype
 

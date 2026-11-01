@@ -10,6 +10,7 @@ import {
 import type { BootedPlayer } from './boot.ts';
 import KindApp from './kinds/KindApp.svelte';
 import { createMountEmbed } from './kinds/mount-embed.ts';
+import type { KindLoaders } from './kinds/renderers.ts';
 import { type KindDocument, setKindApp } from './kinds/state.ts';
 import { QUICK_REVIEW_ENDPOINT } from './review-endpoint.ts';
 import { markActiveExploration, recordExploration, resolvePlayerStorage } from './storage/index.ts';
@@ -40,8 +41,19 @@ export interface BootKindOptions {
   generatorVersion?: number;
   /** Review comments through `quick serve`'s same-origin comments API. */
   review?: boolean;
+  /**
+   * The blueprint is the part of a streamed one that has arrived so far
+   * (progressive painting under `quick serve`): the document says so.
+   */
+  draft?: boolean;
   /** Force DevTools on or off (defaults to the build flag and `?devtools=0`, like mountPrototype). */
   devtools?: boolean;
+  /**
+   * This kind's renderer (and, for a deck, Deck Studio), from the page that
+   * boots it: `renderer-deck.ts`, `renderer-page.ts` or `renderer-doc.ts`
+   * (`index.html`: `loadersFor(kind)`). Never imported here (see `renderers.ts`).
+   */
+  loaders: KindLoaders;
 }
 
 /**
@@ -51,12 +63,13 @@ export interface BootKindOptions {
  */
 async function deckStudioFor(
   blueprint: KindDocument,
-  devtools: boolean
+  devtools: boolean,
+  loadDeckStudio: KindLoaders['loadDeckStudio']
 ): Promise<
   Pick<MountPrototypeOptions, 'devtoolsTabs'> & { studio?: DeckStudio; stop?: () => void }
 > {
-  if (!devtools || blueprint.kind !== 'deck') return {};
-  const { createDeckStudio, deckStudioTab } = await import('@protoyard/decks-ui/studio');
+  if (!devtools || blueprint.kind !== 'deck' || !loadDeckStudio) return {};
+  const { createDeckStudio, deckStudioTab } = await loadDeckStudio();
   const studio = createDeckStudio(blueprint.deck, { pointer: '/deck' });
   return {
     studio,
@@ -110,12 +123,18 @@ export async function bootKind(options: BootKindOptions): Promise<BootedPlayer> 
   const devtools =
     options.devtools ??
     (DEVTOOLS_ENABLED && parseScenarioLink(mountSearch ?? search).devtools !== false);
-  const { studio, stop, devtoolsTabs } = await deckStudioFor(blueprint, devtools);
+  const { studio, stop, devtoolsTabs } = await deckStudioFor(
+    blueprint,
+    devtools,
+    options.loaders.loadDeckStudio
+  );
   setKindApp({
     blueprint,
     namespace: storage.namespace,
     mountEmbed: createMountEmbed(),
+    loadRenderer: options.loaders.loadRenderer,
     ...(studio ? { studio } : {}),
+    ...(options.draft ? { draft: true } : {}),
   });
   const mounted = await mountPrototype({
     definition,

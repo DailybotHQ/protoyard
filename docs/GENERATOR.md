@@ -181,8 +181,9 @@ the required columns below describe an **app** blueprint. A content kind
 | `entities` | yes (apps) | One or more entities (see below). Forbidden on content kinds. |
 | `roles` | yes (apps) | One or more roles with permissions. Forbidden on content kinds. |
 | `notifications` | no | Notification rules. |
-| `screens` | no (apps) | Route declarations for generated `list`, `detail`, `form`, `board`, `calendar`, `timeline`, `map`, `analytics`, `dashboard` and `settings` screens. Forbidden on content kinds. |
+| `screens` | no (apps) | Route declarations for generated `list`, `detail`, `form`, `board`, `calendar`, `timeline`, `map`, `analytics`, `sheet`, `canvas`, `dashboard` and `settings` screens. Forbidden on content kinds. |
 | `brand` | no | A seed color or preset that `generate` turns into a WCAG AA theme, or a `libraryTheme` id it uses as-is. |
+| `motion` | no | `{ "level": "full" \| "subtle" \| "none" }`: how much the prototype animates (see [Motion](#motion)). Every kind. |
 | `catalog`, `tags`, `icon`, `category` | no | Catalog metadata for files under `blueprints/`. |
 | `history` | no | Written by `generate`; never edit it by hand (see [Migrations](#regeneration-and-migrations)). |
 | `validation` | no | Validation tasks for exploration sessions (see [Validation tasks](#validation-tasks)). |
@@ -199,7 +200,8 @@ player and `protoyard quick`.
   golden file, `packages/blueprint/tests/fixtures/identity-golden.json`, freezes the identity of
   every shipped blueprint.
 - `kind: "deck"`, `kind: "page"` and `kind: "doc"` are content kinds. They share the root keys
-  `formatVersion`, `name`, `description`, `catalog`, `tags`, `icon`, `category` and `brand`,
+  `formatVersion`, `name`, `description`, `catalog`, `tags`, `icon`, `category`, `brand` and
+  `motion`,
   plus one body key named after the kind (`"deck": { … }`, `"page": { … }` or `"doc": { … }`).
   App-only keys (`entities`, `roles`, `screens`, `layout`, `archetype`, `notifications`,
   `history`, `validation`) are rejected on them. Body schemas come from
@@ -284,6 +286,42 @@ entity. That inverse field supplies its own form label; the UI groups related
 rows under the target entity's plural label. This is the v1 inverse contract:
 it adds no duplicate foreign key or persisted metadata, so legacy relation
 fields keep their parsed defaults and database stores without migration.
+
+### Entity forms
+
+Create and edit forms (`EntityForm` in `@protoyard/crud`) are painted by
+`@texuli/forms`. `entityFormModel(entity, options)` in `@protoyard/blueprint`
+maps the fields once, as plain data, to a Texuli form schema:
+
+| Field kind | Texuli field |
+| --- | --- |
+| `text`, `phone` | `text` (`text` keeps `minLength` and `maxLength`) |
+| `url` | `text` (Texuli's `url` type accepts only `https://`; the service also accepts `http://`) |
+| `longText` | `textarea` with its length bounds |
+| `json` | `textarea` (the service parses the text and reports invalid JSON on the field) |
+| `number`, `integer` | `number` with `min` and `max` (`integer` adds `step: 1`) |
+| `money` | `number` in major units with `step: 0.01`; submitted as integer cents |
+| `boolean` | `checkbox` (never "must be checked") |
+| `date` | `date` |
+| `enum` | `select` with the value labels |
+| `email` | `email` |
+| `tags` | `tags` with `maxItems` |
+| `persona` | `select` over the workspace members, with an `Unassigned` choice when optional |
+
+`relation`, `datetime`, `geo`, `avatar` and `file` have no Texuli control, so
+the form paints them with Protoyard's own controls (the paged relation picker,
+the date-and-time input, the geo picker, the face picker) after the Texuli
+fields. One submit button serves both. Texuli checks its closed rules
+(required, lengths, ranges, steps, options, tag count) and shows the error
+summary first; the merged input then goes through the entity service
+(`session.assert` → zod → `environment.run` → `db.transaction`), which stays
+the source of truth, and its issues land on the field that caused them. The
+button shows pending feedback while the service runs. A `disabled` form paints
+every Texuli field disabled through a constant `when.enable` condition.
+
+The blueprint format has no form layout yet: no sections, steps, conditions or
+drafts per entity. Every existing blueprint keeps validating unchanged, and no
+`formatVersion` migration is involved.
 
 ### Generation hints
 
@@ -413,7 +451,8 @@ this is still a simulation, not security. The crud-app scenarios use the roles
 
 - `screens`: `list` (with `columns`), `detail` (optional `tabs`), `form`,
   `board` (`groupBy` an enum field), `calendar`, `timeline`, `map`,
-  `analytics`, `dashboard` (`widgets` of kind `kpi`, `chart`, `list` and
+  `analytics`, `sheet` (records as a spreadsheet: `columns`, `totals`), `canvas`
+  (one infinite canvas per record in a `json` `field`), `dashboard` (`widgets` of kind `kpi`, `chart`, `list` and
   `board-summary`; the older `metrics` list still parses) and `settings`. The
   full option list and every cross-reference check are in the
   [`@protoyard/blueprint` README](../packages/blueprint/README.md). Each screen
@@ -439,6 +478,48 @@ this is still a simulation, not security. The crud-app scenarios use the roles
 - `catalog`, `tags`, `icon`, `category`: shelf metadata. Files under
   `blueprints/` that set both `brand` and `catalog` are indexed as
   `kind: blueprint` (`pnpm protoyard list --kind blueprint`).
+
+### Motion
+
+`motion` is optional, on every kind, and closed: one key, `level`, with one of
+three values. It mirrors the envelope motion of the Texuli spec and maps one to
+one onto the `texuli/motion` `MotionProvider` level:
+
+| `level` | What plays |
+| --- | --- |
+| `full` (the default when `motion` is missing) | Every Texuli animation: overlays, toasts, tabs, reorders, slide transitions. |
+| `subtle` | Shorter animations with no travel or scale. |
+| `none` | No animation; every change is instant. |
+
+```json
+{ "formatVersion": 1, "kind": "deck", "name": "Quarterly review", "motion": { "level": "subtle" }, "deck": { … } }
+```
+
+Any other key or value (`"expressive"`, a duration, CSS, keyframes) fails
+validation with a path such as `motion.level`. A level is a ceiling, never a
+way to force motion on: the reader's `prefers-reduced-motion` and the
+prototype's reduced-motion setting (DevTools, scenario) still turn animation
+off. On a deck it also caps the deck's own `deck.style.motion` (slide
+transitions and fragments): the lower of the two wins.
+
+Where it is applied:
+
+- **Apps** (generated and in the player): `BlueprintApp` (`@protoyard/crud/app`)
+  renders a `MotionProvider` at the blueprint's level, so every generated app,
+  old or new, follows `motion` from `blueprint.json` with no regeneration.
+- **Decks, pages and docs generated from now on:** the `deck`, `page` and `doc`
+  templates' `App.svelte` wrap the renderer in a `MotionProvider` read from the
+  blueprint. `App.svelte` is owned, so a content prototype generated before this
+  change keeps its own copy: to honor `motion` there, wrap its renderer the way
+  `templates/<kind>/src/App.svelte` does.
+- **The player:** see [PLAYER](PLAYER.md#motion).
+
+`motion` is additive to `formatVersion` 1, so no migration exists or is needed:
+a blueprint without it parses, hashes and generates exactly as before (the
+identity golden file still holds), and a generated prototype without it shows
+no drift. Like `brand`, it is content: setting or changing it gives a blueprint
+a new content identity (a new player world unless `?keep=` is used). To remove
+it, delete the key.
 
 ### Validation tasks
 
@@ -636,7 +717,12 @@ Four tests pin this:
 
 The manifest gets id `local.<slug>`, namespace `<slug>`, `storage.schemaVersion: 1`,
 the template's scenarios (`empty`, `active`, `viewer`, `massive`) and the
-blueprint name and description. All written files are already in the
+blueprint name and description. A deck, page or doc prototype records the kind
+runtime's storage schema instead (`KIND_SCHEMA_VERSION` from
+`@protoyard/blueprint/kinds`, now 2: version 2 added the `docEdits` store), in
+the manifest and the generation snapshot. Regenerating one made at version 1
+upgrades both, and `validate` reports a content-kind manifest that is behind
+with the `generate` command that fixes it. All written files are already in the
 repository's Biome style, so `pnpm lint` passes and `biome check --write` never
 rewrites them.
 

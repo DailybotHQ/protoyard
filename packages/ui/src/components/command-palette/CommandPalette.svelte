@@ -10,8 +10,8 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandLoading,
   CommandRoot,
-  commandLoadingClass,
   commandPaletteClass,
 } from 'texuli/command';
 import { cx } from 'texuli/cx';
@@ -164,10 +164,10 @@ onMount(() => {
 
 <!--
   Texuli's command palette parts and classes on a dialog root inside a framed
-  device or the top layer. Texuli's own `CommandPalette` (which also takes
-  `mode`/`container` now) runs the search itself but never shows its
-  "Searching…" status while a search is pending, so this palette keeps its own
-  search and status (Texuli gap G88).
+  device or the top layer. The pending search reaches Texuli's CommandRoot as
+  `loading`, so its CommandLoading status is the "Searching…" announcement
+  (G88). Texuli's own `CommandPalette` names its search box with its dialog
+  title; this palette keeps "Search commands", which hosts and tests address.
 -->
 <DialogPrimitive.Root
   bind:open
@@ -192,12 +192,13 @@ onMount(() => {
       <DialogPrimitive.Description class="tx-sr-only">
         Search or choose a recent action. Use the arrow keys to move and Enter to select.
       </DialogPrimitive.Description>
-      <CommandRoot label="Search commands" shouldFilter={false} loop aria-busy={loading || undefined}>
+      <CommandRoot label="Search commands" {loading} shouldFilter={false} loop>
         <CommandInput bind:value={query} {placeholder} />
         <CommandList>
+          <!-- Shown (and the list aria-busy) while the search is pending. -->
+          <CommandLoading>Searching…</CommandLoading>
           {#if loading}
-            <!-- The search runs here, not through the list, so its status is this palette's own. -->
-            <p role="status" aria-live="polite" class={commandLoadingClass()}>Searching…</p>
+            <!-- Results and the empty state wait for the search. -->
           {:else if searchError}
             <p role="alert" class="tx-command__error" data-tx-command-error="">{searchError}</p>
           {:else if groupedItems.length === 0}

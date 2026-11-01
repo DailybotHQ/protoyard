@@ -31,5 +31,6 @@ pnpm protoyard validate fintech-dashboard --strict-spec --build
 pnpm protoyard budget fintech-dashboard
 ```
 
-The initial JavaScript budget is 250 KB gzip. Cartesian chart code is imported
-as a lazy chunk and stays out of the app's boot chunk.
+The initial JavaScript budget is 250 KB gzip. Cartesian chart code and the
+transactions spreadsheet (`@protoyard/views-ui/sheet`) are imported as lazy
+chunks and stay out of the app's boot chunk.
