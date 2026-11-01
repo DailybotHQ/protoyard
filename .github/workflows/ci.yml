@@ -1,12 +1,13 @@
 name: ci
 
-# Every pull request and every push to main: public hygiene, lint, types,
-# unit tests, the gallery build, a scoped build + export of the reference
-# prototype, Playwright E2E (Chromium only) against real static builds, the
-# performance budgets job (bundle + index + scenario generation gates;
-# cold-start reported only), and the packages job (build, lint and install
-# the publishable packages from their tarballs; the npm consumer variant runs
-# on main only).
+# Every pull request and every push to main, in parallel jobs of about five
+# minutes each: public hygiene; lint and repo checks (docs, skill, index,
+# doctor, the gallery build and the reference export); types in three shards;
+# the essential unit suite in two shards; Playwright E2E in two shards against
+# real static builds; the performance budgets (bundle, index and scenario
+# generation; cold-start reported only); and the packages job (build, lint and
+# install the publishable packages from their tarballs; the npm consumer
+# variant runs on main only). The pnpm store and the built packages are cached.
 
 on:
   push:
@@ -38,10 +39,12 @@ jobs:
       - name: Public-hygiene check (tracked files, no network)
         run: bash scripts/check-public-hygiene.sh
 
-  check:
-    name: lint, types, tests, builds
+  # Lint and the fast repository checks (docs, skill, integrations, index,
+  # doctor, the gallery build and the reference prototype export).
+  lint:
+    name: lint and repo checks
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -51,14 +54,19 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Enable pnpm (corepack, version from packageManager)
         run: corepack enable
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Biome
         run: pnpm lint
-      - name: Typecheck
-        run: pnpm typecheck
-      - name: Unit tests
-        run: pnpm test
       - name: Skill frontmatter and CLI alignment
         run: pnpm check:skill
       - name: Integration recipes match the CLI
@@ -80,20 +88,22 @@ jobs:
           else
             echo "prototypes/crm-demo does not exist yet; skipping."
           fi
-      - name: Upload the exported ZIP
-        if: ${{ hashFiles('artifacts/crm-demo/crm-demo.zip') != '' }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: crm-demo-export
-          path: |
-            artifacts/crm-demo/crm-demo.zip
-            artifacts/crm-demo/build-manifest.json
-          retention-days: 7
 
-  e2e:
-    name: e2e (chromium)
+  # svelte-check over 80+ workspace projects, split into three parallel shards.
+  typecheck:
+    name: types (${{ matrix.name }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: packages
+            filters: --filter "./packages/**"
+          - name: prototypes
+            filters: --filter "./prototypes/**"
+          - name: templates and apps
+            filters: --filter "./templates/**" --filter "./apps/**"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -103,6 +113,89 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Enable pnpm (corepack, version from packageManager)
         run: corepack enable
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm -r --workspace-concurrency=4 --if-present ${{ matrix.filters }} typecheck
+
+  # The essential unit suite in two shards. Some tests read the built packages
+  # and the prebuilt player, so dist is cached on every build input.
+  unit:
+    name: unit tests (${{ matrix.shard }}/2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Enable pnpm (corepack, version from packageManager)
+        run: corepack enable
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Cache the built packages
+        id: dist
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            packages/*/dist
+          key: unit-dist-${{ runner.os }}-${{ hashFiles('packages/**', '!packages/*/dist/**', '!**/node_modules/**', 'templates/**', 'blueprints/**', 'scripts/build-packages.ts', 'scripts/lib/package-graph.ts', 'tsconfig.base.json', 'pnpm-lock.yaml') }}
+      - name: Build the packages and the player
+        if: steps.dist.outputs.cache-hit != 'true'
+        run: pnpm build:packages && pnpm --filter @protoyard/player build
+      - name: Unit tests
+        run: pnpm vitest run --shard=${{ matrix.shard }}/2
+
+  e2e:
+    name: e2e (${{ matrix.shard }}/2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Enable pnpm (corepack, version from packageManager)
+        run: corepack enable
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Resolve the Playwright version
@@ -129,7 +222,7 @@ jobs:
           echo "PROTOYARD_E2E_PROTOTYPES=$targets" >> "$GITHUB_ENV"
           echo "E2E prototype targets: ${targets:-none}"
       - name: Playwright (gallery, prototype builds and the showcase site)
-        run: pnpm test:e2e
+        run: pnpm test:e2e --shard=${{ matrix.shard }}/2
         env:
           PROTOYARD_E2E_SHOWCASE: '1'
           # A DevTools build of one prototype, so the Theme Studio and design-system
@@ -139,7 +232,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/
