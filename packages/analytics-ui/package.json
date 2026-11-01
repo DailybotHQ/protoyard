@@ -56,10 +56,10 @@
     "@protoyard/charts-ui": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "@texuli/charts": "0.11.1",
-    "@texuli/data": "0.11.1",
-    "@texuli/date": "0.11.1",
-    "texuli": "0.11.1"
+    "@texuli/charts": "0.11.2",
+    "@texuli/data": "0.11.2",
+    "@texuli/date": "0.11.2",
+    "texuli": "0.11.2"
   },
   "devDependencies": {
     "svelte": "^5.57.2"

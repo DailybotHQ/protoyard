@@ -86,7 +86,7 @@ describe('applyAppearance', () => {
     expect(root.dataset.pyMotion).toBe('full');
   });
 
-  it('writes a square theme radius as a length, so calc() radius steps stay valid (G128)', () => {
+  it('writes a unitless zero radius from any theme as a length, so calc() radius steps stay valid', () => {
     applyAppearance(root, { theme: { ...oceanTheme, radius: '0' }, resolvedMode: 'light' });
     expect(root.style.getPropertyValue('--tx-radius')).toBe('0px');
     applyAppearance(root, { theme: oceanTheme, resolvedMode: 'light' });

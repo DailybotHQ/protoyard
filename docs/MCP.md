@@ -121,7 +121,7 @@ Protoyard screens are built Texuli-first, so an agent often needs Texuli's compo
 
 - `npx -y` downloads the package from npm on first use, so that start uses the network. Pin the version Protoyard installs (`0.10.0` today) so the server describes the same Texuli as your workspace.
 - Its tools are read-only `group.verb` operations (`catalog.search`, `component.get`, `catalog.validate`, `example.search`, `theme.get`, `theme.search`, `deck.run`, `document.run`, `document.export` and others). Texuli 0.10.0 removed the seven 0.8 names (`deck`, `document`, `catalog`, `component`, `validate`, `example`, `theme`); call the `group.verb` names.
-- Checked with `@texuli/mcp` 0.9.0: it spoke the `2025-11-25` initialize handshake and earlier revisions, and a client that only sent `server/discover` got `-32601`. Texuli's 0.10.0 release notes add the stateless `2026-07-28` revision per request (gap G124); that has not been re-checked from Protoyard, so the initialize flow remains the safe choice for this server.
+- Checked with `@texuli/mcp` 0.11.1 (2026-11-01): over stdio, a client that only sent `server/discover` got `-32600` ("Server not initialized: send initialize, then notifications/initialized, before other requests"). Texuli 0.10 added the stateless `2026-07-28` revision to `createMcpHandler` (gap G124), but the stdio companion still needs the initialize handshake, so the initialize flow remains the choice for this server too.
 - Texuli's remote endpoint (`https://texuli.com/mcp`) serves the same read-only operations plus site search. Use it only if sending queries to texuli.com is acceptable.
 
 Protoyard's own tools, envelopes and limits above are unchanged; nothing on this page depends on the Texuli server.

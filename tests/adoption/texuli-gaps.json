@@ -446,8 +446,8 @@
   },
   {
     "id": "G128",
-    "status": "open",
-    "summary": "@texuli/tokens/library-port writes a square theme radius as a unitless '0' (brutalist-block, velvet-shop), so calc(var(--tx-radius) + <length>) radius steps are invalid at computed-value time"
+    "status": "fixed",
+    "summary": "@texuli/tokens/library-port writes a square theme radius as a unitless '0' (brutalist-block, velvet-shop), so calc(var(--tx-radius) + <length>) radius steps are invalid at computed-value time. Fixed in Texuli 0.11.2: the port and compileDesignSystem write 0px"
   },
   {
     "id": "G129",

@@ -4,11 +4,10 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.9.0`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.11.1`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
-a release. What 0.10.0 will change is under [Next: Texuli 0.10.0](#next-texuli-0100);
-none of it ships in Protoyard yet.
+a release.
 
 ## How it is linked
 
@@ -49,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.9.0`. Texuli pins its own internal dependencies exactly,
+Every package is `0.11.1`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -362,43 +361,32 @@ and fences, and other host-only behavior remain Protoyard extensions while
 the relevant APIs are gaps. Consult `tests/adoption/texuli-gaps.json` and the
 package pending list for current gap ids and affected files.
 
-## Open gaps (Texuli 0.9.0)
+## Texuli gaps
 
-`tests/adoption/texuli-gaps.json` is the authoritative list. These are open
-on 0.9.0, each with a minimal adapter or a documented limit in Protoyard:
+`tests/adoption/texuli-gaps.json` is the authoritative list. Texuli 0.10.0
+fixed G100–G124 and 0.11.0 fixed G125–G127 and G130, so their adapters and
+`it.fails` pins are gone. Each of these changed Protoyard code:
 
-| Gap | Package | What is missing |
-| --- | --- | --- |
-| G100 | `@texuli/editor/markdown` | `\@` is not read as an escape, so an escaped mention sigil still opens a mention |
-| G101 | `@texuli/data/filter-builder` | No host `issues` prop to mark a condition invalid |
-| G102 | `texuli/layouts/content` | The active-heading tracker works only inside `ContentLayout`'s full chrome |
-| G103 | `@texuli/data/board` | Focus is lost for a frame after a keyboard move into another column |
-| G104 | `@texuli/data/calendar` | The event button's accessible name breaks label-in-name (axe) |
-| G105 | `@texuli/slides/export` | Print preload always imports the stage's default renderer table |
-| G106 | `@texuli/data/activity/inbox` | "Mark all as read" and a row toggle share one callback |
-| G107 | `@texuli/data/grid-core` | `DataGrid mode="table"` lacks ref and rest, loading rows and per-column parts |
-| G108 | `texuli/command` | `CommandPalette` names the dialog and its search with the same title |
-| G109 | `texuli/date` | `DateRangePicker` has no content slot and does not announce the pending end date |
-| G110 | `@texuli/tokens` | System token defaults ship only inside `base.css`, with its reset |
-| G111 | `@texuli/pages` | `PageReader` and `PageEditor` have no `renderBlock` seam for host blocks |
-| G112 | `@texuli/document` | `documentToMarkdown` drops wrapped blocks, tables included |
-| G113–G121 | `@texuli/forms` | No host-painted field, title or action-row control, form-level disabled, password/OTP/color/datetime types, clearing an optional select, per-type loading, per-step submit, or `url` protocols |
-| G122 | `@texuli/data/dashboard/engine` | A keyboard nudge cannot move a widget past a wider one below |
-| G123 | `@texuli/pages` | The editor and reader always reach the whole `@texuli/player` |
-| G124 | `@texuli/tools/mcp` | `createMcpHandler` does not speak the stateless MCP 2026-07-28 revision |
-| G125 | `@texuli/tokens` | No ids-only entry for the whole library |
-| G126 | `@texuli/tokens/library-expand` | Descriptions are cut at 48 characters |
-| G127 | `@texuli/slides` | The stage's theme loader always reaches the whole expanded theme set |
+- `@texuli/tokens/system.css` (system tokens without the reset, G110) replaces `base.css`.
+- `CommandPalette` has a `searchLabel` (G108).
+- The date range picker announces the pending end date (G109).
+- The inbox has its own mark-all callback (G106).
+- `FilterBuilder` takes host issues (G101).
+- The board and calendar fixes (G103, G104).
+- Entity forms are one `SchemaForm` with hosted custom fields (G113–G121).
+- The doc editor is `@texuli/pages/editor-core` with host-painted blocks (G111, G123).
+- Deck print goes through `@texuli/slides/export-core` (G105).
+- `@protoyard/themes` reads its theme id lists from `@texuli/tokens/library-ids` (G125).
 
-## Next: Texuli 0.10.0
+Open on 0.11.1, each with a minimal adapter:
 
-Texuli 0.10.0 is published, and its adoption is in progress on its own branch;
-nothing below ships in Protoyard yet. It brings design systems and the fixes
-for G100–G124: for example `@texuli/tokens/system.css` (system tokens without
-the reset, G110), `CommandPalette` `searchLabel` (G108), the date range
-picker's pending-end announcement (G109), the inbox's own mark-all callback
-(G106), `FilterBuilder` host issues (G101), and the board and calendar fixes
-(G103, G104). It also removes the tree block's `style` alias and the old MCP
-tool-name aliases. Once Protoyard moves to it, these adapters and their
-`it.fails` pins are removed, and this page and the gap list are updated.
+| Gap | Package | What is missing | Adapter |
+| --- | --- | --- | --- |
+| G128 | `@texuli/tokens/library-port` | A square theme radius is written as unitless `0` (brutalist-block, velvet-shop), so `calc(var(--tx-radius) + <length>)` steps are invalid | `@protoyard/themes` writes a zero radius as `0px` (`src/radius.ts`) |
+| G129 | `@texuli/forms` | Password fields accept only `current-password` or `new-password` autocomplete, not `off` | Simulated password inputs keep Protoyard's control |
 
+Both are fixed in Texuli 0.11.2.
+
+Texuli 0.10.0 also removed the tree block's `style` alias (Protoyard's
+blocks-ui adapter passes `variant`) and the 0.8 MCP tool names, which Protoyard
+never used.
