@@ -458,5 +458,15 @@
     "id": "G130",
     "status": "fixed",
     "summary": "@texuli/slides stage design-system resolver (@texuli/tokens/design-system loadLibraryBase) imports library-expand/registry.js directly, so every deck build reaches all 146 expanded theme modules, even with no texuli: design-system ref. Fixed in Texuli 0.11.0 (with G127): a stage-core host reaches the theme library only through the loaders it injects"
+  },
+  {
+    "id": "G132",
+    "status": "open",
+    "summary": "@texuli/pages/reader-core PageReaderCore and documentOutline anchor headings only from slugify(text); a host cannot keep its own anchor ids, so DocHost's #<block-id> deep links would break"
+  },
+  {
+    "id": "G133",
+    "status": "open",
+    "summary": "@texuli/document/schema validateDocument statically imports @texuli/deck model and schema, so validating a document with no deck adds the deck validator (~30 KB initial JS gzip with the markdown codec in the doc entry)"
   }
 ]
