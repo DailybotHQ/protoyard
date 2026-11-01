@@ -277,7 +277,7 @@ with the showcase and player suites (201 passed), `budget --all` (15/15),
 - [x] Tarball lint: publint, attw, packed-file hygiene, the lockstep version; `pnpm build:packages && pnpm check:packages --require-all` passes for all 31 publishable packages [`check-packages.test.ts`, `tarball-hygiene.test.ts`; the command itself]
 - [x] No package imports a sibling's `src/` or reaches another package by a relative CSS path [`package-boundaries.test.ts`]
 - [x] The CLI finds Protoyard packages by Node resolution and works in a consumer workspace; `@protoyard/templates`, the unscoped `protoyard` wrapper and `create-protoyard` [`package-resolution.test.ts`, `workspace-layouts.test.ts`, `new-consumer.test.ts`, `packages/templates`, `packages/protoyard`, `packages/create-protoyard` tests]
-- [x] A fresh consumer works from the packed tarballs with no registry (`pnpm verify:packages`, pnpm and npm) [`verify-packages.test.ts`]; CI's `packages` job builds, checks and verifies on every pull request [`release-config.test.ts -t "ci workflow"`]
+- [x] A fresh consumer works from the packed tarballs with no registry (`pnpm verify:packages`, pnpm and npm) [`verify-packages.test.ts`]; CI's `packages` job builds and checks on every pull request, and on main two parallel jobs verify the pnpm and npm consumers [`release-config.test.ts -t "ci workflow"`]
 - [x] Lockstep versioning with Changesets (`pnpm changeset`, `pnpm version-packages [--check]`) and a `release.yml` that gates, publishes with npm Trusted Publishing and provenance, then creates the GitHub Release [`release-config.test.ts`]
 
 **Player (level 1).** See [PLAYER.md](PLAYER.md) (ADR-029, ADR-030).

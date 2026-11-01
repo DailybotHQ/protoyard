@@ -85,9 +85,9 @@ describe('release workflow', () => {
 });
 
 /**
- * ci.yml's packages job: build, dist parity, check:packages --require-all and
- * verify:packages on every pull request, with the pnpm store and dist cached
- * and the check report uploaded on failure; the npm consumer only on main.
+ * ci.yml's packages job: build, dist parity and check:packages --require-all
+ * on every pull request, with the pnpm store and dist cached and the check
+ * report uploaded on failure; the pnpm and npm consumers in parallel on main.
  */
 describe('ci workflow packages job', () => {
   const CI = readFileSync(join(REPO, '.github', 'workflows', 'ci.yml'), 'utf8');
