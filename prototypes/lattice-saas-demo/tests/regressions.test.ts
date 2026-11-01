@@ -1,4 +1,9 @@
-import { PermissionDeniedError, SimulatedServiceError, ValidationError } from '@protoyard/core';
+import {
+  PermissionDeniedError,
+  type Persona,
+  SimulatedServiceError,
+  ValidationError,
+} from '@protoyard/core';
 import type { ProtoyardRuntime } from '@protoyard/runtime';
 import { createOnboarding, type SaasOnboarding } from '@protoyard/saas';
 import { afterEach, describe, expect, it } from 'vitest';
