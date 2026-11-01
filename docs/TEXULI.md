@@ -197,8 +197,23 @@ document and back; untouched blocks return byte-identical, and Protoyard's
 own blocks travel as placeholders. Applied edits are saved per doc and world
 in the content-kind runtime's `docEdits` store (its storage schema version 2)
 and survive a reload; Reset removes them. The reading view stays Protoyard's
-`DocHost`, because Texuli's `PageReader` has no seam for host-owned blocks
-(gap G111). Details: [PAGES](PAGES.md) and [KINDS](KINDS.md).
+`DocHost`. Texuli 0.10–0.11 added the `renderBlock` seam (G111) and
+`@texuli/pages/reader-core`, and Protoyard's blocks paint through it, but two
+things still block the switch (measured 2026-10-31 on Texuli 0.11.1):
+
+- **Size.** The doc entry's initial JS grows from 120,622 B to 162,013 B gzip
+  (+34 %), over its 122,880 B budget. The reader itself adds about 1 KB; the
+  rest is the conversion a reader needs, mainly `validateDocument`, which
+  statically imports `@texuli/deck`'s model and schema (gap G133), plus the
+  Markdown codec.
+- **Deep links.** The reader anchors every heading from its text
+  (`documentOutline`), with no host anchor. `DocHost` keeps an authored
+  heading block id as its anchor, so existing `#<block-id>` links would break
+  (gap G132).
+
+`PageApp` renders page sections (hero, pricing, steps…), not a document, so
+the reader does not apply to it. Details: [PAGES](PAGES.md#reading-view-and-texulis-reader)
+and [KINDS](KINDS.md).
 
 ## Spreadsheets and the infinite canvas
 
@@ -377,6 +392,8 @@ on 0.9.0, each with a minimal adapter or a documented limit in Protoyard:
 | G125 | `@texuli/tokens` | No ids-only entry for the whole library |
 | G126 | `@texuli/tokens/library-expand` | Descriptions are cut at 48 characters |
 | G127 | `@texuli/slides` | The stage's theme loader always reaches the whole expanded theme set |
+| G132 | `@texuli/pages/reader-core` | Heading anchors come only from the text; a host cannot keep its own anchor ids |
+| G133 | `@texuli/document/schema` | `validateDocument` always imports `@texuli/deck`'s model and schema, even for a document with no deck |
 
 ## Next: Texuli 0.10.0
 
