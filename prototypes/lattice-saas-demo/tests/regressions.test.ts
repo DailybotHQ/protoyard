@@ -379,8 +379,14 @@ describe('bug 5: onboarding steps commit atomically through the service pipeline
     const { runtime } = await ownerWizard();
     const before = runtime.session.principal()?.persona.name;
     render(LatticeHarness, { runtime, view: Onboarding });
-    await screen.findByRole('region', { name: /^Step 1 of 5/ });
-    await type('Full name', 'Kai Example');
+    // The wizard is one Texuli multi-step form; its controls load on demand.
+    await screen.findByRole('progressbar', { name: /Setup progress/ });
+    await waitFor(() =>
+      screen.getByLabelText(/^Full name/, { selector: 'input, textarea, button' })
+    );
+    fireEvent.input(screen.getByLabelText(/^Full name/, { selector: 'input, textarea, button' }), {
+      target: { value: 'Kai Example' },
+    });
     runtime.environment.set({ network: 'offline' });
     await click(/^Next/);
     expect(await screen.findByText(/offline/i)).toBeTruthy();
