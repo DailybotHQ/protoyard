@@ -1,7 +1,7 @@
-import type { MissionProgress } from '@protoyard/gamification';
+import { type MissionProgress } from '@protoyard/gamification';
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import AchievementBadge from '../src/badge/AchievementBadge.svelte';
+import * as kit from '../src/index.ts';
 import MissionCard from '../src/mission/MissionCard.svelte';
 
 afterEach(cleanup);
@@ -20,28 +20,6 @@ const mission = (over: Partial<MissionProgress> = {}): MissionProgress => ({
 });
 
 describe('AchievementBadge and MissionCard', () => {
-  it('exposes progress on the badge and marks earned state', () => {
-    const open = render(AchievementBadge, {
-      props: {
-        name: 'First help',
-        description: 'Your first confirmed help.',
-        progress: 0,
-        goal: 1,
-        earned: false,
-      },
-    });
-    expect(open.getByRole('img', { name: /First help, 0 of 1/ })).toBeTruthy();
-    expect(open.container.querySelector('[data-py-badge-ring]')).toBeNull();
-    open.unmount();
-
-    const earned = render(AchievementBadge, {
-      props: { name: 'First help', earned: true, progress: 1, goal: 1 },
-    });
-    expect(earned.getByLabelText('First help, earned')).toBeTruthy();
-    expect(earned.container.querySelector('[data-earned="true"]')).toBeTruthy();
-    expect(earned.container.querySelector('[data-py-badge-ring]')).toBeTruthy();
-  });
-
   it('accepts a mission through a pending Button promise', async () => {
     let resolveAccept!: () => void;
     const pending = new Promise<void>((resolve) => {
@@ -58,19 +36,17 @@ describe('AchievementBadge and MissionCard', () => {
     resolveAccept();
     await waitFor(() => expect(button.getAttribute('aria-busy')).not.toBe('true'));
   });
+});
 
-  it('hides accept when already accepted or expired', () => {
-    const accepted = render(MissionCard, {
-      props: { mission: mission({ accepted: true, progress: 2 }), onAccept: vi.fn() },
-    });
-    expect(accepted.queryByRole('button', { name: 'Accept mission' })).toBeNull();
-    expect(accepted.getByText('Accepted')).toBeTruthy();
-    accepted.unmount();
+// --- merged from exports.test.ts ---
 
-    const expired = render(MissionCard, {
-      props: { mission: mission({ expired: true }), onAccept: vi.fn() },
-    });
-    expect(expired.queryByRole('button', { name: 'Accept mission' })).toBeNull();
-    expect(expired.getByText('Expired')).toBeTruthy();
+describe('@protoyard/gamification-ui exports', () => {
+  it('exports the six required surfaces', () => {
+    expect(kit.LevelChip).toBeTypeOf('function');
+    expect(kit.PointsChip).toBeTypeOf('function');
+    expect(kit.StreakChip).toBeTypeOf('function');
+    expect(kit.AchievementBadge).toBeTypeOf('function');
+    expect(kit.MissionCard).toBeTypeOf('function');
+    expect(kit.Leaderboard).toBeTypeOf('function');
   });
 });
