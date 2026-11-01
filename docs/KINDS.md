@@ -238,9 +238,10 @@ one included), or the module resolves outside the folder, nothing is read or
 written; `validate` fails the check, `dev` says why (on stderr; one JSON line
 per event with `--json`) and does not watch.
 `dev` on a template demo never writes template files, and neither does
-`validate deck`: a stale `templates/deck/src/brand-theme.ts` fails the check. The template's test
-(`tests/deck-template.test.ts`, copied into each deck) also fails when the
-module and `brand` disagree.
+`validate deck`: a stale `templates/deck/src/brand-theme.ts` fails the check. Since PLAN_009
+the deck template ships no test of its own (so new decks get none);
+`packages/cli/tests/template-brand.test.ts` covers the brand refresh, and
+`validate` stays the check.
 
 ## Catalog discovery
 

@@ -177,8 +177,10 @@ are refused.
 The installer never fetches anything, edits host configuration or installs the
 Protoyard CLI. Installing the skill is still a consent checkpoint
 ([`TRUST.md`](../skills/protoyard/TRUST.md)): show the host, destination and
-tag first. `pnpm vitest run packages/cli/tests/skill-setup.test.ts` runs every
-host against a temporary home under `/bin/bash`.
+tag first. `pnpm vitest run packages/cli/tests/skill-integrity.test.ts` runs
+`setup.sh` under `/bin/bash` against a temporary home: it refuses another
+version unless `--replace`, keeps a backup, and refuses unsafe `SHA256SUMS`
+paths (the every-host sweep was removed in PLAN_009).
 
 ## Release artifacts
 
@@ -258,11 +260,12 @@ It runs four checks in order and exits nonzero at the first that finds a problem
   root `SHA256SUMS` exactly, so a stale manifest fails until
   `bash scripts/generate-skill-checksums.sh` is rerun and committed.
 
-The unit tests are `pnpm vitest run tests/scripts/validate-skill-frontmatter.test.ts`,
-`pnpm vitest run packages/cli/tests/check-skill-cli.test.ts`,
-`pnpm vitest run tests/scripts/validate-skill-links.test.ts` and
-`pnpm vitest run tests/scripts/skill-docs.test.ts` (this guide's commands
-against the scripts and the CLI).
+Since PLAN_009 the unit tests are
+`pnpm vitest run packages/cli/tests/skill-integrity.test.ts` (checksums,
+`setup.sh`, the release smoke script) and
+`pnpm vitest run tests/scripts/validate-skill-links.test.ts` (missing targets,
+escaping paths and symlinks). The frontmatter and CLI-reference scripts have no
+unit tests of their own; `pnpm check:skill` runs them on the real skill.
 
 Before creating a release tag, stamp every skill frontmatter version from the
 selected package release version, then verify the result:
@@ -319,7 +322,7 @@ replaces, never `CI=1`. The replacement moves the old copy to
 `~/.protoyard/skill-backups/` and leaves host settings and other skills alone,
 then checks the installed version and checksums. The options are in the
 skill's [`references/upgrade.md`](../skills/protoyard/references/upgrade.md);
-the behavior is covered by `tests/scripts/upgrade-skill.test.ts`.
+its unit test was removed in PLAN_009, so check an upgrade by hand.
 
 ## Reusable kits
 

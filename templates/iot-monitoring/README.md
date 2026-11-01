@@ -31,7 +31,7 @@ pnpm protoyard dev my-monitoring
 ## Checks
 
 ```bash
-pnpm vitest run templates/iot-monitoring
+pnpm vitest run tests/integration/templates.test.ts -t iot-monitoring
 pnpm --filter @protoyard-template/iot-monitoring typecheck
 pnpm protoyard validate iot-monitoring --strict-spec --build
 pnpm protoyard scenario bench iot-monitoring --check

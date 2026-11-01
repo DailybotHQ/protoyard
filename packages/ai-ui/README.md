@@ -48,7 +48,7 @@ The workspace renders its conversation through `MessageList`, which is `@texuli/
 
 The composer supports Enter to send, Shift+Enter for a newline, Escape to stop a stream, model selection, file selection, slash-command suggestions, and @mention suggestions. The parent owns streaming state and should update `messages` as deterministic chunks arrive. `RichAnswer` renders the plain-data AST from `parseMarkdown` using text nodes and Svelte elements; it never uses `{@html}`. `CanvasPanel` displays code or editable document text in a responsive side panel.
 
-**Scrollable code regions.** Overflowing `<pre>` blocks in `RichAnswer` (fenced code), `ChartAnswer` (invalid chart data), and `CanvasPanel` (code kind) use `tabindex="0"` and an `aria-label`, matching the ui-kit `CodeBlock` pattern, so keyboard users can reach them (axe `scrollable-region-focusable` / WCAG 2.1.1). Covered by `packages/ai-ui/tests/scroll-regions.test.ts`.
+**Scrollable code regions.** Overflowing `<pre>` blocks in `RichAnswer` (fenced code), `ChartAnswer` (invalid chart data), and `CanvasPanel` (code kind) use `tabindex="0"` and an `aria-label`, matching the ui-kit `CodeBlock` pattern, so keyboard users can reach them (axe `scrollable-region-focusable` / WCAG 2.1.1). (Its unit test was removed in PLAN_009.)
 
 **Chart answers.** `RichAnswer` parses with `{ charts: true }`.
 - A ```` ```chart ```` fence (see `@protoyard/ai/chart`) shows "Preparing

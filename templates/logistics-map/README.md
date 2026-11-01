@@ -32,7 +32,7 @@ pnpm protoyard dev my-dispatch
 ## Checks
 
 ```bash
-pnpm vitest run templates/logistics-map
+pnpm vitest run tests/integration/templates.test.ts -t logistics-map
 pnpm --filter @protoyard-template/logistics-map typecheck
 pnpm protoyard validate logistics-map --strict-spec --build
 pnpm protoyard budget logistics-map

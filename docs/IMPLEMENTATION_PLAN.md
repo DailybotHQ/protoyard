@@ -11,6 +11,12 @@ agent and three parallel lanes coordinated through Herdr, plus focused
 subagents for templates, demo UIs, docs and the agent kit. See
 [AI_AGENT_COLLAB.md](AI_AGENT_COLLAB.md).
 
+**Evidence commands are historical.** Each bracketed command proved its item
+when the item was checked. PLAN_009 (2026-11-01) then cut the suite to its
+essential cases (8,892 → 923 Vitest tests, 1,016 → 89 listed Playwright
+cases), so many test files named below no longer exist. For commands that work today, use
+[TESTING_GUIDE.md](TESTING_GUIDE.md).
+
 ## Phase 0: scaffold
 
 - [x] pnpm workspace, strict and erasable TypeScript, Biome, MIT license, supply-chain guard (`minimumReleaseAge`)

@@ -25,8 +25,9 @@ Scales are complete (PLAN_003 `T-charts-scales`): the whole `./scales` module
 is 3.1 KB gzip (esbuild, minified, gzip -9); a typical import of
 `linearScale` + `ticks` + `formatCompact` is 0.9 KB. Downsampling is complete
 (`T-charts-downsample`, 1.2 KB gzip for the whole `./downsample` module).
-Measured in Node 26.11.1 on an Apple M1 Max (median of 9, three runs of
-`PROTOYARD_BENCH=1 pnpm vitest run packages/charts/tests/downsample.test.ts`):
+Measured in Node 26.11.1 on an Apple M1 Max (median of 9, three runs of a
+`PROTOYARD_BENCH=1` downsample test; that test was removed in PLAN_009 because
+the math is tested upstream in `@texuli/charts/math`):
 LTTB 10k → 1k points 0.29–0.71 ms, 100k → 2k 1.27–1.37 ms; min-max 100k
 points into 1,600 columns 2.6–4.0 ms; 10,000 `bisectX` lookups on 100k
 points 1.3–1.6 ms. Shapes are complete (`T-charts-shapes`): the whole
@@ -59,9 +60,9 @@ recognizable:
 Gray tokens (a monochrome theme) can only differ in lightness. When they end
 up too close, they are spread evenly over the lightness band that keeps 3:1.
 `palette.repaired` names the theme tokens that were changed. Every built-in
-and library theme passes in both modes after repair
-(`pnpm vitest run packages/charts/tests/palette.test.ts` prints the repair
-list). Color alone never identifies a series: legends and labels stay
+and library theme passed in both modes after repair when the every-theme
+palette sweep ran; PLAN_009 removed that sweep, and
+`packages/charts/tests/charts.test.ts` keeps the CSS-variable palette case. Color alone never identifies a series: legends and labels stay
 required.
 
 Size and speed: building a palette costs 2.9 KB gzip (`chartPalette` +

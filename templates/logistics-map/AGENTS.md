@@ -26,7 +26,7 @@ For this template workspace itself, use:
 ```bash
 pnpm protoyard new my-dispatch --template logistics-map
 pnpm protoyard dev my-dispatch
-pnpm vitest run templates/logistics-map
+pnpm vitest run tests/integration/templates.test.ts -t logistics-map
 pnpm protoyard validate logistics-map --strict-spec --build
 ```
 

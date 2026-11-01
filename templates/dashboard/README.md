@@ -50,10 +50,7 @@ src/lib/format.ts            money (integer cents → currency from settings), d
 src/App.svelte               AppShell + Sidebar + hash routes
 src/screens/*.svelte         Overview, Customers, CustomerDetail, Orders, Settings
 src/components/*.svelte      dialogs, status badge/menu, MetricCard (StatCard + Sparkline), page header
-tests/generators.test.ts     determinism, integrity, density, viewer = active world
-tests/services.test.ts       CRUD + reload persistence, status transitions, roles, offline
-tests/money.test.ts          exact cents parsing, integer storage, the v1 → v2 migration
-tests/overview-charts.test.ts  daily trend series (cents, UTC days, simulated now), MetricCard sparkline
+tests/                       none: tests/integration/templates.test.ts generates, validates and boots this template
 ```
 
 ## Add a table
@@ -99,7 +96,8 @@ Follow `src/domain/services.ts`:
 4. In components call it through `runService(() => services.x(…), { success: 'Saved' })`:
    permission and simulated-network errors become toasts; `ValidationError.issues`
    come back for inline `FormField` errors.
-5. Cover it in `tests/services.test.ts` using `harness.boot()` / `harness.reload()`.
+5. Cover it in a `tests/services.test.ts` you add (the template ships none) using
+   `createHarness` from `tests/support/runtime.ts` and `harness.boot()` / `harness.reload()`.
 
 ## Add a screen
 
@@ -134,12 +132,13 @@ Follow `src/domain/services.ts`:
    Never use `Math.random()` or `Date.now()` in generators — use `ctx.rng`,
    `ctx.faker`, `ctx.ids` and `ctx.time`. Bump `DASHBOARD_GENERATOR_VERSION`
    when the same seed would produce a different world.
-4. `tests/generators.test.ts` runs integrity checks over every scenario automatically.
+4. `expectBootableWorld(definition)` from `tests/support/smoke.ts` runs determinism and integrity
+   checks over every scenario; call it from a test you add.
 
 ## Checks
 
 ```bash
-pnpm vitest run prototypes/my-admin
+pnpm protoyard validate my-admin --build   # the template ships no tests; add your own (docs/TESTING_GUIDE.md)
 pnpm --filter @prototype/my-admin typecheck
 pnpm protoyard build my-admin
 ```

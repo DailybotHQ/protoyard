@@ -77,8 +77,7 @@ src/scenarios/generators.ts  generateAdminWorld(ctx): staff → tenants → peop
 src/lib/queries.ts           read models for screens (liveQuery-friendly)
 src/components/              ImpersonationBanner, ReasonDialog, StatusBadge, PageHeader
 src/screens/                 Overview, Tenants, TenantDetail, Users, Audit, ImpersonatedView
-tests/generators.test.ts     determinism, integrity, identity model, cents
-tests/services.test.ts       suspend + audit + reload, role denials, impersonation, offline, UI flows
+tests/                       none: tests/integration/templates.test.ts generates, validates and boots this template
 ```
 
 ## Customize
@@ -97,7 +96,7 @@ tests/services.test.ts       suspend + audit + reload, role denials, impersonati
 ## Checks
 
 ```bash
-pnpm vitest run templates/admin-console
+pnpm vitest run tests/integration/templates.test.ts -t admin-console
 pnpm --filter @protoyard-template/admin-console typecheck
 pnpm protoyard validate admin-console --build
 ```

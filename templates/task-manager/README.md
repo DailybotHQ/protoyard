@@ -63,13 +63,13 @@ src/scenarios/                scenarios (presets) + deterministic generator + ti
 src/lib/context.svelte.ts     runtime, services and live people list for screens
 src/screens/                  Overview, Board, TaskDetail, MyTasks
 src/components/               TaskDialog, ProjectDialog, TaskCard, badges
-tests/                        generator determinism/integrity + services on the real runtime
+tests/                        none: tests/integration/templates.test.ts generates, validates and boots this template
 ```
 
 ## Checks
 
 ```bash
-pnpm vitest run templates/task-manager
+pnpm vitest run tests/integration/templates.test.ts -t task-manager
 pnpm --filter @protoyard-template/task-manager typecheck
 pnpm --filter @protoyard-template/task-manager build
 ```

@@ -27,7 +27,7 @@ Review writes in `src/domain/reviews.ts` follow the runtime path: permission ass
 ## Validate
 
 ```bash
-pnpm vitest run templates/design-kit
+pnpm vitest run tests/integration/templates.test.ts -t design-kit
 pnpm --filter @protoyard-template/design-kit typecheck
 pnpm --filter @protoyard-template/design-kit build
 ```

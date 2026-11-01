@@ -29,8 +29,7 @@ The Playbook route demonstrates content in the docs and marketing frames. The ac
 - `src/domain/services.ts` keeps mutations behind permission checks, validation, simulated environment handling and transactions.
 - `src/App.svelte` lazy-loads route screens and passes navigation to the shared `LayoutHost`.
 - `src/screens/LayoutGallery.svelte` exposes each supported frame through a reproducible URL.
-- `tests/generators.test.ts` covers repeatability, integrity and scenario density.
-- `tests/e2e/atlas-workspace-demo.spec.ts` checks every frame at desktop width and runs axe in light and dark modes.
+- `tests/services.test.ts` holds the boot smoke (repeatability and integrity of every scenario), an order status change logged in the same transaction, and service-level role checks. The browser spec was removed in PLAN_009.
 
 ## Validation
 

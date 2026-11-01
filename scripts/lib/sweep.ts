@@ -1,8 +1,7 @@
 /*
  * The pure half of the visual QA sweep (scripts/visual-sweep.ts): arguments,
  * the shot matrix, the densest scenario, layout-fit flags and the contact
- * sheet. No browser and no file system, so all of it is unit-tested
- * (tests/scripts/visual-sweep.test.ts).
+ * sheet. No browser and no file system (its unit test was removed in PLAN_009).
  */
 
 export const SHELL_VALUES = [
@@ -221,7 +220,7 @@ export function selectPlayerTarget(
 /**
  * The densest scenario by name: the first pattern that matches, in order, so
  * `massive` beats `long-history`; the manifest default otherwise. These are
- * the scenarios tests/e2e/layout-fit.spec.ts chose by hand.
+ * the scenarios the former layout-fit E2E spec chose by hand.
  */
 const DENSE_PATTERNS = [/massive/, /scale/, /long-/, /multi-/, /power/, /busy/, /mature/];
 
@@ -409,7 +408,7 @@ export function shotUrl(base: string, shot: Shot): string {
   return `${base}?${shotQuery(shot)}${shot.route ? `#${shot.route}` : ''}`;
 }
 
-/** What tests/e2e/layout-fit.spec.ts measures, gathered in the page. */
+/** The layout-fit measurements (from the former layout-fit E2E spec), gathered in the page. */
 export interface FitMetrics {
   docOverflow: number;
   documentScrolls: boolean;

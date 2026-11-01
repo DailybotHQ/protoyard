@@ -11,7 +11,7 @@ is fictional, and the roles are simulated, not real security.
 pnpm protoyard dev helpdesk-demo                  # run it (DevTools included in dev)
 pnpm vitest run prototypes/helpdesk-demo          # unit + integration tests
 pnpm protoyard validate helpdesk-demo --build     # contract, schema, build
-PROTOYARD_E2E_PROTOTYPES=helpdesk-demo pnpm test:e2e
+PROTOYARD_E2E_PROTOTYPES=helpdesk-demo pnpm test:e2e   # the gallery specs plus axe on its main screen
 ```
 
 [blueprint.json](blueprint.json) declares the entities, roles and

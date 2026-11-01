@@ -27,7 +27,7 @@ For this template workspace itself, use:
 ```bash
 pnpm protoyard new my-monitoring --template iot-monitoring
 pnpm protoyard dev my-monitoring
-pnpm vitest run templates/iot-monitoring
+pnpm vitest run tests/integration/templates.test.ts -t iot-monitoring
 pnpm protoyard validate iot-monitoring --strict-spec --build
 ```
 

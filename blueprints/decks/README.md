@@ -12,7 +12,7 @@ entities, roles or screens. Back to the [catalog index](../README.md#choose-an-e
 | [Lumen launch](./lumen-launch.json) | Product launch | Process, three cards, free quiz |
 | [Cedar training](./cedar-training.json) | Internal training | Timeline, free counter + poll, code callout |
 | [Protoyard: create anything](./protoyard-create-anything.json) | Flagship | 25 slides: every layout family, flow, terminal, stats, charts with a data table, an explorable chart, poll, calculator, quiz and an embedded app; generated as `prototypes/create-anything-deck` |
-| [Everything deck](./everything.json) | Reference | 42 slides: every catalog layout, every block type and every chart family, with steps on every prop kind, a media background, an explorable table and chart, a poll, a calculator and an embedded app. The deck to copy from (`protoyard deck inspect blueprints/decks/everything.json --slide <id>`); `packages/decks/tests/everything-deck.test.ts` keeps it complete |
+| [Everything deck](./everything.json) | Reference | 42 slides: every catalog layout, every block type and every chart family, with steps on every prop kind, a media background, an explorable table and chart, a poll, a calculator and an embedded app. The deck to copy from (`protoyard deck inspect blueprints/decks/everything.json --slide <id>`); no test checks its completeness since PLAN_009 |
 
 ## Shape
 
@@ -47,14 +47,10 @@ plus `"kind": "deck"` and one `deck` body:
 
 ## Status
 
-`pnpm vitest run packages/blueprint/tests/deck-catalog.test.ts` checks every
-example:
-
-- kind and root keys; no app-only keys;
-- `safeParseAnyBlueprint` / deck body schema;
-- `lintDeckStructure` (ids, outline, layouts, fragments);
-- free-slide blocks against `@protoyard/blocks`;
-- unique slide ids and honest fictional-data heuristics.
+`pnpm vitest run packages/blueprint/tests/kinds/envelope.test.ts -t "every deck, page and doc example"` parses every example with its kind schema (one test since PLAN_009).
+The per-example checks the old catalog test ran (deck lint, free-slide blocks,
+unique slide ids, fictional-data heuristics) are no longer in the suite; run
+`pnpm protoyard deck lint <file>` for them.
 
 ## Authoring a deck
 
@@ -75,7 +71,7 @@ example:
    blueprint: 6 slides". For the deck quality rules (notes, layout repetition,
    words per slide, image alt and size, step order), run `checkDeckStatic`
    from `@protoyard/decks/quality` on the parsed deck.
-4. Run `pnpm vitest run packages/blueprint/tests/deck-catalog.test.ts`.
+4. Run `pnpm protoyard deck lint <file>` and `pnpm vitest run packages/blueprint/tests/kinds/envelope.test.ts -t "every deck, page and doc example"`.
 
 To turn an example into a full prototype (level 2), generate it. The deck template is
 picked from the blueprint's kind:

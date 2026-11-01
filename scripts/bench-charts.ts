@@ -64,7 +64,8 @@ export const THRESHOLDS = {
   /** Chromium: long tasks during the hover sweep, per renderer (max over runs). */
   longTasks: 0,
   /**
-   * LineChart + BarChart view, gzip bytes: the bundle guard's ceiling (charts-bundle.test.ts),
+   * LineChart + BarChart view, gzip bytes: the ceiling `--check` enforces (the unit guard that
+   * shared it, charts-bundle.test.ts, was removed in PLAN_009),
    * measured 12,718 B on Texuli 0.9.0 + 5 % (PLAN_008 T-remeasure; was 17,000).
    */
   lineBarLazyBytes: 13_354,

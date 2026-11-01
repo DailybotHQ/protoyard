@@ -15,6 +15,6 @@ this prototype's markup. `src/App.svelte` imports the template's own
 
 ```bash
 pnpm protoyard dev doc
-pnpm vitest run templates/doc
+pnpm vitest run tests/integration/templates.test.ts -t doc
 pnpm protoyard validate doc --build
 ```

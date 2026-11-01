@@ -9,7 +9,7 @@ extended.
 ```bash
 pnpm protoyard new my-notes --template desktop-app   # create a prototype from this template
 pnpm protoyard dev my-notes                           # run it
-pnpm vitest run prototypes/my-notes                   # tests
+pnpm protoyard validate my-notes --build   # the template ships no tests; add your own (docs/TESTING_GUIDE.md)
 pnpm --filter @prototype/my-notes typecheck
 ```
 

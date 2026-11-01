@@ -87,7 +87,7 @@ components directly.
   and usable under a modal one; F6 moves focus to the newest Undo (Tab stays
   inside a modal, per WAI-ARIA APG).
 
-Unit coverage: `packages/ui/tests/adaptive-overlay.test.ts`.
+Its unit tests were removed in PLAN_009 (Texuli's own suite covers the overlay).
 
 ## Adaptive phone and desktop presentation
 
@@ -146,8 +146,8 @@ The renderer shows the bare app, with no frame, when:
   has a control (a phone app with back and menu buttons and a tab bar, such as
   relay-chat-demo at 390 px), it shrinks to a 20 px info dot placed in the first gap along
   the bottom or top edge that covers nothing (text only as a last resort). Pressing the dot
-  shows the label, and Escape or navigation folds it again. `tests/e2e/relay-chat-demo.spec.ts`
-  checks that the badge covers no control at 390×844.
+  shows the label, and Escape or navigation folds it again. The relay-chat-demo E2E case that checked the
+  badge covers no control at 390×844 was removed in PLAN_009.
 
 ## Full screen
 
@@ -214,8 +214,8 @@ frame:
   repositions on window resize, visual-viewport resize/scroll, hash changes and app DOM
   mutations, and ignores mutations inside the floating element so an expanding toolbar
   cannot feedback-loop. When the visual viewport is smaller or offset, expanded bars pin
-  to the visible left so every action stays on screen. Unit coverage:
-  `packages/renderer-svelte/tests/floating.test.ts`.
+  to the visible left so every action stays on screen. Its unit test was removed in
+  PLAN_009.
 - **Overlays:** dialogs, sheets, drawers and the undo toaster open contained by the
   device screen (Texuli's `contained` overlay mode), so they stay inside the frame.
   The `@protoyard/ui` `Toaster` takes Texuli's toast region out of the page's top
@@ -269,18 +269,18 @@ remounts the app. It receives `FrameProps`: `spec` (the device in its orientatio
 `setScreenHidden()`. Give the overlay `pointer-events: none`, except on controls that really
 work. **Never paint over the screen:** reserve chrome space with `screenInset` and keep the
 overlay out of it (the browser frame is exactly toolbar-tall), and draw bezels with a border
-ring, not a background fill. The shell E2E matrix checks that the app is actually painted,
+ring, not a background fill. The shell E2E spec checks that the app is actually painted,
 not just laid out. Shells that position the screen themselves (panel shells such as `widget-host`) must
 also be added to `PANEL_SHELLS` in `ShellHost.svelte`.
 
 ## Tests
 
+PLAN_009 removed the per-frame, full-screen and floating unit tests and the
+support-widget and Nova browser-frame E2E cases. What remains:
+
 ```bash
-pnpm vitest run packages/renderer-svelte                     # ShellHost and every frame
-pnpm vitest run packages/renderer-svelte/tests/frames.test.ts -t "desktop window"
-pnpm vitest run packages/renderer-svelte/tests/full-screen.test.ts  # sizing, full screen, badge
-PROTOYARD_E2E_PROTOTYPES=nova-assistant-demo,mobile-banking-demo pnpm test:e2e tests/e2e/shell-layout.spec.ts
-PROTOYARD_E2E_PROTOTYPES=support-widget-demo pnpm test:e2e tests/e2e/support-widget-demo.spec.ts
+pnpm vitest run packages/renderer-svelte                     # mount, routing, pending bar, security, bundle hygiene
+PROTOYARD_E2E_PROTOTYPES=mobile-banking-demo pnpm test:e2e tests/e2e/shell-layout.spec.ts
 ```
 
 The E2E specs need `pnpm test:e2e:install` once, and one E2E session per machine (fixed

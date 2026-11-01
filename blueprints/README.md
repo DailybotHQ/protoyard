@@ -73,9 +73,7 @@ layouts from `@protoyard/decks/layouts`.
 
 ```bash
 pnpm protoyard blueprint validate blueprints/decks/northwind-qbr.json
-pnpm vitest run packages/blueprint/tests/deck-catalog.test.ts
-pnpm vitest run packages/blueprint/tests/page-doc-catalog.test.ts
-pnpm vitest run packages/blueprint/tests/catalog-docs.test.ts
+pnpm vitest run packages/blueprint/tests/kinds/envelope.test.ts -t "every deck, page and doc example"
 ```
 
 ## Quick examples
@@ -99,9 +97,9 @@ content is deterministic and fictional; the assistant uses a local simulation,
 not a hosted model. The SaaS and analytics examples carry `validation.tasks`
 (each one a route and/or a `count>=` predicate) so an exploration starts with
 tasks to try; their sign-in, invitations, plans and events are simulated, with
-no credentials or provider. Validate the examples with
-`pnpm vitest run packages/blueprint/tests/quick-examples/assistant-chat.test.ts` and
-`pnpm vitest run packages/blueprint/tests/quick-examples/saas-analytics.test.ts`.
+no credentials or provider. Validate an example with
+`pnpm protoyard blueprint validate blueprints/quick/<file>.json` (their
+per-example tests were removed in PLAN_009).
 
 ## Catalog
 
@@ -160,5 +158,5 @@ there are no per-rule preference switches in generated Settings screens.
 ```bash
 pnpm protoyard list --kind blueprint
 pnpm protoyard generate my-crm --blueprint blueprints/crm.json
-pnpm vitest run packages/blueprint/tests/catalog.test.ts
+pnpm vitest run packages/blueprint/tests/kinds/envelope.test.ts -t "every catalog blueprint"
 ```

@@ -12,11 +12,13 @@ import { promisify } from 'node:util';
  * and timeline markers over their labels, while every test passed. This
  * module turns "looks designed" into measurable facts:
  *
- * - **Pure half** (unit-tested in `scripts/tests/page-design.test.ts`):
+ * Its spec and unit test were removed in PLAN_009; nothing runs it today.
+ *
+ * - **Pure half**:
  *   `checkDesignFacts` turns facts measured in a browser into issues;
  *   `collectDesignFacts` is the self-contained function a spec hands to
  *   `page.evaluate` to measure them.
- * - **Harness** (used by `tests/e2e/page-design.spec.ts`):
+ * - **Harness** (used by the removed `page-design.spec.ts`):
  *   `prepareDesignBuilds` builds the player (level 1) and generates and
  *   builds the example page and doc with the real CLI in a scratch workspace
  *   under tmp/ (level 2), and `serveStatic` serves a folder on loopback.
