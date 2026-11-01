@@ -36,7 +36,12 @@ function fakeHandle(slug: string, port: number): DevServerHandle {
 }
 
 /** Raw HTTP so the test controls Host and Origin headers exactly. */
-function call(method: string, path: string, headers: Record<string, string> = {}) {
+function call(
+  method: string,
+  path: string,
+  headers: Record<string, string> = {},
+  port = control.port
+) {
   return new Promise<{
     status: number;
     body: Record<string, unknown>;
@@ -46,10 +51,10 @@ function call(method: string, path: string, headers: Record<string, string> = {}
     const req = request(
       {
         host: '127.0.0.1',
-        port: control.port,
+        port,
         method,
         path,
-        headers: { Host: `127.0.0.1:${control.port}`, ...headers },
+        headers: { Host: `127.0.0.1:${port}`, ...headers },
       },
       (res) => {
         let data = '';
@@ -172,6 +177,20 @@ describe('POST /api/new', () => {
       403
     );
     expect(existsSync(join(nws.root, 'prototypes/tok-app'))).toBe(false);
+  });
+
+  it('never hands the create token to a status request with no Origin or Origin: null', async () => {
+    const plain = await call('GET', '/api/status', {}, server.port);
+    expect(plain.status).toBe(200);
+    expect(plain.body.create).toEqual({ enabled: false });
+    expect(plain.cors).toBeUndefined();
+    const opaque = await call('GET', '/api/status', { Origin: 'null' }, server.port);
+    for (const response of [plain, opaque]) {
+      expect(JSON.stringify(response.body)).not.toContain(TOKEN);
+    }
+    // Only the allow-listed gallery origin reads it.
+    const gallery = await call('GET', '/api/status', { Origin: ORIGIN }, server.port);
+    expect(gallery.body.create).toEqual({ enabled: true, token: TOKEN });
   });
 
   it('refuses path traversal and invalid slugs before touching the disk', async () => {

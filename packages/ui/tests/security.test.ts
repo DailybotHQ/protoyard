@@ -2,6 +2,7 @@ import { cleanup, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import Avatar from '../src/components/avatar/Avatar.svelte';
 import { parseAddress } from '../src/components/browser-chrome/address.ts';
+import { buildImagePreviews, isPreviewableImage } from '../src/components/image-input/preview.ts';
 import { DEFAULT_DRAWER_SIZE, resolveDrawerSize } from '../src/components/overlay/drawer.ts';
 
 /**
@@ -58,5 +59,33 @@ describe('@protoyard/ui untrusted input', () => {
     const img = container.querySelector('img');
     expect(img?.getAttribute('src')).toBe(SRC);
     expect(img?.getAttribute('srcset') ?? '').not.toContain('javascript');
+  });
+
+  it('ImageInput previews only raster images, never SVG or HTML', () => {
+    for (const [type, name] of [
+      ['image/svg+xml', 'logo.svg'],
+      ['image/svg', 'logo.svg'],
+      ['text/html', 'page.html'],
+      ['application/xhtml+xml', 'page.xhtml'],
+      ['', 'logo.svg'],
+      ['', 'page.html'],
+    ]) {
+      expect(isPreviewableImage({ type: type as string, name: name as string }), name).toBe(false);
+    }
+    expect(isPreviewableImage({ type: 'image/png', name: 'a.png' })).toBe(true);
+    const urls: string[] = [];
+    const previews = buildImagePreviews(
+      [
+        new File(['<svg onload="x()"/>'], 'x.svg', { type: 'image/svg+xml' }),
+        new File(['<script></script>'], 'x.html', { type: 'text/html' }),
+        new File(['png'], 'a.png', { type: 'image/png' }),
+      ],
+      (file) => {
+        urls.push((file as File).name);
+        return `blob:${(file as File).name}`;
+      }
+    );
+    expect(previews.map((p) => p.url)).toEqual(['blob:a.png']);
+    expect(urls).toEqual(['a.png']);
   });
 });

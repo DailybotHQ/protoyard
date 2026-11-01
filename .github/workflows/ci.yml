@@ -160,7 +160,7 @@ jobs:
         with:
           path: |
             packages/*/dist
-          key: unit-dist-${{ runner.os }}-${{ hashFiles('packages/**', '!packages/*/dist/**', '!**/node_modules/**', 'templates/**', 'blueprints/**', 'scripts/build-packages.ts', 'scripts/lib/package-graph.ts', 'tsconfig.base.json', 'pnpm-lock.yaml') }}
+          key: unit-dist-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('packages/**', 'templates/**', 'blueprints/**', 'scripts/build-packages.ts', 'scripts/lib/package-graph.ts', 'tsconfig.base.json', 'pnpm-lock.yaml', '!packages/*/dist/**', '!**/node_modules/**') }}
       - name: Build the packages and the player
         if: steps.dist.outputs.cache-hit != 'true'
         run: pnpm build:packages && pnpm --filter @protoyard/player build
@@ -200,7 +200,9 @@ jobs:
             devtools: mobile-banking-demo
             comments: ''
           - group: apps 2
-            gallery: '0'
+            # The gallery runs here too: a11y.spec.ts axes these prototypes'
+            # main screens next to the gallery home.
+            gallery: '1'
             site: ''
             showcase: ''
             prototypes: lattice-saas-demo,ui-kit,doc
@@ -393,7 +395,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: packages/*/dist
-          key: packages-dist-${{ runner.os }}-${{ hashFiles('packages/**', '!packages/*/dist/**', '!**/node_modules/**', 'templates/**', 'blueprints/**', 'scripts/build-packages.ts', 'scripts/lib/package-graph.ts', 'tsconfig.base.json', 'pnpm-lock.yaml') }}
+          key: packages-dist-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('packages/**', 'templates/**', 'blueprints/**', 'scripts/build-packages.ts', 'scripts/lib/package-graph.ts', 'tsconfig.base.json', 'pnpm-lock.yaml', '!packages/*/dist/**', '!**/node_modules/**') }}
       - name: Build the packages
         if: steps.dist.outputs.cache-hit != 'true'
         run: pnpm build:packages
@@ -451,7 +453,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: packages/*/dist
-          key: packages-dist-${{ runner.os }}-${{ hashFiles('packages/**', '!packages/*/dist/**', '!**/node_modules/**', 'templates/**', 'blueprints/**', 'scripts/build-packages.ts', 'scripts/lib/package-graph.ts', 'tsconfig.base.json', 'pnpm-lock.yaml') }}
+          key: packages-dist-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('packages/**', 'templates/**', 'blueprints/**', 'scripts/build-packages.ts', 'scripts/lib/package-graph.ts', 'tsconfig.base.json', 'pnpm-lock.yaml', '!packages/*/dist/**', '!**/node_modules/**') }}
       - name: Build the packages
         if: steps.dist.outputs.cache-hit != 'true'
         run: pnpm build:packages
