@@ -259,11 +259,11 @@ CRM app from the same player build.
   - It fails if a CRUD, Faker or analytics chunk, or the app boot, appears in
     a deck, page or doc file.
   - It checks that an app file still carries every lazy CRUD screen.
-  - It opens a deck file from `file://` in Chromium, where it changes slides
-    with no network request.
-`packages/cli/tests/quick-single-file.test.ts` checks every catalog blueprint
-against that budget. It also opens an export from `file://` in Chromium: the
-blueprint boots, a lazy screen renders, and a reload reuses the IndexedDB world.
+  - It runs `quick export --single-file` and reports the file's size against
+    the budget.
+  Since PLAN_009 no test opens a single file from `file://` in Chromium or
+  checks every catalog blueprint against the budget; those browser and catalog
+  cases were cut to keep the suite essential.
 
 **Limits:**
 - **Generation thread:** worlds generate on the main thread. The generation
@@ -617,7 +617,7 @@ viewer's data stays in their own browser.
   16,000,000-byte text-file cap;
 - the analytics page, wrapped in a minimal skeleton (doctype, charset,
   viewport) and served over http, boots to `protoyard:ready` in headless
-  Chromium (`packages/cli/tests/quick-artifact.test.ts`).
+  Chromium (that test, `quick-artifact.test.ts`, was removed in PLAN_009).
 
 **Limits:**
 - **No CSP meta.** The single file's own CSP meta can't travel: a CSP meta
@@ -640,14 +640,13 @@ Verified once, on 2026-10-19:
 - An ArtifactData list of `review/relay-chat-demo/threads` returned an empty
   list as the owner and at `view` level.
 
-Verified locally in the artifact viewer harness (no upload):
-[`tests/e2e/artifact-pack.spec.ts`](../tests/e2e/artifact-pack.spec.ts)
-packs relay-chat-demo, and
-[`tests/e2e/deck-artifact.spec.ts`](../tests/e2e/deck-artifact.spec.ts) packs
-the `create-anything-deck` deck. The harness
-([`tests/e2e/support/artifact-harness.ts`](../tests/e2e/support/artifact-harness.ts))
-wraps `page.html` in a document skeleton inside an iframe, as the viewer does.
-For the deck, the spec checks the following, on desktop and phone viewports:
+Verified locally on 2026-10-22 in an artifact viewer harness (no upload). The
+harness packed relay-chat-demo and the `create-anything-deck` deck and wrapped
+`page.html` in a document skeleton inside an iframe, as the viewer does.
+PLAN_009 removed that harness and its two specs (`artifact-pack.spec.ts`,
+`deck-artifact.spec.ts`) to keep the E2E suite essential, so these checks no
+longer run. For the deck, it checked the following, on desktop and phone
+viewports:
 
 - the first slide renders;
 - arrow keys and `#/<slide>/<step>` links navigate, including opening

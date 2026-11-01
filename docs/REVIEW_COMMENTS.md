@@ -336,7 +336,10 @@ then picks one of three modes:
 ### Artifact: verified and not verified
 
 The adapter passes the shared adapter conformance suite against a fake
-capability surface (`pnpm vitest run packages/review/tests/artifact-adapter.test.ts packages/review/tests/artifact-shell.test.ts`).
+capability surface. Since PLAN_009 the conformance suite runs once, on the
+memory adapter, and `packages/review/tests/adapter-contract.test.ts` keeps the
+artifact adapter's own cases (write gating, the one-time `?review=` key):
+`pnpm vitest run packages/review/tests/adapter-contract.test.ts -t artifact`.
 
 One real private publish of `relay-chat-demo` with `--comments` was made on
 2026-10-19. An ArtifactData list of `review/relay-chat-demo/threads`
@@ -427,10 +430,9 @@ Measured on 2026-10-19 (gzip -9, Vite production build of `crm-demo`):
 
 | What | Command |
 | --- | --- |
-| Engine and UI (anchors, adapters and their conformance suite, server handler and validator parity, overlay, toolbar, panel, thread, session) | `pnpm vitest run packages/review packages/review-ui` |
-| CLI `comments` and `publish --comments` (worker bundle, routes, setup lines, KV round trip) | `pnpm vitest run packages/cli/tests/comments-command.test.ts packages/cli/tests/publish-comments.test.ts` |
-| Renderer wiring (review before DevTools, Comments tab, placement, build-time adapter) | `pnpm vitest run packages/renderer-svelte/tests/review-wiring.test.ts packages/renderer-svelte/tests/floating.test.ts packages/renderer-svelte/tests/review-flag.test.ts` |
-| Browser E2E on `PROTOYARD_REVIEW=1` builds, including two reviewers on a local comments server | `PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo pnpm test:e2e tests/e2e/review-comments.spec.ts` ([tests/e2e/README.md](../tests/e2e/README.md#review-comments)) |
+| Engine and UI (anchors, the adapter contract on the memory adapter plus each adapter's own refusals, the server handler and validator parity, thread, anchor capture, pending save) | `pnpm vitest run packages/review packages/review-ui` |
+| CLI `comments pull` (the `publish --comments` worker tests and the renderer wiring tests were removed in PLAN_009) | `pnpm vitest run packages/cli/tests/comments-command.test.ts` |
+| Browser E2E on `PROTOYARD_REVIEW=1` builds, including two reviewers on a local comments server | `PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo pnpm test:e2e tests/e2e/review-comments.spec.ts` ([tests/e2e/README.md](../tests/e2e/README.md#specs)) |
 
 ## For agents
 

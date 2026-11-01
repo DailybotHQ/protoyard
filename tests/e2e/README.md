@@ -25,8 +25,17 @@ the point (Lumen Bank, shells, deck touch and chrome, content-kind axe, crm-demo
 pnpm test:e2e                                                        # gallery only
 PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo,ai-chat-demo \
 PROTOYARD_E2E_SHOWCASE=1 PROTOYARD_E2E_DEVTOOLS_PROTOTYPES=mobile-banking-demo \
-pnpm test:e2e                                                        # what CI runs
+pnpm test:e2e                                                        # the CI selection today
 ```
+
+`pnpm exec playwright test --list` with that environment lists 89 cases in 23 files (81 with no
+environment). Listing does not depend on the deck, player, quick or comments flags, because those
+specs skip at run time; it does depend on `PROTOYARD_E2E_PROTOTYPES`, since `a11y.spec.ts` adds an
+axe case per target in light and dark. To run every case instead of skipping some, also set
+`PROTOYARD_E2E_DECK=1 PROTOYARD_E2E_PLAYER=1 PROTOYARD_E2E_QUICK=1
+PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo` and add `lattice-saas-demo`,
+`ui-kit` and `doc` to the targets (that lists 101 cases: the 12 extra are axe cases for the three
+new targets).
 
 Builds exclude DevTools, as shipped. Setup steps that the standalone build has no UI for
 (switching persona, a theme override, snapshots, looking up an id) use the runtime handle the

@@ -98,8 +98,9 @@ KB before JSON parsing. The `/play/` landing page is indexable, but a visit
 with a share fragment is marked `noindex`.
 
 The example kind blueprints fit comfortably in the current link cap. The
-following encoded payload lengths were measured by
-`packages/blueprint/tests/kinds/share-kinds.test.ts` with Node 26.11.1; browser
+following encoded payload lengths were measured by the share-link test of the
+time (`share-kinds.test.ts`, merged into `kinds/security.test.ts` in PLAN_009)
+with Node 26.11.1; browser
 compression engines may produce different lengths.
 
 | Example | Encoded payload characters |
@@ -201,7 +202,7 @@ boundary.
 
 The player generates worlds in a module Web Worker. The worker graph is about
 196 KB gzip (measured 2026-10-22), with Faker's English locale only.
-`worker-bundle.test.ts` and `budget.test.ts` share one 220 KB cap,
+`packages/player/tests/budget.test.ts` enforces the 220 KB cap,
 `WORKER_GRAPH_GZIP_KB` in `packages/player/tests/player-budgets.ts`.
 
 Page and doc runtimes come from `@protoyard/blueprint/kinds` (`defineKindRuntime`, or `definePrototypeFromPage` / `definePrototypeFromDoc` wrappers). See [`@protoyard/blueprint/kinds`](../packages/blueprint/README.md) and [`@protoyard/pages`](../packages/pages/README.md).
@@ -230,10 +231,11 @@ prototype with the CLI and compares it with the player's runtime definition:
 Three blueprints also boot both definitions on the real runtime and compare
 every table.
 
-Decks, pages and docs have the same guarantee.
-`packages/player/tests/kinds-parity.test.ts` renders one fixture of each kind
-through the player's `bootKind` and through a prototype built the way
-`generate` builds it. Both must show the same slides or sections in the same
+Decks, pages and docs were held to the same guarantee by
+`kinds-parity.test.ts`, removed in PLAN_009, so it is no longer asserted
+automatically. It rendered one fixture of each kind through the player's
+`bootKind` and through a prototype built the way `generate` builds it. Both had
+to show the same slides or sections in the same
 order (a deck is walked slide by slide), with the same runtime definition
 (stores, scenarios, policy, generator version and theme), the same persisted
 tables, the same active theme and the same principal persona.
@@ -285,8 +287,7 @@ Rules that keep tours safe and deterministic:
 - Clock failures (for example no active scenario) reject the step change and
   leave the previous state in place.
 
-Unit coverage lives in `packages/devtools/tests/tours.test.ts` (step
-progression, clock requests, missing targets, dismiss).
+The tours unit tests were removed in PLAN_009; no test covers tours today.
 
 ## Offline
 
@@ -304,7 +305,7 @@ Claude artifact exports reject offline service workers.
 `/play/` is the indexable landing page. The standalone player (`/player/`, and
 every `/player/#bp=` link) is an app, not a page: its `index.html` carries
 `<meta name="robots" content="noindex">`
-(`packages/player/tests/indexing.test.ts` checks the built HTML).
+(the test that checked the built HTML was removed in PLAN_009).
 `robots.txt` still allows crawling, so crawlers can read that tag. The sitemap
 lists `/play/` and the guides, never `/player/` or share instances. A full
 `pnpm build:showcase` on 2026-10-20 produced 192 sitemap entries, each mapped
@@ -337,7 +338,7 @@ Kind pages stay under the per-kind 150 KB JS budget and do not statically pull
 the CRUD shell, Faker or the world worker; details and the reachable-graph
 proof are in
 [PERFORMANCE](PERFORMANCE.md#player-bundle-budget-measured-2026-10-20)
-(`kind-budget.test.ts`, `budget.test.ts`). Reproduce app timings with
+(`packages/player/tests/budget.test.ts`). Reproduce app timings with
 `pnpm exec tsx scripts/bench-player.ts --runs 3` after building the player.
 
 ## Honest boundaries

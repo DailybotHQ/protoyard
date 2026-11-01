@@ -139,5 +139,5 @@ Protoyard's own tools, envelopes and limits above are unchanged; nothing on this
 - every `tools/call` example names a real tool with real arguments;
 - every `protoyard` command on the page exists in the CLI.
 
-`pnpm vitest run packages/cli/tests/integration-command-drift.test.ts` proves
-that removing a tool or an argument fails the check.
+The test that proved removing a tool or an argument fails the check was
+removed in PLAN_009; `pnpm check:integrations` still runs the check itself.

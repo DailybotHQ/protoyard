@@ -728,8 +728,9 @@ Zone helpers never read the host time zone. Pass an IANA id on every call
 | `localDayBounds(day, timeZone)` | `{ start, end, durationMs }` | `[start, end)` of a civil day; 23 or 25 hours on DST edges. |
 | `zonedInstantMs(wall, timeZone)` | epoch ms | Low-level wall → instant with the same gap/fold rules. |
 
-Unknown zone ids and empty strings throw. Tests cover US and EU DST edges
-(`pnpm vitest run packages/scenarios/tests/timeline.test.ts`).
+Unknown zone ids and empty strings throw. The US and EU DST edge tests were
+removed in PLAN_009; `packages/scenarios/tests/scenarios.test.ts` keeps the
+window-independence check of `dailyEvents`.
 
 ### Series, schedules, events and geo
 
@@ -756,9 +757,9 @@ const depots = geoPoints({ ctx, region: 'harbor-bay', count: ctx.scale(12), key:
 ```
 
 Measured on a heavily loaded machine (load average ~165):
-`timeSeries` with 10,000 daily points took 14–17 ms in the Vitest run
-(`pnpm vitest run packages/scenarios/tests/series.test.ts -t "10k"`). The
-test only fails above 250 ms, to tolerate slow runners.
+`timeSeries` with 10,000 daily points took 14–17 ms in the Vitest run of
+`packages/scenarios/tests/series.test.ts`, which failed only above 250 ms.
+That test was removed in PLAN_009, so the number is history, not a gate.
 
 ### Analytics data
 
@@ -798,9 +799,9 @@ const { users, events } = generateProductEvents(ctx, {
 Bump `ANALYTICS_GENERATOR_VERSION` (and your prototype's
 `generatorVersion`) when output can change. Measured on the Apple M1 Max
 under heavy load (load average ~110): 90 days × 10 metrics plus about 19k events from
-2,000 users took a median of 26–33 ms over three runs
-(`PROTOYARD_BENCH=1 pnpm vitest run packages/analytics/tests/generators.test.ts`,
-which asserts < 50 ms). Formatting timestamps with an arithmetic ISO formatter
+2,000 users took a median of 26–33 ms over three runs (an opt-in
+`PROTOYARD_BENCH=1` case in `packages/analytics/tests/generators.test.ts`
+that asserted < 50 ms; PLAN_009 removed it, so nothing gates this today). Formatting timestamps with an arithmetic ISO formatter
 (`isoString`) instead of `Date#toISOString` cut this from 120–230 ms.
 
 ## Environment
@@ -1028,10 +1029,13 @@ load, or open `?scenario=busy-week` in a fresh browser profile. Create a note
 and watch the 1.5 s save (300 ms + 1200 ms for `slow`).
 
 **6. Test it.** Generators should be deterministic and integrity-clean for
-every scenario. The template's test (`tests/blank.test.ts`) loops over
-`definition.scenarios` with `parseScenario(input)`, which does **not** resolve
-`extends`: with `busy-week` added it fails on the missing `seed`. Resolve the
-list the way the runtime does instead:
+every scenario. Templates ship no tests since PLAN_009, so add one: the shared
+boot smoke `expectBootableWorld(definition)` in `tests/support/smoke.ts`
+resolves `extends` the way the runtime does, checks determinism and integrity
+for every scenario, then boots the default one. Do not loop over
+`definition.scenarios` with `parseScenario(input)`: it does **not** resolve
+`extends`, so `busy-week` would fail on the missing `seed`. The smoke does the
+equivalent of:
 
 ```ts
 import { createGenerateContext, PRESETS, resolveScenarios, validateWorld } from '@protoyard/scenarios';
@@ -1044,7 +1048,8 @@ for (const s of resolveScenarios(definition.scenarios, PRESETS)) {
 }
 ```
 
-Run `pnpm vitest run prototypes/my-idea`.
+Put it in a test file you add (for example `prototypes/my-idea/tests/services.test.ts`),
+then run `pnpm vitest run prototypes/my-idea`.
 
 A checklist for a good scenario:
 

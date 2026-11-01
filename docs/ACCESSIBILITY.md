@@ -11,9 +11,10 @@ templates and the gallery see [TESTING_GUIDE](TESTING_GUIDE.md) and
 ## Content kinds: decks, pages and docs
 
 [`tests/e2e/content-kinds-a11y.spec.ts`](../tests/e2e/content-kinds-a11y.spec.ts)
-opens every example in `blueprints/decks/`, `blueprints/pages/` and
-`blueprints/docs/` on the built player's own page for its kind (`deck.html`,
-`page.html`, `doc.html`, DevTools off). It runs:
+opens one example per kind (since PLAN_009: the `cedar-training` deck, the
+`tidewater-roasters-landing` page and the `northwind-quarterly-report` doc) on
+the built player's own page for its kind (`deck.html`, `page.html`, `doc.html`,
+DevTools off). It runs:
 
 - in the light and the dark color scheme, each with reduced motion on;
 - on the desktop (Desktop Chrome) and phone (Pixel 7) projects.
@@ -56,10 +57,11 @@ built deck fixture (Desktop Chrome and Pixel 7):
 
 | Check | How |
 | --- | --- |
-| axe in light and dark | the toolbar, a focus tooltip, the More menu (phones), the slide list, the help dialog, the debug panel (`?debug=1`) and the full screen overlay, each open in turn, after their fades finish |
-| Keyboard only | Tab from the deck reaches every visible chrome control, each with a 2 px outline ring. The slide list opens on the current slide; arrows, Home and End move; Enter picks; Escape closes and returns focus. The More menu and the help dialog close on Escape and return focus to their opener (to More on a phone) |
-| Touch targets | on Pixel 7, every chrome button, the More menu, the slide list options, the help dialog and the debug panel buttons are at least 44 px |
-| Reduced motion | with `prefers-reduced-motion: reduce`, no transition or animation inside the deck lasts longer than 1 ms (`themes/base.css` turns them to 0.01 ms) |
+| axe in light and dark | the toolbar, a focus tooltip, the More menu (phones), the slide list, the help dialog and the debug panel (`?debug=1`), each open in turn, after their fades finish |
+
+PLAN_009 removed the keyboard-only, 44 px touch-target and reduced-motion
+cases of this group (and the full screen overlay from the axe pass); the fixes
+below stay in the code, but those checks no longer run.
 
 ```sh
 PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-controls.spec.ts
@@ -85,7 +87,7 @@ PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-controls.spec.ts
   Markdown markers (`**tone**`), and a card dropped its image. Quiz prompts and
   explanations now keep bold, italic and code. Card images render under the block
   media policy, with `imageAlt`, or as decorative when there is none.
-  `content-kinds-a11y.spec.ts` checks both in the everything deck on the player.
+  The everything-deck case that checked both was removed in PLAN_009.
 
 ## Other fixes from accessibility checks
 
@@ -97,7 +99,8 @@ PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-controls.spec.ts
 - **Deck keyboard focus.** Closing the blackout screen with a click removed the
   focused element, so the deck's keys stopped working. The deck now takes focus
   back whenever focus would land nowhere, and never from a control elsewhere.
-  `tests/e2e/deck-presenter.spec.ts` asserts it.
+  The blackout case in `tests/e2e/deck-presenter.spec.ts` that asserted it was
+  removed in PLAN_009.
 
 ## Honest limits
 
