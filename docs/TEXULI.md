@@ -189,9 +189,9 @@ for the profile's avatar color. The onboarding wizard is one multi-step form
 on `createFormController`, whose `onStep` saves each answer through the
 onboarding service. Password fields use Texuli's `password` type with
 `autocomplete: 'off'` (accepted since 0.11.2, G129), so browsers never offer
-to save a fake password. One SaaS field is still painted by Protoyard as a
-custom field: the phone number, which keeps `type="tel"` and the telephone
-keypad, because Texuli forms has no telephone field (G131).
+to save a fake password. The phone number is a `phone`-format text field,
+which Texuli paints as `type="tel"` with the telephone keypad (since 0.11.3,
+G131).
 
 Details: [GENERATOR](GENERATOR.md#entity-forms), [PAGES](PAGES.md) and
 [SAAS_KITS](SAAS_KITS.md).
@@ -205,19 +205,29 @@ document and back; untouched blocks return byte-identical, and Protoyard's
 own blocks travel as placeholders. Applied edits are saved per doc and world
 in the content-kind runtime's `docEdits` store (its storage schema version 2)
 and survive a reload; Reset removes them. The reading view stays Protoyard's
-`DocHost`. Texuli 0.10–0.11 added the `renderBlock` seam (G111) and
-`@texuli/pages/reader-core`, and Protoyard's blocks paint through it, but two
-things still block the switch (measured 2026-10-31 on Texuli 0.11.1):
+`DocHost`. Texuli 0.10–0.11 added the `renderBlock` seam (G111),
+`@texuli/pages/reader-core`, host heading anchors (`anchorFor`, G132) and a
+validator without the deck model (`@texuli/document/schema-core`, G133).
+Protoyard's blocks paint through the seam, and `anchorFor={(block) => block.id}`
+keeps every `#<block-id>` link and the TOC ids. One thing still blocks the
+switch, measured 2026-11-01 on Texuli 0.11.3 with `budget.test.ts`'s Vite
+production build:
 
-- **Size.** The doc entry's initial JS grows from 120,622 B to 162,013 B gzip
-  (+34 %), over its 122,880 B budget. The reader itself adds about 1 KB; the
-  rest is the conversion a reader needs, mainly `validateDocument`, which
-  statically imports `@texuli/deck`'s model and schema (gap G133), plus the
-  Markdown codec.
-- **Deep links.** The reader anchors every heading from its text
-  (`documentOutline`), with no host anchor. `DocHost` keeps an authored
-  heading block id as its anchor, so existing `#<block-id>` links would break
-  (gap G132).
+- **Size.** The reader needs the doc → Texuli conversion on the first screen.
+  Today's doc entry plus that conversion alone measures 147,659 B of initial
+  JS gzip, against 120,623 B today and a 122,880 B budget. That is before the
+  reader is added. The conversion's largest parts are the Markdown codec
+  (`@texuli/core/editor`, about 15 KB), because Protoyard's text blocks are
+  Markdown, and the schema toolkit `schema-core` still validates with
+  (`@texuli/deck/schema`, about 9 KB). On 0.11.1 the conversion cost
+  30,854 B; `schema-core` saves about 3.8 KB of that and keeps the deck model
+  out.
+
+The edit-mode conversion also drops some content a reading view must keep:
+heading eyebrows and subtitles, quote citations and callout icons.
+`@protoyard/pages` validates converted documents with `schema-core`, which
+refuses inline decks (Protoyard writes none). That shrinks the shared chunk
+behind the Word, PDF and Markdown downloads from 19,283 B to 3,907 B gzip.
 
 `PageApp` renders page sections (hero, pricing, steps…), not a document, so
 the reader does not apply to it. Details: [PAGES](PAGES.md#reading-view-and-texulis-reader)
@@ -300,7 +310,7 @@ behavior and host contracts remain Protoyard-owned:
 | `blocks-ui` | Texuli block-family renderers | Protoyard-only block renderers and extensions |
 | `decks-ui` | The `@texuli/slides` stage core, Texuli controls and styled UI | Deck authoring, presenter, print, and prototype-specific behavior |
 | `pages-ui` | Texuli controls and block renderers, the `@texuli/pages` editor, `@texuli/document` exports, `@texuli/forms` form blocks | Page/doc hosts, form-response and saved-edit services, and print behavior |
-| `saas-ui` | Texuli controls and styled components; `@texuli/forms` for the auth, profile, settings and invite forms and the onboarding wizard | Simulated SaaS screen flows, route guards, the telephone field (G131) |
+| `saas-ui` | Texuli controls and styled components; `@texuli/forms` for the auth, profile, settings and invite forms and the onboarding wizard | Simulated SaaS screen flows and route guards |
 | `ai-ui` | Texuli chat components and styled UI | Assistant state, safe rich answers, tool orchestration and widget modes |
 | `flows-ui` | Texuli workflow editor and run-panel components | Protoyard workflow contract and deterministic simulation |
 | `review-ui` | Texuli controls and styled UI | Review thread, anchor, and mount integration |
@@ -395,14 +405,17 @@ fields could not ask for `autocomplete: 'off'`) are fixed in 0.11.2. The SaaS
 kit's password fields use Texuli's type with `off`, and
 `@protoyard/themes` keeps writing any custom theme's zero radius as `0px`.
 
-Open on 0.11.2, each with a minimal adapter or a documented limit:
+G131–G134 are fixed in 0.11.3 and adopted:
 
-| Gap | Package | What is missing | In Protoyard |
-| --- | --- | --- | --- |
-| G131 | `@texuli/forms` | No telephone field: a `phone`-format text field renders `type="text"` with no `inputmode` | The phone sign-in paints its number with Protoyard's `TelInput` as a custom field |
-| G134 | `@texuli/forms` | A `SchemaForm` that mounts with `disabled` stays disabled when the prop turns false | The MFA form remounts when its challenge loads |
-| G132 | `@texuli/pages/reader-core` | Heading anchors come only from the text; a host cannot keep its own anchor ids | The doc reading view stays `DocHost` |
-| G133 | `@texuli/document/schema` | `validateDocument` always imports `@texuli/deck`'s model and schema, even for a document with no deck | same |
+- A `phone`-format text field is a telephone input (G131), so the phone
+  sign-in no longer needs `TelInput`.
+- `anchorFor` keeps host heading ids (G132).
+- `@texuli/document/schema-core` validates without the deck model (G133).
+- `SchemaForm` follows `disabled` and `readOnly` after mount (G134), so the
+  MFA form no longer remounts.
+
+No gap is open on 0.11.3. The doc reading view stays `DocHost` for size,
+because Protoyard's Markdown text blocks need the codec; see Documents above.
 
 Texuli 0.10.0 also removed the tree block's `style` alias (Protoyard's
 blocks-ui adapter passes `variant`) and the 0.8 MCP tool names, which Protoyard

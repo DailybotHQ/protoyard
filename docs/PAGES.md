@@ -117,20 +117,33 @@ configured depth.
 The doc reading view is `DocHost`, not `@texuli/pages/reader-core`'s
 `PageReaderCore`. A spike on Texuli 0.11.1 (2026-10-31) painted Protoyard's
 blocks through the reader's `renderBlock` seam with forms still interactive.
-It was not adopted because:
+It was re-run on Texuli 0.11.3 (2026-11-01), which added host heading anchors
+(`anchorFor`, G132) and `@texuli/document/schema-core` (G133):
 
 | Check | `DocHost` | `PageReaderCore` |
 | --- | --- | --- |
-| Doc initial JS gzip (`budget.test.ts`, cap 122,880 B) | 120,622 B | 162,013 B |
-| Heading anchors | Authored block id, else a slug | Always a slug of the text (G132) |
+| Doc initial JS gzip (`budget.test.ts`, cap 122,880 B) | 120,623 B | Over the cap: the doc entry plus the conversion alone is 147,659 B, before the reader (162,013 B for the whole reader on 0.11.1) |
+| Heading anchors | Authored block id, else a slug | Authored block id with `anchorFor={(block) => block.id}` (checked: the outline links match) |
 | Heading eyebrow and subtitle, quote citation, callout icon | Shown | Dropped by the edit-mode conversion |
 | Headings inside a text block's Markdown | Not TOC entries | Outline entries |
 
-Of the +41,391 B, the reader adds about 1 KB. The rest is the doc → Texuli
-conversion: `validateDocument` statically imports `@texuli/deck`'s model and
-schema (G133), plus the Markdown codec. A switch needs G132 and G133 fixed and
-a reading conversion mode that keeps every field. The editor and the
-downloads already use the conversion, on their own lazy chunks.
+Deep links now hold, so size is the remaining blocker. The reader itself
+adds about 1 KB. The rest is the doc → Texuli conversion a reader needs on
+the first screen:
+
+- the Markdown codec (`@texuli/core/editor`, about 15 KB), because a doc's
+  text blocks are Markdown;
+- the schema toolkit `schema-core` validates with (`@texuli/deck/schema`,
+  about 9 KB);
+- the document model, schema and Markdown import.
+
+`schema-core` saves about 3.8 KB of the conversion and keeps the deck model
+out. A switch still needs the conversion off the first screen, or Markdown
+text blocks read without the codec, plus a reading conversion mode that keeps
+every field. The editor and the downloads already use the conversion, on
+their own lazy chunks. `@protoyard/pages` validates with `schema-core`,
+which refuses an inline deck (Protoyard never writes one); that shrinks the
+downloads' shared chunk from 19,283 B to 3,907 B gzip.
 
 Vertical timeline blocks use a dedicated marker column beside the event labels
 so dates and titles remain readable at narrow widths. The shared renderer
