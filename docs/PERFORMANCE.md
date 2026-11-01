@@ -49,6 +49,10 @@ the reason in their test:
   pays its own gzip overhead (G119 split them);
 - the views grid ceiling, because of DataGrid's table additions (G107).
 
+On 0.12.0, the deck Debug for agents panel's lazy chunk measured 12,249 B gzip
+locally and 12,321 B in CI, over its 12 KB cap. It carries Texuli's deck lint
+and Badge, and its cap is now 12,630 B (the CI measurement + 2.5 %).
+
 The per-prototype scenario benches were not re-run in this pass; their last
 run is in the section below.
 

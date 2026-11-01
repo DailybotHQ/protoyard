@@ -110,7 +110,7 @@ In dev builds, with `?debug=1` or `debug="on"`, the stage's toolbar gains a
 "Debug for agents" button (`data-py-deck-tool="debug"`) as its last group,
 "More tools" (the stage's `tools` snippet), and `D` toggles the
 panel (`data-py-deck-debug`): the slide record, its checks, outlines, and
-copy/download actions. It loads on its own chunk (under 12 KB gzip,
+copy/download actions. It loads on its own chunk (under 12.4 KB gzip,
 `tests/debug-panel.test.ts`).
 
 ## Print
