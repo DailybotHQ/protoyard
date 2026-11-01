@@ -93,9 +93,8 @@ describe('the library comes from @texuli/tokens', () => {
     expect(LIBRARY_THEME_DEFINITIONS.map((definition) => definition.id)).toEqual(
       TEXULI_PORTED_META.map((meta) => meta.id)
     );
-    // Texuli 0.10 writes brutalist-block's radius `0px` as `'0'` (velvet-shop was
-    // always `'0'`); applyAppearance writes a zero radius as a length (G128, pinned
-    // below), so compare radii as lengths.
+    // Protoyard's last copy wrote velvet-shop's square radius as `'0'` and Texuli's
+    // port writes `'0px'` (G128, fixed in 0.11.2): compare radii as lengths.
     const asLength = <T extends { radius?: string }>(definition: T): T =>
       definition.radius === undefined
         ? definition
@@ -111,10 +110,9 @@ describe('the library comes from @texuli/tokens', () => {
     expect(THEME_LIBRARY_META).toBe(TEXULI_PORTED_META);
   });
 
-  // Texuli gap G128: the 0.10 port writes `radius: '0'` for brutalist-block (Protoyard
-  // defined `'0px'`) and velvet-shop; in `calc(var(--tx-radius) + 4px)` a bare 0 is
-  // invalid. Flip to `it` when Texuli ports a length.
-  it.fails('ports a square theme radius as a CSS length (G128)', async () => {
+  // Texuli gap G128, fixed in 0.11.2: a square theme's radius is a length, so
+  // `calc(var(--tx-radius) + 4px)` stays valid.
+  it('ports a square theme radius as a CSS length (G128)', async () => {
     for (const id of ['brutalist-block', 'velvet-shop']) {
       expect((await loadTexuliPortedDefinition(id)).radius, id).toBe('0px');
     }
