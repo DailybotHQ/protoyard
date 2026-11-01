@@ -25,7 +25,7 @@ env:
   NODE_VERSION: '24.20.0'
   # Prototypes smoke-tested in E2E (comma-separated). Override with the
   # repository variable PROTOYARD_E2E_PROTOTYPES.
-  E2E_PROTOTYPES: ${{ vars.PROTOYARD_E2E_PROTOTYPES || 'crm-demo,mobile-banking-demo,ai-chat-demo' }}
+  E2E_PROTOTYPES: ${{ vars.PROTOYARD_E2E_PROTOTYPES || 'crm-demo,mobile-banking-demo,ai-chat-demo,lattice-saas-demo,ui-kit,doc' }}
 
 jobs:
   hygiene:
@@ -217,7 +217,7 @@ jobs:
         run: |
           targets=""
           for slug in $(echo "$E2E_PROTOTYPES" | tr ',' ' '); do
-            if [ -d "prototypes/$slug" ]; then targets="${targets:+$targets,}$slug"; fi
+            if [ -d "prototypes/$slug" ] || [ -d "templates/$slug" ]; then targets="${targets:+$targets,}$slug"; fi
           done
           echo "PROTOYARD_E2E_PROTOTYPES=$targets" >> "$GITHUB_ENV"
           echo "E2E prototype targets: ${targets:-none}"
@@ -225,9 +225,13 @@ jobs:
         run: pnpm test:e2e --shard=${{ matrix.shard }}/2
         env:
           PROTOYARD_E2E_SHOWCASE: '1'
-          # A DevTools build of one prototype, so the Theme Studio and design-system
-          # specs run instead of skipping.
+          # Every essential spec runs: a DevTools build (Theme Studio, design
+          # systems), decks, the player, quick and review comments.
           PROTOYARD_E2E_DEVTOOLS_PROTOTYPES: mobile-banking-demo
+          PROTOYARD_E2E_DECK: '1'
+          PROTOYARD_E2E_PLAYER: '1'
+          PROTOYARD_E2E_QUICK: '1'
+          PROTOYARD_E2E_COMMENTS_PROTOTYPES: crm-demo,mobile-banking-demo
       - name: Upload the Playwright report
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
