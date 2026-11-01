@@ -198,12 +198,14 @@ export function loadFullLibraryMeta(): Promise<readonly LibraryThemeMeta[]> {
   if (fullMeta) return fullMeta;
   const expanded = loadExpand();
   if (!expanded) return Promise.resolve(THEME_LIBRARY_META);
-  const pending = expanded.then(mergeFullMeta);
-  fullMeta = pending;
-  return pending.catch(() => {
+  // The cached promise is the caught one, so a second caller during the load
+  // never gets a rejection either.
+  const pending: Promise<readonly LibraryThemeMeta[]> = expanded.then(mergeFullMeta).catch(() => {
     if (fullMeta === pending) fullMeta = undefined;
     return THEME_LIBRARY_META;
   });
+  fullMeta = pending;
+  return pending;
 }
 
 /** Every library theme (catalog and expanded), filtered like `listThemeLibrary`. */

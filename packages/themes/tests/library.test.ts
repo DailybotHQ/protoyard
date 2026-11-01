@@ -163,6 +163,10 @@ describe('the library comes from @texuli/tokens', () => {
           : import('@texuli/tokens/library-expand')
       );
       setExpandedLibraryLoader(loader);
+      // A second caller during the failing load resolves to the catalog too, never rejects.
+      const [first, second] = await Promise.all([loadFullLibraryMeta(), loadFullLibraryMeta()]);
+      expect(first).toBe(THEME_LIBRARY_META);
+      expect(second).toBe(THEME_LIBRARY_META);
       expect(await loadFullLibraryMeta()).toBe(THEME_LIBRARY_META);
       await expect(loadLibraryTheme(expandedId)).rejects.toThrow(/dynamically imported/);
       // Unknown ids never touch the expanded set.
