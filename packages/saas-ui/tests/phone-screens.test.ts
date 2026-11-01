@@ -74,7 +74,7 @@ describe('simulated phone sign-in screens', () => {
     const runtime = await boot();
     location.hash = '#/auth/phone?next=%2Fworkspace';
     render(AuthHarness, { props: { runtime, screen: 'phone-sign-in' } });
-    // The number opens the telephone keypad (TelInput, until Texuli has one: G131).
+    // The number opens the telephone keypad (Texuli's phone format, G131).
     const number = screen.getByLabelText(/^Phone number/, { selector: 'input' });
     expect(number.getAttribute('type')).toBe('tel');
     expect(number.getAttribute('inputmode')).toBe('tel');

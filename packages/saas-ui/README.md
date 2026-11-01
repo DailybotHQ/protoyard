@@ -138,12 +138,9 @@ Texuli's error summary, which takes focus. The submit button shows a pending
 state while the service runs. The MFA and phone codes use Texuli's `otp`
 field, and a complete phone code submits by itself. Passwords use Texuli's
 `password` field with `autocomplete="off"` and its show-password toggle, so a
-browser never offers to save a fake password. The phone number is painted by
-the kit as a Texuli custom field (`TelInput`) to keep `type="tel"` and the
-telephone keypad (G131).
-
-The MFA form remounts when its challenge loads, because a `SchemaForm` that
-mounts disabled does not enable again (G134).
+browser never offers to save a fake password. The phone number is a
+`phone`-format text field, which Texuli paints as `type="tel"` with the
+telephone keypad.
 
 Render `SsoButtons` on a sign-in or sign-up screen to start the simulated
 provider flow. It accepts an optional provider list, `sign-in` / `sign-up` /

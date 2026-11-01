@@ -13,13 +13,12 @@ import {
 } from '@protoyard/ui';
 import { SchemaForm, type SchemaFormSubmission } from '@texuli/forms';
 import { compileKitForm, kitSubmitResult, text } from '../lib/schema-form.ts';
-import TelInput from '../lib/TelInput.svelte';
 import { authServices, routeHref } from './auth/helpers.ts';
 
 const { runtime, config } = authServices();
 const phone = createPhoneServices(runtime);
 
-// Painted by @texuli/forms; the phone service validates the number (one rule, one place).
+// Painted by @texuli/forms; the phone service still decides whether the number is accepted.
 const form = compileKitForm({
   title: 'Phone details',
   submitLabel: 'Send simulated code',
@@ -27,8 +26,10 @@ const form = compileKitForm({
     { name: 'name', type: 'text', label: 'Name', required: true, autocomplete: 'name' },
     {
       name: 'phone',
-      type: 'custom',
-      kind: 'tel',
+      // Texuli paints a phone-format text field as type="tel" with the telephone keypad (G131).
+      type: 'text',
+      format: 'phone',
+      autocomplete: 'tel',
       label: 'Phone number',
       required: true,
       description: 'Use an international number, for example +1 202 555 0100.',
@@ -63,7 +64,6 @@ async function submit({ values }: SchemaFormSubmission) {
       <SchemaForm
         {form}
         onSubmit={submit}
-        customFields={{ tel: { component: TelInput } }}
         labels={{ submitting: 'Sending code', submitted: 'Code sent.' }}
         class="py-saas-form"
         data-py-saas-form="phone-sign-in"

@@ -16,7 +16,9 @@ import {
   type ListItem,
   type TexuliDocument,
 } from '@texuli/document/model';
-import { type DocumentDiagnostic, validateDocument } from '@texuli/document/schema';
+// schema-core: the same validator without @texuli/deck (G133). Protoyard never writes an inline
+// deck into a document (non-text blocks are `component` embeds), so an inline deck is refused.
+import { type DocumentDiagnostic, validateDocument } from '@texuli/document/schema-core';
 import { type DocDocument, DocDocumentSchema, PAGE_DOCUMENT_LIMITS } from './schema.ts';
 
 /**

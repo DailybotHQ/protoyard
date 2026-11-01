@@ -148,6 +148,12 @@ rail on wide screens. Its active link follows the visible section. The
 `showNav` prop remains available to hide the outline. Content stays within a
 72-character reading measure, and the TOC is omitted from print output.
 
+The reading view stays `DocHost` rather than Texuli's `PageReaderCore`. On
+Texuli 0.11.3 the reader keeps `#<block-id>` anchors (`anchorFor`), but the
+doc → Texuli conversion it needs would put the doc entry over its initial JS
+budget, mostly through the Markdown codec. See
+[docs/PAGES.md](../../docs/PAGES.md#reading-view-and-texulis-reader).
+
 ### Doc tool bar: edit and download
 
 `DocApp` (default `tools={true}`) adds Edit, Download as Word, PDF and

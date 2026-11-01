@@ -461,27 +461,37 @@
   },
   {
     "id": "G131",
-    "status": "open",
-    "summary": "@texuli/forms has no telephone field: a text field with format 'phone' renders type=\"text\" with no inputmode, so phones open the full keyboard (expected a 'tel' type, or type=\"tel\" inputmode=\"tel\" when format is 'phone')"
+    "status": "fixed",
+    "summary": "@texuli/forms has no telephone field: a text field with format 'phone' renders type=\"text\" with no inputmode, so phones open the full keyboard (expected a 'tel' type, or type=\"tel\" inputmode=\"tel\" when format is 'phone'). Fixed in Texuli 0.11.3: a text field with format 'phone' renders type=\"tel\" inputmode=\"tel\"; the phone sign-in uses it and TelInput is gone"
   },
   {
     "id": "G132",
-    "status": "open",
-    "summary": "@texuli/pages/reader-core PageReaderCore and documentOutline anchor headings only from slugify(text); a host cannot keep its own anchor ids, so DocHost's #<block-id> deep links would break"
+    "status": "fixed",
+    "summary": "@texuli/pages/reader-core PageReaderCore and documentOutline anchor headings only from slugify(text); a host cannot keep its own anchor ids, so DocHost's #<block-id> deep links would break. Fixed in Texuli 0.11.3: anchorFor on PageReaderCore, PagedView and documentOutline keeps a host's heading ids (checked: block ids stay the anchors and the outline agrees)"
   },
   {
     "id": "G133",
-    "status": "open",
-    "summary": "@texuli/document/schema validateDocument statically imports @texuli/deck model and schema, so validating a document with no deck adds the deck validator (~30 KB initial JS gzip with the markdown codec in the doc entry)"
+    "status": "fixed",
+    "summary": "@texuli/document/schema validateDocument statically imports @texuli/deck model and schema, so validating a document with no deck adds the deck validator (~30 KB initial JS gzip with the markdown codec in the doc entry). Fixed in Texuli 0.11.3: @texuli/document/schema-core validates without the deck model; @protoyard/pages uses it (the lazy export path chunk drops from 19,283 to 3,907 B gzip)"
   },
   {
     "id": "G134",
-    "status": "open",
-    "summary": "@texuli/forms SchemaForm copies a starting disabled={true} into its internal controller once, so a form that mounts disabled stays disabled after the prop turns false (formDisabled = prop || controller state); expected prop changes to call controller.setDisabled (same for readOnly)"
+    "status": "fixed",
+    "summary": "@texuli/forms SchemaForm copies a starting disabled={true} into its internal controller once, so a form that mounts disabled stays disabled after the prop turns false (formDisabled = prop || controller state); expected prop changes to call controller.setDisabled (same for readOnly). Fixed in Texuli 0.11.3: SchemaForm follows its disabled and readOnly props after mount; the MFA form no longer remounts"
   },
   {
     "id": "G135",
     "status": "open",
     "summary": "@texuli/tokens/design-system/compile-core fromTheme/fromThemeWithReport: the document it returns for a Theme that passes validateTheme is refused by compileDesignSystem: it leaves out roles it expects the seed generator to reproduce (Protoyard ocean's surface: foreground on surface 1.04:1) and keeps input/borderStrong pins under the compiler's 3:1, which pinned roles never move; no loss is reported. Expected: fromTheme output always compiles (losses list what moved)"
+  },
+  {
+    "id": "G136",
+    "status": "open",
+    "summary": "@texuli/pages document-host-core imports the full @texuli/document/schema, so the PageEditorCore chunk still carries @texuli/deck/model; expected schema-core with an optional validateDeck"
+  },
+  {
+    "id": "G137",
+    "status": "open",
+    "summary": "@texuli/document/schema-core depends on @texuli/deck/schema's validation toolkit (about 9.3 KB gzip); expected a shared toolkit (for example in @texuli/core)"
   }
 ]

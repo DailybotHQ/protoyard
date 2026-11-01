@@ -170,7 +170,7 @@ The kit's forms (auth, MFA, phone, profile, settings, invites and onboarding)
 are Texuli `SchemaForm`s, and each submit still goes through the kit
 service. Password fields are Texuli password fields with
 `autocomplete="off"`, so browsers never offer to save a fake password.
-The phone number keeps `type="tel"` (gap G131). See the
+The phone number is a `phone`-format Texuli field, painted as `type="tel"` with the telephone keypad. See the
 [`@protoyard/saas-ui` README](../packages/saas-ui/README.md).
 
 ### Invitation acceptance
