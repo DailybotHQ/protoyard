@@ -136,13 +136,18 @@ async function submit({ values }: SchemaFormSubmission): Promise<FormSubmitResul
   const err = result.error;
   if (isValidationError(err)) {
     const errors: Record<string, string> = {};
+    // An issue on no form field (a record-level rule, a field the form leaves
+    // out) has nowhere to show inline, so it becomes the form's message.
+    const unplaced: string[] = [];
     for (const [path, message] of Object.entries(err.issues)) {
-      const key = path.split('.')[0] ?? path;
-      errors[model.names.get(key) ?? key] ??= message;
+      const name = model.names.get(path.split('.')[0] ?? path);
+      if (name) errors[name] ??= message;
+      else unplaced.push(message);
     }
-    return Object.keys(errors).length > 0
-      ? { ok: false, errors }
-      : { ok: false, message: 'Check the highlighted fields.' };
+    const message = unplaced.length > 0 ? unplaced.join(' ') : undefined;
+    if (Object.keys(errors).length > 0)
+      return { ok: false, errors, ...(message ? { message } : {}) };
+    return { ok: false, message: message ?? 'Check the highlighted fields.' };
   }
   return { ok: false, message: err instanceof Error ? err.message : 'Something went wrong.' };
 }

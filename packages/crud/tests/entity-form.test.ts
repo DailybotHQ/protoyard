@@ -148,6 +148,26 @@ describe('EntityForm on @texuli/forms', () => {
     expect(calls).toEqual([{ name: 'Northwind', email: '', accountManagerId: null }]);
   });
 
+  it('shows a service issue that matches no form field as the form message', async () => {
+    const { runtime } = await boot();
+    render(EntityForm, {
+      entity: entity('customer'),
+      runtime,
+      onSubmit: async () => {
+        throw new ValidationError({ _record: 'This customer already exists in another workspace' });
+      },
+    });
+    await fireEvent.input(screen.getByRole('textbox', { name: /^Name/ }), {
+      target: { value: 'Northwind' },
+    });
+    await fireEvent.click(screen.getByRole('button', { name: 'Create customer' }));
+    await waitFor(() =>
+      expect(
+        screen.getAllByText('This customer already exists in another workspace').length
+      ).toBeGreaterThan(0)
+    );
+  });
+
   it('paints a disabled form with disabled Texuli controls and no active submit', async () => {
     const { runtime } = await boot();
     render(EntityForm, {
