@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  appendPointsEntry,
-  confirmProvisionalEntry,
+  acceptMission,
+  type MissionDef,
   type PointsEntry,
+  PointsEntrySchema,
   pointsTotals,
-  revertPointsBySource,
 } from '../src/index.ts';
 
 const entry = (amount: number, over: Partial<PointsEntry> = {}): PointsEntry => ({
@@ -36,58 +36,65 @@ describe('points ledger', () => {
     ];
     expect(pointsTotals(entries, 'user_0001')).toEqual({ verified: 140, provisional: 10 });
   });
+});
 
-  it('appends, reverts by source, and confirms provisional rows without mutation', () => {
-    const base: PointsEntry[] = [];
-    const withOne = appendPointsEntry(base, {
-      id: 'nrg-1',
-      subjectId: 'user_0001',
-      reason: 'commitment',
-      amount: 10,
-      provisional: true,
-      reverted: false,
-      sourceKind: 'offer',
-      sourceId: 'o1',
-      at: '2026-10-20T15:00:00.000Z',
-    });
-    expect(base).toHaveLength(0);
-    expect(pointsTotals(withOne, 'user_0001')).toEqual({ verified: 0, provisional: 10 });
+// --- merged from schemas.test.ts ---
 
-    const confirmed = confirmProvisionalEntry(withOne, 'nrg-1');
-    expect(pointsTotals(confirmed, 'user_0001')).toEqual({ verified: 10, provisional: 0 });
-    expect(withOne[0]?.provisional).toBe(true);
-
-    const reverted = revertPointsBySource(confirmed, 'offer', 'o1');
-    expect(pointsTotals(reverted, 'user_0001')).toEqual({ verified: 0, provisional: 0 });
-    expect(confirmed[0]?.reverted).toBe(false);
-  });
-
-  it('rejects duplicate ids and invalid confirmations', () => {
-    const one = appendPointsEntry([], {
+describe('gamification schemas', () => {
+  it('accepts a valid points entry and rejects unknown keys', () => {
+    const parsed = PointsEntrySchema.parse({
       id: 'nrg-1',
       subjectId: 'user_0001',
       reason: 'help-confirmed',
-      amount: 5,
+      amount: 10,
       provisional: false,
       reverted: false,
-      sourceKind: 'test',
-      sourceId: 't',
+      sourceKind: 'confirmation',
+      sourceId: 'c1',
       at: '2026-10-20T15:00:00.000Z',
     });
+    expect(parsed.amount).toBe(10);
+    expect(PointsEntrySchema.safeParse({ ...parsed, extra: true }).success).toBe(false);
+  });
+});
+
+// --- merged from badges-missions.test.ts ---
+
+const MISSIONS: readonly MissionDef[] = [
+  {
+    id: 'three-this-week',
+    title: 'Help three people this week',
+    description: 'Three confirmed helps Monday through Sunday.',
+    goal: 3,
+    reward: 30,
+  },
+  {
+    id: 'publish-offer',
+    title: 'Publish an offer',
+    description: 'Share one offer of time or skills.',
+    goal: 1,
+    reward: 10,
+    deadlineAt: '2026-10-15T00:00:00.000Z',
+  },
+];
+
+describe('badges and missions', () => {
+  it('rejects unknown missions and accepting after the deadline', () => {
     expect(() =>
-      appendPointsEntry(one, {
-        id: 'nrg-1',
+      acceptMission(MISSIONS, [], {
+        id: 'mop-x',
         subjectId: 'user_0001',
-        reason: 'help-confirmed',
-        amount: 5,
-        provisional: false,
-        reverted: false,
-        sourceKind: 'test',
-        sourceId: 't',
-        at: '2026-10-20T15:00:00.000Z',
+        missionId: 'missing',
+        acceptedAt: '2026-10-20T12:00:00.000Z',
       })
-    ).toThrow(/already exists/);
-    expect(() => confirmProvisionalEntry(one, 'nrg-1')).toThrow(/not provisional/);
-    expect(() => confirmProvisionalEntry(one, 'missing')).toThrow(/not found/);
+    ).toThrow(/unknown mission/);
+    expect(() =>
+      acceptMission(MISSIONS, [], {
+        id: 'mop-x',
+        subjectId: 'user_0001',
+        missionId: 'publish-offer',
+        acceptedAt: '2026-10-20T12:00:00.000Z',
+      })
+    ).toThrow(/deadline/);
   });
 });

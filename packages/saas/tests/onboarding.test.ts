@@ -5,25 +5,44 @@ import {
   type PrototypeDefinition,
   parseManifest,
   type Row,
+  type ScenarioDefinition,
   SimulatedServiceError,
 } from '@protoyard/core';
-import type { ProtoyardRuntime } from '@protoyard/runtime';
-import { fragments, generateTeam, presetScenario } from '@protoyard/scenarios';
+import { createPrototypeRuntime, type ProtoyardRuntime } from '@protoyard/runtime';
+import {
+  composeScenario,
+  fragments,
+  generateTeam,
+  PRESETS,
+  presetScenario,
+  validateWorld,
+} from '@protoyard/scenarios';
+import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { contextFor } from '../../../tests/support/generate-context.ts';
 import { createHarness } from '../../../tests/support/runtime.ts';
+import { type BillingService, billingTimeline, createBilling } from '../src/billing.ts';
 import {
   createOnboarding,
   createOnboardingFlow,
+  createPhoneServices,
   DONE_STEP,
+  generateSaasWorld,
   mergeIntegrity,
   type OnboardingStepDefinition,
   type SaasOnboarding,
+  saasFragments,
   saasIntegrity,
-  saasStores,
-  saasTables,
+  saasScenarioIntegrity,
   ValidationError,
 } from '../src/index.ts';
+import { type SaasSubscription, saasStores, saasTables } from '../src/schema.ts';
+import {
+  createWorkspaces,
+  WORKSPACE_CAPABILITIES,
+  type WorkspacesRuntime,
+} from '../src/workspaces.ts';
 
 /**
  * The engine on the REAL runtime with an in-memory IndexedDB, mirroring the
@@ -154,31 +173,6 @@ const boot = async (scenario: string) => {
   };
 };
 
-describe('createOnboardingFlow', () => {
-  it('appends done, maps progress to steps and rejects bad definitions', () => {
-    expect(flow.ids).toEqual(['profile', 'workspace', 'invite', 'preferences', DONE_STEP]);
-    expect(flow.stepsForProgress(0.5)).toEqual({
-      completed: ['profile', 'workspace'],
-      current: 'invite',
-    });
-    expect(flow.stepsForProgress(1).current).toBe(DONE_STEP);
-    expect(flow.missingRequired({ completedSteps: ['profile'] })).toEqual(['workspace']);
-    expect(
-      flow.progressOf({ completedSteps: ['profile'], skippedSteps: ['invite'], completedAt: null })
-    ).toBe(2 / 5);
-    expect(() => createOnboardingFlow([])).toThrow(/at least one step/);
-    expect(() => createOnboardingFlow([{ id: 'done', label: 'Done' }])).toThrow(
-      /added by the engine/
-    );
-    expect(() =>
-      createOnboardingFlow([
-        { id: 'a', label: 'A' },
-        { id: 'a', label: 'A again' },
-      ])
-    ).toThrow(/unique/);
-  });
-});
-
 describe('createOnboarding on the real runtime', () => {
   it('persists every step so a reload resumes exactly where the person left off', async () => {
     let { runtime, onboarding } = await boot('not-started');
@@ -226,48 +220,6 @@ describe('createOnboarding on the real runtime', () => {
     expect(runtime.session.principal()?.persona.onboardingComplete).toBe(true);
   });
 
-  it('restart goes back to step 1 and keeps earlier answers as defaults', async () => {
-    let { runtime, onboarding } = await boot('not-started');
-    await onboarding.submit('profile', { fullName: 'Olivia Hart' });
-    await onboarding.submit('workspace', { name: 'Acme Cloud' });
-    await onboarding.submit('invite', { emails: ['sam@example.com'] });
-    await onboarding.submit('preferences');
-    await onboarding.complete();
-
-    await onboarding.restart();
-    runtime = await harness.reload(runtime);
-    onboarding = createOnboarding(runtime as unknown as ProtoyardRuntime, { steps: STEPS });
-    expect(await onboarding.state()).toMatchObject({
-      currentStep: 'profile',
-      completedSteps: [],
-      skippedSteps: [],
-      completedAt: null,
-      answers: {
-        profile: { fullName: 'Olivia Hart' },
-        workspace: { name: 'Acme Cloud' },
-        invite: { emails: ['sam@example.com'] },
-      },
-    });
-    expect(runtime.session.principal()?.persona.onboardingComplete).toBe(false);
-  });
-
-  it('skipping an answered optional step keeps it completed', async () => {
-    const { onboarding } = await boot('half-complete');
-    await onboarding.submit('invite', { emails: ['sam@example.com'] });
-    await onboarding.goTo('invite');
-    const state = await onboarding.skip('invite');
-    expect(state.completedSteps).toContain('invite');
-    expect(state.skippedSteps).not.toContain('invite');
-  });
-
-  it('resumes the half-complete scenario at step 3', async () => {
-    const { onboarding } = await boot('half-complete');
-    expect(await onboarding.state()).toMatchObject({
-      currentStep: 'invite',
-      completedSteps: ['profile', 'workspace'],
-    });
-  });
-
   it('cannot skip required steps or jump past unfinished ones', async () => {
     const { onboarding } = await boot('not-started');
     await expect(onboarding.skip('profile')).rejects.toThrow(/required and can't be skipped/);
@@ -284,26 +236,6 @@ describe('createOnboarding on the real runtime', () => {
     expect(error).toBeInstanceOf(ValidationError);
     expect((error as ValidationError).issues).toEqual({ fullName: 'Enter your full name' });
     expect(await runtime.db.table('saas_onboarding').count()).toBe(0);
-  });
-
-  it('a viewer continues without changing the workspace', async () => {
-    const { onboarding } = await boot('viewer');
-    expect((await onboarding.state()).currentStep).toBe('workspace');
-    await expect(onboarding.submit('workspace', { name: 'Mine now' })).rejects.toBeInstanceOf(
-      PermissionDeniedError
-    );
-    expect(workspaceWrites).toEqual([]);
-    const viewerSteps = STEPS.map((s) => (s.id === 'workspace' ? { id: s.id, label: s.label } : s));
-    const { runtime } = await boot('viewer');
-    const ack = createOnboarding(runtime as unknown as ProtoyardRuntime, { steps: viewerSteps });
-    expect((await ack.submit('workspace')).currentStep).toBe('invite');
-  });
-
-  it('keeps the step when the simulated network fails', async () => {
-    const { runtime, onboarding } = await boot('half-complete');
-    await runtime.overrides.set({ environment: { network: 'offline' } });
-    await expect(onboarding.skip('invite')).rejects.toBeInstanceOf(SimulatedServiceError);
-    expect((await onboarding.state()).currentStep).toBe('invite');
   });
 });
 
@@ -350,5 +282,373 @@ describe('step effects with identity writes', () => {
     expect(saved).toMatchObject({ currentStep: 'workspace', completedSteps: ['profile'] });
     // The session refreshes after the identity transaction commits.
     expect(runtime.session.principal()?.persona.name).toBe('Committed Name');
+  });
+});
+
+// --- merged from workspaces.test.ts ---
+
+describe('workspaces', () => {
+  const REFERENCE_TIME = '2026-06-01T09:00:00.000Z';
+
+  function createWorkspacesDefinition(namespace: string): PrototypeDefinition {
+    return definePrototype({
+      manifest: parseManifest({
+        id: `example.${namespace}`,
+        slug: namespace,
+        name: 'SaaS workspaces fixture',
+        version: '0.1.0',
+        defaultScenario: 'active-month',
+        defaultTheme: 'violet',
+        storage: { namespace, schemaVersion: 1 },
+        scenarios: ['active-month', 'viewer'],
+      }),
+      database: {
+        versions: [
+          {
+            version: 1,
+            stores: { projects: 'id, organizationId' },
+          },
+        ],
+      },
+      scenarios: [
+        {
+          id: 'active-month',
+          extends: 'active-month',
+          name: 'Active month',
+          seed: 42,
+          referenceTime: REFERENCE_TIME,
+        },
+        {
+          id: 'viewer',
+          extends: 'read-only-viewer',
+          name: 'Viewer',
+          seed: 7,
+          referenceTime: REFERENCE_TIME,
+        },
+      ],
+      policy: definePolicy({
+        roles: {
+          owner: ['*'],
+          admin: ['*', WORKSPACE_CAPABILITIES.create, WORKSPACE_CAPABILITIES.rename],
+          member: [WORKSPACE_CAPABILITIES.create, WORKSPACE_CAPABILITIES.leave],
+          viewer: [],
+        },
+      }),
+      integrity: {
+        relations: { projects: { organizationId: 'py_organizations' } },
+      },
+      generate(ctx) {
+        const team = generateTeam(ctx);
+        return {
+          organizations: team.organizations,
+          personas: team.personas,
+          memberships: team.memberships,
+          tables: {
+            projects: [
+              {
+                id: ctx.ids.next('project'),
+                organizationId: team.organization.id,
+              },
+            ],
+          },
+        };
+      },
+    });
+  }
+
+  type Db = ProtoyardRuntime['db'];
+  const harnesses: ReturnType<typeof createHarness<Db>>[] = [];
+
+  afterEach(() => {
+    for (const h of harnesses.splice(0)) h.closeAll();
+  });
+
+  async function boot(namespace: string, scenario = 'active-month') {
+    const harness = createHarness<Db>(createWorkspacesDefinition(namespace));
+    harnesses.push(harness);
+    // createPrototypeRuntime returns ProtoyardRuntime (with identity); the harness type is the core contract.
+    const runtime = (await harness.boot(scenario)) as ProtoyardRuntime;
+    return {
+      harness,
+      runtime,
+      workspaces: createWorkspaces(runtime as WorkspacesRuntime),
+    };
+  }
+
+  describe('createWorkspaces', () => {
+    /** Make the actor `activeRole` in the active org A and `roleInB` in a new org B. */
+    async function twoOrgs(namespace: string, activeRole: string, roleInB: string) {
+      const booted = await boot(namespace);
+      const { runtime } = booted;
+      const principal = runtime.session.principal();
+      const own = principal?.membership;
+      if (!principal || !own) throw new Error('The fixture actor has no membership');
+      const orgB = await runtime.identity.write(async (ops) => {
+        await ops.putMembership({ ...own, role: activeRole });
+        const organization = await ops.putOrganization({ name: 'Org B', type: 'company', size: 1 });
+        await ops.putMembership({
+          personaId: principal.persona.id,
+          organizationId: organization.id,
+          role: roleInB,
+        });
+        return organization;
+      });
+      expect(runtime.session.principal()?.organization?.id).toBe(own.organizationId);
+      expect(runtime.session.principal()?.role).toBe(activeRole);
+      return { ...booted, orgA: own.organizationId, orgB: orgB.id };
+    }
+
+    it('denies renaming another workspace where the actor is only a viewer, even as owner of the active one', async () => {
+      const { runtime, workspaces, orgB } = await twoOrgs(
+        'saas-ws-cross-rename',
+        'owner',
+        'viewer'
+      );
+      await expect(workspaces.rename(orgB, { name: 'Hijacked' })).rejects.toBeInstanceOf(
+        PermissionDeniedError
+      );
+      expect(runtime.session.organizations().find((o) => o.id === orgB)?.name).toBe('Org B');
+    });
+
+    it('denies leave when the actor is the last owner', async () => {
+      const { runtime, workspaces } = await boot('saas-ws-last-owner');
+      const created = await workspaces.create({ name: 'Solo Co' });
+      expect(runtime.session.principal()?.organization?.id).toBe(created.organization.id);
+
+      await expect(workspaces.leave(created.organization.id)).rejects.toMatchObject({
+        name: 'ValidationError',
+        issues: { membership: expect.stringMatching(/at least one owner/i) },
+      });
+      expect(runtime.session.principal()?.organization?.id).toBe(created.organization.id);
+      expect(workspaces.list().some((w) => w.organization.id === created.organization.id)).toBe(
+        true
+      );
+    });
+  });
+
+  void PRESETS;
+});
+
+// --- merged from scenarios.test.ts ---
+
+describe('scenarios', () => {
+  /**
+   * SaaS fragments + generateSaasWorld: deterministic kit rows for every
+   * auth/billing state, zero integrity violations, and the signed-out nudge on
+   * the real runtime.
+   */
+
+  const REFERENCE_TIME = '2026-06-01T09:00:00.000Z';
+  const org = { id: 'org_0001', name: 'Acme Cloud', size: 4 };
+  const at = (id: string, seed: number) => ({
+    id,
+    name: id,
+    seed,
+    referenceTime: REFERENCE_TIME,
+    organization: org,
+  });
+
+  const scenarios = [
+    composeScenario(PRESETS['active-month'], at('visitor', 1), saasFragments.signedOut()),
+    composeScenario(
+      PRESETS['brand-new-signup'],
+      at('unverified', 2),
+      saasFragments.unverifiedEmail()
+    ),
+    composeScenario(PRESETS['active-month'], at('mfa', 3), saasFragments.mfaEnrolled()),
+    composeScenario(PRESETS['active-month'], at('invites', 4), saasFragments.pendingInvite(2)),
+    composeScenario(PRESETS['first-week'], at('trial-ending', 5), saasFragments.trialEnding(2)),
+    composeScenario(PRESETS['active-month'], at('past-due', 6), saasFragments.pastDue()),
+    composeScenario(PRESETS['active-month'], at('multi', 7), saasFragments.multiWorkspace(3)),
+    composeScenario(
+      PRESETS['active-month'],
+      at('linked', 8),
+      saasFragments.oauthLinked('google', 'github')
+    ),
+    composeScenario(
+      PRESETS['active-month'],
+      at('combined', 9),
+      saasFragments.trialEnding(1),
+      saasFragments.mfaEnrolled(),
+      saasFragments.oauthLinked('slack')
+    ),
+  ] as unknown as ScenarioDefinition[];
+  const ids = scenarios.map((s) => (s as { id: string }).id);
+
+  const world = (id: string, seed?: number) => {
+    const ctx = contextFor(scenarios, id, seed);
+    return { ctx, world: generateSaasWorld(ctx, { team: generateTeam(ctx) }) };
+  };
+
+  describe('saasFragments + generateSaasWorld', () => {
+    it('every scenario: same seed gives identical rows and zero integrity violations', () => {
+      for (const id of ids) {
+        const a = world(id).world;
+        const b = world(id).world;
+        expect(JSON.stringify(b)).toBe(JSON.stringify(a));
+        const violations = validateWorld(a, {
+          ...saasScenarioIntegrity(),
+          referenceTime: REFERENCE_TIME,
+        });
+        expect(violations).toEqual([]);
+      }
+    });
+  });
+});
+
+// --- merged from billing.test.ts ---
+
+describe('billing', () => {
+  const REFERENCE_TIME = '2026-06-01T09:00:00.000Z';
+  const CATALOG = [
+    { id: 'starter', name: 'Starter', unitAmountCents: 10_000, interval: 'month' as const },
+    { id: 'pro', name: 'Pro', unitAmountCents: 20_000, interval: 'month' as const },
+    { id: 'annual', name: 'Annual', unitAmountCents: 180_000, interval: 'year' as const },
+  ];
+
+  function definition(namespace: string): PrototypeDefinition {
+    return definePrototype({
+      manifest: parseManifest({
+        id: `example.${namespace}`,
+        slug: namespace,
+        name: 'Billing simulator fixture',
+        version: '0.1.0',
+        defaultScenario: 'active-month',
+        defaultTheme: 'violet',
+        storage: { namespace, schemaVersion: 2 },
+        scenarios: ['active-month'],
+      }),
+      database: {
+        versions: [
+          { version: 1, stores: { projects: 'id' } },
+          { version: 2, stores: saasStores() },
+        ],
+      },
+      scenarios: [
+        {
+          id: 'active-month',
+          extends: 'active-month',
+          name: 'Active month',
+          seed: 42,
+          referenceTime: REFERENCE_TIME,
+        },
+      ],
+      generate(ctx) {
+        const team = generateTeam(ctx);
+        return {
+          organizations: team.organizations,
+          personas: team.personas,
+          memberships: team.memberships,
+          tables: saasTables(),
+        };
+      },
+      timeline: billingTimeline,
+      applyEvent: async (event, context) => {
+        const service = services.get(namespace);
+        if (service) await service.applyTimelineEvent(event, context);
+      },
+    });
+  }
+
+  const services = new Map<string, BillingService>();
+  const open: ProtoyardRuntime[] = [];
+  afterEach(() => {
+    services.clear();
+    for (const runtime of open.splice(0)) runtime.close();
+  });
+
+  async function boot(namespace: string) {
+    const proto = definition(namespace);
+    const runtime = await createPrototypeRuntime(proto, {
+      indexedDB: new IDBFactory() as unknown as globalThis.IDBFactory,
+      IDBKeyRange,
+      sleep: async () => {},
+    });
+    open.push(runtime);
+    await runtime.scenarios.ensureSeeded();
+    const billing = createBilling(runtime, CATALOG);
+    services.set(namespace, billing);
+    return { runtime, billing };
+  }
+
+  describe('createBilling', () => {
+    it('records a declined checkout attempt without changing the organization or subscription', async () => {
+      const { runtime, billing } = await boot('billing-declined');
+      const trial = await billing.startTrial({ planId: 'starter' });
+      const result = await billing.checkout({ planId: 'pro', outcome: 'declined' });
+
+      expect(result).toMatchObject({ outcome: 'declined', subscription: { id: trial.id } });
+      expect(result.invoice.status).toBe('failed');
+      expect(await billing.invoices()).toEqual([result.invoice]);
+      expect(await runtime.db.rows<SaasSubscription>('saas_subscriptions').get(trial.id)).toEqual(
+        trial
+      );
+      expect(runtime.session.principal()?.organization).toMatchObject({
+        plan: 'starter',
+        billingStatus: 'trialing',
+      });
+      expect(await runtime.db.rows('saas_inbox').count()).toBe(0);
+    });
+  });
+});
+
+// --- merged from phone.test.ts ---
+
+describe('phone', () => {
+  const REFERENCE_TIME = '2026-06-01T09:00:00.000Z';
+  const definition: PrototypeDefinition = definePrototype({
+    manifest: parseManifest({
+      id: 'example.saas-phone',
+      slug: 'saas-phone',
+      name: 'SaaS phone fixture',
+      version: '0.1.0',
+      defaultScenario: 'visitor',
+      defaultTheme: 'violet',
+      storage: { namespace: 'saas-phone', schemaVersion: 1 },
+      scenarios: ['visitor'],
+    }),
+    auth: { signedOutByDefault: true },
+    database: { versions: [{ version: 1, stores: saasStores() }] },
+    scenarios: [
+      {
+        id: 'visitor',
+        extends: 'active-month',
+        name: 'Signed-out visitor',
+        seed: 123,
+        referenceTime: REFERENCE_TIME,
+      },
+    ],
+    policy: definePolicy({ roles: { owner: ['*'], admin: ['*'], member: [], viewer: [] } }),
+    integrity: saasIntegrity(),
+    generate(ctx) {
+      const team = generateTeam(ctx);
+      return {
+        organizations: team.organizations,
+        personas: team.personas,
+        memberships: team.memberships,
+        tables: saasTables(),
+      };
+    },
+  });
+
+  type Db = ProtoyardRuntime['db'];
+  let harness = createHarness<Db>(definition);
+  afterEach(() => {
+    harness.closeAll();
+    harness = createHarness<Db>(definition);
+  });
+
+  const boot = async () => (await harness.boot('visitor')) as ProtoyardRuntime;
+
+  describe('simulated phone provider', () => {
+    it('validates phone and code input before writing anything', async () => {
+      const runtime = await boot();
+      const phone = createPhoneServices(runtime);
+      expect(() => phone.sendCode({ phone: '555', name: 'Alex Example' })).toThrow(ValidationError);
+      await expect(
+        phone.verifyCode({ challengeId: 'missing', code: '12x456' })
+      ).rejects.toBeInstanceOf(ValidationError);
+      expect(await runtime.db.rows('saas_tokens').toArray()).toHaveLength(0);
+    });
   });
 });

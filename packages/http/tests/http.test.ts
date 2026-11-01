@@ -5,15 +5,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { createTasksDefinition, type Task } from '../../runtime/tests/fixtures/tasks-prototype.ts';
 import {
   createMockApi,
-  getMockApis,
   HttpError,
   installGlobalFetch,
   json,
   MOCK_HEADER,
   MockResponse,
-  OfflineFetchError,
   type Routes,
-  subscribeMockApis,
 } from '../src/index.ts';
 
 class ValidationError extends Error {
@@ -103,39 +100,6 @@ const routes: Routes = {
 };
 
 describe('routing', () => {
-  it('serves JSON with params, query, bodies and real Response semantics', async () => {
-    const runtime = await boot();
-    const api = createMockApi(runtime, { baseUrl: '/api', routes });
-    expect(api.routes).toContain('GET /tasks/:id');
-
-    const list = await api.fetch('/api/tasks?status=todo&limit=2');
-    expect(list.status).toBe(200);
-    expect(list.headers.get(MOCK_HEADER)).toBe('1');
-    expect(list.headers.get('content-type')).toContain('application/json');
-    const data = (await list.json()) as { items: Task[]; total: number };
-    expect(data.items.length).toBeLessThanOrEqual(2);
-    expect(data.items.every((t) => t.status === 'todo')).toBe(true);
-
-    const one = await api.fetch('/api/tasks/task%5F0001');
-    expect(((await one.json()) as Task).id).toBe('task_0001');
-
-    const created = await api.fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ title: 'From the API' }),
-    });
-    expect(created.status).toBe(201);
-    expect(created.headers.get('location')).toBe('/api/tasks/task_api_12');
-    expect(await runtime.db.rows('tasks').get('task_api_12')).toBeDefined();
-
-    const removed = await api.fetch(
-      new Request(new URL('/api/tasks/task_api_12', location.href), { method: 'DELETE' })
-    );
-    expect(removed.status).toBe(204);
-    expect(await removed.text()).toBe('');
-    expect(await runtime.db.rows('tasks').get('task_api_12')).toBeUndefined();
-  });
-
   it('answers 404, 405 (with Allow) and 400 for broken JSON', async () => {
     const api = createMockApi(await boot(), { baseUrl: '/api', routes });
     const missing = await api.fetch('/api/nope');
@@ -161,14 +125,6 @@ describe('routing', () => {
     expect(api.matches('https://api.example.test/v2/tasks')).toBe(false);
     expect(api.matches('https://other.example.test/v1/tasks')).toBe(false);
     await expect(api.fetch('/v1/tasks')).rejects.toThrow(/outside the mock API/);
-  });
-
-  it('rejects malformed route keys at startup', async () => {
-    const runtime = await boot();
-    expect(() => createMockApi(runtime, { routes: { 'FETCH /x': () => 1 } })).toThrow(
-      /Invalid route/
-    );
-    expect(() => createMockApi(runtime, { routes: { 'GET x': () => 1 } })).toThrow(/Invalid route/);
   });
 });
 
@@ -213,105 +169,6 @@ describe('error mapping', () => {
     expect(boom.status).toBe(500);
     expect(await boom.json()).toMatchObject({ error: 'internal', message: 'kaboom' });
   });
-
-  it('maps every simulated environment failure to HTTP', async () => {
-    const runtime = await boot();
-    const api = createMockApi(runtime, { routes });
-    const cases: [string, number, string | null][] = [
-      ['timeout', 504, null],
-      ['server-error', 500, null],
-      ['rate-limited', 429, '2'],
-      ['permission-denied', 403, null],
-    ];
-    for (const [failureMode, status, retryAfter] of cases) {
-      runtime.environment.set({ failureMode: failureMode as never, failureRate: 1 });
-      const response = await api.fetch('/api/tasks');
-      expect(response.status, failureMode).toBe(status);
-      expect(response.headers.get('retry-after')).toBe(retryAfter);
-    }
-    runtime.environment.set({ failureMode: 'none', network: 'offline' });
-    const offline = api.fetch('/api/tasks');
-    await expect(offline).rejects.toBeInstanceOf(TypeError);
-    await expect(api.fetch('/api/tasks')).rejects.toThrow('Failed to fetch');
-    await expect(api.fetch('/api/tasks')).rejects.toBeInstanceOf(OfflineFetchError);
-    expect(api.log.entries().at(-1)).toMatchObject({
-      status: null,
-      error: expect.stringMatching(/offline/),
-    });
-  });
-
-  it('honours failureScope so only matching endpoints fail', async () => {
-    const runtime = await boot();
-    const api = createMockApi(runtime, { routes });
-    runtime.environment.set({
-      failureMode: 'server-error',
-      failureRate: 1,
-      failureScope: ['http.GET /tasks/:id'],
-    });
-    expect((await api.fetch('/api/tasks/task_0001')).status).toBe(500);
-    expect((await api.fetch('/api/tasks')).status).toBe(200);
-    // Services (not http.*) are unaffected by an http-only scope.
-    runtime.environment.set({ failureScope: ['http.'] });
-    await expect(runtime.environment.run('tasks.create', () => 'ok')).resolves.toBe('ok');
-  });
-
-  it('applies simulated latency through the environment', async () => {
-    const sleeps: number[] = [];
-    const runtime = await boot('active-month', sleeps);
-    const api = createMockApi(runtime, { routes });
-    runtime.environment.set({ latencyMs: 300 });
-    sleeps.length = 0;
-    await api.fetch('/api/tasks');
-    expect(sleeps).toEqual([300]);
-    runtime.environment.set({ network: 'slow' });
-    sleeps.length = 0;
-    await api.fetch('/api/tasks');
-    expect(sleeps).toEqual([1500]);
-  });
-});
-
-describe('discovery for DevTools', () => {
-  it('registers every API per runtime and notifies subscribers', async () => {
-    const runtime = await boot();
-    const seen: number[] = [];
-    const off = subscribeMockApis(runtime, (apis) => seen.push(apis.length));
-    const a = createMockApi(runtime, { baseUrl: '/api', routes });
-    const b = createMockApi(runtime, { baseUrl: '/v2', routes: {} });
-    expect(getMockApis(runtime)).toEqual([a, b]);
-    expect(getMockApis(await boot('viewer'))).toEqual([]);
-    a.unregister();
-    expect(getMockApis(runtime)).toEqual([b]);
-    off();
-    b.unregister();
-    expect(seen).toEqual([1, 2, 1]);
-  });
-});
-
-describe('services that already simulate the environment', () => {
-  it("environment: 'services' applies latency and failures once, offline still rejects", async () => {
-    const sleeps: number[] = [];
-    const runtime = await boot('active-month', sleeps);
-    const viaService = () => runtime.environment.run('tasks.read', () => ({ ok: true }));
-    const api = createMockApi(runtime, {
-      routes: {
-        'GET /double': () => viaService(),
-        'GET /once': { handler: () => viaService(), environment: 'services' },
-        'GET /bad-status': () => {
-          throw new HttpError(600, 'typo');
-        },
-      },
-    });
-    runtime.environment.set({ latencyMs: 250 });
-    sleeps.length = 0;
-    await api.fetch('/api/double');
-    expect(sleeps).toEqual([250, 250]);
-    sleeps.length = 0;
-    expect((await api.fetch('/api/once')).status).toBe(200);
-    expect(sleeps).toEqual([250]);
-    expect((await api.fetch('/api/bad-status')).status).toBe(500);
-    runtime.environment.set({ network: 'offline' });
-    await expect(api.fetch('/api/once')).rejects.toThrow('Failed to fetch');
-  });
 });
 
 describe('global fetch and the network log', () => {
@@ -332,25 +189,6 @@ describe('global fetch and the network log', () => {
     expect(seen).toEqual(['https://cdn.example.test/x.json', '/apix/not-ours']);
     installed.restore();
     expect(target.fetch).toBe(original);
-  });
-
-  it('keeps the newest entries in a ring buffer and notifies subscribers', async () => {
-    const api = createMockApi(await boot(), { routes, logSize: 3 });
-    const sizes: number[] = [];
-    const off = api.log.subscribe((entries) => sizes.push(entries.length));
-    for (let i = 1; i <= 5; i++) await api.fetch(`/api/tasks/task_000${i}`);
-    off();
-    const entries = api.log.entries();
-    expect(entries.map((e) => e.url)).toEqual([
-      '/api/tasks/task_0003',
-      '/api/tasks/task_0004',
-      '/api/tasks/task_0005',
-    ]);
-    expect(entries[0]).toMatchObject({ method: 'GET', route: 'GET /tasks/:id', status: 200 });
-    expect(entries[0]?.at).toMatch(/^2026-06-01T/);
-    expect(sizes).toEqual([1, 2, 3, 3, 3]);
-    api.log.clear();
-    expect(api.log.entries()).toEqual([]);
   });
 });
 

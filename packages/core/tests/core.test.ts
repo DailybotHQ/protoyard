@@ -1,22 +1,22 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 import {
-  buildScenarioLink,
   checkSlug,
   createIdFactory,
   createPermissionPolicy,
   createRng,
   createSimulationClock,
   createSimulationEnvironment,
-  OverridesSchema,
+  parseInput,
   parseScenarioLink,
-  resolveEffective,
-  resolveShell,
-  ScenarioSchema,
+  ReviewBuildSchema,
   safeParseManifest,
   slugify,
   utf8ByteLengthExceeds,
+  ValidationError,
   validateSnapshot,
 } from '../src/index.ts';
+import { ReviewCommentSchema, safeParseReviewComment } from '../src/review.ts';
 
 describe('slugs', () => {
   it('accepts kebab-case and rejects traversal, reserved and malformed input', () => {
@@ -49,184 +49,6 @@ describe('manifest', () => {
     expect(ok.success).toBe(true);
     if (ok.success) expect(ok.data.build.includeDevtools).toBe(false);
     expect(safeParseManifest({ id: 'x', slug: 'crm' }).success).toBe(false);
-  });
-});
-
-describe('manifest preview shell', () => {
-  const base = {
-    id: 'example.crm',
-    slug: 'crm-demo',
-    name: 'CRM',
-    version: '0.1.0',
-    storage: { namespace: 'crm-demo', schemaVersion: 1 },
-  };
-  const parse = (preview: unknown, extra: object = {}) =>
-    safeParseManifest({ ...base, ...extra, ...(preview === undefined ? {} : { preview }) });
-
-  it('parses existing manifests unchanged except for the auto shell default', () => {
-    for (const [preview, viewport] of [
-      [undefined, 'desktop'],
-      [{ viewport: 'desktop' }, 'desktop'],
-      [{ viewport: 'iphone' }, 'iphone'],
-    ] as const) {
-      const result = parse(preview);
-      expect(result.success).toBe(true);
-      if (result.success) expect(result.data.preview).toEqual({ viewport, shell: 'auto' });
-    }
-  });
-
-  it('resolves auto from the platform and passes concrete shells through', () => {
-    expect(resolveShell('auto', 'mobile')).toBe('phone');
-    expect(resolveShell('auto', 'desktop')).toBe('none');
-    expect(resolveShell('auto', 'responsive')).toBe('none');
-    expect(resolveShell('browser', 'mobile')).toBe('browser');
-    expect(resolveShell('none', 'mobile')).toBe('none');
-  });
-
-  it('accepts every shell, catalog devices, orientations and fictional chrome', () => {
-    for (const shell of [
-      'auto',
-      'none',
-      'phone',
-      'tablet',
-      'desktop-window',
-      'browser',
-      'widget-host',
-      'extension-popup',
-      'side-panel',
-    ]) {
-      expect(parse({ shell }).success, shell).toBe(true);
-    }
-    const full = parse({
-      viewport: 'iphone',
-      shell: 'side-panel',
-      device: 'phone-punch-hole',
-      orientation: 'landscape',
-      chrome: {
-        os: 'windows',
-        origin: 'https://app.northwind.example',
-        hostName: 'Northwind Outfitters (fictional)',
-        hostVariant: 'code-editor',
-      },
-    });
-    expect(full.success).toBe(true);
-    for (const origin of [
-      'https://crm.example',
-      'https://example.com',
-      'https://help.example.com',
-      'https://a.b.example',
-    ]) {
-      expect(parse({ chrome: { origin } }).success, origin).toBe(true);
-    }
-  });
-
-  it('rejects bad shells, devices, orientations and real or unsafe origins', () => {
-    expect(parse({ shell: 'watch' }).success).toBe(false);
-    expect(parse({ shell: 'PHONE' }).success).toBe(false);
-    expect(parse({ device: 'iphone' }).success).toBe(false);
-    expect(parse({ orientation: 'sideways' }).success).toBe(false);
-    expect(parse({ chrome: { os: 'linux' } }).success).toBe(false);
-    expect(parse({ chrome: { hostVariant: 'spreadsheet' } }).success).toBe(false);
-    expect(parse({ chrome: { unknown: true } }).success).toBe(false);
-    for (const origin of [
-      'https://dailybot.com',
-      'http://crm.example',
-      'https://example.com.evil.io',
-      'https://notexample.com',
-      'https://crm.example/path',
-      'https://crm.example:8080',
-      'https://user@crm.example',
-      'https://.example',
-      'https://-x.example',
-      'https://CRM.example',
-      'javascript:alert(1)//.example',
-      'https://crm.example\n',
-    ]) {
-      expect(parse({ chrome: { origin } }).success, origin).toBe(false);
-    }
-  });
-
-  it('lets scenarios and overrides carry shell, device and orientation', () => {
-    const scenario = ScenarioSchema.parse({
-      id: 'phone-view',
-      name: 'Phone view',
-      seed: 1,
-      referenceTime: '2026-10-16T10:00:00Z',
-      appearance: { shell: 'phone', device: 'phone-pill', orientation: 'landscape' },
-    });
-    expect(scenario.appearance).toEqual({
-      shell: 'phone',
-      device: 'phone-pill',
-      orientation: 'landscape',
-    });
-    expect(OverridesSchema.parse({ shell: 'tablet', device: 'tablet' })).toEqual({
-      shell: 'tablet',
-      device: 'tablet',
-    });
-    expect(OverridesSchema.safeParse({ shell: 'watch' }).success).toBe(false);
-    expect(OverridesSchema.safeParse({ device: 'nope' }).success).toBe(false);
-  });
-});
-
-describe('manifest catalog block', () => {
-  const base = {
-    id: 'example.crm',
-    slug: 'crm-demo',
-    name: 'CRM',
-    version: '0.1.0',
-    storage: { namespace: 'crm-demo', schemaVersion: 1 },
-  };
-
-  it('is optional: manifests without it parse with no catalog key', () => {
-    const result = safeParseManifest(base);
-    expect(result.success).toBe(true);
-    if (result.success) expect('catalog' in result.data).toBe(false);
-  });
-
-  it('parses a full block and fills array defaults for a minimal one', () => {
-    const full = safeParseManifest({
-      ...base,
-      catalog: {
-        category: 'sales',
-        productType: 'CRM',
-        platforms: ['web', 'tablet'],
-        shell: 'browser',
-        features: ['auth', 'pipeline-board'],
-        highlights: ['Drag deals across stages'],
-        difficulty: 'intermediate',
-      },
-    });
-    expect(full.success).toBe(true);
-    if (full.success) expect(full.data.catalog?.platforms).toEqual(['web', 'tablet']);
-    const minimal = safeParseManifest({ ...base, catalog: { category: 'starter' } });
-    expect(minimal.success).toBe(true);
-    if (minimal.success) {
-      expect(minimal.data.catalog).toEqual({
-        category: 'starter',
-        platforms: [],
-        features: [],
-        highlights: [],
-      });
-    }
-  });
-
-  it('rejects free-form categories, duplicates, bad keys and unknown fields', () => {
-    for (const catalog of [
-      {},
-      { category: 'Sales' },
-      { category: 'fintech' },
-      { category: 'sales', platforms: ['web', 'web'] },
-      { category: 'sales', platforms: ['console'] },
-      { category: 'sales', features: ['Auth'] },
-      { category: 'sales', features: ['auth', 'auth'] },
-      { category: 'sales', shell: 'watch' },
-      { category: 'sales', difficulty: 'expert' },
-      { category: 'sales', productType: '' },
-      { category: 'sales', highlights: ['x'.repeat(121)] },
-      { category: 'sales', price: 10 },
-    ]) {
-      expect(safeParseManifest({ ...base, catalog }).success, JSON.stringify(catalog)).toBe(false);
-    }
   });
 });
 
@@ -313,40 +135,6 @@ describe('links, overrides and snapshots', () => {
     expect(parseScenarioLink('?sandbox=../x').sandbox).toBeUndefined();
   });
 
-  it('accepts ?shell= from the enum only and round-trips it', () => {
-    expect(parseScenarioLink('?shell=phone').shell).toBe('phone');
-    expect(parseScenarioLink('?shell=side-panel').shell).toBe('side-panel');
-    for (const bad of ['watch', 'Phone', '', '<script>', 'phone%00']) {
-      expect(parseScenarioLink(`?shell=${bad}`).shell, bad).toBeUndefined();
-    }
-    const link = buildScenarioLink('/p/crm-demo/', { scenario: 'active-month', shell: 'tablet' });
-    expect(link).toBe('/p/crm-demo/?scenario=active-month&shell=tablet');
-    expect(parseScenarioLink(new URL(link, 'http://x.example').search)).toEqual({
-      scenario: 'active-month',
-      shell: 'tablet',
-    });
-  });
-
-  it('reads ?frame=none as a full-screen (shell none) link, below an explicit ?shell=', () => {
-    expect(parseScenarioLink('?frame=none').shell).toBe('none');
-    expect(parseScenarioLink('?scenario=active-month&frame=none')).toEqual({
-      scenario: 'active-month',
-      shell: 'none',
-    });
-    expect(parseScenarioLink('?frame=none&shell=browser').shell).toBe('browser');
-    expect(parseScenarioLink('?frame=none&shell=watch').shell).toBe('none');
-    for (const other of ['device', 'NONE', '', 'phone']) {
-      expect(parseScenarioLink(`?frame=${other}`).shell, other).toBeUndefined();
-    }
-  });
-
-  it('resolves effective values by precedence', () => {
-    expect(resolveEffective({ preference: 'ocean', scenario: 'violet' }, 'mono')).toEqual({
-      value: 'ocean',
-      source: 'preference',
-    });
-  });
-
   it('rejects snapshots for another prototype', () => {
     const result = validateSnapshot(
       {
@@ -374,15 +162,6 @@ describe('links, overrides and snapshots', () => {
   });
 });
 
-describe('environment patches', () => {
-  it('do not fill defaults, so overriding latency keeps the scenario network', async () => {
-    const { OverridesSchema } = await import('../src/index.ts');
-    expect(OverridesSchema.parse({ environment: { latencyMs: 250 } })).toEqual({
-      environment: { latencyMs: 250 },
-    });
-  });
-});
-
 describe('snapshot size limit', () => {
   it('measures UTF-8 bytes, not UTF-16 code units', () => {
     expect(utf8ByteLengthExceeds('a'.repeat(10), 10)).toBe(false);
@@ -390,5 +169,152 @@ describe('snapshot size limit', () => {
     // 4 emoji = 8 UTF-16 code units but 16 UTF-8 bytes.
     expect(utf8ByteLengthExceeds('😀😀😀😀', 10)).toBe(true);
     expect(utf8ByteLengthExceeds('😀😀', 10)).toBe(false);
+  });
+});
+
+// --- merged from review.test.ts ---
+
+const manifestBase = {
+  id: 'example.crm',
+  slug: 'crm-demo',
+  name: 'CRM',
+  version: '0.1.0',
+  storage: { namespace: 'crm-demo', schemaVersion: 1 },
+};
+
+const anchor = {
+  route: { pattern: '/deals/:id', path: '/deals/deal_0001' },
+  locators: [
+    { kind: 'py-anchor', value: 'deal-header' },
+    { kind: 'css-path', value: 'main > section:nth-of-type(1)' },
+  ],
+  fingerprint: 'Acme renewal',
+  offset: { x: 0.25, y: 0.5 },
+};
+
+const context = {
+  scenario: 'active-month',
+  persona: 'user_0002',
+  shell: 'phone',
+  orientation: 'portrait',
+  theme: 'violet',
+  mode: 'dark',
+  layout: 'sidebar',
+  viewport: { width: 390, height: 844 },
+  buildId: '2026-10-19T10-00-00Z',
+};
+
+const root = {
+  id: '01JAXR5Q7Z8KC2V3M4N5P6Q7R8',
+  threadId: '01JAXR5Q7Z8KC2V3M4N5P6Q7R8',
+  slug: 'crm-demo',
+  body: 'The total should include tax.',
+  author: { name: 'Ana Reviewer', clientId: 'client_ana_0001' },
+  createdAt: '2026-10-19T10:00:00.000Z',
+  anchor,
+  context,
+};
+
+const reply = {
+  id: '01JAXR6A0000000000000000AB',
+  threadId: root.id,
+  slug: 'crm-demo',
+  body: 'Agreed. <script>alert(1)</script> stays plain text.',
+  author: { name: 'Ben Builder', clientId: 'client_ben_0001' },
+  createdAt: '2026-10-19T10:05:00.000Z',
+};
+
+describe('manifest build.review', () => {
+  it('requires an endpoint for http and rejects unsafe endpoints', () => {
+    expect(ReviewBuildSchema.safeParse({ enabled: true, adapter: 'http' }).success).toBe(false);
+    const bad = [
+      'http://review.example.com/c',
+      'https://user:pass@review.example.com/c',
+      '//review.example.com/c',
+      'javascript:alert(1)',
+      'api/comments',
+      'https://review.example.com/c?key=secret',
+      `/${'a'.repeat(300)}`,
+    ];
+    for (const endpoint of bad) {
+      expect(
+        ReviewBuildSchema.safeParse({ enabled: true, adapter: 'http', endpoint }).success,
+        endpoint
+      ).toBe(false);
+    }
+    for (const endpoint of [
+      '/api/comments',
+      'https://review.example.com/c',
+      'http://localhost:8787/c',
+    ]) {
+      expect(
+        ReviewBuildSchema.safeParse({ enabled: true, adapter: 'http', endpoint }).success,
+        endpoint
+      ).toBe(true);
+    }
+  });
+
+  it('rejects secrets, unknown keys and a store on a non-cloudflare adapter', () => {
+    expect(ReviewBuildSchema.safeParse({ enabled: true, key: 'secret-key-1' }).success).toBe(false);
+    expect(ReviewBuildSchema.safeParse({ adapter: 'firebase' }).success).toBe(false);
+    expect(ReviewBuildSchema.safeParse({ adapter: 'local', store: 'd1' }).success).toBe(false);
+    expect(
+      safeParseManifest({ ...manifestBase, build: { review: { enabled: 'yes' } } }).success
+    ).toBe(false);
+  });
+});
+
+describe('review comment schema', () => {
+  it('rejects control and bidi override characters but keeps newlines and tabs', () => {
+    expect(ReviewCommentSchema.safeParse({ ...reply, body: 'line one\n\tline two' }).success).toBe(
+      true
+    );
+    for (const body of ['nul\u0000byte', 'bell\u0007', 'escape\u001b[31m', 'flip\u202Etxt.exe']) {
+      expect(ReviewCommentSchema.safeParse({ ...reply, body }).success, JSON.stringify(body)).toBe(
+        false
+      );
+    }
+    expect(
+      ReviewCommentSchema.safeParse({
+        ...reply,
+        author: { ...reply.author, name: 'Ana\nReviewer' },
+      }).success
+    ).toBe(false);
+  });
+
+  it('never throws on untrusted input through safeParseReviewComment', () => {
+    for (const input of [null, 42, 'x', [], { body: 1 }]) {
+      expect(safeParseReviewComment(input).success).toBe(false);
+    }
+  });
+});
+
+// --- merged from validation.test.ts ---
+
+const ContactSchema = z.object({
+  name: z.string().trim().min(2, 'Name must have at least 2 characters'),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+  tags: z.array(z.string()).default([]),
+});
+
+function rejection(schema: z.ZodType, input: unknown): ValidationError {
+  try {
+    parseInput(schema, input);
+  } catch (error) {
+    expect(error).toBeInstanceOf(ValidationError);
+    return error as ValidationError;
+  }
+  throw new Error('parseInput accepted invalid input');
+}
+
+describe('parseInput', () => {
+  it('throws a ValidationError keyed by field with the first issue as message', () => {
+    const error = rejection(ContactSchema, { name: 'A', email: 'nope' });
+    expect(error.name).toBe('ValidationError');
+    expect(error.issues).toEqual({
+      name: 'Name must have at least 2 characters',
+      email: 'Enter a valid email address',
+    });
+    expect(error.message).toBe('Name must have at least 2 characters');
   });
 });

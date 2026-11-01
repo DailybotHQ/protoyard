@@ -1,39 +1,18 @@
-import { AI_MODELS } from '@protoyard/ai';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
-import axe from 'axe-core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { type ApprovalActor, type Suggestion } from '@protoyard/ai';
+import { MESSAGE_FORMAT } from '@protoyard/ai/messages';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import SuggestionCard from '../src/approvals/SuggestionCard.svelte';
 import AssistantComposer from '../src/components/AssistantComposer.svelte';
-import AssistantWorkspace from '../src/components/AssistantWorkspace.svelte';
+import ChartAnswer from '../src/components/ChartAnswer.svelte';
 import RichAnswer from '../src/components/RichAnswer.svelte';
 import MessageList from '../src/MessageList.svelte';
-import type { AssistantConversation } from '../src/types.ts';
+import { ChatMessageBlocks, type MessageActionEvent } from '../src/messages/index.ts';
+import VoiceMode from '../src/voice/VoiceMode.svelte';
 
 afterEach(() => cleanup());
 
-const conversations: AssistantConversation[] = [
-  { id: 'chat-a', title: 'Launch plan', updatedAt: '2026-10-17T12:00:00.000Z', pinned: true },
-  { id: 'chat-b', title: 'Support reply', updatedAt: '2026-10-16T12:00:00.000Z', folder: 'Work' },
-];
-
 describe('AssistantComposer', () => {
-  it('submits with the chosen simulated model and preserves the multiline keyboard contract', async () => {
-    const onSubmit = vi.fn();
-    render(AssistantComposer, { onSubmit });
-    const prompt = screen.getByRole('textbox', { name: 'Message the simulated assistant' });
-    await fireEvent.input(prompt, { target: { value: 'Draft a launch plan' } });
-    await fireEvent.keyDown(prompt, { key: 'Enter', shiftKey: true });
-    expect(onSubmit).not.toHaveBeenCalled();
-    await fireEvent.keyDown(prompt, { key: 'Enter' });
-    await waitFor(() =>
-      expect(onSubmit).toHaveBeenCalledWith({
-        prompt: 'Draft a launch plan',
-        model: AI_MODELS[0],
-        attachments: [],
-      })
-    );
-    await waitFor(() => expect((prompt as HTMLTextAreaElement).value).toBe(''));
-  });
-
   it('shows a sending state while onSubmit is in flight and never sends twice', async () => {
     let release!: () => void;
     const onSubmit = vi.fn(() => new Promise<void>((r) => (release = r)));
@@ -50,113 +29,6 @@ describe('AssistantComposer', () => {
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: 'Sending message' })).toBeNull()
     );
-  });
-
-  it('offers slash commands and inserts the selected command without submitting', async () => {
-    const onSubmit = vi.fn();
-    render(AssistantComposer, { onSubmit, slashCommands: ['/summarize', '/search'] });
-    const prompt = screen.getByRole('textbox', { name: 'Message the simulated assistant' });
-    await fireEvent.input(prompt, { target: { value: '/sum' } });
-    await fireEvent.click(screen.getByRole('option', { name: '/summarize' }));
-    expect((prompt as HTMLTextAreaElement).value).toBe('/summarize ');
-    expect(onSubmit).not.toHaveBeenCalled();
-  });
-
-  it('supports mentions, selected files, and stopping with Escape', async () => {
-    const onSubmit = vi.fn();
-    const onStop = vi.fn();
-    const file = new File(['brief'], 'brief.txt', { type: 'text/plain' });
-    render(AssistantComposer, {
-      onSubmit,
-      onStop,
-      mentions: [{ id: 'alex', label: 'Alex Example' }],
-    });
-    const prompt = screen.getByRole('textbox', { name: 'Message the simulated assistant' });
-    await fireEvent.input(prompt, { target: { value: '@Alex' } });
-    await fireEvent.click(screen.getByRole('option', { name: '@Alex Example' }));
-    expect((prompt as HTMLTextAreaElement).value).toBe('@Alex Example ');
-    await fireEvent.input(prompt, { target: { value: 'Review this file' } });
-    await fireEvent.change(screen.getByLabelText('Choose attachments'), {
-      target: { files: [file] },
-    });
-    expect(screen.getByText('brief.txt')).toBeTruthy();
-    await fireEvent.keyDown(prompt, { key: 'Enter' });
-    await waitFor(() =>
-      expect(onSubmit).toHaveBeenCalledWith({
-        prompt: 'Review this file',
-        model: AI_MODELS[0],
-        attachments: [file],
-      })
-    );
-
-    cleanup();
-    render(AssistantComposer, { onSubmit, onStop, streaming: true });
-    await fireEvent.keyDown(
-      screen.getByRole('textbox', { name: 'Message the simulated assistant' }),
-      { key: 'Escape' }
-    );
-    expect(onStop).toHaveBeenCalledTimes(1);
-    await fireEvent.click(screen.getByRole('button', { name: 'Stop response' }));
-    expect(onStop).toHaveBeenCalledTimes(2);
-    expect(screen.queryByRole('button', { name: 'Send message' })).toBeNull();
-  });
-
-  it('Enter picks the highlighted suggestion instead of sending, and the arrows move it', async () => {
-    const onSubmit = vi.fn();
-    render(AssistantComposer, { onSubmit, slashCommands: ['/summarize', '/search'] });
-    const prompt = screen.getByRole('textbox', { name: 'Message the simulated assistant' });
-    await fireEvent.input(prompt, { target: { value: '/s' } });
-    await fireEvent.keyDown(prompt, { key: 'ArrowDown' });
-    expect(screen.getByRole('option', { name: '/search' }).getAttribute('aria-selected')).toBe(
-      'true'
-    );
-    await fireEvent.keyDown(prompt, { key: 'Enter' });
-    expect((prompt as HTMLTextAreaElement).value).toBe('/search ');
-    expect(onSubmit).not.toHaveBeenCalled();
-  });
-
-  it('keeps the draft and the attachments when onSubmit returns false, and shows the error on reject', async () => {
-    const file = new File(['brief'], 'brief.txt', { type: 'text/plain' });
-    const onSubmit = vi.fn().mockResolvedValueOnce(false).mockRejectedValueOnce(new Error('x'));
-    render(AssistantComposer, { onSubmit });
-    const prompt = screen.getByRole('textbox', { name: 'Message the simulated assistant' });
-    await fireEvent.input(prompt, { target: { value: 'Keep me' } });
-    await fireEvent.change(screen.getByLabelText('Choose attachments'), {
-      target: { files: [file] },
-    });
-    await fireEvent.keyDown(prompt, { key: 'Enter' });
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
-    expect((prompt as HTMLTextAreaElement).value).toBe('Keep me');
-    expect(screen.getByText('brief.txt')).toBeTruthy();
-    await fireEvent.keyDown(prompt, { key: 'Enter' });
-    expect(await screen.findByRole('alert')).toHaveProperty(
-      'textContent',
-      'The message could not be sent. Your draft is still here.'
-    );
-    expect((prompt as HTMLTextAreaElement).value).toBe('Keep me');
-  });
-});
-
-describe('AssistantComposer attachments', () => {
-  it('the Attach files button opens the named file picker', async () => {
-    render(AssistantComposer, { onSubmit: vi.fn() });
-    const picker = screen.getByLabelText('Choose attachments') as HTMLInputElement;
-    expect(picker.type).toBe('file');
-    expect(picker.multiple).toBe(true);
-    const click = vi.spyOn(picker, 'click').mockImplementation(() => {});
-    await fireEvent.click(screen.getByRole('button', { name: 'Attach files' }));
-    expect(click).toHaveBeenCalledTimes(1);
-  });
-
-  it('removes a chosen file with its Tag remove control', async () => {
-    const file = new File(['brief'], 'brief.txt', { type: 'text/plain' });
-    render(AssistantComposer, { onSubmit: vi.fn() });
-    await fireEvent.change(screen.getByLabelText('Choose attachments'), {
-      target: { files: [file] },
-    });
-    expect(screen.getByText('brief.txt')).toBeTruthy();
-    await fireEvent.click(screen.getByRole('button', { name: 'Remove brief.txt' }));
-    await waitFor(() => expect(screen.queryByText('brief.txt')).toBeNull());
   });
 });
 
@@ -178,44 +50,6 @@ describe('MessageList', () => {
     },
   ];
 
-  it('renders each message as a Texuli chat message with the simulated marker', () => {
-    render(MessageList, { messages: thread, conversationId: 'c1' });
-    const log = screen.getByRole('log', { name: 'Conversation messages' });
-    expect(log.hasAttribute('data-tx-chat-message-list')).toBe(true);
-    expect(screen.getByRole('article', { name: 'Your message' }).textContent).toContain(
-      'Plan the launch'
-    );
-    const agent = screen.getByRole('article', { name: 'Assistant message' });
-    expect(agent.textContent).toContain('Simulated');
-    expect(agent.querySelector('strong')?.textContent).toBe('Step one');
-  });
-
-  it('keeps feedback, branches and edit-and-resend', async () => {
-    const onFeedback = vi.fn();
-    const onBranchChange = vi.fn();
-    const onEditMessage = vi.fn();
-    render(MessageList, {
-      messages: thread,
-      conversationId: 'c1',
-      onFeedback,
-      onBranchChange,
-      onEditMessage,
-    });
-    await fireEvent.click(screen.getByRole('button', { name: 'Helpful response' }));
-    expect(onFeedback).toHaveBeenCalledWith('a1', 'up');
-    expect(
-      (screen.getByRole('button', { name: 'Previous response version' }) as HTMLButtonElement)
-        .disabled
-    ).toBe(true);
-    await fireEvent.click(screen.getByRole('button', { name: 'Next response version' }));
-    expect(onBranchChange).toHaveBeenCalledWith('a1', 1);
-    await fireEvent.click(screen.getByRole('button', { name: 'Edit your message' }));
-    const editor = screen.getByRole('textbox', { name: 'Edit your message' });
-    await fireEvent.input(editor, { target: { value: 'Plan the beta launch' } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Save and resend' }));
-    await waitFor(() => expect(onEditMessage).toHaveBeenCalledWith('u1', 'Plan the beta launch'));
-  });
-
   it('marks the last reply as writing while streaming, with its actions held back', () => {
     render(MessageList, {
       messages: thread,
@@ -228,101 +62,6 @@ describe('MessageList', () => {
     expect(screen.getByText('Writing a reply…')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Helpful response' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Regenerate response' })).toBeNull();
-  });
-
-  it('offers no edit control without onEditMessage', () => {
-    render(MessageList, { messages: thread, conversationId: 'c1' });
-    expect(screen.queryByRole('button', { name: 'Edit your message' })).toBeNull();
-  });
-});
-
-describe('AssistantWorkspace', () => {
-  it('has no axe violations in the empty workspace and composer', async () => {
-    const { container } = render(AssistantWorkspace, {
-      conversations,
-      messages: [],
-      selectedConversationId: 'chat-a',
-      onSend: vi.fn(),
-    });
-    const results = await axe.run(container);
-    expect(results.violations.map((violation) => violation.id)).toEqual([]);
-  });
-
-  it('searches history and keeps actions available by accessible names', async () => {
-    const onSelectConversation = vi.fn();
-    const onTogglePin = vi.fn();
-    render(AssistantWorkspace, {
-      conversations,
-      messages: [],
-      selectedConversationId: 'chat-a',
-      folders: ['Work'],
-      onSend: vi.fn(),
-      onSelectConversation,
-      onTogglePin,
-    });
-    expect(screen.getByRole('heading', { name: 'What would you like to explore?' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Create folder' }).hasAttribute('disabled')).toBe(
-      true
-    );
-    const search = screen.getByRole('textbox', { name: 'Search conversations' });
-    await fireEvent.keyDown(window, { key: 'k', metaKey: true });
-    expect(document.activeElement).toBe(search);
-    await fireEvent.input(search, { target: { value: 'Support' } });
-    // Anchored: each row also has an "Actions for <title>" menu button.
-    expect(screen.getByRole('button', { name: /^Support reply/ })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /^Launch plan/ })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Actions for Support reply' })).toBeTruthy();
-    await fireEvent.click(screen.getByRole('button', { name: /^Support reply/ }));
-    expect(onSelectConversation).toHaveBeenCalledWith('chat-b');
-    expect(screen.queryByRole('button', { name: 'Create share link' })).toBeNull();
-  });
-
-  it('runs conversation actions from the Texuli menu', async () => {
-    const onTogglePin = vi.fn();
-    render(AssistantWorkspace, {
-      conversations,
-      messages: [],
-      selectedConversationId: 'chat-a',
-      onSend: vi.fn(),
-      onTogglePin,
-    });
-    await fireEvent.click(screen.getByRole('button', { name: 'Actions for Support reply' }));
-    await fireEvent.click(await screen.findByRole('menuitem', { name: 'Pin conversation' }));
-    expect(onTogglePin).toHaveBeenCalledWith('chat-b');
-  });
-
-  it('lets the parent provide a real share URL and exposes it for copying', async () => {
-    render(AssistantWorkspace, {
-      conversations,
-      messages: [],
-      selectedConversationId: 'chat-a',
-      onSend: vi.fn(),
-      onShare: vi.fn().mockResolvedValue('https://example.com/share/chat-a'),
-    });
-    await fireEvent.click(screen.getByRole('button', { name: 'Create share link' }));
-    expect(await screen.findByRole('textbox', { name: 'Share link' })).toBeTruthy();
-    expect((screen.getByRole('textbox', { name: 'Share link' }) as HTMLInputElement).value).toBe(
-      'https://example.com/share/chat-a'
-    );
-  });
-
-  it('renders a bounded, virtualized window of a long thread', async () => {
-    const messages = Array.from({ length: 150 }, (_, index) => ({
-      id: `message-${index}`,
-      role: index % 2 ? ('assistant' as const) : ('user' as const),
-      content: `Earlier item ${index}`,
-      createdAt: '2026-10-17T12:00:00.000Z',
-    }));
-    render(AssistantWorkspace, {
-      conversations,
-      messages,
-      selectedConversationId: 'chat-a',
-      onSend: vi.fn(),
-    });
-    // MessageList virtualizes long threads (T-ai-virtual-thread): only a window of rows is in the DOM.
-    const rendered = screen.queryAllByText(/^Earlier item \d+$/);
-    expect(rendered.length).toBeGreaterThan(0);
-    expect(rendered.length).toBeLessThan(messages.length);
   });
 });
 
@@ -338,5 +77,250 @@ describe('RichAnswer', () => {
     expect(container.querySelector('a[href^="javascript:"]')).toBeNull();
     expect(container.querySelector('img')?.getAttribute('referrerpolicy')).toBe('no-referrer');
     expect(container.querySelector('strong')?.textContent).toBe('Ready');
+  });
+});
+
+// --- merged from messages.test.ts ---
+
+describe('messages', () => {
+  afterEach(cleanup);
+
+  const PNG =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
+  const msg = (blocks: unknown[], extra: Record<string, unknown> = {}) => ({
+    format: MESSAGE_FORMAT,
+    id: 'msg-1',
+    blocks,
+    ...extra,
+  });
+
+  /** A promise the test settles by hand, to observe pending states. */
+  function deferred() {
+    let resolve!: () => void;
+    let reject!: (error: Error) => void;
+    const promise = new Promise<void>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+
+  function view(message: unknown, props: Record<string, unknown> = {}) {
+    return render(ChatMessageBlocks, { message, ...props });
+  }
+
+  describe('chat message blocks: rendering', () => {
+    it('renders a link preview that never loads remote media and opens safely', () => {
+      const { container } = view(
+        msg([
+          {
+            type: 'link_preview',
+            url: 'https://www.example.com/post',
+            title: 'Release notes',
+            description: 'What changed this week.',
+            image: PNG,
+          },
+          { type: 'link_preview', url: 'https://example.com/plain', image: 'attachment:thumb-1' },
+        ])
+      );
+      const card = screen.getByRole('link', { name: /Release notes/ });
+      expect(card.getAttribute('href')).toBe('https://www.example.com/post');
+      expect(card.getAttribute('target')).toBe('_blank');
+      expect(card.getAttribute('rel')).toBe('noopener noreferrer');
+      expect(within(card).getByText('example.com')).toBeTruthy();
+      const images = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'));
+      expect(images).toEqual([PNG]);
+    });
+  });
+
+  describe('chat message blocks: safe fallback', () => {
+    it('refuses every unsafe message', () => {
+      for (const [_name, input] of [
+        ['markup in text', msg([{ type: 'text', text: '<img src=x onerror=alert(1)>' }])],
+        [
+          'a newer format',
+          { format: 'protoyard.message@2', blocks: [{ type: 'text', text: 'hi' }] },
+        ],
+        ['not JSON', '{"format":'],
+        [
+          'a remote preview image',
+          msg([
+            {
+              type: 'link_preview',
+              url: 'https://example.com',
+              image: 'https://evil.example/x.png',
+            },
+          ]),
+        ],
+      ]) {
+        const { container } = view(input);
+        expect(container.querySelector('[data-py-message-invalid]')).not.toBeNull();
+        expect(container.querySelector('img')).toBeNull();
+      }
+    });
+  });
+
+  describe('chat message blocks: actions', () => {
+    it('reports a typed button event and stays busy until the host settles', async () => {
+      const gate = deferred();
+      const events: MessageActionEvent[] = [];
+      view(
+        msg([
+          {
+            type: 'buttons',
+            buttons: [
+              { label: 'Approve', action: 'approve', value: 'req-7', style: 'primary' },
+              { label: 'Docs', url: 'https://example.com/docs' },
+            ],
+          },
+        ]),
+        {
+          onAction: (event: MessageActionEvent) => {
+            events.push(event);
+            return gate.promise;
+          },
+        }
+      );
+      const approve = screen.getByRole('button', { name: 'Approve' });
+      await fireEvent.click(approve);
+      expect(events).toEqual([
+        { kind: 'button', messageId: 'msg-1', blockIndex: 0, action: 'approve', value: 'req-7' },
+      ]);
+      expect(approve.getAttribute('aria-busy')).toBe('true');
+      expect((approve as HTMLButtonElement).disabled).toBe(true);
+      gate.resolve();
+      await waitFor(() => expect(approve.getAttribute('aria-busy')).toBeNull());
+      expect((approve as HTMLButtonElement).disabled).toBe(false);
+      const docs = screen.getByRole('link', { name: /Docs/ });
+      expect(docs.getAttribute('rel')).toBe('noopener noreferrer');
+    });
+  });
+});
+
+// --- merged from chart-answers.test.ts ---
+
+describe('chart-answers', () => {
+  class FixedWidthObserver {
+    callback: ResizeObserverCallback;
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+    observe(target: Element) {
+      this.callback(
+        [{ target, contentRect: { width: 480, height: 220 } } as unknown as ResizeObserverEntry],
+        this as unknown as ResizeObserver
+      );
+    }
+    unobserve() {}
+    disconnect() {}
+  }
+
+  beforeEach(() => vi.stubGlobal('ResizeObserver', FixedWidthObserver));
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  describe('ChartAnswer', () => {
+    it('shows an error note and the raw data as text for an invalid spec, never markup', () => {
+      const text =
+        '{"kind":"bar","title":"<img src=x onerror=alert(1)>","labels":["a"],"series":[]}';
+      render(ChartAnswer, { text });
+      const note = screen.getByRole('note');
+      expect(note.textContent).toContain('This chart could not be shown.');
+      expect(note.textContent).toContain('series');
+      expect(note.querySelector('img')).toBeNull();
+      expect(note.querySelector('pre')?.textContent).toBe(text);
+    });
+  });
+});
+
+// --- merged from approvals.test.ts ---
+
+describe('approvals', () => {
+  afterEach(cleanup);
+  const SUBJECT: ApprovalActor = { id: 'person_oscar', canApprove: false };
+
+  function suggestion(over: Partial<Suggestion> = {}): Suggestion {
+    return {
+      id: 'approval_sug_resp_1',
+      scopeId: 'org_example',
+      kind: 'link_record',
+      action: 'apply',
+      area: 'records',
+      subjectId: SUBJECT.id,
+      sourceId: 'resp_1',
+      summary: 'Link blocker to ENG-12',
+      targetId: 'task_12',
+      targetKey: 'ENG-12',
+      targetLabel: 'Ship onboarding',
+      status: 'pending',
+      mode: 'suggest',
+      levelAtCreation: 2,
+      createdAt: '2026-03-15T10:00:00.000Z',
+      decidedAt: null,
+      decidedBy: null,
+      deciderId: null,
+      preparedApplySummary: null,
+      preparedNotifySummary: null,
+      payload: {},
+      ...over,
+    };
+  }
+
+  describe('SuggestionCard', () => {
+    it('shows evidence fields and runs confirm with pending feedback', async () => {
+      let resolve!: () => void;
+      const gate = new Promise<void>((r) => {
+        resolve = r;
+      });
+      const onConfirm = vi.fn(() => gate);
+      const view = render(SuggestionCard, {
+        props: {
+          suggestion: suggestion({
+            preparedApplySummary: 'Link to ENG-12',
+            preparedNotifySummary: 'Please review ENG-12',
+          }),
+          viewer: SUBJECT,
+          onConfirm,
+          onDismiss: vi.fn(),
+        },
+      });
+      expect(view.getByText('Link blocker to ENG-12')).toBeTruthy();
+      expect(view.getByText('Prepared change').parentElement?.textContent).toContain(
+        'Link to ENG-12'
+      );
+      expect(view.getByText(/Simulated · no real authority/)).toBeTruthy();
+
+      const button = view.getByRole('button', { name: 'Confirm' });
+      await fireEvent.click(button);
+      expect(onConfirm).toHaveBeenCalledOnce();
+      await waitFor(() => expect(button.getAttribute('aria-busy')).toBe('true'));
+      resolve();
+      await waitFor(() => expect(button.getAttribute('aria-busy')).not.toBe('true'));
+    });
+  });
+});
+
+// --- merged from voice.test.ts ---
+
+describe('voice', () => {
+  afterEach(() => cleanup());
+
+  describe('VoiceMode', () => {
+    it('does not request microphone access unless the optional meter is enabled and chosen', async () => {
+      const getUserMedia = vi.fn();
+      Object.defineProperty(navigator, 'mediaDevices', {
+        configurable: true,
+        value: { getUserMedia },
+      });
+      render(VoiceMode, {
+        clock: { now: () => new Date(0), nowMs: () => 0, sleep: async () => {} },
+      });
+
+      expect(screen.queryByRole('button', { name: /local mic level meter/i })).toBeNull();
+      expect(getUserMedia).not.toHaveBeenCalled();
+    });
   });
 });

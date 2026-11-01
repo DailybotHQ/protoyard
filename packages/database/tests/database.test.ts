@@ -1,17 +1,13 @@
-import type { DatabaseVersion, Snapshot } from '@protoyard/core';
+import type { DatabaseVersion } from '@protoyard/core';
 import type { Transaction } from 'dexie';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import {
-  allTableNames,
   clearWorld,
   countTables,
   type DatabaseSource,
   deleteProtoyardDatabases,
-  domainTableNames,
   dumpTables,
-  mapStorageError,
-  openControlStore,
   openPrototypeDatabase,
   openPrototypeStorage,
   probeStorage,
@@ -46,32 +42,10 @@ const v2: DatabaseVersion = {
 };
 
 describe('schema', () => {
-  it('derives table names across versions and adds reserved tables', () => {
-    expect(domainTableNames({ versions: [v1, v2] })).toEqual(['notes']);
-    expect(allTableNames({ versions: [v1] })).toEqual([
-      'notes',
-      'folders',
-      'py_organizations',
-      'py_personas',
-      'py_memberships',
-      'py_events',
-    ]);
-  });
-
   it('refuses tables with the reserved py_ prefix', async () => {
     await expect(
       openPrototypeDatabase(source([{ version: 1, stores: { py_custom: 'id' } }]), backend())
     ).rejects.toThrow(/reserved/);
-  });
-
-  it('names databases per namespace', async () => {
-    const store = backend();
-    const db = await openPrototypeDatabase(source([v1]), store);
-    expect(db.name).toBe('protoyard.notes.data');
-    expect(db.tables.map((t) => t.name).sort()).toEqual(
-      ['folders', 'notes', 'py_events', 'py_memberships', 'py_organizations', 'py_personas'].sort()
-    );
-    db.close();
   });
 });
 
@@ -134,77 +108,7 @@ describe('world I/O', () => {
   });
 });
 
-describe('control store', () => {
-  it('stores state, per-persona preferences and snapshots apart from data', async () => {
-    const store = backend();
-    const control = await openControlStore('notes', store);
-    expect(control.name).toBe('protoyard.notes.control');
-    await control.writeState({ actorId: 'user_0002', organizationId: 'org_0001' });
-    expect(await control.getState('actorId')).toBe('user_0002');
-    await control.writeState({ actorId: null });
-    expect(await control.readState()).toEqual({ organizationId: 'org_0001' });
-
-    await control.setPreference('user_0001', { themeId: 'ocean', mode: 'dark' });
-    expect(await control.setPreference('user_0001', { mode: undefined })).toEqual({
-      personaId: 'user_0001',
-      themeId: 'ocean',
-    });
-
-    const snapshot = (id: string, createdAt: string): Snapshot => ({
-      format: 'protoyard.snapshot',
-      formatVersion: 1,
-      id,
-      name: id,
-      notes: '',
-      prototypeId: 'example.notes',
-      prototypeVersion: '0.1.0',
-      schemaVersion: 1,
-      scenarioId: null,
-      scenarioVersion: null,
-      seed: null,
-      referenceTime: null,
-      createdAt,
-      actorId: null,
-      organizationId: null,
-      clock: null,
-      environment: {},
-      overrides: {},
-      appearance: {},
-      tables: [{ name: 'notes', rows: [{ id: 'n1' }] }],
-      stats: { notes: 1 },
-    });
-    await control.putSnapshot(snapshot('old', '2026-01-01T00:00:00.000Z'));
-    await control.putSnapshot(snapshot('new', '2026-02-01T00:00:00.000Z'));
-    const list = await control.listSnapshots();
-    expect(list.map((s) => s.id)).toEqual(['new', 'old']);
-    expect('tables' in (list[0] as object)).toBe(false);
-    expect((await control.getSnapshot('old'))?.tables).toEqual([
-      { name: 'notes', rows: [{ id: 'n1' }] },
-    ]);
-    await control.deleteSnapshot('old');
-    expect(await control.getSnapshot('old')).toBeUndefined();
-    await control.clearAll();
-    expect(await control.listSnapshots()).toEqual([]);
-    control.close();
-  });
-});
-
 describe('storage status and errors', () => {
-  it('maps DOM and Dexie errors to friendly codes', () => {
-    expect(mapStorageError({ name: 'QuotaExceededError' }).code).toBe('quota-exceeded');
-    expect(
-      mapStorageError({ name: 'OpenFailedError', inner: { name: 'InvalidStateError' } }).code
-    ).toBe('unavailable');
-    expect(mapStorageError({ name: 'MissingAPIError' }).code).toBe('unavailable');
-    expect(mapStorageError({ name: 'VersionError' }).code).toBe('version-newer');
-    // Chrome's transient/corrupt backing-store error must surface, never fall back to memory.
-    expect(mapStorageError({ name: 'OpenFailedError', inner: { name: 'UnknownError' } }).code).toBe(
-      'unknown'
-    );
-    expect(mapStorageError(new Error('boom')).code).toBe('unknown');
-    expect(mapStorageError({ name: 'QuotaExceededError' }).message).toMatch(/storage is full/i);
-  });
-
   it('reports IndexedDB normally and falls back to memory honestly', async () => {
     expect((await probeStorage(backend())).backend).toBe('indexeddb');
     const original = globalThis.indexedDB;

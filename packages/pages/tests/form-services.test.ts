@@ -1,10 +1,12 @@
 // @vitest-environment node
 
-import type { FormBlock } from '@protoyard/blocks';
-import type { PrototypeRuntime } from '@protoyard/core';
+import { type FormBlock } from '@protoyard/blocks';
+import { type PrototypeRuntime } from '@protoyard/core';
 import { describe, expect, it, vi } from 'vitest';
+import { createDocEditServices, DOC_EDITS_TABLE } from '../src/doc-edits.ts';
 import { FORM_RESPONSES_TABLE, type FormResponse } from '../src/form-response.ts';
 import { createFormServices } from '../src/form-services.ts';
+import { type DocDocument } from '../src/schema.ts';
 
 class MemoryTable {
   private rows = new Map<string, unknown>();
@@ -160,40 +162,30 @@ describe('createFormServices', () => {
     expect(csv).toContain(',-5,"[""one"",""two""]"');
   });
 
-  it('clears only the requested form and requires form:admin', async () => {
-    const { services, transactionModes, environmentCalls } = harness();
-    await services.submit('contact-form', { email: 'ada@example.com' });
-    await services.submit('other-form', { message: 'Keep this row' });
+  it('requires the matching capability for every service', async () => {
+    for (const [missing, ...granted] of [
+      ['form:submit', 'form:read', 'form:admin'],
+      ['form:read', 'form:submit', 'form:admin'],
+      ['form:admin', 'form:submit', 'form:read'],
+    ]) {
+      const { services, runtime, transactionModes, environmentCalls } = harness(granted);
+      const operation =
+        missing === 'form:submit'
+          ? services.submit('contact-form', { email: 'ada@example.com' })
+          : missing === 'form:read'
+            ? services.list('contact-form')
+            : services.clear('contact-form');
 
-    expect(await services.clear('contact-form')).toBe(1);
-    expect(await services.list('contact-form')).toEqual([]);
-    expect((await services.list('other-form'))[0]?.values).toEqual({ message: 'Keep this row' });
-    expect(transactionModes).toEqual(['rw', 'rw', 'rw', 'r', 'r']);
-    expect(environmentCalls).toEqual(['forms.submit', 'forms.submit', 'forms.clear']);
-  });
-
-  it.each([
-    ['form:submit', 'form:read', 'form:admin'],
-    ['form:read', 'form:submit', 'form:admin'],
-    ['form:admin', 'form:submit', 'form:read'],
-  ])('requires the matching capability %s', async (missing, ...granted) => {
-    const { services, runtime, transactionModes, environmentCalls } = harness(granted);
-    const operation =
-      missing === 'form:submit'
-        ? services.submit('contact-form', { email: 'ada@example.com' })
-        : missing === 'form:read'
-          ? services.list('contact-form')
-          : services.clear('contact-form');
-
-    await expect(operation).rejects.toThrow(`Permission denied: ${missing}`);
-    if (missing === 'form:read') {
-      await expect(services.exportCsv('contact-form')).rejects.toThrow(
-        `Permission denied: ${missing}`
-      );
+      await expect(operation).rejects.toThrow(`Permission denied: ${missing}`);
+      if (missing === 'form:read') {
+        await expect(services.exportCsv('contact-form')).rejects.toThrow(
+          `Permission denied: ${missing}`
+        );
+      }
+      expect(runtime.session.assert).toHaveBeenCalledWith(missing);
+      expect(transactionModes).toEqual([]);
+      expect(environmentCalls).toEqual([]);
     }
-    expect(runtime.session.assert).toHaveBeenCalledWith(missing);
-    expect(transactionModes).toEqual([]);
-    expect(environmentCalls).toEqual([]);
   });
 
   it('rejects malformed rows already present in the response table', async () => {
@@ -202,6 +194,124 @@ describe('createFormServices', () => {
 
     await expect(services.list('contact-form')).rejects.toMatchObject({
       issues: expect.any(Object),
+    });
+  });
+});
+
+// --- merged from doc-edits.test.ts ---
+
+describe('doc-edits', () => {
+  const doc: DocDocument = {
+    id: 'field-report',
+    title: 'Field report',
+    blocks: [
+      { type: 'heading', id: 'title', level: 1, text: 'Field report' },
+      { type: 'text', id: 'intro', markdown: 'Original body.' },
+    ],
+  };
+
+  const edited = (markdown: string): DocDocument => ({
+    ...doc,
+    blocks: [doc.blocks[0]!, { type: 'text', id: 'intro', markdown }],
+  });
+
+  function harness(granted: readonly string[] = ['blocks:interact']) {
+    const rows = new Map<string, unknown>();
+    const transactionModes: string[] = [];
+    const environmentCalls: string[] = [];
+    const grants = new Set(granted);
+    const runtime = {
+      manifest: { storage: { namespace: 'bp-world-one' } },
+      db: {
+        table(name: string) {
+          if (name !== DOC_EDITS_TABLE) throw new Error(`Unknown table: ${name}`);
+          return {
+            get: async (key: string) => structuredClone(rows.get(key)),
+            put: async (row: { key: string }) => {
+              rows.set(row.key, structuredClone(row));
+            },
+            delete: async (key: string) => {
+              rows.delete(key);
+            },
+          };
+        },
+        async transaction<T>(mode: 'r' | 'rw', _tables: unknown, callback: () => Promise<T>) {
+          transactionModes.push(mode);
+          return callback();
+        },
+      },
+      session: {
+        assert: vi.fn((capability: string) => {
+          if (!grants.has(capability)) throw new Error(`Permission denied: ${capability}`);
+        }),
+        principal: vi.fn(() => ({ persona: { id: 'presenter' } })),
+      },
+      environment: {
+        run: vi.fn(async <T>(operation: string, callback: () => T | Promise<T>) => {
+          environmentCalls.push(operation);
+          return callback();
+        }),
+      },
+      clock: { now: () => new Date('2030-01-02T03:04:05.000Z') },
+    } as unknown as PrototypeRuntime;
+    return {
+      rows,
+      runtime,
+      transactionModes,
+      environmentCalls,
+      services: createDocEditServices(runtime),
+    };
+  }
+
+  describe('createDocEditServices', () => {
+    it('refuses a viewer, another doc and an invalid body before any write', async () => {
+      const viewer = harness([]);
+      await expect(viewer.services.save(doc, edited('No.'))).rejects.toThrow(/Permission denied/);
+      await expect(viewer.services.reset(doc)).rejects.toThrow(/Permission denied/);
+
+      const { services, rows, environmentCalls } = harness();
+      await expect(services.save(doc, { ...edited('x'), id: 'other-doc' })).rejects.toMatchObject({
+        issues: { document: 'These edits belong to another doc.' },
+      });
+      await expect(services.save(doc, { ...doc, blocks: [] })).rejects.toMatchObject({
+        issues: { document: expect.any(String) },
+      });
+      await expect(
+        services.save(doc, { ...doc, blocks: [{ type: 'script', code: 'alert(1)' }] })
+      ).rejects.toMatchObject({ issues: { document: expect.any(String) } });
+      await expect(services.save(doc, null)).rejects.toMatchObject({
+        issues: { document: expect.any(String) },
+      });
+      expect(rows.size).toBe(0);
+      expect(environmentCalls).toEqual([]);
+    });
+
+    it('re-validates a stored row as untrusted and never returns a tampered one', async () => {
+      const { services, rows } = harness();
+      await services.save(doc, edited('Saved body.'));
+      const key = 'bp-world-one::field-report';
+      const good = rows.get(key) as Record<string, unknown>;
+
+      rows.set(key, { ...good, blocks: [{ type: 'html', html: '<img src=x onerror=alert(1)>' }] });
+      expect(await services.load(doc)).toMatchObject({ status: 'invalid' });
+
+      rows.set(key, { ...good, extra: 'field' });
+      expect(await services.load(doc)).toMatchObject({ status: 'invalid' });
+
+      rows.set(key, { ...good, docId: 'someone-else' });
+      expect(await services.load(doc)).toMatchObject({ status: 'invalid' });
+
+      rows.set(key, { ...good, blocks: Array.from({ length: 5_000 }, () => good.blocks) });
+      expect(await services.load(doc)).toMatchObject({ status: 'invalid' });
+    });
+
+    it('resets through the environment and says whether there was anything to clear', async () => {
+      const { services, environmentCalls } = harness();
+      expect(await services.reset(doc)).toBe(false);
+      await services.save(doc, edited('Saved body.'));
+      expect(await services.reset(doc)).toBe(true);
+      expect(await services.load(doc)).toEqual({ status: 'none' });
+      expect(environmentCalls).toEqual(['docs.resetEdits', 'docs.saveEdits', 'docs.resetEdits']);
     });
   });
 });

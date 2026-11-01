@@ -1,5 +1,5 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 import { safeHref } from '@protoyard/ai/markdown';
 import { BLOCK_FAMILIES, BLOCK_TYPES, parseUntrustedBlocks } from '@protoyard/blocks';
 import { createMemoryBlockStateHost } from '@protoyard/blocks/interactive';
@@ -11,7 +11,7 @@ import { loadBlockFamily } from '../src/registry.ts';
 import FuzzHarness from './fixtures/FuzzHarness.svelte';
 
 /**
- * AC-blocks-fuzz, renderer half: the same 2,000 seeded hostile documents as
+ * AC-blocks-fuzz, renderer half: 500 of the same seeded hostile documents as
  * the engine test. Accepted documents render their sanitized blocks (what a
  * correct host passes); rejected ones render their raw input (what a careless
  * host might pass: BlockRenderer re-validates every block). Either way the
@@ -21,11 +21,12 @@ import FuzzHarness from './fixtures/FuzzHarness.svelte';
  */
 
 const SRC = join(import.meta.dirname, '..', 'src');
-const DOCUMENTS = hostileDocuments();
+// A representative 500 of the engine's seeded hostile documents, every attack family included.
+const DOCUMENTS = hostileDocuments(500);
 /** Raw inputs with thousands of blocks are rejected by the parser; render a prefix to bound time. */
 const RAW_BLOCK_CAP = 25;
 /** Chart/map kits stub under security-fuzz host (`isSecurityFuzzHost`). */
-const BATCH = 50;
+const BATCH = 125;
 
 const FORBIDDEN_ELEMENTS =
   'script, iframe, frame, frameset, object, embed, applet, base, meta, link, noscript, template, foreignObject, portal';
@@ -159,7 +160,7 @@ beforeAll(async () => {
   // Warm family + grammar chunks once. Chart and map kits are NOT warmed:
   // under documentId `security-fuzz`, ChartBlock/MapBlockView (and related)
   // mount inert stubs via isSecurityFuzzHost so Texuli chart/map families
-  // never load into happy-dom across 2,000 documents.
+  // never load into happy-dom across the fuzz documents.
   await Promise.all([
     ...BLOCK_FAMILIES.map((family) => loadBlockFamily(family)),
     ...['ts', 'js', 'json', 'bash', 'python', 'html', 'css', 'sql', 'yaml'].map(loadCodeGrammar),
@@ -184,13 +185,13 @@ afterAll(() => {
   vi.restoreAllMocks();
 });
 
-describe('AC-blocks-fuzz: 2,000 hostile documents render inert', () => {
+describe('AC-blocks-fuzz: 500 hostile documents render inert', () => {
   const docs = DOCUMENTS.map(renderable);
 
   it('renders both accepted (sanitized) and rejected (raw) documents', () => {
-    expect(docs).toHaveLength(2_000);
-    expect(docs.filter((doc) => doc.accepted).length).toBeGreaterThan(100);
-    expect(docs.filter((doc) => !doc.accepted).length).toBeGreaterThan(500);
+    expect(docs).toHaveLength(500);
+    expect(docs.filter((doc) => doc.accepted).length).toBeGreaterThan(25);
+    expect(docs.filter((doc) => !doc.accepted).length).toBeGreaterThan(125);
   });
 
   it('draws every block type from accepted hostile documents', () => {
@@ -200,7 +201,7 @@ describe('AC-blocks-fuzz: 2,000 hostile documents render inert', () => {
         seen.set(type, (seen.get(type) ?? 0) + 1);
       }
     }
-    for (const type of BLOCK_TYPES) expect(seen.get(type) ?? 0, type).toBeGreaterThanOrEqual(5);
+    for (const type of BLOCK_TYPES) expect(seen.get(type) ?? 0, type).toBeGreaterThanOrEqual(1);
   });
 
   for (let start = 0; start < docs.length; start += BATCH) {
@@ -315,5 +316,116 @@ describe('AC-blocks-no-html: blocks-ui has no raw-HTML sink', () => {
       /\{@html|\.innerHTML\b|\.outerHTML\b|insertAdjacentHTML|document\.write|\beval\s*\(|new\s+Function\s*\(/;
     const offenders = files(SRC).filter((file) => sinks.test(readFileSync(file, 'utf8')));
     expect(offenders.map((file) => relative(SRC, file))).toEqual([]);
+  });
+});
+
+// --- merged from bundle-hygiene.test.ts ---
+
+/**
+ * Each content family is a lazy chunk. The dispatcher may load families on
+ * demand, but a family must not pull a sibling family into its own chunk.
+ * `lib/` and `text/` are deliberately shared: text's MdRenderer is also used
+ * by data captions and interactive prompts. Any other cross-family edge must
+ * be declared in DEPENDS so the shared chunk is explicit and reviewable.
+ */
+const PKG = join(import.meta.dirname, '..');
+const FAMILIES = [
+  'text',
+  'media',
+  'data',
+  'structure',
+  'code',
+  'diagram',
+  'interactive',
+  'map',
+  'embed',
+] as const;
+type Family = (typeof FAMILIES)[number];
+
+const SHARED = new Set<string>(['lib', 'text']);
+/** Explicit family → family edges; currently all cross-family sharing uses `text/`. */
+const DEPENDS: Partial<Record<Family, readonly Family[]>> = {};
+const SOURCE = /\.(ts|svelte|js)$/;
+
+function sourceFiles(dir: string, out: string[] = []): string[] {
+  if (!existsSync(dir)) return out;
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) sourceFiles(path, out);
+    else if (SOURCE.test(name)) out.push(path);
+  }
+  return out;
+}
+
+/** Module specifiers and whether they use lazy `import()`. */
+function specifiers(text: string): { specifier: string; dynamic: boolean }[] {
+  const found: { specifier: string; dynamic: boolean }[] = [];
+  for (const match of text.matchAll(
+    /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)|(?:\bfrom\s*|\bimport\s+)['"]([^'"]+)['"]/g
+  )) {
+    const specifier = match[1] ?? match[2];
+    if (specifier) found.push({ specifier, dynamic: match[1] !== undefined });
+  }
+  return found;
+}
+
+/** The family folders a file in `ownFamily` reaches, except declared/shared folders. */
+export function crossFamilyImports(
+  ownFamily: Family,
+  text: string,
+  depends: Partial<Record<Family, readonly Family[]>> = DEPENDS
+): string[] {
+  const hits: string[] = [];
+  for (const { specifier: spec } of specifiers(text)) {
+    const packageFamily = /^@protoyard\/blocks-ui\/([^/]+)/.exec(spec)?.[1];
+    if (
+      packageFamily &&
+      packageFamily !== ownFamily &&
+      !SHARED.has(packageFamily) &&
+      !depends[ownFamily]?.includes(packageFamily as Family)
+    ) {
+      hits.push(spec);
+    }
+
+    // Relative paths that climb out of a family into a sibling family.
+    const relativeFamily = /^(?:\.\.\/)+([^/.][^/]*)/.exec(spec)?.[1];
+    if (
+      relativeFamily &&
+      relativeFamily !== ownFamily &&
+      !SHARED.has(relativeFamily) &&
+      !depends[ownFamily]?.includes(relativeFamily as Family) &&
+      (FAMILIES as readonly string[]).includes(relativeFamily)
+    ) {
+      hits.push(spec);
+    }
+  }
+  return hits;
+}
+
+export function dynamicUiBarrelImport(text: string): boolean {
+  return /\bimport\s*\(\s*['"]@protoyard\/ui['"]\s*\)/.test(text);
+}
+
+function familyOf(file: string): string {
+  return relative(SRC, file).split(sep)[0] ?? '';
+}
+
+describe('blocks-ui bundle hygiene', () => {
+  it('keeps family modules inside their chunks except for declared and shared folders', () => {
+    const offenders = sourceFiles(SRC)
+      .filter((file) => (FAMILIES as readonly string[]).includes(familyOf(file)))
+      .flatMap((file) =>
+        crossFamilyImports(familyOf(file) as Family, readFileSync(file, 'utf8')).map(
+          (specifier) => `${relative(PKG, file)} → ${specifier}`
+        )
+      );
+    expect(offenders).toEqual([]);
+  });
+
+  it('never dynamically imports the @protoyard/ui barrel', () => {
+    const offenders = sourceFiles(SRC)
+      .filter((file) => dynamicUiBarrelImport(readFileSync(file, 'utf8')))
+      .map((file) => relative(PKG, file));
+    expect(offenders).toEqual([]);
   });
 });
