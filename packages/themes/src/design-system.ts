@@ -3,7 +3,6 @@ import type { ApplicableDesignSystem } from '@texuli/tokens/design-system/apply'
 import { applyDesignSystem, pickDesignSystemMode } from '@texuli/tokens/design-system/apply';
 import type {
   CompiledDesignSystem,
-  DesignSystemCompileIssue,
   FromThemeLoss,
 } from '@texuli/tokens/design-system/compile-core';
 import type { DesignSystem, DesignSystemImportWarning } from '@texuli/tokens/design-system/import';
@@ -70,6 +69,19 @@ export type DesignSystemCompileResult =
   | { ok: false; errors: string[] };
 
 const ID = /^[a-z][a-z0-9-]*$/;
+
+/**
+ * The fields Protoyard reads from a Texuli refusal (`DesignSystemCompileIssue`).
+ * Spelled out because the issue's base type lives in `@texuli/spec`, which
+ * this package reaches only through `@texuli/tokens`.
+ */
+interface Refusal {
+  path?: string;
+  message: string;
+  code?: string;
+  source?: string;
+}
+const refusals = (errors: readonly unknown[]): Refusal[] => errors as Refusal[];
 /** Characters a clause of Texuli's brand one-liner splits on. */
 const CLAUSE_BREAK = /[,;\n\r]/;
 
@@ -180,7 +192,7 @@ export async function designSystemFromTheme(
   for (let pass = 0; pass < IMPORT_PASSES; pass += 1) {
     const compiled = compileDesignSystem(document, { trust: 'untrusted' });
     if (compiled.ok) break;
-    const refused = compiled.errors.flatMap((issue) => {
+    const refused = refusals(compiled.errors).flatMap((issue) => {
       const match = ROLE_PIN.exec(issue.path ?? '');
       return match ? [{ mode: match[1] as ResolvedMode, role: match[2] as string, issue }] : [];
     });
@@ -231,12 +243,12 @@ export async function compileDesignSystemDocument(
     trust: 'untrusted',
     loadLibraryBase: loadProtoyardBase,
   });
-  if (!resolved.ok) return { ok: false, errors: resolved.errors.map(compileIssueText) };
+  if (!resolved.ok) return { ok: false, errors: refusals(resolved.errors).map(compileIssueText) };
   const compiled = compileDesignSystem(resolved.document, {
     trust: 'untrusted',
     ...(options.modes ? { modes: options.modes } : {}),
   });
-  if (!compiled.ok) return { ok: false, errors: compiled.errors.map(compileIssueText) };
+  if (!compiled.ok) return { ok: false, errors: refusals(compiled.errors).map(compileIssueText) };
   if (!ID.test(compiled.id)) {
     return {
       ok: false,
@@ -247,7 +259,7 @@ export async function compileDesignSystemDocument(
   return { ok: true, compiled, shipped, theme: designSystemTheme(shipped) };
 }
 
-function compileIssueText(issue: DesignSystemCompileIssue): string {
+function compileIssueText(issue: Refusal): string {
   return `${issue.source ? `[${issue.source}] ` : ''}${issueText(issue)}`;
 }
 
