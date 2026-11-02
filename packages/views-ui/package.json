@@ -108,13 +108,13 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
-    "@texuli/canvas": "0.12.0",
-    "@texuli/data": "0.12.0",
-    "@texuli/drag": "0.12.0",
-    "@texuli/editor": "0.12.0",
-    "@texuli/primitives": "0.12.0",
-    "@texuli/sheets": "0.12.0",
-    "texuli": "0.12.0"
+    "@texuli/canvas": "0.12.1",
+    "@texuli/data": "0.12.1",
+    "@texuli/drag": "0.12.1",
+    "@texuli/editor": "0.12.1",
+    "@texuli/primitives": "0.12.1",
+    "@texuli/sheets": "0.12.1",
+    "texuli": "0.12.1"
   },
   "devDependencies": {
     "svelte": "^5.57.3"
