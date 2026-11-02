@@ -235,6 +235,196 @@
     "summary": "Deck first-chunk theme generator and library: not a Texuli defect; @protoyard/themes imports them statically"
   },
   {
+    "id": "G48",
+    "status": "fixed",
+    "summary": "@texuli/editor/markdown host inline extensions (createInlineExtensions, EDITOR_EXTENSION_SIGILS, <sigil>{id|label}); not used by Protoyard: MarkdownEditor keeps @protoyard/views/editor as its public model; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G49",
+    "status": "fixed",
+    "summary": "@texuli/data/filter-builder property catalog: host operators (FilterOperatorDef), groupFields, catalogSchema, compileCatalogFilter, saved segments; analytics passes its catalog operators; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G50",
+    "status": "fixed",
+    "summary": "@texuli/data/activity/inbox allowMarkUnread={false} and onMarkUnread(ids); NotificationCenter hides Mark unread; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G51",
+    "status": "fixed",
+    "summary": "@texuli/data/cohort heatScale, heatText and resolveHeatScale (contrast-checked steps); CohortTable uses resolveHeatScale and heatLevel; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G52",
+    "status": "fixed",
+    "summary": "texuli/layouts/content ContentLayout activeId and onActiveHeadingChange (aria-current TOC link); not used by Protoyard: DocHost keeps its own shell with trackActiveHeading (G102); fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G53",
+    "status": "fixed",
+    "summary": "texuli/dialog, texuli/command: mode and container (contained), onDismissRequest and onCloseAutoFocus (vetoable); fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G54",
+    "status": "fixed",
+    "summary": "texuli/tabs-accordion: a tab badge is part of the accessible name, or badgeLabel names it; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G55",
+    "status": "fixed",
+    "summary": "@texuli/data/grid-core DataGrid activateOnClick, mode=\"table\", per-column hideBelow and an empty snippet with { query, filtered }; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G56",
+    "status": "fixed",
+    "summary": "texuli/file-upload: id (or inputId) reaches the file input, so <label for> and a Field name it; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G57",
+    "status": "fixed",
+    "summary": "texuli/toast action.retryOnError keeps the toast open with errorText when the action rejects; not used by Protoyard; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G58",
+    "status": "fixed",
+    "summary": "texuli/avatar: data-avatar becomes initials after the image fails to load or src is refused; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G59",
+    "status": "fixed",
+    "summary": "@texuli/chat ChatAuthor.avatarSrcset, each candidate through the untrusted image URL policy; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G60",
+    "status": "fixed",
+    "summary": "texuli/tags-color, @texuli/primitives/tags-input: TagsInput readonly, and id lands on the input; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G61",
+    "status": "fixed",
+    "summary": "texuli/tags-color, @texuli/primitives/tags-input: delimiter takes a key list or a RegExp (isDelimiterKey); fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G62",
+    "status": "fixed",
+    "summary": "texuli/card CardGrid gap takes a step, CSS length or custom property; a caller style keeps the column template; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G63",
+    "status": "fixed",
+    "summary": "texuli/date, @texuli/primitives/date-field: hideLabel inside a Field; id, aria-describedby and aria-invalid reach the segments; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G64",
+    "status": "fixed",
+    "summary": "texuli/date, @texuli/primitives/calendar Calendar defaultFocusedValue, bind:focusedValue and onFocusedValueChange; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G65",
+    "status": "fixed",
+    "summary": "@texuli/primitives/date-field: a date is reported only once the year has four digits; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G66",
+    "status": "fixed",
+    "summary": "@texuli/primitives/date-picker, texuli/date DateRangePicker required and onInvalid(text, reason, { side }); fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G67",
+    "status": "fixed",
+    "summary": "@texuli/data/board BoardColumnDef.description and a columnHeader(column, { count }) snippet; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G68",
+    "status": "fixed",
+    "summary": "texuli/layouts/mobile MobileAppFrame renders no padded wrapper for an empty stickyFooter; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G69",
+    "status": "fixed",
+    "summary": "@texuli/data/board column-only mode: without getRank, cards keep the items order; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G70",
+    "status": "fixed",
+    "summary": "@texuli/chat MessageList day separators are a full-width row above avatar and bubbles; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G71",
+    "status": "fixed",
+    "summary": "@texuli/chat reading position: bind:anchor (ChatReadingAnchor) and onAnchorChange, forwarded by ChatThread; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G72",
+    "status": "fixed",
+    "summary": "@texuli/slides/stage-core DeckStageCore: the stage without the default renderer tables; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G73",
+    "status": "fixed",
+    "summary": "@texuli/slides/stage loadDeckMigration() and loadedDeckMigration(); not used by Protoyard; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G74",
+    "status": "fixed",
+    "summary": "@texuli/astro/appearance AppearanceSwitcher size=\"sm\" and same-tab sync (APPEARANCE_CHANGE_EVENT); fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G75",
+    "status": "fixed",
+    "summary": "@texuli/core/inert, @texuli/core/overlay, @texuli/primitives: an overlay inside a modal dialog stays above its backdrop (raise: false); fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G76",
+    "status": "fixed",
+    "summary": "@texuli/data/board: the board scroller is positioned, so its screen-reader text cannot widen a phone page; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G77",
+    "status": "fixed",
+    "summary": "texuli/toast, @texuli/primitives/toast: no top-layer viewport while the Toaster is empty, and mode=\"contained\" with a container; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G78",
+    "status": "fixed",
+    "summary": "@texuli/tokens base.css: reduced motion sets 0s durations and delays, so visibility changes are instant; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G79",
+    "status": "fixed",
+    "summary": "@texuli/primitives/avatar, texuli/avatar: the loading image is hidden by style, never [hidden]; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G80",
+    "status": "fixed",
+    "summary": "@texuli/slides/export print isolation only while a print view with isolate is mounted (no blank early print); fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G81",
+    "status": "fixed",
+    "summary": "@texuli/slides/export preloadDeckPrintView(options?) readies the print view before the user prints; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G82",
+    "status": "fixed",
+    "summary": "@texuli/slides/stage tools snippet: host controls as a last More tools toolbar group; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G83",
+    "status": "fixed",
+    "summary": "@texuli/slides/stage prepared deck input (prepareDeck, prepareDeckV2, isPreparedDeck) paints without validating again; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G84",
+    "status": "fixed",
+    "summary": "texuli/layouts/marketing MarketingSectionHeader (section header type scale on a plain div); not used by Protoyard; fixed in Texuli 0.6.0"
+  },
+  {
+    "id": "G85",
+    "status": "fixed",
+    "summary": "@texuli/chat MessageList onEditUnchanged(message), forwarded by ChatThread; not used by Protoyard; fixed in Texuli 0.6.0"
+  },
+  {
     "id": "G86",
     "status": "fixed",
     "summary": "Texuli 0.8.0 loaded the list-motion runtime eagerly in Board, DataGrid and Dashboard; fixed in @texuli/data 0.8.1 (lazy on first animated change). Remaining 0.5\u21920.8 growth is features and is kept"
