@@ -1,7 +1,8 @@
 # @protoyard/themes
 
-Theme engine for Protoyard prototypes: six AA-checked built-in presets, a 204-theme
-**theme library** (Texuli's 64-theme catalog and its expanded set), light/dark/system resolution, scoped
+Theme engine for Protoyard prototypes: six AA-checked built-in presets, a **theme library** of
+204 themes (Texuli's 64 port themes, the catalog, and its 140 expand themes; 210 with
+the six built-ins), light/dark/system resolution, scoped
 CSS-variable application and a no-flash boot script.
 
 It wraps `@texuli/tokens` ([docs/TEXULI.md](../../docs/TEXULI.md#themes-come-from-texulitokens)):

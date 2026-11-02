@@ -770,8 +770,8 @@ Everything a deck sets in `deck.style` is visible in every view that shows
 slides: the canvas, the overview thumbnails, the presenter's deck surface and
 print pages.
 
-- **Theme.** `theme` (a built-in or any of the 204 library themes; Deck
-  Studio lists them all) or
+- **Theme.** `theme` (a built-in or any of the 204 library themes, Texuli's
+  64 port and 140 expand themes; Deck Studio lists them all) or
   `paletteSeed` (a generated palette), resolved by `@protoyard/themes` and
   applied by the stage to the deck only, so the host page and DevTools keep
   their own theme. Themes load lazily.
