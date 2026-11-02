@@ -20,7 +20,9 @@ files, settings, states and an app command palette. The engines live in
   contract. Texuli's `@texuli/editor/markdown` codec now reads host inline
   extensions in the `@{id|label}` form `@protoyard/views/editor` stores
   mentions in (G48), and reads the `\@` escape stored text uses for a literal
-  `@` (G100, Texuli 0.10.0); their codec test was removed in PLAN_009. The editor still parses with
+  `@` (G100, Texuli 0.10.0); their codec test was removed in PLAN_009. The
+  editor does not use Texuli's `createInlineExtensions` or
+  `EDITOR_EXTENSION_SIGILS` (Texuli 0.6.0): it still parses with
   `@protoyard/views/editor`, because its document model and source commands
   are a public Protoyard API.
   `NotificationCenter` renders Texuli's `@texuli/data/activity/inbox` with
