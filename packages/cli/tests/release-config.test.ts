@@ -71,7 +71,15 @@ describe('release workflow', () => {
     );
     expect(verify).toBeGreaterThan(download);
     expect(publish).toBeGreaterThan(verify);
-    expect(names.at(-1)).toBe('Publish with provenance');
+    expect(names.slice(-2)).toEqual([
+      'Publish with provenance',
+      'Verify every package on the registry',
+    ]);
+    // Publishing retries, but never publishes a version twice, and refuses a
+    // tarball that is not the tagged version before the first publish.
+    expect(npmJob).toMatch(/for attempt in 1 2 3; do/);
+    expect(npmJob).toMatch(/if published "\$name" "\$version"; then ok=1; break; fi/);
+    expect(npmJob).toMatch(/\[ "v\$version" = "\$TAG" \]/);
     // The gate packs after verify:packages, checksums, then uploads the same folder.
     const pack = gate.indexOf('      - name: Pack every public package in dependency order');
     const sums = gate.indexOf('      - name: Checksum the tarballs');

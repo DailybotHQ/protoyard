@@ -11,8 +11,11 @@ name: release
 #    no source checkout, no install and no build, so no package script runs
 #    while it holds the OIDC token. There is no npm token secret. A
 #    prerelease tag publishes under the `next` dist-tag.
+#    Each publish retries a transient failure and never publishes twice; a
+#    last step checks every package's dist-tag on the registry.
 #    The `npm` environment is the consent checkpoint: the developer configures
-#    the trusted publishers on npmjs.com and approves the first live publish.
+#    the trusted publishers on npmjs.com, and its required reviewer approves
+#    every live publish.
 # 3. release: the GitHub Release, only after npm succeeded.
 
 on:
@@ -184,15 +187,54 @@ jobs:
           set -euo pipefail
           dist_tag=latest
           case "$TAG" in *-*) dist_tag=next ;; esac
+          # Pre-flight: every tarball is the tagged version (lockstep), so a
+          # wrong artifact stops here, before the first publish.
+          while IFS="$(printf '\t')" read -r name version file; do
+            [ "v$version" = "$TAG" ] || { echo "$name is $version, not ${TAG#v}" >&2; exit 1; }
+          done < "$TARBALLS/order.tsv"
+          published() { npm view "$1@$2" version > /dev/null 2>&1; }
+          # The order is dependencies first, so a stop midway never leaves a
+          # published package pointing at a missing version.
           while IFS="$(printf '\t')" read -r name version file; do
             # A rerun after a partial failure skips what is already published.
-            if npm view "$name@$version" version > /dev/null 2>&1; then
+            if published "$name" "$version"; then
               echo "skip $name@$version (already published)"
               continue
             fi
             tarball="$TARBALLS/$file"
-            npm publish "$tarball" --provenance --access public --tag "$dist_tag"
+            # The OIDC token read can fail transiently (Texuli saw
+            # IDENTITY_TOKEN_READ_ERROR), so retry; a failed attempt may still
+            # have landed, so check before trying again and never publish twice.
+            ok=0
+            for attempt in 1 2 3; do
+              if npm publish "$tarball" --provenance --access public --tag "$dist_tag"; then ok=1; break; fi
+              if published "$name" "$version"; then ok=1; break; fi
+              echo "attempt $attempt for $name@$version failed; retrying" >&2
+              sleep $((attempt * 15))
+            done
+            [ "$ok" = 1 ] || { echo "could not publish $name@$version" >&2; exit 1; }
           done < "$TARBALLS/order.tsv"
+      - name: Verify every package on the registry
+        env:
+          TAG: ${{ github.ref_name }}
+          TARBALLS: ${{ runner.temp }}/tarballs
+        run: |
+          set -euo pipefail
+          dist_tag=latest
+          case "$TAG" in *-*) dist_tag=next ;; esac
+          # Registry metadata can lag a minute or two, so retry for about
+          # three minutes before failing.
+          for attempt in $(seq 1 12); do
+            missing=""
+            while IFS="$(printf '\t')" read -r name version file; do
+              [ "$(npm view "$name" "dist-tags.$dist_tag" 2>/dev/null)" = "$version" ] || missing="$missing $name"
+            done < "$TARBALLS/order.tsv"
+            [ -z "$missing" ] && { echo "Every package is $dist_tag ${TAG#v} on npm."; exit 0; }
+            echo "waiting for:$missing"
+            sleep 15
+          done
+          echo "Not on npm as $dist_tag ${TAG#v}:$missing" >&2
+          exit 1
 
   release:
     name: GitHub Release

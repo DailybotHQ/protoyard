@@ -1169,10 +1169,30 @@ developer, on npmjs.com, for each of the published packages:
 3. In the repository settings on GitHub, give the `npm` environment required
    reviewers, so every publishing run waits for an explicit approval.
 
-npm attaches a trusted publisher to a package that exists in the registry. A
-name that has never been published may need a different first step. Check
-npm's documentation for new packages at the time of the first release; this
-guide does not assume one.
+npm attaches a trusted publisher only to a package that already exists in the
+registry. Protoyard 1.1.0 was therefore published once by hand
+(2026-11-02) from the release gate's verified tarballs. That run had no
+provenance, because provenance needs CI's OIDC token. From 1.1.1 on, every
+release goes through `release.yml`.
+
+The npm CLI (`npm trust`, used here with npm 11.20) configures them from the
+terminal, with the owner's two-factor approval:
+
+```bash
+npm trust github <package> --file release.yml --repo DailybotHQ/protoyard --env npm --allow-publish
+npm trust list <package>
+```
+
+`--file` is the bare workflow filename and `--env` must match the job's
+environment exactly (case-sensitive). With trusted publishing, the `npm`
+environment is the security boundary: anyone who can run `release.yml` with
+it can publish. Protect it with required reviewers and a deployment rule that
+allows only `v*` tags.
+
+After the first CI publish succeeds for every package, set each package to
+**Require two-factor authentication and disallow tokens** on npmjs.com.
+Don't do it earlier: if trusted publishing turned out to be misconfigured,
+there would be no way left to publish from CI.
 
 ### The release workflow
 
@@ -1213,6 +1233,13 @@ The `npm` job:
 - **Order and reruns.** Dependencies are published before their dependents.
   Versions already on the registry are skipped, so rerunning after a partial
   failure publishes only what is missing.
+- **Pre-flight.** Before the first publish, it refuses any tarball whose
+  version is not the tag's.
+- **Retries.** Each publish is tried up to three times (15 s and 30 s apart),
+  because reading the OIDC token can fail transiently. After a failed attempt
+  it checks the registry first, so a version is never published twice.
+- **Registry check.** A last step waits up to three minutes for every package
+  to show the release under its dist-tag, since registry metadata can lag.
 
 Every pull request also runs the `packages` job in `ci.yml`: build,
 `check:packages --require-all` and `verify:packages`. A package problem
