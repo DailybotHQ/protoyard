@@ -1,5 +1,14 @@
 # @protoyard/analytics-ui
 
+## 1.1.1
+
+### Patch Changes
+
+- @protoyard/analytics@1.1.1
+  - @protoyard/renderer-svelte@1.1.1
+  - @protoyard/charts-ui@1.1.1
+  - @protoyard/ui@1.1.1
+
 ## 1.1.0
 
 ### Minor Changes

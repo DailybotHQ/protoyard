@@ -1,5 +1,11 @@
 # @protoyard/core
 
+## 1.1.1
+
+### Patch Changes
+
+- Texuli 0.12.1 for every Texuli dependency, and npm releases published by CI with Trusted Publishing and provenance.
+
 ## 1.1.0
 
 ### Minor Changes

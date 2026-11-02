@@ -1,5 +1,19 @@
 # @protoyard/blocks-ui
 
+## 1.1.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/core@1.1.1
+  - @protoyard/ai@1.1.1
+  - @protoyard/blocks@1.1.1
+  - @protoyard/renderer-svelte@1.1.1
+  - @protoyard/views-ui@1.1.1
+  - @protoyard/decks@1.1.1
+  - @protoyard/charts-ui@1.1.1
+  - @protoyard/ui@1.1.1
+
 ## 1.1.0
 
 ### Patch Changes
