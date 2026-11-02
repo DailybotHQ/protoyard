@@ -18,10 +18,10 @@
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
     "@protoyard/views-ui": "workspace:*",
-    "@texuli/canvas": "0.12.0",
+    "@texuli/canvas": "0.12.1",
     "dexie": "^4.4.7",
     "svelte": "^5.57.3",
-    "texuli": "0.12.0"
+    "texuli": "0.12.1"
   },
   "devDependencies": {
     "@protoyard/runtime": "workspace:*",
