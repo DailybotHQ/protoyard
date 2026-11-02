@@ -1,59 +1,105 @@
 name: release
 
-# On a version tag (v1.1.0, v1.2.3-rc.1…):
-# 1. gate: the full gate, the tag matches package.json and the lockstep
-#    version and has a CHANGELOG.md section, and the packages build, lint
-#    (every one publish-ready) and install from their tarballs.
+# Every release is published by CI, with no manual step. After `ci` passes on a
+# push to main (or on a manual run from main):
+# 0. plan: reads the lockstep version from package.json. When that version is
+#    already on npm there is nothing to release and every job below is
+#    skipped, so an ordinary merge publishes nothing. Releasing means merging
+#    the version bump (`pnpm version-packages`).
+# 1. gate: the full gate on the exact commit CI tested: the version has a
+#    CHANGELOG.md section, and the packages build, lint (every one
+#    publish-ready) and install from their tarballs.
 #    The gate then packs every public package with pnpm in dependency order,
 #    writes the tarballs' SHA256SUMS and uploads both as one artifact.
 # 2. npm: downloads that artifact, verifies the checksums and publishes each
 #    tarball with npm Trusted Publishing (OIDC, --provenance) in order. It has
 #    no source checkout, no install and no build, so no package script runs
 #    while it holds the OIDC token. There is no npm token secret. A
-#    prerelease tag publishes under the `next` dist-tag.
+#    prerelease version publishes under the `next` dist-tag.
 #    Each publish retries a transient failure and never publishes twice; a
 #    last step checks every package's dist-tag on the registry.
-#    The `npm` environment is the consent checkpoint: the developer configures
-#    the trusted publishers on npmjs.com, and its required reviewer approves
-#    every live publish.
-# 3. release: the GitHub Release, only after npm succeeded.
+#    The `npm` environment admits only main, and npm trusts only this
+#    workflow with that environment, so no other branch can publish.
+# 3. release: tags the commit `v<version>` and creates the GitHub Release.
 
 on:
-  push:
-    tags: ['v*']
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Only after CI passed on a push to main, or a manual run on main.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      || (github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main')
+    outputs:
+      release: ${{ steps.plan.outputs.release }}
+      version: ${{ steps.plan.outputs.version }}
+      sha: ${{ steps.plan.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The commit CI tested; the triggering ref on a manual run.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.20.0'
+      - name: Is this version already on npm?
+        id: plan
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          # create-protoyard is published last, so it is on npm only when the
+          # whole release is; a partial release runs again and skips the rest.
+          if npm view "create-protoyard@$version" version > /dev/null 2>&1; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "Protoyard $version is already on npm; nothing to release."
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "Releasing Protoyard $version from $SHA."
+          fi
+
   gate:
     name: gate
+    needs: plan
+    if: needs.plan.outputs.release == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.plan.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24.20.0'
       - name: Enable pnpm (corepack, version from packageManager)
         run: corepack enable
-      - name: Tag matches package.json and the changelog
+      - name: The version has a changelog section
         env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          version=$(node -p "require('./package.json').version")
-          if [ "$TAG" != "v$version" ]; then
-            echo "Tag $TAG does not match package.json version $version" >&2
-            exit 1
-          fi
-          bash scripts/changelog-section.sh "$version" > /dev/null
-      - name: No pending changesets (the tag must come after version-packages)
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: bash scripts/changelog-section.sh "$VERSION" > /dev/null
+      - name: No pending changesets (the release comes after version-packages)
         run: |
           pending=$(find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | sort)
           if [ -n "$pending" ]; then
@@ -67,16 +113,17 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Skill versions match the release tag
         env:
-          TAG: ${{ github.ref_name }}
+          TAG: v${{ needs.plan.outputs.version }}
         run: |
           version=${TAG#v}
           pnpm exec tsx scripts/stamp-skill-version.ts "$version" --check
       - name: The skill matches the committed SHA256SUMS
         run: bash scripts/verify-skill-integrity.sh
-      - name: Smoke-install the tagged skill release
+      - name: Smoke-install the skill at the release commit
         env:
-          TAG: ${{ github.ref_name }}
-        run: bash scripts/smoke-install-skill.sh "$TAG"
+          TAG: v${{ needs.plan.outputs.version }}
+          SHA: ${{ needs.plan.outputs.sha }}
+        run: bash scripts/smoke-install-skill.sh "$TAG" "$SHA"
       - name: Every public package is on the lockstep version
         run: pnpm version-packages --check
       - name: Lint, types, unit tests
@@ -129,7 +176,7 @@ jobs:
 
   npm:
     name: npm publish
-    needs: gate
+    needs: [plan, gate]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: npm
@@ -181,7 +228,7 @@ jobs:
           echo "Verified $count tarballs."
       - name: Publish with provenance
         env:
-          TAG: ${{ github.ref_name }}
+          TAG: v${{ needs.plan.outputs.version }}
           TARBALLS: ${{ runner.temp }}/tarballs
         run: |
           set -euo pipefail
@@ -216,7 +263,7 @@ jobs:
           done < "$TARBALLS/order.tsv"
       - name: Verify every package on the registry
         env:
-          TAG: ${{ github.ref_name }}
+          TAG: v${{ needs.plan.outputs.version }}
           TARBALLS: ${{ runner.temp }}/tarballs
         run: |
           set -euo pipefail
@@ -238,7 +285,7 @@ jobs:
 
   release:
     name: GitHub Release
-    needs: [gate, npm]
+    needs: [plan, gate, npm]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -246,17 +293,24 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.plan.outputs.sha }}
           persist-credentials: false
       - name: The attached SHA256SUMS matches the skill
         run: bash scripts/verify-skill-integrity.sh
-      - name: Create the release from the changelog section
+      - name: Tag the commit and create the release from the changelog section
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: v${{ needs.plan.outputs.version }}
+          SHA: ${{ needs.plan.outputs.sha }}
         run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release $TAG already exists."
+            exit 0
+          fi
           version=${TAG#v}
           bash scripts/changelog-section.sh "$version" > release-notes.md
           prerelease=""
           case "$version" in *-*) prerelease="--prerelease" ;; esac
           gh release create "$TAG" SHA256SUMS --repo "$GITHUB_REPOSITORY" --title "Protoyard $TAG" \
-            --notes-file release-notes.md --verify-tag $prerelease
+            --notes-file release-notes.md --target "$SHA" $prerelease

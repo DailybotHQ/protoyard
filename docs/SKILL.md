@@ -267,7 +267,7 @@ Since PLAN_009 the unit tests are
 escaping paths and symlinks). The frontmatter and CLI-reference scripts have no
 unit tests of their own; `pnpm check:skill` runs them on the real skill.
 
-Before creating a release tag, stamp every skill frontmatter version from the
+Before merging a version bump, stamp every skill frontmatter version from the
 selected package release version, then verify the result:
 
 ```bash
@@ -277,7 +277,7 @@ pnpm exec tsx scripts/stamp-skill-version.ts 1.2.3 --check
 
 Use the package version, including its prerelease suffix when applicable
 (for example `1.2.3-rc.1`). The release workflow checks that every stamped
-version matches the pushed `v*` tag before building release artifacts.
+version matches the release version before building release artifacts.
 
 ## Upgrade the skill
 
