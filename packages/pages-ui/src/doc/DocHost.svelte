@@ -95,6 +95,8 @@ $effect(() => {
    * Texuli's standalone tracker (G102): the TOC heading is the last one whose
    * top passed the reading line (30% of the viewport), reported through one
    * IntersectionObserver. Restarted when the heading elements change.
+   * `ContentLayout`'s `activeId` / `onActiveHeadingChange` (G52) would bring
+   * Texuli's layout chrome; this host keeps its own reading shell.
    */
   const track = (ids: readonly string[]): void => {
     stopTracking();

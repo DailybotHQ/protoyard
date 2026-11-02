@@ -80,7 +80,9 @@ page-specific type scale and inverted-section styling around Texuli's
 Texuli's standalone `trackActiveHeading` (`texuli/layouts/content`, G102: the
 last heading past a reading line at 30% of the viewport, one
 IntersectionObserver), so the doc keeps its own reading design, print rules
-and `data-py-doc-*` hooks without Texuli's `ContentLayout` chrome. Form services
+and `data-py-doc-*` hooks without Texuli's `ContentLayout` chrome. Texuli 0.6.0
+added `ContentLayout` `activeId` and `onActiveHeadingChange` (G52); `DocHost`
+does not use them, because they come with that layout. Form services
 also remain supplied by the Protoyard host.
 `packages/blocks-ui/tests/families.test.ts` proves that every catalog block
 type routes to and renders through its real family.
