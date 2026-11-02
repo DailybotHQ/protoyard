@@ -6,6 +6,30 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-02
+
+The first release published by CI, with npm Trusted Publishing and
+provenance.
+
+### Changed
+
+- **Texuli 0.12.1.** Every Texuli dependency moves to 0.12.1, and the vendored
+  Texuli agent skill to 0.3.13. Texuli 0.12.1 only adds `coverHeadingLevel`
+  to the slide stage, which Protoyard doesn't need: pages and docs refuse
+  inline decks.
+- **Releases run in CI.** Merging a version bump into `main` is the release:
+  after `ci` passes, `release.yml` publishes every package with Trusted
+  Publishing and provenance, then tags the commit and creates the GitHub
+  Release. Publishing retries transient failures, never publishes a version
+  twice, and checks the registry at the end.
+- **Faster CI.** Pull requests run in about five minutes, and so does a push to
+  `main`: the pnpm and npm tarball-consumer checks now run in parallel.
+
+### Fixed
+
+- The Texuli gap register lists G48 to G85 (fixed in Texuli 0.6.0), and the
+  docs no longer describe workarounds for G48 to G52.
+
 ## [1.1.0] - 2026-11-01
 
 Protoyard on Texuli 0.12.0 from npm (PLAN_008), with Texuli's design systems,
@@ -269,7 +293,8 @@ static site.
 - The gallery no longer ignores input typed before hydration and does not overflow
   horizontally on phones.
 
-[Unreleased]: https://github.com/DailybotHQ/protoyard/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/DailybotHQ/protoyard/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/DailybotHQ/protoyard/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/DailybotHQ/protoyard/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/DailybotHQ/protoyard/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/DailybotHQ/protoyard/releases/tag/v0.1.0

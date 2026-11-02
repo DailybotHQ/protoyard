@@ -1,5 +1,12 @@
 # @protoyard/ai-ui
 
+## 1.1.1
+
+### Patch Changes
+
+- @protoyard/ai@1.1.1
+  - @protoyard/charts-ui@1.1.1
+
 ## 1.1.0
 
 ### Minor Changes

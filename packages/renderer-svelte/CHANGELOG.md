@@ -1,5 +1,19 @@
 # @protoyard/renderer-svelte
 
+## 1.1.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/core@1.1.1
+  - @protoyard/avatars@1.1.1
+  - @protoyard/devtools@1.1.1
+  - @protoyard/offline@1.1.1
+  - @protoyard/review-ui@1.1.1
+  - @protoyard/runtime@1.1.1
+  - @protoyard/themes@1.1.1
+  - @protoyard/ui@1.1.1
+
 ## 1.1.0
 
 ### Minor Changes
