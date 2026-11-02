@@ -50,6 +50,7 @@ class UsageError extends Error {}
 
 export type RuleId =
   | 'version'
+  | 'repository'
   | 'install-script'
   | 'local-specifier'
   | 'forbidden-file'
@@ -104,8 +105,15 @@ interface Manifest {
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
   optionalDependencies?: Record<string, string>;
+  repository?: string | { type?: string; url?: string; directory?: string };
   protoyard?: { pack?: PackPolicy };
 }
+
+/**
+ * npm provenance refuses a package whose `repository.url` is not the
+ * repository that built it, so every public package names this one.
+ */
+export const REPOSITORY_URL = 'https://github.com/DailybotHQ/protoyard';
 
 /**
  * `protoyard.pack` in a manifest: an app or content package (the gallery, the
@@ -188,6 +196,14 @@ export function manifestFindings(manifest: Manifest, lockstepVersion: string): F
     findings.push({
       rule: 'version',
       message: `version ${manifest.version ?? '(none)'} differs from the lockstep version ${lockstepVersion}`,
+    });
+  }
+  const repository =
+    typeof manifest.repository === 'string' ? manifest.repository : manifest.repository?.url;
+  if (repository?.replace(/^git\+/, '').replace(/\.git$/, '') !== REPOSITORY_URL) {
+    findings.push({
+      rule: 'repository',
+      message: `repository.url is ${repository ? `"${repository}"` : 'missing'}; npm provenance needs ${REPOSITORY_URL}`,
     });
   }
   for (const script of INSTALL_SCRIPTS) {
