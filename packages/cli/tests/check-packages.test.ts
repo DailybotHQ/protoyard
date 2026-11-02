@@ -31,8 +31,29 @@ describe('manifestFindings', () => {
       },
       '1.0.0'
     );
-    expect(findings.map((f) => f.rule)).toEqual(['version', 'install-script', 'install-script']);
+    expect(findings.map((f) => f.rule)).toEqual([
+      'version',
+      'repository',
+      'install-script',
+      'install-script',
+    ]);
     expect(findings.map((f) => f.message).join(' ')).toMatch(/preinstall.*postinstall/);
+  });
+
+  it('requires the repository url npm provenance checks', () => {
+    const base = { name: 'x', version: '1.0.0' };
+    const url = 'https://github.com/DailybotHQ/protoyard';
+    expect(manifestFindings({ ...base, repository: { type: 'git', url } }, '1.0.0')).toEqual([]);
+    expect(manifestFindings({ ...base, repository: `git+${url}.git` }, '1.0.0')).toEqual([]);
+    for (const repository of [
+      undefined,
+      { type: 'git', url: '' },
+      'https://github.com/other/repo',
+    ]) {
+      expect(manifestFindings({ ...base, repository }, '1.0.0').map((f) => f.rule)).toEqual([
+        'repository',
+      ]);
+    }
   });
 });
 

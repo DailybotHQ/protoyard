@@ -3,6 +3,15 @@
   "version": "1.1.1",
   "description": "The protoyard command line: discover, index, scaffold, run, validate, build, export and publish prototypes.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
   "type": "module",
   "sideEffects": false,
   "exports": {

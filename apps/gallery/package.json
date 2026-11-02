@@ -3,6 +3,15 @@
   "version": "1.1.1",
   "description": "The Protoyard gallery: a static Astro site that lists prototypes and templates from the generated metadata registry.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "apps/gallery"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
   "type": "module",
   "files": [
     "src",
