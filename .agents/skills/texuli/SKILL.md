@@ -1,7 +1,7 @@
 ---
 name: texuli
 description: Build accessible, themed interfaces with Texuli by routing requests to local sub-skills for components, themes, media, installation, and contributions.
-version: "0.3.12"
+version: "0.3.13"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob
@@ -14,7 +14,7 @@ Use this skill to build accessible, token-themed UI with **Texuli**: primitives,
 styled components, layouts, charts, media, data views, content blocks, decks,
 drag and drop (sortable lists, boards, trees, canvases), workflow editors, the
 rich text editor and Astro sites, and decks generated from JSON or Markdown. It also covers interfaces that agents write
-as data (blueprints), including whole stateful screens in spec 0.3.0 JSON. This file is the
+as data (blueprints), including whole stateful screens in spec JSON (interaction since 0.3.0; the current spec is 0.10.0). This file is the
 **router**. Detailed procedures live in neighboring sub-skills and in
 [`router/`](router/). Read the matching guide before starting its workflow.
 Everything needed to route ships in this pack — **no network** is required for

@@ -10,7 +10,7 @@ Texuli checkout installs them plainly, for example
 `pnpm add texuli @texuli/tokens`, and pins the exact version or `^0.12.0`
 (for 0.x it accepts only 0.12.x, since a new minor may break) (the developer
 runs the install; it uses the network). `@texuli/drag`,
-`@texuli/workflows`, `@texuli/deck`, `@texuli/editor` (first published
+`@texuli/workflows`, `@texuli/deck`, `@texuli/slides`, `@texuli/editor` (first published
 in `0.5.0`), `@texuli/document` and `@texuli/pages` (both first published
 in `0.7.0`), `@texuli/forms`, `@texuli/canvas` and `@texuli/sheets` (all
 three first published in `0.8.0`) and `@texuli/mcp` (first published in

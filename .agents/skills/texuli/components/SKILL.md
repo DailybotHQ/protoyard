@@ -1,7 +1,7 @@
 ---
 name: texuli-components
 description: Install Texuli packages or copy styled component source with texuli add, customize with tokens and component hooks, keep provenance, and update copies with texuli update. Offline; every command and snippet here is checked.
-version: "0.3.12"
+version: "0.3.13"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
@@ -20,7 +20,7 @@ the 0.12 line (see docs/RELEASE.md), a pre-1.0 line (`latest` and `next` point t
 be the first stable release). Install them plainly (`pnpm add texuli`), pin
 the exact version or `^0.12.0` (for 0.x it accepts only 0.12.x, since a new
 minor may break), and never suggest a download URL. `@texuli/drag`,
-`@texuli/workflows`, `@texuli/deck`, `@texuli/editor` (first published
+`@texuli/workflows`, `@texuli/deck`, `@texuli/slides`, `@texuli/editor` (first published
 in `0.5.0`), `@texuli/document` and `@texuli/pages` (both first published
 in `0.7.0`), `@texuli/forms`, `@texuli/canvas` and `@texuli/sheets` (all
 three first published in `0.8.0`) and `@texuli/mcp` (first published in

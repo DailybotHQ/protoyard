@@ -1,7 +1,7 @@
 ---
 name: texuli-media
 description: Build media with Texuli offline — responsive images, galleries, video with captions, layered compositions, exports, and a host-wired generator slot. No network; URL policy on every src.
-version: "0.3.12"
+version: "0.3.13"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write

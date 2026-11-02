@@ -15,6 +15,12 @@ the pack, and leaves an empty `## [Unreleased]` block on top.
 
 ## [Unreleased]
 
+## [0.3.13] — 2026-11-02
+
+### Changes
+
+- docs: package, native and skill docs match the exports and 0.12.0
+
 ## [0.3.12] — 2026-11-01
 
 ### Changes

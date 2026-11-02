@@ -1,7 +1,7 @@
 ---
 name: texuli-build-ui
 description: Turn an idea into a Texuli interface offline — read the catalog (MCP or catalog.json), pick components by useWhen/dontUseWhen, compose, validate, render, iterate; recipes for dashboard, landing, form, slide, media story.
-version: "0.3.12"
+version: "0.3.13"
 documentation_url: https://texuli.com/guides/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
