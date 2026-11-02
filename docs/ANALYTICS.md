@@ -113,19 +113,22 @@ Accessibility:
 
 KPI tiles and rows adapt `texuli/stat` (`Kpi`, `KpiRow`); formatting helpers
 re-export that package, and sparklines come from `@texuli/charts/compact`.
-Cohort fills use `@texuli/charts/matrix` `heatmapFill`; the semantic cohort
-table stays Protoyard-owned to preserve its retention row/period headings,
-count/percent toggle and contrast-checked cell text. The remaining cohort
-adapter gap is Texuli's lack of a palette/token override that preserves its
-contrast guarantees (G51). `MonthGrid` uses `texuli/date` `Calendar` for the
-keyboard-accessible grid and maps the analytics range and simulated clock into
-it. `FilterBuilder` uses `@texuli/data/filter-builder` for nested groups; its
-`FilterGroupEditor` adapter supplies the analytics property catalog and
-operators because Texuli does not yet expose field/operator extension hooks
-(G49). `DashboardGrid` renders Texuli's dashboard (`@texuli/data/dashboard`:
-pointer drag and resize, the keyboard pick-up contract, an arrange toolbar,
-layout motion and the stacked phone grid) and keeps the saved 12-column layout
-and its service callback, with a busy state and a rollback when the save fails.
+The semantic cohort table stays Protoyard-owned to preserve its retention
+row/period headings, count/percent toggle and incomplete marks. Its fills and
+text colors come from `@texuli/data/cohort` `resolveHeatScale` and
+`heatLevel` (G51, Texuli 0.6.0): each hex step of the theme's sequential ramp
+(or a `palette` prop) carries the text color that reaches 4.5:1 on it. A ramp
+Texuli refuses falls back to the `@texuli/charts/matrix` `heatmapFill` token
+fill with the value on a surface chip. `MonthGrid` uses `texuli/date`
+`Calendar` for the keyboard-accessible grid and maps the analytics range and
+simulated clock into it. `FilterBuilder` uses `@texuli/data/filter-builder`
+for nested groups; its `FilterGroupEditor` adapter passes the analytics
+property catalog as builder fields and Protoyard's extra operators as catalog
+operators (`FilterOperatorDef`, G49, Texuli 0.6.0). `DashboardGrid` renders
+Texuli's dashboard (`@texuli/data/dashboard`: pointer drag and resize, the
+keyboard pick-up contract, an arrange toolbar, layout motion and the stacked
+phone grid) and keeps the saved 12-column layout and its service callback,
+with a busy state and a rollback when the save fails.
 
 ## Build an analytics prototype
 

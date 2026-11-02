@@ -32,14 +32,19 @@ Protoyard keeps the parts that need its runtime:
   `ColumnChooser`, `BulkActionBar`) retain Protoyard's public state/service
   contracts and use Texuli-backed controls. Markdown preview uses the safe
   Protoyard Markdown parser; Texuli's `@texuli/blocks/text/renderers` handles
-  ordinary rich text. The source editor keeps Protoyard's mention, reference
-  and slash-command extensions because `@texuli/editor/markdown` does not yet
-  expose extension-node hooks (G48). The grid filter editor uses
-  `@texuli/data/filter-builder`; analytics adds a thin adapter for its
-  property catalog and operator set, which that API does not yet allow hosts
-  to extend (G49). `NotificationCenter` keeps its recipient-scoped rows and
-  mark-read service callbacks; the Texuli inbox API still needs a way to hide
-  mark-unread or accept a separate `onMarkUnread` callback (G50).
+  ordinary rich text. Texuli 0.6.0 added host inline extensions to
+  `@texuli/editor/markdown` (`createInlineExtensions`,
+  `EDITOR_EXTENSION_SIGILS`, G48), stored in the same `@{id|label}` form
+  Protoyard uses. Protoyard does not use them yet: the source editor is a
+  textarea over `@protoyard/views/editor`, whose document model, mention,
+  reference and slash commands are a public Protoyard API, so moving to
+  Texuli's editor model would be a rewrite of that API. The grid filter editor
+  uses `@texuli/data/filter-builder`; analytics passes its property catalog
+  and extra operators to it as builder fields and catalog operators
+  (`FilterOperatorDef`, G49). `NotificationCenter` keeps its recipient-scoped
+  rows and mark-read service callbacks, and hides Texuli's "Mark unread" with
+  `allowMarkUnread={false}` (G50), because the service contract is mark-read
+  only.
 
 Texuli view schemas use `DataSchema` (`parse` / `safeParse`), not zod. The
 mapping table and limits are in
