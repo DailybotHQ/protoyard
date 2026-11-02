@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # Smoke-install one tagged Protoyard skill release without touching the runner's home.
 #
-# Usage: scripts/smoke-install-skill.sh v1.2.3
+# Usage: scripts/smoke-install-skill.sh v1.2.3 [<commit sha>]
 #
+# With a commit, the skill is installed from that commit's tree (the release
+# workflow runs before the tag exists); the version check still uses v1.2.3.
 # The skills CLI is intentionally invoked against the exact GitHub tree URL. This
 # is a release check, not a local-pack or npm-publishing shortcut.
 set -eu
 
-if [ "$#" -ne 1 ]; then
-  echo "Usage: $0 vX.Y.Z" >&2
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+  echo "Usage: $0 vX.Y.Z [<commit sha>]" >&2
   exit 2
 fi
 
@@ -28,7 +30,13 @@ command -v npx >/dev/null 2>&1 || {
 SKILLS_CLI_VERSION=1.7.4
 
 VERSION=${TAG#v}
-SOURCE="https://github.com/DailybotHQ/protoyard/tree/$TAG"
+REF=${2:-$TAG}
+case "$REF" in
+  "$TAG") ;;
+  *[!0-9a-f]*) echo "smoke-install-skill: expected a 40-character commit sha (got $REF)" >&2; exit 2 ;;
+  *) [ "${#REF}" -eq 40 ] || { echo "smoke-install-skill: expected a 40-character commit sha (got $REF)" >&2; exit 2; } ;;
+esac
+SOURCE="https://github.com/DailybotHQ/protoyard/tree/$REF"
 SMOKE_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/protoyard-skill-smoke.XXXXXX")
 SMOKE_HOME="$SMOKE_ROOT/home"
 mkdir -p "$SMOKE_HOME"

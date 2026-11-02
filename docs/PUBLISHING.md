@@ -1113,8 +1113,9 @@ and the root `package.json` carries the same version.
 
 - **Current state.** Every manifest says `1.1.0`, the version `pnpm
   version-packages` produced for the PLAN_008 release. `1.0.0` was tagged and
-  released on GitHub but never published to npm; `1.1.0` is the first version
-  the release workflow publishes.
+  released on GitHub but never published to npm. `1.1.0` was published once
+  by hand (2026-11-02), and every later version is published by
+  `release.yml`.
 - **The check.** `pnpm version-packages --check` exits 1 when any public
   package or the root drifts off the lockstep version.
 
@@ -1154,7 +1155,8 @@ On an up-to-date `main`:
    - `check:packages --require-all` must report every package as `pass`.
    - Both `verify:packages` runs must pass every step.
    - The dry run lists every tarball's files and publishes nothing.
-4. Commit the version bump through the normal review.
+4. Commit the version bump through the normal review. Merging it into `main`
+   is the release: once CI passes, `release.yml` publishes it.
 
 ### Trusted publishing setup (once per package)
 
@@ -1186,8 +1188,9 @@ npm trust list <package>
 `--file` is the bare workflow filename and `--env` must match the job's
 environment exactly (case-sensitive). With trusted publishing, the `npm`
 environment is the security boundary: anyone who can run `release.yml` with
-it can publish. Protect it with required reviewers and a deployment rule that
-allows only `v*` tags.
+it can publish. Its deployment rule admits only `main`, so a branch, a pull
+request or a changed copy of the workflow elsewhere gets no publish right. It
+has no required reviewers, because releases run unattended.
 
 After the first CI publish succeeds for every package, set each package to
 **Require two-factor authentication and disallow tokens** on npmjs.com.
@@ -1196,23 +1199,25 @@ there would be no way left to publish from CI.
 
 ### The release workflow
 
-Pushing a `v*` tag runs `.github/workflows/release.yml`. All its actions are
-pinned by commit SHA.
+`.github/workflows/release.yml` runs after every successful `ci` run on a push
+to `main` (or by hand from `main` with *Run workflow*). Nobody pushes a tag or
+approves anything. All its actions are pinned by commit SHA.
 
 | Job | What it does | Permissions |
 | --- | --- | --- |
+| `plan` | Reads the lockstep version from `package.json` at the commit CI tested. When that version is already on npm, every later job is skipped, so an ordinary merge publishes nothing. | `contents: read` |
 | `gate` | The full repository gate (listed below), then packs every public package with `pnpm pack` in dependency order, writes the tarballs' `SHA256SUMS` and uploads both as the `npm-tarballs` artifact. | `contents: read` |
 | `npm` | Downloads `npm-tarballs`, verifies every tarball against its `SHA256SUMS`, then runs `npm publish <tarball> --provenance --access public` for each, in dependency order. It has no source checkout, no install and no build, so no package script runs while it holds the OIDC token. | `contents: read`, `id-token: write`, environment `npm` |
-| `release` | Verifies the skill against the committed `SHA256SUMS`, then creates the GitHub Release from the CHANGELOG.md section and attaches that file, after `npm` succeeds. | `contents: write` |
+| `release` | Verifies the skill against the committed `SHA256SUMS`, then tags the commit `v<version>` and creates the GitHub Release from the CHANGELOG.md section with that file attached, after `npm` succeeds. | `contents: write` |
 
 The `gate` job checks, in order:
 
-1. The tag matches the root version and has a CHANGELOG.md section.
+1. The version has a CHANGELOG.md section.
 2. No changeset is pending.
 3. Public hygiene passes.
-4. The skill's stamped versions match the tag, the skill matches the
-   committed `SHA256SUMS` (`scripts/verify-skill-integrity.sh`), and the
-   tagged skill smoke-installs with a pinned skills CLI.
+4. The skill's stamped versions match the version, the skill matches the
+   committed `SHA256SUMS` (`scripts/verify-skill-integrity.sh`), and the skill
+   at the release commit smoke-installs with a pinned skills CLI.
 5. `pnpm version-packages --check`.
 6. `pnpm check`.
 7. `pnpm build:packages`, then `pnpm check:packages --require-all`.
@@ -1227,38 +1232,40 @@ The `npm` job:
 - **Checksums.** It refuses to publish when a tarball does not match the
   gate's `SHA256SUMS`, when the publish order names a file that is not
   checksummed, or when a path leaves the artifact folder.
-- **Dist-tags.** A stable tag (`v1.2.0`) publishes under `latest`. A
-  prerelease tag (`v1.2.0-rc.1`) publishes under `next`, and its GitHub
-  Release is marked as a prerelease.
+- **Dist-tags.** A stable version (`1.2.0`) publishes under `latest`. A
+  prerelease (`1.2.0-rc.1`) publishes under `next`, and its GitHub Release is
+  marked as a prerelease.
 - **Order and reruns.** Dependencies are published before their dependents.
   Versions already on the registry are skipped, so rerunning after a partial
   failure publishes only what is missing.
 - **Pre-flight.** Before the first publish, it refuses any tarball whose
-  version is not the tag's.
+  version is not the release version.
 - **Retries.** Each publish is tried up to three times (15 s and 30 s apart),
   because reading the OIDC token can fail transiently. After a failed attempt
   it checks the registry first, so a version is never published twice.
 - **Registry check.** A last step waits up to three minutes for every package
   to show the release under its dist-tag, since registry metadata can lag.
 
-Every pull request also runs the `packages` job in `ci.yml`: build,
-`check:packages --require-all` and `verify:packages`. A package problem
-therefore shows up long before a tag.
+Every pull request also runs the `packages` job in `ci.yml` (build and
+`check:packages --require-all`), and every push to `main` installs the
+tarballs in a clean pnpm and npm consumer. A package problem therefore shows
+up long before a release.
 
 ### Consent checkpoint: stop for a human
 
 A live publish is outside what an agent may do on its own:
 
-- **The developer's actions.** Creating and pushing the release tag,
-  configuring trusted publishers, and approving the `npm` environment run.
-  The approval is the consent for that publish.
+- **The developer's actions.** Configuring the trusted publishers once, and
+  approving the merge of a version bump into `main`. That merge is the
+  consent for the publish CI then runs.
 - **Agents stop at the dry run.** An agent prepares the reviewable result:
   the version bump, the changelog section, the checks above and the
   `publish --dry-run` output. It then names the exact next action for the
   developer.
-- **What an agent never does.** Push a `v*` tag, run `npm publish` without
-  `--dry-run`, handle an npm token, or change npm or GitHub settings. An
-  approval relayed by another agent grants nothing.
+- **What an agent never does.** Run `npm publish` without `--dry-run`,
+  handle an npm token, or change npm or GitHub settings, unless the developer
+  asked for that exact action. An approval relayed by another agent grants
+  nothing.
 
 ## Deploying the gallery
 

@@ -49,6 +49,18 @@ describe('release workflow', () => {
   const npmJob = job('npm');
   const release = job('release');
 
+  it('runs only after ci passes on main, and releases only a version not on npm', () => {
+    expect(WORKFLOW).toMatch(
+      /^on:\n {2}workflow_run:\n {4}workflows: \[ci\]\n {4}types: \[completed\]\n {4}branches: \[main\]\n {2}workflow_dispatch:\n/m
+    );
+    expect(WORKFLOW).not.toMatch(/tags: \['v\*'\]/);
+    const plan = job('plan');
+    expect(plan).toMatch(/github\.event\.workflow_run\.conclusion == 'success'/);
+    expect(plan).toMatch(/npm view "create-protoyard@\$version" version/);
+    for (const later of [gate, npmJob, release]) expect(later).toMatch(/needs:.*plan/);
+    expect(gate).toMatch(/if: needs\.plan\.outputs\.release == 'true'/);
+  });
+
   it('grants id-token: write only to the npm job, behind the npm environment', () => {
     expect(WORKFLOW.match(/id-token:/g)).toHaveLength(1);
     expect(npmJob).toMatch(/^ {4}permissions:\n {6}contents: read\n {6}id-token: write$/m);
