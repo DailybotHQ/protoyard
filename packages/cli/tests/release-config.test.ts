@@ -54,6 +54,26 @@ describe('release workflow', () => {
       /^on:\n {2}workflow_run:\n {4}workflows: \[ci\]\n {4}types: \[completed\]\n {4}branches: \[main\]\n {2}workflow_dispatch:\n/m
     );
     expect(WORKFLOW).not.toMatch(/tags: \['v\*'\]/);
+    const triggers = WORKFLOW.slice(WORKFLOW.indexOf('\non:\n'), WORKFLOW.indexOf('\njobs:\n'));
+    expect(triggers).not.toMatch(/^ {2}(?:push|pull_request|release|schedule):/m);
+  });
+
+  it('publishes through Trusted Publishing only: no token, no secret, no dist-tag moves', () => {
+    expect(WORKFLOW).not.toMatch(/NPM_TOKEN|NODE_AUTH_TOKEN|secrets\./);
+    // Trusted Publishing does not authorize `npm dist-tag`; the tag is set at publish.
+    expect(WORKFLOW).not.toMatch(/npm dist-tag/);
+    expect(npmJob).toMatch(
+      /npm publish "\$tarball" --provenance --access public --tag "\$dist_tag"/
+    );
+    const names = stepNames(npmJob);
+    expect(names.indexOf('Install npm 11.20.0')).toBeGreaterThanOrEqual(0);
+    expect(names.indexOf('Install npm 11.20.0')).toBeLessThan(
+      names.indexOf('Publish with provenance')
+    );
+    const verify = npmJob.slice(
+      npmJob.indexOf('      - name: Verify every package on the registry')
+    );
+    expect(verify).toMatch(/\n {10}exit 1$/m);
     const plan = job('plan');
     expect(plan).toMatch(/github\.event\.workflow_run\.conclusion == 'success'/);
     expect(plan).toMatch(/npm view "create-protoyard@\$version" version/);
@@ -73,7 +93,12 @@ describe('release workflow', () => {
 
   it('runs no checkout, install, build or pack while the npm job holds the OIDC token', () => {
     expect(npmJob).not.toMatch(/actions\/checkout@/);
-    expect(npmJob).not.toMatch(/\bpnpm\b|corepack|npm (?:install|ci|run|pack)\b|build:packages/);
+    // The only install is npm itself, pinned to the version the trusted
+    // publishers were set up with; no package (and no package script) is installed.
+    expect(npmJob).toMatch(/^ {8}run: npm install -g npm@11\.20\.0$/m);
+    expect(npmJob.replace('npm install -g npm@11.20.0', '')).not.toMatch(
+      /\bpnpm\b|corepack|npm (?:install|ci|run|pack)\b|build:packages/
+    );
     const names = stepNames(npmJob);
     const download = npmJob.indexOf('actions/download-artifact@');
     const verify = npmJob.indexOf('      - name: Verify the tarball checksums');
@@ -92,6 +117,8 @@ describe('release workflow', () => {
     expect(npmJob).toMatch(/for attempt in 1 2 3; do/);
     expect(npmJob).toMatch(/if published "\$name" "\$version"; then ok=1; break; fi/);
     expect(npmJob).toMatch(/\[ "v\$version" = "\$TAG" \]/);
+    // The final check requires the dist-tag and a provenance attestation.
+    expect(npmJob).toMatch(/dist\.attestations\.provenance\.predicateType/);
     // The gate packs after verify:packages, checksums, then uploads the same folder.
     const pack = gate.indexOf('      - name: Pack every public package in dependency order');
     const sums = gate.indexOf('      - name: Checksum the tarballs');

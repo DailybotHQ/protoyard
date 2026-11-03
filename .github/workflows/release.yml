@@ -191,6 +191,10 @@ jobs:
         with:
           node-version: '24.20.0'
           registry-url: 'https://registry.npmjs.org'
+      - name: Install npm 11.20.0
+        # Trusted Publishing needs npm 11.5.1 or later; pin the version the
+        # trusted publishers were configured and tested with.
+        run: npm install -g npm@11.20.0
       - name: npm supports Trusted Publishing (11.5.1 or later)
         run: |
           node -e '
@@ -269,18 +273,20 @@ jobs:
           set -euo pipefail
           dist_tag=latest
           case "$TAG" in *-*) dist_tag=next ;; esac
-          # Registry metadata can lag a minute or two, so retry for about
-          # three minutes before failing.
-          for attempt in $(seq 1 12); do
+          # Every package must carry the dist-tag and a provenance
+          # attestation. Registry metadata can lag, so retry for about ten
+          # minutes before failing.
+          for attempt in $(seq 1 20); do
             missing=""
             while IFS="$(printf '\t')" read -r name version file; do
-              [ "$(npm view "$name" "dist-tags.$dist_tag" 2>/dev/null)" = "$version" ] || missing="$missing $name"
+              [ "$(npm view "$name" "dist-tags.$dist_tag" 2>/dev/null)" = "$version" ] || { missing="$missing $name"; continue; }
+              [ -n "$(npm view "$name@$version" dist.attestations.provenance.predicateType 2>/dev/null)" ] || missing="$missing $name(provenance)"
             done < "$TARBALLS/order.tsv"
-            [ -z "$missing" ] && { echo "Every package is $dist_tag ${TAG#v} on npm."; exit 0; }
+            [ -z "$missing" ] && { echo "Every package is $dist_tag ${TAG#v} on npm, with provenance."; exit 0; }
             echo "waiting for:$missing"
-            sleep 15
+            sleep 30
           done
-          echo "Not on npm as $dist_tag ${TAG#v}:$missing" >&2
+          echo "Not on npm as $dist_tag ${TAG#v} with provenance:$missing" >&2
           exit 1
 
   release:
