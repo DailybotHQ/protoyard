@@ -1111,7 +1111,7 @@ data (ADR-028).
 All public packages share one version through one Changesets `fixed` group,
 and the root `package.json` carries the same version.
 
-- **Current state.** Every manifest says `1.1.1`. `1.0.0` was tagged and
+- **Current state.** Every manifest says `1.1.2`. `1.0.0` was tagged and
   released on GitHub but never published to npm. `1.1.0` was published once
   by hand (2026-11-02). `1.1.1` and every later version are published by
   `release.yml`.
@@ -1167,8 +1167,9 @@ developer, on npmjs.com, for each of the published packages:
    type GitHub Actions.
 2. Enter the repository `DailybotHQ/protoyard`, the workflow file
    `release.yml` and the environment `npm`.
-3. In the repository settings on GitHub, give the `npm` environment required
-   reviewers, so every publishing run waits for an explicit approval.
+3. In the repository settings on GitHub, limit the `npm` environment's
+   deployment branches to `main` (a custom branch policy). It has no required
+   reviewers.
 
 npm attaches a trusted publisher only to a package that already exists in the
 registry. Protoyard 1.1.0 was therefore published once by hand
@@ -1194,7 +1195,29 @@ has no required reviewers, because releases run unattended.
 After the first CI publish succeeds for every package, set each package to
 **Require two-factor authentication and disallow tokens** on npmjs.com.
 Don't do it earlier: if trusted publishing turned out to be misconfigured,
-there would be no way left to publish from CI.
+there would be no way left to publish from CI. From the terminal:
+
+```bash
+npm access set mfa=publish <package> --auth-type=web
+```
+
+Each package needs its own browser approval, and npm keeps only one pending
+web approval at a time: opening several links invalidates all but the last.
+Run the packages one after another and approve each link (it expires in
+about five minutes) before the next one is created. Trusted publishing keeps
+working afterwards; any token is refused.
+
+### Repository hardening
+
+- **No secrets.** The repository and the `npm` environment hold no
+  `NPM_TOKEN`, `NODE_AUTH_TOKEN` or other npm secret, and `release.yml`
+  reads none. The release job's only credential is the run's own
+  `github.token`, used to create the GitHub Release.
+- **No CI tokens on npm.** A token created for an earlier CI setup is
+  revoked on npmjs.com, not just left unused.
+- **`main` ruleset.** A repository ruleset on `main` blocks force-pushes and
+  deletion. It does not require pull requests through the ruleset, because
+  GitHub Actions cannot bypass a ruleset.
 
 ### The release workflow
 
@@ -1206,7 +1229,7 @@ approves anything. All its actions are pinned by commit SHA.
 | --- | --- | --- |
 | `plan` | Reads the lockstep version from `package.json` at the commit CI tested. When that version is already on npm, every later job is skipped, so an ordinary merge publishes nothing. | `contents: read` |
 | `gate` | The full repository gate (listed below), then packs every public package with `pnpm pack` in dependency order, writes the tarballs' `SHA256SUMS` and uploads both as the `npm-tarballs` artifact. | `contents: read` |
-| `npm` | Downloads `npm-tarballs`, verifies every tarball against its `SHA256SUMS`, then runs `npm publish <tarball> --provenance --access public` for each, in dependency order. It has no source checkout, no install and no build, so no package script runs while it holds the OIDC token. | `contents: read`, `id-token: write`, environment `npm` |
+| `npm` | Installs npm 11.20.0, downloads `npm-tarballs`, verifies every tarball against its `SHA256SUMS`, then runs `npm publish <tarball> --provenance --access public --tag <dist-tag>` for each, in dependency order, and verifies the registry. It has no source checkout, no package install and no build, so no package script runs while it holds the OIDC token. | `contents: read`, `id-token: write`, environment `npm` |
 | `release` | Verifies the skill against the committed `SHA256SUMS`, then tags the commit `v<version>` and creates the GitHub Release from the CHANGELOG.md section with that file attached, after `npm` succeeds. | `contents: write` |
 
 The `gate` job checks, in order:
@@ -1226,8 +1249,13 @@ The `gate` job checks, in order:
 
 The `npm` job:
 
-- **npm version.** It refuses an npm older than 11.5.1, the first release with
-  trusted publishing.
+- **npm version.** It installs npm 11.20.0 (the version the trusted
+  publishers were configured with) and refuses an npm older than 11.5.1,
+  the first release with trusted publishing. Installing npm itself is the
+  job's only install.
+- **No dist-tag moves.** Trusted publishing does not authorize
+  `npm dist-tag`, so the tag is set by `npm publish --tag` and no step moves
+  a tag afterwards.
 - **Checksums.** It refuses to publish when a tarball does not match the
   gate's `SHA256SUMS`, when the publish order names a file that is not
   checksummed, or when a path leaves the artifact folder.
@@ -1242,8 +1270,10 @@ The `npm` job:
 - **Retries.** Each publish is tried up to three times (15 s and 30 s apart),
   because reading the OIDC token can fail transiently. After a failed attempt
   it checks the registry first, so a version is never published twice.
-- **Registry check.** A last step waits up to three minutes for every package
-  to show the release under its dist-tag, since registry metadata can lag.
+- **Registry check.** A last step polls (20 times, 30 s apart) until every
+  package shows the release under its dist-tag **and** has a provenance
+  attestation (`dist.attestations.provenance.predicateType`), then fails the
+  run if any package is still missing either.
 
 Every pull request also runs the `packages` job in `ci.yml` (build and
 `check:packages --require-all`), and every push to `main` installs the

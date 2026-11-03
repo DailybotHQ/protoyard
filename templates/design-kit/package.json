@@ -19,7 +19,7 @@
     "@protoyard/views-ui": "workspace:*",
     "dexie": "^4.4.7",
     "svelte": "^5.57.3",
-    "texuli": "0.12.1"
+    "texuli": "0.12.3"
   },
   "devDependencies": {
     "@protoyard/runtime": "workspace:*",

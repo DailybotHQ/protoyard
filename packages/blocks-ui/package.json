@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/blocks-ui",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Svelte 5 block renderers for Protoyard: thin adapters over @texuli/blocks family renderers, plus the Protoyard host/registry contract.",
   "license": "MIT",
   "type": "module",
@@ -74,11 +74,11 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@protoyard/views-ui": "workspace:*",
-    "@texuli/blocks": "0.12.1",
-    "@texuli/charts": "0.12.1",
-    "@texuli/data": "0.12.1",
-    "@texuli/editor": "0.12.1",
-    "texuli": "0.12.1"
+    "@texuli/blocks": "0.12.3",
+    "@texuli/charts": "0.12.3",
+    "@texuli/data": "0.12.3",
+    "@texuli/editor": "0.12.3",
+    "texuli": "0.12.3"
   },
   "devDependencies": {
     "svelte": "^5.57.3"
