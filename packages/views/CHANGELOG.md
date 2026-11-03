@@ -1,5 +1,13 @@
 # @protoyard/views
 
+## 1.1.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/core@1.1.2
+  - @protoyard/avatars@1.1.2
+
 ## 1.1.1
 
 ### Patch Changes

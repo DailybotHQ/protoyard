@@ -1,5 +1,16 @@
 # @protoyard/review-ui
 
+## 1.1.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/core@1.1.2
+  - @protoyard/review@1.1.2
+  - @protoyard/views@1.1.2
+  - @protoyard/views-ui@1.1.2
+  - @protoyard/ui@1.1.2
+
 ## 1.1.1
 
 ### Patch Changes

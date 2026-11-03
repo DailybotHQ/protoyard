@@ -6,6 +6,18 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-11-03
+
+### Changed
+
+- **Texuli 0.12.3.** Every Texuli dependency moves to 0.12.3. Texuli 0.12.2
+  and 0.12.3 have no package code change since 0.12.1.
+- **Stricter release check.** The npm job installs npm 11.20.0 before
+  publishing, and its last step fails unless every package shows the new
+  version under its dist-tag with a provenance attestation. Tests guard the
+  workflow against npm tokens, secrets, dist-tag moves and push or tag
+  triggers.
+
 ## [1.1.1] - 2026-11-02
 
 The first release published by CI, with npm Trusted Publishing and
@@ -293,7 +305,8 @@ static site.
 - The gallery no longer ignores input typed before hydration and does not overflow
   horizontally on phones.
 
-[Unreleased]: https://github.com/DailybotHQ/protoyard/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/DailybotHQ/protoyard/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/DailybotHQ/protoyard/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/DailybotHQ/protoyard/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/DailybotHQ/protoyard/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/DailybotHQ/protoyard/compare/v0.1.0...v1.0.0

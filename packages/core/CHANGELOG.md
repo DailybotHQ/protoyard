@@ -1,5 +1,11 @@
 # @protoyard/core
 
+## 1.1.2
+
+### Patch Changes
+
+- Texuli 0.12.3 and a stricter release check.
+
 ## 1.1.1
 
 ### Patch Changes

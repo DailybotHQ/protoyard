@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/gallery",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "The Protoyard gallery: a static Astro site that lists prototypes and templates from the generated metadata registry.",
   "license": "MIT",
   "repository": {
