@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@protoyard/core": "workspace:*",
-    "@texuli/tokens": "0.12.1"
+    "@texuli/tokens": "0.12.3"
   },
   "protoyard": {
     "build": {
