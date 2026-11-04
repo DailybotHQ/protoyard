@@ -21,7 +21,7 @@ exists and that its links and anchors resolve ([Testing guide](TESTING_GUIDE.md)
 | [Agent guide](AGENT_GUIDE.md) | The build loop and copy-paste prompts for coding agents |
 | [Quick explorations](QUICK.md) | `protoyard quick`: disposable local explorations on the prebuilt player, variants and `compare.html`, loopback serving, and the scope of `quick report` and `quick feedback` |
 | [Player](PLAYER.md) | The no-install player for app, deck, page and doc blueprints (level 1): per-kind entries, share links, the hosted `/play/` page, storage identity, worker-generated and cached worlds, parity with generated prototypes, browser limits |
-| [Packages](PACKAGES.md) | The npm package families and their exports, release status (not on npm yet), versions and packed output |
+| [Packages](PACKAGES.md) | The npm package families and their exports, release status (on npm, published from CI), versions and packed output |
 | [Database](DATABASE.md) | Schemas, migrations, services, reactive queries, storage caveats |
 | [Kinds](KINDS.md) | App, deck, page and doc blueprints: the two levels, authoring, packages, catalog and limits |
 | [Decks](DECKS.md) | Slide decks: deck JSON, the 21 layouts, custom slides, steps, controls, presenter, print, style and Deck Studio, Debug for agents and the agent loop, lint, sharing and limits |

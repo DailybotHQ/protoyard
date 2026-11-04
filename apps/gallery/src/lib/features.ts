@@ -171,10 +171,10 @@ export const FEATURE_AREAS: readonly FeatureArea[] = [
     id: 'packages',
     title: 'Packages',
     summary:
-      'Every library is a publish-ready npm package with typed ESM exports. Not on npm yet: today you run Protoyard from its repository.',
+      'Every library is an npm package with typed ESM exports, published from CI with provenance.',
     points: [
       'The packages build to dist/ with types, lint clean as packed tarballs, and install in a clean consumer project.',
-      'No version has been published to npm yet; `npm create protoyard` comes with the first release.',
+      '`npm create protoyard` scaffolds a workspace; `npm install protoyard` adds the CLI to an existing app.',
     ],
     guides: [{ slug: 'packages', label: 'Packages guide' }],
   },

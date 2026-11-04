@@ -48,7 +48,7 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Avatars | [AVATARS](docs/AVATARS.md) | 175 fictional portraits: provenance and MIT license, never real people, seeded assignment, rendering and URL safety, measured sizes, re-import |
 | Publishing | [PUBLISHING](docs/PUBLISHING.md) | Build, export, preview, base paths, Cloudflare and other adapters, batch publish, review index, CI templates, the showcase site, sharing as a private Claude artifact (one prototype per artifact) |
 | Review comments | [REVIEW_COMMENTS](docs/REVIEW_COMMENTS.md) | Opt-in review comments, adapters (local, http/cloudflare, artifact), who sees what, honest limits |
-| Packages | [PACKAGES](docs/PACKAGES.md) | npm package families and exports, release status (not on npm yet), versions, packed output |
+| Packages | [PACKAGES](docs/PACKAGES.md) | npm package families and exports, release status (on npm, published from CI), versions, packed output |
 | Skill | [SKILL](docs/SKILL.md) | Distributable `protoyard` agent skill: hosts, pinned installation, `setup.sh`, trust and consent, checksums, upgrades |
 | Interface | [INTERFACE](docs/INTERFACE.md) | `--version --json` and `doctor --json` machine interface: interface major, capability ids, detection, stability |
 | MCP | [MCP](docs/MCP.md) | Local stdio MCP server (`protoyard mcp`): protocol revisions, tools, envelopes, trust boundary |
@@ -109,7 +109,7 @@ protoyard/
 │   ├── player/            prebuilt static player for app, deck, page and doc blueprints, per-kind entries, no build or install (level 1) (README)
 │   ├── templates/         @protoyard/templates: packs templates/* for npm; listTemplates()/templateDir()  (README)
 │   ├── protoyard/         unscoped `protoyard` npm package: bin that runs @protoyard/cli in-process, same version (README)
-│   ├── create-protoyard/  `npm create protoyard` scaffolder for a consumer workspace (not on npm yet)   (README)
+│   ├── create-protoyard/  `npm create protoyard` scaffolder for a consumer workspace                  (README)
 │   └── cli/               `protoyard` CLI: new/generate/quick/blueprint/dev/validate/build/export/publish/artifact/comments/spec/ci/mcp… (README)
 ├── apps/gallery/          Astro static gallery + /marketplace/ (reads the registry only)           (README)
 ├── templates/<name>/      admin-console, agent-console, ai-assistant, analytics, b2b-saas, blank,

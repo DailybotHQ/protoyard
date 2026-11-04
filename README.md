@@ -369,9 +369,9 @@ date (one Apple M1 Max, often under load; numbers move with the machine):
   the live services. Real deploys need your own credentials.
 - **Browser, not native.** Mobile prototypes run in the mobile browser, and
   shells simulate devices rather than emulate them.
-- **Not on npm yet.** The packages are publish-ready and the release workflow
-  publishes them with npm trusted publishing, but no version has been
-  published. The first publish waits for the maintainer's approval
+- **On npm.** Every package is published from CI with npm trusted
+  publishing and provenance (`npm create protoyard`, `protoyard`,
+  `@protoyard/*`). Merging a version bump into `main` is the release
   ([release runbook](docs/PUBLISHING.md#releasing-the-packages-to-npm)).
 
 ## Commands
