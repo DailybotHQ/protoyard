@@ -349,6 +349,25 @@ function runNew(root, template, cliBin) {
 }
 
 /**
+ * Rewrites the starter's generated spec regions (`protoyard spec starter
+ * --write`) with the installed CLI, inside the new workspace.
+ *
+ * @param {string} root
+ * @param {string} cliBin
+ */
+function refreshSpec(root, cliBin) {
+  const result = spawnSync(
+    process.execPath,
+    [cliBin, 'spec', STARTER_SLUG, '--write', '--json', '--root', root],
+    { cwd: root, encoding: 'utf8', env: { ...process.env, CI: process.env.CI ?? '' } }
+  );
+  if (result.error) return { ok: false, error: result.error.message };
+  return result.status === 0
+    ? { ok: true }
+    : { ok: false, error: `protoyard spec ${STARTER_SLUG} --write exited ${result.status}` };
+}
+
+/**
  * @param {string} command
  * @param {string[]} args
  * @param {string} cwd
@@ -430,6 +449,13 @@ export function createWorkspace(options) {
     options.install === false
       ? { skipped: true, ok: true }
       : { skipped: false, ...runTool(pm, ['install'], target, quiet) };
+  // `new` ran before the install, so it could not load the starter's definition
+  // and left the generated spec regions describing the template. With the
+  // dependencies installed, refresh them for the starter's own slug.
+  const spec =
+    install.skipped || !install.ok
+      ? { skipped: true, ok: true }
+      : { skipped: false, ...refreshSpec(target, cliBin) };
   const git =
     options.git === false
       ? { skipped: true, ok: true }
@@ -446,6 +472,7 @@ export function createWorkspace(options) {
     prototype: { slug: STARTER_SLUG, path: `prototypes/${STARTER_SLUG}`, created },
     files: written,
     install,
+    spec,
     git,
     skill: options.skill
       ? {
@@ -456,7 +483,11 @@ export function createWorkspace(options) {
       : { requested: false, installed: false },
     next: [
       `cd ${shown}`,
-      ...(install.skipped || !install.ok ? [`${pm} install`] : []),
+      ...(install.skipped || !install.ok
+        ? [`${pm} install`, `${run} spec ${STARTER_SLUG} --write`]
+        : spec.ok
+          ? []
+          : [`${run} spec ${STARTER_SLUG} --write`]),
       `${run} dev ${STARTER_SLUG}`,
     ],
   };

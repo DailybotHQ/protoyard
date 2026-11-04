@@ -44,6 +44,8 @@ export interface CreateResult {
   /** Every file written, relative to `dir`. */
   files: string[];
   install: StepResult;
+  /** `protoyard spec starter --write` after the install (skipped without one). */
+  spec: StepResult;
   git: StepResult;
   skill: { requested: boolean; installed: false; next?: string };
   /** Commands to run next. */

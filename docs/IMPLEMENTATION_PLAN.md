@@ -309,7 +309,7 @@ with the showcase and player suites (201 passed), `budget --all` (15/15),
 
 **Not verified or deferred in PLAN_004:**
 
-- **No npm package has been published.** The release workflow is tested, but the first live publish waits for the developer's npm trusted-publisher setup and explicit GO.
+- **No npm package has been published.** The release workflow is tested, but the first live publish waits for the developer's npm trusted-publisher setup and explicit GO. *(Superseded: 1.1.0 was published on 2026-11-02, and from 1.1.1 on CI publishes every release.)*
 - **The `v1.1.0` tag does not exist.** The packages are still at the lockstep version `1.0.0`; `UPSTREAM.md` names `v1.1.0` as the future product tag.
 - **The upstream DeepWorkPlan pull request** has not been opened. [UPSTREAM.md](../integrations/deepworkplan/protoyard/UPSTREAM.md) is a handoff packet and needs the developer's GO.
 - **No MCP SDK client round trip** was run. The MCP tests drive the real server process with JSON-RPC written by the test helper.

@@ -1,5 +1,12 @@
 # create-protoyard
 
+## 1.1.3
+
+### Patch Changes
+
+- The starter's AGENTS.md and docs/ spec describe the starter, not the template.
+- protoyard@1.1.3
+
 ## 1.1.2
 
 ### Patch Changes

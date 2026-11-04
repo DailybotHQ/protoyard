@@ -1,5 +1,12 @@
 # @protoyard/scenarios
 
+## 1.1.3
+
+### Patch Changes
+
+- @protoyard/avatars@1.1.3
+  - @protoyard/core@1.1.3
+
 ## 1.1.2
 
 ### Patch Changes

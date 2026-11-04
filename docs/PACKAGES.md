@@ -4,7 +4,7 @@ Protoyard is a pnpm workspace of small packages. Install only the pieces an app 
 
 ## Release status and installation
 
-The package manifests and tarball tooling are being prepared for the first npm release. **Protoyard packages are not yet available from the public npm registry.** The release workflow has an npm job (Trusted Publishing with provenance; see [PUBLISHING](PUBLISHING.md#releasing-the-packages-to-npm)), but no release has been published to npm yet: the first live publish awaits the developer's approval. The npm commands below are the supported consumer commands once that release is available; they do not install today's unpublished workspace packages.
+Every public package is on the npm registry at the same lockstep version (see [PUBLISHING](PUBLISHING.md#releasing-the-packages-to-npm) for the current one). CI publishes them from `main` with npm Trusted Publishing and provenance; no package accepts a token publish.
 
 For repository development, clone the source and install its workspace dependencies.
 Protoyard installs its component library, [Texuli](TEXULI.md), from npm with the rest of
@@ -18,10 +18,10 @@ pnpm protoyard doctor
 pnpm protoyard dev crm-demo
 ```
 
-Protoyard consumes the published Texuli `0.9.0` packages from npm at exact
-versions ([TEXULI](TEXULI.md)). The table shows direct workspace dependencies
+Protoyard consumes the published Texuli packages from npm at one exact
+version ([TEXULI](TEXULI.md) names it). The table shows direct workspace dependencies
 (including peer dependencies); transitive dependencies are omitted. Every
-template and prototype app also declares `texuli@0.9.0` for its Svelte UI. The
+template and prototype app also declares `texuli` at that version for its Svelte UI. The
 root pins the complete Texuli family used by current and optional surfaces.
 
 | Protoyard package | Direct Texuli dependencies |
@@ -54,7 +54,7 @@ The workspace's `pnpm-workspace.yaml` release-age policy allows the Texuli
 maintainer's packages to be adopted when released. No Texuli dependency uses
 a local checkout, `link:`, or `file:` specifier.
 
-After the npm release, scaffold a workspace with either supported package manager:
+Scaffold a workspace with either supported package manager:
 
 ```sh
 npm create protoyard acme-lab
