@@ -1,5 +1,11 @@
 # @protoyard/charts
 
+## 1.1.3
+
+### Patch Changes
+
+- @protoyard/core@1.1.3
+
 ## 1.1.2
 
 ### Patch Changes

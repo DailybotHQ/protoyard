@@ -6,6 +6,20 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-11-03
+
+### Fixed
+
+- **`npm create protoyard` starter passes `validate`.** The scaffolder ran
+  `protoyard new` before installing, so the starter's generated `AGENTS.md`
+  and `docs/SPEC.md` regions still described the `blank` template and
+  `validate starter` failed its spec check. It now refreshes them with
+  `protoyard spec starter --write` after the install, and with `--no-install`
+  the printed next steps include that command. `verify:packages` validates
+  the starter in the pnpm and npm consumers.
+- **Docs say the packages are on npm.** The README, AGENTS.md, PACKAGES.md
+  and the gallery's features page no longer say "not on npm yet".
+
 ## [1.1.2] - 2026-11-03
 
 ### Changed
@@ -305,7 +319,8 @@ static site.
 - The gallery no longer ignores input typed before hydration and does not overflow
   horizontally on phones.
 
-[Unreleased]: https://github.com/DailybotHQ/protoyard/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/DailybotHQ/protoyard/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/DailybotHQ/protoyard/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/DailybotHQ/protoyard/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/DailybotHQ/protoyard/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/DailybotHQ/protoyard/compare/v1.0.0...v1.1.0
