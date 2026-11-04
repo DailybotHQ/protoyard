@@ -218,7 +218,7 @@ async function run(action: PaletteAction): Promise<void> {
     aria-label="Open command palette (Command or Control K)"
     onclick={show}
   >
-    <Icon icon="search" size={15} aria-hidden="true" />
+    <Icon icon="search" size="sm" aria-hidden="true" />
     <span class="hidden sm:inline">Search</span>
     <kbd class="rounded border border-line bg-bg px-1.5 py-0.5 font-mono text-[10px] text-muted">⌘K</kbd>
   </Button>
@@ -227,7 +227,7 @@ async function run(action: PaletteAction): Promise<void> {
   <Dialog bind:open title="Command palette" hideClose size="lg" onOpenChange={(nextOpen) => { if (!nextOpen) close(); }} class="fixed top-[10vh] m-auto max-h-[80vh] w-[calc(100%-2rem)] max-w-xl overflow-hidden rounded-xl border border-line bg-surface p-0 text-fg shadow-2xl">
     {#snippet children()}
     <div class="flex items-center gap-3 border-b border-line px-4">
-      <Icon icon="search" size={18} class="shrink-0 text-muted" aria-hidden="true" />
+      <Icon icon="search" size="md" class="shrink-0 text-muted" aria-hidden="true" />
       <Input
         bind:ref={input}
         id="gallery-command-input"

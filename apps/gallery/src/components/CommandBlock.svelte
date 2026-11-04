@@ -71,7 +71,7 @@ const scrollableFocus: Attachment<HTMLElement> = (node) => {
       aria-label={copied ? 'Copied' : `Copy ${label ?? 'command'}`}
       onclick={copy}
     >
-      {#if copied}<Icon icon="check" size={14} aria-hidden="true" />{:else}<LucideIcon icon={Copy} size={14} aria-hidden="true" />{/if}
+      {#if copied}<Icon icon="check" size="sm" aria-hidden="true" />{:else}<LucideIcon icon={Copy} size="sm" aria-hidden="true" />{/if}
     </Button>
   </div>
   <p class="sr-only" aria-live="polite">{copied ? 'Copied to clipboard' : failed ? 'Copy failed; select the text instead' : ''}</p>

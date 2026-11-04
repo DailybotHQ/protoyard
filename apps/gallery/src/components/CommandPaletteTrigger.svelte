@@ -79,7 +79,7 @@ onMount(() => {
     aria-haspopup="dialog"
     onclick={() => void open()}
   >
-    <Icon icon="search" size={15} aria-hidden="true" />
+    <Icon icon="search" size="sm" aria-hidden="true" />
     <!-- The accessible name starts with the visible "Search" (WCAG 2.5.3); on
          phones the word is visually hidden but still names the button. -->
     <span class="sr-only sm:not-sr-only">Search</span>

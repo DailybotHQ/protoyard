@@ -27,6 +27,9 @@
  *   an `@keyframes` rule, in a UI package, template or prototype. Motion comes
  *   from Texuli (`texuli/motion`, `@texuli/core/motion`, `--tx-motion-*`
  *   tokens), which honors reduced motion by construction.
+ * - `icon-size`: a pixel number as `size` on Texuli's `Icon` or `LucideIcon`.
+ *   Sizes are `xs | sm | md | lg`; a number matches none, and a built-in
+ *   glyph then renders with no width and fills its container.
  *
  * Known violations live per unit in `tests/adoption/pending/<unit>.json`
  * (unit = `packages__<name>`, `apps__<name>`, `templates` or `prototypes`).
@@ -70,7 +73,8 @@ export type Rule =
   | 'own-component'
   | 'component-bind-this'
   | 'ref-undefined'
-  | 'local-motion';
+  | 'local-motion'
+  | 'icon-size';
 export const RULES: readonly Rule[] = [
   'legacy-import',
   'raw-lucide',
@@ -81,6 +85,7 @@ export const RULES: readonly Rule[] = [
   'component-bind-this',
   'ref-undefined',
   'local-motion',
+  'icon-size',
 ];
 
 export interface Violation {
@@ -337,6 +342,13 @@ function lucideNames(text: string): string[] {
   return names;
 }
 
+/**
+ * A Texuli `Icon` or `LucideIcon` given a pixel number as `size`. Texuli takes
+ * `xs | sm | md | lg`; a number matches no size, so the built-in glyph renders
+ * with no width and stretches to fill its container.
+ */
+const ICON_NUMERIC_SIZE = /<(?:Icon|LucideIcon)\b[^>]*?\ssize=(?:\{\s*\d|"\d|'\d)/g;
+
 /** Counts each rule in one source file. Pure; exported for tests. */
 export function scanSource(file: string, source: string): Violation[] {
   const text = stripComments(file, source);
@@ -359,6 +371,7 @@ export function scanSource(file: string, source: string): Violation[] {
       raw += count(markup, new RegExp(`<${name.replace(/\$/g, '\\$')}(?=[\\s/>])`, 'g'));
     }
     add('raw-lucide', raw);
+    add('icon-size', count(markup, ICON_NUMERIC_SIZE));
     const script = (text.match(/<script[\s\S]*?<\/script>/g) ?? []).join('\n');
     if (UI_UNIT.test(file) && !COMPOSES.test(script) && markup.trim().length > 0)
       add('own-component', 1);

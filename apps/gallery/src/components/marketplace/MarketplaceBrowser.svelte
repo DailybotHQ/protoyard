@@ -85,7 +85,7 @@ const sourceKinds = [
     <div class="flex flex-col gap-3 md:flex-row md:items-center">
       <label class="relative flex-1">
         <span class="sr-only">Search the marketplace</span>
-        <Icon icon="search" size={16} class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" aria-hidden="true" />
+        <Icon icon="search" size="sm" class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" aria-hidden="true" />
         <Input
           type="search"
           placeholder="Search products, features, platforms…"
@@ -156,7 +156,7 @@ const sourceKinds = [
           {results.length === 0 ? 'No matches' : `${results.length} ${results.length === 1 ? 'result' : 'results'}`}
         </p>
         <Button variant="ghost" type="button" class="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-surface-2 hover:text-fg" onclick={() => (query = { ...EMPTY_QUERY })}>
-          <LucideIcon icon={X} size={14} aria-hidden="true" /> Clear filters
+          <LucideIcon icon={X} size="sm" aria-hidden="true" /> Clear filters
         </Button>
       </div>
       {#if results.length > 0}

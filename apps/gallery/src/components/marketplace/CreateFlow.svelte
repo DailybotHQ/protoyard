@@ -121,7 +121,7 @@ const input = 'h-10 w-full rounded-lg border border-line bg-bg px-3 text-sm';
         disabled={creating}
         data-testid="create-submit"
       >
-        {#if creating}<LucideIcon icon={LoaderCircle} size={14} class="animate-spin" aria-hidden="true" /> Creating…{:else}{verb}{/if}
+        {#if creating}<LucideIcon icon={LoaderCircle} size="sm" class="animate-spin" aria-hidden="true" /> Creating…{:else}{verb}{/if}
       </Button>
     {:else}
       <p class="text-sm text-muted">

@@ -142,15 +142,15 @@ const select = 'h-9 rounded-lg border border-line bg-bg px-2.5 text-sm text-fg';
       <GallerySelect class={select} bind:value={state.device} data-testid="compare-device" items={DEVICES.filter((d) => d.id !== 'custom').map((d) => ({ value: d.id, label: `${d.label} · ${d.width}×${d.height}` }))} />
     </label>
     <Button variant="outline" type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={swap}>
-      <LucideIcon icon={ArrowLeftRight} size={14} aria-hidden="true" /> Swap A and B
+      <LucideIcon icon={ArrowLeftRight} size="sm" aria-hidden="true" /> Swap A and B
     </Button>
     {#if state.scenarios.length < 3}
       <Button variant="outline" type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={addPane}>
-        <Icon icon="plus" size={14} aria-hidden="true" /> Add a third frame
+        <Icon icon="plus" size="sm" aria-hidden="true" /> Add a third frame
       </Button>
     {:else}
       <Button variant="outline" type="button" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm hover:bg-surface-2" onclick={removePane}>
-        <LucideIcon icon={X} size={14} aria-hidden="true" /> Remove frame C
+        <LucideIcon icon={X} size="sm" aria-hidden="true" /> Remove frame C
       </Button>
     {/if}
     <Button variant="outline"
@@ -159,7 +159,7 @@ const select = 'h-9 rounded-lg border border-line bg-bg px-2.5 text-sm text-fg';
       onclick={resetSandboxes}
       data-testid="compare-reset"
     >
-      <LucideIcon icon={RotateCcw} size={14} aria-hidden="true" /> Reset sandboxes
+      <LucideIcon icon={RotateCcw} size="sm" aria-hidden="true" /> Reset sandboxes
     </Button>
   </div>
 
@@ -179,11 +179,11 @@ const select = 'h-9 rounded-lg border border-line bg-bg px-2.5 text-sm text-fg';
           disabled={control.busy[slug] === 'starting'}
           onclick={() => control.start(slug)}
         >
-          {#if control.busy[slug] === 'starting'}<LucideIcon icon={LoaderCircle} size={14} class="animate-spin" aria-hidden="true" /> Starting…{:else}<LucideIcon icon={Play} size={14} aria-hidden="true" /> Start {name}{/if}
+          {#if control.busy[slug] === 'starting'}<LucideIcon icon={LoaderCircle} size="sm" class="animate-spin" aria-hidden="true" /> Starting…{:else}<LucideIcon icon={Play} size="sm" aria-hidden="true" /> Start {name}{/if}
         </Button>
         {#if control.errors[slug]}<p class="text-xs text-danger" role="alert">{control.errors[slug]}</p>{/if}
       {:else if control.status === 'checking' || control.status === 'unknown'}
-        <p class="inline-flex items-center gap-1.5 text-muted"><LucideIcon icon={LoaderCircle} size={14} class="animate-spin" aria-hidden="true" /> Looking for the local control server…</p>
+        <p class="inline-flex items-center gap-1.5 text-muted"><LucideIcon icon={LoaderCircle} size="sm" class="animate-spin" aria-hidden="true" /> Looking for the local control server…</p>
       {:else}
         <p class="text-muted">
           This gallery has no bundled build of {name} and no local control server, so it cannot run frames here.
