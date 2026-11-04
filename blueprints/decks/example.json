@@ -6,6 +6,14 @@
   "icon": "book",
   "category": "demos",
   "kind": "deck",
+  "catalog": {
+    "category": "design",
+    "productType": "Presentation deck",
+    "platforms": ["web"],
+    "features": ["deck"],
+    "highlights": ["The smallest valid deck", "Visual QA fixture"],
+    "difficulty": "beginner"
+  },
   "brand": {
     "name": "Example Co",
     "seed": "#0f766e",
