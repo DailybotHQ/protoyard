@@ -639,6 +639,10 @@ export async function verifyPackages(options: VerifyOptions = {}): Promise<Verif
 
     const cli = join(consumer, 'node_modules', 'protoyard', 'bin', 'protoyard.mjs');
     for (const [name, args] of [
+      // The --no-install path's printed next steps: refresh the starter's spec
+      // after the install, then the starter passes validate.
+      ['spec starter --write', ['spec', 'starter', '--write']],
+      ['validate starter', ['validate', 'starter']],
       ['new', ['new', 'second-app', '--template', 'blank', '--no-install']],
       ['validate --build', ['validate', 'second-app', '--build']],
       ['export', ['export', 'second-app']],
