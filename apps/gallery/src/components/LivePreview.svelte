@@ -278,33 +278,33 @@ async function openManual(event: SubmitEvent) {
         </label>
       {/if}
       <a class={['inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2', scenarios.length === 0 && 'ml-auto']} href={embeddedHref(scenario)} target="_blank" rel="noopener">
-        <LucideIcon icon={ExternalLink} size={14} aria-hidden="true" /> Open
+        <LucideIcon icon={ExternalLink} size="sm" aria-hidden="true" /> Open
       </a>
       <Button variant="outline" type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" onclick={() => (reloadKey += 1)}>
-        <LucideIcon icon={RotateCw} size={14} aria-hidden="true" /> Reload
+        <LucideIcon icon={RotateCw} size="sm" aria-hidden="true" /> Reload
       </Button>
     {:else if control.status === 'available'}
       {#if running}
         <span class="inline-flex items-center gap-1.5 text-success"><span class="size-2 rounded-full bg-current"></span>Running at</span>
         <a class="font-mono text-xs underline underline-offset-2" href={running.url} target="_blank" rel="noopener">{running.url}</a>
         <a class="ml-auto inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" href={running.url} target="_blank" rel="noopener">
-          <LucideIcon icon={ExternalLink} size={14} aria-hidden="true" /> Open
+          <LucideIcon icon={ExternalLink} size="sm" aria-hidden="true" /> Open
         </a>
         <Button variant="outline" type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" onclick={() => (reloadKey += 1)}>
-          <LucideIcon icon={RotateCw} size={14} aria-hidden="true" /> Reload
+          <LucideIcon icon={RotateCw} size="sm" aria-hidden="true" /> Reload
         </Button>
         <Button variant="outline" type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2 disabled:opacity-50" disabled={busy === 'stopping'} onclick={stop}>
-          <LucideIcon icon={Square} size={14} aria-hidden="true" /> {busy === 'stopping' ? 'Stopping…' : 'Stop'}
+          <LucideIcon icon={Square} size="sm" aria-hidden="true" /> {busy === 'stopping' ? 'Stopping…' : 'Stop'}
         </Button>
       {:else}
         <span class="text-muted">Local control server connected.</span>
         <Button type="button" class="ml-auto inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 font-medium text-on-accent hover:bg-accent-hover disabled:opacity-60" disabled={busy === 'starting'} onclick={start} data-testid="start">
-          {#if busy === 'starting'}<LucideIcon icon={LoaderCircle} size={14} class="animate-spin" aria-hidden="true" /> Starting…{:else}<LucideIcon icon={Play} size={14} aria-hidden="true" /> Start {name}{/if}
+          {#if busy === 'starting'}<LucideIcon icon={LoaderCircle} size="sm" class="animate-spin" aria-hidden="true" /> Starting…{:else}<LucideIcon icon={Play} size="sm" aria-hidden="true" /> Start {name}{/if}
         </Button>
       {/if}
       {#if error}<p class="w-full text-xs text-danger" role="alert">{error}</p>{/if}
     {:else if control.status === 'checking' || control.status === 'unknown'}
-      <span class="inline-flex items-center gap-1.5 text-muted"><LucideIcon icon={LoaderCircle} size={14} class="animate-spin" aria-hidden="true" /> Looking for the local control server…</span>
+      <span class="inline-flex items-center gap-1.5 text-muted"><LucideIcon icon={LoaderCircle} size="sm" class="animate-spin" aria-hidden="true" /> Looking for the local control server…</span>
     {:else}
       <div class="w-full space-y-2">
         <p class="text-muted">
@@ -448,7 +448,7 @@ async function openManual(event: SubmitEvent) {
                       data-testid="preview-retry"
                       onclick={retryPreview}
                     >
-                      <LucideIcon icon={RotateCw} size={14} aria-hidden="true" /> Retry
+                      <LucideIcon icon={RotateCw} size="sm" aria-hidden="true" /> Retry
                     </Button>
                     {#if previewUrl}
                       <a
@@ -457,7 +457,7 @@ async function openManual(event: SubmitEvent) {
                         target="_blank"
                         rel="noopener"
                       >
-                        <LucideIcon icon={ExternalLink} size={14} aria-hidden="true" /> Open in tab
+                        <LucideIcon icon={ExternalLink} size="sm" aria-hidden="true" /> Open in tab
                       </a>
                     {/if}
                   </div>

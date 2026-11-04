@@ -33,7 +33,7 @@ onMount(() => library.load());
     library.toggleFavorite(slug);
   }}
 >
-  <LucideIcon icon={Star} size={16} fill={active ? 'currentColor' : 'none'} aria-hidden="true" />
+  <LucideIcon icon={Star} size="sm" fill={active ? 'currentColor' : 'none'} aria-hidden="true" />
   <!-- With a visible label, the name starts with that label (WCAG 2.5.3) and
        aria-pressed carries the state, so the name never changes on toggle. -->
   {#if withLabel}<span>Favorite</span><span class="sr-only"> {name}</span>{/if}

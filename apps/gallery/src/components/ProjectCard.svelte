@@ -55,7 +55,7 @@ const morph = $derived(entry.k === 'prototype');
     <div class="flex gap-1"><dt class="sr-only">Platform</dt><dd>{PLATFORM_LABEL[entry.p]}</dd></div>
     <div class="flex gap-1">
       <dt class="sr-only">Scenarios</dt>
-      <dd class="inline-flex items-center gap-1"><LucideIcon icon={Layers} size={12} aria-hidden="true" />{entry.sc} scenario{entry.sc === 1 ? '' : 's'}</dd>
+      <dd class="inline-flex items-center gap-1"><LucideIcon icon={Layers} size="xs" aria-hidden="true" />{entry.sc} scenario{entry.sc === 1 ? '' : 's'}</dd>
     </div>
     {#if entry.rv}
       <div role="group" class="flex gap-1" aria-label={`Review comments: ${entry.rv.open} open, ${entry.rv.resolved} resolved`}>

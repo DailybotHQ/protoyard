@@ -50,7 +50,7 @@ let { kind, onClearFilters, onBrowseAll }: Props = $props();
         data-testid="empty-clear-filters"
         onclick={onClearFilters}
       >
-        <LucideIcon icon={X} size={14} aria-hidden="true" /> Clear filters
+        <LucideIcon icon={X} size="sm" aria-hidden="true" /> Clear filters
       </Button>
     {/if}
     {#if (kind === 'favorites' || kind === 'recent') && onBrowseAll}

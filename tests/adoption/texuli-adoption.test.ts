@@ -23,6 +23,13 @@ describe('scanSource', () => {
     ).toBe(1);
   });
 
+  it('flags a pixel number as an icon size and not a Texuli size', () => {
+    const bad = `<Icon icon="search" size={16} class="absolute" />\n<LucideIcon icon={X} size="14" />`;
+    expect(rules('apps/gallery/src/A.svelte', bad)['icon-size']).toBe(2);
+    const good = `<Icon icon="search" size="sm" />\n<LucideIcon icon={X} size={big ? 'md' : 'sm'} />\n<Avatar size={32} />`;
+    expect(rules('apps/gallery/src/A.svelte', good)['icon-size']).toBeUndefined();
+  });
+
   it('flags clsx, tailwind-merge and tailwind-variants imports', () => {
     expect(
       rules(
