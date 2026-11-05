@@ -18,13 +18,16 @@
     "public",
     "astro.config.mjs",
     "tsconfig.json",
-    "README.md"
+    "README.md",
+    "guides"
   ],
   "scripts": {
     "dev": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
-    "typecheck": "astro check"
+    "typecheck": "astro check",
+    "prepack": "node scripts/copy-guides.mjs",
+    "postpack": "node scripts/copy-guides.mjs --clean"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.12",
@@ -52,8 +55,9 @@
   "protoyard": {
     "pack": {
       "payload": [
-        "src/",
-        "public/"
+        "guides/",
+        "public/",
+        "src/"
       ],
       "types": false
     }

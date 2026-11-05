@@ -49,3 +49,6 @@ tmp/*
 
 # Plan analysis output belongs in the plan's own folder, never at the root
 /analysis_results
+
+# Guides copied into the gallery package only while it is packed (scripts/copy-guides.mjs)
+/apps/gallery/guides/

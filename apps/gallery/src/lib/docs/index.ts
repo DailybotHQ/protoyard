@@ -2,7 +2,20 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const DOCS_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../../docs');
+const HERE = dirname(fileURLToPath(import.meta.url));
+/**
+ * Where the guides are read from: the package's own `guides/` (copied at pack
+ * time by scripts/copy-guides.mjs, so a gallery installed from npm has them),
+ * else this repository's `docs/`. The gallery runs with its folder as cwd.
+ */
+const DOCS_DIR =
+  [
+    resolve(HERE, '../../../guides'),
+    resolve(process.cwd(), 'guides'),
+    resolve(HERE, '../../../../../docs'),
+    resolve(process.cwd(), '../../docs'),
+  ].find((dir) => existsSync(resolve(dir, 'QUICKSTART.md'))) ??
+  resolve(HERE, '../../../../../docs');
 /**
  * User-facing guides published at /docs/. Guides that
  * do not exist yet are skipped. Contributor and internal docs (ARCHITECTURE,

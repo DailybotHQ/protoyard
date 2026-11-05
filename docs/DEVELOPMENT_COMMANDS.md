@@ -132,6 +132,8 @@ and checks monorepo-only templates and registry files only for monorepos.
 | `theme export <id> \| --from <file> [--format css\|tailwind\|tokens]` | Export a built-in, library or custom JSON theme as CSS variables (default), Tailwind tokens or W3C design tokens |
 | `snapshot list <slug>` | Snapshot files committed in the prototype folder, validated |
 | `gallery [--port] [--control-port] [--allow-origin <origins>] [--allow-create]` | What `pnpm dev` runs. `--allow-create` turns on the marketplace's create flow (`POST /api/new`, which writes files and runs code); it is off by default |
+| `gallery build [--out <dir>] [--base <path>] [--site <url>] [--verbose]` | The gallery as a static site for this workspace's registry, written to `artifacts/gallery/dist/` (never into `node_modules`). It works in a consumer workspace that installed `@protoyard/gallery`, and `/docs/` carries the guides: the package ships them in `guides/`, copied from `docs/` at pack time. It lists entries but does not bundle each prototype's build; `showcase` does. |
+| `gallery preview [--out <dir>] [--base <path>] [--port] [--host]` | Serves the built gallery like a static host (port 4322, or the next free one). |
 | `control-server [--port] [--gallery-port] [--allow-origin <origins>] [--allow-create]` | Only the local control API used by the gallery (starts prototype dev servers and template demos; with `--allow-create`, also `new --from`) |
 
 Target commands (`dev`, `validate`, `build`, `budget`, `export`, `preview`,

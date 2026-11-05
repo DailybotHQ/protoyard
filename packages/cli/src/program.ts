@@ -24,6 +24,7 @@ import { devCommand } from './commands/dev.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { dsExportCommand, dsNewCommand, dsUseCommand, dsValidateCommand } from './commands/ds.ts';
 import { exportCommand } from './commands/export.ts';
+import { galleryBuildCommand, galleryPreviewCommand } from './commands/gallery-build.ts';
 import { generateCommand } from './commands/generate.ts';
 import { indexCommand } from './commands/index-cmd.ts';
 import { kitSyncCommand } from './commands/kit.ts';
@@ -710,6 +711,10 @@ export function createProgram(env: RunnerEnv): Command {
       'artifact target: only bundle these comma-separated prototype or template slugs'
     )
     .option('--no-devtools', 'leave the DevTools panel out of the bundled prototypes')
+    .option(
+      '--templates',
+      'bundle the template demos (the default, unless protoyard.workspace.json sets showcase.templates: false)'
+    )
     .option('--no-templates', 'leave the template demos out (prototypes only)')
     .option('--include-templates', 'accepted for older scripts: templates are bundled by default')
     .option('--offline', 'build every bundled prototype with the offline service worker')
@@ -728,7 +733,7 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--host', 'listen on the LAN')
     .action(def('showcase', showcaseCommand));
 
-  program
+  const gallery = program
     .command('gallery')
     .description('index, start the control server and run the gallery (what `pnpm dev` runs)')
     .option('-p, --port <port>', 'gallery port', '4321')
@@ -739,6 +744,22 @@ export function createProgram(env: RunnerEnv): Command {
       'let the gallery create prototypes (POST /api/new writes prototypes/<slug>/); off by default'
     )
     .action(def('gallery', galleryCommand));
+  gallery
+    .command('build')
+    .description('build the gallery as a static site for this workspace (artifacts/gallery/dist)')
+    .option('--out <dir>', 'output folder inside the workspace (default artifacts/gallery/dist)')
+    .option('--base <path>', 'public base path, absolute and ending with "/" (default /)')
+    .option('--site <url>', 'public site URL for canonical links')
+    .option('--verbose', "show Astro's output")
+    .action(def('gallery build', galleryBuildCommand));
+  gallery
+    .command('preview')
+    .description('serve the built gallery like a static host')
+    .option('--out <dir>', 'the built folder (default artifacts/gallery/dist)')
+    .option('--base <path>', 'the base it was built with (default /)')
+    .option('-p, --port <port>', 'port (default 4322; the next free one if busy)')
+    .option('--host', 'listen on the LAN too')
+    .action(def('gallery preview', galleryPreviewCommand));
 
   program
     .command('control-server')
