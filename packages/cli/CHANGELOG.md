@@ -1,5 +1,23 @@
 # @protoyard/cli
 
+## 1.2.1
+
+### Patch Changes
+
+- A prototype generated in a consumer workspace typechecks and builds: `generate` (and `blueprint new --generate`) no longer writes the starter `tests/services.test.ts`, which imports this repository's `tests/support/` harness. `tests/generators.test.ts` is still written. `verify:packages` now generates a catalog blueprint in the packed consumer and runs `validate --build` on it.
+- @protoyard/blocks@1.2.1
+  - @protoyard/blueprint@1.2.1
+  - @protoyard/core@1.2.1
+  - @protoyard/crud@1.2.1
+  - @protoyard/decks@1.2.1
+  - @protoyard/offline@1.2.1
+  - @protoyard/player@1.2.1
+  - @protoyard/renderer-svelte@1.2.1
+  - @protoyard/review@1.2.1
+  - @protoyard/scenarios@1.2.1
+  - @protoyard/templates@1.2.1
+  - @protoyard/themes@1.2.1
+
 ## 1.2.0
 
 ### Minor Changes

@@ -6,6 +6,19 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-05
+
+### Fixed
+
+- **A prototype generated in a consumer workspace builds.** `generate` and
+  `blueprint new --generate` no longer write the starter
+  `tests/services.test.ts` there: it imports this repository's
+  `tests/support/` harness, so `validate --build` failed its svelte-check.
+  `tests/generators.test.ts` is still written. Found by generating a
+  prototype in a real `npm create protoyard@1.2.0` workspace;
+  `verify:packages` now generates a catalog blueprint in the packed consumer
+  and builds it.
+
 ## [1.2.0] - 2026-11-05
 
 Protoyard from npm, without patches: the gaps two real consumers (Dailybot and
