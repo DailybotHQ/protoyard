@@ -150,8 +150,9 @@ const details = $derived(
     <ul class="py-file-preview__grid" bind:this={gallery}>
       {#each files as file (file.id)}
         <li>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             class="py-file-preview__item"
             data-file-preview-item={file.id}
             aria-haspopup="dialog"
@@ -159,7 +160,7 @@ const details = $derived(
           >
             <img src={thumbSrc(file)} alt="" width="96" height="96" loading="lazy" />
             <span class="py-file-preview__name">{file.name}</span>
-          </button>
+          </Button>
         </li>
       {/each}
     </ul>
@@ -236,8 +237,10 @@ const details = $derived(
     padding: 0;
     list-style: none;
   }
-  .py-file-preview__item {
+  :global(.py-file-preview__item) {
     display: grid;
+    block-size: auto;
+    white-space: normal;
     justify-items: center;
     gap: var(--tx-space-2, 0.5rem);
     inline-size: 100%;
@@ -249,11 +252,11 @@ const details = $derived(
     font: inherit;
     cursor: pointer;
   }
-  .py-file-preview__item:focus-visible {
+  :global(.py-file-preview__item:focus-visible) {
     outline: var(--tx-focus-ring-width, 2px) solid var(--tx-ring, Highlight);
     outline-offset: 2px;
   }
-  .py-file-preview__item img {
+  :global(.py-file-preview__item) img {
     inline-size: 96px;
     block-size: 96px;
     object-fit: cover;

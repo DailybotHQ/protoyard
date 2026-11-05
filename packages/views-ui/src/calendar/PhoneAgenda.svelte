@@ -178,8 +178,9 @@ const rangeTitle = $derived(
           {#each shown as occurrence (`${occurrence.seriesId}:${occurrence.occurrenceId}`)}
             {@const state = chipState(occurrence)}
             <li>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 class="py-phone-agenda__event"
                 data-tone={state.tone}
                 data-agenda-event={occurrence.seriesId}
@@ -191,7 +192,7 @@ const rangeTitle = $derived(
                   <span class="py-phone-agenda__title">{state.title}</span>
                   <span class="py-phone-agenda__when">{state.when}</span>
                 {/if}
-              </button>
+              </Button>
             </li>
           {/each}
         </ul>
@@ -252,14 +253,16 @@ const rangeTitle = $derived(
     padding: 0;
     list-style: none;
   }
-  .py-phone-agenda__event {
-    --py-event-accent: var(--tx-border-strong, var(--tx-border, ButtonBorder));
+  :global(.py-phone-agenda__event) {
     display: grid;
+    block-size: auto;
+    justify-items: start;
+    white-space: normal;
     inline-size: 100%;
     min-block-size: 44px;
     gap: 2px;
     border: var(--tx-border-width-thin, 1px) solid var(--tx-border, ButtonBorder);
-    border-inline-start: 3px solid var(--py-event-accent);
+    border-inline-start: 3px solid var(--tx-border-strong, var(--tx-border, ButtonBorder));
     border-radius: var(--tx-shape-radius-md, 0.375rem);
     padding: var(--tx-space-2, 0.5rem) var(--tx-space-3, 0.75rem);
     background: var(--tx-muted, ButtonFace);
@@ -268,15 +271,15 @@ const rangeTitle = $derived(
     text-align: start;
     cursor: pointer;
   }
-  .py-phone-agenda__event:focus-visible {
+  :global(.py-phone-agenda__event:focus-visible) {
     outline: var(--tx-focus-ring-width, 2px) solid var(--tx-ring, Highlight);
     outline-offset: 2px;
   }
-  .py-phone-agenda__event[data-tone='primary'] { --py-event-accent: var(--tx-primary, Highlight); }
-  .py-phone-agenda__event[data-tone='info'] { --py-event-accent: var(--tx-info, Highlight); }
-  .py-phone-agenda__event[data-tone='success'] { --py-event-accent: var(--tx-success, Highlight); }
-  .py-phone-agenda__event[data-tone='warning'] { --py-event-accent: var(--tx-warning, Highlight); }
-  .py-phone-agenda__event[data-tone='danger'] { --py-event-accent: var(--tx-destructive, Highlight); }
+  :global(.py-phone-agenda__event[data-tone='primary']) { border-inline-start-color: var(--tx-primary, Highlight); }
+  :global(.py-phone-agenda__event[data-tone='info']) { border-inline-start-color: var(--tx-info, Highlight); }
+  :global(.py-phone-agenda__event[data-tone='success']) { border-inline-start-color: var(--tx-success, Highlight); }
+  :global(.py-phone-agenda__event[data-tone='warning']) { border-inline-start-color: var(--tx-warning, Highlight); }
+  :global(.py-phone-agenda__event[data-tone='danger']) { border-inline-start-color: var(--tx-destructive, Highlight); }
   .py-phone-agenda__title {
     font-weight: 600;
     overflow-wrap: anywhere;
