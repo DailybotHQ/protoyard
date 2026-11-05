@@ -322,5 +322,124 @@ describe('voice', () => {
       expect(screen.queryByRole('button', { name: /local mic level meter/i })).toBeNull();
       expect(getUserMedia).not.toHaveBeenCalled();
     });
+
+    const clock = { now: () => new Date(0), nowMs: () => 0, sleep: async () => {} };
+
+    it('hold-to-talk listens while held and transcribes on release (D-G-045)', async () => {
+      const onPress = vi.fn();
+      const onRelease = vi.fn();
+      const onTranscript = vi.fn();
+      render(VoiceMode, {
+        clock,
+        transcripts: ['Move standup to Friday.'],
+        holdToTalk: true,
+        onPress,
+        onRelease,
+        onTranscript,
+      });
+      const hold = screen.getByRole('button', { name: 'Hold to talk' });
+      await fireEvent.pointerDown(hold, { button: 0 });
+      expect(onPress).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: 'Release to transcribe' })).toBeTruthy();
+      await fireEvent.pointerUp(hold, { button: 0 });
+      await waitFor(() => expect(onRelease).toHaveBeenCalledWith('Move standup to Friday.'));
+      expect(onTranscript).toHaveBeenCalledWith('Move standup to Friday.');
+      expect(screen.getByRole('button', { name: 'Hold to talk' })).toBeTruthy();
+    });
+
+    it('hold-to-talk works from the keyboard and ignores key repeat', async () => {
+      const onPress = vi.fn();
+      const onRelease = vi.fn();
+      render(VoiceMode, {
+        clock,
+        transcripts: ['Hello there.'],
+        holdToTalk: true,
+        onPress,
+        onRelease,
+      });
+      const hold = screen.getByRole('button', { name: 'Hold to talk' });
+      await fireEvent.keyDown(hold, { key: ' ' });
+      await fireEvent.keyDown(hold, { key: ' ', repeat: true });
+      expect(onPress).toHaveBeenCalledTimes(1);
+      await fireEvent.keyUp(hold, { key: ' ' });
+      await waitFor(() => expect(onRelease).toHaveBeenCalledWith('Hello there.'));
+    });
+
+    it('the press and release callbacks also follow the push-to-talk toggle', async () => {
+      const onPress = vi.fn();
+      const onRelease = vi.fn();
+      render(VoiceMode, { clock, transcripts: ['Toggle turn.'], onPress, onRelease });
+      await fireEvent.click(screen.getByRole('button', { name: 'Start push to talk' }));
+      expect(onPress).toHaveBeenCalledTimes(1);
+      await fireEvent.click(screen.getByRole('button', { name: 'Finish and transcribe' }));
+      await waitFor(() => expect(onRelease).toHaveBeenCalledWith('Toggle turn.'));
+    });
+
+    it('mute drops the turn: release reports null and nothing is sent', async () => {
+      const onMuteChange = vi.fn();
+      const onRelease = vi.fn();
+      const onTranscript = vi.fn();
+      render(VoiceMode, {
+        clock,
+        holdToTalk: true,
+        showMute: true,
+        onMuteChange,
+        onRelease,
+        onTranscript,
+      });
+      const mute = screen.getByRole('button', { name: 'Mute microphone' });
+      expect(mute.getAttribute('aria-pressed')).toBe('false');
+      await fireEvent.click(mute);
+      expect(mute.getAttribute('aria-pressed')).toBe('true');
+      await waitFor(() => expect(onMuteChange).toHaveBeenCalledWith(true));
+      expect(document.querySelector('[data-voice-muted]')).not.toBeNull();
+      const hold = screen.getByRole('button', { name: 'Hold to talk' });
+      await fireEvent.pointerDown(hold, { button: 0 });
+      await fireEvent.pointerUp(hold, { button: 0 });
+      await waitFor(() => expect(onRelease).toHaveBeenCalledWith(null));
+      expect(onTranscript).not.toHaveBeenCalled();
+    });
+
+    it('starts muted from the muted prop', async () => {
+      const onRelease = vi.fn();
+      render(VoiceMode, { clock, holdToTalk: true, muted: true, onRelease });
+      const hold = screen.getByRole('button', { name: 'Hold to talk' });
+      await fireEvent.pointerDown(hold, { button: 0 });
+      await fireEvent.pointerUp(hold, { button: 0 });
+      await waitFor(() => expect(onRelease).toHaveBeenCalledWith(null));
+    });
+
+    it('dictation appends transcripts to the draft instead of sending them', async () => {
+      const onDictate = vi.fn();
+      const onTranscript = vi.fn();
+      render(VoiceMode, {
+        clock,
+        transcripts: ['First line.', 'Second line.'],
+        holdToTalk: true,
+        showDictation: true,
+        draft: 'Note:',
+        onDictate,
+        onTranscript,
+      });
+      await fireEvent.click(screen.getByRole('button', { name: 'Dictate into draft' }));
+      const hold = screen.getByRole('button', { name: 'Hold to talk' });
+      for (let turn = 0; turn < 2; turn += 1) {
+        await fireEvent.pointerDown(hold, { button: 0 });
+        await fireEvent.pointerUp(hold, { button: 0 });
+        await waitFor(() => expect(onDictate).toHaveBeenCalledTimes(turn + 1));
+      }
+      expect(onDictate).toHaveBeenNthCalledWith(1, 'First line.', 'Note: First line.');
+      expect(onDictate).toHaveBeenNthCalledWith(
+        2,
+        'Second line.',
+        'Note: First line. Second line.'
+      );
+      expect(onTranscript).not.toHaveBeenCalled();
+      const box = document.querySelector('[data-voice-draft]') as HTMLElement;
+      expect(box.textContent).toContain('Note: First line. Second line.');
+      expect(box.textContent).toContain('not sent');
+      await fireEvent.click(screen.getByRole('button', { name: 'Clear draft' }));
+      expect(box.textContent).toContain('Dictated words appear here.');
+    });
   });
 });

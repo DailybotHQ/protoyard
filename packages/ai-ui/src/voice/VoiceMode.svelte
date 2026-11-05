@@ -16,7 +16,28 @@ interface Props {
   transcriptDelayMs?: number;
   handsFreeIntervalMs?: number;
   showMicLevelMeter?: boolean;
+  /** Receives each transcript to send (not called while dictating). */
   onTranscript?: (transcript: string) => void;
+  /** Push to talk becomes press-and-hold: pointer down or Space/Enter down listens, release transcribes. */
+  holdToTalk?: boolean;
+  /** Push to talk started (hold pressed, or the toggle turned on). */
+  onPress?: () => void;
+  /** Push to talk ended with its transcript (`null` when muted or nothing was heard). */
+  onRelease?: (transcript: string | null) => void;
+  /** Simulated microphone mute (bindable). Muted turns produce no transcript. */
+  muted?: boolean;
+  /** Shows the "Mute microphone" toggle. */
+  showMute?: boolean;
+  onMuteChange?: (muted: boolean) => void;
+  /** Dictation (bindable): transcripts go into `draft` instead of `onTranscript`. */
+  dictation?: boolean;
+  /** Shows the "Dictate into draft" toggle. */
+  showDictation?: boolean;
+  /** The dictated draft text (bindable); each transcript is appended with a space. */
+  draft?: string;
+  /** A transcript was dictated, with the draft after it was appended. */
+  onDictate?: (transcript: string, draft: string) => void;
+  onStateChange?: (state: VoiceState) => void;
 }
 
 const DEFAULT_TRANSCRIPTS = [
@@ -33,6 +54,17 @@ let {
   handsFreeIntervalMs,
   showMicLevelMeter = false,
   onTranscript,
+  holdToTalk = false,
+  onPress,
+  onRelease,
+  muted = $bindable(false),
+  showMute = false,
+  onMuteChange,
+  dictation = $bindable(false),
+  showDictation = false,
+  draft = $bindable(''),
+  onDictate,
+  onStateChange,
 }: Props = $props();
 
 let voiceState = $state<VoiceState>('idle');
@@ -57,13 +89,29 @@ const session = $derived.by(() =>
     transcripts,
     ...(transcriptDelayMs !== undefined ? { transcriptDelayMs } : {}),
     ...(handsFreeIntervalMs !== undefined ? { handsFreeIntervalMs } : {}),
-    onTranscript: (value) => {
-      transcript = value;
-      onTranscript?.(value);
+    onTranscript: deliver,
+    onStateChange: (state) => {
+      voiceState = state;
+      onStateChange?.(state);
     },
-    onStateChange: (state) => (voiceState = state),
+    onMuteChange: (value) => onMuteChange?.(value),
   })
 );
+
+/** Sends the transcript, or appends it to the draft while dictating. */
+function deliver(value: string): void {
+  transcript = value;
+  if (dictation) {
+    draft = draft.trim() ? `${draft.trimEnd()} ${value}` : value;
+    onDictate?.(value, draft);
+  } else {
+    onTranscript?.(value);
+  }
+}
+
+$effect(() => {
+  session.setMuted(muted);
+});
 
 $effect(() => {
   const currentSession = session;
@@ -97,11 +145,51 @@ function chooseMode(nextMode: VoiceModeType): void {
 
 function togglePushToTalk(): void {
   if (voiceState === 'listening') {
-    void session.finishListening();
+    void finish();
   } else {
     mode = 'push-to-talk';
-    session.start('push-to-talk');
+    session.press();
+    onPress?.();
   }
+}
+
+async function finish(): Promise<void> {
+  const value = await session.release();
+  onRelease?.(value);
+}
+
+let holding = false;
+
+function holdStart(): void {
+  if (holding || voiceState === 'transcribing') return;
+  holding = true;
+  mode = 'push-to-talk';
+  session.press();
+  onPress?.();
+}
+
+function holdEnd(): void {
+  if (!holding) return;
+  holding = false;
+  void finish();
+}
+
+function holdKeydown(event: KeyboardEvent): void {
+  if (event.key !== ' ' && event.key !== 'Enter') return;
+  event.preventDefault();
+  if (!event.repeat) holdStart();
+}
+
+function holdKeyup(event: KeyboardEvent): void {
+  if (event.key !== ' ' && event.key !== 'Enter') return;
+  event.preventDefault();
+  holdEnd();
+}
+
+function holdPointerdown(event: PointerEvent): void {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  holdStart();
 }
 
 function interrupt(): void {
@@ -193,10 +281,40 @@ onDestroy(() => {
     <Button size="sm" variant={mode === 'push-to-talk' ? 'secondary' : 'outline'} aria-pressed={mode === 'push-to-talk'} onclick={() => chooseMode('push-to-talk')}>Push to talk</Button>
     <Button size="sm" variant={mode === 'hands-free' ? 'secondary' : 'outline'} aria-pressed={mode === 'hands-free'} onclick={() => chooseMode(mode === 'hands-free' ? 'push-to-talk' : 'hands-free')}>{mode === 'hands-free' ? 'Stop hands-free' : 'Hands-free'}</Button>
   </div>
+  {#if showMute || showDictation}
+    <div class="mt-3 flex justify-center gap-2" role="group" aria-label="Voice input">
+      {#if showMute}
+        <Button size="sm" variant={muted ? 'secondary' : 'outline'} aria-pressed={muted} onclick={() => (muted = !muted)}>Mute microphone</Button>
+      {/if}
+      {#if showDictation}
+        <Button size="sm" variant={dictation ? 'secondary' : 'outline'} aria-pressed={dictation} onclick={() => (dictation = !dictation)}>Dictate into draft</Button>
+      {/if}
+    </div>
+  {/if}
   {#if mode === 'push-to-talk'}
     <div class="mt-3 flex justify-center">
-      <Button size="lg" class="rounded-full" aria-pressed={voiceState === 'listening' || voiceState === 'transcribing'} onclick={togglePushToTalk} disabled={voiceState === 'transcribing'}>{voiceState === 'listening' ? 'Finish and transcribe' : 'Start push to talk'}</Button>
+      {#if holdToTalk}
+        <Button
+          size="lg"
+          class="rounded-full touch-none select-none"
+          aria-pressed={voiceState === 'listening' || voiceState === 'transcribing'}
+          disabled={voiceState === 'transcribing'}
+          data-voice-hold
+          onpointerdown={holdPointerdown}
+          onpointerup={holdEnd}
+          onpointercancel={holdEnd}
+          onpointerleave={holdEnd}
+          onkeydown={holdKeydown}
+          onkeyup={holdKeyup}
+          onblur={holdEnd}
+        >{voiceState === 'listening' ? 'Release to transcribe' : 'Hold to talk'}</Button>
+      {:else}
+        <Button size="lg" class="rounded-full" aria-pressed={voiceState === 'listening' || voiceState === 'transcribing'} onclick={togglePushToTalk} disabled={voiceState === 'transcribing'}>{voiceState === 'listening' ? 'Finish and transcribe' : 'Start push to talk'}</Button>
+      {/if}
     </div>
+  {/if}
+  {#if muted}
+    <p class="mt-2 text-center text-xs text-muted-foreground" data-voice-muted>Microphone muted (simulated): turns produce no caption.</p>
   {/if}
   {#if voiceState === 'interrupted'}
     <div class="mt-3 flex justify-center"><Button size="sm" variant="ghost" onclick={() => session.start(mode)}>Resume voice mode</Button></div>
@@ -204,7 +322,14 @@ onDestroy(() => {
     <p class="mt-3 text-center text-xs text-muted-foreground" role="status">{voiceState === 'listening' ? (mode === 'hands-free' ? 'Listening for the next scripted turn…' : 'Listening…') : voiceState === 'transcribing' ? 'Preparing caption…' : 'Speaking simulated reply…'}</p>
   {/if}
 
-  {#if transcript}<p class="mt-4 rounded-xl bg-background p-3 text-sm" aria-live="polite"><span class="mb-1 block text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">You said · simulated caption</span>{transcript}</p>{/if}
+  {#if dictation}
+    <div class="mt-4 rounded-xl border border-dashed border-border p-3 text-sm" data-voice-draft>
+      <p class="mb-1 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">Draft · simulated dictation, not sent</p>
+      <p aria-live="polite">{draft || 'Dictated words appear here.'}</p>
+      {#if draft}<Button size="sm" variant="ghost" class="mt-2" onclick={() => (draft = '')}>Clear draft</Button>{/if}
+    </div>
+  {/if}
+  {#if transcript && !dictation}<p class="mt-4 rounded-xl bg-background p-3 text-sm" aria-live="polite"><span class="mb-1 block text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">You said · simulated caption</span>{transcript}</p>{/if}
   {#if reply}<p class="mt-2 rounded-xl border border-border p-3 text-sm" aria-live="polite"><span class="mb-1 block text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">Assistant · simulated caption</span>{reply}</p>{/if}
   {#if !speechAvailable}<p class="mt-2 text-center text-xs text-muted-foreground">Speech output is muted in this browser; captions remain available.</p>{/if}
   {#if showMicLevelMeter}
