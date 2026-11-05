@@ -25,7 +25,7 @@ let {
   onSelect,
   recentItems = [],
   debounceMs = 150,
-  placeholder = 'Search pages, people, and actions…',
+  placeholder,
   class: className,
   ref = $bindable(null),
   open = $bindable(false),

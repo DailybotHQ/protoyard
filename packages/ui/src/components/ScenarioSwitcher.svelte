@@ -3,6 +3,7 @@ import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import { Badge } from 'texuli/badge';
 import { Button } from 'texuli/button';
+import { useMessages } from 'texuli/i18n';
 import { cn } from '../lib/cn.ts';
 import EmptyState from './empty-state/EmptyState.svelte';
 
@@ -80,21 +81,66 @@ let {
   switchingPersonaId = null,
   onLoadScenario,
   onViewAs,
-  title = 'Demo scenarios',
-  description = 'Load a world and view it as another persona. Simulated data only — not multiplayer.',
-  simulatedLabel = 'Simulated',
-  simulatedTitle = 'Changes the demo data world. Not real multiplayer or authentication.',
-  loadLabel = 'Load',
-  loadingLabel = 'Loading…',
-  viewAsHeading = 'View as…',
-  youLabel = 'You',
-  emptyTitle = 'No scenarios',
-  emptyDescription = 'This build has no registered scenarios.',
+  title: titleProp,
+  description: descriptionProp,
+  simulatedLabel: simulatedLabelProp,
+  simulatedTitle: simulatedTitleProp,
+  loadLabel: loadLabelProp,
+  loadingLabel: loadingLabelProp,
+  viewAsHeading: viewAsHeadingProp,
+  youLabel: youLabelProp,
+  emptyTitle: emptyTitleProp,
+  emptyDescription: emptyDescriptionProp,
   header,
   class: className = '',
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const title = $derived(
+  titleProp ?? messages('protoyard.ui.scenario-switcher.title', 'Demo scenarios')
+);
+const description = $derived(
+  descriptionProp ??
+    messages(
+      'protoyard.ui.scenario-switcher.description',
+      'Load a world and view it as another persona. Simulated data only — not multiplayer.'
+    )
+);
+const simulatedLabel = $derived(
+  simulatedLabelProp ?? messages('protoyard.ui.scenario-switcher.simulated-label', 'Simulated')
+);
+const simulatedTitle = $derived(
+  simulatedTitleProp ??
+    messages(
+      'protoyard.ui.scenario-switcher.simulated-title',
+      'Changes the demo data world. Not real multiplayer or authentication.'
+    )
+);
+const loadLabel = $derived(
+  loadLabelProp ?? messages('protoyard.ui.scenario-switcher.load-label', 'Load')
+);
+const loadingLabel = $derived(
+  loadingLabelProp ?? messages('protoyard.ui.scenario-switcher.loading-label', 'Loading…')
+);
+const viewAsHeading = $derived(
+  viewAsHeadingProp ?? messages('protoyard.ui.scenario-switcher.view-as-heading', 'View as…')
+);
+const youLabel = $derived(
+  youLabelProp ?? messages('protoyard.ui.scenario-switcher.you-label', 'You')
+);
+const emptyTitle = $derived(
+  emptyTitleProp ?? messages('protoyard.ui.scenario-switcher.empty-title', 'No scenarios')
+);
+const emptyDescription = $derived(
+  emptyDescriptionProp ??
+    messages(
+      'protoyard.ui.scenario-switcher.empty-description',
+      'This build has no registered scenarios.'
+    )
+);
 
 const groups = $derived.by((): ScenarioSwitcherGroup[] => {
   if (groupsProp && groupsProp.length > 0) return [...groupsProp];

@@ -28,7 +28,7 @@ type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps | 'c
 
 let {
   value = $bindable(0),
-  label = 'Rating',
+  label,
   maxStars = 5,
   disabled = false,
   hideLabel = false,
@@ -51,7 +51,7 @@ const count = $derived(Math.min(10, Math.max(2, Math.floor(maxStars) || 5)));
   {hideLabel}
   {name}
   showValue
-  labels={{ label }}
+  labels={label === undefined ? undefined : { label }}
   onValueChange={onchange}
   class={className}
 />

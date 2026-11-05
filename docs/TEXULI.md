@@ -100,13 +100,114 @@ own `labels` prop still wins, and missing ids stay English. The renderer's own
 words (service toasts, loading text, the demo badge) go in `messages`
 (`ChromeMessages`). Texuli's `data`, `chat`, `media` and `editor` packages still
 take per-component `labels` props only (a known Texuli gap), and most of Protoyard's
-kits do not map their own strings onto the dictionary yet. DocApp does: its
+kits do not map their own strings onto the dictionary yet. `@protoyard/ui`
+does ([Protoyard ui ids](#protoyard-ui-ids)), and so does DocApp: its
 outline reads `pages.outline`, and its own words use `protoyard.doc.edit`,
 `protoyard.doc.reset`, `protoyard.doc.download`, `protoyard.doc.download-as`
 (`{format}`), `protoyard.doc.edits-saved`, `protoyard.doc.edits-unsaved`,
 `protoyard.doc.download-failed`, the `protoyard.doc.*` notice ids in
 `DocApp.svelte`, `protoyard.pages.document-content` and
 `protoyard.pages.untitled-document`.
+
+### Protoyard ui ids
+
+`@protoyard/ui` wrappers (1.4.0) no longer pass English defaults over Texuli's
+dictionary. Where Texuli resolves a prop itself (`Dialog` and `AdaptiveOverlay`
+`closeLabel`, `AlertDialog` `confirmLabel`/`cancelLabel`, `Sidebar`
+`label`/`collapseLabel`/`expandLabel`, `BottomNav` and `Pagination` `label`,
+`MobileHeader` `backLabel`, `MobileAppShell` `skipLabel`, `CommandPalette`
+`placeholder`, `StarRating` `label`, `FileDropzone` `label`/`browseLabel`), the
+wrapper leaves the prop undefined, so the `texuli.*` id applies. Strings that
+Protoyard renders itself read the ids below through `useMessages()` from
+`texuli/i18n`, with the English shown as the fallback. A prop still wins over
+both. `{name}` placeholders are filled by the component.
+
+| Id | English |
+| --- | --- |
+| `protoyard.ui.browser-chrome.title` | Prototype |
+| `protoyard.ui.calendar.label` | Choose a date |
+| `protoyard.ui.combobox.empty-text` | No results |
+| `protoyard.ui.combobox.placeholder` | Search… |
+| `protoyard.ui.combobox.show-options` | Show options |
+| `protoyard.ui.composer.label` | Message |
+| `protoyard.ui.composer.placeholder` | Write a message… |
+| `protoyard.ui.data-table.empty-title` | No results |
+| `protoyard.ui.data-table.search-placeholder` | Search… |
+| `protoyard.ui.date-picker.calendar-label` | Choose a date |
+| `protoyard.ui.date-range-picker.calendar-label` | Choose a date range |
+| `protoyard.ui.date-range-picker.end-label` | End date |
+| `protoyard.ui.date-range-picker.label` | Date range |
+| `protoyard.ui.date-range-picker.start-label` | Start date |
+| `protoyard.ui.detail-panel.close-label` | Close panel |
+| `protoyard.ui.docs-layout.content-label` | Documentation content |
+| `protoyard.ui.docs-layout.navigation-label` | Documentation sections |
+| `protoyard.ui.docs-layout.toc-label` | On this page |
+| `protoyard.ui.drawer.close-label` | Close |
+| `protoyard.ui.emoji-picker.placeholder` | Choose an emoji |
+| `protoyard.ui.emoji-picker.search-placeholder` | Search emoji |
+| `protoyard.ui.file-dropzone.accepted` | Accepted: {accept} |
+| `protoyard.ui.file-dropzone.max-files` | Max files: {count} |
+| `protoyard.ui.file-dropzone.max-size` | Max size: {size} |
+| `protoyard.ui.file-dropzone.reject-count` | Only {count} files allowed |
+| `protoyard.ui.file-dropzone.reject-count-one` | Only {count} file allowed |
+| `protoyard.ui.file-dropzone.reject-single` | Only one file allowed |
+| `protoyard.ui.file-dropzone.reject-size` | Too large |
+| `protoyard.ui.file-dropzone.reject-size-max` | Larger than {size} |
+| `protoyard.ui.file-dropzone.reject-type` | Type not allowed |
+| `protoyard.ui.file-dropzone.reject-type-accept` | Type not allowed ({accept}) |
+| `protoyard.ui.filter-bar.label` | Filters |
+| `protoyard.ui.filter-bar.reset-label` | Reset filters |
+| `protoyard.ui.header.menu-label` | Open navigation |
+| `protoyard.ui.image-input.add-label` | Add images |
+| `protoyard.ui.image-input.clear-label` | Remove images |
+| `protoyard.ui.image-input.hint` | Choose local images. Nothing is uploaded until you save. |
+| `protoyard.ui.image-input.label` | Photos |
+| `protoyard.ui.kanban.already-in` | {item} is already in {column}. |
+| `protoyard.ui.kanban.empty-column-text` | No items |
+| `protoyard.ui.kanban.label` | Board |
+| `protoyard.ui.kanban.move-menu` | Move {item} to another column |
+| `protoyard.ui.kanban.move-menu-label` | Move {item} to… |
+| `protoyard.ui.loading-state.label` | Loading… |
+| `protoyard.ui.number-stepper.decrement` | Decrease {label} |
+| `protoyard.ui.number-stepper.increment` | Increase {label} |
+| `protoyard.ui.pagination.next` | Next |
+| `protoyard.ui.pagination.previous` | Previous |
+| `protoyard.ui.pagination.status` | Page {page} of {count} |
+| `protoyard.ui.password-strength-meter.label` | Password strength |
+| `protoyard.ui.proposal-tag.label` | Proposal under review |
+| `protoyard.ui.proposal-tag.title` | This is a proposal under review, not a committed product feature. |
+| `protoyard.ui.scenario-switcher.description` | Load a world and view it as another persona. Simulated data only — not multiplayer. |
+| `protoyard.ui.scenario-switcher.empty-description` | This build has no registered scenarios. |
+| `protoyard.ui.scenario-switcher.empty-title` | No scenarios |
+| `protoyard.ui.scenario-switcher.load-label` | Load |
+| `protoyard.ui.scenario-switcher.loading-label` | Loading… |
+| `protoyard.ui.scenario-switcher.simulated-label` | Simulated |
+| `protoyard.ui.scenario-switcher.simulated-title` | Changes the demo data world. Not real multiplayer or authentication. |
+| `protoyard.ui.scenario-switcher.title` | Demo scenarios |
+| `protoyard.ui.scenario-switcher.view-as-heading` | View as… |
+| `protoyard.ui.scenario-switcher.you-label` | You |
+| `protoyard.ui.select.placeholder` | Select an option |
+| `protoyard.ui.simulated-tag.label` | Simulated |
+| `protoyard.ui.simulated-tag.title` | This step is simulated. It is not real security, billing or AI. |
+| `protoyard.ui.tag-email-input.duplicate-message` | This address is already in the list |
+| `protoyard.ui.tag-email-input.invalid-message` | Enter a valid email address |
+| `protoyard.ui.time-input.label` | Time |
+| `protoyard.ui.time-zone-select.empty-text` | No time zone matches |
+| `protoyard.ui.time-zone-select.placeholder` | Search a time zone |
+| `protoyard.ui.undo-toaster.label` | Undo notifications |
+| `protoyard.ui.user-picker.empty-text` | No one found |
+| `protoyard.ui.user-picker.label` | People |
+| `protoyard.ui.user-picker.placeholder` | Select a person |
+| `protoyard.ui.user-picker.search-placeholder` | Search people… |
+| `protoyard.ui.weekday-picker.label` | Days of the week |
+| `protoyard.ui.window-chrome.title` | App |
+
+Not mapped yet (still English, no prop): the window and browser chrome
+control names (`WindowChrome` Minimize/Maximize/Close/Reopen, `BrowserChrome`
+Back/Forward/Reload/Address), `DataTable` row and search names, `FilterBar`
+Any/Yes/No and range names, `EmojiPicker` "No emoji matches", `TagEmailInput`
+"Added tags"/"Add an address", `PasswordStrengthMeter` score words and
+`UndoToaster` retry and dismiss names.
 
 ## Icons, code fields, image pairs and avatar grids (Texuli 0.13.1)
 

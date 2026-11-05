@@ -3,6 +3,7 @@ import type { TagsInputInvalidDetail } from '@texuli/primitives/tags-input';
 import type { HTMLAttributes } from 'svelte/elements';
 import { cx } from 'texuli/cx';
 import { labelClass } from 'texuli/field';
+import { useMessages } from 'texuli/i18n';
 import { TagsInput } from 'texuli/tags-color';
 import { isEmailAddress } from './email.ts';
 
@@ -60,8 +61,8 @@ let {
   autosize = false,
   ignoreValidation = false,
   validationRules,
-  invalidMessage = 'Enter a valid email address',
-  duplicateMessage = 'This address is already in the list',
+  invalidMessage: invalidMessageProp,
+  duplicateMessage: duplicateMessageProp,
   disabled = false,
   readonly = false,
   required = false,
@@ -75,6 +76,20 @@ let {
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const invalidMessage = $derived(
+  invalidMessageProp ??
+    messages('protoyard.ui.tag-email-input.invalid-message', 'Enter a valid email address')
+);
+const duplicateMessage = $derived(
+  duplicateMessageProp ??
+    messages(
+      'protoyard.ui.tag-email-input.duplicate-message',
+      'This address is already in the list'
+    )
+);
 
 /**
  * Whitespace, comma and semicolon: typing one of them adds the draft like

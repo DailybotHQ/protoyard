@@ -2,6 +2,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import { cx } from 'texuli/cx';
+import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 import { Sheet } from 'texuli/sheet';
 import { refAttachment } from '../../lib/ref.ts';
@@ -61,7 +62,7 @@ let {
   closeOnOutsideClick,
   closeOnEscape = true,
   hideClose = false,
-  closeLabel = 'Close',
+  closeLabel: closeLabelProp,
   trigger,
   footer,
   children,
@@ -72,6 +73,10 @@ let {
   style,
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const closeLabel = $derived(closeLabelProp ?? messages('protoyard.ui.drawer.close-label', 'Close'));
 
 const portal = useOverlayPortalTarget();
 // The stack is fixed for the drawer's lifetime; handlers use `layer.stack`.

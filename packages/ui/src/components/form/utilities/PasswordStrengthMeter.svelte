@@ -2,6 +2,7 @@
 import type { HTMLAttributes } from 'svelte/elements';
 import { cx } from 'texuli/cx';
 import { Progress } from 'texuli/feedback';
+import { useMessages } from 'texuli/i18n';
 import { PASSWORD_SCORE_LEVELS, PASSWORD_SCORE_WORDS, passwordScore } from './password-score.ts';
 
 /**
@@ -40,13 +41,19 @@ type Props = OwnProps &
 let {
   value = '',
   rawFeedbackKeys = false,
-  label = 'Password strength',
+  label: labelProp,
   class: className,
   onScore,
   onFeedback,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const label = $derived(
+  labelProp ?? messages('protoyard.ui.password-strength-meter.label', 'Password strength')
+);
 
 const result = $derived(passwordScore(value));
 const level = $derived(PASSWORD_SCORE_LEVELS[result.score] ?? '');

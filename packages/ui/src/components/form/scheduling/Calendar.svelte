@@ -3,6 +3,7 @@ import type { DateInvalidHandler } from '@texuli/primitives/date-picker';
 import { tick } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import { Calendar as TexuliCalendar } from 'texuli/date';
+import { useMessages } from 'texuli/i18n';
 import { cn } from '../../../lib/cn.ts';
 import type { DateRange, IsoDate } from './dates.ts';
 import { texuliUnavailable, texuliWeekStart } from './texuli-date.ts';
@@ -66,7 +67,7 @@ let {
   isDateDisabled,
   weekStartsOn = 1,
   locale,
-  label = 'Choose a date',
+  label: labelProp,
   maxDays,
   onInvalid,
   onRangeChange,
@@ -75,6 +76,10 @@ let {
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const label = $derived(labelProp ?? messages('protoyard.ui.calendar.label', 'Choose a date'));
 /** The start chosen by the first of two range picks, to tell which day the second chose. */
 let pendingStart: IsoDate | null = null;
 

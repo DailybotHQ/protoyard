@@ -8,6 +8,7 @@ import { onMount } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import { IconButton } from 'texuli/button';
 import { cx } from 'texuli/cx';
+import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 import Input from '../input/Input.svelte';
 import { formatAddress, parseAddress } from './address.ts';
@@ -23,12 +24,16 @@ type Props = Omit<HTMLAttributes<HTMLElement>, 'title' | 'class' | 'children'> &
 
 let {
   origin,
-  title = 'Prototype',
+  title: titleProp,
   class: className,
   children,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const title = $derived(titleProp ?? messages('protoyard.ui.browser-chrome.title', 'Prototype'));
 
 let addressValue = $state('');
 let routeHistory = $state<string[]>([]);

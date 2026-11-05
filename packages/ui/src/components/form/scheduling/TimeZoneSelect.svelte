@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { ComponentProps } from 'svelte';
+import { useMessages } from 'texuli/i18n';
 import Combobox from '../../combobox/Combobox.svelte';
 import type { SelectOption } from '../../select/types.ts';
 import { listTimeZones, matchesTimeZone, timeZoneOptions } from './timezones.ts';
@@ -43,8 +44,8 @@ let {
   zones,
   id,
   name,
-  placeholder = 'Search a time zone',
-  emptyText = 'No time zone matches',
+  placeholder: placeholderProp,
+  emptyText: emptyTextProp,
   disabled = false,
   required: requiredProp = false,
   'aria-describedby': describedBy,
@@ -56,6 +57,15 @@ let {
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const placeholder = $derived(
+  placeholderProp ?? messages('protoyard.ui.time-zone-select.placeholder', 'Search a time zone')
+);
+const emptyText = $derived(
+  emptyTextProp ?? messages('protoyard.ui.time-zone-select.empty-text', 'No time zone matches')
+);
 
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
 

@@ -3,6 +3,7 @@ import FlaskConical from '@lucide/svelte/icons/flask-conical';
 import type { HTMLAttributes } from 'svelte/elements';
 import { Badge } from 'texuli/badge';
 import { cx } from 'texuli/cx';
+import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 
 /**
@@ -18,12 +19,25 @@ type Props = Omit<HTMLAttributes<HTMLSpanElement>, 'title' | 'class' | 'children
 };
 
 let {
-  label = 'Proposal under review',
-  title = 'This is a proposal under review, not a committed product feature.',
+  label: labelProp,
+  title: titleProp,
   class: className,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const label = $derived(
+  labelProp ?? messages('protoyard.ui.proposal-tag.label', 'Proposal under review')
+);
+const title = $derived(
+  titleProp ??
+    messages(
+      'protoyard.ui.proposal-tag.title',
+      'This is a proposal under review, not a committed product feature.'
+    )
+);
 </script>
 
 <!-- Protoyard's honesty label (AGENTS.md rule 10) on Texuli's Badge. -->

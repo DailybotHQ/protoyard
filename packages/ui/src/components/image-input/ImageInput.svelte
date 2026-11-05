@@ -5,6 +5,7 @@ import { Badge } from 'texuli/badge';
 import { Button } from 'texuli/button';
 import { cx } from 'texuli/cx';
 import { FileUpload } from 'texuli/file-upload';
+import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 import {
   buildImagePreviews,
@@ -52,20 +53,37 @@ interface OwnProps {
 type Props = OwnProps & Omit<HTMLAttributes<HTMLDivElement>, keyof OwnProps | 'children'>;
 
 let {
-  label = 'Photos',
-  hint = 'Choose local images. Nothing is uploaded until you save.',
+  label: labelProp,
+  hint: hintProp,
   accept = DEFAULT_IMAGE_ACCEPT,
   multiple = true,
   required = false,
   disabled = false,
   inputId,
-  clearLabel = 'Remove images',
-  addLabel = 'Add images',
+  clearLabel: clearLabelProp,
+  addLabel: addLabelProp,
   onFilesSelected,
   class: className = '',
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const label = $derived(labelProp ?? messages('protoyard.ui.image-input.label', 'Photos'));
+const hint = $derived(
+  hintProp ??
+    messages(
+      'protoyard.ui.image-input.hint',
+      'Choose local images. Nothing is uploaded until you save.'
+    )
+);
+const clearLabel = $derived(
+  clearLabelProp ?? messages('protoyard.ui.image-input.clear-label', 'Remove images')
+);
+const addLabel = $derived(
+  addLabelProp ?? messages('protoyard.ui.image-input.add-label', 'Add images')
+);
 
 // A plain record keeps the spread onto Texuli's FileUpload a finite type.
 const forwarded = $derived(rest as Record<string, unknown>);

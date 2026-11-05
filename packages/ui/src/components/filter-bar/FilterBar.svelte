@@ -5,6 +5,7 @@ import { Tag } from 'texuli/badge';
 import { Button } from 'texuli/button';
 import { Checkbox } from 'texuli/choice';
 import { cx } from 'texuli/cx';
+import { useMessages } from 'texuli/i18n';
 import { LucideIcon } from 'texuli/icons/lucide';
 import Input from '../input/Input.svelte';
 import Popover from '../popover/Popover.svelte';
@@ -40,12 +41,19 @@ let {
   fields,
   values = $bindable({}),
   onValuesChange,
-  label = 'Filters',
-  resetLabel = 'Reset filters',
+  label: labelProp,
+  resetLabel: resetLabelProp,
   class: className,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const label = $derived(labelProp ?? messages('protoyard.ui.filter-bar.label', 'Filters'));
+const resetLabel = $derived(
+  resetLabelProp ?? messages('protoyard.ui.filter-bar.reset-label', 'Reset filters')
+);
 
 const chips = $derived(buildFilterChips(fields, values));
 const active = $derived(hasActiveFilters(fields, values));

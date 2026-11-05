@@ -3,6 +3,7 @@ import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import { IconButton } from 'texuli/button';
 import { cx } from 'texuli/cx';
+import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 import { getAppShellContext } from '../app-shell/context.ts';
 
@@ -33,12 +34,18 @@ let {
   leading,
   actions,
   onMenuClick,
-  menuLabel = 'Open navigation',
+  menuLabel: menuLabelProp,
   sticky = true,
   class: className,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const menuLabel = $derived(
+  menuLabelProp ?? messages('protoyard.ui.header.menu-label', 'Open navigation')
+);
 
 const shell = getAppShellContext();
 const menuHandler = $derived(onMenuClick ?? shell?.openSidebar);

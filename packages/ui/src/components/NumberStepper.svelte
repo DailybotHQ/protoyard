@@ -9,12 +9,17 @@ import Plus from '@lucide/svelte/icons/plus';
 import type { HTMLInputAttributes } from 'svelte/elements';
 import { cx } from 'texuli/cx';
 import { labelClass } from 'texuli/field';
+import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 import { NumberField } from 'texuli/number-pin';
 
 interface OwnProps {
   /** Accessible name (and visible label unless `hideLabel`). */
   label: string;
+  /** Name of the increase button. Default `protoyard.ui.number-stepper.increment` ("Increase {label}"). */
+  incrementLabel?: string;
+  /** Name of the decrease button. Default `protoyard.ui.number-stepper.decrement` ("Decrease {label}"). */
+  decrementLabel?: string;
   value?: number;
   min?: number;
   max?: number;
@@ -42,6 +47,8 @@ type Props = OwnProps &
 
 let {
   label,
+  incrementLabel,
+  decrementLabel,
   value = $bindable(0),
   min = 0,
   max = Number.MAX_SAFE_INTEGER,
@@ -54,6 +61,9 @@ let {
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Button names resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
 
 const uid = $props.id();
 const labelId = `stepper-label-${uid}`;
@@ -71,8 +81,10 @@ const inputLabelledby = $derived(
     {max}
     step={safeStep}
     {disabled}
-    incrementLabel={`Increase ${label}`}
-    decrementLabel={`Decrease ${label}`}
+    incrementLabel={incrementLabel ??
+      messages('protoyard.ui.number-stepper.increment', 'Increase {label}', { label })}
+    decrementLabel={decrementLabel ??
+      messages('protoyard.ui.number-stepper.decrement', 'Decrease {label}', { label })}
     onValueChange={(next) => {
       if (next !== null) onchange?.(next);
     }}

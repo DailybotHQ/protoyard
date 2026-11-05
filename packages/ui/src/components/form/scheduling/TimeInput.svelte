@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { HTMLAttributes } from 'svelte/elements';
 import { TimeField } from 'texuli/date';
+import { useMessages } from 'texuli/i18n';
 import { cn } from '../../../lib/cn.ts';
 import { isTimeOfDay, minuteSteps, type TimeFormat, type TimeOfDay } from './time.ts';
 
@@ -55,7 +56,7 @@ let {
   format = 12,
   intervalMinutes = 15,
   id = `time-${uid}`,
-  label = 'Time',
+  label: labelProp,
   name,
   disabled = false,
   required: requiredProp = false,
@@ -69,6 +70,10 @@ let {
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const label = $derived(labelProp ?? messages('protoyard.ui.time-input.label', 'Time'));
 
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
 const invalid = $derived(ariaInvalid === true || ariaInvalid === 'true');
