@@ -1,5 +1,11 @@
 # @protoyard/flows-ui
 
+## 1.2.0
+
+### Patch Changes
+
+- @protoyard/flows@1.2.0
+
 ## 1.1.3
 
 ### Patch Changes

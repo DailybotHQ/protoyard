@@ -6,6 +6,54 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-05
+
+Protoyard from npm, without patches: the gaps two real consumers (Dailybot and
+Corag) reported while rebuilding on 1.1.3 and Texuli 0.12.3.
+
+### Added
+
+- **Consumer gates.** `protoyard check texuli [--scope] [--strict]` runs the
+  Texuli adoption rules in any workspace, and `protoyard sweep <slug>` captures
+  light and dark, desktop and phone PNGs of a built prototype.
+  `protoyard/capture` (`capture`, `withReadyPage`, `launchChromium`) and
+  `protoyard/static-server` (`serveStatic`) are public subpaths.
+- **Gallery from npm.** `protoyard gallery build` and `gallery preview` build
+  and serve the gallery for a workspace (`artifacts/gallery/dist/`). The
+  gallery package ships the guides, so `/docs/` works offline.
+- **Workspace settings.** `protoyard.workspace.json` accepts local `templates`
+  globs (found by `new --template` and `list`) and
+  `showcase: { templates: false }`, a default that keeps a showcase under a
+  host's file limit.
+- **`validate --all [--build]`** validates every prototype.
+- **The blueprint catalog from npm.** Catalog blueprints ship in
+  `@protoyard/templates`, so `list --kind blueprint` and
+  `generate --blueprint <id>` work in a consumer.
+- **Design systems for every kind.** `ds use` wires deck, page and doc
+  prototypes, adds `@protoyard/themes` at the installed version when needed and
+  refreshes the generated spec regions. `ds new --from-theme-file <path>`
+  imports a prototype's own theme.
+  `defineDesignSystemTheme(compiled, { fontBase, description })` resolves
+  fonts from a package and shows the document's description.
+- **Configurable runtime chrome.** `devtools.launcher` (`hidden`, `offset`,
+  `tone`) and `demoBadge: { layer, avoid, phone }` in the manifest and
+  `mountPrototype`; the compact phone badge keeps clear of headings and the
+  bottom navigation.
+
+### Fixed
+
+- **No `workspace:*` in a consumer.** `generate`, `blueprint new --from-brief
+  --generate`, `quick promote` and `new --from` write the installed version, and
+  a remix keeps a consumer's own `workspace:` packages.
+- **`showcase` in a consumer** copies the player build the npm package ships
+  instead of running Vite on source that is not installed.
+
+### Not in this release
+
+- The Texuli-owned gaps (i18n labels, product tokens, decks taking a design
+  system, registered icons, a code field, and others) wait for the next Texuli
+  release; Protoyard adopts it in 1.2.x.
+
 ## [1.1.3] - 2026-11-03
 
 ### Fixed

@@ -1,5 +1,24 @@
 # @protoyard/renderer-svelte
 
+## 1.2.0
+
+### Minor Changes
+
+- Configurable runtime chrome. The manifest and `mountPrototype` take `devtools.launcher` (`hidden`, `offset`, `tone`) and `demoBadge` as `boolean | { layer, avoid, phone }`, and the compact phone badge stays clear of headings and the bottom navigation.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @protoyard/themes@1.2.0
+  - @protoyard/runtime@1.2.0
+  - @protoyard/core@1.2.0
+  - @protoyard/devtools@1.2.0
+  - @protoyard/avatars@1.2.0
+  - @protoyard/offline@1.2.0
+  - @protoyard/review-ui@1.2.0
+  - @protoyard/ui@1.2.0
+
 ## 1.1.3
 
 ### Patch Changes

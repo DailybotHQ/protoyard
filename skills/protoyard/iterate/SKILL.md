@@ -1,7 +1,7 @@
 ---
 name: protoyard-iterate
 description: Change an existing Protoyard prototype or quick exploration safely — edit the blueprint as the source of truth, regenerate blueprint-owned code, keep hand-written code out of generated files, run the dev server and validate the result.
-version: "1.1.3"
+version: "1.2.0"
 documentation_url: https://protoyard.app/docs/
 user-invocable: true
 metadata:
