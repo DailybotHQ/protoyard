@@ -15,8 +15,8 @@
       "reason": "PLAN_008 (2026-10-31): CSS measured 41.02 KB gzip, ceiling 39.9 -> 42.1 KB; +2.5% rounded up. Cause: Texuli 0.9.0 token contract v2 component CSS plus @texuli/tokens/base.css (gap G110), and every @texuli/forms control's CSS wherever a SchemaForm renders (gap G119). Lower again when those gaps ship."
     },
     "cadence-studio-demo": {
-      "cssGzipKb": 60.1,
-      "reason": "PLAN_008 (2026-10-31): CSS measured 58.60 KB gzip, ceiling 52.4 -> 60.1 KB; +2.5% rounded up. Cause: Texuli 0.9.0 token contract v2 component CSS plus @texuli/tokens/base.css (gap G110), and every @texuli/forms control's CSS wherever a SchemaForm renders (gap G119). Lower again when those gaps ship."
+      "cssGzipKb": 62.6,
+      "reason": "PLAN_011 (2026-11-05): CSS measured 61.00 KB gzip with Texuli 0.14.0, ceiling 60.1 -> 62.6 KB; +2.5% rounded up. Cause: Texuli 0.14.0 component CSS grew 1,255 B gzip over 0.13.1. Earlier: PLAN_008 (2026-10-31): CSS measured 58.60 KB gzip, ceiling 52.4 -> 60.1 KB; +2.5% rounded up. Cause: Texuli 0.9.0 token contract v2 component CSS plus @texuli/tokens/base.css (gap G110), and every @texuli/forms control's CSS wherever a SchemaForm renders (gap G119). Lower again when those gaps ship."
     },
     "create-anything-deck": {
       "cssGzipKb": 93.8,
@@ -32,12 +32,12 @@
       "reason": "Template (budget fintech-dashboard; budget --all checks prototypes only). PLAN_008 T-remeasure (2026-10-31): CSS measured 39.22 KB gzip against the 30 KB default; +2.5% rounded up. Cause: 36.54 KB before T-templates-prototypes from Texuli 0.9.0 token contract v2 component CSS plus @texuli/tokens/base.css (gap G110), plus 2.68 KB for the lazy transactions spreadsheet (@protoyard/views-ui/sheet). Lower again when G110 ships."
     },
     "harbor-dispatch-demo": {
-      "cssGzipKb": 60.1,
-      "reason": "PLAN_008 (2026-10-31): CSS measured 58.60 KB gzip, ceiling 52.4 -> 60.1 KB; +2.5% rounded up. Cause: Texuli 0.9.0 token contract v2 component CSS plus @texuli/tokens/base.css (gap G110), and every @texuli/forms control's CSS wherever a SchemaForm renders (gap G119). Lower again when those gaps ship."
+      "cssGzipKb": 62.6,
+      "reason": "PLAN_011 (2026-11-05): CSS measured 61.00 KB gzip with Texuli 0.14.0, ceiling 60.1 -> 62.6 KB; +2.5% rounded up. Cause: Texuli 0.14.0 component CSS grew 1,255 B gzip over 0.13.1. Earlier: PLAN_008 (2026-10-31): CSS measured 58.60 KB gzip, ceiling 52.4 -> 60.1 KB; +2.5% rounded up. Cause: Texuli 0.9.0 token contract v2 component CSS plus @texuli/tokens/base.css (gap G110), and every @texuli/forms control's CSS wherever a SchemaForm renders (gap G119). Lower again when those gaps ship."
     },
     "helpdesk-demo": {
-      "cssGzipKb": 59.1,
-      "reason": "PLAN_008 (2026-10-31): CSS measured 57.58 KB gzip, ceiling 51.9 -> 59.1 KB; +2.5% rounded up. Cause: Texuli 0.9.0 token contract v2 component CSS plus @texuli/tokens/base.css (gap G110), and every @texuli/forms control's CSS wherever a SchemaForm renders (gap G119). Lower again when those gaps ship."
+      "cssGzipKb": 61.5,
+      "reason": "PLAN_011 (2026-11-05): CSS measured 59.98 KB gzip with Texuli 0.14.0, ceiling 59.1 -> 61.5 KB; +2.5% rounded up. Cause: Texuli 0.14.0 component CSS grew 1,255 B gzip over 0.13.1. Earlier: PLAN_008 (2026-10-31): CSS measured 57.58 KB gzip, ceiling 51.9 -> 59.1 KB; +2.5% rounded up. Cause: Texuli 0.9.0 token contract v2 component CSS plus @texuli/tokens/base.css (gap G110), and every @texuli/forms control's CSS wherever a SchemaForm renders (gap G119). Lower again when those gaps ship."
     },
     "keel-projects-demo": {
       "cssGzipKb": 50.5,
@@ -60,8 +60,8 @@
       "reason": "Texuli 0.9.0: index.html initial CSS measured 18,013 B (17.59 KB) after loading @texuli/tokens/base.css, which declares the system tokens contract v2 components read (gap G110 asks for a tokens-only sheet); +2.5% rounded up to 18.1 KB."
     },
     "pulse-revenue-demo": {
-      "cssGzipKb": 60.1,
-      "reason": "PLAN_008 (2026-10-31): CSS measured 58.60 KB gzip, ceiling 52.4 -> 60.1 KB; +2.5% rounded up. Cause: Texuli 0.9.0 token contract v2 component CSS plus @texuli/tokens/base.css (gap G110), and every @texuli/forms control's CSS wherever a SchemaForm renders (gap G119). Lower again when those gaps ship."
+      "cssGzipKb": 62.6,
+      "reason": "PLAN_011 (2026-11-05): CSS measured 61.00 KB gzip with Texuli 0.14.0, ceiling 60.1 -> 62.6 KB; +2.5% rounded up. Cause: Texuli 0.14.0 component CSS grew 1,255 B gzip over 0.13.1. Earlier: PLAN_008 (2026-10-31): CSS measured 58.60 KB gzip, ceiling 52.4 -> 60.1 KB; +2.5% rounded up. Cause: Texuli 0.9.0 token contract v2 component CSS plus @texuli/tokens/base.css (gap G110), and every @texuli/forms control's CSS wherever a SchemaForm renders (gap G119). Lower again when those gaps ship."
     },
     "ui-kit": {
       "cssGzipKb": 58.8,
