@@ -12,7 +12,7 @@ import {
   Users,
   Wifi,
 } from '@lucide/svelte';
-import type { PrototypeRuntime, Theme } from '@protoyard/core';
+import type { DevtoolsOptions, PrototypeRuntime, Theme } from '@protoyard/core';
 import type { Component } from 'svelte';
 import { onMount } from 'svelte';
 import { on } from 'svelte/events';
@@ -40,11 +40,13 @@ let {
   themes = [],
   avatarImage,
   extraTabs = [],
+  launcherOptions = {},
 }: {
   runtime: PrototypeRuntime;
   themes?: readonly Theme[];
   avatarImage?: AvatarImageResolver;
   extraTabs?: readonly DevtoolsTab[];
+  launcherOptions?: DevtoolsOptions['launcher'];
 } = $props();
 
 // svelte-ignore state_referenced_locally
@@ -131,6 +133,8 @@ let devtoolsOffset = $state('0px');
 let appModalOpen = $state(false);
 /** Phone-width windows: a bottom pill covers composers, send buttons and tab bars. */
 let narrow = $state(false);
+const launcherOffset = $derived(launcherOptions?.offset ?? {});
+const launcherTone = $derived(launcherOptions?.tone ?? 'default');
 $effect(() => {
   let frame = 0;
   const measure = () => {
@@ -260,26 +264,27 @@ function presentationMode() {
 
 <div class="py-devtools-root pointer-events-auto font-sans text-[13px] leading-normal text-foreground antialiased" style={`--devtools-fixed-right-edge: ${fixedRightEdge}; --devtools-offset: ${devtoolsOffset}`}>
   {#if !open}
-    {#if appModalOpen || narrow}
+    {#if !launcherOptions?.hidden && (appModalOpen || narrow)}
       <!-- Docked to the right edge so it never covers an app dialog's actions or a phone's bottom controls. -->
       <Btn
         bind:ref={launcher}
         type="button"
-        class="fixed top-1/2 right-[var(--devtools-fixed-right-edge,0px)] z-[2147483000] inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-l-xl border border-r-0 border-border bg-elevated text-primary shadow-float focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        class={`fixed top-1/2 right-[var(--devtools-fixed-right-edge,0px)] z-[2147483000] inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-l-xl border border-r-0 border-border bg-elevated text-primary shadow-float focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${launcherTone === 'subtle' ? 'opacity-70' : ''} ${launcherTone === 'contrast' ? '!border-foreground !bg-foreground !text-background' : ''}`}
+        style={`translate: ${launcherOffset.x ?? 0}px ${launcherOffset.y ?? 0}px`}
         aria-label="Open Protoyard DevTools (Ctrl or Command + period)"
         aria-expanded="false"
         onclick={() => setOpen(true)}
       >
         <Glyph icon={FlaskConical} class="size-4" aria-hidden="true" />
       </Btn>
-    {:else}
+    {:else if !launcherOptions?.hidden}
       <Btn
         bind:ref={launcher}
         type="button"
-        class="fixed right-[calc(1rem+var(--devtools-fixed-right-edge,0px))] z-[2147483000] inline-flex h-11 items-center gap-2 rounded-full border border-border bg-elevated pr-4 pl-3 text-xs font-semibold text-foreground shadow-float transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+        class={`fixed right-[calc(1rem+var(--devtools-fixed-right-edge,0px))] z-[2147483000] inline-flex h-11 items-center gap-2 rounded-full border border-border bg-elevated pr-4 pl-3 text-xs font-semibold text-foreground shadow-float transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none ${launcherTone === 'subtle' ? 'opacity-70' : ''} ${launcherTone === 'contrast' ? '!border-foreground !bg-foreground !text-background' : ''}`}
         style={`bottom: ${navOffset > 0
           ? `calc(${navOffset + 12}px + var(--devtools-offset, 0px))`
-          : 'calc(1rem + env(safe-area-inset-bottom, 0px) + var(--devtools-offset, 0px))'}`}
+          : 'calc(1rem + env(safe-area-inset-bottom, 0px) + var(--devtools-offset, 0px))'}; translate: ${launcherOffset.x ?? 0}px ${launcherOffset.y ?? 0}px`}
         aria-label={overrideCount > 0
           ? `Open Protoyard DevTools ${overrideCount} active overrides (Ctrl or Command + period)`
           : 'Open Protoyard DevTools (Ctrl or Command + period)'}

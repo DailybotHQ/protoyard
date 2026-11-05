@@ -121,6 +121,24 @@ export function badgeContainer(
   return { container: visiblePlacementContainer(win), origin: { left: 0, top: 0 } };
 }
 
+/** Bounding boxes for app regions that floating chrome must leave clear. */
+export function selectorRects(selectors: readonly string[]): Rect[] {
+  const rects: Rect[] = [];
+  for (const selector of selectors) {
+    try {
+      for (const element of document.querySelectorAll<HTMLElement>(selector)) {
+        const rect = element.getBoundingClientRect();
+        if (rect.width && rect.height) {
+          rects.push({ left: rect.left, top: rect.top, width: rect.width, height: rect.height });
+        }
+      }
+    } catch {
+      // A malformed optional selector is ignored without preventing the app from mounting.
+    }
+  }
+  return rects;
+}
+
 /** Custom property on `<html>`: layout-viewport px hidden to the right of the visual viewport. */
 export const FIXED_RIGHT_EDGE_VAR = '--py-fixed-right-edge';
 

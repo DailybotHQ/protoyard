@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { PrototypeRuntime } from '@protoyard/core';
+import type { DemoBadgeOptions, PrototypeRuntime } from '@protoyard/core';
 import { Toaster } from '@protoyard/ui';
 import type { Component } from 'svelte';
 import { usePending } from '../bindings.svelte.ts';
@@ -20,7 +20,7 @@ let {
   runtime: PrototypeRuntime;
   // biome-ignore lint/suspicious/noExplicitAny: prototype apps may declare optional props.
   App: Component<any>;
-  demoBadge?: boolean;
+  demoBadge?: DemoBadgeOptions;
   /** DevTools is mounted, so notices can point at its tabs. */
   devtools?: boolean;
 } = $props();
@@ -62,5 +62,5 @@ const stale = typeof scenarioExtras.staleWorld === 'function' ? scenarioExtras.s
 </ShellHost>
 <!-- Outside the screen: below the stage in a frame, a free corner when full-bleed (app.css). -->
 {#if demoBadge}
-  <DemoBadge name={runtime.manifest.name} />
+  <DemoBadge name={runtime.manifest.name} options={demoBadge === true ? {} : demoBadge} />
 {/if}

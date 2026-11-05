@@ -1,4 +1,5 @@
 /// <reference path="./env.d.ts" />
+import type { DemoBadgeOptions } from '@protoyard/core';
 
 /**
  * Reads the Vite-defined globals defensively: under Vitest (or any bundler
@@ -10,8 +11,10 @@
 export const DEVTOOLS_ENABLED: boolean =
   typeof __PROTOYARD_DEVTOOLS__ !== 'undefined' ? __PROTOYARD_DEVTOOLS__ : false;
 
-export const DEMO_BADGE_ENABLED: boolean =
+export const DEMO_BADGE_CONFIG: boolean | DemoBadgeOptions =
   typeof __PROTOYARD_DEMO_BADGE__ !== 'undefined' ? __PROTOYARD_DEMO_BADGE__ : false;
+/** Backward-compatible boolean view of whether the build includes the badge. */
+export const DEMO_BADGE_ENABLED = DEMO_BADGE_CONFIG !== false;
 
 export const REVIEW_ENABLED: boolean =
   typeof __PROTOYARD_REVIEW__ !== 'undefined' ? __PROTOYARD_REVIEW__ : false;
