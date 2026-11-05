@@ -284,7 +284,8 @@ export function createProgram(env: RunnerEnv): Command {
   program
     .command('validate')
     .description('check manifest, folder contract, package, scenarios, schema version and types')
-    .argument('<slug>')
+    .argument('[slug]')
+    .option('--all', 'validate every prototype sequentially')
     .option('--skip-typecheck', 'skip svelte-check')
     .option('--build', 'also run a production build')
     .option('--strict-spec', 'fail (not warn) when spec files are missing')

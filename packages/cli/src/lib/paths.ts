@@ -1,6 +1,7 @@
-import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, globSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { TEMPLATES_ROOT } from '@protoyard/templates';
+import { BLUEPRINTS_ROOT, TEMPLATES_ROOT } from '@protoyard/templates';
+import { readWorkspaceTemplateGlobs } from './listing.ts';
 import { CliError } from './output.ts';
 
 /** Workspace-relative locations every command agrees on. */
@@ -8,6 +9,8 @@ export interface WorkspacePaths {
   root: string;
   prototypes: string;
   templates: string;
+  /** Matched workspace-local templates; checked before the published catalog. */
+  localTemplates: string[];
   /** Data-only product blueprints (`blueprints/*.json`) for the marketplace catalog. */
   blueprints: string;
   artifacts: string;
@@ -73,17 +76,76 @@ export function workspaceLayout(root: string): WorkspaceLayout | null {
 
 export function workspacePaths(root: string): WorkspacePaths {
   const state = join(root, '.protoyard');
-  const templates = workspaceLayout(root) === 'consumer' ? TEMPLATES_ROOT : join(root, 'templates');
+  const consumer = workspaceLayout(root) === 'consumer';
+  const templates = consumer ? TEMPLATES_ROOT : join(root, 'templates');
+  const blueprints = consumer ? BLUEPRINTS_ROOT : join(root, 'blueprints');
+  const localTemplates = consumer ? localTemplateDirectories(root) : [];
   return {
     root,
     prototypes: join(root, 'prototypes'),
     templates,
-    blueprints: join(root, 'blueprints'),
+    localTemplates,
+    blueprints,
     artifacts: join(root, 'artifacts'),
     state,
     registry: join(state, 'registry.json'),
     indexCache: join(state, 'index-cache.json'),
   };
+}
+
+/** Resolves safe, workspace-local template directory globs without following symlinks. */
+function localTemplateDirectories(root: string): string[] {
+  let patterns: string[];
+  try {
+    patterns = readWorkspaceTemplateGlobs(root);
+  } catch (error) {
+    throw new CliError('validation', (error as Error).message);
+  }
+  const found = new Set<string>();
+  for (const pattern of patterns) {
+    const segments = pattern.split(/[\\/]/);
+    if (
+      isAbsolute(pattern) ||
+      pattern.includes('\\') ||
+      segments.some((segment) => segment === '..' || segment === '.') ||
+      pattern.startsWith('!')
+    ) {
+      throw new CliError(
+        'unsafe_path',
+        `Refusing template glob "${pattern}": patterns must be relative to the workspace root and cannot traverse outside it.`
+      );
+    }
+    let matches: string[];
+    try {
+      matches = globSync(pattern, { cwd: root });
+    } catch (error) {
+      throw new CliError(
+        'validation',
+        `Cannot read template glob "${pattern}": ${(error as Error).message}`
+      );
+    }
+    for (const match of matches) {
+      const dir = resolve(root, match);
+      if (!isInside(root, dir)) continue;
+      const parts = relative(root, dir).split(sep).filter(Boolean);
+      let current = root;
+      let safe = true;
+      for (const part of parts) {
+        current = join(current, part);
+        try {
+          if (lstatSync(current).isSymbolicLink()) {
+            safe = false;
+            break;
+          }
+        } catch {
+          safe = false;
+          break;
+        }
+      }
+      if (safe && existsSync(join(dir, 'protoyard.json'))) found.add(dir);
+    }
+  }
+  return [...found].sort((a, b) => a.localeCompare(b));
 }
 
 /**

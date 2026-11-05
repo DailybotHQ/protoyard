@@ -12,6 +12,9 @@ export interface TemplateEntry {
  */
 export declare const TEMPLATES_ROOT: string;
 
+/** Catalog app, deck, page and doc blueprints, packed beside `templates/`. */
+export declare const BLUEPRINTS_ROOT: string;
+
 /** Every template folder that has a protoyard.json, sorted by name. */
 export declare function listTemplates(root?: string): TemplateEntry[];
 
