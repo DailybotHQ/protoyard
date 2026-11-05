@@ -1,5 +1,11 @@
 # @protoyard/http
 
+## 1.4.0
+
+### Patch Changes
+
+- @protoyard/core@1.4.0
+
 ## 1.3.0
 
 ### Patch Changes

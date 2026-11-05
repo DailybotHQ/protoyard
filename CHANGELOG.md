@@ -6,6 +6,82 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-05
+
+Universal gaps from Corag's register (PLAN_012): what a downstream team had to
+build locally is now in Protoyard, so any product can localize, theme and
+compose the kits without local copies. Texuli 0.14.1.
+
+### Added
+
+- **One dictionary for the whole prototype.** `@protoyard/ui` wrappers no
+  longer pass English defaults over Texuli's dictionary, and their own words
+  use `protoyard.ui.*` ids (UG-01). The gamification, SaaS account gate, pages
+  and docs, views, review and AI kits resolve theirs through
+  `protoyard.<kit>.*` ids (UG-02, 04, 05, 06, 11, 56). Every id is listed in
+  [TEXULI](docs/TEXULI.md). English stays the fallback, and props still win.
+- **Renderer:**
+  - `mountPrototype({ toaster })` places the toast stack (UG-12).
+  - `mountPrototype({ i18n })` also labels the review UI (UG-06).
+  - Adaptive presentation reads link values in the product's language
+    (`values`), and `PresentationToggle` switches phone and desktop in the
+    app (UG-13).
+  - `PrototypeNote` puts the prototype label in the page flow (UG-50).
+  - The linked-scenario prompt says its reason in the chrome language
+    (`PendingLink.code`, UG-47).
+- **Kits:**
+  - Gamification accepts runtime ids (`deal_0007`, `pts_u…`), and a mission
+    with `requiresAcceptance: false` completes at goal (UG-03).
+  - `PointsChip`/`StreakChip` take `icon`; `AchievementBadge` takes
+    `earnedAt` and `href` (UG-02).
+  - `AccountGate` takes copy props and a `content` snippet (UG-04).
+- **ui:**
+  - Sidebar renders item icons on the collapsed rail (UG-21).
+  - `ChipGroup` takes `variant` (UG-49).
+  - `Select` takes `fullWidth` (UG-20).
+  - `--tx-safe-*` and `--tx-app-height` are declared on `:root` (UG-15).
+- **Decks and design systems:**
+  - `DeckApp` takes `messages` and `designSystems`, with a
+    `deckDesignSystems(compiled)` helper (UG-09, UG-10).
+  - `ds use` modules export `compiled`, and `designSystemVars` was added
+    (UG-48).
+  - Tailwind gets every Texuli color role (`bg-primary-soft`, `text-link`,
+    `border-border-strong`, UG-16).
+- **Tooling:**
+  - `@protoyard/cli/adoption` exposes the Texuli adoption rules (UG-14).
+  - `kit sync --from <dir>` syncs a kit folder outside `src/components`
+    (UG-19).
+  - Deck, page and doc prototypes get measured budget defaults by
+    `blueprintKind`, plus an optional `contentKinds` block (UG-57).
+- **Board and Calendar on Texuli 0.14.1:**
+  - A collapsed lane still counts in column totals and WIP.
+  - On a board with lanes, "Add card" sits in each cell and
+    `onCreate(column, lane)` receives the lane.
+  - CalendarView forwards `event`, `onMoreEvents` and `maxPerDay` to the
+    grid views.
+
+### Fixed
+
+- **The full screen hint** shows only after the person enters full screen, no
+  longer on every desktop load of an adaptive app (UG-46).
+- **A failed build** no longer reports the offline plugin's ENOENT (UG-53).
+- **The docs** say Protoyard is on npm, and `npm create protoyard` is the
+  first-run path (UG-18).
+
+### Changed
+
+- **Texuli 0.14.1** (exact pins).
+- **Drawer and DetailPanel close button.** It now uses the Dialog's size
+  token: 2.25rem on a mouse, unchanged on touch.
+
+### Not in this release
+
+- CSS scanning per component (UG-17) waits on Texuli's per-component CSS.
+- `ChipGroup` `tone` and `required`, and `Select` `block`, wait on Texuli
+  0.14.2.
+- A few chrome controls still have English-only names. They are listed in
+  TEXULI.
+
 ## [1.3.0] - 2026-11-05
 
 Kit screens on domain adapters ([ADR-046](docs/DECISIONS.md)): a product's
