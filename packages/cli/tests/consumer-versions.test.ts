@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setQuickPlayerLocator } from '../src/commands/quick/index.ts';
@@ -101,6 +101,17 @@ describe('published Protoyard versions in consumer workspaces', () => {
       ).code
     ).toBe(0);
     expectPublishedDependencies('prototypes/generated-app/package.json');
+    // A consumer has no tests/support harness: nothing generated may import it,
+    // or the prototype fails svelte-check (found in a real 1.2.0 consumer).
+    for (const file of listFiles(join(ws.root, 'prototypes/generated-app'))) {
+      expect(readFileSync(file, 'utf8'), file).not.toContain('tests/support/');
+    }
+    expect(existsSync(join(ws.root, 'prototypes/generated-app/tests/services.test.ts'))).toBe(
+      false
+    );
+    expect(existsSync(join(ws.root, 'prototypes/generated-app/tests/generators.test.ts'))).toBe(
+      true
+    );
 
     // The brief path invokes generate in process, using the same consumer detection.
     ws.write('brief.md', 'A help desk for fictional support tickets and customers.');
@@ -170,3 +181,11 @@ describe('published Protoyard versions in consumer workspaces', () => {
     expectPublishedDependencies('prototypes/quick-promoted/package.json');
   }, 30_000);
 });
+
+function listFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.name === 'node_modules') return [];
+    return entry.isDirectory() ? listFiles(path) : [path];
+  });
+}

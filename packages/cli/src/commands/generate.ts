@@ -235,10 +235,17 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
   }
 
   // A first generation starts the history: the snapshot records what the code reflects.
-  const files = [
-    ...(isAppBlueprint(blueprint)
+  // A consumer workspace has no `tests/support/` harness (it lives in this
+  // repository only), so the owned starter tests that import it are not
+  // written there: the prototype must typecheck and build as generated.
+  const consumer = workspaceLayout(ctx.root) === 'consumer';
+  const firstFiles = (
+    isAppBlueprint(blueprint)
       ? emitOrThrow(blueprint, slug, text)
-      : emitContentKindPrototype(blueprint, text)),
+      : emitContentKindPrototype(blueprint, text)
+  ).filter((file) => !(consumer && usesRepositoryHarness(file.content)));
+  const files = [
+    ...firstFiles,
     {
       path: SNAPSHOT_PATH,
       content: snapshotText({
@@ -452,6 +459,11 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
  * and never touches owned files. Hand-edited generated files block the run
  * (exit 1) unless --force; nothing is written when it is blocked.
  */
+/** True for a file that imports this repository's test harness (`tests/support/`). */
+export function usesRepositoryHarness(content: string): boolean {
+  return content.includes('../../../tests/support/');
+}
+
 async function regenerate(
   ctx: CommandContext,
   input: {
