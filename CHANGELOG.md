@@ -6,6 +6,18 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-11-05
+
+### Fixed
+
+- **DocApp speaks the prototype's language.** 1.2.0 said DocApp's outline
+  followed `mountPrototype({ i18n })`, but `DocHost` and `DocApp` had fixed
+  English strings (reported by the Corag consumer). They now resolve through
+  Texuli's dictionary: the outline uses `pages.outline`; the toolbar (Edit,
+  Reset, Download, "Download as {format}"), the edit notices and the document
+  landmark use `protoyard.doc.*` and `protoyard.pages.*` ids. English stays
+  the default. The ids are listed in the Texuli guide.
+
 ## [1.2.2] - 2026-11-05
 
 ### Changed

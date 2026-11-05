@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/charts-ui",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Svelte chart components for Protoyard: thin re-exports and adapters over @texuli/charts families.",
   "license": "MIT",
   "type": "module",

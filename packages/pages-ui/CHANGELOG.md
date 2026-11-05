@@ -1,5 +1,17 @@
 # @protoyard/pages-ui
 
+## 1.2.3
+
+### Patch Changes
+
+- DocApp and DocHost read their labels from Texuli's dictionary (`mountPrototype({ i18n })`): the outline uses `pages.outline`, and the toolbar, notices and document landmark use `protoyard.doc.*` and `protoyard.pages.*` ids, with English as the default. Before, they were fixed English strings.
+- @protoyard/blocks@1.2.3
+  - @protoyard/blocks-ui@1.2.3
+  - @protoyard/blueprint@1.2.3
+  - @protoyard/pages@1.2.3
+  - @protoyard/renderer-svelte@1.2.3
+  - @protoyard/ui@1.2.3
+
 ## 1.2.2
 
 ### Patch Changes
