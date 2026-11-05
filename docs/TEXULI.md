@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.12.3`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.13.0`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.12.3`. Texuli pins its own internal dependencies exactly,
+Every package is `0.13.0`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -70,6 +70,37 @@ against the release's `SHA256SUMS` and running
 tokens, icons, layouts, themes, documents and MCP hosts, and how to report a
 missing API. To upgrade, repeat
 those steps for the new release and replace the folder; never edit it in place.
+
+## Labels in another language
+
+Texuli 0.13 has one label dictionary for every component (`texuli/i18n`,
+Texuli ADR-026). A prototype passes it once, to `mountPrototype` in
+`src/main.ts`, and the renderer wraps the whole app in Texuli's
+`LabelsProvider`:
+
+```ts
+mountPrototype({
+  definition,
+  App,
+  target,
+  i18n: {
+    locale: 'es',
+    labels: {
+      'texuli.toaster.label': 'Notificaciones',
+      'blocks.text.tones.info': 'Información',
+      'pages.outline': 'En esta página',
+    },
+  },
+});
+```
+
+Ids come from `TexuliMessageId`, `PrimitivesMessageId`, `BlocksMessageId`
+(`@texuli/blocks/i18n`) and `PagesMessageId` (`@texuli/pages`); a component's
+own `labels` prop still wins, and missing ids stay English. The renderer's own
+words (service toasts, loading text, the demo badge) go in `messages`
+(`ChromeMessages`). Texuli's `data`, `chat`, `media` and `editor` packages still
+take per-component `labels` props only (a known Texuli gap), and Protoyard's
+kits do not map their own strings onto the dictionary yet.
 
 ## The uniform component contract
 

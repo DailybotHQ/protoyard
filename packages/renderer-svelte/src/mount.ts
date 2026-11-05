@@ -13,7 +13,8 @@ import type { DevtoolsTab } from '@protoyard/devtools';
 import { createPrototypeRuntime } from '@protoyard/runtime';
 import { BUILTIN_THEMES, mergeThemes } from '@protoyard/themes';
 import { toast } from '@protoyard/ui';
-import { type Component, mount, tick, unmount } from 'svelte';
+import { type Component, type ComponentProps, mount, tick, unmount } from 'svelte';
+import type { LabelsProvider } from 'texuli/i18n';
 import { bindAppearance } from './appearance.ts';
 import { setMountedRuntime } from './context.ts';
 import { BUILD_INFO, DEMO_BADGE_CONFIG, DEVTOOLS_ENABLED } from './flags.ts';
@@ -92,7 +93,18 @@ export interface MountPrototypeOptions {
    * English; unknown keys or empty strings fail at mount with a boot error.
    */
   messages?: ChromeMessagesInput;
+  /**
+   * Labels for every Texuli component the prototype renders (toaster, DocApp
+   * outline, block tones, controls…): Texuli's one dictionary (`texuli/i18n`,
+   * `TexuliLabels` and domain ids such as `BlocksMessageId`, `PagesMessageId`)
+   * and its BCP 47 locale. A component's own `labels` prop still wins; missing
+   * ids stay English. Protoyard's own chrome words go in `messages`.
+   */
+  i18n?: PrototypeI18n;
 }
+
+/** {@link MountPrototypeOptions.i18n}: `LabelsProvider`'s `labels` and `locale`. */
+export type PrototypeI18n = Pick<ComponentProps<typeof LabelsProvider>, 'labels' | 'locale'>;
 
 export interface MountedPrototype {
   runtime: PrototypeRuntime | null;
@@ -264,6 +276,7 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
           options.demoBadge ??
           (DEMO_BADGE_CONFIG === true ? definition.manifest.build.demoBadge : DEMO_BADGE_CONFIG),
         devtools: devtoolsAvailable,
+        ...(options.i18n ? { i18n: options.i18n } : {}),
       },
     });
   } catch (error) {

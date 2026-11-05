@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@protoyard/database": "workspace:*",
-    "@texuli/forms": "0.12.3"
+    "@texuli/forms": "0.13.0"
   },
   "protoyard": {
     "build": {

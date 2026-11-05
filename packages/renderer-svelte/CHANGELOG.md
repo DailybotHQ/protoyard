@@ -4,6 +4,7 @@
 
 ### Minor Changes
 
+- Texuli 0.13.0 across every package, and `mountPrototype({ i18n: { labels, locale } })`, which wraps the app in Texuli's `LabelsProvider` so every Texuli component uses the prototype's labels.
 - Configurable runtime chrome. The manifest and `mountPrototype` take `devtools.launcher` (`hidden`, `offset`, `tone`) and `demoBadge` as `boolean | { layer, avoid, phone }`, and the compact phone badge stays clear of headings and the bottom navigation.
 
 ### Patch Changes

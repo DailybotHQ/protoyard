@@ -48,11 +48,26 @@ Corag) reported while rebuilding on 1.1.3 and Texuli 0.12.3.
 - **`showcase` in a consumer** copies the player build the npm package ships
   instead of running Vite on source that is not installed.
 
+### Changed
+
+- **Texuli 0.13.0.** Every Texuli dependency moves to 0.13.0, which ships
+  the consumers' Texuli gaps: `ds check --render` in any workspace, product
+  tokens (`extensions` → `--tx-ext-<name>`, carried by `ds use`), 1–8 chart
+  colors, shadow shapes, timeline styling hooks, chart heading levels and one
+  label dictionary. Compiled design-system hashes change (compiler version 2);
+  documents stay valid. The `LayoutHost` initial delta grows to 3,972 B (cap
+  4,080 B).
+- **Labels in another language.** `mountPrototype({ i18n: { labels, locale } })`
+  wraps the app in Texuli's `LabelsProvider`, so the toaster, DocApp's outline,
+  block tones and every Texuli component speak the prototype's language.
+
 ### Not in this release
 
-- The Texuli-owned gaps (i18n labels, product tokens, decks taking a design
-  system, registered icons, a code field, and others) wait for the next Texuli
-  release; Protoyard adopts it in 1.2.x.
+- Texuli 0.13.1 (registered icons, an editable code field, a theme-aware
+  image pair, a grid avatar group) is still in progress; Protoyard adopts it in
+  1.2.x. Decks do not pass a `designSystems` resolver to Texuli's deck stage
+  yet (`ds use` paints them through the brand theme), and Protoyard's own kit
+  strings are not mapped onto the label dictionary yet.
 
 ## [1.1.3] - 2026-11-03
 

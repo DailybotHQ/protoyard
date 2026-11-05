@@ -51,11 +51,11 @@
     "@protoyard/pages": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "@texuli/blocks": "0.12.3",
-    "@texuli/document": "0.12.3",
-    "@texuli/forms": "0.12.3",
-    "@texuli/pages": "0.12.3",
-    "texuli": "0.12.3"
+    "@texuli/blocks": "0.13.0",
+    "@texuli/document": "0.13.0",
+    "@texuli/forms": "0.13.0",
+    "@texuli/pages": "0.13.0",
+    "texuli": "0.13.0"
   },
   "devDependencies": {
     "svelte": "^5.57.3"

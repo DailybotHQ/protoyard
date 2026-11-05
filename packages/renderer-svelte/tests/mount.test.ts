@@ -29,7 +29,13 @@ describe('mountPrototype', () => {
     localStorage.clear();
   });
 
-  async function boot(options: { persistent?: boolean; fail?: boolean } = {}) {
+  async function boot(
+    options: {
+      persistent?: boolean;
+      fail?: boolean;
+      i18n?: Parameters<typeof mountPrototype>[0]['i18n'];
+    } = {}
+  ) {
     const target = document.body.appendChild(document.createElement('div'));
     const runtime = createFakeRuntime({ persistent: options.persistent ?? true });
     const mounted = await mountPrototype({
@@ -38,6 +44,7 @@ describe('mountPrototype', () => {
       target,
       search: '',
       devtools: false,
+      ...(options.i18n ? { i18n: options.i18n } : {}),
       createRuntime: () => {
         if (options.fail)
           throw Object.assign(new Error('Stored data is newer than this prototype.'), {
@@ -60,6 +67,14 @@ describe('mountPrototype', () => {
     expect(toaster).not.toBeNull();
     expect(scrollRoot?.contains(toaster)).toBe(false);
     expect(scrollRoot?.parentElement?.contains(toaster)).toBe(true);
+  });
+
+  it("labels Texuli's components from mountPrototype({ i18n }), English otherwise", async () => {
+    const { target } = await boot({
+      i18n: { labels: { 'texuli.toaster.label': 'Notificaciones' }, locale: 'es' },
+    });
+    expect(target.querySelector('[aria-label="Notificaciones"]')).not.toBeNull();
+    expect(target.querySelector('[aria-label="Notifications"]')).toBeNull();
   });
 
   it('consumes a validated artifact hash before creating the runtime', async () => {

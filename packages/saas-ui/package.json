@@ -27,8 +27,8 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/saas": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "@texuli/forms": "0.12.3",
-    "texuli": "0.12.3",
+    "@texuli/forms": "0.13.0",
+    "texuli": "0.13.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
