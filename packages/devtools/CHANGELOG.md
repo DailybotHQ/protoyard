@@ -1,5 +1,14 @@
 # @protoyard/devtools
 
+## 1.2.1
+
+### Patch Changes
+
+- @protoyard/core@1.2.1
+  - @protoyard/database@1.2.1
+  - @protoyard/http@1.2.1
+  - @protoyard/themes@1.2.1
+
 ## 1.2.0
 
 ### Minor Changes

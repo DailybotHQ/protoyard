@@ -675,6 +675,9 @@ export async function verifyPackages(options: VerifyOptions = {}): Promise<Verif
       ['ds use', ['ds', 'use', 'starter', 'design-systems/verify-brand.json']],
       ['validate starter after ds use', ['validate', 'starter']],
       ['list blueprints', ['list', '--kind', 'blueprint']],
+      // A generated app must typecheck and build in a consumer (no repo-only test harness).
+      ['generate from the catalog', ['generate', 'catalog-app', '--blueprint', 'crm']],
+      ['validate generated --build', ['validate', 'catalog-app', '--build']],
     ] as const) {
       const checked = await runJsonCli(cli, args, consumer, name);
       steps.push(checked.step);

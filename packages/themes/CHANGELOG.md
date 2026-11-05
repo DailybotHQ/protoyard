@@ -1,5 +1,11 @@
 # @protoyard/themes
 
+## 1.2.1
+
+### Patch Changes
+
+- @protoyard/core@1.2.1
+
 ## 1.2.0
 
 ### Minor Changes

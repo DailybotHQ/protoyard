@@ -1,5 +1,14 @@
 # @protoyard/saas-ui
 
+## 1.2.1
+
+### Patch Changes
+
+- @protoyard/core@1.2.1
+  - @protoyard/renderer-svelte@1.2.1
+  - @protoyard/saas@1.2.1
+  - @protoyard/ui@1.2.1
+
 ## 1.2.0
 
 ### Patch Changes
