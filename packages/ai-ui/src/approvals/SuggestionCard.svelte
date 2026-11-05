@@ -10,8 +10,9 @@ import { Badge } from 'texuli/badge';
 import { Button } from 'texuli/button';
 import { Card } from 'texuli/card';
 import { Label } from 'texuli/field';
+import { useMessages } from 'texuli/i18n';
 import { SelectContent, SelectItem, SelectRoot, SelectTrigger, SelectValue } from 'texuli/select';
-import { modeNeedsApproval, SUGGESTION_STATUS_LABELS } from './labels.ts';
+import { modeNeedsApproval, suggestionStatusLabel } from './labels.ts';
 
 /**
  * Evidence-backed suggestion card. Every decision is an explicit callback the
@@ -47,6 +48,10 @@ let {
   class?: string;
 } = $props();
 
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
+const C = 'protoyard.ai.approval';
+
 let pending = $state<Decision | null>(null);
 let error = $state('');
 let editOpen = $state(false);
@@ -68,7 +73,10 @@ async function run(decision: Decision, work: () => unknown | Promise<unknown>): 
   try {
     await Promise.resolve(work());
   } catch (err) {
-    error = err instanceof Error ? err.message : 'The action could not be completed.';
+    error =
+      err instanceof Error
+        ? err.message
+        : messages(`${C}.failed`, 'The action could not be completed.');
   } finally {
     pending = null;
   }
@@ -96,9 +104,9 @@ function saveEdit(): void {
   aria-labelledby="suggestion-{suggestion.id}-title"
 >
   <header class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-    <Badge variant="secondary" data-py-agent-chip>Simulated agent</Badge>
-    <span>{SUGGESTION_STATUS_LABELS[suggestion.status]}</span>
-    <span class="ml-auto text-[0.7rem]">Simulated · no real authority</span>
+    <Badge variant="secondary" data-py-agent-chip>{messages(`${C}.agent`, 'Simulated agent')}</Badge>
+    <span>{suggestionStatusLabel(suggestion.status, messages)}</span>
+    <span class="ml-auto text-[0.7rem]">{messages(`${C}.note`, 'Simulated · no real authority')}</span>
   </header>
 
   <h3 id="suggestion-{suggestion.id}-title" class="m-0 text-base font-semibold text-foreground">
@@ -107,7 +115,7 @@ function saveEdit(): void {
 
   {#if suggestion.targetLabel || suggestion.targetKey}
     <p class="m-0 text-sm text-muted-foreground">
-      Target:
+      {messages(`${C}.target`, 'Target:')}
       <span class="font-medium text-foreground"
         >{suggestion.targetLabel ?? suggestion.targetKey}</span
       >
@@ -121,13 +129,13 @@ function saveEdit(): void {
     <dl class="m-0 grid gap-1 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
       {#if suggestion.preparedApplySummary}
         <div>
-          <dt class="font-medium text-foreground">Prepared change</dt>
+          <dt class="font-medium text-foreground">{messages(`${C}.prepared-change`, 'Prepared change')}</dt>
           <dd class="m-0 text-muted-foreground">{suggestion.preparedApplySummary}</dd>
         </div>
       {/if}
       {#if suggestion.preparedNotifySummary}
         <div>
-          <dt class="font-medium text-foreground">Prepared notification</dt>
+          <dt class="font-medium text-foreground">{messages(`${C}.prepared-notification`, 'Prepared notification')}</dt>
           <dd class="m-0 text-muted-foreground">{suggestion.preparedNotifySummary}</dd>
         </div>
       {/if}
@@ -135,11 +143,11 @@ function saveEdit(): void {
   {/if}
 
   {#if waiting && needsApproval && !viewer.canApprove}
-    <p class="m-0 text-sm text-muted-foreground" role="status">Waiting for an approver.</p>
+    <p class="m-0 text-sm text-muted-foreground" role="status">{messages(`${C}.waiting-approver-sentence`, 'Waiting for an approver.')}</p>
   {/if}
 
   {#if waiting && (canApprove || canConfirm || canDismiss || canEdit)}
-    <div class="flex flex-wrap gap-2" aria-label="Suggestion actions">
+    <div class="flex flex-wrap gap-2" aria-label={messages(`${C}.suggestion-actions`, 'Suggestion actions')}>
       {#if canApprove && onApprove}
         <Button
           variant="default"
@@ -148,7 +156,7 @@ function saveEdit(): void {
           disabled={busy}
           onclick={() => run('approve', () => onApprove(suggestion))}
         >
-          Approve
+          {messages(`${C}.approve`, 'Approve')}
         </Button>
       {:else if canConfirm && onConfirm}
         <Button
@@ -158,11 +166,11 @@ function saveEdit(): void {
           disabled={busy}
           onclick={() => run('confirm', () => onConfirm(suggestion))}
         >
-          Confirm
+          {messages(`${C}.confirm`, 'Confirm')}
         </Button>
       {/if}
       {#if canEdit && onEdit}
-        <Button variant="outline" disabled={busy} onclick={openEdit}>Edit</Button>
+        <Button variant="outline" disabled={busy} onclick={openEdit}>{messages(`${C}.edit`, 'Edit')}</Button>
       {/if}
       {#if canDismiss && onDismiss}
         <Button
@@ -172,14 +180,14 @@ function saveEdit(): void {
           disabled={busy}
           onclick={() => run('dismiss', () => onDismiss(suggestion))}
         >
-          Dismiss
+          {messages(`${C}.dismiss`, 'Dismiss')}
         </Button>
       {/if}
     </div>
   {:else if !waiting}
     <p class="m-0 text-sm text-muted-foreground" role="status">
       {#if suggestion.status === 'confirmed' && resultHref}
-        <a class="font-medium text-primary underline" href={resultHref}>View result</a>
+        <a class="font-medium text-primary underline" href={resultHref}>{messages(`${C}.view-result`, 'View result')}</a>
       {:else}
         {line}
       {/if}
@@ -189,12 +197,12 @@ function saveEdit(): void {
   {#if pending}
     <p class="m-0 text-xs text-muted-foreground" role="status" aria-live="polite">
       {pending === 'approve'
-        ? 'Approving…'
+        ? messages(`${C}.approving`, 'Approving…')
         : pending === 'dismiss'
-          ? 'Dismissing…'
+          ? messages(`${C}.dismissing`, 'Dismissing…')
           : pending === 'edit'
-            ? 'Saving…'
-            : 'Confirming…'}
+            ? messages(`${C}.saving`, 'Saving…')
+            : messages(`${C}.confirming`, 'Confirming…')}
     </p>
   {/if}
   {#if error}
@@ -207,7 +215,7 @@ function saveEdit(): void {
       data-py-suggestion-edit
     >
       <div class="grid gap-1 text-sm">
-        <Label for="suggestion-edit-{suggestion.id}">Link to target</Label>
+        <Label for="suggestion-edit-{suggestion.id}">{messages(`${C}.link-target`, 'Link to target')}</Label>
         <SelectRoot
           items={targets.map((target) => ({
             value: target.targetId,
@@ -219,7 +227,7 @@ function saveEdit(): void {
           }}
         >
           <SelectTrigger id="suggestion-edit-{suggestion.id}">
-            <SelectValue placeholder="Choose a target" />
+            <SelectValue placeholder={messages(`${C}.choose-target`, 'Choose a target')} />
           </SelectTrigger>
           <SelectContent>
             {#each targets as target (target.targetId)}
@@ -237,10 +245,10 @@ function saveEdit(): void {
           disabled={busy || !pickedId}
           onclick={saveEdit}
         >
-          Save
+          {messages(`${C}.save`, 'Save')}
         </Button>
         <Button variant="outline" disabled={busy} onclick={() => (editOpen = false)}>
-          Cancel
+          {messages(`${C}.cancel`, 'Cancel')}
         </Button>
       </div>
     </div>

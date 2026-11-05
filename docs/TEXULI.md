@@ -99,9 +99,12 @@ Ids come from `TexuliMessageId`, `PrimitivesMessageId`, `BlocksMessageId`
 own `labels` prop still wins, and missing ids stay English. The renderer's own
 words (service toasts, loading text, the demo badge) go in `messages`
 (`ChromeMessages`). Texuli's `data`, `chat`, `media` and `editor` packages still
-take per-component `labels` props only (a known Texuli gap), and most of Protoyard's
-kits do not map their own strings onto the dictionary yet. DocApp does: its
-outline reads `pages.outline`, and its own words use `protoyard.doc.edit`,
+take per-component `labels` props only (a known Texuli gap). `NotificationCenter`
+(views-ui) and the AI composer and message list pass those components their words
+resolved from the dictionary; other wrappers do not yet. The
+gamification, SaaS account gate, pages and docs, views, review and AI kits map
+their own strings onto the dictionary (see [Protoyard kit ids](#protoyard-kit-ids)).
+DocApp's outline reads `pages.outline`, and its own words use `protoyard.doc.edit`,
 `protoyard.doc.reset`, `protoyard.doc.download`, `protoyard.doc.download-as`
 (`{format}`), `protoyard.doc.edits-saved`, `protoyard.doc.edits-unsaved`,
 `protoyard.doc.download-failed`, the `protoyard.doc.*` notice ids in
@@ -214,6 +217,83 @@ The review UI mounts as its own Svelte root, outside the app's
   `.location-saving`, `.location-saved`, `.location-failed`
   (`createReviewOverlay({ messages })` takes the lookup)
 - `protoyard.review.composer-notice.text`
+
+### AI (`@protoyard/ai-ui`)
+
+`@texuli/chat`'s `Composer` and `MessageList` take labels props only, so the
+kit passes them resolved from these ids.
+
+- `protoyard.ai.composer.input`, `.placeholder` (the `placeholder` prop
+  still wins), `.hint`, `.send`, `.sending`, `.stop`, `.send-error`,
+  `.model`, `.model-option` (`{name} · Simulated`), `.slash-commands`,
+  `.people`, `.attach`, `.choose-attachments`, `.attachments`,
+  `.simulated-note`
+- `protoyard.ai.message-list.you`, `.assistant`, `.label`, `.empty`,
+  `.edit-input`, `.save-edit`, `.assistant-message`, `.your-message`,
+  `.simulated`, `.writing`, `.edit`, `.helpful`, `.helpful-label`,
+  `.not-helpful`, `.not-helpful-label`, `.previous-version`,
+  `.next-version`, `.regenerate`, `.regenerate-label`
+- `protoyard.ai.rich-answer.label`, `.image` (`{alt}`), `.source`
+  (`{index}`), `.source-titled` (`{index}`, `{title}`), `.code`,
+  `.code-label` (`{lang}`), `.streaming`, `.chart-preparing`,
+  `.chart-loading`, `.chart-failed`, `.complete`, `.incomplete`, `.sources`
+- `protoyard.ai.chart-answer.label-column`, `.invalid`, `.show-data`,
+  `.data`, `.view-failed`
+- `protoyard.ai.canvas.label`, `.code`, `.document`, `.kind` (`{kind}`),
+  `.copy`, `.copied`, `.close`, `.code-label` (`{language}`),
+  `.document-content`, `.copy-failed`
+- `protoyard.ai.message.label`, `.text`, `.invalid-one`, `.invalid`
+  (`{count}`), `.choose`, `.submit`, `.form-locked`, `.send`,
+  `.select-locked`, `.buttons-locked`, `.attachments`, `.table`,
+  `.no-rows`, `.yes`, `.no` (structured chat messages)
+- `protoyard.ai.approval.*` (`SuggestionCard`, `ChatApprovalCard`):
+  `.failed`, `.agent`, `.note`, `.target`, `.prepared`
+  (`{summary}`), `.prepared-change`, `.prepared-notification`,
+  `.waiting-approver`, `.waiting-approver-sentence`, `.actions`,
+  `.suggestion-actions`, `.chat-label`, `.chat-note`, `.approve`,
+  `.confirm`, `.edit`, `.dismiss`, `.view-result`, `.approving`,
+  `.dismissing`, `.saving`, `.confirming`, `.decided`, `.dismissed`,
+  `.link-target`, `.choose-target`, `.save`, `.cancel`
+- `protoyard.ai.autonomy.level-<1-4>.name` / `.definition`,
+  `protoyard.ai.autonomy.area.<records|notifications|workspace|external>`,
+  `protoyard.ai.audit.<action>` (`auto_handled` → `auto-handled`),
+  `protoyard.ai.suggestion.status.<status>`: the `AUTONOMY_LEVEL_LABELS`,
+  `AUTONOMY_AREA_LABELS`, `AUDIT_ACTION_LABELS` and
+  `SUGGESTION_STATUS_LABELS` constants stay the English defaults;
+  `autonomyLevelLabel`, `areaLabel`, `auditActionLabel` and
+  `suggestionStatusLabel` take a lookup (`useMessages()`)
+- `protoyard.ai.autonomy-picker.legend`, `.note`, `.group`
+  (`{legend}`, `{area}`), `.option` (`{level}`, `{name}`), `.capped`
+  (`{level}`), `.cap-external`, `.saving`, `.failed`
+- `protoyard.ai.audit-trail.label`, `.note`, `.empty-title`,
+  `.empty-description`, `.entries`, `.when`, `.who`, `.what`, `.detail`,
+  `.agent`, `.person`
+- `protoyard.ai.workspace.suggestion-1` … `-4` (sent as the prompt when
+  picked), `.new-conversation`, `.close-navigation`, `.all-conversations`,
+  `.unfiled`, `.share-failed`, `.history`, `.new-chat`, `.search`,
+  `.filter-folder`, `.conversations`, `.no-conversations`,
+  `.conversation-title`, `.save-title`, `.pinned`, `.personal`,
+  `.actions-for` (`{title}`), `.rename`, `.name`, `.pin`, `.unpin`, `.move`
+  (`{title}`), `.remove-folder`, `.folder-name`, `.new-folder`,
+  `.create-folder`, `.simulated-note`, `.conversation`, `.open-history`,
+  `.model-line` (`{name}`), `.assistant`, `.share-label`, `.share`,
+  `.canvas-open`, `.share-link`, `.copy-share`, `.share-copied`,
+  `.copy-failed`, `.close-share`, `.generating`, `.empty-title`,
+  `.empty-description`, `.disclaimer`
+- `protoyard.ai.voice.label`, `.title`, `.simulated`, `.note`, `.mode`,
+  `.push-to-talk`, `.hands-free`, `.stop-hands-free`, `.input`, `.mute`,
+  `.dictate`, `.hold`, `.release`, `.start`, `.finish`, `.muted`, `.resume`,
+  `.listening`, `.listening-hands-free`, `.transcribing`, `.speaking`,
+  `.draft`, `.draft-empty`, `.clear-draft`, `.you-said`, `.assistant-said`,
+  `.no-speech`, `.meter-on`, `.meter-off`, `.meter-waiting`, `.amplitude`,
+  `.amplitude-note`, `.meter-unavailable`, `.mic-denied` (the scripted
+  default transcripts stay English: they are data)
+- `protoyard.ai.widget.title`, `.open`, `.expand`, `.expand-label`,
+  `.restore`, `.restore-label`, `.close`, `.close-label`
+
+Not mapped: `statusLine` and `CAP_REASON` text produced by the
+`@protoyard/ai` engine (the picker wraps `CAP_REASON` in
+`.cap-external`, whose English is the engine's string).
 
 ## Icons, code fields, image pairs and avatar grids (Texuli 0.13.1)
 

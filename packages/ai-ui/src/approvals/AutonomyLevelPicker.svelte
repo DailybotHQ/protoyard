@@ -7,7 +7,8 @@ import {
   setLevel,
 } from '@protoyard/ai';
 import { Radio, RadioGroup } from 'texuli/choice';
-import { AUTONOMY_LEVEL_LABELS, areaLabel } from './labels.ts';
+import { useMessages } from 'texuli/i18n';
+import { areaLabel, autonomyLevelLabel } from './labels.ts';
 
 /**
  * Per-area autonomy level radios (Texuli's card radio group). Calls `onChange`
@@ -17,19 +18,26 @@ import { AUTONOMY_LEVEL_LABELS, areaLabel } from './labels.ts';
 let {
   config,
   area,
-  legend = 'Autonomy level',
+  legend: legendProp,
   disabled = false,
   onChange,
   class: className = '',
 }: {
   config: AutonomyConfig;
   area: string;
+  /** Default: `protoyard.ai.autonomy-picker.legend` ("Autonomy level"). */
   legend?: string;
   disabled?: boolean;
   /** Required: receive the next AutonomyConfig after a level pick. */
   onChange: (next: AutonomyConfig, level: AutonomyLevel) => unknown | Promise<unknown>;
   class?: string;
 } = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
+const P = 'protoyard.ai.autonomy-picker';
+const legend = $derived(legendProp ?? messages(`${P}.legend`, 'Autonomy level'));
+const areaName = $derived(areaLabel(area, messages));
 
 let pending = $state(false);
 let error = $state('');
@@ -44,7 +52,8 @@ async function pick(level: AutonomyLevel): Promise<void> {
     const next = setLevel(config, area, level);
     await Promise.resolve(onChange(next, level));
   } catch (err) {
-    error = err instanceof Error ? err.message : 'Could not update autonomy.';
+    error =
+      err instanceof Error ? err.message : messages(`${P}.failed`, 'Could not update autonomy.');
   } finally {
     pending = false;
   }
@@ -59,10 +68,10 @@ async function pick(level: AutonomyLevel): Promise<void> {
 >
   <legend class="mb-1 px-0 text-sm font-semibold text-foreground">
     {legend}
-    <span class="font-normal text-muted-foreground"> · {areaLabel(area)}</span>
+    <span class="font-normal text-muted-foreground"> · {areaName}</span>
   </legend>
   <p class="m-0 text-xs text-muted-foreground">
-    Simulated settings. Levels are not security boundaries.
+    {messages(`${P}.note`, 'Simulated settings. Levels are not security boundaries.')}
   </p>
   <RadioGroup
     class="grid gap-2 sm:grid-cols-2"
@@ -70,29 +79,29 @@ async function pick(level: AutonomyLevel): Promise<void> {
     name="autonomy-{area}"
     value={String(current)}
     disabled={disabled || pending}
-    aria-label="{legend} for {areaLabel(area)}"
+    aria-label={messages(`${P}.group`, '{legend} for {area}', { legend, area: areaName })}
     onValueChange={(value) => void pick(Number(value) as AutonomyLevel)}
   >
     {#each AUTONOMY_LEVELS as level (level)}
-      {@const meta = AUTONOMY_LEVEL_LABELS[level]}
+      {@const meta = autonomyLevelLabel(level, messages)}
       {@const capped = cap !== undefined && level > cap}
       <Radio
         card
         value={String(level)}
-        label={`Level ${level}: ${meta.name}`}
+        label={messages(`${P}.option`, 'Level {level}: {name}', { level: String(level), name: meta.name })}
         description={meta.definition}
         disabled={capped || disabled || pending}
       >
         {#if capped}
           <span class="text-xs text-muted-foreground"
-            >{area === 'external' ? CAP_REASON : `Capped at level ${String(cap)}.`}</span
+            >{area === 'external' ? messages(`${P}.cap-external`, CAP_REASON) : messages(`${P}.capped`, 'Capped at level {level}.', { level: String(cap) })}</span
           >
         {/if}
       </Radio>
     {/each}
   </RadioGroup>
   {#if pending}
-    <p class="m-0 text-xs text-muted-foreground" role="status" aria-live="polite">Saving…</p>
+    <p class="m-0 text-xs text-muted-foreground" role="status" aria-live="polite">{messages(`${P}.saving`, 'Saving…')}</p>
   {/if}
   {#if error}
     <p class="m-0 text-sm text-destructive" role="alert">{error}</p>

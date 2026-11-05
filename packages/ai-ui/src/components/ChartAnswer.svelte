@@ -1,5 +1,6 @@
 <script lang="ts">
 import { parseChartSpec } from '@protoyard/ai/chart';
+import { useMessages } from 'texuli/i18n';
 import { Code } from 'texuli/kbd-code';
 import {
   Table,
@@ -10,6 +11,10 @@ import {
   TableHeader,
   TableRow,
 } from 'texuli/table';
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
+const H = 'protoyard.ai.chart-answer';
 
 /*
  * A ```chart fence from a simulated answer, loaded on demand by RichAnswer.
@@ -61,7 +66,7 @@ const load = () =>
       <TableCaption class="text-left font-semibold">{spec.title}</TableCaption>
       <TableHeader>
         <TableRow>
-          <TableHead scope="col">Label</TableHead>
+          <TableHead scope="col">{messages(`${H}.label-column`, 'Label')}</TableHead>
           {#each spec.series as s, i (i)}<TableHead scope="col" numeric>{s.label}</TableHead>{/each}
         </TableRow>
       </TableHeader>
@@ -82,17 +87,17 @@ const load = () =>
 
 {#if !result.ok}
   <div role="note" class="rounded-lg border border-dashed border-border bg-muted/40 p-3 text-xs" data-chart-error>
-    <p class="font-medium">This chart could not be shown.</p>
+    <p class="font-medium">{messages(`${H}.invalid`, 'This chart could not be shown.')}</p>
     <p class="mt-1 text-muted-foreground">{result.error}</p>
     <details class="mt-2">
-      <summary class="cursor-pointer text-muted-foreground">Show the chart data</summary>
+      <summary class="cursor-pointer text-muted-foreground">{messages(`${H}.show-data`, 'Show the chart data')}</summary>
       <!-- The raw data scrolls, so it takes focus and a name (WCAG 2.1.1 / axe scrollable-region-focusable). -->
       <Code
         variant="block"
         value={text}
         role="region"
         tabindex={0}
-        aria-label="Chart data"
+        aria-label={messages(`${H}.data`, 'Chart data')}
         class="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all font-mono focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
       />
     </details>
@@ -115,7 +120,7 @@ const load = () =>
       {/if}
     {:catch}
       {@render table()}
-      <p role="note" class="mt-1 text-xs text-muted-foreground">The chart view did not load; the table shows the same data.</p>
+      <p role="note" class="mt-1 text-xs text-muted-foreground">{messages(`${H}.view-failed`, 'The chart view did not load; the table shows the same data.')}</p>
     {/await}
   </figure>
 {/if}

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, ChevronUp, RefreshCw, ThumbsDown, ThumbsUp } fro
 import { type ChatMessage, MessageList as TexuliMessageList } from '@texuli/chat';
 import { Badge } from 'texuli/badge';
 import { Button, IconButton } from 'texuli/button';
+import { useMessages } from 'texuli/i18n';
 import { LucideIcon } from 'texuli/icons/lucide';
 import RichAnswer from './components/RichAnswer.svelte';
 import { loadReadingAnchor, readingAnchorKey, saveReadingAnchor } from './scroll-anchor.ts';
@@ -28,8 +29,12 @@ let {
   onFeedback,
 }: Props = $props();
 
-const USER = { id: 'user', name: 'You' };
-const ASSISTANT = { id: 'assistant', name: 'Assistant' };
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); @texuli/chat's
+// MessageList takes labels props only, so its words are passed resolved.
+const t = useMessages();
+const L = 'protoyard.ai.message-list';
+const USER = $derived({ id: 'user', name: t(`${L}.you`, 'You') });
+const ASSISTANT = $derived({ id: 'assistant', name: t(`${L}.assistant`, 'Assistant') });
 
 const lastAssistantId = $derived(
   [...messages].reverse().find((message) => message.role === 'assistant')?.id
@@ -63,9 +68,9 @@ const storageKey = $derived(readingAnchorKey(conversationId));
     <TexuliMessageList
       messages={chatMessages}
       currentUserId={USER.id}
-      label="Conversation messages"
-      emptyText="No messages yet. Ask the simulated assistant anything."
-      labels={{ editInput: 'Edit your message', saveEdit: 'Save and resend' }}
+      label={t(`${L}.label`, 'Conversation messages')}
+      emptyText={t(`${L}.empty`, 'No messages yet. Ask the simulated assistant anything.')}
+      labels={{ editInput: t(`${L}.edit-input`, 'Edit your message'), saveEdit: t(`${L}.save-edit`, 'Save and resend') }}
       onEdit={onEditMessage ? (message, body) => onEditMessage(message.id, body) : undefined}
       anchor={loadReadingAnchor(storageKey)}
       onAnchorChange={(next) => saveReadingAnchor(storageKey, next)}
@@ -74,36 +79,36 @@ const storageKey = $derived(readingAnchorKey(conversationId));
       {#snippet body(chat)}
         {@const message = byId.get(chat.id)}
         {#if message?.role === 'assistant'}
-          <article class="min-w-0 whitespace-normal" aria-label="Assistant message" data-message-role="assistant" data-py-message-id={chat.id}>
-            <Badge variant="outline" label="Simulated" class="mb-1" />
+          <article class="min-w-0 whitespace-normal" aria-label={t(`${L}.assistant-message`, 'Assistant message')} data-message-role="assistant" data-py-message-id={chat.id}>
+            <Badge variant="outline" label={t(`${L}.simulated`, 'Simulated')} class="mb-1" />
             <RichAnswer content={chat.body} />
-            {#if chat.streaming}<p class="mt-2 text-xs text-muted-foreground">Writing…</p>{/if}
+            {#if chat.streaming}<p class="mt-2 text-xs text-muted-foreground">{t(`${L}.writing`, 'Writing…')}</p>{/if}
           </article>
         {:else}
-          <article class="min-w-0" aria-label="Your message" data-message-role="user" data-py-message-id={chat.id}>{chat.body}</article>
+          <article class="min-w-0" aria-label={t(`${L}.your-message`, 'Your message')} data-message-role="user" data-py-message-id={chat.id}>{chat.body}</article>
         {/if}
       {/snippet}
       {#snippet actions(chat, controls)}
         {@const message = byId.get(chat.id)}
         {#if message?.role === 'user'}
           {#if controls.canEdit}
-            <Button variant="ghost" size="sm" class="text-xs" aria-label="Edit your message" onclick={controls.edit}><LucideIcon icon={ChevronUp} size="xs" /> Edit</Button>
+            <Button variant="ghost" size="sm" class="text-xs" aria-label={t(`${L}.edit-input`, 'Edit your message')} onclick={controls.edit}><LucideIcon icon={ChevronUp} size="xs" /> {t(`${L}.edit`, 'Edit')}</Button>
           {/if}
         {:else if message}
           <div class="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
             {#if onFeedback}
-              <Button variant="ghost" size="sm" class={message.feedback === 'up' ? 'text-primary' : ''} aria-label="Helpful response" aria-pressed={message.feedback === 'up'} onclick={() => onFeedback?.(message.id, 'up')}><LucideIcon icon={ThumbsUp} size="xs" />Helpful</Button>
-              <Button variant="ghost" size="sm" class={message.feedback === 'down' ? 'text-primary' : ''} aria-label="Not helpful response" aria-pressed={message.feedback === 'down'} onclick={() => onFeedback?.(message.id, 'down')}><LucideIcon icon={ThumbsDown} size="xs" />Not helpful</Button>
+              <Button variant="ghost" size="sm" class={message.feedback === 'up' ? 'text-primary' : ''} aria-label={t(`${L}.helpful-label`, 'Helpful response')} aria-pressed={message.feedback === 'up'} onclick={() => onFeedback?.(message.id, 'up')}><LucideIcon icon={ThumbsUp} size="xs" />{t(`${L}.helpful`, 'Helpful')}</Button>
+              <Button variant="ghost" size="sm" class={message.feedback === 'down' ? 'text-primary' : ''} aria-label={t(`${L}.not-helpful-label`, 'Not helpful response')} aria-pressed={message.feedback === 'down'} onclick={() => onFeedback?.(message.id, 'down')}><LucideIcon icon={ThumbsDown} size="xs" />{t(`${L}.not-helpful`, 'Not helpful')}</Button>
             {/if}
             {#if message.branchCount && message.branchCount > 1}
               <span class="ml-1 inline-flex items-center gap-1">
-                <IconButton variant="ghost" size="sm" label="Previous response version" disabled={message.branchIndex === 0 || !onBranchChange} onclick={() => onBranchChange?.(message.id, -1)}><LucideIcon icon={ArrowLeft} size="xs" /></IconButton>
+                <IconButton variant="ghost" size="sm" label={t(`${L}.previous-version`, 'Previous response version')} disabled={message.branchIndex === 0 || !onBranchChange} onclick={() => onBranchChange?.(message.id, -1)}><LucideIcon icon={ArrowLeft} size="xs" /></IconButton>
                 <span>{(message.branchIndex ?? 0) + 1} / {message.branchCount}</span>
-                <IconButton variant="ghost" size="sm" label="Next response version" disabled={(message.branchIndex ?? 0) >= message.branchCount - 1 || !onBranchChange} onclick={() => onBranchChange?.(message.id, 1)}><LucideIcon icon={ArrowRight} size="xs" /></IconButton>
+                <IconButton variant="ghost" size="sm" label={t(`${L}.next-version`, 'Next response version')} disabled={(message.branchIndex ?? 0) >= message.branchCount - 1 || !onBranchChange} onclick={() => onBranchChange?.(message.id, 1)}><LucideIcon icon={ArrowRight} size="xs" /></IconButton>
               </span>
             {/if}
             {#if lastAssistantId === message.id && onRegenerate}
-              <Button variant="ghost" size="sm" disabled={streaming} aria-label="Regenerate response" onclick={onRegenerate}><LucideIcon icon={RefreshCw} size="xs" /> Regenerate</Button>
+              <Button variant="ghost" size="sm" disabled={streaming} aria-label={t(`${L}.regenerate-label`, 'Regenerate response')} onclick={onRegenerate}><LucideIcon icon={RefreshCw} size="xs" /> {t(`${L}.regenerate`, 'Regenerate')}</Button>
             {/if}
           </div>
         {/if}

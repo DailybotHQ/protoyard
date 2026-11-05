@@ -2,6 +2,7 @@
 import { FileText } from '@lucide/svelte';
 import type { MessageAttachment } from '@protoyard/ai/messages';
 import { Button } from 'texuli/button';
+import { useMessages } from 'texuli/i18n';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { formatBytes, isImageMime, isInlineImageUrl } from './format.ts';
 import { settle } from './types.ts';
@@ -28,9 +29,12 @@ async function open(attachment: MessageAttachment): Promise<void> {
   error = (await settle(() => onOpen(attachment))) ?? '';
   pending = null;
 }
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const t = useMessages();
 </script>
 
-<ul class="m-0 grid list-none gap-2 p-0" data-py-message-attachments aria-label="Attachments">
+<ul class="m-0 grid list-none gap-2 p-0" data-py-message-attachments aria-label={t('protoyard.ai.message.attachments', 'Attachments')}>
   {#each attachments as attachment (attachment.id)}
     <li class="flex items-center gap-2 text-sm">
       {#if isImageMime(attachment.mime) && isInlineImageUrl(attachment.url)}
