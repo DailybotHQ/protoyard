@@ -51,8 +51,10 @@ export class UnknownScenarioError extends Error {
 export interface PendingLink {
   scenario: string;
   seed?: number;
-  /** Why the link was not applied automatically. */
+  /** Why the link was not applied automatically (English). */
   reason: string;
+  /** The same reason as a code, so a UI can say it in its own language. */
+  code: 'local-edits' | 'unknown-scenario';
 }
 
 /** Wall-clock cost of the last scenario load, for DevTools and benchmarks. */
@@ -441,9 +443,16 @@ export function createScenarioController(
               ? {
                   scenario: link.scenario,
                   ...(link.seed !== undefined ? { seed: link.seed } : {}),
-                  reason: byId(link.scenario)
-                    ? 'This browser already has edits for another scenario. Load the linked scenario to replace them.'
-                    : `The link points to unknown scenario "${link.scenario}".`,
+                  ...(byId(link.scenario)
+                    ? {
+                        code: 'local-edits' as const,
+                        reason:
+                          'This browser already has edits for another scenario. Load the linked scenario to replace them.',
+                      }
+                    : {
+                        code: 'unknown-scenario' as const,
+                        reason: `The link points to unknown scenario "${link.scenario}".`,
+                      }),
                 }
               : null;
         }

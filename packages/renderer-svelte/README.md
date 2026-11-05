@@ -494,7 +494,10 @@ await mountPrototype({
 
 - **Shape.** `DEFAULT_CHROME_MESSAGES` lists every group and key with its
   English text. The groups are `service`, `router`, `pending`, `storage`,
-  `staleWorld`, `linkedScenario`, `frame`, `badge` and `boot`.
+  `staleWorld`, `linkedScenario`, `frame`, `badge` and `boot`. The linked
+  scenario prompt says why it did not load the link through
+  `linkedScenario.reasonEdits` and `reasonUnknown`, picked by the runtime's
+  `pendingLink().code`.
 - **Placeholders.** `{path}`, `{scenario}`, `{seed}`, `{name}`,
   `{capability}` and `{snapshot}` are filled as text and never rendered as
   HTML. The path shows as code and scenario names as bold.

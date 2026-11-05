@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { PrototypeRuntime } from '@protoyard/core';
 import { Button, Checkbox } from '@protoyard/ui';
-import { chromeMessages } from '../messages.ts';
+import { chromeMessages, formatMessage } from '../messages.ts';
 import Icon from './Icon.svelte';
 import MessageText from './MessageText.svelte';
 
@@ -9,6 +9,7 @@ interface PendingLink {
   scenario: string;
   seed?: number;
   reason: string;
+  code?: 'local-edits' | 'unknown-scenario';
 }
 
 /**
@@ -31,6 +32,15 @@ const messages = chromeMessages().linkedScenario;
 const loadingText = chromeMessages().pending.loading;
 let busy = $state(false);
 let error = $state<string | null>(null);
+/** The reason in the chrome language; the runtime's English text for an unknown code. */
+const reasonText = $derived.by(() => {
+  if (!pending) return '';
+  if (pending.code === 'local-edits') return messages.reasonEdits;
+  if (pending.code === 'unknown-scenario') {
+    return formatMessage(messages.reasonUnknown, { scenario: pending.scenario });
+  }
+  return pending.reason;
+});
 const scenarioName = $derived(
   pending ? (runtime.scenarios.get(pending.scenario)?.name ?? pending.scenario) : ''
 );
@@ -69,7 +79,7 @@ async function load() {
             strong={['scenario']}
           />
         </p>
-        <p class="text-xs opacity-80">{pending.reason}</p>
+        <p class="text-xs opacity-80">{reasonText}</p>
         {#if error}
           <p class="mt-1 text-xs font-medium text-destructive" role="alert">{error}</p>
         {/if}

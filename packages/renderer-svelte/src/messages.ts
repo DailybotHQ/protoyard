@@ -71,6 +71,9 @@ export const DEFAULT_CHROME_MESSAGES = {
     snapshotFirst: 'Snapshot my data first',
     load: 'Load linked scenario',
     keep: 'Keep my data',
+    reasonEdits:
+      'This browser already has edits for another scenario. Load the linked scenario to replace them.',
+    reasonUnknown: 'The link points to unknown scenario "{scenario}".',
   },
   frame: {
     enter: 'Show full screen',
