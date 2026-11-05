@@ -54,6 +54,11 @@ unplaced review toolbar, the DevTools launcher, the `Toaster` and `UndoToaster`
 (phone layout) and the demo badge's right corners do. The badge also picks its
 corner inside the visible viewport (`badgeContainer`), not the layout one.
 
+`PrototypeNote` renders the same "Prototype · simulated data" label as plain
+text in the page flow (a footer, under a heading). Set `demoBadge: false` and
+place `<PrototypeNote name="…" />` where it reads naturally; the badge's
+chrome messages translate it.
+
 `mountPrototype({ toaster })` places the toast stack: `position` (`top-start`
 … `bottom-end`, default `bottom-end`), `offset` (px or a CSS length from the
 edge, for example above a bottom nav) and the region's `label`.

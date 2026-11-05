@@ -121,3 +121,4 @@ export {
   tryGetWidgetHost,
   type WidgetHostApi,
 } from './shell/frames/widget-api.ts';
+export { default as PrototypeNote } from './shell/PrototypeNote.svelte';
