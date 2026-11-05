@@ -108,6 +108,37 @@ outline reads `pages.outline`, and its own words use `protoyard.doc.edit`,
 `DocApp.svelte`, `protoyard.pages.document-content` and
 `protoyard.pages.untitled-document`.
 
+## Protoyard kit ids
+
+Protoyard's kits resolve their own words through the same dictionary, with
+ids shaped `protoyard.<kit>.<component>.<key>` and today's English as the
+fallback. Put them in `mountPrototype({ i18n: { labels } })` next to the
+Texuli ids; a component prop (for example `Leaderboard emptyTitle`) still
+wins. Placeholders are written `{name}`. Counts arrive as plain digits so the
+English text stays exactly as before; where English needs a singular, the kit
+uses a separate id (such as `…label-one`) instead of a plural message.
+
+### Gamification (`@protoyard/gamification-ui`)
+
+- `protoyard.gamification.level-chip.label` (`Level {level}`)
+- `protoyard.gamification.points-chip.points` (`{points} points`),
+  `.points-provisional` (`{points} points verified, {provisional} in progress`)
+- `protoyard.gamification.streak-chip.label-one` (`1 week streak`),
+  `.label` (`{weeks} week streak`)
+- `protoyard.gamification.mission-card.status-complete`, `.status-expired`,
+  `.status-in-progress`, `.status-available`, `.progress`, `.progress-value`
+  (`{progress} of {goal}`), `.reward` (`Reward {reward} points`), `.accept`,
+  `.accepted`, `.completed`
+- `protoyard.gamification.leaderboard.label`, `.opt-in`, `.opt-in-hint`,
+  `.saving`, `.empty-title`, `.empty-description`, `.show-me`, `.position`
+  (`{position}`), `.you`, `.points` (`{points}`)
+- `protoyard.gamification.achievement-badge.earned` (`{name}, earned`),
+  `.earned-on-spoken` (`{name}, earned {date}`), `.earned-on`
+  (`Earned {date}`), `.progress`
+  (`{name}, {progress} of {goal} ({percent} percent)`)
+
+`AchievementBadge earnedAt` formats its date with the dictionary's `locale`.
+
 ## Icons, code fields, image pairs and avatar grids (Texuli 0.13.1)
 
 Texuli 0.13.1 adds four components a prototype can use directly (they are
