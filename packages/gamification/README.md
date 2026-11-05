@@ -51,6 +51,15 @@ prototype service (`session.assert` → zod → `environment.run` →
 - **Provisional** points: live provisional rows only (shown as in-progress).
 - Reverting a source marks matching live rows `reverted: true` (idempotent).
 - Confirming a provisional row clears `provisional` on that id.
+- Ids (ledger rows, badges, missions) are a lowercase letter then up to 63
+  letters, digits, `-` or `_`, so `createRuntimeId('pts')` and seeded
+  `ctx.ids.next('deal')` ids validate.
+
+### Missions
+
+A mission completes when it is accepted, not expired and at its goal. Set
+`requiresAcceptance: false` on a definition to complete it on progress alone;
+its progress row then carries `requiresAcceptance: false`.
 
 ### Levels
 

@@ -1,11 +1,18 @@
 import { z } from 'zod';
 
-/** Lowercase slug id (badges, missions, sources). */
+/**
+ * Lowercase id (badges, missions, ledger rows): a letter, then up to 63
+ * letters, digits, `-` or `_`. Runtime ids (`createRuntimeId('pts')` →
+ * `pts_u…`) and seeded ids (`ctx.ids.next('deal')` → `deal_0007`) both pass.
+ * Same pattern as the flows engine's `FLOW_ID_PATTERN`.
+ */
 const slugId = z
   .string()
   .min(1)
   .max(64)
-  .regex(/^[a-z][a-z0-9-]*$/, { message: 'ids are lowercase kebab-case' });
+  .regex(/^[a-z][a-z0-9_-]{0,63}$/, {
+    message: 'ids are lowercase letters, digits, - or _, starting with a letter',
+  });
 
 const isoInstant = z
   .string()
@@ -97,6 +104,11 @@ export const MissionDefSchema = z
      * expired: progress still reads, but it cannot be accepted or completed.
      */
     deadlineAt: isoInstant.optional(),
+    /**
+     * Whether the subject must accept the mission before it can complete
+     * (default true). Set false for missions that complete on progress alone.
+     */
+    requiresAcceptance: z.boolean().optional(),
   })
   .readonly();
 export type MissionDef = z.infer<typeof MissionDefSchema>;
@@ -119,6 +131,8 @@ export const MissionProgressSchema = z
     goal: z.number().int().positive().max(1_000_000),
     reward: nonNegInt,
     deadlineAt: isoInstant.optional(),
+    /** Present (false) only when the definition opts out of acceptance. */
+    requiresAcceptance: z.boolean().optional(),
     accepted: z.boolean(),
     progress: nonNegInt,
     complete: z.boolean(),
