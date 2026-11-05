@@ -49,6 +49,13 @@ export interface DesignSystemThemeOptions {
    * Default: the page's base URI.
    */
   fontBase?: string | URL;
+  /**
+   * One resolved URL per font file, keyed by the document's `src`
+   * (`{ 'fonts/inter.woff2': new URL('./fonts/inter.woff2', import.meta.url) }`).
+   * Use this in a Vite production build: a bundler only emits files it sees
+   * named one by one, so a directory `fontBase` would 404. Wins over `fontBase`.
+   */
+  fontFiles?: Readonly<Record<string, string | URL>>;
   /** The theme's description in pickers. Default: the shipped description, then `Design system <id>@<version>`. */
   description?: string;
 }
@@ -185,11 +192,38 @@ export async function designSystemFromTheme(
 ): Promise<{ document: DesignSystem; losses: FromThemeLoss[] }> {
   const { fromThemeWithReport } = await import('@texuli/tokens/design-system/compile-core');
   const report = fromThemeWithReport(toTexuliTheme(theme), { id: options.id ?? theme.id });
-  const document = report.document as DesignSystem;
+  const document = withoutCopiedSidebarPrimary(report.document as DesignSystem);
   return {
     document: options.name ? { ...document, name: options.name } : document,
     losses: [...report.losses],
   };
+}
+
+/**
+ * `fromTheme` pins `sidebarPrimary` as a copy of `primary` in every mode. When
+ * the sidebar's fill is the primary (or close to it), that pin paints the
+ * active item invisibly, and a pinned role is never moved by the compiler.
+ * A copy carries no intent, so it is dropped and the compiler derives a
+ * visible active fill (Dailybot G-027). A distinct value stays. Exported for tests.
+ */
+export function withoutCopiedSidebarPrimary(document: DesignSystem): DesignSystem {
+  const color = (document as { color?: { roles?: Record<string, Record<string, unknown>> } }).color;
+  const roles = color?.roles;
+  if (!roles) return document;
+  let changed = false;
+  const next: Record<string, Record<string, unknown>> = {};
+  for (const [mode, modeRoles] of Object.entries(roles)) {
+    if (
+      modeRoles &&
+      typeof modeRoles.sidebarPrimary === 'string' &&
+      modeRoles.sidebarPrimary === modeRoles.primary
+    ) {
+      const { sidebarPrimary: _copy, ...rest } = modeRoles;
+      next[mode] = rest;
+      changed = true;
+    } else next[mode] = modeRoles;
+  }
+  return changed ? ({ ...document, color: { ...color, roles: next } } as DesignSystem) : document;
 }
 
 /** Loads a `texuli:<id>` base from Protoyard's theme library (built-ins first). */
@@ -319,17 +353,62 @@ export function defineDesignSystemTheme(
 ): Theme {
   const description = options.description?.trim();
   const theme = designSystemTheme(description ? { ...compiled, description } : compiled);
-  const base = options.fontBase === undefined ? undefined : String(options.fontBase);
+  const fontBase = options.fontBase === undefined ? undefined : String(options.fontBase);
+  const fontFiles = options.fontFiles;
   registerDesignSystemPainter(theme.id, (target, mode) => {
-    const dispose = applyDesignSystem(target, compiled, {
+    const fonts = fontFiles
+      ? rebaseFontFaces(compiled, fontFiles, fontBase ?? target.ownerDocument.baseURI)
+      : { compiled, base: fontBase };
+    const dispose = applyDesignSystem(target, fonts.compiled, {
       mode,
       ...(compiled.variant ? { variant: compiled.variant } : {}),
-      ...(base ? { base } : {}),
+      ...(fonts.base ? { base: fonts.base } : {}),
     });
     const vars = compiled.vars[pickDesignSystemMode(compiled, mode)] ?? {};
     return { vars: { ...vars }, dispose };
   });
   return theme;
+}
+
+/**
+ * Texuli resolves every font `src` (a relative path, never `..`) against one
+ * `base` on the page's origin. Bundled files land wherever the bundler puts
+ * them, so this resolves each face (mapped files first, the rest against
+ * `fallbackBase`), takes their common directory as the base and rewrites each
+ * `src` relative to it. Faces on another origin, and inline `data:` faces,
+ * are left as they are. Exported for tests.
+ */
+export function rebaseFontFaces(
+  compiled: ShippedDesignSystem,
+  files: Readonly<Record<string, string | URL>>,
+  fallbackBase: string
+): { compiled: ShippedDesignSystem; base: string | undefined } {
+  const page = new URL(fallbackBase);
+  const resolved = compiled.fontFaces.map((face) => {
+    if (face.inline) return null;
+    const mapped = files[face.src];
+    try {
+      return new URL(String(mapped ?? face.src), mapped ? page : fallbackBase);
+    } catch {
+      return null;
+    }
+  });
+  const sameOrigin = resolved.filter(
+    (url): url is URL => url !== null && url.origin === page.origin
+  );
+  if (sameOrigin.length === 0) return { compiled, base: undefined };
+  let dir = sameOrigin[0]?.pathname.replace(/[^/]*$/, '') ?? '/';
+  for (const url of sameOrigin) {
+    while (!url.pathname.startsWith(dir)) dir = dir.replace(/[^/]*\/$/, '');
+  }
+  const base = `${page.origin}${dir}`;
+  const fontFaces = compiled.fontFaces.map((face, index) => {
+    const url = resolved[index];
+    return url && url.origin === page.origin
+      ? { ...face, src: url.pathname.slice(dir.length) }
+      : face;
+  });
+  return { compiled: { ...compiled, fontFaces }, base };
 }
 
 /** Removes a design system registered with {@link defineDesignSystemTheme}. */
