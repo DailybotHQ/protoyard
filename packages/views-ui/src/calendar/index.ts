@@ -11,4 +11,10 @@ export {
   DEFAULT_CALENDAR_LABELS,
 } from '@texuli/data/calendar/view';
 export { default as CalendarView } from './CalendarView.svelte';
-export type { CalendarChange, CalendarItem, CalendarSlot, CalendarTone } from './types.ts';
+export type {
+  CalendarChange,
+  CalendarChipState,
+  CalendarItem,
+  CalendarSlot,
+  CalendarTone,
+} from './types.ts';

@@ -1,6 +1,6 @@
 import type { BoardMove } from '@protoyard/views/board';
 import { rankSequence } from '@protoyard/views/board';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BoardView } from '../src/board/index.ts';
@@ -102,5 +102,89 @@ describe('BoardView (Texuli Board host adapter)', () => {
     // Adapter mounts Texuli Board with onMove; smoke that board is interactive.
     expect(handle('Login form')).toBeTruthy();
     expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it('renders a column header snippet with the card count (D-G-034)', () => {
+    const columnHeader = createRawSnippet(
+      (column: () => { id: string; title: string }, state: () => { count: number }) => ({
+        render: () =>
+          `<span data-testid="head-${column().id}">${state().count} in ${column().title}</span>`,
+      })
+    );
+    board({ columnHeader });
+    expect(screen.getByTestId('head-todo').textContent).toBe('2 in To do');
+    expect(screen.getByTestId('head-done').textContent).toBe('0 in Done');
+  });
+
+  it('creates a card inside a column through onCreate (D-G-034)', async () => {
+    const onCreate = vi.fn(async (_column: { id: string; title: string }) => {});
+    board({ onCreate, canCreate: (column: { id: string }) => column.id !== 'done' });
+    const add = screen.getByRole('button', { name: 'Add card to Doing' });
+    await fireEvent.click(add);
+    await waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
+    expect(onCreate.mock.calls[0]?.[0]).toMatchObject({ id: 'doing', title: 'Doing' });
+    expect(screen.getByRole('button', { name: 'Add card to To do' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Add card to Done' })).toBeNull();
+  });
+
+  it('keeps a custom column footer next to the create button', () => {
+    const columnFooter = createRawSnippet((column: () => { id: string }) => ({
+      render: () => `<span data-testid="foot-${column().id}">footer</span>`,
+    }));
+    board({ columnFooter, onCreate: vi.fn() });
+    expect(screen.getByTestId('foot-todo')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add card to To do' })).toBeTruthy();
+  });
+
+  it('collapses and expands swimlanes from the lane toolbar (D-G-034)', async () => {
+    const onCollapsedLanesChange = vi.fn();
+    board({
+      lanes: [
+        { id: 'web', title: 'Web' },
+        { id: 'mobile', title: 'Mobile' },
+      ],
+      getLane: (t: Task) => t.team,
+      collapsibleLanes: true,
+      onCollapsedLanesChange,
+    });
+    const toolbar = screen.getByRole('group', { name: 'Board lanes' });
+    const mobile = within(toolbar).getByRole('button', { name: /Mobile \(1\)/ });
+    expect(mobile.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByText('Offline mode')).toBeTruthy();
+
+    await fireEvent.click(mobile);
+    expect(onCollapsedLanesChange).toHaveBeenLastCalledWith(['mobile']);
+    expect(mobile.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('Offline mode')).toBeNull();
+    expect(screen.getByText('Audit log')).toBeTruthy();
+
+    await fireEvent.click(mobile);
+    expect(onCollapsedLanesChange).toHaveBeenLastCalledWith([]);
+    expect(screen.getByText('Offline mode')).toBeTruthy();
+  });
+
+  it('starts with lanes collapsed from the collapsedLanes prop', () => {
+    board({
+      lanes: [
+        { id: 'web', title: 'Web' },
+        { id: 'mobile', title: 'Mobile' },
+      ],
+      getLane: (t: Task) => t.team,
+      collapsibleLanes: true,
+      collapsedLanes: ['web'],
+    });
+    expect(screen.queryByText('Login form')).toBeNull();
+    expect(screen.getByText('Offline mode')).toBeTruthy();
+  });
+
+  it('shows no lane toolbar unless collapsibleLanes is set', () => {
+    board({
+      lanes: [
+        { id: 'web', title: 'Web' },
+        { id: 'mobile', title: 'Mobile' },
+      ],
+      getLane: (t: Task) => t.team,
+    });
+    expect(screen.queryByRole('group', { name: 'Board lanes' })).toBeNull();
   });
 });

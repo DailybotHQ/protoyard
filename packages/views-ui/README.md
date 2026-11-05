@@ -150,7 +150,26 @@ services.
   `newId` names any series the split creates.
 - **Forwarded props:** `view` and `anchor` (bindable), `timeZone`, `locale`,
   `weekStartsOn`, `getTitle`, `getTone`, `onOpen`, `readOnly`, `canMove`,
-  `min`, `max`, `slotMinutes` and `showYear` (default `always` here).
+  `min`, `max`, `slotMinutes`, `showYear` (default `always` here),
+  `agendaDays` and `labels` (any Texuli calendar label, such as
+  `moreEvents`).
+- **Phone agenda (`phone`):** a day-by-day list instead of the grid, on its
+  own lazy chunk (desktop calendars never load it). It pages by
+  `agendaDays` days (default 7) with Previous, Today and Next, marks today,
+  and renders each event as one button: the `chip` snippet
+  (`(occurrence, { title, tone, when })`) or the title and time. A day with
+  more than `maxPerDay` events (default 3) shows "+N more events", a toggle
+  (`aria-expanded`) that lists the rest. With `onCreate`, each day has an
+  "Add event" button that creates an all-day slot. Moving events is not
+  offered in this mode.
+
+```svelte
+<CalendarView query={bookings} phone maxPerDay={2} {getTitle} onOpen={openBooking}>
+  {#snippet chip(occurrence, { title, when })}
+    <strong>{title}</strong> <small>{when}</small>
+  {/snippet}
+</CalendarView>
+```
 
 **What Texuli's view does** (see its docs for the full keyboard model):
 
@@ -163,8 +182,13 @@ services.
 - **Creating:** with `onCreate`, Enter on a focused empty slot or a click on an
   empty part of a day creates a one-hour event; date buttons create all-day
   ones.
+- **Day overflow:** a month cell shows three events and a "N more events"
+  note (rename it with `labels.moreEvents`). The note is text, not a
+  control, and the count of three is fixed.
 - **Limits:** events cannot be resized, and there is no "this / following /
-  all" prompt for repeating events.
+  all" prompt for repeating events. The `chip` snippet applies to the phone
+  agenda only: Texuli's month, week, day and agenda views draw their own
+  event buttons.
 
 ```bash
 pnpm vitest run packages/views-ui/tests/calendar.test.ts
@@ -526,7 +550,19 @@ unchanged; use it for small boards without ranks, lanes or WIP limits.
 - **Labels:** `label` names the board and `emptyColumnText` (default "No
   cards") fills empty cells; `labels` overrides any other Texuli label.
 - **Forwarded props:** `columns`, `lanes`, the accessors, `canMove`,
-  `isLocked`, `density`, `dir` and `class`.
+  `isLocked`, `density`, `dir`, `class`, and the `columnHeader` and
+  `columnFooter` snippets (`(column, { count })`).
+- **In-column create:** with `onCreate(column)`, each column ends with an
+  "Add card" button (named "Add card to <column>"; rename it with
+  `createLabel`, limit it with `canCreate(column)`). It runs through
+  `runService` and shows pending feedback; the service decides what the new
+  card holds (or opens a form).
+- **Lane collapse:** with `collapsibleLanes` and two or more lanes, a "Lanes"
+  toolbar has one toggle per lane (`aria-expanded`, with the lane's card
+  count). Collapsed lanes, bindable as `collapsedLanes` (ids, with
+  `onCollapsedLanesChange`), are left out of the board with their cards, so
+  column counts and WIP indicators cover the expanded lanes only while one
+  is collapsed.
 
 **What Texuli's board does:**
 
@@ -580,12 +616,30 @@ timeline is read-only.
 - **Pointer:** drag a bar to move it or drag its ends to resize it.
 - **Texuli extras:** a "Milestones only" toggle and an unscheduled tray for
   tasks without dates.
-- **Not forwarded yet:** the adapter accepts `getGroup`, `maxRows` and
-  `onOpen` but does not pass them on. Rows are not grouped, Texuli's default
-  limit of 500 rows applies, and items in the unscheduled tray do not open.
+- **Forwarded (Texuli 0.14.0):** `onOpen` (task bars and the unscheduled
+  tray), `maxRows` (with a truncation notice), `getGroup` returning
+  `{ id, label, band?: { start, end, label?, tone? } }` (a header row per
+  group, with the band drawn across it), bindable `collapsed` group ids with
+  `onCollapsedChange`, `onGroupAdd(group)` (an Add action on each group
+  header, run through `runService`), bindable `selectedRow` with
+  `onRowSelect(task)`, `markers` (`{ at, label, tone? }` vertical lines) and
+  `labels`.
 
-No unit test covers this view since PLAN_009 kept host-adapter tests for
-board, calendar, grid, sheet and canvas only.
+```svelte
+<TimelineView
+  query={tasks}
+  getGroup={(task) => ({ id: task.projectId, label: task.projectName, band: projectBand(task) })}
+  bind:collapsed
+  bind:selectedRow
+  onRowSelect={(task) => openPanel(task.id)}
+  onGroupAdd={(group) => services.addTask({ projectId: group.id })}
+  markers={[{ at: '2026-10-30', label: 'Review window closes', tone: 'warning' }]}
+/>
+```
+
+```bash
+pnpm vitest run packages/views-ui/tests/timeline.test.ts
+```
 
 ## Canvas (`@protoyard/views-ui/canvas`)
 
@@ -914,8 +968,8 @@ template demonstrates this with actor filtering and recipient-scoped reads.
 ## Files (`@protoyard/views-ui/files`)
 
 `FileManager` is a host adapter over Texuli's `FileBrowser`
-(`@texuli/data/files`, also exported here; `FilePreview` is a deprecated alias
-of `FileBrowser`). It reads flat
+(`@texuli/data/files`, also exported here). `FilePreview` (below) previews
+files in a lightbox. It reads flat
 `{ id, parentId, name, kind: 'folder' | 'file', type?, size?, updatedAt? }`
 rows on the `@protoyard/views/files` engine.
 
@@ -943,8 +997,42 @@ rows on the `@protoyard/views/files` engine.
   for services. Storage caveats for uploaded files are in docs/DATABASE.md
   (Uploaded files).
 
-No unit test covers this view since PLAN_009 kept host-adapter tests for
-board, calendar, grid, sheet and canvas only.
+### FilePreview
+
+`FilePreview` shows `entries` (folders are skipped) as a gallery of
+thumbnail buttons. Activating one opens a lightbox on the `@protoyard/ui`
+`Dialog`:
+
+```svelte
+<FilePreview
+  entries={files}
+  bind:current
+  getSrc={(file) => file.url}
+  getBlob={(file) => services.readBlob(file.id)}
+/>
+```
+
+- **By type** (`previewKind`): images show the file (or the deterministic
+  thumbnail without a source), PDFs embed in an `<object>` with an "Open"
+  link as fallback, text renders in a scrollable `<pre>` as text (never
+  HTML, clipped at `MAX_PREVIEW_TEXT` characters), video and audio get
+  native controls, and anything else shows its thumbnail and details.
+- **Sources:** `getSrc(entry)` returns a URL that must pass
+  `safePreviewSrc` (`https:`, `http:`, `blob:`, relative paths, and base64
+  raster `data:` for images; never `javascript:`, other `data:` or `//host`).
+  Without one, `getBlob(entry)` is shown through an object URL (revoked when
+  the file changes), and text comes from `getText(entry)` or the blob.
+- **Lightbox:** the title is the file name and the description its type,
+  size and date. Previous and Next buttons and ArrowLeft / ArrowRight step
+  through the files ("2 of 5" is announced), Escape or Close closes, and
+  focus returns to the thumbnail of the file that was showing. `current`
+  (the open file id, bindable) and `onCurrentChange` let the host open it.
+- `FilePreview` was a deprecated alias of `FileBrowser` before 1.3; it is now
+  this component. Use `FileBrowser` for the browser.
+
+```bash
+pnpm vitest run packages/views-ui/tests/files.test.ts
+```
 
 ## Package output
 
