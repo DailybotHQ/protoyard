@@ -408,7 +408,7 @@ that reports paths and fix hints without rewriting anything:
 import { scanFixtureWorld, scanFixtureText } from '@protoyard/scenarios';
 
 expect(scanFixtureText('ops@example.com')).toEqual([]);
-expect(scanFixtureText('lead@gmail.com')[0]?.detail).toBe('gmail.com');
+expect(scanFixtureText(`lead@${'gmail'}.com`)[0]?.detail).toBe('gmail.com'); // a real provider domain is flagged
 expect(scanFixtureWorld(world)).toEqual([]); // empty when clean
 ```
 

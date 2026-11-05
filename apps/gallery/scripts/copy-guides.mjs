@@ -60,5 +60,6 @@ export function copyGuides(options = {}) {
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const clean = process.argv.includes('--clean');
   const count = copyGuides({ clean });
-  if (!clean) console.log(`[protoyard] copied ${count} guides into ${DESTINATION}`);
+  // stderr: npm pack --json reads stdout.
+  if (!clean) console.error(`[protoyard] copied ${count} guides into ${DESTINATION}`);
 }
