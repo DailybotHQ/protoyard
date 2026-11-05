@@ -21,6 +21,7 @@ export interface OfflinePlugin {
   enforce: 'post';
   configResolved(config: { root: string; build: { outDir: string } }): void;
   transformIndexHtml(html: string): string;
+  writeBundle(): void;
   closeBundle(): void;
 }
 
@@ -29,6 +30,8 @@ const MARKER = 'data-protoyard-offline';
 export function protoyardOffline(options: ProtoyardOfflineOptions): OfflinePlugin[] {
   if (!options.enabled) return [];
   let outDir = '';
+  // Vite calls closeBundle after a failed build too; only a written bundle gets a worker.
+  let written = false;
   return [
     {
       name: 'protoyard-offline',
@@ -45,8 +48,11 @@ export function protoyardOffline(options: ProtoyardOfflineOptions): OfflinePlugi
           ? html.replace('</head>', () => `${tag}\n</head>`)
           : `${tag}${html}`;
       },
+      writeBundle() {
+        written = true;
+      },
       closeBundle() {
-        if (!outDir) return;
+        if (!outDir || !written) return;
         // Scanned AFTER Vite wrote everything (including public/), so the
         // precache list is exactly what ships.
         const manifest = createPrecacheManifest(outDir);
