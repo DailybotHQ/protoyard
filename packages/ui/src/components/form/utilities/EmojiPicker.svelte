@@ -237,7 +237,9 @@ $effect(() => {
           aria-label={searchPlaceholder}
           autocomplete="off"
           onkeydown={(event: KeyboardEvent) => {
-            if (event.key === 'ArrowDown') {
+            // Enter stays in the picker (inside a <form> it would submit it):
+            // like ArrowDown, it moves to the first match.
+            if (event.key === 'ArrowDown' || event.key === 'Enter') {
               event.preventDefault();
               void moveTo(0);
             }

@@ -98,6 +98,12 @@ export const INTERACTIVE_SELECTOR = [
   '[role="slider"]',
   '[role="textbox"]',
   '[role="combobox"]',
+  // App chrome the badge must never cover either (Dailybot G-052): navigation
+  // bars, even where they have no link under the point, and images such as logos.
+  'nav',
+  '[role="navigation"]',
+  'img',
+  '[role="img"]',
 ].join(',');
 
 /** Cost of covering a control at one sample point, against 1 for plain text. */

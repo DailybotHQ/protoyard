@@ -51,3 +51,16 @@ describe('floating placement probe budget', () => {
     expect(probe.exhausted()).toBe(true);
   });
 });
+
+describe('demo badge obstacles (Dailybot G-052)', () => {
+  it('counts navigation and images, such as a logo, as controls', async () => {
+    const { CONTROL_COST, spotCost } = await import('../src/shell/badge-placement.ts');
+    const nav = document.createElement('nav');
+    const navBackground = nav.appendChild(document.createElement('div'));
+    const logo = document.createElement('img');
+    const rect = { left: 0, top: 0, width: 20, height: 10 };
+    expect(spotCost(rect, () => navBackground, 16)).toBeGreaterThanOrEqual(CONTROL_COST);
+    expect(spotCost(rect, () => logo, 16)).toBeGreaterThanOrEqual(CONTROL_COST);
+    expect(spotCost(rect, () => document.createElement('div'), 16)).toBe(0);
+  });
+});
