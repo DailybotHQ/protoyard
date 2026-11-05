@@ -24,6 +24,7 @@ const {
   createDesignSystem,
   defineDesignSystemTheme,
   forgetDesignSystemTheme,
+  rebaseFontFaces,
 } = await import('../src/index.ts');
 
 async function shipped(description?: string) {
@@ -69,5 +70,75 @@ describe('defineDesignSystemTheme options', () => {
     const defaultBase = defineDesignSystemTheme(compiled);
     applyAppearance(document.documentElement, { theme: defaultBase, resolvedMode: 'dark' });
     expect(applied.at(-1)).toEqual({ mode: 'dark' });
+  });
+});
+
+describe('rebaseFontFaces (fontFiles for bundled fonts)', () => {
+  const face = (src: string, inline = false) => ({
+    family: 'Brand',
+    src,
+    format: 'woff2' as const,
+    weight: '400',
+    style: 'normal' as const,
+    display: 'swap' as const,
+    inline,
+  });
+  const shippedWith = (faces: ReturnType<typeof face>[]) =>
+    ({ fontFaces: faces }) as unknown as Parameters<typeof rebaseFontFaces>[0];
+
+  it('rewrites mapped files relative to their common directory, never with ..', () => {
+    const result = rebaseFontFaces(
+      shippedWith([face('fonts/brand-400.woff2'), face('fonts/brand-700.woff2')]),
+      {
+        'fonts/brand-400.woff2': 'https://app.example.com/assets/brand-400-a1b2.woff2',
+        'fonts/brand-700.woff2': new URL('https://app.example.com/assets/brand-700-c3d4.woff2'),
+      },
+      'https://app.example.com/p/demo/index.html'
+    );
+    expect(result.base).toBe('https://app.example.com/assets/');
+    expect(result.compiled.fontFaces.map((f) => f.src)).toEqual([
+      'brand-400-a1b2.woff2',
+      'brand-700-c3d4.woff2',
+    ]);
+  });
+
+  it('keeps unmapped files at their old location and leaves inline and foreign faces alone', () => {
+    const result = rebaseFontFaces(
+      shippedWith([
+        face('fonts/brand-400.woff2'),
+        face('fonts/other.woff2'),
+        face('data:font/woff2;base64,AAAA', true),
+        face('fonts/remote.woff2'),
+      ]),
+      {
+        'fonts/brand-400.woff2': '/assets/brand-400-a1b2.woff2',
+        'fonts/remote.woff2': 'https://cdn.example.org/remote.woff2',
+      },
+      'https://app.example.com/p/demo/'
+    );
+    expect(result.base).toBe('https://app.example.com/');
+    expect(result.compiled.fontFaces.map((f) => f.src)).toEqual([
+      'assets/brand-400-a1b2.woff2',
+      'p/demo/fonts/other.woff2',
+      'data:font/woff2;base64,AAAA',
+      'fonts/remote.woff2',
+    ]);
+    for (const f of result.compiled.fontFaces) expect(f.src).not.toContain('..');
+  });
+});
+
+describe('designSystemFromTheme sidebarPrimary (G-027)', () => {
+  it('drops a sidebarPrimary that only copies primary, and still compiles', async () => {
+    const { BUILTIN_THEMES } = await import('../src/presets.ts');
+    const { designSystemFromTheme } = await import('../src/index.ts');
+    const theme = BUILTIN_THEMES[0];
+    if (!theme) throw new Error('no built-in theme');
+    const { document } = await designSystemFromTheme(theme);
+    const roles = (
+      document as unknown as { color: { roles: Record<string, Record<string, unknown>> } }
+    ).color.roles;
+    for (const mode of Object.keys(roles)) expect(roles[mode]?.sidebarPrimary).toBeUndefined();
+    const compiled = await compileDesignSystemDocument(document);
+    expect(compiled.ok).toBe(true);
   });
 });

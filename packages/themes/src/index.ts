@@ -16,6 +16,7 @@ export {
   designSystemTheme,
   exportDesignSystem,
   forgetDesignSystemTheme,
+  rebaseFontFaces,
   type ShippedDesignSystem,
   shipDesignSystem,
 } from './design-system.ts';

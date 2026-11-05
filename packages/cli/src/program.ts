@@ -126,8 +126,11 @@ export function createProgram(env: RunnerEnv): Command {
     .description(
       'visual sweep of a built prototype: light and dark, desktop and phone PNGs (needs Playwright)'
     )
-    .argument('<slug>', 'prototype slug')
-    .option('--out <dir>', 'output folder (default tmp/sweep/<slug>)')
+    .argument('<slugs...>', 'one or more prototype slugs')
+    .option(
+      '--out <dir>',
+      'output folder (default tmp/sweep/<slug>; with several slugs, <dir>/<slug>)'
+    )
     .action(def('sweep', sweepCommand));
 
   program

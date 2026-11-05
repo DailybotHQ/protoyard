@@ -1,5 +1,20 @@
 # @protoyard/crud
 
+## 1.2.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/ui@1.2.4
+  - @protoyard/renderer-svelte@1.2.4
+  - @protoyard/blueprint@1.2.4
+  - @protoyard/analytics-ui@1.2.4
+  - @protoyard/views-ui@1.2.4
+  - @protoyard/analytics@1.2.4
+  - @protoyard/charts-ui@1.2.4
+  - @protoyard/core@1.2.4
+  - @protoyard/views@1.2.4
+
 ## 1.2.3
 
 ### Patch Changes

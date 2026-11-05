@@ -1,5 +1,13 @@
 # @protoyard/blocks
 
+## 1.2.4
+
+### Patch Changes
+
+- @protoyard/ai@1.2.4
+  - @protoyard/avatars@1.2.4
+  - @protoyard/core@1.2.4
+
 ## 1.2.3
 
 ### Patch Changes

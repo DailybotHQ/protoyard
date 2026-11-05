@@ -22,7 +22,7 @@ interface OwnProps {
   value?: IsoWeekday[];
   weekStartsOn?: IsoWeekday;
   locale?: string;
-  /** Visible label style on each toggle; the accessible name is always the long name. */
+  /** Visible label style on each toggle; the accessible name is the visible text plus the long name. */
   labelStyle?: WeekdayStyle;
   /** Group name for assistive tech. */
   label?: string;
@@ -103,13 +103,27 @@ function commit(next: string | string[]): void {
   data-invalid={invalid ? '' : undefined}
 >
   {#each days as entry (entry.day)}
-    <ToggleGroupItem value={String(entry.day)} aria-label={entry.long} data-weekday={entry.day}>
-      {entry.text}
+    <!-- The accessible name starts with the visible text (WCAG 2.5.3, axe
+         label-content-name-mismatch): "Mon Monday", the long name hidden. -->
+    <ToggleGroupItem value={String(entry.day)} data-weekday={entry.day}>
+      {entry.text}{#if entry.long !== entry.text}<span class="ui-weekday-picker__long">{' '}{entry.long}</span>{/if}
     </ToggleGroupItem>
   {/each}
 </ToggleGroup>
 
 <style>
+  .ui-weekday-picker__long {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   :global(.ui-weekday-picker[data-invalid] [aria-pressed='false']) {
     border-color: var(--tx-destructive, crimson);
   }

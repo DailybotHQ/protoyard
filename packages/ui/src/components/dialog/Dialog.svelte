@@ -35,6 +35,12 @@ type Props = Omit<
   hideClose?: boolean;
   closeLabel?: string;
   onOpenChange?: (open: boolean) => void;
+  /**
+   * Runs when the dialog closes, before focus returns. Call
+   * `event.preventDefault()` to move focus yourself; otherwise focus returns
+   * to where it was, through the shared overlay stack.
+   */
+  onCloseAutoFocus?: (event: { preventDefault(): void }) => void;
   /** Defaults to the shared stack; pass one to isolate a subtree (tests). Read once at mount. */
   stack?: OverlayStack;
 };
@@ -43,6 +49,7 @@ let {
   open = $bindable(false),
   closeLabel = 'Close',
   onOpenChange,
+  onCloseAutoFocus,
   stack = overlayStack,
   style,
   ref = $bindable(null),
@@ -57,7 +64,13 @@ const handleDismiss = overlayDismissHandler({ layer, element: () => ref });
 
 function handleCloseAutoFocus(event: { preventDefault(): void }): void {
   event.preventDefault();
-  layer.restoreFocus(ref);
+  let handled = false;
+  onCloseAutoFocus?.({
+    preventDefault() {
+      handled = true;
+    },
+  });
+  if (!handled) layer.restoreFocus(ref);
 }
 </script>
 

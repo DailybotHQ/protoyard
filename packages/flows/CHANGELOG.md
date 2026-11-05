@@ -1,5 +1,9 @@
 # @protoyard/flows
 
+## 1.2.4
+
+No changes in this release.
+
 ## 1.2.3
 
 No changes in this release.

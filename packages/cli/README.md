@@ -31,7 +31,7 @@ prototype of the same name. `build --all` builds prototypes only.
 | --- | --- |
 | `doctor [--offline]` | Node ≥ 24.20, pnpm, installed deps, workspace layout, templates, git, Playwright browsers, provider CLIs and their auth (never prints tokens). |
 | `check texuli [--scope <path>…] [--strict]` | Texuli adoption rules over the workspace (`src/lib/texuli-adoption.ts`, shared with `scripts/check-texuli-adoption.ts`). Exit 4 lists each violation. |
-| `sweep <slug> [--out <dir>]` | Light/dark × desktop/phone PNGs of a built prototype into `tmp/sweep/<slug>/` (Playwright optional peer). |
+| `sweep <slug...> [--out <dir>]` | Light/dark × desktop/phone PNGs of a built prototype into `tmp/sweep/<slug>/` (Playwright optional peer). |
 | `list [--kind] [--tag] [--category] [--platform] [--search] [--sort name\|modified]` | Table from the registry: name, slug, kind, category, template, platform, status, scenario count. |
 | `index [--force]` | Scans `prototypes/*/protoyard.json` and `templates/*/protoyard.json` (one level deep, 256 KB cap, parsed as data, no code runs). Writes `.protoyard/registry.json` and an incremental cache keyed by path + mtime + size. Invalid manifests are reported, not fatal. Each entry carries the optional `catalog` block (category from a shared list, product type, platforms, resolved shell, features, highlights, difficulty) or `null`; search also matches its product type and features. |
 | `affected --since <ref> [--format text\|csv]` | Maps `git diff --name-only <ref>...HEAD` to prototype slugs: `prototypes/<slug>/**` → that slug; `packages/**`, `templates/**`, root configs → all prototypes; docs/meta-only → none. `--format csv` prints a bare comma-joined list for shell/CI. |

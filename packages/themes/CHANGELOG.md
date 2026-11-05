@@ -1,5 +1,12 @@
 # @protoyard/themes
 
+## 1.2.4
+
+### Patch Changes
+
+- Fixes from the consumers' gap batches 3 and 4: `sweep` forces each shot's mode, hides DevTools and takes several slugs; `defineDesignSystemTheme(compiled, { fontFiles })` for fonts in a production build; `designSystemFromTheme` no longer copies `primary` into `sidebarPrimary`; `WeekdayPicker` names start with the visible text; `Dialog` forwards `onCloseAutoFocus`; floating placement probes at most 240 points and re-places at most every 500 ms on busy pages.
+- @protoyard/core@1.2.4
+
 ## 1.2.3
 
 ### Patch Changes
