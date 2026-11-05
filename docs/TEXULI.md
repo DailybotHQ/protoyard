@@ -155,6 +155,32 @@ Besides the `protoyard.doc.*` ids listed above:
 - `protoyard.page.loading`, `.load-failed`, `.try-again`, `.loading-form`
 - `protoyard.pages.print` (`PrintButton`; its `label` prop still wins)
 
+### Views (`@protoyard/views-ui`)
+
+- `protoyard.views.query-state.empty-title`, `.denied-title`,
+  `.denied-message` (`{capability}`), `.offline-title`, `.offline-message`,
+  `.failed-title`, `.failed-message` (`QueryState`; `classifyQueryError(error,
+  messages)` takes the same lookup)
+- `protoyard.views.notification-center.label`, `.marking-all`, `.marking`,
+  `.loading`, `.load-failed`, `.unread-trigger` (`{count} unread, {label}`),
+  `.unread-description` (`{count}`), `.mute` / `.unmute` (`{kind}`)
+- `protoyard.views.notification-center.inbox.*` bridges Texuli's inbox labels
+  (which have no dictionary ids yet): `.view`, `.all`, `.unread`,
+  `.mark-all-read`, `.mark-read`, `.mark-unread`, `.unread-item`, `.empty`,
+  `.empty-unread`, `.save-failed`, `.unread-count` (`, {count} unread`),
+  `.mark-read-item` / `.mark-unread-item` (`{title}`), `.arrived-one`,
+  `.arrived` (`{count}`). The `labels` prop (any inbox or center label) wins.
+- `protoyard.views.comment-thread.label`, `.loading` (`{label}`), `.someone`,
+  `.edited`, `.deleted`, `.edit-by` (`{name}`), `.save`, `.comment`,
+  `.reaction-count` (`{emoji} {count}: {names}`), `.react`, `.reply`, `.edit`,
+  `.delete`, `.reactions`, `.react-with` (`{emoji}`), `.sending-comment`,
+  `.you`, `.sending`, `.pending-comment`, `.empty`, `.replies-to` / `.reply-to`
+  (`{name}`), `.send-reply`, `.add`, `.delete-title`, `.delete-description`,
+  `.delete-confirm`
+- `protoyard.views.composer.submit`, `.empty`, `.not-saved`, `.placeholder`,
+  `.cancel`
+- `protoyard.views.activity-feed.label`, `.loading` (`{label}`)
+
 ## Icons, code fields, image pairs and avatar grids (Texuli 0.13.1)
 
 Texuli 0.13.1 adds four components a prototype can use directly (they are

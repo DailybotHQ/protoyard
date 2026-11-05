@@ -4,6 +4,7 @@ import { Avatar, Button, Spinner } from '@protoyard/ui';
 import { type ActivityComment, buildThreads, tokenize, whenLabel } from '@protoyard/views/activity';
 import type { Component } from 'svelte';
 import { onMount } from 'svelte';
+import { useMessages } from 'texuli/i18n';
 import { lazyDialog } from '../lib/lazy-overlays.svelte.ts';
 import QueryState from '../states/QueryState.svelte';
 import Composer from './Composer.svelte';
@@ -39,7 +40,7 @@ let {
   now,
   timeZone = 'UTC',
   locale = 'en-US',
-  label = 'Comments',
+  label: labelProp,
   onRetry,
 }: {
   query: { readonly current: C[] | undefined; readonly loading: boolean; readonly error: unknown };
@@ -140,12 +141,17 @@ async function send(body: string, parentId: string | null) {
   }
 }
 
-const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
+const C = 'protoyard.views.comment-thread';
+const label = $derived(labelProp ?? messages(`${C}.label`, 'Comments'));
+const someone = $derived(messages(`${C}.someone`, 'Someone'));
+const nameOf = (id: string) => byId.get(id)?.name ?? someone;
 </script>
 
 {#snippet person(id: string, size: 'sm' | 'xs' = 'sm')}
   {@const who = byId.get(id)}
-  <Avatar name={who?.name ?? 'Someone'} {...personImage(who, avatarSrc)} {size} decorative />
+  <Avatar name={who?.name ?? someone} {...personImage(who, avatarSrc)} {size} decorative />
 {/snippet}
 
 {#snippet commentItem(comment: C, isReply: boolean)}
@@ -156,15 +162,15 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
       <p class="flex flex-wrap items-baseline gap-x-2 text-sm">
         <span class="font-medium">{nameOf(comment.authorId)}</span>
         <time class="text-xs text-muted-foreground" datetime={comment.createdAt}>{whenLabel(comment.createdAt, { now, timeZone, locale })}</time>
-        {#if comment.editedAt && !comment.deletedAt}<span class="text-xs text-muted-foreground">(edited)</span>{/if}
+        {#if comment.editedAt && !comment.deletedAt}<span class="text-xs text-muted-foreground">{messages(`${C}.edited`, '(edited)')}</span>{/if}
       </p>
       {#if comment.deletedAt}
-        <p class="text-sm text-muted-foreground italic">This comment was deleted.</p>
+        <p class="text-sm text-muted-foreground italic">{messages(`${C}.deleted`, 'This comment was deleted.')}</p>
       {:else if editing === comment.id && onEdit}
         <Composer
-          label={`Edit comment by ${nameOf(comment.authorId)}`}
+          label={messages(`${C}.edit-by`, 'Edit comment by {name}', { name: nameOf(comment.authorId) })}
           initial={comment.body}
-          submitLabel="Save"
+          submitLabel={messages(`${C}.save`, 'Save')}
           {mentions}
           {references}
           loadEditor={effectiveLoadEditor}
@@ -178,7 +184,7 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
       {:else}
         {#if MarkdownPreview}
           {@const source = markdownBody(comment.body)}
-          <MarkdownPreview {source} label="Comment" class="text-sm" onLinkClick={handleMarkdownLink} />
+          <MarkdownPreview {source} label={messages(`${C}.comment`, 'Comment')} class="text-sm" onLinkClick={handleMarkdownLink} />
         {:else}
           <p class="text-sm break-words whitespace-pre-wrap"><Segments segments={tokenize(comment.body, lookups)} {onOpenReference} /></p>
         {/if}
@@ -191,7 +197,11 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
                 size="sm"
                 class="h-7 px-2"
                 aria-pressed={mine}
-                aria-label={`${emoji} ${ids.length}: ${ids.map(nameOf).join(', ')}`}
+                aria-label={messages(`${C}.reaction-count`, '{emoji} {count}: {names}', {
+                  emoji,
+                  count: String(ids.length),
+                  names: ids.map(nameOf).join(', '),
+                })}
                 disabled={!onReact}
                 onclick={() => runService(() => onReact?.(comment, emoji))}
               >{emoji} {ids.length}</Button>
@@ -199,14 +209,14 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
           {/each}
           {#if onReact}
             <Button variant="ghost" size="sm" class="h-7 px-2" aria-expanded={picker === comment.id} onclick={() => (picker = picker === comment.id ? null : comment.id)}>
-              React
+              {messages(`${C}.react`, 'React')}
             </Button>
           {/if}
           {#if !isReply}
-            <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() => (replyTo = replyTo === comment.id ? null : comment.id)}>Reply</Button>
+            <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() => (replyTo = replyTo === comment.id ? null : comment.id)}>{messages(`${C}.reply`, 'Reply')}</Button>
           {/if}
           {#if own && onEdit}
-            <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() => (editing = comment.id)}>Edit</Button>
+            <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() => (editing = comment.id)}>{messages(`${C}.edit`, 'Edit')}</Button>
           {/if}
           {#if own && onDelete}
             <!-- The confirmation's dialog code loads on the first Delete (the button shows it pending). -->
@@ -214,17 +224,17 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
               lazyDialog.load().then(() => {
                 deleting = comment;
                 confirmOpen = true;
-              })}>Delete</Button>
+              })}>{messages(`${C}.delete`, 'Delete')}</Button>
           {/if}
         </div>
         {#if picker === comment.id && onReact}
-          <div role="group" aria-label="Reactions" class="mt-1 flex gap-1">
+          <div role="group" aria-label={messages(`${C}.reactions`, 'Reactions')} class="mt-1 flex gap-1">
             {#each reactions as emoji (emoji)}
               <Button
                 variant="outline"
                 size="sm"
                 class="h-7 px-2"
-                aria-label={`React with ${emoji}`}
+                aria-label={messages(`${C}.react-with`, 'React with {emoji}', { emoji })}
                 onclick={async () => {
                   const result = await runService(() => onReact(comment, emoji));
                   if (result.ok) picker = null;
@@ -239,16 +249,16 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
 {/snippet}
 
 {#snippet pendingItem(body: string)}
-  <article class="flex gap-3 opacity-70" aria-busy="true" aria-label="Sending comment">
+  <article class="flex gap-3 opacity-70" aria-busy="true" aria-label={messages(`${C}.sending-comment`, 'Sending comment')}>
     {@render person(currentUserId)}
     <div class="min-w-0 flex-1">
       <p class="flex items-center gap-2 text-sm">
-        <span class="font-medium">{me?.name ?? 'You'}</span>
-        <span class="flex items-center gap-1 text-xs text-muted-foreground"><Spinner class="size-3" />Sending…</span>
+        <span class="font-medium">{me?.name ?? messages(`${C}.you`, 'You')}</span>
+        <span class="flex items-center gap-1 text-xs text-muted-foreground"><Spinner class="size-3" />{messages(`${C}.sending`, 'Sending…')}</span>
       </p>
       {#if MarkdownPreview}
         {@const source = markdownBody(body)}
-        <MarkdownPreview {source} label="Pending comment" class="text-sm" onLinkClick={handleMarkdownLink} />
+        <MarkdownPreview {source} label={messages(`${C}.pending-comment`, 'Pending comment')} class="text-sm" onLinkClick={handleMarkdownLink} />
       {:else}
         <p class="text-sm break-words whitespace-pre-wrap"><Segments segments={tokenize(body, lookups)} /></p>
       {/if}
@@ -257,24 +267,24 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
 {/snippet}
 
 <section aria-label={label} class="grid gap-4">
-  <QueryState {query} label={`Loading ${label.toLowerCase()}`} isEmpty={() => false} onRetry={onRetry ? () => { void onRetry(); } : undefined}>
+  <QueryState {query} label={messages(`${C}.loading`, 'Loading {label}', { label: label.toLowerCase() })} isEmpty={() => false} onRetry={onRetry ? () => { void onRetry(); } : undefined}>
     {#snippet children()}
       {#if threads.length === 0 && sending.length === 0}
-        <p class="text-sm text-muted-foreground">No comments yet. Start the conversation.</p>
+        <p class="text-sm text-muted-foreground">{messages(`${C}.empty`, 'No comments yet. Start the conversation.')}</p>
       {/if}
       <ol class="grid gap-4">
         {#each threads as thread (thread.comment.id)}
           <li class="grid gap-3">
             {@render commentItem(thread.comment, false)}
             {#if thread.replies.length || replyTo === thread.comment.id || sending.some((s) => s.parentId === thread.comment.id)}
-              <ol class="ml-10 grid gap-3 border-l border-border pl-3" aria-label={`Replies to ${nameOf(thread.comment.authorId)}`}>
+              <ol class="ml-10 grid gap-3 border-l border-border pl-3" aria-label={messages(`${C}.replies-to`, 'Replies to {name}', { name: nameOf(thread.comment.authorId) })}>
                 {#each thread.replies as reply (reply.id)}<li>{@render commentItem(reply, true)}</li>{/each}
                 {#each sending.filter((s) => s.parentId === thread.comment.id) as pending (pending.key)}<li>{@render pendingItem(pending.body)}</li>{/each}
                 {#if replyTo === thread.comment.id}
                   <li>
                     <Composer
-                      label={`Reply to ${nameOf(thread.comment.authorId)}`}
-                      submitLabel="Send reply"
+                      label={messages(`${C}.reply-to`, 'Reply to {name}', { name: nameOf(thread.comment.authorId) })}
+                      submitLabel={messages(`${C}.send-reply`, 'Send reply')}
                       {mentions}
                       {references}
                       loadEditor={effectiveLoadEditor}
@@ -290,7 +300,7 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
         {/each}
         {#each sending.filter((s) => s.parentId === null) as pending (pending.key)}<li>{@render pendingItem(pending.body)}</li>{/each}
       </ol>
-      <Composer label="Add a comment" {mentions} {references} loadEditor={effectiveLoadEditor} onSubmit={(body) => send(body, null)} />
+      <Composer label={messages(`${C}.add`, 'Add a comment')} {mentions} {references} loadEditor={effectiveLoadEditor} onSubmit={(body) => send(body, null)} />
     {/snippet}
   </QueryState>
 </section>
@@ -301,9 +311,12 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
   <!-- The dialog stays open with the reason when deleting fails. -->
   <AlertDialog
     bind:open={confirmOpen}
-    title="Delete this comment?"
-    description="Replies stay; the comment is replaced by a note that it was deleted."
-    confirmLabel="Delete comment"
+    title={messages(`${C}.delete-title`, 'Delete this comment?')}
+    description={messages(
+      `${C}.delete-description`,
+      'Replies stay; the comment is replaced by a note that it was deleted.'
+    )}
+    confirmLabel={messages(`${C}.delete-confirm`, 'Delete comment')}
     destructive
     onConfirm={async () => {
       await onDelete(target);
