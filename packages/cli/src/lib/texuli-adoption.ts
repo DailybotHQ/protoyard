@@ -52,6 +52,11 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { join, relative, resolve } from 'node:path';
 
 const ROOTS = ['packages', 'apps', 'templates', 'prototypes'];
+/**
+ * Copies that exist only while a package is packed (`prepack` writes them,
+ * `postpack` removes them): the sources they copy are scanned where they live.
+ */
+const PACK_COPY = /^(?:packages\/templates\/(?:templates|blueprints)|apps\/gallery\/guides)\//;
 const EXTENSIONS = ['.svelte', '.ts', '.css', '.astro'];
 const SKIP_DIRS = new Set([
   'node_modules',
@@ -435,9 +440,22 @@ export function scanRepository(
 ): { files: string[]; violations: Violation[] } {
   const files: string[] = [];
   for (const top of ROOTS) walk(join(root, top), root, files);
-  const scoped = files.filter((f) => inScope(f, scopes)).sort();
-  const violations = scoped.flatMap((f) => scanSource(f, readFileSync(join(root, f), 'utf8')));
-  return { files: scoped, violations };
+  const scoped = files.filter((f) => inScope(f, scopes) && !PACK_COPY.test(f)).sort();
+  const read: string[] = [];
+  const violations: Violation[] = [];
+  for (const f of scoped) {
+    let source: string;
+    try {
+      source = readFileSync(join(root, f), 'utf8');
+    } catch (error) {
+      // A file removed while the scan runs (a parallel pack cleaning its copy).
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+      throw error;
+    }
+    read.push(f);
+    violations.push(...scanSource(f, source));
+  }
+  return { files: read, violations };
 }
 
 export function checkAdoption(options: AdoptionOptions = {}): AdoptionReport {
