@@ -144,6 +144,17 @@ uses a separate id (such as `…label-one`) instead of a plural message.
 - `protoyard.saas.account-gate.title`, `.description`, `.note`,
   `.simulated-note`, `.create`, `.dismiss` (`AccountGate`; each also a prop)
 
+### Pages and docs (`@protoyard/pages-ui`)
+
+Besides the `protoyard.doc.*` ids listed above:
+
+- `protoyard.doc.loading`, `.loading-editor`, `.loading-form`
+- `protoyard.doc.saved` (`Saved {filename} ({size}).`), `.saved-pages`
+  (`Saved {filename} ({size}, {pages}).`), `.page-count-one` (`1 page`),
+  `.page-count` (`{count} pages`), `.write-failed`
+- `protoyard.page.loading`, `.load-failed`, `.try-again`, `.loading-form`
+- `protoyard.pages.print` (`PrintButton`; its `label` prop still wins)
+
 ## Icons, code fields, image pairs and avatar grids (Texuli 0.13.1)
 
 Texuli 0.13.1 adds four components a prototype can use directly (they are

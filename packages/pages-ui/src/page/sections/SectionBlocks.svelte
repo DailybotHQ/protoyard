@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { Block } from '@protoyard/blocks';
 import { LoadingState } from '@protoyard/ui';
+import { useMessages } from 'texuli/i18n';
 import { BlockHost } from '../../block-host/index.ts';
 import { getFormServices } from '../../form/context.ts';
 import { isNumberedSteps, isPlainStat } from '../design.ts';
@@ -45,6 +46,7 @@ const FORM = new Set<Block['type']>(['form', 'calculator', 'counter']);
 
 // Set by PageApp from the kind runtime; without it a form keeps the block preview.
 const formServices = getFormServices();
+const messages = useMessages();
 
 function width(block: Block): string {
   if (FORM.has(block.type)) return 'mx-auto w-full max-w-xl';
@@ -79,7 +81,7 @@ function width(block: Block): string {
   {:else if block.type === 'form' && formServices}
     <div class="mx-auto w-full max-w-xl" data-py-page-block="form">
       {#await import('../../form/FormBlock.svelte')}
-        <LoadingState label="Loading the form" class="py-8" />
+        <LoadingState label={messages('protoyard.page.loading-form', 'Loading the form')} class="py-8" />
       {:then { default: FormBlock }}
         <FormBlock form={block} services={formServices} />
       {:catch}

@@ -5,6 +5,7 @@ import type { PrototypeRuntime } from '@protoyard/core';
 import { createFormServices, type FormServices, type PageDocument } from '@protoyard/pages';
 import { ErrorState, LoadingState } from '@protoyard/ui';
 import { untrack } from 'svelte';
+import { useMessages } from 'texuli/i18n';
 import { setFormServices } from '../form/context.ts';
 import PageHost from './PageHost.svelte';
 
@@ -61,6 +62,9 @@ const services = $derived.by((): FormServices | null => {
 // and its runtime are fixed for the life of this component, so read them once.
 setFormServices(untrack(() => services));
 
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
+
 const errorMessage = $derived(
   error instanceof Error ? error.message : typeof error === 'string' ? error : null
 );
@@ -68,13 +72,13 @@ const errorMessage = $derived(
 
 <div class={className} data-py-page-app data-page-id={page.id}>
   {#if loading}
-    <LoadingState label="Loading the page" class="py-16" />
+    <LoadingState label={messages('protoyard.page.loading', 'Loading the page')} class="py-16" />
   {:else if errorMessage}
     <ErrorState
-      title="The page could not be loaded"
+      title={messages('protoyard.page.load-failed', 'The page could not be loaded')}
       message={errorMessage}
       onRetry={onRetry}
-      retryLabel="Try again"
+      retryLabel={messages('protoyard.page.try-again', 'Try again')}
     />
   {:else}
     <PageHost {page} {brandName} />

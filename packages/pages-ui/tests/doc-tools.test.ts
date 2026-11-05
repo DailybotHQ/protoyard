@@ -5,7 +5,11 @@ import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import DocApp from '../src/doc/DocApp.svelte';
+import DocTools from '../src/doc/DocTools.svelte';
+import PageApp from '../src/page/PageApp.svelte';
+import PrintButton from '../src/print/PrintButton.svelte';
 import LabeledDocApp from './fixtures/LabeledDocApp.svelte';
+import WithLabels from './fixtures/WithLabels.svelte';
 
 const exportDoc = vi.fn();
 
@@ -202,5 +206,74 @@ describe('DocApp labels', () => {
     expect(view.getByRole('group', { name: 'Descargar' })).toBeTruthy();
     expect(view.container.querySelector('[aria-label="Contenido del documento"]')).toBeTruthy();
     expect(view.queryByRole('button', { name: 'Edit' })).toBeNull();
+  });
+});
+
+describe('doc and page loading, export and print labels (UG-56)', () => {
+  it('shows loading labels from the dictionary', () => {
+    const docView = render(WithLabels, {
+      props: {
+        component: DocApp,
+        props: { doc, loading: true },
+        labels: { 'protoyard.doc.loading': 'Cargando el documento' },
+      },
+    });
+    expect(docView.getByText('Cargando el documento')).toBeTruthy();
+    const pageView = render(WithLabels, {
+      props: {
+        component: PageApp,
+        props: { page: { id: 'landing', title: 'Landing', sections: [] }, loading: true },
+        labels: { 'protoyard.page.loading': 'Cargando la página' },
+      },
+    });
+    expect(pageView.getByText('Cargando la página')).toBeTruthy();
+  });
+
+  it('reports a saved export in the dictionary language, English by default', async () => {
+    exportDoc.mockResolvedValue({
+      format: 'pdf',
+      filename: 'a.pdf',
+      size: 2048,
+      pageCount: 3,
+      notes: [],
+    });
+    const english = render(DocTools, { props: { doc } });
+    await fireEvent.click(english.getByRole('button', { name: 'Download as PDF' }));
+    await waitFor(() => expect(english.getByText('Saved a.pdf (2.0 KB, 3 pages).')).toBeTruthy());
+    cleanup();
+
+    exportDoc.mockResolvedValue({
+      format: 'pdf',
+      filename: 'a.pdf',
+      size: 2048,
+      pageCount: 1,
+      notes: [],
+    });
+    const spanish = render(WithLabels, {
+      props: {
+        component: DocTools,
+        props: { doc },
+        labels: {
+          'protoyard.doc.saved-pages': 'Guardado {filename} ({size}, {pages}).',
+          'protoyard.doc.page-count-one': '1 página',
+        },
+      },
+    });
+    await fireEvent.click(spanish.getByRole('button', { name: 'Download as PDF' }));
+    await waitFor(() =>
+      expect(spanish.getByText('Guardado a.pdf (2.0 KB, 1 página).')).toBeTruthy()
+    );
+  });
+
+  it('labels PrintButton from the dictionary unless a label is passed', () => {
+    const view = render(WithLabels, {
+      props: { component: PrintButton, labels: { 'protoyard.pages.print': 'Imprimir' } },
+    });
+    expect(view.getByRole('button', { name: 'Imprimir' })).toBeTruthy();
+    expect(
+      render(PrintButton, { props: { label: 'Print this' } }).getByRole('button', {
+        name: 'Print this',
+      })
+    ).toBeTruthy();
   });
 });

@@ -212,7 +212,7 @@ function onTocClick(id: string): void {
             {#if block.type === 'form' && formServices}
               <div class="mx-auto w-full max-w-xl" data-py-doc-block-form>
                 {#await import('../form/FormBlock.svelte')}
-                  <LoadingState label="Loading the form" class="py-8" />
+                  <LoadingState label={messages('protoyard.doc.loading-form', 'Loading the form')} class="py-8" />
                 {:then { default: FormBlock }}
                   <FormBlock form={block} services={formServices} />
                 {:catch}
