@@ -223,7 +223,7 @@ async function resolveTemplateBrand(dir: string): Promise<void> {
   }
 }
 
-/** Replaces pnpm workspace ranges in every dependency section with a published lockstep version. */
+/** Replaces Protoyard's pnpm workspace ranges with a published lockstep version. */
 export function rewriteWorkspaceDependencies(pkg: Record<string, unknown>, version: string): void {
   for (const section of [
     'dependencies',
@@ -234,7 +234,11 @@ export function rewriteWorkspaceDependencies(pkg: Record<string, unknown>, versi
     const dependencies = pkg[section];
     if (!dependencies || typeof dependencies !== 'object' || Array.isArray(dependencies)) continue;
     for (const [name, specifier] of Object.entries(dependencies)) {
-      if (typeof specifier === 'string' && specifier.startsWith('workspace:')) {
+      if (
+        typeof specifier === 'string' &&
+        specifier.startsWith('workspace:') &&
+        (name === 'protoyard' || name === 'create-protoyard' || name.startsWith('@protoyard/'))
+      ) {
         (dependencies as Record<string, unknown>)[name] = version;
       }
     }

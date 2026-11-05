@@ -35,11 +35,10 @@ import {
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { CliError, mark } from '../lib/output.ts';
-import { childPath, isInside, toPosixRelative } from '../lib/paths.ts';
+import { childPath, isInside, toPosixRelative, workspaceLayout } from '../lib/paths.ts';
 import { installWorkspace } from '../lib/pnpm.ts';
 import { buildIndex } from '../lib/registry.ts';
-import type { CommandContext } from '../lib/workspace.ts';
-import { assertSlug, resolveTarget } from '../lib/workspace.ts';
+import { assertSlug, CLI_VERSION, type CommandContext, resolveTarget } from '../lib/workspace.ts';
 import { copyTemplate, listTemplateFiles, personalize, writeNewSpec } from './new.ts';
 
 /**
@@ -303,6 +302,9 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
         name: opt(options, 'name') ?? blueprint.name,
         description:
           opt(options, 'description') ?? blueprint.description ?? template.description ?? '',
+        ...(workspaceLayout(ctx.root) === 'consumer'
+          ? { consumerPackageVersion: CLI_VERSION }
+          : {}),
         now: new Date().toISOString(),
       });
       // An app's generated schema starts at version 1; a deck, page or doc uses the kind

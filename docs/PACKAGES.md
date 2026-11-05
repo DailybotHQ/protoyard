@@ -62,6 +62,12 @@ cd acme-lab
 pnpm protoyard dev starter
 ```
 
+The generated root `package.json` marks this as a consumer workspace. When the
+installed CLI creates, generates, promotes or remixes a prototype there, it
+uses the installed lockstep Protoyard version for `protoyard`, `create-protoyard`
+and `@protoyard/*` dependencies. Other local workspace dependencies remain
+unchanged. Repository development continues to use `workspace:` ranges.
+
 Or use pnpm throughout:
 
 ```sh
