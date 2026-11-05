@@ -6,6 +6,53 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-05
+
+Kit screens on domain adapters ([ADR-046](docs/DECISIONS.md)): a product's
+own session, services and data can drive the kits, so a prototype of any
+domain reuses them without the simulated engine. Texuli 0.14.0.
+
+### Added
+
+- **saas-ui ports.** `provideSaas({ ports })` runs the route guards,
+  `AccountGate`, `SsoButtons`, `TrialBanner` and `WorkspaceSwitcher` (now
+  without `runtime`) on plain `session`, `now`, `workspaces`, `oauth` and
+  `billing` ports. `provideSaas(runtime)` is unchanged and builds the same
+  ports with `saasPortsFromRuntime`. The auth, MFA, onboarding, inbox, billing
+  and settings screens still need the engine and say so when it is missing.
+- **flows-ui, gamification-ui and pages-ui ports.** `@protoyard/flows-ui/ports`
+  (`FlowsPort`, `RunPanel` `port`), `@protoyard/gamification-ui/ports`
+  (leaderboard and mission types, opt-in and accept ports), and `FormPort` and
+  `ResponsesPort` from `@protoyard/pages-ui/form`.
+- **BoardView:** `onCreate(column)` adds an "Add card" button per column,
+  `columnHeader` and `columnFooter` snippets, and opt-in lane collapse
+  (`collapsibleLanes`, bindable `collapsedLanes`).
+- **CalendarView:** a `phone` agenda with a `chip` snippet, "+N more events"
+  per day (`maxPerDay`) and "Add event" per day; `agendaDays` and `labels`
+  pass through.
+- **TimelineView** passes through `onOpen`, `getGroup` (group bands and header
+  rows), `maxRows`, `bind:collapsed`, `onGroupAdd`, `bind:selectedRow`,
+  `onRowSelect` and `markers`.
+- **VoiceMode:** hold-to-talk, bindable `muted`, and dictation into a `draft`
+  instead of sending; the voice engine gains `press`, `release` and
+  `setMuted`. All simulated, no microphone.
+
+### Changed
+
+- **`FilePreview` is a real preview** (thumbnails and a lightbox for images,
+  PDF, text, video and audio, with previous/next and focus return). It was a
+  deprecated alias of `FileBrowser`; code that used it as a browser should
+  import `FileBrowser`.
+- **Texuli 0.14.0** (exact pins). See [TEXULI](docs/TEXULI.md) for what it
+  adds for prototypes.
+
+### Fixed
+
+- **`EmojiPicker`:** Enter in its search moves to the first match instead of
+  submitting the surrounding form.
+- **The demo badge** never covers navigation bars or images such as logos, and
+  stays invisible until it has been placed.
+
 ## [1.2.4] - 2026-11-05
 
 ### Fixed
