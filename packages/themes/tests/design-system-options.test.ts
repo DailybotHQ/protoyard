@@ -134,8 +134,9 @@ describe('designSystemFromTheme sidebarPrimary (G-027)', () => {
     const theme = BUILTIN_THEMES[0];
     if (!theme) throw new Error('no built-in theme');
     const { document } = await designSystemFromTheme(theme);
-    const roles = (document as { color: { roles: Record<string, Record<string, unknown>> } }).color
-      .roles;
+    const roles = (
+      document as unknown as { color: { roles: Record<string, Record<string, unknown>> } }
+    ).color.roles;
     for (const mode of Object.keys(roles)) expect(roles[mode]?.sidebarPrimary).toBeUndefined();
     const compiled = await compileDesignSystemDocument(document);
     expect(compiled.ok).toBe(true);

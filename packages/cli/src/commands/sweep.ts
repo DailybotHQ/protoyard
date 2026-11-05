@@ -121,6 +121,15 @@ async function sweepOne(
 export const sweepCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const slugs = args.filter((arg): arg is string => typeof arg === 'string' && arg.length > 0);
   if (slugs.length === 0) throw new CliError('usage', 'Name at least one prototype slug.');
+  // Check every build before starting a browser, so a missing build is reported as such.
+  for (const slug of slugs) {
+    const { entry } = await resolveTarget(ctx, slug, 'prototype');
+    if (!existsSync(join(artifactDir(ctx, entry), 'dist', 'index.html'))) {
+      throw new CliError('not_found', `${entry.slug} has not been built yet.`, {
+        hint: `Run \`pnpm protoyard build ${entry.slug}\` first.`,
+      });
+    }
+  }
   const launch = await launchChromium();
   if (!launch.ok) {
     throw new CliError('not_found', 'The sweep needs Playwright and its Chromium.', {
