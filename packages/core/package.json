@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/core",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Framework-agnostic contracts for Protoyard: manifests, scenarios, personas, permissions, simulation clock, environment, snapshots and themes.",
   "license": "MIT",
   "type": "module",

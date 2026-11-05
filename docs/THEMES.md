@@ -913,6 +913,10 @@ a package can ship its own font files
 (`defineDesignSystemTheme(compiled, { fontBase: new URL('./fonts/', import.meta.url) })`);
 `description` overrides the one pickers show, which defaults to the document's
 `description`.
+In a Vite production build, name each file instead (a bundler only emits
+files it sees one by one, so a directory `fontBase` 404s):
+`defineDesignSystemTheme(compiled, { fontFiles: { 'fonts/brand.woff2': new URL('./fonts/brand.woff2', import.meta.url) } })`.
+Keys are the document's font `src` paths; `fontFiles` wins over `fontBase`.
 
 **How it paints.** `defineDesignSystemTheme` returns a Protoyard `Theme`
 derived from the compiled variables (palette, fonts, radius, density: what

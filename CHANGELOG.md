@@ -6,6 +6,32 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.4] - 2026-11-05
+
+### Fixed
+
+- **Floating chrome no longer freezes dense pages.** Placing the review
+  launcher probed `elementsFromPoint` for every 8 px sample of every candidate
+  spot (about 34,500 probes worst case), and a busy DOM re-placed it
+  constantly: 9.8 of 11.7 s on a page of 15,000 to 27,000 elements. Probes are
+  now cached on a 4 px grid and capped at 240 (corners first), and
+  re-placement runs at most every 500 ms.
+- **`protoyard sweep` dark shots are dark.** Each shot opens `?mode=light|dark`
+  (which wins over a fixed `defaultMode`) and `?devtools=0`; `sweep` takes
+  several slugs.
+- **Package fonts in a production build.**
+  `defineDesignSystemTheme(compiled, { fontFiles: { 'fonts/x.woff2': new URL('./fonts/x.woff2', import.meta.url) } })`
+  gives one bundled URL per file; a directory `fontBase` emitted nothing in a
+  Vite build, so the fonts 404ed.
+- **Visible active sidebar item from a theme.** `designSystemFromTheme` drops a
+  `sidebarPrimary` that only copies `primary`, so the compiler derives it.
+- **`WeekdayPicker` passes axe** label-content-name-mismatch (WCAG 2.5.3): the
+  name is "Mon Monday", the long name visually hidden.
+- **`Dialog` forwards `onCloseAutoFocus`**; `preventDefault()` keeps focus
+  where the caller put it.
+- **A flaky CI test**: review-ui preloads the lazily imported editor, so it
+  never resolves after the environment is torn down.
+
 ## [1.2.3] - 2026-11-05
 
 ### Fixed

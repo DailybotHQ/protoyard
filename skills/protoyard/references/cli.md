@@ -113,7 +113,7 @@ deploy.
 | `protoyard validate [slug]` | `--all`, `--skip-typecheck`, `--build`, `--strict-spec`, `--check` | `--all` validates every prototype and fails if any does; check manifest, folder contract, package, scenarios, schema version and types; `--check` (implied in CI) never writes, so a stale `src/brand-theme.ts` fails instead of being rewritten | Released (1.0.0) |
 | `protoyard check` | — | workspace checks that consumers can run | Unreleased |
 | `protoyard check texuli` | `--scope <path...>`, `--strict` | the Texuli adoption rules over prototypes, templates, packages and apps (exit 4 lists each violation) | Unreleased |
-| `protoyard sweep <slug>` | `--out <dir>` | light and dark, desktop and phone PNGs of a built prototype (needs Playwright's Chromium) | Unreleased |
+| `protoyard sweep <slugs...>` | `--out <dir>` | light and dark (each shot forces `?mode=`), desktop and phone PNGs of one or more built prototypes, DevTools hidden (needs Playwright's Chromium) | Unreleased |
 | `protoyard budget [slug]` | `--all`, `--skip-build` | check initial JavaScript and CSS bundle sizes against configured budgets | Released (1.0.0) |
 | `protoyard scenario` | — | inspect a prototype's scenarios | Released (1.0.0) |
 | `protoyard scenario list <slug>` | `--details` |  | Released (1.0.0) |

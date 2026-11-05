@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/blocks",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Framework-free content-block engine for Protoyard: thin re-exports of @texuli/blocks/core (and family engines) plus Zod schema adapters for decks, pages and docs.",
   "license": "MIT",
   "type": "module",

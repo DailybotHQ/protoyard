@@ -1,5 +1,11 @@
 # create-protoyard
 
+## 1.2.4
+
+### Patch Changes
+
+- protoyard@1.2.4
+
 ## 1.2.3
 
 ### Patch Changes

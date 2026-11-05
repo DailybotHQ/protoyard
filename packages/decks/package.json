@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/decks",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Protoyard's deck engine, a thin layer over @texuli/deck: Protoyard's deck shape and offline media policy, layout catalog, lint, text twins, Markdown decks, Deck Studio edits and agent slide references (no Svelte).",
   "license": "MIT",
   "type": "module",
