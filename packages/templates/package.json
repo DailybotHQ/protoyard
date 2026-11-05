@@ -30,6 +30,7 @@
   "protoyard": {
     "pack": {
       "payload": [
+        "blueprints/",
         "templates/"
       ],
       "types": false
