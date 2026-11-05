@@ -99,8 +99,14 @@ Ids come from `TexuliMessageId`, `PrimitivesMessageId`, `BlocksMessageId`
 own `labels` prop still wins, and missing ids stay English. The renderer's own
 words (service toasts, loading text, the demo badge) go in `messages`
 (`ChromeMessages`). Texuli's `data`, `chat`, `media` and `editor` packages still
-take per-component `labels` props only (a known Texuli gap), and Protoyard's
-kits do not map their own strings onto the dictionary yet.
+take per-component `labels` props only (a known Texuli gap), and most of Protoyard's
+kits do not map their own strings onto the dictionary yet. DocApp does: its
+outline reads `pages.outline`, and its own words use `protoyard.doc.edit`,
+`protoyard.doc.reset`, `protoyard.doc.download`, `protoyard.doc.download-as`
+(`{format}`), `protoyard.doc.edits-saved`, `protoyard.doc.edits-unsaved`,
+`protoyard.doc.download-failed`, the `protoyard.doc.*` notice ids in
+`DocApp.svelte`, `protoyard.pages.document-content` and
+`protoyard.pages.untitled-document`.
 
 ## Icons, code fields, image pairs and avatar grids (Texuli 0.13.1)
 

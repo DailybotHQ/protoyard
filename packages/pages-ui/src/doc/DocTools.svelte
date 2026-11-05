@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { DocDocument } from '@protoyard/pages';
 import { Button } from '@protoyard/ui';
+import { useMessages } from 'texuli/i18n';
 import type { DocExportFormat, DocExportOutcome } from './doc-export.ts';
 
 /**
@@ -56,26 +57,29 @@ async function download(format: DocExportFormat): Promise<void> {
     failure = error instanceof Error ? error.message : 'The file could not be written.';
   }
 }
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
 </script>
 
 <div class="doc-tools" data-py-doc-tools>
   <div class="doc-tools__row">
     {#if canEdit && onEdit}
-      <Button variant="outline" size="sm" data-py-doc-edit onclick={onEdit}>Edit</Button>
+      <Button variant="outline" size="sm" data-py-doc-edit onclick={onEdit}>{messages('protoyard.doc.edit', 'Edit')}</Button>
     {/if}
     {#if showReset && onReset}
       <Button variant="ghost" size="sm" data-py-doc-reset onclick={() => onReset()}>
-        Reset to the original
+        {messages('protoyard.doc.reset', 'Reset to the original')}
       </Button>
     {/if}
-    <div class="doc-tools__downloads" role="group" aria-label="Download">
-      <span class="doc-tools__label" aria-hidden="true">Download</span>
+    <div class="doc-tools__downloads" role="group" aria-label={messages('protoyard.doc.download', 'Download')}>
+      <span class="doc-tools__label" aria-hidden="true">{messages('protoyard.doc.download', 'Download')}</span>
       {#each FORMATS as item (item.format)}
         <Button
           variant="ghost"
           size="sm"
           data-py-doc-export={item.format}
-          aria-label={`Download as ${item.label}`}
+          aria-label={messages('protoyard.doc.download-as', 'Download as {format}', { format: item.label })}
           onclick={() => download(item.format)}
         >
           {item.label}
@@ -86,8 +90,14 @@ async function download(format: DocExportFormat): Promise<void> {
   {#if edited}
     <p class="doc-tools__hint" data-py-doc-edited>
       {saved
-        ? 'Edits are saved in this browser for this world. Reset to go back to the original.'
-        : 'Edits stay in this tab until you reload or reset. Download to keep a copy.'}
+        ? messages(
+            'protoyard.doc.edits-saved',
+            'Edits are saved in this browser for this world. Reset to go back to the original.'
+          )
+        : messages(
+            'protoyard.doc.edits-unsaved',
+            'Edits stay in this tab until you reload or reset. Download to keep a copy.'
+          )}
     </p>
   {/if}
   <p class="doc-tools__status" role="status" data-py-doc-export-status>
@@ -102,7 +112,7 @@ async function download(format: DocExportFormat): Promise<void> {
   </p>
   {#if failure}
     {#await import('./DocNotice.svelte') then { default: DocNotice }}
-      <DocNotice tone="error" title="The download failed" text={failure} data-py-doc-export-error />
+      <DocNotice tone="error" title={messages('protoyard.doc.download-failed', 'The download failed')} text={failure} data-py-doc-export-error />
     {/await}
   {/if}
 </div>
