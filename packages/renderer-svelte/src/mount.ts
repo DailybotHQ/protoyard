@@ -327,6 +327,8 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
         root: target,
         place: placeFloating,
         devtools: devtoolsAvailable,
+        // The review UI mounts its own Svelte roots, outside Root's LabelsProvider.
+        ...(options.i18n ? { i18n: options.i18n } : {}),
         ...(typeof __PROTOYARD_REVIEW_ADAPTER__ !== 'undefined' && __PROTOYARD_REVIEW_ADAPTER__
           ? { adapter: __PROTOYARD_REVIEW_ADAPTER__ }
           : {}),

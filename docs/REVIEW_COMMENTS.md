@@ -359,8 +359,8 @@ The review UI's words use `protoyard.review.*` ids (listed in
 mounted next to the app rather than inside it, so it does not see the
 renderer's `LabelsProvider`: `mountReview({ i18n })` takes the dictionary and
 applies it to the session, the floating panel and the panel a DevTools tab
-shows. `mountPrototype` does not forward `i18n` to `mountReview` yet, so in a
-prototype the review UI stays English for now.
+shows. `mountPrototype({ i18n })` forwards the same dictionary to
+`mountReview`, so in a prototype one dictionary covers the app and its review UI.
 
 ## Honest limits
 
