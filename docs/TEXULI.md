@@ -139,6 +139,11 @@ uses a separate id (such as `…label-one`) instead of a plural message.
 
 `AchievementBadge earnedAt` formats its date with the dictionary's `locale`.
 
+### SaaS (`@protoyard/saas-ui`)
+
+- `protoyard.saas.account-gate.title`, `.description`, `.note`,
+  `.simulated-note`, `.create`, `.dismiss` (`AccountGate`; each also a prop)
+
 ## Icons, code fields, image pairs and avatar grids (Texuli 0.13.1)
 
 Texuli 0.13.1 adds four components a prototype can use directly (they are
