@@ -65,7 +65,7 @@ mapping table and limits are in
 | Write and preview safe Markdown | `MarkdownEditor`, `MarkdownPreview` from `editor` | text commands and mention token helpers |
 | Show comments, reactions and record history | `CommentThread`, `ActivityFeed` from `activity` | mentions, threads, day grouping and audit summaries |
 | Show recipient-scoped inbox items | `NotificationCenter` from `notifications` | — (rows belong to the prototype service) |
-| Browse folders and preview files | `FileManager` from `files` | tree checks, names, paths and deterministic thumbnails |
+| Browse folders and preview files | `FileManager` and `FilePreview` (a gallery with a lightbox) from `files` | tree checks, names, paths and deterministic thumbnails |
 | Build preference screens and guarded forms | settings components from `settings` | — (patterns compose app-owned services) |
 | Render loading, empty, error, offline or denied state | `QueryState` from `states` | — (classifier is in views-ui) |
 | Add an app command dialog | `AppCommandPalette` from `commands` | — (registry is in views-ui) |
@@ -95,9 +95,10 @@ service, which enforces the full boundary:
 UI callback → service → session.assert → zod validation → environment.run → db.transaction
 ```
 
-For example, `BoardView` calls `onMove(move, item)`, `CalendarView` calls
-`onChange(change)` / `onCreate(slot)`, `TimelineView` calls
-`onReschedule(changes)`, and `DataGrid` calls `onCommit(row, key, value)`. The
+For example, `BoardView` calls `onMove(move, item)` and `onCreate(column)`,
+`CalendarView` calls `onChange(change)` / `onCreate(slot)`, `TimelineView`
+calls `onReschedule(changes)` and `onGroupAdd(group)`, and `DataGrid` calls
+`onCommit(row, key, value)`. The
 adapters run these through `runService`, so the global pending bar and error
 toasts apply. Services must revalidate invariants such as hard WIP limits,
 dependency acyclicity, and permission to edit. Read and write contracts for
@@ -147,9 +148,9 @@ Pass the resulting `FilterNode` to `DataGrid`'s `filter` prop. The engine
 
 | View | Keyboard model | Narrow-screen behavior |
 | --- | --- | --- |
-| Board | Focus a card, Space or Enter picks it up; arrows choose a position (Shift + Up/Down changes lane); Space or Enter drops; Escape cancels; a per-card Move menu lists targets | Columns scroll horizontally |
-| Calendar | M / W / D / A switch views; Alt or Control + arrow moves a focused event; Space grabs, arrows move, Space or Enter drops, Escape cancels; Shift+F10 opens the Move menu; Enter opens or creates | Same views; pick Agenda for a list |
-| Timeline | Tab reaches task bars; Space picks up or Shift+Space resizes the end; ←/→ adjusts dates; Enter saves; Escape cancels | The date canvas scrolls horizontally |
+| Board | Focus a card, Space or Enter picks it up; arrows choose a position (Shift + Up/Down changes lane); Space or Enter drops; Escape cancels; a per-card Move menu lists targets; lane toggles and "Add card" are buttons | Columns scroll horizontally; `collapsibleLanes` lets a person fold lanes they do not need |
+| Calendar | M / W / D / A switch views; Alt or Control + arrow moves a focused event; Space grabs, arrows move, Space or Enter drops, Escape cancels; Shift+F10 opens the Move menu; Enter opens or creates. Phone agenda: Tab through Previous / Today / Next, each event and each "+N more events" toggle | `phone` swaps the grid for a lazy day-by-day agenda with the host's `chip` snippet and per-day overflow; without it, pick Agenda for a list |
+| Timeline | Tab reaches task bars; Space picks up or Shift+Space resizes the end; ←/→ adjusts dates; Enter saves; Escape cancels; group headers are disclosure buttons; with `onRowSelect`, row names are buttons | The date canvas scrolls horizontally |
 | Grid | One tab stop; arrows, Home/End, Ctrl+Home/End, PageUp/Down; Enter or Space on a header sorts (Shift adds a key); Space toggles a row when selectable; Enter or F2 edits an editable cell | Below `md`, rows become cards, 50 at a time with Show more |
 | Tree | Arrows move; Left/Right collapse or expand; Space toggles the row checkbox; Alt+Up/Down reorders; Tab indents; Shift+Tab outdents | Tree scrolls within its view; drag starts at the grip |
 | Outline | Enter creates; Tab indents; Shift+Tab outdents; Alt+↑/↓ moves; Escape reverts | Touch row moves start at the grip |
@@ -157,7 +158,7 @@ Pass the resulting `FilterNode` to `DataGrid`'s `filter` prop. The engine
 | Editor | Textarea shortcuts; preview is keyboard reachable; Escape exits reply/edit context | Write and preview tabs can be used instead of split view |
 | Activity | Feed: arrows, Home/End, Enter; thread composer and reactions use labelled buttons; Escape cancels the active reply or edit | Thread and feed stack in the narrow view |
 | Notifications | Trigger, list and row actions are keyboard reachable; activating a row opens its route | Opens as a bottom sheet on narrow screens and a popover at wider widths |
-| Files | Arrows (grid-aware), Enter opens, Space selects, Backspace goes up a folder | Grid or list layout |
+| Files | Arrows (grid-aware), Enter opens, Space selects, Backspace goes up a folder. `FilePreview` lightbox: ←/→ or Previous / Next step, Escape closes, focus returns to the thumbnail shown last | Grid or list layout; the preview gallery wraps |
 | Settings | Standard labelled form controls; dialogs retain focus | Section list → detail, with a back button returning focus |
 | States / commands | Query state exposes retry where provided; command dialog filters and activates registered commands | State content and command dialog fit the available viewport |
 
@@ -220,10 +221,21 @@ Method notes are in [`PERFORMANCE.md`](PERFORMANCE.md#views-kit).
   always saved as "this event" (no "following" or "all" prompt).
 - Several adapters accept props from the earlier Protoyard API that they do
   not forward yet: `FileManager` writes (rename, move, delete, new folder,
-  upload, `getBlob`), timeline `getGroup`, `maxRows` and `onOpen`, tree
-  `onOpen` and virtualization props, activity `records`, `onOpenRecord` and
+  upload, `getBlob`), tree `onOpen` and virtualization props, activity `records`, `onOpenRecord` and
   paging, and grid saved-view and aggregate props. The
   [component reference](../packages/views-ui/README.md) lists them per view.
+- Board lane collapse is done by the adapter: a collapsed lane and its
+  cards are left out of Texuli's board, so column counts and WIP indicators
+  cover only the expanded lanes while a lane is collapsed. The create button
+  belongs to a column, not to a lane cell.
+- The calendar `chip` snippet and the "+N more events" toggle exist in the
+  phone agenda only. Texuli's month view shows three events and a "N more
+  events" note that is text, not a control; the week, day and agenda views
+  draw their own event buttons. The phone agenda does not move events.
+- `FilePreview` embeds PDFs with the browser's own viewer (`<object>`),
+  so a browser without one shows the "Open" link instead. It previews only
+  what the host passes (`getSrc`, `getBlob`, `getText`); there is no upload,
+  zoom or download button.
 - `DataGrid` has no grouping, column resizing, reordering or pinning UI, and
   editing turns virtualization off.
 - `scripts/bench-grid.ts` currently fails ("rows never rendered") against the

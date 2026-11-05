@@ -4,6 +4,8 @@
  * Forwards Texuli host-parity props (onChange, onCreate, now, showYear,
  * readOnly, canMove, min/max, slotMinutes). Bridges CalendarChange into host
  * `writes` via splitSeries for keel/crud series services.
+ * `phone` swaps the grid for a lazy phone agenda (event `chip` snippet,
+ * “+N more events” per day); `agendaDays` and `labels` pass straight through.
  */
 import type { PrototypeRuntime } from '@protoyard/core';
 import { getRuntime, runService, useClock } from '@protoyard/renderer-svelte';
@@ -14,11 +16,14 @@ import {
   splitSeries,
 } from '@protoyard/views/calendar';
 import {
+  type CalendarLabels,
+  DEFAULT_CALENDAR_LABELS,
   CalendarView as TexuliCalendar,
   type CalendarChange as TexuliCalendarChange,
 } from '@texuli/data/calendar/view';
+import type { Snippet } from 'svelte';
 import QueryState from '../states/QueryState.svelte';
-import type { CalendarChange, CalendarSlot, CalendarTone } from './types.ts';
+import type { CalendarChange, CalendarChipState, CalendarSlot, CalendarTone } from './types.ts';
 
 let {
   query,
@@ -40,6 +45,11 @@ let {
   max,
   slotMinutes = 15,
   showYear = 'always' as const,
+  phone = false,
+  agendaDays,
+  maxPerDay = 3,
+  chip,
+  labels,
   onRetry,
   runtime,
   now,
@@ -69,6 +79,20 @@ let {
   slotMinutes?: number;
   /** Texuli range titles: pass `always` for "May 31 – Jun 6, 2026". */
   showYear?: 'auto' | 'always';
+  /**
+   * Phone agenda: a day-by-day list (lazy chunk) instead of the month/week
+   * grid. Events render through `chip`; days past `maxPerDay` collapse
+   * behind “+N more events”. Moving events is not offered in this mode.
+   */
+  phone?: boolean;
+  /** Days in the agenda (Texuli agenda view and the phone agenda; default 14 and 7). */
+  agendaDays?: number;
+  /** Phone agenda: events shown per day before “+N more events” (default 3). */
+  maxPerDay?: number;
+  /** Phone agenda: the content of each event button (title, time, badges…). */
+  chip?: Snippet<[Occurrence<TData>, CalendarChipState]>;
+  /** Texuli calendar copy overrides (also used by the phone agenda). */
+  labels?: Partial<CalendarLabels>;
   onRetry?: () => unknown;
   runtime?: PrototypeRuntime;
   now?: Date | string;
@@ -161,9 +185,17 @@ async function handleChange(tx: TexuliCalendarChange<TData>): Promise<void> {
 }
 
 function handleCreate(slot: CalendarSlot): void {
-  if (!onCreate) return;
-  void runService(() => onCreate(slot));
+  void createSlot(slot);
 }
+
+async function createSlot(slot: CalendarSlot): Promise<void> {
+  if (!onCreate) return;
+  await runService(() => onCreate(slot));
+}
+
+const allLabels = $derived<CalendarLabels>({ ...DEFAULT_CALENDAR_LABELS, ...labels });
+// The phone agenda is its own chunk: desktop calendars never download it.
+const phoneAgenda = $derived(phone ? import('./PhoneAgenda.svelte') : null);
 </script>
 
 <!-- Host shell only: Texuli CalendarView owns `section[data-calendar]`. -->
@@ -174,6 +206,27 @@ function handleCreate(slot: CalendarSlot): void {
   isEmpty={() => false}
 >
   {#snippet children(events)}
+    {#if phoneAgenda}
+      {#await phoneAgenda then { default: PhoneAgenda }}
+        <PhoneAgenda
+          {events}
+          bind:anchor={localAnchor}
+          today={todayIso}
+          {label}
+          {locale}
+          {timeZone}
+          agendaDays={agendaDays ?? 7}
+          {maxPerDay}
+          labels={allLabels}
+          {getTitle}
+          {getTone}
+          {onOpen}
+          onCreate={onCreate && !readOnly ? createSlot : undefined}
+          {chip}
+          class={className}
+        />
+      {/await}
+    {:else}
     <TexuliCalendar
       {events}
       anchor={localAnchor}
@@ -195,7 +248,10 @@ function handleCreate(slot: CalendarSlot): void {
       {max}
       {slotMinutes}
       {showYear}
+      {agendaDays}
+      {labels}
       class={className}
     />
+    {/if}
   {/snippet}
 </QueryState>

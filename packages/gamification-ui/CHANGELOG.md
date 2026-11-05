@@ -1,5 +1,17 @@
 # @protoyard/gamification-ui
 
+## 1.3.0
+
+### Minor Changes
+
+- Kit screens on domain adapters (ADR-046): ports for saas-ui, flows-ui, gamification-ui and pages-ui forms; board, calendar, files and timeline gaps in views-ui; voice session callbacks; Texuli 0.14.0.
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/ui@1.3.0
+  - @protoyard/gamification@1.3.0
+
 ## 1.2.4
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/saas-ui",
-  "version": "1.2.4",
+  "version": "1.3.0",
   "description": "Svelte 5 screens and route helpers for Protoyard simulated SaaS kits (auth, inbox, onboarding, workspaces). Simulation UX only — never security.",
   "license": "MIT",
   "type": "module",
@@ -16,7 +16,11 @@
       "svelte": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./ports": {
+      "types": "./src/ports.ts",
+      "default": "./src/ports.ts"
+    }
   },
   "scripts": {
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
@@ -27,8 +31,8 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/saas": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "@texuli/forms": "0.13.1",
-    "texuli": "0.13.1",
+    "@texuli/forms": "0.14.0",
+    "texuli": "0.14.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -60,6 +64,10 @@
         "types": "./dist/styles.css.d.ts",
         "svelte": "./dist/styles.css",
         "default": "./dist/styles.css"
+      },
+      "./ports": {
+        "types": "./dist/ports.d.ts",
+        "default": "./dist/ports.js"
       }
     },
     "files": [

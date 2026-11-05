@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.13.1`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.14.0`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.13.1`. Texuli pins its own internal dependencies exactly,
+Every package is `0.14.0`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -123,6 +123,30 @@ not in the agent catalog yet, so blueprints cannot emit them):
   `@texuli/media/image`.
 - **Avatar grid:** `<AvatarGroupGrid items={members} label="…" />` from
   `texuli/avatar`, a 2×2 collage for group conversations.
+
+## What Texuli 0.14.0 adds for prototypes
+
+Texuli 0.14.0 closes the Texuli rows from the downstream gap reports. All of
+it is additive for Protoyard:
+
+- **Timeline:** `TimelineView` (`@texuli/data/timeline`) draws group header
+  rows and bands from `getGroup`, takes `bind:collapsed`, `bind:selectedRow`,
+  `onRowSelect`, `onGroupAdd` and `markers`.
+- **Charts:** the cartesian charts take `yDomain` and `formatValue`.
+- **Dialogs:** `AlertDialog` takes `confirmDisabled`; dialog and sheet scrims
+  read `--tx-scrim`, so set that in host CSS for a dark scrim.
+- **Navigation:** `Breadcrumb` items take `ariaLabel` and
+  `onSelect(item, event)`; tabs set `aria-controls` only while their panel is
+  rendered (or take `panelId`); `TabItem` attributes such as
+  `data-testid` land on the trigger.
+- **Icons:** `registerIcons` takes lazy loaders and a `fallback` icon.
+- **Motion:** `MotionLoop` from `texuli/motion/loop` (static under reduced
+  motion; not in the blueprint vocabulary).
+- **Design systems:** compiler version 3 (every compiled hash changes once;
+  Protoyard commits no compiled output), the `aa-non-text` (3:1) check for
+  `sidebarPrimary` on the sidebar, `darkOpacity` on elevation layers and
+  `components.card["font-size"]`. Texuli now derives `sidebarPrimary` itself,
+  and `ds new --from-theme` already drops a copied one.
 
 ## The uniform component contract
 

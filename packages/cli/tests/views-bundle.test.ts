@@ -56,7 +56,9 @@ type View = (typeof VIEWS)[number];
  * descriptions and header snippets, the shared drag engine, localized labels).
  */
 export const CEILINGS: Record<View, number> = {
-  board: 16_869,
+  // PLAN_011 T-views (2026-11-05, Texuli 0.14.0): measured 16,974 with per-column create (D-G-034)
+  // and lane collapse; + 2.5 %.
+  board: 17_398,
   // PLAN_008 T-remeasure (2026-10-31, Texuli 0.9.0): measured 16,921; + 5 % (was 17,787 from 0.8.0).
   calendar: 17_768,
   // PLAN_008 T-doc-reader (2026-10-31, Texuli 0.11.1): measured 23,701, 10 B over 23,691 (0.8.1 + 5 %).
@@ -70,7 +72,9 @@ export const CEILINGS: Record<View, number> = {
   // Texuli 0.9.0 measured 10,531 (token contract v2 component CSS); + 2.5 %.
   editor: 10_795,
   // Measured 11,973 gzip over shell on Texuli 0.4.0 (TimelineView + QueryState/empty); +5 %.
-  timeline: 13_709,
+  // PLAN_011 T-views (2026-11-05, Texuli 0.14.0): measured 14,604 with group bands and header rows,
+  // collapse, row selection and markers (D-G-044); + 2.5 %.
+  timeline: 14_969,
   // PLAN_008 T-sheets: a new view (@texuli/sheets: formula engine, workbook, CSV, SheetView over
   // the data grid editing layer). Measured 49,436 gzip over shell on Texuli 0.9.0; +5 %.
   sheet: 51_908,

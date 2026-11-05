@@ -338,6 +338,30 @@ host).
 speaks via `speechSynthesis`, and optionally shows a local mic level meter.
 Import only when the user opens voice mode so the initial chunk stays lean.
 
+Session callbacks let a host drive its own composer or session from the
+panel. Every prop is optional and the defaults keep the earlier behavior:
+
+| Prop | What it does |
+| --- | --- |
+| `holdToTalk` | Push to talk becomes press-and-hold: pointer down, or Space / Enter down, listens ("Hold to talk"); release, pointer leave or blur transcribes. Key repeat is ignored. |
+| `onPress`, `onRelease(transcript)` | Called when push to talk starts and ends (hold or toggle). `onRelease` gets the transcript, or `null` when muted. |
+| `muted` (bindable), `showMute`, `onMuteChange(muted)` | Mutes the simulated microphone: a muted push-to-talk turn yields `null`, and hands-free turns pass without a caption. `showMute` adds a "Mute microphone" toggle. |
+| `dictation` (bindable), `showDictation`, `draft` (bindable), `onDictate(transcript, draft)` | While dictating, each transcript is appended to `draft` (space-separated) and passed to `onDictate`, never to `onTranscript`. The panel shows the draft, labelled "not sent", with a Clear draft button. `showDictation` adds a "Dictate into draft" toggle. |
+| `onStateChange(state)` | Every session state change (`idle`, `listening`, `transcribing`, `speaking`, `interrupted`). |
+
+```svelte
+<VoiceMode {clock} holdToTalk showMute showDictation bind:draft
+  onRelease={(text) => text && analytics.track('voice_turn')}
+  onTranscript={(text) => send(text)} />
+```
+
+The engine has the same additions: `session.press()`, `session.release()`,
+`session.setMuted(muted)`, `session.muted` and the `onMuteChange` option.
+All of it is simulated. Mute and hold-to-talk change what the scripted
+session does; no microphone is opened or muted (the optional level meter
+is separate and reads amplitude only), and transcripts still come from the
+scripted list.
+
 ## Templates
 
 Scaffold with `pnpm protoyard new <slug> --template <name>`.

@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/flows-ui",
-  "version": "1.2.4",
+  "version": "1.3.0",
   "description": "Accessible Svelte workflow editor and simulated run panels for Protoyard.",
   "license": "MIT",
   "type": "module",
@@ -34,15 +34,19 @@
       "svelte": "./src/outbox/index.ts",
       "default": "./src/outbox/index.ts"
     },
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./ports": {
+      "types": "./src/ports.ts",
+      "default": "./src/ports.ts"
+    }
   },
   "scripts": {
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
     "@protoyard/flows": "workspace:*",
-    "@texuli/workflows": "0.13.1",
-    "texuli": "0.13.1"
+    "@texuli/workflows": "0.14.0",
+    "texuli": "0.14.0"
   },
   "devDependencies": {
     "svelte": "^5.57.3"
@@ -93,6 +97,10 @@
         "types": "./dist/styles.css.d.ts",
         "svelte": "./dist/styles.css",
         "default": "./dist/styles.css"
+      },
+      "./ports": {
+        "types": "./dist/ports.d.ts",
+        "default": "./dist/ports.js"
       }
     },
     "files": [

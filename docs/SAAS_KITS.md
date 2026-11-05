@@ -152,6 +152,36 @@ The gate is only presentation behavior. It does not make an action secure:
 services still check capabilities and validate every mutation, and this
 simulation does not protect data from the browser user or same-origin scripts.
 
+## On your product's own session (ports)
+
+The kit can also run on your product's session and services instead of the
+simulated engine (ADR-046). Pass plain objects as ports:
+
+```ts
+import { provideSaas, requireAuth, type SaasPorts } from '@protoyard/saas-ui';
+
+const ports: SaasPorts = {
+  session, // { isSignedIn, principal, can, subscribe }
+  now: () => Date.now(),
+  workspaces, // { list, switchTo, create }
+  oauth, // { start(provider, intent) → { route } }
+};
+provideSaas({ ports });
+const guard = requireAuth(ports.session);
+```
+
+These parts run on ports today: the route guards (`requireAuth`,
+`requireOnboarded`, `requireCapability`, `requireGuest`), `AccountGate` and
+`requireAccount`, `SsoButtons`, `TrialBanner` (with `ports.billing`) and
+`WorkspaceSwitcher` (no `runtime` needed). `provideSaas(runtime, options)`
+works as before and builds the same ports with `saasPortsFromRuntime(runtime)`.
+
+The sign-in, sign-up, MFA, OAuth consent, onboarding, inbox, billing and
+settings screens still need the simulated engine. With `provideSaas({ ports })`
+they throw an error naming `provideSaas(runtime)` instead of failing later.
+Ports change what the screens read, not what they protect: a signed-in port
+is still UX, never security.
+
 ## What each kit provides
 
 | Kit | What it does |

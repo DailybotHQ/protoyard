@@ -1,4 +1,3 @@
-import type { Principal, SessionController } from '@protoyard/core';
 import {
   nextPath,
   type RouteGuard,
@@ -8,11 +7,21 @@ import {
 import type { ResolvedSaasUiConfig } from './config.ts';
 import { DEFAULT_SAAS_UI_CONFIG } from './config.ts';
 
+/** What the guards read from a principal: a `SessionPrincipal` or a runtime `Principal`. */
+export interface GuardPrincipal {
+  onboardingComplete?: boolean | undefined;
+  persona?: { onboardingComplete?: boolean | undefined };
+}
+
 /**
- * Session surface the guards read. Matches `runtime.session` (simulated auth —
- * UX only, not security).
+ * Session surface the guards read: a `SessionPort` (a product's own session,
+ * ADR-046) or `runtime.session` (simulated auth — UX only, not security).
  */
-export type SaasSessionLike = Pick<SessionController, 'isSignedIn' | 'principal' | 'can'>;
+export interface SaasSessionLike {
+  isSignedIn(): boolean;
+  principal(): GuardPrincipal | null;
+  can(capability: string, resource?: unknown): boolean;
+}
 
 export interface GuardPathOptions {
   signInPath?: string;
@@ -36,8 +45,8 @@ function paths(options: GuardPathOptions = {}): Pick<
   };
 }
 
-function personaComplete(principal: Principal | null): boolean {
-  return principal?.persona.onboardingComplete !== false;
+function personaComplete(principal: GuardPrincipal | null): boolean {
+  return (principal?.onboardingComplete ?? principal?.persona?.onboardingComplete) !== false;
 }
 
 /** Redirect signed-out visitors to sign-in, remembering `?next=`. */

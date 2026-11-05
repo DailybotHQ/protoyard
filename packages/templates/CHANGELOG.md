@@ -1,5 +1,9 @@
 # @protoyard/templates
 
+## 1.3.0
+
+No changes in this release.
+
 ## 1.2.4
 
 No changes in this release.

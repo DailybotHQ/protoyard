@@ -29,6 +29,9 @@ let corner = $state<BadgeCorner>('bottom-left');
 let compact = $state<{ left: number; top: number; right: boolean; bottom: boolean } | null>(null);
 let expanded = $state(false);
 let placementHidden = $state(false);
+// Invisible (still measured) until the first placement, so the badge never
+// flashes over a corner control before it has looked (Dailybot G-052).
+let placed = $state(false);
 let badge: HTMLElement | undefined = $state();
 /** Full badge size, measured while it is shown (the dot cannot measure it). */
 let fullSize = { width: 0, height: 0 };
@@ -66,6 +69,15 @@ function containingBlock(): ReturnType<typeof badgeContainer> {
 
 function place(): void {
   const root = document.documentElement;
+  if (!badge) return;
+  try {
+    placeNow(root);
+  } finally {
+    placed = true;
+  }
+}
+
+function placeNow(root: HTMLElement): void {
   if (!badge) return;
   placementHidden = false;
   inShellWithNav =
@@ -167,8 +179,10 @@ const messages = chromeMessages().badge;
     bind:this={badge}
     aria-label={messages.label}
     data-py-demo-badge="compact"
+    data-py-badge-placed={placed ? '' : undefined}
     class={[
       'pointer-events-none fixed flex size-4 select-none',
+      placed ? '' : 'invisible',
       options.layer === 'below-overlays' ? 'z-10' : 'z-30',
     ]}
     style:left="{compact.left}px"
@@ -204,7 +218,9 @@ const messages = chromeMessages().badge;
   bind:this={badge}
   aria-label={messages.label}
   data-py-demo-badge={corner}
+  data-py-badge-placed={placed ? '' : undefined}
   class={[
+    placed ? '' : 'invisible',
     'pointer-events-none fixed select-none whitespace-nowrap rounded-full border border-border bg-elevated px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-soft',
     options.layer === 'below-overlays' ? 'z-10' : 'z-30',
     placementHidden ? 'hidden' : '',

@@ -3,16 +3,20 @@ import { type Flow, type FlowRunResult, type FlowRuntimeOptions, runFlow } from 
 import { WorkflowViewer } from '@texuli/workflows/viewer';
 import { Button } from 'texuli/button';
 import { flowStepRegistry, graphForLabels } from '../editor/workflow-graph.ts';
+import type { FlowsPort } from '../ports.ts';
 
 let {
   flow,
   runtimeOptions = {},
   onRun,
+  port,
   onResult,
 }: {
   flow: Flow;
   runtimeOptions?: FlowRuntimeOptions;
   onRun?: (flow: Flow, options: FlowRuntimeOptions) => FlowRunResult | Promise<FlowRunResult>;
+  /** A product's runner (`FlowsPort`); `onRun` wins, then this, then the simulated engine. */
+  port?: FlowsPort;
   onResult?: (result: FlowRunResult) => void;
 } = $props();
 
@@ -33,7 +37,11 @@ async function run(): Promise<void> {
   error = '';
   try {
     await Promise.resolve();
-    result = await (onRun ? onRun(flow, runtimeOptions) : runFlow(flow, runtimeOptions));
+    result = await (onRun
+      ? onRun(flow, runtimeOptions)
+      : port
+        ? port.run(flow, runtimeOptions)
+        : runFlow(flow, runtimeOptions));
     onResult?.(result);
   } catch (cause) {
     error = cause instanceof Error ? cause.message : 'The simulated run could not be completed.';

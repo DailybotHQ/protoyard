@@ -10,13 +10,23 @@ export interface VoiceSessionOptions {
   handsFreeIntervalMs?: number;
   onTranscript?: (transcript: string) => void;
   onStateChange?: (state: VoiceState) => void;
+  /** Called when the simulated microphone is muted or unmuted. */
+  onMuteChange?: (muted: boolean) => void;
 }
 
 export interface VoiceSession {
   readonly mode: VoiceMode;
   readonly state: VoiceState;
+  /** True while the simulated microphone is muted: listening yields no transcript. */
+  readonly muted: boolean;
   start(mode?: VoiceMode): void;
   finishListening(): Promise<string | null>;
+  /** Hold-to-talk: starts push-to-talk listening (same as `start('push-to-talk')`). */
+  press(): void;
+  /** Hold-to-talk: stops listening and resolves the transcript (`null` when muted or not listening). */
+  release(): Promise<string | null>;
+  /** Mutes or unmutes the simulated microphone. */
+  setMuted(muted: boolean): void;
   startSpeaking(): void;
   finishSpeaking(): void;
   interrupt(): void;
@@ -44,6 +54,7 @@ export function createVoiceSession(options: VoiceSessionOptions): VoiceSession {
   let currentState: VoiceState = 'idle';
   let transcriptIndex = 0;
   let generation = 0;
+  let muted = false;
 
   const setState = (state: VoiceState) => {
     currentState = state;
@@ -59,12 +70,39 @@ export function createVoiceSession(options: VoiceSessionOptions): VoiceSession {
     while (run === generation && currentMode === 'hands-free' && currentState !== 'interrupted') {
       await options.clock.sleep(handsFreeIntervalMs);
       if (run !== generation) return;
+      // A muted microphone hears nothing: the turn passes without a transcript.
+      if (muted) continue;
       setState('transcribing');
       await options.clock.sleep(transcriptDelayMs);
       if (run !== generation) return;
-      nextTranscript();
+      if (!muted) nextTranscript();
       setState('listening');
     }
+  };
+
+  const start = (mode: VoiceMode = 'push-to-talk') => {
+    generation += 1;
+    currentMode = mode;
+    setState('listening');
+    if (mode === 'hands-free') void handsFreeCycle(generation);
+  };
+  const finishListening = async (): Promise<string | null> => {
+    if (currentMode !== 'push-to-talk' || currentState !== 'listening') return null;
+    if (muted) {
+      setState('idle');
+      return null;
+    }
+    const run = generation;
+    setState('transcribing');
+    await options.clock.sleep(transcriptDelayMs);
+    if (run !== generation) return null;
+    if (muted) {
+      setState('idle');
+      return null;
+    }
+    const transcript = nextTranscript();
+    setState('idle');
+    return transcript;
   };
 
   return {
@@ -74,21 +112,21 @@ export function createVoiceSession(options: VoiceSessionOptions): VoiceSession {
     get state() {
       return currentState;
     },
-    start(mode = 'push-to-talk') {
-      generation += 1;
-      currentMode = mode;
-      setState('listening');
-      if (mode === 'hands-free') void handsFreeCycle(generation);
+    get muted() {
+      return muted;
     },
-    async finishListening() {
-      if (currentMode !== 'push-to-talk' || currentState !== 'listening') return null;
-      const run = generation;
-      setState('transcribing');
-      await options.clock.sleep(transcriptDelayMs);
-      if (run !== generation) return null;
-      const transcript = nextTranscript();
-      setState('idle');
-      return transcript;
+    start,
+    finishListening,
+    press() {
+      start('push-to-talk');
+    },
+    release() {
+      return finishListening();
+    },
+    setMuted(next) {
+      if (next === muted) return;
+      muted = next;
+      options.onMuteChange?.(muted);
     },
     startSpeaking() {
       if (currentState !== 'interrupted') setState('speaking');

@@ -2,7 +2,6 @@
 import { KeyRound } from '@lucide/svelte';
 import { navigate, runService } from '@protoyard/renderer-svelte';
 import {
-  createOAuthSimulator,
   OAUTH_PROVIDER_REGISTRY,
   type OAuthIntent,
   type OAuthProviderScenarios,
@@ -12,6 +11,7 @@ import {
 import { Button } from 'texuli/button';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { getSaas } from '../context.ts';
+import { saasPortsFromRuntime } from '../ports.ts';
 
 interface Props {
   /** Providers to offer. Defaults to every configured simulated provider. */
@@ -29,7 +29,16 @@ let {
   scenarios = {},
   class: className,
 }: Props = $props();
-const runtime = getSaas().runtime as Parameters<typeof createOAuthSimulator>[0];
+const saas = getSaas();
+/**
+ * Explicit `scenarios` need the simulated engine; otherwise the context's
+ * OAuth port (ADR-046) starts the flow.
+ */
+const oauth = $derived(
+  Object.keys(scenarios).length > 0
+    ? saasPortsFromRuntime(saas.runtime, { oauthScenarios: scenarios }).oauth
+    : saas.ports.oauth
+);
 const uid = $props.id();
 const noteId = `sso-simulated-${uid}`;
 let busyProvider = $state<SaasProvider | null>(null);
@@ -39,9 +48,10 @@ async function start(provider: SaasProvider): Promise<void> {
   if (busyProvider) return;
   busyProvider = provider;
   message = '';
-  const result = await runService(() =>
-    createOAuthSimulator(runtime, scenarios).start(provider, intent)
-  );
+  const result = await runService(() => {
+    if (!oauth) throw new Error('Sign-in with a provider is not configured for this app.');
+    return oauth.start(provider, intent);
+  });
   busyProvider = null;
   if (!result.ok) {
     message =

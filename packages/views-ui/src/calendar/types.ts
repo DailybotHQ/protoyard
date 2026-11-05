@@ -38,6 +38,15 @@ export interface CalendarChange<TData = unknown> {
   writes: SeriesWrites<TData>;
 }
 
+/** What the `chip` snippet receives next to the occurrence. */
+export interface CalendarChipState {
+  /** `getTitle(occurrence)`, or the untitled label. */
+  title: string;
+  tone: CalendarTone;
+  /** "All day", or the start and end times in the calendar's zone and locale. */
+  when: string;
+}
+
 /** What `onCreate` receives: an empty slot (timed) or a day (all-day, `end` exclusive). */
 export interface CalendarSlot {
   date: IsoDate;
