@@ -124,6 +124,30 @@ not in the agent catalog yet, so blueprints cannot emit them):
 - **Avatar grid:** `<AvatarGroupGrid items={members} label="…" />` from
   `texuli/avatar`, a 2×2 collage for group conversations.
 
+## What Texuli 0.14.0 adds for prototypes
+
+Texuli 0.14.0 closes the Texuli rows from the downstream gap reports. All of
+it is additive for Protoyard:
+
+- **Timeline:** `TimelineView` (`@texuli/data/timeline`) draws group header
+  rows and bands from `getGroup`, takes `bind:collapsed`, `bind:selectedRow`,
+  `onRowSelect`, `onGroupAdd` and `markers`.
+- **Charts:** the cartesian charts take `yDomain` and `formatValue`.
+- **Dialogs:** `AlertDialog` takes `confirmDisabled`; dialog and sheet scrims
+  read `--tx-scrim`, so set that in host CSS for a dark scrim.
+- **Navigation:** `Breadcrumb` items take `ariaLabel` and
+  `onSelect(item, event)`; tabs set `aria-controls` only while their panel is
+  rendered (or take `panelId`); `TabItem` attributes such as
+  `data-testid` land on the trigger.
+- **Icons:** `registerIcons` takes lazy loaders and a `fallback` icon.
+- **Motion:** `MotionLoop` from `texuli/motion/loop` (static under reduced
+  motion; not in the blueprint vocabulary).
+- **Design systems:** compiler version 3 (every compiled hash changes once;
+  Protoyard commits no compiled output), the `aa-non-text` (3:1) check for
+  `sidebarPrimary` on the sidebar, `darkOpacity` on elevation layers and
+  `components.card["font-size"]`. Texuli now derives `sidebarPrimary` itself,
+  and `ds new --from-theme` already drops a copied one.
+
 ## The uniform component contract
 
 Since Texuli 0.8, every styled component follows one contract: `bind:ref`
