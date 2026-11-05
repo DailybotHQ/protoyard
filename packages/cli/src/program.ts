@@ -563,6 +563,11 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .addOption(new Option('--contrast <target>', 'contrast target').choices(['AA', 'AAA']))
     .option('--from-theme <theme-id>', 'import a built-in or library theme instead')
+    .option(
+      '--from-theme-file <path>',
+      "import a workspace module's own Theme export (runs that file under tsx; trusted code only)"
+    )
+    .option('--export <name>', 'with --from-theme-file: the export to import (default: the theme)')
     .option('--out <file>', 'output file (default design-systems/<id>.json)')
     .option('--force', 'replace an existing file')
     .option('--dry-run', 'validate and compile without writing')
