@@ -68,6 +68,21 @@ uses the installed lockstep Protoyard version for `protoyard`, `create-protoyard
 and `@protoyard/*` dependencies. Other local workspace dependencies remain
 unchanged. Repository development continues to use `workspace:` ranges.
 
+Consumer workspaces can add local starter templates in `protoyard.workspace.json`:
+
+```json
+{ "templates": ["templates/*"] }
+```
+
+Patterns are relative to the workspace root. Matching local templates stay
+inside the workspace, cannot be symlinks, and take precedence over a published
+template with the same name. `list --kind template` shows whether each entry
+comes from the workspace or `@protoyard/templates`. The published templates
+package also carries the app, deck, page and doc blueprint catalog, so
+`list --kind blueprint` and `generate --blueprint <id>` work after installing
+Protoyard from npm. `validate --all [--build]` checks every prototype in the
+workspace.
+
 Or use pnpm throughout:
 
 ```sh

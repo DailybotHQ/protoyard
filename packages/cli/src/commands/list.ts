@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import {
@@ -7,6 +8,7 @@ import {
   readListingConfig,
 } from '../lib/listing.ts';
 import { CliError, formatTable } from '../lib/output.ts';
+import { isInside, workspaceLayout } from '../lib/paths.ts';
 import { filterEntries, loadRegistry, type RegistryQuery } from '../lib/registry.ts';
 
 const KINDS = ['prototype', 'template', 'blueprint', 'all'] as const;
@@ -64,13 +66,30 @@ export const listCommand: Handler = async (ctx, _args, options): Promise<Command
       }
       out.always(
         formatTable(
-          ['NAME', 'SLUG', 'KIND', 'CATEGORY', 'TEMPLATE', 'PLATFORM', 'STATUS', 'SCENARIOS'],
+          [
+            'NAME',
+            'SLUG',
+            'KIND',
+            'CATEGORY',
+            'TEMPLATE',
+            'ORIGIN',
+            'PLATFORM',
+            'STATUS',
+            'SCENARIOS',
+          ],
           entries.map((e) => [
             e.name,
             e.slug,
             e.kind,
             e.category,
             e.template ?? '—',
+            e.kind === 'template'
+              ? ctx.paths.localTemplates.includes(resolve(ctx.root, e.path)) ||
+                (workspaceLayout(ctx.root) === 'monorepo' &&
+                  isInside(ctx.paths.templates, resolve(ctx.root, e.path)))
+                ? 'workspace'
+                : '@protoyard/templates'
+              : '—',
             e.platform,
             e.status,
             String(e.scenarioCount),

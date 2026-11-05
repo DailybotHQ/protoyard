@@ -19,6 +19,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const PACKAGE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const SOURCE = resolve(PACKAGE_DIR, '..', '..', 'templates');
 export const DESTINATION = join(PACKAGE_DIR, 'templates');
+export const BLUEPRINT_SOURCE = resolve(PACKAGE_DIR, '..', '..', 'blueprints');
+export const BLUEPRINT_DESTINATION = join(PACKAGE_DIR, 'blueprints');
 
 /** Matches `SKIP_NAMES` in packages/cli/src/commands/new.ts, plus test output. */
 export const SKIP_NAMES = new Set([
@@ -100,16 +102,48 @@ export function copyTemplates(source = SOURCE, destination = DESTINATION) {
   return { templates: templates.size, files };
 }
 
+/**
+ * Copies the tracked data-only blueprint catalog, including its closed
+ * decks/, pages/ and docs/ shelves. Git modes keep symlinks out.
+ * @param {string} [source]
+ * @param {string} [destination]
+ * @returns {{ files: number }}
+ */
+export function copyBlueprints(source = BLUEPRINT_SOURCE, destination = BLUEPRINT_DESTINATION) {
+  if (!existsSync(source)) throw new Error(`[protoyard] blueprints not found at ${source}.`);
+  const files = trackedFiles(source).filter((path) => !path.split('/').some(skipped));
+  rmSync(destination, { recursive: true, force: true });
+  let copied = 0;
+  for (const path of files) {
+    const from = join(source, path);
+    if (!existsSync(from) || !lstatSync(from).isFile()) continue;
+    mkdirSync(dirname(join(destination, path)), { recursive: true });
+    copyFileSync(from, join(destination, path));
+    copied++;
+  }
+  return { files: copied };
+}
+
 /** @param {string} [destination] */
 export function cleanTemplates(destination = DESTINATION) {
   rmSync(destination, { recursive: true, force: true });
 }
 
+/** @param {string} [destination] */
+export function cleanBlueprints(destination = BLUEPRINT_DESTINATION) {
+  rmSync(destination, { recursive: true, force: true });
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  if (process.argv.includes('--clean')) cleanTemplates();
-  else {
+  if (process.argv.includes('--clean')) {
+    cleanTemplates();
+    cleanBlueprints();
+  } else {
     const { templates, files } = copyTemplates();
+    const blueprints = copyBlueprints();
     // stderr: pack lifecycle output must not mix with `pnpm pack --json` on stdout.
-    console.error(`Packed ${templates} templates (${files} files) into ${DESTINATION}.`);
+    console.error(
+      `Packed ${templates} templates (${files} files) and ${blueprints.files} blueprint files.`
+    );
   }
 }

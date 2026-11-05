@@ -15,6 +15,7 @@
     "index.js",
     "index.d.ts",
     "templates",
+    "blueprints",
     "README.md",
     "LICENSE"
   ],
