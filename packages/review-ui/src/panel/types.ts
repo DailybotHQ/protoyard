@@ -1,5 +1,13 @@
 import type { PrototypeRuntime } from '@protoyard/core';
 import type { ReviewComment, ReviewContext } from '@protoyard/core/review';
+import type { ComponentProps } from 'svelte';
+import type { LabelsProvider } from 'texuli/i18n';
+
+/**
+ * The prototype's label dictionary (`mountPrototype({ i18n })`). The review UI
+ * mounts outside the app's component tree, so each of its roots applies it.
+ */
+export type ReviewI18n = Pick<ComponentProps<typeof LabelsProvider>, 'labels' | 'locale'>;
 
 /** The small runtime surface the panel needs; scenario loads save a safety snapshot. */
 export type ReviewRuntime = {
@@ -35,4 +43,6 @@ export interface ReviewPanelProps {
   onNavigate?: (path: string) => void | Promise<void>;
   /** Optional accurate orphan status from the mounted anchor resolver. */
   orphanedThreadIds?: readonly string[];
+  /** The prototype's dictionary, for hosts outside its LabelsProvider (DevTools, a floating panel). */
+  i18n?: ReviewI18n;
 }

@@ -11,9 +11,10 @@ import { ReviewAuthorSchema, ReviewCommentSchema } from '@protoyard/core/review'
 import type { ReviewAdapter } from '@protoyard/review/store';
 import { mount, onMount, unmount } from 'svelte';
 import { Button } from 'texuli/button';
+import { setTexuliLabels, useMessages } from 'texuli/i18n';
 import { Textarea } from 'texuli/input';
 import { createReviewOverlay, type ReviewOverlayHandle } from '../overlay/index.ts';
-import type { ReviewPanelProps } from '../panel/types.ts';
+import type { ReviewI18n, ReviewPanelProps } from '../panel/types.ts';
 import { ReviewToolbar } from '../toolbar/index.ts';
 import type { ReviewToolbarPlacer } from '../toolbar/types.ts';
 import { createPanelState } from './panel-state.svelte.ts';
@@ -31,6 +32,7 @@ let {
   devtoolsPanel = false,
   exportComments,
   importComments,
+  i18n,
 }: {
   adapter: ReviewAdapter;
   runtime: PrototypeRuntime;
@@ -49,7 +51,15 @@ let {
   exportComments?: () => Promise<Blob>;
   /** Local adapter only: validates a comments file, merges it and returns the rows added or updated. */
   importComments?: (file: Blob) => Promise<number>;
+  /** The prototype's dictionary: this component is its own Svelte root (see mountReview). */
+  i18n?: ReviewI18n;
 } = $props();
+
+// svelte-ignore state_referenced_locally
+if (i18n) setTexuliLabels(i18n.labels ?? {}, i18n.locale ? { locale: i18n.locale } : {});
+// Labels resolve through Texuli's dictionary (protoyard.review.* ids).
+const messages = useMessages();
+const S = 'protoyard.review.session';
 
 /** Downloads this browser's comments as JSON (to hand to another reviewer). */
 async function downloadComments(): Promise<void> {
@@ -69,8 +79,10 @@ async function importJson(json: string): Promise<void> {
   await refresh();
   notice =
     merged === 0
-      ? 'Nothing new to import.'
-      : `Imported ${merged} comment${merged === 1 ? '' : 's'}.`;
+      ? messages(`${S}.import-none`, 'Nothing new to import.')
+      : merged === 1
+        ? messages(`${S}.imported-one`, 'Imported 1 comment.')
+        : messages(`${S}.imported`, 'Imported {count} comments.', { count: String(merged) });
   setTimeout(() => (notice = ''), 5000);
 }
 
@@ -95,6 +107,8 @@ panelProps.setShowResolved = (show) => overlay?.setShowResolved(show);
 // svelte-ignore state_referenced_locally
 panelProps.runtime = runtime;
 // svelte-ignore state_referenced_locally
+if (i18n) panelProps.i18n = i18n;
+// svelte-ignore state_referenced_locally
 panelProps.root = root;
 const roots = $derived(comments.filter((comment) => comment.id === comment.threadId));
 const selectedThread = $derived(comments.find((comment) => comment.id === selectedThreadId));
@@ -118,7 +132,10 @@ async function refresh(): Promise<void> {
     overlay?.setComments(comments);
     status = '';
   } catch (error) {
-    status = error instanceof Error ? error.message : 'Could not load review comments.';
+    status =
+      error instanceof Error
+        ? error.message
+        : messages(`${S}.load-failed`, 'Could not load review comments.');
   }
 }
 
@@ -138,7 +155,9 @@ function authorForReview(): ReviewAuthor | undefined {
       // Ask for a name when local storage contains invalid data.
     }
   }
-  const name = window.prompt('Name shown on your review comment (not a login):')?.trim();
+  const name = window
+    .prompt(messages(`${S}.name-prompt`, 'Name shown on your review comment (not a login):'))
+    ?.trim();
   const author = ReviewAuthorSchema.safeParse({ name, clientId });
   if (!author.success) return undefined;
   try {
@@ -171,7 +190,10 @@ async function save(input: ReviewCommentInput): Promise<boolean> {
     await refresh();
     return true;
   } catch (error) {
-    status = error instanceof Error ? error.message : 'Could not save this review comment.';
+    status =
+      error instanceof Error
+        ? error.message
+        : messages(`${S}.save-failed`, 'Could not save this review comment.');
     return false;
   } finally {
     busy = false;
@@ -182,7 +204,7 @@ async function placeComment(anchor: ReviewAnchor): Promise<void> {
   if (composerOnly) return;
   const author = authorForReview();
   if (!author) return;
-  const body = window.prompt('What should be changed?')?.trim();
+  const body = window.prompt(messages(`${S}.body-prompt`, 'What should be changed?'))?.trim();
   if (!body) return;
   const now = new Date().toISOString();
   const id = `review_${crypto.randomUUID().replaceAll('-', '')}`;
@@ -295,6 +317,7 @@ onMount(() => {
     comments,
     toggle: false,
     // Escape, C and a finished placement change the mode inside the overlay: mirror it.
+    messages,
     onActiveChange: (active: boolean) => {
       commentMode = active;
     },
@@ -339,17 +362,17 @@ onMount(() => {
 <aside class="review-panel-host" class:open={panelOpen} aria-busy={busy} bind:this={panelHost}></aside>
 
 {#if selectedRoot}
-  <section class="review-thread-host" aria-label="Comment thread">
-    <header><h2>Thread on {selectedRoot.anchor?.route.path ?? 'this screen'}</h2><Button variant="outline" size="sm" type="button" onclick={closeThread}>Close</Button></header>
+  <section class="review-thread-host" aria-label={messages(`${S}.thread`, 'Comment thread')}>
+    <header><h2>{messages(`${S}.thread-on`, 'Thread on {screen}', { screen: selectedRoot.anchor?.route.path ?? messages(`${S}.this-screen`, 'this screen') })}</h2><Button variant="outline" size="sm" type="button" onclick={closeThread}>{messages(`${S}.close`, 'Close')}</Button></header>
     <ol>{#each selectedComments as comment (comment.id)}<li><strong>{comment.author.name}</strong><p>{comment.body}</p><time datetime={comment.createdAt}>{comment.createdAt}</time></li>{/each}</ol>
     {#if selectedRoot.author.clientId === clientId}
       <Button variant="outline" size="sm" type="button" disabled={threadBusy} aria-busy={threadBusy} onclick={() => { const author = authorForReview(); if (author) void resolve(selectedRoot as ReviewComment, author, !selectedRoot?.resolvedAt); }}>
-        {selectedRoot.resolvedAt ? 'Reopen thread' : 'Resolve thread'}
+        {selectedRoot.resolvedAt ? messages(`${S}.reopen`, 'Reopen thread') : messages(`${S}.resolve`, 'Resolve thread')}
       </Button>
     {/if}
     <form onsubmit={sendReply}>
-      <label for="review-reply-body">Reply</label><Textarea id="review-reply-body" bind:value={replyBody} maxlength={2000} required rows={4} />
-      <Button type="submit" disabled={threadBusy || !replyBody.trim()} aria-busy={threadBusy}>{threadBusy ? 'Sending…' : 'Send reply'}</Button>
+      <label for="review-reply-body">{messages(`${S}.reply`, 'Reply')}</label><Textarea id="review-reply-body" bind:value={replyBody} maxlength={2000} required rows={4} />
+      <Button type="submit" disabled={threadBusy || !replyBody.trim()} aria-busy={threadBusy}>{threadBusy ? messages(`${S}.sending`, 'Sending…') : messages(`${S}.send-reply`, 'Send reply')}</Button>
     </form>
   </section>
 {/if}

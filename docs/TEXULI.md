@@ -181,6 +181,40 @@ Besides the `protoyard.doc.*` ids listed above:
   `.cancel`
 - `protoyard.views.activity-feed.label`, `.loading` (`{label}`)
 
+### Review comments (`@protoyard/review-ui`)
+
+The review UI mounts as its own Svelte root, outside the app's
+`LabelsProvider`; pass the dictionary to `mountReview({ i18n })` (or the
+`i18n` prop of `ReviewPanel`). `mountPrototype` does not forward it yet.
+
+- `protoyard.review.tab` (the DevTools tab name; a plain string)
+- `protoyard.review.session.import-none`, `.imported-one`, `.imported`
+  (`{count}`), `.load-failed`, `.save-failed`, `.name-prompt`, `.body-prompt`,
+  `.thread`, `.thread-on` (`{screen}`), `.this-screen`, `.close`, `.reopen`,
+  `.resolve`, `.reply`, `.sending`, `.send-reply`
+- `protoyard.review.toolbar.label`, `.title`, `.launcher` (`{threads}`),
+  `.launcher-pending` (`{label}`, `{count}`), `.threads-one`, `.threads`
+  (`{count}`), `.count` (`{count}`), `.comment`, `.stop`, `.panel`, `.export`,
+  `.import`, `.synced`, `.pending-one`, `.pending` (`{count}`), `.shared`,
+  `.local`, `.live`, `.on-refresh`, `.action-failed`
+- `protoyard.review.panel.label`, `.title`, `.thread-count` (`{count}`),
+  `.filters`, `.state`, `.filter-state`, `.all-states`, `.open`, `.resolved`,
+  `.screen`, `.filter-screen`, `.all-screens`, `.author`, `.filter-author`,
+  `.all-authors`, `.anchor`, `.filter-anchor`, `.all-anchors`, `.anchored`,
+  `.orphaned`, `.search`, `.counts`, `.empty`, `.threads`, `.unknown-screen`,
+  `.restoring`, `.restore`, `.restore-failed`, `.switch-title`,
+  `.switch-description` (`{scenario}`), `.cancel`, `.switching`,
+  `.switch-confirm`
+- `protoyard.review.thread.label`, `.name-title`, `.name-hint`, `.name-label`,
+  `.name-invalid`, `.name-not-saved`, `.continue`, `.by` (`{name}`),
+  `.reopen`, `.resolve`, `.update-failed`, `.gone`, `.open`
+- `protoyard.review.overlay.label`, `.add`, `.exit`, `.saving`, `.place`,
+  `.place-hint`, `.pin-one` / `.pin` (`{name}`, `{excerpt}`, `{count}`),
+  `.cluster` (`{count}`), `.composer-opening`, `.composer-opened`,
+  `.location-saving`, `.location-saved`, `.location-failed`
+  (`createReviewOverlay({ messages })` takes the lookup)
+- `protoyard.review.composer-notice.text`
+
 ## Icons, code fields, image pairs and avatar grids (Texuli 0.13.1)
 
 Texuli 0.13.1 adds four components a prototype can use directly (they are

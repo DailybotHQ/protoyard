@@ -1,6 +1,7 @@
 <script lang="ts">
 import { onMount, tick } from 'svelte';
 import { Button } from 'texuli/button';
+import { useMessages } from 'texuli/i18n';
 import { Input } from 'texuli/input';
 import type { ReviewToolbarProps } from './types.ts';
 
@@ -23,6 +24,10 @@ let {
   place,
   expanded = $bindable(false),
 }: ReviewToolbarProps = $props();
+// Labels resolve through Texuli's dictionary (protoyard.review.toolbar.* ids).
+const messages = useMessages();
+const T = 'protoyard.review.toolbar';
+
 let pending = $state(0);
 let busyAction = $state<'comment' | 'panel' | 'export' | 'import' | undefined>();
 let actionError = $state('');
@@ -113,7 +118,10 @@ async function run(
   try {
     await callback();
   } catch (error) {
-    actionError = error instanceof Error ? error.message : 'The review action failed.';
+    actionError =
+      error instanceof Error
+        ? error.message
+        : messages(`${T}.action-failed`, 'The review action failed.');
   } finally {
     busyAction = undefined;
   }
@@ -159,12 +167,34 @@ async function collapse(): Promise<void> {
 const open = $derived(expanded || commentMode);
 const pendingLabel = $derived(
   pending === 0
-    ? 'All comments synced'
-    : `${pending} comment${pending === 1 ? '' : 's'} waiting to sync`
+    ? messages(`${T}.synced`, 'All comments synced')
+    : pending === 1
+      ? messages(`${T}.pending-one`, '1 comment waiting to sync')
+      : messages(`${T}.pending`, '{count} comments waiting to sync', { count: String(pending) })
 );
 const adapterLabel = $derived.by(() => {
   const info = adapter.info();
-  return `${info.kind}${info.shared ? ' · shared' : ' · this browser only'}${info.live ? ' · live' : ' · sync on refresh'}`;
+  const shared = info.shared
+    ? messages(`${T}.shared`, 'shared')
+    : messages(`${T}.local`, 'this browser only');
+  const live = info.live
+    ? messages(`${T}.live`, 'live')
+    : messages(`${T}.on-refresh`, 'sync on refresh');
+  return `${info.kind} · ${shared} · ${live}`;
+});
+const threadCount = $derived(
+  count === 1
+    ? messages(`${T}.threads-one`, '1 comment thread')
+    : messages(`${T}.threads`, '{count} comment threads', { count: String(count) })
+);
+const launcherLabel = $derived.by(() => {
+  const base = messages(`${T}.launcher`, 'Review: {threads}', { threads: threadCount });
+  return pending
+    ? messages(`${T}.launcher-pending`, '{label}, {count} waiting to sync', {
+        label: base,
+        count: String(pending),
+      })
+    : base;
 });
 </script>
 
@@ -184,7 +214,7 @@ const adapterLabel = $derived.by(() => {
   data-py-review-toolbar={open ? 'expanded' : 'collapsed'}
   style:bottom={!place && navOffset > 0 ? `${navOffset + 12}px` : undefined}
   style:--review-right-edge={`${rightOffset}px`}
-  aria-label="Prototype review toolbar"
+  aria-label={messages(`${T}.label`, 'Prototype review toolbar')}
 >
   <Button
     bind:ref={launcher}
@@ -194,22 +224,22 @@ const adapterLabel = $derived.by(() => {
     class="review-toolbar__launcher"
     aria-expanded={open}
     aria-controls="review-toolbar-actions"
-    aria-label={`Review: ${count} comment thread${count === 1 ? '' : 's'}${pending ? `, ${pending} waiting to sync` : ''}`}
-    title="Review comments"
+    aria-label={launcherLabel}
+    title={messages(`${T}.title`, 'Review comments')}
     onclick={toggleToolbar}
   >
     <span aria-hidden="true">💬</span><span class="review-toolbar__badge" aria-hidden="true">{count}</span>{#if pending}<span class="review-toolbar__dot" aria-hidden="true"></span>{/if}
   </Button>
   <div id="review-toolbar-actions" class="review-toolbar__actions" hidden={!open}>
     <Button variant="outline" size="sm" type="button" aria-pressed={commentMode} aria-busy={busyAction === 'comment'} disabled={!onCommentModeChange || Boolean(busyAction)} onclick={() => run('comment', () => onCommentModeChange?.(!commentMode))}>
-      {commentMode ? 'Stop commenting' : 'Comment'}
+      {commentMode ? messages(`${T}.stop`, 'Stop commenting') : messages(`${T}.comment`, 'Comment')}
     </Button>
-    <span class="review-toolbar__count" aria-label={`${count} comment threads`}>{count} comments</span>
+    <span class="review-toolbar__count" aria-label={messages(`${T}.threads`, '{count} comment threads', { count: String(count) })}>{messages(`${T}.count`, '{count} comments', { count: String(count) })}</span>
     {#if showPanelButton}
-      <Button variant="outline" size="sm" type="button" aria-expanded={panelOpen} aria-controls="review-comments-panel" aria-busy={busyAction === 'panel'} disabled={!onPanelChange || Boolean(busyAction)} onclick={() => run('panel', () => onPanelChange?.(!panelOpen))}>Comments</Button>
+      <Button variant="outline" size="sm" type="button" aria-expanded={panelOpen} aria-controls="review-comments-panel" aria-busy={busyAction === 'panel'} disabled={!onPanelChange || Boolean(busyAction)} onclick={() => run('panel', () => onPanelChange?.(!panelOpen))}>{messages(`${T}.panel`, 'Comments')}</Button>
     {/if}
-    {#if onExport}<Button variant="outline" size="sm" type="button" disabled={Boolean(busyAction)} aria-busy={busyAction === 'export'} onclick={() => run('export', onExport)}>Export</Button>{/if}
-    {#if onImport}<Button variant="outline" size="sm" type="button" disabled={Boolean(busyAction)} aria-busy={busyAction === 'import'} onclick={openImportPicker}>Import</Button>{/if}
+    {#if onExport}<Button variant="outline" size="sm" type="button" disabled={Boolean(busyAction)} aria-busy={busyAction === 'export'} onclick={() => run('export', onExport)}>{messages(`${T}.export`, 'Export')}</Button>{/if}
+    {#if onImport}<Button variant="outline" size="sm" type="button" disabled={Boolean(busyAction)} aria-busy={busyAction === 'import'} onclick={openImportPicker}>{messages(`${T}.import`, 'Import')}</Button>{/if}
     <span class="review-toolbar__adapter" title={adapterLabel}>{adapterLabel}</span>
     {#if open}<span class="review-toolbar__pending" role="status" aria-live="polite">{pendingLabel}</span>{/if}
   </div>

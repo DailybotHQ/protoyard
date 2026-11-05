@@ -352,6 +352,16 @@ Not verified yet:
 - live updates between two viewers
 - Commenter-level refusals
 
+### Review UI in another language
+
+The review UI's words use `protoyard.review.*` ids (listed in
+[TEXULI](TEXULI.md#protoyard-kit-ids)). The review UI is its own Svelte root,
+mounted next to the app rather than inside it, so it does not see the
+renderer's `LabelsProvider`: `mountReview({ i18n })` takes the dictionary and
+applies it to the session, the floating panel and the panel a DevTools tab
+shows. `mountPrototype` does not forward `i18n` to `mountReview` yet, so in a
+prototype the review UI stays English for now.
+
 ## Honest limits
 
 - **Names are self-declared, and keys are shared.** Anyone can type any name.

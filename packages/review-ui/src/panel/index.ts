@@ -2,4 +2,4 @@
 
 export { default as ClaudeComposerNotice } from './ClaudeComposerNotice.svelte';
 export { default as ReviewPanel } from './ReviewPanel.svelte';
-export type { ReviewPanelProps, ReviewRuntime } from './types.ts';
+export type { ReviewI18n, ReviewPanelProps, ReviewRuntime } from './types.ts';
