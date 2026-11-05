@@ -258,8 +258,8 @@ void mountPrototype({
 | --- | --- | --- |
 | `namespace` | `__PROTOYARD_BUILD__.namespace` and the manifest's `storage.namespace` | Checked with the manifest's `NamespaceSchema`. An invalid value shows the recovery screen before any storage opens. |
 | `frameWhenEmbedded` | `__PROTOYARD_BUILD__.frameWhenEmbedded` and the manifest flag | Applies in both directions. |
-| `demoBadge` | `__PROTOYARD_DEMO_BADGE__` and the top-level `demoBadge` option | |
-| `devtools` | the top-level `devtools` option, `?devtools=0` and `__PROTOYARD_DEVTOOLS__` (when on) | Can only narrow the build. |
+| `demoBadge` | `__PROTOYARD_DEMO_BADGE__` and the top-level `demoBadge` option | Accepts `true`/`false` or `{ layer, avoid, phone }`; `phone` can choose a compact dot, hide the badge, or keep its corner placement. |
+| `devtools` | the top-level `devtools` option, `?devtools=0` and `__PROTOYARD_DEVTOOLS__` (when on) | A boolean controls availability. An object with `launcher` customizes its floating launcher without changing availability. |
 | `review` | `__PROTOYARD_REVIEW__` (when on) and the manifest's `build.review.enabled` | Can only narrow the build. |
 
 `devtools` and `review` can't add what the bundle doesn't contain. A build

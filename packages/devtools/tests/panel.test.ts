@@ -66,6 +66,17 @@ describe('DevTools panel', () => {
     expect(screen.getByRole('button', { name: /Open Protoyard DevTools/ })).toBeTruthy();
   });
 
+  it('keeps the keyboard shortcut when the launcher is hidden', async () => {
+    const runtime = createFakeRuntime();
+    await runtime.scenarios.ensureSeeded();
+    handle = mountDevtools({ runtime, themes: BUILTIN_THEMES, launcher: { hidden: true } });
+    flushSync();
+    expect(screen.queryByRole('button', { name: /Open Protoyard DevTools/ })).toBeNull();
+    await fireEvent.keyDown(window, { key: '.', ctrlKey: true });
+    await settle();
+    expect(screen.getByRole('complementary', { name: 'Protoyard DevTools' })).toBeTruthy();
+  });
+
   it('switches persona and overrides role without touching data', async () => {
     const { runtime, panel } = await open();
     await fireEvent.click(within(panel).getByRole('tab', { name: 'Personas' }));

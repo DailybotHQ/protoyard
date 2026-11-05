@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import { waitForPrototypeReady } from './support/ready.ts';
-import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
+import { devtoolsPrototypeUrl, PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
 
 /**
  * Domain flows of Lumen Bank against its STATIC production build (DevTools
@@ -34,6 +34,68 @@ async function openApp(page: Page, hash = '', scenario = 'active-customer') {
 const counts = (page: Page) => page.evaluate(() => window.__protoyard?.data.counts());
 
 test.describe('Lumen Bank (static build)', () => {
+  test('phone chrome clears the first heading and bottom navigation', { tag: '@mobile' }, async ({
+    page,
+  }) => {
+    test.skip(
+      !process.env.PROTOYARD_E2E_DEVTOOLS_PROTOTYPES?.split(',').includes(SLUG),
+      `set PROTOYARD_E2E_DEVTOOLS_PROTOTYPES to include ${SLUG}`
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${devtoolsPrototypeUrl(SLUG)}?scenario=active-customer`);
+    await waitForPrototypeReady(page, { slug: SLUG });
+    const heading = page.getByRole('heading').first();
+    const badge = page.locator('[data-py-demo-badge]').first();
+    const launcher = page.getByRole('button', { name: /^Open Protoyard DevTools/ });
+    const nav = page
+      .locator('[data-py-bottom-nav], [data-tx-bottom-nav], [data-tx-mobile-tabs]')
+      .first();
+    await expect(heading).toBeVisible();
+    await expect(badge).toHaveAttribute('data-py-demo-badge', 'compact');
+    await expect(badge).toBeVisible();
+    await expect(launcher).toBeVisible();
+    await expect(nav).toBeVisible();
+    const intersections = await page.evaluate(() => {
+      const rect = (selector: string) => document.querySelector(selector)?.getBoundingClientRect();
+      const headingRect = document.querySelector('h1,[role="heading"]')?.getBoundingClientRect();
+      const badgeRect = rect('[data-py-demo-badge]');
+      const launcherRect = document
+        .querySelector('[aria-label^="Open Protoyard DevTools"]')
+        ?.getBoundingClientRect();
+      const navRect = rect('[data-py-bottom-nav], [data-tx-bottom-nav], [data-tx-mobile-tabs]');
+      const overlaps = (a?: DOMRect, b?: DOMRect) =>
+        Boolean(
+          a && b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+        );
+      return {
+        badgeHeading: overlaps(badgeRect, headingRect),
+        launcherHeading: overlaps(launcherRect, headingRect),
+        badgeNav: overlaps(badgeRect, navRect),
+        launcherNav: overlaps(launcherRect, navRect),
+        boxes: Object.fromEntries(
+          Object.entries({ headingRect, badgeRect, launcherRect, navRect }).map(([key, value]) => [
+            key,
+            value && { x: value.x, y: value.y, width: value.width, height: value.height },
+          ])
+        ),
+      };
+    });
+    expect({
+      badgeHeading: intersections.badgeHeading,
+      launcherHeading: intersections.launcherHeading,
+      badgeNav: intersections.badgeNav,
+      launcherNav: intersections.launcherNav,
+    }).toEqual(
+      {
+        badgeHeading: false,
+        launcherHeading: false,
+        badgeNav: false,
+        launcherNav: false,
+      },
+      JSON.stringify(intersections.boxes)
+    );
+  });
+
   test('creates and removes a payee, persisting across reloads', { tag: '@desktop' }, async ({
     page,
   }) => {

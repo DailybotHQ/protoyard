@@ -1,4 +1,4 @@
-import type { PrototypeRuntime, Theme } from '@protoyard/core';
+import type { DevtoolsOptions, PrototypeRuntime, Theme } from '@protoyard/core';
 import { enableTexuliAppearance } from '@protoyard/themes/texuli';
 import type { Component } from 'svelte';
 import { mount, unmount } from 'svelte';
@@ -26,6 +26,8 @@ export interface MountDevtoolsOptions {
   avatarImage?: AvatarImageResolver;
   /** Additional tab entries. Each view module loads only after its tab is selected. */
   extraTabs?: readonly DevtoolsTab[];
+  /** Placement and appearance of the floating launcher. */
+  launcher?: DevtoolsOptions['launcher'];
 }
 
 export interface DevtoolsHandle {
@@ -60,6 +62,7 @@ export function mountDevtools(options: MountDevtoolsOptions): DevtoolsHandle {
     props: {
       runtime: options.runtime,
       themes: options.themes ?? [],
+      launcherOptions: options.launcher,
       ...(options.avatarImage ? { avatarImage: options.avatarImage } : {}),
       ...(options.extraTabs ? { extraTabs: options.extraTabs } : {}),
     },

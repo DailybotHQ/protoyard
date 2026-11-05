@@ -7,6 +7,8 @@ import {
   createRng,
   createSimulationClock,
   createSimulationEnvironment,
+  DemoBadgeSchema,
+  DevtoolsOptionsSchema,
   parseInput,
   parseScenarioLink,
   ReviewBuildSchema,
@@ -52,6 +54,28 @@ describe('manifest', () => {
     expect(ok.success).toBe(true);
     if (ok.success) expect(ok.data.build.includeDevtools).toBe(false);
     expect(safeParseManifest({ id: 'x', slug: 'crm' }).success).toBe(false);
+  });
+
+  it('accepts legacy and configurable runtime chrome options', () => {
+    expect(DemoBadgeSchema.parse(true)).toBe(true);
+    expect(DemoBadgeSchema.parse(false)).toBe(false);
+    expect(
+      DemoBadgeSchema.parse({
+        layer: 'below-overlays',
+        avoid: ['[data-app-nav]'],
+        phone: 'compact',
+      })
+    ).toEqual({ layer: 'below-overlays', avoid: ['[data-app-nav]'], phone: 'compact' });
+    expect(
+      DevtoolsOptionsSchema.parse({
+        launcher: {
+          hidden: true,
+          offset: { x: 8, y: -12 },
+          tone: 'contrast',
+        },
+      })
+    ).toEqual({ launcher: { hidden: true, offset: { x: 8, y: -12 }, tone: 'contrast' } });
+    expect(DemoBadgeSchema.safeParse({ phone: 'giant' }).success).toBe(false);
   });
 });
 

@@ -133,9 +133,31 @@ function textAt(el: Element, x: number, y: number): boolean {
 export function placeBadge(
   container: Rect,
   size: { width: number; height: number },
-  hit: (x: number, y: number) => Element | null
-): BadgeCorner {
-  return pickCorner((corner) => spotCost(cornerRect(corner, container, size), hit));
+  hit: (x: number, y: number) => Element | null,
+  avoid: readonly Rect[] = []
+): BadgeCorner | null {
+  let best: BadgeCorner | null = null;
+  let bestCost = Number.POSITIVE_INFINITY;
+  for (const corner of BADGE_CORNERS) {
+    const spot = cornerRect(corner, container, size);
+    if (avoid.some((rect) => intersects(spot, rect))) continue;
+    const cost = spotCost(spot, hit);
+    if (cost === 0) return corner;
+    if (cost < bestCost) {
+      best = corner;
+      bestCost = cost;
+    }
+  }
+  return best;
+}
+
+function intersects(a: Rect, b: Rect): boolean {
+  return (
+    a.left < b.left + b.width &&
+    b.left < a.left + a.width &&
+    a.top < b.top + b.height &&
+    b.top < a.top + a.height
+  );
 }
 
 type Hit = (x: number, y: number) => Element | null;
@@ -164,7 +186,7 @@ export function everyCornerBlocked(
 }
 
 /** Size of the compact badge (the info dot), in CSS px. */
-export const COMPACT_SIZE = 20;
+export const COMPACT_SIZE = 16;
 /** Distance of the compact badge from the container edges. */
 export const COMPACT_INSET = 4;
 
@@ -182,6 +204,7 @@ export function compactSpots(container: Rect, step = 8): Rect[] {
   for (const top of [
     container.top + container.height - COMPACT_INSET - COMPACT_SIZE,
     container.top + COMPACT_INSET,
+    container.top + (container.height - COMPACT_SIZE) / 2,
   ]) {
     for (let left = minX + step; left < maxX; left += step) spots.push({ left, top, ...size });
   }
@@ -192,10 +215,11 @@ export function compactSpots(container: Rect, step = 8): Rect[] {
  * The first spot for the info dot that covers nothing, else the least
  * covered one (text before controls, by `spotCost`'s weights).
  */
-export function placeCompact(container: Rect, hit: Hit): Rect {
+export function placeCompact(container: Rect, hit: Hit, avoid: readonly Rect[] = []): Rect | null {
   let best: Rect | undefined;
   let bestCost = Number.POSITIVE_INFINITY;
   for (const spot of compactSpots(container)) {
+    if (avoid.some((rect) => intersects(spot, rect))) continue;
     const cost = spotCost(spot, hit, 6);
     if (cost === 0) return spot;
     if (cost < bestCost) {
@@ -203,5 +227,5 @@ export function placeCompact(container: Rect, hit: Hit): Rect {
       bestCost = cost;
     }
   }
-  return best as Rect;
+  return best ?? null;
 }
