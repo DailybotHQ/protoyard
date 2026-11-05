@@ -74,7 +74,7 @@ export const budgetCommand: Handler = async (ctx, args, options): Promise<Comman
         );
       }
 
-      const budget = resolveBudget(config, entry.slug);
+      const budget = resolveBudget(config, entry.slug, await contentKindOf(ctx.root, entry));
       const metrics: BudgetMetricResult[] = [
         {
           metric: 'initialJsGzip',
@@ -204,4 +204,16 @@ function formatKb(value: number): string {
 
 function formatHeadroom(value: number): string {
   return `${value >= 0 ? '+' : '−'}${Math.abs(value).toFixed(2)} KB`;
+}
+
+/** The manifest's `blueprintKind` (deck, page, doc or app), or null. */
+async function contentKindOf(root: string, entry: RegistryEntry): Promise<string | null> {
+  try {
+    const manifest = JSON.parse(
+      await readFile(join(root, entry.path, 'protoyard.json'), 'utf8')
+    ) as { blueprintKind?: unknown };
+    return typeof manifest.blueprintKind === 'string' ? manifest.blueprintKind : null;
+  } catch {
+    return null;
+  }
 }

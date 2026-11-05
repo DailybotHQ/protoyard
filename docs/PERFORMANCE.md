@@ -454,6 +454,21 @@ loader uses the defaults below.
 | `briefToBlueprintMs`, `blueprintValidationMs`, `prototypeGenerationMs`, `prototypeBuildMs`, `previewReadyMs` | `null` | Optional per-phase idea-to-running thresholds |
 | `quickReadyMs` | `null` | `protoyard quick` brief → ready folder → `protoyard:ready`, no build (see [Quick exploration](#quick-exploration-brief-to-ready-measured-2026-10-20)) |
 
+Deck, page and doc prototypes (manifest `blueprintKind`) start from their own
+defaults, because a bare template of these kinds already exceeds the app
+budget. `protoyard budget` applies, in order: `defaults`, the built-in
+`DEFAULT_CONTENT_KIND_BUDGETS` for the kind, the optional `contentKinds.<kind>`
+of the workspace file, then the slug's override.
+
+| Kind | Bare template measured (1.3.0, Texuli 0.14.0, gzip) | Built-in default (+2.5 %, rounded up) |
+| --- | --- | --- |
+| `deck` | 285.92 KB JS, 86.41 KB CSS | 293.1 KB JS, 88.6 KB CSS |
+| `page` | 214.26 KB JS, 71.04 KB CSS | app JS (250 KB), 72.9 KB CSS |
+| `doc` | 208.38 KB JS, 75.42 KB CSS | app JS (250 KB), 77.4 KB CSS |
+
+Most of the CSS is Texuli component CSS for components a bare template never
+renders; these defaults go down when Texuli ships per-component CSS (its UG-36).
+
 An optional `kinds` key holds the per-kind player entry budgets (ADR-040). When a
 kind is missing, the loader (`DEFAULT_KIND_BUDGETS` in
 `packages/cli/src/lib/budgets.ts`) uses the defaults below. `protoyard budget`

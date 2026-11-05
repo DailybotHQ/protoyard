@@ -67,6 +67,28 @@ const KindBudgetsSchema = z
   })
   .strict();
 
+/**
+ * Built-in budgets for prototypes whose manifest says `blueprintKind: deck |
+ * page | doc` (Corag UG-57): a bare template of these kinds already exceeds the
+ * app defaults. Measured with `protoyard budget <template>` on 1.3.0 and Texuli
+ * 0.14.0 (deck 285.92 KB JS / 86.41 KB CSS, page 214.26 / 71.04, doc 208.38 /
+ * 75.42 KB gzip), + 2.5 % rounded up; JS stays at the app default where it fits.
+ * Lower them when Texuli's per-component CSS (UG-36) ships.
+ */
+export const DEFAULT_CONTENT_KIND_BUDGETS: Record<BudgetKind, Partial<PerformanceBudget>> = {
+  deck: { initialJsGzipKb: 293.1, cssGzipKb: 88.6 },
+  page: { cssGzipKb: 72.9 },
+  doc: { cssGzipKb: 77.4 },
+};
+
+const ContentKindBudgetsSchema = z
+  .object({
+    deck: PerformanceBudgetSchema.partial().optional(),
+    page: PerformanceBudgetSchema.partial().optional(),
+    doc: PerformanceBudgetSchema.partial().optional(),
+  })
+  .strict();
+
 export const BudgetConfigSchema = z
   .object({
     format: z.literal('protoyard.budgets'),
@@ -75,6 +97,11 @@ export const BudgetConfigSchema = z
     overrides: z.record(SlugSchema, PerformanceBudgetOverrideSchema),
     /** Optional per-kind player entry budgets; missing kinds use DEFAULT_KIND_BUDGETS. */
     kinds: KindBudgetsSchema.optional(),
+    /**
+     * Optional budgets for deck, page and doc prototypes (by manifest
+     * `blueprintKind`), over DEFAULT_CONTENT_KIND_BUDGETS; a slug override still wins.
+     */
+    contentKinds: ContentKindBudgetsSchema.optional(),
   })
   .strict();
 
@@ -142,10 +169,24 @@ export async function loadBudgets(workspaceRoot: string): Promise<BudgetConfig> 
   return parseBudgetConfig(value, path);
 }
 
-/** Applies the selected prototype override to the workspace defaults. */
-export function resolveBudget(config: BudgetConfig, slug: string): PerformanceBudget {
+/**
+ * The budget of one prototype: workspace defaults, then the deck/page/doc
+ * defaults for its `blueprintKind`, then its own override.
+ */
+export function resolveBudget(
+  config: BudgetConfig,
+  slug: string,
+  contentKind?: string | null
+): PerformanceBudget {
   const { reason: _reason, ...override } = config.overrides[slug] ?? {};
-  return { ...config.defaults, ...override };
+  const kind = isBudgetKind(contentKind)
+    ? { ...DEFAULT_CONTENT_KIND_BUDGETS[contentKind], ...config.contentKinds?.[contentKind] }
+    : {};
+  return { ...config.defaults, ...kind, ...override };
+}
+
+function isBudgetKind(value: string | null | undefined): value is BudgetKind {
+  return value === 'deck' || value === 'page' || value === 'doc';
 }
 
 /** Resolves the budget of one per-kind player entry, falling back to the provisional defaults. */
