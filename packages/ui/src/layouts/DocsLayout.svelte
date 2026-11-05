@@ -1,5 +1,6 @@
 <script lang="ts">
 import { type Snippet, untrack } from 'svelte';
+import { useMessages } from 'texuli/i18n';
 
 interface Props {
   navigation?: Snippet;
@@ -22,11 +23,24 @@ let {
   navigation,
   children,
   mountScreen,
-  navigationLabel = 'Documentation sections',
-  contentLabel = 'Documentation content',
-  tocLabel = 'On this page',
+  navigationLabel: navigationLabelProp,
+  contentLabel: contentLabelProp,
+  tocLabel: tocLabelProp,
   class: className,
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const navigationLabel = $derived(
+  navigationLabelProp ??
+    messages('protoyard.ui.docs-layout.navigation-label', 'Documentation sections')
+);
+const contentLabel = $derived(
+  contentLabelProp ?? messages('protoyard.ui.docs-layout.content-label', 'Documentation content')
+);
+const tocLabel = $derived(
+  tocLabelProp ?? messages('protoyard.ui.docs-layout.toc-label', 'On this page')
+);
 
 let contentRoot = $state<HTMLElement | undefined>();
 let screenTarget = $state<HTMLDivElement | undefined>();

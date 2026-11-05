@@ -6,6 +6,7 @@ import { createPortal } from '@texuli/core/portal';
 import type { Attachment } from 'svelte/attachments';
 import type { HTMLAttributes } from 'svelte/elements';
 import { Button, IconButton } from 'texuli/button';
+import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 import { getMotionSettings } from 'texuli/motion';
 import { cn } from '../../lib/cn.ts';
@@ -27,13 +28,13 @@ interface OwnProps {
 /** Extra attributes (`data-*`, `aria-*`, `id`, handlers…) land on the region element. */
 type Props = OwnProps & Omit<HTMLAttributes<HTMLElement>, keyof OwnProps | 'popover'>;
 
-let {
-  class: className,
-  label = 'Undo notifications',
-  ref = $bindable(null),
-  style,
-  ...rest
-}: Props = $props();
+let { class: className, label: labelProp, ref = $bindable(null), style, ...rest }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const label = $derived(
+  labelProp ?? messages('protoyard.ui.undo-toaster.label', 'Undo notifications')
+);
 
 const portal = useOverlayPortalTarget();
 // Above every open drawer, so an undo offered from inside one stays visible.

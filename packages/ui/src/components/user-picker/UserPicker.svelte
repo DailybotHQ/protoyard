@@ -3,6 +3,7 @@ import * as PopoverPrimitive from '@texuli/primitives/popover';
 import type { HTMLAttributes } from 'svelte/elements';
 import { cardClass } from 'texuli/card';
 import { cx } from 'texuli/cx';
+import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 import { PopoverContent } from 'texuli/popover';
 import { selectTriggerClass, selectValueClass } from 'texuli/select';
@@ -49,10 +50,10 @@ let {
   onValueChange,
   variant = 'popover',
   searchable = true,
-  placeholder = 'Select a person',
-  searchPlaceholder = 'Search people…',
-  emptyText = 'No one found',
-  label = 'People',
+  placeholder: placeholderProp,
+  searchPlaceholder: searchPlaceholderProp,
+  emptyText: emptyTextProp,
+  label: labelProp,
   disabled = false,
   open = $bindable(false),
   id,
@@ -60,6 +61,19 @@ let {
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const placeholder = $derived(
+  placeholderProp ?? messages('protoyard.ui.user-picker.placeholder', 'Select a person')
+);
+const searchPlaceholder = $derived(
+  searchPlaceholderProp ?? messages('protoyard.ui.user-picker.search-placeholder', 'Search people…')
+);
+const emptyText = $derived(
+  emptyTextProp ?? messages('protoyard.ui.user-picker.empty-text', 'No one found')
+);
+const label = $derived(labelProp ?? messages('protoyard.ui.user-picker.label', 'People'));
 
 const selected = $derived(users.find((user) => user.id === value));
 

@@ -171,6 +171,8 @@ describe('protoyard ds', () => {
     const source = readFileSync(join(dir, 'src/design-system.ts'), 'utf8');
     expect(source).toContain("from '@protoyard/runtime'");
     expect(source).toContain('export const designSystemTheme = defineDesignSystemTheme(compiled);');
+    // UG-48: the compiled design system is exported too (designSystemVars, deckDesignSystems).
+    expect(source).toContain('export const compiled: ShippedDesignSystem = {');
     expect(source).not.toContain('"report"');
     const prototype = readFileSync(join(dir, 'src/prototype.ts'), 'utf8');
     expect(prototype).toContain("import { designSystemTheme } from './design-system.ts';");

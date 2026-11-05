@@ -2,6 +2,7 @@
 import { Composer as TexuliComposer } from '@texuli/chat';
 import type { Snippet } from 'svelte';
 import type { HTMLFormAttributes } from 'svelte/elements';
+import { useMessages } from 'texuli/i18n';
 
 interface OwnProps {
   value?: string;
@@ -28,13 +29,20 @@ let {
   // No fallback: a caller may bind a value that starts undefined (a map entry);
   // a `$bindable('')` would throw (props_invalid_value). Read as ''.
   value = $bindable(),
-  placeholder = 'Write a message…',
-  label = 'Message',
+  placeholder: placeholderProp,
+  label: labelProp,
   actions,
   onSubmit,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const placeholder = $derived(
+  placeholderProp ?? messages('protoyard.ui.composer.placeholder', 'Write a message…')
+);
+const label = $derived(labelProp ?? messages('protoyard.ui.composer.label', 'Message'));
 </script>
 
 <!-- A thin adapter over Texuli's Composer (`@texuli/chat`): Protoyard's `placeholder`, `label` and `actions`. -->

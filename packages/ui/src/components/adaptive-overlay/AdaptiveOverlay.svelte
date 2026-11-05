@@ -66,7 +66,7 @@ let {
   host = null,
   hideTitle = false,
   hideClose = false,
-  closeLabel = 'Close',
+  closeLabel,
   trigger,
   footer,
   children,

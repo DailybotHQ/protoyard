@@ -2,6 +2,7 @@
 import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 import ChevronRight from '@lucide/svelte/icons/chevron-right';
 import type { HTMLAttributes } from 'svelte/elements';
+import { useMessages } from 'texuli/i18n';
 import { LucideIcon } from 'texuli/icons/lucide';
 import {
   paginationItemClass,
@@ -34,12 +35,15 @@ let {
   pageSize = 10,
   siblings = 1,
   onPageChange,
-  label = 'Pagination',
+  label,
   compact = false,
   class: className,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Visible words resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
 </script>
 
 <!--
@@ -65,12 +69,12 @@ let {
       <li class={paginationItemClass()}>
         <TexuliPagination.PreviousButton>
           <LucideIcon icon={ChevronLeft} size="sm" />
-          <span class="hidden sm:inline">Previous</span>
+          <span class="hidden sm:inline">{messages('protoyard.ui.pagination.previous', 'Previous')}</span>
         </TexuliPagination.PreviousButton>
       </li>
       {#if compact}
         <li class={paginationItemClass({ class: 'ui-pagination__status' })} aria-current="page">
-          Page {ctx.page} of {ctx.pageCount}
+          {messages('protoyard.ui.pagination.status', 'Page {page} of {count}', { page: ctx.page, count: ctx.pageCount })}
         </li>
       {:else}
         {#each getPageTokens(ctx.page, ctx.pageCount, siblings) as token (token)}
@@ -93,7 +97,7 @@ let {
       {/if}
       <li class={paginationItemClass()}>
         <TexuliPagination.NextButton>
-          <span class="hidden sm:inline">Next</span>
+          <span class="hidden sm:inline">{messages('protoyard.ui.pagination.next', 'Next')}</span>
           <LucideIcon icon={ChevronRight} size="sm" />
         </TexuliPagination.NextButton>
       </li>

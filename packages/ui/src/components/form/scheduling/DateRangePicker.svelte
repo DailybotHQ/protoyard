@@ -2,6 +2,7 @@
 import type { DateInvalidDetail, DateInvalidReason } from '@texuli/primitives/date-picker';
 import type { HTMLAttributes } from 'svelte/elements';
 import { DateRangePicker as Picker } from 'texuli/date';
+import { useMessages } from 'texuli/i18n';
 import { cn } from '../../../lib/cn.ts';
 import { chainHandlers, composeHandlers } from '../../../lib/handlers.ts';
 import {
@@ -86,10 +87,10 @@ let {
   id = `date-range-${uid}`,
   name,
   disabled = false,
-  label = 'Date range',
-  startLabel = 'Start date',
-  endLabel = 'End date',
-  calendarLabel = 'Choose a date range',
+  label: labelProp,
+  startLabel: startLabelProp,
+  endLabel: endLabelProp,
+  calendarLabel: calendarLabelProp,
   'aria-describedby': describedBy,
   'aria-required': ariaRequired,
   'aria-invalid': ariaInvalid,
@@ -102,6 +103,20 @@ let {
   onkeydown: callerKeyDown,
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const label = $derived(labelProp ?? messages('protoyard.ui.date-range-picker.label', 'Date range'));
+const startLabel = $derived(
+  startLabelProp ?? messages('protoyard.ui.date-range-picker.start-label', 'Start date')
+);
+const endLabel = $derived(
+  endLabelProp ?? messages('protoyard.ui.date-range-picker.end-label', 'End date')
+);
+const calendarLabel = $derived(
+  calendarLabelProp ??
+    messages('protoyard.ui.date-range-picker.calendar-label', 'Choose a date range')
+);
 
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
 

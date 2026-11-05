@@ -21,11 +21,13 @@
 
 /*
  * Texuli's layouts size themselves from --tx-app-height and --tx-safe-*.
- * Declared on the layout host, Texuli's AppShell and its mobile app frame
- * (MobileAppShell; all sit inside a device frame's screen), so they follow
- * the frame's --py-app-height and --py-safe-* (and the page's own safe areas
- * outside a frame).
+ * Declared on :root, so any consumer CSS can read them (the public API for
+ * app height and safe areas), and again on the layout host, Texuli's
+ * AppShell and its mobile app frame (MobileAppShell; all sit inside a device
+ * frame's screen), so inside a frame they follow the frame's --py-app-height
+ * and --py-safe-* (and the page's own safe areas outside a frame).
  */
+:root,
 .tx-app-shell,
 .tx-mobile-frame,
 [data-py-layout-host] {

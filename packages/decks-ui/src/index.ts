@@ -5,3 +5,9 @@
  * `@texuli/slides` (Texuli ADR-009).
  */
 export { type CanvasFit as DeckCanvasFit, fitDeckCanvas } from '@texuli/deck/engine';
+export {
+  type DeckCompiledDesignSystem,
+  type DeckDesignSystems,
+  deckDesignSystems,
+  type PlayerDesignSystems,
+} from './app/design-systems.ts';

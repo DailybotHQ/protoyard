@@ -16,7 +16,7 @@ type Props = Omit<HTMLAttributes<HTMLElement>, 'class' | 'children'> & {
 
 let {
   items,
-  label = 'Primary',
+  label,
   fixed = true,
   class: className,
   ref = $bindable(null),

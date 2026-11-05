@@ -5,6 +5,7 @@ import type { HTMLButtonAttributes } from 'svelte/elements';
 import { Button } from 'texuli/button';
 import { composeHandlers, cx } from 'texuli/cx';
 import { labelClass } from 'texuli/field';
+import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 import { popoverContentClass } from 'texuli/popover';
 import Input from '../../input/Input.svelte';
@@ -50,8 +51,8 @@ let {
   id,
   name,
   label = '',
-  placeholder = 'Choose an emoji',
-  searchPlaceholder = 'Search emoji',
+  placeholder: placeholderProp,
+  searchPlaceholder: searchPlaceholderProp,
   disabled = false,
   readonly = false,
   required = false,
@@ -64,6 +65,15 @@ let {
   onclick: callerClick,
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const placeholder = $derived(
+  placeholderProp ?? messages('protoyard.ui.emoji-picker.placeholder', 'Choose an emoji')
+);
+const searchPlaceholder = $derived(
+  searchPlaceholderProp ?? messages('protoyard.ui.emoji-picker.search-placeholder', 'Search emoji')
+);
 
 // A plain record keeps the spread onto Texuli's Button a finite type.
 const forwarded = $derived(rest as Record<string, unknown>);

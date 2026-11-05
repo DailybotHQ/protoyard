@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { HTMLAttributes } from 'svelte/elements';
 import { Skeleton } from 'texuli/feedback';
+import { useMessages } from 'texuli/i18n';
 import { cn } from '../../lib/cn.ts';
 import Spinner from '../spinner/Spinner.svelte';
 
@@ -14,13 +15,17 @@ type Props = HTMLAttributes<HTMLDivElement> & {
 };
 
 let {
-  label = 'Loading…',
+  label: labelProp,
   variant = 'spinner',
   rows = 3,
   class: className,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const label = $derived(labelProp ?? messages('protoyard.ui.loading-state.label', 'Loading…'));
 </script>
 
 <div bind:this={ref} role="status" aria-live="polite" class={cn('w-full', className)} {...rest}>

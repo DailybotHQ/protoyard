@@ -6,6 +6,7 @@ import X from '@lucide/svelte/icons/x';
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import { Button } from 'texuli/button';
+import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 import { cn } from '../../lib/cn.ts';
 import type { WindowChromeState, WindowChromeVariant } from './types.ts';
@@ -33,7 +34,7 @@ type Props = Omit<HTMLAttributes<HTMLDivElement>, 'title' | 'class' | 'children'
 };
 
 let {
-  title = 'App',
+  title: titleProp,
   variant = 'mac-like',
   state = $bindable('open'),
   maximized = $bindable(false),
@@ -46,6 +47,10 @@ let {
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const title = $derived(titleProp ?? messages('protoyard.ui.window-chrome.title', 'App'));
 
 const label = $derived(title.trim() || appLabel || 'App');
 

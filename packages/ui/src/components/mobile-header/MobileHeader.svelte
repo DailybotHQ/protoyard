@@ -28,7 +28,7 @@ let {
   subtitle,
   backHref,
   onBack,
-  backLabel = 'Back',
+  backLabel,
   actions,
   sticky = true,
   class: className,

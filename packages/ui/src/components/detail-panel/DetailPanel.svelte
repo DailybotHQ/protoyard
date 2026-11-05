@@ -1,6 +1,7 @@
 <script lang="ts">
 import * as DialogPrimitive from '@texuli/primitives/dialog';
 import type { ComponentProps, Snippet } from 'svelte';
+import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 import { DetailPanel as Panel } from 'texuli/sheet';
 import { refAttachment } from '../../lib/ref.ts';
@@ -36,13 +37,19 @@ let {
   headerActions,
   footer,
   children,
-  closeLabel = 'Close panel',
+  closeLabel: closeLabelProp,
   onOpenChange,
   stack = overlayStack,
   class: className,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const closeLabel = $derived(
+  closeLabelProp ?? messages('protoyard.ui.detail-panel.close-label', 'Close panel')
+);
 
 const portal = useOverlayPortalTarget();
 // svelte-ignore state_referenced_locally

@@ -805,6 +805,14 @@ print pages.
   remote logo is refused with a note.
 - **Mode.** `DeckApp` takes `mode` (`light` by default, for stable exports) or
   `dark`.
+- **Words and design systems.** `DeckApp` takes `messages`, partial
+  overrides of the stage's words (`DeckStageMessages` from
+  `@texuli/slides/stage-core`, for example `stage.closeOverview`), and
+  `designSystems`, a resolver made with `deckDesignSystems(compiled)` from the
+  module `protoyard ds use` writes. With one, the stage paints the compiled
+  design system and DeckApp does not load the deck's theme (the print view
+  keeps the deck theme). DeckApp's own words (the print and debug status lines)
+  stay English.
 
 ### Deck Studio
 

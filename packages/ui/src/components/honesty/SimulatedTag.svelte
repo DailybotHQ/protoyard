@@ -3,6 +3,7 @@ import Sparkles from '@lucide/svelte/icons/sparkles';
 import type { HTMLAttributes } from 'svelte/elements';
 import { Badge } from 'texuli/badge';
 import { cx } from 'texuli/cx';
+import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 
 /**
@@ -19,12 +20,23 @@ type Props = Omit<HTMLAttributes<HTMLSpanElement>, 'title' | 'class' | 'children
 };
 
 let {
-  label = 'Simulated',
-  title = 'This step is simulated. It is not real security, billing or AI.',
+  label: labelProp,
+  title: titleProp,
   class: className,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const label = $derived(labelProp ?? messages('protoyard.ui.simulated-tag.label', 'Simulated'));
+const title = $derived(
+  titleProp ??
+    messages(
+      'protoyard.ui.simulated-tag.title',
+      'This step is simulated. It is not real security, billing or AI.'
+    )
+);
 </script>
 
 <!-- Protoyard's honesty label (AGENTS.md rule 10) on Texuli's Badge. -->

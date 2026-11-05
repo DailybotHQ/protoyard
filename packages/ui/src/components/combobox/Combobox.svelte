@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { ComponentProps } from 'svelte';
 import { Combobox as TexuliCombobox } from 'texuli/combobox';
+import { useMessages } from 'texuli/i18n';
 import { refAttachment } from '../../lib/ref.ts';
 import type { SelectOption } from '../select/types.ts';
 
@@ -28,8 +29,8 @@ let {
   // a `$bindable('')` would throw (props_invalid_value). Read as ''.
   value = $bindable(),
   open = $bindable(false),
-  placeholder = 'Search…',
-  emptyText = 'No results',
+  placeholder: placeholderProp,
+  emptyText: emptyTextProp,
   disabled = false,
   required = false,
   name,
@@ -40,6 +41,15 @@ let {
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const placeholder = $derived(
+  placeholderProp ?? messages('protoyard.ui.combobox.placeholder', 'Search…')
+);
+const emptyText = $derived(
+  emptyTextProp ?? messages('protoyard.ui.combobox.empty-text', 'No results')
+);
 
 const selected = $derived(items.find((item) => item.value === value));
 // The input's text: the search while the list is open, the chosen label otherwise.
@@ -77,7 +87,7 @@ const matches = (item: SelectOption, query: string): boolean =>
       {placeholder}
       {...rest}
     />
-    <TexuliCombobox.Trigger aria-label="Show options" />
+    <TexuliCombobox.Trigger aria-label={messages('protoyard.ui.combobox.show-options', 'Show options')} />
   </TexuliCombobox.Field>
   <!-- The list opens in the top layer at the field's width; no portal is needed. -->
   <TexuliCombobox.Content sideOffset={4} class={contentClass}>
