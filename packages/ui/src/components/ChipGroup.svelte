@@ -26,6 +26,11 @@ interface OwnProps {
   hideLabel?: boolean;
   disabled?: boolean;
   size?: 'sm' | 'md';
+  /**
+   * Chip look, forwarded to Texuli's `ToggleGroup`: `default` (filled when
+   * selected) or `outline` (separate bordered chips). Default `default`.
+   */
+  variant?: 'default' | 'outline';
   class?: string;
   onchange?: (value: string[]) => void;
   /** The rendered root element (bindable). */
@@ -47,6 +52,7 @@ let {
   hideLabel = false,
   disabled = false,
   size = 'md',
+  variant = 'default',
   class: className,
   onchange,
   ref = $bindable(null),
@@ -78,6 +84,7 @@ function commit(next: string[]): void {
       onValueChange={(next: string | string[]) => commit(typeof next === 'string' && next ? [next] : [])}
       {disabled}
       {size}
+      {variant}
       wrap
       aria-labelledby={groupLabelledby}
     >
@@ -93,6 +100,7 @@ function commit(next: string[]): void {
       onValueChange={(next: string | string[]) => commit(Array.isArray(next) ? next : [])}
       {disabled}
       {size}
+      {variant}
       wrap
       aria-labelledby={groupLabelledby}
     >
