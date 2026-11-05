@@ -20,6 +20,14 @@
     ".": {
       "types": "./index.d.ts",
       "default": "./index.js"
+    },
+    "./capture": {
+      "types": "./capture.d.ts",
+      "default": "./capture.js"
+    },
+    "./static-server": {
+      "types": "./static-server.d.ts",
+      "default": "./static-server.js"
     }
   },
   "bin": {
@@ -30,7 +38,11 @@
     "bin",
     "index.js",
     "index.d.ts",
-    "README.md"
+    "README.md",
+    "capture.js",
+    "capture.d.ts",
+    "static-server.js",
+    "static-server.d.ts"
   ],
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

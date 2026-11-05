@@ -23,6 +23,7 @@ import { CliError } from '../lib/output.ts';
 import { hasControlCharacter, isInside, workspaceLayout } from '../lib/paths.ts';
 import { resolvePackageBin, run } from '../lib/process.ts';
 import { CLI_VERSION, resolveTarget } from '../lib/workspace.ts';
+import { workspaceFile } from '../lib/workspace-file.ts';
 import { specForPrototype } from './spec.ts';
 
 /**
@@ -70,25 +71,6 @@ function choice<T extends string>(
 
 function relativeTo(root: string, file: string): string {
   return file.startsWith(`${root}${sep}`) ? file.slice(root.length + 1) : basename(file);
-}
-
-/**
- * A path inside the workspace, resolved through every symlink (parents
- * included, as the other commands do with `canonicalPath`/`isInside`), never a
- * symlink itself, and free of control characters.
- */
-function workspaceFile(root: string, file: string): string {
-  if (hasControlCharacter(file)) {
-    throw new CliError('unsafe_path', 'The path contains a control character.');
-  }
-  const absolute = resolve(root, file);
-  if (!isInside(root, absolute)) {
-    throw new CliError('unsafe_path', `${file} is outside the workspace.`);
-  }
-  if (existsSync(absolute) && lstatSync(absolute).isSymbolicLink()) {
-    throw new CliError('unsafe_path', `Refusing to use the symlink ${file}.`);
-  }
-  return absolute;
 }
 
 function readDocument(root: string, file: string): unknown {

@@ -177,8 +177,8 @@ These examples describe the npm package interface after release. In this reposit
 
 | Package | Role and installation path | Export paths |
 | --- | --- | --- |
-| `protoyard` | Short-name CLI wrapper; install it to get the `protoyard` command | `.` |
-| `@protoyard/cli` | CLI implementation and executable | `.` |
+| `protoyard` | Short-name CLI wrapper; install it to get the `protoyard` command | `.`, `./capture` (deterministic PNG capture of a running prototype: `capture`, `withReadyPage`, `launchChromium`), `./static-server` (`serveStatic`, the `preview` server, for e2e tests) |
+| `@protoyard/cli` | CLI implementation and executable | `.`, `./capture`, `./static-server` |
 | `create-protoyard` | Workspace scaffolder, invoked with `npm create protoyard` or `pnpm create protoyard` | `.` |
 | `@protoyard/player` | Prebuilt player app package; its npm API is only for embedding a framed player client | `./embed` |
 | `@protoyard/gallery` | Static gallery site package, not an app SDK | No module exports |

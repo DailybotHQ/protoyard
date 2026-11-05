@@ -4,6 +4,7 @@ import { artifactListCommand, artifactRecordCommand } from './commands/artifact.
 import { blueprintNewCommand, blueprintValidateCommand } from './commands/blueprint.ts';
 import { budgetCommand } from './commands/budget.ts';
 import { buildCommand } from './commands/build.ts';
+import { checkTexuliCommand } from './commands/check.ts';
 import { ciCheckCommand, ciInitCommand } from './commands/ci.ts';
 import {
   commentsExportCommand,
@@ -42,6 +43,7 @@ import { controlServerCommand, galleryCommand } from './commands/serve.ts';
 import { showcaseCommand } from './commands/showcase.ts';
 import { snapshotListCommand } from './commands/snapshot.ts';
 import { specCommand } from './commands/spec.ts';
+import { sweepCommand } from './commands/sweep.ts';
 import {
   themeCreateCommand,
   themeExportCommand,
@@ -105,6 +107,27 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .option('--offline', 'skip provider authentication checks (no network)')
     .action(def('doctor', doctorCommand));
+
+  const check = program
+    .command('check')
+    .description('workspace checks that consumers can run (Texuli adoption)');
+  check
+    .command('texuli')
+    .description(
+      'check that prototypes, templates and packages build their UI from Texuli (adoption rules)'
+    )
+    .option('--scope <path...>', 'only these paths (repeatable)')
+    .option('--strict', 'fail on every violation, ignoring pending lists')
+    .action(def('check texuli', checkTexuliCommand));
+
+  program
+    .command('sweep')
+    .description(
+      'visual sweep of a built prototype: light and dark, desktop and phone PNGs (needs Playwright)'
+    )
+    .argument('<slug>', 'prototype slug')
+    .option('--out <dir>', 'output folder (default tmp/sweep/<slug>)')
+    .action(def('sweep', sweepCommand));
 
   program
     .command('list')

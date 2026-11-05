@@ -86,8 +86,10 @@ additions were all additive: `ref` and rest props everywhere, `CommandPalette`
 
 ## Texuli first: the adoption check
 
-Run `pnpm exec tsx scripts/check-texuli-adoption.ts` to enforce the nine
-workspace rules. `pnpm test` (which CI runs) includes
+Run `pnpm exec tsx scripts/check-texuli-adoption.ts` to enforce the
+workspace rules. A workspace that installs Protoyard from npm runs the same
+rules with `protoyard check texuli [--scope <path>…]` (the core lives in
+`packages/cli/src/lib/texuli-adoption.ts`). `pnpm test` (which CI runs) includes
 `tests/adoption/texuli-adoption.test.ts`, which runs this default ratchet over
 the whole repository. Scoped strict checks (`--scope <path> --strict`, with
 `--allow-gaps` where a pending entry waits on an open gap) are not part of CI;
