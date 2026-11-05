@@ -17,7 +17,7 @@ interface Props {
 let { billing: billingProp, upgradeHref = '#/billing/plans', refreshKey = 0 }: Props = $props();
 
 const saas = getSaas();
-const billing = $derived(billingProp ?? saas.billing);
+const billing = $derived(billingProp ?? saas.ports.billing ?? saas.billing);
 
 let trialEndsAt = $state<string | null>(null);
 let planName = $state<string | null>(null);
@@ -27,7 +27,7 @@ let loading = $state(true);
 
 const daysLeft = $derived.by(() => {
   if (!trialEndsAt) return null;
-  return daysUntil(trialEndsAt, saas.runtime.clock.nowMs());
+  return daysUntil(trialEndsAt, saas.ports.now());
 });
 
 const visible = $derived(status === 'trialing' && daysLeft !== null);

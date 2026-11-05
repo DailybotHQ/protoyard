@@ -4,7 +4,7 @@ import { AdaptiveOverlay, Button, SimulatedTag } from '@protoyard/ui';
 import { onMount } from 'svelte';
 import { getSaas } from '../context.ts';
 
-const { runtime, config, accountGate } = getSaas();
+const { ports, config, accountGate } = getSaas();
 let request = $derived(accountGate.current);
 
 function createAccount() {
@@ -18,7 +18,7 @@ function createAccount() {
 onMount(() => {
   const dismiss = () => accountGate.dismissWhenScreenChanges();
   window.addEventListener('hashchange', dismiss);
-  const unsubscribe = runtime.session.subscribe((principal) => {
+  const unsubscribe = ports.session.subscribe((principal) => {
     accountGate.onSessionChange(Boolean(principal));
   });
   return () => {

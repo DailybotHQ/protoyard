@@ -18,11 +18,13 @@ export {
   getSaas,
   hasSaas,
   type ProvideSaasOptions,
+  type ProvideSaasPortsOptions,
   provideSaas,
   type SaasContext,
 } from './context.ts';
 export {
   type GuardPathOptions,
+  type GuardPrincipal,
   requireAuth,
   requireCapability,
   requireGuest,
@@ -30,6 +32,18 @@ export {
   type SaasSessionLike,
 } from './guards.ts';
 export { daysUntil, formatCents } from './lib/money.ts';
+export {
+  type BillingPort,
+  type OAuthPort,
+  type SaasPorts,
+  type SaasPortsFromRuntimeOptions,
+  type SessionPort,
+  type SessionPrincipal,
+  saasPortsFromRuntime,
+  sessionPortFromRuntime,
+  type WorkspaceEntry,
+  type WorkspacesPort,
+} from './ports.ts';
 export {
   requireSaasApp,
   resolveEagerSaasScreens,

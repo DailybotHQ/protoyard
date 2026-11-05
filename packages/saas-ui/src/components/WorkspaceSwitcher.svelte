@@ -1,8 +1,7 @@
 <script lang="ts">
 import { ChevronsUpDown } from '@lucide/svelte';
 import type { PrototypeRuntime } from '@protoyard/core';
-import { usePrincipal } from '@protoyard/renderer-svelte';
-import { createWorkspaces, type WorkspacesRuntime, type WorkspacesService } from '@protoyard/saas';
+import { createWorkspaces, type WorkspacesRuntime } from '@protoyard/saas';
 import {
   Button,
   Dialog,
@@ -11,13 +10,21 @@ import {
   FormField,
   Input,
 } from '@protoyard/ui';
+import { untrack } from 'svelte';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { getSaas, hasSaas } from '../context.ts';
+import { type SessionPort, sessionPortFromRuntime, type WorkspacesPort } from '../ports.ts';
 
 interface Props {
-  /** Prototype runtime (must expose `identity` for create). */
-  runtime: PrototypeRuntime;
-  /** Optional pre-built workspaces service (tests). */
-  workspaces?: WorkspacesService;
+  /**
+   * Prototype runtime (must expose `identity` for create). Optional with
+   * `session` and `workspaces` ports, or inside `provideSaas` (ADR-046).
+   */
+  runtime?: PrototypeRuntime;
+  /** Workspace operations: a pre-built service or a product's own port. */
+  workspaces?: WorkspacesPort;
+  /** The session to follow; defaults to the runtime's, else the kit context's. */
+  session?: SessionPort;
   /** Called after a successful switch. */
   onSwitched?: (organizationId: string) => void;
   /** Called after a workspace is created and activated. */
@@ -30,18 +37,45 @@ interface Props {
 let {
   runtime,
   workspaces: workspacesProp,
+  session: sessionProp,
   onSwitched,
   onCreated,
   class: className,
   label = 'Workspace',
 }: Props = $props();
 
-const workspaces = $derived(workspacesProp ?? createWorkspaces(runtime as WorkspacesRuntime));
-const principal = usePrincipal(runtime);
+const kitPorts = hasSaas() ? getSaas().ports : null;
+const workspaces = $derived.by((): WorkspacesPort => {
+  const port =
+    workspacesProp ??
+    (runtime ? createWorkspaces(runtime as WorkspacesRuntime) : kitPorts?.workspaces);
+  if (!port) {
+    throw new Error(
+      '[protoyard/saas-ui] WorkspaceSwitcher needs `runtime`, `workspaces` or provideSaas.'
+    );
+  }
+  return port;
+});
+const session = $derived.by((): SessionPort => {
+  const port =
+    sessionProp ?? (runtime ? sessionPortFromRuntime(runtime.session) : kitPorts?.session);
+  if (!port) {
+    throw new Error(
+      '[protoyard/saas-ui] WorkspaceSwitcher needs `runtime`, `session` or provideSaas.'
+    );
+  }
+  return port;
+});
+let principal = $state(untrack(() => session.principal()));
+$effect(() => {
+  const port = session;
+  principal = port.principal();
+  return port.subscribe((next) => (principal = next));
+});
 
 /** Re-read memberships whenever the session principal changes. */
 const members = $derived.by(() => {
-  void principal.current;
+  void principal;
   try {
     return workspaces.list();
   } catch {
@@ -49,7 +83,7 @@ const members = $derived.by(() => {
   }
 });
 
-const currentOrg = $derived(principal.current?.organization ?? null);
+const currentOrg = $derived(principal?.organization ?? null);
 const currentId = $derived(currentOrg?.id ?? null);
 const triggerLabel = $derived(currentOrg?.name ?? 'Select workspace');
 
@@ -140,7 +174,7 @@ async function createWorkspace(): Promise<void> {
 }
 </script>
 
-{#if principal.current}
+{#if principal}
   <div class={className} data-testid="workspace-switcher">
     <DropdownMenu items={menuItems} bind:open={menuOpen} align="start" class="min-w-56">
       {#snippet trigger({ props })}

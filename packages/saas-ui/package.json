@@ -16,7 +16,11 @@
       "svelte": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./ports": {
+      "types": "./src/ports.ts",
+      "default": "./src/ports.ts"
+    }
   },
   "scripts": {
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
@@ -60,6 +64,10 @@
         "types": "./dist/styles.css.d.ts",
         "svelte": "./dist/styles.css",
         "default": "./dist/styles.css"
+      },
+      "./ports": {
+        "types": "./dist/ports.d.ts",
+        "default": "./dist/ports.js"
       }
     },
     "files": [
