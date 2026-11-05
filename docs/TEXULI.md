@@ -170,7 +170,16 @@ rules with `protoyard check texuli [--scope <path>…]` (the core lives in
 `tests/adoption/texuli-adoption.test.ts`, which runs this default ratchet over
 the whole repository. Scoped strict checks (`--scope <path> --strict`, with
 `--allow-gaps` where a pending entry waits on an open gap) are not part of CI;
-run them by hand for the surface a task migrates.
+run them by hand for the surface a task migrates. Tools and tests can call the
+same rules from `@protoyard/cli/adoption`: `scanSource(file, source)` returns
+the violations in one file and `checkAdoption(options)` scans a workspace.
+
+Renderer geometry stays under `--py-*`, and the `py-token` rule flags any read
+of it. Consumers read the `--tx-*` contract instead: `--tx-safe-top`,
+`--tx-safe-right`, `--tx-safe-bottom`, `--tx-safe-left` and `--tx-app-height`
+for safe areas and the app height. A progress bar's fill color can be set
+today with `--tx-progress-fill` on the bar or an ancestor, while tone and
+track tokens wait on Texuli (UG-43).
 
 | Rule | Prevents | Required direction |
 | --- | --- | --- |
