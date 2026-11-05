@@ -839,7 +839,9 @@ notes). Import its palette from design tokens with `theme import`, then copy a
 kit's component tree into another prototype with
 `pnpm protoyard kit sync <kit> <prototype>`. It records SHA-256 hashes of the
 copied files, and `--check` fails when the source, the copies or the manifest
-drift.
+drift. A kit with brand files or icons elsewhere syncs each folder with
+`--from <dir>`, a real folder inside the kit's `src/` or `public/`, copied to the
+same place in the prototype (`--from public/icons` → `public/icons/<kit>`).
 
 ## Theme Studio
 

@@ -11,7 +11,7 @@ import {
 } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import type { CommandResult, Handler } from '../lib/command.ts';
-import { flag } from '../lib/command.ts';
+import { flag, opt } from '../lib/command.ts';
 import { CliError } from '../lib/output.ts';
 import { resolveTarget } from '../lib/workspace.ts';
 
@@ -38,9 +38,16 @@ export const kitSyncCommand: Handler = async (ctx, args, options): Promise<Comma
 
   const kit = await resolveTarget(ctx, kitSlug, 'runnable');
   const prototype = await resolveTarget(ctx, prototypeSlug, 'prototype');
-  const sourceDir = resolveComponentSource(kit.dir);
+  const from = opt(options, 'from');
+  const sourceDir = from ? resolveFromSource(kit.dir, from) : resolveComponentSource(kit.dir);
   assertNoSymlinkPath(kit.dir, sourceDir);
-  const targetDir = join(prototype.dir, 'src', 'components', kit.entry.slug);
+  // The copy mirrors the source location: src/components/<kit> by default,
+  // <from>/<kit> with --from (src/brand → src/brand/<kit>, public/icons → public/icons/<kit>).
+  const targetDir = join(
+    prototype.dir,
+    ...(from ? relative(kit.dir, sourceDir).split(sep) : ['src', 'components']),
+    kit.entry.slug
+  );
   assertInside(prototype.dir, targetDir);
   assertNoSymlinkPath(prototype.dir, targetDir);
 
@@ -194,6 +201,32 @@ export const kitSyncCommand: Handler = async (ctx, args, options): Promise<Comma
     },
   };
 };
+
+/**
+ * A `--from` folder: a real directory inside the kit's `src/` or `public/`,
+ * never the kit root, an absolute path or a path that leaves the kit.
+ */
+function resolveFromSource(kitDir: string, from: string): string {
+  const normalized = from.replaceAll('\\', '/').replace(/\/+$/, '');
+  const path = resolve(kitDir, normalized);
+  const inside = relative(kitDir, path).split(sep);
+  const top = inside[0];
+  if (
+    normalized.startsWith('/') ||
+    inside.includes('..') ||
+    (top !== 'src' && top !== 'public') ||
+    inside.length < 2
+  ) {
+    throw new CliError(
+      'unsafe_path',
+      `--from must be a folder inside the kit's src/ or public/ (got "${from}").`
+    );
+  }
+  if (!existsSync(path) || !lstatSync(path).isDirectory()) {
+    throw new CliError('not_found', `Kit folder ${normalized} does not exist.`);
+  }
+  return path;
+}
 
 function resolveComponentSource(kitDir: string): string {
   for (const candidate of ['src/components', 'src/demos/components']) {

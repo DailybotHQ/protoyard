@@ -58,4 +58,32 @@ describe('protoyard kit sync', () => {
       'escapes the synced component tree'
     );
   });
+
+  it('syncs a kit folder outside src/components with --from (Corag UG-19)', async () => {
+    ws = createWorkspace();
+    addPrototype(ws, 'brand-kit');
+    addPrototype(ws, 'consumer');
+    ws.write('prototypes/brand-kit/src/components/Badge.svelte', '<span>Kit</span>\n');
+    ws.write(
+      'prototypes/brand-kit/public/icons/logo.svg',
+      '<svg xmlns="http://www.w3.org/2000/svg"></svg>\n'
+    );
+    const args = ['--root', ws.root, '--json', 'kit', 'sync', 'brand-kit', 'consumer'];
+    const synced = await cli([...args, '--from', 'public/icons']);
+    expect(synced.code).toBe(0);
+    expect(synced.json<{ data: { target: string } }>().data.target).toBe(
+      'prototypes/consumer/public/icons/brand-kit'
+    );
+    expect(readdirSync(join(ws.root, 'prototypes/consumer/public/icons/brand-kit'))).toContain(
+      'logo.svg'
+    );
+    const check = await cli([...args, '--from', 'public/icons', '--check']);
+    expect(check.code).toBe(0);
+
+    for (const from of ['../consumer/src', 'package.json', 'src', '/etc']) {
+      const refused = await cli([...args, '--from', from]);
+      expect(refused.code, from).not.toBe(0);
+      expect(refused.json<{ error: { code: string } }>().error.code, from).toBe('unsafe_path');
+    }
+  });
 });
