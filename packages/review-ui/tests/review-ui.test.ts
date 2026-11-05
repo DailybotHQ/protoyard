@@ -4,10 +4,17 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { type ReviewComment, type ReviewContext } from '@protoyard/core/review';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createReviewOverlay, type ReviewOverlayOptions } from '../src/overlay/index.ts';
 import ReviewPanel from '../src/panel/ReviewPanel.svelte';
 import ReviewThread from '../src/thread/ReviewThread.svelte';
+
+// CommentThread (inside ReviewThread) loads the Markdown editor lazily in
+// onMount. Load it once up front, so a test that ends first never leaves that
+// import to resolve after the environment is torn down (a flaky CI error).
+beforeAll(async () => {
+  await import('@protoyard/views-ui/editor');
+});
 
 afterEach(() => {
   cleanup();
@@ -110,7 +117,10 @@ describe('review pin thread', () => {
     );
     rejectSend(new Error('Offline'));
     expect((await screen.findByRole('alert')).textContent).toContain('Offline');
-    expect(field.value).toBe('Please check this again.');
+    // Query again: once the lazy Markdown editor loads it replaces the plain
+    // field, so the first element can be detached.
+    const restored = screen.getByLabelText('Reply to Alex Reviewer') as HTMLTextAreaElement;
+    expect(restored.value).toBe('Please check this again.');
   });
 });
 
