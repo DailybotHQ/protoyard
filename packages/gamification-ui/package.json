@@ -27,7 +27,7 @@
     "@lucide/svelte": "^1.64.0",
     "@protoyard/gamification": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "texuli": "0.13.1"
+    "texuli": "0.14.0"
   },
   "devDependencies": {
     "svelte": "^5.57.3"
