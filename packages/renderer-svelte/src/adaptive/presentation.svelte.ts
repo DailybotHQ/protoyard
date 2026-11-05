@@ -18,6 +18,11 @@ export interface AdaptivePresentationOptions {
   mapping?: Record<PresentationView, { shell: ResolvedShell; viewport: ViewportPreset }>;
   /** Width used before an observed container reports its first measurement. */
   initialWidth?: number;
+  /**
+   * Extra link values read as a view, e.g. `{ movil: 'phone', escritorio: 'desktop' }`
+   * for `?vista=escritorio`. `phone` and `desktop` always work.
+   */
+  values?: Readonly<Record<string, PresentationView>>;
 }
 
 export interface AdaptivePresentationStore {
@@ -45,15 +50,20 @@ const DEFAULT_MAPPING: Record<
 const DEFAULT_QUERY_KEY = 'view';
 const DEFAULT_DESKTOP_MIN_WIDTH = 1024;
 
-function viewValue(value: string | null): PresentationView | null {
+function canonicalView(value: string): PresentationView | null {
   return value === 'phone' || value === 'desktop' ? value : null;
 }
 
 /** Reads a view override from `?view=` or a query attached to a hash route. */
 export function parsePresentationView(
   href: string,
-  queryKey = DEFAULT_QUERY_KEY
+  queryKey = DEFAULT_QUERY_KEY,
+  values: Readonly<Record<string, PresentationView>> = {}
 ): PresentationView | null {
+  const viewValue = (value: string | null): PresentationView | null =>
+    value === null
+      ? null
+      : (canonicalView(value) ?? (Object.hasOwn(values, value) ? (values[value] ?? null) : null));
   try {
     const url = new URL(href, 'http://protoyard.example');
     const hashQuery = url.hash.includes('?')
@@ -162,7 +172,7 @@ export function createAdaptivePresentation(
 
   const view = $derived(
     resolvePresentationView({
-      link: parsePresentationView(href, queryKey),
+      link: parsePresentationView(href, queryKey, options.values),
       phoneFrame,
       preference,
       width,
@@ -228,7 +238,10 @@ export function createAdaptivePresentation(
     preference = next;
     writePreference(storage, storageKey, next);
 
-    if (typeof location !== 'undefined' && parsePresentationView(location.href, queryKey)) {
+    if (
+      typeof location !== 'undefined' &&
+      parsePresentationView(location.href, queryKey, options.values)
+    ) {
       const nextUrl = presentationUrlWithoutOverride(location.href, queryKey);
       history.replaceState(history.state, '', nextUrl);
       href = location.href;

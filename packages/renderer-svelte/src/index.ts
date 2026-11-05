@@ -1,3 +1,4 @@
+export { default as PresentationToggle } from './adaptive/PresentationToggle.svelte';
 export {
   type AdaptivePresentationOptions,
   type AdaptivePresentationStore,
