@@ -65,31 +65,74 @@ const intersects = (a: Rect, b: Rect) =>
   a.top < b.top + b.height &&
   b.top < a.top + a.height;
 
+/** At most this many distinct points are probed per placement (Dailybot G-037). */
+export const FLOATING_PROBE_BUDGET = 240;
+
+/**
+ * Wraps a hit test for one placement: a point is probed once (rounded to a
+ * 4 px grid, so overlapping candidate spots share their samples), and after
+ * `budget` distinct probes it reports `exhausted` instead of probing more.
+ * `elementsFromPoint` walks the whole DOM, so on a page of 15,000+ elements
+ * the uncached scan took seconds.
+ */
+export function cachedHit(
+  hit: (x: number, y: number) => Element | null,
+  budget = FLOATING_PROBE_BUDGET
+): {
+  hit: (x: number, y: number) => Element | null;
+  exhausted: () => boolean;
+  probes: () => number;
+} {
+  const cache = new Map<string, Element | null>();
+  let over = false;
+  return {
+    hit(x, y) {
+      const key = `${Math.round(x / 4)},${Math.round(y / 4)}`;
+      if (cache.has(key)) return cache.get(key) ?? null;
+      if (cache.size >= budget) {
+        over = true;
+        return null;
+      }
+      const el = hit(x, y);
+      cache.set(key, el);
+      return el;
+    },
+    exhausted: () => over,
+    probes: () => cache.size,
+  };
+}
+
 /**
  * The first spot that covers no control, no text and none of `avoid` (the
  * badge, bottom nav, …), else the cheapest one. Covering something in `avoid`
  * costs more than any control, so floating chrome only ever sits on those
- * regions when the window has no other room.
+ * regions when the window has no other room. Probes are cached and capped
+ * (`cachedHit`): the corners come first, and once the budget is spent the
+ * cheapest spot seen so far wins.
  */
 export function pickFloatingSpot(
   container: Rect,
   size: { width: number; height: number },
   hit: (x: number, y: number) => Element | null,
-  avoid: readonly Rect[] = []
+  avoid: readonly Rect[] = [],
+  budget = FLOATING_PROBE_BUDGET
 ): Rect {
+  const probe = cachedHit(hit, budget);
   let best: Rect | undefined;
   let bestCost = Number.POSITIVE_INFINITY;
   for (const spot of floatingSpots(container, size)) {
     const cost =
-      spotCost(spot, hit, 8) +
+      spotCost(spot, probe.hit, 8) +
       avoid.filter((rect) => intersects(spot, rect)).length * CONTROL_COST * 100;
+    // A spot scored after the budget ran out saw unprobed points as empty: never trust it.
+    if (probe.exhausted()) break;
     if (cost === 0) return spot;
     if (cost < bestCost) {
       best = spot;
       bestCost = cost;
     }
   }
-  return best as Rect;
+  return best ?? (floatingSpots(container, size)[0] as Rect);
 }
 
 /** Visible client area used for placement (visual viewport when available). */
@@ -354,9 +397,16 @@ export function placeFloating(
 
   const idle = (fn: () => void) =>
     typeof requestIdleCallback === 'function' ? requestIdleCallback(fn, { timeout: 1000 }) : fn();
+  // A busy app mutates its DOM constantly; re-place at most every 500 ms.
+  let lastRun = 0;
+  const run = () => {
+    lastRun = Date.now();
+    place();
+  };
   const schedule = () => {
     clearTimeout(timer);
-    timer = setTimeout(() => idle(place), 150);
+    const wait = Math.max(150, 500 - (Date.now() - lastRun));
+    timer = setTimeout(() => idle(run), wait);
   };
 
   // Start with a safe fallback, then place synchronously so a fast click cannot
