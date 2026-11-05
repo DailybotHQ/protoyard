@@ -1,5 +1,16 @@
 # @protoyard/blueprint
 
+## 1.2.3
+
+### Patch Changes
+
+- @protoyard/blocks@1.2.3
+  - @protoyard/core@1.2.3
+  - @protoyard/decks@1.2.3
+  - @protoyard/pages@1.2.3
+  - @protoyard/scenarios@1.2.3
+  - @protoyard/themes@1.2.3
+
 ## 1.2.2
 
 ### Patch Changes

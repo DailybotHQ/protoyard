@@ -15,6 +15,7 @@ import {
 import { can, liveQuery } from '@protoyard/renderer-svelte';
 import { ErrorState, LoadingState } from '@protoyard/ui';
 import { untrack } from 'svelte';
+import { useMessages } from 'texuli/i18n';
 import { setFormServices } from '../form/context.ts';
 import DocHost from './DocHost.svelte';
 import DocTools from './DocTools.svelte';
@@ -140,6 +141,9 @@ async function resetEdits(): Promise<void> {
 const errorMessage = $derived(
   error instanceof Error ? error.message : typeof error === 'string' ? error : null
 );
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
 </script>
 
 <div class={className} data-py-doc-app data-doc-id={doc.id}>
@@ -147,10 +151,10 @@ const errorMessage = $derived(
     <LoadingState label="Loading the document" class="py-16" />
   {:else if errorMessage}
     <ErrorState
-      title="The document could not be loaded"
+      title={messages('protoyard.doc.load-failed', 'The document could not be loaded')}
       message={errorMessage}
       onRetry={onRetry}
-      retryLabel="Try again"
+      retryLabel={messages('protoyard.doc.try-again', 'Try again')}
     />
   {:else if reading}
     <LoadingState label="Loading the document" class="py-16" />
@@ -161,12 +165,12 @@ const errorMessage = $derived(
       <DocEditor doc={current} onApply={applyEdits} onCancel={() => (editing = false)} />
     {:catch}
       <ErrorState
-        title="The editor could not be loaded"
-        message="Check the connection and try again."
+        title={messages('protoyard.doc.editor-failed', 'The editor could not be loaded')}
+        message={messages('protoyard.doc.editor-failed-hint', 'Check the connection and try again.')}
         onRetry={() => {
           editing = false;
         }}
-        retryLabel="Back to reading"
+        retryLabel={messages('protoyard.doc.back-to-reading', 'Back to reading')}
       />
     {/await}
   {:else}
@@ -185,24 +189,24 @@ const errorMessage = $derived(
       <div class="mx-auto max-w-3xl px-4 pt-3" data-py-doc-saved-notice>
         {#await import('./DocNotice.svelte') then { default: DocNotice }}
           {#if resetFailure}
-            <DocNotice tone="error" title="The edits could not be reset" text={resetFailure} />
+            <DocNotice tone="error" title={messages('protoyard.doc.reset-failed', 'The edits could not be reset')} text={resetFailure} />
           {:else if loadFailed}
             <DocNotice
               tone="warning"
-              title="Saved edits could not be loaded"
-              text="The doc shows its original text. Reload to try again."
+              title={messages('protoyard.doc.edits-load-failed', 'Saved edits could not be loaded')}
+              text={messages('protoyard.doc.edits-load-failed-hint', 'The doc shows its original text. Reload to try again.')}
             />
           {:else if unusable?.status === 'stale'}
             <DocNotice
               tone="warning"
-              title="Saved edits are for an earlier version"
-              text="This doc changed since its edits were saved, so they are not shown. Reset to clear them."
+              title={messages('protoyard.doc.edits-stale', 'Saved edits are for an earlier version')}
+              text={messages('protoyard.doc.edits-stale-hint', 'This doc changed since its edits were saved, so they are not shown. Reset to clear them.')}
             />
           {:else if unusable}
             <DocNotice
               tone="warning"
-              title="Saved edits could not be read"
-              text="They are not shown. Reset to clear them."
+              title={messages('protoyard.doc.edits-unreadable', 'Saved edits could not be read')}
+              text={messages('protoyard.doc.edits-unreadable-hint', 'They are not shown. Reset to clear them.')}
             />
           {/if}
         {/await}
@@ -213,7 +217,7 @@ const errorMessage = $derived(
         {#await import('./DocNotice.svelte') then { default: DocNotice }}
           <DocNotice
             tone="warning"
-            title="Some edits have no doc equivalent"
+            title={messages('protoyard.doc.edits-lossy', 'Some edits have no doc equivalent')}
             text={notes.map((note) => note.message).join(' ')}
           />
         {/await}

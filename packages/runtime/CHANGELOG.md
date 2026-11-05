@@ -1,5 +1,14 @@
 # @protoyard/runtime
 
+## 1.2.3
+
+### Patch Changes
+
+- @protoyard/core@1.2.3
+  - @protoyard/database@1.2.3
+  - @protoyard/scenarios@1.2.3
+  - @protoyard/themes@1.2.3
+
 ## 1.2.2
 
 ### Patch Changes

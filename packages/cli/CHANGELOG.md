@@ -1,5 +1,22 @@
 # @protoyard/cli
 
+## 1.2.3
+
+### Patch Changes
+
+- @protoyard/player@1.2.3
+  - @protoyard/blocks@1.2.3
+  - @protoyard/blueprint@1.2.3
+  - @protoyard/core@1.2.3
+  - @protoyard/crud@1.2.3
+  - @protoyard/decks@1.2.3
+  - @protoyard/offline@1.2.3
+  - @protoyard/renderer-svelte@1.2.3
+  - @protoyard/review@1.2.3
+  - @protoyard/scenarios@1.2.3
+  - @protoyard/templates@1.2.3
+  - @protoyard/themes@1.2.3
+
 ## 1.2.2
 
 ### Patch Changes

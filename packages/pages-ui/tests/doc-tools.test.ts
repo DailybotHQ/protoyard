@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import DocApp from '../src/doc/DocApp.svelte';
+import LabeledDocApp from './fixtures/LabeledDocApp.svelte';
 
 const exportDoc = vi.fn();
 
@@ -180,5 +181,26 @@ describe('doc-saved-edits', () => {
       expect(view.container.querySelector('[data-py-doc-edited]')).toBeNull();
       expect(await shownBody(view)).toBe('Original body.');
     });
+  });
+});
+
+describe('DocApp labels', () => {
+  it("speaks the prototype's language through Texuli's dictionary (mountPrototype({ i18n }))", () => {
+    const view = render(LabeledDocApp, {
+      props: {
+        doc,
+        labels: {
+          'protoyard.doc.edit': 'Editar',
+          'protoyard.doc.download': 'Descargar',
+          'protoyard.doc.download-as': 'Descargar como {format}',
+          'protoyard.pages.document-content': 'Contenido del documento',
+        },
+      },
+    });
+    expect(view.getByRole('button', { name: 'Editar' })).toBeTruthy();
+    expect(view.getByRole('button', { name: 'Descargar como Word' })).toBeTruthy();
+    expect(view.getByRole('group', { name: 'Descargar' })).toBeTruthy();
+    expect(view.container.querySelector('[aria-label="Contenido del documento"]')).toBeTruthy();
+    expect(view.queryByRole('button', { name: 'Edit' })).toBeNull();
   });
 });

@@ -5,6 +5,7 @@ import { getBlockHost, setBlockHost } from '@protoyard/blocks-ui';
 import { allocateHeadingId, buildDocToc, type DocDocument } from '@protoyard/pages';
 import { LoadingState } from '@protoyard/ui';
 import { onMount, untrack } from 'svelte';
+import { useMessages } from 'texuli/i18n';
 import { trackActiveHeading } from 'texuli/layouts/content';
 import { BlockHost } from '../block-host/index.ts';
 import { getFormServices } from '../form/context.ts';
@@ -45,10 +46,17 @@ const titleBlock = $derived(
 );
 const bodyBlocks = $derived(titleBlock ? doc.blocks.slice(1) : doc.blocks);
 const tocItems = $derived(showNav ? buildDocToc(bodyBlocks) : []);
-const title = $derived(doc.title.trim() || titleBlock?.text || 'Untitled document');
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })):
+// `pages.outline` is @texuli/pages' id; the other two are Protoyard's.
+const messages = useMessages();
+const title = $derived(
+  doc.title.trim() ||
+    titleBlock?.text ||
+    messages('protoyard.pages.untitled-document', 'Untitled document')
+);
 const eyebrow = $derived(titleBlock?.eyebrow);
 const subtitle = $derived(titleBlock?.subtitle || doc.description);
-const tocLabel = 'On this page';
+const tocLabel = $derived(messages('pages.outline', 'On this page'));
 
 let flowRoot = $state<HTMLElement | undefined>();
 let tocRoot = $state<HTMLDetailsElement | undefined>();
@@ -187,7 +195,7 @@ function onTocClick(id: string): void {
       </details>
     {/if}
 
-    <main class="doc-reading__article" aria-label="Document content">
+    <main class="doc-reading__article" aria-label={messages('protoyard.pages.document-content', 'Document content')}>
       <header class="doc-reading__header" data-py-doc-header>
         {#if eyebrow}
           <p class="doc-reading__eyebrow" data-py-doc-eyebrow>{eyebrow}</p>
