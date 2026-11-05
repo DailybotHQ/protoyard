@@ -1023,3 +1023,44 @@ linked Texuli sources.
 - Each Texuli upgrade is one coordinated version bump across the workspace.
 - **How to reverse:** point the specifiers back at `link:` paths (ADR-044) and remove the
   release-age exclusion.
+
+## ADR-046 — Kit screens on domain adapters
+
+**Context.** Kit screens should work for any product, not only for Protoyard's simulated
+engines. A consumer rebuilding a large product on 1.2.x hand-composed 11 of 13 modules from
+Texuli parts because the kit screens were bound to their engines (Dailybot G-030). An
+inventory of the four kit packages found three patterns:
+- saas-ui puts a whole `PrototypeRuntime` in context, and its screens build engine services
+  inside the component (`create*Services(runtime)`);
+- a few screens accept an optional service and fall back to the engine (`TrialBanner`,
+  `InboxDrawer`, `WorkspaceSwitcher`, `RunPanel`);
+- pages-ui forms take a narrow service port in props (`Pick<FormServices, 'submit'>`).
+flows-ui and gamification-ui already take data and callbacks; their prop types are the
+engines' plain data shapes, not services.
+
+**Decision.**
+- **Ports, not runtimes.** Every kit screen that reads or writes data takes a *port*: a
+  small TypeScript interface with plain-data methods that return values or promises. Ports
+  are named per kit (`SaasPorts` with `session`, `auth`, `mfa`, `workspaces`, `inbox`,
+  `billing`, `settings` and `onboarding`; `FlowsPort`; and so on). A screen receives the port
+  it needs as a prop, or through the kit's provider, never a runtime.
+- **The engine is one adapter.** Each kit ships `<kit>PortsFromRuntime(runtime)` (for
+  example `saasPortsFromRuntime`), which wraps today's engine services. `provideSaas(runtime)`
+  keeps working: it builds the ports from the runtime. The new `provideSaas({ ports })` takes
+  any implementation.
+- **Session as a port.** Guards and gates read a `SessionPort` (`isSignedIn`,
+  `principal() → { id, email?, onboardingComplete? } | null`, `can(capability)`), so a
+  product's own auth drives routing.
+- **Data shapes stay.** Where props already are plain data (`Flow`, `LeaderboardRow`,
+  `MissionProgress`, `FormBlock`), the types stay, because they are structural types that any
+  domain can produce. Each one is re-exported from the kit's `ports` subpath. Domain logic a
+  screen runs on that data (FlowEditor's `applyOperations`) is pure and stays.
+- **Pending feedback.** Port methods that mutate return promises. Screens wire them to a
+  `Button` `loading` state, per the AGENTS.md "real behavior" rule.
+
+**Consequences.** Products drive kit screens with their own services by implementing the
+ports. Engine users change nothing. Each kit gains a `ports` subpath and a test that drives
+its screens with a plain in-memory implementation. The cost is one more layer per kit.
+
+**How to reverse.** The ports are additive. Removing them leaves the runtime providers as
+they were.
