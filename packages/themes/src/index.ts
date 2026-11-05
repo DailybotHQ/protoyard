@@ -8,6 +8,7 @@ export {
   type DesignSystemDocumentResult,
   type DesignSystemExportFormat,
   type DesignSystemInput,
+  type DesignSystemThemeOptions,
   defineDesignSystemTheme,
   designSystemBrief,
   designSystemContrast,

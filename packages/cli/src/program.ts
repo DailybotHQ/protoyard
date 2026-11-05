@@ -4,6 +4,7 @@ import { artifactListCommand, artifactRecordCommand } from './commands/artifact.
 import { blueprintNewCommand, blueprintValidateCommand } from './commands/blueprint.ts';
 import { budgetCommand } from './commands/budget.ts';
 import { buildCommand } from './commands/build.ts';
+import { checkTexuliCommand } from './commands/check.ts';
 import { ciCheckCommand, ciInitCommand } from './commands/ci.ts';
 import {
   commentsExportCommand,
@@ -23,6 +24,7 @@ import { devCommand } from './commands/dev.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { dsExportCommand, dsNewCommand, dsUseCommand, dsValidateCommand } from './commands/ds.ts';
 import { exportCommand } from './commands/export.ts';
+import { galleryBuildCommand, galleryPreviewCommand } from './commands/gallery-build.ts';
 import { generateCommand } from './commands/generate.ts';
 import { indexCommand } from './commands/index-cmd.ts';
 import { kitSyncCommand } from './commands/kit.ts';
@@ -42,6 +44,7 @@ import { controlServerCommand, galleryCommand } from './commands/serve.ts';
 import { showcaseCommand } from './commands/showcase.ts';
 import { snapshotListCommand } from './commands/snapshot.ts';
 import { specCommand } from './commands/spec.ts';
+import { sweepCommand } from './commands/sweep.ts';
 import {
   themeCreateCommand,
   themeExportCommand,
@@ -105,6 +108,27 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .option('--offline', 'skip provider authentication checks (no network)')
     .action(def('doctor', doctorCommand));
+
+  const check = program
+    .command('check')
+    .description('workspace checks that consumers can run (Texuli adoption)');
+  check
+    .command('texuli')
+    .description(
+      'check that prototypes, templates and packages build their UI from Texuli (adoption rules)'
+    )
+    .option('--scope <path...>', 'only these paths (repeatable)')
+    .option('--strict', 'fail on every violation, ignoring pending lists')
+    .action(def('check texuli', checkTexuliCommand));
+
+  program
+    .command('sweep')
+    .description(
+      'visual sweep of a built prototype: light and dark, desktop and phone PNGs (needs Playwright)'
+    )
+    .argument('<slug>', 'prototype slug')
+    .option('--out <dir>', 'output folder (default tmp/sweep/<slug>)')
+    .action(def('sweep', sweepCommand));
 
   program
     .command('list')
@@ -261,7 +285,8 @@ export function createProgram(env: RunnerEnv): Command {
   program
     .command('validate')
     .description('check manifest, folder contract, package, scenarios, schema version and types')
-    .argument('<slug>')
+    .argument('[slug]')
+    .option('--all', 'validate every prototype sequentially')
     .option('--skip-typecheck', 'skip svelte-check')
     .option('--build', 'also run a production build')
     .option('--strict-spec', 'fail (not warn) when spec files are missing')
@@ -563,6 +588,11 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .addOption(new Option('--contrast <target>', 'contrast target').choices(['AA', 'AAA']))
     .option('--from-theme <theme-id>', 'import a built-in or library theme instead')
+    .option(
+      '--from-theme-file <path>',
+      "import a workspace module's own Theme export (runs that file under tsx; trusted code only)"
+    )
+    .option('--export <name>', 'with --from-theme-file: the export to import (default: the theme)')
     .option('--out <file>', 'output file (default design-systems/<id>.json)')
     .option('--force', 'replace an existing file')
     .option('--dry-run', 'validate and compile without writing')
@@ -682,6 +712,10 @@ export function createProgram(env: RunnerEnv): Command {
       'artifact target: only bundle these comma-separated prototype or template slugs'
     )
     .option('--no-devtools', 'leave the DevTools panel out of the bundled prototypes')
+    .option(
+      '--templates',
+      'bundle the template demos (the default, unless protoyard.workspace.json sets showcase.templates: false)'
+    )
     .option('--no-templates', 'leave the template demos out (prototypes only)')
     .option('--include-templates', 'accepted for older scripts: templates are bundled by default')
     .option('--offline', 'build every bundled prototype with the offline service worker')
@@ -700,7 +734,7 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--host', 'listen on the LAN')
     .action(def('showcase', showcaseCommand));
 
-  program
+  const gallery = program
     .command('gallery')
     .description('index, start the control server and run the gallery (what `pnpm dev` runs)')
     .option('-p, --port <port>', 'gallery port', '4321')
@@ -711,6 +745,22 @@ export function createProgram(env: RunnerEnv): Command {
       'let the gallery create prototypes (POST /api/new writes prototypes/<slug>/); off by default'
     )
     .action(def('gallery', galleryCommand));
+  gallery
+    .command('build')
+    .description('build the gallery as a static site for this workspace (artifacts/gallery/dist)')
+    .option('--out <dir>', 'output folder inside the workspace (default artifacts/gallery/dist)')
+    .option('--base <path>', 'public base path, absolute and ending with "/" (default /)')
+    .option('--site <url>', 'public site URL for canonical links')
+    .option('--verbose', "show Astro's output")
+    .action(def('gallery build', galleryBuildCommand));
+  gallery
+    .command('preview')
+    .description('serve the built gallery like a static host')
+    .option('--out <dir>', 'the built folder (default artifacts/gallery/dist)')
+    .option('--base <path>', 'the base it was built with (default /)')
+    .option('-p, --port <port>', 'port (default 4322; the next free one if busy)')
+    .option('--host', 'listen on the LAN too')
+    .action(def('gallery preview', galleryPreviewCommand));
 
   program
     .command('control-server')

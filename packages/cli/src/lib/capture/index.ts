@@ -1,4 +1,9 @@
-/** Deterministic browser capture with optional Playwright (thumbnails, visual sweep, quick screenshots). */
+/**
+ * Deterministic browser capture with optional Playwright (thumbnails, visual
+ * sweep, quick screenshots). Public as `protoyard/capture` and
+ * `@protoyard/cli/capture`.
+ */
+export { type CaptureRequest, type CaptureResult, capture } from './capture.ts';
 export {
   type CaptureOptions,
   captureMayFetch,

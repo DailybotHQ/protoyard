@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
+  type DemoBadgeOptions,
   MANIFEST_FILENAME,
   NamespaceSchema,
   type PrototypeManifest,
@@ -311,7 +312,7 @@ export interface ResolvedProtoyardSettings {
   base: string;
   outDir: string;
   includeDevtools: boolean;
-  demoBadge: boolean;
+  demoBadge: boolean | DemoBadgeOptions;
   reviewEnabled: boolean;
   /**
    * PROTOYARD_REVIEW_ADAPTER (+ PROTOYARD_REVIEW_ENDPOINT): the comments

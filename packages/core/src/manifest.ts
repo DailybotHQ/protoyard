@@ -94,6 +94,33 @@ export const PreviewSchema = z.object({
 });
 export type PreviewSettings = z.infer<typeof PreviewSchema>;
 
+export const DevtoolsLauncherSchema = z
+  .object({
+    hidden: z.boolean().optional(),
+    offset: z
+      .object({ x: z.number().finite().optional(), y: z.number().finite().optional() })
+      .strict()
+      .optional(),
+    tone: z.enum(['default', 'subtle', 'contrast']).optional(),
+  })
+  .strict();
+export const DevtoolsOptionsSchema = z
+  .object({ launcher: DevtoolsLauncherSchema.optional() })
+  .strict();
+export type DevtoolsOptions = z.infer<typeof DevtoolsOptionsSchema>;
+
+export const DemoBadgeSchema = z.union([
+  z.boolean(),
+  z
+    .object({
+      layer: z.enum(['above-app', 'below-overlays']).optional(),
+      avoid: z.array(z.string().min(1)).optional(),
+      phone: z.enum(['compact', 'hidden', 'corner']).optional(),
+    })
+    .strict(),
+]);
+export type DemoBadgeOptions = z.infer<typeof DemoBadgeSchema>;
+
 /**
  * Marketplace categories: one shared list, so the gallery never shows two
  * spellings of the same shelf. Add a value here instead of free-form text.
@@ -314,6 +341,8 @@ export const PrototypeManifestSchema = z
     defaultTheme: ThemeIdRefSchema.default('violet'),
     defaultMode: ColorModeSchema.default('system'),
     preview: PreviewSchema.default({ viewport: 'desktop', shell: 'auto' }),
+    /** Optional presentation controls for Protoyard's runtime DevTools launcher. */
+    devtools: DevtoolsOptionsSchema.optional(),
     storage: z.object({
       namespace: NamespaceSchema,
       schemaVersion: z.number().int().positive(),
@@ -323,7 +352,7 @@ export const PrototypeManifestSchema = z
         /** Include the floating DevTools panel in standalone builds. */
         includeDevtools: z.boolean().default(false),
         /** Show a small "Prototype" badge in standalone builds. */
-        demoBadge: z.boolean().default(true),
+        demoBadge: DemoBadgeSchema.default(true),
         /** Public base path. `./` produces relocatable output. */
         base: z.string().default('./'),
         /**

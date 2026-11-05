@@ -71,6 +71,13 @@ Styling: the panel consumes Texuli's `--tx-*` tokens and mounts in its own
 visible-right-edge layout value is copied to a DevTools-local CSS variable so
 the launcher and panel keep their existing viewport positioning.
 
+The launcher can be hidden or adjusted per prototype through the manifest's
+`devtools.launcher` object, or through the `launcher` option to
+`mountDevtools`. `hidden` removes only the button; **Ctrl/⌘ + .** still opens
+the panel. `offset` adds pixel `x`/`y` translations, and `tone` accepts
+`default`, `subtle` or `contrast`. In `mountPrototype`, pass
+`devtools: { launcher: { hidden: true } }` to apply the same launcher options.
+
 **Built on Texuli 0.5.0.** The panel uses `Button` from `texuli/button`,
 `Input` and `Textarea` from `texuli/input`, `Select` from `texuli/select`,
 `Checkbox`, `Radio` and `Switch` from `texuli/choice`, `Slider` from

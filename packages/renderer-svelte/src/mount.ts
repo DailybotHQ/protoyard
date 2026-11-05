@@ -1,5 +1,7 @@
 /// <reference path="./env.d.ts" />
 import {
+  type DemoBadgeOptions,
+  type DevtoolsOptions,
   NamespaceSchema,
   type PrototypeDefinition,
   type PrototypeRuntime,
@@ -11,10 +13,11 @@ import type { DevtoolsTab } from '@protoyard/devtools';
 import { createPrototypeRuntime } from '@protoyard/runtime';
 import { BUILTIN_THEMES, mergeThemes } from '@protoyard/themes';
 import { toast } from '@protoyard/ui';
-import { type Component, mount, tick, unmount } from 'svelte';
+import { type Component, type ComponentProps, mount, tick, unmount } from 'svelte';
+import type { LabelsProvider } from 'texuli/i18n';
 import { bindAppearance } from './appearance.ts';
 import { setMountedRuntime } from './context.ts';
-import { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED } from './flags.ts';
+import { BUILD_INFO, DEMO_BADGE_CONFIG, DEVTOOLS_ENABLED } from './flags.ts';
 import { type ChromeMessagesInput, setChromeMessages } from './messages.ts';
 import { consumeArtifactLink } from './shell/artifact-link.ts';
 import BootError from './shell/BootError.svelte';
@@ -57,9 +60,9 @@ export interface MountBuildOptions {
   namespace?: string;
   /** Keep explicit device frames inside an iframe (ADR-026). */
   frameWhenEmbedded?: boolean;
-  demoBadge?: boolean;
+  demoBadge?: DemoBadgeOptions;
   /** Show the DevTools panel; `?devtools=0` still hides it when this is omitted. */
-  devtools?: boolean;
+  devtools?: boolean | DevtoolsOptions;
   /** Mount review comments. */
   review?: boolean;
 }
@@ -77,10 +80,10 @@ export interface MountPrototypeOptions {
     options: RuntimeFactoryOptions
   ) => PrototypeRuntime | Promise<PrototypeRuntime>;
   /** Force DevTools on/off (defaults to the build flag + `?devtools=0`). */
-  devtools?: boolean;
+  devtools?: boolean | DevtoolsOptions;
   /** Optional lazily loaded tabs contributed by the mounted prototype. */
   devtoolsTabs?: readonly DevtoolsTab[];
-  demoBadge?: boolean;
+  demoBadge?: DemoBadgeOptions;
   /** Runtime build settings; each one overrides its Vite define. */
   build?: MountBuildOptions;
   /**
@@ -90,7 +93,18 @@ export interface MountPrototypeOptions {
    * English; unknown keys or empty strings fail at mount with a boot error.
    */
   messages?: ChromeMessagesInput;
+  /**
+   * Labels for every Texuli component the prototype renders (toaster, DocApp
+   * outline, block tones, controls…): Texuli's one dictionary (`texuli/i18n`,
+   * `TexuliLabels` and domain ids such as `BlocksMessageId`, `PagesMessageId`)
+   * and its BCP 47 locale. A component's own `labels` prop still wins; missing
+   * ids stay English. Protoyard's own chrome words go in `messages`.
+   */
+  i18n?: PrototypeI18n;
 }
+
+/** {@link MountPrototypeOptions.i18n}: `LabelsProvider`'s `labels` and `locale`. */
+export type PrototypeI18n = Pick<ComponentProps<typeof LabelsProvider>, 'labels' | 'locale'>;
 
 export interface MountedPrototype {
   runtime: PrototypeRuntime | null;
@@ -240,9 +254,12 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   const devtoolsBuilt =
     typeof __PROTOYARD_DEVTOOLS__ !== 'undefined' ? __PROTOYARD_DEVTOOLS__ : true;
   // Presentation mode (`?devtools=0`) hides the panel even in dev.
+  const devtoolsSetting = build?.devtools ?? options.devtools;
   const devtoolsAvailable =
     devtoolsBuilt &&
-    (build?.devtools ?? options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false));
+    (typeof devtoolsSetting === 'boolean'
+      ? devtoolsSetting
+      : DEVTOOLS_ENABLED && link.devtools !== false);
 
   target.replaceChildren();
   let app: ReturnType<typeof mount>;
@@ -254,8 +271,12 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
       props: {
         runtime: rt,
         App,
-        demoBadge: build?.demoBadge ?? options.demoBadge ?? DEMO_BADGE_ENABLED,
+        demoBadge:
+          build?.demoBadge ??
+          options.demoBadge ??
+          (DEMO_BADGE_CONFIG === true ? definition.manifest.build.demoBadge : DEMO_BADGE_CONFIG),
         devtools: devtoolsAvailable,
+        ...(options.i18n ? { i18n: options.i18n } : {}),
       },
     });
   } catch (error) {
@@ -316,6 +337,11 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
         runtime: rt,
         themes,
         avatarImage,
+        launcher: {
+          ...definition.manifest.devtools?.launcher,
+          ...(typeof options.devtools === 'object' ? options.devtools.launcher : undefined),
+          ...(typeof build?.devtools === 'object' ? build.devtools.launcher : undefined),
+        },
         ...(options.devtoolsTabs?.length || reviewTab
           ? {
               extraTabs: [

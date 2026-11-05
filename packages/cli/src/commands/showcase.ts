@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { copyFile, cp, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, posix } from 'node:path';
 import {
@@ -342,13 +342,14 @@ export function parseShowcaseSite(value: string | undefined): string | undefined
   return url.origin;
 }
 
-function buildGallery(
+export function buildGallery(
   ctx: CommandContext,
   outDir: string,
   registryPath: string,
   base: string,
   quiet: boolean,
-  site?: string
+  site?: string,
+  showcase = true
 ) {
   const galleryDir = requireGalleryDir(ctx.root).dir;
   const astro = resolvePackageBin('astro', 'astro', [galleryDir, ctx.root]);
@@ -363,9 +364,13 @@ function buildGallery(
         PROTOYARD_REGISTRY: registryPath,
         GALLERY_BASE: base,
         ...(site ? { GALLERY_SITE: site } : {}),
-        PROTOYARD_SHOWCASE: '1',
+        ...(showcase ? { PROTOYARD_SHOWCASE: '1' } : {}),
         // Own caches: a concurrent regular gallery build must not share them.
-        PROTOYARD_GALLERY_CACHE_DIR: join(ctx.paths.artifacts, 'showcase-builds', '.cache'),
+        PROTOYARD_GALLERY_CACHE_DIR: join(
+          ctx.paths.artifacts,
+          showcase ? 'showcase-builds' : 'gallery',
+          '.cache'
+        ),
       },
       shell: false,
       stdio: quiet ? ['ignore', 'pipe', 'pipe'] : 'inherit',
@@ -380,6 +385,25 @@ function buildGallery(
   });
 }
 
+/**
+ * Whether the showcase bundles template demos: `--templates`/`--no-templates`
+ * when given, else `showcase.templates` in `protoyard.workspace.json` (a
+ * workspace whose site would pass a host's file limit sets it to `false`),
+ * else `true`. An unreadable file or a non-boolean value keeps the default.
+ */
+export function showcaseTemplatesDefault(root: string, flagValue: unknown): boolean {
+  if (typeof flagValue === 'boolean') return flagValue;
+  try {
+    const config = JSON.parse(readFileSync(join(root, 'protoyard.workspace.json'), 'utf8')) as {
+      showcase?: { templates?: unknown };
+    };
+    const value = config?.showcase?.templates;
+    return typeof value === 'boolean' ? value : true;
+  } catch {
+    return true;
+  }
+}
+
 /** Builds the standalone player into an isolated directory for the showcase. */
 export function resolveShowcasePlayerDir(root: string): string {
   const playerDir = protoyardPackageDir(root, 'player');
@@ -391,8 +415,26 @@ export function resolveShowcasePlayerDir(root: string): string {
   return playerDir;
 }
 
-function buildPlayer(ctx: CommandContext, outDir: string, quiet: boolean) {
+/**
+ * The player as installed from npm ships its build (`dist/app/`) and no
+ * source: a consumer workspace copies that build instead of running Vite.
+ */
+export function prebuiltPlayerApp(playerDir: string): string | null {
+  const app = join(playerDir, 'dist', 'app');
+  return !existsSync(join(playerDir, 'src')) && existsSync(join(app, 'index.html')) ? app : null;
+}
+
+async function buildPlayer(
+  ctx: CommandContext,
+  outDir: string,
+  quiet: boolean
+): Promise<{ code: number; log: string }> {
   const playerDir = resolveShowcasePlayerDir(ctx.root);
+  const prebuilt = prebuiltPlayerApp(playerDir);
+  if (prebuilt) {
+    await cp(prebuilt, outDir, { recursive: true, force: true });
+    return { code: 0, log: `Copied the prebuilt player from ${prebuilt}.` };
+  }
   const vite = resolvePackageBin('vite', 'vite', [playerDir, ctx.root]);
   if (!vite)
     throw new CliError('not_found', 'Vite is not installed.', { hint: 'Run `pnpm install`.' });
@@ -546,7 +588,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
   // Templates are bundled by default (the marketplace tries every product type);
   // `--no-templates` leaves them out. `--include-templates` is still accepted.
   const entries = selectShowcaseEntries(registry.entries, {
-    templates: options.templates !== false,
+    templates: showcaseTemplatesDefault(ctx.root, options.templates),
     ...(slugs ? { slugs } : {}),
   });
   const includeDevtools = options.devtools !== false;

@@ -896,18 +896,23 @@ The same inputs give the same document, the same variables and the same hash.
 
 | Way | What it does |
 | --- | --- |
-| `pnpm protoyard ds new <id>` | A document from a few inputs (`--brand`, `--secondary`, `--accent`, `--font`, `--heading-font`, `--mono-font`, `--shape`, `--radius`, `--density`, `--motion`, `--contrast`), a one-line `--brief` (Texuli's `importBrand`: `brand #4f46e5, font Inter, rounded, compact`; explicit inputs win), or a theme (`--from-theme <theme-id>`). Writes `design-systems/<id>.json` after it compiles. |
+| `pnpm protoyard ds new <id>` | A document from a few inputs (`--brand`, `--secondary`, `--accent`, `--font`, `--heading-font`, `--mono-font`, `--shape`, `--radius`, `--density`, `--motion`, `--contrast`), a one-line `--brief` (Texuli's `importBrand`: `brand #4f46e5, font Inter, rounded, compact`; explicit inputs win), a built-in or library theme (`--from-theme <theme-id>`), or a prototype's own theme module (`--from-theme-file <path> [--export <name>]`: the file runs under tsx, like `src/prototype.ts` in `spec`, so use it only for trusted workspace code; the CLI checks the result with `ThemeSchema`). Writes `design-systems/<id>.json` after it compiles. |
 | `pnpm protoyard ds validate <file>` | Checks an untrusted document and compiles it: contrast per mode and the hash. |
 | `pnpm protoyard ds export <file>` | `--format css` (default), `tailwind` (a preset as JSON) or `json` (the compiled design system). |
-| `pnpm protoyard ds use <slug> <file>` | Writes `src/design-system.ts` (the compiled variables, no report), adds `designSystemTheme` to `definePrototype({ themes })` in `src/prototype.ts`, and sets `defaultTheme`. Then run `spec <slug> --write` and `validate <slug> --build`. |
+| `pnpm protoyard ds use <slug> <file>` | Writes `src/design-system.ts` (the compiled variables and the document's description, no report) and sets `defaultTheme`. In an **app** prototype it adds `designSystemTheme` to `definePrototype({ themes })`; in a **deck, page or doc** prototype it passes `brandTheme: designSystemTheme, defaultThemeId: designSystemTheme.id` to `defineKindPrototype` / `definePrototypeFromPage` / `definePrototypeFromDoc` (a deck's blueprint brand is replaced). It imports from `@protoyard/runtime`, else `@protoyard/themes`; a prototype with neither gets `@protoyard/themes` added to its `package.json` (the installed version in a consumer workspace, `workspace:*` in this repository) and `pnpm install` as the first next step. It then refreshes the generated spec regions, and lists `spec <slug> --write` only when that could not run. Then run `validate <slug> --build`. |
 | Theme Studio → **Design system** | The same from a form, from the current theme, or from pasted JSON; **Save and apply** paints it at once. |
 | `protoyard mcp` | `ds_create`, `ds_validate`, `ds_export` and `ds_use` run the commands above ([MCP](MCP.md#tools)). |
 
 In code, `@protoyard/themes` exports `createDesignSystem(input)`,
 `designSystemFromTheme(theme)`, `compileDesignSystemDocument(document)` (all
 three load Texuli's importer or compiler with `import()`),
-`defineDesignSystemTheme(compiled)` (also re-exported by `@protoyard/runtime`,
+`defineDesignSystemTheme(compiled, { fontBase?, description? })` (also re-exported by `@protoyard/runtime`,
 which every app prototype depends on) and `exportDesignSystem(compiled, format)`.
+`fontBase` is the URL the document's relative font paths resolve against, so
+a package can ship its own font files
+(`defineDesignSystemTheme(compiled, { fontBase: new URL('./fonts/', import.meta.url) })`);
+`description` overrides the one pickers show, which defaults to the document's
+`description`.
 
 **How it paints.** `defineDesignSystemTheme` returns a Protoyard `Theme`
 derived from the compiled variables (palette, fonts, radius, density: what
@@ -954,12 +959,14 @@ dark `borderStrong` change, and dark `border` changes notation only.
 **Limits.**
 - Component defaults (`components.<name>.defaults`) are compiled but not
   applied; tokens are.
-- Level-1 player blueprints (and deck prototypes, which have no
-  `definePrototype` call) do not carry a design system yet: `ds use` refuses
-  them. Generated app prototypes take one.
+- Level-1 player blueprints do not carry a design system yet. App, deck,
+  page and doc prototypes take one with `ds use`; a `prototype.ts` written by
+  `protoyard generate` is refused (regeneration would drop the edit), so set the
+  blueprint's brand instead.
+- A deck's slides follow the design system through the `--tx-*` variables it
+  paints. Texuli's deck renderer has no design-system option of its own yet.
 - A design system made in Theme Studio stays in that browser. Download the JSON
   and run `ds use` to put it in the repository.
-- `ds use` refuses a prototype that does not depend on `@protoyard/runtime`.
 
 ## The CLI
 

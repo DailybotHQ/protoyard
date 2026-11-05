@@ -64,10 +64,8 @@ export interface ParsedManifest {
 
 /** Lists candidate folders and catalog blueprint files. Hidden/private names are skipped. */
 export async function listManifestLocations(paths: WorkspacePaths): Promise<ManifestLocation[]> {
-  const groups: [FolderKind, string][] = [
-    ['prototype', paths.prototypes],
-    ['template', paths.templates],
-  ];
+  const localTemplateFolders = new Set(paths.localTemplates.map((dir) => basename(dir)));
+  const groups: [FolderKind, string][] = [['prototype', paths.prototypes]];
   const out: ManifestLocation[] = [];
   for (const [folderKind, base] of groups) {
     let names: string[];
@@ -94,6 +92,46 @@ export async function listManifestLocations(paths: WorkspacePaths): Promise<Mani
         relDir: toPosixRelative(paths.root, dir),
       });
     }
+  }
+
+  // Published templates remain available, but a workspace-local template
+  // with the same folder name takes precedence and is the only row shown.
+  let publishedTemplateNames: string[] = [];
+  try {
+    publishedTemplateNames = (await readdir(paths.templates, { withFileTypes: true }))
+      .filter(
+        (entry) =>
+          (entry.isDirectory() || entry.isSymbolicLink()) &&
+          !/^[._]/.test(entry.name) &&
+          !localTemplateFolders.has(entry.name)
+      )
+      .map((entry) => (entry.isSymbolicLink() ? `\0${entry.name}` : entry.name))
+      .sort((a, b) => a.replace('\0', '').localeCompare(b.replace('\0', '')));
+  } catch {
+    // A package without its published template catalog has no published rows.
+  }
+  for (const raw of publishedTemplateNames) {
+    const symlink = raw.startsWith('\0');
+    const folder = symlink ? raw.slice(1) : raw;
+    const dir = join(paths.templates, folder);
+    out.push({
+      ...(symlink ? { symlink: true } : {}),
+      folderKind: 'template',
+      folder,
+      dir,
+      manifestPath: join(dir, MANIFEST_FILENAME),
+      relDir: toPosixRelative(paths.root, dir),
+    });
+  }
+  for (const dir of paths.localTemplates) {
+    const folder = basename(dir);
+    out.push({
+      folderKind: 'template',
+      folder,
+      dir,
+      manifestPath: join(dir, MANIFEST_FILENAME),
+      relDir: toPosixRelative(paths.root, dir),
+    });
   }
 
   // Flat catalog: blueprints/<slug>.json (data only, no folder).

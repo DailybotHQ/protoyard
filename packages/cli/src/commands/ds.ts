@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve, sep } from 'node:path';
-import { PrototypeManifestSchema } from '@protoyard/core';
+import { fileURLToPath } from 'node:url';
+import { PrototypeManifestSchema, type Theme, ThemeSchema } from '@protoyard/core';
 import {
   BUILTIN_THEMES,
   compileDesignSystemDocument,
@@ -17,9 +18,13 @@ import {
 import { GENERATED_MARKER } from '../lib/codegen/header.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
+import { inspectSpec } from '../lib/inspect.ts';
 import { CliError } from '../lib/output.ts';
-import { hasControlCharacter, isInside } from '../lib/paths.ts';
-import { resolveTarget } from '../lib/workspace.ts';
+import { hasControlCharacter, isInside, workspaceLayout } from '../lib/paths.ts';
+import { resolvePackageBin, run } from '../lib/process.ts';
+import { CLI_VERSION, resolveTarget } from '../lib/workspace.ts';
+import { workspaceFile } from '../lib/workspace-file.ts';
+import { specForPrototype } from './spec.ts';
 
 /**
  * `protoyard ds`: Texuli design systems (`format: "texuli/design-system"`).
@@ -68,25 +73,6 @@ function relativeTo(root: string, file: string): string {
   return file.startsWith(`${root}${sep}`) ? file.slice(root.length + 1) : basename(file);
 }
 
-/**
- * A path inside the workspace, resolved through every symlink (parents
- * included, as the other commands do with `canonicalPath`/`isInside`), never a
- * symlink itself, and free of control characters.
- */
-function workspaceFile(root: string, file: string): string {
-  if (hasControlCharacter(file)) {
-    throw new CliError('unsafe_path', 'The path contains a control character.');
-  }
-  const absolute = resolve(root, file);
-  if (!isInside(root, absolute)) {
-    throw new CliError('unsafe_path', `${file} is outside the workspace.`);
-  }
-  if (existsSync(absolute) && lstatSync(absolute).isSymbolicLink()) {
-    throw new CliError('unsafe_path', `Refusing to use the symlink ${file}.`);
-  }
-  return absolute;
-}
-
 function readDocument(root: string, file: string): unknown {
   const absolute = workspaceFile(root, file);
   if (!existsSync(absolute)) throw new CliError('not_found', `No such file: ${file}.`);
@@ -129,6 +115,65 @@ function summary(
     adjustments: compiled.report.adjustments.length,
     warnings: compiled.report.warnings.map((warning) => `${warning.path}: ${warning.message}`),
   };
+}
+
+const themeRunnerFile = import.meta.url.endsWith('.ts')
+  ? '../runners/load-theme.ts'
+  : '../runners/load-theme.js';
+const RESULT_MARKER = '@@PROTOYARD_RESULT@@';
+
+/**
+ * A prototype's own theme, from a workspace module (`--from-theme-file`). The
+ * module runs under tsx in a child process, the same trust level as
+ * `src/prototype.ts` in `spec` and `validate`; its JSON is checked with
+ * `ThemeSchema` before use.
+ */
+async function themeFromFile(root: string, file: string, exportName?: string): Promise<Theme> {
+  const path = workspaceFile(root, file);
+  if (!existsSync(path) || !statSync(path).isFile()) {
+    throw new CliError('not_found', `No such file: ${relativeTo(root, path)}.`);
+  }
+  const cliPackageDir = fileURLToPath(new URL('../..', import.meta.url));
+  const tsx = resolvePackageBin('tsx', 'tsx', [root, dirname(path), cliPackageDir]);
+  if (!tsx)
+    throw new CliError('not_found', 'tsx is not installed.', { hint: 'Run `pnpm install`.' });
+  const runner = fileURLToPath(new URL(themeRunnerFile, import.meta.url));
+  const result = await run(
+    process.execPath,
+    [tsx, runner, path, ...(exportName ? [exportName] : [])],
+    { cwd: dirname(path), timeoutMs: 60_000 }
+  );
+  const marker = result.stdout.lastIndexOf(RESULT_MARKER);
+  const payload =
+    marker === -1
+      ? {
+          fatal: (result.stderr || result.spawnError || 'no output')
+            .trim()
+            .split('\n')
+            .slice(-4)
+            .join(' '),
+        }
+      : (JSON.parse(
+          result.stdout
+            .slice(marker + RESULT_MARKER.length)
+            .trim()
+            .split('\n')[0] ?? '{}'
+        ) as { theme?: unknown; fatal?: string });
+  if ('fatal' in payload && payload.fatal) {
+    throw new CliError('validation', `Could not load a theme from ${relativeTo(root, path)}.`, {
+      hint: payload.fatal,
+    });
+  }
+  const parsed = ThemeSchema.safeParse((payload as { theme?: unknown }).theme);
+  if (!parsed.success) {
+    throw new CliError('validation', `${relativeTo(root, path)} does not export a valid theme.`, {
+      hint: parsed.error.issues
+        .slice(0, 3)
+        .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+        .join(' · '),
+    });
+  }
+  return parsed.data;
 }
 
 async function themeById(id: string) {
@@ -174,14 +219,25 @@ export const dsNewCommand: Handler = async (ctx, args, options): Promise<Command
 
   let document: DesignSystem;
   let notes: string[] = [];
-  if (fromTheme) {
+  const fromThemeFile = opt(options, 'fromThemeFile');
+  if (fromTheme && fromThemeFile) {
+    throw new CliError('usage', 'Pass --from-theme or --from-theme-file, not both.');
+  }
+  if (opt(options, 'export') && !fromThemeFile) {
+    throw new CliError('usage', '--export goes with --from-theme-file.');
+  }
+  if (fromTheme || fromThemeFile) {
+    const flagName = fromTheme ? '--from-theme' : '--from-theme-file';
     const extra = Object.keys(input).filter((key) => key !== 'id' && key !== 'name');
     if (extra.length > 0) {
-      throw new CliError('usage', '--from-theme imports a theme as it is; drop the other inputs.', {
+      throw new CliError('usage', `${flagName} imports a theme as it is; drop the other inputs.`, {
         hint: `Remove: ${extra.join(', ')}.`,
       });
     }
-    const imported = await designSystemFromTheme(await themeById(fromTheme), {
+    const source = fromTheme
+      ? await themeById(fromTheme)
+      : await themeFromFile(ctx.root, fromThemeFile as string, opt(options, 'export'));
+    const imported = await designSystemFromTheme(source, {
       id,
       ...(input.name ? { name: input.name } : {}),
     });
@@ -288,24 +344,99 @@ export function wireDesignSystem(source: string): string | null {
     return `${next.slice(0, at)}${EXPORT_NAME}${empty ? '' : ', '}${next.slice(at)}`;
   }
   const define = /definePrototype\(\{\n/.exec(next);
-  if (!define) return null;
-  const at = define.index + define[0].length;
-  return `${next.slice(0, at)}  themes: [${EXPORT_NAME}],\n${next.slice(at)}`;
+  if (define) {
+    const at = define.index + define[0].length;
+    return `${next.slice(0, at)}  themes: [${EXPORT_NAME}],\n${next.slice(at)}`;
+  }
+  return wireKindOptions(next);
 }
 
-/** True when the prototype's package.json lists @protoyard/runtime (a dependency or a devDependency). */
-function dependsOnRuntime(dir: string): boolean {
+/**
+ * Deck, page and doc prototypes: their `prototype.ts` calls
+ * `defineKindPrototype(…, { …, brandTheme, defaultThemeId })` (deck) or
+ * `definePrototypeFromPage(page, { … })` / `definePrototypeFromDoc(doc, { … })`
+ * (page, doc). The design system becomes the brand theme they register and
+ * open in. Returns `null` when no such call is found.
+ */
+function wireKindOptions(source: string): string | null {
+  const brand = `brandTheme: ${EXPORT_NAME}`;
+  if (source.includes(brand)) return source;
+  const kindCall = /(defineKindPrototype|definePrototypeFrom(?:Page|Doc))\(/.exec(source);
+  if (!kindCall) return null;
+  const after = source.slice(kindCall.index);
+  const open = /,\s*\{\n/.exec(after);
+  if (!open) return null;
+  const start = kindCall.index + open.index + open[0].length;
+  let body = source.slice(start);
+  // A deck passes its blueprint brand as `brandTheme` and `defaultThemeId`: replace both.
+  const hadBrand = /^\s*brandTheme(?::[^,\n]*)?,\s*\n/m.test(body);
+  body = body
+    .replace(/^(\s*)brandTheme(?::[^,\n]*)?,[ \t]*\n/m, '')
+    .replace(/^(\s*)defaultThemeId(?::[^,\n]*)?,[ \t]*\n/m, '');
+  const indent = /^([ \t]*)\S/.exec(body)?.[1] ?? '    ';
+  const lines = `${indent}${brand},\n${indent}defaultThemeId: ${EXPORT_NAME}.id,\n`;
+  const next = `${source.slice(0, start)}${lines}${body}`;
+  return hadBrand ? dropUnusedBrandImport(next) : next;
+}
+
+/** After a deck's brand is replaced, its `brand-theme.ts` import is unused. */
+function dropUnusedBrandImport(source: string): string {
+  const line = /^import \{[^}]*\bbrandTheme\b[^}]*\} from '\.\/brand-theme\.ts';\n/m.exec(source);
+  if (!line) return source;
+  const rest = source.slice(0, line.index) + source.slice(line.index + line[0].length);
+  return /\b(brandTheme|defaultThemeId)\b(?!:)/.test(
+    rest.replace(/brandTheme: |defaultThemeId: /g, '')
+  )
+    ? source
+    : rest;
+}
+
+interface PackageManifest {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  [key: string]: unknown;
+}
+
+function readPackage(dir: string): PackageManifest | null {
   try {
-    const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as {
-      dependencies?: Record<string, string>;
-      devDependencies?: Record<string, string>;
-    };
-    return Boolean(
-      manifest.dependencies?.['@protoyard/runtime'] ??
-        manifest.devDependencies?.['@protoyard/runtime']
-    );
+    return JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as PackageManifest;
   } catch {
-    return false;
+    return null;
+  }
+}
+
+function lists(pkg: PackageManifest | null, name: string): boolean {
+  return Boolean(pkg?.dependencies?.[name] ?? pkg?.devDependencies?.[name]);
+}
+
+/**
+ * The package `src/design-system.ts` imports `defineDesignSystemTheme` from:
+ * `@protoyard/runtime` (app prototypes) or `@protoyard/themes`. A prototype
+ * with neither (a deck) gets `@protoyard/themes` added to its package.json,
+ * at the installed version in a consumer workspace and `workspace:*` here.
+ */
+function designSystemImport(
+  root: string,
+  pkg: PackageManifest | null
+): { from: string; add?: { name: string; specifier: string } } {
+  if (lists(pkg, '@protoyard/runtime')) return { from: '@protoyard/runtime' };
+  if (lists(pkg, '@protoyard/themes')) return { from: '@protoyard/themes' };
+  const specifier = workspaceLayout(root) === 'consumer' ? CLI_VERSION : 'workspace:*';
+  return { from: '@protoyard/themes', add: { name: '@protoyard/themes', specifier } };
+}
+
+/** Refreshes the prototype's generated spec regions; never fails `ds use`. */
+async function refreshSpec(
+  ctx: Parameters<Handler>[0],
+  dir: string
+): Promise<{ refreshed: boolean; reason?: string }> {
+  try {
+    const facts = await inspectSpec(ctx.root, dir);
+    const result = await specForPrototype(dir, facts, { mode: 'write', init: false });
+    const failed = result.files.find((f) => f.error);
+    return failed ? { refreshed: false, reason: failed.error } : { refreshed: true };
+  } catch (error) {
+    return { refreshed: false, reason: (error as Error).message };
   }
 }
 
@@ -336,13 +467,18 @@ export const dsUseCommand: Handler = async (ctx, args, options): Promise<Command
       `Invalid ${entry.path}/protoyard.json; refusing to update it.`
     );
   }
-  if (!dependsOnRuntime(dir)) {
+  const packageFile = join(dir, 'package.json');
+  const pkg = readPackage(dir);
+  if (!pkg) {
+    throw new CliError('validation', `${entry.path}/package.json is missing or not valid JSON.`);
+  }
+  if (lstatSync(packageFile).isSymbolicLink()) {
     throw new CliError(
-      'validation',
-      `${entry.path} does not depend on @protoyard/runtime, which src/design-system.ts imports.`,
-      { hint: 'Add "@protoyard/runtime": "workspace:*" to its package.json and run pnpm install.' }
+      'unsafe_path',
+      `Refusing to write through the symlink ${relativeTo(ctx.root, packageFile)}.`
     );
   }
+  const dependency = designSystemImport(ctx.root, pkg);
   const prototypeSource = readFileSync(prototypeFile, 'utf8');
   if (prototypeSource.includes(GENERATED_MARKER)) {
     throw new CliError(
@@ -377,7 +513,7 @@ export const dsUseCommand: Handler = async (ctx, args, options): Promise<Command
   }
   const source = `// Written by \`protoyard ds use\` from ${JSON.stringify(relativeTo(ctx.root, resolve(ctx.root, file)))} (hash ${result.compiled.hash.slice(0, 12)}).
 // Re-run the command to update it; edit the design-system document, not this file.
-import { defineDesignSystemTheme, type ShippedDesignSystem } from '@protoyard/runtime';
+import { defineDesignSystemTheme, type ShippedDesignSystem } from '${dependency.from}';
 
 const compiled: ShippedDesignSystem = ${JSON.stringify(result.shipped, null, 2)};
 
@@ -389,12 +525,29 @@ export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
     writeFileSync(designSystemFile, source, 'utf8');
     if (wired !== prototypeSource) writeFileSync(prototypeFile, wired, 'utf8');
     writeFileSync(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+    if (dependency.add) {
+      const next = {
+        ...pkg,
+        dependencies: {
+          ...(pkg.dependencies ?? {}),
+          [dependency.add.name]: dependency.add.specifier,
+        },
+      };
+      writeFileSync(packageFile, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+    }
   }
   const files = [
     designSystemFile,
     ...(wired !== prototypeSource ? [prototypeFile] : []),
     manifestFile,
+    ...(dependency.add ? [packageFile] : []),
   ].map((target) => relativeTo(ctx.root, target));
+  // The manifest's default theme changed: refresh the generated spec regions
+  // now, unless a new dependency still has to be installed first.
+  const spec =
+    dryRun || dependency.add
+      ? { refreshed: false, reason: dryRun ? 'dry run' : 'install the new dependency first' }
+      : await refreshSpec(ctx, dir);
   const data = {
     ...summary(result),
     slug: entry.slug,
@@ -403,9 +556,11 @@ export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
     bytes: Buffer.byteLength(source),
     dryRun,
     written: !dryRun,
-    // The manifest changed, so the generated spec regions are stale until refreshed.
+    ...(dependency.add ? { added: dependency.add } : {}),
+    spec,
     next: [
-      `pnpm protoyard spec ${entry.slug} --write`,
+      ...(dependency.add ? ['pnpm install'] : []),
+      ...(spec.refreshed ? [] : [`pnpm protoyard spec ${entry.slug} --write`]),
       `pnpm protoyard validate ${entry.slug} --build`,
     ],
   };

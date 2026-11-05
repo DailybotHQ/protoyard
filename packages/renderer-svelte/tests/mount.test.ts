@@ -3,6 +3,7 @@ import { Dexie, type EntityTable } from 'dexie';
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mountPrototype } from '../src/index.ts';
+import { COMPACT_SIZE, placeBadge, placeCompact } from '../src/shell/badge-placement.ts';
 import { SHELL_CSS_MARKER } from '../src/shell/frames/registry.ts';
 import { createFakeRuntime } from './fixtures/fake-runtime.ts';
 import LiveList from './fixtures/LiveList.svelte';
@@ -28,7 +29,13 @@ describe('mountPrototype', () => {
     localStorage.clear();
   });
 
-  async function boot(options: { persistent?: boolean; fail?: boolean } = {}) {
+  async function boot(
+    options: {
+      persistent?: boolean;
+      fail?: boolean;
+      i18n?: Parameters<typeof mountPrototype>[0]['i18n'];
+    } = {}
+  ) {
     const target = document.body.appendChild(document.createElement('div'));
     const runtime = createFakeRuntime({ persistent: options.persistent ?? true });
     const mounted = await mountPrototype({
@@ -37,6 +44,7 @@ describe('mountPrototype', () => {
       target,
       search: '',
       devtools: false,
+      ...(options.i18n ? { i18n: options.i18n } : {}),
       createRuntime: () => {
         if (options.fail)
           throw Object.assign(new Error('Stored data is newer than this prototype.'), {
@@ -59,6 +67,14 @@ describe('mountPrototype', () => {
     expect(toaster).not.toBeNull();
     expect(scrollRoot?.contains(toaster)).toBe(false);
     expect(scrollRoot?.parentElement?.contains(toaster)).toBe(true);
+  });
+
+  it("labels Texuli's components from mountPrototype({ i18n }), English otherwise", async () => {
+    const { target } = await boot({
+      i18n: { labels: { 'texuli.toaster.label': 'Notificaciones' }, locale: 'es' },
+    });
+    expect(target.querySelector('[aria-label="Notificaciones"]')).not.toBeNull();
+    expect(target.querySelector('[aria-label="Notifications"]')).toBeNull();
   });
 
   it('consumes a validated artifact hash before creating the runtime', async () => {
@@ -165,6 +181,24 @@ describe('mountPrototype', () => {
     ]);
     expect(new Set(deleted.map((name) => name.split('.')[1])).size).toBe(1);
     await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe('demo badge placement', () => {
+  it('keeps configured areas clear and uses a compact phone marker', () => {
+    const container = { left: 0, top: 0, width: 390, height: 844 };
+    const nav = { left: 0, top: 790, width: 390, height: 54 };
+    const heading = { left: 8, top: 6, width: 374, height: 24 };
+    expect(placeBadge(container, { width: 120, height: 28 }, () => null, [nav])).toBe('top-left');
+    expect(COMPACT_SIZE).toBeLessThan(20);
+    const compact = placeCompact(container, () => null, [nav, heading]);
+    expect(compact).not.toBeNull();
+    if (!compact) throw new Error('expected a compact spot outside the heading and navigation');
+    expect(compact.top + compact.height).toBeLessThanOrEqual(nav.top);
+    expect(
+      compact.top + compact.height <= heading.top || compact.top >= heading.top + heading.height
+    ).toBe(true);
+    expect(placeCompact(container, () => null, [container])).toBeNull();
   });
 });
 

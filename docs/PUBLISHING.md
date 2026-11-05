@@ -1111,7 +1111,7 @@ data (ADR-028).
 All public packages share one version through one Changesets `fixed` group,
 and the root `package.json` carries the same version.
 
-- **Current state.** Every manifest says `1.1.3`. `1.0.0` was tagged and
+- **Current state.** Every manifest says `1.2.0`. `1.0.0` was tagged and
   released on GitHub but never published to npm. `1.1.0` was published once
   by hand (2026-11-02). `1.1.1` and every later version are published by
   `release.yml`.
@@ -1324,9 +1324,17 @@ live demos of every product type:
   `template-demo-<name>` storage namespace as `protoyard dev <template>`, so
   visitors' demo data never shares the template's own namespace.
   `--no-templates` leaves the templates out (`--include-templates` is still
-  accepted and changes nothing, since templates are bundled by default).
+  accepted and changes nothing, since templates are bundled by default). A
+  workspace can make that its default with
+  `protoyard.workspace.json: { "showcase": { "templates": false } }`;
+  `--templates` still bundles them for one run. Cloudflare Pages takes at
+  most 20,000 files per deployment, and the 31 template demos add roughly
+  4,000 (a consumer measured 20,445 files with them and 16,196 without, on
+  2026-10-27).
 - the blueprint playground at `<base>play/`, with its framed player under
-  `<base>player/`.
+  `<base>player/`. In a workspace that installed `@protoyard/player` from npm,
+  the package's own build (`dist/app/`) is copied; only this repository, which
+  has the player's source, rebuilds it with Vite.
 
 Blueprints are listed in the marketplace with their `protoyard generate`
 command, but they have no app until they are generated, so they are not

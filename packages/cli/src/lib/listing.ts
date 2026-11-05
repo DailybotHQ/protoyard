@@ -42,8 +42,9 @@ export interface ListingConfigResult {
 /** A manifest category, matched exactly (`protoyard.json` allows 1-40 characters). */
 const CategorySchema = z.string().trim().min(1).max(40);
 
-/** Only `listing` is read; other keys in the workspace file are left to their owners. */
+/** Workspace filters and local template roots; other keys remain available to their owners. */
 const WorkspaceListingSchema = z.object({
+  templates: z.array(z.string().trim().min(1).max(240)).max(50).optional(),
   listing: z
     .strictObject({
       include: z.strictObject({ category: z.array(CategorySchema).max(50).optional() }).optional(),
@@ -51,6 +52,30 @@ const WorkspaceListingSchema = z.object({
     })
     .optional(),
 });
+const WorkspaceTemplatesSchema = z
+  .object({ templates: z.array(z.string().trim().min(1).max(240)).max(50).optional() })
+  .passthrough();
+
+/** Reads consumer-local template globs without coupling them to listing filters. */
+export function readWorkspaceTemplateGlobs(root: string): string[] {
+  const path = join(root, LISTING_CONFIG_FILE);
+  if (!existsSync(path)) return [];
+  let raw: unknown;
+  try {
+    raw = JSON.parse(readFileSync(path, 'utf8'));
+  } catch (error) {
+    throw new Error(`${LISTING_CONFIG_FILE} is not valid JSON (${(error as Error).message}).`);
+  }
+  const parsed = WorkspaceTemplatesSchema.safeParse(raw);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const where = issue?.path.length ? ` at ${issue.path.join('.')}` : '';
+    throw new Error(
+      `${LISTING_CONFIG_FILE} has invalid workspace settings${where}: ${issue?.message ?? 'unknown problem'}.`
+    );
+  }
+  return parsed.data.templates ?? [];
+}
 
 /**
  * Reads the workspace listing rule. A missing file or a file without

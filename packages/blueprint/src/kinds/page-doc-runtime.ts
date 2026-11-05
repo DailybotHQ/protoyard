@@ -1,4 +1,4 @@
-import type { PrototypeDefinition } from '@protoyard/core';
+import type { PrototypeDefinition, Theme } from '@protoyard/core';
 import type { DocDocument, PageDocument } from '@protoyard/pages';
 import {
   type AnyContentBlueprint,
@@ -25,6 +25,13 @@ export interface PageDocRuntimeOptions {
   category?: string;
   tags?: string[];
   icon?: string;
+  /**
+   * A theme to register and open in, such as the one `protoyard ds use` writes
+   * from a design system (`designSystemTheme`). Default: the default theme.
+   */
+  brandTheme?: Theme | null;
+  /** The theme the prototype opens in; defaults to `brandTheme`'s id when one is given. */
+  defaultThemeId?: string | null;
 }
 
 /** Kind default scenario id (shared content-kind runtime). */
@@ -62,8 +69,8 @@ function toKindOptions(options: PageDocRuntimeOptions): KindPrototypeOptions {
     namespace: options.namespace,
     slug: options.slug,
     version: options.version,
-    defaultThemeId: null,
-    brandTheme: null,
+    defaultThemeId: options.defaultThemeId ?? options.brandTheme?.id ?? null,
+    brandTheme: options.brandTheme ?? null,
   };
 }
 

@@ -1,5 +1,30 @@
 # @protoyard/cli
 
+## 1.2.0
+
+### Minor Changes
+
+- A first-class consumer workspace (`npm create protoyard`). `generate`, `blueprint new --from-brief --generate`, `quick promote` and `new --from` write the installed Protoyard version instead of `workspace:*`, and keep a consumer's own `workspace:` packages. `protoyard.workspace.json` accepts local `templates` and a `showcase.templates` default. New commands: `validate --all [--build]`, `check texuli` (the Texuli adoption rules for any workspace), `sweep <slug>` (light/dark × desktop/phone PNGs), and `gallery build` / `gallery preview`. `protoyard/capture` and `protoyard/static-server` are public subpaths. The catalog blueprints ship in `@protoyard/templates`, the gallery ships its guides, and `showcase` copies the published player build.
+- Design systems for every prototype kind. `ds use` wires deck, page and doc prototypes (`brandTheme` and `defaultThemeId`, now accepted by `definePrototypeFromPage` and `definePrototypeFromDoc`), adds `@protoyard/themes` at the right version when a prototype lacks a runtime dependency, and refreshes the generated spec regions. `ds new --from-theme-file <path>` imports a prototype's own theme. `defineDesignSystemTheme(compiled, { fontBase, description })` resolves fonts from a package and carries the document's description.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @protoyard/templates@1.2.0
+  - @protoyard/themes@1.2.0
+  - @protoyard/blueprint@1.2.0
+  - @protoyard/core@1.2.0
+  - @protoyard/renderer-svelte@1.2.0
+  - @protoyard/decks@1.2.0
+  - @protoyard/player@1.2.0
+  - @protoyard/crud@1.2.0
+  - @protoyard/blocks@1.2.0
+  - @protoyard/offline@1.2.0
+  - @protoyard/review@1.2.0
+  - @protoyard/scenarios@1.2.0
+
 ## 1.1.3
 
 ### Patch Changes

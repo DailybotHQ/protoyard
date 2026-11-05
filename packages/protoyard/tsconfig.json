@@ -5,5 +5,14 @@
     "allowJs": true,
     "checkJs": true
   },
-  "include": ["index.js", "index.d.ts", "bin/*.mjs", "tests"]
+  "include": [
+    "index.js",
+    "index.d.ts",
+    "capture.js",
+    "capture.d.ts",
+    "static-server.js",
+    "static-server.d.ts",
+    "bin/*.mjs",
+    "tests"
+  ]
 }

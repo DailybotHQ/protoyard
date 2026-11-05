@@ -205,6 +205,16 @@ frame:
   (`@md:`, `@max-2xl:` and so on) follow the device width.
 - **Fixed elements:** `position: fixed` (a bottom nav, toasts, the demo badge) is pinned to
   the device screen. The app scrolls inside the renderer's scroll root, not the page.
+- **Demo badge controls:** `build.demoBadge` accepts the legacy booleans or an object with
+  `layer: 'above-app' | 'below-overlays'`, `avoid: ['[data-app-nav]']`, and
+  `phone: 'compact' | 'hidden' | 'corner'`. Avoid selectors name navigation or hit areas
+  whose measured bounds the badge must leave clear. The compact phone marker is 16 px and
+  keeps clear of the first level heading. `mountPrototype` also accepts the same value as
+  `demoBadge`; `true` retains automatic placement.
+- **DevTools launcher controls:** set `devtools.launcher` in `protoyard.json`, or pass
+  `devtools: { launcher: { offset: { x: 0, y: -12 }, tone: 'subtle' } }` to
+  `mountPrototype`. `hidden` removes the launcher button while Ctrl/⌘ + . still opens the
+  panel. `offset` is a pixel translation; `tone` is `default`, `subtle` or `contrast`.
 - **Floating chrome placement:** non-app chrome such as the review toolbar launcher uses
   `placeFloating` (`packages/renderer-svelte/src/shell/floating.ts`). It measures
   `window.visualViewport` (size and `offsetLeft` / `offsetTop`) so phone frames and mobile

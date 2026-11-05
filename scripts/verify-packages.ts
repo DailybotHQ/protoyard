@@ -6,7 +6,7 @@
  * the already-built artifacts, installs those tarballs by file path, and runs
  * the same CLI loop a consumer would run.
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import {
   existsSync,
@@ -200,6 +200,26 @@ function parsePackOutput(output: string, destination: string): string {
     throw new Error(`pack escaped its staging directory: ${path}`);
   }
   return path;
+}
+
+/** Built for npm consumers: `protoyard/capture` and `protoyard/static-server` import from the installed package. */
+function verifySubpaths(consumer: string): VerifyResult['steps'][number] {
+  const probe = spawnSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '-e',
+      "const c = await import('protoyard/capture'); const s = await import('protoyard/static-server'); if (typeof c.capture !== 'function' || typeof s.serveStatic !== 'function') process.exit(1);",
+    ],
+    { cwd: consumer, encoding: 'utf8' }
+  );
+  return probe.status === 0
+    ? { name: 'protoyard subpaths', ok: true }
+    : {
+        name: 'protoyard subpaths',
+        ok: false,
+        detail: (probe.stderr || probe.stdout).trim().slice(-400),
+      };
 }
 
 async function pack(directory: string, destination: string): Promise<string> {
@@ -647,11 +667,20 @@ export async function verifyPackages(options: VerifyOptions = {}): Promise<Verif
       ['validate --build', ['validate', 'second-app', '--build']],
       ['export', ['export', 'second-app']],
       ['index', ['index']],
+      // Consumer gates and the design-system flow (PLAN_010): they must work
+      // from the published packages, not only inside this repository.
+      ['check texuli', ['check', 'texuli']],
+      ['validate --all', ['validate', '--all']],
+      ['ds new', ['ds', 'new', 'verify-brand', '--brand', '#0f766e']],
+      ['ds use', ['ds', 'use', 'starter', 'design-systems/verify-brand.json']],
+      ['validate starter after ds use', ['validate', 'starter']],
+      ['list blueprints', ['list', '--kind', 'blueprint']],
     ] as const) {
       const checked = await runJsonCli(cli, args, consumer, name);
       steps.push(checked.step);
       if (!checked.step.ok) throw new Error(`${name} failed`);
     }
+    steps.push(verifySubpaths(consumer));
     if (options.budgetParity) await verifyBudgetParity(root, cli, consumer, steps);
     steps.push(await checkGalleryEnvelope(cli, consumer));
     steps.push(

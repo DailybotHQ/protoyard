@@ -17,6 +17,9 @@ export const TEMPLATES_ROOT = existsSync(join(here, 'templates'))
   ? join(here, 'templates')
   : resolve(here, '..', '..', 'templates');
 
+/** The catalog is packed beside templates/, or sourced from the repository root. */
+export const BLUEPRINTS_ROOT = resolve(TEMPLATES_ROOT, '..', 'blueprints');
+
 /**
  * @param {string} [root]
  * @returns {TemplateEntry[]}

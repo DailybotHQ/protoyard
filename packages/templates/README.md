@@ -18,6 +18,9 @@ templateDir('dashboard'); // absolute folder holding protoyard.json
   slug, or has no `protoyard.json`, throws.
 - `TEMPLATES_ROOT`: the packed `templates/` when installed from npm, otherwise
   the repository's `templates/`.
+- `BLUEPRINTS_ROOT`: the app, deck, page and doc example catalog, packed beside
+  `templates/` when installed from npm and sourced from the repository's
+  `blueprints/` otherwise.
 
 The copy skips what `protoyard new` never copies (`node_modules`, `dist`,
 local state, `.env*` except `.env.example`) and test output. Templates keep

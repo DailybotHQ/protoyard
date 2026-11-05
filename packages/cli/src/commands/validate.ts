@@ -1,6 +1,6 @@
 import { type Dirent, existsSync, readdirSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { join, relative } from 'node:path';
+import { basename, join, relative } from 'node:path';
 import { closestIds } from '@protoyard/blueprint';
 import { MANIFEST_FILENAME, type PrototypeManifest } from '@protoyard/core';
 import {
@@ -477,11 +477,17 @@ export async function checkTemplateBrand(
 }
 
 export const validateCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
+  if (flag(options, 'all')) {
+    if (args[0]) throw new CliError('usage', 'Pass either <slug> or --all, not both.');
+    return validateAll(ctx, options);
+  }
   const slug = assertSlug(args[0]);
   // Folder lookup (not the registry), so a broken manifest is still validated.
   // prototypes/ wins over templates/, like every other target command.
   const prototypeDir = childPath(ctx.paths.prototypes, slug);
-  const templateDir = childPath(ctx.paths.templates, slug);
+  const templateDir =
+    ctx.paths.localTemplates.find((dir) => basename(dir) === slug) ??
+    childPath(ctx.paths.templates, slug);
   if (!existsSync(prototypeDir) && !existsSync(templateDir)) {
     throw new CliError('not_found', `No folder prototypes/${slug} or templates/${slug}.`, {
       hint: 'Run `pnpm protoyard list --kind all` to see what exists.',
@@ -618,3 +624,45 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
     },
   };
 };
+
+async function validateAll(
+  ctx: CommandContext,
+  options: Record<string, unknown>
+): Promise<CommandResult> {
+  const registry = await loadRegistry(ctx.paths);
+  const targets = registry.entries.filter((entry) => entry.kind === 'prototype');
+  const results: { slug: string; ok: boolean; checks: Check[]; error?: string }[] = [];
+  for (const entry of targets) {
+    const result = await validateCommand(ctx, [entry.slug], { ...options, all: false });
+    const data = result.data as { slug: string; ok: boolean; checks: Check[] };
+    results.push({
+      slug: entry.slug,
+      ok: data.ok,
+      checks: data.checks,
+      ...(result.failure ? { error: result.failure.message } : {}),
+    });
+  }
+  const failed = results.filter((result) => !result.ok);
+  return {
+    data: { total: results.length, failed: failed.length, results },
+    ...(failed.length > 0
+      ? {
+          failure: new CliError(
+            'validation',
+            `${failed.length} of ${results.length} prototypes failed validation.`
+          ),
+        }
+      : {}),
+    render(out) {
+      const { c } = out;
+      if (results.length === 0) out.always('No prototypes to validate.');
+      for (const result of results) {
+        out.always(
+          `${mark(c, result.ok ? 'pass' : 'fail')} ${result.slug.padEnd(28)} ${result.ok ? 'valid' : c.red(result.error ?? 'validation failed')}`
+        );
+      }
+      if (results.length > 0 && failed.length === 0)
+        out.always(c.green(`\nAll ${results.length} prototypes are valid.`));
+    },
+  };
+}

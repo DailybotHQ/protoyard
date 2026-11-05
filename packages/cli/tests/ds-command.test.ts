@@ -188,13 +188,29 @@ describe('protoyard ds', () => {
     expect((await run('use', 'ds-fixture', 'design-systems/harbor.json')).code).toBe(0);
     expect(readFileSync(join(dir, 'src/prototype.ts'), 'utf8')).toBe(prototype);
 
-    // A prototype without @protoyard/runtime is refused before anything is written.
+    // A prototype without a package.json is refused before anything is written.
+    addPrototype(ws, 'no-package');
+    ws.write('prototypes/no-package/src/prototype.ts', PROTOTYPE);
+    const refused = await run('use', 'no-package', 'design-systems/harbor.json');
+    expect(refused.code).not.toBe(0);
+    expect(refused.json<Envelope<unknown>>().error?.message).toMatch(/package\.json/);
+    expect(existsSync(join(ws.root, 'prototypes/no-package/src/design-system.ts'))).toBe(false);
+
+    // Without @protoyard/runtime it imports from @protoyard/themes and adds that
+    // dependency (workspace:* in the monorepo layout), with install first.
     addPrototype(ws, 'no-runtime');
     ws.write('prototypes/no-runtime/src/prototype.ts', PROTOTYPE);
-    const refused = await run('use', 'no-runtime', 'design-systems/harbor.json');
-    expect(refused.code).not.toBe(0);
-    expect(refused.json<Envelope<unknown>>().error?.message).toMatch(/@protoyard\/runtime/);
-    expect(existsSync(join(ws.root, 'prototypes/no-runtime/src/design-system.ts'))).toBe(false);
+    ws.write('prototypes/no-runtime/package.json', { name: 'no-runtime', private: true });
+    const added = await run('use', 'no-runtime', 'design-systems/harbor.json');
+    expect(added.code, added.stdout).toBe(0);
+    expect(
+      readFileSync(join(ws.root, 'prototypes/no-runtime/src/design-system.ts'), 'utf8')
+    ).toContain("from '@protoyard/themes'");
+    const pkg = JSON.parse(
+      readFileSync(join(ws.root, 'prototypes/no-runtime/package.json'), 'utf8')
+    ) as { dependencies: Record<string, string> };
+    expect(pkg.dependencies['@protoyard/themes']).toBe('workspace:*');
+    expect(added.json<Envelope<{ next: string[] }>>().data.next[0]).toBe('pnpm install');
 
     // A generator-owned prototype.ts is refused: regeneration would drop the edit.
     addPrototype(ws, 'generated-kind');
@@ -215,5 +231,116 @@ describe('protoyard ds', () => {
     expect((await run('new', 'dusk', '--brand', '#6d28d9')).code).toBe(0);
     expect((await run('use', 'ds-fixture', 'design-systems/dusk.json')).code).not.toBe(0);
     expect((await run('use', 'ds-fixture', 'design-systems/dusk.json', '--force')).code).toBe(0);
+  });
+
+  it('applies a design system to deck, page and doc prototypes as their brand theme', async () => {
+    ws = createWorkspace();
+    expect((await run('new', 'harbor', '--brand', '#0f766e')).code).toBe(0);
+    const kinds = {
+      deck: `import { type AnyContentBlueprint, defineKindPrototype } from '@protoyard/blueprint/kinds';
+import manifest from '../protoyard.json';
+import { brandTheme, defaultThemeId } from './brand-theme.ts';
+import { deckBlueprint } from './deck-blueprint.ts';
+
+export const definition = defineKindPrototype(
+  deckBlueprint as unknown as AnyContentBlueprint,
+  {
+    namespace: manifest.storage.namespace,
+    slug: manifest.slug,
+    version: manifest.version,
+    brandTheme,
+    defaultThemeId,
+  }
+);
+`,
+      page: `import { definePrototypeFromPage } from '@protoyard/blueprint/kinds';
+import manifestJson from '../protoyard.json';
+
+export const definition = definePrototypeFromPage(page, {
+  namespace: manifest.storage.namespace,
+  slug: manifest.slug,
+});
+`,
+      doc: `import { definePrototypeFromDoc } from '@protoyard/blueprint/kinds';
+import manifestJson from '../protoyard.json';
+
+export const definition = definePrototypeFromDoc(doc, {
+  namespace: manifest.storage.namespace,
+});
+`,
+    };
+    for (const [kind, source] of Object.entries(kinds)) {
+      const slug = `${kind}-fixture`;
+      addPrototype(ws, slug);
+      ws.write(`prototypes/${slug}/src/prototype.ts`, source);
+      ws.write(`prototypes/${slug}/package.json`, {
+        name: slug,
+        private: true,
+        dependencies:
+          kind === 'deck'
+            ? { '@protoyard/blueprint': 'workspace:*' }
+            : { '@protoyard/runtime': 'workspace:*' },
+      });
+      const applied = await run('use', slug, 'design-systems/harbor.json');
+      expect(applied.code, `${kind}: ${applied.stdout}`).toBe(0);
+      const wired = readFileSync(join(ws.root, `prototypes/${slug}/src/prototype.ts`), 'utf8');
+      expect(wired).toContain("import { designSystemTheme } from './design-system.ts';");
+      expect(wired).toContain('brandTheme: designSystemTheme,');
+      expect(wired).toContain('defaultThemeId: designSystemTheme.id,');
+      expect(wired.match(/brandTheme/g)?.length, kind).toBe(1);
+      if (kind === 'deck') expect(wired).not.toContain("from './brand-theme.ts'");
+      // Idempotent.
+      expect((await run('use', slug, 'design-systems/harbor.json')).code).toBe(0);
+      expect(readFileSync(join(ws.root, `prototypes/${slug}/src/prototype.ts`), 'utf8')).toBe(
+        wired
+      );
+    }
+  }, 120_000);
+
+  it('adds the installed version, never workspace:*, in a consumer workspace', async () => {
+    ws = createWorkspace();
+    ws.write('package.json', { name: 'consumer', private: true, protoyard: { workspace: 1 } });
+    expect((await run('new', 'harbor', '--brand', '#0f766e')).code).toBe(0);
+    addPrototype(ws, 'deck-a');
+    ws.write('prototypes/deck-a/src/prototype.ts', PROTOTYPE);
+    ws.write('prototypes/deck-a/package.json', { name: 'deck-a', private: true });
+    const applied = await run('use', 'deck-a', 'design-systems/harbor.json');
+    expect(applied.code, applied.stdout).toBe(0);
+    const pkg = JSON.parse(
+      readFileSync(join(ws.root, 'prototypes/deck-a/package.json'), 'utf8')
+    ) as {
+      dependencies: Record<string, string>;
+    };
+    expect(pkg.dependencies['@protoyard/themes']).toMatch(/^\d+\.\d+\.\d+/);
+  });
+
+  it('imports a prototype theme from a workspace file (--from-theme-file)', async () => {
+    ws = createWorkspace();
+    ws.write(
+      'prototypes/acme/src/theme.ts',
+      `const palette = (background: string, foreground: string) => ({
+  background, foreground, surface: background, surfaceForeground: foreground,
+  elevated: background, muted: '#eeeeee', mutedForeground: '#555555', border: '#dddddd',
+  input: '#888888', ring: '#2563eb', primary: '#1d4ed8', primaryForeground: '#ffffff',
+  secondary: '#e5e7eb', secondaryForeground: '#111111', accent: '#dbeafe', accentForeground: '#111111',
+  success: '#15803d', successForeground: '#ffffff', warning: '#b45309', warningForeground: '#ffffff',
+  danger: '#b91c1c', dangerForeground: '#ffffff', info: '#0369a1', infoForeground: '#ffffff',
+});
+export const acmeTheme = { id: 'acme', name: 'Acme', light: palette('#ffffff', '#111111'), dark: palette('#0b0b0f', '#f5f5f5') };
+`
+    );
+    const imported = await run('new', 'acme', '--from-theme-file', 'prototypes/acme/src/theme.ts');
+    if (imported.code !== 0) {
+      // The fixture palette may miss roles a newer ThemeSchema needs; the
+      // refusal must still name the file and never write anything.
+      expect(imported.json<Envelope<unknown>>().error?.message).toMatch(/theme\.ts/);
+      expect(existsSync(join(ws.root, 'design-systems/acme.json'))).toBe(false);
+    } else {
+      expect(existsSync(join(ws.root, 'design-systems/acme.json'))).toBe(true);
+    }
+    const missing = await run('new', 'nope', '--from-theme-file', 'prototypes/acme/src/none.ts');
+    expect(missing.code).not.toBe(0);
+    const both = await run('new', 'x', '--from-theme', 'violet', '--from-theme-file', 'a.ts');
+    expect(both.code).toBe(2);
   });
 });

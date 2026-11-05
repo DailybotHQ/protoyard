@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import {
   type AnyBlueprint,
   type BlueprintKind,
@@ -35,11 +35,10 @@ import {
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { CliError, mark } from '../lib/output.ts';
-import { childPath, isInside, toPosixRelative } from '../lib/paths.ts';
+import { childPath, isInside, toPosixRelative, workspaceLayout } from '../lib/paths.ts';
 import { installWorkspace } from '../lib/pnpm.ts';
-import { buildIndex } from '../lib/registry.ts';
-import type { CommandContext } from '../lib/workspace.ts';
-import { assertSlug, resolveTarget } from '../lib/workspace.ts';
+import { buildIndex, loadRegistry } from '../lib/registry.ts';
+import { assertSlug, CLI_VERSION, type CommandContext, resolveTarget } from '../lib/workspace.ts';
 import { copyTemplate, listTemplateFiles, personalize, writeNewSpec } from './new.ts';
 
 /**
@@ -100,6 +99,26 @@ async function readBlueprint(
   };
 }
 
+/** Resolves an explicit file first, then the installed or repository catalog by id or path. */
+async function resolveBlueprintArgument(ctx: CommandContext, value: string) {
+  const { root } = ctx;
+  const fromCwd = resolve(process.cwd(), value);
+  if (existsSync(fromCwd)) return fromCwd;
+  const fromRoot = resolve(root, value);
+  if (existsSync(fromRoot)) return fromRoot;
+  const registry = await loadRegistry(ctx.paths);
+  const fileSlug = value.endsWith('.json') ? basename(value, '.json') : value;
+  const entry = registry.entries.find(
+    (candidate) =>
+      candidate.kind === 'blueprint' &&
+      (candidate.id === value ||
+        candidate.slug === value ||
+        candidate.slug === fileSlug ||
+        candidate.path.endsWith(`/${value}`))
+  );
+  return entry ? resolve(root, entry.path) : fromCwd;
+}
+
 type Existing = 'none' | 'empty' | 'generated' | 'other';
 
 /** Classifies prototypes/<slug>: free, an empty folder, generated from this template, or something else. */
@@ -152,7 +171,8 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       hint: 'Example: pnpm protoyard generate my-helpdesk --blueprint ./helpdesk.blueprint.json',
     });
   }
-  const { blueprint, raw, text } = await readBlueprint(file);
+  const blueprintPath = await resolveBlueprintArgument(ctx, file);
+  const { blueprint, raw, text } = await readBlueprint(blueprintPath);
   const kind = blueprintKind(blueprint);
   const templateName = opt(options, 'template') ?? DEFAULT_TEMPLATE[kind];
   const {
@@ -303,6 +323,9 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
         name: opt(options, 'name') ?? blueprint.name,
         description:
           opt(options, 'description') ?? blueprint.description ?? template.description ?? '',
+        ...(workspaceLayout(ctx.root) === 'consumer'
+          ? { consumerPackageVersion: CLI_VERSION }
+          : {}),
         now: new Date().toISOString(),
       });
       // An app's generated schema starts at version 1; a deck, page or doc uses the kind

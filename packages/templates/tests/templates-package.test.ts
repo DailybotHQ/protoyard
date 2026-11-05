@@ -12,13 +12,18 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 import { readTarball } from '../../../scripts/check-packages.ts';
 import { parseManifest } from '../../core/src/manifest.ts';
-import { TEMPLATES_ROOT, templateDir } from '../index.js';
-import { cleanTemplates, copyTemplates } from '../scripts/copy-templates.mjs';
+import { BLUEPRINTS_ROOT, TEMPLATES_ROOT, templateDir } from '../index.js';
+import {
+  cleanBlueprints,
+  cleanTemplates,
+  copyBlueprints,
+  copyTemplates,
+} from '../scripts/copy-templates.mjs';
 
 /**
  * @protoyard/templates: the repository's templates/ is the only source; the
@@ -52,6 +57,7 @@ function write(path: string, content: string) {
 describe('listTemplates and templateDir in the repository', () => {
   it('resolves a template folder and refuses non-slugs and unknown names', () => {
     expect(templateDir('blank')).toBe(join(TEMPLATES_ROOT, 'blank'));
+    expect(BLUEPRINTS_ROOT).toBe(resolve(TEMPLATES_ROOT, '..', 'blueprints'));
     for (const bad of ['../blank', 'blank/src', 'Blank', '', '.']) {
       expect(() => templateDir(bad), bad).toThrow(/not a template name/);
     }
@@ -97,6 +103,30 @@ describe('copyTemplates (prepack) and cleanTemplates (postpack)', () => {
     cleanTemplates(destination);
     expect(existsSync(destination)).toBe(false);
   });
+
+  it('copies the tracked blueprint shelves and removes the packed catalog on clean', () => {
+    const root = tempDir('protoyard-blueprints-fixture-');
+    const source = join(root, 'src-blueprints');
+    const outside = join(root, 'outside.json');
+    write(outside, '{}');
+    write(join(source, 'crm.json'), '{"kind":"app"}');
+    write(join(source, 'decks', 'example.json'), '{"kind":"deck"}');
+    symlinkSync(outside, join(source, 'linked.json'));
+    const git = (...args: string[]) => {
+      const run = spawnSync('git', ['-C', source, ...args], { encoding: 'utf8' });
+      expect(run.status, run.stderr).toBe(0);
+    };
+    git('init', '--quiet');
+    git('add', '--all', '--force');
+    write(join(source, 'untracked.json'), '{}');
+
+    const destination = join(root, 'packed-blueprints');
+    expect(copyBlueprints(source, destination)).toEqual({ files: 2 });
+    expect(readdirSync(destination).sort()).toEqual(['crm.json', 'decks']);
+    expect(readdirSync(join(destination, 'decks'))).toEqual(['example.json']);
+    cleanBlueprints(destination);
+    expect(existsSync(destination)).toBe(false);
+  });
 });
 
 describe('the packed tarball', () => {
@@ -121,9 +151,17 @@ describe('the packed tarball', () => {
     for (const path of ['package.json', 'index.js', 'index.d.ts', 'README.md']) {
       expect(files.has(path), path).toBe(true);
     }
+    for (const path of [
+      'blueprints/crm.json',
+      'blueprints/decks/everything.json',
+      'blueprints/pages/tidewater-roasters-landing.json',
+      'blueprints/docs/northwind-quarterly-report.json',
+    ]) {
+      expect(files.has(path), path).toBe(true);
+    }
     const packed = [...files.keys()];
     expect(packed.filter((p) => /(^|\/)(node_modules|dist)\//.test(p))).toEqual([]);
-    expect(packed.filter((p) => !/^(templates\/|[^/]+$)/.test(p))).toEqual([]);
+    expect(packed.filter((p) => !/^(templates\/|blueprints\/|[^/]+$)/.test(p))).toEqual([]);
 
     const names = [
       ...new Set(
@@ -146,9 +184,11 @@ describe('the packed tarball', () => {
     }
     const mod = (await import(pathToFileURL(join(installed, 'index.js')).href)) as {
       TEMPLATES_ROOT: string;
+      BLUEPRINTS_ROOT: string;
       listTemplates(): { name: string }[];
     };
     expect(mod.TEMPLATES_ROOT).toBe(join(installed, 'templates'));
+    expect(mod.BLUEPRINTS_ROOT).toBe(join(installed, 'blueprints'));
     expect(mod.listTemplates().map((t) => t.name)).toEqual(repoTemplates);
   }, 180_000);
 });

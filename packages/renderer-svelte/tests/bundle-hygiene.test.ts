@@ -32,7 +32,8 @@ export const LAYOUT_BUNDLE_BUDGETS = {
    */
   // Texuli 0.8.0 measured 3,710 B (PLAN_008: Texuli 0.8 layouts); + 2.5 %.
   // Texuli 0.9.0 measured 3,802 B (token contract v2 component CSS); + 2.5 %.
-  hostInitialDelta: 3_900,
+  // Texuli 0.13.0 measured 3,972 B (labels/i18n context in the host); + 2.5 %.
+  hostInitialDelta: 4_080,
 };
 
 function sourceFiles(dir: string, out: string[] = []): string[] {

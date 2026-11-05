@@ -1,5 +1,21 @@
 # @protoyard/gallery
 
+## 1.2.0
+
+### Minor Changes
+
+- A first-class consumer workspace (`npm create protoyard`). `generate`, `blueprint new --from-brief --generate`, `quick promote` and `new --from` write the installed Protoyard version instead of `workspace:*`, and keep a consumer's own `workspace:` packages. `protoyard.workspace.json` accepts local `templates` and a `showcase.templates` default. New commands: `validate --all [--build]`, `check texuli` (the Texuli adoption rules for any workspace), `sweep <slug>` (light/dark × desktop/phone PNGs), and `gallery build` / `gallery preview`. `protoyard/capture` and `protoyard/static-server` are public subpaths. The catalog blueprints ship in `@protoyard/templates`, the gallery ships its guides, and `showcase` copies the published player build.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @protoyard/themes@1.2.0
+  - @protoyard/blueprint@1.2.0
+  - @protoyard/core@1.2.0
+  - @protoyard/player@1.2.0
+  - @protoyard/ui@1.2.0
+
 ## 1.1.3
 
 ### Patch Changes

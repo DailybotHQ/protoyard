@@ -1,7 +1,7 @@
 # @protoyard/cli
 
 The `protoyard` command line. It discovers, indexes, scaffolds, runs, validates, builds, exports
-and publishes prototypes: one at a time, or several in one run (`publish <slug>… | --all | --tag`). It also builds the showcase, packs prototypes for Claude artifacts and pulls review comments. Inside the repository, run it with `pnpm protoyard …`, which executes the TypeScript source. The published package compiles `src/` (including its inspect runner and review worker entry) to `dist/`; its bin and API export point to that JavaScript output. `tsx` remains a dependency for the isolated inspect runner, which loads user prototype code.
+and publishes prototypes: one at a time, or several in one run (`publish <slug>… | --all | --tag`). It also builds the showcase, packs prototypes for Claude artifacts and pulls review comments. Inside the repository, run it with `pnpm protoyard …`, which executes the TypeScript source. The published package compiles `src/` (including its inspect runner and review worker entry) to `dist/`; its bin and API export point to that JavaScript output. Two more subpaths are public: `@protoyard/cli/capture` (`capture`, `withReadyPage`, `launchChromium`, `screenshot`) and `@protoyard/cli/static-server` (`serveStatic`), also re-exported as `protoyard/capture` and `protoyard/static-server`. `tsx` remains a dependency for the isolated inspect runner, which loads user prototype code.
 
 ```bash
 pnpm protoyard doctor                       # environment check with actionable hints
@@ -30,6 +30,8 @@ prototype of the same name. `build --all` builds prototypes only.
 | Command | What it does |
 | --- | --- |
 | `doctor [--offline]` | Node ≥ 24.20, pnpm, installed deps, workspace layout, templates, git, Playwright browsers, provider CLIs and their auth (never prints tokens). |
+| `check texuli [--scope <path>…] [--strict]` | Texuli adoption rules over the workspace (`src/lib/texuli-adoption.ts`, shared with `scripts/check-texuli-adoption.ts`). Exit 4 lists each violation. |
+| `sweep <slug> [--out <dir>]` | Light/dark × desktop/phone PNGs of a built prototype into `tmp/sweep/<slug>/` (Playwright optional peer). |
 | `list [--kind] [--tag] [--category] [--platform] [--search] [--sort name\|modified]` | Table from the registry: name, slug, kind, category, template, platform, status, scenario count. |
 | `index [--force]` | Scans `prototypes/*/protoyard.json` and `templates/*/protoyard.json` (one level deep, 256 KB cap, parsed as data, no code runs). Writes `.protoyard/registry.json` and an incremental cache keyed by path + mtime + size. Invalid manifests are reported, not fatal. Each entry carries the optional `catalog` block (category from a shared list, product type, platforms, resolved shell, features, highlights, difficulty) or `null`; search also matches its product type and features. |
 | `affected --since <ref> [--format text\|csv]` | Maps `git diff --name-only <ref>...HEAD` to prototype slugs: `prototypes/<slug>/**` → that slug; `packages/**`, `templates/**`, root configs → all prototypes; docs/meta-only → none. `--format csv` prints a bare comma-joined list for shell/CI. |
@@ -82,6 +84,7 @@ prototype of the same name. `build --all` builds prototypes only.
 | `theme create`, `theme import`, `theme export` | Create a typed prototype theme, import validated theme JSON, or export built-in/library themes as CSS, Tailwind or W3C design tokens. |
 | `snapshot list <slug>` | Validates committed `snapshots/*.protoyard.json` files as data. Snapshots saved in DevTools stay in the browser. |
 | `gallery [--port] [--control-port] [--allow-create]` | What `pnpm dev` runs: index, the local control server and the Astro gallery. Astro is kept in the foreground (`--ignore-lock`), so stopping the command also stops the gallery, even when Astro detects an AI agent. |
+| `gallery build [--out] [--base] [--site]`, `gallery preview` | The gallery as a static site for this workspace (`artifacts/gallery/dist/`), then served like a static host. Works from npm: the package ships the guides. |
 | `control-server [--port] [--gallery-port] [--allow-origin] [--allow-create]` | Just the local API: `GET /api/status`, `POST /api/dev/:slug` (prototype or template demo), `POST /api/stop/:slug`, and, only with `--allow-create`, `POST /api/new` (JSON `{ slug, from, name?, description? }` plus an `X-Protoyard-Token` header with the per-run token that `GET /api/status` gives allowed origins; without the flag it answers 403 with a hint: the same in-process code path as `new --from`, one creation at a time; links with `pnpm install --offline` only and, when that is not enough, returns `linked: false` with the exact command instead of going online; otherwise starts the new prototype and returns its dev URL). Template demos use `template-demo-<slug>` storage. Loopback + Origin allow-list (required for every POST); JSON bodies only, at most 8 KB, strict fields; max 8 concurrent dev servers. |
 
 Global options: `--json`, `-y/--yes` (implied by `CI=1`), `--cwd <dir>`, `--root <dir>` (or

@@ -31,9 +31,27 @@ import { toTexuliTheme } from './texuli.ts';
  * variables and the same hash.
  */
 
-/** What a prototype ships: the runtime's fields of a compiled design system, plus its name. */
+/**
+ * What a prototype ships: the runtime's fields of a compiled design system,
+ * plus its name and, when the document has one, its description.
+ */
 export type ShippedDesignSystem = ApplicableDesignSystem &
-  Pick<CompiledDesignSystem, 'name' | 'version' | 'modes' | 'hash'>;
+  Pick<CompiledDesignSystem, 'name' | 'version' | 'modes' | 'hash'> & {
+    /** The document's description, shown by theme pickers. */
+    description?: string;
+  };
+
+/** Options for {@link defineDesignSystemTheme}. */
+export interface DesignSystemThemeOptions {
+  /**
+   * The base URL the document's relative font paths resolve against, so a
+   * package can ship its own font files: `new URL('./fonts/', import.meta.url)`.
+   * Default: the page's base URI.
+   */
+  fontBase?: string | URL;
+  /** The theme's description in pickers. Default: the shipped description, then `Design system <id>@<version>`. */
+  description?: string;
+}
 
 export type { DesignSystem };
 
@@ -220,7 +238,8 @@ export async function compileDesignSystemDocument(
       errors: [`id "${compiled.id}" must be lowercase kebab-case to name a theme.`],
     };
   }
-  const shipped = shipDesignSystem(compiled);
+  const described = (resolved.document as { description?: unknown }).description;
+  const shipped = shipDesignSystem(compiled, typeof described === 'string' ? described : undefined);
   return { ok: true, compiled, shipped, theme: designSystemTheme(shipped) };
 }
 
@@ -229,7 +248,11 @@ function compileIssueText(issue: Refusal): string {
 }
 
 /** The fields of a compiled design system a prototype needs at run time (no report). */
-export function shipDesignSystem(compiled: CompiledDesignSystem): ShippedDesignSystem {
+export function shipDesignSystem(
+  compiled: CompiledDesignSystem,
+  description?: string
+): ShippedDesignSystem {
+  const text = description?.trim();
   return {
     id: compiled.id,
     name: compiled.name,
@@ -241,6 +264,7 @@ export function shipDesignSystem(compiled: CompiledDesignSystem): ShippedDesignS
     fontFaces: compiled.fontFaces,
     defaults: compiled.defaults,
     hash: compiled.hash,
+    ...(text ? { description: text.slice(0, 200) } : {}),
   };
 }
 
@@ -266,7 +290,9 @@ export function designSystemTheme(compiled: ShippedDesignSystem): Theme {
   return defineTheme({
     id: compiled.id,
     name: (compiled.name || compiled.id).slice(0, 40),
-    description: `Design system ${compiled.id}@${compiled.version}`,
+    description: (
+      compiled.description?.trim() || `Design system ${compiled.id}@${compiled.version}`
+    ).slice(0, 200),
     ...(light['--tx-font-sans'] ? { fontFamily: light['--tx-font-sans'] } : {}),
     ...(light['--tx-font-heading'] ? { fontFamilyHeading: light['--tx-font-heading'] } : {}),
     ...(light['--tx-font-mono'] ? { fontFamilyMono: light['--tx-font-mono'] } : {}),
@@ -283,14 +309,22 @@ export function designSystemTheme(compiled: ShippedDesignSystem): Theme {
  * appearance of that theme writes the compiled variables with
  * `applyDesignSystem` (light or dark, whichever the appearance resolves).
  * Component defaults (`components.<name>.defaults`) are not applied here;
- * tokens are.
+ * tokens are. `options.fontBase` lets a package ship the document's font
+ * files (relative `src` paths resolve against it), and `options.description`
+ * overrides the description pickers show.
  */
-export function defineDesignSystemTheme(compiled: ShippedDesignSystem): Theme {
-  const theme = designSystemTheme(compiled);
+export function defineDesignSystemTheme(
+  compiled: ShippedDesignSystem,
+  options: DesignSystemThemeOptions = {}
+): Theme {
+  const description = options.description?.trim();
+  const theme = designSystemTheme(description ? { ...compiled, description } : compiled);
+  const base = options.fontBase === undefined ? undefined : String(options.fontBase);
   registerDesignSystemPainter(theme.id, (target, mode) => {
     const dispose = applyDesignSystem(target, compiled, {
       mode,
       ...(compiled.variant ? { variant: compiled.variant } : {}),
+      ...(base ? { base } : {}),
     });
     const vars = compiled.vars[pickDesignSystemMode(compiled, mode)] ?? {};
     return { vars: { ...vars }, dispose };

@@ -1,5 +1,6 @@
 <script lang="ts">
-import { Button } from '@protoyard/ui';
+import type { DemoBadgeOptions } from '@protoyard/core';
+import { BOTTOM_NAV_SELECTOR, Button } from '@protoyard/ui';
 import { onMount } from 'svelte';
 import { chromeMessages, formatMessage } from '../messages.ts';
 import {
@@ -9,9 +10,10 @@ import {
   placeCompact,
   type Rect,
 } from './badge-placement.ts';
-import { badgeContainer, FLOATING_EVENT } from './floating.ts';
+import { badgeContainer, FLOATING_EVENT, selectorRects } from './floating.ts';
 
-let { name }: { name: string } = $props();
+type DemoBadgeConfig = Exclude<DemoBadgeOptions, boolean>;
+let { name, options = {} }: { name: string; options?: DemoBadgeConfig } = $props();
 
 /**
  * Honest labelling: published prototypes say they are simulations, without
@@ -26,9 +28,27 @@ let corner = $state<BadgeCorner>('bottom-left');
 /** The info dot's box, relative to the badge's containing block; `null`: the full badge. */
 let compact = $state<{ left: number; top: number; right: boolean; bottom: boolean } | null>(null);
 let expanded = $state(false);
+let placementHidden = $state(false);
 let badge: HTMLElement | undefined = $state();
 /** Full badge size, measured while it is shown (the dot cannot measure it). */
 let fullSize = { width: 0, height: 0 };
+let narrow = $state(typeof window !== 'undefined' && window.innerWidth < 640);
+let inShellWithNav = $state(false);
+
+$effect(() => {
+  if (!inShellWithNav || !badge) return;
+  badge.style.setProperty('position', 'fixed', 'important');
+  badge.style.setProperty('margin', '0', 'important');
+});
+
+function avoidRects(extraHeading = false): Rect[] {
+  const selectors = [
+    BOTTOM_NAV_SELECTOR,
+    ...(options.avoid ?? []),
+    ...(extraHeading ? ['h1,[role="heading"][aria-level="1"]'] : []),
+  ];
+  return selectorRects(selectors);
+}
 
 /**
  * Where the badge may sit: #app under a viewport preset (it has a transform,
@@ -47,7 +67,10 @@ function containingBlock(): ReturnType<typeof badgeContainer> {
 function place(): void {
   const root = document.documentElement;
   if (!badge) return;
-  if (root.hasAttribute('data-py-shell')) {
+  placementHidden = false;
+  inShellWithNav =
+    root.hasAttribute('data-py-shell') && Boolean(document.querySelector(BOTTOM_NAV_SELECTOR));
+  if (root.hasAttribute('data-py-shell') && !inShellWithNav) {
     // In a frame the badge is a row below the stage (app.css): always the full label.
     compact = null;
     return;
@@ -55,18 +78,39 @@ function place(): void {
   if (!compact) fullSize = { width: badge.offsetWidth, height: badge.offsetHeight };
   if (!fullSize.width || typeof document.elementFromPoint !== 'function') return;
   const { container, origin } = containingBlock();
+  const phoneMode = narrow ? options.phone : undefined;
+  if (phoneMode === 'hidden') {
+    compact = null;
+    placementHidden = true;
+    return;
+  }
+  // In a phone shell the frame's bottom navigation sits outside the app's
+  // placement box. Use the compact marker by default so it can be placed
+  // against the viewport and explicitly avoid both the nav and first heading.
+  const compactPhone = phoneMode === 'compact' || (narrow && phoneMode !== 'corner');
   const hit = (x: number, y: number) => {
     const el = document.elementFromPoint(x, y);
     // The badge never counts as its own obstacle (the dot is clickable).
     return el && badge?.contains(el) ? null : el;
   };
-  if (!everyCornerBlocked(container, fullSize, hit)) {
+  const avoid = avoidRects(narrow && compactPhone);
+  if (!compactPhone && !everyCornerBlocked(container, fullSize, hit)) {
     compact = null;
     expanded = false;
-    corner = placeBadge(container, fullSize, hit);
+    const placement = placeBadge(container, fullSize, hit, avoid);
+    if (!placement) {
+      placementHidden = true;
+      return;
+    }
+    corner = placement;
     return;
   }
-  const spot = placeCompact(container, hit);
+  const spot = placeCompact(container, hit, avoid);
+  if (!spot) {
+    compact = null;
+    placementHidden = true;
+    return;
+  }
   compact = {
     left: spot.left - origin.left,
     top: spot.top - origin.top,
@@ -81,6 +125,7 @@ onMount(() => {
   const idle = (fn: () => void) =>
     typeof requestIdleCallback === 'function' ? requestIdleCallback(fn, { timeout: 1000 }) : fn();
   const schedule = () => {
+    narrow = window.innerWidth < 640;
     clearTimeout(timer);
     timer = setTimeout(() => idle(place), 150);
   };
@@ -122,7 +167,10 @@ const messages = chromeMessages().badge;
     bind:this={badge}
     aria-label={messages.label}
     data-py-demo-badge="compact"
-    class="pointer-events-none fixed z-30 flex size-5 select-none"
+    class={[
+      'pointer-events-none fixed flex size-4 select-none',
+      options.layer === 'below-overlays' ? 'z-10' : 'z-30',
+    ]}
     style:left="{compact.left}px"
     style:top="{compact.top}px"
   >
@@ -130,7 +178,7 @@ const messages = chromeMessages().badge;
       variant="ghost"
       size="icon"
       type="button"
-      class="pointer-events-auto inline-flex size-5 items-center justify-center rounded-full border border-border bg-elevated/90 shadow-soft backdrop-blur focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      class="pointer-events-auto inline-flex size-4 items-center justify-center rounded-full border border-border bg-elevated/90 shadow-soft backdrop-blur focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       aria-expanded={expanded}
       aria-label={messages.text}
       title={formatMessage(messages.title, { name })}
@@ -157,7 +205,10 @@ const messages = chromeMessages().badge;
   aria-label={messages.label}
   data-py-demo-badge={corner}
   class={[
-    'pointer-events-none fixed z-30 select-none whitespace-nowrap rounded-full border border-border bg-elevated px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-soft',
+    'pointer-events-none fixed select-none whitespace-nowrap rounded-full border border-border bg-elevated px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-soft',
+    options.layer === 'below-overlays' ? 'z-10' : 'z-30',
+    placementHidden ? 'hidden' : '',
+    narrow && options.phone === 'hidden' ? 'hidden' : '',
     corner.startsWith('top') ? 'top-3' : 'bottom-3 pb-safe',
     // `--py-fixed-right-edge` (set by the renderer) keeps the right corners on the visible width.
     corner.endsWith('left') ? 'left-3' : 'right-[calc(0.75rem+var(--py-fixed-right-edge,0px))]',
