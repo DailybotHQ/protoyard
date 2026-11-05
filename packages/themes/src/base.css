@@ -70,6 +70,46 @@
   --color-primary-hover: var(--tx-primary-hover);
   --color-destructive-hover: var(--tx-destructive-hover);
 
+  /* The rest of Texuli's Tailwind color roles (@texuli/tokens/tailwind theme map):
+     soft tones, strong border, link, selection, overlay and the other interaction
+     states. applyAppearance writes the link roles; a design system or Texuli theme
+     writes the others. Without one, each falls back to the Protoyard role it is
+     derived from (deriveTexuliRoles in texuli.ts; the soft tones and the strong
+     border are approximations of its contrast picks). */
+  --color-elevated-foreground: var(--tx-elevated-foreground, var(--tx-foreground));
+  --color-subtle: var(--tx-subtle, var(--tx-muted));
+  --color-subtle-foreground: var(--tx-subtle-foreground, var(--tx-muted-foreground));
+  --color-border-strong: var(--tx-border-strong, var(--tx-input));
+  --color-primary-soft: var(--tx-primary-soft, var(--tx-muted));
+  --color-primary-soft-foreground: var(--tx-primary-soft-foreground, var(--tx-foreground));
+  --color-destructive-soft: var(--tx-destructive-soft, var(--tx-muted));
+  --color-destructive-soft-foreground: var(--tx-destructive-soft-foreground, var(--tx-foreground));
+  --color-success-soft: var(--tx-success-soft, var(--tx-muted));
+  --color-success-soft-foreground: var(--tx-success-soft-foreground, var(--tx-foreground));
+  --color-warning-soft: var(--tx-warning-soft, var(--tx-muted));
+  --color-warning-soft-foreground: var(--tx-warning-soft-foreground, var(--tx-foreground));
+  --color-info-soft: var(--tx-info-soft, var(--tx-muted));
+  --color-info-soft-foreground: var(--tx-info-soft-foreground, var(--tx-foreground));
+  --color-sidebar-primary: var(--tx-sidebar-primary, var(--tx-primary));
+  --color-overlay: var(--tx-overlay, var(--tx-elevated));
+  --color-scrim: var(--tx-scrim, var(--tx-shadow));
+  --color-link: var(--tx-link);
+  --color-link-visited: var(--tx-link-visited);
+  --color-selection: var(--tx-selection, var(--tx-primary));
+  --color-selection-foreground: var(--tx-selection-foreground, var(--tx-primary-foreground));
+  --color-canvas: var(--tx-canvas, var(--tx-background));
+  --color-primary-active: var(--tx-primary-active, var(--tx-primary-hover));
+  --color-primary-disabled: var(--tx-primary-disabled, var(--tx-muted));
+  --color-primary-focus: var(--tx-primary-focus, var(--tx-primary));
+  --color-secondary-hover: var(--tx-secondary-hover, var(--tx-secondary));
+  --color-destructive-active: var(--tx-destructive-active, var(--tx-destructive-hover));
+  --color-accent-hover: var(--tx-accent-hover, var(--tx-accent));
+  --color-success-hover: var(--tx-success-hover, var(--tx-success));
+  --color-warning-hover: var(--tx-warning-hover, var(--tx-warning));
+  --color-info-hover: var(--tx-info-hover, var(--tx-info));
+  --color-muted-hover: var(--tx-muted-hover, var(--tx-muted));
+  --color-link-hover: var(--tx-link-hover);
+
   --radius-xs: calc(var(--tx-radius) - var(--tx-radius-step-6, 6px));
   --radius-sm: calc(var(--tx-radius) - var(--tx-radius-step-4, 4px));
   --radius-md: calc(var(--tx-radius) - var(--tx-radius-step-2, 2px));
