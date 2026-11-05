@@ -71,6 +71,13 @@ writes workspace config (`package.json`, `protoyard.json`, `biome.json`,
 symbolic link, and with `--force` it replaces an existing file only when that
 file already is a valid blueprint.
 
+In a consumer workspace created by `npm create protoyard`, generation,
+`blueprint new --generate`, and `quick promote` write the installed lockstep
+Protoyard version into the copied prototype manifest. Remixes with `new --from`
+do the same. Protoyard dependency ranges are published versions in consumer
+prototypes; unrelated `workspace:` dependencies are preserved. In the Protoyard
+monorepo, generated prototypes keep their workspace ranges.
+
 Every command accepts `--json` and returns `{ ok, command, data?, error? }`.
 `generate` exits with 0 on success, 1 on a conflict (an existing prototype it did
 not generate, or hand-edited generated files), 2 for usage errors, 3 when the
