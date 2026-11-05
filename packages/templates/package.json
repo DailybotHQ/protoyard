@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/templates",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Every Protoyard starter template, packed for `protoyard new` outside this repository: listTemplates() and templateDir(name).",
   "license": "MIT",
   "type": "module",

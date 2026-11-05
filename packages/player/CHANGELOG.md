@@ -1,5 +1,28 @@
 # @protoyard/player
 
+## 1.2.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/pages-ui@1.2.3
+  - @protoyard/ai@1.2.3
+  - @protoyard/ai-ui@1.2.3
+  - @protoyard/analytics@1.2.3
+  - @protoyard/analytics-ui@1.2.3
+  - @protoyard/blocks-ui@1.2.3
+  - @protoyard/blueprint@1.2.3
+  - @protoyard/charts-ui@1.2.3
+  - @protoyard/core@1.2.3
+  - @protoyard/crud@1.2.3
+  - @protoyard/decks-ui@1.2.3
+  - @protoyard/renderer-svelte@1.2.3
+  - @protoyard/saas@1.2.3
+  - @protoyard/saas-ui@1.2.3
+  - @protoyard/themes@1.2.3
+  - @protoyard/ui@1.2.3
+  - @protoyard/views-ui@1.2.3
+
 ## 1.2.2
 
 ### Patch Changes
