@@ -1,5 +1,11 @@
 # @protoyard/ui
 
+## 1.2.2
+
+### Patch Changes
+
+- Texuli 0.13.1 across every package (an additive patch): icons registered by name (`registerIcons`, `IconsProvider`), an editable `CodeField`, `Image srcDark` and `AvatarGroupGrid`.
+
 ## 1.2.1
 
 No changes in this release.

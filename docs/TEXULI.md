@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.13.0`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.13.1`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.13.0`. Texuli pins its own internal dependencies exactly,
+Every package is `0.13.1`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -101,6 +101,22 @@ words (service toasts, loading text, the demo badge) go in `messages`
 (`ChromeMessages`). Texuli's `data`, `chat`, `media` and `editor` packages still
 take per-component `labels` props only (a known Texuli gap), and Protoyard's
 kits do not map their own strings onto the dictionary yet.
+
+## Icons, code fields, image pairs and avatar grids (Texuli 0.13.1)
+
+Texuli 0.13.1 adds four components a prototype can use directly (they are
+not in the agent catalog yet, so blueprints cannot emit them):
+
+- **Icons by name:** `registerIcons({ rocket: Rocket })` in a root or layout
+  component (or `<IconsProvider icons={…}>`), then `<Icon icon="rocket" />`.
+  Both come from `texuli/icons`; it is Svelte context, so it is SSR-safe and
+  scoped to the subtree.
+- **Code field:** `<CodeField bind:value language="ts" label="Query" />` from
+  `@texuli/blocks/code-field`, an editable highlighted field with no HTML sinks.
+- **Light and dark image:** `<Image src={light} srcDark={dark} alt="…" />` from
+  `@texuli/media/image`.
+- **Avatar grid:** `<AvatarGroupGrid items={members} label="…" />` from
+  `texuli/avatar`, a 2×2 collage for group conversations.
 
 ## The uniform component contract
 

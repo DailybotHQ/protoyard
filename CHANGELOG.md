@@ -6,6 +6,17 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-11-05
+
+### Changed
+
+- **Texuli 0.13.1.** Every Texuli dependency moves to 0.13.1, an additive
+  patch that ships the consumers' second Texuli gap batch: icons registered by
+  name (`registerIcons` / `IconsProvider` from `texuli/icons`, then
+  `<Icon icon="name" />`), an editable `CodeField`
+  (`@texuli/blocks/code-field`), `Image srcDark` (`@texuli/media/image`) and
+  `AvatarGroupGrid` (`texuli/avatar`). See the Texuli guide.
+
 ## [1.2.1] - 2026-11-05
 
 ### Fixed

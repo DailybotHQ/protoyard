@@ -1,5 +1,12 @@
 # @protoyard/pages
 
+## 1.2.2
+
+### Patch Changes
+
+- @protoyard/blocks@1.2.2
+  - @protoyard/core@1.2.2
+
 ## 1.2.1
 
 ### Patch Changes

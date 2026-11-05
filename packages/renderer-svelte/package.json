@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/renderer-svelte",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Svelte 5 + Vite renderer for Protoyard: Vite config factory, app mounting, reactive runtime bindings and live queries.",
   "license": "MIT",
   "type": "module",
@@ -37,7 +37,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "dexie": "^4.4.7",
     "tailwindcss": "^4.3.3",
-    "texuli": "0.13.0",
+    "texuli": "0.13.1",
     "vite": "^8.3.5"
   },
   "devDependencies": {
