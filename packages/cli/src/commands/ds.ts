@@ -515,7 +515,10 @@ export const dsUseCommand: Handler = async (ctx, args, options): Promise<Command
 // Re-run the command to update it; edit the design-system document, not this file.
 import { defineDesignSystemTheme, type ShippedDesignSystem } from '${dependency.from}';
 
-const compiled: ShippedDesignSystem = ${JSON.stringify(result.shipped, null, 2)};
+// Exported for tests and for hosts that need every compiled variable
+// (\`designSystemVars(compiled, mode)\` in @protoyard/themes) or a deck resolver
+// (\`deckDesignSystems(compiled)\` in @protoyard/decks-ui).
+export const compiled: ShippedDesignSystem = ${JSON.stringify(result.shipped, null, 2)};
 
 export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
 `;
