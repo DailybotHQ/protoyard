@@ -60,6 +60,7 @@ export {
   type MountPrototypeOptions,
   mountPrototype,
   type PrototypeI18n,
+  type PrototypeToasterOptions,
   type RuntimeFactoryOptions,
 } from './mount.ts';
 export { describeLoadProgress } from './progress.ts';

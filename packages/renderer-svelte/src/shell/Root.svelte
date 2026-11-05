@@ -18,6 +18,7 @@ let {
   demoBadge = false,
   devtools = false,
   i18n,
+  toaster,
 }: {
   runtime: PrototypeRuntime;
   // biome-ignore lint/suspicious/noExplicitAny: prototype apps may declare optional props.
@@ -27,6 +28,8 @@ let {
   devtools?: boolean;
   /** One label dictionary for every Texuli component (texuli/i18n, ADR-026). */
   i18n?: Pick<ComponentProps<typeof LabelsProvider>, 'labels' | 'locale'>;
+  /** Where the toast stack sits (mountPrototype `toaster`). */
+  toaster?: Pick<ComponentProps<typeof Toaster>, 'position' | 'offset' | 'label'>;
 } = $props();
 
 // svelte-ignore state_referenced_locally
@@ -63,7 +66,7 @@ const stale = typeof scenarioExtras.staleWorld === 'function' ? scenarioExtras.s
     <div data-py-scroll-root aria-busy={pending.active || undefined}>
       <App />
     </div>
-    <Toaster />
+    <Toaster {...toaster} />
   </ShellHost>
   <!-- Outside the screen: below the stage in a frame, a free corner when full-bleed (app.css). -->
   {#if demoBadge}

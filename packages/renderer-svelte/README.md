@@ -54,6 +54,10 @@ unplaced review toolbar, the DevTools launcher, the `Toaster` and `UndoToaster`
 (phone layout) and the demo badge's right corners do. The badge also picks its
 corner inside the visible viewport (`badgeContainer`), not the layout one.
 
+`mountPrototype({ toaster })` places the toast stack: `position` (`top-start`
+… `bottom-end`, default `bottom-end`), `offset` (px or a CSS length from the
+edge, for example above a bottom nav) and the region's `label`.
+
 `mountPrototype` also accepts `devtoolsTabs?: readonly DevtoolsTab[]` for
 prototype-owned panels such as Deck Studio. These lazy tabs are combined with
 the optional review tab and passed to `mountDevtools`; with no contributed or

@@ -12,7 +12,7 @@ import {
 import type { DevtoolsTab } from '@protoyard/devtools';
 import { createPrototypeRuntime } from '@protoyard/runtime';
 import { BUILTIN_THEMES, mergeThemes } from '@protoyard/themes';
-import { toast } from '@protoyard/ui';
+import { type Toaster, toast } from '@protoyard/ui';
 import { type Component, type ComponentProps, mount, tick, unmount } from 'svelte';
 import type { LabelsProvider } from 'texuli/i18n';
 import { bindAppearance } from './appearance.ts';
@@ -101,7 +101,19 @@ export interface MountPrototypeOptions {
    * ids stay English. Protoyard's own chrome words go in `messages`.
    */
   i18n?: PrototypeI18n;
+  /**
+   * The toast stack: `position` (`top-start` … `bottom-end`, default
+   * `bottom-end`), `offset` (px or a CSS length from the edge, e.g. above a
+   * bottom nav) and the region's `label`.
+   */
+  toaster?: PrototypeToasterOptions;
 }
+
+/** {@link MountPrototypeOptions.toaster}: Texuli `Toaster`'s `position`, `offset` and `label`. */
+export type PrototypeToasterOptions = Pick<
+  ComponentProps<typeof Toaster>,
+  'position' | 'offset' | 'label'
+>;
 
 /** {@link MountPrototypeOptions.i18n}: `LabelsProvider`'s `labels` and `locale`. */
 export type PrototypeI18n = Pick<ComponentProps<typeof LabelsProvider>, 'labels' | 'locale'>;
@@ -277,6 +289,7 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
           (DEMO_BADGE_CONFIG === true ? definition.manifest.build.demoBadge : DEMO_BADGE_CONFIG),
         devtools: devtoolsAvailable,
         ...(options.i18n ? { i18n: options.i18n } : {}),
+        ...(options.toaster ? { toaster: options.toaster } : {}),
       },
     });
   } catch (error) {
