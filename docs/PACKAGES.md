@@ -117,13 +117,13 @@ The equivalent npm command is:
 npm install @protoyard/blueprint @protoyard/crud @protoyard/renderer-svelte @protoyard/ui svelte
 ```
 
-`protoyard new` runs inside an existing Protoyard workspace. For a fresh workspace, use `create-protoyard` as above. Until the first npm release, the repository's current local scaffolder command is:
+`protoyard new` runs inside an existing Protoyard workspace. For a fresh workspace, use `npm create protoyard <dir>` as above. To scaffold from an unreleased checkout, run the local scaffolder:
 
 ```sh
 node packages/create-protoyard/bin/create-protoyard.mjs ../acme-lab --no-install --no-git
 ```
 
-That local command can create the workspace files, but its pinned Protoyard npm dependencies cannot be installed until those packages have been released. See [QUICKSTART.md](QUICKSTART.md#a-workspace-of-your-own-create-protoyard) for the full first-run workflow.
+It pins the checkout's version, so its npm dependencies install only once that version is released. See [QUICKSTART.md](QUICKSTART.md#a-workspace-of-your-own-create-protoyard) for the full first-run workflow.
 
 Protoyard requires Node.js 24.20 or later. pnpm is first-class; npm is supported for scaffolded workspaces and package installs. Bun is not tested. Svelte UI packages require Svelte 5.57 or later as a peer dependency.
 
@@ -244,7 +244,7 @@ The report names one attw exception, `svelte-component-declaration`, and counts 
 - **When.** The exception drops that problem only under `node16`, and only when both the component and its `.svelte.d.ts` are in the tarball.
 - **What still fails.** A missing declaration still fails, because attw then also reports it under `bundler` and `node10`. Every other attw problem fails the check.
 
-Package publication checks inspect packed manifests and tarballs. The first npm release is still gated; read [PUBLISHING.md](PUBLISHING.md) and [DECISIONS.md](DECISIONS.md#adr-028--packages-publish-dist-through-publishconfig-the-repository-keeps-source-exports) for the current release contract and status.
+Package publication checks inspect packed manifests and tarballs. Releases are published by CI (`release.yml`, Trusted Publishing with provenance); read [PUBLISHING.md](PUBLISHING.md) and [DECISIONS.md](DECISIONS.md#adr-028--packages-publish-dist-through-publishconfig-the-repository-keeps-source-exports) for the current release contract and status.
 
 ## Related guides
 
