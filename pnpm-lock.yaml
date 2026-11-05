@@ -45,68 +45,68 @@ importers:
         specifier: ^5.4.2
         version: 5.4.2(svelte@5.57.3)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(vitest@5.0.5)
       '@texuli/astro':
-        specifier: 0.13.0
-        version: 0.13.0(@astrojs/svelte@9.1.2(@types/node@24.19.2)(astro@7.4.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 0.13.1
+        version: 0.13.1(@astrojs/svelte@9.1.2(@types/node@24.19.2)(astro@7.4.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3)(tsx@4.23.15)(yaml@2.9.1)
       '@texuli/blocks':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/canvas':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/catalog':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/charts':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/chat':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/core':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       '@texuli/data':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/date':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       '@texuli/deck':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       '@texuli/document':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       '@texuli/drag':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       '@texuli/editor':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/forms':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/media':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/pages':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/primitives':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/sheets':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/slides':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/tokens':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       '@texuli/workflows':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
@@ -129,8 +129,8 @@ importers:
         specifier: ^4.7.7
         version: 4.7.7(picomatch@4.0.7)(svelte@5.57.3)(typescript@6.0.3)
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       tsx:
         specifier: ^4.23.15
         version: 4.23.15
@@ -174,11 +174,11 @@ importers:
         specifier: ^4.3.3
         version: 4.3.3(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
       '@texuli/astro':
-        specifier: 0.13.0
-        version: 0.13.0(@astrojs/svelte@9.1.2(@types/node@24.19.2)(astro@7.4.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3)(tsx@4.23.15)(yaml@2.9.1)
+        specifier: 0.13.1
+        version: 0.13.1(@astrojs/svelte@9.1.2(@types/node@24.19.2)(astro@7.4.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3)(tsx@4.23.15)(yaml@2.9.1)
       '@texuli/tokens':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       astro:
         specifier: ^7.4.4
         version: 7.4.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
@@ -189,8 +189,8 @@ importers:
         specifier: ^4.3.3
         version: 4.3.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       axe-core:
         specifier: ^4.14.0
@@ -217,11 +217,11 @@ importers:
         specifier: workspace:*
         version: link:../charts-ui
       '@texuli/chat':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       axe-core:
         specifier: ^4.14.0
@@ -260,17 +260,17 @@ importers:
         specifier: workspace:*
         version: link:../ui
       '@texuli/charts':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/data':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/date':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       svelte:
         specifier: ^5.57.3
@@ -297,8 +297,8 @@ importers:
         specifier: workspace:*
         version: link:../core
       '@texuli/blocks':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -333,20 +333,20 @@ importers:
         specifier: workspace:*
         version: link:../views-ui
       '@texuli/blocks':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/charts':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/data':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/editor':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       svelte:
         specifier: ^5.57.3
@@ -380,8 +380,8 @@ importers:
         specifier: workspace:*
         version: link:../database
       '@texuli/forms':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
 
   packages/charts:
     dependencies:
@@ -389,11 +389,11 @@ importers:
         specifier: workspace:*
         version: link:../core
       '@texuli/charts':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/tokens':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
 
   packages/charts-ui:
     dependencies:
@@ -401,11 +401,11 @@ importers:
         specifier: workspace:*
         version: link:../charts
       '@texuli/charts':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       svelte:
         specifier: ^5.57.3
@@ -522,17 +522,17 @@ importers:
         specifier: workspace:*
         version: link:../views-ui
       '@texuli/canvas':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/forms':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/sheets':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -565,8 +565,8 @@ importers:
         specifier: workspace:*
         version: link:../themes
       '@texuli/deck':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -586,14 +586,14 @@ importers:
         specifier: workspace:*
         version: link:../decks
       '@texuli/deck':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       '@texuli/slides':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       svelte:
         specifier: ^5.57.3
@@ -617,11 +617,11 @@ importers:
         specifier: workspace:*
         version: link:../themes
       '@texuli/primitives':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       svelte:
         specifier: ^5.57.3
@@ -639,11 +639,11 @@ importers:
         specifier: workspace:*
         version: link:../flows
       '@texuli/workflows':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       svelte:
         specifier: ^5.57.3
@@ -667,8 +667,8 @@ importers:
         specifier: workspace:*
         version: link:../ui
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       svelte:
         specifier: ^5.57.3
@@ -699,8 +699,8 @@ importers:
         specifier: workspace:*
         version: link:../core
       '@texuli/document':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -726,20 +726,20 @@ importers:
         specifier: workspace:*
         version: link:../ui
       '@texuli/blocks':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/document':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       '@texuli/forms':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/pages':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       svelte:
         specifier: ^5.57.3
@@ -808,8 +808,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -866,8 +866,8 @@ importers:
         specifier: ^4.3.3
         version: 4.3.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       vite:
         specifier: ^8.3.5
         version: 8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
@@ -909,8 +909,8 @@ importers:
         specifier: workspace:*
         version: link:../views-ui
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       svelte:
         specifier: ^5.57.3
@@ -971,11 +971,11 @@ importers:
         specifier: workspace:*
         version: link:../ui
       '@texuli/forms':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1004,8 +1004,8 @@ importers:
         specifier: workspace:*
         version: link:../core
       '@texuli/tokens':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
 
   packages/ui:
     dependencies:
@@ -1013,23 +1013,23 @@ importers:
         specifier: ^1.64.0
         version: 1.64.0(svelte@5.57.3)
       '@texuli/chat':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/core':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       '@texuli/data':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/date':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       '@texuli/primitives':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       svelte:
         specifier: ^5.57.3
@@ -1044,8 +1044,8 @@ importers:
         specifier: workspace:*
         version: link:../core
       '@texuli/data':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1071,26 +1071,26 @@ importers:
         specifier: workspace:*
         version: link:../views
       '@texuli/canvas':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/data':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/drag':
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.13.1
+        version: 0.13.1
       '@texuli/editor':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/primitives':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       '@texuli/sheets':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       svelte:
         specifier: ^5.57.3
@@ -1117,8 +1117,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1160,8 +1160,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1212,8 +1212,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -1243,8 +1243,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/views-ui
       '@texuli/canvas':
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       dexie:
         specifier: ^4.4.7
         version: 4.4.7
@@ -1252,8 +1252,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -1292,8 +1292,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
 
   prototypes/crm-demo:
     dependencies:
@@ -1316,8 +1316,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1371,8 +1371,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -1408,8 +1408,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -1448,8 +1448,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1494,8 +1494,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1528,8 +1528,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1574,8 +1574,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1623,8 +1623,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1675,8 +1675,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -1712,8 +1712,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1746,8 +1746,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -1789,8 +1789,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -1823,8 +1823,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1863,8 +1863,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1906,8 +1906,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1955,8 +1955,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2001,8 +2001,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2035,8 +2035,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -2075,8 +2075,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2109,8 +2109,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -2140,8 +2140,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -2180,8 +2180,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2220,8 +2220,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2269,8 +2269,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -2306,8 +2306,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2346,8 +2346,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
 
   templates/design-kit:
     dependencies:
@@ -2373,8 +2373,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -2407,8 +2407,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2453,8 +2453,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -2493,8 +2493,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2530,8 +2530,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2573,8 +2573,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2622,8 +2622,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2668,8 +2668,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2714,8 +2714,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2748,8 +2748,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -2782,8 +2782,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2828,8 +2828,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
     devDependencies:
       '@protoyard/runtime':
         specifier: workspace:*
@@ -2859,8 +2859,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2902,8 +2902,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2939,8 +2939,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2976,8 +2976,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -3016,8 +3016,8 @@ importers:
         specifier: ^5.57.3
         version: 5.57.3
       texuli:
-        specifier: 0.13.0
-        version: 0.13.0(svelte@5.57.3)
+        specifier: 0.13.1
+        version: 0.13.1(svelte@5.57.3)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -4105,105 +4105,105 @@ packages:
       vitest:
         optional: true
 
-  '@texuli/astro@0.13.0':
-    resolution: {integrity: sha512-WDEnZ5IcrBwOCrNkg1vb41LfI2ZCj6GiPYjtYxZpw6tWkLZv82eiEaG9YEtNXK4eLsB1qcAr/PNlVN91uVVlUQ==}
+  '@texuli/astro@0.13.1':
+    resolution: {integrity: sha512-2rWeNZMaa/8ZG1ScRmN3BahMRUWLYkvIdFnShL7QCOhIPsfR9bhSWWEeoymEOqrujBi0TOLjQvNIiQxbSe5qew==}
     peerDependencies:
       '@astrojs/svelte': ^9.1.0
       svelte: ^5.57.2
 
-  '@texuli/blocks@0.13.0':
-    resolution: {integrity: sha512-wEy7iaFYsK+sj/wpujn4wUb1MIHYNXxUUKJLFhksRjrIiufOhuPXIX3gfRhEBNpF65dYiR84cuFqAP8hpVE77w==}
+  '@texuli/blocks@0.13.1':
+    resolution: {integrity: sha512-QkMDcMQ+xCKa4oeISI57njNyrUA06OG/ixf/RsPFvgP4D10R9C2+M73CfG0AkWx6JVf3zgTfwZ12Y2B9/46SVw==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/canvas@0.13.0':
-    resolution: {integrity: sha512-SqvY5Wzn1Ut3UjXarwP8nHtxhvCUrhoYPdSqvAO29mih/ojKXsh17PsjPqOIIJd4o7sXGERs6c4MQC2BGxcbhA==}
+  '@texuli/canvas@0.13.1':
+    resolution: {integrity: sha512-w0kLIYlsXJhBsx1+V3Rn0n7vx3JadeglWQYYLweuqVrVVp7MY5SZLj3gqInVq2wHwTFWW8IK9khUDLKYlgJGyA==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/catalog@0.13.0':
-    resolution: {integrity: sha512-JM6GUGoXU6DXl2trTWFNN60IqVINqfQAdFQUztDh6WT4zqduvrF6F9oIitq6VM0IfpPCb0P6b/KhwVzLjlGcLg==}
+  '@texuli/catalog@0.13.1':
+    resolution: {integrity: sha512-ecjHz1ZZvydw3I2H2oSaUTxDxO+RcDUF8duisPeYdJme7cL7gMD3eWE1pEdadu8gQsGu/Q18aqxIq08Wgg1JGA==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/charts@0.13.0':
-    resolution: {integrity: sha512-tOO0DeifzrPNc93W62lBEbkIXMWeHxrO/DYwuGDN3x3UNhVsE0cMN3oL1LgQSAvQeXH29Bv+g3Igw/5WW9hDvQ==}
+  '@texuli/charts@0.13.1':
+    resolution: {integrity: sha512-2GCyXA7gl63GaBPXrhFb7AoOnV5pGF5dHGTM3toHNUhafhEZEUGXUq5/NtWyn5oegmY0xlSVERJlb5V0FH1SvQ==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/chat@0.13.0':
-    resolution: {integrity: sha512-EVPEGKX7KnuQirz3heSqiYCGoOaWOmEllf/92ZzAtSMcTsZEzsZ10adwUqRzhvaK+oPcWnKTwo+BiXuadrAvLw==}
+  '@texuli/chat@0.13.1':
+    resolution: {integrity: sha512-sTvOnWg1x+2Fzof/OWtuVUotR9N4tmgs7YDj57CwiJ2VNhVeWtGwjGMU/M9XxaG4Pg3JlFmAVUH9NjJmuP9EWw==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/core@0.13.0':
-    resolution: {integrity: sha512-KijKHIX3yxSkyJhJjCf6ooQik8Ocq11CbLOf+RBuFhxpT2oVqdfzQmg9cPU1g/P/e8Bhb2VyBRfP48FpQnh/gA==}
+  '@texuli/core@0.13.1':
+    resolution: {integrity: sha512-FMIujWmw3dc3CegIt5apBAL40Bg8tSasPUD6IjSwkfjnALimrIrjz2STo3lJPzyqAGnFNe1I4CtCZ7JJDsk3Jg==}
 
-  '@texuli/data@0.13.0':
-    resolution: {integrity: sha512-wJAwEsRc2X0usw+eVr54NAfi+Dcg1jejontXPuJB1Xf64xdyEvPlNtGQFntY6YM9iCPvvpkn3TyxDjGoc1UW7g==}
+  '@texuli/data@0.13.1':
+    resolution: {integrity: sha512-ByeiwjF+JvMCMPMDwmLX1Wa0uvLGRMZGJjnaXtktTCcBK0Os7ZuHVVXTBaXx5GaebzJxMouv1zL0x1+bc+kz8g==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/date@0.13.0':
-    resolution: {integrity: sha512-d9Jq+g+SG53hg92mpJi0shdaQd0bhpsBxZPjlqEVEomrOSpbZbC7KUF9TO5TYUWzUK5LqHcmpvdZwYVq5MswzA==}
+  '@texuli/date@0.13.1':
+    resolution: {integrity: sha512-pyJvk/KxVCVqOfa59I2N2iXWTZmlPzktJhW/klPEbwbXi3Zi4Dar57jPyeDeeXais2UfZMZXSIpTfSq3RmQUew==}
 
-  '@texuli/deck@0.13.0':
-    resolution: {integrity: sha512-daz6tcemfGq9XG/1eutBNThYBiCM66H+jDv1Ad53eqy6RAi+d+OSy92nAI70zaNmo2WQ8TgZGlfRfzfeuVTklw==}
+  '@texuli/deck@0.13.1':
+    resolution: {integrity: sha512-ZuGOfkdLs6PhX9XWZ1UXnkiOz0mNxXvp1R0qWNo2AjP+TNGC3k34pjBh04HeJPk132+AdyrnoCK0KJ1ektW7iQ==}
 
-  '@texuli/document@0.13.0':
-    resolution: {integrity: sha512-WoF8B2NeEpdg/8Mx1xccJTGvtdUsErEbLZnjR643f5WrcG5ivKUy60wGzPxNEu3YBBg6+q1t79aJcHJpQxcNaw==}
+  '@texuli/document@0.13.1':
+    resolution: {integrity: sha512-B7oXILz7kuGcySbZneZfcqgstBRXjRZ/FP8f+VbraXBSeCApAYbpXaSc7b+X71DmB9bNWY6MFn1Hk8dxdli9Hg==}
 
-  '@texuli/drag@0.13.0':
-    resolution: {integrity: sha512-Zlg1vZsy1snr94MLHwkw9FU3YK1MUSE9walC3WOcWQs0+jstiBkKcEUCdtP1QnIFa0vjOgltBBd0mH0/VfsyDg==}
+  '@texuli/drag@0.13.1':
+    resolution: {integrity: sha512-MotuoI1R6bjemk+ReKezkxpSLSK36HjyTjAPBe6DzObuR1bLQMR4wQOBS8OKkUvduzsIkFGMqkBZFnAm8qkTNg==}
 
-  '@texuli/editor@0.13.0':
-    resolution: {integrity: sha512-GcWfpq1pyo55vkslSrAODdeMHPdys1f4vJBaNvXK2OcqMvQL4du95xcah7lMAKDArZ2SSoZQ30tQmxFArbaKVQ==}
+  '@texuli/editor@0.13.1':
+    resolution: {integrity: sha512-tui1eaRz/b2rLzqT6fVZyKyAagqU6qQWZsWGZb/aJCoMkgsDMbDNPYc1VXT5SlSLAmJ3nNXiAkizmuj9Hg2qGA==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/forms@0.13.0':
-    resolution: {integrity: sha512-06rCqsR+zngCZJGvKBaBD/HJnhF6ajflcYdKXv/YtOmnvdENNWtaHw+cMlatQAf66NNsWX9mkElCimdrm0Pvqw==}
+  '@texuli/forms@0.13.1':
+    resolution: {integrity: sha512-MtuvKjBPaq9P8pP/thlh3bzDwdu4DBEthljL9SyhvZhK7jsrgFIg3CND1045V0cUEA50febYkw4zAdwx2vBmcw==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/media@0.13.0':
-    resolution: {integrity: sha512-C3AFKxQ/lmN6g8IMKHBp/KRblI2IIGFOHnfThPjcGJKzkUqqsJqTRmQRbV2EMpBw/HalQ8SKrKJJXeTok7nnDA==}
+  '@texuli/media@0.13.1':
+    resolution: {integrity: sha512-Aq5yWwT3nZyxufMrphWWTq+JEQY5HRB+gHXpOpKQdIuGtdEqKHG5vpXJ6v08cxcJQUBK+E7f3YJT3XE+xjzKcQ==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/pages@0.13.0':
-    resolution: {integrity: sha512-Dpdj+acdv0lOFLnmv5uw39r3AqOSgCuXBf48lVU0uslbsGJUIIXgn2bDdxKYtIKz7IUeK4KKKndqGegr2BFlLA==}
+  '@texuli/pages@0.13.1':
+    resolution: {integrity: sha512-CAnjdzdl5yQkURiezjOhmvTQod+g+DAYN4dakuH+/C6fNwprF+7T0FgKxn7G0VXwwELGBBQAir9lGw+x8HTQbw==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/player@0.13.0':
-    resolution: {integrity: sha512-SGy7ZGcsbFbnvXpA/j+sOl3ny08kiMtqwCcHcRdPhwChq9MPgvLDtIsXL3uYRHoAgma3VBQEhixLu0RBI2dvVQ==}
+  '@texuli/player@0.13.1':
+    resolution: {integrity: sha512-IZbv3g2nbYlFBsudiZSCkzaAMQcatfwuTYY7VHuqGIBy4t7fqbjUdYxIF0LtOxkaqJZjpSg1achg/ZKsRmcvaw==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/primitives@0.13.0':
-    resolution: {integrity: sha512-opzVphD6B294I7/BjQXM8f2tZXryjlruhp/N8nfNLjbRwGvAYBOpfvMUBfUNgQW4AN/jB36kFSeuKWYysCN+eA==}
+  '@texuli/primitives@0.13.1':
+    resolution: {integrity: sha512-l5AzmKeQlE6UFTGtg78ouK1Y9bkYJvlWKLbXKpk1vKCPNuclmz9z3XlEDOTQiRw+vapq6AUM+BCvrfnkOvFmBA==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/sheets@0.13.0':
-    resolution: {integrity: sha512-qFAFJK+sjYDjZNWY8GH787We0p+OByfP1r2yw76E7MJA0JPcpXIIxkhcwfYBmHe3WxcGh0g59WJXE2dsVDCLsQ==}
+  '@texuli/sheets@0.13.1':
+    resolution: {integrity: sha512-P1+h3WWAtai5nbKZONXbX1ylmHr6HYr4nv2OCO9jlgXerrhlEqch8aptXZxcLqINxm3p/m38V3hKFOptAkaLBw==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/slides@0.13.0':
-    resolution: {integrity: sha512-yVVY8NG0y+PzWaj2O8xgLFI6obs8N/55zztkqhc2LVRsN31zHlQ87YrmeED9thHFbVkiadWMpmQpu4D4S4g2Aw==}
+  '@texuli/slides@0.13.1':
+    resolution: {integrity: sha512-5fy34Xqwd1pd6Vusd7vEdft0k2Dvue2B2IVuiOghWtV1+7USiAwpURr4Gof3lgj78AQ5SDKqDokoo+insCzYeQ==}
     peerDependencies:
       svelte: ^5.57.2
 
-  '@texuli/spec@0.13.0':
-    resolution: {integrity: sha512-Pam7SJ30PRcrMORQZslsQO10BGg3gGBNIcpL07wc0lrv7NcLm0j650uMHEb8wDZxNvCe01PLAABK72l63c2o9Q==}
+  '@texuli/spec@0.13.1':
+    resolution: {integrity: sha512-rpvJddGLy5R+XbSt1fnh1Wttx7DIb5krwkWkz5AmZOtfle6m0ov9b0varx0VihW3e9h/5Op4NArJXYXy1SouLA==}
 
-  '@texuli/tokens@0.13.0':
-    resolution: {integrity: sha512-62FENGzY6c+r4FLkPcOxKJ2Rbm0XOm5L/31TVwtTU4Via8KkVsU2/i2BX85mimQAmaOVVO87teW2ZGbGQbIy1Q==}
+  '@texuli/tokens@0.13.1':
+    resolution: {integrity: sha512-5Z/A16hnq+pVZdEa1vN4fA5WtRUPSk6stbiVaC5e1+I542SExhKXDf4JaxJElLRDMCoSw5H8zbM6YcifX3oj8g==}
 
-  '@texuli/workflows@0.13.0':
-    resolution: {integrity: sha512-4yAZt5l2kKhAGdm0mUazBlyaKRXTsqxaqAbvDknI19k3+o0KS80u7YCnWD7grxrwEpk5YW3VISzumd7CDnrcBQ==}
+  '@texuli/workflows@0.13.1':
+    resolution: {integrity: sha512-YMl5LN3DB/Knrgjopob3JLELbayONufU371KzDvxDaEHhMUl1yLi0OGsxqzCJ5XUefYZgARNJ7/lxcvxlqtU1Q==}
     peerDependencies:
       svelte: ^5.57.2
 
@@ -5336,8 +5336,8 @@ packages:
     resolution: {integrity: sha512-uxc/zpqFg6x7C8vOE7lh6Lbda8eEL9zmVm/PLeTPBRhh1xCgdWaQ+J1CUieGpIfm2HdtsUpRv+HshiasBMcc6A==}
     engines: {node: '>=6'}
 
-  texuli@0.13.0:
-    resolution: {integrity: sha512-8tmzZltC0mYaE+GSgjHpwyBhx/OXdvugyVQISu/RB5NpUYhqSbtdk973qOX80Hhl8jyNVQ3cA/QMjnCEbxvAWw==}
+  texuli@0.13.1:
+    resolution: {integrity: sha512-w2Iuqrr1LKoW8Tii9xXf0mazeNK4OY7gk4KIMxKJQPAoD/N1EH4btyH4/bEAMN25QszYxLAkkzKtg0vm0j8nAw==}
     peerDependencies:
       svelte: ^5.57.2
 
@@ -6728,12 +6728,12 @@ snapshots:
       vite: 8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest: 5.0.5(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.4)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
-  '@texuli/astro@0.13.0(@astrojs/svelte@9.1.2(@types/node@24.19.2)(astro@7.4.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3)(tsx@4.23.15)(yaml@2.9.1)':
+  '@texuli/astro@0.13.1(@astrojs/svelte@9.1.2(@types/node@24.19.2)(astro@7.4.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3)(tsx@4.23.15)(yaml@2.9.1)':
     dependencies:
       '@astrojs/svelte': 9.1.2(@types/node@24.19.2)(astro@7.4.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(svelte@5.57.3)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1)
-      '@texuli/blocks': 0.13.0(svelte@5.57.3)
-      '@texuli/core': 0.13.0
-      '@texuli/tokens': 0.13.0
+      '@texuli/blocks': 0.13.1(svelte@5.57.3)
+      '@texuli/core': 0.13.1
+      '@texuli/tokens': 0.13.1
       astro: 7.4.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       svelte: 5.57.3
     transitivePeerDependencies:
@@ -6770,164 +6770,164 @@ snapshots:
       - uploadthing
       - yaml
 
-  '@texuli/blocks@0.13.0(svelte@5.57.3)':
+  '@texuli/blocks@0.13.1(svelte@5.57.3)':
     dependencies:
-      '@texuli/charts': 0.13.0(svelte@5.57.3)
-      '@texuli/core': 0.13.0
-      '@texuli/data': 0.13.0(svelte@5.57.3)
-      '@texuli/media': 0.13.0(svelte@5.57.3)
-      '@texuli/tokens': 0.13.0
+      '@texuli/charts': 0.13.1(svelte@5.57.3)
+      '@texuli/core': 0.13.1
+      '@texuli/data': 0.13.1(svelte@5.57.3)
+      '@texuli/media': 0.13.1(svelte@5.57.3)
+      '@texuli/tokens': 0.13.1
       svelte: 5.57.3
-      texuli: 0.13.0(svelte@5.57.3)
+      texuli: 0.13.1(svelte@5.57.3)
 
-  '@texuli/canvas@0.13.0(svelte@5.57.3)':
+  '@texuli/canvas@0.13.1(svelte@5.57.3)':
     dependencies:
-      '@texuli/core': 0.13.0
-      '@texuli/deck': 0.13.0
-      '@texuli/document': 0.13.0
-      '@texuli/drag': 0.13.0
+      '@texuli/core': 0.13.1
+      '@texuli/deck': 0.13.1
+      '@texuli/document': 0.13.1
+      '@texuli/drag': 0.13.1
       svelte: 5.57.3
-      texuli: 0.13.0(svelte@5.57.3)
+      texuli: 0.13.1(svelte@5.57.3)
 
-  '@texuli/catalog@0.13.0(svelte@5.57.3)':
+  '@texuli/catalog@0.13.1(svelte@5.57.3)':
     dependencies:
-      '@texuli/blocks': 0.13.0(svelte@5.57.3)
-      '@texuli/charts': 0.13.0(svelte@5.57.3)
-      '@texuli/core': 0.13.0
-      '@texuli/data': 0.13.0(svelte@5.57.3)
-      '@texuli/media': 0.13.0(svelte@5.57.3)
-      '@texuli/spec': 0.13.0
+      '@texuli/blocks': 0.13.1(svelte@5.57.3)
+      '@texuli/charts': 0.13.1(svelte@5.57.3)
+      '@texuli/core': 0.13.1
+      '@texuli/data': 0.13.1(svelte@5.57.3)
+      '@texuli/media': 0.13.1(svelte@5.57.3)
+      '@texuli/spec': 0.13.1
       svelte: 5.57.3
-      texuli: 0.13.0(svelte@5.57.3)
+      texuli: 0.13.1(svelte@5.57.3)
 
-  '@texuli/charts@0.13.0(svelte@5.57.3)':
+  '@texuli/charts@0.13.1(svelte@5.57.3)':
     dependencies:
-      '@texuli/core': 0.13.0
-      '@texuli/primitives': 0.13.0(svelte@5.57.3)
-      '@texuli/tokens': 0.13.0
+      '@texuli/core': 0.13.1
+      '@texuli/primitives': 0.13.1(svelte@5.57.3)
+      '@texuli/tokens': 0.13.1
       svelte: 5.57.3
-      texuli: 0.13.0(svelte@5.57.3)
+      texuli: 0.13.1(svelte@5.57.3)
 
-  '@texuli/chat@0.13.0(svelte@5.57.3)':
+  '@texuli/chat@0.13.1(svelte@5.57.3)':
     dependencies:
-      '@texuli/core': 0.13.0
-      '@texuli/primitives': 0.13.0(svelte@5.57.3)
-      '@texuli/tokens': 0.13.0
+      '@texuli/core': 0.13.1
+      '@texuli/primitives': 0.13.1(svelte@5.57.3)
+      '@texuli/tokens': 0.13.1
       svelte: 5.57.3
-      texuli: 0.13.0(svelte@5.57.3)
+      texuli: 0.13.1(svelte@5.57.3)
 
-  '@texuli/core@0.13.0': {}
+  '@texuli/core@0.13.1': {}
 
-  '@texuli/data@0.13.0(svelte@5.57.3)':
+  '@texuli/data@0.13.1(svelte@5.57.3)':
     dependencies:
-      '@texuli/core': 0.13.0
-      '@texuli/drag': 0.13.0
-      '@texuli/primitives': 0.13.0(svelte@5.57.3)
-      '@texuli/tokens': 0.13.0
+      '@texuli/core': 0.13.1
+      '@texuli/drag': 0.13.1
+      '@texuli/primitives': 0.13.1(svelte@5.57.3)
+      '@texuli/tokens': 0.13.1
       svelte: 5.57.3
-      texuli: 0.13.0(svelte@5.57.3)
+      texuli: 0.13.1(svelte@5.57.3)
 
-  '@texuli/date@0.13.0': {}
+  '@texuli/date@0.13.1': {}
 
-  '@texuli/deck@0.13.0': {}
+  '@texuli/deck@0.13.1': {}
 
-  '@texuli/document@0.13.0':
+  '@texuli/document@0.13.1':
     dependencies:
-      '@texuli/core': 0.13.0
-      '@texuli/deck': 0.13.0
+      '@texuli/core': 0.13.1
+      '@texuli/deck': 0.13.1
 
-  '@texuli/drag@0.13.0': {}
+  '@texuli/drag@0.13.1': {}
 
-  '@texuli/editor@0.13.0(svelte@5.57.3)':
+  '@texuli/editor@0.13.1(svelte@5.57.3)':
     dependencies:
-      '@texuli/core': 0.13.0
-      '@texuli/primitives': 0.13.0(svelte@5.57.3)
-      '@texuli/tokens': 0.13.0
+      '@texuli/core': 0.13.1
+      '@texuli/primitives': 0.13.1(svelte@5.57.3)
+      '@texuli/tokens': 0.13.1
       svelte: 5.57.3
-      texuli: 0.13.0(svelte@5.57.3)
+      texuli: 0.13.1(svelte@5.57.3)
 
-  '@texuli/forms@0.13.0(svelte@5.57.3)':
+  '@texuli/forms@0.13.1(svelte@5.57.3)':
     dependencies:
-      '@texuli/core': 0.13.0
+      '@texuli/core': 0.13.1
       svelte: 5.57.3
-      texuli: 0.13.0(svelte@5.57.3)
+      texuli: 0.13.1(svelte@5.57.3)
 
-  '@texuli/media@0.13.0(svelte@5.57.3)':
+  '@texuli/media@0.13.1(svelte@5.57.3)':
     dependencies:
-      '@texuli/core': 0.13.0
-      '@texuli/primitives': 0.13.0(svelte@5.57.3)
-      '@texuli/tokens': 0.13.0
+      '@texuli/core': 0.13.1
+      '@texuli/primitives': 0.13.1(svelte@5.57.3)
+      '@texuli/tokens': 0.13.1
       svelte: 5.57.3
-      texuli: 0.13.0(svelte@5.57.3)
+      texuli: 0.13.1(svelte@5.57.3)
 
-  '@texuli/pages@0.13.0(svelte@5.57.3)':
+  '@texuli/pages@0.13.1(svelte@5.57.3)':
     dependencies:
-      '@texuli/blocks': 0.13.0(svelte@5.57.3)
-      '@texuli/core': 0.13.0
-      '@texuli/document': 0.13.0
-      '@texuli/drag': 0.13.0
-      '@texuli/editor': 0.13.0(svelte@5.57.3)
-      '@texuli/player': 0.13.0(svelte@5.57.3)
-      '@texuli/primitives': 0.13.0(svelte@5.57.3)
-      '@texuli/tokens': 0.13.0
+      '@texuli/blocks': 0.13.1(svelte@5.57.3)
+      '@texuli/core': 0.13.1
+      '@texuli/document': 0.13.1
+      '@texuli/drag': 0.13.1
+      '@texuli/editor': 0.13.1(svelte@5.57.3)
+      '@texuli/player': 0.13.1(svelte@5.57.3)
+      '@texuli/primitives': 0.13.1(svelte@5.57.3)
+      '@texuli/tokens': 0.13.1
       svelte: 5.57.3
-      texuli: 0.13.0(svelte@5.57.3)
+      texuli: 0.13.1(svelte@5.57.3)
 
-  '@texuli/player@0.13.0(svelte@5.57.3)':
+  '@texuli/player@0.13.1(svelte@5.57.3)':
     dependencies:
-      '@texuli/blocks': 0.13.0(svelte@5.57.3)
-      '@texuli/catalog': 0.13.0(svelte@5.57.3)
-      '@texuli/charts': 0.13.0(svelte@5.57.3)
-      '@texuli/chat': 0.13.0(svelte@5.57.3)
-      '@texuli/core': 0.13.0
-      '@texuli/data': 0.13.0(svelte@5.57.3)
-      '@texuli/media': 0.13.0(svelte@5.57.3)
-      '@texuli/primitives': 0.13.0(svelte@5.57.3)
-      '@texuli/spec': 0.13.0
-      '@texuli/workflows': 0.13.0(svelte@5.57.3)
+      '@texuli/blocks': 0.13.1(svelte@5.57.3)
+      '@texuli/catalog': 0.13.1(svelte@5.57.3)
+      '@texuli/charts': 0.13.1(svelte@5.57.3)
+      '@texuli/chat': 0.13.1(svelte@5.57.3)
+      '@texuli/core': 0.13.1
+      '@texuli/data': 0.13.1(svelte@5.57.3)
+      '@texuli/media': 0.13.1(svelte@5.57.3)
+      '@texuli/primitives': 0.13.1(svelte@5.57.3)
+      '@texuli/spec': 0.13.1
+      '@texuli/workflows': 0.13.1(svelte@5.57.3)
       svelte: 5.57.3
-      texuli: 0.13.0(svelte@5.57.3)
+      texuli: 0.13.1(svelte@5.57.3)
 
-  '@texuli/primitives@0.13.0(svelte@5.57.3)':
+  '@texuli/primitives@0.13.1(svelte@5.57.3)':
     dependencies:
-      '@texuli/core': 0.13.0
-      '@texuli/date': 0.13.0
-      '@texuli/drag': 0.13.0
-      svelte: 5.57.3
-
-  '@texuli/sheets@0.13.0(svelte@5.57.3)':
-    dependencies:
-      '@texuli/core': 0.13.0
-      '@texuli/data': 0.13.0(svelte@5.57.3)
-      '@texuli/date': 0.13.0
-      svelte: 5.57.3
-      texuli: 0.13.0(svelte@5.57.3)
-
-  '@texuli/slides@0.13.0(svelte@5.57.3)':
-    dependencies:
-      '@texuli/blocks': 0.13.0(svelte@5.57.3)
-      '@texuli/catalog': 0.13.0(svelte@5.57.3)
-      '@texuli/core': 0.13.0
-      '@texuli/deck': 0.13.0
-      '@texuli/media': 0.13.0(svelte@5.57.3)
-      '@texuli/player': 0.13.0(svelte@5.57.3)
-      '@texuli/tokens': 0.13.0
+      '@texuli/core': 0.13.1
+      '@texuli/date': 0.13.1
+      '@texuli/drag': 0.13.1
       svelte: 5.57.3
 
-  '@texuli/spec@0.13.0': {}
-
-  '@texuli/tokens@0.13.0':
+  '@texuli/sheets@0.13.1(svelte@5.57.3)':
     dependencies:
-      '@texuli/spec': 0.13.0
-
-  '@texuli/workflows@0.13.0(svelte@5.57.3)':
-    dependencies:
-      '@texuli/core': 0.13.0
-      '@texuli/drag': 0.13.0
-      '@texuli/primitives': 0.13.0(svelte@5.57.3)
-      '@texuli/tokens': 0.13.0
+      '@texuli/core': 0.13.1
+      '@texuli/data': 0.13.1(svelte@5.57.3)
+      '@texuli/date': 0.13.1
       svelte: 5.57.3
-      texuli: 0.13.0(svelte@5.57.3)
+      texuli: 0.13.1(svelte@5.57.3)
+
+  '@texuli/slides@0.13.1(svelte@5.57.3)':
+    dependencies:
+      '@texuli/blocks': 0.13.1(svelte@5.57.3)
+      '@texuli/catalog': 0.13.1(svelte@5.57.3)
+      '@texuli/core': 0.13.1
+      '@texuli/deck': 0.13.1
+      '@texuli/media': 0.13.1(svelte@5.57.3)
+      '@texuli/player': 0.13.1(svelte@5.57.3)
+      '@texuli/tokens': 0.13.1
+      svelte: 5.57.3
+
+  '@texuli/spec@0.13.1': {}
+
+  '@texuli/tokens@0.13.1':
+    dependencies:
+      '@texuli/spec': 0.13.1
+
+  '@texuli/workflows@0.13.1(svelte@5.57.3)':
+    dependencies:
+      '@texuli/core': 0.13.1
+      '@texuli/drag': 0.13.1
+      '@texuli/primitives': 0.13.1(svelte@5.57.3)
+      '@texuli/tokens': 0.13.1
+      svelte: 5.57.3
+      texuli: 0.13.1(svelte@5.57.3)
 
   '@tybys/wasm-util@0.10.4':
     dependencies:
@@ -8112,11 +8112,11 @@ snapshots:
 
   tapable@2.3.3: {}
 
-  texuli@0.13.0(svelte@5.57.3):
+  texuli@0.13.1(svelte@5.57.3):
     dependencies:
-      '@texuli/core': 0.13.0
-      '@texuli/primitives': 0.13.0(svelte@5.57.3)
-      '@texuli/tokens': 0.13.0
+      '@texuli/core': 0.13.1
+      '@texuli/primitives': 0.13.1(svelte@5.57.3)
+      '@texuli/tokens': 0.13.1
       svelte: 5.57.3
 
   thenify-all@1.6.0:

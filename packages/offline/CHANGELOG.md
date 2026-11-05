@@ -1,5 +1,11 @@
 # @protoyard/offline
 
+## 1.2.2
+
+### Patch Changes
+
+- @protoyard/core@1.2.2
+
 ## 1.2.1
 
 ### Patch Changes

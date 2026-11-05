@@ -1,5 +1,11 @@
 # protoyard
 
+## 1.2.2
+
+### Patch Changes
+
+- @protoyard/cli@1.2.2
+
 ## 1.2.1
 
 ### Patch Changes

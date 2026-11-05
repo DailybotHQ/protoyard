@@ -1,5 +1,17 @@
 # @protoyard/pages-ui
 
+## 1.2.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/ui@1.2.2
+  - @protoyard/blocks-ui@1.2.2
+  - @protoyard/renderer-svelte@1.2.2
+  - @protoyard/blocks@1.2.2
+  - @protoyard/blueprint@1.2.2
+  - @protoyard/pages@1.2.2
+
 ## 1.2.1
 
 ### Patch Changes

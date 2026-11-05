@@ -1,5 +1,16 @@
 # @protoyard/gallery
 
+## 1.2.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/ui@1.2.2
+  - @protoyard/player@1.2.2
+  - @protoyard/blueprint@1.2.2
+  - @protoyard/core@1.2.2
+  - @protoyard/themes@1.2.2
+
 ## 1.2.1
 
 ### Patch Changes

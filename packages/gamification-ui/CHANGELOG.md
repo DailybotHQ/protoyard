@@ -1,5 +1,13 @@
 # @protoyard/gamification-ui
 
+## 1.2.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/ui@1.2.2
+  - @protoyard/gamification@1.2.2
+
 ## 1.2.1
 
 ### Patch Changes
