@@ -10,3 +10,9 @@ export type {
   CustomSlideRegistry,
 } from '../layouts/custom-slides.ts';
 export { default as DeckApp } from './DeckApp.svelte';
+export {
+  type DeckCompiledDesignSystem,
+  type DeckDesignSystems,
+  deckDesignSystems,
+  type PlayerDesignSystems,
+} from './design-systems.ts';

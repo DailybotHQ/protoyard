@@ -50,6 +50,8 @@ DeckApp adds what is Protoyard's own:
 | `debugSource` | `null` | Where the deck came from, for the agent reference |
 | `customSlides` | — | A generated deck's `src/custom-slides.ts` registry |
 | `resolveAvatar` | — | Library avatar id → URL (`avatarUrl` from `@protoyard/renderer-svelte`) |
+| `messages` | — | Partial `DeckStageMessages` overrides for the stage and print view (`{ 'stage.closeOverview': 'Cerrar vista general' }`) |
+| `designSystems` | — | `deckDesignSystems(compiled)` (the `compiled` that `protoyard ds use` exports): the stage paints that design system and DeckApp skips the deck theme |
 
 The wrapper keeps `data-py-deck-app`, `data-slide-id` and `data-slide-step`
 (they follow the stage's controller, including a deep link's first position),
