@@ -253,21 +253,20 @@ its generated regions ([SPECS.md](SPECS.md)).
 ### A workspace of your own: `create-protoyard`
 
 `create-protoyard` scaffolds a Protoyard workspace outside this repository.
-Nothing is published to npm yet, so `npm create protoyard` and
-`pnpm create protoyard` do not resolve today. Until the first release, run the
-scaffolder from this repository:
-
-```bash
-node packages/create-protoyard/bin/create-protoyard.mjs ../acme-lab --no-install --no-git
-```
-
-`--no-install` is needed for now, because the workspace pins
-`protoyard@<this version>`, which npm does not have yet. After the first
-release the same command becomes:
+Every Protoyard package is on npm (published from CI with provenance, see
+[PUBLISHING.md](PUBLISHING.md)), so:
 
 ```bash
 npm create protoyard acme-lab        # or: pnpm create protoyard acme-lab
 cd acme-lab && pnpm protoyard dev starter
+```
+
+To try an unreleased change, run the scaffolder from this repository instead
+(`--no-install` because the workspace pins `protoyard@<this version>`, which npm
+has only once that version is released):
+
+```bash
+node packages/create-protoyard/bin/create-protoyard.mjs ../acme-lab --no-install --no-git
 ```
 
 It writes:

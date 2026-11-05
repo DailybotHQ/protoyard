@@ -4,8 +4,11 @@
  * handler, and service-friendly `onMove`. The per-card “Move <title>” menu
  * (lazy BoardMoveMenu) ships inside Texuli Board whenever `onMove` is set.
  * `columnHeader` / `columnFooter` pass straight through; `onCreate` adds an
- * “Add card” button to each column footer; `collapsibleLanes` adds a lane
- * toolbar whose collapsed lanes (and their cards) are left out of the board.
+ * “Add card” button to each column footer, or to each column × lane cell when
+ * the board has lanes. Lanes collapse with Texuli's own lane toggles
+ * (`collapsedLanes`, bindable): a collapsed lane hides its cards but still
+ * counts in column totals and WIP limits. `collapsibleLanes` adds a summary
+ * toolbar that collapses a lane in every column at once.
  */
 import { runService } from '@protoyard/renderer-svelte';
 import { Button } from '@protoyard/ui';
@@ -63,14 +66,15 @@ let {
   /** Rendered at the end of each column (Texuli `columnFooter`), before the create button. */
   columnFooter?: Snippet<[BoardColumnDef, { count: number }]>;
   /** In-column create: adds an “Add card” button to each column; runs through `runService`. */
-  onCreate?: (column: BoardColumnDef) => unknown;
+  /** On a board with lanes, `lane` is the lane of the cell whose button was pressed. */
+  onCreate?: (column: BoardColumnDef, lane?: BoardLaneDef) => unknown;
   /** Columns that offer the create button (default: every column). */
   canCreate?: (column: BoardColumnDef) => boolean;
   /** Visible text of the create button; its name adds “to <column>”. */
   createLabel?: string;
   /** Shows a lane toolbar that collapses and expands swimlanes (needs two or more lanes). */
   collapsibleLanes?: boolean;
-  /** Ids of collapsed lanes (bindable). Their cards are not shown or counted. */
+  /** Ids of collapsed lanes (bindable). Their cards are hidden but still counted. */
   collapsedLanes?: string[];
   onCollapsedLanesChange?: (collapsed: string[]) => void;
   label?: string;
@@ -87,33 +91,33 @@ async function persist(move: BoardMove, item: T): Promise<void> {
 }
 
 const laneToggles = $derived(collapsibleLanes && (lanes?.length ?? 0) > 1);
-const collapsedSet = $derived(new Set(laneToggles ? collapsedLanes : []));
-const shownLanes = $derived(lanes?.filter((lane) => !collapsedSet.has(lane.id)));
+const laned = $derived((lanes?.length ?? 0) > 0);
+const collapsedSet = $derived(new Set(collapsedLanes));
 
 function laneOf(item: T): string {
   return getLane?.(item) ?? '';
-}
-
-function visibleItems(items: readonly T[]): T[] {
-  if (collapsedSet.size === 0) return [...items];
-  return items.filter((item) => !collapsedSet.has(laneOf(item)));
 }
 
 function laneCount(items: readonly T[], laneId: string): number {
   return items.filter((item) => laneOf(item) === laneId).length;
 }
 
-function toggleLane(laneId: string): void {
-  const next = collapsedSet.has(laneId)
-    ? collapsedLanes.filter((id) => id !== laneId)
-    : [...collapsedLanes, laneId];
+function setCollapsed(next: string[]): void {
   collapsedLanes = next;
   onCollapsedLanesChange?.(next);
 }
 
-async function create(column: BoardColumnDef): Promise<void> {
+function toggleLane(laneId: string): void {
+  setCollapsed(
+    collapsedSet.has(laneId)
+      ? collapsedLanes.filter((id) => id !== laneId)
+      : [...collapsedLanes, laneId]
+  );
+}
+
+async function create(column: BoardColumnDef, lane?: BoardLaneDef): Promise<void> {
   if (!onCreate) return;
-  await runService(() => onCreate(column));
+  await runService(() => (lane ? onCreate(column, lane) : onCreate(column)));
 }
 
 const boardLabels = $derived<Partial<BoardLabels>>({
@@ -153,8 +157,10 @@ const boardLabels = $derived<Partial<BoardLabels>>({
       {/if}
       <Board
         {columns}
-        lanes={laneToggles ? shownLanes : lanes}
-        items={visibleItems(items)}
+        {lanes}
+        {items}
+        {collapsedLanes}
+        onCollapsedLanesChange={setCollapsed}
         {getId}
         {getColumn}
         {getLane}
@@ -168,7 +174,8 @@ const boardLabels = $derived<Partial<BoardLabels>>({
         class={className}
         labels={boardLabels}
         {columnHeader}
-        columnFooter={onCreate || columnFooter ? boardFooter : undefined}
+        columnFooter={(onCreate && !laned) || columnFooter ? boardFooter : undefined}
+        cellFooter={onCreate && laned ? cellCreate : undefined}
       >
         {#snippet card(item, state)}
           {#if onOpen}
@@ -192,7 +199,7 @@ const boardLabels = $derived<Partial<BoardLabels>>({
 
 {#snippet boardFooter(column: BoardColumnDef, state: { count: number })}
   {#if columnFooter}{@render columnFooter(column, state)}{/if}
-  {#if onCreate && (canCreate?.(column) ?? true)}
+  {#if onCreate && !laned && (canCreate?.(column) ?? true)}
     <Button
       type="button"
       variant="ghost"
@@ -201,6 +208,24 @@ const boardLabels = $derived<Partial<BoardLabels>>({
       aria-label={`${createLabel} to ${column.title}`}
       data-board-create={column.id}
       onclick={() => create(column)}
+    >
+      <span aria-hidden="true">+</span>
+      {createLabel}
+    </Button>
+  {/if}
+{/snippet}
+
+{#snippet cellCreate(column: BoardColumnDef, lane: BoardLaneDef)}
+  {#if canCreate?.(column) ?? true}
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      class="py-board-create"
+      aria-label={`${createLabel} to ${column.title}, ${lane.title}`}
+      data-board-create={column.id}
+      data-board-create-lane={lane.id}
+      onclick={() => create(column, lane)}
     >
       <span aria-hidden="true">+</span>
       {createLabel}

@@ -3,6 +3,7 @@ import type { FormBlock, FormField } from '@protoyard/ai/messages';
 import { Button } from 'texuli/button';
 import { Checkbox } from 'texuli/choice';
 import { Field } from 'texuli/field';
+import { useMessages } from 'texuli/i18n';
 import { Input, Textarea } from 'texuli/input';
 import { SelectContent, SelectItem, SelectRoot, SelectTrigger, SelectValue } from 'texuli/select';
 import { type MessageActionHandler, type MessageFormValue, settle } from './types.ts';
@@ -98,6 +99,10 @@ function setMulti(key: string, value: string, checked: boolean): void {
 }
 
 const locked = $derived(!onAction || pending || submitted);
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const t = useMessages();
+const M = 'protoyard.ai.message';
 </script>
 
 <form
@@ -166,7 +171,7 @@ const locked = $derived(!onAction || pending || submitted);
                 onValueChange={(value) => (values[field.key] = value || null)}
               >
                 <SelectTrigger {...control.props} disabled={locked} class="w-full">
-                  <SelectValue placeholder={field.placeholder ?? 'Choose…'} />
+                  <SelectValue placeholder={field.placeholder ?? t(`${M}.choose`, 'Choose…')} />
                 </SelectTrigger>
                 <SelectContent>
                   {#each field.options ?? [] as option (option.value)}
@@ -209,14 +214,14 @@ const locked = $derived(!onAction || pending || submitted);
   <div class="flex flex-wrap items-center gap-3">
     <!-- Pending follows the host's promise through `submit`, so autoLoading is off. -->
     <Button type="submit" autoLoading={false} loading={pending} disabled={locked}>
-      {block.submitLabel ?? 'Submit'}
+      {block.submitLabel ?? t(`${M}.submit`, 'Submit')}
     </Button>
     <p class="m-0 text-xs text-muted-foreground" role="status" aria-live="polite">
       {#if pending}Sending…{:else if submitted}Submitted.{/if}
     </p>
   </div>
   {#if !onAction}
-    <p class="m-0 text-xs text-muted-foreground">This form cannot be sent from this view.</p>
+    <p class="m-0 text-xs text-muted-foreground">{t(`${M}.form-locked`, 'This form cannot be sent from this view.')}</p>
   {/if}
   {#if failure}
     <p class="m-0 text-xs text-destructive" role="alert">{failure}</p>

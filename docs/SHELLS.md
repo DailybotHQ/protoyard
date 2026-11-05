@@ -108,6 +108,15 @@ resolves and remembers the view but does not change shell overrides. Browser sto
 leave the current page's choice active without persisting it. Choosing `auto` removes the
 saved choice and clears shell and viewport overrides.
 
+Links in the product's own language work with `values`, for example
+`createAdaptivePresentation(runtime, { queryKey: 'vista', values: { movil: 'phone', escritorio: 'desktop' } })`
+reads `?vista=escritorio`; `phone` and `desktop` always work too. To let people switch inside
+the app, place `<PresentationToggle {store} />`, a two-state "Phone | Desktop" group that saves
+the choice. Its labels come from props or the dictionary ids
+`protoyard.renderer.presentation.label`, `.phone` and `.desktop`. Since 1.4.0 the desktop
+`none` shell this store writes no longer shows the full screen hint; the hint follows only
+the person's own "Show full screen".
+
 ## When the app goes full-bleed
 
 The renderer shows the bare app, with no frame, when:

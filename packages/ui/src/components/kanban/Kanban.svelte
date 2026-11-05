@@ -7,6 +7,7 @@ import {
 } from '@texuli/data/board';
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
+import { useMessages } from 'texuli/i18n';
 import type { KanbanColumn } from './types.ts';
 
 interface OwnProps {
@@ -43,14 +44,21 @@ let {
   card,
   onMove,
   canMove = () => true,
-  emptyColumnText = 'No items',
+  emptyColumnText: emptyColumnTextProp,
   columnFooter,
-  label = 'Board',
+  label: labelProp,
   headingLevel = 3,
   class: className,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const emptyColumnText = $derived(
+  emptyColumnTextProp ?? messages('protoyard.ui.kanban.empty-column-text', 'No items')
+);
+const label = $derived(labelProp ?? messages('protoyard.ui.kanban.label', 'Board'));
 
 function titleOf(columnId: string): string {
   return columns.find((column) => column.id === columnId)?.title ?? columnId;
@@ -59,7 +67,10 @@ function titleOf(columnId: string): string {
 /** Kanban moves between columns; the order inside a column is not the host's to save. */
 function allowMove(item: T, target: { columnId: string }): boolean | string {
   if (target.columnId === getColumn(item)) {
-    return `${getItemLabel(item)} is already in ${titleOf(target.columnId)}.`;
+    return messages('protoyard.ui.kanban.already-in', '{item} is already in {column}.', {
+      item: getItemLabel(item),
+      column: titleOf(target.columnId),
+    });
   }
   return canMove(item, target.columnId);
 }
@@ -83,8 +94,10 @@ const boardColumns = $derived<BoardColumnDef[]>(
 const labels = $derived<BoardLabelOverrides>({
   board: label,
   emptyCell: emptyColumnText,
-  moveMenu: (itemLabel) => `Move ${itemLabel} to another column`,
-  moveMenuLabel: (itemLabel) => `Move ${itemLabel} to…`,
+  moveMenu: (itemLabel) =>
+    messages('protoyard.ui.kanban.move-menu', 'Move {item} to another column', { item: itemLabel }),
+  moveMenuLabel: (itemLabel) =>
+    messages('protoyard.ui.kanban.move-menu-label', 'Move {item} to…', { item: itemLabel }),
 });
 </script>
 

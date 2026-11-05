@@ -6,6 +6,8 @@
  * `writes` via splitSeries for keel/crud series services.
  * `phone` swaps the grid for a lazy phone agenda (event `chip` snippet,
  * “+N more events” per day); `agendaDays` and `labels` pass straight through.
+ * On the grid, `event` renders each chip's content in every view and
+ * `onMoreEvents` makes the month view's “N more events” a button (Texuli 0.14.1).
  */
 import type { PrototypeRuntime } from '@protoyard/core';
 import { getRuntime, runService, useClock } from '@protoyard/renderer-svelte';
@@ -16,6 +18,8 @@ import {
   splitSeries,
 } from '@protoyard/views/calendar';
 import {
+  type CalendarEventContext,
+  type CalendarItem,
   type CalendarLabels,
   DEFAULT_CALENDAR_LABELS,
   CalendarView as TexuliCalendar,
@@ -49,6 +53,8 @@ let {
   agendaDays,
   maxPerDay = 3,
   chip,
+  event,
+  onMoreEvents,
   labels,
   onRetry,
   runtime,
@@ -87,10 +93,18 @@ let {
   phone?: boolean;
   /** Days in the agenda (Texuli agenda view and the phone agenda; default 14 and 7). */
   agendaDays?: number;
-  /** Phone agenda: events shown per day before “+N more events” (default 3). */
+  /** Events shown per day before “+N more events”: the phone agenda and the month grid (default 3). */
   maxPerDay?: number;
   /** Phone agenda: the content of each event button (title, time, badges…). */
   chip?: Snippet<[Occurrence<TData>, CalendarChipState]>;
+  /**
+   * Grid views: the content of each event chip in month, week, day, the
+   * all-day row and agenda (Texuli `event`). The chip stays Texuli's button
+   * (keys, drag, move menu); render no interactive elements inside it.
+   */
+  event?: Snippet<[CalendarItem<TData>, CalendarEventContext]>;
+  /** Month grid: makes “N more events” a button that reports the ISO day. */
+  onMoreEvents?: (date: IsoDate) => void;
   /** Texuli calendar copy overrides (also used by the phone agenda). */
   labels?: Partial<CalendarLabels>;
   onRetry?: () => unknown;
@@ -250,6 +264,9 @@ const phoneAgenda = $derived(phone ? import('./PhoneAgenda.svelte') : null);
       {showYear}
       {agendaDays}
       {labels}
+      {event}
+      {onMoreEvents}
+      maxEventsPerDay={maxPerDay}
       class={className}
     />
     {/if}

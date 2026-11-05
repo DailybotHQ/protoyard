@@ -633,6 +633,10 @@ export function createProgram(env: RunnerEnv): Command {
     .argument('<prototype>', 'destination prototype slug')
     .option('--check', 'fail when the source, copied files or manifest have drifted')
     .option('--force', 'replace local changes in the synced folder')
+    .option(
+      '--from <dir>',
+      "sync a folder inside the kit's src/ or public/ (default src/components) to the same place"
+    )
     .action(def('kit sync', kitSyncCommand));
 
   const snapshot = program

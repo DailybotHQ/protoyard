@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { MissionProgress } from '@protoyard/gamification';
 import { Button, Progress } from '@protoyard/ui';
+import { useMessages } from 'texuli/i18n';
 
 /**
  * Mission summary with progress and an Accept control. `onAccept` should return
@@ -17,16 +18,25 @@ let {
   class?: string;
 } = $props();
 
-const canAccept = $derived(!mission.accepted && !mission.expired && !mission.complete);
+const messages = useMessages();
+const M = 'protoyard.gamification.mission-card';
+/** `requiresAcceptance: false` missions count as started without an Accept step. */
+const started = $derived(mission.accepted || mission.requiresAcceptance === false);
+const canAccept = $derived(!started && !mission.expired && !mission.complete);
 const status = $derived(
   mission.complete
-    ? 'Complete'
+    ? messages(`${M}.status-complete`, 'Complete')
     : mission.expired
-      ? 'Expired'
-      : mission.accepted
-        ? 'In progress'
-        : 'Available'
+      ? messages(`${M}.status-expired`, 'Expired')
+      : started
+        ? messages(`${M}.status-in-progress`, 'In progress')
+        : messages(`${M}.status-available`, 'Available')
 );
+const values = $derived({
+  progress: String(mission.progress),
+  goal: String(mission.goal),
+  reward: String(mission.reward),
+});
 
 function handleAccept() {
   return onAccept?.(mission.id);
@@ -57,22 +67,24 @@ function handleAccept() {
   <Progress
     value={mission.progress}
     max={mission.goal}
-    label="Progress"
+    label={messages(`${M}.progress`, 'Progress')}
     showValue={false}
     size="sm"
-    ariaLabel={`${mission.progress} of ${mission.goal}`}
+    ariaLabel={messages(`${M}.progress-value`, '{progress} of {goal}', values)}
   />
   <p class="text-xs text-muted-foreground tabular-nums">
     {mission.progress} / {mission.goal}
     <span class="mx-1 text-border">·</span>
-    Reward {mission.reward} points
+    {messages(`${M}.reward`, 'Reward {reward} points', values)}
   </p>
 
   {#if canAccept && onAccept}
-    <Button size="sm" class="self-start" onclick={() => handleAccept()}>Accept mission</Button>
+    <Button size="sm" class="self-start" onclick={() => handleAccept()}
+      >{messages(`${M}.accept`, 'Accept mission')}</Button
+    >
   {:else if mission.accepted && !mission.complete}
-    <p class="text-xs font-medium text-primary">Accepted</p>
+    <p class="text-xs font-medium text-primary">{messages(`${M}.accepted`, 'Accepted')}</p>
   {:else if mission.complete}
-    <p class="text-xs font-medium text-success">Completed</p>
+    <p class="text-xs font-medium text-success">{messages(`${M}.completed`, 'Completed')}</p>
   {/if}
 </article>

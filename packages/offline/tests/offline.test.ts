@@ -201,6 +201,15 @@ describe('vite plugin', () => {
     const dir = fakeBuild({ 'index.html': '<html></html>' });
     const [plugin] = protoyardOffline({ enabled: true });
     plugin?.configResolved({ root: '/', build: { outDir: dir } });
+    plugin?.writeBundle();
     expect(() => plugin?.closeBundle()).toThrow(/missing the register script/);
+  });
+
+  it('stays quiet after a failed build that wrote nothing (Corag UG-53)', () => {
+    const dir = fakeBuild({});
+    const [plugin] = protoyardOffline({ enabled: true });
+    plugin?.configResolved({ root: '/', build: { outDir: dir } });
+    // Vite runs closeBundle even when the build failed before writeBundle.
+    expect(() => plugin?.closeBundle()).not.toThrow();
   });
 });

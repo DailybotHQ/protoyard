@@ -3,6 +3,7 @@ import { MessageCircle } from '@lucide/svelte';
 import type { Component } from 'svelte';
 import { onMount, tick } from 'svelte';
 import { Button, IconButton } from 'texuli/button';
+import { useMessages } from 'texuli/i18n';
 import { LucideIcon } from 'texuli/icons/lucide';
 import type { AssistantWidgetMode, AssistantWidgetProps } from './types.ts';
 
@@ -10,6 +11,13 @@ const MODE_KEY_PREFIX = 'protoyard:ai-widget-mode:';
 const VALID_MODES = new Set<AssistantWidgetMode>(['launcher', 'sidebar', 'fullscreen']);
 
 let { prototypeId, ...workspaceProps }: AssistantWidgetProps = $props();
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
+const W = 'protoyard.ai.widget';
+const title = $derived(messages(`${W}.title`, 'Simulated assistant'));
+const restoreLabel = $derived(messages(`${W}.restore-label`, 'Restore assistant sidebar'));
+const restoreText = $derived(messages(`${W}.restore`, 'Restore'));
+
 let mode = $state<AssistantWidgetMode>('launcher');
 let hasOpened = $state(false);
 let Panel = $state<Component<AssistantWidgetProps> | null>(null);
@@ -115,7 +123,7 @@ function trapFullscreenFocus(event: KeyboardEvent): void {
   <IconButton
     variant="default"
     class={`pointer-events-auto absolute bottom-4 right-4 size-14 rounded-full shadow-lg transition-transform duration-200 hover:scale-105 ${mode !== 'launcher' ? 'scale-0 opacity-0' : ''}`}
-    label="Open simulated assistant"
+    label={messages(`${W}.open`, 'Open simulated assistant')}
     aria-expanded={mode !== 'launcher'}
     aria-hidden={mode !== 'launcher'}
     aria-controls="ai-widget-panel"
@@ -140,7 +148,7 @@ function trapFullscreenFocus(event: KeyboardEvent): void {
       class:rounded-l-2xl={mode === 'sidebar'}
       aria-hidden={mode === 'launcher'}
       aria-modal={mode === 'fullscreen' ? 'true' : undefined}
-      aria-label="Simulated assistant"
+      aria-label={title}
       role="dialog"
       tabindex="-1"
       onkeydown={trapFullscreenFocus}
@@ -149,14 +157,14 @@ function trapFullscreenFocus(event: KeyboardEvent): void {
       data-widget-fullscreen={mode === 'fullscreen' ? 'true' : 'false'}
     >
       <header class="flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-surface px-3">
-        <span class="truncate text-sm font-semibold">Simulated assistant</span>
+        <span class="truncate text-sm font-semibold">{title}</span>
         <div class="flex items-center gap-1">
           {#if mode === 'sidebar'}
-            <Button size="sm" variant="ghost" aria-label="Expand assistant to full screen" onclick={() => void setMode('fullscreen')}>Expand</Button>
+            <Button size="sm" variant="ghost" aria-label={messages(`${W}.expand-label`, 'Expand assistant to full screen')} onclick={() => void setMode('fullscreen')}>{messages(`${W}.expand`, 'Expand')}</Button>
           {:else}
-            <Button size="sm" variant="ghost" aria-label="Restore assistant sidebar" onclick={() => void setMode('sidebar')}>Restore</Button>
+            <Button size="sm" variant="ghost" aria-label={restoreLabel} onclick={() => void setMode('sidebar')}>{restoreText}</Button>
           {/if}
-          <Button data-widget-close size="sm" variant="ghost" aria-label={mode === 'fullscreen' ? 'Restore assistant sidebar' : 'Close assistant'} onclick={collapse}>{mode === 'fullscreen' ? 'Restore' : 'Close'}</Button>
+          <Button data-widget-close size="sm" variant="ghost" aria-label={mode === 'fullscreen' ? restoreLabel : messages(`${W}.close-label`, 'Close assistant')} onclick={collapse}>{mode === 'fullscreen' ? restoreText : messages(`${W}.close`, 'Close')}</Button>
         </div>
       </header>
       <div class="min-h-0 flex-1 overflow-hidden p-2 sm:p-4">

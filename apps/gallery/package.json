@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/gallery",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "The Protoyard gallery: a static Astro site that lists prototypes and templates from the generated metadata registry.",
   "license": "MIT",
   "repository": {
@@ -39,12 +39,12 @@
     "@protoyard/themes": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
-    "@texuli/astro": "0.14.0",
-    "@texuli/tokens": "0.14.0",
+    "@texuli/astro": "0.14.1",
+    "@texuli/tokens": "0.14.1",
     "astro": "^7.4.4",
     "svelte": "^5.57.3",
     "tailwindcss": "^4.3.3",
-    "texuli": "0.14.0"
+    "texuli": "0.14.1"
   },
   "devDependencies": {
     "axe-core": "^4.14.0"

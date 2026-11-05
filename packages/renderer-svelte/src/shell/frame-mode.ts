@@ -185,11 +185,24 @@ export async function enterFullScreen(
   runtime: PrototypeRuntime,
   options: { browser?: boolean } = {}
 ): Promise<void> {
+  hintPending = true;
   saveFrameReturn(runtime.manifest.storage.namespace, runtime.overrides.get().shell);
   if (options.browser) {
     document.documentElement.requestFullscreen?.().catch(() => {});
   }
   await runtime.theme.setOverride({ shell: 'none' });
+}
+
+/**
+ * Whether the "full screen" hint is due: only right after `enterFullScreen` in
+ * this page, never for a `none` override written by something else (adaptive
+ * presentation on desktop, DevTools, a reload). Reading it clears it.
+ */
+let hintPending = false;
+export function takeFullScreenHint(): boolean {
+  const due = hintPending;
+  hintPending = false;
+  return due;
 }
 
 /**

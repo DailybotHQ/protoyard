@@ -2,6 +2,7 @@
 import { type ApprovalActor, mayDecide, type Suggestion } from '@protoyard/ai';
 import { Button } from 'texuli/button';
 import { Card } from 'texuli/card';
+import { useMessages } from 'texuli/i18n';
 import { modeNeedsApproval } from './labels.ts';
 
 /**
@@ -25,6 +26,10 @@ let {
   class?: string;
 } = $props();
 
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
+const C = 'protoyard.ai.approval';
+
 let pending = $state<'confirm' | 'approve' | 'dismiss' | null>(null);
 let error = $state('');
 
@@ -41,7 +46,10 @@ async function run(
   try {
     await Promise.resolve(work());
   } catch (err) {
-    error = err instanceof Error ? err.message : 'The action could not be completed.';
+    error =
+      err instanceof Error
+        ? err.message
+        : messages(`${C}.failed`, 'The action could not be completed.');
   } finally {
     pending = null;
   }
@@ -53,18 +61,18 @@ async function run(
   data-py-chat-approval
   data-status={suggestion.status}
   role="group"
-  aria-label="Simulated approval request"
+  aria-label={messages(`${C}.chat-label`, 'Simulated approval request')}
 >
   <p class="m-0 font-medium text-foreground">{suggestion.summary}</p>
   {#if suggestion.preparedApplySummary}
     <p class="m-0 text-xs text-muted-foreground">
-      Prepared: {suggestion.preparedApplySummary}
+      {messages(`${C}.prepared`, 'Prepared: {summary}', { summary: suggestion.preparedApplySummary })}
     </p>
   {/if}
-  <p class="m-0 text-[0.7rem] text-muted-foreground">Simulated approval · not security</p>
+  <p class="m-0 text-[0.7rem] text-muted-foreground">{messages(`${C}.chat-note`, 'Simulated approval · not security')}</p>
 
   {#if waiting}
-    <div class="flex flex-wrap gap-2" aria-label="Approval actions">
+    <div class="flex flex-wrap gap-2" aria-label={messages(`${C}.actions`, 'Approval actions')}>
       {#if needsApproval && mayDecide(viewer, suggestion, 'approve') && onApprove}
         <Button
           size="sm"
@@ -74,7 +82,7 @@ async function run(
           disabled={pending !== null}
           onclick={() => run('approve', () => onApprove(suggestion))}
         >
-          Approve
+          {messages(`${C}.approve`, 'Approve')}
         </Button>
       {:else if !needsApproval && mayDecide(viewer, suggestion, 'confirm') && onConfirm}
         <Button
@@ -85,10 +93,10 @@ async function run(
           disabled={pending !== null}
           onclick={() => run('confirm', () => onConfirm(suggestion))}
         >
-          Confirm
+          {messages(`${C}.confirm`, 'Confirm')}
         </Button>
       {:else if needsApproval && !viewer.canApprove}
-        <span class="text-xs text-muted-foreground" role="status">Waiting for an approver</span>
+        <span class="text-xs text-muted-foreground" role="status">{messages(`${C}.waiting-approver`, 'Waiting for an approver')}</span>
       {/if}
       {#if mayDecide(viewer, suggestion, 'dismiss') && onDismiss}
         <Button
@@ -99,16 +107,16 @@ async function run(
           disabled={pending !== null}
           onclick={() => run('dismiss', () => onDismiss(suggestion))}
         >
-          Dismiss
+          {messages(`${C}.dismiss`, 'Dismiss')}
         </Button>
       {/if}
     </div>
   {:else}
     <p class="m-0 text-xs text-muted-foreground" role="status">
       {suggestion.status === 'confirmed' || suggestion.status === 'auto'
-        ? 'Decided'
+        ? messages(`${C}.decided`, 'Decided')
         : suggestion.status === 'dismissed'
-          ? 'Dismissed'
+          ? messages(`${C}.dismissed`, 'Dismissed')
           : suggestion.status}
     </p>
   {/if}

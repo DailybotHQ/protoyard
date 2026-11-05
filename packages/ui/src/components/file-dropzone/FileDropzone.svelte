@@ -3,6 +3,8 @@ import type { FileDropRejection } from '@texuli/primitives/file-drop';
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import { FileUpload } from 'texuli/file-upload';
+import { useMessages } from 'texuli/i18n';
+import { definedLabels } from '../../lib/labels.ts';
 import { formatBytes } from './accept.ts';
 import type { DropzoneFile, DropzoneReject } from './types.ts';
 
@@ -58,9 +60,9 @@ let {
   files = $bindable<DropzoneFile[]>([]),
   rejects = $bindable<DropzoneReject[]>([]),
   id,
-  label = 'Upload files',
+  label: labelProp,
   description,
-  browseLabel = 'Browse files',
+  browseLabel: browseLabelProp,
   onAdd,
   onRemove,
   children,
@@ -69,6 +71,10 @@ let {
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+// `label` and `browseLabel` fall through to Texuli's own `texuli.file-upload.*` ids.
+const messages = useMessages();
 
 let idSeq = 0;
 /** Texuli's own rejection list, which its FileUpload renders as an inline alert. */
@@ -82,22 +88,50 @@ function fileKey(file: File): string {
 const hint = $derived.by(() => {
   const parts: string[] = [];
   if (description) parts.push(description);
-  if (accept) parts.push(`Accepted: ${accept}`);
-  if (maxSize !== undefined) parts.push(`Max size: ${formatBytes(maxSize)}`);
-  if (Number.isFinite(maxFiles)) parts.push(`Max files: ${maxFiles}`);
+  if (accept)
+    parts.push(messages('protoyard.ui.file-dropzone.accepted', 'Accepted: {accept}', { accept }));
+  if (maxSize !== undefined)
+    parts.push(
+      messages('protoyard.ui.file-dropzone.max-size', 'Max size: {size}', {
+        size: formatBytes(maxSize),
+      })
+    );
+  if (Number.isFinite(maxFiles))
+    parts.push(
+      messages('protoyard.ui.file-dropzone.max-files', 'Max files: {count}', { count: maxFiles })
+    );
   return parts.join(' · ');
 });
 
+function rejectCountLabel(): string {
+  if (!multiple)
+    return messages('protoyard.ui.file-dropzone.reject-single', 'Only one file allowed');
+  return maxFiles === 1
+    ? messages('protoyard.ui.file-dropzone.reject-count-one', 'Only {count} file allowed', {
+        count: maxFiles,
+      })
+    : messages('protoyard.ui.file-dropzone.reject-count', 'Only {count} files allowed', {
+        count: maxFiles,
+      });
+}
+
 const labels = $derived({
-  label,
-  inputLabel: label,
-  browse: browseLabel,
+  // Undefined keys are dropped so Texuli's dictionary keeps `label` and `browse`.
+  ...definedLabels({ label: labelProp, browse: browseLabelProp }),
+  inputLabel: labelProp ?? messages('texuli.file-upload.label', 'Upload files'),
   description: hint,
-  rejectType: accept ? `Type not allowed (${accept})` : 'Type not allowed',
-  rejectSize: maxSize !== undefined ? `Larger than ${formatBytes(maxSize)}` : 'Too large',
-  rejectCount: multiple
-    ? `Only ${maxFiles} file${maxFiles === 1 ? '' : 's'} allowed`
-    : 'Only one file allowed',
+  rejectType: accept
+    ? messages('protoyard.ui.file-dropzone.reject-type-accept', 'Type not allowed ({accept})', {
+        accept,
+      })
+    : messages('protoyard.ui.file-dropzone.reject-type', 'Type not allowed'),
+  rejectSize:
+    maxSize !== undefined
+      ? messages('protoyard.ui.file-dropzone.reject-size-max', 'Larger than {size}', {
+          size: formatBytes(maxSize),
+        })
+      : messages('protoyard.ui.file-dropzone.reject-size', 'Too large'),
+  rejectCount: rejectCountLabel(),
 });
 
 // Protoyard's per-file progress and status, keyed the way Texuli keys files.

@@ -54,6 +54,15 @@ unplaced review toolbar, the DevTools launcher, the `Toaster` and `UndoToaster`
 (phone layout) and the demo badge's right corners do. The badge also picks its
 corner inside the visible viewport (`badgeContainer`), not the layout one.
 
+`PrototypeNote` renders the same "Prototype · simulated data" label as plain
+text in the page flow (a footer, under a heading). Set `demoBadge: false` and
+place `<PrototypeNote name="…" />` where it reads naturally; the badge's
+chrome messages translate it.
+
+`mountPrototype({ toaster })` places the toast stack: `position` (`top-start`
+… `bottom-end`, default `bottom-end`), `offset` (px or a CSS length from the
+edge, for example above a bottom nav) and the region's `label`.
+
 `mountPrototype` also accepts `devtoolsTabs?: readonly DevtoolsTab[]` for
 prototype-owned panels such as Deck Studio. These lazy tabs are combined with
 the optional review tab and passed to `mountDevtools`; with no contributed or
@@ -490,7 +499,10 @@ await mountPrototype({
 
 - **Shape.** `DEFAULT_CHROME_MESSAGES` lists every group and key with its
   English text. The groups are `service`, `router`, `pending`, `storage`,
-  `staleWorld`, `linkedScenario`, `frame`, `badge` and `boot`.
+  `staleWorld`, `linkedScenario`, `frame`, `badge` and `boot`. The linked
+  scenario prompt says why it did not load the link through
+  `linkedScenario.reasonEdits` and `reasonUnknown`, picked by the runtime's
+  `pendingLink().code`.
 - **Placeholders.** `{path}`, `{scenario}`, `{seed}`, `{name}`,
   `{capability}` and `{snapshot}` are filled as text and never rendered as
   HTML. The path shows as code and scenario names as bold.

@@ -11,6 +11,7 @@ import {
   exitFullScreen,
   frameToRestore,
   keepsFrameWhenEmbedded,
+  takeFullScreenHint,
 } from './frame-mode.ts';
 import {
   activeFrame,
@@ -163,7 +164,10 @@ $effect(() => {
 <svelte:window bind:innerWidth={windowWidth} />
 
 {#if restoreTo}
-  <FullScreenExit onexit={() => void exitFullScreen(runtime).catch(console.error)} />
+  <FullScreenExit
+    hint={takeFullScreenHint()}
+    onexit={() => void exitFullScreen(runtime).catch(console.error)}
+  />
 {/if}
 <div bind:this={stage} data-py-shell-part="stage">
   <div

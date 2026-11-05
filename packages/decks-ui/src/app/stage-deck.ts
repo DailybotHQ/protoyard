@@ -68,7 +68,14 @@ export function stageDeck(deck: Deck): StageDeck {
  * prepared deck: at the `developer` tier the stage paints it on its first render
  * without migrating or validating it again, and loads no validation chunk for it.
  * Never throws: a deck that does not validate comes back with its issues.
+ * `designSystemRef` (`id@x.y.z`) sets the deck model's `designSystem`.
  */
-export function prepareStageDeck(input: Record<string, unknown>): PreparedDeck {
-  return prepareDeckV2(toTexuliDeck(input), { validateBlock: validateProtoyardBlock });
+export function prepareStageDeck(
+  input: Record<string, unknown>,
+  designSystemRef?: string
+): PreparedDeck {
+  const deck = toTexuliDeck(input);
+  // A Protoyard deck has no `designSystem`; the host's resolver names the one it follows.
+  const withSystem = designSystemRef ? { ...deck, designSystem: { ref: designSystemRef } } : deck;
+  return prepareDeckV2(withSystem, { validateBlock: validateProtoyardBlock });
 }

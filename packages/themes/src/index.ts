@@ -14,6 +14,7 @@ export {
   designSystemContrast,
   designSystemFromTheme,
   designSystemTheme,
+  designSystemVars,
   exportDesignSystem,
   forgetDesignSystemTheme,
   rebaseFontFaces,

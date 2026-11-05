@@ -3,6 +3,7 @@ import { ExternalLink } from '@lucide/svelte';
 import type { ButtonsBlock, MessageButton } from '@protoyard/ai/messages';
 import { tick } from 'svelte';
 import { Button, type ButtonVariant } from 'texuli/button';
+import { useMessages } from 'texuli/i18n';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { type MessageActionHandler, settle } from './types.ts';
 
@@ -82,6 +83,10 @@ async function cancel(): Promise<void> {
   await tick();
   if (index !== null) triggers[index]?.focus();
 }
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const t = useMessages();
+const M = 'protoyard.ai.message';
 </script>
 
 <div class="grid gap-2" data-py-message-block="buttons">
@@ -154,7 +159,7 @@ async function cancel(): Promise<void> {
   {/if}
 
   {#if !onAction && block.buttons.some((button) => button.action)}
-    <p class="m-0 text-xs text-muted-foreground">Actions are not available in this view.</p>
+    <p class="m-0 text-xs text-muted-foreground">{t(`${M}.buttons-locked`, 'Actions are not available in this view.')}</p>
   {/if}
   {#if error}
     <p class="m-0 text-xs text-destructive" role="alert">{error}</p>

@@ -3,10 +3,13 @@
 const NUMBER = new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 });
 
 /** A table cell as text: numbers localized, booleans as Yes/No, empty as an em dash. */
-export function formatCell(value: string | number | boolean | null | undefined): string {
+export function formatCell(
+  value: string | number | boolean | null | undefined,
+  words: { yes: string; no: string } = { yes: 'Yes', no: 'No' }
+): string {
   if (value === null || value === undefined || value === '') return '—';
   if (typeof value === 'number') return NUMBER.format(value);
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'boolean') return value ? words.yes : words.no;
   return value;
 }
 

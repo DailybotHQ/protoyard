@@ -1,9 +1,12 @@
 <script lang="ts">
 import { Alert } from 'texuli/alert';
+import { useMessages } from 'texuli/i18n';
+
+const messages = useMessages();
 </script>
 
 <Alert tone="info" hideIcon class="claude-composer-notice" role="status">
-  Threads live in Claude’s comment panel.
+  {messages('protoyard.review.composer-notice.text', 'Threads live in Claude’s comment panel.')}
 </Alert>
 
 <style>

@@ -1,3 +1,4 @@
+export { default as PresentationToggle } from './adaptive/PresentationToggle.svelte';
 export {
   type AdaptivePresentationOptions,
   type AdaptivePresentationStore,
@@ -60,6 +61,7 @@ export {
   type MountPrototypeOptions,
   mountPrototype,
   type PrototypeI18n,
+  type PrototypeToasterOptions,
   type RuntimeFactoryOptions,
 } from './mount.ts';
 export { describeLoadProgress } from './progress.ts';
@@ -120,3 +122,4 @@ export {
   tryGetWidgetHost,
   type WidgetHostApi,
 } from './shell/frames/widget-api.ts';
+export { default as PrototypeNote } from './shell/PrototypeNote.svelte';

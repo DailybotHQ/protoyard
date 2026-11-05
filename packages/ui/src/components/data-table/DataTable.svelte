@@ -8,6 +8,7 @@ import { Button } from 'texuli/button';
 import { Checkbox } from 'texuli/choice';
 import { cx } from 'texuli/cx';
 import { Skeleton } from 'texuli/feedback';
+import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { Input } from 'texuli/input';
@@ -77,7 +78,7 @@ let {
   search = $bindable(''),
   searchKeys,
   searchFn,
-  searchPlaceholder = 'Search…',
+  searchPlaceholder: searchPlaceholderProp,
   pageSize = 10,
   page = $bindable(1),
   onRowClick,
@@ -85,7 +86,7 @@ let {
   rowClass,
   loading = false,
   empty,
-  emptyTitle = 'No results',
+  emptyTitle: emptyTitleProp,
   emptyDescription,
   filters,
   toolbar,
@@ -97,6 +98,15 @@ let {
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const searchPlaceholder = $derived(
+  searchPlaceholderProp ?? messages('protoyard.ui.data-table.search-placeholder', 'Search…')
+);
+const emptyTitle = $derived(
+  emptyTitleProp ?? messages('protoyard.ui.data-table.empty-title', 'No results')
+);
 
 const searchable = $derived(Boolean(searchFn) || (searchKeys?.length ?? 0) > 0);
 const filtered = $derived.by(() => {

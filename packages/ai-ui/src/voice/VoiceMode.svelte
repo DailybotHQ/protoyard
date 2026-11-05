@@ -8,6 +8,7 @@ import {
 import { onDestroy, onMount } from 'svelte';
 import { Badge } from 'texuli/badge';
 import { Button } from 'texuli/button';
+import { useMessages } from 'texuli/i18n';
 
 interface Props {
   clock: AiClock;
@@ -39,6 +40,10 @@ interface Props {
   onDictate?: (transcript: string, draft: string) => void;
   onStateChange?: (state: VoiceState) => void;
 }
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
+const V = 'protoyard.ai.voice';
 
 const DEFAULT_TRANSCRIPTS = [
   'Summarize the latest project update.',
@@ -205,7 +210,10 @@ async function toggleMicMeter(): Promise<void> {
     return;
   }
   if (!navigator.mediaDevices?.getUserMedia || typeof AudioContext === 'undefined') {
-    micError = 'A local microphone level meter is unavailable in this browser.';
+    micError = messages(
+      `${V}.meter-unavailable`,
+      'A local microphone level meter is unavailable in this browser.'
+    );
     return;
   }
   micPending = true;
@@ -240,7 +248,10 @@ async function toggleMicMeter(): Promise<void> {
   } catch {
     stopMicMeter();
     if (!destroyed) {
-      micError = 'Microphone access was not enabled. Voice simulation still works with captions.';
+      micError = messages(
+        `${V}.mic-denied`,
+        'Microphone access was not enabled. Voice simulation still works with captions.'
+      );
     }
   } finally {
     micPending = false;
@@ -268,26 +279,26 @@ onDestroy(() => {
 });
 </script>
 
-<section class="voice-panel rounded-2xl border border-border bg-surface p-5 text-foreground" aria-label="Simulated voice chat">
+<section class="voice-panel rounded-2xl border border-border bg-surface p-5 text-foreground" aria-label={messages(`${V}.label`, 'Simulated voice chat')}>
   <div class="flex items-center justify-center py-4">
     <div class={`voice-orb ${voiceState}`} aria-hidden="true">
       <span></span><span></span><span></span><span></span><span></span>
     </div>
   </div>
-  <p class="text-center text-sm font-medium">Voice chat <Badge variant="outline" class="ml-1">Simulated</Badge></p>
-  <p class="mt-1 text-center text-xs text-muted-foreground">Transcripts are scripted and timed by the simulated clock. No audio is recorded or sent.</p>
+  <p class="text-center text-sm font-medium">{messages(`${V}.title`, 'Voice chat')} <Badge variant="outline" class="ml-1">{messages(`${V}.simulated`, 'Simulated')}</Badge></p>
+  <p class="mt-1 text-center text-xs text-muted-foreground">{messages(`${V}.note`, 'Transcripts are scripted and timed by the simulated clock. No audio is recorded or sent.')}</p>
 
-  <div class="mt-4 flex justify-center gap-2" role="group" aria-label="Voice mode">
-    <Button size="sm" variant={mode === 'push-to-talk' ? 'secondary' : 'outline'} aria-pressed={mode === 'push-to-talk'} onclick={() => chooseMode('push-to-talk')}>Push to talk</Button>
-    <Button size="sm" variant={mode === 'hands-free' ? 'secondary' : 'outline'} aria-pressed={mode === 'hands-free'} onclick={() => chooseMode(mode === 'hands-free' ? 'push-to-talk' : 'hands-free')}>{mode === 'hands-free' ? 'Stop hands-free' : 'Hands-free'}</Button>
+  <div class="mt-4 flex justify-center gap-2" role="group" aria-label={messages(`${V}.mode`, 'Voice mode')}>
+    <Button size="sm" variant={mode === 'push-to-talk' ? 'secondary' : 'outline'} aria-pressed={mode === 'push-to-talk'} onclick={() => chooseMode('push-to-talk')}>{messages(`${V}.push-to-talk`, 'Push to talk')}</Button>
+    <Button size="sm" variant={mode === 'hands-free' ? 'secondary' : 'outline'} aria-pressed={mode === 'hands-free'} onclick={() => chooseMode(mode === 'hands-free' ? 'push-to-talk' : 'hands-free')}>{mode === 'hands-free' ? messages(`${V}.stop-hands-free`, 'Stop hands-free') : messages(`${V}.hands-free`, 'Hands-free')}</Button>
   </div>
   {#if showMute || showDictation}
-    <div class="mt-3 flex justify-center gap-2" role="group" aria-label="Voice input">
+    <div class="mt-3 flex justify-center gap-2" role="group" aria-label={messages(`${V}.input`, 'Voice input')}>
       {#if showMute}
-        <Button size="sm" variant={muted ? 'secondary' : 'outline'} aria-pressed={muted} onclick={() => (muted = !muted)}>Mute microphone</Button>
+        <Button size="sm" variant={muted ? 'secondary' : 'outline'} aria-pressed={muted} onclick={() => (muted = !muted)}>{messages(`${V}.mute`, 'Mute microphone')}</Button>
       {/if}
       {#if showDictation}
-        <Button size="sm" variant={dictation ? 'secondary' : 'outline'} aria-pressed={dictation} onclick={() => (dictation = !dictation)}>Dictate into draft</Button>
+        <Button size="sm" variant={dictation ? 'secondary' : 'outline'} aria-pressed={dictation} onclick={() => (dictation = !dictation)}>{messages(`${V}.dictate`, 'Dictate into draft')}</Button>
       {/if}
     </div>
   {/if}
@@ -307,39 +318,39 @@ onDestroy(() => {
           onkeydown={holdKeydown}
           onkeyup={holdKeyup}
           onblur={holdEnd}
-        >{voiceState === 'listening' ? 'Release to transcribe' : 'Hold to talk'}</Button>
+        >{voiceState === 'listening' ? messages(`${V}.release`, 'Release to transcribe') : messages(`${V}.hold`, 'Hold to talk')}</Button>
       {:else}
-        <Button size="lg" class="rounded-full" aria-pressed={voiceState === 'listening' || voiceState === 'transcribing'} onclick={togglePushToTalk} disabled={voiceState === 'transcribing'}>{voiceState === 'listening' ? 'Finish and transcribe' : 'Start push to talk'}</Button>
+        <Button size="lg" class="rounded-full" aria-pressed={voiceState === 'listening' || voiceState === 'transcribing'} onclick={togglePushToTalk} disabled={voiceState === 'transcribing'}>{voiceState === 'listening' ? messages(`${V}.finish`, 'Finish and transcribe') : messages(`${V}.start`, 'Start push to talk')}</Button>
       {/if}
     </div>
   {/if}
   {#if muted}
-    <p class="mt-2 text-center text-xs text-muted-foreground" data-voice-muted>Microphone muted (simulated): turns produce no caption.</p>
+    <p class="mt-2 text-center text-xs text-muted-foreground" data-voice-muted>{messages(`${V}.muted`, 'Microphone muted (simulated): turns produce no caption.')}</p>
   {/if}
   {#if voiceState === 'interrupted'}
-    <div class="mt-3 flex justify-center"><Button size="sm" variant="ghost" onclick={() => session.start(mode)}>Resume voice mode</Button></div>
+    <div class="mt-3 flex justify-center"><Button size="sm" variant="ghost" onclick={() => session.start(mode)}>{messages(`${V}.resume`, 'Resume voice mode')}</Button></div>
   {:else if voiceState !== 'idle'}
-    <p class="mt-3 text-center text-xs text-muted-foreground" role="status">{voiceState === 'listening' ? (mode === 'hands-free' ? 'Listening for the next scripted turn…' : 'Listening…') : voiceState === 'transcribing' ? 'Preparing caption…' : 'Speaking simulated reply…'}</p>
+    <p class="mt-3 text-center text-xs text-muted-foreground" role="status">{voiceState === 'listening' ? (mode === 'hands-free' ? messages(`${V}.listening-hands-free`, 'Listening for the next scripted turn…') : messages(`${V}.listening`, 'Listening…')) : voiceState === 'transcribing' ? messages(`${V}.transcribing`, 'Preparing caption…') : messages(`${V}.speaking`, 'Speaking simulated reply…')}</p>
   {/if}
 
   {#if dictation}
     <div class="mt-4 rounded-xl border border-dashed border-border p-3 text-sm" data-voice-draft>
-      <p class="mb-1 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">Draft · simulated dictation, not sent</p>
-      <p aria-live="polite">{draft || 'Dictated words appear here.'}</p>
-      {#if draft}<Button size="sm" variant="ghost" class="mt-2" onclick={() => (draft = '')}>Clear draft</Button>{/if}
+      <p class="mb-1 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">{messages(`${V}.draft`, 'Draft · simulated dictation, not sent')}</p>
+      <p aria-live="polite">{draft || messages(`${V}.draft-empty`, 'Dictated words appear here.')}</p>
+      {#if draft}<Button size="sm" variant="ghost" class="mt-2" onclick={() => (draft = '')}>{messages(`${V}.clear-draft`, 'Clear draft')}</Button>{/if}
     </div>
   {/if}
-  {#if transcript && !dictation}<p class="mt-4 rounded-xl bg-background p-3 text-sm" aria-live="polite"><span class="mb-1 block text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">You said · simulated caption</span>{transcript}</p>{/if}
-  {#if reply}<p class="mt-2 rounded-xl border border-border p-3 text-sm" aria-live="polite"><span class="mb-1 block text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">Assistant · simulated caption</span>{reply}</p>{/if}
-  {#if !speechAvailable}<p class="mt-2 text-center text-xs text-muted-foreground">Speech output is muted in this browser; captions remain available.</p>{/if}
+  {#if transcript && !dictation}<p class="mt-4 rounded-xl bg-background p-3 text-sm" aria-live="polite"><span class="mb-1 block text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">{messages(`${V}.you-said`, 'You said · simulated caption')}</span>{transcript}</p>{/if}
+  {#if reply}<p class="mt-2 rounded-xl border border-border p-3 text-sm" aria-live="polite"><span class="mb-1 block text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">{messages(`${V}.assistant-said`, 'Assistant · simulated caption')}</span>{reply}</p>{/if}
+  {#if !speechAvailable}<p class="mt-2 text-center text-xs text-muted-foreground">{messages(`${V}.no-speech`, 'Speech output is muted in this browser; captions remain available.')}</p>{/if}
   {#if showMicLevelMeter}
     <div class="mt-4 border-t border-border pt-3">
-      <Button size="sm" variant="ghost" aria-pressed={micEnabled} autoLoading={false} loading={micPending} onclick={() => void toggleMicMeter()}>{micEnabled ? 'Disable local mic level meter' : micPending ? 'Waiting for microphone…' : 'Enable local mic level meter'}</Button>
-      {#if micEnabled}<div class="mt-2 h-2 overflow-hidden rounded-full bg-muted" role="meter" aria-label="Local microphone amplitude" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(micLevel * 100)}><div class="h-full bg-primary transition-[width]" style={`width:${micLevel * 100}%`}></div></div><p class="mt-1 text-[0.65rem] text-muted-foreground">Amplitude only. Audio is not recorded or uploaded.</p>{/if}
+      <Button size="sm" variant="ghost" aria-pressed={micEnabled} autoLoading={false} loading={micPending} onclick={() => void toggleMicMeter()}>{micEnabled ? messages(`${V}.meter-off`, 'Disable local mic level meter') : micPending ? messages(`${V}.meter-waiting`, 'Waiting for microphone…') : messages(`${V}.meter-on`, 'Enable local mic level meter')}</Button>
+      {#if micEnabled}<div class="mt-2 h-2 overflow-hidden rounded-full bg-muted" role="meter" aria-label={messages(`${V}.amplitude`, 'Local microphone amplitude')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(micLevel * 100)}><div class="h-full bg-primary transition-[width]" style={`width:${micLevel * 100}%`}></div></div><p class="mt-1 text-[0.65rem] text-muted-foreground">{messages(`${V}.amplitude-note`, 'Amplitude only. Audio is not recorded or uploaded.')}</p>{/if}
       {#if micError}<p class="mt-2 text-xs text-destructive" role="alert">{micError}</p>{/if}
     </div>
   {/if}
-  <div class="mt-3 flex justify-center"><Button size="sm" variant="ghost" onclick={interrupt} disabled={voiceState === 'idle' || voiceState === 'interrupted'}>Interrupt voice</Button></div>
+  <div class="mt-3 flex justify-center"><Button size="sm" variant="ghost" onclick={interrupt} disabled={voiceState === 'idle' || voiceState === 'interrupted'}>{messages(`${V}.interrupt`, 'Interrupt voice')}</Button></div>
 </section>
 
 <style>

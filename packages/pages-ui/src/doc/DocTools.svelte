@@ -47,6 +47,22 @@ function sizeLabel(bytes: number): string {
   return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;
 }
 
+/** "Saved name (12.0 KB, 3 pages)." through the dictionary; counts stay plain digits. */
+function savedLabel(result: DocExportOutcome): string {
+  const values = { filename: result.filename, size: sizeLabel(result.size) };
+  if (result.pageCount === undefined) {
+    return messages('protoyard.doc.saved', 'Saved {filename} ({size}).', values);
+  }
+  const pages =
+    result.pageCount === 1
+      ? messages('protoyard.doc.page-count-one', '1 page')
+      : messages('protoyard.doc.page-count', '{count} pages', { count: String(result.pageCount) });
+  return messages('protoyard.doc.saved-pages', 'Saved {filename} ({size}, {pages}).', {
+    ...values,
+    pages,
+  });
+}
+
 async function download(format: DocExportFormat): Promise<void> {
   failure = null;
   try {
@@ -54,7 +70,10 @@ async function download(format: DocExportFormat): Promise<void> {
     outcome = await exportDoc(doc, format);
   } catch (error) {
     outcome = null;
-    failure = error instanceof Error ? error.message : 'The file could not be written.';
+    failure =
+      error instanceof Error
+        ? error.message
+        : messages('protoyard.doc.write-failed', 'The file could not be written.');
   }
 }
 
@@ -102,9 +121,7 @@ const messages = useMessages();
   {/if}
   <p class="doc-tools__status" role="status" data-py-doc-export-status>
     {#if outcome}
-      Saved {outcome.filename} ({sizeLabel(outcome.size)}{outcome.pageCount !== undefined
-        ? `, ${outcome.pageCount} ${outcome.pageCount === 1 ? 'page' : 'pages'}`
-        : ''}).
+      {savedLabel(outcome)}
       {#each outcome.notes as note (note)}
         <span class="doc-tools__note"> {note}</span>
       {/each}

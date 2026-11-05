@@ -3,8 +3,14 @@ import { Bell, Volume2, VolumeX } from '@lucide/svelte';
 import { navigate, runService } from '@protoyard/renderer-svelte';
 import type { TriggerSnippet } from '@protoyard/ui';
 import { BottomSheet, Button, Popover } from '@protoyard/ui';
-import { type InboxFilter, NotificationInbox } from '@texuli/data/activity/inbox';
+import {
+  DEFAULT_INBOX_LABELS,
+  type InboxFilter,
+  NotificationInbox,
+  type NotificationInboxLabels,
+} from '@texuli/data/activity/inbox';
 import { onMount } from 'svelte';
+import { useMessages } from 'texuli/i18n';
 import { LucideIcon } from 'texuli/icons/lucide';
 
 /** Blueprint notifications use createdAt/personaId; views rows use at/recipientId. */
@@ -18,6 +24,21 @@ export type NotificationItem = {
   createdAt?: string;
   body?: string;
 };
+/** NotificationCenter's own words, next to Texuli's inbox labels. */
+export type NotificationCenterOwnLabels = {
+  markingAll: string;
+  marking: string;
+  loading: string;
+  loadFailed: string;
+  /** The trigger's name when there are unread items (starts with the badge number). */
+  unreadTrigger: (count: number, label: string) => string;
+  /** The phone sheet's description. */
+  unreadDescription: (count: number) => string;
+  mute: (kind: string) => string;
+  unmute: (kind: string) => string;
+};
+/** Every label: Texuli's inbox labels (forwarded whole) plus this host's own. */
+export type NotificationCenterLabels = NotificationInboxLabels & NotificationCenterOwnLabels;
 type Props = {
   query: {
     readonly current: readonly NotificationItem[] | undefined;
@@ -31,7 +52,13 @@ type Props = {
   hrefFor?: (item: NotificationItem) => string;
   now?: string | number | Date;
   trigger?: TriggerSnippet;
+  /** The panel title (wins over `labels.title`). */
   label?: string;
+  /**
+   * Overrides any label. Defaults come from the prototype's dictionary
+   * (`protoyard.views.notification-center.*`), then English.
+   */
+  labels?: Partial<NotificationCenterLabels>;
 };
 let {
   query,
@@ -42,8 +69,54 @@ let {
   hrefFor = (item) => `/${encodeURIComponent(item.subjectId)}`,
   now = new Date(),
   trigger,
-  label = 'Notifications',
+  label: labelProp,
+  labels: labelOverrides = {},
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); Texuli's
+// inbox takes a labels prop only, so its words are bridged under `.inbox.*` ids.
+const messages = useMessages();
+const M = 'protoyard.views.notification-center';
+const kebab = (key: string) => key.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`);
+const text = $derived.by((): NotificationCenterLabels => {
+  const inbox = { ...DEFAULT_INBOX_LABELS } as Record<string, unknown>;
+  for (const [key, value] of Object.entries(DEFAULT_INBOX_LABELS)) {
+    if (typeof value === 'string') inbox[key] = messages(`${M}.inbox.${kebab(key)}`, value);
+  }
+  const resolved: NotificationCenterLabels = {
+    ...(inbox as unknown as NotificationInboxLabels),
+    title: messages(`${M}.label`, 'Notifications'),
+    unreadCount: (count) =>
+      messages(`${M}.inbox.unread-count`, ', {count} unread', { count: String(count) }),
+    markReadItem: (title) =>
+      messages(`${M}.inbox.mark-read-item`, 'Mark as read: {title}', { title }),
+    markUnreadItem: (title) =>
+      messages(`${M}.inbox.mark-unread-item`, 'Mark as unread: {title}', { title }),
+    arrived: (count) =>
+      count === 1
+        ? messages(`${M}.inbox.arrived-one`, '1 new notification.')
+        : messages(`${M}.inbox.arrived`, '{count} new notifications.', { count: String(count) }),
+    markingAll: messages(`${M}.marking-all`, 'Marking all as read…'),
+    marking: messages(`${M}.marking`, 'Marking as read…'),
+    loading: messages(`${M}.loading`, 'Loading notifications…'),
+    loadFailed: messages(`${M}.load-failed`, 'Could not load notifications.'),
+    unreadTrigger: (count, name) =>
+      messages(`${M}.unread-trigger`, '{count} unread, {label}', {
+        count: String(count),
+        label: name,
+      }),
+    unreadDescription: (count) =>
+      messages(`${M}.unread-description`, '{count} unread', { count: String(count) }),
+    mute: (kind) => messages(`${M}.mute`, 'Mute {kind}', { kind }),
+    unmute: (kind) => messages(`${M}.unmute`, 'Unmute {kind}', { kind }),
+  };
+  return {
+    ...resolved,
+    ...labelOverrides,
+    ...(labelProp !== undefined ? { title: labelProp } : {}),
+  };
+});
+const label = $derived(text.title);
 
 type InboxRow = {
   id: string;
@@ -143,7 +216,7 @@ function openItem(row: InboxRow) {
 
 {#snippet defaultTrigger({ props }: { props: Record<string, unknown> })}
   <!-- The unread badge is the button's only visible text, so the name starts with it (WCAG 2.5.3, label in name). -->
-  <Button {...props} variant="ghost" size="icon" aria-label={unreadCount ? `${unreadCount} unread, ${label}` : label} class="relative">
+  <Button {...props} variant="ghost" size="icon" aria-label={unreadCount ? text.unreadTrigger(unreadCount, label) : label} class="relative">
     <LucideIcon icon={Bell} class="size-[18px]"  />
     {#if unreadCount}<span aria-live="polite" aria-atomic="true" class="absolute -top-1 -right-1 grid min-h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] text-destructive-foreground">{unreadCount}</span>{/if}
   </Button>
@@ -151,14 +224,14 @@ function openItem(row: InboxRow) {
 
 {#snippet muteAction(row: InboxRow)}
   {@const kind = row.source.kind}
-  <Button size="icon" variant="ghost" aria-label={`${muted(kind) ? 'Unmute' : 'Mute'} ${kind}`} aria-pressed={muted(kind)} disabled={!onMuteChange || pendingMutes.has(kind)} loading={pendingMutes.has(kind)} onclick={() => toggleMute(kind)}>{#if muted(kind)}<LucideIcon icon={VolumeX} class="size-[15px]"  />{:else}<LucideIcon icon={Volume2} class="size-[15px]"  />{/if}</Button>
+  <Button size="icon" variant="ghost" aria-label={muted(kind) ? text.unmute(kind) : text.mute(kind)} aria-pressed={muted(kind)} disabled={!onMuteChange || pendingMutes.has(kind)} loading={pendingMutes.has(kind)} onclick={() => toggleMute(kind)}>{#if muted(kind)}<LucideIcon icon={VolumeX} class="size-[15px]"  />{:else}<LucideIcon icon={Volume2} class="size-[15px]"  />{/if}</Button>
 {/snippet}
 
 {#snippet panel()}
   <div class="grid max-h-[min(70vh,36rem)] min-h-48 overflow-y-auto" aria-busy={pendingAll || pendingIds.size > 0}>
-    {#if pendingAll || pendingIds.size > 0}<p role="status" class="text-xs text-muted-foreground" data-notifications-pending>{pendingAll ? 'Marking all as read…' : 'Marking as read…'}</p>{/if}
-    {#if query.loading && !query.current}<p role="status" class="py-6 text-center text-muted-foreground">Loading notifications…</p>
-    {:else if query.error}<p role="alert" class="py-6 text-center text-destructive">Could not load notifications.</p>
+    {#if pendingAll || pendingIds.size > 0}<p role="status" class="text-xs text-muted-foreground" data-notifications-pending>{pendingAll ? text.markingAll : text.marking}</p>{/if}
+    {#if query.loading && !query.current}<p role="status" class="py-6 text-center text-muted-foreground">{text.loading}</p>
+    {:else if query.error}<p role="alert" class="py-6 text-center text-destructive">{text.loadFailed}</p>
     {:else}
       <NotificationInbox
         {items}
@@ -169,14 +242,14 @@ function openItem(row: InboxRow) {
         allowMarkUnread={false}
         onOpen={openItem}
         actions={muteAction}
-        labels={{ title: label }}
+        labels={text}
       />
     {/if}
   </div>
 {/snippet}
 
 {#if mobile}
-  <BottomSheet title={label} description={`${unreadCount} unread`} trigger={trigger ?? defaultTrigger} class="max-h-[90dvh]">
+  <BottomSheet title={label} description={text.unreadDescription(unreadCount)} trigger={trigger ?? defaultTrigger} class="max-h-[90dvh]">
     {@render panel()}
   </BottomSheet>
 {:else}

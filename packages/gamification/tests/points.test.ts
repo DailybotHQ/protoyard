@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   acceptMission,
   type MissionDef,
+  missionProgress,
   type PointsEntry,
   PointsEntrySchema,
   pointsTotals,
@@ -96,5 +97,30 @@ describe('badges and missions', () => {
         acceptedAt: '2026-10-20T12:00:00.000Z',
       })
     ).toThrow(/deadline/);
+  });
+});
+
+describe('runtime ids and acceptance-free missions (UG-03)', () => {
+  it('accepts runtime and seeded ids in ledger rows and still rejects bad ids', () => {
+    // `createRuntimeId('pts')` and `ctx.ids.next('deal')` shapes.
+    for (const id of ['pts_u0a1b2c3d4e5f', 'deal_0007', 'mission-complete']) {
+      expect(PointsEntrySchema.safeParse(entry(5, { id })).success).toBe(true);
+    }
+    for (const id of ['Upper_case', '_lead', '9start', `a${'b'.repeat(64)}`]) {
+      expect(PointsEntrySchema.safeParse(entry(5, { id })).success).toBe(false);
+    }
+  });
+
+  it('completes a mission with requiresAcceptance false without an opt-in', () => {
+    const defs: readonly MissionDef[] = [
+      { ...MISSIONS[0]!, id: 'auto_help', requiresAcceptance: false },
+      MISSIONS[0]!,
+    ];
+    const now = new Date('2026-10-20T12:00:00.000Z');
+    const counts = { auto_help: 3, 'three-this-week': 3 };
+    const [auto, manual] = missionProgress(defs, counts, new Set(), now);
+    expect(auto).toMatchObject({ complete: true, accepted: false, requiresAcceptance: false });
+    expect(manual).toMatchObject({ complete: false, accepted: false });
+    expect(manual).not.toHaveProperty('requiresAcceptance');
   });
 });

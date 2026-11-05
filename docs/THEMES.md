@@ -839,7 +839,9 @@ notes). Import its palette from design tokens with `theme import`, then copy a
 kit's component tree into another prototype with
 `pnpm protoyard kit sync <kit> <prototype>`. It records SHA-256 hashes of the
 copied files, and `--check` fails when the source, the copies or the manifest
-drift.
+drift. A kit with brand files or icons elsewhere syncs each folder with
+`--from <dir>`, a real folder inside the kit's `src/` or `public/`, copied to the
+same place in the prototype (`--from public/icons` → `public/icons/<kit>`).
 
 ## Theme Studio
 
@@ -951,6 +953,16 @@ compile, keeping `primary`, `background` and `foreground` in both modes (the
 built-ins keep `surface`, `ring`, `muted` and `destructive` too); `input` and
 dark `borderStrong` change, and dark `border` changes notation only.
 
+**Component type values: a role name, not a number.** A component's type
+fields take one of the document's type roles (`display`, `title`, `heading`,
+`body`, `label`, `caption`, `code`), not a CSS value. For example,
+`"components": { "button": { "line-height": "body" } }` compiles to
+`--tx-button-line-height` with the `body` role's line height, which Texuli's
+button reads (it falls back to the `label` role's line height). Checked with
+Texuli 0.14.0's compiler on a seed-only document: `"body"` gave `1.5` and
+`"label"` gave `1.25`. A number (`1.4`) is refused as `invalid-type`, and a
+CSS string (`"1.4"`, `"normal"`) as `invalid-value`.
+
 **Measured** (gzip -9, 2026-10-31, Texuli 0.11.2, `mobile-banking-demo` unless named):
 
 | Build | Before | After |
@@ -968,7 +980,10 @@ dark `borderStrong` change, and dark `border` changes notation only.
   `protoyard generate` is refused (regeneration would drop the edit), so set the
   blueprint's brand instead.
 - A deck's slides follow the design system through the `--tx-*` variables it
-  paints. Texuli's deck renderer has no design-system option of its own yet.
+  paints. A host can also hand DeckApp the compiled design system that
+  `ds use` exports (`designSystems={deckDesignSystems(compiled)}`): the stage
+  then paints its variables and DeckApp skips the deck's own theme. The print
+  view does not take a design system and keeps the deck theme.
 - A design system made in Theme Studio stays in that browser. Download the JSON
   and run `ds use` to put it in the repository.
 

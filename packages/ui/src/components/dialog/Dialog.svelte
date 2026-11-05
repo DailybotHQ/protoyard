@@ -47,7 +47,7 @@ type Props = Omit<
 
 let {
   open = $bindable(false),
-  closeLabel = 'Close',
+  closeLabel,
   onOpenChange,
   onCloseAutoFocus,
   stack = overlayStack,

@@ -1,5 +1,17 @@
 # @protoyard/decks-ui
 
+## 1.4.0
+
+### Minor Changes
+
+- Universal gaps from Corag's register: kits and wrappers resolve their words through the prototype dictionary, renderer, deck, design-system, tooling and budget additions, Texuli 0.14.1.
+
+### Patch Changes
+
+- @protoyard/blocks-ui@1.4.0
+  - @protoyard/decks@1.4.0
+  - @protoyard/blocks@1.4.0
+
 ## 1.3.0
 
 ### Patch Changes

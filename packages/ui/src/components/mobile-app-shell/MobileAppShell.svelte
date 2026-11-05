@@ -32,7 +32,7 @@ let {
   class: className,
   mainClass,
   mainId = 'mobile-app-content',
-  skipLabel = 'Skip to content',
+  skipLabel,
   ref = $bindable(null),
   ...rest
 }: Props = $props();

@@ -224,14 +224,16 @@ Method notes are in [`PERFORMANCE.md`](PERFORMANCE.md#views-kit).
   upload, `getBlob`), tree `onOpen` and virtualization props, activity `records`, `onOpenRecord` and
   paging, and grid saved-view and aggregate props. The
   [component reference](../packages/views-ui/README.md) lists them per view.
-- Board lane collapse is done by the adapter: a collapsed lane and its
-  cards are left out of Texuli's board, so column counts and WIP indicators
-  cover only the expanded lanes while a lane is collapsed. The create button
-  belongs to a column, not to a lane cell.
-- The calendar `chip` snippet and the "+N more events" toggle exist in the
-  phone agenda only. Texuli's month view shows three events and a "N more
-  events" note that is text, not a control; the week, day and agenda views
-  draw their own event buttons. The phone agenda does not move events.
+- Board lane collapse is Texuli's (0.14.1): each lane heading is a toggle, a
+  collapsed lane hides its cards behind a count and still counts in column
+  totals and WIP limits. On a board with lanes, "Add card" sits in each
+  column × lane cell and `onCreate(column, lane)` receives both. Board has no
+  lane header snippet yet.
+- The calendar's grid views take an `event` snippet for each chip's content
+  (Texuli keeps the button, keys, drag and Move menu), and with
+  `onMoreEvents(date)` the month view's "N more events" is a button;
+  `maxPerDay` sets how many show. The phone agenda uses the `chip` snippet
+  and its own "+N more events" toggle, and does not move events.
 - `FilePreview` embeds PDFs with the browser's own viewer (`<object>`),
   so a browser without one shows the "Open" link instead. It previews only
   what the host passes (`getSrc`, `getBlob`, `getText`); there is no upload,

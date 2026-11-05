@@ -338,6 +338,21 @@ export function designSystemTheme(compiled: ShippedDesignSystem): Theme {
 }
 
 /**
+ * Every compiled `--tx-*` variable of one mode, including the ones a Protoyard
+ * `Theme` has no role for (`--tx-ext-*`, component and type tokens): what the
+ * painter writes. A mode the design system did not compile gives the mode
+ * Texuli paints for it. A fresh object; changing it changes nothing else.
+ */
+export function designSystemVars(
+  compiled: Pick<ShippedDesignSystem, 'vars'>,
+  mode: ResolvedMode
+): Record<string, string> {
+  return {
+    ...((compiled.vars[pickDesignSystemMode(compiled, mode)] ?? {}) as Record<string, string>),
+  };
+}
+
+/**
  * A compiled design system as a Protoyard theme that paints with Texuli's
  * runtime: pass the result to `definePrototype({ themes })`, and every
  * appearance of that theme writes the compiled variables with

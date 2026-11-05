@@ -28,6 +28,8 @@ files, settings, states and an app command palette. The engines live in
   `NotificationCenter` renders Texuli's `@texuli/data/activity/inbox` with
   `allowMarkUnread={false}` (G50) and keeps recipient-scoped rows and the
   mark-read service callbacks.
+  Its `labels` prop (`Partial<NotificationCenterLabels>`: Texuli's inbox
+  labels plus its own) is forwarded whole to the inbox.
 
 Some adapters still accept props from the earlier Protoyard API that they do
 not forward; each section below lists them. The mapping table is in
@@ -182,13 +184,16 @@ services.
 - **Creating:** with `onCreate`, Enter on a focused empty slot or a click on an
   empty part of a day creates a one-hour event; date buttons create all-day
   ones.
-- **Day overflow:** a month cell shows three events and a "N more events"
-  note (rename it with `labels.moreEvents`). The note is text, not a
-  control, and the count of three is fixed.
+- **Day overflow:** a month cell shows `maxPerDay` events (default 3) and a
+  "N more events" note (rename it with `labels.moreEvents`). With
+  `onMoreEvents(date)` the note is a button named "N more events on <day>"
+  that reports the ISO day, for example to open the day view.
+- **Event content:** the `event` snippet (`(item, { view, compact, time })`)
+  renders each chip's content in month, week, day, the all-day row and
+  agenda; the chip stays Texuli's button. Render no controls inside it.
 - **Limits:** events cannot be resized, and there is no "this / following /
-  all" prompt for repeating events. The `chip` snippet applies to the phone
-  agenda only: Texuli's month, week, day and agenda views draw their own
-  event buttons.
+  all" prompt for repeating events. The phone agenda uses `chip`, not
+  `event`.
 
 ```bash
 pnpm vitest run packages/views-ui/tests/calendar.test.ts
@@ -350,6 +355,11 @@ data-less states.
   duplicated core copy breaks `instanceof` (the renderer's `runService` does
   the same).
 - `onRetry` should re-run the query, e.g. by bumping a value in its `deps`.
+- The titles and messages come from the prototype's dictionary
+  (`protoyard.views.query-state.*`, listed in
+  [docs/TEXULI.md](../../docs/TEXULI.md#protoyard-kit-ids)).
+  `classifyQueryError(error, messages?)` takes a lookup such as
+  `useMessages()` for code outside the component.
 - Every adapter in this package uses it for its own data-less states, so it
   ships with any view you import.
 
@@ -554,15 +564,16 @@ unchanged; use it for small boards without ranks, lanes or WIP limits.
   `columnFooter` snippets (`(column, { count })`).
 - **In-column create:** with `onCreate(column)`, each column ends with an
   "Add card" button (named "Add card to <column>"; rename it with
-  `createLabel`, limit it with `canCreate(column)`). It runs through
+  `createLabel`, limit it with `canCreate(column)`). On a board with lanes the
+  button sits in each column × lane cell instead ("Add card to <column>,
+  <lane>") and `onCreate(column, lane)` receives the lane. It runs through
   `runService` and shows pending feedback; the service decides what the new
   card holds (or opens a form).
-- **Lane collapse:** with `collapsibleLanes` and two or more lanes, a "Lanes"
-  toolbar has one toggle per lane (`aria-expanded`, with the lane's card
-  count). Collapsed lanes, bindable as `collapsedLanes` (ids, with
-  `onCollapsedLanesChange`), are left out of the board with their cards, so
-  column counts and WIP indicators cover the expanded lanes only while one
-  is collapsed.
+- **Lane collapse:** each lane heading is a Texuli toggle (0.14.1).
+  Collapsed lanes, bindable as `collapsedLanes` (ids, with
+  `onCollapsedLanesChange`), hide their cards behind a count and still count
+  in column totals and WIP limits. `collapsibleLanes` (two or more lanes) adds
+  a "Lanes" toolbar that folds a lane in every column at once.
 
 **What Texuli's board does:**
 

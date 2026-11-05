@@ -3,6 +3,7 @@ import { isValidationError, runService } from '@protoyard/renderer-svelte';
 import { Button, Textarea } from '@protoyard/ui';
 import { decodeMentions, encodeMentions } from '@protoyard/views/activity';
 import { type Component, onMount } from 'svelte';
+import { useMessages } from 'texuli/i18n';
 import type { ComposerEditorProps, EditorLoader } from './types.ts';
 
 /**
@@ -13,7 +14,7 @@ import type { ComposerEditorProps, EditorLoader } from './types.ts';
 let {
   label,
   initial = '',
-  submitLabel = 'Comment',
+  submitLabel,
   mentions = [],
   references = [],
   loadEditor,
@@ -33,6 +34,10 @@ let {
   onCancel?: () => void;
   autofocus?: boolean;
 } = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
+const P = 'protoyard.views.composer';
 
 const uid = $props.id();
 // svelte-ignore state_referenced_locally
@@ -57,7 +62,7 @@ onMount(() => {
 async function submit() {
   const body = encodeMentions(draft, { mentions, references }).trim();
   if (!body) {
-    error = 'Write something first';
+    error = messages(`${P}.empty`, 'Write something first');
     return;
   }
   error = '';
@@ -71,7 +76,7 @@ async function submit() {
     ? (result.error.issues.body ?? Object.values(result.error.issues)[0] ?? result.error.message)
     : result.error instanceof Error
       ? result.error.message
-      : 'Not saved.';
+      : messages(`${P}.not-saved`, 'Not saved.');
 }
 </script>
 
@@ -88,7 +93,7 @@ async function submit() {
       aria-invalid={error ? true : undefined}
       aria-describedby={error ? `composer-${uid}-error` : undefined}
       class="w-full rounded-md border border-input bg-surface px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      placeholder="Write a comment… use @ to mention someone"
+      placeholder={messages(`${P}.placeholder`, 'Write a comment… use @ to mention someone')}
       onkeydown={(event) => {
         if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
           event.preventDefault();
@@ -102,7 +107,7 @@ async function submit() {
   {/if}
   {#if error}<p id={`composer-${uid}-error`} role="alert" class="text-sm text-destructive">{error}</p>{/if}
   <div class="flex justify-end gap-2">
-    {#if onCancel}<Button type="button" variant="ghost" size="sm" onclick={onCancel}>Cancel</Button>{/if}
-    <Button type="button" size="sm" disabled={!draft.trim()} onclick={() => submit()}>{submitLabel}</Button>
+    {#if onCancel}<Button type="button" variant="ghost" size="sm" onclick={onCancel}>{messages(`${P}.cancel`, 'Cancel')}</Button>{/if}
+    <Button type="button" size="sm" disabled={!draft.trim()} onclick={() => submit()}>{submitLabel ?? messages(`${P}.submit`, 'Comment')}</Button>
   </div>
 </div>

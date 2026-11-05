@@ -2,6 +2,7 @@
 import type { DateInvalidReason } from '@texuli/primitives/date-picker';
 import type { HTMLAttributes } from 'svelte/elements';
 import { DatePicker as TexuliDatePicker } from 'texuli/date';
+import { useMessages } from 'texuli/i18n';
 import { cn } from '../../../lib/cn.ts';
 import { chainHandlers, composeHandlers } from '../../../lib/handlers.ts';
 import { checkDateText, type DateInputIssue, dateInputMessage, type IsoDate } from './dates.ts';
@@ -78,7 +79,7 @@ let {
   placeholder: _placeholder,
   disabled = false,
   required: requiredProp = false,
-  calendarLabel = 'Choose a date',
+  calendarLabel: calendarLabelProp,
   'aria-describedby': describedBy,
   'aria-required': ariaRequired,
   'aria-invalid': ariaInvalid,
@@ -92,6 +93,12 @@ let {
   onkeydown: callerKeyDown,
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const calendarLabel = $derived(
+  calendarLabelProp ?? messages('protoyard.ui.date-picker.calendar-label', 'Choose a date')
+);
 
 const required = $derived(requiredProp || ariaRequired === true || ariaRequired === 'true');
 

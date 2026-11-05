@@ -187,4 +187,41 @@ describe('BoardView (Texuli Board host adapter)', () => {
     });
     expect(screen.queryByRole('group', { name: 'Board lanes' })).toBeNull();
   });
+
+  it('keeps collapsed lanes in the column totals (Texuli 0.14.1 collapsedLanes)', async () => {
+    const columnHeader = createRawSnippet(
+      (column: () => { id: string }, state: () => { count: number }) => ({
+        render: () => `<span data-testid="count-${column().id}">${state().count}</span>`,
+      })
+    );
+    board({
+      lanes: [
+        { id: 'web', title: 'Web' },
+        { id: 'mobile', title: 'Mobile' },
+      ],
+      getLane: (t: Task) => t.team,
+      collapsibleLanes: true,
+      columnHeader,
+    });
+    const before = screen.getByTestId('count-todo').textContent;
+    const toolbar = screen.getByRole('group', { name: 'Board lanes' });
+    await fireEvent.click(within(toolbar).getByRole('button', { name: /Mobile/ }));
+    expect(screen.queryByText('Offline mode')).toBeNull();
+    expect(screen.getByTestId('count-todo').textContent).toBe(before);
+  });
+
+  it('creates a card in a column and lane through cellFooter (Texuli 0.14.1)', async () => {
+    const onCreate = vi.fn(async () => {});
+    board({
+      lanes: [
+        { id: 'web', title: 'Web' },
+        { id: 'mobile', title: 'Mobile' },
+      ],
+      getLane: (t: Task) => t.team,
+      onCreate,
+    });
+    await fireEvent.click(screen.getByRole('button', { name: 'Add card to Doing, Mobile' }));
+    await waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
+    expect(onCreate.mock.calls[0]).toMatchObject([{ id: 'doing' }, { id: 'mobile' }]);
+  });
 });

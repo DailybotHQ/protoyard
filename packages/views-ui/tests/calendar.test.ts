@@ -230,4 +230,35 @@ describe('CalendarView phone agenda (D-G-035)', () => {
     });
     await waitFor(() => expect(document.body.textContent).toContain('+2 more'));
   });
+
+  it('renders desktop chips through event and reports "more events" days (Texuli 0.14.1)', async () => {
+    const busy: CalendarSeries<Data>[] = ['A', 'B', 'C', 'D'].map((name, index) => ({
+      id: `m${index}`,
+      start: `2026-10-20T0${index + 1}:00:00.000Z`,
+      end: `2026-10-20T0${index + 1}:30:00.000Z`,
+      allDay: false,
+      timeZone: 'UTC',
+      data: { title: `Visit ${name}` },
+    }));
+    const onMoreEvents = vi.fn();
+    const event = createRawSnippet((item: () => { data?: Data }) => ({
+      render: () => `<span data-testid="chip">★ ${item().data?.title ?? ''}</span>`,
+    }));
+    render(CalendarView<Data>, {
+      props: {
+        query: query(busy),
+        timeZone: 'UTC',
+        anchor: '2026-10-20',
+        view: 'month',
+        maxPerDay: 2,
+        getTitle: (o) => (o as { data?: Data }).data?.title ?? 'Event',
+        event,
+        onMoreEvents,
+      },
+    });
+    await waitFor(() => expect(screen.getAllByTestId('chip').length).toBe(2));
+    expect(screen.getAllByTestId('chip')[0]?.textContent).toContain('★ Visit');
+    await fireEvent.click(screen.getByRole('button', { name: /2 more events/ }));
+    expect(onMoreEvents).toHaveBeenCalledWith('2026-10-20');
+  });
 });

@@ -34,6 +34,7 @@ describe('mountPrototype', () => {
       persistent?: boolean;
       fail?: boolean;
       i18n?: Parameters<typeof mountPrototype>[0]['i18n'];
+      toaster?: Parameters<typeof mountPrototype>[0]['toaster'];
     } = {}
   ) {
     const target = document.body.appendChild(document.createElement('div'));
@@ -45,6 +46,7 @@ describe('mountPrototype', () => {
       search: '',
       devtools: false,
       ...(options.i18n ? { i18n: options.i18n } : {}),
+      ...(options.toaster ? { toaster: options.toaster } : {}),
       createRuntime: () => {
         if (options.fail)
           throw Object.assign(new Error('Stored data is newer than this prototype.'), {
@@ -75,6 +77,12 @@ describe('mountPrototype', () => {
     });
     expect(target.querySelector('[aria-label="Notificaciones"]')).not.toBeNull();
     expect(target.querySelector('[aria-label="Notifications"]')).toBeNull();
+  });
+
+  it('places the toast stack from mountPrototype({ toaster }) (Corag UG-12)', async () => {
+    const { target } = await boot({ toaster: { position: 'top-center', offset: 72 } });
+    const region = target.querySelector('[aria-label="Notifications"]');
+    expect(region?.getAttribute('data-position')).toBe('top-center');
   });
 
   it('consumes a validated artifact hash before creating the runtime', async () => {

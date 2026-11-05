@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.14.0`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.14.1`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.14.0`. Texuli pins its own internal dependencies exactly,
+Every package is `0.14.1`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -99,14 +99,302 @@ Ids come from `TexuliMessageId`, `PrimitivesMessageId`, `BlocksMessageId`
 own `labels` prop still wins, and missing ids stay English. The renderer's own
 words (service toasts, loading text, the demo badge) go in `messages`
 (`ChromeMessages`). Texuli's `data`, `chat`, `media` and `editor` packages still
-take per-component `labels` props only (a known Texuli gap), and most of Protoyard's
-kits do not map their own strings onto the dictionary yet. DocApp does: its
-outline reads `pages.outline`, and its own words use `protoyard.doc.edit`,
+take per-component `labels` props only (a known Texuli gap). `NotificationCenter`
+(views-ui) and the AI composer and message list pass those components their words
+resolved from the dictionary; other wrappers do not yet. `@protoyard/ui` maps its
+own words onto the dictionary ([Protoyard ui ids](#protoyard-ui-ids)), and so do the
+gamification, SaaS account gate, pages and docs, views, review and AI kits
+([Protoyard kit ids](#protoyard-kit-ids)).
+DocApp's outline reads `pages.outline`, and its own words use `protoyard.doc.edit`,
 `protoyard.doc.reset`, `protoyard.doc.download`, `protoyard.doc.download-as`
 (`{format}`), `protoyard.doc.edits-saved`, `protoyard.doc.edits-unsaved`,
 `protoyard.doc.download-failed`, the `protoyard.doc.*` notice ids in
 `DocApp.svelte`, `protoyard.pages.document-content` and
 `protoyard.pages.untitled-document`.
+
+### Protoyard ui ids
+
+`@protoyard/ui` wrappers (1.4.0) no longer pass English defaults over Texuli's
+dictionary. Where Texuli resolves a prop itself (`Dialog` and `AdaptiveOverlay`
+`closeLabel`, `AlertDialog` `confirmLabel`/`cancelLabel`, `Sidebar`
+`label`/`collapseLabel`/`expandLabel`, `BottomNav` and `Pagination` `label`,
+`MobileHeader` `backLabel`, `MobileAppShell` `skipLabel`, `CommandPalette`
+`placeholder`, `StarRating` `label`, `FileDropzone` `label`/`browseLabel`), the
+wrapper leaves the prop undefined, so the `texuli.*` id applies. Strings that
+Protoyard renders itself read the ids below through `useMessages()` from
+`texuli/i18n`, with the English shown as the fallback. A prop still wins over
+both. `{name}` placeholders are filled by the component.
+
+| Id | English |
+| --- | --- |
+| `protoyard.ui.browser-chrome.title` | Prototype |
+| `protoyard.ui.calendar.label` | Choose a date |
+| `protoyard.ui.combobox.empty-text` | No results |
+| `protoyard.ui.combobox.placeholder` | Search… |
+| `protoyard.ui.combobox.show-options` | Show options |
+| `protoyard.ui.composer.label` | Message |
+| `protoyard.ui.composer.placeholder` | Write a message… |
+| `protoyard.ui.data-table.empty-title` | No results |
+| `protoyard.ui.data-table.search-placeholder` | Search… |
+| `protoyard.ui.date-picker.calendar-label` | Choose a date |
+| `protoyard.ui.date-range-picker.calendar-label` | Choose a date range |
+| `protoyard.ui.date-range-picker.end-label` | End date |
+| `protoyard.ui.date-range-picker.label` | Date range |
+| `protoyard.ui.date-range-picker.start-label` | Start date |
+| `protoyard.ui.detail-panel.close-label` | Close panel |
+| `protoyard.ui.docs-layout.content-label` | Documentation content |
+| `protoyard.ui.docs-layout.navigation-label` | Documentation sections |
+| `protoyard.ui.docs-layout.toc-label` | On this page |
+| `protoyard.ui.drawer.close-label` | Close |
+| `protoyard.ui.emoji-picker.placeholder` | Choose an emoji |
+| `protoyard.ui.emoji-picker.search-placeholder` | Search emoji |
+| `protoyard.ui.file-dropzone.accepted` | Accepted: {accept} |
+| `protoyard.ui.file-dropzone.max-files` | Max files: {count} |
+| `protoyard.ui.file-dropzone.max-size` | Max size: {size} |
+| `protoyard.ui.file-dropzone.reject-count` | Only {count} files allowed |
+| `protoyard.ui.file-dropzone.reject-count-one` | Only {count} file allowed |
+| `protoyard.ui.file-dropzone.reject-single` | Only one file allowed |
+| `protoyard.ui.file-dropzone.reject-size` | Too large |
+| `protoyard.ui.file-dropzone.reject-size-max` | Larger than {size} |
+| `protoyard.ui.file-dropzone.reject-type` | Type not allowed |
+| `protoyard.ui.file-dropzone.reject-type-accept` | Type not allowed ({accept}) |
+| `protoyard.ui.filter-bar.label` | Filters |
+| `protoyard.ui.filter-bar.reset-label` | Reset filters |
+| `protoyard.ui.header.menu-label` | Open navigation |
+| `protoyard.ui.image-input.add-label` | Add images |
+| `protoyard.ui.image-input.clear-label` | Remove images |
+| `protoyard.ui.image-input.hint` | Choose local images. Nothing is uploaded until you save. |
+| `protoyard.ui.image-input.label` | Photos |
+| `protoyard.ui.kanban.already-in` | {item} is already in {column}. |
+| `protoyard.ui.kanban.empty-column-text` | No items |
+| `protoyard.ui.kanban.label` | Board |
+| `protoyard.ui.kanban.move-menu` | Move {item} to another column |
+| `protoyard.ui.kanban.move-menu-label` | Move {item} to… |
+| `protoyard.ui.loading-state.label` | Loading… |
+| `protoyard.ui.number-stepper.decrement` | Decrease {label} |
+| `protoyard.ui.number-stepper.increment` | Increase {label} |
+| `protoyard.ui.pagination.next` | Next |
+| `protoyard.ui.pagination.previous` | Previous |
+| `protoyard.ui.pagination.status` | Page {page} of {count} |
+| `protoyard.ui.password-strength-meter.label` | Password strength |
+| `protoyard.ui.proposal-tag.label` | Proposal under review |
+| `protoyard.ui.proposal-tag.title` | This is a proposal under review, not a committed product feature. |
+| `protoyard.ui.scenario-switcher.description` | Load a world and view it as another persona. Simulated data only — not multiplayer. |
+| `protoyard.ui.scenario-switcher.empty-description` | This build has no registered scenarios. |
+| `protoyard.ui.scenario-switcher.empty-title` | No scenarios |
+| `protoyard.ui.scenario-switcher.load-label` | Load |
+| `protoyard.ui.scenario-switcher.loading-label` | Loading… |
+| `protoyard.ui.scenario-switcher.simulated-label` | Simulated |
+| `protoyard.ui.scenario-switcher.simulated-title` | Changes the demo data world. Not real multiplayer or authentication. |
+| `protoyard.ui.scenario-switcher.title` | Demo scenarios |
+| `protoyard.ui.scenario-switcher.view-as-heading` | View as… |
+| `protoyard.ui.scenario-switcher.you-label` | You |
+| `protoyard.ui.select.placeholder` | Select an option |
+| `protoyard.ui.simulated-tag.label` | Simulated |
+| `protoyard.ui.simulated-tag.title` | This step is simulated. It is not real security, billing or AI. |
+| `protoyard.ui.tag-email-input.duplicate-message` | This address is already in the list |
+| `protoyard.ui.tag-email-input.invalid-message` | Enter a valid email address |
+| `protoyard.ui.time-input.label` | Time |
+| `protoyard.ui.time-zone-select.empty-text` | No time zone matches |
+| `protoyard.ui.time-zone-select.placeholder` | Search a time zone |
+| `protoyard.ui.undo-toaster.label` | Undo notifications |
+| `protoyard.ui.user-picker.empty-text` | No one found |
+| `protoyard.ui.user-picker.label` | People |
+| `protoyard.ui.user-picker.placeholder` | Select a person |
+| `protoyard.ui.user-picker.search-placeholder` | Search people… |
+| `protoyard.ui.weekday-picker.label` | Days of the week |
+| `protoyard.ui.window-chrome.title` | App |
+
+Not mapped yet (still English, no prop): the window and browser chrome
+control names (`WindowChrome` Minimize/Maximize/Close/Reopen, `BrowserChrome`
+Back/Forward/Reload/Address), `DataTable` row and search names, `FilterBar`
+Any/Yes/No and range names, `EmojiPicker` "No emoji matches", `TagEmailInput`
+"Added tags"/"Add an address", `PasswordStrengthMeter` score words and
+`UndoToaster` retry and dismiss names.
+
+## Protoyard kit ids
+
+Protoyard's kits resolve their own words through the same dictionary, with
+ids shaped `protoyard.<kit>.<component>.<key>` and today's English as the
+fallback. Put them in `mountPrototype({ i18n: { labels } })` next to the
+Texuli ids; a component prop (for example `Leaderboard emptyTitle`) still
+wins. Placeholders are written `{name}`. Counts arrive as plain digits so the
+English text stays exactly as before; where English needs a singular, the kit
+uses a separate id (such as `…label-one`) instead of a plural message.
+
+### Gamification (`@protoyard/gamification-ui`)
+
+- `protoyard.gamification.level-chip.label` (`Level {level}`)
+- `protoyard.gamification.points-chip.points` (`{points} points`),
+  `.points-provisional` (`{points} points verified, {provisional} in progress`)
+- `protoyard.gamification.streak-chip.label-one` (`1 week streak`),
+  `.label` (`{weeks} week streak`)
+- `protoyard.gamification.mission-card.status-complete`, `.status-expired`,
+  `.status-in-progress`, `.status-available`, `.progress`, `.progress-value`
+  (`{progress} of {goal}`), `.reward` (`Reward {reward} points`), `.accept`,
+  `.accepted`, `.completed`
+- `protoyard.gamification.leaderboard.label`, `.opt-in`, `.opt-in-hint`,
+  `.saving`, `.empty-title`, `.empty-description`, `.show-me`, `.position`
+  (`{position}`), `.you`, `.points` (`{points}`)
+- `protoyard.gamification.achievement-badge.earned` (`{name}, earned`),
+  `.earned-on-spoken` (`{name}, earned {date}`), `.earned-on`
+  (`Earned {date}`), `.progress`
+  (`{name}, {progress} of {goal} ({percent} percent)`)
+
+`AchievementBadge earnedAt` formats its date with the dictionary's `locale`.
+
+### SaaS (`@protoyard/saas-ui`)
+
+- `protoyard.saas.account-gate.title`, `.description`, `.note`,
+  `.simulated-note`, `.create`, `.dismiss` (`AccountGate`; each also a prop)
+
+### Pages and docs (`@protoyard/pages-ui`)
+
+Besides the `protoyard.doc.*` ids listed above:
+
+- `protoyard.doc.loading`, `.loading-editor`, `.loading-form`
+- `protoyard.doc.saved` (`Saved {filename} ({size}).`), `.saved-pages`
+  (`Saved {filename} ({size}, {pages}).`), `.page-count-one` (`1 page`),
+  `.page-count` (`{count} pages`), `.write-failed`
+- `protoyard.page.loading`, `.load-failed`, `.try-again`, `.loading-form`
+- `protoyard.pages.print` (`PrintButton`; its `label` prop still wins)
+
+### Views (`@protoyard/views-ui`)
+
+- `protoyard.views.query-state.empty-title`, `.denied-title`,
+  `.denied-message` (`{capability}`), `.offline-title`, `.offline-message`,
+  `.failed-title`, `.failed-message` (`QueryState`; `classifyQueryError(error,
+  messages)` takes the same lookup)
+- `protoyard.views.notification-center.label`, `.marking-all`, `.marking`,
+  `.loading`, `.load-failed`, `.unread-trigger` (`{count} unread, {label}`),
+  `.unread-description` (`{count}`), `.mute` / `.unmute` (`{kind}`)
+- `protoyard.views.notification-center.inbox.*` bridges Texuli's inbox labels
+  (which have no dictionary ids yet): `.view`, `.all`, `.unread`,
+  `.mark-all-read`, `.mark-read`, `.mark-unread`, `.unread-item`, `.empty`,
+  `.empty-unread`, `.save-failed`, `.unread-count` (`, {count} unread`),
+  `.mark-read-item` / `.mark-unread-item` (`{title}`), `.arrived-one`,
+  `.arrived` (`{count}`). The `labels` prop (any inbox or center label) wins.
+- `protoyard.views.comment-thread.label`, `.loading` (`{label}`), `.someone`,
+  `.edited`, `.deleted`, `.edit-by` (`{name}`), `.save`, `.comment`,
+  `.reaction-count` (`{emoji} {count}: {names}`), `.react`, `.reply`, `.edit`,
+  `.delete`, `.reactions`, `.react-with` (`{emoji}`), `.sending-comment`,
+  `.you`, `.sending`, `.pending-comment`, `.empty`, `.replies-to` / `.reply-to`
+  (`{name}`), `.send-reply`, `.add`, `.delete-title`, `.delete-description`,
+  `.delete-confirm`
+- `protoyard.views.composer.submit`, `.empty`, `.not-saved`, `.placeholder`,
+  `.cancel`
+- `protoyard.views.activity-feed.label`, `.loading` (`{label}`)
+
+### Review comments (`@protoyard/review-ui`)
+
+The review UI mounts as its own Svelte root, outside the app's
+`LabelsProvider`; pass the dictionary to `mountReview({ i18n })` (or the
+`i18n` prop of `ReviewPanel`). `mountPrototype` does not forward it yet.
+
+- `protoyard.review.tab` (the DevTools tab name; a plain string)
+- `protoyard.review.session.import-none`, `.imported-one`, `.imported`
+  (`{count}`), `.load-failed`, `.save-failed`, `.name-prompt`, `.body-prompt`,
+  `.thread`, `.thread-on` (`{screen}`), `.this-screen`, `.close`, `.reopen`,
+  `.resolve`, `.reply`, `.sending`, `.send-reply`
+- `protoyard.review.toolbar.label`, `.title`, `.launcher` (`{threads}`),
+  `.launcher-pending` (`{label}`, `{count}`), `.threads-one`, `.threads`
+  (`{count}`), `.count` (`{count}`), `.comment`, `.stop`, `.panel`, `.export`,
+  `.import`, `.synced`, `.pending-one`, `.pending` (`{count}`), `.shared`,
+  `.local`, `.live`, `.on-refresh`, `.action-failed`
+- `protoyard.review.panel.label`, `.title`, `.thread-count` (`{count}`),
+  `.filters`, `.state`, `.filter-state`, `.all-states`, `.open`, `.resolved`,
+  `.screen`, `.filter-screen`, `.all-screens`, `.author`, `.filter-author`,
+  `.all-authors`, `.anchor`, `.filter-anchor`, `.all-anchors`, `.anchored`,
+  `.orphaned`, `.search`, `.counts`, `.empty`, `.threads`, `.unknown-screen`,
+  `.restoring`, `.restore`, `.restore-failed`, `.switch-title`,
+  `.switch-description` (`{scenario}`), `.cancel`, `.switching`,
+  `.switch-confirm`
+- `protoyard.review.thread.label`, `.name-title`, `.name-hint`, `.name-label`,
+  `.name-invalid`, `.name-not-saved`, `.continue`, `.by` (`{name}`),
+  `.reopen`, `.resolve`, `.update-failed`, `.gone`, `.open`
+- `protoyard.review.overlay.label`, `.add`, `.exit`, `.saving`, `.place`,
+  `.place-hint`, `.pin-one` / `.pin` (`{name}`, `{excerpt}`, `{count}`),
+  `.cluster` (`{count}`), `.composer-opening`, `.composer-opened`,
+  `.location-saving`, `.location-saved`, `.location-failed`
+  (`createReviewOverlay({ messages })` takes the lookup)
+- `protoyard.review.composer-notice.text`
+
+### AI (`@protoyard/ai-ui`)
+
+`@texuli/chat`'s `Composer` and `MessageList` take labels props only, so the
+kit passes them resolved from these ids.
+
+- `protoyard.ai.composer.input`, `.placeholder` (the `placeholder` prop
+  still wins), `.hint`, `.send`, `.sending`, `.stop`, `.send-error`,
+  `.model`, `.model-option` (`{name} · Simulated`), `.slash-commands`,
+  `.people`, `.attach`, `.choose-attachments`, `.attachments`,
+  `.simulated-note`
+- `protoyard.ai.message-list.you`, `.assistant`, `.label`, `.empty`,
+  `.edit-input`, `.save-edit`, `.assistant-message`, `.your-message`,
+  `.simulated`, `.writing`, `.edit`, `.helpful`, `.helpful-label`,
+  `.not-helpful`, `.not-helpful-label`, `.previous-version`,
+  `.next-version`, `.regenerate`, `.regenerate-label`
+- `protoyard.ai.rich-answer.label`, `.image` (`{alt}`), `.source`
+  (`{index}`), `.source-titled` (`{index}`, `{title}`), `.code`,
+  `.code-label` (`{lang}`), `.streaming`, `.chart-preparing`,
+  `.chart-loading`, `.chart-failed`, `.complete`, `.incomplete`, `.sources`
+- `protoyard.ai.chart-answer.label-column`, `.invalid`, `.show-data`,
+  `.data`, `.view-failed`
+- `protoyard.ai.canvas.label`, `.code`, `.document`, `.kind` (`{kind}`),
+  `.copy`, `.copied`, `.close`, `.code-label` (`{language}`),
+  `.document-content`, `.copy-failed`
+- `protoyard.ai.message.label`, `.text`, `.invalid-one`, `.invalid`
+  (`{count}`), `.choose`, `.submit`, `.form-locked`, `.send`,
+  `.select-locked`, `.buttons-locked`, `.attachments`, `.table`,
+  `.no-rows`, `.yes`, `.no` (structured chat messages)
+- `protoyard.ai.approval.*` (`SuggestionCard`, `ChatApprovalCard`):
+  `.failed`, `.agent`, `.note`, `.target`, `.prepared`
+  (`{summary}`), `.prepared-change`, `.prepared-notification`,
+  `.waiting-approver`, `.waiting-approver-sentence`, `.actions`,
+  `.suggestion-actions`, `.chat-label`, `.chat-note`, `.approve`,
+  `.confirm`, `.edit`, `.dismiss`, `.view-result`, `.approving`,
+  `.dismissing`, `.saving`, `.confirming`, `.decided`, `.dismissed`,
+  `.link-target`, `.choose-target`, `.save`, `.cancel`
+- `protoyard.ai.autonomy.level-<1-4>.name` / `.definition`,
+  `protoyard.ai.autonomy.area.<records|notifications|workspace|external>`,
+  `protoyard.ai.audit.<action>` (`auto_handled` → `auto-handled`),
+  `protoyard.ai.suggestion.status.<status>`: the `AUTONOMY_LEVEL_LABELS`,
+  `AUTONOMY_AREA_LABELS`, `AUDIT_ACTION_LABELS` and
+  `SUGGESTION_STATUS_LABELS` constants stay the English defaults;
+  `autonomyLevelLabel`, `areaLabel`, `auditActionLabel` and
+  `suggestionStatusLabel` take a lookup (`useMessages()`)
+- `protoyard.ai.autonomy-picker.legend`, `.note`, `.group`
+  (`{legend}`, `{area}`), `.option` (`{level}`, `{name}`), `.capped`
+  (`{level}`), `.cap-external`, `.saving`, `.failed`
+- `protoyard.ai.audit-trail.label`, `.note`, `.empty-title`,
+  `.empty-description`, `.entries`, `.when`, `.who`, `.what`, `.detail`,
+  `.agent`, `.person`
+- `protoyard.ai.workspace.suggestion-1` … `-4` (sent as the prompt when
+  picked), `.new-conversation`, `.close-navigation`, `.all-conversations`,
+  `.unfiled`, `.share-failed`, `.history`, `.new-chat`, `.search`,
+  `.filter-folder`, `.conversations`, `.no-conversations`,
+  `.conversation-title`, `.save-title`, `.pinned`, `.personal`,
+  `.actions-for` (`{title}`), `.rename`, `.name`, `.pin`, `.unpin`, `.move`
+  (`{title}`), `.remove-folder`, `.folder-name`, `.new-folder`,
+  `.create-folder`, `.simulated-note`, `.conversation`, `.open-history`,
+  `.model-line` (`{name}`), `.assistant`, `.share-label`, `.share`,
+  `.canvas-open`, `.share-link`, `.copy-share`, `.share-copied`,
+  `.copy-failed`, `.close-share`, `.generating`, `.empty-title`,
+  `.empty-description`, `.disclaimer`
+- `protoyard.ai.voice.label`, `.title`, `.simulated`, `.note`, `.mode`,
+  `.push-to-talk`, `.hands-free`, `.stop-hands-free`, `.input`, `.mute`,
+  `.dictate`, `.hold`, `.release`, `.start`, `.finish`, `.muted`, `.resume`,
+  `.listening`, `.listening-hands-free`, `.transcribing`, `.speaking`,
+  `.draft`, `.draft-empty`, `.clear-draft`, `.you-said`, `.assistant-said`,
+  `.no-speech`, `.meter-on`, `.meter-off`, `.meter-waiting`, `.amplitude`,
+  `.amplitude-note`, `.meter-unavailable`, `.mic-denied` (the scripted
+  default transcripts stay English: they are data)
+- `protoyard.ai.widget.title`, `.open`, `.expand`, `.expand-label`,
+  `.restore`, `.restore-label`, `.close`, `.close-label`
+
+Not mapped: `statusLine` and `CAP_REASON` text produced by the
+`@protoyard/ai` engine (the picker wraps `CAP_REASON` in
+`.cap-external`, whose English is the engine's string).
 
 ## Icons, code fields, image pairs and avatar grids (Texuli 0.13.1)
 
@@ -170,7 +458,16 @@ rules with `protoyard check texuli [--scope <path>…]` (the core lives in
 `tests/adoption/texuli-adoption.test.ts`, which runs this default ratchet over
 the whole repository. Scoped strict checks (`--scope <path> --strict`, with
 `--allow-gaps` where a pending entry waits on an open gap) are not part of CI;
-run them by hand for the surface a task migrates.
+run them by hand for the surface a task migrates. Tools and tests can call the
+same rules from `@protoyard/cli/adoption`: `scanSource(file, source)` returns
+the violations in one file and `checkAdoption(options)` scans a workspace.
+
+Renderer geometry stays under `--py-*`, and the `py-token` rule flags any read
+of it. Consumers read the `--tx-*` contract instead: `--tx-safe-top`,
+`--tx-safe-right`, `--tx-safe-bottom`, `--tx-safe-left` and `--tx-app-height`
+for safe areas and the app height. A progress bar's fill color can be set
+today with `--tx-progress-fill` on the bar or an ancestor, while tone and
+track tokens wait on Texuli (UG-43).
 
 | Rule | Prevents | Required direction |
 | --- | --- | --- |

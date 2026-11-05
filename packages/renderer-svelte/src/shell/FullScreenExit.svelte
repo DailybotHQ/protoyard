@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Button } from '@protoyard/ui';
-import { onMount } from 'svelte';
+import { onMount, untrack } from 'svelte';
 import { chromeMessages } from '../messages.ts';
 import { isFrameExitKey } from './frame-mode.ts';
 import Icon from './Icon.svelte';
@@ -9,11 +9,11 @@ import Icon from './Icon.svelte';
  * Full screen mode: the app fills the viewport with no chrome. "Show in frame"
  * is the first tab stop and stays invisible until it has keyboard focus (like
  * a skip link), so it never covers the app; Escape works too. A short hint
- * says so when full screen starts, without taking pointer events.
+ * says so when the person starts full screen, without taking pointer events.
  */
-let { onexit }: { onexit: () => void } = $props();
+let { onexit, hint: showHint = true }: { onexit: () => void; hint?: boolean } = $props();
 
-let hint = $state(true);
+let hint = $state(untrack(() => showHint));
 
 onMount(() => {
   const timer = setTimeout(() => (hint = false), 4000);

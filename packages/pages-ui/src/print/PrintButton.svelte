@@ -2,14 +2,15 @@
 import './print.css';
 
 import { Button, type ButtonSize, type ButtonVariant } from '@protoyard/ui';
+import { useMessages } from 'texuli/i18n';
 
 /**
  * Opens the browser's print dialog for the page or doc. It has a visible
- * label (default "Print"), never prints itself (`data-py-print-button` is
+ * label (default `protoyard.pages.print`, "Print"), never prints itself (`data-py-print-button` is
  * hidden by the print stylesheet), and calls `window.print()` once per click.
  */
 let {
-  label = 'Print',
+  label,
   variant = 'outline',
   size = 'sm',
   class: className,
@@ -19,6 +20,8 @@ let {
   size?: ButtonSize;
   class?: string;
 } = $props();
+
+const messages = useMessages();
 
 function print() {
   if (typeof window !== 'undefined' && typeof window.print === 'function') window.print();
@@ -31,5 +34,5 @@ function print() {
     <path d="M6 9V2h12v7" />
     <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
     <path d="M6 14h12v8H6z" />
-  </svg>{label}
+  </svg>{label ?? messages('protoyard.pages.print', 'Print')}
 </Button>

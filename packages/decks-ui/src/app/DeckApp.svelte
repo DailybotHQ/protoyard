@@ -11,13 +11,18 @@ import {
   parseDeckHash,
   parseDeckRoute,
 } from '@texuli/deck/engine';
-import { DeckStageCore, type DeckThemeLoader } from '@texuli/slides/stage-core';
+import {
+  DeckStageCore,
+  type DeckStageMessages,
+  type DeckThemeLoader,
+} from '@texuli/slides/stage-core';
 import { flushSync, onMount, untrack } from 'svelte';
 import { Button, IconButton } from 'texuli/button';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { type DeckDebugSetting, deckDebugAvailable, isDevBuild } from '../debug/availability.ts';
 import type { CustomSlideRegistry } from '../layouts/custom-slides.ts';
 import { setDeckHostContext } from './context.ts';
+import type { DeckDesignSystems } from './design-systems.ts';
 import { createProtoyardRenderers } from './renderers.ts';
 import {
   prepareStageDeck,
@@ -57,6 +62,8 @@ let {
   debugSource = null,
   customSlides,
   resolveAvatar,
+  messages,
+  designSystems,
 }: {
   /** Validated deck document (`DeckSchema`). */
   deck: Deck;
@@ -89,6 +96,18 @@ let {
   customSlides?: CustomSlideRegistry;
   /** Resolves a library avatar id (`av-012`) to its image URL (team and people slides). */
   resolveAvatar?: (id: string) => string | undefined;
+  /**
+   * Partial overrides of the stage's words (`DeckStageMessages`, English
+   * defaults: `stage.closeOverview`, `stage.label`…), for the stage and the
+   * print view. Placeholders use `{name}`.
+   */
+  messages?: DeckStageMessages;
+  /**
+   * A design-system resolver for the stage (`deckDesignSystems(compiled)`).
+   * With a `ref`, the deck follows that design system: the stage paints its
+   * compiled variables and DeckApp does not load the deck's `style` theme.
+   */
+  designSystems?: DeckDesignSystems;
 } = $props();
 
 const stage = $derived(toStageDeck(deck));
@@ -109,7 +128,7 @@ setDeckHostContext({
  * stage's first render, with no migration or validation chunk. A deck that does not
  * prepare goes to the stage as it is, which shows its diagnostics instead of slides.
  */
-const prepared = $derived(prepareStageDeck(stage.input));
+const prepared = $derived(prepareStageDeck(stage.input, designSystems?.ref));
 const stageDeck = $derived(prepared.ok ? prepared : stage.input);
 /** What the print view paints: the prepared model v2 deck. */
 const printDeck = $derived(prepared.ok ? prepared.deck : stage.input);
@@ -329,6 +348,7 @@ onMount(() => {
         {renderers}
         tier="developer"
         {loadTheme}
+        {messages}
         {resolveAvatar}
       />
     </div>
@@ -362,7 +382,9 @@ onMount(() => {
       {syncHash}
       {autofocus}
       {namespace}
-      {loadTheme}
+      loadTheme={designSystems?.ref ? null : loadTheme}
+      designSystems={designSystems ?? null}
+      {messages}
       {resolveAvatar}
       {renderers}
       defaultRenderers={false}
@@ -416,6 +438,7 @@ onMount(() => {
           {renderers}
           tier="developer"
           {loadTheme}
+          {messages}
           {resolveAvatar}
         />
       </div>

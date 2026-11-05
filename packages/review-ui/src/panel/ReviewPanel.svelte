@@ -4,6 +4,7 @@ import { resolveAnchor } from '@protoyard/review/anchors';
 import { onMount, tick } from 'svelte';
 import { Button } from 'texuli/button';
 import { AlertDialog } from 'texuli/dialog';
+import { setTexuliLabels, useMessages } from 'texuli/i18n';
 import { Input } from 'texuli/input';
 import { SelectContent, SelectItem, SelectRoot, SelectTrigger, SelectValue } from 'texuli/select';
 import type { ReviewPanelProps } from './types.ts';
@@ -17,7 +18,17 @@ let {
   setShowResolved,
   onNavigate,
   orphanedThreadIds = [],
+  i18n,
 }: ReviewPanelProps = $props();
+
+// A panel mounted on its own root (the session's floating panel, a DevTools tab)
+// applies the prototype's dictionary itself.
+// svelte-ignore state_referenced_locally
+if (i18n) setTexuliLabels(i18n.labels ?? {}, i18n.locale ? { locale: i18n.locale } : {});
+// Labels resolve through Texuli's dictionary (protoyard.review.panel.* ids).
+const messages = useMessages();
+const P = 'protoyard.review.panel';
+const unknownScreen = $derived(messages(`${P}.unknown-screen`, 'Unknown screen'));
 
 type StateFilter = 'all' | 'open' | 'resolved';
 type OrphanFilter = 'all' | 'anchored' | 'orphaned';
@@ -47,7 +58,7 @@ const authors = $derived([...new Set(roots.map((thread) => thread.author.name))]
 const countsByScreen = $derived.by(() => {
   const counts = new Map<string, number>();
   for (const thread of roots) {
-    const screen = thread.anchor?.route.path ?? 'Unknown screen';
+    const screen = thread.anchor?.route.path ?? unknownScreen;
     counts.set(screen, (counts.get(screen) ?? 0) + 1);
   }
   return counts;
@@ -129,7 +140,10 @@ async function restore(thread: ReviewComment, allowScenarioSwitch = false): Prom
     await openThread(thread);
     return true;
   } catch (error) {
-    restoreError = error instanceof Error ? error.message : 'Could not restore the saved view.';
+    restoreError =
+      error instanceof Error
+        ? error.message
+        : messages(`${P}.restore-failed`, 'Could not restore the saved view.');
     return false;
   } finally {
     restoring = false;
@@ -193,58 +207,58 @@ onMount(() => {
 });
 </script>
 
-<section id="review-comments-panel" class="review-panel" aria-label="Review comments">
+<section id="review-comments-panel" class="review-panel" aria-label={messages(`${P}.label`, 'Review comments')}>
   <header class="review-panel__header">
-    <h2>Comments <span aria-label={`${roots.length} threads`}>({roots.length})</span></h2>
+    <h2>{messages(`${P}.title`, 'Comments')} <span aria-label={messages(`${P}.thread-count`, '{count} threads', { count: String(roots.length) })}>({roots.length})</span></h2>
   </header>
-  <div class="review-panel__filters" aria-label="Filter comments">
-    <label>State
+  <div class="review-panel__filters" aria-label={messages(`${P}.filters`, 'Filter comments')}>
+    <label>{messages(`${P}.state`, 'State')}
       <SelectRoot bind:value={stateFilter} onValueChange={(value) => (stateFilter = value as StateFilter)}>
-        <SelectTrigger aria-label="Filter by state"><SelectValue placeholder="State" /></SelectTrigger>
-        <SelectContent><SelectItem value="all">All states</SelectItem><SelectItem value="open">Open</SelectItem><SelectItem value="resolved">Resolved</SelectItem></SelectContent>
+        <SelectTrigger aria-label={messages(`${P}.filter-state`, 'Filter by state')}><SelectValue placeholder={messages(`${P}.state`, 'State')} /></SelectTrigger>
+        <SelectContent><SelectItem value="all">{messages(`${P}.all-states`, 'All states')}</SelectItem><SelectItem value="open">{messages(`${P}.open`, 'Open')}</SelectItem><SelectItem value="resolved">{messages(`${P}.resolved`, 'Resolved')}</SelectItem></SelectContent>
       </SelectRoot>
     </label>
-    <label>Screen
+    <label>{messages(`${P}.screen`, 'Screen')}
       <SelectRoot bind:value={screenFilter} onValueChange={(value) => (screenFilter = value)}>
-        <SelectTrigger aria-label="Filter by screen"><SelectValue placeholder="Screen" /></SelectTrigger>
-        <SelectContent><SelectItem value="all">All screens</SelectItem>{#each screens as screen}<SelectItem value={screen}>{screen}</SelectItem>{/each}</SelectContent>
+        <SelectTrigger aria-label={messages(`${P}.filter-screen`, 'Filter by screen')}><SelectValue placeholder={messages(`${P}.screen`, 'Screen')} /></SelectTrigger>
+        <SelectContent><SelectItem value="all">{messages(`${P}.all-screens`, 'All screens')}</SelectItem>{#each screens as screen}<SelectItem value={screen}>{screen}</SelectItem>{/each}</SelectContent>
       </SelectRoot>
     </label>
-    <label>Author
+    <label>{messages(`${P}.author`, 'Author')}
       <SelectRoot bind:value={authorFilter} onValueChange={(value) => (authorFilter = value)}>
-        <SelectTrigger aria-label="Filter by author"><SelectValue placeholder="Author" /></SelectTrigger>
-        <SelectContent><SelectItem value="all">All authors</SelectItem>{#each authors as author}<SelectItem value={author}>{author}</SelectItem>{/each}</SelectContent>
+        <SelectTrigger aria-label={messages(`${P}.filter-author`, 'Filter by author')}><SelectValue placeholder={messages(`${P}.author`, 'Author')} /></SelectTrigger>
+        <SelectContent><SelectItem value="all">{messages(`${P}.all-authors`, 'All authors')}</SelectItem>{#each authors as author}<SelectItem value={author}>{author}</SelectItem>{/each}</SelectContent>
       </SelectRoot>
     </label>
-    <label>Anchor
+    <label>{messages(`${P}.anchor`, 'Anchor')}
       <SelectRoot bind:value={orphanFilter} onValueChange={(value) => (orphanFilter = value as OrphanFilter)}>
-        <SelectTrigger aria-label="Filter by anchor status"><SelectValue placeholder="Anchor" /></SelectTrigger>
-        <SelectContent><SelectItem value="all">All anchors</SelectItem><SelectItem value="anchored">Anchored</SelectItem><SelectItem value="orphaned">Orphaned</SelectItem></SelectContent>
+        <SelectTrigger aria-label={messages(`${P}.filter-anchor`, 'Filter by anchor status')}><SelectValue placeholder={messages(`${P}.anchor`, 'Anchor')} /></SelectTrigger>
+        <SelectContent><SelectItem value="all">{messages(`${P}.all-anchors`, 'All anchors')}</SelectItem><SelectItem value="anchored">{messages(`${P}.anchored`, 'Anchored')}</SelectItem><SelectItem value="orphaned">{messages(`${P}.orphaned`, 'Orphaned')}</SelectItem></SelectContent>
       </SelectRoot>
     </label>
-    <label class="review-panel__search">Search comments
-      <Input aria-label="Search comments" type="search" bind:value={search} placeholder="Search comments" />
+    <label class="review-panel__search">{messages(`${P}.search`, 'Search comments')}
+      <Input aria-label={messages(`${P}.search`, 'Search comments')} type="search" bind:value={search} placeholder={messages(`${P}.search`, 'Search comments')} />
     </label>
   </div>
-  <ul class="review-panel__screens" aria-label="Thread counts by screen">
+  <ul class="review-panel__screens" aria-label={messages(`${P}.counts`, 'Thread counts by screen')}>
     {#each [...countsByScreen] as [screen, count]}<li><span>{screen}</span><span>{count}</span></li>{/each}
   </ul>
   {#if restoreError}<p role="alert" class="review-panel__error">{restoreError}</p>{/if}
   {#if filteredThreads.length === 0}
-    <p class="review-panel__empty">No comments match these filters.</p>
+    <p class="review-panel__empty">{messages(`${P}.empty`, 'No comments match these filters.')}</p>
   {:else}
-    <ul class="review-panel__threads" aria-label="Comment threads">
+    <ul class="review-panel__threads" aria-label={messages(`${P}.threads`, 'Comment threads')}>
       {#each filteredThreads as thread (thread.id)}
         <li>
           <article class:selected={selectedThread === thread.id}>
             <Button variant="outline" class="review-panel__thread" type="button" onclick={() => selectThread(thread)}>
-              <span class="review-panel__route">{thread.anchor?.route.path ?? 'Unknown screen'}</span>
+              <span class="review-panel__route">{thread.anchor?.route.path ?? unknownScreen}</span>
               <span class="review-panel__body">{thread.body}</span>
-              <span class="review-panel__meta">{thread.author.name} · <time datetime={thread.createdAt}>{dateLabel(thread.createdAt)}</time> · {thread.resolvedAt ? 'Resolved' : 'Open'}{orphanedThreadIds.includes(thread.id) ? ' · Orphaned' : ''}</span>
+              <span class="review-panel__meta">{thread.author.name} · <time datetime={thread.createdAt}>{dateLabel(thread.createdAt)}</time> · {thread.resolvedAt ? messages(`${P}.resolved`, 'Resolved') : messages(`${P}.open`, 'Open')}{orphanedThreadIds.includes(thread.id) ? ` · ${messages(`${P}.orphaned`, 'Orphaned')}` : ''}</span>
             </Button>
             {#if selectedThread === thread.id && needsContextRestore(thread)}
               <Button variant="outline" size="sm" type="button" class="review-panel__restore" disabled={!runtime || restoring} aria-busy={restoring} onclick={() => restore(thread)}>
-                {restoring ? 'Restoring saved view…' : 'Restore saved shell, theme and persona'}
+                {restoring ? messages(`${P}.restoring`, 'Restoring saved view…') : messages(`${P}.restore`, 'Restore saved shell, theme and persona')}
               </Button>
             {/if}
           </article>
@@ -255,14 +269,18 @@ onMount(() => {
   {#if scenarioConfirmation}
     <AlertDialog
       open={Boolean(scenarioConfirmation)}
-      title="Switch prototype scenario?"
-      description={`Loading “${scenarioConfirmation.context?.scenario}” replaces this prototype’s current data. A safety snapshot will be saved first.`}
-      cancelLabel="Cancel"
-      confirmLabel={restoring ? 'Switching…' : 'Switch scenario and open comment'}
+      title={messages(`${P}.switch-title`, 'Switch prototype scenario?')}
+      description={messages(
+        `${P}.switch-description`,
+        'Loading “{scenario}” replaces this prototype’s current data. A safety snapshot will be saved first.',
+        { scenario: scenarioConfirmation.context?.scenario ?? '' }
+      )}
+      cancelLabel={messages(`${P}.cancel`, 'Cancel')}
+      confirmLabel={restoring ? messages(`${P}.switching`, 'Switching…') : messages(`${P}.switch-confirm`, 'Switch scenario and open comment')}
       onOpenChange={(open) => { if (!open) scenarioConfirmation = undefined; }}
       onConfirm={async () => {
         const thread = scenarioConfirmation;
-        if (thread && !(await restore(thread, true))) throw new Error(restoreError || 'Could not restore the saved view.');
+        if (thread && !(await restore(thread, true))) throw new Error(restoreError || messages(`${P}.restore-failed`, 'Could not restore the saved view.'));
       }}
     />
   {/if}

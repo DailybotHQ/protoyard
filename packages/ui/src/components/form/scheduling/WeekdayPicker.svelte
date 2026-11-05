@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { HTMLAttributes } from 'svelte/elements';
 import { cx } from 'texuli/cx';
+import { useMessages } from 'texuli/i18n';
 import { ToggleGroup, ToggleGroupItem } from 'texuli/toggle';
 import {
   type IsoWeekday,
@@ -53,7 +54,7 @@ let {
   weekStartsOn = 1,
   locale,
   labelStyle = 'short',
-  label = 'Days of the week',
+  label: labelProp,
   id = `weekdays-${uid}`,
   name,
   disabled = false,
@@ -67,6 +68,12 @@ let {
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); props still win.
+const messages = useMessages();
+const label = $derived(
+  labelProp ?? messages('protoyard.ui.weekday-picker.label', 'Days of the week')
+);
 
 const days = $derived(
   orderedWeekdays(weekStartsOn).map((day) => ({
