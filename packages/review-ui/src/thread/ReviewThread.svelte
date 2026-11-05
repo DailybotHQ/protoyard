@@ -5,6 +5,7 @@ import { BottomSheet, Button, Popover, type TriggerSnippet } from '@protoyard/ui
 import { type ActivityComment } from '@protoyard/views/activity';
 import { type ActivityPerson, CommentThread } from '@protoyard/views-ui/activity';
 import { onMount } from 'svelte';
+import { useMessages } from 'texuli/i18n';
 import { Input } from 'texuli/input';
 
 let {
@@ -79,6 +80,10 @@ const activityComments = $derived(
 );
 const byId = $derived(new Map(threadComments.map((comment) => [comment.id, comment])));
 
+// Labels resolve through Texuli's dictionary (protoyard.review.thread.* ids).
+const messages = useMessages();
+const R = 'protoyard.review.thread';
+
 function makeClientId(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
@@ -91,7 +96,8 @@ function saveName() {
     clientId: author?.clientId ?? makeClientId(),
   });
   if (!candidate.success) {
-    nameError = candidate.error.issues[0]?.message ?? 'Enter a valid name.';
+    nameError =
+      candidate.error.issues[0]?.message ?? messages(`${R}.name-invalid`, 'Enter a valid name.');
     return;
   }
   author = candidate.data;
@@ -99,8 +105,10 @@ function saveName() {
   try {
     localStorage.setItem(storageKey, JSON.stringify(author));
   } catch {
-    nameError =
-      'Your name could not be saved in this browser. Please allow local storage and try again.';
+    nameError = messages(
+      `${R}.name-not-saved`,
+      'Your name could not be saved in this browser. Please allow local storage and try again.'
+    );
     author = undefined;
   }
 }
@@ -112,7 +120,10 @@ async function resolveThread() {
   try {
     await onResolve(root, author, !root.resolvedAt);
   } catch (error) {
-    actionError = error instanceof Error ? error.message : 'Could not update this thread.';
+    actionError =
+      error instanceof Error
+        ? error.message
+        : messages(`${R}.update-failed`, 'Could not update this thread.');
   } finally {
     resolving = false;
   }
@@ -135,21 +146,21 @@ async function react(comment: ActivityComment, emoji: string) {
 </script>
 
 {#snippet panel()}
-  <section class="grid gap-3" aria-label="Comment thread">
+  <section class="grid gap-3" aria-label={messages(`${R}.label`, 'Comment thread')}>
     {#if !author}
       <form class="grid gap-2" onsubmit={(event) => { event.preventDefault(); saveName(); }}>
-        <h2 class="font-semibold">Choose your name</h2>
-        <p class="text-sm text-muted-foreground">Your name is shown to other reviewers. It is not a login.</p>
-        <label class="grid gap-1 text-sm" for="review-display-name">Your name</label>
+        <h2 class="font-semibold">{messages(`${R}.name-title`, 'Choose your name')}</h2>
+        <p class="text-sm text-muted-foreground">{messages(`${R}.name-hint`, 'Your name is shown to other reviewers. It is not a login.')}</p>
+        <label class="grid gap-1 text-sm" for="review-display-name">{messages(`${R}.name-label`, 'Your name')}</label>
         <Input id="review-display-name" bind:value={nameDraft} maxlength={60} required class="rounded-md px-3 py-2 text-sm" />
         {#if nameError}<p role="alert" class="text-sm text-destructive">{nameError}</p>{/if}
-        <Button type="submit" disabled={!nameDraft.trim()}>Continue</Button>
+        <Button type="submit" disabled={!nameDraft.trim()}>{messages(`${R}.continue`, 'Continue')}</Button>
       </form>
     {:else if root}
       <header class="flex items-center justify-between gap-2">
-        <h2 class="font-semibold">Thread by {root.author.name}</h2>
+        <h2 class="font-semibold">{messages(`${R}.by`, 'Thread by {name}', { name: root.author.name })}</h2>
         <Button size="sm" variant="outline" disabled={resolving} loading={resolving} onclick={resolveThread}>
-          {root.resolvedAt ? 'Reopen' : 'Resolve'}
+          {root.resolvedAt ? messages(`${R}.reopen`, 'Reopen') : messages(`${R}.resolve`, 'Resolve')}
         </Button>
       </header>
       {#if actionError}<p role="alert" class="text-sm text-destructive">{actionError}</p>{/if}
@@ -164,17 +175,17 @@ async function react(comment: ActivityComment, emoji: string) {
         onReact={onReact ? react : undefined}
       />
     {:else}
-      <p role="alert" class="text-sm">This thread is no longer available.</p>
+      <p role="alert" class="text-sm">{messages(`${R}.gone`, 'This thread is no longer available.')}</p>
     {/if}
   </section>
 {/snippet}
 
 {#snippet defaultTrigger({ props }: { props: Record<string, unknown> })}
-  <Button {...props} variant="outline" size="sm">Open comment thread</Button>
+  <Button {...props} variant="outline" size="sm">{messages(`${R}.open`, 'Open comment thread')}</Button>
 {/snippet}
 
 {#if mobile}
-  <BottomSheet bind:open title="Comment thread" trigger={trigger ?? defaultTrigger} class="max-h-[90dvh]">
+  <BottomSheet bind:open title={messages(`${R}.label`, 'Comment thread')} trigger={trigger ?? defaultTrigger} class="max-h-[90dvh]">
     {@render panel()}
   </BottomSheet>
 {:else}

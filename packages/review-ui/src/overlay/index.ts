@@ -36,7 +36,25 @@ export interface ReviewOverlayOptions {
   onOrphans?: (threadIds: string[]) => void;
   /** Comment mode turned on or off (toggle, C, Escape, or after placing a pin). */
   onActiveChange?: (active: boolean) => void;
+  /**
+   * Message lookup for the overlay's words (`useMessages()` from
+   * `texuli/i18n` fits; ids `protoyard.review.overlay.*`). Default: English.
+   */
+  messages?: ReviewMessages;
 }
+
+/** A message lookup: `(id, english, values) => text`. */
+export type ReviewMessages = (
+  id: string,
+  english: string,
+  values?: Readonly<Record<string, string>>
+) => string;
+
+/** English with `{name}` placeholders filled: the lookup when none is passed. */
+const englishMessages: ReviewMessages = (_id, text, values) =>
+  values
+    ? text.replace(/\{([a-z][a-z0-9_-]*)\}/gi, (match, name: string) => values[name] ?? match)
+    : text;
 
 export interface ReviewOverlayHandle {
   setActive(active: boolean): void;
@@ -128,10 +146,25 @@ function clusterPins(pins: Pin[]): PinGroup[] {
   return groups;
 }
 
-function pinLabel(comment: ReviewComment, comments: readonly ReviewComment[]): string {
+function pinLabel(
+  comment: ReviewComment,
+  comments: readonly ReviewComment[],
+  messages: ReviewMessages
+): string {
   const replies = comments.filter((item) => item.threadId === comment.threadId).length - 1;
   const excerpt = comment.body.replace(/\s+/g, ' ').trim().slice(0, 80);
-  return `Comment thread by ${comment.author.name}: ${excerpt}, ${replies} ${replies === 1 ? 'reply' : 'replies'}`;
+  const values = { name: comment.author.name, excerpt, count: String(replies) };
+  return replies === 1
+    ? messages(
+        'protoyard.review.overlay.pin-one',
+        'Comment thread by {name}: {excerpt}, 1 reply',
+        values
+      )
+    : messages(
+        'protoyard.review.overlay.pin',
+        'Comment thread by {name}: {excerpt}, {count} replies',
+        values
+      );
 }
 
 /**
@@ -140,6 +173,7 @@ function pinLabel(comment: ReviewComment, comments: readonly ReviewComment[]): s
  */
 export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverlayHandle {
   const { root } = options;
+  const messages = options.messages ?? englishMessages;
   const document = root.ownerDocument;
   let comments = [...(options.comments ?? [])];
   let active = false;
@@ -153,7 +187,10 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
   overlay.dataset.pyReviewOverlay = '';
   // A labelled group: a bare div may not carry aria-label (axe aria-prohibited-attr).
   overlay.setAttribute('role', 'group');
-  overlay.setAttribute('aria-label', 'Prototype review comments');
+  overlay.setAttribute(
+    'aria-label',
+    messages('protoyard.review.overlay.label', 'Prototype review comments')
+  );
   const style = document.createElement('style');
   style.textContent = STYLE;
   overlay.append(style);
@@ -286,7 +323,7 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
       button.dataset.current = '';
       button.setAttribute('aria-current', 'true');
     }
-    const label = pinLabel(pin.comment, comments);
+    const label = pinLabel(pin.comment, comments, messages);
     button.setAttribute('aria-label', label);
     button.title = label;
     button.textContent = String(pin.comment.body.length ? '●' : '•');
@@ -328,7 +365,12 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
         button.className = buttonVariants({ variant: 'default', size: 'sm' });
         button.dataset.pyReviewPin = '';
         button.dataset.threadIds = group.pins.map((pin) => pin.comment.threadId).join(' ');
-        button.setAttribute('aria-label', `${group.pins.length} comment threads`);
+        button.setAttribute(
+          'aria-label',
+          messages('protoyard.review.overlay.cluster', '{count} comment threads', {
+            count: String(group.pins.length),
+          })
+        );
         button.textContent = String(group.pins.length);
         const local = localPoint(group);
         button.style.left = `${local.x}px`;
@@ -355,7 +397,11 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
       nextPortal.append(overlay);
       portal = nextPortal;
     }
-    toggle.textContent = placing ? 'Saving comment…' : active ? 'Exit comment mode' : 'Add comment';
+    toggle.textContent = placing
+      ? messages('protoyard.review.overlay.saving', 'Saving comment…')
+      : active
+        ? messages('protoyard.review.overlay.exit', 'Exit comment mode')
+        : messages('protoyard.review.overlay.add', 'Add comment');
     toggle.setAttribute('aria-pressed', String(active));
     toggle.disabled = placing;
     toggle.setAttribute('aria-busy', String(placing));
@@ -389,8 +435,14 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
         placeButton.dataset.pyReviewPlace = '';
         placeButton.textContent = placing ? '…' : '＋';
         placeButton.disabled = placing;
-        placeButton.setAttribute('aria-label', 'Place pin here');
-        placeButton.title = 'Place pin here. Move with arrow keys, then press Enter.';
+        placeButton.setAttribute(
+          'aria-label',
+          messages('protoyard.review.overlay.place', 'Place pin here')
+        );
+        placeButton.title = messages(
+          'protoyard.review.overlay.place-hint',
+          'Place pin here. Move with arrow keys, then press Enter.'
+        );
         const local = localPoint(crosshair);
         placeButton.style.left = `${local.x}px`;
         placeButton.style.top = `${local.y}px`;
@@ -413,21 +465,32 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
     const anchor = createAnchor(element, point, { root });
     placing = true;
     status.textContent = options.onCommentInClaude
-      ? 'Opening Claude comment composer…'
-      : 'Saving comment location…';
+      ? messages('protoyard.review.overlay.composer-opening', 'Opening Claude comment composer…')
+      : messages('protoyard.review.overlay.location-saving', 'Saving comment location…');
     render();
     try {
       if (options.onCommentInClaude) {
         await options.onCommentInClaude(element);
-        status.textContent = 'Claude comment composer opened.';
+        status.textContent = messages(
+          'protoyard.review.overlay.composer-opened',
+          'Claude comment composer opened.'
+        );
       } else {
         await options.onPlace(anchor);
-        status.textContent = 'Comment location saved.';
+        status.textContent = messages(
+          'protoyard.review.overlay.location-saved',
+          'Comment location saved.'
+        );
       }
       setActive(false);
     } catch (error) {
       status.textContent =
-        error instanceof Error ? error.message : 'Could not save comment location.';
+        error instanceof Error
+          ? error.message
+          : messages(
+              'protoyard.review.overlay.location-failed',
+              'Could not save comment location.'
+            );
     } finally {
       placing = false;
       render();

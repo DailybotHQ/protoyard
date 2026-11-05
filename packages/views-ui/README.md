@@ -28,6 +28,8 @@ files, settings, states and an app command palette. The engines live in
   `NotificationCenter` renders Texuli's `@texuli/data/activity/inbox` with
   `allowMarkUnread={false}` (G50) and keeps recipient-scoped rows and the
   mark-read service callbacks.
+  Its `labels` prop (`Partial<NotificationCenterLabels>`: Texuli's inbox
+  labels plus its own) is forwarded whole to the inbox.
 
 Some adapters still accept props from the earlier Protoyard API that they do
 not forward; each section below lists them. The mapping table is in
@@ -350,6 +352,11 @@ data-less states.
   duplicated core copy breaks `instanceof` (the renderer's `runService` does
   the same).
 - `onRetry` should re-run the query, e.g. by bumping a value in its `deps`.
+- The titles and messages come from the prototype's dictionary
+  (`protoyard.views.query-state.*`, listed in
+  [docs/TEXULI.md](../../docs/TEXULI.md#protoyard-kit-ids)).
+  `classifyQueryError(error, messages?)` takes a lookup such as
+  `useMessages()` for code outside the component.
 - Every adapter in this package uses it for its own data-less states, so it
   ships with any view you import.
 

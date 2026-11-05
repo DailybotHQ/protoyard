@@ -3,6 +3,7 @@
 import type { PrototypeDefinition, PrototypeRuntime } from '@protoyard/core';
 import type { ReviewAdapter } from '@protoyard/review/store';
 import { type Component, mount, unmount } from 'svelte';
+import type { ReviewI18n } from '../panel/types.ts';
 import type { ReviewToolbarPlacer } from '../toolbar/types.ts';
 import { createPanelState } from './panel-state.svelte.ts';
 import ReviewTabIcon from './ReviewTabIcon.svelte';
@@ -17,6 +18,12 @@ export interface MountReviewOptions {
   devtools?: boolean;
   /** A build-time backend (PROTOYARD_REVIEW_ADAPTER) that replaces the manifest's adapter and endpoint. */
   adapter?: { adapter: string; endpoint?: string };
+  /**
+   * The prototype's label dictionary (`mountPrototype({ i18n })`). The review
+   * UI is its own Svelte root, outside the renderer's LabelsProvider, so the
+   * host passes the dictionary here; without it the review UI is English.
+   */
+  i18n?: ReviewI18n;
 }
 
 /** A DevTools tab entry (structurally `DevtoolsTab` from @protoyard/devtools). */
@@ -46,6 +53,12 @@ function reviewClientId(slug: string): string {
   } catch {
     return `review_${crypto.randomUUID().replaceAll('-', '')}`;
   }
+}
+
+/** The DevTools tab name: `protoyard.review.tab` from the dictionary when it is a plain string. */
+function tabLabel(i18n: ReviewI18n | undefined): string {
+  const value = (i18n?.labels as Record<string, unknown> | undefined)?.['protoyard.review.tab'];
+  return typeof value === 'string' && value.trim() ? value : 'Comments';
 }
 
 /** Create the configured adapter and mount all review UI inside the lazy chunk. */
@@ -105,6 +118,7 @@ export async function mountReview(options: MountReviewOptions): Promise<MountedR
       panelState,
       devtoolsPanel: devtools,
       ...(place ? { place } : {}),
+      ...(options.i18n ? { i18n: options.i18n } : {}),
       // Files move comments between browsers only for the browser-local store;
       // shared adapters sync through their endpoint instead.
       ...(config.adapter === 'local'
@@ -121,7 +135,7 @@ export async function mountReview(options: MountReviewOptions): Promise<MountedR
       ? {
           devtoolsTab: {
             id: 'review-comments',
-            label: 'Comments',
+            label: tabLabel(options.i18n),
             icon: ReviewTabIcon as Component<{ class?: string }>,
             // The panel loads only when the tab is first opened; the props stay live (a shared $state object).
             load: async () => (await import('../panel/ReviewPanel.svelte')).default,

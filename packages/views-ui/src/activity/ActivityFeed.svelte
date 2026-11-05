@@ -4,6 +4,7 @@
  */
 import type { ActivityFilter, ActivityItem } from '@protoyard/views/activity';
 import { ActivityFeed as TexuliFeed } from '@texuli/data/activity';
+import { useMessages } from 'texuli/i18n';
 import QueryState from '../states/QueryState.svelte';
 import type { ActivityPerson } from './types.ts';
 
@@ -17,7 +18,7 @@ let {
   filter,
   onFilterChange,
   onRetry,
-  label = 'Activity',
+  label: labelProp,
   class: className,
   getActorName,
   getActorSrc,
@@ -58,9 +59,13 @@ const actorSrc =
     const person = byId.get(item.actorId);
     return person?.avatar ?? null;
   });
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
+const label = $derived(labelProp ?? messages('protoyard.views.activity-feed.label', 'Activity'));
 </script>
 
-<QueryState {query} label={`Loading ${label.toLowerCase()}`} onRetry={onRetry ? () => { void onRetry(); } : undefined} isEmpty={() => false}>
+<QueryState {query} label={messages('protoyard.views.activity-feed.loading', 'Loading {label}', { label: label.toLowerCase() })} onRetry={onRetry ? () => { void onRetry(); } : undefined} isEmpty={() => false}>
   {#snippet children(items)}
     <TexuliFeed
       {items}

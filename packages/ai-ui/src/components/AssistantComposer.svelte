@@ -4,6 +4,7 @@ import { AI_MODELS, type AiModel } from '@protoyard/ai';
 import { Composer } from '@texuli/chat';
 import { Tag } from 'texuli/badge';
 import { Button, IconButton } from 'texuli/button';
+import { useMessages } from 'texuli/i18n';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { Input } from 'texuli/input';
 import { Select } from 'texuli/select';
@@ -15,6 +16,7 @@ interface Props {
   value?: string;
   streaming?: boolean;
   disabled?: boolean;
+  /** Default: `protoyard.ai.composer.placeholder` ("Ask anything"). */
   placeholder?: string;
   slashCommands?: readonly string[];
   mentions?: readonly { id: string; label: string }[];
@@ -29,7 +31,7 @@ let {
   value = $bindable(''),
   streaming = false,
   disabled = false,
-  placeholder = 'Ask anything',
+  placeholder,
   slashCommands = ['/summarize', '/brainstorm', '/explain'],
   mentions = [],
   onModelChange,
@@ -37,13 +39,37 @@ let {
   onStop,
 }: Props = $props();
 
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })); @texuli/chat's
+// Composer takes a labels prop only, so its words are passed resolved.
+const messages = useMessages();
+const C = 'protoyard.ai.composer';
+const composerLabels = $derived({
+  input: messages(`${C}.input`, 'Message the simulated assistant'),
+  placeholder: placeholder ?? messages(`${C}.placeholder`, 'Ask anything'),
+  hint: messages(
+    `${C}.hint`,
+    'Press Enter to send. Shift plus Enter starts a new line. Type slash for commands or at sign to mention a person.'
+  ),
+  send: messages(`${C}.send`, 'Send message'),
+  sending: messages(`${C}.sending`, 'Sending message'),
+  stop: messages(`${C}.stop`, 'Stop response'),
+  sendError: messages(
+    `${C}.send-error`,
+    'The message could not be sent. Your draft is still here.'
+  ),
+});
+const modelLabel = $derived(messages(`${C}.model`, 'Simulated model'));
+
 let files = $state<File[]>([]);
 let picked = $state<FileList | null>(null);
 let picker = $state<HTMLElement | null>(null);
 let root = $state<HTMLDivElement | null>(null);
 let activeSuggestion = $state(0);
 const modelItems = $derived(
-  models.map((model) => ({ value: model.id, label: `${model.name} · Simulated` }))
+  models.map((model) => ({
+    value: model.id,
+    label: messages(`${C}.model-option`, '{name} · Simulated', { name: model.name }),
+  }))
 );
 const trigger = $derived(/(?:^|\s)([/@][\w-]*)$/.exec(value));
 const suggestions = $derived.by(() => {
@@ -111,7 +137,7 @@ function addFiles(event: Event): void {
 -->
 <div bind:this={root} class="@container relative mx-auto w-full max-w-3xl">
   {#if suggestions.length}
-    <div class="absolute bottom-full left-3 z-10 mb-2 max-h-52 w-64 overflow-y-auto rounded-xl border border-border bg-elevated p-1 shadow-float" role="listbox" aria-label={trigger?.[1]?.startsWith('/') ? 'Slash commands' : 'People'}>
+    <div class="absolute bottom-full left-3 z-10 mb-2 max-h-52 w-64 overflow-y-auto rounded-xl border border-border bg-elevated p-1 shadow-float" role="listbox" aria-label={trigger?.[1]?.startsWith('/') ? messages(`${C}.slash-commands`, 'Slash commands') : messages(`${C}.people`, 'People')}>
       {#each suggestions as item, index (`${item.kind}-${item.id}`)}
         <Button variant="ghost" role="option" aria-selected={index === activeSuggestion} class={`w-full justify-start ${index === activeSuggestion ? 'bg-muted' : ''}`} onclick={() => chooseSuggestion(item)}>{item.kind === 'mention' ? `@${item.label}` : item.label}</Button>
       {/each}
@@ -125,24 +151,16 @@ function addFiles(event: Event): void {
     disabled={disabled || !selectedModel}
     maxRows={8}
     onkeydown={handleKeydown}
-    labels={{
-      input: 'Message the simulated assistant',
-      placeholder,
-      hint: 'Press Enter to send. Shift plus Enter starts a new line. Type slash for commands or at sign to mention a person.',
-      send: 'Send message',
-      sending: 'Sending message',
-      stop: 'Stop response',
-      sendError: 'The message could not be sent. Your draft is still here.',
-    }}
+    labels={composerLabels}
     class="rounded-3xl bg-surface shadow-soft"
   >
     {#snippet attachments()}
-      <IconButton variant="ghost" class="rounded-full" label="Attach files" {disabled} onclick={() => picker?.click()}>
+      <IconButton variant="ghost" class="rounded-full" label={messages(`${C}.attach`, 'Attach files')} {disabled} onclick={() => picker?.click()}>
         <LucideIcon icon={Paperclip} size="sm" />
       </IconButton>
-      <Input type="file" multiple hidden tabindex={-1} aria-label="Choose attachments" bind:ref={picker} bind:files={picked} onchange={addFiles} />
+      <Input type="file" multiple hidden tabindex={-1} aria-label={messages(`${C}.choose-attachments`, 'Choose attachments')} bind:ref={picker} bind:files={picked} onchange={addFiles} />
       {#if files.length}
-        <ul class="m-0 flex list-none flex-wrap gap-2 p-0" aria-label="Attachments">
+        <ul class="m-0 flex list-none flex-wrap gap-2 p-0" aria-label={messages(`${C}.attachments`, 'Attachments')}>
           {#each files as file, index (`${file.name}-${index}`)}
             <li><Tag label={file.name} onRemove={() => (files = files.filter((_, itemIndex) => itemIndex !== index))} /></li>
           {/each}
@@ -150,15 +168,15 @@ function addFiles(event: Event): void {
       {/if}
     {/snippet}
     {#snippet actions()}
-      <span class="hidden text-[0.7rem] text-muted-foreground @md:inline">Simulated AI · no provider connection</span>
-      <label for="assistant-model" class="sr-only">Simulated model</label>
+      <span class="hidden text-[0.7rem] text-muted-foreground @md:inline">{messages(`${C}.simulated-note`, 'Simulated AI · no provider connection')}</span>
+      <label for="assistant-model" class="sr-only">{modelLabel}</label>
       <Select.Root
         value={modelId}
         items={modelItems}
         disabled={disabled || streaming || !onModelChange}
         onValueChange={(id) => onModelChange?.(id)}
       >
-        <Select.Trigger id="assistant-model" aria-label="Simulated model" size="sm" class="min-w-0 max-w-48 rounded-full text-xs text-muted-foreground">
+        <Select.Trigger id="assistant-model" aria-label={modelLabel} size="sm" class="min-w-0 max-w-48 rounded-full text-xs text-muted-foreground">
           <Select.Value />
         </Select.Trigger>
         <Select.Content>

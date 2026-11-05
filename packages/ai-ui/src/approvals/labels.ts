@@ -53,13 +53,57 @@ export const SUGGESTION_STATUS_LABELS: Record<SuggestionStatus, string> = {
   informed: 'Informed',
 };
 
+/**
+ * A message lookup: `useMessages()` from `texuli/i18n` fits. The constants
+ * above are the English defaults; these helpers resolve them through the
+ * prototype's dictionary (`protoyard.ai.autonomy.*`, `protoyard.ai.audit.*`,
+ * `protoyard.ai.suggestion.status.*`).
+ */
+export type AiMessages = (
+  id: string,
+  english: string,
+  values?: Readonly<Record<string, string>>
+) => string;
+
+const english: AiMessages = (_id, text) => text;
+const kebab = (key: string) => key.replace(/_/g, '-');
+
+/** Name and definition of an autonomy level through the dictionary. */
+export function autonomyLevelLabel(
+  level: AutonomyLevel,
+  messages: AiMessages = english
+): { name: string; definition: string } {
+  const meta = AUTONOMY_LEVEL_LABELS[level];
+  return {
+    name: messages(`protoyard.ai.autonomy.level-${level}.name`, meta.name),
+    definition: messages(`protoyard.ai.autonomy.level-${level}.definition`, meta.definition),
+  };
+}
+
+/** An audit action's label through the dictionary. */
+export function auditActionLabel(action: AuditAction, messages: AiMessages = english): string {
+  return messages(`protoyard.ai.audit.${kebab(action)}`, AUDIT_ACTION_LABELS[action]);
+}
+
+/** A suggestion status label through the dictionary. */
+export function suggestionStatusLabel(
+  status: SuggestionStatus,
+  messages: AiMessages = english
+): string {
+  return messages(`protoyard.ai.suggestion.status.${status}`, SUGGESTION_STATUS_LABELS[status]);
+}
+
 export function modeNeedsApproval(mode: PolicyMode): boolean {
   return mode === 'act_with_approval';
 }
 
-export function areaLabel(area: string): string {
+/** A known area's label (through the dictionary when `messages` is given); unknown areas pass through. */
+export function areaLabel(area: string, messages: AiMessages = english): string {
   if ((AUTONOMY_AREAS as readonly string[]).includes(area)) {
-    return AUTONOMY_AREA_LABELS[area as (typeof AUTONOMY_AREAS)[number]];
+    return messages(
+      `protoyard.ai.autonomy.area.${area}`,
+      AUTONOMY_AREA_LABELS[area as (typeof AUTONOMY_AREAS)[number]]
+    );
   }
   return area;
 }

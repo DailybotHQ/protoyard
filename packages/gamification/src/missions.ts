@@ -3,7 +3,8 @@ import { isPastDeadline } from './time.ts';
 
 /**
  * Build mission progress rows. Progress is capped at the goal. A mission is
- * complete when accepted, not expired, and progress >= goal.
+ * complete when accepted (or its definition sets `requiresAcceptance: false`),
+ * not expired, and progress >= goal.
  */
 export function missionProgress(
   defs: readonly MissionDef[],
@@ -16,7 +17,8 @@ export function missionProgress(
     const progress = Math.max(0, Math.min(Math.floor(raw), mission.goal));
     const expired = isPastDeadline(mission.deadlineAt, now);
     const accepted = acceptedIds.has(mission.id);
-    const complete = accepted && !expired && progress >= mission.goal;
+    const needsAcceptance = mission.requiresAcceptance !== false;
+    const complete = (accepted || !needsAcceptance) && !expired && progress >= mission.goal;
     return {
       id: mission.id,
       title: mission.title,
@@ -24,6 +26,7 @@ export function missionProgress(
       goal: mission.goal,
       reward: mission.reward,
       ...(mission.deadlineAt !== undefined ? { deadlineAt: mission.deadlineAt } : {}),
+      ...(needsAcceptance ? {} : { requiresAcceptance: false }),
       accepted,
       progress,
       complete,

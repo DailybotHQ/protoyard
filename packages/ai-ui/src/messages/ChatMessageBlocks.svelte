@@ -1,5 +1,6 @@
 <script lang="ts">
 import { type ChatMessage, type MessageAttachment, parseChatMessage } from '@protoyard/ai/messages';
+import { useMessages } from 'texuli/i18n';
 import RichAnswer from '../components/RichAnswer.svelte';
 import MessageAttachments from './MessageAttachments.svelte';
 import MessageButtons from './MessageButtons.svelte';
@@ -23,7 +24,7 @@ let {
   message,
   onAction,
   onOpenAttachment,
-  label = 'Message',
+  label: labelProp,
   class: className = '',
 }: {
   /** A message object or its JSON text. */
@@ -37,12 +38,19 @@ let {
 const result = $derived(parseChatMessage(message));
 const parsed = $derived<ChatMessage | null>(result.success ? result.message : null);
 const messageId = $derived(parsed?.id ?? null);
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const t = useMessages();
+const M = 'protoyard.ai.message';
+const label = $derived(labelProp ?? t(`${M}.label`, 'Message'));
 </script>
 
 <div class="grid gap-3 text-sm text-foreground {className}" data-py-chat-message role="group" aria-label={label}>
   {#if !result.success}
     <p class="m-0 rounded-md border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground" role="note" data-py-message-invalid>
-      This message could not be shown ({result.issues.length === 1 ? '1 problem' : `${result.issues.length} problems`}).
+      {result.issues.length === 1
+        ? t(`${M}.invalid-one`, 'This message could not be shown (1 problem).')
+        : t(`${M}.invalid`, 'This message could not be shown ({count} problems).', { count: String(result.issues.length) })}
     </p>
   {:else if parsed}
     {#each parsed.blocks as block, index (index)}
@@ -50,7 +58,7 @@ const messageId = $derived(parsed?.id ?? null);
         {#if block.replaces}
           <p class="m-0 rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground" role="note" data-py-message-block="unknown">{block.text}</p>
         {:else if block.format === 'markdown'}
-          <div data-py-message-block="text"><RichAnswer content={block.text} label="Message text" /></div>
+          <div data-py-message-block="text"><RichAnswer content={block.text} label={t(`${M}.text`, 'Message text')} /></div>
         {:else}
           <p class="m-0 whitespace-pre-wrap leading-6" data-py-message-block="text">{block.text}</p>
         {/if}

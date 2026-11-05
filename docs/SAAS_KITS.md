@@ -148,6 +148,14 @@ becomes signed in, including after the verification and sign-in steps. Choosing
 **Keep browsing** clears the pending destination; navigating to another screen
 closes the prompt.
 
+The prompt's copy comes from the prototype's dictionary
+(`protoyard.saas.account-gate.title`, `.description`, `.note`,
+`.simulated-note`, `.create`, `.dismiss`, see
+[TEXULI](TEXULI.md#protoyard-kit-ids)), and the props `title`,
+`description`, `note`, `simulatedNote`, `createLabel` and `dismissLabel`
+override it per mount. A `content` snippet receives the open request
+(`reason`, `next`) and replaces the reason and note; the two buttons stay.
+
 The gate is only presentation behavior. It does not make an action secure:
 services still check capabilities and validate every mutation, and this
 simulation does not protect data from the browser user or same-origin scripts.

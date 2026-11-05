@@ -22,16 +22,43 @@ function isError<T extends Error>(
 }
 
 /**
+ * A message lookup: `useMessages()` from `texuli/i18n` fits, so the titles
+ * and messages follow the prototype's dictionary (`protoyard.views.query-state.*`).
+ */
+export type QueryMessages = (
+  id: string,
+  english: string,
+  values?: Readonly<Record<string, string>>
+) => string;
+
+/** English with `{name}` placeholders filled: the lookup when none is passed. */
+const english: QueryMessages = (_id, text, values) =>
+  values
+    ? text.replace(/\{([a-z][a-z0-9_-]*)\}/gi, (match, name: string) => values[name] ?? match)
+    : text;
+
+const M = 'protoyard.views.query-state';
+
+/**
  * Sorts a query failure by its error class, never by message text:
  * `PermissionDeniedError` → denied (simulated policy; switch persona),
  * `SimulatedServiceError` offline → offline, anything else → failed.
+ * Pass `messages` (for example `useMessages()`) to translate the copy.
  */
-export function classifyQueryError(error: unknown): QueryErrorInfo {
+export function classifyQueryError(
+  error: unknown,
+  messages: QueryMessages = english
+): QueryErrorInfo {
+  const failedTitle = () => messages(`${M}.failed-title`, "Couldn't load this");
   if (isError(error, PermissionDeniedError, 'PermissionDeniedError')) {
     return {
       kind: 'denied',
-      title: "You don't have access",
-      message: `This persona's role can't view this (${error.capability}). Roles here are simulated: switch persona in DevTools to try another one.`,
+      title: messages(`${M}.denied-title`, "You don't have access"),
+      message: messages(
+        `${M}.denied-message`,
+        "This persona's role can't view this ({capability}). Roles here are simulated: switch persona in DevTools to try another one.",
+        { capability: error.capability }
+      ),
       retryable: false,
       capability: error.capability,
     };
@@ -40,20 +67,23 @@ export function classifyQueryError(error: unknown): QueryErrorInfo {
     if (error.code === 'offline') {
       return {
         kind: 'offline',
-        title: "You're offline",
-        message: 'The simulated network is offline. Turn it back on in DevTools, then try again.',
+        title: messages(`${M}.offline-title`, "You're offline"),
+        message: messages(
+          `${M}.offline-message`,
+          'The simulated network is offline. Turn it back on in DevTools, then try again.'
+        ),
         retryable: true,
       };
     }
-    return { kind: 'failed', title: "Couldn't load this", message: error.message, retryable: true };
+    return { kind: 'failed', title: failedTitle(), message: error.message, retryable: true };
   }
   return {
     kind: 'failed',
-    title: "Couldn't load this",
+    title: failedTitle(),
     message:
       error instanceof Error && error.message
         ? error.message
-        : 'Something went wrong while loading.',
+        : messages(`${M}.failed-message`, 'Something went wrong while loading.'),
     retryable: true,
   };
 }

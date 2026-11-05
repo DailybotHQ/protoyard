@@ -2,6 +2,7 @@
 import type { SelectBlock } from '@protoyard/ai/messages';
 import { Button } from 'texuli/button';
 import { Checkbox } from 'texuli/choice';
+import { useMessages } from 'texuli/i18n';
 import { SelectContent, SelectItem, SelectRoot, SelectTrigger, SelectValue } from 'texuli/select';
 import { type MessageActionHandler, settle } from './types.ts';
 
@@ -54,6 +55,10 @@ function toggle(value: string, checked: boolean): void {
   sent = false;
   selected = checked ? [...selected, value] : selected.filter((v) => v !== value);
 }
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const t = useMessages();
+const M = 'protoyard.ai.message';
 </script>
 
 <div class="grid gap-2" data-py-message-block="select">
@@ -79,7 +84,7 @@ function toggle(value: string, checked: boolean): void {
         disabled={!onAction || pending || selected.length === 0}
         onclick={() => send(selected)}
       >
-        Send
+        {t(`${M}.send`, 'Send')}
       </Button>
     </div>
   {:else}
@@ -110,7 +115,7 @@ function toggle(value: string, checked: boolean): void {
     {#if pending}Sending…{:else if sent}Sent.{/if}
   </p>
   {#if !onAction}
-    <p class="m-0 text-xs text-muted-foreground">Choices are not available in this view.</p>
+    <p class="m-0 text-xs text-muted-foreground">{t(`${M}.select-locked`, 'Choices are not available in this view.')}</p>
   {/if}
   {#if error}
     <p class="m-0 text-xs text-destructive" role="alert">{error}</p>

@@ -7,6 +7,7 @@
 import { Lock } from '@lucide/svelte';
 import type { Component, Snippet } from 'svelte';
 import { EmptyState, ErrorState } from 'texuli/empty';
+import { useMessages } from 'texuli/i18n';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { classifyQueryError } from './classify.ts';
 
@@ -21,6 +22,7 @@ interface Props {
   children: Snippet<[T]>;
   /** Whether the data counts as empty (default: undefined, null or an empty array). */
   isEmpty?: (value: T) => boolean;
+  /** Default: `protoyard.views.query-state.empty-title` ("Nothing here yet"). */
   emptyTitle?: string;
   emptyDescription?: string;
   emptyIcon?: IconComponent;
@@ -42,7 +44,7 @@ let {
   children,
   isEmpty = (value: T) =>
     value === undefined || value === null || (Array.isArray(value) && value.length === 0),
-  emptyTitle = 'Nothing here yet',
+  emptyTitle: emptyTitleProp,
   emptyDescription,
   emptyIcon: EmptyIcon,
   emptyAction,
@@ -52,6 +54,12 @@ let {
   loading,
   class: className,
 }: Props = $props();
+
+// Labels resolve through Texuli's dictionary (mountPrototype({ i18n })).
+const messages = useMessages();
+const emptyTitle = $derived(
+  emptyTitleProp ?? messages('protoyard.views.query-state.empty-title', 'Nothing here yet')
+);
 
 // The first result has not arrived: a reload later keeps showing the data it has.
 let settled = $state(false);
@@ -73,7 +81,9 @@ $effect(() => {
 });
 
 const failure = $derived(
-  query.error === undefined || query.error === null ? null : classifyQueryError(query.error)
+  query.error === undefined || query.error === null
+    ? null
+    : classifyQueryError(query.error, messages)
 );
 </script>
 

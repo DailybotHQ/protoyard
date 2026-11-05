@@ -148,7 +148,7 @@ const messages = useMessages();
 
 <div class={className} data-py-doc-app data-doc-id={doc.id}>
   {#if loading}
-    <LoadingState label="Loading the document" class="py-16" />
+    <LoadingState label={messages('protoyard.doc.loading', 'Loading the document')} class="py-16" />
   {:else if errorMessage}
     <ErrorState
       title={messages('protoyard.doc.load-failed', 'The document could not be loaded')}
@@ -157,10 +157,10 @@ const messages = useMessages();
       retryLabel={messages('protoyard.doc.try-again', 'Try again')}
     />
   {:else if reading}
-    <LoadingState label="Loading the document" class="py-16" />
+    <LoadingState label={messages('protoyard.doc.loading', 'Loading the document')} class="py-16" />
   {:else if editing}
     {#await import('./DocEditor.svelte')}
-      <LoadingState label="Loading the editor" class="py-16" />
+      <LoadingState label={messages('protoyard.doc.loading-editor', 'Loading the editor')} class="py-16" />
     {:then { default: DocEditor }}
       <DocEditor doc={current} onApply={applyEdits} onCancel={() => (editing = false)} />
     {:catch}

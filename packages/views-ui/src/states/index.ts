@@ -4,5 +4,10 @@
  * `@protoyard/ui` state components. Every view in the kit uses it for its own
  * data-less states, and route screens may import it statically (it is small).
  */
-export { classifyQueryError, type QueryErrorInfo, type QueryErrorKind } from './classify.ts';
+export {
+  classifyQueryError,
+  type QueryErrorInfo,
+  type QueryErrorKind,
+  type QueryMessages,
+} from './classify.ts';
 export { default as QueryState } from './QueryState.svelte';
