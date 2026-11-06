@@ -87,6 +87,13 @@ let query = $state('');
 let focusIndex = $state(0);
 let root: HTMLDivElement | undefined = $state();
 let trigger: HTMLElement | null = $state(null);
+// The trigger's name is its label plus what it visibly reads (the prompt or
+// the chosen emoji), so a Field's aria-labelledby never drops the visible text
+// (axe label-content-name-mismatch, Dailybot batch 6).
+const triggerLabelledBy = $derived.by(() => {
+  const base = rest['aria-labelledby'] ?? (label ? `${fieldId}-label` : undefined);
+  return base ? `${base} ${fieldId}-value` : undefined;
+});
 let grid: HTMLDivElement | undefined = $state();
 
 const groups = $derived.by(() => {
@@ -216,7 +223,7 @@ $effect(() => {
       aria-haspopup="dialog"
       aria-expanded={open}
       aria-controls={`${fieldId}-picker`}
-      aria-labelledby={rest['aria-labelledby'] ?? (label ? `${fieldId}-label` : undefined)}
+      aria-labelledby={triggerLabelledBy}
       aria-label={ariaLabel ?? (label || placeholder)}
       aria-describedby={describedBy}
       data-invalid={invalid || undefined}
@@ -226,9 +233,9 @@ $effect(() => {
     >
       {#if value}
         <span class="ui-emoji-picker__value" aria-hidden="true">{value}</span>
-        <span class="tx-sr-only">{value}</span>
+        <span class="tx-sr-only" id={`${fieldId}-value`}>{value}</span>
       {:else}
-        <span class="ui-emoji-picker__placeholder">{placeholder}</span>
+        <span class="ui-emoji-picker__placeholder" id={`${fieldId}-value`}>{placeholder}</span>
       {/if}
       <Icon icon="chevron-down" size="sm" class={open ? 'ui-emoji-picker__chevron--open' : undefined} aria-hidden="true" />
     </Button>
