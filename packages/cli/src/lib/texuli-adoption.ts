@@ -33,6 +33,12 @@
  * - `icon-size`: a pixel number as `size` on Texuli's `Icon` or `LucideIcon`.
  *   Sizes are `xs | sm | md | lg`; a number matches none, and a built-in
  *   glyph then renders with no width and fills its container.
+ * - `component-scoped-class`: a scoped `<style>` rule for a class that the
+ *   markup only passes to components (`<Button class="x">`). Svelte scopes the
+ *   rule to this file's elements, and a child component's root never gets the
+ *   scope hash, so the rule silently never applies and the control falls back
+ *   to its default look. Wrap the selector in `:global()` under a scoped
+ *   parent (`.panel :global(.x)`), or put the class on an element.
  *
  * Known violations live per unit in `tests/adoption/pending/<unit>.json`
  * (unit = `packages__<name>`, `apps__<name>`, `templates` or `prototypes`).
@@ -78,7 +84,8 @@ export type Rule =
   | 'component-bind-this'
   | 'ref-undefined'
   | 'local-motion'
-  | 'icon-size';
+  | 'icon-size'
+  | 'component-scoped-class';
 export const RULES: readonly Rule[] = [
   'legacy-import',
   'raw-lucide',
@@ -353,6 +360,60 @@ function lucideNames(text: string): string[] {
  */
 const ICON_NUMERIC_SIZE = /<(?:Icon|LucideIcon)\b[^>]*?\ssize=(?:\{\s*\d|"\d|'\d)/g;
 
+/** An opening tag: its name and attribute text (a heuristic, enough for class tokens). */
+const OPENING_TAG = /<([A-Za-z][\w.:-]*)((?:[^>{]|\{[^}]*\})*)>/g;
+const CLASS_TOKEN = /-?[A-Za-z_][\w-]*/g;
+
+/** Class names of scoped rules in a Svelte `<style>`, outside every `:global`. */
+function scopedClasses(text: string): Set<string> {
+  const out = new Set<string>();
+  for (const block of text.match(/<style[^>]*>[\s\S]*?<\/style>/g) ?? []) {
+    const css = block.replace(/^<style[^>]*>|<\/style>$/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const m of css.matchAll(/([^{}]+)\{/g)) {
+      const prelude = (m[1] ?? '').trim();
+      if (prelude.startsWith('@')) continue;
+      for (const selector of prelude.split(',')) {
+        const scoped = selector
+          .replace(/:global\((?:[^()]|\([^()]*\))*\)/g, '')
+          .replace(/:global\b[\s\S]*$/, '');
+        for (const c of scoped.matchAll(/\.(-?[A-Za-z_][\w-]*)/g)) if (c[1]) out.add(c[1]);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Scoped classes the markup uses only on components. A class that also
+ * appears on an element, in a `class:` directive or anywhere in the script
+ * (built at runtime) is not counted.
+ */
+function componentScopedClassCount(text: string): number {
+  const scoped = scopedClasses(text);
+  if (scoped.size === 0) return 0;
+  const markup = markupOf(text);
+  const script = (text.match(/<script[\s\S]*?<\/script>/g) ?? []).join('\n');
+  const onComponent = new Set<string>();
+  const elsewhere = new Set<string>();
+  for (const m of markup.matchAll(OPENING_TAG)) {
+    const name = m[1] ?? '';
+    const attrs = m[2] ?? '';
+    const component = /^[A-Z]/.test(name) || name.includes('.');
+    const target = component ? onComponent : elsewhere;
+    for (const d of attrs.matchAll(/\bclass:([\w-]+)/g)) if (d[1]) elsewhere.add(d[1]);
+    for (const a of attrs.matchAll(/\bclass\s*=\s*("[^"]*"|'[^']*'|\{[^}]*\})/g)) {
+      for (const t of (a[1] ?? '').match(CLASS_TOKEN) ?? []) target.add(t);
+    }
+  }
+  let n = 0;
+  for (const c of scoped) {
+    if (!onComponent.has(c) || elsewhere.has(c)) continue;
+    if (new RegExp(`(?<![\\w-])${c.replace(/[-]/g, '\\-')}(?![\\w-])`).test(script)) continue;
+    n++;
+  }
+  return n;
+}
+
 /** Counts each rule in one source file. Pure; exported for tests. */
 export function scanSource(file: string, source: string): Violation[] {
   const text = stripComments(file, source);
@@ -376,6 +437,7 @@ export function scanSource(file: string, source: string): Violation[] {
     }
     add('raw-lucide', raw);
     add('icon-size', count(markup, ICON_NUMERIC_SIZE));
+    add('component-scoped-class', componentScopedClassCount(text));
     const script = (text.match(/<script[\s\S]*?<\/script>/g) ?? []).join('\n');
     if (UI_UNIT.test(file) && !COMPOSES.test(script) && markup.trim().length > 0)
       add('own-component', 1);
