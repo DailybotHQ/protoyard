@@ -48,7 +48,11 @@ function avoidRects(extraHeading = false): Rect[] {
   const selectors = [
     BOTTOM_NAV_SELECTOR,
     ...(options.avoid ?? []),
-    ...(extraHeading ? ['h1,[role="heading"][aria-level="1"]'] : []),
+    // On a phone the info dot keeps clear of every top-level heading, not only
+    // the h1 (Dailybot G-057): page and section titles sit at the top edges.
+    ...(extraHeading
+      ? ['h1,h2,h3,[role="heading"]:not([aria-level="4"],[aria-level="5"],[aria-level="6"])']
+      : []),
   ];
   return selectorRects(selectors);
 }
@@ -181,7 +185,7 @@ const messages = chromeMessages().badge;
     data-py-demo-badge="compact"
     data-py-badge-placed={placed ? '' : undefined}
     class={[
-      'pointer-events-none fixed flex size-4 select-none',
+      'pointer-events-none fixed flex size-4 select-none items-center justify-center',
       placed ? '' : 'invisible',
       options.layer === 'below-overlays' ? 'z-10' : 'z-30',
     ]}
@@ -192,13 +196,20 @@ const messages = chromeMessages().badge;
       variant="ghost"
       size="icon"
       type="button"
-      class="pointer-events-auto inline-flex size-4 items-center justify-center rounded-full border border-border bg-elevated/90 shadow-soft backdrop-blur focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      class="py-demo-dot pointer-events-auto inline-flex shrink-0 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       aria-expanded={expanded}
       aria-label={messages.text}
       title={formatMessage(messages.title, { name })}
       onclick={() => (expanded = !expanded)}
     >
-      <span class="size-1.5 rounded-full bg-primary" aria-hidden="true"></span>
+      <!-- The touch target may grow to Texuli's 44 px minimum on a phone; the
+           visible disc stays 16 px and reads theme surface tokens (G-057). -->
+      <span
+        class="inline-flex size-4 items-center justify-center rounded-full border border-border bg-elevated shadow-soft"
+        aria-hidden="true"
+      >
+        <span class="size-1.5 rounded-full bg-primary"></span>
+      </span>
     </Button>
     {#if expanded}
       <span

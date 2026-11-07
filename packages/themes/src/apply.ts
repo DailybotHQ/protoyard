@@ -79,17 +79,25 @@ const FONT_SIZES = [
   ['9xl', 10, '8rem'],
 ] as const;
 
+/**
+ * Readable floors for the steps below `base`, in px (Dailybot G-061). A steep
+ * ratio on a small body (1.25 on 14 px) would compile `text-xs` to about 9 px
+ * and `text-sm` to about 11 px, so utility-styled screens shrink. The floor
+ * holds whatever the root font size is.
+ */
+const FONT_SIZE_FLOOR_PX: Partial<Record<string, number>> = { xs: 12, sm: 13 };
+
 function fontSizeVariables(scaleRatio: number | null): Record<string, string> {
   return Object.fromEntries(
-    FONT_SIZES.map(([step, exponent, fallback]) => [
-      `--tx-font-size-${step}`,
-      scaleRatio === null
-        ? fallback
-        : `${Number(scaleRatio ** exponent)
-            .toFixed(4)
-            .replace(/0+$/, '')
-            .replace(/\.$/, '')}rem`,
-    ])
+    FONT_SIZES.map(([step, exponent, fallback]) => {
+      if (scaleRatio === null) return [`--tx-font-size-${step}`, fallback];
+      const rem = `${Number(scaleRatio ** exponent)
+        .toFixed(4)
+        .replace(/0+$/, '')
+        .replace(/\.$/, '')}rem`;
+      const floor = FONT_SIZE_FLOOR_PX[step];
+      return [`--tx-font-size-${step}`, floor ? `max(${rem}, ${floor}px)` : rem];
+    })
   );
 }
 

@@ -113,7 +113,7 @@ set is written by `applyAppearance()` on every page.
 | Variable | From | Used for |
 | --- | --- | --- |
 | `--tx-font-sans`, `--tx-font-heading`, `--tx-font-mono` | `fontFamily`, `fontFamilyHeading`, `fontFamilyMono` | `font-sans`, `font-heading`, `font-mono`; `h1`–`h4` use the heading font |
-| `--tx-font-size-xs` … `--tx-font-size-9xl` | `style.typography.scaleRatio` | `text-xs` … `text-9xl`. `null` keeps Tailwind's sizes; a ratio gives `ratio^n rem` with `base` = `1rem` |
+| `--tx-font-size-xs` … `--tx-font-size-9xl` | `style.typography.scaleRatio` | `text-xs` … `text-9xl`. `null` keeps Tailwind's sizes; a ratio gives `ratio^n rem` with `base` = `1rem`, and `xs` and `sm` never go below 12 px and 13 px (`max(0.64rem, 12px)` at 1.25), so a steep ratio on a small body keeps utility text readable |
 | `--tx-font-weight-body`, `-medium`, `-heading`, `-bold` | `style.typography.weights` | `font-normal`, `font-medium`, `font-semibold`, `font-bold`; body and heading weights |
 | `--tx-letter-spacing-body`, `-heading` | `style.typography.tracking` | body and `h1`–`h4` letter spacing; `tracking-body`, `tracking-heading` |
 | `--tx-radius` | `radius` | `rounded-lg`; `rounded-xs` … `rounded-2xl` are derived from it |

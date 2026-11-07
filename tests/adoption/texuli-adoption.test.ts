@@ -30,6 +30,27 @@ describe('scanSource', () => {
     expect(rules('apps/gallery/src/A.svelte', good)['icon-size']).toBeUndefined();
   });
 
+  it('flags a scoped rule for a class passed only to a component (Dailybot G-060)', () => {
+    const bad = `<script>import { Button } from 'texuli/button';</script>
+<Button class="save">Save</Button>
+<p class="note">Saved</p>
+<style>
+  .save { color: red; }
+  .note { color: gray; }
+</style>`;
+    expect(rules('prototypes/x/src/A.svelte', bad)['component-scoped-class']).toBe(1);
+    const good = `<script>import { Button } from 'texuli/button';
+const tone = 'live';</script>
+<div class="bar"><Button class="save">Save</Button><Button class="live">Go</Button></div>
+<span class:open={true}></span><Badge class="open" />
+<style>
+  .bar :global(.save) { color: red; }
+  .live, .open { color: green; }
+  :global(.solo) { color: blue; }
+</style>`;
+    expect(rules('prototypes/x/src/A.svelte', good)['component-scoped-class']).toBeUndefined();
+  });
+
   it('flags clsx, tailwind-merge and tailwind-variants imports', () => {
     expect(
       rules(

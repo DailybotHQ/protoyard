@@ -16,3 +16,26 @@ describe('EmojiPicker inside a form (Dailybot G-051)', () => {
     expect(onsubmit).not.toHaveBeenCalled();
   });
 });
+
+describe('EmojiPicker trigger name (Dailybot batch 6)', () => {
+  it('includes the visible prompt when a Field labels it', async () => {
+    const { EmojiPicker } = await import('../src/index.ts');
+    const label = document.createElement('span');
+    label.id = 'field-label';
+    label.textContent = 'Reaction';
+    document.body.append(label);
+    render(EmojiPicker, {
+      props: { 'aria-labelledby': 'field-label', placeholder: 'Pick an emoji' },
+    });
+    const trigger = screen.getByRole('button', { name: 'Reaction Pick an emoji' });
+    expect(trigger.textContent).toContain('Pick an emoji');
+    label.remove();
+  });
+
+  it('names a chosen emoji with its own label', () => {
+    return import('../src/index.ts').then(({ EmojiPicker }) => {
+      render(EmojiPicker, { props: { label: 'Mood', value: '🎉' } });
+      expect(screen.getByRole('button', { name: 'Mood 🎉' })).toBeTruthy();
+    });
+  });
+});

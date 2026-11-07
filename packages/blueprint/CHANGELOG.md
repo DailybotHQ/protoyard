@@ -1,5 +1,17 @@
 # @protoyard/blueprint
 
+## 1.4.1
+
+### Patch Changes
+
+- Updated dependencies [c399afd]
+  - @protoyard/themes@1.4.1
+  - @protoyard/decks@1.4.1
+  - @protoyard/blocks@1.4.1
+  - @protoyard/core@1.4.1
+  - @protoyard/pages@1.4.1
+  - @protoyard/scenarios@1.4.1
+
 ## 1.4.0
 
 ### Patch Changes

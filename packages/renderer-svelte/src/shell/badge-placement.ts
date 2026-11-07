@@ -168,13 +168,41 @@ function intersects(a: Rect, b: Rect): boolean {
 
 type Hit = (x: number, y: number) => Element | null;
 
+/** Share of the viewport above which a pinned element is a page, not edge chrome. */
+const CHROME_MAX_SHARE = 0.6;
+
+/**
+ * Whether `el` sits in pinned edge chrome: a `fixed` or `sticky` ancestor
+ * (itself included) that is a bar or a rail, narrower or shorter than most of
+ * the viewport (Dailybot batch 6). A side rail made of plain elements has no
+ * control or text in its empty parts, so the hit test alone would let the
+ * badge sit on it. A full-viewport pinned root (an app shell) is not chrome.
+ */
+export function inPinnedChrome(el: Element): boolean {
+  const view = el.ownerDocument.defaultView;
+  if (!view || typeof view.getComputedStyle !== 'function') return false;
+  const vw = view.innerWidth || 1;
+  const vh = view.innerHeight || 1;
+  for (
+    let node: Element | null = el;
+    node && node !== el.ownerDocument.body;
+    node = node.parentElement
+  ) {
+    const position = view.getComputedStyle(node).position;
+    if (position !== 'fixed' && position !== 'sticky') continue;
+    const r = node.getBoundingClientRect();
+    if (r.width < vw * CHROME_MAX_SHARE || r.height < vh * CHROME_MAX_SHARE) return true;
+  }
+  return false;
+}
+
 /** What covering `rect` costs: CONTROL_COST per sample point on a control, 1 per point on text. */
 export function spotCost(rect: Rect, hit: Hit, step = 16): number {
   let cost = 0;
   for (const [x, y] of samplePoints(rect, step)) {
     const el = hit(x, y);
     if (!el) continue;
-    if (el.closest(INTERACTIVE_SELECTOR)) cost += CONTROL_COST;
+    if (el.closest(INTERACTIVE_SELECTOR) || inPinnedChrome(el)) cost += CONTROL_COST;
     else if (textAt(el, x, y)) cost += 1;
   }
   return cost;

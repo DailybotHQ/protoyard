@@ -1,5 +1,11 @@
 # @protoyard/ui
 
+## 1.4.1
+
+### Patch Changes
+
+- a14a4f7: The demo badge keeps clear of pinned edge chrome (a `fixed` or `sticky` bar or rail, even a plain element), and `EmojiPicker`'s trigger name includes its visible prompt or emoji when a Field labels it.
+
 ## 1.4.0
 
 ### Minor Changes

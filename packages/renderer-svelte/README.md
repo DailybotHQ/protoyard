@@ -53,6 +53,10 @@ the visual viewport narrower. Fixed chrome adds it to its `right` offset: the
 unplaced review toolbar, the DevTools launcher, the `Toaster` and `UndoToaster`
 (phone layout) and the demo badge's right corners do. The badge also picks its
 corner inside the visible viewport (`badgeContainer`), not the layout one.
+It never sits on pinned edge chrome either: a `fixed` or `sticky` bar or rail
+(narrower or shorter than 60% of the viewport) counts like a control, even
+where it is a plain element with nothing under the point. `demoBadge.avoid`
+takes extra CSS selectors for anything else it must keep clear of.
 
 `PrototypeNote` renders the same "Prototype · simulated data" label as plain
 text in the page flow (a footer, under a heading). Set `demoBadge: false` and

@@ -1,5 +1,17 @@
 # @protoyard/gallery
 
+## 1.4.1
+
+### Patch Changes
+
+- Updated dependencies [a14a4f7]
+- Updated dependencies [c399afd]
+  - @protoyard/ui@1.4.1
+  - @protoyard/themes@1.4.1
+  - @protoyard/player@1.4.1
+  - @protoyard/blueprint@1.4.1
+  - @protoyard/core@1.4.1
+
 ## 1.4.0
 
 ### Patch Changes
