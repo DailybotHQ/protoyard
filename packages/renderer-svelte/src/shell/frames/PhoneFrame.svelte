@@ -50,7 +50,7 @@ async function toggleOrientation(): Promise<void> {
     <div
       data-py-frame-decoration
       {@attach enterBezel}
-      class="absolute border-solid border-zinc-800 bg-transparent shadow-[0_0_0_1px_rgb(39_39_42),0_28px_70px_-24px_rgb(0_0_0/0.55)] dark:border-zinc-950 dark:shadow-[0_0_0_1px_rgb(24_24_27),0_28px_70px_-24px_rgb(0_0_0/0.75)]"
+      class="absolute border-solid border-foreground dark:border-background bg-transparent shadow-[0_0_0_1px_var(--color-border-strong),0_28px_70px_-24px_var(--color-shadow)]"
       style:inset="-{bezel}px"
       style:border-width="{bezel}px"
       style:border-radius="{outerRadius}px"
@@ -60,19 +60,19 @@ async function toggleOrientation(): Promise<void> {
 
   <!-- Inner screen lip -->
   <div
-    class="absolute inset-0 ring-1 ring-black/20 dark:ring-white/10"
+    class="absolute inset-0 ring-1 ring-border"
     style:border-radius="{spec.cornerRadius}px"
     aria-hidden="true"
   ></div>
 
   <!-- Volume rocker (left) -->
   <div class="absolute -left-[15px] flex w-[3px] flex-col gap-2" style:top="{volumeTop}px" aria-hidden="true">
-    <span class="h-7 rounded-l-sm bg-zinc-700 dark:bg-zinc-900"></span>
-    <span class="h-7 rounded-l-sm bg-zinc-700 dark:bg-zinc-900"></span>
+    <span class="h-7 rounded-l-sm bg-border-strong"></span>
+    <span class="h-7 rounded-l-sm bg-border-strong"></span>
   </div>
   <!-- Power (right) -->
   <div
-    class="absolute -right-[15px] h-14 w-[3px] rounded-r-sm bg-zinc-700 dark:bg-zinc-900"
+    class="absolute -right-[15px] h-14 w-[3px] rounded-r-sm bg-border-strong"
     style:top="{powerTop}px"
     aria-hidden="true"
   ></div>
@@ -81,7 +81,7 @@ async function toggleOrientation(): Promise<void> {
   {#if cutout === 'pill'}
     <div
       class={[
-        'absolute z-[31] rounded-full bg-zinc-950 shadow-[inset_0_0_0_1px_rgb(0_0_0/0.5)] dark:bg-black',
+        'absolute z-[31] rounded-full bg-foreground dark:bg-background',
         spec.orientation === 'landscape'
           ? 'top-1/2 left-[11px] h-[96px] w-[28px] -translate-y-1/2'
           : 'top-[11px] left-1/2 h-[28px] w-[96px] -translate-x-1/2',
@@ -91,7 +91,7 @@ async function toggleOrientation(): Promise<void> {
     >
       <span
         class={[
-          'absolute size-[9px] rounded-full bg-zinc-800 ring-1 ring-zinc-700/80',
+          'absolute size-[9px] rounded-full bg-border-strong',
           spec.orientation === 'landscape'
             ? 'top-[22%] left-1/2 -translate-x-1/2'
             : 'top-1/2 left-[22%] -translate-y-1/2',
@@ -101,7 +101,7 @@ async function toggleOrientation(): Promise<void> {
   {:else if cutout === 'punch-hole'}
     <div
       class={[
-        'absolute z-[31] size-[11px] rounded-full bg-zinc-950 ring-1 ring-zinc-700 dark:bg-black',
+        'absolute z-[31] size-[11px] rounded-full bg-foreground dark:bg-background ring-1 ring-border-strong',
         spec.orientation === 'landscape'
           ? 'top-1/2 left-[12px] -translate-y-1/2'
           : 'top-[12px] left-1/2 -translate-x-1/2',
@@ -128,7 +128,7 @@ async function toggleOrientation(): Promise<void> {
     type="button"
     data-py-orientation-toggle
     style:left="calc(100% + {bezel + ROTATE_GAP}px)"
-    class="pointer-events-auto absolute bottom-8 z-[35] flex size-8 items-center justify-center rounded-full border border-white/20 bg-zinc-800/80 text-white shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:bg-zinc-950/80"
+    class="pointer-events-auto absolute bottom-8 z-[35] flex size-8 items-center justify-center rounded-full border border-border bg-elevated text-elevated-foreground shadow-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     aria-label="Rotate phone to {spec.orientation === 'portrait' ? 'landscape' : 'portrait'}"
     title="Rotate phone"
     onclick={toggleOrientation}

@@ -40,7 +40,7 @@ function goHome(event: MouseEvent): void {
       onclick={goHome}
     >
       <span
-        class="block rounded-full bg-foreground/35 dark:bg-foreground/50"
+        class="block rounded-full bg-foreground opacity-35 dark:opacity-50"
         style:width="36%"
         style:min-width="100px"
         style:max-width="140px"

@@ -6,6 +6,21 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-11-07
+
+Consumer batch 8 from Dailybot. Texuli stays at 0.14.1.
+
+### Fixed
+
+- **Frames paint theme tokens only (G-062).** The phone, tablet, device and
+  desktop frames and the full screen controls used fixed grays, literal
+  `rgb()` values and opacity-modified colors that compile to `lab()` values
+  outside the theme, so a computed-color check failed inside any frame. The
+  stage, bezel, edge and shadow now use the theme's `muted`, `foreground`
+  (`background` in dark mode), `border-strong` and `shadow` tokens, and the
+  frame controls use `elevated` surface tokens; a source test keeps foreign
+  colors out.
+
 ## [1.4.2] - 2026-11-06
 
 Fixes from the final reviews of PLAN_010, PLAN_011 and PLAN_012 (AI Diff

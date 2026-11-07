@@ -1,5 +1,12 @@
 # @protoyard/analytics
 
+## 1.4.3
+
+### Patch Changes
+
+- @protoyard/core@1.4.3
+  - @protoyard/scenarios@1.4.3
+
 ## 1.4.2
 
 ### Patch Changes

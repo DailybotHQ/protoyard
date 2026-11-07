@@ -1,5 +1,13 @@
 # @protoyard/decks-ui
 
+## 1.4.3
+
+### Patch Changes
+
+- @protoyard/blocks-ui@1.4.3
+  - @protoyard/blocks@1.4.3
+  - @protoyard/decks@1.4.3
+
 ## 1.4.2
 
 ### Patch Changes

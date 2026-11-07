@@ -158,6 +158,24 @@ The renderer shows the bare app, with no frame, when:
   shows the label, and Escape or navigation folds it again. The relay-chat-demo E2E case that checked the
   badge covers no control at 390×844 was removed in PLAN_009.
 
+## Frame colors
+
+Every frame paints theme tokens only, so a check of computed colors against the
+compiled theme finds nothing foreign around a framed app:
+
+| Part | Token |
+| --- | --- |
+| The page around the device | `muted` |
+| Phone, tablet and device bezels, camera cutouts | `foreground`, `background` in dark mode |
+| The bezel's outline, side buttons, the camera lens | `border-strong` |
+| The drop shadow under the device | `shadow` |
+| Frame controls (rotate, full screen) | `elevated`, `elevated-foreground`, `border` |
+
+A theme that changes these tokens restyles the frame. A source test
+(`tests/frame-colors.test.ts`) refuses palette utilities, literal colors and opacity
+modifiers in the frames. The simulated host sites (widget host, side panel, design
+canvas) still draw their own fixed colors.
+
 ## Full screen
 
 Every framed shell has a **Full screen** control above the frame's top-right corner,
