@@ -1,5 +1,12 @@
 # @protoyard/saas
 
+## 1.4.3
+
+### Patch Changes
+
+- @protoyard/avatars@1.4.3
+  - @protoyard/core@1.4.3
+
 ## 1.4.2
 
 ### Patch Changes

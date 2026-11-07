@@ -1,5 +1,16 @@
 # @protoyard/views-ui
 
+## 1.4.3
+
+### Patch Changes
+
+- Updated dependencies [64c1a28]
+  - @protoyard/renderer-svelte@1.4.3
+  - @protoyard/ai@1.4.3
+  - @protoyard/core@1.4.3
+  - @protoyard/ui@1.4.3
+  - @protoyard/views@1.4.3
+
 ## 1.4.2
 
 ### Patch Changes

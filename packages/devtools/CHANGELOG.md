@@ -1,5 +1,14 @@
 # @protoyard/devtools
 
+## 1.4.3
+
+### Patch Changes
+
+- @protoyard/core@1.4.3
+  - @protoyard/database@1.4.3
+  - @protoyard/http@1.4.3
+  - @protoyard/themes@1.4.3
+
 ## 1.4.2
 
 ### Patch Changes

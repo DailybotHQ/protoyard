@@ -1,5 +1,15 @@
 # @protoyard/gallery
 
+## 1.4.3
+
+### Patch Changes
+
+- @protoyard/player@1.4.3
+  - @protoyard/blueprint@1.4.3
+  - @protoyard/core@1.4.3
+  - @protoyard/themes@1.4.3
+  - @protoyard/ui@1.4.3
+
 ## 1.4.2
 
 ### Patch Changes

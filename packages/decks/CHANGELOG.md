@@ -1,5 +1,13 @@
 # @protoyard/decks
 
+## 1.4.3
+
+### Patch Changes
+
+- @protoyard/ai@1.4.3
+  - @protoyard/blocks@1.4.3
+  - @protoyard/themes@1.4.3
+
 ## 1.4.2
 
 ### Patch Changes
