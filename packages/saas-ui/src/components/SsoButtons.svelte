@@ -10,7 +10,7 @@ import {
 } from '@protoyard/saas';
 import { Button } from 'texuli/button';
 import { LucideIcon } from 'texuli/icons/lucide';
-import { getSaas } from '../context.ts';
+import { getSaas, hasSaasRuntime } from '../context.ts';
 import { saasPortsFromRuntime } from '../ports.ts';
 
 interface Props {
@@ -31,11 +31,12 @@ let {
 }: Props = $props();
 const saas = getSaas();
 /**
- * Explicit `scenarios` need the simulated engine; otherwise the context's
- * OAuth port (ADR-046) starts the flow.
+ * Explicit `scenarios` drive the simulated engine. Under
+ * `provideSaas({ ports })` there is none, so they are ignored and the
+ * context's OAuth port (ADR-046) starts the flow.
  */
 const oauth = $derived(
-  Object.keys(scenarios).length > 0
+  Object.keys(scenarios).length > 0 && hasSaasRuntime(saas)
     ? saasPortsFromRuntime(saas.runtime, { oauthScenarios: scenarios }).oauth
     : saas.ports.oauth
 );

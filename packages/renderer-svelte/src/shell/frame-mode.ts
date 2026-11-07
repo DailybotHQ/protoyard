@@ -190,7 +190,13 @@ export async function enterFullScreen(
   if (options.browser) {
     document.documentElement.requestFullscreen?.().catch(() => {});
   }
-  await runtime.theme.setOverride({ shell: 'none' });
+  try {
+    await runtime.theme.setOverride({ shell: 'none' });
+  } catch (error) {
+    // No full screen happened: never show the hint on a later, unrelated one.
+    hintPending = false;
+    throw error;
+  }
 }
 
 /**

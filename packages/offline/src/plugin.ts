@@ -21,6 +21,7 @@ export interface OfflinePlugin {
   enforce: 'post';
   configResolved(config: { root: string; build: { outDir: string } }): void;
   transformIndexHtml(html: string): string;
+  buildStart(): void;
   writeBundle(): void;
   closeBundle(): void;
 }
@@ -47,6 +48,10 @@ export function protoyardOffline(options: ProtoyardOfflineOptions): OfflinePlugi
         return html.includes('</head>')
           ? html.replace('</head>', () => `${tag}\n</head>`)
           : `${tag}${html}`;
+      },
+      buildStart() {
+        // A watch rebuild reuses this instance: only this build's output counts.
+        written = false;
       },
       writeBundle() {
         written = true;

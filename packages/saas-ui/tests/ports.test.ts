@@ -108,6 +108,24 @@ describe('saas-ui on ports (ADR-046)', () => {
     expect(product.ports.oauth?.start).toHaveBeenCalledWith('google', 'sign-in');
   });
 
+  it('ignores engine scenarios under ports instead of throwing at render', async () => {
+    const product = plainProduct();
+    render(PortsHarness, {
+      ports: product.ports,
+      signIn: product.signIn,
+      scenarios: {
+        google: {
+          identity: { subject: 'g-ada', name: 'Ada Example', email: 'ada@example.com' },
+          outcome: 'consent-denied',
+        },
+      },
+    });
+    await fireEvent.click(screen.getByRole('button', { name: /Continue with Google/ }));
+    await waitFor(() =>
+      expect(product.ports.oauth?.start).toHaveBeenCalledWith('google', 'sign-in')
+    );
+  });
+
   it('says which screens need the engine instead of failing obscurely', () => {
     const product = plainProduct();
     let ctx: SaasContext | undefined;

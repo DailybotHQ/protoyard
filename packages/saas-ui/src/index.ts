@@ -17,6 +17,7 @@ export {
 export {
   getSaas,
   hasSaas,
+  hasSaasRuntime,
   type ProvideSaasOptions,
   type ProvideSaasPortsOptions,
   provideSaas,

@@ -11,9 +11,9 @@ import {
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { opt } from '../lib/command.ts';
 import { CliError } from '../lib/output.ts';
+import { BUILD_MARKER, guardOutputDir } from '../lib/output-guard.ts';
 import { serveStatic } from '../lib/static-server.ts';
 import { resolveTarget } from '../lib/workspace.ts';
-import { workspaceFile } from '../lib/workspace-file.ts';
 
 /** The four default shots: light and dark, desktop and phone. */
 export const SWEEP_SHOTS: readonly {
@@ -78,10 +78,16 @@ async function sweepOne(
   } catch {
     // A dist without a manifest is served at the root.
   }
-  const out = workspaceFile(
-    ctx.root,
-    outRoot ? (many ? join(outRoot, entry.slug) : outRoot) : join('tmp', 'sweep', entry.slug)
-  );
+  const out = guardOutputDir({
+    root: ctx.root,
+    paths: ctx.paths,
+    requested: outRoot
+      ? many
+        ? join(outRoot, entry.slug)
+        : outRoot
+      : join('tmp', 'sweep', entry.slug),
+    marker: BUILD_MARKER,
+  });
   const server = await serveStatic({ dir: dist, base, port: 0, host: '127.0.0.1' });
   const shots: Shot[] = [];
   try {

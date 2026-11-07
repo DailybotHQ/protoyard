@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -45,6 +45,16 @@ describe('gallery build and preview', () => {
     expect(unbuilt.json<Envelope<unknown>>().error?.message).toMatch(/not been built/);
     expect((await run('gallery', 'build', '--base', 'no-slash')).code).toBe(2);
     expect((await run('gallery', 'build', '--out', '../outside')).code).not.toBe(0);
+  });
+
+  it('never empties the workspace or its sources through --out (final review, PLAN_010)', async () => {
+    ws = createWorkspace();
+    for (const out of ['.', 'prototypes', 'templates', 'artifacts']) {
+      const result = await run('gallery', 'build', '--out', out);
+      expect(result.code).not.toBe(0);
+      expect(result.json<Envelope<unknown>>().error?.message).toMatch(/Refusing --out/);
+    }
+    expect(existsSync(join(ws.root, 'prototypes'))).toBe(true);
   });
 
   it('reads the showcase templates default from protoyard.workspace.json, flags first', () => {
