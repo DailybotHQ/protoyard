@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/ui",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Svelte 5 UI components and product patterns for Protoyard prototypes, built on Texuli (Tailwind CSS 4 + Lucide).",
   "license": "MIT",
   "type": "module",

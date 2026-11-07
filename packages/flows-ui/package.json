@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/flows-ui",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Accessible Svelte workflow editor and simulated run panels for Protoyard.",
   "license": "MIT",
   "type": "module",

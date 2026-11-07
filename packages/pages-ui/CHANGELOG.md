@@ -1,5 +1,17 @@
 # @protoyard/pages-ui
 
+## 1.4.2
+
+### Patch Changes
+
+- Updated dependencies [e09e5f4]
+  - @protoyard/renderer-svelte@1.4.2
+  - @protoyard/blocks-ui@1.4.2
+  - @protoyard/blocks@1.4.2
+  - @protoyard/blueprint@1.4.2
+  - @protoyard/pages@1.4.2
+  - @protoyard/ui@1.4.2
+
 ## 1.4.1
 
 ### Patch Changes

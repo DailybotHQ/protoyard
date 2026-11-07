@@ -1,5 +1,16 @@
 # @protoyard/blueprint
 
+## 1.4.2
+
+### Patch Changes
+
+- @protoyard/blocks@1.4.2
+  - @protoyard/core@1.4.2
+  - @protoyard/decks@1.4.2
+  - @protoyard/pages@1.4.2
+  - @protoyard/scenarios@1.4.2
+  - @protoyard/themes@1.4.2
+
 ## 1.4.1
 
 ### Patch Changes
