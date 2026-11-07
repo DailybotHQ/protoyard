@@ -136,7 +136,7 @@ and now have more than 5 % headroom, so each is the measurement + 5 %.
 | pages-ui initial CSS (page / doc) | 7,007 / 6,999 B | 7,357 / 7,349 B | Exactly + 5 % |
 | pages-ui all CSS (page / doc) | 39,046 / 74,692 B | 40,023 / 76,560 B | 2.5 % headroom |
 | Views kit board, grid, editor, timeline, sheet, canvas | 16,164 / 23,113 / 10,531 / 13,108 / 49,457 / 50,488 B | 16,869 / 23,691 / 10,795 / 13,709 / 51,908 / 53,013 B | 2.5–5.0 % headroom |
-| `LayoutHost` initial delta | 3,972 B (Texuli 0.13.0, 2026-11-05) | 4,080 B | 2.7 % headroom |
+| `LayoutHost` initial delta | 4,175 B (Texuli 0.14.2, 2026-11-07) | 4,280 B | 2.5 % headroom |
 
 **Template.** `budget --all` checks prototypes only. `fintech-dashboard`
 measured 39.22 KB CSS against the 30 KB default (36.54 KB before its lazy

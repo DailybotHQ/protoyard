@@ -1,5 +1,15 @@
 # @protoyard/saas-ui
 
+## 1.5.0
+
+### Patch Changes
+
+- Updated dependencies [e9af874]
+  - @protoyard/ui@1.5.0
+  - @protoyard/renderer-svelte@1.5.0
+  - @protoyard/core@1.5.0
+  - @protoyard/saas@1.5.0
+
 ## 1.4.3
 
 ### Patch Changes

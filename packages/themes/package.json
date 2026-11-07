@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/themes",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "Protoyard theme engine: token presets, light/dark/system resolution and scoped CSS variable application.",
   "license": "MIT",
   "type": "module",
@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@protoyard/core": "workspace:*",
-    "@texuli/tokens": "0.14.1"
+    "@texuli/tokens": "0.14.2"
   },
   "protoyard": {
     "build": {

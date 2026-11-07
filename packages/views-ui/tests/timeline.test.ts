@@ -103,6 +103,14 @@ describe('TimelineView (Texuli 0.14 pass-through, D-G-044)', () => {
     await waitFor(() => expect(document.body.textContent).toContain('Review window closes'));
   });
 
+  it('passes formatTick and initialDate through to Texuli (0.14.2)', async () => {
+    const formatTick = vi.fn((date: string, _context: { zoom: string }) => `tick ${date}`);
+    timeline({ formatTick, initialDate: '2026-10-06' });
+    await waitFor(() => expect(document.body.textContent).toContain('tick 2026-10-'));
+    expect(formatTick).toHaveBeenCalled();
+    expect(formatTick.mock.calls[0]?.[1]).toMatchObject({ zoom: 'week' });
+  });
+
   it('calls onOpen from a task bar and from the unscheduled tray', async () => {
     const onOpen = vi.fn();
     const undated = { id: 't4', title: 'Name the mascot', project: 'apollo' } as unknown as Task;

@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/ui",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "Svelte 5 UI components and product patterns for Protoyard prototypes, built on Texuli (Tailwind CSS 4 + Lucide).",
   "license": "MIT",
   "type": "module",
@@ -34,12 +34,12 @@
   },
   "dependencies": {
     "@lucide/svelte": "^1.64.0",
-    "@texuli/chat": "0.14.1",
-    "@texuli/core": "0.14.1",
-    "@texuli/data": "0.14.1",
-    "@texuli/date": "0.14.1",
-    "@texuli/primitives": "0.14.1",
-    "texuli": "0.14.1"
+    "@texuli/chat": "0.14.2",
+    "@texuli/core": "0.14.2",
+    "@texuli/data": "0.14.2",
+    "@texuli/date": "0.14.2",
+    "@texuli/primitives": "0.14.2",
+    "texuli": "0.14.2"
   },
   "devDependencies": {
     "svelte": "^5.57.3"

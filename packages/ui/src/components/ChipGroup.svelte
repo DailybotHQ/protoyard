@@ -31,6 +31,11 @@ interface OwnProps {
    * selected) or `outline` (separate bordered chips). Default `default`.
    */
   variant?: 'default' | 'outline';
+  /**
+   * Single mode only: pressing the selected chip again keeps it selected, so
+   * the group never goes empty (Texuli's `deselectable={false}`). Default `false`.
+   */
+  required?: boolean;
   class?: string;
   onchange?: (value: string[]) => void;
   /** The rendered root element (bindable). */
@@ -53,6 +58,7 @@ let {
   disabled = false,
   size = 'md',
   variant = 'default',
+  required = false,
   class: className,
   onchange,
   ref = $bindable(null),
@@ -80,6 +86,7 @@ function commit(next: string[]): void {
     <ToggleGroup
       {...forwarded}
       type="single"
+      deselectable={!required}
       value={value[0] ?? ''}
       onValueChange={(next: string | string[]) => commit(typeof next === 'string' && next ? [next] : [])}
       {disabled}

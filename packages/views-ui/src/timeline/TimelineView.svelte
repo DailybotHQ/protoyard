@@ -3,7 +3,9 @@
  * Host adapter over `@texuli/data/timeline` `TimelineView`: liveQuery + services.
  * Texuli formats task-bar dates with month:'long' (and optional locale).
  * Grouping (`getGroup`, bands, `collapsed`, `onGroupAdd`), `maxRows`,
- * `onOpen`, row selection and `markers` pass straight through (Texuli 0.14.0).
+ * `onOpen`, row selection and `markers` pass straight through (Texuli 0.14.0), as do
+ * `initialDate` and `formatTick` (Texuli 0.14.2). Without `initialDate` the axis opens
+ * at the simulated today when it falls inside the plan.
  */
 import type { PrototypeRuntime } from '@protoyard/core';
 import { runService, useClock } from '@protoyard/renderer-svelte';
@@ -13,6 +15,7 @@ import {
   type TimelineGroup,
   type TimelineLabels,
   type TimelineMarker,
+  type TimelineTickContext,
   type TimelineZoom,
 } from '@texuli/data/timeline';
 import QueryState from '../states/QueryState.svelte';
@@ -39,6 +42,8 @@ let {
   onRowSelect,
   markers,
   labels,
+  initialDate,
+  formatTick,
   class: className,
 }: {
   query: { readonly current: T[] | undefined; readonly loading: boolean; readonly error: unknown };
@@ -71,6 +76,10 @@ let {
   markers?: readonly TimelineMarker[];
   /** Texuli timeline copy overrides. */
   labels?: Partial<TimelineLabels>;
+  /** The day the axis opens at (`YYYY-MM-DD` or a `Date`). */
+  initialDate?: string | Date;
+  /** Axis tick text; Texuli's default keeps day-zoom labels compact. */
+  formatTick?: (date: string, context: TimelineTickContext) => string;
   class?: string;
 } = $props();
 
@@ -117,6 +126,8 @@ async function persist(changes: readonly TaskChange[]): Promise<void> {
         {onRowSelect}
         {markers}
         {labels}
+        {initialDate}
+        {formatTick}
         class={className}
       />
     {/snippet}
