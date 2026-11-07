@@ -12,7 +12,7 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.64.0",
+    "@lucide/svelte": "^1.67.0",
     "@protoyard/blueprint": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/crud": "workspace:*",
