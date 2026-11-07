@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import Inbox from '@lucide/svelte/icons/inbox';
-import { cleanup, render, screen } from '@testing-library/svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChipGroup, Select, Sidebar } from '../src/index.ts';
 import LabelsHarness from './fixtures/LabelsHarness.svelte';
 
@@ -59,14 +59,37 @@ describe('ChipGroup variant (UG-49) and Select fullWidth (UG-20)', () => {
     expect(document.querySelectorAll('.tx-toggle--outline')).toHaveLength(0);
   });
 
-  it('fullWidth wraps the Texuli root in the stretch wrapper; without it the DOM is unchanged', () => {
+  it('required keeps the selected chip selected in single mode (UG-54)', async () => {
+    const onchange = vi.fn();
+    render(ChipGroup, {
+      props: { items: options, label: 'Pick', value: ['a'], required: true, onchange },
+    });
+    await fireEvent.click(screen.getByRole('button', { name: 'Alpha' }));
+    expect(screen.getByRole('button', { name: 'Alpha' }).getAttribute('aria-pressed')).toBe('true');
+    expect(onchange).not.toHaveBeenCalledWith([]);
+  });
+
+  it('without required, pressing the selected chip clears single mode', async () => {
+    const onchange = vi.fn();
+    render(ChipGroup, { props: { items: options, label: 'Pick', value: ['a'], onchange } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Alpha' }));
+    expect(onchange).toHaveBeenCalledWith([]);
+  });
+
+  it("fullWidth (or block) sets Texuli's block on the root; without it the root is inline", () => {
     render(Select, { props: { items: options, fullWidth: true, 'aria-label': 'Stage' } });
-    const wrapper = document.querySelector('[data-py-select-full]');
-    expect(wrapper?.firstElementChild?.classList.contains('tx-select-root')).toBe(true);
+    expect(document.querySelector('.tx-select-root')?.getAttribute('data-block')).toBe('true');
+    cleanup();
+    render(Select, { props: { items: options, block: true, 'aria-label': 'Stage' } });
+    expect(document.querySelector('.tx-select-root')?.hasAttribute('data-block')).toBe(true);
     cleanup();
     render(Select, { props: { items: options, 'aria-label': 'Stage' } });
-    expect(document.querySelector('[data-py-select-full]')).toBeNull();
-    expect(document.querySelector('.tx-select-root')).toBeTruthy();
+    expect(document.querySelector('.tx-select-root')?.hasAttribute('data-block')).toBe(false);
+  });
+
+  it('forwards variant="ghost" to the Texuli root (G-059)', () => {
+    render(Select, { props: { items: options, variant: 'ghost', 'aria-label': 'Stage' } });
+    expect(document.querySelector('.tx-select-root')?.getAttribute('data-variant')).toBe('ghost');
   });
 });
 

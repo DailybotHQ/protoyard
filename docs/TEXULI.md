@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.14.1`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.14.2`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.14.1`. Texuli pins its own internal dependencies exactly,
+Every package is `0.14.2`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -411,6 +411,36 @@ not in the agent catalog yet, so blueprints cannot emit them):
   `@texuli/media/image`.
 - **Avatar grid:** `<AvatarGroupGrid items={members} label="…" />` from
   `texuli/avatar`, a 2×2 collage for group conversations.
+
+## What Texuli 0.14.2 changes for prototypes
+
+Texuli 0.14.2 fixes and adds rows from the Corag and Dailybot reports:
+
+- **Overlays:** a `Dialog`, `AlertDialog` or `Sheet` mounted with `open`
+  shows its backdrop (deep links). A non-modal `Popover` or `Select` no longer
+  pulls focus back when focus moved to another overlay. Side sheets, drawers
+  and `DetailPanel` fill their block size and scroll inside (a contained
+  `DetailPanel` needs `position: relative` on its container).
+- **Toggles:** a controlled `Toggle` (`pressed` + `onPressedChange`) and
+  `ToggleGroup` (`value` + `onValueChange`) render their prop. `bind:pressed`
+  with `onPressedChange` no longer writes the bound value by itself; set it in
+  the handler. `ToggleGroup` takes `deselectable`; `@protoyard/ui` `ChipGroup`
+  maps its new `required` prop to `deselectable={false}` in single mode.
+- **Select:** `Select.Root` takes `block` and the trigger variant `ghost`.
+  `@protoyard/ui` `Select` forwards `fullWidth` (or `block`) and `variant`, and
+  dropped its full-width wrapper.
+- **Sidebar and badges:** the Sidebar draws `item.icon` (built-in nav names and
+  components) without an `itemIcon` snippet; `@protoyard/ui` keeps its default
+  snippet because it also draws names registered with `registerIcons`.
+  `badgeLabel` on `SidebarItem`, `BottomNavItem` and `IconButton`.
+- **Timeline:** `TimelineView` takes `formatTick` and `initialDate`, and opens
+  at today when today is inside the plan.
+- **CSS hooks:** `--tx-toggle-on-bg/-fg/-border`, radio, switch, placeholder,
+  tab badge, dialog close icon, pin input, radio card and icon-button badge
+  hooks, and `--tx-scrim-blur`.
+
+The layout host grew to 4,175 B gzip (cap raised to 4,280 B,
+[PERFORMANCE](PERFORMANCE.md)).
 
 ## What Texuli 0.14.0 adds for prototypes
 

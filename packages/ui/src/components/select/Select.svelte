@@ -19,12 +19,12 @@ type Props = TriggerProps & {
   /** Form field name; renders a hidden input so the value submits with forms. */
   name?: string;
   contentClass?: string;
-  /**
-   * Stretch the select to its container's width (form fields, settings rows).
-   * A Protoyard stopgap: a `display: contents` wrapper with a scoped width rule.
-   * TODO(texuli 0.14.2): forward Texuli's `SelectRoot` `block` prop instead.
-   */
+  /** Stretch the select to its container's width (Texuli's `block`). */
   fullWidth?: boolean;
+  /** Alias of `fullWidth`, Texuli's name. */
+  block?: boolean;
+  /** Trigger style; `'ghost'` blends into toolbars and table cells (per instance). */
+  variant?: ComponentProps<typeof TexuliSelect.Root>['variant'];
   onValueChange?: (value: string) => void;
 };
 
@@ -41,6 +41,8 @@ let {
   class: className,
   contentClass,
   fullWidth = false,
+  block = false,
+  variant,
   onValueChange,
   ref = $bindable(null),
   // The trigger (role="combobox") states `required` itself, from the root.
@@ -67,55 +69,38 @@ const describedBy = $derived(
 </script>
 
 <!-- A thin adapter: Texuli's styled Select, driven by an `items` list. -->
-{#snippet select()}
-  <TexuliSelect.Root
-    type="single"
-    bind:value={() => value ?? '', (next) => (value = next)}
-    bind:open
-    {items}
-    {disabled}
-    {required}
-    {name}
-    {onValueChange}
+<TexuliSelect.Root
+  type="single"
+  bind:value={() => value ?? '', (next) => (value = next)}
+  bind:open
+  {items}
+  {disabled}
+  {required}
+  {name}
+  {variant}
+  block={fullWidth || block}
+  {onValueChange}
+>
+  <TexuliSelect.Trigger
+    {@attach refAttachment<HTMLButtonElement>((node) => (ref = node))}
+    class={className}
+    {...rest}
+    aria-describedby={describedBy}
   >
-    <TexuliSelect.Trigger
-      {@attach refAttachment<HTMLButtonElement>((node) => (ref = node))}
-      class={className}
-      {...rest}
-      aria-describedby={describedBy}
+    <span
+      id={valueId}
+      class={selectValueClass({ placeholder: !selected })}
+      data-placeholder={selected ? undefined : ''}
     >
-      <span
-        id={valueId}
-        class={selectValueClass({ placeholder: !selected })}
-        data-placeholder={selected ? undefined : ''}
-      >
-        {selected?.label ?? placeholder}
-      </span>
-    </TexuliSelect.Trigger>
-    <!-- The list opens in the top layer at the trigger's width; no portal is needed. -->
-    <TexuliSelect.Content sideOffset={4} class={contentClass}>
-      <TexuliSelect.Viewport>
-        {#each items as item (item.value)}
-          <TexuliSelect.Item value={item.value} label={item.label} disabled={item.disabled} />
-        {/each}
-      </TexuliSelect.Viewport>
-    </TexuliSelect.Content>
-  </TexuliSelect.Root>
-{/snippet}
-
-{#if fullWidth}
-  <div class="ui-select-full" data-py-select-full="">{@render select()}</div>
-{:else}
-  {@render select()}
-{/if}
-
-<style>
-  .ui-select-full {
-    display: contents;
-  }
-
-  .ui-select-full > :global(.tx-select-root) {
-    display: flex;
-    inline-size: 100%;
-  }
-</style>
+      {selected?.label ?? placeholder}
+    </span>
+  </TexuliSelect.Trigger>
+  <!-- The list opens in the top layer at the trigger's width; no portal is needed. -->
+  <TexuliSelect.Content sideOffset={4} class={contentClass}>
+    <TexuliSelect.Viewport>
+      {#each items as item (item.value)}
+        <TexuliSelect.Item value={item.value} label={item.label} disabled={item.disabled} />
+      {/each}
+    </TexuliSelect.Viewport>
+  </TexuliSelect.Content>
+</TexuliSelect.Root>
