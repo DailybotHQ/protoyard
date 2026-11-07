@@ -372,13 +372,54 @@ function scopedClasses(text: string): Set<string> {
     for (const m of css.matchAll(/([^{}]+)\{/g)) {
       const prelude = (m[1] ?? '').trim();
       if (prelude.startsWith('@')) continue;
-      for (const selector of prelude.split(',')) {
-        const scoped = selector
-          .replace(/:global\((?:[^()]|\([^()]*\))*\)/g, '')
-          .replace(/:global\b[\s\S]*$/, '');
+      for (const selector of splitTopLevel(prelude)) {
+        const scoped = stripGlobal(selector).replace(/:global\b[\s\S]*$/, '');
         for (const c of scoped.matchAll(/\.(-?[A-Za-z_][\w-]*)/g)) if (c[1]) out.add(c[1]);
       }
     }
+  }
+  return out;
+}
+
+/**
+ * Splits a selector list at top-level commas only, so a comma inside
+ * `:is(...)`, `:where(...)` or `:global(...)` stays with its selector
+ * (Dailybot batch 9).
+ */
+function splitTopLevel(prelude: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < prelude.length; i++) {
+    const ch = prelude[i];
+    if (ch === '(') depth++;
+    else if (ch === ')') depth = Math.max(0, depth - 1);
+    else if (ch === ',' && depth === 0) {
+      parts.push(prelude.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(prelude.slice(start));
+  return parts;
+}
+
+/** Removes every `:global(...)` group, at any nesting depth. */
+function stripGlobal(selector: string): string {
+  let out = '';
+  let i = 0;
+  while (i < selector.length) {
+    if (selector.startsWith(':global(', i)) {
+      let depth = 0;
+      let j = i + ':global'.length;
+      for (; j < selector.length; j++) {
+        if (selector[j] === '(') depth++;
+        else if (selector[j] === ')' && --depth === 0) break;
+      }
+      i = j + 1;
+      continue;
+    }
+    out += selector[i];
+    i++;
   }
   return out;
 }

@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import EmojiInFieldHarness from './fixtures/EmojiInFieldHarness.svelte';
 import EmojiInFormHarness from './fixtures/EmojiInFormHarness.svelte';
 
 afterEach(cleanup);
@@ -37,5 +38,18 @@ describe('EmojiPicker trigger name (Dailybot batch 6)', () => {
       render(EmojiPicker, { props: { label: 'Mood', value: '🎉' } });
       expect(screen.getByRole('button', { name: 'Mood 🎉' })).toBeTruthy();
     });
+  });
+});
+
+describe('EmojiPicker inside a Texuli Field (Dailybot batch 9)', () => {
+  it('is named by the Field label plus its placeholder', () => {
+    render(EmojiInFieldHarness);
+    const trigger = screen.getByRole('button', { name: 'Team mood Pick an emoji' });
+    expect(trigger.getAttribute('aria-labelledby')).toBe('mood-label mood-value');
+  });
+
+  it('is named by the Field label plus the chosen emoji', () => {
+    render(EmojiInFieldHarness, { props: { value: '🎉' } });
+    expect(screen.getByRole('button', { name: /^Team mood 🎉/ })).toBeTruthy();
   });
 });

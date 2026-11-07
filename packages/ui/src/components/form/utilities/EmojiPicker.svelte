@@ -4,7 +4,7 @@ import { tick, untrack } from 'svelte';
 import type { HTMLButtonAttributes } from 'svelte/elements';
 import { Button } from 'texuli/button';
 import { composeHandlers, cx } from 'texuli/cx';
-import { labelClass } from 'texuli/field';
+import { getFieldLabelContext, labelClass } from 'texuli/field';
 import { useMessages } from 'texuli/i18n';
 import { Icon } from 'texuli/icons';
 import { popoverContentClass } from 'texuli/popover';
@@ -89,9 +89,13 @@ let root: HTMLDivElement | undefined = $state();
 let trigger: HTMLElement | null = $state(null);
 // The trigger's name is its label plus what it visibly reads (the prompt or
 // the chosen emoji), so a Field's aria-labelledby never drops the visible text
-// (axe label-content-name-mismatch, Dailybot batch 6).
+// (axe label-content-name-mismatch, Dailybot batch 6). Inside a Texuli Field
+// whose control id is this picker's, the Field label names it; without that,
+// the placeholder aria-label would hide the label's `for` (Dailybot batch 9).
+const field = getFieldLabelContext();
 const triggerLabelledBy = $derived.by(() => {
-  const base = rest['aria-labelledby'] ?? (label ? `${fieldId}-label` : undefined);
+  const fromField = field && field.id === fieldId ? field.labelId : undefined;
+  const base = rest['aria-labelledby'] ?? (label ? `${fieldId}-label` : fromField);
   return base ? `${base} ${fieldId}-value` : undefined;
 });
 let grid: HTMLDivElement | undefined = $state();
