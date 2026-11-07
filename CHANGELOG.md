@@ -6,6 +6,29 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-11-06
+
+Generic gaps from a consumer, batches 6 and 7. Texuli stays at 0.14.1.
+
+### Added
+
+- **Texuli adoption check:** the `component-scoped-class` rule flags a scoped
+  `<style>` rule for a class the markup only passes to a component (such as
+  `<Button class="save">`). Svelte never applies it and says nothing; use
+  `:global()` under a scoped parent ([TEXULI](docs/TEXULI.md)) (G-060).
+
+### Fixed
+
+- **Demo badge:** it keeps clear of pinned edge chrome, any `fixed` or
+  `sticky` bar or rail, even a plain element. On phones, the compact badge
+  keeps a 16 px disc on theme surface tokens inside the 44 px touch target,
+  and clears every top-level heading (G-057).
+- **`EmojiPicker`:** inside a `Field`, the trigger's accessible name includes
+  its visible prompt or emoji (axe `label-content-name-mismatch`).
+- **Type scale:** with `typography.scaleRatio`, `text-xs` and `text-sm` never
+  go below 12 px and 13 px, so a steep ratio on a small body stays readable
+  ([THEMES](docs/THEMES.md)) (G-061).
+
 ## [1.4.0] - 2026-11-05
 
 Universal gaps from Corag's register (PLAN_012): what a downstream team had to

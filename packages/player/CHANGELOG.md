@@ -1,5 +1,29 @@
 # @protoyard/player
 
+## 1.4.1
+
+### Patch Changes
+
+- Updated dependencies [a14a4f7]
+- Updated dependencies [c399afd]
+  - @protoyard/renderer-svelte@1.4.1
+  - @protoyard/ui@1.4.1
+  - @protoyard/themes@1.4.1
+  - @protoyard/analytics-ui@1.4.1
+  - @protoyard/blocks-ui@1.4.1
+  - @protoyard/crud@1.4.1
+  - @protoyard/pages-ui@1.4.1
+  - @protoyard/saas-ui@1.4.1
+  - @protoyard/views-ui@1.4.1
+  - @protoyard/blueprint@1.4.1
+  - @protoyard/decks-ui@1.4.1
+  - @protoyard/saas@1.4.1
+  - @protoyard/ai@1.4.1
+  - @protoyard/ai-ui@1.4.1
+  - @protoyard/analytics@1.4.1
+  - @protoyard/charts-ui@1.4.1
+  - @protoyard/core@1.4.1
+
 ## 1.4.0
 
 ### Patch Changes

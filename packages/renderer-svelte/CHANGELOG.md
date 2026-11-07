@@ -1,5 +1,22 @@
 # @protoyard/renderer-svelte
 
+## 1.4.1
+
+### Patch Changes
+
+- a14a4f7: The demo badge keeps clear of pinned edge chrome (a `fixed` or `sticky` bar or rail, even a plain element), and `EmojiPicker`'s trigger name includes its visible prompt or emoji when a Field labels it.
+- c399afd: Consumer batch 7. The compact demo badge keeps a 16 px disc on theme surface tokens (its touch target may still grow to 44 px) and clears every top-level heading on phones. A type scale ratio no longer shrinks `text-xs` and `text-sm` below 12 px and 13 px. The Texuli adoption check flags a scoped style rule for a class the markup only passes to a component (`component-scoped-class`), which Svelte never applies.
+- Updated dependencies [a14a4f7]
+- Updated dependencies [c399afd]
+  - @protoyard/ui@1.4.1
+  - @protoyard/themes@1.4.1
+  - @protoyard/review-ui@1.4.1
+  - @protoyard/devtools@1.4.1
+  - @protoyard/runtime@1.4.1
+  - @protoyard/avatars@1.4.1
+  - @protoyard/core@1.4.1
+  - @protoyard/offline@1.4.1
+
 ## 1.4.0
 
 ### Minor Changes
