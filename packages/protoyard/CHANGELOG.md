@@ -1,5 +1,12 @@
 # protoyard
 
+## 1.4.2
+
+### Patch Changes
+
+- Updated dependencies [e09e5f4]
+  - @protoyard/cli@1.4.2
+
 ## 1.4.1
 
 ### Patch Changes

@@ -1,10 +1,11 @@
 import { existsSync } from 'node:fs';
-import { rm } from 'node:fs/promises';
+import { rm, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { lanAddresses, untilSignal } from '../lib/network.ts';
 import { CliError, mark } from '../lib/output.ts';
+import { BUILD_MARKER, guardOutputDir } from '../lib/output-guard.ts';
 import { parsePort } from '../lib/ports.ts';
 import { buildIndex } from '../lib/registry.ts';
 import { serveStatic } from '../lib/static-server.ts';
@@ -34,7 +35,14 @@ function normalizeBase(value: string | undefined): string {
  */
 export const galleryBuildCommand: Handler = async (ctx, _args, options): Promise<CommandResult> => {
   const base = normalizeBase(opt(options, 'base'));
-  const out = workspaceFile(ctx.root, opt(options, 'out') ?? GALLERY_OUT);
+  // The folder is emptied before the build: guardOutputDir refuses the
+  // workspace, its sources and any folder Protoyard did not write.
+  const out = guardOutputDir({
+    root: ctx.root,
+    paths: ctx.paths,
+    requested: opt(options, 'out') ?? GALLERY_OUT,
+    marker: BUILD_MARKER,
+  });
   const index = await buildIndex(ctx.paths);
   await rm(out, { recursive: true, force: true });
   ctx.out.info('Building the gallery…');
@@ -52,6 +60,7 @@ export const galleryBuildCommand: Handler = async (ctx, _args, options): Promise
       hint: result.log.trim().split('\n').slice(-10).join('\n') || 'Run with --verbose.',
     });
   }
+  await writeFile(join(out, BUILD_MARKER), '{"kind":"gallery"}\n', 'utf8');
   const data = {
     out: relative(ctx.root, out),
     base,

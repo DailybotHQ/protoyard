@@ -183,6 +183,9 @@ These parts run on ports today: the route guards (`requireAuth`,
 `requireAccount`, `SsoButtons`, `TrialBanner` (with `ports.billing`) and
 `WorkspaceSwitcher` (no `runtime` needed). `provideSaas(runtime, options)`
 works as before and builds the same ports with `saasPortsFromRuntime(runtime)`.
+`SsoButtons` ignores its `scenarios` prop under ports (they drive the
+simulated engine) and starts the flow through `ports.oauth`;
+`hasSaasRuntime(getSaas())` tells a screen which mode it is in.
 
 The sign-in, sign-up, MFA, OAuth consent, onboarding, inbox, billing and
 settings screens still need the simulated engine. With `provideSaas({ ports })`

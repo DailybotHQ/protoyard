@@ -6,6 +6,31 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-11-06
+
+Fixes from the final reviews of PLAN_010, PLAN_011 and PLAN_012 (AI Diff
+Reviewer, local). Texuli stays at 0.14.1.
+
+### Security
+
+- **`gallery build --out` and `sweep --out` go through the output guard.**
+  `--out .` or `--out prototypes` used to empty that folder before the build;
+  both commands now refuse the workspace, its parents, its source folders and
+  any folder Protoyard did not write, like `build`, `export` and `showcase`.
+
+### Fixed
+
+- **`FilePreview`:** leaving a file that was still loading for one that loads
+  nothing (a host image URL, an archive) no longer stays on "Loading preview…".
+- **Calendar on phones:** if the agenda chunk cannot load (offline, a stale
+  deploy), the month calendar shows instead of an empty area.
+- **`SsoButtons` under `provideSaas({ ports })`:** the `scenarios` prop is
+  ignored instead of throwing at render; `hasSaasRuntime()` tells a screen
+  which mode it runs in ([SAAS_KITS](docs/SAAS_KITS.md)).
+- **Offline plugin:** in `vite build --watch`, a failed rebuild no longer
+  regenerates `sw.js` over the previous output.
+- **Full screen:** a rejected switch no longer leaves the exit hint pending.
+
 ## [1.4.1] - 2026-11-06
 
 Generic gaps from a consumer, batches 6 and 7. Texuli stays at 0.14.1.

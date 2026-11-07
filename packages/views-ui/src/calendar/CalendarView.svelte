@@ -209,7 +209,17 @@ async function createSlot(slot: CalendarSlot): Promise<void> {
 
 const allLabels = $derived<CalendarLabels>({ ...DEFAULT_CALENDAR_LABELS, ...labels });
 // The phone agenda is its own chunk: desktop calendars never download it.
-const phoneAgenda = $derived(phone ? import('./PhoneAgenda.svelte') : null);
+// If its chunk cannot load (offline, a stale deploy), the phone falls back to
+// the month calendar instead of an empty area.
+let agendaFailed = $state(false);
+const phoneAgenda = $derived(
+  phone && !agendaFailed
+    ? import('./PhoneAgenda.svelte').catch(() => {
+        agendaFailed = true;
+        return null;
+      })
+    : null
+);
 </script>
 
 <!-- Host shell only: Texuli CalendarView owns `section[data-calendar]`. -->
@@ -221,7 +231,9 @@ const phoneAgenda = $derived(phone ? import('./PhoneAgenda.svelte') : null);
 >
   {#snippet children(events)}
     {#if phoneAgenda}
-      {#await phoneAgenda then { default: PhoneAgenda }}
+      {#await phoneAgenda then agendaModule}
+        {#if agendaModule}
+        {@const PhoneAgenda = agendaModule.default}
         <PhoneAgenda
           {events}
           bind:anchor={localAnchor}
@@ -239,6 +251,7 @@ const phoneAgenda = $derived(phone ? import('./PhoneAgenda.svelte') : null);
           {chip}
           class={className}
         />
+        {/if}
       {/await}
     {:else}
     <TexuliCalendar

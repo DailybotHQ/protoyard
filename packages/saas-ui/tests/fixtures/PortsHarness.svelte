@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { OAuthProviderScenarios } from '@protoyard/saas';
 import { Button } from '@protoyard/ui';
 import SsoButtons from '../../src/components/SsoButtons.svelte';
 import WorkspaceSwitcher from '../../src/components/WorkspaceSwitcher.svelte';
@@ -9,9 +10,10 @@ interface Props {
   ports: SaasPorts;
   signIn: () => void;
   onContext?: (ctx: SaasContext) => void;
+  scenarios?: OAuthProviderScenarios;
 }
 
-let { ports, signIn, onContext }: Props = $props();
+let { ports, signIn, onContext, scenarios }: Props = $props();
 
 // A product's own session and services, no simulated engine (ADR-046).
 const ctx = provideSaas({ ports });
@@ -24,5 +26,5 @@ $effect(() => ports.session.subscribe((principal) => (signedIn = principal !== n
   <WorkspaceSwitcher />
 {:else}
   <Button onclick={signIn}>Sign in</Button>
-  <SsoButtons providers={['google']} />
+  <SsoButtons providers={['google']} {scenarios} />
 {/if}

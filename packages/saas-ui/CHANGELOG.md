@@ -1,5 +1,16 @@
 # @protoyard/saas-ui
 
+## 1.4.2
+
+### Patch Changes
+
+- e09e5f4: Final-review fixes for PLAN_010 to 012. `gallery build --out` and `sweep --out` go through the output guard, so they never empty the workspace or its sources. `FilePreview` no longer stays on "Loading preview…" after leaving a pending load. The phone calendar falls back to the month view when its agenda chunk cannot load. `SsoButtons` ignores engine `scenarios` under `provideSaas({ ports })` (new `hasSaasRuntime`). The offline plugin resets per build in watch mode. A failed full-screen switch no longer leaves the hint pending.
+- Updated dependencies [e09e5f4]
+  - @protoyard/renderer-svelte@1.4.2
+  - @protoyard/core@1.4.2
+  - @protoyard/saas@1.4.2
+  - @protoyard/ui@1.4.2
+
 ## 1.4.1
 
 ### Patch Changes

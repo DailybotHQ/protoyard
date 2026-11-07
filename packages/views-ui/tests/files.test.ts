@@ -98,6 +98,20 @@ describe('FilePreview (D-G-043)', () => {
     expect(box.textContent).toContain('1 of 4');
   });
 
+  it('clears loading when a pending load is left for a file that loads nothing', async () => {
+    const pending = new Promise<string>(() => {});
+    const view = preview({ current: 'f2', getText: () => pending });
+    const box = await dialog();
+    await waitFor(() => expect(box.textContent).toContain('Loading preview'));
+    await view.rerender({ current: 'f1' });
+    await waitFor(() =>
+      expect(box.querySelector('img[alt="harbor.png"]')?.getAttribute('src')).toBe(
+        '/files/harbor.png'
+      )
+    );
+    expect(box.textContent).not.toContain('Loading preview');
+  });
+
   it('renders text files as text, never markup', async () => {
     preview({ current: 'f2' });
     const box = await dialog();

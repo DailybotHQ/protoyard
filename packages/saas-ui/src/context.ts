@@ -87,6 +87,13 @@ function fromRuntime(runtime: PrototypeRuntime, options: ProvideSaasOptions): Sa
   };
 }
 
+const PORTS_ONLY = new WeakSet<object>();
+
+/** Whether `ctx` carries the simulated engine (false under `provideSaas({ ports })`). */
+export function hasSaasRuntime(ctx: SaasContext): boolean {
+  return !PORTS_ONLY.has(ctx);
+}
+
 function fromPorts({ ports, ...config }: ProvideSaasPortsOptions): SaasContext {
   const accountGate = createAccountGate(ports.session);
   const ctx = {
@@ -102,6 +109,7 @@ function fromPorts({ ports, ...config }: ProvideSaasPortsOptions): SaasContext {
       throw new Error(NO_RUNTIME);
     },
   });
+  PORTS_ONLY.add(ctx);
   return ctx as SaasContext;
 }
 

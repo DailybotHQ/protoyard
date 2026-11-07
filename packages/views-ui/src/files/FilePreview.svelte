@@ -99,6 +99,9 @@ $effect(() => {
   blobSrc = undefined;
   text = null;
   failed = false;
+  // A cancelled load never reaches its own `finally` (it is no longer
+  // current), so a file that loads nothing must clear the flag itself.
+  loading = false;
   if (!file) return;
   let alive = true;
   let objectUrl: string | undefined;

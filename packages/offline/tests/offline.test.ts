@@ -212,4 +212,16 @@ describe('vite plugin', () => {
     // Vite runs closeBundle even when the build failed before writeBundle.
     expect(() => plugin?.closeBundle()).not.toThrow();
   });
+
+  it('forgets a good build when a watch rebuild fails (final review, PLAN_012)', () => {
+    const dir = fakeBuild({ 'index.html': '<html></html>' });
+    const [plugin] = protoyardOffline({ enabled: true });
+    plugin?.configResolved({ root: '/', build: { outDir: dir } });
+    plugin?.buildStart();
+    plugin?.writeBundle();
+    expect(() => plugin?.closeBundle()).toThrow(/missing the register script/);
+    // The rebuild fails before writeBundle: the stale folder is left alone.
+    plugin?.buildStart();
+    expect(() => plugin?.closeBundle()).not.toThrow();
+  });
 });
