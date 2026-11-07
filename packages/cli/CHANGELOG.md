@@ -1,5 +1,23 @@
 # @protoyard/cli
 
+## 1.5.0
+
+### Patch Changes
+
+- Updated dependencies [e9af874]
+  - @protoyard/renderer-svelte@1.5.0
+  - @protoyard/crud@1.5.0
+  - @protoyard/player@1.5.0
+  - @protoyard/blocks@1.5.0
+  - @protoyard/blueprint@1.5.0
+  - @protoyard/core@1.5.0
+  - @protoyard/decks@1.5.0
+  - @protoyard/offline@1.5.0
+  - @protoyard/review@1.5.0
+  - @protoyard/scenarios@1.5.0
+  - @protoyard/templates@1.5.0
+  - @protoyard/themes@1.5.0
+
 ## 1.4.3
 
 ### Patch Changes

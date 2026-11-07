@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/analytics",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "Framework-agnostic analytics engine for Protoyard prototypes: event and metric contracts, date ranges, funnels, cohorts and deterministic analytics generators (no Svelte).",
   "license": "MIT",
   "type": "module",

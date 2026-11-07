@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/charts",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "Chart math for Protoyard prototypes: thin re-exports of @texuli/charts/math (scales, shapes, layouts, downsampling) plus theme-token chart palettes.",
   "license": "MIT",
   "type": "module",

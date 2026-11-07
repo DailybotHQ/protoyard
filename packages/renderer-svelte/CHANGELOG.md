@@ -1,5 +1,20 @@
 # @protoyard/renderer-svelte
 
+## 1.5.0
+
+### Patch Changes
+
+- e9af874: Adopt Texuli 0.14.2 (every Texuli dependency pinned exactly). `Select` forwards Texuli's `block` (through `fullWidth` or `block`) and the trigger `variant` (`'ghost'` per instance), and drops its full-width wrapper. `ChipGroup` takes `required`: in single mode the selected chip stays selected (Texuli's `deselectable={false}`). `TimelineView` forwards `initialDate` and `formatTick`; without `initialDate` the axis opens at the simulated today when it falls inside the plan. Texuli fixes come along: dialogs mounted open show their backdrop, controlled toggles render their prop, side sheets and drawers fill their height. The layout host initial cap is re-measured at 4,175 B gzip (cap 4,280 B).
+- Updated dependencies [e9af874]
+  - @protoyard/ui@1.5.0
+  - @protoyard/review-ui@1.5.0
+  - @protoyard/avatars@1.5.0
+  - @protoyard/core@1.5.0
+  - @protoyard/devtools@1.5.0
+  - @protoyard/offline@1.5.0
+  - @protoyard/runtime@1.5.0
+  - @protoyard/themes@1.5.0
+
 ## 1.4.3
 
 ### Patch Changes

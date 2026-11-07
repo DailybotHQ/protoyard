@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/flows",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "Framework-agnostic workflow engine for Protoyard: a serializable flow model with triggers, steps, data-only conditions, edit operations, recipes and validation (no Svelte, no executable expressions).",
   "license": "MIT",
   "type": "module",

@@ -6,6 +6,32 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-07
+
+Texuli 0.14.2. Every Texuli dependency is pinned exactly at `0.14.2`.
+
+### Added
+
+- **`Select` `variant` and `block`.** The trigger takes Texuli's `ghost`
+  variant per instance (G-059), and `fullWidth` (or `block`) now uses
+  Texuli's `block` on the root instead of Protoyard's wrapper (UG-20).
+- **`ChipGroup` `required`.** In single mode the selected chip stays
+  selected when pressed again (Texuli's `deselectable={false}`, UG-54).
+- **`TimelineView` `initialDate` and `formatTick`** pass through to Texuli
+  (G-056). Without `initialDate` the axis opens at the simulated today when
+  it falls inside the plan.
+
+### Changed
+
+- Texuli 0.14.2 fixes reach every prototype: a dialog, alert dialog or sheet
+  mounted open shows its backdrop; a non-modal popover or select no longer
+  pulls focus back from another overlay; controlled toggles and toggle groups
+  render their prop (`bind:pressed` with `onPressedChange` no longer writes
+  the bound value by itself); side sheets, drawers and `DetailPanel` fill
+  their height and scroll inside.
+- The layout host's initial size is re-measured at 4,175 B gzip with Texuli
+  0.14.2; its cap moves from 4,080 B to 4,280 B (docs/PERFORMANCE.md).
+
 ## [1.4.3] - 2026-11-07
 
 Consumer batch 8 from Dailybot. Texuli stays at 0.14.1.

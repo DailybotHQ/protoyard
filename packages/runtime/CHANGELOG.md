@@ -1,5 +1,14 @@
 # @protoyard/runtime
 
+## 1.5.0
+
+### Patch Changes
+
+- @protoyard/core@1.5.0
+  - @protoyard/database@1.5.0
+  - @protoyard/scenarios@1.5.0
+  - @protoyard/themes@1.5.0
+
 ## 1.4.3
 
 ### Patch Changes
