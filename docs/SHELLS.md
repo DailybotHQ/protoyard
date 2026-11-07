@@ -158,6 +158,25 @@ The renderer shows the bare app, with no frame, when:
   shows the label, and Escape or navigation folds it again. The relay-chat-demo E2E case that checked the
   badge covers no control at 390×844 was removed in PLAN_009.
 
+## Frame colors
+
+Every frame paints theme tokens only, so a check of computed colors against the
+compiled theme finds nothing foreign around a framed app. The stage, the bezel, its
+edge and its shadow read four variables that `@protoyard/renderer-svelte/app.css` maps to
+the theme:
+
+| Variable | Default | Paints |
+| --- | --- | --- |
+| `--py-frame-stage` | `var(--color-muted)` | the page around the device |
+| `--py-frame-bezel` | `var(--color-foreground)`, `var(--color-background)` in dark mode | phone, tablet and device bezels, camera cutouts |
+| `--py-frame-edge` | `var(--color-border-strong)` | the bezel's outline, side buttons, the camera lens |
+| `--py-frame-shadow` | `var(--color-shadow)` | the drop shadow under the device |
+
+Set any of them on `:root` to restyle the frame. The frame controls (rotate, full screen)
+use `elevated` surface tokens. A source test (`tests/frame-colors.test.ts`) refuses palette
+utilities, literal colors and opacity modifiers in the frames. The simulated host sites
+(widget host, side panel, design canvas) still draw their own fixed colors.
+
 ## Full screen
 
 Every framed shell has a **Full screen** control above the frame's top-right corner,

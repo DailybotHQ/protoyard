@@ -28,7 +28,7 @@ let title = $state(typeof document === 'undefined' ? '' : document.title);
 
 /** Theme-token gradients (no images), so the wallpaper follows the theme and mode. */
 const wallpaper =
-  'radial-gradient(60% 50% at 30% 30%, color-mix(in oklab, var(--color-primary) 25%, transparent), transparent), linear-gradient(160deg, var(--color-muted), var(--color-background))';
+  'radial-gradient(60% 50% at 30% 30%, var(--color-primary-soft), transparent), linear-gradient(160deg, var(--color-muted), var(--color-background))';
 
 // The router sets document.title on every navigation; the title bar follows it.
 $effect(() => {
@@ -93,7 +93,7 @@ function toggleFromDock(): void {
     {variant}
     class={windowState === 'open'
       ? 'pointer-events-none absolute inset-0 bg-transparent [&_[data-window-titlebar]]:pointer-events-auto'
-      : 'pointer-events-auto absolute inset-0 m-auto h-fit max-w-sm bg-surface/95 shadow-float'}
+      : 'pointer-events-auto absolute inset-0 m-auto h-fit max-w-sm bg-surface shadow-float'}
     contentClass="pointer-events-none"
   />
 {/if}
@@ -103,7 +103,7 @@ function toggleFromDock(): void {
   <div
     data-py-dock={variant === 'mac-like' ? 'dock' : 'taskbar'}
     class={[
-      'absolute top-[calc(100%+14px)] flex h-12 items-center gap-2 border border-border/60 bg-surface/70 px-2 shadow-float backdrop-blur-md',
+      'absolute top-[calc(100%+14px)] flex h-12 items-center gap-2 border border-border bg-surface px-2 shadow-float',
       variant === 'mac-like' ? 'left-1/2 -translate-x-1/2 rounded-2xl' : 'inset-x-0 rounded-lg',
     ]}
   >
@@ -116,7 +116,7 @@ function toggleFromDock(): void {
     >
       <span aria-hidden="true">{app.icon ?? appLabel.slice(0, 1).toUpperCase()}</span>
       {#if windowState !== 'closed'}
-        <span aria-hidden="true" class="absolute -bottom-1 size-1 rounded-full bg-foreground/70"></span>
+        <span aria-hidden="true" class="absolute -bottom-1 size-1 rounded-full bg-foreground opacity-70"></span>
       {/if}
     </button>
   </div>

@@ -48,7 +48,7 @@ const messages = chromeMessages().frame;
   aria-label={messages.exit}
   aria-pressed="true"
   title={messages.exitHint}
-  class="pointer-events-none fixed top-2 right-2 z-[70] flex size-8 items-center justify-center rounded-full border border-white/20 bg-zinc-800/90 text-white opacity-0 shadow-sm focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:bg-zinc-950/90"
+  class="pointer-events-none fixed top-2 right-2 z-[70] flex size-8 items-center justify-center rounded-full border border-border bg-elevated text-elevated-foreground opacity-0 shadow-sm focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
   onclick={onexit}
 >
   <Icon name="shrink" class="size-4" />
@@ -57,7 +57,7 @@ const messages = chromeMessages().frame;
   <p
     data-py-frame-hint
     role="status"
-    class="pointer-events-none fixed top-3 left-1/2 z-[70] -translate-x-1/2 rounded-full bg-zinc-900/85 px-3 py-1 text-xs text-white shadow-sm"
+    class="pointer-events-none fixed top-3 left-1/2 z-[70] -translate-x-1/2 rounded-full border border-border bg-elevated px-3 py-1 text-xs text-elevated-foreground shadow-sm"
   >
     {messages.fullScreenNotice}
   </p>

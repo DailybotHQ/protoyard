@@ -32,7 +32,7 @@ const messages = chromeMessages().frame;
   aria-pressed="false"
   title={messages.enterHint}
   style={`bottom: calc(100% + ${offset + GAP}px); right: ${-offset}px`}
-  class="pointer-events-auto absolute z-[35] inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 bg-zinc-800/85 px-3 text-xs font-medium text-white shadow-sm hover:bg-zinc-700/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:bg-zinc-950/85"
+  class="pointer-events-auto absolute z-[35] inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-elevated px-3 text-xs font-medium text-elevated-foreground shadow-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
   onclick={(event) => onenter({ browser: event.shiftKey })}
 >
   <Icon name="expand" class="size-3.5" />
