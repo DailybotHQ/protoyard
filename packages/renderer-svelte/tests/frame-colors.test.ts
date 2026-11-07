@@ -36,12 +36,10 @@ describe('frame colors come from theme tokens (G-062)', () => {
     for (const pattern of FOREIGN) expect(text, `${path} ${pattern}`).not.toMatch(pattern);
   });
 
-  it('paints the stage and bezel from --py-frame-* tokens mapped to the theme', () => {
+  it('paints the stage from the muted token, never color-mix', () => {
     const css = source('app.css');
-    expect(css).toContain('--py-frame-stage: var(--color-muted)');
-    expect(css).toContain('--py-frame-bezel: var(--color-foreground)');
-    expect(css).toContain('--py-frame-edge: var(--color-border-strong)');
     const shellRules = css.slice(css.indexOf('html[data-py-shell] #app {'));
+    expect(shellRules.slice(0, 2000)).toContain('background: var(--color-muted)');
     expect(shellRules.slice(0, 2000)).not.toMatch(/color-mix\(/);
   });
 });

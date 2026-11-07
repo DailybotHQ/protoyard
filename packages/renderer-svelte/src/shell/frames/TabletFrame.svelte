@@ -34,7 +34,7 @@ async function toggleOrientation(): Promise<void> {
     <div
       data-py-frame-decoration
       {@attach enterBezel}
-      class="absolute border-solid border-(--py-frame-bezel) bg-transparent shadow-[0_0_0_1px_var(--py-frame-edge),0_28px_70px_-24px_var(--py-frame-shadow)]"
+      class="absolute border-solid border-foreground dark:border-background bg-transparent shadow-[0_0_0_1px_var(--color-border-strong),0_28px_70px_-24px_var(--color-shadow)]"
       style:inset="-{bezel}px"
       style:border-width="{bezel}px"
       style:border-radius="{spec.cornerRadius + bezel}px"

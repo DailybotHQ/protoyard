@@ -50,7 +50,7 @@ async function toggleOrientation(): Promise<void> {
     <div
       data-py-frame-decoration
       {@attach enterBezel}
-      class="absolute border-solid border-(--py-frame-bezel) bg-transparent shadow-[0_0_0_1px_var(--py-frame-edge),0_28px_70px_-24px_var(--py-frame-shadow)]"
+      class="absolute border-solid border-foreground dark:border-background bg-transparent shadow-[0_0_0_1px_var(--color-border-strong),0_28px_70px_-24px_var(--color-shadow)]"
       style:inset="-{bezel}px"
       style:border-width="{bezel}px"
       style:border-radius="{outerRadius}px"
@@ -67,12 +67,12 @@ async function toggleOrientation(): Promise<void> {
 
   <!-- Volume rocker (left) -->
   <div class="absolute -left-[15px] flex w-[3px] flex-col gap-2" style:top="{volumeTop}px" aria-hidden="true">
-    <span class="h-7 rounded-l-sm bg-(--py-frame-edge)"></span>
-    <span class="h-7 rounded-l-sm bg-(--py-frame-edge)"></span>
+    <span class="h-7 rounded-l-sm bg-border-strong"></span>
+    <span class="h-7 rounded-l-sm bg-border-strong"></span>
   </div>
   <!-- Power (right) -->
   <div
-    class="absolute -right-[15px] h-14 w-[3px] rounded-r-sm bg-(--py-frame-edge)"
+    class="absolute -right-[15px] h-14 w-[3px] rounded-r-sm bg-border-strong"
     style:top="{powerTop}px"
     aria-hidden="true"
   ></div>
@@ -81,7 +81,7 @@ async function toggleOrientation(): Promise<void> {
   {#if cutout === 'pill'}
     <div
       class={[
-        'absolute z-[31] rounded-full bg-(--py-frame-bezel)',
+        'absolute z-[31] rounded-full bg-foreground dark:bg-background',
         spec.orientation === 'landscape'
           ? 'top-1/2 left-[11px] h-[96px] w-[28px] -translate-y-1/2'
           : 'top-[11px] left-1/2 h-[28px] w-[96px] -translate-x-1/2',
@@ -91,7 +91,7 @@ async function toggleOrientation(): Promise<void> {
     >
       <span
         class={[
-          'absolute size-[9px] rounded-full bg-(--py-frame-edge)',
+          'absolute size-[9px] rounded-full bg-border-strong',
           spec.orientation === 'landscape'
             ? 'top-[22%] left-1/2 -translate-x-1/2'
             : 'top-1/2 left-[22%] -translate-y-1/2',
@@ -101,7 +101,7 @@ async function toggleOrientation(): Promise<void> {
   {:else if cutout === 'punch-hole'}
     <div
       class={[
-        'absolute z-[31] size-[11px] rounded-full bg-(--py-frame-bezel) ring-1 ring-(--py-frame-edge)',
+        'absolute z-[31] size-[11px] rounded-full bg-foreground dark:bg-background ring-1 ring-border-strong',
         spec.orientation === 'landscape'
           ? 'top-1/2 left-[12px] -translate-y-1/2'
           : 'top-[12px] left-1/2 -translate-x-1/2',

@@ -71,23 +71,9 @@ html[data-py-shell] #app {
   flex-direction: column;
   height: 100dvh;
 }
-/*
- * Frame colors come from theme tokens only (Dailybot G-062): a check of computed
- * colors against the theme finds nothing foreign around a framed app. Set any
- * --py-frame-* on :root to restyle the stage, bezel, edges or shadow.
- */
-:root {
-  --py-frame-stage: var(--color-muted);
-  --py-frame-bezel: var(--color-foreground);
-  --py-frame-edge: var(--color-border-strong);
-  --py-frame-shadow: var(--color-shadow);
-}
-:root.dark,
-.dark {
-  --py-frame-bezel: var(--color-background);
-}
+/* Frame colors come from theme tokens only (Dailybot G-062), never color-mix. */
 html[data-py-shell] #app {
-  background: var(--py-frame-stage);
+  background: var(--color-muted);
 }
 html[data-py-shell] [data-py-shell-part="stage"] {
   display: flex;
@@ -96,7 +82,7 @@ html[data-py-shell] [data-py-shell-part="stage"] {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: var(--py-frame-stage);
+  background: var(--color-muted);
 }
 /*
  * The "Prototype · simulated data" badge never covers the app: in a frame it is a

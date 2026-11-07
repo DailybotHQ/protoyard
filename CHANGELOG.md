@@ -16,10 +16,10 @@ Consumer batch 8 from Dailybot. Texuli stays at 0.14.1.
   desktop frames and the full screen controls used fixed grays, literal
   `rgb()` values and opacity-modified colors that compile to `lab()` values
   outside the theme, so a computed-color check failed inside any frame. The
-  stage, bezel, edge and shadow now read `--py-frame-stage`,
-  `--py-frame-bezel`, `--py-frame-edge` and `--py-frame-shadow`, mapped to
-  theme tokens and overridable on `:root`; a source test keeps foreign colors
-  out. In dark mode the bezel takes the app background.
+  stage, bezel, edge and shadow now use the theme's `muted`, `foreground`
+  (`background` in dark mode), `border-strong` and `shadow` tokens, and the
+  frame controls use `elevated` surface tokens; a source test keeps foreign
+  colors out.
 
 ## [1.4.2] - 2026-11-06
 
