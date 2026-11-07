@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.14.2`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.14.3`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.14.2`. Texuli pins its own internal dependencies exactly,
+Every package is `0.14.3`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -411,6 +411,31 @@ not in the agent catalog yet, so blueprints cannot emit them):
   `@texuli/media/image`.
 - **Avatar grid:** `<AvatarGroupGrid items={members} label="…" />` from
   `texuli/avatar`, a 2×2 collage for group conversations.
+
+## What Texuli 0.14.3 changes for prototypes
+
+Texuli 0.14.3 closes the remaining Texuli rows of Corag's universal register.
+It is additive; no Protoyard API changes. Re-exported components gain the
+props directly:
+
+- **Controls:** `labelContent` snippet on `Checkbox`, `Radio` and `Switch`;
+  `Field` `counter={{ value, max }}` ("12/280" in the description);
+  `NumberField.Root display="output"` (read-only, same formatting);
+  `iconSize` on `Button` and `IconButton`.
+- **Avatar:** `tone` and `shape` (`'circle' | 'square'`). `@protoyard/ui`
+  `Avatar` forwards both.
+- **Navigation and layout:** `BottomNav` item `emphasis: 'action'`;
+  `MobileHeader` `eyebrow`, `leading`, `closeHref` / `onClose` / `closeLabel`;
+  `SplitView` `listWidth`, `breakpoint` and a `context` third pane; `Stat`
+  `tone`; `Progress` reads `--tx-progress-track`. There is no `ext:<name>`
+  shorthand: set `style="--tx-progress-fill: var(--tx-ext-<name>)"`.
+- **Domain:** `Composer` `layout="row"` and `sendButton="icon"`; a new
+  `ListItem` from `texuli/list-item` (not in the root barrel; wrap rows in
+  `<ul role="list" class="tx-list">`); three-column-cards card icons come from
+  the `registerIcons` registry; `DeckStage canvasFit="reflow"`.
+- **Spanish labels (opt-in):** `texuli/i18n/es`, `@texuli/blocks/i18n/es` and
+  `@texuli/pages/i18n/es`. Nothing imports them by default, and they have had
+  no native-speaker review yet.
 
 ## What Texuli 0.14.2 changes for prototypes
 

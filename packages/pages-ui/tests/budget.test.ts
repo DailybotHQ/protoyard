@@ -38,7 +38,10 @@ const JS_GZIP_BUDGET = 120 * 1024;
 // sum of every emitted stylesheet. Measured: page 7,007 B initial / 34,560 B
 // all; doc 6,999 B initial / 70,239 B all (35,026 B before the editor).
 // Caps are measured + 5 % (the page all-CSS cap stays at the 0.9.0 + 2.5 %).
-const INITIAL_CSS_GZIP_BUDGETS: Record<Host, number> = { page: 7_357, doc: 7_349 };
+// Texuli 0.14.3 (2026-11-07): the page initial CSS measures 7,562 B (Texuli's
+// CSS grew ~1.9 KB gz across the package: ListItem, Avatar tone, SplitView,
+// Composer row); page cap 7,562 + 5 %. The doc (7,272 B) is unchanged.
+const INITIAL_CSS_GZIP_BUDGETS: Record<Host, number> = { page: 7_940, doc: 7_349 };
 // T-forms adds @texuli/forms (SchemaForm), whose stylesheet loads only with a
 // form block, so only the all-CSS sums grow: page 39,046 B, doc 74,692 B; the
 // first screen is unchanged. + 2.5 %. SchemaForm imports every control type
@@ -53,7 +56,8 @@ const INITIAL_CSS_GZIP_BUDGETS: Record<Host, number> = { page: 7_357, doc: 7_349
 // Checkbox, Slider, date variants, tags and color, file, progress) that gzip to 13,342 B one by one
 // but 8,531 B as one stream, so 4,811 B of the sum is per-file gzip overhead; without it the sum is
 // about 37,256 B. A reader downloads only the controls a form uses. Page cap: measured + 2.5 %.
-const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 43_119, doc: 76_560 };
+// Texuli 0.14.3: the page sum measures 43,139 B; cap measured + 2.5 %.
+const CSS_GZIP_BUDGETS: Record<Host, number> = { page: 44_218, doc: 76_560 };
 
 interface HostBuild {
   chunks: Rollup.OutputChunk[];

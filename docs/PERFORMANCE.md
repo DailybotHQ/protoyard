@@ -133,8 +133,8 @@ and now have more than 5 % headroom, so each is the measurement + 5 %.
 | Quick single-file, doc (northwind) | 3,070,546 B | 3,133,363 B | 2.0 % headroom |
 | decks-ui initial JS / first-screen CSS / all CSS | 107,588 / 10,153 / 85,945 B | 111,657 / 10,481 / 88,094 B | 3.8 / 3.2 / 2.5 % headroom |
 | pages-ui initial JS (page / doc) | 88,714 / 120,061 B | 120 KB (122,880 B) | One cap for both hosts; the doc has 2.3 % headroom |
-| pages-ui initial CSS (page / doc) | 7,007 / 6,999 B | 7,357 / 7,349 B | Exactly + 5 % |
-| pages-ui all CSS (page / doc) | 39,046 / 74,692 B | 40,023 / 76,560 B | 2.5 % headroom |
+| pages-ui initial CSS (page / doc) | 7,562 / 7,272 B (Texuli 0.14.3, 2026-11-07) | 7,940 / 7,349 B | Page measured + 5 %; doc unchanged |
+| pages-ui all CSS (page / doc) | 43,139 / 50,087 B (Texuli 0.14.3, 2026-11-07) | 44,218 / 76,560 B | Page measured + 2.5 %; doc unchanged |
 | Views kit board, grid, editor, timeline, sheet, canvas | 16,164 / 23,113 / 10,531 / 13,108 / 49,457 / 50,488 B | 16,869 / 23,691 / 10,795 / 13,709 / 51,908 / 53,013 B | 2.5–5.0 % headroom |
 | `LayoutHost` initial delta | 4,175 B (Texuli 0.14.2, 2026-11-07) | 4,280 B | 2.5 % headroom |
 
