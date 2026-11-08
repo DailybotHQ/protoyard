@@ -1378,6 +1378,12 @@ CLI, and the showcase looks there after the workspace root). When no copy is
 found, the command stops before building any demo; install it with
 `pnpm add -D @protoyard/player` at the same version as `protoyard`.
 
+In a consumer workspace, the marketplace catalog comes from the installed
+`@protoyard/templates` package (`node_modules/.../@protoyard/templates/blueprints/`).
+The gallery reads those blueprints with the same checks as a workspace
+`blueprints/*.json` file (no symlinks, inside the workspace, 256 KB cap), so
+they are listed rather than reported as invalid folders.
+
 The official showcase is served by Cloudflare Pages from this repository:
 build command `pnpm build:showcase`, output directory `artifacts/showcase`,
 environment `NODE_VERSION=24.20.0` and `PNPM_VERSION=11.23.0`, and the custom
