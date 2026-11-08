@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { copyFile, cp, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, posix } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   AVATAR_DIR,
   AVATAR_IMAGE_SIZES,
@@ -40,7 +41,7 @@ import {
 import { serveStatic } from '../lib/static-server.ts';
 import { normalizeBase } from '../lib/vite.ts';
 import type { CommandContext } from '../lib/workspace.ts';
-import { protoyardPackageDir } from '../lib/workspace.ts';
+import { findInstalledPackage, protoyardPackageDir } from '../lib/workspace.ts';
 import { createProvider } from '../publish/index.ts';
 import type { PublishProvider } from '../publish/types.ts';
 import { commentsSetupLines } from './publish.ts';
@@ -404,12 +405,22 @@ export function showcaseTemplatesDefault(root: string, flagValue: unknown): bool
   }
 }
 
-/** Builds the standalone player into an isolated directory for the showcase. */
-export function resolveShowcasePlayerDir(root: string): string {
-  const playerDir = protoyardPackageDir(root, 'player');
+/** This CLI's own package folder (from `src/commands/` and `dist/commands/` alike). */
+const CLI_PACKAGE_DIR = fileURLToPath(new URL('../..', import.meta.url));
+
+/**
+ * The player the showcase embeds: the workspace's own install or this
+ * repository's `packages/player` first, then the copy installed with
+ * `@protoyard/cli`. The CLI depends on the player, but pnpm keeps that copy
+ * under the CLI rather than the workspace root, so a consumer workspace that
+ * never declared it still has one (Dailybot batch 10).
+ */
+export function resolveShowcasePlayerDir(root: string, cliDir = CLI_PACKAGE_DIR): string {
+  const playerDir =
+    protoyardPackageDir(root, 'player') ?? findInstalledPackage('@protoyard/player', cliDir);
   if (!playerDir) {
     throw new CliError('not_found', '@protoyard/player is not installed in this workspace.', {
-      hint: 'Install @protoyard/player in the workspace, then try again.',
+      hint: 'Run `pnpm add -D @protoyard/player` (the same version as protoyard) in the workspace root, then try again.',
     });
   }
   return playerDir;
@@ -603,6 +614,9 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
   await rm(staging, { recursive: true, force: true });
   await rm(appsStaging, { recursive: true, force: true });
   await rm(artifactStaging, { recursive: true, force: true });
+
+  // Fail before any demo builds when the hosted player is missing (batch 10).
+  if (!artifactTarget) resolveShowcasePlayerDir(ctx.root);
 
   const targets: ShowcaseTarget[] = [];
   let avatars: { path: string; files: number; bytes: number } | undefined;

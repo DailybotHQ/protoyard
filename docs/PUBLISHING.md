@@ -1372,6 +1372,12 @@ are merged into the showcase root `_headers` under `<base>player/*` so
 Cloudflare Pages applies them; the player build's nested `_headers` alone is
 not read from that location.
 
+The site target needs `@protoyard/player`. In a consumer workspace it comes
+with `@protoyard/cli`, which depends on it (pnpm keeps that copy under the
+CLI, and the showcase looks there after the workspace root). When no copy is
+found, the command stops before building any demo; install it with
+`pnpm add -D @protoyard/player` at the same version as `protoyard`.
+
 The official showcase is served by Cloudflare Pages from this repository:
 build command `pnpm build:showcase`, output directory `artifacts/showcase`,
 environment `NODE_VERSION=24.20.0` and `PNPM_VERSION=11.23.0`, and the custom

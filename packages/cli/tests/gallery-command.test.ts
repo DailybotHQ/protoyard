@@ -3,7 +3,11 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { prebuiltPlayerApp, showcaseTemplatesDefault } from '../src/commands/showcase.ts';
+import {
+  prebuiltPlayerApp,
+  resolveShowcasePlayerDir,
+  showcaseTemplatesDefault,
+} from '../src/commands/showcase.ts';
 import { cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 type Envelope<T> = { ok: boolean; data: T; error?: { code: string; message: string } };
@@ -36,6 +40,25 @@ describe('gallery build and preview', () => {
     mkdirSync(join(source, 'dist', 'app'), { recursive: true });
     writeFileSync(join(source, 'dist', 'app', 'index.html'), '<!doctype html>');
     expect(prebuiltPlayerApp(source)).toBeNull();
+  });
+
+  it('finds the player installed with @protoyard/cli under pnpm (Dailybot batch 10)', () => {
+    ws = createWorkspace();
+    // pnpm layout: the CLI's dependencies sit next to it inside .pnpm, not at the root.
+    const store = join(ws.root, 'node_modules', '.pnpm', '@protoyard+cli@1.6.0', 'node_modules');
+    const cliDir = join(store, '@protoyard', 'cli');
+    const playerDir = join(store, '@protoyard', 'player');
+    mkdirSync(cliDir, { recursive: true });
+    mkdirSync(playerDir, { recursive: true });
+    writeFileSync(join(cliDir, 'package.json'), '{"name":"@protoyard/cli"}');
+    writeFileSync(join(playerDir, 'package.json'), '{"name":"@protoyard/player"}');
+    expect(resolveShowcasePlayerDir(ws.root, cliDir)).toBe(playerDir);
+
+    const lone = mkdtempSync(join(tmpdir(), 'cli-alone-'));
+    dirs.push(lone);
+    expect(() => resolveShowcasePlayerDir(ws?.root as string, lone)).toThrow(
+      /@protoyard\/player is not installed/
+    );
   });
 
   it('previews only a built gallery, and refuses a bad base or an escaping --out', async () => {
