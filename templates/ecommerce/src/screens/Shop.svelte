@@ -1,9 +1,21 @@
 <script lang="ts">
 import { PackageSearch, Search, SlidersHorizontal, Star, Truck } from '@lucide/svelte';
 import { Link, liveQuery } from '@protoyard/renderer-svelte';
-import { Button, Checkbox, EmptyState, ErrorState, Input, Select, Skeleton } from '@protoyard/ui';
+import {
+  Button,
+  Card,
+  Checkbox,
+  EmptyState,
+  ErrorState,
+  Input,
+  Select,
+  Skeleton,
+} from '@protoyard/ui';
+import { Chip } from 'texuli/badge';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { InputGroup } from 'texuli/input';
+import { Box, Heading, Text } from 'texuli/typography';
 import AddToCart from '../components/AddToCart.svelte';
 import Price from '../components/Price.svelte';
 import ProductArt from '../components/ProductArt.svelte';
@@ -68,28 +80,25 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
 
 {#snippet filterPanel()}
   <fieldset class="space-y-3">
-    <legend class="text-sm font-semibold">Price</legend>
+    <legend><Text as="span" size="sm" weight="semibold">Price</Text></legend>
     <div class="flex items-center gap-2">
       <label class="sr-only" for="min-price">Minimum price in dollars</label>
       <Input id="min-price" inputmode="decimal" placeholder="Min $" bind:value={minPrice} aria-invalid={priceError ? true : undefined} aria-describedby={priceError ? 'price-error' : undefined} />
-      <span class="text-muted-foreground" aria-hidden="true">–</span>
+      <Text as="span" tone="muted" aria-hidden="true">–</Text>
       <label class="sr-only" for="max-price">Maximum price in dollars</label>
       <Input id="max-price" inputmode="decimal" placeholder="Max $" bind:value={maxPrice} aria-invalid={priceError ? true : undefined} aria-describedby={priceError ? 'price-error' : undefined} />
     </div>
-    {#if priceError}<p id="price-error" class="text-xs text-destructive" role="alert">{priceError}</p>{/if}
+    {#if priceError}<Text id="price-error" size="xs" tone="destructive" role="alert">{priceError}</Text>{/if}
     <div class="flex flex-wrap gap-1.5">
       {#each [['', '25'], ['25', '50'], ['50', '100'], ['100', '']] as [lo, hi] (`${lo}-${hi}`)}
-        <Button
-          type="button"
-          variant="ghost"
-          class="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+        <Chip
+          label={lo ? (hi ? `$${lo}–$${hi}` : `$${lo}+`) : `Under $${hi}`}
+          selected={minPrice === (lo ?? '') && maxPrice === (hi ?? '')}
           onclick={() => {
             minPrice = lo ?? '';
             maxPrice = hi ?? '';
           }}
-        >
-          {lo ? (hi ? `$${lo}–$${hi}` : `$${lo}+`) : `Under $${hi}`}
-        </Button>
+        />
       {/each}
     </div>
   </fieldset>
@@ -101,44 +110,45 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
   {/if}
 {/snippet}
 
-<section class="mb-6 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-surface to-surface p-6 sm:p-8">
-  <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">Small goods, made to last.</h1>
-  <p class="mt-2 max-w-xl text-sm text-muted-foreground sm:text-base">
+<Box as="section" surface="subtle" border="default" radius="xl" padding="lg" class="mb-6 overflow-hidden sm:p-8">
+  <Heading level={1} size="xl">Small goods, made to last.</Heading>
+  <Text tone="muted" class="mt-2 max-w-xl">
     Bags, desk companions and everyday gear from independent makers.
-  </p>
-  <p class="mt-4 inline-flex items-center gap-2 text-sm font-medium">
-    <LucideIcon icon={Truck} class="size-4 text-primary" />Free standard shipping over {money(FREE_SHIPPING_THRESHOLD_CENTS)}
-  </p>
-</section>
+  </Text>
+  <Text size="sm" weight="medium" class="mt-4 inline-flex items-center gap-2">
+    <LucideIcon icon={Truck} tone="primary" class="size-4" />Free standard shipping over {money(FREE_SHIPPING_THRESHOLD_CENTS)}
+  </Text>
+</Box>
 
 <div class="mb-5 flex flex-wrap gap-2" role="group" aria-label="Categories">
   {#each [{ id: '', name: 'All' } as Pick<Category, 'id' | 'name'>, ...(categories.current ?? [])] as category (category.id)}
     <Button
       type="button"
-      variant="ghost"
+      variant={categoryId === category.id ? 'default' : 'outline'}
+      size="sm"
       aria-pressed={categoryId === category.id}
       onclick={() => (categoryId = category.id)}
-      class={[
-        'min-h-touch rounded-full border px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0',
-        categoryId === category.id ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-surface hover:bg-muted',
-      ]}
+      class="min-h-touch px-4 sm:min-h-0"
     >
       {category.name}
     </Button>
   {/each}
 </div>
 
-<div class="grid gap-6 lg:grid-cols-[14rem_1fr]">
-  <aside class="hidden lg:block" aria-label="Filters">
-    <div class="sticky top-24 rounded-xl border border-border bg-surface p-4">{@render filterPanel()}</div>
+<div class="flex gap-6">
+  <aside class="hidden w-56 shrink-0 lg:block" aria-label="Filters">
+    <Box surface="default" border="default" radius="xl" padding="md" class="sticky top-24">{@render filterPanel()}</Box>
   </aside>
 
-  <div class="min-w-0">
+  <div class="min-w-0 flex-1">
     <div class="mb-4 flex flex-wrap items-center gap-2" role="search">
-      <div class="relative min-w-0 flex-1 basis-56">
-        <Icon icon="search" class="pointer-events-none absolute top-1 2 left-3 size-4 -translate-y-1 2 text-muted-foreground" aria-hidden="true" />
-        <Input type="search" class="pl-9" placeholder="Search products…" aria-label="Search products" bind:value={query} />
-      </div>
+      <InputGroup
+        class="min-w-0 flex-1 basis-56"
+        inputProps={{ type: 'search', placeholder: 'Search products…', 'aria-label': 'Search products' }}
+        bind:value={query}
+      >
+        {#snippet start()}<Icon icon="search" class="size-4" aria-hidden="true" />{/snippet}
+      </InputGroup>
       <Select
         aria-label="Sort products"
         class="w-full sm:w-48"
@@ -150,16 +160,16 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
       </Button>
     </div>
     {#if filtersOpen}
-      <div id="mobile-filters" class="mb-4 rounded-xl border border-border bg-surface p-4 lg:hidden">{@render filterPanel()}</div>
+      <Box id="mobile-filters" surface="default" border="default" radius="xl" padding="md" class="mb-4 lg:hidden">{@render filterPanel()}</Box>
     {/if}
 
-    <p class="mb-3 text-sm text-muted-foreground" aria-live="polite">
+    <Text size="sm" tone="muted" class="mb-3" aria-live="polite">
       {visible.length} product{visible.length === 1 ? '' : 's'}{filtering ? ' match your filters' : ''}
-    </p>
+    </Text>
 
     {#if products.loading}
       <div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4" aria-busy="true" aria-label="Loading products">
-        {#each [0, 1, 2, 3, 4, 5, 6, 7] as i (i)}<Skeleton class="aspect-[3/4] w-full rounded-xl" />{/each}
+        {#each [0, 1, 2, 3, 4, 5, 6, 7] as i (i)}<Skeleton class="h-80 w-full" />{/each}
       </div>
     {:else if products.error}
       <ErrorState title="Could not load the catalog" message={String(products.error)} />
@@ -170,17 +180,18 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
     {:else}
       <ul class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
         {#each visible as product (product.id)}
-          <li class="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-soft transition-shadow hover:shadow-float">
-            <ProductArt hue={product.hue} category={slugOf(product.categoryId)} name={product.name} class={['aspect-square', product.stock <= 0 && 'opacity-60 grayscale'].filter(Boolean).join(' ')} />
+          <li class="flex">
+            <Card class="relative flex w-full flex-col overflow-hidden">
+            <ProductArt hue={product.hue} category={slugOf(product.categoryId)} name={product.name} soldOut={product.stock <= 0} class="aspect-square" />
             <div class="flex flex-1 flex-col gap-1.5 p-3 sm:p-4">
-              <p class="text-xs text-muted-foreground">{categoryName(product.categoryId)}</p>
-              <h2 class="text-sm leading-snug font-medium">
-                <Link href={`/products/${product.id}`} class="after:absolute after:inset-0 hover:text-primary focus-visible:outline-none">{product.name}</Link>
-              </h2>
-              <p class="flex items-center gap-1 text-xs text-muted-foreground">
-                <LucideIcon icon={Star} class="size-3 fill-current text-warning" />{product.rating.toFixed(1)}
+              <Text size="xs" tone="muted">{categoryName(product.categoryId)}</Text>
+              <Heading level={2} size="sm">
+                <Link href={`/products/${product.id}`} class="after:absolute after:inset-0">{product.name}</Link>
+              </Heading>
+              <Text size="xs" tone="muted" class="flex items-center gap-1">
+                <Icon icon={Star} tone="warning" fill="currentColor" class="size-3" aria-hidden="true" />{product.rating.toFixed(1)}
                 <span>({product.reviewCount})</span>
-              </p>
+              </Text>
               <div class="mt-auto flex flex-wrap items-center gap-2 pt-1">
                 <Price cents={product.priceCents} compareAt={product.compareAtCents} />
                 <StockBadge {product} />
@@ -189,6 +200,7 @@ const categoryName = (id: string) => categoryById.get(id)?.name ?? '';
                 <AddToCart {product} size="sm" full />
               </div>
             </div>
+            </Card>
           </li>
         {/each}
       </ul>

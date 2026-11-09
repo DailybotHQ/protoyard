@@ -8,9 +8,18 @@ import {
   runService,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
-import { AlertDialog, Button, Card, EmptyState, ErrorState, Skeleton, toast } from '@protoyard/ui';
-import { Icon } from 'texuli/icons';
+import {
+  AlertDialog,
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  Notice,
+  Skeleton,
+  toast,
+} from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import ProductArt from '../components/ProductArt.svelte';
 import QuantityStepper from '../components/QuantityStepper.svelte';
@@ -50,7 +59,7 @@ async function setQuantity(productId: string, quantity: number) {
 <PageHeader title="Your cart" description={totals.itemCount ? `${totals.itemCount} item${totals.itemCount === 1 ? '' : 's'} · saved in this browser` : undefined}>
   {#snippet actions()}
     {#if (lines.current?.length ?? 0) > 0}
-      <Button variant="ghost" class="text-destructive hover:bg-destructive/10" onclick={() => (confirmClear = true)}>
+      <Button variant="ghost" tone="destructive" onclick={() => (confirmClear = true)}>
         <LucideIcon icon={Trash2} class="size-4" />Clear cart
       </Button>
     {/if}
@@ -62,7 +71,7 @@ async function setQuantity(productId: string, quantity: number) {
     {#snippet action()}<Button href="#/">Keep browsing</Button>{/snippet}
   </EmptyState>
 {:else if lines.loading}
-  <div class="space-y-3" aria-busy="true" aria-label="Loading cart">{#each [0, 1] as i (i)}<Skeleton class="h-24 w-full rounded-xl" />{/each}</div>
+  <div class="space-y-3" aria-busy="true" aria-label="Loading cart">{#each [0, 1] as i (i)}<Skeleton class="h-24 w-full" />{/each}</div>
 {:else if lines.error}
   <ErrorState title="Could not load your cart" message={String(lines.error)} />
 {:else if (lines.current?.length ?? 0) === 0}
@@ -70,26 +79,25 @@ async function setQuantity(productId: string, quantity: number) {
     {#snippet action()}<Button href="#/">Start shopping</Button>{/snippet}
   </EmptyState>
 {:else}
-  <div class="grid gap-6 lg:grid-cols-[1fr_22rem]">
-    <div class="space-y-3">
+  <div class="grid gap-6 lg:grid-cols-3">
+    <div class="space-y-3 lg:col-span-2">
       {#if problems.length > 0}
-        <div class="flex gap-3 rounded-xl border border-warning/50 bg-warning/10 p-4 text-sm" role="alert">
-          <Icon icon="warning" class="mt-0.5 size-4 shrink-0 text-warning-foreground dark:text-warning" aria-hidden="true" />
-          <p>Some items sold out while they were in your cart. Lower the highlighted quantities — checkout will refuse the order until they fit the stock.</p>
-        </div>
+        <Notice tone="warning" role="alert" text="Some items sold out while they were in your cart. Lower the highlighted quantities — checkout will refuse the order until they fit the stock." />
       {/if}
-      <ul class="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
-        {#each lines.current ?? [] as line (line.id)}
+      <Box surface="default" border="default" radius="xl" padding="none" class="overflow-hidden">
+      <ul>
+        {#each lines.current ?? [] as line, index (line.id)}
           {@const over = line.quantity > line.product.stock}
-          <li class={['flex gap-3 p-3 sm:gap-4 sm:p-4', over && 'bg-destructive/5']}>
-            <ProductArt hue={line.product.hue} category={line.categorySlug} name={line.product.name} size="sm" class="size-20 shrink-0 rounded-lg" />
+          <li>
+          <Box border={index > 0 ? 'block-start' : 'none'} surface={over ? 'muted' : 'transparent'} radius="none" padding="none" class="flex gap-3 p-3 sm:gap-4 sm:p-4">
+            <ProductArt hue={line.product.hue} category={line.categorySlug} name={line.product.name} size="sm" radius="lg" soldOut={line.product.stock <= 0} class="size-20 shrink-0" />
             <div class="flex min-w-0 flex-1 flex-col gap-2">
               <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0">
-                  <Link href={`/products/${line.productId}`} class="font-medium hover:text-primary">{line.product.name}</Link>
-                  <p class="text-sm text-muted-foreground tabular-nums">{money(line.product.priceCents)} each</p>
+                  <Text weight="medium"><Link href={`/products/${line.productId}`}>{line.product.name}</Link></Text>
+                  <Text size="sm" tone="muted" tabular>{money(line.product.priceCents)} each</Text>
                 </div>
-                <p class="font-semibold tabular-nums">{money(line.product.priceCents * line.quantity)}</p>
+                <Text weight="semibold" tabular>{money(line.product.priceCents * line.quantity)}</Text>
               </div>
               <div class="flex flex-wrap items-center gap-3">
                 <QuantityStepper
@@ -103,29 +111,31 @@ async function setQuantity(productId: string, quantity: number) {
                 </Button>
               </div>
               {#if over}
-                <p class="text-sm font-medium text-destructive">
+                <Text size="sm" weight="medium" tone="destructive">
                   {line.product.stock === 0 ? 'Sold out — remove it to check out.' : `Only ${line.product.stock} left — lower the quantity.`}
-                </p>
+                </Text>
               {/if}
             </div>
+          </Box>
           </li>
         {/each}
       </ul>
+      </Box>
     </div>
 
     <Card class="h-fit p-5 lg:sticky lg:top-24">
-      <h2 class="font-semibold">Order summary</h2>
-      <dl class="mt-4 space-y-2 text-sm">
-        <div class="flex justify-between"><dt class="text-muted-foreground">Subtotal</dt><dd class="tabular-nums">{money(totals.subtotalCents)}</dd></div>
-        <div class="flex justify-between"><dt class="text-muted-foreground">Standard shipping</dt><dd class="tabular-nums">{totals.shippingCents ? money(totals.shippingCents) : 'Free'}</dd></div>
-        <div class="flex justify-between"><dt class="text-muted-foreground">Estimated tax</dt><dd class="tabular-nums">{money(totals.taxCents)}</dd></div>
-        <div class="flex justify-between border-t border-border pt-2 text-base font-semibold"><dt>Total</dt><dd class="tabular-nums">{money(totals.totalCents)}</dd></div>
+      <Heading level={2} size="sm">Order summary</Heading>
+      <dl class="mt-4 space-y-2">
+        <div class="flex justify-between"><dt><Text as="span" size="sm" tone="muted">Subtotal</Text></dt><dd><Text as="span" size="sm" tabular>{money(totals.subtotalCents)}</Text></dd></div>
+        <div class="flex justify-between"><dt><Text as="span" size="sm" tone="muted">Standard shipping</Text></dt><dd><Text as="span" size="sm" tabular>{totals.shippingCents ? money(totals.shippingCents) : 'Free'}</Text></dd></div>
+        <div class="flex justify-between"><dt><Text as="span" size="sm" tone="muted">Estimated tax</Text></dt><dd><Text as="span" size="sm" tabular>{money(totals.taxCents)}</Text></dd></div>
+        <Box border="block-start" radius="none" padding="none" class="flex justify-between pt-2"><dt><Text as="span" weight="semibold">Total</Text></dt><dd><Text as="span" weight="semibold" tabular>{money(totals.totalCents)}</Text></dd></Box>
       </dl>
       {#if toFreeShipping > 0}
-        <p class="mt-3 text-xs text-muted-foreground">Add {money(toFreeShipping)} more for free standard shipping.</p>
+        <Text size="xs" tone="muted" class="mt-3">Add {money(toFreeShipping)} more for free standard shipping.</Text>
       {/if}
       <Button class="mt-5 w-full" size="lg" onclick={() => navigate('/checkout')}>Checkout</Button>
-      <p class="mt-3 text-center text-xs text-muted-foreground">Demo store — no real payment is taken.</p>
+      <Text size="xs" tone="muted" align="center" class="mt-3">Demo store — no real payment is taken.</Text>
     </Card>
   </div>
 {/if}
