@@ -10,12 +10,14 @@ export interface Menu {
 
 <script lang="ts">
 import { DropdownMenu } from '@protoyard/ui';
+import { Box } from 'texuli/typography';
 
 /** The app's menu bar: each menu is a real dropdown of actions (no decorative items). */
 let { menus }: { menus: Menu[] } = $props();
 </script>
 
-<nav aria-label="Application menu" class="flex h-9 shrink-0 items-center gap-0.5 border-b border-border bg-surface px-2 text-sm">
+<Box surface="default" border="block-end" radius="none" padding="none" class="shrink-0">
+<nav aria-label="Application menu" class="flex h-9 items-center gap-0.5 px-2">
   {#each menus as menu (menu.label)}
     <DropdownMenu items={menu.items} align="start">
       {#snippet trigger({ props })}
@@ -23,7 +25,8 @@ let { menus }: { menus: Menu[] } = $props();
           {...props}
           type="button"
           variant="ghost"
-          class="rounded-md px-2.5 py-1 text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none data-[state=open]:bg-muted"
+          size="sm"
+          class="px-2.5"
         >
           {menu.label}
         </Button>
@@ -31,3 +34,4 @@ let { menus }: { menus: Menu[] } = $props();
     </DropdownMenu>
   {/each}
 </nav>
+</Box>

@@ -11,9 +11,11 @@ import {
   useClock,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
-import { AlertDialog, Avatar, Button, EmptyState, Input, toast } from '@protoyard/ui';
+import { AlertDialog, Avatar, Button, EmptyState, Separator, toast } from '@protoyard/ui';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { InputGroup } from 'texuli/input';
+import { Box, Text } from 'texuli/typography';
 import DocumentEditor from '../components/DocumentEditor.svelte';
 import DocumentList from '../components/DocumentList.svelte';
 import FolderDialog from '../components/FolderDialog.svelte';
@@ -276,7 +278,7 @@ const menus = $derived<Menu[]>([
 
 <svelte:window onkeydown={onKeydown} />
 
-<div class="@container flex h-app min-h-0 flex-col bg-background text-foreground">
+<div class="@container flex h-app min-h-0 flex-col">
   <MenuBar {menus} />
 
   <div class="flex min-h-0 flex-1">
@@ -291,27 +293,31 @@ const menus = $derived<Menu[]>([
         ongo={go}
         onnewfolder={newFolder}
       />
+      <Separator orientation="vertical" />
     {/if}
 
     <section
       aria-label={`${scopeName} documents`}
-      class={['flex w-72 shrink-0 flex-col border-r border-border', current && '@max-2xl:hidden']}
+      class={['flex w-72 shrink-0 flex-col', current && '@max-2xl:hidden']}
     >
-      <div class="flex items-center gap-2 border-b border-border p-2">
-        <label class="relative flex-1">
-          <span class="sr-only">Search documents</span>
-          <Icon icon="search" class="pointer-events-none absolute top-1 2 left-2.5 size-4 -translate-y-1 2 text-muted-foreground" aria-hidden="true" />
-          <Input bind:ref={searchInput} bind:value={search} type="search" placeholder="Search" class="pl-8" />
-        </label>
+      <Box border="block-end" radius="none" padding="none" class="flex items-center gap-2 p-2">
+        <InputGroup
+          bind:ref={searchInput}
+          bind:value={search}
+          class="flex-1"
+          inputProps={{ type: 'search', placeholder: 'Search', 'aria-label': 'Search documents' }}
+        >
+          {#snippet start()}<Icon icon="search" class="size-4" aria-hidden="true" />{/snippet}
+        </InputGroup>
         {#if canCreate}
           <Button variant="ghost" size="icon" aria-label="New document" onclick={() => newDocument()}>
             <LucideIcon icon={FilePlus} />
           </Button>
         {/if}
-      </div>
+      </Box>
       <div class="min-h-0 flex-1 overflow-y-auto">
         {#if scoped.loading}
-          <p class="p-4 text-sm text-muted-foreground">Loading…</p>
+          <Text size="sm" tone="muted" class="p-4">Loading…</Text>
         {:else}
           <DocumentList
             documents={visible}
@@ -328,6 +334,7 @@ const menus = $derived<Menu[]>([
         {/if}
       </div>
     </section>
+    <Separator orientation="vertical" class={current ? '@max-2xl:hidden' : undefined} />
 
     <main id="main" class="flex min-w-0 flex-1 flex-col">
       {#if current}
@@ -359,15 +366,15 @@ const menus = $derived<Menu[]>([
   </div>
 
   <!-- Right-aligned: the "Prototype" badge sits in the bottom-left corner of standalone builds. -->
-  <footer class="flex h-7 shrink-0 items-center justify-end gap-3 border-t border-border bg-surface px-3 text-xs text-muted-foreground">
-    <span>{scopeName} · {countLabel(visible.length, 'document')}</span>
+  <Box as="footer" surface="default" border="block-start" radius="none" padding="none" class="flex h-7 shrink-0 items-center justify-end gap-3 px-3">
+    <Text as="span" size="xs" tone="muted">{scopeName} · {countLabel(visible.length, 'document')}</Text>
     {#if principal.current}
       <span class="flex min-w-0 items-center gap-1.5">
         <Avatar name={principal.current.persona.name} {...avatarImage(principal.current.persona.avatar)} size="xs" decorative />
-        <span class="truncate">{principal.current.persona.name} · {ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role}</span>
+        <Text as="span" size="xs" tone="muted" truncate>{principal.current.persona.name} · {ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role}</Text>
       </span>
     {/if}
-  </footer>
+  </Box>
 </div>
 
 <ShortcutsDialog bind:open={helpOpen} {mac} />
