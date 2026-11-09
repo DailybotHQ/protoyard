@@ -1,6 +1,7 @@
 <script lang="ts">
 import { isValidationError, navigate, runService } from '@protoyard/renderer-svelte';
 import {
+  Badge,
   Button,
   Dialog,
   FormField,
@@ -9,8 +10,9 @@ import {
   RadioGroupItem,
   Textarea,
 } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 import { PROJECT_COLORS, type Project, type ProjectColor } from '../database/schema.ts';
-import { PROJECT_COLOR_CLASSES } from '../domain/tasks.ts';
+import { projectBadgeVariant } from '../domain/tasks.ts';
 import { useWorkspace } from '../lib/context.svelte.ts';
 
 /** Create (no `project`) or edit a project. Field errors come from the service's zod schema. */
@@ -69,30 +71,30 @@ async function submit(event: SubmitEvent) {
 </script>
 
 <Dialog bind:open title={project ? 'Edit project' : 'New project'} description="Projects group tasks on their own board.">
-  <form id="project-form" class="grid gap-4 sm:grid-cols-[1fr_8rem]" onsubmit={submit} novalidate>
-    <FormField label="Name" required error={errors.name}>
+  <form id="project-form" class="grid gap-4 sm:grid-cols-3" onsubmit={submit} novalidate>
+    <FormField label="Name" required error={errors.name} class="sm:col-span-2">
       {#snippet children(control)}
         <Input {...control.props} bind:value={name} oninput={() => suggestKey(name)} placeholder="e.g. Website relaunch" autocomplete="off" maxlength={60} />
       {/snippet}
     </FormField>
     <FormField label="Key" required error={errors.key} description="Task prefix">
       {#snippet children(control)}
-        <Input {...control.props} bind:value={key} oninput={() => (keyTouched = true)} placeholder="WEB" autocomplete="off" maxlength={5} class="font-mono uppercase" />
+        <Input {...control.props} bind:value={key} oninput={() => (keyTouched = true)} placeholder="WEB" autocomplete="off" maxlength={5} />
       {/snippet}
     </FormField>
-    <FormField label="Description" error={errors.description} class="sm:col-span-2">
+    <FormField label="Description" error={errors.description} class="sm:col-span-3">
       {#snippet children(control)}
         <Textarea {...control.props} bind:value={description} rows={3} maxlength={280} placeholder="What is this project about?" />
       {/snippet}
     </FormField>
-    <fieldset class="sm:col-span-2">
-      <legend class="text-sm font-medium">Color</legend>
-      <RadioGroup bind:value={color} name="project-color" aria-label="Color" orientation="horizontal" class="mt-2 flex flex-wrap gap-2">
+    <fieldset class="sm:col-span-3">
+      <legend><Text as="span" size="sm" weight="medium">Color</Text></legend>
+      <RadioGroup bind:value={color} name="project-color" aria-label="Color" orientation="horizontal" class="mt-2 flex flex-wrap gap-3">
         {#each PROJECT_COLORS as option (option)}
-          <RadioGroupItem value={option} aria-label={option} class={[
-            'size-8 rounded-full border-2 border-transparent ring-offset-2 ring-offset-background focus-visible:outline-2 focus-visible:outline-ring data-[state=checked]:ring-2 data-[state=checked]:ring-ring',
-            PROJECT_COLOR_CLASSES[option].dot,
-          ]} />
+          <span class="inline-flex items-center gap-1.5">
+            <RadioGroupItem value={option} aria-label={option} />
+            <Badge variant={projectBadgeVariant(option)} aria-hidden="true">{option}</Badge>
+          </span>
         {/each}
       </RadioGroup>
     </fieldset>
