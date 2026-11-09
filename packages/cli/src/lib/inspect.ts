@@ -129,6 +129,8 @@ export interface SpecFacts {
     namespace: string;
     /** Kind generated from a data-only blueprint; ordinary prototypes are apps. */
     blueprintKind?: BlueprintKind;
+    /** Present only when the prototype is locked to a design system (PLAN_013). */
+    designSystem?: { id: string; version: string; locked: true };
   };
   generatorVersion: number | null;
   schemaVersion: number;

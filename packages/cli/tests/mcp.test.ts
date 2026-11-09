@@ -264,6 +264,8 @@ describe('MCP tool catalog and strict input contracts', () => {
       expect(MCP_TOOLS.map((tool) => tool.name)).toEqual([
         'blueprint_schema',
         'doctor',
+        'ds_component_new',
+        'ds_component_request',
         'ds_create',
         'ds_export',
         'ds_use',
