@@ -56,9 +56,9 @@ design-system spec 0.13.0):
 }
 ```
 
-- The keys are catalog ids: Texuli's (`@texuli/catalog`, 170 components
+- The keys are catalog ids: Texuli's (`@texuli/catalog`, 187 components
   today) and the [catalog extensions](#catalog-extensions) of
-  `@protoyard/ui`'s own components (`protoyard:data-table`, 58 today). An
+  `@protoyard/ui`'s own components (`protoyard:data-table`, 50 today). An
   omitted list allows every value the catalog lists; an empty list allows
   none.
 - **A design system without `allow` is not locked and cannot be locked.**
@@ -67,7 +67,7 @@ design-system spec 0.13.0):
   | `--allow` | Section |
   | --- | --- |
   | `all` (default) | Every catalog component and every extension, with every axis value and state; the designer narrows it |
-  | `minimal` | Texuli's core preset (actions, form controls, text and status, containers, overlays, page layouts), plus the extensions whose `composes` that preset covers (`protoyard:dialog`, `protoyard:select`…; 18 today) |
+  | `minimal` | Texuli's core preset (actions, form controls, text and status, containers, overlays, page layouts), plus the extensions whose `composes` that preset covers (`protoyard:dialog`, `protoyard:input`, `protoyard:page-grid` and `protoyard:select` today) |
   | `<file>.json` | An allow section from a workspace file (`{ "button": {…} }` or `{ "allow": {…} }`), checked against the catalog |
   | `none` | No allow section: the old unlocked document |
 
@@ -87,10 +87,11 @@ design-system spec 0.13.0):
 `@protoyard/ui` has components of its own (`DataTable`, `StatCard`,
 `Notice`, its `Dialog` and `Select` wrappers…) next to its re-exports of
 Texuli's (`Button`, `Card`). Texuli's catalog lists only Texuli's, so each
-own component carries a **catalog extension manifest**: plain data with the
-same shape as a Texuli catalog manifest (id, package, label, summary, tier,
-props with `enumValues`, axes, states, `imports: [{ module, exports }]`), a
-namespaced id and `composes`, the Texuli ids it renders:
+own component that renders Texuli components carries a **catalog extension
+manifest**: plain data with the same shape as a Texuli catalog manifest (id,
+package, label, summary, group, tier, props with `enumValues`, axes, states,
+`imports: [{ module, exports }]`), a namespaced id and `composes`, the Texuli
+ids it renders:
 
 ```ts
 {
@@ -98,33 +99,55 @@ namespaced id and `composes`, the Texuli ids it renders:
   package: '@protoyard/ui',
   label: 'Notice',
   summary: 'An inline message with a tone and an icon.',
+  group: 'protoyard-ui',
   tier: 'app',
   props: [{ name: 'tone', kind: 'enum', enumValues: ['info', 'success', 'warning', 'error', 'brand'], default: 'info' }],
   axes: { tone: 'tone' },
   states: [],
   imports: [{ module: '@protoyard/ui', exports: ['Notice'] }],
-  composes: ['alert'],
+  composes: ['alert', 'icon'],
   // useWhen, dontUseWhen, a11y and examples as in a Texuli manifest
 }
 ```
 
 - **Where they live.** `packages/cli/src/lib/ds-extensions/protoyard-ui.ts`
-  (one entry per own component). `@protoyard/ui` has no subpath for them, and
-  adding one would change its `package.json`, so the CLI holds the data. Any
-  library that wraps Texuli can publish the same shape under its own
-  namespace.
-- **Merge.** The CLI merges them into the Texuli catalog with the rules agreed
-  with Texuli: the id needs a namespace (`<namespace>:<kebab-id>`, not
-  `texuli:`), no id or import collides, and every `composes` id is a Texuli
-  catalog id. A refused extension is left out and reported (codes
-  `namespace-required`, `id-collision`, `composes-unresolved`). When the
-  installed `@texuli/spec/design-system` exports `mergeCatalogs`, the CLI
-  uses it instead; the rest reads the merged catalog the same way.
+  holds three tables: the manifests (one per own component that renders
+  Texuli components), the re-exports (each Texuli component `@protoyard/ui`
+  re-exports, as the Texuli import it is: `FormField` is `Field` from
+  `texuli/field`) and the own components that are not catalog components.
+  `@protoyard/ui` has no subpath for them, and adding one would change its
+  `package.json`, so the CLI holds the data. Any library that wraps Texuli
+  can publish the same shape under its own namespace.
+- **Merge.** Texuli's `mergeCatalogs` (from the root of `@texuli/spec`)
+  merges them. The CLI passes it the installed catalog in Texuli's
+  `SpecCatalog` shape and the manifests as Texuli extension files
+  (`{ format: "texuli/catalog-extension", version: 1, namespace, components }`,
+  one per namespace), so Texuli applies its own rules and codes: namespace
+  (`extension-namespace`; `texuli`, `tx`, `spec` and `catalog` are
+  reserved), ids and collisions (`extension-id`, `extension-collision`),
+  `composes` of 1 to 32 catalog ids (`extension-composes`), props, axes and
+  states (`extension-props`, `extension-axis`, `extension-state`) and its
+  limits (16 extension files, 256 components each). Texuli refuses an
+  extension file whole when one of its components fails. The one rule the
+  CLI checks itself is the one Texuli cannot see: no extension import names a
+  `(module, export)` pair a Texuli manifest or another extension already
+  names (`extension-collision` at `$.extensions[<i>].imports`). For the
+  shipped data Texuli answers `ok: true`, one namespace (`protoyard`) and 50
+  components.
 - **Mapping.** An own component imported from `@protoyard/ui` maps by its
   manifest's `imports` to the extension id (`<DataTable>` →
-  `protoyard:data-table`). A re-export maps to the Texuli id (`<Button>` →
-  `button`). So a locked prototype that uses `<Notice>` needs
-  `protoyard:notice` in `allow`; allowing `alert` alone does not allow it.
+  `protoyard:data-table`). A re-export maps to the Texuli id of the import it
+  is (`<Button>` → `button`, `<FormField>` → `field`). So a locked prototype
+  that uses `<Notice>` needs `protoyard:notice` in `allow`; allowing `alert`
+  alone does not allow it.
+- **Non-components.** Texuli's catalog lists the exports that are not
+  components (`MotionProvider`, `SafeArea`, `AppShell`, `ToggleGroup`,
+  `Rating`…); they are never refused and never counted. An own component
+  that renders none of Texuli's catalog components, only such exports or
+  plain elements (`ChipGroup`, `FileDropzone`, `MobileAppShell`, `OtpInput`,
+  `SafeArea`, `StarRating`, `TagEmailInput`, `WeekdayPicker`), cannot be an
+  extension (Texuli needs at least one `composes` id) and is classified the
+  same way.
 - **Rules.** `ds-not-allowed` allows an own component only when its extension
   id is in `allow`; `ds-disabled-value` reads the extension's axes
   (`<Notice tone="warning">` with `"protoyard:notice": { "tones": ["info"] }`
@@ -132,30 +155,30 @@ namespaced id and `composes`, the Texuli ids it renders:
 - **Library entries** may list extension ids in `composes`;
   `ds component new` writes them when a component renders one.
 
-**Temporary, until Texuli widens its validator.** Texuli's design-system
-validator still requires kebab-case `allow` keys, so the document Texuli
-validates, compiles and approves is a view of it: the extension keys left out
-of `allow` (the CLI checks them against the merged catalog), and an extension
-in a library entry's `composes` replaced by the Texuli ids it composes. The
-file keeps the extension keys. `ds approve` stamps the full document and
-takes the content hash over it, so the approval covers the extension keys.
-The CLI detects the wider validator and then passes the document unchanged.
+Texuli's design-system validator accepts `<namespace>:<id>` allow keys, so
+`ds new`, `ds validate`, `ds allow init` and `ds approve` hand Texuli the
+document as written: it locks, validates, compiles and approves it with the
+extension keys, and the approval's content hash covers them.
 
-**Adding a component to `@protoyard/ui`.** Add one entry to
-`protoyard-ui.ts` (copy a similar one), then run:
+**Adding a component to `@protoyard/ui`.** Run:
 
 ```bash
 pnpm vitest run packages/cli/tests/ds-extensions.test.ts
 ```
 
 The test reads `packages/ui/src/index.ts` and fails when an own component
-(a `.svelte` file the barrel exports) has no manifest or more than one, when a
-manifest names something the package does not export as its own, when
-`composes` differs from the Texuli ids the source renders (through its local
-children; the failure prints the right list), or when an axis value is not in
-the source. A Texuli re-export never gets a manifest: it must map to a Texuli
-id, be one Texuli has announced, or be on the test's pinned gap list
-(`AppShell`, `TypingIndicator` and `Wizard` today).
+that renders Texuli components (a `.svelte` file the barrel exports) has no
+manifest or more than one, when an own component that renders none is
+missing from the non-component table, when a manifest names something the
+package does not export as its own, when `composes` differs from the Texuli
+ids the source renders (through its local children; the failure prints the
+right list), when an axis value is not in the source, or when the re-export
+table differs from the barrel's re-exports. Copy a similar entry into the
+table it names. A Texuli re-export never gets a manifest: it maps to a Texuli
+id (`AppShell`, a Texuli non-component, is the one exception today). Texuli
+imports the `@protoyard/ui` sources use that Texuli's catalog neither maps nor
+lists as non-components (`@texuli/primitives` parts, compound parts of
+`texuli/sheet` and `texuli/navigation`) are a pinned list in the test.
 
 ### 2. Review
 
@@ -387,16 +410,6 @@ These are not available today:
 - **Render check**: rendering every component of a locked prototype against
   the design system in a browser (it covers the axis values `check ds` skips
   because they are expressions).
-- **Catalog imports**: Texuli's catalog will list each component's import
-  modules and export names; the mapper then matches imports exactly (the code
-  already does when a manifest lists them).
-- **Texuli's merge and wider keys**: Texuli will export `mergeCatalogs`, accept
-  `<namespace>:<id>` allow keys and add manifests for `icon`, `avatar`,
-  `skeleton`, `progress`, `spinner`, `tabs` and others. Then the temporary view
-  above goes away, and those Texuli components map instead of being
-  `unmapped`. Host frames (`protoyard:window-chrome`,
-  `protoyard:browser-chrome`, `protoyard:safe-area`, `protoyard:layout-host`,
-  `protoyard:scenario-switcher`) move to Texuli's planned non-emit tier.
 - **Generator inputs**: `protoyard generate` and `quick` taking a design
   system so new prototypes start locked.
 
@@ -405,12 +418,18 @@ These are not available today:
 - An approval is a record, not a proof; the reviewed commit is the guarantee.
 - Only a folder with an `allow` section can be approved and locked; a flat
   document cannot.
-- Until Texuli's catalog lists imports, a Texuli component maps to a catalog
-  id by its name ([the mapper](THEMES.md#the-catalog-mapper)); one the catalog
-  does not list (today `Icon`, `LucideIcon`, `Skeleton`, `Progress`,
-  `AppShell` and others) is `unmapped` and refused in a locked prototype.
-- The allow section holds at most 256 keys (Texuli's cap): 228 today (170
-  Texuli components and 58 extensions).
+- A component the mapper cannot place ([the mapper](THEMES.md#the-catalog-mapper))
+  is `unmapped` and refused in a locked prototype; none of the component tags
+  in `templates/` and `prototypes/` is today.
+- Non-components are never refused, so a locked design system cannot forbid
+  them: Texuli's list includes shells (`AppShell`) and some visual exports it
+  does not catalog yet (`ToggleGroup`, `Rating`, `FileUpload`, `TagsInput`,
+  `PinInput`, `NumberField`, `MobileAppFrame`), and with them the
+  `@protoyard/ui` components built on them (`ChipGroup`, `StarRating`…). They
+  become governed when Texuli catalogs them (the CI test then asks for their
+  manifests).
+- The allow section holds at most 4,096 keys (Texuli's cap): 237 today (187
+  Texuli components and 50 extensions).
 - `check ds` is a static, textual scan; see its limits in
   [THEMES](THEMES.md#check-ds).
 - A workspace's design systems are local files. Nothing is hosted, shared or

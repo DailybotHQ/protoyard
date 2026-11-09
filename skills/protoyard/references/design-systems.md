@@ -32,8 +32,9 @@ section and a draft approval, and the component library) and prints the
 contrast result per mode. The `allow` section lists the Texuli catalog
 components and values a locked prototype may use, plus `@protoyard/ui`'s own
 components under `protoyard:` ids (`protoyard:data-table`; `<DataTable>` from
-`@protoyard/ui` needs that key, while a re-export such as `<Button>` needs
-`button`): `--allow all` (the default, every id), `minimal` (Texuli's core set
+`@protoyard/ui` needs that key, while a re-export such as `<Button>` or
+`<FormField>` needs the Texuli id, `button` or `field`; exports Texuli lists as
+non-components, such as `MotionProvider` or `AppShell`, need none): `--allow all` (the default, every id), `minimal` (Texuli's core set
 and the `protoyard:` components it covers), a JSON file, or `none` (that design system can never be locked;
 `ds allow init <id>` adds one later). `--dry-run` compiles without writing; `--force` replaces the file. An
 imported theme lists what it could not keep exactly as notes (most Protoyard

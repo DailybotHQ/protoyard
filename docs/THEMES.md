@@ -1162,7 +1162,7 @@ own `src/` and the `.css` files next to its `protoyard.json`. It skips
 | `ds-styled-local-component` | A local `.svelte` file (any one in `src/`) that styles itself: visual declarations in its `<style>`, or visual utility classes | Compose design-system components with layout classes |
 | `ds-ui-library` | An import of another UI library: `bits-ui`, `melt-ui`, `@skeletonlabs/*`, `flowbite*`, `daisyui`, `shadcn*`, `@radix-ui/*`, `@headlessui/*`, `svelte-ux`, `carbon-components-svelte`, `@smui/*`, `tailwind-variants`, `class-variance-authority`, `@ark-ui/*`, `@zag-js/*`, `sveltestrap`, `svelte-material-ui`, `attractions` (also as a CSS `@import` or `@plugin`) | The design system's component |
 | `ds-local-motion` | `svelte/transition`, `svelte/animate` or `svelte/motion` imports, `transition:`, `in:`, `out:` or `animate:` directives, and `@keyframes` (aligned with the adoption `local-motion` rule) | Motion that the design system's components already have |
-| `ds-not-allowed` | Only when the bound design system has an `allow` section. A Texuli (or `@protoyard/ui`) component used as a tag whose catalog id ([the mapper](#the-catalog-mapper)) the `allow` section does not list and is not a part of an allowed id (`select-trigger` of `select`); a component the mapper cannot place (`unmapped`); an `@ds/<id>/<Name>` import that is not in the design system's library or belongs to another design system; in a library component's own file, a catalog id its entry does not list in `composes` | A component the design system allows, or ask the designer to allow it |
+| `ds-not-allowed` | Only when the bound design system has an `allow` section. A Texuli (or `@protoyard/ui`) component used as a tag whose catalog id ([the mapper](#the-catalog-mapper)) the `allow` section does not list and is not a part of an allowed id (`select-trigger` of `select`); a component the mapper cannot place (`unmapped`; a non-component export such as `MotionProvider` is never refused); an `@ds/<id>/<Name>` import that is not in the design system's library or belongs to another design system; in a library component's own file, a catalog id its entry does not list in `composes` | A component the design system allows, or ask the designer to allow it |
 | `ds-disabled-value` | Only with an `allow` section. A literal value on an axis prop (`variant="ghost"`, `size={'sm'}`; the prop name comes from the catalog manifest's `axes`) that the component's allow entry does not enable. Expressions (`{variant}`, `` {`x${y}`} ``) are skipped: the planned render check covers them | An enabled value |
 
 Every violation carries the rule id, the workspace-relative file, the line, a
@@ -1176,36 +1176,52 @@ rule, against `allow` and their entry's `composes`.
 
 #### The catalog mapper
 
-`ds-not-allowed` needs the catalog id of each imported component, and Texuli's
-catalog does not yet list each component's import module and export names.
-Until it does, one function (`catalogIdFor` in
-`packages/cli/src/lib/ds-catalog.ts`) maps an identifier imported from
-`texuli`, `texuli/<sub>`, `@texuli/<pkg>[/<sub>]` or `@protoyard/ui`:
+`ds-not-allowed` needs the catalog id of each imported component. One
+function (`catalogIdFor` in `packages/cli/src/lib/ds-catalog.ts`) maps an
+import (module and export name) from `texuli`, `texuli/<sub>`,
+`@texuli/<pkg>[/<sub>]`, `@protoyard/ui` or a module a
+[catalog extension](DESIGN_SYSTEMS.md#catalog-extensions) imports from. The
+catalog's own `imports` (Texuli 0.15.0) come first:
 
-1. An own component of `@protoyard/ui` (or of any module a
-   [catalog extension](DESIGN_SYSTEMS.md#catalog-extensions) imports from)
-   maps by its extension manifest's `imports` to the extension id
-   (`DataTable` → `protoyard:data-table`). Re-exports of Texuli components
-   continue below.
-2. When a catalog manifest lists `imports: [{ module, exports }]`, by the exact
-   module and export name; a Texuli export the catalog does not list is then
-   `unmapped` (no fallback). Today's catalog lists none.
-3. Otherwise by name: the catalog id whose PascalCase equals the identifier
-   (`AlertDialog` → `alert-dialog`), then the package's id prefix plus the
-   identifier (`Grid` from `@texuli/data` → `data-grid`), then the longest id
-   whose PascalCase is a prefix at a word boundary (`CardHeader` → `card`;
-   `Selector` matches nothing), else `unmapped`.
+1. An own component of `@protoyard/ui` (or of any extension's module) maps by
+   its extension manifest's `imports` to the extension id (`DataTable` →
+   `protoyard:data-table`).
+2. A re-export of `@protoyard/ui` is followed to the Texuli import it is
+   (`FormField` is `Field` from `texuli/field`; `SplitView` is the default
+   export of `texuli/layouts/app/split-view`).
+3. A Texuli manifest that lists the exact module and export name gives the id
+   (`Icon` from `texuli/icons` → `icon`, `CardHeader` from `texuli/card` →
+   `card`).
+4. An export Texuli's catalog lists as a non-component (`MotionProvider`,
+   `SafeArea`, `AppShell`), or an own `@protoyard/ui` component that renders
+   no catalog component, is a **non-component**: never refused, never
+   counted.
+5. Anything else from a Texuli module or `@protoyard/ui` is `unmapped`: no
+   fallback to names.
+
+Only for a Texuli whose manifests list no `imports` does the mapper fall back
+to names: the id whose PascalCase equals the name (`AlertDialog` →
+`alert-dialog`), then the package's id prefix plus the name (`Grid` from
+`@texuli/data` → `data-grid`), then the longest id whose PascalCase starts
+the name at a word boundary (`CardHeader` → `card`; `Selector` matches
+nothing).
 
 Measured over every component tag in `templates/` and `prototypes/` (446
-`.svelte` files, 2,827 uses, 2026-11-09). Before the catalog extensions: 1,881
-exact, 155 by prefix, 791 unmapped. With them: 766 uses (33 names) map to an
-extension, 1,338 (19 names) exactly, 103 (8 names) by prefix and 620 (12
-names) are unmapped. Of those 620, 601 are Texuli components Texuli has
-announced catalog entries for (`LucideIcon` and `Icon` 477, `Skeleton` 100,
-`Progress` 10, `ListItem` 7, `Separator` 4, `Accordion` 2, `Carousel` 1); the
-other 19 are `AppShell` (9), `TypingIndicator` (5), `MotionProvider` (3) and
-`Wizard` (2). A locked prototype cannot use an unmapped component. A prefix
-match can still be wrong for a re-export (`MessageList` → `chat-message`).
+`.svelte` files, 2,827 uses, 2026-11-09, Texuli 0.15.0 catalog):
+
+| Class | Uses | Names | Most used |
+| --- | ---: | ---: | --- |
+| Catalog import | 2,049 | 37 | `Button` 704, `LucideIcon` 383, `FormField` 185, `Card` 135, `Badge` 121, `Skeleton` 100, `Icon` 94 |
+| Extension | 758 | 28 | `Input` 180, `EmptyState` 118, `Select` 117, `Avatar` 73, `StatCard` 50, `Dialog` 42 |
+| Non-component | 20 | 7 | `AppShell` 9, `MotionProvider` 3, `SafeArea` 2, `ChipGroup` 2, `StarRating` 2, `FileDropzone` 1, `MobileAppShell` 1 |
+| By name (exact, package, prefix) | 0 | 0 | |
+| Unmapped | 0 | 0 | |
+
+With the Texuli 0.14 catalog (no `imports`, names only) the same tags were
+766 extension, 1,338 exact, 103 prefix and 620 unmapped (`LucideIcon` and
+`Icon`, `Skeleton`, `Progress`, `AppShell`…), and a prefix match could be
+wrong for a re-export (`MessageList` → `chat-message`; the catalog maps it to
+`chat-thread`).
 
 **Allowed utilities (owner decision: layout only, on the token scale).** The
 list is an allow-list: anything not on it fails, including unknown utilities.
