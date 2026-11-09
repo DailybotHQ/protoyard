@@ -12,6 +12,7 @@ import {
 } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { ListItem } from 'texuli/list-item';
+import { Text } from 'texuli/typography';
 import CustomerDialog from '../components/CustomerDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -71,9 +72,9 @@ const columns: DataTableColumn<Row>[] = [
   </ul>
 {/snippet}
 {#snippet statusCell(c: Row)}<StatusBadge status={c.status} />{/snippet}
-{#snippet valueCell(c: Row)}<span class="tabular-nums">{money(c.value, currency)}</span>{/snippet}
+{#snippet valueCell(c: Row)}<Text as="span" size="sm" tabular>{money(c.value, currency)}</Text>{/snippet}
 {#snippet addedCell(c: Row)}
-  <time class="text-muted-foreground" datetime={c.createdAt}>{fromNow(c.createdAt, clock.now)}</time>
+  <Text as="span" size="sm" tone="muted"><time datetime={c.createdAt}>{fromNow(c.createdAt, clock.now)}</time></Text>
 {/snippet}
 
 <PageHeader

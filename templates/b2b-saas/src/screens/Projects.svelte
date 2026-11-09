@@ -11,6 +11,7 @@ import {
   Notice,
   Select,
 } from '@protoyard/ui';
+import { Heading, Text } from 'texuli/typography';
 import type { B2bSaasDatabase } from '../database/schema.ts';
 import { createProjectServices } from '../domain/projects.ts';
 
@@ -52,9 +53,9 @@ async function updateStatus(id: string, status: 'planning' | 'active' | 'complet
 
 <section class="space-y-6">
   <div>
-    <p class="text-sm font-medium text-primary">Workspace projects</p>
-    <h1 class="mt-1 text-3xl font-semibold tracking-tight">Projects</h1>
-    <p class="mt-2 text-muted-foreground">Create and update project records saved in your local prototype database.</p>
+    <Text size="sm" weight="medium" tone="primary">Workspace projects</Text>
+    <Heading level={1} size="xl" class="mt-1">Projects</Heading>
+    <Text tone="muted" class="mt-2">Create and update project records saved in your local prototype database.</Text>
   </div>
   <Card class="p-4">
     <form class="flex flex-col gap-3 sm:flex-row sm:items-start" onsubmit={(event) => { event.preventDefault(); void createProject(); }}>

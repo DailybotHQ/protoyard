@@ -29,6 +29,7 @@ import {
 import { LucideIcon } from 'texuli/icons/lucide';
 import { Code } from 'texuli/kbd-code';
 import { ListItem } from 'texuli/list-item';
+import { Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import { CURRENCIES, type Currency } from '../database/schema.ts';
 import { CAPABILITIES, ROLE_LABELS } from '../domain/policy.ts';
@@ -171,11 +172,11 @@ const updatedByName = $derived(
           </div>
         </form>
       {:else if settings.current}
-        <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
-          <div><dt><CardDescription>Workspace name</CardDescription></dt><dd class="font-medium">{settings.current.workspaceName}</dd></div>
-          <div><dt><CardDescription>Support email</CardDescription></dt><dd class="font-medium">{settings.current.supportEmail}</dd></div>
-          <div><dt><CardDescription>Currency</CardDescription></dt><dd class="font-medium">{settings.current.currency}</dd></div>
-          <div><dt><CardDescription>Weekly report</CardDescription></dt><dd class="font-medium">{settings.current.weeklyReport ? 'On' : 'Off'}</dd></div>
+        <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+          <div><dt><CardDescription>Workspace name</CardDescription></dt><dd><Text as="span" size="sm" weight="medium">{settings.current.workspaceName}</Text></dd></div>
+          <div><dt><CardDescription>Support email</CardDescription></dt><dd><Text as="span" size="sm" weight="medium">{settings.current.supportEmail}</Text></dd></div>
+          <div><dt><CardDescription>Currency</CardDescription></dt><dd><Text as="span" size="sm" weight="medium">{settings.current.currency}</Text></dd></div>
+          <div><dt><CardDescription>Weekly report</CardDescription></dt><dd><Text as="span" size="sm" weight="medium">{settings.current.weeklyReport ? 'On' : 'Off'}</Text></dd></div>
         </dl>
         <Notice class="mt-4" icon={Lock} text="Only owners and admins can change workspace settings." />
       {/if}
@@ -207,7 +208,7 @@ const updatedByName = $derived(
         {#each team.current ?? [] as member (member.id)}
           <ListItem description={`${member.title} · ${member.email}`}>
             {member.name}
-            {#if member.id === principal.current?.persona.id}<span class="font-normal text-muted-foreground">(you)</span>{/if}
+            {#if member.id === principal.current?.persona.id}<Text as="span" size="sm" tone="muted">(you)</Text>{/if}
             {#snippet leading()}<Avatar name={member.name} {...avatarImage(member.avatar)} size="sm" />{/snippet}
             {#snippet trailing()}
               <Badge variant={member.role === 'owner' ? 'default' : member.role === 'viewer' ? 'outline' : 'secondary'}>
@@ -225,10 +226,10 @@ const updatedByName = $derived(
     <Card class="p-5">
       <CardTitle level={2}>Billing</CardTitle>
       {#if can(CAPABILITIES.billingManage)}
-        <dl class="mt-3 space-y-2 text-sm">
+        <dl class="mt-3 space-y-2">
           <div class="flex items-center justify-between"><dt><CardDescription>Plan</CardDescription></dt><dd><Badge>{org?.plan ?? '—'}</Badge></dd></div>
           <div class="flex items-center justify-between"><dt><CardDescription>Status</CardDescription></dt><dd><Badge variant={org?.billingStatus === 'expired' ? 'destructive' : 'success'}>{org?.billingStatus ?? '—'}</Badge></dd></div>
-          <div class="flex items-center justify-between"><dt><CardDescription>Since</CardDescription></dt><dd>{org ? formatDate(org.createdAt) : '—'}</dd></div>
+          <div class="flex items-center justify-between"><dt><CardDescription>Since</CardDescription></dt><dd><Text as="span" size="sm">{org ? formatDate(org.createdAt) : '—'}</Text></dd></div>
         </dl>
         <CardDescription class="mt-3">Billing is simulated: no payment provider is involved.</CardDescription>
       {:else}

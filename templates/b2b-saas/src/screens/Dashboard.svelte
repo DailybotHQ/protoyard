@@ -2,6 +2,7 @@
 import { getRuntime, usePrincipal } from '@protoyard/renderer-svelte';
 import { SsoButtons } from '@protoyard/saas-ui';
 import { Button, Card, CardDescription, CardTitle } from '@protoyard/ui';
+import { Heading, Text } from 'texuli/typography';
 
 const runtime = getRuntime();
 const principal = usePrincipal(runtime);
@@ -11,9 +12,9 @@ const signedIn = $derived(principal.current !== null);
 {#if signedIn}
   <section class="space-y-6">
     <div>
-      <p class="text-sm font-medium text-primary">Northstar Studio</p>
-      <h1 class="mt-2 text-3xl font-semibold tracking-tight">Your workspace is ready</h1>
-      <p class="mt-2 max-w-2xl text-muted-foreground">Manage projects, invite teammates, and explore the simulated SaaS flows.</p>
+      <Text size="sm" weight="medium" tone="primary">Northstar Studio</Text>
+      <Heading level={1} size="xl" class="mt-2">Your workspace is ready</Heading>
+      <Text tone="muted" class="mt-2 max-w-2xl">Manage projects, invite teammates, and explore the simulated SaaS flows.</Text>
     </div>
     <div class="grid gap-4 sm:grid-cols-3">
       <Card href="#/projects" class="p-5"><CardTitle level={2}>Projects</CardTitle><CardDescription class="mt-2">Track work from planning to completion.</CardDescription></Card>
@@ -24,9 +25,9 @@ const signedIn = $derived(principal.current !== null);
 {:else}
   <section class="mx-auto grid max-w-4xl gap-8 py-12 md:grid-cols-5 md:items-center">
     <div class="md:col-span-3">
-      <p class="text-sm font-semibold uppercase tracking-wide text-primary">B2B SaaS starter</p>
-      <h1 class="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">A workspace that feels ready to grow.</h1>
-      <p class="mt-4 text-lg text-muted-foreground">Explore sign-in, workspaces, onboarding, billing, inbox, and project management. Everything runs locally in this browser.</p>
+      <Text size="sm" weight="semibold" tone="primary" transform="uppercase" tracking="wide">B2B SaaS starter</Text>
+      <Heading level={1} size="display" class="mt-3">A workspace that feels ready to grow.</Heading>
+      <Text size="lg" tone="muted" class="mt-4">Explore sign-in, workspaces, onboarding, billing, inbox, and project management. Everything runs locally in this browser.</Text>
       <div class="mt-6 flex flex-wrap gap-3">
         <Button href="#/sign-up">Create a workspace</Button>
         <Button href="#/sign-in" variant="outline">Sign in</Button>

@@ -14,6 +14,7 @@ import {
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { ListItem } from 'texuli/list-item';
+import { Text } from 'texuli/typography';
 import CustomerDialog from '../components/CustomerDialog.svelte';
 import MetricCard from '../components/MetricCard.svelte';
 import OrderDialog from '../components/OrderDialog.svelte';
@@ -127,7 +128,7 @@ const trend = (value: number | null) =>
         <CardTitle level={2}>Revenue · last 14 days</CardTitle>
         <Button variant="link" size="sm" href="#/orders">All orders</Button>
       </div>
-      <p class="text-2xl font-semibold tabular-nums">{money(revenueTotal, currency)}</p>
+      <Text size="figure" tabular>{money(revenueTotal, currency)}</Text>
       <CardDescription class="mb-2">{revenueOrders.toLocaleString()} revenue order{revenueOrders === 1 ? '' : 's'} in 14 days</CardDescription>
       <!-- The charts kit loads on demand so the Overview route stays small. -->
       {#key chartAttempt}

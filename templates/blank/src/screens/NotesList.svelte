@@ -8,9 +8,12 @@ import {
   runService,
   useClock,
 } from '@protoyard/renderer-svelte';
-import { Badge, Button, EmptyState, Input, Skeleton } from '@protoyard/ui';
+import { Badge, Button, EmptyState, Skeleton } from '@protoyard/ui';
+import { Alert } from 'texuli/alert';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { InputGroup } from 'texuli/input';
+import { Box, Heading, Text } from 'texuli/typography';
 import NoteEditor from '../components/NoteEditor.svelte';
 import type { BlankDatabase } from '../database/schema.ts';
 import { sortNotes } from '../domain/notes.ts';
@@ -41,10 +44,10 @@ const visible = $derived.by(() => {
 
 <div class="flex flex-wrap items-end justify-between gap-4">
   <div>
-    <h1 class="text-2xl font-semibold tracking-tight">Notes</h1>
-    <p class="mt-1 text-sm text-muted-foreground">
+    <Heading level={1} size="xl">Notes</Heading>
+    <Text size="sm" tone="muted" class="mt-1">
       {notes.current?.length ?? 0} note{notes.current?.length === 1 ? '' : 's'} · saved in this browser
-    </p>
+    </Text>
   </div>
   {#if canCreate}
     <Button onclick={() => (editorOpen = true)}><Icon icon="plus" class="size-4" aria-hidden="true" />New note</Button>
@@ -52,21 +55,22 @@ const visible = $derived.by(() => {
 </div>
 
 {#if (notes.current?.length ?? 0) > 0}
-  <div class="relative mt-6">
-    <Icon icon="search" class="pointer-events-none absolute top-1 2 left-3 size-4 -translate-y-1 2 text-muted-foreground" aria-hidden="true" />
-    <Input type="search" class="pl-9" placeholder="Search notes" aria-label="Search notes" bind:value={query} />
-  </div>
+  <InputGroup
+    class="mt-6"
+    inputProps={{ type: 'search', placeholder: 'Search notes', 'aria-label': 'Search notes' }}
+    bind:value={query}
+  >
+    {#snippet start()}<Icon icon="search" class="size-4" aria-hidden="true" />{/snippet}
+  </InputGroup>
 {/if}
 
 <div class="mt-6">
   {#if notes.loading}
     <div class="space-y-3" aria-busy="true" aria-label="Loading notes">
-      {#each [0, 1, 2] as i (i)}<Skeleton class="h-20 w-full rounded-xl" />{/each}
+      {#each [0, 1, 2] as i (i)}<Skeleton class="h-20 w-full" />{/each}
     </div>
   {:else if notes.error}
-    <p class="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm text-foreground" role="alert">
-      Could not read notes: {String(notes.error)}
-    </p>
+    <Alert tone="error" text={`Could not read notes: ${String(notes.error)}`} />
   {:else if (notes.current?.length ?? 0) === 0}
     <EmptyState
       icon={NotebookPen}
@@ -82,25 +86,25 @@ const visible = $derived.by(() => {
       {/snippet}
     </EmptyState>
   {:else if visible.length === 0}
-    <p class="py-10 text-center text-sm text-muted-foreground">No notes match “{query}”.</p>
+    <Text size="sm" tone="muted" align="center" class="py-10">No notes match “{query}”.</Text>
   {:else}
     <ul class="space-y-3">
       {#each visible as note (note.id)}
-        <li class="group relative rounded-xl border border-border bg-surface p-4 shadow-soft transition-colors hover:border-primary/40">
-          <div class="flex items-start gap-3">
+        <li class="relative">
+          <Box radius="xl" border="default" elevation="sm" surface="default" class="flex items-start gap-3">
             <div class="min-w-0 flex-1">
-              <h2 class="flex items-center gap-2 font-medium">
-                <a href={`#/notes/${encodeURIComponent(note.id)}`} class="truncate after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none">
+              <Heading level={2} size="sm" class="flex items-center gap-2">
+                <a href={`#/notes/${encodeURIComponent(note.id)}`} class="truncate after:absolute after:inset-0">
                   {note.title}
                 </a>
                 {#if note.pinned}<Badge variant="secondary"><LucideIcon icon={Pin} class="size-3" />Pinned</Badge>{/if}
-              </h2>
+              </Heading>
               {#if note.body}
-                <p class="mt-1 line-clamp-2 text-sm text-muted-foreground">{note.body}</p>
+                <Text size="sm" tone="muted" lineClamp={2} class="mt-1">{note.body}</Text>
               {/if}
-              <p class="mt-2 text-xs text-muted-foreground">
+              <Text size="xs" tone="muted" class="mt-2">
                 {authorName(note.authorId)} · updated {timeAgo(note.updatedAt, clock.now)}
-              </p>
+              </Text>
             </div>
             {#if canUpdate}
               <Button
@@ -111,10 +115,15 @@ const visible = $derived.by(() => {
                 aria-pressed={note.pinned}
                 onclick={() => runService(() => notesService().togglePin(note))}
               >
-                <LucideIcon icon={Pin} class={note.pinned ? 'size-4 fill-current text-primary' : 'size-4'} />
+                <LucideIcon
+                  icon={Pin}
+                  class="size-4"
+                  tone={note.pinned ? 'primary' : undefined}
+                  fill={note.pinned ? 'currentColor' : 'none'}
+                />
               </Button>
             {/if}
-          </div>
+          </Box>
         </li>
       {/each}
     </ul>
