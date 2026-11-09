@@ -1180,26 +1180,32 @@ rule, against `allow` and their entry's `composes`.
 catalog does not yet list each component's import module and export names.
 Until it does, one function (`catalogIdFor` in
 `packages/cli/src/lib/ds-catalog.ts`) maps an identifier imported from
-`texuli`, `texuli/<sub>`, `@texuli/<pkg>[/<sub>]` or `@protoyard/ui` (its
-re-exports and wrappers map the same way, by name):
+`texuli`, `texuli/<sub>`, `@texuli/<pkg>[/<sub>]` or `@protoyard/ui`:
 
-1. When a catalog manifest lists `imports: [{ module, exports }]`, by the exact
+1. An own component of `@protoyard/ui` (or of any module a
+   [catalog extension](DESIGN_SYSTEMS.md#catalog-extensions) imports from)
+   maps by its extension manifest's `imports` to the extension id
+   (`DataTable` → `protoyard:data-table`). Re-exports of Texuli components
+   continue below.
+2. When a catalog manifest lists `imports: [{ module, exports }]`, by the exact
    module and export name; a Texuli export the catalog does not list is then
    `unmapped` (no fallback). Today's catalog lists none.
-2. Otherwise by name: the catalog id whose PascalCase equals the identifier
+3. Otherwise by name: the catalog id whose PascalCase equals the identifier
    (`AlertDialog` → `alert-dialog`), then the package's id prefix plus the
    identifier (`Grid` from `@texuli/data` → `data-grid`), then the longest id
    whose PascalCase is a prefix at a word boundary (`CardHeader` → `card`;
    `Selector` matches nothing), else `unmapped`.
 
 Measured over every component tag in `templates/` and `prototypes/` (446
-`.svelte` files, 2026-11-09): 1,854 uses (28 names) map exactly, 108 (10
-names) by prefix, and 778 (28 names) are unmapped. The unmapped ones are
-components the catalog does not list yet, mostly icons (`LucideIcon`, `Icon`)
-and `@protoyard/ui` components such as `Skeleton`, `Avatar`, `DataTable`,
-`Tabs` and `Progress`. A locked prototype cannot use those until the catalog
-lists them. Prefix matches can be wrong for a Protoyard composite
-(`StatCard` → `stat`, `MessageList` → `chat-message`).
+`.svelte` files, 2,827 uses, 2026-11-09). Before the catalog extensions: 1,881
+exact, 155 by prefix, 791 unmapped. With them: 766 uses (33 names) map to an
+extension, 1,338 (19 names) exactly, 103 (8 names) by prefix and 620 (12
+names) are unmapped. Of those 620, 601 are Texuli components Texuli has
+announced catalog entries for (`LucideIcon` and `Icon` 477, `Skeleton` 100,
+`Progress` 10, `ListItem` 7, `Separator` 4, `Accordion` 2, `Carousel` 1); the
+other 19 are `AppShell` (9), `TypingIndicator` (5), `MotionProvider` (3) and
+`Wizard` (2). A locked prototype cannot use an unmapped component. A prefix
+match can still be wrong for a re-export (`MessageList` → `chat-message`).
 
 **Allowed utilities (owner decision: layout only, on the token scale).** The
 list is an allow-list: anything not on it fails, including unknown utilities.

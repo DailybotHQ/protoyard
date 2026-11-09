@@ -729,6 +729,12 @@ contracts, and API compatibility in their existing package boundaries.
 New components should start from Texuli; add a wrapper only when it translates
 a real Protoyard contract or works around a tracked gap.
 
+Every own component of `@protoyard/ui` (a wrapper or a composite, not a
+re-export) also has a catalog extension manifest
+(`protoyard:<kebab-name>`, with the Texuli ids it `composes`), so locked design
+systems can allow it. A new component needs one; a test fails without it. See
+[catalog extensions](DESIGN_SYSTEMS.md#catalog-extensions).
+
 ## Layouts come from `texuli/layouts`
 
 `@protoyard/ui`'s `LayoutHost` wraps Texuli's layout host and registers the

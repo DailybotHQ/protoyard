@@ -56,7 +56,9 @@ design-system spec 0.13.0):
 }
 ```
 
-- The keys are catalog ids (`@texuli/catalog`, 170 components today). An
+- The keys are catalog ids: Texuli's (`@texuli/catalog`, 170 components
+  today) and the [catalog extensions](#catalog-extensions) of
+  `@protoyard/ui`'s own components (`protoyard:data-table`, 58 today). An
   omitted list allows every value the catalog lists; an empty list allows
   none.
 - **A design system without `allow` is not locked and cannot be locked.**
@@ -64,8 +66,8 @@ design-system spec 0.13.0):
 
   | `--allow` | Section |
   | --- | --- |
-  | `all` (default) | Every catalog component with every axis value and state; the designer narrows it |
-  | `minimal` | Texuli's core preset (actions, form controls, text and status, containers, overlays, page layouts) |
+  | `all` (default) | Every catalog component and every extension, with every axis value and state; the designer narrows it |
+  | `minimal` | Texuli's core preset (actions, form controls, text and status, containers, overlays, page layouts), plus the extensions whose `composes` that preset covers (`protoyard:dialog`, `protoyard:select`…; 18 today) |
   | `<file>.json` | An allow section from a workspace file (`{ "button": {…} }` or `{ "allow": {…} }`), checked against the catalog |
   | `none` | No allow section: the old unlocked document |
 
@@ -77,7 +79,83 @@ design-system spec 0.13.0):
   (`unknown-component at $.allow["no-such-thing"]`, `unknown-variant at
   $.allow.button.variants[0]`, also `unknown-size`, `unknown-tone`,
   `unknown-density`, `unknown-state`, and `unknown-component` for a library
-  entry's `composes`).
+  entry's `composes`). Extension keys are checked the same way, against the
+  merged catalog.
+
+### Catalog extensions
+
+`@protoyard/ui` has components of its own (`DataTable`, `StatCard`,
+`Notice`, its `Dialog` and `Select` wrappers…) next to its re-exports of
+Texuli's (`Button`, `Card`). Texuli's catalog lists only Texuli's, so each
+own component carries a **catalog extension manifest**: plain data with the
+same shape as a Texuli catalog manifest (id, package, label, summary, tier,
+props with `enumValues`, axes, states, `imports: [{ module, exports }]`), a
+namespaced id and `composes`, the Texuli ids it renders:
+
+```ts
+{
+  id: 'protoyard:notice',
+  package: '@protoyard/ui',
+  label: 'Notice',
+  summary: 'An inline message with a tone and an icon.',
+  tier: 'app',
+  props: [{ name: 'tone', kind: 'enum', enumValues: ['info', 'success', 'warning', 'error', 'brand'], default: 'info' }],
+  axes: { tone: 'tone' },
+  states: [],
+  imports: [{ module: '@protoyard/ui', exports: ['Notice'] }],
+  composes: ['alert'],
+  // useWhen, dontUseWhen, a11y and examples as in a Texuli manifest
+}
+```
+
+- **Where they live.** `packages/cli/src/lib/ds-extensions/protoyard-ui.ts`
+  (one entry per own component). `@protoyard/ui` has no subpath for them, and
+  adding one would change its `package.json`, so the CLI holds the data. Any
+  library that wraps Texuli can publish the same shape under its own
+  namespace.
+- **Merge.** The CLI merges them into the Texuli catalog with the rules agreed
+  with Texuli: the id needs a namespace (`<namespace>:<kebab-id>`, not
+  `texuli:`), no id or import collides, and every `composes` id is a Texuli
+  catalog id. A refused extension is left out and reported (codes
+  `namespace-required`, `id-collision`, `composes-unresolved`). When the
+  installed `@texuli/spec/design-system` exports `mergeCatalogs`, the CLI
+  uses it instead; the rest reads the merged catalog the same way.
+- **Mapping.** An own component imported from `@protoyard/ui` maps by its
+  manifest's `imports` to the extension id (`<DataTable>` →
+  `protoyard:data-table`). A re-export maps to the Texuli id (`<Button>` →
+  `button`). So a locked prototype that uses `<Notice>` needs
+  `protoyard:notice` in `allow`; allowing `alert` alone does not allow it.
+- **Rules.** `ds-not-allowed` allows an own component only when its extension
+  id is in `allow`; `ds-disabled-value` reads the extension's axes
+  (`<Notice tone="warning">` with `"protoyard:notice": { "tones": ["info"] }`
+  fails).
+- **Library entries** may list extension ids in `composes`;
+  `ds component new` writes them when a component renders one.
+
+**Temporary, until Texuli widens its validator.** Texuli's design-system
+validator still requires kebab-case `allow` keys, so the document Texuli
+validates, compiles and approves is a view of it: the extension keys left out
+of `allow` (the CLI checks them against the merged catalog), and an extension
+in a library entry's `composes` replaced by the Texuli ids it composes. The
+file keeps the extension keys. `ds approve` stamps the full document and
+takes the content hash over it, so the approval covers the extension keys.
+The CLI detects the wider validator and then passes the document unchanged.
+
+**Adding a component to `@protoyard/ui`.** Add one entry to
+`protoyard-ui.ts` (copy a similar one), then run:
+
+```bash
+pnpm vitest run packages/cli/tests/ds-extensions.test.ts
+```
+
+The test reads `packages/ui/src/index.ts` and fails when an own component
+(a `.svelte` file the barrel exports) has no manifest or more than one, when a
+manifest names something the package does not export as its own, when
+`composes` differs from the Texuli ids the source renders (through its local
+children; the failure prints the right list), or when an axis value is not in
+the source. A Texuli re-export never gets a manifest: it must map to a Texuli
+id, be one Texuli has announced, or be on the test's pinned gap list
+(`AppShell`, `TypingIndicator` and `Wizard` today).
 
 ### 2. Review
 
@@ -312,6 +390,13 @@ These are not available today:
 - **Catalog imports**: Texuli's catalog will list each component's import
   modules and export names; the mapper then matches imports exactly (the code
   already does when a manifest lists them).
+- **Texuli's merge and wider keys**: Texuli will export `mergeCatalogs`, accept
+  `<namespace>:<id>` allow keys and add manifests for `icon`, `avatar`,
+  `skeleton`, `progress`, `spinner`, `tabs` and others. Then the temporary view
+  above goes away, and those Texuli components map instead of being
+  `unmapped`. Host frames (`protoyard:window-chrome`,
+  `protoyard:browser-chrome`, `protoyard:safe-area`, `protoyard:layout-host`,
+  `protoyard:scenario-switcher`) move to Texuli's planned non-emit tier.
 - **Generator inputs**: `protoyard generate` and `quick` taking a design
   system so new prototypes start locked.
 
@@ -320,10 +405,12 @@ These are not available today:
 - An approval is a record, not a proof; the reviewed commit is the guarantee.
 - Only a folder with an `allow` section can be approved and locked; a flat
   document cannot.
-- Until Texuli's catalog lists imports, a component maps to a catalog id by
-  its name ([the mapper](THEMES.md#the-catalog-mapper)); a Texuli component the
-  catalog does not list (today `Icon`, `Skeleton`, `Avatar`, `Tabs` and others)
-  is `unmapped` and refused in a locked prototype.
+- Until Texuli's catalog lists imports, a Texuli component maps to a catalog
+  id by its name ([the mapper](THEMES.md#the-catalog-mapper)); one the catalog
+  does not list (today `Icon`, `LucideIcon`, `Skeleton`, `Progress`,
+  `AppShell` and others) is `unmapped` and refused in a locked prototype.
+- The allow section holds at most 256 keys (Texuli's cap): 228 today (170
+  Texuli components and 58 extensions).
 - `check ds` is a static, textual scan; see its limits in
   [THEMES](THEMES.md#check-ds).
 - A workspace's design systems are local files. Nothing is hosted, shared or
