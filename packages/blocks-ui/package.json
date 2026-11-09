@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/blocks-ui",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Svelte 5 block renderers for Protoyard: thin adapters over @texuli/blocks family renderers, plus the Protoyard host/registry contract.",
   "license": "MIT",
   "type": "module",

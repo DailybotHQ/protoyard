@@ -1,5 +1,38 @@
 # @protoyard/cli
 
+## 1.7.0
+
+### Minor Changes
+
+- Locked design systems on Texuli 0.15.0. A design system is a folder
+  (`design-systems/<id>/`: document with its allow section and approval, its
+  own components with source hashes, requests and kit stories). `ds approve`
+  records the approval with the content hash; `ds use --lock` pins a prototype
+  to the exact version; `new --ds` and `generate --ds` start locked prototypes;
+  `check ds` and `validate` refuse raw controls, visual CSS and utilities,
+  inline styles, other UI libraries, local motion and components or values the
+  design system does not allow. A locked runtime keeps only its theme, and
+  DevTools shows the lock. `ds component request`, `approve-request` and `new`
+  add a component only after a human approves it, with the same rules over MCP.
+  All 31 templates render through design-system components; social-feed still
+  reports two spacer styles until Texuli's VirtualList ships.
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/core@1.7.0
+  - @protoyard/renderer-svelte@1.7.0
+  - @protoyard/themes@1.7.0
+  - @protoyard/templates@1.7.0
+  - @protoyard/blocks@1.7.0
+  - @protoyard/blueprint@1.7.0
+  - @protoyard/crud@1.7.0
+  - @protoyard/offline@1.7.0
+  - @protoyard/player@1.7.0
+  - @protoyard/review@1.7.0
+  - @protoyard/scenarios@1.7.0
+  - @protoyard/decks@1.7.0
+
 ## 1.6.0
 
 ### Patch Changes

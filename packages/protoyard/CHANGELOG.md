@@ -1,5 +1,12 @@
 # protoyard
 
+## 1.7.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/cli@1.7.0
+
 ## 1.6.0
 
 ### Patch Changes

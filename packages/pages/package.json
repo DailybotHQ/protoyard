@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/pages",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Framework-agnostic page and doc engine for Protoyard: document schemas, limits, TOC helpers and form-response contracts (no Svelte).",
   "license": "MIT",
   "type": "module",

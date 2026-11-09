@@ -6,6 +6,60 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-09
+
+Locked design systems on Texuli 0.15.0. Every Texuli dependency is pinned
+exactly at `0.15.0`. See [DESIGN_SYSTEMS](docs/DESIGN_SYSTEMS.md).
+
+### Added
+
+- **Design systems as folders.** `design-systems/<id>/` holds the Texuli
+  document (with its `allow` section and approval), the design system's own
+  components with a sha256 per file (`components.json`), component requests
+  and kit stories. `ds migrate` moves a flat file into a folder; JSON Schemas
+  describe every file.
+- **Approval.** `ds approve <id> --by <name> [--release <semver>]` records the
+  approver, date, version and Texuli content hash in the document. It is a
+  record, not a proof: the reviewed commit (with CODEOWNERS on
+  `design-systems/`) is the guarantee.
+- **Locked prototypes.** `ds use <slug> <id> --lock` pins a prototype to an
+  approved design system at its exact version (`designSystem: { id, version,
+  locked }` in `protoyard.json`); `--upgrade` moves the pin. `new <slug> --ds
+  <id> [--template <name>]` and `generate --ds` start locked prototypes. The
+  library imports as `@ds/<id>/<Component>`.
+- **`check ds`.** Refuses raw controls, visual CSS, `:global` overrides of
+  Texuli classes, visual utility classes (layout utilities on the token scale
+  stay allowed), inline styles, styled local components, other UI libraries,
+  local motion, components outside the `allow` section and disabled variant,
+  size or tone values. `--report` counts violations in existing prototypes.
+  `validate` runs it for locked prototypes and checks the binding.
+- **Catalog mapper.** Every tag maps to a Texuli catalog id through Texuli's
+  catalog imports, or to one of 57 `protoyard:<name>` catalog extensions for
+  `@protoyard/ui`'s own components, merged with Texuli's `mergeCatalogs`.
+- **Locked runtime.** A locked prototype loads only its design system's theme;
+  other themes, custom themes and style presets are refused, and DevTools
+  shows the lock.
+- **Components on request.** `ds component request`, `approve-request` (a
+  human) and `new` add a design-system component only after approval; the
+  scaffold passes `check ds`. The skill, MCP tools (`ds_list`,
+  `ds_component_request`, `ds_component_new`, `new_from_design_system`) and
+  generated `AGENTS.md` tell agents to stop and ask when no component fits.
+- **Lock-clean templates.** 30 of 31 templates render only through
+  design-system components (Texuli `Heading`, `Text`, `Box`, `Card`, `Notice`
+  and the catalog). social-feed still reports two spacer styles until Texuli
+  ships `VirtualList` (0.16.0).
+
+### Changed
+
+- `@protoyard/themes`: soft tone foregrounds keep their hue when they meet AA
+  on the soft background.
+- `@protoyard/ui` `Avatar` forwards Texuli's `initials` and `status`.
+- `@protoyard/ai-ui` link previews and other clickable `Card`s name Texuli
+  0.15.0's stretched link (`linkLabel`).
+- Bundle caps follow Texuli 0.15.0's CSS: views board 17,906 B and calendar
+  18,210 B over the shell; doc initial CSS 7,898 B
+  ([PERFORMANCE](docs/PERFORMANCE.md)).
+
 ## [1.6.0] - 2026-11-09
 
 Texuli 0.14.4. Every Texuli dependency is pinned exactly at `0.14.4`.
