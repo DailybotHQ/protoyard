@@ -17,6 +17,7 @@ import {
 } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { ListItem } from 'texuli/list-item';
+import { Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import ReasonDialog from '../components/ReasonDialog.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -154,16 +155,16 @@ const setDisabled = (person: TenantPerson, disabled: boolean) =>
         <CardTitle>Subscription</CardTitle>
         <CardDescription>Simulated billing: no card or payment processor exists.</CardDescription>
       </CardHeader>
-      <CardContent class="grid gap-3 text-sm">
+      <CardContent class="grid gap-3">
         {#if subscription.current}
           {@const s = subscription.current}
-          <div class="flex items-center justify-between"><span>Plan</span><span class="font-medium capitalize">{s.plan}</span></div>
-          <div class="flex items-center justify-between"><span>Status</span><StatusBadge status={s.status} /></div>
-          <div class="flex items-center justify-between"><span>Seats</span><span>{s.seats}</span></div>
-          <div class="flex items-center justify-between"><span>MRR</span><span class="tabular-nums">{usd(s.mrrCents)}</span></div>
+          <div class="flex items-center justify-between"><Text as="span" size="sm">Plan</Text><Text as="span" size="sm" weight="medium" transform="capitalize">{s.plan}</Text></div>
+          <div class="flex items-center justify-between"><Text as="span" size="sm">Status</Text><StatusBadge status={s.status} /></div>
+          <div class="flex items-center justify-between"><Text as="span" size="sm">Seats</Text><Text as="span" size="sm" tabular>{s.seats}</Text></div>
+          <div class="flex items-center justify-between"><Text as="span" size="sm">MRR</Text><Text as="span" size="sm" tabular>{usd(s.mrrCents)}</Text></div>
           {#if s.status !== 'canceled'}
             <div class="flex items-center justify-between">
-              <span>{s.cancelAtPeriodEnd ? 'Ends' : 'Renews'}</span><span>{formatDate(s.renewsAt)}</span>
+              <Text as="span" size="sm">{s.cancelAtPeriodEnd ? 'Ends' : 'Renews'}</Text><Text as="span" size="sm">{formatDate(s.renewsAt)}</Text>
             </div>
             {#if canBilling}
               {#if s.cancelAtPeriodEnd}
@@ -184,7 +185,7 @@ const setDisabled = (person: TenantPerson, disabled: boolean) =>
             {/if}
           {/if}
         {:else}
-          <p class="text-muted-foreground">No subscription.</p>
+          <Text size="sm" tone="muted">No subscription.</Text>
         {/if}
       </CardContent>
     </Card>

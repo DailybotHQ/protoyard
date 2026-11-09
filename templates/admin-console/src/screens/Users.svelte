@@ -10,6 +10,7 @@ import {
   ErrorState,
   Select,
 } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import ReasonDialog from '../components/ReasonDialog.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -77,8 +78,8 @@ const columns: DataTableColumn<Row>[] = [
   <span class="flex items-center gap-3">
     <Avatar name={p.name} {...avatarImage(p.persona.avatar)} size="sm" decorative />
     <span class="min-w-0">
-      <span class="block truncate font-medium">{p.name}</span>
-      <span class="block truncate text-xs text-muted-foreground">{p.email}</span>
+      <Text as="span" size="sm" weight="medium" truncate class="block">{p.name}</Text>
+      <Text as="span" size="xs" tone="muted" truncate class="block">{p.email}</Text>
     </span>
   </span>
 {/snippet}
