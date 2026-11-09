@@ -987,6 +987,80 @@ CSS string (`"1.4"`, `"normal"`) as `invalid-value`.
 - A design system made in Theme Studio stays in that browser. Download the JSON
   and run `ds use` to put it in the repository.
 
+## Locked design systems: check ds
+
+A prototype can bind itself to a design system in `protoyard.json`:
+`"designSystem": { "id": "harbor", "version": "1.2.0", "locked": true }`
+(`id` is the design system's id, `version` its exact semver). When `locked`
+is `true`, the prototype draws its UI only with the design system's
+components; its own code composes them with layout. `pnpm protoyard check ds`
+enforces that with a static scan (no prototype code runs) of the prototype's
+own `src/` and the `.css` files next to its `protoyard.json`. It skips
+`node_modules`, `dist`, `tests`, `src/generated/**`, test files and symlinks.
+
+| Rule | What fails | Way out |
+| --- | --- | --- |
+| `ds-raw-control` | A native `<button>`, `<input>`, `<select>`, `<textarea>` or `<dialog>` (the elements of the Texuli adoption `raw-control` rule), an element with an interactive ARIA role (`role="button"`, `link`, `tab`, …), or a plain element such as `<a>` or `<div>` given a click handler | The design system's control (`Button`, `Input`, …) |
+| `ds-visual-css` | In a `.svelte` `<style>` or a `.css` file: a visual declaration (`color`, `background*`, `border*`, `outline*`, `box-shadow`, `font*`, `text-*`, `letter-spacing`, `line-height`, `opacity`, `filter`, `transform`, `transition*`, `animation*`, `fill`, `stroke`, …), a literal color (hex, `rgb()`, `hsl()`, `oklch()`, `lab()`, `color-mix()`, …) in any declaration, a redefined `--tx-*` token, or a `z-index` other than `auto`, 0–50 or `var(--tx-*)`. Layout declarations (`display`, `flex*`, `grid*`, `gap`, `padding`, `margin`, sizes, `position`, `inset`, `overflow`) pass | A component that draws it, or layout CSS only |
+| `ds-global-override` | A selector that targets a `tx-` class or a `[data-tx-*]` attribute: through `:global(...)`, in a global `.css` file or in local CSS | A component prop or variant, or a component request |
+| `ds-utility` | A class (static `class="…"`, string literals in `class={…}`, `class:` directives, `cx()`/`clsx()`/`cn()` strings) that is not an allowed layout utility, a `tx-` class or a class the prototype's own CSS defines; and any arbitrary value (`p-[13px]`, `gap-(--x)`), even on an allowed utility | A layout utility on the scale, or a component |
+| `ds-inline-style` | `style="…"` or `style:prop` on any element or component | Layout utilities or layout CSS |
+| `ds-styled-local-component` | A local `.svelte` file (any one in `src/`) that styles itself: visual declarations in its `<style>`, or visual utility classes | Compose design-system components with layout classes |
+| `ds-ui-library` | An import of another UI library: `bits-ui`, `melt-ui`, `@skeletonlabs/*`, `flowbite*`, `daisyui`, `shadcn*`, `@radix-ui/*`, `@headlessui/*`, `svelte-ux`, `carbon-components-svelte`, `@smui/*`, `tailwind-variants`, `class-variance-authority`, `@ark-ui/*`, `@zag-js/*`, `sveltestrap`, `svelte-material-ui`, `attractions` (also as a CSS `@import` or `@plugin`) | The design system's component |
+| `ds-local-motion` | `svelte/transition`, `svelte/animate` or `svelte/motion` imports, `transition:`, `in:`, `out:` or `animate:` directives, and `@keyframes` (aligned with the adoption `local-motion` rule) | Motion that the design system's components already have |
+
+Every violation carries the rule id, the workspace-relative file, the line, a
+short message and the way out: `Use a design-system component, or request one:
+protoyard ds component request <design-system-id> <Name>`, with the bound id
+filled in (and the component name for raw controls).
+
+**Allowed utilities (owner decision: layout only, on the token scale).** The
+list is an allow-list: anything not on it fails, including unknown utilities.
+
+- Display: `flex`, `inline-flex`, `grid`, `inline-grid`, `block`,
+  `inline-block`, `inline`, `hidden`, `contents`.
+- Flex: `flex-row`, `flex-col` (and `-reverse`), `flex-wrap`,
+  `flex-nowrap`, `flex-1`, `flex-auto`, `flex-initial`, `flex-none`, `grow`,
+  `grow-0`, `shrink`, `shrink-0`, `basis-*`.
+- Grid: `grid-cols-*`, `grid-rows-*`, `col-span-*`, `row-span-*`,
+  `col-start-*`, `col-end-*`, `row-start-*`, `row-end-*`, `grid-flow-*`,
+  `auto-cols-*`, `auto-rows-*`.
+- Alignment and order: `items-*`, `justify-*`, `justify-items-*`,
+  `justify-self-*`, `self-*`, `content-*`, `place-*`, `order-*`.
+- Spacing on the scale (whole and half steps, `px`): `gap-*`, `gap-x-*`,
+  `gap-y-*`, padding (`p-*`, `px-*`, `py-*`, `pt-*`, …), margin (`m-*`,
+  `mx-*`, `-mt-*`, …, `auto`), `space-x-*`, `space-y-*`.
+- Sizes: `w-*`, `h-*`, `min-w-*`, `max-w-*`, `min-h-*`, `max-h-*`, `size-*`
+  with scale steps, fractions (`w-1/2`), `auto`, `full`, `screen`, `min`,
+  `max`, `fit` and the named widths (`max-w-2xl`).
+- Position: `static`, `relative`, `absolute`, `fixed`, `sticky`, `inset-*`,
+  `top-*`, `right-*`, `bottom-*`, `left-*`.
+- `overflow-*`, `z-0` to `z-50` and `z-auto`, `sr-only`, `not-sr-only`, and
+  the `group`/`peer` markers.
+- Responsive and state variants (`sm:`, `md:`, `lg:`, `xl:`, `2xl:`, `hover:`,
+  `dark:`, …) on an allowed utility (`md:grid-cols-2` passes). A variant with
+  brackets (`data-[x]:`) is an arbitrary value.
+
+Refused: color, background, border, ring, outline, radius (`rounded-*`),
+shadow, typography (`font-*`, `text-*`, `leading-*`, `tracking-*`), opacity,
+filters, transforms, transitions and `animate-*`, and any arbitrary value.
+
+| Command | Result |
+| --- | --- |
+| `pnpm protoyard check ds` | Checks every prototype whose manifest is locked. Any violation fails (`validation`, exit 4) with `data: { ok, counts, violations }` and a hint naming the rule, file and way out. No locked prototype: exit 0. |
+| `pnpm protoyard check ds <slug…>` | Checks the named prototypes. A named prototype that is not locked is a usage error (exit 2) that suggests `--report`. |
+| `pnpm protoyard check ds [<slug…>] --report` | Also checks unlocked prototypes (all of them, or the named ones) and lists every violation, so you can see what locking would flag. Never fails (exit 0); `data.ok` is still `false` when a locked prototype has violations. |
+
+`pnpm protoyard validate <slug>` (with or without `--build`) runs the same
+rules as its `design-system` step for a locked prototype and fails on any
+violation, before the build. Unlocked prototypes get no step.
+
+**Limits.** The scan is static and textual: classes built at runtime from
+variables, components from other packages, and CSS imported from outside the
+prototype folder are not seen. Class strings are read from `class` values,
+`class:` directives and the `cx`/`clsx`/`cn`/`classNames`/`twMerge`/`twJoin`
+helpers only.
+
 ## The CLI
 
 `pnpm protoyard theme <command>` (`packages/cli/src/commands/theme.ts`).
