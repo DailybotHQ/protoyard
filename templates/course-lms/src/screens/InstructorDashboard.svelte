@@ -3,6 +3,7 @@ import type { CartesianSeries } from '@protoyard/charts-ui/cartesian';
 import { can, liveQuery } from '@protoyard/renderer-svelte';
 import { Card, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { Box, Heading, Text } from 'texuli/typography';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { useCourseLms } from '../lib/context.ts';
 
@@ -63,9 +64,9 @@ const upcomingSessions = $derived(
 </script>
 
 <header class="mb-6">
-  <p class="text-sm font-medium text-primary">Fieldnote Academy · instructor space</p>
-  <h1 class="text-3xl font-semibold tracking-tight">Instructor overview</h1>
-  <p class="mt-2 max-w-2xl text-muted-foreground">A simulated view of course enrollment, learner progress and cohort sessions.</p>
+  <Text size="sm" weight="medium" tone="primary">Fieldnote Academy · instructor space</Text>
+  <Heading level={1} size="xl">Instructor overview</Heading>
+  <Text tone="muted" class="mt-2 max-w-2xl">A simulated view of course enrollment, learner progress and cohort sessions.</Text>
 </header>
 
 {#if !authorized}
@@ -73,15 +74,15 @@ const upcomingSessions = $derived(
 {:else if report.error}
   <ErrorState title="Could not load instructor data" message={String(report.error)} />
 {:else if report.current === undefined}
-  <Skeleton class="h-72 w-full rounded-xl" />
+  <Skeleton class="h-72 w-full" />
 {:else if report.current.courses.length === 0}
   <EmptyState title="No courses to report on" description="Publish a course to see learner progress and cohort sessions here." />
 {:else}
-  <div class="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,1fr)]">
+  <div class="instructor-grid grid gap-5">
     <Card class="space-y-4 p-5">
       <div>
-        <h2 class="text-lg font-semibold">Learner progress</h2>
-        <p class="text-sm text-muted-foreground">Completed lessons across enrolled students.</p>
+        <Heading level={2} size="md">Learner progress</Heading>
+        <Text size="sm" tone="muted">Completed lessons across enrolled students.</Text>
       </div>
       {#if BarChart}
         <BarChart
@@ -94,28 +95,32 @@ const upcomingSessions = $derived(
           emptyMessage="No completed lessons yet."
         />
       {:else}
-        <Skeleton class="h-72 w-full rounded-lg" />
+        <Skeleton class="h-72 w-full" />
       {/if}
     </Card>
 
     <Card class="space-y-4 p-5">
       <div>
-        <h2 class="text-lg font-semibold">Cohort schedule</h2>
-        <p class="text-sm text-muted-foreground">Generated from the scenario seed and simulated date.</p>
+        <Heading level={2} size="md">Cohort schedule</Heading>
+        <Text size="sm" tone="muted">Generated from the scenario seed and simulated date.</Text>
       </div>
       {#if upcomingSessions.length === 0}
-        <p class="text-sm text-muted-foreground">No upcoming cohort sessions.</p>
+        <Text size="sm" tone="muted">No upcoming cohort sessions.</Text>
       {:else}
         <ol class="space-y-3">
           {#each upcomingSessions as session (session.id)}
             {@const cohort = report.current.cohorts.find((item) => item.id === session.cohortId)}
             {@const course = report.current.courses.find((item) => item.id === session.courseId)}
-            <li class="rounded-lg border border-border p-3">
-              <p class="font-medium">{cohort?.name ?? 'Cohort session'}</p>
-              <p class="text-sm text-muted-foreground">{course?.title ?? 'Course'}</p>
-              <time class="mt-1 block text-xs text-muted-foreground" datetime={session.start}>
-                {new Date(session.start).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC · {session.durationMinutes} min
-              </time>
+            <li>
+              <Box border="default" radius="lg" padding="none" class="p-3">
+                <Text weight="medium">{cohort?.name ?? 'Cohort session'}</Text>
+                <Text size="sm" tone="muted">{course?.title ?? 'Course'}</Text>
+                <Text as="span" size="xs" tone="muted" class="mt-1 block">
+                  <time datetime={session.start}>
+                    {new Date(session.start).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC · {session.durationMinutes} min
+                  </time>
+                </Text>
+              </Box>
             </li>
           {/each}
         </ol>
@@ -123,3 +128,11 @@ const upcomingSessions = $derived(
     </Card>
   </div>
 {/if}
+
+<style>
+  @media (min-width: 80rem) {
+    .instructor-grid {
+      grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 1fr);
+    }
+  }
+</style>
