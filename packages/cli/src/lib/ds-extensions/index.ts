@@ -20,8 +20,12 @@ export type * from './types.ts';
 export const CATALOG_EXTENSIONS: readonly CatalogExtensionManifest[] = PROTOYARD_UI_EXTENSIONS;
 
 const KEBAB = '[a-z][a-z0-9]*(?:-[a-z0-9]+)*';
-/** `<namespace>:<kebab-id>`, at most 48 characters (the allow-key cap). */
-export const EXTENSION_ID = new RegExp(`^(?=.{1,48}$)(${KEBAB}):${KEBAB}$`);
+/**
+ * `<namespace>:<kebab-id>` as Texuli's allow-key pattern accepts it (spec
+ * 0.13.0): at most 64 characters, a namespace of 2 to 16 lowercase letters
+ * and digits starting with a letter.
+ */
+export const EXTENSION_ID = new RegExp(`^(?=.{1,64}$)([a-z][a-z0-9]{1,15}):${KEBAB}$`);
 /** Namespaces an extension cannot claim. */
 export const RESERVED_NAMESPACES: readonly string[] = ['texuli'];
 

@@ -273,10 +273,12 @@ function texuliMergeCatalogs(): TexuliMerge | undefined {
 }
 
 /**
- * Texuli manifests plus `extensions`: Texuli's `mergeCatalogs` when it is
- * installed and returns manifests (an array, or `{ manifests }`), else the
- * local merge. Texuli's refusals (`{ ok: false, errors }`) are reported and
- * the local merge decides which extensions stay.
+ * Texuli manifests plus `extensions`. The manifests (props, axes, imports)
+ * come from the local merge, which the mapper needs. When the installed
+ * `@texuli/spec` exports `mergeCatalogs(texuli, extensions)` (drop 2:
+ * `{ ok, catalog, extensions, issues }` over the spec catalog), its `issues`
+ * are reported too and an extension it refuses is left out, so Texuli's
+ * rules (namespace, collisions, composes, CATALOG_EXTENSION_LIMITS) decide.
  */
 export function mergeWithExtensions(
   texuli: readonly CatalogManifestLike[],
@@ -287,7 +289,7 @@ export function mergeWithExtensions(
   if (!merge) return { manifests: local.manifests, refusals: local.refusals };
   let result: unknown;
   try {
-    result = merge(texuli, extensions);
+    result = merge({ components: texuli }, extensions);
   } catch (error) {
     return {
       manifests: local.manifests,
@@ -297,14 +299,10 @@ export function mergeWithExtensions(
       ],
     };
   }
-  const listed = Array.isArray(result) ? result : record(result)?.manifests;
-  if (Array.isArray(listed)) {
-    return { manifests: listed as CatalogManifestLike[], refusals: local.refusals };
-  }
-  const errors = record(result)?.errors;
-  const texuliRefusals: MergeRefusal[] = Array.isArray(errors)
-    ? errors.map((error) => {
-        const e = record(error) ?? {};
+  const issues = record(result)?.issues;
+  const texuliRefusals: MergeRefusal[] = Array.isArray(issues)
+    ? issues.map((issue) => {
+        const e = record(issue) ?? {};
         return {
           code: (typeof e.code === 'string' ? e.code : 'id-collision') as MergeRefusal['code'],
           id: typeof e.id === 'string' ? e.id : '*',
@@ -313,7 +311,20 @@ export function mergeWithExtensions(
         };
       })
     : [];
-  return { manifests: local.manifests, refusals: [...local.refusals, ...texuliRefusals] };
+  // Leave out every extension Texuli refused (its issue paths name the extension index).
+  const refusedIndexes = new Set(
+    texuliRefusals
+      .map((r) => /^\$?\.?extensions\[(\d+)\]/.exec(r.path)?.[1])
+      .filter((i): i is string => i !== undefined)
+      .map(Number)
+  );
+  const refusedIds = new Set(
+    extensions.filter((_, i) => refusedIndexes.has(i)).map((extension) => extension.id)
+  );
+  return {
+    manifests: local.manifests.filter((manifest) => !refusedIds.has(manifest.id)),
+    refusals: [...local.refusals, ...texuliRefusals],
+  };
 }
 
 let cached: DsCatalog | undefined;
