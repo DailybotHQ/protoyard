@@ -34,6 +34,7 @@ import {
   componentDrift,
   contentHash,
   DESIGN_SYSTEMS_DIR,
+  type DesignSystemLocation,
   DOCUMENT_FILE,
   emptyComponentsManifest,
   isDesignSystemId,
@@ -528,74 +529,179 @@ async function refreshSpec(
   }
 }
 
-export const dsUseCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
-  const slug = args[0];
-  const ref = args[1];
-  if (!slug || !ref) throw new CliError('usage', 'Provide <slug> and <id|file>.');
-  const location = locateDesignSystem(ctx.root, ref);
+/** A design-system document, located, read and compiled (Texuli at `trust: 'untrusted'`). */
+export interface ResolvedDesignSystem {
+  location: DesignSystemLocation;
+  document: unknown;
+  result: CompiledDesignSystemResult;
+}
+
+type CompiledDesignSystemResult = Extract<
+  Awaited<ReturnType<typeof compileDesignSystemDocument>>,
+  { ok: true }
+>;
+
+/**
+ * Locates, reads and compiles a design system by id or workspace file, and
+ * checks that a folder's document declares the folder's id. Writes nothing.
+ */
+export async function resolveDesignSystem(
+  root: string,
+  ref: string
+): Promise<ResolvedDesignSystem> {
+  const location = locateDesignSystem(root, ref);
   const document = readDocumentFile(location);
-  const file = location.file;
-  const result = await compileOrFail(document, file);
+  const result = await compileOrFail(document, location.file);
   if (location.layout === 'folder' && result.compiled.id !== location.id) {
     throw new CliError(
       'validation',
-      `${file} declares id "${result.compiled.id}", but its folder is design-systems/${location.id}/.`
+      `${location.file} declares id "${result.compiled.id}", but its folder is design-systems/${location.id}/.`
     );
   }
-  const { entry, dir } = await resolveTarget(ctx, slug, 'prototype');
+  return { location, document, result };
+}
+
+/**
+ * Throws when a resolved design system cannot be locked (flat, draft, approved
+ * at another version, or changed since approval). `what` names the prototype
+ * in the message.
+ */
+export function assertLockable(resolved: ResolvedDesignSystem, what: string): void {
+  const refusal = lockRefusal(
+    resolved.location,
+    resolved.document,
+    resolved.result.compiled.version
+  );
+  if (refusal) {
+    throw new CliError('validation', `Cannot lock ${what}: ${refusal}`, {
+      hint: 'A locked prototype only accepts an approved design system.',
+      data: { designSystem: resolved.location.id ?? resolved.location.file, lockable: false },
+    });
+  }
+}
+
+/** The import line a prototype definition uses for its applied design system. */
+export const DESIGN_SYSTEM_IMPORT = `import { ${EXPORT_NAME} } from './design-system.ts';`;
+
+export interface ApplyDesignSystemInput {
+  /** The prototype folder (a staging folder is fine: nothing is resolved from the registry). */
+  dir: string;
+  /** Workspace-relative POSIX path of the prototype, for messages and the files list. */
+  path: string;
+  slug: string;
+  /** A design-system id or workspace document path. */
+  ref: string;
+  lock: boolean;
+  upgrade: boolean;
+  /** Write a binding even without `lock` (an unlocked binding: `new --ds --unlocked`). */
+  bind?: boolean;
+  force: boolean;
+  dryRun: boolean;
+  /** Refresh the generated spec regions after writing (callers that write the spec later pass false). */
+  refreshSpec: boolean;
+  /** A design system the caller already resolved (skips reading the document twice). */
+  resolved?: ResolvedDesignSystem;
+  /**
+   * The definition the caller is about to write in place of `src/prototype.ts`
+   * (a regeneration plan), checked instead of the file on disk. Dry runs only:
+   * it lets a caller check every refusal before its first write.
+   */
+  plannedDefinition?: string;
+}
+
+export interface Binding {
+  id: string;
+  version: string;
+  locked: boolean;
+}
+
+export interface AppliedDesignSystem extends ReturnType<typeof summary> {
+  slug: string;
+  defaultTheme: string;
+  files: string[];
+  bytes: number;
+  dryRun: boolean;
+  written: boolean;
+  added?: { name: string; specifier: string };
+  designSystem?: Binding;
+  changes?: { changed: string[]; added: string[]; removed: string[] };
+  spec: { refreshed: boolean; reason?: string };
+  next: string[];
+}
+
+/**
+ * The core of `ds use`, shared with `new --ds` and `generate --ds`: compiles
+ * the design system into `src/design-system.ts`, wires it into
+ * `definePrototype({ themes })` or a kind prototype's brand options, sets
+ * `defaultTheme`, writes the manifest binding (`--lock`, `--upgrade`) and adds
+ * the theme package when the prototype lists none. Every target is checked
+ * (symlinks, manifest, a definition it can edit, another design system in
+ * place) before the first write.
+ */
+export async function applyDesignSystem(
+  ctx: Parameters<Handler>[0],
+  input: ApplyDesignSystemInput
+): Promise<AppliedDesignSystem> {
+  const resolved = input.resolved ?? (await resolveDesignSystem(ctx.root, input.ref));
+  const { location, result } = resolved;
+  const file = location.file;
+  const { dir, path: label, slug } = input;
   const manifestFile = join(dir, 'protoyard.json');
   const prototypeFile = join(dir, PROTOTYPE_FILE);
   const designSystemFile = join(dir, DESIGN_SYSTEM_FILE);
-  for (const target of [manifestFile, prototypeFile, designSystemFile]) {
+  const show = (rel: string) => `${label}/${rel}`;
+  for (const [target, rel] of [
+    [manifestFile, 'protoyard.json'],
+    [prototypeFile, PROTOTYPE_FILE],
+    [designSystemFile, DESIGN_SYSTEM_FILE],
+  ] as const) {
     if (existsSync(target) && lstatSync(target).isSymbolicLink()) {
-      throw new CliError(
-        'unsafe_path',
-        `Refusing to write through the symlink ${relativeTo(ctx.root, target)}.`
-      );
+      throw new CliError('unsafe_path', `Refusing to write through the symlink ${show(rel)}.`);
     }
   }
   if (!existsSync(prototypeFile)) {
-    throw new CliError('validation', `${entry.path}/${PROTOTYPE_FILE} does not exist.`);
+    throw new CliError('validation', `${show(PROTOTYPE_FILE)} does not exist.`);
   }
   const manifestInput = JSON.parse(readFileSync(manifestFile, 'utf8')) as Record<string, unknown>;
   if (!PrototypeManifestSchema.safeParse(manifestInput).success) {
-    throw new CliError(
-      'validation',
-      `Invalid ${entry.path}/protoyard.json; refusing to update it.`
-    );
+    throw new CliError('validation', `Invalid ${show('protoyard.json')}; refusing to update it.`);
   }
   const binding = bindingFor(manifestInput, result.compiled.id, result.compiled.version, {
-    lock: flag(options, 'lock'),
-    upgrade: flag(options, 'upgrade'),
-    slug: entry.slug,
+    lock: input.lock,
+    upgrade: input.upgrade,
+    bind: input.bind ?? false,
+    slug,
   });
-  if (binding?.locked) {
-    const refusal = lockRefusal(location, document, result.compiled.version);
-    if (refusal) {
-      throw new CliError('validation', `Cannot lock ${entry.slug}: ${refusal}`, {
-        hint: 'A locked prototype only accepts an approved design system.',
-      });
-    }
-  }
+  if (binding?.locked) assertLockable(resolved, slug);
   const packageFile = join(dir, 'package.json');
   const pkg = readPackage(dir);
   if (!pkg) {
-    throw new CliError('validation', `${entry.path}/package.json is missing or not valid JSON.`);
+    throw new CliError('validation', `${show('package.json')} is missing or not valid JSON.`);
   }
   if (lstatSync(packageFile).isSymbolicLink()) {
     throw new CliError(
       'unsafe_path',
-      `Refusing to write through the symlink ${relativeTo(ctx.root, packageFile)}.`
+      `Refusing to write through the symlink ${show('package.json')}.`
     );
   }
   const dependency = designSystemImport(ctx.root, pkg);
-  const prototypeSource = readFileSync(prototypeFile, 'utf8');
-  if (prototypeSource.includes(GENERATED_MARKER)) {
+  if (input.plannedDefinition !== undefined && !input.dryRun) {
+    throw new CliError('failure', 'A planned definition can only be checked in a dry run.');
+  }
+  const prototypeSource = input.plannedDefinition ?? readFileSync(prototypeFile, 'utf8');
+  // A generated definition is rewritten by regeneration. It is accepted only
+  // when the generator itself wired the design system (`generate --ds`): then
+  // regeneration keeps it, and `ds use --upgrade` only rewrites the
+  // non-generated src/design-system.ts.
+  if (
+    prototypeSource.includes(GENERATED_MARKER) &&
+    !prototypeSource.includes(DESIGN_SYSTEM_IMPORT)
+  ) {
     throw new CliError(
       'validation',
-      `${entry.path}/${PROTOTYPE_FILE} is written by \`protoyard generate\`; regeneration would drop the design system.`,
+      `${show(PROTOTYPE_FILE)} is written by \`protoyard generate\`; regeneration would drop the design system.`,
       {
-        hint: "Set the blueprint's brand block instead, or apply the design system to an app prototype.",
+        hint: `Bind it at generation instead: protoyard generate ${slug} --blueprint ${label}/blueprint.json --ds ${result.compiled.id}`,
       }
     );
   }
@@ -603,22 +709,18 @@ export const dsUseCommand: Handler = async (ctx, args, options): Promise<Command
   if (wired === null) {
     throw new CliError(
       'validation',
-      `${entry.path}/${PROTOTYPE_FILE} has no definePrototype({ … }) call this command can edit.`,
+      `${show(PROTOTYPE_FILE)} has no definePrototype({ … }) call this command can edit.`,
       {
-        hint: `Add \`import { ${EXPORT_NAME} } from './design-system.ts';\` and \`themes: [${EXPORT_NAME}]\` by hand.`,
+        hint: `Add \`${DESIGN_SYSTEM_IMPORT}\` and \`themes: [${EXPORT_NAME}]\` by hand.`,
       }
     );
   }
-  if (existsSync(designSystemFile) && !flag(options, 'force')) {
+  if (existsSync(designSystemFile) && !input.force) {
     const current = readFileSync(designSystemFile, 'utf8');
     if (!current.includes(`"id": ${JSON.stringify(result.compiled.id)}`)) {
-      throw new CliError(
-        'conflict',
-        `${entry.path}/${DESIGN_SYSTEM_FILE} holds another design system.`,
-        {
-          hint: 'Pass --force to replace it.',
-        }
-      );
+      throw new CliError('conflict', `${show(DESIGN_SYSTEM_FILE)} holds another design system.`, {
+        hint: 'Pass --force to replace it.',
+      });
     }
   }
   const source = `// Written by \`protoyard ds use\` from ${JSON.stringify(file)} (hash ${result.compiled.hash.slice(0, 12)}).
@@ -632,12 +734,12 @@ export const compiled: ShippedDesignSystem = ${JSON.stringify(result.shipped, nu
 
 export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
 `;
-  const dryRun = flag(options, 'dryRun');
+  const { dryRun } = input;
   const previous = existsSync(designSystemFile)
     ? shippedFromSource(readFileSync(designSystemFile, 'utf8'))
     : null;
   const changes =
-    binding && previous && flag(options, 'upgrade') ? diffShipped(previous, result.shipped) : null;
+    binding && previous && input.upgrade ? diffShipped(previous, result.shipped) : null;
   const manifest = {
     ...manifestInput,
     defaultTheme: result.compiled.id,
@@ -659,20 +761,21 @@ export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
     }
   }
   const files = [
-    designSystemFile,
-    ...(wired !== prototypeSource ? [prototypeFile] : []),
-    manifestFile,
-    ...(dependency.add ? [packageFile] : []),
-  ].map((target) => relativeTo(ctx.root, target));
+    DESIGN_SYSTEM_FILE,
+    ...(wired !== prototypeSource ? [PROTOTYPE_FILE] : []),
+    'protoyard.json',
+    ...(dependency.add ? ['package.json'] : []),
+  ].map(show);
   // The manifest's default theme changed: refresh the generated spec regions
   // now, unless a new dependency still has to be installed first.
-  const spec =
-    dryRun || dependency.add
+  const spec = !input.refreshSpec
+    ? { refreshed: false, reason: 'written by the caller' }
+    : dryRun || dependency.add
       ? { refreshed: false, reason: dryRun ? 'dry run' : 'install the new dependency first' }
       : await refreshSpec(ctx, dir);
-  const data = {
+  return {
     ...summary(result),
-    slug: entry.slug,
+    slug,
     defaultTheme: result.compiled.id,
     files,
     bytes: Buffer.byteLength(source),
@@ -684,15 +787,37 @@ export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
     spec,
     next: [
       ...(dependency.add ? ['pnpm install'] : []),
-      ...(spec.refreshed ? [] : [`pnpm protoyard spec ${entry.slug} --write`]),
-      `pnpm protoyard validate ${entry.slug} --build`,
+      ...(spec.refreshed ? [] : [`pnpm protoyard spec ${slug} --write`]),
+      `pnpm protoyard validate ${slug} --build`,
     ],
   };
+}
+
+export const dsUseCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
+  const slug = args[0];
+  const ref = args[1];
+  if (!slug || !ref) throw new CliError('usage', 'Provide <slug> and <id|file>.');
+  const resolved = await resolveDesignSystem(ctx.root, ref);
+  const { entry, dir } = await resolveTarget(ctx, slug, 'prototype');
+  const data = await applyDesignSystem(ctx, {
+    dir,
+    path: entry.path,
+    slug: entry.slug,
+    ref,
+    resolved,
+    lock: flag(options, 'lock'),
+    upgrade: flag(options, 'upgrade'),
+    force: flag(options, 'force'),
+    dryRun: flag(options, 'dryRun'),
+    refreshSpec: true,
+  });
+  const binding = data.designSystem;
+  const changes = data.changes;
   return {
     data,
     render(o) {
       o.always(
-        `${dryRun ? 'Would apply' : 'Applied'} ${data.name} (${data.id}) to ${entry.slug}: ${files.join(', ')}`
+        `${data.dryRun ? 'Would apply' : 'Applied'} ${data.name} (${data.id}) to ${entry.slug}: ${data.files.join(', ')}`
       );
       renderSummary(o, data);
       if (binding) {
@@ -704,7 +829,7 @@ export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
           }`
         );
       }
-      if (!dryRun) o.always(`Next: ${data.next.join(' && ')}`);
+      if (!data.dryRun) o.always(`Next: ${data.next.join(' && ')}`);
     },
   };
 };
@@ -774,23 +899,18 @@ export const dsMigrateCommand: Handler = async (ctx, args, options): Promise<Com
   };
 };
 
-interface Binding {
-  id: string;
-  version: string;
-  locked: boolean;
-}
-
 /**
  * The manifest binding `ds use` writes. `--lock` pins the exact version and
  * locks; an existing binding is kept (and stays locked) and only moves to a
  * new version with `--upgrade`. Without either, an unbound prototype stays
- * unbound, as before.
+ * unbound, as before, unless `bind` asks for an unlocked binding
+ * (`new --ds --unlocked`, `generate --ds --unlocked`).
  */
 export function bindingFor(
   manifest: Record<string, unknown>,
   id: string,
   version: string,
-  options: { lock: boolean; upgrade: boolean; slug: string }
+  options: { lock: boolean; upgrade: boolean; slug: string; bind?: boolean }
 ): Binding | null {
   const current = manifest.designSystem as Binding | undefined;
   if (options.upgrade && !current) {
@@ -802,7 +922,10 @@ export function bindingFor(
       }
     );
   }
-  if (!current) return options.lock ? { id, version, locked: true } : null;
+  if (!current) {
+    if (options.lock) return { id, version, locked: true };
+    return options.bind ? { id, version, locked: false } : null;
+  }
   if (current.locked && current.id !== id) {
     throw new CliError(
       'conflict',
