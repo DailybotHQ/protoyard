@@ -6,7 +6,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { lockedBindingProblem } from '../src/commands/validate.ts';
 import { GENERATED_MARKER } from '../src/lib/codegen/header.ts';
 import { checkBlueprintDrift } from '../src/lib/codegen/regenerate.ts';
-import { contentHash } from '../src/lib/design-systems.ts';
 import { scanPrototypeDesignSystem } from '../src/lib/ds-check/index.ts';
 import { cliArgs, createMcpToolHandler } from '../src/mcp/tools.ts';
 import {
@@ -89,22 +88,16 @@ function template(name: string, app: string) {
   ws?.write(`${base}/src/app.css`, '.page {\n  display: grid;\n  gap: 1rem;\n}\n');
 }
 
-/** What `ds approve` writes; the CLI cannot prove who approved. */
-function approve(id: string) {
-  const document = json(`design-systems/${id}/document.json`);
-  ws?.write(`design-systems/${id}/approval.json`, {
-    status: 'approved',
-    version: document.version,
-    approvedBy: 'Ada Example',
-    approvedAt: '2026-11-09T12:00:00.000Z',
-    contentHash: contentHash(document),
-  });
+/** Approves through the CLI (Texuli's approveDesignSystem); it cannot prove who approved. */
+async function approve(id: string) {
+  const approved = await run('ds', 'approve', id, '--by', 'Ada Example');
+  expect(approved.code, approved.stdout).toBe(0);
 }
 
 async function designSystem(id: string, approved = true) {
   const created = await run('ds', 'new', id, '--brand', '#0f766e');
   expect(created.code, created.stdout).toBe(0);
-  if (approved) approve(id);
+  if (approved) await approve(id);
   return json(`design-systems/${id}/document.json`).version as string;
 }
 
@@ -430,7 +423,7 @@ describe('protoyard generate --ds (PLAN_013 T-new-ds)', () => {
     // A new approved version moves the pin with --upgrade on the generated prototype.
     const document = json('design-systems/harbor/document.json');
     ws.write('design-systems/harbor/document.json', { ...document, version: '9.9.9' });
-    approve('harbor');
+    await approve('harbor');
     const upgrade = await run('ds', 'use', 'talk', 'harbor', '--upgrade');
     expect(upgrade.code, upgrade.stdout).toBe(0);
     expect(upgrade.json<Envelope>().data).toMatchObject({
