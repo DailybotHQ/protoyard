@@ -9,6 +9,7 @@ import {
 } from '@protoyard/renderer-svelte';
 import { LayoutHost, type NavModel } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
+import { Text } from 'texuli/typography';
 import { provideLogistics } from './lib/context.svelte.ts';
 import Dispatch from './screens/Dispatch.svelte';
 import Schedule from './screens/Schedule.svelte';
@@ -49,7 +50,7 @@ const nav = $derived({
 
 <LayoutHost layout={appearance.current.layout.value} nav={nav} storageKey={logistics.runtime.manifest.storage.namespace}>
   <div class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-    <p class="mb-4 text-xs text-muted-foreground">Simulated time · {clock.now.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC · {vehicles.current?.length ?? 0} vehicles</p>
+    <Text size="xs" tone="muted" class="mb-4">Simulated time · {clock.now.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC · {vehicles.current?.length ?? 0} vehicles</Text>
     <Router {router} />
   </div>
 </LayoutHost>
