@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Button } from '@protoyard/ui';
+import { Box, Text } from 'texuli/typography';
 import type { TeamChatServices } from '../domain/services.ts';
 
 let {
@@ -41,21 +42,29 @@ async function finishPtt() {
 }
 </script>
 
-<section
-  class="border-t border-border bg-card px-4 py-3 shadow-soft"
+<Box
+  as="section"
+  surface="default"
+  border="block-start"
+  radius="none"
+  padding="none"
+  elevation="sm"
+  class="px-4 py-3"
   data-py-huddle=""
   aria-label="Simulated huddle"
 >
   <div class="mb-2 flex items-center justify-between gap-2">
     <div>
-      <p class="text-sm font-semibold">Huddle (simulated)</p>
-      <p class="text-xs text-muted-foreground">
+      <Text size="sm" weight="semibold">Huddle (simulated)</Text>
+      <Text size="xs" tone="muted">
         Local captions only — no cloud speech. Phase: {phase}
-      </p>
+      </Text>
     </div>
     <Button size="sm" variant="outline" onclick={onClose}>Leave</Button>
   </div>
-  <pre class="mb-2 max-h-24 overflow-y-auto rounded-md border border-border bg-muted/40 p-2 text-xs whitespace-pre-wrap">{captions}</pre>
+  <Box surface="subtle" border="default" radius="md" padding="sm" class="mb-2 max-h-24 overflow-y-auto">
+    <Text as="div" size="xs" class="whitespace-pre-wrap">{captions}</Text>
+  </Box>
   <div class="flex gap-2">
     <Button
       size="sm"
@@ -66,4 +75,4 @@ async function finishPtt() {
       Hold to talk
     </Button>
   </div>
-</section>
+</Box>
