@@ -14,6 +14,12 @@ import { join, resolve } from 'node:path';
 import { MANIFEST_FILENAME, safeParseManifest } from '@protoyard/core';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
+import {
+  countByRule,
+  type DsRule,
+  type DsViolation,
+  scanPrototypeDesignSystem,
+} from '../lib/ds-check/index.ts';
 import { inspectSpec } from '../lib/inspect.ts';
 import { CliError, mark, toCliError } from '../lib/output.ts';
 import { childPath, isInside, toPosixRelative, workspaceLayout } from '../lib/paths.ts';
@@ -28,7 +34,15 @@ import {
   readPackageJson,
   resolveTarget,
 } from '../lib/workspace.ts';
+import {
+  applyDesignSystem,
+  assertLockable,
+  type Binding,
+  type ResolvedDesignSystem,
+  resolveDesignSystem,
+} from './ds.ts';
 import { specForPrototype } from './spec.ts';
+import { lockedBindingProblem } from './validate.ts';
 
 /** Never copied from a template: build output, installs and local state. */
 const SKIP_NAMES = new Set([
@@ -318,6 +332,12 @@ export interface CreateInput {
    */
   install: 'auto' | 'offline' | 'skip';
   stdio: 'pipe' | 'inherit';
+  /**
+   * Apply this design system before the prototype is renamed into place
+   * (`new --ds`): the same code path as `ds use --lock`, or an unlocked
+   * binding when `lock` is false. A refusal leaves nothing behind.
+   */
+  designSystem?: { ref: string; resolved: ResolvedDesignSystem; lock: boolean };
 }
 
 export interface CreateResult {
@@ -333,6 +353,8 @@ export interface CreateResult {
   created: boolean;
   files: number;
   install: { ok: boolean; skipped: boolean; mode?: string; log?: string; command?: string };
+  /** The design-system binding written by `new --ds`. */
+  designSystem?: Binding;
   spec: NewSpecResult;
   indexed: boolean;
   nextSteps: string[];
@@ -394,6 +416,27 @@ export async function createPrototypeFrom(
 
   let files = 0;
   const created = existing !== 'same';
+  const label = `${toPosixRelative(await realpath(ctx.root), prototypesReal)}/${slug}`;
+  let binding: Binding | undefined;
+  const applyBinding = async (dir: string) => {
+    const ds = input.designSystem;
+    if (!ds) return;
+    const applied = await applyDesignSystem(ctx, {
+      dir,
+      path: label,
+      slug,
+      ref: ds.ref,
+      resolved: ds.resolved,
+      lock: ds.lock,
+      upgrade: false,
+      bind: true,
+      force: false,
+      dryRun: false,
+      // The spec is written below, after install, for the whole prototype.
+      refreshSpec: false,
+    });
+    binding = applied.designSystem;
+  };
   if (created) {
     // Build in a hidden sibling, then rename: an interrupted run never leaves
     // a half-copied prototype that discovery would index.
@@ -411,12 +454,17 @@ export async function createPrototypeFrom(
         ...(input.description !== undefined ? { description: input.description } : {}),
         now: new Date().toISOString(),
       });
+      // Before the rename: a design system that cannot be applied leaves nothing behind.
+      await applyBinding(staging);
       if (existing === 'empty') await rm(dest, { recursive: true, force: true });
       await rename(staging, dest);
     } catch (error) {
       await rm(staging, { recursive: true, force: true });
       throw error;
     }
+  } else {
+    // A resumed run still ends bound: `ds use` on the same id and version changes nothing else.
+    await applyBinding(dest);
   }
 
   let install: CreateResult['install'];
@@ -464,15 +512,112 @@ export async function createPrototypeFrom(
     created,
     files,
     install,
+    ...(binding ? { designSystem: binding } : {}),
     spec,
     indexed: index.registry.entries.some((e) => e.slug === slug && e.kind === 'prototype'),
     nextSteps,
   };
 }
 
+/** The template `new --ds` copies when neither --template nor --from is given. */
+export const DEFAULT_DS_TEMPLATE = 'blank';
+
+/** `ds-utility: 3, ds-visual-css: 1`: the rules with violations, in rule order. */
+export function formatRuleCounts(counts: Record<DsRule, number>): string {
+  return Object.entries(counts)
+    .filter(([, n]) => n > 0)
+    .map(([rule, n]) => `${rule}: ${n}`)
+    .join(', ');
+}
+
+/** What `check ds` and the locked-binding check of `validate` say about a bound prototype. */
+export interface BoundPrototypeCheck {
+  ok: boolean;
+  files: number;
+  violations: number;
+  byRule: Record<DsRule, number>;
+  /** Workspace-relative files with at least one violation. */
+  violatingFiles: string[];
+  /** The locked binding's problem (`validate`), when there is one. */
+  bindingProblem?: string;
+  /** The first violations, formatted `file:line rule message`. */
+  sample: string[];
+}
+
+/**
+ * Runs the locked design-system checks on a prototype just created or
+ * generated with `--ds`: the `check ds` scan, and for a locked binding the
+ * same binding check as `validate`. Reads files only.
+ */
+export function checkBoundPrototype(
+  root: string,
+  dir: string,
+  binding: Binding
+): BoundPrototypeCheck {
+  const scan = scanPrototypeDesignSystem(root, dir, { designSystemId: binding.id });
+  let bindingProblem: string | null = null;
+  if (binding.locked) {
+    try {
+      bindingProblem = lockedBindingProblem(root, dir, binding);
+    } catch (error) {
+      bindingProblem = toCliError(error).message;
+    }
+  }
+  return {
+    ok: scan.violations.length === 0 && bindingProblem === null,
+    files: scan.files.length,
+    violations: scan.violations.length,
+    byRule: countByRule(scan.violations),
+    violatingFiles: [...new Set(scan.violations.map((v: DsViolation) => v.file))],
+    ...(bindingProblem ? { bindingProblem } : {}),
+    sample: scan.violations.slice(0, 10).map((v) => `${v.file}:${v.line} ${v.rule} ${v.message}`),
+  };
+}
+
+/**
+ * The `new --ds` gate: a template must already pass `check ds` before a
+ * locked prototype is made from it. Generic: the template folder is scanned,
+ * no list of templates is kept anywhere.
+ */
+export async function assertTemplateLockClean(
+  ctx: CommandContext,
+  template: string,
+  designSystemId: string
+): Promise<void> {
+  const { entry, dir } = await resolveTarget(ctx, assertSlug(template), 'template');
+  const scan = scanPrototypeDesignSystem(ctx.root, dir, { designSystemId });
+  if (scan.violations.length === 0) return;
+  const byRule = countByRule(scan.violations);
+  throw new CliError(
+    'validation',
+    `Template ${entry.slug} is not lock-clean yet: ${scan.violations.length} violations (${formatRuleCounts(byRule)}). Use another template, or create it unlocked with --unlocked.`,
+    {
+      hint: `Files with violations: ${[...new Set(scan.violations.map((v) => v.file))].slice(0, 5).join(', ')}. The template's folder is scanned with the check ds rules.`,
+      data: {
+        template: entry.slug,
+        violations: scan.violations.length,
+        byRule,
+        files: [...new Set(scan.violations.map((v) => v.file))],
+      },
+    }
+  );
+}
+
 export const newCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
-  const template = opt(options, 'template');
+  const ds = opt(options, 'ds');
+  const unlocked = flag(options, 'unlocked');
+  if (unlocked && ds === undefined) {
+    throw new CliError('usage', '--unlocked applies only with --ds <id>.');
+  }
   const from = opt(options, 'from');
+  if (ds !== undefined && from !== undefined) {
+    throw new CliError(
+      'usage',
+      '--from cannot be combined with --ds: copying another prototype may copy its visual code (styles, local controls) into a prototype restricted to the design system.',
+      { hint: `Start from a template instead: protoyard new <slug> --ds ${ds} [--template <name>]` }
+    );
+  }
+  const template = opt(options, 'template') ?? (ds !== undefined ? DEFAULT_DS_TEMPLATE : undefined);
   if (template !== undefined && from !== undefined) {
     throw new CliError('usage', 'Pass --template or --from, not both.');
   }
@@ -483,6 +628,17 @@ export const newCommand: Handler = async (ctx, args, options): Promise<CommandRe
   }
   const name = opt(options, 'name');
   const description = opt(options, 'description');
+  // Every design-system check runs before anything is copied.
+  let designSystem: CreateInput['designSystem'];
+  if (ds !== undefined) {
+    const slug = assertSlug(args[0]);
+    const resolved = await resolveDesignSystem(ctx.root, ds);
+    if (!unlocked) {
+      assertLockable(resolved, slug);
+      await assertTemplateLockClean(ctx, template as string, resolved.result.compiled.id);
+    }
+    designSystem = { ref: ds, resolved, lock: !unlocked };
+  }
   const result = await createPrototypeFrom(ctx, {
     slug: args[0] ?? '',
     from: (template ?? from) as string,
@@ -492,10 +648,38 @@ export const newCommand: Handler = async (ctx, args, options): Promise<CommandRe
     force: flag(options, 'force'),
     install: options.install === false ? 'skip' : 'auto',
     stdio: ctx.out.options.json ? 'pipe' : 'inherit',
+    ...(designSystem ? { designSystem } : {}),
   });
-  const { dir: _dir, ...data } = result;
+  const { dir: _dir, ...rest } = result;
+  // After creation: the same checks `check ds` and `validate` run. A failure
+  // keeps the prototype for inspection; it is never deleted.
+  const boundCheck = result.designSystem
+    ? checkBoundPrototype(ctx.root, result.dir, result.designSystem)
+    : undefined;
+  const data = {
+    ...rest,
+    ...(boundCheck ? { designSystemCheck: boundCheck } : {}),
+    ...(result.designSystem?.locked
+      ? { nextSteps: [...result.nextSteps, `pnpm protoyard check ds ${result.slug}`] }
+      : {}),
+  };
+  const failure =
+    boundCheck && !boundCheck.ok && result.designSystem?.locked
+      ? new CliError(
+          'validation',
+          `${result.path} was created and locked to ${result.designSystem.id}@${result.designSystem.version}, but it does not pass the locked design-system checks${
+            boundCheck.violations > 0
+              ? `: ${boundCheck.violations} violations (${formatRuleCounts(boundCheck.byRule)})`
+              : ''
+          }${boundCheck.bindingProblem ? `; ${boundCheck.bindingProblem}` : ''}.`,
+          {
+            hint: `The prototype is kept for inspection. Run \`protoyard check ds ${result.slug}\` and \`protoyard validate ${result.slug}\`.`,
+          }
+        )
+      : undefined;
   return {
     data,
+    ...(failure ? { failure } : {}),
     render(out) {
       const { c } = out;
       const from = `${result.source.kind} ${c.cyan(result.source.slug)}`;
@@ -504,6 +688,25 @@ export const newCommand: Handler = async (ctx, args, options): Promise<CommandRe
           ? `${mark(c, 'pass')} Created ${c.bold(result.path)} from ${from} (${result.files} files)`
           : `${mark(c, 'pass')} ${c.bold(result.path)} already exists from ${from} — resumed`
       );
+      if (result.designSystem) {
+        const binding = result.designSystem;
+        out.always(
+          `${mark(c, 'pass')} ${binding.locked ? 'Locked' : 'Bound (unlocked)'} to design system ${c.cyan(`${binding.id}@${binding.version}`)}: src/design-system.ts, defaultTheme ${binding.id}`
+        );
+      }
+      if (boundCheck) {
+        if (boundCheck.ok)
+          out.always(
+            `${mark(c, 'pass')} check ds: ${boundCheck.files} files, 0 violations${result.designSystem?.locked ? ' · binding verified' : ''}`
+          );
+        else {
+          const level = result.designSystem?.locked ? 'fail' : 'warn';
+          out.always(
+            `${mark(c, level)} check ds: ${boundCheck.violations} violations (${formatRuleCounts(boundCheck.byRule)})${boundCheck.bindingProblem ? ` · ${boundCheck.bindingProblem}` : ''}`
+          );
+          for (const line of boundCheck.sample) out.always(c.dim(`  ${line}`));
+        }
+      }
       if (result.install.skipped)
         out.info(`${mark(c, 'skip')} Skipped pnpm install (--no-install)`);
       else if (result.install.ok)
@@ -529,7 +732,7 @@ export const newCommand: Handler = async (ctx, args, options): Promise<CommandRe
         );
       }
       out.info('\nNext steps:');
-      for (const step of result.nextSteps) out.info(`  ${c.cyan(step)}`);
+      for (const step of data.nextSteps) out.info(`  ${c.cyan(step)}`);
     },
   };
 };
