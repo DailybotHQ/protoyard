@@ -4,7 +4,7 @@ import { artifactListCommand, artifactRecordCommand } from './commands/artifact.
 import { blueprintNewCommand, blueprintValidateCommand } from './commands/blueprint.ts';
 import { budgetCommand } from './commands/budget.ts';
 import { buildCommand } from './commands/build.ts';
-import { checkTexuliCommand } from './commands/check.ts';
+import { checkDsCommand, checkTexuliCommand } from './commands/check.ts';
 import { ciCheckCommand, ciInitCommand } from './commands/ci.ts';
 import {
   commentsExportCommand,
@@ -111,7 +111,9 @@ export function createProgram(env: RunnerEnv): Command {
 
   const check = program
     .command('check')
-    .description('workspace checks that consumers can run (Texuli adoption)');
+    .description(
+      'workspace checks that consumers can run (Texuli adoption, locked design systems)'
+    );
   check
     .command('texuli')
     .description(
@@ -120,6 +122,14 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--scope <path...>', 'only these paths (repeatable)')
     .option('--strict', 'fail on every violation, ignoring pending lists')
     .action(def('check texuli', checkTexuliCommand));
+  check
+    .command('ds')
+    .description(
+      'check that locked prototypes (designSystem.locked) draw their UI only with design-system components'
+    )
+    .argument('[slugs...]', 'prototype slugs (default: every locked prototype)')
+    .option('--report', 'also check unlocked prototypes and list violations without failing')
+    .action(def('check ds', checkDsCommand));
 
   program
     .command('sweep')

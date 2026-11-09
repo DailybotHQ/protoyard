@@ -14,6 +14,7 @@ import { checkBlueprintDrift, SNAPSHOT_PATH } from '../lib/codegen/regenerate.ts
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag } from '../lib/command.ts';
 import { readManifest, statManifest } from '../lib/discovery.ts';
+import { scanPrototypeDesignSystem } from '../lib/ds-check/index.ts';
 import { type Inspection, inspectPrototype, toSpecFacts } from '../lib/inspect.ts';
 import { findEscapingSymlinks, isSymlink } from '../lib/links.ts';
 import { CliError, mark, toCliError } from '../lib/output.ts';
@@ -23,6 +24,7 @@ import { loadRegistry, toRegistryEntry } from '../lib/registry.ts';
 import { SPEC_FILES } from '../lib/spec-render.ts';
 import { refreshTemplateBrand, TEMPLATE_BLUEPRINT_PATH } from '../lib/template-brand.ts';
 import { assertSlug, type CommandContext, readPackageJson } from '../lib/workspace.ts';
+import { formatDsViolation } from './check.ts';
 import { specForPrototype } from './spec.ts';
 
 export type CheckStatus = 'pass' | 'fail' | 'warn' | 'skip';
@@ -476,6 +478,36 @@ export async function checkTemplateBrand(
   }
 }
 
+/**
+ * A prototype locked to a design system (`designSystem.locked: true`) must
+ * pass the `protoyard check ds` rules; any violation fails validation.
+ * Unlocked prototypes get no step (null). Static: reads files, runs no code.
+ */
+export function checkLockedDesignSystem(
+  root: string,
+  dir: string,
+  manifest: PrototypeManifest
+): Check | null {
+  const binding = manifest.designSystem;
+  if (!binding?.locked) return null;
+  const label = `Locked design system (${binding.id}@${binding.version}, check ds)`;
+  try {
+    const scan = scanPrototypeDesignSystem(root, dir, { designSystemId: binding.id });
+    if (scan.violations.length === 0) {
+      return check('design-system', label, 'pass', [`${scan.files.length} files, 0 violations`]);
+    }
+    const shown = scan.violations.slice(0, 20).map(formatDsViolation);
+    const more = scan.violations.length - shown.length;
+    return check('design-system', label, 'fail', [
+      ...shown,
+      ...(more > 0 ? [`… and ${more} more (run \`protoyard check ds\` for all)`] : []),
+      scan.violations[0]?.wayOut ?? '',
+    ]);
+  } catch (error) {
+    return check('design-system', label, 'fail', [toCliError(error).message]);
+  }
+}
+
 export const validateCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   if (flag(options, 'all')) {
     if (args[0]) throw new CliError('usage', 'Pass either <slug> or --all, not both.');
@@ -565,6 +597,10 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
   }
 
   if (parsed.manifest) checks.push(checkThemes(parsed.manifest, inspection));
+  if (parsed.manifest) {
+    const designSystemCheck = checkLockedDesignSystem(ctx.root, dir, parsed.manifest);
+    if (designSystemCheck) checks.push(designSystemCheck);
+  }
   checks.push(await checkSpec(dir, slug, inspection, flag(options, 'strictSpec')));
 
   checks.push(

@@ -145,11 +145,11 @@ export interface AdoptionOptions {
 const LEGACY_IMPORT =
   /(?:from\s+|import\s*\(\s*|import\s+)['"](clsx|tailwind-merge|tailwind-variants)(?:\/[^'"]*)?['"]/g;
 const PY_TOKEN = /var\(\s*--py-/g;
-const SVELTE_MOTION = /(?:from\s+|import\s*\(\s*)['"]svelte\/(?:transition|animate)['"]/g;
-const KEYFRAMES = /@keyframes\s/g;
+export const SVELTE_MOTION = /(?:from\s+|import\s*\(\s*)['"]svelte\/(?:transition|animate)['"]/g;
+export const KEYFRAMES = /@keyframes\s/g;
 const MOTION_UNIT =
   /^(packages\/(ui|[a-z-]+-ui|devtools|crud|player|renderer-svelte)|apps\/gallery|templates|prototypes)\//;
-const RAW_CONTROL = /<(button|input|select|textarea|dialog)(?=[\s/>])/g;
+export const RAW_CONTROL = /<(button|input|select|textarea|dialog)(?=[\s/>])/g;
 const UI_UNIT = /^(packages\/(ui|[a-z-]+-ui|devtools|crud|player)|apps\/gallery)\//;
 const COMPOSES =
   /from\s*['"](texuli(?:\/[^'"]*)?|@texuli\/[^'"]+|@protoyard\/(?:ui|[a-z-]+-ui)(?:\/[^'"]*)?|[^'"]+\.svelte)['"]/;
@@ -170,9 +170,11 @@ function count(text: string, pattern: RegExp): number {
  * String literals are skipped, so `'../demos/*Demo.svelte'` or `'**\/*'`
  * never opens a comment. A `'` or `"` string ends at a newline (JS strings
  * cannot span lines), so a lone quote in a regex literal affects one line at
- * most. A `//` right after `:` (`http://`) is kept, as before.
+ * most. A `//` right after `:` (`http://`) is kept, as before. With
+ * `keepLines`, a removed comment leaves its newlines behind, so line numbers
+ * still match the source (`protoyard check ds` reports lines).
  */
-function stripCodeComments(text: string): string {
+function stripCodeComments(text: string, keepLines = false): string {
   let out = '';
   let quote = '';
   for (let i = 0; i < text.length; i++) {
@@ -185,6 +187,7 @@ function stripCodeComments(text: string): string {
     }
     if (c === '/' && text[i + 1] === '*') {
       const end = text.indexOf('*/', i + 2);
+      if (keepLines) out += newlinesOf(text.slice(i, end < 0 ? text.length : end + 2));
       i = end < 0 ? text.length : end + 1;
       continue;
     }
@@ -204,19 +207,27 @@ function stripCodeComments(text: string): string {
  * markup loses only `<!-- -->` (so `accept="image/*"` or a ` // ` in text never
  * hides what follows), and JS/CSS comments are stripped only inside `<script>`
  * and `<style>` blocks. Other files strip `<!-- -->`, `/* *\/` and `//`.
+ * `keepLines` keeps every removed comment's newlines (see `stripCodeComments`).
  */
-function stripComments(file: string, text: string): string {
-  if (!file.endsWith('.svelte')) return stripCodeComments(text.replace(/<!--[\s\S]*?-->/g, ''));
+export function stripComments(file: string, text: string, keepLines = false): string {
+  const html = (whole: string) => (keepLines ? newlinesOf(whole) : '');
+  if (!file.endsWith('.svelte'))
+    return stripCodeComments(text.replace(/<!--[\s\S]*?-->/g, html), keepLines);
   return text.replace(
     /<!--[\s\S]*?-->|(<(script|style)\b[^>]*>)([\s\S]*?)(<\/\2\s*>)/g,
     (
-      _whole,
+      whole: string,
       open: string | undefined,
       _tag,
       body: string | undefined,
       close: string | undefined
-    ) => (open ? `${open}${stripCodeComments(body ?? '')}${close}` : '')
+    ) => (open ? `${open}${stripCodeComments(body ?? '', keepLines)}${close}` : html(whole))
   );
+}
+
+/** The newlines of a removed span, so later line numbers do not move. */
+function newlinesOf(text: string): string {
+  return '\n'.repeat(text.split('\n').length - 1);
 }
 
 /**
@@ -224,8 +235,13 @@ function stripComments(file: string, text: string): string {
  * (`onclick={() => go()}`) and quotes are balanced, so a `>` inside them does
  * not end the tag.
  */
-function openingTags(markup: string, name: string): string[] {
-  const tags: string[] = [];
+export function openingTags(markup: string, name: string): string[] {
+  return openingTagMatches(markup, name).map((m) => m.tag);
+}
+
+/** Like `openingTags`, with each tag's offset in `markup`. */
+export function openingTagMatches(markup: string, name: string): { index: number; tag: string }[] {
+  const tags: { index: number; tag: string }[] = [];
   const start = new RegExp(`<${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=[\\s/>])`, 'g');
   for (const match of markup.matchAll(start)) {
     let i = (match.index ?? 0) + match[0].length;
@@ -246,12 +262,12 @@ function openingTags(markup: string, name: string): string[] {
       else if (c === '}') depth = Math.max(0, depth - 1);
       else if (c === '>' && depth === 0) break;
     }
-    tags.push(markup.slice(match.index ?? 0, i + 1));
+    tags.push({ index: match.index ?? 0, tag: markup.slice(match.index ?? 0, i + 1) });
   }
   return tags;
 }
 
-function markupOf(svelte: string): string {
+export function markupOf(svelte: string): string {
   return svelte.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '');
 }
 
@@ -386,7 +402,7 @@ function scopedClasses(text: string): Set<string> {
  * `:is(...)`, `:where(...)` or `:global(...)` stays with its selector
  * (Dailybot batch 9).
  */
-function splitTopLevel(prelude: string): string[] {
+export function splitTopLevel(prelude: string): string[] {
   const parts: string[] = [];
   let depth = 0;
   let start = 0;
@@ -404,7 +420,7 @@ function splitTopLevel(prelude: string): string[] {
 }
 
 /** Removes every `:global(...)` group, at any nesting depth. */
-function stripGlobal(selector: string): string {
+export function stripGlobal(selector: string): string {
   let out = '';
   let i = 0;
   while (i < selector.length) {
