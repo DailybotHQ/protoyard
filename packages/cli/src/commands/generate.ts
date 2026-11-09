@@ -24,6 +24,7 @@ import { checkHeader } from '../lib/codegen/header.ts';
 import {
   assertNoGeneratedLinks,
   CODEGEN_FORMAT_VERSION,
+  emitOptionsFor,
   emitOrThrow,
   type FilePlan,
   planContentKindRegeneration,
@@ -39,7 +40,22 @@ import { childPath, isInside, toPosixRelative, workspaceLayout } from '../lib/pa
 import { installWorkspace } from '../lib/pnpm.ts';
 import { buildIndex, loadRegistry } from '../lib/registry.ts';
 import { assertSlug, CLI_VERSION, type CommandContext, resolveTarget } from '../lib/workspace.ts';
-import { copyTemplate, listTemplateFiles, personalize, writeNewSpec } from './new.ts';
+import {
+  applyDesignSystem,
+  assertLockable,
+  type Binding,
+  type ResolvedDesignSystem,
+  resolveDesignSystem,
+} from './ds.ts';
+import {
+  type BoundPrototypeCheck,
+  checkBoundPrototype,
+  copyTemplate,
+  formatRuleCounts,
+  listTemplateFiles,
+  personalize,
+  writeNewSpec,
+} from './new.ts';
 
 /**
  * `protoyard generate <slug> --blueprint <file>`: validates a data-only
@@ -162,6 +178,79 @@ async function writeFiles(dir: string, files: readonly EmittedFile[]) {
   }
 }
 
+/** The binding a generated prototype's protoyard.json carries, or null. */
+async function readBinding(dest: string): Promise<Binding | null> {
+  try {
+    const manifest = JSON.parse(await readFile(join(dest, MANIFEST_FILENAME), 'utf8')) as {
+      designSystem?: Binding;
+    };
+    return manifest.designSystem ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** A design system `generate --ds` binds now (null when it keeps an existing binding or has none). */
+interface BindRequest {
+  ref: string;
+  resolved: ResolvedDesignSystem;
+  lock: boolean;
+}
+
+/**
+ * The binding check after a bound generation, split by owner: files the
+ * generator emitted (and `src/design-system.ts`) versus files copied from the
+ * template, so a template that is not lock-clean yet is named as the cause.
+ */
+interface GeneratedBindingCheck extends BoundPrototypeCheck {
+  generatorFiles: string[];
+  templateFiles: string[];
+}
+
+function splitByOwner(
+  check: BoundPrototypeCheck,
+  rel: string,
+  emittedPaths: ReadonlySet<string>
+): GeneratedBindingCheck {
+  const generatorFiles: string[] = [];
+  const templateFiles: string[] = [];
+  for (const file of check.violatingFiles) {
+    const inside = file.startsWith(`${rel}/`) ? file.slice(rel.length + 1) : file;
+    if (emittedPaths.has(inside) || inside === 'src/design-system.ts') generatorFiles.push(file);
+    else templateFiles.push(file);
+  }
+  return { ...check, generatorFiles, templateFiles };
+}
+
+/** Reports a locked generated prototype that does not pass the checks; it stays on disk. */
+function boundFailure(
+  rel: string,
+  slug: string,
+  binding: Binding,
+  check: GeneratedBindingCheck
+): CliError | undefined {
+  if (check.ok || !binding.locked) return undefined;
+  const owners = [
+    ...(check.generatorFiles.length > 0
+      ? [`generated files: ${check.generatorFiles.join(', ')}`]
+      : []),
+    ...(check.templateFiles.length > 0
+      ? [`template files (not lock-clean yet): ${check.templateFiles.join(', ')}`]
+      : []),
+  ];
+  return new CliError(
+    'validation',
+    `${rel} is locked to ${binding.id}@${binding.version}, but it does not pass the locked design-system checks${
+      check.violations > 0
+        ? `: ${check.violations} violations (${formatRuleCounts(check.byRule)})`
+        : ''
+    }${check.bindingProblem ? `; ${check.bindingProblem}` : ''}${owners.length > 0 ? ` in ${owners.join('; ')}` : ''}.`,
+    {
+      hint: `The prototype is kept for inspection. Run \`protoyard check ds ${slug}\` and \`protoyard validate ${slug}\`.`,
+    }
+  );
+}
+
 export const generateCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const started = performance.now();
   const slug = assertSlug(args[0]);
@@ -196,6 +285,11 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
   }
   const allowDrop = flag(options, 'allowDrop');
   const dryRun = flag(options, 'dryRun');
+  const dsRef = opt(options, 'ds');
+  const unlocked = flag(options, 'unlocked');
+  if (unlocked && dsRef === undefined) {
+    throw new CliError('usage', '--unlocked applies only with --ds <id>.');
+  }
 
   await mkdir(ctx.paths.prototypes, { recursive: true });
   const prototypesReal = await realpath(ctx.paths.prototypes);
@@ -216,6 +310,31 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       }
     );
   }
+  // The design system to bind now. On regeneration the binding already in
+  // protoyard.json wins: --ds may repeat it, never replace it.
+  let bindRequest: BindRequest | null = null;
+  const current = existing === 'generated' ? await readBinding(dest) : null;
+  if (dsRef !== undefined) {
+    const resolved = await resolveDesignSystem(ctx.root, dsRef);
+    const id = resolved.result.compiled.id;
+    if (current && current.id !== id) {
+      throw new CliError(
+        'conflict',
+        `prototypes/${slug} is bound to design system "${current.id}"; it cannot take "${id}".`,
+        {
+          hint: current.locked
+            ? 'A locked prototype keeps its design system. Generate a new prototype for another one.'
+            : `Regenerate without --ds to keep "${current.id}".`,
+        }
+      );
+    }
+    if (!current) {
+      if (!unlocked) assertLockable(resolved, slug);
+      bindRequest = { ref: dsRef, resolved, lock: !unlocked };
+    }
+  }
+  const bound = current !== null || bindRequest !== null;
+  const brandIgnored = bound && Boolean(blueprint.brand);
   if (existing === 'generated') {
     return regenerate(ctx, {
       dest,
@@ -226,6 +345,9 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       allowDrop,
       force: flag(options, 'force'),
       started,
+      bound,
+      bindRequest,
+      brandIgnored,
     });
   }
   if (existing === 'empty' && !flag(options, 'force') && !dryRun) {
@@ -239,10 +361,11 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
   // repository only), so the owned starter tests that import it are not
   // written there: the prototype must typecheck and build as generated.
   const consumer = workspaceLayout(ctx.root) === 'consumer';
+  const emitOptions = bound ? { designSystem: true } : {};
   const firstFiles = (
     isAppBlueprint(blueprint)
-      ? emitOrThrow(blueprint, slug, text)
-      : emitContentKindPrototype(blueprint, text)
+      ? emitOrThrow(blueprint, slug, text, emitOptions)
+      : emitContentKindPrototype(blueprint, text, emitOptions)
   ).filter((file) => !(consumer && usesRepositoryHarness(file.content)));
   const files = [
     ...firstFiles,
@@ -304,6 +427,16 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
           : {}),
         files: fileList,
         existing,
+        ...(bindRequest
+          ? {
+              designSystem: {
+                id: bindRequest.resolved.result.compiled.id,
+                version: bindRequest.resolved.result.compiled.version,
+                locked: bindRequest.lock,
+              },
+            }
+          : {}),
+        ...(brandIgnored ? { brandIgnored: true } : {}),
       },
       render(out) {
         const { c } = out;
@@ -319,6 +452,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     };
   }
 
+  let binding: Binding | null = null;
   {
     const staging = childPath(prototypesReal, `.${slug}.staging-${process.pid}`);
     await rm(staging, { recursive: true, force: true });
@@ -349,7 +483,9 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       const preview = { ...((manifest.preview as Record<string, unknown> | undefined) ?? {}) };
       delete preview.shell;
       manifest.preview = preview;
-      const brandTheme = isAppBlueprint(blueprint) ? brandDefaultThemeId(blueprint) : null;
+      // A bound prototype opens in its design system (written below), never the brand.
+      const brandTheme =
+        isAppBlueprint(blueprint) && !bound ? brandDefaultThemeId(blueprint) : null;
       if (brandTheme) manifest.defaultTheme = brandTheme;
       await writeFile(manifestPath, formatJson(manifest));
       const htmlPath = join(staging, 'index.html');
@@ -364,6 +500,23 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       await rm(nested(staging, 'src/generated'), { recursive: true, force: true });
       await rm(nested(staging, 'tests'), { recursive: true, force: true });
       await writeFiles(staging, files);
+      // The `ds use` code path, before the rename: a refusal leaves nothing behind.
+      if (bindRequest) {
+        const applied = await applyDesignSystem(ctx, {
+          dir: staging,
+          path: rel,
+          slug,
+          ref: bindRequest.ref,
+          resolved: bindRequest.resolved,
+          lock: bindRequest.lock,
+          upgrade: false,
+          bind: true,
+          force: false,
+          dryRun: false,
+          refreshSpec: false,
+        });
+        binding = applied.designSystem ?? null;
+      }
       if (existing === 'empty') await rm(dest, { recursive: true, force: true });
       await rename(staging, dest);
     } catch (error) {
@@ -398,8 +551,15 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     `pnpm vitest run prototypes/${slug}`,
     `pnpm protoyard validate ${slug} --build`,
   ];
+  const bindingCheck = binding
+    ? splitByOwner(checkBoundPrototype(ctx.root, dest, binding), rel, emitted)
+    : null;
+  const failure =
+    binding && bindingCheck ? boundFailure(rel, slug, binding, bindingCheck) : undefined;
+  if (binding?.locked) nextSteps.push(`pnpm protoyard check ds ${slug}`);
   const durationMs = Math.round(performance.now() - started);
   return {
+    ...(failure ? { failure } : {}),
     data: {
       slug,
       id: `local.${slug}`,
@@ -407,6 +567,9 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       template: template.slug,
       kind,
       created: true,
+      ...(binding ? { designSystem: binding } : {}),
+      ...(bindingCheck ? { designSystemCheck: bindingCheck } : {}),
+      ...(brandIgnored ? { brandIgnored: true } : {}),
       unchanged: false,
       ...(isAppBlueprint(blueprint) ? { entities } : {}),
       files: fileList,
@@ -437,6 +600,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
         out.info(
           `${mark(c, 'pass')} Home route: dashboard "${rootDashboard.title ?? 'Dashboard'}"; generated Home.svelte is not routed.`
         );
+      if (binding) renderBinding(out, binding, bindingCheck, brandIgnored);
       if (install.skipped) out.info(`${mark(c, 'skip')} Skipped pnpm install`);
       else if (install.ok)
         out.info(`${mark(c, 'pass')} Linked into the workspace (pnpm install --${install.mode})`);
@@ -452,6 +616,34 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     },
   };
 };
+
+function renderBinding(
+  out: Parameters<NonNullable<CommandResult['render']>>[0],
+  binding: Binding,
+  check: GeneratedBindingCheck | null,
+  brandIgnored: boolean
+) {
+  const { c } = out;
+  out.always(
+    `${mark(c, 'pass')} ${binding.locked ? 'Locked' : 'Bound (unlocked)'} to design system ${c.cyan(`${binding.id}@${binding.version}`)}: src/design-system.ts`
+  );
+  if (brandIgnored)
+    out.warn(
+      `${mark(c, 'warn')} The blueprint's brand block is ignored: the design system sets the theme.`
+    );
+  if (!check) return;
+  if (check.ok) {
+    out.always(`${mark(c, 'pass')} check ds: ${check.files} files, 0 violations`);
+    return;
+  }
+  out.always(
+    `${mark(c, binding.locked ? 'fail' : 'warn')} check ds: ${check.violations} violations (${formatRuleCounts(check.byRule)})${check.bindingProblem ? ` · ${check.bindingProblem}` : ''}`
+  );
+  if (check.templateFiles.length > 0)
+    out.always(c.dim(`  from template files: ${check.templateFiles.join(', ')}`));
+  if (check.generatorFiles.length > 0)
+    out.always(c.dim(`  from generated files: ${check.generatorFiles.join(', ')}`));
+}
 
 /**
  * Regenerates an existing generated prototype: rewrites only generated files
@@ -475,6 +667,11 @@ async function regenerate(
     allowDrop: boolean;
     force: boolean;
     started: number;
+    /** Bound to a design system (an existing binding, or `bindRequest`). */
+    bound: boolean;
+    /** `--ds` on a prototype with no binding yet: bound after the generated files are written. */
+    bindRequest: BindRequest | null;
+    brandIgnored: boolean;
   }
 ): Promise<CommandResult> {
   const { dest, slug, dryRun, force } = input;
@@ -489,12 +686,14 @@ async function regenerate(
         inputRaw: input.raw,
         manifestSchemaVersion: manifest.storage.schemaVersion,
         allowDrop: input.allowDrop,
+        designSystem: input.bound,
       })
     : await planContentKindRegeneration({
         dest,
         slug,
         inputRaw: input.raw,
         manifestSchemaVersion: manifest.storage.schemaVersion,
+        designSystem: input.bound,
       });
   const ownedApp = await readFile(join(dest, 'src/App.svelte'), 'utf8').catch(() => '');
   // The shared shell (BlueprintApp) applies the blueprint layout itself; an older owned app
@@ -531,7 +730,33 @@ async function regenerate(
   const removals = plan.files.filter(
     (f) => f.status === 'removed' || (f.status === 'conflicted' && force && f.content === undefined)
   );
-  const unchanged = writes.length === 0 && removals.length === 0 && schema.from === schema.to;
+  const bindRequest = input.bindRequest;
+  const unchanged =
+    writes.length === 0 && removals.length === 0 && schema.from === schema.to && !bindRequest;
+  // Binding during a regeneration: check every `ds use` refusal against the
+  // definition this run will leave, before the first write.
+  const bindOptions = bindRequest
+    ? {
+        dir: dest,
+        path: rel,
+        slug,
+        ref: bindRequest.ref,
+        resolved: bindRequest.resolved,
+        lock: bindRequest.lock,
+        upgrade: false,
+        bind: true,
+        force: false,
+        refreshSpec: false,
+      }
+    : null;
+  if (bindOptions) {
+    const planned = plan.files.find((f) => f.path === 'src/prototype.ts')?.content;
+    await applyDesignSystem(ctx, {
+      ...bindOptions,
+      dryRun: true,
+      ...(planned !== undefined ? { plannedDefinition: planned } : {}),
+    });
+  }
 
   if (!dryRun) {
     // Check every target before the first write, so a refused run changes nothing.
@@ -551,16 +776,37 @@ async function regenerate(
       manifest.updatedAt = new Date().toISOString();
       await writeFile(manifestPath, formatJson(manifest));
     }
+    if (bindOptions) await applyDesignSystem(ctx, { ...bindOptions, dryRun: false });
     await buildIndex(ctx.paths);
   }
+  const binding = dryRun ? null : await readBinding(dest);
+  let bindingCheck: GeneratedBindingCheck | null = null;
+  if (binding) {
+    // Which files the generator owns, for the report (template files are named separately).
+    const options = await emitOptionsFor(dest, true);
+    const emitted = isAppBlueprint(plan.blueprint)
+      ? emitOrThrow(plan.blueprint, slug, plan.blueprintText, options)
+      : emitContentKindPrototype(plan.blueprint, plan.blueprintText, options);
+    bindingCheck = splitByOwner(
+      checkBoundPrototype(ctx.root, dest, binding),
+      rel,
+      new Set(emitted.map((f) => f.path))
+    );
+  }
+  const failure =
+    binding && bindingCheck ? boundFailure(rel, slug, binding, bindingCheck) : undefined;
   // Spec regions describe the blueprint (tables, permissions…): refresh them after every write.
   const spec = dryRun ? null : await writeNewSpec(ctx, dest);
   const durationMs = Math.round(performance.now() - input.started);
   return {
+    ...(failure ? { failure } : {}),
     data: {
       slug,
       kind,
       path: rel,
+      ...(binding ? { designSystem: binding } : {}),
+      ...(bindingCheck ? { designSystemCheck: bindingCheck } : {}),
+      ...(input.brandIgnored ? { brandIgnored: true } : {}),
       regenerated: !dryRun && !unchanged,
       dryRun,
       created: false,
@@ -585,6 +831,7 @@ async function regenerate(
     render(out) {
       const { c } = out;
       if (layoutWarning) out.warn(`${mark(c, 'warn')} ${layoutWarning}`);
+      if (binding) renderBinding(out, binding, bindingCheck, input.brandIgnored);
       if (spec && !spec.ok) {
         out.warn(
           `${mark(c, 'warn')} Spec docs not refreshed (${spec.error ?? 'unknown error'}). Run \`pnpm protoyard spec ${slug} --init --write\`.`

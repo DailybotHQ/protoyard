@@ -272,6 +272,7 @@ describe('MCP tool catalog and strict input contracts', () => {
         'ds_use',
         'ds_validate',
         'iterate',
+        'new_from_design_system',
         'promote',
         'quick',
         'screenshot',

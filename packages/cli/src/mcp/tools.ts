@@ -29,7 +29,8 @@ export type ToolName =
   | 'ds_export'
   | 'ds_use'
   | 'ds_component_request'
-  | 'ds_component_new';
+  | 'ds_component_new'
+  | 'new_from_design_system';
 
 /** A prototype or exploration slug, checked like the CLI checks it (never an option-like `-…`). */
 const slugArg = z
@@ -175,6 +176,16 @@ const dsComponentNewArgs = z
     id: dsId,
     name: dsComponentName,
     prototype: slugArg.optional(),
+  })
+  .strict();
+const newFromDesignSystemArgs = z
+  .object({
+    slug: slugArg,
+    ds: dsId,
+    template: slugArg.optional(),
+    unlocked: z.boolean().optional(),
+    name: dsLine(80).optional(),
+    description: dsLine(280).optional(),
   })
   .strict();
 /**
@@ -399,6 +410,23 @@ const toolSchemas: Record<ToolName, McpTool> = {
       additionalProperties: false,
     },
   },
+  new_from_design_system: {
+    name: 'new_from_design_system',
+    description: `Create prototypes/<slug> from a design system, locked to its approved version from the first file (\`protoyard new <slug> --ds <id>\`): the template (default blank) is copied only when it already passes check ds, the theme comes from design-systems/<id>/ compiled into src/design-system.ts, and protoyard.json pins designSystem { id, version, locked: true }. Refuses an unknown, flat or draft design system, a template that is not lock-clean, and an existing slug. unlocked binds without locking (a draft is allowed). Never runs pnpm install: data.nextSteps names it. In the locked prototype, build screens only from the design system's components with layout; ${DS_COMPONENT_RULE}`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', minLength: 1, maxLength: 80 },
+        ds: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,63}$' },
+        template: { type: 'string', minLength: 1, maxLength: 80 },
+        unlocked: { type: 'boolean' },
+        name: { type: 'string', minLength: 1, maxLength: 80 },
+        description: { type: 'string', minLength: 1, maxLength: 280 },
+      },
+      required: ['slug', 'ds'],
+      additionalProperties: false,
+    },
+  },
   doctor: {
     name: 'doctor',
     description: 'Check the local Protoyard CLI environment and interface.',
@@ -429,6 +457,7 @@ const validators: Record<ToolName, z.ZodType> = {
   ds_use: dsUseArgs,
   ds_component_request: dsComponentRequestArgs,
   ds_component_new: dsComponentNewArgs,
+  new_from_design_system: newFromDesignSystemArgs,
 };
 
 function commandForTool(name: string): string {
@@ -438,6 +467,7 @@ function commandForTool(name: string): string {
   if (name === 'ds_create') return 'ds new';
   if (name === 'ds_component_request') return 'ds component request';
   if (name === 'ds_component_new') return 'ds component new';
+  if (name === 'new_from_design_system') return 'new';
   if (name.startsWith('ds_')) return `ds ${name.slice(3)}`;
   return name;
 }
@@ -542,6 +572,21 @@ export function cliArgs(name: ToolName, value: Record<string, unknown>): string[
       ['ds', 'component', 'new'],
       value.prototype === undefined ? [] : [`--prototype=${String(value.prototype)}`],
       [String(value.id), String(value.name)]
+    );
+  }
+  if (name === 'new_from_design_system') {
+    // `--flag=value`, so a name or description that starts with `-` stays a value.
+    return command(
+      ['new'],
+      [
+        `--ds=${String(value.ds)}`,
+        ...(value.template === undefined ? [] : [`--template=${String(value.template)}`]),
+        ...(value.unlocked ? ['--unlocked'] : []),
+        ...(value.name === undefined ? [] : [`--name=${String(value.name)}`]),
+        ...(value.description === undefined ? [] : [`--description=${String(value.description)}`]),
+        '--no-install',
+      ],
+      [String(value.slug)]
     );
   }
   return ['doctor', '--offline'];

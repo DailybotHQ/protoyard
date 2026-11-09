@@ -181,6 +181,25 @@ interface ContentBrand {
   themeId: string | null;
   /** Export name in `src/generated/brand-theme.ts`, or null when no theme is built. */
   exportName: string | null;
+  /** Bound to a design system: the theme comes from `src/design-system.ts`, the brand is ignored. */
+  designSystem?: boolean;
+}
+
+/** The export `protoyard ds use` writes in the non-generated `src/design-system.ts`. */
+const DESIGN_SYSTEM_EXPORT = 'designSystemTheme';
+
+/**
+ * Emission options. `designSystem`: the prototype is bound to a design system
+ * (`generate --ds`, or `designSystem` in its protoyard.json on regeneration).
+ * Its definition imports `designSystemTheme` from `./design-system.ts` (written
+ * by the `ds use` code path, never generated), and the blueprint brand is
+ * ignored: no `src/generated/brand-theme.ts`. `keepBrandTheme` (apps only)
+ * still emits the brand module for an owned `src/prototype.ts` that imports it
+ * (an app bound with `ds use` after it was generated with a brand).
+ */
+export interface EmitOptions {
+  designSystem?: boolean;
+  keepBrandTheme?: boolean;
 }
 
 /**
@@ -194,9 +213,14 @@ function contentRuntimeModule(
 ): string {
   const typeName = CONTENT_BLUEPRINT_TYPES[kind];
   const bodyExport = kind === 'page' ? 'pageDocument' : kind === 'doc' ? 'docDocument' : null;
-  const brandImport = brand.exportName
-    ? `import { ${brand.exportName} } from './generated/brand-theme.ts';\n`
-    : '';
+  const brandImport = brand.designSystem
+    ? `import { ${DESIGN_SYSTEM_EXPORT} } from './design-system.ts';\n`
+    : brand.exportName
+      ? `import { ${brand.exportName} } from './generated/brand-theme.ts';\n`
+      : '';
+  const themeOptions = brand.designSystem
+    ? `  brandTheme: ${DESIGN_SYSTEM_EXPORT},\n  defaultThemeId: ${DESIGN_SYSTEM_EXPORT}.id,\n`
+    : `  defaultThemeId: ${brand.themeId === null ? 'null' : lit(brand.themeId)},\n  brandTheme: ${brand.exportName ?? 'null'},\n`;
   return `import type { ${typeName} } from '@protoyard/blueprint';
 import { type AnyContentBlueprint, defineKindPrototype } from '@protoyard/blueprint/kinds';
 import { parseManifest } from '@protoyard/core';
@@ -210,9 +234,7 @@ ${bodyExport ? `export const ${bodyExport} = contentBlueprint.${kind};\n` : ''}e
   namespace: manifest.storage.namespace,
   slug: manifest.slug,
   version: manifest.version,
-  defaultThemeId: ${brand.themeId === null ? 'null' : lit(brand.themeId)},
-  brandTheme: ${brand.exportName ?? 'null'},
-});
+${themeOptions}});
 definition.manifest.blueprintKind = '${kind}';
 if (manifest.template) definition.manifest.template = manifest.template;
 if (manifest.catalog) definition.manifest.catalog = manifest.catalog;
@@ -279,19 +301,24 @@ export const defaultThemeId: string | null = ${themeId === null ? 'null' : lit(t
 /** Kind emission stays small and has no entity schema, services or tests. */
 export function emitContentKindPrototype(
   blueprint: Exclude<AnyBlueprint, Blueprint>,
-  blueprintText: string
+  blueprintText: string,
+  options: EmitOptions = {}
 ): EmittedFile[] {
   const kind = blueprint.kind;
   // A library brand ships by id; only a built brand emits a theme module, as for apps.
-  const libraryId = blueprint.brand ? brandLibraryThemeId(blueprint.brand) : undefined;
+  // A design-system binding replaces the brand: it is not resolved at all.
+  const libraryId =
+    blueprint.brand && !options.designSystem ? brandLibraryThemeId(blueprint.brand) : undefined;
   const theme =
-    blueprint.brand && !libraryId
+    blueprint.brand && !libraryId && !options.designSystem
       ? resolveBlueprintBrand(blueprint.brand, { blueprintName: blueprint.name })
       : null;
-  const brand: ContentBrand = {
-    themeId: theme?.id ?? libraryId ?? null,
-    exportName: theme ? brandThemeExportName(theme.id) : null,
-  };
+  const brand: ContentBrand = options.designSystem
+    ? { themeId: null, exportName: null, designSystem: true }
+    : {
+        themeId: theme?.id ?? libraryId ?? null,
+        exportName: theme ? brandThemeExportName(theme.id) : null,
+      };
   return [
     owned('blueprint.json', blueprintText),
     generated('src/generated/blueprint.ts', contentBlueprintModule(kind)),
@@ -335,6 +362,33 @@ export const definition = definePrototype({
   generatorVersion: blueprintGeneratorVersion(blueprint),
   integrity: deriveIntegrity(blueprint),
   themes: [${exportName}],
+});
+`;
+}
+
+/** An app definition bound to a design system: its only theme is `designSystemTheme`. */
+function prototypeWithDesignSystem(): string {
+  return `import { blueprintGeneratorVersion, deriveIntegrity } from '@protoyard/blueprint';
+import { definePrototype, parseManifest } from '@protoyard/core';
+import manifestJson from '../protoyard.json';
+import { database } from './database/schema.ts';
+import { ${DESIGN_SYSTEM_EXPORT} } from './design-system.ts';
+import { blueprint } from './generated/blueprint.ts';
+import { policy } from './generated/policy.ts';
+import { generate } from './scenarios/generators.ts';
+import { scenarios } from './scenarios/index.ts';
+
+export const definition = definePrototype({
+  manifest: parseManifest(manifestJson),
+  database,
+  scenarios,
+  policy,
+  generate,
+  // Changes whenever the blueprint's generative surface or the generator SDK does.
+  generatorVersion: blueprintGeneratorVersion(blueprint),
+  integrity: deriveIntegrity(blueprint),
+  // The bound design system (src/design-system.ts, written by \`protoyard ds use\`).
+  themes: [${DESIGN_SYSTEM_EXPORT}],
 });
 `;
 }
@@ -469,7 +523,8 @@ export const TEMPLATE_FILES_REMOVED: readonly string[] = [];
 export function emitPrototype(
   blueprint: Blueprint,
   slug: string,
-  blueprintText: string
+  blueprintText: string,
+  options: EmitOptions = {}
 ): EmittedFile[] {
   const files: EmittedFile[] = [
     owned('blueprint.json', blueprintText),
@@ -483,6 +538,16 @@ export function emitPrototype(
     owned('tests/services.test.ts', servicesTest(blueprint)),
     owned('README.md', readme(blueprint, slug)),
   ];
+
+  if (options.designSystem) {
+    // Owned: written once; regeneration never rewrites it, so the binding stays.
+    files.push(owned('src/prototype.ts', prototypeWithDesignSystem()));
+    if (options.keepBrandTheme && blueprint.brand && !brandLibraryThemeId(blueprint.brand)) {
+      const theme = resolveBlueprintBrand(blueprint.brand, { blueprintName: blueprint.name });
+      files.push(generated('src/generated/brand-theme.ts', brandThemeModule(theme)));
+    }
+    return files;
+  }
 
   // A library brand ships by id (defaultTheme); only built brands emit a theme module.
   if (blueprint.brand && !brandLibraryThemeId(blueprint.brand)) {

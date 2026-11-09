@@ -14,7 +14,12 @@ import {
 } from '@protoyard/blueprint';
 import { KIND_SCHEMA_VERSION } from '@protoyard/blueprint/kinds';
 import { CliError } from '../output.ts';
-import { type EmittedFile, emitContentKindPrototype, emitPrototype } from './emit.ts';
+import {
+  type EmitOptions,
+  type EmittedFile,
+  emitContentKindPrototype,
+  emitPrototype,
+} from './emit.ts';
 import { formatJson } from './format.ts';
 import { checkHeader } from './header.ts';
 
@@ -82,10 +87,11 @@ function parseOrThrow(raw: unknown, label: string): Blueprint {
 export function emitOrThrow(
   blueprint: Blueprint,
   slug: string,
-  blueprintText: string
+  blueprintText: string,
+  options: EmitOptions = {}
 ): EmittedFile[] {
   try {
-    return emitPrototype(blueprint, slug, blueprintText);
+    return emitPrototype(blueprint, slug, blueprintText, options);
   } catch (error) {
     if (error instanceof BrandThemeError) {
       throw new CliError('validation', error.message, {
@@ -97,6 +103,33 @@ export function emitOrThrow(
       });
     }
     throw error;
+  }
+}
+
+/**
+ * Emission options for an existing prototype folder. `bound`: its
+ * protoyard.json has a `designSystem` binding (or `generate --ds` is binding
+ * it now). An owned app `src/prototype.ts` that still imports the generated
+ * brand module keeps it emitted, so binding never breaks that import.
+ */
+export async function emitOptionsFor(dest: string, bound: boolean): Promise<EmitOptions> {
+  if (!bound) return {};
+  const definition = (await readText(join(dest, 'src/prototype.ts'))) ?? '';
+  return {
+    designSystem: true,
+    ...(definition.includes("from './generated/brand-theme.ts'") ? { keepBrandTheme: true } : {}),
+  };
+}
+
+/** True when a protoyard.json in `dest` carries a `designSystem` binding. */
+export async function hasDesignSystemBinding(dest: string): Promise<boolean> {
+  const text = await readText(join(dest, 'protoyard.json'));
+  if (text === null) return false;
+  try {
+    const manifest = JSON.parse(text) as { designSystem?: unknown };
+    return Boolean(manifest.designSystem && typeof manifest.designSystem === 'object');
+  } catch {
+    return false;
   }
 }
 
@@ -232,6 +265,8 @@ export async function planContentKindRegeneration(input: {
   slug: string;
   inputRaw: Record<string, unknown>;
   manifestSchemaVersion: number;
+  /** Bound to a design system: the definition imports src/design-system.ts. */
+  designSystem?: boolean;
 }): Promise<ContentKindRegenerationPlan> {
   const { dest, slug, inputRaw, manifestSchemaVersion } = input;
   const onDiskText = await readText(join(dest, 'blueprint.json'));
@@ -283,7 +318,11 @@ export async function planContentKindRegeneration(input: {
   }
 
   const blueprintText = formatJson(withoutHistory(inputRaw));
-  const emitted = emitContentKindPrototype(blueprint, blueprintText);
+  const emitted = emitContentKindPrototype(
+    blueprint,
+    blueprintText,
+    await emitOptionsFor(dest, input.designSystem ?? false)
+  );
   const files = await planGeneratedFiles(dest, emitted);
   const nextSnapshot: Snapshot = {
     schemaVersion: KIND_SCHEMA_VERSION,
@@ -328,6 +367,8 @@ export async function planRegeneration(input: {
   inputRaw: Record<string, unknown>;
   manifestSchemaVersion: number;
   allowDrop: boolean;
+  /** Bound to a design system: the brand is ignored and the definition keeps its binding. */
+  designSystem?: boolean;
 }): Promise<RegenerationPlan> {
   const { dest, slug, inputRaw, allowDrop } = input;
   const onDiskText = await readText(join(dest, 'blueprint.json'));
@@ -391,7 +432,12 @@ export async function planRegeneration(input: {
     );
   }
   const blueprintText = formatJson(finalRaw);
-  const emitted = emitOrThrow(blueprint, slug, blueprintText);
+  const emitted = emitOrThrow(
+    blueprint,
+    slug,
+    blueprintText,
+    await emitOptionsFor(dest, input.designSystem ?? false)
+  );
   const files = await planGeneratedFiles(dest, emitted);
   const nextSnapshot: Snapshot = { schemaVersion: toVersion, blueprint: nextRaw };
   nextSnapshot.codegenFormat = CODEGEN_FORMAT_VERSION;
@@ -450,8 +496,10 @@ export async function checkBlueprintDrift(
       summary: '',
     };
   }
+  // A prototype bound to a design system is generated without the brand theme.
+  const emitOptions = await emitOptionsFor(dir, await hasDesignSystemBinding(dir));
   if (raw.kind === 'deck' || raw.kind === 'page' || raw.kind === 'doc') {
-    return checkContentKindDrift(dir, slug, raw, text ?? '', manifestSchemaVersion);
+    return checkContentKindDrift(dir, slug, raw, text ?? '', manifestSchemaVersion, emitOptions);
   }
   const parsed = safeParseBlueprint(raw);
   if (!parsed.success) {
@@ -503,7 +551,10 @@ export async function checkBlueprintDrift(
       );
     }
   }
-  const files = await planGeneratedFiles(dir, emitOrThrow(blueprint, slug, text ?? ''));
+  const files = await planGeneratedFiles(
+    dir,
+    emitOrThrow(blueprint, slug, text ?? '', emitOptions)
+  );
   for (const file of files) {
     if (file.status === 'created') problems.push(`missing ${file.path}`);
     else if (file.status === 'conflicted')
@@ -526,7 +577,8 @@ async function checkContentKindDrift(
   slug: string,
   raw: Record<string, unknown>,
   text: string,
-  manifestSchemaVersion: number
+  manifestSchemaVersion: number,
+  emitOptions: EmitOptions = {}
 ): Promise<DriftReport> {
   const parsed = await safeParseAnyBlueprint(raw);
   if (!parsed.success || isAppBlueprint(parsed.data)) {
@@ -562,7 +614,10 @@ async function checkContentKindDrift(
       problems.push(`blueprint.json changed since the last generation: ${regenerate}`);
     }
   }
-  const files = await planGeneratedFiles(dir, emitContentKindPrototype(blueprint, text));
+  const files = await planGeneratedFiles(
+    dir,
+    emitContentKindPrototype(blueprint, text, emitOptions)
+  );
   for (const file of files) {
     if (file.status === 'created') problems.push(`missing ${file.path}`);
     else if (file.status === 'conflicted')
