@@ -26,9 +26,38 @@
  * - `ds-local-motion`: `svelte/transition`, `svelte/animate` or `svelte/motion`
  *   imports, `transition:`/`in:`/`out:`/`animate:` directives, `@keyframes`
  *   (aligned with the adoption check's `local-motion`).
+ *
+ * Two more rules run only when the bound design system has an `allow`
+ * section (Texuli spec 0.13.0; {@link DsAllowContext}):
+ * - `ds-not-allowed`: a Texuli (or `@protoyard/ui`) component rendered as a
+ *   tag whose catalog id (`catalogIdFor` in `../ds-catalog.ts`) the allow
+ *   section does not list, and is not a part of an allowed id; a component
+ *   the mapper cannot place (`unmapped`); a `@ds/<id>/<Name>` import that is
+ *   not in the design system's library (or belongs to another design
+ *   system); in a library component's own file, a catalog id its entry does
+ *   not list in `composes`.
+ * - `ds-disabled-value`: a literal value (`variant="ghost"`,
+ *   `size={'sm'}`) on an axis prop (variant, size, tone, density; the prop
+ *   name comes from the catalog manifest's `axes`) that the allow entry does
+ *   not enable. Dynamic expressions are skipped here; the render check covers
+ *   them.
  */
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import type { DesignSystemAllow } from '@texuli/spec/design-system';
+import { locateDesignSystem, readDocumentFile } from '../design-systems.ts';
+import {
+  allowedVia,
+  catalogIdFor,
+  componentUses,
+  DS_AXES,
+  type DsCatalog,
+  dsCatalog,
+  enabledValues,
+  type LibraryEntryLike,
+  readAllow,
+  readLibrary,
+} from '../ds-catalog.ts';
 import {
   KEYFRAMES,
   openingTagMatches,
@@ -49,7 +78,9 @@ export type DsRule =
   | 'ds-inline-style'
   | 'ds-styled-local-component'
   | 'ds-ui-library'
-  | 'ds-local-motion';
+  | 'ds-local-motion'
+  | 'ds-not-allowed'
+  | 'ds-disabled-value';
 
 export const DS_RULES: readonly DsRule[] = [
   'ds-raw-control',
@@ -60,7 +91,39 @@ export const DS_RULES: readonly DsRule[] = [
   'ds-styled-local-component',
   'ds-ui-library',
   'ds-local-motion',
+  'ds-not-allowed',
+  'ds-disabled-value',
 ];
+
+/**
+ * What the allow rules read: the catalog, the design system's `allow`
+ * section and library, and (for a library component's own file) the catalog
+ * ids its entry `composes`.
+ */
+export interface DsAllowContext {
+  catalog: DsCatalog;
+  designSystemId: string;
+  allow: DesignSystemAllow;
+  library: readonly LibraryEntryLike[];
+  /** Set when scanning a library component's file: the entry's `composes`. */
+  composes?: readonly string[];
+}
+
+/**
+ * The allow context of a design system, or null when it cannot be read or
+ * has no `allow` section (the allow rules do not run then; `validate` reports
+ * an unusable binding on its own).
+ */
+export function loadAllowContext(root: string, designSystemId: string): DsAllowContext | null {
+  try {
+    const document = readDocumentFile(locateDesignSystem(root, designSystemId));
+    const allow = readAllow(document);
+    if (!allow) return null;
+    return { catalog: dsCatalog(), designSystemId, allow, library: readLibrary(document) };
+  } catch {
+    return null;
+  }
+}
 
 export interface DsViolation {
   rule: DsRule;
@@ -77,6 +140,8 @@ export interface DsScanOptions {
   designSystemId?: string;
   /** Classes defined by the prototype's own global `.css` files. */
   localClasses?: ReadonlySet<string>;
+  /** The bound design system's allow section; the allow rules run only with it. */
+  allow?: DsAllowContext | null;
 }
 
 /** The way out every violation carries. */
@@ -396,6 +461,110 @@ function scanMarkup(markup: string, add: Add, local: ReadonlySet<string>): boole
   return visual;
 }
 
+const DS_IMPORT =
+  /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])@ds\/([^/'"\n]+)\/([^/'"\n]+)\1/g;
+
+/** `@ds/<id>/<Name>` imports: only the bound design system's library components. */
+function scanLibraryImports(view: string, add: Add, ctx: DsAllowContext): void {
+  for (const m of view.matchAll(DS_IMPORT)) {
+    const id = m[2] ?? '';
+    const name = m[3] ?? '';
+    if (id !== ctx.designSystemId) {
+      add(
+        'ds-not-allowed',
+        m.index ?? 0,
+        `imports @ds/${id}/${name}, a component of another design system than "${ctx.designSystemId}"`
+      );
+    } else if (!ctx.library.some((entry) => entry.name === name)) {
+      add(
+        'ds-not-allowed',
+        m.index ?? 0,
+        `imports @ds/${id}/${name}, which is not in the library of design system "${id}"`,
+        name
+      );
+    }
+  }
+}
+
+/** The literal value of an attribute in an opening tag, or undefined (absent or dynamic). */
+export function literalAttribute(tag: string, prop: string): string | undefined {
+  const masked = maskTag(tag);
+  const at = new RegExp(`\\s${prop.replace(/[$]/g, '\\$')}\\s*=\\s*`).exec(masked);
+  if (!at) return undefined;
+  const valueAt = at.index + at[0].length;
+  const open = tag[valueAt];
+  if (open === '"' || open === "'") {
+    const value = balanced(tag, valueAt);
+    return value.includes('{') ? undefined : value;
+  }
+  if (open === '{') {
+    const literal = /^\s*(?:(['"])([^'"\\\n]*)\1|`([^`$\\]*)`)\s*$/.exec(balanced(tag, valueAt));
+    return literal ? (literal[2] ?? literal[3]) : undefined;
+  }
+  return tag.slice(valueAt).match(/^[^\s/>{]+/)?.[0];
+}
+
+/** The allow rules over one `.svelte` source (comment-stripped, offsets kept). */
+function scanAllowed(text: string, markup: string, add: Add, ctx: DsAllowContext): void {
+  const allowed = Object.keys(ctx.allow);
+  const tags = new Map<string, Map<number, string>>();
+  const tagAt = (name: string, offset: number) => {
+    let byOffset = tags.get(name);
+    if (!byOffset) {
+      byOffset = new Map(openingTagMatches(markup, name).map((t) => [t.index, t.tag]));
+      tags.set(name, byOffset);
+    }
+    return byOffset.get(offset) ?? '';
+  };
+  for (const use of componentUses(text)) {
+    const match = catalogIdFor(ctx.catalog, use.module, use.identifier);
+    if (!match.id) {
+      add(
+        'ds-not-allowed',
+        use.offset,
+        `<${use.tag}> (${use.identifier} from "${use.module}") is unmapped: the Texuli catalog does not list it, so design system "${ctx.designSystemId}" cannot allow it`,
+        use.identifier
+      );
+      continue;
+    }
+    const via = allowedVia(ctx.catalog, allowed, match.id);
+    if (!via) {
+      add(
+        'ds-not-allowed',
+        use.offset,
+        `<${use.tag}> is the catalog component "${match.id}", which design system "${ctx.designSystemId}" does not allow`,
+        use.identifier
+      );
+      continue;
+    }
+    if (ctx.composes && !allowedVia(ctx.catalog, ctx.composes, match.id)) {
+      add(
+        'ds-not-allowed',
+        use.offset,
+        `<${use.tag}> is the catalog component "${match.id}", which this library entry does not list in composes`,
+        use.identifier
+      );
+    }
+    const component = ctx.catalog.byId.get(match.id);
+    const entry = ctx.allow[match.id];
+    if (!component || !entry) continue;
+    const tag = tagAt(use.tag, use.offset);
+    for (const axis of DS_AXES) {
+      const prop = component.axes[axis]?.prop;
+      const enabled = enabledValues(entry, axis);
+      if (!prop || !enabled) continue;
+      const value = literalAttribute(tag, prop);
+      if (value === undefined || enabled.includes(value)) continue;
+      add(
+        'ds-disabled-value',
+        use.offset,
+        `<${use.tag} ${prop}="${value}">: ${axis} "${value}" of "${match.id}" is not enabled in design system "${ctx.designSystemId}" (enabled: ${enabled.join(', ') || 'none'})`,
+        use.identifier
+      );
+    }
+  }
+}
+
 /**
  * Checks one source file of a locked prototype (`.svelte`, `.ts`, `.js` or
  * `.css`). `file` is reported as given; lines are 1-based. Pure.
@@ -426,6 +595,10 @@ export function scanDesignSystemSource(
     const styled = scanCss(views.style, add, false);
     const visualClasses = scanMarkup(views.markup, add, local);
     const helperClasses = scanClassHelpers(views.script, add, local);
+    if (options.allow) {
+      scanLibraryImports(views.script, add, options.allow);
+      scanAllowed(text, views.markup, add, options.allow);
+    }
     if (styled || visualClasses || helperClasses) {
       const first = out.find(
         (v) =>
@@ -443,6 +616,7 @@ export function scanDesignSystemSource(
   } else {
     scanImports(text, add);
     scanClassHelpers(text, add, global);
+    if (options.allow) scanLibraryImports(text, add, options.allow);
   }
   return out.sort((a, b) => a.line - b.line || a.rule.localeCompare(b.rule));
 }
@@ -495,11 +669,17 @@ export function designSystemFiles(dir: string): string[] {
   return out;
 }
 
-/** Scans one prototype folder. `root` makes reported paths workspace-relative. */
+/**
+ * Scans one prototype folder. `root` makes reported paths workspace-relative.
+ * With an allow context, the design system's library components the
+ * prototype imports (`@ds/<id>/<Name>`) are scanned too, from
+ * `design-systems/<id>/components/<Name>.svelte`, against `allow` and their
+ * entry's `composes`.
+ */
 export function scanPrototypeDesignSystem(
   root: string,
   dir: string,
-  options: { designSystemId?: string } = {}
+  options: { designSystemId?: string; allow?: DsAllowContext | null } = {}
 ): DsPrototypeScan {
   const files = designSystemFiles(dir);
   const sources = new Map<string, string>();
@@ -512,15 +692,38 @@ export function scanPrototypeDesignSystem(
   }
   const violations: DsViolation[] = [];
   const read: string[] = [];
+  const scanOptions: DsScanOptions = {
+    localClasses,
+    ...(options.designSystemId ? { designSystemId: options.designSystemId } : {}),
+    ...(options.allow ? { allow: options.allow } : {}),
+  };
+  const used = new Set<string>();
   for (const [path, source] of sources) {
     const rel = relative(root, path).split(sep).join('/');
     read.push(rel);
-    violations.push(
-      ...scanDesignSystemSource(rel, source, {
-        localClasses,
-        ...(options.designSystemId ? { designSystemId: options.designSystemId } : {}),
-      })
-    );
+    violations.push(...scanDesignSystemSource(rel, source, scanOptions));
+    if (options.allow) {
+      for (const m of stripComments(path, source).matchAll(DS_IMPORT)) {
+        if (m[2] === options.allow.designSystemId && m[3]) used.add(m[3]);
+      }
+    }
+  }
+  const ctx = options.allow;
+  if (ctx) {
+    for (const name of [...used].sort()) {
+      const entry = ctx.library.find((e) => e.name === name);
+      if (!entry || !/^[A-Z][A-Za-z0-9]{0,63}$/.test(name)) continue;
+      const path = join(root, 'design-systems', ctx.designSystemId, 'components', `${name}.svelte`);
+      if (!existsSync(path) || !lstatSync(path).isFile()) continue;
+      const rel = relative(root, path).split(sep).join('/');
+      read.push(rel);
+      violations.push(
+        ...scanDesignSystemSource(rel, readFileSync(path, 'utf8'), {
+          designSystemId: ctx.designSystemId,
+          allow: { ...ctx, composes: entry.composes },
+        })
+      );
+    }
   }
   return { files: read, violations };
 }

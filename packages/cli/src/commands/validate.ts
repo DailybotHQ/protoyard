@@ -15,7 +15,7 @@ import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag } from '../lib/command.ts';
 import { locateDesignSystem, lockRefusal, readDocumentFile } from '../lib/design-systems.ts';
 import { readManifest, statManifest } from '../lib/discovery.ts';
-import { scanPrototypeDesignSystem } from '../lib/ds-check/index.ts';
+import { loadAllowContext, scanPrototypeDesignSystem } from '../lib/ds-check/index.ts';
 import { type Inspection, inspectPrototype, toSpecFacts } from '../lib/inspect.ts';
 import { findEscapingSymlinks, isSymlink } from '../lib/links.ts';
 import { CliError, mark, toCliError } from '../lib/output.ts';
@@ -480,8 +480,10 @@ export async function checkTemplateBrand(
 }
 
 /**
- * Why a locked binding is not usable, or null: the design system must be an
- * approved folder at exactly the pinned version, unchanged since approval,
+ * Why a locked binding is not usable, or null: the design system must be a
+ * folder with an `allow` section the Texuli catalog accepts
+ * (`checkDesignSystemAllow`), approved (the document's `approval`, or the
+ * legacy sidecar) at exactly the pinned version with a matching content hash,
  * and applied to the prototype (`src/design-system.ts`, written by `ds use`).
  */
 export function lockedBindingProblem(
@@ -527,7 +529,10 @@ export function checkLockedDesignSystem(
     } catch (error) {
       refusal = toCliError(error).message;
     }
-    const scan = scanPrototypeDesignSystem(root, dir, { designSystemId: binding.id });
+    const scan = scanPrototypeDesignSystem(root, dir, {
+      designSystemId: binding.id,
+      allow: loadAllowContext(root, binding.id),
+    });
     if (scan.violations.length === 0 && !refusal) {
       return check('design-system', label, 'pass', [`${scan.files.length} files, 0 violations`]);
     }

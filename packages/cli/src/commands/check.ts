@@ -7,7 +7,12 @@ import {
 } from '@protoyard/core';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag } from '../lib/command.ts';
-import { countByRule, type DsViolation, scanPrototypeDesignSystem } from '../lib/ds-check/index.ts';
+import {
+  countByRule,
+  type DsViolation,
+  loadAllowContext,
+  scanPrototypeDesignSystem,
+} from '../lib/ds-check/index.ts';
 import { CliError, mark } from '../lib/output.ts';
 import { hasControlCharacter } from '../lib/paths.ts';
 import { loadRegistry } from '../lib/registry.ts';
@@ -80,7 +85,10 @@ export function formatDsViolation(v: DsViolation): string {
 
 /**
  * `protoyard check ds [slugs...] [--report]`: the locked design system rules
- * (`lib/ds-check`) over each prototype's own `src/` and top-level CSS.
+ * (`lib/ds-check`) over each prototype's own `src/` and top-level CSS. When
+ * the bound design system has an `allow` section, `ds-not-allowed` and
+ * `ds-disabled-value` run too, and the library components the prototype
+ * imports are scanned.
  * Without slugs it checks every prototype whose manifest has
  * `designSystem.locked: true`. A violation in a locked prototype fails
  * (`validation`, exit 4). `--report` also checks unlocked prototypes (all of
@@ -118,9 +126,16 @@ export const checkDsCommand: Handler = async (ctx, args, options): Promise<Comma
     }
   }
 
+  // The allow rules need the bound design system's allow section; it is read
+  // once per design system (a binding without one gets the static rules only).
+  const contexts = new Map<string, ReturnType<typeof loadAllowContext>>();
+  const allowFor = (id: string) => {
+    if (!contexts.has(id)) contexts.set(id, loadAllowContext(ctx.root, id));
+    return contexts.get(id) ?? null;
+  };
   const prototypes = targets.map((t) => {
     const scan = scanPrototypeDesignSystem(ctx.root, t.dir, {
-      ...(t.binding ? { designSystemId: t.binding.id } : {}),
+      ...(t.binding ? { designSystemId: t.binding.id, allow: allowFor(t.binding.id) } : {}),
     });
     return { target: t, scan };
   });

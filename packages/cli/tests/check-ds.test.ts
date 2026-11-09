@@ -2,11 +2,15 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lockedAllowPreset } from '@texuli/spec/design-system';
 import { afterEach, describe, expect, it } from 'vitest';
+import { dsCatalog } from '../src/lib/ds-catalog.ts';
 import {
   classifyUtility,
   DS_RULES,
+  type DsAllowContext,
   type DsViolation,
+  literalAttribute,
   scanDesignSystemSource,
 } from '../src/lib/ds-check/index.ts';
 import { RULES, scanSource } from '../src/lib/texuli-adoption.ts';
@@ -15,6 +19,18 @@ import { addPrototype, cli, createWorkspace, type TempWorkspace } from './helper
 const FIXTURES = fileURLToPath(new URL('./fixtures/ds-check/', import.meta.url));
 const WAY_OUT = 'Use a design-system component, or request one: protoyard ds component request';
 const LOCKED = { designSystem: { id: 'harbor', version: '1.2.0', locked: true } };
+
+/** The allow rules run with a design system's allow section: Texuli's minimal preset, buttons narrowed. */
+const MINIMAL = lockedAllowPreset(dsCatalog().allowCatalog, 'minimal');
+const ALLOW = { ...MINIMAL, button: { ...MINIMAL.button, variants: ['default', 'outline'] } };
+const allowContext = (extra: Partial<DsAllowContext> = {}): DsAllowContext => ({
+  catalog: dsCatalog(),
+  designSystemId: 'harbor',
+  allow: ALLOW,
+  library: [],
+  ...extra,
+});
+const ALLOW_RULES = new Set(['ds-not-allowed', 'ds-disabled-value']);
 
 const fixture = (kind: 'fail' | 'pass', name: string) =>
   readFileSync(join(FIXTURES, kind, name), 'utf8');
@@ -44,8 +60,10 @@ describe('ds-check rules (fixtures)', () => {
   for (const name of failing) {
     const rule = name.replace(/\.(svelte|css)$/, '');
     it(`${name}: fails with ${rule}, and its twin passes`, () => {
+      const allow = ALLOW_RULES.has(rule) ? { allow: allowContext() } : {};
       const found = scanDesignSystemSource(`src/${name}`, fixture('fail', name), {
         designSystemId: 'harbor',
+        ...allow,
       });
       expect(rulesOf(found)).toContain(rule);
       for (const v of found) {
@@ -54,9 +72,110 @@ describe('ds-check rules (fixtures)', () => {
         expect(v.message.length).toBeGreaterThan(0);
         expect(v.wayOut).toContain(`${WAY_OUT} harbor `);
       }
-      expect(scanDesignSystemSource(`src/${name}`, fixture('pass', name))).toEqual([]);
+      expect(scanDesignSystemSource(`src/${name}`, fixture('pass', name), allow)).toEqual([]);
     });
   }
+
+  it('runs the allow rules only with an allow section', () => {
+    for (const name of ['ds-not-allowed.svelte', 'ds-disabled-value.svelte']) {
+      expect(scanDesignSystemSource(`src/${name}`, fixture('fail', name))).toEqual([]);
+    }
+  });
+
+  it('ds-not-allowed names the catalog id, unmapped components and library imports', () => {
+    const source = [
+      '<script lang="ts">',
+      "  import { Kbd } from 'texuli/kbd';",
+      "  import { Sparkle } from 'texuli/sparkle';",
+      "  import { SelectTrigger } from 'texuli/select';",
+      "  import { AlertDialog } from 'texuli/alert-dialog';",
+      "  import StatusPill from '@ds/harbor/StatusPill';",
+      "  import OrderRow from '@ds/harbor/OrderRow';",
+      "  import Foreign from '@ds/atlas/Foreign';",
+      '</script>',
+      '',
+      '<Kbd>K</Kbd>',
+      '<Sparkle />',
+      '<SelectTrigger />',
+      '<AlertDialog />',
+      '<StatusPill label="x" />',
+    ].join('\n');
+    const found = scanDesignSystemSource('src/A.svelte', source, {
+      designSystemId: 'harbor',
+      allow: allowContext({
+        library: [
+          {
+            id: 'status-pill',
+            name: 'StatusPill',
+            purpose: 'p',
+            version: '0.1.0',
+            status: 'draft',
+            composes: ['badge'],
+          },
+        ],
+      }),
+    });
+    expect(found.map((v) => [v.rule, v.line])).toEqual([
+      ['ds-not-allowed', 7],
+      ['ds-not-allowed', 8],
+      ['ds-not-allowed', 11],
+      ['ds-not-allowed', 12],
+      ['ds-not-allowed', 14],
+    ]);
+    expect(found[0]?.message).toContain('@ds/harbor/OrderRow, which is not in the library');
+    expect(found[1]?.message).toContain('another design system');
+    expect(found[2]?.message).toContain('"kbd", which design system "harbor" does not allow');
+    expect(found[3]?.message).toContain('is unmapped');
+    expect(found[3]?.wayOut).toBe(`${WAY_OUT} harbor Sparkle`);
+    // SelectTrigger is a part of the allowed `select`; AlertDialog relates to dialog, not alert.
+    expect(found[4]?.message).toContain('"alert-dialog"');
+  });
+
+  it('ds-disabled-value reads literal axis values and skips dynamic ones', () => {
+    const tag = '<Button variant="ghost" size={\'sm\'} tone={tone} density={`x${y}`} />';
+    expect(literalAttribute(tag, 'variant')).toBe('ghost');
+    expect(literalAttribute(tag, 'size')).toBe('sm');
+    expect(literalAttribute(tag, 'tone')).toBeUndefined();
+    expect(literalAttribute(tag, 'density')).toBeUndefined();
+    expect(literalAttribute('<Button {variant} />', 'variant')).toBeUndefined();
+    expect(literalAttribute('<Button label="variant=ghost" />', 'variant')).toBeUndefined();
+    const source = [
+      '<script lang="ts">',
+      "  import { Button } from 'texuli/button';",
+      '</script>',
+      '<Button variant="outline" size="lg">A</Button>',
+      "<Button variant={'destructive'}>B</Button>",
+    ].join('\n');
+    const allow = allowContext();
+    allow.allow = { ...ALLOW, button: { variants: ['default', 'outline'], sizes: ['sm', 'md'] } };
+    const found = scanDesignSystemSource('src/A.svelte', source, { allow });
+    expect(found.map((v) => [v.rule, v.line, v.message.split(':')[0]])).toEqual([
+      ['ds-disabled-value', 4, '<Button size="lg">'],
+      ['ds-disabled-value', 5, '<Button variant="destructive">'],
+    ]);
+    expect(found[1]?.message).toContain('(enabled: default, outline)');
+  });
+
+  it("checks a library component's own file against its composes", () => {
+    const source = [
+      '<script lang="ts">',
+      "  import { Badge } from 'texuli/badge';",
+      "  import { Card } from 'texuli/card';",
+      '</script>',
+      '<Card><Badge label="x" /></Card>',
+    ].join('\n');
+    const found = scanDesignSystemSource(
+      'design-systems/harbor/components/StatusPill.svelte',
+      source,
+      {
+        allow: allowContext({ composes: ['badge'] }),
+      }
+    );
+    expect(found.map((v) => [v.rule, v.line])).toEqual([['ds-not-allowed', 5]]);
+    expect(found[0]?.message).toContain(
+      '"card", which this library entry does not list in composes'
+    );
+  });
 
   it('reports the line of each violation and ignores commented-out code', () => {
     const source = [
@@ -298,5 +417,46 @@ describe('protoyard check ds', () => {
       '--skip-typecheck',
     ]);
     expect(loose.json<Validation>().data.checks.some((c) => c.id === 'design-system')).toBe(false);
+  });
+
+  it('runs the allow rules for a locked prototype whose design system has allow, and scans its library files', async () => {
+    ws = createWorkspace();
+    ws.write('design-systems/harbor/document.json', {
+      format: 'texuli/design-system',
+      formatVersion: 1,
+      id: 'harbor',
+      version: '1.2.0',
+      name: 'Harbor',
+      color: { brand: { seed: '#0f766e' } },
+      allow: ALLOW,
+      library: [
+        {
+          id: 'status-pill',
+          name: 'StatusPill',
+          purpose: 'A status.',
+          version: '0.1.0',
+          status: 'draft',
+          composes: ['badge'],
+        },
+      ],
+    });
+    ws.write(
+      'design-systems/harbor/components/StatusPill.svelte',
+      '<script lang="ts">\n  import { Badge } from \'texuli/badge\';\n  import { Kbd } from \'texuli/kbd\';\n</script>\n<Badge label="x" /><Kbd>K</Kbd>\n'
+    );
+    addPrototype(ws, 'locked-app', LOCKED);
+    ws.write(
+      'prototypes/locked-app/src/App.svelte',
+      `${fixture('fail', 'ds-disabled-value.svelte')}\n<script module lang="ts">\n  import StatusPill from '@ds/harbor/StatusPill';\n</script>\n<StatusPill />\n`
+    );
+    const { code, body } = await run();
+    expect(code).toBe(4);
+    expect(body.data.counts.byRule['ds-disabled-value']).toBe(1);
+    expect(body.data.violations.map((v) => [v.rule, v.file])).toEqual(
+      expect.arrayContaining([
+        ['ds-disabled-value', 'prototypes/locked-app/src/App.svelte'],
+        ['ds-not-allowed', 'design-systems/harbor/components/StatusPill.svelte'],
+      ])
+    );
   });
 });
