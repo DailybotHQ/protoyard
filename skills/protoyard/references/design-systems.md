@@ -55,10 +55,79 @@ a brief, a brand color, fonts, shape, density and motion, from the current
 theme, or from pasted JSON, then **Save and apply**. It is kept per prototype
 and browser; to put it in the repository, download the JSON and run `ds use`.
 
+## Locked prototypes
+
+`pnpm protoyard ds use <slug> <id> --lock` binds a prototype to an approved
+design-system folder at its exact version (`"designSystem": { "id", "version",
+"locked": true }` in `protoyard.json`). Its generated `AGENTS.md` then says so.
+In a locked prototype:
+
+- Build UI only from the design system's allowed Texuli components and its
+  own components, imported as `@ds/<id>/<Name>`. Local code composes them with
+  layout utility classes (flex, grid, gap, padding, sizes).
+- Never style controls locally: no raw `<button>`/`<input>`, no visual CSS,
+  no inline `style`, no visual utility classes, no other UI library, no local
+  motion. `pnpm protoyard check ds <slug>` and `validate` fail on each one.
+
+### When no component fits: stop and ask
+
+Do not invent a component, and do not work around the rules. Stop and ask the
+human three things:
+
+1. the component's name (PascalCase, e.g. `StatusPill`);
+2. its purpose, in one line;
+3. why the existing components do not fit.
+
+Only after they approve, record the request, let a human approve it, then
+scaffold it:
+
+```bash
+pnpm protoyard ds component request harbor StatusPill --purpose "Shows a ticket status with its label" --why "Badge has no label layout" --by "Ada Example"
+pnpm protoyard ds component approve-request harbor StatusPill --by "Bo Example"   # a human runs this
+pnpm protoyard ds component new harbor StatusPill
+pnpm protoyard ds validate harbor
+```
+
+- `request` writes `design-systems/<id>/requests/<Name>.json` (status `open`)
+  and no code. It refuses an existing component, a second open request with
+  the same name, a flat or unknown design system, and text with control
+  characters (`--purpose` at most 280 characters, `--why` at most 1000).
+- `approve-request` is for a human. It is a record, not a proof: the CLI
+  cannot tell who ran it; the reviewed commit is the guarantee. There is no
+  MCP tool for it.
+- `new` needs the approved request. It writes `components/<Name>.svelte`
+  (Svelte 5 runes, typed props, Texuli components and layout classes only, so
+  it passes `check ds`), a draft `components.json` entry with the file's
+  sha256, and a kit story stub `stories/<Name>.json`. It refuses to run from
+  inside a prototype folder, for a locked `--prototype <slug>`, and when the
+  component already exists.
+
+### Optional: run check ds after each edit
+
+A coding-agent hook can run the check after every edit. This is a
+copy-paste example for a host whose hooks file is JSON (for example Claude
+Code's `.claude/settings.json`); replace `my-locked-app` with the slug, and
+adapt the shape to your host. Protoyard does not install it.
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [{ "type": "command", "command": "pnpm protoyard check ds my-locked-app" }]
+      }
+    ]
+  }
+}
+```
+
 ## Over MCP
 
 `protoyard mcp` has `ds_create`, `ds_validate`, `ds_export` and `ds_use`, the
-same commands with the same checks.
+same commands with the same checks, plus `ds_component_request` and
+`ds_component_new`. Their descriptions repeat the stop-and-ask rule; approving
+a request has no tool.
 
 ## Limits
 

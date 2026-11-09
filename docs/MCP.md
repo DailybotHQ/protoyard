@@ -49,7 +49,7 @@ The server supports only those two revisions. A request that negotiates or names
 
 ## Tools
 
-`tools/list` returns these eleven tools. Their input objects are strict: unknown fields are rejected. String lengths and numeric ranges are checked before dispatch.
+`tools/list` returns these thirteen tools. Their input objects are strict: unknown fields are rejected. String lengths and numeric ranges are checked before dispatch.
 
 | Tool | Arguments | Behavior |
 | --- | --- | --- |
@@ -64,6 +64,10 @@ The server supports only those two revisions. A request that negotiates or names
 | `ds_validate` | Required `file` (a design-system id or workspace path, 1–2,048 characters) | `ds validate`: validate an untrusted design-system document with Texuli and compile it; the envelope carries the contrast result per mode, the hash, and for a folder the approval status, `lockable` and any component-library drift. |
 | `ds_export` | Required `file` (workspace path); optional `format` (css, tailwind, json) | `ds export`: CSS variables, a Tailwind preset or compiled JSON. |
 | `ds_use` | Required `slug` (1–80) and `file` (a design-system id or workspace path); optional `lock`, `upgrade`, `force`, `dryRun` (booleans) | `ds use`: write `src/design-system.ts`, add it to `definePrototype({ themes })`, set `defaultTheme`; `lock` binds the prototype to an approved design system at its exact version, `upgrade` moves the pin and lists what changed; `data.next` names the spec refresh and validate steps. |
+| `ds_component_request` | Required `id` (lowercase kebab-case), `name` (PascalCase, at most 64 characters), single-line `purpose` (1–280) and `why` (1–1,000: why the existing components do not fit); optional single-line `by` (1–120) | `ds component request`: record a request for a new component in `design-systems/<id>/requests/<Name>.json` (status `open`). Writes no code. Refuses an existing component, an open or approved request with the same name, a flat or unknown design system, and control characters. |
+| `ds_component_new` | Required `id` and `name`; optional `prototype` (slug, 1–80) | `ds component new`: scaffold a component whose request a human approved: `components/<Name>.svelte` from Texuli components with layout classes only (it passes `check ds`), a draft `components.json` entry with its sha256, and a kit story stub in `stories/<Name>.json`. Refuses without an approved request, for a locked `prototype`, when the server runs inside a prototype folder, and for an existing component. |
+
+There is no tool for `ds component approve-request`: approving a component request stays with a human. Both component tool descriptions tell the agent to stop and ask first: when no design-system component fits, it asks the human for the name, the purpose and why the existing components do not fit, and records the request only after they agree.
 
 Tool calls use the same command implementations and defaults as the CLI. They do not provide an arbitrary shell or general command execution tool.
 

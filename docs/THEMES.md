@@ -1117,6 +1117,48 @@ prototype folder are not seen. Class strings are read from `class` values,
 `class:` directives and the `cx`/`clsx`/`cn`/`classNames`/`twMerge`/`twJoin`
 helpers only.
 
+### Requesting a new component
+
+When a locked prototype needs something no design-system component covers,
+the answer is a new component in the design system, never local styling. An
+agent stops and asks the human first: the component's name, its purpose, and
+why the existing components do not fit. Only after they agree:
+
+```bash
+pnpm protoyard ds component request harbor StatusPill --purpose "Shows a ticket status with its label" --why "Badge has no label layout" --by "Ada Example"
+pnpm protoyard ds component approve-request harbor StatusPill --by "Bo Example"
+pnpm protoyard ds component new harbor StatusPill
+pnpm protoyard ds validate harbor
+```
+
+| Step | Writes | Refuses |
+| --- | --- | --- |
+| `ds component request <id> <Name> --purpose <text> --why <text> [--by <name>]` | `design-systems/<id>/requests/<Name>.json`: `{ format: "protoyard/ds-component-request", version: 1, name, purpose, why, requestedBy?, requestedAt, status: "open" }`. No code. | A name that is not PascalCase, a component that already exists, an open or approved request with the same name (`conflict`), an unknown design system, a flat document (migrate it first), text with control characters or line breaks, `--purpose` over 280 characters, `--why` over 1000. |
+| `ds component approve-request <id> <Name> --by <name>` | The request with `status: "approved"`, `approvedBy` and `approvedAt`. | No request, no `--by`, a request already approved. |
+| `ds component new <id> <Name> [--prototype <slug…>]` | `components/<Name>.svelte`, a `components.json` entry (`status: "draft"`, `version: "0.1.0"`, the request's purpose, the file's sha256) and the kit story stub `stories/<Name>.json` (`{ format: "protoyard/ds-story", version: 1, component, variants: [{ name: "Default", props }] }`). | No approved request (the error names `request`, then `approve-request`), a working directory inside a prototype folder, a `--prototype` that is locked, an existing component file or entry, a flat or unknown design system. |
+
+The scaffold is a Svelte 5 runes component with a typed `$props()` interface
+that composes Texuli's `Card`, `CardContent` and `Badge` with layout utility
+classes only: no `<style>` block, no inline style, no visual classes, so it
+passes the `check ds` rules. Prototypes import it as
+`@ds/<id>/<Name>`. After you edit it, `ds validate` reports the changed
+sha256 until `components.json` is updated.
+
+- `approve-request` is meant for a human. It is a record, not a proof: the
+  CLI cannot tell who ran it. The guarantee is the reviewed commit (for
+  example CODEOWNERS on `design-systems/`). The MCP server has
+  `ds_component_request` and `ds_component_new` but no approval tool.
+- A locked prototype's generated `AGENTS.md` (the `commands` region of
+  `protoyard spec`) carries the same rule: build only from the design system,
+  stop and ask when nothing fits, never style controls locally. Unlocked
+  prototypes' generated text does not change.
+- Request times come from the real clock: a request is a CLI record, not
+  scenario data.
+- An optional coding-agent hook that runs `pnpm protoyard check ds <slug>`
+  after edits is in the skill's
+  [design-systems reference](../skills/protoyard/references/design-systems.md#optional-run-check-ds-after-each-edit).
+  Protoyard does not install it.
+
 ## The CLI
 
 `pnpm protoyard theme <command>` (`packages/cli/src/commands/theme.ts`).
