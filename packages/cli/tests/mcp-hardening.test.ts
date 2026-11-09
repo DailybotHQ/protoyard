@@ -91,7 +91,7 @@ describe('MCP argv: options, then --, then positionals', () => {
       motion: 'subtle',
     });
     expect(created).toMatchObject({ ok: true, command: 'ds new' });
-    expect(existsSync(join(ws.root, 'design-systems/harbor.json'))).toBe(true);
+    expect(existsSync(join(ws.root, 'design-systems/harbor/document.json'))).toBe(true);
     // A brief that looks like an option stays the brief (and is read as brand words).
     expect(
       await handler('ds_create', { id: 'dash', brief: '--version', brand: '#4f46e5', dryRun: true })
@@ -100,7 +100,7 @@ describe('MCP argv: options, then --, then positionals', () => {
       ok: false,
       error: { code: 'validation' },
     });
-    expect(await handler('ds_validate', { file: 'design-systems/harbor.json' })).toMatchObject({
+    expect(await handler('ds_validate', { file: 'harbor' })).toMatchObject({
       ok: true,
     });
     // A path with a line break could end the comment `ds use` writes: refused at the schema.
@@ -110,7 +110,7 @@ describe('MCP argv: options, then --, then positionals', () => {
     ] as const) {
       expect(await handler(tool, args)).toMatchObject({ ok: false, error: { code: 'validation' } });
     }
-    const applied = await handler('ds_use', { slug: 'ds-mcp', file: 'design-systems/harbor.json' });
+    const applied = await handler('ds_use', { slug: 'ds-mcp', file: 'harbor' });
     expect(applied).toMatchObject({
       ok: true,
       command: 'ds use',

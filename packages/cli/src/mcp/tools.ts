@@ -141,6 +141,8 @@ const dsUseArgs = z
   .object({
     slug: slugArg,
     file: dsPath,
+    lock: z.boolean().optional(),
+    upgrade: z.boolean().optional(),
     force: z.boolean().optional(),
     dryRun: z.boolean().optional(),
   })
@@ -253,7 +255,7 @@ const toolSchemas: Record<ToolName, McpTool> = {
   ds_create: {
     name: 'ds_create',
     description:
-      'Create a Texuli design system from a brief, a few inputs (brand color, fonts, shape, density, motion) or a Protoyard theme; validates, compiles and writes design-systems/<id>.json.',
+      'Create a Texuli design system from a brief, a few inputs (brand color, fonts, shape, density, motion) or a Protoyard theme; validates, compiles and writes design-systems/<id>/ (document.json, a draft approval.json and components.json).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -305,12 +307,14 @@ const toolSchemas: Record<ToolName, McpTool> = {
   ds_use: {
     name: 'ds_use',
     description:
-      'Apply a design system to a prototype: writes src/design-system.ts, adds it to definePrototype({ themes }) and sets defaultTheme.',
+      'Apply a design system (its id or document file) to a prototype: writes src/design-system.ts, adds it to definePrototype({ themes }) and sets defaultTheme. lock binds the prototype to an approved design system at its exact version; upgrade moves an existing binding and lists what changed.',
     inputSchema: {
       type: 'object',
       properties: {
         slug: { type: 'string', minLength: 1, maxLength: 80 },
         file: { type: 'string', minLength: 1, maxLength: 2048 },
+        lock: { type: 'boolean' },
+        upgrade: { type: 'boolean' },
         force: { type: 'boolean' },
         dryRun: { type: 'boolean' },
       },
@@ -430,7 +434,12 @@ export function cliArgs(name: ToolName, value: Record<string, unknown>): string[
   if (name === 'ds_use') {
     return command(
       ['ds', 'use'],
-      [...(value.force ? ['--force'] : []), ...(value.dryRun ? ['--dry-run'] : [])],
+      [
+        ...(value.lock ? ['--lock'] : []),
+        ...(value.upgrade ? ['--upgrade'] : []),
+        ...(value.force ? ['--force'] : []),
+        ...(value.dryRun ? ['--dry-run'] : []),
+      ],
       [String(value.slug), String(value.file)]
     );
   }
@@ -549,7 +558,9 @@ export function createMcpToolHandler(options: McpToolHandlerOptions = {}) {
       if (toolName === 'validate_blueprint') data.file = canonical(data.file);
       if (toolName === 'quick' && data.blueprint) data.blueprint = canonical(data.blueprint);
       if (toolName === 'ds_validate' || toolName === 'ds_export' || toolName === 'ds_use') {
-        data.file = canonical(data.file);
+        // A bare design-system id (design-systems/<id>/) stays an id; a path
+        // becomes the canonical absolute path.
+        if (!/^[a-z][a-z0-9-]{0,63}$/.test(String(data.file))) data.file = canonical(data.file);
       }
       if (toolName === 'ds_create' && data.out) data.out = canonical(data.out);
     } catch (error) {

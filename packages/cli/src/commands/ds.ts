@@ -1,5 +1,14 @@
-import { existsSync, lstatSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join, resolve, sep } from 'node:path';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { basename, dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PrototypeManifestSchema, type Theme, ThemeSchema } from '@protoyard/core';
 import {
@@ -18,9 +27,25 @@ import {
 import { GENERATED_MARKER } from '../lib/codegen/header.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
+import {
+  APPROVAL_FILE,
+  type Approval,
+  COMPONENTS_FILE,
+  componentDrift,
+  contentHash,
+  DESIGN_SYSTEMS_DIR,
+  DOCUMENT_FILE,
+  emptyComponentsManifest,
+  isDesignSystemId,
+  locateDesignSystem,
+  lockRefusal,
+  readApproval,
+  readComponents,
+  readDocumentFile,
+} from '../lib/design-systems.ts';
 import { inspectSpec } from '../lib/inspect.ts';
 import { CliError } from '../lib/output.ts';
-import { hasControlCharacter, isInside, workspaceLayout } from '../lib/paths.ts';
+import { isInside, workspaceLayout } from '../lib/paths.ts';
 import { resolvePackageBin, run } from '../lib/process.ts';
 import { CLI_VERSION, resolveTarget } from '../lib/workspace.ts';
 import { workspaceFile } from '../lib/workspace-file.ts';
@@ -31,7 +56,7 @@ import { specForPrototype } from './spec.ts';
  *
  * - `ds new <id>` makes a document from a brief or a few inputs, or imports a
  *   Protoyard theme (`--from-theme`), validates and compiles it, and writes
- *   `design-systems/<id>.json`.
+ *   the folder `design-systems/<id>/` (or a flat file with `--out`).
  * - `ds validate <file>` checks an untrusted document and compiles it.
  * - `ds export <file>` writes CSS variables, a Tailwind preset or compiled JSON.
  * - `ds use <slug> <file>` compiles it into `src/design-system.ts`, adds the
@@ -41,12 +66,9 @@ import { specForPrototype } from './spec.ts';
  * compiled or written; the same document always compiles to the same hash.
  */
 
-const DESIGN_SYSTEM_DIR = 'design-systems';
 const PROTOTYPE_FILE = 'src/prototype.ts';
 const DESIGN_SYSTEM_FILE = 'src/design-system.ts';
 const EXPORT_NAME = 'designSystemTheme';
-/** Texuli's import cap for JSON text (1 MiB). */
-const MAX_DOCUMENT_BYTES = 1_048_576;
 
 const SHAPES = ['sharp', 'rounded', 'pill'] as const;
 const DENSITIES = ['dense', 'compact', 'comfortable', 'spacious'] as const;
@@ -73,20 +95,8 @@ function relativeTo(root: string, file: string): string {
   return file.startsWith(`${root}${sep}`) ? file.slice(root.length + 1) : basename(file);
 }
 
-function readDocument(root: string, file: string): unknown {
-  const absolute = workspaceFile(root, file);
-  if (!existsSync(absolute)) throw new CliError('not_found', `No such file: ${file}.`);
-  if (statSync(absolute).size > MAX_DOCUMENT_BYTES) {
-    throw new CliError('validation', `${file} is larger than 1 MiB.`);
-  }
-  try {
-    return JSON.parse(readFileSync(absolute, 'utf8')) as unknown;
-  } catch (error) {
-    throw new CliError(
-      'validation',
-      `Could not read ${file}: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
+function readDocument(root: string, ref: string): unknown {
+  return readDocumentFile(locateDesignSystem(root, ref));
 }
 
 async function compileOrFail(document: unknown, what: string) {
@@ -256,7 +266,14 @@ export const dsNewCommand: Handler = async (ctx, args, options): Promise<Command
   }
   const result = await compileOrFail(document, `Design system "${id}"`);
 
-  const out = workspaceFile(ctx.root, opt(options, 'out') ?? join(DESIGN_SYSTEM_DIR, `${id}.json`));
+  // A folder by default (lockable: approval and component library live next
+  // to the document); `--out <file>` writes a flat document as before.
+  const outOption = opt(options, 'out');
+  const folder = outOption === undefined;
+  if (folder && !isDesignSystemId(id)) {
+    throw new CliError('usage', `"${id}" is not a design-system id (lowercase kebab-case).`);
+  }
+  const out = workspaceFile(ctx.root, outOption ?? join(DESIGN_SYSTEMS_DIR, id, DOCUMENT_FILE));
   const file = relativeTo(ctx.root, out);
   const dryRun = flag(options, 'dryRun');
   if (existsSync(out) && !flag(options, 'force')) {
@@ -265,11 +282,37 @@ export const dsNewCommand: Handler = async (ctx, args, options): Promise<Command
     });
   }
   const text = `${JSON.stringify(document, null, 2)}\n`;
+  const extra: string[] = [];
   if (!dryRun) {
     mkdirSync(dirname(out), { recursive: true });
     writeFileSync(out, text, 'utf8');
+    if (folder) {
+      const dir = dirname(out);
+      const approval: Approval = { status: 'draft', version: result.compiled.version };
+      writeFileSync(join(dir, APPROVAL_FILE), `${JSON.stringify(approval, null, 2)}\n`, 'utf8');
+      const componentsFile = join(dir, COMPONENTS_FILE);
+      if (!existsSync(componentsFile)) {
+        writeFileSync(
+          componentsFile,
+          `${JSON.stringify(emptyComponentsManifest(), null, 2)}\n`,
+          'utf8'
+        );
+      }
+      extra.push(relativeTo(ctx.root, join(dir, APPROVAL_FILE)));
+      extra.push(relativeTo(ctx.root, componentsFile));
+    }
   }
-  const data = { ...summary(result), file, dryRun, written: !dryRun, notes, document };
+  const data = {
+    ...summary(result),
+    file,
+    layout: folder ? ('folder' as const) : ('flat' as const),
+    status: 'draft' as const,
+    files: [file, ...extra],
+    dryRun,
+    written: !dryRun,
+    notes,
+    document,
+  };
   return {
     data,
     render(o) {
@@ -293,15 +336,60 @@ function renderSummary(
 }
 
 export const dsValidateCommand: Handler = async (ctx, args): Promise<CommandResult> => {
-  const file = args[0];
-  if (!file) throw new CliError('usage', 'Missing <file>.');
-  const result = await compileOrFail(readDocument(ctx.root, file), file);
-  const data = { ...summary(result), file, valid: true };
+  const ref = args[0];
+  if (!ref) throw new CliError('usage', 'Missing <id|file>.');
+  const location = locateDesignSystem(ctx.root, ref);
+  const document = readDocumentFile(location);
+  const result = await compileOrFail(document, location.file);
+  const file = location.file;
+  if (location.layout === 'folder' && result.compiled.id !== location.id) {
+    throw new CliError(
+      'validation',
+      `${file} declares id "${result.compiled.id}", but its folder is design-systems/${location.id}/.`,
+      { hint: 'Rename the folder or the document id so they match.' }
+    );
+  }
+  const approval = readApproval(location);
+  const components = readComponents(location);
+  const drift = components ? componentDrift(location, components) : [];
+  const lockable =
+    location.layout === 'folder' ? lockRefusal(location, document, result.compiled.version) : null;
+  const data = {
+    ...summary(result),
+    file,
+    layout: location.layout,
+    valid: true,
+    contentHash: contentHash(document),
+    status: approval?.status ?? 'draft',
+    ...(approval ? { approval } : {}),
+    components:
+      components?.components.map((c) => ({ name: c.name, version: c.version, status: c.status })) ??
+      [],
+    drift,
+    lockable: location.layout === 'folder' && lockable === null,
+    ...(lockable ? { lockRefusal: lockable } : {}),
+  };
+  if (drift.length > 0) {
+    throw new CliError(
+      'validation',
+      `${COMPONENTS_FILE} of design system "${location.id}" does not match its components.`,
+      {
+        data,
+        hint: drift
+          .slice(0, 5)
+          .map((d) => `${d.file}: ${d.problem}`)
+          .join(' · '),
+      }
+    );
+  }
   return {
     data,
     render(o) {
       o.always(`${file} is a valid design system: ${data.name} (${data.id}@${data.version})`);
       renderSummary(o, data);
+      if (location.layout === 'folder') {
+        o.always(`  status ${data.status} · ${data.components.length} library component(s)`);
+      }
     },
   };
 };
@@ -442,9 +530,18 @@ async function refreshSpec(
 
 export const dsUseCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const slug = args[0];
-  const file = args[1];
-  if (!slug || !file) throw new CliError('usage', 'Provide <slug> and <file>.');
-  const result = await compileOrFail(readDocument(ctx.root, file), file);
+  const ref = args[1];
+  if (!slug || !ref) throw new CliError('usage', 'Provide <slug> and <id|file>.');
+  const location = locateDesignSystem(ctx.root, ref);
+  const document = readDocumentFile(location);
+  const file = location.file;
+  const result = await compileOrFail(document, file);
+  if (location.layout === 'folder' && result.compiled.id !== location.id) {
+    throw new CliError(
+      'validation',
+      `${file} declares id "${result.compiled.id}", but its folder is design-systems/${location.id}/.`
+    );
+  }
   const { entry, dir } = await resolveTarget(ctx, slug, 'prototype');
   const manifestFile = join(dir, 'protoyard.json');
   const prototypeFile = join(dir, PROTOTYPE_FILE);
@@ -466,6 +563,19 @@ export const dsUseCommand: Handler = async (ctx, args, options): Promise<Command
       'validation',
       `Invalid ${entry.path}/protoyard.json; refusing to update it.`
     );
+  }
+  const binding = bindingFor(manifestInput, result.compiled.id, result.compiled.version, {
+    lock: flag(options, 'lock'),
+    upgrade: flag(options, 'upgrade'),
+    slug: entry.slug,
+  });
+  if (binding?.locked) {
+    const refusal = lockRefusal(location, document, result.compiled.version);
+    if (refusal) {
+      throw new CliError('validation', `Cannot lock ${entry.slug}: ${refusal}`, {
+        hint: 'A locked prototype only accepts an approved design system.',
+      });
+    }
   }
   const packageFile = join(dir, 'package.json');
   const pkg = readPackage(dir);
@@ -511,7 +621,7 @@ export const dsUseCommand: Handler = async (ctx, args, options): Promise<Command
       );
     }
   }
-  const source = `// Written by \`protoyard ds use\` from ${JSON.stringify(relativeTo(ctx.root, resolve(ctx.root, file)))} (hash ${result.compiled.hash.slice(0, 12)}).
+  const source = `// Written by \`protoyard ds use\` from ${JSON.stringify(file)} (hash ${result.compiled.hash.slice(0, 12)}).
 // Re-run the command to update it; edit the design-system document, not this file.
 import { defineDesignSystemTheme, type ShippedDesignSystem } from '${dependency.from}';
 
@@ -523,7 +633,16 @@ export const compiled: ShippedDesignSystem = ${JSON.stringify(result.shipped, nu
 export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
 `;
   const dryRun = flag(options, 'dryRun');
-  const manifest = { ...manifestInput, defaultTheme: result.compiled.id };
+  const previous = existsSync(designSystemFile)
+    ? shippedFromSource(readFileSync(designSystemFile, 'utf8'))
+    : null;
+  const changes =
+    binding && previous && flag(options, 'upgrade') ? diffShipped(previous, result.shipped) : null;
+  const manifest = {
+    ...manifestInput,
+    defaultTheme: result.compiled.id,
+    ...(binding ? { designSystem: binding } : {}),
+  };
   if (!dryRun) {
     writeFileSync(designSystemFile, source, 'utf8');
     if (wired !== prototypeSource) writeFileSync(prototypeFile, wired, 'utf8');
@@ -560,6 +679,8 @@ export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
     dryRun,
     written: !dryRun,
     ...(dependency.add ? { added: dependency.add } : {}),
+    ...(binding ? { designSystem: binding } : {}),
+    ...(changes ? { changes } : {}),
     spec,
     next: [
       ...(dependency.add ? ['pnpm install'] : []),
@@ -574,7 +695,177 @@ export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
         `${dryRun ? 'Would apply' : 'Applied'} ${data.name} (${data.id}) to ${entry.slug}: ${files.join(', ')}`
       );
       renderSummary(o, data);
+      if (binding) {
+        o.always(
+          `  ${binding.locked ? 'locked' : 'bound'} to ${binding.id}@${binding.version}${
+            changes
+              ? ` · ${changes.changed.length} changed, ${changes.added.length} added, ${changes.removed.length} removed values`
+              : ''
+          }`
+        );
+      }
       if (!dryRun) o.always(`Next: ${data.next.join(' && ')}`);
     },
   };
 };
+
+/**
+ * `ds migrate <id>`: moves the flat `design-systems/<id>.json` into the
+ * folder layout (`document.json`, a draft `approval.json`, an empty
+ * `components.json`). Prototypes that pointed at the flat file keep working:
+ * `ds use` and `ds validate` resolve the id to the folder.
+ */
+export const dsMigrateCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
+  const id = args[0];
+  if (!id || !isDesignSystemId(id)) {
+    throw new CliError('usage', 'Provide a design-system id (lowercase kebab-case).');
+  }
+  const flat = workspaceFile(ctx.root, join(DESIGN_SYSTEMS_DIR, `${id}.json`));
+  const dir = workspaceFile(ctx.root, join(DESIGN_SYSTEMS_DIR, id));
+  if (!existsSync(flat)) {
+    throw new CliError('not_found', `No flat design system design-systems/${id}.json to migrate.`);
+  }
+  if (existsSync(dir)) {
+    throw new CliError('conflict', `design-systems/${id}/ already exists.`, {
+      hint: 'Remove or rename it first; migrate never merges into an existing folder.',
+    });
+  }
+  const location = locateDesignSystem(ctx.root, `${DESIGN_SYSTEMS_DIR}/${id}.json`);
+  const document = readDocumentFile(location);
+  const result = await compileOrFail(document, location.file);
+  if (result.compiled.id !== id) {
+    throw new CliError(
+      'validation',
+      `design-systems/${id}.json declares id "${result.compiled.id}"; its folder would not match.`
+    );
+  }
+  const dryRun = flag(options, 'dryRun');
+  const files = [
+    `${DESIGN_SYSTEMS_DIR}/${id}/${DOCUMENT_FILE}`,
+    `${DESIGN_SYSTEMS_DIR}/${id}/${APPROVAL_FILE}`,
+    `${DESIGN_SYSTEMS_DIR}/${id}/${COMPONENTS_FILE}`,
+  ];
+  if (!dryRun) {
+    // Write the folder next to the flat file, then swap: an interrupted run
+    // leaves the flat document in place.
+    const staging = workspaceFile(ctx.root, join(DESIGN_SYSTEMS_DIR, `.${id}.migrating`));
+    rmSync(staging, { recursive: true, force: true });
+    mkdirSync(staging, { recursive: true });
+    writeFileSync(join(staging, DOCUMENT_FILE), readFileSync(flat, 'utf8'), 'utf8');
+    const approval: Approval = { status: 'draft', version: result.compiled.version };
+    writeFileSync(join(staging, APPROVAL_FILE), `${JSON.stringify(approval, null, 2)}\n`, 'utf8');
+    writeFileSync(
+      join(staging, COMPONENTS_FILE),
+      `${JSON.stringify(emptyComponentsManifest(), null, 2)}\n`,
+      'utf8'
+    );
+    renameSync(staging, dir);
+    rmSync(flat);
+  }
+  const data = { id, from: `${DESIGN_SYSTEMS_DIR}/${id}.json`, files, status: 'draft', dryRun };
+  return {
+    data,
+    render(o) {
+      o.always(
+        `${dryRun ? 'Would migrate' : 'Migrated'} ${data.from} → ${DESIGN_SYSTEMS_DIR}/${id}/ (status draft)`
+      );
+      o.always(`Next: review it, then \`protoyard ds approve ${id}\` and a reviewed commit.`);
+    },
+  };
+};
+
+interface Binding {
+  id: string;
+  version: string;
+  locked: boolean;
+}
+
+/**
+ * The manifest binding `ds use` writes. `--lock` pins the exact version and
+ * locks; an existing binding is kept (and stays locked) and only moves to a
+ * new version with `--upgrade`. Without either, an unbound prototype stays
+ * unbound, as before.
+ */
+export function bindingFor(
+  manifest: Record<string, unknown>,
+  id: string,
+  version: string,
+  options: { lock: boolean; upgrade: boolean; slug: string }
+): Binding | null {
+  const current = manifest.designSystem as Binding | undefined;
+  if (options.upgrade && !current) {
+    throw new CliError(
+      'usage',
+      `${options.slug} is not bound to a design system; --upgrade moves a binding.`,
+      {
+        hint: `Bind it first: protoyard ds use ${options.slug} ${id} --lock`,
+      }
+    );
+  }
+  if (!current) return options.lock ? { id, version, locked: true } : null;
+  if (current.locked && current.id !== id) {
+    throw new CliError(
+      'conflict',
+      `${options.slug} is locked to design system "${current.id}"; it cannot take "${id}".`,
+      {
+        hint: 'A locked prototype keeps its design system. Create a new prototype for another one.',
+      }
+    );
+  }
+  if (current.id === id && current.version !== version && !options.upgrade) {
+    throw new CliError(
+      'conflict',
+      `${options.slug} pins ${current.id}@${current.version}; the document is ${version}.`,
+      { hint: `Move the pin on purpose: protoyard ds use ${options.slug} ${id} --upgrade` }
+    );
+  }
+  return { id, version, locked: current.locked || options.lock };
+}
+
+const SHIPPED_START = 'export const compiled: ShippedDesignSystem = ';
+
+/** The compiled JSON a previous `ds use` wrote into src/design-system.ts, or null. */
+export function shippedFromSource(source: string): unknown {
+  const start = source.indexOf(SHIPPED_START);
+  if (start < 0) return null;
+  const from = start + SHIPPED_START.length;
+  const end = source.indexOf(';\n', from);
+  if (end < 0) return null;
+  try {
+    return JSON.parse(source.slice(from, end)) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function leaves(value: unknown, prefix: string, out: Map<string, string>): void {
+  if (value && typeof value === 'object') {
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      leaves(child, prefix ? `${prefix}.${key}` : key, out);
+    }
+    return;
+  }
+  out.set(prefix, JSON.stringify(value));
+}
+
+/** What changed between two compiled design systems, by leaf path (hash excluded). */
+export function diffShipped(
+  before: unknown,
+  after: unknown
+): { changed: string[]; added: string[]; removed: string[] } {
+  const a = new Map<string, string>();
+  const b = new Map<string, string>();
+  leaves(before, '', a);
+  leaves(after, '', b);
+  a.delete('hash');
+  b.delete('hash');
+  const changed: string[] = [];
+  const added: string[] = [];
+  const removed: string[] = [];
+  for (const [path, value] of b) {
+    if (!a.has(path)) added.push(path);
+    else if (a.get(path) !== value) changed.push(path);
+  }
+  for (const path of a.keys()) if (!b.has(path)) removed.push(path);
+  return { changed: changed.sort(), added: added.sort(), removed: removed.sort() };
+}

@@ -252,6 +252,8 @@ export function devFsAllow(root: string): string[] {
     resolve(root),
     resolve(workspace, 'packages'),
     resolve(workspace, 'node_modules'),
+    // Library components of design systems (`@ds/<id>/<Component>`).
+    resolve(workspace, 'design-systems'),
     ...linkedPackageRoots(workspace),
   ];
 }
@@ -454,6 +456,21 @@ function protoyardHtml(manifest: PrototypeManifest, namespace: string): Plugin {
   };
 }
 
+/**
+ * `@ds/<id>/<Component>` resolves to the design system's own component,
+ * `<workspace>/design-systems/<id>/components/<Component>.svelte` (locked
+ * design systems, PLAN_013). One stable path for every prototype, whatever
+ * its folder depth. The pattern only accepts a kebab-case id and a
+ * PascalCase name, so it cannot reach outside `design-systems/`.
+ */
+export function designSystemAlias(root: string): { find: RegExp; replacement: string } {
+  const workspace = searchForWorkspaceRoot(root);
+  return {
+    find: /^@ds\/([a-z][a-z0-9-]{0,63})\/([A-Z][A-Za-z0-9]{0,63})$/,
+    replacement: `${resolve(workspace, 'design-systems').replaceAll('\\', '/')}/$1/components/$2.svelte`,
+  };
+}
+
 export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConfigFnObject {
   const { root, avatars, texuliCssGroups = true, ...overrides } = options;
   return defineConfig((configEnv) => {
@@ -475,6 +492,7 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
       resolve: {
         // Workspace packages are linked; one copy of each runtime library.
         dedupe: ['svelte', 'dexie'],
+        alias: [designSystemAlias(root)],
       },
       define: {
         __PROTOYARD_DEVTOOLS__: JSON.stringify(settings.includeDevtools),

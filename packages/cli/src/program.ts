@@ -22,7 +22,13 @@ import {
 } from './commands/deck.ts';
 import { devCommand } from './commands/dev.ts';
 import { doctorCommand } from './commands/doctor.ts';
-import { dsExportCommand, dsNewCommand, dsUseCommand, dsValidateCommand } from './commands/ds.ts';
+import {
+  dsExportCommand,
+  dsMigrateCommand,
+  dsNewCommand,
+  dsUseCommand,
+  dsValidateCommand,
+} from './commands/ds.ts';
 import { exportCommand } from './commands/export.ts';
 import { galleryBuildCommand, galleryPreviewCommand } from './commands/gallery-build.ts';
 import { generateCommand } from './commands/generate.ts';
@@ -560,7 +566,7 @@ export function createProgram(env: RunnerEnv): Command {
     .description('create, validate, export and apply Texuli design systems');
   ds.command('new')
     .description(
-      'create a design system from a brief, a few inputs or a theme; writes design-systems/<id>.json'
+      'create a design system from a brief, a few inputs or a theme; writes the folder design-systems/<id>/ (document, draft approval, component library)'
     )
     .argument('<id>', 'design system id (lowercase kebab-case; also its theme id)')
     .option('--name <name>', 'display name')
@@ -596,14 +602,23 @@ export function createProgram(env: RunnerEnv): Command {
       "import a workspace module's own Theme export (runs that file under tsx; trusted code only)"
     )
     .option('--export <name>', 'with --from-theme-file: the export to import (default: the theme)')
-    .option('--out <file>', 'output file (default design-systems/<id>.json)')
+    .option('--out <file>', 'write a flat document to this file instead of the design-systems/<id>/ folder')
     .option('--force', 'replace an existing file')
     .option('--dry-run', 'validate and compile without writing')
     .action(def('ds new', dsNewCommand));
   ds.command('validate')
-    .description('validate an untrusted design-system document and compile it')
-    .argument('<file>', 'design-system JSON file')
+    .description(
+      'validate an untrusted design-system document and compile it; a folder also reports its approval and component library'
+    )
+    .argument('<id|file>', 'design-system id (design-systems/<id>/ or <id>.json) or JSON file')
     .action(def('ds validate', dsValidateCommand));
+  ds.command('migrate')
+    .description(
+      'move a flat design-systems/<id>.json into the folder layout (document, draft approval, component library)'
+    )
+    .argument('<id>', 'design system id')
+    .option('--dry-run', 'show what would change without writing')
+    .action(def('ds migrate', dsMigrateCommand));
   ds.command('export')
     .description('export a design system as CSS variables, a Tailwind preset or compiled JSON')
     .argument('<file>', 'design-system JSON file')
@@ -618,7 +633,12 @@ export function createProgram(env: RunnerEnv): Command {
       'apply a design system to a prototype: src/design-system.ts, its themes and defaultTheme'
     )
     .argument('<slug>', 'prototype slug')
-    .argument('<file>', 'design-system JSON file')
+    .argument('<id|file>', 'design-system id or JSON file')
+    .option(
+      '--lock',
+      'bind the prototype to this approved design system at its exact version and lock it (only this theme, enforced by check ds)'
+    )
+    .option('--upgrade', 'move an existing binding to the document version and list what changed')
     .option('--force', 'replace another design system in src/design-system.ts')
     .option('--dry-run', 'show what would change without writing')
     .action(def('ds use', dsUseCommand));

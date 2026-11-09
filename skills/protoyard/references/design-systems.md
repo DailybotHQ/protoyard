@@ -27,7 +27,7 @@ From an existing theme (a built-in or any library theme):
 pnpm protoyard ds new ocean-ds --from-theme ocean
 ```
 
-Each writes `design-systems/<id>.json` and prints the contrast result per
+Each writes the folder `design-systems/<id>/` (document, draft approval, component library) and prints the contrast result per
 mode. `--dry-run` compiles without writing; `--force` replaces the file. An
 imported theme lists what it could not keep exactly as notes (most Protoyard
 themes get their `input` and dark `borderStrong` colors raised to 3:1).
@@ -35,10 +35,10 @@ themes get their `input` and dark `borderStrong` colors raised to 3:1).
 ## Check, export and apply
 
 ```bash
-pnpm protoyard ds validate design-systems/harbor.json
-pnpm protoyard ds export design-systems/harbor.json --format css
-pnpm protoyard ds use crm-demo design-systems/harbor.json --dry-run
-pnpm protoyard ds use crm-demo design-systems/harbor.json
+pnpm protoyard ds validate harbor
+pnpm protoyard ds export design-systems/harbor/document.json --format css
+pnpm protoyard ds use crm-demo harbor --dry-run
+pnpm protoyard ds use crm-demo harbor
 pnpm protoyard spec crm-demo --write
 pnpm protoyard validate crm-demo --build
 ```
