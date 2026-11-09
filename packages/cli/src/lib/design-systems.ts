@@ -228,7 +228,8 @@ export { canonicalJson } from '@texuli/spec/design-system';
  * hash matches it for documents without a library.
  */
 export function contentHash(document: unknown): string {
-  return designSystemContentHash(document);
+  // A clone: Texuli's hash before 0.15.0 could write into the object it hashed.
+  return designSystemContentHash(structuredClone(document));
 }
 
 export function sha256File(file: string): string {

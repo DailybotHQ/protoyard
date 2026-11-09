@@ -346,7 +346,7 @@ function approveWithExtensions(
     version: approved.document.version,
     approval: stamp,
   };
-  const contentHash = designSystemContentHash(stamped);
+  const contentHash = designSystemContentHash(structuredClone(stamped));
   return {
     ok: true,
     contentHash,

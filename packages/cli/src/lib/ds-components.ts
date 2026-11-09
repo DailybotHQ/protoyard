@@ -309,7 +309,7 @@ export function approvedLibraryEntry(
       version: next.version,
       approvedBy,
       approvedAt,
-      contentHash: libraryEntryContentHash(next),
+      contentHash: libraryEntryContentHash(structuredClone(next)),
     },
   };
 }

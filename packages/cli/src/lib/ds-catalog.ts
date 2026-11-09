@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import type { ManifestGroup } from '@texuli/catalog/build';
+import * as texuliSpec from '@texuli/spec';
 import * as texuliDesignSystem from '@texuli/spec/design-system';
 import {
   checkDesignSystemAllow,
@@ -264,11 +265,13 @@ export function catalogFromManifests(
 type TexuliMerge = (texuli: unknown, extensions: unknown) => unknown;
 
 /**
- * Texuli's `mergeCatalogs` when the installed `@texuli/spec/design-system`
- * exports it (drop 2), read through the namespace so drop 1 still loads.
+ * Texuli's `mergeCatalogs` when the installed `@texuli/spec` exports it
+ * (0.15.0), read through the namespace so an older Texuli still loads.
  */
 function texuliMergeCatalogs(): TexuliMerge | undefined {
-  const merge = (texuliDesignSystem as Record<string, unknown>).mergeCatalogs;
+  const merge =
+    (texuliSpec as Record<string, unknown>).mergeCatalogs ??
+    (texuliDesignSystem as Record<string, unknown>).mergeCatalogs;
   return typeof merge === 'function' ? (merge as TexuliMerge) : undefined;
 }
 
