@@ -1,14 +1,15 @@
 <script lang="ts">
 import { Button } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 
 let clicks = $state(0);
 </script>
 
 <!-- @prop variant: 'solid' | 'outline' — Visual emphasis for the action. -->
 <!-- @prop disabled: boolean — Prevents activation while unavailable. -->
-<div class="demo-row">
-  <Button class="primary" onclick={() => clicks++}>Save changes</Button>
-  <Button class="secondary">Cancel</Button>
-  <Button class="quiet" disabled>Unavailable</Button>
+<div class="flex flex-wrap items-center justify-center gap-2">
+  <Button onclick={() => clicks++}>Save changes</Button>
+  <Button variant="outline">Cancel</Button>
+  <Button variant="ghost" disabled>Unavailable</Button>
 </div>
-<p class="demo-caption" aria-live="polite">Saved {clicks} times in this preview.</p>
+<Text size="xs" tone="muted" align="center" class="w-full" aria-live="polite">Saved {clicks} times in this preview.</Text>
