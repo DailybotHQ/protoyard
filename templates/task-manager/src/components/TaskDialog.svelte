@@ -1,6 +1,7 @@
 <script lang="ts">
 import { isValidationError, liveQuery, navigate, runService } from '@protoyard/renderer-svelte';
 import { Button, Dialog, FormField, Input, Select, Textarea, UserPicker } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 import {
   TASK_LABELS,
   TASK_PRIORITIES,
@@ -160,25 +161,23 @@ $effect(() => {
     </FormField>
 
     <fieldset class="sm:col-span-2">
-      <legend class="text-sm font-medium">Labels <span class="font-normal text-muted-foreground">(up to 4)</span></legend>
+      <legend><Text as="span" size="sm" weight="medium">Labels</Text> <Text as="span" size="sm" tone="muted">(up to 4)</Text></legend>
       <div class="mt-2 flex flex-wrap gap-1.5">
         {#each TASK_LABELS as label (label)}
           {@const on = form.labels.includes(label)}
           <Button
             type="button"
-            variant="ghost"
+            variant={on ? 'default' : 'outline'}
+            size="sm"
             aria-pressed={on}
             onclick={() => toggleLabel(label)}
-            class={[
-              'min-h-touch rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0',
-              on ? 'border-primary bg-primary text-primary-foreground' : 'border-border text-muted-foreground hover:bg-muted',
-            ]}
+            class="min-h-touch sm:min-h-0"
           >
             {LABEL_NAMES[label]}
           </Button>
         {/each}
       </div>
-      {#if errors.labels}<p class="mt-1.5 text-sm text-destructive" role="alert">{errors.labels}</p>{/if}
+      {#if errors.labels}<Text size="sm" tone="destructive" class="mt-1.5" role="alert">{errors.labels}</Text>{/if}
     </fieldset>
   </form>
 
