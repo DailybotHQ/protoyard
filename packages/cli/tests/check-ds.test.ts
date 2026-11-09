@@ -13,6 +13,7 @@ import {
   literalAttribute,
   scanDesignSystemSource,
 } from '../src/lib/ds-check/index.ts';
+import { PROTOYARD_LAYOUT_UTILITIES } from '../src/lib/ds-check/utilities.ts';
 import { RULES, scanSource } from '../src/lib/texuli-adoption.ts';
 import { addPrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
@@ -248,6 +249,10 @@ describe('ds-check rules (fixtures)', () => {
       'pt-safe',
       'pb-safe',
       'min-h-touch',
+      'h-app',
+      'max-h-app',
+      '@container',
+      '@container/main',
       'invisible',
     ]) {
       expect(classifyUtility(ok), ok).toBe('allowed');
@@ -262,6 +267,18 @@ describe('ds-check rules (fixtures)', () => {
       'italic',
     ]) {
       expect(classifyUtility(bad), bad).toBe('visual');
+    }
+  });
+
+  it('allows exactly the layout utilities @protoyard/themes defines, and no invented ones', () => {
+    const css = readFileSync(
+      join(fileURLToPath(new URL('../../themes/src/base.css', import.meta.url))),
+      'utf8'
+    );
+    const defined = [...css.matchAll(/^@utility\s+([\w-]+)\s*\{/gm)].map((m) => m[1]);
+    expect([...PROTOYARD_LAYOUT_UTILITIES].sort()).toEqual([...defined].sort());
+    for (const missing of ['min-w-touch', 'size-touch', 'h-touch', 'w-touch', 'mt-safe']) {
+      expect(classifyUtility(missing), missing).not.toBe('allowed');
     }
   });
 

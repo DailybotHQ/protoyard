@@ -15,6 +15,22 @@ const SIZE = `(?:${SCALE}|${FRACTION}|auto|full|screen|svw|lvw|dvw|svh|lvh|dvh|m
 const ALIGN =
   '(?:start|end|center|baseline|stretch|normal|between|around|evenly|auto|safe|end-safe|center-safe)';
 
+/**
+ * Layout-only utilities Protoyard defines in `packages/themes/src/base.css`:
+ * safe-area insets, the app frame height and the touch-target height.
+ */
+export const PROTOYARD_LAYOUT_UTILITIES: readonly string[] = [
+  'pt-safe',
+  'pb-safe',
+  'pl-safe',
+  'pr-safe',
+  'px-safe',
+  'h-app',
+  'min-h-app',
+  'max-h-app',
+  'min-h-touch',
+];
+
 const ALLOWED: readonly RegExp[] = [
   // display
   /^(?:flex|inline-flex|grid|inline-grid|block|inline-block|inline|hidden|contents)$/,
@@ -64,9 +80,11 @@ const ALLOWED: readonly RegExp[] = [
   /^object-(?:contain|cover|fill|none|scale-down|center|top|bottom|left|right)$/,
   /^(?:table|table-row|table-cell|inline-table|flow-root|list-item)$/,
   /^pointer-events-(?:none|auto)$/,
-  // Protoyard's layout tokens: safe-area insets and the touch-target size
-  /^-?(?:p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|inset|top|right|bottom|left)-safe$/,
-  /^(?:min-h|min-w|h|w|size)-touch$/,
+  // Protoyard's layout tokens, exactly the `@utility` rules of
+  // @protoyard/themes/base.css (a test keeps this list in step with it).
+  ...PROTOYARD_LAYOUT_UTILITIES.map((name) => new RegExp(`^${name}$`)),
+  // Tailwind's container-query marker (`@container`, `@container/name`).
+  /^@container(?:\/[\w-]+)?$/,
 ];
 
 /** Families that draw: color, borders, radius, shadow, type, effects, motion. */

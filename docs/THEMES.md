@@ -1254,8 +1254,12 @@ list is an allow-list: anything not on it fails, including unknown utilities.
 - Box and media layout: `aspect-*` (auto, square, video), `object-*`,
   `box-border`, `box-content`, `isolate`, `visible`, `invisible`, the table
   and `flow-root` displays, `pointer-events-none` and `pointer-events-auto`.
-- Protoyard's layout tokens: the safe-area insets (`pt-safe`, `pb-safe`,
-  `px-safe`, …) and the touch-target size (`min-h-touch`, `size-touch`, …).
+- Protoyard's layout tokens, exactly the `@utility` rules of
+  `@protoyard/themes/base.css`: the safe-area insets (`pt-safe`, `pb-safe`,
+  `pl-safe`, `pr-safe`, `px-safe`), the app frame height (`h-app`,
+  `min-h-app`, `max-h-app`) and the touch-target height (`min-h-touch`). A test
+  keeps the list equal to the stylesheet.
+- Tailwind's container-query marker `@container` (and `@container/<name>`).
 - Responsive and state variants (`sm:`, `md:`, `lg:`, `xl:`, `2xl:`, `hover:`,
   `dark:`, …) on an allowed utility (`md:grid-cols-2` passes). A variant with
   brackets (`data-[x]:`) is an arbitrary value.
