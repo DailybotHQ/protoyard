@@ -1,7 +1,8 @@
 <script lang="ts">
 import { ArrowLeft, Database, Save, ShieldCheck, Sparkles } from '@lucide/svelte';
-import { Button, Checkbox, Input, Select, Textarea } from '@protoyard/ui';
+import { Button, Checkbox, Input, Notice, Select, Textarea } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import { useAssistant } from '../lib/context.ts';
 
 const { settings, services } = useAssistant();
@@ -73,46 +74,50 @@ async function clearMemory() {
 }
 </script>
 
-<section data-template-light-surface class="mx-auto max-h-full w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#e9e6ef] bg-white p-5 shadow-sm sm:p-8" aria-labelledby="settings-title">
-  <a href="#/" class="mb-6 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f7f5fa]"><LucideIcon icon={ArrowLeft} class="size-3.5" /> Back to assistant</a>
+<Box as="section" surface="default" border="default" radius="xl" elevation="sm" padding="lg" class="mx-auto max-h-full w-full max-w-3xl overflow-y-auto sm:p-8" aria-labelledby="settings-title">
+  <Button href="#/" variant="ghost" size="sm" class="mb-6 min-h-9 gap-1.5 px-2"><LucideIcon icon={ArrowLeft} class="size-3.5" /> Back to assistant</Button>
   <div class="mb-7 flex items-start gap-3">
-    <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#eeeafa] text-[#7662ca]"><LucideIcon icon={Sparkles} class="size-5" /></span>
-    <div><h1 id="settings-title" class="text-xl font-semibold tracking-tight">Assistant settings</h1><p class="mt-1 text-sm text-[#696579]">Personalize the simulated assistant and control what this local prototype remembers.</p></div>
+    <Box surface="muted" radius="lg" padding="none" class="flex size-11 shrink-0 items-center justify-center"><LucideIcon icon={Sparkles} tone="primary" class="size-5" /></Box>
+    <div><Heading level={1} size="lg" id="settings-title">Assistant settings</Heading><Text size="sm" tone="muted" class="mt-1">Personalize the simulated assistant and control what this local prototype remembers.</Text></div>
   </div>
-  {#if notice}<p class={`mb-5 rounded-lg border px-3 py-2 text-sm ${noticeIsError ? 'border-[#e9b2a9] bg-[#fff1ee] text-[#8a3125]' : 'border-[#b9dec9] bg-[#eff9f2] text-[#28643f]'}`} role={noticeIsError ? 'alert' : 'status'}>{notice}</p>{/if}
+  {#if notice}<Notice tone={noticeIsError ? 'error' : 'success'} text={notice} class="mb-5" />{/if}
 
   <form onsubmit={save} class="space-y-7">
     <section class="space-y-4" aria-labelledby="behavior-title">
-      <div class="border-b border-[#efedf2] pb-3"><h2 id="behavior-title" class="text-sm font-semibold">How it responds</h2><p class="mt-1 text-xs text-[#696579]">These instructions are applied locally to deterministic response packs.</p></div>
-      <label class="block text-xs font-medium text-[#514d60]" for="custom-instructions">Custom instructions
-        <Textarea id="custom-instructions" bind:value={customInstructions} maxlength={1200} rows={4} class="mt-2 w-full resize-y rounded-xl border border-[#e4e1ea] bg-[#fdfcfe] p-3 text-sm font-normal text-[#343044] outline-none focus:border-[#8771d9] focus:ring-2 focus:ring-[#e7e1fa]"></Textarea>
-        <span class="mt-1 block text-[0.68rem] font-normal text-[#696579]">Up to 1,200 characters. No external model receives this text.</span>
-      </label>
+      <Box border="block-end" radius="none" padding="none" class="pb-3"><Heading level={2} size="sm" id="behavior-title">How it responds</Heading><Text size="xs" tone="muted" class="mt-1">These instructions are applied locally to deterministic response packs.</Text></Box>
+      <div>
+        <Text as="label" size="xs" weight="medium" for="custom-instructions">Custom instructions</Text>
+        <Textarea id="custom-instructions" bind:value={customInstructions} maxlength={1200} rows={4} class="mt-2 w-full" aria-describedby="custom-instructions-hint"></Textarea>
+        <Text as="span" size="xs" tone="muted" id="custom-instructions-hint" class="mt-1 block">Up to 1,200 characters. No external model receives this text.</Text>
+      </div>
     </section>
 
     <section class="space-y-4" aria-labelledby="memory-title">
-      <div class="border-b border-[#efedf2] pb-3"><h2 id="memory-title" class="text-sm font-semibold">Memory</h2><p class="mt-1 text-xs text-[#696579]">Stored in this prototype's IndexedDB. Simulated roles are UX only, not security.</p></div>
-      <label class="flex items-center gap-3 text-sm"><Checkbox bind:checked={memoryEnabled} class="size-4" /> Use saved memory in simulated replies</label>
-      <label class="block text-xs font-medium text-[#514d60]" for="memory-content">Saved memory
-        <Textarea id="memory-content" bind:value={memory} maxlength={1200} rows={3} class="mt-2 w-full resize-y rounded-xl border border-[#e4e1ea] bg-[#fdfcfe] p-3 text-sm font-normal text-[#343044] outline-none focus:border-[#8771d9] focus:ring-2 focus:ring-[#e7e1fa]"></Textarea>
-      </label>
-      <Button type="button" variant="ghost" class="min-h-9 rounded-lg px-3 text-xs font-medium text-[#6553ae] hover:bg-[#f4f1fb]" onclick={clearMemory}>Clear saved memory</Button>
+      <Box border="block-end" radius="none" padding="none" class="pb-3"><Heading level={2} size="sm" id="memory-title">Memory</Heading><Text size="xs" tone="muted" class="mt-1">Stored in this prototype's IndexedDB. Simulated roles are UX only, not security.</Text></Box>
+      <label class="flex items-center gap-3"><Checkbox bind:checked={memoryEnabled} class="size-4" /><Text as="span" size="sm">Use saved memory in simulated replies</Text></label>
+      <div>
+        <Text as="label" size="xs" weight="medium" for="memory-content">Saved memory</Text>
+        <Textarea id="memory-content" bind:value={memory} maxlength={1200} rows={3} class="mt-2 w-full"></Textarea>
+      </div>
+      <Button type="button" variant="ghost" size="sm" class="min-h-9 px-3" onclick={clearMemory}>Clear saved memory</Button>
     </section>
 
     <section class="space-y-4" aria-labelledby="data-title">
-      <div class="border-b border-[#efedf2] pb-3"><h2 id="data-title" class="flex items-center gap-2 text-sm font-semibold"><LucideIcon icon={ShieldCheck} class="size-4 text-[#7460c8]" /> Data controls</h2><p class="mt-1 text-xs text-[#696579]">Local simulation controls; no account or provider service is connected.</p></div>
-      <label class="block text-xs font-medium text-[#514d60]" for="data-mode">Context mode
+      <Box border="block-end" radius="none" padding="none" class="pb-3"><Heading level={2} size="sm" id="data-title" class="flex items-center gap-2"><LucideIcon icon={ShieldCheck} tone="primary" class="size-4" /> Data controls</Heading><Text size="xs" tone="muted" class="mt-1">Local simulation controls; no account or provider service is connected.</Text></Box>
+      <div>
+        <Text as="label" size="xs" weight="medium" for="data-mode">Context mode</Text>
         <Select id="data-mode" bind:value={dataControls} class="mt-2 block min-h-10 w-full" items={[{ value: 'standard', label: 'Standard · include enabled memory' }, { value: 'private', label: 'Private · omit saved memory from prompts' }]} />
-      </label>
-      <label class="block text-xs font-medium text-[#514d60]" for="usage-limit">Monthly simulated token limit
-        <Input id="usage-limit" type="number" min={1000} max={10000000} step={1000} bind:value={monthlyLimit} class="mt-2 block min-h-10 w-full rounded-lg border border-[#e4e1ea] bg-white px-3 text-sm font-normal outline-none focus:border-[#8771d9] focus:ring-2 focus:ring-[#e7e1fa]" />
-      </label>
-      <div class="rounded-xl border border-[#ebe8f0] bg-[#faf9fc] p-3 text-xs leading-5 text-[#696579]"><LucideIcon icon={Database} class="mr-1 inline size-3.5" /> Conversations, settings, usage and attachments (file names only) stay in this browser's IndexedDB. The assistant uses deterministic response packs and makes no network model calls.</div>
+      </div>
+      <div>
+        <Text as="label" size="xs" weight="medium" for="usage-limit">Monthly simulated token limit</Text>
+        <Input id="usage-limit" type="number" min={1000} max={10000000} step={1000} bind:value={monthlyLimit} class="mt-2 block min-h-10 w-full" />
+      </div>
+      <Box surface="subtle" border="default" radius="lg" padding="sm"><Text size="xs" tone="muted"><LucideIcon icon={Database} class="mr-1 inline size-3.5" /> Conversations, settings, usage and attachments (file names only) stay in this browser's IndexedDB. The assistant uses deterministic response packs and makes no network model calls.</Text></Box>
     </section>
 
-    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-[#efedf2] pt-5">
-      <Button type="submit" variant="default" class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#302a58] px-4 text-sm font-medium text-white hover:bg-[#403878] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8370db]"><LucideIcon icon={Save} class="size-4" /> Save settings</Button>
-      <Button type="button" variant="outline" class="min-h-10 rounded-lg border border-[#e6d1cf] px-3 text-xs font-medium text-[#923e34]" onclick={clearWorkspace}>Clear local workspace data</Button>
-    </div>
+    <Box border="block-start" radius="none" padding="none" class="flex flex-wrap items-center justify-between gap-3 pt-5">
+      <Button type="submit" variant="default" class="min-h-10 gap-2 px-4"><LucideIcon icon={Save} class="size-4" /> Save settings</Button>
+      <Button type="button" variant="outline" tone="destructive" size="sm" class="min-h-10 px-3" onclick={clearWorkspace}>Clear local workspace data</Button>
+    </Box>
   </form>
-</section>
+</Box>
