@@ -1,6 +1,13 @@
 // @vitest-environment node
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { compileDesignSystemDocument } from '@protoyard/themes';
+import { SPEC_CATALOG_HASH } from '@texuli/spec';
+import {
+  approveDesignSystem,
+  DESIGN_SYSTEM_FORMAT_VERSION,
+  validateDesignSystem,
+} from '@texuli/spec/design-system';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   allowPreset,
@@ -12,17 +19,17 @@ import {
   dsCatalog,
   kebabCase,
   mergeWithExtensions,
-  namespacedAllowKeys,
-  texuliView,
+  specCatalogOf,
 } from '../src/lib/ds-catalog.ts';
 import { type DsAllowContext, scanDesignSystemSource } from '../src/lib/ds-check/index.ts';
 import {
   CATALOG_EXTENSIONS,
   type CatalogExtensionManifest,
-  mergeCatalogManifests,
   PROTOYARD_UI_EXTENSIONS,
   PROTOYARD_UI_HOST_CHROME,
-  TEXULI_ANNOUNCED_IDS,
+  PROTOYARD_UI_NON_COMPONENTS,
+  PROTOYARD_UI_REEXPORTS,
+  toExtensionFiles,
 } from '../src/lib/ds-extensions/index.ts';
 import { cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 import {
@@ -38,12 +45,43 @@ import {
  */
 
 /**
- * Texuli re-exports of `@protoyard/ui` that no Texuli catalog id covers yet
- * and that Texuli has not announced either. Raise them with Texuli; never give
- * them a Protoyard extension (they are Texuli's components). A new entry here
- * is a deliberate decision, so the list is pinned.
+ * Texuli imports the `@protoyard/ui` sources use that the Texuli catalog
+ * (0.15.0) neither maps to an id nor lists as a non-component: the
+ * `@texuli/primitives` headless parts (no catalog by design) and compound
+ * parts of `texuli/sheet` and `texuli/navigation` (raised with Texuli). They
+ * never reach a prototype tag (only `@protoyard/ui`'s own source), so they do
+ * not change a mapping; the list is pinned so a new one is a decision.
  */
-const TEXULI_REEXPORT_GAPS = ['AppShell', 'TypingIndicator', 'Wizard'];
+const TEXULI_IMPORT_GAPS = [
+  '@texuli/primitives/dialog#DialogPrimitiveOverlay',
+  '@texuli/primitives/menu#MenuPrimitiveRoot',
+  '@texuli/primitives/menu#MenuPrimitiveTrigger',
+  '@texuli/primitives/popover#PopoverPrimitiveRoot',
+  '@texuli/primitives/popover#PopoverPrimitiveTrigger',
+  'texuli/navigation#PaginationNextButton',
+  'texuli/navigation#PaginationPreviousButton',
+  'texuli/sheet#DetailPanelClose',
+  'texuli/sheet#DetailPanelDescription',
+  'texuli/sheet#DetailPanelPortal',
+  'texuli/sheet#DetailPanelRoot',
+  'texuli/sheet#DetailPanelTitle',
+  'texuli/sheet#DetailPanelTrigger',
+  'texuli/sheet#DrawerDescription',
+  'texuli/sheet#DrawerHandle',
+  'texuli/sheet#DrawerOverlay',
+  'texuli/sheet#DrawerPortal',
+  'texuli/sheet#DrawerRoot',
+  'texuli/sheet#DrawerTitle',
+  'texuli/sheet#DrawerTrigger',
+  'texuli/sheet#SheetClose',
+  'texuli/sheet#SheetDescription',
+  'texuli/sheet#SheetPortal',
+  'texuli/sheet#SheetRoot',
+  'texuli/sheet#SheetTitle',
+  'texuli/sheet#SheetTrigger',
+];
+
+const UI_NON_COMPONENT_NAMES = PROTOYARD_UI_NON_COMPONENTS.flatMap((entry) => entry.exports);
 
 describe('@protoyard/ui catalog extensions cover every own component (CI gate)', () => {
   const catalog = dsCatalog();
@@ -61,12 +99,21 @@ describe('@protoyard/ui catalog extensions cover every own component (CI gate)',
     }
   });
 
-  it('gives every Protoyard-own component exactly one extension manifest, and nothing else one', () => {
+  it('gives every own component that renders Texuli ones exactly one manifest; the rest are non-components', () => {
     const missing: string[] = [];
+    const nonComponents: string[] = [];
     for (const entry of own) {
+      const derived = derivedComposition(entry.file as string, catalog);
       const claims = PROTOYARD_UI_EXTENSIONS.filter((m) =>
         m.imports.some((i) => i.module === '@protoyard/ui' && i.exports.includes(entry.name))
       );
+      if (derived.ids.length === 0) {
+        // Texuli's extension format needs a composes id: renders only non-components or elements.
+        nonComponents.push(entry.name);
+        expect(claims, `${entry.name} renders no catalog id: no manifest`).toEqual([]);
+        expect(derived.unmapped, `${entry.name} renders unmapped Texuli imports`).toEqual([]);
+        continue;
+      }
       if (claims.length !== 1) missing.push(`${entry.name} (${claims.length} manifests)`);
       else expect(claims[0]?.id).toBe(`protoyard:${kebabCase(entry.name)}`);
     }
@@ -74,47 +121,59 @@ describe('@protoyard/ui catalog extensions cover every own component (CI gate)',
       missing,
       'Add one manifest per new @protoyard/ui component in packages/cli/src/lib/ds-extensions/protoyard-ui.ts'
     ).toEqual([]);
+    expect(nonComponents.sort(), 'PROTOYARD_UI_NON_COMPONENTS').toEqual(
+      [...UI_NON_COMPONENT_NAMES].sort()
+    );
     const ownNames = new Set(own.map((e) => e.name));
     const stale = PROTOYARD_UI_EXTENSIONS.flatMap((m) =>
       m.imports.flatMap((i) => i.exports)
     ).filter((name) => !ownNames.has(name));
     expect(stale, 'manifests for names @protoyard/ui does not export as its own').toEqual([]);
+    expect(PROTOYARD_UI_EXTENSIONS).toHaveLength(own.length - UI_NON_COMPONENT_NAMES.length);
   });
 
-  it('maps every Texuli re-export to a Texuli id, an announced id, or a pinned gap', () => {
-    const announced: string[] = [];
-    const gaps: string[] = [];
+  it('lists every Texuli re-export as the Texuli import it is, and each maps to a Texuli id', () => {
+    const scanned = reexports
+      .map((e) => ({ module: '@protoyard/ui', name: e.name, from: e.module, export: e.exported }))
+      .sort((a, b) => (a.name < b.name ? -1 : 1));
+    expect([...PROTOYARD_UI_REEXPORTS].sort((a, b) => (a.name < b.name ? -1 : 1))).toEqual(scanned);
+    const byHow = new Map<string, string[]>();
     for (const entry of reexports) {
-      const match = catalogIdFor(catalog, entry.module, entry.name);
+      const match = catalogIdFor(catalog, '@protoyard/ui', entry.name);
       expect(match.id?.includes(':') ?? false, `${entry.name} must not map to an extension`).toBe(
         false
       );
-      if (match.id) continue;
-      if (TEXULI_ANNOUNCED_IDS.includes(kebabCase(entry.name))) announced.push(entry.name);
-      else gaps.push(entry.name);
+      // Through the re-export, the same answer as the Texuli import itself.
+      expect(match).toEqual(catalogIdFor(catalog, entry.module, entry.exported));
+      byHow.set(match.how, [...(byHow.get(match.how) ?? []), entry.name]);
     }
-    expect(gaps.sort()).toEqual(TEXULI_REEXPORT_GAPS);
+    // Texuli 0.15.0 maps every re-export; AppShell is a Texuli non-component (shell chrome).
+    expect([...byHow.keys()].sort()).toEqual(['import', 'non-component']);
+    expect(byHow.get('non-component')).toEqual(['AppShell']);
     // Re-exports are never claimed by an extension manifest.
     const claimed = new Set(
       PROTOYARD_UI_EXTENSIONS.flatMap((m) => m.imports.flatMap((i) => i.exports))
     );
     expect(reexports.filter((e) => claimed.has(e.name))).toEqual([]);
-    expect(announced.length).toBeGreaterThan(0);
   });
 
   it('keeps composes equal to the Texuli ids each component renders (through its children)', () => {
     const drift: string[] = [];
+    const gaps = new Set<string>();
     for (const entry of own) {
+      const derived = derivedComposition(entry.file as string, catalog);
+      for (const gap of derived.unmapped) gaps.add(gap);
       const manifest = PROTOYARD_UI_EXTENSIONS.find(
         (m) => m.id === `protoyard:${kebabCase(entry.name)}`
       );
-      const derived = derivedComposition(entry.file as string, catalog).ids;
-      const written = [...(manifest?.composes ?? [])].sort();
-      if (JSON.stringify(derived) !== JSON.stringify(written)) {
-        drift.push(`${entry.name}: composes ${JSON.stringify(derived)}`);
+      if (!manifest) continue;
+      const written = [...manifest.composes].sort();
+      if (JSON.stringify(derived.ids) !== JSON.stringify(written)) {
+        drift.push(`${entry.name}: composes ${JSON.stringify(derived.ids)}`);
       }
     }
     expect(drift).toEqual([]);
+    expect([...gaps].sort()).toEqual(TEXULI_IMPORT_GAPS);
   });
 
   it('declares axis values the component source really has, each with a default among them', () => {
@@ -157,9 +216,16 @@ describe('@protoyard/ui catalog extensions cover every own component (CI gate)',
     expect(problems).toEqual([]);
   });
 
-  it('merges every shipped extension with no refusal, host chrome included', () => {
+  it("merges every shipped extension through Texuli's mergeCatalogs: ok, one namespace", () => {
     expect(catalog.extensionRefusals).toEqual([]);
+    expect(catalog.merge).toEqual({
+      ok: true,
+      catalogHash: expect.stringMatching(/^[0-9a-f]{64}$/),
+      extensions: [{ namespace: 'protoyard', digest: expect.stringMatching(/^[0-9a-f]{64}$/) }],
+    });
+    expect(catalog.merge?.catalogHash).not.toBe(SPEC_CATALOG_HASH);
     expect(catalog.extensions.map((c) => c.id)).toEqual(CATALOG_EXTENSIONS.map((m) => m.id));
+    expect(catalog.extensions).toHaveLength(50);
     for (const id of PROTOYARD_UI_HOST_CHROME) expect(catalog.byId.has(id)).toBe(true);
   });
 });
@@ -173,6 +239,7 @@ const ext = (
   package: '@acme/ui',
   label: id,
   summary: id,
+  group: 'acme',
   tier: 'app',
   useWhen: [],
   dontUseWhen: [],
@@ -185,62 +252,134 @@ const ext = (
   composes,
 });
 
-describe('mergeCatalogManifests (the refusal rules agreed with Texuli)', () => {
+describe("mergeWithExtensions (Texuli's mergeCatalogs decides, with its codes)", () => {
   const texuli: CatalogManifestLike[] = [
-    { id: 'button', package: 'texuli' },
+    { id: 'button', package: 'texuli', imports: [{ module: 'texuli', exports: ['Button'] }] },
     { id: 'card', package: 'texuli' },
   ];
+  const refused = (extensions: CatalogExtensionManifest[]) =>
+    mergeWithExtensions(texuli, extensions).refusals.map((r) => [r.code, r.id, r.path]);
 
-  it('merges namespaced extensions whose composes resolve', () => {
-    const merged = mergeCatalogManifests(texuli, [ext('acme:panel', ['card', 'button'])]);
+  it('merges namespaced extensions whose composes resolve, one extension file per namespace', () => {
+    const merged = mergeWithExtensions(texuli, [
+      ext('acme:panel', ['card', 'button'], ['Panel']),
+      ext('acme:strip', ['acme:panel'], ['Strip']),
+      ext('beta:list', ['card'], ['List']),
+    ]);
     expect(merged.refusals).toEqual([]);
-    expect(merged.manifests.map((m) => m.id)).toEqual(['button', 'card', 'acme:panel']);
+    expect(merged.manifests.map((m) => m.id)).toEqual([
+      'button',
+      'card',
+      'acme:panel',
+      'acme:strip',
+      'beta:list',
+    ]);
+    expect(merged.merge.ok).toBe(true);
+    expect(merged.merge.extensions.map((e) => e.namespace)).toEqual(['acme', 'beta']);
+    expect(toExtensionFiles([ext('acme:panel', ['card'])])[0]?.file).toEqual({
+      format: 'texuli/catalog-extension',
+      version: 1,
+      namespace: 'acme',
+      components: [
+        {
+          id: 'acme:panel',
+          label: 'acme:panel',
+          summary: 'acme:panel',
+          group: 'acme',
+          placement: 'app',
+          emit: [],
+          capability: 'web-only',
+          props: [{ name: 'tone', kind: 'enum', enumValues: ['calm', 'loud'] }],
+          axes: { tone: { prop: 'tone', values: ['calm', 'loud'], default: 'calm' } },
+          states: ['hover'],
+          composes: ['card'],
+        },
+      ],
+    });
   });
 
-  it('refuses a missing or reserved namespace, a collision and unresolved composes', () => {
-    const merged = mergeCatalogManifests(texuli, [
-      ext('panel', ['card'], ['A']),
-      ext('texuli:panel', ['card'], ['B']),
-      ext('acme:panel', ['card'], ['C']),
-      ext('acme:panel', ['card'], ['D']),
-      ext('acme:other', ['card'], ['C']),
-      ext('acme:ghost', ['card', 'no-such-id'], ['E']),
+  it('refuses a missing or reserved namespace with extension-namespace', () => {
+    expect(refused([ext('panel', ['card'])])).toEqual([
+      ['extension-namespace', '*', 'extensions[0].namespace'],
     ]);
-    expect(merged.refusals.map((r) => [r.code, r.id])).toEqual([
-      ['namespace-required', 'panel'],
-      ['namespace-required', 'texuli:panel'],
-      ['id-collision', 'acme:panel'],
-      ['id-collision', 'acme:other'],
-      ['composes-unresolved', 'acme:ghost'],
+    expect(refused([ext('texuli:panel', ['card'])])).toEqual([
+      ['extension-namespace', 'texuli:*', 'extensions[0].namespace'],
     ]);
-    expect(merged.refusals[4]?.message).toContain('no-such-id');
-    expect(merged.extensions.map((m) => m.id)).toEqual(['acme:panel']);
   });
 
-  it('mergeWithExtensions uses the local merge while Texuli has no mergeCatalogs', () => {
-    const merged = mergeWithExtensions(texuli, [ext('acme:panel', ['card'])]);
-    expect(merged.manifests.map((m) => m.id)).toEqual(['button', 'card', 'acme:panel']);
+  it('refuses unresolved or empty composes with extension-composes, and the whole file with it', () => {
+    const merged = mergeWithExtensions(texuli, [
+      ext('acme:panel', ['card'], ['Panel']),
+      ext('acme:ghost', ['card', 'no-such-id'], ['Ghost']),
+      ext('beta:empty', [], ['Empty']),
+    ]);
+    expect(merged.refusals.map((r) => [r.code, r.id, r.path])).toEqual([
+      ['extension-composes', 'beta:empty', 'extensions[1].components[0].composes'],
+      ['extension-composes', 'acme:ghost', 'extensions[0].components[1].composes[1]'],
+    ]);
+    expect(merged.refusals[1]?.message).toContain('no-such-id');
+    // Texuli refuses an extension file whole: acme:panel goes with acme:ghost.
+    expect(merged.manifests.map((m) => m.id)).toEqual(['button', 'card']);
+    expect(merged.merge.ok).toBe(false);
+  });
+
+  it('refuses a duplicate id (Texuli) and a colliding import (checked here)', () => {
+    expect(
+      refused([ext('acme:panel', ['card'], ['A']), ext('acme:panel', ['card'], ['B'])])
+    ).toEqual([['extension-collision', 'acme:panel', 'extensions[0].components[1].id']]);
+    expect(
+      refused([ext('acme:panel', ['card'], ['A']), ext('beta:panel', ['card'], ['A'])])
+    ).toEqual([['extension-collision', 'beta:panel', '$.extensions[1].imports']]);
+    // An extension cannot claim a Texuli import either.
+    const claimsTexuli = ext('acme:button', ['button']);
+    claimsTexuli.imports = [{ module: 'texuli', exports: ['Button'] }];
+    expect(refused([claimsTexuli])).toEqual([
+      ['extension-collision', 'acme:button', '$.extensions[0].imports'],
+    ]);
+  });
+
+  it('passes Texuli the installed catalog in its SpecCatalog shape', () => {
+    const catalog = dsCatalog();
+    const texuliIds = catalog.components.filter((c) => !c.composes).map((c) => c.id);
+    const spec = specCatalogOf(
+      texuliIds.map((id) => ({ id, package: 'texuli', group: 'g', tier: 'content' }))
+    );
+    expect(spec.catalogHash).toBe(SPEC_CATALOG_HASH);
+    expect(spec.components.map((c) => c.id)).toEqual([...texuliIds].sort());
+    expect(spec.components[0]).toMatchObject({ placement: 'content', capability: 'unknown' });
+    // Nothing to merge: Texuli answers with the catalog's own hash.
+    const empty = mergeWithExtensions([], []);
+    expect(empty.merge).toEqual({ ok: true, catalogHash: SPEC_CATALOG_HASH, extensions: [] });
   });
 });
 
-describe('the merged catalog: mapper, presets, allow checks and the Texuli view', () => {
+describe('the merged catalog: mapper, presets, allow checks and Texuli on the full document', () => {
   const catalog = dsCatalog();
 
-  it('maps own @protoyard/ui components to extension ids and leaves the rest unchanged', () => {
-    expect(catalogIdFor(catalog, '@protoyard/ui', 'DataTable')).toEqual({
+  it('maps own components to extension ids, re-exports to Texuli ids, non-components to none', () => {
+    const map = (module: string, name: string) => catalogIdFor(catalog, module, name);
+    expect(map('@protoyard/ui', 'DataTable')).toEqual({
       id: 'protoyard:data-table',
       how: 'extension',
     });
-    expect(catalogIdFor(catalog, '@protoyard/ui', 'Button')).toEqual({
-      id: 'button',
-      how: 'exact',
-    });
-    expect(catalogIdFor(catalog, 'texuli/table', 'Table')).toEqual({ id: 'table', how: 'exact' });
+    expect(map('@protoyard/ui', 'Button')).toEqual({ id: 'button', how: 'import' });
+    // Aliased and default re-exports follow the Texuli import.
+    expect(map('@protoyard/ui', 'FormField')).toEqual({ id: 'field', how: 'import' });
+    expect(map('@protoyard/ui', 'RadioGroupItem')).toEqual({ id: 'radio', how: 'import' });
+    expect(map('@protoyard/ui', 'SplitView')).toEqual({ id: 'split-view', how: 'import' });
+    // Non-components: Texuli's list, and own components that render no catalog id.
+    expect(map('@protoyard/ui', 'AppShell')).toEqual({ id: null, how: 'non-component' });
+    expect(map('@protoyard/ui', 'StarRating')).toEqual({ id: null, how: 'non-component' });
+    expect(map('texuli/motion', 'MotionProvider')).toEqual({ id: null, how: 'non-component' });
+    expect(map('texuli', 'SafeArea')).toEqual({ id: null, how: 'non-component' });
+    // A name @protoyard/ui does not list never maps by name.
+    expect(map('@protoyard/ui', 'NoSuchThing')).toEqual({ id: null, how: 'unmapped' });
+    expect(map('texuli/table', 'Table')).toEqual({ id: 'table', how: 'import' });
     // An extension import from another module does not map; names never reach an extension.
-    expect(catalogIdFor(catalog, 'texuli', 'DataTable').id).not.toBe('protoyard:data-table');
+    expect(map('texuli', 'DataTable')).toEqual({ id: null, how: 'unmapped' });
     expect(
       composedCatalogIds(
-        "<script>import { DataTable, Button } from '@protoyard/ui';</script><DataTable /><Button />"
+        "<script>import { DataTable, Button, AppShell } from '@protoyard/ui';</script><AppShell><DataTable /><Button /></AppShell>"
       )
     ).toEqual(['button', 'protoyard:data-table']);
   });
@@ -255,14 +394,17 @@ describe('the merged catalog: mapper, presets, allow checks and the Texuli view'
     );
   });
 
-  it('all lists every extension; minimal lists the ones its Texuli set covers', () => {
+  it('all lists every extension; minimal lists exactly the ones its Texuli set covers', () => {
     const all = allowPreset('all');
     for (const extension of catalog.extensions) expect(all).toHaveProperty([extension.id]);
     const minimal = Object.keys(allowPreset('minimal'));
-    expect(minimal).toContain('protoyard:dialog'); // composes dialog
-    expect(minimal).toContain('protoyard:select'); // select parts through select
-    expect(minimal).not.toContain('protoyard:kanban'); // composes data-board
-    expect(minimal).not.toContain('protoyard:avatar'); // composes nothing the catalog knows yet
+    // dialog; input; card; select parts through select. Not kanban (data-board), avatar, icon…
+    expect(minimal.filter((id) => id.includes(':'))).toEqual([
+      'protoyard:dialog',
+      'protoyard:input',
+      'protoyard:page-grid',
+      'protoyard:select',
+    ]);
     expect([...minimal].sort()).toEqual(minimal);
   });
 
@@ -282,23 +424,39 @@ describe('the merged catalog: mapper, presets, allow checks and the Texuli view'
     ]);
   });
 
-  it('texuliView drops extension keys and flattens extension composes while Texuli refuses them', () => {
+  it('Texuli validates, compiles and approves the full document, extension keys included', async () => {
     const document = {
-      id: 'x',
-      allow: { button: {}, 'protoyard:data-table': {} },
-      library: [{ id: 'panel', composes: ['card', 'protoyard:dialog'] }],
+      format: 'texuli/design-system',
+      formatVersion: DESIGN_SYSTEM_FORMAT_VERSION,
+      id: 'harbor',
+      version: '0.1.0',
+      name: 'Harbor',
+      color: { brand: { seed: '#0f766e' } },
+      allow: { button: { tones: ['default'] }, 'protoyard:data-table': {} },
+      library: [
+        {
+          id: 'order-panel',
+          name: 'OrderPanel',
+          purpose: 'An order with its actions.',
+          version: '0.1.0',
+          status: 'draft',
+          composes: ['button', 'protoyard:dialog'],
+        },
+      ],
     };
-    const view = texuliView(document);
-    if (namespacedAllowKeys()) {
-      expect(view).toBe(document);
-      return;
-    }
-    expect(view).toEqual({
-      id: 'x',
-      allow: { button: {} },
-      library: [{ id: 'panel', composes: ['card', 'dialog'] }],
+    expect(validateDesignSystem(document, { trust: 'untrusted' })).toMatchObject({ ok: true });
+    expect(checkAllow(document)).toMatchObject({ ok: true });
+    const compiled = await compileDesignSystemDocument(document);
+    expect(compiled.ok, JSON.stringify(compiled)).toBe(true);
+    const approved = approveDesignSystem(document, {
+      by: 'Ada Example',
+      at: '2026-11-09T00:00:00.000Z',
     });
-    expect(document.allow).toHaveProperty(['protoyard:data-table']);
+    expect(approved.ok).toBe(true);
+    if (!approved.ok) return;
+    expect(approved.document.allow).toHaveProperty(['protoyard:data-table']);
+    expect(approved.document.library?.[0]?.composes).toEqual(['button', 'protoyard:dialog']);
+    expect(approved.contentHash).toMatch(/^[0-9a-f]{64}$/);
   });
 });
 
@@ -409,8 +567,8 @@ describe('ds new, validate and approve with extension keys', { timeout: 60_000 }
 
 describe('catalogFromManifests keeps Texuli import mapping separate from extensions', () => {
   it('extension imports do not switch Texuli modules to import-only mapping', () => {
-    const merged = mergeCatalogManifests(
-      [{ id: 'card', package: 'texuli' } as CatalogManifestLike],
+    const merged = mergeWithExtensions(
+      [{ id: 'card', package: 'texuli' }],
       [ext('acme:panel', ['card'], ['Panel'])]
     );
     const catalog = catalogFromManifests(merged.manifests as CatalogManifestLike[]);

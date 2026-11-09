@@ -1,7 +1,21 @@
-import { PROTOYARD_UI_EXTENSIONS } from './protoyard-ui.ts';
-import type { CatalogExtensionManifest } from './types.ts';
+import {
+  CATALOG_EXTENSION_FORMAT,
+  CATALOG_EXTENSION_VERSION,
+  type CatalogExtensionCode,
+} from '@texuli/spec';
+import {
+  PROTOYARD_UI_EXTENSIONS,
+  PROTOYARD_UI_NON_COMPONENTS,
+  PROTOYARD_UI_REEXPORTS,
+} from './protoyard-ui.ts';
+import type { CatalogExtensionManifest, CatalogImportList, CatalogReexport } from './types.ts';
 
-export { PROTOYARD_UI_EXTENSIONS, PROTOYARD_UI_HOST_CHROME } from './protoyard-ui.ts';
+export {
+  PROTOYARD_UI_EXTENSIONS,
+  PROTOYARD_UI_HOST_CHROME,
+  PROTOYARD_UI_NON_COMPONENTS,
+  PROTOYARD_UI_REEXPORTS,
+} from './protoyard-ui.ts';
 export type * from './types.ts';
 
 /**
@@ -10,134 +24,143 @@ export type * from './types.ts';
  * a design system's `allow` section can name them (`protoyard:data-table`)
  * and `check ds` can map and gate them.
  *
- * {@link mergeCatalogManifests} follows the refusal rules agreed with Texuli
- * for its `mergeCatalogs` (drop 2): the id carries a namespace, no id or
- * import collides, and every `composes` id is a Texuli catalog id. A refused
- * extension is left out and reported; the rest merge.
+ * Texuli's `mergeCatalogs` decides which extensions merge (namespace, ids,
+ * collisions, composes, props, axes, states, `CATALOG_EXTENSION_LIMITS`),
+ * with its own codes. The one rule checked here is the one Texuli cannot
+ * see: an extension's `imports` never claim an import another extension or
+ * a Texuli manifest already names ({@link importCollisions}).
  */
 
 /** Every extension the CLI merges, in a stable order. */
 export const CATALOG_EXTENSIONS: readonly CatalogExtensionManifest[] = PROTOYARD_UI_EXTENSIONS;
 
-const KEBAB = '[a-z][a-z0-9]*(?:-[a-z0-9]+)*';
-/**
- * `<namespace>:<kebab-id>` as Texuli's allow-key pattern accepts it (spec
- * 0.13.0): at most 64 characters, a namespace of 2 to 16 lowercase letters
- * and digits starting with a letter.
- */
-export const EXTENSION_ID = new RegExp(`^(?=.{1,64}$)([a-z][a-z0-9]{1,15}):${KEBAB}$`);
-/** Namespaces an extension cannot claim. */
-export const RESERVED_NAMESPACES: readonly string[] = ['texuli'];
+/** Re-exports of wrapping libraries: the mapper follows them to the Texuli import. */
+export const CATALOG_REEXPORTS: readonly CatalogReexport[] = PROTOYARD_UI_REEXPORTS;
+
+/** Exports of wrapping libraries that are not components (never refused, never counted). */
+export const CATALOG_NON_COMPONENTS: readonly CatalogImportList[] = PROTOYARD_UI_NON_COMPONENTS;
 
 /** True for a namespaced (extension) id such as `protoyard:data-table`. */
 export function isExtensionId(id: string): boolean {
   return id.includes(':');
 }
 
-/**
- * The component ids Texuli announced for its drop 2 catalog (manifests for
- * components it ships today without one). Until they land, a Texuli
- * re-export of these is `unmapped`; afterwards it maps to the Texuli id.
- */
-export const TEXULI_ANNOUNCED_IDS: readonly string[] = [
-  'icon',
-  'avatar',
-  'skeleton',
-  'progress',
-  'spinner',
-  'carousel',
-  'separator',
-  'list-item',
-  'tabs',
-  'accordion',
-  'composer',
-  'mobile-header',
-  'bottom-nav',
-  'bottom-sheet',
-  'board',
-  'notice',
-];
+/** The namespace of an extension id (`protoyard`), or `''`. */
+export function namespaceOf(id: string): string {
+  const at = id.indexOf(':');
+  return at > 0 ? id.slice(0, at) : '';
+}
 
-/** Texuli exports that stop being components in drop 2 (not catalog entries). */
-export const TEXULI_ANNOUNCED_NON_COMPONENTS: readonly string[] = ['MotionProvider', 'SafeArea'];
-
-export type MergeRefusalCode = 'namespace-required' | 'id-collision' | 'composes-unresolved';
-
+/** A refusal: Texuli's codes (`extension-*`), plus the extension id when known. */
 export interface MergeRefusal {
-  code: MergeRefusalCode;
-  /** The extension id (as written). */
+  code: CatalogExtensionCode;
+  /** The extension id (as written), or `<namespace>:*` for a whole extension file. */
   id: string;
   path: string;
   message: string;
 }
 
-export interface MergedCatalog<T extends { id: string }> {
-  /** Texuli manifests, then the accepted extensions. */
-  manifests: readonly (T | CatalogExtensionManifest)[];
-  extensions: readonly CatalogExtensionManifest[];
-  refusals: readonly MergeRefusal[];
-}
-
 /**
- * Texuli manifests plus extension manifests (see the module comment). Pure;
- * never throws.
+ * Extensions whose `imports` name a `(module, export)` pair a Texuli manifest
+ * or an earlier extension already names. Texuli's extension format carries
+ * no imports, so this is the one merge rule checked here.
  */
-export function mergeCatalogManifests<T extends { id: string }>(
-  texuli: readonly T[],
+export function importCollisions(
+  texuli: readonly { id: string; imports?: readonly CatalogImportList[] }[],
   extensions: readonly CatalogExtensionManifest[]
-): MergedCatalog<T> {
-  const texuliIds = new Set(texuli.map((m) => m.id));
-  const taken = new Set<string>(texuliIds);
-  const claimedImports = new Map<string, string>();
-  const accepted: CatalogExtensionManifest[] = [];
+): MergeRefusal[] {
+  const claimed = new Map<string, string>();
+  for (const manifest of texuli) {
+    for (const entry of manifest.imports ?? []) {
+      for (const name of entry.exports) claimed.set(`${entry.module}\0${name}`, manifest.id);
+    }
+  }
   const refusals: MergeRefusal[] = [];
   extensions.forEach((extension, index) => {
-    const path = `$.extensions[${index}]`;
-    const refuse = (code: MergeRefusalCode, at: string, message: string) =>
-      refusals.push({ code, id: String(extension.id), path: at, message });
-    const namespace = EXTENSION_ID.exec(String(extension.id))?.[1];
-    if (!namespace || RESERVED_NAMESPACES.includes(namespace)) {
-      refuse(
-        'namespace-required',
-        `${path}.id`,
-        `"${extension.id}" needs a namespace of its own: <namespace>:<kebab-id> (not texuli:).`
-      );
-      return;
-    }
-    if (taken.has(extension.id)) {
-      refuse('id-collision', `${path}.id`, `"${extension.id}" is already in the catalog.`);
-      return;
-    }
     const collisions: string[] = [];
     for (const entry of extension.imports ?? []) {
       for (const name of entry.exports) {
-        const owner = claimedImports.get(`${entry.module}\0${name}`);
+        const owner = claimed.get(`${entry.module}\0${name}`);
         if (owner) collisions.push(`${name} from ${entry.module} (already ${owner})`);
       }
     }
     if (collisions.length > 0) {
-      refuse(
-        'id-collision',
-        `${path}.imports`,
-        `"${extension.id}" imports ${collisions.join(', ')}.`
-      );
+      refusals.push({
+        code: 'extension-collision',
+        id: extension.id,
+        path: `$.extensions[${index}].imports`,
+        message: `"${extension.id}" imports ${collisions.join(', ')}.`,
+      });
       return;
     }
-    const unresolved = (extension.composes ?? []).filter((id) => !texuliIds.has(id));
-    if (unresolved.length > 0) {
-      refuse(
-        'composes-unresolved',
-        `${path}.composes`,
-        `"${extension.id}" composes ids the Texuli catalog does not list: ${unresolved.join(', ')}.`
-      );
-      return;
-    }
-    taken.add(extension.id);
     for (const entry of extension.imports ?? []) {
-      for (const name of entry.exports)
-        claimedImports.set(`${entry.module}\0${name}`, extension.id);
+      for (const name of entry.exports) claimed.set(`${entry.module}\0${name}`, extension.id);
     }
-    accepted.push(extension);
   });
-  return { manifests: [...texuli, ...accepted], extensions: accepted, refusals };
+  return refusals;
+}
+
+/** One Texuli extension file (`texuli/catalog-extension`) and the manifests it carries. */
+export interface ExtensionFile {
+  file: {
+    format: typeof CATALOG_EXTENSION_FORMAT;
+    version: typeof CATALOG_EXTENSION_VERSION;
+    namespace: string;
+    components: unknown[];
+  };
+  manifests: readonly CatalogExtensionManifest[];
+}
+
+/**
+ * The manifests as Texuli's extension files: one per namespace, in first-seen
+ * order, each component in the catalog's own shape (placement from `tier`,
+ * `emit: []` unless agent-emittable, `web-only`, props as `{ name, kind, required?, enumValues? }`, axes as
+ * `{ prop, values, default }`). An id without a namespace goes to a file of
+ * namespace `''`, which Texuli refuses with its own code.
+ */
+export function toExtensionFiles(extensions: readonly CatalogExtensionManifest[]): ExtensionFile[] {
+  const files = new Map<string, CatalogExtensionManifest[]>();
+  for (const extension of extensions) {
+    const namespace = namespaceOf(String(extension.id));
+    files.set(namespace, [...(files.get(namespace) ?? []), extension]);
+  }
+  return [...files].map(([namespace, manifests]) => ({
+    file: {
+      format: CATALOG_EXTENSION_FORMAT,
+      version: CATALOG_EXTENSION_VERSION,
+      namespace,
+      components: manifests.map(toExtensionComponent),
+    },
+    manifests,
+  }));
+}
+
+function toExtensionComponent(manifest: CatalogExtensionManifest): Record<string, unknown> {
+  const axes: Record<string, { prop: string; values: string[]; default: unknown }> = {};
+  for (const [axis, prop] of Object.entries(manifest.axes ?? {})) {
+    const schema = manifest.props.find((p) => p.name === prop);
+    axes[axis] = {
+      prop: String(prop),
+      values: [...(schema?.enumValues ?? [])],
+      default: schema?.default,
+    };
+  }
+  return {
+    id: manifest.id,
+    label: manifest.label,
+    summary: manifest.summary,
+    group: manifest.group,
+    // As declared, so Texuli refuses a content-tier or agent-emittable extension itself.
+    placement: manifest.tier,
+    emit: manifest.agentEmittable ? ['developer'] : [],
+    capability: 'web-only',
+    props: manifest.props.map((prop) => ({
+      name: prop.name,
+      kind: prop.kind,
+      ...(prop.enumValues ? { enumValues: [...prop.enumValues] } : {}),
+    })),
+    ...(Object.keys(axes).length > 0 ? { axes } : {}),
+    ...(manifest.states ? { states: [...manifest.states] } : {}),
+    composes: [...manifest.composes],
+  };
 }

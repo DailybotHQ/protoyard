@@ -1,25 +1,37 @@
-import type { CatalogExtensionManifest, ExtensionProp, ExtensionState } from './types.ts';
+import type {
+  CatalogExtensionManifest,
+  CatalogImportList,
+  CatalogReexport,
+  ExtensionProp,
+  ExtensionState,
+} from './types.ts';
 
 /**
- * Catalog extension manifests for the Protoyard-own components of
- * `@protoyard/ui` (PLAN_013 T-tx015). Data only: the same shape as a Texuli
- * catalog manifest, with a namespaced id (`protoyard:<kebab>`), the import
- * that names the component and `composes`, the Texuli catalog ids its
- * implementation renders (through its local children too).
+ * How the CLI reads `@protoyard/ui` for locked design systems (PLAN_013
+ * T-tx015). Data only, three tables, each derived and pinned by the CI gate
+ * in `packages/cli/tests/ds-extensions.test.ts`:
  *
- * One entry per Protoyard-own component (a `.svelte` file under
- * `packages/ui/src`). Re-exports of Texuli components (`Button`, `Card`,
- * `Wizard`…) get none: they map to Texuli's own ids.
- * `packages/cli/tests/ds-extensions.test.ts` fails when an own component has
- * no entry, when `composes` drifts from what the source renders, or when an
- * axis value is not in the source.
+ * - {@link PROTOYARD_UI_EXTENSIONS}: one catalog extension manifest per
+ *   Protoyard-own component (a `.svelte` file under `packages/ui/src`) that
+ *   renders Texuli catalog components: a namespaced id (`protoyard:<kebab>`),
+ *   the import that names it and `composes`, the Texuli catalog ids its
+ *   implementation renders (through its local children too).
+ * - {@link PROTOYARD_UI_REEXPORTS}: every Texuli component `@protoyard/ui`
+ *   re-exports, with the Texuli import it is (`FormField` is `Field` from
+ *   `texuli/field`). They map to Texuli's own ids; never give one a manifest.
+ * - {@link PROTOYARD_UI_NON_COMPONENTS}: own components that render no Texuli
+ *   catalog component, only exports Texuli itself lists as non-components
+ *   (`ToggleGroup`, `Rating`, `MobileAppFrame`…) or plain elements. Texuli's
+ *   extension format needs at least one `composes` id, so they get no
+ *   manifest and are classified like the Texuli exports they render.
  *
- * Adding a component to `@protoyard/ui`: add one entry here (copy a similar
- * one), run that test, and fix `composes` from its message.
+ * Adding a component to `@protoyard/ui`: run that test; its message names the
+ * table and the `composes` to write.
  */
 
 const NAMESPACE = 'protoyard';
 const MODULE = '@protoyard/ui';
+const GROUP = 'protoyard-ui';
 
 const FIELD: readonly ExtensionState[] = ['hover', 'focus-visible', 'disabled', 'invalid'];
 const OVERLAY: readonly ExtensionState[] = ['open'];
@@ -55,6 +67,7 @@ function manifest(entry: Entry): CatalogExtensionManifest {
     package: MODULE,
     label: entry.label,
     summary: entry.summary,
+    group: GROUP,
     tier: 'app',
     agentEmittable: false,
     useWhen: [],
@@ -74,13 +87,13 @@ const ENTRIES: readonly Entry[] = [
     name: 'ActorRow',
     label: 'Actor row',
     summary: 'A person, agent or system actor with avatar, name and kind badge.',
-    composes: ['badge'],
+    composes: ['avatar', 'badge'],
   },
   {
     name: 'AdaptiveOverlay',
     label: 'Adaptive overlay',
     summary: 'One overlay that is a dialog or side panel when wide and a bottom sheet on phones.',
-    composes: ['detail-panel', 'dialog', 'drawer'],
+    composes: ['detail-panel', 'dialog', 'drawer', 'icon'],
     states: OVERLAY,
     props: [enumProp('size', SIZES_SM_XL, 'md')],
     axes: { size: 'size' },
@@ -96,7 +109,7 @@ const ENTRIES: readonly Entry[] = [
     name: 'Avatar',
     label: 'Avatar',
     summary: 'A person avatar: portrait or initials, with size and status tone.',
-    composes: [],
+    composes: ['avatar'],
     props: [
       enumProp('size', ['xs', 'sm', 'md', 'lg'], 'md'),
       {
@@ -111,7 +124,7 @@ const ENTRIES: readonly Entry[] = [
     name: 'BottomNav',
     label: 'Bottom navigation',
     summary: 'The phone tab bar of a mobile app shell.',
-    composes: [],
+    composes: ['bottom-nav'],
     states: ['hover', 'focus-visible', 'selected'],
   },
   {
@@ -125,19 +138,7 @@ const ENTRIES: readonly Entry[] = [
     name: 'BrowserChrome',
     label: 'Browser chrome',
     summary: 'A simulated browser frame with an address bar around a prototype.',
-    composes: ['icon-button', 'input'],
-  },
-  {
-    name: 'ChipGroup',
-    label: 'Chip group',
-    summary: 'Single or multiple choice as a row of toggle chips.',
-    composes: [],
-    states: ['hover', 'focus-visible', 'disabled', 'checked'],
-    props: [
-      enumProp('size', ['sm', 'md'], 'md'),
-      enumProp('variant', ['default', 'outline'], 'default'),
-    ],
-    axes: { size: 'size', variant: 'variant' },
+    composes: ['icon', 'icon-button', 'input'],
   },
   {
     name: 'Combobox',
@@ -157,21 +158,30 @@ const ENTRIES: readonly Entry[] = [
     name: 'Composer',
     label: 'Message composer',
     summary: 'The chat message input with send and attachments.',
-    composes: [],
+    composes: ['composer'],
     states: ['focus-visible', 'disabled'],
   },
   {
     name: 'DataTable',
     label: 'Data table',
     summary: 'A table with search, sorting, selection, pagination, loading and empty states.',
-    composes: ['button', 'checkbox', 'empty-state', 'input', 'pagination', 'table'],
+    composes: [
+      'button',
+      'checkbox',
+      'empty-state',
+      'icon',
+      'input',
+      'pagination',
+      'skeleton',
+      'table',
+    ],
     states: ['loading', 'selected'],
   },
   {
     name: 'DetailPanel',
     label: 'Detail panel',
     summary: 'A side panel that shows one record over the page.',
-    composes: ['detail-panel', 'dialog'],
+    composes: ['detail-panel', 'icon'],
     states: OVERLAY,
     props: [enumProp('size', SIZES_SM_XL, 'md')],
     axes: { size: 'size' },
@@ -189,23 +199,16 @@ const ENTRIES: readonly Entry[] = [
     name: 'DropdownMenu',
     label: 'Dropdown menu',
     summary: 'A menu of actions, headings and separators from a trigger.',
-    composes: [],
+    composes: ['dropdown-menu', 'dropdown-menu-content', 'dropdown-menu-item', 'icon'],
     states: OVERLAY,
   },
   {
     name: 'EmptyState',
     label: 'Empty state',
     summary: 'An empty-state message with an icon, title and action.',
-    composes: ['empty-state'],
+    composes: ['empty-state', 'icon'],
     props: [enumProp('size', ['sm', 'md'], 'md')],
     axes: { size: 'size' },
-  },
-  {
-    name: 'FileDropzone',
-    label: 'File dropzone',
-    summary: 'A drop area that accepts files by type and size, with rejections.',
-    composes: [],
-    states: ['hover', 'focus-visible', 'disabled', 'invalid'],
   },
   {
     name: 'FilterBar',
@@ -214,8 +217,8 @@ const ENTRIES: readonly Entry[] = [
     composes: [
       'button',
       'checkbox',
+      'icon',
       'input',
-      'popover',
       'popover-content',
       'select',
       'select-content',
@@ -229,21 +232,21 @@ const ENTRIES: readonly Entry[] = [
     name: 'Calendar',
     label: 'Calendar',
     summary: 'A month calendar to pick one day.',
-    composes: [],
+    composes: ['time-field'],
     states: ['focus-visible', 'disabled', 'selected'],
   },
   {
     name: 'DatePicker',
     label: 'Date picker',
     summary: 'A typed date field with a calendar popover and bounds.',
-    composes: [],
+    composes: ['time-field'],
     states: [...FIELD, 'open'],
   },
   {
     name: 'DateRangePicker',
     label: 'Date range picker',
     summary: 'A typed start and end date with a calendar popover and range rules.',
-    composes: [],
+    composes: ['time-field'],
     states: [...FIELD, 'open'],
   },
   {
@@ -261,31 +264,17 @@ const ENTRIES: readonly Entry[] = [
     states: [...FIELD, 'open'],
   },
   {
-    name: 'WeekdayPicker',
-    label: 'Weekday picker',
-    summary: 'Pick days of the week as toggle chips.',
-    composes: [],
-    states: ['focus-visible', 'disabled', 'checked'],
-  },
-  {
     name: 'EmojiPicker',
     label: 'Emoji picker',
     summary: 'An emoji field with a searchable grouped popover.',
-    composes: ['button', 'input'],
+    composes: ['button', 'icon', 'input'],
     states: [...FIELD, 'open'],
   },
   {
     name: 'PasswordStrengthMeter',
     label: 'Password strength meter',
     summary: 'A strength bar and hints for a password value.',
-    composes: [],
-  },
-  {
-    name: 'TagEmailInput',
-    label: 'Tag and email input',
-    summary: 'Free tags or email addresses as removable tokens.',
-    composes: [],
-    states: FIELD,
+    composes: ['progress'],
   },
   {
     name: 'TextCounter',
@@ -297,25 +286,25 @@ const ENTRIES: readonly Entry[] = [
     name: 'Header',
     label: 'Header',
     summary: 'The app shell header with title, actions and the navigation toggle.',
-    composes: ['icon-button'],
+    composes: ['icon', 'icon-button'],
   },
   {
     name: 'ProposalTag',
     label: 'Proposal tag',
     summary: 'Marks a screen or value as a proposal, not shipped behavior.',
-    composes: ['badge'],
+    composes: ['badge', 'icon'],
   },
   {
     name: 'SimulatedTag',
     label: 'Simulated tag',
     summary: 'Marks a feature as simulated (no real backend behind it).',
-    composes: ['badge'],
+    composes: ['badge', 'icon'],
   },
   {
     name: 'ImageInput',
     label: 'Image input',
     summary: 'Pick images with previews and removal.',
-    composes: ['badge', 'button'],
+    composes: ['badge', 'button', 'icon'],
     states: ['hover', 'focus-visible', 'disabled', 'invalid'],
   },
   {
@@ -335,84 +324,58 @@ const ENTRIES: readonly Entry[] = [
     name: 'LoadingState',
     label: 'Loading state',
     summary: 'A spinner or skeleton placeholder while data loads.',
-    composes: [],
+    composes: ['skeleton', 'spinner'],
     states: ['loading'],
     props: [enumProp('variant', ['spinner', 'skeleton'], 'spinner')],
     axes: { variant: 'variant' },
   },
   {
-    name: 'MobileAppShell',
-    label: 'Mobile app shell',
-    summary: 'The phone app frame: header, content and bottom navigation.',
-    composes: [],
-  },
-  {
     name: 'MobileHeader',
     label: 'Mobile header',
     summary: 'The phone top bar with title, back and actions.',
-    composes: [],
+    composes: ['mobile-header'],
   },
   {
     name: 'NumberStepper',
     label: 'Number stepper',
     summary: 'A number field with decrement and increment buttons.',
-    composes: [],
+    composes: ['icon'],
     states: FIELD,
   },
   {
     name: 'Notice',
     label: 'Notice',
     summary: 'An inline message with a tone and an icon.',
-    composes: ['alert'],
+    composes: ['alert', 'icon'],
     props: [enumProp('tone', ['info', 'success', 'warning', 'error', 'brand'], 'info')],
     axes: { tone: 'tone' },
-  },
-  {
-    name: 'OtpInput',
-    label: 'One-time code input',
-    summary: 'A code entered one character per cell.',
-    composes: [],
-    states: FIELD,
   },
   {
     name: 'Drawer',
     label: 'Drawer',
     summary: 'A sheet from any edge on the shared overlay stack.',
-    composes: ['sheet'],
+    composes: ['icon', 'sheet'],
     states: OVERLAY,
   },
   {
     name: 'Pagination',
     label: 'Pagination',
     summary: 'Page numbers with previous and next.',
-    composes: ['pagination'],
+    composes: ['icon', 'pagination'],
     states: ['focus-visible', 'disabled', 'selected'],
   },
   {
     name: 'Popover',
     label: 'Popover',
     summary: 'Floating content anchored to a trigger.',
-    composes: ['popover', 'popover-content'],
+    composes: ['popover-content'],
     states: OVERLAY,
   },
   {
     name: 'ScenarioSwitcher',
     label: 'Scenario switcher',
     summary: 'Lists the prototype scenarios and loads one.',
-    composes: ['badge', 'button', 'empty-state'],
-  },
-  {
-    name: 'StarRating',
-    label: 'Star rating',
-    summary: 'A rating from one to five stars, read-only or editable.',
-    composes: [],
-    states: ['hover', 'focus-visible', 'disabled', 'readonly'],
-  },
-  {
-    name: 'SafeArea',
-    label: 'Safe area',
-    summary: 'Pads content inside the device safe-area insets.',
-    composes: [],
+    composes: ['badge', 'button', 'empty-state', 'icon'],
   },
   {
     name: 'Select',
@@ -427,27 +390,27 @@ const ENTRIES: readonly Entry[] = [
     name: 'Sidebar',
     label: 'Sidebar',
     summary: 'The app shell navigation from sections and items.',
-    composes: ['sidebar'],
+    composes: ['icon', 'sidebar'],
     states: ['hover', 'focus-visible', 'selected'],
   },
   {
     name: 'Spinner',
     label: 'Spinner',
     summary: 'An indeterminate loading indicator.',
-    composes: [],
+    composes: ['spinner'],
     states: ['loading'],
   },
   {
     name: 'StatCard',
     label: 'Stat card',
     summary: 'A metric with label, value, delta and trend.',
-    composes: ['stat'],
+    composes: ['icon', 'stat'],
   },
   {
     name: 'StatusChip',
     label: 'Status chip',
     summary: 'A status label with a tone.',
-    composes: ['badge'],
+    composes: ['badge', 'icon'],
     props: [
       enumProp('tone', ['neutral', 'success', 'warning', 'error', 'info', 'brand'], 'neutral'),
     ],
@@ -457,7 +420,7 @@ const ENTRIES: readonly Entry[] = [
     name: 'Tabs',
     label: 'Tabs',
     summary: 'Tabs from a list of items, segmented or underlined.',
-    composes: [],
+    composes: ['tabs'],
     states: ['hover', 'focus-visible', 'disabled', 'selected'],
     props: [enumProp('variant', ['segmented', 'underline'], 'segmented')],
     axes: { variant: 'variant' },
@@ -472,14 +435,14 @@ const ENTRIES: readonly Entry[] = [
     name: 'UndoToaster',
     label: 'Undo toaster',
     summary: 'Shows undoable actions with a countdown.',
-    composes: ['button', 'icon-button'],
+    composes: ['button', 'icon', 'icon-button'],
     states: ACTION,
   },
   {
     name: 'UserPicker',
     label: 'User picker',
     summary: 'Search and pick one or more people, in a popover or inline.',
-    composes: ['popover', 'popover-content'],
+    composes: ['avatar', 'command-palette', 'icon', 'popover-content'],
     states: [...FIELD, 'open'],
     props: [enumProp('variant', ['popover', 'inline'], 'popover')],
     axes: { variant: 'variant' },
@@ -488,7 +451,7 @@ const ENTRIES: readonly Entry[] = [
     name: 'WindowChrome',
     label: 'Window chrome',
     summary: 'A simulated desktop window frame around a prototype.',
-    composes: ['button'],
+    composes: ['button', 'icon'],
     props: [enumProp('variant', ['mac-like', 'windows-like'], 'mac-like')],
     axes: { variant: 'variant' },
   },
@@ -506,18 +469,76 @@ const ENTRIES: readonly Entry[] = [
   },
 ];
 
-/** The `@protoyard/ui` catalog extensions, one per Protoyard-own component. */
+/** The `@protoyard/ui` catalog extensions, one per own component that renders Texuli ones. */
 export const PROTOYARD_UI_EXTENSIONS: readonly CatalogExtensionManifest[] = ENTRIES.map(manifest);
 
 /**
  * Host chrome: frames and switchers a prototype host draws, not product UI.
- * They move to Texuli's non-emit tier once the catalog names it (drop 2);
- * until then they are `tier: 'app'` with `agentEmittable: false` like the rest.
+ * Every extension is already outside Texuli's emit tiers (`emit: []`, app
+ * placement), so host chrome needs no tier of its own; the list names them
+ * for docs and tests.
  */
 export const PROTOYARD_UI_HOST_CHROME: readonly string[] = [
   'protoyard:browser-chrome',
   'protoyard:layout-host',
-  'protoyard:safe-area',
   'protoyard:scenario-switcher',
   'protoyard:window-chrome',
+];
+
+/** `[name, Texuli module, Texuli export]`; the export defaults to the name. */
+const REEXPORTS: readonly (readonly [string, string, string?])[] = [
+  ['Accordion', 'texuli/tabs-accordion'],
+  ['AppShell', 'texuli/layouts/shells'],
+  ['Badge', 'texuli/badge'],
+  ['Breadcrumb', 'texuli/navigation'],
+  ['Button', 'texuli/button'],
+  ['Card', 'texuli/card'],
+  ['CardContent', 'texuli/card'],
+  ['CardDescription', 'texuli/card'],
+  ['CardFooter', 'texuli/card'],
+  ['CardGrid', 'texuli/card'],
+  ['CardHeader', 'texuli/card'],
+  ['CardTitle', 'texuli/card'],
+  ['Carousel', 'texuli/carousel'],
+  ['ChatThread', '@texuli/chat'],
+  ['Checkbox', 'texuli/choice'],
+  ['ErrorState', 'texuli/empty'],
+  ['FormField', 'texuli/field', 'Field'],
+  ['Kbd', 'texuli/kbd-code'],
+  ['Label', 'texuli/field'],
+  ['MessageList', '@texuli/chat'],
+  ['Progress', 'texuli/feedback'],
+  ['RadioGroup', 'texuli/choice'],
+  ['RadioGroupItem', 'texuli/choice', 'Radio'],
+  ['Separator', 'texuli/separator-aspect'],
+  ['Skeleton', 'texuli/feedback'],
+  ['SplitView', 'texuli/layouts/app/split-view', 'default'],
+  ['Stepper', 'texuli/stepper'],
+  ['Switch', 'texuli/choice'],
+  ['Textarea', 'texuli/input'],
+  ['Tooltip', 'texuli/tooltip'],
+  ['TypingIndicator', '@texuli/chat'],
+  ['Wizard', 'texuli/stepper'],
+];
+
+/** The Texuli components `@protoyard/ui` re-exports, as the Texuli import each is. */
+export const PROTOYARD_UI_REEXPORTS: readonly CatalogReexport[] = REEXPORTS.map(
+  ([name, from, exported]) => ({ module: MODULE, name, from, export: exported ?? name })
+);
+
+/** Own components that render no Texuli catalog component (see the module comment). */
+export const PROTOYARD_UI_NON_COMPONENTS: readonly CatalogImportList[] = [
+  {
+    module: MODULE,
+    exports: [
+      'ChipGroup',
+      'FileDropzone',
+      'MobileAppShell',
+      'OtpInput',
+      'SafeArea',
+      'StarRating',
+      'TagEmailInput',
+      'WeekdayPicker',
+    ],
+  },
 ];

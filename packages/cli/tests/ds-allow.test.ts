@@ -52,41 +52,30 @@ describe('the catalog and the mapper', () => {
     expect(dsCatalog()).toBe(catalog);
   });
 
-  it('maps an exact name, a compound part and a package-qualified name; others are unmapped', () => {
-    expect(catalogIdFor(catalog, 'texuli/button', 'Button')).toEqual({
-      id: 'button',
-      how: 'exact',
-    });
-    expect(catalogIdFor(catalog, 'texuli', 'AlertDialog')).toEqual({
-      id: 'alert-dialog',
-      how: 'exact',
-    });
-    // A catalog id of its own wins over the prefix (select-trigger, not select).
-    expect(catalogIdFor(catalog, 'texuli/select', 'SelectTrigger')).toEqual({
-      id: 'select-trigger',
-      how: 'exact',
-    });
-    expect(catalogIdFor(catalog, 'texuli/card', 'CardHeader')).toEqual({
-      id: 'card',
-      how: 'prefix',
-    });
-    // The prefix must end at a word boundary.
-    expect(catalogIdFor(catalog, 'texuli', 'Selector')).toEqual({ id: null, how: 'unmapped' });
-    expect(catalogIdFor(catalog, '@texuli/data', 'Grid')).toEqual({
-      id: 'data-grid',
-      how: 'package',
-    });
-    // @protoyard/ui re-exports map by name the same way.
-    expect(catalogIdFor(catalog, '@protoyard/ui', 'Button')).toEqual({
-      id: 'button',
-      how: 'exact',
-    });
-    expect(catalogIdFor(catalog, 'texuli/icons', 'Icon')).toEqual({ id: null, how: 'unmapped' });
+  it('maps by the catalog imports (Texuli 0.15.0 lists every component export)', () => {
+    expect(catalog.hasImports).toBe(true);
+    const map = (module: string, name: string) => catalogIdFor(catalog, module, name);
+    expect(map('texuli/button', 'Button')).toEqual({ id: 'button', how: 'import' });
+    expect(map('texuli', 'AlertDialog')).toEqual({ id: 'alert-dialog', how: 'import' });
+    // A compound part: its own id when the catalog has one, else its parent's.
+    expect(map('texuli/select', 'SelectTrigger')).toEqual({ id: 'select-trigger', how: 'import' });
+    expect(map('texuli/card', 'CardHeader')).toEqual({ id: 'card', how: 'import' });
+    // Widened in 0.15.0: icon (one id for every icon), typography, chat parts.
+    expect(map('texuli/icons', 'Icon')).toEqual({ id: 'icon', how: 'import' });
+    expect(map('texuli/typography', 'Heading')).toEqual({ id: 'heading', how: 'import' });
+    expect(map('@texuli/chat', 'TypingIndicator')).toEqual({ id: 'chat-thread', how: 'import' });
+    expect(map('@protoyard/ui', 'Button')).toEqual({ id: 'button', how: 'import' });
+    // Non-component exports are never refused and never counted.
+    expect(map('texuli/motion', 'MotionProvider')).toEqual({ id: null, how: 'non-component' });
+    expect(map('texuli', 'SafeArea')).toEqual({ id: null, how: 'non-component' });
+    // A Texuli export the catalog does not list never falls back to names.
+    expect(map('texuli', 'Selector')).toEqual({ id: null, how: 'unmapped' });
+    expect(map('texuli/kbd', 'Kbd')).toEqual({ id: null, how: 'unmapped' });
     // Not a governed module.
-    expect(catalogIdFor(catalog, 'bits-ui', 'Button')).toEqual({ id: null, how: 'unmapped' });
+    expect(map('bits-ui', 'Button')).toEqual({ id: null, how: 'unmapped' });
   });
 
-  it('maps by the manifest imports first when the catalog lists them (Texuli drop 2)', () => {
+  it('maps by the manifest imports first, re-exports and non-components included (fake manifests)', () => {
     const manifests: CatalogManifestLike[] = [
       {
         id: 'button',
@@ -102,19 +91,34 @@ describe('the catalog and the mapper', () => {
         imports: [{ module: 'texuli/card', exports: ['Card', 'CardHeader', 'Panel'] }],
       },
     ];
-    const withImports = catalogFromManifests(manifests);
+    const options = {
+      nonComponents: [{ module: 'texuli', exports: ['MotionProvider', 'Button'] }],
+      reexports: [
+        { module: '@acme/ui', name: 'Surface', from: 'texuli/card', export: 'Panel' },
+        { module: '@acme/ui', name: 'Ghost', from: 'texuli/card', export: 'Ghost' },
+      ],
+    };
+    const withImports = catalogFromManifests(manifests, options);
     expect(withImports.hasImports).toBe(true);
     expect(catalogIdFor(withImports, 'texuli/card', 'Panel')).toEqual({
       id: 'card',
       how: 'import',
     });
+    // A name a manifest maps stays a component even when listed as a non-component.
     expect(catalogIdFor(withImports, 'texuli', 'Button')).toEqual({ id: 'button', how: 'import' });
+    expect(catalogIdFor(withImports, 'texuli', 'MotionProvider')).toEqual({
+      id: null,
+      how: 'non-component',
+    });
     // A Texuli export the catalog does not list never falls back to names.
     expect(catalogIdFor(withImports, 'texuli/card', 'CardFooter')).toEqual({
       id: null,
       how: 'unmapped',
     });
-    // @protoyard/ui maps by a unique export name, else by name.
+    // A re-export follows the Texuli import (an unlisted one stays unmapped).
+    expect(catalogIdFor(withImports, '@acme/ui', 'Surface')).toEqual({ id: 'card', how: 'import' });
+    expect(catalogIdFor(withImports, '@acme/ui', 'Ghost')).toEqual({ id: null, how: 'unmapped' });
+    // @protoyard/ui without a re-export table maps by a unique export name, else by name.
     expect(catalogIdFor(withImports, '@protoyard/ui', 'Panel')).toEqual({
       id: 'card',
       how: 'import',
@@ -123,14 +127,45 @@ describe('the catalog and the mapper', () => {
       id: 'card',
       how: 'prefix',
     });
-    // Without imports the same manifests map by name.
-    const byName = catalogFromManifests(manifests.map(({ imports: _imports, ...m }) => m));
+  });
+
+  it('falls back to names only for a Texuli without imports (fake manifests)', () => {
+    const byName = catalogFromManifests(
+      [
+        { id: 'button', package: 'texuli' },
+        { id: 'alert', package: 'texuli' },
+        { id: 'alert-dialog', package: 'texuli' },
+        { id: 'select', package: 'texuli' },
+        { id: 'select-trigger', package: 'texuli' },
+        { id: 'card', package: 'texuli' },
+        { id: 'split-view', package: 'texuli' },
+        { id: 'data-grid', package: '@texuli/data' },
+        { id: 'data-board', package: '@texuli/data' },
+      ],
+      {
+        reexports: [
+          {
+            module: '@protoyard/ui',
+            name: 'SplitView',
+            from: 'texuli/layouts/app/split-view',
+            export: 'default',
+          },
+        ],
+      }
+    );
     expect(byName.hasImports).toBe(false);
-    expect(catalogIdFor(byName, 'texuli/card', 'CardFooter')).toEqual({
-      id: 'card',
-      how: 'prefix',
-    });
-    expect(catalogIdFor(byName, 'texuli/card', 'Panel')).toEqual({ id: null, how: 'unmapped' });
+    const map = (module: string, name: string) => catalogIdFor(byName, module, name);
+    expect(map('texuli/button', 'Button')).toEqual({ id: 'button', how: 'exact' });
+    expect(map('texuli', 'AlertDialog')).toEqual({ id: 'alert-dialog', how: 'exact' });
+    // A catalog id of its own wins over the prefix (select-trigger, not select).
+    expect(map('texuli/select', 'SelectTrigger')).toEqual({ id: 'select-trigger', how: 'exact' });
+    expect(map('texuli/card', 'CardHeader')).toEqual({ id: 'card', how: 'prefix' });
+    // The prefix must end at a word boundary.
+    expect(map('texuli', 'Selector')).toEqual({ id: null, how: 'unmapped' });
+    expect(map('@texuli/data', 'Grid')).toEqual({ id: 'data-grid', how: 'package' });
+    // A default re-export keeps the library's name for the fallback.
+    expect(map('@protoyard/ui', 'SplitView')).toEqual({ id: 'split-view', how: 'exact' });
+    expect(map('@protoyard/ui', 'Button')).toEqual({ id: 'button', how: 'exact' });
   });
 
   it('knows catalog parts from ids and related, and reads imports and tags', () => {
@@ -188,7 +223,12 @@ describe('ds new --allow, ds validate and ds allow init', () => {
     expect(core.filter((id) => !id.includes(':')).sort()).toEqual(
       [...MINIMAL_LOCKED_COMPONENTS].sort()
     );
-    expect(core).toContain('protoyard:dialog');
+    expect(core.filter((id) => id.includes(':'))).toEqual([
+      'protoyard:dialog',
+      'protoyard:input',
+      'protoyard:page-grid',
+      'protoyard:select',
+    ]);
 
     ws.write('tmp/allow.json', { button: { variants: ['default'] }, card: {} });
     expect(

@@ -1,7 +1,12 @@
 import { createRequire } from 'node:module';
-import type { ManifestGroup } from '@texuli/catalog/build';
-import * as texuliSpec from '@texuli/spec';
-import * as texuliDesignSystem from '@texuli/spec/design-system';
+import type { CatalogEntry, ManifestGroup } from '@texuli/catalog/build';
+import type { CatalogManifest } from '@texuli/catalog/manifest';
+import {
+  type MergedCatalog,
+  mergeCatalogs,
+  SPEC_CATALOG_HASH,
+  type SpecCatalog,
+} from '@texuli/spec';
 import {
   checkDesignSystemAllow,
   type DesignSystemAllow,
@@ -11,14 +16,17 @@ import {
   fullAllowEntry,
   type LockedPreset,
   lockedAllowPreset,
-  validateDesignSystem,
 } from '@texuli/spec/design-system';
 import {
   CATALOG_EXTENSIONS,
+  CATALOG_NON_COMPONENTS,
+  CATALOG_REEXPORTS,
   type CatalogExtensionManifest,
+  type CatalogReexport,
+  importCollisions,
   isExtensionId,
   type MergeRefusal,
-  mergeCatalogManifests,
+  toExtensionFiles,
 } from './ds-extensions/index.ts';
 
 /**
@@ -28,44 +36,41 @@ import {
  * `ds-disabled-value` rule needs, and the mapper from an imported Svelte
  * component to a catalog id.
  *
- * Everything comes from `@texuli/catalog/manifests/all`; nothing here lists
- * components by hand.
+ * Everything comes from `@texuli/catalog` (`manifests/all` and the
+ * non-component list of `manifest`) and the catalog extension data in
+ * `./ds-extensions/`; nothing here lists Texuli components by hand.
  *
  * ## The mapper (one function: {@link catalogIdFor})
  *
- * 1. When a manifest lists `imports: [{ module, exports }]` (Texuli's catalog
- *    adds them), an import maps by the exact `(module, export name)` pair.
- *    From then on a Texuli module never falls back to names: an export the
- *    catalog does not list is `unmapped`.
- * 2. Until then, by name (identifier = the export name, or the local name of a
- *    default import):
- *    - `exact`: the catalog id whose PascalCase equals the identifier
- *      (`AlertDialog` → `alert-dialog`); the import's own package first.
- *    - `package`: the package's id prefix plus the identifier, for packages
- *      whose ids carry their name (`Grid` from `@texuli/data` → `data-grid`).
- *    - `prefix`: the longest id whose PascalCase is a prefix of the identifier
- *      at a word boundary (`CardHeader` → `card`, `SelectTrigger` →
- *      `select-trigger`, `Selector` → nothing).
- *    - otherwise `unmapped`.
+ * An import is a `(module, export name)` pair (the local name of a default
+ * import). In order:
  *
- * `@protoyard/ui` re-exports Texuli's styled components: those map the same
- * way, by name (or by export name alone when the catalog lists imports and
- * the name is unique there). Its own components carry catalog extension
- * manifests (`./ds-extensions/`): an import listed there maps first, by the
- * exact `(module, export name)` pair, to the namespaced id
- * (`DataTable` → `protoyard:data-table`; `how: 'extension'`).
+ * 1. `extension`: a catalog extension lists the pair in its `imports`
+ *    (`DataTable` from `@protoyard/ui` → `protoyard:data-table`).
+ * 2. A wrapping library's re-export is followed to the Texuli import it is
+ *    (`FormField` from `@protoyard/ui` is `Field` from `texuli/field`).
+ * 3. `import`: a Texuli manifest lists the pair in its `imports` (Texuli
+ *    0.15.0 maps every component export; the catalog is the source of truth).
+ * 4. `non-component`: Texuli (or a wrapping library) lists the pair as a
+ *    non-component export (`MotionProvider`, `SafeArea`, `AppShell`): never
+ *    refused, never counted.
+ * 5. Otherwise a Texuli module (or a library that publishes its re-exports)
+ *    is `unmapped`: no fallback to names while the catalog lists imports.
  *
- * ## Extensions and the installed Texuli
+ * Fallback, only for a Texuli whose manifests carry no `imports`: by name
+ * (`exact`: the id whose PascalCase is the name; `package`: the package's id
+ * prefix plus the name, `Grid` from `@texuli/data` → `data-grid`; `prefix`:
+ * the longest id whose PascalCase starts the name at a word boundary,
+ * `CardHeader` → `card`).
  *
- * The catalog merges the extensions with Texuli's `mergeCatalogs` when the
- * installed `@texuli/spec/design-system` exports it (drop 2), else with the
- * local {@link mergeCatalogManifests} (same refusal rules). Texuli's
- * structural validator of drop 1 still refuses namespaced `allow` keys, so
- * until it accepts them ({@link namespacedAllowKeys}) the document Texuli
- * validates, compiles and approves is {@link texuliView}: extension keys left
- * out of `allow` (they are checked here, against the merged catalog), and an
- * extension in a library entry's `composes` replaced by the Texuli ids it
- * composes. Temporary; it becomes the identity once Texuli accepts them.
+ * ## Extensions
+ *
+ * Texuli's `mergeCatalogs` (the root of `@texuli/spec`) decides which
+ * extensions merge, with its own codes, over a projection of the installed
+ * catalog ({@link specCatalogOf}); the one rule checked here is that no
+ * extension import collides ({@link importCollisions}). Texuli's design
+ * system validator accepts namespaced `allow` keys (`protoyard:data-table`),
+ * so the document is validated, compiled and approved as written.
  */
 
 export const DS_AXES = ['variant', 'size', 'tone', 'density'] as const;
@@ -83,11 +88,24 @@ export interface CatalogImport {
   exports: readonly string[];
 }
 
-/** The fields of a catalog manifest this module reads (drop 2 adds `imports`). */
+/** The fields of a catalog manifest this module reads. */
 export interface CatalogManifestLike {
   id: string;
   package: string;
-  props?: readonly { name: string; enumValues?: readonly string[] }[];
+  label?: string;
+  summary?: string;
+  /** The manifest group (`forms`, `overlays`…); set for Texuli manifests. */
+  group?: string;
+  tier?: 'app' | 'content';
+  /** Texuli's emit tiers of the manifest (`emitTiers`). */
+  emit?: readonly ('developer' | 'untrusted')[];
+  props?: readonly {
+    name: string;
+    kind?: string;
+    required?: boolean;
+    enumValues?: readonly string[];
+    default?: unknown;
+  }[];
   axes?: Readonly<Partial<Record<DsAxis, string>>>;
   states?: readonly string[];
   related?: readonly string[];
@@ -109,6 +127,15 @@ export interface DsCatalogComponent {
   composes?: readonly string[];
 }
 
+/** What Texuli's `mergeCatalogs` answered (the local view of `MergedCatalog`). */
+export interface DsCatalogMerge {
+  ok: boolean;
+  /** The SHA-256 of the merged catalog (Texuli's `catalogHash`). */
+  catalogHash: string;
+  /** The namespaces merged, with each extension file's digest. */
+  extensions: readonly { namespace: string; digest: string }[];
+}
+
 export interface DsCatalog {
   components: readonly DsCatalogComponent[];
   byId: ReadonlyMap<string, DsCatalogComponent>;
@@ -120,12 +147,20 @@ export interface DsCatalog {
   extensions: readonly DsCatalogComponent[];
   /** Extensions the merge refused (left out). Empty for the shipped data. */
   extensionRefusals: readonly MergeRefusal[];
+  /** Texuli's merge result; null when no merge ran (catalogs built from manifests alone). */
+  merge: DsCatalogMerge | null;
   /** True when at least one Texuli manifest lists its imports (exact mapping). */
   hasImports: boolean;
   /** `module\0export` → Texuli id. */
   importIndex: ReadonlyMap<string, string>;
   /** `module\0export` → extension id. */
   extensionImportIndex: ReadonlyMap<string, string>;
+  /** `module\0export` of every non-component export (Texuli's and wrapping libraries'). */
+  nonComponentIndex: ReadonlySet<string>;
+  /** `module\0name` → the Texuli import a wrapping library re-exports. */
+  reexportIndex: ReadonlyMap<string, CatalogReexport>;
+  /** Modules that publish their re-exports: their other names never map by name. */
+  reexportModules: ReadonlySet<string>;
   /** Modules extensions import from (governed like Texuli's: `@protoyard/ui`, `@acme/ui`). */
   extensionModules: ReadonlySet<string>;
   /** export name → id, or null when two ids export the same name. */
@@ -136,7 +171,7 @@ export interface DsCatalog {
 
 export type CatalogMatch =
   | { id: string; how: 'extension' | 'import' | 'exact' | 'package' | 'prefix' }
-  | { id: null; how: 'unmapped' };
+  | { id: null; how: 'non-component' | 'unmapped' };
 
 export function pascalCase(id: string): string {
   return id
@@ -179,14 +214,27 @@ function allowCatalogOf(components: readonly DsCatalogComponent[]): DesignSystem
   };
 }
 
+const importKey = (module: string, name: string) => `${module}\0${name}`;
+
+export interface CatalogOptions {
+  /** Extensions the merge refused (reported, left out). */
+  refusals?: readonly MergeRefusal[];
+  /** Texuli's merge result. */
+  merge?: DsCatalogMerge | null;
+  /** Non-component exports (Texuli's `NON_COMPONENT_IMPORTS` and wrapping libraries'). */
+  nonComponents?: readonly CatalogImport[];
+  /** Re-exports of wrapping libraries. */
+  reexports?: readonly CatalogReexport[];
+}
+
 /**
  * Builds the catalog view from manifests (exported for tests with fake
  * manifests). A manifest with a namespaced id and `composes` is a catalog
- * extension; pass the merged list ({@link mergeCatalogManifests}).
+ * extension; pass the merged list ({@link mergeWithExtensions}).
  */
 export function catalogFromManifests(
   manifests: readonly CatalogManifestLike[],
-  extensionRefusals: readonly MergeRefusal[] = []
+  options: CatalogOptions = {}
 ): DsCatalog {
   const components: DsCatalogComponent[] = [];
   const byId = new Map<string, DsCatalogComponent>();
@@ -220,7 +268,7 @@ export function catalogFromManifests(
     if (extension) {
       for (const entry of imports) {
         for (const name of entry.exports) {
-          extensionImportIndex.set(`${entry.module}\0${name}`, component.id);
+          extensionImportIndex.set(importKey(entry.module, name), component.id);
         }
       }
       continue;
@@ -228,7 +276,7 @@ export function catalogFromManifests(
     hasImports = true;
     for (const entry of imports) {
       for (const name of entry.exports) {
-        importIndex.set(`${entry.module}\0${name}`, component.id);
+        importIndex.set(importKey(entry.module, name), component.id);
         const seen = exportIndex.get(name);
         exportIndex.set(name, seen === undefined || seen === component.id ? component.id : null);
       }
@@ -244,16 +292,32 @@ export function catalogFromManifests(
       packagePrefix.set(pkg, `${short}-`);
     }
   }
+  const nonComponentIndex = new Set<string>();
+  for (const entry of options.nonComponents ?? []) {
+    for (const name of entry.exports) {
+      const key = importKey(entry.module, name);
+      // A name a manifest maps stays a component.
+      if (!importIndex.has(key) && !extensionImportIndex.has(key)) nonComponentIndex.add(key);
+    }
+  }
+  const reexportIndex = new Map<string, CatalogReexport>();
+  for (const reexport of options.reexports ?? []) {
+    reexportIndex.set(importKey(reexport.module, reexport.name), reexport);
+  }
   return {
     components,
     byId,
     allowCatalog: allowCatalogOf(components),
     texuliAllowCatalog: allowCatalogOf(texuli),
     extensions: components.filter((c) => c.composes),
-    extensionRefusals,
+    extensionRefusals: options.refusals ?? [],
+    merge: options.merge ?? null,
     hasImports,
     importIndex,
     extensionImportIndex,
+    nonComponentIndex,
+    reexportIndex,
+    reexportModules: new Set((options.reexports ?? []).map((r) => r.module)),
     extensionModules: new Set(
       [...extensionImportIndex.keys()].map((key) => key.split('\0')[0] ?? '')
     ),
@@ -262,71 +326,105 @@ export function catalogFromManifests(
   };
 }
 
-type TexuliMerge = (texuli: unknown, extensions: unknown) => unknown;
-
 /**
- * Texuli's `mergeCatalogs` when the installed `@texuli/spec` exports it
- * (0.15.0), read through the namespace so an older Texuli still loads.
+ * The installed Texuli catalog as Texuli's `SpecCatalog` (what
+ * `mergeCatalogs` takes): the shape of Texuli's own `projectCatalog`
+ * (components sorted by id; placement from the tier; Texuli's emit tiers;
+ * capability `unknown`, as Texuli projects an unaudited id; props as
+ * `{ name, kind, required?, enumValues? }`; axes as `{ prop, values,
+ * default }`; states; imports), hashed as `SPEC_CATALOG_HASH`.
  */
-function texuliMergeCatalogs(): TexuliMerge | undefined {
-  const merge =
-    (texuliSpec as Record<string, unknown>).mergeCatalogs ??
-    (texuliDesignSystem as Record<string, unknown>).mergeCatalogs;
-  return typeof merge === 'function' ? (merge as TexuliMerge) : undefined;
+export function specCatalogOf(manifests: readonly CatalogManifestLike[]): SpecCatalog {
+  const components = [...manifests]
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .map((m) => {
+      const props = [...(m.props ?? [])].sort((a, b) => (a.name < b.name ? -1 : 1));
+      const axes: Record<string, { prop: string; values: string[]; default: string }> = {};
+      for (const axis of DS_AXES) {
+        const prop = props.find((p) => p.name === m.axes?.[axis]);
+        if (prop?.enumValues && typeof prop.default === 'string') {
+          axes[axis] = { prop: prop.name, values: [...prop.enumValues], default: prop.default };
+        }
+      }
+      return {
+        id: m.id,
+        label: m.label ?? m.id,
+        summary: m.summary ?? m.id,
+        group: m.group ?? 'ungrouped',
+        placement: m.tier ?? 'app',
+        emit: [...(m.emit ?? [])].sort(),
+        capability: 'unknown',
+        props: props.map((p) => ({
+          name: p.name,
+          kind: p.kind ?? 'unknown',
+          ...(p.required === true ? { required: true } : {}),
+          ...(p.enumValues ? { enumValues: [...p.enumValues] } : {}),
+        })),
+        ...(Object.keys(axes).length > 0 ? { axes } : {}),
+        ...(m.states?.length ? { states: [...m.states] } : {}),
+        ...(m.imports?.length
+          ? { imports: m.imports.map((i) => ({ module: i.module, exports: [...i.exports] })) }
+          : {}),
+      };
+    });
+  return { catalogHash: SPEC_CATALOG_HASH, components } as unknown as SpecCatalog;
+}
+
+export type TexuliMerge = (texuli: SpecCatalog, extensions: readonly unknown[]) => MergedCatalog;
+
+export interface MergeOutcome {
+  /** Texuli manifests, then the accepted extensions. */
+  manifests: readonly (CatalogManifestLike | CatalogExtensionManifest)[];
+  refusals: readonly MergeRefusal[];
+  merge: DsCatalogMerge;
 }
 
 /**
- * Texuli manifests plus `extensions`. The manifests (props, axes, imports)
- * come from the local merge, which the mapper needs. When the installed
- * `@texuli/spec` exports `mergeCatalogs(texuli, extensions)` (drop 2:
- * `{ ok, catalog, extensions, issues }` over the spec catalog), its `issues`
- * are reported too and an extension it refuses is left out, so Texuli's
- * rules (namespace, collisions, composes, CATALOG_EXTENSION_LIMITS) decide.
+ * Texuli manifests plus `extensions`, merged by Texuli's `mergeCatalogs`
+ * over {@link specCatalogOf} and the extensions as Texuli extension files
+ * (one per namespace). Extensions whose imports collide are left out first
+ * ({@link importCollisions}); Texuli refuses a whole extension file when any
+ * of its components fails its rules, and every issue keeps Texuli's code and
+ * path (`extensions[<file>].components[<i>]…`). Never throws.
  */
 export function mergeWithExtensions(
   texuli: readonly CatalogManifestLike[],
-  extensions: readonly CatalogExtensionManifest[] = CATALOG_EXTENSIONS
-): { manifests: readonly CatalogManifestLike[]; refusals: readonly MergeRefusal[] } {
-  const local = mergeCatalogManifests(texuli, extensions);
-  const merge = texuliMergeCatalogs();
-  if (!merge) return { manifests: local.manifests, refusals: local.refusals };
-  let result: unknown;
-  try {
-    result = merge({ components: texuli }, extensions);
-  } catch (error) {
-    return {
-      manifests: local.manifests,
-      refusals: [
-        ...local.refusals,
-        { code: 'id-collision', id: '*', path: '$', message: (error as Error).message },
-      ],
-    };
-  }
-  const issues = record(result)?.issues;
-  const texuliRefusals: MergeRefusal[] = Array.isArray(issues)
-    ? issues.map((issue) => {
-        const e = record(issue) ?? {};
-        return {
-          code: (typeof e.code === 'string' ? e.code : 'id-collision') as MergeRefusal['code'],
-          id: typeof e.id === 'string' ? e.id : '*',
-          path: typeof e.path === 'string' ? e.path : '$',
-          message: typeof e.message === 'string' ? e.message : 'Refused by mergeCatalogs.',
-        };
-      })
-    : [];
-  // Leave out every extension Texuli refused (its issue paths name the extension index).
-  const refusedIndexes = new Set(
-    texuliRefusals
-      .map((r) => /^\$?\.?extensions\[(\d+)\]/.exec(r.path)?.[1])
-      .filter((i): i is string => i !== undefined)
-      .map(Number)
+  extensions: readonly CatalogExtensionManifest[] = CATALOG_EXTENSIONS,
+  merge: TexuliMerge = mergeCatalogs
+): MergeOutcome {
+  const collisions = importCollisions(texuli, extensions);
+  const colliding = new Set(collisions.map((refusal) => refusal.id));
+  const candidates = extensions.filter((extension) => !colliding.has(extension.id));
+  const files = toExtensionFiles(candidates);
+  const merged = merge(
+    specCatalogOf(texuli),
+    files.map((entry) => entry.file)
   );
-  const refusedIds = new Set(
-    extensions.filter((_, i) => refusedIndexes.has(i)).map((extension) => extension.id)
+  const accepted = new Set(
+    merged.catalog.components.map((c) => c.id).filter((id) => isExtensionId(id))
   );
+  const refusals: MergeRefusal[] = [
+    ...collisions,
+    ...merged.issues.map((issue) => {
+      const at = /^extensions\[(\d+)\](?:\.components\[(\d+)\])?/.exec(issue.path);
+      const file = at ? files[Number(at[1])] : undefined;
+      const component = at?.[2] === undefined ? undefined : file?.manifests[Number(at[2])];
+      return {
+        code: issue.code,
+        id: component?.id ?? (file?.file.namespace ? `${file.file.namespace}:*` : '*'),
+        path: issue.path,
+        message: issue.message,
+      };
+    }),
+  ];
   return {
-    manifests: local.manifests.filter((manifest) => !refusedIds.has(manifest.id)),
-    refusals: [...local.refusals, ...texuliRefusals],
+    manifests: [...texuli, ...candidates.filter((extension) => accepted.has(extension.id))],
+    refusals,
+    merge: {
+      ok: merged.ok && collisions.length === 0,
+      catalogHash: merged.catalog.catalogHash,
+      extensions: merged.extensions.map((e) => ({ namespace: e.namespace, digest: e.digest })),
+    },
   };
 }
 
@@ -341,13 +439,30 @@ let cached: DsCatalog | undefined;
  */
 export function dsCatalog(): DsCatalog {
   if (!cached) {
-    const { ALL_MANIFEST_GROUPS } = createRequire(import.meta.url)(
-      '@texuli/catalog/manifests/all'
-    ) as { ALL_MANIFEST_GROUPS: readonly ManifestGroup[] };
-    const merged = mergeWithExtensions(
-      ALL_MANIFEST_GROUPS.flatMap((group) => group.manifests) as readonly CatalogManifestLike[]
+    const load = createRequire(import.meta.url);
+    const { ALL_MANIFEST_GROUPS } = load('@texuli/catalog/manifests/all') as {
+      ALL_MANIFEST_GROUPS: readonly ManifestGroup[];
+    };
+    const { emitTiers } = load('@texuli/catalog/build') as {
+      emitTiers: (manifest: CatalogManifest, group: string) => CatalogEntry['emit'];
+    };
+    const { NON_COMPONENT_IMPORTS } = load('@texuli/catalog/manifest') as {
+      NON_COMPONENT_IMPORTS?: readonly CatalogImport[];
+    };
+    const texuli = ALL_MANIFEST_GROUPS.flatMap((group) =>
+      group.manifests.map((manifest) => ({
+        ...(manifest as unknown as CatalogManifestLike),
+        group: group.name,
+        emit: emitTiers(manifest, group.name),
+      }))
     );
-    cached = catalogFromManifests(merged.manifests, merged.refusals);
+    const merged = mergeWithExtensions(texuli);
+    cached = catalogFromManifests(merged.manifests, {
+      refusals: merged.refusals,
+      merge: merged.merge,
+      nonComponents: [...(NON_COMPONENT_IMPORTS ?? []), ...CATALOG_NON_COMPONENTS],
+      reexports: CATALOG_REEXPORTS,
+    });
   }
   return cached;
 }
@@ -420,17 +535,38 @@ function byName(catalog: DsCatalog, pkg: string | null, identifier: string): Cat
  * import). The one place the mapping lives; see the module comment.
  */
 export function catalogIdFor(catalog: DsCatalog, module: string, identifier: string): CatalogMatch {
-  const extension = catalog.extensionImportIndex.get(`${module}\0${identifier}`);
+  return resolveImport(catalog, module, identifier, identifier, 0);
+}
+
+function resolveImport(
+  catalog: DsCatalog,
+  module: string,
+  exported: string,
+  name: string,
+  depth: number
+): CatalogMatch {
+  const key = importKey(module, exported);
+  const extension = catalog.extensionImportIndex.get(key);
   if (extension) return { id: extension, how: 'extension' };
+  const reexport = catalog.reexportIndex.get(key);
+  if (reexport && depth < 4) {
+    // A default re-export keeps the library's name for the by-name fallback.
+    const fallback = reexport.export === 'default' ? reexport.name : reexport.export;
+    return resolveImport(catalog, reexport.from, reexport.export, fallback, depth + 1);
+  }
+  const direct = catalog.importIndex.get(key);
+  if (direct) return { id: direct, how: 'import' };
+  if (catalog.nonComponentIndex.has(key)) return { id: null, how: 'non-component' };
   if (!isGovernedModule(module)) return { id: null, how: 'unmapped' };
   if (catalog.hasImports) {
-    const direct = catalog.importIndex.get(`${module}\0${identifier}`);
-    if (direct) return { id: direct, how: 'import' };
-    if (isTexuliModule(module)) return { id: null, how: 'unmapped' };
-    const unique = catalog.exportIndex.get(identifier);
+    // The catalog lists every Texuli import: no fallback to names.
+    if (isTexuliModule(module) || catalog.reexportModules.has(module)) {
+      return { id: null, how: 'unmapped' };
+    }
+    const unique = catalog.exportIndex.get(exported);
     if (unique) return { id: unique, how: 'import' };
   }
-  return byName(catalog, packageOf(module), identifier);
+  return byName(catalog, packageOf(module), name);
 }
 
 /**
@@ -521,8 +657,7 @@ export function readDocumentApproval(document: unknown): DocumentApproval | null
  * `checkDesignSystemAllow` against the merged catalog (Texuli plus the
  * extensions): an extension key (`protoyard:data-table`) is a member when the
  * merge accepted it, and its axis values and states are checked like any
- * other. Membership never depends on Texuli's key pattern, so this holds on
- * drop 1 and drop 2 alike.
+ * other.
  */
 export function checkAllow(
   document: unknown,
@@ -532,73 +667,6 @@ export function checkAllow(
   errors: readonly DesignSystemIssue[];
 } {
   return checkDesignSystemAllow(document, catalog.allowCatalog);
-}
-
-let namespacedKeys: boolean | undefined;
-
-/**
- * Whether the installed Texuli validator accepts a namespaced `allow` key
- * (`protoyard:data-table`). Drop 1 refuses them (keys are kebab-case); drop 2
- * widens the pattern. Probed once with a throwaway document.
- */
-export function namespacedAllowKeys(): boolean {
-  if (namespacedKeys === undefined) {
-    const probe = validateDesignSystem(
-      {
-        format: 'texuli/design-system',
-        formatVersion: texuliDesignSystem.DESIGN_SYSTEM_FORMAT_VERSION,
-        id: 'probe',
-        version: '0.1.0',
-        name: 'Probe',
-        color: { brand: { seed: '#4f46e5' } },
-        allow: { 'probe:probe': {} },
-      },
-      { trust: 'untrusted' }
-    );
-    namespacedKeys = !(
-      probe.ok === false && probe.errors.some((e) => e.path.startsWith('$.allow'))
-    );
-  }
-  return namespacedKeys;
-}
-
-/**
- * The document as the installed Texuli validates, compiles and approves it.
- * When Texuli accepts namespaced keys it is the document itself. Until then
- * (temporary, Texuli drop 1): extension keys are left out of `allow`
- * ({@link checkAllow} checks them against the merged catalog), and an
- * extension in a library entry's `composes` is replaced by the Texuli ids it
- * composes. Never mutates `document`.
- */
-export function texuliView<T>(document: T, catalog: DsCatalog = dsCatalog()): T {
-  if (namespacedAllowKeys()) return document;
-  const doc = record(document);
-  if (!doc) return document;
-  const out: Record<string, unknown> = { ...doc };
-  const allow = record(doc.allow);
-  if (allow && Object.keys(allow).some(isExtensionId)) {
-    out.allow = Object.fromEntries(Object.entries(allow).filter(([key]) => !isExtensionId(key)));
-  }
-  if (Array.isArray(doc.library)) {
-    out.library = doc.library.map((entry) => {
-      const item = record(entry);
-      if (!item || !Array.isArray(item.composes) || !item.composes.some(isExtensionKey)) {
-        return entry;
-      }
-      const flat = new Set<string>();
-      for (const id of item.composes as unknown[]) {
-        if (typeof id !== 'string') continue;
-        if (!isExtensionId(id)) flat.add(id);
-        else for (const part of catalog.byId.get(id)?.composes ?? []) flat.add(part);
-      }
-      return { ...item, composes: [...flat] };
-    });
-  }
-  return out as T;
-}
-
-function isExtensionKey(value: unknown): boolean {
-  return typeof value === 'string' && isExtensionId(value);
 }
 
 /** True for an extension key of an allow section (`protoyard:data-table`). */

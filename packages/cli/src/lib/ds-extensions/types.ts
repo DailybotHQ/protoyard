@@ -1,10 +1,12 @@
 /**
- * The catalog extension manifest (PLAN_013 T-tx015, agreed with Texuli for
- * its drop 2): the same shape as a Texuli catalog manifest (id, package,
- * label, summary, tier, props with `enumValues`, axes, states, imports) plus
- * a namespaced id (`<namespace>:<kebab-id>`) and `composes`, the Texuli
- * catalog ids the component renders. Any library that wraps Texuli can
- * publish these as plain data.
+ * The catalog extension manifest (PLAN_013 T-tx015): the same shape as a
+ * Texuli catalog manifest (id, package, label, summary, group, tier, props
+ * with `enumValues`, axes, states, imports) plus a namespaced id
+ * (`<namespace>:<kebab-id>`) and `composes`, the Texuli catalog ids the
+ * component renders. Any library that wraps Texuli can publish these as plain
+ * data. Texuli's `mergeCatalogs` reads them projected to its extension file
+ * (`texuli/catalog-extension`, one per namespace); `imports` stays here, for
+ * the mapper.
  */
 
 export type ExtensionAxis = 'variant' | 'size' | 'tone' | 'density';
@@ -47,6 +49,8 @@ export interface CatalogExtensionManifest {
   package: string;
   label: string;
   summary: string;
+  /** A kebab-case group (Texuli's extension format requires one). */
+  group: string;
   tier: 'app' | 'content';
   agentEmittable?: boolean;
   useWhen: readonly string[];
@@ -60,6 +64,24 @@ export interface CatalogExtensionManifest {
   states?: readonly ExtensionState[];
   /** Where the component is imported from: `{ module, exports }`. */
   imports: readonly { module: string; exports: readonly string[] }[];
-  /** Texuli catalog ids the component renders (its parts count). */
+  /** Texuli catalog ids the component renders (its parts count): 1 to 32. */
   composes: readonly string[];
+}
+
+/** One public module and the names it exports (Texuli's `CatalogImport`). */
+export interface CatalogImportList {
+  module: string;
+  exports: readonly string[];
+}
+
+/**
+ * A component a wrapping library re-exports under its own module: `name`
+ * from `module` is `export` from `from` (`FormField` from `@protoyard/ui` is
+ * `Field` from `texuli/field`). The mapper follows it to the Texuli import.
+ */
+export interface CatalogReexport {
+  module: string;
+  name: string;
+  from: string;
+  export: string;
 }

@@ -22,6 +22,8 @@ export interface UiComponentExport {
   name: string;
   /** The module it comes from: a Texuli module, or a local `.svelte` file. */
   module: string;
+  /** The name the module exports (`Field` for `FormField`, `default` for a default export). */
+  exported: string;
   /** Absolute path of the local `.svelte` file; undefined for a Texuli re-export. */
   file?: string;
 }
@@ -47,9 +49,9 @@ function scanBarrel(file: string, out: UiComponentExport[]): void {
       const name = alias ?? exported;
       if (!COMPONENT_NAME.test(name)) continue;
       if (!target) {
-        out.push({ name, module: spec });
+        out.push({ name, module: spec, exported });
       } else if (target.endsWith('.svelte')) {
-        out.push({ name, module: spec, file: target });
+        out.push({ name, module: spec, exported, file: target });
       } else if (target.endsWith('.ts')) {
         const nested: UiComponentExport[] = [];
         scanBarrel(target, nested);
@@ -86,6 +88,8 @@ function scriptOf(source: string): string {
 export interface DerivedComposition {
   /** Catalog ids the component renders (Texuli ids only), sorted. */
   ids: string[];
+  /** Texuli non-component exports it renders (`module#Name`), sorted. */
+  nonComponents: string[];
   /** Governed identifiers the mapper cannot place (`module#Name`), sorted. */
   unmapped: string[];
 }
@@ -97,6 +101,7 @@ export interface DerivedComposition {
  */
 export function derivedComposition(file: string, catalog: DsCatalog): DerivedComposition {
   const ids = new Set<string>();
+  const nonComponents = new Set<string>();
   const unmapped = new Set<string>();
   const visited = new Set<string>();
   const walk = (path: string) => {
@@ -106,6 +111,7 @@ export function derivedComposition(file: string, catalog: DsCatalog): DerivedCom
     for (const use of componentUses(source)) {
       const match = catalogIdFor(catalog, use.module, use.identifier);
       if (match.id && !match.id.includes(':')) ids.add(match.id);
+      else if (match.how === 'non-component') nonComponents.add(`${use.module}#${use.identifier}`);
       else if (!match.id) unmapped.add(`${use.module}#${use.identifier}`);
     }
     const markup = source.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/g, '');
@@ -116,5 +122,9 @@ export function derivedComposition(file: string, catalog: DsCatalog): DerivedCom
     }
   };
   walk(file);
-  return { ids: [...ids].sort(), unmapped: [...unmapped].sort() };
+  return {
+    ids: [...ids].sort(),
+    nonComponents: [...nonComponents].sort(),
+    unmapped: [...unmapped].sort(),
+  };
 }

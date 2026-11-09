@@ -22,7 +22,10 @@ const LOCKED = { designSystem: { id: 'harbor', version: '1.2.0', locked: true } 
 
 /** The allow rules run with a design system's allow section: Texuli's minimal preset, buttons narrowed. */
 const MINIMAL = lockedAllowPreset(dsCatalog().allowCatalog, 'minimal');
-const ALLOW = { ...MINIMAL, button: { ...MINIMAL.button, variants: ['default', 'outline'] } };
+const ALLOW = {
+  ...MINIMAL,
+  button: { ...MINIMAL.button, variants: ['default', 'outline'], tones: ['default', 'success'] },
+};
 const allowContext = (extra: Partial<DsAllowContext> = {}): DsAllowContext => ({
   catalog: dsCatalog(),
   designSystemId: 'harbor',
@@ -85,10 +88,10 @@ describe('ds-check rules (fixtures)', () => {
   it('ds-not-allowed names the catalog id, unmapped components and library imports', () => {
     const source = [
       '<script lang="ts">',
-      "  import { Kbd } from 'texuli/kbd';",
+      "  import { Kbd } from 'texuli/kbd-code';",
       "  import { Sparkle } from 'texuli/sparkle';",
       "  import { SelectTrigger } from 'texuli/select';",
-      "  import { AlertDialog } from 'texuli/alert-dialog';",
+      "  import { AlertDialog, MotionProvider } from 'texuli';",
       "  import StatusPill from '@ds/harbor/StatusPill';",
       "  import OrderRow from '@ds/harbor/OrderRow';",
       "  import Foreign from '@ds/atlas/Foreign';",
@@ -99,6 +102,7 @@ describe('ds-check rules (fixtures)', () => {
       '<SelectTrigger />',
       '<AlertDialog />',
       '<StatusPill label="x" />',
+      '<MotionProvider>a non-component export, never refused</MotionProvider>',
     ].join('\n');
     const found = scanDesignSystemSource('src/A.svelte', source, {
       designSystemId: 'harbor',
@@ -154,6 +158,21 @@ describe('ds-check rules (fixtures)', () => {
       ['ds-disabled-value', 5, '<Button variant="destructive">'],
     ]);
     expect(found[1]?.message).toContain('(enabled: default, outline)');
+    // Tone is an axis of its own (Texuli 0.15.0), independent of the variant.
+    const toned = [
+      '<script lang="ts">',
+      "  import { Button } from 'texuli/button';",
+      '</script>',
+      '<Button variant="outline" tone="success">A</Button>',
+      '<Button variant="outline" tone="destructive">B</Button>',
+    ].join('\n');
+    allow.allow = { ...ALLOW, button: { variants: ['outline'], tones: ['default', 'success'] } };
+    const tones = scanDesignSystemSource('src/A.svelte', toned, { allow });
+    expect(tones.map((v) => [v.rule, v.line, v.message.split(':')[0]])).toEqual([
+      ['ds-disabled-value', 5, '<Button tone="destructive">'],
+    ]);
+    expect(tones[0]?.message).toContain('tone "destructive" of "button"');
+    expect(tones[0]?.message).toContain('(enabled: default, success)');
   });
 
   it("checks a library component's own file against its composes", () => {
@@ -442,7 +461,7 @@ describe('protoyard check ds', () => {
     });
     ws.write(
       'design-systems/harbor/components/StatusPill.svelte',
-      '<script lang="ts">\n  import { Badge } from \'texuli/badge\';\n  import { Kbd } from \'texuli/kbd\';\n</script>\n<Badge label="x" /><Kbd>K</Kbd>\n'
+      '<script lang="ts">\n  import { Badge } from \'texuli/badge\';\n  import { Kbd } from \'texuli/kbd-code\';\n</script>\n<Badge label="x" /><Kbd>K</Kbd>\n'
     );
     addPrototype(ws, 'locked-app', LOCKED);
     ws.write(
@@ -451,7 +470,8 @@ describe('protoyard check ds', () => {
     );
     const { code, body } = await run();
     expect(code).toBe(4);
-    expect(body.data.counts.byRule['ds-disabled-value']).toBe(1);
+    // The fixture's variant "ghost" and tone "destructive".
+    expect(body.data.counts.byRule['ds-disabled-value']).toBe(2);
     expect(body.data.violations.map((v) => [v.rule, v.file])).toEqual(
       expect.arrayContaining([
         ['ds-disabled-value', 'prototypes/locked-app/src/App.svelte'],

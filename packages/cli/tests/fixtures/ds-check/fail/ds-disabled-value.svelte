@@ -6,4 +6,5 @@ let { onSave }: { onSave: () => Promise<void> } = $props();
 
 <div class="flex justify-end gap-2">
   <Button variant="ghost" onclick={onSave}>Save</Button>
+  <Button variant="outline" tone="destructive" onclick={onSave}>Delete</Button>
 </div>

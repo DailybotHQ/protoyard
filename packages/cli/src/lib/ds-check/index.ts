@@ -32,7 +32,8 @@
  * - `ds-not-allowed`: a Texuli (or `@protoyard/ui`) component rendered as a
  *   tag whose catalog id (`catalogIdFor` in `../ds-catalog.ts`) the allow
  *   section does not list, and is not a part of an allowed id; a component
- *   the mapper cannot place (`unmapped`); a `@ds/<id>/<Name>` import that is
+ *   the mapper cannot place (`unmapped`; a non-component export such as
+ *   `MotionProvider` is never refused); a `@ds/<id>/<Name>` import that is
  *   not in the design system's library (or belongs to another design
  *   system); in a library component's own file, a catalog id its entry does
  *   not list in `composes`.
@@ -518,6 +519,8 @@ function scanAllowed(text: string, markup: string, add: Add, ctx: DsAllowContext
   };
   for (const use of componentUses(text, ctx.catalog)) {
     const match = catalogIdFor(ctx.catalog, use.module, use.identifier);
+    // Texuli lists it as a non-component export (`MotionProvider`): never refused.
+    if (match.how === 'non-component') continue;
     if (!match.id) {
       add(
         'ds-not-allowed',
