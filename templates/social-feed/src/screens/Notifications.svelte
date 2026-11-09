@@ -10,6 +10,7 @@ import {
 } from '@protoyard/renderer-svelte';
 import { Button, EmptyState, LoadingState } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import type { NotificationKind } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { personIdOf, useSocial } from '../lib/context.ts';
@@ -41,12 +42,12 @@ const ICONS: Record<NotificationKind, typeof Heart> = {
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
-  <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
-    <h1 class="text-lg font-semibold">Notifications</h1>
+  <Box border="block-end" radius="none" padding="none" class="flex items-center justify-between gap-2 px-4 py-2">
+    <Heading level={1} size="md">Notifications</Heading>
     {#if can(CAPABILITIES.interact) && unread > 0}
       <Button size="sm" variant="outline" onclick={() => runService(() => services.notifications.markRead(), { success: 'All caught up' })}>Mark all read</Button>
     {/if}
-  </div>
+  </Box>
   <div class="min-h-0 flex-1 overflow-y-auto">
     {#if data.current === undefined}
       <LoadingState label="Loading notifications" class="py-16" />
@@ -54,21 +55,23 @@ const ICONS: Record<NotificationKind, typeof Heart> = {
       <div class="p-4"><EmptyState title="No notifications yet" description="Reactions, comments, follows and mentions show up here. Advance simulated time in DevTools to see activity arrive." /></div>
     {:else}
       <p class="sr-only" aria-live="polite">{unread} unread</p>
-      <ul class="divide-y divide-border">
-        {#each data.current.items as n (n.id)}
+      <ul>
+        {#each data.current.items as n, index (n.id)}
           {@const Icon = ICONS[n.kind]}
           {@const actor = data.current.people.get(n.actorId)}
-          <li class="flex items-center gap-3 px-4 py-3 text-sm {n.read ? '' : 'bg-primary/5'}" data-notification={n.kind}>
-            <LucideIcon icon={Icon} class="size-4 shrink-0 {n.read ? 'text-muted-foreground' : 'text-primary'}" />
-            <span class="min-w-0 flex-1">
-              {#if actor}<Link href={`/people/${actor.handle}`} class="font-medium hover:underline">{actor.name}</Link>{/if}
+          <li data-notification={n.kind}>
+            <Box surface={n.read ? 'transparent' : 'subtle'} border={index > 0 ? 'block-start' : 'none'} radius="none" padding="none" class="flex items-center gap-3 px-4 py-3">
+            <LucideIcon icon={Icon} size="sm" tone={n.read ? 'neutral' : 'primary'} class="shrink-0" />
+            <Text as="span" size="sm" class="min-w-0 flex-1">
+              {#if actor}<Link href={`/people/${actor.handle}`}><Text as="span" size="sm" weight="medium">{actor.name}</Text></Link>{/if}
               <span>{n.text.replace(actor?.name ?? '', '').trim()}</span>
               {#if !n.read}<span class="sr-only"> (unread)</span>{/if}
-            </span>
-            <time class="shrink-0 text-xs text-muted-foreground" datetime={n.at}>{fromNow(n.at, clock.now)}</time>
+            </Text>
+            <time class="shrink-0" datetime={n.at}><Text as="span" size="xs" tone="muted">{fromNow(n.at, clock.now)}</Text></time>
             {#if !n.read && can(CAPABILITIES.interact)}
               <Button variant="ghost" size="sm" onclick={() => runService(() => services.notifications.markRead(n.id))}>Mark read</Button>
             {/if}
+            </Box>
           </li>
         {/each}
       </ul>

@@ -73,7 +73,7 @@ export function scrollToTop() {
 <div
   bind:this={scroller}
   bind:clientHeight={viewport}
-  class="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+  class="feed-scroller min-h-0 flex-1 overflow-y-auto"
   onscroll={(e) => (scrollTop = (e.currentTarget as HTMLElement).scrollTop)}
   role="feed"
   aria-label={label}
@@ -89,3 +89,10 @@ export function scrollToTop() {
   {/each}
   <div style:height="{view.after}px" aria-hidden="true"></div>
 </div>
+
+<style>
+  /* Layout only: a fling at the end of the feed does not scroll the page behind it. */
+  .feed-scroller {
+    overscroll-behavior: contain;
+  }
+</style>

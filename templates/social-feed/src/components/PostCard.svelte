@@ -3,6 +3,7 @@ import { MessageCircle, Trash2 } from '@lucide/svelte';
 import { can, Link, liveQuery, runService, useClock } from '@protoyard/renderer-svelte';
 import { Avatar, Button, Input } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Text } from 'texuli/typography';
 import {
   type Comment,
   type Person,
@@ -57,16 +58,16 @@ async function comment() {
 }
 </script>
 
-<article class="border-b border-border px-4 py-3" data-post={post.id}>
+<Box as="article" border="block-end" radius="none" padding="none" class="px-4 py-3" data-post={post.id}>
   <header class="flex items-start gap-3">
     <Avatar name={author?.name ?? 'Someone'} size="sm" />
     <div class="min-w-0 flex-1">
-      <p id="post-{post.id}-author" class="truncate text-sm">
-        <Link href={`/people/${author?.handle ?? ''}`} class="font-semibold hover:underline">{author?.name ?? 'Someone'}</Link>
-        <span class="text-muted-foreground">@{author?.handle} · <time datetime={post.createdAt}>{fromNow(post.createdAt, clock.now)}</time></span>
-      </p>
+      <Text id="post-{post.id}-author" size="sm" truncate>
+        <Link href={`/people/${author?.handle ?? ''}`}><Text as="span" size="sm" weight="semibold">{author?.name ?? 'Someone'}</Text></Link>
+        <Text as="span" size="sm" tone="muted">@{author?.handle} · <time datetime={post.createdAt}>{fromNow(post.createdAt, clock.now)}</time></Text>
+      </Text>
       <!-- Plain text: never {@html}; line breaks are kept by CSS. -->
-      <p class="mt-1 text-sm break-words whitespace-pre-wrap">{post.text}</p>
+      <Text size="sm" class="mt-1 break-words whitespace-pre-wrap">{post.text}</Text>
       {#if post.media}<MediaPlaceholder media={post.media} />{/if}
       <div class="mt-2 flex flex-wrap items-center gap-1" role="group" aria-label="Reactions">
         {#each REACTIONS as kind (kind)}
@@ -79,7 +80,7 @@ async function comment() {
           >
             <span aria-hidden="true">{LABELS[kind].split(' ')[0]}</span>
             <span class="sr-only">{LABELS[kind].split(' ')[1]}</span>
-            <span class="tabular-nums">{post.reactionCounts[kind]}</span>
+            <Text as="span" size="sm" tabular>{post.reactionCounts[kind]}</Text>
           </Button>
         {/each}
         <Button variant="ghost" size="sm" aria-expanded={open} onclick={() => (open = !open)}>
@@ -92,11 +93,11 @@ async function comment() {
         {/if}
       </div>
       {#if open}
-        <section class="mt-2 grid gap-2 rounded-lg bg-muted/40 p-2" aria-label="Comments">
+        <Box as="section" surface="muted" radius="lg" padding="sm" class="mt-2 grid gap-2" aria-label="Comments">
           {#each comments.current ?? [] as c (c.id)}
-            <p class="text-sm"><span class="font-medium">{people.get(c.authorId)?.name ?? 'Someone'}</span> <span class="whitespace-pre-wrap">{c.text}</span></p>
+            <Text size="sm"><Text as="span" size="sm" weight="medium">{people.get(c.authorId)?.name ?? 'Someone'}</Text> <span class="whitespace-pre-wrap">{c.text}</span></Text>
           {:else}
-            <p class="text-xs text-muted-foreground">No comments yet.</p>
+            <Text size="xs" tone="muted">No comments yet.</Text>
           {/each}
           {#if canInteract}
             <form
@@ -109,8 +110,8 @@ async function comment() {
               <Button size="sm" onclick={comment}>Reply</Button>
             </form>
           {/if}
-        </section>
+        </Box>
       {/if}
     </div>
   </header>
-</article>
+</Box>
