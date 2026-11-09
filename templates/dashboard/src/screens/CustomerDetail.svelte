@@ -13,14 +13,19 @@ import {
 import {
   AlertDialog,
   Avatar,
+  Badge,
   Button,
   Card,
+  CardDescription,
+  CardTitle,
   EmptyState,
   ErrorState,
   LoadingState,
 } from '@protoyard/ui';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { ListItem } from 'texuli/list-item';
+import { Timeline } from 'texuli/timeline';
 import CustomerDialog from '../components/CustomerDialog.svelte';
 import OrderDialog from '../components/OrderDialog.svelte';
 import OrderStatusMenu from '../components/OrderStatusMenu.svelte';
@@ -67,6 +72,15 @@ const lifetime = $derived(
   (orders.current ?? []).filter(isRevenue).reduce((s, o) => s + o.amountCents, 0)
 );
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const historyItems = $derived(
+  (history.current ?? []).map((item) => ({
+    id: item.id,
+    title: item.message,
+    description: people.current?.get(item.actorId) ?? 'Someone',
+    time: fromNow(item.at, clock.now),
+    datetime: item.at,
+  }))
+);
 
 async function remove(customerId: string) {
   const result = await runService(() => services.customers.remove(customerId), {
@@ -97,11 +111,11 @@ async function remove(customerId: string) {
       <Avatar name={c.name} {...avatarImage(c.avatar)} size="lg" />
       <div class="min-w-0">
         <h1 class="truncate text-2xl font-semibold tracking-tight">{c.name}</h1>
-        <p class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+        <CardDescription class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
           <span class="inline-flex items-center gap-1"><LucideIcon icon={Mail} class="size-3.5" />{c.email}</span>
           {#if c.company}<span class="inline-flex items-center gap-1"><LucideIcon icon={Building2} class="size-3.5" />{c.company}</span>{/if}
           {#if c.country}<span class="inline-flex items-center gap-1"><LucideIcon icon={Globe} class="size-3.5" />{c.country}</span>{/if}
-        </p>
+        </CardDescription>
       </div>
     </div>
     <div class="flex flex-wrap gap-2">
@@ -109,59 +123,53 @@ async function remove(customerId: string) {
         <Button variant="outline" onclick={() => (editOpen = true)}><LucideIcon icon={Pencil} class="size-4" />Edit</Button>
       {/if}
       {#if can(CAPABILITIES.customersDelete)}
-        <Button variant="outline" class="text-destructive" onclick={() => (deleteOpen = true)}><LucideIcon icon={Trash2} class="size-4" />Delete</Button>
+        <Button variant="destructive" onclick={() => (deleteOpen = true)}><LucideIcon icon={Trash2} class="size-4" />Delete</Button>
       {/if}
     </div>
   </div>
 
   <dl class="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-    <Card class="p-4"><dt class="text-xs text-muted-foreground">Status</dt><dd class="mt-1.5"><StatusBadge status={c.status} /></dd></Card>
-    <Card class="p-4"><dt class="text-xs text-muted-foreground">Plan</dt><dd class="mt-1 font-medium">{capitalize(c.plan)}</dd></Card>
-    <Card class="p-4"><dt class="text-xs text-muted-foreground">Lifetime value</dt><dd class="mt-1 font-medium tabular-nums">{money(lifetime, currency)}</dd></Card>
-    <Card class="p-4"><dt class="text-xs text-muted-foreground">Customer since</dt><dd class="mt-1 font-medium">{formatDate(c.createdAt)}</dd></Card>
+    <Card class="p-4"><dt><CardDescription>Status</CardDescription></dt><dd class="mt-1.5"><StatusBadge status={c.status} /></dd></Card>
+    <Card class="p-4"><dt><CardDescription>Plan</CardDescription></dt><dd class="mt-1 font-medium">{capitalize(c.plan)}</dd></Card>
+    <Card class="p-4"><dt><CardDescription>Lifetime value</CardDescription></dt><dd class="mt-1 font-medium tabular-nums">{money(lifetime, currency)}</dd></Card>
+    <Card class="p-4"><dt><CardDescription>Customer since</CardDescription></dt><dd class="mt-1 font-medium">{formatDate(c.createdAt)}</dd></Card>
   </dl>
 
   <div class="mt-6 grid gap-6 lg:grid-cols-5">
     <Card class="p-5 lg:col-span-3">
-      <div class="flex items-center justify-between">
-        <h2 class="text-sm font-semibold">Orders <span class="font-normal text-muted-foreground">{(orders.current ?? []).length}</span></h2>
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <CardTitle level={2}>Orders</CardTitle>
+          <Badge variant="secondary">{(orders.current ?? []).length}</Badge>
+        </div>
         {#if can(CAPABILITIES.ordersCreate)}
           <Button size="sm" variant="ghost" onclick={() => (orderOpen = true)}><Icon icon="plus" class="size-4" aria-hidden="true" />New order</Button>
         {/if}
       </div>
-      <ul class="mt-3 divide-y divide-border">
-        {#each orders.current ?? [] as order (order.id)}
-          <li class="flex items-center justify-between gap-3 py-3">
-            <span class="min-w-0">
-              <span class="block truncate text-sm font-medium">{order.reference} · {order.description}</span>
-              <span class="block text-xs text-muted-foreground">{formatDate(order.createdAt)}</span>
-            </span>
-            <span class="flex shrink-0 items-center gap-3">
-              <span class="text-sm tabular-nums">{money(order.amountCents, currency)}</span>
-              <OrderStatusMenu {order} />
-            </span>
-          </li>
-        {:else}
-          <li class="py-3 text-sm text-muted-foreground">No orders yet.</li>
-        {/each}
-      </ul>
+      {#if (orders.current ?? []).length === 0}
+        <CardDescription class="mt-3">No orders yet.</CardDescription>
+      {:else}
+        <ul role="list" class="tx-list mt-2 -mx-3">
+          {#each orders.current ?? [] as order (order.id)}
+            <ListItem
+              title={`${order.reference} · ${order.description}`}
+              description={formatDate(order.createdAt)}
+              meta={money(order.amountCents, currency)}
+            >
+              {#snippet trailing()}<OrderStatusMenu {order} />{/snippet}
+            </ListItem>
+          {/each}
+        </ul>
+      {/if}
     </Card>
 
     <Card class="p-5 lg:col-span-2">
-      <h2 class="text-sm font-semibold">History</h2>
-      <ol class="mt-3 space-y-3">
-        {#each history.current ?? [] as item (item.id)}
-          <li class="relative border-l border-border pl-4 text-sm">
-            <span class="absolute top-1.5 -left-[4.5px] size-2 rounded-full bg-primary" aria-hidden="true"></span>
-            <p>{item.message}</p>
-            <p class="text-xs text-muted-foreground">
-              {people.current?.get(item.actorId) ?? 'Someone'} · <time datetime={item.at}>{fromNow(item.at, clock.now)}</time>
-            </p>
-          </li>
-        {:else}
-          <li class="text-sm text-muted-foreground">No history yet.</li>
-        {/each}
-      </ol>
+      <CardTitle level={2}>History</CardTitle>
+      {#if historyItems.length === 0}
+        <CardDescription class="mt-3">No history yet.</CardDescription>
+      {:else}
+        <Timeline class="mt-3" label="Customer history" items={historyItems} />
+      {/if}
     </Card>
   </div>
 

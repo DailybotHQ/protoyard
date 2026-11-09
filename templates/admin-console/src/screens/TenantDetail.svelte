@@ -13,8 +13,10 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
+  Notice,
 } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { ListItem } from 'texuli/list-item';
 import PageHeader from '../components/PageHeader.svelte';
 import ReasonDialog from '../components/ReasonDialog.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -62,9 +64,9 @@ const setDisabled = (person: TenantPerson, disabled: boolean) =>
   });
 </script>
 
-<a href="#/tenants" class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+<Button variant="ghost" size="sm" href="#/tenants" class="-ml-2 mb-4">
   <LucideIcon icon={ArrowLeft} class="size-4" />Tenants
-</a>
+</Button>
 
 {#if tenant.loading}
   <LoadingState label="Loading tenant" class="py-16" />
@@ -95,59 +97,59 @@ const setDisabled = (person: TenantPerson, disabled: boolean) =>
   </PageHeader>
 
   {#if t.status === 'suspended'}
-    <p role="status" class="mb-6 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
-      Suspended {t.suspendedAt ? formatDateTime(t.suspendedAt) : ''}: {t.suspendedReason}
-    </p>
+    <Notice
+      tone="error"
+      role="status"
+      class="mb-6"
+      text={`Suspended ${t.suspendedAt ? formatDateTime(t.suspendedAt) : ''}: ${t.suspendedReason}`}
+    />
   {/if}
 
-  <div class="grid gap-6 lg:grid-cols-[1fr_20rem]">
-    <Card>
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <Card class="lg:min-w-0 lg:flex-1">
       <CardHeader>
         <CardTitle>People</CardTitle>
         <CardDescription>{plural((people.current ?? []).length, 'person')} in this tenant</CardDescription>
       </CardHeader>
       <CardContent>
-        <ul class="divide-y divide-border">
-          {#each people.current ?? [] as person (person.persona.id)}
-            <li class="flex flex-wrap items-center justify-between gap-3 py-3">
-              <span class="flex min-w-0 items-center gap-3">
-                <Avatar name={person.persona.name} {...avatarImage(person.persona.avatar)} size="sm" decorative />
-                <span class="min-w-0">
-                  <span class="block truncate text-sm font-medium">{person.persona.name}</span>
-                  <span class="block truncate text-xs text-muted-foreground">
-                    {ROLE_LABELS[person.membership.role] ?? person.membership.role} · seen {fromNow(person.access.lastSeenAt, clock.now)}
-                  </span>
-                </span>
-              </span>
-              <span class="flex items-center gap-2">
-                {#if person.access.disabled}<StatusBadge status="disabled" />{/if}
-                {#if canDisable}
-                  <Button size="sm" variant="ghost" onclick={() => setDisabled(person, !person.access.disabled)}>
-                    {person.access.disabled ? 'Enable' : 'Disable'}
-                  </Button>
-                {/if}
-                {#if canImpersonate}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={person.access.disabled}
-                    aria-label={`Impersonate ${person.persona.name}`}
-                    onclick={() => {
-                      target = person;
-                      impersonateOpen = true;
-                    }}
-                  >Impersonate</Button>
-                {/if}
-              </span>
-            </li>
-          {:else}
-            <li class="py-3 text-sm text-muted-foreground">Nobody joined this tenant yet.</li>
-          {/each}
-        </ul>
+        {#if (people.current ?? []).length === 0}
+          <CardDescription>Nobody joined this tenant yet.</CardDescription>
+        {:else}
+          <ul role="list" class="tx-list -mx-3">
+            {#each people.current ?? [] as person (person.persona.id)}
+              <ListItem
+                title={person.persona.name}
+                description={`${ROLE_LABELS[person.membership.role] ?? person.membership.role} · seen ${fromNow(person.access.lastSeenAt, clock.now)}`}
+              >
+                {#snippet leading()}<Avatar name={person.persona.name} {...avatarImage(person.persona.avatar)} size="sm" decorative />{/snippet}
+                {#snippet trailing()}
+                  {#if person.access.disabled}<StatusBadge status="disabled" />{/if}
+                  {#if canDisable}
+                    <Button size="sm" variant="ghost" onclick={() => setDisabled(person, !person.access.disabled)}>
+                      {person.access.disabled ? 'Enable' : 'Disable'}
+                    </Button>
+                  {/if}
+                  {#if canImpersonate}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={person.access.disabled}
+                      aria-label={`Impersonate ${person.persona.name}`}
+                      onclick={() => {
+                        target = person;
+                        impersonateOpen = true;
+                      }}
+                    >Impersonate</Button>
+                  {/if}
+                {/snippet}
+              </ListItem>
+            {/each}
+          </ul>
+        {/if}
       </CardContent>
     </Card>
 
-    <Card>
+    <Card class="lg:w-80 lg:shrink-0">
       <CardHeader>
         <CardTitle>Subscription</CardTitle>
         <CardDescription>Simulated billing: no card or payment processor exists.</CardDescription>

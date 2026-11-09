@@ -1,6 +1,6 @@
 <script lang="ts">
 import { SearchX, ShoppingCart } from '@lucide/svelte';
-import { can, Link, liveQuery, useClock } from '@protoyard/renderer-svelte';
+import { can, liveQuery, useClock } from '@protoyard/renderer-svelte';
 import {
   Button,
   DataTable,
@@ -53,7 +53,7 @@ const columns: DataTableColumn<Row>[] = [
 
 {#snippet referenceCell(o: Row)}<span class="font-medium tabular-nums">{o.reference}</span>{/snippet}
 {#snippet customerCell(o: Row)}
-  <Link href={`/customers/${o.customerId}`} class="font-medium text-primary hover:underline">{o.customerName}</Link>
+  <Button variant="link" size="sm" href={`#/customers/${o.customerId}`} class="px-0">{o.customerName}</Button>
 {/snippet}
 {#snippet amountCell(o: Row)}<span class="tabular-nums">{money(o.amountCents, currency)}</span>{/snippet}
 {#snippet statusCell(o: Row)}<OrderStatusMenu order={o} />{/snippet}

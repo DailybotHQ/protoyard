@@ -209,6 +209,14 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .option('--name <name>', 'display name (default: from the slug)')
     .option('--description <text>', 'one-line description')
+    .option(
+      '--ds <id>',
+      'create it from a design system, locked to its approved version (template defaults to blank; refuses a template that is not lock-clean)'
+    )
+    .option(
+      '--unlocked',
+      'with --ds: bind without locking (allows a draft design system and any template)'
+    )
     .option('--force', 'reuse an EXISTING EMPTY folder (never overwrites files)')
     .option('--no-install', 'skip `pnpm install` (link the package later)')
     .action(def('new', newCommand));
@@ -232,6 +240,11 @@ export function createProgram(env: RunnerEnv): Command {
       '--allow-drop',
       'when regenerating, allow dropping tables or fields (deletes their data)'
     )
+    .option(
+      '--ds <id>',
+      'bind to a design system, locked to its approved version; regeneration keeps the binding and ignores the blueprint brand'
+    )
+    .option('--unlocked', 'with --ds: bind without locking (allows a draft design system)')
     .option('--no-install', 'skip `pnpm install` (link the package later)')
     .action(def('generate', generateCommand));
 

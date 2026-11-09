@@ -72,6 +72,30 @@ a brief, a brand color, fonts, shape, density and motion, from the current
 theme, or from pasted JSON, then **Save and apply**. It is kept per prototype
 and browser; to put it in the repository, download the JSON and run `ds use`.
 
+## Start a prototype locked to a design system
+
+Prefer creating it locked over binding it later:
+
+```bash
+pnpm protoyard new my-portal --ds harbor                       # blank template
+pnpm protoyard new my-portal --ds harbor --template <name>      # any lock-clean template
+pnpm protoyard generate my-deck --blueprint <file> --ds harbor  # app, deck, page or doc blueprint
+```
+
+- Before copying, the design system must be an approved folder at its
+  document version, unchanged since approval, and the template must pass the
+  `check ds` rules. A template with violations is refused with the counts by
+  rule: pick another template; do not restyle the template.
+- `--from <prototype>` with `--ds` is refused (it may copy visual code).
+- `--unlocked` binds without locking (a draft and any template allowed). Use
+  it only when the human asked for an unlocked sketch.
+- `generate --ds` ignores the blueprint `brand`; regeneration keeps the
+  binding from `protoyard.json`, and `ds use <slug> <id> --upgrade` moves the
+  pin of a generated prototype too.
+- Read `data.designSystemCheck` in the `--json` envelope: `ok: false` means
+  the prototype is locked but does not pass yet (it stays on disk). For
+  `generate`, `templateFiles` names template files that are not lock-clean.
+
 ## Locked prototypes
 
 A designer approves a design system with `pnpm protoyard ds approve <id> --by
@@ -152,8 +176,9 @@ adapt the shape to your host. Protoyard does not install it.
 ## Over MCP
 
 `protoyard mcp` has `ds_create`, `ds_list`, `ds_validate`, `ds_export` and `ds_use`, the
-same commands with the same checks, plus `ds_component_request` and
-`ds_component_new`. Their descriptions repeat the stop-and-ask rule; approving
+same commands with the same checks, plus `ds_component_request`,
+`ds_component_new` and `new_from_design_system` (`new --ds`, without
+`pnpm install`). Their descriptions repeat the stop-and-ask rule; approving
 a request has no tool.
 
 ## Limits
