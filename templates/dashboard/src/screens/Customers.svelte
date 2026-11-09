@@ -71,9 +71,9 @@ const columns: DataTableColumn<Row>[] = [
   </ul>
 {/snippet}
 {#snippet statusCell(c: Row)}<StatusBadge status={c.status} />{/snippet}
-{#snippet valueCell(c: Row)}{money(c.value, currency)}{/snippet}
+{#snippet valueCell(c: Row)}<span class="tabular-nums">{money(c.value, currency)}</span>{/snippet}
 {#snippet addedCell(c: Row)}
-  <time datetime={c.createdAt}>{fromNow(c.createdAt, clock.now)}</time>
+  <time class="text-muted-foreground" datetime={c.createdAt}>{fromNow(c.createdAt, clock.now)}</time>
 {/snippet}
 
 <PageHeader

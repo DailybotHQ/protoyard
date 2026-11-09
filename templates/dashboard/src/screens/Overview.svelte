@@ -127,7 +127,7 @@ const trend = (value: number | null) =>
         <CardTitle level={2}>Revenue · last 14 days</CardTitle>
         <Button variant="link" size="sm" href="#/orders">All orders</Button>
       </div>
-      <p><strong>{money(revenueTotal, currency)}</strong></p>
+      <p class="text-2xl font-semibold tabular-nums">{money(revenueTotal, currency)}</p>
       <CardDescription class="mb-2">{revenueOrders.toLocaleString()} revenue order{revenueOrders === 1 ? '' : 's'} in 14 days</CardDescription>
       <!-- The charts kit loads on demand so the Overview route stays small. -->
       {#key chartAttempt}

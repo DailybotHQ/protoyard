@@ -110,7 +110,7 @@ async function remove(customerId: string) {
     <div class="flex min-w-0 items-center gap-4">
       <Avatar name={c.name} {...avatarImage(c.avatar)} size="lg" />
       <div class="min-w-0">
-        <h1>{c.name}</h1>
+        <h1 class="truncate text-2xl font-semibold tracking-tight">{c.name}</h1>
         <CardDescription class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
           <span class="inline-flex items-center gap-1"><LucideIcon icon={Mail} class="size-3.5" />{c.email}</span>
           {#if c.company}<span class="inline-flex items-center gap-1"><LucideIcon icon={Building2} class="size-3.5" />{c.company}</span>{/if}
@@ -130,9 +130,9 @@ async function remove(customerId: string) {
 
   <dl class="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
     <Card class="p-4"><dt><CardDescription>Status</CardDescription></dt><dd class="mt-1.5"><StatusBadge status={c.status} /></dd></Card>
-    <Card class="p-4"><dt><CardDescription>Plan</CardDescription></dt><dd class="mt-1"><strong>{capitalize(c.plan)}</strong></dd></Card>
-    <Card class="p-4"><dt><CardDescription>Lifetime value</CardDescription></dt><dd class="mt-1"><strong>{money(lifetime, currency)}</strong></dd></Card>
-    <Card class="p-4"><dt><CardDescription>Customer since</CardDescription></dt><dd class="mt-1"><strong>{formatDate(c.createdAt)}</strong></dd></Card>
+    <Card class="p-4"><dt><CardDescription>Plan</CardDescription></dt><dd class="mt-1 font-medium">{capitalize(c.plan)}</dd></Card>
+    <Card class="p-4"><dt><CardDescription>Lifetime value</CardDescription></dt><dd class="mt-1 font-medium tabular-nums">{money(lifetime, currency)}</dd></Card>
+    <Card class="p-4"><dt><CardDescription>Customer since</CardDescription></dt><dd class="mt-1 font-medium">{formatDate(c.createdAt)}</dd></Card>
   </dl>
 
   <div class="mt-6 grid gap-6 lg:grid-cols-5">

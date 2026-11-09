@@ -171,11 +171,11 @@ const updatedByName = $derived(
           </div>
         </form>
       {:else if settings.current}
-        <dl class="mt-4 grid gap-4 sm:grid-cols-2">
-          <div><dt><CardDescription>Workspace name</CardDescription></dt><dd><strong>{settings.current.workspaceName}</strong></dd></div>
-          <div><dt><CardDescription>Support email</CardDescription></dt><dd><strong>{settings.current.supportEmail}</strong></dd></div>
-          <div><dt><CardDescription>Currency</CardDescription></dt><dd><strong>{settings.current.currency}</strong></dd></div>
-          <div><dt><CardDescription>Weekly report</CardDescription></dt><dd><strong>{settings.current.weeklyReport ? 'On' : 'Off'}</strong></dd></div>
+        <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+          <div><dt><CardDescription>Workspace name</CardDescription></dt><dd class="font-medium">{settings.current.workspaceName}</dd></div>
+          <div><dt><CardDescription>Support email</CardDescription></dt><dd class="font-medium">{settings.current.supportEmail}</dd></div>
+          <div><dt><CardDescription>Currency</CardDescription></dt><dd class="font-medium">{settings.current.currency}</dd></div>
+          <div><dt><CardDescription>Weekly report</CardDescription></dt><dd class="font-medium">{settings.current.weeklyReport ? 'On' : 'Off'}</dd></div>
         </dl>
         <Notice class="mt-4" icon={Lock} text="Only owners and admins can change workspace settings." />
       {/if}
@@ -205,10 +205,9 @@ const updatedByName = $derived(
       </div>
       <ul role="list" class="tx-list mt-2 -mx-3">
         {#each team.current ?? [] as member (member.id)}
-          <ListItem
-            title={member.id === principal.current?.persona.id ? `${member.name} (you)` : member.name}
-            description={`${member.title} · ${member.email}`}
-          >
+          <ListItem description={`${member.title} · ${member.email}`}>
+            {member.name}
+            {#if member.id === principal.current?.persona.id}<span class="font-normal text-muted-foreground">(you)</span>{/if}
             {#snippet leading()}<Avatar name={member.name} {...avatarImage(member.avatar)} size="sm" />{/snippet}
             {#snippet trailing()}
               <Badge variant={member.role === 'owner' ? 'default' : member.role === 'viewer' ? 'outline' : 'secondary'}>
@@ -226,7 +225,7 @@ const updatedByName = $derived(
     <Card class="p-5">
       <CardTitle level={2}>Billing</CardTitle>
       {#if can(CAPABILITIES.billingManage)}
-        <dl class="mt-3 space-y-2">
+        <dl class="mt-3 space-y-2 text-sm">
           <div class="flex items-center justify-between"><dt><CardDescription>Plan</CardDescription></dt><dd><Badge>{org?.plan ?? '—'}</Badge></dd></div>
           <div class="flex items-center justify-between"><dt><CardDescription>Status</CardDescription></dt><dd><Badge variant={org?.billingStatus === 'expired' ? 'destructive' : 'success'}>{org?.billingStatus ?? '—'}</Badge></dd></div>
           <div class="flex items-center justify-between"><dt><CardDescription>Since</CardDescription></dt><dd>{org ? formatDate(org.createdAt) : '—'}</dd></div>

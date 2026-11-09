@@ -41,7 +41,7 @@ const items = $derived(
         aria-label={`Change status of ${order.reference} (currently ${ORDER_STATUS_LABELS[order.status]})`}
       >
         <StatusBadge status={order.status} />
-        <Icon icon="chevron-down" class="size-3.5" aria-hidden="true" />
+        <Icon icon="chevron-down" class="size-3.5 text-muted-foreground" aria-hidden="true" />
       </Button>
     {/snippet}
   </DropdownMenu>

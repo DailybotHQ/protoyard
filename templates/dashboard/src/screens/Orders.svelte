@@ -51,14 +51,14 @@ const columns: DataTableColumn<Row>[] = [
 ];
 </script>
 
-{#snippet referenceCell(o: Row)}<strong>{o.reference}</strong>{/snippet}
+{#snippet referenceCell(o: Row)}<span class="font-medium tabular-nums">{o.reference}</span>{/snippet}
 {#snippet customerCell(o: Row)}
   <Button variant="link" size="sm" href={`#/customers/${o.customerId}`} class="px-0">{o.customerName}</Button>
 {/snippet}
-{#snippet amountCell(o: Row)}{money(o.amountCents, currency)}{/snippet}
+{#snippet amountCell(o: Row)}<span class="tabular-nums">{money(o.amountCents, currency)}</span>{/snippet}
 {#snippet statusCell(o: Row)}<OrderStatusMenu order={o} />{/snippet}
 {#snippet createdCell(o: Row)}
-  <time datetime={o.createdAt}>{fromNow(o.createdAt, clock.now)}</time>
+  <time class="text-muted-foreground" datetime={o.createdAt}>{fromNow(o.createdAt, clock.now)}</time>
 {/snippet}
 
 <PageHeader
