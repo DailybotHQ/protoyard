@@ -309,6 +309,16 @@ async function main() {
         defaultTheme: definition.manifest.defaultTheme,
         namespace: definition.manifest.storage.namespace,
         blueprintKind: specKind,
+        // Only a locked binding changes the generated spec (AGENTS.md wording).
+        ...(definition.manifest.designSystem?.locked
+          ? {
+              designSystem: {
+                id: definition.manifest.designSystem.id,
+                version: definition.manifest.designSystem.version,
+                locked: true,
+              },
+            }
+          : {}),
       },
       generatorVersion: definition.generatorVersion ?? null,
       versions: definition.database.versions.map((v) => ({ version: v.version, stores: v.stores })),

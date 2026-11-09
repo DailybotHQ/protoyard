@@ -4,6 +4,7 @@ import { Button, Select } from '@protoyard/ui';
 import type { CalendarSeries } from '@protoyard/views/calendar';
 import { type CalendarChange, type CalendarSlot, CalendarView } from '@protoyard/views-ui/calendar';
 import { Icon } from 'texuli/icons';
+import { Text } from 'texuli/typography';
 import BookingDetails from '../components/BookingDetails.svelte';
 import BookingDialog from '../components/BookingDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
@@ -89,14 +90,14 @@ const toneOf = (b: Booking | undefined) =>
 
 <PageHeader title="Calendar" description="Times are in UTC. Click an empty slot to book; drag or press Space on a booking to move it.">
   {#snippet actions()}
-    <label class="grid gap-1 text-xs text-muted-foreground">
+    <Text as="label" size="xs" tone="muted" class="grid gap-1">
       Resource
       <Select
         aria-label="Resource"
         items={[{ value: 'all', label: 'All resources' }, ...(resources.current ?? []).map((r) => ({ value: r.id, label: r.name }))]}
         bind:value={resourceId}
       />
-    </label>
+    </Text>
     {#if canManage}
       <Button
         onclick={() => {

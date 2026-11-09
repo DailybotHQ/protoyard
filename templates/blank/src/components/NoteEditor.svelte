@@ -1,6 +1,7 @@
 <script lang="ts">
 import { isValidationError, runService } from '@protoyard/renderer-svelte';
 import { Button, Checkbox, Dialog, FormField, Input, Textarea } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 import type { Note } from '../database/schema.ts';
 import { notesService } from '../lib/services.ts';
 
@@ -75,10 +76,10 @@ async function submit(event: SubmitEvent) {
         />
       {/snippet}
     </FormField>
-    <label class="inline-flex min-h-touch items-center gap-2 text-sm sm:min-h-0">
+    <Text as="label" size="sm" class="inline-flex min-h-touch items-center gap-2 sm:min-h-0">
       <Checkbox class="size-4" bind:checked={pinned} />
       Pin to the top
-    </label>
+    </Text>
   </form>
   {#snippet footer()}
     <Button variant="ghost" onclick={() => (open = false)}>Cancel</Button>

@@ -1,7 +1,9 @@
 <script lang="ts">
+import { PenLine } from '@lucide/svelte';
 import { can, getRuntime, liveQuery, runService } from '@protoyard/renderer-svelte';
-import { Button, Input, Select, Skeleton } from '@protoyard/ui';
+import { Badge, Button, EmptyState, Input, Select, Skeleton } from '@protoyard/ui';
 import { type CanvasDocument, CanvasView } from '@protoyard/views-ui/canvas';
+import { Heading, Text } from 'texuli/typography';
 import type { DesignKitDatabase, Sketch } from './database/schema.ts';
 import { CAPABILITIES } from './domain/policy.ts';
 import { createSketchServices } from './domain/sketches.ts';
@@ -55,33 +57,33 @@ async function create() {
 }
 </script>
 
-<section class="content sketches-content">
-  <div class="page-heading">
-    <div>
-      <p class="eyebrow">LIBRARY / SKETCHES</p>
-      <h1>Screen sketches</h1>
-      <p class="lede">
+<section class="dk-content">
+  <div class="mb-7 flex items-start justify-between gap-3">
+    <div class="min-w-0">
+      <Text size="xs" weight="semibold" tone="primary" tracking="wide">LIBRARY / SKETCHES</Text>
+      <Heading level={1} size="xl" class="mt-1">Screen sketches</Heading>
+      <Text tone="muted" class="mt-2">
         Wireframe a screen with the kit's parts and pin review notes to them.
         {canSketch
           ? 'Every change saves in this browser. Tab moves between shapes; arrow keys move them.'
           : 'Your role can look at sketches but not change them.'}
-      </p>
+      </Text>
     </div>
-    <span class="version-pill">{sketches.current?.length ?? 0} sketches</span>
+    <Badge variant="outline" class="shrink-0">{sketches.current?.length ?? 0} sketches</Badge>
   </div>
 
   {#if sketches.current === undefined}
     <Skeleton class="h-96 w-full" />
   {:else}
-    <div class="sketch-toolbar">
+    <div class="mb-4 flex flex-wrap items-end gap-4">
       {#if sketches.current.length > 1}
-        <label>Sketch<Select bind:value={chosen} items={sketches.current.map((sketch) => ({ value: sketch.id, label: sketch.title }))} /></label>
+        <Text as="label" size="sm" weight="semibold" class="grid gap-1.5">Sketch<Select bind:value={chosen} items={sketches.current.map((sketch) => ({ value: sketch.id, label: sketch.title }))} /></Text>
       {/if}
       {#if canSketch}
-        <form class="sketch-create" onsubmit={(event) => event.preventDefault()}>
-          <label>New sketch title<Input bind:value={title} maxlength={80} placeholder="Checkout screen" /></label>
+        <form class="flex flex-wrap items-end gap-2" onsubmit={(event) => event.preventDefault()}>
+          <Text as="label" size="sm" weight="semibold" class="grid gap-1.5">New sketch title<Input bind:value={title} maxlength={80} placeholder="Checkout screen" /></Text>
           <Button type="submit" loadingLabel="Creating sketch" onclick={() => create()}>New sketch</Button>
-          {#if titleError}<p class="error" role="alert">{titleError}</p>{/if}
+          {#if titleError}<Text size="sm" tone="destructive" role="alert">{titleError}</Text>{/if}
         </form>
       {/if}
     </div>
@@ -92,31 +94,12 @@ async function create() {
         {/key}
       </div>
     {:else}
-      <div class="empty-search"><span>✎</span><h2>No sketches yet</h2><p>{canSketch ? 'Give your first sketch a title above.' : 'A designer has not drawn a sketch yet.'}</p></div>
+      <EmptyState icon={PenLine} title="No sketches yet" description={canSketch ? 'Give your first sketch a title above.' : 'A designer has not drawn a sketch yet.'} />
     {/if}
   {/if}
 </section>
 
 <style>
-  .sketch-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-  .sketch-toolbar label {
-    display: grid;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 600;
-  }
-  .sketch-create {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    gap: 8px;
-  }
   .sketch-surface {
     height: 70dvh;
     min-height: 24rem;

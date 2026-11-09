@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.14.4`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.15.0`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.14.4`. Texuli pins its own internal dependencies exactly,
+Every package is `0.15.0`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -412,6 +412,48 @@ not in the agent catalog yet, so blueprints cannot emit them):
 - **Avatar grid:** `<AvatarGroupGrid items={members} label="…" />` from
   `texuli/avatar`, a 2×2 collage for group conversations.
 
+## What Texuli 0.15.0 brings for locked design systems
+
+Protoyard's [locked design systems](DESIGN_SYSTEMS.md) read Texuli's catalog
+and spec, and Texuli 0.15.0 changes what they can govern:
+
+- **Catalog imports.** Every catalog id with a public export has its
+  `imports: [{ module, exports }]` in `IMPORTS_BY_ID` from
+  `@texuli/catalog/imports` (the CLI attaches them to manifests that do not
+  list their own; the old misattributions are fixed:
+  `Dialog` is `dialog`, `Select` is `select`, `Drawer` is `drawer`, `Sidebar`
+  is `sidebar`, `ChatMessage` is `chat-message`). A few compound parts are
+  in neither list yet (`DrawerRoot` and the other `texuli/sheet` roots and
+  parts, `PaginationNextButton`); only `@protoyard/ui`'s own sources use them,
+  and a test pins them. The `check ds` mapper reads them first and no longer
+  guesses Texuli ids by name ([the mapper](THEMES.md#the-catalog-mapper)).
+  The catalog also lists the exports that are not components
+  (`MotionProvider`, `SafeArea`, `AppShell`, …): never refused, never counted.
+- **A wider catalog.** 194 components: `icon` (one id; allowing it allows
+  every icon), `avatar`, `skeleton`, `progress`, `spinner`, `carousel`,
+  `separator`, `list-item`, `tabs`, `accordion`, `composer`, `mobile-header`,
+  `bottom-nav`, `layout-wizard`, the typography components `heading`, `text`,
+  `prose` and `box` (tabular numbers, figure size, transform, tracking), the
+  inputs `toggle-group`, `rating`, `file-upload`, `tags-input`, `pin-input`
+  and `number-field`, `mobile-app-frame` and more, so the uses that were `unmapped` in locked prototypes now map.
+- **Button tone.** `button` has a `tone` axis (`default`, `destructive`,
+  `success`, `warning`) independent of its variant; an `allow` entry narrows
+  it with `tones`, and `ds-disabled-value` refuses `<Button tone="…">` values
+  it does not enable.
+- **Extensions.** `mergeCatalogs(texuli, extensions)` from
+  `@texuli/spec/catalog-extensions` merges host catalog extensions with Texuli's own rules,
+  codes and limits (`CATALOG_EXTENSION_LIMITS`: 16 extension files, 256
+  components each, 32 `composes` ids). `@protoyard/ui`'s 57 extension
+  manifests merge with `ok: true`
+  ([catalog extensions](DESIGN_SYSTEMS.md#catalog-extensions)).
+- **Namespaced allow keys.** `allow` keys accept `<namespace>:<id>`
+  (`protoyard:data-table`) and the section holds up to 4,096 keys, so Texuli
+  validates, compiles and approves a design system with extension keys as
+  written.
+
+Texuli's design-system kit (`texuli/ds-kit`, `ds generate`) and its
+blueprint and full checks are still in development and not used here.
+
 ## What Texuli 0.14.4 changes for prototypes
 
 Only `@texuli/data/timeline` changes. `TimelineView` holds its opening day
@@ -728,6 +770,14 @@ particular, keep Protoyard service callbacks, overlay ownership, layout
 contracts, and API compatibility in their existing package boundaries.
 New components should start from Texuli; add a wrapper only when it translates
 a real Protoyard contract or works around a tracked gap.
+
+Every own component of `@protoyard/ui` (a wrapper or a composite, not a
+re-export) that renders Texuli catalog components also has a catalog
+extension manifest (`protoyard:<kebab-name>`, with the Texuli ids it
+`composes`), so locked design systems can allow it; one that renders none is
+listed as a non-component. Each re-export is listed as the Texuli import it
+is. A new component needs an entry; a test fails without it. See
+[catalog extensions](DESIGN_SYSTEMS.md#catalog-extensions).
 
 ## Layouts come from `texuli/layouts`
 

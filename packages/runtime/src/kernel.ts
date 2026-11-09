@@ -153,7 +153,16 @@ export async function createKernel(
   }
 
   const stored = await control.readState();
-  const customThemeIds = loadCustomThemes(stored.customThemes, themes, report);
+  // A locked prototype (PLAN_013) keeps only its design system's theme: no
+  // Theme Studio custom themes and no other prototype themes.
+  const lock = lockedDesignSystem(definition.manifest);
+  const customThemeIds = lock
+    ? new Set<string>()
+    : loadCustomThemes(stored.customThemes, themes, report);
+  if (lock) {
+    const kept = themes.filter((theme) => theme.id === lock.id);
+    themes.splice(0, themes.length, ...kept);
+  }
   let storedOverrides: Overrides = {};
   try {
     storedOverrides = normalizeOverrides(stored.overrides ?? {});
@@ -277,6 +286,7 @@ export async function createKernel(
     },
 
     async ensureTheme(id) {
+      if (lock && id !== lock.id) return undefined;
       const known = themes.find((t) => t.id === id);
       if (known || !options.resolveTheme) return known;
       let job = loadingThemes.get(id);
@@ -431,8 +441,18 @@ function preferenceOf(k: Kernel) {
   return { ...persona?.preferences, ...stored };
 }
 
+/** The design system a manifest locks the prototype to, or null. */
+export function lockedDesignSystem(
+  manifest: PrototypeManifest
+): { id: string; version: string } | null {
+  const binding = manifest.designSystem;
+  return binding?.locked ? { id: binding.id, version: binding.version } : null;
+}
+
 /** The theme id asked for (override › preference › scenario › manifest), before any fallback. */
 function requestedTheme(k: Kernel) {
+  const lock = lockedDesignSystem(k.definition.manifest);
+  if (lock) return { value: lock.id, source: 'default' as const };
   const preference = preferenceOf(k);
   return resolveEffective(
     {
@@ -481,7 +501,8 @@ function computeAppearance(
       { override: o.density },
       k.themes.find((t) => t.id === theme.value)?.density ?? 1
     ),
-    ...computeStyle(scenario, o),
+    // A locked design system keeps its own radius, font, elevation and motion.
+    ...(lockedDesignSystem(manifest) ? computeStyle({}, {}) : computeStyle(scenario, o)),
     viewport: resolveEffective(
       { override: o.viewport, scenario: scenario.viewport },
       manifest.preview.viewport

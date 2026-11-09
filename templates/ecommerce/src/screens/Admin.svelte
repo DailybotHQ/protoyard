@@ -11,6 +11,7 @@ import {
   StatCard,
 } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import ProductEditDialog from '../components/ProductEditDialog.svelte';
 import StockBadge from '../components/StockBadge.svelte';
@@ -70,14 +71,14 @@ function edit(product: Product) {
 </script>
 
 {#snippet nameCell(p: Row)}
-  <Link href={`/products/${p.id}`} class="font-medium hover:text-primary">{p.name}</Link>
+  <Text as="span" size="sm" weight="medium"><Link href={`/products/${p.id}`}>{p.name}</Link></Text>
 {/snippet}
 {#snippet priceCell(p: Row)}
-  <span class="tabular-nums">{money(p.priceCents)}</span>
-  {#if p.compareAtCents}<s class="ml-1 text-xs text-muted-foreground">{money(p.compareAtCents)}</s>{/if}
+  <Text as="span" size="sm" tabular>{money(p.priceCents)}</Text>
+  {#if p.compareAtCents}<s class="ml-1"><Text as="span" size="xs" tone="muted" tabular>{money(p.compareAtCents)}</Text></s>{/if}
 {/snippet}
 {#snippet stockCell(p: Row)}
-  <span class="inline-flex items-center justify-end gap-2"><span class="tabular-nums">{p.stock}</span><StockBadge product={p} /></span>
+  <span class="inline-flex items-center justify-end gap-2"><Text as="span" size="sm" tabular>{p.stock}</Text><StockBadge product={p} /></span>
 {/snippet}
 {#snippet actionsCell(p: Row)}
   <Button variant="ghost" size="sm" onclick={(event: MouseEvent) => { event.stopPropagation(); edit(p); }}>

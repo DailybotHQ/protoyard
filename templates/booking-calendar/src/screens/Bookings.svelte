@@ -1,6 +1,7 @@
 <script lang="ts">
 import { liveQuery, useClock } from '@protoyard/renderer-svelte';
 import { Button, DataTable, type DataTableColumn } from '@protoyard/ui';
+import { Box, Text } from 'texuli/typography';
 import BookingDetails from '../components/BookingDetails.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -54,18 +55,18 @@ const columns: DataTableColumn<Booking>[] = [
 </script>
 
 {#snippet whenCell(b: Booking)}
-  <span class="tabular-nums">{formatSpan(b.start, b.end)}</span>
-  <span class="block text-xs text-muted-foreground">{fromNow(b.start, clock.now)}</span>
+  <Text as="span" size="sm" tabular>{formatSpan(b.start, b.end)}</Text>
+  <Text as="span" size="xs" tone="muted" class="block">{fromNow(b.start, clock.now)}</Text>
 {/snippet}
 {#snippet statusCell(b: Booking)}<StatusBadge status={b.status} />{/snippet}
 
 <PageHeader title="Bookings" description="Every booking. Ended bookings become completed or no-show as simulated time advances." />
 
-<div class="mb-4 inline-flex rounded-md border border-border p-0.5" role="group" aria-label="Show">
+<Box border="default" radius="md" padding="none" class="mb-4 inline-flex p-0.5" role="group" aria-label="Show">
   {#each FILTERS as f (f.id)}
     <Button size="sm" variant={filter === f.id ? 'secondary' : 'ghost'} aria-pressed={filter === f.id} onclick={() => (filter = f.id)}>{f.label}</Button>
   {/each}
-</div>
+</Box>
 
 <DataTable
   caption="{FILTERS.find((f) => f.id === filter)?.label} bookings"

@@ -56,6 +56,33 @@ describe('manifest', () => {
     expect(safeParseManifest({ id: 'x', slug: 'crm' }).success).toBe(false);
   });
 
+  it('validates a design-system binding (PLAN_013)', () => {
+    const base = {
+      id: 'example.crm',
+      slug: 'crm-demo',
+      name: 'CRM',
+      version: '0.1.0',
+      storage: { namespace: 'crm-demo', schemaVersion: 1 },
+    };
+    const ok = safeParseManifest({ ...base, designSystem: { id: 'acme', version: '1.2.0' } });
+    expect(ok.success).toBe(true);
+    if (ok.success)
+      expect(ok.data.designSystem).toEqual({ id: 'acme', version: '1.2.0', locked: false });
+    const locked = safeParseManifest({
+      ...base,
+      designSystem: { id: 'acme', version: '1.2.0', locked: true },
+    });
+    expect(locked.success && locked.data.designSystem?.locked).toBe(true);
+    for (const designSystem of [
+      { id: 'Acme', version: '1.2.0' },
+      { id: 'acme', version: '^1.2.0' },
+      { id: 'acme', version: 'latest' },
+      { id: 'acme', version: '1.2.0', extra: true },
+    ]) {
+      expect(safeParseManifest({ ...base, designSystem }).success).toBe(false);
+    }
+  });
+
   it('accepts legacy and configurable runtime chrome options', () => {
     expect(DemoBadgeSchema.parse(true)).toBe(true);
     expect(DemoBadgeSchema.parse(false)).toBe(false);

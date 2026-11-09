@@ -1,9 +1,20 @@
 <script lang="ts">
 import { CircleDollarSign, Receipt, ShoppingCart, UserPlus, Users } from '@lucide/svelte';
-import { can, Link, liveQuery, useClock, usePrincipal } from '@protoyard/renderer-svelte';
-import { Button, Card, EmptyState, ErrorState, Skeleton, StatCard } from '@protoyard/ui';
+import { can, liveQuery, useClock, usePrincipal } from '@protoyard/renderer-svelte';
+import {
+  Button,
+  Card,
+  CardDescription,
+  CardTitle,
+  EmptyState,
+  ErrorState,
+  Skeleton,
+  StatCard,
+} from '@protoyard/ui';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { ListItem } from 'texuli/list-item';
+import { Text } from 'texuli/typography';
 import CustomerDialog from '../components/CustomerDialog.svelte';
 import MetricCard from '../components/MetricCard.svelte';
 import OrderDialog from '../components/OrderDialog.svelte';
@@ -86,9 +97,9 @@ const trend = (value: number | null) =>
   <ErrorState title="Could not load the overview" message={String(data.error)} />
 {:else if data.current === undefined}
   <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-busy="true" aria-label="Loading overview">
-    {#each [0, 1, 2, 3] as i (i)}<Skeleton class="h-28 rounded-xl" />{/each}
+    {#each [0, 1, 2, 3] as i (i)}<Skeleton class="h-28" />{/each}
   </div>
-  <Skeleton class="mt-6 h-64 rounded-xl" />
+  <Skeleton class="mt-6 h-64" />
 {:else if isEmpty}
   <EmptyState
     icon={Users}
@@ -113,16 +124,16 @@ const trend = (value: number | null) =>
 
   <div class="mt-6 grid items-start gap-6 lg:grid-cols-5">
     <Card class="p-5 lg:col-span-3">
-      <div class="mb-3 flex items-center justify-between">
-        <h2 class="text-sm font-semibold">Revenue · last 14 days</h2>
-        <Link href="/orders" class="text-sm font-medium text-primary hover:underline">All orders</Link>
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <CardTitle level={2}>Revenue · last 14 days</CardTitle>
+        <Button variant="link" size="sm" href="#/orders">All orders</Button>
       </div>
-      <p class="text-2xl font-semibold tabular-nums">{money(revenueTotal, currency)}</p>
-      <p class="mb-2 text-xs text-muted-foreground">{revenueOrders.toLocaleString()} revenue order{revenueOrders === 1 ? '' : 's'} in 14 days</p>
+      <Text size="figure" tabular>{money(revenueTotal, currency)}</Text>
+      <CardDescription class="mb-2">{revenueOrders.toLocaleString()} revenue order{revenueOrders === 1 ? '' : 's'} in 14 days</CardDescription>
       <!-- The charts kit loads on demand so the Overview route stays small. -->
       {#key chartAttempt}
         {#await import('../components/RevenueChart.svelte')}
-          <div role="status" aria-label="Loading the revenue chart"><Skeleton class="h-56 rounded-lg" /></div>
+          <div role="status" aria-label="Loading the revenue chart"><Skeleton class="h-56" /></div>
         {:then { default: RevenueChart }}
           <RevenueChart data={daily} {currency} label="Revenue per day for the last 14 days" />
         {:catch}
@@ -134,45 +145,41 @@ const trend = (value: number | null) =>
     </Card>
 
     <Card class="p-5 lg:col-span-2">
-      <h2 class="text-sm font-semibold">Recent activity</h2>
-      <ul class="mt-3 divide-y divide-border">
-        {#each data.current.events as item (item.id)}
-          <li class="py-2.5 text-sm">
-            <p class="truncate">
-              <span class="font-medium">{data.current.names.get(item.actorId) ?? 'Someone'}</span>
-              <span class="text-muted-foreground">· {item.message}</span>
-            </p>
-            <time class="text-xs text-muted-foreground" datetime={item.at}>{fromNow(item.at, clock.now)}</time>
-          </li>
-        {:else}
-          <li class="py-3 text-sm text-muted-foreground">No activity yet.</li>
-        {/each}
-      </ul>
+      <CardTitle level={2}>Recent activity</CardTitle>
+      {#if data.current.events.length === 0}
+        <CardDescription class="mt-3">No activity yet.</CardDescription>
+      {:else}
+        <ul role="list" class="tx-list mt-2 -mx-3">
+          {#each data.current.events as item (item.id)}
+            <ListItem
+              title={data.current.names.get(item.actorId) ?? 'Someone'}
+              description={item.message}
+              meta={fromNow(item.at, clock.now)}
+            />
+          {/each}
+        </ul>
+      {/if}
     </Card>
   </div>
 
   <Card class="mt-6 p-5">
-    <div class="flex items-center justify-between">
-      <h2 class="text-sm font-semibold">Latest orders</h2>
-      <Link href="/orders" class="text-sm font-medium text-primary hover:underline">View all</Link>
+    <div class="flex items-center justify-between gap-3">
+      <CardTitle level={2}>Latest orders</CardTitle>
+      <Button variant="link" size="sm" href="#/orders">View all</Button>
     </div>
     {#if recentOrders.length === 0}
-      <p class="mt-3 text-sm text-muted-foreground">No orders yet. Create one from a customer's page.</p>
+      <CardDescription class="mt-3">No orders yet. Create one from a customer's page.</CardDescription>
     {:else}
-      <ul class="mt-2 divide-y divide-border">
+      <ul role="list" class="tx-list mt-2 -mx-3">
         {#each recentOrders as order (order.id)}
-          <li>
-            <Link href={`/customers/${order.customerId}`} class="flex items-center justify-between gap-3 py-3 hover:text-primary">
-              <span class="min-w-0">
-                <span class="block truncate text-sm font-medium">{order.reference} · {customerName.get(order.customerId) ?? 'Unknown'}</span>
-                <span class="block truncate text-xs text-muted-foreground">{order.description} · {fromNow(order.createdAt, clock.now)}</span>
-              </span>
-              <span class="flex shrink-0 items-center gap-3">
-                <span class="text-sm tabular-nums">{money(order.amountCents, currency)}</span>
-                <StatusBadge status={order.status} />
-              </span>
-            </Link>
-          </li>
+          <ListItem
+            href={`#/customers/${order.customerId}`}
+            title={`${order.reference} · ${customerName.get(order.customerId) ?? 'Unknown'}`}
+            description={`${order.description} · ${fromNow(order.createdAt, clock.now)}`}
+            meta={money(order.amountCents, currency)}
+          >
+            {#snippet trailing()}<StatusBadge status={order.status} />{/snippet}
+          </ListItem>
         {/each}
       </ul>
     {/if}

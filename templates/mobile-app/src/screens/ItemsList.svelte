@@ -3,6 +3,8 @@ import { ListTodo } from '@lucide/svelte';
 import { can, liveQuery, useClock } from '@protoyard/renderer-svelte';
 import { Button, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
 import { Icon } from 'texuli/icons';
+import { ListItem } from 'texuli/list-item';
+import { Box, Text } from 'texuli/typography';
 import Page from '../components/Page.svelte';
 import Segmented from '../components/Segmented.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -38,7 +40,7 @@ const canCreate = $derived(can(CAPABILITIES.create));
     <ErrorState message="Items could not be read from this browser's storage." />
   {:else if items.loading}
     <div class="flex flex-col gap-3">
-      {#each [1, 2, 3, 4] as n (n)}<Skeleton class="h-16 rounded-xl" />{/each}
+      {#each [1, 2, 3, 4] as n (n)}<Skeleton class="h-16" />{/each}
     </div>
   {:else if all.length === 0}
     <EmptyState
@@ -66,25 +68,25 @@ const canCreate = $derived(can(CAPABILITIES.create));
     {#if visible.length === 0}
       <EmptyState size="sm" title="No items with this status" />
     {:else}
-      <ul class="flex flex-col divide-y divide-border rounded-2xl bg-surface shadow-soft">
-        {#each visible as item (item.id)}
-          <li>
-            <a
+      <Box surface="default" radius="xl" elevation="sm" padding="sm">
+        <ul role="list" class="tx-list">
+          {#each visible as item (item.id)}
+            <ListItem
               href={`#/items/${item.id}`}
-              class="flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+              description={`Updated ${fromNow(item.updatedAt, clock.now)}`}
+              class="min-h-16"
             >
-              <div class="min-w-0 flex-1">
-                <p class={['truncate font-medium', item.status === 'done' && 'text-muted-foreground line-through']}>
-                  {item.title}
-                </p>
-                <p class="mt-0.5 text-xs text-muted-foreground">Updated {fromNow(item.updatedAt, clock.now)}</p>
-              </div>
-              <StatusBadge status={item.status} />
-              <Icon icon="chevron-right" class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            </a>
-          </li>
-        {/each}
-      </ul>
+              <Text as="span" size="sm" weight="medium" tone={item.status === 'done' ? 'muted' : 'default'} truncate>
+                {item.title}
+              </Text>
+              {#snippet trailing()}
+                <StatusBadge status={item.status} />
+                <Icon icon="chevron-right" class="size-4 shrink-0" aria-hidden="true" />
+              {/snippet}
+            </ListItem>
+          {/each}
+        </ul>
+      </Box>
     {/if}
   {/if}
 </Page>

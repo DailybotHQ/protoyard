@@ -1,15 +1,9 @@
 <script lang="ts">
 import { ArrowLeft, CalendarPlus, Eye, EyeOff, FileQuestion, Pencil } from '@lucide/svelte';
-import {
-  can,
-  Link,
-  liveQuery,
-  type RouteProps,
-  runService,
-  useClock,
-} from '@protoyard/renderer-svelte';
+import { can, liveQuery, type RouteProps, runService, useClock } from '@protoyard/renderer-svelte';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import AppointmentDialog from '../components/AppointmentDialog.svelte';
 import PatientDialog from '../components/PatientDialog.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -100,9 +94,9 @@ function book() {
 const sensitive = (field: SensitivePatientField) => (revealed ? revealed[field] || '—' : mask('x'));
 </script>
 
-<Link href="/patients" class="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+<Button variant="ghost" size="sm" href="#/patients" class="mb-4 -ml-2">
   <LucideIcon icon={ArrowLeft} class="size-4" />Patients
-</Link>
+</Button>
 
 {#if patient.current === undefined && patient.loading}
   <Skeleton class="h-40 w-full" />
@@ -114,8 +108,8 @@ const sensitive = (field: SensitivePatientField) => (revealed ? revealed[field] 
   {@const p = patient.current}
   <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div class="min-w-0">
-      <h1 class="text-2xl font-semibold tracking-tight">{patientName(p)}</h1>
-      <p class="mt-1 text-sm text-muted-foreground tabular-nums">{p.mrn} · fictional patient</p>
+      <Heading level={1} size="xl">{patientName(p)}</Heading>
+      <Text size="sm" tone="muted" tabular class="mt-1">{p.mrn} · fictional patient</Text>
     </div>
     <div class="flex flex-wrap items-center gap-2">
       {#if can(CAPABILITIES.patientsReveal)}
@@ -134,36 +128,38 @@ const sensitive = (field: SensitivePatientField) => (revealed ? revealed[field] 
     </div>
   </header>
 
-  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+  <div class="patient-grid grid gap-6">
     <Card class="p-4">
-      <h2 class="mb-3 font-semibold">Details</h2>
-      <dl class="grid grid-cols-[minmax(7rem,auto)_1fr] gap-x-4 gap-y-2 text-sm" data-patient-details="">
-        <dt class="text-muted-foreground">Email</dt>
-        <dd class="break-all">{p.email}</dd>
+      <Heading level={2} size="sm" class="mb-3">Details</Heading>
+      <dl class="patient-dl grid gap-x-4 gap-y-2" data-patient-details="">
+        <dt><Text as="span" size="sm" tone="muted">Email</Text></dt>
+        <dd class="break-all"><Text as="span" size="sm">{p.email}</Text></dd>
         {#each [['dateOfBirth', 'Date of birth'], ['phone', 'Phone'], ['allergies', 'Allergies'], ['insuranceId', 'Insurance id']] as const as [field, label] (field)}
-          <dt class="text-muted-foreground">{label} <Badge variant="outline" class="ml-1">Sensitive</Badge></dt>
-          <dd data-sensitive={field} class={revealed ? '' : 'text-muted-foreground'}>
-            {#if !revealed}<span class="sr-only">Hidden. </span>{/if}{sensitive(field)}
-            {#if revealed && field === 'dateOfBirth'}<span class="text-muted-foreground"> (age {ageOn(revealed.dateOfBirth, clock.now)})</span>{/if}
+          <dt><Text as="span" size="sm" tone="muted">{label}</Text> <Badge variant="outline" class="ml-1">Sensitive</Badge></dt>
+          <dd data-sensitive={field}>
+            <Text as="span" size="sm" tone={revealed ? 'default' : 'muted'}>
+              {#if !revealed}<span class="sr-only">Hidden. </span>{/if}{sensitive(field)}
+              {#if revealed && field === 'dateOfBirth'}<Text as="span" size="sm" tone="muted"> (age {ageOn(revealed.dateOfBirth, clock.now)})</Text>{/if}
+            </Text>
           </dd>
         {/each}
       </dl>
       {#if !can(CAPABILITIES.patientsReveal)}
-        <p class="mt-3 text-xs text-muted-foreground" role="note">Your role cannot reveal sensitive details.</p>
+        <Text size="xs" tone="muted" role="note" class="mt-3">Your role cannot reveal sensitive details.</Text>
       {/if}
     </Card>
 
     <Card class="p-4">
-      <h2 class="mb-3 font-semibold">Appointments</h2>
+      <Heading level={2} size="sm" class="mb-3">Appointments</Heading>
       {#if (appointments.current ?? []).length === 0}
-        <p class="text-sm text-muted-foreground">No appointments yet.</p>
+        <Text size="sm" tone="muted">No appointments yet.</Text>
       {:else}
         <ul class="grid gap-2" aria-label="Appointments">
           {#each (appointments.current ?? []).slice(0, 12) as a (a.id)}
-            <li class="flex flex-wrap items-center justify-between gap-2 text-sm">
-              <Link href="/visits/{a.id}" class="min-w-0 hover:underline">
-                <span class="tabular-nums">{formatSpan(a.start, a.end)}</span> · {a.reason} · {providerName.get(a.providerId)}
-              </Link>
+            <li class="flex flex-wrap items-center justify-between gap-2">
+              <Button variant="link" size="sm" href="#/visits/{a.id}" class="h-auto min-w-0 shrink justify-start p-0 text-left whitespace-normal">
+                <span><Text as="span" size="sm" tabular>{formatSpan(a.start, a.end)}</Text> · {a.reason} · {providerName.get(a.providerId)}</span>
+              </Button>
               <StatusBadge status={a.status} />
             </li>
           {/each}
@@ -173,27 +169,27 @@ const sensitive = (field: SensitivePatientField) => (revealed ? revealed[field] 
   </div>
 
   <section class="mt-6" aria-labelledby="notes-heading">
-    <h2 id="notes-heading" class="mb-3 text-lg font-semibold">Visit notes</h2>
+    <Heading level={2} size="md" id="notes-heading" class="mb-3">Visit notes</Heading>
     {#if !can(CAPABILITIES.notesRead)}
-      <p class="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground" role="note">
-        Visit notes are visible to clinicians and admins only.
-      </p>
+      <Box border="default" radius="lg" padding="md" role="note">
+        <Text size="sm" tone="muted">Visit notes are visible to clinicians and admins only.</Text>
+      </Box>
     {:else if (notes.current ?? []).length === 0}
-      <p class="text-sm text-muted-foreground">No visit notes yet.</p>
+      <Text size="sm" tone="muted">No visit notes yet.</Text>
     {:else}
       <ul class="grid gap-3">
         {#each notes.current ?? [] as n (n.id)}
           {@const visit = visitOf.get(n.appointmentId)}
           <li>
             <Card class="p-4">
-              <div class="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm">
-                <Link href="/visits/{n.appointmentId}" class="font-medium hover:underline">
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <Button variant="link" size="sm" href="#/visits/{n.appointmentId}" class="h-auto min-w-0 shrink justify-start p-0 text-left whitespace-normal">
                   {visit ? `${visit.reason} · ${formatSpan(visit.start, visit.end)}` : 'Visit'}
-                </Link>
+                </Button>
                 <Badge variant={n.signedAt ? 'secondary' : 'outline'}>{n.signedAt ? `Signed by ${personaName.get(n.authorId) ?? n.authorId}` : 'Draft'}</Badge>
               </div>
               <!-- Plain text: shown exactly as typed, never as HTML. -->
-              <p class="whitespace-pre-wrap text-sm">{n.body}</p>
+              <Text size="sm" class="whitespace-pre-wrap">{n.body}</Text>
             </Card>
           </li>
         {/each}
@@ -203,12 +199,12 @@ const sensitive = (field: SensitivePatientField) => (revealed ? revealed[field] 
 
   {#if can(CAPABILITIES.auditRead)}
     <section class="mt-6" aria-labelledby="history-heading">
-      <h2 id="history-heading" class="mb-3 text-lg font-semibold">Access and changes</h2>
-      <ul class="grid gap-1 text-sm" aria-label="Access and changes">
+      <Heading level={2} size="md" id="history-heading" class="mb-3">Access and changes</Heading>
+      <ul class="grid gap-1" aria-label="Access and changes">
         {#each history.current ?? [] as h (h.id)}
-          <li><span class="text-muted-foreground tabular-nums">{formatStamp(h.at)}</span> · {personaName.get(h.actorId) ?? h.actorId}: {h.summary}</li>
+          <li><Text as="span" size="sm"><Text as="span" size="sm" tone="muted" tabular>{formatStamp(h.at)}</Text> · {personaName.get(h.actorId) ?? h.actorId}: {h.summary}</Text></li>
         {:else}
-          <li class="text-muted-foreground">Nothing recorded yet.</li>
+          <li><Text as="span" size="sm" tone="muted">Nothing recorded yet.</Text></li>
         {/each}
       </ul>
     </section>
@@ -217,3 +213,14 @@ const sensitive = (field: SensitivePatientField) => (revealed ? revealed[field] 
   <PatientDialog bind:open={editOpen} patientId={p.id} initial={editInitial} />
   <AppointmentDialog bind:open={bookOpen} providers={providers.current ?? []} initial={draft} />
 {/if}
+
+<style>
+  @media (min-width: 64rem) {
+    .patient-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    }
+  }
+  .patient-dl {
+    grid-template-columns: minmax(7rem, auto) 1fr;
+  }
+</style>

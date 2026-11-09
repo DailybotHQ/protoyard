@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/decks-ui",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Svelte 5 deck host for Protoyard: DeckApp on the @texuli/slides stage, with Protoyard's free and custom slides, Deck Studio and the Debug for agents panel, each on its own lazy subpath.",
   "license": "MIT",
   "type": "module",
@@ -47,9 +47,9 @@
     "@protoyard/blocks": "workspace:*",
     "@protoyard/blocks-ui": "workspace:*",
     "@protoyard/decks": "workspace:*",
-    "@texuli/deck": "0.14.4",
-    "@texuli/slides": "0.14.4",
-    "texuli": "0.14.4"
+    "@texuli/deck": "0.15.0",
+    "@texuli/slides": "0.15.0",
+    "texuli": "0.15.0"
   },
   "devDependencies": {
     "svelte": "^5.57.3"

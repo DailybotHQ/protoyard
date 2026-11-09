@@ -17,6 +17,7 @@ import {
 } from '@protoyard/renderer-svelte';
 import {
   AlertDialog,
+  Avatar,
   Button,
   Card,
   DropdownMenu,
@@ -28,11 +29,12 @@ import {
 } from '@protoyard/ui';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Heading, Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import ProjectDialog from '../components/ProjectDialog.svelte';
 import type { Project } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
-import { dueState, PROJECT_COLOR_CLASSES } from '../domain/tasks.ts';
+import { dueState, PROJECT_COLOR_TONES } from '../domain/tasks.ts';
 import { useWorkspace } from '../lib/context.svelte.ts';
 import { formatLongDay } from '../lib/format.ts';
 
@@ -112,11 +114,11 @@ async function removeProject() {
   <StatCard label="Done in 7 days" value={stats.completed} icon={CircleCheckBig} />
 </section>
 
-<h2 class="mt-8 mb-3 text-lg font-semibold tracking-tight">Projects</h2>
+<Heading level={2} size="md" class="mt-8 mb-3">Projects</Heading>
 
 {#if projects.loading}
   <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Loading projects">
-    {#each [0, 1, 2] as i (i)}<Skeleton class="h-44 w-full rounded-xl" />{/each}
+    {#each [0, 1, 2] as i (i)}<Skeleton class="h-44 w-full" />{/each}
   </div>
 {:else if projects.error}
   <ErrorState title="Could not load projects" message={String(projects.error)} />
@@ -138,16 +140,16 @@ async function removeProject() {
   <ul class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
     {#each summaries as { project, total, done, inProgress, overdue } (project.id)}
       <li>
-        <Card class="relative flex h-full flex-col gap-4 p-5 transition-shadow hover:shadow-float">
+        <Card class="relative flex h-full flex-col gap-4 p-5">
           <div class="flex items-start gap-3">
-            <span class={['mt-1 size-3 shrink-0 rounded-full', PROJECT_COLOR_CLASSES[project.color].dot]} aria-hidden="true"></span>
+            <Avatar name={project.name} tone={PROJECT_COLOR_TONES[project.color]} shape="square" size="xs" class="shrink-0" decorative />
             <div class="min-w-0 flex-1">
-              <h3 class="font-semibold">
-                <Link href={`/projects/${project.id}`} class="after:absolute after:inset-0 after:rounded-xl hover:text-primary focus-visible:outline-none">
+              <Heading level={3} size="sm">
+                <Link href={`/projects/${project.id}`} class="after:absolute after:inset-0">
                   {project.name}
                 </Link>
-              </h3>
-              <p class="font-mono text-xs text-muted-foreground">{project.key}</p>
+              </Heading>
+              <Text size="xs" tone="muted" mono>{project.key}</Text>
             </div>
             {#if canManage}
               <DropdownMenu
@@ -173,15 +175,15 @@ async function removeProject() {
             {/if}
           </div>
           {#if project.description}
-            <p class="line-clamp-2 text-sm text-muted-foreground">{project.description}</p>
+            <Text size="sm" tone="muted" lineClamp={2}>{project.description}</Text>
           {/if}
           <div class="mt-auto space-y-2">
             <Progress value={done} max={Math.max(1, total)} ariaLabel={`${project.name}: ${done} of ${total} tasks done`} tone="success" size="sm" />
-            <p class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <Text size="xs" tone="muted" class="flex flex-wrap gap-x-3 gap-y-1">
               <span>{done}/{total} done</span>
               <span>{inProgress} in flight</span>
-              {#if overdue > 0}<span class="font-medium text-destructive">{overdue} overdue</span>{/if}
-            </p>
+              {#if overdue > 0}<Text as="span" size="xs" tone="destructive" weight="medium">{overdue} overdue</Text>{/if}
+            </Text>
           </div>
         </Card>
       </li>

@@ -1,6 +1,17 @@
 <script lang="ts">
 import { getRuntime, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
-import { Button, Input, Select } from '@protoyard/ui';
+import {
+  Button,
+  Card,
+  CardDescription,
+  CardTitle,
+  EmptyState,
+  FormField,
+  Input,
+  Notice,
+  Select,
+} from '@protoyard/ui';
+import { Heading, Text } from 'texuli/typography';
 import type { B2bSaasDatabase } from '../database/schema.ts';
 import { createProjectServices } from '../domain/projects.ts';
 
@@ -41,14 +52,39 @@ async function updateStatus(id: string, status: 'planning' | 'active' | 'complet
 </script>
 
 <section class="space-y-6">
-  <div><p class="text-sm font-medium text-primary">Workspace projects</p><h1 class="mt-1 text-3xl font-semibold tracking-tight">Projects</h1><p class="mt-2 text-muted-foreground">Create and update project records saved in your local prototype database.</p></div>
-  <form class="grid gap-3 rounded-xl border border-border bg-surface p-4 sm:grid-cols-[1fr_1.4fr_auto]" onsubmit={(event) => { event.preventDefault(); void createProject(); }}>
-    <Input aria-label="Project name" placeholder="Project name" bind:value={name} required minlength={2} maxlength={80} />
-    <Input aria-label="Summary" placeholder="Short summary" bind:value={summary} maxlength={240} />
-    <Button disabled={busy || name.trim().length < 2} loading={busy} loadingLabel="Creating project">Create project</Button>
-  </form>
-  {#if message}<p role="status" class="text-sm text-muted-foreground">{message}</p>{/if}
-  {#if projects.error}<p role="alert" class="text-sm text-destructive">Could not load projects: {String(projects.error)}</p>{:else if projects.loading}<p role="status">Loading projects…</p>{:else if projects.current?.length}
-    <ul class="grid gap-3 sm:grid-cols-2">{#each projects.current as project (project.id)}<li class="rounded-xl border border-border bg-surface p-5"><div class="flex items-start justify-between gap-3"><div><h2 class="font-semibold">{project.name}</h2><p class="mt-1 text-sm text-muted-foreground">{project.summary || 'No summary yet.'}</p></div><label class="text-xs text-muted-foreground">Status<Select class="mt-1 block" value={project.status} items={[{ value: 'planning', label: 'Planning' }, { value: 'active', label: 'Active' }, { value: 'complete', label: 'Complete' }]} onValueChange={(value) => void updateStatus(project.id, value as 'planning' | 'active' | 'complete')} /></label></div><p class="mt-4 text-xs text-muted-foreground">Updated {new Date(project.updatedAt).toLocaleDateString()}</p></li>{/each}</ul>
-  {:else}<p class="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground">No projects yet. Create the first one above.</p>{/if}
+  <div>
+    <Text size="sm" weight="medium" tone="primary">Workspace projects</Text>
+    <Heading level={1} size="xl" class="mt-1">Projects</Heading>
+    <Text tone="muted" class="mt-2">Create and update project records saved in your local prototype database.</Text>
+  </div>
+  <Card class="p-4">
+    <form class="flex flex-col gap-3 sm:flex-row sm:items-start" onsubmit={(event) => { event.preventDefault(); void createProject(); }}>
+      <div class="sm:flex-1"><Input aria-label="Project name" placeholder="Project name" bind:value={name} required minlength={2} maxlength={80} /></div>
+      <div class="sm:flex-1"><Input aria-label="Summary" placeholder="Short summary" bind:value={summary} maxlength={240} /></div>
+      <Button disabled={busy || name.trim().length < 2} loading={busy} loadingLabel="Creating project">Create project</Button>
+    </form>
+  </Card>
+  {#if message}<CardDescription role="status">{message}</CardDescription>{/if}
+  {#if projects.error}<Notice tone="error" text={`Could not load projects: ${String(projects.error)}`} />{:else if projects.loading}<p role="status">Loading projects…</p>{:else if projects.current?.length}
+    <ul class="grid gap-3 sm:grid-cols-2">
+      {#each projects.current as project (project.id)}
+        <li>
+          <Card class="h-full p-5">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <CardTitle level={2}>{project.name}</CardTitle>
+                <CardDescription class="mt-1">{project.summary || 'No summary yet.'}</CardDescription>
+              </div>
+              <FormField label="Status">
+                {#snippet children(control)}
+                  <Select {...control.props} value={project.status} items={[{ value: 'planning', label: 'Planning' }, { value: 'active', label: 'Active' }, { value: 'complete', label: 'Complete' }]} onValueChange={(value) => void updateStatus(project.id, value as 'planning' | 'active' | 'complete')} />
+                {/snippet}
+              </FormField>
+            </div>
+            <CardDescription class="mt-4">Updated {new Date(project.updatedAt).toLocaleDateString()}</CardDescription>
+          </Card>
+        </li>
+      {/each}
+    </ul>
+  {:else}<EmptyState title="No projects yet" description="Create the first one above." />{/if}
 </section>

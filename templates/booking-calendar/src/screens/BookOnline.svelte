@@ -9,6 +9,7 @@ import {
 } from '@protoyard/renderer-svelte';
 import { Button, Card, EmptyState, FormField, Input } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import type { Booking } from '../database/schema.ts';
 import { freeSlots } from '../domain/booking.ts';
@@ -106,25 +107,25 @@ function reset() {
 
 {#if confirmed}
   <Card class="grid max-w-xl gap-3 p-6" role="status">
-    <p class="flex items-center gap-2 text-lg font-semibold"><LucideIcon icon={CircleCheck} class="size-5 text-success" />You're booked</p>
-    <p>{resource?.name}: {formatSpan(confirmed.start, confirmed.end)}</p>
-    <p class="text-sm text-muted-foreground">A confirmation would go to {confirmed.customerEmail} (simulated: no email is sent).</p>
+    <Text size="lg" weight="semibold" class="flex items-center gap-2"><LucideIcon icon={CircleCheck} tone="success" class="size-5" />You're booked</Text>
+    <Text>{resource?.name}: {formatSpan(confirmed.start, confirmed.end)}</Text>
+    <Text size="sm" tone="muted">A confirmation would go to {confirmed.customerEmail} (simulated: no email is sent).</Text>
     <div><Button variant="outline" onclick={reset}>Book another time</Button></div>
   </Card>
 {:else}
   {#if !canBook}
-    <p role="note" class="mb-4 rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">
-      Your role can browse free times but not book. Switch to the client or staff persona in DevTools to book.
-    </p>
+    <Box role="note" border="default" radius="lg" padding="none" class="mb-4 p-3">
+      <Text size="sm" tone="muted">Your role can browse free times but not book. Switch to the client or staff persona in DevTools to book.</Text>
+    </Box>
   {/if}
-  <div class="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
+  <div class="book-grid grid gap-6">
     <section aria-labelledby="pick-resource" class="grid content-start gap-2">
-      <h2 id="pick-resource" class="text-sm font-semibold">1. What would you like to book?</h2>
+      <Heading level={2} size="sm" id="pick-resource">1. What would you like to book?</Heading>
       {#each resources.current ?? [] as r (r.id)}
         <Button variant={resourceId === r.id ? 'secondary' : 'outline'} aria-pressed={resourceId === r.id} class="h-auto justify-start py-2 text-left" onclick={() => pickResource(r.id)}>
           <span class="grid">
-            <span class="font-medium">{r.name}</span>
-            <span class="text-xs font-normal text-muted-foreground">{r.description}</span>
+            <Text as="span" size="sm" weight="medium">{r.name}</Text>
+            <Text as="span" size="xs" tone="muted">{r.description}</Text>
           </span>
         </Button>
       {/each}
@@ -135,7 +136,7 @@ function reset() {
         <EmptyState title="Pick a room or a coach" description="Their free times for the next two weeks appear here." />
       {:else}
         <section aria-labelledby="pick-day" class="grid gap-2">
-          <h2 id="pick-day" class="text-sm font-semibold">2. Pick a day and a length</h2>
+          <Heading level={2} size="sm" id="pick-day">2. Pick a day and a length</Heading>
           <div class="flex flex-wrap gap-1" role="group" aria-label="Length">
             {#each [30, 60, 90] as m (m)}
               <Button size="sm" variant={minutes === m ? 'secondary' : 'ghost'} aria-pressed={minutes === m} onclick={() => { minutes = m; chosen = null; }}>{m} min</Button>
@@ -149,9 +150,9 @@ function reset() {
         </section>
         {#if day}
           <section aria-labelledby="pick-time" class="grid gap-2">
-            <h2 id="pick-time" class="text-sm font-semibold">3. Pick a free time</h2>
+            <Heading level={2} size="sm" id="pick-time">3. Pick a free time</Heading>
             {#if slots.length === 0}
-              <p class="text-sm text-muted-foreground">No free {minutes}-minute times that day. Try another day or a shorter length.</p>
+              <Text size="sm" tone="muted">No free {minutes}-minute times that day. Try another day or a shorter length.</Text>
             {:else}
               <div class="flex flex-wrap gap-1" role="group" aria-label="Free times">
                 {#each slots as s (s.start)}
@@ -159,12 +160,12 @@ function reset() {
                 {/each}
               </div>
             {/if}
-            {#if errors.start}<p role="alert" class="text-sm text-destructive">{errors.start}</p>{/if}
+            {#if errors.start}<Text role="alert" size="sm" tone="destructive">{errors.start}</Text>{/if}
           </section>
         {/if}
         {#if chosen}
           <form class="grid max-w-xl gap-4" onsubmit={confirm} novalidate aria-labelledby="your-details">
-            <h2 id="your-details" class="text-sm font-semibold">4. Your details · {formatSpan(chosen.start, chosen.end)}</h2>
+            <Heading level={2} size="sm" id="your-details">4. Your details · {formatSpan(chosen.start, chosen.end)}</Heading>
             <FormField label="Your name" required error={errors.customerName}>
               {#snippet children(control)}
                 <Input {...control.props} bind:value={form.customerName} autocomplete="off" maxlength={80} />
@@ -182,3 +183,11 @@ function reset() {
     </div>
   </div>
 {/if}
+
+<style>
+  @media (min-width: 64rem) {
+    .book-grid {
+      grid-template-columns: 18rem minmax(0, 1fr);
+    }
+  }
+</style>

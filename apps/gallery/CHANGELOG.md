@@ -1,5 +1,16 @@
 # @protoyard/gallery
 
+## 1.7.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/core@1.7.0
+  - @protoyard/themes@1.7.0
+  - @protoyard/ui@1.7.0
+  - @protoyard/blueprint@1.7.0
+  - @protoyard/player@1.7.0
+
 ## 1.6.0
 
 ### Patch Changes

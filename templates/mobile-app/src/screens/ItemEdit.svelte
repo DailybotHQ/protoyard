@@ -69,7 +69,7 @@ async function save(event: SubmitEvent) {
       {#snippet action()}<Button href={backHref} variant="outline">Go back</Button>{/snippet}
     </EmptyState>
   {:else if id && existing.loading}
-    <Skeleton class="h-64 rounded-2xl" />
+    <Skeleton class="h-64" />
   {:else if id && !existing.current}
     <EmptyState title="Item not found" description="It may have been deleted.">
       {#snippet action()}<Button href="#/" variant="outline">Back to items</Button>{/snippet}

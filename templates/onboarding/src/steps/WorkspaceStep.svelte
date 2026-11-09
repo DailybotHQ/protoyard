@@ -2,7 +2,10 @@
 import { Lock } from '@lucide/svelte';
 import { can, isValidationError, runService } from '@protoyard/renderer-svelte';
 import { FormField, Input, RadioGroup, Select } from '@protoyard/ui';
+import { Alert } from 'texuli/alert';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box } from 'texuli/typography';
+import Fact from '../components/Fact.svelte';
 import StepFooter from '../components/StepFooter.svelte';
 import StepHeading from '../components/StepHeading.svelte';
 import { TEAM_SIZES, type TeamSize, USE_CASES, type UseCase } from '../database/schema.ts';
@@ -91,17 +94,18 @@ async function submit(event: SubmitEvent) {
 {:else}
   <form id="step-workspace" onsubmit={submit} novalidate>
     {#if workspace.current}
-      <dl class="grid gap-4 rounded-lg border border-border bg-muted/40 p-4 text-sm sm:grid-cols-2">
-        <div><dt class="text-muted-foreground">Name</dt><dd class="font-medium">{workspace.current.name}</dd></div>
-        <div><dt class="text-muted-foreground">URL</dt><dd class="font-medium">app.example.com/{workspace.current.slug}</dd></div>
-        <div><dt class="text-muted-foreground">Team size</dt><dd class="font-medium">{TEAM_SIZE_LABELS[workspace.current.teamSize ?? ''] ?? 'Not set yet'}</dd></div>
-        <div><dt class="text-muted-foreground">Used for</dt><dd class="font-medium">{USE_CASE_LABELS[workspace.current.useCase ?? '']?.label ?? 'Not set yet'}</dd></div>
-      </dl>
+      <Box border="default" radius="lg" surface="subtle" padding="md">
+        <dl class="grid gap-4 sm:grid-cols-2">
+          <Fact label="Name" value={workspace.current.name} />
+          <Fact label="URL" value={`app.example.com/${workspace.current.slug}`} />
+          <Fact label="Team size" value={TEAM_SIZE_LABELS[workspace.current.teamSize ?? ''] ?? 'Not set yet'} />
+          <Fact label="Used for" value={USE_CASE_LABELS[workspace.current.useCase ?? '']?.label ?? 'Not set yet'} />
+        </dl>
+      </Box>
     {/if}
-    <p class="mt-4 flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground" role="note">
-      <LucideIcon icon={Lock} class="mt-0.5 size-4 shrink-0" />
-      Only owners and admins can change workspace settings. Continue to finish your own setup.
-    </p>
+    <Alert tone="neutral" role="note" class="mt-4" text="Only owners and admins can change workspace settings. Continue to finish your own setup.">
+      {#snippet icon()}<LucideIcon icon={Lock} size="sm" class="shrink-0" />{/snippet}
+    </Alert>
   </form>
 {/if}
 

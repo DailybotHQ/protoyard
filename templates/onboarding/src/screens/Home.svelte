@@ -10,6 +10,8 @@ import {
 } from '@protoyard/renderer-svelte';
 import { Avatar, Badge, Button, Card, LoadingState } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
+import Fact from '../components/Fact.svelte';
 import RestartOnboarding from '../components/RestartOnboarding.svelte';
 import { CAPABILITIES, ROLE_LABELS } from '../domain/policy.ts';
 import { useOnboarding } from '../lib/context.ts';
@@ -56,6 +58,13 @@ $effect(() => {
 
 const profile = $derived(progress.current?.profile ?? null);
 const preferences = $derived(progress.current?.preferences ?? null);
+const modeLabel = $derived(
+  preferences?.mode === 'system'
+    ? 'Match system'
+    : preferences
+      ? preferences.mode.charAt(0).toUpperCase() + preferences.mode.slice(1)
+      : ''
+);
 const firstName = $derived(
   (profile?.fullName ?? principal.current?.persona.name ?? 'there').split(' ')[0]
 );
@@ -67,93 +76,97 @@ const firstName = $derived(
   <div class="mx-auto w-full max-w-5xl">
     <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 class="text-2xl font-semibold tracking-tight">Welcome to {workspace.current?.name ?? 'your workspace'}, {firstName}</h1>
-        <p class="mt-1 text-sm text-muted-foreground">
+        <Heading level={1} size="xl">Welcome to {workspace.current?.name ?? 'your workspace'}, {firstName}</Heading>
+        <Text size="sm" tone="muted" class="mt-1">
           Setup finished {progress.current?.completedAt ? formatDate(progress.current.completedAt) : ''}. Everything below comes from your onboarding answers.
-        </p>
+        </Text>
       </div>
       <RestartOnboarding />
     </header>
 
     <div class="mt-6 grid gap-6 md:grid-cols-2">
       <Card class="p-5">
-        <h2 class="flex items-center gap-2 text-sm font-semibold"><LucideIcon icon={UserRound} class="size-4 text-muted-foreground" />Your profile</h2>
+        <Heading level={2} size="sm" class="flex items-center gap-2"><LucideIcon icon={UserRound} size="sm" tone="neutral" />Your profile</Heading>
         {#if profile}
-          <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
-            <div><dt class="text-muted-foreground">Name</dt><dd class="font-medium">{profile.fullName}</dd></div>
-            <div><dt class="text-muted-foreground">Title</dt><dd class="font-medium">{profile.jobTitle || '—'}</dd></div>
-            <div><dt class="text-muted-foreground">Team</dt><dd class="font-medium">{profile.department}</dd></div>
-            <div><dt class="text-muted-foreground">Time zone</dt><dd class="font-medium">{timezoneLabel(profile.timezone)}</dd></div>
+          <dl class="mt-3 grid grid-cols-2 gap-3">
+            <Fact label="Name" value={profile.fullName} />
+            <Fact label="Title" value={profile.jobTitle || '—'} />
+            <Fact label="Team" value={profile.department} />
+            <Fact label="Time zone" value={timezoneLabel(profile.timezone)} />
           </dl>
         {:else}
-          <p class="mt-3 text-sm text-muted-foreground">No profile saved.</p>
+          <Text size="sm" tone="muted" class="mt-3">No profile saved.</Text>
         {/if}
       </Card>
 
       <Card class="p-5">
-        <h2 class="flex items-center gap-2 text-sm font-semibold"><LucideIcon icon={Settings2} class="size-4 text-muted-foreground" />Workspace</h2>
+        <Heading level={2} size="sm" class="flex items-center gap-2"><LucideIcon icon={Settings2} size="sm" tone="neutral" />Workspace</Heading>
         {#if workspace.current}
-          <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
-            <div><dt class="text-muted-foreground">Name</dt><dd class="font-medium">{workspace.current.name}</dd></div>
-            <div><dt class="text-muted-foreground">URL</dt><dd class="truncate font-medium">app.example.com/{workspace.current.slug}</dd></div>
-            <div><dt class="text-muted-foreground">Team size</dt><dd class="font-medium">{TEAM_SIZE_LABELS[workspace.current.teamSize ?? ''] ?? 'Not set'}</dd></div>
-            <div><dt class="text-muted-foreground">Used for</dt><dd class="font-medium">{USE_CASE_LABELS[workspace.current.useCase ?? '']?.label ?? 'Not set'}</dd></div>
+          <dl class="mt-3 grid grid-cols-2 gap-3">
+            <Fact label="Name" value={workspace.current.name} />
+            <Fact label="URL" value={`app.example.com/${workspace.current.slug}`} truncate />
+            <Fact label="Team size" value={TEAM_SIZE_LABELS[workspace.current.teamSize ?? ''] ?? 'Not set'} />
+            <Fact label="Used for" value={USE_CASE_LABELS[workspace.current.useCase ?? '']?.label ?? 'Not set'} />
           </dl>
         {/if}
       </Card>
 
       <Card class="p-5">
-        <h2 class="flex items-center gap-2 text-sm font-semibold"><LucideIcon icon={Users} class="size-4 text-muted-foreground" />Team <span class="font-normal text-muted-foreground">{team.current?.members.length ?? 0}</span></h2>
-        <ul class="mt-3 divide-y divide-border">
-          {#each team.current?.members ?? [] as member (member.id)}
-            <li class="flex items-center gap-3 py-2.5 text-sm">
-              <Avatar name={member.name} {...avatarImage(member.avatar)} size="sm" decorative />
-              <span class="min-w-0 flex-1 truncate font-medium">
-                {member.name}{#if member.id === principal.current?.persona.id}<span class="ml-1 font-normal text-muted-foreground">(you)</span>{/if}
-              </span>
-              <Badge variant="secondary">{ROLE_LABELS[member.role] ?? member.role}</Badge>
+        <Heading level={2} size="sm" class="flex items-center gap-2"><LucideIcon icon={Users} size="sm" tone="neutral" />Team <Text as="span" tone="muted">{team.current?.members.length ?? 0}</Text></Heading>
+        <ul class="mt-3 flex flex-col">
+          {#each team.current?.members ?? [] as member, i (member.id)}
+            <li>
+              <Box radius="none" padding="none" border={i === 0 ? 'none' : 'block-start'} class="flex items-center gap-3 py-2.5">
+                <Avatar name={member.name} {...avatarImage(member.avatar)} size="sm" decorative />
+                <Text as="span" size="sm" weight="medium" truncate class="min-w-0 flex-1">
+                  {member.name}{#if member.id === principal.current?.persona.id}<Text as="span" size="sm" tone="muted" class="ml-1">(you)</Text>{/if}
+                </Text>
+                <Badge variant="secondary">{ROLE_LABELS[member.role] ?? member.role}</Badge>
+              </Box>
             </li>
           {/each}
         </ul>
       </Card>
 
       <Card class="p-5">
-        <h2 class="flex items-center gap-2 text-sm font-semibold"><LucideIcon icon={MailPlus} class="size-4 text-muted-foreground" />Pending invitations <span class="font-normal text-muted-foreground">{team.current?.invitations.length ?? 0}</span></h2>
-        <ul class="mt-3 divide-y divide-border">
-          {#each team.current?.invitations ?? [] as invitation (invitation.id)}
-            <li class="flex items-center gap-3 py-2.5 text-sm">
-              <span class="min-w-0 flex-1">
-                <span class="block truncate font-medium">{invitation.email}</span>
-                <span class="block text-xs text-muted-foreground">{ROLE_LABELS[invitation.role]} · sent {formatDate(invitation.createdAt)}</span>
-              </span>
-              {#if can(CAPABILITIES.invitesCreate)}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label={`Revoke invitation for ${invitation.email}`}
-                  onclick={() => runService(() => services.revokeInvitation(invitation.id), { success: 'Invitation revoked' })}
-                >
-                  Revoke
-                </Button>
-              {/if}
+        <Heading level={2} size="sm" class="flex items-center gap-2"><LucideIcon icon={MailPlus} size="sm" tone="neutral" />Pending invitations <Text as="span" tone="muted">{team.current?.invitations.length ?? 0}</Text></Heading>
+        <ul class="mt-3 flex flex-col">
+          {#each team.current?.invitations ?? [] as invitation, i (invitation.id)}
+            <li>
+              <Box radius="none" padding="none" border={i === 0 ? 'none' : 'block-start'} class="flex items-center gap-3 py-2.5">
+                <span class="min-w-0 flex-1">
+                  <Text as="span" size="sm" weight="medium" truncate class="block">{invitation.email}</Text>
+                  <Text as="span" size="xs" tone="muted" class="block">{ROLE_LABELS[invitation.role]} · sent {formatDate(invitation.createdAt)}</Text>
+                </span>
+                {#if can(CAPABILITIES.invitesCreate)}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Revoke invitation for ${invitation.email}`}
+                    onclick={() => runService(() => services.revokeInvitation(invitation.id), { success: 'Invitation revoked' })}
+                  >
+                    Revoke
+                  </Button>
+                {/if}
+              </Box>
             </li>
           {:else}
-            <li class="py-2.5 text-sm text-muted-foreground">No pending invitations.</li>
+            <li class="py-2.5"><Text size="sm" tone="muted">No pending invitations.</Text></li>
           {/each}
         </ul>
       </Card>
 
       <Card class="p-5 md:col-span-2">
-        <h2 class="text-sm font-semibold">Preferences</h2>
+        <Heading level={2} size="sm">Preferences</Heading>
         {#if preferences}
-          <dl class="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-            <div><dt class="text-muted-foreground">Appearance</dt><dd class="font-medium capitalize">{preferences.mode === 'system' ? 'Match system' : preferences.mode}</dd></div>
-            <div><dt class="text-muted-foreground">Email digest</dt><dd class="font-medium">{DIGEST_LABELS[preferences.digest]}</dd></div>
-            <div><dt class="text-muted-foreground">Mentions</dt><dd class="font-medium">{preferences.mentions ? 'On' : 'Off'}</dd></div>
-            <div><dt class="text-muted-foreground">Product updates</dt><dd class="font-medium">{preferences.productUpdates ? 'On' : 'Off'}</dd></div>
+          <dl class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Fact label="Appearance" value={modeLabel} />
+            <Fact label="Email digest" value={DIGEST_LABELS[preferences.digest] ?? ''} />
+            <Fact label="Mentions" value={preferences.mentions ? 'On' : 'Off'} />
+            <Fact label="Product updates" value={preferences.productUpdates ? 'On' : 'Off'} />
           </dl>
         {:else}
-          <p class="mt-3 text-sm text-muted-foreground">You skipped this step, so the defaults apply. Restart onboarding to set them.</p>
+          <Text size="sm" tone="muted" class="mt-3">You skipped this step, so the defaults apply. Restart onboarding to set them.</Text>
         {/if}
       </Card>
     </div>

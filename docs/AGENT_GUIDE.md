@@ -213,6 +213,38 @@ Build a Protoyard prototype for <product> from a blueprint.
    schema version change.
 ```
 
+## From a design system (locked)
+
+When the workspace has an approved design system and the user wants a
+prototype restricted to it, create it locked from the start instead of
+binding it later. The full rules are in
+[THEMES: Create a prototype from a design system](THEMES.md#create-a-prototype-from-a-design-system).
+
+```bash
+pnpm protoyard ds validate <id>                     # approved, lockable: true
+pnpm protoyard new <slug> --ds <id>                 # blank template, locked
+pnpm protoyard generate <slug> --blueprint <file> --ds <id>   # or from a blueprint
+pnpm protoyard check ds <slug>
+pnpm protoyard validate <slug> --build
+```
+
+1. Read `data.designSystemCheck` in the `--json` envelope. `ok: false`
+   means the prototype is locked but does not pass yet; it stays on disk.
+   For `generate`, `templateFiles` names template files that are not
+   lock-clean; report them instead of restyling the template.
+2. Build screens only from the design system's components (`@ds/<id>/<Name>`)
+   and Texuli components, composed with the layout utilities `check ds`
+   allows. Never add `<style>` colors, visual classes, inline styles or
+   native controls.
+3. When no component fits, stop and ask the human: the name, the purpose and
+   why the existing components do not fit. Record the request only after they
+   agree (`ds component request`); a human approves it.
+4. A refusal is not something to work around: a draft design system needs a
+   designer's approval, and a template that is not lock-clean needs another
+   template. `--unlocked` is for a sketch the user asked for explicitly.
+
+Over MCP, the same flow is the `new_from_design_system` tool ([MCP](MCP.md)).
+
 ## Rules
 
 | Rule | Why |

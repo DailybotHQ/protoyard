@@ -2,6 +2,7 @@
 import { Building2, SearchX } from '@lucide/svelte';
 import { liveQuery, navigate } from '@protoyard/renderer-svelte';
 import { DataTable, type DataTableColumn, EmptyState, ErrorState, Select } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
 import { PLANS, TENANT_STATUSES } from '../database/schema.ts';
@@ -47,12 +48,12 @@ const columns: DataTableColumn<TenantRow>[] = [
 
 {#snippet nameCell(t: TenantRow)}
   <span class="min-w-0">
-    <span class="block truncate font-medium">{t.name}</span>
-    <span class="block truncate text-xs text-muted-foreground">{t.domain}</span>
+    <Text as="span" size="sm" weight="medium" truncate class="block">{t.name}</Text>
+    <Text as="span" size="xs" tone="muted" truncate class="block">{t.domain}</Text>
   </span>
 {/snippet}
 {#snippet statusCell(t: TenantRow)}<StatusBadge status={t.status} />{/snippet}
-{#snippet mrrCell(t: TenantRow)}<span class="tabular-nums">{usd(t.mrrCents)}</span>{/snippet}
+{#snippet mrrCell(t: TenantRow)}<Text as="span" size="sm" tabular>{usd(t.mrrCents)}</Text>{/snippet}
 
 <PageHeader
   title="Tenants"

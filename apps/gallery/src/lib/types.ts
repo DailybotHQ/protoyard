@@ -59,6 +59,41 @@ export interface RegistryEntry {
   embedded?: { url: string; scenarioLinks: boolean } | null;
   /** Build-time counts from a validated pulled comments file, when available. */
   reviewCounts?: ReviewCounts;
+  /** The manifest's design-system binding (null or absent when it has none). */
+  designSystem?: DesignSystemBinding | null;
+}
+
+export interface DesignSystemBinding {
+  id: string;
+  version: string;
+  locked: boolean;
+}
+
+/** A prototype bound to a design system, as the registry lists it. */
+export interface BoundPrototype {
+  slug: string;
+  name: string;
+  /** The version the prototype pins. */
+  version: string;
+  locked: boolean;
+}
+
+/** A design system from the registry's top-level `designSystems` array (ADR-047). */
+export interface DesignSystemEntry {
+  id: string;
+  name: string;
+  version: string;
+  status: 'draft' | 'approved';
+  approvedBy: string | null;
+  approvedAt: string | null;
+  approvedVersion: string | null;
+  contentHash: string;
+  /** Approved at this version and unchanged since: `ds use --lock` accepts it. */
+  lockable: boolean;
+  layout: 'folder' | 'flat';
+  path: string;
+  componentCount: number;
+  boundPrototypes: BoundPrototype[];
 }
 
 export interface Registry {
@@ -67,7 +102,16 @@ export interface Registry {
   generatedAt: string;
   entries: RegistryEntry[];
   invalid: { path: string; errors: string[] }[];
-  stats: { total: number; prototypes: number; templates: number; invalid: number };
+  /** Absent in a registry written before design systems were indexed. */
+  designSystems?: DesignSystemEntry[];
+  designSystemIssues?: { path: string; errors: string[] }[];
+  stats: {
+    total: number;
+    prototypes: number;
+    templates: number;
+    invalid: number;
+    designSystems?: number;
+  };
 }
 
 /** What the browse island needs per card — kept small for 1,000+ entries. */
@@ -90,4 +134,6 @@ export interface CompactEntry {
   e: string | null;
   /** Open/resolved review thread counts; absent when no pulled file exists. */
   rv?: ReviewCounts;
+  /** The id of the design system it is bound to; absent when none. */
+  ds?: string;
 }

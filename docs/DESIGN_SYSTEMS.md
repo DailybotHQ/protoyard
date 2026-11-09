@@ -1,0 +1,434 @@
+# Design systems
+
+A design system is a first-class entity in a Protoyard workspace
+([ADR-047](DECISIONS.md#adr-047--design-systems-are-first-class-workspace-entities)):
+a folder with a Texuli design-system document (its `allow` section, its
+library and its approval inside), its own components and the requests for new
+ones. A workspace can hold many. Each
+prototype names the one it uses, and a **locked** prototype can only draw its
+UI with that design system.
+
+This guide covers the whole loop, every file and its schema, and the limits.
+How a document compiles and paints, and the full `check ds` rules, are in
+[THEMES](THEMES.md#design-systems).
+
+## The loop
+
+| Step | How | Status |
+| --- | --- | --- |
+| 1. Create | `pnpm protoyard ds new <id>` from a brief, a few inputs or a theme | Works |
+| 2. Review in a kit | Open the design system's UI kit and review every component | Planned (kit task); today review the document with `ds validate` and a prototype that uses it |
+| 3. Approve | A designer runs `ds approve <id> --by <name>` and commits the document for review | Works |
+| 4. Create locked prototypes | `pnpm protoyard ds use <slug> <id> --lock` | Works |
+| 5. Request components | `ds component request`, `approve-request`, `new` | Works |
+| 6. Upgrade | Approve a new version, then `ds use <slug> <id> --upgrade` | Works |
+
+### 1. Create
+
+```bash
+pnpm protoyard ds new harbor --name Harbor --brand '#0f766e' --font Inter --shape rounded --density compact
+pnpm protoyard ds validate harbor
+```
+
+`ds new` writes the folder `design-systems/harbor/`: `document.json` with an
+`allow` section and a draft `approval`, and an empty component library
+(`components.json`). `ds validate` checks the document as untrusted input,
+checks its `allow` section and library against the Texuli catalog, compiles
+it, reports contrast per mode, the `contentHash`, the approval status, whether
+it can be locked, and any drift between `components.json` and
+`components/*.svelte`. Every way to create one (`--brief`, `--from-theme`,
+`--from-theme-file`) is in [THEMES](THEMES.md#design-systems). A flat
+`design-systems/<id>.json` from before the folder layout becomes a folder with
+`pnpm protoyard ds migrate <id>`.
+
+### The allow section
+
+A locked design system says which Texuli catalog components a locked
+prototype may use, and which values of their styling axes (variant, size,
+tone, density) and states. The section lives in the document (Texuli's
+design-system spec 0.13.0):
+
+```json
+"allow": {
+  "button": { "variants": ["default", "outline"], "sizes": ["sm", "md"] },
+  "card": {},
+  "badge": { "variants": [] }
+}
+```
+
+- The keys are catalog ids: Texuli's (`@texuli/catalog`, 194 components
+  today) and the [catalog extensions](#catalog-extensions) of
+  `@protoyard/ui`'s own components (`protoyard:data-table`, 57 today). An
+  omitted list allows every value the catalog lists; an empty list allows
+  none.
+- **A design system without `allow` is not locked and cannot be locked.**
+  `ds new` writes one by default; `--allow` picks it:
+
+  | `--allow` | Section |
+  | --- | --- |
+  | `all` (default) | Every catalog component and every extension, with every axis value and state; the designer narrows it |
+  | `minimal` | Texuli's core preset (actions, form controls, text and status, containers, overlays, page layouts), plus the extensions whose `composes` that preset covers (`protoyard:dialog`, `protoyard:input`, `protoyard:page-grid` and `protoyard:select` today) |
+  | `<file>.json` | An allow section from a workspace file (`{ "button": {…} }` or `{ "allow": {…} }`), checked against the catalog |
+  | `none` | No allow section: the old unlocked document |
+
+- `pnpm protoyard ds allow init <id> [--preset all|minimal|<file>]` adds a
+  section to a design system without one (`--force` replaces one). The
+  approval goes back to draft.
+- `ds validate` runs Texuli's `checkDesignSystemAllow` and fails on an id or
+  value the catalog does not list, with Texuli's codes and JSON paths
+  (`unknown-component at $.allow["no-such-thing"]`, `unknown-variant at
+  $.allow.button.variants[0]`, also `unknown-size`, `unknown-tone`,
+  `unknown-density`, `unknown-state`, and `unknown-component` for a library
+  entry's `composes`). Extension keys are checked the same way, against the
+  merged catalog.
+
+### Catalog extensions
+
+`@protoyard/ui` has components of its own (`DataTable`, `StatCard`,
+`Notice`, its `Dialog` and `Select` wrappers…) next to its re-exports of
+Texuli's (`Button`, `Card`). Texuli's catalog lists only Texuli's, so each
+own component that renders Texuli components carries a **catalog extension
+manifest**: plain data with the same shape as a Texuli catalog manifest (id,
+package, label, summary, group, tier, props with `enumValues`, axes, states,
+`imports: [{ module, exports }]`), a namespaced id and `composes`, the Texuli
+ids it renders:
+
+```ts
+{
+  id: 'protoyard:notice',
+  package: '@protoyard/ui',
+  label: 'Notice',
+  summary: 'An inline message with a tone and an icon.',
+  group: 'protoyard-ui',
+  tier: 'app',
+  props: [{ name: 'tone', kind: 'enum', enumValues: ['info', 'success', 'warning', 'error', 'brand'], default: 'info' }],
+  axes: { tone: 'tone' },
+  states: [],
+  imports: [{ module: '@protoyard/ui', exports: ['Notice'] }],
+  composes: ['alert', 'icon'],
+  // useWhen, dontUseWhen, a11y and examples as in a Texuli manifest
+}
+```
+
+- **Where they live.** `packages/cli/src/lib/ds-extensions/protoyard-ui.ts`
+  holds three tables: the manifests (one per own component that renders
+  Texuli components), the re-exports (each Texuli component `@protoyard/ui`
+  re-exports, as the Texuli import it is: `FormField` is `Field` from
+  `texuli/field`) and the own components that are not catalog components.
+  `@protoyard/ui` has no subpath for them, and adding one would change its
+  `package.json`, so the CLI holds the data. Any library that wraps Texuli
+  can publish the same shape under its own namespace.
+- **Merge.** Texuli's `mergeCatalogs` (from `@texuli/spec/catalog-extensions`)
+  merges them. The CLI passes it the installed catalog in Texuli's
+  `SpecCatalog` shape and the manifests as Texuli extension files
+  (`{ format: "texuli/catalog-extension", version: 1, namespace, components }`,
+  one per namespace), so Texuli applies its own rules and codes: namespace
+  (`extension-namespace`; `texuli`, `tx`, `spec` and `catalog` are
+  reserved), ids and collisions (`extension-id`, `extension-collision`),
+  `composes` of 1 to 32 catalog ids (`extension-composes`), props, axes and
+  states (`extension-props`, `extension-axis`, `extension-state`) and its
+  limits (16 extension files, 256 components each). Texuli refuses an
+  extension file whole when one of its components fails. The one rule the
+  CLI checks itself is the one Texuli cannot see: no extension import names a
+  `(module, export)` pair a Texuli manifest or another extension already
+  names (`extension-collision` at `$.extensions[<i>].imports`). For the
+  shipped data Texuli answers `ok: true`, one namespace (`protoyard`) and 50
+  components.
+- **Mapping.** An own component imported from `@protoyard/ui` maps by its
+  manifest's `imports` to the extension id (`<DataTable>` →
+  `protoyard:data-table`). A re-export maps to the Texuli id of the import it
+  is (`<Button>` → `button`, `<FormField>` → `field`). So a locked prototype
+  that uses `<Notice>` needs `protoyard:notice` in `allow`; allowing `alert`
+  alone does not allow it.
+- **Non-components.** Texuli's catalog lists the exports that are not
+  components (`MotionProvider`, `SafeArea`, `AppShell`, `@texuli/primitives`
+  parts…); they are never refused and never counted. An own component that
+  renders none of Texuli's catalog components, only such exports or plain
+  elements (`SafeArea`), gets no extension and is classified the same way.
+  The input wrappers (`ChipGroup`, `FileDropzone`, `MobileAppShell`,
+  `OtpInput`, `StarRating`, `TagEmailInput`, `WeekdayPicker`) render inputs
+  Texuli 0.15.0 catalogs (`toggle-group`, `file-upload`, `mobile-app-frame`,
+  `pin-input`, `rating`, `tags-input`), so they are extensions.
+- **Rules.** `ds-not-allowed` allows an own component only when its extension
+  id is in `allow`; `ds-disabled-value` reads the extension's axes
+  (`<Notice tone="warning">` with `"protoyard:notice": { "tones": ["info"] }`
+  fails).
+- **Library entries** may list extension ids in `composes`;
+  `ds component new` writes them when a component renders one.
+
+Texuli's design-system validator accepts `<namespace>:<id>` allow keys, so
+`ds new`, `ds validate`, `ds allow init` and `ds approve` hand Texuli the
+document as written: it locks, validates, compiles and approves it with the
+extension keys, and the approval's content hash covers them.
+
+**Adding a component to `@protoyard/ui`.** Run:
+
+```bash
+pnpm vitest run packages/cli/tests/ds-extensions.test.ts
+```
+
+The test reads `packages/ui/src/index.ts` and fails when an own component
+that renders Texuli components (a `.svelte` file the barrel exports) has no
+manifest or more than one, when an own component that renders none is
+missing from the non-component table, when a manifest names something the
+package does not export as its own, when `composes` differs from the Texuli
+ids the source renders (through its local children; the failure prints the
+right list), when an axis value is not in the source, or when the re-export
+table differs from the barrel's re-exports. Copy a similar entry into the
+table it names. A Texuli re-export never gets a manifest: it maps to a Texuli
+id (`AppShell`, a Texuli non-component, is the one exception today). Texuli
+imports the `@protoyard/ui` sources use that Texuli's catalog neither maps nor
+lists as non-components (`@texuli/primitives` parts, compound parts of
+`texuli/sheet` and `texuli/navigation`) are a pinned list in the test.
+
+### 2. Review
+
+Planned: a generated UI kit prototype per design system, where a designer
+reviews every allowed component and the design system's own components with
+their stories. Until it lands, review the document itself (`ds validate`, `ds
+export --format css`) and a prototype that applies it with `ds use` (without
+`--lock`).
+
+### 3. Approve
+
+```bash
+pnpm protoyard ds approve harbor --by "Ada Example"
+pnpm protoyard ds approve harbor --by "Ada Example" --release 1.1.0
+```
+
+`ds approve` calls Texuli's `approveDesignSystem` and writes the result into
+`document.json`:
+
+```json
+"approval": {
+  "status": "approved",
+  "version": "1.0.0",
+  "approvedBy": "Ada Example",
+  "approvedAt": "2026-11-09T12:00:00.000Z",
+  "contentHash": "<designSystemContentHash of the document>"
+}
+```
+
+`--release <semver>` approves that version and makes it the document's
+`version` (the flag is not `--version`, which prints the CLI's own version).
+It refuses a flat document (run `ds migrate` first), an unknown id, a document
+without `allow`, an `allow` section the catalog refuses and a missing `--by`.
+It prints Texuli's note and the commit guidance. Commit `document.json` in a
+change a human reviews.
+
+**An approval is a record, not a proof.** The CLI cannot tell who ran the
+command. The guarantee is the reviewed commit; protect `design-systems/` with
+CODEOWNERS (for example a `/design-systems/` line naming your design team) so
+a designer has to approve every change there. No MCP tool approves.
+
+A folder from before spec 0.13.0 may still hold the legacy
+`approval.json` sidecar. The CLI reads it when the document has no `approval`,
+never writes it, and `pnpm protoyard ds migrate <id>` moves it into the
+document.
+
+### 4. Create locked prototypes
+
+```bash
+pnpm protoyard new harbor-orders --template dashboard
+pnpm protoyard ds use harbor-orders harbor --lock
+pnpm protoyard validate harbor-orders --build
+```
+
+`--lock` writes `"designSystem": { "id": "harbor", "version": "1.0.0",
+"locked": true }` into the prototype's `protoyard.json`. It refuses a flat
+document, a document without `allow` (or with one the catalog refuses), a
+draft, an approval for another version, an approval without a content hash and
+a document that changed after its approval. A locked prototype loads only that
+design system's theme, and `check ds` and `validate` fail on raw controls,
+visual CSS, inline styles, visual utility classes, other UI libraries, local
+motion, components the `allow` section does not list (`ds-not-allowed`) and
+literal axis values it does not enable (`ds-disabled-value`)
+([Locked design systems](THEMES.md#locked-design-systems),
+[check ds](THEMES.md#check-ds)).
+
+### 5. Request components
+
+When no component fits, an agent stops and asks the human; then:
+
+```bash
+pnpm protoyard ds component request harbor StatusPill --purpose "Shows a ticket status with its label" --why "Badge has no label layout" --by "Ada Example"
+pnpm protoyard ds component approve-request harbor StatusPill --by "Bo Example"
+pnpm protoyard ds component new harbor StatusPill
+```
+
+Prototypes import it as `@ds/harbor/StatusPill`. `ds component new` also adds
+the component to the document's `library` (id `status-pill`, `composes` = the
+catalog ids its source renders), and `pnpm protoyard ds component approve
+harbor StatusPill --by "Bo Example"` approves both its `components.json` entry
+and its library entry after review. A library change moves the document's
+content hash: approve the design system again. The steps, what each writes and
+refuses, are in
+[Requesting a new component](THEMES.md#requesting-a-new-component).
+
+### 6. Upgrade
+
+Change the document, bump its `version`, approve the new version, then move
+each bound prototype:
+
+```bash
+pnpm protoyard ds use harbor-orders harbor --upgrade
+```
+
+`--upgrade` moves the pin and lists the compiled values that changed, were
+added or were removed. Without it, `ds use` refuses a new version for a bound
+prototype.
+
+## List them
+
+```bash
+pnpm protoyard ds list
+pnpm protoyard ds list --json
+```
+
+`ds list` re-indexes the workspace and prints every design system: id, name,
+version, status, whether `ds use --lock` would accept it, layout, component
+count and the prototypes bound to it (`slug@version`, and `(locked)`). The MCP
+tool `ds_list` returns the same envelope. A broken folder, a document whose id
+does not match its folder, a flat file shadowed by a folder of the same id, a
+symlink, or a prototype bound to an id with no design system is listed under
+`issues` and never fails the index.
+
+**In the registry.** `protoyard index` writes them to
+`.protoyard/registry.json` as a top-level `designSystems` array, with
+`designSystemIssues` for the problems and `stats.designSystems` for the count.
+Each prototype entry also carries its manifest binding as `designSystem`
+(`null` when it has none).
+
+| Field | Meaning |
+| --- | --- |
+| `id`, `name`, `version` | From the document (`name` falls back to the id) |
+| `status` | `draft` or `approved`, from the document's `approval` (or a legacy `approval.json`); a flat document is always a draft |
+| `approvedBy`, `approvedAt`, `approvedVersion` | From an approved approval, else `null` |
+| `contentHash` | The document's hash now |
+| `lockable` | Has a valid `allow` section, approved at this version and unchanged since: `ds use --lock` accepts it |
+| `layout`, `path` | `folder` (`design-systems/<id>`) or `flat` (`design-systems/<id>.json`) |
+| `componentCount` | Entries in `components.json` |
+| `boundPrototypes` | `{ slug, name, version, locked }` for each prototype whose manifest names this id, sorted by slug |
+
+Why a separate array and not registry entries with a new `kind`: galleries and
+CLIs that predate design systems check each entry's `kind` and would report
+every design system as an invalid entry. They ignore a top-level field they do
+not know, so an older gallery keeps working with a newer registry. The
+registry `version` stays 1.
+
+The index reads each document, a legacy `approval.json` and `components.json` as data.
+It never reads component sources and never compiles a document (`ds validate`
+does). It looks one level under `design-systems/`, skips names that start with
+`.` or `_`, and does not follow symlinks.
+
+**In the gallery.** The **Design systems** page (`/design-systems/`) lists
+each one with its version, status, approval, whether it can be locked, its
+component count and its prototypes, linked when the gallery lists them. The
+prototype browser on the home page has a **Design system** filter (also as
+`?ds=<id>` in the URL), shown when at least one listed prototype is bound. An
+**Open the kit** link appears only when a prototype named `<id>-kit` exists;
+the kit itself is planned. The gallery checks the `designSystems` array as
+untrusted input and drops anything malformed.
+
+## Folder layout and contracts
+
+```text
+design-systems/
+  harbor/                  a folder: can be approved and locked
+    document.json          the Texuli design-system document: allow, library, approval
+    components.json        the design system's own components, with source hashes
+    components/*.svelte
+    requests/<Name>.json   component requests
+    stories/<Name>.json    the kit story of each component
+  legacy.json              a flat document: usable with ds use, never locked
+```
+
+Each file Protoyard writes has a zod schema in
+[ds-contracts.ts](../packages/cli/src/lib/ds-contracts.ts), the module every
+reader uses, and a JSON Schema (draft 2020-12) generated from it in
+[ds-schemas/](../packages/cli/src/lib/ds-schemas/). A test fails when a JSON
+Schema file drifts from its zod schema, and checks that the CLI's readers
+refuse every document the JSON Schema refuses.
+
+| File | Format | JSON Schema `$id` | Schema file | Written by |
+| --- | --- | --- | --- | --- |
+| `document.json` | `texuli/design-system` (with `allow`, `library`, `approval`) | Texuli's spec | (Texuli) | `ds new`, `ds approve`, `ds allow init`, `ds migrate`, `ds component new` and `approve`, by hand |
+| `approval.json` (legacy) | `{ status, version, approvedBy?, approvedAt?, contentHash? }` | `urn:protoyard:design-system:approval:1` | `approval.schema.json` | Nothing now; read when the document has no approval, removed by `ds migrate` |
+| `components.json` | `protoyard/ds-components`, version 1 | `urn:protoyard:design-system:components:1` | `components.schema.json` | `ds new`, `ds component new` and `approve` |
+| `requests/<Name>.json` | `protoyard/ds-component-request`, version 1 | `urn:protoyard:design-system:component-request:1` | `component-request.schema.json` | `ds component request`, `approve-request` |
+| `stories/<Name>.json` | `protoyard/ds-story`, version 1 | `urn:protoyard:design-system:story:1` | `story.schema.json` | `ds component new` |
+| `releases/<version>.json` | `protoyard/ds-release`, version 1 | `urn:protoyard:design-system:release:1` | `release.schema.json` | Planned: nothing writes it yet |
+| `bundle.json` in an exported bundle | `protoyard/ds-bundle`, version 1 | `urn:protoyard:design-system:bundle:1` | `bundle.schema.json` | Planned: nothing writes it yet |
+
+- The `$id`s are URNs: they name a contract and do not point at a hosted URL.
+- The release record and the bundle manifest are draft contracts for planned
+  tasks. They can change until a command writes them.
+- The schema files live in the repository. The npm package carries the same
+  contracts as the zod schemas in its code, not as separate `.json` files.
+- `contentHash` is Texuli's `designSystemContentHash`: the SHA-256 of the
+  document's canonical JSON (sorted keys, no whitespace) without its whole
+  `approval` section and without each library entry's own `approval`. The CLI
+  has no hash of its own. A legacy sidecar hash of a document without a
+  library matches it.
+- The `allow` section, the library entries and the approval are part of
+  Texuli's document schema (spec 0.13.0); Protoyard defines no schema for them.
+  `components.json` stays the source of each component's code hash.
+
+The manifest binding is part of the prototype contract in `@protoyard/core`:
+`designSystem: { id, version, locked }`, where `id` is the design system's id
+(also its theme id), `version` an exact semver and `locked` defaults to
+`false`.
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `ds new <id> [--allow all\|minimal\|<file>\|none]` | Create a design system folder (or a flat file with `--out`) with an allow section |
+| `ds list` | Every design system with its approval, lockability, component count and bound prototypes |
+| `ds validate <id\|file>` | Validate and compile; check `allow` against the catalog; report approval, lockability and component drift |
+| `ds approve <id> --by <name> [--release <semver>]` | Approve it in the document (a human, never an MCP tool) |
+| `ds allow init <id\|file> [--preset …] [--force]` | Add an allow section to a design system without one |
+| `ds migrate <id>` | Turn a flat document into a folder; fold a legacy `approval.json` into the document; add `components.json` components to the library |
+| `ds export <file>` | CSS variables, a Tailwind preset or compiled JSON |
+| `ds use <slug> <id\|file> [--lock] [--upgrade]` | Apply a design system to a prototype; bind, lock or upgrade it |
+| `ds component request\|approve-request\|new\|approve` | Request, approve the request, scaffold and approve a component |
+| `check ds [slug…] [--report]` | The locked-prototype rules |
+
+Every command takes `--json`. The MCP server exposes `ds_create`, `ds_list`,
+`ds_validate`, `ds_export`, `ds_use`, `ds_component_request` and
+`ds_component_new` ([MCP](MCP.md#tools)); `ds_create` takes `allow` (`all`,
+`minimal` or `none`). There is no approval tool, on purpose.
+
+## Planned
+
+These are not available today:
+
+- **UI kit**: a generated kit prototype per design system for review.
+- **Versions**: release records (`releases/<version>.json`) so older
+  versions stay available to pinned prototypes.
+- **Bundle**: an exported, hash-listed design-system bundle (`bundle.json`) to
+  share a design system between workspaces.
+- **Render check**: rendering every component of a locked prototype against
+  the design system in a browser (it covers the axis values `check ds` skips
+  because they are expressions).
+- **Generator inputs**: `protoyard generate` and `quick` taking a design
+  system so new prototypes start locked.
+
+## Limits
+
+- An approval is a record, not a proof; the reviewed commit is the guarantee.
+- Only a folder with an `allow` section can be approved and locked; a flat
+  document cannot.
+- A component the mapper cannot place ([the mapper](THEMES.md#the-catalog-mapper))
+  is `unmapped` and refused in a locked prototype; none of the component tags
+  in `templates/` and `prototypes/` is today.
+- Non-components are never refused, so a locked design system cannot forbid
+  them: Texuli's list includes shells (`AppShell`) and helpers. When Texuli
+  catalogs another visual export, the CI test asks for a manifest for every
+  `@protoyard/ui` component built on it.
+- The allow section holds at most 4,096 keys (Texuli's cap): 251 today (194
+  Texuli components and 57 extensions).
+- `check ds` is a static, textual scan; see its limits in
+  [THEMES](THEMES.md#check-ds).
+- A workspace's design systems are local files. Nothing is hosted, shared or
+  synchronized; a cloud version is a later step.

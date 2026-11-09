@@ -1,5 +1,6 @@
 <script lang="ts">
 import { getRuntime, liveQuery } from '@protoyard/renderer-svelte';
+import { Box, Heading, Text } from 'texuli/typography';
 import type { MarketplaceDatabase } from '../database/schema.ts';
 
 const runtime = getRuntime<MarketplaceDatabase>();
@@ -18,8 +19,8 @@ const orders = liveQuery(
 );
 </script>
 
-<section class="space-y-5"><div><p class="text-sm font-semibold uppercase tracking-wide text-primary">Your activity</p><h1 class="mt-2 text-3xl font-semibold">Orders & payouts</h1><p class="mt-2 text-muted-foreground">Paid orders create a simulated pending seller payout. Values are integer cents.</p></div>
-  {#if orders.loading}<p role="status">Loading orders…</p>{:else if !(orders.current?.length)}<p class="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground">No orders yet. Try a simulated checkout from the marketplace.</p>{:else}
-    <ul class="space-y-3">{#each orders.current as order (order.id)}<li class="grid gap-2 rounded-xl border border-border bg-surface p-4 sm:grid-cols-4 sm:items-center"><div><p class="font-medium">{order.id}</p><p class="text-xs text-muted-foreground">{order.quantity} × ${(order.unitPriceCents / 100).toFixed(2)}</p></div><p class="text-sm">{order.status === 'paid' ? 'Paid (simulated)' : 'Declined'}</p><p class="text-sm">Total ${(order.totalCents / 100).toFixed(2)}</p><p class="text-sm font-medium">Seller payout ${(order.sellerPayoutCents / 100).toFixed(2)}</p></li>{/each}</ul>
+<section class="space-y-5"><div><Text size="sm" tone="primary" weight="semibold" transform="uppercase" tracking="wide">Your activity</Text><Heading level={1} size="xl" class="mt-2">Orders & payouts</Heading><Text tone="muted" class="mt-2">Paid orders create a simulated pending seller payout. Values are integer cents.</Text></div>
+  {#if orders.loading}<Text role="status">Loading orders…</Text>{:else if !(orders.current?.length)}<Box border="default" radius="xl" padding="xl"><Text tone="muted" align="center">No orders yet. Try a simulated checkout from the marketplace.</Text></Box>{:else}
+    <ul class="space-y-3">{#each orders.current as order (order.id)}<li><Box surface="default" border="default" radius="xl" padding="md" class="grid gap-2 sm:grid-cols-4 sm:items-center"><div><Text weight="medium">{order.id}</Text><Text size="xs" tone="muted" tabular>{order.quantity} × ${(order.unitPriceCents / 100).toFixed(2)}</Text></div><Text size="sm">{order.status === 'paid' ? 'Paid (simulated)' : 'Declined'}</Text><Text size="sm" tabular>Total ${(order.totalCents / 100).toFixed(2)}</Text><Text size="sm" weight="medium" tabular>Seller payout ${(order.sellerPayoutCents / 100).toFixed(2)}</Text></Box></li>{/each}</ul>
   {/if}
 </section>

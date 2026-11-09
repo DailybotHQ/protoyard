@@ -13,4 +13,12 @@ describe('Avatar tone and shape (Texuli 0.14.3, UG-29)', () => {
     expect(root.outerHTML).toMatch(/success/);
     expect(root.outerHTML).toMatch(/square/);
   });
+
+  it('forwards initials and status to Texuli', () => {
+    const { container } = render(Avatar, {
+      props: { name: 'Ada Example', initials: 'AX', status: 'online' },
+    });
+    expect(container.textContent).toContain('AX');
+    expect(container.innerHTML).toMatch(/online/);
+  });
 });

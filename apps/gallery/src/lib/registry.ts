@@ -1,5 +1,5 @@
 import { registry, registryError, thumbnails } from 'virtual:protoyard-registry';
-import type { CompactEntry, Registry, RegistryEntry } from './types';
+import type { CompactEntry, DesignSystemEntry, Registry, RegistryEntry } from './types';
 
 export { registry, registryError };
 
@@ -13,6 +13,11 @@ export function prototypes(): RegistryEntry[] {
 
 export function templates(): RegistryEntry[] {
   return entries().filter((e) => e.kind === 'template');
+}
+
+/** The workspace's design systems (empty for a registry from an older CLI). */
+export function designSystems(): DesignSystemEntry[] {
+  return registry?.designSystems ?? [];
 }
 
 /** Base-relative thumbnail URL (prefix with withBase), or null. */
@@ -37,6 +42,7 @@ export function compact(entry: RegistryEntry): CompactEntry {
     th: thumbnailUrl(entry),
     e: entry.embedded?.url ?? null,
     ...(entry.reviewCounts ? { rv: entry.reviewCounts } : {}),
+    ...(entry.designSystem ? { ds: entry.designSystem.id } : {}),
   };
 }
 
@@ -62,4 +68,4 @@ export function facetValues(
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
 
-export type { Registry, RegistryEntry };
+export type { DesignSystemEntry, Registry, RegistryEntry };

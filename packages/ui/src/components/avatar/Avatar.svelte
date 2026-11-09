@@ -21,6 +21,10 @@ type Props = Omit<HTMLAttributes<HTMLSpanElement>, 'children'> & {
   tone?: ComponentProps<typeof TexuliAvatar>['tone'];
   /** `'circle'` (default) or `'square'` (Texuli 0.14.3, UG-29). */
   shape?: ComponentProps<typeof TexuliAvatar>['shape'];
+  /** A presence dot (Texuli's `status`). */
+  status?: ComponentProps<typeof TexuliAvatar>['status'];
+  /** Overrides the initials computed from `name`. */
+  initials?: ComponentProps<typeof TexuliAvatar>['initials'];
   /** The rendered root element (bindable). */
   ref?: HTMLElement | null;
 };
@@ -33,6 +37,8 @@ let {
   decorative = false,
   tone,
   shape,
+  status,
+  initials,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
@@ -46,4 +52,4 @@ const forwarded = $derived(rest as Record<string, unknown>);
   image (with `srcset`) that passes Texuli's image URL policy for untrusted
   data (https or a relative path), falling back to the initials when it fails.
 -->
-<TexuliAvatar bind:ref {name} {src} {srcset} {size} {decorative} {tone} {shape} {...forwarded} />
+<TexuliAvatar bind:ref {name} {src} {srcset} {size} {decorative} {tone} {shape} {status} {initials} {...forwarded} />

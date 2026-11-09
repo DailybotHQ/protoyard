@@ -1,4 +1,4 @@
-import { type Dirent, existsSync, readdirSync, statSync } from 'node:fs';
+import { type Dirent, existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { basename, join, relative } from 'node:path';
 import { closestIds } from '@protoyard/blueprint';
@@ -13,7 +13,9 @@ import { buildPrototype } from '../lib/build.ts';
 import { checkBlueprintDrift, SNAPSHOT_PATH } from '../lib/codegen/regenerate.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag } from '../lib/command.ts';
+import { locateDesignSystem, lockRefusal, readDocumentFile } from '../lib/design-systems.ts';
 import { readManifest, statManifest } from '../lib/discovery.ts';
+import { loadAllowContext, scanPrototypeDesignSystem } from '../lib/ds-check/index.ts';
 import { type Inspection, inspectPrototype, toSpecFacts } from '../lib/inspect.ts';
 import { findEscapingSymlinks, isSymlink } from '../lib/links.ts';
 import { CliError, mark, toCliError } from '../lib/output.ts';
@@ -23,6 +25,7 @@ import { loadRegistry, toRegistryEntry } from '../lib/registry.ts';
 import { SPEC_FILES } from '../lib/spec-render.ts';
 import { refreshTemplateBrand, TEMPLATE_BLUEPRINT_PATH } from '../lib/template-brand.ts';
 import { assertSlug, type CommandContext, readPackageJson } from '../lib/workspace.ts';
+import { formatDsViolation } from './check.ts';
 import { specForPrototype } from './spec.ts';
 
 export type CheckStatus = 'pass' | 'fail' | 'warn' | 'skip';
@@ -476,6 +479,76 @@ export async function checkTemplateBrand(
   }
 }
 
+/**
+ * Why a locked binding is not usable, or null: the design system must be a
+ * folder with an `allow` section the Texuli catalog accepts
+ * (`checkDesignSystemAllow`), approved (the document's `approval`, or the
+ * legacy sidecar) at exactly the pinned version with a matching content hash,
+ * and applied to the prototype (`src/design-system.ts`, written by `ds use`).
+ */
+export function lockedBindingProblem(
+  root: string,
+  dir: string,
+  binding: { id: string; version: string }
+): string | null {
+  const location = locateDesignSystem(root, binding.id);
+  const document = readDocumentFile(location) as { version?: unknown };
+  const version = typeof document.version === 'string' ? document.version : '';
+  if (version !== binding.version) {
+    return `The prototype pins ${binding.id}@${binding.version}, but the document is ${version || 'unversioned'}; run \`protoyard ds use <slug> ${binding.id} --upgrade\` once the new version is approved.`;
+  }
+  const refusal = lockRefusal(location, document, version);
+  if (refusal) return refusal;
+  const applied = join(dir, 'src', 'design-system.ts');
+  if (
+    !existsSync(applied) ||
+    !readFileSync(applied, 'utf8').includes(`"id": ${JSON.stringify(binding.id)}`)
+  ) {
+    return `src/design-system.ts does not hold design system "${binding.id}"; run \`protoyard ds use <slug> ${binding.id}\`.`;
+  }
+  return null;
+}
+
+/**
+ * A prototype locked to a design system (`designSystem.locked: true`) must
+ * pass the `protoyard check ds` rules; any violation fails validation.
+ * Unlocked prototypes get no step (null). Static: reads files, runs no code.
+ */
+export function checkLockedDesignSystem(
+  root: string,
+  dir: string,
+  manifest: PrototypeManifest
+): Check | null {
+  const binding = manifest.designSystem;
+  if (!binding?.locked) return null;
+  const label = `Locked design system (${binding.id}@${binding.version}, check ds)`;
+  try {
+    let refusal: string | null;
+    try {
+      refusal = lockedBindingProblem(root, dir, binding);
+    } catch (error) {
+      refusal = toCliError(error).message;
+    }
+    const scan = scanPrototypeDesignSystem(root, dir, {
+      designSystemId: binding.id,
+      allow: loadAllowContext(root, binding.id),
+    });
+    if (scan.violations.length === 0 && !refusal) {
+      return check('design-system', label, 'pass', [`${scan.files.length} files, 0 violations`]);
+    }
+    const shown = scan.violations.slice(0, 20).map(formatDsViolation);
+    const more = scan.violations.length - shown.length;
+    return check('design-system', label, 'fail', [
+      ...(refusal ? [refusal] : []),
+      ...shown,
+      ...(more > 0 ? [`… and ${more} more (run \`protoyard check ds\` for all)`] : []),
+      ...(scan.violations[0]?.wayOut ? [scan.violations[0].wayOut] : []),
+    ]);
+  } catch (error) {
+    return check('design-system', label, 'fail', [toCliError(error).message]);
+  }
+}
+
 export const validateCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   if (flag(options, 'all')) {
     if (args[0]) throw new CliError('usage', 'Pass either <slug> or --all, not both.');
@@ -565,6 +638,10 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
   }
 
   if (parsed.manifest) checks.push(checkThemes(parsed.manifest, inspection));
+  if (parsed.manifest) {
+    const designSystemCheck = checkLockedDesignSystem(ctx.root, dir, parsed.manifest);
+    if (designSystemCheck) checks.push(designSystemCheck);
+  }
   checks.push(await checkSpec(dir, slug, inspection, flag(options, 'strictSpec')));
 
   checks.push(

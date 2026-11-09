@@ -1,15 +1,10 @@
 <script lang="ts">
 import { ArrowLeft, PackageX, Pencil, RotateCcw, ShieldCheck, Star, Truck } from '@lucide/svelte';
-import {
-  back,
-  can,
-  Link,
-  liveQuery,
-  type RouteProps,
-  usePrincipal,
-} from '@protoyard/renderer-svelte';
+import { back, can, liveQuery, type RouteProps, usePrincipal } from '@protoyard/renderer-svelte';
 import { Button, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
+import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import AddToCart from '../components/AddToCart.svelte';
 import Price from '../components/Price.svelte';
 import ProductArt from '../components/ProductArt.svelte';
@@ -56,7 +51,7 @@ $effect(() => {
 </Button>
 
 {#if product.loading}
-  <div class="mt-6 grid gap-8 md:grid-cols-2"><Skeleton class="aspect-square w-full rounded-2xl" /><Skeleton class="h-64 w-full" /></div>
+  <div class="mt-6 grid gap-8 md:grid-cols-2"><Skeleton class="aspect-square w-full" /><Skeleton class="h-64 w-full" /></div>
 {:else if product.error}
   <ErrorState class="mt-6" title="Could not load this product" message={String(product.error)} />
 {:else if !product.current}
@@ -66,21 +61,21 @@ $effect(() => {
 {:else}
   {@const current = product.current}
   <div class="mt-4 grid gap-8 md:grid-cols-2 lg:gap-12">
-    <ProductArt hue={current.hue} category={category.current?.slug ?? ''} name={current.name} size="lg" class={`aspect-square rounded-2xl border border-border ${current.stock <= 0 ? 'opacity-60 grayscale' : ''}`} />
+    <ProductArt hue={current.hue} category={category.current?.slug ?? ''} name={current.name} size="lg" radius="xl" bordered soldOut={current.stock <= 0} class="aspect-square" />
     <div class="flex flex-col gap-4">
       <div>
-        {#if category.current}<p class="text-sm text-muted-foreground">{category.current.name}</p>{/if}
-        <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{current.name}</h1>
-        <p class="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
-          <LucideIcon icon={Star} class="size-4 fill-current text-warning" />
+        {#if category.current}<Text size="sm" tone="muted">{category.current.name}</Text>{/if}
+        <Heading level={1} size="xl" class="mt-1">{current.name}</Heading>
+        <Text size="sm" tone="muted" class="mt-2 flex items-center gap-1.5">
+          <Icon icon={Star} tone="warning" fill="currentColor" class="size-4" aria-hidden="true" />
           <span>{current.rating.toFixed(1)} · {current.reviewCount} reviews</span>
-        </p>
+        </Text>
       </div>
       <div class="flex flex-wrap items-center gap-3">
-        <Price cents={current.priceCents} compareAt={current.compareAtCents} class="text-2xl" />
+        <Price cents={current.priceCents} compareAt={current.compareAtCents} size="lg" />
         <StockBadge product={current} showInStock />
       </div>
-      <p class="text-surface-foreground">{current.description}</p>
+      <Text>{current.description}</Text>
 
       {#if current.stock > 0 && can(CAPABILITIES.cart)}
         <div class="flex flex-wrap items-center gap-3">
@@ -91,25 +86,27 @@ $effect(() => {
         <AddToCart product={current} size="lg" class="w-full sm:w-auto" />
       {/if}
       {#if (inCart.current ?? 0) > 0}
-        <p class="text-sm text-muted-foreground">
-          {inCart.current} already in your <Link href="/cart" class="font-medium text-primary hover:underline">cart</Link>{(inCart.current ?? 0) >= current.stock ? ' — that is all we have.' : '.'}
-        </p>
+        <Text size="sm" tone="muted">
+          {inCart.current} already in your <Button variant="link" size="sm" href="#/cart" class="h-auto p-0">cart</Button>{(inCart.current ?? 0) >= current.stock ? ' — that is all we have.' : '.'}
+        </Text>
       {/if}
 
-      <ul class="mt-2 space-y-2 border-t border-border pt-4 text-sm text-muted-foreground">
-        <li class="flex items-center gap-2"><LucideIcon icon={Truck} class="size-4" />Free standard shipping over {money(FREE_SHIPPING_THRESHOLD_CENTS)}</li>
-        <li class="flex items-center gap-2"><LucideIcon icon={RotateCcw} class="size-4" />Cancel any time before it ships</li>
-        <li class="flex items-center gap-2"><LucideIcon icon={ShieldCheck} class="size-4" />Demo store — no real payment is ever taken</li>
-      </ul>
+      <Box border="block-start" radius="none" padding="none" class="mt-2 pt-4">
+        <ul class="space-y-2">
+          <li><Text size="sm" tone="muted" class="flex items-center gap-2"><LucideIcon icon={Truck} class="size-4" />Free standard shipping over {money(FREE_SHIPPING_THRESHOLD_CENTS)}</Text></li>
+          <li><Text size="sm" tone="muted" class="flex items-center gap-2"><LucideIcon icon={RotateCcw} class="size-4" />Cancel any time before it ships</Text></li>
+          <li><Text size="sm" tone="muted" class="flex items-center gap-2"><LucideIcon icon={ShieldCheck} class="size-4" />Demo store — no real payment is ever taken</Text></li>
+        </ul>
+      </Box>
 
       {#if can(CAPABILITIES.productsManage)}
-        <div class="rounded-lg border border-dashed border-border p-3 text-sm">
-          <p class="font-medium">Admin</p>
-          <p class="mt-0.5 text-muted-foreground">Stock: {current.stock} units</p>
+        <Box border="default" radius="lg" padding="sm">
+          <Text size="sm" weight="medium">Admin</Text>
+          <Text size="sm" tone="muted" class="mt-0.5">Stock: {current.stock} units</Text>
           <Button variant="outline" size="sm" class="mt-2" onclick={() => (editOpen = true)}>
             <LucideIcon icon={Pencil} class="size-4" />Edit price & stock
           </Button>
-        </div>
+        </Box>
       {/if}
     </div>
   </div>

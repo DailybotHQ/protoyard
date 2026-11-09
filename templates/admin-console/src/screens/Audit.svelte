@@ -2,6 +2,7 @@
 import { ScrollText, SearchX } from '@lucide/svelte';
 import { liveQuery } from '@protoyard/renderer-svelte';
 import { DataTable, type DataTableColumn, EmptyState, ErrorState, Select } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import { AUDIT_LABELS, type AuditEvent, type AuditType } from '../domain/services.ts';
 import { useAdmin } from '../lib/context.ts';
@@ -46,7 +47,7 @@ const columns: DataTableColumn<Row>[] = [
 {#snippet detailsCell(r: Row)}
   <span class="min-w-0">
     <span class="block">{r.message}</span>
-    {#if r.reason}<span class="block text-xs text-muted-foreground">Reason: {r.reason}</span>{/if}
+    {#if r.reason}<Text as="span" size="xs" tone="muted" class="block">Reason: {r.reason}</Text>{/if}
   </span>
 {/snippet}
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@protoyard/ui';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, Notice } from '@protoyard/ui';
+import { Heading, Text } from 'texuli/typography';
 import StatusBadge from '../components/StatusBadge.svelte';
 import { ROLE_LABELS } from '../domain/policy.ts';
 import { useAdmin } from '../lib/context.ts';
@@ -21,26 +22,24 @@ const tenant = liveQuery(() => db.tenants.get(tenantId), {
 
 <main class="mx-auto grid max-w-3xl gap-6 p-6" data-testid="impersonated-view">
   <div>
-    <p class="text-sm text-muted-foreground">Signed in as</p>
-    <h1 class="text-2xl font-semibold tracking-tight">{principal.current?.persona.name}</h1>
-    <p class="text-sm text-muted-foreground">
+    <Text size="sm" tone="muted">Signed in as</Text>
+    <Heading level={1} size="xl">{principal.current?.persona.name}</Heading>
+    <Text size="sm" tone="muted">
       {ROLE_LABELS[principal.current?.role ?? ''] ?? principal.current?.role} at {principal.current?.organization?.name}
-    </p>
+    </Text>
   </div>
   <Card>
     <CardHeader>
       <CardTitle>{tenant.current?.name ?? 'Workspace'}</CardTitle>
       <CardDescription>The workspace exactly as this person sees it.</CardDescription>
     </CardHeader>
-    <CardContent class="grid gap-2 text-sm">
+    <CardContent class="grid gap-2">
       {#if tenant.current?.status === 'suspended'}
-        <p role="alert" class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2">
-          This workspace is suspended. Contact support to restore access.
-        </p>
+        <Notice tone="error" text="This workspace is suspended. Contact support to restore access." />
       {/if}
-      <div class="flex items-center justify-between"><span>Workspace status</span><StatusBadge status={tenant.current?.status ?? 'active'} /></div>
-      <div class="flex items-center justify-between"><span>Plan</span><span class="capitalize">{tenant.current?.plan}</span></div>
-      <div class="flex items-center justify-between"><span>Email</span><span>{principal.current?.persona.email}</span></div>
+      <div class="flex items-center justify-between"><Text as="span" size="sm">Workspace status</Text><StatusBadge status={tenant.current?.status ?? 'active'} /></div>
+      <div class="flex items-center justify-between"><Text as="span" size="sm">Plan</Text><Text as="span" size="sm" transform="capitalize">{tenant.current?.plan}</Text></div>
+      <div class="flex items-center justify-between"><Text as="span" size="sm">Email</Text><Text as="span" size="sm">{principal.current?.persona.email}</Text></div>
     </CardContent>
   </Card>
 </main>

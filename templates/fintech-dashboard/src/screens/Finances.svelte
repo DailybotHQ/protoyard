@@ -1,8 +1,18 @@
 <script lang="ts">
 import type { CartesianSeries } from '@protoyard/charts-ui/cartesian';
 import { can, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
-import { Button, Card, EmptyState, ErrorState, Input, Select, Skeleton } from '@protoyard/ui';
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  Input,
+  Progress,
+  Select,
+  Skeleton,
+} from '@protoyard/ui';
 import { onMount } from 'svelte';
+import { Box, Heading, Text } from 'texuli/typography';
 import { LEDGER_SHEET_ROWS, ledgerSheet } from '../domain/ledger-sheet.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import {
@@ -133,49 +143,49 @@ async function submitTransfer() {
 
 <header class="mb-6 flex flex-wrap items-end justify-between gap-3">
   <div>
-    <p class="text-sm font-medium text-primary">Northstar Household · simulated finance</p>
-    <h1 class="text-3xl font-semibold tracking-tight">Money overview</h1>
-    <p class="mt-2 max-w-2xl text-muted-foreground">Balances, categorized activity and monthly budgets. All amounts are fictional and stored in this browser.</p>
+    <Text size="sm" weight="medium" tone="primary">Northstar Household · simulated finance</Text>
+    <Heading level={1} size="xl">Money overview</Heading>
+    <Text tone="muted" class="mt-2 max-w-2xl">Balances, categorized activity and monthly budgets. All amounts are fictional and stored in this browser.</Text>
   </div>
-  <p class="text-sm text-muted-foreground">Updated from simulated time · {runtime.clock.now().toLocaleDateString('en-US')}</p>
+  <Text size="sm" tone="muted">Updated from simulated time · {runtime.clock.now().toLocaleDateString('en-US')}</Text>
 </header>
 
 {#if accounts.error || transactions.error}
   <ErrorState title="Could not load financial data" message={String(accounts.error ?? transactions.error)} />
 {:else if accounts.current === undefined || transactions.current === undefined}
-  <Skeleton class="h-72 w-full rounded-xl" />
+  <Skeleton class="h-72 w-full" />
 {:else}
   <section aria-label="Account summary" class="mb-5 grid gap-4 sm:grid-cols-2">
     {#each accounts.current as account (account.id)}
       <Card class="p-5">
-        <p class="text-sm text-muted-foreground">{account.name}</p>
-        <p class="mt-2 text-2xl font-semibold tabular-nums">{money(account.balanceCents)}</p>
-        <p class="mt-1 text-xs text-muted-foreground">{account.currency} · {account.type}</p>
+        <Text size="sm" tone="muted">{account.name}</Text>
+        <Text size="figure" weight="semibold" tabular class="mt-2">{money(account.balanceCents)}</Text>
+        <Text size="xs" tone="muted" class="mt-1">{account.currency} · {account.type}</Text>
       </Card>
     {/each}
     <Card class="p-5 sm:col-span-2">
-      <p class="text-sm text-muted-foreground">Total available across accounts</p>
-      <p class="mt-2 text-3xl font-semibold tabular-nums">{money(totalCents)}</p>
-      <p class="mt-1 text-xs text-muted-foreground">{money(monthExpenses)} spent this month</p>
+      <Text size="sm" tone="muted">Total available across accounts</Text>
+      <Text size="figure" weight="semibold" tabular class="mt-2">{money(totalCents)}</Text>
+      <Text size="xs" tone="muted" class="mt-1">{money(monthExpenses)} spent this month</Text>
     </Card>
   </section>
 
   {#if snapshots.current?.length}
     <section aria-label="Balance and cash flow charts" class="mb-5 grid gap-5 xl:grid-cols-2">
       <Card class="min-w-0 space-y-3 p-5">
-        <div><h2 class="font-semibold">Checking balance</h2><p class="text-sm text-muted-foreground">Daily balance movement with a generated payday cycle.</p></div>
+        <div><Heading level={2} size="sm">Checking balance</Heading><Text size="sm" tone="muted">Daily balance movement with a generated payday cycle.</Text></div>
         {#if LineChart}<LineChart title="Checking balance over time" description="Simulated daily balance in cents." series={balanceSeries} xKind="time" unit="cents" height={260} showTable />{:else}<Skeleton class="h-64 w-full" />{/if}
       </Card>
       <Card class="min-w-0 space-y-3 p-5">
-        <div><h2 class="font-semibold">Cash flow</h2><p class="text-sm text-muted-foreground">Income and expenses grouped by month.</p></div>
+        <div><Heading level={2} size="sm">Cash flow</Heading><Text size="sm" tone="muted">Income and expenses grouped by month.</Text></div>
         {#if BarChart}<BarChart title="Monthly cash flow" description="Recorded income and expenses by month." series={cashFlowSeries} xKind="category" unit="cents" height={260} showTable />{:else}<Skeleton class="h-64 w-full" />{/if}
       </Card>
     </section>
   {/if}
 
-  <div class="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.8fr)]">
-    <Card class="space-y-4 p-5">
-      <div class="flex items-end justify-between gap-2"><div><h2 class="text-lg font-semibold">Transactions</h2><p class="text-sm text-muted-foreground">Every categorized movement, newest first, with a net total. Download it as CSV.</p></div><span class="text-xs text-muted-foreground">{transactions.current.length > LEDGER_SHEET_ROWS ? `Latest ${LEDGER_SHEET_ROWS.toLocaleString('en-US')} of ${transactions.current.length.toLocaleString('en-US')}` : `${transactions.current.length} records`}</span></div>
+  <div class="grid gap-5 xl:grid-cols-5">
+    <Card class="min-w-0 space-y-4 p-5 xl:col-span-3">
+      <div class="flex items-end justify-between gap-2"><div><Heading level={2} size="md">Transactions</Heading><Text size="sm" tone="muted">Every categorized movement, newest first, with a net total. Download it as CSV.</Text></div><Text as="span" size="xs" tone="muted">{transactions.current.length > LEDGER_SHEET_ROWS ? `Latest ${LEDGER_SHEET_ROWS.toLocaleString('en-US')} of ${transactions.current.length.toLocaleString('en-US')}` : `${transactions.current.length} records`}</Text></div>
       {#if transactions.current.length === 0}
         <EmptyState title="No transactions yet" description="Your account activity will appear here as it is generated or recorded." />
       {:else if sheetError}
@@ -187,35 +197,35 @@ async function submitTransfer() {
       {/if}
     </Card>
 
-    <div class="space-y-5">
+    <div class="min-w-0 space-y-5 xl:col-span-2">
       <Card class="space-y-4 p-5">
-        <div><h2 class="text-lg font-semibold">Monthly budgets</h2><p class="text-sm text-muted-foreground">Alerts start at each category's threshold.</p></div>
+        <div><Heading level={2} size="md">Monthly budgets</Heading><Text size="sm" tone="muted">Alerts start at each category's threshold.</Text></div>
         <ul class="space-y-4">
           {#each budgets.current ?? [] as budget (budget.id)}
             {@const spent = budgetSpent(budget.category)}
             {@const ratio = budget.limitCents ? spent / budget.limitCents : 0}
             <li>
-              <div class="flex justify-between gap-3 text-sm"><span class="font-medium">{budget.category}</span><span class="tabular-nums">{money(spent)} / {money(budget.limitCents)}</span></div>
-              <div class="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div class="h-full rounded-full bg-primary" style={`width: ${Math.min(100, ratio * 100)}%`}></div></div>
-              {#if spent >= budget.alertAtCents}<p class="mt-1 text-xs font-medium text-destructive" role="status">Budget alert · {Math.round(ratio * 100)}% used</p>{:else}<p class="mt-1 text-xs text-muted-foreground">Alert at {money(budget.alertAtCents)}</p>{/if}
+              <div class="flex justify-between gap-3"><Text as="span" size="sm" weight="medium">{budget.category}</Text><Text as="span" size="sm" tabular>{money(spent)} / {money(budget.limitCents)}</Text></div>
+              <Progress value={Math.min(100, ratio * 100)} size="sm" ariaLabel={`${budget.category} budget used`} class="mt-2" />
+              {#if spent >= budget.alertAtCents}<Text size="xs" weight="medium" tone="destructive" role="status" class="mt-1">Budget alert · {Math.round(ratio * 100)}% used</Text>{:else}<Text size="xs" tone="muted" class="mt-1">Alert at {money(budget.alertAtCents)}</Text>{/if}
             </li>
           {/each}
         </ul>
       </Card>
 
       <Card class="space-y-4 p-5">
-        <div><h2 class="text-lg font-semibold">Move money</h2><p class="text-sm text-muted-foreground">A transfer updates both account balances and ledger entries.</p></div>
+        <div><Heading level={2} size="md">Move money</Heading><Text size="sm" tone="muted">A transfer updates both account balances and ledger entries.</Text></div>
         {#if canTransfer}
           <form class="space-y-3" onsubmit={(event) => event.preventDefault()}>
-            <label class="block text-sm">From account<Select class="mt-1 w-full" bind:value={fromAccountId} items={accounts.current.map((account) => ({ value: account.id, label: `${account.name} · ${money(account.balanceCents)}` }))} /></label>
-            <label class="block text-sm">To account<Select class="mt-1 w-full" bind:value={toAccountId} items={accounts.current.map((account) => ({ value: account.id, label: account.name }))} /></label>
-            <label class="block text-sm">Amount (USD)<Input class="mt-1 w-full rounded-md border border-border bg-background p-2" inputmode="decimal" placeholder="125.00" bind:value={amount} /></label>
-            <label class="block text-sm">Note<Input class="mt-1 w-full rounded-md border border-border bg-background p-2" maxlength={120} bind:value={memo} /></label>
+            <Text as="label" size="sm" class="flex flex-col gap-1">From account<Select class="w-full" bind:value={fromAccountId} items={accounts.current.map((account) => ({ value: account.id, label: `${account.name} · ${money(account.balanceCents)}` }))} /></Text>
+            <Text as="label" size="sm" class="flex flex-col gap-1">To account<Select class="w-full" bind:value={toAccountId} items={accounts.current.map((account) => ({ value: account.id, label: account.name }))} /></Text>
+            <Text as="label" size="sm" class="flex flex-col gap-1">Amount (USD)<Input class="w-full" inputmode="decimal" placeholder="125.00" bind:value={amount} /></Text>
+            <Text as="label" size="sm" class="flex flex-col gap-1">Note<Input class="w-full" maxlength={120} bind:value={memo} /></Text>
             <Button type="submit" class="w-full" onclick={() => submitTransfer()}>Transfer funds</Button>
-            {#if transferMessage}<p class={`text-sm ${transferSuccess ? 'text-primary' : 'text-destructive'}`} role={transferSuccess ? 'status' : 'alert'}>{transferMessage}</p>{/if}
+            {#if transferMessage}<Text size="sm" tone={transferSuccess ? 'primary' : 'destructive'} role={transferSuccess ? 'status' : 'alert'}>{transferMessage}</Text>{/if}
           </form>
         {:else}
-          <p class="rounded-md bg-muted p-3 text-sm text-muted-foreground">Read-only persona: transfers are unavailable.</p>
+          <Box surface="muted" radius="md" padding="sm"><Text size="sm" tone="muted">Read-only persona: transfers are unavailable.</Text></Box>
         {/if}
       </Card>
     </div>

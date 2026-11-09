@@ -6,6 +6,7 @@ import { DashboardGrid, WidgetCard } from '@protoyard/analytics-ui/grid';
 import { can, liveQuery, useClock } from '@protoyard/renderer-svelte';
 import { Button, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import RangeBar from '../components/RangeBar.svelte';
 import RenameDialog from '../components/RenameDialog.svelte';
@@ -72,9 +73,9 @@ const save = (layout: DashboardLayout) =>
   <ErrorState title="Could not load the overview" message={String(data.error)} />
 {:else if data.current === undefined}
   <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-busy="true" aria-label="Loading overview">
-    {#each [0, 1, 2, 3] as i (i)}<Skeleton class="h-28 rounded-xl" />{/each}
+    {#each [0, 1, 2, 3] as i (i)}<Skeleton class="h-28" />{/each}
   </div>
-  <Skeleton class="mt-6 h-72 rounded-xl" />
+  <Skeleton class="mt-6 h-72" />
 {:else if data.current.total === 0}
   <EmptyState
     title="No events tracked yet"
@@ -98,14 +99,14 @@ const save = (layout: DashboardLayout) =>
               {@const load = WIDGET_LOADERS[item.widget as WidgetKey]}
               {#if load}
                 {#await load()}
-                  <Skeleton class="h-48 rounded-lg" />
+                  <Skeleton class="h-48" />
                 {:then { default: Widget }}
                   <Widget title={item.title ?? item.widget} {events} range={resolved.range} granularity={resolved.granularity} />
                 {:catch}
-                  <p role="note" class="text-sm text-muted-foreground">This widget's code did not load. Reload the page to try again.</p>
+                  <Text role="note" size="sm" tone="muted">This widget's code did not load. Reload the page to try again.</Text>
                 {/await}
               {:else}
-                <p role="note" class="text-sm text-muted-foreground">Unknown widget “{item.widget}”.</p>
+                <Text role="note" size="sm" tone="muted">Unknown widget “{item.widget}”.</Text>
               {/if}
             {/snippet}
           </WidgetCard>

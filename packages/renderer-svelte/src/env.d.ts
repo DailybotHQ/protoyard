@@ -23,3 +23,15 @@ declare const __PROTOYARD_BUILD__: {
  * (`sizes: []` when avatars are turned off). See src/avatars.ts.
  */
 declare const __PROTOYARD_AVATARS__: { base: string; sizes: readonly (64 | 128)[] };
+
+/**
+ * A design system's own component (`@ds/<id>/<Component>`), resolved by
+ * `defineProtoyardConfig` to `design-systems/<id>/components/<Component>.svelte`.
+ */
+declare module '@ds/*' {
+  import type { Component } from 'svelte';
+
+  // biome-ignore lint/suspicious/noExplicitAny: each library component declares its own props.
+  const component: Component<any>;
+  export default component;
+}

@@ -10,6 +10,7 @@ import {
 } from '@protoyard/renderer-svelte';
 import { AlertDialog, Button, ErrorState, Skeleton } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import Page from '../components/Page.svelte';
 import Segmented from '../components/Segmented.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -61,26 +62,26 @@ async function remove() {
   {/snippet}
 
   {#if item.loading}
-    <Skeleton class="h-40 rounded-2xl" />
+    <Skeleton class="h-40" />
   {:else if !item.current}
     <ErrorState title="Item not found" message="It may have been deleted, or it belongs to another scenario.">
       {#snippet action()}<Button href="#/" variant="outline">Back to items</Button>{/snippet}
     </ErrorState>
   {:else}
-    <article class="flex flex-col gap-3 rounded-2xl bg-surface p-5 shadow-soft">
+    <Box as="article" surface="default" radius="xl" elevation="sm" padding="lg" class="flex flex-col gap-3">
       <div class="flex items-start justify-between gap-3">
-        <h2 class="text-xl font-semibold">{item.current.title}</h2>
+        <Heading level={2} size="xl">{item.current.title}</Heading>
         <StatusBadge status={item.current.status} />
       </div>
       {#if item.current.notes}
-        <p class="text-sm whitespace-pre-line text-muted-foreground">{item.current.notes}</p>
+        <Text size="sm" tone="muted" class="whitespace-pre-line">{item.current.notes}</Text>
       {:else}
-        <p class="text-sm text-muted-foreground italic">No notes.</p>
+        <Text size="sm" tone="subtle">No notes.</Text>
       {/if}
-      <p class="text-xs text-muted-foreground">
+      <Text size="xs" tone="muted">
         {owner ? `${owner.name} · ` : ''}updated {fromNow(item.current.updatedAt, clock.now)}
-      </p>
-    </article>
+      </Text>
+    </Box>
 
     {#if canEdit}
       <Segmented

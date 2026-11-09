@@ -704,10 +704,10 @@ interrupted run never leaves a half-written prototype. It then runs
 | `src/generated/policy.ts` | generated | `derivePolicy(blueprint)`. |
 | `src/generated/services.ts` | generated | `createEntityServices(runtime, blueprint)`. |
 | `src/generated/scenarios.ts` | generated | The world generator, loaded lazily so Faker stays out of the initial chunk. |
-| `src/generated/brand-theme.ts` | generated | Only with `brand`. |
+| `src/generated/brand-theme.ts` | generated | Only with `brand`, and never for a prototype bound to a design system. |
 | `src/generated/blueprint.snapshot.json` | managed | The blueprint the generated code reflects, its schema version and its `codegenFormat` (currently 3). `validate` reports an older format as outdated and prints the `generate` command that brings it current. |
 | `src/App.svelte` | owned | Lazily loads `BlueprintApp` from `@protoyard/crud/app` and renders it with the generated blueprint. |
-| `src/prototype.ts` | owned | Only with a built `brand`: registers the brand theme. It declares `generatorVersion: blueprintGeneratorVersion(blueprint)`, so a changed blueprint reseeds stored worlds. |
+| `src/prototype.ts` | owned | Only with a built `brand`: registers the brand theme. With `--ds`: registers `designSystemTheme` from `src/design-system.ts` instead. It declares `generatorVersion: blueprintGeneratorVersion(blueprint)`, so a changed blueprint reseeds stored worlds. |
 | `README.md`, `tests/generators.test.ts`, `tests/services.test.ts` | owned | Written once, from the blueprint. |
 | everything else | owned | Copied from the template (scenarios, stylesheet, spec docs). |
 
@@ -785,6 +785,45 @@ utility classes may be absent from the production CSS. See [`packages/crud/READM
   them. Add routes and screens there (through `BlueprintApp`'s `extraRoutes`). To change seeded data beyond what the
   blueprint expresses, wrap the generator in `src/scenarios/generators.ts`,
   using only `ctx.rng`, `ctx.ids` and `ctx.time`.
+
+## Bound to a design system
+
+`generate <slug> --blueprint <file> --ds <id>` creates the prototype locked
+to a design system (`--unlocked` binds it without locking). It works for app,
+deck, page and doc blueprints.
+
+```bash
+pnpm protoyard generate my-deck --blueprint blueprints/decks/protoyard-create-anything.json --ds <id>
+```
+
+- Before anything is written, the design system must be lockable: an
+  approved folder at its document version, unchanged since its approval.
+  `--unlocked` also accepts a draft.
+- The definition takes its theme from `src/design-system.ts`, which the
+  `ds use` code path writes and which is never generated: an app's owned
+  `src/prototype.ts` registers `themes: [designSystemTheme]`; a deck, page or
+  doc's generated `src/prototype.ts` passes `brandTheme: designSystemTheme`
+  and `defaultThemeId: designSystemTheme.id`. The blueprint `brand` is
+  ignored: no `src/generated/brand-theme.ts`, and the envelope has
+  `brandIgnored: true`.
+- The manifest gets `defaultTheme: <id>` and
+  `designSystem: { id, version, locked }`.
+- **Regeneration keeps the binding.** The generator reads `designSystem` from
+  the prototype's `protoyard.json`, so later runs need no `--ds`. The same
+  `--ds` is accepted; another id is a `conflict`. `--ds` on a generated
+  prototype that is not bound yet binds it during that regeneration. The
+  drift check of `validate` emits with the same binding.
+- `ds use <slug> <id> --upgrade` moves the pin of a bound generated
+  prototype: it rewrites only `src/design-system.ts` and the manifest, never
+  a generated file.
+- After writing, `generate` runs the `check ds` rules and the locked-binding
+  check. `data.designSystemCheck` lists violations by owner
+  (`generatorFiles`, `templateFiles`). The generator's own files pass; a
+  template file that is not lock-clean yet fails a locked result (exit 4)
+  and the prototype stays for inspection.
+
+See [THEMES.md](THEMES.md#create-a-prototype-from-a-design-system) for
+`new --ds` and the full rules.
 
 ## Regeneration and migrations
 

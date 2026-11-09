@@ -41,7 +41,10 @@ const JS_GZIP_BUDGET = 120 * 1024;
 // Texuli 0.14.3 (2026-11-07): the page initial CSS measures 7,562 B (Texuli's
 // CSS grew ~1.9 KB gz across the package: ListItem, Avatar tone, SplitView,
 // Composer row); page cap 7,562 + 5 %. The doc (7,272 B) is unchanged.
-const INITIAL_CSS_GZIP_BUDGETS: Record<Host, number> = { page: 7_940, doc: 7_349 };
+// Texuli 0.15.0 (PLAN_013, 2026-11-09): the doc initial CSS measures 7,522 B
+// (typography components, interactive Card, Button tone); doc cap 7,522 + 5 %.
+// The page measures 7,804 B, inside its cap.
+const INITIAL_CSS_GZIP_BUDGETS: Record<Host, number> = { page: 7_940, doc: 7_898 };
 // T-forms adds @texuli/forms (SchemaForm), whose stylesheet loads only with a
 // form block, so only the all-CSS sums grow: page 39,046 B, doc 74,692 B; the
 // first screen is unchanged. + 2.5 %. SchemaForm imports every control type

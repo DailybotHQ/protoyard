@@ -15,6 +15,7 @@ export const indexCommand: Handler = async (ctx, _args, options): Promise<Comman
       cached: result.cached,
       durationMs: Math.round(result.durationMs * 100) / 100,
       invalid: registry.invalid,
+      designSystemIssues: registry.designSystemIssues,
     },
     render(out) {
       const { c } = out;
@@ -23,10 +24,18 @@ export const indexCommand: Handler = async (ctx, _args, options): Promise<Comman
         out.warn(`${mark(c, 'fail')} ${issue.path}`);
         for (const error of issue.errors) out.warn(`    ${c.dim(error)}`);
       }
+      for (const issue of registry.designSystemIssues) {
+        out.warn(`${mark(c, 'fail')} ${issue.path}`);
+        for (const error of issue.errors) out.warn(`    ${c.dim(error)}`);
+      }
       out.info(
         `${mark(c, 'pass')} Indexed ${c.bold(String(registry.stats.prototypes))} prototypes and ${c.bold(
           String(registry.stats.templates)
-        )} templates in ${result.durationMs.toFixed(1)} ms ${c.dim(
+        )} templates${
+          registry.stats.designSystems > 0
+            ? ` (and ${registry.stats.designSystems} design system${registry.stats.designSystems === 1 ? '' : 's'})`
+            : ''
+        } in ${result.durationMs.toFixed(1)} ms ${c.dim(
           `(${result.parsed} parsed, ${result.cached} cached)`
         )}`
       );

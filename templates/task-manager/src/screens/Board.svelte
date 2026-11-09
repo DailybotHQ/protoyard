@@ -9,6 +9,7 @@ import {
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import {
+  Badge,
   Button,
   Checkbox,
   EmptyState,
@@ -16,11 +17,13 @@ import {
   Input,
   Kanban,
   type KanbanColumn,
+  Notice,
   Select,
   Skeleton,
 } from '@protoyard/ui';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import ProjectDialog from '../components/ProjectDialog.svelte';
 import TaskCard from '../components/TaskCard.svelte';
@@ -39,7 +42,7 @@ import {
   filterTasks,
   LABEL_NAMES,
   PRIORITY_LABELS,
-  PROJECT_COLOR_CLASSES,
+  projectBadgeVariant,
   STATUS_LABELS,
   sortForBoard,
 } from '../domain/tasks.ts';
@@ -132,7 +135,7 @@ async function move(task: Task, status: string) {
   <Button
     variant="ghost"
     size="sm"
-    class="w-full justify-start text-muted-foreground"
+    class="w-full justify-start"
     onclick={() => {
       createIn = column.id as TaskStatus;
       createOpen = true;
@@ -144,7 +147,7 @@ async function move(task: Task, status: string) {
 
 {#if project.loading}
   <Skeleton class="h-10 w-64" />
-  <div class="mt-6 flex gap-4">{#each [0, 1, 2, 3] as i (i)}<Skeleton class="h-80 w-72 rounded-xl" />{/each}</div>
+  <div class="mt-6 flex gap-4">{#each [0, 1, 2, 3] as i (i)}<Skeleton class="h-80 w-72" />{/each}</div>
 {:else if project.error}
   <ErrorState title="Could not load this board" message={String(project.error)} />
 {:else if !project.current}
@@ -155,7 +158,7 @@ async function move(task: Task, status: string) {
   {@const current = project.current}
   <PageHeader title={current.name} description={current.description || `${current.key} · ${(tasks.current ?? []).length} tasks`}>
     {#snippet actions()}
-      <span class={['rounded-md px-2 py-1 font-mono text-xs font-medium', PROJECT_COLOR_CLASSES[current.color].soft]}>{current.key}</span>
+      <Badge variant={projectBadgeVariant(current.color)}>{current.key}</Badge>
       {#if can(CAPABILITIES.projectsManage)}
         <Button variant="outline" onclick={() => (editProjectOpen = true)}><LucideIcon icon={Pencil} class="size-4" />Edit</Button>
       {/if}
@@ -167,7 +170,7 @@ async function move(task: Task, status: string) {
 
   <div class="mb-4 flex flex-wrap items-center gap-2" role="search" aria-label="Filter tasks">
     <div class="relative w-full sm:w-60">
-      <Icon icon="search" class="pointer-events-none absolute top-1 2 left-3 size-4 -translate-y-1 2 text-muted-foreground" aria-hidden="true" />
+      <Icon icon="search" size="sm" tone="neutral" class="pointer-events-none absolute top-3 left-3" aria-hidden="true" />
       <Input type="search" class="pl-9" placeholder="Filter tasks…" aria-label="Filter tasks by text" bind:value={query} />
     </div>
     <Select
@@ -183,45 +186,43 @@ async function move(task: Task, status: string) {
     />
     <Select
       aria-label="Filter by priority"
-      class="w-[calc(50%-0.25rem)] sm:w-36"
+      class="grow basis-2/5 sm:w-36 sm:grow-0 sm:basis-auto"
       items={[{ value: '', label: 'Any priority' }, ...TASK_PRIORITIES.map((p) => ({ value: p, label: PRIORITY_LABELS[p] }))]}
       bind:value={priority}
     />
     <Select
       aria-label="Filter by label"
-      class="w-[calc(50%-0.25rem)] sm:w-36"
+      class="grow basis-2/5 sm:w-36 sm:grow-0 sm:basis-auto"
       items={[{ value: '', label: 'Any label' }, ...TASK_LABELS.map((l) => ({ value: l, label: LABEL_NAMES[l] }))]}
       bind:value={label}
     />
     <Checkbox label="Overdue only" bind:checked={overdueOnly} />
     {#if filtering}
       <Button variant="link" size="sm" onclick={clearFilters}>Clear filters</Button>
-      <p class="w-full text-xs text-muted-foreground sm:ml-auto sm:w-auto" aria-live="polite">
+      <Text size="xs" tone="muted" class="w-full sm:ml-auto sm:w-auto" aria-live="polite">
         Showing {visible.length} of {(tasks.current ?? []).length} tasks
-      </p>
+      </Text>
     {/if}
   </div>
 
   {#if !canEdit}
-    <p class="mb-3 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-      You have read-only access. Switch persona in DevTools (Ctrl/⌘ + .) to move or edit tasks.
-    </p>
+    <Notice tone="info" class="mb-3" text="You have read-only access. Switch persona in DevTools (Ctrl/⌘ + .) to move or edit tasks." />
     <div class="flex gap-4 overflow-x-auto pb-3" role="region" aria-label={`${current.name} board (read-only)`}>
       {#each columns as column (column.id)}
         {@const items = visible.filter((t) => t.status === column.id)}
-        <section aria-labelledby={`col-${column.id}`} class="flex w-[85vw] max-w-80 shrink-0 flex-col rounded-xl border border-border bg-muted/40 sm:w-auto sm:min-w-56 sm:flex-1 sm:basis-0">
+        <Box as="section" surface="muted" border="default" radius="xl" padding="none" aria-labelledby={`col-${column.id}`} class="flex w-4/5 max-w-80 shrink-0 flex-col sm:w-auto sm:min-w-56 sm:flex-1 sm:basis-0">
           <header class="flex items-center justify-between px-3 pt-3 pb-2">
-            <h2 id={`col-${column.id}`} class="text-sm font-semibold">{column.title}</h2>
-            <span class="rounded-full bg-background px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">{items.length}<span class="sr-only"> tasks</span></span>
+            <Heading level={2} size="sm" id={`col-${column.id}`}>{column.title}</Heading>
+            <Badge variant="outline">{items.length}<span class="sr-only"> tasks</span></Badge>
           </header>
           <ul class="flex min-h-24 flex-col gap-2 px-2 pb-2">
             {#each items as task (task.id)}
-              <li class="rounded-lg border border-border bg-surface p-3 shadow-soft">{@render card(task)}</li>
+              <li><Box surface="default" border="default" radius="lg" padding="sm" elevation="sm">{@render card(task)}</Box></li>
             {:else}
-              <li class="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border px-3 py-6 text-xs text-muted-foreground">No tasks</li>
+              <li class="flex flex-1"><Box border="default" radius="lg" padding="none" class="flex flex-1 items-center justify-center px-3 py-6"><Text as="span" size="xs" tone="muted">No tasks</Text></Box></li>
             {/each}
           </ul>
-        </section>
+        </Box>
       {/each}
     </div>
   {:else}

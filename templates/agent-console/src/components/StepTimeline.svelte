@@ -13,6 +13,9 @@ import {
 import type { AgentStep } from '@protoyard/ai';
 import { formatTime } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Code } from 'texuli/kbd-code';
+import { Timeline, TimelineItem, type TimelineTone } from 'texuli/timeline';
+import { Text } from 'texuli/typography';
 
 /** The agent step trace: plan → tool calls → approvals → results → answer. */
 let { steps }: { steps: readonly AgentStep[] } = $props();
@@ -28,13 +31,13 @@ const ICONS = {
   answer: MessageSquareText,
   cancelled: Ban,
 } as const;
-const TONES: Record<string, string> = {
-  'tool-failure': 'text-destructive',
-  'approval-rejected': 'text-destructive',
-  'approval-requested': 'text-warning-foreground',
-  'tool-result': 'text-success',
-  'approval-granted': 'text-success',
-  answer: 'text-primary',
+const TONES: Record<string, TimelineTone> = {
+  'tool-failure': 'destructive',
+  'approval-rejected': 'destructive',
+  'approval-requested': 'warning',
+  'tool-result': 'success',
+  'approval-granted': 'success',
+  answer: 'info',
 };
 const LABELS: Record<string, string> = {
   plan: 'Plan',
@@ -51,26 +54,27 @@ const LABELS: Record<string, string> = {
 const detail = (value: unknown) => (value === undefined ? '' : JSON.stringify(value, null, 2));
 </script>
 
-<ol class="relative space-y-3 border-l border-border pl-6" aria-label="Agent steps">
+<Timeline label="Agent steps">
   {#each steps as step (step.id)}
-    {@const Icon = ICONS[step.type]}
-    <li class="relative">
-      <span class="absolute top-0.5 -left-[2.05rem] grid size-6 place-items-center rounded-full border border-border bg-surface {TONES[step.type] ?? 'text-muted-foreground'}">
-        <LucideIcon icon={Icon} class="size-3.5" />
-      </span>
-      <div class="flex flex-wrap items-baseline gap-x-2 text-sm">
-        <span class="font-medium">{LABELS[step.type]}</span>
-        {#if step.tool}<code class="rounded bg-muted px-1.5 py-0.5 text-xs">{step.tool}</code>{/if}
-        <span class="text-xs text-muted-foreground">#{step.sequence} · {formatTime(step.createdAt)}</span>
-      </div>
-      {#if step.type !== 'answer'}<p class="mt-0.5 text-sm text-muted-foreground">{step.message}</p>{/if}
+    {@const StepIcon = ICONS[step.type]}
+    <TimelineItem
+      title={LABELS[step.type] ?? step.type}
+      time={`#${step.sequence} · ${formatTime(step.createdAt)}`}
+      datetime={step.createdAt}
+      description={step.type !== 'answer' ? step.message : undefined}
+      tone={TONES[step.type] ?? 'neutral'}
+    >
+      {#snippet icon()}<LucideIcon icon={StepIcon} class="size-3.5" />{/snippet}
+      {#if step.tool}<Code class="mt-1">{step.tool}</Code>{/if}
       {#if step.input !== undefined || (step.output !== undefined && step.type !== 'answer')}
-        <details class="mt-1 text-xs">
-          <summary class="cursor-pointer text-muted-foreground hover:text-foreground">Input / output</summary>
-          <pre class="mt-1 max-h-60 overflow-auto rounded-md bg-muted p-2 font-mono whitespace-pre-wrap">{#if step.input !== undefined}input: {detail(step.input)}
-{/if}{#if step.output !== undefined}output: {detail(step.output)}{/if}</pre>
+        <details class="mt-1">
+          <summary><Text as="span" size="xs" tone="muted">Input / output</Text></summary>
+          <div class="mt-1 max-h-60 overflow-auto">
+            <Code variant="block" class="whitespace-pre-wrap">{#if step.input !== undefined}input: {detail(step.input)}
+{/if}{#if step.output !== undefined}output: {detail(step.output)}{/if}</Code>
+          </div>
         </details>
       {/if}
-    </li>
+    </TimelineItem>
   {/each}
-</ol>
+</Timeline>

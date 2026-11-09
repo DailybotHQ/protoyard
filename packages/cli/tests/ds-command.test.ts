@@ -60,7 +60,7 @@ describe('protoyard ds', () => {
     const first = await run(...args);
     expect(first.code, first.stdout).toBe(0);
     const data = first.json<Envelope<Summary>>().data;
-    expect(data.file).toBe('design-systems/harbor.json');
+    expect(data.file).toBe('design-systems/harbor/document.json');
     expect(data.written).toBe(true);
     expect(data.modes).toEqual(['light', 'dark']);
     expect(data.variables).toBeGreaterThan(200);
@@ -95,7 +95,7 @@ describe('protoyard ds', () => {
     );
     expect(brief.code, brief.stdout).toBe(0);
     expect(brief.json<Envelope<Summary>>().data.written).toBe(false);
-    expect(existsSync(join(ws.root, 'design-systems/brief-ds.json'))).toBe(false);
+    expect(existsSync(join(ws.root, 'design-systems/brief-ds/document.json'))).toBe(false);
 
     const imported = await run('new', 'ocean-ds', '--from-theme', 'ocean');
     expect(imported.code, imported.stdout).toBe(0);
@@ -161,11 +161,11 @@ describe('protoyard ds', () => {
     });
     expect((await run('new', 'harbor', '--brand', '#0f766e')).code).toBe(0);
 
-    const dry = await run('use', 'ds-fixture', 'design-systems/harbor.json', '--dry-run');
+    const dry = await run('use', 'ds-fixture', 'harbor', '--dry-run');
     expect(dry.code, dry.stdout).toBe(0);
     expect(existsSync(join(ws.root, 'prototypes/ds-fixture/src/design-system.ts'))).toBe(false);
 
-    const applied = await run('use', 'ds-fixture', 'design-systems/harbor.json');
+    const applied = await run('use', 'ds-fixture', 'harbor');
     expect(applied.code, applied.stdout).toBe(0);
     const dir = join(ws.root, 'prototypes/ds-fixture');
     const source = readFileSync(join(dir, 'src/design-system.ts'), 'utf8');
@@ -187,13 +187,13 @@ describe('protoyard ds', () => {
     );
 
     // Idempotent: a second run leaves prototype.ts alone.
-    expect((await run('use', 'ds-fixture', 'design-systems/harbor.json')).code).toBe(0);
+    expect((await run('use', 'ds-fixture', 'harbor')).code).toBe(0);
     expect(readFileSync(join(dir, 'src/prototype.ts'), 'utf8')).toBe(prototype);
 
     // A prototype without a package.json is refused before anything is written.
     addPrototype(ws, 'no-package');
     ws.write('prototypes/no-package/src/prototype.ts', PROTOTYPE);
-    const refused = await run('use', 'no-package', 'design-systems/harbor.json');
+    const refused = await run('use', 'no-package', 'harbor');
     expect(refused.code).not.toBe(0);
     expect(refused.json<Envelope<unknown>>().error?.message).toMatch(/package\.json/);
     expect(existsSync(join(ws.root, 'prototypes/no-package/src/design-system.ts'))).toBe(false);
@@ -203,7 +203,7 @@ describe('protoyard ds', () => {
     addPrototype(ws, 'no-runtime');
     ws.write('prototypes/no-runtime/src/prototype.ts', PROTOTYPE);
     ws.write('prototypes/no-runtime/package.json', { name: 'no-runtime', private: true });
-    const added = await run('use', 'no-runtime', 'design-systems/harbor.json');
+    const added = await run('use', 'no-runtime', 'harbor');
     expect(added.code, added.stdout).toBe(0);
     expect(
       readFileSync(join(ws.root, 'prototypes/no-runtime/src/design-system.ts'), 'utf8')
@@ -225,14 +225,14 @@ describe('protoyard ds', () => {
       private: true,
       dependencies: { '@protoyard/runtime': 'workspace:*' },
     });
-    const generated = await run('use', 'generated-kind', 'design-systems/harbor.json');
+    const generated = await run('use', 'generated-kind', 'harbor');
     expect(generated.code).not.toBe(0);
     expect(generated.json<Envelope<unknown>>().error?.message).toMatch(/protoyard generate/);
 
     // Another design system needs --force.
     expect((await run('new', 'dusk', '--brand', '#6d28d9')).code).toBe(0);
-    expect((await run('use', 'ds-fixture', 'design-systems/dusk.json')).code).not.toBe(0);
-    expect((await run('use', 'ds-fixture', 'design-systems/dusk.json', '--force')).code).toBe(0);
+    expect((await run('use', 'ds-fixture', 'dusk')).code).not.toBe(0);
+    expect((await run('use', 'ds-fixture', 'dusk', '--force')).code).toBe(0);
   });
 
   it('applies a design system to deck, page and doc prototypes as their brand theme', async () => {
@@ -283,7 +283,7 @@ export const definition = definePrototypeFromDoc(doc, {
             ? { '@protoyard/blueprint': 'workspace:*' }
             : { '@protoyard/runtime': 'workspace:*' },
       });
-      const applied = await run('use', slug, 'design-systems/harbor.json');
+      const applied = await run('use', slug, 'harbor');
       expect(applied.code, `${kind}: ${applied.stdout}`).toBe(0);
       const wired = readFileSync(join(ws.root, `prototypes/${slug}/src/prototype.ts`), 'utf8');
       expect(wired).toContain("import { designSystemTheme } from './design-system.ts';");
@@ -292,7 +292,7 @@ export const definition = definePrototypeFromDoc(doc, {
       expect(wired.match(/brandTheme/g)?.length, kind).toBe(1);
       if (kind === 'deck') expect(wired).not.toContain("from './brand-theme.ts'");
       // Idempotent.
-      expect((await run('use', slug, 'design-systems/harbor.json')).code).toBe(0);
+      expect((await run('use', slug, 'harbor')).code).toBe(0);
       expect(readFileSync(join(ws.root, `prototypes/${slug}/src/prototype.ts`), 'utf8')).toBe(
         wired
       );
@@ -306,7 +306,7 @@ export const definition = definePrototypeFromDoc(doc, {
     addPrototype(ws, 'deck-a');
     ws.write('prototypes/deck-a/src/prototype.ts', PROTOTYPE);
     ws.write('prototypes/deck-a/package.json', { name: 'deck-a', private: true });
-    const applied = await run('use', 'deck-a', 'design-systems/harbor.json');
+    const applied = await run('use', 'deck-a', 'harbor');
     expect(applied.code, applied.stdout).toBe(0);
     const pkg = JSON.parse(
       readFileSync(join(ws.root, 'prototypes/deck-a/package.json'), 'utf8')
@@ -336,9 +336,9 @@ export const acmeTheme = { id: 'acme', name: 'Acme', light: palette('#ffffff', '
       // The fixture palette may miss roles a newer ThemeSchema needs; the
       // refusal must still name the file and never write anything.
       expect(imported.json<Envelope<unknown>>().error?.message).toMatch(/theme\.ts/);
-      expect(existsSync(join(ws.root, 'design-systems/acme.json'))).toBe(false);
+      expect(existsSync(join(ws.root, 'design-systems/acme/document.json'))).toBe(false);
     } else {
-      expect(existsSync(join(ws.root, 'design-systems/acme.json'))).toBe(true);
+      expect(existsSync(join(ws.root, 'design-systems/acme/document.json'))).toBe(true);
     }
     const missing = await run('new', 'nope', '--from-theme-file', 'prototypes/acme/src/none.ts');
     expect(missing.code).not.toBe(0);

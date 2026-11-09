@@ -2,3 +2,8 @@
 
 /* Let Tailwind see this prototype's own markup. */
 @source "./";
+
+/* The composer bar without the demo badge: at least 0.75rem, or the device's bottom safe-area inset. */
+.composer-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}

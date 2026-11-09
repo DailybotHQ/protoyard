@@ -42,13 +42,25 @@ export const LABEL_NAMES: Record<TaskLabel, string> = {
 };
 
 /** Tailwind classes per project color (dot + soft background), readable in light and dark. */
-export const PROJECT_COLOR_CLASSES: Record<ProjectColor, { dot: string; soft: string }> = {
-  violet: { dot: 'bg-violet-500', soft: 'bg-violet-500/10 text-violet-700 dark:text-violet-300' },
-  blue: { dot: 'bg-blue-500', soft: 'bg-blue-500/10 text-blue-700 dark:text-blue-300' },
-  teal: { dot: 'bg-teal-500', soft: 'bg-teal-500/10 text-teal-700 dark:text-teal-300' },
-  amber: { dot: 'bg-amber-500', soft: 'bg-amber-500/10 text-amber-800 dark:text-amber-300' },
-  rose: { dot: 'bg-rose-500', soft: 'bg-rose-500/10 text-rose-700 dark:text-rose-300' },
-  slate: { dot: 'bg-slate-500', soft: 'bg-slate-500/10 text-slate-700 dark:text-slate-300' },
+/**
+ * A project's color drawn through design-system tones (Avatar `tone`, Badge
+ * `variant`), so the six project colors follow the theme instead of a fixed
+ * palette. Texuli has no categorical palette prop, so each color takes the
+ * nearest role tone.
+ */
+export type ProjectTone = 'primary' | 'info' | 'success' | 'warning' | 'destructive' | 'neutral';
+export const PROJECT_COLOR_TONES: Record<ProjectColor, ProjectTone> = {
+  violet: 'primary',
+  blue: 'info',
+  teal: 'success',
+  amber: 'warning',
+  rose: 'destructive',
+  slate: 'neutral',
+};
+/** The Badge variant for a project color (`primary` is Badge's `default`). */
+export const projectBadgeVariant = (color: ProjectColor) => {
+  const tone = PROJECT_COLOR_TONES[color];
+  return tone === 'primary' ? 'default' : tone;
 };
 
 export const taskKey = (task: Pick<Task, 'number'>, project?: Pick<Project, 'key'>) =>

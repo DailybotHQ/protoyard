@@ -1,5 +1,14 @@
 # @protoyard/decks
 
+## 1.7.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/themes@1.7.0
+  - @protoyard/ai@1.7.0
+  - @protoyard/blocks@1.7.0
+
 ## 1.6.0
 
 ### Patch Changes

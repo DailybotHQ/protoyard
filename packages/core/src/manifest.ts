@@ -210,6 +210,24 @@ export const ThemeIdRefSchema = z
   .max(64)
   .regex(/^[a-z][a-z0-9-]*$/, { message: 'theme id must be lowercase kebab-case' });
 
+/**
+ * A prototype's binding to a design system (locked design systems, PLAN_013).
+ * `id` is the design system's id, which is also its theme id; `version` is the
+ * exact semver the prototype pins (`ds use --upgrade` moves it). A `locked`
+ * binding loads only that theme and is enforced by `protoyard check ds`.
+ */
+export const DesignSystemBindingSchema = z
+  .object({
+    id: ThemeIdRefSchema,
+    version: z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, {
+      message: 'designSystem.version must be an exact semver, e.g. "1.2.0"',
+    }),
+    locked: z.boolean().default(false),
+  })
+  .strict();
+
+export type DesignSystemBinding = z.infer<typeof DesignSystemBindingSchema>;
+
 export const ProjectKindSchema = z.enum(['prototype', 'template']);
 export type ProjectKind = z.infer<typeof ProjectKindSchema>;
 
@@ -340,6 +358,8 @@ export const PrototypeManifestSchema = z
      */
     defaultTheme: ThemeIdRefSchema.default('violet'),
     defaultMode: ColorModeSchema.default('system'),
+    /** The design system this prototype is bound to; `locked` enforces it (PLAN_013). */
+    designSystem: DesignSystemBindingSchema.optional(),
     preview: PreviewSchema.default({ viewport: 'desktop', shell: 'auto' }),
     /** Optional presentation controls for Protoyard's runtime DevTools launcher. */
     devtools: DevtoolsOptionsSchema.optional(),

@@ -2,6 +2,7 @@
 import { AI_MODELS } from '@protoyard/ai';
 import { isValidationError, navigate, runService } from '@protoyard/renderer-svelte';
 import { Button, Checkbox, Dialog, FormField, Input, Select, Textarea } from '@protoyard/ui';
+import { Box, Text } from 'texuli/typography';
 import { type Agent, TOOL_NAMES, type ToolName } from '../database/schema.ts';
 import { services } from '../lib/services.ts';
 
@@ -88,13 +89,14 @@ async function submit(event: SubmitEvent) {
         <Textarea {...control.props} rows={5} bind:value={form.instructions} placeholder="You answer billing questions. Look up the customer first…" />
       {/snippet}
     </FormField>
-    <fieldset class="rounded-lg border border-border p-3">
-      <legend class="px-1 text-sm font-medium">Tools</legend>
+    <Box border="default" radius="lg" padding="sm">
+      <fieldset>
+      <legend class="mb-2"><Text as="span" size="sm" weight="medium">Tools</Text></legend>
       <ul class="grid gap-3 sm:grid-cols-2">
         {#each TOOL_NAMES as tool (tool)}
           <li class="space-y-1.5">
             <Checkbox bind:checked={form.tools[tool]} label={tool} />
-            <p class="pl-6 text-xs text-muted-foreground">{TOOL_HELP[tool]}</p>
+            <Text size="xs" tone="muted" class="pl-6">{TOOL_HELP[tool]}</Text>
             {#if form.tools[tool]}
               <div class="pl-6"><Checkbox bind:checked={form.approval[tool]} label="Require approval" /></div>
             {/if}
@@ -102,9 +104,10 @@ async function submit(event: SubmitEvent) {
         {/each}
       </ul>
       {#if errors.approvalTools || errors.tools}
-        <p class="mt-2 text-sm text-destructive" role="alert">{errors.approvalTools ?? errors.tools}</p>
+        <Text size="sm" tone="destructive" class="mt-2" role="alert">{errors.approvalTools ?? errors.tools}</Text>
       {/if}
-    </fieldset>
+      </fieldset>
+    </Box>
   </form>
   {#snippet footer()}
     <Button variant="ghost" onclick={() => (open = false)}>Cancel</Button>

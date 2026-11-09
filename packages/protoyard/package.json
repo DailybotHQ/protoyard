@@ -1,6 +1,6 @@
 {
   "name": "protoyard",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "The protoyard command line under its short name: `npx protoyard` runs @protoyard/cli at the same version.",
   "license": "MIT",
   "type": "module",

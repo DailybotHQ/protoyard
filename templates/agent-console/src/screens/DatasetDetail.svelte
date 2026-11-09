@@ -13,6 +13,7 @@ import {
   AlertDialog,
   Badge,
   Button,
+  Card,
   EmptyState,
   FormField,
   Input,
@@ -23,6 +24,7 @@ import {
 } from '@protoyard/ui';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import type { ConsoleDatabase, Evaluation } from '../database/schema.ts';
 import { TOOL_NAMES } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
@@ -100,23 +102,23 @@ async function remove() {
 const caseResult = (caseId: string) => shown?.results.find((r) => r.caseId === caseId);
 </script>
 
-<a href="#/evaluations" class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+<Button href="#/evaluations" variant="ghost" size="sm" class="mb-4 gap-1.5 px-2">
   <LucideIcon icon={ArrowLeft} class="size-4" />Evaluations
-</a>
+</Button>
 
 {#if dataset.loading}
-  <Skeleton class="h-64 rounded-xl" />
+  <Skeleton class="h-64" />
 {:else if !dataset.current}
   <EmptyState icon={FileQuestion} title="Dataset not found" description="It may have been deleted." />
 {:else}
   {@const d = dataset.current}
   <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-semibold tracking-tight">{d.name}</h1>
-      <p class="mt-1 text-sm text-muted-foreground">
-        Evaluates {#if agent.current}<a class="underline" href={`#/agents/${d.agentId}`}>{agent.current.name}</a>{:else}a deleted agent{/if}
+      <Heading level={1} size="xl">{d.name}</Heading>
+      <Text size="sm" tone="muted" class="mt-1">
+        Evaluates {#if agent.current}<Button href={`#/agents/${d.agentId}`} variant="link" size="sm" class="h-auto p-0">{agent.current.name}</Button>{:else}a deleted agent{/if}
         · {d.cases.length} case{d.cases.length === 1 ? '' : 's'}
-      </p>
+      </Text>
     </div>
     <div class="flex gap-2">
       {#if canRun}
@@ -127,8 +129,8 @@ const caseResult = (caseId: string) => shown?.results.find((r) => r.caseId === c
   </div>
 
   {#if (evaluations.current?.length ?? 0) > 0}
-    <div class="mb-4 flex flex-wrap items-center gap-2 text-sm">
-      <span class="text-muted-foreground">Showing</span>
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+      <Text as="span" size="sm" tone="muted">Showing</Text>
       <Select
         aria-label="Evaluation run"
         class="w-72"
@@ -143,21 +145,21 @@ const caseResult = (caseId: string) => shown?.results.find((r) => r.caseId === c
   <ul class="space-y-3">
     {#each d.cases as testCase (testCase.id)}
       {@const result = caseResult(testCase.id)}
-      <li class="rounded-xl border border-border bg-surface p-4 shadow-soft">
+      <li><Card class="p-4">
         <div class="flex items-start gap-3">
           {#if result}
-            {#if result.pass}<LucideIcon icon={CircleCheck} class="mt-0.5 size-5 shrink-0 text-success" label="Passed" />{:else}<LucideIcon icon={CircleX} class="mt-0.5 size-5 shrink-0 text-destructive" label="Failed" />{/if}
+            {#if result.pass}<LucideIcon icon={CircleCheck} tone="success" class="mt-0.5 size-5 shrink-0" label="Passed" />{:else}<LucideIcon icon={CircleX} tone="destructive" class="mt-0.5 size-5 shrink-0" label="Failed" />{/if}
           {/if}
           <div class="min-w-0 flex-1">
-            <p class="font-medium">{testCase.prompt}</p>
-            <p class="mt-1 flex flex-wrap gap-1.5 text-xs">
+            <Text weight="medium">{testCase.prompt}</Text>
+            <p class="mt-1 flex flex-wrap gap-1.5">
               {#if testCase.expectTool}<Badge variant="outline">calls {testCase.expectTool}</Badge>{/if}
               {#if testCase.expectText}<Badge variant="outline">mentions “{testCase.expectText}”</Badge>{/if}
             </p>
             {#if result && !result.pass}
-              <ul class="mt-2 list-disc pl-5 text-sm text-destructive">{#each result.reasons as reason (reason)}<li>{reason}</li>{/each}</ul>
+              <ul class="mt-2 space-y-0.5">{#each result.reasons as reason (reason)}<li><Text size="sm" tone="destructive">{reason}</Text></li>{/each}</ul>
             {/if}
-            {#if result}<a class="mt-2 inline-block text-xs underline" href={`#/runs/${result.runId}`}>Open trace</a>{/if}
+            {#if result}<Button href={`#/runs/${result.runId}`} variant="link" size="sm" class="mt-2 h-auto p-0">Open trace</Button>{/if}
           </div>
           {#if canWrite}
             <Button variant="ghost" size="icon" aria-label={`Remove case: ${testCase.prompt}`} onclick={() => runService(() => services().datasets.removeCase(id, testCase.id), { success: 'Case removed' })}>
@@ -165,15 +167,16 @@ const caseResult = (caseId: string) => shown?.results.find((r) => r.caseId === c
             </Button>
           {/if}
         </div>
-      </li>
+      </Card></li>
     {:else}
       <li><EmptyState size="sm" title="No cases yet" description="Add a prompt and what a good run should do." /></li>
     {/each}
   </ul>
 
   {#if canWrite}
-    <form class="mt-6 grid gap-4 rounded-xl border border-dashed border-border p-4 sm:grid-cols-2" onsubmit={addCase} novalidate>
-      <h2 class="font-medium sm:col-span-2">Add a case</h2>
+    <Box border="default" radius="xl" padding="md" class="mt-6">
+    <form class="grid gap-4 sm:grid-cols-2" onsubmit={addCase} novalidate aria-labelledby="add-case-title">
+      <Heading level={2} size="sm" id="add-case-title" class="sm:col-span-2">Add a case</Heading>
       <FormField label="Prompt" required error={errors.prompt} class="sm:col-span-2">
         {#snippet children(control)}
           <Textarea {...control.props} rows={2} bind:value={form.prompt} placeholder="Look up the customer Taylor Morgan" />
@@ -191,6 +194,7 @@ const caseResult = (caseId: string) => shown?.results.find((r) => r.caseId === c
       </FormField>
       <div class="sm:col-span-2"><Button type="submit" loading={adding}><Icon icon="plus" class="size-4" aria-hidden="true" />Add case</Button></div>
     </form>
+    </Box>
   {/if}
 
   <AlertDialog

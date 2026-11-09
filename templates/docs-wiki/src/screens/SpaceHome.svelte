@@ -1,8 +1,9 @@
 <script lang="ts">
 import { FilePlus, FileQuestion } from '@lucide/svelte';
-import { can, Link, liveQuery, type RouteProps, useClock } from '@protoyard/renderer-svelte';
+import { can, liveQuery, type RouteProps, useClock } from '@protoyard/renderer-svelte';
 import { Button, Card, EmptyState, Skeleton } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import NewPageDialog from '../components/NewPageDialog.svelte';
 import PageTree from '../components/PageTree.svelte';
 import SearchForm from '../components/SearchForm.svelte';
@@ -35,30 +36,34 @@ let newOpen = $state(false);
   {@const s = space.current}
   <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div class="min-w-0">
-      <h1 class="text-2xl font-semibold tracking-tight"><span aria-hidden="true">{s.icon}</span> {s.name}</h1>
-      <p class="mt-1 text-sm text-muted-foreground">{s.description}</p>
+      <Heading level={1} size="xl"><span aria-hidden="true">{s.icon}</span> {s.name}</Heading>
+      <Text size="sm" tone="muted" class="mt-1">{s.description}</Text>
     </div>
     {#if can(CAPABILITIES.pagesEdit)}
       <Button onclick={() => (newOpen = true)}><LucideIcon icon={FilePlus} class="size-4" />New page</Button>
     {/if}
   </header>
-  <div class="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-    <Card class="p-2"><PageTree spaceId={s.id} /></Card>
-    <div class="grid content-start gap-6">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <Card class="p-2 lg:w-2xs lg:shrink-0"><PageTree spaceId={s.id} /></Card>
+    <div class="grid min-w-0 content-start gap-6 lg:flex-1">
       <SearchForm />
       <section aria-labelledby="space-recent">
-        <h2 id="space-recent" class="mb-3 text-lg font-semibold">Recent changes</h2>
+        <Heading level={2} size="lg" id="space-recent" class="mb-3">Recent changes</Heading>
         {#if (recent.current ?? []).length === 0}
-          <p class="text-sm text-muted-foreground">No pages yet.</p>
+          <Text size="sm" tone="muted">No pages yet.</Text>
         {:else}
-          <ul class="divide-y divide-border rounded-lg border border-border">
-            {#each recent.current ?? [] as p (p.id)}
-              <li class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-                <Link href="/pages/{p.id}" class="font-medium hover:underline">{p.title}</Link>
-                <span class="text-xs text-muted-foreground">v{p.version} · {fromNow(p.updatedAt, clock.now)}</span>
-              </li>
-            {/each}
-          </ul>
+          <Box border="default" radius="lg" padding="none">
+            <ul class="flex flex-col">
+              {#each recent.current ?? [] as p, i (p.id)}
+                <li>
+                  <Box radius="none" padding="none" border={i === 0 ? 'none' : 'block-start'} class="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                    <Button variant="link" href="#/pages/{p.id}" class="h-auto min-h-0 px-0 whitespace-normal">{p.title}</Button>
+                    <Text as="span" size="xs" tone="muted">v{p.version} · {fromNow(p.updatedAt, clock.now)}</Text>
+                  </Box>
+                </li>
+              {/each}
+            </ul>
+          </Box>
         {/if}
       </section>
     </div>

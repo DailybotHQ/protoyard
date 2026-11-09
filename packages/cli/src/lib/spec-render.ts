@@ -68,17 +68,35 @@ function indexLabel(index: DexieIndex): string {
   return flags.length > 0 ? `${code(index.name)} (${flags.join(', ')})` : code(index.name);
 }
 
+/**
+ * The agent rule for a prototype locked to a design system. Unlocked
+ * prototypes get nothing, so their generated regions stay byte-identical.
+ */
+export function lockedDesignSystemRule(id: string, version: string): string {
+  return [
+    `**Locked design system.** This prototype is locked to design system ${code(`${id}@${version}`)}.`,
+    `Build UI only from its allowed Texuli components and its own components (${code(`@ds/${id}/<Name>`)}).`,
+    'If nothing fits, stop and ask the human: name, purpose, and why the existing components do not fit.',
+    `Only after they approve, run ${code(`protoyard ds component request ${id} <Name> --purpose "<text>" --why "<text>"`)},`,
+    `have it approved, then ${code(`protoyard ds component new ${id} <Name>`)}.`,
+    `Never style controls locally; ${code('protoyard check ds')} fails the build.`,
+  ].join('\n');
+}
+
 function renderCommands(facts: SpecFacts): string {
   const slug = facts.manifest.slug;
-  return [
+  const locked = facts.manifest.designSystem?.locked ? facts.manifest.designSystem : null;
+  const block = [
     '```bash',
     `pnpm protoyard dev ${slug}                  # run it (DevTools included)`,
     `pnpm vitest run prototypes/${slug}          # unit + integration tests`,
     `pnpm protoyard validate ${slug} --build     # contract, schema, build`,
     `pnpm protoyard spec ${slug} --check         # generated spec regions are current`,
+    ...(locked ? [`pnpm protoyard check ds ${slug}            # locked design system rules`] : []),
     `pnpm protoyard export ${slug}               # relocatable ZIP`,
     '```',
   ].join('\n');
+  return locked ? `${block}\n\n${lockedDesignSystemRule(locked.id, locked.version)}` : block;
 }
 
 function renderManifest(facts: SpecFacts): string {

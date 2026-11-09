@@ -3,7 +3,6 @@ import { ArrowLeft, FileQuestion } from '@lucide/svelte';
 import {
   can,
   isValidationError,
-  Link,
   liveQuery,
   type RouteProps,
   runService,
@@ -21,6 +20,7 @@ import {
   Textarea,
 } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Heading, Text } from 'texuli/typography';
 import StatusBadge from '../components/StatusBadge.svelte';
 import { checkInBlocker, patientName, waitMinutes } from '../domain/clinic.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
@@ -101,9 +101,9 @@ const cancel = () =>
   });
 </script>
 
-<Link href="/" class="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+<Button variant="ghost" size="sm" href="#/" class="mb-4 -ml-2">
   <LucideIcon icon={ArrowLeft} class="size-4" />Front desk
-</Link>
+</Button>
 
 {#if visit.current === undefined}
   <Skeleton class="h-40 w-full" />
@@ -117,8 +117,8 @@ const cancel = () =>
   {@const cancellable = a.status === 'scheduled' && Date.parse(a.end) > clock.now.getTime()}
   <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div class="min-w-0">
-      <h1 class="text-2xl font-semibold tracking-tight">{a.reason}: {patientName(patient)}</h1>
-      <p class="mt-1 text-sm text-muted-foreground">{formatSpan(a.start, a.end)} · {provider?.name} · {provider?.room}</p>
+      <Heading level={1} size="xl">{a.reason}: {patientName(patient)}</Heading>
+      <Text size="sm" tone="muted" class="mt-1">{formatSpan(a.start, a.end)} · {provider?.name} · {provider?.room}</Text>
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <StatusBadge status={a.status} />
@@ -128,26 +128,26 @@ const cancel = () =>
     </div>
   </header>
 
-  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
+  <div class="visit-grid grid gap-6">
     <Card class="p-4">
-      <h2 class="mb-3 font-semibold">Appointment</h2>
-      <dl class="grid grid-cols-[7rem_1fr] gap-x-4 gap-y-2 text-sm">
-        <dt class="text-muted-foreground">Patient</dt>
-        <dd><Link href="/patients/{a.patientId}" class="hover:underline">{patientName(patient)}</Link> <span class="text-muted-foreground tabular-nums">{patient?.mrn}</span></dd>
-        <dt class="text-muted-foreground">Provider</dt>
-        <dd>{provider?.name} · {provider?.specialty}</dd>
-        <dt class="text-muted-foreground">Checked in</dt>
+      <Heading level={2} size="sm" class="mb-3">Appointment</Heading>
+      <dl class="visit-dl grid gap-x-4 gap-y-2">
+        <dt><Text as="span" size="sm" tone="muted">Patient</Text></dt>
+        <dd><Button variant="link" size="sm" href="#/patients/{a.patientId}" class="h-auto min-w-0 shrink justify-start p-0 text-left whitespace-normal">{patientName(patient)}</Button> <Text as="span" size="sm" tone="muted" tabular>{patient?.mrn}</Text></dd>
+        <dt><Text as="span" size="sm" tone="muted">Provider</Text></dt>
+        <dd><Text as="span" size="sm">{provider?.name} · {provider?.specialty}</Text></dd>
+        <dt><Text as="span" size="sm" tone="muted">Checked in</Text></dt>
         <dd>
-          {a.checkedInAt ? formatTime(a.checkedInAt) : '—'}
-          {#if waitMinutes(a, clock.now) > 0}<span class="text-muted-foreground"> · waiting {waitMinutes(a, clock.now)} min</span>{/if}
+          <Text as="span" size="sm">{a.checkedInAt ? formatTime(a.checkedInAt) : '—'}</Text>
+          {#if waitMinutes(a, clock.now) > 0}<Text as="span" size="sm" tone="muted"> · waiting {waitMinutes(a, clock.now)} min</Text>{/if}
         </dd>
         {#if a.cancelReason}
-          <dt class="text-muted-foreground">Cancel reason</dt>
-          <dd>{a.cancelReason}</dd>
+          <dt><Text as="span" size="sm" tone="muted">Cancel reason</Text></dt>
+          <dd><Text as="span" size="sm">{a.cancelReason}</Text></dd>
         {/if}
       </dl>
       {#if can(CAPABILITIES.appointmentsManage) && blocker !== null && a.status === 'scheduled'}
-        <p class="mt-3 text-xs text-muted-foreground">{blocker}.</p>
+        <Text size="xs" tone="muted" class="mt-3">{blocker}.</Text>
       {/if}
       {#if can(CAPABILITIES.appointmentsManage) && cancellable}
         <div class="mt-4 grid gap-2">
@@ -163,13 +163,13 @@ const cancel = () =>
 
     <Card class="p-4" aria-labelledby="note-heading">
       <div class="mb-3 flex items-center justify-between gap-2">
-        <h2 id="note-heading" class="font-semibold">Visit note</h2>
+        <Heading level={2} size="sm" id="note-heading">Visit note</Heading>
         {#if note && can(CAPABILITIES.notesRead)}
           <Badge variant={note.signedAt ? 'secondary' : 'outline'}>{note.signedAt ? `Signed ${formatStamp(note.signedAt)}` : 'Draft'}</Badge>
         {/if}
       </div>
       {#if !can(CAPABILITIES.notesRead)}
-        <p class="text-sm text-muted-foreground" role="note">Visit notes are visible to clinicians and admins only.</p>
+        <Text size="sm" tone="muted" role="note">Visit notes are visible to clinicians and admins only.</Text>
       {:else if canWrite}
         <div class="grid gap-3">
           <FormField label="Note (plain text)" error={noteError} description="Fictional notes only. Markup is kept as typed and never rendered.">
@@ -184,13 +184,24 @@ const cancel = () =>
         </div>
       {:else if note}
         <!-- Plain text: shown exactly as typed, never as HTML. -->
-        <p class="whitespace-pre-wrap text-sm" data-note-body="">{note.body}</p>
+        <Text size="sm" class="whitespace-pre-wrap" data-note-body="">{note.body}</Text>
       {:else}
-        <p class="text-sm text-muted-foreground">
+        <Text size="sm" tone="muted">
           {a.status === 'scheduled' ? 'The note can be written once the patient checks in.' : 'No note for this visit.'}
           {#if can(CAPABILITIES.notesWrite) && !treating}Only {provider?.name} can write it.{/if}
-        </p>
+        </Text>
       {/if}
     </Card>
   </div>
 {/if}
+
+<style>
+  @media (min-width: 64rem) {
+    .visit-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+    }
+  }
+  .visit-dl {
+    grid-template-columns: 7rem 1fr;
+  }
+</style>

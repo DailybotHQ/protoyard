@@ -3,7 +3,6 @@ import { FileQuestion } from '@lucide/svelte';
 import {
   can,
   isValidationError,
-  Link,
   liveQuery,
   navigate,
   type RouteProps,
@@ -11,6 +10,8 @@ import {
 } from '@protoyard/renderer-svelte';
 import { Button, EmptyState, FormField, Input, Skeleton } from '@protoyard/ui';
 import { MarkdownEditor } from '@protoyard/views-ui/editor';
+import { Alert } from 'texuli/alert';
+import { Heading, Text } from 'texuli/typography';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { BODY_MAX, TITLE_MAX } from '../domain/validation.ts';
 import { useWiki } from '../lib/context.ts';
@@ -68,8 +69,8 @@ const save = async () => {
 {:else}
   <header class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <div>
-      <h1 class="text-2xl font-semibold tracking-tight">Edit page</h1>
-      <p class="text-sm text-muted-foreground">Editing version {baseVersion}. Saving adds version {baseVersion + 1}{dirty ? '' : ' (no changes yet)'}.</p>
+      <Heading level={1} size="xl">Edit page</Heading>
+      <Text size="sm" tone="muted">Editing version {baseVersion}. Saving adds version {baseVersion + 1}{dirty ? '' : ' (no changes yet)'}.</Text>
     </div>
     <div class="flex gap-2">
       <Button variant="ghost" href="#/pages/{page.current.id}">Cancel</Button>
@@ -81,11 +82,11 @@ const save = async () => {
       {#snippet children(control)}<Input {...control.props} bind:value={title} maxlength={TITLE_MAX} autocomplete="off" />{/snippet}
     </FormField>
     {#if errors.body}
-      <p role="alert" class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-foreground">{errors.body}</p>
+      <Alert tone="error" text={errors.body} />
     {/if}
     <MarkdownEditor bind:value={body} label="Page content" layout="split" maxLength={BODY_MAX} rows={18} placeholder="# Heading&#10;&#10;Write in Markdown." />
-    <p class="text-xs text-muted-foreground">
-      Markdown only. HTML, scripts and unsafe links are shown as text in the preview and on the page. <Link href="/pages/{page.current.id}/history" class="underline">See the history</Link>.
-    </p>
+    <Text size="xs" tone="muted">
+      Markdown only. HTML, scripts and unsafe links are shown as text in the preview and on the page. <Button variant="link" size="sm" href="#/pages/{page.current.id}/history" class="h-auto min-h-0 px-0">See the history</Button>.
+    </Text>
   </div>
 {/if}

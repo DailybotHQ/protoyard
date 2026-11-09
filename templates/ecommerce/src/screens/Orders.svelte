@@ -10,6 +10,7 @@ import {
   ErrorState,
   Select,
 } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 import OrderStatusBadge from '../components/OrderStatusBadge.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import { ORDER_STATUSES, type Order } from '../database/schema.ts';
@@ -73,7 +74,7 @@ const columns: DataTableColumn<Row>[] = $derived([
 ]);
 </script>
 
-{#snippet numberCell(order: Row)}<span class="font-mono font-medium">{order.number}</span>{/snippet}
+{#snippet numberCell(order: Row)}<Text as="span" size="sm" weight="medium" mono>{order.number}</Text>{/snippet}
 {#snippet customerCell(order: Row)}
   <span class="flex items-center gap-2">
     <Avatar name={order.customerName} {...avatarImage(order.customerAvatar)} size="xs" decorative />
@@ -81,7 +82,7 @@ const columns: DataTableColumn<Row>[] = $derived([
   </span>
 {/snippet}
 {#snippet dateCell(order: Row)}{formatDate(order.placedAt)}{/snippet}
-{#snippet totalCell(order: Row)}<span class="tabular-nums">{money(order.totalCents)}</span>{/snippet}
+{#snippet totalCell(order: Row)}<Text as="span" size="sm" tabular>{money(order.totalCents)}</Text>{/snippet}
 {#snippet statusCell(order: Row)}<OrderStatusBadge status={order.status} />{/snippet}
 
 <PageHeader title={scope === 'all' ? 'All orders' : 'Your orders'} description={`${filtered.length} order${filtered.length === 1 ? '' : 's'}`} />

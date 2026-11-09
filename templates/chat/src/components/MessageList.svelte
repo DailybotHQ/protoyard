@@ -1,9 +1,10 @@
 <script lang="ts">
 import { CircleAlert, RotateCcw, Square } from '@lucide/svelte';
 import type { Persona } from '@protoyard/core';
-import { Button } from '@protoyard/ui';
+import { Button, Separator } from '@protoyard/ui';
 import { tick } from 'svelte';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Text } from 'texuli/typography';
 import type { Message } from '../database/schema.ts';
 import { authorOf } from '../lib/context.ts';
 import { formatDay, formatTime } from '../lib/format.ts';
@@ -95,7 +96,7 @@ $effect(() => {
   bind:this={viewport}
   aria-label="Messages"
   tabindex="0"
-  class="relative min-h-0 flex-1 overflow-y-auto px-3 py-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-5"
+  class="relative min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-5"
 >
   <ol class="flex flex-col gap-3">
     {#each groups as group (group.key)}
@@ -103,52 +104,54 @@ $effect(() => {
       {#if group.day}
         <!-- A list may only contain <li>: the separator role goes on an inner element. -->
         <li>
-          <div class="flex items-center gap-3 text-xs text-muted-foreground" role="separator" aria-label={group.day}>
-            <span class="h-px flex-1 bg-border"></span><span aria-hidden="true">{group.day}</span><span class="h-px flex-1 bg-border"></span>
+          <div class="flex items-center gap-3" role="separator" aria-label={group.day}>
+            <Separator class="flex-1" /><Text as="span" size="xs" tone="muted" aria-hidden="true">{group.day}</Text><Separator class="flex-1" />
           </div>
         </li>
       {/if}
-      <li class={['flex gap-3 rounded-lg px-2 py-1.5', group.authorId === meId && 'bg-primary/5']}>
+      <li>
+        <Box surface={group.authorId === meId ? 'muted' : 'transparent'} radius="lg" padding="none" class="flex gap-3 px-2 py-1.5">
         <Avatar {author} />
         <div class="min-w-0 flex-1">
-          <p class="flex items-baseline gap-2 text-sm">
-            <span class="font-semibold">{author.name}{group.authorId === meId ? ' (you)' : ''}</span>
-            <time class="text-xs text-muted-foreground" datetime={group.items[0]?.at}>{formatTime(group.items[0]?.at ?? '')}</time>
+          <p class="flex items-baseline gap-2">
+            <Text as="span" size="sm" weight="semibold">{author.name}{group.authorId === meId ? ' (you)' : ''}</Text>
+            <time datetime={group.items[0]?.at}><Text as="span" size="xs" tone="muted">{formatTime(group.items[0]?.at ?? '')}</Text></time>
           </p>
           {#each group.items as message (message.id)}
-            <div class="mt-0.5 text-sm leading-relaxed break-words whitespace-pre-wrap" data-message-id={message.id} data-status={message.status}>
+            <Text as="div" size="sm" class="mt-0.5 break-words whitespace-pre-wrap" data-message-id={message.id} data-status={message.status}>
               {#if message.status === 'failed'}
-                <div class="flex flex-wrap items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 whitespace-normal">
-                  <LucideIcon icon={CircleAlert} class="size-4 shrink-0 text-destructive" />
-                  <span class="flex-1"><span class="font-medium">Reply failed.</span> {message.error}</span>
+                <Box border="default" radius="md" padding="sm" class="flex flex-wrap items-center gap-2 whitespace-normal">
+                  <LucideIcon icon={CircleAlert} tone="destructive" class="size-4 shrink-0" />
+                  <span class="flex-1"><Text as="span" size="sm" weight="medium" tone="destructive">Reply failed.</Text> {message.error}</span>
                   {#if canSend}<Button size="sm" variant="outline" onclick={() => onRetry(message.id)}><LucideIcon icon={RotateCcw} /> Retry</Button>{/if}
-                </div>
+                </Box>
               {:else}
                 {message.body}
                 {#if message.status === 'streaming'}
-                  <span class="mt-1 flex items-center gap-2 text-xs whitespace-normal text-muted-foreground">
+                  <Text as="span" size="xs" tone="muted" class="mt-1 flex items-center gap-2 whitespace-normal">
                     {#if isLive(message.id)}
                       {message.body ? 'Writing…' : 'Thinking…'}
                       {#if canSend}
-                        <Button type="button" variant="ghost" class="inline-flex min-h-touch items-center gap-1 rounded px-1.5 font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0" onclick={() => onStop(message.id)}>
-                          <LucideIcon icon={Square} class="size-3 fill-current" /> Stop
+                        <Button type="button" variant="ghost" size="sm" class="min-h-touch gap-1 px-1.5 sm:min-h-0" onclick={() => onStop(message.id)}>
+                          <LucideIcon icon={Square} fill="currentColor" class="size-3" /> Stop
                         </Button>
                       {/if}
                     {:else}
                       Reply interrupted by a reload.
                       {#if canSend}<Button size="sm" variant="ghost" onclick={() => onRetry(message.id)}><LucideIcon icon={RotateCcw} /> Retry</Button>{/if}
                     {/if}
-                  </span>
+                  </Text>
                 {:else if message.status === 'stopped'}
-                  <span class="mt-0.5 flex items-center gap-2 text-xs whitespace-normal text-muted-foreground italic">
+                  <Text as="span" size="xs" tone="muted" class="mt-0.5 flex items-center gap-2 whitespace-normal">
                     Stopped
                     {#if canSend}<Button size="sm" variant="ghost" onclick={() => onRetry(message.id)}><LucideIcon icon={RotateCcw} /> Regenerate</Button>{/if}
-                  </span>
+                  </Text>
                 {/if}
               {/if}
-            </div>
+            </Text>
           {/each}
         </div>
+        </Box>
       </li>
     {/each}
   </ol>

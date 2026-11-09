@@ -1,6 +1,6 @@
 {
   "name": "create-protoyard",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Scaffold a Protoyard workspace with `npm create protoyard` or `pnpm create protoyard`: pinned protoyard, a workspace marker, AGENTS.md and a starter prototype.",
   "license": "MIT",
   "type": "module",

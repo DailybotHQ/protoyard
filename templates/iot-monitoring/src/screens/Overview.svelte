@@ -1,8 +1,9 @@
 <script lang="ts">
 import { liveQuery, useClock } from '@protoyard/renderer-svelte';
-import { Button, Card, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
+import { Badge, Button, Card, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
 import type { MapMarker } from '@protoyard/views-ui/map';
 import { onMount } from 'svelte';
+import { Heading, Text } from 'texuli/typography';
 import { useMonitoring } from '../lib/context.svelte.ts';
 
 const { db } = useMonitoring();
@@ -73,32 +74,32 @@ const openAlerts = $derived(alerts.current?.length ?? 0);
 
 <header class="mb-5 flex flex-wrap items-end justify-between gap-3">
   <div>
-    <p class="text-sm font-medium text-primary">Harbor Bay · fictional sensor region</p>
-    <h1 class="text-2xl font-semibold tracking-tight">Device monitoring</h1>
-    <p class="mt-1 text-sm text-muted-foreground">Readings and incidents follow simulated time. No devices or network are contacted.</p>
+    <Text size="sm" weight="medium" tone="primary">Harbor Bay · fictional sensor region</Text>
+    <Heading level={1} size="xl">Device monitoring</Heading>
+    <Text size="sm" tone="muted" class="mt-1">Readings and incidents follow simulated time. No devices or network are contacted.</Text>
   </div>
-  <p class="rounded-full border border-border px-3 py-1 text-sm">{devices.current?.length ?? 0} devices · {openAlerts} open alerts</p>
+  <Badge variant="outline">{devices.current?.length ?? 0} devices · {openAlerts} open alerts</Badge>
 </header>
-<p class="mb-4 text-xs text-muted-foreground">Simulated time · {clock.now.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC</p>
+<Text size="xs" tone="muted" class="mb-4">Simulated time · {clock.now.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC</Text>
 
 {#if devices.loading}
-  <Skeleton class="h-96 w-full rounded-xl" />
+  <Skeleton class="h-96 w-full" />
 {:else if devices.error || alerts.error || incidents.error}
   <ErrorState title="Could not load monitoring data" message={String(devices.error ?? alerts.error ?? incidents.error)} />
 {:else if !(devices.current?.length)}
   <EmptyState title="No devices in this scenario" description="Load a monitoring scenario in DevTools to seed a fictional field network." />
 {:else}
-  <div class="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.8fr)]">
-    <Card class="min-w-0 overflow-hidden p-3 sm:p-4">
-      {#if MapView}<MapView {markers} label="Harbor Bay device map" listLabel="Field monitoring devices" />{:else}<Skeleton class="h-[24rem] w-full" />{/if}
+  <div class="grid gap-4 xl:grid-cols-5">
+    <Card class="min-w-0 overflow-hidden p-3 sm:p-4 xl:col-span-3">
+      {#if MapView}<MapView {markers} label="Harbor Bay device map" listLabel="Field monitoring devices" />{:else}<Skeleton class="h-96 w-full" />{/if}
     </Card>
-    <section class="space-y-3" aria-labelledby="device-list-title">
-      <div class="flex items-center justify-between"><h2 id="device-list-title" class="text-lg font-semibold">Field devices</h2><span class="text-sm text-muted-foreground">{incidents.current?.length ?? 0} active incidents</span></div>
-      <div class="max-h-[24rem] space-y-2 overflow-auto">
+    <section class="min-w-0 space-y-3 xl:col-span-2" aria-labelledby="device-list-title">
+      <div class="flex items-center justify-between"><Heading level={2} size="md" id="device-list-title">Field devices</Heading><Text as="span" size="sm" tone="muted">{incidents.current?.length ?? 0} active incidents</Text></div>
+      <div class="max-h-96 space-y-2 overflow-auto">
         {#each devices.current ?? [] as device (device.id)}
-          <Button variant="ghost" class="flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-left whitespace-normal hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" aria-pressed={selectedDeviceId === device.id} onclick={() => { selectedDeviceId = device.id; }}>
-            <span class="min-w-0"><span class="block truncate font-medium">{device.name}</span><span class="text-xs text-muted-foreground">{device.kind} · {device.status}</span></span>
-            <span class="shrink-0 text-sm tabular-nums">{(telemetry.current ?? []).find((row) => row.deviceId === device.id)?.value?.toFixed(1) ?? '—'} {device.unit}</span>
+          <Button variant={selectedDeviceId === device.id ? 'secondary' : 'outline'} class="flex h-auto min-h-12 w-full items-center justify-between gap-3 px-3 py-2 text-left whitespace-normal" aria-pressed={selectedDeviceId === device.id} onclick={() => { selectedDeviceId = device.id; }}>
+            <span class="min-w-0"><Text as="span" weight="medium" truncate class="block">{device.name}</Text><Text as="span" size="xs" tone="muted">{device.kind} · {device.status}</Text></span>
+            <Text as="span" size="sm" tabular class="shrink-0">{(telemetry.current ?? []).find((row) => row.deviceId === device.id)?.value?.toFixed(1) ?? '—'} {device.unit}</Text>
           </Button>
         {/each}
       </div>

@@ -24,9 +24,13 @@ export type ToolName =
   | 'promote'
   | 'doctor'
   | 'ds_create'
+  | 'ds_list'
   | 'ds_validate'
   | 'ds_export'
-  | 'ds_use';
+  | 'ds_use'
+  | 'ds_component_request'
+  | 'ds_component_new'
+  | 'new_from_design_system';
 
 /** A prototype or exploration slug, checked like the CLI checks it (never an option-like `-…`). */
 const slugArg = z
@@ -125,6 +129,7 @@ const dsCreateArgs = z
     motion: z.enum(['none', 'subtle', 'standard', 'expressive']).optional(),
     contrast: z.enum(['AA', 'AAA']).optional(),
     fromTheme: dsId.optional(),
+    allow: z.enum(['all', 'minimal', 'none']).optional(),
     out: dsPath.optional(),
     force: z.boolean().optional(),
     dryRun: z.boolean().optional(),
@@ -141,10 +146,56 @@ const dsUseArgs = z
   .object({
     slug: slugArg,
     file: dsPath,
+    lock: z.boolean().optional(),
+    upgrade: z.boolean().optional(),
     force: z.boolean().optional(),
     dryRun: z.boolean().optional(),
   })
   .strict();
+/** A design-system component name (PascalCase), as `ds component` checks it. */
+const dsComponentName = z
+  .string()
+  .regex(/^[A-Z][A-Za-z0-9]{0,63}$/, 'Use a PascalCase component name, e.g. StatusPill.');
+/** One line of human text: no control characters or line separators. */
+const dsLine = (max: number) =>
+  z
+    .string()
+    .min(1)
+    .max(max)
+    .refine((value) => !hasControlCharacter(value), 'Use one line without control characters.');
+const dsComponentRequestArgs = z
+  .object({
+    id: dsId,
+    name: dsComponentName,
+    purpose: dsLine(280),
+    why: dsLine(1000),
+    by: dsLine(120).optional(),
+  })
+  .strict();
+const dsComponentNewArgs = z
+  .object({
+    id: dsId,
+    name: dsComponentName,
+    prototype: slugArg.optional(),
+  })
+  .strict();
+const newFromDesignSystemArgs = z
+  .object({
+    slug: slugArg,
+    ds: dsId,
+    template: slugArg.optional(),
+    unlocked: z.boolean().optional(),
+    name: dsLine(80).optional(),
+    description: dsLine(280).optional(),
+  })
+  .strict();
+/**
+ * The agent rule both component tools repeat: an agent never invents a
+ * component; it stops and asks, and approvals stay with a human (there is no
+ * approve-request tool).
+ */
+const DS_COMPONENT_RULE =
+  'If no design-system component fits, stop and ask the human first: the name, the purpose, and why the existing components do not fit. Only after they agree, record the request; a human approves it with `protoyard ds component approve-request` (no tool does that), and only then scaffold it. Never style controls locally in a locked prototype: `protoyard check ds` fails the build.';
 const DS_CREATE_TEXT = {
   name: 80,
   brief: 2048,
@@ -170,6 +221,7 @@ const DS_FLAGS: Record<string, string> = {
   motion: '--motion',
   contrast: '--contrast',
   fromTheme: '--from-theme',
+  allow: '--allow',
   out: '--out',
 };
 
@@ -253,7 +305,7 @@ const toolSchemas: Record<ToolName, McpTool> = {
   ds_create: {
     name: 'ds_create',
     description:
-      'Create a Texuli design system from a brief, a few inputs (brand color, fonts, shape, density, motion) or a Protoyard theme; validates, compiles and writes design-systems/<id>.json.',
+      'Create a Texuli design system from a brief, a few inputs (brand color, fonts, shape, density, motion) or a Protoyard theme; validates, compiles and writes design-systems/<id>/ (document.json with an allow section and a draft approval, and components.json). allow picks the allow section: all (default), minimal, or none (the design system cannot be locked). A human approves it with `protoyard ds approve`; no tool approves.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -270,6 +322,7 @@ const toolSchemas: Record<ToolName, McpTool> = {
         motion: { type: 'string', enum: ['none', 'subtle', 'standard', 'expressive'] },
         contrast: { type: 'string', enum: ['AA', 'AAA'] },
         fromTheme: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,63}$' },
+        allow: { type: 'string', enum: ['all', 'minimal', 'none'] },
         out: { type: 'string', minLength: 1, maxLength: 2048 },
         force: { type: 'boolean' },
         dryRun: { type: 'boolean' },
@@ -278,10 +331,20 @@ const toolSchemas: Record<ToolName, McpTool> = {
       additionalProperties: false,
     },
   },
+  ds_list: {
+    name: 'ds_list',
+    description:
+      "List the workspace's design systems from a fresh index: id, name, version, approval status (draft or approved, approvedBy, approvedAt), contentHash, whether ds_use lock would accept it, folder or flat layout, component count, and the prototypes bound to each (slug, pinned version, locked). Problems are listed in issues. Reads only.",
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    },
+  },
   ds_validate: {
     name: 'ds_validate',
     description:
-      'Validate an untrusted Texuli design-system document and compile it (contrast report, hash).',
+      'Validate an untrusted Texuli design-system document and compile it (contrast report, hash); its allow section is checked against the Texuli catalog (unknown-component, unknown-variant and the other codes, with JSON paths), and a folder reports its approval, library and whether it can be locked.',
     inputSchema: {
       type: 'object',
       properties: { file: { type: 'string', minLength: 1, maxLength: 2048 } },
@@ -305,16 +368,65 @@ const toolSchemas: Record<ToolName, McpTool> = {
   ds_use: {
     name: 'ds_use',
     description:
-      'Apply a design system to a prototype: writes src/design-system.ts, adds it to definePrototype({ themes }) and sets defaultTheme.',
+      'Apply a design system (its id or document file) to a prototype: writes src/design-system.ts, adds it to definePrototype({ themes }) and sets defaultTheme. lock binds the prototype to an approved design system at its exact version; upgrade moves an existing binding and lists what changed.',
     inputSchema: {
       type: 'object',
       properties: {
         slug: { type: 'string', minLength: 1, maxLength: 80 },
         file: { type: 'string', minLength: 1, maxLength: 2048 },
+        lock: { type: 'boolean' },
+        upgrade: { type: 'boolean' },
         force: { type: 'boolean' },
         dryRun: { type: 'boolean' },
       },
       required: ['slug', 'file'],
+      additionalProperties: false,
+    },
+  },
+  ds_component_request: {
+    name: 'ds_component_request',
+    description: `Record a request for a new component in a design-system folder (design-systems/<id>/requests/<Name>.json, status open). Writes no code. Refuses an existing component, an open or approved request with the same name, a flat or unknown design system, and text with control characters. ${DS_COMPONENT_RULE}`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,63}$' },
+        name: { type: 'string', pattern: '^[A-Z][A-Za-z0-9]{0,63}$' },
+        purpose: { type: 'string', minLength: 1, maxLength: 280 },
+        why: { type: 'string', minLength: 1, maxLength: 1000 },
+        by: { type: 'string', minLength: 1, maxLength: 120 },
+      },
+      required: ['id', 'name', 'purpose', 'why'],
+      additionalProperties: false,
+    },
+  },
+  ds_component_new: {
+    name: 'ds_component_new',
+    description: `Scaffold a design-system component whose request a human approved: components/<Name>.svelte from Texuli components with layout classes only (passes check ds), a draft components.json entry with its sha256, and a kit story stub. Refuses without an approved request, for a locked prototype target, from inside a prototype folder, and for an existing component. ${DS_COMPONENT_RULE}`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,63}$' },
+        name: { type: 'string', pattern: '^[A-Z][A-Za-z0-9]{0,63}$' },
+        prototype: { type: 'string', minLength: 1, maxLength: 80 },
+      },
+      required: ['id', 'name'],
+      additionalProperties: false,
+    },
+  },
+  new_from_design_system: {
+    name: 'new_from_design_system',
+    description: `Create prototypes/<slug> from a design system, locked to its approved version from the first file (\`protoyard new <slug> --ds <id>\`): the template (default blank) is copied only when it already passes check ds, the theme comes from design-systems/<id>/ compiled into src/design-system.ts, and protoyard.json pins designSystem { id, version, locked: true }. Refuses an unknown, flat or draft design system, a template that is not lock-clean, and an existing slug. unlocked binds without locking (a draft is allowed). Never runs pnpm install: data.nextSteps names it. In the locked prototype, build screens only from the design system's components with layout; ${DS_COMPONENT_RULE}`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', minLength: 1, maxLength: 80 },
+        ds: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,63}$' },
+        template: { type: 'string', minLength: 1, maxLength: 80 },
+        unlocked: { type: 'boolean' },
+        name: { type: 'string', minLength: 1, maxLength: 80 },
+        description: { type: 'string', minLength: 1, maxLength: 280 },
+      },
+      required: ['slug', 'ds'],
       additionalProperties: false,
     },
   },
@@ -342,9 +454,13 @@ const validators: Record<ToolName, z.ZodType> = {
   promote: promoteArgs,
   doctor: doctorArgs,
   ds_create: dsCreateArgs,
+  ds_list: emptyArgs,
   ds_validate: dsFileArgs,
   ds_export: dsExportArgs,
   ds_use: dsUseArgs,
+  ds_component_request: dsComponentRequestArgs,
+  ds_component_new: dsComponentNewArgs,
+  new_from_design_system: newFromDesignSystemArgs,
 };
 
 function commandForTool(name: string): string {
@@ -352,6 +468,9 @@ function commandForTool(name: string): string {
   if (name === 'blueprint_schema') return 'blueprint_schema';
   if (name === 'iterate' || name === 'promote' || name === 'screenshot') return 'quick';
   if (name === 'ds_create') return 'ds new';
+  if (name === 'ds_component_request') return 'ds component request';
+  if (name === 'ds_component_new') return 'ds component new';
+  if (name === 'new_from_design_system') return 'new';
   if (name.startsWith('ds_')) return `ds ${name.slice(3)}`;
   return name;
 }
@@ -421,6 +540,7 @@ export function cliArgs(name: ToolName, value: Record<string, unknown>): string[
     if (value.dryRun) options.push('--dry-run');
     return command(['ds', 'new'], options, [String(value.id)]);
   }
+  if (name === 'ds_list') return command(['ds', 'list'], [], []);
   if (name === 'ds_validate') return command(['ds', 'validate'], [], [String(value.file)]);
   if (name === 'ds_export') {
     return command(['ds', 'export'], value.format ? [`--format=${String(value.format)}`] : [], [
@@ -430,8 +550,46 @@ export function cliArgs(name: ToolName, value: Record<string, unknown>): string[
   if (name === 'ds_use') {
     return command(
       ['ds', 'use'],
-      [...(value.force ? ['--force'] : []), ...(value.dryRun ? ['--dry-run'] : [])],
+      [
+        ...(value.lock ? ['--lock'] : []),
+        ...(value.upgrade ? ['--upgrade'] : []),
+        ...(value.force ? ['--force'] : []),
+        ...(value.dryRun ? ['--dry-run'] : []),
+      ],
       [String(value.slug), String(value.file)]
+    );
+  }
+  if (name === 'ds_component_request') {
+    return command(
+      ['ds', 'component', 'request'],
+      [
+        `--purpose=${String(value.purpose)}`,
+        `--why=${String(value.why)}`,
+        ...(value.by === undefined ? [] : [`--by=${String(value.by)}`]),
+      ],
+      [String(value.id), String(value.name)]
+    );
+  }
+  if (name === 'ds_component_new') {
+    return command(
+      ['ds', 'component', 'new'],
+      value.prototype === undefined ? [] : [`--prototype=${String(value.prototype)}`],
+      [String(value.id), String(value.name)]
+    );
+  }
+  if (name === 'new_from_design_system') {
+    // `--flag=value`, so a name or description that starts with `-` stays a value.
+    return command(
+      ['new'],
+      [
+        `--ds=${String(value.ds)}`,
+        ...(value.template === undefined ? [] : [`--template=${String(value.template)}`]),
+        ...(value.unlocked ? ['--unlocked'] : []),
+        ...(value.name === undefined ? [] : [`--name=${String(value.name)}`]),
+        ...(value.description === undefined ? [] : [`--description=${String(value.description)}`]),
+        '--no-install',
+      ],
+      [String(value.slug)]
     );
   }
   return ['doctor', '--offline'];
@@ -549,7 +707,9 @@ export function createMcpToolHandler(options: McpToolHandlerOptions = {}) {
       if (toolName === 'validate_blueprint') data.file = canonical(data.file);
       if (toolName === 'quick' && data.blueprint) data.blueprint = canonical(data.blueprint);
       if (toolName === 'ds_validate' || toolName === 'ds_export' || toolName === 'ds_use') {
-        data.file = canonical(data.file);
+        // A bare design-system id (design-systems/<id>/) stays an id; a path
+        // becomes the canonical absolute path.
+        if (!/^[a-z][a-z0-9-]{0,63}$/.test(String(data.file))) data.file = canonical(data.file);
       }
       if (toolName === 'ds_create' && data.out) data.out = canonical(data.out);
     } catch (error) {

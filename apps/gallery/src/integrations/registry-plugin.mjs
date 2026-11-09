@@ -153,6 +153,9 @@ export function readRegistry(registryPath, env = process.env) {
         else issues.push({ path: getDiagnosticPath(raw, index), errors: [result.error] });
       }
       const invalid = [...(Array.isArray(parsed.invalid) ? parsed.invalid : []), ...issues];
+      // Design systems are a top-level array (ADR-047), validated on their own:
+      // a bad one is dropped and reported, never mixed into `invalid`.
+      const designSystems = validateDesignSystems(parsed.designSystems);
       const stats = parsed.stats && typeof parsed.stats === 'object' ? parsed.stats : {};
       // The workspace listing hides entries from every page; the file keeps them.
       const listing = listingRule(workspaceRoot, env);
@@ -167,6 +170,8 @@ export function readRegistry(registryPath, env = process.env) {
           ...parsed,
           entries: attachReviewCounts(workspaceRoot, listed),
           invalid,
+          designSystems: designSystems.designSystems,
+          designSystemIssues: [...validIssues(parsed.designSystemIssues), ...designSystems.issues],
           stats: {
             ...stats,
             total: listed.length,
@@ -174,6 +179,7 @@ export function readRegistry(registryPath, env = process.env) {
             templates: listed.filter((entry) => entry.kind === 'template').length,
             blueprints: listed.filter((entry) => entry.kind === 'blueprint').length,
             invalid: invalid.length,
+            designSystems: designSystems.designSystems.length,
           },
         },
         error: null,
@@ -250,6 +256,169 @@ const KINDS = new Set(['prototype', 'template', 'blueprint']);
 /** Kinds whose folder may publish a thumbnail (a blueprint's path is a JSON file, not a folder). */
 const THUMBNAIL_KINDS = new Set(['prototype', 'template']);
 
+/** A design-system id: lowercase kebab-case, at most 64 characters (mirrors the CLI). */
+const DESIGN_SYSTEM_ID = /^[a-z][a-z0-9-]{0,63}$/;
+const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const SHA256 = /^[0-9a-f]{64}$/;
+const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+const MAX_DESIGN_SYSTEMS = 500;
+const MAX_BOUND = 2000;
+
+/** Short display text: a string of 1–max characters without control characters. */
+function isText(/** @type {unknown} */ value, max = 120) {
+  return (
+    typeof value === 'string' &&
+    value.length > 0 &&
+    value.length <= max &&
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: the pattern exists to refuse them.
+    !/[\u0000-\u001f\u007f\u2028\u2029]/.test(value)
+  );
+}
+
+/**
+ * The manifest binding of a registry entry, or null when it is missing or
+ * malformed.
+ * @param {unknown} raw
+ * @returns {{ id: string; version: string; locked: boolean } | null}
+ */
+export function validBinding(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const value = /** @type {Record<string, unknown>} */ (raw);
+  if (typeof value.id !== 'string' || !DESIGN_SYSTEM_ID.test(value.id)) return null;
+  if (typeof value.version !== 'string' || !SEMVER.test(value.version)) return null;
+  return { id: value.id, version: value.version, locked: value.locked === true };
+}
+
+/** @param {unknown} raw @returns {{ path: string; errors: string[] }[]} */
+function validIssues(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (issue) =>
+        issue &&
+        typeof issue === 'object' &&
+        isText(issue.path, 512) &&
+        Array.isArray(issue.errors) &&
+        issue.errors.every((/** @type {unknown} */ error) => typeof error === 'string')
+    )
+    .slice(0, MAX_DESIGN_SYSTEMS)
+    .map((issue) => ({ path: issue.path, errors: issue.errors.slice(0, 10) }));
+}
+
+/**
+ * One design system from the registry, checked as untrusted input. Returns
+ * a clean copy (only known fields) or an error.
+ * @param {unknown} raw
+ */
+function validateDesignSystem(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { designSystem: null, error: 'Design system must be an object.' };
+  }
+  const ds = /** @type {Record<string, unknown>} */ (raw);
+  if (typeof ds.id !== 'string' || !DESIGN_SYSTEM_ID.test(ds.id)) {
+    return { designSystem: null, error: 'Design system has an unsafe or invalid id.' };
+  }
+  const layout = ds.layout;
+  const path = layout === 'folder' ? `design-systems/${ds.id}` : `design-systems/${ds.id}.json`;
+  if ((layout !== 'folder' && layout !== 'flat') || ds.path !== path) {
+    return { designSystem: null, error: 'Design system has an unexpected layout or path.' };
+  }
+  const nullableText = (/** @type {unknown} */ value) => value === null || isText(value);
+  if (
+    !isText(ds.name) ||
+    typeof ds.version !== 'string' ||
+    !SEMVER.test(ds.version) ||
+    (ds.status !== 'draft' && ds.status !== 'approved') ||
+    !nullableText(ds.approvedBy) ||
+    !(
+      ds.approvedAt === null ||
+      (typeof ds.approvedAt === 'string' && ISO_DATETIME.test(ds.approvedAt))
+    ) ||
+    !(
+      ds.approvedVersion === null ||
+      (typeof ds.approvedVersion === 'string' && SEMVER.test(ds.approvedVersion))
+    ) ||
+    typeof ds.contentHash !== 'string' ||
+    !SHA256.test(ds.contentHash) ||
+    typeof ds.lockable !== 'boolean' ||
+    !Number.isInteger(ds.componentCount) ||
+    /** @type {number} */ (ds.componentCount) < 0 ||
+    /** @type {number} */ (ds.componentCount) > 500 ||
+    !Array.isArray(ds.boundPrototypes) ||
+    ds.boundPrototypes.length > MAX_BOUND
+  ) {
+    return { designSystem: null, error: 'Design system has invalid metadata.' };
+  }
+  const bound = [];
+  for (const item of ds.boundPrototypes) {
+    if (
+      !item ||
+      typeof item !== 'object' ||
+      typeof item.slug !== 'string' ||
+      !SLUG_PATTERN.test(item.slug) ||
+      !isText(item.name) ||
+      typeof item.version !== 'string' ||
+      !SEMVER.test(item.version) ||
+      typeof item.locked !== 'boolean'
+    ) {
+      return { designSystem: null, error: 'Design system lists an invalid bound prototype.' };
+    }
+    bound.push({ slug: item.slug, name: item.name, version: item.version, locked: item.locked });
+  }
+  return {
+    designSystem: {
+      id: ds.id,
+      name: ds.name,
+      version: ds.version,
+      status: ds.status,
+      approvedBy: ds.approvedBy,
+      approvedAt: ds.approvedAt,
+      approvedVersion: ds.approvedVersion,
+      contentHash: ds.contentHash,
+      lockable: ds.lockable,
+      layout,
+      path,
+      componentCount: ds.componentCount,
+      boundPrototypes: bound,
+    },
+    error: null,
+  };
+}
+
+/**
+ * The registry's `designSystems` array, validated. A registry from an older
+ * CLI has none: an empty list, no issue.
+ * @param {unknown} raw
+ */
+export function validateDesignSystems(raw) {
+  /** @type {Record<string, unknown>[]} */
+  const designSystems = [];
+  /** @type {{ path: string; errors: string[] }[]} */
+  const issues = [];
+  if (raw === undefined) return { designSystems, issues };
+  if (!Array.isArray(raw)) {
+    return {
+      designSystems,
+      issues: [
+        { path: 'designSystems', errors: ['The registry designSystems field is not a list.'] },
+      ],
+    };
+  }
+  const seen = new Set();
+  for (const [index, item] of raw.slice(0, MAX_DESIGN_SYSTEMS).entries()) {
+    const result = validateDesignSystem(item);
+    if (result.designSystem && seen.has(result.designSystem.id)) {
+      issues.push({ path: `designSystems[${index}]`, errors: ['Duplicate design-system id.'] });
+    } else if (result.designSystem) {
+      seen.add(result.designSystem.id);
+      designSystems.push(result.designSystem);
+    } else {
+      issues.push({ path: `designSystems[${index}]`, errors: [result.error ?? 'Invalid.'] });
+    }
+  }
+  return { designSystems, issues };
+}
+
 /** @param {unknown} raw @param {number} index */
 function getDiagnosticPath(raw, index) {
   const entry =
@@ -280,7 +449,7 @@ function validateRegistryEntry(workspaceRoot, raw) {
   if (entry.kind === 'blueprint') {
     const result = readCatalogBlueprint(workspaceRoot, entry);
     if (!result.ok) return { entry: null, error: result.error };
-    return { entry: { ...entry, blueprintKind: result.kind }, error: null };
+    return { entry: { ...entry, blueprintKind: result.kind, designSystem: null }, error: null };
   }
 
   if (
@@ -290,7 +459,12 @@ function validateRegistryEntry(workspaceRoot, raw) {
   ) {
     return { entry: null, error: 'Registry entry has an unsupported blueprintKind.' };
   }
-  return { entry, error: null };
+  // A malformed design-system binding is dropped, not trusted (the entry stays).
+  const checked = /** @type {Record<string, unknown>} */ ({
+    ...entry,
+    designSystem: validBinding(entry.designSystem),
+  });
+  return { entry: checked, error: null };
 }
 
 /**

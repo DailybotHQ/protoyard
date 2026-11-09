@@ -4,6 +4,7 @@ import { BreakdownSelect, FilterBuilder, SegmentPicker } from '@protoyard/analyt
 import { LineChart } from '@protoyard/charts-ui/cartesian';
 import { can, liveQuery, useClock } from '@protoyard/renderer-svelte';
 import { Button, Card, ErrorState, Select } from '@protoyard/ui';
+import { Box, Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import RangeBar from '../components/RangeBar.svelte';
 import { EVENT_TYPES } from '../database/schema.ts';
@@ -58,17 +59,17 @@ const typeItems = [
   {#snippet actions()}<RangeBar now={clock.now} />{/snippet}
 </PageHeader>
 
-<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+<div class="trends-grid grid gap-6">
   <Card class="p-5">
     <div class="mb-4 flex flex-wrap items-end gap-3">
-      <label class="grid gap-1 text-xs text-muted-foreground">
+      <Text as="label" size="xs" tone="muted" class="grid gap-1">
         Event
         <Select items={typeItems} bind:value={eventType} aria-label="Event" />
-      </label>
-      <div class="inline-flex rounded-md border border-border p-0.5" role="group" aria-label="Measure">
+      </Text>
+      <Box border="default" radius="md" padding="none" class="inline-flex p-0.5" role="group" aria-label="Measure">
         <Button size="sm" variant={measure === 'events' ? 'secondary' : 'ghost'} aria-pressed={measure === 'events'} onclick={() => (measure = 'events')}>Events</Button>
         <Button size="sm" variant={measure === 'users' ? 'secondary' : 'ghost'} aria-pressed={measure === 'users'} onclick={() => (measure = 'users')}>Unique users</Button>
-      </div>
+      </Box>
       <BreakdownSelect properties={EVENT_PROPERTIES.filter((p) => p.path !== 'type' || eventType === 'all')} value={breakdown} onchange={(path) => (breakdown = path)} />
     </div>
     {#if events.error}
@@ -105,3 +106,11 @@ const typeItems = [
     />
   </Card>
 </div>
+
+<style>
+  @media (min-width: 64rem) {
+    .trends-grid {
+      grid-template-columns: minmax(0, 1fr) 20rem;
+    }
+  }
+</style>

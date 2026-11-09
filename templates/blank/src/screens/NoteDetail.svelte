@@ -11,6 +11,7 @@ import {
 } from '@protoyard/renderer-svelte';
 import { AlertDialog, Badge, Button, EmptyState, Skeleton } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import NoteEditor from '../components/NoteEditor.svelte';
 import type { BlankDatabase } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
@@ -50,34 +51,34 @@ async function remove() {
   </EmptyState>
 {:else}
   {@const current = note.current}
-  <article class="mt-4 rounded-xl border border-border bg-surface p-5 shadow-soft sm:p-8">
+  <Box as="article" padding="none" radius="xl" border="default" elevation="sm" surface="default" class="mt-4 p-5 sm:p-8">
     <header class="flex flex-wrap items-start gap-3">
       <div class="min-w-0 flex-1">
-        <h1 class="text-2xl font-semibold tracking-tight break-words">{current.title}</h1>
-        <p class="mt-1 text-sm text-muted-foreground">
+        <Heading level={1} size="xl" class="break-words">{current.title}</Heading>
+        <Text size="sm" tone="muted" class="mt-1">
           Updated {timeAgo(current.updatedAt, clock.now)} · created {timeAgo(current.createdAt, clock.now)}
-        </p>
+        </Text>
       </div>
       {#if current.pinned}<Badge variant="secondary"><LucideIcon icon={Pin} class="size-3" />Pinned</Badge>{/if}
     </header>
-    <p class="mt-6 whitespace-pre-wrap text-surface-foreground">{current.body || 'No body.'}</p>
+    <Text class="mt-6 whitespace-pre-wrap">{current.body || 'No body.'}</Text>
     {#if can(CAPABILITIES.update) || can(CAPABILITIES.delete)}
-      <footer class="mt-8 flex flex-wrap gap-2 border-t border-border pt-5">
+      <Box as="footer" padding="none" radius="none" border="block-start" class="mt-8 flex flex-wrap gap-2 pt-5">
         {#if can(CAPABILITIES.update)}
           <Button variant="outline" onclick={() => (editing = true)}><LucideIcon icon={Pencil} class="size-4" />Edit</Button>
         {/if}
         {#if can(CAPABILITIES.delete)}
-          <Button variant="ghost" class="text-destructive hover:bg-destructive/10" onclick={() => (confirmDelete = true)}>
+          <Button variant="ghost" tone="destructive" onclick={() => (confirmDelete = true)}>
             <LucideIcon icon={Trash2} class="size-4" />Delete
           </Button>
         {/if}
-      </footer>
+      </Box>
     {:else}
-      <p class="mt-8 border-t border-border pt-5 text-sm text-muted-foreground">
-        You can read this note. Switch to the owner persona in DevTools to edit it.
-      </p>
+      <Box as="footer" padding="none" radius="none" border="block-start" class="mt-8 pt-5">
+        <Text size="sm" tone="muted">You can read this note. Switch to the owner persona in DevTools to edit it.</Text>
+      </Box>
     {/if}
-  </article>
+  </Box>
   <NoteEditor bind:open={editing} note={current} />
   <AlertDialog
     bind:open={confirmDelete}

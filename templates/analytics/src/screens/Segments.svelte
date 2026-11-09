@@ -4,6 +4,7 @@ import { describeFilter } from '@protoyard/analytics-ui/filters';
 import { can, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { AlertDialog, Button, Card, EmptyState } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import RenameDialog from '../components/RenameDialog.svelte';
 import type { SavedSegment } from '../database/schema.ts';
@@ -40,13 +41,14 @@ const canManage = (segment: SavedSegment) =>
   <EmptyState title="No saved segments" description="Build a filter on Trends and save it as a segment to reuse it here and on every chart." />
 {:else}
   <Card class="p-0">
-    <ul class="divide-y divide-border" aria-busy={segments.current === undefined}>
-      {#each segments.current ?? [] as segment (segment.id)}
-        <li class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+    <ul aria-busy={segments.current === undefined}>
+      {#each segments.current ?? [] as segment, index (segment.id)}
+        <li>
+        <Box border={index === 0 ? 'none' : 'block-start'} radius="none" padding="none" class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
           <div class="min-w-0">
-            <p class="font-medium">{segment.name}</p>
-            <p class="text-sm text-muted-foreground">{describeFilter(segment.filter, EVENT_PROPERTIES)}</p>
-            <p class="text-xs text-muted-foreground">By {people.current?.get(segment.ownerId) ?? 'someone'} · updated {formatDate(segment.updatedAt)}</p>
+            <Text weight="medium">{segment.name}</Text>
+            <Text size="sm" tone="muted">{describeFilter(segment.filter, EVENT_PROPERTIES)}</Text>
+            <Text size="xs" tone="muted">By {people.current?.get(segment.ownerId) ?? 'someone'} · updated {formatDate(segment.updatedAt)}</Text>
           </div>
           {#if canManage(segment)}
             <div class="flex gap-2">
@@ -68,6 +70,7 @@ const canManage = (segment: SavedSegment) =>
               >
             </div>
           {/if}
+        </Box>
         </li>
       {/each}
     </ul>

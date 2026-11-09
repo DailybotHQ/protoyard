@@ -15,6 +15,8 @@ import { hostOf, isInlineImageUrl } from './format.ts';
 let { block }: { block: LinkPreviewBlock } = $props();
 
 const site = $derived(block.siteName ?? hostOf(block.url));
+// The card is a stretched link (Texuli 0.15.0): its name is read from here.
+const linkLabel = $derived(`${block.title ?? block.url}, ${site} (opens in a new tab)`);
 </script>
 
 <Card
@@ -22,6 +24,7 @@ const site = $derived(block.siteName ?? hostOf(block.url));
   data-py-message-block="link_preview"
   href={block.url}
   hrefTrust="untrusted"
+  {linkLabel}
   target="_blank"
   rel="noopener noreferrer"
 >

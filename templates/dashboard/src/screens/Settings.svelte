@@ -16,14 +16,20 @@ import {
   Badge,
   Button,
   Card,
+  CardDescription,
+  CardTitle,
   FormField,
   Input,
+  Notice,
   RadioGroup,
   Select,
   Skeleton,
   Switch,
 } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Code } from 'texuli/kbd-code';
+import { ListItem } from 'texuli/list-item';
+import { Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import { CURRENCIES, type Currency } from '../database/schema.ts';
 import { CAPABILITIES, ROLE_LABELS } from '../domain/policy.ts';
@@ -130,10 +136,10 @@ const updatedByName = $derived(
     <Card class="p-5">
       <div class="flex items-start justify-between gap-3">
         <div>
-          <h2 class="text-sm font-semibold">Workspace</h2>
-          <p class="mt-1 text-xs text-muted-foreground">
+          <CardTitle level={2}>Workspace</CardTitle>
+          <CardDescription class="mt-1">
             {#if settings.current}Last changed {fromNow(settings.current.updatedAt, clock.now)} by {updatedByName}.{/if}
-          </p>
+          </CardDescription>
         </div>
         {#if !canManage}<Badge variant="outline"><LucideIcon icon={Lock} />Read-only</Badge>{/if}
       </div>
@@ -166,21 +172,19 @@ const updatedByName = $derived(
           </div>
         </form>
       {:else if settings.current}
-        <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
-          <div><dt class="text-muted-foreground">Workspace name</dt><dd class="font-medium">{settings.current.workspaceName}</dd></div>
-          <div><dt class="text-muted-foreground">Support email</dt><dd class="font-medium">{settings.current.supportEmail}</dd></div>
-          <div><dt class="text-muted-foreground">Currency</dt><dd class="font-medium">{settings.current.currency}</dd></div>
-          <div><dt class="text-muted-foreground">Weekly report</dt><dd class="font-medium">{settings.current.weeklyReport ? 'On' : 'Off'}</dd></div>
+        <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+          <div><dt><CardDescription>Workspace name</CardDescription></dt><dd><Text as="span" size="sm" weight="medium">{settings.current.workspaceName}</Text></dd></div>
+          <div><dt><CardDescription>Support email</CardDescription></dt><dd><Text as="span" size="sm" weight="medium">{settings.current.supportEmail}</Text></dd></div>
+          <div><dt><CardDescription>Currency</CardDescription></dt><dd><Text as="span" size="sm" weight="medium">{settings.current.currency}</Text></dd></div>
+          <div><dt><CardDescription>Weekly report</CardDescription></dt><dd><Text as="span" size="sm" weight="medium">{settings.current.weeklyReport ? 'On' : 'Off'}</Text></dd></div>
         </dl>
-        <p class="mt-4 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-          <LucideIcon icon={Lock} class="size-3.5" />Only owners and admins can change workspace settings.
-        </p>
+        <Notice class="mt-4" icon={Lock} text="Only owners and admins can change workspace settings." />
       {/if}
     </Card>
 
     <Card class="p-5">
-      <h2 class="text-sm font-semibold">Appearance</h2>
-      <p class="mt-1 text-xs text-muted-foreground">Your personal preference, saved for this persona.</p>
+      <CardTitle level={2}>Appearance</CardTitle>
+      <CardDescription class="mt-1">Your personal preference, saved for this persona.</CardDescription>
       <RadioGroup
         class="mt-4"
         orientation="horizontal"
@@ -196,58 +200,58 @@ const updatedByName = $derived(
     </Card>
 
     <Card class="p-5">
-      <h2 class="text-sm font-semibold">Team <span class="font-normal text-muted-foreground">{(team.current ?? []).length}</span></h2>
-      <ul class="mt-3 divide-y divide-border">
+      <div class="flex items-center gap-2">
+        <CardTitle level={2}>Team</CardTitle>
+        <Badge variant="secondary">{(team.current ?? []).length}</Badge>
+      </div>
+      <ul role="list" class="tx-list mt-2 -mx-3">
         {#each team.current ?? [] as member (member.id)}
-          <li class="flex items-center gap-3 py-3">
-            <Avatar name={member.name} {...avatarImage(member.avatar)} size="sm" />
-            <div class="min-w-0 flex-1 text-sm">
-              <p class="truncate font-medium">
-                {member.name}
-                {#if member.id === principal.current?.persona.id}<span class="font-normal text-muted-foreground">(you)</span>{/if}
-              </p>
-              <p class="truncate text-muted-foreground">{member.title} · {member.email}</p>
-            </div>
-            <Badge variant={member.role === 'owner' ? 'default' : member.role === 'viewer' ? 'outline' : 'secondary'}>
-              {ROLE_LABELS[member.role] ?? member.role}
-            </Badge>
-          </li>
+          <ListItem description={`${member.title} · ${member.email}`}>
+            {member.name}
+            {#if member.id === principal.current?.persona.id}<Text as="span" size="sm" tone="muted">(you)</Text>{/if}
+            {#snippet leading()}<Avatar name={member.name} {...avatarImage(member.avatar)} size="sm" />{/snippet}
+            {#snippet trailing()}
+              <Badge variant={member.role === 'owner' ? 'default' : member.role === 'viewer' ? 'outline' : 'secondary'}>
+                {ROLE_LABELS[member.role] ?? member.role}
+              </Badge>
+            {/snippet}
+          </ListItem>
         {/each}
       </ul>
-      <p class="mt-3 text-xs text-muted-foreground">Switch persona in DevTools (Ctrl/⌘ + .) to see the app as another role.</p>
+      <CardDescription class="mt-3">Switch persona in DevTools (Ctrl/⌘ + .) to see the app as another role.</CardDescription>
     </Card>
   </div>
 
   <div class="space-y-6">
     <Card class="p-5">
-      <h2 class="text-sm font-semibold">Billing</h2>
+      <CardTitle level={2}>Billing</CardTitle>
       {#if can(CAPABILITIES.billingManage)}
-        <dl class="mt-3 space-y-2 text-sm">
-          <div class="flex justify-between"><dt class="text-muted-foreground">Plan</dt><dd><Badge>{org?.plan ?? '—'}</Badge></dd></div>
-          <div class="flex justify-between"><dt class="text-muted-foreground">Status</dt><dd><Badge variant={org?.billingStatus === 'expired' ? 'destructive' : 'success'}>{org?.billingStatus ?? '—'}</Badge></dd></div>
-          <div class="flex justify-between"><dt class="text-muted-foreground">Since</dt><dd>{org ? formatDate(org.createdAt) : '—'}</dd></div>
+        <dl class="mt-3 space-y-2">
+          <div class="flex items-center justify-between"><dt><CardDescription>Plan</CardDescription></dt><dd><Badge>{org?.plan ?? '—'}</Badge></dd></div>
+          <div class="flex items-center justify-between"><dt><CardDescription>Status</CardDescription></dt><dd><Badge variant={org?.billingStatus === 'expired' ? 'destructive' : 'success'}>{org?.billingStatus ?? '—'}</Badge></dd></div>
+          <div class="flex items-center justify-between"><dt><CardDescription>Since</CardDescription></dt><dd><Text as="span" size="sm">{org ? formatDate(org.createdAt) : '—'}</Text></dd></div>
         </dl>
-        <p class="mt-3 text-xs text-muted-foreground">Billing is simulated: no payment provider is involved.</p>
+        <CardDescription class="mt-3">Billing is simulated: no payment provider is involved.</CardDescription>
       {:else}
-        <p class="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><LucideIcon icon={Lock} class="size-3.5" />Only the owner can see billing.</p>
+        <CardDescription class="mt-2 flex items-center gap-2"><LucideIcon icon={Lock} class="size-3.5" />Only the owner can see billing.</CardDescription>
       {/if}
     </Card>
 
     <Card class="p-5">
-      <h2 class="text-sm font-semibold">Your access</h2>
-      <p class="mt-1 text-sm text-muted-foreground">{ROLE_LABELS[principal.current?.role ?? ''] ?? '—'}</p>
-      <ul class="mt-4 space-y-2 text-sm">
+      <CardTitle level={2}>Your access</CardTitle>
+      <CardDescription class="mt-1">{ROLE_LABELS[principal.current?.role ?? ''] ?? '—'}</CardDescription>
+      <ul class="mt-4 space-y-2">
         {#each Object.values(CAPABILITIES) as capability (capability)}
           {@const allowed = can(capability)}
           <li class="flex items-center justify-between gap-2">
-            <code class="text-xs">{capability}</code>
+            <Code>{capability}</Code>
             <Badge variant={allowed ? 'success' : 'outline'}>{allowed ? 'allowed' : 'blocked'}</Badge>
           </li>
         {/each}
       </ul>
-      <p class="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
+      <CardDescription class="mt-4 flex items-start gap-2">
         <LucideIcon icon={ShieldCheck} class="mt-0.5 size-3.5 shrink-0" />Simulated permissions for prototyping — not real security.
-      </p>
+      </CardDescription>
     </Card>
   </div>
 </div>

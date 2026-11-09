@@ -1,12 +1,14 @@
 <script lang="ts">
 import { Sparkline } from '@protoyard/charts-ui/compact';
-import { StatCard } from '@protoyard/ui';
+import type { StatCard } from '@protoyard/ui';
 import type { ComponentProps } from 'svelte';
+import { Icon } from 'texuli/icons';
+import { Stat } from 'texuli/stat';
 
 /**
- * A StatCard with a 30-day sparkline along its bottom edge. The sparkline
- * speaks its own trend sentence ("Trend: up 12% over 30 days"), so the
- * numbers stay available without hovering.
+ * A stat with a 30-day sparkline in Texuli's own sparkline slot. The
+ * sparkline speaks its own trend sentence ("Trend: up 12% over 30 days"), so
+ * the numbers stay available without hovering.
  */
 type Props = ComponentProps<typeof StatCard> & {
   trendValues: readonly number[];
@@ -18,14 +20,18 @@ let {
   trendValues,
   trendPeriod = '30 days',
   trendFormat,
-  class: className = '',
+  icon,
+  ref = $bindable(null),
   ...card
 }: Props = $props();
 </script>
 
-<div class="relative">
-  <StatCard {...card} class="h-full pb-14 {className}" />
-  <div class="pointer-events-none absolute inset-x-5 bottom-4">
+{#snippet statIcon()}
+  {#if icon}<Icon {icon} aria-hidden="true" />{/if}
+{/snippet}
+
+<Stat bind:ref {...card} icon={icon ? statIcon : undefined}>
+  {#snippet sparkline()}
     <Sparkline values={trendValues} variant="area" period={trendPeriod} format={trendFormat} height={28} />
-  </div>
-</div>
+  {/snippet}
+</Stat>

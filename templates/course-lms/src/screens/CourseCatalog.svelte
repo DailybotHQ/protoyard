@@ -1,6 +1,7 @@
 <script lang="ts">
 import { can, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import {
+  Badge,
   Button,
   Card,
   EmptyState,
@@ -9,6 +10,7 @@ import {
   RadioGroupItem,
   Skeleton,
 } from '@protoyard/ui';
+import { Box, Heading, Text } from 'texuli/typography';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { useCourseLms } from '../lib/context.ts';
 
@@ -66,15 +68,15 @@ async function submitQuiz(quizId: string, questionIds: string[]) {
 </script>
 
 <header class="mb-6">
-  <p class="text-sm font-medium text-primary">Fieldnote Academy · learner space</p>
-  <h1 class="text-3xl font-semibold tracking-tight">Course catalog</h1>
-  <p class="mt-2 max-w-2xl text-muted-foreground">Read a lesson, mark your progress and check what you learned with a short quiz. All course activity is simulated and stored in this browser.</p>
+  <Text size="sm" weight="medium" tone="primary">Fieldnote Academy · learner space</Text>
+  <Heading level={1} size="xl">Course catalog</Heading>
+  <Text tone="muted" class="mt-2 max-w-2xl">Read a lesson, mark your progress and check what you learned with a short quiz. All course activity is simulated and stored in this browser.</Text>
 </header>
 
 {#if courses.error}
   <ErrorState title="Could not load courses" message={String(courses.error)} />
 {:else if courses.current === undefined}
-  <Skeleton class="h-56 w-full rounded-xl" />
+  <Skeleton class="h-56 w-full" />
 {:else if courses.current.length === 0}
   <EmptyState title="No courses published yet" description="An instructor can add the first course to this academy." />
 {:else}
@@ -87,43 +89,45 @@ async function submitQuiz(quizId: string, questionIds: string[]) {
       <article aria-labelledby={`course-title-${course.id}`}>
       <Card class="space-y-5 p-5">
         <div>
-          <p class="text-sm font-medium text-primary">Course</p>
-          <h2 id={`course-title-${course.id}`} class="mt-1 text-xl font-semibold">{course.title}</h2>
-          <p class="mt-2 text-sm text-muted-foreground">{course.description}</p>
-          <p class="mt-2 text-xs text-muted-foreground">{courseLessons.length} lessons · {enrolled ? 'Enrolled' : 'Preview'}</p>
+          <Text size="sm" weight="medium" tone="primary">Course</Text>
+          <Heading level={2} size="lg" id={`course-title-${course.id}`} class="mt-1">{course.title}</Heading>
+          <Text size="sm" tone="muted" class="mt-2">{course.description}</Text>
+          <Text size="xs" tone="muted" class="mt-2">{courseLessons.length} lessons · {enrolled ? 'Enrolled' : 'Preview'}</Text>
         </div>
         <ol class="space-y-3">
           {#each courseLessons as lesson (lesson.id)}
             {@const completed = (progress.current ?? []).some((item) => item.lessonId === lesson.id && item.studentId === actorId)}
-            <li class="rounded-lg border border-border p-3">
+            <li>
+              <Box border="default" radius="lg" padding="none" class="p-3">
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="min-w-0 flex-1">
-                  <h3 class="font-medium">{lesson.order + 1}. {lesson.title}</h3>
-                  <p class="mt-1 text-sm leading-relaxed text-muted-foreground">{lesson.body}</p>
+                  <Heading level={3} size="sm">{lesson.order + 1}. {lesson.title}</Heading>
+                  <Text size="sm" tone="muted" class="mt-1">{lesson.body}</Text>
                 </div>
                 {#if canComplete && enrolled}
                   {#if completed}
-                    <span class="rounded-full bg-muted px-3 py-1 text-xs font-medium">Completed</span>
+                    <Badge variant="secondary">Completed</Badge>
                   {:else}
                     <Button size="sm" onclick={() => completeLesson(lesson.id)}>Mark complete</Button>
                   {/if}
                 {/if}
               </div>
-              {#if messages[lesson.id]}<p class="mt-2 text-sm text-destructive" role="alert">{messages[lesson.id]}</p>{/if}
+              {#if messages[lesson.id]}<Text size="sm" tone="destructive" role="alert" class="mt-2">{messages[lesson.id]}</Text>{/if}
+              </Box>
             </li>
           {/each}
         </ol>
 
         {#if quiz && can(CAPABILITIES.quizzesSubmit) && enrolled}
           {@const questionIds = quiz.questions.map((question) => question.id)}
-          <section aria-labelledby={`quiz-${quiz.id}`} class="space-y-4 border-t border-border pt-4">
+          <Box as="section" aria-labelledby={`quiz-${quiz.id}`} border="block-start" radius="none" padding="none" class="space-y-4 pt-4">
             <div>
-              <h3 id={`quiz-${quiz.id}`} class="font-semibold">{quiz.title}</h3>
-              <p class="text-xs text-muted-foreground">Pass with {quiz.passingScore}% or higher.</p>
+              <Heading level={3} size="sm" id={`quiz-${quiz.id}`}>{quiz.title}</Heading>
+              <Text size="xs" tone="muted">Pass with {quiz.passingScore}% or higher.</Text>
             </div>
             {#each quiz.questions as question (question.id)}
               <fieldset class="space-y-2">
-                <legend class="text-sm font-medium">{question.prompt}</legend>
+                <legend><Text as="span" size="sm" weight="medium">{question.prompt}</Text></legend>
                 <RadioGroup
                   aria-label={question.prompt}
                   name={`${quiz.id}-${question.id}`}
@@ -136,12 +140,12 @@ async function submitQuiz(quizId: string, questionIds: string[]) {
                 </RadioGroup>
               </fieldset>
             {/each}
-            {#if latestAttempt}<p class="text-sm" role="status">Latest attempt: {latestAttempt.score}% · {latestAttempt.passed ? 'Passed' : 'Not passed yet'}</p>{/if}
+            {#if latestAttempt}<Text size="sm" role="status">Latest attempt: {latestAttempt.score}% · {latestAttempt.passed ? 'Passed' : 'Not passed yet'}</Text>{/if}
             <Button onclick={() => submitQuiz(quiz.id, questionIds)}>
               Submit {quiz.title} quiz
             </Button>
-            {#if messages[quiz.id]}<p class="text-sm" role="status">{messages[quiz.id]}</p>{/if}
-          </section>
+            {#if messages[quiz.id]}<Text size="sm" role="status">{messages[quiz.id]}</Text>{/if}
+          </Box>
         {/if}
       </Card>
       </article>

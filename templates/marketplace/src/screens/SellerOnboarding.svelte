@@ -1,6 +1,7 @@
 <script lang="ts">
 import { getRuntime, navigate } from '@protoyard/renderer-svelte';
 import { type OnboardingUiStep, OnboardingWizard } from '@protoyard/saas-ui';
+import { Text } from 'texuli/typography';
 import { z } from 'zod';
 import type { MarketplaceDatabase } from '../database/schema.ts';
 import { createMarketplaceServices } from '../domain/services.ts';
@@ -69,4 +70,4 @@ const steps: OnboardingUiStep[] = [
 ];
 </script>
 
-<section class="mx-auto max-w-2xl"><p class="mb-3 text-sm font-semibold uppercase tracking-wide text-primary">Seller onboarding</p><OnboardingWizard {steps} title="Set up your seller studio" onComplete={() => navigate('/seller')} /></section>
+<section class="mx-auto max-w-2xl"><Text size="sm" tone="primary" weight="semibold" transform="uppercase" tracking="wide" class="mb-3">Seller onboarding</Text><OnboardingWizard {steps} title="Set up your seller studio" onComplete={() => navigate('/seller')} /></section>
