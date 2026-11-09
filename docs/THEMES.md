@@ -1260,6 +1260,7 @@ list is an allow-list: anything not on it fails, including unknown utilities.
   `min-h-app`, `max-h-app`) and the touch-target height (`min-h-touch`). A test
   keeps the list equal to the stylesheet.
 - Tailwind's container-query marker `@container` (and `@container/<name>`).
+- Scroll behavior: `overscroll-*`, scroll snapping (`snap-*`) and scroll margin and padding on the spacing scale (`scroll-mt-4`).
 - Responsive and state variants (`sm:`, `md:`, `lg:`, `xl:`, `2xl:`, `hover:`,
   `dark:`, …) on an allowed utility (`md:grid-cols-2` passes). A variant with
   brackets (`data-[x]:`) is an arbitrary value.

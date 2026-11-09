@@ -253,6 +253,11 @@ describe('ds-check rules (fixtures)', () => {
       'max-h-app',
       '@container',
       '@container/main',
+      'overscroll-contain',
+      'overscroll-y-none',
+      'snap-x',
+      'snap-mandatory',
+      'scroll-mt-4',
       'invisible',
     ]) {
       expect(classifyUtility(ok), ok).toBe('allowed');

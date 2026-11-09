@@ -80,6 +80,10 @@ const ALLOWED: readonly RegExp[] = [
   /^object-(?:contain|cover|fill|none|scale-down|center|top|bottom|left|right)$/,
   /^(?:table|table-row|table-cell|inline-table|flow-root|list-item)$/,
   /^pointer-events-(?:none|auto)$/,
+  // Scroll behavior and scroll snapping (layout, no paint)
+  /^overscroll(?:-[xy])?-(?:auto|contain|none)$/,
+  /^snap-(?:none|x|y|both|mandatory|proximity|start|end|center|align-none|normal|always)$/,
+  new RegExp(`^-?scroll-[mp][xytrblse]?-${SCALE}$`),
   // Protoyard's layout tokens, exactly the `@utility` rules of
   // @protoyard/themes/base.css (a test keeps this list in step with it).
   ...PROTOYARD_LAYOUT_UTILITIES.map((name) => new RegExp(`^${name}$`)),
