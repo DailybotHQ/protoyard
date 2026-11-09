@@ -225,7 +225,7 @@ describe('@protoyard/ui catalog extensions cover every own component (CI gate)',
     });
     expect(catalog.merge?.catalogHash).not.toBe(SPEC_CATALOG_HASH);
     expect(catalog.extensions.map((c) => c.id)).toEqual(CATALOG_EXTENSIONS.map((m) => m.id));
-    expect(catalog.extensions).toHaveLength(50);
+    expect(catalog.extensions).toHaveLength(57);
     for (const id of PROTOYARD_UI_HOST_CHROME) expect(catalog.byId.has(id)).toBe(true);
   });
 });
@@ -307,19 +307,19 @@ describe("mergeWithExtensions (Texuli's mergeCatalogs decides, with its codes)",
     ]);
   });
 
-  it('refuses unresolved or empty composes with extension-composes, and the whole file with it', () => {
+  it('refuses unresolved composes with extension-composes, and the whole file with it; a leaf (empty composes) merges', () => {
     const merged = mergeWithExtensions(texuli, [
       ext('acme:panel', ['card'], ['Panel']),
       ext('acme:ghost', ['card', 'no-such-id'], ['Ghost']),
       ext('beta:empty', [], ['Empty']),
     ]);
     expect(merged.refusals.map((r) => [r.code, r.id, r.path])).toEqual([
-      ['extension-composes', 'beta:empty', 'extensions[1].components[0].composes'],
       ['extension-composes', 'acme:ghost', 'extensions[0].components[1].composes[1]'],
     ]);
-    expect(merged.refusals[1]?.message).toContain('no-such-id');
+    expect(merged.refusals[0]?.message).toContain('no-such-id');
     // Texuli refuses an extension file whole: acme:panel goes with acme:ghost.
-    expect(merged.manifests.map((m) => m.id)).toEqual(['button', 'card']);
+    // Texuli 0.15.0 accepts a leaf extension (no composes), so beta:empty merges.
+    expect(merged.manifests.map((m) => m.id)).toEqual(['button', 'card', 'beta:empty']);
     expect(merged.merge.ok).toBe(false);
   });
 
@@ -369,7 +369,12 @@ describe('the merged catalog: mapper, presets, allow checks and Texuli on the fu
     expect(map('@protoyard/ui', 'SplitView')).toEqual({ id: 'split-view', how: 'import' });
     // Non-components: Texuli's list, and own components that render no catalog id.
     expect(map('@protoyard/ui', 'AppShell')).toEqual({ id: null, how: 'non-component' });
-    expect(map('@protoyard/ui', 'StarRating')).toEqual({ id: null, how: 'non-component' });
+    expect(map('@protoyard/ui', 'SafeArea')).toEqual({ id: null, how: 'non-component' });
+    // Since Texuli 0.15.0 the input wrappers render catalog components.
+    expect(map('@protoyard/ui', 'StarRating')).toEqual({
+      id: 'protoyard:star-rating',
+      how: 'extension',
+    });
     expect(map('texuli/motion', 'MotionProvider')).toEqual({ id: null, how: 'non-component' });
     expect(map('texuli', 'SafeArea')).toEqual({ id: null, how: 'non-component' });
     // A name @protoyard/ui does not list never maps by name.

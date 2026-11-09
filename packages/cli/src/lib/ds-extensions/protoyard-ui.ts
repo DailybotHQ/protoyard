@@ -20,10 +20,12 @@ import type {
  *   re-exports, with the Texuli import it is (`FormField` is `Field` from
  *   `texuli/field`). They map to Texuli's own ids; never give one a manifest.
  * - {@link PROTOYARD_UI_NON_COMPONENTS}: own components that render no Texuli
- *   catalog component, only exports Texuli itself lists as non-components
- *   (`ToggleGroup`, `Rating`, `MobileAppFrame`…) or plain elements. Texuli's
- *   extension format needs at least one `composes` id, so they get no
- *   manifest and are classified like the Texuli exports they render.
+ *   catalog component, only exports Texuli lists as non-components or plain
+ *   elements (`SafeArea`). They get no manifest and are classified like the
+ *   Texuli exports they render. Since Texuli 0.15.0 the inputs (`ToggleGroup`,
+ *   `Rating`, `PinInput`, `TagsInput`, `FileUpload`, `NumberField`) and
+ *   `MobileAppFrame` are catalog components, so the wrappers over them have
+ *   manifests.
  *
  * Adding a component to `@protoyard/ui`: run that test; its message names the
  * table and the `composes` to write.
@@ -304,7 +306,7 @@ const ENTRIES: readonly Entry[] = [
     name: 'ImageInput',
     label: 'Image input',
     summary: 'Pick images with previews and removal.',
-    composes: ['badge', 'button', 'icon'],
+    composes: ['badge', 'button', 'file-upload', 'icon'],
     states: ['hover', 'focus-visible', 'disabled', 'invalid'],
   },
   {
@@ -339,7 +341,7 @@ const ENTRIES: readonly Entry[] = [
     name: 'NumberStepper',
     label: 'Number stepper',
     summary: 'A number field with decrement and increment buttons.',
-    composes: ['icon'],
+    composes: ['icon', 'number-field'],
     states: FIELD,
   },
   {
@@ -467,6 +469,54 @@ const ENTRIES: readonly Entry[] = [
     summary: 'A responsive grid of cards for a page body.',
     composes: ['card'],
   },
+  {
+    name: 'ChipGroup',
+    label: 'Chip group',
+    summary: 'A row of toggle chips for single or multiple choice.',
+    composes: ['toggle-group'],
+    states: FIELD,
+  },
+  {
+    name: 'FileDropzone',
+    label: 'File dropzone',
+    summary: 'Drop or pick files with type and size limits.',
+    composes: ['file-upload'],
+    states: FIELD,
+  },
+  {
+    name: 'WeekdayPicker',
+    label: 'Weekday picker',
+    summary: 'Toggle the days of the week.',
+    composes: ['toggle-group'],
+    states: FIELD,
+  },
+  {
+    name: 'TagEmailInput',
+    label: 'Tag email input',
+    summary: 'Enter email addresses as removable tags.',
+    composes: ['tags-input'],
+    states: FIELD,
+  },
+  {
+    name: 'MobileAppShell',
+    label: 'Mobile app shell',
+    summary: 'The phone app frame with header, body and bottom navigation.',
+    composes: ['mobile-app-frame'],
+  },
+  {
+    name: 'OtpInput',
+    label: 'One-time code input',
+    summary: 'Enter a one-time code one character per box.',
+    composes: ['pin-input'],
+    states: FIELD,
+  },
+  {
+    name: 'StarRating',
+    label: 'Star rating',
+    summary: 'Show or pick a rating out of a number of stars.',
+    composes: ['rating'],
+    states: FIELD,
+  },
 ];
 
 /** The `@protoyard/ui` catalog extensions, one per own component that renders Texuli ones. */
@@ -530,15 +580,6 @@ export const PROTOYARD_UI_REEXPORTS: readonly CatalogReexport[] = REEXPORTS.map(
 export const PROTOYARD_UI_NON_COMPONENTS: readonly CatalogImportList[] = [
   {
     module: MODULE,
-    exports: [
-      'ChipGroup',
-      'FileDropzone',
-      'MobileAppShell',
-      'OtpInput',
-      'SafeArea',
-      'StarRating',
-      'TagEmailInput',
-      'WeekdayPicker',
-    ],
+    exports: ['SafeArea'],
   },
 ];

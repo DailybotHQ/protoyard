@@ -56,9 +56,9 @@ design-system spec 0.13.0):
 }
 ```
 
-- The keys are catalog ids: Texuli's (`@texuli/catalog`, 187 components
+- The keys are catalog ids: Texuli's (`@texuli/catalog`, 194 components
   today) and the [catalog extensions](#catalog-extensions) of
-  `@protoyard/ui`'s own components (`protoyard:data-table`, 50 today). An
+  `@protoyard/ui`'s own components (`protoyard:data-table`, 57 today). An
   omitted list allows every value the catalog lists; an empty list allows
   none.
 - **A design system without `allow` is not locked and cannot be locked.**
@@ -118,7 +118,7 @@ ids it renders:
   `@protoyard/ui` has no subpath for them, and adding one would change its
   `package.json`, so the CLI holds the data. Any library that wraps Texuli
   can publish the same shape under its own namespace.
-- **Merge.** Texuli's `mergeCatalogs` (from the root of `@texuli/spec`)
+- **Merge.** Texuli's `mergeCatalogs` (from `@texuli/spec/catalog-extensions`)
   merges them. The CLI passes it the installed catalog in Texuli's
   `SpecCatalog` shape and the manifests as Texuli extension files
   (`{ format: "texuli/catalog-extension", version: 1, namespace, components }`,
@@ -141,13 +141,14 @@ ids it renders:
   that uses `<Notice>` needs `protoyard:notice` in `allow`; allowing `alert`
   alone does not allow it.
 - **Non-components.** Texuli's catalog lists the exports that are not
-  components (`MotionProvider`, `SafeArea`, `AppShell`, `ToggleGroup`,
-  `Rating`…); they are never refused and never counted. An own component
-  that renders none of Texuli's catalog components, only such exports or
-  plain elements (`ChipGroup`, `FileDropzone`, `MobileAppShell`, `OtpInput`,
-  `SafeArea`, `StarRating`, `TagEmailInput`, `WeekdayPicker`), cannot be an
-  extension (Texuli needs at least one `composes` id) and is classified the
-  same way.
+  components (`MotionProvider`, `SafeArea`, `AppShell`, `@texuli/primitives`
+  parts…); they are never refused and never counted. An own component that
+  renders none of Texuli's catalog components, only such exports or plain
+  elements (`SafeArea`), gets no extension and is classified the same way.
+  The input wrappers (`ChipGroup`, `FileDropzone`, `MobileAppShell`,
+  `OtpInput`, `StarRating`, `TagEmailInput`, `WeekdayPicker`) render inputs
+  Texuli 0.15.0 catalogs (`toggle-group`, `file-upload`, `mobile-app-frame`,
+  `pin-input`, `rating`, `tags-input`), so they are extensions.
 - **Rules.** `ds-not-allowed` allows an own component only when its extension
   id is in `allow`; `ds-disabled-value` reads the extension's axes
   (`<Notice tone="warning">` with `"protoyard:notice": { "tones": ["info"] }`
@@ -422,14 +423,11 @@ These are not available today:
   is `unmapped` and refused in a locked prototype; none of the component tags
   in `templates/` and `prototypes/` is today.
 - Non-components are never refused, so a locked design system cannot forbid
-  them: Texuli's list includes shells (`AppShell`) and some visual exports it
-  does not catalog yet (`ToggleGroup`, `Rating`, `FileUpload`, `TagsInput`,
-  `PinInput`, `NumberField`, `MobileAppFrame`), and with them the
-  `@protoyard/ui` components built on them (`ChipGroup`, `StarRating`…). They
-  become governed when Texuli catalogs them (the CI test then asks for their
-  manifests).
-- The allow section holds at most 4,096 keys (Texuli's cap): 237 today (187
-  Texuli components and 50 extensions).
+  them: Texuli's list includes shells (`AppShell`) and helpers. When Texuli
+  catalogs another visual export, the CI test asks for a manifest for every
+  `@protoyard/ui` component built on it.
+- The allow section holds at most 4,096 keys (Texuli's cap): 251 today (194
+  Texuli components and 57 extensions).
 - `check ds` is a static, textual scan; see its limits in
   [THEMES](THEMES.md#check-ds).
 - A workspace's design systems are local files. Nothing is hosted, shared or

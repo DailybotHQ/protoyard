@@ -417,8 +417,10 @@ not in the agent catalog yet, so blueprints cannot emit them):
 Protoyard's [locked design systems](DESIGN_SYSTEMS.md) read Texuli's catalog
 and spec, and Texuli 0.15.0 changes what they can govern:
 
-- **Catalog imports.** Every catalog manifest with a public export lists
-  `imports: [{ module, exports }]` (the old misattributions are fixed:
+- **Catalog imports.** Every catalog id with a public export has its
+  `imports: [{ module, exports }]` in `IMPORTS_BY_ID` from
+  `@texuli/catalog/imports` (the CLI attaches them to manifests that do not
+  list their own; the old misattributions are fixed:
   `Dialog` is `dialog`, `Select` is `select`, `Drawer` is `drawer`, `Sidebar`
   is `sidebar`, `ChatMessage` is `chat-message`). A few compound parts are
   in neither list yet (`DrawerRoot` and the other `texuli/sheet` roots and
@@ -427,20 +429,21 @@ and spec, and Texuli 0.15.0 changes what they can govern:
   guesses Texuli ids by name ([the mapper](THEMES.md#the-catalog-mapper)).
   The catalog also lists the exports that are not components
   (`MotionProvider`, `SafeArea`, `AppShell`, …): never refused, never counted.
-- **A wider catalog.** 187 components: `icon` (one id; allowing it allows
+- **A wider catalog.** 194 components: `icon` (one id; allowing it allows
   every icon), `avatar`, `skeleton`, `progress`, `spinner`, `carousel`,
   `separator`, `list-item`, `tabs`, `accordion`, `composer`, `mobile-header`,
   `bottom-nav`, `layout-wizard`, the typography components `heading`, `text`,
-  `prose` and `box` (tabular numbers, figure size, transform, tracking) and
-  more, so the uses that were `unmapped` in locked prototypes now map.
+  `prose` and `box` (tabular numbers, figure size, transform, tracking), the
+  inputs `toggle-group`, `rating`, `file-upload`, `tags-input`, `pin-input`
+  and `number-field`, `mobile-app-frame` and more, so the uses that were `unmapped` in locked prototypes now map.
 - **Button tone.** `button` has a `tone` axis (`default`, `destructive`,
   `success`, `warning`) independent of its variant; an `allow` entry narrows
   it with `tones`, and `ds-disabled-value` refuses `<Button tone="…">` values
   it does not enable.
-- **Extensions.** `mergeCatalogs(texuli, extensions)` from the root of
-  `@texuli/spec` merges host catalog extensions with Texuli's own rules,
+- **Extensions.** `mergeCatalogs(texuli, extensions)` from
+  `@texuli/spec/catalog-extensions` merges host catalog extensions with Texuli's own rules,
   codes and limits (`CATALOG_EXTENSION_LIMITS`: 16 extension files, 256
-  components each, 32 `composes` ids). `@protoyard/ui`'s 50 extension
+  components each, 32 `composes` ids). `@protoyard/ui`'s 57 extension
   manifests merge with `ok: true`
   ([catalog extensions](DESIGN_SYSTEMS.md#catalog-extensions)).
 - **Namespaced allow keys.** `allow` keys accept `<namespace>:<id>`

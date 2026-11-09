@@ -2,7 +2,7 @@ import {
   CATALOG_EXTENSION_FORMAT,
   CATALOG_EXTENSION_VERSION,
   type CatalogExtensionCode,
-} from '@texuli/spec';
+} from '@texuli/spec/catalog-extensions';
 import {
   PROTOYARD_UI_EXTENSIONS,
   PROTOYARD_UI_NON_COMPONENTS,

@@ -1,12 +1,8 @@
 import { createRequire } from 'node:module';
 import type { CatalogEntry, ManifestGroup } from '@texuli/catalog/build';
 import type { CatalogManifest } from '@texuli/catalog/manifest';
-import {
-  type MergedCatalog,
-  mergeCatalogs,
-  SPEC_CATALOG_HASH,
-  type SpecCatalog,
-} from '@texuli/spec';
+import { SPEC_CATALOG_HASH, type SpecCatalog } from '@texuli/spec';
+import { type MergedCatalog, mergeCatalogs } from '@texuli/spec/catalog-extensions';
 import {
   checkDesignSystemAllow,
   type DesignSystemAllow,
@@ -65,7 +61,7 @@ import {
  *
  * ## Extensions
  *
- * Texuli's `mergeCatalogs` (the root of `@texuli/spec`) decides which
+ * Texuli's `mergeCatalogs` (`@texuli/spec/catalog-extensions`) decides which
  * extensions merge, with its own codes, over a projection of the installed
  * catalog ({@link specCatalogOf}); the one rule checked here is that no
  * extension import collides ({@link importCollisions}). Texuli's design
@@ -446,15 +442,24 @@ export function dsCatalog(): DsCatalog {
     const { emitTiers } = load('@texuli/catalog/build') as {
       emitTiers: (manifest: CatalogManifest, group: string) => CatalogEntry['emit'];
     };
-    const { NON_COMPONENT_IMPORTS } = load('@texuli/catalog/manifest') as {
+    // Texuli 0.15.0 keeps the public imports of each id beside the authored
+    // manifests (`@texuli/catalog/imports`); a manifest that lists its own
+    // imports keeps them.
+    const { IMPORTS_BY_ID, NON_COMPONENT_IMPORTS } = load('@texuli/catalog/imports') as {
+      IMPORTS_BY_ID?: Readonly<Record<string, readonly CatalogImport[]>>;
       NON_COMPONENT_IMPORTS?: readonly CatalogImport[];
     };
     const texuli = ALL_MANIFEST_GROUPS.flatMap((group) =>
-      group.manifests.map((manifest) => ({
-        ...(manifest as unknown as CatalogManifestLike),
-        group: group.name,
-        emit: emitTiers(manifest, group.name),
-      }))
+      group.manifests.map((manifest) => {
+        const like = manifest as unknown as CatalogManifestLike;
+        const imports = like.imports?.length ? like.imports : IMPORTS_BY_ID?.[like.id];
+        return {
+          ...like,
+          ...(imports?.length ? { imports } : {}),
+          group: group.name,
+          emit: emitTiers(manifest, group.name),
+        };
+      })
     );
     const merged = mergeWithExtensions(texuli);
     cached = catalogFromManifests(merged.manifests, {
