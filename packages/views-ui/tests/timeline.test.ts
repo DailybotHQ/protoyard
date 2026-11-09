@@ -111,6 +111,22 @@ describe('TimelineView (Texuli 0.14 pass-through, D-G-044)', () => {
     expect(formatTick.mock.calls[0]?.[1]).toMatchObject({ zoom: 'week' });
   });
 
+  it('exposes scrollToDate from Texuli 0.14.4 and ignores calls before rows render', async () => {
+    const view = timeline() as unknown as {
+      component: { scrollToDate: (date: string | Date) => void };
+    };
+    await screen.findByRole('button', { name: /^Draft brief, / });
+    expect(typeof view.component.scrollToDate).toBe('function');
+    expect(() => view.component.scrollToDate('2026-10-10')).not.toThrow();
+    expect(() => view.component.scrollToDate('not-a-date')).not.toThrow();
+    cleanup();
+    const loading = render(TimelineView<Task>, {
+      query: { current: undefined, loading: true, error: undefined },
+      getTitle: (task: Task) => task.title,
+    }) as unknown as { component: { scrollToDate: (date: string) => void } };
+    expect(() => loading.component.scrollToDate('2026-10-10')).not.toThrow();
+  });
+
   it('calls onOpen from a task bar and from the unscheduled tray', async () => {
     const onOpen = vi.fn();
     const undated = { id: 't4', title: 'Name the mascot', project: 'apollo' } as unknown as Task;

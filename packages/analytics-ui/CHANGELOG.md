@@ -1,5 +1,16 @@
 # @protoyard/analytics-ui
 
+## 1.6.0
+
+### Patch Changes
+
+- Updated dependencies [61fd849]
+- Updated dependencies [10e69ef]
+  - @protoyard/ui@1.6.0
+  - @protoyard/renderer-svelte@1.6.0
+  - @protoyard/analytics@1.6.0
+  - @protoyard/charts-ui@1.6.0
+
 ## 1.5.0
 
 ### Patch Changes

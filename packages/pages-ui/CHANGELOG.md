@@ -1,5 +1,19 @@
 # @protoyard/pages-ui
 
+## 1.6.0
+
+### Patch Changes
+
+- 10e69ef: Adopt Texuli 0.14.3. Every Texuli dependency is pinned exactly at `0.14.3`. Re-exported components gain Texuli's new props directly (Checkbox/Radio/Switch `labelContent`, Field `counter`, NumberField `display="output"`, Button/IconButton `iconSize`, BottomNav `emphasis`, MobileHeader `eyebrow`/`leading`/`onClose`, SplitView `listWidth`/`breakpoint`/`context`, Stat `tone`, Composer `layout="row"`/`sendButton="icon"`, `texuli/list-item`, opt-in Spanish catalogs). `@protoyard/ui` `Avatar` forwards the new `tone` and `shape`. The page host's CSS caps rise with Texuli's CSS (initial 7,562 B measured, cap 7,940 B; all CSS 43,139 B, cap 44,218 B).
+- Updated dependencies [61fd849]
+- Updated dependencies [10e69ef]
+  - @protoyard/ui@1.6.0
+  - @protoyard/blocks-ui@1.6.0
+  - @protoyard/renderer-svelte@1.6.0
+  - @protoyard/blocks@1.6.0
+  - @protoyard/blueprint@1.6.0
+  - @protoyard/pages@1.6.0
+
 ## 1.5.0
 
 ### Patch Changes

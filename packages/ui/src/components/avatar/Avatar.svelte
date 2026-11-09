@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { ComponentProps } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import { Avatar as TexuliAvatar } from 'texuli/avatar';
 
@@ -16,6 +17,10 @@ type Props = Omit<HTMLAttributes<HTMLSpanElement>, 'children'> & {
   size?: 'xs' | 'sm' | 'md' | 'lg';
   /** Decorative avatars (next to a visible name) are hidden from assistive tech. */
   decorative?: boolean;
+  /** A filled status tone instead of the name-derived color (Texuli 0.14.3, UG-29). */
+  tone?: ComponentProps<typeof TexuliAvatar>['tone'];
+  /** `'circle'` (default) or `'square'` (Texuli 0.14.3, UG-29). */
+  shape?: ComponentProps<typeof TexuliAvatar>['shape'];
   /** The rendered root element (bindable). */
   ref?: HTMLElement | null;
 };
@@ -26,6 +31,8 @@ let {
   srcset,
   size = 'md',
   decorative = false,
+  tone,
+  shape,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
@@ -39,4 +46,4 @@ const forwarded = $derived(rest as Record<string, unknown>);
   image (with `srcset`) that passes Texuli's image URL policy for untrusted
   data (https or a relative path), falling back to the initials when it fails.
 -->
-<TexuliAvatar bind:ref {name} {src} {srcset} {size} {decorative} {...forwarded} />
+<TexuliAvatar bind:ref {name} {src} {srcset} {size} {decorative} {tone} {shape} {...forwarded} />

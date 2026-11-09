@@ -131,6 +131,30 @@ describe('gallery registry kind safety', () => {
     expect(result.stats).toMatchObject({ total: 0, blueprints: 0, invalid: 5 });
   });
 
+  it('reads the catalog installed with @protoyard/templates in a consumer workspace (Corag 1.5.0)', () => {
+    const store = 'node_modules/.pnpm/@protoyard+templates@1.6.0/node_modules/@protoyard/templates';
+    const hoisted = 'node_modules/@protoyard/templates';
+    const entries = [
+      blueprintEntry('crm', `${store}/blueprints/crm.json`),
+      blueprintEntry('launch-deck', `${store}/blueprints/decks/launch-deck.json`),
+      blueprintEntry('helpdesk', `${hoisted}/blueprints/helpdesk.json`),
+      blueprintEntry('other', 'node_modules/other-package/blueprints/other.json'),
+    ];
+    for (const entry of entries) {
+      mkdirSync(dirname(join(root, entry.path)), { recursive: true });
+      const kind = entry.path.includes('/decks/') ? 'deck' : undefined;
+      writeFileSync(join(root, entry.path), JSON.stringify(catalogBlueprint(kind)));
+    }
+    writeRegistry(entries);
+
+    const result = readTestRegistry();
+    rmSync(join(root, 'node_modules'), { recursive: true, force: true });
+    expect(result.entries.map((entry) => entry.blueprintKind)).toEqual(['app', 'deck', 'app']);
+    expect(result.invalid.map((issue) => issue.path)).toEqual([
+      'node_modules/other-package/blueprints/other.json',
+    ]);
+  });
+
   it('rejects traversal and symlinked blueprint source paths', () => {
     const outside = join(root, 'outside.json');
     writeFileSync(outside, JSON.stringify(catalogBlueprint('deck')));

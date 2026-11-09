@@ -1111,7 +1111,7 @@ data (ADR-028).
 All public packages share one version through one Changesets `fixed` group,
 and the root `package.json` carries the same version.
 
-- **Current state.** Every manifest says `1.5.0`. `1.0.0` was tagged and
+- **Current state.** Every manifest says `1.6.0`. `1.0.0` was tagged and
   released on GitHub but never published to npm. `1.1.0` was published once
   by hand (2026-11-02). `1.1.1` and every later version are published by
   `release.yml`.
@@ -1371,6 +1371,18 @@ The standalone player is copied to `<base>player/`. Its CSP and framing rules
 are merged into the showcase root `_headers` under `<base>player/*` so
 Cloudflare Pages applies them; the player build's nested `_headers` alone is
 not read from that location.
+
+The site target needs `@protoyard/player`. In a consumer workspace it comes
+with `@protoyard/cli`, which depends on it (pnpm keeps that copy under the
+CLI, and the showcase looks there after the workspace root). When no copy is
+found, the command stops before building any demo; install it with
+`pnpm add -D @protoyard/player` at the same version as `protoyard`.
+
+In a consumer workspace, the marketplace catalog comes from the installed
+`@protoyard/templates` package (`node_modules/.../@protoyard/templates/blueprints/`).
+The gallery reads those blueprints with the same checks as a workspace
+`blueprints/*.json` file (no symlinks, inside the workspace, 256 KB cap), so
+they are listed rather than reported as invalid folders.
 
 The official showcase is served by Cloudflare Pages from this repository:
 build command `pnpm build:showcase`, output directory `artifacts/showcase`,

@@ -51,6 +51,22 @@ const tone = 'live';</script>
     expect(rules('prototypes/x/src/A.svelte', good)['component-scoped-class']).toBeUndefined();
   });
 
+  it('splits selector lists only at top-level commas (Dailybot batch 9)', () => {
+    const source = `<script>import { Button } from 'texuli/button';</script>
+<Button class="a">A</Button><Button class="b">B</Button>
+<style>
+  :global(:is(.a, .b).tx-button) { color: red; }
+  :global(:where(.a, :is(.b, .c))) { color: blue; }
+</style>`;
+    expect(rules('prototypes/x/src/A.svelte', source)['component-scoped-class']).toBeUndefined();
+    const mixed = `<script>import { Button } from 'texuli/button';</script>
+<Button class="a">A</Button><Button class="b">B</Button>
+<style>
+  :global(:is(.a, .x)), .b { color: red; }
+</style>`;
+    expect(rules('prototypes/x/src/A.svelte', mixed)['component-scoped-class']).toBe(1);
+  });
+
   it('flags clsx, tailwind-merge and tailwind-variants imports', () => {
     expect(
       rules(

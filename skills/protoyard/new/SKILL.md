@@ -1,7 +1,7 @@
 ---
 name: protoyard-new
 description: Turn a product brief, a blueprint or a quick exploration into a full Protoyard prototype, choose its template, generate its files and validate the result.
-version: "1.5.0"
+version: "1.6.0"
 documentation_url: https://protoyard.app/docs/
 user-invocable: true
 metadata:

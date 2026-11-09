@@ -293,17 +293,27 @@ function validateRegistryEntry(workspaceRoot, raw) {
   return { entry, error: null };
 }
 
+/**
+ * A consumer workspace indexes the catalog shipped in the installed
+ * `@protoyard/templates` package (hoisted or under pnpm's `.pnpm` store), so
+ * its blueprints are read from there too (Corag consumer gap, 1.5.0). The
+ * same no-symlink, inside-the-workspace and size checks apply.
+ */
+const INSTALLED_CATALOG =
+  /^node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?@protoyard\/templates\/blueprints\/(?:[a-z]+\/)?[^/]+\.json$/;
+
 /** @param {string} workspaceRoot @param {Record<string, unknown>} entry */
 function readCatalogBlueprint(workspaceRoot, entry) {
   const sourcePath = /** @type {string} */ (entry.path);
   if (
-    !sourcePath.startsWith('blueprints/') ||
+    !(sourcePath.startsWith('blueprints/') || INSTALLED_CATALOG.test(sourcePath)) ||
     !sourcePath.endsWith('.json') ||
     sourcePath.includes('\\')
   ) {
     return {
       ok: false,
-      error: 'Blueprint source path must be a workspace-relative blueprints/*.json path.',
+      error:
+        'Blueprint source path must be a workspace-relative blueprints/*.json path or the installed @protoyard/templates catalog.',
     };
   }
   const filename = sourcePath.split('/').at(-1);

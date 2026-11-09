@@ -1,5 +1,20 @@
 # @protoyard/renderer-svelte
 
+## 1.6.0
+
+### Patch Changes
+
+- Updated dependencies [61fd849]
+- Updated dependencies [10e69ef]
+  - @protoyard/ui@1.6.0
+  - @protoyard/review-ui@1.6.0
+  - @protoyard/avatars@1.6.0
+  - @protoyard/core@1.6.0
+  - @protoyard/devtools@1.6.0
+  - @protoyard/offline@1.6.0
+  - @protoyard/runtime@1.6.0
+  - @protoyard/themes@1.6.0
+
 ## 1.5.0
 
 ### Patch Changes
