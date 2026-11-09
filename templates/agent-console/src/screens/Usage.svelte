@@ -1,7 +1,17 @@
 <script lang="ts">
 import { Coins, FlaskConical, Hash, History } from '@lucide/svelte';
 import { getRuntime, liveQuery, useClock } from '@protoyard/renderer-svelte';
-import { Skeleton, StatCard } from '@protoyard/ui';
+import { Progress, Skeleton, StatCard } from '@protoyard/ui';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from 'texuli/table';
+import { Box, Heading, Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import type { ConsoleDatabase } from '../database/schema.ts';
 import { formatCost } from '../domain/agents.ts';
@@ -31,7 +41,7 @@ const pass = $derived(latestPassRate(evaluations.current ?? []));
 <PageHeader title="Usage & cost" description="Estimated tokens and cost from simulated runs. Not provider billing." />
 
 {#if runs.loading}
-  <Skeleton class="h-64 rounded-xl" />
+  <Skeleton class="h-64" />
 {:else}
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <StatCard label="Runs" value={formatNumber(totals.runs)} hint={`${totals.failedRuns} not completed`} icon={History} />
@@ -40,42 +50,42 @@ const pass = $derived(latestPassRate(evaluations.current ?? []));
     <StatCard label="Eval pass rate" value={percent(pass.passed, pass.total)} hint={`${pass.passed}/${pass.total} cases, latest per dataset`} icon={FlaskConical} />
   </div>
 
-  <section class="mt-6 rounded-xl border border-border bg-surface p-4 shadow-soft" aria-labelledby="daily-title">
-    <h2 id="daily-title" class="font-medium">Runs per day (last 14 days)</h2>
-    <ol class="mt-4 flex h-36 items-end gap-1.5" aria-label="Runs per day">
+  <Box as="section" surface="default" border="default" radius="xl" elevation="sm" padding="md" class="mt-6" aria-labelledby="daily-title">
+    <Heading level={2} size="sm" id="daily-title">Runs per day (last 14 days)</Heading>
+    <ol class="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2" aria-label="Runs per day">
       {#each days as day (day.day)}
-        <li class="flex h-full flex-1 flex-col items-center justify-end gap-1" title={`${day.day}: ${day.runs} runs, ${formatCost(day.costMicros)}`}>
-          <span class="sr-only">{day.day}: {day.runs} runs</span>
-          <span class="w-full rounded-t bg-primary/80" style={`height: ${(day.runs / peak) * 100}%; min-height: ${day.runs ? 4 : 1}px`}></span>
-          <span class="text-[10px] text-muted-foreground" aria-hidden="true">{day.day.slice(8)}</span>
+        <li class="flex items-center gap-3" title={`${day.day}: ${day.runs} runs, ${formatCost(day.costMicros)}`}>
+          <Text as="span" size="xs" tone="muted" tabular class="w-20 shrink-0">{day.day}</Text>
+          <Progress value={day.runs} max={peak} size="sm" ariaLabel={`${day.day}: ${day.runs} runs`} class="min-w-0 flex-1" />
+          <Text as="span" size="xs" tabular align="end" class="w-6 shrink-0" aria-hidden="true">{day.runs}</Text>
         </li>
       {/each}
     </ol>
-  </section>
+  </Box>
 
   <div class="mt-6 grid gap-6">
     {#each [{ title: 'By agent', rows: byAgent.map((r) => ({ key: r.agentId, ...r })) }, { title: 'By model', rows: byModel.map((r) => ({ key: r.modelId, ...r })) }] as table (table.title)}
-      <section class="overflow-x-auto rounded-xl border border-border bg-surface shadow-soft">
-        <table class="w-full text-sm">
-          <caption class="px-4 pt-4 text-left font-medium">{table.title}</caption>
-          <thead class="text-xs text-muted-foreground">
-            <tr><th scope="col" class="px-4 py-2 text-left font-medium">Name</th><th scope="col" class="px-4 py-2 text-right font-medium">Runs</th><th scope="col" class="px-4 py-2 text-right font-medium">Tokens</th><th scope="col" class="px-4 py-2 text-right font-medium">Tool failures</th><th scope="col" class="px-4 py-2 text-right font-medium">Cost</th></tr>
-          </thead>
-          <tbody class="divide-y divide-border">
+      <Box as="section" surface="default" border="default" radius="xl" elevation="sm" padding="none" class="overflow-x-auto">
+        <Table class="w-full">
+          <TableCaption>{table.title}</TableCaption>
+          <TableHeader>
+            <TableRow><TableHead scope="col">Name</TableHead><TableHead scope="col" numeric>Runs</TableHead><TableHead scope="col" numeric>Tokens</TableHead><TableHead scope="col" numeric>Tool failures</TableHead><TableHead scope="col" numeric>Cost</TableHead></TableRow>
+          </TableHeader>
+          <TableBody>
             {#each table.rows as row (row.key)}
-              <tr>
-                <td class="px-4 py-2">{row.name}</td>
-                <td class="px-4 py-2 text-right tabular-nums">{formatNumber(row.runs)}</td>
-                <td class="px-4 py-2 text-right tabular-nums">{formatNumber(row.tokens)}</td>
-                <td class="px-4 py-2 text-right tabular-nums">{row.failedToolCalls}/{row.toolCalls}</td>
-                <td class="px-4 py-2 text-right tabular-nums">{formatCost(row.costMicros)}</td>
-              </tr>
+              <TableRow>
+                <TableCell>{row.name}</TableCell>
+                <TableCell numeric>{formatNumber(row.runs)}</TableCell>
+                <TableCell numeric>{formatNumber(row.tokens)}</TableCell>
+                <TableCell numeric>{row.failedToolCalls}/{row.toolCalls}</TableCell>
+                <TableCell numeric>{formatCost(row.costMicros)}</TableCell>
+              </TableRow>
             {:else}
-              <tr><td colspan="5" class="px-4 py-6 text-center text-muted-foreground">No runs yet.</td></tr>
+              <TableRow><TableCell colspan={5} align="center"><Text as="span" size="sm" tone="muted">No runs yet.</Text></TableCell></TableRow>
             {/each}
-          </tbody>
-        </table>
-      </section>
+          </TableBody>
+        </Table>
+      </Box>
     {/each}
   </div>
 {/if}

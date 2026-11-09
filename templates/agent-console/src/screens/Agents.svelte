@@ -1,9 +1,10 @@
 <script lang="ts">
 import { Bot, Wrench } from '@lucide/svelte';
 import { can, getRuntime, liveQuery, useClock } from '@protoyard/renderer-svelte';
-import { Badge, Button, EmptyState, Skeleton } from '@protoyard/ui';
+import { Badge, Button, Card, EmptyState, Separator, Skeleton } from '@protoyard/ui';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import AgentDialog from '../components/AgentDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import type { ConsoleDatabase } from '../database/schema.ts';
@@ -50,7 +51,7 @@ const statsFor = (agentId: string) => {
 
 {#if agents.loading}
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Loading agents">
-    {#each [0, 1, 2] as i (i)}<Skeleton class="h-44 rounded-xl" />{/each}
+    {#each [0, 1, 2] as i (i)}<Skeleton class="h-44" />{/each}
   </div>
 {:else if (agents.current?.length ?? 0) === 0}
   <EmptyState
@@ -68,17 +69,16 @@ const statsFor = (agentId: string) => {
   <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {#each agents.current ?? [] as agent (agent.id)}
       {@const stats = statsFor(agent.id)}
-      <li class="group relative flex flex-col rounded-xl border border-border bg-surface p-4 shadow-soft transition-colors hover:border-primary/40">
+      <li class="flex">
+        <Card href={`#/agents/${encodeURIComponent(agent.id)}`} linkLabel={agent.name} class="w-full p-4">
         <div class="flex items-start gap-3">
-          <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary" aria-hidden="true"><LucideIcon icon={Bot} class="size-4" /></span>
+          <Box surface="muted" radius="lg" padding="none" class="grid size-9 shrink-0 place-items-center" aria-hidden="true"><LucideIcon icon={Bot} tone="primary" class="size-4" /></Box>
           <div class="min-w-0">
-            <h2 class="font-medium">
-              <a href={`#/agents/${encodeURIComponent(agent.id)}`} class="after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none">{agent.name}</a>
-            </h2>
-            <p class="text-xs text-muted-foreground">{modelFor(agent.modelId).name}</p>
+            <Heading level={2} size="sm">{agent.name}</Heading>
+            <Text size="xs" tone="muted">{modelFor(agent.modelId).name}</Text>
           </div>
         </div>
-        <p class="mt-3 line-clamp-2 text-sm text-muted-foreground">{agent.description || agent.instructions}</p>
+        <Text size="sm" tone="muted" lineClamp={2} class="mt-3">{agent.description || agent.instructions}</Text>
         <div class="mt-3 flex flex-wrap gap-1.5">
           {#each agent.tools as tool (tool)}
             <Badge variant="outline"><LucideIcon icon={Wrench} />{tool}{agent.approvalTools.includes(tool) ? ' · approval' : ''}</Badge>
@@ -86,14 +86,16 @@ const statsFor = (agentId: string) => {
             <Badge variant="secondary">No tools</Badge>
           {/each}
         </div>
-        <dl class="mt-auto grid grid-cols-3 gap-2 border-t border-border pt-3 text-xs">
-          <div><dt class="text-muted-foreground">Runs</dt><dd class="font-medium">{stats.runs}</dd></div>
+        <div class="mt-auto pt-3"><Separator /></div>
+        <dl class="grid grid-cols-3 gap-2 pt-3">
+          <div><dt><Text as="span" size="xs" tone="muted">Runs</Text></dt><dd><Text as="span" size="xs" weight="medium">{stats.runs}</Text></dd></div>
           <div>
-            <dt class="text-muted-foreground">Last eval</dt>
-            <dd class="font-medium">{stats.latest ? percent(stats.latest.passed, stats.latest.passed + stats.latest.failed) : '—'}</dd>
+            <dt><Text as="span" size="xs" tone="muted">Last eval</Text></dt>
+            <dd><Text as="span" size="xs" weight="medium">{stats.latest ? percent(stats.latest.passed, stats.latest.passed + stats.latest.failed) : '—'}</Text></dd>
           </div>
-          <div><dt class="text-muted-foreground">Last run</dt><dd class="font-medium">{stats.lastRun ? timeAgo(stats.lastRun, clock.now) : '—'}</dd></div>
+          <div><dt><Text as="span" size="xs" tone="muted">Last run</Text></dt><dd><Text as="span" size="xs" weight="medium">{stats.lastRun ? timeAgo(stats.lastRun, clock.now) : '—'}</Text></dd></div>
         </dl>
+        </Card>
       </li>
     {/each}
   </ul>

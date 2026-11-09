@@ -2,9 +2,11 @@
 import { ChevronLeft, Ellipsis } from '@lucide/svelte';
 import type { Persona } from '@protoyard/core';
 import { avatarImage, getRuntime, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
-import { Avatar, Button, Input } from '@protoyard/ui';
+import { Avatar, Badge, Button, Input, Separator } from '@protoyard/ui';
 import { tick } from 'svelte';
+import { Chip } from 'texuli/badge';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import HuddlePanel from './components/HuddlePanel.svelte';
 import type { Channel, Message, TeamChatDatabase, Workspace } from './database/schema.ts';
 import {
@@ -37,8 +39,8 @@ let mobilePane = $state<'channels' | 'channel'>('channel');
 // discloses (a native disclosure: a menu library would add ~30 KB to this eager screen).
 let toolsOpen = $state(false);
 let toolsTrigger = $state<HTMLElement | null>(null);
-let toolsPanel = $state<HTMLDivElement>();
-let channelHeading = $state<HTMLHeadingElement>();
+let toolsPanel = $state<HTMLElement | null>(null);
+let channelHeading = $state<HTMLHeadingElement | null>(null);
 let channelNav = $state<HTMLElement>();
 
 const canPost = $derived(services.can(CAPABILITIES['message:create']));
@@ -314,21 +316,25 @@ function closeToolsOnEscape(event: KeyboardEvent) {
 
 <!-- `data-py-scroll-root` is reserved for the renderer's own wrapper: the message log
      uses `data-message-log`, or the renderer's layout rules would flatten it. -->
-<div class="flex h-app max-h-app min-h-0 overflow-hidden bg-background text-foreground">
-  <aside
+<div class="flex h-app max-h-app min-h-0 overflow-hidden">
+  <Box
+    as="aside"
+    surface="subtle"
+    radius="none"
+    padding="none"
     class="{mobilePane === 'channels'
       ? 'flex w-full'
-      : 'hidden'} min-h-0 shrink-0 flex-col border-border bg-muted/30 md:flex md:w-60 md:border-r"
+      : 'hidden'} min-h-0 shrink-0 flex-col md:flex md:w-60"
   >
-    <div class="border-b border-border px-3 py-3">
-      <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Workspace</p>
-      <p class="truncate text-sm font-medium">{(workspaces.current ?? [])[0]?.name ?? 'Loading…'}</p>
-      <p class="mt-1 text-[0.65rem] text-muted-foreground">
+    <Box border="block-end" radius="none" padding="none" class="px-3 py-3">
+      <Text size="xs" tone="muted" weight="semibold" transform="uppercase" tracking="wide">Workspace</Text>
+      <Text size="sm" weight="medium" truncate>{(workspaces.current ?? [])[0]?.name ?? 'Loading…'}</Text>
+      <Text size="xs" tone="muted" class="mt-1">
         Team chat · simulated bots · no real models
-      </p>
-    </div>
+      </Text>
+    </Box>
     <div class="flex items-center justify-between px-3 py-2">
-      <span class="text-xs font-semibold text-muted-foreground">Channels</span>
+      <Text as="span" size="xs" tone="muted" weight="semibold">Channels</Text>
       <Button
         size="sm"
         variant="ghost"
@@ -345,7 +351,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
     </div>
     {#if newChannelOpen}
       <div class="flex gap-1 px-2 pb-2">
-        <Input bind:value={newChannelName} placeholder="channel-name" class="h-8 text-xs" />
+        <Input bind:value={newChannelName} placeholder="channel-name" class="h-8" />
         <Button size="sm" onclick={() => createChannel()}>Add</Button>
       </div>
     {/if}
@@ -357,32 +363,30 @@ function closeToolsOnEscape(event: KeyboardEvent) {
       {#each channels.current ?? [] as ch (ch.id)}
         <Button
           type="button"
-          variant="ghost"
-          class="flex min-h-touch w-full items-center justify-start gap-1 whitespace-normal rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted md:min-h-0 {channelId ===
-          ch.id
-            ? 'bg-muted font-medium'
-            : ''}"
+          variant={channelId === ch.id ? 'secondary' : 'ghost'}
+          size="sm"
+          class="min-h-touch w-full justify-start gap-1 whitespace-normal px-2 py-1.5 text-left md:min-h-0"
           aria-current={channelId === ch.id ? 'page' : undefined}
           onclick={() => openChannel(ch.id)}
         >
-          <span class="text-muted-foreground">{ch.kind === 'dm' ? '·' : '#'}</span>
+          <Text as="span" size="sm" tone="muted">{ch.kind === 'dm' ? '·' : '#'}</Text>
           <span class="truncate">{ch.name}</span>
         </Button>
       {/each}
     </nav>
-    <div class="border-t border-border px-3 py-2">
-      <p class="text-xs font-semibold text-muted-foreground">Bots</p>
-      <ul class="mt-1 space-y-1 text-xs">
+    <Box border="block-start" radius="none" padding="none" class="px-3 py-2">
+      <Text size="xs" tone="muted" weight="semibold">Bots</Text>
+      <ul class="mt-1 space-y-1">
         {#each bots as bot}
-          <li class="truncate text-muted-foreground">@{bot.handle} — {bot.name}</li>
+          <li><Text size="xs" tone="muted" truncate>@{bot.handle} — {bot.name}</Text></li>
         {/each}
       </ul>
-    </div>
-    <div class="border-t border-border px-3 py-2">
-      <p class="text-xs font-semibold text-muted-foreground">Presence</p>
+    </Box>
+    <Box border="block-start" radius="none" padding="none" class="px-3 py-2">
+      <Text size="xs" tone="muted" weight="semibold">Presence</Text>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
       <ul
-        class="mt-1 max-h-28 space-y-0.5 overflow-y-auto text-xs focus-visible:outline-2 focus-visible:outline-ring"
+        class="mt-1 max-h-28 space-y-0.5 overflow-y-auto"
         tabindex="0"
         aria-label="Presence"
       >
@@ -391,17 +395,18 @@ function closeToolsOnEscape(event: KeyboardEvent) {
           <li class="flex items-center justify-between gap-2">
             <span class="flex min-w-0 items-center gap-1.5">
               <Avatar name={who?.name ?? p.personaId} {...avatarImage(who?.avatar)} size="xs" decorative />
-              <span class="truncate">{who?.name ?? p.personaId}</span>
+              <Text as="span" size="xs" truncate>{who?.name ?? p.personaId}</Text>
             </span>
-            <span class="text-muted-foreground">{p.status}</span>
+            <Text as="span" size="xs" tone="muted">{p.status}</Text>
           </li>
         {/each}
       </ul>
-    </div>
-  </aside>
+    </Box>
+  </Box>
+  <Separator orientation="vertical" class="hidden md:block" />
 
   <main class="{mobilePane === 'channel' ? 'flex' : 'hidden'} min-w-0 flex-1 flex-col md:flex">
-    <header class="flex items-center gap-2 border-b border-border px-2 py-2 sm:flex-wrap sm:px-4">
+    <Box as="header" border="block-end" radius="none" padding="none" class="flex items-center gap-2 px-2 py-2 sm:flex-wrap sm:px-4">
       <Button
         size="icon"
         variant="ghost"
@@ -412,17 +417,17 @@ function closeToolsOnEscape(event: KeyboardEvent) {
         <LucideIcon icon={ChevronLeft} class="size-5" />
       </Button>
       <div class="min-w-0 flex-1">
-        <h1 bind:this={channelHeading} tabindex="-1" class="truncate text-sm font-semibold outline-none">
+        <Heading bind:ref={channelHeading} tabindex={-1} level={1} size="sm" truncate>
           {activeChannel?.name ?? 'Select a channel'}
-        </h1>
-        <p class="truncate text-xs text-muted-foreground">
+        </Heading>
+        <Text size="xs" tone="muted" truncate>
           {activeChannel?.topic ?? ''}
-        </p>
+        </Text>
       </div>
       <div class="flex shrink-0 gap-1 sm:flex-wrap">
         <div class="hidden gap-1 sm:flex">
           <Input
-            class="h-8 w-40 text-xs"
+            class="h-8 w-40"
             placeholder="Search…"
             aria-label="Search messages"
             bind:value={searchQ}
@@ -456,7 +461,8 @@ function closeToolsOnEscape(event: KeyboardEvent) {
           bind:ref={toolsTrigger}
           type="button"
           variant="ghost"
-          class="inline-flex size-9 min-h-touch min-w-[44px] items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:hidden"
+          size="icon"
+          class="min-h-touch min-w-11 sm:hidden"
           aria-label="More actions"
           aria-expanded={toolsOpen}
           aria-controls="team-chat-phone-tools"
@@ -465,13 +471,16 @@ function closeToolsOnEscape(event: KeyboardEvent) {
           <LucideIcon icon={Ellipsis} class="size-5" />
         </Button>
       </div>
-    </header>
+    </Box>
 
     {#if toolsOpen}
-      <div
-        bind:this={toolsPanel}
+      <Box
+        bind:ref={toolsPanel}
         id="team-chat-phone-tools"
-        class="space-y-2 border-b border-border px-2 py-2 sm:hidden"
+        border="block-end"
+        radius="none"
+        padding="none"
+        class="space-y-2 px-2 py-2 sm:hidden"
         role="group"
         aria-label="More actions"
       >
@@ -484,7 +493,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
           }}
         >
           <Input
-            class="h-9 flex-1 text-sm"
+            class="h-9 flex-1"
             placeholder="Search messages…"
             aria-label="Search messages"
             bind:value={searchQ}
@@ -513,33 +522,42 @@ function closeToolsOnEscape(event: KeyboardEvent) {
             }}>Huddle</Button
           >
         </div>
-      </div>
+      </Box>
     {/if}
 
     {#if toast}
-      <div
-        class="border-b border-border bg-muted/50 px-4 py-2 text-xs text-foreground"
+      <Box
+        surface="muted"
+        border="block-end"
+        radius="none"
+        padding="none"
+        class="px-4 py-2"
         role="status"
         aria-live="polite"
       >
-        {toast}
-      </div>
+        <Text size="xs">{toast}</Text>
+      </Box>
     {/if}
 
     {#if searchHits.length > 0}
-      <div
-        class="border-b border-border bg-muted/40 px-4 py-2 text-xs"
+      <Box
+        surface="subtle"
+        border="block-end"
+        radius="none"
+        padding="none"
+        class="px-4 py-2"
         role="region"
         aria-label="Search results"
       >
-        <p class="font-medium">{searchHits.length} result(s)</p>
+        <Text size="xs" weight="medium">{searchHits.length} result(s)</Text>
         <ul class="mt-1 max-h-24 space-y-1 overflow-y-auto">
           {#each searchHits as hit}
             <li>
               <Button
                 type="button"
                 variant="ghost"
-                class="flex w-full justify-start whitespace-normal text-left hover:underline"
+                size="sm"
+                class="w-full justify-start whitespace-normal text-left"
                 onclick={() => {
                   channelId = hit.channelId;
                   threadId = hit.threadId;
@@ -551,21 +569,25 @@ function closeToolsOnEscape(event: KeyboardEvent) {
             </li>
           {/each}
         </ul>
-      </div>
+      </Box>
     {/if}
 
     {#if threadId}
-      <div
-        class="flex items-center gap-2 border-b border-border bg-muted/20 px-4 py-1 text-xs"
+      <Box
+        surface="subtle"
+        border="block-end"
+        radius="none"
+        padding="none"
+        class="flex items-center gap-2 px-4 py-1"
         data-py-thread=""
         role="status"
         aria-label="Thread open"
       >
-        <span>Thread</span>
+        <Text as="span" size="xs">Thread</Text>
         <Button size="sm" variant="ghost" aria-label="Close thread" onclick={() => closeThread()}>
           Close
         </Button>
-      </div>
+      </Box>
     {/if}
 
     <div
@@ -575,57 +597,49 @@ function closeToolsOnEscape(event: KeyboardEvent) {
       aria-label="Messages"
     >
       {#if messages.loading}
-        <p class="text-sm text-muted-foreground">Loading messages…</p>
+        <Text size="sm" tone="muted">Loading messages…</Text>
       {:else if (messages.current ?? []).length === 0}
-        <p class="text-sm text-muted-foreground">
+        <Text size="sm" tone="muted">
           No messages yet. Try @standup, /ops, or /huddle.
-        </p>
+        </Text>
       {:else}
         {#each messages.current ?? [] as msg (msg.id)}
           <article
-            class="group mb-3 rounded-md px-1 py-1 hover:bg-muted/40"
+            class="mb-3 px-1 py-1"
             data-message-id={msg.id}
             data-author-kind={msg.authorKind}
             data-author-id={msg.authorId}
           >
-            <div class="flex items-center gap-2 text-xs text-muted-foreground">
+            <div class="flex items-center gap-2">
               {#if msg.authorKind === 'bot'}
-                <span class="font-semibold text-foreground">
+                <Text as="span" size="xs" weight="semibold">
                   {bots.find((b) => b.id === msg.authorId)?.name ?? msg.authorId}
-                </span>
+                </Text>
               {:else}
                 {@const author = personOf(msg.authorId)}
                 <Avatar name={author?.name ?? msg.authorId} {...avatarImage(author?.avatar)} size="xs" decorative />
-                <span class="font-semibold text-foreground">{author?.name ?? msg.authorId}</span>
+                <Text as="span" size="xs" weight="semibold">{author?.name ?? msg.authorId}</Text>
               {/if}
-              <time datetime={msg.at}>{formatTime(msg.at)}</time>
+              <time datetime={msg.at}><Text as="span" size="xs" tone="muted">{formatTime(msg.at)}</Text></time>
               {#if msg.authorKind === 'bot'}
-                <span
-                  class="rounded border border-border bg-muted px-1 text-[0.65rem] text-muted-foreground"
-                  >AI · simulated</span
-                >
+                <Badge variant="outline">AI · simulated</Badge>
               {/if}
             </div>
-            <p class="whitespace-pre-wrap text-sm" data-message-body="">{msg.body}</p>
+            <Text size="sm" class="whitespace-pre-wrap" data-message-body="">{msg.body}</Text>
             {#if msg.fileId}
-              <p class="mt-1 text-xs text-muted-foreground">Attachment id {msg.fileId}</p>
+              <Text size="xs" tone="muted" class="mt-1">Attachment id {msg.fileId}</Text>
             {/if}
             {#if (reactionsByMessage.get(msg.id) ?? []).length > 0}
               <div class="mt-1 flex flex-wrap gap-1" data-reactions="" aria-label="Reactions">
                 {#each reactionsByMessage.get(msg.id) ?? [] as chip (chip.emoji)}
-                  <Button
-                    type="button"
-                    class="rounded-full border px-1.5 py-0.5 text-xs {chip.mine
-                      ? 'border-primary bg-primary/10 text-foreground'
-                      : 'border-border bg-muted/40 text-muted-foreground'}"
+                  <Chip
+                    label={`${chip.emoji} ${chip.count}`}
+                    selected={chip.mine}
                     disabled={!canReact}
                     title={canReact ? `Toggle ${chip.emoji}` : readOnlyReason}
                     aria-label={`${chip.emoji} ${chip.count}${chip.mine ? ', you reacted' : ''}`}
                     onclick={() => react(msg.id, chip.emoji)}
-                  >
-                    {chip.emoji}
-                    <span class="ml-0.5 tabular-nums">{chip.count}</span>
-                  </Button>
+                  />
                 {/each}
               </div>
             {/if}
@@ -633,7 +647,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
               <Button
                 type="button"
                 variant="ghost"
-                class="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                size="sm"
                 aria-label="React with thumbs up"
                 disabled={!canReact}
                 title={canReact ? 'React with thumbs up' : readOnlyReason}
@@ -645,7 +659,7 @@ function closeToolsOnEscape(event: KeyboardEvent) {
                 <Button
                   type="button"
                   variant="ghost"
-                  class="text-xs text-muted-foreground hover:text-foreground"
+                  size="sm"
                   aria-label="Reply in thread"
                   data-thread-trigger=""
                   onclick={() => replyInThread(msg.id)}
@@ -670,23 +684,23 @@ function closeToolsOnEscape(event: KeyboardEvent) {
       />
     {/if}
 
-    <footer class="border-t border-border px-4 py-3">
+    <Box as="footer" border="block-start" radius="none" padding="none" class="px-4 py-3">
       {#if error}
-        <p class="mb-2 text-xs text-destructive" role="alert">{error}</p>
+        <Text size="xs" tone="destructive" class="mb-2" role="alert">{error}</Text>
       {/if}
       {#if needsJoin}
-        <p class="mb-2 text-xs text-muted-foreground" role="status">
+        <Text size="xs" tone="muted" class="mb-2" role="status">
           You can read this public channel. Join to post, react, share files or start a huddle.
-        </p>
+        </Text>
       {:else if !canPost}
-        <p class="mb-2 text-xs text-muted-foreground" role="status">
+        <Text size="xs" tone="muted" class="mb-2" role="status">
           Viewing as {principal.current?.role ?? 'guest'} — posting is disabled ({readOnlyReason}).
-        </p>
+        </Text>
       {/if}
-      <p class="mb-1 text-[0.65rem] text-muted-foreground">
+      <Text size="xs" tone="muted" class="mb-1">
         Slash: {SLASH_COMMANDS.map((c) => c.name).join(' · ')} · Acting as {principal.current
           ?.persona.name ?? '…'}
-      </p>
+      </Text>
       <form
         class="flex gap-2"
         onsubmit={(e) => {
@@ -720,6 +734,6 @@ function closeToolsOnEscape(event: KeyboardEvent) {
             : readOnlyReason}>Send</Button
         >
       </form>
-    </footer>
+    </Box>
   </main>
 </div>

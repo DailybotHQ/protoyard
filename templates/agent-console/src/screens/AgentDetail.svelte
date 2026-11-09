@@ -11,8 +11,11 @@ import {
   runService,
   useClock,
 } from '@protoyard/renderer-svelte';
-import { AlertDialog, Badge, Button, EmptyState, Skeleton, Textarea } from '@protoyard/ui';
+import { AlertDialog, Badge, Button, EmptyState, Notice, Skeleton, Textarea } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Code } from 'texuli/kbd-code';
+import { ListItem } from 'texuli/list-item';
+import { Box, Heading, Text } from 'texuli/typography';
 import AgentDialog from '../components/AgentDialog.svelte';
 import RunStatusBadge from '../components/RunStatusBadge.svelte';
 import StepTimeline from '../components/StepTimeline.svelte';
@@ -86,20 +89,20 @@ async function remove() {
 }
 </script>
 
-<a href="#/" class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+<Button href="#/" variant="ghost" size="sm" class="mb-4 gap-1.5 px-2">
   <LucideIcon icon={ArrowLeft} class="size-4" />Agents
-</a>
+</Button>
 
 {#if agent.loading}
-  <Skeleton class="h-64 rounded-xl" />
+  <Skeleton class="h-64" />
 {:else if !agent.current}
   <EmptyState icon={Bot} title="Agent not found" description="It may have been deleted, or a different scenario is loaded." />
 {:else}
   {@const a = agent.current}
   <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
     <div class="min-w-0">
-      <h1 class="text-2xl font-semibold tracking-tight">{a.name}</h1>
-      <p class="mt-1 text-sm text-muted-foreground">{a.description}</p>
+      <Heading level={1} size="xl">{a.name}</Heading>
+      <Text size="sm" tone="muted" class="mt-1">{a.description}</Text>
     </div>
     <div class="flex gap-2">
       {#if canEdit}<Button variant="outline" onclick={() => (editOpen = true)}><LucideIcon icon={Pencil} class="size-4" />Edit</Button>{/if}
@@ -107,17 +110,17 @@ async function remove() {
     </div>
   </div>
 
-  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-    <section aria-labelledby="playground-title" class="rounded-xl border border-border bg-surface p-4 shadow-soft">
+  <div class="detail-grid grid gap-6">
+    <Box as="section" aria-labelledby="playground-title" surface="default" border="default" radius="xl" elevation="sm" padding="md">
       <div class="flex items-center justify-between gap-2">
-        <h2 id="playground-title" class="font-medium">Playground</h2>
+        <Heading level={2} size="sm" id="playground-title">Playground</Heading>
         {#if status}<RunStatusBadge {status} />{/if}
       </div>
       {#if canRun}
         <form class="mt-3 space-y-2" onsubmit={start} novalidate>
           <label for="prompt" class="sr-only">Prompt</label>
           <Textarea id="prompt" rows={3} bind:value={prompt} placeholder="Look up the customer Jordan Lee and search for incident notes" aria-invalid={promptError ? 'true' : undefined} aria-describedby={promptError ? 'prompt-error' : undefined} />
-          {#if promptError}<p id="prompt-error" class="text-sm text-destructive">{promptError}</p>{/if}
+          {#if promptError}<Text size="sm" tone="destructive" id="prompt-error">{promptError}</Text>{/if}
           <div class="flex flex-wrap gap-2">
             <Button type="submit" loading={status === 'running'} disabled={status === 'awaiting-approval'}><LucideIcon icon={Play} class="size-4" />Run agent</Button>
             {#if status === 'running' || status === 'awaiting-approval'}
@@ -126,58 +129,59 @@ async function remove() {
           </div>
         </form>
       {:else}
-        <p class="mt-3 text-sm text-muted-foreground">Your role can read traces but cannot start runs.</p>
+        <Text size="sm" tone="muted" class="mt-3">Your role can read traces but cannot start runs.</Text>
       {/if}
 
       {#if status === 'awaiting-approval'}
-        <div class="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm" role="status">
-          <span class="flex-1">The agent wants to call <code>{steps.at(-1)?.tool}</code>. Approve the call?</span>
-          <Button size="sm" onclick={() => handle?.approve()}>Approve</Button>
-          <Button size="sm" variant="outline" onclick={() => handle?.reject('Declined in the playground.')}>Reject</Button>
-        </div>
+        <Notice tone="warning" class="mt-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <Text as="span" size="sm" class="flex-1">The agent wants to call <Code>{steps.at(-1)?.tool}</Code>. Approve the call?</Text>
+            <Button size="sm" onclick={() => handle?.approve()}>Approve</Button>
+            <Button size="sm" variant="outline" onclick={() => handle?.reject('Declined in the playground.')}>Reject</Button>
+          </div>
+        </Notice>
       {/if}
 
       {#if steps.length > 0}
         <div class="mt-5"><StepTimeline {steps} /></div>
       {/if}
       {#if finished?.answer}
-        <div class="mt-5 rounded-lg border border-border bg-background p-4">
+        <Box border="default" radius="lg" padding="md" class="mt-5">
           <RichAnswer content={finished.answer} label="Simulated agent answer" />
-          <p class="mt-3 text-xs text-muted-foreground">
+          <Text size="xs" tone="muted" class="mt-3">
             {finished.promptTokens + finished.completionTokens} estimated tokens · {formatCost(finished.costMicros)} estimated ·
-            <a class="underline" href={`#/runs/${finished.id}`}>Open trace</a>
-          </p>
-        </div>
+            <Button href={`#/runs/${finished.id}`} variant="link" size="sm" class="h-auto p-0">Open trace</Button>
+          </Text>
+        </Box>
       {/if}
-    </section>
+    </Box>
 
     <aside class="space-y-4">
-      <section class="rounded-xl border border-border bg-surface p-4 text-sm shadow-soft">
-        <h2 class="font-medium">Definition</h2>
+      <Box as="section" surface="default" border="default" radius="xl" elevation="sm" padding="md" aria-labelledby="definition-title">
+        <Heading level={2} size="sm" id="definition-title">Definition</Heading>
         <dl class="mt-3 space-y-3">
-          <div><dt class="text-xs text-muted-foreground">Model</dt><dd>{modelFor(a.modelId).name} <Badge variant="secondary">simulated</Badge></dd></div>
+          <div><dt><Text as="span" size="xs" tone="muted">Model</Text></dt><dd><Text as="span" size="sm">{modelFor(a.modelId).name}</Text> <Badge variant="secondary">simulated</Badge></dd></div>
           <div>
-            <dt class="text-xs text-muted-foreground">Tools</dt>
+            <dt><Text as="span" size="xs" tone="muted">Tools</Text></dt>
             <dd class="mt-1 flex flex-wrap gap-1.5">
-              {#each a.tools as tool (tool)}<Badge variant="outline">{tool}{a.approvalTools.includes(tool) ? ' · approval' : ''}</Badge>{:else}None{/each}
+              {#each a.tools as tool (tool)}<Badge variant="outline">{tool}{a.approvalTools.includes(tool) ? ' · approval' : ''}</Badge>{:else}<Text as="span" size="sm">None</Text>{/each}
             </dd>
           </div>
-          <div><dt class="text-xs text-muted-foreground">Instructions</dt><dd class="mt-1 whitespace-pre-wrap text-muted-foreground">{a.instructions}</dd></div>
+          <div><dt><Text as="span" size="xs" tone="muted">Instructions</Text></dt><dd class="mt-1"><Text size="sm" tone="muted" class="whitespace-pre-wrap">{a.instructions}</Text></dd></div>
         </dl>
-      </section>
-      <section class="rounded-xl border border-border bg-surface p-4 text-sm shadow-soft">
-        <h2 class="font-medium">Recent runs</h2>
-        <ul class="mt-2 divide-y divide-border">
+      </Box>
+      <Box as="section" surface="default" border="default" radius="xl" elevation="sm" padding="md" aria-labelledby="recent-runs-title">
+        <Heading level={2} size="sm" id="recent-runs-title">Recent runs</Heading>
+        <ul class="mt-2">
           {#each recent.current ?? [] as run (run.id)}
-            <li class="py-2">
-              <a href={`#/runs/${run.id}`} class="line-clamp-1 hover:underline">{run.prompt}</a>
-              <div class="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground"><RunStatusBadge status={run.status} />{timeAgo(run.createdAt, clock.now)}</div>
-            </li>
+            <ListItem href={`#/runs/${run.id}`} title={run.prompt} description={timeAgo(run.createdAt, clock.now)}>
+              {#snippet trailing()}<RunStatusBadge status={run.status} />{/snippet}
+            </ListItem>
           {:else}
-            <li class="py-2 text-muted-foreground">No runs yet.</li>
+            <li class="py-2"><Text size="sm" tone="muted">No runs yet.</Text></li>
           {/each}
         </ul>
-      </section>
+      </Box>
     </aside>
   </div>
 
@@ -191,3 +195,12 @@ async function remove() {
     onConfirm={remove}
   />
 {/if}
+
+<style>
+  /* The playground and a fixed side column on wide screens; layout only. */
+  @media (min-width: 64rem) {
+    .detail-grid {
+      grid-template-columns: minmax(0, 1fr) 20rem;
+    }
+  }
+</style>

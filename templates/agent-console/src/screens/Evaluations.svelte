@@ -1,8 +1,10 @@
 <script lang="ts">
 import { FlaskConical } from '@lucide/svelte';
 import { can, getRuntime, liveQuery, useClock } from '@protoyard/renderer-svelte';
-import { Badge, Button, EmptyState, Skeleton } from '@protoyard/ui';
+import { Badge, Button, Card, EmptyState, Skeleton } from '@protoyard/ui';
 import { Icon } from 'texuli/icons';
+import { ListItem } from 'texuli/list-item';
+import { Text } from 'texuli/typography';
 import DatasetDialog from '../components/DatasetDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import type { ConsoleDatabase } from '../database/schema.ts';
@@ -37,7 +39,7 @@ const latestFor = (datasetId: string) =>
 </PageHeader>
 
 {#if datasets.loading}
-  <Skeleton class="h-40 rounded-xl" />
+  <Skeleton class="h-40" />
 {:else if (datasets.current?.length ?? 0) === 0}
   <EmptyState
     icon={FlaskConical}
@@ -47,25 +49,25 @@ const latestFor = (datasetId: string) =>
       : 'Create an agent first; datasets evaluate one agent.'}
   />
 {:else}
-  <ul class="divide-y divide-border rounded-xl border border-border bg-surface shadow-soft">
-    {#each datasets.current ?? [] as dataset (dataset.id)}
-      {@const latest = latestFor(dataset.id)}
-      <li class="relative flex flex-wrap items-center gap-4 p-4 hover:bg-muted/40">
-        <div class="min-w-0 flex-1">
-          <a href={`#/datasets/${dataset.id}`} class="font-medium after:absolute after:inset-0 focus-visible:outline-none">{dataset.name}</a>
-          <p class="text-sm text-muted-foreground">{agentName(dataset.agentId)} · {dataset.cases.length} case{dataset.cases.length === 1 ? '' : 's'}</p>
-        </div>
-        {#if latest}
-          <div class="text-right text-sm">
-            <Badge variant={latest.failed === 0 ? 'success' : 'warning'}>{percent(latest.passed, latest.passed + latest.failed)} passed</Badge>
-            <p class="mt-1 text-xs text-muted-foreground">{latest.passed}/{latest.passed + latest.failed} · {timeAgo(latest.createdAt, clock.now)}</p>
-          </div>
-        {:else}
-          <Badge variant="secondary">Not run yet</Badge>
-        {/if}
-      </li>
-    {/each}
-  </ul>
+  <Card class="p-2">
+    <ul>
+      {#each datasets.current ?? [] as dataset (dataset.id)}
+        {@const latest = latestFor(dataset.id)}
+        <ListItem href={`#/datasets/${dataset.id}`} title={dataset.name} description={`${agentName(dataset.agentId)} · ${dataset.cases.length} case${dataset.cases.length === 1 ? '' : 's'}`}>
+          {#snippet trailing()}
+            {#if latest}
+              <div class="text-right">
+                <Badge variant={latest.failed === 0 ? 'success' : 'warning'}>{percent(latest.passed, latest.passed + latest.failed)} passed</Badge>
+                <Text size="xs" tone="muted" class="mt-1">{latest.passed}/{latest.passed + latest.failed} · {timeAgo(latest.createdAt, clock.now)}</Text>
+              </div>
+            {:else}
+              <Badge variant="secondary">Not run yet</Badge>
+            {/if}
+          {/snippet}
+        </ListItem>
+      {/each}
+    </ul>
+  </Card>
 {/if}
 
 <DatasetDialog bind:open={dialogOpen} />

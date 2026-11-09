@@ -8,8 +8,9 @@ import {
   runService,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
-import { Button, Composer, EmptyState, TypingIndicator } from '@protoyard/ui';
+import { Button, Composer, EmptyState, Notice, TypingIndicator } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import ConversationMenu from '../components/ConversationMenu.svelte';
 import MessageList from '../components/MessageList.svelte';
 import { ASSISTANT } from '../domain/assistant.ts';
@@ -55,7 +56,7 @@ async function send(text: string): Promise<boolean> {
 </script>
 
 {#if conversation.loading && !conversation.current}
-  <p class="m-auto text-sm text-muted-foreground" role="status">Loading…</p>
+  <Text size="sm" tone="muted" class="m-auto" role="status">Loading…</Text>
 {:else if !conversation.current}
   <div class="m-auto">
     <EmptyState icon={SearchX} title="Conversation not found" description="It may have been deleted.">
@@ -64,25 +65,22 @@ async function send(text: string): Promise<boolean> {
   </div>
 {:else}
   <div class="flex h-full min-h-0 flex-col">
-    <header class="flex items-center gap-2 border-b border-border px-3 py-2.5 sm:px-4">
-      <a href="#/" aria-label="Back to conversations" class="grid size-9 min-h-touch min-w-[44px] place-items-center rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none @3xl:hidden">
+    <Box as="header" border="block-end" radius="none" padding="none" class="flex items-center gap-2 px-3 py-2.5 sm:px-4">
+      <Button href="#/" variant="ghost" size="icon" aria-label="Back to conversations" class="min-h-touch min-w-11 @3xl:hidden">
         <LucideIcon icon={ArrowLeft} class="size-5" />
-      </a>
-      <h1 class="min-w-0 flex-1 truncate text-base font-semibold">{conversation.current.title}</h1>
+      </Button>
+      <Heading level={1} size="sm" truncate class="min-w-0 flex-1">{conversation.current.title}</Heading>
       <ConversationMenu conversation={conversation.current} />
-    </header>
+    </Box>
 
     {#if !canSend}
-      <div class="flex items-center gap-2 border-b border-border bg-info/10 px-4 py-2 text-sm" role="note">
-        <LucideIcon icon={Eye} class="size-4 shrink-0" />
-        You have read-only access. Ask the owner for a member seat to post.
-      </div>
+      <Notice tone="info" icon={Eye} text="You have read-only access. Ask the owner for a member seat to post." class="mx-3 mt-2" />
     {/if}
 
     {#if list.length === 0 && !messages.loading}
-      <p class="m-auto px-6 text-center text-sm text-muted-foreground">
+      <Text size="sm" tone="muted" align="center" class="m-auto px-6">
         No messages yet.{canSend ? ' Say hello — the assistant replies to every message.' : ''}
-      </p>
+      </Text>
     {:else}
       <MessageList
         messages={list}
@@ -96,15 +94,18 @@ async function send(text: string): Promise<boolean> {
     {/if}
 
     <!-- On narrow screens the fixed "Prototype" badge would cover the composer. -->
-    <div class={['border-t border-border px-3 pt-1 sm:px-4', DEMO_BADGE_ENABLED ? 'pb-11 @3xl:pb-3' : 'pb-[max(0.75rem,env(safe-area-inset-bottom))]']}>
-      <TypingIndicator names={streaming ? [ASSISTANT.name] : []} showLabel class="px-1" />
-      <Composer
-        bind:value={draft}
-        onSubmit={send}
-        disabled={!canSend}
-        placeholder={canSend ? 'Message the assistant…' : 'Read-only: you cannot post here'}
-        maxLength={4000}
-      />
-    </div>
+    <!-- Without the badge: 0.75rem plus the device's safe-area inset. -->
+    <Box border="block-start" radius="none" padding="none" class={['px-3 pt-1 sm:px-4', DEMO_BADGE_ENABLED ? 'pb-11 @3xl:pb-3' : 'pb-safe']}>
+      <div class={DEMO_BADGE_ENABLED ? '' : 'pb-3'}>
+        <TypingIndicator names={streaming ? [ASSISTANT.name] : []} showLabel class="px-1" />
+        <Composer
+          bind:value={draft}
+          onSubmit={send}
+          disabled={!canSend}
+          placeholder={canSend ? 'Message the assistant…' : 'Read-only: you cannot post here'}
+          maxLength={4000}
+        />
+      </div>
+    </Box>
   </div>
 {/if}

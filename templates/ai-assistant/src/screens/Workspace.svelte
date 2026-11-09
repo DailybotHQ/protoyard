@@ -2,19 +2,21 @@
 import {
   ArrowUpRight,
   Bot,
+  Circle,
   FileText,
   FolderPlus,
   MoreHorizontal,
-  Search,
   Sparkles,
   Star,
 } from '@lucide/svelte';
 import type { AssistantCanvas, AssistantSendInput } from '@protoyard/ai-ui';
 import { AssistantComposer, MessageList } from '@protoyard/ai-ui';
-import { Button, Input, Select } from '@protoyard/ui';
+import { Button, Drawer, Input, Notice, Select, Separator } from '@protoyard/ui';
 import type { Component } from 'svelte';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { InputGroup } from 'texuli/input';
+import { Box, Heading, Text } from 'texuli/typography';
 import { ASSISTANT_MODELS } from '../domain/services.ts';
 import { useAssistant } from '../lib/context.ts';
 
@@ -139,40 +141,43 @@ function report(error: unknown) {
   <div class="mb-3 flex flex-wrap items-center gap-2">
     <div class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
       {#each projects.current ?? [] as project (project.id)}
-        <Button type="button" variant="ghost" class={`min-h-9 shrink-0 rounded-full border px-3 text-xs transition-colors ${selectedProjectId === project.id ? 'border-[#7865d6] bg-[#f0edfa] text-[#5545a4]' : 'border-[#e4e1ea] bg-white text-[#716d7f] hover:bg-[#f8f7fa]'}`} aria-pressed={selectedProjectId === project.id} onclick={() => (selectedProjectId = selectedProjectId === project.id ? '' : project.id)}><span class="mr-1.5 inline-block size-1.5 rounded-full" style={`background:${project.color}`}></span>{project.name}</Button>
+        <Button type="button" variant={selectedProjectId === project.id ? 'secondary' : 'outline'} size="sm" class="min-h-9 shrink-0 gap-1.5 px-3" aria-pressed={selectedProjectId === project.id} onclick={() => (selectedProjectId = selectedProjectId === project.id ? '' : project.id)}><Icon icon={Circle} size="xs" color={project.color} fill={project.color} aria-hidden="true" />{project.name}</Button>
       {/each}
     </div>
-    <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#e4e1ea] bg-white px-3 text-xs font-medium text-[#5e596e] hover:bg-[#f8f7fa]" onclick={createConversation}><Icon icon="plus" class="size-3.5" aria-hidden="true" /> New</Button>
+    <Button type="button" variant="outline" size="sm" class="min-h-9 gap-1.5 px-3" onclick={createConversation}><Icon icon="plus" class="size-3.5" aria-hidden="true" /> New</Button>
   </div>
-  {#if notice}<p class="mb-2 rounded-lg border border-[#e9b2a9] bg-[#fff1ee] px-3 py-2 text-xs text-[#8a3125]" role="status">{notice}</p>{/if}
+  {#if notice}<Notice tone="info" text={notice} class="mb-2" />{/if}
   {#if activeConversation}
-    <div class="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-[#e9e6ef] bg-white shadow-sm">
-      <aside class="hidden w-64 shrink-0 flex-col border-r border-[#efedf2] bg-[#fcfbfd] p-3 md:flex" aria-label="Conversation history">
-        <label for="history-search" class="sr-only">Search conversations</label>
-        <div class="mb-3 flex min-h-10 items-center gap-2 rounded-lg border border-[#e8e5ed] bg-white px-3"><Icon icon="search" class="size-3.5 text-[#696579]" aria-hidden="true" /><Input id="history-search" bind:value={search} class="min-w-0 flex-1 bg-transparent text-xs outline-none" placeholder="Search history" /></div>
-        <p class="mb-2 px-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#696579]">Recent conversations</p>
+    <Box surface="default" border="default" radius="xl" elevation="sm" padding="none" class="flex min-h-0 flex-1 overflow-hidden">
+      <Box as="aside" surface="subtle" radius="none" padding="sm" class="hidden w-64 shrink-0 flex-col md:flex" aria-label="Conversation history">
+        <InputGroup bind:value={search} class="mb-3 min-h-10" inputProps={{ id: 'history-search', placeholder: 'Search history', 'aria-label': 'Search conversations' }}>
+          {#snippet start()}<Icon icon="search" class="size-3.5" aria-hidden="true" />{/snippet}
+        </InputGroup>
+        <Text size="xs" tone="muted" weight="semibold" transform="uppercase" tracking="wide" class="mb-2 px-2">Recent conversations</Text>
         <div class="min-h-0 flex-1 overflow-y-auto">
           {#each visibleConversations as conversation (conversation.id)}
-            <Button type="button" variant="ghost" class={`mb-1 flex w-full justify-start whitespace-normal rounded-lg px-2 py-2 text-left text-xs ${conversation.id === activeConversation.id ? 'bg-[#efedf6] text-[#43386e]' : 'text-[#686477] hover:bg-[#f2f0f6]'}`} aria-current={conversation.id === activeConversation.id ? 'page' : undefined} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</Button>
+            <Button type="button" variant={conversation.id === activeConversation.id ? 'secondary' : 'ghost'} size="sm" class="mb-1 h-auto w-full justify-start whitespace-normal px-2 py-2 text-left" aria-current={conversation.id === activeConversation.id ? 'page' : undefined} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</Button>
           {/each}
-          {#if visibleConversations.length === 0}<p class="px-2 py-3 text-xs text-[#696579]">No matching conversations.</p>{/if}
+          {#if visibleConversations.length === 0}<Text size="xs" tone="muted" class="px-2 py-3">No matching conversations.</Text>{/if}
         </div>
-        <div class="mt-3 border-t border-[#efedf2] pt-3">
-          <div class="mb-2 flex items-center justify-between px-1 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#696579]"><span>Folders</span><LucideIcon icon={FolderPlus} class="size-3.5" /></div>
-          {#each folders as folder (folder)}<Button type="button" variant="ghost" class={`mb-1 flex w-full justify-start whitespace-normal rounded-lg px-2 py-1.5 text-left text-xs ${folderFilter === folder ? 'bg-[#efedf6] text-[#43386e]' : 'text-[#686477] hover:bg-[#f2f0f6]'}`} aria-pressed={folderFilter === folder} onclick={() => (folderFilter = folderFilter === folder ? '' : folder)}>{folder}</Button>{/each}
-          <form class="mt-2 flex gap-1" onsubmit={(event) => { event.preventDefault(); void createFolder(); }}><label for="new-folder" class="sr-only">New folder name</label><Input id="new-folder" bind:value={folderDraft} class="min-w-0 flex-1 rounded-md border border-[#e8e5ed] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#8771d9]" placeholder="New folder" maxlength={40} /><Button type="submit" variant="ghost" class="rounded-md px-2 text-xs text-[#6553ae] hover:bg-[#f0edf8]" aria-label="Create folder">+</Button></form>
+        <Separator class="mt-3" />
+        <div class="pt-3">
+          <Text as="div" size="xs" tone="muted" weight="semibold" transform="uppercase" tracking="wide" class="mb-2 flex items-center justify-between px-1"><span>Folders</span><LucideIcon icon={FolderPlus} class="size-3.5" /></Text>
+          {#each folders as folder (folder)}<Button type="button" variant={folderFilter === folder ? 'secondary' : 'ghost'} size="sm" class="mb-1 h-auto w-full justify-start whitespace-normal px-2 py-1.5 text-left" aria-pressed={folderFilter === folder} onclick={() => (folderFilter = folderFilter === folder ? '' : folder)}>{folder}</Button>{/each}
+          <form class="mt-2 flex gap-1" onsubmit={(event) => { event.preventDefault(); void createFolder(); }}><label for="new-folder" class="sr-only">New folder name</label><Input id="new-folder" bind:value={folderDraft} class="min-w-0 flex-1" placeholder="New folder" maxlength={40} /><Button type="submit" variant="ghost" size="sm" class="px-2" aria-label="Create folder">+</Button></form>
         </div>
-      </aside>
+      </Box>
+      <Separator orientation="vertical" class="hidden md:block" />
       <div class="flex min-w-0 flex-1 flex-col">
-        <header class="flex flex-wrap items-center gap-2 border-b border-[#efedf2] px-3 py-2.5 sm:px-4">
-          <div class="min-w-0 flex-1"><p class="truncate text-sm font-medium text-[#373348]">{activeConversation.title}</p><p class="text-[0.65rem] text-[#696579]">{activeConversation.folder ? `In ${activeConversation.folder} · ` : ''}Responses are simulated</p></div>
-          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" aria-label={activeConversation.pinned ? 'Unpin conversation' : 'Pin conversation'} aria-pressed={activeConversation.pinned ?? false} onclick={() => services.togglePin(activeConversation.id).catch(report)}><LucideIcon icon={Star} class="size-3.5" /> Pin</Button>
+        <Box as="header" border="block-end" radius="none" padding="none" class="flex flex-wrap items-center gap-2 px-3 py-2.5 sm:px-4">
+          <div class="min-w-0 flex-1"><Text size="sm" weight="medium" truncate>{activeConversation.title}</Text><Text size="xs" tone="muted">{activeConversation.folder ? `In ${activeConversation.folder} · ` : ''}Responses are simulated</Text></div>
+          <Button type="button" variant="ghost" size="sm" class="min-h-9 gap-1 px-2" aria-label={activeConversation.pinned ? 'Unpin conversation' : 'Pin conversation'} aria-pressed={activeConversation.pinned ?? false} onclick={() => services.togglePin(activeConversation.id).catch(report)}><LucideIcon icon={Star} class="size-3.5" /> Pin</Button>
           <label for="conversation-folder" class="sr-only">Move conversation to folder</label>
           <Select id="conversation-folder" value={activeConversation.folder ?? ''} class="min-h-9 max-w-28" items={[{ value: '', label: 'No folder' }, ...folders.map((folder) => ({ value: folder, label: folder }))]} onValueChange={(value) => void services.moveToFolder(activeConversation.id, value || null).catch(report)} />
-          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" onclick={() => services.rename(activeConversation.id, window.prompt('Rename conversation', activeConversation.title) ?? activeConversation.title).catch(report)}><LucideIcon icon={MoreHorizontal} class="size-3.5" /> Rename</Button>
-          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" onclick={shareConversation}><LucideIcon icon={ArrowUpRight} class="size-3.5" /> Share</Button>
-          <Button type="button" variant="ghost" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" onclick={loadCanvas}><LucideIcon icon={FileText} class="size-3.5" /> Canvas</Button>
-        </header>
+          <Button type="button" variant="ghost" size="sm" class="min-h-9 gap-1 px-2" onclick={() => services.rename(activeConversation.id, window.prompt('Rename conversation', activeConversation.title) ?? activeConversation.title).catch(report)}><LucideIcon icon={MoreHorizontal} class="size-3.5" /> Rename</Button>
+          <Button type="button" variant="ghost" size="sm" class="min-h-9 gap-1 px-2" onclick={shareConversation}><LucideIcon icon={ArrowUpRight} class="size-3.5" /> Share</Button>
+          <Button type="button" variant="ghost" size="sm" class="min-h-9 gap-1 px-2" onclick={loadCanvas}><LucideIcon icon={FileText} class="size-3.5" /> Canvas</Button>
+        </Box>
         <MessageList
           messages={activeMessages}
           conversationId={activeConversation.id}
@@ -181,7 +186,7 @@ function report(error: unknown) {
           onEditMessage={(id, content) => void services.editMessage(activeConversation.id, id, content, ASSISTANT_MODELS.find((model) => model.id === activeModelId) ?? ASSISTANT_MODELS[0]!).catch(report)}
           onFeedback={(id, rating) => void services.feedback(id, rating).catch(report)}
         />
-        <div class="border-t border-[#efedf2] p-3 sm:px-5">
+        <Box border="block-start" radius="none" padding="none" class="p-3 sm:px-5">
           <AssistantComposer
             models={ASSISTANT_MODELS}
             modelId={activeModelId}
@@ -191,23 +196,23 @@ function report(error: unknown) {
             onStop={() => services.stop(activeConversation.id)}
             onSubmit={(input) => send(activeConversation.id, input)}
           />
-          <p class="mt-2 flex items-center justify-center gap-1 text-[0.62rem] text-[#696579]"><LucideIcon icon={Sparkles} class="size-3" /> Models and agent tools are simulated · <a href="#/settings" class="underline decoration-dotted underline-offset-2">Settings and data controls</a></p>
-        </div>
+          <Text as="div" size="xs" tone="muted" class="mt-2 flex flex-wrap items-center justify-center gap-1"><LucideIcon icon={Sparkles} class="size-3" /> Models and agent tools are simulated · <Button href="#/settings" variant="link" size="sm" class="h-auto p-0">Settings and data controls</Button></Text>
+        </Box>
       </div>
-    </div>
-    {#if canvasOpen && CanvasPanel && settings.current?.canvas}
-      <div class="fixed inset-0 z-40 flex bg-black/20 p-3 sm:p-6" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) canvasOpen = false; }}>
-        <div class="ml-auto flex h-full w-full max-w-2xl overflow-hidden rounded-2xl border border-[#e4e1ea] bg-white shadow-xl" role="dialog" aria-modal="true" aria-label="Assistant canvas">
-          <CanvasPanel document={settings.current.canvas} onChange={(content) => void services.updateCanvas(content).catch(report)} onClose={() => (canvasOpen = false)} />
-        </div>
-      </div>
+    </Box>
+    {#if CanvasPanel && settings.current?.canvas}
+      {@const Panel = CanvasPanel}
+      {@const canvas = settings.current.canvas}
+      <Drawer bind:open={canvasOpen} title="Assistant canvas" hideTitle hideClose modal placement="right" size={672}>
+        <Panel document={canvas} onChange={(content) => void services.updateCanvas(content).catch(report)} onClose={() => (canvasOpen = false)} />
+      </Drawer>
     {/if}
   {:else}
-    <div class="my-auto flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-[#dcd7e9] bg-white/60 px-5 text-center">
-      <span class="mb-4 flex size-14 items-center justify-center rounded-2xl bg-[#eeeafa] text-[#7662ca]"><LucideIcon icon={Bot} class="size-7" /></span>
-      <h1 class="text-xl font-semibold tracking-tight">A little room for big ideas</h1>
-      <p class="mt-2 max-w-sm text-sm leading-6 text-[#696579]">Start a conversation with a deterministic local assistant. Nothing is sent to a real model provider.</p>
-      <Button type="button" class="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#302a58] px-4 text-sm font-medium text-white hover:bg-[#403878] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8370db]" onclick={createConversation}><Icon icon="plus" class="size-4" aria-hidden="true" /> Start a conversation</Button>
-    </div>
+    <Box surface="default" border="default" radius="xl" padding="none" class="my-auto flex min-h-0 flex-1 flex-col items-center justify-center px-5 text-center">
+      <Box surface="muted" radius="xl" padding="none" class="mb-4 flex size-14 items-center justify-center"><LucideIcon icon={Bot} tone="primary" class="size-7" /></Box>
+      <Heading level={1} size="lg">A little room for big ideas</Heading>
+      <Text size="sm" tone="muted" align="center" class="mt-2 max-w-sm">Start a conversation with a deterministic local assistant. Nothing is sent to a real model provider.</Text>
+      <Button type="button" size="lg" class="mt-5 min-h-11 gap-2 px-4" onclick={createConversation}><Icon icon="plus" class="size-4" aria-hidden="true" /> Start a conversation</Button>
+    </Box>
   {/if}
 </section>

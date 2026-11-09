@@ -10,6 +10,7 @@ import {
 } from '@protoyard/renderer-svelte';
 import { LayoutHost, navFromSidebar } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
+import { Box, Text } from 'texuli/typography';
 import { ROLE_LABELS } from './domain/policy.ts';
 import AgentDetail from './screens/AgentDetail.svelte';
 import Agents from './screens/Agents.svelte';
@@ -62,9 +63,9 @@ const layoutNav = $derived(
 
 <LayoutHost layout={appearance.current.layout.value} nav={layoutNav} storageKey={runtime.manifest.storage.namespace}>
   <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-    <p class="mb-4 rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
-      Agents, models and tools are <strong>simulated</strong>: no model provider is called.
-    </p>
+    <Box border="default" radius="lg" padding="none" class="mb-4 px-3 py-2">
+      <Text size="xs" tone="muted">Agents, models and tools are <Text as="strong" size="xs" weight="semibold">simulated</Text>: no model provider is called.</Text>
+    </Box>
     <Router {router} />
   </div>
 </LayoutHost>
