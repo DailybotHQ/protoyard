@@ -8,11 +8,10 @@ import {
 
 /**
  * PLAN_013: a prototype created from a template and locked to a design system
- * renders only through the design system's components. Texuli has no heading
- * or text component yet, so typography utilities (size, weight, color of
- * text, leading, tracking, numeric and case styling) are the one accepted
- * leftover: everything else must be clean, and the typography count may only
- * go down until the components ship.
+ * renders only through the design system's components. Texuli's typography
+ * components (Heading, Text, Prose, Box) cover titles, body copy, figures and
+ * surfaces, so a template that is lock-clean has zero violations of any rule.
+ * `split` still reports typography apart so a regression names its kind.
  */
 const root = resolve(import.meta.dirname, '../..');
 
@@ -49,21 +48,23 @@ function split(template: string) {
 
 const describeViolation = (v: DsViolation) => `${v.file}:${v.line} ${v.rule} ${v.message}`;
 
-describe('group saas', () => {
-  // Typography-only violations left per template (ceilings: lower them as they go).
-  const TYPOGRAPHY_CEILING: Record<string, number> = {
-    dashboard: 35,
-    'b2b-saas': 27,
-    'admin-console': 35,
-    'crud-app': 0,
-  };
+function expectLockClean(template: string) {
+  const scan = split(template);
+  expect(scan.files.length).toBeGreaterThan(0);
+  expect(scan.other.map(describeViolation)).toEqual([]);
+  expect(scan.typography).toBe(0);
+}
 
-  for (const [template, ceiling] of Object.entries(TYPOGRAPHY_CEILING)) {
-    it(`${template} has no locked design system violation besides typography`, () => {
-      const scan = split(template);
-      expect(scan.files.length).toBeGreaterThan(0);
-      expect(scan.other.map(describeViolation)).toEqual([]);
-      expect(scan.typography).toBeLessThanOrEqual(ceiling);
+describe('group saas', () => {
+  for (const template of ['dashboard', 'b2b-saas', 'admin-console', 'crud-app']) {
+    it(`${template} has no locked design system violation`, () => {
+      expectLockClean(template);
     });
   }
+});
+
+describe('blank', () => {
+  it('blank has no locked design system violation', () => {
+    expectLockClean('blank');
+  });
 });
