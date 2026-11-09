@@ -124,11 +124,15 @@ describe('messages', () => {
           { type: 'link_preview', url: 'https://example.com/plain', image: 'attachment:thumb-1' },
         ])
       );
-      const card = screen.getByRole('link', { name: /Release notes/ });
-      expect(card.getAttribute('href')).toBe('https://www.example.com/post');
-      expect(card.getAttribute('target')).toBe('_blank');
-      expect(card.getAttribute('rel')).toBe('noopener noreferrer');
-      expect(within(card).getByText('example.com')).toBeTruthy();
+      const link = screen.getByRole('link', {
+        name: 'Release notes, example.com (opens in a new tab)',
+      });
+      expect(link.getAttribute('href')).toBe('https://www.example.com/post');
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+      const card = link.closest<HTMLElement>('[data-py-message-block="link_preview"]');
+      expect(card && within(card).getByText('example.com')).toBeTruthy();
+      expect(screen.getByRole('link', { name: /^https:\/\/example\.com\/plain, / })).toBeTruthy();
       const images = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'));
       expect(images).toEqual([PNG]);
     });

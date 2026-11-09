@@ -17,9 +17,9 @@ const signedIn = $derived(principal.current !== null);
       <Text tone="muted" class="mt-2 max-w-2xl">Manage projects, invite teammates, and explore the simulated SaaS flows.</Text>
     </div>
     <div class="grid gap-4 sm:grid-cols-3">
-      <Card href="#/projects" class="p-5"><CardTitle level={2}>Projects</CardTitle><CardDescription class="mt-2">Track work from planning to completion.</CardDescription></Card>
-      <Card href="#/billing/plans" class="p-5"><CardTitle level={2}>Billing</CardTitle><CardDescription class="mt-2">Try simulated plans and checkout.</CardDescription></Card>
-      <Card href="#/settings" class="p-5"><CardTitle level={2}>Settings</CardTitle><CardDescription class="mt-2">Update your profile and preferences.</CardDescription></Card>
+      <Card href="#/projects" linkLabel="Projects" class="p-5"><CardTitle level={2}>Projects</CardTitle><CardDescription class="mt-2">Track work from planning to completion.</CardDescription></Card>
+      <Card href="#/billing/plans" linkLabel="Billing" class="p-5"><CardTitle level={2}>Billing</CardTitle><CardDescription class="mt-2">Try simulated plans and checkout.</CardDescription></Card>
+      <Card href="#/settings" linkLabel="Settings" class="p-5"><CardTitle level={2}>Settings</CardTitle><CardDescription class="mt-2">Update your profile and preferences.</CardDescription></Card>
     </div>
   </section>
 {:else}
