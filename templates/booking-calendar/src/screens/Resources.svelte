@@ -3,6 +3,16 @@ import { PencilLine } from '@lucide/svelte';
 import { can, isValidationError, liveQuery, runService } from '@protoyard/renderer-svelte';
 import { Button, Card, Dialog, FormField, Input } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from 'texuli/table';
+import { Heading, Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import type { AvailabilityRule } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
@@ -65,27 +75,27 @@ async function submit(event: SubmitEvent) {
 <div class="grid gap-4 md:grid-cols-2" aria-busy={data.current === undefined}>
   {#each data.current ?? [] as { resource, rules } (resource.id)}
     <Card class="p-5">
-      <h2 class="font-semibold">{resource.name}</h2>
-      <p class="text-sm text-muted-foreground">{resource.description} · {resource.kind === 'room' ? `up to ${resource.capacity} people` : 'one client at a time'}</p>
-      <table class="mt-3 w-full text-sm">
-        <caption class="sr-only">Opening hours of {resource.name}</caption>
-        <thead class="text-left text-xs text-muted-foreground">
-          <tr><th scope="col" class="py-1 font-medium">Day</th><th scope="col" class="py-1 font-medium">Hours (UTC)</th><th scope="col"><span class="sr-only">Actions</span></th></tr>
-        </thead>
-        <tbody>
+      <Heading level={2} size="sm">{resource.name}</Heading>
+      <Text size="sm" tone="muted">{resource.description} · {resource.kind === 'room' ? `up to ${resource.capacity} people` : 'one client at a time'}</Text>
+      <Table density="compact" wrapperClass="mt-3" class="w-full">
+        <TableCaption class="sr-only">Opening hours of {resource.name}</TableCaption>
+        <TableHeader>
+          <TableRow><TableHead scope="col">Day</TableHead><TableHead scope="col">Hours (UTC)</TableHead><TableHead scope="col"><span class="sr-only">Actions</span></TableHead></TableRow>
+        </TableHeader>
+        <TableBody>
           {#each rules as rule (rule.id)}
-            <tr class="border-t border-border">
-              <th scope="row" class="py-1.5 text-left font-normal">{WEEKDAYS[rule.weekday]}</th>
-              <td class="py-1.5 tabular-nums">{formatMinute(rule.startMinute)}–{formatMinute(rule.endMinute)}</td>
-              <td class="py-1 text-right">
+            <TableRow>
+              <TableHead scope="row">{WEEKDAYS[rule.weekday]}</TableHead>
+              <TableCell><Text as="span" size="sm" tabular>{formatMinute(rule.startMinute)}–{formatMinute(rule.endMinute)}</Text></TableCell>
+              <TableCell align="end">
                 {#if can(CAPABILITIES.availabilityManage)}
                   <Button variant="ghost" size="sm" onclick={() => edit(rule)}><LucideIcon icon={PencilLine} class="size-4" /><span class="sr-only">Edit {WEEKDAYS[rule.weekday]} hours of {resource.name}</span></Button>
                 {/if}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           {/each}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </Card>
   {/each}
 </div>

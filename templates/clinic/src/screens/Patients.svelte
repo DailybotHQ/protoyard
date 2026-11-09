@@ -3,6 +3,7 @@ import { UserPlus } from '@lucide/svelte';
 import { can, liveQuery, navigate, useClock } from '@protoyard/renderer-svelte';
 import { Button, DataTable, type DataTableColumn } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import PatientDialog from '../components/PatientDialog.svelte';
 import type { Patient } from '../database/schema.ts';
@@ -40,9 +41,9 @@ const columns: DataTableColumn<Patient>[] = [
 ];
 </script>
 
-{#snippet nameCell(p: Patient)}<span class="font-medium">{patientName(p)}</span>{/snippet}
-{#snippet maskedCell(p: Patient)}<span class="text-muted-foreground" aria-label="Hidden: sensitive">{mask(p.dateOfBirth)}</span>{/snippet}
-{#snippet createdCell(p: Patient)}<span class="text-muted-foreground">{fromNow(p.createdAt, clock.now)}</span>{/snippet}
+{#snippet nameCell(p: Patient)}<Text as="span" size="sm" weight="medium">{patientName(p)}</Text>{/snippet}
+{#snippet maskedCell(p: Patient)}<Text as="span" size="sm" tone="muted" aria-label="Hidden: sensitive">{mask(p.dateOfBirth)}</Text>{/snippet}
+{#snippet createdCell(p: Patient)}<Text as="span" size="sm" tone="muted">{fromNow(p.createdAt, clock.now)}</Text>{/snippet}
 
 <PageHeader title="Patients" description="Fictional patients only. Sensitive fields stay masked until revealed on the patient's page, which is audited.">
   {#snippet actions()}

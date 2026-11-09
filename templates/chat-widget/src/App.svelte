@@ -12,6 +12,7 @@ import {
 import { Button, Composer, TypingIndicator } from '@protoyard/ui';
 import { onMount } from 'svelte';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import ConditionBanner from './components/ConditionBanner.svelte';
 import MessageList from './components/MessageList.svelte';
 import { ASSISTANT } from './domain/assistant.ts';
@@ -79,31 +80,28 @@ async function handoff() {
 }
 </script>
 
-<div class="flex h-app min-h-0 flex-col overflow-hidden bg-background text-foreground">
-  <header class="flex items-center gap-2 border-b border-border px-3 py-2.5">
-    <span
-      class="grid size-9 place-items-center rounded-full bg-primary/15 text-primary"
-      aria-hidden="true"
-    >
-      <LucideIcon icon={Headset} class="size-4" />
-    </span>
+<div class="flex h-app min-h-0 flex-col overflow-hidden">
+  <Box as="header" border="block-end" radius="none" padding="none" class="flex items-center gap-2 px-3 py-2.5">
+    <Box surface="muted" radius="full" padding="none" class="grid size-9 place-items-center" aria-hidden="true">
+      <LucideIcon icon={Headset} tone="primary" class="size-4" />
+    </Box>
     <div class="min-w-0 flex-1">
-      <h1 class="truncate text-sm font-semibold">{runtime.manifest.name}</h1>
-      <p class="truncate text-xs text-muted-foreground">
+      <Heading level={1} size="sm" truncate>{runtime.manifest.name}</Heading>
+      <Text size="xs" tone="muted" truncate>
         {#if handoffDone}
           Human agent connected (simulated)
         {:else}
           Scripted support bot · fictional demo
         {/if}
-      </p>
+      </Text>
     </div>
-  </header>
+  </Box>
 
   <ConditionBanner />
 
   <main id="main-content" class="flex min-h-0 flex-1 flex-col">
     {#if list.length === 0 && !messages.loading}
-      <p class="m-auto px-6 text-center text-sm text-muted-foreground">Starting support chat…</p>
+      <Text size="sm" tone="muted" align="center" class="m-auto px-6">Starting support chat…</Text>
     {:else}
       <MessageList
         messages={list}
@@ -117,12 +115,8 @@ async function handoff() {
       />
     {/if}
 
-    <div
-      class={[
-        'border-t border-border px-3 pt-1',
-        DEMO_BADGE_ENABLED ? 'pb-11' : 'pb-[max(0.75rem,env(safe-area-inset-bottom))]',
-      ]}
-    >
+    <!-- Without the badge: at least 0.75rem, or the device's bottom safe-area inset. -->
+    <Box border="block-start" radius="none" padding="none" class={['px-3 pt-1', DEMO_BADGE_ENABLED ? 'pb-11' : 'composer-safe']}>
       <TypingIndicator names={streaming ? [ASSISTANT.name] : []} showLabel class="px-1" />
       {#if can(CAPABILITIES.handoff) && !handoffDone}
         <div class="mb-2 flex justify-end">
@@ -149,6 +143,6 @@ async function handoff() {
             : 'Read-only'}
         maxLength={4000}
       />
-    </div>
+    </Box>
   </main>
 </div>

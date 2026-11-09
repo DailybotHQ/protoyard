@@ -3,6 +3,7 @@ import { can, liveQuery, navigate } from '@protoyard/renderer-svelte';
 import { Select } from '@protoyard/ui';
 import type { CalendarSeries } from '@protoyard/views/calendar';
 import { type CalendarSlot, CalendarView } from '@protoyard/views-ui/calendar';
+import { Text } from 'texuli/typography';
 import AppointmentDialog from '../components/AppointmentDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import type { Appointment } from '../database/schema.ts';
@@ -78,14 +79,14 @@ const toneOf = (a: Appointment | undefined) =>
 
 <PageHeader title="Schedule" description="Provider schedules in UTC. Click a free slot to book; open an appointment to see the visit.">
   {#snippet actions()}
-    <label class="grid gap-1 text-xs text-muted-foreground">
+    <Text as="label" size="xs" tone="muted" class="grid gap-1">
       Provider
       <Select
         aria-label="Provider"
         items={[{ value: 'all', label: 'All providers' }, ...(providers.current ?? []).map((p) => ({ value: p.id, label: p.name }))]}
         bind:value={providerId}
       />
-    </label>
+    </Text>
   {/snippet}
 </PageHeader>
 

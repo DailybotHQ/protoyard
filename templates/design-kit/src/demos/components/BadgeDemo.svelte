@@ -1,4 +1,8 @@
+<script lang="ts">
+import { Badge } from '@protoyard/ui';
+</script>
+
 <!-- @prop tone: 'neutral' | 'success' | 'warning' — Communicates a concise state. -->
-<div class="demo-row">
-  <span class="badge">Draft</span><span class="badge success">Approved</span><span class="badge warning">Needs review</span>
+<div class="flex flex-wrap items-center justify-center gap-2">
+  <Badge variant="secondary">Draft</Badge><Badge variant="success">Approved</Badge><Badge variant="warning">Needs review</Badge>
 </div>

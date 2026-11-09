@@ -1,6 +1,7 @@
 <script lang="ts">
 import { isValidationError, liveQuery, runService } from '@protoyard/renderer-svelte';
 import { Button, Dialog, FormField, Input, Select } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 import { type Provider, VISIT_REASONS } from '../database/schema.ts';
 import { patientName } from '../domain/clinic.ts';
 import { useClinic } from '../lib/context.ts';
@@ -125,13 +126,13 @@ async function submit(event: SubmitEvent) {
                   search = '';
                 }}
               >
-                <span>{patientName(p)}</span><span class="text-xs text-muted-foreground tabular-nums">{p.mrn}</span>
+                <span>{patientName(p)}</span><Text as="span" size="xs" tone="muted" tabular>{p.mrn}</Text>
               </Button>
             </li>
           {/each}
         </ul>
       {:else if search.trim().length >= 2}
-        <p class="text-sm text-muted-foreground">No patient matches “{search.trim()}”.</p>
+        <Text size="sm" tone="muted">No patient matches “{search.trim()}”.</Text>
       {/if}
     </div>
     <FormField label="Provider" required error={errors.providerId}>
