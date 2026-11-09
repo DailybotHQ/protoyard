@@ -5,7 +5,7 @@ import {
   ThemeSchema,
   ValidationError,
 } from '@protoyard/core';
-import type { Kernel } from './kernel.ts';
+import { type Kernel, lockedDesignSystem } from './kernel.ts';
 
 /**
  * Custom themes made in the DevTools Theme Studio. They live in this
@@ -34,6 +34,8 @@ export interface ThemeControllerExtras {
    * can provide; never rejects.
    */
   ensure(id: string): Promise<Theme | undefined>;
+  /** The design system the manifest locks this prototype to, or null (PLAN_013). */
+  locked(): { id: string; version: string } | null;
   /** True for themes registered through the async theme resolver (library origin). */
   isLibrary(id: string): boolean;
   /** Saved custom themes, oldest first. */
@@ -99,6 +101,12 @@ export function createThemeExtras(k: Kernel): ThemeControllerExtras {
   };
 
   const save = async (input: unknown): Promise<Theme> => {
+    const lock = lockedDesignSystem(k.definition.manifest);
+    if (lock) {
+      throw new ValidationError({
+        form: `This prototype is locked to the "${lock.id}" design system; custom themes are off.`,
+      });
+    }
     const theme = parseInput(ThemeSchema, input);
     if (themes.some((t) => t.id === theme.id) && !k.customThemeIds.has(theme.id)) {
       throw new ValidationError({
@@ -132,6 +140,7 @@ export function createThemeExtras(k: Kernel): ThemeControllerExtras {
 
   return {
     ensure: (id) => k.ensureTheme(id),
+    locked: () => lockedDesignSystem(k.definition.manifest),
     isLibrary: (id) => k.libraryThemeIds.has(id),
     customThemes: custom,
     isCustom: (id) => k.customThemeIds.has(id),

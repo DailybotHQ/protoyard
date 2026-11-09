@@ -39,6 +39,8 @@ const themes = $derived.by<readonly Theme[]>(() => {
 /** The Studio is its own chunk: it loads only when someone opens it. */
 let studioOpen = $state(false);
 const loadStudio = () => import('./ThemeStudioSection.svelte');
+/** A prototype locked to a design system shows it instead of the theme tools (PLAN_013). */
+const locked = $derived(runtime.theme.locked?.() ?? null);
 const platform = $derived(runtime.manifest.platform);
 const overrides = $derived(dt.overrides);
 const layoutSettings = $derived(runtime.manifest.preview.layout);
@@ -187,6 +189,14 @@ async function setFrame(on: boolean) {
   </p>
 </Section>
 
+{#if locked}
+  <Section title="Theme" description="This prototype is locked to its design system.">
+    <p class="text-xs text-muted-foreground" data-theme-locked={locked.id}>
+      Design system <strong>{locked.id}</strong>@{locked.version}. Other themes, Theme Studio and
+      style presets are off; change the design system with <code>protoyard ds use</code>.
+    </p>
+  </Section>
+{:else}
 <Section title="Theme">
   {#snippet actions()}<SourceBadge source={appearance.theme.source} />{/snippet}
   <ThemeBrowser {dt} {themes} select={(themeId) => set({ themeId }, `appearance:theme:${themeId}`)} />
@@ -209,6 +219,7 @@ async function setFrame(on: boolean) {
     {/await}
   {/if}
 </Section>
+{/if}
 <Section title="Color mode">
   {#snippet actions()}<SourceBadge source={appearance.mode.source} />{/snippet}
   <Segmented
@@ -235,7 +246,7 @@ async function setFrame(on: boolean) {
   </div>
 </Section>
 
-<StyleControls {dt} />
+{#if !locked}<StyleControls {dt} />{/if}
 
 <Section title="Viewport preset" description="Narrows the app column. Media queries still follow the real window — use the gallery device preview for true breakpoints.">
   {#snippet actions()}<SourceBadge source={appearance.viewport.source} />{/snippet}

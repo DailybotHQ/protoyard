@@ -536,3 +536,53 @@ describe('snapshot export redacts simulated passwords', () => {
     expect((await runtime.db.rows<Row>('tasks').get(taskId))?.simulatedPassword).toBe(SECRET);
   });
 });
+
+describe('locked design system (PLAN_013)', () => {
+  function lockedDefinition() {
+    const definition = createTasksDefinition({ namespace: 'tasks-locked' });
+    return {
+      ...definition,
+      manifest: {
+        ...definition.manifest,
+        defaultTheme: 'ocean',
+        designSystem: { id: 'ocean', version: '1.0.0', locked: true },
+      },
+    } as PrototypeDefinition;
+  }
+
+  it('keeps only the design system theme and ignores other ids and style presets', async () => {
+    const runtime = await start(lockedDefinition(), backend(), {
+      resolveTheme: async (id) => ({ ...themes[0], id, name: id }) as never,
+    });
+    expect(runtime.theme.locked?.()).toEqual({ id: 'ocean', version: '1.0.0' });
+    expect(runtime.theme.themes().map((t) => t.id)).toEqual(['ocean']);
+    await runtime.theme.setOverride({ themeId: 'violet', radius: 'pill' });
+    expect(runtime.theme.appearance().theme.value).toBe('ocean');
+    expect(runtime.theme.appearance().radius.value).toBeNull();
+    expect(await runtime.theme.ensure?.('library-theme')).toBeUndefined();
+    expect(runtime.theme.themes().map((t) => t.id)).toEqual(['ocean']);
+    const refused = await runtime.theme
+      .saveCustom(createThemeFromSeed({ id: 'sunset', name: 'Sunset', seed: '#e8590c' }))
+      .catch((e: unknown) => e);
+    expect(refused).toBeInstanceOf(ValidationError);
+    expect(runtime.theme.customThemes()).toEqual([]);
+  });
+
+  it('an unlocked binding changes nothing', async () => {
+    const definition = createTasksDefinition({ namespace: 'tasks-bound' });
+    const runtime = await start(
+      {
+        ...definition,
+        manifest: {
+          ...definition.manifest,
+          designSystem: { id: 'ocean', version: '1.0.0', locked: false },
+        },
+      } as PrototypeDefinition,
+      backend()
+    );
+    expect(runtime.theme.locked?.()).toBeNull();
+    expect(runtime.theme.themes().map((t) => t.id)).toEqual(['violet', 'ocean']);
+    await runtime.theme.setOverride({ themeId: 'violet' });
+    expect(runtime.theme.appearance().theme.value).toBe('violet');
+  });
+});

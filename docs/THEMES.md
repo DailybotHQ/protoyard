@@ -898,10 +898,11 @@ The same inputs give the same document, the same variables and the same hash.
 
 | Way | What it does |
 | --- | --- |
-| `pnpm protoyard ds new <id>` | A document from a few inputs (`--brand`, `--secondary`, `--accent`, `--font`, `--heading-font`, `--mono-font`, `--shape`, `--radius`, `--density`, `--motion`, `--contrast`), a one-line `--brief` (Texuli's `importBrand`: `brand #4f46e5, font Inter, rounded, compact`; explicit inputs win), a built-in or library theme (`--from-theme <theme-id>`), or a prototype's own theme module (`--from-theme-file <path> [--export <name>]`: the file runs under tsx, like `src/prototype.ts` in `spec`, so use it only for trusted workspace code; the CLI checks the result with `ThemeSchema`). Writes `design-systems/<id>.json` after it compiles. |
-| `pnpm protoyard ds validate <file>` | Checks an untrusted document and compiles it: contrast per mode and the hash. |
+| `pnpm protoyard ds new <id>` | A document from a few inputs (`--brand`, `--secondary`, `--accent`, `--font`, `--heading-font`, `--mono-font`, `--shape`, `--radius`, `--density`, `--motion`, `--contrast`), a one-line `--brief` (Texuli's `importBrand`: `brand #4f46e5, font Inter, rounded, compact`; explicit inputs win), a built-in or library theme (`--from-theme <theme-id>`), or a prototype's own theme module (`--from-theme-file <path> [--export <name>]`: the file runs under tsx, like `src/prototype.ts` in `spec`, so use it only for trusted workspace code; the CLI checks the result with `ThemeSchema`). Writes the folder `design-systems/<id>/` after it compiles (see [Design-system folders](#design-system-folders)); `--out <file>` writes a flat document instead. |
+| `pnpm protoyard ds validate <id\|file>` | Checks an untrusted document and compiles it: contrast per mode and the hash. For a folder it also reports the approval status and whether it can be locked, and fails when `components.json` and `components/*.svelte` disagree. |
+| `pnpm protoyard ds migrate <id>` | Moves a flat `design-systems/<id>.json` into the folder layout, as a draft. It never merges into an existing folder. |
 | `pnpm protoyard ds export <file>` | `--format css` (default), `tailwind` (a preset as JSON) or `json` (the compiled design system). |
-| `pnpm protoyard ds use <slug> <file>` | Writes `src/design-system.ts` (the compiled variables and the document's description, no report) and sets `defaultTheme`. In an **app** prototype it adds `designSystemTheme` to `definePrototype({ themes })`; in a **deck, page or doc** prototype it passes `brandTheme: designSystemTheme, defaultThemeId: designSystemTheme.id` to `defineKindPrototype` / `definePrototypeFromPage` / `definePrototypeFromDoc` (a deck's blueprint brand is replaced). It imports from `@protoyard/runtime`, else `@protoyard/themes`; a prototype with neither gets `@protoyard/themes` added to its `package.json` (the installed version in a consumer workspace, `workspace:*` in this repository) and `pnpm install` as the first next step. It then refreshes the generated spec regions, and lists `spec <slug> --write` only when that could not run. Then run `validate <slug> --build`. |
+| `pnpm protoyard ds use <slug> <id\|file> [--lock] [--upgrade]` | Writes `src/design-system.ts` (the compiled variables and the document's description, no report) and sets `defaultTheme`. In an **app** prototype it adds `designSystemTheme` to `definePrototype({ themes })`; in a **deck, page or doc** prototype it passes `brandTheme: designSystemTheme, defaultThemeId: designSystemTheme.id` to `defineKindPrototype` / `definePrototypeFromPage` / `definePrototypeFromDoc` (a deck's blueprint brand is replaced). It imports from `@protoyard/runtime`, else `@protoyard/themes`; a prototype with neither gets `@protoyard/themes` added to its `package.json` (the installed version in a consumer workspace, `workspace:*` in this repository) and `pnpm install` as the first next step. It then refreshes the generated spec regions, and lists `spec <slug> --write` only when that could not run. Then run `validate <slug> --build`. `--lock` and `--upgrade` bind the prototype ([Locked design systems](#locked-design-systems)). |
 | Theme Studio → **Design system** | The same from a form, from the current theme, or from pasted JSON; **Save and apply** paints it at once. |
 | `protoyard mcp` | `ds_create`, `ds_validate`, `ds_export` and `ds_use` run the commands above ([MCP](MCP.md#tools)). |
 
@@ -986,6 +987,53 @@ CSS string (`"1.4"`, `"normal"`) as `invalid-value`.
   view does not take a design system and keeps the deck theme.
 - A design system made in Theme Studio stays in that browser. Download the JSON
   and run `ds use` to put it in the repository.
+
+## Design-system folders
+
+A design system can be a flat document (`design-systems/<id>.json`, as before)
+or a folder. Only a folder can be approved, and only an approved folder can be
+locked.
+
+```text
+design-systems/<id>/
+  document.json      the Texuli design-system document
+  approval.json      status (draft | approved), version, approvedBy, approvedAt, contentHash
+  components.json    the design system's own components: name, purpose, version, status, file, sha256
+  components/*.svelte
+```
+
+- `ds new <id>` writes the folder with a draft `approval.json` and an empty
+  `components.json`. `ds migrate <id>` converts a flat document.
+- `contentHash` is the SHA-256 of the document's canonical JSON (sorted keys,
+  no whitespace) without the approval fields: the scheme Texuli adopts for the
+  0.13.0 document spec. Until Protoyard adopts that spec, the approval lives in
+  `approval.json` next to the document.
+- `components.json` records each component's source hash. `ds validate` fails
+  when a listed file is missing or changed, or a component file is not listed.
+- A prototype imports a library component through one path, whatever its
+  folder depth: `import StatusPill from '@ds/<id>/StatusPill'`. The renderer's
+  Vite config resolves it to `design-systems/<id>/components/StatusPill.svelte`
+  and only accepts a kebab-case id and a PascalCase name.
+- An approval is a record, not a proof: the CLI cannot tell who ran
+  `ds approve`. The guarantee is a human commit reviewed through CODEOWNERS
+  for `design-systems/`.
+
+## Locked design systems
+
+A prototype binds to a design system in its manifest:
+
+```json
+"designSystem": { "id": "acme", "version": "1.2.0", "locked": true }
+```
+
+- `ds use <slug> <id> --lock` writes the binding at the document's exact
+  version. It refuses a flat document, a draft, an approval for another
+  version, or a document that changed after its approval (content hash).
+- A bound prototype keeps its version: `ds use` with a new document version
+  fails until you pass `--upgrade`, which moves the pin and lists the compiled
+  values that changed, were added or were removed.
+- A locked prototype cannot take another design system.
+- Existing prototypes are not locked unless you run `ds use --lock`.
 
 ## The CLI
 

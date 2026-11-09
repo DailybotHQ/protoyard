@@ -269,6 +269,13 @@ export interface ThemeController {
    * can provide; it never rejects. Optional so older runtimes stay valid.
    */
   ensure?(id: string): Promise<Theme | undefined>;
+  /**
+   * The design system this prototype is locked to (`designSystem.locked` in
+   * the manifest), or null. A locked prototype only uses that theme: other
+   * ids from the URL, storage, scenarios or DevTools are ignored, and custom
+   * themes are not loaded. Optional so older runtimes stay valid.
+   */
+  locked?(): { id: string; version: string } | null;
   appearance(): AppearanceState;
   /**
    * Persisted per active persona. A `themeId` the runtime does not know yet is
