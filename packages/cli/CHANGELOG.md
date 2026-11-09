@@ -1,5 +1,24 @@
 # @protoyard/cli
 
+## 1.6.0
+
+### Patch Changes
+
+- 60a4605: Consumer batch 10 (Dailybot). `protoyard showcase` (site target) finds `@protoyard/player` where pnpm installs it with `@protoyard/cli`, not only at the workspace root, so a consumer workspace installed from npm no longer fails after building every demo. When no player is installed, the command now stops before building anything and says how to add it.
+- 61fd849: Consumer batch 9 (Dailybot). The `component-scoped-class` adoption rule now splits selector lists only at top-level commas and removes nested `:global(...)` groups, so a fully global rule such as `:global(:is(.a, .b).tx-button)` no longer counts `.b` as a scoped class. `EmojiPicker` inside a Texuli `Field` is now named by the Field label plus its visible value (the placeholder or the chosen emoji), even when the Field passes no `aria-labelledby`.
+- @protoyard/crud@1.6.0
+  - @protoyard/player@1.6.0
+  - @protoyard/renderer-svelte@1.6.0
+  - @protoyard/blocks@1.6.0
+  - @protoyard/blueprint@1.6.0
+  - @protoyard/core@1.6.0
+  - @protoyard/decks@1.6.0
+  - @protoyard/offline@1.6.0
+  - @protoyard/review@1.6.0
+  - @protoyard/scenarios@1.6.0
+  - @protoyard/templates@1.6.0
+  - @protoyard/themes@1.6.0
+
 ## 1.5.0
 
 ### Patch Changes

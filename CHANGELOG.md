@@ -6,6 +6,41 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-09
+
+Texuli 0.14.4. Every Texuli dependency is pinned exactly at `0.14.4`.
+
+### Added
+
+- `@protoyard/ui` `Avatar` forwards Texuli's new `tone` and `shape`. Re-exported
+  components gain the rest of Texuli 0.14.3 directly: `labelContent` on
+  Checkbox, Radio and Switch, Field `counter`, NumberField `display="output"`,
+  `iconSize`, BottomNav `emphasis`, MobileHeader `eyebrow`/`leading`/`onClose`,
+  SplitView `listWidth`/`breakpoint`/`context`, Stat `tone`, Composer
+  `layout="row"`, `texuli/list-item` and opt-in Spanish catalogs.
+- `@protoyard/views-ui` `TimelineView` holds its opening day as rows load and
+  zoom changes (Texuli 0.14.4) and exposes `scrollToDate(date)` through
+  `bind:this`.
+
+### Fixed
+
+- The `component-scoped-class` adoption rule splits selector lists only at
+  top-level commas, so `:global(:is(.a, .b).tx-button)` no longer counts `.b`
+  (Dailybot batch 9).
+- `EmojiPicker` inside a Texuli `Field` is named by the Field label plus its
+  visible value (Dailybot batch 9).
+- `protoyard showcase` finds `@protoyard/player` where pnpm installs it with
+  `@protoyard/cli`, and stops before building anything when it is missing
+  (Dailybot batch 10).
+- The gallery reads the catalog blueprints of the installed
+  `@protoyard/templates` package in a consumer workspace instead of hiding
+  them as invalid entries (Corag).
+
+### Changed
+
+- The page host's CSS caps rise with Texuli's CSS: initial 7,940 B (measured
+  7,562 B), all CSS 44,218 B (measured 43,139 B).
+
 ## [1.5.0] - 2026-11-07
 
 Texuli 0.14.2. Every Texuli dependency is pinned exactly at `0.14.2`.

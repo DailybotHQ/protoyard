@@ -1,5 +1,21 @@
 # @protoyard/views-ui
 
+## 1.6.0
+
+### Minor Changes
+
+- 78c1cbb: Adopt Texuli 0.14.4. Every Texuli dependency is pinned exactly at `0.14.4`. `TimelineView` holds its opening day as rows load and zoom changes, and exposes `scrollToDate(date)` through `bind:this`.
+
+### Patch Changes
+
+- Updated dependencies [61fd849]
+- Updated dependencies [10e69ef]
+  - @protoyard/ui@1.6.0
+  - @protoyard/renderer-svelte@1.6.0
+  - @protoyard/ai@1.6.0
+  - @protoyard/core@1.6.0
+  - @protoyard/views@1.6.0
+
 ## 1.5.0
 
 ### Minor Changes

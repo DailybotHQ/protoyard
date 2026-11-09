@@ -1,5 +1,15 @@
 # @protoyard/ui
 
+## 1.6.0
+
+### Minor Changes
+
+- 10e69ef: Adopt Texuli 0.14.3. Every Texuli dependency is pinned exactly at `0.14.3`. Re-exported components gain Texuli's new props directly (Checkbox/Radio/Switch `labelContent`, Field `counter`, NumberField `display="output"`, Button/IconButton `iconSize`, BottomNav `emphasis`, MobileHeader `eyebrow`/`leading`/`onClose`, SplitView `listWidth`/`breakpoint`/`context`, Stat `tone`, Composer `layout="row"`/`sendButton="icon"`, `texuli/list-item`, opt-in Spanish catalogs). `@protoyard/ui` `Avatar` forwards the new `tone` and `shape`. The page host's CSS caps rise with Texuli's CSS (initial 7,562 B measured, cap 7,940 B; all CSS 43,139 B, cap 44,218 B).
+
+### Patch Changes
+
+- 61fd849: Consumer batch 9 (Dailybot). The `component-scoped-class` adoption rule now splits selector lists only at top-level commas and removes nested `:global(...)` groups, so a fully global rule such as `:global(:is(.a, .b).tx-button)` no longer counts `.b` as a scoped class. `EmojiPicker` inside a Texuli `Field` is now named by the Field label plus its visible value (the placeholder or the chosen emoji), even when the Field passes no `aria-labelledby`.
+
 ## 1.5.0
 
 ### Minor Changes

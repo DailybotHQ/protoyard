@@ -1,7 +1,7 @@
 ---
 name: protoyard
 description: Build and explore functional prototypes with Protoyard by routing requests to local skills for quick exploration, full prototype creation, iteration, kits, review, shipping, and installation.
-version: "1.5.0"
+version: "1.6.0"
 documentation_url: https://protoyard.app/docs/
 user-invocable: true
 allowed-tools: Bash, Read, Grep, Glob
