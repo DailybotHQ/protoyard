@@ -70,6 +70,10 @@ export function deriveTexuliRoles(palette: ThemePalette): Record<string, string>
   // Soft tones: a tinted surface that `foreground` and a soft foreground read on.
   const softBackground = pick([p.muted, p.background], [p.foreground], 4.5);
   const softForeground = pick([p.foreground, p.mutedForeground], [softBackground], 4.5);
+  // Each tone reads in its own color when it meets AA on the soft surface,
+  // else the neutral ink: `Text tone="primary"` and soft badges keep their hue.
+  const toneForeground = (tone: string) =>
+    pick([tone, p.foreground, p.mutedForeground], [softBackground], 4.5);
   // One derivation for both writers (`themeVariables` writes the same values).
   const link = linkStates(p).default;
   return {
@@ -83,15 +87,15 @@ export function deriveTexuliRoles(palette: ThemePalette): Record<string, string>
       3
     ),
     primarySoft: softBackground,
-    primarySoftForeground: softForeground,
+    primarySoftForeground: toneForeground(p.primary),
     destructiveSoft: softBackground,
-    destructiveSoftForeground: softForeground,
+    destructiveSoftForeground: toneForeground(p.destructive),
     successSoft: softBackground,
-    successSoftForeground: softForeground,
+    successSoftForeground: toneForeground(p.success),
     warningSoft: softBackground,
-    warningSoftForeground: softForeground,
+    warningSoftForeground: toneForeground(p.warning),
     infoSoft: softBackground,
-    infoSoftForeground: softForeground,
+    infoSoftForeground: toneForeground(p.info),
     sidebarPrimary: p.primary,
     overlay: p.elevated,
     scrim: p.shadow,
