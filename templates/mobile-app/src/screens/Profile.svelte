@@ -2,6 +2,8 @@
 import type { ColorMode } from '@protoyard/core';
 import { avatarImage, runService, useAppearance, usePrincipal } from '@protoyard/renderer-svelte';
 import { Avatar, Badge } from '@protoyard/ui';
+import { ListItem } from 'texuli/list-item';
+import { Box, Heading, Text } from 'texuli/typography';
 import Page from '../components/Page.svelte';
 import Segmented from '../components/Segmented.svelte';
 import { ROLE_LABELS } from '../domain/policy.ts';
@@ -33,18 +35,18 @@ function setMode(next: ColorMode) {
 
 <Page title="Profile" subtitle={me?.organization?.name}>
   {#if me}
-    <section class="flex items-center gap-4 rounded-2xl bg-surface p-4 shadow-soft" aria-label="You">
+    <Box as="section" surface="default" radius="xl" elevation="sm" class="flex items-center gap-4" aria-label="You">
       <Avatar name={me.persona.name} {...avatarImage(me.persona.avatar)} size="lg" decorative />
       <div class="min-w-0 flex-1">
-        <p class="truncate text-lg font-semibold">{me.persona.name}</p>
-        <p class="truncate text-sm text-muted-foreground">{me.persona.email}</p>
+        <Text size="lg" weight="semibold" truncate>{me.persona.name}</Text>
+        <Text size="sm" tone="muted" truncate>{me.persona.email}</Text>
         <Badge variant="secondary" class="mt-1.5">{ROLE_LABELS[me.role ?? ''] ?? me.role}</Badge>
       </div>
-    </section>
+    </Box>
   {/if}
 
   <section aria-labelledby="appearance" class="flex flex-col gap-2">
-    <h2 id="appearance" class="text-base font-semibold">Appearance</h2>
+    <Heading level={2} size="sm" id="appearance">Appearance</Heading>
     <Segmented
       label="Color mode"
       bind:value={mode}
@@ -58,18 +60,21 @@ function setMode(next: ColorMode) {
   </section>
 
   <section aria-labelledby="people" class="flex flex-col gap-2">
-    <h2 id="people" class="text-base font-semibold">People</h2>
-    <ul class="divide-y divide-border rounded-2xl bg-surface px-4 shadow-soft">
-      {#each people as entry (entry.membership.id)}
-        <li class="flex min-h-14 items-center gap-3 py-2.5">
-          <Avatar name={entry.persona?.name ?? '?'} {...avatarImage(entry.persona?.avatar)} size="sm" decorative />
-          <span class="min-w-0 flex-1 truncate text-sm font-medium">
-            {entry.persona?.name}{entry.persona?.id === me?.persona.id ? ' (you)' : ''}
-          </span>
-          <Badge variant="outline">{ROLE_LABELS[entry.membership.role] ?? entry.membership.role}</Badge>
-        </li>
-      {/each}
-    </ul>
-    <p class="text-xs text-muted-foreground">Switch persona in DevTools to see the app as someone else.</p>
+    <Heading level={2} size="sm" id="people">People</Heading>
+    <Box surface="default" radius="xl" elevation="sm" padding="sm">
+      <ul role="list" class="tx-list">
+        {#each people as entry (entry.membership.id)}
+          <ListItem title={`${entry.persona?.name ?? ''}${entry.persona?.id === me?.persona.id ? ' (you)' : ''}`} class="min-h-14">
+            {#snippet leading()}
+              <Avatar name={entry.persona?.name ?? '?'} {...avatarImage(entry.persona?.avatar)} size="sm" decorative />
+            {/snippet}
+            {#snippet trailing()}
+              <Badge variant="outline">{ROLE_LABELS[entry.membership.role] ?? entry.membership.role}</Badge>
+            {/snippet}
+          </ListItem>
+        {/each}
+      </ul>
+    </Box>
+    <Text size="xs" tone="muted">Switch persona in DevTools to see the app as someone else.</Text>
   </section>
 </Page>
