@@ -49,7 +49,7 @@ The server supports only those two revisions. A request that negotiates or names
 
 ## Tools
 
-`tools/list` returns these thirteen tools. Their input objects are strict: unknown fields are rejected. String lengths and numeric ranges are checked before dispatch.
+`tools/list` returns these fourteen tools. Their input objects are strict: unknown fields are rejected. String lengths and numeric ranges are checked before dispatch.
 
 | Tool | Arguments | Behavior |
 | --- | --- | --- |
@@ -66,6 +66,7 @@ The server supports only those two revisions. A request that negotiates or names
 | `ds_use` | Required `slug` (1–80) and `file` (a design-system id or workspace path); optional `lock`, `upgrade`, `force`, `dryRun` (booleans) | `ds use`: write `src/design-system.ts`, add it to `definePrototype({ themes })`, set `defaultTheme`; `lock` binds the prototype to an approved design system at its exact version, `upgrade` moves the pin and lists what changed; `data.next` names the spec refresh and validate steps. |
 | `ds_component_request` | Required `id` (lowercase kebab-case), `name` (PascalCase, at most 64 characters), single-line `purpose` (1–280) and `why` (1–1,000: why the existing components do not fit); optional single-line `by` (1–120) | `ds component request`: record a request for a new component in `design-systems/<id>/requests/<Name>.json` (status `open`). Writes no code. Refuses an existing component, an open or approved request with the same name, a flat or unknown design system, and control characters. |
 | `ds_component_new` | Required `id` and `name`; optional `prototype` (slug, 1–80) | `ds component new`: scaffold a component whose request a human approved: `components/<Name>.svelte` from Texuli components with layout classes only (it passes `check ds`), a draft `components.json` entry with its sha256, and a kit story stub in `stories/<Name>.json`. Refuses without an approved request, for a locked `prototype`, when the server runs inside a prototype folder, and for an existing component. |
+| `new_from_design_system` | Required `slug` (1–80) and `ds` (lowercase kebab-case design-system id); optional `template` (slug, 1–80), `unlocked` (boolean), single-line `name` (1–80) and `description` (1–280) | `new <slug> --ds <id> --no-install`: create `prototypes/<slug>` locked to an approved design system from its first file. The template (default `blank`) must pass the `check ds` rules; the design system must be an approved folder at its document version, unchanged since approval. `unlocked` binds without locking (a draft and any template are allowed). The envelope has `designSystem`, `designSystemCheck` and `nextSteps` (which include `pnpm install`: the tool never installs). Its description tells the agent to build only from the design system's components and to stop and ask the human when none fits. |
 
 There is no tool for `ds component approve-request`: approving a component request stays with a human. Both component tool descriptions tell the agent to stop and ask first: when no design-system component fits, it asks the human for the name, the purpose and why the existing components do not fit, and records the request only after they agree.
 
@@ -94,7 +95,7 @@ The MCP server runs as a local child process with the permissions of the user wh
 - **Size limits.** Encoded tool arguments are limited to 256 KiB, and a returned CLI envelope to 512 KiB.
 - **Timeouts cancel.** A tool call is bounded to 30 seconds, and the timeout cancels the operation rather than only replying. Child processes it started (`pnpm install`, a browser) are stopped, no new one starts, and later steps (installing dependencies, recording a promotion, the next screenshot) do not run. Work already written before the timeout stays: check the target folder before retrying a timed-out `promote`.
 - **Output strings.** Credential-shaped output fields are redacted. Every control character is removed from returned strings except tab and newline: those keep multi-line messages readable, and JSON encodes them as `\t` and `\n`, so they cannot break the one-message-per-line framing. Do not send credentials, real personal data, or other sensitive input to tools.
-- `quick`, `iterate`, and `promote` can write files in the workspace through their normal CLI behavior. Review the requested operation and generated files as you would when running those CLI commands yourself.
+- `quick`, `iterate`, `promote`, `new_from_design_system` and the `ds_*` tools that write (`ds_create`, `ds_use`, `ds_component_request`, `ds_component_new`) can write files in the workspace through their normal CLI behavior. Review the requested operation and generated files as you would when running those CLI commands yourself.
 
 The server does not fetch a remote service as part of the MCP transport. Individual CLI operations retain their documented behavior and workspace requirements. For the broader CLI trust model, see [the CLI guide](../packages/cli/README.md#trust-model); for machine-readable interface compatibility, see [the machine interface guide](INTERFACE.md).
 

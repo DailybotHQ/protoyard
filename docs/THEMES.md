@@ -1033,7 +1033,9 @@ A prototype binds to a design system in its manifest:
   fails until you pass `--upgrade`, which moves the pin and lists the compiled
   values that changed, were added or were removed.
 - A locked prototype cannot take another design system.
-- Existing prototypes are not locked unless you run `ds use --lock`.
+- Existing prototypes are not locked unless you run `ds use --lock`. A new
+  one can start locked: `new <slug> --ds <id>` or `generate … --ds <id>`
+  (below).
 - `validate <slug>` checks a locked binding before anything else. The design
   system must be an approved folder at exactly the pinned version, unchanged
   since its approval, and applied in `src/design-system.ts`. Then it runs the
@@ -1042,6 +1044,85 @@ A prototype binds to a design system in its manifest:
   theme ids from the URL, storage, scenarios or DevTools are ignored, Theme
   Studio custom themes and style presets are off, and DevTools shows the lock
   instead of the theme tools.
+
+### Create a prototype from a design system
+
+Start a prototype locked to a design system, so it stays restricted to it
+from its first commit. A workspace can hold many design systems; each
+prototype names one.
+
+```bash
+pnpm protoyard new my-portal --ds harbor                      # the blank template, locked
+pnpm protoyard new my-portal --ds harbor --template <name>     # another lock-clean template
+pnpm protoyard new my-sketch --ds harbor --unlocked            # bound, not locked
+pnpm protoyard generate my-deck --blueprint <file> --ds harbor # a blueprint-generated prototype
+```
+
+`new <slug> --ds <id>` runs every check before it copies anything:
+
+1. The design system must be lockable: an approved folder at its document
+   version, unchanged since its approval (the same refusals as
+   `ds use --lock`). An unknown id is `not_found`; a flat document, a draft
+   or a changed document is `validation` (exit 4).
+2. The template must be lock-clean: `new` scans the template folder with the
+   `check ds` rules. Any violation refuses with `validation`: "Template
+   `<name>` is not lock-clean yet: N violations (`ds-utility`: a,
+   `ds-visual-css`: b, …). Use another template, or create it unlocked with
+   --unlocked." The envelope `data` has `template`, `violations`, `byRule`
+   and `files`. No template list is kept anywhere: whether a template can
+   start a locked prototype is only what this scan says today.
+3. The template (default `blank`) is copied, then the design system is applied
+   through the same code path as `ds use --lock`, before the folder is renamed
+   into place: `src/design-system.ts`, the theme in `definePrototype({ themes })`
+   (or the brand options of a deck, page or doc definition), `defaultTheme`, and
+   `"designSystem": { "id", "version", "locked": true }`. A refusal at this
+   step leaves nothing behind. The spec is written after that, so the
+   generated `AGENTS.md` carries the stop-and-ask rule.
+4. The new prototype is checked with `check ds` and the binding check of
+   `validate`. The result is in `data.designSystemCheck` (`ok`, `files`,
+   `violations`, `byRule`, `violatingFiles`, `bindingProblem`, `sample`). A
+   locked prototype that fails exits 4 and stays on disk for inspection; it
+   is never deleted.
+
+- Nothing visual is copied from the design system: its theme is compiled
+  into `src/design-system.ts`, and library components are imported as
+  `@ds/<id>/<Name>`.
+- `--from <prototype>` cannot be combined with `--ds`: copying another
+  prototype may copy its visual code. Start from a template.
+- `--unlocked` writes `"locked": false`: a draft design system and a template
+  with violations are allowed, and `data.designSystemCheck` only reports.
+  Lock it later with `ds use <slug> <id> --lock` once the design system is
+  approved and `check ds --report` is clean.
+- The MCP tool `new_from_design_system` runs the same command with
+  `--no-install` ([MCP](MCP.md)).
+
+`generate <slug> --blueprint <file> --ds <id> [--unlocked]` binds a
+blueprint-generated app, deck, page or doc the same way:
+
+- The generated definition takes its theme from the non-generated
+  `src/design-system.ts`: an app's `src/prototype.ts` (owned, never rewritten
+  by regeneration) registers `themes: [designSystemTheme]`; a deck, page or
+  doc's generated `src/prototype.ts` passes `brandTheme: designSystemTheme`
+  and `defaultThemeId: designSystemTheme.id`. No
+  `src/generated/brand-theme.ts` is emitted, and the blueprint's `brand`
+  block is ignored (`data.brandIgnored: true` and a warning).
+- Regeneration reads the binding from `protoyard.json`, so `--ds` is needed
+  only once. Repeating the same id is accepted; another id is a `conflict`.
+  `--ds` on a generated prototype that is not bound yet binds it during the
+  regeneration.
+- `ds use <slug> <id> --upgrade` works on a generated prototype whose
+  generated definition already imports `./design-system.ts`: it rewrites only
+  `src/design-system.ts` and the manifest pin, so the generated file's hash
+  stays intact. `ds use` still refuses a generated definition the generator
+  did not bind.
+- `data.designSystemCheck` splits violations by owner: `generatorFiles` (what
+  the generator emitted) and `templateFiles` (copied from the template). The
+  generator's own files pass `check ds`; a locked result fails (exit 4, the
+  prototype stays) while a template file is not lock-clean, and the message
+  names those files (for example a template `src/app.css` that still sets
+  `color` or `background`). `new --ds` refuses such a template up front;
+  `generate --ds` writes the prototype and reports the template's files, so
+  you can see what the template still has to fix.
 
 ### check ds
 
