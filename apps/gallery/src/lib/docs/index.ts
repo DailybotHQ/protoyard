@@ -37,6 +37,7 @@ export const PUBLIC_GUIDES: readonly string[] = [
   'DATABASE',
   'SCENARIOS',
   'THEMES',
+  'DESIGN_SYSTEMS',
   'LAYOUTS',
   'SHELLS',
   'VIEWS',

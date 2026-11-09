@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:protoyard:design-system:bundle:1",
+  "title": "Design-system bundle manifest (protoyard/ds-bundle), planned",
+  "description": "bundle.json (in an exported design-system bundle) (planned: no command writes this file yet; the contract may change before it lands). Generated from packages/cli/src/lib/ds-contracts.ts.",
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "string",
+      "const": "protoyard/ds-bundle"
+    },
+    "version": {
+      "type": "number",
+      "const": 1
+    },
+    "designSystem": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,63}$"
+    },
+    "release": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "files": {
+      "minItems": 1,
+      "maxItems": 1000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^(?!\\/)(?!.*(?:^|\\/)\\.\\.(?:\\/|$))[A-Za-z0-9._/-]+$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1048576
+          }
+        },
+        "required": ["path", "sha256", "bytes"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["format", "version", "designSystem", "release", "contentHash", "files"],
+  "additionalProperties": false
+}

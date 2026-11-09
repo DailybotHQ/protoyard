@@ -46,6 +46,7 @@ templates/*/protoyard.json  ─┴─ pnpm protoyard index ──▶ .protoyard/
 | `/p/<slug>/compare/` | Two scenarios side by side ([below](#compare-scenarios)) |
 | `/t/<slug>/` | A template's detail page with **Use this template** and the prototypes made from it |
 | `/new/` | The create builder: the `protoyard new` command and an agent prompt |
+| `/design-systems/` | The workspace's design systems: version, approval, whether each can be locked, component count and the prototypes bound to each, with a kit link when a `<id>-kit` prototype exists ([DESIGN_SYSTEMS](../../docs/DESIGN_SYSTEMS.md)) |
 | `/themes/` | The theme browser: built-in and library themes with live swatches, opening any prototype in a chosen theme |
 | `/marketplace/`, `/marketplace/<kind>/<slug>/` | The marketplace shelf and one page per prototype, template or blueprint ([below](#marketplace)) |
 

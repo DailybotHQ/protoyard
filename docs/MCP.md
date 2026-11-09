@@ -49,7 +49,7 @@ The server supports only those two revisions. A request that negotiates or names
 
 ## Tools
 
-`tools/list` returns these thirteen tools. Their input objects are strict: unknown fields are rejected. String lengths and numeric ranges are checked before dispatch.
+`tools/list` returns these fourteen tools. Their input objects are strict: unknown fields are rejected. String lengths and numeric ranges are checked before dispatch.
 
 | Tool | Arguments | Behavior |
 | --- | --- | --- |
@@ -61,6 +61,7 @@ The server supports only those two revisions. A request that negotiates or names
 | `promote` | Required `dir` (workspace path, 1–2,048 characters) and `slug` (1–80); optional `variant` (`v1`–`v8`) and `noInstall` (boolean) | Promote a quick exploration to a full prototype. |
 | `doctor` | Optional `offline` (boolean) | Check the local CLI environment and machine interface. Offline checking is the default. |
 | `ds_create` | Required `id` (lowercase kebab-case, at most 64 characters); optional single-line `name` (1–80), `brief` (1–2,048), `brand`, `secondary`, `accent` (1–64 each), `font`, `headingFont`, `monoFont` (1–120 each), `shape` (sharp, rounded, pill), `radius` (0–64), `density` (dense, compact, comfortable, spacious), `motion` (none, subtle, standard, expressive), `contrast` (AA, AAA), `fromTheme` (theme id), `out` (workspace path), `force`, `dryRun` (booleans) | `ds new`: create a Texuli design system from a brief, inputs or a theme, validate and compile it, and write the folder `design-systems/<id>/` (document, draft approval, component library). Values reach the CLI as `--flag=value`, so one that starts with `-` stays a value. |
+| `ds_list` | No arguments | `ds list`: the workspace's design systems from a fresh index: id, name, version, approval status (`draft` or `approved`, `approvedBy`, `approvedAt`), `contentHash`, `lockable`, `layout` (folder or flat), `componentCount` and `boundPrototypes` (slug, pinned version, `locked`); problems in `issues`. Reads only. |
 | `ds_validate` | Required `file` (a design-system id or workspace path, 1–2,048 characters) | `ds validate`: validate an untrusted design-system document with Texuli and compile it; the envelope carries the contrast result per mode, the hash, and for a folder the approval status, `lockable` and any component-library drift. |
 | `ds_export` | Required `file` (workspace path); optional `format` (css, tailwind, json) | `ds export`: CSS variables, a Tailwind preset or compiled JSON. |
 | `ds_use` | Required `slug` (1–80) and `file` (a design-system id or workspace path); optional `lock`, `upgrade`, `force`, `dryRun` (booleans) | `ds use`: write `src/design-system.ts`, add it to `definePrototype({ themes })`, set `defaultTheme`; `lock` binds the prototype to an approved design system at its exact version, `upgrade` moves the pin and lists what changed; `data.next` names the spec refresh and validate steps. |

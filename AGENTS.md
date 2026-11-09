@@ -38,6 +38,7 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Player | [PLAYER](docs/PLAYER.md) | No-install player for app, deck, page and doc blueprints: per-kind entries, hosted `/play/`, share links, storage, worlds, parity, browser limits |
 | Texuli | [TEXULI](docs/TEXULI.md) | How Protoyard links and uses the Texuli component library: which packages wrap or re-export it, what stays Protoyard's, verification and limits |
 | Themes | [THEMES](docs/THEMES.md) | Style model, palette engine, 204 library themes (64 port + 140 expand), Theme Studio, `theme` CLI, brand blocks, measured bundle impact |
+| Design systems | [DESIGN_SYSTEMS](docs/DESIGN_SYSTEMS.md) | Design systems as first-class entities: create, review, approve, lock, request components, upgrade; folder layout, JSON Schemas, commands, planned work |
 | Layouts | [LAYOUTS](docs/LAYOUTS.md) | Shared layout catalog, manifest setup, responsive fallbacks, shell composition, authoring and tests |
 | Shells | [SHELLS](docs/SHELLS.md) | Device and host shells, manifest preview fields, `?shell=`, layout inside frames |
 | Views | [VIEWS](docs/VIEWS.md) | Choose a rich view, service callbacks, keyboard and phone behavior, scenario fragments, bundle measurements and limits |

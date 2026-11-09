@@ -27,10 +27,12 @@ interface Props {
   categories: [string, number][];
   tags: [string, number][];
   platforms: [string, number][];
+  /** Design-system ids with how many entries use each; empty hides the filter. */
+  designSystems?: [string, number][];
   counts: { prototypes: number; templates: number };
 }
 
-let { initial, dataId, categories, tags, platforms, counts }: Props = $props();
+let { initial, dataId, categories, tags, platforms, designSystems = [], counts }: Props = $props();
 
 const PAGE_SIZE = 24;
 let all = $state<CompactEntry[]>(initial);
@@ -48,6 +50,7 @@ const filtered = $derived(
     query.platform !== '' ||
     query.category !== '' ||
     query.tag !== '' ||
+    query.ds !== '' ||
     query.view !== 'all'
 );
 
@@ -160,6 +163,12 @@ const views = [
         <span>Tag</span>
         <GallerySelect class={select} value={query.tag} onValueChange={(value) => update({ tag: value })} items={[{ value: '', label: 'Any' }, ...tags.map(([value, n]) => ({ value, label: `#${value} (${n})` }))]} />
       </label>
+      {#if designSystems.length > 0}
+        <label class="flex items-center gap-1.5 text-sm text-muted">
+          <span>Design system</span>
+          <GallerySelect class={select} value={query.ds} onValueChange={(value) => update({ ds: value })} items={[{ value: '', label: 'Any' }, ...designSystems.map(([value, n]) => ({ value, label: `${value} (${n})` }))]} />
+        </label>
+      {/if}
       <label class="flex items-center gap-1.5 text-sm text-muted">
         <span>Sort</span>
         <GallerySelect class={select} value={query.sort} onValueChange={(value) => update({ sort: value as BrowseQuery['sort'] })} items={[{ value: 'name', label: 'Name' }, { value: 'modified', label: 'Last modified' }]} />

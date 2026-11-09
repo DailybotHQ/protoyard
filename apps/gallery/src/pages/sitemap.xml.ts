@@ -6,12 +6,13 @@ const SOURCE_KINDS = new Set(['prototype', 'template', 'blueprint']);
 const SLUG_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const DOC_SLUG_PATTERN = /^[a-z][a-z0-9]*(?:[_-][a-z0-9]+)*$/;
 
-/** Site pages that always exist: home, features, marketplace, themes, the player landing page and the docs. */
+/** Site pages that always exist: home, features, marketplace, themes, design systems, the player landing page and the docs. */
 export const STATIC_PATHS: readonly string[] = [
   '/',
   '/features/',
   '/marketplace/',
   '/themes/',
+  '/design-systems/',
   '/play/',
   '/docs/',
 ];

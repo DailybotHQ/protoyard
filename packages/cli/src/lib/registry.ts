@@ -4,6 +4,7 @@ import type { AnyBlueprint, BlueprintKind } from '@protoyard/blueprint';
 import { blueprintKind } from '@protoyard/blueprint';
 import {
   type Catalog,
+  type DesignSystemBinding,
   type PrototypeManifest,
   type ResolvedShell,
   resolveShell,
@@ -17,7 +18,18 @@ import {
   readManifest,
   statManifest,
 } from './discovery.ts';
+import {
+  type DesignSystemIssue,
+  indexDesignSystems,
+  type RegistryDesignSystem,
+} from './ds-registry.ts';
 import type { WorkspacePaths } from './paths.ts';
+
+export type {
+  DesignSystemIssue,
+  RegistryBoundPrototype,
+  RegistryDesignSystem,
+} from './ds-registry.ts';
 
 /**
  * `.protoyard/registry.json` is the compact metadata index the gallery and
@@ -27,8 +39,8 @@ import type { WorkspacePaths } from './paths.ts';
 
 export const REGISTRY_FORMAT = 'protoyard.registry';
 export const REGISTRY_VERSION = 1;
-/** v4: cache entries expose blueprint kind for app and content catalogs. */
-const CACHE_VERSION = 4;
+/** v5: cache entries carry the manifest's design-system binding. */
+const CACHE_VERSION = 5;
 
 /** The manifest's catalog block as indexed: `shell` resolved for card framing. */
 export interface RegistryCatalog {
@@ -74,6 +86,8 @@ export interface RegistryEntry {
   updatedAt: string | null;
   /** Marketplace metadata, or null when the manifest has no catalog block. */
   catalog: RegistryCatalog | null;
+  /** The manifest's `designSystem` binding; null when it has none (and for blueprints). */
+  designSystem: DesignSystemBinding | null;
 }
 
 export interface RegistryIssue {
@@ -87,12 +101,20 @@ export interface Registry {
   generatedAt: string;
   entries: RegistryEntry[];
   invalid: RegistryIssue[];
+  /**
+   * The workspace's design systems (ADR-047). A top-level array, not entries
+   * with a new kind, so galleries and CLIs that predate it ignore it.
+   */
+  designSystems: RegistryDesignSystem[];
+  /** Design-system folders or documents that could not be indexed, and bindings to unknown ids. */
+  designSystemIssues: DesignSystemIssue[];
   stats: {
     total: number;
     prototypes: number;
     templates: number;
     blueprints: number;
     invalid: number;
+    designSystems: number;
   };
 }
 
@@ -151,6 +173,7 @@ export function toRegistryEntry(
     createdAt: manifest.createdAt ?? null,
     updatedAt: manifest.updatedAt ?? null,
     catalog: toRegistryCatalog(manifest),
+    designSystem: manifest.designSystem ?? null,
   };
 }
 
@@ -220,6 +243,7 @@ export function toBlueprintRegistryEntry(
     createdAt: null,
     updatedAt: null,
     catalog,
+    designSystem: null,
   };
 }
 
@@ -279,8 +303,20 @@ export async function writeJsonIfChanged(path: string, value: unknown): Promise<
 /** True when two registries list the same entries, invalid manifests and stats (`generatedAt` ignored). */
 export function sameRegistryContent(a: Registry, b: Registry): boolean {
   return (
-    JSON.stringify({ e: a.entries, i: a.invalid, s: a.stats }) ===
-    JSON.stringify({ e: b.entries, i: b.invalid, s: b.stats })
+    JSON.stringify({
+      e: a.entries,
+      i: a.invalid,
+      d: a.designSystems,
+      di: a.designSystemIssues,
+      s: a.stats,
+    }) ===
+    JSON.stringify({
+      e: b.entries,
+      i: b.invalid,
+      d: b.designSystems,
+      di: b.designSystemIssues,
+      s: b.stats,
+    })
   );
 }
 
@@ -372,6 +408,7 @@ export async function buildIndex(
   const unique = entries.filter((e) => !duplicates.has(e));
   unique.sort(compareEntries);
   invalid.sort((a, b) => a.path.localeCompare(b.path));
+  const { designSystems, issues: designSystemIssues } = indexDesignSystems(paths.root, unique);
 
   const registry: Registry = {
     format: REGISTRY_FORMAT,
@@ -379,12 +416,15 @@ export async function buildIndex(
     generatedAt: (options.now?.() ?? new Date()).toISOString(),
     entries: unique,
     invalid,
+    designSystems,
+    designSystemIssues,
     stats: {
       total: unique.length,
       prototypes: unique.filter((e) => e.kind === 'prototype').length,
       templates: unique.filter((e) => e.kind === 'template').length,
       blueprints: unique.filter((e) => e.kind === 'blueprint').length,
       invalid: invalid.length,
+      designSystems: designSystems.length,
     },
   };
 

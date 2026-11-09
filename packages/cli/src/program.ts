@@ -34,6 +34,7 @@ import {
   dsComponentNewCommand,
   dsComponentRequestCommand,
 } from './commands/ds-component.ts';
+import { dsListCommand } from './commands/ds-list.ts';
 import { exportCommand } from './commands/export.ts';
 import { galleryBuildCommand, galleryPreviewCommand } from './commands/gallery-build.ts';
 import { generateCommand } from './commands/generate.ts';
@@ -630,6 +631,11 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .argument('<id|file>', 'design-system id (design-systems/<id>/ or <id>.json) or JSON file')
     .action(def('ds validate', dsValidateCommand));
+  ds.command('list')
+    .description(
+      "list the workspace's design systems: version, approval status, whether it can be locked, component count and the prototypes bound to each"
+    )
+    .action(def('ds list', dsListCommand));
   ds.command('migrate')
     .description(
       'move a flat design-systems/<id>.json into the folder layout (document, draft approval, component library)'

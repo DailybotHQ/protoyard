@@ -1,6 +1,5 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { z } from 'zod';
 import {
   COMPONENTS_DIR,
   COMPONENTS_FILE,
@@ -12,6 +11,11 @@ import {
   readComponents,
   sha256File,
 } from './design-systems.ts';
+import {
+  type ComponentRequest,
+  ComponentRequestSchema,
+  type ComponentStory,
+} from './ds-contracts.ts';
 import { CliError } from './output.ts';
 import { hasControlCharacter } from './paths.ts';
 
@@ -38,9 +42,6 @@ import { hasControlCharacter } from './paths.ts';
 
 export const REQUESTS_DIR = 'requests';
 export const STORIES_DIR = 'stories';
-export const MAX_PURPOSE = 280;
-export const MAX_WHY = 1000;
-export const MAX_PERSON = 120;
 export const INITIAL_COMPONENT_VERSION = '0.1.0';
 
 const COMPONENT_NAME = /^[A-Z][A-Za-z0-9]{0,63}$/;
@@ -49,50 +50,16 @@ export function isComponentName(value: string): boolean {
   return COMPONENT_NAME.test(value);
 }
 
-/** One line of human text: no control characters, line or paragraph separators. */
-const lineText = (max: number) =>
-  z
-    .string()
-    .min(1)
-    .max(max)
-    .refine((value) => !hasControlCharacter(value), 'Use one line without control characters.');
-
-export const ComponentRequestSchema = z
-  .object({
-    format: z.literal('protoyard/ds-component-request'),
-    version: z.literal(1),
-    name: z.string().regex(COMPONENT_NAME),
-    purpose: lineText(MAX_PURPOSE),
-    /** Why the existing components do not fit. */
-    why: lineText(MAX_WHY),
-    requestedBy: lineText(MAX_PERSON).optional(),
-    requestedAt: z.iso.datetime(),
-    status: z.enum(['open', 'approved']),
-    approvedBy: lineText(MAX_PERSON).optional(),
-    approvedAt: z.iso.datetime().optional(),
-  })
-  .strict();
-export type ComponentRequest = z.infer<typeof ComponentRequestSchema>;
-
-export const ComponentStorySchema = z
-  .object({
-    format: z.literal('protoyard/ds-story'),
-    version: z.literal(1),
-    component: z.string().regex(COMPONENT_NAME),
-    variants: z
-      .array(
-        z
-          .object({
-            name: z.string().min(1).max(80),
-            props: z.record(z.string(), z.unknown()),
-          })
-          .strict()
-      )
-      .min(1)
-      .max(50),
-  })
-  .strict();
-export type ComponentStory = z.infer<typeof ComponentStorySchema>;
+// The schemas live in ds-contracts.ts (one place for every design-system file).
+export {
+  type ComponentRequest,
+  ComponentRequestSchema,
+  type ComponentStory,
+  ComponentStorySchema,
+  MAX_PERSON,
+  MAX_PURPOSE,
+  MAX_WHY,
+} from './ds-contracts.ts';
 
 /** Checks one CLI text input; `label` names the flag in the error. */
 export function checkText(value: string | undefined, label: string, max: number): string {

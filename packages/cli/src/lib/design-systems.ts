@@ -1,7 +1,13 @@
 import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
-import { z } from 'zod';
+import type { z } from 'zod';
+import {
+  type Approval,
+  ApprovalSchema,
+  type ComponentsManifest,
+  ComponentsManifestSchema,
+} from './ds-contracts.ts';
 import { CliError } from './output.ts';
 import { hasControlCharacter } from './paths.ts';
 import { workspaceFile } from './workspace-file.ts';
@@ -34,44 +40,16 @@ export const COMPONENTS_DIR = 'components';
 export const MAX_DOCUMENT_BYTES = 1_048_576;
 
 const ID_PATTERN = /^[a-z][a-z0-9-]{0,63}$/;
-const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
-const COMPONENT_NAME = /^[A-Z][A-Za-z0-9]{0,63}$/;
-const SHA256 = /^[0-9a-f]{64}$/;
 
-export const ApprovalSchema = z
-  .object({
-    status: z.enum(['draft', 'approved']),
-    version: z.string().regex(SEMVER),
-    approvedBy: z.string().min(1).max(120).optional(),
-    approvedAt: z.iso.datetime().optional(),
-    contentHash: z.string().regex(SHA256).optional(),
-  })
-  .strict();
-export type Approval = z.infer<typeof ApprovalSchema>;
-
-export const LibraryComponentSchema = z
-  .object({
-    name: z.string().regex(COMPONENT_NAME),
-    purpose: z.string().min(1).max(280),
-    version: z.string().regex(SEMVER),
-    status: z.enum(['draft', 'approved']),
-    /** `components/<Name>.svelte`, relative to the design-system folder. */
-    file: z.string().regex(/^components\/[A-Z][A-Za-z0-9]{0,63}\.svelte$/),
-    sha256: z.string().regex(SHA256),
-    approvedBy: z.string().min(1).max(120).optional(),
-    approvedAt: z.iso.datetime().optional(),
-  })
-  .strict();
-export type LibraryComponent = z.infer<typeof LibraryComponentSchema>;
-
-export const ComponentsManifestSchema = z
-  .object({
-    format: z.literal('protoyard/ds-components'),
-    version: z.literal(1),
-    components: z.array(LibraryComponentSchema).max(500),
-  })
-  .strict();
-export type ComponentsManifest = z.infer<typeof ComponentsManifestSchema>;
+// The schemas live in ds-contracts.ts (one place for every design-system file).
+export {
+  type Approval,
+  ApprovalSchema,
+  type ComponentsManifest,
+  ComponentsManifestSchema,
+  type LibraryComponent,
+  LibraryComponentSchema,
+} from './ds-contracts.ts';
 
 export function emptyComponentsManifest(): ComponentsManifest {
   return { format: 'protoyard/ds-components', version: 1, components: [] };
