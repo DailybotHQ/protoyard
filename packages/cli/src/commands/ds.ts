@@ -45,7 +45,7 @@ import {
 } from '../lib/design-systems.ts';
 import { inspectSpec } from '../lib/inspect.ts';
 import { CliError } from '../lib/output.ts';
-import { isInside, workspaceLayout } from '../lib/paths.ts';
+import { workspaceLayout } from '../lib/paths.ts';
 import { resolvePackageBin, run } from '../lib/process.ts';
 import { CLI_VERSION, resolveTarget } from '../lib/workspace.ts';
 import { workspaceFile } from '../lib/workspace-file.ts';

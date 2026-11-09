@@ -30,6 +30,7 @@ declare const __PROTOYARD_AVATARS__: { base: string; sizes: readonly (64 | 128)[
  */
 declare module '@ds/*' {
   import type { Component } from 'svelte';
+
   // biome-ignore lint/suspicious/noExplicitAny: each library component declares its own props.
   const component: Component<any>;
   export default component;

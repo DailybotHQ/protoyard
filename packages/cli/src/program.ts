@@ -612,7 +612,10 @@ export function createProgram(env: RunnerEnv): Command {
       "import a workspace module's own Theme export (runs that file under tsx; trusted code only)"
     )
     .option('--export <name>', 'with --from-theme-file: the export to import (default: the theme)')
-    .option('--out <file>', 'write a flat document to this file instead of the design-systems/<id>/ folder')
+    .option(
+      '--out <file>',
+      'write a flat document to this file instead of the design-systems/<id>/ folder'
+    )
     .option('--force', 'replace an existing file')
     .option('--dry-run', 'validate and compile without writing')
     .action(def('ds new', dsNewCommand));

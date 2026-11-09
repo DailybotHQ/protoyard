@@ -55,7 +55,7 @@
  * Exit 0 when clean, 1 on any problem, 2 on usage errors.
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { join, relative } from 'node:path';
 
 const ROOTS = ['packages', 'apps', 'templates', 'prototypes'];
 /**
