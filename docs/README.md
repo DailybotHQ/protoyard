@@ -31,6 +31,7 @@ exists and that its links and anchors resolve ([Testing guide](TESTING_GUIDE.md)
 | [Brief to prototype](BRIEF_TO_PROTOTYPE.md) | Prose brief → offline blueprint → review → generate → validate → export |
 | [Scenarios](SCENARIOS.md) | Scenario axes, generators, personas and permissions, time, environment, snapshots |
 | [Themes](THEMES.md) | Style model, palette engine, the theme library (tokens from Texuli), Theme Studio, the `theme` CLI, brand blocks |
+| [Design systems](DESIGN_SYSTEMS.md) | Design systems as workspace entities: the create, review, approve, lock, request and upgrade loop, the folder layout and every file's JSON Schema, commands, planned work and limits |
 | [Layouts](LAYOUTS.md) | Shared layout catalog, manifest setup, responsive fallbacks, shell composition, authoring and tests |
 | [Shells](SHELLS.md) | Device and host shells (phone, tablet, desktop window, browser, widget host, extension popup, side panel) |
 | [Views](VIEWS.md) | Rich views (board, calendar, timeline, grid, tree, map, editor, activity, files, settings, states, command palette): choosing one, service contracts, keyboard/phone behavior, scenario helpers, bundle sizes, limits |

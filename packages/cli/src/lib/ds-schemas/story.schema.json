@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:protoyard:design-system:story:1",
+  "title": "Design-system component story (protoyard/ds-story)",
+  "description": "design-systems/<id>/stories/<Name>.json. Generated from packages/cli/src/lib/ds-contracts.ts.",
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "string",
+      "const": "protoyard/ds-story"
+    },
+    "version": {
+      "type": "number",
+      "const": 1
+    },
+    "component": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Za-z0-9]{0,63}$"
+    },
+    "variants": {
+      "minItems": 1,
+      "maxItems": 50,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "props": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": ["name", "props"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["format", "version", "component", "variants"],
+  "additionalProperties": false
+}

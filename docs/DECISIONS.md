@@ -1064,3 +1064,51 @@ its screens with a plain in-memory implementation. The cost is one more layer pe
 
 **How to reverse.** The ports are additive. Removing them leaves the runtime providers as
 they were.
+
+## ADR-047 — Design systems are first-class workspace entities
+
+**Context.** Protoyard is becoming a design tool for designers and teams: create a complete
+design system, review and approve it in a generated UI kit, then create prototypes that stay
+restricted to it. Until PLAN_013 a design system was a theme option: one flat Texuli document
+that `ds use` compiled into a prototype. A workspace needs many of them, each with its own
+approval, components and bound prototypes, and a later cloud version must be able to host,
+share and review them without a new format.
+
+**Decision.**
+- **An entity, not an option.** A design system is a folder `design-systems/<id>/` in the
+  workspace: `document.json` (the Texuli design-system document), `approval.json`,
+  `components.json` with `components/*.svelte`, `requests/<Name>.json` and
+  `stories/<Name>.json`. A workspace holds any number of them. The flat
+  `design-systems/<id>.json` stays readable; `ds migrate` turns it into a folder.
+- **Binding.** A prototype names the design system it uses in its manifest:
+  `designSystem: { id, version, locked }`, with an exact semver. `ds use --lock` writes it,
+  `ds use --upgrade` moves the pin. A locked binding loads only that design system's theme and
+  is enforced by `check ds` and `validate`.
+- **Lock.** Only an approved folder at exactly the pinned version, unchanged since its
+  approval, can be locked.
+- **contentHash.** SHA-256 of the document's canonical JSON (sorted keys, no whitespace)
+  without the approval section or fields: the scheme Texuli adopts in its 0.13.0 document
+  spec (Texuli ADR-032). A changed document needs a new approval.
+- **Approval is a record, not a proof.** `approval.json` and an approved component request
+  say who approved what; the CLI cannot verify who wrote them. The guarantee is a human
+  commit reviewed through CODEOWNERS on `design-systems/`.
+- **Stable data contracts.** Every file Protoyard writes next to the document has a zod
+  schema in one module (`packages/cli/src/lib/ds-contracts.ts`) and a JSON Schema (draft
+  2020-12) generated from it (`packages/cli/src/lib/ds-schemas/`). A cloud version adds
+  hosting, collaboration and review on top of these files and operations instead of changing
+  them.
+- **Texuli owns the document.** Texuli owns the design-system document spec, its importers,
+  its compiler and its generation. Protoyard owns the folder, the approval record, the
+  component library and its requests, the binding and the lock. When Texuli's spec 0.13.0
+  moves the allow set, the library entries and the approval into the document, the schemas
+  move in one place.
+
+**Consequences.** Design systems get their own commands and guide ([DESIGN_SYSTEMS](DESIGN_SYSTEMS.md)). The contracts are versioned (`format` and
+`version` fields, URN `$id`s); a breaking change needs a new version, and a test fails when
+the checked-in JSON Schemas drift from the zod schemas. Planned files (the release record and
+the bundle manifest) have draft schemas marked as planned until a command writes them.
+
+**How to reverse.** The folder layout is additive: flat documents keep working with `ds use`
+without `--lock`. Removing the entity means dropping the folder commands; the manifest
+binding is optional and is removed by deleting `designSystem` from a prototype's
+`protoyard.json`.

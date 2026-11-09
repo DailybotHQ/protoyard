@@ -990,6 +990,10 @@ CSS string (`"1.4"`, `"normal"`) as `invalid-value`.
 
 ## Design-system folders
 
+The whole loop (create, review, approve, lock, request components, upgrade),
+every file's schema and what is planned are in
+[DESIGN_SYSTEMS](DESIGN_SYSTEMS.md).
+
 A design system can be a flat document (`design-systems/<id>.json`, as before)
 or a folder. Only a folder can be approved, and only an approved folder can be
 locked.
