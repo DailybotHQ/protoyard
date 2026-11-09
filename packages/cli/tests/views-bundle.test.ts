@@ -58,9 +58,12 @@ type View = (typeof VIEWS)[number];
 export const CEILINGS: Record<View, number> = {
   // PLAN_011 T-views (2026-11-05, Texuli 0.14.0): measured 16,974 with per-column create (D-G-034)
   // and lane collapse; + 2.5 %.
-  board: 17_398,
+  // PLAN_013 (2026-11-09, Texuli 0.15.0): measured 17,469 (Card, Badge and Button CSS for the
+  // tone, typography and interactive-card rules); + 2.5 %.
+  board: 17_906,
   // PLAN_008 T-remeasure (2026-10-31, Texuli 0.9.0): measured 16,921; + 5 % (was 17,787 from 0.8.0).
-  calendar: 17_768,
+  // PLAN_013 (2026-11-09, Texuli 0.15.0): measured 17,766, 2 B under the cap; + 2.5 %.
+  calendar: 18_210,
   // PLAN_008 T-doc-reader (2026-10-31, Texuli 0.11.1): measured 23,701, 10 B over 23,691 (0.8.1 + 5 %).
   // @texuli/data 0.10/0.11 DataGrid grew for G107: skeleton loading rows (markup, CSS and the pulse
   // keyframes), a bindable `ref` with rest attributes, per-column `headerClass`, and column type
