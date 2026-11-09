@@ -73,7 +73,8 @@ export const CEILINGS: Record<View, number> = {
   map: 8_442,
   // Measured 9,484 gzip over shell on Texuli 0.4.0 (MarkdownEditor on Texuli Textarea); +5 %.
   // Texuli 0.9.0 measured 10,531 (token contract v2 component CSS); + 2.5 %.
-  editor: 10_795,
+  // PLAN_013 (2026-11-09, Texuli 0.15.0): measured 10,858 on CI (Linux), 10,743 on macOS; + 2.5 %.
+  editor: 11_130,
   // Measured 11,973 gzip over shell on Texuli 0.4.0 (TimelineView + QueryState/empty); +5 %.
   // PLAN_011 T-views (2026-11-05, Texuli 0.14.0): measured 14,604 with group bands and header rows,
   // collapse, row selection and markers (D-G-044); + 2.5 %.

@@ -135,7 +135,7 @@ and now have more than 5 % headroom, so each is the measurement + 5 %.
 | pages-ui initial JS (page / doc) | 88,714 / 120,061 B | 120 KB (122,880 B) | One cap for both hosts; the doc has 2.3 % headroom |
 | pages-ui initial CSS (page / doc) | 7,804 / 7,522 B (Texuli 0.15.0, 2026-11-09) | 7,940 / 7,898 B | Page 0.14.3 + 5 %; doc 0.15.0 + 5 % |
 | pages-ui all CSS (page / doc) | 43,139 / 50,087 B (Texuli 0.14.3, 2026-11-07) | 44,218 / 76,560 B | Page measured + 2.5 %; doc unchanged |
-| Views kit board, calendar, grid, map, editor, timeline, sheet, canvas | 17,469 / 17,766 / 23,037 / 8,037 / 10,743 / 14,488 / 49,401 / 50,321 B (Texuli 0.15.0, 2026-11-09) | 17,906 / 18,210 / 24,294 / 8,442 / 10,795 / 14,969 / 51,908 / 53,013 B | 0.5–5.0 % headroom |
+| Views kit board, calendar, grid, map, editor, timeline, sheet, canvas | 17,469 / 17,766 / 23,037 / 8,037 / 10,743 (10,858 on CI) / 14,488 / 49,401 / 50,321 B (Texuli 0.15.0, 2026-11-09) | 17,906 / 18,210 / 24,294 / 8,442 / 11,130 / 14,969 / 51,908 / 53,013 B | 0.5–5.0 % headroom |
 | `LayoutHost` initial delta | 4,175 B (Texuli 0.14.2, 2026-11-07) | 4,280 B | 2.5 % headroom |
 
 **Template.** `budget --all` checks prototypes only. `fintech-dashboard`
@@ -228,8 +228,8 @@ every control up front (gap G119). `pnpm protoyard budget --all` (exit 4: 12 of
 | Doc single-file export (northwind) | 3,056,939 B | 2,818,330 → 3,133,363 B |
 | Player `index.html` all CSS (reaches every kind) | 149.9 KB | 146.5 → 153.7 KB |
 | helpdesk, cadence, harbor, pulse CSS (generated apps) | 57.58–58.60 KB | 51.9–52.4 → 59.1–60.1 KB |
-| ui-kit CSS | 57.30 KB | 54.5 → 58.8 KB |
-| keel-projects-demo CSS | 49.19 KB | 47.5 → 50.5 KB |
+| ui-kit CSS | 59.13 KB (Texuli 0.15.0, CI) | 58.8 → 60.7 KB |
+| keel-projects-demo CSS | 50.83 KB (Texuli 0.15.0, CI) | 50.5 → 52.2 KB |
 | atlas-workspace-demo / pebblestat-analytics-demo CSS | 41.02 / 41.54 KB | 39.9 / 39.5 → 42.1 / 42.6 KB |
 | nova-assistant-demo CSS | 33.06 KB | 32.2 → 33.9 KB |
 | crm-demo / lattice-saas-demo CSS (default 30 KB) | 32.00 / 32.59 KB | 30 → 32.8 / 33.5 KB |
