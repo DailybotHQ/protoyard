@@ -5,7 +5,9 @@
  * Grouping (`getGroup`, bands, `collapsed`, `onGroupAdd`), `maxRows`,
  * `onOpen`, row selection and `markers` pass straight through (Texuli 0.14.0), as do
  * `initialDate` and `formatTick` (Texuli 0.14.2). Without `initialDate` the axis opens
- * at the simulated today when it falls inside the plan.
+ * at the simulated today when it falls inside the plan. Texuli 0.14.4 holds that
+ * opening day as rows load and zoom changes; `scrollToDate` (via `bind:this`) moves
+ * the view to a date on demand.
  */
 import type { PrototypeRuntime } from '@protoyard/core';
 import { runService, useClock } from '@protoyard/renderer-svelte';
@@ -87,6 +89,18 @@ let {
 const clock = now || !runtime ? null : useClock(runtime);
 const today = $derived(now ?? clock?.now ?? new Date(0));
 
+// The rendered Texuli timeline (absent while the query loads or fails).
+let inner: { scrollToDate: (date: string | Date) => void } | undefined = $state();
+
+/**
+ * Places `date` where the opening day sits, as if the reader scrolled there
+ * (Texuli 0.14.4). Does nothing while the query is loading or failed; an
+ * invalid date does nothing and a date outside the axis goes to the nearest end.
+ */
+export function scrollToDate(date: string | Date): void {
+  inner?.scrollToDate(date);
+}
+
 function addToGroup(group: TimelineGroup & { items: readonly T[] }): void {
   if (!onGroupAdd) return;
   void runService(() => onGroupAdd(group));
@@ -107,6 +121,7 @@ async function persist(changes: readonly TaskChange[]): Promise<void> {
   >
     {#snippet children(tasks)}
       <TexuliTimeline
+        bind:this={inner}
         {tasks}
         {dependencies}
         {label}

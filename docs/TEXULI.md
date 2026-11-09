@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.14.3`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.14.4`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.14.3`. Texuli pins its own internal dependencies exactly,
+Every package is `0.14.4`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -411,6 +411,16 @@ not in the agent catalog yet, so blueprints cannot emit them):
   `@texuli/media/image`.
 - **Avatar grid:** `<AvatarGroupGrid items={members} label="…" />` from
   `texuli/avatar`, a 2×2 collage for group conversations.
+
+## What Texuli 0.14.4 changes for prototypes
+
+Only `@texuli/data/timeline` changes. `TimelineView` holds its opening day
+(`initialDate`, or today when it falls inside the tasks) as rows load after
+mount and as zoom changes, until the reader scrolls; after that it holds the
+day the reader scrolled to. `@protoyard/views-ui` `TimelineView` exposes the
+new `scrollToDate(date)`: bind the component with `bind:this` and call it to
+place a date where the opening day sits. It does nothing while the query is
+loading. The blueprint `data-timeline` id still takes no `initialDate`.
 
 ## What Texuli 0.14.3 changes for prototypes
 
