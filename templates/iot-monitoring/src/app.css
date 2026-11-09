@@ -2,13 +2,7 @@
 @import "@protoyard/views-ui/styles.css";
 @import "@protoyard/charts-ui/styles.css";
 
-:root {
-  font-family: var(--tx-font-sans, ui-sans-serif, system-ui, sans-serif);
-  color: var(--tx-foreground);
-  background: var(--tx-background);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-}
+/* Font, color and background come from the theme (@protoyard/themes base.css). */
 html {
   min-width: 320px;
   min-height: 100%;

@@ -4,6 +4,7 @@ import { Card, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
 import { routeLength } from '@protoyard/views/map';
 import type { ScheduleTask } from '@protoyard/views/timeline';
 import { onMount } from 'svelte';
+import { Heading, Text } from 'texuli/typography';
 import { useLogistics } from '../lib/context.svelte.ts';
 
 const { db, runtime } = useLogistics();
@@ -43,5 +44,5 @@ const query = liveQuery(
 );
 </script>
 
-<header class="mb-5"><h1 class="text-2xl font-semibold tracking-tight">Route timeline</h1><p class="mt-1 text-sm text-muted-foreground">Shipment windows and completion progress follow the simulated clock.</p></header>
-{#if query.loading}<Skeleton class="h-96 w-full rounded-xl" />{:else if query.error}<ErrorState title="Could not load route timeline" message={String(query.error)} />{:else if query.current?.length}<Card class="overflow-hidden p-3 sm:p-5">{#if ShipmentTimeline}<ShipmentTimeline {query} dependencies={[]} label="Shipment route timeline" now={clock.now} {runtime} getTitle={(row: ShipmentSchedule) => row.title} getProgress={(row: ShipmentSchedule) => (row.progress ?? 0) * 100} />{:else}<Skeleton class="h-80 w-full" />{/if}</Card>{:else}<EmptyState title="No active routes" description="Dispatch a shipment to add its delivery window to the route timeline." />{/if}
+<header class="mb-5"><Heading level={1} size="xl">Route timeline</Heading><Text size="sm" tone="muted" class="mt-1">Shipment windows and completion progress follow the simulated clock.</Text></header>
+{#if query.loading}<Skeleton class="h-96 w-full" />{:else if query.error}<ErrorState title="Could not load route timeline" message={String(query.error)} />{:else if query.current?.length}<Card class="overflow-hidden p-3 sm:p-5">{#if ShipmentTimeline}<ShipmentTimeline {query} dependencies={[]} label="Shipment route timeline" now={clock.now} {runtime} getTitle={(row: ShipmentSchedule) => row.title} getProgress={(row: ShipmentSchedule) => (row.progress ?? 0) * 100} />{:else}<Skeleton class="h-80 w-full" />{/if}</Card>{:else}<EmptyState title="No active routes" description="Dispatch a shipment to add its delivery window to the route timeline." />{/if}

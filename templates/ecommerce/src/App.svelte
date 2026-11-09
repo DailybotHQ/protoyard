@@ -4,14 +4,14 @@ import {
   avatarImage,
   can,
   createRouter,
-  Link,
   liveQuery,
   Router,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
-import { Avatar } from '@protoyard/ui';
+import { Avatar, Badge, Button } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Text } from 'texuli/typography';
 import { CAPABILITIES, ROLE_LABELS } from './domain/policy.ts';
 import { provideShop } from './lib/context.ts';
 import Admin from './screens/Admin.svelte';
@@ -49,65 +49,71 @@ const cartCount = liveQuery(
     ),
   { initial: 0, deps: () => me }
 );
-const navClass =
-  'inline-flex min-h-touch items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0';
+const navClass = 'min-h-touch gap-2 px-2.5 sm:min-h-0';
+const shopActive = $derived(router.isActive('/', true));
+const ordersActive = $derived(router.isActive('/orders'));
+const adminActive = $derived(router.isActive('/admin'));
+const cartActive = $derived(router.isActive('/cart'));
 </script>
 
-<div class="flex min-h-dvh flex-col bg-background">
-  <header class="sticky top-0 z-30 border-b border-border bg-background/85 pt-safe backdrop-blur-md">
+<div class="flex min-h-dvh flex-col">
+  <Box as="header" surface="default" border="block-end" radius="none" padding="none" class="sticky top-0 z-30 pt-safe">
     <div class="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:gap-4 sm:px-6 lg:px-8">
-      <a href="#/" class="flex shrink-0 items-center gap-2 rounded-md font-semibold tracking-tight">
-        <span class="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground" aria-hidden="true">
-          <LucideIcon icon={Store} class="size-5" />
-        </span>
-        <span class="sr-only sm:not-sr-only">{principal.current?.organization?.name ?? 'Storefront'}</span>
-      </a>
+      <Button href="#/" variant="ghost" class="h-auto shrink-0 gap-2 px-1">
+        <Box surface="muted" radius="lg" padding="none" class="grid size-9 place-items-center" aria-hidden="true">
+          <LucideIcon icon={Store} tone="primary" class="size-5" />
+        </Box>
+        <Text as="span" weight="semibold" class="sr-only sm:not-sr-only">{principal.current?.organization?.name ?? 'Storefront'}</Text>
+      </Button>
       <nav aria-label="Main" class="flex items-center gap-0.5 sm:ml-4">
-        <Link href="/" {router} exact class={navClass} activeClass="bg-primary/10 font-semibold !text-foreground">
+        <Button href="#/" variant={shopActive ? 'secondary' : 'ghost'} size="sm" class={navClass} aria-current={shopActive ? 'page' : undefined}>
           <LucideIcon icon={ShoppingBag} class="size-4" /><span class="max-sm:sr-only">Shop</span>
-        </Link>
+        </Button>
         {#if can(CAPABILITIES.ordersReadOwn)}
-          <Link href="/orders" {router} class={navClass} activeClass="bg-primary/10 font-semibold !text-foreground">
+          <Button href="#/orders" variant={ordersActive ? 'secondary' : 'ghost'} size="sm" class={navClass} aria-current={ordersActive ? 'page' : undefined}>
             <LucideIcon icon={Package} class="size-4" /><span class="max-sm:sr-only">Orders</span>
-          </Link>
+          </Button>
         {/if}
         {#if can(CAPABILITIES.productsManage)}
-          <Link href="/admin" {router} class={navClass} activeClass="bg-primary/10 font-semibold !text-foreground">
+          <Button href="#/admin" variant={adminActive ? 'secondary' : 'ghost'} size="sm" class={navClass} aria-current={adminActive ? 'page' : undefined}>
             <LucideIcon icon={Wrench} class="size-4" /><span class="max-sm:sr-only">Admin</span>
-          </Link>
+          </Button>
         {/if}
       </nav>
       <div class="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
-        <Link
-          href="/cart"
-          {router}
-          class="relative inline-flex size-11 items-center justify-center rounded-md text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
-          activeClass="bg-primary text-primary-foreground"
+        <Button
+          href="#/cart"
+          variant={cartActive ? 'default' : 'ghost'}
+          size="icon"
+          class="relative size-11"
+          aria-current={cartActive ? 'page' : undefined}
           aria-label={`Cart, ${cartCount.current ?? 0} item${cartCount.current === 1 ? '' : 's'}`}
         >
           <LucideIcon icon={ShoppingCart} class="size-5" />
           {#if (cartCount.current ?? 0) > 0}
-            <span class="absolute top-1 right-1 grid min-w-5 place-items-center rounded-full bg-primary px-1 text-[0.65rem] font-semibold text-primary-foreground tabular-nums" aria-hidden="true">
+            <Badge class="absolute -top-0.5 -right-0.5 min-w-5 justify-center px-1" aria-hidden="true">
               {cartCount.current}
-            </span>
+            </Badge>
           {/if}
-        </Link>
+        </Button>
         {#if principal.current}
           <div class="hidden min-w-0 text-right md:block">
-            <p class="truncate text-sm font-medium">{principal.current.persona.name}</p>
-            <p class="truncate text-xs text-muted-foreground">{ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role}</p>
+            <Text size="sm" weight="medium" truncate>{principal.current.persona.name}</Text>
+            <Text size="xs" tone="muted" truncate>{ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role}</Text>
           </div>
           <Avatar name={principal.current.persona.name} {...avatarImage(principal.current.persona.avatar)} size="sm" />
         {/if}
       </div>
     </div>
-  </header>
+  </Box>
 
   <main id="main" class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 pb-safe sm:px-6 sm:py-8 lg:px-8">
     <Router {router} />
   </main>
 
-  <footer class="border-t border-border py-6 pb-16 text-center text-xs text-muted-foreground">
-    Demo storefront — products, prices and orders are simulated. No real payments are ever taken.
-  </footer>
+  <Box as="footer" border="block-start" radius="none" padding="none" class="py-6 pb-16">
+    <Text size="xs" tone="muted" align="center">
+      Demo storefront — products, prices and orders are simulated. No real payments are ever taken.
+    </Text>
+  </Box>
 </div>

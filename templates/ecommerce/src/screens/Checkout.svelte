@@ -23,12 +23,14 @@ import {
   EmptyState,
   FormField,
   Input,
+  Notice,
   RadioGroup,
   RadioGroupItem,
   Select,
   Skeleton,
 } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Prose, Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import { type Order, SHIPPING_METHODS, type ShippingMethod } from '../database/schema.ts';
 import { computeTotals, SHIPPING_RATES } from '../domain/catalog.ts';
@@ -126,33 +128,35 @@ function clearError(event: Event) {
     {#snippet action()}<Button href="#/">Keep browsing</Button>{/snippet}
   </EmptyState>
 {:else if lines.loading}
-  <Skeleton class="h-96 w-full rounded-xl" />
+  <Skeleton class="h-96 w-full" />
 {:else if (lines.current?.length ?? 0) === 0}
   <EmptyState icon={ShoppingCart} title="Nothing to check out" description="Your cart is empty.">
     {#snippet action()}<Button href="#/">Start shopping</Button>{/snippet}
   </EmptyState>
 {:else}
-  <div class="mb-6 flex gap-3 rounded-xl border-2 border-warning bg-warning/10 p-4" role="note" aria-label="Demo checkout notice">
-    <LucideIcon icon={ShieldAlert} class="mt-0.5 size-5 shrink-0" />
-    <div class="text-sm">
-      <p class="font-semibold">Demo checkout — no real payment.</p>
-      <p class="mt-0.5 text-muted-foreground">
-        Never enter real card data anywhere in this prototype. There are no card fields: the demo wallet “pays” instantly and nothing leaves your browser.
-      </p>
-    </div>
-  </div>
+  <Notice
+    tone="warning"
+    icon={ShieldAlert}
+    class="mb-6"
+    aria-label="Demo checkout notice"
+    title="Demo checkout — no real payment."
+    text="Never enter real card data anywhere in this prototype. There are no card fields: the demo wallet “pays” instantly and nothing leaves your browser."
+  />
 
   {#if offline}
-    <div class="mb-6 flex gap-3 rounded-xl border border-destructive/50 bg-destructive/5 p-4 text-sm" role="status">
-      <LucideIcon icon={WifiOff} class="mt-0.5 size-5 shrink-0 text-destructive" />
-      <p><span class="font-semibold">You are offline (simulated).</span> Placing the order will fail — nothing will be charged or saved, and your cart stays as it is.</p>
-    </div>
+    <Notice
+      tone="error"
+      icon={WifiOff}
+      class="mb-6"
+      title="You are offline (simulated)."
+      text="Placing the order will fail — nothing will be charged or saved, and your cart stays as it is."
+    />
   {/if}
 
-  <form class="grid gap-6 lg:grid-cols-[1fr_22rem]" onsubmit={pay} oninput={clearError} novalidate aria-describedby={failure ? 'checkout-failure' : undefined}>
-    <div class="space-y-6">
+  <form class="grid gap-6 lg:grid-cols-3" onsubmit={pay} oninput={clearError} novalidate aria-describedby={failure ? 'checkout-failure' : undefined}>
+    <div class="space-y-6 lg:col-span-2">
       <Card class="p-5">
-        <h2 class="font-semibold">Shipping address</h2>
+        <Heading level={2} size="sm">Shipping address</Heading>
         <div class="mt-4 grid gap-4 sm:grid-cols-2">
           <FormField label="Full name" required error={errors.fullName} id={field('fullName')} class="sm:col-span-2">
             {#snippet children(control)}<Input {...control.props} autocomplete="name" bind:value={form.fullName} />{/snippet}
@@ -179,7 +183,7 @@ function clearError(event: Event) {
 
       <Card class="p-5">
         <fieldset>
-          <legend class="font-semibold">Delivery</legend>
+          <legend><Text as="span" weight="semibold">Delivery</Text></legend>
           <RadioGroup bind:value={form.shippingMethod} name="shipping" aria-label="Delivery" orientation="horizontal" class="mt-4 grid gap-3 sm:grid-cols-2">
             {#each SHIPPING_METHODS as method (method)}
               {@const rate = SHIPPING_RATES[method]}
@@ -189,7 +193,6 @@ function clearError(event: Event) {
                 label={rate.label}
                 description={`${price ? money(price) : 'Free'} · ${rate.eta}`}
                 card
-                class="rounded-lg border border-border p-3 text-sm transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary/5 hover:bg-muted"
               />
             {/each}
           </RadioGroup>
@@ -198,47 +201,53 @@ function clearError(event: Event) {
     </div>
 
     <Card class="h-fit p-5 lg:sticky lg:top-24">
-      <h2 class="font-semibold">Order summary</h2>
-      <ul class="mt-4 space-y-2 text-sm">
+      <Heading level={2} size="sm">Order summary</Heading>
+      <ul class="mt-4 space-y-2">
         {#each lines.current ?? [] as line (line.id)}
           <li class="flex justify-between gap-3">
-            <span class="min-w-0 truncate">{line.quantity} × {line.product.name}</span>
-            <span class="tabular-nums">{money(line.product.priceCents * line.quantity)}</span>
+            <Text as="span" size="sm" truncate class="min-w-0">{line.quantity} × {line.product.name}</Text>
+            <Text as="span" size="sm" tabular>{money(line.product.priceCents * line.quantity)}</Text>
           </li>
         {/each}
       </ul>
-      <dl class="mt-4 space-y-2 border-t border-border pt-4 text-sm">
-        <div class="flex justify-between"><dt class="text-muted-foreground">Subtotal</dt><dd class="tabular-nums">{money(totals.subtotalCents)}</dd></div>
-        <div class="flex justify-between"><dt class="text-muted-foreground">Shipping</dt><dd class="tabular-nums">{totals.shippingCents ? money(totals.shippingCents) : 'Free'}</dd></div>
-        <div class="flex justify-between"><dt class="text-muted-foreground">Tax (8.25%)</dt><dd class="tabular-nums">{money(totals.taxCents)}</dd></div>
-        <div class="flex justify-between border-t border-border pt-2 text-base font-semibold"><dt>Total</dt><dd class="tabular-nums">{money(totals.totalCents)}</dd></div>
+      <Box border="block-start" radius="none" padding="none" class="mt-4 pt-4">
+      <dl class="space-y-2">
+        <div class="flex justify-between"><dt><Text as="span" size="sm" tone="muted">Subtotal</Text></dt><dd><Text as="span" size="sm" tabular>{money(totals.subtotalCents)}</Text></dd></div>
+        <div class="flex justify-between"><dt><Text as="span" size="sm" tone="muted">Shipping</Text></dt><dd><Text as="span" size="sm" tabular>{totals.shippingCents ? money(totals.shippingCents) : 'Free'}</Text></dd></div>
+        <div class="flex justify-between"><dt><Text as="span" size="sm" tone="muted">Tax (8.25%)</Text></dt><dd><Text as="span" size="sm" tabular>{money(totals.taxCents)}</Text></dd></div>
+        <Box border="block-start" radius="none" padding="none" class="flex justify-between pt-2"><dt><Text as="span" weight="semibold">Total</Text></dt><dd><Text as="span" weight="semibold" tabular>{money(totals.totalCents)}</Text></dd></Box>
       </dl>
+      </Box>
 
       {#if shortages.length > 0}
-        <div class="mt-4 rounded-lg border border-destructive/50 bg-destructive/5 p-3 text-sm" role="alert">
-          <p class="font-semibold text-destructive">Not enough stock — no order was placed.</p>
-          <ul class="mt-1 list-disc space-y-0.5 pl-5">
-            {#each shortages as s (s.productId)}
-              <li>{s.name}: you asked for {s.requested}, {s.available === 0 ? 'none are' : `only ${s.available} ${s.available === 1 ? 'is' : 'are'}`} left.</li>
-            {/each}
-          </ul>
+        <Notice tone="error" class="mt-4" title="Not enough stock — no order was placed.">
+          <Prose class="mt-1">
+            <ul>
+              {#each shortages as s (s.productId)}
+                <li><Text as="span" size="sm">{s.name}: you asked for {s.requested}, {s.available === 0 ? 'none are' : `only ${s.available} ${s.available === 1 ? 'is' : 'are'}`} left.</Text></li>
+              {/each}
+            </ul>
+          </Prose>
           <Button variant="link" size="sm" class="mt-1" onclick={() => navigate('/cart')}>Adjust your cart</Button>
-        </div>
+        </Notice>
       {/if}
-      {#if errors.cart}<p class="mt-4 text-sm text-destructive" role="alert">{errors.cart}</p>{/if}
+      {#if errors.cart}<Text size="sm" tone="destructive" role="alert" class="mt-4">{errors.cart}</Text>{/if}
       {#if failure}
-        <div id="checkout-failure" class="mt-4 rounded-lg border border-destructive/50 bg-destructive/5 p-3 text-sm" role="alert">
-          <p class="font-semibold text-destructive">Checkout failed — nothing was charged or saved.</p>
-          <p class="mt-0.5 text-muted-foreground">{failure} Your cart is unchanged; try again when you are back online.</p>
-        </div>
+        <Notice
+          id="checkout-failure"
+          tone="error"
+          class="mt-4"
+          title="Checkout failed — nothing was charged or saved."
+          text={`${failure} Your cart is unchanged; try again when you are back online.`}
+        />
       {/if}
 
       <Button type="submit" size="lg" class="mt-5 w-full" loading={paying} loadingLabel="Placing order">
         <LucideIcon icon={Wallet} class="size-4" />Pay with demo wallet · {money(totals.totalCents)}
       </Button>
-      <p class="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+      <Text size="xs" tone="muted" class="mt-3 flex items-center justify-center gap-1.5">
         <LucideIcon icon={Lock} class="size-3" />Simulated payment — no card, no charge.
-      </p>
+      </Text>
     </Card>
   </form>
 {/if}
