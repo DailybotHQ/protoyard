@@ -134,6 +134,10 @@ describe('design-system folders (PLAN_013 T-layout)', () => {
     expect(contentHash({ ...document, status: 'approved', approvedBy: 'Ada' })).toBe(
       contentHash(document)
     );
+    // Texuli spec 0.13.0 excludes the whole approval section.
+    expect(contentHash({ ...document, approval: { status: 'approved', approvedBy: 'Ada' } })).toBe(
+      contentHash(document)
+    );
     expect(contentHash({ ...document, version: '1.0.1' })).not.toBe(contentHash(document));
   });
 

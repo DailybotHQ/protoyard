@@ -218,8 +218,12 @@ export function canonicalJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
-/** Approval fields never count toward the content they approve. */
-const APPROVAL_KEYS = new Set(['status', 'approvedBy', 'approvedAt', 'contentHash']);
+/**
+ * Approval data never counts toward the content it approves: Texuli's spec
+ * 0.13.0 leaves out the whole `approval` section (ADR-032 there); the flat
+ * fields are dropped too so an interim sidecar hash keeps matching.
+ */
+const APPROVAL_KEYS = new Set(['approval', 'status', 'approvedBy', 'approvedAt', 'contentHash']);
 
 /**
  * SHA-256 of the canonical JSON of a document without approval fields
