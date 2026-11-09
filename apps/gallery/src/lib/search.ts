@@ -22,6 +22,8 @@ export interface BrowseQuery {
   tag: string;
   sort: 'name' | 'modified';
   view: 'all' | 'favorites' | 'recent';
+  /** A design-system id: only entries bound to it. Empty: any. */
+  ds: string;
 }
 
 export const DEFAULT_QUERY: BrowseQuery = {
@@ -32,6 +34,7 @@ export const DEFAULT_QUERY: BrowseQuery = {
   tag: '',
   sort: 'name',
   view: 'all',
+  ds: '',
 };
 
 /**
@@ -52,6 +55,7 @@ export function applyQuery(
     if (query.platform && entry.p !== query.platform) continue;
     if (query.category && entry.c !== query.category) continue;
     if (query.tag && !entry.t.includes(query.tag)) continue;
+    if (query.ds && entry.ds !== query.ds) continue;
     if (query.view === 'favorites' && !favorites.has(entry.s)) continue;
     if (query.view === 'recent' && !recentRank.has(entry.s)) continue;
     if (terms.length > 0 && !terms.every((t) => text.includes(t))) continue;
@@ -81,6 +85,7 @@ export function queryFromParams(params: URLSearchParams): BrowseQuery {
     tag: (params.get('tag') ?? '').slice(0, 40),
     sort: pick('sort', ['name', 'modified'] as const, DEFAULT_QUERY.sort),
     view: pick('view', ['all', 'favorites', 'recent'] as const, DEFAULT_QUERY.view),
+    ds: (params.get('ds') ?? '').slice(0, 64),
   };
 }
 

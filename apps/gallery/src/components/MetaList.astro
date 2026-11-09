@@ -15,6 +15,14 @@ const rows: [string, string][] = [
   ['Template', entry.template ?? '—'],
   ['Default theme', `${entry.defaultTheme} · ${entry.defaultMode}`],
   ['Storage', `protoyard.${entry.namespace}.* · schema v${entry.schemaVersion}`],
+  ...(entry.designSystem
+    ? ([
+        [
+          'Design system',
+          `${entry.designSystem.id}@${entry.designSystem.version}${entry.designSystem.locked ? ' (locked)' : ''}`,
+        ],
+      ] as [string, string][])
+    : []),
   ['Folder', entry.path],
   ['Last modified', formatDate(entry.modifiedAt)],
 ];

@@ -136,6 +136,10 @@ const contentCards = await contentShowcaseCards();
           categories={facetValues(all, (e) => e.category)}
           tags={facetValues(all, (e) => e.tags).slice(0, 40)}
           platforms={facetValues(all, (e) => e.platform)}
+          designSystems={facetValues(
+            all.filter((e) => e.designSystem),
+            (e) => e.designSystem?.id ?? ''
+          )}
           counts={{ prototypes: protos.length, templates: temps.length }}
         />
 

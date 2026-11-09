@@ -1,0 +1,134 @@
+---
+import CommandBlock from '@/components/CommandBlock.svelte';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { approvalLine, designSystemCards } from '@/lib/design-systems';
+import { withBase } from '@/lib/format';
+import { designSystems, prototypes, registry } from '@/lib/registry';
+
+const cards = designSystemCards(
+  designSystems(),
+  prototypes().map((entry) => ({ slug: entry.slug, name: entry.name }))
+);
+const issueCount = registry?.designSystemIssues?.length ?? 0;
+---
+
+<BaseLayout
+  title="Design systems"
+  description="The design systems in this Protoyard workspace: version, approval, components and the prototypes built on each."
+  active="design-systems"
+>
+  <section class="mb-8 max-w-3xl">
+    <p class="text-sm font-medium text-accent-fg">Workspace</p>
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl" data-testid="design-systems-title">
+      Design systems
+    </h1>
+    <p class="mt-3 text-muted">
+      Each design system is a folder in <code class="font-mono text-sm">design-systems/</code>: a Texuli document, an
+      approval record and its own components. A locked prototype draws its UI only with its design system.
+      <a class="font-medium text-accent-fg underline-offset-2 hover:underline" href={withBase('/docs/design_systems/')}>How it works</a>.
+    </p>
+  </section>
+
+  {
+    issueCount > 0 && (
+      <p class="mb-4 rounded-lg border border-line bg-surface px-4 py-3 text-sm text-warning" role="status">
+        {issueCount} design-system problem{issueCount === 1 ? ' is' : 's are'} not shown here. Run{' '}
+        <code class="font-mono">pnpm protoyard ds list</code> for details.
+      </p>
+    )
+  }
+
+  {
+    cards.length === 0 ? (
+      <div class="rounded-xl border border-dashed border-line p-6" data-testid="design-systems-empty">
+        <h2 class="text-base font-semibold">No design systems in this workspace yet</h2>
+        <p class="mt-1 text-sm text-muted">Create one from a brand color, a brief or a theme, then index the workspace.</p>
+        <div class="mt-4 max-w-xl">
+          <CommandBlock client:visible command={'pnpm protoyard ds new my-system --brand "#4f46e5"'} label="Create a design system" />
+        </div>
+      </div>
+    ) : (
+      <ul class="grid gap-4 lg:grid-cols-2" data-testid="design-system-list">
+        {cards.map((card) => (
+          <li
+            class="flex flex-col rounded-xl border border-line bg-surface shadow-sm"
+            data-testid="design-system-card"
+            data-design-system-id={card.designSystem.id}
+          >
+            <header class="border-b border-line px-4 py-3">
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 class="text-base font-semibold tracking-tight text-fg">{card.designSystem.name}</h2>
+                <span
+                  class:list={[
+                    'rounded-md px-2 py-0.5 text-xs font-medium',
+                    card.designSystem.status === 'approved' ? 'bg-accent-soft text-accent-fg' : 'bg-surface-2 text-muted',
+                  ]}
+                >
+                  {card.designSystem.status === 'approved' ? 'Approved' : 'Draft'}
+                </span>
+              </div>
+              <p class="mt-1 text-sm text-muted">{approvalLine(card.designSystem)}</p>
+            </header>
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-2 px-4 py-3 text-sm sm:grid-cols-4">
+              <div>
+                <dt class="text-muted">Id</dt>
+                <dd class="font-mono text-[13px]">{card.designSystem.id}</dd>
+              </div>
+              <div>
+                <dt class="text-muted">Version</dt>
+                <dd class="font-mono text-[13px]">{card.designSystem.version}</dd>
+              </div>
+              <div>
+                <dt class="text-muted">Components</dt>
+                <dd class="tabular-nums">{card.designSystem.componentCount}</dd>
+              </div>
+              <div>
+                <dt class="text-muted">Can lock</dt>
+                <dd>{card.designSystem.lockable ? 'Yes' : 'No'}</dd>
+              </div>
+            </dl>
+            <div class="flex-1 border-t border-line px-4 py-3">
+              <h3 class="text-sm font-medium">
+                Prototypes <span class="text-muted">({card.bound.length}{card.locked > 0 ? `, ${card.locked} locked` : ''})</span>
+              </h3>
+              {card.bound.length === 0 ? (
+                <p class="mt-1 text-sm text-muted">
+                  No prototype uses it yet. Bind one with{' '}
+                  <code class="font-mono text-[13px]">pnpm protoyard ds use &lt;slug&gt; {card.designSystem.id} --lock</code>.
+                </p>
+              ) : (
+                <ul class="mt-2 flex flex-col gap-1.5 text-sm">
+                  {card.bound.map((bound) => (
+                    <li class="flex flex-wrap items-center gap-2">
+                      {bound.href ? (
+                        <a class="font-medium text-accent-fg underline-offset-2 hover:underline" href={withBase(bound.href)}>{bound.name}</a>
+                      ) : (
+                        <span class="font-medium">{bound.name}</span>
+                      )}
+                      <span class="font-mono text-[12px] text-muted">{bound.slug}@{bound.version}</span>
+                      {bound.locked && <span class="rounded-md bg-surface-2 px-1.5 py-0.5 text-xs text-muted">Locked</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {(card.kit || card.filterHref) && (
+              <footer class="flex flex-wrap gap-2 border-t border-line bg-surface-2/60 px-4 py-3">
+                {card.kit && (
+                  <a class="inline-flex rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-hover" href={withBase(card.kit.href)} data-testid="design-system-kit">
+                    Open the {card.designSystem.name} kit
+                  </a>
+                )}
+                {card.filterHref && (
+                  <a class="inline-flex rounded-md border border-line bg-surface px-3 py-1.5 text-sm font-medium hover:bg-surface-2" href={withBase(card.filterHref)}>
+                    Browse {card.designSystem.name} prototypes
+                  </a>
+                )}
+              </footer>
+            )}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</BaseLayout>

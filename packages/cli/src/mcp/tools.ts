@@ -24,6 +24,7 @@ export type ToolName =
   | 'promote'
   | 'doctor'
   | 'ds_create'
+  | 'ds_list'
   | 'ds_validate'
   | 'ds_export'
   | 'ds_use'
@@ -316,6 +317,16 @@ const toolSchemas: Record<ToolName, McpTool> = {
       additionalProperties: false,
     },
   },
+  ds_list: {
+    name: 'ds_list',
+    description:
+      "List the workspace's design systems from a fresh index: id, name, version, approval status (draft or approved, approvedBy, approvedAt), contentHash, whether ds_use lock would accept it, folder or flat layout, component count, and the prototypes bound to each (slug, pinned version, locked). Problems are listed in issues. Reads only.",
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    },
+  },
   ds_validate: {
     name: 'ds_validate',
     description:
@@ -412,6 +423,7 @@ const validators: Record<ToolName, z.ZodType> = {
   promote: promoteArgs,
   doctor: doctorArgs,
   ds_create: dsCreateArgs,
+  ds_list: emptyArgs,
   ds_validate: dsFileArgs,
   ds_export: dsExportArgs,
   ds_use: dsUseArgs,
@@ -495,6 +507,7 @@ export function cliArgs(name: ToolName, value: Record<string, unknown>): string[
     if (value.dryRun) options.push('--dry-run');
     return command(['ds', 'new'], options, [String(value.id)]);
   }
+  if (name === 'ds_list') return command(['ds', 'list'], [], []);
   if (name === 'ds_validate') return command(['ds', 'validate'], [], [String(value.file)]);
   if (name === 'ds_export') {
     return command(['ds', 'export'], value.format ? [`--format=${String(value.format)}`] : [], [

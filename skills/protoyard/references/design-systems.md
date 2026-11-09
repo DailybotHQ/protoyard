@@ -32,6 +32,19 @@ mode. `--dry-run` compiles without writing; `--force` replaces the file. An
 imported theme lists what it could not keep exactly as notes (most Protoyard
 themes get their `input` and dark `borderStrong` colors raised to 3:1).
 
+## See what the workspace has
+
+```bash
+pnpm protoyard ds list
+pnpm protoyard ds list --json
+```
+
+Each design system with its version, status (`draft` or `approved`), whether
+`ds use --lock` would accept it, folder or flat layout, component count and
+the prototypes bound to it (`slug@version`, locked or not). Run it before you
+pick a design system for a prototype; a workspace can have many. The gallery
+shows the same list at `/design-systems/`.
+
 ## Check, export and apply
 
 ```bash
@@ -124,7 +137,7 @@ adapt the shape to your host. Protoyard does not install it.
 
 ## Over MCP
 
-`protoyard mcp` has `ds_create`, `ds_validate`, `ds_export` and `ds_use`, the
+`protoyard mcp` has `ds_create`, `ds_list`, `ds_validate`, `ds_export` and `ds_use`, the
 same commands with the same checks, plus `ds_component_request` and
 `ds_component_new`. Their descriptions repeat the stop-and-ask rule; approving
 a request has no tool.

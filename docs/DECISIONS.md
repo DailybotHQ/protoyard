@@ -1094,21 +1094,24 @@ share and review them without a new format.
   commit reviewed through CODEOWNERS on `design-systems/`.
 - **Stable data contracts.** Every file Protoyard writes next to the document has a zod
   schema in one module (`packages/cli/src/lib/ds-contracts.ts`) and a JSON Schema (draft
-  2020-12) generated from it (`packages/cli/src/lib/ds-schemas/`). A cloud version adds
-  hosting, collaboration and review on top of these files and operations instead of changing
-  them.
+  2020-12) generated from it (`packages/cli/src/lib/ds-schemas/`). The workspace index lists
+  design systems in the registry's own top-level `designSystems` array (not as entries with a
+  new `kind`, which older galleries would reject), and `protoyard ds list` and the MCP tool
+  `ds_list` return the same entries. A cloud version adds hosting, collaboration and review on
+  top of these files and operations instead of changing them.
 - **Texuli owns the document.** Texuli owns the design-system document spec, its importers,
   its compiler and its generation. Protoyard owns the folder, the approval record, the
   component library and its requests, the binding and the lock. When Texuli's spec 0.13.0
   moves the allow set, the library entries and the approval into the document, the schemas
   move in one place.
 
-**Consequences.** Design systems get their own commands and guide ([DESIGN_SYSTEMS](DESIGN_SYSTEMS.md)). The contracts are versioned (`format` and
+**Consequences.** Design systems get their own commands, index entries, gallery page and guide ([DESIGN_SYSTEMS](DESIGN_SYSTEMS.md)). The contracts are versioned (`format` and
 `version` fields, URN `$id`s); a breaking change needs a new version, and a test fails when
 the checked-in JSON Schemas drift from the zod schemas. Planned files (the release record and
 the bundle manifest) have draft schemas marked as planned until a command writes them.
 
-**How to reverse.** The folder layout is additive: flat documents keep working with `ds use`
-without `--lock`. Removing the entity means dropping the folder commands; the manifest
-binding is optional and is removed by deleting `designSystem` from a prototype's
-`protoyard.json`.
+**How to reverse.** The folder layout and the registry field are additive: older galleries
+and CLIs ignore `designSystems`, and flat documents keep working with `ds use` without
+`--lock`. Removing the entity means dropping the registry field and the folder commands;
+the manifest binding is optional and is removed by deleting `designSystem` from a
+prototype's `protoyard.json`.

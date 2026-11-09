@@ -112,6 +112,58 @@ pnpm protoyard ds use harbor-orders harbor --upgrade
 added or were removed. Without it, `ds use` refuses a new version for a bound
 prototype.
 
+## List them
+
+```bash
+pnpm protoyard ds list
+pnpm protoyard ds list --json
+```
+
+`ds list` re-indexes the workspace and prints every design system: id, name,
+version, status, whether `ds use --lock` would accept it, layout, component
+count and the prototypes bound to it (`slug@version`, and `(locked)`). The MCP
+tool `ds_list` returns the same envelope. A broken folder, a document whose id
+does not match its folder, a flat file shadowed by a folder of the same id, a
+symlink, or a prototype bound to an id with no design system is listed under
+`issues` and never fails the index.
+
+**In the registry.** `protoyard index` writes them to
+`.protoyard/registry.json` as a top-level `designSystems` array, with
+`designSystemIssues` for the problems and `stats.designSystems` for the count.
+Each prototype entry also carries its manifest binding as `designSystem`
+(`null` when it has none).
+
+| Field | Meaning |
+| --- | --- |
+| `id`, `name`, `version` | From the document (`name` falls back to the id) |
+| `status` | `draft` or `approved`, from `approval.json`; a flat document is always a draft |
+| `approvedBy`, `approvedAt`, `approvedVersion` | From an approved `approval.json`, else `null` |
+| `contentHash` | The document's hash now |
+| `lockable` | Approved at this version and unchanged since: `ds use --lock` accepts it |
+| `layout`, `path` | `folder` (`design-systems/<id>`) or `flat` (`design-systems/<id>.json`) |
+| `componentCount` | Entries in `components.json` |
+| `boundPrototypes` | `{ slug, name, version, locked }` for each prototype whose manifest names this id, sorted by slug |
+
+Why a separate array and not registry entries with a new `kind`: galleries and
+CLIs that predate design systems check each entry's `kind` and would report
+every design system as an invalid entry. They ignore a top-level field they do
+not know, so an older gallery keeps working with a newer registry. The
+registry `version` stays 1.
+
+The index reads each document, `approval.json` and `components.json` as data.
+It never reads component sources and never compiles a document (`ds validate`
+does). It looks one level under `design-systems/`, skips names that start with
+`.` or `_`, and does not follow symlinks.
+
+**In the gallery.** The **Design systems** page (`/design-systems/`) lists
+each one with its version, status, approval, whether it can be locked, its
+component count and its prototypes, linked when the gallery lists them. The
+prototype browser on the home page has a **Design system** filter (also as
+`?ds=<id>` in the URL), shown when at least one listed prototype is bound. An
+**Open the kit** link appears only when a prototype named `<id>-kit` exists;
+the kit itself is planned. The gallery checks the `designSystems` array as
+untrusted input and drops anything malformed.
+
 ## Folder layout and contracts
 
 ```text
@@ -165,6 +217,7 @@ The manifest binding is part of the prototype contract in `@protoyard/core`:
 | Command | What it does |
 | --- | --- |
 | `ds new <id>` | Create a design system folder (or a flat file with `--out`) |
+| `ds list` | Every design system with its approval, lockability, component count and bound prototypes |
 | `ds validate <id\|file>` | Validate and compile; report approval, lockability and component drift |
 | `ds migrate <id>` | Turn a flat document into a draft folder |
 | `ds export <file>` | CSS variables, a Tailwind preset or compiled JSON |
@@ -172,7 +225,7 @@ The manifest binding is part of the prototype contract in `@protoyard/core`:
 | `ds component request\|approve-request\|new` | Request, approve and scaffold a component |
 | `check ds [slug…] [--report]` | The locked-prototype rules |
 
-Every command takes `--json`. The MCP server exposes `ds_create`,
+Every command takes `--json`. The MCP server exposes `ds_create`, `ds_list`,
 `ds_validate`, `ds_export`, `ds_use`, `ds_component_request` and
 `ds_component_new` ([MCP](MCP.md#tools)); there is no approval tool, on
 purpose.

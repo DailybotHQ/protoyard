@@ -268,6 +268,7 @@ describe('MCP tool catalog and strict input contracts', () => {
         'ds_component_request',
         'ds_create',
         'ds_export',
+        'ds_list',
         'ds_use',
         'ds_validate',
         'iterate',
