@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { opt } from '../lib/command.ts';
@@ -7,8 +7,12 @@ import {
   isDesignSystemId,
   locateDesignSystem,
   readComponents,
+  readDocumentFile,
+  sha256File,
 } from '../lib/design-systems.ts';
+import { readLibrary } from '../lib/ds-catalog.ts';
 import {
+  approvedLibraryEntry,
   type ComponentRequest,
   checkComponentName,
   checkText,
@@ -16,6 +20,7 @@ import {
   componentPath,
   componentSource,
   componentStory,
+  documentLibraryEntry,
   draftEntry,
   libraryEntry,
   MAX_PERSON,
@@ -24,6 +29,7 @@ import {
   readRequest,
   requestPath,
   storyPath,
+  writeDocumentLibraryEntry,
   writeJson,
   writeLibraryEntry,
 } from '../lib/ds-components.ts';
@@ -33,8 +39,8 @@ import { resolveTarget } from '../lib/workspace.ts';
 import { readDesignSystemBinding } from './check.ts';
 
 /**
- * `protoyard ds component request | approve-request | new`: how a design
- * system gets a new component of its own (PLAN_013 T-component).
+ * `protoyard ds component request | approve-request | new | approve`: how a
+ * design system gets a new component of its own (PLAN_013 T-component).
  *
  * 1. `request <id> <Name> --purpose --why [--by]` records who wants which
  *    component and why the existing ones do not fit. It writes no code.
@@ -44,9 +50,15 @@ import { readDesignSystemBinding } from './check.ts';
  * 3. `new <id> <Name>` needs an approved request. It scaffolds
  *    `components/<Name>.svelte` from Texuli components (it passes the
  *    `check ds` rules), lists it in `components.json` as a draft with its
- *    sha256, and writes a kit story stub. It refuses to run from inside a
+ *    sha256 and in the document's `library` (composes = the catalog ids it
+ *    renders), and writes a kit story stub. It refuses to run from inside a
  *    prototype folder or for a locked `--prototype` target: an agent working
  *    in a locked prototype stops and asks instead.
+ * 4. `approve <id> <Name> --by` is run by a human after review: the entry's
+ *    sha256 is taken from the file as it is, and both the `components.json`
+ *    entry and the document's `library` entry become approved (the library
+ *    entry with its own `approval` and Texuli's entry hash). A record, not a
+ *    proof; no MCP tool runs it.
  */
 
 const MANIFEST = 'protoyard.json';
@@ -260,9 +272,12 @@ export const dsComponentNewCommand: Handler = async (
   writeFileSync(component, source, 'utf8');
   const entry = draftEntry(name, request.purpose, component);
   const manifest = writeLibraryEntry(location, entry);
+  const documentEntry = documentLibraryEntry(entry, source);
+  const library = writeDocumentLibraryEntry(location, documentEntry);
   const files = [
     rel(id, 'components', `${name}.svelte`),
     `design-systems/${id}/${COMPONENTS_FILE}`,
+    ...(library.written ? [location.file] : []),
     rel(id, 'stories', `${name}.json`),
   ];
   const data = {
@@ -272,6 +287,9 @@ export const dsComponentNewCommand: Handler = async (
     files,
     import: `import ${name} from '@ds/${id}/${name}';`,
     components: manifest.components.length,
+    library: library.written
+      ? { id: documentEntry.id, composes: documentEntry.composes }
+      : { skipped: library.reason },
     next: [`protoyard ds validate ${id}`],
   };
   return {
@@ -282,6 +300,67 @@ export const dsComponentNewCommand: Handler = async (
       );
       o.always(`  ${data.import}`);
       o.always(`Next: edit it with Texuli components and layout classes, then ${data.next[0]}.`);
+    },
+  };
+};
+
+export const dsComponentApproveCommand: Handler = async (
+  ctx,
+  args,
+  options
+): Promise<CommandResult> => {
+  const { id, name } = ids(args);
+  const approvedBy = checkText(opt(options, 'by'), '--by', MAX_PERSON);
+  const location = folderOf(ctx.root, id);
+  const current = libraryEntry(location, name);
+  if (!current) {
+    throw new CliError('not_found', `Design system "${id}" has no component "${name}".`, {
+      hint: `Scaffold it first: protoyard ds component new ${id} ${name}`,
+    });
+  }
+  const file = componentPath(location, name);
+  if (!existsSync(file) || lstatSync(file).isSymbolicLink()) {
+    throw new CliError('not_found', `${rel(id, 'components', `${name}.svelte`)} is missing.`);
+  }
+  const approvedAt = now();
+  const entry = {
+    ...current,
+    status: 'approved' as const,
+    sha256: sha256File(file),
+    approvedBy,
+    approvedAt,
+  };
+  writeLibraryEntry(location, entry);
+  const source = readFileSync(file, 'utf8');
+  const existing = readLibrary(readDocumentFile(location)).find((e) => e.name === name);
+  const documentEntry = approvedLibraryEntry(
+    { ...documentLibraryEntry(entry, source), ...(existing ? { id: existing.id } : {}) },
+    approvedBy,
+    approvedAt
+  );
+  const library = writeDocumentLibraryEntry(location, documentEntry);
+  const files = [
+    `design-systems/${id}/${COMPONENTS_FILE}`,
+    ...(library.written ? [location.file] : []),
+  ];
+  const data = {
+    id,
+    name,
+    entry,
+    library: library.written ? documentEntry : { skipped: library.reason },
+    files,
+    next: [`protoyard ds approve ${id} --by "<reviewer>"`],
+  };
+  return {
+    data,
+    render(o) {
+      o.always(
+        `Approved ${name} ${entry.version} in design system ${id} as ${approvedBy}: ${files.join(', ')}`
+      );
+      o.always('  The CLI cannot prove who ran this; the reviewed commit is the guarantee.');
+      o.always(
+        `  The library changed the document's content hash: approve the design system again (${data.next[0]}).`
+      );
     },
   };
 };

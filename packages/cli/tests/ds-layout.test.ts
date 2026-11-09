@@ -2,6 +2,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { designSystemAlias } from '@protoyard/renderer-svelte/vite';
+import { designSystemContentHash } from '@texuli/spec/design-system';
 import { afterEach, describe, expect, it } from 'vitest';
 import { canonicalJson, contentHash, sha256File } from '../src/lib/design-systems.ts';
 import { cli, createWorkspace, type TempWorkspace } from './helpers.ts';
@@ -22,20 +23,22 @@ describe('design-system folders (PLAN_013 T-layout)', () => {
       unknown
     >;
 
-  it('writes a folder by default: document, draft approval, empty component library', async () => {
+  it('writes a folder by default: document with a draft approval inside, empty component library', async () => {
     ws = createWorkspace();
     const created = await run('new', 'harbor', '--brand', '#0f766e');
     expect(created.code, created.stdout).toBe(0);
     const data = created.json<Envelope<{ file: string; layout: string; files: string[] }>>().data;
     expect(data.layout).toBe('folder');
+    // The approval lives in the document now (spec 0.13.0): no approval.json.
     expect(data.files).toEqual([
       'design-systems/harbor/document.json',
-      'design-systems/harbor/approval.json',
       'design-systems/harbor/components.json',
     ]);
-    expect(read('design-systems/harbor/approval.json')).toEqual({
+    expect(existsSync(join(ws.root, 'design-systems/harbor/approval.json'))).toBe(false);
+    const document = read('design-systems/harbor/document.json') as { version: string };
+    expect(read('design-systems/harbor/document.json').approval).toEqual({
       status: 'draft',
-      version: (read('design-systems/harbor/document.json') as { version: string }).version,
+      version: document.version,
     });
     expect(read('design-systems/harbor/components.json')).toEqual({
       format: 'protoyard/ds-components',
@@ -106,7 +109,9 @@ describe('design-system folders (PLAN_013 T-layout)', () => {
     expect((await run('validate', 'harbor')).code).not.toBe(0);
   });
 
-  it('migrates a flat document into a draft folder, and never over an existing folder', async () => {
+  it('migrates a flat document into a draft folder, and never over an existing folder', {
+    timeout: 60_000,
+  }, async () => {
     ws = createWorkspace();
     expect(
       (await run('new', 'dusk', '--brand', '#7c3aed', '--out', 'design-systems/dusk.json')).code
@@ -119,25 +124,46 @@ describe('design-system folders (PLAN_013 T-layout)', () => {
     expect(migrated.code, migrated.stdout).toBe(0);
     expect(existsSync(join(ws.root, 'design-systems/dusk.json'))).toBe(false);
     expect(readFileSync(join(ws.root, 'design-systems/dusk/document.json'), 'utf8')).toBe(before);
-    expect(read('design-systems/dusk/approval.json')).toMatchObject({ status: 'draft' });
-    expect((await run('validate', 'dusk')).code).toBe(0);
-    // Old references to the flat path resolve to the folder only by id.
+    expect(existsSync(join(ws.root, 'design-systems/dusk/approval.json'))).toBe(false);
+    const validated = await run('validate', 'dusk');
+    expect(validated.code).toBe(0);
+    expect(validated.json<Envelope<{ status: string }>>().data.status).toBe('draft');
+    // A second run finds the folder up to date; a flat file next to a folder is refused.
+    const again = await run('migrate', 'dusk');
+    expect(again.code, again.stdout).toBe(0);
+    expect(again.json<Envelope<{ changes: string[] }>>().data.changes).toEqual([]);
+    ws.write('design-systems/dusk.json', JSON.parse(before) as object);
     expect((await run('migrate', 'dusk')).code).not.toBe(0);
     expect((await run('migrate', '../escape')).code).not.toBe(0);
   });
 
-  it('hashes canonical JSON without the approval fields', () => {
+  it("hashes canonical JSON without the approval section (Texuli's one implementation)", () => {
     expect(canonicalJson({ b: 1, a: [2, { d: null, c: 'x' }] })).toBe(
       '{"a":[2,{"c":"x","d":null}],"b":1}'
     );
     const document = { id: 'x', version: '1.0.0', tokens: { a: 1 } };
-    expect(contentHash({ ...document, status: 'approved', approvedBy: 'Ada' })).toBe(
-      contentHash(document)
-    );
-    // Texuli spec 0.13.0 excludes the whole approval section.
+    expect(contentHash(document)).toBe(designSystemContentHash(document));
+    // Texuli spec 0.13.0 excludes the whole approval section…
     expect(contentHash({ ...document, approval: { status: 'approved', approvedBy: 'Ada' } })).toBe(
       contentHash(document)
     );
+    // …and each library entry's own approval, but not the entry itself.
+    const entry = {
+      id: 'pill',
+      name: 'Pill',
+      purpose: 'p',
+      version: '0.1.0',
+      status: 'draft',
+      composes: ['badge'],
+    };
+    const withLibrary = { ...document, library: [entry] };
+    expect(
+      contentHash({
+        ...document,
+        library: [{ ...entry, approval: { status: 'approved', version: '0.1.0' } }],
+      })
+    ).toBe(contentHash(withLibrary));
+    expect(contentHash(withLibrary)).not.toBe(contentHash(document));
     expect(contentHash({ ...document, version: '1.0.1' })).not.toBe(contentHash(document));
   });
 

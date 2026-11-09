@@ -4,9 +4,13 @@ import { z } from 'zod';
  * The data contracts of a design-system folder (PLAN_013, ADR-047): every
  * file Protoyard writes next to a Texuli design-system document, in one
  * module. The readers (`design-systems.ts`, `ds-components.ts`) and the JSON
- * Schema files under `ds-schemas/` both come from these zod schemas, so a
- * later move into Texuli's document (spec 0.13.0: allow set, library entries
- * and approval inside the document) changes one place.
+ * Schema files under `ds-schemas/` both come from these zod schemas.
+ *
+ * The allow set, the library entries and the approval live inside the Texuli
+ * document now (spec 0.13.0; Texuli's `design-system.schema.json` describes
+ * them). The `approval.json` sidecar is `legacy`: still read when a document
+ * has no approval, never written, and folded into the document by
+ * `protoyard ds migrate <id>`.
  *
  * Contracts marked `planned` describe files no command writes yet; they may
  * still change before the task that writes them lands.
@@ -31,7 +35,10 @@ export const MAX_PERSON = 120;
 const lineText = (max: number) =>
   z.string().min(1).max(max).regex(ONE_LINE, 'Use one line without control characters.');
 
-/** `design-systems/<id>/approval.json`: a record of who approved which version, not a proof. */
+/**
+ * Legacy `design-systems/<id>/approval.json`: a record of who approved which
+ * version, not a proof. The approval now lives in the document (`approval`).
+ */
 export const ApprovalSchema = z
   .object({
     status: z.enum(['draft', 'approved']),
@@ -170,7 +177,7 @@ export const BundleManifestSchema = z
   .strict();
 export type BundleManifest = z.infer<typeof BundleManifestSchema>;
 
-export type ContractStatus = 'current' | 'planned';
+export type ContractStatus = 'current' | 'planned' | 'legacy';
 
 export interface DesignSystemContract {
   /** Stable name; also the JSON Schema file stem (`<name>.schema.json`). */
@@ -189,8 +196,8 @@ export const DESIGN_SYSTEM_CONTRACTS: readonly DesignSystemContract[] = [
     name: 'approval',
     id: 'urn:protoyard:design-system:approval:1',
     path: 'design-systems/<id>/approval.json',
-    title: 'Design-system approval record',
-    status: 'current',
+    title: 'Design-system approval record (legacy sidecar)',
+    status: 'legacy',
     schema: ApprovalSchema,
   },
   {
@@ -235,6 +242,13 @@ export const DESIGN_SYSTEM_CONTRACTS: readonly DesignSystemContract[] = [
   },
 ];
 
+const STATUS_NOTE: Record<ContractStatus, string> = {
+  current: '',
+  planned: ' (planned: no command writes this file yet; the contract may change before it lands)',
+  legacy:
+    ' (legacy: read when document.json has no approval section, never written; `protoyard ds migrate <id>` moves it into the document)',
+};
+
 /**
  * The JSON Schema (draft 2020-12) of one contract, generated from its zod
  * schema. The files in `ds-schemas/` are this output; a test fails when they
@@ -249,7 +263,7 @@ export function contractJsonSchema(contract: DesignSystemContract): Record<strin
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     $id: contract.id,
     title: contract.title,
-    description: `${contract.path}${contract.status === 'planned' ? ' (planned: no command writes this file yet; the contract may change before it lands)' : ''}. Generated from packages/cli/src/lib/ds-contracts.ts.`,
+    description: `${contract.path}${STATUS_NOTE[contract.status]}. Generated from packages/cli/src/lib/ds-contracts.ts.`,
     ...body,
   };
 }

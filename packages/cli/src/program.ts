@@ -23,6 +23,8 @@ import {
 import { devCommand } from './commands/dev.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import {
+  dsAllowInitCommand,
+  dsApproveCommand,
   dsExportCommand,
   dsMigrateCommand,
   dsNewCommand,
@@ -30,6 +32,7 @@ import {
   dsValidateCommand,
 } from './commands/ds.ts';
 import {
+  dsComponentApproveCommand,
   dsComponentApproveRequestCommand,
   dsComponentNewCommand,
   dsComponentRequestCommand,
@@ -582,7 +585,7 @@ export function createProgram(env: RunnerEnv): Command {
     .description('create, validate, export and apply Texuli design systems');
   ds.command('new')
     .description(
-      'create a design system from a brief, a few inputs or a theme; writes the folder design-systems/<id>/ (document, draft approval, component library)'
+      'create a design system from a brief, a few inputs or a theme; writes the folder design-systems/<id>/ (document with an allow section and a draft approval, component library)'
     )
     .argument('<id>', 'design system id (lowercase kebab-case; also its theme id)')
     .option('--name <name>', 'display name')
@@ -619,6 +622,10 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .option('--export <name>', 'with --from-theme-file: the export to import (default: the theme)')
     .option(
+      '--allow <preset|file>',
+      'the allow section (Texuli catalog components and values a locked prototype may use): all (default), minimal, a JSON file, or none (cannot be locked)'
+    )
+    .option(
       '--out <file>',
       'write a flat document to this file instead of the design-systems/<id>/ folder'
     )
@@ -627,7 +634,7 @@ export function createProgram(env: RunnerEnv): Command {
     .action(def('ds new', dsNewCommand));
   ds.command('validate')
     .description(
-      'validate an untrusted design-system document and compile it; a folder also reports its approval and component library'
+      'validate an untrusted design-system document (and its allow section against the Texuli catalog) and compile it; a folder also reports its approval and component library'
     )
     .argument('<id|file>', 'design-system id (design-systems/<id>/ or <id>.json) or JSON file')
     .action(def('ds validate', dsValidateCommand));
@@ -636,9 +643,33 @@ export function createProgram(env: RunnerEnv): Command {
       "list the workspace's design systems: version, approval status, whether it can be locked, component count and the prototypes bound to each"
     )
     .action(def('ds list', dsListCommand));
+  ds.command('approve')
+    .description(
+      "approve a design system (run by a human): stamps the document's approval with who, when, the version and its content hash; a record, not a proof"
+    )
+    .argument('<id>', 'design system id (a folder under design-systems/ with an allow section)')
+    .option('--by <name>', 'who approves it')
+    .option(
+      '--release <semver>',
+      "approve this version (it also becomes the document's version; --version is the CLI's own flag)"
+    )
+    .action(def('ds approve', dsApproveCommand));
+  const dsAllow = ds
+    .command('allow')
+    .description(
+      'the allow section: which Texuli catalog components and values a locked prototype may use'
+    );
+  dsAllow
+    .command('init')
+    .description('add an allow section to a design system without one (status back to draft)')
+    .argument('<id|file>', 'design-system id or JSON file')
+    .option('--preset <preset|file>', 'all (default), minimal or a JSON file with an allow section')
+    .option('--force', 'replace an existing allow section')
+    .option('--dry-run', 'show what would change without writing')
+    .action(def('ds allow init', dsAllowInitCommand));
   ds.command('migrate')
     .description(
-      'move a flat design-systems/<id>.json into the folder layout (document, draft approval, component library)'
+      'move a flat design-systems/<id>.json into the folder layout, fold a legacy approval.json into the document, and add components.json components to its library'
     )
     .argument('<id>', 'design system id')
     .option('--dry-run', 'show what would change without writing')
@@ -706,6 +737,15 @@ export function createProgram(env: RunnerEnv): Command {
       'the prototype it is for; refused when that prototype is locked'
     )
     .action(def('ds component new', dsComponentNewCommand));
+  dsComponent
+    .command('approve')
+    .description(
+      "approve a reviewed component (run by a human): its components.json entry and the document's library entry; a record, not a proof"
+    )
+    .argument('<id>', 'design system id')
+    .argument('<Name>', 'component name (PascalCase)')
+    .option('--by <name>', 'who approves it')
+    .action(def('ds component approve', dsComponentApproveCommand));
 
   const kit = program
     .command('kit')

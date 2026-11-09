@@ -128,6 +128,7 @@ const dsCreateArgs = z
     motion: z.enum(['none', 'subtle', 'standard', 'expressive']).optional(),
     contrast: z.enum(['AA', 'AAA']).optional(),
     fromTheme: dsId.optional(),
+    allow: z.enum(['all', 'minimal', 'none']).optional(),
     out: dsPath.optional(),
     force: z.boolean().optional(),
     dryRun: z.boolean().optional(),
@@ -209,6 +210,7 @@ const DS_FLAGS: Record<string, string> = {
   motion: '--motion',
   contrast: '--contrast',
   fromTheme: '--from-theme',
+  allow: '--allow',
   out: '--out',
 };
 
@@ -292,7 +294,7 @@ const toolSchemas: Record<ToolName, McpTool> = {
   ds_create: {
     name: 'ds_create',
     description:
-      'Create a Texuli design system from a brief, a few inputs (brand color, fonts, shape, density, motion) or a Protoyard theme; validates, compiles and writes design-systems/<id>/ (document.json, a draft approval.json and components.json).',
+      'Create a Texuli design system from a brief, a few inputs (brand color, fonts, shape, density, motion) or a Protoyard theme; validates, compiles and writes design-systems/<id>/ (document.json with an allow section and a draft approval, and components.json). allow picks the allow section: all (default), minimal, or none (the design system cannot be locked). A human approves it with `protoyard ds approve`; no tool approves.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -309,6 +311,7 @@ const toolSchemas: Record<ToolName, McpTool> = {
         motion: { type: 'string', enum: ['none', 'subtle', 'standard', 'expressive'] },
         contrast: { type: 'string', enum: ['AA', 'AAA'] },
         fromTheme: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,63}$' },
+        allow: { type: 'string', enum: ['all', 'minimal', 'none'] },
         out: { type: 'string', minLength: 1, maxLength: 2048 },
         force: { type: 'boolean' },
         dryRun: { type: 'boolean' },
@@ -330,7 +333,7 @@ const toolSchemas: Record<ToolName, McpTool> = {
   ds_validate: {
     name: 'ds_validate',
     description:
-      'Validate an untrusted Texuli design-system document and compile it (contrast report, hash).',
+      'Validate an untrusted Texuli design-system document and compile it (contrast report, hash); its allow section is checked against the Texuli catalog (unknown-component, unknown-variant and the other codes, with JSON paths), and a folder reports its approval, library and whether it can be locked.',
     inputSchema: {
       type: 'object',
       properties: { file: { type: 'string', minLength: 1, maxLength: 2048 } },

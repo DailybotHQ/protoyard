@@ -42,16 +42,10 @@ describe('ds use --lock and --upgrade (PLAN_013 T-lock)', () => {
     });
   }
 
-  /** What `ds approve` will write (T-kit); the CLI cannot prove who approved. */
-  function approve(id: string, by = 'Ada Example') {
-    const document = json(`design-systems/${id}/document.json`);
-    ws?.write(`design-systems/${id}/approval.json`, {
-      status: 'approved',
-      version: document.version,
-      approvedBy: by,
-      approvedAt: '2026-11-09T12:00:00.000Z',
-      contentHash: contentHash(document),
-    });
+  /** `ds approve` stamps the document's approval; the CLI cannot prove who approved. */
+  async function approve(id: string, by = 'Ada Example') {
+    const approved = await run('approve', id, '--by', by);
+    expect(approved.code, approved.stdout).toBe(0);
   }
 
   it('refuses to lock a flat document or a draft, and locks an approved one at its exact version', async () => {
@@ -72,7 +66,7 @@ describe('ds use --lock and --upgrade (PLAN_013 T-lock)', () => {
     expect(draft.stdout).toContain('is a draft');
     expect(json('prototypes/locked-app/protoyard.json').designSystem).toBeUndefined();
 
-    approve('harbor');
+    await approve('harbor');
     const version = json('design-systems/harbor/document.json').version as string;
     const locked = await run('use', 'locked-app', 'harbor', '--lock');
     expect(locked.code, locked.stdout).toBe(0);
@@ -96,8 +90,8 @@ describe('ds use --lock and --upgrade (PLAN_013 T-lock)', () => {
     prototype('locked-app');
     expect((await run('new', 'harbor', '--brand', '#0f766e')).code).toBe(0);
     expect((await run('new', 'dusk', '--brand', '#7c3aed')).code).toBe(0);
-    approve('harbor');
-    approve('dusk');
+    await approve('harbor');
+    await approve('dusk');
     expect((await run('use', 'locked-app', 'harbor', '--lock')).code).toBe(0);
 
     const other = await run('use', 'locked-app', 'dusk', '--force');
@@ -120,7 +114,7 @@ describe('ds use --lock and --upgrade (PLAN_013 T-lock)', () => {
       version: '9.9.9',
       description: 'A reviewed update.',
     });
-    approve('harbor');
+    await approve('harbor');
     const pinned = await run('use', 'locked-app', 'harbor');
     expect(pinned.code).not.toBe(0);
     expect(pinned.stdout).toContain('--upgrade');
@@ -155,7 +149,7 @@ describe('ds use --lock and --upgrade (PLAN_013 T-lock)', () => {
     ws = createWorkspace();
     prototype('locked-app');
     expect((await run('new', 'harbor', '--brand', '#0f766e')).code).toBe(0);
-    approve('harbor');
+    await approve('harbor');
     expect((await run('use', 'locked-app', 'harbor', '--lock')).code).toBe(0);
     const dir = join(ws.root, 'prototypes/locked-app');
     const binding = json('prototypes/locked-app/protoyard.json').designSystem as {
@@ -164,13 +158,31 @@ describe('ds use --lock and --upgrade (PLAN_013 T-lock)', () => {
     };
     expect(lockedBindingProblem(ws.root, dir, binding)).toBeNull();
 
-    ws.write('design-systems/harbor/approval.json', {
-      ...json('design-systems/harbor/approval.json'),
-      status: 'draft',
+    const approved = json('design-systems/harbor/document.json');
+    ws.write('design-systems/harbor/document.json', {
+      ...approved,
+      approval: { ...(approved.approval as object), status: 'draft' },
     });
     expect(lockedBindingProblem(ws.root, dir, binding)).toContain('is a draft');
 
-    approve('harbor');
+    // The legacy approval.json sidecar still counts when the document has no approval.
+    const { approval: _approval, ...bare } = approved;
+    ws.write('design-systems/harbor/document.json', bare);
+    ws.write('design-systems/harbor/approval.json', {
+      status: 'approved',
+      version: binding.version,
+      approvedBy: 'Ada Example',
+      approvedAt: '2026-11-09T12:00:00.000Z',
+      contentHash: contentHash(bare),
+    });
+    expect(lockedBindingProblem(ws.root, dir, binding)).toBeNull();
+    ws.write('design-systems/harbor/approval.json', {
+      status: 'approved',
+      version: binding.version,
+    });
+    expect(lockedBindingProblem(ws.root, dir, binding)).toContain('without a content hash');
+
+    await approve('harbor');
     expect(lockedBindingProblem(ws.root, dir, { ...binding, version: '0.0.1' })).toContain(
       '--upgrade'
     );

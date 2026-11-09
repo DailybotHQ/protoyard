@@ -24,25 +24,47 @@ import {
   findLibraryThemeMeta,
   loadLibraryTheme,
 } from '@protoyard/themes';
+import {
+  APPROVAL_NOTE,
+  approveDesignSystem,
+  type DesignSystemAllow,
+  initLockedDesignSystem,
+  LOCKED_PRESETS,
+  type LockedPreset,
+} from '@texuli/spec/design-system';
 import { GENERATED_MARKER } from '../lib/codegen/header.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import {
   APPROVAL_FILE,
-  type Approval,
+  allowHint,
+  approvalSource,
   COMPONENTS_FILE,
   componentDrift,
   contentHash,
   DESIGN_SYSTEMS_DIR,
+  type DesignSystemLocation,
   DOCUMENT_FILE,
   emptyComponentsManifest,
   isDesignSystemId,
   locateDesignSystem,
   lockRefusal,
+  MAX_DOCUMENT_BYTES,
   readApproval,
+  readApprovalSidecar,
   readComponents,
   readDocumentFile,
+  writeDocumentFile,
 } from '../lib/design-systems.ts';
+import {
+  checkAllow,
+  dsCatalog,
+  formatIssue,
+  readAllow,
+  readDocumentApproval,
+  readLibrary,
+} from '../lib/ds-catalog.ts';
+import { checkText, MAX_PERSON, syncLibraryFromComponents } from '../lib/ds-components.ts';
 import { inspectSpec } from '../lib/inspect.ts';
 import { CliError } from '../lib/output.ts';
 import { workspaceLayout } from '../lib/paths.ts';
@@ -55,9 +77,14 @@ import { specForPrototype } from './spec.ts';
  * `protoyard ds`: Texuli design systems (`format: "texuli/design-system"`).
  *
  * - `ds new <id>` makes a document from a brief or a few inputs, or imports a
- *   Protoyard theme (`--from-theme`), validates and compiles it, and writes
- *   the folder `design-systems/<id>/` (or a flat file with `--out`).
- * - `ds validate <file>` checks an untrusted document and compiles it.
+ *   Protoyard theme (`--from-theme`), adds an `allow` section (`--allow`,
+ *   default `all`) and a draft `approval`, validates and compiles it, and
+ *   writes the folder `design-systems/<id>/` (or a flat file with `--out`).
+ * - `ds validate <file>` checks an untrusted document (and its `allow`
+ *   section against the Texuli catalog) and compiles it.
+ * - `ds approve <id> --by <name>` stamps the document's `approval` (a record,
+ *   not a proof; a human, never an MCP tool).
+ * - `ds allow init <id>` adds an `allow` section to a design system without one.
  * - `ds export <file>` writes CSS variables, a Tailwind preset or compiled JSON.
  * - `ds use <slug> <file>` compiles it into `src/design-system.ts`, adds the
  *   theme to `definePrototype({ themes })` and makes it the default theme.
@@ -195,6 +222,78 @@ async function themeById(id: string) {
   });
 }
 
+const ALLOW_CHOICES = 'all, minimal, none or a JSON file';
+
+/**
+ * The `--allow` value: a preset (`all`, `minimal`), `none` (no allow
+ * section: the design system cannot be locked), or a workspace JSON file
+ * holding an allow section (`{ "button": { "variants": [...] } }`, or a
+ * document-shaped `{ "allow": {...} }`).
+ */
+function allowOption(
+  root: string,
+  value: string | undefined
+): LockedPreset | DesignSystemAllow | null {
+  if (value === undefined) return 'all';
+  if (value === 'none') return null;
+  if ((LOCKED_PRESETS as readonly string[]).includes(value)) return value as LockedPreset;
+  if (!value.endsWith('.json')) {
+    throw new CliError('usage', `Unknown --allow "${value}".`, { hint: `Use ${ALLOW_CHOICES}.` });
+  }
+  const path = workspaceFile(root, value);
+  if (!existsSync(path) || !statSync(path).isFile()) {
+    throw new CliError('not_found', `No such file: ${relativeTo(root, path)}.`);
+  }
+  if (lstatSync(path).isSymbolicLink()) {
+    throw new CliError('unsafe_path', `Refusing to read ${value} through a symlink.`);
+  }
+  if (statSync(path).size > MAX_DOCUMENT_BYTES) {
+    throw new CliError('validation', `${value} is larger than 1 MiB.`);
+  }
+  let raw: unknown;
+  try {
+    raw = JSON.parse(readFileSync(path, 'utf8'));
+  } catch (error) {
+    throw new CliError('validation', `Could not read ${value}: ${(error as Error).message}`);
+  }
+  const allow =
+    readAllow(raw) ?? (raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : null);
+  if (!allow)
+    throw new CliError('validation', `${value} does not hold an allow section (an object).`);
+  return allow as DesignSystemAllow;
+}
+
+function issuesError(
+  message: string,
+  errors: readonly { code: string; path: string; message: string }[]
+) {
+  return new CliError('validation', message, {
+    data: { errors },
+    hint: errors.slice(0, 3).map(formatIssue).join(' · '),
+  });
+}
+
+/** The document locked with an allow section and a draft approval (Texuli's `initLockedDesignSystem`). */
+function lockDocument(
+  document: DesignSystem,
+  preset: LockedPreset | DesignSystemAllow
+): DesignSystem {
+  const locked = initLockedDesignSystem(
+    {
+      id: document.id,
+      name: document.name,
+      version: document.version,
+      preset,
+      base: document as unknown as Record<string, unknown>,
+    },
+    dsCatalog().allowCatalog
+  );
+  if (!locked.ok) {
+    throw issuesError(`The allow section for "${document.id}" is not valid.`, locked.errors);
+  }
+  return locked.document as unknown as DesignSystem;
+}
+
 export const dsNewCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const id = args[0];
   if (!id) throw new CliError('usage', 'Missing <id>.');
@@ -264,6 +363,8 @@ export const dsNewCommand: Handler = async (ctx, args, options): Promise<Command
     document = created.document;
     notes = created.warnings;
   }
+  const allow = allowOption(ctx.root, opt(options, 'allow'));
+  if (allow !== null) document = lockDocument(document, allow);
   const result = await compileOrFail(document, `Design system "${id}"`);
 
   // A folder by default (lockable: approval and component library live next
@@ -288,8 +389,6 @@ export const dsNewCommand: Handler = async (ctx, args, options): Promise<Command
     writeFileSync(out, text, 'utf8');
     if (folder) {
       const dir = dirname(out);
-      const approval: Approval = { status: 'draft', version: result.compiled.version };
-      writeFileSync(join(dir, APPROVAL_FILE), `${JSON.stringify(approval, null, 2)}\n`, 'utf8');
       const componentsFile = join(dir, COMPONENTS_FILE);
       if (!existsSync(componentsFile)) {
         writeFileSync(
@@ -298,7 +397,6 @@ export const dsNewCommand: Handler = async (ctx, args, options): Promise<Command
           'utf8'
         );
       }
-      extra.push(relativeTo(ctx.root, join(dir, APPROVAL_FILE)));
       extra.push(relativeTo(ctx.root, componentsFile));
     }
   }
@@ -307,6 +405,9 @@ export const dsNewCommand: Handler = async (ctx, args, options): Promise<Command
     file,
     layout: folder ? ('folder' as const) : ('flat' as const),
     status: 'draft' as const,
+    allow:
+      allow === null ? ('none' as const) : typeof allow === 'string' ? allow : ('file' as const),
+    allowComponents: Object.keys(readAllow(document) ?? {}).length,
     files: [file, ...extra],
     dryRun,
     written: !dryRun,
@@ -320,6 +421,11 @@ export const dsNewCommand: Handler = async (ctx, args, options): Promise<Command
         `${dryRun ? 'Would write' : 'Wrote'} ${file}: ${data.name} (${data.id}@${data.version})`
       );
       renderSummary(o, data);
+      o.always(
+        data.allow === 'none'
+          ? `  no allow section: it cannot be locked until one is added (\`protoyard ds allow init ${id}\`)`
+          : `  allow ${data.allow}: ${data.allowComponents} catalog components · status draft`
+      );
       for (const note of notes) o.always(`  note: ${note}`);
     },
   };
@@ -349,9 +455,17 @@ export const dsValidateCommand: Handler = async (ctx, args): Promise<CommandResu
       { hint: 'Rename the folder or the document id so they match.' }
     );
   }
-  const approval = readApproval(location);
+  const allowCheck = checkAllow(document);
+  if (!allowCheck.ok) {
+    throw issuesError(
+      `${file} allows components or values the Texuli catalog does not list.`,
+      allowCheck.errors
+    );
+  }
+  const approval = readApproval(location, document);
   const components = readComponents(location);
   const drift = components ? componentDrift(location, components) : [];
+  const allowSection = readAllow(document);
   const lockable =
     location.layout === 'folder' ? lockRefusal(location, document, result.compiled.version) : null;
   const data = {
@@ -362,6 +476,16 @@ export const dsValidateCommand: Handler = async (ctx, args): Promise<CommandResu
     contentHash: contentHash(document),
     status: approval?.status ?? 'draft',
     ...(approval ? { approval } : {}),
+    approvalSource: approvalSource(location, document),
+    locked: allowSection !== null,
+    allowComponents: Object.keys(allowSection ?? {}).length,
+    library: readLibrary(document).map((e) => ({
+      id: e.id,
+      name: e.name,
+      version: e.version,
+      status: e.status,
+      composes: e.composes,
+    })),
     components:
       components?.components.map((c) => ({ name: c.name, version: c.version, status: c.status })) ??
       [],
@@ -387,8 +511,18 @@ export const dsValidateCommand: Handler = async (ctx, args): Promise<CommandResu
     render(o) {
       o.always(`${file} is a valid design system: ${data.name} (${data.id}@${data.version})`);
       renderSummary(o, data);
+      o.always(
+        allowSection
+          ? `  allow: ${data.allowComponents} catalog components (checked against the Texuli catalog)`
+          : `  no allow section: it cannot be locked; ${allowHint(location.id ?? '<id>')}`
+      );
       if (location.layout === 'folder') {
         o.always(`  status ${data.status} · ${data.components.length} library component(s)`);
+        if (data.approvalSource === 'sidecar') {
+          o.always(
+            `  approval read from the legacy approval.json; run \`protoyard ds migrate ${location.id}\` to move it into the document`
+          );
+        }
       }
     },
   };
@@ -710,10 +844,18 @@ export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
 };
 
 /**
- * `ds migrate <id>`: moves the flat `design-systems/<id>.json` into the
- * folder layout (`document.json`, a draft `approval.json`, an empty
- * `components.json`). Prototypes that pointed at the flat file keep working:
- * `ds use` and `ds validate` resolve the id to the folder.
+ * `ds migrate <id>`:
+ * - a flat `design-systems/<id>.json` moves into the folder layout
+ *   (`document.json`, unchanged, and an empty `components.json`);
+ * - a folder with the legacy `approval.json` sidecar gets it folded into the
+ *   document's `approval` (spec 0.13.0) and the sidecar removed; when the
+ *   document already has an approval, the sidecar is only removed;
+ * - a folder whose `components.json` lists components the document's
+ *   `library` lacks gets those entries (that changes the content hash: the
+ *   design system needs a new approval).
+ *
+ * Prototypes that pointed at the flat file keep working: `ds use` and
+ * `ds validate` resolve the id to the folder.
  */
 export const dsMigrateCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const id = args[0];
@@ -722,13 +864,17 @@ export const dsMigrateCommand: Handler = async (ctx, args, options): Promise<Com
   }
   const flat = workspaceFile(ctx.root, join(DESIGN_SYSTEMS_DIR, `${id}.json`));
   const dir = workspaceFile(ctx.root, join(DESIGN_SYSTEMS_DIR, id));
+  const dryRun = flag(options, 'dryRun');
+  if (existsSync(dir) && statSync(dir).isDirectory()) {
+    if (existsSync(flat)) {
+      throw new CliError('conflict', `design-systems/${id}/ already exists next to ${id}.json.`, {
+        hint: 'Remove or rename one of them; migrate never merges into an existing folder.',
+      });
+    }
+    return migrateFolder(ctx.root, id, dryRun);
+  }
   if (!existsSync(flat)) {
     throw new CliError('not_found', `No flat design system design-systems/${id}.json to migrate.`);
-  }
-  if (existsSync(dir)) {
-    throw new CliError('conflict', `design-systems/${id}/ already exists.`, {
-      hint: 'Remove or rename it first; migrate never merges into an existing folder.',
-    });
   }
   const location = locateDesignSystem(ctx.root, `${DESIGN_SYSTEMS_DIR}/${id}.json`);
   const document = readDocumentFile(location);
@@ -739,10 +885,8 @@ export const dsMigrateCommand: Handler = async (ctx, args, options): Promise<Com
       `design-systems/${id}.json declares id "${result.compiled.id}"; its folder would not match.`
     );
   }
-  const dryRun = flag(options, 'dryRun');
   const files = [
     `${DESIGN_SYSTEMS_DIR}/${id}/${DOCUMENT_FILE}`,
-    `${DESIGN_SYSTEMS_DIR}/${id}/${APPROVAL_FILE}`,
     `${DESIGN_SYSTEMS_DIR}/${id}/${COMPONENTS_FILE}`,
   ];
   if (!dryRun) {
@@ -752,8 +896,6 @@ export const dsMigrateCommand: Handler = async (ctx, args, options): Promise<Com
     rmSync(staging, { recursive: true, force: true });
     mkdirSync(staging, { recursive: true });
     writeFileSync(join(staging, DOCUMENT_FILE), readFileSync(flat, 'utf8'), 'utf8');
-    const approval: Approval = { status: 'draft', version: result.compiled.version };
-    writeFileSync(join(staging, APPROVAL_FILE), `${JSON.stringify(approval, null, 2)}\n`, 'utf8');
     writeFileSync(
       join(staging, COMPONENTS_FILE),
       `${JSON.stringify(emptyComponentsManifest(), null, 2)}\n`,
@@ -762,14 +904,228 @@ export const dsMigrateCommand: Handler = async (ctx, args, options): Promise<Com
     renameSync(staging, dir);
     rmSync(flat);
   }
-  const data = { id, from: `${DESIGN_SYSTEMS_DIR}/${id}.json`, files, status: 'draft', dryRun };
+  const status = readDocumentApproval(document)?.status ?? 'draft';
+  const data = {
+    id,
+    from: `${DESIGN_SYSTEMS_DIR}/${id}.json`,
+    files,
+    status,
+    locked: readAllow(document) !== null,
+    changes: ['folder'],
+    dryRun,
+  };
   return {
     data,
     render(o) {
       o.always(
-        `${dryRun ? 'Would migrate' : 'Migrated'} ${data.from} → ${DESIGN_SYSTEMS_DIR}/${id}/ (status draft)`
+        `${dryRun ? 'Would migrate' : 'Migrated'} ${data.from} → ${DESIGN_SYSTEMS_DIR}/${id}/ (status ${status})`
       );
-      o.always(`Next: review it, then \`protoyard ds approve ${id}\` and a reviewed commit.`);
+      o.always(
+        data.locked
+          ? `Next: review it, then \`protoyard ds approve ${id} --by <name>\` and a reviewed commit.`
+          : `Next: ${allowHint(id)}.`
+      );
+    },
+  };
+};
+
+async function migrateFolder(root: string, id: string, dryRun: boolean): Promise<CommandResult> {
+  const location = locateDesignSystem(root, id);
+  const document = readDocumentFile(location) as Record<string, unknown>;
+  await compileOrFail(document, location.file);
+  const sidecar = readApprovalSidecar(location);
+  const changes: string[] = [];
+  let next: Record<string, unknown> = document;
+  if (sidecar) {
+    if (readDocumentApproval(document)) changes.push('dropped the legacy approval.json');
+    else {
+      next = { ...next, approval: sidecar };
+      changes.push('moved approval.json into the document');
+    }
+  }
+  const components = readComponents(location);
+  const synced = components ? syncLibraryFromComponents(location, next, components) : null;
+  if (synced && synced.added.length > 0) {
+    next = synced.document;
+    changes.push(`added ${synced.added.join(', ')} to the library`);
+  }
+  if (changes.length === 0) {
+    const data = { id, from: location.file, files: [], changes, dryRun };
+    return {
+      data,
+      render(o) {
+        o.always(`design-systems/${id}/ is already up to date; nothing to migrate.`);
+      },
+    };
+  }
+  const files = [
+    location.file,
+    ...(sidecar ? [`${DESIGN_SYSTEMS_DIR}/${id}/${APPROVAL_FILE}`] : []),
+  ];
+  if (!dryRun) {
+    if (next !== document) {
+      await compileOrFail(next, location.file);
+      writeDocumentFile(location, next);
+    }
+    if (sidecar && location.dir) rmSync(join(location.dir, APPROVAL_FILE));
+  }
+  const approvalAfter = readDocumentApproval(next);
+  const refusal = lockRefusal(location, next, String(next.version ?? ''));
+  const data = {
+    id,
+    from: location.file,
+    files,
+    changes,
+    status: approvalAfter?.status ?? 'draft',
+    lockable: refusal === null,
+    ...(refusal ? { lockRefusal: refusal } : {}),
+    dryRun,
+  };
+  return {
+    data,
+    render(o) {
+      o.always(
+        `${dryRun ? 'Would migrate' : 'Migrated'} design-systems/${id}/: ${changes.join('; ')}`
+      );
+      if (refusal) o.always(`  not lockable yet: ${refusal}`);
+    },
+  };
+}
+
+/** The ISO time an approval is recorded (the real clock: not scenario data). */
+const now = () => new Date().toISOString();
+
+/**
+ * `ds approve <id> --by <name> [--release <semver>]`: Texuli's
+ * `approveDesignSystem` stamps the document's `approval` (status, who, when,
+ * version and content hash) and the CLI writes `document.json`. Refuses flat
+ * documents, unknown ids, documents without an `allow` section and allow
+ * sections the catalog refuses. No MCP tool approves: approvals are human.
+ */
+export const dsApproveCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
+  const id = args[0];
+  if (!id || !isDesignSystemId(id)) {
+    throw new CliError('usage', 'Provide a design-system id (lowercase kebab-case).');
+  }
+  const by = checkText(opt(options, 'by'), '--by', MAX_PERSON);
+  const location = locateDesignSystem(ctx.root, id);
+  if (location.layout !== 'folder') {
+    throw new CliError(
+      'validation',
+      `${location.file} is a flat document; only a folder can be approved.`,
+      {
+        hint: `Run \`protoyard ds migrate ${id}\` first.`,
+      }
+    );
+  }
+  const document = readDocumentFile(location);
+  const compiled = await compileOrFail(document, location.file);
+  if (compiled.compiled.id !== id) {
+    throw new CliError(
+      'validation',
+      `${location.file} declares id "${compiled.compiled.id}", but its folder is design-systems/${id}/.`
+    );
+  }
+  if (!readAllow(document)) {
+    throw new CliError(
+      'validation',
+      `design system "${id}" has no allow section; approve a locked design system.`,
+      {
+        hint: `${allowHint(id)}.`,
+      }
+    );
+  }
+  const allow = checkAllow(document);
+  if (!allow.ok) {
+    throw issuesError(
+      `design system "${id}" allows what the Texuli catalog does not list.`,
+      allow.errors
+    );
+  }
+  const version = opt(options, 'release');
+  const approved = approveDesignSystem(document, {
+    by,
+    at: now(),
+    ...(version ? { version } : {}),
+  });
+  if (!approved.ok) throw issuesError(`Could not approve design system "${id}".`, approved.errors);
+  writeDocumentFile(location, approved.document);
+  const sidecar = location.dir ? existsSync(join(location.dir, APPROVAL_FILE)) : false;
+  const guidance = [
+    `Commit ${location.file} yourself, in a commit a designer reviews.`,
+    `Protect ${DESIGN_SYSTEMS_DIR}/ with a CODEOWNERS entry (for example \`/${DESIGN_SYSTEMS_DIR}/ <design-team>\`) so only its owners approve changes.`,
+  ];
+  const data = {
+    id,
+    file: location.file,
+    version: approved.document.version,
+    contentHash: approved.contentHash,
+    approval: approved.document.approval,
+    note: APPROVAL_NOTE,
+    guidance,
+    ...(sidecar ? { legacySidecar: `${DESIGN_SYSTEMS_DIR}/${id}/${APPROVAL_FILE}` } : {}),
+  };
+  return {
+    data,
+    render(o) {
+      o.always(
+        `Approved ${id}@${data.version} as ${by} in ${location.file} (content hash ${data.contentHash.slice(0, 12)}).`
+      );
+      o.always(`  ${APPROVAL_NOTE}`);
+      for (const line of guidance) o.always(`  ${line}`);
+      if (sidecar) {
+        o.always(
+          `  The legacy approval.json is ignored now; \`protoyard ds migrate ${id}\` removes it.`
+        );
+      }
+    },
+  };
+};
+
+/**
+ * `ds allow init <id> [--preset all|minimal|<file>] [--force]`: adds an
+ * `allow` section to a design system that has none (or replaces it with
+ * `--force`), with a draft approval: the design system needs a new approval.
+ */
+export const dsAllowInitCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
+  const ref = args[0];
+  if (!ref) throw new CliError('usage', 'Missing <id|file>.');
+  const location: DesignSystemLocation = locateDesignSystem(ctx.root, ref);
+  const document = readDocumentFile(location) as DesignSystem;
+  await compileOrFail(document, location.file);
+  if (readAllow(document) && !flag(options, 'force')) {
+    throw new CliError('conflict', `${location.file} already has an allow section.`, {
+      hint: 'Edit it by hand, or pass --force to replace it with a preset.',
+    });
+  }
+  const preset = allowOption(ctx.root, opt(options, 'preset'));
+  if (preset === null) {
+    throw new CliError('usage', '--preset none would not add an allow section.', {
+      hint: 'Use all, minimal or a JSON file.',
+    });
+  }
+  const { allow: _old, ...rest } = document as DesignSystem & { allow?: unknown };
+  const next = lockDocument(rest as DesignSystem, preset);
+  await compileOrFail(next, location.file);
+  const dryRun = flag(options, 'dryRun');
+  if (!dryRun) writeDocumentFile(location, next);
+  const data = {
+    file: location.file,
+    preset: typeof preset === 'string' ? preset : 'file',
+    allowComponents: Object.keys(readAllow(next) ?? {}).length,
+    status: 'draft' as const,
+    dryRun,
+    written: !dryRun,
+  };
+  return {
+    data,
+    render(o) {
+      o.always(
+        `${dryRun ? 'Would add' : 'Added'} an allow section (${data.preset}: ${data.allowComponents} catalog components) to ${location.file}; status draft.`
+      );
+      o.always(
+        `Next: narrow it, \`protoyard ds validate ${location.id ?? ref}\`, then \`protoyard ds approve ${location.id ?? ref} --by <name>\`.`
+      );
     },
   };
 };

@@ -25,7 +25,7 @@ import { hasControlCharacter } from './paths.ts';
  * each one as invalid, while it ignores a top-level field it does not know.
  *
  * Indexing reads data only, never component sources: each document (for its
- * id, name and version), `approval.json` and `components.json`. Documents are
+ * id, name, version and approval), a legacy `approval.json` and `components.json`. Documents are
  * not compiled here (`ds validate` does that). Nothing it reads can fail the
  * index: a problem becomes an entry in `designSystemIssues`.
  */
@@ -48,11 +48,11 @@ export interface RegistryDesignSystem {
   name: string;
   /** The document's `version`. */
   version: string;
-  /** From `approval.json`; a flat document is always a draft. */
+  /** From the document's `approval` (or a legacy `approval.json`); a flat document is always a draft. */
   status: 'draft' | 'approved';
   approvedBy: string | null;
   approvedAt: string | null;
-  /** The version `approval.json` approved (it may differ from `version`). */
+  /** The version the approval approved (it may differ from `version`). */
   approvedVersion: string | null;
   /** SHA-256 of the document now (canonical JSON without approval fields). */
   contentHash: string;
@@ -156,7 +156,7 @@ function indexFolder(
   const absolute = join(dir, DOCUMENT_FILE);
   const facts = readDocument(absolute, label, id);
   const location: DesignSystemLocation = { layout: 'folder', file: label, absolute, dir, id };
-  const approval = readApproval(location);
+  const approval = readApproval(location, facts.document);
   const components = readComponents(location);
   const approved = approval?.status === 'approved';
   return {

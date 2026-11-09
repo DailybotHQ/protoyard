@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import { designSystemContentHash } from '@texuli/spec/design-system';
 import type { z } from 'zod';
+import { checkAllow, formatIssue, readAllow, readDocumentApproval } from './ds-catalog.ts';
 import {
   type Approval,
   ApprovalSchema,
@@ -20,15 +22,16 @@ import { workspaceFile } from './workspace-file.ts';
  *
  * ```text
  * design-systems/<id>/
- *   document.json      the Texuli design-system document
- *   approval.json      status, version, approvedBy, approvedAt, contentHash
+ *   document.json      the Texuli design-system document: allow, library and approval inside (spec 0.13.0)
  *   components.json    the design system's own components, with source hashes
  *   components/*.svelte
+ *   approval.json      legacy sidecar: read when the document has no approval; `ds migrate` folds it in
  * ```
  *
- * Only a folder can be approved, and only an approved folder can be locked.
- * The approval is a record, not a proof: the CLI cannot tell who ran
- * `ds approve`. A human commit reviewed through CODEOWNERS is the guarantee.
+ * Only a folder can be approved, and only an approved folder with an `allow`
+ * section can be locked. The approval is a record, not a proof: the CLI cannot
+ * tell who ran `ds approve`. A human commit reviewed through CODEOWNERS is the
+ * guarantee.
  */
 
 export const DESIGN_SYSTEMS_DIR = 'design-systems';
@@ -166,13 +169,44 @@ function readJsonFile<T>(file: string, label: string, schema: z.ZodType<T>): T |
   return parsed.data;
 }
 
-export function readApproval(location: DesignSystemLocation): Approval | null {
+/** The legacy `approval.json` sidecar of a folder, or null. */
+export function readApprovalSidecar(location: DesignSystemLocation): Approval | null {
   if (!location.dir) return null;
   return readJsonFile(
     join(location.dir, APPROVAL_FILE),
     `design-systems/${location.id}/${APPROVAL_FILE}`,
     ApprovalSchema
   );
+}
+
+/**
+ * A folder's approval: the document's own `approval` section first (spec
+ * 0.13.0), then the legacy `approval.json` sidecar. `document` is read from
+ * disk when it is not passed. Flat documents have none.
+ */
+export function readApproval(location: DesignSystemLocation, document?: unknown): Approval | null {
+  if (!location.dir) return null;
+  const own = readDocumentApproval(document === undefined ? readDocumentFile(location) : document);
+  if (own) return own;
+  return readApprovalSidecar(location);
+}
+
+/** Where `readApproval` found the approval: the document, the legacy sidecar, or nowhere. */
+export function approvalSource(
+  location: DesignSystemLocation,
+  document: unknown
+): 'document' | 'sidecar' | null {
+  if (!location.dir) return null;
+  if (readDocumentApproval(document)) return 'document';
+  return existsSync(join(location.dir, APPROVAL_FILE)) ? 'sidecar' : null;
+}
+
+/** Writes a document as the CLI formats it (two-space JSON), refusing a symlink. */
+export function writeDocumentFile(location: DesignSystemLocation, document: unknown): void {
+  if (existsSync(location.absolute) && lstatSync(location.absolute).isSymbolicLink()) {
+    throw new CliError('unsafe_path', `Refusing to write ${location.file} through a symlink.`);
+  }
+  writeFileSync(location.absolute, `${JSON.stringify(document, null, 2)}\n`, 'utf8');
 }
 
 export function readComponents(location: DesignSystemLocation): ComponentsManifest | null {
@@ -184,39 +218,17 @@ export function readComponents(location: DesignSystemLocation): ComponentsManife
   );
 }
 
-/** JSON with sorted keys and no whitespace, so equal documents hash equally. */
-export function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-  if (value && typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, v]) => v !== undefined)
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
+/** JSON with sorted keys and no whitespace, so equal documents hash equally (Texuli's). */
+export { canonicalJson } from '@texuli/spec/design-system';
 
 /**
- * Approval data never counts toward the content it approves: Texuli's spec
- * 0.13.0 leaves out the whole `approval` section (ADR-032 there); the flat
- * fields are dropped too so an interim sidecar hash keeps matching.
- */
-const APPROVAL_KEYS = new Set(['approval', 'status', 'approvedBy', 'approvedAt', 'contentHash']);
-
-/**
- * SHA-256 of the canonical JSON of a document without approval fields
- * (the scheme agreed with Texuli for the 0.13.0 spec).
+ * The content hash of a document: Texuli's `designSystemContentHash` (one
+ * implementation), SHA-256 of the canonical JSON without the whole `approval`
+ * section and without each library entry's own `approval`. A legacy sidecar
+ * hash matches it for documents without a library.
  */
 export function contentHash(document: unknown): string {
-  const stripped =
-    document && typeof document === 'object' && !Array.isArray(document)
-      ? Object.fromEntries(
-          Object.entries(document as Record<string, unknown>).filter(
-            ([key]) => !APPROVAL_KEYS.has(key)
-          )
-        )
-      : document;
-  return createHash('sha256').update(canonicalJson(stripped)).digest('hex');
+  return designSystemContentHash(document);
 }
 
 export function sha256File(file: string): string {
@@ -261,6 +273,11 @@ export function componentDrift(
   return drift;
 }
 
+/** How to give a design system an allow section (lockability needs one). */
+export function allowHint(id: string): string {
+  return `add one with \`protoyard ds allow init ${id}\` (or create it with \`protoyard ds new ${id} --allow all\`), then have it approved`;
+}
+
 /** Why a design system cannot be locked, or null when it can. */
 export function lockRefusal(
   location: DesignSystemLocation,
@@ -270,14 +287,24 @@ export function lockRefusal(
   if (location.layout !== 'folder') {
     return `${location.file} is a flat document; run \`protoyard ds migrate ${location.id ?? '<id>'}\` and have it approved first.`;
   }
-  const approval = readApproval(location);
+  if (!readAllow(document)) {
+    return `design system "${location.id}" has no allow section, so it cannot be locked; ${allowHint(location.id ?? '<id>')}.`;
+  }
+  const allow = checkAllow(document);
+  if (!allow.ok) {
+    return `design system "${location.id}" allows what the Texuli catalog does not list (${allow.errors.slice(0, 3).map(formatIssue).join(', ')}); fix it (\`protoyard ds validate ${location.id}\`).`;
+  }
+  const approval = readApproval(location, document);
   if (approval?.status !== 'approved') {
-    return `design system "${location.id}" is a draft; a designer approves it with \`protoyard ds approve ${location.id}\` and a reviewed commit.`;
+    return `design system "${location.id}" is a draft; a designer approves it with \`protoyard ds approve ${location.id} --by <name>\` and a reviewed commit.`;
   }
   if (approval.version !== version) {
     return `design system "${location.id}" was approved at ${approval.version}, but its document is ${version}; approve the new version first.`;
   }
-  if (approval.contentHash && approval.contentHash !== contentHash(document)) {
+  if (!approval.contentHash) {
+    return `design system "${location.id}" has an approval without a content hash; approve it again with \`protoyard ds approve ${location.id} --by <name>\`.`;
+  }
+  if (approval.contentHash !== contentHash(document)) {
     return `design system "${location.id}" changed after it was approved (content hash mismatch); approve it again.`;
   }
   return null;

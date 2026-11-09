@@ -3,9 +3,9 @@
 The command map the Protoyard skill uses for examples and flag spelling. It
 was taken from the real command tree (`protoyard --help` and every
 `protoyard <command> --help`) of the Protoyard CLI 1.0.0 line on 2026-10-20
-(source revision `b4f45af`). It covers 53 commands and subcommands, and
+(source revision `b4f45af`). It covers 57 commands and subcommands, and
 `pnpm check:skill` keeps every row and flag in step with the real CLI.
-(source revision `b4f45af`). It covers 53 commands and subcommands.
+(source revision `b4f45af`). It covers 57 commands and subcommands.
 
 **Verify before you act.** The CLI you have may be older or newer than this
 page. Before following an example, run:
@@ -128,16 +128,20 @@ deploy.
 | `protoyard theme export [id]` | `--from <file>`, `--format <format>` | export a theme as CSS variables, Tailwind tokens or W3C design tokens | Released (1.0.0) |
 | `protoyard theme import <slug-or-file> [file]` | `--name`, `--force`, `--dry-run` | write a validated JSON theme into a prototype; or, with a design-token file and `--name`, build a validated theme with a contrast report (`--json` prints the theme, CSS and Tailwind tokens) | Released (1.0.0); token import unreleased |
 | `protoyard ds` | — | create, validate, export and apply Texuli design systems | Unreleased |
-| `protoyard ds new <id>` | `--name <name>`, `--brief <text>`, `--brand <hex>`, `--secondary <hex>`, `--accent <hex>`, `--font <name>`, `--heading-font <name>`, `--mono-font <name>`, `--shape <shape>`, `--radius <px>`, `--density <density>`, `--motion <motion>`, `--contrast <target>`, `--from-theme <theme-id>`, `--from-theme-file <path>`, `--export <name>`, `--out <file>`, `--force`, `--dry-run` | create a design system from a brief, a few inputs, a library theme or a prototype's own theme module (`--from-theme-file` runs that file under tsx: trusted workspace code only); validates and compiles it and writes the folder `design-systems/<id>/` (document, draft approval, component library); `--out <file>` writes a flat document | Unreleased |
+| `protoyard ds new <id>` | `--name <name>`, `--brief <text>`, `--brand <hex>`, `--secondary <hex>`, `--accent <hex>`, `--font <name>`, `--heading-font <name>`, `--mono-font <name>`, `--shape <shape>`, `--radius <px>`, `--density <density>`, `--motion <motion>`, `--contrast <target>`, `--from-theme <theme-id>`, `--from-theme-file <path>`, `--export <name>`, `--allow <preset\|file>`, `--out <file>`, `--force`, `--dry-run` | create a design system from a brief, a few inputs, a library theme or a prototype's own theme module (`--from-theme-file` runs that file under tsx: trusted workspace code only); validates and compiles it and writes the folder `design-systems/<id>/` (document with an allow section and a draft approval, component library); `--allow` is `all` (default), `minimal`, a JSON file or `none` (cannot be locked); `--out <file>` writes a flat document | Unreleased |
 | `protoyard ds list` | — | list the workspace's design systems: version, approval status, whether it can be locked, component count and the prototypes bound to each (`--json` returns the registry entries; problems are listed, never fatal) | Unreleased |
-| `protoyard ds validate <id\|file>` | — | validate an untrusted design-system document and compile it (contrast per mode, hash); a folder also reports its approval status and fails on component-library drift | Unreleased |
-| `protoyard ds migrate <id>` | `--dry-run` | move a flat `design-systems/<id>.json` into the folder layout as a draft | Unreleased |
+| `protoyard ds validate <id\|file>` | — | validate an untrusted design-system document and compile it (contrast per mode, hash); its allow section is checked against the Texuli catalog (codes with JSON paths); a folder also reports its approval status and fails on component-library drift | Unreleased |
+| `protoyard ds approve <id>` | `--by <name>`, `--release <semver>` | approve a design system with an allow section: writes the approval (who, when, version, content hash) into its document; run by a human (a record, not a proof: the reviewed commit is the guarantee), never by an agent | Unreleased |
+| `protoyard ds allow` | — | the allow section: which Texuli catalog components and values a locked prototype may use | Unreleased |
+| `protoyard ds allow init <id\|file>` | `--preset <preset\|file>`, `--force`, `--dry-run` | add an allow section to a design system without one (status back to draft) | Unreleased |
+| `protoyard ds migrate <id>` | `--dry-run` | move a flat `design-systems/<id>.json` into the folder layout, fold a legacy `approval.json` into the document and add `components.json` components to its library | Unreleased |
 | `protoyard ds export <file>` | `--format <format>` | export a design system as CSS variables, a Tailwind preset or compiled JSON | Unreleased |
 | `protoyard ds use <slug> <id\|file>` | `--lock`, `--upgrade`, `--force`, `--dry-run` | apply a design system to a prototype: `src/design-system.ts`, `definePrototype({ themes })` and `defaultTheme`; `--lock` binds it to an approved design system at its exact version, `--upgrade` moves the pin | Unreleased |
 | `protoyard ds component` | — | a design system's own components: request one, have a human approve the request, then scaffold it | Unreleased |
 | `protoyard ds component request <id> <Name>` | `--purpose <text>`, `--why <text>`, `--by <name>` | record a request for a new component in `design-systems/<id>/requests/<Name>.json` (status open); writes no code. Ask the human first when no component fits | Unreleased |
 | `protoyard ds component approve-request <id> <Name>` | `--by <name>` | approve a component request; run by a human (a record, not a proof: the reviewed commit is the guarantee) | Unreleased |
-| `protoyard ds component new <id> <Name>` | `--prototype <slug...>` | scaffold an approved component from Texuli components (`components/<Name>.svelte`, a draft `components.json` entry with its sha256, a kit story stub); refuses inside a prototype folder or for a locked `--prototype` | Unreleased |
+| `protoyard ds component new <id> <Name>` | `--prototype <slug...>` | scaffold an approved component from Texuli components (`components/<Name>.svelte`, a draft `components.json` entry with its sha256, the document's library entry, a kit story stub); refuses inside a prototype folder or for a locked `--prototype` | Unreleased |
+| `protoyard ds component approve <id> <Name>` | `--by <name>` | approve a reviewed component (its `components.json` and library entries); run by a human, never by an agent | Unreleased |
 | `protoyard snapshot` | — | snapshot files committed with a prototype | Released (1.0.0) |
 | `protoyard snapshot list <slug>` | — |  | Released (1.0.0) |
 | `protoyard spec [slug]` | `--all`, `--write`, `--check`, `--init`, `--bundle` | keep a prototype's AGENTS.md and docs/ generated regions in sync with its definition (runs local code) | Released (1.0.0) |

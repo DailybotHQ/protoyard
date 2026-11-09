@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:protoyard:design-system:approval:1",
-  "title": "Design-system approval record",
-  "description": "design-systems/<id>/approval.json. Generated from packages/cli/src/lib/ds-contracts.ts.",
+  "title": "Design-system approval record (legacy sidecar)",
+  "description": "design-systems/<id>/approval.json (legacy: read when document.json has no approval section, never written; `protoyard ds migrate <id>` moves it into the document). Generated from packages/cli/src/lib/ds-contracts.ts.",
   "type": "object",
   "properties": {
     "status": {

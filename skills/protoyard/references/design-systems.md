@@ -27,8 +27,12 @@ From an existing theme (a built-in or any library theme):
 pnpm protoyard ds new ocean-ds --from-theme ocean
 ```
 
-Each writes the folder `design-systems/<id>/` (document, draft approval, component library) and prints the contrast result per
-mode. `--dry-run` compiles without writing; `--force` replaces the file. An
+Each writes the folder `design-systems/<id>/` (the document with an `allow`
+section and a draft approval, and the component library) and prints the
+contrast result per mode. The `allow` section lists the Texuli catalog
+components and values a locked prototype may use: `--allow all` (the default),
+`minimal`, a JSON file, or `none` (that design system can never be locked;
+`ds allow init <id>` adds one later). `--dry-run` compiles without writing; `--force` replaces the file. An
 imported theme lists what it could not keep exactly as notes (most Protoyard
 themes get their `input` and dark `borderStrong` colors raised to 3:1).
 
@@ -70,14 +74,22 @@ and browser; to put it in the repository, download the JSON and run `ds use`.
 
 ## Locked prototypes
 
+A designer approves a design system with `pnpm protoyard ds approve <id> --by
+"<name>"` and a reviewed commit of its `document.json`. That is a human step:
+never run it yourself, and no MCP tool does it.
+
 `pnpm protoyard ds use <slug> <id> --lock` binds a prototype to an approved
-design-system folder at its exact version (`"designSystem": { "id", "version",
+design-system folder with an `allow` section at its exact version (`"designSystem": { "id", "version",
 "locked": true }` in `protoyard.json`). Its generated `AGENTS.md` then says so.
 In a locked prototype:
 
-- Build UI only from the design system's allowed Texuli components and its
-  own components, imported as `@ds/<id>/<Name>`. Local code composes them with
-  layout utility classes (flex, grid, gap, padding, sizes).
+- Build UI only from the Texuli components its `allow` section lists (with the
+  variant, size, tone and density values it enables) and its own library
+  components, imported as `@ds/<id>/<Name>`. Local code composes them with
+  layout utility classes (flex, grid, gap, padding, sizes). `ds validate <id>
+  --json` shows the allowed ids; `check ds` fails a component that is not
+  allowed (`ds-not-allowed`) or a literal value that is not enabled
+  (`ds-disabled-value`).
 - Never style controls locally: no raw `<button>`/`<input>`, no visual CSS,
   no inline `style`, no visual utility classes, no other UI library, no local
   motion. `pnpm protoyard check ds <slug>` and `validate` fail on each one.
@@ -111,7 +123,9 @@ pnpm protoyard ds validate harbor
 - `new` needs the approved request. It writes `components/<Name>.svelte`
   (Svelte 5 runes, typed props, Texuli components and layout classes only, so
   it passes `check ds`), a draft `components.json` entry with the file's
-  sha256, and a kit story stub `stories/<Name>.json`. It refuses to run from
+  sha256, its entry in the document's library, and a kit story stub
+  `stories/<Name>.json`. A human approves the reviewed component with
+  `ds component approve <id> <Name> --by "<name>"`. It refuses to run from
   inside a prototype folder, for a locked `--prototype <slug>`, and when the
   component already exists.
 

@@ -26,9 +26,12 @@ function documentFor(id: string, name: string, version = '1.0.0') {
     version,
     name,
     color: { brand: { seed: '#0f766e' } },
+    // Lockability needs an allow section (Texuli spec 0.13.0).
+    allow: { button: {}, card: {} },
   };
 }
 
+/** The approval is the legacy approval.json sidecar here: the registry still reads it. */
 function folder(
   ws: TempWorkspace,
   id: string,

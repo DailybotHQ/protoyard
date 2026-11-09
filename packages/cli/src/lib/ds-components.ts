@@ -1,5 +1,6 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { libraryEntryContentHash } from '@texuli/spec/design-system';
 import {
   COMPONENTS_DIR,
   COMPONENTS_FILE,
@@ -9,8 +10,11 @@ import {
   type LibraryComponent,
   MAX_DOCUMENT_BYTES,
   readComponents,
+  readDocumentFile,
   sha256File,
+  writeDocumentFile,
 } from './design-systems.ts';
+import { composedCatalogIds, kebabCase, type LibraryEntryLike, readLibrary } from './ds-catalog.ts';
 import {
   type ComponentRequest,
   ComponentRequestSchema,
@@ -31,10 +35,13 @@ import { hasControlCharacter } from './paths.ts';
  *   stories/<Name>.json    the kit's story stub for the component
  * ```
  *
- * `components.json` is the source of truth for the library until Texuli's
- * spec 0.13.0 moves the entries into the document; every read and write of
- * the entries goes through `readComponents` / `writeLibraryEntry` so that
- * move touches one place.
+ * `components.json` stays the source of the code hashes (the file and its
+ * sha256). The document's `library` (Texuli spec 0.13.0) carries the same
+ * components as entries `checkDesignSystemAllow` and `check ds` read: id
+ * (kebab-case of the name), name, purpose, version, status and `composes`,
+ * the catalog ids the component renders (`composedCatalogIds`). `ds component
+ * new` and `ds component approve` keep both in step, through
+ * `writeLibraryEntry` and `writeDocumentLibraryEntry`.
  *
  * An approved request is a record, not a proof: the CLI cannot tell who ran
  * `ds component approve-request`. The reviewed commit is the guarantee.
@@ -242,4 +249,91 @@ export function draftEntry(name: string, purpose: string, file: string): Library
     file: `${COMPONENTS_DIR}/${name}.svelte`,
     sha256: sha256File(file),
   };
+}
+
+/** The document `library` entry of a component (composes = the catalog ids its source renders). */
+export function documentLibraryEntry(
+  component: Pick<LibraryComponent, 'name' | 'purpose' | 'version' | 'status'>,
+  source: string
+): LibraryEntryLike {
+  return {
+    id: kebabCase(component.name),
+    name: component.name,
+    purpose: component.purpose,
+    version: component.version,
+    status: component.status,
+    composes: composedCatalogIds(source),
+  };
+}
+
+/** The document with `entry` added to (or replacing its id in) `library`, sorted by id. */
+export function withLibraryEntry(
+  document: unknown,
+  entry: LibraryEntryLike
+): Record<string, unknown> {
+  const base = (document ?? {}) as Record<string, unknown>;
+  const library = [...readLibrary(base).filter((e) => e.id !== entry.id), entry].sort((a, b) =>
+    a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+  );
+  return { ...base, library };
+}
+
+/**
+ * Writes one library entry into the document. A component that renders no
+ * catalog component cannot be a library entry (`composes` needs one id): it
+ * is skipped and the reason returned.
+ */
+export function writeDocumentLibraryEntry(
+  location: DesignSystemLocation,
+  entry: LibraryEntryLike
+): { written: boolean; reason?: string } {
+  if (entry.composes.length === 0) {
+    return { written: false, reason: `${entry.name} renders no Texuli catalog component` };
+  }
+  writeDocumentFile(location, withLibraryEntry(readDocumentFile(location), entry));
+  return { written: true };
+}
+
+/** Approves a document library entry: its own `approval` with Texuli's entry hash. */
+export function approvedLibraryEntry(
+  entry: LibraryEntryLike,
+  approvedBy: string,
+  approvedAt: string
+): LibraryEntryLike {
+  const { approval: _old, ...rest } = entry;
+  const next: LibraryEntryLike = { ...rest, status: 'approved' };
+  return {
+    ...next,
+    approval: {
+      status: 'approved',
+      version: next.version,
+      approvedBy,
+      approvedAt,
+      contentHash: libraryEntryContentHash(next),
+    },
+  };
+}
+
+/**
+ * Adds a document `library` entry for every `components.json` component the
+ * document lacks (`ds migrate`). Returns the new document and the added names.
+ */
+export function syncLibraryFromComponents(
+  location: DesignSystemLocation,
+  document: Record<string, unknown>,
+  manifest: ComponentsManifest
+): { document: Record<string, unknown>; added: string[] } {
+  const listed = new Set(readLibrary(document).map((e) => e.name));
+  let next = document;
+  const added: string[] = [];
+  for (const component of manifest.components) {
+    if (listed.has(component.name) || !location.dir) continue;
+    const file = join(location.dir, component.file);
+    if (!existsSync(file) || lstatSync(file).isSymbolicLink()) continue;
+    const entry = documentLibraryEntry(component, readFileSync(file, 'utf8'));
+    if (entry.composes.length === 0) continue;
+    next = withLibraryEntry(next, entry);
+    added.push(component.name);
+  }
+  return { document: next, added };
 }

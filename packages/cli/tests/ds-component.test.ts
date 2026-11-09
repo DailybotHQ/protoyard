@@ -81,7 +81,19 @@ describe('ds component request, approve-request and new (PLAN_013 T-component)',
     expect(data.files).toEqual([
       'design-systems/harbor/components/StatusPill.svelte',
       'design-systems/harbor/components.json',
+      'design-systems/harbor/document.json',
       'design-systems/harbor/stories/StatusPill.json',
+    ]);
+    // The document's library carries the entry checkDesignSystemAllow reads.
+    expect(json('design-systems/harbor/document.json').library).toEqual([
+      {
+        id: 'status-pill',
+        name: 'StatusPill',
+        purpose: PURPOSE,
+        version: '0.1.0',
+        status: 'draft',
+        composes: ['badge', 'card'],
+      },
     ]);
     expect(data.import).toBe("import StatusPill from '@ds/harbor/StatusPill';");
 
@@ -132,6 +144,9 @@ describe('ds component request, approve-request and new (PLAN_013 T-component)',
         (c) => c.name
       )
     ).toEqual(['ActivityRow', 'StatusPill']);
+    expect(
+      (json('design-systems/harbor/document.json').library as { id: string }[]).map((e) => e.id)
+    ).toEqual(['activity-row', 'status-pill']);
     expect((await run('validate', 'harbor')).code).toBe(0);
   });
 
