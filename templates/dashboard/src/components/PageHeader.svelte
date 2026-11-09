@@ -1,11 +1,11 @@
 <script lang="ts">
 import { CardDescription } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
+import { Heading } from 'texuli/typography';
 
 /**
- * The page title row. The description is Texuli's muted description text.
- * The title keeps typography utilities until the design system has a heading
- * component (locked mode reports them as ds-utility).
+ * The page title row: Texuli's Heading for the title and its muted
+ * description text, so a locked design system keeps the hierarchy.
  */
 let { title, description, actions }: { title: string; description?: string; actions?: Snippet } =
   $props();
@@ -13,7 +13,7 @@ let { title, description, actions }: { title: string; description?: string; acti
 
 <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
   <div class="min-w-0">
-    <h1 class="text-2xl font-semibold tracking-tight">{title}</h1>
+    <Heading level={1} size="xl">{title}</Heading>
     {#if description}
       <CardDescription class="mt-1">{description}</CardDescription>
     {/if}

@@ -26,6 +26,7 @@ import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { ListItem } from 'texuli/list-item';
 import { Timeline } from 'texuli/timeline';
+import { Heading, Text } from 'texuli/typography';
 import CustomerDialog from '../components/CustomerDialog.svelte';
 import OrderDialog from '../components/OrderDialog.svelte';
 import OrderStatusMenu from '../components/OrderStatusMenu.svelte';
@@ -110,7 +111,7 @@ async function remove(customerId: string) {
     <div class="flex min-w-0 items-center gap-4">
       <Avatar name={c.name} {...avatarImage(c.avatar)} size="lg" />
       <div class="min-w-0">
-        <h1 class="truncate text-2xl font-semibold tracking-tight">{c.name}</h1>
+        <Heading level={1} size="xl" truncate>{c.name}</Heading>
         <CardDescription class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
           <span class="inline-flex items-center gap-1"><LucideIcon icon={Mail} class="size-3.5" />{c.email}</span>
           {#if c.company}<span class="inline-flex items-center gap-1"><LucideIcon icon={Building2} class="size-3.5" />{c.company}</span>{/if}
@@ -130,9 +131,9 @@ async function remove(customerId: string) {
 
   <dl class="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
     <Card class="p-4"><dt><CardDescription>Status</CardDescription></dt><dd class="mt-1.5"><StatusBadge status={c.status} /></dd></Card>
-    <Card class="p-4"><dt><CardDescription>Plan</CardDescription></dt><dd class="mt-1 font-medium">{capitalize(c.plan)}</dd></Card>
-    <Card class="p-4"><dt><CardDescription>Lifetime value</CardDescription></dt><dd class="mt-1 font-medium tabular-nums">{money(lifetime, currency)}</dd></Card>
-    <Card class="p-4"><dt><CardDescription>Customer since</CardDescription></dt><dd class="mt-1 font-medium">{formatDate(c.createdAt)}</dd></Card>
+    <Card class="p-4"><dt><CardDescription>Plan</CardDescription></dt><dd class="mt-1"><Text as="span" weight="medium">{capitalize(c.plan)}</Text></dd></Card>
+    <Card class="p-4"><dt><CardDescription>Lifetime value</CardDescription></dt><dd class="mt-1"><Text as="span" weight="medium" tabular>{money(lifetime, currency)}</Text></dd></Card>
+    <Card class="p-4"><dt><CardDescription>Customer since</CardDescription></dt><dd class="mt-1"><Text as="span" weight="medium">{formatDate(c.createdAt)}</Text></dd></Card>
   </dl>
 
   <div class="mt-6 grid gap-6 lg:grid-cols-5">

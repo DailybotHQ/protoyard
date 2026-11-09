@@ -10,6 +10,7 @@ import {
   Select,
 } from '@protoyard/ui';
 import { Icon } from 'texuli/icons';
+import { Text } from 'texuli/typography';
 import OrderDialog from '../components/OrderDialog.svelte';
 import OrderStatusMenu from '../components/OrderStatusMenu.svelte';
 import PageHeader from '../components/PageHeader.svelte';
@@ -51,14 +52,14 @@ const columns: DataTableColumn<Row>[] = [
 ];
 </script>
 
-{#snippet referenceCell(o: Row)}<span class="font-medium tabular-nums">{o.reference}</span>{/snippet}
+{#snippet referenceCell(o: Row)}<Text as="span" size="sm" weight="medium" tabular>{o.reference}</Text>{/snippet}
 {#snippet customerCell(o: Row)}
   <Button variant="link" size="sm" href={`#/customers/${o.customerId}`} class="px-0">{o.customerName}</Button>
 {/snippet}
-{#snippet amountCell(o: Row)}<span class="tabular-nums">{money(o.amountCents, currency)}</span>{/snippet}
+{#snippet amountCell(o: Row)}<Text as="span" size="sm" tabular>{money(o.amountCents, currency)}</Text>{/snippet}
 {#snippet statusCell(o: Row)}<OrderStatusMenu order={o} />{/snippet}
 {#snippet createdCell(o: Row)}
-  <time class="text-muted-foreground" datetime={o.createdAt}>{fromNow(o.createdAt, clock.now)}</time>
+  <Text as="span" size="sm" tone="muted"><time datetime={o.createdAt}>{fromNow(o.createdAt, clock.now)}</time></Text>
 {/snippet}
 
 <PageHeader
