@@ -13,7 +13,11 @@ const variant = $derived(
           ? 'info'
           : 'secondary'
 );
-const label = $derived(status === 'awaiting-approval' ? 'Needs approval' : status);
+const label = $derived(
+  status === 'awaiting-approval'
+    ? 'Needs approval'
+    : `${status.charAt(0).toUpperCase()}${status.slice(1)}`
+);
 </script>
 
-<Badge {variant} class="capitalize">{label}</Badge>
+<Badge {variant}>{label}</Badge>

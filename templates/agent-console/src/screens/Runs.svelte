@@ -2,6 +2,7 @@
 import { History } from '@lucide/svelte';
 import { getRuntime, liveQuery, navigate, useClock } from '@protoyard/renderer-svelte';
 import { DataTable, type DataTableColumn, EmptyState, Select } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import RunStatusBadge from '../components/RunStatusBadge.svelte';
 import type { ConsoleDatabase, Run } from '../database/schema.ts';
@@ -69,14 +70,14 @@ const columns: DataTableColumn<Run>[] = [
 </script>
 
 {#snippet promptCell(run: Run)}
-  <span class="line-clamp-1 font-medium">{run.prompt}</span>
-  {#if run.source === 'evaluation'}<span class="text-xs text-muted-foreground">evaluation run</span>{/if}
+  <Text as="span" size="sm" weight="medium" lineClamp={1}>{run.prompt}</Text>
+  {#if run.source === 'evaluation'}<Text as="span" size="xs" tone="muted">evaluation run</Text>{/if}
 {/snippet}
 {#snippet statusCell(run: Run)}
-  <span class="inline-flex items-center gap-1.5"><RunStatusBadge status={run.status} />{#if failedSteps(run)}<span class="text-xs text-destructive">{failedSteps(run)} not run</span>{/if}</span>
+  <span class="inline-flex items-center gap-1.5"><RunStatusBadge status={run.status} />{#if failedSteps(run)}<Text as="span" size="xs" tone="destructive">{failedSteps(run)} not run</Text>{/if}</span>
 {/snippet}
 {#snippet costCell(run: Run)}{formatCost(run.costMicros)}{/snippet}
-{#snippet whenCell(run: Run)}<span class="text-muted-foreground">{timeAgo(run.createdAt, clock.now)}</span>{/snippet}
+{#snippet whenCell(run: Run)}<Text as="span" size="sm" tone="muted">{timeAgo(run.createdAt, clock.now)}</Text>{/snippet}
 
 <PageHeader title="Runs" description="Every playground and evaluation run with its full step trace." />
 
