@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { lockedBindingProblem } from '../src/commands/validate.ts';
 import { contentHash } from '../src/lib/design-systems.ts';
 import { addPrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
@@ -148,5 +149,32 @@ describe('ds use --lock and --upgrade (PLAN_013 T-lock)', () => {
     const used = await run('use', 'free-app', 'harbor');
     expect(used.code, used.stdout).toBe(0);
     expect(json('prototypes/free-app/protoyard.json').designSystem).toBeUndefined();
+  });
+
+  it('validate refuses a locked binding whose design system is a draft, moved on, or not applied', async () => {
+    ws = createWorkspace();
+    prototype('locked-app');
+    expect((await run('new', 'harbor', '--brand', '#0f766e')).code).toBe(0);
+    approve('harbor');
+    expect((await run('use', 'locked-app', 'harbor', '--lock')).code).toBe(0);
+    const dir = join(ws.root, 'prototypes/locked-app');
+    const binding = json('prototypes/locked-app/protoyard.json').designSystem as {
+      id: string;
+      version: string;
+    };
+    expect(lockedBindingProblem(ws.root, dir, binding)).toBeNull();
+
+    ws.write('design-systems/harbor/approval.json', {
+      ...json('design-systems/harbor/approval.json'),
+      status: 'draft',
+    });
+    expect(lockedBindingProblem(ws.root, dir, binding)).toContain('is a draft');
+
+    approve('harbor');
+    expect(lockedBindingProblem(ws.root, dir, { ...binding, version: '0.0.1' })).toContain(
+      '--upgrade'
+    );
+    ws.write('prototypes/locked-app/src/design-system.ts', 'export {};\n');
+    expect(lockedBindingProblem(ws.root, dir, binding)).toContain('src/design-system.ts');
   });
 });

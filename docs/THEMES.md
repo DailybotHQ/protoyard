@@ -1034,6 +1034,14 @@ A prototype binds to a design system in its manifest:
   values that changed, were added or were removed.
 - A locked prototype cannot take another design system.
 - Existing prototypes are not locked unless you run `ds use --lock`.
+- `validate <slug>` checks a locked binding before anything else. The design
+  system must be an approved folder at exactly the pinned version, unchanged
+  since its approval, and applied in `src/design-system.ts`. Then it runs the
+  `check ds` rules below.
+- At runtime a locked prototype only uses its design system's theme. Other
+  theme ids from the URL, storage, scenarios or DevTools are ignored, Theme
+  Studio custom themes and style presets are off, and DevTools shows the lock
+  instead of the theme tools.
 
 ### check ds
 
