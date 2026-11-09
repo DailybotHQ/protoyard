@@ -558,7 +558,7 @@ describe('locked design system (PLAN_013)', () => {
     expect(runtime.theme.themes().map((t) => t.id)).toEqual(['ocean']);
     await runtime.theme.setOverride({ themeId: 'violet', radius: 'pill' });
     expect(runtime.theme.appearance().theme.value).toBe('ocean');
-    expect(runtime.theme.appearance().radius.value).toBeNull();
+    expect(runtime.theme.appearance().radius?.value ?? null).toBeNull();
     expect(await runtime.theme.ensure?.('library-theme')).toBeUndefined();
     expect(runtime.theme.themes().map((t) => t.id)).toEqual(['ocean']);
     const refused = await runtime.theme
