@@ -113,6 +113,7 @@ deploy.
 | `protoyard validate [slug]` | `--all`, `--skip-typecheck`, `--build`, `--strict-spec`, `--check` | `--all` validates every prototype and fails if any does; check manifest, folder contract, package, scenarios, schema version and types; `--check` (implied in CI) never writes, so a stale `src/brand-theme.ts` fails instead of being rewritten | Released (1.0.0) |
 | `protoyard check` | — | workspace checks that consumers can run | Unreleased |
 | `protoyard check texuli` | `--scope <path...>`, `--strict` | the Texuli adoption rules over prototypes, templates, packages and apps (exit 4 lists each violation) | Unreleased |
+| `protoyard check ds [slugs...]` | `--report` | check that locked prototypes (`designSystem.locked`) draw their UI only with design-system components; exit 4 lists each violation with its way out; `--report` also checks unlocked prototypes and never fails | Unreleased |
 | `protoyard sweep <slugs...>` | `--out <dir>` | light and dark (each shot forces `?mode=`), desktop and phone PNGs of one or more built prototypes, DevTools hidden (needs Playwright's Chromium) | Unreleased |
 | `protoyard budget [slug]` | `--all`, `--skip-build` | check initial JavaScript and CSS bundle sizes against configured budgets | Released (1.0.0) |
 | `protoyard scenario` | — | inspect a prototype's scenarios | Released (1.0.0) |
@@ -132,6 +133,10 @@ deploy.
 | `protoyard ds migrate <id>` | `--dry-run` | move a flat `design-systems/<id>.json` into the folder layout as a draft | Unreleased |
 | `protoyard ds export <file>` | `--format <format>` | export a design system as CSS variables, a Tailwind preset or compiled JSON | Unreleased |
 | `protoyard ds use <slug> <id\|file>` | `--lock`, `--upgrade`, `--force`, `--dry-run` | apply a design system to a prototype: `src/design-system.ts`, `definePrototype({ themes })` and `defaultTheme`; `--lock` binds it to an approved design system at its exact version, `--upgrade` moves the pin | Unreleased |
+| `protoyard ds component` | — | a design system's own components: request one, have a human approve the request, then scaffold it | Unreleased |
+| `protoyard ds component request <id> <Name>` | `--purpose <text>`, `--why <text>`, `--by <name>` | record a request for a new component in `design-systems/<id>/requests/<Name>.json` (status open); writes no code. Ask the human first when no component fits | Unreleased |
+| `protoyard ds component approve-request <id> <Name>` | `--by <name>` | approve a component request; run by a human (a record, not a proof: the reviewed commit is the guarantee) | Unreleased |
+| `protoyard ds component new <id> <Name>` | `--prototype <slug...>` | scaffold an approved component from Texuli components (`components/<Name>.svelte`, a draft `components.json` entry with its sha256, a kit story stub); refuses inside a prototype folder or for a locked `--prototype` | Unreleased |
 | `protoyard snapshot` | — | snapshot files committed with a prototype | Released (1.0.0) |
 | `protoyard snapshot list <slug>` | — |  | Released (1.0.0) |
 | `protoyard spec [slug]` | `--all`, `--write`, `--check`, `--init`, `--bundle` | keep a prototype's AGENTS.md and docs/ generated regions in sync with its definition (runs local code) | Released (1.0.0) |

@@ -26,7 +26,9 @@ export type ToolName =
   | 'ds_create'
   | 'ds_validate'
   | 'ds_export'
-  | 'ds_use';
+  | 'ds_use'
+  | 'ds_component_request'
+  | 'ds_component_new';
 
 /** A prototype or exploration slug, checked like the CLI checks it (never an option-like `-…`). */
 const slugArg = z
@@ -147,6 +149,40 @@ const dsUseArgs = z
     dryRun: z.boolean().optional(),
   })
   .strict();
+/** A design-system component name (PascalCase), as `ds component` checks it. */
+const dsComponentName = z
+  .string()
+  .regex(/^[A-Z][A-Za-z0-9]{0,63}$/, 'Use a PascalCase component name, e.g. StatusPill.');
+/** One line of human text: no control characters or line separators. */
+const dsLine = (max: number) =>
+  z
+    .string()
+    .min(1)
+    .max(max)
+    .refine((value) => !hasControlCharacter(value), 'Use one line without control characters.');
+const dsComponentRequestArgs = z
+  .object({
+    id: dsId,
+    name: dsComponentName,
+    purpose: dsLine(280),
+    why: dsLine(1000),
+    by: dsLine(120).optional(),
+  })
+  .strict();
+const dsComponentNewArgs = z
+  .object({
+    id: dsId,
+    name: dsComponentName,
+    prototype: slugArg.optional(),
+  })
+  .strict();
+/**
+ * The agent rule both component tools repeat: an agent never invents a
+ * component; it stops and asks, and approvals stay with a human (there is no
+ * approve-request tool).
+ */
+const DS_COMPONENT_RULE =
+  'If no design-system component fits, stop and ask the human first: the name, the purpose, and why the existing components do not fit. Only after they agree, record the request; a human approves it with `protoyard ds component approve-request` (no tool does that), and only then scaffold it. Never style controls locally in a locked prototype: `protoyard check ds` fails the build.';
 const DS_CREATE_TEXT = {
   name: 80,
   brief: 2048,
@@ -322,6 +358,36 @@ const toolSchemas: Record<ToolName, McpTool> = {
       additionalProperties: false,
     },
   },
+  ds_component_request: {
+    name: 'ds_component_request',
+    description: `Record a request for a new component in a design-system folder (design-systems/<id>/requests/<Name>.json, status open). Writes no code. Refuses an existing component, an open or approved request with the same name, a flat or unknown design system, and text with control characters. ${DS_COMPONENT_RULE}`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,63}$' },
+        name: { type: 'string', pattern: '^[A-Z][A-Za-z0-9]{0,63}$' },
+        purpose: { type: 'string', minLength: 1, maxLength: 280 },
+        why: { type: 'string', minLength: 1, maxLength: 1000 },
+        by: { type: 'string', minLength: 1, maxLength: 120 },
+      },
+      required: ['id', 'name', 'purpose', 'why'],
+      additionalProperties: false,
+    },
+  },
+  ds_component_new: {
+    name: 'ds_component_new',
+    description: `Scaffold a design-system component whose request a human approved: components/<Name>.svelte from Texuli components with layout classes only (passes check ds), a draft components.json entry with its sha256, and a kit story stub. Refuses without an approved request, for a locked prototype target, from inside a prototype folder, and for an existing component. ${DS_COMPONENT_RULE}`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,63}$' },
+        name: { type: 'string', pattern: '^[A-Z][A-Za-z0-9]{0,63}$' },
+        prototype: { type: 'string', minLength: 1, maxLength: 80 },
+      },
+      required: ['id', 'name'],
+      additionalProperties: false,
+    },
+  },
   doctor: {
     name: 'doctor',
     description: 'Check the local Protoyard CLI environment and interface.',
@@ -349,6 +415,8 @@ const validators: Record<ToolName, z.ZodType> = {
   ds_validate: dsFileArgs,
   ds_export: dsExportArgs,
   ds_use: dsUseArgs,
+  ds_component_request: dsComponentRequestArgs,
+  ds_component_new: dsComponentNewArgs,
 };
 
 function commandForTool(name: string): string {
@@ -356,6 +424,8 @@ function commandForTool(name: string): string {
   if (name === 'blueprint_schema') return 'blueprint_schema';
   if (name === 'iterate' || name === 'promote' || name === 'screenshot') return 'quick';
   if (name === 'ds_create') return 'ds new';
+  if (name === 'ds_component_request') return 'ds component request';
+  if (name === 'ds_component_new') return 'ds component new';
   if (name.startsWith('ds_')) return `ds ${name.slice(3)}`;
   return name;
 }
@@ -441,6 +511,24 @@ export function cliArgs(name: ToolName, value: Record<string, unknown>): string[
         ...(value.dryRun ? ['--dry-run'] : []),
       ],
       [String(value.slug), String(value.file)]
+    );
+  }
+  if (name === 'ds_component_request') {
+    return command(
+      ['ds', 'component', 'request'],
+      [
+        `--purpose=${String(value.purpose)}`,
+        `--why=${String(value.why)}`,
+        ...(value.by === undefined ? [] : [`--by=${String(value.by)}`]),
+      ],
+      [String(value.id), String(value.name)]
+    );
+  }
+  if (name === 'ds_component_new') {
+    return command(
+      ['ds', 'component', 'new'],
+      value.prototype === undefined ? [] : [`--prototype=${String(value.prototype)}`],
+      [String(value.id), String(value.name)]
     );
   }
   return ['doctor', '--offline'];

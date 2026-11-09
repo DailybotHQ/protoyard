@@ -29,6 +29,11 @@ import {
   dsUseCommand,
   dsValidateCommand,
 } from './commands/ds.ts';
+import {
+  dsComponentApproveRequestCommand,
+  dsComponentNewCommand,
+  dsComponentRequestCommand,
+} from './commands/ds-component.ts';
 import { exportCommand } from './commands/export.ts';
 import { galleryBuildCommand, galleryPreviewCommand } from './commands/gallery-build.ts';
 import { generateCommand } from './commands/generate.ts';
@@ -655,6 +660,46 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--force', 'replace another design system in src/design-system.ts')
     .option('--dry-run', 'show what would change without writing')
     .action(def('ds use', dsUseCommand));
+  const dsComponent = ds
+    .command('component')
+    .description(
+      "a design system's own components: request one, have a human approve the request, then scaffold it"
+    );
+  dsComponent
+    .command('request')
+    .description(
+      'record a request for a new component (design-systems/<id>/requests/<Name>.json); writes no code'
+    )
+    .argument('<id>', 'design system id (a folder under design-systems/)')
+    .argument('<Name>', 'component name (PascalCase)')
+    .option('--purpose <text>', 'what the component is for (one line, at most 280 characters)')
+    .option(
+      '--why <text>',
+      'why the existing components do not fit (one line, at most 1000 characters)'
+    )
+    .option('--by <name>', 'who asks for it')
+    .action(def('ds component request', dsComponentRequestCommand));
+  dsComponent
+    .command('approve-request')
+    .description(
+      'approve a component request (run by a human; a record, not a proof: the reviewed commit is the guarantee)'
+    )
+    .argument('<id>', 'design system id')
+    .argument('<Name>', 'component name (PascalCase)')
+    .option('--by <name>', 'who approves it')
+    .action(def('ds component approve-request', dsComponentApproveRequestCommand));
+  dsComponent
+    .command('new')
+    .description(
+      'scaffold an approved component from Texuli components (components/<Name>.svelte, a draft components.json entry with its sha256, a kit story stub)'
+    )
+    .argument('<id>', 'design system id')
+    .argument('<Name>', 'component name with an approved request')
+    .option(
+      '--prototype <slug...>',
+      'the prototype it is for; refused when that prototype is locked'
+    )
+    .action(def('ds component new', dsComponentNewCommand));
 
   const kit = program
     .command('kit')
