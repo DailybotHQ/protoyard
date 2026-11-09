@@ -2,6 +2,7 @@
 import { Building2, CircleDollarSign, OctagonPause, Users } from '@lucide/svelte';
 import { liveQuery, useClock } from '@protoyard/renderer-svelte';
 import {
+  Button,
   Card,
   CardContent,
   CardHeader,
@@ -10,6 +11,7 @@ import {
   ErrorState,
   StatCard,
 } from '@protoyard/ui';
+import { ListItem } from 'texuli/list-item';
 import PageHeader from '../components/PageHeader.svelte';
 import { AUDIT_LABELS, type AuditType } from '../domain/services.ts';
 import { useAdmin } from '../lib/context.ts';
@@ -50,18 +52,16 @@ const nameOf = (id: string | undefined) =>
       {#if (recent.current ?? []).length === 0}
         <EmptyState size="sm" title="No staff actions yet" description="Suspensions, impersonations and billing changes show up here." />
       {:else}
-        <ul class="divide-y divide-border">
+        <ul role="list" class="tx-list -mx-3">
           {#each recent.current ?? [] as event (event.id)}
-            <li class="flex flex-wrap items-baseline justify-between gap-2 py-2.5 text-sm">
-              <span class="min-w-0">
-                <span class="font-medium">{AUDIT_LABELS[event.type as AuditType] ?? event.type}</span>
-                <span class="text-muted-foreground">· {event.payload.message} · {nameOf(event.actorId)}</span>
-              </span>
-              <time class="text-xs text-muted-foreground" datetime={event.at}>{fromNow(event.at, clock.now)}</time>
-            </li>
+            <ListItem
+              title={AUDIT_LABELS[event.type as AuditType] ?? event.type}
+              description={`${event.payload.message} · ${nameOf(event.actorId)}`}
+              meta={fromNow(event.at, clock.now)}
+            />
           {/each}
         </ul>
-        <a class="mt-3 inline-block text-sm font-medium text-primary hover:underline" href="#/audit">Open the audit log</a>
+        <Button variant="link" size="sm" href="#/audit" class="mt-3">Open the audit log</Button>
       {/if}
     </CardContent>
   </Card>
