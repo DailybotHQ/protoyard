@@ -1,6 +1,7 @@
 <script lang="ts">
 import { can, isValidationError, runService, useClock } from '@protoyard/renderer-svelte';
 import { Button, Dialog, FormField, Input } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 import type { Booking, Resource } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { useBooking } from '../lib/context.ts';
@@ -45,18 +46,18 @@ async function cancel() {
 
 <Dialog bind:open title={booking?.title ?? 'Booking'} description={booking ? formatSpan(booking.start, booking.end) : undefined}>
   {#if booking}
-    <dl class="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-2 text-sm">
-      <dt class="text-muted-foreground">Status</dt>
+    <dl class="details-grid grid gap-x-4 gap-y-2">
+      <dt><Text as="span" size="sm" tone="muted">Status</Text></dt>
       <dd><StatusBadge status={booking.status} /></dd>
-      <dt class="text-muted-foreground">Resource</dt>
-      <dd>{resource?.name ?? booking.resourceId}</dd>
-      <dt class="text-muted-foreground">Customer</dt>
-      <dd>{booking.customerName} · {booking.customerEmail}</dd>
-      <dt class="text-muted-foreground">Booked via</dt>
-      <dd>{booking.source === 'public' ? 'Public booking page' : booking.source === 'block' ? 'Recurring block' : 'Staff calendar'}</dd>
+      <dt><Text as="span" size="sm" tone="muted">Resource</Text></dt>
+      <dd><Text as="span" size="sm">{resource?.name ?? booking.resourceId}</Text></dd>
+      <dt><Text as="span" size="sm" tone="muted">Customer</Text></dt>
+      <dd><Text as="span" size="sm">{booking.customerName} · {booking.customerEmail}</Text></dd>
+      <dt><Text as="span" size="sm" tone="muted">Booked via</Text></dt>
+      <dd><Text as="span" size="sm">{booking.source === 'public' ? 'Public booking page' : booking.source === 'block' ? 'Recurring block' : 'Staff calendar'}</Text></dd>
       {#if booking.cancelReason}
-        <dt class="text-muted-foreground">Cancel reason</dt>
-        <dd>{booking.cancelReason}</dd>
+        <dt><Text as="span" size="sm" tone="muted">Cancel reason</Text></dt>
+        <dd><Text as="span" size="sm">{booking.cancelReason}</Text></dd>
       {/if}
     </dl>
     {#if cancellable}
@@ -76,3 +77,9 @@ async function cancel() {
     {/if}
   {/snippet}
 </Dialog>
+
+<style>
+  .details-grid {
+    grid-template-columns: 8rem 1fr;
+  }
+</style>
