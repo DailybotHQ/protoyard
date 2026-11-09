@@ -8,9 +8,10 @@ import {
   useClock,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
-import { Button, Checkbox, EmptyState, ErrorState, Select, Skeleton } from '@protoyard/ui';
+import { Avatar, Button, Checkbox, EmptyState, ErrorState, Select, Skeleton } from '@protoyard/ui';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import DueBadge from '../components/DueBadge.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import PriorityBadge from '../components/PriorityBadge.svelte';
@@ -20,7 +21,7 @@ import { CAPABILITIES } from '../domain/policy.ts';
 import {
   type DueState,
   dueState,
-  PROJECT_COLOR_CLASSES,
+  PROJECT_COLOR_TONES,
   STATUS_LABELS,
   sortByDue,
   taskKey,
@@ -109,7 +110,7 @@ async function toggleDone(task: Task) {
 
 {#if mine.loading}
   <div class="space-y-2" aria-busy="true" aria-label="Loading tasks">
-    {#each [0, 1, 2, 3] as i (i)}<Skeleton class="h-14 w-full rounded-lg" />{/each}
+    {#each [0, 1, 2, 3] as i (i)}<Skeleton class="h-14 w-full" />{/each}
   </div>
 {:else if mine.error}
   <ErrorState title="Could not load your tasks" message={String(mine.error)} />
@@ -133,48 +134,53 @@ async function toggleDone(task: Task) {
   <div class="space-y-8">
     {#each groups as group (group.id)}
       <section aria-labelledby={`group-${group.id}`}>
-        <h2 id={`group-${group.id}`} class={['mb-2 text-sm font-semibold', group.id === 'overdue' && 'text-destructive']}>
-          {group.title} <span class="font-normal text-muted-foreground">{group.tasks.length}</span>
-        </h2>
-        <ul class="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
-          {#each group.tasks as task (task.id)}
+        <Heading level={2} size="sm" id={`group-${group.id}`} class="mb-2">
+          <Text as="span" size="sm" weight="semibold" tone={group.id === 'overdue' ? 'destructive' : 'default'}>{group.title}</Text> <Text as="span" size="sm" tone="muted" tabular>{group.tasks.length}</Text>
+        </Heading>
+        <Box surface="default" border="default" radius="xl" padding="none" class="overflow-hidden">
+        <ul>
+          {#each group.tasks as task, index (task.id)}
             {@const project = projects.current?.get(task.projectId)}
-            <li class="flex items-center gap-3 px-3 py-2.5 sm:px-4">
+            <li>
+              <Box border={index > 0 ? 'block-start' : 'none'} radius="none" padding="none" class="flex items-center gap-3 px-3 py-2.5 sm:px-4">
               <Button
                 type="button"
                 variant="ghost"
-                class="inline-flex size-9 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-success focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0 sm:min-w-0"
+                size="icon"
+                class="min-h-touch min-w-11 shrink-0 sm:min-h-0 sm:min-w-0"
                 aria-label={task.status === 'done' ? `Reopen ${task.title}` : `Mark ${task.title} as done`}
                 aria-pressed={task.status === 'done'}
                 onclick={() => toggleDone(task)}
               >
                 {#if task.status === 'done'}
-                  <LucideIcon icon={CircleCheck} class="size-5 text-success" />
+                  <LucideIcon icon={CircleCheck} size="md" tone="success" />
                 {:else}
-                  <LucideIcon icon={Circle} class="size-5" />
+                  <LucideIcon icon={Circle} size="md" tone="neutral" />
                 {/if}
               </Button>
               <div class="min-w-0 flex-1">
-                <Link href={`/tasks/${task.id}`} class={['block truncate text-sm font-medium hover:text-primary', task.status === 'done' && 'text-muted-foreground line-through']}>
-                  {task.title}
+                <Link href={`/tasks/${task.id}`} class="block min-w-0">
+                  <Text as="span" size="sm" weight="medium" tone={task.status === 'done' ? 'muted' : 'default'} truncate class="block">{task.title}</Text>
                 </Link>
-                <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                   {#if project}
                     <span class="inline-flex items-center gap-1.5">
-                      <span class={['size-2 rounded-full', PROJECT_COLOR_CLASSES[project.color].dot]} aria-hidden="true"></span>
-                      <span class="font-mono">{taskKey(task, project)}</span>
+                      <Avatar name={project.name} tone={PROJECT_COLOR_TONES[project.color]} shape="square" size="xs" decorative />
+                      <Text as="span" size="xs" tone="muted" mono>{taskKey(task, project)}</Text>
                     </span>
                   {/if}
-                  <span>{STATUS_LABELS[task.status]}</span>
-                </p>
+                  <Text as="span" size="xs" tone="muted">{STATUS_LABELS[task.status]}</Text>
+                </div>
               </div>
               <div class="hidden items-center gap-2 sm:flex">
                 <PriorityBadge priority={task.priority} />
               </div>
               <DueBadge {task} />
+              </Box>
             </li>
           {/each}
         </ul>
+        </Box>
       </section>
     {/each}
   </div>

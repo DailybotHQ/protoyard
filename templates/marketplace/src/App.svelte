@@ -9,8 +9,9 @@ import {
   TrialBanner,
   WorkspaceSwitcher,
 } from '@protoyard/saas-ui';
-import { Button } from '@protoyard/ui';
+import { Avatar, Button } from '@protoyard/ui';
 import { onDestroy, onMount } from 'svelte';
+import { Box, Text } from 'texuli/typography';
 import Checkout from './screens/Checkout.svelte';
 import Marketplace from './screens/Marketplace.svelte';
 import Orders from './screens/Orders.svelte';
@@ -79,11 +80,11 @@ onDestroy(() => {
 const signedIn = $derived(principal.current !== null);
 </script>
 
-<div class="min-h-dvh bg-background text-foreground">
+<div class="min-h-dvh">
   {#if signedIn}<TrialBanner />{/if}
-  <header class="sticky top-0 z-30 border-b border-border bg-background/90 pt-safe backdrop-blur">
+  <Box as="header" surface="default" border="block-end" radius="none" padding="none" class="sticky top-0 z-30 pt-safe">
     <nav class="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3" aria-label="Main navigation">
-      <a class="mr-auto flex items-center gap-2 font-semibold" href="#/"><span class="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground" aria-hidden="true">F</span>Fieldmarket</a>
+      <a class="mr-auto flex items-center gap-2" href="#/"><Avatar name="F" tone="primary" shape="square" size="sm" decorative /><Text as="span" weight="semibold">Fieldmarket</Text></a>
       <a href="#/">Discover</a>
       {#if signedIn}
         <WorkspaceSwitcher {runtime} />
@@ -97,11 +98,13 @@ const signedIn = $derived(principal.current !== null);
         <Button href="#/sign-up">Join Fieldmarket</Button>
       {/if}
     </nav>
-  </header>
+  </Box>
   <main id="main" class="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
     <Router {router} />
   </main>
-  <footer class="border-t border-border px-4 py-6 text-center text-xs text-muted-foreground">
-    Simulated marketplace · Checkout and payouts are demonstrations; no real money moves.
-  </footer>
+  <Box as="footer" border="block-start" radius="none" padding="none" class="px-4 py-6">
+    <Text size="xs" tone="muted" align="center">
+      Simulated marketplace · Checkout and payouts are demonstrations; no real money moves.
+    </Text>
+  </Box>
 </div>

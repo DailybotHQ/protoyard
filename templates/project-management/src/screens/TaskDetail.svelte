@@ -21,10 +21,12 @@ import {
   EmptyState,
   ErrorState,
   Select,
+  Separator,
   Skeleton,
   Textarea,
 } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import DueBadge from '../components/DueBadge.svelte';
 import LabelChip from '../components/LabelChip.svelte';
 import PriorityBadge from '../components/PriorityBadge.svelte';
@@ -134,13 +136,13 @@ async function removeComment() {
   {@const current = task.current}
   <header class="mt-3 mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div class="min-w-0">
-      <p class="text-sm text-muted-foreground">
+      <Text size="sm" tone="muted">
         {#if project.current}
-          <Link href={`/projects/${project.current.id}`} class="hover:text-primary hover:underline">{project.current.name}</Link> ·
+          <Link href={`/projects/${project.current.id}`}>{project.current.name}</Link> ·
         {/if}
-        <span class="font-mono">{taskKey(current, project.current)}</span>
-      </p>
-      <h1 class="mt-1 text-2xl font-semibold tracking-tight break-words">{current.title}</h1>
+        <Text as="span" size="sm" tone="muted" mono>{taskKey(current, project.current)}</Text>
+      </Text>
+      <Heading level={1} size="xl" class="mt-1 break-words">{current.title}</Heading>
     </div>
     {#if editable || deletable}
       <div class="flex shrink-0 gap-2">
@@ -148,7 +150,7 @@ async function removeComment() {
           <Button variant="outline" onclick={() => (editOpen = true)}><LucideIcon icon={Pencil} class="size-4" />Edit</Button>
         {/if}
         {#if deletable}
-          <Button variant="ghost" class="text-destructive hover:bg-destructive/10" onclick={() => (deleteOpen = true)}>
+          <Button variant="ghost" tone="destructive" onclick={() => (deleteOpen = true)}>
             <LucideIcon icon={Trash2} class="size-4" />Delete
           </Button>
         {/if}
@@ -156,33 +158,35 @@ async function removeComment() {
     {/if}
   </header>
 
-  <div class="grid gap-6 lg:grid-cols-[1fr_20rem]">
-    <div class="min-w-0 space-y-6">
+  <div class="grid gap-6 lg:grid-cols-3">
+    <div class="min-w-0 space-y-6 lg:col-span-2">
       <Card class="p-5">
-        <h2 class="text-sm font-semibold">Description</h2>
-        <p class="mt-2 text-sm whitespace-pre-wrap text-surface-foreground">{current.description || 'No description yet.'}</p>
+        <Heading level={2} size="sm">Description</Heading>
+        <Text size="sm" class="mt-2 whitespace-pre-wrap">{current.description || 'No description yet.'}</Text>
       </Card>
 
       <section aria-labelledby="comments-heading">
-        <h2 id="comments-heading" class="mb-3 flex items-center gap-2 text-sm font-semibold">
-          <LucideIcon icon={MessageSquare} class="size-4" />Comments <span class="font-normal text-muted-foreground">{comments.current?.length ?? 0}</span>
-        </h2>
+        <Heading level={2} size="sm" id="comments-heading" class="mb-3 flex items-center gap-2">
+          <LucideIcon icon={MessageSquare} class="size-4" />Comments <Text as="span" size="sm" tone="muted" tabular>{comments.current?.length ?? 0}</Text>
+        </Heading>
         {#if (comments.current?.length ?? 0) === 0}
-          <p class="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">No comments yet.</p>
+          <Box border="default" radius="lg" padding="md"><Text size="sm" tone="muted" align="center">No comments yet.</Text></Box>
         {:else}
           <ol class="space-y-3">
             {#each comments.current ?? [] as comment (comment.id)}
               <li class="flex gap-3">
                 <Avatar name={name(comment.authorId)} {...face(comment.authorId)} size="sm" decorative />
-                <div class="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-2">
-                  <p class="flex flex-wrap items-baseline gap-x-2 text-sm">
-                    <span class="font-medium">{name(comment.authorId)}</span>
-                    <time class="text-xs text-muted-foreground" datetime={comment.createdAt}>{fromNow(comment.createdAt, clock.now)}</time>
+                <Box surface="default" border="default" radius="lg" padding="none" class="min-w-0 flex-1 px-3 py-2">
+                  <div class="flex flex-wrap items-baseline gap-x-2">
+                    <Text as="span" size="sm" weight="medium">{name(comment.authorId)}</Text>
+                    <time datetime={comment.createdAt}><Text as="span" size="xs" tone="muted">{fromNow(comment.createdAt, clock.now)}</Text></time>
                     {#if can(CAPABILITIES.commentsDelete, comment)}
                       <Button
                         type="button"
                         variant="ghost"
-                        class="ml-auto rounded text-xs text-muted-foreground hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
+                        tone="destructive"
+                        size="sm"
+                        class="ml-auto"
                         onclick={() => {
                           removingComment = comment;
                           commentConfirmOpen = true;
@@ -191,9 +195,9 @@ async function removeComment() {
                         Delete<span class="sr-only"> comment by {name(comment.authorId)}</span>
                       </Button>
                     {/if}
-                  </p>
-                  <p class="mt-1 text-sm whitespace-pre-wrap break-words">{comment.body}</p>
-                </div>
+                  </div>
+                  <Text size="sm" class="mt-1 whitespace-pre-wrap break-words">{comment.body}</Text>
+                </Box>
               </li>
             {/each}
           </ol>
@@ -210,7 +214,7 @@ async function removeComment() {
               aria-invalid={draftError ? true : undefined}
               aria-describedby={draftError ? 'comment-error' : undefined}
             />
-            {#if draftError}<p id="comment-error" class="text-sm text-destructive" role="alert">{draftError}</p>{/if}
+            {#if draftError}<Text id="comment-error" size="sm" tone="destructive" role="alert">{draftError}</Text>{/if}
             <div class="flex justify-end">
               <Button type="submit" loading={posting} disabled={!draft.trim()}>Post comment</Button>
             </div>
@@ -221,9 +225,9 @@ async function removeComment() {
 
     <aside class="space-y-6">
       <Card class="p-5">
-        <dl class="grid grid-cols-[6.5rem_1fr] items-center gap-x-3 gap-y-3 text-sm">
-          <dt class="text-muted-foreground">Status</dt>
-          <dd>
+        <dl class="grid grid-cols-3 items-center gap-x-3 gap-y-3">
+          <dt><Text as="span" size="sm" tone="muted">Status</Text></dt>
+          <dd class="col-span-2">
             {#if editable}
               <Select
                 aria-label="Status"
@@ -235,47 +239,50 @@ async function removeComment() {
               <Badge variant={current.status === 'done' ? 'success' : 'secondary'}>{STATUS_LABELS[current.status]}</Badge>
             {/if}
           </dd>
-          <dt class="text-muted-foreground">Assignee</dt>
-          <dd class="flex min-w-0 items-center gap-2">
+          <dt><Text as="span" size="sm" tone="muted">Assignee</Text></dt>
+          <dd class="col-span-2 flex min-w-0 items-center gap-2">
             {#if current.assigneeId}<Avatar name={name(current.assigneeId)} {...face(current.assigneeId)} size="xs" decorative />{/if}
-            <span class="truncate">{name(current.assigneeId)}</span>
+            <Text as="span" size="sm" truncate>{name(current.assigneeId)}</Text>
           </dd>
-          <dt class="text-muted-foreground">Priority</dt>
-          <dd><PriorityBadge priority={current.priority} /></dd>
-          <dt class="text-muted-foreground">Due</dt>
-          <dd>
+          <dt><Text as="span" size="sm" tone="muted">Priority</Text></dt>
+          <dd class="col-span-2"><PriorityBadge priority={current.priority} /></dd>
+          <dt><Text as="span" size="sm" tone="muted">Due</Text></dt>
+          <dd class="col-span-2">
             {#if current.dueDate}
               <span class="flex flex-col items-start gap-1">
-                <span>{formatLongDay(current.dueDate)}</span>
+                <Text as="span" size="sm">{formatLongDay(current.dueDate)}</Text>
                 <DueBadge task={current} />
               </span>
-            {:else}<span class="text-muted-foreground">No due date</span>{/if}
+            {:else}<Text as="span" size="sm" tone="muted">No due date</Text>{/if}
           </dd>
-          <dt class="text-muted-foreground">Labels</dt>
-          <dd class="flex flex-wrap gap-1">
-            {#each current.labels as label (label)}<LabelChip {label} />{:else}<span class="text-muted-foreground">None</span>{/each}
+          <dt><Text as="span" size="sm" tone="muted">Labels</Text></dt>
+          <dd class="col-span-2 flex flex-wrap gap-1">
+            {#each current.labels as label (label)}<LabelChip {label} />{:else}<Text as="span" size="sm" tone="muted">None</Text>{/each}
           </dd>
-          <dt class="text-muted-foreground">Reporter</dt>
-          <dd class="truncate">{name(current.reporterId)}</dd>
-          <dt class="text-muted-foreground">Created</dt>
-          <dd>{fromNow(current.createdAt, clock.now)}</dd>
-          <dt class="text-muted-foreground">Updated</dt>
-          <dd>{fromNow(current.updatedAt, clock.now)}</dd>
+          <dt><Text as="span" size="sm" tone="muted">Reporter</Text></dt>
+          <dd class="col-span-2 min-w-0"><Text as="span" size="sm" truncate class="block">{name(current.reporterId)}</Text></dd>
+          <dt><Text as="span" size="sm" tone="muted">Created</Text></dt>
+          <dd class="col-span-2"><Text as="span" size="sm">{fromNow(current.createdAt, clock.now)}</Text></dd>
+          <dt><Text as="span" size="sm" tone="muted">Updated</Text></dt>
+          <dd class="col-span-2"><Text as="span" size="sm">{fromNow(current.updatedAt, clock.now)}</Text></dd>
         </dl>
       </Card>
 
       <section aria-labelledby="history-heading">
-        <h2 id="history-heading" class="mb-3 text-sm font-semibold">History</h2>
-        <ol class="space-y-3 border-l border-border pl-4">
-          {#each (history.current ?? []).slice(0, 12) as item (item.id)}
-            <li class="text-sm">
-              <p><span class="font-medium">{name(item.actorId)}</span> <span class="text-muted-foreground">{item.body.charAt(0).toLowerCase() + item.body.slice(1)}</span></p>
-              <time class="text-xs text-muted-foreground" datetime={item.at}>{fromNow(item.at, clock.now)}</time>
-            </li>
-          {:else}
-            <li class="text-sm text-muted-foreground">No history yet.</li>
-          {/each}
-        </ol>
+        <Heading level={2} size="sm" id="history-heading" class="mb-3">History</Heading>
+        <div class="flex gap-4">
+          <Separator orientation="vertical" class="self-stretch" />
+          <ol class="min-w-0 flex-1 space-y-3">
+            {#each (history.current ?? []).slice(0, 12) as item (item.id)}
+              <li>
+                <Text size="sm"><Text as="span" size="sm" weight="medium">{name(item.actorId)}</Text> <Text as="span" size="sm" tone="muted">{item.body.charAt(0).toLowerCase() + item.body.slice(1)}</Text></Text>
+                <time datetime={item.at}><Text as="span" size="xs" tone="muted">{fromNow(item.at, clock.now)}</Text></time>
+              </li>
+            {:else}
+              <li><Text size="sm" tone="muted">No history yet.</Text></li>
+            {/each}
+          </ol>
+        </div>
       </section>
     </aside>
   </div>

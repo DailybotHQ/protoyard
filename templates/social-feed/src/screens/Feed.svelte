@@ -1,6 +1,7 @@
 <script lang="ts">
 import { can, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
 import { Button, EmptyState, LoadingState } from '@protoyard/ui';
+import { Box, Heading, Text } from 'texuli/typography';
 import Composer from '../components/Composer.svelte';
 import PostCard from '../components/PostCard.svelte';
 import VirtualFeed from '../components/VirtualFeed.svelte';
@@ -39,17 +40,17 @@ const posts = $derived(
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
-  <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
-    <h1 class="text-lg font-semibold">Feed</h1>
-    <div class="inline-flex rounded-md border border-border p-0.5" role="group" aria-label="Timeline">
+  <Box border="block-end" radius="none" padding="none" class="flex items-center justify-between gap-2 px-4 py-2">
+    <Heading level={1} size="md">Feed</Heading>
+    <Box border="default" radius="md" padding="none" class="inline-flex p-0.5" role="group" aria-label="Timeline">
       <Button size="sm" variant={mode === 'home' ? 'secondary' : 'ghost'} aria-pressed={mode === 'home'} onclick={() => { mode = 'home'; feed?.scrollToTop(); }}>Home</Button>
       <Button size="sm" variant={mode === 'everyone' ? 'secondary' : 'ghost'} aria-pressed={mode === 'everyone'} onclick={() => { mode = 'everyone'; feed?.scrollToTop(); }}>Everyone</Button>
-    </div>
-  </div>
+    </Box>
+  </Box>
   {#if can(CAPABILITIES.postsCreate)}
     <Composer onposted={() => feed?.scrollToTop()} />
   {:else}
-    <p role="note" class="border-b border-border px-4 py-2 text-xs text-muted-foreground">You are reading as a viewer: posting, reacting and following are off.</p>
+    <Box border="block-end" radius="none" padding="none" class="px-4 py-2" role="note"><Text size="xs" tone="muted">You are reading as a viewer: posting, reacting and following are off.</Text></Box>
   {/if}
   {#if data.current === undefined}
     <LoadingState label="Loading the feed" class="py-16" />

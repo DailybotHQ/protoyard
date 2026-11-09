@@ -3,6 +3,7 @@ import { ImagePlus } from '@lucide/svelte';
 import { isValidationError, runService } from '@protoyard/renderer-svelte';
 import { Button, Textarea } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Text } from 'texuli/typography';
 import { MAX_POST_LENGTH } from '../domain/validation.ts';
 import { useSocial } from '../lib/context.ts';
 
@@ -30,8 +31,9 @@ async function post() {
 }
 </script>
 
+<Box surface="default" border="block-end" radius="none" padding="sm">
 <form
-  class="grid gap-2 border-b border-border bg-surface p-3"
+  class="grid gap-2"
   onsubmit={(e) => {
     e.preventDefault();
   }}
@@ -57,11 +59,12 @@ async function post() {
         <LucideIcon icon={ImagePlus} class="size-4" />Image
       </Button>
       {#if error}
-        <p id="{uid}-error" class="text-xs text-destructive" role="alert">{error}</p>
+        <Text id="{uid}-error" size="xs" tone="destructive" role="alert">{error}</Text>
       {:else}
-        <p id="{uid}-count" class="text-xs text-muted-foreground tabular-nums">{MAX_POST_LENGTH - text.length} left</p>
+        <Text id="{uid}-count" size="xs" tone="muted" tabular>{MAX_POST_LENGTH - text.length} left</Text>
       {/if}
     </div>
     <Button size="sm" onclick={post}>Post</Button>
   </div>
 </form>
+</Box>
