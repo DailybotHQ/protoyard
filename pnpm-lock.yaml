@@ -452,6 +452,12 @@ importers:
       '@protoyard/themes':
         specifier: workspace:*
         version: link:../themes
+      '@texuli/catalog':
+        specifier: 0.14.4
+        version: 0.14.4(svelte@5.57.3)
+      '@texuli/spec':
+        specifier: 0.14.4
+        version: 0.14.4
       commander:
         specifier: ^15.0.0
         version: 15.0.0
