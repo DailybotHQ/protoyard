@@ -5,6 +5,7 @@ import { MINIMAL_LOCKED_COMPONENTS } from '@texuli/spec/design-system';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   allowedVia,
+  allowPreset,
   type CatalogManifestLike,
   catalogFromManifests,
   catalogIdFor,
@@ -181,9 +182,13 @@ describe('ds new --allow, ds validate and ds allow init', () => {
 
     const minimal = await run('new', 'core', '--brand', '#0f766e', '--allow', 'minimal');
     expect(minimal.code, minimal.stdout).toBe(0);
-    expect(Object.keys(read('design-systems/core/document.json').allow as object).sort()).toEqual(
+    // Texuli's minimal set plus the catalog extensions it covers (PLAN_013 T-tx015).
+    const core = Object.keys(read('design-systems/core/document.json').allow as object);
+    expect(core).toEqual(Object.keys(allowPreset('minimal')));
+    expect(core.filter((id) => !id.includes(':')).sort()).toEqual(
       [...MINIMAL_LOCKED_COMPONENTS].sort()
     );
+    expect(core).toContain('protoyard:dialog');
 
     ws.write('tmp/allow.json', { button: { variants: ['default'] }, card: {} });
     expect(
@@ -223,7 +228,7 @@ describe('ds new --allow, ds validate and ds allow init', () => {
       ok.json<Envelope<{ locked: boolean; allowComponents: number; approvalSource: string }>>().data
     ).toMatchObject({
       locked: true,
-      allowComponents: MINIMAL_LOCKED_COMPONENTS.length,
+      allowComponents: Object.keys(allowPreset('minimal')).length,
       approvalSource: 'document',
     });
 

@@ -516,7 +516,7 @@ function scanAllowed(text: string, markup: string, add: Add, ctx: DsAllowContext
     }
     return byOffset.get(offset) ?? '';
   };
-  for (const use of componentUses(text)) {
+  for (const use of componentUses(text, ctx.catalog)) {
     const match = catalogIdFor(ctx.catalog, use.module, use.identifier);
     if (!match.id) {
       add(

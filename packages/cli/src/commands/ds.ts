@@ -28,6 +28,7 @@ import {
   APPROVAL_NOTE,
   approveDesignSystem,
   type DesignSystemAllow,
+  designSystemContentHash,
   initLockedDesignSystem,
   LOCKED_PRESETS,
   type LockedPreset,
@@ -57,12 +58,15 @@ import {
   writeDocumentFile,
 } from '../lib/design-systems.ts';
 import {
+  allowPreset,
   checkAllow,
   dsCatalog,
   formatIssue,
+  isExtensionAllowKey,
   readAllow,
   readDocumentApproval,
   readLibrary,
+  texuliView,
 } from '../lib/ds-catalog.ts';
 import { checkText, MAX_PERSON, syncLibraryFromComponents } from '../lib/ds-components.ts';
 import { inspectSpec } from '../lib/inspect.ts';
@@ -127,7 +131,8 @@ function readDocument(root: string, ref: string): unknown {
 }
 
 async function compileOrFail(document: unknown, what: string) {
-  const result = await compileDesignSystemDocument(document);
+  // Texuli compiles the document without extension allow keys until it accepts them.
+  const result = await compileDesignSystemDocument(texuliView(document));
   if (!result.ok) {
     throw new CliError('validation', `${what} is not a valid design system.`, {
       data: { errors: result.errors },
@@ -273,25 +278,80 @@ function issuesError(
   });
 }
 
-/** The document locked with an allow section and a draft approval (Texuli's `initLockedDesignSystem`). */
+/**
+ * The document locked with an allow section and a draft approval (Texuli's
+ * `initLockedDesignSystem`). A preset covers the merged catalog
+ * (`allowPreset`: catalog extensions included). Texuli locks the document
+ * without the extension keys while its validator refuses them (`texuliView`);
+ * they are put back in the allow order and checked against the merged
+ * catalog.
+ */
 function lockDocument(
   document: DesignSystem,
   preset: LockedPreset | DesignSystemAllow
 ): DesignSystem {
+  const catalog = dsCatalog();
+  const allow = typeof preset === 'string' ? allowPreset(preset, catalog) : preset;
+  const forTexuli = texuliView({ allow }).allow;
   const locked = initLockedDesignSystem(
     {
       id: document.id,
       name: document.name,
       version: document.version,
-      preset,
+      preset: forTexuli,
       base: document as unknown as Record<string, unknown>,
     },
-    dsCatalog().allowCatalog
+    catalog.allowCatalog
   );
   if (!locked.ok) {
     throw issuesError(`The allow section for "${document.id}" is not valid.`, locked.errors);
   }
-  return locked.document as unknown as DesignSystem;
+  const lockedAllow = (readAllow(locked.document) ?? {}) as DesignSystemAllow;
+  const full = {
+    ...locked.document,
+    allow: Object.fromEntries(
+      Object.keys(allow).map((key) => [
+        key,
+        isExtensionAllowKey(key) ? allow[key] : (lockedAllow[key] ?? allow[key]),
+      ])
+    ),
+  };
+  const members = checkAllow(full, catalog);
+  if (!members.ok) {
+    throw issuesError(`The allow section for "${document.id}" is not valid.`, members.errors);
+  }
+  return full as unknown as DesignSystem;
+}
+
+/**
+ * Texuli's `approveDesignSystem` on the document Texuli validates
+ * (`texuliView`). When that view leaves extension keys out, the stamp is put
+ * on the full document and its content hash is taken over the full document
+ * (Texuli's `designSystemContentHash`), so the approval covers the extension
+ * keys too.
+ */
+function approveWithExtensions(
+  document: unknown,
+  options: Parameters<typeof approveDesignSystem>[1]
+): ReturnType<typeof approveDesignSystem> {
+  const view = texuliView(document);
+  const approved = approveDesignSystem(view, options);
+  if (!approved.ok || view === document) return approved;
+  const { contentHash: _hash, ...stamp } = approved.document.approval as unknown as Record<
+    string,
+    unknown
+  >;
+  const stamped = {
+    ...(document as Record<string, unknown>),
+    version: approved.document.version,
+    approval: stamp,
+  };
+  const contentHash = designSystemContentHash(stamped);
+  return {
+    ok: true,
+    contentHash,
+    document: { ...stamped, approval: { ...stamp, contentHash } } as typeof approved.document,
+  };
 }
 
 export const dsNewCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
@@ -1167,7 +1227,7 @@ export const dsApproveCommand: Handler = async (ctx, args, options): Promise<Com
     );
   }
   const version = opt(options, 'release');
-  const approved = approveDesignSystem(document, {
+  const approved = approveWithExtensions(document, {
     by,
     at: now(),
     ...(version ? { version } : {}),
