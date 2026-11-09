@@ -2,6 +2,7 @@
 import { ShieldCheck } from '@lucide/svelte';
 import { can, liveQuery } from '@protoyard/renderer-svelte';
 import { DataTable, type DataTableColumn, EmptyState } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import type { AuditEntry } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
@@ -50,13 +51,13 @@ const columns: DataTableColumn<AuditEntry>[] = [
 ];
 </script>
 
-{#snippet whenCell(e: AuditEntry)}<span class="whitespace-nowrap tabular-nums">{formatStamp(e.at)}</span>{/snippet}
+{#snippet whenCell(e: AuditEntry)}<Text as="span" size="sm" tabular class="whitespace-nowrap">{formatStamp(e.at)}</Text>{/snippet}
 {#snippet summaryCell(e: AuditEntry)}
   <span>{e.summary}</span>
   {#if e.changes.length > 0}
-    <ul class="mt-1 grid gap-0.5 text-xs text-muted-foreground" aria-label="Changed fields">
+    <ul class="mt-1 grid gap-0.5" aria-label="Changed fields">
       {#each e.changes as c (c.field)}
-        <li><span class="font-medium">{c.field}</span>: {c.from ?? '—'} → {c.to ?? '—'}</li>
+        <li><Text as="span" size="xs" tone="muted"><Text as="span" size="xs" weight="medium">{c.field}</Text>: {c.from ?? '—'} → {c.to ?? '—'}</Text></li>
       {/each}
     </ul>
   {/if}

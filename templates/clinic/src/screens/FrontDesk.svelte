@@ -3,6 +3,7 @@ import { CalendarCheck, CalendarPlus, Clock, UserCheck, UserX } from '@lucide/sv
 import { can, Link, liveQuery, runService, useClock } from '@protoyard/renderer-svelte';
 import { Button, EmptyState, Select, Skeleton, StatCard } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import AppointmentDialog from '../components/AppointmentDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -72,14 +73,14 @@ const checkIn = (a: Appointment) =>
 
 <PageHeader title="Front desk" description="{formatLongDay(clock.now.toISOString())} · times in UTC">
   {#snippet actions()}
-    <label class="grid gap-1 text-xs text-muted-foreground">
+    <Text as="label" size="xs" tone="muted" class="grid gap-1">
       Provider
       <Select
         aria-label="Provider"
         items={[{ value: 'all', label: 'All providers' }, ...(providers.current ?? []).map((p) => ({ value: p.id, label: p.name }))]}
         bind:value={providerId}
       />
-    </label>
+    </Text>
     {#if canManage}
       <Button onclick={openBooking}><LucideIcon icon={CalendarPlus} class="size-4" />Book appointment</Button>
     {/if}
@@ -93,7 +94,7 @@ const checkIn = (a: Appointment) =>
   <StatCard label="No-shows" value={String(counts.noShow)} icon={UserX} />
 </section>
 
-<h2 class="mb-3 text-lg font-semibold">Today's appointments</h2>
+<Heading level={2} size="md" class="mb-3">Today's appointments</Heading>
 {#if today.current === undefined}
   <div class="grid gap-2" aria-busy="true" aria-label="Loading appointments">
     {#each [0, 1, 2, 3] as i (i)}<Skeleton class="h-16 w-full" />{/each}
@@ -106,31 +107,29 @@ const checkIn = (a: Appointment) =>
       {@const patient = today.current.patients.get(a.patientId)}
       {@const blocker = checkInBlocker(a, clock.now)}
       {@const wait = waitMinutes(a, clock.now)}
-      <li
-        class="flex flex-col gap-3 rounded-lg border border-border bg-surface p-3 sm:flex-row sm:items-center sm:justify-between"
-        aria-label="{formatTime(a.start)} {patientName(patient)}"
-        data-appointment={a.id}
-      >
+      <li aria-label="{formatTime(a.start)} {patientName(patient)}" data-appointment={a.id}>
+        <Box surface="default" border="default" radius="lg" padding="none" class="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex min-w-0 items-start gap-3">
-          <span class="w-20 shrink-0 text-sm font-medium tabular-nums">{formatTime(a.start)}</span>
+          <Text as="span" size="sm" weight="medium" tabular class="w-20 shrink-0">{formatTime(a.start)}</Text>
           <div class="min-w-0">
-            <p class="truncate font-medium">
-              <Link href="/patients/{a.patientId}" class="hover:underline">{patientName(patient)}</Link>
-              <span class="text-xs font-normal text-muted-foreground tabular-nums">{patient?.mrn}</span>
-            </p>
-            <p class="truncate text-sm text-muted-foreground">{a.reason} · {providerName.get(a.providerId) ?? a.providerId}</p>
+            <Text weight="medium" truncate>
+              <Link href="/patients/{a.patientId}">{patientName(patient)}</Link>
+              <Text as="span" size="xs" tone="muted" tabular>{patient?.mrn}</Text>
+            </Text>
+            <Text size="sm" tone="muted" truncate>{a.reason} · {providerName.get(a.providerId) ?? a.providerId}</Text>
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2 sm:justify-end">
           <StatusBadge status={a.status} />
           {#if wait > 0}
-            <span class="text-xs text-muted-foreground tabular-nums">waiting {wait} min</span>
+            <Text as="span" size="xs" tone="muted" tabular>waiting {wait} min</Text>
           {/if}
           {#if canManage && blocker === null}
             <Button size="sm" onclick={() => checkIn(a)}>Check in</Button>
           {/if}
           <Button size="sm" variant="ghost" href="#/visits/{a.id}">Open</Button>
         </div>
+        </Box>
       </li>
     {/each}
   </ul>
