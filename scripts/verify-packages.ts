@@ -672,7 +672,7 @@ export async function verifyPackages(options: VerifyOptions = {}): Promise<Verif
       ['check texuli', ['check', 'texuli']],
       ['validate --all', ['validate', '--all']],
       ['ds new', ['ds', 'new', 'verify-brand', '--brand', '#0f766e']],
-      ['ds use', ['ds', 'use', 'starter', 'design-systems/verify-brand.json']],
+      ['ds use', ['ds', 'use', 'starter', 'verify-brand']],
       ['validate starter after ds use', ['validate', 'starter']],
       ['list blueprints', ['list', '--kind', 'blueprint']],
       // A generated app must typecheck and build in a consumer (no repo-only test harness).
