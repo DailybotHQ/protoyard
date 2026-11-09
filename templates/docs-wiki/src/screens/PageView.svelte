@@ -2,7 +2,6 @@
 import { FilePlus, FileQuestion, History, Pencil, Trash2 } from '@lucide/svelte';
 import {
   can,
-  Link,
   liveQuery,
   navigate,
   type RouteProps,
@@ -11,6 +10,7 @@ import {
 } from '@protoyard/renderer-svelte';
 import { AlertDialog, Breadcrumb, Button, Card, EmptyState, Skeleton } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import NewPageDialog from '../components/NewPageDialog.svelte';
 import PageBody from '../components/PageBody.svelte';
 import PageTree from '../components/PageTree.svelte';
@@ -70,9 +70,9 @@ const remove = async () => {
   </EmptyState>
 {:else}
   {@const { page, space, trail, children, editor } = data.current}
-  <div class="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-    <Card class="order-2 p-2 lg:order-1"><PageTree spaceId={page.spaceId} currentId={page.id} /></Card>
-    <article class="order-1 min-w-0 lg:order-2" aria-labelledby="page-title">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <Card class="order-2 p-2 lg:order-1 lg:w-2xs lg:shrink-0"><PageTree spaceId={page.spaceId} currentId={page.id} /></Card>
+    <article class="order-1 min-w-0 lg:order-2 lg:flex-1" aria-labelledby="page-title">
       <Breadcrumb
         items={[
           { label: space ? `${space.icon} ${space.name}` : 'Space', href: `#/spaces/${page.spaceId}` },
@@ -82,8 +82,8 @@ const remove = async () => {
       />
       <header class="mt-3 mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div class="min-w-0">
-          <h1 id="page-title" class="text-2xl font-semibold tracking-tight break-words">{page.title}</h1>
-          <p class="mt-1 text-sm text-muted-foreground" data-page-meta="">Version {page.version} · edited by {editor} {fromNow(page.updatedAt, clock.now)}</p>
+          <Heading level={1} size="xl" id="page-title" class="break-words">{page.title}</Heading>
+          <Text size="sm" tone="muted" class="mt-1" data-page-meta="">Version {page.version} · edited by {editor} {fromNow(page.updatedAt, clock.now)}</Text>
         </div>
         <div class="flex flex-wrap gap-2">
           {#if canEdit}
@@ -102,15 +102,15 @@ const remove = async () => {
       <PageBody source={page.body} />
 
       {#if children.length > 0}
-        <section class="mt-8 border-t border-border pt-4" aria-labelledby="subpages-heading">
-          <h2 id="subpages-heading" class="mb-2 text-sm font-semibold text-muted-foreground">Subpages ({children.length})</h2>
-          <ul class="grid gap-1 text-sm sm:grid-cols-2">
+        <Box as="section" radius="none" padding="none" border="block-start" class="mt-8 pt-4" aria-labelledby="subpages-heading">
+          <Heading level={2} size="sm" tone="muted" id="subpages-heading" class="mb-2">Subpages ({children.length})</Heading>
+          <ul class="grid gap-1 sm:grid-cols-2">
             {#each children.slice(0, 50) as c (c.id)}
-              <li><Link href="/pages/{c.id}" class="hover:underline">{c.title}</Link></li>
+              <li><Button variant="link" href="#/pages/{c.id}" class="h-auto min-h-0 px-0 whitespace-normal">{c.title}</Button></li>
             {/each}
           </ul>
-          {#if children.length > 50}<p class="mt-2 text-xs text-muted-foreground">And {children.length - 50} more in the page tree.</p>{/if}
-        </section>
+          {#if children.length > 50}<Text size="xs" tone="muted" class="mt-2">And {children.length - 50} more in the page tree.</Text>{/if}
+        </Box>
       {/if}
     </article>
   </div>

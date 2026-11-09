@@ -1,6 +1,7 @@
 <script lang="ts">
 import { isValidationError, runService } from '@protoyard/renderer-svelte';
 import { FormField, RadioGroup, Select, Switch } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 import StepFooter from '../components/StepFooter.svelte';
 import StepHeading from '../components/StepHeading.svelte';
 import {
@@ -66,7 +67,7 @@ async function submit(event: SubmitEvent) {
     {/snippet}
   </FormField>
   <fieldset class="space-y-3">
-    <legend class="mb-2 text-sm font-medium">Notifications</legend>
+    <legend class="mb-2"><Text as="span" size="sm" weight="medium">Notifications</Text></legend>
     <Switch label="Mentions and replies" description="When someone mentions you or replies to you." bind:checked={form.mentions} />
     <Switch label="Product updates" description="New features and tips, about once a month." bind:checked={form.productUpdates} />
   </fieldset>

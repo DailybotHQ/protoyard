@@ -3,7 +3,6 @@ import { BookOpen, FolderPlus } from '@lucide/svelte';
 import {
   can,
   isValidationError,
-  Link,
   liveQuery,
   navigate,
   runService,
@@ -11,6 +10,7 @@ import {
 } from '@protoyard/renderer-svelte';
 import { Button, Card, Dialog, EmptyState, FormField, Input, Skeleton } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Heading, Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import SearchForm from '../components/SearchForm.svelte';
 import { CAPABILITIES } from '../domain/policy.ts';
@@ -83,17 +83,15 @@ async function createSpace(event: SubmitEvent) {
   />
 {:else}
   <section aria-labelledby="spaces-heading" class="mb-8">
-    <h2 id="spaces-heading" class="mb-3 text-lg font-semibold">Spaces</h2>
+    <Heading level={2} size="lg" id="spaces-heading" class="mb-3">Spaces</Heading>
     <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {#each data.current.spaces as s (s.id)}
         <li>
-          <Card class="relative h-full p-4 transition-colors hover:bg-muted/40">
-            <p class="text-2xl" aria-hidden="true">{s.icon}</p>
-            <h3 class="mt-2 font-semibold">
-              <Link href="/spaces/{s.id}" class="after:absolute after:inset-0 hover:underline">{s.name}</Link>
-            </h3>
-            <p class="mt-1 text-sm text-muted-foreground">{s.description}</p>
-            <p class="mt-3 text-xs text-muted-foreground"><span class="font-mono">{s.key}</span> · {data.current.counts.get(s.id) ?? 0} pages</p>
+          <Card href="#/spaces/{s.id}" linkLabel={s.name} class="h-full p-4">
+            <Text size="figure" aria-hidden="true">{s.icon}</Text>
+            <Heading level={3} size="sm" class="mt-2">{s.name}</Heading>
+            <Text size="sm" tone="muted" class="mt-1">{s.description}</Text>
+            <Text size="xs" tone="muted" class="mt-3"><Text as="span" size="xs" tone="muted" mono>{s.key}</Text> · {data.current.counts.get(s.id) ?? 0} pages</Text>
           </Card>
         </li>
       {/each}
@@ -101,18 +99,22 @@ async function createSpace(event: SubmitEvent) {
   </section>
 
   <section aria-labelledby="recent-heading">
-    <h2 id="recent-heading" class="mb-3 text-lg font-semibold">Recently updated</h2>
-    <ul class="divide-y divide-border rounded-lg border border-border">
-      {#each data.current.recent as p (p.id)}
-        <li class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-          <span class="min-w-0">
-            <Link href="/pages/{p.id}" class="font-medium hover:underline">{p.title}</Link>
-            <span class="text-muted-foreground"> · {data.current.names.get(p.spaceId)}</span>
-          </span>
-          <span class="text-xs text-muted-foreground">v{p.version} · {fromNow(p.updatedAt, clock.now)}</span>
-        </li>
-      {/each}
-    </ul>
+    <Heading level={2} size="lg" id="recent-heading" class="mb-3">Recently updated</Heading>
+    <Box border="default" radius="lg" padding="none">
+      <ul class="flex flex-col">
+        {#each data.current.recent as p, i (p.id)}
+          <li>
+            <Box radius="none" padding="none" border={i === 0 ? 'none' : 'block-start'} class="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+              <span class="min-w-0">
+                <Button variant="link" href="#/pages/{p.id}" class="h-auto min-h-0 px-0 whitespace-normal">{p.title}</Button>
+                <Text as="span" size="sm" tone="muted"> · {data.current.names.get(p.spaceId)}</Text>
+              </span>
+              <Text as="span" size="xs" tone="muted">v{p.version} · {fromNow(p.updatedAt, clock.now)}</Text>
+            </Box>
+          </li>
+        {/each}
+      </ul>
+    </Box>
   </section>
 {/if}
 
