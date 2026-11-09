@@ -51,6 +51,22 @@ const ALLOWED: readonly RegExp[] = [
   /^z-(?:0|10|20|30|40|50|auto)$/,
   /^(?:sr-only|not-sr-only)$/,
   /^(?:group|peer)(?:\/[\w-]+)?$/,
+  // Text flow, not typography: alignment, wrapping, truncation (no size,
+  // weight, family, color, leading or tracking).
+  /^text-(?:left|center|right|justify|start|end)$/,
+  /^(?:truncate|text-ellipsis|text-clip|text-wrap|text-nowrap|text-balance|text-pretty)$/,
+  /^line-clamp-(?:\d+|none)$/,
+  /^break-(?:normal|words|all|keep)$/,
+  /^whitespace-(?:normal|nowrap|pre|pre-line|pre-wrap|break-spaces)$/,
+  // Box and media layout
+  /^(?:box-border|box-content|isolate|isolation-auto|visible|invisible|collapse)$/,
+  /^aspect-(?:auto|square|video)$/,
+  /^object-(?:contain|cover|fill|none|scale-down|center|top|bottom|left|right)$/,
+  /^(?:table|table-row|table-cell|inline-table|flow-root|list-item)$/,
+  /^pointer-events-(?:none|auto)$/,
+  // Protoyard's layout tokens: safe-area insets and the touch-target size
+  /^-?(?:p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|inset|top|right|bottom|left)-safe$/,
+  /^(?:min-h|min-w|h|w|size)-touch$/,
 ];
 
 /** Families that draw: color, borders, radius, shadow, type, effects, motion. */
