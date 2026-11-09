@@ -2,6 +2,7 @@
 import { ArrowLeft, ArrowRight } from '@lucide/svelte';
 import { Button } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box } from 'texuli/typography';
 
 /** Back · Skip · Next row shared by every step. `form` is the id of the step's <form>. */
 let {
@@ -19,7 +20,7 @@ let {
 } = $props();
 </script>
 
-<div class="mt-8 flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:items-center">
+<Box as="footer" radius="none" border="block-start" padding="none" class="mt-8 flex flex-col-reverse gap-2 pt-5 sm:flex-row sm:items-center">
   {#if onBack}
     <Button variant="ghost" disabled={busy} onclick={onBack}><LucideIcon icon={ArrowLeft} />Back</Button>
   {/if}
@@ -32,4 +33,4 @@ let {
       {#if !busy}<LucideIcon icon={ArrowRight} />{/if}
     </Button>
   </div>
-</div>
+</Box>

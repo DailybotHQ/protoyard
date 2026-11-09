@@ -37,7 +37,7 @@ const nav = {
 </script>
 
 <LayoutHost layout={appearance.current.layout.value} {nav} storageKey={runtime.manifest.storage.namespace}>
-  <div class="flex min-h-dvh flex-col bg-background">
+  <div class="flex min-h-dvh flex-col">
     <AppHeader />
     <main id="main" class="w-full flex-1 px-4 py-6 pb-safe sm:px-6 sm:py-10">
     <Router {router} />

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { Card, ErrorState, Progress, Skeleton, Stepper } from '@protoyard/ui';
+import { Text } from 'texuli/typography';
 import { STEP_IDS, type StepId } from '../database/schema.ts';
 import { freshState } from '../domain/services.ts';
 import { canVisit, previousStep, progressOf, STEP_DETAILS, stepIndex } from '../domain/steps.ts';
@@ -51,11 +52,11 @@ const skip = () => {
 };
 </script>
 
-<div class="mx-auto grid w-full max-w-5xl gap-6 lg:grid-cols-[15rem_1fr] lg:gap-10">
-  <aside class="lg:pt-2" aria-label="Onboarding progress">
-    <p class="text-sm font-medium">Step {Math.min(index + 1, STEP_IDS.length)} of {STEP_IDS.length}</p>
+<div class="mx-auto grid w-full max-w-5xl gap-6 lg:flex lg:gap-10">
+  <aside class="lg:w-60 lg:shrink-0 lg:pt-2" aria-label="Onboarding progress">
+    <Text size="sm" weight="medium">Step {Math.min(index + 1, STEP_IDS.length)} of {STEP_IDS.length}</Text>
     <Progress class="mt-2" value={percent} ariaLabel="Onboarding progress" size="sm" />
-    <p class="mt-1 text-xs text-muted-foreground">{percent}% complete · saved automatically</p>
+    <Text size="xs" tone="muted" class="mt-1">{percent}% complete · saved automatically</Text>
     <Stepper
       class="mt-6 hidden lg:block"
       orientation="vertical"
@@ -75,7 +76,7 @@ const skip = () => {
     />
   </aside>
 
-  <Card class="p-5 sm:p-8">
+  <Card class="min-w-0 p-5 sm:p-8 lg:flex-1">
     {#if progress.error}
       <ErrorState title="Could not load your progress" message={String(progress.error)} />
     {:else if progress.loading}

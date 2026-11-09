@@ -2,8 +2,10 @@
 import { Lock } from '@lucide/svelte';
 import { can, isValidationError, runService } from '@protoyard/renderer-svelte';
 import { Button, Input, Select } from '@protoyard/ui';
+import { Alert } from 'texuli/alert';
 import { Icon } from 'texuli/icons';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Text } from 'texuli/typography';
 import StepFooter from '../components/StepFooter.svelte';
 import StepHeading from '../components/StepHeading.svelte';
 import { INVITE_ROLES, type InviteRole, type OnboardingState } from '../database/schema.ts';
@@ -90,11 +92,11 @@ async function submit(event: SubmitEvent) {
               <Icon icon="close" aria-hidden="true" />
             </Button>
           </div>
-          {#if error}<p id={`invite-error-${invite.key}`} class="mt-1 text-xs text-destructive">{error}</p>{/if}
+          {#if error}<Text id={`invite-error-${invite.key}`} size="xs" tone="destructive" class="mt-1">{error}</Text>{/if}
         </li>
       {/each}
     </ul>
-    {#if errors.invites}<p class="mt-3 text-sm text-destructive" role="alert">{errors.invites}</p>{/if}
+    {#if errors.invites}<Text size="sm" tone="destructive" class="mt-3" role="alert">{errors.invites}</Text>{/if}
     <Button variant="ghost" size="sm" class="mt-3" onclick={add} disabled={rows.length >= MAX}>
       <Icon icon="plus" aria-hidden="true" />{rows.length >= MAX ? `Up to ${MAX} at a time` : 'Add another'}
     </Button>
@@ -102,10 +104,9 @@ async function submit(event: SubmitEvent) {
   <StepFooter form="step-invite" {busy} {onBack} {onSkip} submitLabel="Send invitations" />
 {:else}
   <form id="step-invite" onsubmit={(e) => { e.preventDefault(); onSkip(); }}>
-    <p class="flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground" role="note">
-      <LucideIcon icon={Lock} class="mt-0.5 size-4 shrink-0" />
-      Your role can't invite people. Ask a workspace owner or admin to add teammates.
-    </p>
+    <Alert tone="neutral" role="note" text="Your role can't invite people. Ask a workspace owner or admin to add teammates.">
+      {#snippet icon()}<LucideIcon icon={Lock} size="sm" class="shrink-0" />{/snippet}
+    </Alert>
   </form>
   <StepFooter form="step-invite" {busy} {onBack} submitLabel="Continue" />
 {/if}

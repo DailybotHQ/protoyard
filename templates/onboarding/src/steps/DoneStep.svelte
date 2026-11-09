@@ -2,7 +2,9 @@
 import { CircleCheck, CircleDashed, PartyPopper, Pencil } from '@lucide/svelte';
 import { isValidationError, navigate, runService } from '@protoyard/renderer-svelte';
 import { Button } from '@protoyard/ui';
+import { Alert } from 'texuli/alert';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { Box, Text } from 'texuli/typography';
 import RestartOnboarding from '../components/RestartOnboarding.svelte';
 import StepHeading from '../components/StepHeading.svelte';
 import { ACTIONABLE_STEPS, type OnboardingState, type StepId } from '../database/schema.ts';
@@ -40,28 +42,30 @@ const status = (step: StepId) =>
 
 {#if flow.completedAt}
   <div class="flex flex-col items-center py-6 text-center">
-    <span class="grid size-14 place-items-center rounded-full bg-success text-success-foreground"><LucideIcon icon={PartyPopper} class="size-7" /></span>
-    <StepHeading title="You're all set" description="Onboarding is complete. Here is what you set up." />
+    <Box radius="full" surface="muted" padding="md" class="mb-4 grid place-items-center"><LucideIcon icon={PartyPopper} size="lg" tone="success" /></Box>
+    <StepHeading title="You're all set" description="Onboarding is complete. Here is what you set up." align="center" />
   </div>
 {:else}
   <StepHeading title="Review and finish" description="Check your answers. You can jump back to any step to change them." />
 {/if}
 
-<ul class="divide-y divide-border rounded-lg border border-border">
-  {#each ACTIONABLE_STEPS as step (step)}
+<Box border="default" radius="lg" padding="none">
+<ul class="flex flex-col">
+  {#each ACTIONABLE_STEPS as step, i (step)}
     {@const s = status(step)}
-    <li class="flex items-start gap-3 p-4">
+    <li>
+    <Box radius="none" padding="md" border={i === 0 ? 'none' : 'block-start'} class="flex items-start gap-3">
       {#if s === 'done'}
-        <LucideIcon icon={CircleCheck} class="mt-0.5 size-5 shrink-0 text-success" />
+        <LucideIcon icon={CircleCheck} tone="success" class="mt-0.5 shrink-0" />
       {:else}
-        <LucideIcon icon={CircleDashed} class="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+        <LucideIcon icon={CircleDashed} tone="neutral" class="mt-0.5 shrink-0" />
       {/if}
-      <div class="min-w-0 flex-1 text-sm">
-        <p class="font-medium">
+      <div class="min-w-0 flex-1">
+        <Text size="sm" weight="medium">
           {STEP_DETAILS[step].label}
           <span class="sr-only">({s === 'done' ? 'completed' : s === 'skipped' ? 'skipped' : 'not done'})</span>
-        </p>
-        <div class="mt-0.5 text-muted-foreground">
+        </Text>
+        <Text as="div" size="sm" tone="muted" class="mt-0.5">
           {#if s === 'skipped'}
             Skipped
           {:else if s === 'todo'}
@@ -77,24 +81,28 @@ const status = (step: StepId) =>
           {:else if step === 'preferences' && flow.preferences}
             {flow.preferences.mode === 'system' ? 'Match system' : flow.preferences.mode} theme · digest {DIGEST_LABELS[flow.preferences.digest]?.toLowerCase()} · {flow.preferences.mentions ? 'mentions on' : 'mentions off'}
           {/if}
-        </div>
+        </Text>
       </div>
       {#if !flow.completedAt}
         <Button variant="ghost" size="sm" onclick={() => onEdit(step)} aria-label={`Edit ${STEP_DETAILS[step].label}`}>
           <LucideIcon icon={Pencil} />Edit
         </Button>
       {/if}
+    </Box>
     </li>
   {/each}
 </ul>
+</Box>
 
 {#if error || missing.length}
-  <p class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm" role="alert">
-    {error ?? `Finish ${missing.map((s) => STEP_DETAILS[s].label).join(' and ')} before you continue.`}
-  </p>
+  <Alert
+    tone="error"
+    class="mt-4"
+    text={error ?? `Finish ${missing.map((s) => STEP_DETAILS[s].label).join(' and ')} before you continue.`}
+  />
 {/if}
 
-<div class="mt-8 flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:items-center">
+<Box as="footer" radius="none" border="block-start" padding="none" class="mt-8 flex flex-col-reverse gap-2 pt-5 sm:flex-row sm:items-center">
   {#if flow.completedAt}
     <RestartOnboarding variant="ghost" />
     <Button class="sm:ml-auto" href="#/">Go to home</Button>
@@ -102,4 +110,4 @@ const status = (step: StepId) =>
     <Button variant="ghost" disabled={busy} onclick={onBack}>Back</Button>
     <Button class="sm:ml-auto" loading={busy} disabled={missing.length > 0} onclick={finish}>Finish setup</Button>
   {/if}
-</div>
+</Box>
