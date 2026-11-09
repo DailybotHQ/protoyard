@@ -96,6 +96,37 @@ describe('ds-check rules (fixtures)', () => {
     ).toEqual([]);
   });
 
+  it('allows text flow, box and Protoyard layout tokens, never typography or color', () => {
+    for (const ok of [
+      'text-center',
+      'md:text-right',
+      'truncate',
+      'line-clamp-2',
+      'break-words',
+      'whitespace-pre-wrap',
+      'pointer-events-none',
+      'aspect-video',
+      'object-cover',
+      'pt-safe',
+      'pb-safe',
+      'min-h-touch',
+      'invisible',
+    ]) {
+      expect(classifyUtility(ok), ok).toBe('allowed');
+    }
+    for (const bad of [
+      'text-sm',
+      'text-muted-foreground',
+      'font-medium',
+      'leading-tight',
+      'tracking-tight',
+      'uppercase',
+      'italic',
+    ]) {
+      expect(classifyUtility(bad), bad).toBe('visual');
+    }
+  });
+
   it('reads class directives, class expressions and cx() strings', () => {
     const source = [
       '<script lang="ts">',

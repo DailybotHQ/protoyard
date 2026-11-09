@@ -1093,6 +1093,16 @@ list is an allow-list: anything not on it fails, including unknown utilities.
   `top-*`, `right-*`, `bottom-*`, `left-*`.
 - `overflow-*`, `z-0` to `z-50` and `z-auto`, `sr-only`, `not-sr-only`, and
   the `group`/`peer` markers.
+- Text flow, not typography: alignment (`text-left`, `text-center`,
+  `text-right`, `text-justify`, `text-start`, `text-end`), wrapping and
+  truncation (`truncate`, `line-clamp-*`, `break-*`, `whitespace-*`,
+  `text-wrap`, `text-nowrap`, `text-balance`, `text-pretty`). Size, weight,
+  family, color, leading and tracking stay refused.
+- Box and media layout: `aspect-*` (auto, square, video), `object-*`,
+  `box-border`, `box-content`, `isolate`, `visible`, `invisible`, the table
+  and `flow-root` displays, `pointer-events-none` and `pointer-events-auto`.
+- Protoyard's layout tokens: the safe-area insets (`pt-safe`, `pb-safe`,
+  `px-safe`, …) and the touch-target size (`min-h-touch`, `size-touch`, …).
 - Responsive and state variants (`sm:`, `md:`, `lg:`, `xl:`, `2xl:`, `hover:`,
   `dark:`, …) on an allowed utility (`md:grid-cols-2` passes). A variant with
   brackets (`data-[x]:`) is an arbitrary value.
