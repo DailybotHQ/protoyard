@@ -7,7 +7,7 @@ import {
   useAppearance,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
-import { LayoutHost, navFromSidebar } from '@protoyard/ui';
+import { LayoutHost, navFromSidebar, SafeArea } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import { ROLE_LABELS } from './domain/policy.ts';
 import { provideDashboard } from './lib/context.ts';
@@ -52,7 +52,7 @@ const layoutNav = $derived(
 </script>
 
 <LayoutHost layout={appearance.current.layout.value} nav={layoutNav} storageKey={runtime.manifest.storage.namespace}>
-  <div class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8">
+  <SafeArea edges={['bottom']} class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
     <Router {router} />
-  </div>
+  </SafeArea>
 </LayoutHost>
