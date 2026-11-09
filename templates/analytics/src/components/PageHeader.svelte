@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
+import { Heading, Text } from 'texuli/typography';
 
 let { title, description, actions }: { title: string; description?: string; actions?: Snippet } =
   $props();
@@ -7,9 +8,9 @@ let { title, description, actions }: { title: string; description?: string; acti
 
 <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
   <div class="min-w-0">
-    <h1 class="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+    <Heading level={1} size="xl">{title}</Heading>
     {#if description}
-      <p class="mt-1 text-sm text-muted-foreground">{description}</p>
+      <Text size="sm" tone="muted" class="mt-1">{description}</Text>
     {/if}
   </div>
   {#if actions}

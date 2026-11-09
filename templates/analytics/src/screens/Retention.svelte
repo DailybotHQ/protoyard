@@ -3,6 +3,7 @@ import { computeRetention } from '@protoyard/analytics/cohort';
 import { CohortTable } from '@protoyard/analytics-ui/cohort';
 import { liveQuery, useClock } from '@protoyard/renderer-svelte';
 import { Button, Card, ErrorState, Skeleton } from '@protoyard/ui';
+import { Box } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import { eventsInRange } from '../domain/metrics.ts';
 import { useAnalytics } from '../lib/context.ts';
@@ -40,15 +41,15 @@ const result = $derived(
 
 <PageHeader title="Retention" description="Of the users who signed up in each cohort, the share that came back in each later period.">
   {#snippet actions()}
-    <div class="inline-flex rounded-md border border-border p-0.5" role="group" aria-label="Cohort size">
+    <Box border="default" radius="md" padding="none" class="inline-flex p-0.5" role="group" aria-label="Cohort size">
       {#each Object.entries(INTERVALS) as [id, option] (id)}
         <Button size="sm" variant={interval === id ? 'secondary' : 'ghost'} aria-pressed={interval === id} onclick={() => (interval = id as keyof typeof INTERVALS)}>{option.label}</Button>
       {/each}
-    </div>
-    <div class="inline-flex rounded-md border border-border p-0.5" role="group" aria-label="Counting">
+    </Box>
+    <Box border="default" radius="md" padding="none" class="inline-flex p-0.5" role="group" aria-label="Counting">
       <Button size="sm" variant={mode === 'bounded' ? 'secondary' : 'ghost'} aria-pressed={mode === 'bounded'} onclick={() => (mode = 'bounded')}>Active in period</Button>
       <Button size="sm" variant={mode === 'unbounded' ? 'secondary' : 'ghost'} aria-pressed={mode === 'unbounded'} onclick={() => (mode = 'unbounded')}>Not yet churned</Button>
-    </div>
+    </Box>
   {/snippet}
 </PageHeader>
 
@@ -58,6 +59,6 @@ const result = $derived(
   {:else if result}
     <CohortTable title="{spec.label} retention" {result} description="Cells marked with an asterisk are still in progress at the simulated now." />
   {:else}
-    <Skeleton class="h-72 rounded-lg" aria-hidden="true" />
+    <Skeleton class="h-72" aria-hidden="true" />
   {/if}
 </Card>

@@ -2,6 +2,7 @@
 import { LiveCounter } from '@protoyard/analytics-ui';
 import { liveQuery, useClock } from '@protoyard/renderer-svelte';
 import { Card } from '@protoyard/ui';
+import { Box, Heading, Text } from 'texuli/typography';
 import PageHeader from '../components/PageHeader.svelte';
 import { EVENT_LABELS, LIVE_COUNTER } from '../domain/catalog.ts';
 import { useAnalytics } from '../lib/context.ts';
@@ -21,29 +22,39 @@ const latest = liveQuery(() => db.events.orderBy('at').reverse().limit(12).toArr
 
 <PageHeader title="Live" description="A counter that follows simulated time, and the latest tracked events." />
 
-<div class="grid items-start gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
+<div class="live-grid grid items-start gap-6">
   <Card class="grid gap-3 p-5">
     <LiveCounter label="Active users" query={counter} />
-    <p class="text-xs text-muted-foreground">
+    <Text size="xs" tone="muted">
       Advance simulated time in DevTools to watch it climb; the same scenario always moves it the same way.
-    </p>
+    </Text>
   </Card>
   <Card class="p-5">
-    <h2 class="text-sm font-semibold">Latest events</h2>
+    <Heading level={2} size="sm">Latest events</Heading>
     {#if (latest.current ?? []).length === 0}
-      <p class="mt-3 text-sm text-muted-foreground">No events tracked yet.</p>
+      <Text size="sm" tone="muted" class="mt-3">No events tracked yet.</Text>
     {:else}
-      <ul class="mt-2 divide-y divide-border">
-        {#each latest.current ?? [] as event (event.id)}
-          <li class="flex items-center justify-between gap-3 py-2.5 text-sm">
-            <span class="min-w-0 truncate">
-              <span class="font-medium">{EVENT_LABELS[event.type] ?? event.type}</span>
-              <span class="text-muted-foreground">· {event.userId} · {String(event.properties.plan ?? '')} · {String(event.properties.platform ?? '')}</span>
-            </span>
-            <time class="shrink-0 text-xs text-muted-foreground" datetime={event.at}>{fromNow(event.at, clock.now)}</time>
+      <ul class="mt-2">
+        {#each latest.current ?? [] as event, index (event.id)}
+          <li>
+            <Box border={index === 0 ? 'none' : 'block-start'} radius="none" padding="none" class="flex items-center justify-between gap-3 py-2.5">
+              <Text as="span" size="sm" truncate class="min-w-0">
+                <Text as="span" size="sm" weight="medium">{EVENT_LABELS[event.type] ?? event.type}</Text>
+                <Text as="span" size="sm" tone="muted">· {event.userId} · {String(event.properties.plan ?? '')} · {String(event.properties.platform ?? '')}</Text>
+              </Text>
+              <Text as="span" size="xs" tone="muted" class="shrink-0"><time datetime={event.at}>{fromNow(event.at, clock.now)}</time></Text>
+            </Box>
           </li>
         {/each}
       </ul>
     {/if}
   </Card>
 </div>
+
+<style>
+  @media (min-width: 64rem) {
+    .live-grid {
+      grid-template-columns: 20rem minmax(0, 1fr);
+    }
+  }
+</style>
