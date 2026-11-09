@@ -7,6 +7,7 @@ import {
   runService,
 } from '@protoyard/renderer-svelte';
 import { Button, Input, Select } from '@protoyard/ui';
+import { Box, Heading, Text } from 'texuli/typography';
 import type { MarketplaceDatabase } from '../database/schema.ts';
 import { createMarketplaceServices } from '../domain/services.ts';
 
@@ -38,17 +39,17 @@ async function checkout(event: SubmitEvent) {
 }
 </script>
 
-<section class="mx-auto max-w-xl rounded-xl border border-border bg-surface p-6">
-  <p class="text-sm font-semibold uppercase tracking-wide text-primary">Simulated checkout</p>
-  {#if listing.loading}<p role="status" class="mt-4">Loading listing…</p>{:else if !listing.current}<p class="mt-4" role="alert">This listing is no longer available.</p>{:else}
-    <h1 class="mt-2 text-2xl font-semibold">{listing.current.title}</h1><p class="mt-2 text-muted-foreground">{listing.current.description}</p>
+<Box as="section" surface="default" border="default" radius="xl" padding="lg" class="mx-auto max-w-xl">
+  <Text size="sm" tone="primary" weight="semibold" transform="uppercase" tracking="wide">Simulated checkout</Text>
+  {#if listing.loading}<Text role="status" class="mt-4">Loading listing…</Text>{:else if !listing.current}<Text class="mt-4" role="alert">This listing is no longer available.</Text>{:else}
+    <Heading level={1} size="xl" class="mt-2">{listing.current.title}</Heading><Text tone="muted" class="mt-2">{listing.current.description}</Text>
     <form class="mt-6 space-y-4" onsubmit={checkout}>
-      <label class="block text-sm">Quantity<Input class="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2" type="number" min={1} max={20} step={1} bind:value={quantity} required /></label>
-      <label class="block text-sm">Test result<Select class="mt-1 block w-full" bind:value={outcome} items={[{ value: 'success', label: 'Approve simulated checkout' }, { value: 'declined', label: 'Decline simulated checkout' }]} /></label>
-      <p class="font-semibold">Total: ${((listing.current.priceCents * quantity) / 100).toFixed(2)}</p>
-      <p class="text-xs text-muted-foreground">No card details are requested. This local simulation creates a payout record on success.</p>
+      <Text as="label" size="sm" class="block">Quantity<Input class="mt-1 block w-full" type="number" min={1} max={20} step={1} bind:value={quantity} required /></Text>
+      <Text as="label" size="sm" class="block">Test result<Select class="mt-1 block w-full" bind:value={outcome} items={[{ value: 'success', label: 'Approve simulated checkout' }, { value: 'declined', label: 'Decline simulated checkout' }]} /></Text>
+      <Text weight="semibold" tabular>Total: ${((listing.current.priceCents * quantity) / 100).toFixed(2)}</Text>
+      <Text size="xs" tone="muted">No card details are requested. This local simulation creates a payout record on success.</Text>
       <Button disabled={busy} loading={busy} loadingLabel="Processing simulation">Place simulated order</Button>
     </form>
   {/if}
-  {#if message}<p role="status" class="mt-4 rounded-md bg-primary/5 p-3 text-sm">{message} <Button variant="link" class="ml-2 underline" onclick={() => navigate('/orders')}>View orders</Button></p>{/if}
-</section>
+  {#if message}<Box surface="muted" radius="md" padding="sm" role="status" class="mt-4"><Text as="span" size="sm">{message}</Text> <Button variant="link" class="ml-2" onclick={() => navigate('/orders')}>View orders</Button></Box>{/if}
+</Box>

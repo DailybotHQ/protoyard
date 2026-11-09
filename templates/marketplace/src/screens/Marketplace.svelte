@@ -2,7 +2,8 @@
 import type { Persona } from '@protoyard/core';
 import { avatarImage, getRuntime, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
 import { SsoButtons } from '@protoyard/saas-ui';
-import { Avatar } from '@protoyard/ui';
+import { Avatar, Button } from '@protoyard/ui';
+import { Box, Heading, Text } from 'texuli/typography';
 import type { MarketplaceDatabase } from '../database/schema.ts';
 
 const runtime = getRuntime<MarketplaceDatabase>();
@@ -43,25 +44,25 @@ const isSignedIn = $derived(principal.current !== null);
 
 <section class="space-y-10">
   {#if !isSignedIn}
-    <div class="grid gap-8 rounded-2xl bg-surface p-6 shadow-soft md:grid-cols-[1fr_20rem] md:items-center md:p-10">
-      <div>
-        <p class="text-sm font-semibold uppercase tracking-wide text-primary">For makers and curious buyers</p>
-        <h1 class="mt-3 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">Good things, made by people who care.</h1>
-        <p class="mt-4 max-w-xl text-muted-foreground">Discover independent shops, try a complete buyer journey, or set up a seller studio. Everything is simulated in this browser.</p>
-        <div class="mt-6 flex flex-wrap gap-3"><a class="rounded-md bg-primary px-4 py-2 text-primary-foreground" href="#/sign-up">Join the marketplace</a><a class="rounded-md border border-border px-4 py-2" href="#/seller/onboarding">Start selling</a></div>
+    <Box surface="default" radius="xl" elevation="sm" padding="none" class="grid gap-8 p-6 md:grid-cols-3 md:items-center md:p-10">
+      <div class="md:col-span-2">
+        <Text size="sm" tone="primary" weight="semibold" transform="uppercase" tracking="wide">For makers and curious buyers</Text>
+        <Heading level={1} size="display" class="mt-3 max-w-2xl">Good things, made by people who care.</Heading>
+        <Text tone="muted" class="mt-4 max-w-xl">Discover independent shops, try a complete buyer journey, or set up a seller studio. Everything is simulated in this browser.</Text>
+        <div class="mt-6 flex flex-wrap gap-3"><Button href="#/sign-up">Join the marketplace</Button><Button variant="outline" href="#/seller/onboarding">Start selling</Button></div>
       </div>
-      <div class="rounded-xl border border-border bg-background p-5"><h2 class="font-semibold">Continue with Google</h2><p class="mb-4 mt-1 text-sm text-muted-foreground">Simulated SSO. No provider is contacted.</p><SsoButtons providers={['google']} scenarios={{ google: { identity: { subject: 'google-user_0001', name: 'Avery Buyer', email: 'buyer@example.com', emailShared: true }, outcome: 'success' } }} /></div>
-    </div>
+      <Box surface="transparent" border="default" radius="lg" padding="md"><Heading level={2} size="sm">Continue with Google</Heading><Text size="sm" tone="muted" class="mb-4 mt-1">Simulated SSO. No provider is contacted.</Text><SsoButtons providers={['google']} scenarios={{ google: { identity: { subject: 'google-user_0001', name: 'Avery Buyer', email: 'buyer@example.com', emailShared: true }, outcome: 'success' } }} /></Box>
+    </Box>
   {:else}
-    <div class="flex flex-wrap items-end justify-between gap-4"><div><p class="text-sm font-semibold uppercase tracking-wide text-primary">Fieldmarket</p><h1 class="mt-2 text-3xl font-semibold tracking-tight">Find something special</h1><p class="mt-2 text-muted-foreground">Independent makers, thoughtfully made goods.</p></div><a href="#/seller/onboarding" class="rounded-md border border-border px-4 py-2">Open a seller studio</a></div>
+    <div class="flex flex-wrap items-end justify-between gap-4"><div><Text size="sm" tone="primary" weight="semibold" transform="uppercase" tracking="wide">Fieldmarket</Text><Heading level={1} size="xl" class="mt-2">Find something special</Heading><Text tone="muted" class="mt-2">Independent makers, thoughtfully made goods.</Text></div><Button variant="outline" href="#/seller/onboarding">Open a seller studio</Button></div>
   {/if}
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     {#each listings.current ?? [] as listing (listing.id)}
       {@const seller = sellers.current?.get(listing.sellerPersonaId)}
-      <article class="overflow-hidden rounded-xl border border-border bg-surface">
-        <div class="grid aspect-[4/3] place-items-center bg-primary/5 text-5xl" aria-hidden="true">✳</div>
-        <div class="space-y-3 p-4"><p class="text-xs font-medium uppercase tracking-wide text-primary">{listing.category}</p>{#if seller}<p class="flex items-center gap-2 text-sm text-muted-foreground" data-listing-seller=""><Avatar name={seller.name} {...avatarImage(seller.avatar)} size="xs" decorative /><span class="truncate">{seller.store}</span></p>{/if}<div><h2 class="font-semibold">{listing.title}</h2><p class="mt-1 line-clamp-2 text-sm text-muted-foreground">{listing.description}</p></div><div class="flex items-center justify-between"><span class="font-semibold tabular-nums">${(listing.priceCents / 100).toFixed(2)}</span><a class="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground" href={`#/checkout/${listing.id}`}>{isSignedIn ? 'Buy' : 'Sign in to buy'}</a></div></div>
-      </article>
+      <Box as="article" surface="default" border="default" radius="xl" padding="none" class="overflow-hidden">
+        <Box surface="muted" radius="none" padding="none" class="grid aspect-video place-items-center" aria-hidden="true"><Text as="span" size="figure" tone="primary">✳</Text></Box>
+        <div class="space-y-3 p-4"><Text size="xs" tone="primary" weight="medium" transform="uppercase" tracking="wide">{listing.category}</Text>{#if seller}<div class="flex items-center gap-2" data-listing-seller=""><Avatar name={seller.name} {...avatarImage(seller.avatar)} size="xs" decorative /><Text as="span" size="sm" tone="muted" truncate>{seller.store}</Text></div>{/if}<div><Heading level={2} size="sm">{listing.title}</Heading><Text size="sm" tone="muted" lineClamp={2} class="mt-1">{listing.description}</Text></div><div class="flex items-center justify-between"><Text as="span" weight="semibold" tabular>${(listing.priceCents / 100).toFixed(2)}</Text><Button size="sm" href={`#/checkout/${listing.id}`}>{isSignedIn ? 'Buy' : 'Sign in to buy'}</Button></div></div>
+      </Box>
     {/each}
   </div>
 </section>
