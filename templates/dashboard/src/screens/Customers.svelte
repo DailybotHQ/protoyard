@@ -11,6 +11,7 @@ import {
   Select,
 } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
+import { ListItem } from 'texuli/list-item';
 import CustomerDialog from '../components/CustomerDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
@@ -63,13 +64,11 @@ const columns: DataTableColumn<Row>[] = [
 </script>
 
 {#snippet nameCell(c: Row)}
-  <span class="flex items-center gap-3">
-    <Avatar name={c.name} {...avatarImage(c.avatar)} size="sm" decorative />
-    <span class="min-w-0">
-      <span class="block truncate font-medium">{c.name}</span>
-      <span class="block truncate text-xs text-muted-foreground">{c.email}</span>
-    </span>
-  </span>
+  <ul role="list" class="tx-list -mx-3 -my-2">
+    <ListItem title={c.name} description={c.email}>
+      {#snippet leading()}<Avatar name={c.name} {...avatarImage(c.avatar)} size="sm" decorative />{/snippet}
+    </ListItem>
+  </ul>
 {/snippet}
 {#snippet statusCell(c: Row)}<StatusBadge status={c.status} />{/snippet}
 {#snippet valueCell(c: Row)}<span class="tabular-nums">{money(c.value, currency)}</span>{/snippet}

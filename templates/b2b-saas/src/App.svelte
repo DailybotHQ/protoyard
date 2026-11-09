@@ -9,7 +9,7 @@ import {
   TrialBanner,
   WorkspaceSwitcher,
 } from '@protoyard/saas-ui';
-import { Button } from '@protoyard/ui';
+import { Button, Separator } from '@protoyard/ui';
 import { onDestroy, onMount } from 'svelte';
 import Dashboard from './screens/Dashboard.svelte';
 import Projects from './screens/Projects.svelte';
@@ -83,24 +83,26 @@ onDestroy(() => {
 const signedIn = $derived(principal.current !== null);
 </script>
 
-<div class="min-h-dvh bg-background text-foreground">
+<!-- The theme paints the page; this file only lays out design-system components. -->
+<div class="min-h-dvh">
   {#if signedIn}<TrialBanner />{/if}
-  <header class="border-b border-border bg-surface">
-    <nav class="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3" aria-label="Main navigation">
-      <a class="mr-auto font-semibold" href="#/">Northstar</a>
+  <header>
+    <nav class="mx-auto flex max-w-6xl flex-wrap items-center gap-1 px-4 py-3" aria-label="Main navigation">
+      <Button href="#/" variant="ghost" class="mr-auto"><strong>Northstar</strong></Button>
       {#if signedIn}
         <WorkspaceSwitcher {runtime} />
-        <a href="#/app">Workspace</a>
-        <a href="#/projects">Projects</a>
-        <a href="#/inbox">Inbox</a>
-        <a href="#/billing/plans">Plans</a>
-        <a href="#/settings">Settings</a>
+        <Button href="#/app" variant="ghost">Workspace</Button>
+        <Button href="#/projects" variant="ghost">Projects</Button>
+        <Button href="#/inbox" variant="ghost">Inbox</Button>
+        <Button href="#/billing/plans" variant="ghost">Plans</Button>
+        <Button href="#/settings" variant="ghost">Settings</Button>
         <InboxDrawer />
       {:else}
         <Button href="#/sign-in" variant="outline">Sign in</Button>
         <Button href="#/sign-up">Create account</Button>
       {/if}
     </nav>
+    <Separator />
   </header>
   <main id="main" class="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
     <Router {router} />
