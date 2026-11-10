@@ -616,7 +616,7 @@ writes a byte:
    exactly one component file (a second reference is refused before its
    bytes are built);
 6. `document.json` against Texuli's document, each JSON file against its own
-   schema (a story's props may not carry a `javascript:`, `vbscript:`,
+   schema (a story's variant names are unique, and its props may not carry a `javascript:`, `vbscript:`,
    `data:`, `file:` or `blob:` URL), `components.json` against the component
    files (hash, missing, unlisted) and their library sources, each release
    record against its own document (`releaseProblems`: id, version and
@@ -630,8 +630,11 @@ Then it writes into a hidden staging folder
 into place. It never replaces an existing `design-systems/<id>/` without
 `--force`; with it, the old folder moves aside, the staged one takes its
 place, and the old one is removed (moved back if the rename fails). A flat
-`design-systems/<id>.json` of the same id is never shadowed. The import
-executes nothing, compiles nothing and renders nothing as HTML.
+`design-systems/<id>.json` of the same id is never shadowed. `--dry-run`
+makes the same refusals (a flat `<id>.json`, a symlinked folder, an existing
+design system without `--force`). The import compiles the document as data
+(step 7), but compiles no component code, runs nothing and renders nothing
+as HTML.
 
 **Component sources are code.** `components/<Name>.svelte` is reachable as
 `@ds/<id>/<Name>`: it is compiled into every prototype that imports it, `ds
