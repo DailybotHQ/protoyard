@@ -9,6 +9,8 @@ import {
   type CatalogManifestLike,
   catalogFromManifests,
   catalogIdFor,
+  catalogIdForUse,
+  componentUses,
   composedCatalogIds,
   dsCatalog,
   importedNames,
@@ -191,6 +193,32 @@ describe('the catalog and the mapper', () => {
         "<script>import { Card, CardContent } from 'texuli/card'; import { Badge } from 'texuli/badge'; import { Kbd } from 'other';</script><Card><CardContent><Badge /></CardContent></Card><Kbd />"
       )
     ).toEqual(['badge', 'card']);
+  });
+
+  it('maps a compound part to its own id, else to its namespace root (Texuli 0.16.1 rule)', () => {
+    const source =
+      "<script>import { DropdownMenu } from 'texuli/menus'; import { MultiSelect } from 'texuli/combobox'; import { Select } from 'texuli';</script>" +
+      '<DropdownMenu.Root><DropdownMenu.Trigger /><DropdownMenu.Content><DropdownMenu.Item /></DropdownMenu.Content></DropdownMenu.Root>' +
+      '<MultiSelect.Root><MultiSelect.Item /></MultiSelect.Root><Select.Trigger />';
+    const catalog = dsCatalog();
+    const ids = componentUses(source, catalog).map((use) => [
+      use.tag,
+      catalogIdForUse(catalog, use).id,
+    ]);
+    expect(ids).toEqual([
+      ['DropdownMenu.Root', 'dropdown-menu'],
+      ['DropdownMenu.Trigger', 'dropdown-menu-trigger'],
+      ['DropdownMenu.Content', 'dropdown-menu'],
+      ['DropdownMenu.Item', 'dropdown-menu'],
+      ['MultiSelect.Root', 'multi-select'],
+      ['MultiSelect.Item', 'multi-select'],
+      ['Select.Trigger', 'select-trigger'],
+    ]);
+    // A namespace import (`import * as NS`) has no root to fall back to.
+    const ns = "<script>import * as Menus from 'texuli/menus';</script><Menus.Nothing />";
+    expect(componentUses(ns, catalog).map((use) => catalogIdForUse(catalog, use).id)).toEqual([
+      null,
+    ]);
   });
 });
 

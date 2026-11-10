@@ -593,6 +593,19 @@ export function catalogIdFor(catalog: DsCatalog, module: string, identifier: str
   return resolveImport(catalog, module, identifier, identifier, 0);
 }
 
+/**
+ * The catalog id of one use. A compound part (`<Select.Content>`,
+ * `<DropdownMenu.Item>`) takes its own id when the catalog lists one, and
+ * otherwise the id of its namespace root (`Select`), the rule Texuli's locked
+ * check applies (0.16.1), so both checks agree on the same source.
+ */
+export function catalogIdForUse(catalog: DsCatalog, use: ComponentUse): CatalogMatch {
+  const own = catalogIdFor(catalog, use.module, use.identifier);
+  if (own.id || own.how === 'non-component' || !use.namespace) return own;
+  const root = catalogIdFor(catalog, use.module, use.namespace);
+  return root.id ? root : own;
+}
+
 function resolveImport(
   catalog: DsCatalog,
   module: string,
@@ -841,7 +854,7 @@ export function importedNames(script: string): ImportedName[] {
 export function composedCatalogIds(source: string, catalog: DsCatalog = dsCatalog()): string[] {
   const ids = new Set<string>();
   for (const use of componentUses(source, catalog)) {
-    const match = catalogIdFor(catalog, use.module, use.identifier);
+    const match = catalogIdForUse(catalog, use);
     if (match.id) ids.add(match.id);
   }
   return [...ids].sort();
@@ -855,6 +868,8 @@ export interface ComponentUse {
   offset: number;
   /** The tag name as written. */
   tag: string;
+  /** For a dotted tag of a named import (`<Select.Content>`): the root's export name. */
+  namespace?: string;
 }
 
 /**
@@ -883,7 +898,13 @@ export function componentUses(source: string, catalog?: DsCatalog): ComponentUse
     const identifier = m[2]
       ? `${name.namespace ? name.local : name.exported}${m[2]}`
       : name.exported;
-    out.push({ identifier, module: name.module, offset: m.index ?? 0, tag: m[0].slice(1) });
+    out.push({
+      identifier,
+      module: name.module,
+      offset: m.index ?? 0,
+      tag: m[0].slice(1),
+      ...(m[2] && !name.namespace ? { namespace: name.exported } : {}),
+    });
   }
   return out;
 }

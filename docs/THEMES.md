@@ -1204,6 +1204,11 @@ catalog's own `imports` (Texuli 0.15.0) come first:
 5. Anything else from a Texuli module or `@protoyard/ui` is `unmapped`: no
    fallback to names.
 
+A compound part used as a dotted tag (`<Select.Content>`,
+`<DropdownMenu.Item>`) takes its own catalog id when the catalog lists one,
+and otherwise the id of its namespace root (`Select` → `select`), the rule
+Texuli's locked check applies since 0.16.1, so both checks agree.
+
 Only for a Texuli whose manifests list no `imports` does the mapper fall back
 to names: the id whose PascalCase equals the name (`AlertDialog` →
 `alert-dialog`), then the package's id prefix plus the name (`Grid` from

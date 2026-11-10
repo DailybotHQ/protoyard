@@ -49,7 +49,7 @@ import type { DesignSystemAllow } from '@texuli/spec/design-system';
 import { locateDesignSystem, readDocumentFile } from '../design-systems.ts';
 import {
   allowedVia,
-  catalogIdFor,
+  catalogIdForUse,
   componentUses,
   DS_AXES,
   type DsCatalog,
@@ -524,7 +524,7 @@ function scanAllowed(text: string, markup: string, add: Add, ctx: DsAllowContext
     return byOffset.get(offset) ?? '';
   };
   for (const use of componentUses(text, ctx.catalog)) {
-    const match = catalogIdFor(ctx.catalog, use.module, use.identifier);
+    const match = catalogIdForUse(ctx.catalog, use);
     // Texuli lists it as a non-component export (`MotionProvider`): never refused.
     if (match.how === 'non-component') continue;
     if (!match.id) {
