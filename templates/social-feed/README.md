@@ -37,12 +37,15 @@ inbox and on your posts.
 
 ## How it works
 
-- **Windowed feed:** `VirtualFeed` keeps only the visible rows (plus four
-  above and below) in the DOM, with spacers for the full height.
-  - Row heights are measured with a `ResizeObserver` as rows render (text, an
-    image or an open comment thread change them) and estimated until then.
-  - `feedWindow()` in `src/domain/feed.ts` does the math, and is unit-tested at
-    6,000 rows.
+- **Windowed feed:** Texuli's `VirtualListView` (from `@protoyard/ui`) in
+  feed mode keeps only the visible posts (plus four above and below) in the
+  DOM and sizes its own spacers.
+  - Row heights are measured as posts render (text, an image or an open
+    comment thread change them) and estimated at 180 px until then.
+  - It follows the WAI-ARIA feed pattern: `role="feed"`, one `<article>` per
+    post with `aria-setsize` / `aria-posinset`, a single tab stop among the
+    posts, Page Up / Page Down between posts. Keys pressed in a post's own
+    buttons and comment input stay theirs, and posts are never selected.
 - **Layout:** the app is bound to the window height (`h-app`). The feed list
   is the scroll region and the document never scrolls, so the composer
   (`[data-py-composer]`) stays on screen at 390×844 (`pnpm visual:sweep` flags it when not).
@@ -62,11 +65,11 @@ inbox and on your posts.
 
 ```text
 src/database/schema.ts       people (&handle), posts, reactions ([postId+personId]), comments, follows (&pair), notifications
-src/domain/feed.ts           timeline(), feedWindow(), mentionsIn() (pure, tested)
+src/domain/feed.ts           timeline(), byNewest(), mentionsIn() (pure)
 src/domain/validation.ts     plain-text post and comment schemas, reaction kinds
 src/domain/services.ts       posts.create / remove, reactions.toggle, comments.add, follows.toggle, notifications.markRead
 src/scenarios/generators.ts  eventStream() history, activityStream() + notificationFor(), the timeline
-src/components/              VirtualFeed, PostCard, Composer, MediaPlaceholder, FollowButton
+src/components/              PostCard, Composer, MediaPlaceholder, FollowButton
 src/screens/                 Feed, Notifications, People, Profile (lazy routes)
 tests/                       none: tests/integration/templates.test.ts generates, validates and boots this template
 ```
