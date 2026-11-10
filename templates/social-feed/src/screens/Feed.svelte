@@ -8,6 +8,7 @@ import type { Post } from '../database/schema.ts';
 import { timeline } from '../domain/feed.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { personIdOf, useSocial } from '../lib/context.ts';
+import { POST_FEED } from '../lib/feed-list.ts';
 
 const { db } = useSocial();
 const principal = usePrincipal();
@@ -67,8 +68,7 @@ const posts = $derived(
     <!-- APG feed: articles with their own controls, Page Up / Page Down between posts, no selection. -->
     <VirtualListView
       bind:this={feed}
-      mode="feed"
-      selectable={false}
+      {...POST_FEED}
       size="fill"
       class="min-h-0 flex-1"
       items={posts}

@@ -1,5 +1,11 @@
 # @protoyard/database
 
+## 1.9.0
+
+### Patch Changes
+
+- @protoyard/core@1.9.0
+
 ## 1.8.1
 
 ### Patch Changes

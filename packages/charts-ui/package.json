@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/charts-ui",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "description": "Svelte chart components for Protoyard: thin re-exports and adapters over @texuli/charts families.",
   "license": "MIT",
   "type": "module",
@@ -62,8 +62,8 @@
   },
   "dependencies": {
     "@protoyard/charts": "workspace:*",
-    "@texuli/charts": "0.16.1",
-    "texuli": "0.16.1"
+    "@texuli/charts": "0.17.0",
+    "texuli": "0.17.0"
   },
   "devDependencies": {
     "svelte": "^5.57.3"

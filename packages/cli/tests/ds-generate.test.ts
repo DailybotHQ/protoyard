@@ -221,6 +221,20 @@ describe('protoyard ds new from Texuli generator sources (PLAN_013 T-generator)'
     expect(flagged.json<Envelope<Generated>>().data.document.color?.brand?.seed).toBe('#1d4ed8');
   });
 
+  it('keeps the brand seed when a stylesheet pins a role below AA (Texuli 0.17.0 pins the failing role)', async () => {
+    setup();
+    ws?.write('brand/pinned.css', ':root{--brand:#e11d48;--primary:#ffff00}\n');
+    const result = await ds('new', 'pinned-ds', '--from-css', 'brand/pinned.css', '--dry-run');
+    expect(result.code, result.stdout).toBe(0);
+    const data = result.json<Envelope<Generated>>().data;
+    expect(data.document.color?.brand?.seed).toBe('#e11d48');
+    expect(
+      data.generation.repairs.some((repair) =>
+        JSON.stringify(repair).includes('preserve the brand seed')
+      )
+    ).toBe(true);
+  });
+
   it('is deterministic: the same input writes the same bytes', async () => {
     setup();
     const sources: [string, string][] = [
@@ -414,10 +428,29 @@ describe('generator input helpers', () => {
     );
     expect(reading.map((entry) => entry.read)).toEqual([
       ['heading Fraunces'],
-      ['accent color #f59e0b'],
+      ['accent #f59e0b'],
       ['subtle motion'],
       ['glass'],
     ]);
+  });
+
+  it('reads every clause with a color itself: Texuli 0.17.0 drops the rest of such a clause', () => {
+    const { reading } = readProseBrief(
+      'Deep teal #0f766e brand; Inter font in #0f766e; rounded #f59e0b; two colors #0f766e #f59e0b; secondary is #334155',
+      importBrand
+    );
+    expect(reading.map((entry) => entry.read)).toEqual([
+      ['brand #0f766e'],
+      ['#0f766e', 'font Inter'],
+      ['#f59e0b', 'rounded'],
+      ['#0f766e', '#f59e0b'],
+      ['secondary #334155'],
+    ]);
+    // What Texuli alone makes of two of them: the font and the second color are gone, unreported.
+    for (const clause of ['Inter font in #0f766e', 'two colors #0f766e #f59e0b']) {
+      const direct = importBrand(clause, { trust: 'untrusted', id: 'x' });
+      expect(direct.ok && direct.warnings.some((w) => w.code === 'unmapped')).toBe(false);
+    }
   });
 
   it('keeps a clause with nothing to read, so Texuli reports it as an unmapped loss', () => {

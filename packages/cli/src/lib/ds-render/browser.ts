@@ -1,8 +1,9 @@
 /**
  * The Playwright side of `check ds --render`: one Chromium for the run, one
  * fresh context per visit (`withReadyPage` of `../capture`, the same
- * deterministic capture `quick` shots and the visual sweep use), the host
- * script and Texuli's checks run in a CDP isolated world (the prototype's
+ * deterministic capture `quick` shots and the visual sweep use), Texuli's
+ * prebuilt host IIFE (`./host-script.ts`) and Texuli's checks run in a CDP
+ * isolated world (the prototype's
  * JavaScript cannot reach their globals or patch the DOM functions they
  * call; it can still change the shared DOM itself, and axe runs in the main
  * world), then Texuli's `runLockedRenderChecks` with the mapping the host
@@ -13,12 +14,13 @@
 import type { Browser, Page } from '@playwright/test';
 import type { DsAxeRunner, DsCheckPage, DsCheckRun } from '@texuli/tools/ds-check';
 import { type CaptureUnavailable, launchChromium, withReadyPage } from '../capture/index.ts';
-import { DS_RENDER_HOST_GLOBAL, dsRenderHostScript } from './host-bundle.ts';
+import { dsRenderHostScript, INSTALL_HOST } from './host-script.ts';
 import {
   DS_RENDER_MIN_VISUALIZATION_PX,
   type DsRenderPageInfo,
   type DsRenderVisit,
   type LockedReportLike,
+  strictNotAllowed,
 } from './index.ts';
 
 /** A compiled run of the design system (Texuli's `DsCheckRun`), opaque here. */
@@ -55,9 +57,6 @@ export function visitUrl(baseUrl: string, visit: DsRenderVisit): string {
 /** The element the host is installed on: the prototype's mount point. */
 export const DS_RENDER_SCOPE = '#app';
 
-/** Installs the bundled host (a string: tsx would rewrite a named function). */
-const INSTALL_HOST = '([name, scope, px]) => globalThis[name].install(scope, px)';
-
 /** Marks `undefined` inside an argument, which CDP's JSON would turn into null. */
 const UNDEFINED = '\u0000protoyard:undefined';
 
@@ -87,7 +86,7 @@ interface CdpEvaluation {
 export interface IsolatedWorld {
   /** A Texuli `DsCheckPage` whose `evaluate` and `waitForFunction` run in the world. */
   page: DsCheckPage;
-  /** Evaluates a script (the host bundle) in the world. */
+  /** Evaluates a script (Texuli's host IIFE) in the world. */
   run(script: string): Promise<void>;
   evaluate(fn: string | ((arg: never) => unknown), arg: unknown): Promise<unknown>;
   detach(): Promise<void>;
@@ -182,10 +181,11 @@ export async function launchDsRenderDriver(root: string): Promise<DsRenderDriver
       detail: (error as Error).message.split('\n')[0] ?? String(error),
     };
   }
+  // Texuli's prebuilt host, read before a browser starts (a missing file is a typed error).
+  const script = dsRenderHostScript();
   const launch = await launchChromium();
   if (!launch.ok) return launch;
   const browser: Browser = launch.browser;
-  const script = await dsRenderHostScript();
   const driver: DsRenderDriver = {
     async visit(request) {
       const { visit } = request;
@@ -209,7 +209,6 @@ export async function launchDsRenderDriver(root: string): Promise<DsRenderDriver
           try {
             await world.run(script);
             const info = (await world.evaluate(INSTALL_HOST, [
-              DS_RENDER_HOST_GLOBAL,
               DS_RENDER_SCOPE,
               DS_RENDER_MIN_VISUALIZATION_PX,
             ])) as DsRenderPageInfo;
@@ -222,7 +221,21 @@ export async function launchDsRenderDriver(root: string): Promise<DsRenderDriver
               // axe needs Playwright's page; it runs in the main world (see THEMES.md limits).
               { modes: [visit.mode], axe: () => axe(page as unknown as DsCheckPage) }
             );
-            return { info, locked: locked as unknown as LockedReportLike };
+            const report = locked as unknown as LockedReportLike;
+            // Texuli 0.17.0 also covers a root through an allowed root around
+            // it; keep every root allowed in its own right (see strictNotAllowed).
+            const strict = strictNotAllowed(
+              info,
+              request.allowManifest,
+              report.mapping.errors,
+              tools.resolveAllowedComponentId
+            );
+            return {
+              info,
+              locked: strict.length
+                ? { ...report, mapping: { errors: [...report.mapping.errors, ...strict] } }
+                : report,
+            };
           } finally {
             await world.detach();
           }

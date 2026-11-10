@@ -448,6 +448,34 @@ describe('ds import: component code, release records and repeated sources', {
     const codes = result.json<Envelope<Issues>>().data.errors.map((e) => e.code);
     expect(codes).toContain('duplicate-reference');
   });
+
+  it("refuses two library sources with one id through Texuli's own bundle validation", async () => {
+    const { ws, bundle, save } = await exported();
+    const [source] = bundle.texuli.librarySources;
+    expect(source).toBeDefined();
+    const doubled: Bundle = {
+      ...bundle,
+      texuli: {
+        ...bundle.texuli,
+        librarySources: [source as { id: string }, { ...source } as { id: string }],
+      },
+    };
+    const result = await run(
+      ws,
+      'ds',
+      'import',
+      save(doubled, 'doubled.json'),
+      '--dry-run',
+      '--force'
+    );
+    expect(result.code).not.toBe(0);
+    const errors = result.json<Envelope<Issues>>().data.errors;
+    expect(errors).toContainEqual({
+      code: 'invalid-value',
+      path: '$.texuli.librarySources[1].id',
+      message: 'Library source ids must be unique.',
+    });
+  });
 });
 
 describe('F12: kit README and story props', () => {

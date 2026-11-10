@@ -13,13 +13,15 @@ import {
 } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { useSocial } from '../lib/context.ts';
+import { postLabelId } from '../lib/feed-list.ts';
 import { fromNow } from '../lib/format.ts';
 import MediaPlaceholder from './MediaPlaceholder.svelte';
 
 /**
  * One post: author, plain text, a placeholder image, reactions and an
  * expandable comment thread. The feed's own `<article>` (VirtualListView
- * `mode="feed"`) wraps it, so the card is a plain box.
+ * `mode="feed"`) wraps it, so the card is a plain box; its author line
+ * (`postLabelId`) names that article.
  */
 let {
   post,
@@ -66,7 +68,7 @@ async function comment() {
   <header class="flex items-start gap-3">
     <Avatar name={author?.name ?? 'Someone'} size="sm" />
     <div class="min-w-0 flex-1">
-      <Text id="post-{post.id}-author" size="sm" truncate>
+      <Text id={postLabelId(post.id)} size="sm" truncate>
         <Link href={`/people/${author?.handle ?? ''}`}><Text as="span" size="sm" weight="semibold">{author?.name ?? 'Someone'}</Text></Link>
         <Text as="span" size="sm" tone="muted">@{author?.handle} · <time datetime={post.createdAt}>{fromNow(post.createdAt, clock.now)}</time></Text>
       </Text>

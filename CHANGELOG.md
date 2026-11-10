@@ -6,6 +6,36 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-11-10
+
+Texuli 0.17.0. Every Texuli dependency is pinned exactly at `0.17.0`. See
+[TEXULI](docs/TEXULI.md).
+
+### Changed
+
+- **Render check on Texuli's host.** `check ds --render` loads Texuli's
+  prebuilt host script (`host.iife.js`) into the isolated world 1.8.1
+  introduced, instead of bundling a host with Vite at run time. It pins the
+  attribute the host reads to `data-tx-component`, so a page cannot steer the
+  color check, and keeps Protoyard's stricter nesting rule: a catalog root
+  inside an allowed root is not allowed by that alone (Texuli 0.17.0 accepts
+  it; Texuli 0.17.1 restores the strict rule).
+- **`ds diff` and the kit** use Texuli's `changesModel` and `kitApproval` for
+  allow and approval changes; library changes stay Protoyard's, which also
+  compares approver and hash. A newly locked document lists `locked` and one
+  `added` entry per allowed component.
+- **`ds import`** leaves duplicate library sources to Texuli's own refusal.
+- **`ds new --brief`** reads every clause with a color itself (Texuli keeps
+  only the color); the brand seed survives a generator repair, so the old
+  known limit is gone.
+- **social-feed** names each feed article by its author (`aria-labelledby`)
+  and runs edge to edge on the plain viewport. `@protoyard/ui`'s
+  `VirtualListView` takes `bind:ref` and rest attributes; the contract test
+  has no exceptions again.
+- Every Button size meets the 24 px target minimum (Texuli). The page
+  single-file export cap follows Texuli's growth: 2,594,552 B
+  ([PERFORMANCE](docs/PERFORMANCE.md)).
+
 ## [1.8.1] - 2026-11-10
 
 Security review fixes for PLAN_013's design-system commands

@@ -220,7 +220,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Breadcrumb` | `items: { label, href? }[]` |
 | `CardGrid` | `minItemWidth`, `maxColumns`, `gap`, `as` |
 | `ChatThread` | `messages`, `currentUserId`, `typing: string[]`, `bind:draft`, `onSend`, `sending` |
-| `VirtualListView` | Texuli's windowed list: `items`, `label`, `getKey`, `row` snippet (`{ item, index, active, selected }`), `estimateSize`, `overscan`, `size` (`sm`/`md`/`lg`/`fill`), `mode` (`listbox`, or `feed` for rows with their own buttons and inputs: `role="feed"`, one `<article>` per row, Page Up / Page Down), `selectable`, `bind:selected`, `onSelect`, `onRangeChange`; method `scrollToIndex(i)`. No `bind:ref` or rest attributes yet (Texuli 0.16.1) |
+| `VirtualListView` | Texuli's windowed list: `items`, `label`, `getKey`, `row` snippet (`{ item, index, active, selected, labelId }`), `estimateSize`, `overscan`, `size` (`sm`/`md`/`lg`/`fill`), `mode` (`listbox`, or `feed` for rows with their own buttons and inputs: `role="feed"`, one `<article>` per row, Page Up / Page Down), `selectable`, `surface` (`box`, or `plain`: no border, radius or surface), `getRowLabelId` (feed: the id inside the row that names its article; default the snippet's `labelId`), `bind:selected`, `onSelect`, `onRangeChange`, `bind:ref` (the root; rest attributes and handlers go to the scroller); method `scrollToIndex(i)` (Texuli 0.17.0) |
 | `MessageList` / `groupMessages` | messages `{ id, author: { id, name }, body, at, status? }`, `role="log"`, auto-scroll |
 | `Composer` | `bind:value`, `onSubmit` (return `false`/reject to keep the draft), Enter sends, Shift+Enter newline |
 | `TypingIndicator` | `names: string[]`, `showLabel` (sr-only text otherwise; reduced-motion safe) |

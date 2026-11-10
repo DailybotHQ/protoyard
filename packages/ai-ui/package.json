@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/ai-ui",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "description": "Svelte 5 assistant interface components for simulated AI prototypes.",
   "license": "MIT",
   "type": "module",
@@ -45,8 +45,8 @@
     "@lucide/svelte": "^1.64.0",
     "@protoyard/ai": "workspace:*",
     "@protoyard/charts-ui": "workspace:*",
-    "@texuli/chat": "0.16.1",
-    "texuli": "0.16.1"
+    "@texuli/chat": "0.17.0",
+    "texuli": "0.17.0"
   },
   "devDependencies": {
     "axe-core": "^4.14.0",

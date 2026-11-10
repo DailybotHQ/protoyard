@@ -9,6 +9,7 @@ import PostCard from '../components/PostCard.svelte';
 import type { Post } from '../database/schema.ts';
 import { byNewest } from '../domain/feed.ts';
 import { personIdOf, useSocial } from '../lib/context.ts';
+import { POST_FEED } from '../lib/feed-list.ts';
 
 let { params }: { params: { handle?: string } } = $props();
 const { db } = useSocial();
@@ -67,8 +68,7 @@ const data = liveQuery(
       <div class="p-4"><EmptyState title="No posts yet" /></div>
     {:else}
       <VirtualListView
-        mode="feed"
-        selectable={false}
+        {...POST_FEED}
         size="fill"
         class="min-h-0 flex-1"
         items={d.posts ?? []}

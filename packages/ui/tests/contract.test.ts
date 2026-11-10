@@ -160,10 +160,11 @@ const CASES: Record<string, Case> = {
 /**
  * Re-exported Texuli roots that do not take the contract yet, pinned (not
  * skipped): the test asserts the gap is still there, so it turns red when
- * Texuli adds `ref` and rest attributes and the entry must go. Texuli 0.16.1
- * `VirtualListView` has neither (its props are its own, no `ref`).
+ * Texuli adds `ref` and rest attributes and the entry must go. Empty since
+ * Texuli 0.17.0 (`VirtualListView` binds `ref` and sends rest attributes and
+ * handlers to its scroller).
  */
-const CONTRACT_GAPS: ReadonlySet<string> = new Set(['VirtualListView']);
+const CONTRACT_GAPS: ReadonlySet<string> = new Set<string>();
 
 function isComponent(value: unknown): boolean {
   return typeof value === 'function' && /\$\$anchor|\$\$props/.test(String(value));

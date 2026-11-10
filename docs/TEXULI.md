@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.16.1`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.17.0`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.16.1`. Texuli pins its own internal dependencies exactly,
+Every package is `0.17.0`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -412,6 +412,51 @@ not in the agent catalog yet, so blueprints cannot emit them):
 - **Avatar grid:** `<AvatarGroupGrid items={members} label="…" />` from
   `texuli/avatar`, a 2×2 collage for group conversations.
 
+## What Texuli 0.17.0 brings for design systems
+
+Texuli 0.17.0 closes gaps that 1.8.0 and 1.8.1 worked around. What
+Protoyard now takes from Texuli, and what it keeps:
+
+- **Render check host.** `check ds --render` evaluates Texuli's prebuilt
+  host IIFE (`@texuli/tools`, `dist/ds-check/host.iife.js`) in the CDP
+  isolated world instead of bundling a host entry with Vite at run time, and
+  no longer copies `data-tx-component` to `data-ds-check-component`: the host
+  reads `data-tx-component` itself (the CLI pins that attribute, so a page
+  cannot redirect the color check). Protoyard keeps its own page reader
+  (links, unowned visualizations, axis values) in the same world
+  ([render mode](THEMES.md#render-mode---render)).
+- **Kept on purpose in the render check.** Texuli's mapping now resolves
+  compound parts and covers a root through any allowed root around it; the
+  CLI keeps its part widening (Texuli's list misses `list-item`,
+  `field-error` and four more part relations the static check accepts) and
+  reports a root nested in an allowed one as `not-allowed`, as in 1.8.
+  Texuli's new `render-disabled-value` needs allow entries and shares the
+  64-finding mapping cap with `unmapped`, so the CLI's rule of the same id
+  stays. Texuli's report fingerprint keys a finding by code and path only,
+  so `protoyard/ds-render-baseline` version 1 stays.
+- **Kit models.** `ds diff` takes its allow and approval changes from
+  `changesModel` (`@texuli/spec/design-system`), and releases and the kit
+  read `kitApproval`. Library changes stay Protoyard's (Texuli compares only
+  an entry approval's `status`). `KitAllowManifest.library` is now
+  `{ id, status, version }`, which matches the compiled manifest; the kit's
+  `model.ts` keeps one cast, for the JSON import's widened strings.
+- **Bundles.** `validateBundle` refuses duplicate library source ids, so
+  `ds import` dropped its own check; `packBundle` checks the packed version's
+  history entry; the allow manifest carries every key (up to 4,096).
+- **Generator.** A stylesheet that pins a role below AA keeps its brand seed
+  (Texuli pins the failing role). Texuli reads colors inside prose, but drops
+  the rest of such a clause unreported, so Protoyard still reads every brief
+  clause that has a color ([limits](DESIGN_SYSTEMS.md#create-from-your-brand)).
+- **VirtualListView.** It takes the uniform contract (`bind:ref`, rest
+  attributes and handlers on its scroller), so `@protoyard/ui`'s contract
+  test pins no gap. The social-feed template names each feed article by the
+  post's author line (`getRowLabelId`) and drops the list's box
+  (`surface="plain"`).
+- **Button sizes.** `Button`'s `sm`, `md` and `lg` sizes never go below
+  `--tx-size-target-min` (the 24 px target minimum), whatever the density.
+  The bundle budgets (`views-bundle`, `pages-ui`, player, decks-ui,
+  renderer) pass unchanged.
+
 ## What Texuli 0.15.0 brings for locked design systems
 
 Protoyard's [locked design systems](DESIGN_SYSTEMS.md) read Texuli's catalog
@@ -551,8 +596,10 @@ on that root or on the focusable control inside it, and a caller's handler
 (`onclick`, `onkeydown`…) runs first, with the component's own behavior kept.
 `@protoyard/ui` applies the same contract to all 90 of its component exports.
 `packages/ui/tests/contract.test.ts` checks every export through one harness,
-so a new export without a contract row fails. The rows Texuli still blocks are
-`it.fails` tests that name their gap and turn red when the fix ships. The
+so a new export without a contract row fails. A re-exported Texuli root that
+does not take the contract yet is pinned in `CONTRACT_GAPS` (the test turns
+red when the fix ships); the list is empty since Texuli 0.17.0 gave
+`VirtualListView` the contract. The
 additions were all additive: `ref` and rest props everywhere, `CommandPalette`
 `bind:open`, `FileDropzone` `id` and `TabItem.badgeLabel`.
 

@@ -9,6 +9,14 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { compileDesignSystemDocument } from '@protoyard/themes';
+import {
+  changesModel,
+  KIT_ALLOW_LISTS,
+  type KitAllowChange,
+  type KitAllowList,
+  type KitApprovalChange,
+  kitApproval,
+} from '@texuli/spec/design-system';
 import { type DesignSystemDiff, diffDesignSystems } from '@texuli/tokens/design-system/diff';
 import { biomeJson } from './codegen/format.ts';
 import {
@@ -17,7 +25,7 @@ import {
   type DesignSystemLocation,
   readComponents,
 } from './design-systems.ts';
-import { readAllow, readDocumentApproval, readLibrary } from './ds-catalog.ts';
+import { readDocumentApproval, readLibrary } from './ds-catalog.ts';
 import { checkText } from './ds-components.ts';
 import { MAX_CHANGELOG, type ReleaseRecord, ReleaseRecordSchema } from './ds-contracts.ts';
 import { jsonErrorText } from './json-error.ts';
@@ -34,8 +42,10 @@ import { CliError } from './output.ts';
  *   be compared with it. Its `contentHash` is Texuli's hash of that document.
  * - Token changes come from Texuli's `diffDesignSystems`
  *   (`@texuli/tokens/design-system/diff`) over both compiled versions. The
- *   allow, library and approval changes use the shape of `texuli/ds-kit`'s
- *   `KitChangesModel`; the kit itself renders Texuli's own `changesModel`.
+ *   allow and approval changes are Texuli's `changesModel`
+ *   (`@texuli/spec/design-system`, the model the kit's Changes section
+ *   renders); the library changes keep the `KitLibraryChange` shape but
+ *   compare every field.
  */
 
 export const RELEASES_DIR = 'releases';
@@ -212,7 +222,7 @@ export function releaseRefusal(id: string, document: unknown): string | null {
   if (approval.version !== version) {
     return `design system "${id}" was approved at ${approval.version}, but the document is ${String(version)}; approve this version first.`;
   }
-  if (!approval.contentHash || approval.contentHash !== contentHash(document)) {
+  if (kitApproval(document).hash !== 'matches') {
     return `design system "${id}" changed after its approval; approve it again before releasing it.`;
   }
   if (!approval.approvedBy || !approval.approvedAt) {
@@ -353,22 +363,12 @@ export function baselineRelease(
 // ---------------------------------------------------------------------------
 // Comparing two versions
 
-/** The allow lists of one component (as `texuli/ds-kit` names them). */
-export const ALLOW_LISTS = ['variants', 'sizes', 'tones', 'densities', 'colors', 'states'] as const;
-export type AllowList = (typeof ALLOW_LISTS)[number];
+/** The allow lists of one component (Texuli's `KIT_ALLOW_LISTS`). */
+export const ALLOW_LISTS = KIT_ALLOW_LISTS;
+export type AllowList = KitAllowList;
 
-export type AllowChange =
-  | { kind: 'locked' | 'unlocked' }
-  | { kind: 'added' | 'removed'; component: string }
-  | {
-      kind: 'changed';
-      component: string;
-      list: AllowList;
-      added: string[];
-      removed: string[];
-      before?: string[];
-      after?: string[];
-    };
+/** Texuli's `KitAllowChange` (`changesModel` of `@texuli/spec/design-system`). */
+export type AllowChange = KitAllowChange;
 
 export interface LibraryChange {
   kind: 'added' | 'removed' | 'changed';
@@ -376,11 +376,8 @@ export interface LibraryChange {
   fields?: { field: string; before?: string; after?: string }[];
 }
 
-export interface ApprovalChange {
-  field: 'status' | 'version' | 'approvedBy' | 'approvedAt' | 'contentHash';
-  before?: string;
-  after?: string;
-}
+/** Texuli's `KitApprovalChange`. */
+export type ApprovalChange = KitApprovalChange;
 
 export interface VersionsDiff {
   from: string;
@@ -389,9 +386,12 @@ export interface VersionsDiff {
   toHash: string;
   /** Texuli's `diffDesignSystems` over both compiled versions. */
   tokens: DesignSystemDiff;
-  allow: AllowChange[];
+  /** Texuli's `changesModel(...).allow`. */
+  allow: readonly AllowChange[];
+  /** Every field of every library entry (Texuli's `changesModel` compares fewer; see below). */
   library: LibraryChange[];
-  approval: ApprovalChange[];
+  /** Texuli's `changesModel(...).approval`. */
+  approval: readonly ApprovalChange[];
   /** The content (the document without its approvals) changed. */
   contentChanged: boolean;
   /** Nothing changed in any part compared. */
@@ -408,47 +408,12 @@ const byText = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 const text = (value: unknown): string | undefined =>
   value === undefined ? undefined : typeof value === 'string' ? value : JSON.stringify(value);
 
-function stringList(value: unknown): string[] | undefined {
-  return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : undefined;
-}
-
-function diffAllow(before: unknown, after: unknown): AllowChange[] {
-  const a = readAllow(before) as Record<string, Record<string, unknown>> | null;
-  const b = readAllow(after) as Record<string, Record<string, unknown>> | null;
-  if (!a && !b) return [];
-  if (!a) return [{ kind: 'locked' }];
-  if (!b) return [{ kind: 'unlocked' }];
-  const out: AllowChange[] = [];
-  const ids = [...new Set([...Object.keys(a), ...Object.keys(b)])].sort(byText);
-  for (const component of ids) {
-    const x = a[component];
-    const y = b[component];
-    if (!x) {
-      out.push({ kind: 'added', component });
-      continue;
-    }
-    if (!y) {
-      out.push({ kind: 'removed', component });
-      continue;
-    }
-    for (const list of ALLOW_LISTS) {
-      const was = stringList(x[list]);
-      const now = stringList(y[list]);
-      if (JSON.stringify(was) === JSON.stringify(now)) continue;
-      out.push({
-        kind: 'changed',
-        component,
-        list,
-        added: (now ?? []).filter((v) => !(was ?? []).includes(v)),
-        removed: (was ?? []).filter((v) => !(now ?? []).includes(v)),
-        ...(was ? { before: was } : {}),
-        ...(now ? { after: now } : {}),
-      });
-    }
-  }
-  return out;
-}
-
+/**
+ * Library changes, every field of each entry. Texuli 0.17.0's `changesModel`
+ * compares name, purpose, version, status, composes and only the `status` of
+ * an entry's approval, so a library component re-approved by someone else or
+ * at another content hash would show no change; this keeps those.
+ */
 function diffLibrary(before: unknown, after: unknown): LibraryChange[] {
   const a = new Map(
     readLibrary(before).map((e) => [e.id, e as unknown as Record<string, unknown>])
@@ -479,24 +444,6 @@ function diffLibrary(before: unknown, after: unknown): LibraryChange[] {
   return out;
 }
 
-function diffApproval(before: unknown, after: unknown): ApprovalChange[] {
-  const a = readDocumentApproval(before);
-  const b = readDocumentApproval(after);
-  const out: ApprovalChange[] = [];
-  for (const field of ['status', 'version', 'approvedBy', 'approvedAt', 'contentHash'] as const) {
-    const was = a?.[field];
-    const now = b?.[field];
-    if (was !== now) {
-      out.push({
-        field,
-        ...(was !== undefined ? { before: was } : {}),
-        ...(now !== undefined ? { after: now } : {}),
-      });
-    }
-  }
-  return out;
-}
-
 async function compiled(side: VersionSide) {
   const result = await compileDesignSystemDocument(side.document);
   if (!result.ok) {
@@ -511,9 +458,9 @@ async function compiled(side: VersionSide) {
 /** What changed from `from` to `to`: tokens (Texuli), allow, library, approval. */
 export async function diffVersions(from: VersionSide, to: VersionSide): Promise<VersionsDiff> {
   const tokens = diffDesignSystems(await compiled(from), await compiled(to));
-  const allow = diffAllow(from.document, to.document);
+  // Allow and approval changes are Texuli's (the kit's Changes section renders the same model).
+  const { allow, approval } = changesModel({ document: from.document }, { document: to.document });
   const library = diffLibrary(from.document, to.document);
-  const approval = diffApproval(from.document, to.document);
   const fromHash = contentHash(from.document);
   const toHash = contentHash(to.document);
   const contentChanged = fromHash !== toHash;
