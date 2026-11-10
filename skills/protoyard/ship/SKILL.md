@@ -1,7 +1,7 @@
 ---
 name: protoyard-ship
 description: Export a verified Protoyard prototype and prepare a provider deployment while keeping every live upload or package release behind explicit developer approval.
-version: "1.9.2"
+version: "1.9.3"
 documentation_url: https://protoyard.app/docs/
 user-invocable: true
 metadata:

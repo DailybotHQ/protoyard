@@ -1,5 +1,31 @@
 # @protoyard/cli
 
+## 1.9.3
+
+### Patch Changes
+
+- Texuli 0.17.3 (every Texuli dependency pinned exactly at `0.17.3`).
+  `ds new --brief` sends the brief to Texuli's `importBrand` as written: it now
+  reads fonts with case, motion, headings and monospace inside longer clauses,
+  so Protoyard's prose reader and `brief.reading` are gone, and a brief Texuli
+  would truncate (flags included) is refused. `check ds --render` takes
+  `render-disabled-value` from Texuli's mapping (each root against its own allow
+  entry, color axis included), still one finding per component and value; a
+  1.9.2 baseline entry for that code must be written again. The render baseline
+  format stays Protoyard's (Texuli's key has no prototype).
+- @protoyard/blocks@1.9.3
+  - @protoyard/blueprint@1.9.3
+  - @protoyard/core@1.9.3
+  - @protoyard/crud@1.9.3
+  - @protoyard/decks@1.9.3
+  - @protoyard/offline@1.9.3
+  - @protoyard/player@1.9.3
+  - @protoyard/renderer-svelte@1.9.3
+  - @protoyard/review@1.9.3
+  - @protoyard/scenarios@1.9.3
+  - @protoyard/templates@1.9.3
+  - @protoyard/themes@1.9.3
+
 ## 1.9.2
 
 ### Patch Changes
