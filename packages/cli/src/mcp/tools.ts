@@ -129,12 +129,26 @@ const dsCreateArgs = z
     motion: z.enum(['none', 'subtle', 'standard', 'expressive']).optional(),
     contrast: z.enum(['AA', 'AAA']).optional(),
     fromTheme: dsId.optional(),
+    fromTokens: dsPath.optional(),
+    fromCss: dsPath.optional(),
+    fromLogo: dsPath.optional(),
     allow: z.enum(['all', 'minimal', 'none']).optional(),
     out: dsPath.optional(),
     force: z.boolean().optional(),
     dryRun: z.boolean().optional(),
   })
-  .strict();
+  .strict()
+  .refine((value) => value.brief?.trim() !== '-', {
+    message: 'A brief of "-" (stdin) is not available over MCP.',
+    path: ['brief'],
+  })
+  .refine(
+    (value) =>
+      [value.brief, value.fromTokens, value.fromCss, value.fromLogo, value.fromTheme].filter(
+        (entry) => entry !== undefined
+      ).length <= 1,
+    { message: 'Give at most one of brief, fromTokens, fromCss, fromLogo or fromTheme.' }
+  );
 const dsFileArgs = z.object({ file: dsPath }).strict();
 const dsExportArgs = z
   .object({
@@ -221,6 +235,9 @@ const DS_FLAGS: Record<string, string> = {
   motion: '--motion',
   contrast: '--contrast',
   fromTheme: '--from-theme',
+  fromTokens: '--from-tokens',
+  fromCss: '--from-css',
+  fromLogo: '--from-logo',
   allow: '--allow',
   out: '--out',
 };
@@ -305,7 +322,7 @@ const toolSchemas: Record<ToolName, McpTool> = {
   ds_create: {
     name: 'ds_create',
     description:
-      'Create a Texuli design system from a brief, a few inputs (brand color, fonts, shape, density, motion) or a Protoyard theme; validates, compiles and writes design-systems/<id>/ (document.json with an allow section and a draft approval, and components.json). allow picks the allow section: all (default), minimal, or none (the design system cannot be locked). A human approves it with `protoyard ds approve`; no tool approves.',
+      "Create a Texuli design system from a brief, a few inputs (brand color, fonts, shape, density, motion) or a Protoyard theme, or generate one with Texuli's generator from one workspace file: fromTokens (W3C DTCG or Tokens Studio JSON), fromCss (a site stylesheet, read as text) or fromLogo (an SVG logo's fill and stroke colors). brief, fromTokens, fromCss, fromLogo and fromTheme are mutually exclusive; a brief or file source returns Texuli's loss report and AA repair report in data.generation. Validates, compiles and writes design-systems/<id>/ (document.json with an allow section and a draft approval, and components.json). allow picks the allow section: all (default), minimal, or none (the design system cannot be locked). The result is always a draft: a human approves it with `protoyard ds approve`; no tool approves.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -322,6 +339,9 @@ const toolSchemas: Record<ToolName, McpTool> = {
         motion: { type: 'string', enum: ['none', 'subtle', 'standard', 'expressive'] },
         contrast: { type: 'string', enum: ['AA', 'AAA'] },
         fromTheme: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,63}$' },
+        fromTokens: { type: 'string', minLength: 1, maxLength: 2048 },
+        fromCss: { type: 'string', minLength: 1, maxLength: 2048 },
+        fromLogo: { type: 'string', minLength: 1, maxLength: 2048 },
         allow: { type: 'string', enum: ['all', 'minimal', 'none'] },
         out: { type: 'string', minLength: 1, maxLength: 2048 },
         force: { type: 'boolean' },
@@ -712,6 +732,11 @@ export function createMcpToolHandler(options: McpToolHandlerOptions = {}) {
         if (!/^[a-z][a-z0-9-]{0,63}$/.test(String(data.file))) data.file = canonical(data.file);
       }
       if (toolName === 'ds_create' && data.out) data.out = canonical(data.out);
+      if (toolName === 'ds_create') {
+        for (const key of ['fromTokens', 'fromCss', 'fromLogo']) {
+          if (data[key] !== undefined) data[key] = canonical(data[key]);
+        }
+      }
     } catch (error) {
       return errorEnvelope(commandForTool(name), error);
     }
