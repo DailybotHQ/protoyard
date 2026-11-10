@@ -182,8 +182,9 @@ describe('protoyard ds new from Texuli generator sources (PLAN_013 T-generator)'
     expect(data.generation.brief?.from).toBe('text');
     expect(data.document.color?.brand?.seed).toBe('#0f766e');
     expect(data.document.typography?.families?.sans?.stack?.[0]).toBe('Inter');
+    // `Inter font` is kept as written: Texuli 0.17.1 reads it (0.17.0 did not).
     expect(data.generation.brief?.oneLiner).toBe(
-      'calm, brand #0f766e, font Inter, rounded, compact'
+      'calm, brand #0f766e, Inter font, rounded, compact'
     );
     expect(data.generation.brief?.reading[0]).toEqual({
       clause: 'A calm banking app for nurses',
@@ -434,9 +435,9 @@ describe('generator input helpers', () => {
     ]);
   });
 
-  it('reads every clause with a color itself: Texuli 0.17.0 drops the rest of such a clause', () => {
+  it('reads every clause with a color itself: Texuli 0.17.1 can still misread one', () => {
     const { reading } = readProseBrief(
-      'Deep teal #0f766e brand; Inter font in #0f766e; rounded #f59e0b; two colors #0f766e #f59e0b; secondary is #334155',
+      'Deep teal #0f766e brand; Inter font in #0f766e; rounded #f59e0b; two colors #0f766e #f59e0b; secondary is #334155; rounded #0f766e Inter font; font Inter in #0f766e rounded',
       importBrand
     );
     expect(reading.map((entry) => entry.read)).toEqual([
@@ -445,12 +446,20 @@ describe('generator input helpers', () => {
       ['#f59e0b', 'rounded'],
       ['#0f766e', '#f59e0b'],
       ['secondary #334155'],
+      ['#0f766e', 'font Inter', 'rounded'],
+      ['#0f766e', 'font Inter', 'rounded'],
     ]);
-    // What Texuli alone makes of two of them: the font and the second color are gone, unreported.
-    for (const clause of ['Inter font in #0f766e', 'two colors #0f766e #f59e0b']) {
-      const direct = importBrand(clause, { trust: 'untrusted', id: 'x' });
-      expect(direct.ok && direct.warnings.some((w) => w.code === 'unmapped')).toBe(false);
-    }
+    // What Texuli alone makes of the last two, with no unmapped loss: a family
+    // with the word before the color in it, and `rounded` gone. If Texuli
+    // reads them right, this pin fails and colored clauses can go to Texuli.
+    const misread = importBrand('rounded #0f766e Inter font', { trust: 'untrusted', id: 'x' });
+    expect(misread.ok && misread.warnings.some((w) => w.code === 'unmapped')).toBe(false);
+    expect(misread.ok && misread.document.typography?.families?.sans?.stack?.[0]).toMatch(
+      /^rounded\s+Inter$/
+    );
+    const dropped = importBrand('font Inter in #0f766e rounded', { trust: 'untrusted', id: 'x' });
+    expect(dropped.ok && dropped.warnings.some((w) => w.code === 'unmapped')).toBe(false);
+    expect(dropped.ok && dropped.document.shape).toBeUndefined();
   });
 
   it('keeps a clause with nothing to read, so Texuli reports it as an unmapped loss', () => {

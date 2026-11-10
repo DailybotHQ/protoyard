@@ -388,7 +388,7 @@ export interface VersionsDiff {
   tokens: DesignSystemDiff;
   /** Texuli's `changesModel(...).allow`. */
   allow: readonly AllowChange[];
-  /** Every field of every library entry (Texuli's `changesModel` compares fewer; see below). */
+  /** Every field of every library entry (Texuli's `changesModel` compares fewer; see `diffLibrary`). */
   library: LibraryChange[];
   /** Texuli's `changesModel(...).approval`. */
   approval: readonly ApprovalChange[];
@@ -409,10 +409,13 @@ const text = (value: unknown): string | undefined =>
   value === undefined ? undefined : typeof value === 'string' ? value : JSON.stringify(value);
 
 /**
- * Library changes, every field of each entry. Texuli 0.17.0's `changesModel`
- * compares name, purpose, version, status, composes and only the `status` of
- * an entry's approval, so a library component re-approved by someone else or
- * at another content hash would show no change; this keeps those.
+ * Library changes, every field of each entry, each field's value as JSON
+ * text (the `ds diff --json` shape since 1.8). Texuli 0.17.1's
+ * `changesModel` now compares an entry's approver, version and content hash
+ * too, but not `approval.approvedAt` or fields outside its list, it clips
+ * values at 200 characters and reads the first 64 entries, and it reports
+ * `approval.<field>` rows instead of one `approval` row; this keeps the
+ * complete comparison and the stable shape.
  */
 function diffLibrary(before: unknown, after: unknown): LibraryChange[] {
   const a = new Map(

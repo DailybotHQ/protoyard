@@ -246,10 +246,11 @@ export function readProseBrief(
     );
   }
   const reading = clauses.map((clause): BriefReading => {
-    // Texuli 0.17.0 also reads a color inside prose, but then takes the whole
-    // clause as read: the other words (`Inter font in #0f766e`), a second
-    // color, or `secondary is #…` (an unsafe-value warning) are dropped
-    // without an `unmapped` loss. A clause with a color is always read here.
+    // Texuli 0.17.1 reads colors, their roles and fonts inside prose, but a
+    // color between words can still be misread without an `unmapped` loss
+    // (`rounded #0f766e Inter font` becomes the family "rounded … Inter",
+    // `font Inter in #0f766e rounded` drops `rounded`). A clause with a color
+    // is always read here; Texuli reads the one-liner this makes.
     if (!HEX_ONE.test(clause)) {
       const direct = importBrand(clause, { trust: 'untrusted', id: 'brief-clause' });
       if (direct.ok && !direct.warnings.some((warning) => warning.code === 'unmapped')) {
