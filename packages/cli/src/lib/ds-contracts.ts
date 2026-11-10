@@ -115,10 +115,17 @@ export const ComponentStorySchema = z
   .strict();
 export type ComponentStory = z.infer<typeof ComponentStorySchema>;
 
+/** Characters of a release's changelog entry (Texuli's bundle history cap). */
+export const MAX_CHANGELOG = 4000;
+
 /**
- * Planned (versions task): `design-systems/<id>/releases/<version>.json`, an
- * immutable record of one approved version and the component hashes it
- * shipped with. No command writes it yet.
+ * `design-systems/<id>/releases/<version>.json`: an immutable record of one
+ * approved version (`ds approve --release`, `ds release`). It keeps the
+ * whole document as approved, so `ds diff`, `ds versions` and the kit can
+ * compare versions after the document moved on; `contentHash` is Texuli's
+ * `designSystemContentHash` of that document. The components are the
+ * `components.json` entries (name, version, source hash) it shipped with.
+ * Never rewritten: a new version is a new file.
  */
 export const ReleaseRecordSchema = z
   .object({
@@ -129,6 +136,8 @@ export const ReleaseRecordSchema = z
     contentHash: z.string().regex(SHA256),
     approvedBy: lineText(MAX_PERSON),
     approvedAt: z.iso.datetime(),
+    /** What changed in this version: the approver's text, or a summary the CLI wrote. */
+    changelog: z.string().min(1).max(MAX_CHANGELOG),
     components: z
       .array(
         z
@@ -140,7 +149,8 @@ export const ReleaseRecordSchema = z
           .strict()
       )
       .max(500),
-    notes: z.string().max(4000).optional(),
+    /** The Texuli design-system document as approved (approval included). */
+    document: z.record(z.string(), z.unknown()),
   })
   .strict();
 export type ReleaseRecord = z.infer<typeof ReleaseRecordSchema>;
@@ -228,8 +238,8 @@ export const DESIGN_SYSTEM_CONTRACTS: readonly DesignSystemContract[] = [
     name: 'release',
     id: 'urn:protoyard:design-system:release:1',
     path: 'design-systems/<id>/releases/<version>.json',
-    title: 'Design-system release record (protoyard/ds-release), planned',
-    status: 'planned',
+    title: 'Design-system release record (protoyard/ds-release)',
+    status: 'current',
     schema: ReleaseRecordSchema,
   },
   {
