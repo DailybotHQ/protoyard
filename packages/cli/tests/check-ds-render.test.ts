@@ -36,7 +36,6 @@ import {
   planVisits,
   renderAllowManifest,
   routeMatcher,
-  strictNotAllowed,
   visitFindings,
 } from '../src/lib/ds-render/index.ts';
 import {
@@ -185,16 +184,11 @@ describe('route planning', () => {
 });
 
 describe('mapping and exemptions', () => {
-  it('maps against the allow set, its parts and what allowed extensions and library entries compose', () => {
+  it('maps against the allow set, catalog parts and what allowed extensions and library entries compose', () => {
     const catalog = dsCatalog();
     const extension = catalog.extensions.find((e) => (e.composes ?? []).length > 0);
     expect(extension).toBeDefined();
-    const part = catalog.components.find((c) => c.id === 'select-trigger');
-    const allow = {
-      button: {},
-      ...(part ? { select: {} } : {}),
-      [extension?.id as string]: {},
-    };
+    const allow = { button: {}, select: {}, [extension?.id as string]: {} };
     const manifest = renderAllowManifest(catalog, allow as never, [
       {
         id: 'hero',
@@ -205,60 +199,90 @@ describe('mapping and exemptions', () => {
         composes: ['card'],
       },
     ]);
-    const ids = Object.keys(manifest.allow);
-    expect(ids).toContain('button');
-    expect(ids).toContain(extension?.id);
-    for (const id of extension?.composes ?? []) expect(ids).toContain(id);
-    expect(ids).toContain('card');
-    if (part) expect(ids).toContain('select-trigger');
-    expect(ids).not.toContain('dialog');
-  });
-
-  it('keeps every catalog root allowed in its own right, not through an allowed root around it', () => {
-    // Texuli 0.17.0's mapping covers a root through any allowed ancestor root.
-    const manifest = {
-      allow: { card: true as const, select: true as const, button: true as const },
-    };
-    const components = [
-      { component: 'card', selector: 'main>div' },
-      { component: 'data-grid', selector: 'main>div>div' },
-      { component: 'select-trigger', selector: 'main>div>button' },
-      { component: 'dialog', selector: 'main>section' },
-    ];
-    // Texuli reported dialog (top level); data-grid sat inside the allowed card.
-    const reported = [
-      { code: 'not-allowed', path: 'main>section', message: 'x', source: 'dialog' },
-    ];
-    expect(strictNotAllowed({ components }, manifest, reported, resolveAllowedComponentId)).toEqual(
-      [
-        {
-          code: 'not-allowed',
-          path: 'main>div>div',
-          source: 'data-grid',
-          message: expect.stringContaining('"data-grid" is not in the allow manifest'),
-        },
-      ]
+    // The allow keys and what a library component composes; parts are not widened.
+    expect(Object.keys(manifest.allow)).toEqual(
+      ['button', 'card', 'select', extension?.id as string].sort()
     );
-    // Unlocked documents (no allow) report nothing.
-    expect(strictNotAllowed({ components }, {}, [], resolveAllowedComponentId)).toEqual([]);
+    // Parts come from Texuli's partParentMap, extension children map to the extension.
+    expect(manifest.composed['select-trigger']).toBe('select');
+    for (const id of extension?.composes ?? []) {
+      if (id in manifest.allow) continue;
+      expect(manifest.composed[id]).toBe(extension?.id);
+    }
+    const allowed = new Set(Object.keys(manifest.allow));
+    const resolve = (id: string, ancestor?: string) =>
+      resolveAllowedComponentId(id, allowed, {
+        composed: manifest.composed,
+        ...(ancestor ? { ancestor } : {}),
+      });
+    expect(resolve('select-trigger')).toBe('select');
+    expect(resolve('dialog')).toBeUndefined();
   });
 
-  it('documents the Texuli 0.17.0 mapping this guards against (ancestor coverage)', () => {
-    const scope = {
-      querySelectorAll: (selector: string) => (selector === '[data-tx-component]' ? [grid] : []),
-    } as unknown as ParentNode;
+  it('covers the six part relations the static check accepts, through Texuli', () => {
+    const catalog = dsCatalog();
+    const relations: [string, string][] = [
+      ['list-item', 'list'],
+      ['field-error', 'field'],
+      ['input-group', 'input'],
+      ['radio-group', 'radio'],
+      ['button-group', 'button'],
+      ['data-dashboard-widget', 'data-dashboard'],
+    ];
+    for (const [part, parent] of relations) {
+      const manifest = renderAllowManifest(catalog, { [parent]: {} } as never);
+      expect(manifest.composed[part], part).toBe(parent);
+      // Allowed through its parent, at top level and inside it…
+      const allowed = new Set(Object.keys(manifest.allow));
+      expect(resolveAllowedComponentId(part, allowed, { composed: manifest.composed })).toBe(
+        parent
+      );
+      expect(
+        resolveAllowedComponentId(part, allowed, { composed: manifest.composed, ancestor: parent })
+      ).toBe(parent);
+      // …and not allowed when only the part's own id is missing from a different allow set.
+      expect(
+        resolveAllowedComponentId(part, new Set(['card']), {
+          composed: manifest.composed,
+          ancestor: 'card',
+        })
+      ).toBeUndefined();
+    }
+  });
+
+  it('refuses a catalog root nested in an allowed root it is no part of (data-grid in a card)', () => {
+    // Regression guard: Texuli 0.17.0 covered a root through any allowed
+    // ancestor; 0.17.1 refuses it. If a later Texuli loosens this again,
+    // this fails (the Chromium case below checks the same on a real page).
+    const manifest = renderAllowManifest(dsCatalog(), { card: {}, button: {} } as never);
+    const allowed = new Set(Object.keys(manifest.allow));
+    expect(
+      resolveAllowedComponentId('data-grid', allowed, {
+        composed: manifest.composed,
+        ancestor: 'card',
+      })
+    ).toBeUndefined();
+    // A data-grid whose parent element sits inside an allowed card root.
     const card = { getAttribute: () => 'card' };
+    const scope = {
+      nodeType: 1,
+      children: [] as unknown[],
+      closest: () => card,
+      querySelectorAll: (selector: string) => (selector === '[data-tx-component]' ? [grid] : []),
+    };
     const grid = {
+      nodeType: 1,
       getAttribute: (name: string) => (name === 'data-tx-component' ? 'data-grid' : null),
-      parentElement: { closest: () => card },
+      parentElement: scope,
       tagName: 'DIV',
       id: '',
       classList: [],
     };
-    // If Texuli drops the ancestor rule, this pin fails and the guard can be reviewed.
-    expect(mapDesignSystemTree(scope, { allowManifest: { allow: { card: true } } }).errors).toEqual(
-      []
-    );
+    scope.children.push(grid);
+    const errors = mapDesignSystemTree(scope as unknown as ParentNode, {
+      allowManifest: manifest,
+    }).errors;
+    expect(errors.map((e) => [e.code, e.source])).toEqual([['not-allowed', 'data-grid']]);
   });
 
   it("keeps Texuli's exempt ids (charts, maps and canvas)", () => {

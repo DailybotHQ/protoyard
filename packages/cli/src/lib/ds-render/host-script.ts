@@ -2,31 +2,35 @@
  * The scripts `check ds --render` evaluates in a checked page's isolated
  * world (see `./browser.ts`); the built prototype itself is never changed.
  *
- * - Texuli's prebuilt ds-check host (`@texuli/tools`, `dist/ds-check/host.iife.js`,
- *   Texuli 0.17.0 and later): one framework-free IIFE that defines the
- *   `TexuliDsCheckHost` global. Read from the installed package once per
- *   process; nothing is bundled at run time.
+ * - Texuli's prebuilt ds-check host (the `@texuli/tools/ds-check/host.iife.js`
+ *   package export, Texuli 0.17.1 and later): one framework-free IIFE that
+ *   defines the `TexuliDsCheckHost` global. Read from the installed package
+ *   once per process; nothing is bundled at run time.
  * - {@link INSTALL_HOST}: Protoyard's page reader. It lists the hash links,
  *   the visualizations outside every catalog root and the axis values each
- *   catalog root renders, then installs Texuli's host on the mount element,
- *   reading the catalog roots by `data-tx-component` only (a page cannot
- *   steer the color check with `data-ds-check-component` attributes of its
- *   own).
+ *   catalog root renders, then installs Texuli's host on the mount element.
+ *   The host's root attribute is the caller's choice; Protoyard passes
+ *   `data-tx-component` itself, so a page cannot steer the color check with
+ *   `data-ds-check-component` attributes of its own.
+ * - {@link MAP_PAGE}: the host's `map` with the allow set and the composed
+ *   child → parent map (see `renderAllowManifest`).
  *
- * `INSTALL_HOST` is plain JavaScript in a string: a TypeScript function would
+ * The scripts are plain JavaScript in strings: a TypeScript function would
  * be rewritten by the loader (tsx adds name helpers that do not exist in the
- * page), and its source is the CLI's own, never page data.
+ * page), and their source is the CLI's own, never page data.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
 import { CliError } from '../output.ts';
 
 /** The global Texuli's host IIFE defines (`var TexuliDsCheckHost=…`). */
 export const DS_RENDER_HOST_GLOBAL = 'TexuliDsCheckHost';
 
-/** The IIFE's file name beside `@texuli/tools/ds-check/host` (Texuli's `DS_CHECK_HOST_IIFE`). */
-export const DS_RENDER_HOST_FILE = 'host.iife.js';
+/** The package export of Texuli's host IIFE (`@texuli/tools` 0.17.1 and later). */
+export const DS_RENDER_HOST_EXPORT = '@texuli/tools/ds-check/host.iife.js';
+
+/** The global the installed host exposes (Texuli's `DS_CHECK_GLOBAL`). */
+export const DS_RENDER_CHECK_GLOBAL = 'texuliDsCheck';
 
 /** The catalog root attribute the host reads (Texuli's `DS_TX_COMPONENT_ATTRIBUTE`). */
 export const DS_RENDER_COMPONENT_ATTRIBUTE = 'data-tx-component';
@@ -38,16 +42,15 @@ export const DS_RENDER_MAX_AXES = 500;
 export function dsRenderHostPath(): string {
   let file: string;
   try {
-    const host = createRequire(import.meta.url).resolve('@texuli/tools/ds-check/host');
-    file = join(dirname(host), DS_RENDER_HOST_FILE);
+    file = createRequire(import.meta.url).resolve(DS_RENDER_HOST_EXPORT);
   } catch {
     file = '';
   }
   if (!file || !existsSync(file))
     throw new CliError(
       'not_found',
-      "Texuli's prebuilt ds-check host (@texuli/tools dist/ds-check/host.iife.js) is missing.",
-      { hint: 'Reinstall @protoyard/cli; it needs @texuli/tools 0.17.0 or later.' }
+      `Texuli's prebuilt ds-check host (${DS_RENDER_HOST_EXPORT}) is missing.`,
+      { hint: 'Reinstall @protoyard/cli; it needs @texuli/tools 0.17.1 or later.' }
     );
   return file;
 }
@@ -141,6 +144,7 @@ export const INSTALL_HOST = `([selector, minVisualizationPx]) => {
         .map((href) => href.slice(1).split('?')[0] || '')
     ),
   ];
+  // The caller chooses the root attribute (Texuli 0.17.1); pass it anyway.
   host.installDsCheckHost(scope, { componentAttribute: ROOT });
   return {
     scope: found ? selector : 'body',
@@ -150,4 +154,17 @@ export const INSTALL_HOST = `([selector, minVisualizationPx]) => {
     axes,
     components,
   };
+}`;
+
+/**
+ * Maps the page with the installed host, in the isolated world:
+ * `([global, manifest]) => DsMapReport`. Texuli 0.17.1's
+ * `mapLockedRenderPage` forwards only `allow` to the host and drops
+ * `composed`, so the CLI calls the host's `map` itself with both.
+ */
+export const MAP_PAGE = `([name, manifest]) => {
+  const host = globalThis[name];
+  if (!host || typeof host.map !== 'function')
+    throw new Error('The page has no ds-check host with map().');
+  return host.map(manifest);
 }`;

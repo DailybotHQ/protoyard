@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/blocks",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "Framework-free content-block engine for Protoyard: thin re-exports of @texuli/blocks/core (and family engines) plus Zod schema adapters for decks, pages and docs.",
   "license": "MIT",
   "type": "module",
@@ -22,7 +22,7 @@
     "@protoyard/ai": "workspace:*",
     "@protoyard/avatars": "workspace:*",
     "@protoyard/core": "workspace:*",
-    "@texuli/blocks": "0.17.0",
+    "@texuli/blocks": "0.17.1",
     "zod": "^4.6.7"
   },
   "protoyard": {

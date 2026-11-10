@@ -24,14 +24,9 @@
  */
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import { partParentMap } from '@texuli/catalog/manifest';
 import type { DesignSystemAllow } from '@texuli/spec/design-system';
-import {
-  allowedVia,
-  DS_AXES,
-  type DsCatalog,
-  enabledValues,
-  type LibraryEntryLike,
-} from '../ds-catalog.ts';
+import { DS_AXES, type DsCatalog, enabledValues, type LibraryEntryLike } from '../ds-catalog.ts';
 
 export type DsRenderMode = 'light' | 'dark';
 
@@ -301,35 +296,53 @@ export function planVisits(
   return visits;
 }
 
+/** The allow manifest the page is mapped against (Texuli's `DsMapAllowManifest`). */
+export interface RenderAllowManifest {
+  allow: Record<string, true>;
+  /** Child → parent catalog ids: catalog parts and what allowed extensions compose. */
+  composed: Record<string, string>;
+}
+
 /**
- * The allow manifest the page is mapped against: every catalog id the
- * design system allows, directly or as a part of an allowed id
- * (`select-trigger` through `select`), plus the ids an allowed Protoyard
- * extension (`protoyard:data-table`) or a design-system library component
- * composes, since those render Texuli roots of their own.
+ * The allow manifest the page is mapped against: the design system's allow
+ * keys, the ids a design-system library component composes (a library
+ * component has no catalog root of its own, so its parts are allowed in
+ * their own right), and a `composed` child → parent map that Texuli's
+ * mapping resolves against the allow set (`resolveAllowedComponentId`):
  *
- * Texuli 0.17.0 resolves parts itself, but only for its 14 compound parents
- * (`DS_MAP_COMPOUND_PARENTS`) and never for library or extension `composes`
- * (its host's `map` takes no `composed` map). The static check accepts six
- * more part relations (`list-item` through `list`, `field-error` through
- * `field`, …), so the widening stays and both checks agree.
+ * - catalog parts: Texuli's `partParentMap` over the catalog ids
+ *   (`select-trigger` → `select`, `list-item` → `list`, `field-error` →
+ *   `field`, …);
+ * - the ids an allowed Protoyard extension (`protoyard:data-table`) composes,
+ *   mapped to the extension.
+ *
+ * A nested catalog root is never covered by an allowed root around it unless
+ * it is a declared part or composed id of it (Texuli 0.17.1): a `data-grid`
+ * inside an allowed `card` is `not-allowed`.
  */
 export function renderAllowManifest(
   catalog: DsCatalog,
   allow: DesignSystemAllow,
-  library: readonly LibraryEntryLike[] = []
-): { allow: Record<string, true> } {
-  const keys = Object.keys(allow);
-  const ids = new Set<string>(keys);
-  for (const component of catalog.components) {
-    if (allowedVia(catalog, keys, component.id)) ids.add(component.id);
-  }
-  for (const extension of catalog.extensions) {
-    if (!ids.has(extension.id)) continue;
-    for (const id of extension.composes ?? []) ids.add(id);
-  }
+  library: readonly LibraryEntryLike[] = [],
+  partParents: (ids: readonly string[]) => Readonly<Record<string, string>> = partParentMap
+): RenderAllowManifest {
+  const ids = new Set<string>(Object.keys(allow));
   for (const entry of library) for (const id of entry.composes) ids.add(id);
-  return { allow: Object.fromEntries([...ids].sort().map((id) => [id, true as const])) };
+  const composed: Record<string, string> = {
+    ...partParents(catalog.components.map((component) => component.id)),
+  };
+  for (const extension of [...catalog.extensions].sort((x, y) => x.id.localeCompare(y.id))) {
+    if (!ids.has(extension.id)) continue;
+    for (const id of extension.composes ?? []) if (!ids.has(id)) composed[id] = extension.id;
+  }
+  return {
+    allow: Object.fromEntries([...ids].sort().map((id) => [id, true as const])),
+    composed: Object.fromEntries(
+      Object.keys(composed)
+        .sort()
+        .map((id) => [id, composed[id] as string])
+    ),
+  };
 }
 
 const WAY_OUT: Record<string, string> = {
@@ -407,42 +420,6 @@ export interface DsRenderPageInfo {
   axes?: RenderedAxes[];
   /** Each distinct catalog id the page renders, with its first root's selector. */
   components?: { component: string; selector: string }[];
-}
-
-/** Texuli's `resolveAllowedComponentId` (passed in: this module stays free of `@texuli/tools`). */
-export type AllowResolver = (id: string, allowed: ReadonlySet<string>) => string | undefined;
-
-/**
- * Catalog roots the allow set does not cover by themselves, which Texuli's
- * mapping did not report. Texuli 0.17.0's `mapDesignSystemTree` also covers
- * a root through any allowed catalog root around it (a `data-grid` inside an
- * allowed `card` passes); Protoyard keeps 1.8's rule: every root is allowed
- * directly, as a part (`renderAllowManifest`), as something an allowed
- * extension or library entry composes, or through Texuli's id resolution
- * without the ancestor (compound parts, extension local ids). One
- * `not-allowed` error per catalog id, at its first root.
- */
-export function strictNotAllowed(
-  info: Pick<DsRenderPageInfo, 'components'>,
-  manifest: { allow?: Record<string, true> },
-  reported: LockedReportLike['mapping']['errors'],
-  resolve: AllowResolver
-): LockedReportLike['mapping']['errors'] {
-  if (!manifest.allow) return [];
-  const allowed = new Set(Object.keys(manifest.allow));
-  const known = new Set(reported.filter((e) => e.code === 'not-allowed').map((e) => e.source));
-  const out: { code: string; path: string; message: string; source?: string }[] = [];
-  for (const { component, selector } of info.components ?? []) {
-    if (!component || known.has(component)) continue;
-    if (allowed.has(component) || resolve(component, allowed)) continue;
-    out.push({
-      code: 'not-allowed',
-      path: selector,
-      source: component,
-      message: `Component "${component}" is not in the allow manifest (it renders inside another catalog component, which does not allow it).`,
-    });
-  }
-  return out;
 }
 
 /**
@@ -523,10 +500,14 @@ export function visitFindings(
   if (allow) {
     // An axis value the allow entry does not enable: the static rule skips
     // expressions (`variant={kind}`); the page shows what they evaluated to.
-    // Texuli 0.17.0's mapping has a rule of the same id, but only for allow
-    // entries passed to it (the manifest here is ids only), one error per
-    // element, inside the mapping's 64-issue cap that `unmapped` shares; this
-    // one reports each value once and never crowds out a raw control.
+    // Texuli's mapping has a rule of the same id (0.17.1: its own 64-issue
+    // cap) but reads differently, so the manifest passes ids only and this
+    // rule stays: Texuli reports every element (this reports each value
+    // once, which keeps baselines small and stable), checks a part against
+    // its parent's entry (this checks the component's own entry, like the
+    // static rule), treats a non-list axis as "nothing enabled" (here: not
+    // narrowed, like `enabledValues`) and adds a `color` axis the static
+    // rule does not have.
     const seen = new Set<string>();
     for (const rendered of info.axes ?? []) {
       const entry = allow[rendered.component];

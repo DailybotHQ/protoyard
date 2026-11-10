@@ -296,17 +296,15 @@ describe('diffVersions (allow and approval from Texuli changesModel)', () => {
     expect(diff.approval.map((a) => a.field)).toEqual(['status', 'approvedBy', 'approvedAt']);
   });
 
-  it('keeps library changes Texuli does not compare (an entry re-approved by someone else)', async () => {
+  it('shows a library entry re-approved by someone else or at another hash as a change', async () => {
     const before = { ...base, library: [entry] };
-    const after = {
-      ...base,
-      library: [{ ...entry, approval: { ...entry.approval, approvedBy: 'Bo Example' } }],
-    };
+    const approval = { ...entry.approval, approvedBy: 'Bo Example', contentHash: 'a'.repeat(64) };
+    const after = { ...base, library: [{ ...entry, approval }] };
     const diff = await diffVersions(
       { label: '1.0.0', document: before },
       { label: 'current', document: after }
     );
-    expect(changesModel({ document: before }, { document: after }).library).toEqual([]);
+    // The `ds diff --json` shape stays: one `approval` field with both values as JSON.
     expect(diff.library).toEqual([
       {
         kind: 'changed',
@@ -315,10 +313,37 @@ describe('diffVersions (allow and approval from Texuli changesModel)', () => {
           {
             field: 'approval',
             before: JSON.stringify(entry.approval),
-            after: JSON.stringify({ ...entry.approval, approvedBy: 'Bo Example' }),
+            after: JSON.stringify(approval),
           },
         ],
       },
     ]);
+    // Texuli 0.17.1's changesModel now sees the same change (as `approval.<field>` rows).
+    expect(
+      changesModel({ document: before }, { document: after }).library.flatMap((c) =>
+        (c.fields ?? []).map((f) => f.field)
+      )
+    ).toEqual(['approval.approvedBy', 'approval.contentHash']);
+  });
+
+  it('keeps library changes Texuli 0.17.1 does not compare (approval.approvedAt)', async () => {
+    const stamped = {
+      ...entry,
+      approval: { ...entry.approval, approvedAt: '2026-11-01T09:00:00Z' },
+    };
+    const before = { ...base, library: [stamped] };
+    const after = {
+      ...base,
+      library: [
+        { ...stamped, approval: { ...stamped.approval, approvedAt: '2026-11-09T09:00:00Z' } },
+      ],
+    };
+    const diff = await diffVersions(
+      { label: '1.0.0', document: before },
+      { label: 'current', document: after }
+    );
+    expect(diff.library.map((c) => c.fields?.map((f) => f.field))).toEqual([['approval']]);
+    // If Texuli starts comparing it, this pin fails and diffLibrary can move to changesModel.
+    expect(changesModel({ document: before }, { document: after }).library).toEqual([]);
   });
 });

@@ -1,5 +1,13 @@
 # @protoyard/blocks
 
+## 1.9.1
+
+### Patch Changes
+
+- @protoyard/ai@1.9.1
+  - @protoyard/avatars@1.9.1
+  - @protoyard/core@1.9.1
+
 ## 1.9.0
 
 ### Patch Changes
