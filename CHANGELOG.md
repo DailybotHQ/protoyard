@@ -38,6 +38,16 @@ four medium and the low ones.
   content; hidden files (`.env`) are refused as generator inputs.
 - The kit README escapes the design-system name; kit stories refuse script
   and data URLs in props.
+- **`new --ds`** runs the design system's allow rules at the template gate and
+  after creation (as `check ds` and `validate` do), so a template that uses a
+  component the allow section leaves out is refused. It never binds an
+  existing prototype: an existing slug is a conflict (use `ds use <slug> <id>
+  --lock`) unless it is a retry with the same binding.
+- `ds approve --release` builds and checks the release record before it
+  approves the document, so a failed release leaves the document a draft.
+- `ds import --dry-run` makes the same refusals as the real run (flat
+  `<id>.json`, symlinked targets).
+- Kit story variant names must be unique.
 
 ### Changed
 

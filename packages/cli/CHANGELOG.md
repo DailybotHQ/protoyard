@@ -58,6 +58,10 @@
 
 ### Patch Changes
 
+- AI Diff Reviewer fixes: `new --ds` runs the allow rules at the template gate
+  and after creation, and never binds an existing prototype; `ds approve
+  --release` builds the release before approving; `ds import --dry-run` makes
+  the real run's refusals; kit story variant names are unique.
 - Updated dependencies [b64de1e]
 - Updated dependencies
   - @protoyard/core@1.8.0
