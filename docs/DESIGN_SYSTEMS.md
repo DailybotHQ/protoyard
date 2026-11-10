@@ -16,7 +16,7 @@ How a document compiles and paints, and the full `check ds` rules, are in
 
 | Step | How | Status |
 | --- | --- | --- |
-| 1. Create | `pnpm protoyard ds new <id>` from a brief, a few inputs or a theme | Works |
+| 1. Create | `pnpm protoyard ds new <id>` from a few inputs, a theme, or your brand: a tokens file, a stylesheet, an SVG logo or a brief | Works |
 | 2. Review in a kit | Open the design system's UI kit and review every component | Planned (kit task); today review the document with `ds validate` and a prototype that uses it |
 | 3. Approve | A designer runs `ds approve <id> --by <name>` and commits the document for review | Works |
 | 4. Create locked prototypes | `pnpm protoyard ds use <slug> <id> --lock` | Works |
@@ -40,6 +40,82 @@ it can be locked, and any drift between `components.json` and
 `--from-theme-file`) is in [THEMES](THEMES.md#design-systems). A flat
 `design-systems/<id>.json` from before the folder layout becomes a folder with
 `pnpm protoyard ds migrate <id>`.
+
+### Create from your brand
+
+`ds new` can start from what a company already has. Each source runs Texuli
+0.16.0's design-system generator (`generateDesignSystem`, from
+`@texuli/tokens/design-system/generate`) offline. The generator imports the
+source, keeps its type, shape, space and motion values, then repairs the
+result until it meets Texuli's AA guarantees.
+
+```bash
+pnpm protoyard ds new acme --from-tokens brand/tokens.json      # W3C DTCG or Tokens Studio JSON
+pnpm protoyard ds new acme --from-css brand/site.css            # a site stylesheet's tokens
+pnpm protoyard ds new acme --from-logo brand/logo.svg           # the palette from an SVG logo
+pnpm protoyard ds new acme --brief "Calm banking for nurses. Deep teal #0f766e brand, Inter font, rounded."
+pnpm protoyard ds new acme --brief brand/brief.md               # a .txt or .md file
+echo "brand #0f766e, font Inter, compact" | pnpm protoyard ds new acme --brief -
+```
+
+| Source | What Texuli reads |
+| --- | --- |
+| `--from-tokens <file>` | A W3C DTCG file (Texuli's `importDtcg`) or a Tokens Studio file (`importTokensStudio`); the generator picks by shape (`$metadata`, or a root `global`, `light` or `dark` set, means Tokens Studio) and tries the other format if the first refuses. Texuli's own layout round-trips. Foreign tokens are mapped by name: semantic roles under a `light` or `dark` group, `brand` as the seed, font families by role, a radius token. |
+| `--from-css <file>` | `importSiteCss`: the declarative token surface of a stylesheet (custom properties, font families, radius). It never resolves `@import`, fetches fonts or evaluates values; a stylesheet with an `@import` or an executable value is refused whole. |
+| `--from-logo <file>` | SVG only. Protoyard reads the colors in `fill`, `stroke`, `stop-color` and similar attributes and inline styles as text (hex, `rgb()`, `rgba()`, `black`, `white`), weights each one by how often it appears, and passes them as pixels to Texuli's `importLogoPixels`. Texuli then picks the seed and a secondary color. |
+| `--brief <text\|file\|->` | Texuli's brand one-liner (`importBrand`). Protoyard first splits prose into clauses (on sentence ends, commas, semicolons, line breaks, and the words *and*, *with*, *but* and *plus*). A clause `importBrand` already reads is kept as written. Any other clause is read for colors (with the role a nearby word names: *brand*, *primary*, *secondary*, *accent*), fonts (*Inter font*, *headings in Fraunces*), the shape, density, elevation and surface words, motion, and `AA`/`AAA`. The `--brand`, `--font` and other flags are added after the brief, so they win. |
+
+Only one source is allowed per run. `--from-tokens`, `--from-css` and
+`--from-logo` also refuse the brand flags (`--brand`, `--font`, and so on).
+Edit the draft document afterwards instead. Every run prints, and returns under
+`data.generation` with `--json`:
+
+- the **loss report** (`losses`): each value the importer refused or could not
+  place, and each value a later input replaced, with its JSON path;
+- the **AA repair report** (`repairs`), which lists each value the generator
+  or compiler changed to meet the AA guarantees, such as a brand seed it
+  replaced, a pin it removed, or a control height raised to the 44 px target;
+- the **guarantees** result (`passed`, `issues`);
+- the source: the file, how each brief clause was read (`brief.reading` and
+  the final `brief.oneLiner`), or the logo colors and how many values were
+  ignored.
+
+**Untrusted input.** Each file must be inside the workspace and must not be a
+symlink or sit under a symlinked folder that leaves the workspace. Size caps
+apply: tokens and CSS 1 MiB (also Texuli's cap), an SVG 512 KiB, a brief
+16 KiB. Nothing is executed, fetched or rendered. The SVG is never parsed as
+markup, so a `<script>` in it is just text. Texuli validates the result at
+`trust: 'untrusted'`.
+
+**Always a draft.** The document gets a draft `approval` like every `ds new`.
+An `approval` an input carries (for example in a DTCG file's
+`$extensions["com.texuli.design-system"]`) is dropped. Then the usual flow
+applies: `--allow`, review, `ds approve <id> --by <name>`, then
+`new <slug> --ds <id>`, which refuses the draft until it is approved. The same
+input always gives the same bytes. `--dry-run` reads and generates but writes
+nothing.
+
+**Limits.**
+
+- **Raster logos** (PNG, JPEG, GIF, WebP) are refused. Texuli 0.16.0 reads
+  logo *pixels* (`importLogoPixels`), and the CLI does not decode images,
+  because that would add a dependency. Pass the logo's main color with
+  `--brand <hex>`, or export the logo as SVG.
+- **SVG colors are weighted by count, not by area.** A small accent drawn many
+  times can outweigh a large background shape. Gradients referenced with
+  `url(#…)`, `currentColor`, `*-opacity` and named colors other than `black`
+  and `white` are ignored. Ignored values are counted in the report.
+- **A brief is read by keywords.** It is not understood as language. A clause
+  with nothing to read stays in the one-liner, and Texuli reports it as an
+  `unmapped` loss. Words such as *calm*, *soft* or *solid* are read as motion,
+  elevation or surface choices even in an unrelated sentence. Check
+  `brief.reading`.
+- **Generator refusals.** When the generator cannot meet its guarantees, the
+  run fails with `validation`, the errors and the report, and writes nothing.
+  One known case: a stylesheet that pins a role color below AA (for example
+  `--primary: #ffff00`) is refused with `$.color.brand.seed: Required.`:
+  Texuli 0.16.0's repair loop first replaces the seed, then removes it, instead
+  of the failing pin. Remove that pin from the stylesheet, or use `--brand`.
 
 ### The allow section
 
@@ -383,7 +459,7 @@ The manifest binding is part of the prototype contract in `@protoyard/core`:
 
 | Command | What it does |
 | --- | --- |
-| `ds new <id> [--allow all\|minimal\|<file>\|none]` | Create a design system folder (or a flat file with `--out`) with an allow section |
+| `ds new <id> [--from-tokens <file>\|--from-css <file>\|--from-logo <file.svg>\|--brief <text\|file\|->] [--allow all\|minimal\|<file>\|none] [--dry-run]` | Create a design system folder (or a flat file with `--out`) with an allow section; a brand source runs Texuli's generator and reports losses and AA repairs ([Create from your brand](#create-from-your-brand)) |
 | `ds list` | Every design system with its approval, lockability, component count and bound prototypes |
 | `ds validate <id\|file>` | Validate and compile; check `allow` against the catalog; report approval, lockability and component drift |
 | `ds approve <id> --by <name> [--release <semver>]` | Approve it in the document (a human, never an MCP tool) |
@@ -397,7 +473,9 @@ The manifest binding is part of the prototype contract in `@protoyard/core`:
 Every command takes `--json`. The MCP server exposes `ds_create`, `ds_list`,
 `ds_validate`, `ds_export`, `ds_use`, `ds_component_request` and
 `ds_component_new` ([MCP](MCP.md#tools)); `ds_create` takes `allow` (`all`,
-`minimal` or `none`). There is no approval tool, on purpose.
+`minimal` or `none`) and one brand source (`brief`, `fromTokens`, `fromCss`,
+`fromLogo` or `fromTheme`; a `brief` of `-` is refused). Its result is a draft.
+There is no approval tool, on purpose.
 
 ## Planned
 

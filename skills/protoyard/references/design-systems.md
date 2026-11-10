@@ -15,11 +15,32 @@ From a few inputs (each is optional; give at least a brand color or a brief):
 pnpm protoyard ds new harbor --name Harbor --brand '#0f766e' --font Inter --shape rounded --density compact --motion subtle
 ```
 
-From a one-line brief (explicit inputs win over the brief):
+From a brief: prose or a one-liner, a `.txt`/`.md` file, or `-` for stdin
+(explicit inputs win over the brief):
 
 ```bash
 pnpm protoyard ds new atlas --brief "brand #4f46e5, font Geist, heading font Fraunces, sharp, comfortable"
+pnpm protoyard ds new nurse-bank --brief "Calm banking for nurses. Deep teal #0f766e brand, Inter font, rounded."
 ```
+
+From the brand a company already has (one source per run; Texuli's
+generator, offline):
+
+```bash
+pnpm protoyard ds new acme --from-tokens brand/tokens.json   # W3C DTCG or Tokens Studio JSON
+pnpm protoyard ds new acme --from-css brand/site.css         # a site stylesheet's tokens, read as text
+pnpm protoyard ds new acme --from-logo brand/logo.svg        # palette from an SVG logo's fill/stroke colors
+```
+
+A brief or one of these files prints Texuli's **loss report** (values it
+could not keep) and **AA repair report** (values changed to meet AA); with
+`--json` both are under `data.generation`, with how each brief clause was
+read (`brief.reading`). Show both to the user before they approve. The files
+must sit inside the workspace (no symlinks), within size caps (tokens and
+CSS 1 MiB, SVG 512 KiB, brief 16 KiB). Raster logos (PNG, JPEG) are refused:
+ask for an SVG or the logo's main color for `--brand`. `--from-tokens`,
+`--from-css` and `--from-logo` take no brand flags; edit the draft instead.
+The result is always a draft, even if the input carried an approval.
 
 From an existing theme (a built-in or any library theme):
 
