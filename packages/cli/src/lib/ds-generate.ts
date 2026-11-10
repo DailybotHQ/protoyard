@@ -157,6 +157,8 @@ type ImportBrand = typeof import('@texuli/tokens/design-system/import').importBr
 /** Sentence ends, clause punctuation, line breaks and a few joining words. */
 const CLAUSE_SPLIT = /[.!?](?=\s|$)|[;,\n\r]|\s+(?:and|with|but|plus)\s+/i;
 const HEX = /#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})\b/gi;
+/** {@link HEX} without the global flag (`test` keeps no state). */
+const HEX_ONE = new RegExp(HEX.source, 'i');
 const NAME = '([A-Z][\\w-]*(?:\\s+[A-Z0-9][\\w-]*){0,2})';
 const HEADING_FONT = new RegExp(
   `\\b(?:[Hh]eading|[Dd]isplay|[Tt]itle)s?(?:\\s+(?:font|typeface))?\\s+(?:(?:in|use|uses|using|is|of)\\s+)?${NAME}`
@@ -223,9 +225,9 @@ function readProseClause(clause: string): string[] {
 }
 
 /**
- * A prose brief as Texuli's brand one-liner. Each clause that Texuli's
- * `importBrand` already reads is kept as written; any other clause is read
- * for colors (with the role a nearby word names), fonts, shape, density,
+ * A prose brief as Texuli's brand one-liner. Each clause without a color
+ * that Texuli's `importBrand` reads (no `unmapped` loss) is kept as written;
+ * any other clause is read for colors (with the role a nearby word names), fonts, shape, density,
  * elevation, surface, motion and contrast words. A clause with none of them
  * is kept, so Texuli reports it as an `unmapped` loss. Deterministic.
  */
@@ -244,9 +246,15 @@ export function readProseBrief(
     );
   }
   const reading = clauses.map((clause): BriefReading => {
-    const direct = importBrand(clause, { trust: 'untrusted', id: 'brief-clause' });
-    if (direct.ok && !direct.warnings.some((warning) => warning.code === 'unmapped')) {
-      return { clause, read: [clause] };
+    // Texuli 0.17.0 also reads a color inside prose, but then takes the whole
+    // clause as read: the other words (`Inter font in #0f766e`), a second
+    // color, or `secondary is #…` (an unsafe-value warning) are dropped
+    // without an `unmapped` loss. A clause with a color is always read here.
+    if (!HEX_ONE.test(clause)) {
+      const direct = importBrand(clause, { trust: 'untrusted', id: 'brief-clause' });
+      if (direct.ok && !direct.warnings.some((warning) => warning.code === 'unmapped')) {
+        return { clause, read: [clause] };
+      }
     }
     return { clause, read: readProseClause(clause) };
   });
