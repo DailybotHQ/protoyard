@@ -314,6 +314,20 @@ describe('ds-check rules (fixtures)', () => {
     ).toEqual([]);
   });
 
+  it('treats text flow the same in CSS and utilities: alignment is layout', () => {
+    const css =
+      '.a {\n  text-align: center;\n  text-align-last: end;\n  text-overflow: ellipsis;\n  text-wrap: balance;\n}\n.b {\n  text-decoration: underline;\n  text-transform: uppercase;\n  text-shadow: none;\n}\n';
+    const found = scanDesignSystemSource('src/app.css', css);
+    expect(found.map((v) => [v.rule, v.line])).toEqual([
+      ['ds-visual-css', 8],
+      ['ds-visual-css', 9],
+      ['ds-visual-css', 10],
+    ]);
+    expect(
+      scanDesignSystemSource('src/A.svelte', '<p class="text-center text-balance truncate"></p>')
+    ).toEqual([]);
+  });
+
   it('flags tx- targets and token redefinitions in a global stylesheet', () => {
     const css =
       ':root {\n  --tx-color-primary: #ff0000;\n}\n[data-tx-ds] .tx-card {\n  gap: 0;\n}\n';

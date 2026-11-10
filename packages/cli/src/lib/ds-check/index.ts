@@ -159,8 +159,14 @@ const CLASS_HELPER = /\b(?:cx|clsx|cn|classNames|twMerge|twJoin)\s*\(/g;
 const INTERACTIVE_ROLE =
   /\brole\s*=\s*["']?(?:button|link|checkbox|radio|switch|tab|menuitem|menuitemcheckbox|menuitemradio|option|slider|spinbutton|textbox|searchbox|combobox|listbox)\b/;
 const CLICK_HANDLER = /\s(?:onclick\s*=|on:click\b)/;
+/**
+ * Properties that draw. Text flow is layout, as the utilities allow it
+ * (`text-center`, `truncate`, `text-balance`): `text-align`, `text-align-last`,
+ * `text-overflow` and `text-wrap` stay allowed; other `text-*` properties
+ * (decoration, transform, shadow, indent) are visual.
+ */
 const VISUAL_PROPERTY =
-  /^(?:color|background(?:-[\w-]+)?|border(?:-[\w-]+)?|outline(?:-[\w-]+)?|box-shadow|text-[\w-]+|font(?:-[\w-]+)?|letter-spacing|line-height|word-spacing|opacity|filter|backdrop-filter|transform(?:-[\w-]+)?|translate|rotate|scale|transition(?:-[\w-]+)?|animation(?:-[\w-]+)?|fill|stroke(?:-[\w-]+)?|caret-color|accent-color|mix-blend-mode)$/;
+  /^(?:color|background(?:-[\w-]+)?|border(?:-[\w-]+)?|outline(?:-[\w-]+)?|box-shadow|text-(?!align(?:-last)?$|overflow$|wrap(?:-mode|-style)?$)[\w-]+|font(?:-[\w-]+)?|letter-spacing|line-height|word-spacing|opacity|filter|backdrop-filter|transform(?:-[\w-]+)?|translate|rotate|scale|transition(?:-[\w-]+)?|animation(?:-[\w-]+)?|fill|stroke(?:-[\w-]+)?|caret-color|accent-color|mix-blend-mode)$/;
 const LITERAL_COLOR =
   /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color-mix|color)\(/;
 const DECLARATION = /(^|[{;])(\s*)(-{0,2}[A-Za-z][\w-]*)\s*:\s*([^;{}]+?)\s*(?=;|\})/g;

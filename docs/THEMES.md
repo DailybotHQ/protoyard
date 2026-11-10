@@ -1250,7 +1250,10 @@ list is an allow-list: anything not on it fails, including unknown utilities.
   `text-right`, `text-justify`, `text-start`, `text-end`), wrapping and
   truncation (`truncate`, `line-clamp-*`, `break-*`, `whitespace-*`,
   `text-wrap`, `text-nowrap`, `text-balance`, `text-pretty`). Size, weight,
-  family, color, leading and tracking stay refused.
+  family, color, leading and tracking stay refused. CSS follows the same
+  rule: `text-align`, `text-align-last`, `text-overflow` and `text-wrap`
+  pass in a stylesheet; `text-decoration`, `text-transform`, `text-shadow`
+  and `text-indent` are visual.
 - Box and media layout: `aspect-*` (auto, square, video), `object-*`,
   `box-border`, `box-content`, `isolate`, `visible`, `invisible`, the table
   and `flow-root` displays, `pointer-events-none` and `pointer-events-auto`.
@@ -1266,7 +1269,7 @@ list is an allow-list: anything not on it fails, including unknown utilities.
   brackets (`data-[x]:`) is an arbitrary value.
 
 Refused: color, background, border, ring, outline, radius (`rounded-*`),
-shadow, typography (`font-*`, `text-*`, `leading-*`, `tracking-*`), opacity,
+shadow, typography (`font-*`, `text-*` sizes and colors, `leading-*`, `tracking-*`), opacity,
 filters, transforms, transitions and `animate-*`, and any arbitrary value.
 
 | Command | Result |
@@ -1282,7 +1285,9 @@ violation, before the build. Unlocked prototypes get no step.
 **Limits.** The scan is static and textual: classes built at runtime from
 variables, components from other packages, components rendered from `.ts`
 files or through `<svelte:component>`, axis values given as expressions, and
-CSS imported from outside the prototype folder are not seen. Class strings are read from `class` values,
+CSS imported from outside the prototype folder are not seen. Styling inside a
+workspace package the prototype imports is not scanned either: a prototype
+built mostly from such a package reports few violations. Class strings are read from `class` values,
 `class:` directives and the `cx`/`clsx`/`cn`/`classNames`/`twMerge`/`twJoin`
 helpers only.
 
