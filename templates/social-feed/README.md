@@ -46,6 +46,10 @@ inbox and on your posts.
     post with `aria-setsize` / `aria-posinset`, a single tab stop among the
     posts, Page Up / Page Down between posts. Keys pressed in a post's own
     buttons and comment input stay theirs, and posts are never selected.
+  - Each `<article>` is named by its post's author line (`aria-labelledby`),
+    and the list has no box of its own (`surface="plain"`), so the feed runs
+    edge to edge. Both lists share these props (`POST_FEED` in
+    `src/lib/feed-list.ts`).
 - **Layout:** the app is bound to the window height (`h-app`). The feed list
   is the scroll region and the document never scrolls, so the composer
   (`[data-py-composer]`) stays on screen at 390×844 (`pnpm visual:sweep` flags it when not).
