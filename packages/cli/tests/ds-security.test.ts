@@ -39,7 +39,8 @@ type Bundle = {
 type Issues = { errors: { code: string; path: string; message: string }[] };
 
 const sha = (text: string) => createHash('sha256').update(text).digest('hex');
-const FAKE_SECRET = 'API_KEY=sk-example-not-a-real-key';
+/** Stands in for a secret file's first line (fictional; Node quotes about 10 characters). */
+const PRIVATE_LINE = 'PRIVATEMARK fictional line';
 
 const spaces: TempWorkspace[] = [];
 afterEach(() => {
@@ -249,13 +250,13 @@ describe('F6: parse errors never quote untrusted files', () => {
   it('keeps only the position of a JSON error', () => {
     let error: unknown;
     try {
-      JSON.parse(FAKE_SECRET);
+      JSON.parse(PRIVATE_LINE);
     } catch (caught) {
       error = caught;
     }
-    expect(String((error as Error).message)).toContain('API_KEY');
+    expect(String((error as Error).message)).toContain('PRIVATEMAR');
     const text = jsonErrorText(error);
-    expect(text).not.toContain('API_KEY');
+    expect(text).not.toContain('PRIVATEMAR');
     expect(text).toMatch(/^not valid JSON/);
     expect(jsonErrorText(new SyntaxError('Bad thing in JSON at position 12'))).toBe(
       'not valid JSON (at position 12)'
@@ -264,10 +265,10 @@ describe('F6: parse errors never quote untrusted files', () => {
 
   it('refuses hidden generator inputs and echoes nothing of a non-JSON file', async () => {
     const ws = workspace();
-    writeFileSync(join(ws.root, '.env'), `${FAKE_SECRET}\n`);
-    writeFileSync(join(ws.root, 'notes.json'), `${FAKE_SECRET}\n`);
+    writeFileSync(join(ws.root, '.env'), `${PRIVATE_LINE}\n`);
+    writeFileSync(join(ws.root, 'notes.json'), `${PRIVATE_LINE}\n`);
     ws.write('design-systems/leak/document.json', 'placeholder');
-    writeFileSync(join(ws.root, 'design-systems/leak/document.json'), `${FAKE_SECRET}\n`);
+    writeFileSync(join(ws.root, 'design-systems/leak/document.json'), `${PRIVATE_LINE}\n`);
 
     const hidden = await run(ws, 'ds', 'new', 'leak', '--from-tokens', '.env');
     expect(hidden.json<Envelope>().error?.code).toBe('unsafe_path');
@@ -285,8 +286,7 @@ describe('F6: parse errors never quote untrusted files', () => {
     ];
     for (const output of outputs) {
       expect(output.code).not.toBe(0);
-      expect(output.stdout).not.toContain('API_KEY');
-      expect(output.stdout).not.toContain('sk-example');
+      expect(output.stdout).not.toContain('PRIVATEMAR');
     }
   });
 });
