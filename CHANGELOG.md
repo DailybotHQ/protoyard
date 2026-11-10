@@ -6,6 +6,27 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.9.4] - 2026-11-10
+
+Texuli 0.17.4. Every Texuli dependency is pinned exactly at `0.17.4`.
+
+### Changed
+
+- **Render baselines are Texuli's finding keys.** `check ds --render
+  --write-baseline` writes `{ findings: [{ code, path, route, viewport, mode,
+  scope, component? }] }` (Texuli's `DsFindingKey`, with the prototype slug as
+  `scope` and each message for people), and `--baseline` compares with
+  Texuli's `compareDsReport`, so the same selector on the same route of two
+  prototypes stays apart.
+- The `protoyard/ds-render-baseline` version 1 format is retired: files of
+  1.8–1.9.3 are still read, their fingerprints converted, and the run says to
+  write the baseline again ([TEXULI](docs/TEXULI.md)).
+- **Self-hosted design-system fonts.** `ds use` and `new --ds` write
+  `fontFiles` into `src/design-system.ts` for each font file the document
+  names (`typography.families.<role>.files[].src`) that exists inside the
+  design-system folder, so a Vite build emits it and a locked prototype needs
+  no `@font-face` of its own. Missing files are reported (`data.fonts.missing`).
+
 ## [1.9.3] - 2026-11-10
 
 Texuli 0.17.3. Every Texuli dependency is pinned exactly at `0.17.3`.

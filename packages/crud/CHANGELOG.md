@@ -1,5 +1,19 @@
 # @protoyard/crud
 
+## 1.9.4
+
+### Patch Changes
+
+- @protoyard/analytics@1.9.4
+  - @protoyard/analytics-ui@1.9.4
+  - @protoyard/blueprint@1.9.4
+  - @protoyard/charts-ui@1.9.4
+  - @protoyard/core@1.9.4
+  - @protoyard/renderer-svelte@1.9.4
+  - @protoyard/ui@1.9.4
+  - @protoyard/views@1.9.4
+  - @protoyard/views-ui@1.9.4
+
 ## 1.9.3
 
 ### Patch Changes

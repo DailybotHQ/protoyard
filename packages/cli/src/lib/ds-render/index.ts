@@ -539,34 +539,100 @@ export function pageErrorFinding(
 }
 
 // ── baselines ──────────────────────────────────────────────────────────
+//
+// Since 1.9.4 a baseline is Texuli's finding-key shape (`DsFindingKey`,
+// `@texuli/tools/ds-check` 0.17.4), compared with Texuli's `compareDsReport`:
+// `{ findings: [{ code, path, route, viewport, mode, scope, component }] }`,
+// with the prototype slug as `scope` and the selector as `path`. The
+// `protoyard/ds-render-baseline` version 1 files of 1.8–1.9.3 are still
+// read, once, and converted (`--write-baseline` writes the new shape).
 
-export const DS_RENDER_BASELINE_FORMAT = 'protoyard/ds-render-baseline';
-export const DS_RENDER_BASELINE_VERSION = 1;
+/** The format tag of the version 1 baselines that 1.8–1.9.3 wrote (read only). */
+export const DS_RENDER_BASELINE_V1_FORMAT = 'protoyard/ds-render-baseline';
+
+/** One baseline entry: Texuli's `DsFindingKey` plus the message, for people reading the file. */
+export interface DsRenderBaselineEntry {
+  code: string;
+  path: string;
+  route: string;
+  /** `<width>x<height>`, Texuli's viewport key. */
+  viewport: string;
+  mode: string;
+  /** The prototype slug. */
+  scope: string;
+  component?: string;
+  message?: string;
+}
 
 export interface DsRenderBaseline {
-  format: typeof DS_RENDER_BASELINE_FORMAT;
-  version: typeof DS_RENDER_BASELINE_VERSION;
-  findings: { fingerprint: string; code: string; slug: string; route: string; message: string }[];
+  findings: DsRenderBaselineEntry[];
 }
+
+/** What a baseline file held: its keys, and whether it was a version 1 file. */
+export interface ParsedBaseline {
+  findings: DsRenderBaselineEntry[];
+  legacy: boolean;
+}
+
+/** Texuli's `compareDsReport`, injected so this module stays free of `@texuli/tools`. */
+export type CompareDsReport = (
+  baseline: unknown,
+  report: unknown
+) => { added: readonly object[]; removed: readonly unknown[] };
 
 /** A baseline file holds at most this many findings. */
 export const DS_RENDER_BASELINE_MAX = 5000;
 
+/** The longest key field Texuli reads (`MAX_FIELD` in its baseline module). */
+const KEY_FIELD_MAX = 512;
+const KEY_FIELDS = ['route', 'viewport', 'mode', 'scope', 'component'] as const;
+
+function viewportKey(id: string): string {
+  const v = DS_RENDER_VIEWPORTS.find((viewport) => viewport.id === id);
+  return v ? `${v.width}x${v.height}` : id;
+}
+
+/** A finding's baseline key (Texuli's `DsFindingKey`). */
+export function baselineEntry(
+  f: Pick<DsRenderFinding, 'slug' | 'route' | 'viewport' | 'mode' | 'code' | 'selector'> & {
+    component?: string | null;
+    message?: string;
+  }
+): DsRenderBaselineEntry {
+  return {
+    code: f.code,
+    path: f.selector,
+    route: f.route,
+    viewport: viewportKey(f.viewport),
+    mode: f.mode,
+    scope: f.slug,
+    ...(f.component ? { component: f.component } : {}),
+    ...(f.message !== undefined ? { message: f.message } : {}),
+  };
+}
+
+/** The same key line Texuli builds (code, path, then the fields a key has). */
+function keyLine(key: Record<string, unknown>): string {
+  const text = (value: unknown) => (typeof value === 'string' ? value.slice(0, KEY_FIELD_MAX) : '');
+  let line = `${text(key.code)}\t${text(key.path)}`;
+  for (const field of KEY_FIELDS) {
+    const value = text(key[field]);
+    if (value) line += `\t${field}=${value}`;
+  }
+  return line;
+}
+
 /** The baseline document of a run's findings (what `--write-baseline` saves), sorted. */
 export function baselineDocument(findings: readonly DsRenderFinding[]): DsRenderBaseline {
-  const unique = new Map<string, DsRenderBaseline['findings'][number]>();
-  for (const f of findings)
-    unique.set(f.fingerprint, {
-      fingerprint: f.fingerprint,
-      code: f.code,
-      slug: f.slug,
-      route: f.route,
-      message: f.message,
-    });
+  const unique = new Map<string, DsRenderBaselineEntry>();
+  for (const f of findings) {
+    const entry = baselineEntry(f);
+    unique.set(keyLine(entry as unknown as Record<string, unknown>), entry);
+  }
   return {
-    format: DS_RENDER_BASELINE_FORMAT,
-    version: DS_RENDER_BASELINE_VERSION,
-    findings: [...unique.values()].sort((a, b) => a.fingerprint.localeCompare(b.fingerprint)),
+    findings: [...unique.entries()]
+      .sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0))
+      .map(([, entry]) => entry),
   };
 }
 
@@ -581,47 +647,117 @@ function findingsOf(value: unknown): unknown[] | null {
   return null;
 }
 
+const isText = (value: unknown): value is string =>
+  typeof value === 'string' && value.length > 0 && value.length <= 2000;
+
+/** A version 1 fingerprint, `slug|route|viewport|mode|code|component|selector`. */
+function fromFingerprint(fingerprint: string): DsRenderBaselineEntry | null {
+  const parts = fingerprint.split('|');
+  if (parts.length < 7) return null;
+  const [slug, route, viewport, mode, code, component] = parts as [
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+  ];
+  return baselineEntry({
+    slug,
+    route,
+    viewport: viewport as DsRenderViewport['id'],
+    mode: mode as DsRenderMode,
+    code,
+    component: component || null,
+    selector: parts.slice(6).join('|'),
+  });
+}
+
 /**
- * The fingerprints of a baseline: a `--write-baseline` file, or a saved
+ * Read a baseline: a `--write-baseline` file (Texuli's key shape), a
+ * version 1 file of 1.8–1.9.3 (its fingerprints are converted), or a saved
  * `check ds --render --json` output (its `data.render.findings`). Throws a
  * `TypeError` naming what is wrong.
  */
-export function parseBaseline(value: unknown): Set<string> {
+export function parseBaseline(value: unknown): ParsedBaseline {
   const findings = findingsOf(value);
   if (!findings) throw new TypeError('The baseline has no findings list.');
   if (findings.length > DS_RENDER_BASELINE_MAX)
     throw new RangeError(`A baseline holds at most ${DS_RENDER_BASELINE_MAX} findings.`);
-  const out = new Set<string>();
-  findings.forEach((entry, index) => {
-    const fingerprint = (entry as { fingerprint?: unknown } | null)?.fingerprint;
-    if (typeof fingerprint !== 'string' || fingerprint.length === 0 || fingerprint.length > 2000)
-      throw new TypeError(`Baseline finding ${index} has no fingerprint string.`);
-    out.add(fingerprint);
+  const v1 =
+    !!value &&
+    typeof value === 'object' &&
+    (value as Record<string, unknown>).format === DS_RENDER_BASELINE_V1_FORMAT;
+  let legacy = v1;
+  const out = findings.map((item, index): DsRenderBaselineEntry => {
+    const entry = (item ?? {}) as Record<string, unknown>;
+    if (!v1 && isText(entry.code) && typeof entry.path === 'string' && isText(entry.scope)) {
+      const key: DsRenderBaselineEntry = {
+        code: entry.code,
+        path: entry.path.slice(0, 2000),
+        route: typeof entry.route === 'string' ? entry.route.slice(0, 2000) : '',
+        viewport: typeof entry.viewport === 'string' ? entry.viewport.slice(0, 64) : '',
+        mode: typeof entry.mode === 'string' ? entry.mode.slice(0, 16) : '',
+        scope: entry.scope,
+        ...(isText(entry.component) ? { component: entry.component } : {}),
+      };
+      return key;
+    }
+    // A saved --json output: the findings carry their fields.
+    if (
+      !v1 &&
+      isText(entry.code) &&
+      isText(entry.slug) &&
+      typeof entry.selector === 'string' &&
+      typeof entry.route === 'string'
+    ) {
+      return baselineEntry({
+        slug: entry.slug,
+        route: entry.route,
+        viewport: String(entry.viewport ?? '') as DsRenderViewport['id'],
+        mode: String(entry.mode ?? '') as DsRenderMode,
+        code: entry.code,
+        component: isText(entry.component) ? entry.component : null,
+        selector: entry.selector.slice(0, 2000),
+      });
+    }
+    if (isText(entry.fingerprint)) {
+      const converted = fromFingerprint(entry.fingerprint);
+      if (converted) {
+        legacy = true;
+        return converted;
+      }
+    }
+    throw new TypeError(
+      `Baseline finding ${index} has no finding key (code, path, scope) or version 1 fingerprint.`
+    );
   });
-  return out;
+  return { findings: out, legacy };
 }
 
 /**
  * Mark the findings a baseline lists (`baselined: true`) and count what is
- * new and what the baseline lists that no longer occurs (fixed).
+ * new and what the baseline lists that no longer occurs (fixed), through
+ * Texuli's `compareDsReport`: a key field the baseline does not name matches
+ * any value.
  */
 export function applyBaseline(
   findings: readonly DsRenderFinding[],
-  baseline: ReadonlySet<string> | null
+  baseline: ParsedBaseline | null,
+  compare?: CompareDsReport
 ): { findings: DsRenderFinding[]; fresh: number; baselined: number; fixed: number } {
-  if (!baseline) return { findings: [...findings], fresh: findings.length, baselined: 0, fixed: 0 };
-  const seen = new Set<string>();
-  const out = findings.map((f) => {
-    seen.add(f.fingerprint);
-    return baseline.has(f.fingerprint) ? { ...f, baselined: true } : f;
-  });
+  if (!baseline || !compare)
+    return { findings: [...findings], fresh: findings.length, baselined: 0, fixed: 0 };
+  const keys = findings.map((f) => baselineEntry(f));
+  const result = compare({ findings: baseline.findings }, { findings: keys });
+  const added = new Set(result.added.map((key) => keyLine(key as Record<string, unknown>)));
+  const out = findings.map((f, index) =>
+    added.has(keyLine(keys[index] as unknown as Record<string, unknown>))
+      ? f
+      : { ...f, baselined: true }
+  );
   const baselined = out.filter((f) => f.baselined).length;
-  return {
-    findings: out,
-    fresh: out.length - baselined,
-    baselined,
-    fixed: [...baseline].filter((fp) => !seen.has(fp)).length,
-  };
+  return { findings: out, fresh: out.length - baselined, baselined, fixed: result.removed.length };
 }
 
 /** One finding as a line: code, route, viewport and mode, selector, message. */

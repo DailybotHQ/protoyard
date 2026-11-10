@@ -190,6 +190,38 @@ describe('protoyard ds', () => {
     expect((await run('use', 'ds-fixture', 'harbor')).code).toBe(0);
     expect(readFileSync(join(dir, 'src/prototype.ts'), 'utf8')).toBe(prototype);
 
+    // Self-hosted fonts the document names are wired as fontFiles, one URL per
+    // file, so a Vite build emits them; a file missing from the folder is reported.
+    const docFile = join(ws.root, 'design-systems/harbor/document.json');
+    const doc = JSON.parse(readFileSync(docFile, 'utf8')) as {
+      typography?: { families?: Record<string, unknown> };
+    };
+    doc.typography = {
+      ...(doc.typography ?? {}),
+      families: {
+        ...(doc.typography?.families ?? {}),
+        sans: {
+          stack: ['Brand Sans', 'system-ui', 'sans-serif'],
+          files: [
+            { src: 'fonts/brand-400.woff2', weight: '400', display: 'swap' },
+            { src: 'fonts/brand-700.woff2', weight: '700', display: 'swap' },
+          ],
+        },
+      },
+    };
+    ws.write('design-systems/harbor/document.json', doc);
+    ws.write('design-systems/harbor/fonts/brand-400.woff2', 'wOF2 example bytes');
+    const withFonts = await run('use', 'ds-fixture', 'harbor');
+    expect(withFonts.code, withFonts.stdout).toBe(0);
+    const fontSource = readFileSync(join(dir, 'src/design-system.ts'), 'utf8');
+    expect(fontSource).toContain(
+      `"fonts/brand-400.woff2": new URL("../../../design-systems/harbor/fonts/brand-400.woff2", import.meta.url),`
+    );
+    expect(fontSource).not.toContain('brand-700.woff2": new URL');
+    expect(
+      withFonts.json<Envelope<{ fonts?: { files: string[]; missing: string[] } }>>().data.fonts
+    ).toEqual({ files: ['fonts/brand-400.woff2'], missing: ['fonts/brand-700.woff2'] });
+
     // A prototype without a package.json is refused before anything is written.
     addPrototype(ws, 'no-package');
     ws.write('prototypes/no-package/src/prototype.ts', PROTOTYPE);

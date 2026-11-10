@@ -19,6 +19,7 @@ import {
   type DsRenderFinding,
   discoverDeclaredRoutes,
   formatRenderFinding,
+  type ParsedBaseline,
   type PlannedRoute,
   parseBaseline,
   parseRouteOption,
@@ -109,7 +110,7 @@ interface RenderOptions {
   render: boolean;
   routes: PlannedRoute[] | undefined;
   baselineFile: string | null;
-  baseline: Set<string> | null;
+  baseline: ParsedBaseline | null;
   writeBaseline: string | null;
   rebuild: boolean;
 }
@@ -177,7 +178,7 @@ function readRenderOptions(
       throw new CliError('usage', (error as Error).message);
     }
   }
-  let baseline: Set<string> | null = null;
+  let baseline: ParsedBaseline | null = null;
   let baselineFile: string | null = null;
   if (baselineValue !== undefined) {
     baselineFile = workspaceFile(root, baselineValue, '--baseline');
@@ -461,6 +462,12 @@ async function checkDs(
         o.always(
           c.dim(
             `  Wrote the baseline ${toPosixRelative(ctx.root, renderOptions.writeBaseline)} (${render.findings.length} findings).`
+          )
+        );
+      if (renderOptions.baseline?.legacy && !renderOptions.writeBaseline)
+        o.always(
+          c.dim(
+            "  The baseline is in the version 1 format of Protoyard 1.8–1.9.3 (read and converted): write it again with --write-baseline to keep it in Texuli's finding-key shape."
           )
         );
     },

@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/cli",
-  "version": "1.9.3",
+  "version": "1.9.4",
   "description": "The protoyard command line: discover, index, scaffold, run, validate, build, export and publish prototypes.",
   "license": "MIT",
   "repository": {
@@ -42,10 +42,10 @@
     "@protoyard/scenarios": "workspace:*",
     "@protoyard/templates": "workspace:*",
     "@protoyard/themes": "workspace:*",
-    "@texuli/catalog": "0.17.3",
-    "@texuli/spec": "0.17.3",
-    "@texuli/tokens": "0.17.3",
-    "@texuli/tools": "0.17.3",
+    "@texuli/catalog": "0.17.4",
+    "@texuli/spec": "0.17.4",
+    "@texuli/tokens": "0.17.4",
+    "@texuli/tools": "0.17.4",
     "commander": "^15.0.0",
     "fflate": "^0.8.3",
     "picocolors": "^1.1.1",

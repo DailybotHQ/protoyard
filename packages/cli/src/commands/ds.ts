@@ -8,7 +8,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { basename, dirname, join, sep } from 'node:path';
+import { basename, dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PrototypeManifestSchema, type Theme, ThemeSchema } from '@protoyard/core';
 import {
@@ -85,7 +85,7 @@ import {
 import { inspectSpec } from '../lib/inspect.ts';
 import { jsonErrorText } from '../lib/json-error.ts';
 import { CliError } from '../lib/output.ts';
-import { workspaceLayout } from '../lib/paths.ts';
+import { isInside, workspaceLayout } from '../lib/paths.ts';
 import { resolvePackageBin, run } from '../lib/process.ts';
 import { CLI_VERSION, resolveTarget } from '../lib/workspace.ts';
 import { workspaceFile } from '../lib/workspace-file.ts';
@@ -941,8 +941,58 @@ export interface AppliedDesignSystem extends ReturnType<typeof summary> {
   added?: { name: string; specifier: string };
   designSystem?: Binding;
   changes?: { changed: string[]; added: string[]; removed: string[] };
+  /** The document's self-hosted font files: wired as `fontFiles`, or missing from the folder. */
+  fonts?: { files: string[]; missing: string[] };
   spec: { refreshed: boolean; reason?: string };
   next: string[];
+}
+
+/** A font `src` the CLI wires: a relative path of plain segments to a font file. */
+const FONT_SRC = /^(?!\/)(?:[\w-][\w.-]*\/){0,8}[\w-][\w.-]*\.(?:woff2|woff|ttf|otf)$/;
+
+/**
+ * The self-hosted font files a design-system document names
+ * (`typography.families.<role>.files[].src`), resolved against the document's
+ * folder: each one that exists as a regular file inside it (never through a
+ * symlink, never `..`) becomes a `fontFiles` entry, so a Vite build emits it
+ * (`defineDesignSystemTheme(compiled, { fontFiles })`). Data URLs are inline
+ * and need no entry. Sorted and deduplicated, so the output is stable.
+ */
+export function designSystemFontFiles(
+  documentFile: string,
+  document: unknown,
+  moduleFile: string
+): { files: { src: string; url: string }[]; missing: string[] } {
+  const base = dirname(documentFile);
+  const families = ((document as { typography?: { families?: unknown } } | null)?.typography
+    ?.families ?? {}) as Record<string, { files?: unknown } | undefined>;
+  const srcs = new Set<string>();
+  for (const family of Object.values(families)) {
+    if (!family || !Array.isArray(family.files)) continue;
+    for (const file of family.files.slice(0, 64)) {
+      const src = (file as { src?: unknown } | null)?.src;
+      if (typeof src === 'string' && !src.startsWith('data:')) srcs.add(src);
+    }
+  }
+  const files: { src: string; url: string }[] = [];
+  const missing: string[] = [];
+  for (const src of [...srcs].sort()) {
+    const path = join(base, src);
+    const ok =
+      FONT_SRC.test(src) &&
+      !src.split('/').includes('..') &&
+      existsSync(path) &&
+      !lstatSync(path).isSymbolicLink() &&
+      lstatSync(path).isFile() &&
+      isInside(base, path);
+    if (!ok) {
+      missing.push(src);
+      continue;
+    }
+    const url = relative(dirname(moduleFile), path).split(sep).join('/');
+    files.push({ src, url: url.startsWith('.') ? url : `./${url}` });
+  }
+  return { files, missing };
 }
 
 /**
@@ -1039,6 +1089,21 @@ export async function applyDesignSystem(
       });
     }
   }
+  // The document's self-hosted fonts, named one by one so a Vite build emits them.
+  const fonts = designSystemFontFiles(
+    location.absolute,
+    readDocumentFile(location),
+    designSystemFile
+  );
+  const fontOptions =
+    fonts.files.length === 0
+      ? ''
+      : `, {\n  fontFiles: {\n${fonts.files
+          .map(
+            (f) =>
+              `    ${JSON.stringify(f.src)}: new URL(${JSON.stringify(f.url)}, import.meta.url),`
+          )
+          .join('\n')}\n  },\n}`;
   const source = `// Written by \`protoyard ds use\` from ${JSON.stringify(file)} (hash ${result.compiled.hash.slice(0, 12)}).
 // Re-run the command to update it; edit the design-system document, not this file.
 import { defineDesignSystemTheme, type ShippedDesignSystem } from '${dependency.from}';
@@ -1048,7 +1113,7 @@ import { defineDesignSystemTheme, type ShippedDesignSystem } from '${dependency.
 // (\`deckDesignSystems(compiled)\` in @protoyard/decks-ui).
 export const compiled: ShippedDesignSystem = ${JSON.stringify(result.shipped, null, 2)};
 
-export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
+export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled${fontOptions});
 `;
   const { dryRun } = input;
   const previous = existsSync(designSystemFile)
@@ -1100,6 +1165,9 @@ export const ${EXPORT_NAME} = defineDesignSystemTheme(compiled);
     ...(dependency.add ? { added: dependency.add } : {}),
     ...(binding ? { designSystem: binding } : {}),
     ...(changes ? { changes } : {}),
+    ...(fonts.files.length > 0 || fonts.missing.length > 0
+      ? { fonts: { files: fonts.files.map((f) => f.src), missing: fonts.missing } }
+      : {}),
     spec,
     next: [
       ...(dependency.add ? ['pnpm install'] : []),
@@ -1145,6 +1213,12 @@ export const dsUseCommand: Handler = async (ctx, args, options): Promise<Command
           }`
         );
       }
+      if (data.fonts?.files.length)
+        o.always(`  fonts: ${data.fonts.files.length} self-hosted file(s) wired as fontFiles`);
+      if (data.fonts?.missing.length)
+        o.always(
+          `  fonts not found in the design-system folder (they would 404): ${data.fonts.missing.join(', ')}`
+        );
       if (!data.dryRun) o.always(`Next: ${data.next.join(' && ')}`);
     },
   };

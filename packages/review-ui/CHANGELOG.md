@@ -1,5 +1,15 @@
 # @protoyard/review-ui
 
+## 1.9.4
+
+### Patch Changes
+
+- @protoyard/core@1.9.4
+  - @protoyard/review@1.9.4
+  - @protoyard/ui@1.9.4
+  - @protoyard/views@1.9.4
+  - @protoyard/views-ui@1.9.4
+
 ## 1.9.3
 
 ### Patch Changes

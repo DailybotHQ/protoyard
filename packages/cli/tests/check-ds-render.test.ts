@@ -5,6 +5,7 @@ import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { CATALOG_PART_PARENTS, partParentMap } from '@texuli/catalog/manifest';
 import {
+  compareDsReport,
   DS_LOCKED_RENDER_EXEMPT_IDS,
   DS_MAP_PART_PARENTS,
   type DsCheckPage,
@@ -12,6 +13,7 @@ import {
   type DsInspectResult,
   dsAllowAxisValues,
   dsCatalogPartParent,
+  dsReportFingerprint,
   mapDesignSystemTree,
   resolveAllowedComponentId,
   runLockedRenderChecks,
@@ -505,28 +507,87 @@ describe('findings', () => {
     }
   });
 
-  it('writes, reads and applies baselines (its own file or a saved --json output)', () => {
+  it("writes baselines in Texuli's finding-key shape and compares them with compareDsReport (0.17.4)", () => {
     const locked: LockedReportLike = {
       mapping: { errors: [{ code: 'unmapped', path: 'main>button', message: 'x' }] },
       runs: [cleanRun('dark')],
     };
     const findings = visitFindings('acme-app', visit, info(), locked);
     const doc = baselineDocument([...findings, ...findings]);
-    expect(doc.format).toBe('protoyard/ds-render-baseline');
-    expect(doc.findings).toHaveLength(1);
-    const fromFile = parseBaseline(JSON.parse(JSON.stringify(doc)));
-    const fromJson = parseBaseline({ ok: false, data: { render: { findings } } });
-    expect([...fromFile]).toEqual([...fromJson]);
-    expect(() => parseBaseline({ nothing: true })).toThrow(/no findings list/);
-    expect(() => parseBaseline({ findings: [{ code: 'x' }] })).toThrow(/fingerprint/);
+    expect(doc).toEqual({
+      findings: [
+        {
+          code: 'unmapped',
+          path: 'main>button',
+          route: '/settings',
+          viewport: '1280x800',
+          mode: 'dark',
+          scope: 'acme-app',
+          message: 'x',
+        },
+      ],
+    });
+    // The same file is a Texuli report: its fingerprint keys by scope too.
+    const other = { findings: [{ ...doc.findings[0], scope: 'beta-app' }] };
+    expect(dsReportFingerprint(doc)).not.toBe(dsReportFingerprint(other));
 
+    const fromFile = parseBaseline(JSON.parse(JSON.stringify(doc)));
+    expect(fromFile.legacy).toBe(false);
+    const fromJson = parseBaseline({ ok: false, data: { render: { findings } } });
+    expect(fromJson.findings).toEqual(fromFile.findings);
+    expect(() => parseBaseline({ nothing: true })).toThrow(/no findings list/);
+    expect(() => parseBaseline({ findings: [{ code: 'x' }] })).toThrow(/finding key/);
+
+    const gone = { ...fromFile.findings[0], code: 'render-axe' } as (typeof fromFile.findings)[0];
     const applied = applyBaseline(
       findings,
-      new Set([...fromFile, 'gone|/|desktop|light|unmapped||x'])
+      { findings: [...fromFile.findings, gone], legacy: false },
+      compareDsReport
     );
     expect(applied).toMatchObject({ fresh: 0, baselined: 1, fixed: 1 });
     expect(applied.findings[0]?.baselined).toBe(true);
-    expect(applyBaseline(findings, null)).toMatchObject({ fresh: 1, baselined: 0, fixed: 0 });
+    expect(applyBaseline(findings, null, compareDsReport)).toMatchObject({
+      fresh: 1,
+      baselined: 0,
+      fixed: 0,
+    });
+    // Another prototype's entry does not cover this one.
+    expect(
+      applyBaseline(findings, { findings: other.findings as never, legacy: false }, compareDsReport)
+    ).toMatchObject({ fresh: 1, baselined: 0, fixed: 1 });
+  });
+
+  it('reads a version 1 baseline of 1.8-1.9.3 once and converts its fingerprints', () => {
+    const locked: LockedReportLike = {
+      mapping: { errors: [{ code: 'unmapped', path: 'main>a[data-x|="y"]', message: 'x' }] },
+      runs: [cleanRun('dark')],
+    };
+    const findings = visitFindings('acme-app', visit, info(), locked);
+    const v1 = {
+      format: 'protoyard/ds-render-baseline',
+      version: 1,
+      findings: findings.map((f) => ({
+        fingerprint: f.fingerprint,
+        code: f.code,
+        slug: f.slug,
+        route: f.route,
+        message: f.message,
+      })),
+    };
+    const parsed = parseBaseline(v1);
+    expect(parsed.legacy).toBe(true);
+    // A selector with a `|` survives the conversion.
+    expect(parsed.findings[0]).toMatchObject({
+      code: 'unmapped',
+      path: 'main>a[data-x|="y"]',
+      scope: 'acme-app',
+      viewport: '1280x800',
+    });
+    expect(applyBaseline(findings, parsed, compareDsReport)).toMatchObject({
+      fresh: 0,
+      baselined: 1,
+      fixed: 0,
+    });
   });
 });
 
