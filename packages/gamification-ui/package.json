@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/gamification-ui",
-  "version": "1.9.3",
+  "version": "1.9.4",
   "description": "Svelte 5 gamification UI for Protoyard prototypes: level, points and streak chips, achievement badges with progress rings, mission cards and a privacy-aware leaderboard.",
   "license": "MIT",
   "type": "module",

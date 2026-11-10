@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/database",
-  "version": "1.9.3",
+  "version": "1.9.4",
   "description": "IndexedDB persistence for Protoyard prototypes (Dexie): namespaced databases, migrations, control store, snapshot I/O and storage diagnostics.",
   "license": "MIT",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/pages-ui",
-  "version": "1.9.3",
+  "version": "1.9.4",
   "description": "Svelte 5 page and doc hosts for Protoyard: PageApp, DocApp, form responses UI and print CSS, one lazy subpath per family.",
   "license": "MIT",
   "type": "module",

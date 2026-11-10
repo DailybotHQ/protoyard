@@ -1,5 +1,32 @@
 # @protoyard/cli
 
+## 1.9.4
+
+### Patch Changes
+
+- Texuli 0.17.4 (every Texuli dependency pinned exactly at `0.17.4`).
+  `check ds --render` baselines are Texuli's finding keys: `--write-baseline`
+  writes `{ findings: [{ code, path, route, viewport, mode, scope, component? }] }`
+  with the prototype slug as `scope`, and `--baseline` compares with Texuli's
+  `compareDsReport`. The `protoyard/ds-render-baseline` version 1 files of
+  1.8–1.9.3 are still read and converted; the run says to write them again.
+- `ds use` and `new --ds` write `fontFiles` into `src/design-system.ts` for
+  each self-hosted font file the design-system document names and the
+  design-system folder holds, so a Vite build emits it; missing files are
+  reported under `data.fonts.missing`.
+- @protoyard/blocks@1.9.4
+  - @protoyard/blueprint@1.9.4
+  - @protoyard/core@1.9.4
+  - @protoyard/crud@1.9.4
+  - @protoyard/decks@1.9.4
+  - @protoyard/offline@1.9.4
+  - @protoyard/player@1.9.4
+  - @protoyard/renderer-svelte@1.9.4
+  - @protoyard/review@1.9.4
+  - @protoyard/scenarios@1.9.4
+  - @protoyard/templates@1.9.4
+  - @protoyard/themes@1.9.4
+
 ## 1.9.3
 
 ### Patch Changes

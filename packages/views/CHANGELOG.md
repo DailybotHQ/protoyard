@@ -1,5 +1,12 @@
 # @protoyard/views
 
+## 1.9.4
+
+### Patch Changes
+
+- @protoyard/avatars@1.9.4
+  - @protoyard/core@1.9.4
+
 ## 1.9.3
 
 ### Patch Changes

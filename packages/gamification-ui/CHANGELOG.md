@@ -1,5 +1,12 @@
 # @protoyard/gamification-ui
 
+## 1.9.4
+
+### Patch Changes
+
+- @protoyard/gamification@1.9.4
+  - @protoyard/ui@1.9.4
+
 ## 1.9.3
 
 ### Patch Changes
