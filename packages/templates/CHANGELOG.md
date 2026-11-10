@@ -1,5 +1,20 @@
 # @protoyard/templates
 
+## 1.9.0
+
+### Patch Changes
+
+- Texuli 0.17.0 (every Texuli dependency pinned exactly at `0.17.0`).
+  `check ds --render` loads Texuli's prebuilt host script into its isolated
+  world instead of bundling one at run time, pins the attribute it reads to
+  `data-tx-component`, and keeps Protoyard's stricter nesting rule (a catalog
+  root inside an allowed root is not allowed by that alone). `ds diff` and the
+  kit use Texuli's `changesModel` and `kitApproval`. `ds import` leaves
+  duplicate library sources to Texuli. `ds new --brief` reads every clause with
+  a color itself, and the brand seed survives a generator repair.
+  `@protoyard/ui`'s `VirtualListView` takes `bind:ref` and rest attributes, and
+  social-feed names each feed article by its author and runs edge to edge.
+
 ## 1.8.1
 
 No changes in this release.

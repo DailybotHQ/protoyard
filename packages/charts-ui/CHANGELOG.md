@@ -1,5 +1,11 @@
 # @protoyard/charts-ui
 
+## 1.9.0
+
+### Patch Changes
+
+- @protoyard/charts@1.9.0
+
 ## 1.8.1
 
 ### Patch Changes
