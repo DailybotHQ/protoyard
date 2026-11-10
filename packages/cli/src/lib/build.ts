@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { resolveReviewBuild } from '@protoyard/core/manifest';
+import { buildInputsHash } from './build-inputs.ts';
 import { analyzeBundle, type BundleReport } from './bundle-analysis.ts';
 import { digestDirectory, type FileDigest, listFiles } from './checksum.ts';
 import { findEscapingSymlinks } from './links.ts';
@@ -47,6 +48,12 @@ export interface BuildManifest {
   offline: OfflineRecord;
   /** Keeps an explicit shell frame when embedded (ADR-026); absent in older manifests. */
   frameWhenEmbedded?: boolean;
+  /**
+   * sha256 of what the build read from the workspace (`buildInputsHash`: the
+   * prototype, design-systems/ and the root lockfile); `check ds --render`
+   * reuses a build only while it matches. Absent in older manifests.
+   */
+  inputsHash?: string;
   /** The build target when it had its own output shape (`artifact`); absent for a plain build. */
   target?: 'artifact';
   /** Review activation and adapter kind only; never store endpoint credentials here. */
@@ -241,6 +248,8 @@ export async function buildPrototype(
     });
   }
 
+  // Hashed after the build, so a file the build itself writes is counted.
+  const inputsHash = buildInputsHash(ctx.root, dir);
   // Reads and then deletes dist/.vite/manifest.json, before anything is digested.
   const bundle = await analyzeBundle(outDir);
   const files = await digestDirectory(outDir);
@@ -270,6 +279,7 @@ export async function buildPrototype(
     node: process.versions.node,
     offline: await readOfflineRecord(ctx.root, outDir),
     frameWhenEmbedded,
+    ...(inputsHash ? { inputsHash } : {}),
     ...(options.target ? { target: options.target } : {}),
     review: { enabled: reviewEnabled, adapter: options.review?.adapter ?? reviewConfig.adapter },
     ...(bundle ? { bundle } : {}),
