@@ -1,6 +1,15 @@
 // @vitest-environment node
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { designSystemContentHash } from '@texuli/spec/design-system';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -434,5 +443,72 @@ describe('F12: kit README and story props', () => {
     let deep: Record<string, unknown> = { value: 'ok' };
     for (let i = 0; i < 12; i += 1) deep = { deep };
     expect(story(deep)).toBe(false);
+  });
+});
+
+describe('ds approve --release: the release is made before the document changes', () => {
+  const status = (ws: TempWorkspace) =>
+    (
+      JSON.parse(readFileSync(join(ws.root, 'design-systems/harbor/document.json'), 'utf8')) as {
+        approval?: { status?: string };
+      }
+    ).approval?.status;
+
+  it('leaves the document unapproved when the release cannot be built or written', async () => {
+    const ws = workspace();
+    expect((await run(ws, 'ds', 'new', 'harbor', '--brand', '#0f766e')).code).toBe(0);
+    expect(status(ws)).toBe('draft');
+
+    // The record cannot be built: components.json fails its schema.
+    const components = join(ws.root, 'design-systems/harbor/components.json');
+    const good = readFileSync(components, 'utf8');
+    writeFileSync(components, JSON.stringify({ format: 'not-components' }));
+    const unbuilt = await run(
+      ws,
+      'ds',
+      'approve',
+      'harbor',
+      '--by',
+      'Ada Example',
+      '--release',
+      '1.0.0'
+    );
+    expect(unbuilt.code).not.toBe(0);
+    expect(status(ws)).toBe('draft');
+    writeFileSync(components, good);
+
+    // The record cannot be written: releases/ is a symlink.
+    const outside = mkdtempSync(join(tmpdir(), 'protoyard-releases-'));
+    try {
+      symlinkSync(outside, join(ws.root, 'design-systems/harbor/releases'), 'dir');
+      const unwritten = await run(
+        ws,
+        'ds',
+        'approve',
+        'harbor',
+        '--by',
+        'Ada Example',
+        '--release',
+        '1.0.0'
+      );
+      expect(unwritten.json<Envelope>().error?.code).toBe('unsafe_path');
+      expect(status(ws)).toBe('draft');
+      expect(readdirSync(outside)).toEqual([]);
+    } finally {
+      rmSync(join(ws.root, 'design-systems/harbor/releases'), { force: true });
+      rmSync(outside, { recursive: true, force: true });
+    }
+    const approved = await run(
+      ws,
+      'ds',
+      'approve',
+      'harbor',
+      '--by',
+      'Ada Example',
+      '--release',
+      '1.0.0'
+    );
+    expect(approved.code, approved.stdout).toBe(0);
+    expect(status(ws)).toBe('approved');
   });
 });

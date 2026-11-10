@@ -299,13 +299,24 @@ export async function buildRelease(
 }
 
 /** Writes a new release file; refuses to replace one (`wx`), never follows a symlink. */
+/**
+ * Every refusal `writeRelease` would make, without writing: run it before
+ * anything else changes (`ds approve --release` checks it before it writes
+ * the approved document).
+ */
+export function assertReleaseWritable(location: DesignSystemLocation, version: string): void {
+  const dir = join(folderOf(location), RELEASES_DIR);
+  if (existsSync(dir) && lstatSync(dir).isSymbolicLink()) {
+    const label = releaseLabel(location.id as string, version);
+    throw new CliError('unsafe_path', `Refusing to write ${label} through a symlink.`);
+  }
+  assertNoRelease(location, version);
+}
+
 export function writeRelease(location: DesignSystemLocation, record: ReleaseRecord): string {
   const dir = join(folderOf(location), RELEASES_DIR);
   const label = releaseLabel(location.id as string, record.release);
-  if (existsSync(dir) && lstatSync(dir).isSymbolicLink()) {
-    throw new CliError('unsafe_path', `Refusing to write ${label} through a symlink.`);
-  }
-  assertNoRelease(location, record.release);
+  assertReleaseWritable(location, record.release);
   mkdirSync(dir, { recursive: true });
   try {
     writeFileSync(join(dir, `${record.release}.json`), biomeJson(record), {
