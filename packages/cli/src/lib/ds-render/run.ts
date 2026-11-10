@@ -27,6 +27,7 @@ import {
   type DsRenderMode,
   type DsRenderViewport,
   fingerprintOf,
+  type ParsedBaseline,
   type PlannedRoute,
   pageErrorFinding,
   planRoutes,
@@ -70,7 +71,7 @@ export interface DsRenderDeps {
 export interface DsRenderOptions {
   /** Check only these routes (`--route`); no link discovery. */
   routes?: readonly PlannedRoute[];
-  baseline?: ReadonlySet<string> | null;
+  baseline?: ParsedBaseline | null;
   modes?: readonly DsRenderMode[];
   viewports?: readonly DsRenderViewport[];
   /** Called before each prototype (progress lines). */
@@ -231,7 +232,10 @@ export async function renderPrototypes(
   } finally {
     await launch.driver.close();
   }
-  const applied = applyBaseline(all, options.baseline ?? null);
+  const compare = options.baseline
+    ? (await import('@texuli/tools/ds-check')).compareDsReport
+    : undefined;
+  const applied = applyBaseline(all, options.baseline ?? null, compare);
   for (const p of prototypes)
     p.fresh = applied.findings.filter((f) => f.slug === p.slug && !f.baselined).length;
   const byCode: Record<string, number> = {};
