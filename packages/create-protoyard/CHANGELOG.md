@@ -1,5 +1,11 @@
 # create-protoyard
 
+## 1.8.1
+
+### Patch Changes
+
+- protoyard@1.8.1
+
 ## 1.8.0
 
 ### Patch Changes

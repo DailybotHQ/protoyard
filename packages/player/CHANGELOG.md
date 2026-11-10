@@ -1,5 +1,27 @@
 # @protoyard/player
 
+## 1.8.1
+
+### Patch Changes
+
+- @protoyard/ai@1.8.1
+  - @protoyard/ai-ui@1.8.1
+  - @protoyard/analytics@1.8.1
+  - @protoyard/analytics-ui@1.8.1
+  - @protoyard/blocks-ui@1.8.1
+  - @protoyard/blueprint@1.8.1
+  - @protoyard/charts-ui@1.8.1
+  - @protoyard/core@1.8.1
+  - @protoyard/crud@1.8.1
+  - @protoyard/decks-ui@1.8.1
+  - @protoyard/pages-ui@1.8.1
+  - @protoyard/renderer-svelte@1.8.1
+  - @protoyard/saas@1.8.1
+  - @protoyard/saas-ui@1.8.1
+  - @protoyard/themes@1.8.1
+  - @protoyard/ui@1.8.1
+  - @protoyard/views-ui@1.8.1
+
 ## 1.8.0
 
 ### Patch Changes

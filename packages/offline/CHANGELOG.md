@@ -1,5 +1,11 @@
 # @protoyard/offline
 
+## 1.8.1
+
+### Patch Changes
+
+- @protoyard/core@1.8.1
+
 ## 1.8.0
 
 ### Patch Changes

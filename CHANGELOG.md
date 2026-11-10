@@ -6,6 +6,45 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-11-10
+
+Security review fixes for PLAN_013's design-system commands
+([SECURITY](docs/SECURITY.md)). No critical or high findings; these close the
+four medium and the low ones.
+
+### Fixed
+
+- **Bundle code is code.** `ds import` executes nothing, but the component
+  sources it writes run when a prototype or the kit builds. It now lists each
+  `components/*.svelte` with its size under a "review this code before
+  `ds kit`, `dev` or `build`" note (`data.components`), checks every
+  `releases/*.json` against its document and the bundle's Texuli history, and
+  refuses a library source referenced twice and an oversized total inside its
+  loop.
+- **Guarded outputs.** `ds new --out` (and MCP `ds_create.out`),
+  `ds export --bundle --out`, `check ds --write-baseline` and
+  `ds extensions --out` write `.json` files only in `design-systems/`,
+  `artifacts/` or `tmp/`, never protected names (`package.json`,
+  `protoyard.json`, `tsconfig*`, `.git/`, `.github/`, `node_modules/`), and
+  `--force` replaces only a file of the same kind.
+- **`ds kit`** refuses a symlinked kit folder or any symlinked folder on the
+  way to a file it writes.
+- **Render check.** `check ds --render` runs Texuli's host and checks in a
+  Chromium isolated world the prototype's code cannot patch (axe still runs in
+  the page), blocks WebSockets and service workers to other origins, and
+  reuses a build only when its recorded inputs hash still matches and its
+  `builtAt` is not in the future.
+- JSON parse errors on workspace files report a position only, never file
+  content; hidden files (`.env`) are refused as generator inputs.
+- The kit README escapes the design-system name; kit stories refuse script
+  and data URLs in props.
+
+### Changed
+
+- `docs/SECURITY.md` lists `check ds --render`, `ds kit`, `ds use` and
+  `ds new --from-theme-file` among the commands that run prototype code, and
+  `DESIGN_SYSTEMS.md` recommends CODEOWNERS on `prototypes/*/protoyard.json`.
+
 ## [1.8.0] - 2026-11-10
 
 The design-system lifecycle on Texuli 0.16.1. Every Texuli dependency is

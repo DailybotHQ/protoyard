@@ -1,5 +1,15 @@
 # @protoyard/gallery
 
+## 1.8.1
+
+### Patch Changes
+
+- @protoyard/blueprint@1.8.1
+  - @protoyard/core@1.8.1
+  - @protoyard/player@1.8.1
+  - @protoyard/themes@1.8.1
+  - @protoyard/ui@1.8.1
+
 ## 1.8.0
 
 ### Patch Changes
