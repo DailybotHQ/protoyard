@@ -281,7 +281,7 @@ function staticFiles(id: string, name: string, slug: string): Record<string, str
   </body>
 </html>
 `,
-    'README.md': `# ${name} kit
+    'README.md': `# ${escapeMarkdown(name)} kit
 
 The UI kit of the design system \`${id}\`: the whole design system on one page,
 rendered by Texuli's \`DesignSystemKit\` (\`texuli/ds-kit\`) from data. It shows
@@ -542,6 +542,21 @@ describe('design-system kit', () => {
 });
 `,
   };
+}
+
+/**
+ * A design-system name as plain Markdown text: control characters dropped and
+ * every character Markdown or HTML reads as syntax escaped, so a name from an
+ * untrusted document cannot add headings, links, images or HTML to the
+ * README agents read.
+ */
+export function escapeMarkdown(value: string): string {
+  return (
+    value
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: dropping them is the point.
+      .replace(/[\u0000-\u001f\u007f\u2028\u2029]/g, ' ')
+      .replace(/[\\`*_{}[\]()#+!|<>~]/g, (c) => `\\${c}`)
+  );
 }
 
 function escapeHtml(value: string): string {

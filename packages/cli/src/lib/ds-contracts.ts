@@ -94,6 +94,46 @@ export const ComponentRequestSchema = z
   .strict();
 export type ComponentRequest = z.infer<typeof ComponentRequestSchema>;
 
+/** Schemes a story prop never carries: they run script or read local data in the kit page. */
+const UNSAFE_SCHEME = /^(?:javascript|vbscript|data|file|blob):/i;
+
+/**
+ * The path of the first string in a story's props that is a script-capable
+ * URL (checked as browsers read it: control characters and whitespace
+ * removed), or null. Bounded: deeper than 8 levels or over 2,000 values is
+ * refused too.
+ */
+export function unsafeStoryValue(props: unknown): (string | number)[] | null {
+  let budget = 2000;
+  const walk = (
+    value: unknown,
+    path: (string | number)[],
+    depth: number
+  ): (string | number)[] | null => {
+    // Fails closed: what is too deep or too large to check is refused.
+    if (--budget < 0 || depth > 8) return path;
+    if (typeof value === 'string') {
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point.
+      return UNSAFE_SCHEME.test(value.replace(/[\u0000-\u0020\u007f-\u009f]/g, '')) ? path : null;
+    }
+    if (Array.isArray(value)) {
+      for (const [index, item] of value.entries()) {
+        const found = walk(item, [...path, index], depth + 1);
+        if (found) return found;
+      }
+      return null;
+    }
+    if (value && typeof value === 'object') {
+      for (const [key, item] of Object.entries(value)) {
+        const found = walk(item, [...path, key], depth + 1);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  return walk(props, [], 0);
+}
+
 /** `design-systems/<id>/stories/<Name>.json`: the kit's story for one component. */
 export const ComponentStorySchema = z
   .object({
@@ -105,7 +145,17 @@ export const ComponentStorySchema = z
         z
           .object({
             name: z.string().min(1).max(80),
-            props: z.record(z.string(), z.unknown()),
+            props: z.record(z.string(), z.unknown()).superRefine((props, ctx) => {
+              const unsafe = unsafeStoryValue(props);
+              if (unsafe !== null) {
+                ctx.addIssue({
+                  code: 'custom',
+                  path: unsafe,
+                  message:
+                    'A story prop may not hold a javascript:, vbscript:, data:, file: or blob: URL, nor nest deeper than 8 levels.',
+                });
+              }
+            }),
           })
           .strict()
       )

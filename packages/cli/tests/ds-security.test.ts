@@ -4,6 +4,8 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { designSystemContentHash } from '@texuli/spec/design-system';
 import { afterEach, describe, expect, it } from 'vitest';
+import { ComponentStorySchema } from '../src/lib/ds-contracts.ts';
+import { escapeMarkdown } from '../src/lib/ds-kit.ts';
 import { jsonErrorText } from '../src/lib/json-error.ts';
 import { createMcpToolHandler, runCliEnvelope } from '../src/mcp/tools.ts';
 import { cli, createWorkspace, type TempWorkspace } from './helpers.ts';
@@ -19,7 +21,9 @@ import { cli, createWorkspace, type TempWorkspace } from './helpers.ts';
  *   generator inputs;
  * - F1, F5, F11: `ds import` lists the component code to review, checks every
  *   release record against its document and the bundle history, and refuses
- *   a library source referenced twice.
+ *   a library source referenced twice;
+ * - F12: the kit README escapes the design-system name, and a story prop
+ *   never carries a script-capable URL.
  */
 
 type Envelope<T = Record<string, unknown>> = {
@@ -403,5 +407,32 @@ describe('ds import: component code, release records and repeated sources', {
     expect(result.code).not.toBe(0);
     const codes = result.json<Envelope<Issues>>().data.errors.map((e) => e.code);
     expect(codes).toContain('duplicate-reference');
+  });
+});
+
+describe('F12: kit README and story props', () => {
+  it('escapes the design-system name as Markdown text', () => {
+    expect(escapeMarkdown('Harbor Labs')).toBe('Harbor Labs');
+    const hostile = escapeMarkdown('Acme](https://example.com) <img src=x>\n# Owned');
+    expect(hostile).not.toContain('\n');
+    expect(hostile).toBe('Acme\\]\\(https://example.com\\) \\<img src=x\\> \\# Owned');
+  });
+
+  it('refuses javascript:-style URLs anywhere in story props', () => {
+    const story = (props: Record<string, unknown>) =>
+      ComponentStorySchema.safeParse({
+        format: 'protoyard/ds-story',
+        version: 1,
+        component: 'StatusPill',
+        variants: [{ name: 'Default', props }],
+      }).success;
+    expect(story({ label: 'Open', href: 'https://example.com/help', note: 'Ratio: 2' })).toBe(true);
+    expect(story({ href: 'javascript:alert(1)' })).toBe(false);
+    expect(story({ href: ' Java\tScript:alert(1)' })).toBe(false);
+    expect(story({ links: [{ href: 'vbscript:x' }] })).toBe(false);
+    expect(story({ image: { src: 'data:text/html,<b>x</b>' } })).toBe(false);
+    let deep: Record<string, unknown> = { value: 'ok' };
+    for (let i = 0; i < 12; i += 1) deep = { deep };
+    expect(story(deep)).toBe(false);
   });
 });
