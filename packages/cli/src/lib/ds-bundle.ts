@@ -768,12 +768,13 @@ export function draftApproval(version: string): Record<string, unknown> {
  * folder takes its place, and the old one is removed; on failure the old one
  * is moved back. Refuses a symlinked `design-systems/` or target.
  */
-export function writeImport(
-  root: string,
-  id: string,
-  files: readonly { path: string; bytes: Buffer }[],
-  replace: boolean
-): string {
+/**
+ * Every refusal `writeImport` makes before it writes, without writing: a
+ * symlinked `design-systems/` or target, a flat `<id>.json` of the same id,
+ * and an existing folder without `replace`. `ds import --dry-run` runs it
+ * too, so a dry run fails exactly where the real run would.
+ */
+export function preflightImport(root: string, id: string, replace: boolean): void {
   const parent = join(root, DESIGN_SYSTEMS_DIR);
   if (existsSync(parent) && lstatSync(parent).isSymbolicLink()) {
     throw new CliError(
@@ -781,16 +782,14 @@ export function writeImport(
       `Refusing to write through the symlink ${DESIGN_SYSTEMS_DIR}/.`
     );
   }
-  mkdirSync(parent, { recursive: true });
   const target = join(parent, id);
-  const flat = join(parent, `${id}.json`);
   if (existsSync(target) && lstatSync(target).isSymbolicLink()) {
     throw new CliError(
       'unsafe_path',
       `Refusing to replace the symlink ${DESIGN_SYSTEMS_DIR}/${id}.`
     );
   }
-  if (existsSync(flat)) {
+  if (existsSync(join(parent, `${id}.json`))) {
     throw new CliError(
       'conflict',
       `${DESIGN_SYSTEMS_DIR}/${id}.json already exists (a flat design system).`,
@@ -804,6 +803,18 @@ export function writeImport(
       hint: 'Pass --force to replace it, or --id <id> to import it under another id.',
     });
   }
+}
+
+export function writeImport(
+  root: string,
+  id: string,
+  files: readonly { path: string; bytes: Buffer }[],
+  replace: boolean
+): string {
+  preflightImport(root, id, replace);
+  const parent = join(root, DESIGN_SYSTEMS_DIR);
+  mkdirSync(parent, { recursive: true });
+  const target = join(parent, id);
   const suffix = randomBytes(6).toString('hex');
   const staging = join(parent, `.${id}.import-${suffix}`);
   mkdirSync(staging);

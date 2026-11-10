@@ -12,6 +12,7 @@ import {
   documentText,
   draftApproval,
   exportBundle,
+  preflightImport,
   readBundleFile,
   writeImport,
 } from '../lib/ds-bundle.ts';
@@ -159,11 +160,8 @@ export const dsImportCommand: Handler = async (ctx, args, options): Promise<Comm
   }
   const full = await validateFull(plan.document, `design-systems/${id}/${DOCUMENT_FILE}`);
   const exists = existsSync(resolve(ctx.root, 'design-systems', id));
-  if (exists && !force) {
-    throw new CliError('conflict', `Design system "${id}" already exists.`, {
-      hint: 'Pass --force to replace it, or --id <id> to import it under another id.',
-    });
-  }
+  // The same refusals with and without --dry-run (flat <id>.json, symlinks, an existing folder).
+  preflightImport(ctx.root, id, force);
   const written = dryRun ? null : writeImport(ctx.root, id, plan.files, force);
   const approval = readDocumentApproval(plan.document);
   const componentFiles = plan.files

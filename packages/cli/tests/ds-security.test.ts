@@ -405,6 +405,37 @@ describe('ds import: component code, release records and repeated sources', {
     expect(unlistedErrors.map((e) => e.code)).toEqual(['release-not-in-history']);
   });
 
+  it('--dry-run makes the refusals of the real run: a flat <id>.json, a symlinked design-systems/', async () => {
+    const { ws } = await exported();
+    const bundle = join(ws.root, 'tmp/h.json');
+    const flat = workspace();
+    const made = await run(
+      flat,
+      'ds',
+      'new',
+      'harbor',
+      '--brand',
+      '#123456',
+      '--out',
+      'design-systems/harbor.json'
+    );
+    expect(made.code, made.stdout).toBe(0);
+    const real = await run(flat, 'ds', 'import', bundle);
+    const dry = await run(flat, 'ds', 'import', bundle, '--dry-run');
+    expect(real.json<Envelope>().error?.code).toBe('conflict');
+    expect(dry.json<Envelope>().error).toEqual(real.json<Envelope>().error);
+
+    const linked = workspace();
+    const outside = mkdtempSync(join(tmpdir(), 'protoyard-ds-linked-'));
+    try {
+      symlinkSync(outside, join(linked.root, 'design-systems'), 'dir');
+      const linkedDry = await run(linked, 'ds', 'import', bundle, '--dry-run');
+      expect(linkedDry.json<Envelope>().error?.code).toBe('unsafe_path');
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
   it('refuses a library source referenced twice before building its copies (F11)', async () => {
     const { ws, bundle, save } = await exported();
     const component = bundle.files.find((f) => f.from?.startsWith('library:')) as BundleFile;
