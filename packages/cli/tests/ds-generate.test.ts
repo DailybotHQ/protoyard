@@ -87,7 +87,7 @@ const read = (path: string) => readFileSync(join(root(), path), 'utf8');
 
 function setup() {
   ws = createWorkspace();
-  ws.write('brand/tokens.json', TOKENS);
+  ws.write('brand/tokens.example.json', TOKENS);
   ws.write('brand/site.css', CSS);
   ws.write('brand/logo.svg', LOGO);
   ws.write('brand/brief.md', `${BRIEF}\n`);
@@ -105,12 +105,12 @@ function expectReports(data: Generated) {
 describe('protoyard ds new from Texuli generator sources (PLAN_013 T-generator)', () => {
   it('generates a draft from a DTCG tokens file, with the loss and AA repair reports', async () => {
     setup();
-    const result = await ds('new', 'tokens-ds', '--from-tokens', 'brand/tokens.json');
+    const result = await ds('new', 'tokens-ds', '--from-tokens', 'brand/tokens.example.json');
     expect(result.code, result.stdout).toBe(0);
     const data = result.json<Envelope<Generated>>().data;
     expectReports(data);
     expect(data.source).toBe('tokens');
-    expect(data.generation.file).toBe('brand/tokens.json');
+    expect(data.generation.file).toBe('brand/tokens.example.json');
     expect(data.name).toBe('Tokens Ds');
     expect(data.document.color?.brand?.seed).toBe('#7c3aed');
     expect(data.document.typography?.families?.sans?.stack).toEqual(['Inter', 'sans-serif']);
@@ -224,7 +224,7 @@ describe('protoyard ds new from Texuli generator sources (PLAN_013 T-generator)'
   it('is deterministic: the same input writes the same bytes', async () => {
     setup();
     const sources: [string, string][] = [
-      ['--from-tokens', 'brand/tokens.json'],
+      ['--from-tokens', 'brand/tokens.example.json'],
       ['--from-css', 'brand/site.css'],
       ['--from-logo', 'brand/logo.svg'],
       ['--brief', BRIEF],
@@ -299,7 +299,7 @@ describe('protoyard ds new from Texuli generator sources (PLAN_013 T-generator)'
       'new',
       'x-ds',
       '--from-tokens',
-      'brand/tokens.json',
+      'brand/tokens.example.json',
       '--from-css',
       'brand/site.css'
     );
@@ -326,7 +326,7 @@ describe('protoyard ds new from Texuli generator sources (PLAN_013 T-generator)'
   it('--dry-run writes nothing', async () => {
     setup();
     for (const [flag, value] of [
-      ['--from-tokens', 'brand/tokens.json'],
+      ['--from-tokens', 'brand/tokens.example.json'],
       ['--from-css', 'brand/site.css'],
       ['--from-logo', 'brand/logo.svg'],
       ['--brief', 'brand/brief.md'],
@@ -340,7 +340,7 @@ describe('protoyard ds new from Texuli generator sources (PLAN_013 T-generator)'
       'brief.md',
       'logo.svg',
       'site.css',
-      'tokens.json',
+      'tokens.example.json',
     ]);
   });
 
@@ -472,7 +472,7 @@ describe('ds_create over MCP with generator sources', () => {
       await handler('ds_create', {
         id: 'x',
         fromCss: 'brand/site.css',
-        fromTokens: 'brand/tokens.json',
+        fromTokens: 'brand/tokens.example.json',
       })
     ).toMatchObject({ ok: false, error: { code: 'validation' } });
   });
