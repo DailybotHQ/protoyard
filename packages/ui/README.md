@@ -79,7 +79,7 @@ standalone Svelte 5 component library, consumed from its published npm packages
   `getAppShellContext`) from `texuli/layouts/shells`, `FormField` (Texuli's
   `Field`, `texuli/field`), `toast` (`texuli/toast`),
   `ChatThread`, `MessageList`, `TypingIndicator` and `groupMessages`
-  (`@texuli/chat`), and `resolveTrend`, `trendWord` and `formatDelta`
+  (`@texuli/chat`), `VirtualListView` (`@texuli/data/virtual-list`), and `resolveTrend`, `trendWord` and `formatDelta`
   (`texuli/stat`).
 - **Thin adapters over Texuli's styled components:** `Select`, `Combobox`,
   `DropdownMenu`, `Popover`, `Tabs`, `Sidebar`, `Pagination`, `Notice`
@@ -148,7 +148,7 @@ standalone Svelte 5 component library, consumed from its published npm packages
 | Feedback | `Toaster` + `toast`, `UndoToaster` + `undoToast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState`, `Notice`, `SimulatedTag`, `ProposalTag`, `StatusChip` |
 | Demo | `ScenarioSwitcher` (in-app scenario load + view-as persona; labelled Simulated) |
 | Display | `Badge` (+ `badgeVariants`), `Avatar`, `ActorRow`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
-| Data | `DataTable`, `FilterBar` (+ `applyFilters`), `Pagination`, `Kanban` |
+| Data | `DataTable`, `FilterBar` (+ `applyFilters`), `Pagination`, `Kanban`, `VirtualListView` |
 | Layout | `LayoutHost`, `AppShell`, `Sidebar`, `Header`, `Breadcrumb`, `CardGrid`, `SplitView` |
 | Shells | `WindowChrome` |
 | Collaboration | `ChatThread`, `MessageList`, `Composer`, `TypingIndicator` |
@@ -220,6 +220,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Breadcrumb` | `items: { label, href? }[]` |
 | `CardGrid` | `minItemWidth`, `maxColumns`, `gap`, `as` |
 | `ChatThread` | `messages`, `currentUserId`, `typing: string[]`, `bind:draft`, `onSend`, `sending` |
+| `VirtualListView` | Texuli's windowed list: `items`, `label`, `getKey`, `row` snippet (`{ item, index, active, selected }`), `estimateSize`, `overscan`, `size` (`sm`/`md`/`lg`/`fill`), `mode` (`listbox`, or `feed` for rows with their own buttons and inputs: `role="feed"`, one `<article>` per row, Page Up / Page Down), `selectable`, `bind:selected`, `onSelect`, `onRangeChange`; method `scrollToIndex(i)`. No `bind:ref` or rest attributes yet (Texuli 0.16.1) |
 | `MessageList` / `groupMessages` | messages `{ id, author: { id, name }, body, at, status? }`, `role="log"`, auto-scroll |
 | `Composer` | `bind:value`, `onSubmit` (return `false`/reject to keep the draft), Enter sends, Shift+Enter newline |
 | `TypingIndicator` | `names: string[]`, `showLabel` (sr-only text otherwise; reduced-motion safe) |

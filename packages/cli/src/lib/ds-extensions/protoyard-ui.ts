@@ -568,6 +568,7 @@ const REEXPORTS: readonly (readonly [string, string, string?])[] = [
   ['Textarea', 'texuli/input'],
   ['Tooltip', 'texuli/tooltip'],
   ['TypingIndicator', '@texuli/chat'],
+  ['VirtualListView', '@texuli/data/virtual-list'],
   ['Wizard', 'texuli/stepper'],
 ];
 
