@@ -2,6 +2,7 @@
 // host IIFE and Protoyard's page reader, evaluated in happy-dom the way
 // `browser.ts` evaluates them in the isolated world.
 import { readFileSync } from 'node:fs';
+import { type DsCheckPage, mapLockedRenderPage } from '@texuli/tools/ds-check';
 import { afterEach, describe, expect, it } from 'vitest';
 import { dsCatalog } from '../src/lib/ds-catalog.ts';
 import {
@@ -12,7 +13,6 @@ import {
   dsRenderHostPath,
   dsRenderHostScript,
   INSTALL_HOST,
-  MAP_PAGE,
 } from '../src/lib/ds-render/host-script.ts';
 import { type DsRenderPageInfo, renderAllowManifest } from '../src/lib/ds-render/index.ts';
 
@@ -123,21 +123,32 @@ describe("Texuli's prebuilt ds-check host", () => {
     expect(info).toMatchObject({ scope: 'body', roots: 0, links: [], axes: [] });
   });
 
-  /** Installs the real host on `#app` and maps it the way `browser.ts` does. */
-  function mapPage(html: string, manifest: unknown): [string, string | null][] {
+  /** A `DsCheckPage` that evaluates in this document (the isolated world's stand-in). */
+  const inPage = {
+    evaluate: async (fn: (arg: unknown) => unknown, arg: unknown) => fn(arg),
+    waitForFunction: async (fn: (arg: unknown) => unknown, arg: unknown) => fn(arg),
+  } as unknown as DsCheckPage;
+
+  /**
+   * Installs the real host on `#app` and maps it the way `browser.ts` does:
+   * Texuli's `mapLockedRenderPage`, which calls the host's `map`.
+   */
+  async function mapPage(
+    html: string,
+    manifest: { allow?: Record<string, true>; composed?: Record<string, string> }
+  ): Promise<[string, string | null][]> {
     document.body.innerHTML = `<div id="app">${html}</div>`;
     evaluate(dsRenderHostScript());
     (evaluate(`(${INSTALL_HOST})`) as (arg: unknown) => DsRenderPageInfo)(['#app', 48]);
-    const map = evaluate(`(${MAP_PAGE})`) as (arg: unknown) => {
-      errors: { code: string; source?: string }[];
-    };
-    return map([DS_RENDER_CHECK_GLOBAL, manifest]).errors.map((e) => [e.code, e.source ?? null]);
+    expect(DS_RENDER_CHECK_GLOBAL in globalThis).toBe(true);
+    const report = await mapLockedRenderPage(inPage, manifest);
+    return report.errors.map((e) => [e.code, e.source ?? null]);
   }
 
-  it('refuses a data-grid nested in an allowed card (regression guard on Texuli 0.17.1)', () => {
+  it('refuses a data-grid nested in an allowed card (regression guard on Texuli 0.17.1)', async () => {
     const manifest = renderAllowManifest(dsCatalog(), { card: {}, button: {} } as never);
     expect(
-      mapPage(
+      await mapPage(
         `<div data-tx-component="card"><button data-tx-component="button" type="button">Edit</button>
           <div data-tx-component="data-grid"><button type="button">Sort</button></div></div>`,
         manifest
@@ -145,7 +156,7 @@ describe("Texuli's prebuilt ds-check host", () => {
     ).toEqual([['not-allowed', 'data-grid']]);
   });
 
-  it('allows the six part relations inside and outside their allowed parent', () => {
+  it('allows the six part relations inside and outside their allowed parent', async () => {
     const pairs: [string, string][] = [
       ['list-item', 'list'],
       ['field-error', 'field'],
@@ -162,17 +173,49 @@ describe("Texuli's prebuilt ds-check host", () => {
           `<div data-tx-component="${parent}"><span data-tx-component="${part}"></span></div><span data-tx-component="${part}"></span>`
       )
       .join('');
-    expect(mapPage(html, manifest)).toEqual([]);
+    expect(await mapPage(html, manifest)).toEqual([]);
     // Without the parents (allow: card only) every part is refused, in both places.
-    const refused = mapPage(html, renderAllowManifest(dsCatalog(), { card: {} } as never));
+    const refused = await mapPage(html, renderAllowManifest(dsCatalog(), { card: {} } as never));
     for (const [part] of pairs)
       expect(refused.filter(([code, id]) => code === 'not-allowed' && id === part)).toHaveLength(2);
   });
 
-  it("passes the composed map to the host's map (Texuli's mapLockedRenderPage drops it)", () => {
+  it('refuses an id that only shares a prefix with an allowed one (Texuli 0.17.2)', async () => {
+    const pairs: [string, string][] = [
+      ['alert-dialog', 'alert'],
+      ['icon-button', 'icon'],
+      ['form-field', 'form'],
+      ['form-submit', 'form'],
+      ['code-field', 'code'],
+      ['text-counter', 'text'],
+    ];
+    const ids = new Set(dsCatalog().components.map((component) => component.id));
+    const known = pairs.filter(([id, prefix]) => ids.has(id) && ids.has(prefix));
+    // At least the three named in the 0.17.2 notes are catalog ids here.
+    expect(known.map(([id]) => id)).toEqual(
+      expect.arrayContaining(['alert-dialog', 'icon-button', 'form-field'])
+    );
+    const allow = Object.fromEntries(known.map(([, prefix]) => [prefix, {}]));
+    const manifest = renderAllowManifest(dsCatalog(), allow as never);
+    for (const [id] of known) expect(manifest.composed[id], id).toBeUndefined();
+    const html = known
+      .map(
+        ([id, prefix]) =>
+          `<div data-tx-component="${prefix}"><span data-tx-component="${id}"></span></div><span data-tx-component="${id}"></span>`
+      )
+      .join('');
+    const refused = await mapPage(html, manifest);
+    // Refused standing alone and inside the allowed id it shares a prefix with.
+    for (const [id] of known)
+      expect(
+        refused.filter(([code, source]) => code === 'not-allowed' && source === id)
+      ).toHaveLength(2);
+  });
+
+  it("passes the composed map through Texuli's mapLockedRenderPage (0.17.2 forwards it)", async () => {
     const html = '<div data-tx-component="data-grid"><button type="button">Sort</button></div>';
-    const allow = { 'acme:table': true };
-    expect(mapPage(html, { allow })).toEqual([['not-allowed', 'data-grid']]);
-    expect(mapPage(html, { allow, composed: { 'data-grid': 'acme:table' } })).toEqual([]);
+    const allow = { 'acme:table': true as const };
+    expect(await mapPage(html, { allow })).toEqual([['not-allowed', 'data-grid']]);
+    expect(await mapPage(html, { allow, composed: { 'data-grid': 'acme:table' } })).toEqual([]);
   });
 });

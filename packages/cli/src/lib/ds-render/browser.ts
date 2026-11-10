@@ -15,12 +15,7 @@
 import type { Browser, Page } from '@playwright/test';
 import type { DsAxeRunner, DsCheckPage, DsCheckRun, DsMapReport } from '@texuli/tools/ds-check';
 import { type CaptureUnavailable, launchChromium, withReadyPage } from '../capture/index.ts';
-import {
-  DS_RENDER_CHECK_GLOBAL,
-  dsRenderHostScript,
-  INSTALL_HOST,
-  MAP_PAGE,
-} from './host-script.ts';
+import { dsRenderHostScript, INSTALL_HOST } from './host-script.ts';
 import {
   DS_RENDER_MIN_VISUALIZATION_PX,
   type DsRenderPageInfo,
@@ -218,11 +213,12 @@ export async function launchDsRenderDriver(root: string): Promise<DsRenderDriver
               DS_RENDER_MIN_VISUALIZATION_PX,
             ])) as DsRenderPageInfo;
             const checkPage = world.page;
-            // The host's own map, with the composed map (see MAP_PAGE).
-            const mapping = (await world.evaluate(MAP_PAGE, [
-              DS_RENDER_CHECK_GLOBAL,
-              request.allowManifest,
-            ])) as DsMapReport;
+            // Texuli's mapping in the same world: since 0.17.2 it hands the
+            // host's map the allow set and the composed map.
+            const mapping: DsMapReport = await tools.mapLockedRenderPage(
+              checkPage,
+              request.allowManifest
+            );
             const locked = await tools.runLockedRenderChecks(
               checkPage,
               request.runs as readonly DsCheckRun[],
