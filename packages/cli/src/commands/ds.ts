@@ -1090,7 +1090,11 @@ export async function applyDesignSystem(
     }
   }
   // The document's self-hosted fonts, named one by one so a Vite build emits them.
-  const fonts = designSystemFontFiles(location.absolute, readDocumentFile(location), designSystemFile);
+  const fonts = designSystemFontFiles(
+    location.absolute,
+    readDocumentFile(location),
+    designSystemFile
+  );
   const fontOptions =
     fonts.files.length === 0
       ? ''
