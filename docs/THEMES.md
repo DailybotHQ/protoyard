@@ -1297,7 +1297,7 @@ violation, before the build. Unlocked prototypes get no step.
 
 The static scan reads source. `--render` checks what a locked prototype
 actually paints, with Texuli's `runLockedRenderChecks`
-(`@texuli/tools/ds-check`, 0.17.1) on the live page:
+(`@texuli/tools/ds-check`, 0.17.2) on the live page:
 
 1. Each locked prototype (and, with `--report`, a named prototype bound to a
    design system but not locked) is built, or its build is reused when
@@ -1329,8 +1329,9 @@ actually paints, with Texuli's `runLockedRenderChecks`
    element (`#app`) reading catalog roots by `data-tx-component` (the CLI
    passes that attribute as the caller, so a page's own
    `data-ds-check-component` attributes cannot redirect the color check),
-   maps the page with the host's `map` (the allow set and a composed
-   child → parent map), and runs Texuli's checks with every compiled run of the
+   maps the page with Texuli's `mapLockedRenderPage`, which hands the host's
+   `map` the allow set and a composed child → parent map (since 0.17.2), and
+   runs Texuli's checks with every compiled run of the
    design system (the base document and its declared `high-contrast`
    variant) in that mode. The host, Protoyard's page reader and the checks
    run in a Chromium isolated world (CDP `Page.createIsolatedWorld`): they
@@ -1343,12 +1344,12 @@ actually paints, with Texuli's `runLockedRenderChecks`
 | Code | What fails |
 | --- | --- |
 | `unmapped` | An interactive element (link, button, field, an interactive role or `tabindex`) that sits inside no catalog root (`[data-tx-component]`). Texuli renders that attribute on its component roots (since 0.16.0). |
-| `not-allowed` | A catalog root whose id the design system does not allow, one finding per root (Texuli's mapping, at most 64 per code). Allowed: the `allow` keys, the ids the design system's library entries compose, and through Texuli's resolution with the CLI's composed map: the parts of an allowed id (`partParentMap`: `select-trigger` of `select`, `list-item` of `list`), the ids an allowed extension (`protoyard:data-table`) composes, and an extension's local id. A root is never allowed only because an allowed root is around it (a `data-grid` inside an allowed `card` is `not-allowed`): only a declared part or composed id of the root around it is (Texuli 0.17.1). |
+| `not-allowed` | A catalog root whose id the design system does not allow, one finding per root (Texuli's mapping, at most 64 per code). Allowed: the `allow` keys, the ids the design system's library entries compose, and through Texuli's resolution with the CLI's composed map: the parts of an allowed id (the declared catalog relations of `partParentMap`: `select-trigger` of `select`, `list-item` of `list`), the ids an allowed extension (`protoyard:data-table`) composes, and an extension's local id. A shared hyphen prefix is not a part relation (Texuli 0.17.2): an allowed `alert`, `icon` or `form` does not allow `alert-dialog`, `icon-button` or `form-field`. A root is never allowed only because an allowed root is around it (a `data-grid` inside an allowed `card` is `not-allowed`): only a declared part or composed id of the root around it is (Texuli 0.17.1). |
 | `render-literal` | A color a catalog component paints (text, background, borders, outline, SVG fill and stroke) that does not move when the design system's `--tx-*` variables are inverted on the scope: a literal, or a variable resolved outside the design system. |
 | `render-contrast` | A contrast pair of the compiled report below its target as painted. |
 | `render-axe` | An axe WCAG 2.x A/AA violation inside `#app`. |
 | `render-empty` | A route that painted no catalog component. |
-| `render-disabled-value` | A catalog root whose rendered `data-tx-variant`, `-size`, `-tone` or `-density` its allow entry does not enable (the values the static rule skips because they are expressions), once per component, axis and value. Texuli's mapping has a rule with the same id; the CLI keeps its own (the manifest passes ids only), because Texuli's reports every element, checks a part against its parent's entry, treats an axis list that is not an array as "nothing enabled" and adds a `color` axis the static rule does not have. |
+| `render-disabled-value` | A catalog root whose rendered `data-tx-variant`, `-size`, `-tone` or `-density` its allow entry does not enable (the values the static rule skips because they are expressions), once per component, axis and value. Texuli's mapping has a rule with the same id; the CLI keeps its own (the manifest passes ids only). On the lists a valid document holds, both read the same enabled values (Texuli 0.17.2's `dsAllowAxisValues`), but Texuli's reports every element (up to 64), checks a part against its parent's entry and adds a `color` axis the static rule does not have. |
 | `render-unowned-visualization` | Protoyard's own: a `<canvas>`, or an `<svg>` of 48 px or more, outside every catalog root. |
 | `render-page-error` | A route that did not boot in the build: it could not be checked, so it fails. |
 | `render-not-compiled` | The design-system document did not compile; no page is opened. |
@@ -1374,7 +1375,7 @@ Texuli's `ds check --locked --report` suggests) marks the findings it lists
 as `baselined`, so only new ones fail, and counts the ones that no longer
 occur (`counts.fixed`). A fingerprint is the slug, route, viewport, mode,
 code, catalog id and selector. Texuli's `--baseline`
-(`dsReportFingerprint`, `compareDsReport`, still in 0.17.1) keys a finding
+(`dsReportFingerprint`, `compareDsReport`, still in 0.17.2) keys a finding
 by its code and path only, which would merge the same element on different
 routes, viewports and modes, so baselines stay in this format (version 1,
 read as before). One change in 1.9.1: a root nested in an allowed one is

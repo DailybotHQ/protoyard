@@ -110,13 +110,15 @@ nothing.
   with nothing to read stays in the one-liner, and Texuli reports it as an
   `unmapped` loss. Words such as *calm*, *soft* or *solid* are read as motion,
   elevation or surface choices even in an unrelated sentence. Check
-  `brief.reading`. A clause with a hex color is always read by Protoyard
-  (`Deep teal #0f766e brand` becomes `brand #0f766e`). Texuli 0.17.1 reads
-  colors, their roles and fonts inside prose too, but a color between words
-  can still be misread without an `unmapped` loss (`rounded #0f766e Inter
-  font` becomes the font family "rounded … Inter"; `font Inter in #0f766e
-  rounded` drops `rounded`). A clause without a color that Texuli reads with
-  no loss is kept as written (`Inter font`).
+  `brief.reading`. A clause that Texuli 0.17.2 reads completely is kept as
+  written, colors included (`accent color #f59e0b`, `rounded #0f766e Inter
+  font`). Protoyard reads any other clause itself and condenses it to the
+  words Texuli reads (`Deep teal #0f766e brand` becomes `brand #0f766e`).
+  That covers what Texuli leaves unread (`subtle motion` beside other words,
+  `Headings use Fraunces`, `monospace JetBrains Mono`) and a font that
+  Texuli would misread with no loss: `font is Inter` would become the family
+  "is Inter", so it is read here as `font Inter`. Condensing also keeps a
+  long brief within the 1,000-character one-liner that Texuli reads.
 - **Generator refusals.** When the generator cannot meet its guarantees, the
   run fails with `validation`, the errors and the report, and writes nothing.
   A stylesheet that pins a role color below AA (`--brand: #e11d48;
@@ -477,15 +479,15 @@ entries (name, version, source hash) and a changelog entry.
   `diffDesignSystems` over both compiled versions. The allow changes
   (components added or removed, lists changed; a newly locked document
   lists `locked` and then each component it allows) and the approval changes
-  are Texuli's `changesModel` (`@texuli/spec/design-system`, 0.17.1), the
-  model the kit renders. Library changes keep the shape of its
-  `KitLibraryChange` but stay Protoyard's: every field of an entry is
-  compared, each value as JSON text (one `approval` row for the whole
-  approval). Texuli 0.17.1's model compares an entry approval's approver,
-  version and content hash, as `approval.<field>` rows, but not its
-  `approvedAt`, and clips values at 200 characters, so `ds diff --json`
-  keeps its own comparison and shape. A re-approval by someone else or at
-  another content hash shows as a change. Texuli's model reads at most
+  are Texuli's `changesModel` (`@texuli/spec/design-system`, 0.17.2), the
+  model the kit renders, and so are the library changes. Since 0.17.2 it
+  compares every field of a library entry, the approval's `approvedAt`
+  included, at full length. `ds diff --json` keeps its shape: one row per
+  changed field, each value as JSON text, and one `approval` row for the
+  whole approval (Texuli's `approval.<field>` rows folded together). A
+  re-approval by someone else, at another time or at another content hash
+  shows as a change. An approval written with its keys in another order
+  does not (since 1.9.2). Texuli's model reads at most
   4,096 allow components (with a warning beyond), 100 values per list and
   64 library entries; a valid document stays inside the merged catalog
   (about 260 ids).
@@ -801,7 +803,8 @@ These are not available today:
   desktop: controls outside allowed catalog roots, painted colors that do not
   follow the design system, contrast, axe, rendered axis values the allow
   section does not enable, catalog roots it does not allow (a root nested in
-  an allowed one too, unless it is a declared part or composed id of it),
+  an allowed one too, unless it is a declared part or composed id of it; a
+  shared hyphen prefix such as `alert-dialog` of `alert` is not a part),
   and hand-drawn charts; it sees only what a route
   shows at rest ([render mode](THEMES.md#render-mode---render)). The build
   workflow of `protoyard ci` runs it for locked prototypes.
