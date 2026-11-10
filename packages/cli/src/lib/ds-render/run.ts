@@ -50,7 +50,7 @@ export interface DsRenderTarget {
 export interface DsRenderCompiled {
   runs: readonly CompiledRun[];
   /** Undefined when the document has no `allow` section (only `unmapped` is checked then). */
-  allowManifest: { allow: Record<string, true> } | undefined;
+  allowManifest: { allow: Record<string, true>; composed?: Record<string, string> } | undefined;
   /** The document's `allow` section, for the axis values (`render-disabled-value`). */
   allow?: DesignSystemAllow | null;
   /** Why it did not compile (empty when it did). */

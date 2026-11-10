@@ -7,20 +7,25 @@
  * JavaScript cannot reach their globals or patch the DOM functions they
  * call; it can still change the shared DOM itself, and axe runs in the main
  * world), then Texuli's `runLockedRenderChecks` with the mapping the host
- * computed on the live page. Requests outside the local server are aborted,
+ * computed on the live page (Texuli's nesting rule: a nested catalog root
+ * is allowed only as a declared part or composed id of its parent). Requests outside the local server are aborted,
  * WebSockets to another origin are closed and service workers are blocked. Playwright and `@axe-core/playwright` are loaded at run time; a
  * missing package or browser is a typed `unavailable` result, never a crash.
  */
 import type { Browser, Page } from '@playwright/test';
-import type { DsAxeRunner, DsCheckPage, DsCheckRun } from '@texuli/tools/ds-check';
+import type { DsAxeRunner, DsCheckPage, DsCheckRun, DsMapReport } from '@texuli/tools/ds-check';
 import { type CaptureUnavailable, launchChromium, withReadyPage } from '../capture/index.ts';
-import { dsRenderHostScript, INSTALL_HOST } from './host-script.ts';
+import {
+  DS_RENDER_CHECK_GLOBAL,
+  dsRenderHostScript,
+  INSTALL_HOST,
+  MAP_PAGE,
+} from './host-script.ts';
 import {
   DS_RENDER_MIN_VISUALIZATION_PX,
   type DsRenderPageInfo,
   type DsRenderVisit,
   type LockedReportLike,
-  strictNotAllowed,
 } from './index.ts';
 
 /** A compiled run of the design system (Texuli's `DsCheckRun`), opaque here. */
@@ -32,7 +37,7 @@ export interface DsRenderVisitRequest {
   visit: DsRenderVisit;
   runs: readonly CompiledRun[];
   /** No `allow` (an unlocked document): only `unmapped` controls are reported. */
-  allowManifest: { allow?: Record<string, true> };
+  allowManifest: { allow?: Record<string, true>; composed?: Record<string, string> };
 }
 
 export interface DsRenderVisitResult {
@@ -213,7 +218,11 @@ export async function launchDsRenderDriver(root: string): Promise<DsRenderDriver
               DS_RENDER_MIN_VISUALIZATION_PX,
             ])) as DsRenderPageInfo;
             const checkPage = world.page;
-            const mapping = await tools.mapLockedRenderPage(checkPage, request.allowManifest);
+            // The host's own map, with the composed map (see MAP_PAGE).
+            const mapping = (await world.evaluate(MAP_PAGE, [
+              DS_RENDER_CHECK_GLOBAL,
+              request.allowManifest,
+            ])) as DsMapReport;
             const locked = await tools.runLockedRenderChecks(
               checkPage,
               request.runs as readonly DsCheckRun[],
@@ -221,21 +230,7 @@ export async function launchDsRenderDriver(root: string): Promise<DsRenderDriver
               // axe needs Playwright's page; it runs in the main world (see THEMES.md limits).
               { modes: [visit.mode], axe: () => axe(page as unknown as DsCheckPage) }
             );
-            const report = locked as unknown as LockedReportLike;
-            // Texuli 0.17.0 also covers a root through an allowed root around
-            // it; keep every root allowed in its own right (see strictNotAllowed).
-            const strict = strictNotAllowed(
-              info,
-              request.allowManifest,
-              report.mapping.errors,
-              tools.resolveAllowedComponentId
-            );
-            return {
-              info,
-              locked: strict.length
-                ? { ...report, mapping: { errors: [...report.mapping.errors, ...strict] } }
-                : report,
-            };
+            return { info, locked: locked as unknown as LockedReportLike };
           } finally {
             await world.detach();
           }

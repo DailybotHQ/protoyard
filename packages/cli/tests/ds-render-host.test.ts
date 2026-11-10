@@ -3,14 +3,18 @@
 // `browser.ts` evaluates them in the isolated world.
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
+import { dsCatalog } from '../src/lib/ds-catalog.ts';
 import {
+  DS_RENDER_CHECK_GLOBAL,
   DS_RENDER_COMPONENT_ATTRIBUTE,
+  DS_RENDER_HOST_EXPORT,
   DS_RENDER_HOST_GLOBAL,
   dsRenderHostPath,
   dsRenderHostScript,
   INSTALL_HOST,
+  MAP_PAGE,
 } from '../src/lib/ds-render/host-script.ts';
-import type { DsRenderPageInfo } from '../src/lib/ds-render/index.ts';
+import { type DsRenderPageInfo, renderAllowManifest } from '../src/lib/ds-render/index.ts';
 
 /**
  * Runs a script as a page script would: a top-level `var` becomes a global.
@@ -35,6 +39,8 @@ afterEach(() => {
 
 describe("Texuli's prebuilt ds-check host", () => {
   it('is read from the installed @texuli/tools, not bundled at run time', () => {
+    // The package export (Texuli 0.17.1), not a file guessed beside another export.
+    expect(DS_RENDER_HOST_EXPORT).toBe('@texuli/tools/ds-check/host.iife.js');
     expect(dsRenderHostPath()).toMatch(
       /@texuli[/\\]tools[/\\]dist[/\\]ds-check[/\\]host\.iife\.js$/
     );
@@ -115,5 +121,58 @@ describe("Texuli's prebuilt ds-check host", () => {
       48,
     ]);
     expect(info).toMatchObject({ scope: 'body', roots: 0, links: [], axes: [] });
+  });
+
+  /** Installs the real host on `#app` and maps it the way `browser.ts` does. */
+  function mapPage(html: string, manifest: unknown): [string, string | null][] {
+    document.body.innerHTML = `<div id="app">${html}</div>`;
+    evaluate(dsRenderHostScript());
+    (evaluate(`(${INSTALL_HOST})`) as (arg: unknown) => DsRenderPageInfo)(['#app', 48]);
+    const map = evaluate(`(${MAP_PAGE})`) as (arg: unknown) => {
+      errors: { code: string; source?: string }[];
+    };
+    return map([DS_RENDER_CHECK_GLOBAL, manifest]).errors.map((e) => [e.code, e.source ?? null]);
+  }
+
+  it('refuses a data-grid nested in an allowed card (regression guard on Texuli 0.17.1)', () => {
+    const manifest = renderAllowManifest(dsCatalog(), { card: {}, button: {} } as never);
+    expect(
+      mapPage(
+        `<div data-tx-component="card"><button data-tx-component="button" type="button">Edit</button>
+          <div data-tx-component="data-grid"><button type="button">Sort</button></div></div>`,
+        manifest
+      )
+    ).toEqual([['not-allowed', 'data-grid']]);
+  });
+
+  it('allows the six part relations inside and outside their allowed parent', () => {
+    const pairs: [string, string][] = [
+      ['list-item', 'list'],
+      ['field-error', 'field'],
+      ['input-group', 'input'],
+      ['radio-group', 'radio'],
+      ['button-group', 'button'],
+      ['data-dashboard-widget', 'data-dashboard'],
+    ];
+    const allow = Object.fromEntries(pairs.map(([, parent]) => [parent, {}]));
+    const manifest = renderAllowManifest(dsCatalog(), allow as never);
+    const html = pairs
+      .map(
+        ([part, parent]) =>
+          `<div data-tx-component="${parent}"><span data-tx-component="${part}"></span></div><span data-tx-component="${part}"></span>`
+      )
+      .join('');
+    expect(mapPage(html, manifest)).toEqual([]);
+    // Without the parents (allow: card only) every part is refused, in both places.
+    const refused = mapPage(html, renderAllowManifest(dsCatalog(), { card: {} } as never));
+    for (const [part] of pairs)
+      expect(refused.filter(([code, id]) => code === 'not-allowed' && id === part)).toHaveLength(2);
+  });
+
+  it("passes the composed map to the host's map (Texuli's mapLockedRenderPage drops it)", () => {
+    const html = '<div data-tx-component="data-grid"><button type="button">Sort</button></div>';
+    const allow = { 'acme:table': true };
+    expect(mapPage(html, { allow })).toEqual([['not-allowed', 'data-grid']]);
+    expect(mapPage(html, { allow, composed: { 'data-grid': 'acme:table' } })).toEqual([]);
   });
 });
