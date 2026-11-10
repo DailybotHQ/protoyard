@@ -300,6 +300,7 @@ async function checkDs(
       designSystem: target.binding?.id ?? null,
       files: scan.files.length,
       violations: scan.violations.length,
+      unchecked: scan.unchecked,
     })),
     violations,
   };
@@ -396,6 +397,11 @@ async function checkDs(
         );
         for (const v of scan.violations) o.always(`    ${formatDsViolation(v)}`);
         if (scan.violations.length > 0) o.always(`    ${c.dim(scan.violations[0]?.wayOut ?? '')}`);
+        if (scan.unchecked.count > 0) {
+          o.always(
+            `    ${c.dim(`not checked (${scan.unchecked.count} imports outside the scan; their styling is invisible to check ds): ${scan.unchecked.imports.join(', ')}`)}`
+          );
+        }
       }
       if (!render) return;
       for (const p of render.prototypes) {

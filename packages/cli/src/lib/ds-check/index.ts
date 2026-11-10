@@ -46,6 +46,7 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import type { DesignSystemAllow } from '@texuli/spec/design-system';
+import { listUncheckedImports, type UncheckedImports } from '@texuli/tools/ds-check';
 import { locateDesignSystem, readDocumentFile } from '../design-systems.ts';
 import {
   allowedVia,
@@ -55,6 +56,7 @@ import {
   type DsCatalog,
   dsCatalog,
   enabledValues,
+  isGovernedModule,
   type LibraryEntryLike,
   readAllow,
   readLibrary,
@@ -637,6 +639,41 @@ export interface DsPrototypeScan {
   /** Workspace-relative POSIX paths of the files read. */
   files: string[];
   violations: DsViolation[];
+  /**
+   * Imports the scan did not read (Texuli's `listUncheckedImports`): the
+   * workspace packages the prototype depends on (`workspace:` specifiers, the
+   * catalog-governed ones excluded) and local modules outside its `src/`.
+   * Styling in them is invisible to `check ds`; the report lists them.
+   */
+  unchecked: UncheckedImports;
+}
+
+/**
+ * The workspace packages a prototype depends on with the `workspace:`
+ * protocol, minus the modules the catalog governs (Texuli, `@protoyard/ui`
+ * and catalog-extension modules): the packages whose styling `check ds` does
+ * not read.
+ */
+export function uncheckedWorkspacePackages(dir: string, catalog?: DsCatalog): string[] {
+  const file = join(dir, 'package.json');
+  if (!existsSync(file) || lstatSync(file).isSymbolicLink()) return [];
+  let pkg: Record<string, unknown>;
+  try {
+    pkg = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
+  } catch {
+    return [];
+  }
+  const names = new Set<string>();
+  for (const field of ['dependencies', 'devDependencies', 'peerDependencies']) {
+    const deps = pkg[field];
+    if (!deps || typeof deps !== 'object') continue;
+    for (const [name, spec] of Object.entries(deps as Record<string, unknown>)) {
+      if (typeof spec !== 'string' || !spec.startsWith('workspace:')) continue;
+      if (isGovernedModule(name) || catalog?.extensionModules.has(name)) continue;
+      names.add(name);
+    }
+  }
+  return [...names].sort();
 }
 
 function isScannable(name: string): boolean {
@@ -734,7 +771,12 @@ export function scanPrototypeDesignSystem(
       );
     }
   }
-  return { files: read, violations };
+  const scanned: Record<string, string> = {};
+  for (const [path, source] of sources) scanned[relative(root, path).split(sep).join('/')] = source;
+  const unchecked = listUncheckedImports(scanned, {
+    workspacePackages: uncheckedWorkspacePackages(dir, options.allow?.catalog),
+  });
+  return { files: read, violations, unchecked };
 }
 
 /** Counts violations per rule (every rule present, zero included). */

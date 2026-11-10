@@ -1388,8 +1388,12 @@ the design system. Fonts and other assets from other origins are blocked.
 variables, components from other packages, components rendered from `.ts`
 files or through `<svelte:component>`, axis values given as expressions, and
 CSS imported from outside the prototype folder are not seen. Styling inside a
-workspace package the prototype imports is not scanned either: a prototype
-built mostly from such a package reports few violations. Class strings are read from `class` values,
+workspace package the prototype imports is not scanned either, so a prototype
+built mostly from such a package reports few violations: each prototype in
+`check ds` (and its `--json` `prototypes[].unchecked`) lists those imports as
+not checked, with Texuli's `listUncheckedImports`. The workspace packages are
+the ones its `package.json` takes with `workspace:`, minus the modules the
+catalog governs (Texuli, `@protoyard/ui`). Class strings are read from `class` values,
 `class:` directives and the `cx`/`clsx`/`cn`/`classNames`/`twMerge`/`twJoin`
 helpers only.
 

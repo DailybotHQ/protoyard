@@ -412,6 +412,34 @@ describe('protoyard check ds', () => {
     expect(body.data).toMatchObject({ ok: true, counts: { prototypes: 1, violations: 0 } });
   });
 
+  it('lists the workspace packages and local modules it did not read', async () => {
+    ws = createWorkspace();
+    addPrototype(ws, 'loose-app');
+    ws.write('prototypes/loose-app/package.json', {
+      name: 'loose-app',
+      dependencies: {
+        '@acme/ui': 'workspace:*',
+        '@protoyard/ui': 'workspace:*',
+        texuli: '0.16.1',
+        'left-pad': '^1.0.0',
+      },
+    });
+    ws.write(
+      'prototypes/loose-app/src/App.svelte',
+      "<script>\nimport { Panel } from '@acme/ui';\nimport { Button } from '@protoyard/ui';\nimport Shared from '../../shared/Shared.svelte';\n</script>\n<Panel><Button>Save</Button><Shared /></Panel>\n"
+    );
+    const { code, body } = await run('loose-app', '--report');
+    expect(code).toBe(0);
+    const [prototype] = body.data.prototypes as unknown as {
+      unchecked: { count: number; imports: string[] };
+    }[];
+    // Governed modules (@protoyard/ui, texuli) and registry packages are not listed.
+    expect(prototype?.unchecked.imports).toContain('@acme/ui');
+    expect(prototype?.unchecked.imports.some((i) => i.includes('Shared.svelte'))).toBe(true);
+    expect(prototype?.unchecked.imports).not.toContain('@protoyard/ui');
+    expect(prototype?.unchecked.imports).not.toContain('left-pad');
+  });
+
   it('report mode exits 0, includes unlocked prototypes and lists their violations', async () => {
     setup();
     const { code, body } = await run('--report');
