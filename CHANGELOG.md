@@ -8,8 +8,8 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [1.8.0] - 2026-11-10
 
-The design-system lifecycle on Texuli 0.16.0. Every Texuli dependency is
-pinned exactly at `0.16.0`. See [DESIGN_SYSTEMS](docs/DESIGN_SYSTEMS.md).
+The design-system lifecycle on Texuli 0.16.1. Every Texuli dependency is
+pinned exactly at `0.16.1`. See [DESIGN_SYSTEMS](docs/DESIGN_SYSTEMS.md).
 
 ### Added
 

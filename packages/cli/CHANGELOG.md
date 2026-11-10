@@ -10,8 +10,8 @@
   did. `protoyard new --dry-run` runs every check (slug, source, destination,
   `--ds` design system and template gate) and writes nothing. Every npm package
   now ships its `CHANGELOG.md`, and `check:packages` requires it.
-- The design-system lifecycle on Texuli 0.16.0 (every Texuli dependency pinned
-  exactly at `0.16.0`): `ds new --from-tokens`, `--from-css`, `--from-logo`
+- The design-system lifecycle on Texuli 0.16.1 (every Texuli dependency pinned
+  exactly at `0.16.1`): `ds new --from-tokens`, `--from-css`, `--from-logo`
   (SVG) and `--brief` generate a draft from your brand with Texuli's generator,
   with its loss and AA repair reports; `ds kit <id>` writes the kit prototype on
   Texuli's `DesignSystemKit`; `ds approve --release` and `ds release` record
