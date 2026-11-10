@@ -7,7 +7,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import type { Command } from 'commander';
 import { biomeJson } from '../lib/codegen/format.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
@@ -16,6 +16,7 @@ import { isDesignSystemId } from '../lib/design-systems.ts';
 import { KIT_DATA_FILE, KIT_KEEP, KIT_TEMPLATE, kitPlan, kitSlug } from '../lib/ds-kit.ts';
 import { inspectSpec } from '../lib/inspect.ts';
 import { CliError, mark, toCliError } from '../lib/output.ts';
+import { isInside, samePath } from '../lib/paths.ts';
 import { buildIndex } from '../lib/registry.ts';
 import { assertSlug } from '../lib/workspace.ts';
 import { applyDesignSystem, type Binding, resolveDesignSystem } from './ds.ts';
@@ -70,11 +71,46 @@ function differs(dir: string, path: string, content: string): boolean {
   return !existsSync(file) || readFileSync(file, 'utf8') !== content;
 }
 
-function writeOwned(dir: string, path: string, content: string): void {
-  const file = join(dir, path);
-  if (existsSync(file) && lstatSync(file).isSymbolicLink()) {
-    throw new CliError('unsafe_path', `Refusing to write through the symlink ${path}.`);
+const unsafeLink = (path: string) =>
+  new CliError('unsafe_path', `Refusing to follow a symbolic link: ${path}`, {
+    hint: 'The kit prototype must be real folders inside prototypes/. Remove the link and re-run.',
+  });
+
+/**
+ * Refuses a kit folder that is a symlink or not, once resolved, strictly
+ * inside `prototypes/` (as `generate`'s regeneration does).
+ */
+function assertKitDir(prototypes: string, dir: string, path: string): void {
+  if (existsSync(dir) && lstatSync(dir).isSymbolicLink()) throw unsafeLink(path);
+  if (!isInside(prototypes, dir) || samePath(prototypes, dir)) {
+    throw new CliError('unsafe_path', `${path} is not inside prototypes/.`);
   }
+}
+
+/**
+ * Refuses a symlink anywhere between the kit folder and `path` (the file
+ * included): `mkdirSync` and `writeFileSync` would follow a linked `src/`,
+ * `src/screens/` or `tests/` out of the workspace.
+ */
+function assertNoLink(dir: string, path: string): void {
+  let current = dir;
+  const walked: string[] = [];
+  for (const segment of path.split('/')) {
+    current = join(current, segment);
+    walked.push(segment);
+    let link: boolean;
+    try {
+      link = lstatSync(current).isSymbolicLink();
+    } catch {
+      return; // the rest does not exist yet
+    }
+    if (link) throw unsafeLink(`prototypes/${basename(dir)}/${walked.join('/')}`);
+  }
+}
+
+function writeOwned(dir: string, path: string, content: string): void {
+  assertNoLink(dir, path);
+  const file = join(dir, path);
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, content, 'utf8');
 }
@@ -114,6 +150,7 @@ export const dsKitCommand: Handler = async (ctx, args, options): Promise<Command
   const plan = await kitPlan(resolved.location, resolved.document, slug);
   const dir = join(ctx.paths.prototypes, slug);
   const path = `prototypes/${slug}`;
+  assertKitDir(ctx.paths.prototypes, dir, path);
   const exists = existsSync(dir);
   if (exists) {
     const owner = readKitOwner(dir);
@@ -193,6 +230,12 @@ export const dsKitCommand: Handler = async (ctx, args, options): Promise<Command
     };
   }
 
+  // Before anything is written (`ds use` included): no linked folder on the way.
+  if (exists) {
+    for (const file of ['protoyard.json', 'src/design-system.ts', ...plan.files.keys()]) {
+      assertNoLink(dir, file);
+    }
+  }
   const manifestFile = join(dir, 'protoyard.json');
   // The manifest as it was before this run (null for a new kit).
   const manifestBefore = exists ? readFileSync(manifestFile, 'utf8') : null;

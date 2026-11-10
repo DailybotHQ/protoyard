@@ -1,5 +1,16 @@
 // @vitest-environment node
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { scanPrototypeDesignSystem } from '../src/lib/ds-check/index.ts';
@@ -314,5 +325,41 @@ describe('protoyard ds kit (PLAN_013 T-kit)', () => {
     const check = await run('ds', 'kit', 'harbor', '--check');
     expect(check.json<Envelope<KitResult>>().ok).toBe(false);
     expect(existsSync(join(root(), 'prototypes/harbor-kit'))).toBe(false);
+  });
+
+  it('refuses a symlinked kit folder or a symlinked folder inside it, before writing anything (F4)', async () => {
+    setup();
+    await designSystem('acme');
+    const created = await run('ds', 'kit', 'acme', '--no-install');
+    expect(created.code, created.stdout).toBe(0);
+    const kit = join(root(), 'prototypes/acme-kit');
+    const outside = mkdtempSync(join(tmpdir(), 'protoyard-kit-outside-'));
+    try {
+      // A linked src/screens/: the kit page would land outside the workspace.
+      const screens = join(kit, 'src/screens');
+      expect(readdirSync(screens).length).toBeGreaterThan(0);
+      rmSync(screens, { recursive: true });
+      symlinkSync(outside, screens, 'dir');
+      const linked = await run('ds', 'kit', 'acme');
+      expect(linked.code).not.toBe(0);
+      expect(linked.json<Envelope>().error).toMatchObject({ code: 'unsafe_path' });
+      expect(linked.json<Envelope>().error?.message).toContain('prototypes/acme-kit/src/screens');
+      expect(readdirSync(outside)).toEqual([]);
+
+      // The kit folder itself linked from elsewhere.
+      rmSync(screens);
+      const moved = join(outside, 'acme-kit');
+      renameSync(kit, moved);
+      symlinkSync(moved, kit, 'dir');
+      const before = readFileSync(join(moved, 'protoyard.json'), 'utf8');
+      const whole = await run('ds', 'kit', 'acme');
+      expect(whole.code).not.toBe(0);
+      expect(whole.json<Envelope>().error).toMatchObject({ code: 'unsafe_path' });
+      expect(readFileSync(join(moved, 'protoyard.json'), 'utf8')).toBe(before);
+      expect(existsSync(join(moved, 'src/screens'))).toBe(false);
+    } finally {
+      rmSync(kit, { force: true });
+      rmSync(outside, { recursive: true, force: true });
+    }
   });
 });
