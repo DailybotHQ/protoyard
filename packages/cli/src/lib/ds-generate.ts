@@ -42,8 +42,6 @@ export const GENERATOR_LIMITS = {
   css: 1024 * 1024,
   logo: 512 * 1024,
   brief: 16 * 1024,
-  /** Brief clauses read at most. */
-  clauses: 256,
   /** Color values read from an SVG at most. */
   svgColors: 4096,
 } as const;
@@ -145,136 +143,36 @@ export async function readBrief(
   return { text: value, from: 'text' };
 }
 
-/** How one clause of a prose brief was read. */
-export interface BriefReading {
-  clause: string;
-  /** The brand one-liner clauses it became; empty when nothing was read (an `unmapped` loss). */
-  read: string[];
-}
-
-type ImportBrand = typeof import('@texuli/tokens/design-system/import').importBrand;
-
-/** Sentence ends, clause punctuation, line breaks and a few joining words. */
-const CLAUSE_SPLIT = /[.!?](?=\s|$)|[;,\n\r]|\s+(?:and|with|but|plus)\s+/i;
-const HEX = /#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})\b/gi;
-const NAME = '([A-Z][\\w-]*(?:\\s+[A-Z0-9][\\w-]*){0,2})';
-const HEADING_FONT = new RegExp(
-  `\\b(?:[Hh]eading|[Dd]isplay|[Tt]itle)s?(?:\\s+(?:font|typeface))?\\s+(?:(?:in|use|uses|using|is|of)\\s+)?${NAME}`
-);
-const MONO_FONT = new RegExp(
-  `\\b[Mm]ono(?:space)?(?:\\s+(?:font|typeface))?\\s+(?:(?:in|use|uses|using|is|of)\\s+)?${NAME}`
-);
-const BODY_FONT = new RegExp(`\\b(?:[Ff]ont|[Tt]ypeface)\\s+(?:(?:is|of)\\s+)?${NAME}`);
-const FONT_AFTER = new RegExp(`${NAME}\\s+(?:font|typeface)\\b`);
-const MOTION =
-  /\b(none|subtle|standard|expressive)\s+motion\b|\bmotion\s+(none|subtle|standard|expressive)\b/i;
-/** The brand one-liner's single words (shape, density, elevation, surface, calm motion). */
-const WORDS = [
-  'sharp',
-  'rounded',
-  'pill',
-  'dense',
-  'compact',
-  'comfortable',
-  'spacious',
-  'flat',
-  'soft',
-  'crisp',
-  'glow',
-  'layered',
-  'glass',
-  'solid',
-  'calm',
-] as const;
-
-/** The words Texuli's one-liner reads from a clause written as prose. */
-function readProseClause(clause: string): string[] {
-  const out: string[] = [];
-  const lower = clause.toLowerCase();
-  const colors = clause.match(HEX) ?? [];
-  if (colors.length === 1) {
-    const role = /\bsecondary\b/.test(lower)
-      ? 'secondary'
-      : /\baccent\b/.test(lower)
-        ? 'accent'
-        : /\b(?:brand|primary|seed|main)\b/.test(lower)
-          ? 'brand'
-          : '';
-    out.push(role ? `${role} ${colors[0]}` : (colors[0] as string));
-  } else {
-    out.push(...colors);
-  }
-  const heading = HEADING_FONT.exec(clause);
-  const mono = heading ? null : MONO_FONT.exec(clause);
-  if (heading) out.push(`heading ${heading[1]}`);
-  else if (mono) out.push(`mono ${mono[1]}`);
-  else {
-    const body = BODY_FONT.exec(clause) ?? FONT_AFTER.exec(clause);
-    if (body) out.push(`font ${body[1]}`);
-  }
-  const motion = MOTION.exec(clause);
-  if (motion) out.push(`motion ${(motion[1] ?? motion[2] ?? '').toLowerCase()}`);
-  for (const word of WORDS) {
-    if (new RegExp(`\\b${word}\\b`).test(lower)) out.push(word);
-  }
-  if (/\bAAA\b/.test(clause)) out.push('AAA');
-  else if (/\bAA\b/.test(clause)) out.push('AA');
-  return out;
-}
+/**
+ * Texuli's brand-brief bounds (`importBrand`, 0.17.3): it reads at most
+ * 16,000 characters and 256 clauses, split on commas, semicolons and line
+ * breaks, and truncates longer input with a `limit` warning.
+ */
+export const TEXULI_BRIEF_LIMITS = { characters: 16_000, clauses: 256 } as const;
 
 /**
- * Whether Texuli read a clause completely and without gluing a joining word
- * into a font family. Texuli 0.17.2 reports words it cannot place as an
- * `unmapped` loss, but its font phrases match case-insensitively, so
- * `font is Inter` becomes the family "is Inter" (`heading font is X`,
- * `typeface of X` and `mono uses X` too) with no loss. A family that starts
- * with a lowercase word is read here instead.
+ * Refuse a brief that Texuli would truncate. The brand flags are added after
+ * the brief so they win, and a truncation would drop them silently, so the
+ * whole text sent to `importBrand` must fit its bounds. Deterministic.
  */
-function texuliReads(clause: string, importBrand: ImportBrand): boolean {
-  const result = importBrand(clause, { trust: 'untrusted', id: 'brief-clause' });
-  if (!result.ok || result.warnings.some((warning) => warning.code === 'unmapped')) return false;
-  const families = (result.document.typography?.families ?? {}) as Record<
-    string,
-    { stack?: readonly string[] } | undefined
-  >;
-  return Object.values(families).every((family) => !/^[a-z]/.test(family?.stack?.[0] ?? ''));
-}
-
-/**
- * A prose brief as Texuli's brand one-liner. Each clause Texuli's
- * `importBrand` reads completely (see {@link texuliReads}) is kept as
- * written. Any other clause is read here for colors (with the role a nearby
- * word names), fonts, shape, density, elevation, surface, motion and
- * contrast words: Texuli 0.17.2 still leaves `subtle motion` beside other
- * words, `Headings use X` and `monospace X` unread, and its one-liner holds
- * at most 1,000 characters and 32 clauses while `--brief` takes 16 KiB, so
- * prose is condensed to the words Texuli reads. A clause with none of them
- * is kept, so Texuli reports it as an `unmapped` loss. Deterministic.
- */
-export function readProseBrief(
-  text: string,
-  importBrand: ImportBrand
-): { oneLiner: string; reading: BriefReading[] } {
-  const clauses = text
-    .split(CLAUSE_SPLIT)
-    .map((clause) => clause.replace(/\s+/g, ' ').trim())
-    .filter((clause) => clause !== '');
-  if (clauses.length > GENERATOR_LIMITS.clauses) {
+export function assertBriefFits(text: string): void {
+  if (text.length > TEXULI_BRIEF_LIMITS.characters) {
     throw new CliError(
       'validation',
-      `--brief has ${clauses.length} clauses; the limit is ${GENERATOR_LIMITS.clauses}.`
+      `--brief has ${text.length} characters with the brand flags; Texuli reads at most ${TEXULI_BRIEF_LIMITS.characters}.`
     );
   }
-  const reading = clauses.map(
-    (clause): BriefReading =>
-      texuliReads(clause, importBrand)
-        ? { clause, read: [clause] }
-        : { clause, read: readProseClause(clause) }
-  );
-  const oneLiner = reading
-    .flatMap((entry) => (entry.read.length > 0 ? entry.read : [entry.clause]))
-    .join(', ');
-  return { oneLiner, reading };
+  const clauses = text
+    .split(/[,;\n]/)
+    .map((clause) => clause.trim())
+    .filter((clause) => clause !== '').length;
+  if (clauses > TEXULI_BRIEF_LIMITS.clauses) {
+    throw new CliError(
+      'validation',
+      `--brief has ${clauses} clauses with the brand flags; Texuli reads at most ${TEXULI_BRIEF_LIMITS.clauses}.`,
+      { hint: 'Clauses are split on commas, semicolons and line breaks.' }
+    );
+  }
 }
 
 /** One color an SVG logo names, with how often it appears. */
@@ -401,8 +299,8 @@ export interface GeneratorSourceInfo {
   source: GeneratorSource;
   /** The workspace file, when the input was one. */
   file?: string;
-  /** `--brief`: where the text came from and how each clause was read. */
-  brief?: { from: 'text' | 'file' | 'stdin'; oneLiner: string; reading: BriefReading[] };
+  /** `--brief`: where the text came from and the brand brief sent to Texuli (flags appended). */
+  brief?: { from: 'text' | 'file' | 'stdin'; oneLiner: string };
   /** `--from-logo`: the colors read from the SVG. */
   logo?: { format: 'svg'; colors: SvgLogoColor[]; ignored: number };
 }
@@ -490,12 +388,14 @@ export async function generateFromSource(
   } else {
     const brief = await readBrief(root, value);
     if (brief.text.trim() === '') throw new CliError('usage', '--brief is empty.');
-    const { importBrand } = await import('@texuli/tokens/design-system/import');
-    const { oneLiner, reading } = readProseBrief(brief.text, importBrand);
-    const composed = options.composeBrief ? options.composeBrief(oneLiner) : oneLiner;
+    // Texuli 0.17.3 reads prose itself: words it cannot place are `unmapped`
+    // losses in the report, and fonts, motion and headings are read inside
+    // longer clauses.
+    const composed = options.composeBrief ? options.composeBrief(brief.text) : brief.text;
+    assertBriefFits(composed);
     input.brief = composed;
     if (brief.file) info.file = brief.file;
-    info.brief = { from: brief.from, oneLiner: composed, reading };
+    info.brief = { from: brief.from, oneLiner: composed };
   }
 
   const { generateDesignSystem } = await import('@texuli/tokens/design-system/generate');
