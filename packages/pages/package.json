@@ -15,7 +15,7 @@
   "dependencies": {
     "@protoyard/blocks": "workspace:*",
     "@protoyard/core": "workspace:*",
-    "@texuli/document": "0.17.1",
+    "@texuli/document": "0.17.2",
     "zod": "^4.6.7"
   },
   "protoyard": {

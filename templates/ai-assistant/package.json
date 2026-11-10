@@ -21,7 +21,7 @@
     "@protoyard/ui": "workspace:*",
     "dexie": "^4.4.7",
     "svelte": "^5.57.3",
-    "texuli": "0.17.1",
+    "texuli": "0.17.2",
     "zod": "^4.6.7"
   },
   "devDependencies": {
