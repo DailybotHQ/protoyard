@@ -1,12 +1,11 @@
 <script lang="ts">
 import { ArrowLeft } from '@lucide/svelte';
 import { Link, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
-import { Avatar, EmptyState, LoadingState } from '@protoyard/ui';
+import { Avatar, EmptyState, LoadingState, VirtualListView } from '@protoyard/ui';
 import { LucideIcon } from 'texuli/icons/lucide';
 import { Box, Heading, Text } from 'texuli/typography';
 import FollowButton from '../components/FollowButton.svelte';
 import PostCard from '../components/PostCard.svelte';
-import VirtualFeed from '../components/VirtualFeed.svelte';
 import type { Post } from '../database/schema.ts';
 import { byNewest } from '../domain/feed.ts';
 import { personIdOf, useSocial } from '../lib/context.ts';
@@ -67,11 +66,21 @@ const data = liveQuery(
     {#if (d.posts ?? []).length === 0}
       <div class="p-4"><EmptyState title="No posts yet" /></div>
     {:else}
-      <VirtualFeed items={d.posts ?? []} key={(p: Post) => p.id} label="Posts by {person.name}">
-        {#snippet row(post: Post)}
+      <VirtualListView
+        mode="feed"
+        selectable={false}
+        size="fill"
+        class="min-h-0 flex-1"
+        items={d.posts ?? []}
+        getKey={(p: Post) => p.id}
+        estimateSize={180}
+        overscan={4}
+        label="Posts by {person.name}"
+      >
+        {#snippet row({ item: post }: { item: Post })}
           <PostCard {post} author={person} mine={post.authorId === me} myReaction={d.reactions?.get(post.id) ?? null} people={d.people ?? new Map()} />
         {/snippet}
-      </VirtualFeed>
+      </VirtualListView>
     {/if}
   {/if}
 </div>

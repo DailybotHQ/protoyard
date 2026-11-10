@@ -52,7 +52,7 @@ Community products live or die by a feed that feels alive: posts from people you
 | --- | --- |
 | `posts`, `reactions`, `comments`, `follows` | A social graph store with unique constraints (one reaction per person and post, one follow per pair) and counters |
 | `timeline()` (newest first, in the browser) | A fan-out or query-time timeline service with pagination cursors |
-| `VirtualFeed` | Kept as is, fed by cursor pagination instead of every row |
+| `VirtualListView` feed | Kept as is, fed by cursor pagination instead of every row (`onRangeChange` tells when to load the next page) |
 | `notifications` + the `eventStream()` timeline | A notification service fed by real events, with push or email delivery and read state per device |
 | Plain-text rendering | Kept; add server-side sanitization if rich text is ever allowed |
 | `policy.ts` + personas | Real accounts, moderation tools and audit logs |

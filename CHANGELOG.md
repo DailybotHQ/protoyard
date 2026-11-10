@@ -53,12 +53,13 @@ pinned exactly at `0.16.1`. See [DESIGN_SYSTEMS](docs/DESIGN_SYSTEMS.md).
 - Every npm package ships its `CHANGELOG.md`; `check:packages` requires it.
 - `@protoyard/ui` honesty tags and `StatusChip` no longer forward the HTML
   `color` attribute to Texuli's `Badge`, which now has a `color` axis.
-
-### Known limits
-
-- social-feed still reports two spacer styles: Texuli's `VirtualListView` is
-  a listbox in 0.16.0 and cannot host a feed's controls. Texuli 0.16.1 adds a
-  feed mode.
+- **All 31 templates are lock-clean.** social-feed windows its feed with
+  Texuli's `VirtualListView` in feed mode (`role="feed"`, one `<article>` per
+  post with its position, Page Up / Page Down between posts, controls inside a
+  post keep their keys), so it no longer sizes spacers with inline styles.
+  `@protoyard/ui` re-exports `VirtualListView` (catalog id
+  `data-virtual-list`). It does not take `bind:ref` or rest attributes yet;
+  the contract test pins that gap.
 
 ## [1.7.0] - 2026-11-09
 
