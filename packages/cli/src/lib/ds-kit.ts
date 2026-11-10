@@ -351,7 +351,7 @@ const library: Record<string, KitLibrarySnippet> = Object.fromEntries(
   {@const Preview = components[id]}
   {#if Preview}
     <div class="grid gap-4">
-      {#each kit.stories[id] ?? [{ name: 'Default', props: {} }] as story (story.name)}
+      {#each kit.stories[id] ?? [{ name: 'Default', props: {} }] as story, index (index)}
         <figure class="grid gap-2">
           <figcaption>{story.name}</figcaption>
           <Preview {...story.props} />

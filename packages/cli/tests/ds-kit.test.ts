@@ -176,6 +176,10 @@ describe('protoyard ds kit (PLAN_013 T-kit)', () => {
     expect(read('prototypes/harbor-kit/src/screens/KitPage.svelte')).toContain(
       "import { DesignSystemKit, type KitLibrarySnippet } from 'texuli/ds-kit';"
     );
+    // Each story figure is keyed by its position, so a repeated name never breaks the page.
+    expect(read('prototypes/harbor-kit/src/screens/KitPage.svelte')).toContain(
+      'as story, index (index)}'
+    );
     const prototype = read('prototypes/harbor-kit/src/prototype.ts');
     expect(prototype).toContain("import { designSystemTheme } from './design-system.ts';");
     expect(prototype).toContain('themes: [designSystemTheme]');

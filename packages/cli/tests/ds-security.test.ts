@@ -543,3 +543,19 @@ describe('ds approve --release: the release is made before the document changes'
     expect(status(ws)).toBe('approved');
   });
 });
+
+describe('story variant names', () => {
+  it('must be unique, since the kit shows one figure per variant', () => {
+    const story = (names: string[]) =>
+      ComponentStorySchema.safeParse({
+        format: 'protoyard/ds-story',
+        version: 1,
+        component: 'StatusPill',
+        variants: names.map((name) => ({ name, props: {} })),
+      });
+    expect(story(['Default', 'Open']).success).toBe(true);
+    const twice = story(['Default', 'Open', 'Default']);
+    expect(twice.success).toBe(false);
+    expect(twice.error?.issues[0]?.path).toEqual(['variants', 2, 'name']);
+  });
+});

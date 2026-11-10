@@ -160,7 +160,21 @@ export const ComponentStorySchema = z
           .strict()
       )
       .min(1)
-      .max(50),
+      .max(50)
+      // The kit shows one figure per variant: two with one name would be ambiguous.
+      .superRefine((variants, ctx) => {
+        const seen = new Set<string>();
+        for (const [index, variant] of variants.entries()) {
+          if (seen.has(variant.name)) {
+            ctx.addIssue({
+              code: 'custom',
+              path: [index, 'name'],
+              message: `Two variants are named "${variant.name}"; variant names must be unique.`,
+            });
+          }
+          seen.add(variant.name);
+        }
+      }),
   })
   .strict();
 export type ComponentStory = z.infer<typeof ComponentStorySchema>;
