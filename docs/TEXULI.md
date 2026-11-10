@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.17.3`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.17.4`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.17.3`. Texuli pins its own internal dependencies exactly,
+Every package is `0.17.4`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -412,6 +412,24 @@ not in the agent catalog yet, so blueprints cannot emit them):
 - **Avatar grid:** `<AvatarGroupGrid items={members} label="…" />` from
   `texuli/avatar`, a 2×2 collage for group conversations.
 
+## What Texuli 0.17.4 changes for design systems
+
+Texuli 0.17.4 adds the two key fields Protoyard's render baseline needed, so
+the last design-system format Protoyard kept is retired:
+
+- **Baselines are Texuli's finding keys.** `DsFindingKey` takes an optional
+  `scope` (here the prototype slug) and `component` (the catalog id), and
+  both enter `dsReportFingerprint` when present. `--write-baseline` writes
+  `{ findings: [{ code, path, route, viewport, mode, scope, component? }] }`
+  (plus each message, for people), and `--baseline` compares with
+  `compareDsReport`. Checked against the installed package: the same
+  selector on the same route of two prototypes keys apart, and a key field
+  a baseline does not name matches any value.
+- **One-time migration.** A `protoyard/ds-render-baseline` version 1 file
+  (1.8–1.9.3) is still read. Its fingerprints are converted to keys (a
+  selector with a `|` included), and the run says to write the baseline
+  again. A test pins the conversion.
+
 ## What Texuli 0.17.3 changes for design systems
 
 Texuli 0.17.3 closes what 1.9.2 kept, except the baseline format. Each item
@@ -434,11 +452,10 @@ was checked against the installed packages before the CLI changed:
   disabled variant is one finding, as before. The host no longer collects
   axis values. The message changes, so a 1.9.2 baseline entry for that code
   no longer matches.
-- **Kept: `protoyard/ds-render-baseline` version 1.**
-  `dsReportFingerprint` now keys by code, path, route, viewport and mode
-  (`renderWhere`), but a key has no prototype. One `check ds --render` run
-  covers several prototypes, so the same selector on the same route of two
-  of them would merge. The CLI's fingerprint adds the slug and catalog id.
+- **Kept until 0.17.4: `protoyard/ds-render-baseline` version 1.**
+  `dsReportFingerprint` keyed by code, path, route, viewport and mode
+  (`renderWhere`), but a key had no prototype. 0.17.4 added `scope` and
+  `component` (see above).
 
 ## What Texuli 0.17.2 changes for design systems
 

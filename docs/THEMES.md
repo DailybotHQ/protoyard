@@ -1368,21 +1368,23 @@ be a catalog component; one drawn by hand is `render-unowned-visualization`.
 
 **Report mode and baselines.** `--report` never fails on findings and lists
 them all (`data.render.findings`). `--write-baseline <file>` saves the
-current findings (`{ format: "protoyard/ds-render-baseline", version: 1,
-findings: [{ fingerprint, code, slug, route, message }] }`); `--baseline
-<file>` (that file, or a saved `--json` output, which is the baseline
-Texuli's `ds check --locked --report` suggests) marks the findings it lists
-as `baselined`, so only new ones fail, and counts the ones that no longer
-occur (`counts.fixed`). A fingerprint is the slug, route, viewport, mode,
-code, catalog id and selector. Texuli's `--baseline`
-(`dsReportFingerprint`, `compareDsReport`) keys a finding by code, path,
-route, viewport and mode since 0.17.3, but has no prototype: one
-`check ds --render` run covers several prototypes, and the same selector on
-the same route of two of them would merge. So baselines stay in this format
-(version 1, read as before). Since 1.9.3 `render-disabled-value` is
-Texuli's rule: its message reads `Rendered variant "ghost" is not allowed
-for "button".`, so a 1.9.2 baseline entry for that code no longer matches.
-Write the baseline again. One change in 1.9.1: a root nested in an allowed one is
+current findings in Texuli's finding-key shape (`DsFindingKey`,
+`@texuli/tools/ds-check` 0.17.4): `{ findings: [{ code, path, route,
+viewport, mode, scope, component?, message }] }`, where `path` is the
+selector, `viewport` is `<width>x<height>`, `scope` is the prototype slug
+and `component` the catalog id. `--baseline <file>` (that file, or a saved
+`--json` output, which is the baseline Texuli's `ds check --locked
+--report` suggests) is compared with Texuli's `compareDsReport`: it marks
+the findings it covers as `baselined`, so only new ones fail, and counts the
+ones that no longer occur (`counts.fixed`). A key field the baseline does
+not name matches any value, as in Texuli. Because one `check ds --render`
+run covers several prototypes, `scope` keeps the same selector on the same
+route of two prototypes apart. The `protoyard/ds-render-baseline` version 1
+files of 1.8–1.9.3 are still read: each fingerprint is converted to a key
+and the run says to write the baseline again (`--write-baseline` writes the
+new shape). Since 1.9.3 `render-disabled-value` is Texuli's rule: its
+message reads `Rendered variant "ghost" is not allowed for "button".`, so a
+1.9.2 baseline entry for that code no longer matches. Write the baseline again. One change in 1.9.1: a root nested in an allowed one is
 now Texuli's `not-allowed` finding, one per root with Texuli's selector,
 instead of the CLI's one per id. A 1.9.0 baseline entry for such a root no
 longer matches (it counts as fixed and the new finding as new), so write
