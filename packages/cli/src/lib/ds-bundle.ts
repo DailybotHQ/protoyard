@@ -377,7 +377,7 @@ export function exportBundle(location: DesignSystemLocation): ExportedBundle {
       approvedAt: release.approvedAt,
       approvedBy: release.approvedBy,
       status: 'approved',
-      ...(release.notes ? { changelog: release.notes } : {}),
+      ...(release.changelog ? { changelog: release.changelog } : {}),
     });
   }
   const approval = readDocumentApproval(document);

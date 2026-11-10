@@ -373,6 +373,8 @@ export interface MergeOutcome {
   manifests: readonly (CatalogManifestLike | CatalogExtensionManifest)[];
   refusals: readonly MergeRefusal[];
   merge: DsCatalogMerge;
+  /** Texuli's merged catalog itself (what `texuli/ds-kit` takes as `catalog`). */
+  catalog: SpecCatalog;
 }
 
 /**
@@ -421,11 +423,13 @@ export function mergeWithExtensions(
       catalogHash: merged.catalog.catalogHash,
       extensions: merged.extensions.map((e) => ({ namespace: e.namespace, digest: e.digest })),
     },
+    catalog: merged.catalog,
   };
 }
 
 let cached: DsCatalog | undefined;
 let cachedTexuli: CatalogManifestLike[] | undefined;
+let cachedSpecCatalog: SpecCatalog | undefined;
 
 /** The installed Texuli manifests with their imports, groups and emit tiers (loaded once). */
 function texuliManifests(): CatalogManifestLike[] {
@@ -497,6 +501,7 @@ export function dsCatalog(): DsCatalog {
     };
     const texuli = texuliManifests();
     const merged = mergeWithExtensions(texuli);
+    cachedSpecCatalog = merged.catalog;
     cached = catalogFromManifests(merged.manifests, {
       refusals: merged.refusals,
       merge: merged.merge,
@@ -505,6 +510,16 @@ export function dsCatalog(): DsCatalog {
     });
   }
   return cached;
+}
+
+/**
+ * Texuli's merged catalog (`mergeCatalogs` over the installed catalog and the
+ * extensions) as `SpecCatalog`: the vocabulary `texuli/ds-kit` reads. Built
+ * with {@link dsCatalog}, once per process.
+ */
+export function dsSpecCatalog(): SpecCatalog {
+  dsCatalog();
+  return cachedSpecCatalog as SpecCatalog;
 }
 
 const TEXULI_MODULE = /^(?:texuli|@texuli\/[a-z0-9-]+)(?:\/[\w./-]+)?$/;

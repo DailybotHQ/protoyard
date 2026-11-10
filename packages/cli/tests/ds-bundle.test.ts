@@ -9,7 +9,6 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join, relative } from 'node:path';
-import { designSystemContentHash } from '@texuli/spec/design-system';
 import { checkDesignSystemFull } from '@texuli/tools/ds-check';
 import { afterEach, describe, expect, it } from 'vitest';
 import { dsCheckInputs } from '../src/lib/ds-catalog.ts';
@@ -67,7 +66,7 @@ describe('design-system bundles (ds export --bundle, ds import)', { timeout: 120
   const ds = (ws: TempWorkspace, ...args: string[]) =>
     cli(['--root', ws.root, '--json', 'ds', ...args]);
 
-  /** An approved folder with a component, its request and story, a release record and a stray file. */
+  /** An approved folder with a component, its request and story, a release recorded by `ds approve --release` and a stray file. */
   async function source(): Promise<TempWorkspace> {
     const ws = workspace();
     const steps: string[][] = [
@@ -86,33 +85,21 @@ describe('design-system bundles (ds export --bundle, ds import)', { timeout: 120
       ],
       ['component', 'approve-request', 'harbor', 'StatusPill', '--by', 'Bo Example'],
       ['component', 'new', 'harbor', 'StatusPill'],
-      ['approve', 'harbor', '--by', 'Ada Example'],
+      [
+        'approve',
+        'harbor',
+        '--by',
+        'Ada Example',
+        '--release',
+        '1.0.0',
+        '--changelog',
+        'First release.',
+      ],
     ];
     for (const step of steps) {
       const run = await ds(ws, ...step);
       expect(run.code, `${step.join(' ')}: ${run.stdout}`).toBe(0);
     }
-    const document = JSON.parse(
-      readFileSync(join(ws.root, 'design-systems/harbor/document.json'), 'utf8')
-    ) as Record<string, unknown>;
-    const component = JSON.parse(
-      readFileSync(join(ws.root, 'design-systems/harbor/components.json'), 'utf8')
-    ) as { components: { name: string; version: string; sha256: string }[] };
-    ws.write('design-systems/harbor/releases/1.0.0.json', {
-      format: 'protoyard/ds-release',
-      version: 1,
-      designSystem: 'harbor',
-      release: '1.0.0',
-      contentHash: designSystemContentHash(document),
-      approvedBy: 'Ada Example',
-      approvedAt: '2026-11-09T12:00:00.000Z',
-      components: component.components.map(({ name, version, sha256 }) => ({
-        name,
-        version,
-        sha256,
-      })),
-      notes: 'First release.',
-    });
     ws.write('design-systems/harbor/NOTES.md', '# Not part of a bundle\n');
     return ws;
   }

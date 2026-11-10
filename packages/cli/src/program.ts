@@ -38,7 +38,9 @@ import {
   dsComponentNewCommand,
   dsComponentRequestCommand,
 } from './commands/ds-component.ts';
+import { registerDsKitCommand } from './commands/ds-kit.ts';
 import { dsListCommand } from './commands/ds-list.ts';
+import { registerDsReleaseCommands } from './commands/ds-releases.ts';
 import { exportCommand } from './commands/export.ts';
 import { galleryBuildCommand, galleryPreviewCommand } from './commands/gallery-build.ts';
 import { generateCommand } from './commands/generate.ts';
@@ -693,7 +695,11 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--by <name>', 'who approves it')
     .option(
       '--release <semver>',
-      "approve this version (it also becomes the document's version; --version is the CLI's own flag)"
+      "approve this version (it also becomes the document's version; --version is the CLI's own flag) and record it as releases/<semver>.json"
+    )
+    .option(
+      '--changelog <text>',
+      'with --release: the release changelog entry (default: a summary of the changes since the previous release)'
     )
     .action(def('ds approve', dsApproveCommand));
   const dsAllow = ds
@@ -812,6 +818,8 @@ export function createProgram(env: RunnerEnv): Command {
     .argument('<Name>', 'component name (PascalCase)')
     .option('--by <name>', 'who approves it')
     .action(def('ds component approve', dsComponentApproveCommand));
+  registerDsReleaseCommands(ds, def);
+  registerDsKitCommand(ds, def);
 
   const kit = program
     .command('kit')

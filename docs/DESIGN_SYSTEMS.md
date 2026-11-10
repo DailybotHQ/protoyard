@@ -17,11 +17,12 @@ How a document compiles and paints, and the full `check ds` rules, are in
 | Step | How | Status |
 | --- | --- | --- |
 | 1. Create | `pnpm protoyard ds new <id>` from a few inputs, a theme, or your brand: a tokens file, a stylesheet, an SVG logo or a brief | Works |
-| 2. Review in a kit | Open the design system's UI kit and review every component | Planned (kit task); today review the document with `ds validate` and a prototype that uses it |
-| 3. Approve | A designer runs `ds approve <id> --by <name>` and commits the document for review | Works |
+| 2. Review in a kit | `pnpm protoyard ds kit <id>`, then open `prototypes/<id>-kit` and review every component | Works |
+| 3. Approve | A designer runs `ds approve <id> --by <name> [--release <semver>]` and commits the document (and its release) for review | Works |
 | 4. Create locked prototypes | `pnpm protoyard ds use <slug> <id> --lock` | Works |
 | 5. Request components | `ds component request`, `approve-request`, `new` | Works |
 | 6. Upgrade | Approve a new version, then `ds use <slug> <id> --upgrade` | Works |
+| 7. Release and compare | `ds release <id>`, `ds versions <id>`, `ds diff <id> [<from>] [<to>]` | Works |
 
 ### 1. Create
 
@@ -257,13 +258,67 @@ imports the `@protoyard/ui` sources use that Texuli's catalog neither maps nor
 lists as non-components (`@texuli/primitives` parts, compound parts of
 `texuli/sheet` and `texuli/navigation`) are a pinned list in the test.
 
-### 2. Review
+### 2. Review in the kit
 
-Planned: a generated UI kit prototype per design system, where a designer
-reviews every allowed component and the design system's own components with
-their stories. Until it lands, review the document itself (`ds validate`, `ds
-export --format css`) and a prototype that applies it with `ds use` (without
-`--lock`).
+```bash
+pnpm protoyard ds kit harbor
+pnpm protoyard dev harbor-kit
+```
+
+`ds kit <id>` writes the design system's kit prototype, `prototypes/<id>-kit`
+(the slug the gallery's **Open the kit** link looks for; `--slug` picks
+another). Its one screen is Texuli's `DesignSystemKit` (`texuli/ds-kit`),
+rendered from data, so it works for any design system:
+
+- **Header**: name, version, the approval with its content-hash check
+  (approved, draft, or changed since the approval), and a light, dark or
+  side-by-side mode switch.
+- **Foundations**: every compiled token per mode, contrast pairs.
+- **Voice and rules**: the document's voice section.
+- **Components**: every catalog component the `allow` section enables, with
+  its variants, sizes and states, and the components it does not allow (as a
+  list, never as samples). The catalog is Texuli's merged catalog, so the
+  `protoyard:` extensions are listed too; Texuli renders no sample for them.
+- **Library**: the design system's own components (`@ds/<id>/<Name>`), each
+  with the variants of its story (`stories/<Name>.json`), in both modes, with
+  each entry's approval.
+- **Changes**: what changed since the previous release (tokens, allow,
+  library, approval), when the design system has one (see
+  [7. Release and compare versions](#7-release-and-compare-versions)).
+
+The path names the section and item (`#/matrix/button`,
+`#/library/status-pill`), so a link to one part of the kit survives a refresh.
+
+What the command writes:
+
+| File | What it holds |
+| --- | --- |
+| `src/kit/kit.json` | The document, its compiled output (with Texuli's allow manifest), Texuli's merged catalog reduced to what the kit reads, the library stories and the previous release's document and compiled output |
+| `src/kit/library.ts` | One `@ds/<id>/<Name>` import per library component with a source file |
+| `src/App.svelte`, `src/screens/KitPage.svelte`, `src/kit/model.ts` | The routed kit page (the same for every design system) |
+| `src/prototype.ts`, `src/database/schema.ts`, `src/scenarios/*` | A definition with no domain tables and one `review` scenario with a fictional reviewer |
+| `tests/kit.test.ts`, `index.html`, `README.md`, the kit fields of `protoyard.json` | |
+
+- **Created once, refreshed after.** The first run copies the `blank`
+  template (its `src/` except `main.ts` and `app.css` is replaced), links it
+  with `pnpm install` (`--no-install` skips that) and indexes it, so the
+  gallery lists it. Later runs rewrite only the files whose content changed:
+  the same design system gives the same bytes, and a rerun writes nothing.
+  Re-run it after every change to the design system; `ds kit <id> --check`
+  writes nothing and exits 4 when the kit is missing or stale (use it in CI).
+- **Bound, not locked.** The kit binds to the design system
+  (`designSystem: { id, version, locked: false }`) through the `ds use` code
+  path, and follows the document's version on every refresh. It is not locked
+  because a kit has to render a draft under review, and a lock refuses a
+  draft. It still uses only the design system: the command runs the `check
+  ds` scan on it after every write and fails (exit 4) on a violation.
+- Everything under `src/` except `main.ts` and `app.css` belongs to the
+  command; `src/design-system.ts` is written by the `ds use` path it runs.
+  The command refuses a `prototypes/<slug>` folder that is not this design
+  system's kit.
+
+Commit the kit with the design system, or leave it out and regenerate it
+where you review; both work, since it is rebuilt from the folder alone.
 
 ### 3. Approve
 
@@ -285,8 +340,12 @@ pnpm protoyard ds approve harbor --by "Ada Example" --release 1.1.0
 }
 ```
 
-`--release <semver>` approves that version and makes it the document's
-`version` (the flag is not `--version`, which prints the CLI's own version).
+`--release <semver>` approves that version, makes it the document's
+`version` (the flag is not `--version`, which prints the CLI's own version)
+and records the release `releases/<semver>.json` (see
+[7. Release and compare versions](#7-release-and-compare-versions));
+`--changelog <text>` gives its changelog entry. When that release already
+exists the command refuses before it writes anything.
 It refuses a flat document (run `ds migrate` first), an unknown id, a document
 without `allow`, an `allow` section the catalog refuses and a missing `--by`.
 It prints Texuli's note and the commit guidance. Commit `document.json` in a
@@ -294,8 +353,22 @@ change a human reviews.
 
 **An approval is a record, not a proof.** The CLI cannot tell who ran the
 command. The guarantee is the reviewed commit; protect `design-systems/` with
-CODEOWNERS (for example a `/design-systems/` line naming your design team) so
-a designer has to approve every change there. No MCP tool approves.
+CODEOWNERS so a designer has to approve every change there. No MCP tool
+approves.
+
+A `.github/CODEOWNERS` (or `CODEOWNERS` at the root, or in `docs/`) for a
+workspace on GitHub, with branch protection that requires code-owner review;
+the team names are examples:
+
+```text
+# Design systems: documents, approvals, releases, components and stories.
+/design-systems/            @example-org/design-reviewers
+# Kit prototypes are rebuilt from the folder (`protoyard ds kit <id>`).
+/prototypes/*-kit/          @example-org/design-reviewers
+```
+
+This repository has no `design-systems/` folder of its own, so it ships no
+such file; the snippet is for the workspaces that keep design systems.
 
 A folder from before spec 0.13.0 may still hold the legacy
 `approval.json` sidecar. The CLI reads it when the document has no `approval`,
@@ -354,6 +427,44 @@ pnpm protoyard ds use harbor-orders harbor --upgrade
 added or were removed. Without it, `ds use` refuses a new version for a bound
 prototype.
 
+### 7. Release and compare versions
+
+```bash
+pnpm protoyard ds approve harbor --by "Ada Example" --release 1.1.0 --changelog "Teal brand, compact density"
+pnpm protoyard ds release harbor          # record a version already approved
+pnpm protoyard ds versions harbor
+pnpm protoyard ds diff harbor             # the document against the last release with other content
+pnpm protoyard ds diff harbor 1.0.0 1.1.0
+```
+
+A release is an immutable snapshot of one approved version:
+`design-systems/<id>/releases/<version>.json` holds the whole document as
+approved, its content hash, who approved it and when, the `components.json`
+entries (name, version, source hash) and a changelog entry.
+
+- `ds approve --release <semver>` approves and records in one step. `ds
+  release <id>` records a version that is already approved: the approval must
+  be for the document's version and its hash must match the document now
+  (approve again after a change). Both refuse to overwrite a release; a new
+  version is a new file.
+- Without `--changelog`, the entry is a summary of the changes since the
+  previous release (`Changes since 1.0.0: tokens 138 changed, 0 added, 0
+  removed; allow 0 added, 1 removed, 0 lists changed`), or `First release of
+  <id> (<version>).`
+- `ds versions <id>` lists the releases, oldest first, whether the current
+  document is released, and the release it is compared with. A file that
+  fails its schema, names another design system or version, or whose
+  document no longer matches its hash is listed under `issues` and ignored.
+- `ds diff <id> [<from>] [<to>]` compares two versions, each `current` or a
+  release. By default `to` is `current` and `from` is the newest release at or
+  below its version whose content differs (for a release, the newest one
+  below it). Token changes and contrast regressions come from Texuli's
+  `diffDesignSystems` over both compiled versions; the allow changes
+  (components added or removed, lists changed), library changes and approval
+  changes have the shape of the kit's `KitChangesModel`.
+- The kit's **Changes** section compares the document with the same
+  baseline, using Texuli's own `changesModel`.
+
 ## List them
 
 ```bash
@@ -402,8 +513,8 @@ each one with its version, status, approval, whether it can be locked, its
 component count and its prototypes, linked when the gallery lists them. The
 prototype browser on the home page has a **Design system** filter (also as
 `?ds=<id>` in the URL), shown when at least one listed prototype is bound. An
-**Open the kit** link appears only when a prototype named `<id>-kit` exists;
-the kit itself is planned. The gallery checks the `designSystems` array as
+**Open the kit** link appears only when a prototype named `<id>-kit` exists
+(`ds kit <id>` writes it). The gallery checks the `designSystems` array as
 untrusted input and drops anything malformed.
 
 ## The full check
@@ -534,6 +645,7 @@ design-systems/
     components/*.svelte
     requests/<Name>.json   component requests
     stories/<Name>.json    the kit story of each component
+    releases/<version>.json  approved versions, never rewritten
   legacy.json              a flat document: usable with ds use, never locked
 ```
 
@@ -551,12 +663,13 @@ refuse every document the JSON Schema refuses.
 | `components.json` | `protoyard/ds-components`, version 1 | `urn:protoyard:design-system:components:1` | `components.schema.json` | `ds new`, `ds component new` and `approve` |
 | `requests/<Name>.json` | `protoyard/ds-component-request`, version 1 | `urn:protoyard:design-system:component-request:1` | `component-request.schema.json` | `ds component request`, `approve-request` |
 | `stories/<Name>.json` | `protoyard/ds-story`, version 1 | `urn:protoyard:design-system:story:1` | `story.schema.json` | `ds component new` |
-| `releases/<version>.json` | `protoyard/ds-release`, version 1 | `urn:protoyard:design-system:release:1` | `release.schema.json` | Planned: nothing writes it yet |
+| `releases/<version>.json` | `protoyard/ds-release`, version 1 | `urn:protoyard:design-system:release:1` | `release.schema.json` | `ds approve --release`, `ds release` |
 | `<id>-<version>.ds-bundle.json` (any name) | `protoyard/ds-bundle`, version 1 | `urn:protoyard:design-system:bundle:1` | `bundle.schema.json` | `ds export <id> --bundle`; read by `ds import` ([Share between workspaces](#share-between-workspaces)) |
 
 - The `$id`s are URNs: they name a contract and do not point at a hosted URL.
-- The release record is a draft contract for a planned task. It can change
-  until a command writes it.
+- A release record's `changelog` is at most 4,000 characters and its
+  `document` is the Texuli document as approved; the reader also checks that
+  the document's hash, id and version match the record.
 - The schema files live in the repository. The npm package carries the same
   contracts as the zod schemas in its code, not as separate `.json` files.
 - `contentHash` is Texuli's `designSystemContentHash`: the SHA-256 of the
@@ -580,7 +693,11 @@ The manifest binding is part of the prototype contract in `@protoyard/core`:
 | `ds new <id> [--from-tokens <file>\|--from-css <file>\|--from-logo <file.svg>\|--brief <text\|file\|->] [--allow all\|minimal\|<file>\|none] [--dry-run]` | Create a design system folder (or a flat file with `--out`) with an allow section; a brand source runs Texuli's generator and reports losses and AA repairs ([Create from your brand](#create-from-your-brand)) |
 | `ds list` | Every design system with its approval, lockability, component count and bound prototypes |
 | `ds validate <id\|file> [--strict]` | Validate and compile; check `allow` against the catalog; report approval, lockability and component drift; print Texuli's full check as `full` (`--strict` fails on its errors) |
-| `ds approve <id> --by <name> [--release <semver>]` | Approve it in the document (a human, never an MCP tool) |
+| `ds approve <id> --by <name> [--release <semver> [--changelog <text>]]` | Approve it in the document (a human, never an MCP tool); `--release` also records the release |
+| `ds release <id> [--changelog <text>]` | Record the approved version as `releases/<version>.json` |
+| `ds versions <id>` | The releases and where the document stands |
+| `ds diff <id> [<from>] [<to>]` | What changed between two versions |
+| `ds kit <id> [--slug] [--check] [--dry-run] [--no-install]` | Write or refresh the kit prototype `prototypes/<id>-kit` |
 | `ds allow init <id\|file> [--preset …] [--force]` | Add an allow section to a design system without one |
 | `ds migrate <id>` | Turn a flat document into a folder; fold a legacy `approval.json` into the document; add `components.json` components to the library |
 | `ds export <id\|file> [--format css\|tailwind\|json]` | CSS variables, a Tailwind preset or compiled JSON |
@@ -595,15 +712,16 @@ Every command takes `--json`. The MCP server exposes `ds_create`, `ds_list`,
 `ds_component_new` ([MCP](MCP.md#tools)); `ds_create` takes `allow` (`all`,
 `minimal` or `none`) and one brand source (`brief`, `fromTokens`, `fromCss`,
 `fromLogo` or `fromTheme`; a `brief` of `-` is refused). Its result is a draft.
-There is no approval tool, on purpose.
+There is no approval or release tool, on purpose, and no MCP tool for
+`ds versions`, `ds diff` or `ds kit` yet (run the CLI with `--json`).
 
 ## Planned
 
 These are not available today:
 
-- **UI kit**: a generated kit prototype per design system for review.
-- **Versions**: release records (`releases/<version>.json`) so older
-  versions stay available to pinned prototypes.
+- **Pinned older versions**: a prototype pinned to an older release still
+  compiles the current document. Releases keep every approved document, but
+  `ds use` cannot apply a release yet.
 - **Generator inputs**: `protoyard generate` and `quick` taking a design
   system so new prototypes start locked.
 
@@ -638,3 +756,10 @@ These are not available today:
   Texuli's allow manifest inside the bundle keeps at most 256 allow keys and
   32 values per axis (it truncates without a refusal); the document itself
   carries the whole allow section, and that is what import writes.
+- The kit page is long (every allowed component with its states, in both
+  modes): about 92,000 px for the `all` allow preset in a 1280 px window, and
+  a 432 KB `kit.json`. Its production build is one 695 KB chunk plus Texuli's
+  component chunks; measured on one design system, not a budget.
+- A release keeps the document, not the component sources: `components`
+  records their hashes only. `ds diff` and the kit recompile an old document
+  with the installed Texuli, so a newer Texuli can compile it differently.

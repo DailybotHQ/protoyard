@@ -74,6 +74,7 @@ import {
   SOURCE_FLAGS,
 } from '../lib/ds-generate.ts';
 import { formatFinding, validateFull } from '../lib/ds-full.ts';
+import { assertNoRelease, buildRelease, checkChangelog, writeRelease } from '../lib/ds-releases.ts';
 import { inspectSpec } from '../lib/inspect.ts';
 import { CliError } from '../lib/output.ts';
 import { workspaceLayout } from '../lib/paths.ts';
@@ -1282,9 +1283,11 @@ async function migrateFolder(root: string, id: string, dryRun: boolean): Promise
 const now = () => new Date().toISOString();
 
 /**
- * `ds approve <id> --by <name> [--release <semver>]`: Texuli's
- * `approveDesignSystem` stamps the document's `approval` (status, who, when,
- * version and content hash) and the CLI writes `document.json`. Refuses flat
+ * `ds approve <id> --by <name> [--release <semver> [--changelog <text>]]`:
+ * Texuli's `approveDesignSystem` stamps the document's `approval` (status,
+ * who, when, version and content hash) and the CLI writes `document.json`.
+ * With `--release`, it also records `releases/<semver>.json` (refused up
+ * front when that release exists). Refuses flat
  * documents, unknown ids, documents without an `allow` section and allow
  * sections the catalog refuses. No MCP tool approves: approvals are human.
  */
@@ -1329,6 +1332,12 @@ export const dsApproveCommand: Handler = async (ctx, args, options): Promise<Com
     );
   }
   const version = opt(options, 'release');
+  const changelog = checkChangelog(opt(options, 'changelog'));
+  if (changelog !== undefined && !version) {
+    throw new CliError('usage', '--changelog applies only with --release <semver>.');
+  }
+  // A release is never rewritten: refuse before the document changes.
+  if (version) assertNoRelease(location, version);
   const approved = approveDesignSystem(document, {
     by,
     at: now(),
@@ -1336,6 +1345,9 @@ export const dsApproveCommand: Handler = async (ctx, args, options): Promise<Com
   });
   if (!approved.ok) throw issuesError(`Could not approve design system "${id}".`, approved.errors);
   writeDocumentFile(location, approved.document);
+  const release = version
+    ? writeRelease(location, (await buildRelease(location, approved.document, changelog)).record)
+    : undefined;
   const sidecar = location.dir ? existsSync(join(location.dir, APPROVAL_FILE)) : false;
   const guidance = [
     `Commit ${location.file} yourself, in a commit a designer reviews.`,
@@ -1349,6 +1361,7 @@ export const dsApproveCommand: Handler = async (ctx, args, options): Promise<Com
     approval: approved.document.approval,
     note: APPROVAL_NOTE,
     guidance,
+    ...(release ? { release } : {}),
     ...(sidecar ? { legacySidecar: `${DESIGN_SYSTEMS_DIR}/${id}/${APPROVAL_FILE}` } : {}),
   };
   return {
@@ -1358,6 +1371,7 @@ export const dsApproveCommand: Handler = async (ctx, args, options): Promise<Com
         `Approved ${id}@${data.version} as ${by} in ${location.file} (content hash ${data.contentHash.slice(0, 12)}).`
       );
       o.always(`  ${APPROVAL_NOTE}`);
+      if (release) o.always(`  Recorded the release ${release}; commit it with the document.`);
       for (const line of guidance) o.always(`  ${line}`);
       if (sidecar) {
         o.always(
