@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:protoyard:design-system:bundle:1",
-  "title": "Design-system bundle manifest (protoyard/ds-bundle), planned",
-  "description": "bundle.json (in an exported design-system bundle) (planned: no command writes this file yet; the contract may change before it lands). Generated from packages/cli/src/lib/ds-contracts.ts.",
+  "title": "Portable design-system bundle (protoyard/ds-bundle)",
+  "description": "<id>-<version>.ds-bundle.json (protoyard ds export <id> --bundle). Generated from packages/cli/src/lib/ds-contracts.ts.",
   "type": "object",
   "properties": {
     "format": {
@@ -25,9 +25,16 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
+    "texuli": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {}
+    },
     "files": {
       "minItems": 1,
-      "maxItems": 1000,
+      "maxItems": 400,
       "type": "array",
       "items": {
         "type": "object",
@@ -46,6 +53,14 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 1048576
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 1048576
+          },
+          "from": {
+            "type": "string",
+            "pattern": "^(?:document|library:[a-z][a-z0-9-]{0,63})$"
           }
         },
         "required": ["path", "sha256", "bytes"],
@@ -53,6 +68,6 @@
       }
     }
   },
-  "required": ["format", "version", "designSystem", "release", "contentHash", "files"],
+  "required": ["format", "version", "designSystem", "release", "contentHash", "texuli", "files"],
   "additionalProperties": false
 }
