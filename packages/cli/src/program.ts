@@ -31,6 +31,7 @@ import {
   dsUseCommand,
   dsValidateCommand,
 } from './commands/ds.ts';
+import { dsImportCommand } from './commands/ds-bundle.ts';
 import {
   dsComponentApproveCommand,
   dsComponentApproveRequestCommand,
@@ -669,6 +670,7 @@ export function createProgram(env: RunnerEnv): Command {
       'validate an untrusted design-system document (and its allow section against the Texuli catalog) and compile it; a folder also reports its approval and component library'
     )
     .argument('<id|file>', 'design-system id (design-systems/<id>/ or <id>.json) or JSON file')
+    .option('--strict', "also fail when Texuli's full check (printed as `full`) reports an error")
     .action(def('ds validate', dsValidateCommand));
   ds.command('list')
     .description(
@@ -707,14 +709,38 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--dry-run', 'show what would change without writing')
     .action(def('ds migrate', dsMigrateCommand));
   ds.command('export')
-    .description('export a design system as CSS variables, a Tailwind preset or compiled JSON')
-    .argument('<file>', 'design-system JSON file')
+    .description(
+      'export a design system as CSS variables, a Tailwind preset or compiled JSON; --bundle packs a design-system folder into one portable JSON bundle'
+    )
+    .argument('<id|file>', 'design-system id or JSON file (--bundle: a design-system id)')
     .addOption(
       new Option('--format <format>', 'css, tailwind or json')
         .choices(['css', 'tailwind', 'json'])
         .default('css')
     )
+    .option(
+      '--bundle',
+      'pack the folder design-systems/<id>/ (document, components with their hashes, requests, stories, releases) into a protoyard/ds-bundle JSON file'
+    )
+    .option(
+      '--out <file>',
+      'with --bundle: write the bundle to this workspace file (default: print it)'
+    )
+    .option('--force', 'with --bundle --out: replace an existing file')
     .action(def('ds export', dsExportCommand));
+  ds.command('import')
+    .description(
+      'import a design-system bundle (untrusted input): checks its schema, Texuli bundle, paths, sizes and every hash before writing design-systems/<id>/; an imported approval is a record, not a proof'
+    )
+    .argument('<file>', 'a protoyard/ds-bundle JSON file (absolute, or relative to the workspace)')
+    .option(
+      '--id <id>',
+      'import under another id (resets an approval to draft: the hash covers the id)'
+    )
+    .option('--force', 'replace an existing design-systems/<id>/ folder (staged, then renamed)')
+    .option('--draft', "reset the document's approval to draft so it is approved again here")
+    .option('--dry-run', 'run every check and print what would be written; writes nothing')
+    .action(def('ds import', dsImportCommand));
   ds.command('use')
     .description(
       'apply a design system to a prototype: src/design-system.ts, its themes and defaultTheme'

@@ -168,7 +168,11 @@ const VALID: Record<string, Json> = {
     designSystem: 'harbor',
     release: '1.2.0',
     contentHash: HASH,
-    files: [{ path: 'document.json', sha256: HASH, bytes: 120 }],
+    texuli: { format: 'texuli/design-system-bundle', version: 1 },
+    files: [
+      { path: 'document.json', sha256: HASH, bytes: 120, from: 'document' },
+      { path: 'components.json', sha256: HASH, bytes: 64, text: '{}' },
+    ],
   },
 };
 
@@ -305,7 +309,8 @@ const INVALID: Record<string, [string, Json][]> = {
         designSystem: 'harbor',
         release: '1.2.0',
         contentHash: HASH,
-        files: [{ path: '../secret.json', sha256: HASH, bytes: 1 }],
+        texuli: {},
+        files: [{ path: '../secret.json', sha256: HASH, bytes: 1, text: 'x' }],
       },
     ],
     [
@@ -316,7 +321,8 @@ const INVALID: Record<string, [string, Json][]> = {
         designSystem: 'harbor',
         release: '1.2.0',
         contentHash: HASH,
-        files: [{ path: '/etc/passwd', sha256: HASH, bytes: 1 }],
+        texuli: {},
+        files: [{ path: '/etc/passwd', sha256: HASH, bytes: 1, text: 'x' }],
       },
     ],
   ],
@@ -379,7 +385,7 @@ describe('design-system JSON Schemas (PLAN_013 T-contracts)', () => {
     expect(ids.size).toBe(DESIGN_SYSTEM_CONTRACTS.length);
     expect(
       DESIGN_SYSTEM_CONTRACTS.filter((c) => c.status === 'planned').map((c) => c.name)
-    ).toEqual(['release', 'bundle']);
+    ).toEqual(['release']);
   });
 
   for (const c of DESIGN_SYSTEM_CONTRACTS) {

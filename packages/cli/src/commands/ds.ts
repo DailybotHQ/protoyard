@@ -73,12 +73,14 @@ import {
   generateFromSource,
   SOURCE_FLAGS,
 } from '../lib/ds-generate.ts';
+import { formatFinding, validateFull } from '../lib/ds-full.ts';
 import { inspectSpec } from '../lib/inspect.ts';
 import { CliError } from '../lib/output.ts';
 import { workspaceLayout } from '../lib/paths.ts';
 import { resolvePackageBin, run } from '../lib/process.ts';
 import { CLI_VERSION, resolveTarget } from '../lib/workspace.ts';
 import { workspaceFile } from '../lib/workspace-file.ts';
+import { dsExportBundle } from './ds-bundle.ts';
 import { specForPrototype } from './spec.ts';
 
 /**
@@ -575,7 +577,7 @@ function renderSummary(
   }
 }
 
-export const dsValidateCommand: Handler = async (ctx, args): Promise<CommandResult> => {
+export const dsValidateCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const ref = args[0];
   if (!ref) throw new CliError('usage', 'Missing <id|file>.');
   const location = locateDesignSystem(ctx.root, ref);
@@ -626,6 +628,9 @@ export const dsValidateCommand: Handler = async (ctx, args): Promise<CommandResu
     drift,
     lockable: location.layout === 'folder' && lockable === null,
     ...(lockable ? { lockRefusal: lockable } : {}),
+    // Texuli's full validator over the merged catalog (a new key; the exit
+    // code changes on it only with --strict).
+    full: await validateFull(document, file),
   };
   if (drift.length > 0) {
     throw new CliError(
@@ -636,6 +641,20 @@ export const dsValidateCommand: Handler = async (ctx, args): Promise<CommandResu
         hint: drift
           .slice(0, 5)
           .map((d) => `${d.file}: ${d.problem}`)
+          .join(' · '),
+      }
+    );
+  }
+  if (flag(options ?? {}, 'strict') && !data.full.ok) {
+    throw new CliError(
+      'validation',
+      `${file} fails Texuli's full check: ${data.full.codes.join(', ')}.`,
+      {
+        data,
+        hint: data.full.findings
+          .filter((f) => f.severity === 'error')
+          .slice(0, 3)
+          .map(formatFinding)
           .join(' · '),
       }
     );
@@ -658,13 +677,22 @@ export const dsValidateCommand: Handler = async (ctx, args): Promise<CommandResu
           );
         }
       }
+      const full = data.full;
+      o.always(
+        `  full check: ${full.ok ? 'passes' : 'fails'} (${full.summary.errors} error(s), ${full.summary.warnings} warning(s), ${full.summary.info} info)`
+      );
+      for (const finding of full.findings.slice(0, 10)) o.always(`    ${formatFinding(finding)}`);
     },
   };
 };
 
 export const dsExportCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const file = args[0];
-  if (!file) throw new CliError('usage', 'Missing <file>.');
+  if (!file) throw new CliError('usage', 'Missing <id|file>.');
+  if (flag(options, 'bundle')) return dsExportBundle(ctx.root, file, options);
+  if (opt(options, 'out') !== undefined) {
+    throw new CliError('usage', '--out goes with --bundle.');
+  }
   const format = (opt(options, 'format') ?? 'css') as DesignSystemExportFormat;
   const result = await compileOrFail(readDocument(ctx.root, file), file);
   const content = await exportDesignSystem(result.compiled, format);

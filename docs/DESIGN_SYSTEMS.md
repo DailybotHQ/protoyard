@@ -406,6 +406,124 @@ prototype browser on the home page has a **Design system** filter (also as
 the kit itself is planned. The gallery checks the `designSystems` array as
 untrusted input and drops anything malformed.
 
+## The full check
+
+`ds validate` runs Texuli's full validator, `checkDesignSystemFull` from
+`@texuli/tools/ds-check`, over the installed Texuli catalog with Protoyard's
+catalog extensions (`protoyard:*`) merged, the same merge `ds validate` and
+`check ds` use for the allow section. Its report is the `full` key of
+`--json`: `ok`, the error `codes`, a `summary` (errors, warnings, info) and
+every finding with Texuli's stable code, severity, area, path and fix hint
+(structure, `extends`, allow, approval and content hash, contrast, data-viz
+palette, tokens). The human output prints the counts and the first ten
+findings.
+
+The exit code does not change on it: a document that passed `ds validate`
+before still passes, and a stale approval stays a reason `lockable` is false.
+`--strict` also fails (exit 4) when the full report has an error. `ds import`
+prints the same report for the document it imports.
+
+## Share between workspaces
+
+```bash
+pnpm protoyard ds export harbor --bundle --out tmp/harbor.ds-bundle.json
+pnpm protoyard ds import tmp/harbor.ds-bundle.json --dry-run
+pnpm protoyard ds import tmp/harbor.ds-bundle.json
+```
+
+`ds export <id> --bundle` packs the folder `design-systems/<id>/` into one
+JSON file. Without `--out` it prints the bundle (`--json` returns it as
+`data.bundle`); `--out` writes a workspace file and refuses an existing one
+without `--force`. It refuses a flat document (run `ds migrate`), a symlink
+in the folder, a file that is not UTF-8 or is over 1 MiB, a JSON file its
+schema refuses and component drift (a bundle only carries sources that match
+their `components.json` hashes). Files the format does not know (a `README`,
+`.DS_Store`) are left out and listed as `skipped`. The same folder always
+packs to the same bytes: the bundle holds no timestamp.
+
+**The format** (`protoyard/ds-bundle`, version 1, `bundle.schema.json`):
+
+```json
+{
+  "format": "protoyard/ds-bundle",
+  "version": 1,
+  "designSystem": "harbor",
+  "release": "1.0.0",
+  "contentHash": "<designSystemContentHash of the document>",
+  "texuli": { "format": "texuli/design-system-bundle", "version": 1, "...": "..." },
+  "files": [
+    { "path": "components.json", "sha256": "…", "bytes": 412, "text": "{…}" },
+    { "path": "components/StatusPill.svelte", "sha256": "…", "bytes": 980, "from": "library:status-pill" },
+    { "path": "document.json", "sha256": "…", "bytes": 6120, "from": "document" }
+  ]
+}
+```
+
+- `texuli` is Texuli's own bundle, made by `packBundle` in
+  `@texuli/spec/design-system`: the document, each component's source as text
+  with its SHA-256 (library id = the component name in kebab case), the allow
+  manifest (with the merged catalog's digest and the `protoyard` extension
+  namespace) and the release history (each `releases/<version>.json`, and the
+  current approval when it matches the document). Texuli's bundle schema is
+  closed, so Protoyard's files ride beside it, not inside it.
+- `files` lists every file of the folder: `document.json`, `components.json`,
+  `components/<Name>.svelte`, `requests/<Name>.json`, `stories/<Name>.json`,
+  `releases/<version>.json` and a legacy `approval.json`. Each has its
+  SHA-256 and size, and either its UTF-8 `text` or `from`, which names where
+  its bytes already are: `document` (the document as the CLI writes it,
+  two-space JSON) or `library:<id>` (a component source). So nothing is
+  stored twice.
+
+**Import is untrusted input.** `ds import` checks the whole bundle before it
+writes a byte:
+
+1. the file is a regular file (never a symlink) of at most 8 MiB, parsed with
+   `JSON.parse`, nested at most 64 levels;
+2. Protoyard's schema (closed objects, at most 400 files, each at most 1 MiB,
+   `text` or `from`, never both);
+3. Texuli's `validateBundle` (through `unpackBundle`): the document schema at
+   trust `untrusted`, path-safe source ids, every source hash, the allow
+   manifest's content hash, the history and its caps;
+4. every path against a closed list (no `..`, no absolute path, no backslash,
+   no unknown file such as `NOTES.md` or `components/evil.js`), with
+   duplicates refused, also case-insensitively (`requests/STATUSPILL.json`
+   next to `requests/StatusPill.json`);
+5. every file's bytes against its recorded SHA-256 and size, at most 8 MiB in
+   all, and every library source used by exactly one component file;
+6. `document.json` against Texuli's document, each JSON file against its own
+   schema, `components.json` against the component files (hash, missing,
+   unlisted) and their library sources, release records against the id;
+7. the document compiles (as data), and Texuli's full check runs (reported,
+   not blocking, as in `ds validate`).
+
+Then it writes into a hidden staging folder
+(`design-systems/.<id>.import-<random>`, which the index skips) and renames it
+into place. It never replaces an existing `design-systems/<id>/` without
+`--force`; with it, the old folder moves aside, the staged one takes its
+place, and the old one is removed (moved back if the rename fails). A flat
+`design-systems/<id>.json` of the same id is never shadowed. Nothing in a
+bundle is executed, compiled as code or rendered as HTML; the component
+sources are text until a prototype imports them after review. `--dry-run`
+runs every check and writes nothing. `--id <id>` imports under another id:
+the document's `id` changes, so its approval resets to draft; it is refused
+when the bundle has release records, which name the original id.
+
+**The approval on import.** It is imported as it was, so an unchanged
+round trip gives byte-identical files and a reviewer sees exactly what the
+source workspace approved. But an imported approval is a record from another
+workspace, **not a proof**: anyone can edit a JSON file. The import prints
+`importedFrom` (the bundle file and its SHA-256) and that note. The
+guarantee stays the same as for any design-system change: the import lands in
+a commit a designer reviews (CODEOWNERS on `design-systems/`). A workspace
+that wants its own approval passes `--draft`, which resets the document's
+approval to `{ "status": "draft", "version": … }` (the content hash covers no
+approval, so `ds approve` re-approves the same content).
+
+Why not always reset it: the content hash would not change, so a reset would
+only add a step, and the reviewed commit is the guarantee either way. Keeping
+it makes a bundle reproduce the folder exactly; `--draft` is there for a
+workspace whose policy is to re-approve everything it imports.
+
 ## Folder layout and contracts
 
 ```text
@@ -434,11 +552,11 @@ refuse every document the JSON Schema refuses.
 | `requests/<Name>.json` | `protoyard/ds-component-request`, version 1 | `urn:protoyard:design-system:component-request:1` | `component-request.schema.json` | `ds component request`, `approve-request` |
 | `stories/<Name>.json` | `protoyard/ds-story`, version 1 | `urn:protoyard:design-system:story:1` | `story.schema.json` | `ds component new` |
 | `releases/<version>.json` | `protoyard/ds-release`, version 1 | `urn:protoyard:design-system:release:1` | `release.schema.json` | Planned: nothing writes it yet |
-| `bundle.json` in an exported bundle | `protoyard/ds-bundle`, version 1 | `urn:protoyard:design-system:bundle:1` | `bundle.schema.json` | Planned: nothing writes it yet |
+| `<id>-<version>.ds-bundle.json` (any name) | `protoyard/ds-bundle`, version 1 | `urn:protoyard:design-system:bundle:1` | `bundle.schema.json` | `ds export <id> --bundle`; read by `ds import` ([Share between workspaces](#share-between-workspaces)) |
 
 - The `$id`s are URNs: they name a contract and do not point at a hosted URL.
-- The release record and the bundle manifest are draft contracts for planned
-  tasks. They can change until a command writes them.
+- The release record is a draft contract for a planned task. It can change
+  until a command writes it.
 - The schema files live in the repository. The npm package carries the same
   contracts as the zod schemas in its code, not as separate `.json` files.
 - `contentHash` is Texuli's `designSystemContentHash`: the SHA-256 of the
@@ -461,11 +579,13 @@ The manifest binding is part of the prototype contract in `@protoyard/core`:
 | --- | --- |
 | `ds new <id> [--from-tokens <file>\|--from-css <file>\|--from-logo <file.svg>\|--brief <text\|file\|->] [--allow all\|minimal\|<file>\|none] [--dry-run]` | Create a design system folder (or a flat file with `--out`) with an allow section; a brand source runs Texuli's generator and reports losses and AA repairs ([Create from your brand](#create-from-your-brand)) |
 | `ds list` | Every design system with its approval, lockability, component count and bound prototypes |
-| `ds validate <id\|file>` | Validate and compile; check `allow` against the catalog; report approval, lockability and component drift |
+| `ds validate <id\|file> [--strict]` | Validate and compile; check `allow` against the catalog; report approval, lockability and component drift; print Texuli's full check as `full` (`--strict` fails on its errors) |
 | `ds approve <id> --by <name> [--release <semver>]` | Approve it in the document (a human, never an MCP tool) |
 | `ds allow init <id\|file> [--preset …] [--force]` | Add an allow section to a design system without one |
 | `ds migrate <id>` | Turn a flat document into a folder; fold a legacy `approval.json` into the document; add `components.json` components to the library |
-| `ds export <file>` | CSS variables, a Tailwind preset or compiled JSON |
+| `ds export <id\|file> [--format css\|tailwind\|json]` | CSS variables, a Tailwind preset or compiled JSON |
+| `ds export <id> --bundle [--out <file>] [--force]` | Pack the folder into one portable bundle (printed, or written to `--out`) |
+| `ds import <file> [--id <id>] [--force] [--draft] [--dry-run]` | Check a bundle as untrusted input, then write `design-systems/<id>/` |
 | `ds use <slug> <id\|file> [--lock] [--upgrade]` | Apply a design system to a prototype; bind, lock or upgrade it |
 | `ds component request\|approve-request\|new\|approve` | Request, approve the request, scaffold and approve a component |
 | `check ds [slug…] [--report]` | The locked-prototype rules |
@@ -484,8 +604,6 @@ These are not available today:
 - **UI kit**: a generated kit prototype per design system for review.
 - **Versions**: release records (`releases/<version>.json`) so older
   versions stay available to pinned prototypes.
-- **Bundle**: an exported, hash-listed design-system bundle (`bundle.json`) to
-  share a design system between workspaces.
 - **Render check**: rendering every component of a locked prototype against
   the design system in a browser (it covers the axis values `check ds` skips
   because they are expressions).
@@ -508,5 +626,12 @@ These are not available today:
   Texuli components and 57 extensions).
 - `check ds` is a static, textual scan; see its limits in
   [THEMES](THEMES.md#check-ds).
-- A workspace's design systems are local files. Nothing is hosted, shared or
-  synchronized; a cloud version is a later step.
+- A workspace's design systems are local files. Nothing is hosted or
+  synchronized; a bundle file is how one moves between workspaces, by hand. A
+  cloud version is a later step.
+- An imported approval is a record from another workspace, not a proof.
+- A bundle carries at most 64 components (Texuli's cap), 32 history entries
+  and 400 files; its file is at most 8 MiB and each folder file at most 1 MiB.
+  Texuli's allow manifest inside the bundle keeps at most 256 allow keys and
+  32 values per axis (it truncates without a refusal); the document itself
+  carries the whole allow section, and that is what import writes.

@@ -425,16 +425,11 @@ export function mergeWithExtensions(
 }
 
 let cached: DsCatalog | undefined;
+let cachedTexuli: CatalogManifestLike[] | undefined;
 
-/**
- * The catalog of the installed `@texuli/catalog` merged with the catalog
- * extensions (built once per process). The manifests (about 0.5 MB of
- * modules) load on first use with a synchronous `require` (Node 24 loads ES
- * modules that way), so commands that never read a design system's allow
- * section do not pay for them.
- */
-export function dsCatalog(): DsCatalog {
-  if (!cached) {
+/** The installed Texuli manifests with their imports, groups and emit tiers (loaded once). */
+function texuliManifests(): CatalogManifestLike[] {
+  if (!cachedTexuli) {
     const load = createRequire(import.meta.url);
     const { ALL_MANIFEST_GROUPS } = load('@texuli/catalog/manifests/all') as {
       ALL_MANIFEST_GROUPS: readonly ManifestGroup[];
@@ -445,11 +440,10 @@ export function dsCatalog(): DsCatalog {
     // Texuli 0.15.0 keeps the public imports of each id beside the authored
     // manifests (`@texuli/catalog/imports`); a manifest that lists its own
     // imports keeps them.
-    const { IMPORTS_BY_ID, NON_COMPONENT_IMPORTS } = load('@texuli/catalog/imports') as {
+    const { IMPORTS_BY_ID } = load('@texuli/catalog/imports') as {
       IMPORTS_BY_ID?: Readonly<Record<string, readonly CatalogImport[]>>;
-      NON_COMPONENT_IMPORTS?: readonly CatalogImport[];
     };
-    const texuli = ALL_MANIFEST_GROUPS.flatMap((group) =>
+    cachedTexuli = ALL_MANIFEST_GROUPS.flatMap((group) =>
       group.manifests.map((manifest) => {
         const like = manifest as unknown as CatalogManifestLike;
         const imports = like.imports?.length ? like.imports : IMPORTS_BY_ID?.[like.id];
@@ -461,6 +455,47 @@ export function dsCatalog(): DsCatalog {
         };
       })
     );
+  }
+  return cachedTexuli;
+}
+
+/** What Texuli's full validator (`checkDesignSystemFull`) takes: its catalog and the host extensions. */
+export interface DsCheckInputs {
+  /** The installed Texuli catalog as a `SpecCatalog` ({@link specCatalogOf}). */
+  catalog: SpecCatalog;
+  /** Protoyard's catalog extensions as Texuli extension files (the ones `dsCatalog` merges). */
+  extensions: unknown[];
+}
+
+/**
+ * The catalog and extension files for `checkDesignSystemFull`, so Texuli's
+ * full check merges the same catalog `dsCatalog` does (extensions whose
+ * imports collide are left out, as there).
+ */
+export function dsCheckInputs(): DsCheckInputs {
+  const texuli = texuliManifests();
+  const colliding = new Set(importCollisions(texuli, CATALOG_EXTENSIONS).map((r) => r.id));
+  const candidates = CATALOG_EXTENSIONS.filter((extension) => !colliding.has(extension.id));
+  return {
+    catalog: specCatalogOf(texuli),
+    extensions: toExtensionFiles(candidates).map((entry) => entry.file),
+  };
+}
+
+/**
+ * The catalog of the installed `@texuli/catalog` merged with the catalog
+ * extensions (built once per process). The manifests (about 0.5 MB of
+ * modules) load on first use with a synchronous `require` (Node 24 loads ES
+ * modules that way), so commands that never read a design system's allow
+ * section do not pay for them.
+ */
+export function dsCatalog(): DsCatalog {
+  if (!cached) {
+    const load = createRequire(import.meta.url);
+    const { NON_COMPONENT_IMPORTS } = load('@texuli/catalog/imports') as {
+      NON_COMPONENT_IMPORTS?: readonly CatalogImport[];
+    };
+    const texuli = texuliManifests();
     const merged = mergeWithExtensions(texuli);
     cached = catalogFromManifests(merged.manifests, {
       refusals: merged.refusals,
