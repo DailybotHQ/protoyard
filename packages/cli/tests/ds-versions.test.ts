@@ -318,7 +318,7 @@ describe('diffVersions (allow and approval from Texuli changesModel)', () => {
         ],
       },
     ]);
-    // Texuli 0.17.1's changesModel now sees the same change (as `approval.<field>` rows).
+    // Texuli's changesModel finds the change (as `approval.<field>` rows); ds diff folds them.
     expect(
       changesModel({ document: before }, { document: after }).library.flatMap((c) =>
         (c.fields ?? []).map((f) => f.field)
@@ -326,24 +326,80 @@ describe('diffVersions (allow and approval from Texuli changesModel)', () => {
     ).toEqual(['approval.approvedBy', 'approval.contentHash']);
   });
 
-  it('keeps library changes Texuli 0.17.1 does not compare (approval.approvedAt)', async () => {
+  it('shows a library entry re-stamped at another approvedAt (Texuli 0.17.2 compares it)', async () => {
     const stamped = {
       ...entry,
       approval: { ...entry.approval, approvedAt: '2026-11-01T09:00:00Z' },
     };
+    const restamped = { ...stamped.approval, approvedAt: '2026-11-09T09:00:00Z' };
     const before = { ...base, library: [stamped] };
-    const after = {
-      ...base,
-      library: [
-        { ...stamped, approval: { ...stamped.approval, approvedAt: '2026-11-09T09:00:00Z' } },
-      ],
-    };
+    const after = { ...base, library: [{ ...stamped, approval: restamped }] };
     const diff = await diffVersions(
       { label: '1.0.0', document: before },
       { label: 'current', document: after }
     );
-    expect(diff.library.map((c) => c.fields?.map((f) => f.field))).toEqual([['approval']]);
-    // If Texuli starts comparing it, this pin fails and diffLibrary can move to changesModel.
-    expect(changesModel({ document: before }, { document: after }).library).toEqual([]);
+    expect(diff.library).toEqual([
+      {
+        kind: 'changed',
+        id: 'status-pill',
+        fields: [
+          {
+            field: 'approval',
+            before: JSON.stringify(stamped.approval),
+            after: JSON.stringify(restamped),
+          },
+        ],
+      },
+    ]);
+    expect(changesModel({ document: before }, { document: after }).library).toEqual([
+      {
+        kind: 'changed',
+        id: 'status-pill',
+        fields: [
+          {
+            field: 'approval.approvedAt',
+            before: '2026-11-01T09:00:00Z',
+            after: '2026-11-09T09:00:00Z',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('lists added, removed and changed entries in id order, several fields sorted by name', async () => {
+    const other = { ...entry, id: 'avatar-stack', name: 'AvatarStack', composes: ['avatar'] };
+    const gone = { ...entry, id: 'kpi-tile', name: 'KpiTile' };
+    const before = { ...base, library: [entry, gone] };
+    const changed = { ...entry, purpose: 'Shows a status', composes: ['badge', 'icon'] };
+    const after = { ...base, library: [changed, other] };
+    const diff = await diffVersions(
+      { label: '1.0.0', document: before },
+      { label: 'current', document: after }
+    );
+    expect(diff.library).toEqual([
+      { kind: 'added', id: 'avatar-stack' },
+      { kind: 'removed', id: 'kpi-tile' },
+      {
+        kind: 'changed',
+        id: 'status-pill',
+        fields: [
+          { field: 'composes', before: '["badge"]', after: '["badge","icon"]' },
+          { field: 'purpose', before: entry.purpose, after: 'Shows a status' },
+        ],
+      },
+    ]);
+  });
+
+  it('reads an approval written in another key order as unchanged', async () => {
+    const reordered = {
+      approvedBy: entry.approval.approvedBy,
+      version: entry.approval.version,
+      status: entry.approval.status,
+    };
+    const diff = await diffVersions(
+      { label: '1.0.0', document: { ...base, library: [entry] } },
+      { label: 'current', document: { ...base, library: [{ ...entry, approval: reordered }] } }
+    );
+    expect(diff.library).toEqual([]);
   });
 });
