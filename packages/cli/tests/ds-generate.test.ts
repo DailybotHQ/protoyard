@@ -38,6 +38,8 @@ type Generated = {
     color?: { brand?: { seed?: string; secondary?: string } };
     typography?: { families?: { sans?: { stack?: string[] } } };
     shape?: { radius?: number };
+    space?: { density?: number };
+    motion?: { personality?: string };
     approval?: { status?: string; approvedBy?: string };
   };
 };
@@ -182,10 +184,14 @@ describe('protoyard ds new from Texuli generator sources (PLAN_013 T-generator)'
     expect(data.generation.brief?.from).toBe('text');
     expect(data.document.color?.brand?.seed).toBe('#0f766e');
     expect(data.document.typography?.families?.sans?.stack?.[0]).toBe('Inter');
-    // `Inter font` is kept as written: Texuli 0.17.1 reads it (0.17.0 did not).
+    // Clauses Texuli 0.17.2 reads completely stay as written (`rounded corners`,
+    // `compact spacing`); the others are condensed to the words it reads.
     expect(data.generation.brief?.oneLiner).toBe(
-      'calm, brand #0f766e, Inter font, rounded, compact'
+      'calm, brand #0f766e, Inter font, rounded corners, compact spacing'
     );
+    expect(data.document.shape?.radius).toBe(12);
+    expect(data.document.space?.density).toBe(0.875);
+    expect(data.document.motion?.personality).toBe('subtle');
     expect(data.generation.brief?.reading[0]).toEqual({
       clause: 'A calm banking app for nurses',
       read: ['calm'],
@@ -427,39 +433,79 @@ describe('generator input helpers', () => {
       'Headings in Fraunces; accent color #f59e0b; subtle motion and glass surfaces',
       importBrand
     );
+    // Texuli 0.17.2 reads `Headings in X` and a colored clause itself; a clause
+    // it leaves words of (`glass surfaces`) is condensed here.
     expect(reading.map((entry) => entry.read)).toEqual([
-      ['heading Fraunces'],
-      ['accent #f59e0b'],
+      ['Headings in Fraunces'],
+      ['accent color #f59e0b'],
       ['subtle motion'],
       ['glass'],
     ]);
   });
 
-  it('reads every clause with a color itself: Texuli 0.17.1 can still misread one', () => {
+  it('sends a clause with a color to Texuli when it reads all of it (0.17.2 no longer misreads one)', () => {
     const { reading } = readProseBrief(
       'Deep teal #0f766e brand; Inter font in #0f766e; rounded #f59e0b; two colors #0f766e #f59e0b; secondary is #334155; rounded #0f766e Inter font; font Inter in #0f766e rounded',
       importBrand
     );
     expect(reading.map((entry) => entry.read)).toEqual([
       ['brand #0f766e'],
-      ['#0f766e', 'font Inter'],
-      ['#f59e0b', 'rounded'],
+      ['Inter font in #0f766e'],
+      ['rounded #f59e0b'],
       ['#0f766e', '#f59e0b'],
-      ['secondary #334155'],
-      ['#0f766e', 'font Inter', 'rounded'],
-      ['#0f766e', 'font Inter', 'rounded'],
+      ['secondary is #334155'],
+      ['rounded #0f766e Inter font'],
+      ['font Inter in #0f766e rounded'],
     ]);
-    // What Texuli alone makes of the last two, with no unmapped loss: a family
-    // with the word before the color in it, and `rounded` gone. If Texuli
-    // reads them right, this pin fails and colored clauses can go to Texuli.
-    const misread = importBrand('rounded #0f766e Inter font', { trust: 'untrusted', id: 'x' });
-    expect(misread.ok && misread.warnings.some((w) => w.code === 'unmapped')).toBe(false);
-    expect(misread.ok && misread.document.typography?.families?.sans?.stack?.[0]).toMatch(
-      /^rounded\s+Inter$/
+    // 0.17.1 read these two as the family "rounded Inter" and dropped `rounded`.
+    for (const clause of ['rounded #0f766e Inter font', 'font Inter in #0f766e rounded']) {
+      const read = importBrand(clause, { trust: 'untrusted', id: 'x' });
+      expect(read.ok && read.warnings.some((w) => w.code === 'unmapped')).toBe(false);
+      expect(read.ok && read.document.typography?.families?.sans?.stack?.[0]).toBe('Inter');
+      expect(read.ok && read.document.shape?.radius).toBe(12);
+    }
+  });
+
+  it('reads a font named after a joining word itself: Texuli 0.17.2 glues the word in', () => {
+    const { oneLiner, reading } = readProseBrief(
+      'the font is Inter; heading font is Fraunces; typeface of Inter; Mono uses JetBrains Mono',
+      importBrand
     );
-    const dropped = importBrand('font Inter in #0f766e rounded', { trust: 'untrusted', id: 'x' });
-    expect(dropped.ok && dropped.warnings.some((w) => w.code === 'unmapped')).toBe(false);
-    expect(dropped.ok && dropped.document.shape).toBeUndefined();
+    expect(reading.map((entry) => entry.read)).toEqual([
+      ['font Inter'],
+      ['heading Fraunces'],
+      ['font Inter'],
+      ['mono JetBrains Mono'],
+    ]);
+    const brand = importBrand(oneLiner, { trust: 'untrusted', id: 'x' });
+    expect(brand.ok && brand.document.typography?.families).toMatchObject({
+      sans: { stack: ['Inter', 'system-ui', 'sans-serif'] },
+      heading: { stack: ['Fraunces', 'system-ui', 'sans-serif'] },
+      mono: { stack: ['JetBrains Mono', 'ui-monospace', 'monospace'] },
+    });
+    // What Texuli alone makes of one, with no unmapped loss. If Texuli reads it
+    // right, this pin fails and the lowercase-family guard can go.
+    const glued = importBrand('font is Inter', { trust: 'untrusted', id: 'x' });
+    expect(glued.ok && glued.warnings.some((w) => w.code === 'unmapped')).toBe(false);
+    expect(glued.ok && glued.document.typography?.families?.sans?.stack?.[0]).toBe('is Inter');
+  });
+
+  it('condenses the prose Texuli 0.17.2 leaves unread (motion beside other words, Headings use X)', () => {
+    const { reading } = readProseBrief(
+      'subtle motion with glass surfaces; Headings use Fraunces; monospace JetBrains Mono',
+      importBrand
+    );
+    expect(reading.map((entry) => entry.read)).toEqual([
+      ['subtle motion'],
+      ['glass'],
+      ['heading Fraunces'],
+      ['mono JetBrains Mono'],
+    ]);
+    // Pins: Texuli alone reports these as unmapped. If it reads them, the clause stays as written.
+    for (const clause of ['subtle motion and glass surfaces', 'Headings use Fraunces']) {
+      const read = importBrand(clause, { trust: 'untrusted', id: 'x' });
+      expect(read.ok && read.warnings.some((w) => w.code === 'unmapped')).toBe(true);
+    }
   });
 
   it('keeps a clause with nothing to read, so Texuli reports it as an unmapped loss', () => {
