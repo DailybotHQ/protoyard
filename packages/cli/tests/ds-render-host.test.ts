@@ -14,7 +14,11 @@ import {
   dsRenderHostScript,
   INSTALL_HOST,
 } from '../src/lib/ds-render/host-script.ts';
-import { type DsRenderPageInfo, renderAllowManifest } from '../src/lib/ds-render/index.ts';
+import {
+  type DsRenderPageInfo,
+  renderAllowManifest,
+  visitFindings,
+} from '../src/lib/ds-render/index.ts';
 
 /**
  * Runs a script as a page script would: a top-level `var` becomes a global.
@@ -72,15 +76,6 @@ describe("Texuli's prebuilt ds-check host", () => {
       links: ['/deals/deal_0001', '/settings'],
       unownedVisualizations: [{ tag: 'canvas', selector: 'div#app>main>canvas' }],
     });
-    // One entry per distinct axis set.
-    expect(info.axes).toEqual([
-      {
-        component: 'button',
-        selector: 'div#app>main>button:nth-of-type(1)',
-        variant: 'ghost',
-        size: 'sm',
-      },
-    ]);
     const host = (globalThis as Globals).texuliDsCheck as { map: (input: unknown) => unknown };
     expect(typeof host?.map).toBe('function');
     // Texuli's host reads data-tx-component itself: no data-ds-check-component copy.
@@ -120,7 +115,7 @@ describe("Texuli's prebuilt ds-check host", () => {
       '#app',
       48,
     ]);
-    expect(info).toMatchObject({ scope: 'body', roots: 0, links: [], axes: [] });
+    expect(info).toMatchObject({ scope: 'body', roots: 0, links: [] });
   });
 
   /** A `DsCheckPage` that evaluates in this document (the isolated world's stand-in). */
@@ -135,14 +130,20 @@ describe("Texuli's prebuilt ds-check host", () => {
    */
   async function mapPage(
     html: string,
-    manifest: { allow?: Record<string, true>; composed?: Record<string, string> }
+    manifest: { allow?: Record<string, unknown>; composed?: Record<string, string> }
   ): Promise<[string, string | null][]> {
+    return (await mapErrors(html, manifest)).map((e) => [e.code, e.source ?? null]);
+  }
+
+  async function mapErrors(
+    html: string,
+    manifest: { allow?: Record<string, unknown>; composed?: Record<string, string> }
+  ) {
     document.body.innerHTML = `<div id="app">${html}</div>`;
     evaluate(dsRenderHostScript());
     (evaluate(`(${INSTALL_HOST})`) as (arg: unknown) => DsRenderPageInfo)(['#app', 48]);
     expect(DS_RENDER_CHECK_GLOBAL in globalThis).toBe(true);
-    const report = await mapLockedRenderPage(inPage, manifest);
-    return report.errors.map((e) => [e.code, e.source ?? null]);
+    return (await mapLockedRenderPage(inPage, manifest)).errors;
   }
 
   it('refuses a data-grid nested in an allowed card (regression guard on Texuli 0.17.1)', async () => {
@@ -217,5 +218,38 @@ describe("Texuli's prebuilt ds-check host", () => {
     const allow = { 'acme:table': true as const };
     expect(await mapPage(html, { allow })).toEqual([['not-allowed', 'data-grid']]);
     expect(await mapPage(html, { allow, composed: { 'data-grid': 'acme:table' } })).toEqual([]);
+  });
+
+  it("reports a disabled axis value through Texuli's rule, once per component and value (0.17.3)", async () => {
+    const manifest = renderAllowManifest(dsCatalog(), {
+      button: { variants: ['primary'] },
+      'button-group': {},
+    } as never);
+    expect(manifest.allow.button).toEqual({ variants: ['primary'] });
+    const html = [
+      '<button data-tx-component="button" data-tx-variant="primary">Save</button>',
+      '<button data-tx-component="button" data-tx-variant="danger">Delete</button>',
+      '<button data-tx-component="button" data-tx-variant="danger">Remove</button>',
+      '<button data-tx-component="button" data-tx-variant="ghost">Skip</button>',
+    ].join('');
+    const errors = await mapErrors(html, manifest);
+    // Texuli reports each root: two danger buttons, one ghost.
+    expect(errors.filter((e) => e.code === 'render-disabled-value')).toHaveLength(3);
+    const visit = {
+      route: { path: '/', file: null },
+      mode: 'light' as const,
+      viewport: { id: 'desktop' as const, width: 1280, height: 800, mobile: false },
+    };
+    const findings = visitFindings(
+      'x-demo',
+      visit as never,
+      { scope: '#app', roots: 4, links: [], unownedVisualizations: [] },
+      { mapping: { errors }, runs: [] }
+    ).filter((f) => f.code === 'render-disabled-value');
+    expect(findings.map((f) => f.message)).toEqual([
+      'Rendered variant "danger" is not allowed for "button".',
+      'Rendered variant "ghost" is not allowed for "button".',
+    ]);
+    expect(findings.every((f) => f.component === 'button' && f.wayOut.length > 0)).toBe(true);
   });
 });

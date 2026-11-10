@@ -32,7 +32,7 @@ export interface DsRenderVisitRequest {
   visit: DsRenderVisit;
   runs: readonly CompiledRun[];
   /** No `allow` (an unlocked document): only `unmapped` controls are reported. */
-  allowManifest: { allow?: Record<string, true>; composed?: Record<string, string> };
+  allowManifest: { allow?: Record<string, unknown>; composed?: Record<string, string> };
 }
 
 export interface DsRenderVisitResult {
