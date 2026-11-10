@@ -8,6 +8,8 @@ import {
   type DsCheckPage,
   type DsCheckRun,
   type DsInspectResult,
+  mapDesignSystemTree,
+  resolveAllowedComponentId,
   runLockedRenderChecks,
 } from '@texuli/tools/ds-check';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -34,6 +36,7 @@ import {
   planVisits,
   renderAllowManifest,
   routeMatcher,
+  strictNotAllowed,
   visitFindings,
 } from '../src/lib/ds-render/index.ts';
 import {
@@ -209,6 +212,53 @@ describe('mapping and exemptions', () => {
     expect(ids).toContain('card');
     if (part) expect(ids).toContain('select-trigger');
     expect(ids).not.toContain('dialog');
+  });
+
+  it('keeps every catalog root allowed in its own right, not through an allowed root around it', () => {
+    // Texuli 0.17.0's mapping covers a root through any allowed ancestor root.
+    const manifest = {
+      allow: { card: true as const, select: true as const, button: true as const },
+    };
+    const components = [
+      { component: 'card', selector: 'main>div' },
+      { component: 'data-grid', selector: 'main>div>div' },
+      { component: 'select-trigger', selector: 'main>div>button' },
+      { component: 'dialog', selector: 'main>section' },
+    ];
+    // Texuli reported dialog (top level); data-grid sat inside the allowed card.
+    const reported = [
+      { code: 'not-allowed', path: 'main>section', message: 'x', source: 'dialog' },
+    ];
+    expect(strictNotAllowed({ components }, manifest, reported, resolveAllowedComponentId)).toEqual(
+      [
+        {
+          code: 'not-allowed',
+          path: 'main>div>div',
+          source: 'data-grid',
+          message: expect.stringContaining('"data-grid" is not in the allow manifest'),
+        },
+      ]
+    );
+    // Unlocked documents (no allow) report nothing.
+    expect(strictNotAllowed({ components }, {}, [], resolveAllowedComponentId)).toEqual([]);
+  });
+
+  it('documents the Texuli 0.17.0 mapping this guards against (ancestor coverage)', () => {
+    const scope = {
+      querySelectorAll: (selector: string) => (selector === '[data-tx-component]' ? [grid] : []),
+    } as unknown as ParentNode;
+    const card = { getAttribute: () => 'card' };
+    const grid = {
+      getAttribute: (name: string) => (name === 'data-tx-component' ? 'data-grid' : null),
+      parentElement: { closest: () => card },
+      tagName: 'DIV',
+      id: '',
+      classList: [],
+    };
+    // If Texuli drops the ancestor rule, this pin fails and the guard can be reviewed.
+    expect(mapDesignSystemTree(scope, { allowManifest: { allow: { card: true } } }).errors).toEqual(
+      []
+    );
   });
 
   it("keeps Texuli's exempt ids (charts, maps and canvas)", () => {
@@ -778,6 +828,9 @@ describe.skipIf(!browser.ok)(
       const documentFile = join(ws.root, 'design-systems/acme/document.json');
       const document = JSON.parse(readFileSync(documentFile, 'utf8'));
       document.allow.button = { ...document.allow.button, variants: ['default'] };
+      // An allowed card around a component the design system does not allow.
+      document.allow.card = document.allow.card ?? {};
+      delete document.allow['data-grid'];
       writeFileSync(documentFile, JSON.stringify(document));
       const dist = join(ws.root, 'artifacts/acme-app/dist');
       mkdirSync(dist, { recursive: true });
@@ -796,6 +849,7 @@ describe.skipIf(!browser.ok)(
   <button class="tx-button" data-tx-component="button" type="button">Save</button>
   <button class="hot" data-tx-component="button" data-tx-variant="destructive" type="button">Delete</button>
   <button type="button" class="tx-button">Raw</button>
+  <div data-tx-component="card"><div data-tx-component="data-grid"><p>Rows</p></div></div>
   <div data-tx-component="charts-line" role="img" aria-label="Signups">
     <svg width="200" height="100"><path d="M0 50 L200 10" stroke="#123456" fill="none" stroke-width="3"></path></svg>
     <span class="legend">Signups</span>
@@ -838,6 +892,9 @@ describe.skipIf(!browser.ok)(
       // The variant the narrowed allow entry does not enable.
       expect(codes('render-disabled-value')).toHaveLength(4);
       expect(codes('render-disabled-value')[0]?.component).toBe('button');
+      // The data-grid nested in the allowed card is still not allowed.
+      const nested = codes('not-allowed').filter((f) => f.component === 'data-grid');
+      expect(nested).toHaveLength(4);
       expect(codes('render-page-error')).toHaveLength(0);
     }
 
@@ -912,8 +969,9 @@ describe.skipIf(!browser.ok)(
 
     it("still finds them when the prototype's own code stubs the checker and patches DOM prototypes (F2)", async () => {
       // Runs before the check, in the page's main world: non-writable stand-ins
-      // for both hosts that report a clean page, and patched DOM functions that
-      // hide variants, inline styles and raw buttons.
+      // for the hosts (Texuli's IIFE global, its texuliDsCheck and 1.8's own)
+      // that report a clean page, patched DOM functions that hide variants,
+      // inline styles and raw buttons, and a decoy data-ds-check-component.
       await expectFindings(TAMPER);
     }, 120_000);
   }
@@ -935,6 +993,7 @@ const TAMPER = `<script>
   };
   const info = { scope: '#app', roots: 1, links: [], unownedVisualizations: [], axes: [] };
   Object.defineProperty(globalThis, 'texuliDsCheck', { value: fakeHost, writable: false, configurable: false });
+  Object.defineProperty(globalThis, 'TexuliDsCheckHost', { value: { installDsCheckHost: () => fakeHost }, writable: false, configurable: false });
   Object.defineProperty(globalThis, '__protoyardDsRender', { value: { install: () => info }, writable: false, configurable: false });
   const getAttribute = Element.prototype.getAttribute;
   Element.prototype.getAttribute = function (name) {
@@ -947,5 +1006,13 @@ const TAMPER = `<script>
       : querySelectorAll.call(this, selector);
   };
   window.getComputedStyle = () => ({ getPropertyValue: () => '' });
+  // A decoy root attribute: Texuli's host prefers data-ds-check-component when
+  // a page has one, which would point the color check away from the real roots.
+  document.addEventListener('DOMContentLoaded', () => {
+    const decoy = document.createElement('span');
+    decoy.setAttribute('data-ds-check-component', 'button');
+    decoy.hidden = true;
+    document.getElementById('app').append(decoy);
+  });
 })();
 </script>`;

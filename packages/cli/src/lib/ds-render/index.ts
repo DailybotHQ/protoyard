@@ -6,7 +6,7 @@
  * `runLockedRenderChecks` (`@texuli/tools/ds-check`) on the live page:
  *
  * - mapping (`unmapped`, `not-allowed`): every interactive element sits
- *   inside a catalog root (`data-tx-component`, rendered by Texuli 0.16.0)
+ *   inside a catalog root (`data-tx-component`, rendered since Texuli 0.16.0)
  *   that the design system allows;
  * - painted colors (`render-literal`): every color a catalog component paints
  *   follows the design system's `--tx-*` variables;
@@ -307,6 +307,12 @@ export function planVisits(
  * (`select-trigger` through `select`), plus the ids an allowed Protoyard
  * extension (`protoyard:data-table`) or a design-system library component
  * composes, since those render Texuli roots of their own.
+ *
+ * Texuli 0.17.0 resolves parts itself, but only for its 14 compound parents
+ * (`DS_MAP_COMPOUND_PARENTS`) and never for library or extension `composes`
+ * (its host's `map` takes no `composed` map). The static check accepts six
+ * more part relations (`list-item` through `list`, `field-error` through
+ * `field`, …), so the widening stays and both checks agree.
  */
 export function renderAllowManifest(
   catalog: DsCatalog,
@@ -391,7 +397,7 @@ export interface RenderedAxes {
   density?: string;
 }
 
-/** What the injected host reports about the page (see `./host-entry.ts`). */
+/** What the injected host reports about the page (see `./host-script.ts`). */
 export interface DsRenderPageInfo {
   scope: string;
   roots: number;
@@ -399,6 +405,44 @@ export interface DsRenderPageInfo {
   unownedVisualizations: { selector: string; tag: string }[];
   /** Absent from hosts that do not report axes. */
   axes?: RenderedAxes[];
+  /** Each distinct catalog id the page renders, with its first root's selector. */
+  components?: { component: string; selector: string }[];
+}
+
+/** Texuli's `resolveAllowedComponentId` (passed in: this module stays free of `@texuli/tools`). */
+export type AllowResolver = (id: string, allowed: ReadonlySet<string>) => string | undefined;
+
+/**
+ * Catalog roots the allow set does not cover by themselves, which Texuli's
+ * mapping did not report. Texuli 0.17.0's `mapDesignSystemTree` also covers
+ * a root through any allowed catalog root around it (a `data-grid` inside an
+ * allowed `card` passes); Protoyard keeps 1.8's rule: every root is allowed
+ * directly, as a part (`renderAllowManifest`), as something an allowed
+ * extension or library entry composes, or through Texuli's id resolution
+ * without the ancestor (compound parts, extension local ids). One
+ * `not-allowed` error per catalog id, at its first root.
+ */
+export function strictNotAllowed(
+  info: Pick<DsRenderPageInfo, 'components'>,
+  manifest: { allow?: Record<string, true> },
+  reported: LockedReportLike['mapping']['errors'],
+  resolve: AllowResolver
+): LockedReportLike['mapping']['errors'] {
+  if (!manifest.allow) return [];
+  const allowed = new Set(Object.keys(manifest.allow));
+  const known = new Set(reported.filter((e) => e.code === 'not-allowed').map((e) => e.source));
+  const out: { code: string; path: string; message: string; source?: string }[] = [];
+  for (const { component, selector } of info.components ?? []) {
+    if (!component || known.has(component)) continue;
+    if (allowed.has(component) || resolve(component, allowed)) continue;
+    out.push({
+      code: 'not-allowed',
+      path: selector,
+      source: component,
+      message: `Component "${component}" is not in the allow manifest (it renders inside another catalog component, which does not allow it).`,
+    });
+  }
+  return out;
 }
 
 /**
@@ -479,6 +523,10 @@ export function visitFindings(
   if (allow) {
     // An axis value the allow entry does not enable: the static rule skips
     // expressions (`variant={kind}`); the page shows what they evaluated to.
+    // Texuli 0.17.0's mapping has a rule of the same id, but only for allow
+    // entries passed to it (the manifest here is ids only), one error per
+    // element, inside the mapping's 64-issue cap that `unmapped` shares; this
+    // one reports each value once and never crowds out a raw control.
     const seen = new Set<string>();
     for (const rendered of info.axes ?? []) {
       const entry = allow[rendered.component];
