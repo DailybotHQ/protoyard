@@ -1,5 +1,18 @@
 # @protoyard/renderer-svelte
 
+## 1.9.2
+
+### Patch Changes
+
+- @protoyard/avatars@1.9.2
+  - @protoyard/core@1.9.2
+  - @protoyard/devtools@1.9.2
+  - @protoyard/offline@1.9.2
+  - @protoyard/review-ui@1.9.2
+  - @protoyard/runtime@1.9.2
+  - @protoyard/themes@1.9.2
+  - @protoyard/ui@1.9.2
+
 ## 1.9.1
 
 ### Patch Changes

@@ -310,15 +310,18 @@ export interface RenderAllowManifest {
  * their own right), and a `composed` child → parent map that Texuli's
  * mapping resolves against the allow set (`resolveAllowedComponentId`):
  *
- * - catalog parts: Texuli's `partParentMap` over the catalog ids
- *   (`select-trigger` → `select`, `list-item` → `list`, `field-error` →
- *   `field`, …);
+ * - catalog parts: Texuli's `partParentMap` over the catalog ids, the
+ *   declared `CATALOG_PART_PARENTS` relations (`select-trigger` → `select`,
+ *   `list-item` → `list`, `field-error` → `field`, …). Since Texuli 0.17.2 a
+ *   shared hyphen prefix is not a relation: `alert-dialog`, `icon-button` and
+ *   `form-field` are their own ids;
  * - the ids an allowed Protoyard extension (`protoyard:data-table`) composes,
  *   mapped to the extension.
  *
  * A nested catalog root is never covered by an allowed root around it unless
  * it is a declared part or composed id of it (Texuli 0.17.1): a `data-grid`
- * inside an allowed `card` is `not-allowed`.
+ * inside an allowed `card` is `not-allowed`. The allow values are `true`, so
+ * Texuli's own `render-disabled-value` rule stays off (see `visitFindings`).
  */
 export function renderAllowManifest(
   catalog: DsCatalog,
@@ -500,14 +503,14 @@ export function visitFindings(
   if (allow) {
     // An axis value the allow entry does not enable: the static rule skips
     // expressions (`variant={kind}`); the page shows what they evaluated to.
-    // Texuli's mapping has a rule of the same id (0.17.1: its own 64-issue
-    // cap) but reads differently, so the manifest passes ids only and this
-    // rule stays: Texuli reports every element (this reports each value
-    // once, which keeps baselines small and stable), checks a part against
-    // its parent's entry (this checks the component's own entry, like the
-    // static rule), treats a non-list axis as "nothing enabled" (here: not
-    // narrowed, like `enabledValues`) and adds a `color` axis the static
-    // rule does not have.
+    // Texuli's mapping has a rule of the same id. Since 0.17.2 it reads the
+    // lists like `enabledValues` (a valid document holds only lists), but it
+    // still reports differently, so the manifest passes ids only and this
+    // rule stays: Texuli reports every element up to 64 (this reports each
+    // value once, which keeps baselines small and stable), checks a part
+    // against its parent's entry (this checks the component's own entry,
+    // like the static rule) and adds a `color` axis the static rule does
+    // not have.
     const seen = new Set<string>();
     for (const rendered of info.axes ?? []) {
       const entry = allow[rendered.component];

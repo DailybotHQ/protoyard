@@ -15,6 +15,7 @@ import {
   type KitAllowChange,
   type KitAllowList,
   type KitApprovalChange,
+  type KitLibraryChange,
   kitApproval,
 } from '@texuli/spec/design-system';
 import { type DesignSystemDiff, diffDesignSystems } from '@texuli/tokens/design-system/diff';
@@ -42,10 +43,9 @@ import { CliError } from './output.ts';
  *   be compared with it. Its `contentHash` is Texuli's hash of that document.
  * - Token changes come from Texuli's `diffDesignSystems`
  *   (`@texuli/tokens/design-system/diff`) over both compiled versions. The
- *   allow and approval changes are Texuli's `changesModel`
+ *   allow, library and approval changes are Texuli's `changesModel`
  *   (`@texuli/spec/design-system`, the model the kit's Changes section
- *   renders); the library changes keep the `KitLibraryChange` shape but
- *   compare every field.
+ *   renders); the library rows keep Protoyard's `ds diff --json` shape.
  */
 
 export const RELEASES_DIR = 'releases';
@@ -388,7 +388,7 @@ export interface VersionsDiff {
   tokens: DesignSystemDiff;
   /** Texuli's `changesModel(...).allow`. */
   allow: readonly AllowChange[];
-  /** Every field of every library entry (Texuli's `changesModel` compares fewer; see `diffLibrary`). */
+  /** Texuli's `changesModel(...).library`, one row per field as JSON text (see `diffLibrary`). */
   library: LibraryChange[];
   /** Texuli's `changesModel(...).approval`. */
   approval: readonly ApprovalChange[];
@@ -409,42 +409,42 @@ const text = (value: unknown): string | undefined =>
   value === undefined ? undefined : typeof value === 'string' ? value : JSON.stringify(value);
 
 /**
- * Library changes, every field of each entry, each field's value as JSON
- * text (the `ds diff --json` shape since 1.8). Texuli 0.17.1's
- * `changesModel` now compares an entry's approver, version and content hash
- * too, but not `approval.approvedAt` or fields outside its list, it clips
- * values at 200 characters and reads the first 64 entries, and it reports
- * `approval.<field>` rows instead of one `approval` row; this keeps the
- * complete comparison and the stable shape.
+ * Library changes in the `ds diff --json` shape since 1.8: one row per
+ * changed field, each value as JSON text, one `approval` row for the whole
+ * approval. Which entries and fields changed is Texuli's `changesModel`
+ * (0.17.2 compares every field the closed `libraryEntry` schema allows, the
+ * approval's `approvedAt` included, at full length, and every entry); both
+ * versions compile first, so no other field can reach this. Protoyard only
+ * folds Texuli's `approval.<field>` rows into one `approval` row and writes
+ * each value as JSON text, so the shape stays stable.
  */
-function diffLibrary(before: unknown, after: unknown): LibraryChange[] {
-  const a = new Map(
-    readLibrary(before).map((e) => [e.id, e as unknown as Record<string, unknown>])
-  );
-  const b = new Map(readLibrary(after).map((e) => [e.id, e as unknown as Record<string, unknown>]));
-  const out: LibraryChange[] = [];
-  for (const id of [...new Set([...a.keys(), ...b.keys()])].sort(byText)) {
-    const x = a.get(id);
-    const y = b.get(id);
-    if (!x) out.push({ kind: 'added', id });
-    else if (!y) out.push({ kind: 'removed', id });
-    else {
-      const fields = [...new Set([...Object.keys(x), ...Object.keys(y)])]
-        .sort(byText)
-        .filter((field) => text(x[field]) !== text(y[field]))
-        .map((field) => {
-          const was = text(x[field]);
-          const now = text(y[field]);
-          return {
-            field,
-            ...(was !== undefined ? { before: was } : {}),
-            ...(now !== undefined ? { after: now } : {}),
-          };
-        });
-      if (fields.length > 0) out.push({ kind: 'changed', id, fields });
-    }
-  }
-  return out;
+function diffLibrary(
+  before: unknown,
+  after: unknown,
+  changes: readonly KitLibraryChange[]
+): LibraryChange[] {
+  const byId = (document: unknown) =>
+    new Map(readLibrary(document).map((e) => [e.id, e as unknown as Record<string, unknown>]));
+  const a = byId(before);
+  const b = byId(after);
+  return changes.map((change): LibraryChange => {
+    if (change.kind !== 'changed') return { kind: change.kind, id: change.id };
+    const x = a.get(change.id) ?? {};
+    const y = b.get(change.id) ?? {};
+    const names = [
+      ...new Set((change.fields ?? []).map((f) => f.field.split('.', 1)[0] as string)),
+    ].sort(byText);
+    const fields = names.map((field) => {
+      const was = text(x[field]);
+      const now = text(y[field]);
+      return {
+        field,
+        ...(was !== undefined ? { before: was } : {}),
+        ...(now !== undefined ? { after: now } : {}),
+      };
+    });
+    return { kind: 'changed', id: change.id, fields };
+  });
 }
 
 async function compiled(side: VersionSide) {
@@ -461,9 +461,10 @@ async function compiled(side: VersionSide) {
 /** What changed from `from` to `to`: tokens (Texuli), allow, library, approval. */
 export async function diffVersions(from: VersionSide, to: VersionSide): Promise<VersionsDiff> {
   const tokens = diffDesignSystems(await compiled(from), await compiled(to));
-  // Allow and approval changes are Texuli's (the kit's Changes section renders the same model).
-  const { allow, approval } = changesModel({ document: from.document }, { document: to.document });
-  const library = diffLibrary(from.document, to.document);
+  // Allow, library and approval changes are Texuli's (the kit's Changes section renders the same model).
+  const model = changesModel({ document: from.document }, { document: to.document });
+  const { allow, approval } = model;
+  const library = diffLibrary(from.document, to.document, model.library);
   const fromHash = contentHash(from.document);
   const toHash = contentHash(to.document);
   const contentChanged = fromHash !== toHash;

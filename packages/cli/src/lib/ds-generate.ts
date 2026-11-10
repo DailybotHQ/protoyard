@@ -157,8 +157,6 @@ type ImportBrand = typeof import('@texuli/tokens/design-system/import').importBr
 /** Sentence ends, clause punctuation, line breaks and a few joining words. */
 const CLAUSE_SPLIT = /[.!?](?=\s|$)|[;,\n\r]|\s+(?:and|with|but|plus)\s+/i;
 const HEX = /#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})\b/gi;
-/** {@link HEX} without the global flag (`test` keeps no state). */
-const HEX_ONE = new RegExp(HEX.source, 'i');
 const NAME = '([A-Z][\\w-]*(?:\\s+[A-Z0-9][\\w-]*){0,2})';
 const HEADING_FONT = new RegExp(
   `\\b(?:[Hh]eading|[Dd]isplay|[Tt]itle)s?(?:\\s+(?:font|typeface))?\\s+(?:(?:in|use|uses|using|is|of)\\s+)?${NAME}`
@@ -225,10 +223,32 @@ function readProseClause(clause: string): string[] {
 }
 
 /**
- * A prose brief as Texuli's brand one-liner. Each clause without a color
- * that Texuli's `importBrand` reads (no `unmapped` loss) is kept as written;
- * any other clause is read for colors (with the role a nearby word names), fonts, shape, density,
- * elevation, surface, motion and contrast words. A clause with none of them
+ * Whether Texuli read a clause completely and without gluing a joining word
+ * into a font family. Texuli 0.17.2 reports words it cannot place as an
+ * `unmapped` loss, but its font phrases match case-insensitively, so
+ * `font is Inter` becomes the family "is Inter" (`heading font is X`,
+ * `typeface of X` and `mono uses X` too) with no loss. A family that starts
+ * with a lowercase word is read here instead.
+ */
+function texuliReads(clause: string, importBrand: ImportBrand): boolean {
+  const result = importBrand(clause, { trust: 'untrusted', id: 'brief-clause' });
+  if (!result.ok || result.warnings.some((warning) => warning.code === 'unmapped')) return false;
+  const families = (result.document.typography?.families ?? {}) as Record<
+    string,
+    { stack?: readonly string[] } | undefined
+  >;
+  return Object.values(families).every((family) => !/^[a-z]/.test(family?.stack?.[0] ?? ''));
+}
+
+/**
+ * A prose brief as Texuli's brand one-liner. Each clause Texuli's
+ * `importBrand` reads completely (see {@link texuliReads}) is kept as
+ * written. Any other clause is read here for colors (with the role a nearby
+ * word names), fonts, shape, density, elevation, surface, motion and
+ * contrast words: Texuli 0.17.2 still leaves `subtle motion` beside other
+ * words, `Headings use X` and `monospace X` unread, and its one-liner holds
+ * at most 1,000 characters and 32 clauses while `--brief` takes 16 KiB, so
+ * prose is condensed to the words Texuli reads. A clause with none of them
  * is kept, so Texuli reports it as an `unmapped` loss. Deterministic.
  */
 export function readProseBrief(
@@ -245,20 +265,12 @@ export function readProseBrief(
       `--brief has ${clauses.length} clauses; the limit is ${GENERATOR_LIMITS.clauses}.`
     );
   }
-  const reading = clauses.map((clause): BriefReading => {
-    // Texuli 0.17.1 reads colors, their roles and fonts inside prose, but a
-    // color between words can still be misread without an `unmapped` loss
-    // (`rounded #0f766e Inter font` becomes the family "rounded … Inter",
-    // `font Inter in #0f766e rounded` drops `rounded`). A clause with a color
-    // is always read here; Texuli reads the one-liner this makes.
-    if (!HEX_ONE.test(clause)) {
-      const direct = importBrand(clause, { trust: 'untrusted', id: 'brief-clause' });
-      if (direct.ok && !direct.warnings.some((warning) => warning.code === 'unmapped')) {
-        return { clause, read: [clause] };
-      }
-    }
-    return { clause, read: readProseClause(clause) };
-  });
+  const reading = clauses.map(
+    (clause): BriefReading =>
+      texuliReads(clause, importBrand)
+        ? { clause, read: [clause] }
+        : { clause, read: readProseClause(clause) }
+  );
   const oneLiner = reading
     .flatMap((entry) => (entry.read.length > 0 ? entry.read : [entry.clause]))
     .join(', ');

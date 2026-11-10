@@ -3,11 +3,16 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
+import { compileDesignSystemDocument } from '@protoyard/themes';
+import { CATALOG_PART_PARENTS, partParentMap } from '@texuli/catalog/manifest';
 import {
   DS_LOCKED_RENDER_EXEMPT_IDS,
+  DS_MAP_PART_PARENTS,
   type DsCheckPage,
   type DsCheckRun,
   type DsInspectResult,
+  dsAllowAxisValues,
+  dsCatalogPartParent,
   mapDesignSystemTree,
   resolveAllowedComponentId,
   runLockedRenderChecks,
@@ -18,7 +23,7 @@ import { buildInputsHash } from '../src/lib/build-inputs.ts';
 import { launchChromium, withReadyPage } from '../src/lib/capture/index.ts';
 import { captureMaySocket } from '../src/lib/capture/page.ts';
 import { makeOutput } from '../src/lib/command.ts';
-import { dsCatalog } from '../src/lib/ds-catalog.ts';
+import { DS_AXES, dsCatalog, enabledValues } from '../src/lib/ds-catalog.ts';
 import type { DsRenderDriver, DsRenderVisitRequest } from '../src/lib/ds-render/browser.ts';
 import { visitUrl } from '../src/lib/ds-render/browser.ts';
 import {
@@ -250,6 +255,35 @@ describe('mapping and exemptions', () => {
     }
   });
 
+  it('takes part parents from the declared catalog relations, never from a hyphen prefix', () => {
+    // One table in the catalog and one in the browser mapper (Texuli 0.17.2).
+    expect({ ...DS_MAP_PART_PARENTS }).toEqual({ ...CATALOG_PART_PARENTS });
+    const catalog = dsCatalog();
+    const ids = catalog.components.map((component) => component.id);
+    const manifest = renderAllowManifest(catalog, {} as never);
+    // The manifest's parts are exactly the declared pairs whose ids the catalog has.
+    expect(manifest.composed).toEqual(partParentMap(ids));
+    for (const [part, parent] of Object.entries(manifest.composed))
+      expect(CATALOG_PART_PARENTS[part as keyof typeof CATALOG_PART_PARENTS], part).toBe(parent);
+    // A shared prefix is not a relation: these were covered by prefix before 0.17.2.
+    for (const [id, prefix] of [
+      ['alert-dialog', 'alert'],
+      ['icon-button', 'icon'],
+      ['form-field', 'form'],
+    ] as const) {
+      expect(ids, id).toContain(id);
+      expect(ids, prefix).toContain(prefix);
+      expect(dsCatalogPartParent(id), id).toBeUndefined();
+      const own = renderAllowManifest(catalog, { [prefix]: {} } as never);
+      expect(own.composed[id], id).toBeUndefined();
+      const allowed = new Set(Object.keys(own.allow));
+      expect(resolveAllowedComponentId(id, allowed, { composed: own.composed })).toBeUndefined();
+      expect(
+        resolveAllowedComponentId(id, allowed, { composed: own.composed, ancestor: prefix })
+      ).toBeUndefined();
+    }
+  });
+
   it('refuses a catalog root nested in an allowed root it is no part of (data-grid in a card)', () => {
     // Regression guard: Texuli 0.17.0 covered a root through any allowed
     // ancestor; 0.17.1 refuses it. If a later Texuli loosens this again,
@@ -465,6 +499,38 @@ describe('findings', () => {
     expect(findings[0]?.message).toContain('default, outline');
     // Without the allow section nothing is checked.
     expect(visitFindings('acme-app', visit, rendered, clean('dark'), 'acme')).toEqual([]);
+  });
+
+  it("keeps render-disabled-value Protoyard's: Texuli's rule reads the same lists but reports differently", async () => {
+    // A valid document holds each axis as a list (the only shape the schema
+    // takes), and on a list Texuli's dsAllowAxisValues reads what
+    // enabledValues reads, so both enable the same values.
+    const entry = { variants: ['default', 'outline'], sizes: [] as string[] };
+    for (const axis of DS_AXES) {
+      const list = (entry as Record<string, string[] | undefined>)[
+        { variant: 'variants', size: 'sizes', tone: 'tones', density: 'densities' }[axis]
+      ];
+      expect(enabledValues(entry as never, axis)).toEqual(dsAllowAxisValues(list) ?? null);
+    }
+    const base = {
+      format: 'texuli/design-system',
+      formatVersion: 1,
+      id: 'acme',
+      version: '1.0.0',
+      name: 'Acme',
+      color: { brand: { seed: '#0f766e' } },
+    };
+    for (const shape of ['ghost', { values: ['ghost'] }, { ghost: true }]) {
+      const compiled = await compileDesignSystemDocument({
+        ...base,
+        allow: { button: { variants: shape } },
+      });
+      expect(compiled.ok, JSON.stringify(shape)).toBe(false);
+    }
+    // The manifest passes ids only, so Texuli's own rule of the same id stays
+    // off: one finding per value from Protoyard, none per element from Texuli.
+    const manifest = renderAllowManifest(dsCatalog(), { button: entry } as never);
+    expect(manifest.allow.button).toBe(true);
   });
 
   it('writes, reads and applies baselines (its own file or a saved --json output)', () => {

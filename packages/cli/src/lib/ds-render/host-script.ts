@@ -12,8 +12,10 @@
  *   The host's root attribute is the caller's choice; Protoyard passes
  *   `data-tx-component` itself, so a page cannot steer the color check with
  *   `data-ds-check-component` attributes of its own.
- * - {@link MAP_PAGE}: the host's `map` with the allow set and the composed
- *   child → parent map (see `renderAllowManifest`).
+ *
+ * The page is then mapped by Texuli's `mapLockedRenderPage` in the same
+ * world, which hands the host's `map` the allow set and the composed child →
+ * parent map (see `renderAllowManifest`; Texuli 0.17.2 forwards both).
  *
  * The scripts are plain JavaScript in strings: a TypeScript function would
  * be rewritten by the loader (tsx adds name helpers that do not exist in the
@@ -154,17 +156,4 @@ export const INSTALL_HOST = `([selector, minVisualizationPx]) => {
     axes,
     components,
   };
-}`;
-
-/**
- * Maps the page with the installed host, in the isolated world:
- * `([global, manifest]) => DsMapReport`. Texuli 0.17.1's
- * `mapLockedRenderPage` forwards only `allow` to the host and drops
- * `composed`, so the CLI calls the host's `map` itself with both.
- */
-export const MAP_PAGE = `([name, manifest]) => {
-  const host = globalThis[name];
-  if (!host || typeof host.map !== 'function')
-    throw new Error('The page has no ds-check host with map().');
-  return host.map(manifest);
 }`;

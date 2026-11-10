@@ -6,6 +6,29 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-11-10
+
+Texuli 0.17.2. Every Texuli dependency is pinned exactly at `0.17.2`.
+
+### Changed
+
+- **Render lock parity.** `check ds --render` maps locked pages through
+  Texuli's `mapLockedRenderPage`, which now forwards composed maps, on
+  Protoyard's isolated-world page. Part parents come from catalog relations,
+  so the runtime lock matches the static one: `alert-dialog`, `icon-button`
+  and `form-field` are no longer accepted as parts of `alert`, `icon` or
+  `form` (tested, with the strict-nesting and tamper tests kept).
+- **`ds diff`** takes library changes from Texuli's `changesModel`, which
+  compares every approval field (`approvedAt` included); the `--json` shape is
+  unchanged, and an approval written with its keys in another order no longer
+  counts as a change.
+- **`ds new --brief`** sends clauses with a color to Texuli's reader first and
+  keeps Protoyard's reader only where Texuli would glue a joining word into a
+  font family (`font is Inter`); generated documents are the same or better.
+- Protoyard still keeps `render-disabled-value`, its render baseline format
+  and part of the brief reader where Texuli's are narrower
+  ([TEXULI](docs/TEXULI.md)).
+
 ## [1.9.1] - 2026-11-10
 
 Texuli 0.17.1. Every Texuli dependency is pinned exactly at `0.17.1`.

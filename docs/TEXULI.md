@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.17.1`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.17.2`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.17.1`. Texuli pins its own internal dependencies exactly,
+Every package is `0.17.2`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -412,10 +412,65 @@ not in the agent catalog yet, so blueprints cannot emit them):
 - **Avatar grid:** `<AvatarGroupGrid items={members} label="…" />` from
   `texuli/avatar`, a 2×2 collage for group conversations.
 
+## What Texuli 0.17.2 changes for design systems
+
+Texuli 0.17.2 closes most of what 1.9.1 kept. Each item was checked against
+the installed packages before the CLI changed. What the CLI now takes from
+Texuli, and what it still keeps:
+
+- **Mapping goes through `mapLockedRenderPage`.** It now hands the host's
+  `map` both the allow set and the `composed` map, so the CLI's own map
+  script is gone. `check ds --render` calls `mapLockedRenderPage` on the
+  isolated-world page, so the mapping still runs where the prototype's
+  JavaScript cannot reach it. The `data-tx-component` root attribute stays
+  pinned, and the tamper test with a decoy `data-ds-check-component` stays.
+- **Part parents are declared relations.** `CATALOG_PART_PARENTS`
+  (`@texuli/catalog/manifest`) and the mapper's `DS_MAP_PART_PARENTS` hold
+  the same 22 pairs, and a shared hyphen prefix is no longer a relation.
+  `alert-dialog`, `icon-button` and `form-field` are not covered by an
+  allowed `alert`, `icon` or `form`, standing alone or nested in it. The six
+  relations the static check accepts (`list-item`, `field-error`,
+  `input-group`, `radio-group`, `button-group`, `data-dashboard-widget`)
+  still resolve. Tests pin both tables, the six relations, the prefix
+  refusals and a `data-grid` nested in an allowed `card`.
+- **Library changes in `ds diff` come from `changesModel`.** It now compares
+  every field the closed `libraryEntry` schema allows, the approval's
+  `approvedAt` included, at full length and for every entry. Both versions
+  compile before the diff, so no other field can reach it. `ds diff --json`
+  keeps its shape: Protoyard folds Texuli's `approval.<field>` rows into one
+  `approval` row and writes each value as JSON text. One change: an approval
+  written with its keys in another order is no longer reported as a change.
+- **Brief clauses with a color go to Texuli.** `importBrand` no longer glues
+  a word before a color into the font family and no longer drops a style
+  word after it. So every clause goes to Texuli first and stays as written
+  when Texuli reads all of it (`accent color #f59e0b`,
+  `rounded #0f766e Inter font`). The generated documents are the same as
+  before for the test briefs.
+- **Kept: the brief reader, for what Texuli still misreads or leaves
+  unread.** Texuli's font phrases match without regard to case, so
+  `font is Inter` becomes the family "is Inter", with no `unmapped` loss.
+  `heading font is X`, `typeface of X` and `mono uses X` do the same. The
+  CLI now reads such a clause itself (any family that starts with a
+  lowercase word). Texuli also still reports `subtle motion` beside other
+  words, `Headings use X` and `monospace X` as unmapped. Its one-liner
+  holds at most 1,000 characters and 32 clauses, while `--brief` takes
+  16 KiB and 256 clauses. So Protoyard still condenses those clauses to the
+  words Texuli reads. A clause with nothing to read is kept, so Texuli
+  reports it as an `unmapped` loss. Tests pin the glued-word misread and the
+  unread phrases.
+- **Kept: `render-disabled-value`.** `dsAllowAxisValues` now reads any
+  declared shape. A valid document holds only lists, and on a list it reads
+  the same values as the CLI. Texuli's rule still reports every element (up
+  to 64) rather than each value once, checks a part against its parent's
+  entry, and adds a `color` axis that the static rule does not have. The
+  manifest still passes ids only, so Texuli's rule stays off, and the CLI's
+  rule keeps its id, its findings and its baselines.
+
 ## What Texuli 0.17.1 changes for design systems
 
 Texuli 0.17.1 tightens what 0.17.0 left looser than Protoyard. What the CLI
-now takes from Texuli, and what it keeps:
+took from Texuli in 1.9.1, and what it kept (0.17.2 closes most of the
+rest; see above):
 
 - **Nesting in the render check.** Texuli's mapping no longer covers a
   catalog root through any allowed root around it: a nested root is allowed
@@ -431,9 +486,9 @@ now takes from Texuli, and what it keeps:
   `list-item`, `field-error`, `input-group`, `radio-group`, `button-group`
   and `data-dashboard-widget` resolve through Texuli. What a design-system
   library component composes stays in the allow set (a library component
-  renders no catalog root of its own). The CLI calls the host's `map` itself
-  with the allow set and the composed map, because `mapLockedRenderPage`
-  forwards only `allow` and drops `composed`.
+  renders no catalog root of its own). Until 0.17.2 the CLI called the
+  host's `map` itself with the allow set and the composed map, because
+  `mapLockedRenderPage` forwarded only `allow` and dropped `composed`.
 - **Host loading.** The host IIFE comes from the
   `@texuli/tools/ds-check/host.iife.js` package export.
 - **Root attribute.** The host's root attribute is now the caller's choice.
@@ -445,20 +500,16 @@ now takes from Texuli, and what it keeps:
   treats an axis list that is not an array as "nothing enabled" and adds a
   `color` axis the static rule does not have. The CLI's rule stays, so
   findings and baselines keep their meaning.
-- **Kept: library changes in `ds diff`.** `changesModel` now compares an
-  entry approval's approver, version and content hash. It still skips
-  `approval.approvedAt`, clips values at 200 characters, reads the first 64
-  entries and reports `approval.<field>` rows. `ds diff` keeps its complete
-  comparison and its `--json` shape (one `approval` row with both values as
-  JSON). A test pins the `approvedAt` gap.
-- **Kept: the brief reader.** `importBrand` now reads colors, their roles and
-  fonts inside a prose clause. A color between words can still be misread
-  with no `unmapped` loss: `rounded #0f766e Inter font` becomes the family
-  "rounded … Inter", and `font Inter in #0f766e rounded` drops `rounded`. So
-  Protoyard still reads every clause with a color itself, and a test pins
-  both cases. A clause without a color that Texuli now reads is kept as
-  written: the prose brief's `Inter font` stays `Inter font` in the
-  one-liner, where 0.17.0 made it `font Inter`. The document is the same.
+- **Kept until 0.17.2: library changes in `ds diff`.** `changesModel`
+  compared an entry approval's approver, version and content hash, but not
+  `approval.approvedAt`, so `ds diff` kept its own comparison.
+- **Kept: the brief reader.** `importBrand` read colors, their roles and
+  fonts inside a prose clause, but a color between words could be misread
+  with no `unmapped` loss (`rounded #0f766e Inter font` became the family
+  "rounded … Inter"). So 1.9.1 read every clause with a color itself; 0.17.2
+  fixes that case (see above). A clause without a color that Texuli reads
+  is kept as written: the prose brief's `Inter font` stays `Inter font` in
+  the one-liner, where 0.17.0 made it `font Inter`.
 
 ## What Texuli 0.17.0 brings for design systems
 

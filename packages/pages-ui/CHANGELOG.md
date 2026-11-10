@@ -1,5 +1,16 @@
 # @protoyard/pages-ui
 
+## 1.9.2
+
+### Patch Changes
+
+- @protoyard/blocks@1.9.2
+  - @protoyard/blocks-ui@1.9.2
+  - @protoyard/blueprint@1.9.2
+  - @protoyard/pages@1.9.2
+  - @protoyard/renderer-svelte@1.9.2
+  - @protoyard/ui@1.9.2
+
 ## 1.9.1
 
 ### Patch Changes
