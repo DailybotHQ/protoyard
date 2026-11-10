@@ -111,10 +111,12 @@ nothing.
   `unmapped` loss. Words such as *calm*, *soft* or *solid* are read as motion,
   elevation or surface choices even in an unrelated sentence. Check
   `brief.reading`. A clause with a hex color is always read by Protoyard
-  (`Deep teal #0f766e brand` becomes `brand #0f766e`): Texuli 0.17.0 also
-  reads a color inside prose, but then drops the rest of that clause without
-  an `unmapped` loss (the font in `Inter font in #0f766e`, a second color,
-  `secondary is #…`).
+  (`Deep teal #0f766e brand` becomes `brand #0f766e`). Texuli 0.17.1 reads
+  colors, their roles and fonts inside prose too, but a color between words
+  can still be misread without an `unmapped` loss (`rounded #0f766e Inter
+  font` becomes the font family "rounded … Inter"; `font Inter in #0f766e
+  rounded` drops `rounded`). A clause without a color that Texuli reads with
+  no loss is kept as written (`Inter font`).
 - **Generator refusals.** When the generator cannot meet its guarantees, the
   run fails with `validation`, the errors and the report, and writes nothing.
   A stylesheet that pins a role color below AA (`--brand: #e11d48;
@@ -475,12 +477,16 @@ entries (name, version, source hash) and a changelog entry.
   `diffDesignSystems` over both compiled versions. The allow changes
   (components added or removed, lists changed; a newly locked document
   lists `locked` and then each component it allows) and the approval changes
-  are Texuli's `changesModel` (`@texuli/spec/design-system`, 0.17.0), the
+  are Texuli's `changesModel` (`@texuli/spec/design-system`, 0.17.1), the
   model the kit renders. Library changes keep the shape of its
-  `KitLibraryChange` but compare every field of an entry: Texuli's model
-  compares only the `status` of a library entry's approval, so a
-  re-approval by someone else or at another content hash would not show.
-  Texuli's model reads at most 512 allow components, 100 values per list and
+  `KitLibraryChange` but stay Protoyard's: every field of an entry is
+  compared, each value as JSON text (one `approval` row for the whole
+  approval). Texuli 0.17.1's model compares an entry approval's approver,
+  version and content hash, as `approval.<field>` rows, but not its
+  `approvedAt`, and clips values at 200 characters, so `ds diff --json`
+  keeps its own comparison and shape. A re-approval by someone else or at
+  another content hash shows as a change. Texuli's model reads at most
+  4,096 allow components (with a warning beyond), 100 values per list and
   64 library entries; a valid document stays inside the merged catalog
   (about 260 ids).
 - The kit's **Changes** section compares the document with the same
@@ -794,7 +800,9 @@ These are not available today:
   the built prototype in Chromium on every route, light and dark, phone and
   desktop: controls outside allowed catalog roots, painted colors that do not
   follow the design system, contrast, axe, rendered axis values the allow
-  section does not enable, and hand-drawn charts; it sees only what a route
+  section does not enable, catalog roots it does not allow (a root nested in
+  an allowed one too, unless it is a declared part or composed id of it),
+  and hand-drawn charts; it sees only what a route
   shows at rest ([render mode](THEMES.md#render-mode---render)). The build
   workflow of `protoyard ci` runs it for locked prototypes.
 - A workspace's design systems are local files. Nothing is hosted or

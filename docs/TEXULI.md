@@ -412,6 +412,54 @@ not in the agent catalog yet, so blueprints cannot emit them):
 - **Avatar grid:** `<AvatarGroupGrid items={members} label="…" />` from
   `texuli/avatar`, a 2×2 collage for group conversations.
 
+## What Texuli 0.17.1 changes for design systems
+
+Texuli 0.17.1 tightens what 0.17.0 left looser than Protoyard. What the CLI
+now takes from Texuli, and what it keeps:
+
+- **Nesting in the render check.** Texuli's mapping no longer covers a
+  catalog root through any allowed root around it: a nested root is allowed
+  only as a declared part or composed id of its allowed parent, so a
+  `data-grid` inside an allowed `card` is `not-allowed`. The CLI's own
+  post-pass is gone. Tests still assert that case (unit, Texuli's real host
+  in happy-dom and Chromium), so a later loosening in Texuli fails them.
+- **Parts and composed ids.** The allow manifest no longer widens parts into
+  the allow set. It passes a `composed` child → parent map instead:
+  `partParentMap` (`@texuli/catalog/manifest`) over the catalog ids, plus
+  what an allowed extension composes. Texuli's compound parents now include
+  `list`, `field`, `input`, `radio`, `button` and `data-dashboard`, so
+  `list-item`, `field-error`, `input-group`, `radio-group`, `button-group`
+  and `data-dashboard-widget` resolve through Texuli. What a design-system
+  library component composes stays in the allow set (a library component
+  renders no catalog root of its own). The CLI calls the host's `map` itself
+  with the allow set and the composed map, because `mapLockedRenderPage`
+  forwards only `allow` and drops `composed`.
+- **Host loading.** The host IIFE comes from the
+  `@texuli/tools/ds-check/host.iife.js` package export.
+- **Root attribute.** The host's root attribute is now the caller's choice.
+  Protoyard is the caller and still passes `data-tx-component`, and the
+  tamper test with a decoy `data-ds-check-component` stays.
+- **Kept: `render-disabled-value`.** Texuli's rule of the same id now has
+  its own 64-finding cap, but it reads differently. It reports every element
+  rather than each value once, checks a part against its parent's entry,
+  treats an axis list that is not an array as "nothing enabled" and adds a
+  `color` axis the static rule does not have. The CLI's rule stays, so
+  findings and baselines keep their meaning.
+- **Kept: library changes in `ds diff`.** `changesModel` now compares an
+  entry approval's approver, version and content hash. It still skips
+  `approval.approvedAt`, clips values at 200 characters, reads the first 64
+  entries and reports `approval.<field>` rows. `ds diff` keeps its complete
+  comparison and its `--json` shape (one `approval` row with both values as
+  JSON). A test pins the `approvedAt` gap.
+- **Kept: the brief reader.** `importBrand` now reads colors, their roles and
+  fonts inside a prose clause. A color between words can still be misread
+  with no `unmapped` loss: `rounded #0f766e Inter font` becomes the family
+  "rounded … Inter", and `font Inter in #0f766e rounded` drops `rounded`. So
+  Protoyard still reads every clause with a color itself, and a test pins
+  both cases. A clause without a color that Texuli now reads is kept as
+  written: the prose brief's `Inter font` stays `Inter font` in the
+  one-liner, where 0.17.0 made it `font Inter`. The document is the same.
+
 ## What Texuli 0.17.0 brings for design systems
 
 Texuli 0.17.0 closes gaps that 1.8.0 and 1.8.1 worked around. What
@@ -425,11 +473,12 @@ Protoyard now takes from Texuli, and what it keeps:
   cannot redirect the color check). Protoyard keeps its own page reader
   (links, unowned visualizations, axis values) in the same world
   ([render mode](THEMES.md#render-mode---render)).
-- **Kept on purpose in the render check.** Texuli's mapping now resolves
-  compound parts and covers a root through any allowed root around it; the
-  CLI keeps its part widening (Texuli's list misses `list-item`,
+- **Kept on purpose in the render check (until 0.17.1).** Texuli's mapping
+  resolved compound parts and covered a root through any allowed root around
+  it. The CLI kept its part widening (Texuli's list missed `list-item`,
   `field-error` and four more part relations the static check accepts) and
-  reports a root nested in an allowed one as `not-allowed`, as in 1.8.
+  reported a root nested in an allowed one as `not-allowed`, as in 1.8.
+  0.17.1 made both unnecessary (see above).
   Texuli's new `render-disabled-value` needs allow entries and shares the
   64-finding mapping cap with `unmapped`, so the CLI's rule of the same id
   stays. Texuli's report fingerprint keys a finding by code and path only,
