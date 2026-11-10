@@ -47,9 +47,9 @@
     "@protoyard/blocks": "workspace:*",
     "@protoyard/blocks-ui": "workspace:*",
     "@protoyard/decks": "workspace:*",
-    "@texuli/deck": "0.17.3",
-    "@texuli/slides": "0.17.3",
-    "texuli": "0.17.3"
+    "@texuli/deck": "0.17.4",
+    "@texuli/slides": "0.17.4",
+    "texuli": "0.17.4"
   },
   "devDependencies": {
     "svelte": "^5.57.3"

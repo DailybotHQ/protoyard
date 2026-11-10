@@ -93,10 +93,10 @@
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
     "@protoyard/views-ui": "workspace:*",
-    "@texuli/canvas": "0.17.3",
-    "@texuli/forms": "0.17.3",
-    "@texuli/sheets": "0.17.3",
-    "texuli": "0.17.3",
+    "@texuli/canvas": "0.17.4",
+    "@texuli/forms": "0.17.4",
+    "@texuli/sheets": "0.17.4",
+    "texuli": "0.17.4",
     "zod": "^4.6.7"
   },
   "devDependencies": {
