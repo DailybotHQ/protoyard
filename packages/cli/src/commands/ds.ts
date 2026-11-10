@@ -67,13 +67,13 @@ import {
   readLibrary,
 } from '../lib/ds-catalog.ts';
 import { checkText, MAX_PERSON, syncLibraryFromComponents } from '../lib/ds-components.ts';
+import { formatFinding, validateFull } from '../lib/ds-full.ts';
 import {
   type GeneratedDesignSystem,
   type GeneratorSource,
   generateFromSource,
   SOURCE_FLAGS,
 } from '../lib/ds-generate.ts';
-import { formatFinding, validateFull } from '../lib/ds-full.ts';
 import { assertNoRelease, buildRelease, checkChangelog, writeRelease } from '../lib/ds-releases.ts';
 import { inspectSpec } from '../lib/inspect.ts';
 import { CliError } from '../lib/output.ts';
