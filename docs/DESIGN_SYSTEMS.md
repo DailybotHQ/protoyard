@@ -392,7 +392,7 @@ The manifest binding is part of the prototype contract in `@protoyard/core`:
 | `ds export <file>` | CSS variables, a Tailwind preset or compiled JSON |
 | `ds use <slug> <id\|file> [--lock] [--upgrade]` | Apply a design system to a prototype; bind, lock or upgrade it |
 | `ds component request\|approve-request\|new\|approve` | Request, approve the request, scaffold and approve a component |
-| `check ds [slug…] [--report]` | The locked-prototype rules |
+| `check ds [slug…] [--report] [--render]` | The locked-prototype rules; `--render` also checks what each locked prototype paints in Chromium |
 
 Every command takes `--json`. The MCP server exposes `ds_create`, `ds_list`,
 `ds_validate`, `ds_export`, `ds_use`, `ds_component_request` and
@@ -408,9 +408,6 @@ These are not available today:
   versions stay available to pinned prototypes.
 - **Bundle**: an exported, hash-listed design-system bundle (`bundle.json`) to
   share a design system between workspaces.
-- **Render check**: rendering every component of a locked prototype against
-  the design system in a browser (it covers the axis values `check ds` skips
-  because they are expressions).
 - **Generator inputs**: `protoyard generate` and `quick` taking a design
   system so new prototypes start locked.
 
@@ -429,6 +426,12 @@ These are not available today:
 - The allow section holds at most 4,096 keys (Texuli's cap): 251 today (194
   Texuli components and 57 extensions).
 - `check ds` is a static, textual scan; see its limits in
-  [THEMES](THEMES.md#check-ds).
+  [THEMES](THEMES.md#check-ds). `check ds --render` (done in 1.8.0) checks
+  the built prototype in Chromium on every route, light and dark, phone and
+  desktop: controls outside allowed catalog roots, painted colors that do not
+  follow the design system, contrast, axe, rendered axis values the allow
+  section does not enable, and hand-drawn charts; it sees only what a route
+  shows at rest ([render mode](THEMES.md#render-mode---render)). The build
+  workflow of `protoyard ci` runs it for locked prototypes.
 - A workspace's design systems are local files. Nothing is hosted, shared or
   synchronized; a cloud version is a later step.
