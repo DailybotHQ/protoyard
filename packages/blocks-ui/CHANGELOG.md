@@ -1,5 +1,18 @@
 # @protoyard/blocks-ui
 
+## 1.9.3
+
+### Patch Changes
+
+- @protoyard/ai@1.9.3
+  - @protoyard/blocks@1.9.3
+  - @protoyard/charts-ui@1.9.3
+  - @protoyard/core@1.9.3
+  - @protoyard/decks@1.9.3
+  - @protoyard/renderer-svelte@1.9.3
+  - @protoyard/ui@1.9.3
+  - @protoyard/views-ui@1.9.3
+
 ## 1.9.2
 
 ### Patch Changes

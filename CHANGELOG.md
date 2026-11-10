@@ -6,6 +6,28 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.9.3] - 2026-11-10
+
+Texuli 0.17.3. Every Texuli dependency is pinned exactly at `0.17.3`.
+
+### Changed
+
+- **`ds new --brief`** sends the brief to Texuli's `importBrand` as written.
+  Texuli 0.17.3 reads fonts with case (`font is Inter`), motion, `Headings use
+  X` and `monospace X` inside longer clauses, so Protoyard's prose reader and
+  the `brief.reading` field are gone; unread words are `unmapped` losses. A
+  brief that Texuli would truncate (more than 16,000 characters or 256
+  clauses with the brand flags) is refused instead, so the flags are never
+  dropped.
+- **`check ds --render`** takes `render-disabled-value` from Texuli's mapping:
+  the allow manifest passes each entry, a root is checked against its own
+  entry (the color axis included), and the CLI keeps one finding per
+  component and value. The message changes, so write a 1.9.2 baseline again
+  if it lists that code.
+- Protoyard keeps its render baseline format (`protoyard/ds-render-baseline`
+  version 1): Texuli's finding key now has route, viewport and mode but no
+  prototype ([TEXULI](docs/TEXULI.md)).
+
 ## [1.9.2] - 2026-11-10
 
 Texuli 0.17.2. Every Texuli dependency is pinned exactly at `0.17.2`.

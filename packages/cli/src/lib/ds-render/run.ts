@@ -9,7 +9,6 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
-import type { DesignSystemAllow } from '@texuli/spec/design-system';
 import { artifactDir, BUILD_MANIFEST_FILENAME, buildPrototype } from '../build.ts';
 import { buildInputsHash } from '../build-inputs.ts';
 import { locateDesignSystem, readDocumentFile } from '../design-systems.ts';
@@ -32,6 +31,7 @@ import {
   pageErrorFinding,
   planRoutes,
   planVisits,
+  type RenderAllowManifest,
   type SkippedRoute,
   visitFindings,
   wayOutFor,
@@ -50,9 +50,7 @@ export interface DsRenderTarget {
 export interface DsRenderCompiled {
   runs: readonly CompiledRun[];
   /** Undefined when the document has no `allow` section (only `unmapped` is checked then). */
-  allowManifest: { allow: Record<string, true>; composed?: Record<string, string> } | undefined;
-  /** The document's `allow` section, for the axis values (`render-disabled-value`). */
-  allow?: DesignSystemAllow | null;
+  allowManifest: (Pick<RenderAllowManifest, 'allow'> & Partial<RenderAllowManifest>) | undefined;
   /** Why it did not compile (empty when it did). */
   errors: readonly string[];
 }
@@ -160,14 +158,7 @@ async function checkPrototype(
           allowManifest: compiled.allowManifest ?? {},
         });
         findings.push(
-          ...visitFindings(
-            target.slug,
-            visit,
-            result.info,
-            result.locked,
-            target.designSystemId,
-            compiled.allow ?? null
-          )
+          ...visitFindings(target.slug, visit, result.info, result.locked, target.designSystemId)
         );
         links.push(...result.info.links);
       } catch (error) {
@@ -343,7 +334,6 @@ export function realDsRenderDeps(
         allowManifest: allow
           ? renderAllowManifest(dsCatalog(), allow, readLibrary(document))
           : undefined,
-        allow,
         errors: report.errors.map((e) => `${e.code} ${e.path}`),
       };
     },

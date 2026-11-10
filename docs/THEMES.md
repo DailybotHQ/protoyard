@@ -1297,7 +1297,7 @@ violation, before the build. Unlocked prototypes get no step.
 
 The static scan reads source. `--render` checks what a locked prototype
 actually paints, with Texuli's `runLockedRenderChecks`
-(`@texuli/tools/ds-check`, 0.17.2) on the live page:
+(`@texuli/tools/ds-check`, 0.17.3) on the live page:
 
 1. Each locked prototype (and, with `--report`, a named prototype bound to a
    design system but not locked) is built, or its build is reused when
@@ -1349,7 +1349,7 @@ actually paints, with Texuli's `runLockedRenderChecks`
 | `render-contrast` | A contrast pair of the compiled report below its target as painted. |
 | `render-axe` | An axe WCAG 2.x A/AA violation inside `#app`. |
 | `render-empty` | A route that painted no catalog component. |
-| `render-disabled-value` | A catalog root whose rendered `data-tx-variant`, `-size`, `-tone` or `-density` its allow entry does not enable (the values the static rule skips because they are expressions), once per component, axis and value. Texuli's mapping has a rule with the same id; the CLI keeps its own (the manifest passes ids only). On the lists a valid document holds, both read the same enabled values (Texuli 0.17.2's `dsAllowAxisValues`), but Texuli's reports every element (up to 64), checks a part against its parent's entry and adds a `color` axis the static rule does not have. |
+| `render-disabled-value` | A catalog root whose rendered `data-tx-variant`, `-size`, `-tone`, `-density` or `-color` its own allow entry does not enable (the values the static rule skips because they are expressions). Texuli's mapping rule (0.17.3): the manifest passes each allow entry, a root is checked against its own entry, and a part inside its parent is checked once, on the parent. Texuli reports each root (at most 64 per code); the CLI keeps one finding per component and message (the values), so baselines stay small. An id that only a library component composes has no entry, so all its values are enabled. |
 | `render-unowned-visualization` | Protoyard's own: a `<canvas>`, or an `<svg>` of 48 px or more, outside every catalog root. |
 | `render-page-error` | A route that did not boot in the build: it could not be checked, so it fails. |
 | `render-not-compiled` | The design-system document did not compile; no page is opened. |
@@ -1375,10 +1375,14 @@ Texuli's `ds check --locked --report` suggests) marks the findings it lists
 as `baselined`, so only new ones fail, and counts the ones that no longer
 occur (`counts.fixed`). A fingerprint is the slug, route, viewport, mode,
 code, catalog id and selector. Texuli's `--baseline`
-(`dsReportFingerprint`, `compareDsReport`, still in 0.17.2) keys a finding
-by its code and path only, which would merge the same element on different
-routes, viewports and modes, so baselines stay in this format (version 1,
-read as before). One change in 1.9.1: a root nested in an allowed one is
+(`dsReportFingerprint`, `compareDsReport`) keys a finding by code, path,
+route, viewport and mode since 0.17.3, but has no prototype: one
+`check ds --render` run covers several prototypes, and the same selector on
+the same route of two of them would merge. So baselines stay in this format
+(version 1, read as before). Since 1.9.3 `render-disabled-value` is
+Texuli's rule: its message reads `Rendered variant "ghost" is not allowed
+for "button".`, so a 1.9.2 baseline entry for that code no longer matches.
+Write the baseline again. One change in 1.9.1: a root nested in an allowed one is
 now Texuli's `not-allowed` finding, one per root with Texuli's selector,
 instead of the CLI's one per id. A 1.9.0 baseline entry for such a root no
 longer matches (it counts as fixed and the new finding as new), so write

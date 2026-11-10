@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/offline",
-  "version": "1.9.2",
+  "version": "1.9.3",
   "description": "Optional offline support for exported Protoyard prototypes: a build-time precache manifest and a small, safe service worker (opt-in).",
   "license": "MIT",
   "type": "module",

@@ -4,7 +4,7 @@ Protoyard is Texuli-first: new shared and prototype UI starts with the
 published [Texuli](https://www.npmjs.com/package/texuli) components, tokens,
 and kits. Protoyard composes them through its public package exports and
 keeps product behavior, runtime contracts, and documented exceptions in
-Protoyard. Every Texuli dependency is pinned to the exact npm version `0.17.2`
+Protoyard. Every Texuli dependency is pinned to the exact npm version `0.17.3`
 in this workspace, and every workspace package uses the same pin;
 `check-texuli-latest.ts --registry` compares the pins with npm `latest` before
 a release.
@@ -48,7 +48,7 @@ CDN can lag a few minutes after a Texuli publish).
 | `@texuli/tokens` | gallery, `charts`, `themes` |
 | `@texuli/workflows` | `flows-ui` |
 
-Every package is `0.17.2`. Texuli pins its own internal dependencies exactly,
+Every package is `0.17.3`. Texuli pins its own internal dependencies exactly,
 so the family moves together. The root manifest also pins the published
 family used by optional and future workspace surfaces (for example
 `@texuli/catalog` and `@texuli/media`). `docs/PACKAGES.md` lists the package
@@ -411,6 +411,34 @@ not in the agent catalog yet, so blueprints cannot emit them):
   `@texuli/media/image`.
 - **Avatar grid:** `<AvatarGroupGrid items={members} label="…" />` from
   `texuli/avatar`, a 2×2 collage for group conversations.
+
+## What Texuli 0.17.3 changes for design systems
+
+Texuli 0.17.3 closes what 1.9.2 kept, except the baseline format. Each item
+was checked against the installed packages before the CLI changed:
+
+- **The brief goes to Texuli as written.** `importBrand` now captures fonts
+  with case (`font is Inter`, `heading font is X`, `typeface of X`,
+  `mono uses X` give the right family), reads `<word> motion`,
+  `Headings use X` and `monospace X` inside longer clauses, and reads up to
+  16,000 characters and 256 clauses with a `limit` warning when it
+  truncates. So the CLI's prose reader and `brief.reading` are gone. The CLI
+  refuses a brief that Texuli would truncate (flags included), because the
+  brand flags come last and would be the part dropped. Tests pin each phrase
+  the old reader covered on the installed Texuli.
+- **`render-disabled-value` is Texuli's rule.** The render allow manifest
+  now passes each allow entry instead of `true`, so Texuli's mapping checks
+  a root against its own entry, once per root (the static rule's reading),
+  on the variant, size, tone, density and color axes. The CLI keeps one
+  finding per component and message, so a list of 50 buttons with a
+  disabled variant is one finding, as before. The host no longer collects
+  axis values. The message changes, so a 1.9.2 baseline entry for that code
+  no longer matches.
+- **Kept: `protoyard/ds-render-baseline` version 1.**
+  `dsReportFingerprint` now keys by code, path, route, viewport and mode
+  (`renderWhere`), but a key has no prototype. One `check ds --render` run
+  covers several prototypes, so the same selector on the same route of two
+  of them would merge. The CLI's fingerprint adds the slug and catalog id.
 
 ## What Texuli 0.17.2 changes for design systems
 

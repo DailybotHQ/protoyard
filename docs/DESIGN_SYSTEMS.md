@@ -64,7 +64,7 @@ echo "brand #0f766e, font Inter, compact" | pnpm protoyard ds new acme --brief -
 | `--from-tokens <file>` | A W3C DTCG file (Texuli's `importDtcg`) or a Tokens Studio file (`importTokensStudio`); the generator picks by shape (`$metadata`, or a root `global`, `light` or `dark` set, means Tokens Studio) and tries the other format if the first refuses. Texuli's own layout round-trips. Foreign tokens are mapped by name: semantic roles under a `light` or `dark` group, `brand` as the seed, font families by role, a radius token. |
 | `--from-css <file>` | `importSiteCss`: the declarative token surface of a stylesheet (custom properties, font families, radius). It never resolves `@import`, fetches fonts or evaluates values; a stylesheet with an `@import` or an executable value is refused whole. |
 | `--from-logo <file>` | SVG only. Protoyard reads the colors in `fill`, `stroke`, `stop-color` and similar attributes and inline styles as text (hex, `rgb()`, `rgba()`, `black`, `white`), weights each one by how often it appears, and passes them as pixels to Texuli's `importLogoPixels`. Texuli then picks the seed and a secondary color. |
-| `--brief <text\|file\|->` | Texuli's brand one-liner (`importBrand`). Protoyard first splits prose into clauses (on sentence ends, commas, semicolons, line breaks, and the words *and*, *with*, *but* and *plus*). A clause `importBrand` already reads is kept as written. Any other clause is read for colors (with the role a nearby word names: *brand*, *primary*, *secondary*, *accent*), fonts (*Inter font*, *headings in Fraunces*), the shape, density, elevation and surface words, motion, and `AA`/`AAA`. The `--brand`, `--font` and other flags are added after the brief, so they win. |
+| `--brief <text\|file\|->` | Texuli's brand brief (`importBrand`, 0.17.3), sent as written. Texuli splits it into clauses on commas, semicolons and line breaks and reads colors (with the role a nearby word names: *brand*, *primary*, *secondary*, *accent*), fonts (*font is Inter*, *Headings use Fraunces*, *monospace JetBrains Mono*), the shape, density, elevation and surface words, motion (*subtle motion*, also beside other words), and `AA`/`AAA`. Words it cannot place are `unmapped` losses. The `--brand`, `--font` and other flags are added after the brief, so they win. |
 
 Only one source is allowed per run. `--from-tokens`, `--from-css` and
 `--from-logo` also refuse the brand flags (`--brand`, `--font`, and so on).
@@ -77,9 +77,8 @@ Edit the draft document afterwards instead. Every run prints, and returns under
   or compiler changed to meet the AA guarantees, such as a brand seed it
   replaced, a pin it removed, or a control height raised to the 44 px target;
 - the **guarantees** result (`passed`, `issues`);
-- the source: the file, how each brief clause was read (`brief.reading` and
-  the final `brief.oneLiner`), or the logo colors and how many values were
-  ignored.
+- the source: the file, the brief sent to Texuli with the flags appended
+  (`brief.oneLiner`), or the logo colors and how many values were ignored.
 
 **Untrusted input.** Each file must be inside the workspace and must not be a
 symlink or sit under a symlinked folder that leaves the workspace. Size caps
@@ -107,18 +106,15 @@ nothing.
   `url(#…)`, `currentColor`, `*-opacity` and named colors other than `black`
   and `white` are ignored. Ignored values are counted in the report.
 - **A brief is read by keywords.** It is not understood as language. A clause
-  with nothing to read stays in the one-liner, and Texuli reports it as an
-  `unmapped` loss. Words such as *calm*, *soft* or *solid* are read as motion,
-  elevation or surface choices even in an unrelated sentence. Check
-  `brief.reading`. A clause that Texuli 0.17.2 reads completely is kept as
-  written, colors included (`accent color #f59e0b`, `rounded #0f766e Inter
-  font`). Protoyard reads any other clause itself and condenses it to the
-  words Texuli reads (`Deep teal #0f766e brand` becomes `brand #0f766e`).
-  That covers what Texuli leaves unread (`subtle motion` beside other words,
-  `Headings use Fraunces`, `monospace JetBrains Mono`) and a font that
-  Texuli would misread with no loss: `font is Inter` would become the family
-  "is Inter", so it is read here as `font Inter`. Condensing also keeps a
-  long brief within the 1,000-character one-liner that Texuli reads.
+  with nothing to read, and the words of a clause Texuli cannot place, are
+  `unmapped` losses in the report. Words such as *calm*, *soft* or *solid*
+  are read as motion, elevation or surface choices even in an unrelated
+  sentence. Check the loss report. Texuli reads at most 16,000 characters
+  and 256 clauses; the CLI refuses a longer brief (flags included) with
+  `validation` instead of letting Texuli truncate it, because the flags come
+  last and would be the part dropped. Until 1.9.2 Protoyard condensed prose
+  itself and returned `brief.reading`; since 1.9.3 (Texuli 0.17.3) Texuli
+  reads the brief as written and `brief.reading` is gone.
 - **Generator refusals.** When the generator cannot meet its guarantees, the
   run fails with `validation`, the errors and the report, and writes nothing.
   A stylesheet that pins a role color below AA (`--brand: #e11d48;

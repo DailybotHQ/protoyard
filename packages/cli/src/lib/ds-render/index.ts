@@ -26,7 +26,7 @@ import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { partParentMap } from '@texuli/catalog/manifest';
 import type { DesignSystemAllow } from '@texuli/spec/design-system';
-import { DS_AXES, type DsCatalog, enabledValues, type LibraryEntryLike } from '../ds-catalog.ts';
+import type { DsCatalog, LibraryEntryLike } from '../ds-catalog.ts';
 
 export type DsRenderMode = 'light' | 'dark';
 
@@ -297,8 +297,11 @@ export function planVisits(
 }
 
 /** The allow manifest the page is mapped against (Texuli's `DsMapAllowManifest`). */
+/** An allow value: the document's entry, or `true` for an id allowed only through a library component. */
+export type RenderAllowValue = DesignSystemAllow[string] | true;
+
 export interface RenderAllowManifest {
-  allow: Record<string, true>;
+  allow: Record<string, RenderAllowValue>;
   /** Child → parent catalog ids: catalog parts and what allowed extensions compose. */
   composed: Record<string, string>;
 }
@@ -320,8 +323,12 @@ export interface RenderAllowManifest {
  *
  * A nested catalog root is never covered by an allowed root around it unless
  * it is a declared part or composed id of it (Texuli 0.17.1): a `data-grid`
- * inside an allowed `card` is `not-allowed`. The allow values are `true`, so
- * Texuli's own `render-disabled-value` rule stays off (see `visitFindings`).
+ * inside an allowed `card` is `not-allowed`.
+ *
+ * The allow values are the document's entries, so Texuli's mapping also
+ * checks the axis values a root renders (`render-disabled-value`, 0.17.3: a
+ * root against its own entry, once per root). An id that only a library
+ * component composes has no entry and is `true`, so every value is enabled.
  */
 export function renderAllowManifest(
   catalog: DsCatalog,
@@ -339,7 +346,9 @@ export function renderAllowManifest(
     for (const id of extension.composes ?? []) if (!ids.has(id)) composed[id] = extension.id;
   }
   return {
-    allow: Object.fromEntries([...ids].sort().map((id) => [id, true as const])),
+    allow: Object.fromEntries(
+      [...ids].sort().map((id): [string, RenderAllowValue] => [id, allow[id] ?? true])
+    ),
     composed: Object.fromEntries(
       Object.keys(composed)
         .sort()
@@ -403,24 +412,12 @@ export interface LockedReportLike {
   }[];
 }
 
-/** The axis values one catalog root rendered (`data-tx-variant`, …). */
-export interface RenderedAxes {
-  component: string;
-  selector: string;
-  variant?: string;
-  size?: string;
-  tone?: string;
-  density?: string;
-}
-
 /** What the injected host reports about the page (see `./host-script.ts`). */
 export interface DsRenderPageInfo {
   scope: string;
   roots: number;
   links: string[];
   unownedVisualizations: { selector: string; tag: string }[];
-  /** Absent from hosts that do not report axes. */
-  axes?: RenderedAxes[];
   /** Each distinct catalog id the page renders, with its first root's selector. */
   components?: { component: string; selector: string }[];
 }
@@ -436,8 +433,7 @@ export function visitFindings(
   visit: DsRenderVisit,
   info: DsRenderPageInfo,
   locked: LockedReportLike,
-  designSystemId?: string,
-  allow?: DesignSystemAllow | null
+  designSystemId?: string
 ): DsRenderFinding[] {
   const base = {
     slug,
@@ -453,7 +449,16 @@ export function visitFindings(
     const finding = { ...base, ...f };
     out.push({ ...finding, fingerprint: fingerprintOf(finding) });
   };
+  // Texuli reports a disabled axis value on every root that renders it (up
+  // to 64); one finding per component and message keeps baselines small and
+  // stable.
+  const disabled = new Set<string>();
   for (const issue of locked.mapping.errors) {
+    if (issue.code === 'render-disabled-value') {
+      const key = `${issue.source ?? ''}|${issue.message}`;
+      if (disabled.has(key)) continue;
+      disabled.add(key);
+    }
     push({
       code: issue.code,
       selector: issue.path,
@@ -499,39 +504,6 @@ export function visitFindings(
         message: `axe: ${line}${label}`,
         wayOut: wayOutFor('render-axe'),
       });
-  }
-  if (allow) {
-    // An axis value the allow entry does not enable: the static rule skips
-    // expressions (`variant={kind}`); the page shows what they evaluated to.
-    // Texuli's mapping has a rule of the same id. Since 0.17.2 it reads the
-    // lists like `enabledValues` (a valid document holds only lists), but it
-    // still reports differently, so the manifest passes ids only and this
-    // rule stays: Texuli reports every element up to 64 (this reports each
-    // value once, which keeps baselines small and stable), checks a part
-    // against its parent's entry (this checks the component's own entry,
-    // like the static rule) and adds a `color` axis the static rule does
-    // not have.
-    const seen = new Set<string>();
-    for (const rendered of info.axes ?? []) {
-      const entry = allow[rendered.component];
-      if (!entry) continue;
-      for (const axis of DS_AXES) {
-        const value = rendered[axis];
-        if (value === undefined) continue;
-        const enabled = enabledValues(entry, axis);
-        if (!enabled || enabled.includes(value)) continue;
-        const key = `${rendered.component}|${axis}|${value}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        push({
-          code: 'render-disabled-value',
-          selector: rendered.selector,
-          component: rendered.component,
-          message: `${rendered.component} renders ${axis} "${value}", which the design system does not enable (enabled: ${enabled.join(', ') || 'none'}).`,
-          wayOut: wayOutFor('render-disabled-value'),
-        });
-      }
-    }
   }
   for (const v of info.unownedVisualizations)
     push({

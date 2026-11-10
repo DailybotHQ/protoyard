@@ -3,7 +3,6 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
-import { compileDesignSystemDocument } from '@protoyard/themes';
 import { CATALOG_PART_PARENTS, partParentMap } from '@texuli/catalog/manifest';
 import {
   DS_LOCKED_RENDER_EXEMPT_IDS,
@@ -467,70 +466,43 @@ describe('findings', () => {
     expect(findings[5]?.message).toContain('variant high-contrast');
   });
 
-  it('reports rendered axis values the allow entry does not enable, once per value', () => {
-    const rendered = info({
-      axes: [
-        {
-          component: 'button',
-          selector: 'main>button:nth-of-type(1)',
-          variant: 'ghost',
-          size: 'sm',
-        },
-        { component: 'button', selector: 'main>button:nth-of-type(2)', variant: 'ghost' },
-        { component: 'button', selector: 'main>button:nth-of-type(3)', variant: 'default' },
-        // Every value of an entry without a list is enabled; an id outside allow is the mapping's.
-        { component: 'badge', selector: 'main>span', variant: 'neon' },
-        { component: 'dialog', selector: 'main>div', size: 'xl' },
-      ],
+  it("takes render-disabled-value from Texuli's mapping, once per component and value (0.17.3)", async () => {
+    // The manifest passes each document entry, so Texuli's rule checks a root
+    // against its own entry. An id only a library component composes is `true`.
+    const entry = { variants: ['default', 'outline'], sizes: [] as string[] };
+    const manifest = renderAllowManifest(dsCatalog(), { button: entry } as never, [
+      { id: 'acme-card', composes: ['card'] } as never,
+    ]);
+    expect(manifest.allow).toEqual({ button: entry, card: true });
+    const disabled = (path: string, value: string) => ({
+      code: 'render-disabled-value',
+      path,
+      source: 'button',
+      message: `Rendered variant "${value}" is not allowed for "button".`,
     });
-    const allow = { button: { variants: ['default', 'outline'], sizes: ['sm', 'md'] }, badge: {} };
-    const findings = visitFindings(
-      'acme-app',
-      visit,
-      rendered,
-      clean('dark'),
-      'acme',
-      allow as never
-    );
+    const locked: LockedReportLike = {
+      mapping: {
+        errors: [
+          disabled('main>button:nth-of-type(1)', 'ghost'),
+          disabled('main>button:nth-of-type(2)', 'ghost'),
+          disabled('main>button:nth-of-type(3)', 'link'),
+        ],
+      },
+      runs: [cleanRun('dark')],
+    };
+    const findings = visitFindings('acme-app', visit, info(), locked, 'acme');
     expect(findings.map((f) => [f.code, f.component, f.selector])).toEqual([
       ['render-disabled-value', 'button', 'main>button:nth-of-type(1)'],
+      ['render-disabled-value', 'button', 'main>button:nth-of-type(3)'],
     ]);
-    expect(findings[0]?.message).toContain('variant "ghost"');
-    expect(findings[0]?.message).toContain('default, outline');
-    // Without the allow section nothing is checked.
-    expect(visitFindings('acme-app', visit, rendered, clean('dark'), 'acme')).toEqual([]);
-  });
-
-  it("keeps render-disabled-value Protoyard's: Texuli's rule reads the same lists but reports differently", async () => {
-    // A valid document holds each axis as a list (the only shape the schema
-    // takes), and on a list Texuli's dsAllowAxisValues reads what
-    // enabledValues reads, so both enable the same values.
-    const entry = { variants: ['default', 'outline'], sizes: [] as string[] };
+    expect(findings[0]?.wayOut).toContain('allow entry');
+    // A valid document holds each axis as a list, the shape Texuli's rule reads.
     for (const axis of DS_AXES) {
       const list = (entry as Record<string, string[] | undefined>)[
         { variant: 'variants', size: 'sizes', tone: 'tones', density: 'densities' }[axis]
       ];
       expect(enabledValues(entry as never, axis)).toEqual(dsAllowAxisValues(list) ?? null);
     }
-    const base = {
-      format: 'texuli/design-system',
-      formatVersion: 1,
-      id: 'acme',
-      version: '1.0.0',
-      name: 'Acme',
-      color: { brand: { seed: '#0f766e' } },
-    };
-    for (const shape of ['ghost', { values: ['ghost'] }, { ghost: true }]) {
-      const compiled = await compileDesignSystemDocument({
-        ...base,
-        allow: { button: { variants: shape } },
-      });
-      expect(compiled.ok, JSON.stringify(shape)).toBe(false);
-    }
-    // The manifest passes ids only, so Texuli's own rule of the same id stays
-    // off: one finding per value from Protoyard, none per element from Texuli.
-    const manifest = renderAllowManifest(dsCatalog(), { button: entry } as never);
-    expect(manifest.allow.button).toBe(true);
   });
 
   it('writes, reads and applies baselines (its own file or a saved --json output)', () => {

@@ -37,7 +37,7 @@ export const DS_RENDER_CHECK_GLOBAL = 'texuliDsCheck';
 /** The catalog root attribute the host reads (Texuli's `DS_TX_COMPONENT_ATTRIBUTE`). */
 export const DS_RENDER_COMPONENT_ATTRIBUTE = 'data-tx-component';
 
-/** The most distinct axis sets (and distinct catalog ids) one page reports. */
+/** The most distinct catalog ids one page reports. */
 export const DS_RENDER_MAX_AXES = 500;
 
 /** The path of Texuli's host IIFE in the installed `@texuli/tools`. */
@@ -79,7 +79,6 @@ export function dsRenderHostScript(): string {
  */
 export const INSTALL_HOST = `([selector, minVisualizationPx]) => {
   const ROOT = ${JSON.stringify(DS_RENDER_COMPONENT_ATTRIBUTE)};
-  const AXES = ['variant', 'size', 'tone', 'density'];
   const MAX_AXES = ${DS_RENDER_MAX_AXES};
   const host = globalThis[${JSON.stringify(DS_RENDER_HOST_GLOBAL)}];
   if (!host || typeof host.installDsCheckHost !== 'function')
@@ -109,8 +108,6 @@ export const INSTALL_HOST = `([selector, minVisualizationPx]) => {
     if (tag === 'svg' && Math.max(box.width, box.height) < minVisualizationPx) continue;
     unownedVisualizations.push({ selector: selectorOf(el), tag });
   }
-  const axes = [];
-  const seen = new Set();
   const components = [];
   const seenIds = new Set();
   const roots = scope.querySelectorAll('[' + ROOT + ']');
@@ -120,23 +117,6 @@ export const INSTALL_HOST = `([selector, minVisualizationPx]) => {
       seenIds.add(id);
       components.push({ component: id, selector: selectorOf(el) });
     }
-  }
-  for (const el of roots) {
-    const entry = { component: el.getAttribute(ROOT) || '', selector: '' };
-    let any = false;
-    for (const axis of AXES) {
-      const value = el.getAttribute('data-tx-' + axis);
-      if (value) {
-        entry[axis] = value;
-        any = true;
-      }
-    }
-    if (!any) continue;
-    const key = JSON.stringify(entry);
-    if (seen.has(key) || axes.length >= MAX_AXES) continue;
-    seen.add(key);
-    entry.selector = selectorOf(el);
-    axes.push(entry);
   }
   const links = [
     ...new Set(
@@ -153,7 +133,6 @@ export const INSTALL_HOST = `([selector, minVisualizationPx]) => {
     roots: roots.length,
     links,
     unownedVisualizations,
-    axes,
     components,
   };
 }`;

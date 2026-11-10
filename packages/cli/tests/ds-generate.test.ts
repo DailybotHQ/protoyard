@@ -6,10 +6,11 @@ import { Readable } from 'node:stream';
 import { importBrand } from '@texuli/tokens/design-system/import';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  assertBriefFits,
   GENERATOR_LIMITS,
-  readProseBrief,
   setDsBriefStdin,
   svgLogoColors,
+  TEXULI_BRIEF_LIMITS,
 } from '../src/lib/ds-generate.ts';
 import { cliArgs, createMcpToolHandler, runCliEnvelope } from '../src/mcp/tools.ts';
 import { cli, createWorkspace, manifest, type TempWorkspace } from './helpers.ts';
@@ -31,7 +32,7 @@ type Generated = {
   generation: Report & {
     source: string;
     file?: string;
-    brief?: { from: string; oneLiner: string; reading: { clause: string; read: string[] }[] };
+    brief?: { from: string; oneLiner: string };
     logo?: { format: string; colors: { color: string; count: number }[]; ignored: number };
   };
   document: {
@@ -184,18 +185,15 @@ describe('protoyard ds new from Texuli generator sources (PLAN_013 T-generator)'
     expect(data.generation.brief?.from).toBe('text');
     expect(data.document.color?.brand?.seed).toBe('#0f766e');
     expect(data.document.typography?.families?.sans?.stack?.[0]).toBe('Inter');
-    // Clauses Texuli 0.17.2 reads completely stay as written (`rounded corners`,
-    // `compact spacing`); the others are condensed to the words it reads.
-    expect(data.generation.brief?.oneLiner).toBe(
-      'calm, brand #0f766e, Inter font, rounded corners, compact spacing'
-    );
+    // Texuli 0.17.3 reads the prose as written; the words it cannot place
+    // are an `unmapped` loss in the report.
+    expect(data.generation.brief?.oneLiner).toBe(BRIEF);
     expect(data.document.shape?.radius).toBe(12);
     expect(data.document.space?.density).toBe(0.875);
     expect(data.document.motion?.personality).toBe('subtle');
-    expect(data.generation.brief?.reading[0]).toEqual({
-      clause: 'A calm banking app for nurses',
-      read: ['calm'],
-    });
+    expect(
+      data.generation.losses.some((loss) => loss.reason.includes('banking app for nurses'))
+    ).toBe(true);
 
     const file = await ds('new', 'nurse-bank', '--brief', 'brand/brief.md', '--dry-run');
     expect(file.code, file.stdout).toBe(0);
@@ -425,95 +423,57 @@ describe('protoyard ds new from Texuli generator sources (PLAN_013 T-generator)'
 });
 
 describe('generator input helpers', () => {
-  it('reads one-liner clauses as written and prose clauses by their words', () => {
-    expect(readProseBrief('brand #4f46e5, font Inter, rounded', importBrand).oneLiner).toBe(
-      'brand #4f46e5, font Inter, rounded'
-    );
-    const { reading } = readProseBrief(
-      'Headings in Fraunces; accent color #f59e0b; subtle motion and glass surfaces',
-      importBrand
-    );
-    // Texuli 0.17.2 reads `Headings in X` and a colored clause itself; a clause
-    // it leaves words of (`glass surfaces`) is condensed here.
-    expect(reading.map((entry) => entry.read)).toEqual([
-      ['Headings in Fraunces'],
-      ['accent color #f59e0b'],
-      ['subtle motion'],
-      ['glass'],
-    ]);
-  });
-
-  it('sends a clause with a color to Texuli when it reads all of it (0.17.2 no longer misreads one)', () => {
-    const { reading } = readProseBrief(
-      'Deep teal #0f766e brand; Inter font in #0f766e; rounded #f59e0b; two colors #0f766e #f59e0b; secondary is #334155; rounded #0f766e Inter font; font Inter in #0f766e rounded',
-      importBrand
-    );
-    expect(reading.map((entry) => entry.read)).toEqual([
-      ['brand #0f766e'],
-      ['Inter font in #0f766e'],
-      ['rounded #f59e0b'],
-      ['#0f766e', '#f59e0b'],
-      ['secondary is #334155'],
-      ['rounded #0f766e Inter font'],
-      ['font Inter in #0f766e rounded'],
-    ]);
-    // 0.17.1 read these two as the family "rounded Inter" and dropped `rounded`.
-    for (const clause of ['rounded #0f766e Inter font', 'font Inter in #0f766e rounded']) {
+  it('leaves prose to Texuli 0.17.3: fonts, headings and motion inside longer clauses', () => {
+    // Pins on the installed Texuli: each of these needed Protoyard's own
+    // reader before 0.17.3 (a glued joining word, or an unmapped phrase).
+    const cases: [string, (read: ReturnType<typeof importBrand>) => unknown, unknown][] = [
+      [
+        'the font is Inter',
+        (r) => r.ok && r.document.typography?.families?.sans?.stack?.[0],
+        'Inter',
+      ],
+      [
+        'typeface of Inter',
+        (r) => r.ok && r.document.typography?.families?.sans?.stack?.[0],
+        'Inter',
+      ],
+      [
+        'heading font is Fraunces',
+        (r) => r.ok && r.document.typography?.families?.heading?.stack?.[0],
+        'Fraunces',
+      ],
+      [
+        'Headings use Fraunces',
+        (r) => r.ok && r.document.typography?.families?.heading?.stack?.[0],
+        'Fraunces',
+      ],
+      [
+        'Mono uses JetBrains Mono',
+        (r) => r.ok && r.document.typography?.families?.mono?.stack?.[0],
+        'JetBrains Mono',
+      ],
+      [
+        'monospace JetBrains Mono',
+        (r) => r.ok && r.document.typography?.families?.mono?.stack?.[0],
+        'JetBrains Mono',
+      ],
+      ['subtle motion and glass surfaces', (r) => r.ok && r.document.motion?.personality, 'subtle'],
+    ];
+    for (const [clause, pick, expected] of cases) {
       const read = importBrand(clause, { trust: 'untrusted', id: 'x' });
-      expect(read.ok && read.warnings.some((w) => w.code === 'unmapped')).toBe(false);
-      expect(read.ok && read.document.typography?.families?.sans?.stack?.[0]).toBe('Inter');
-      expect(read.ok && read.document.shape?.radius).toBe(12);
+      expect(pick(read), clause).toBe(expected);
+      expect(read.ok && read.warnings.some((w) => w.code === 'unmapped'), clause).toBe(false);
     }
-  });
-
-  it('reads a font named after a joining word itself: Texuli 0.17.2 glues the word in', () => {
-    const { oneLiner, reading } = readProseBrief(
-      'the font is Inter; heading font is Fraunces; typeface of Inter; Mono uses JetBrains Mono',
-      importBrand
-    );
-    expect(reading.map((entry) => entry.read)).toEqual([
-      ['font Inter'],
-      ['heading Fraunces'],
-      ['font Inter'],
-      ['mono JetBrains Mono'],
-    ]);
-    const brand = importBrand(oneLiner, { trust: 'untrusted', id: 'x' });
-    expect(brand.ok && brand.document.typography?.families).toMatchObject({
-      sans: { stack: ['Inter', 'system-ui', 'sans-serif'] },
-      heading: { stack: ['Fraunces', 'system-ui', 'sans-serif'] },
-      mono: { stack: ['JetBrains Mono', 'ui-monospace', 'monospace'] },
-    });
-    // What Texuli alone makes of one, with no unmapped loss. If Texuli reads it
-    // right, this pin fails and the lowercase-family guard can go.
-    const glued = importBrand('font is Inter', { trust: 'untrusted', id: 'x' });
-    expect(glued.ok && glued.warnings.some((w) => w.code === 'unmapped')).toBe(false);
-    expect(glued.ok && glued.document.typography?.families?.sans?.stack?.[0]).toBe('is Inter');
-  });
-
-  it('condenses the prose Texuli 0.17.2 leaves unread (motion beside other words, Headings use X)', () => {
-    const { reading } = readProseBrief(
-      'subtle motion with glass surfaces; Headings use Fraunces; monospace JetBrains Mono',
-      importBrand
-    );
-    expect(reading.map((entry) => entry.read)).toEqual([
-      ['subtle motion'],
-      ['glass'],
-      ['heading Fraunces'],
-      ['mono JetBrains Mono'],
-    ]);
-    // Pins: Texuli alone reports these as unmapped. If it reads them, the clause stays as written.
-    for (const clause of ['subtle motion and glass surfaces', 'Headings use Fraunces']) {
-      const read = importBrand(clause, { trust: 'untrusted', id: 'x' });
-      expect(read.ok && read.warnings.some((w) => w.code === 'unmapped')).toBe(true);
-    }
-  });
-
-  it('keeps a clause with nothing to read, so Texuli reports it as an unmapped loss', () => {
-    const { oneLiner, reading } = readProseBrief('For night shifts, brand #0f766e', importBrand);
-    expect(reading[0]).toEqual({ clause: 'For night shifts', read: [] });
-    expect(oneLiner).toBe('For night shifts, brand #0f766e');
-    const brand = importBrand(oneLiner, { id: 'x' });
+    // A clause with nothing to read is an unmapped loss.
+    const brand = importBrand('For night shifts, brand #0f766e', { id: 'x' });
     expect(brand.losses.map((loss) => loss.path)).toContain('$[0]');
+  });
+
+  it('refuses a brief Texuli would truncate, so the brand flags after it are never dropped', () => {
+    expect(() => assertBriefFits('brand #0f766e, font Inter')).not.toThrow();
+    const clauses = Array.from({ length: TEXULI_BRIEF_LIMITS.clauses + 1 }, () => 'rounded');
+    expect(() => assertBriefFits(clauses.join(', '))).toThrow(/257 clauses/);
+    expect(() => assertBriefFits('x'.repeat(TEXULI_BRIEF_LIMITS.characters + 1))).toThrow(/16000/);
   });
 
   it('reads SVG colors without markup parsing, ignoring references and none', () => {
