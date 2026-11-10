@@ -1,5 +1,15 @@
 # @protoyard/views-ui
 
+## 1.8.1
+
+### Patch Changes
+
+- @protoyard/ai@1.8.1
+  - @protoyard/core@1.8.1
+  - @protoyard/renderer-svelte@1.8.1
+  - @protoyard/ui@1.8.1
+  - @protoyard/views@1.8.1
+
 ## 1.8.0
 
 ### Patch Changes

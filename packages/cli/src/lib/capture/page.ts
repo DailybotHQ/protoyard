@@ -18,7 +18,9 @@ export interface CaptureOptions {
   mobile?: boolean;
   /**
    * Only this origin may be fetched (plus `data:` and `blob:`); every other
-   * request is aborted. Unset, the page may fetch anything.
+   * request is aborted, a WebSocket to another origin is closed before it
+   * connects, and service workers are blocked. Unset, the page may fetch
+   * anything. WebRTC is not covered.
    */
   allowOrigin?: string;
 }
@@ -28,6 +30,18 @@ export function captureMayFetch(url: string, origin: string): boolean {
   if (/^(?:data|blob):/i.test(url)) return true;
   try {
     return new URL(url).origin === origin;
+  } catch {
+    return false;
+  }
+}
+
+/** Whether a capture context restricted to `origin` may open the WebSocket `url` (same host and port). */
+export function captureMaySocket(url: string, origin: string): boolean {
+  try {
+    const socket = new URL(url);
+    const page = new URL(origin);
+    const scheme = page.protocol === 'https:' ? 'wss:' : 'ws:';
+    return socket.protocol === scheme && socket.host === page.host;
   } catch {
     return false;
   }
@@ -57,6 +71,8 @@ export async function withReadyPage<T>(
     locale: 'en-US',
     timezoneId: 'UTC',
     ...(options.mobile ? { isMobile: true, hasTouch: true } : {}),
+    // A service worker's own fetches would bypass the routes below.
+    ...(options.allowOrigin !== undefined ? { serviceWorkers: 'block' as const } : {}),
   });
   try {
     const allowOrigin = options.allowOrigin;
@@ -64,6 +80,11 @@ export async function withReadyPage<T>(
       await context.route('**/*', (route) =>
         captureMayFetch(route.request().url(), allowOrigin) ? route.continue() : route.abort()
       );
+      // `route` never sees WebSockets: same origin connects, anything else is closed.
+      await context.routeWebSocket(/.*/, (ws) => {
+        if (captureMaySocket(ws.url(), allowOrigin)) ws.connectToServer();
+        else void ws.close({ code: 1008, reason: 'blocked by the capture' });
+      });
     }
     const page = await context.newPage();
     const errors: string[] = [];

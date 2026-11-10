@@ -6,10 +6,12 @@
  * injected (`DsRenderDeps`), so the orchestration is tested without one;
  * `realDsRenderDeps` wires the real ones.
  */
-import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 import type { DesignSystemAllow } from '@texuli/spec/design-system';
 import { artifactDir, BUILD_MANIFEST_FILENAME, buildPrototype } from '../build.ts';
+import { buildInputsHash } from '../build-inputs.ts';
 import { locateDesignSystem, readDocumentFile } from '../design-systems.ts';
 import { dsCatalog, readAllow, readLibrary } from '../ds-catalog.ts';
 import { CliError } from '../output.ts';
@@ -263,49 +265,44 @@ export async function renderPrototypes(
 
 // ── the real dependencies ──────────────────────────────────────────────
 
-const STALE_SKIP = new Set(['node_modules', 'dist', 'tests', '.vite', '.svelte-kit']);
+/** Whether git tracks any file under `dir` (a build committed to the repository). */
+export function gitTracksAny(root: string, dir: string): boolean {
+  const rel = relative(root, dir).split(sep).join('/');
+  if (!rel || rel.startsWith('..')) return false;
+  const result = spawnSync('git', ['ls-files', '-z', '--', rel], {
+    cwd: root,
+    encoding: 'utf8',
+    timeout: 10_000,
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  return result.status === 0 && result.stdout.length > 0;
+}
 
-/** The newest modification time (ms) of the files under `dir` (dependencies, output and tests skipped). */
-export function newestMtime(dir: string): number {
-  try {
-    const stat = lstatSync(dir);
-    if (stat.isFile()) return stat.mtimeMs;
-  } catch {
-    return 0;
-  }
-  let newest = 0;
-  const walk = (path: string) => {
-    let names: string[];
-    try {
-      names = readdirSync(path);
-    } catch {
-      return;
-    }
-    for (const name of names) {
-      if (STALE_SKIP.has(name)) continue;
-      const file = join(path, name);
-      const stat = lstatSync(file);
-      if (stat.isSymbolicLink()) continue;
-      if (stat.isDirectory()) walk(file);
-      else newest = Math.max(newest, stat.mtimeMs);
-    }
-  };
-  walk(dir);
-  return newest;
+export interface FreshBuildOptions {
+  /** Now, in ms (tests pin it). */
+  now?: number;
+  /** Whether git tracks files under the artifacts folder (tests replace it). */
+  tracked?: (root: string, dir: string) => boolean;
 }
 
 /**
- * Whether `artifacts/<slug>/` holds a build newer than every source file of
- * the prototype and of its design system. Returns the build's base, or null.
+ * A build in `artifacts/<slug>/` that `check ds --render` may reuse instead
+ * of building again, or null. Reused only when its `build-manifest.json`
+ * records the inputs hash of what it was built from (`buildInputsHash`: the
+ * prototype, `design-systems/` and the root lockfile) and that hash still
+ * matches, its `builtAt` is not in the future, it is a plain build (no
+ * `target`), and git tracks nothing under it: a build committed to the
+ * repository, or planted with a made-up manifest, is never trusted.
  */
 export function freshBuild(
   artifacts: string,
-  sources: readonly string[]
+  inputs: { root: string; dir: string },
+  options: FreshBuildOptions = {}
 ): { base: string; dist: string } | null {
   const dist = join(artifacts, 'dist');
   const manifestFile = join(artifacts, BUILD_MANIFEST_FILENAME);
   if (!existsSync(join(dist, 'index.html')) || !existsSync(manifestFile)) return null;
-  let manifest: { builtAt?: string; base?: string; target?: string };
+  let manifest: { builtAt?: string; base?: string; target?: string; inputsHash?: unknown };
   try {
     manifest = JSON.parse(readFileSync(manifestFile, 'utf8'));
   } catch {
@@ -313,8 +310,11 @@ export function freshBuild(
   }
   const builtAt = Date.parse(manifest.builtAt ?? '');
   if (!Number.isFinite(builtAt) || manifest.target !== undefined) return null;
-  const newest = Math.max(...sources.map(newestMtime));
-  return builtAt >= newest ? { base: manifest.base ?? './', dist } : null;
+  if (builtAt > (options.now ?? Date.now())) return null;
+  if (typeof manifest.inputsHash !== 'string') return null;
+  if (manifest.inputsHash !== buildInputsHash(inputs.root, inputs.dir)) return null;
+  if ((options.tracked ?? gitTracksAny)(inputs.root, artifacts)) return null;
+  return { base: manifest.base ?? './', dist };
 }
 
 /** The real build, serve, compile and browser of `check ds --render`. */
@@ -349,16 +349,9 @@ export function realDsRenderDeps(
     },
     async serve(target) {
       const artifacts = artifactDir(ctx, target.entry);
-      let dsDir: string | null = null;
-      try {
-        const location = locateDesignSystem(ctx.root, target.designSystemId);
-        dsDir = location.dir ?? location.absolute;
-      } catch {
-        dsDir = null;
-      }
       let fresh = options.rebuild
         ? null
-        : freshBuild(artifacts, dsDir ? [target.dir, dsDir] : [target.dir]);
+        : freshBuild(artifacts, { root: ctx.root, dir: target.dir });
       let build: DsRenderServed['build'] = 'reused';
       if (!fresh) {
         const result = await buildPrototype(ctx, target.entry, target.dir, {});

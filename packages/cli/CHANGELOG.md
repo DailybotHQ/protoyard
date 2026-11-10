@@ -1,5 +1,35 @@
 # @protoyard/cli
 
+## 1.8.1
+
+### Patch Changes
+
+- Security review fixes for design systems. `ds import` lists every imported
+  component source as code to review before `ds kit`, `dev` or `build`, checks
+  every release record against its document and the bundle's history, and stops
+  at the size cap inside its loop. Design-system outputs (`ds new --out`, MCP
+  `ds_create.out`, `ds export --bundle --out`, `check ds --write-baseline`,
+  `ds extensions --out`) must be `.json` files in `design-systems/`, `artifacts/`
+  or `tmp/`, never protected names, and `--force` replaces only a file of the
+  same kind. `ds kit` refuses symlinked kit folders and parents. JSON parse
+  errors no longer echo file content, and hidden files are refused as generator
+  inputs. `check ds --render` runs its checks in an isolated world the
+  prototype cannot patch, blocks WebSockets and service workers to other
+  origins, and reuses a build only when its inputs hash still matches. The kit
+  README escapes the design-system name and stories refuse script URLs.
+- @protoyard/blocks@1.8.1
+  - @protoyard/blueprint@1.8.1
+  - @protoyard/core@1.8.1
+  - @protoyard/crud@1.8.1
+  - @protoyard/decks@1.8.1
+  - @protoyard/offline@1.8.1
+  - @protoyard/player@1.8.1
+  - @protoyard/renderer-svelte@1.8.1
+  - @protoyard/review@1.8.1
+  - @protoyard/scenarios@1.8.1
+  - @protoyard/templates@1.8.1
+  - @protoyard/themes@1.8.1
+
 ## 1.8.0
 
 ### Minor Changes
@@ -28,6 +58,10 @@
 
 ### Patch Changes
 
+- AI Diff Reviewer fixes: `new --ds` runs the allow rules at the template gate
+  and after creation, and never binds an existing prototype; `ds approve
+  --release` builds the release before approving; `ds import --dry-run` makes
+  the real run's refusals; kit story variant names are unique.
 - Updated dependencies [b64de1e]
 - Updated dependencies
   - @protoyard/core@1.8.0

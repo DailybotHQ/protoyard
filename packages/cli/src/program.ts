@@ -154,7 +154,11 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .option('--route <path...>', 'with --render: check only these hash routes (e.g. /settings)')
     .option('--baseline <file>', 'with --render: findings this baseline lists do not fail')
-    .option('--write-baseline <file>', 'with --render: save the current findings as a baseline')
+    .option(
+      '--write-baseline <file>',
+      'with --render: save the current findings as a baseline (a .json file under design-systems/, artifacts/ or tmp/)'
+    )
+    .option('--force', 'with --write-baseline: replace a file that is not a baseline')
     .option('--rebuild', 'with --render: build even when a fresh build exists')
     .action(def('check ds', checkDsCommand));
 
@@ -689,8 +693,9 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .option(
       '--out <dir>',
-      'write one <namespace>.catalog-extension.json per namespace into this workspace folder'
+      'write one <namespace>.catalog-extension.json per namespace into this folder (under design-systems/, artifacts/ or tmp/)'
     )
+    .option('--force', 'with --out: replace a file of that name that is not an extension file')
     .action(def('ds extensions', dsExtensionsCommand));
   ds.command('list')
     .description(

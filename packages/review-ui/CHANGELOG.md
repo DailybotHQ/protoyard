@@ -1,5 +1,15 @@
 # @protoyard/review-ui
 
+## 1.8.1
+
+### Patch Changes
+
+- @protoyard/core@1.8.1
+  - @protoyard/review@1.8.1
+  - @protoyard/ui@1.8.1
+  - @protoyard/views@1.8.1
+  - @protoyard/views-ui@1.8.1
+
 ## 1.8.0
 
 ### Patch Changes

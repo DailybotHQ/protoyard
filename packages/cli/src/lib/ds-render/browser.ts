@@ -2,9 +2,12 @@
  * The Playwright side of `check ds --render`: one Chromium for the run, one
  * fresh context per visit (`withReadyPage` of `../capture`, the same
  * deterministic capture `quick` shots and the visual sweep use), the host
- * script injected, then Texuli's `runLockedRenderChecks` with the mapping
- * the host computed on the live page. Fetches outside the local server are
- * aborted. Playwright and `@axe-core/playwright` are loaded at run time; a
+ * script and Texuli's checks run in a CDP isolated world (the prototype's
+ * JavaScript cannot reach their globals or patch the DOM functions they
+ * call; it can still change the shared DOM itself, and axe runs in the main
+ * world), then Texuli's `runLockedRenderChecks` with the mapping the host
+ * computed on the live page. Requests outside the local server are aborted,
+ * WebSockets to another origin are closed and service workers are blocked. Playwright and `@axe-core/playwright` are loaded at run time; a
  * missing package or browser is a typed `unavailable` result, never a crash.
  */
 import type { Browser, Page } from '@playwright/test';
@@ -52,6 +55,116 @@ export function visitUrl(baseUrl: string, visit: DsRenderVisit): string {
 /** The element the host is installed on: the prototype's mount point. */
 export const DS_RENDER_SCOPE = '#app';
 
+/** Installs the bundled host (a string: tsx would rewrite a named function). */
+const INSTALL_HOST = '([name, scope, px]) => globalThis[name].install(scope, px)';
+
+/** Marks `undefined` inside an argument, which CDP's JSON would turn into null. */
+const UNDEFINED = '\u0000protoyard:undefined';
+
+/**
+ * The function CDP calls for `fn(arg)`: `fn` is the CLI's or Texuli's own
+ * function source (never page data, as with Playwright's `evaluate`); the
+ * argument travels as JSON text with `undefined` kept.
+ */
+function callDeclaration(fn: string): string {
+  return `async function (text, marker) {
+  const arg = JSON.parse(text, (key, value) => (value === marker ? undefined : value));
+  return await (${fn})(arg);
+}`;
+}
+
+/** The parts of a CDP session this file uses (Playwright's `CDPSession`). */
+interface CdpSession {
+  send(method: string, params?: Record<string, unknown>): Promise<unknown>;
+  detach(): Promise<void>;
+}
+
+interface CdpEvaluation {
+  result?: { value?: unknown };
+  exceptionDetails?: { text?: string; exception?: { description?: string } };
+}
+
+export interface IsolatedWorld {
+  /** A Texuli `DsCheckPage` whose `evaluate` and `waitForFunction` run in the world. */
+  page: DsCheckPage;
+  /** Evaluates a script (the host bundle) in the world. */
+  run(script: string): Promise<void>;
+  evaluate(fn: string | ((arg: never) => unknown), arg: unknown): Promise<unknown>;
+  detach(): Promise<void>;
+}
+
+function encodeArg(value: unknown): string {
+  return JSON.stringify(value === undefined ? UNDEFINED : value, (_key, item) =>
+    item === undefined ? UNDEFINED : item
+  );
+}
+
+function failure(evaluation: CdpEvaluation): Error {
+  const details = evaluation.exceptionDetails;
+  return new Error(
+    details?.exception?.description?.split('\n')[0] ?? details?.text ?? 'evaluation failed'
+  );
+}
+
+/**
+ * A Chromium isolated world (CDP `Page.createIsolatedWorld`) on the page's
+ * main frame. Its JavaScript globals and DOM wrappers are its own; only the
+ * DOM itself is shared with the prototype.
+ */
+export async function isolatedWorld(page: Page): Promise<IsolatedWorld> {
+  const session = (await page.context().newCDPSession(page)) as unknown as CdpSession;
+  const tree = (await session.send('Page.getFrameTree')) as {
+    frameTree: { frame: { id: string } };
+  };
+  const created = (await session.send('Page.createIsolatedWorld', {
+    frameId: tree.frameTree.frame.id,
+    worldName: 'protoyard-ds-render',
+  })) as { executionContextId: number };
+  const contextId = created.executionContextId;
+  const evaluate = async (fn: string | ((arg: never) => unknown), arg: unknown) => {
+    const evaluation = (await session.send('Runtime.callFunctionOn', {
+      functionDeclaration: callDeclaration(String(fn)),
+      executionContextId: contextId,
+      arguments: [{ value: encodeArg(arg) }, { value: UNDEFINED }],
+      awaitPromise: true,
+      returnByValue: true,
+    })) as CdpEvaluation;
+    if (evaluation.exceptionDetails) throw failure(evaluation);
+    return evaluation.result?.value;
+  };
+  const checkPage = {
+    goto: (url: string, options?: { timeout?: number }) => page.goto(url, options),
+    emulateMedia: (options: Parameters<Page['emulateMedia']>[0]) => page.emulateMedia(options),
+    evaluate: (fn: (arg: never) => unknown, arg: unknown) => evaluate(fn, arg),
+    async waitForFunction(
+      fn: (arg: never) => unknown,
+      arg: unknown,
+      options?: { timeout?: number }
+    ) {
+      const deadline = Date.now() + (options?.timeout ?? 30_000);
+      for (;;) {
+        const value = await evaluate(fn, arg);
+        if (value) return value;
+        if (Date.now() > deadline) throw new Error('Timed out waiting in the isolated world.');
+        await new Promise((done) => setTimeout(done, 50));
+      }
+    },
+  } as unknown as DsCheckPage;
+  return {
+    page: checkPage,
+    async run(script) {
+      const evaluation = (await session.send('Runtime.evaluate', {
+        expression: script,
+        contextId,
+        returnByValue: true,
+      })) as CdpEvaluation;
+      if (evaluation.exceptionDetails) throw failure(evaluation);
+    },
+    evaluate,
+    detach: () => session.detach().catch(() => undefined),
+  };
+}
+
 /**
  * Launch Chromium and load Texuli's checks and axe (from the workspace
  * `root`, then the CLI's own dependencies). Returns `unavailable` with the
@@ -88,26 +201,31 @@ export async function launchDsRenderDriver(root: string): Promise<DsRenderDriver
           allowOrigin: origin,
         },
         async (page: Page) => {
-          await page.addScriptTag({ content: script });
-          const info = (await page.evaluate(
-            ([name, scope, px]) =>
-              (
-                globalThis as unknown as Record<
-                  string,
-                  { install(scope: string, px: number): unknown }
-                >
-              )[name as string]?.install(scope as string, px as number),
-            [DS_RENDER_HOST_GLOBAL, DS_RENDER_SCOPE, DS_RENDER_MIN_VISUALIZATION_PX] as const
-          )) as DsRenderPageInfo;
-          const checkPage = page as unknown as DsCheckPage;
-          const mapping = await tools.mapLockedRenderPage(checkPage, request.allowManifest);
-          const locked = await tools.runLockedRenderChecks(
-            checkPage,
-            request.runs as readonly DsCheckRun[],
-            mapping,
-            { modes: [visit.mode], axe }
-          );
-          return { info, locked: locked as unknown as LockedReportLike };
+          // The host and every Texuli check run in an isolated world: the
+          // prototype's own JavaScript shares the DOM but not these globals or
+          // DOM prototypes, so it cannot stub the checker or patch
+          // getAttribute, querySelectorAll or getComputedStyle under it.
+          const world = await isolatedWorld(page);
+          try {
+            await world.run(script);
+            const info = (await world.evaluate(INSTALL_HOST, [
+              DS_RENDER_HOST_GLOBAL,
+              DS_RENDER_SCOPE,
+              DS_RENDER_MIN_VISUALIZATION_PX,
+            ])) as DsRenderPageInfo;
+            const checkPage = world.page;
+            const mapping = await tools.mapLockedRenderPage(checkPage, request.allowManifest);
+            const locked = await tools.runLockedRenderChecks(
+              checkPage,
+              request.runs as readonly DsCheckRun[],
+              mapping,
+              // axe needs Playwright's page; it runs in the main world (see THEMES.md limits).
+              { modes: [visit.mode], axe: () => axe(page as unknown as DsCheckPage) }
+            );
+            return { info, locked: locked as unknown as LockedReportLike };
+          } finally {
+            await world.detach();
+          }
         }
       );
     },

@@ -1,5 +1,7 @@
 // @vitest-environment node
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import {
   DS_LOCKED_RENDER_EXEMPT_IDS,
@@ -10,7 +12,9 @@ import {
 } from '@texuli/tools/ds-check';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createCheckDsCommand } from '../src/commands/check.ts';
-import { launchChromium } from '../src/lib/capture/index.ts';
+import { buildInputsHash } from '../src/lib/build-inputs.ts';
+import { launchChromium, withReadyPage } from '../src/lib/capture/index.ts';
+import { captureMaySocket } from '../src/lib/capture/page.ts';
 import { makeOutput } from '../src/lib/command.ts';
 import { dsCatalog } from '../src/lib/ds-catalog.ts';
 import type { DsRenderDriver, DsRenderVisitRequest } from '../src/lib/ds-render/browser.ts';
@@ -566,20 +570,42 @@ describe('renderPrototypes (orchestration, no browser)', () => {
     await expect(renderPrototypes([], deps)).resolves.toMatchObject({ ok: true, prototypes: [] });
   });
 
-  it('reuses a build only when it is newer than the prototype and its design system', () => {
+  it('reuses a build only while its inputs hash matches, never a future, tracked or planted one (F7)', () => {
     const ws = createWorkspace();
     try {
       ws.write('prototypes/a/src/App.svelte', 'x');
+      ws.write('design-systems/acme/document.json', { id: 'acme' });
       ws.write('artifacts/a/dist/index.html', '<!doctype html>');
+      const artifacts = join(ws.root, 'artifacts/a');
+      const inputs = { root: ws.root, dir: join(ws.root, 'prototypes/a') };
+      const now = Date.now();
+      const untracked = { now, tracked: () => false };
       const manifestAt = (builtAt: string, extra = {}) =>
         ws.write('artifacts/a/build-manifest.json', { builtAt, base: './', ...extra });
-      const sources = [join(ws.root, 'prototypes/a')];
-      manifestAt(new Date(Date.now() + 60_000).toISOString());
-      expect(freshBuild(join(ws.root, 'artifacts/a'), sources)).toMatchObject({ base: './' });
-      manifestAt('2000-01-01T00:00:00.000Z');
-      expect(freshBuild(join(ws.root, 'artifacts/a'), sources)).toBeNull();
-      manifestAt(new Date(Date.now() + 60_000).toISOString(), { target: 'artifact' });
-      expect(freshBuild(join(ws.root, 'artifacts/a'), sources)).toBeNull();
+      const hash = () => buildInputsHash(ws.root, inputs.dir) as string;
+      const past = new Date(now - 60_000).toISOString();
+
+      manifestAt(past, { inputsHash: hash() });
+      expect(freshBuild(artifacts, inputs, untracked)).toMatchObject({ base: './' });
+      // A planted manifest: no inputs hash, a made-up one, or a builtAt in the future.
+      manifestAt(new Date(now + 3_600_000).toISOString());
+      expect(freshBuild(artifacts, inputs, untracked)).toBeNull();
+      manifestAt(past, { inputsHash: 'f'.repeat(64) });
+      expect(freshBuild(artifacts, inputs, untracked)).toBeNull();
+      manifestAt('2999-01-01T00:00:00.000Z', { inputsHash: hash() });
+      expect(freshBuild(artifacts, inputs, untracked)).toBeNull();
+      // A build committed to the repository is never reused.
+      manifestAt(past, { inputsHash: hash() });
+      expect(freshBuild(artifacts, inputs, { now, tracked: () => true })).toBeNull();
+      manifestAt(past, { inputsHash: hash(), target: 'artifact' });
+      expect(freshBuild(artifacts, inputs, untracked)).toBeNull();
+      // Any change to the prototype or a design system makes it stale, whatever the clock says.
+      manifestAt(past, { inputsHash: hash() });
+      ws.write('prototypes/a/src/App.svelte', 'y');
+      expect(freshBuild(artifacts, inputs, untracked)).toBeNull();
+      manifestAt(past, { inputsHash: hash() });
+      ws.write('design-systems/acme/document.json', { id: 'acme', name: 'Acme' });
+      expect(freshBuild(artifacts, inputs, untracked)).toBeNull();
     } finally {
       ws.cleanup();
     }
@@ -692,7 +718,7 @@ describe('protoyard check ds --render (command)', () => {
     const reported = await handle(fakeDeps(pages).deps, ['acme-app', 'loose-app'], {
       render: true,
       report: true,
-      writeBaseline: 'ds-render-baseline.json',
+      writeBaseline: 'design-systems/ds-render-baseline.json',
     });
     expect(reported.ok).toBe(true);
     if (!reported.ok) return;
@@ -705,13 +731,15 @@ describe('protoyard check ds --render (command)', () => {
       ['loose-app', false],
     ]);
     expect(render.blocking).toBe(4);
-    expect(render.wroteBaseline).toBe('ds-render-baseline.json');
-    const saved = JSON.parse(readFileSync(join(ws.root, 'ds-render-baseline.json'), 'utf8'));
+    expect(render.wroteBaseline).toBe('design-systems/ds-render-baseline.json');
+    const saved = JSON.parse(
+      readFileSync(join(ws.root, 'design-systems/ds-render-baseline.json'), 'utf8')
+    );
     expect(saved.findings).toHaveLength(8);
 
     const baselined = await handle(fakeDeps(pages).deps, ['acme-app'], {
       render: true,
-      baseline: 'ds-render-baseline.json',
+      baseline: 'design-systems/ds-render-baseline.json',
     });
     expect(baselined.ok).toBe(true);
     if (!baselined.ok) return;
@@ -739,7 +767,8 @@ describe.skipIf(!browser.ok)(
       ws = undefined;
     });
 
-    it('finds raw controls, literal colors and unowned charts, and exempts catalog chart marks', async () => {
+    /** Renders the fixture page (with `head` markup added) and checks every finding the page must produce. */
+    async function expectFindings(head: string): Promise<void> {
       ws = createWorkspace();
       expect((await cli(['--root', ws.root, 'ds', 'new', 'acme', '--brand', '#0f766e'])).code).toBe(
         0
@@ -755,7 +784,7 @@ describe.skipIf(!browser.ok)(
       writeFileSync(
         join(dist, 'index.html'),
         `<!doctype html>
-<html lang="en" data-py-ready="true"><head><meta charset="utf-8"><title>Acme</title>
+<html lang="en" data-py-ready="true"><head><meta charset="utf-8"><title>Acme</title>${head}
 <style>
   body { margin: 0; font-family: sans-serif; background: var(--tx-background); color: var(--tx-foreground); }
   .tx-button { background: var(--tx-primary); color: var(--tx-primary-foreground); border: 0; padding: 8px 16px; min-height: 44px; }
@@ -776,8 +805,9 @@ describe.skipIf(!browser.ok)(
 `
       );
       ws.write('artifacts/acme-app/build-manifest.json', {
-        builtAt: new Date(Date.now() + 3_600_000).toISOString(),
+        builtAt: new Date().toISOString(),
         base: './',
+        inputsHash: buildInputsHash(ws.root, join(ws.root, 'prototypes/acme-app')),
       });
 
       let stdout = '';
@@ -809,6 +839,113 @@ describe.skipIf(!browser.ok)(
       expect(codes('render-disabled-value')).toHaveLength(4);
       expect(codes('render-disabled-value')[0]?.component).toBe('button');
       expect(codes('render-page-error')).toHaveLength(0);
+    }
+
+    it('finds raw controls, literal colors and unowned charts, and exempts catalog chart marks', async () => {
+      await expectFindings('');
+    }, 120_000);
+
+    it('closes WebSockets to another origin and blocks service workers in the capture page (F8)', async () => {
+      const upgrades: string[] = [];
+      const other = createServer((_req, res) => res.end('other'));
+      other.on('upgrade', (req, socket) => {
+        upgrades.push(String(req.url));
+        socket.destroy();
+      });
+      await new Promise<void>((done) => other.listen(0, '127.0.0.1', done));
+      const otherPort = (other.address() as AddressInfo).port;
+      const page = `<!doctype html><html data-py-ready="true"><head><title>Socket</title></head><body>
+<script>
+  window.socketState = 'pending';
+  const socket = new WebSocket('ws://127.0.0.1:${otherPort}/exfiltrate');
+  socket.onopen = () => { window.socketState = 'open'; };
+  socket.onerror = socket.onclose = () => { if (window.socketState === 'pending') window.socketState = 'closed'; };
+</script></body></html>`;
+      const served = createServer((req, res) => {
+        if (req.url === '/sw.js') {
+          res.setHeader('content-type', 'text/javascript');
+          res.end('self.addEventListener("fetch", () => {});');
+          return;
+        }
+        res.setHeader('content-type', 'text/html');
+        res.end(page);
+      });
+      await new Promise<void>((done) => served.listen(0, '127.0.0.1', done));
+      const origin = `http://127.0.0.1:${(served.address() as AddressInfo).port}`;
+      const launched = await launchChromium();
+      if (!launched.ok) throw new Error(launched.detail);
+      try {
+        const result = await withReadyPage(
+          launched.browser,
+          `${origin}/`,
+          { viewport: { width: 400, height: 300 }, colorScheme: 'light', allowOrigin: origin },
+          async (p) => {
+            await p.waitForFunction(
+              () => (window as unknown as { socketState: string }).socketState !== 'pending'
+            );
+            // Playwright's block turns register() into a no-op: nothing is ever registered.
+            const worker = await p.evaluate(async () => {
+              if (!navigator.serviceWorker) return 'blocked';
+              await navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+              await new Promise((done) => setTimeout(done, 200));
+              const registrations = await navigator.serviceWorker.getRegistrations();
+              return registrations.length === 0 ? 'blocked' : 'registered';
+            });
+            return {
+              socket: await p.evaluate(
+                () => (window as unknown as { socketState: string }).socketState
+              ),
+              worker,
+            };
+          }
+        );
+        expect(result).toEqual({ socket: 'closed', worker: 'blocked' });
+        expect(upgrades).toEqual([]);
+        expect(captureMaySocket(`ws://127.0.0.1:${otherPort}/`, origin)).toBe(false);
+        expect(captureMaySocket(`${origin.replace('http', 'ws')}/live`, origin)).toBe(true);
+      } finally {
+        await launched.browser.close();
+        await new Promise((done) => served.close(done));
+        await new Promise((done) => other.close(done));
+      }
+    }, 60_000);
+
+    it("still finds them when the prototype's own code stubs the checker and patches DOM prototypes (F2)", async () => {
+      // Runs before the check, in the page's main world: non-writable stand-ins
+      // for both hosts that report a clean page, and patched DOM functions that
+      // hide variants, inline styles and raw buttons.
+      await expectFindings(TAMPER);
     }, 120_000);
   }
 );
+
+/** The prototype code of the F2 test (fictional; it only lies to the checker). */
+const TAMPER = `<script>
+(() => {
+  const fakeHost = {
+    ready: async () => ['button'],
+    apply: async () => {},
+    map: () => ({ ok: true, codes: [], errors: [] }),
+    inspect: async ({ pairs }) => ({
+      components: ['button'],
+      pairs: pairs.map((pair) => ({ ...pair, ratio: 21, pass: true })),
+      literals: [],
+      checked: 1,
+    }),
+  };
+  const info = { scope: '#app', roots: 1, links: [], unownedVisualizations: [], axes: [] };
+  Object.defineProperty(globalThis, 'texuliDsCheck', { value: fakeHost, writable: false, configurable: false });
+  Object.defineProperty(globalThis, '__protoyardDsRender', { value: { install: () => info }, writable: false, configurable: false });
+  const getAttribute = Element.prototype.getAttribute;
+  Element.prototype.getAttribute = function (name) {
+    return name === 'data-tx-variant' || name === 'style' ? null : getAttribute.call(this, name);
+  };
+  const querySelectorAll = Element.prototype.querySelectorAll;
+  Element.prototype.querySelectorAll = function (selector) {
+    return String(selector).includes('button') || String(selector).includes('svg')
+      ? querySelectorAll.call(this, 'protoyard-nothing')
+      : querySelectorAll.call(this, selector);
+  };
+  window.getComputedStyle = () => ({ getPropertyValue: () => '' });
+})();
+</script>`;

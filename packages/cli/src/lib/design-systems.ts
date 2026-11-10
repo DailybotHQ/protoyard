@@ -10,6 +10,7 @@ import {
   type ComponentsManifest,
   ComponentsManifestSchema,
 } from './ds-contracts.ts';
+import { jsonErrorText } from './json-error.ts';
 import { CliError } from './output.ts';
 import { hasControlCharacter } from './paths.ts';
 import { workspaceFile } from './workspace-file.ts';
@@ -138,7 +139,7 @@ export function readDocumentFile(location: DesignSystemLocation): unknown {
   } catch (error) {
     throw new CliError(
       'validation',
-      `Could not read ${location.file}: ${error instanceof Error ? error.message : String(error)}`
+      `Could not read ${location.file}: it is ${jsonErrorText(error)}.`
     );
   }
 }
@@ -155,7 +156,7 @@ function readJsonFile<T>(file: string, label: string, schema: z.ZodType<T>): T |
   try {
     raw = JSON.parse(readFileSync(file, 'utf8'));
   } catch (error) {
-    throw new CliError('validation', `Could not read ${label}: ${(error as Error).message}`);
+    throw new CliError('validation', `Could not read ${label}: it is ${jsonErrorText(error)}.`);
   }
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {

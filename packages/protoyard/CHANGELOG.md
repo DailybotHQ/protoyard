@@ -1,5 +1,12 @@
 # protoyard
 
+## 1.8.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @protoyard/cli@1.8.1
+
 ## 1.8.0
 
 ### Patch Changes

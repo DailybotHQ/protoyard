@@ -1301,10 +1301,15 @@ actually paints, with Texuli 0.16.0's `runLockedRenderChecks`
 
 1. Each locked prototype (and, with `--report`, a named prototype bound to a
    design system but not locked) is built, or its build is reused when
-   `artifacts/<slug>/build-manifest.json` is newer than every file of the
-   prototype and of its design system (`--rebuild` always builds). The
-   build is served on `127.0.0.1` (an ephemeral port); only that origin may
-   load.
+   `artifacts/<slug>/build-manifest.json` records an inputs hash that still
+   matches (every file of the prototype, `design-systems/`, the root
+   `package.json` and lockfile), its `builtAt` is not in the future, and git
+   tracks nothing under `artifacts/<slug>/`, so a committed or planted build
+   is never checked in place of the source (`--rebuild` always builds; use it
+   after editing a workspace package the lockfile does not see). The build
+   is served on `127.0.0.1` (an ephemeral port); only that origin may load:
+   other requests are aborted, WebSockets to another origin are closed
+   before they connect, and service workers are blocked.
 2. Routes: the `path:` literals of the files under `src/` that call
    `createRouter(` or `defineRoutes(`, visited as they are when they have no
    parameter; a parameterized route (`/notes/:id`) through the first hash
@@ -1318,10 +1323,15 @@ actually paints, with Texuli 0.16.0's `runLockedRenderChecks`
    `?devtools=0&mode=<mode>`, after `html[data-py-ready="true"]`, fonts,
    network idle and a quiet DOM (the capture `quick` and the visual sweep
    use).
-4. The CLI injects Texuli's ds-check host on the mount element (`#app`),
+4. The CLI installs Texuli's ds-check host on the mount element (`#app`),
    copies each `data-tx-component` to the attribute the host reads, and
    runs Texuli's checks with every compiled run of the design system (the
    base document and its declared `high-contrast` variant) in that mode.
+   The host and the checks run in a Chromium isolated world (CDP
+   `Page.createIsolatedWorld`): they share the page's DOM but not its
+   JavaScript, so the prototype's code cannot replace the checker's globals
+   or patch the DOM functions it calls (`getAttribute`, `querySelectorAll`,
+   `getComputedStyle`). axe runs in the page's main world.
 
 | Code | What fails |
 | --- | --- |
@@ -1356,7 +1366,10 @@ findings: [{ fingerprint, code, slug, route, message }] }`); `--baseline
 Texuli's `ds check --locked --report` suggests) marks the findings it lists
 as `baselined`, so only new ones fail, and counts the ones that no longer
 occur (`counts.fixed`). A fingerprint is the slug, route, viewport, mode,
-code, catalog id and selector. Both paths stay inside the workspace.
+code, catalog id and selector. `--baseline` reads a file inside the
+workspace; `--write-baseline` writes a `.json` file under `design-systems/`,
+`artifacts/` or `tmp/` (never through a symlink), replaces an earlier
+baseline freely and any other file only with `--force`.
 
 ```bash
 pnpm protoyard check ds acme-app --render
@@ -1383,6 +1396,17 @@ Selectors point at the built DOM, not at a source line: the `file` is the
 one that declares the route. Whether a chart's colors come from the
 data-viz palette is not verified per pixel; the palette itself is checked in
 the design system. Fonts and other assets from other origins are blocked.
+
+**A design gate, not a tamper-proof one.** The render check catches a
+prototype that drifts from its design system; it does not resist a prototype
+written to fool it. The isolated world keeps the checker's own JavaScript out
+of reach, but the DOM is shared: the prototype's code can still change what
+it paints once it detects the check (remove an element, swap a class), and
+axe runs where that code runs. WebRTC is not blocked. Building the prototype
+runs its `vite.config` and plugins in Node, and the checked page runs its
+code in Chromium: run `check ds --render` only on code you would build
+anyway ([SECURITY](SECURITY.md#running-someone-elses-prototype)). The
+reviewed commit stays the guarantee.
 
 **Limits.** The scan is static and textual: classes built at runtime from
 variables, components from other packages, components rendered from `.ts`

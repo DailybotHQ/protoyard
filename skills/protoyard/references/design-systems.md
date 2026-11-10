@@ -108,12 +108,22 @@ pnpm protoyard ds import tmp/harbor.ds-bundle.json
   Texuli's own bundle (document, component sources, allow manifest, release
   history). The same folder always packs to the same bytes.
 - `ds import` treats it as untrusted: it checks everything (schema, Texuli's
-  `validateBundle`, a closed list of paths, sizes, every hash) before it
-  writes, and nothing in it runs. It never replaces an existing design system
-  without `--force`. `--id <id>` imports under another id (refused when the
-  bundle has release records).
-- An imported approval is kept as it was, but it is a record from another
-  workspace, not a proof. Tell the human: the import goes in a commit a
+  `validateBundle`, a closed list of paths, sizes, every hash, each release
+  record against its document and the bundle history) before it writes. The
+  import itself executes nothing. It never replaces an existing design
+  system without `--force`. `--id <id>` imports under another id (refused
+  when the bundle has release records).
+- **Component sources are code.** Every `components/<Name>.svelte` it
+  imports compiles into the kit (`ds kit`) and into every prototype that
+  imports `@ds/<id>/<Name>`, and runs in the viewer's browser; at build time
+  it can read workspace files. `ds import` lists them with their sizes
+  (`data.components`). Do not run `ds kit`, `dev` or `build` on an imported
+  design system until the human has reviewed those sources like a third-party
+  dependency; show them the list.
+- `--out` (bundle, `ds new`, `--write-baseline`, `ds extensions`) writes only
+  `.json` files under `design-systems/`, `artifacts/` or `tmp/`.
+- An imported approval (and every imported release record) is kept as it
+  was, but it is a record from another workspace, not a proof. Tell the human: the import goes in a commit a
   designer reviews, or they re-approve it (`--draft` resets it to draft).
   Never approve it yourself.
 

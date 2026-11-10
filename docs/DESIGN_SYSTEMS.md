@@ -365,7 +365,16 @@ the team names are examples:
 /design-systems/            @example-org/design-reviewers
 # Kit prototypes are rebuilt from the folder (`protoyard ds kit <id>`).
 /prototypes/*-kit/          @example-org/design-reviewers
+# Bindings: `designSystem.locked` decides whether CI render-checks a prototype.
+/prototypes/*/protoyard.json  @example-org/design-reviewers
 ```
+
+The last line matters for CI: the build workflow render-checks only the
+prototypes whose `protoyard.json` declares `designSystem.locked: true`, so a
+pull request that sets it to `false`, or removes the binding, also removes the
+check. With the manifests under code-owner review, that change needs a
+designer's approval too. The CLI does not compare the binding with the base
+branch.
 
 This repository has no `design-systems/` folder of its own, so it ships no
 such file; the snippet is for the workspaces that keep design systems.
@@ -544,8 +553,11 @@ pnpm protoyard ds import tmp/harbor.ds-bundle.json
 
 `ds export <id> --bundle` packs the folder `design-systems/<id>/` into one
 JSON file. Without `--out` it prints the bundle (`--json` returns it as
-`data.bundle`); `--out` writes a workspace file and refuses an existing one
-without `--force`. It refuses a flat document (run `ds migrate`), a symlink
+`data.bundle`); `--out` writes a `.json` file under `design-systems/`,
+`artifacts/` or `tmp/` (never `package.json`, `protoyard.json`,
+`tsconfig*.json`, `.github/`, a source folder or a path through a symlink)
+and refuses an existing one without `--force`; `--force` replaces only an
+earlier bundle. It refuses a flat document (run `ds migrate`), a symlink
 in the folder, a file that is not UTF-8 or is over 1 MiB, a JSON file its
 schema refuses and component drift (a bundle only carries sources that match
 their `components.json` hashes). Files the format does not know (a `README`,
@@ -600,10 +612,16 @@ writes a byte:
    duplicates refused, also case-insensitively (`requests/STATUSPILL.json`
    next to `requests/StatusPill.json`);
 5. every file's bytes against its recorded SHA-256 and size, at most 8 MiB in
-   all, and every library source used by exactly one component file;
+   all (the check stops at the cap), and every library source used by
+   exactly one component file (a second reference is refused before its
+   bytes are built);
 6. `document.json` against Texuli's document, each JSON file against its own
-   schema, `components.json` against the component files (hash, missing,
-   unlisted) and their library sources, release records against the id;
+   schema (a story's variant names are unique, and its props may not carry a `javascript:`, `vbscript:`,
+   `data:`, `file:` or `blob:` URL), `components.json` against the component
+   files (hash, missing, unlisted) and their library sources, each release
+   record against its own document (`releaseProblems`: id, version and
+   content hash, as `ds versions` checks them) and against an entry of
+   Texuli's release history with the same version and content hash;
 7. the document compiles (as data), and Texuli's full check runs (reported,
    not blocking, as in `ds validate`).
 
@@ -612,9 +630,23 @@ Then it writes into a hidden staging folder
 into place. It never replaces an existing `design-systems/<id>/` without
 `--force`; with it, the old folder moves aside, the staged one takes its
 place, and the old one is removed (moved back if the rename fails). A flat
-`design-systems/<id>.json` of the same id is never shadowed. Nothing in a
-bundle is executed, compiled as code or rendered as HTML; the component
-sources are text until a prototype imports them after review. `--dry-run`
+`design-systems/<id>.json` of the same id is never shadowed. `--dry-run`
+makes the same refusals (a flat `<id>.json`, a symlinked folder, an existing
+design system without `--force`). The import compiles the document as data
+(step 7), but compiles no component code, runs nothing and renders nothing
+as HTML.
+
+**Component sources are code.** `components/<Name>.svelte` is reachable as
+`@ds/<id>/<Name>`: it is compiled into every prototype that imports it, `ds
+kit` imports every library component into the kit, and the result runs in
+the browser of whoever views the prototype, published or not. A component
+can do anything a Svelte file can, such as read a workspace file through a
+Vite `?raw` import at build time and send it somewhere. The hashes only prove
+the files are the ones the bundle's author packed. So `ds import` lists every
+imported component source with its size (`data.components`, and in the text
+output) under the note "review this code before `ds kit`, `dev` or `build`".
+Review it like a dependency from npm, in the commit a designer approves.
+`--dry-run`
 runs every check and writes nothing. `--id <id>` imports under another id:
 the document's `id` changes, so its approval resets to draft; it is refused
 when the bundle has release records, which name the original id.
@@ -623,7 +655,10 @@ when the bundle has release records, which name the original id.
 round trip gives byte-identical files and a reviewer sees exactly what the
 source workspace approved. But an imported approval is a record from another
 workspace, **not a proof**: anyone can edit a JSON file. The import prints
-`importedFrom` (the bundle file and its SHA-256) and that note. The
+`importedFrom` (the bundle file and its SHA-256) and that note, and it lists
+the imported release records (`data.releases`) under the same "record, not a
+proof" note: each matches its document and the bundle's history, but the
+bundle's author wrote both. The
 guarantee stays the same as for any design-system change: the import lands in
 a commit a designer reviews (CODEOWNERS on `design-systems/`). A workspace
 that wants its own approval passes `--draft`, which resets the document's
@@ -690,10 +725,10 @@ The manifest binding is part of the prototype contract in `@protoyard/core`:
 
 | Command | What it does |
 | --- | --- |
-| `ds new <id> [--from-tokens <file>\|--from-css <file>\|--from-logo <file.svg>\|--brief <text\|file\|->] [--allow all\|minimal\|<file>\|none] [--dry-run]` | Create a design system folder (or a flat file with `--out`) with an allow section; a brand source runs Texuli's generator and reports losses and AA repairs ([Create from your brand](#create-from-your-brand)) |
+| `ds new <id> [--from-tokens <file>\|--from-css <file>\|--from-logo <file.svg>\|--brief <text\|file\|->] [--allow all\|minimal\|<file>\|none] [--dry-run]` | Create a design system folder (or a flat file with `--out`: a `.json` under `design-systems/`, `artifacts/` or `tmp/`; `--force` replaces only a design-system document) with an allow section; a brand source runs Texuli's generator and reports losses and AA repairs ([Create from your brand](#create-from-your-brand)) |
 | `ds list` | Every design system with its approval, lockability, component count and bound prototypes |
 | `ds validate <id\|file> [--strict]` | Validate and compile; check `allow` against the catalog; report approval, lockability and component drift; print Texuli's full check as `full` (`--strict` fails on its errors) |
-| `ds extensions [--out <dir>]` | Protoyard's catalog extensions as Texuli extension files, for `texuli ds check <document> --locked --extensions <file>` so Texuli's check accepts the same `protoyard:` allow keys |
+| `ds extensions [--out <dir>] [--force]` | Protoyard's catalog extensions as Texuli extension files, for `texuli ds check <document> --locked --extensions <file>` so Texuli's check accepts the same `protoyard:` allow keys; `--out` is a folder under `design-systems/`, `artifacts/` or `tmp/`, and another file of the same name is replaced only with `--force` |
 | `ds approve <id> --by <name> [--release <semver> [--changelog <text>]]` | Approve it in the document (a human, never an MCP tool); `--release` also records the release |
 | `ds release <id> [--changelog <text>]` | Record the approved version as `releases/<version>.json` |
 | `ds versions <id>` | The releases and where the document stands |
@@ -706,7 +741,7 @@ The manifest binding is part of the prototype contract in `@protoyard/core`:
 | `ds import <file> [--id <id>] [--force] [--draft] [--dry-run]` | Check a bundle as untrusted input, then write `design-systems/<id>/` |
 | `ds use <slug> <id\|file> [--lock] [--upgrade]` | Apply a design system to a prototype; bind, lock or upgrade it |
 | `ds component request\|approve-request\|new\|approve` | Request, approve the request, scaffold and approve a component |
-| `check ds [slug…] [--report] [--render]` | The locked-prototype rules; `--render` also checks what each locked prototype paints in Chromium |
+| `check ds [slug…] [--report] [--render]` | The locked-prototype rules; `--render` also checks what each locked prototype paints in Chromium (`--write-baseline` writes a `.json` under `design-systems/`, `artifacts/` or `tmp/`; another kind of file only with `--force`) |
 
 Every command takes `--json`. The MCP server exposes `ds_create`, `ds_list`,
 `ds_validate`, `ds_export`, `ds_use`, `ds_component_request` and
@@ -751,7 +786,18 @@ These are not available today:
 - A workspace's design systems are local files. Nothing is hosted or
   synchronized; a bundle file is how one moves between workspaces, by hand. A
   cloud version is a later step.
-- An imported approval is a record from another workspace, not a proof.
+- An imported approval, and an imported release record, is a record from
+  another workspace, not a proof.
+- Imported component sources are code that builds and runs; nothing reviews
+  them for you ([Share between workspaces](#share-between-workspaces)).
+- The guidance for agents is a nudge, not a control: `ds component new`
+  refuses to run from inside a prototype folder (the working folder, or
+  `--cwd` when given, so passing another `--cwd` skips it) and checks only
+  the prototypes named with `--prototype`. The real gate is the approved request and the reviewed
+  commit.
+- CI render-checks only prototypes that declare `designSystem.locked: true`;
+  protect `prototypes/*/protoyard.json` with CODEOWNERS
+  ([3. Approve](#3-approve)).
 - A bundle carries at most 64 components (Texuli's cap), 32 history entries
   and 400 files; its file is at most 8 MiB and each folder file at most 1 MiB.
   Texuli's allow manifest inside the bundle keeps at most 256 allow keys and

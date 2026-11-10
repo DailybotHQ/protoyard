@@ -20,6 +20,7 @@ import {
 import { readAllow, readDocumentApproval, readLibrary } from './ds-catalog.ts';
 import { checkText } from './ds-components.ts';
 import { MAX_CHANGELOG, type ReleaseRecord, ReleaseRecordSchema } from './ds-contracts.ts';
+import { jsonErrorText } from './json-error.ts';
 import { CliError } from './output.ts';
 
 /**
@@ -120,7 +121,7 @@ export function readRelease(location: DesignSystemLocation, version: string): Re
   try {
     raw = JSON.parse(readFileSync(file, 'utf8'));
   } catch (error) {
-    throw new CliError('validation', `Could not read ${label}: ${(error as Error).message}`);
+    throw new CliError('validation', `Could not read ${label}: it is ${jsonErrorText(error)}.`);
   }
   const parsed = ReleaseRecordSchema.safeParse(raw);
   if (!parsed.success) {
@@ -298,13 +299,24 @@ export async function buildRelease(
 }
 
 /** Writes a new release file; refuses to replace one (`wx`), never follows a symlink. */
+/**
+ * Every refusal `writeRelease` would make, without writing: run it before
+ * anything else changes (`ds approve --release` checks it before it writes
+ * the approved document).
+ */
+export function assertReleaseWritable(location: DesignSystemLocation, version: string): void {
+  const dir = join(folderOf(location), RELEASES_DIR);
+  if (existsSync(dir) && lstatSync(dir).isSymbolicLink()) {
+    const label = releaseLabel(location.id as string, version);
+    throw new CliError('unsafe_path', `Refusing to write ${label} through a symlink.`);
+  }
+  assertNoRelease(location, version);
+}
+
 export function writeRelease(location: DesignSystemLocation, record: ReleaseRecord): string {
   const dir = join(folderOf(location), RELEASES_DIR);
   const label = releaseLabel(location.id as string, record.release);
-  if (existsSync(dir) && lstatSync(dir).isSymbolicLink()) {
-    throw new CliError('unsafe_path', `Refusing to write ${label} through a symlink.`);
-  }
-  assertNoRelease(location, record.release);
+  assertReleaseWritable(location, record.release);
   mkdirSync(dir, { recursive: true });
   try {
     writeFileSync(join(dir, `${record.release}.json`), biomeJson(record), {

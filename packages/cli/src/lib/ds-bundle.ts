@@ -42,6 +42,8 @@ import {
   MAX_BUNDLE_FILES,
   ReleaseRecordSchema,
 } from './ds-contracts.ts';
+import { RELEASES_DIR, releaseProblems } from './ds-releases.ts';
+import { jsonErrorText } from './json-error.ts';
 import { CliError } from './output.ts';
 import { hasControlCharacter } from './paths.ts';
 
@@ -158,7 +160,7 @@ function parseJson(text: string, path: string, errors: BundleIssue[]): unknown {
   try {
     return JSON.parse(text) as unknown;
   } catch (error) {
-    errors.push({ code: 'invalid-json', path, message: (error as Error).message });
+    errors.push({ code: 'invalid-json', path, message: `It is ${jsonErrorText(error)}.` });
     return undefined;
   }
 }
@@ -615,11 +617,30 @@ export function checkBundle(value: unknown): CheckedBundle {
         });
         continue;
       }
+      // One source belongs to one component file: a second reference would
+      // only multiply the same bytes in memory.
+      if (used.has(id)) {
+        issues.push({
+          code: 'duplicate-reference',
+          path: `${at}.from`,
+          message: `The library source "${id}" is referenced twice.`,
+        });
+        continue;
+      }
       used.add(id);
       text = sources.get(id);
     }
+    // Counted before any buffer is built; the run stops at the cap.
+    total += Buffer.byteLength(text ?? '', 'utf8');
+    if (total > MAX_BUNDLE_TOTAL_BYTES) {
+      issues.push({
+        code: 'too-large',
+        path: '$.files',
+        message: 'The files decode to more than 8 MiB.',
+      });
+      break;
+    }
     const bytes = Buffer.from(text ?? '', 'utf8');
-    total += bytes.length;
     if (bytes.length !== file.bytes || sha256(bytes) !== file.sha256) {
       issues.push({
         code: 'hash-mismatch',
@@ -629,13 +650,6 @@ export function checkBundle(value: unknown): CheckedBundle {
       continue;
     }
     files.push({ path: file.path, bytes, sha256: file.sha256 });
-  }
-  if (total > MAX_BUNDLE_TOTAL_BYTES) {
-    issues.push({
-      code: 'too-large',
-      path: '$.files',
-      message: 'The files decode to more than 8 MiB.',
-    });
   }
   for (const id of sources.keys()) {
     if (!used.has(id)) {
@@ -685,13 +699,26 @@ export function checkBundle(value: unknown): CheckedBundle {
       manifest = value as ComponentsManifest;
     }
     if (kind === 'release') {
+      // The same checks `ds versions` runs, now before anything is written,
+      // and the record must be an entry of Texuli's history (version and
+      // contentHash). Still a record, not a proof: the bundle's author wrote both.
       const release = ReleaseRecordSchema.safeParse(value);
-      if (release.success && release.data.designSystem !== bundle.designSystem) {
-        issues.push({
-          code: 'id-mismatch',
-          path: `${file.path}.designSystem`,
-          message: `The release names "${release.data.designSystem}".`,
-        });
+      if (release.success) {
+        const version = file.path.slice(`${RELEASES_DIR}/`.length, -'.json'.length);
+        const record = release.data;
+        for (const problem of releaseProblems(record, bundle.designSystem, version)) {
+          issues.push({ code: 'release-mismatch', path: file.path, message: `It ${problem}.` });
+        }
+        const listed = unpacked.history.some(
+          (entry) => entry.version === record.release && entry.contentHash === record.contentHash
+        );
+        if (!listed) {
+          issues.push({
+            code: 'release-not-in-history',
+            path: file.path,
+            message: `${record.release} with this contentHash is not in the bundle's release history.`,
+          });
+        }
       }
     }
   }
@@ -741,12 +768,13 @@ export function draftApproval(version: string): Record<string, unknown> {
  * folder takes its place, and the old one is removed; on failure the old one
  * is moved back. Refuses a symlinked `design-systems/` or target.
  */
-export function writeImport(
-  root: string,
-  id: string,
-  files: readonly { path: string; bytes: Buffer }[],
-  replace: boolean
-): string {
+/**
+ * Every refusal `writeImport` makes before it writes, without writing: a
+ * symlinked `design-systems/` or target, a flat `<id>.json` of the same id,
+ * and an existing folder without `replace`. `ds import --dry-run` runs it
+ * too, so a dry run fails exactly where the real run would.
+ */
+export function preflightImport(root: string, id: string, replace: boolean): void {
   const parent = join(root, DESIGN_SYSTEMS_DIR);
   if (existsSync(parent) && lstatSync(parent).isSymbolicLink()) {
     throw new CliError(
@@ -754,16 +782,14 @@ export function writeImport(
       `Refusing to write through the symlink ${DESIGN_SYSTEMS_DIR}/.`
     );
   }
-  mkdirSync(parent, { recursive: true });
   const target = join(parent, id);
-  const flat = join(parent, `${id}.json`);
   if (existsSync(target) && lstatSync(target).isSymbolicLink()) {
     throw new CliError(
       'unsafe_path',
       `Refusing to replace the symlink ${DESIGN_SYSTEMS_DIR}/${id}.`
     );
   }
-  if (existsSync(flat)) {
+  if (existsSync(join(parent, `${id}.json`))) {
     throw new CliError(
       'conflict',
       `${DESIGN_SYSTEMS_DIR}/${id}.json already exists (a flat design system).`,
@@ -777,6 +803,18 @@ export function writeImport(
       hint: 'Pass --force to replace it, or --id <id> to import it under another id.',
     });
   }
+}
+
+export function writeImport(
+  root: string,
+  id: string,
+  files: readonly { path: string; bytes: Buffer }[],
+  replace: boolean
+): string {
+  preflightImport(root, id, replace);
+  const parent = join(root, DESIGN_SYSTEMS_DIR);
+  mkdirSync(parent, { recursive: true });
+  const target = join(parent, id);
   const suffix = randomBytes(6).toString('hex');
   const staging = join(parent, `.${id}.import-${suffix}`);
   mkdirSync(staging);
