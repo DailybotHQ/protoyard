@@ -6,6 +6,27 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-11-10
+
+Texuli 0.17.1. Every Texuli dependency is pinned exactly at `0.17.1`.
+
+### Changed
+
+- **Render check on Texuli's strict lock.** Texuli 0.17.1 accepts a nested
+  catalog root only as a declared part or composed id of its allowed parent,
+  so Protoyard's own stricter rule is gone; tests still refuse a `data-grid`
+  inside an allowed `card` (unit, Texuli's host and Chromium). A nested-root
+  finding is now Texuli's `not-allowed`, one per root with Texuli's selector:
+  rewrite a render baseline written by 1.9.0
+  ([render mode](docs/THEMES.md#render-mode---render)).
+- Parts and composed ids map through Texuli's `partParentMap`; the host loads
+  from the `@texuli/tools/ds-check/host.iife.js` export. Protoyard still names
+  the host's component attribute (`data-tx-component`) itself, and keeps its
+  own `render-disabled-value`, library diff and brief clause reader where
+  Texuli's are narrower ([TEXULI](docs/TEXULI.md)).
+- The app single-file export cap follows Texuli's growth: 4,168,915 B
+  ([PERFORMANCE](docs/PERFORMANCE.md)).
+
 ## [1.9.0] - 2026-11-10
 
 Texuli 0.17.0. Every Texuli dependency is pinned exactly at `0.17.0`. See

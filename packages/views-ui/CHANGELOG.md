@@ -1,5 +1,15 @@
 # @protoyard/views-ui
 
+## 1.9.1
+
+### Patch Changes
+
+- @protoyard/ai@1.9.1
+  - @protoyard/core@1.9.1
+  - @protoyard/renderer-svelte@1.9.1
+  - @protoyard/ui@1.9.1
+  - @protoyard/views@1.9.1
+
 ## 1.9.0
 
 ### Patch Changes

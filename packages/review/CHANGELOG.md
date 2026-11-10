@@ -1,5 +1,12 @@
 # @protoyard/review
 
+## 1.9.1
+
+### Patch Changes
+
+- @protoyard/core@1.9.1
+  - @protoyard/database@1.9.1
+
 ## 1.9.0
 
 ### Patch Changes

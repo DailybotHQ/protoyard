@@ -1,5 +1,15 @@
 # @protoyard/gallery
 
+## 1.9.1
+
+### Patch Changes
+
+- @protoyard/blueprint@1.9.1
+  - @protoyard/core@1.9.1
+  - @protoyard/player@1.9.1
+  - @protoyard/themes@1.9.1
+  - @protoyard/ui@1.9.1
+
 ## 1.9.0
 
 ### Patch Changes

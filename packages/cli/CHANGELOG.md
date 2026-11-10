@@ -1,5 +1,29 @@
 # @protoyard/cli
 
+## 1.9.1
+
+### Patch Changes
+
+- Texuli 0.17.1 (every Texuli dependency pinned exactly at `0.17.1`).
+  `check ds --render` relies on Texuli's strict nesting (a nested catalog root
+  passes only as a declared part or composed id of its allowed parent; a
+  `data-grid` inside an allowed `card` is refused, tested), Texuli's part map
+  and the `host.iife.js` package export; Protoyard still names the host's
+  component attribute itself. A nested-root finding is now Texuli's
+  `not-allowed`, one per root; rewrite a render baseline written by 1.9.0.
+- @protoyard/blocks@1.9.1
+  - @protoyard/blueprint@1.9.1
+  - @protoyard/core@1.9.1
+  - @protoyard/crud@1.9.1
+  - @protoyard/decks@1.9.1
+  - @protoyard/offline@1.9.1
+  - @protoyard/player@1.9.1
+  - @protoyard/renderer-svelte@1.9.1
+  - @protoyard/review@1.9.1
+  - @protoyard/scenarios@1.9.1
+  - @protoyard/templates@1.9.1
+  - @protoyard/themes@1.9.1
+
 ## 1.9.0
 
 ### Minor Changes
