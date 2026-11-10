@@ -338,6 +338,12 @@ export interface CreateInput {
    * binding when `lock` is false. A refusal leaves nothing behind.
    */
   designSystem?: { ref: string; resolved: ResolvedDesignSystem; lock: boolean };
+  /**
+   * Run every check (slug, source, destination, design system) and report
+   * what would be created, without writing anything: no folder, no install,
+   * no spec, no index.
+   */
+  dryRun?: boolean;
 }
 
 export interface CreateResult {
@@ -353,8 +359,10 @@ export interface CreateResult {
   created: boolean;
   files: number;
   install: { ok: boolean; skipped: boolean; mode?: string; log?: string; command?: string };
-  /** The design-system binding written by `new --ds`. */
+  /** The design-system binding written by `new --ds` (or that would be, in a dry run). */
   designSystem?: Binding;
+  /** True when nothing was written (`--dry-run`). */
+  dryRun?: boolean;
   spec: NewSpecResult;
   indexed: boolean;
   nextSteps: string[];
@@ -386,8 +394,10 @@ export async function createPrototypeFrom(
   const origin = source.kind === 'template' ? source.slug : source.template;
   const name = input.name ?? titleFromSlug(slug);
 
-  await mkdir(ctx.paths.prototypes, { recursive: true });
-  const prototypesReal = await realpath(ctx.paths.prototypes);
+  if (!input.dryRun) await mkdir(ctx.paths.prototypes, { recursive: true });
+  const prototypesReal = existsSync(ctx.paths.prototypes)
+    ? await realpath(ctx.paths.prototypes)
+    : resolve(ctx.paths.prototypes);
   const dest = childPath(prototypesReal, slug);
   if (!isInside(prototypesReal, dest)) {
     throw new CliError('unsafe_path', `Refusing to write outside prototypes/: ${dest}`);
@@ -418,6 +428,44 @@ export async function createPrototypeFrom(
   const created = existing !== 'same';
   const label = `${toPosixRelative(await realpath(ctx.root), prototypesReal)}/${slug}`;
   let binding: Binding | undefined;
+  if (input.dryRun) {
+    // The design system is applied to the source in a dry run: the same
+    // checks (manifest, definition, lockability), and nothing is written.
+    const ds = input.designSystem;
+    if (ds) {
+      const applied = await applyDesignSystem(ctx, {
+        dir: sourceDir,
+        path: label,
+        slug,
+        ref: ds.ref,
+        resolved: ds.resolved,
+        lock: ds.lock,
+        upgrade: false,
+        bind: true,
+        force: false,
+        dryRun: true,
+        refreshSpec: false,
+      });
+      binding = applied.designSystem;
+    }
+    return {
+      slug,
+      id: `local.${slug}`,
+      name,
+      source: { kind: source.kind, slug: source.slug },
+      template: origin,
+      path: toPosixRelative(await realpath(ctx.root), dest),
+      dir: dest,
+      created,
+      files: created ? (await listTemplateFiles(sourceDir)).length : 0,
+      install: { ok: true, skipped: true },
+      ...(binding ? { designSystem: binding } : {}),
+      dryRun: true,
+      spec: { ok: true, created: 0, updated: 0 },
+      indexed: false,
+      nextSteps: [],
+    };
+  }
   const applyBinding = async (dir: string) => {
     const ds = input.designSystem;
     if (!ds) return;
@@ -649,8 +697,30 @@ export const newCommand: Handler = async (ctx, args, options): Promise<CommandRe
     install: options.install === false ? 'skip' : 'auto',
     stdio: ctx.out.options.json ? 'pipe' : 'inherit',
     ...(designSystem ? { designSystem } : {}),
+    ...(flag(options, 'dryRun') ? { dryRun: true } : {}),
   });
   const { dir: _dir, ...rest } = result;
+  if (result.dryRun) {
+    return {
+      data: rest,
+      render(out) {
+        const { c } = out;
+        const from = `${result.source.kind} ${c.cyan(result.source.slug)}`;
+        out.always(
+          result.created
+            ? `${mark(c, 'pass')} Would create ${c.bold(result.path)} from ${from} (${result.files} files)`
+            : `${mark(c, 'pass')} ${c.bold(result.path)} already exists from ${from}; a run would resume it`
+        );
+        if (result.designSystem) {
+          const binding = result.designSystem;
+          out.always(
+            `${mark(c, 'pass')} Would ${binding.locked ? 'lock' : 'bind (unlocked)'} it to design system ${c.cyan(`${binding.id}@${binding.version}`)}`
+          );
+        }
+        out.always(c.dim('Dry run: nothing was written. Run it again without --dry-run.'));
+      },
+    };
+  }
   // After creation: the same checks `check ds` and `validate` run. A failure
   // keeps the prototype for inspection; it is never deleted.
   const boundCheck = result.designSystem

@@ -219,6 +219,10 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .option('--force', 'reuse an EXISTING EMPTY folder (never overwrites files)')
     .option('--no-install', 'skip `pnpm install` (link the package later)')
+    .option(
+      '--dry-run',
+      'run every check (slug, source, destination, --ds) and print what would be created; writes nothing'
+    )
     .action(def('new', newCommand));
 
   program

@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { cpSync, existsSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -141,6 +141,42 @@ describe('protoyard new --ds (PLAN_013 T-new-ds)', () => {
       []
     );
     expect(lockedBindingProblem(root(), dir, { id: 'harbor', version })).toBeNull();
+  });
+
+  it('--dry-run runs every check and writes nothing', async () => {
+    setup();
+    const version = await designSystem('harbor');
+    const before = existsSync(join(root(), 'prototypes'))
+      ? readdirSync(join(root(), 'prototypes')).sort()
+      : [];
+    const preview = await run('new', 'dry-app', '--ds', 'harbor', '--dry-run');
+    expect(preview.code, preview.stdout).toBe(0);
+    const data = preview.json<Envelope>().data as Record<string, unknown>;
+    expect(data).toMatchObject({
+      dryRun: true,
+      created: true,
+      template: 'blank',
+      designSystem: { id: 'harbor', version, locked: true },
+      install: { skipped: true },
+    });
+    expect(data.files).toBeGreaterThan(0);
+    expect(existsSync(join(root(), 'prototypes/dry-app'))).toBe(false);
+    const after = existsSync(join(root(), 'prototypes'))
+      ? readdirSync(join(root(), 'prototypes')).sort()
+      : [];
+    expect(after).toEqual(before);
+    // The source template is read, never changed.
+    expect(existsSync(join(root(), 'templates/blank/src/design-system.ts'))).toBe(false);
+
+    // The same refusals as a real run.
+    await designSystem('dusk', false);
+    const draft = await run('new', 'dry-draft', '--ds', 'dusk', '--dry-run');
+    expect(draft.code).not.toBe(0);
+    expect(draft.json<Envelope>().error?.message).toContain('is a draft');
+    const plain = await run('new', 'dry-plain', '--template', 'blank', '--dry-run');
+    expect(plain.code, plain.stdout).toBe(0);
+    expect(plain.json<Envelope>().data).toMatchObject({ dryRun: true, created: true });
+    expect(existsSync(join(root(), 'prototypes/dry-plain'))).toBe(false);
   });
 
   it('uses the named template when it is lock-clean', async () => {

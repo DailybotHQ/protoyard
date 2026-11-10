@@ -81,6 +81,7 @@ and browser; to put it in the repository, download the JSON and run `ds use`.
 Prefer creating it locked over binding it later:
 
 ```bash
+pnpm protoyard new my-portal --ds harbor --dry-run             # every check, nothing written
 pnpm protoyard new my-portal --ds harbor                       # blank template
 pnpm protoyard new my-portal --ds harbor --template <name>      # any lock-clean template
 pnpm protoyard generate my-deck --blueprint <file> --ds harbor  # app, deck, page or doc blueprint
