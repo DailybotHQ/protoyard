@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { compileDesignSystemDocument } from '@protoyard/themes';
+import { kitApproval } from '@texuli/spec/design-system';
 import { biomeJson, tsString } from './codegen/format.ts';
 import { contentHash, type DesignSystemLocation, readComponents } from './design-systems.ts';
 import { dsSpecCatalog, readLibrary } from './ds-catalog.ts';
@@ -149,8 +150,8 @@ export async function kitPlan(
   const name = typeof compiled.name === 'string' && compiled.name ? compiled.name : id;
   const version = String(compiled.version);
   const hash = contentHash(document);
-  const approval = (document as { approval?: { status?: unknown } }).approval;
-  const status = approval?.status === 'approved' ? 'approved' : 'draft';
+  // Texuli's approval view (the one the kit's Approval section shows).
+  const status = kitApproval(document).status === 'approved' ? 'approved' : 'draft';
 
   const { releases, issues } = listReleases(location);
   const baseline = baselineRelease(releases, { version, contentHash: hash, current: true });
@@ -401,9 +402,10 @@ export interface KitData {
 
 /**
  * Untrusted data as the kit reads it: \`DesignSystemKit\` validates nothing it
- * does not need and renders text as text only. The cast also covers Texuli's
- * allow manifest, whose \`library\` lists entries where \`KitAllowManifest\`
- * types ids (the kit reads neither).
+ * does not need and renders text as text only. The cast is for the JSON
+ * import, which types every string as \`string\` where the kit's props name
+ * literal unions (states, formats); the allow manifest's \`library\` entries
+ * already match \`KitAllowManifest\` (\`{ id, status, version }\`).
  */
 export const kit = data as unknown as KitData;
 

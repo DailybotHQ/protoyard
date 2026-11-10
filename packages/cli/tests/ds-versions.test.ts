@@ -1,10 +1,10 @@
 // @vitest-environment node
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { designSystemContentHash } from '@texuli/spec/design-system';
+import { changesModel, designSystemContentHash } from '@texuli/spec/design-system';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ReleaseRecordSchema } from '../src/lib/ds-contracts.ts';
-import { compareSemver } from '../src/lib/ds-releases.ts';
+import { compareSemver, diffVersions } from '../src/lib/ds-releases.ts';
 import { cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 /**
@@ -245,6 +245,80 @@ describe('design-system releases (ds approve --release, release, versions, diff)
       '1.2.0-beta.10',
       '1.2.0',
       '1.10.0',
+    ]);
+  });
+});
+
+describe('diffVersions (allow and approval from Texuli changesModel)', () => {
+  const base = {
+    format: 'texuli/design-system',
+    formatVersion: 1,
+    id: 'harbor',
+    version: '1.0.0',
+    name: 'Harbor',
+    color: { brand: { seed: '#0f766e' } },
+  };
+  const entry = {
+    id: 'status-pill',
+    name: 'StatusPill',
+    purpose: 'Shows a status with its label',
+    version: '0.1.0',
+    status: 'approved',
+    composes: ['badge'],
+    approval: { status: 'approved', version: '0.1.0', approvedBy: 'Ada Example' },
+  };
+
+  it('matches changesModel for allow and approval, and lists every component a lock adds', async () => {
+    const before = { ...base, approval: { status: 'draft', version: '1.0.0' } };
+    const after = {
+      ...base,
+      allow: { button: { variants: ['default'] }, badge: {} },
+      approval: {
+        status: 'approved',
+        version: '1.0.0',
+        approvedBy: 'Bo Example',
+        approvedAt: '2026-11-09T09:00:00Z',
+      },
+    };
+    const diff = await diffVersions(
+      { label: '1.0.0', document: before },
+      { label: 'current', document: after }
+    );
+    const texuli = changesModel({ document: before }, { document: after });
+    expect(diff.allow).toEqual(texuli.allow);
+    expect(diff.approval).toEqual(texuli.approval);
+    // Since Texuli 0.17.0 a newly locked document lists what it allows.
+    expect(diff.allow).toEqual([
+      { kind: 'locked' },
+      { kind: 'added', component: 'badge' },
+      { kind: 'added', component: 'button' },
+    ]);
+    expect(diff.approval.map((a) => a.field)).toEqual(['status', 'approvedBy', 'approvedAt']);
+  });
+
+  it('keeps library changes Texuli does not compare (an entry re-approved by someone else)', async () => {
+    const before = { ...base, library: [entry] };
+    const after = {
+      ...base,
+      library: [{ ...entry, approval: { ...entry.approval, approvedBy: 'Bo Example' } }],
+    };
+    const diff = await diffVersions(
+      { label: '1.0.0', document: before },
+      { label: 'current', document: after }
+    );
+    expect(changesModel({ document: before }, { document: after }).library).toEqual([]);
+    expect(diff.library).toEqual([
+      {
+        kind: 'changed',
+        id: 'status-pill',
+        fields: [
+          {
+            field: 'approval',
+            before: JSON.stringify(entry.approval),
+            after: JSON.stringify({ ...entry.approval, approvedBy: 'Bo Example' }),
+          },
+        ],
+      },
     ]);
   });
 });
