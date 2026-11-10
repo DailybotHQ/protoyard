@@ -596,14 +596,14 @@ describe('ds extensions: the files Texuli check takes', { timeout: 60_000 }, () 
   it('writes Texuli extension files that make texuli ds check accept the same allow keys', async () => {
     ws = createWorkspace();
     const root = ws.root;
-    const written = await cli(['--root', root, '--json', 'ds', 'extensions', '--out', 'ext']);
+    const written = await cli(['--root', root, '--json', 'ds', 'extensions', '--out', 'tmp/ext']);
     expect(written.code, written.stdout).toBe(0);
     const data = written.json<{ data: { files: { path: string; components: number }[] } }>().data;
     expect(data.files).toEqual([
-      { path: 'ext/protoyard.catalog-extension.json', namespace: 'protoyard', components: 57 },
+      { path: 'tmp/ext/protoyard.catalog-extension.json', namespace: 'protoyard', components: 57 },
     ]);
     const file = JSON.parse(
-      readFileSync(join(root, 'ext/protoyard.catalog-extension.json'), 'utf8')
+      readFileSync(join(root, 'tmp/ext/protoyard.catalog-extension.json'), 'utf8')
     );
     expect(file).toMatchObject({ format: 'texuli/catalog-extension', namespace: 'protoyard' });
 

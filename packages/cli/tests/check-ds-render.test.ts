@@ -692,7 +692,7 @@ describe('protoyard check ds --render (command)', () => {
     const reported = await handle(fakeDeps(pages).deps, ['acme-app', 'loose-app'], {
       render: true,
       report: true,
-      writeBaseline: 'ds-render-baseline.json',
+      writeBaseline: 'design-systems/ds-render-baseline.json',
     });
     expect(reported.ok).toBe(true);
     if (!reported.ok) return;
@@ -705,13 +705,15 @@ describe('protoyard check ds --render (command)', () => {
       ['loose-app', false],
     ]);
     expect(render.blocking).toBe(4);
-    expect(render.wroteBaseline).toBe('ds-render-baseline.json');
-    const saved = JSON.parse(readFileSync(join(ws.root, 'ds-render-baseline.json'), 'utf8'));
+    expect(render.wroteBaseline).toBe('design-systems/ds-render-baseline.json');
+    const saved = JSON.parse(
+      readFileSync(join(ws.root, 'design-systems/ds-render-baseline.json'), 'utf8')
+    );
     expect(saved.findings).toHaveLength(8);
 
     const baselined = await handle(fakeDeps(pages).deps, ['acme-app'], {
       render: true,
-      baseline: 'ds-render-baseline.json',
+      baseline: 'design-systems/ds-render-baseline.json',
     });
     expect(baselined.ok).toBe(true);
     if (!baselined.ok) return;

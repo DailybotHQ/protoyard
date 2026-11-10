@@ -74,8 +74,10 @@ import {
   generateFromSource,
   SOURCE_FLAGS,
 } from '../lib/ds-generate.ts';
+import { guardDsOutputFile, hasFormat } from '../lib/ds-output.ts';
 import { assertNoRelease, buildRelease, checkChangelog, writeRelease } from '../lib/ds-releases.ts';
 import { inspectSpec } from '../lib/inspect.ts';
+import { jsonErrorText } from '../lib/json-error.ts';
 import { CliError } from '../lib/output.ts';
 import { workspaceLayout } from '../lib/paths.ts';
 import { resolvePackageBin, run } from '../lib/process.ts';
@@ -265,7 +267,7 @@ function allowOption(
   try {
     raw = JSON.parse(readFileSync(path, 'utf8'));
   } catch (error) {
-    throw new CliError('validation', `Could not read ${value}: ${(error as Error).message}`);
+    throw new CliError('validation', `Could not read ${value}: it is ${jsonErrorText(error)}.`);
   }
   const allow =
     readAllow(raw) ?? (raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : null);
@@ -430,10 +432,22 @@ export const dsNewCommand: Handler = async (ctx, args, options): Promise<Command
   if (folder && !isDesignSystemId(id)) {
     throw new CliError('usage', `"${id}" is not a design-system id (lowercase kebab-case).`);
   }
-  const out = workspaceFile(ctx.root, outOption ?? join(DESIGN_SYSTEMS_DIR, id, DOCUMENT_FILE));
+  // `--out` (also MCP `ds_create.out`) lands only in design-systems/,
+  // artifacts/ or tmp/, never over a file that is not a design system.
+  const out =
+    outOption === undefined
+      ? workspaceFile(ctx.root, join(DESIGN_SYSTEMS_DIR, id, DOCUMENT_FILE))
+      : guardDsOutputFile({
+          root: ctx.root,
+          requested: outOption,
+          flag: '--out',
+          force: flag(options, 'force'),
+          kind: 'a design-system document',
+          sameKind: hasFormat('texuli/design-system'),
+        });
   const file = relativeTo(ctx.root, out);
   const dryRun = flag(options, 'dryRun');
-  if (existsSync(out) && !flag(options, 'force')) {
+  if (folder && existsSync(out) && !flag(options, 'force')) {
     throw new CliError('conflict', `${file} already exists.`, {
       hint: 'Pass --force to replace it.',
     });

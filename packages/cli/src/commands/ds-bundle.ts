@@ -1,11 +1,12 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, resolve, sep } from 'node:path';
+import { dirname, isAbsolute, resolve } from 'node:path';
 import { compileDesignSystemDocument } from '@protoyard/themes';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { DOCUMENT_FILE, isDesignSystemId, locateDesignSystem } from '../lib/design-systems.ts';
 import {
+  BUNDLE_FORMAT,
   type CheckedBundle,
   checkBundle,
   documentText,
@@ -16,9 +17,9 @@ import {
 } from '../lib/ds-bundle.ts';
 import { readDocumentApproval } from '../lib/ds-catalog.ts';
 import { formatFinding, validateFull } from '../lib/ds-full.ts';
+import { guardDsOutputFile, hasFormat } from '../lib/ds-output.ts';
 import { CliError } from '../lib/output.ts';
-import { hasControlCharacter } from '../lib/paths.ts';
-import { workspaceFile } from '../lib/workspace-file.ts';
+import { hasControlCharacter, toPosixRelative } from '../lib/paths.ts';
 
 /**
  * `protoyard ds export <id> --bundle` and `protoyard ds import <file>`: a
@@ -29,6 +30,14 @@ import { workspaceFile } from '../lib/workspace-file.ts';
 
 const IMPORTED_APPROVAL_NOTE =
   'An imported approval is a record from another workspace, not a proof. Review the import in a commit a designer approves (CODEOWNERS), or re-approve it here with `protoyard ds approve <id> --by <name>`.';
+
+/** Import runs nothing, but component sources are code that later builds run. */
+export const IMPORTED_CODE_NOTE =
+  'Review this code before `protoyard ds kit`, `dev` or `build`: the import executed nothing, but these component sources are code that runs when the kit or a prototype using `@ds/<id>/<Name>` builds and is viewed. Treat them like a dependency from npm.';
+
+/** Imported release records are records too. */
+export const IMPORTED_RELEASES_NOTE =
+  'Imported release records are records from another workspace, not a proof: each matches its document and the bundle history, but the bundle author wrote both.';
 
 /** `ds export <id> --bundle [--out <file>] [--force]`. */
 export async function dsExportBundle(
@@ -59,13 +68,16 @@ export async function dsExportBundle(
     ...(outOption ? {} : { bundle: bundle.envelope }),
   };
   if (outOption) {
-    const out = workspaceFile(root, outOption);
-    const file = out.startsWith(`${root}${sep}`) ? out.slice(root.length + 1) : out;
-    if (existsSync(out) && !flag(options, 'force')) {
-      throw new CliError('conflict', `${file} already exists.`, {
-        hint: 'Pass --force to replace it.',
-      });
-    }
+    // artifacts/, tmp/ or design-systems/ only, and --force replaces only a bundle.
+    const out = guardDsOutputFile({
+      root,
+      requested: outOption,
+      flag: '--out',
+      force: flag(options, 'force'),
+      kind: 'a design-system bundle',
+      sameKind: hasFormat(BUNDLE_FORMAT),
+    });
+    const file = toPosixRelative(root, out);
     mkdirSync(dirname(out), { recursive: true });
     writeFileSync(out, bundle.text, 'utf8');
     return {
@@ -154,6 +166,12 @@ export const dsImportCommand: Handler = async (ctx, args, options): Promise<Comm
   }
   const written = dryRun ? null : writeImport(ctx.root, id, plan.files, force);
   const approval = readDocumentApproval(plan.document);
+  const componentFiles = plan.files
+    .filter((f) => f.path.startsWith('components/') && f.path.endsWith('.svelte'))
+    .map((f) => ({ path: `design-systems/${id}/${f.path}`, bytes: f.bytes.length }));
+  const releaseFiles = plan.files
+    .filter((f) => f.path.startsWith('releases/'))
+    .map((f) => `design-systems/${id}/${f.path}`);
   const data = {
     id,
     bundleId: checked.id,
@@ -174,6 +192,10 @@ export const dsImportCommand: Handler = async (ctx, args, options): Promise<Comm
     written: written !== null,
     full,
     note: IMPORTED_APPROVAL_NOTE,
+    components: componentFiles,
+    componentsNote: IMPORTED_CODE_NOTE.replace('<id>', id),
+    releases: releaseFiles,
+    releasesNote: IMPORTED_RELEASES_NOTE,
   };
   return {
     data,
@@ -189,6 +211,15 @@ export const dsImportCommand: Handler = async (ctx, args, options): Promise<Comm
       );
       for (const finding of full.findings.slice(0, 10)) o.always(`    ${formatFinding(finding)}`);
       o.always(`  ${IMPORTED_APPROVAL_NOTE.replace('<id>', id)}`);
+      if (componentFiles.length > 0) {
+        o.always(`  ${componentFiles.length} component source(s), code to review:`);
+        for (const c of componentFiles) o.always(`    ${c.path} (${c.bytes} bytes)`);
+        o.always(`  ${data.componentsNote}`);
+      }
+      if (releaseFiles.length > 0) {
+        o.always(`  ${releaseFiles.length} release record(s): ${releaseFiles.join(', ')}`);
+        o.always(`  ${IMPORTED_RELEASES_NOTE}`);
+      }
     },
   };
 };

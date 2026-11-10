@@ -20,6 +20,7 @@ import {
   ComponentRequestSchema,
   type ComponentStory,
 } from './ds-contracts.ts';
+import { jsonErrorText } from './json-error.ts';
 import { CliError } from './output.ts';
 import { hasControlCharacter } from './paths.ts';
 
@@ -142,7 +143,7 @@ export function readRequest(location: DesignSystemLocation, name: string): Compo
   try {
     raw = JSON.parse(readFileSync(path, 'utf8'));
   } catch (error) {
-    throw new CliError('validation', `Could not read ${label}: ${(error as Error).message}`);
+    throw new CliError('validation', `Could not read ${label}: it is ${jsonErrorText(error)}.`);
   }
   const parsed = ComponentRequestSchema.safeParse(raw);
   if (!parsed.success) {

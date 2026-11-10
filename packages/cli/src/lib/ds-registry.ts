@@ -12,6 +12,7 @@ import {
   readApproval,
   readComponents,
 } from './design-systems.ts';
+import { jsonErrorText } from './json-error.ts';
 import { CliError } from './output.ts';
 import { hasControlCharacter } from './paths.ts';
 
@@ -107,7 +108,7 @@ function readDocument(absolute: string, label: string, expectedId: string): Docu
   try {
     raw = JSON.parse(readFileSync(absolute, 'utf8'));
   } catch (error) {
-    throw new Error(`${label} is not valid JSON: ${(error as Error).message}`);
+    throw new Error(`${label} is ${jsonErrorText(error)}.`);
   }
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     throw new Error(`${label} must contain a JSON object.`);

@@ -13,6 +13,7 @@ import {
   loadAllowContext,
   scanPrototypeDesignSystem,
 } from '../lib/ds-check/index.ts';
+import { guardDsOutputFile } from '../lib/ds-output.ts';
 import {
   baselineDocument,
   type DsRenderFinding,
@@ -29,6 +30,7 @@ import {
   realDsRenderDeps,
   renderPrototypes,
 } from '../lib/ds-render/run.ts';
+import { jsonErrorText } from '../lib/json-error.ts';
 import { CliError, mark } from '../lib/output.ts';
 import { hasControlCharacter, isInside, toPosixRelative } from '../lib/paths.ts';
 import { loadRegistry, type RegistryEntry, writeJsonAtomic } from '../lib/registry.ts';
@@ -185,14 +187,39 @@ function readRenderOptions(
       });
     if (statSync(baselineFile).size > MAX_BASELINE_BYTES)
       throw new CliError('validation', `Baseline ${baselineValue} is over 5 MB.`);
+    let raw: unknown;
     try {
-      baseline = parseBaseline(JSON.parse(readFileSync(baselineFile, 'utf8')));
+      raw = JSON.parse(readFileSync(baselineFile, 'utf8'));
+    } catch (error) {
+      throw new CliError('validation', `Baseline ${baselineValue} is ${jsonErrorText(error)}.`);
+    }
+    try {
+      baseline = parseBaseline(raw);
     } catch (error) {
       throw new CliError('validation', `Baseline ${baselineValue}: ${(error as Error).message}`);
     }
   }
+  // A baseline is replaced freely; any other file needs --force, and only
+  // design-systems/, artifacts/ and tmp/ are written.
   const writeBaseline =
-    writeValue === undefined ? null : workspaceFile(root, writeValue, '--write-baseline');
+    writeValue === undefined
+      ? null
+      : guardDsOutputFile({
+          root,
+          requested: writeValue,
+          flag: '--write-baseline',
+          force: flag(options, 'force'),
+          kind: 'a render baseline',
+          sameKind: (value) => {
+            try {
+              parseBaseline(value);
+              return true;
+            } catch {
+              return false;
+            }
+          },
+          existing: 'same-kind-or-force',
+        });
   return { render, routes, baselineFile, baseline, writeBaseline, rebuild };
 }
 

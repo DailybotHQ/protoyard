@@ -1,11 +1,12 @@
-import { existsSync, lstatSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { CommandResult, Handler } from '../lib/command.ts';
-import { opt } from '../lib/command.ts';
+import { flag, opt } from '../lib/command.ts';
 import { dsCheckInputs } from '../lib/ds-catalog.ts';
 import type { ExtensionFile } from '../lib/ds-extensions/index.ts';
+import { guardDsOutputFile, hasFormat } from '../lib/ds-output.ts';
 import { CliError, mark } from '../lib/output.ts';
-import { isInside, toPosixRelative } from '../lib/paths.ts';
+import { hasControlCharacter, toPosixRelative } from '../lib/paths.ts';
 
 /** File name of one namespace's extension file: `protoyard.catalog-extension.json`. */
 export function extensionFileName(namespace: string): string {
@@ -18,7 +19,8 @@ export function extensionFileName(namespace: string): string {
  * files (`texuli/catalog-extension`), the same ones `ds validate` merges. Pass
  * them to `texuli ds check <document> --extensions <file>...` so Texuli's
  * check accepts the same allow keys as Protoyard's. Without `--out` the files
- * are printed (`--json`); with it they are written inside the workspace.
+ * are printed (`--json`); with it they are written under design-systems/,
+ * artifacts/ or tmp/ (another file there is replaced only with `--force`).
  */
 export const dsExtensionsCommand: Handler = async (ctx, _args, options): Promise<CommandResult> => {
   // Shaped by toExtensionFiles: `{ format, version, namespace, components }`.
@@ -26,19 +28,26 @@ export const dsExtensionsCommand: Handler = async (ctx, _args, options): Promise
   const out = opt(options, 'out');
   const files: { path: string; namespace: string; components: number }[] = [];
   if (out !== undefined) {
-    const dir = resolve(ctx.root, out);
-    if (!isInside(ctx.root, dir)) {
-      throw new CliError('unsafe_path', `--out must be inside the workspace: ${out}`);
+    if (hasControlCharacter(out) || out.trim() === '') {
+      throw new CliError('unsafe_path', 'Unsafe --out path.');
     }
-    if (existsSync(dir) && lstatSync(dir).isSymbolicLink()) {
-      throw new CliError('unsafe_path', `Refusing to write through the symlink ${out}.`);
-    }
-    mkdirSync(dir, { recursive: true });
-    for (const file of extensions) {
-      const target = join(dir, extensionFileName(file.namespace));
-      if (existsSync(target) && lstatSync(target).isSymbolicLink()) {
-        throw new CliError('unsafe_path', `Refusing to write through the symlink ${target}.`);
-      }
+    // Every file is checked before the first write: design-systems/,
+    // artifacts/ or tmp/ only, an extension file is replaced freely, any other
+    // file only with --force.
+    const targets = extensions.map((file) => ({
+      file,
+      target: guardDsOutputFile({
+        root: ctx.root,
+        requested: join(out, extensionFileName(file.namespace)),
+        flag: '--out',
+        force: flag(options, 'force'),
+        kind: 'a catalog extension file',
+        sameKind: hasFormat('texuli/catalog-extension'),
+        existing: 'same-kind-or-force',
+      }),
+    }));
+    for (const { file, target } of targets) {
+      mkdirSync(dirname(target), { recursive: true });
       writeFileSync(target, `${JSON.stringify(file, null, 2)}\n`, 'utf8');
       files.push({
         path: toPosixRelative(ctx.root, target),

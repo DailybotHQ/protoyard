@@ -105,9 +105,9 @@ describe('design-system bundles (ds export --bundle, ds import)', { timeout: 120
   }
 
   async function exported(ws: TempWorkspace): Promise<{ file: string; bundle: Bundle }> {
-    const run = await ds(ws, 'export', 'harbor', '--bundle', '--out', 'harbor.ds-bundle.json');
+    const run = await ds(ws, 'export', 'harbor', '--bundle', '--out', 'tmp/harbor.ds-bundle.json');
     expect(run.code, run.stdout).toBe(0);
-    const file = join(ws.root, 'harbor.ds-bundle.json');
+    const file = join(ws.root, 'tmp/harbor.ds-bundle.json');
     return { file, bundle: JSON.parse(readFileSync(file, 'utf8')) as Bundle };
   }
 
@@ -374,11 +374,11 @@ describe('design-system bundles (ds export --bundle, ds import)', { timeout: 120
     for (const step of [
       ['new', 'tide', '--brand', '#1d4ed8', '--allow', 'minimal'],
       ['approve', 'tide', '--by', 'Ada Example'],
-      ['export', 'tide', '--bundle', '--out', 'tide.json'],
+      ['export', 'tide', '--bundle', '--out', 'tmp/tide.json'],
     ]) {
       expect((await ds(plain, ...step)).code).toBe(0);
     }
-    const copy = await ds(target, 'import', join(plain.root, 'tide.json'), '--id', 'tide-copy');
+    const copy = await ds(target, 'import', join(plain.root, 'tmp/tide.json'), '--id', 'tide-copy');
     expect(copy.code, copy.stdout).toBe(0);
     expect(copy.json<Envelope<{ status: string; id: string }>>().data).toMatchObject({
       id: 'tide-copy',

@@ -12,13 +12,16 @@
  * locked, so only `protoyard ds approve` can approve it.
  */
 import { existsSync, readFileSync, statSync } from 'node:fs';
+import { relative, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import type { DesignSystem } from '@protoyard/themes';
 import type {
   DesignSystemGenerationReport,
   GenerateDesignSystemInput,
 } from '@texuli/tokens/design-system/generate';
+import { jsonErrorText } from './json-error.ts';
 import { CliError } from './output.ts';
+import { canonicalPath } from './paths.ts';
 import { workspaceFile } from './workspace-file.ts';
 
 /** The four generator sources; `ds new` takes at most one. */
@@ -63,10 +66,17 @@ function size(bytes: number): string {
 
 /**
  * A workspace file as bytes: inside the workspace after every symlink is
- * resolved, never a symlink itself, a regular file, and at most `max` bytes.
+ * resolved, never a symlink itself, never hidden (no `.env`, `.git/…` or other
+ * dot segment: secrets live there), a regular file, and at most `max` bytes.
  */
 export function readWorkspaceInput(root: string, file: string, max: number, flag: string): Buffer {
   const path = workspaceFile(root, file);
+  const segments = relative(canonicalPath(root), canonicalPath(path)).split(sep);
+  if (segments.some((segment) => segment.startsWith('.'))) {
+    throw new CliError('unsafe_path', `${flag}: refusing the hidden file ${file}.`, {
+      hint: 'Hidden files and folders (.env, .git, …) are never generator inputs; copy the tokens, stylesheet or logo to a plain file.',
+    });
+  }
   if (!existsSync(path) || !statSync(path).isFile()) {
     throw new CliError('not_found', `${flag}: no such file: ${file}.`);
   }
@@ -422,13 +432,9 @@ export async function generateFromSource(
     try {
       parsed = JSON.parse(text);
     } catch (error) {
-      throw new CliError(
-        'validation',
-        `${flag}: ${value} is not JSON: ${(error as Error).message}`,
-        {
-          hint: 'Pass a W3C DTCG or Tokens Studio JSON file.',
-        }
-      );
+      throw new CliError('validation', `${flag}: ${value} is ${jsonErrorText(error)}.`, {
+        hint: 'Pass a W3C DTCG or Tokens Studio JSON file.',
+      });
     }
     input.tokens = parsed;
     info.file = value;
