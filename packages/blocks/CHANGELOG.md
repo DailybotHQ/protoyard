@@ -1,5 +1,14 @@
 # @protoyard/blocks
 
+## 1.8.0
+
+### Patch Changes
+
+- Updated dependencies [b64de1e]
+  - @protoyard/core@1.8.0
+  - @protoyard/ai@1.8.0
+  - @protoyard/avatars@1.8.0
+
 ## 1.7.0
 
 ### Patch Changes
