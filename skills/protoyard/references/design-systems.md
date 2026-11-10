@@ -101,6 +101,32 @@ pnpm protoyard generate my-deck --blueprint <file> --ds harbor  # app, deck, pag
   the prototype is locked but does not pass yet (it stays on disk). For
   `generate`, `templateFiles` names template files that are not lock-clean.
 
+## Review it in the kit
+
+```bash
+pnpm protoyard ds kit <id>            # writes or refreshes prototypes/<id>-kit
+pnpm protoyard ds kit <id> --check    # exit 4 when the kit is missing or stale
+```
+
+The kit prototype shows the whole design system on one page (Texuli's
+`DesignSystemKit`): foundations, voice, the allowed components with their
+values and states, the library components with their stories, the approval
+with its hash check, and the changes since the last release. Re-run `ds kit`
+after every change to the design system; never edit the files it owns
+(`src/` except `main.ts` and `app.css`).
+
+## Releases and versions
+
+A human records an approved version with `pnpm protoyard ds approve <id> --by
+"<name>" --release <semver>` or `pnpm protoyard ds release <id>`
+(`releases/<version>.json`, never rewritten). Agents may read them:
+
+```bash
+pnpm protoyard ds versions <id> --json
+pnpm protoyard ds diff <id> --json              # current document vs the last release
+pnpm protoyard ds diff <id> 1.0.0 1.1.0 --json
+```
+
 ## Locked prototypes
 
 A designer approves a design system with `pnpm protoyard ds approve <id> --by

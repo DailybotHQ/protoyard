@@ -1109,8 +1109,9 @@ share and review them without a new format.
 
 **Consequences.** Design systems get their own commands, index entries, gallery page and guide ([DESIGN_SYSTEMS](DESIGN_SYSTEMS.md)). The contracts are versioned (`format` and
 `version` fields, URN `$id`s); a breaking change needs a new version, and a test fails when
-the checked-in JSON Schemas drift from the zod schemas. Planned files (the release record and
-the bundle manifest) have draft schemas marked as planned until a command writes them.
+the checked-in JSON Schemas drift from the zod schemas. Planned files (the bundle manifest)
+have draft schemas marked as planned until a command writes them; the release record became
+current when `ds approve --release` and `ds release` started writing it (release 1.8.0).
 
 **How to reverse.** The folder layout and the registry field are additive: older galleries
 and CLIs ignore `designSystems`, and flat documents keep working with `ds use` without
