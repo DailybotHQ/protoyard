@@ -34,8 +34,8 @@ pnpm protoyard ds new acme --from-logo brand/logo.svg        # palette from an S
 
 A brief or one of these files prints Texuli's **loss report** (values it
 could not keep) and **AA repair report** (values changed to meet AA); with
-`--json` both are under `data.generation`, with how each brief clause was
-read (`brief.reading`). Show both to the user before they approve. The files
+`--json` both are under `data.generation`, with the brief sent to Texuli
+(`brief.oneLiner`). Show both to the user before they approve. The files
 must sit inside the workspace (no symlinks), within size caps (tokens and
 CSS 1 MiB, SVG 512 KiB, brief 16 KiB). Raster logos (PNG, JPEG) are refused:
 ask for an SVG or the logo's main color for `--brand`. `--from-tokens`,
