@@ -69,6 +69,33 @@ pnpm protoyard validate crm-demo --build
 It refuses a prototype without a `definePrototype({ … })` call or without the
 `@protoyard/runtime` dependency, and another design system without `--force`.
 
+`ds validate` also prints `full`: Texuli's full validator
+(`checkDesignSystemFull`) over the Texuli catalog with Protoyard's
+`protoyard:*` extensions merged (structure, allow, approval hash, contrast,
+data-viz palette, tokens). It does not change the exit code unless you pass
+`--strict`.
+
+## Share one between workspaces
+
+```bash
+pnpm protoyard ds export harbor --bundle --out tmp/harbor.ds-bundle.json
+pnpm protoyard ds import tmp/harbor.ds-bundle.json --dry-run
+pnpm protoyard ds import tmp/harbor.ds-bundle.json
+```
+
+- The bundle is one JSON file: the folder's files with their hashes, and
+  Texuli's own bundle (document, component sources, allow manifest, release
+  history). The same folder always packs to the same bytes.
+- `ds import` treats it as untrusted: it checks everything (schema, Texuli's
+  `validateBundle`, a closed list of paths, sizes, every hash) before it
+  writes, and nothing in it runs. It never replaces an existing design system
+  without `--force`. `--id <id>` imports under another id (refused when the
+  bundle has release records).
+- An imported approval is kept as it was, but it is a record from another
+  workspace, not a proof. Tell the human: the import goes in a commit a
+  designer reviews, or they re-approve it (`--draft` resets it to draft).
+  Never approve it yourself.
+
 ## In the browser
 
 DevTools → Look → **Open studio** → **Design system** creates one from a name,
