@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/saas-ui",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Svelte 5 screens and route helpers for Protoyard simulated SaaS kits (auth, inbox, onboarding, workspaces). Simulation UX only — never security.",
   "license": "MIT",
   "type": "module",
@@ -31,8 +31,8 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/saas": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "@texuli/forms": "0.15.0",
-    "texuli": "0.15.0",
+    "@texuli/forms": "0.16.1",
+    "texuli": "0.16.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -49,6 +49,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "publishConfig": {

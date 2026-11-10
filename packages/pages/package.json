@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/pages",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Framework-agnostic page and doc engine for Protoyard: document schemas, limits, TOC helpers and form-response contracts (no Svelte).",
   "license": "MIT",
   "type": "module",
@@ -15,7 +15,7 @@
   "dependencies": {
     "@protoyard/blocks": "workspace:*",
     "@protoyard/core": "workspace:*",
-    "@texuli/document": "0.15.0",
+    "@texuli/document": "0.16.1",
     "zod": "^4.6.7"
   },
   "protoyard": {
@@ -27,6 +27,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "publishConfig": {

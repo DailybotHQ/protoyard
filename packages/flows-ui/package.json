@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/flows-ui",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Accessible Svelte workflow editor and simulated run panels for Protoyard.",
   "license": "MIT",
   "type": "module",
@@ -45,8 +45,8 @@
   },
   "dependencies": {
     "@protoyard/flows": "workspace:*",
-    "@texuli/workflows": "0.15.0",
-    "texuli": "0.15.0"
+    "@texuli/workflows": "0.16.1",
+    "texuli": "0.16.1"
   },
   "devDependencies": {
     "svelte": "^5.57.3"
@@ -62,6 +62,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "publishConfig": {

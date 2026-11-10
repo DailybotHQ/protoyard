@@ -9,6 +9,7 @@ import {
   DESIGN_SYSTEM_CONTRACTS,
   type DesignSystemContract,
 } from '../src/lib/ds-contracts.ts';
+import { readRelease } from '../src/lib/ds-releases.ts';
 import { CliError } from '../src/lib/output.ts';
 import { createWorkspace, type TempWorkspace } from './helpers.ts';
 
@@ -160,7 +161,9 @@ const VALID: Record<string, Json> = {
     contentHash: HASH,
     approvedBy: 'Ada Example',
     approvedAt: AT,
+    changelog: 'First release.',
     components: [{ name: 'StatusPill', version: '0.1.0', sha256: HASH }],
+    document: { format: 'texuli/design-system', id: 'harbor', version: '1.2.0' },
   },
   bundle: {
     format: 'protoyard/ds-bundle',
@@ -168,7 +171,11 @@ const VALID: Record<string, Json> = {
     designSystem: 'harbor',
     release: '1.2.0',
     contentHash: HASH,
-    files: [{ path: 'document.json', sha256: HASH, bytes: 120 }],
+    texuli: { format: 'texuli/design-system-bundle', version: 1 },
+    files: [
+      { path: 'document.json', sha256: HASH, bytes: 120, from: 'document' },
+      { path: 'components.json', sha256: HASH, bytes: 64, text: '{}' },
+    ],
   },
 };
 
@@ -292,7 +299,39 @@ const INVALID: Record<string, [string, Json][]> = {
         release: '1.2.0',
         approvedBy: 'Ada Example',
         approvedAt: AT,
+        changelog: 'First release.',
         components: [],
+        document: {},
+      },
+    ],
+    [
+      'a document that is not an object',
+      {
+        format: 'protoyard/ds-release',
+        version: 1,
+        designSystem: 'harbor',
+        release: '1.2.0',
+        contentHash: HASH,
+        approvedBy: 'Ada Example',
+        approvedAt: AT,
+        changelog: 'First release.',
+        components: [],
+        document: [],
+      },
+    ],
+    [
+      'an empty changelog',
+      {
+        format: 'protoyard/ds-release',
+        version: 1,
+        designSystem: 'harbor',
+        release: '1.2.0',
+        contentHash: HASH,
+        approvedBy: 'Ada Example',
+        approvedAt: AT,
+        changelog: '',
+        components: [],
+        document: {},
       },
     ],
   ],
@@ -305,7 +344,8 @@ const INVALID: Record<string, [string, Json][]> = {
         designSystem: 'harbor',
         release: '1.2.0',
         contentHash: HASH,
-        files: [{ path: '../secret.json', sha256: HASH, bytes: 1 }],
+        texuli: {},
+        files: [{ path: '../secret.json', sha256: HASH, bytes: 1, text: 'x' }],
       },
     ],
     [
@@ -316,7 +356,8 @@ const INVALID: Record<string, [string, Json][]> = {
         designSystem: 'harbor',
         release: '1.2.0',
         contentHash: HASH,
-        files: [{ path: '/etc/passwd', sha256: HASH, bytes: 1 }],
+        texuli: {},
+        files: [{ path: '/etc/passwd', sha256: HASH, bytes: 1, text: 'x' }],
       },
     ],
   ],
@@ -379,7 +420,7 @@ describe('design-system JSON Schemas (PLAN_013 T-contracts)', () => {
     expect(ids.size).toBe(DESIGN_SYSTEM_CONTRACTS.length);
     expect(
       DESIGN_SYSTEM_CONTRACTS.filter((c) => c.status === 'planned').map((c) => c.name)
-    ).toEqual(['release', 'bundle']);
+    ).toEqual([]);
   });
 
   for (const c of DESIGN_SYSTEM_CONTRACTS) {
@@ -444,6 +485,7 @@ describe('the CLI readers refuse what the JSON Schema refuses', () => {
     ['approval', 'approval.json', (l) => readApproval(l)],
     ['components', 'components.json', (l) => readComponents(l)],
     ['component-request', 'requests/StatusPill.json', (l) => readRequest(l, 'StatusPill')],
+    ['release', 'releases/1.2.0.json', (l) => readRelease(l, '1.2.0')],
   ];
 
   for (const [name, file, read] of readers) {

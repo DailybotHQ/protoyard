@@ -1,5 +1,17 @@
 # @protoyard/gallery
 
+## 1.8.0
+
+### Patch Changes
+
+- Updated dependencies [b64de1e]
+- Updated dependencies
+  - @protoyard/core@1.8.0
+  - @protoyard/ui@1.8.0
+  - @protoyard/blueprint@1.8.0
+  - @protoyard/player@1.8.0
+  - @protoyard/themes@1.8.0
+
 ## 1.7.0
 
 ### Patch Changes

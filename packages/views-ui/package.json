@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/views-ui",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Svelte 5 components for Protoyard's rich views kit (board, calendar, timeline, data grid, tree, simulated map, editor, activity, notifications, files, settings, states, command palette). One lazy subpath per view, never re-exported from @protoyard/ui.",
   "license": "MIT",
   "type": "module",
@@ -108,13 +108,13 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
-    "@texuli/canvas": "0.15.0",
-    "@texuli/data": "0.15.0",
-    "@texuli/drag": "0.15.0",
-    "@texuli/editor": "0.15.0",
-    "@texuli/primitives": "0.15.0",
-    "@texuli/sheets": "0.15.0",
-    "texuli": "0.15.0"
+    "@texuli/canvas": "0.16.1",
+    "@texuli/data": "0.16.1",
+    "@texuli/drag": "0.16.1",
+    "@texuli/editor": "0.16.1",
+    "@texuli/primitives": "0.16.1",
+    "@texuli/sheets": "0.16.1",
+    "texuli": "0.16.1"
   },
   "devDependencies": {
     "svelte": "^5.57.3"
@@ -132,6 +132,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "publishConfig": {

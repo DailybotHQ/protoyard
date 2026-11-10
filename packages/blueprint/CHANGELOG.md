@@ -1,5 +1,17 @@
 # @protoyard/blueprint
 
+## 1.8.0
+
+### Patch Changes
+
+- Updated dependencies [b64de1e]
+  - @protoyard/core@1.8.0
+  - @protoyard/blocks@1.8.0
+  - @protoyard/pages@1.8.0
+  - @protoyard/scenarios@1.8.0
+  - @protoyard/themes@1.8.0
+  - @protoyard/decks@1.8.0
+
 ## 1.7.0
 
 ### Patch Changes

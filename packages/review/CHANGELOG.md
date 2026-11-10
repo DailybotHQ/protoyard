@@ -1,5 +1,13 @@
 # @protoyard/review
 
+## 1.8.0
+
+### Patch Changes
+
+- Updated dependencies [b64de1e]
+  - @protoyard/core@1.8.0
+  - @protoyard/database@1.8.0
+
 ## 1.7.0
 
 ### Patch Changes

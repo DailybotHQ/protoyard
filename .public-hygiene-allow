@@ -1,1 +1,2 @@
 packages/cli/tests/control-server.test.ts secret-assignment fake per-run create token used only by the control-server tests
+packages/cli/tests/ds-generate.test.ts secret-assignment fictional example design-token file path for the generator tests, not a secret

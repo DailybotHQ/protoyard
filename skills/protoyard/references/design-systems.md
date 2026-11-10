@@ -15,11 +15,32 @@ From a few inputs (each is optional; give at least a brand color or a brief):
 pnpm protoyard ds new harbor --name Harbor --brand '#0f766e' --font Inter --shape rounded --density compact --motion subtle
 ```
 
-From a one-line brief (explicit inputs win over the brief):
+From a brief: prose or a one-liner, a `.txt`/`.md` file, or `-` for stdin
+(explicit inputs win over the brief):
 
 ```bash
 pnpm protoyard ds new atlas --brief "brand #4f46e5, font Geist, heading font Fraunces, sharp, comfortable"
+pnpm protoyard ds new nurse-bank --brief "Calm banking for nurses. Deep teal #0f766e brand, Inter font, rounded."
 ```
+
+From the brand a company already has (one source per run; Texuli's
+generator, offline):
+
+```bash
+pnpm protoyard ds new acme --from-tokens brand/tokens.json   # W3C DTCG or Tokens Studio JSON
+pnpm protoyard ds new acme --from-css brand/site.css         # a site stylesheet's tokens, read as text
+pnpm protoyard ds new acme --from-logo brand/logo.svg        # palette from an SVG logo's fill/stroke colors
+```
+
+A brief or one of these files prints Texuli's **loss report** (values it
+could not keep) and **AA repair report** (values changed to meet AA); with
+`--json` both are under `data.generation`, with how each brief clause was
+read (`brief.reading`). Show both to the user before they approve. The files
+must sit inside the workspace (no symlinks), within size caps (tokens and
+CSS 1 MiB, SVG 512 KiB, brief 16 KiB). Raster logos (PNG, JPEG) are refused:
+ask for an SVG or the logo's main color for `--brand`. `--from-tokens`,
+`--from-css` and `--from-logo` take no brand flags; edit the draft instead.
+The result is always a draft, even if the input carried an approval.
 
 From an existing theme (a built-in or any library theme):
 
@@ -69,6 +90,33 @@ pnpm protoyard validate crm-demo --build
 It refuses a prototype without a `definePrototype({ … })` call or without the
 `@protoyard/runtime` dependency, and another design system without `--force`.
 
+`ds validate` also prints `full`: Texuli's full validator
+(`checkDesignSystemFull`) over the Texuli catalog with Protoyard's
+`protoyard:*` extensions merged (structure, allow, approval hash, contrast,
+data-viz palette, tokens). It does not change the exit code unless you pass
+`--strict`.
+
+## Share one between workspaces
+
+```bash
+pnpm protoyard ds export harbor --bundle --out tmp/harbor.ds-bundle.json
+pnpm protoyard ds import tmp/harbor.ds-bundle.json --dry-run
+pnpm protoyard ds import tmp/harbor.ds-bundle.json
+```
+
+- The bundle is one JSON file: the folder's files with their hashes, and
+  Texuli's own bundle (document, component sources, allow manifest, release
+  history). The same folder always packs to the same bytes.
+- `ds import` treats it as untrusted: it checks everything (schema, Texuli's
+  `validateBundle`, a closed list of paths, sizes, every hash) before it
+  writes, and nothing in it runs. It never replaces an existing design system
+  without `--force`. `--id <id>` imports under another id (refused when the
+  bundle has release records).
+- An imported approval is kept as it was, but it is a record from another
+  workspace, not a proof. Tell the human: the import goes in a commit a
+  designer reviews, or they re-approve it (`--draft` resets it to draft).
+  Never approve it yourself.
+
 ## In the browser
 
 DevTools → Look → **Open studio** → **Design system** creates one from a name,
@@ -81,6 +129,7 @@ and browser; to put it in the repository, download the JSON and run `ds use`.
 Prefer creating it locked over binding it later:
 
 ```bash
+pnpm protoyard new my-portal --ds harbor --dry-run             # every check, nothing written
 pnpm protoyard new my-portal --ds harbor                       # blank template
 pnpm protoyard new my-portal --ds harbor --template <name>      # any lock-clean template
 pnpm protoyard generate my-deck --blueprint <file> --ds harbor  # app, deck, page or doc blueprint
@@ -99,6 +148,32 @@ pnpm protoyard generate my-deck --blueprint <file> --ds harbor  # app, deck, pag
 - Read `data.designSystemCheck` in the `--json` envelope: `ok: false` means
   the prototype is locked but does not pass yet (it stays on disk). For
   `generate`, `templateFiles` names template files that are not lock-clean.
+
+## Review it in the kit
+
+```bash
+pnpm protoyard ds kit <id>            # writes or refreshes prototypes/<id>-kit
+pnpm protoyard ds kit <id> --check    # exit 4 when the kit is missing or stale
+```
+
+The kit prototype shows the whole design system on one page (Texuli's
+`DesignSystemKit`): foundations, voice, the allowed components with their
+values and states, the library components with their stories, the approval
+with its hash check, and the changes since the last release. Re-run `ds kit`
+after every change to the design system; never edit the files it owns
+(`src/` except `main.ts` and `app.css`).
+
+## Releases and versions
+
+A human records an approved version with `pnpm protoyard ds approve <id> --by
+"<name>" --release <semver>` or `pnpm protoyard ds release <id>`
+(`releases/<version>.json`, never rewritten). Agents may read them:
+
+```bash
+pnpm protoyard ds versions <id> --json
+pnpm protoyard ds diff <id> --json              # current document vs the last release
+pnpm protoyard ds diff <id> 1.0.0 1.1.0 --json
+```
 
 ## Locked prototypes
 

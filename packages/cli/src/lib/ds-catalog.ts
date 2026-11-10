@@ -373,6 +373,8 @@ export interface MergeOutcome {
   manifests: readonly (CatalogManifestLike | CatalogExtensionManifest)[];
   refusals: readonly MergeRefusal[];
   merge: DsCatalogMerge;
+  /** Texuli's merged catalog itself (what `texuli/ds-kit` takes as `catalog`). */
+  catalog: SpecCatalog;
 }
 
 /**
@@ -421,20 +423,17 @@ export function mergeWithExtensions(
       catalogHash: merged.catalog.catalogHash,
       extensions: merged.extensions.map((e) => ({ namespace: e.namespace, digest: e.digest })),
     },
+    catalog: merged.catalog,
   };
 }
 
 let cached: DsCatalog | undefined;
+let cachedTexuli: CatalogManifestLike[] | undefined;
+let cachedSpecCatalog: SpecCatalog | undefined;
 
-/**
- * The catalog of the installed `@texuli/catalog` merged with the catalog
- * extensions (built once per process). The manifests (about 0.5 MB of
- * modules) load on first use with a synchronous `require` (Node 24 loads ES
- * modules that way), so commands that never read a design system's allow
- * section do not pay for them.
- */
-export function dsCatalog(): DsCatalog {
-  if (!cached) {
+/** The installed Texuli manifests with their imports, groups and emit tiers (loaded once). */
+function texuliManifests(): CatalogManifestLike[] {
+  if (!cachedTexuli) {
     const load = createRequire(import.meta.url);
     const { ALL_MANIFEST_GROUPS } = load('@texuli/catalog/manifests/all') as {
       ALL_MANIFEST_GROUPS: readonly ManifestGroup[];
@@ -445,11 +444,10 @@ export function dsCatalog(): DsCatalog {
     // Texuli 0.15.0 keeps the public imports of each id beside the authored
     // manifests (`@texuli/catalog/imports`); a manifest that lists its own
     // imports keeps them.
-    const { IMPORTS_BY_ID, NON_COMPONENT_IMPORTS } = load('@texuli/catalog/imports') as {
+    const { IMPORTS_BY_ID } = load('@texuli/catalog/imports') as {
       IMPORTS_BY_ID?: Readonly<Record<string, readonly CatalogImport[]>>;
-      NON_COMPONENT_IMPORTS?: readonly CatalogImport[];
     };
-    const texuli = ALL_MANIFEST_GROUPS.flatMap((group) =>
+    cachedTexuli = ALL_MANIFEST_GROUPS.flatMap((group) =>
       group.manifests.map((manifest) => {
         const like = manifest as unknown as CatalogManifestLike;
         const imports = like.imports?.length ? like.imports : IMPORTS_BY_ID?.[like.id];
@@ -461,7 +459,49 @@ export function dsCatalog(): DsCatalog {
         };
       })
     );
+  }
+  return cachedTexuli;
+}
+
+/** What Texuli's full validator (`checkDesignSystemFull`) takes: its catalog and the host extensions. */
+export interface DsCheckInputs {
+  /** The installed Texuli catalog as a `SpecCatalog` ({@link specCatalogOf}). */
+  catalog: SpecCatalog;
+  /** Protoyard's catalog extensions as Texuli extension files (the ones `dsCatalog` merges). */
+  extensions: unknown[];
+}
+
+/**
+ * The catalog and extension files for `checkDesignSystemFull`, so Texuli's
+ * full check merges the same catalog `dsCatalog` does (extensions whose
+ * imports collide are left out, as there).
+ */
+export function dsCheckInputs(): DsCheckInputs {
+  const texuli = texuliManifests();
+  const colliding = new Set(importCollisions(texuli, CATALOG_EXTENSIONS).map((r) => r.id));
+  const candidates = CATALOG_EXTENSIONS.filter((extension) => !colliding.has(extension.id));
+  return {
+    catalog: specCatalogOf(texuli),
+    extensions: toExtensionFiles(candidates).map((entry) => entry.file),
+  };
+}
+
+/**
+ * The catalog of the installed `@texuli/catalog` merged with the catalog
+ * extensions (built once per process). The manifests (about 0.5 MB of
+ * modules) load on first use with a synchronous `require` (Node 24 loads ES
+ * modules that way), so commands that never read a design system's allow
+ * section do not pay for them.
+ */
+export function dsCatalog(): DsCatalog {
+  if (!cached) {
+    const load = createRequire(import.meta.url);
+    const { NON_COMPONENT_IMPORTS } = load('@texuli/catalog/imports') as {
+      NON_COMPONENT_IMPORTS?: readonly CatalogImport[];
+    };
+    const texuli = texuliManifests();
     const merged = mergeWithExtensions(texuli);
+    cachedSpecCatalog = merged.catalog;
     cached = catalogFromManifests(merged.manifests, {
       refusals: merged.refusals,
       merge: merged.merge,
@@ -470,6 +510,16 @@ export function dsCatalog(): DsCatalog {
     });
   }
   return cached;
+}
+
+/**
+ * Texuli's merged catalog (`mergeCatalogs` over the installed catalog and the
+ * extensions) as `SpecCatalog`: the vocabulary `texuli/ds-kit` reads. Built
+ * with {@link dsCatalog}, once per process.
+ */
+export function dsSpecCatalog(): SpecCatalog {
+  dsCatalog();
+  return cachedSpecCatalog as SpecCatalog;
 }
 
 const TEXULI_MODULE = /^(?:texuli|@texuli\/[a-z0-9-]+)(?:\/[\w./-]+)?$/;
@@ -541,6 +591,19 @@ function byName(catalog: DsCatalog, pkg: string | null, identifier: string): Cat
  */
 export function catalogIdFor(catalog: DsCatalog, module: string, identifier: string): CatalogMatch {
   return resolveImport(catalog, module, identifier, identifier, 0);
+}
+
+/**
+ * The catalog id of one use. A compound part (`<Select.Content>`,
+ * `<DropdownMenu.Item>`) takes its own id when the catalog lists one, and
+ * otherwise the id of its namespace root (`Select`), the rule Texuli's locked
+ * check applies (0.16.1), so both checks agree on the same source.
+ */
+export function catalogIdForUse(catalog: DsCatalog, use: ComponentUse): CatalogMatch {
+  const own = catalogIdFor(catalog, use.module, use.identifier);
+  if (own.id || own.how === 'non-component' || !use.namespace) return own;
+  const root = catalogIdFor(catalog, use.module, use.namespace);
+  return root.id ? root : own;
 }
 
 function resolveImport(
@@ -791,7 +854,7 @@ export function importedNames(script: string): ImportedName[] {
 export function composedCatalogIds(source: string, catalog: DsCatalog = dsCatalog()): string[] {
   const ids = new Set<string>();
   for (const use of componentUses(source, catalog)) {
-    const match = catalogIdFor(catalog, use.module, use.identifier);
+    const match = catalogIdForUse(catalog, use);
     if (match.id) ids.add(match.id);
   }
   return [...ids].sort();
@@ -805,6 +868,8 @@ export interface ComponentUse {
   offset: number;
   /** The tag name as written. */
   tag: string;
+  /** For a dotted tag of a named import (`<Select.Content>`): the root's export name. */
+  namespace?: string;
 }
 
 /**
@@ -833,7 +898,13 @@ export function componentUses(source: string, catalog?: DsCatalog): ComponentUse
     const identifier = m[2]
       ? `${name.namespace ? name.local : name.exported}${m[2]}`
       : name.exported;
-    out.push({ identifier, module: name.module, offset: m.index ?? 0, tag: m[0].slice(1) });
+    out.push({
+      identifier,
+      module: name.module,
+      offset: m.index ?? 0,
+      tag: m[0].slice(1),
+      ...(m[2] && !name.namespace ? { namespace: name.exported } : {}),
+    });
   }
   return out;
 }

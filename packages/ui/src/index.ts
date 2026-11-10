@@ -42,6 +42,8 @@ export { default as BrowserChrome } from './components/browser-chrome/BrowserChr
 export type ButtonProps = ComponentProps<typeof TexuliButton>;
 // Collaboration
 export { ChatThread, groupMessages, MessageList, TypingIndicator } from '@texuli/chat';
+// Long lists: a windowed list or feed (`mode="feed"` for rows with their own controls)
+export { VirtualListView } from '@texuli/data/virtual-list';
 export {
   Card,
   CardContent,

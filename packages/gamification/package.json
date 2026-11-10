@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/gamification",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Framework-agnostic gamification engine for Protoyard prototypes: points ledger, levels, badges, missions, ISO-week streaks and leaderboards (no Svelte).",
   "license": "MIT",
   "type": "module",
@@ -23,6 +23,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "publishConfig": {

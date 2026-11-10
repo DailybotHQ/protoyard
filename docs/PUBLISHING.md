@@ -1020,7 +1020,7 @@ The templates and what each one costs are described in
 | Workflow | `--with` | What it runs |
 | --- | --- | --- |
 | `protoyard-check.yml` | `check` | lint, typecheck and tests |
-| `protoyard-build.yml` | `build` | `validate --build`, then `export` and `budget` on that same build (`--skip-build`), for the prototypes a pull request affects; all prototypes on `main` |
+| `protoyard-build.yml` | `build` | `validate --build`, then `export` and `budget` on that same build (`--skip-build`), for the prototypes a pull request affects; all prototypes on `main`. Then, only when a prototype is locked to a design system, `check ds --render` (see below) |
 | `protoyard-e2e.yml` | `e2e` | Playwright on the affected prototypes |
 | `protoyard-preview.yml` | `preview` | Installs Wrangler at a pinned version, then publishes a Cloudflare preview per pull request (`--branch pr-<number> --ensure-project`), skipped for forks. It uploads on every run. It needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in the `protoyard-preview` environment (see below). |
 
@@ -1040,6 +1040,22 @@ Manual one-time steps:
 
 Nothing was written (--dry-run).
 ```
+
+**Render check of locked prototypes.** Since template `build v4`, the build
+workflow finds the prototypes whose `protoyard.json` has
+`designSystem.locked: true` (`check ds --report --json`, which never fails)
+and, only when there is one, installs or restores Playwright's Chromium and
+runs `pnpm protoyard check ds --render` on every locked prototype: every
+route in light and dark, phone and desktop
+([THEMES](THEMES.md#render-mode---render)). It reuses the builds of the
+steps above when they are fresh and builds the others. Any render or static
+finding fails the job, so the check is required for locked prototypes and
+costs nothing for the others. The workspace needs `@playwright/test` and
+`@axe-core/playwright` as dev dependencies once a prototype is locked;
+`ci init --with build` says so in its manual steps. A team that adopts the
+check gradually can commit a baseline (`--write-baseline`) and edit the step
+to pass `--baseline <file>`; `ci check` then reports the workflow as
+modified.
 
 **Preview secrets.** The preview job builds pull request code while the
 Cloudflare token is in its environment, so anyone who can push a branch can
@@ -1111,7 +1127,7 @@ data (ADR-028).
 All public packages share one version through one Changesets `fixed` group,
 and the root `package.json` carries the same version.
 
-- **Current state.** Every manifest says `1.7.0`. `1.0.0` was tagged and
+- **Current state.** Every manifest says `1.8.0`. `1.0.0` was tagged and
   released on GitHub but never published to npm. `1.1.0` was published once
   by hand (2026-11-02). `1.1.1` and every later version are published by
   `release.yml`.

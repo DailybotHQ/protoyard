@@ -1,5 +1,48 @@
 # @protoyard/cli
 
+## 1.8.0
+
+### Minor Changes
+
+- b64de1e: Consumer feedback on locked design systems. `check ds` treats text flow the
+  same in CSS and utilities: `text-align`, `text-align-last`, `text-overflow`
+  and `text-wrap` pass in a stylesheet, as `text-center` and `truncate` already
+  did. `protoyard new --dry-run` runs every check (slug, source, destination,
+  `--ds` design system and template gate) and writes nothing. Every npm package
+  now ships its `CHANGELOG.md`, and `check:packages` requires it.
+- The design-system lifecycle on Texuli 0.16.1 (every Texuli dependency pinned
+  exactly at `0.16.1`): `ds new --from-tokens`, `--from-css`, `--from-logo`
+  (SVG) and `--brief` generate a draft from your brand with Texuli's generator,
+  with its loss and AA repair reports; `ds kit <id>` writes the kit prototype on
+  Texuli's `DesignSystemKit`; `ds approve --release` and `ds release` record
+  releases, `ds versions` lists them and `ds diff` compares them; `ds export
+  --bundle` and `ds import` move a design system between workspaces, the bundle
+  checked as untrusted input; `ds validate` adds Texuli's full check (`--strict`
+  fails on it); `check ds --render` checks locked prototypes in Chromium on every
+  route, light and dark, phone and desktop, and the build CI template runs it.
+
+- Consumer batch 11 on Texuli 0.16.1: `ds extensions [--out <dir>]` writes
+  Protoyard's catalog extensions for `texuli ds check --extensions`; compound
+  parts (`<DropdownMenu.Item>`) map to their own id, else their namespace
+  root's; `check ds` lists the imports it did not read.
+
+### Patch Changes
+
+- Updated dependencies [b64de1e]
+- Updated dependencies
+  - @protoyard/core@1.8.0
+  - @protoyard/templates@1.8.0
+  - @protoyard/blocks@1.8.0
+  - @protoyard/blueprint@1.8.0
+  - @protoyard/crud@1.8.0
+  - @protoyard/offline@1.8.0
+  - @protoyard/player@1.8.0
+  - @protoyard/renderer-svelte@1.8.0
+  - @protoyard/review@1.8.0
+  - @protoyard/scenarios@1.8.0
+  - @protoyard/themes@1.8.0
+  - @protoyard/decks@1.8.0
+
 ## 1.7.0
 
 ### Minor Changes

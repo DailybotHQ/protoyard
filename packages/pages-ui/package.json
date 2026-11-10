@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/pages-ui",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Svelte 5 page and doc hosts for Protoyard: PageApp, DocApp, form responses UI and print CSS, one lazy subpath per family.",
   "license": "MIT",
   "type": "module",
@@ -51,11 +51,11 @@
     "@protoyard/pages": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "@texuli/blocks": "0.15.0",
-    "@texuli/document": "0.15.0",
-    "@texuli/forms": "0.15.0",
-    "@texuli/pages": "0.15.0",
-    "texuli": "0.15.0"
+    "@texuli/blocks": "0.16.1",
+    "@texuli/document": "0.16.1",
+    "@texuli/forms": "0.16.1",
+    "@texuli/pages": "0.16.1",
+    "texuli": "0.16.1"
   },
   "devDependencies": {
     "svelte": "^5.57.3"
@@ -71,6 +71,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "publishConfig": {

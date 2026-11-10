@@ -16,7 +16,11 @@ import { useSocial } from '../lib/context.ts';
 import { fromNow } from '../lib/format.ts';
 import MediaPlaceholder from './MediaPlaceholder.svelte';
 
-/** One post: author, plain text, a placeholder image, reactions and an expandable comment thread. */
+/**
+ * One post: author, plain text, a placeholder image, reactions and an
+ * expandable comment thread. The feed's own `<article>` (VirtualListView
+ * `mode="feed"`) wraps it, so the card is a plain box.
+ */
 let {
   post,
   author,
@@ -58,7 +62,7 @@ async function comment() {
 }
 </script>
 
-<Box as="article" border="block-end" radius="none" padding="none" class="px-4 py-3" data-post={post.id}>
+<Box border="block-end" radius="none" padding="none" class="px-4 py-3" data-post={post.id}>
   <header class="flex items-start gap-3">
     <Avatar name={author?.name ?? 'Someone'} size="sm" />
     <div class="min-w-0 flex-1">

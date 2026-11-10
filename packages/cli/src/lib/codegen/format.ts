@@ -52,6 +52,41 @@ export function formatJson(value: unknown): string {
   return `${render(value, '', 0)}\n`;
 }
 
+/**
+ * JSON exactly as Biome formats it (line width 100), so `biome check --write`
+ * never rewrites a kit file and `ds kit --check` stays quiet: two-space
+ * objects, and an array of primitives on one line when it fits, counting the
+ * comma that follows it (none after the last member).
+ */
+export function biomeJson(value: unknown): string {
+  const render = (node: unknown, indent: string, prefix: number, comma: boolean): string => {
+    if (Array.isArray(node)) {
+      if (node.length === 0) return '[]';
+      if (node.every(isPrimitive)) {
+        const inline = `[${node.map((v) => JSON.stringify(v)).join(', ')}]`;
+        if (prefix + inline.length + (comma ? 1 : 0) <= 100) return inline;
+      }
+      const inner = `${indent}  `;
+      const items = node.map(
+        (v, i) => `${inner}${render(v, inner, inner.length, i < node.length - 1)}`
+      );
+      return `[\n${items.join(',\n')}\n${indent}]`;
+    }
+    if (node !== null && typeof node === 'object') {
+      const entries = Object.entries(node).filter(([, v]) => v !== undefined);
+      if (entries.length === 0) return '{}';
+      const inner = `${indent}  `;
+      const lines = entries.map(([k, v], i) => {
+        const key = `${JSON.stringify(k)}: `;
+        return `${inner}${key}${render(v, inner, inner.length + key.length, i < entries.length - 1)}`;
+      });
+      return `{\n${lines.join(',\n')}\n${indent}}`;
+    }
+    return JSON.stringify(node);
+  };
+  return `${render(value, '', 0, false)}\n`;
+}
+
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
 /**

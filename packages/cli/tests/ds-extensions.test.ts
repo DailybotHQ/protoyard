@@ -585,3 +585,48 @@ describe('catalogFromManifests keeps Texuli import mapping separate from extensi
     });
   });
 });
+
+describe('ds extensions: the files Texuli check takes', { timeout: 60_000 }, () => {
+  let ws: TempWorkspace | undefined;
+  afterEach(() => {
+    ws?.cleanup();
+    ws = undefined;
+  });
+
+  it('writes Texuli extension files that make texuli ds check accept the same allow keys', async () => {
+    ws = createWorkspace();
+    const root = ws.root;
+    const written = await cli(['--root', root, '--json', 'ds', 'extensions', '--out', 'ext']);
+    expect(written.code, written.stdout).toBe(0);
+    const data = written.json<{ data: { files: { path: string; components: number }[] } }>().data;
+    expect(data.files).toEqual([
+      { path: 'ext/protoyard.catalog-extension.json', namespace: 'protoyard', components: 57 },
+    ]);
+    const file = JSON.parse(
+      readFileSync(join(root, 'ext/protoyard.catalog-extension.json'), 'utf8')
+    );
+    expect(file).toMatchObject({ format: 'texuli/catalog-extension', namespace: 'protoyard' });
+
+    // Texuli's own merge accepts them whole: every protoyard: id joins the catalog.
+    const { loadMergedCatalog } = await import('@texuli/tools/ds-check');
+    const merged = await loadMergedCatalog([file]);
+    expect(merged.ok).toBe(true);
+    expect(merged.issues).toEqual([]);
+    const ids = new Set(merged.catalog.components.map((c: { id: string }) => c.id));
+    for (const key of Object.keys(allowPreset('all')).filter((k) => k.startsWith('protoyard:'))) {
+      expect(ids.has(key), key).toBe(true);
+    }
+
+    const outside = await cli([
+      '--root',
+      root,
+      '--json',
+      'ds',
+      'extensions',
+      '--out',
+      '../elsewhere',
+    ]);
+    expect(outside.code).not.toBe(0);
+    expect(outside.json<{ error?: { code: string } }>().error?.code).toBe('unsafe_path');
+  });
+});

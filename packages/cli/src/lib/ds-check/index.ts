@@ -46,15 +46,17 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import type { DesignSystemAllow } from '@texuli/spec/design-system';
+import { listUncheckedImports, type UncheckedImports } from '@texuli/tools/ds-check';
 import { locateDesignSystem, readDocumentFile } from '../design-systems.ts';
 import {
   allowedVia,
-  catalogIdFor,
+  catalogIdForUse,
   componentUses,
   DS_AXES,
   type DsCatalog,
   dsCatalog,
   enabledValues,
+  isGovernedModule,
   type LibraryEntryLike,
   readAllow,
   readLibrary,
@@ -159,8 +161,14 @@ const CLASS_HELPER = /\b(?:cx|clsx|cn|classNames|twMerge|twJoin)\s*\(/g;
 const INTERACTIVE_ROLE =
   /\brole\s*=\s*["']?(?:button|link|checkbox|radio|switch|tab|menuitem|menuitemcheckbox|menuitemradio|option|slider|spinbutton|textbox|searchbox|combobox|listbox)\b/;
 const CLICK_HANDLER = /\s(?:onclick\s*=|on:click\b)/;
+/**
+ * Properties that draw. Text flow is layout, as the utilities allow it
+ * (`text-center`, `truncate`, `text-balance`): `text-align`, `text-align-last`,
+ * `text-overflow` and `text-wrap` stay allowed; other `text-*` properties
+ * (decoration, transform, shadow, indent) are visual.
+ */
 const VISUAL_PROPERTY =
-  /^(?:color|background(?:-[\w-]+)?|border(?:-[\w-]+)?|outline(?:-[\w-]+)?|box-shadow|text-[\w-]+|font(?:-[\w-]+)?|letter-spacing|line-height|word-spacing|opacity|filter|backdrop-filter|transform(?:-[\w-]+)?|translate|rotate|scale|transition(?:-[\w-]+)?|animation(?:-[\w-]+)?|fill|stroke(?:-[\w-]+)?|caret-color|accent-color|mix-blend-mode)$/;
+  /^(?:color|background(?:-[\w-]+)?|border(?:-[\w-]+)?|outline(?:-[\w-]+)?|box-shadow|text-(?!align(?:-last)?$|overflow$|wrap(?:-mode|-style)?$)[\w-]+|font(?:-[\w-]+)?|letter-spacing|line-height|word-spacing|opacity|filter|backdrop-filter|transform(?:-[\w-]+)?|translate|rotate|scale|transition(?:-[\w-]+)?|animation(?:-[\w-]+)?|fill|stroke(?:-[\w-]+)?|caret-color|accent-color|mix-blend-mode)$/;
 const LITERAL_COLOR =
   /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color-mix|color)\(/;
 const DECLARATION = /(^|[{;])(\s*)(-{0,2}[A-Za-z][\w-]*)\s*:\s*([^;{}]+?)\s*(?=;|\})/g;
@@ -518,7 +526,7 @@ function scanAllowed(text: string, markup: string, add: Add, ctx: DsAllowContext
     return byOffset.get(offset) ?? '';
   };
   for (const use of componentUses(text, ctx.catalog)) {
-    const match = catalogIdFor(ctx.catalog, use.module, use.identifier);
+    const match = catalogIdForUse(ctx.catalog, use);
     // Texuli lists it as a non-component export (`MotionProvider`): never refused.
     if (match.how === 'non-component') continue;
     if (!match.id) {
@@ -631,6 +639,41 @@ export interface DsPrototypeScan {
   /** Workspace-relative POSIX paths of the files read. */
   files: string[];
   violations: DsViolation[];
+  /**
+   * Imports the scan did not read (Texuli's `listUncheckedImports`): the
+   * workspace packages the prototype depends on (`workspace:` specifiers, the
+   * catalog-governed ones excluded) and local modules outside its `src/`.
+   * Styling in them is invisible to `check ds`; the report lists them.
+   */
+  unchecked: UncheckedImports;
+}
+
+/**
+ * The workspace packages a prototype depends on with the `workspace:`
+ * protocol, minus the modules the catalog governs (Texuli, `@protoyard/ui`
+ * and catalog-extension modules): the packages whose styling `check ds` does
+ * not read.
+ */
+export function uncheckedWorkspacePackages(dir: string, catalog?: DsCatalog): string[] {
+  const file = join(dir, 'package.json');
+  if (!existsSync(file) || lstatSync(file).isSymbolicLink()) return [];
+  let pkg: Record<string, unknown>;
+  try {
+    pkg = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
+  } catch {
+    return [];
+  }
+  const names = new Set<string>();
+  for (const field of ['dependencies', 'devDependencies', 'peerDependencies']) {
+    const deps = pkg[field];
+    if (!deps || typeof deps !== 'object') continue;
+    for (const [name, spec] of Object.entries(deps as Record<string, unknown>)) {
+      if (typeof spec !== 'string' || !spec.startsWith('workspace:')) continue;
+      if (isGovernedModule(name) || catalog?.extensionModules.has(name)) continue;
+      names.add(name);
+    }
+  }
+  return [...names].sort();
 }
 
 function isScannable(name: string): boolean {
@@ -728,7 +771,12 @@ export function scanPrototypeDesignSystem(
       );
     }
   }
-  return { files: read, violations };
+  const scanned: Record<string, string> = {};
+  for (const [path, source] of sources) scanned[relative(root, path).split(sep).join('/')] = source;
+  const unchecked = listUncheckedImports(scanned, {
+    workspacePackages: uncheckedWorkspacePackages(dir, options.allow?.catalog),
+  });
+  return { files: read, violations, unchecked };
 }
 
 /** Counts violations per rule (every rule present, zero included). */

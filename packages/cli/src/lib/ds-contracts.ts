@@ -115,10 +115,17 @@ export const ComponentStorySchema = z
   .strict();
 export type ComponentStory = z.infer<typeof ComponentStorySchema>;
 
+/** Characters of a release's changelog entry (Texuli's bundle history cap). */
+export const MAX_CHANGELOG = 4000;
+
 /**
- * Planned (versions task): `design-systems/<id>/releases/<version>.json`, an
- * immutable record of one approved version and the component hashes it
- * shipped with. No command writes it yet.
+ * `design-systems/<id>/releases/<version>.json`: an immutable record of one
+ * approved version (`ds approve --release`, `ds release`). It keeps the
+ * whole document as approved, so `ds diff`, `ds versions` and the kit can
+ * compare versions after the document moved on; `contentHash` is Texuli's
+ * `designSystemContentHash` of that document. The components are the
+ * `components.json` entries (name, version, source hash) it shipped with.
+ * Never rewritten: a new version is a new file.
  */
 export const ReleaseRecordSchema = z
   .object({
@@ -129,6 +136,8 @@ export const ReleaseRecordSchema = z
     contentHash: z.string().regex(SHA256),
     approvedBy: lineText(MAX_PERSON),
     approvedAt: z.iso.datetime(),
+    /** What changed in this version: the approver's text, or a summary the CLI wrote. */
+    changelog: z.string().min(1).max(MAX_CHANGELOG),
     components: z
       .array(
         z
@@ -140,16 +149,54 @@ export const ReleaseRecordSchema = z
           .strict()
       )
       .max(500),
-    notes: z.string().max(4000).optional(),
+    /** The Texuli design-system document as approved (approval included). */
+    document: z.record(z.string(), z.unknown()),
   })
   .strict();
 export type ReleaseRecord = z.infer<typeof ReleaseRecordSchema>;
 
+/** The most files one bundle carries, and the bytes of one file (the document cap). */
+export const MAX_BUNDLE_FILES = 400;
+export const MAX_BUNDLE_FILE_BYTES = 1_048_576;
+
 /**
- * Planned (bundle task): `bundle.json` at the root of an exported
- * design-system bundle, listing every file with its hash so a consumer can
- * verify the bundle before it imports it. No command writes it yet.
+ * A portable design-system bundle (`protoyard ds export <id> --bundle`,
+ * imported with `protoyard ds import <file>`): one JSON file that carries a
+ * design-system folder.
+ *
+ * - `texuli` is Texuli's own bundle (`texuli/design-system-bundle`, version 1,
+ *   from `packBundle` in `@texuli/spec/design-system`): the document, the
+ *   library component sources as text with their hashes, the allow manifest
+ *   and the release history. Texuli's bundle has a closed schema, so
+ *   Protoyard's files ride beside it, not inside it. `validateBundle` checks it.
+ * - `files` lists every file of the folder with its SHA-256 and size. A file
+ *   carries its UTF-8 `text`, or names where its bytes already are in the
+ *   Texuli part: `from: "document"` (the document as the CLI writes it) or
+ *   `from: "library:<id>"` (a component source). Exactly one of the two.
+ *
+ * Untrusted input on import: nothing in it is executed or rendered.
  */
+export const BundleFileSchema = z
+  .object({
+    path: z
+      .string()
+      .min(1)
+      .max(255)
+      .regex(/^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))[A-Za-z0-9._/-]+$/),
+    sha256: z.string().regex(SHA256),
+    bytes: z.number().int().min(0).max(MAX_BUNDLE_FILE_BYTES),
+    text: z.string().max(MAX_BUNDLE_FILE_BYTES).optional(),
+    from: z
+      .string()
+      .regex(/^(?:document|library:[a-z][a-z0-9-]{0,63})$/)
+      .optional(),
+  })
+  .strict()
+  .refine((file) => (file.text === undefined) !== (file.from === undefined), {
+    message: 'A file carries either text or from, not both and not neither.',
+  });
+export type BundleFile = z.infer<typeof BundleFileSchema>;
+
 export const BundleManifestSchema = z
   .object({
     format: z.literal('protoyard/ds-bundle'),
@@ -157,22 +204,9 @@ export const BundleManifestSchema = z
     designSystem: z.string().regex(DESIGN_SYSTEM_ID),
     release: z.string().regex(SEMVER),
     contentHash: z.string().regex(SHA256),
-    files: z
-      .array(
-        z
-          .object({
-            path: z
-              .string()
-              .min(1)
-              .max(255)
-              .regex(/^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))[A-Za-z0-9._/-]+$/),
-            sha256: z.string().regex(SHA256),
-            bytes: z.number().int().min(0).max(1_048_576),
-          })
-          .strict()
-      )
-      .min(1)
-      .max(1000),
+    /** Texuli's bundle (`texuli/design-system-bundle`), checked by Texuli's `validateBundle`. */
+    texuli: z.record(z.string(), z.unknown()),
+    files: z.array(BundleFileSchema).min(1).max(MAX_BUNDLE_FILES),
   })
   .strict();
 export type BundleManifest = z.infer<typeof BundleManifestSchema>;
@@ -228,16 +262,16 @@ export const DESIGN_SYSTEM_CONTRACTS: readonly DesignSystemContract[] = [
     name: 'release',
     id: 'urn:protoyard:design-system:release:1',
     path: 'design-systems/<id>/releases/<version>.json',
-    title: 'Design-system release record (protoyard/ds-release), planned',
-    status: 'planned',
+    title: 'Design-system release record (protoyard/ds-release)',
+    status: 'current',
     schema: ReleaseRecordSchema,
   },
   {
     name: 'bundle',
     id: 'urn:protoyard:design-system:bundle:1',
-    path: 'bundle.json (in an exported design-system bundle)',
-    title: 'Design-system bundle manifest (protoyard/ds-bundle), planned',
-    status: 'planned',
+    path: '<id>-<version>.ds-bundle.json (protoyard ds export <id> --bundle)',
+    title: 'Portable design-system bundle (protoyard/ds-bundle)',
+    status: 'current',
     schema: BundleManifestSchema,
   },
 ];

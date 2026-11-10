@@ -898,13 +898,16 @@ The same inputs give the same document, the same variables and the same hash.
 
 | Way | What it does |
 | --- | --- |
-| `pnpm protoyard ds new <id>` | A document from a few inputs (`--brand`, `--secondary`, `--accent`, `--font`, `--heading-font`, `--mono-font`, `--shape`, `--radius`, `--density`, `--motion`, `--contrast`), a one-line `--brief` (Texuli's `importBrand`: `brand #4f46e5, font Inter, rounded, compact`; explicit inputs win), a built-in or library theme (`--from-theme <theme-id>`), or a prototype's own theme module (`--from-theme-file <path> [--export <name>]`: the file runs under tsx, like `src/prototype.ts` in `spec`, so use it only for trusted workspace code; the CLI checks the result with `ThemeSchema`). Adds an `allow` section (`--allow all`, the default, `minimal`, a JSON file, or `none` for an unlocked document) and a draft `approval`, then writes the folder `design-systems/<id>/` after it compiles (see [Design-system folders](#design-system-folders)); `--out <file>` writes a flat document instead. |
+| `pnpm protoyard ds new <id>` | A document from a few inputs (`--brand`, `--secondary`, `--accent`, `--font`, `--heading-font`, `--mono-font`, `--shape`, `--radius`, `--density`, `--motion`, `--contrast`), a `--brief` (prose, a one-liner such as `brand #4f46e5, font Inter, rounded, compact`, a `.txt`/`.md` file or `-` for stdin; explicit inputs win), a tokens file (`--from-tokens`: W3C DTCG or Tokens Studio JSON), a site stylesheet (`--from-css`) or an SVG logo (`--from-logo`); those four run Texuli's `generateDesignSystem` and report losses and AA repairs ([Create from your brand](DESIGN_SYSTEMS.md#create-from-your-brand)), a built-in or library theme (`--from-theme <theme-id>`), or a prototype's own theme module (`--from-theme-file <path> [--export <name>]`: the file runs under tsx, like `src/prototype.ts` in `spec`, so use it only for trusted workspace code; the CLI checks the result with `ThemeSchema`). Adds an `allow` section (`--allow all`, the default, `minimal`, a JSON file, or `none` for an unlocked document) and a draft `approval`, then writes the folder `design-systems/<id>/` after it compiles (see [Design-system folders](#design-system-folders)); `--out <file>` writes a flat document instead. |
 | `pnpm protoyard ds validate <id\|file>` | Checks an untrusted document and compiles it: contrast per mode and the hash. Checks its `allow` section and library against the Texuli catalog (Texuli's `checkDesignSystemAllow`; codes such as `unknown-variant` with JSON paths). For a folder it also reports the approval status and whether it can be locked, and fails when `components.json` and `components/*.svelte` disagree. |
-| `pnpm protoyard ds approve <id> --by <name> [--release <semver>]` | Stamps the document's `approval` with Texuli's `approveDesignSystem` (status, who, when, version, content hash) and prints its note: a record, not a proof. Refuses flat documents, unknown ids and documents without a valid `allow` section ([DESIGN_SYSTEMS](DESIGN_SYSTEMS.md#3-approve)). |
+| `pnpm protoyard ds approve <id> --by <name> [--release <semver>]` | Stamps the document's `approval` with Texuli's `approveDesignSystem` (status, who, when, version, content hash) and prints its note: a record, not a proof. Refuses flat documents, unknown ids and documents without a valid `allow` section With `--release` it also records `releases/<semver>.json` ([DESIGN_SYSTEMS](DESIGN_SYSTEMS.md#3-approve)). |
+| `pnpm protoyard ds release <id>` · `ds versions <id>` · `ds diff <id> [<from>] [<to>]` | Records the approved version as an immutable release, lists the releases, and compares two versions: tokens and contrast regressions through Texuli's `diffDesignSystems`, plus allow, library and approval changes ([DESIGN_SYSTEMS](DESIGN_SYSTEMS.md#7-release-and-compare-versions)). |
+| `pnpm protoyard ds kit <id>` | Writes or refreshes the kit prototype `prototypes/<id>-kit`: the whole design system on one page with Texuli's `DesignSystemKit`, including the changes since the previous release ([DESIGN_SYSTEMS](DESIGN_SYSTEMS.md#2-review-in-the-kit)). |
 | `pnpm protoyard ds allow init <id\|file> [--preset all\|minimal\|<file>] [--force]` | Adds an `allow` section to a design system without one; the approval goes back to draft. |
 | `pnpm protoyard ds list` | Lists the workspace's design systems: version, approval, whether it can be locked, component count and bound prototypes ([DESIGN_SYSTEMS](DESIGN_SYSTEMS.md#list-them)). |
 | `pnpm protoyard ds migrate <id>` | Moves a flat `design-systems/<id>.json` into the folder layout. For a folder, moves a legacy `approval.json` into the document and adds `components.json` components to its library. It never merges a flat file into an existing folder. |
-| `pnpm protoyard ds export <file>` | `--format css` (default), `tailwind` (a preset as JSON) or `json` (the compiled design system). |
+| `pnpm protoyard ds export <file>` | `--format css` (default), `tailwind` (a preset as JSON) or `json` (the compiled design system). `ds export <id> --bundle` packs a design-system folder for another workspace ([DESIGN_SYSTEMS](DESIGN_SYSTEMS.md#share-between-workspaces)). |
+| `pnpm protoyard ds import <file>` | Imports a bundle as untrusted input, checked completely before it writes ([DESIGN_SYSTEMS](DESIGN_SYSTEMS.md#share-between-workspaces)). |
 | `pnpm protoyard ds use <slug> <id\|file> [--lock] [--upgrade]` | Writes `src/design-system.ts` (the compiled variables and the document's description, no report) and sets `defaultTheme`. In an **app** prototype it adds `designSystemTheme` to `definePrototype({ themes })`; in a **deck, page or doc** prototype it passes `brandTheme: designSystemTheme, defaultThemeId: designSystemTheme.id` to `defineKindPrototype` / `definePrototypeFromPage` / `definePrototypeFromDoc` (a deck's blueprint brand is replaced). It imports from `@protoyard/runtime`, else `@protoyard/themes`; a prototype with neither gets `@protoyard/themes` added to its `package.json` (the installed version in a consumer workspace, `workspace:*` in this repository) and `pnpm install` as the first next step. It then refreshes the generated spec regions, and lists `spec <slug> --write` only when that could not run. Then run `validate <slug> --build`. `--lock` and `--upgrade` bind the prototype ([Locked design systems](#locked-design-systems)). |
 | Theme Studio → **Design system** | The same from a form, from the current theme, or from pasted JSON; **Save and apply** paints it at once. |
 | `protoyard mcp` | `ds_create`, `ds_list`, `ds_validate`, `ds_export` and `ds_use` run the commands above ([MCP](MCP.md#tools)). |
@@ -1006,6 +1009,8 @@ design-systems/<id>/
   document.json      the Texuli design-system document: allow, library and approval inside (spec 0.13.0)
   components.json    the design system's own components: name, purpose, version, status, file, sha256
   components/*.svelte
+  stories/<Name>.json  the kit story of each component
+  releases/<version>.json  an approved version, recorded by ds approve --release or ds release
   approval.json      legacy only: read when the document has no approval; ds migrate folds it in
 ```
 
@@ -1163,7 +1168,7 @@ own `src/` and the `.css` files next to its `protoyard.json`. It skips
 | `ds-ui-library` | An import of another UI library: `bits-ui`, `melt-ui`, `@skeletonlabs/*`, `flowbite*`, `daisyui`, `shadcn*`, `@radix-ui/*`, `@headlessui/*`, `svelte-ux`, `carbon-components-svelte`, `@smui/*`, `tailwind-variants`, `class-variance-authority`, `@ark-ui/*`, `@zag-js/*`, `sveltestrap`, `svelte-material-ui`, `attractions` (also as a CSS `@import` or `@plugin`) | The design system's component |
 | `ds-local-motion` | `svelte/transition`, `svelte/animate` or `svelte/motion` imports, `transition:`, `in:`, `out:` or `animate:` directives, and `@keyframes` (aligned with the adoption `local-motion` rule) | Motion that the design system's components already have |
 | `ds-not-allowed` | Only when the bound design system has an `allow` section. A Texuli (or `@protoyard/ui`) component used as a tag whose catalog id ([the mapper](#the-catalog-mapper)) the `allow` section does not list and is not a part of an allowed id (`select-trigger` of `select`); a component the mapper cannot place (`unmapped`; a non-component export such as `MotionProvider` is never refused); an `@ds/<id>/<Name>` import that is not in the design system's library or belongs to another design system; in a library component's own file, a catalog id its entry does not list in `composes` | A component the design system allows, or ask the designer to allow it |
-| `ds-disabled-value` | Only with an `allow` section. A literal value on an axis prop (`variant="ghost"`, `size={'sm'}`; the prop name comes from the catalog manifest's `axes`) that the component's allow entry does not enable. Expressions (`{variant}`, `` {`x${y}`} ``) are skipped: the planned render check covers them | An enabled value |
+| `ds-disabled-value` | Only with an `allow` section. A literal value on an axis prop (`variant="ghost"`, `size={'sm'}`; the prop name comes from the catalog manifest's `axes`) that the component's allow entry does not enable. Expressions (`{variant}`, `` {`x${y}`} ``) are skipped here; the [render check](#render-mode---render) reports the values they render (`render-disabled-value`) | An enabled value |
 
 Every violation carries the rule id, the workspace-relative file, the line, a
 short message and the way out: `Use a design-system component, or request one:
@@ -1198,6 +1203,11 @@ catalog's own `imports` (Texuli 0.15.0) come first:
    counted.
 5. Anything else from a Texuli module or `@protoyard/ui` is `unmapped`: no
    fallback to names.
+
+A compound part used as a dotted tag (`<Select.Content>`,
+`<DropdownMenu.Item>`) takes its own catalog id when the catalog lists one,
+and otherwise the id of its namespace root (`Select` → `select`), the rule
+Texuli's locked check applies since 0.16.1, so both checks agree.
 
 Only for a Texuli whose manifests list no `imports` does the mapper fall back
 to names: the id whose PascalCase equals the name (`AlertDialog` →
@@ -1250,7 +1260,10 @@ list is an allow-list: anything not on it fails, including unknown utilities.
   `text-right`, `text-justify`, `text-start`, `text-end`), wrapping and
   truncation (`truncate`, `line-clamp-*`, `break-*`, `whitespace-*`,
   `text-wrap`, `text-nowrap`, `text-balance`, `text-pretty`). Size, weight,
-  family, color, leading and tracking stay refused.
+  family, color, leading and tracking stay refused. CSS follows the same
+  rule: `text-align`, `text-align-last`, `text-overflow` and `text-wrap`
+  pass in a stylesheet; `text-decoration`, `text-transform`, `text-shadow`
+  and `text-indent` are visual.
 - Box and media layout: `aspect-*` (auto, square, video), `object-*`,
   `box-border`, `box-content`, `isolate`, `visible`, `invisible`, the table
   and `flow-root` displays, `pointer-events-none` and `pointer-events-auto`.
@@ -1266,7 +1279,7 @@ list is an allow-list: anything not on it fails, including unknown utilities.
   brackets (`data-[x]:`) is an arbitrary value.
 
 Refused: color, background, border, ring, outline, radius (`rounded-*`),
-shadow, typography (`font-*`, `text-*`, `leading-*`, `tracking-*`), opacity,
+shadow, typography (`font-*`, `text-*` sizes and colors, `leading-*`, `tracking-*`), opacity,
 filters, transforms, transitions and `animate-*`, and any arbitrary value.
 
 | Command | Result |
@@ -1274,15 +1287,113 @@ filters, transforms, transitions and `animate-*`, and any arbitrary value.
 | `pnpm protoyard check ds` | Checks every prototype whose manifest is locked. Any violation fails (`validation`, exit 4) with `data: { ok, counts, violations }` and a hint naming the rule, file and way out. No locked prototype: exit 0. |
 | `pnpm protoyard check ds <slug…>` | Checks the named prototypes. A named prototype that is not locked is a usage error (exit 2) that suggests `--report`. |
 | `pnpm protoyard check ds [<slug…>] --report` | Also checks unlocked prototypes (all of them, or the named ones) and lists every violation, so you can see what locking would flag. Never fails (exit 0); `data.ok` is still `false` when a locked prototype has violations. |
+| `pnpm protoyard check ds [<slug…>] --render` | Also runs the [render check](#render-mode---render) in Chromium. Static violations and render findings both fail a locked prototype (exit 4). |
 
 `pnpm protoyard validate <slug>` (with or without `--build`) runs the same
 rules as its `design-system` step for a locked prototype and fails on any
 violation, before the build. Unlocked prototypes get no step.
 
+#### Render mode (`--render`)
+
+The static scan reads source. `--render` checks what a locked prototype
+actually paints, with Texuli 0.16.0's `runLockedRenderChecks`
+(`@texuli/tools/ds-check`) on the live page:
+
+1. Each locked prototype (and, with `--report`, a named prototype bound to a
+   design system but not locked) is built, or its build is reused when
+   `artifacts/<slug>/build-manifest.json` is newer than every file of the
+   prototype and of its design system (`--rebuild` always builds). The
+   build is served on `127.0.0.1` (an ephemeral port); only that origin may
+   load.
+2. Routes: the `path:` literals of the files under `src/` that call
+   `createRouter(` or `defineRoutes(`, visited as they are when they have no
+   parameter; a parameterized route (`/notes/:id`) through the first hash
+   link of the checked pages it matches, else listed as skipped with the
+   reason; a link no declared route matches is visited once per shape
+   (`/deals/deal_0001` stands for every deal). The home page is always
+   checked, at most 24 routes per prototype. `--route <path…>` checks only
+   the named hash paths.
+3. Every route opens in a fresh browser context in light and dark, on a
+   desktop (1280×800) and a phone (390×844, touch) viewport, with
+   `?devtools=0&mode=<mode>`, after `html[data-py-ready="true"]`, fonts,
+   network idle and a quiet DOM (the capture `quick` and the visual sweep
+   use).
+4. The CLI injects Texuli's ds-check host on the mount element (`#app`),
+   copies each `data-tx-component` to the attribute the host reads, and
+   runs Texuli's checks with every compiled run of the design system (the
+   base document and its declared `high-contrast` variant) in that mode.
+
+| Code | What fails |
+| --- | --- |
+| `unmapped` | An interactive element (link, button, field, an interactive role or `tabindex`) that sits inside no catalog root (`[data-tx-component]`). Texuli 0.16.0 renders that attribute on its component roots. |
+| `not-allowed` | A catalog root whose id the design system does not allow. Allowed: the `allow` keys, the parts of an allowed id (`select-trigger` of `select`), the ids an allowed extension (`protoyard:data-table`) composes and the ids the design system's library entries compose. |
+| `render-literal` | A color a catalog component paints (text, background, borders, outline, SVG fill and stroke) that does not move when the design system's `--tx-*` variables are inverted on the scope: a literal, or a variable resolved outside the design system. |
+| `render-contrast` | A contrast pair of the compiled report below its target as painted. |
+| `render-axe` | An axe WCAG 2.x A/AA violation inside `#app`. |
+| `render-empty` | A route that painted no catalog component. |
+| `render-disabled-value` | Protoyard's own: a catalog root whose rendered `data-tx-variant`, `-size`, `-tone` or `-density` its allow entry does not enable (the values the static rule skips because they are expressions). |
+| `render-unowned-visualization` | Protoyard's own: a `<canvas>`, or an `<svg>` of 48 px or more, outside every catalog root. |
+| `render-page-error` | A route that did not boot in the build: it could not be checked, so it fails. |
+| `render-not-compiled` | The design-system document did not compile; no page is opened. |
+
+Every finding carries the route, viewport and mode, the selector (or the
+element description for a painted color), the catalog id, the file that
+declares the route, a message and a way out.
+
+**Exemptions (owner decision).** Charts, maps and canvas are data
+visualization: the fill and stroke of the shapes (`path`, `rect`, `circle`,
+`ellipse`, `line`, `polyline`, `polygon`) inside a `charts-*`, `data-map` or
+`canvas` root are exempt from `render-literal` (Texuli's
+`DS_LOCKED_RENDER_EXEMPT_IDS`). Their chrome is not: legends, labels,
+controls, tooltips and their HTML stay in every check. A visualization must
+be a catalog component; one drawn by hand is `render-unowned-visualization`.
+
+**Report mode and baselines.** `--report` never fails on findings and lists
+them all (`data.render.findings`). `--write-baseline <file>` saves the
+current findings (`{ format: "protoyard/ds-render-baseline", version: 1,
+findings: [{ fingerprint, code, slug, route, message }] }`); `--baseline
+<file>` (that file, or a saved `--json` output, which is the baseline
+Texuli's `ds check --locked --report` suggests) marks the findings it lists
+as `baselined`, so only new ones fail, and counts the ones that no longer
+occur (`counts.fixed`). A fingerprint is the slug, route, viewport, mode,
+code, catalog id and selector. Both paths stay inside the workspace.
+
+```bash
+pnpm protoyard check ds acme-app --render
+pnpm protoyard check ds acme-app --render --report --write-baseline design-systems/acme/render-baseline.json
+pnpm protoyard check ds acme-app --render --baseline design-systems/acme/render-baseline.json
+```
+
+It needs Playwright's Chromium (`pnpm test:e2e:install`) and the
+`@playwright/test` and `@axe-core/playwright` packages; without them it
+stops with exit 1 and that instruction, before building anything (the
+static rules still run without `--render`). It runs on demand: `validate`
+does not run it. In CI the build workflow runs it for locked prototypes
+([PUBLISHING](PUBLISHING.md#cicd-templates-for-prototype-teams)). The blank template locked to a
+new design system takes 16 to 20 s for 2 routes, 8 visits, when its build
+is fresh (measured 2026-11-10 on an Apple Silicon laptop).
+
+**Render limits.** Painted colors are checked inside catalog roots only:
+local markup outside them is covered by `unmapped` (when interactive) and by
+the static rules (its CSS), not by the color check. Only what a route shows
+at rest is seen: dialogs, menus, popovers and toasts that need an action,
+other personas and other scenarios are not opened (pass `--route` for a
+state reachable by URL). A parameterized route no link leads to is skipped.
+Selectors point at the built DOM, not at a source line: the `file` is the
+one that declares the route. Whether a chart's colors come from the
+data-viz palette is not verified per pixel; the palette itself is checked in
+the design system. Fonts and other assets from other origins are blocked.
+
 **Limits.** The scan is static and textual: classes built at runtime from
 variables, components from other packages, components rendered from `.ts`
 files or through `<svelte:component>`, axis values given as expressions, and
-CSS imported from outside the prototype folder are not seen. Class strings are read from `class` values,
+CSS imported from outside the prototype folder are not seen. Styling inside a
+workspace package the prototype imports is not scanned either, so a prototype
+built mostly from such a package reports few violations: each prototype in
+`check ds` (and its `--json` `prototypes[].unchecked`) lists those imports as
+not checked, with Texuli's `listUncheckedImports`. The workspace packages are
+the ones its `package.json` takes with `workspace:`, minus the modules the
+catalog governs (Texuli, `@protoyard/ui`). Class strings are read from `class` values,
 `class:` directives and the `cx`/`clsx`/`cn`/`classNames`/`twMerge`/`twJoin`
 helpers only.
 

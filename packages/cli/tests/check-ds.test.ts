@@ -314,6 +314,20 @@ describe('ds-check rules (fixtures)', () => {
     ).toEqual([]);
   });
 
+  it('treats text flow the same in CSS and utilities: alignment is layout', () => {
+    const css =
+      '.a {\n  text-align: center;\n  text-align-last: end;\n  text-overflow: ellipsis;\n  text-wrap: balance;\n}\n.b {\n  text-decoration: underline;\n  text-transform: uppercase;\n  text-shadow: none;\n}\n';
+    const found = scanDesignSystemSource('src/app.css', css);
+    expect(found.map((v) => [v.rule, v.line])).toEqual([
+      ['ds-visual-css', 8],
+      ['ds-visual-css', 9],
+      ['ds-visual-css', 10],
+    ]);
+    expect(
+      scanDesignSystemSource('src/A.svelte', '<p class="text-center text-balance truncate"></p>')
+    ).toEqual([]);
+  });
+
   it('flags tx- targets and token redefinitions in a global stylesheet', () => {
     const css =
       ':root {\n  --tx-color-primary: #ff0000;\n}\n[data-tx-ds] .tx-card {\n  gap: 0;\n}\n';
@@ -396,6 +410,34 @@ describe('protoyard check ds', () => {
     const { code, body } = await run();
     expect(code).toBe(0);
     expect(body.data).toMatchObject({ ok: true, counts: { prototypes: 1, violations: 0 } });
+  });
+
+  it('lists the workspace packages and local modules it did not read', async () => {
+    ws = createWorkspace();
+    addPrototype(ws, 'loose-app');
+    ws.write('prototypes/loose-app/package.json', {
+      name: 'loose-app',
+      dependencies: {
+        '@acme/ui': 'workspace:*',
+        '@protoyard/ui': 'workspace:*',
+        texuli: '0.16.1',
+        'left-pad': '^1.0.0',
+      },
+    });
+    ws.write(
+      'prototypes/loose-app/src/App.svelte',
+      "<script>\nimport { Panel } from '@acme/ui';\nimport { Button } from '@protoyard/ui';\nimport Shared from '../../shared/Shared.svelte';\n</script>\n<Panel><Button>Save</Button><Shared /></Panel>\n"
+    );
+    const { code, body } = await run('loose-app', '--report');
+    expect(code).toBe(0);
+    const [prototype] = body.data.prototypes as unknown as {
+      unchecked: { count: number; imports: string[] };
+    }[];
+    // Governed modules (@protoyard/ui, texuli) and registry packages are not listed.
+    expect(prototype?.unchecked.imports).toContain('@acme/ui');
+    expect(prototype?.unchecked.imports.some((i) => i.includes('Shared.svelte'))).toBe(true);
+    expect(prototype?.unchecked.imports).not.toContain('@protoyard/ui');
+    expect(prototype?.unchecked.imports).not.toContain('left-pad');
   });
 
   it('report mode exits 0, includes unlocked prototypes and lists their violations', async () => {

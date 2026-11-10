@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:protoyard:design-system:release:1",
-  "title": "Design-system release record (protoyard/ds-release), planned",
-  "description": "design-systems/<id>/releases/<version>.json (planned: no command writes this file yet; the contract may change before it lands). Generated from packages/cli/src/lib/ds-contracts.ts.",
+  "title": "Design-system release record (protoyard/ds-release)",
+  "description": "design-systems/<id>/releases/<version>.json. Generated from packages/cli/src/lib/ds-contracts.ts.",
   "type": "object",
   "properties": {
     "format": {
@@ -36,6 +36,11 @@
       "format": "date-time",
       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
     },
+    "changelog": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
     "components": {
       "maxItems": 500,
       "type": "array",
@@ -59,9 +64,12 @@
         "additionalProperties": false
       }
     },
-    "notes": {
-      "type": "string",
-      "maxLength": 4000
+    "document": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {}
     }
   },
   "required": [
@@ -72,7 +80,9 @@
     "contentHash",
     "approvedBy",
     "approvedAt",
-    "components"
+    "changelog",
+    "components",
+    "document"
   ],
   "additionalProperties": false
 }

@@ -6,6 +6,70 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-11-10
+
+The design-system lifecycle on Texuli 0.16.1. Every Texuli dependency is
+pinned exactly at `0.16.1`. See [DESIGN_SYSTEMS](docs/DESIGN_SYSTEMS.md).
+
+### Added
+
+- **Create from your brand.** `ds new <id> --from-tokens <file>` (W3C DTCG or
+  Tokens Studio), `--from-css <file>`, `--from-logo <file.svg>` and
+  `--brief <text|file|->` run Texuli's `generateDesignSystem`. The result is
+  always a draft; the command prints the loss report (what could not be kept)
+  and the AA repair report. Inputs are untrusted: workspace paths only, no
+  symlinks, size limits, an approval inside an input is dropped. Raster logos
+  are refused (use `--brand`). The MCP tool `ds_create` takes the same sources.
+- **Kit.** `ds kit <id>` writes or refreshes `prototypes/<id>-kit`, the whole
+  design system on Texuli's `DesignSystemKit` (approval with hash check,
+  foundations, voice, library, changes since the previous release, control
+  matrix). Reruns write identical bytes; `--check` fails when it is stale.
+- **Releases.** `ds approve <id> --release <semver> [--changelog <text>]` and
+  `ds release <id>` record `releases/<version>.json` (the approved document,
+  content hash, approver, date, component hashes, changelog). `ds versions`
+  lists them; `ds diff <id> [<from>] [<to>]` reports token, contrast, allow,
+  library and approval changes.
+- **Bundles.** `ds export <id> --bundle` packs a design-system folder into one
+  file (Texuli's bundle plus every folder file with its sha256); `ds import
+  <file> [--id] [--draft] [--force] [--dry-run]` checks the whole bundle as
+  untrusted input before it writes. An imported approval is a record from
+  another workspace, not a proof.
+- **Full validator.** `ds validate` adds Texuli's `checkDesignSystemFull`
+  (static, CSS policy, allow and catalog extensions) as `full`; `--strict`
+  fails on its errors.
+- **Render check.** `check ds <slug> --render` builds each locked prototype
+  and checks it in Chromium on every route, light and dark, phone and desktop,
+  with Texuli's `runLockedRenderChecks` plus rendered axis values and
+  hand-drawn charts; `--report`, `--baseline` and `--write-baseline` for
+  existing prototypes. The build CI template (`build v4`) runs it for locked
+  prototypes.
+- **`new --dry-run`.** Runs every check, including the `--ds` design system
+  and the template gate, and writes nothing.
+- **`ds extensions [--out <dir>]`.** Writes Protoyard's catalog extensions as
+  Texuli extension files, so `texuli ds check <document> --locked --extensions
+  <file>` accepts the same `protoyard:` allow keys as `ds validate`.
+- **Unchecked imports.** `check ds` lists the workspace packages (`workspace:`
+  dependencies the catalog does not govern) and local modules it did not read,
+  with Texuli's `listUncheckedImports`.
+
+### Changed
+
+- `check ds` treats text flow alike in CSS and utilities: `text-align`,
+  `text-align-last`, `text-overflow` and `text-wrap` pass in a stylesheet.
+- Every npm package ships its `CHANGELOG.md`; `check:packages` requires it.
+- A compound part (`<DropdownMenu.Item>`, `<MultiSelect.Item>`) takes its
+  own catalog id, else its namespace root's, as Texuli's locked check does
+  since 0.16.1; before, it was unmapped and refused whatever `allow` said.
+- `@protoyard/ui` honesty tags and `StatusChip` no longer forward the HTML
+  `color` attribute to Texuli's `Badge`, which now has a `color` axis.
+- **All 31 templates are lock-clean.** social-feed windows its feed with
+  Texuli's `VirtualListView` in feed mode (`role="feed"`, one `<article>` per
+  post with its position, Page Up / Page Down between posts, controls inside a
+  post keep their keys), so it no longer sizes spacers with inline styles.
+  `@protoyard/ui` re-exports `VirtualListView` (catalog id
+  `data-virtual-list`). It does not take `bind:ref` or rest attributes yet;
+  the contract test pins that gap.
+
 ## [1.7.0] - 2026-11-09
 
 Locked design systems on Texuli 0.15.0. Every Texuli dependency is pinned

@@ -151,10 +151,19 @@ const CASES: Record<string, Case> = {
   },
   UndoToaster: {},
   UserPicker: { props: { users: [user], label: 'Assignee' } },
+  VirtualListView: { props: { items: [{ id: 'a', label: 'Alpha' }], label: 'Results' } },
   WeekdayPicker: { props: { label: 'Days' } },
   WindowChrome: { props: { title: 'App', children: text('Window') } },
   Wizard: { props: { steps: [{ id: 'a', label: 'Alpha' }] }, snippets: ['content'] },
 };
+
+/**
+ * Re-exported Texuli roots that do not take the contract yet, pinned (not
+ * skipped): the test asserts the gap is still there, so it turns red when
+ * Texuli adds `ref` and rest attributes and the entry must go. Texuli 0.16.1
+ * `VirtualListView` has neither (its props are its own, no `ref`).
+ */
+const CONTRACT_GAPS: ReadonlySet<string> = new Set(['VirtualListView']);
 
 function isComponent(value: unknown): boolean {
   return typeof value === 'function' && /\$\$anchor|\$\$props/.test(String(value));
@@ -195,6 +204,13 @@ describe('@protoyard/ui component contract', () => {
       flushSync();
       await tick();
 
+      if (CONTRACT_GAPS.has(name)) {
+        expect(ref, `${name}: still no bind:ref (drop it from CONTRACT_GAPS)`).toBeNull();
+        expect(document.querySelector(`[data-contract="${name}"]`)).toBeNull();
+        cleanup();
+        document.body.replaceChildren();
+        continue;
+      }
       expect(ref, `${name}: bind:ref gives an element`).toBeInstanceOf(HTMLElement);
       const root = ref as HTMLElement;
       const target = document.querySelector<HTMLElement>(`[data-contract="${name}"]`);

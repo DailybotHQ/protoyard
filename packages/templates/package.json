@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/templates",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Every Protoyard starter template, packed for `protoyard new` outside this repository: listTemplates() and templateDir(name).",
   "license": "MIT",
   "type": "module",
@@ -17,6 +17,7 @@
     "templates",
     "blueprints",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {

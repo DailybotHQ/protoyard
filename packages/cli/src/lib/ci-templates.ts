@@ -27,6 +27,9 @@ export type CiDeployTarget = (typeof CI_DEPLOY_TARGETS)[number];
  */
 export const CI_WRANGLER_VERSION = '4.146.0';
 
+/** The dev dependencies the build workflow's render check of locked prototypes loads. */
+export const CI_RENDER_CHECK_PACKAGES = ['@playwright/test', '@axe-core/playwright'] as const;
+
 /** Default Node major used when the workspace engines field is absent. */
 export const DEFAULT_CI_NODE_VERSION = '24';
 
@@ -265,6 +268,11 @@ export function manualStepsForInit(options: {
         'Every preview run uploads a public *.pages.dev preview immediately (publish without --dry-run deploys).',
         'Use a Cloudflare API token scoped to "Cloudflare Pages: Edit" on one account, store both secrets in the "protoyard-preview" environment (Settings → Environments) with required reviewers, and rotate the token when collaborators change: the job builds pull request code with the token in its environment.',
         'Preview deploys skip fork pull requests; open PRs from branches on this repository.'
+      );
+    }
+    if (options.workflows.includes('build')) {
+      steps.push(
+        `The build workflow runs \`protoyard check ds --render\` (Chromium) on prototypes locked to a design system, and only when there is one; it needs ${CI_RENDER_CHECK_PACKAGES.join(' and ')} as dev dependencies of the workspace.`
       );
     }
     if (options.workflows.includes('check') || options.workflows.includes('build')) {

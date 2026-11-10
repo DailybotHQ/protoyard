@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/ai",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Deterministic simulated AI conversations and response packs for Protoyard prototypes.",
   "license": "MIT",
   "type": "module",
@@ -32,6 +32,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "publishConfig": {

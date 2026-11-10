@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/player",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "A prebuilt, static Protoyard app that runs any blueprint at runtime: IndexedDB, personas, scenarios, simulated time, DevTools, themes, layouts and shells, with no build.",
   "license": "MIT",
   "type": "module",
@@ -36,7 +36,7 @@
     "@protoyard/views-ui": "workspace:*",
     "dexie": "^4.4.7",
     "svelte": "^5.57.3",
-    "texuli": "0.15.0"
+    "texuli": "0.16.1"
   },
   "devDependencies": {
     "@protoyard/runtime": "workspace:*",
@@ -46,6 +46,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "publishConfig": {

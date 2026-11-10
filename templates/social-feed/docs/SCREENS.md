@@ -24,7 +24,7 @@
 
 - **Feed:**
   - Home and Everyone tabs; the composer for members and moderators, or a note for viewers.
-  - A windowed `role="feed"` list of posts: author link, time, plain text, placeholder image, reaction toggles (`aria-pressed`), a comment thread that expands, and delete where allowed.
+  - A windowed `role="feed"` list of posts (`VirtualListView` feed mode, Page Up / Page Down between posts): author link, time, plain text, placeholder image, reaction toggles (`aria-pressed`), a comment thread that expands, and delete where allowed.
   - States: loading, an empty home ("Follow people…"), an empty network.
 - **Notifications:**
   - Newest first; unread rows tinted and announced. Actions: Mark read, Mark all read (members and moderators).

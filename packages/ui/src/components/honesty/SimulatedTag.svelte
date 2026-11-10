@@ -10,7 +10,7 @@ import { Icon } from 'texuli/icons';
  * Marks a step that is simulated in the prototype (sign-in, billing, AI, …).
  * Always includes a word — never color alone (AGENTS.md honesty).
  */
-type Props = Omit<HTMLAttributes<HTMLSpanElement>, 'title' | 'class' | 'children'> & {
+type Props = Omit<HTMLAttributes<HTMLSpanElement>, 'title' | 'class' | 'children' | 'color'> & {
   label?: string;
   /** Longer explanation for hover / assistive tech via the title attribute. */
   title?: string;

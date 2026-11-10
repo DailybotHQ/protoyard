@@ -18,6 +18,7 @@ import {
   type DesignSystem,
   type DesignSystemExportFormat,
   type DesignSystemInput,
+  designSystemBrief,
   designSystemContrast,
   designSystemFromTheme,
   exportDesignSystem,
@@ -66,12 +67,21 @@ import {
   readLibrary,
 } from '../lib/ds-catalog.ts';
 import { checkText, MAX_PERSON, syncLibraryFromComponents } from '../lib/ds-components.ts';
+import { formatFinding, validateFull } from '../lib/ds-full.ts';
+import {
+  type GeneratedDesignSystem,
+  type GeneratorSource,
+  generateFromSource,
+  SOURCE_FLAGS,
+} from '../lib/ds-generate.ts';
+import { assertNoRelease, buildRelease, checkChangelog, writeRelease } from '../lib/ds-releases.ts';
 import { inspectSpec } from '../lib/inspect.ts';
 import { CliError } from '../lib/output.ts';
 import { workspaceLayout } from '../lib/paths.ts';
 import { resolvePackageBin, run } from '../lib/process.ts';
 import { CLI_VERSION, resolveTarget } from '../lib/workspace.ts';
 import { workspaceFile } from '../lib/workspace-file.ts';
+import { dsExportBundle } from './ds-bundle.ts';
 import { specForPrototype } from './spec.ts';
 
 /**
@@ -338,6 +348,25 @@ export const dsNewCommand: Handler = async (ctx, args, options): Promise<Command
   let document: DesignSystem;
   let notes: string[] = [];
   const fromThemeFile = opt(options, 'fromThemeFile');
+  const generator = generatorSource(options);
+  let generated: GeneratedDesignSystem | null = null;
+  if (generator && (fromTheme || fromThemeFile)) {
+    throw new CliError(
+      'usage',
+      `Pass ${SOURCE_FLAGS[generator.source]} or ${fromTheme ? '--from-theme' : '--from-theme-file'}, not both.`
+    );
+  }
+  if (generator && generator.source !== 'brief') {
+    const flagName = SOURCE_FLAGS[generator.source];
+    const extra = Object.keys(input).filter((key) => key !== 'id' && key !== 'name');
+    if (extra.length > 0) {
+      throw new CliError(
+        'usage',
+        `${flagName} generates from that file alone; drop the other inputs.`,
+        { hint: `Remove: ${extra.join(', ')}. Edit the draft document afterwards instead.` }
+      );
+    }
+  }
   if (fromTheme && fromThemeFile) {
     throw new CliError('usage', 'Pass --from-theme or --from-theme-file, not both.');
   }
@@ -361,6 +390,24 @@ export const dsNewCommand: Handler = async (ctx, args, options): Promise<Command
     });
     document = imported.document;
     notes = imported.losses.map((loss) => `${loss.path}: ${loss.reason}`);
+  } else if (generator) {
+    const { brief: _brief, ...flags } = input;
+    generated = await generateFromSource({
+      root: ctx.root,
+      id,
+      ...(input.name ? { name: input.name } : {}),
+      source: generator.source,
+      value: generator.value,
+      composeBrief: (brief) => {
+        try {
+          return designSystemBrief({ ...flags, brief });
+        } catch (error) {
+          throw new CliError('usage', (error as Error).message);
+        }
+      },
+    });
+    document = generated.document;
+    notes = generated.report.losses.map((loss) => `${loss.path}: ${loss.reason}`);
   } else {
     const created = await createDesignSystem(input);
     if (!created.ok) {
@@ -421,6 +468,17 @@ export const dsNewCommand: Handler = async (ctx, args, options): Promise<Command
     dryRun,
     written: !dryRun,
     notes,
+    ...(generated
+      ? {
+          source: generated.info.source,
+          generation: {
+            ...generated.info,
+            losses: generated.report.losses,
+            repairs: generated.report.repairs,
+            guarantees: generated.report.guarantees,
+          },
+        }
+      : {}),
     document,
   };
   return {
@@ -435,10 +493,80 @@ export const dsNewCommand: Handler = async (ctx, args, options): Promise<Command
           ? `  no allow section: it cannot be locked until one is added (\`protoyard ds allow init ${id}\`)`
           : `  allow ${data.allow}: ${data.allowComponents} catalog components · status draft`
       );
-      for (const note of notes) o.always(`  note: ${note}`);
+      if (generated) renderGeneration(o, generated);
+      else for (const note of notes) o.always(`  note: ${note}`);
     },
   };
 };
+
+/** The one generator source `ds new` was given, or null; two at once is a usage error. */
+function generatorSource(
+  options: Record<string, unknown>
+): { source: GeneratorSource; value: string } | null {
+  const given = (
+    [
+      ['tokens', opt(options, 'fromTokens')],
+      ['css', opt(options, 'fromCss')],
+      ['logo', opt(options, 'fromLogo')],
+      ['brief', opt(options, 'brief')],
+    ] as const
+  ).filter((entry): entry is readonly [GeneratorSource, string] => entry[1] !== undefined);
+  if (given.length > 1) {
+    throw new CliError(
+      'usage',
+      `Pass one of --from-tokens, --from-css, --from-logo or --brief, not ${given
+        .map(([source]) => SOURCE_FLAGS[source])
+        .join(' and ')}.`
+    );
+  }
+  const [first] = given;
+  return first ? { source: first[0], value: first[1] } : null;
+}
+
+const REPORT_LINES = 8;
+
+function renderGeneration(
+  o: Parameters<NonNullable<CommandResult['render']>>[0],
+  generated: GeneratedDesignSystem
+) {
+  const { info, report } = generated;
+  o.always(
+    `  generated by Texuli from ${SOURCE_FLAGS[info.source]}${info.file ? ` ${info.file}` : ''} · draft`
+  );
+  if (info.brief) {
+    o.always(`  brief read as: ${info.brief.oneLiner}`);
+  }
+  if (info.logo) {
+    o.always(
+      `  logo colors: ${info.logo.colors
+        .slice(0, REPORT_LINES)
+        .map((entry) => `${entry.color}×${entry.count}`)
+        .join(', ')}${info.logo.ignored ? ` (${info.logo.ignored} values ignored)` : ''}`
+    );
+  }
+  o.always(`  loss report: ${report.losses.length} value(s) not kept`);
+  for (const loss of report.losses.slice(0, REPORT_LINES)) {
+    o.always(`    ${loss.path}: ${loss.reason}`);
+  }
+  if (report.losses.length > REPORT_LINES) {
+    o.always(`    … ${report.losses.length - REPORT_LINES} more (--json lists every one)`);
+  }
+  o.always(
+    `  AA repair report: ${report.repairs.length} repair(s) · guarantees ${report.guarantees.passed ? 'pass' : 'fail'}`
+  );
+  for (const repair of report.repairs.slice(0, REPORT_LINES)) {
+    const change =
+      repair.to === undefined
+        ? ''
+        : ` (${JSON.stringify(repair.from)} → ${JSON.stringify(repair.to)})`;
+    o.always(
+      `    ${repair.path}${repair.mode ? ` [${repair.mode}${repair.variable ? ` ${repair.variable}` : ''}]` : ''}: ${repair.reason}${change}`
+    );
+  }
+  if (report.repairs.length > REPORT_LINES) {
+    o.always(`    … ${report.repairs.length - REPORT_LINES} more (--json lists every one)`);
+  }
+}
 
 function renderSummary(
   o: Parameters<NonNullable<CommandResult['render']>>[0],
@@ -450,7 +578,7 @@ function renderSummary(
   }
 }
 
-export const dsValidateCommand: Handler = async (ctx, args): Promise<CommandResult> => {
+export const dsValidateCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const ref = args[0];
   if (!ref) throw new CliError('usage', 'Missing <id|file>.');
   const location = locateDesignSystem(ctx.root, ref);
@@ -501,6 +629,9 @@ export const dsValidateCommand: Handler = async (ctx, args): Promise<CommandResu
     drift,
     lockable: location.layout === 'folder' && lockable === null,
     ...(lockable ? { lockRefusal: lockable } : {}),
+    // Texuli's full validator over the merged catalog (a new key; the exit
+    // code changes on it only with --strict).
+    full: await validateFull(document, file),
   };
   if (drift.length > 0) {
     throw new CliError(
@@ -511,6 +642,20 @@ export const dsValidateCommand: Handler = async (ctx, args): Promise<CommandResu
         hint: drift
           .slice(0, 5)
           .map((d) => `${d.file}: ${d.problem}`)
+          .join(' · '),
+      }
+    );
+  }
+  if (flag(options ?? {}, 'strict') && !data.full.ok) {
+    throw new CliError(
+      'validation',
+      `${file} fails Texuli's full check: ${data.full.codes.join(', ')}.`,
+      {
+        data,
+        hint: data.full.findings
+          .filter((f) => f.severity === 'error')
+          .slice(0, 3)
+          .map(formatFinding)
           .join(' · '),
       }
     );
@@ -533,13 +678,22 @@ export const dsValidateCommand: Handler = async (ctx, args): Promise<CommandResu
           );
         }
       }
+      const full = data.full;
+      o.always(
+        `  full check: ${full.ok ? 'passes' : 'fails'} (${full.summary.errors} error(s), ${full.summary.warnings} warning(s), ${full.summary.info} info)`
+      );
+      for (const finding of full.findings.slice(0, 10)) o.always(`    ${formatFinding(finding)}`);
     },
   };
 };
 
 export const dsExportCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const file = args[0];
-  if (!file) throw new CliError('usage', 'Missing <file>.');
+  if (!file) throw new CliError('usage', 'Missing <id|file>.');
+  if (flag(options, 'bundle')) return dsExportBundle(ctx.root, file, options);
+  if (opt(options, 'out') !== undefined) {
+    throw new CliError('usage', '--out goes with --bundle.');
+  }
   const format = (opt(options, 'format') ?? 'css') as DesignSystemExportFormat;
   const result = await compileOrFail(readDocument(ctx.root, file), file);
   const content = await exportDesignSystem(result.compiled, format);
@@ -1129,9 +1283,11 @@ async function migrateFolder(root: string, id: string, dryRun: boolean): Promise
 const now = () => new Date().toISOString();
 
 /**
- * `ds approve <id> --by <name> [--release <semver>]`: Texuli's
- * `approveDesignSystem` stamps the document's `approval` (status, who, when,
- * version and content hash) and the CLI writes `document.json`. Refuses flat
+ * `ds approve <id> --by <name> [--release <semver> [--changelog <text>]]`:
+ * Texuli's `approveDesignSystem` stamps the document's `approval` (status,
+ * who, when, version and content hash) and the CLI writes `document.json`.
+ * With `--release`, it also records `releases/<semver>.json` (refused up
+ * front when that release exists). Refuses flat
  * documents, unknown ids, documents without an `allow` section and allow
  * sections the catalog refuses. No MCP tool approves: approvals are human.
  */
@@ -1176,6 +1332,12 @@ export const dsApproveCommand: Handler = async (ctx, args, options): Promise<Com
     );
   }
   const version = opt(options, 'release');
+  const changelog = checkChangelog(opt(options, 'changelog'));
+  if (changelog !== undefined && !version) {
+    throw new CliError('usage', '--changelog applies only with --release <semver>.');
+  }
+  // A release is never rewritten: refuse before the document changes.
+  if (version) assertNoRelease(location, version);
   const approved = approveDesignSystem(document, {
     by,
     at: now(),
@@ -1183,6 +1345,9 @@ export const dsApproveCommand: Handler = async (ctx, args, options): Promise<Com
   });
   if (!approved.ok) throw issuesError(`Could not approve design system "${id}".`, approved.errors);
   writeDocumentFile(location, approved.document);
+  const release = version
+    ? writeRelease(location, (await buildRelease(location, approved.document, changelog)).record)
+    : undefined;
   const sidecar = location.dir ? existsSync(join(location.dir, APPROVAL_FILE)) : false;
   const guidance = [
     `Commit ${location.file} yourself, in a commit a designer reviews.`,
@@ -1196,6 +1361,7 @@ export const dsApproveCommand: Handler = async (ctx, args, options): Promise<Com
     approval: approved.document.approval,
     note: APPROVAL_NOTE,
     guidance,
+    ...(release ? { release } : {}),
     ...(sidecar ? { legacySidecar: `${DESIGN_SYSTEMS_DIR}/${id}/${APPROVAL_FILE}` } : {}),
   };
   return {
@@ -1205,6 +1371,7 @@ export const dsApproveCommand: Handler = async (ctx, args, options): Promise<Com
         `Approved ${id}@${data.version} as ${by} in ${location.file} (content hash ${data.contentHash.slice(0, 12)}).`
       );
       o.always(`  ${APPROVAL_NOTE}`);
+      if (release) o.always(`  Recorded the release ${release}; commit it with the document.`);
       for (const line of guidance) o.always(`  ${line}`);
       if (sidecar) {
         o.always(
