@@ -1127,7 +1127,7 @@ data (ADR-028).
 All public packages share one version through one Changesets `fixed` group,
 and the root `package.json` carries the same version.
 
-- **Current state.** Every manifest says `1.9.1`. `1.0.0` was tagged and
+- **Current state.** Every manifest says `1.9.2`. `1.0.0` was tagged and
   released on GitHub but never published to npm. `1.1.0` was published once
   by hand (2026-11-02). `1.1.1` and every later version are published by
   `release.yml`.

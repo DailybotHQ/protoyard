@@ -1,5 +1,27 @@
 # @protoyard/player
 
+## 1.9.2
+
+### Patch Changes
+
+- @protoyard/ai@1.9.2
+  - @protoyard/ai-ui@1.9.2
+  - @protoyard/analytics@1.9.2
+  - @protoyard/analytics-ui@1.9.2
+  - @protoyard/blocks-ui@1.9.2
+  - @protoyard/blueprint@1.9.2
+  - @protoyard/charts-ui@1.9.2
+  - @protoyard/core@1.9.2
+  - @protoyard/crud@1.9.2
+  - @protoyard/decks-ui@1.9.2
+  - @protoyard/pages-ui@1.9.2
+  - @protoyard/renderer-svelte@1.9.2
+  - @protoyard/saas@1.9.2
+  - @protoyard/saas-ui@1.9.2
+  - @protoyard/themes@1.9.2
+  - @protoyard/ui@1.9.2
+  - @protoyard/views-ui@1.9.2
+
 ## 1.9.1
 
 ### Patch Changes

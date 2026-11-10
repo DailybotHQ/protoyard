@@ -1,5 +1,31 @@
 # @protoyard/cli
 
+## 1.9.2
+
+### Patch Changes
+
+- Texuli 0.17.2 (every Texuli dependency pinned exactly at `0.17.2`).
+  `check ds --render` maps locked pages through Texuli's `mapLockedRenderPage`
+  (composed maps included) on Protoyard's isolated-world page, with part
+  parents from catalog relations, so the runtime lock matches the static one
+  (`alert-dialog`, `icon-button` or `form-field` are no longer parts of
+  `alert`, `icon` or `form`). `ds diff` takes library changes from Texuli's
+  `changesModel` (every approval field, `approvedAt` included); its JSON shape
+  is unchanged. `ds new --brief` sends clauses with a color to Texuli first and
+  keeps its own reader only where Texuli would misread a font.
+- @protoyard/blocks@1.9.2
+  - @protoyard/blueprint@1.9.2
+  - @protoyard/core@1.9.2
+  - @protoyard/crud@1.9.2
+  - @protoyard/decks@1.9.2
+  - @protoyard/offline@1.9.2
+  - @protoyard/player@1.9.2
+  - @protoyard/renderer-svelte@1.9.2
+  - @protoyard/review@1.9.2
+  - @protoyard/scenarios@1.9.2
+  - @protoyard/templates@1.9.2
+  - @protoyard/themes@1.9.2
+
 ## 1.9.1
 
 ### Patch Changes
