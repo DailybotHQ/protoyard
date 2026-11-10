@@ -44,8 +44,8 @@ it can be locked, and any drift between `components.json` and
 
 ### Create from your brand
 
-`ds new` can start from what a company already has. Each source runs Texuli
-0.16.0's design-system generator (`generateDesignSystem`, from
+`ds new` can start from what a company already has. Each source runs Texuli's
+design-system generator (`generateDesignSystem`, 0.17.0, from
 `@texuli/tokens/design-system/generate`) offline. The generator imports the
 source, keeps its type, shape, space and motion values, then repairs the
 result until it meets Texuli's AA guarantees.
@@ -98,7 +98,7 @@ nothing.
 
 **Limits.**
 
-- **Raster logos** (PNG, JPEG, GIF, WebP) are refused. Texuli 0.16.0 reads
+- **Raster logos** (PNG, JPEG, GIF, WebP) are refused. Texuli reads
   logo *pixels* (`importLogoPixels`), and the CLI does not decode images,
   because that would add a dependency. Pass the logo's main color with
   `--brand <hex>`, or export the logo as SVG.
@@ -110,13 +110,17 @@ nothing.
   with nothing to read stays in the one-liner, and Texuli reports it as an
   `unmapped` loss. Words such as *calm*, *soft* or *solid* are read as motion,
   elevation or surface choices even in an unrelated sentence. Check
-  `brief.reading`.
+  `brief.reading`. A clause with a hex color is always read by Protoyard
+  (`Deep teal #0f766e brand` becomes `brand #0f766e`): Texuli 0.17.0 also
+  reads a color inside prose, but then drops the rest of that clause without
+  an `unmapped` loss (the font in `Inter font in #0f766e`, a second color,
+  `secondary is #…`).
 - **Generator refusals.** When the generator cannot meet its guarantees, the
   run fails with `validation`, the errors and the report, and writes nothing.
-  One known case: a stylesheet that pins a role color below AA (for example
-  `--primary: #ffff00`) is refused with `$.color.brand.seed: Required.`:
-  Texuli 0.16.0's repair loop first replaces the seed, then removes it, instead
-  of the failing pin. Remove that pin from the stylesheet, or use `--brand`.
+  A stylesheet that pins a role color below AA (`--brand: #e11d48;
+  --primary: #ffff00`) is no longer one of them: since Texuli 0.17.0 the
+  repair keeps the brand seed and pins the failing role's foreground
+  instead (`ds-generate.test.ts` checks it).
 
 ### The allow section
 
@@ -133,8 +137,8 @@ design-system spec 0.13.0):
 }
 ```
 
-- The keys are catalog ids: Texuli's (`@texuli/catalog`, 194 components
-  today) and the [catalog extensions](#catalog-extensions) of
+- The keys are catalog ids: Texuli's (`@texuli/catalog`, 199 components
+  in 0.17.0) and the [catalog extensions](#catalog-extensions) of
   `@protoyard/ui`'s own components (`protoyard:data-table`, 57 today). An
   omitted list allows every value the catalog lists; an empty list allows
   none.
@@ -468,9 +472,17 @@ entries (name, version, source hash) and a changelog entry.
   release. By default `to` is `current` and `from` is the newest release at or
   below its version whose content differs (for a release, the newest one
   below it). Token changes and contrast regressions come from Texuli's
-  `diffDesignSystems` over both compiled versions; the allow changes
-  (components added or removed, lists changed), library changes and approval
-  changes have the shape of the kit's `KitChangesModel`.
+  `diffDesignSystems` over both compiled versions. The allow changes
+  (components added or removed, lists changed; a newly locked document
+  lists `locked` and then each component it allows) and the approval changes
+  are Texuli's `changesModel` (`@texuli/spec/design-system`, 0.17.0), the
+  model the kit renders. Library changes keep the shape of its
+  `KitLibraryChange` but compare every field of an entry: Texuli's model
+  compares only the `status` of a library entry's approval, so a
+  re-approval by someone else or at another content hash would not show.
+  Texuli's model reads at most 512 allow components, 100 values per list and
+  64 library entries; a valid document stays inside the merged catalog
+  (about 260 ids).
 - The kit's **Changes** section compares the document with the same
   baseline, using Texuli's own `changesModel`.
 
@@ -605,8 +617,10 @@ writes a byte:
 2. Protoyard's schema (closed objects, at most 400 files, each at most 1 MiB,
    `text` or `from`, never both);
 3. Texuli's `validateBundle` (through `unpackBundle`): the document schema at
-   trust `untrusted`, path-safe source ids, every source hash, the allow
-   manifest's content hash, the history and its caps;
+   trust `untrusted`, path-safe and unique source ids, every source hash and
+   size (at most 64 KiB of UTF-8 each), the allow manifest's content hash and
+   caps, the history and its caps, and that a history entry of the packed
+   version matches the document (Texuli 0.17.0);
 4. every path against a closed list (no `..`, no absolute path, no backslash,
    no unknown file such as `NOTES.md` or `components/evil.js`), with
    duplicates refused, also case-insensitively (`requests/STATUSPILL.json`
@@ -773,8 +787,8 @@ These are not available today:
   them: Texuli's list includes shells (`AppShell`) and helpers. When Texuli
   catalogs another visual export, the CI test asks for a manifest for every
   `@protoyard/ui` component built on it.
-- The allow section holds at most 4,096 keys (Texuli's cap): 251 today (194
-  Texuli components and 57 extensions).
+- The allow section holds at most 4,096 keys (Texuli's cap): 256 today (199
+  Texuli components in 0.17.0 and 57 extensions).
 - `check ds` is a static, textual scan; see its limits in
   [THEMES](THEMES.md#check-ds). `check ds --render` (done in 1.8.0) checks
   the built prototype in Chromium on every route, light and dark, phone and
@@ -800,9 +814,9 @@ These are not available today:
   ([3. Approve](#3-approve)).
 - A bundle carries at most 64 components (Texuli's cap), 32 history entries
   and 400 files; its file is at most 8 MiB and each folder file at most 1 MiB.
-  Texuli's allow manifest inside the bundle keeps at most 256 allow keys and
-  32 values per axis (it truncates without a refusal); the document itself
-  carries the whole allow section, and that is what import writes.
+  Texuli's allow manifest inside the bundle carries every allow key of the
+  document (since 0.17.0; up to 4,096 keys and 32 values per axis, the
+  document's own caps, refused beyond them); import writes the document.
 - The kit page is long (every allowed component with its states, in both
   modes): about 92,000 px for the `all` allow preset in a 1280 px window, and
   a 432 KB `kit.json`. Its production build is one 695 KB chunk plus Texuli's
