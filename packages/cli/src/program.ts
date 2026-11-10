@@ -144,6 +144,14 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .argument('[slugs...]', 'prototype slugs (default: every locked prototype)')
     .option('--report', 'also check unlocked prototypes and list violations without failing')
+    .option(
+      '--render',
+      'also build, serve and check each locked prototype in Chromium (every route, light and dark, phone and desktop)'
+    )
+    .option('--route <path...>', 'with --render: check only these hash routes (e.g. /settings)')
+    .option('--baseline <file>', 'with --render: findings this baseline lists do not fail')
+    .option('--write-baseline <file>', 'with --render: save the current findings as a baseline')
+    .option('--rebuild', 'with --render: build even when a fresh build exists')
     .action(def('check ds', checkDsCommand));
 
   program
