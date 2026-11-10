@@ -52,7 +52,11 @@ import { entryGraph } from './chunk-graph.ts';
 // PLAN_008 T-remeasure (2026-10-31): an app file now leaves out the kind
 // renderers it never runs (T-bundle-fix); the 43 catalog blueprints measure
 // 3,870,232–3,871,615 bytes, so the cap is lowered to that maximum + 5 %.
-export const QUICK_SINGLE_FILE_BUDGET_BYTES = 4_065_196;
+// PLAN_013 Texuli 0.17.1 (2026-11-10): Texuli's own growth (design-system
+// check and kit modules, 24 px icon buttons) moves the app file to 4,067,234
+// bytes (+2,038 over 4,065,196, no Protoyard code change); the cap is that
+// measure + 2.5 %.
+export const QUICK_SINGLE_FILE_BUDGET_BYTES = 4_168_915;
 
 /** The player page a single file starts from (deck.html, page.html, doc.html or index.html). */
 export type SingleFileEntry = 'index' | 'deck' | 'page' | 'doc';
