@@ -458,6 +458,12 @@ importers:
       '@texuli/spec':
         specifier: 0.16.0
         version: 0.16.0
+      '@texuli/tokens':
+        specifier: 0.16.0
+        version: 0.16.0
+      '@texuli/tools':
+        specifier: 0.16.0
+        version: 0.16.0(svelte@5.57.3)
       commander:
         specifier: ^15.0.0
         version: 15.0.0
@@ -4208,6 +4214,12 @@ packages:
   '@texuli/tokens@0.16.0':
     resolution: {integrity: sha512-WkQveKhlFWdjJBZuuRRIgtSB05ztUfgjcaBNb6CeWo78g5Tztkfe5XEeBv19FLRuJAAX5qQrkkT694ATDMhMPA==}
 
+  '@texuli/tools@0.16.0':
+    resolution: {integrity: sha512-rqolRlvH/Df8bt3UyMdi7w3Gn3Boapsdze5xWasTwJ5VcR+6d8uoPfsl33hmQX3un4gb5JdgeVtnl9s3r89wlQ==}
+    hasBin: true
+    peerDependencies:
+      svelte: ^5.57.2
+
   '@texuli/workflows@0.16.0':
     resolution: {integrity: sha512-DU3paQP4IBKWBvDYQVXc6pkVgrEX6E3fBNtagsFtuCoen2lvGGZWH/OE0OeEoHN+KfIj18W9UJDnpjd0O1i+Kg==}
     peerDependencies:
@@ -6925,6 +6937,19 @@ snapshots:
   '@texuli/tokens@0.16.0':
     dependencies:
       '@texuli/spec': 0.16.0
+
+  '@texuli/tools@0.16.0(svelte@5.57.3)':
+    dependencies:
+      '@texuli/blocks': 0.16.0(svelte@5.57.3)
+      '@texuli/catalog': 0.16.0(svelte@5.57.3)
+      '@texuli/charts': 0.16.0(svelte@5.57.3)
+      '@texuli/core': 0.16.0
+      '@texuli/deck': 0.16.0
+      '@texuli/document': 0.16.0
+      '@texuli/media': 0.16.0(svelte@5.57.3)
+      '@texuli/spec': 0.16.0
+      '@texuli/tokens': 0.16.0
+      svelte: 5.57.3
 
   '@texuli/workflows@0.16.0(svelte@5.57.3)':
     dependencies:
