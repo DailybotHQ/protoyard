@@ -412,8 +412,10 @@ export function exportBundle(location: DesignSystemLocation): ExportedBundle {
       packed.errors.map((e) => ({ code: e.code, path: e.path, message: e.message }))
     );
   }
-  // Texuli checks cross-field rules (a history entry for the packed version
-  // must match the document) only when it validates; refuse here, not on import.
+  // Since Texuli 0.17.0 packBundle itself refuses a history entry of the
+  // packed version that does not match the document and duplicate library
+  // source ids. The round trip through unpackBundle stays (cheap): export
+  // writes only what import's validation accepts.
   const checked = unpackBundle(packed.bundle);
   if (!checked.ok) {
     throw bundleError(
@@ -559,17 +561,8 @@ export function checkBundle(value: unknown): CheckedBundle {
     });
   }
 
-  const sources = new Map<string, string>();
-  for (const [index, source] of unpacked.librarySources.entries()) {
-    if (sources.has(source.id)) {
-      issues.push({
-        code: 'duplicate-source',
-        path: `$.texuli.librarySources[${index}].id`,
-        message: `Two library sources have the id "${source.id}".`,
-      });
-    }
-    sources.set(source.id, source.source);
-  }
+  // Texuli's validateBundle (0.17.0) refuses two library sources with one id.
+  const sources = new Map(unpacked.librarySources.map((source) => [source.id, source.source]));
 
   const seen = new Set<string>();
   const used = new Set<string>();
