@@ -45,12 +45,21 @@ pinned exactly at `0.16.1`. See [DESIGN_SYSTEMS](docs/DESIGN_SYSTEMS.md).
   prototypes.
 - **`new --dry-run`.** Runs every check, including the `--ds` design system
   and the template gate, and writes nothing.
+- **`ds extensions [--out <dir>]`.** Writes Protoyard's catalog extensions as
+  Texuli extension files, so `texuli ds check <document> --locked --extensions
+  <file>` accepts the same `protoyard:` allow keys as `ds validate`.
+- **Unchecked imports.** `check ds` lists the workspace packages (`workspace:`
+  dependencies the catalog does not govern) and local modules it did not read,
+  with Texuli's `listUncheckedImports`.
 
 ### Changed
 
 - `check ds` treats text flow alike in CSS and utilities: `text-align`,
   `text-align-last`, `text-overflow` and `text-wrap` pass in a stylesheet.
 - Every npm package ships its `CHANGELOG.md`; `check:packages` requires it.
+- A compound part (`<DropdownMenu.Item>`, `<MultiSelect.Item>`) takes its
+  own catalog id, else its namespace root's, as Texuli's locked check does
+  since 0.16.1; before, it was unmapped and refused whatever `allow` said.
 - `@protoyard/ui` honesty tags and `StatusChip` no longer forward the HTML
   `color` attribute to Texuli's `Badge`, which now has a `color` axis.
 - **All 31 templates are lock-clean.** social-feed windows its feed with

@@ -21,6 +21,11 @@
   fails on it); `check ds --render` checks locked prototypes in Chromium on every
   route, light and dark, phone and desktop, and the build CI template runs it.
 
+- Consumer batch 11 on Texuli 0.16.1: `ds extensions [--out <dir>]` writes
+  Protoyard's catalog extensions for `texuli ds check --extensions`; compound
+  parts (`<DropdownMenu.Item>`) map to their own id, else their namespace
+  root's; `check ds` lists the imports it did not read.
+
 ### Patch Changes
 
 - Updated dependencies [b64de1e]

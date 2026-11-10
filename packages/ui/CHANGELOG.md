@@ -4,6 +4,9 @@
 
 ### Patch Changes
 
+- Re-exports Texuli's `VirtualListView` (catalog id `data-virtual-list`); the
+  honesty tags and `StatusChip` no longer forward the HTML `color` attribute to
+  `Badge`, which has a `color` axis since Texuli 0.16.0.
 - The design-system lifecycle on Texuli 0.16.1 (every Texuli dependency pinned
   exactly at `0.16.1`): `ds new --from-tokens`, `--from-css`, `--from-logo`
   (SVG) and `--brief` generate a draft from your brand with Texuli's generator,
