@@ -1076,10 +1076,11 @@ share and review them without a new format.
 
 **Decision.**
 - **An entity, not an option.** A design system is a folder `design-systems/<id>/` in the
-  workspace: `document.json` (the Texuli design-system document), `approval.json`,
-  `components.json` with `components/*.svelte`, `requests/<Name>.json` and
+  workspace: `document.json` (the Texuli design-system document, with its `allow` section and
+  its `approval`), `components.json` with `components/*.svelte`, `requests/<Name>.json` and
   `stories/<Name>.json`. A workspace holds any number of them. The flat
-  `design-systems/<id>.json` stays readable; `ds migrate` turns it into a folder.
+  `design-systems/<id>.json` stays readable; `ds migrate` turns it into a folder and folds a
+  legacy `approval.json` sidecar (written before Texuli 0.15.0) into the document.
 - **Binding.** A prototype names the design system it uses in its manifest:
   `designSystem: { id, version, locked }`, with an exact semver. `ds use --lock` writes it,
   `ds use --upgrade` moves the pin. A locked binding loads only that design system's theme and
@@ -1089,7 +1090,8 @@ share and review them without a new format.
 - **contentHash.** SHA-256 of the document's canonical JSON (sorted keys, no whitespace)
   without the approval section or fields: the scheme Texuli adopts in its 0.13.0 document
   spec (Texuli ADR-032). A changed document needs a new approval.
-- **Approval is a record, not a proof.** `approval.json` and an approved component request
+- **Approval is a record, not a proof.** The document's `approval` (`ds approve`: status,
+  approver, date, version, contentHash) and an approved component request
   say who approved what; the CLI cannot verify who wrote them. The guarantee is a human
   commit reviewed through CODEOWNERS on `design-systems/`.
 - **Stable data contracts.** Every file Protoyard writes next to the document has a zod
@@ -1101,9 +1103,9 @@ share and review them without a new format.
   top of these files and operations instead of changing them.
 - **Texuli owns the document.** Texuli owns the design-system document spec, its importers,
   its compiler and its generation. Protoyard owns the folder, the approval record, the
-  component library and its requests, the binding and the lock. When Texuli's spec 0.13.0
-  moves the allow set, the library entries and the approval into the document, the schemas
-  move in one place.
+  component library and its requests, the binding and the lock. Since Texuli 0.15.0 (spec
+  0.13.0) the allow set, the library entries and the approval live in the document; the
+  sidecar `approval.json` is legacy, read only when the document has no approval.
 
 **Consequences.** Design systems get their own commands, index entries, gallery page and guide ([DESIGN_SYSTEMS](DESIGN_SYSTEMS.md)). The contracts are versioned (`format` and
 `version` fields, URN `$id`s); a breaking change needs a new version, and a test fails when
