@@ -10,7 +10,7 @@ import { Icon } from 'texuli/icons';
  * Marks a feature that is a proposal still under review — not a product promise.
  * Always includes a word — never color alone.
  */
-type Props = Omit<HTMLAttributes<HTMLSpanElement>, 'title' | 'class' | 'children'> & {
+type Props = Omit<HTMLAttributes<HTMLSpanElement>, 'title' | 'class' | 'children' | 'color'> & {
   label?: string;
   title?: string;
   class?: string;

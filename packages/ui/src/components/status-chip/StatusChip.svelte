@@ -9,7 +9,7 @@ import type { StatusChipTone } from './tones.ts';
  * Status chip that always carries a word (never color alone): Texuli's
  * `Badge` (`texuli/badge`) with Protoyard's tone names.
  */
-type Props = Omit<HTMLAttributes<HTMLSpanElement>, 'class' | 'children'> & {
+type Props = Omit<HTMLAttributes<HTMLSpanElement>, 'class' | 'children' | 'color'> & {
   /** Required visible word — color is never the only signal. */
   label: string;
   tone?: StatusChipTone;
