@@ -925,7 +925,15 @@ a package can ship its own font files
 In a Vite production build, name each file instead (a bundler only emits
 files it sees one by one, so a directory `fontBase` 404s):
 `defineDesignSystemTheme(compiled, { fontFiles: { 'fonts/brand.woff2': new URL('./fonts/brand.woff2', import.meta.url) } })`.
-Keys are the document's font `src` paths; `fontFiles` wins over `fontBase`.
+Keys are the document's font `src` paths; `fontFiles` wins over `fontBase`. Since 1.9.4 `ds use` (and `new --ds`, `ds use --lock`, `--upgrade`) writes
+`fontFiles` into `src/design-system.ts` for each self-hosted font the
+document names (`typography.families.<role>.files[].src`): a relative path
+to a `.woff2`, `.woff`, `.ttf` or `.otf` file that exists inside the
+design-system folder (for example `design-systems/harbor/fonts/brand.woff2`),
+never through a symlink or `..`. A named file that is not there is listed
+under `data.fonts.missing` and in the output, because it would 404. Data
+URLs are inline and need no entry. So a locked prototype never needs its own
+`@font-face`, which `check ds` refuses as `ds-visual-css`.
 
 **How it paints.** `defineDesignSystemTheme` returns a Protoyard `Theme`
 derived from the compiled variables (palette, fonts, radius, density: what
