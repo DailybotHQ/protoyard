@@ -106,7 +106,7 @@ and now have more than 5 % headroom, so each is the measurement + 5 %.
 | --- | ---: | ---: | --- |
 | Quick single-file, app (max over 43 catalog blueprints) | 3,870,232–3,871,615 B | 4,577,768 → 4,065,196 B | An app file leaves out the kind renderers (T-bundle-fix) |
 | Quick single-file, deck (max over 7 example decks) | 2,640,768–2,668,245 B | 2,818,330 → 2,801,658 B | Each kind file holds only its own renderer |
-| Quick single-file, page (tidewater) | 2,347,132 B (2,466,761 B with design systems in Theme Studio, Texuli 0.11.2) | 2,818,330 → 2,464,489 → 2,528,431 B | same |
+| Quick single-file, page (tidewater) | 2,347,132 B (2,466,761 B with design systems in Theme Studio, Texuli 0.11.2; 2,531,270 B on Texuli 0.17.0, 2026-11-10) | 2,818,330 → 2,464,489 → 2,528,431 → 2,594,552 B | same; each step is a measure + 2.5 % |
 | Player `index.html` initial JS | 108,098 B (105.6 KB) | 130 → 110.9 KB | Raised for the Texuli charts-ui link (127.4 KB then) |
 | Player `deck` / `page` / `doc.html` initial JS | 103.1 / 102.9 / 102.7 KB | 130 → 108.3 KB | same |
 | Player `deck.html` all CSS | 113.99 KB | 120.0 → 119.7 KB | Kind pages load only their own renderer |

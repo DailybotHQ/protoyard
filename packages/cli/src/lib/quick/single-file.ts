@@ -80,7 +80,11 @@ export const QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES: Record<SingleFileEntry, numbe
   // Studio panel and the restore step: about 88.5 KB raw). Measured page 2,372,888
   // -> 2,466,761 bytes (deck 2,666,208 -> 2,700,531, doc 2,741,729 -> 2,835,602,
   // both under their caps); the page cap is that measure + 2.5 %.
-  page: 2_528_431,
+  // PLAN_013 Texuli 0.17.0 (2026-11-10): Texuli's own growth (design-system
+  // kit and check modules, Button target minimum) moves the page file to
+  // 2,531,270 bytes (+2,839 over 2,528,431, no Protoyard code change); the cap
+  // is that measure + 2.5 %.
+  page: 2_594_552,
   // PLAN_008 T-documents: a doc file now carries the @texuli/pages editor and the
   // Word/PDF writers it runs (edit, then download). Measured 3,056,939 bytes
   // (northwind) once each kind file stopped embedding the other kinds'
