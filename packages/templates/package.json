@@ -17,6 +17,7 @@
     "templates",
     "blueprints",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {

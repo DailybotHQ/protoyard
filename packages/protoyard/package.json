@@ -39,6 +39,7 @@
     "index.js",
     "index.d.ts",
     "README.md",
+    "CHANGELOG.md",
     "capture.js",
     "capture.d.ts",
     "static-server.js",

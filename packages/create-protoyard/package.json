@@ -32,7 +32,8 @@
     "files",
     "index.js",
     "index.d.ts",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

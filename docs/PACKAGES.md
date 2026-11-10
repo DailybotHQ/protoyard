@@ -232,6 +232,7 @@ pnpm build:packages --filter svelte
 
 On top of publint, arethetypeswrong (`esm-only`) and the file and hygiene rules, it enforces:
 
+- `release-notes`: `CHANGELOG.md` and `README.md` are in the tarball. npm adds the README and LICENSE on its own, never the changelog, so every package lists `CHANGELOG.md` in `files`.
 - `required-file`: every path in `protoyard.pack.required` is in the tarball. The player requires `dist/app/index.html`, its assets manifest and `dist/embed/index.js`.
 - `case-collision`: no two source files emit outputs that differ only by letter case. On macOS and Windows one would overwrite the other, at build time and on install.
 - `svelte-declaration`: no emitted `X.svelte.d.ts` imports a binding named `X`. That shadows the component's own declaration, so consumers would see a type instead of a component. Alias the import, or use another name for a recursive self-import.

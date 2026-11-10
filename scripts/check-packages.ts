@@ -62,7 +62,8 @@ export type RuleId =
   | 'pack'
   | 'case-collision'
   | 'svelte-declaration'
-  | 'required-file';
+  | 'required-file'
+  | 'release-notes';
 
 export interface Finding {
   rule: RuleId;
@@ -143,6 +144,20 @@ export function requiredFileFindings(
       rule: 'required-file' as const,
       message: `${path} is required (protoyard.pack.required) but not in the tarball`,
     }));
+}
+
+/**
+ * Every published package ships the notes a consumer reads before upgrading:
+ * `CHANGELOG.md` and `README.md` (npm adds the README and LICENSE on its own,
+ * never the changelog, so `files` must list it).
+ */
+export const RELEASE_NOTE_FILES = ['CHANGELOG.md', 'README.md'] as const;
+
+export function releaseNoteFindings(files: ReadonlyMap<string, Uint8Array>): Finding[] {
+  return RELEASE_NOTE_FILES.filter((path) => !files.has(path)).map((path) => ({
+    rule: 'release-notes' as const,
+    message: `${path} is not in the tarball (add it to "files"; consumers read it before upgrading)`,
+  }));
 }
 
 /** The payload prefixes a manifest declares, normalized to end in `/`. */
@@ -626,6 +641,7 @@ export async function checkPackage(
       report.findings.push(...fileLevel);
       report.findings.push(...svelteDeclarationFindings(files));
       report.findings.push(...requiredFileFindings(manifest, files));
+      report.findings.push(...releaseNoteFindings(files));
       report.findings.push(...hygieneFindings(files, report.path, root, fileLevel));
       const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
       if (tarball.byteLength > maxBytes) {

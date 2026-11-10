@@ -1,7 +1,11 @@
 // @vitest-environment node
 import { rmSync } from 'node:fs';
 import { afterAll, describe, expect, it } from 'vitest';
-import { fileFindings, manifestFindings } from '../../../scripts/check-packages.ts';
+import {
+  fileFindings,
+  manifestFindings,
+  releaseNoteFindings,
+} from '../../../scripts/check-packages.ts';
 
 /**
  * `pnpm check:packages` (scripts/check-packages.ts): every rule fires on a
@@ -54,6 +58,24 @@ describe('manifestFindings', () => {
         'repository',
       ]);
     }
+  });
+});
+
+describe('releaseNoteFindings', () => {
+  it('requires CHANGELOG.md and README.md in every tarball', () => {
+    const bytes = new Uint8Array();
+    expect(releaseNoteFindings(new Map([['dist/index.js', bytes]])).map((f) => f.message)).toEqual([
+      expect.stringContaining('CHANGELOG.md'),
+      expect.stringContaining('README.md'),
+    ]);
+    expect(
+      releaseNoteFindings(
+        new Map([
+          ['CHANGELOG.md', bytes],
+          ['README.md', bytes],
+        ])
+      )
+    ).toEqual([]);
   });
 });
 

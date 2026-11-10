@@ -19,6 +19,7 @@
     "astro.config.mjs",
     "tsconfig.json",
     "README.md",
+    "CHANGELOG.md",
     "guides"
   ],
   "scripts": {
