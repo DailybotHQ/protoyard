@@ -588,7 +588,7 @@ The manifest binding is part of the prototype contract in `@protoyard/core`:
 | `ds import <file> [--id <id>] [--force] [--draft] [--dry-run]` | Check a bundle as untrusted input, then write `design-systems/<id>/` |
 | `ds use <slug> <id\|file> [--lock] [--upgrade]` | Apply a design system to a prototype; bind, lock or upgrade it |
 | `ds component request\|approve-request\|new\|approve` | Request, approve the request, scaffold and approve a component |
-| `check ds [slug…] [--report]` | The locked-prototype rules |
+| `check ds [slug…] [--report] [--render]` | The locked-prototype rules; `--render` also checks what each locked prototype paints in Chromium |
 
 Every command takes `--json`. The MCP server exposes `ds_create`, `ds_list`,
 `ds_validate`, `ds_export`, `ds_use`, `ds_component_request` and
@@ -604,9 +604,6 @@ These are not available today:
 - **UI kit**: a generated kit prototype per design system for review.
 - **Versions**: release records (`releases/<version>.json`) so older
   versions stay available to pinned prototypes.
-- **Render check**: rendering every component of a locked prototype against
-  the design system in a browser (it covers the axis values `check ds` skips
-  because they are expressions).
 - **Generator inputs**: `protoyard generate` and `quick` taking a design
   system so new prototypes start locked.
 
@@ -625,7 +622,13 @@ These are not available today:
 - The allow section holds at most 4,096 keys (Texuli's cap): 251 today (194
   Texuli components and 57 extensions).
 - `check ds` is a static, textual scan; see its limits in
-  [THEMES](THEMES.md#check-ds).
+  [THEMES](THEMES.md#check-ds). `check ds --render` (done in 1.8.0) checks
+  the built prototype in Chromium on every route, light and dark, phone and
+  desktop: controls outside allowed catalog roots, painted colors that do not
+  follow the design system, contrast, axe, rendered axis values the allow
+  section does not enable, and hand-drawn charts; it sees only what a route
+  shows at rest ([render mode](THEMES.md#render-mode---render)). The build
+  workflow of `protoyard ci` runs it for locked prototypes.
 - A workspace's design systems are local files. Nothing is hosted or
   synchronized; a bundle file is how one moves between workspaces, by hand. A
   cloud version is a later step.
