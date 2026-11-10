@@ -18,6 +18,7 @@ import {
   countByRule,
   type DsRule,
   type DsViolation,
+  loadAllowContext,
   scanPrototypeDesignSystem,
 } from '../lib/ds-check/index.ts';
 import { inspectSpec } from '../lib/inspect.ts';
@@ -418,6 +419,34 @@ export async function createPrototypeFrom(
       }
     );
   }
+  if (existing === 'same' && input.designSystem) {
+    // A resumed run only when the folder already carries this exact binding:
+    // `--ds` must never lock (and rewrite) an existing, maybe edited prototype.
+    const ds = input.designSystem;
+    const compiled = ds.resolved.result.compiled as { id: string; version: string };
+    let current: Partial<Binding> | undefined;
+    try {
+      const raw = JSON.parse(await readFile(join(dest, MANIFEST_FILENAME), 'utf8')) as {
+        designSystem?: Partial<Binding>;
+      };
+      current = raw.designSystem;
+    } catch {
+      current = undefined;
+    }
+    const retry =
+      current?.id === compiled.id &&
+      current?.version === compiled.version &&
+      (current?.locked === true) === ds.lock;
+    if (!retry) {
+      throw new CliError(
+        'conflict',
+        `prototypes/${slug} already exists; --ds creates a new prototype and never binds an existing one.`,
+        {
+          hint: `To bind it, run: protoyard ds use ${slug} ${ds.ref}${ds.lock ? ' --lock' : ''}`,
+        }
+      );
+    }
+  }
   if (existing === 'empty' && !input.force) {
     throw new CliError('conflict', `prototypes/${slug} exists (empty).`, {
       hint: 'Re-run with --force to use the empty folder.',
@@ -602,7 +631,12 @@ export function checkBoundPrototype(
   dir: string,
   binding: Binding
 ): BoundPrototypeCheck {
-  const scan = scanPrototypeDesignSystem(root, dir, { designSystemId: binding.id });
+  // The allow context, as `check ds` and `validate` pass it: without it the
+  // ds-not-allowed, ds-disabled-value and library rules would never run here.
+  const scan = scanPrototypeDesignSystem(root, dir, {
+    designSystemId: binding.id,
+    allow: loadAllowContext(root, binding.id),
+  });
   let bindingProblem: string | null = null;
   if (binding.locked) {
     try {
@@ -633,7 +667,10 @@ export async function assertTemplateLockClean(
   designSystemId: string
 ): Promise<void> {
   const { entry, dir } = await resolveTarget(ctx, assertSlug(template), 'template');
-  const scan = scanPrototypeDesignSystem(ctx.root, dir, { designSystemId });
+  const scan = scanPrototypeDesignSystem(ctx.root, dir, {
+    designSystemId,
+    allow: loadAllowContext(ctx.root, designSystemId),
+  });
   if (scan.violations.length === 0) return;
   const byRule = countByRule(scan.violations);
   throw new CliError(

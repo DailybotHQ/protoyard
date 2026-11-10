@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { cpSync, existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -68,6 +68,7 @@ const run = (...args: string[]) => cli(['--root', root(), '--json', ...args]);
 const json = (path: string) =>
   JSON.parse(readFileSync(join(root(), path), 'utf8')) as Record<string, unknown>;
 const read = (path: string) => readFileSync(join(root(), path), 'utf8');
+const write = (path: string, text: string) => writeFileSync(join(root(), path), text);
 
 /** A template in the temp workspace; the real templates are being cleaned in another lane. */
 function template(name: string, app: string) {
@@ -269,6 +270,67 @@ describe('protoyard new --ds (PLAN_013 T-new-ds)', () => {
     expect(data.byRule['ds-utility']).toBeGreaterThan(0);
     expect(data.violations).toBe(Object.values(data.byRule).reduce((a, b) => a + b, 0));
     expect(existsSync(join(root(), 'prototypes/styled-app'))).toBe(false);
+  });
+
+  it('runs the allow rules at the template gate and after creation, as check ds does', async () => {
+    setup();
+    await designSystem('harbor', false);
+    // The allow section stops listing the card the template renders.
+    const file = join(root(), 'design-systems/harbor/document.json');
+    const document = JSON.parse(readFileSync(file, 'utf8'));
+    delete document.allow.card;
+    writeFileSync(file, `${JSON.stringify(document, null, 2)}\n`);
+    await approve('harbor');
+
+    const gated = await run('new', 'card-app', '--ds', 'harbor', '--no-install');
+    expect(gated.code).toBe(4);
+    const data = gated.json<Envelope>().data as unknown as { byRule: Record<string, number> };
+    expect(data.byRule['ds-not-allowed']).toBe(2);
+    expect(existsSync(join(root(), 'prototypes/card-app'))).toBe(false);
+
+    // Unlocked, it is created, and its check reports what check ds reports.
+    const made = await run('new', 'card-app', '--ds', 'harbor', '--unlocked', '--no-install');
+    expect(made.code, made.stdout).toBe(0);
+    const check = (made.json<Envelope>().data as Record<string, unknown>).designSystemCheck as {
+      ok: boolean;
+      byRule: Record<string, number>;
+    };
+    expect(check.ok).toBe(false);
+    expect(check.byRule['ds-not-allowed']).toBe(2);
+    const report = await run('check', 'ds', 'card-app', '--report');
+    const violations = report
+      .json<Envelope<{ violations: { rule: string; slug: string }[] }>>()
+      .data.violations.filter((v) => v.slug === 'card-app');
+    const counts: Record<string, number> = {};
+    for (const v of violations) counts[v.rule] = (counts[v.rule] ?? 0) + 1;
+    const nonZero = Object.fromEntries(Object.entries(check.byRule).filter(([, n]) => n > 0));
+    expect(nonZero).toEqual(counts);
+  });
+
+  it('never binds an existing prototype with --ds; only a retry with the same binding resumes', async () => {
+    setup();
+    await designSystem('harbor');
+    const first = await run('new', 'harbor-app', '--ds', 'harbor', '--no-install');
+    expect(first.code, first.stdout).toBe(0);
+    const retry = await run('new', 'harbor-app', '--ds', 'harbor', '--no-install');
+    expect(retry.code, retry.stdout).toBe(0);
+
+    // A prototype made without --ds from the same template looks like a retry by id and slug.
+    const plain = await run('new', 'plain-app', '--template', 'blank', '--no-install');
+    expect(plain.code, plain.stdout).toBe(0);
+    write('prototypes/plain-app/src/App.svelte', '<p>Edited by hand</p>\n');
+    const before = read('prototypes/plain-app/protoyard.json');
+    const bound = await run('new', 'plain-app', '--ds', 'harbor', '--no-install');
+    expect(bound.code).not.toBe(0);
+    const error = bound.json<Envelope>().error;
+    expect(error?.code).toBe('conflict');
+    expect(error?.hint).toContain('protoyard ds use plain-app harbor --lock');
+    expect(read('prototypes/plain-app/protoyard.json')).toBe(before);
+    expect(existsSync(join(root(), 'prototypes/plain-app/src/design-system.ts'))).toBe(false);
+    expect(read('prototypes/plain-app/src/App.svelte')).toBe('<p>Edited by hand</p>\n');
+    // An unlocked binding is not a retry of a locked one either.
+    const unlocked = await run('new', 'harbor-app', '--ds', 'harbor', '--unlocked', '--no-install');
+    expect(unlocked.json<Envelope>().error?.code).toBe('conflict');
   });
 
   it('--unlocked binds without locking: a draft and a template with violations are allowed', async () => {
