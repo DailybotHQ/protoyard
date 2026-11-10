@@ -38,6 +38,7 @@ import {
   dsComponentNewCommand,
   dsComponentRequestCommand,
 } from './commands/ds-component.ts';
+import { dsExtensionsCommand } from './commands/ds-extensions.ts';
 import { registerDsKitCommand } from './commands/ds-kit.ts';
 import { dsListCommand } from './commands/ds-list.ts';
 import { registerDsReleaseCommands } from './commands/ds-releases.ts';
@@ -682,6 +683,15 @@ export function createProgram(env: RunnerEnv): Command {
     .argument('<id|file>', 'design-system id (design-systems/<id>/ or <id>.json) or JSON file')
     .option('--strict', "also fail when Texuli's full check (printed as `full`) reports an error")
     .action(def('ds validate', dsValidateCommand));
+  ds.command('extensions')
+    .description(
+      "Protoyard's catalog extensions as Texuli extension files, for `texuli ds check --extensions` (printed, or written with --out)"
+    )
+    .option(
+      '--out <dir>',
+      'write one <namespace>.catalog-extension.json per namespace into this workspace folder'
+    )
+    .action(def('ds extensions', dsExtensionsCommand));
   ds.command('list')
     .description(
       "list the workspace's design systems: version, approval status, whether it can be locked, component count and the prototypes bound to each"

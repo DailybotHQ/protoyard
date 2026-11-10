@@ -693,6 +693,7 @@ The manifest binding is part of the prototype contract in `@protoyard/core`:
 | `ds new <id> [--from-tokens <file>\|--from-css <file>\|--from-logo <file.svg>\|--brief <text\|file\|->] [--allow all\|minimal\|<file>\|none] [--dry-run]` | Create a design system folder (or a flat file with `--out`) with an allow section; a brand source runs Texuli's generator and reports losses and AA repairs ([Create from your brand](#create-from-your-brand)) |
 | `ds list` | Every design system with its approval, lockability, component count and bound prototypes |
 | `ds validate <id\|file> [--strict]` | Validate and compile; check `allow` against the catalog; report approval, lockability and component drift; print Texuli's full check as `full` (`--strict` fails on its errors) |
+| `ds extensions [--out <dir>]` | Protoyard's catalog extensions as Texuli extension files, for `texuli ds check <document> --locked --extensions <file>` so Texuli's check accepts the same `protoyard:` allow keys |
 | `ds approve <id> --by <name> [--release <semver> [--changelog <text>]]` | Approve it in the document (a human, never an MCP tool); `--release` also records the release |
 | `ds release <id> [--changelog <text>]` | Record the approved version as `releases/<version>.json` |
 | `ds versions <id>` | The releases and where the document stands |
