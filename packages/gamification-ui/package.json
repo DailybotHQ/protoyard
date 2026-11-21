@@ -24,10 +24,10 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.64.0",
+    "@lucide/svelte": "^1.74.0",
     "@protoyard/gamification": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "texuli": "0.17.4"
+    "texuli": "0.18.0"
   },
   "devDependencies": {
     "svelte": "^5.57.3"

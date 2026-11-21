@@ -32,23 +32,23 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.12",
-    "@astrojs/svelte": "^9.1.2",
-    "@lucide/svelte": "^1.64.0",
+    "@astrojs/svelte": "^9.1.6",
+    "@lucide/svelte": "^1.74.0",
     "@protoyard/blueprint": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/player": "workspace:*",
     "@protoyard/themes": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "@tailwindcss/vite": "^4.3.3",
-    "@texuli/astro": "0.17.4",
-    "@texuli/tokens": "0.17.4",
-    "astro": "^7.4.4",
+    "@tailwindcss/vite": "^4.3.5",
+    "@texuli/astro": "0.18.0",
+    "@texuli/tokens": "0.18.0",
+    "astro": "^7.4.12",
     "svelte": "^5.57.3",
-    "tailwindcss": "^4.3.3",
-    "texuli": "0.17.4"
+    "tailwindcss": "^4.3.5",
+    "texuli": "0.18.0"
   },
   "devDependencies": {
-    "axe-core": "^4.14.0"
+    "axe-core": "^4.14.1"
   },
   "publishConfig": {
     "access": "public"
