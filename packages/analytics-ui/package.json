@@ -51,18 +51,18 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.64.0",
+    "@lucide/svelte": "^1.79.0",
     "@protoyard/analytics": "workspace:*",
     "@protoyard/charts-ui": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "@texuli/charts": "0.17.4",
-    "@texuli/data": "0.17.4",
-    "@texuli/date": "0.17.4",
-    "texuli": "0.17.4"
+    "@texuli/charts": "0.18.0",
+    "@texuli/data": "0.18.0",
+    "@texuli/date": "0.18.0",
+    "texuli": "0.18.0"
   },
   "devDependencies": {
-    "svelte": "^5.57.3"
+    "svelte": "^5.59.1"
   },
   "peerDependencies": {
     "svelte": "^5.57.0"
